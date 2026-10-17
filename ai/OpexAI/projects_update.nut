@@ -60,9 +60,6 @@ function OpexC121PlanTouchesTowns(project, towns)
 function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capitalBudget, fleetPlan = null, abandonedPairs = null, airTouchedTowns = null, railReadyStock = null)
 {
   local spIncr = PROBE_SPAN_TRACE ? OpexSpanBegin("select.incremental") : null;
-  if (C80_RAIL_STOCK_GATE && railReadyStock == null && projects != null && ("railReadyStock" in projects)) {
-    railReadyStock = projects.railReadyStock;
-  }
   local airBuilt = airTouchedTowns != null && airTouchedTowns.len() > 0;
   local b6BudgetDate = AIDate.GetCurrentDate();
   local stats = {
@@ -194,7 +191,6 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
     stats.odProjects++;
     foreach (project in list) alternatives.push(project);
   }
-  if (C80_RAIL_STOCK_GATE) alternatives = OpexRailStockMergeAlternatives(alternatives, railReadyStock, stats);
   if ((MODE_AIR && MODE_RAIL) && !C121_CATALOG_FIRST_YEAR_ACTIVE) {
     if (railReadyStock == null && ("railReadyStock" in projects) && projects.railReadyStock != null)
       railReadyStock = projects.railReadyStock;
@@ -260,8 +256,7 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
   projects.capitalBudget = capitalBudget;
   projects.capitalRemaining = remaining;
   projects.candidateGroups = newWinners;
-  if (C80_RAIL_STOCK_GATE) projects.railReadyStock <- railReadyStock;
-  else if ((MODE_AIR && MODE_RAIL) && railReadyStock != null) {
+  if ((MODE_AIR && MODE_RAIL) && railReadyStock != null) {
     if ("railReadyStock" in projects) projects.railReadyStock = railReadyStock;
     else projects.railReadyStock <- railReadyStock;
   }

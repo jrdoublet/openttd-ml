@@ -332,10 +332,8 @@ function OpexBuildAirRoute(catalog, budget, plan)
       result.error = airportErrorB;
       result.errorText = airportErrorTextB;
     }
-    /* Même politique historique avec le réglage 0. La variante ne liquide
-     * qu'un A NEUF de newpair quand B échoue : aucun hub partagé touché. */
-    local keepOrphan = (AIGameSettings.GetValue("economy.infrastructure_maintenance") == 0)
-        && !(AIR_BFAIL_DISPOSE_ORPHAN && !reuseA && !reuseB);
+    /* A neuf conservé si l'entretien d'infra est coupé (politique historique). */
+    local keepOrphan = (AIGameSettings.GetValue("economy.infrastructure_maintenance") == 0);
     if (!keepOrphan) {
       result.recoveryTraceId = OpexAirRollback(reuseA ? null : airportA, null, []);
     } else result.orphanRetained = !reuseA;
@@ -382,9 +380,9 @@ function OpexBuildAirRoute(catalog, budget, plan)
   }
   if (spBuild != null) OpexSpanEnd(spBuild);
 
-  local airFlagsA = (AIR_FULL_LOAD == 1 || AIR_FULL_LOAD == 2) ? AIOrder.OF_FULL_LOAD_ANY : AIOrder.OF_NONE;
+  local airFlagsA = AIOrder.OF_NONE;
   spBuild = PROBE_SPAN_TRACE ? OpexSpanBegin("build.air.orders") : null;
-  local airFlagsB = (AIR_FULL_LOAD == 1) ? AIOrder.OF_FULL_LOAD_ANY : AIOrder.OF_NONE;
+  local airFlagsB = AIOrder.OF_NONE;
   local okOrderA = AIOrder.AppendOrder(plane, airportA, airFlagsA);
   local errorA = okOrderA ? 0 : AIError.GetLastError();
   local okOrderB = AIOrder.AppendOrder(plane, airportB, airFlagsB);

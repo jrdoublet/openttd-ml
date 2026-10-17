@@ -291,7 +291,7 @@ function OpexAI::_tryTownGrowth(year)
     local tgBuilt = this._tryTownGrowthCity(townId, year, anchor);
     if (tgCity != null) OpexLoopProfAdd(tgBuilt ? "tg_city_built" : "tg_city_nobuild", tgCity);
     if (tgBuilt) return true;
-    if (!C80_RAIL_STOCK_WORKER) this._advanceRailSearchThroughput();
+    this._advanceRailSearchThroughput();
   }
   return false;
 }

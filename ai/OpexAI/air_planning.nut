@@ -26,47 +26,6 @@ function OpexAirPairIsAbandoned(abandoned, siteA, siteB)
   return legacyReverse != canonical && (legacyReverse in abandoned);
 }
 
-/* EXP_AIR_HUB_PAIR_PREFILTER (globale false / setting 0 par defaut) :
- * index du seul predicat OpexAirTownCentersLinked, egal a la derniere
- * boucle de OpexAirBatchPlanStillLive. Centres commerciaux originA/B,
- * NON ancres, StationID, TownID ou villes de slot. Le contrat final est
- * symetrique et independant du cargo : ne pas ajouter de filtre cargo,
- * deadStreak ou scrapping ici, ni de fermeture transitive du reseau.
- * Aucune reservation des candidats : les variantes d'une paire encore
- * libre (sites, aeroports, moteurs, cargos) continuent toutes leur evaluation. */
-function OpexAirHubTownPairKey(tileA, tileB)
-{
-  if (tileA == null || tileB == null) return null;
-  return tileA <= tileB ? (tileA + "|" + tileB) : (tileB + "|" + tileA);
-}
-
-function OpexAirHubPairPrefilterLinked(ctx, tileA, tileB)
-{
-  if (ctx.lines == null || tileA == null || tileB == null) return false;
-  /* Paresseux : pas de scan sans paire hub eligible. ctx est neuf a CHAQUE
-   * appel OpexAirPlans, y compris chaque reprise. Jamais dans resumeState,
-   * un plan, une globale ou Save. Les lignes Opex ne mutent pas pendant
-   * cet appel synchrone ; une autre tranche reconstruit depuis ctx.lines.
-   * Partage entre bras/combos, pas entre contextes. La revalidation finale
-   * reste obligatoire apres toute evolution de la topologie. */
-  if (!("airHubTownPairs" in ctx)) {
-    local pairs = {};
-    foreach (line in ctx.lines) {
-      if (!("mode" in line) || line.mode != "air") continue;
-      local key = OpexAirHubTownPairKey(line.originA, line.originB);
-      if (key != null) pairs.rawset(key, true);
-    }
-    ctx.airHubTownPairs <- pairs;
-    if (DECISION_LOG || C69_BOTTLENECK_PROBE) {
-      local fields = "phase=index lines=" + ctx.lines.len() + " pairs=" + pairs.len()
-          + " target=" + ctx.targetTownId;
-      if (DECISION_LOG) OpexDecide("AIR_HUB_PAIR_PREFILTER", fields);
-      else OpexC78Log("AIR_HUB_PAIR_PREFILTER", fields);
-    }
-  }
-  return OpexAirHubTownPairKey(tileA, tileB) in ctx.airHubTownPairs;
-}
-
 /* C78 etape 2 : identification de la ville d'un hub aerien. */
 function OpexC78HubTownId(h)
 {
@@ -1360,18 +1319,6 @@ function OpexAirPlansHubToSite(ctx, combo, airport, plane)
       if (CATALOG_COST_ACTIVE != null) CATALOG_COST_ACTIVE.airHubSitePairs++;
       if (targetTownId >= 0
           && hub.town.id != targetTownId && site.town.id != targetTownId) continue;
-      if (EXP_AIR_HUB_PAIR_PREFILTER
-          && OpexAirHubPairPrefilterLinked(ctx, hub.town.tile, site.town.tile)) {
-        if (C69_BOTTLENECK_PROBE) {
-          OpexC73RecordExamined("air", 1);
-          OpexC73RecordRejection("air", "hubsite_pair_linked", 1);
-        }
-        if (c78Gen) {
-          local linkedDist = AIMap.DistanceManhattan(hub.town.tile, site.town.tile);
-          OpexC78Log("C78_AIRPAIR", "year=" + c78Year + " arm=hubsite combo=" + airport.type + ":" + plane.id + " townA=" + OpexC78HubTownId(hub) + " townB=" + site.town.id + " dist=" + linkedDist + " outcome=hubsite_pair_linked P=-1 C=-1 src=" + hub.town.tile + " dst=" + site.town.tile + " cargo=" + catalog.paxCargo);
-        }
-        continue;
-      }
       if (C83_FIXES && OpexAirTownCentersLinked(hub.town.tile, site.town.tile, lines)) {
         if (C69_BOTTLENECK_PROBE) OpexC73RecordRejection("air", "batch_plan_dead", 1);
         if (c78Gen) {
@@ -1539,15 +1486,6 @@ function OpexAirPlansHubToHub(ctx, combo, airport, plane)
       if (targetTownId >= 0
           && hub1.town.id != targetTownId && hub2.town.id != targetTownId) continue;
       if (C69_BOTTLENECK_PROBE) OpexC73RecordExamined("air", 1);
-      if (EXP_AIR_HUB_PAIR_PREFILTER
-          && OpexAirHubPairPrefilterLinked(ctx, hub1.town.tile, hub2.town.tile)) {
-        if (C69_BOTTLENECK_PROBE) OpexC73RecordRejection("air", "hubhub_pair_linked", 1);
-        if (c78Gen) {
-          local linkedDist = AIMap.DistanceManhattan(hub1.town.tile, hub2.town.tile);
-          OpexC78Log("C78_AIRPAIR", "year=" + c78Year + " arm=hub combo=" + airport.type + ":" + plane.id + " townA=" + OpexC78HubTownId(hub1) + " townB=" + OpexC78HubTownId(hub2) + " dist=" + linkedDist + " outcome=hubhub_pair_linked P=-1 C=-1 src=" + hub1.town.tile + " dst=" + hub2.town.tile + " cargo=" + catalog.paxCargo);
-        }
-        continue;
-      }
       local st1 = hub1.stationId;
       local st2 = hub2.stationId;
       local alreadyConnected = false;

@@ -529,10 +529,6 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
     stats.odProjects++;
     foreach (project in list) alternatives.push(project);
   }
-  if (C80_RAIL_STOCK_GATE) {
-    alternatives = OpexRailStockMergeAlternatives(alternatives, railReadyStock, stats);
-    if (C80_RAIL_STOCK_WORKER) winners = OpexRailStockStripCandidateGroups(winners);
-  }
   if ((MODE_AIR && MODE_RAIL) && !C121_CATALOG_FIRST_YEAR_ACTIVE) {
     alternatives = OpexRailPrepMergeAlternatives(alternatives, railReadyStock);
   }
@@ -597,8 +593,7 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
     generationStage = generationStage,
     freightCargo = freightCargo,
   };
-  if (C80_RAIL_STOCK_GATE) ret.railReadyStock <- railReadyStock;
-  else if ((MODE_AIR && MODE_RAIL) && railReadyStock != null) ret.railReadyStock <- railReadyStock;
+  if ((MODE_AIR && MODE_RAIL) && railReadyStock != null) ret.railReadyStock <- railReadyStock;
   if (C69_BOTTLENECK_PROBE) {
     ret.c69Best <- ::C69_LAST_AFFORDABLE;
     ret.c69KDecData <- ::C69_LAST_KDEC_DATA;

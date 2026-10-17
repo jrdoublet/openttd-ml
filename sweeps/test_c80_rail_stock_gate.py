@@ -27,23 +27,14 @@ class TestC80RailStockGateContract(unittest.TestCase):
         cls.task_rail = _read("ai/OpexAI/task_rail.nut")
 
     def test_setting_declared_in_info_nut(self):
-        self.assertIn('name = "c80_rail_stock_gate"', self.info)
-        start = self.info.index('name = "c80_rail_stock_gate"')
-        block = self.info[start:self.info.index("});", start)]
-        self.assertIn("flags = AICONFIG_BOOLEAN", block)
-        self.assertIn("custom_value = 0", block)
-        self.assertIn("easy_value = 0", block)
-        self.assertIn("medium_value = 0", block)
-        self.assertIn("hard_value = 0", block)
+        self.assertNotIn('name = "c80_rail_stock_gate"', self.info)
 
     def test_global_declared_in_globals_pre_nut(self):
-        self.assertIn("C80_RAIL_STOCK_GATE <- false;", self.globals)
+        self.assertNotIn("C80_RAIL_STOCK_GATE", self.globals)
 
     def test_setting_loaded_in_settings_nut(self):
-        self.assertIn(
-            'C80_RAIL_STOCK_GATE = AIController.GetSetting("c80_rail_stock_gate") != 0;',
-            self.settings,
-        )
+        self.assertNotIn("c80_rail_stock_gate", self.settings)
+        self.assertNotIn("C80_RAIL_STOCK_GATE", self.settings)
 
     def test_member_declared_and_initialized_in_main_nut(self):
         self.assertIn("_railReadyStock = null;", self.main)
@@ -53,23 +44,18 @@ class TestC80RailStockGateContract(unittest.TestCase):
         self.assertIn("this._railReadyStock = {};", self.persist)
 
     def test_projects_gate_in_projects_nut(self):
-        self.assertIn("function OpexRailProjectHasReadyRoute(project, railReadyStock)", self.projects)
-        self.assertIn("C80_RAIL_STOCK_GATE", self.projects)
-        self.assertIn("if (!OpexRailProjectHasReadyRoute(project, railReadyStock)) continue;", self.projects)
+        self.assertNotIn("function OpexRailProjectHasReadyRoute(project, railReadyStock)", self.projects)
+        self.assertNotIn("C80_RAIL_STOCK_GATE", self.projects)
+        self.assertNotIn("OpexFilterRailStockGate", self.projects)
 
     def test_task_projects_passes_rail_ready_stock(self):
         self.assertIn("this._railReadyStock", self.task_projects)
 
     def test_task_rail_no_start_rail_search_under_gate(self):
-        # 1. Rejet propre "no_ready_route" sans appel de _startRailSearch
-        self.assertIn('reason = "no_ready_route"', self.task_rail)
-        self.assertIn('return { outcome = "rejected", discards = passDiscards };', self.task_rail)
-        # 2. Vérification que C80_RAIL_STOCK_GATE est présent avant chaque appel à this._startRailSearch
+        self.assertNotIn("C80_RAIL_STOCK_GATE", self.task_rail)
+        self.assertNotIn('reason = "no_ready_route"', self.task_rail)
         call_sites = [m.start() for m in re.finditer(r"this\._startRailSearch", self.task_rail)]
         self.assertEqual(len(call_sites), 1, "Il doit y avoir exactement 1 site d appel à this._startRailSearch (chaine V88 retiree en V232)")
-        for idx in call_sites:
-            preceding_context = self.task_rail[max(0, idx - 2000):idx]
-            self.assertIn("C80_RAIL_STOCK_GATE", preceding_context, f"Site _startRailSearch à l'offset {idx} doit être gardé par C80_RAIL_STOCK_GATE")
 
 
 if __name__ == "__main__":

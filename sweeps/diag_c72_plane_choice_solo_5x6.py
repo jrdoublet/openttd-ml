@@ -40,14 +40,8 @@ DEFAULT_SEEDS = (100, 12345, 42, 7, 999)
 
 ARMS = (
     ("c72_0", ()),
-    ("c72_1", (("c72_plane_choice", 1),)),
-    ("c72_2", (("c72_plane_choice", 2),)),
 )
-PAIRS = (
-    ("c72_1", "c72_0"),
-    ("c72_2", "c72_0"),
-    ("c72_2", "c72_1"),
-)
+PAIRS = ()
 
 VEHICLE_VARIANT_BY_MODE = {
     "rail": "train",

@@ -2504,13 +2504,11 @@ function OpexAI::_mainLoopProfiled()
       if (spResume != null) OpexSpanEnd(spResume);
       OpexLoopProfAdd(continued ? "catalog_continuation" : "catalog_continuation_check", mark);
     }
-    if (!C80_RAIL_STOCK_WORKER) {
-      mark = OpexOpsMeasureBegin();
-      local spAstar = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.astar_v89") : null;
-      this._advanceRailSearchThroughput();
-      if (spAstar != null) OpexSpanEnd(spAstar);
-      OpexLoopProfAdd("rail_throughput", mark);
-    }
+    mark = OpexOpsMeasureBegin();
+    local spAstar = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.astar_v89") : null;
+    this._advanceRailSearchThroughput();
+    if (spAstar != null) OpexSpanEnd(spAstar);
+    OpexLoopProfAdd("rail_throughput", mark);
     if (C67_SLACK_HOOK) {
       mark = OpexOpsMeasureBegin();
       local spC67 = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.c67") : null;

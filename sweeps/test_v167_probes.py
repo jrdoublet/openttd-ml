@@ -45,13 +45,13 @@ ALL_EXCEPT_CHECKS = 254   # 2 | 4 | 8 | 16 | 32 | 64 | 128
 LOG_BITS = 508            # 4 | 8 | 16 | 32 | 64 | 128 | 256
 # reglages nommes « shadow »/« diagnostic » mais qui changent des decisions : jamais groupes
 DECISION_CHANGING = (
-    "air_bfail_dispose_orphan",
 )
 REMOVED_DECISION_SETTINGS = (
     "air_site_quote_keep_legacy_margin",
     "air_site_cost_quote",
     "air_site_cost_margin_pct",
     "air_batch_town_reserve",
+    "air_bfail_dispose_orphan",
 )
 
 

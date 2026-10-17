@@ -22,8 +22,6 @@ AIR_MAX_PLANES_PER_ROUTE <- 16;
 AIR_PLAN_DIAG_SEQ <- 0;
 /* Plafond de distance aerienne (0 = illimite, docs/taches.md C6 supprime) */
 AIR_MAX_DISTANCE <- 0;
-/* Ordre de chargement passagers aerien (0 = aucun, 1 = deux extremites, 2 = premiere extremite seulement, comme AAAHogEx) */
-AIR_FULL_LOAD <- 0;
 /* Cache de sites d'aeroport par ville et type d'aeroport (C33.1) */
 AIR_SITE_CACHE_ENABLED <- true;
 AIR_SITE_CACHE <- {};

@@ -584,7 +584,6 @@ class OpexAI extends AIController {
   function _advanceRailSearchSliceWithLedgers();
   function _c77EnqueueEntity(modes, entityKind = null, entityId = -1, buildAfter = false,
                              reason = "event");
-  function _v127IdleCashRoadRegen(ym);
   function _v217RailRefill();
   function _c77RefreshModeCatalog(mode);
   function _c77InjectSubsidy(subId);
@@ -596,12 +595,9 @@ class OpexAI extends AIController {
   function _advanceRailSearchThroughput(maxSlices = -1);
   function _v89TrackSearchDays(now);
   function _logC89AnnualRail(year);
-  function _updateRailStockSelectionThreshold();
-  function _tryStartRailStockWorker();
   function _startRailStockSearch(candidate, isRepair = false, repairReason = null, coarseScore = null);
   function _handleRailStockSearchTimeout();
   function _handleRailStockSearchCompleted();
-  function _checkRailStockExpiry();
   function _revalidateRailStockPlan(candidate, plan);
   function _v131RepairIsPending(plan);
   function _v131RepairExhausted(plan);
@@ -743,11 +739,6 @@ function OpexAI::Start()
     this._c76RunSelfTest();
   }
   if (spSelf != null) OpexSpanEnd(spSelf);
-  if (C80_RAIL_STOCK_GATE && C80_RAIL_STOCK_WORKER) {
-    ::OpexPromoteLiveDefensiveAirBase <- ::OpexPromoteLiveDefensiveAir;
-    ::OpexPromoteLiveDefensiveAir = ::OpexPromoteLiveDefensiveAirStock;
-    this._tryStartRailStockWorker();
-  }
 
   if (PROBE_LOOP_OPS) this._mainLoopProfiled();
   while (true) {
@@ -804,7 +795,7 @@ function OpexAI::Start()
       if (spResume != null) OpexSpanEnd(spResume);
     }
     local spAstar = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.astar_v89") : null;
-    if (!C80_RAIL_STOCK_WORKER) this._advanceRailSearchThroughput();
+    this._advanceRailSearchThroughput();
     if (spAstar != null) OpexSpanEnd(spAstar);
     if (C67_SLACK_HOOK) {
       local spC67 = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.c67") : null;

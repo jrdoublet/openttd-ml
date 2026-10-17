@@ -22,7 +22,7 @@ def _read(rel: str) -> str:
 class ReviewR6R10ContractsTest(unittest.TestCase):
     def test_r6_worker_settings_remain_loaded(self):
         settings = _read("ai/OpexAI/settings.nut")
-        self.assertIn('AIController.GetSetting("c80_worker_rail")', settings)
+        self.assertNotIn('AIController.GetSetting("c80_worker_rail")', settings)
         self.assertNotIn('GetSetting("c80_double_register")', settings)
         self.assertIn('AIController.GetSetting("c80_worker_town")', settings)
 

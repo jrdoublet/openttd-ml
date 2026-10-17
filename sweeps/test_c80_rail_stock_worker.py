@@ -30,23 +30,17 @@ class TestC80RailStockWorkerContract(unittest.TestCase):
         cls.scheduler = _read("ai/OpexAI/scheduler.nut")
 
     def test_setting_declared_in_info_nut(self):
-        self.assertIn('name = "c80_rail_stock_worker"', self.info)
-        start = self.info.index('name = "c80_rail_stock_worker"')
-        block = self.info[start:self.info.index("});", start)]
-        self.assertIn("flags = AICONFIG_BOOLEAN", block)
-        self.assertIn("custom_value = 0", block)
-        self.assertIn("easy_value = 0", block)
-        self.assertIn("medium_value = 0", block)
-        self.assertIn("hard_value = 0", block)
+        self.assertNotIn('name = "c80_rail_stock_worker"', self.info)
+        self.assertNotIn('name = "c80_rail_stock_gate"', self.info)
 
     def test_global_declared_in_globals_pre_nut(self):
-        self.assertIn("C80_RAIL_STOCK_WORKER <- false;", self.globals)
+        self.assertNotIn("C80_RAIL_STOCK_WORKER", self.globals)
+        self.assertNotIn("C80_RAIL_STOCK_GATE", self.globals)
 
     def test_setting_loaded_with_gate_dependency_in_settings_nut(self):
-        self.assertIn(
-            'C80_RAIL_STOCK_WORKER = C80_RAIL_STOCK_GATE && (AIController.GetSetting("c80_rail_stock_worker") != 0);',
-            self.settings,
-        )
+        self.assertNotIn("c80_rail_stock_worker", self.settings)
+        self.assertNotIn("C80_RAIL_STOCK_WORKER", self.settings)
+        self.assertNotIn("C80_RAIL_STOCK_GATE", self.settings)
 
     def test_member_declared_and_initialized_in_main_nut(self):
         self.assertIn("_railStockCooldown = null;", self.main)
@@ -62,23 +56,21 @@ class TestC80RailStockWorkerContract(unittest.TestCase):
         self.assertIn('function OpexWorkerRailStockCancel(worker)', self.orchestrator)
 
     def test_orchestrator_tick_handles_rail_stock(self):
-        self.assertIn('ai._checkRailStockExpiry();', self.orchestrator)
+        self.assertNotIn("_checkRailStockExpiry", self.orchestrator)
         self.assertIn('this._activeWorker.kind == "rail_stock"', self.orchestrator)
-        self.assertIn('ai._tryStartRailStockWorker();', self.orchestrator)
+        self.assertNotIn("_tryStartRailStockWorker", self.orchestrator)
 
     def test_stock_capacity_n1_enforced(self):
-        self.assertIn("this._railReadyStock.len() >= 1", self.task_rail)
-        self.assertIn("this._railReadyStock.len() < 1", self.task_projects)
+        self.assertNotIn("function OpexAI::_tryStartRailStockWorker", self.task_rail)
+        self.assertNotIn("this._railReadyStock.len() < 1", self.task_projects)
 
     def test_duration_180_days_enforced(self):
-        # 1. Péremption stock 180 j
-        self.assertIn("age > 180", self.task_rail)
-        # 2. Timeout recherche 180 j
+        self.assertNotIn("age > 180", self.task_rail)
         self.assertIn("curDate - startDate > 180", self.orchestrator)
 
     def test_revalidation_mandatory_before_build(self):
         self.assertIn("function OpexAI::_revalidateRailStockPlan(candidate, plan)", self.task_rail)
-        self.assertIn("this._revalidateRailStockPlan(candidate, entry.plan)", self.task_rail)
+        self.assertIn("this._revalidateRailStockPlan(candidate, candidate.railPlan)", self.task_rail)
         # Contrat : _revalidateRailStockPlan n'appelle plus OpexBuildTrack mais OpexTestRailTrack
         start_reval = self.task_rail.index("function OpexAI::_revalidateRailStockPlan")
         end_reval = self.task_rail.index("\n}\n", start_reval) + 3
@@ -280,61 +272,51 @@ class TestC80RailStockWorkerContract(unittest.TestCase):
         self.assertNotIn("h0=", twin)
 
     def test_v89_throughput_interaction_documented_and_guarded(self):
-        # Le worker absorbe le reliquat et V89 cède sous C80_RAIL_STOCK_WORKER
-        self.assertNotIn("V89_RAIL_SEARCH_THROUGHPUT =", self.settings)
-        self.assertIn("if (C80_RAIL_STOCK_WORKER) return 0;", _read("ai/OpexAI/scheduler.nut"))
-        # Et le worker possède sa boucle interne sur reliquat
+        self.assertNotIn("C80_RAIL_STOCK_WORKER", self.settings)
         self.assertIn("minThreshold = (ai._v89EstimatedSliceOps > 1500) ? ai._v89EstimatedSliceOps : 1500;", self.orchestrator)
 
     def test_no_pending_under_gate_and_no_search_in_progress_when_plan_ready(self):
-        # Quand un plan prêt existe, _railSearch != null ne bloque plus
-        self.assertIn('RAIL_SEARCH_RESUMABLE && this._railSearch != null && !(("railPlan" in candidate) && candidate.railPlan != null)', self.task_rail)
-        # Sous la porte, _startRailSearch n'est pas appelé depuis _tryBuildRailProject
+        self.assertNotIn("C80_RAIL_STOCK_GATE", self.task_rail)
         call_sites = [m.start() for m in re.finditer(r"this\._startRailSearch", self.task_rail)]
         self.assertEqual(len(call_sites), 1, "Il doit y avoir exactement 1 site d appel à this._startRailSearch (chaine V88 retiree en V232)")
-        for idx in call_sites:
-            preceding_context = self.task_rail[max(0, idx - 2000):idx]
-            self.assertIn("C80_RAIL_STOCK_GATE", preceding_context)
 
     def test_traces_declared(self):
         required_traces = [
             "RAIL_STOCK_START",
             "RAIL_STOCK_DEPOSIT",
             "RAIL_STOCK_TIMEOUT",
+            "RAIL_STOCK_SCORE",
+            "RAIL_STOCK_REPAIR",
+        ]
+        source = self.task_rail + self.task_projects + self.projects
+        for trace in required_traces:
+            self.assertIn(f'"{trace}"', source)
+        for trace in (
             "RAIL_STOCK_EXPIRE",
             "RAIL_STOCK_CONSUME",
             "RAIL_STOCK_REVALIDATE_FAIL",
             "RAIL_STOCK_SELECT",
             "RAIL_STOCK_SKIP_BELOW_THRESHOLD",
-            "RAIL_STOCK_SCORE",
-            "RAIL_STOCK_REPAIR",
-        ]
-        for trace in required_traces:
-            self.assertIn(f'"{trace}"', self.task_rail + self.task_projects + self.projects)
+        ):
+            self.assertNotIn(f'"{trace}"', source)
 
     def test_stock_contains_complete_project_and_selection_replays_each_pass(self):
         self.assertIn("project = readyProject", self.task_rail)
         self.assertIn("OpexProjectFromCandidate(candidate)", self.task_rail)
-        self.assertIn("kept.push(entry.project)", self.projects)
-        assembly = self.projects[self.projects.index('OpexC56TaskLog("STAGE_ENTER", "c56_stage_assembly"'):]
-        self.assertNotRegex(assembly, r"foreach \(candidate in rail\.candidates\) \{\s*if \(C80_RAIL_STOCK_WORKER\)")
-        self.assertIn("OpexReselectProjects(projects, capitalBudget, ai._abandonedPairs, ai._lines, ai._railReadyStock)", self.projects)
-        self.assertIn("::OpexPromoteLiveDefensiveAir = ::OpexPromoteLiveDefensiveAirStock", self.main)
-        self.assertIn("this._projects.railStockAI <- this", self.task_projects)
-        self.assertIn("railStockFusionOpcodes", self.projects)
-        self.assertIn("this._railReadyStock[pairKey].project != project", self.task_rail)
+        self.assertNotIn("kept.push(entry.project)", self.projects)
+        self.assertNotIn("OpexPromoteLiveDefensiveAirStock", self.main)
+        self.assertNotIn("OpexPromoteLiveDefensiveAirStock", self.projects)
+        self.assertNotIn("this._projects.railStockAI <- this", self.task_projects)
+        self.assertNotIn("railStockFusionOpcodes", self.projects)
+        self.assertNotIn("this._railReadyStock[pairKey].project != project", self.task_rail)
 
     def test_coarse_score_and_selection_threshold_contract(self):
         # 1. Calcul du fundScore papier avec exactement les fonctions de la sélection
         self.assertIn("local paperProject = OpexProjectFromCandidate(candidate);", self.task_rail)
         self.assertIn("local paperFinanceCapital = OpexProjectFinanceCapital(paperProject);", self.task_rail)
         self.assertIn("local paperProfit = C70_PROFIT_CALIBRATED ? OpexCalibratedProfit(paperProject) : paperProject.profitAnnual;", self.task_rail)
-        self.assertIn("local coarseFundScore = OpexProjectScore(paperProfit, paperFinanceCapital);", self.task_rail)
-        # 2. Seuil mémorisé du dernier projet financé de la dernière sélection non vide
-        self.assertIn("local threshold = this._railStockLastFundedScore;", self.task_rail)
-        self.assertIn("local thresholdDate = this._railStockLastFundedDate;", self.task_rail)
-        self.assertIn("threshold > 0.0 && coarseFundScore < threshold", self.task_rail)
-        self.assertIn("threshold_date=", self.task_rail)
+        self.assertIn("coarseScore = OpexProjectScore(paperProfit, paperFinanceCapital);", self.task_rail)
+        self.assertNotIn("threshold > 0.0 && coarseFundScore < threshold", self.task_rail)
         # 3. Suppression intégrale de bestUnfundedScore et selectionReduced
         self.assertNotIn("bestUnfundedScore", self.task_rail)
         self.assertNotIn("selectionReduced", self.task_rail)
@@ -347,10 +329,7 @@ class TestC80RailStockWorkerContract(unittest.TestCase):
         self.assertIn("after=", self.task_rail)
 
     def test_repair_instead_of_abandon_contract(self):
-        # En cas d'échec de revalidation, tentative de relance A* pour la même paire
-        self.assertIn("local started = this._startRailStockSearch(candidate, true, reval.reason);", self.task_rail)
-        # Retrait uniquement si la recherche ne peut pas démarrer ou échoue
-        self.assertIn("if (!started)", self.task_rail)
+        self.assertNotIn("local started = this._startRailStockSearch(candidate, true, reval.reason);", self.task_rail)
         self.assertIn("isRepair", self.task_rail)
         self.assertIn("repairReason", self.task_rail)
         self.assertIn("issue=repaired", self.task_rail)

@@ -225,9 +225,7 @@ function OpexWorkerRailSearchStep(worker, opsBudget, deadlineTick)
     return "done";
   }
   ai._advanceRailSearchSliceWithLedgers();
-  if (!C80_RAIL_STOCK_WORKER) {
-    ai._advanceRailSearchThroughput();
-  }
+  ai._advanceRailSearchThroughput();
   if (ai._railSearch == null || ai._railSearch.phase != "search") {
     return "done";
   }
@@ -293,9 +291,6 @@ function OpexWorkerRailStockStep(worker, opsBudget, deadlineTick)
     ai._c121RailPrepYieldLogged = false;
   }
 
-  // 0. Expiration éventuelle du stock existant
-  ai._checkRailStockExpiry();
-
   // 1. Durée maximale d'une recherche : 180 jours de jeu (stock C80 seulement)
   local curDate = AIDate.GetCurrentDate();
   local startDate = ("startDate" in ai._railSearch) ? ai._railSearch.startDate : curDate;
@@ -344,9 +339,6 @@ function OpexWorkerRailStockCancel(worker)
       if ("pathfinder" in ai._railSearch && ai._railSearch.pathfinder != null) ai._railSearch.pathfinder = null;
       if ("segmented" in ai._railSearch && ai._railSearch.segmented != null) ai._railSearch.segmented = null;
       ai._railSearch = null;
-    }
-    if (ai._railReadyStock.len() < 1) {
-      ai._tryStartRailStockWorker();
     }
   }
 }
@@ -817,34 +809,6 @@ function OpexAI::_c77EnqueueEntity(modes, entityKind = null, entityId = -1, buil
   return true;
 }
 
-/* V127 : tresorerie oisive et vivier route affame. Passe par la file reactive C77 (tranche
- * regen_candidates, refresh catalogue du mode, build apres) plutot que par _c80DoModeRegen, qui
- * regenere de facon synchrone dans la tache catalogue et ne serait pas borne en opcodes. Au plus
- * une fois par mois. */
-function OpexAI::_v127IdleCashRoadRegen(ym)
-{
-  if (!V127_IDLE_CASH_ROAD_REGEN || this._projects == null) return;
-  if (V127_LAST_MONTH == ym) return;
-  V127_LAST_MONTH = ym;
-  local date = AIDate.GetCurrentDate();
-  if (V127_LAST_ROAD_REGEN_DATE < 0) V127_LAST_ROAD_REGEN_DATE = date;
-  local cash = OpexAvailableCapital();
-  if (cash <= V127_IDLE_CASH_MIN) return;
-  local pool = (("road" in this._projects) && this._projects.road != null
-                && ("candidates" in this._projects.road) && this._projects.road.candidates != null)
-      ? this._projects.road.candidates.len() : 0;
-  local age = date - V127_LAST_ROAD_REGEN_DATE;
-  local reason = pool < V127_ROAD_POOL_MIN ? "small_pool"
-      : (age >= V127_ROAD_MAX_AGE_DAYS ? "stale_pool" : null);
-  if (reason == null) return;
-  if (!this._c77EnqueueEntity(["road"], null, -1, true, "v127_idle_cash")) return;
-  V127_LAST_ROAD_REGEN_DATE = date;
-  if (DECISION_LOG) {
-    OpexDecide("V127_ROAD_REGEN", "month=" + ym + " cash=" + cash + " pool=" + pool
-               + " age_days=" + age + " reason=" + reason);
-  }
-}
-
 /* V217 : tresorerie oisive et vivier rail vide. Diag rail7273 du 16/10 (20 parties x 5 ans,
  * multimodal) : le vivier rail n'est regenere qu'a la reconstruction complete (~1 par an, en
  * janvier) et pour UN cargo fret ; il est vide 32-36 % du temps en 1972-73 alors que la caisse
@@ -903,7 +867,7 @@ function OpexAI::_v217RailRefill()
    * rafraichir le catalogue ici (son curseur parcourt les villes) ; le catalogue du jour suffit,
    * comme pour _c76RotateFreight et la regeneration V149. */
   this._pruneAbandonedPairs(date);
-  this._projects.rawset("freightCargo", V183_RAIL_ALL_FREIGHT ? null : freightCargos[nextCargo]);
+  this._projects.rawset("freightCargo", freightCargos[nextCargo]);
   V217_REGEN_NO_PAX = (V217_RAIL_REFILL == 1);
   this._projects = OpexRegenerateModeProjects(this._projects, this._catalog, this._budget,
       this._lines, this._abandonedPairs, "rail", null, null, -1);
@@ -1466,7 +1430,7 @@ function OpexAI::_c76RotateFreight(year)
     }
   }
   local mark = C39_INVALIDATION_PROBE ? OpexOpsMeasureBegin() : null;
-  this._projects.rawset("freightCargo", V183_RAIL_ALL_FREIGHT ? null : freightCargos[nextCargo]);
+  this._projects.rawset("freightCargo", freightCargos[nextCargo]);
   /* Rail d'abord : son repli sur un cargo sans candidat publie le cargo reel, que la route
    * reprend ensuite. Chaque appel se termine par OpexReselectProjects. */
   foreach (mode in ["rail", "road"]) {

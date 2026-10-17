@@ -1802,9 +1802,9 @@ function OpexAI::_tryBuildProjects(year)
         if (!C75_MULTI_BUILD && builtCount >= maxBatch) break;
       }
     }
-    if (!C80_RAIL_STOCK_WORKER) this._advanceRailSearchThroughput();
+    this._advanceRailSearchThroughput();
   }
-  if (!C80_RAIL_STOCK_WORKER) this._advanceRailSearchThroughput();
+  this._advanceRailSearchThroughput();
   if (fallthroughProbeActive) {
     OpexC41ProjectsFallthroughLog("phase=exit invalidated="
         + (this._portfolioInvalidated ? 1 : 0) + " attempted=" + fallthroughAttempted
@@ -1857,11 +1857,7 @@ function OpexAI::_tryBuildProjects(year)
       local budgetNow = OpexAvailableCapital();
       local c76Mark = C39_INVALIDATION_PROBE ? OpexOpsMeasureBegin() : null;
       spPost = PROBE_SPAN_TRACE ? OpexSpanBegin("projects.post_regen.incremental") : null;
-      if (C80_RAIL_STOCK_GATE) {
-        if (C80_RAIL_STOCK_WORKER)
-          this._projects.candidateGroups = OpexRailStockStripCandidateGroups(this._projects.candidateGroups);
-        this._projects = OpexIncrementalUpdateProjects(this._projects, this._catalog, this._budget, this._lines, budgetNow, fleetPlan, this._abandonedPairs, airTouchedTowns, this._railReadyStock);
-      } else if ((MODE_AIR && MODE_RAIL)) {
+      if ((MODE_AIR && MODE_RAIL)) {
         this._projects = OpexIncrementalUpdateProjects(this._projects, this._catalog, this._budget, this._lines, budgetNow, fleetPlan, this._abandonedPairs, airTouchedTowns, this._railReadyStock);
       } else {
         this._projects = OpexIncrementalUpdateProjects(this._projects, this._catalog, this._budget, this._lines, budgetNow, fleetPlan, this._abandonedPairs, airTouchedTowns);
@@ -1870,7 +1866,6 @@ function OpexAI::_tryBuildProjects(year)
       if (PROBE_SPAN_TRACE && airTouchedTowns != null && airTouchedTowns.len() > 0) {
         OpexSpanEvent("c121_deferred_regen", "towns=" + airTouchedTowns.len());
       }
-      if (C80_RAIL_STOCK_WORKER && C80_RAIL_STOCK_GATE) this._updateRailStockSelectionThreshold();
       if (C39_INVALIDATION_PROBE) {
         local c76Ops = OpexOpsMeasureEnd(c76Mark);
         local c76Days = (c76Ops + 93000) / 186000;
@@ -1911,9 +1906,6 @@ function OpexAI::_tryBuildProjects(year)
              + this._projects.stats.selectedCapital + "|B" + builtCount);
     /* L'abandon a maintenant ete consomme par la reelection/reconstruction. */
     if (hadAbandons) this._hadAbandonsThisPass = false;
-    if (C80_RAIL_STOCK_GATE && C80_RAIL_STOCK_WORKER && this._activeWorker == null && this._railReadyStock.len() < 1) {
-      this._tryStartRailStockWorker();
-    }
     if (spPass != null) {
       local stopTok = c75StopReason != null ? c75StopReason : (builtCount > 0 ? "built" : "list_end");
       OpexSpanEvent("projects_stop", "reason=" + stopTok);
@@ -1925,9 +1917,6 @@ function OpexAI::_tryBuildProjects(year)
       if (spPrep != null) OpexSpanEnd(spPrep);
     }
     return true;
-  }
-  if (C80_RAIL_STOCK_GATE && C80_RAIL_STOCK_WORKER && this._activeWorker == null && this._railReadyStock.len() < 1) {
-    this._tryStartRailStockWorker();
   }
   if (spPass != null) {
     local stopTokIdle = c75StopReason != null ? c75StopReason : (builtCount > 0 ? "built" : "list_end");
@@ -2010,17 +1999,7 @@ function OpexAI::_rebuildProjects(fleetPlan, airOverride = null, advanceStage = 
     }
   }
   /* V183 : tous les cargos fret dans la meme passe (null = pas de filtre de cargo). */
-  if (V183_RAIL_ALL_FREIGHT) freightCargo = null;
-  if (C80_RAIL_STOCK_GATE) {
-    this._projects = OpexBuildProjects(this._catalog, this._budget, this._lines,
-        fleetPlan, this._abandonedPairs, stage, prior,
-        freightCargo, freightCargos, this._activeSubsidies,
-        airOverride, this._railReadyStock);
-    if (C80_RAIL_STOCK_WORKER) {
-      this._projects.railStockAI <- this;
-      this._updateRailStockSelectionThreshold();
-    }
-  } else if ((MODE_AIR && MODE_RAIL)) {
+  if ((MODE_AIR && MODE_RAIL)) {
     this._projects = OpexBuildProjects(this._catalog, this._budget, this._lines,
         fleetPlan, this._abandonedPairs, stage, prior,
         freightCargo, freightCargos, this._activeSubsidies,

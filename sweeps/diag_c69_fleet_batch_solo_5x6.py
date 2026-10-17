@@ -40,13 +40,9 @@ DEFAULT_SEEDS = (100, 12345, 42, 7, 999)
 
 ARMS = (
     ("default", ()),
-    ("fleet", (("c69_fleet_demand_batch", 1),)),
     ("c70_c69", (("c70_mode_calibration", 1), ("c69_decision_bottleneck", 1))),
-    ("c70_c69_fleet", (("c70_mode_calibration", 1), ("c69_decision_bottleneck", 1), ("c69_fleet_demand_batch", 1))),
 )
 PAIRS = (
-    ("fleet", "default"),
-    ("c70_c69_fleet", "c70_c69"),
     ("c70_c69", "default"),
 )
 

@@ -85,7 +85,7 @@ class TestC121RailPrepAndOneOrTwoSettings(unittest.TestCase):
         self.assertIn("this._railSearch.isC121RailPrep <- true;", prep)
         merge = source("projects_generation.nut").split(
             "function OpexRailPrepMergeAlternatives(", 1)[1].split(
-            "function OpexRailStockMergeAlternatives(", 1)[0]
+            "function OpexProjectAttemptKey(", 1)[0]
         self.assertNotIn("OpexFilterRailStockGate", merge)
         self.assertIn('!(MODE_AIR && MODE_RAIL) || C121_CATALOG_FIRST_YEAR_ACTIVE', merge)
         for name in ("projects.nut", "projects_update.nut", "projects_selection.nut"):

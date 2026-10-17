@@ -1,10 +1,7 @@
 """Diagnostic C81 / C82 en solo pur (chargement complet et calibration par moteur).
 
 Bras :
-* ``base`` : OpexAI au défaut (air_full_load=0, c82_engine_calibration=0) ;
-* ``fl1``  : air_full_load=1 (plein chargement aux deux aéroports) ;
-* ``fl2``  : air_full_load=2 (plein chargement au premier aéroport seulement, défaut AAAHogEx) ;
-* ``c82``  : c82_engine_calibration=1 (calibration du profit prédit par moteur d'avion).
+* ``base`` : OpexAI au défaut.
 
 Option --probe : ajoute probe_portfolio=1 à tous les bras.
 Paires : chaque bras contre base (fl1-base, fl2-base, c82-base).
@@ -79,10 +76,8 @@ DEFAULT_WORKERS = 3
 
 ARM_SPECS = {
     "base": (),
-    "fl1": (("air_full_load", 1),),
-    "fl2": (("air_full_load", 2),),
 }
-DEFAULT_ARMS = ("base", "fl1", "fl2")
+DEFAULT_ARMS = ("base",)
 
 VEHICLE_VARIANT_BY_MODE = {
     "rail": "train",

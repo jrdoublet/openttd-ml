@@ -161,7 +161,6 @@ class TestV158BestReadersAudit(unittest.TestCase):
         "projects_rank_log.nut": "Loggers du classement de tête appelés post-rebuild ou post-construction",
         # Sous-fonctions de task_rail.nut appelées exclusivement depuis _tryBuildProjects
         "task_rail.nut:OpexAI::_tryBuildRailProject": "Appelé exclusivement depuis _tryBuildProjects (_buildCandidate)",
-        "task_rail.nut:OpexAI::_tryStartRailStockWorker": "Appelle _updateRailStockSelectionThreshold (protégé) et lit rail.best (sous-table mode)",
         # Post-rebuild / post-reselect directs
         "orchestrator.nut:OpexAI::_c76DoFullRegen": "Exécuté immédiatement après _rebuildProjects (resélection fraîche)",
         "scheduler_tasks.nut:OpexAI::_dispatchCatalog": "Exécuté immédiatement après _rebuildProjects, _c76RotateFreight ou OpexReselectProjects",

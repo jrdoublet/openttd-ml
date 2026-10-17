@@ -178,13 +178,6 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
-    AddSetting({
-      name = "c69_fleet_demand_batch",
-      description = "C69: allow air fleet expansion batch size to match measured waiting demand without the 4-plane cap; 1 = on, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
 
     AddSetting({
       name = "c69_decision_bottleneck",
@@ -204,16 +197,6 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
-      name = "c72_plane_choice",
-      description = "C72: air plane choice per route; 0 = max profit (C68, default), 1 = max ROI, 2 = max P/max(C, K_dec)",
-      min_value = 0, max_value = 2,
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      step_size = 1,
-      flags = 0
-    });
-
-    AddSetting({
       name = "c83_local_repair",
       description = "Experimental C83: repair only the threatened town airport site, reuse known partner sites; fall back to targeted regeneration if no valid partner is known",
       easy_value = 0, medium_value = 0, hard_value = 0,
@@ -224,14 +207,6 @@ class OpexAIInfo extends AIInfo {
     AddSetting({
       name = "c83_fixes",
       description = "C83 review fixes (contestable watch towns, slot-town identity, rearmable race, skip dead air pairs, targeted site scan): 1 = on, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "exp_air_hub_pair_prefilter",
-      description = "Experimental: skip hub pairs already linked by an AIR line before expensive route evaluation; default off",
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
       flags = AICONFIG_BOOLEAN
@@ -272,13 +247,6 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
-    AddSetting({
-      name = "air_bfail_dispose_orphan",
-      description = "BFAIL diagnostic: dispose of a newly built A via existing R19 rollback when B fails, even with infrastructure upkeep off; never removes reused hubs; 0 = retain (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
 
 
 
@@ -324,16 +292,6 @@ class OpexAIInfo extends AIInfo {
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
       flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "air_full_load",
-      description = "C81: air full-load orders; 0 = none (default), 1 = full load at both airports, 2 = full load at the first airport only (AAAHogEx default)",
-      min_value = 0, max_value = 2,
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      step_size = 1,
-      flags = 0
     });
 
     AddSetting({
@@ -405,16 +363,6 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
-      name = "v183_rail_all_freight",
-      description = "V183: rail freight generation covers every freight cargo at once instead of one cargo per pass; 0 = inert (default)",
-      min_value = 0, max_value = 1,
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      step_size = 1,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
       name = "v182_rail_freight_min_dist",
       description = "V182: minimum distance in tiles for rail freight candidates (generation filter); 0 = inert (default)",
       min_value = 0, max_value = 512,
@@ -469,13 +417,6 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
-    AddSetting({
-      name = "v171_rail_knots",
-      description = "V171: recalibrated rail A* iteration knot table (V2). 0 = historical V1 table (default); 1 = V2 table fitted on rail-vs-rail p90 iterations",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
 
     AddSetting({
       name = "v216_probe",
@@ -704,41 +645,9 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
-        AddSetting({
-      name = "rail_expand",
-      description = "Add one wagon to profitable saturated one-train rail lines: 1 = enabled, 0 = control (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
     AddSetting({
       name = "road_time_scaled_cap",
       description = "B3 experiment: scale pax road fleet cap from simultaneous berth capacity: 1 = test arm, 0 = historical cap (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "c80_worker_rail",
-      description = "C80 tranche 1: migrate A* rail search to execution register worker: 1 = enabled, 0 = disabled (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "c80_rail_stock_gate",
-      description = "C80 A* stock step 1: rail candidate is eligible only with ready route in _railReadyStock: 1 = enabled, 0 = disabled (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "c80_rail_stock_worker",
-      description = "C80 A* stock step 2: autonomous RailSearchStock worker (N=1) on slack: 1 = enabled, 0 = disabled (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
       flags = AICONFIG_BOOLEAN
@@ -921,15 +830,6 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
-    AddSetting({
-      name = "v127_idle_cash_road_regen",
-      description = "V127: under C121_CATALOG_INCREMENTAL, at most once a month, enqueue a road pool regeneration when idle cash exceeds 100000 and the road pool is small or 90 days old; 1 = on, 0 = off (default)",
-      min_value = 0, max_value = 1,
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      step_size = 1,
-      flags = AICONFIG_BOOLEAN
-    });
 
     AddSetting({
       name = "v139_feeder_bus",

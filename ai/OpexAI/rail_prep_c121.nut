@@ -222,8 +222,7 @@ function OpexC121RailPrepCandidateBlocked(ai, candidate, curDate)
   return false;
 }
 
-/* Un seul A*, le meilleur candidat encore libre. N'appelle pas
- * _tryStartRailStockWorker (celui-ci exige les reglages C80). */
+/* Un seul A*, le meilleur candidat encore libre. */
 function OpexAI::_tryStartC121RailPrepSearch()
 {
   if (!(MODE_AIR && MODE_RAIL)) return false;

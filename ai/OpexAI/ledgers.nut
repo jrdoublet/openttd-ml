@@ -317,7 +317,7 @@ function OpexAI::_schedIdlePreDispatch()
       this._schedIdlePredClass = "pred";
     }
   } else if (taskName == "expand") {
-    if (!RAIL_EXPAND && !RAIL_REFLEET) {
+    if (!RAIL_REFLEET) {
       this._schedIdlePredReason = "expand_disabled";
       this._schedIdlePredClass = "pred";
     }

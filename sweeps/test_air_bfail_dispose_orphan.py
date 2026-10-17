@@ -13,17 +13,17 @@ class BfailDisposalContract(unittest.TestCase):
                       ("globals_pre.nut", "info.nut", "settings.nut", "air_construction.nut", "air_recovery.nut")}
 
     def test_all_difficulties_default_off_and_loaded_once(self):
-        setting = self.source["info.nut"].split('name = "air_bfail_dispose_orphan",', 1)[1].split("});", 1)[0]
-        for field in ("easy", "medium", "hard", "custom"):
-            self.assertIn(f"{field}_value = 0", setting)
-        self.assertIn("AIR_BFAIL_DISPOSE_ORPHAN <- false;", self.source["globals_pre.nut"])
-        self.assertIn('AIR_BFAIL_DISPOSE_ORPHAN = AIController.GetSetting("air_bfail_dispose_orphan") != 0;',
-                      self.source["settings.nut"])
+        self.assertNotIn('name = "air_bfail_dispose_orphan"', self.source["info.nut"])
+        self.assertNotIn("AIR_BFAIL_DISPOSE_ORPHAN", self.source["globals_pre.nut"])
+        self.assertNotIn("air_bfail_dispose_orphan", self.source["settings.nut"])
+        self.assertNotIn("AIR_BFAIL_DISPOSE_ORPHAN", self.source["settings.nut"])
 
     def test_only_unreused_newpair_changes_and_calls_existing_recovery(self):
         construction = self.source["air_construction.nut"]
         failure = construction.split("if (airportB == null) {", 1)[1].split("if (PROBE_AIR_FINANCE_MARGIN && result.orphanRetained)", 1)[0]
-        self.assertIn("&& !(AIR_BFAIL_DISPOSE_ORPHAN && !reuseA && !reuseB)", failure)
+        self.assertNotIn("AIR_BFAIL_DISPOSE_ORPHAN", failure)
+        self.assertIn("local keepOrphan = (AIGameSettings.GetValue(\"economy.infrastructure_maintenance\") == 0);",
+                      failure)
         self.assertIn("result.recoveryTraceId = OpexAirRollback(reuseA ? null : airportA, null, []);", failure)
         self.assertIn("else result.orphanRetained = !reuseA;", failure)
         self.assertIn('result.reason = reuseB ? "HUBB" : "BFAIL";', failure)

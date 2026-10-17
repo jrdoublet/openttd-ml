@@ -40,17 +40,13 @@ class TestB5RailPersistence(unittest.TestCase):
 
     def test_approach_radius_is_defined_from_existing_local_window(self):
         self.assertIn("const RAIL_EXPAND_APPROACH_TILES = 8;", self.main)
-        self.assertEqual(self.rail.count("RAIL_EXPAND_APPROACH_TILES"), 2)
+        self.assertEqual(self.rail.count("RAIL_EXPAND_APPROACH_TILES"), 1)
         self.assertIn("maxDistance=8", self.main)
 
     def test_default_path_still_has_expansion_disabled(self):
-        setting = re.search(
-            r'name\s*=\s*"rail_expand".*?custom_value\s*=\s*(\d+)',
-            self.info,
-            re.S,
-        )
-        self.assertIsNotNone(setting)
-        self.assertEqual(setting.group(1), "0")
+        self.assertNotIn('name = "rail_expand"', self.info)
+        self.assertNotIn("RAIL_EXPAND <-", source("globals_pre.nut"))
+        self.assertNotIn('GetSetting("rail_expand")', source("settings.nut"))
 
     def test_expansion_descriptor_is_projected_and_contains_no_live_pathfinder(self):
         save_projection = function_body(self.persist, "function OpexSaveRailExpansion(state)")

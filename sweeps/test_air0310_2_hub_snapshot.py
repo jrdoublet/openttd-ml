@@ -247,7 +247,8 @@ class TestAir0310_2HubSnapshot(unittest.TestCase):
         ):
             self.assertIn(f"if ((ctx.air0310HubRestored || ctx.air0310HubSkip != null)", body)
             self.assertIn(needle, body)
-            self.assertLess(body.index(needle), body.index("if (EXP_AIR_HUB_PAIR_PREFILTER"))
+            self.assertLess(body.index(needle), body.index("if (targetTownId >= 0"))
+            self.assertNotIn("EXP_AIR_HUB_PAIR_PREFILTER", body)
         self.assertLess(
             self.hub_site.index("local site = sites[sj];"),
             self.hub_site.index('OpexAir0310SkipRestoredPair(ctx, airport, "hubsite"'),

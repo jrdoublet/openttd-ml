@@ -184,9 +184,7 @@ function OpexAI::_runNextTask()
          && this._railSearch.phase == "search"; extra++) {
       this._advanceRailSearchSliceWithLedgers();
     }
-    if (!C80_RAIL_STOCK_WORKER) {
-      this._advanceRailSearchThroughput();
-    }
+    this._advanceRailSearchThroughput();
   }
   local year = AIDate.GetYear(AIDate.GetCurrentDate());
   local task = null;
@@ -359,7 +357,7 @@ function OpexAI::_advanceRailSearchSliceWithLedgers()
       this._c39PassClockSliceOps = sliceOps;
     }
   } else {
-    local sliceMark = ((!C80_RAIL_STOCK_WORKER) && this._railSearch.phase == "search")
+    local sliceMark = (this._railSearch.phase == "search")
         ? OpexOpsMeasureBegin() : null;
     if (this._railSearch.phase == "search") spanSlice = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
     this._continueRailSearch();
@@ -417,7 +415,6 @@ function OpexAI::_logC89AnnualRail(year)
  * d'une tranche, chacune avec sa propre échéance locale via RAIL_MICRO_DEADLINE. */
 function OpexAI::_advanceRailSearchThroughput(maxSlices = -1)
 {
-  if (C80_RAIL_STOCK_WORKER) return 0;
   if (this._railSearch == null || this._railSearch.phase != "search") return 0;
   /* Hold pose seulement par la preparation C121 quand l'AIR est finançable.
    * Sans recherche en cours, la ligne precedente a deja rendu la main. */

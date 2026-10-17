@@ -114,7 +114,7 @@ class StaticContracts(unittest.TestCase):
         src = _read("task_rail.nut")
         self.assertIn("built.cargo2 <- candidate.cargo2;", src)
         self.assertIn("built.wagons2 <- candidate.wagons2;", src)
-        self.assertIn("line.wagons + OpexV163Wagons2(line) >= OpexRailNominalMaxWagons(line.platformLength)", src)
+        self.assertNotIn("line.wagons + OpexV163Wagons2(line) >= OpexRailNominalMaxWagons(line.platformLength)", src)
         self.assertEqual(src.count("OpexV163WagonsPrice(this._catalog, line)"), 2)
 
     def test_probe_decision_log_only(self):

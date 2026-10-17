@@ -18,8 +18,8 @@ from unittest import mock
 from sweeps import github_bench as bench
 
 
-VARIANT = "OpexAI[c80_worker_rail=1]"
-REFERENCE = "OpexAI[c80_worker_rail=0]"
+VARIANT = "OpexAI[c80_air_choice_memo=1]"
+REFERENCE = "OpexAI[c80_air_choice_memo=0]"
 
 
 class OpponentDownloadTests(unittest.TestCase):

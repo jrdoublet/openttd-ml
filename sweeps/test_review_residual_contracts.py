@@ -159,7 +159,8 @@ class ReviewResidualContractsTest(unittest.TestCase):
         second_flush = src.index('OpexDecide("PROJECT_DISCARD"', first_choice)
         second_choice = src.index('OpexDecide("PROJECT_CHOSEN"', second_flush)
         self.assertIn("passDiscards = [];", src[second_flush:second_choice])
-        self.assertIn("if (RAIL_EXPAND || RAIL_REFLEET) {", src)
+        self.assertIn("if (RAIL_REFLEET) {", src)
+        self.assertNotIn("RAIL_EXPAND || RAIL_REFLEET", src)
 
     def test_life_scrap_checks_sell_vehicle_success(self):
         src = _read("ai/OpexAI/task_report.nut")

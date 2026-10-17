@@ -85,8 +85,8 @@ function OpexAirRefleetCrashedPlane(line)
   }
   local plane = AIVehicle.BuildVehicleWithRefit(hangar, line.refleetEngine, line.cargo);
   if (!AIVehicle.IsValidVehicle(plane)) { result.reason = "BUILD"; return result; }
-  local flagsA = (AIR_FULL_LOAD == 1 || AIR_FULL_LOAD == 2) ? AIOrder.OF_FULL_LOAD_ANY : AIOrder.OF_NONE;
-  local flagsB = (AIR_FULL_LOAD == 1) ? AIOrder.OF_FULL_LOAD_ANY : AIOrder.OF_NONE;
+  local flagsA = AIOrder.OF_NONE;
+  local flagsB = AIOrder.OF_NONE;
   if (!AIOrder.AppendOrder(plane, line.stationA, flagsA) ||
       !AIOrder.AppendOrder(plane, line.stationB, flagsB) || AIOrder.GetOrderCount(plane) != 2) {
     AIVehicle.SellVehicle(plane); result.reason = "ORDER"; return result;

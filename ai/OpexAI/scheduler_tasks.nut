@@ -426,7 +426,7 @@ function OpexAI::_dispatchCatalog(task, year)
       CATALOG_COST_ACTIVE.refreshOps += OpexOpsMeasureEnd(catalogRefreshMark);
     } else this._catalog.refresh(this._budget, year);
   }
-  if (!C80_RAIL_STOCK_WORKER) this._advanceRailSearchThroughput();
+  this._advanceRailSearchThroughput();
   local fleetPlan = null;
   if (FLEET_PORTFOLIO) {
     /* Mode a blanc : meme decision que la tache air_fleet, sans achat ni test de tresorerie. */
@@ -471,7 +471,7 @@ function OpexAI::_dispatchCatalog(task, year)
       local spRebuild = PROBE_SPAN_TRACE ? OpexSpanBegin("catalog.rebuild") : null;
       this._rebuildProjects(fleetPlan);
       if (spRebuild != null) OpexSpanEnd(spRebuild);
-      if (!C80_RAIL_STOCK_WORKER) this._advanceRailSearchThroughput();
+      this._advanceRailSearchThroughput();
       if (C39_INVALIDATION_PROBE) {
         local c76Ops = OpexOpsMeasureEnd(c76Mark);
         local c76Days = (c76Ops + 93000) / 186000;
@@ -491,10 +491,8 @@ function OpexAI::_dispatchCatalog(task, year)
         local budgetNow = OpexAvailableCapital();
         this._projects = OpexReselectProjects(
             this._projects, budgetNow, this._abandonedPairs, this._lines);
-        if (C80_RAIL_STOCK_WORKER && C80_RAIL_STOCK_GATE) this._updateRailStockSelectionThreshold();
       }
       this._c76RecordAvoided(year);
-      if (V127_IDLE_CASH_ROAD_REGEN) this._v127IdleCashRoadRegen(ym);
       if (CATALOG_COST_ACTIVE != null) {
         CATALOG_COST_ACTIVE.path = "reselect";
         CATALOG_COST_ACTIVE.reselectOps += OpexOpsMeasureEnd(reselectMark);
@@ -512,7 +510,7 @@ function OpexAI::_dispatchCatalog(task, year)
     local spRebuildLeg = PROBE_SPAN_TRACE ? OpexSpanBegin("catalog.rebuild") : null;
     this._rebuildProjects(fleetPlan);
     if (spRebuildLeg != null) OpexSpanEnd(spRebuildLeg);
-    if (!C80_RAIL_STOCK_WORKER) this._advanceRailSearchThroughput();
+    this._advanceRailSearchThroughput();
     if (C39_INVALIDATION_PROBE) {
       local c76Ops = OpexOpsMeasureEnd(c76Mark);
       local c76Days = (c76Ops + 93000) / 186000;
@@ -521,7 +519,7 @@ function OpexAI::_dispatchCatalog(task, year)
   }
   this._lastCatalogMonth = ym;
   }
-  if (!C80_RAIL_STOCK_WORKER) this._advanceRailSearchThroughput();
+  this._advanceRailSearchThroughput();
   /* C39.5 : le vivier vient d'etre (re)genere. Horodater ici, et pas seulement au prochain
    * tour projects, pour que D2 mesure toute la fenetre de finançabilite. */
   if (C39_PROJECTS_CADENCE_PROBE) this._c39StampFinanceable();
@@ -983,7 +981,6 @@ function OpexAI::_dispatchAirFleet(task, year)
         local spInject = PROBE_SPAN_TRACE ? OpexSpanBegin("fleet.inject") : null;
         this._projects = OpexInjectFleetProjects(this._projects, fleetPlan, this._abandonedPairs, budgetNow, this._lines);
         if (spInject != null) OpexSpanEnd(spInject);
-        if (C80_RAIL_STOCK_WORKER && C80_RAIL_STOCK_GATE) this._updateRailStockSelectionThreshold();
         this._ranked = this._projects.rail;
       }
     }
@@ -1036,11 +1033,9 @@ function OpexAI::_dispatchProjects(task, year)
 }
 function OpexAI::_dispatchExpand(task, year)
 {
-  /* G6§1 : la tache portait UNIQUEMENT sur RAIL_EXPAND, alors que le bloc RAIL_REFLEET
-   * (second train, passage en double voie) vit a l'interieur de _expandRailLines. La desactiver
-   * sur !RAIL_EXPAND rendait donc rail_refleet injoignable malgre son defaut a 1.
-   * Desormais inconditionnel : on ne desactive que si les DEUX sont eteints. */
-  if (!RAIL_EXPAND && !RAIL_REFLEET) { task.enabled = false; if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle); return false; }
+
+  /* G6§1 : le bloc RAIL_REFLEET (second train, double voie) vit dans _expandRailLines. */
+  if (!RAIL_REFLEET) { task.enabled = false; if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle); return false; }
   this._expandRailLines(year);
   if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);
   return true;

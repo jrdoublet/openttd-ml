@@ -80,7 +80,6 @@ class HubPairSourceTests(unittest.TestCase):
         cls.planning = read("air_planning.nut")
         cls.linked = body(read("air_towns.nut"), "OpexAirTownCentersLinked")
         cls.final = body(read("task_air.nut"), "OpexAirBatchPlanStillLive")
-        cls.index = body(cls.planning, "OpexAirHubPairPrefilterLinked")
 
     def test_existing_final_pair_contract_matches_helper(self):
         loop = self.final[self.final.index("foreach (line in lines)"):]
@@ -100,48 +99,22 @@ class HubPairSourceTests(unittest.TestCase):
             self.assertNotIn(excluded, self.linked)
 
     def test_index_is_exact_direct_pair_set_not_candidate_reservation(self):
-        self.assertIn('if (!("mode" in line) || line.mode != "air") continue;', self.index)
-        self.assertIn("foreach (line in ctx.lines)", self.index)
-        self.assertIn("OpexAirHubTownPairKey(line.originA, line.originB)", self.index)
-        self.assertIn("if (key != null) pairs.rawset(key, true);", self.index)
-        self.assertIn("return OpexAirHubTownPairKey(tileA, tileB) in ctx.airHubTownPairs;", self.index)
-        for excluded in ("cargo", "deadStreak", "scrapping", "stationId", "anchor",
-                         "projects", "bestPlan", "C83_FIXES", "GetClosestTown", "AIStation"):
-            self.assertNotIn(excluded, self.index)
-        key = body(self.planning, "OpexAirHubTownPairKey")
-        self.assertIn("if (tileA == null || tileB == null) return null;", key)
-        self.assertIn('tileA <= tileB ? (tileA + "|" + tileB) : (tileB + "|" + tileA)', key)
+        self.assertNotIn("function OpexAirHubPairPrefilterLinked", self.planning)
+        self.assertNotIn("function OpexAirHubTownPairKey", self.planning)
+        self.assertNotIn("airHubTownPairs", self.planning)
 
     def test_cache_is_lazy_context_only_and_not_resumed(self):
-        self.assertIn('if (!("airHubTownPairs" in ctx))', self.index)
-        self.assertIn("ctx.airHubTownPairs <- pairs;", self.index)
-        self.assertIn("if (ctx.lines == null || tileA == null || tileB == null) return false;", self.index)
-        self.assertNotIn("resumeState", self.index)
-        self.assertNotIn("this.", self.index)
+        self.assertNotIn("airHubTownPairs", self.planning)
         entry = body(self.planning, "OpexAirPlans")
         self.assertIn("local ctx = {", entry)
         self.assertIn("lines = lines,", entry)
-        self.assertNotIn("airHubTownPairs", entry)
-        for name in ("OpexAirPlansPrepare", "OpexAirPlansFinalize"):
-            self.assertNotIn("airHubTownPairs", body(self.planning, name))
 
     def test_only_hub_arms_are_gated_before_expensive_work(self):
         source = code(self.planning)
-        self.assertEqual(source.count("if (EXP_AIR_HUB_PAIR_PREFILTER"), 2)
-        self.assertEqual(source.count("OpexAirHubPairPrefilterLinked("), 3)
-        for name, pair in (
-            ("OpexAirPlansHubToSite", "hub.town.tile, site.town.tile"),
-            ("OpexAirPlansHubToHub", "hub1.town.tile, hub2.town.tile"),
-        ):
-            arm = body(self.planning, name)
-            gate = arm.index("if (EXP_AIR_HUB_PAIR_PREFILTER")
-            self.assertRegex(arm, r"if \(EXP_AIR_HUB_PAIR_PREFILTER\s+&& OpexAirHubPairPrefilterLinked")
-            self.assertIn(f"OpexAirHubPairPrefilterLinked(ctx, {pair})", arm)
-            self.assertLess(arm.index("if (targetTownId >= 0"), gate)
-            self.assertLess(arm.index("ctx.resumeState."), gate)
-            for expensive in ("local orderDistance", "local flightDistance", "local routeChoice"):
-                self.assertLess(gate, arm.index(expensive))
-        for name in ("OpexAirPlansNewPairs", "OpexAirPlansFindSites", "OpexAirPlansDiscoverHubs"):
+        self.assertNotIn("EXP_AIR_HUB_PAIR_PREFILTER", source)
+        self.assertNotIn("OpexAirHubPairPrefilterLinked", source)
+        for name in ("OpexAirPlansHubToSite", "OpexAirPlansHubToHub",
+                     "OpexAirPlansNewPairs", "OpexAirPlansFindSites", "OpexAirPlansDiscoverHubs"):
             self.assertNotIn("EXP_AIR_HUB_PAIR_PREFILTER", body(self.planning, name))
 
     def test_off_keeps_c83_station_topology_and_second_slot_paths(self):
@@ -157,20 +130,15 @@ class HubPairSourceTests(unittest.TestCase):
         self.assertNotRegex(code(self.planning), r"C83_FIXES\s*(?:=|<-)")
 
     def test_probes_expose_index_and_rejections_without_new_global_ledger(self):
-        self.assertIn("if (DECISION_LOG || C69_BOTTLENECK_PROBE)", self.index)
-        self.assertIn('OpexDecide("AIR_HUB_PAIR_PREFILTER", fields)', self.index)
-        self.assertIn('OpexC78Log("AIR_HUB_PAIR_PREFILTER", fields)', self.index)
+        self.assertNotIn("AIR_HUB_PAIR_PREFILTER", self.planning)
         for name, reason, counter in (
             ("OpexAirPlansHubToSite", "hubsite_pair_linked", "airHubSitePairs"),
             ("OpexAirPlansHubToHub", "hubhub_pair_linked", "airHubHubPairs"),
         ):
             arm = body(self.planning, name)
-            self.assertIn(f'OpexC73RecordRejection("air", "{reason}", 1)', arm)
-            self.assertIn(f"outcome={reason}", arm)
-            self.assertIn("if (c78Gen)", arm)
-            self.assertIn('" cargo=" + catalog.paxCargo', arm)
-            self.assertLess(arm.index(f"CATALOG_COST_ACTIVE.{counter}++"),
-                            arm.index("if (EXP_AIR_HUB_PAIR_PREFILTER"))
+            self.assertNotIn(f'OpexC73RecordRejection("air", "{reason}", 1)', arm)
+            self.assertNotIn(f"outcome={reason}", arm)
+            self.assertIn(f"CATALOG_COST_ACTIVE.{counter}++", arm)
 
 
 class HubPairCoherenceTests(unittest.TestCase):

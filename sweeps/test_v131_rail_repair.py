@@ -180,17 +180,16 @@ class TestV131RailRepair(unittest.TestCase):
         )
         self.assertLess(prep_pending, prep_drop)
         self.assertLess(self.rail.index("if (V131_RAIL_REPAIR", prep), prep_pending)
+        self.assertNotIn("this._revalidateRailStockPlan(candidate, entry.plan)", self.rail)
         stock = self.rail.index(
-            "this._revalidateRailStockPlan(candidate, entry.plan)"
+            "this._revalidateRailStockPlan(candidate, candidate.railPlan)"
         )
         stock_pending = self.rail.index(
             'reval.reason == "v131_repair_pending"', stock
         )
-        stock_search = self.rail.index("this._startRailStockSearch(", stock)
-        self.assertLess(stock_pending, stock_search)
         self.assertIn("if (V131_RAIL_REPAIR", self.rail[stock:stock_pending])
         self.assertNotIn("duplicate_own_rail", self.rail[prep:prep_drop])
-        self.assertNotIn("duplicate_own_rail", self.rail[stock:stock_search])
+        self.assertNotIn("duplicate_own_rail", self.rail[stock:stock_pending])
 
     def test_repair_search_multi_slice_progress(self):
         continue_body = function_body(

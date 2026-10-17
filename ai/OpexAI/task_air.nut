@@ -886,7 +886,7 @@ function OpexAI::_resizeAirFleets(year, plan = null)
     /* C14 : Dimensionnement dynamique de flotte par le stock au sol (AAAHogEx route.nut:2896-2921).
      * Si AIR_FLEET_BUFFER >= 0 : calcule buildNum = (maxWait - bottom) / capacity.
      * Si buildNum < 1 : refus W (pas assez de cargo au sol).
-     * Sinon : autorise jusqu'a buildNum (c69_fleet_demand_batch) ou min(buildNum, 4) par defaut. */
+     * Sinon : autorise jusqu'a min(buildNum, 4). */
     if (c121BelowTarget) {
       /* C121 dimensionne sur flux + rating : attendre une capacite entiere au
        * sol cree une boucle morte (faible frequence -> faible rating -> faible
@@ -922,7 +922,7 @@ function OpexAI::_resizeAirFleets(year, plan = null)
         if (plan != null && C69_BOTTLENECK_PROBE) OpexC73RecordRejection("fleet", "low_stock_buffer", 1);
         continue;
       }
-      maxAddedPerPass = C69_FLEET_DEMAND_BATCH ? buildNum : ((buildNum < 4) ? buildNum : 4);
+      maxAddedPerPass = (buildNum < 4) ? buildNum : 4;
     }
     if (c121BelowTarget) {
       local targetNeed = line.targetAirPlanes - have;

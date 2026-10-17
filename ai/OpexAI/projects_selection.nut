@@ -1158,47 +1158,6 @@ function OpexPromoteLiveDefensiveAir(projects, capitalBudget)
   return chosen;
 }
 
-/* Active uniquement au demarrage sous les deux reglages C80. Le point d'appel
- * existant dans projects re-selectionne alors le registre courant avant C78. */
-function OpexPromoteLiveDefensiveAirStock(projects, capitalBudget)
-{
-  if (projects != null && ("candidateGroups" in projects) && ("railStockAI" in projects)) {
-    local ai = projects.railStockAI;
-    ai._checkRailStockExpiry();
-    OpexReselectProjects(projects, capitalBudget, ai._abandonedPairs, ai._lines, ai._railReadyStock);
-    ai._updateRailStockSelectionThreshold();
-    if (C56_TASK_TRACE) {
-      local funded = 0;
-      foreach (p in projects.best) if (p.mode == "rail") funded++;
-      local ready = ("railReadyStock" in projects) && projects.railReadyStock != null
-          ? projects.railReadyStock.len() : 0;
-      local extraLog = "";
-      if (ready > 0 && funded == 0) {
-        local lastFunded = (projects.best != null && projects.best.len() > 0)
-            ? projects.best[projects.best.len() - 1] : null;
-        local lastScore = (lastFunded != null && ("fundScore" in lastFunded)) ? lastFunded.fundScore : 0.0;
-        local lastCap = (lastFunded != null) ? OpexProjectFinanceCapital(lastFunded) : 0;
-        local railScore = 0.0;
-        local railCap = 0;
-        foreach (k, stockEntry in projects.railReadyStock) {
-          if (stockEntry != null && ("project" in stockEntry) && stockEntry.project != null) {
-            local rp = stockEntry.project;
-            railScore = ("fundScore" in rp) ? rp.fundScore : 0.0;
-            railCap = OpexProjectFinanceCapital(rp);
-            break;
-          }
-        }
-        extraLog = " rail_score=" + railScore + " rail_cap=" + railCap
-                 + " budget=" + capitalBudget + " last_score=" + lastScore + " last_cap=" + lastCap;
-      }
-      OpexC56TaskLog("RAIL_STOCK_SELECT", "projects", "-",
-          "ready=" + ready + " funded=" + funded
-          + " merge_ops=" + projects.stats.railStockFusionOpcodes + extraLog);
-    }
-  }
-  return OpexPromoteLiveDefensiveAirBase(projects, capitalBudget);
-}
-
 function OpexLogVivier(path, candidates, stats, capitalBudget, capitalRemaining)
 {
   if (!DECISION_LOG) return;
@@ -1343,9 +1302,6 @@ function OpexReselectProjects(projects, capitalBudget, abandonedPairs = null, li
     projects.selectionStale = false;
   }
   local spReselect = PROBE_SPAN_TRACE ? OpexSpanBegin("select.reselect") : null;
-  if (C80_RAIL_STOCK_GATE && railReadyStock == null && projects != null && ("railReadyStock" in projects)) {
-    railReadyStock = projects.railReadyStock;
-  }
   local b6BudgetDate = AIDate.GetCurrentDate();
   local funded = null;
   local considered = 0;
@@ -1357,7 +1313,6 @@ function OpexReselectProjects(projects, capitalBudget, abandonedPairs = null, li
   }
   if (spPubFlat != null) OpexSpanEnd(spPubFlat);
   local spPubMerge = PROBE_SPAN_TRACE ? OpexSpanBegin("pub.select.merge") : null;
-  if (C80_RAIL_STOCK_GATE) alternatives = OpexRailStockMergeAlternatives(alternatives, railReadyStock, projects.stats);
   if ((MODE_AIR && MODE_RAIL) && !C121_CATALOG_FIRST_YEAR_ACTIVE) {
     if (railReadyStock == null && ("railReadyStock" in projects) && projects.railReadyStock != null)
       railReadyStock = projects.railReadyStock;
@@ -1407,8 +1362,7 @@ function OpexReselectProjects(projects, capitalBudget, abandonedPairs = null, li
   OpexProjectsStampSelectionStats(projects.stats, projects, alternatives, funded, capitalBudget, null);
 
   projects.best = funded;
-  if (C80_RAIL_STOCK_GATE) projects.railReadyStock <- railReadyStock;
-  else if ((MODE_AIR && MODE_RAIL) && railReadyStock != null) {
+  if ((MODE_AIR && MODE_RAIL) && railReadyStock != null) {
     if ("railReadyStock" in projects) projects.railReadyStock = railReadyStock;
     else projects.railReadyStock <- railReadyStock;
   }

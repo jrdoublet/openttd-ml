@@ -86,12 +86,10 @@ CLEAN_DENSITY_SCORE <- true;
  */
 KNOT_DISTANCE <- [23, 33, 48, 63, 81, 105, 150];
 KNOT_ITERATIONS_V1 <- [371, 673, 2188, 4066, 7745, 15308, 53951];
-/* V171 : table de noeuds recalibree sur le p90 des iterations (campagnes rail contre rail V166/V168). */
-KNOT_ITERATIONS_V2 <- [365, 2342, 2652, 4123, 4516, 5977, 7825];
 
 function OpexRailIterations(distance)
 {
-  local knots = (V171_RAIL_KNOTS != 0) ? KNOT_ITERATIONS_V2 : KNOT_ITERATIONS_V1;
+  local knots = KNOT_ITERATIONS_V1;
   local n = KNOT_DISTANCE.len();
   if (distance <= KNOT_DISTANCE[0]) return knots[0];
   for (local i = 1; i < n; i++) {

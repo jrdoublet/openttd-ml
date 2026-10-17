@@ -16,7 +16,6 @@ MODE_WATER <- true;
 V168_RAIL_MAX_DIST <- 160;
 V177_RAIL_PAX_MIN_DIST <- 0;
 V182_RAIL_FREIGHT_MIN_DIST <- 0;
-V183_RAIL_ALL_FREIGHT <- false;
 V178_RAIL_SHARED_DEST <- false;
 V179_RAIL_GEN_DEST_SERVED <- false;
 V180_RAIL_WAGON_BOOST_PCT <- 0;
@@ -80,9 +79,6 @@ function OpexV198Active()
   return V198_TEMPLATE_DOUBLE && OpexV190Active();
 }
 V190_RAIL_MAX_TRAINS <- 4;
-/* V171 : table de noeuds d'iterations A* recalibree (V2). 0 = table V1 historique (defaut) ;
- * 1 = table V2 ajustee sur p90 des iterations rail contre rail. */
-V171_RAIL_KNOTS <- 0;
 /* V172 : heuristique A* rail renforcee sur longues distances (>= v172_rail_long_weight_dist).
  * 0 = inerte (poids V91_ASTAR_WEIGHT_PCT conserve, defaut) ; 100..300 = poids applique. */
 V172_RAIL_LONG_WEIGHT_PCT <- 200;
@@ -157,8 +153,6 @@ C83_LOCAL_REPAIR <- false;
 /* C83 revue : paquet mesurable. 0 laisse le chemin de decision courant ; seul le test
  * du drapeau s'ajoute. Les sondes restent gatees par leurs flags existants. */
 C83_FIXES <- false;
-/* Lots de cadence independants, jamais actives implicitement par C83/C121. */
-EXP_AIR_HUB_PAIR_PREFILTER <- false;
 /* C83 : une seule grande ville encore vide (deux slots libres), avant que le
  * maillage ne se fige. 0 = aucun effet. La cible et l'arret sont des globales
  * restaurees apres Load quand le reglage est arme. */
@@ -319,7 +313,6 @@ OPEX_START_YEAR <- 1970;
 C69_BOTTLENECK_PROBE <- false;
 /* C69 etape 2 : levier. C69_TRACK_BUILDS = sonde ou levier : tau exige les dates de chantier. */
 C69_DECISION_BOTTLENECK <- false;
-C69_FLEET_DEMAND_BATCH <- false;
 C69_TRACK_BUILDS <- false;
 C69_BUILD_DATES <- null;
 C69_PENDING_FOLLOWUPS <- null;
@@ -334,8 +327,6 @@ C69_PLANE_CHOICE_DIFFER_ROI <- 0;
 C69_PLANE_CHOICE_DIFFER_C69 <- 0;
 /* C73 : sonde passive du vivier avant selection et des passes du portefeuille */
 C73_VIVIER_LEDGER <- null;
-/* C72 etape 2 : levier du choix d'avion (0 = profit max, 1 = ROI max, 2 = P/max(C, K_dec)) */
-C72_PLANE_CHOICE <- 0;
 /* V93 : pas de plancher a 600 habitants pour poser un aeroport. Defaut 0.
  * Le plancher minimal n'est pas un reglage : il evite seulement les hameaux. */
 V93_AIRPORT_NO_POP_FLOOR <- true;
@@ -358,9 +349,6 @@ V133_AIR_QUARANTINE <- {};
 V133_AIR_BATCH_FAILED <- {};
 V133_AIR_SKIP_LOGGED <- {};
 V133_AIR_LAST_SITE_ERROR <- 0;
-/* AIR BFAIL : expérience causale, 0 conserve A comme historiquement ; 1
- * liquide seulement l'aéroport A neuf après échec de construction de B. */
-AIR_BFAIL_DISPOSE_ORPHAN <- false;
 /* Devis de terrassement pour la sonde probe_air_finance_margin seulement.
  * N'entre ni dans le capital C121 ni dans la marge de caisse.
  * V126_JOINED_STOP_COST : cout modelise d'UN arret joint, journalise par la sonde.
@@ -539,8 +527,6 @@ FLEET_PORTFOLIO <- true;
 /* C32 : bonus forfaitaires de classement du fret. 0 = supprimes. */
 /* Devis réel par AITestMode + AIAccounting avant engagement (docs/taches.md C7). */
 RAIL_DEVIS <- true;
-/* Expansion marginale : bras A/B inerte par defaut jusqu'au verdict du banc. */
-RAIL_EXPAND <- false;
 /* F-RAIL-ECON-01 : prise en compte du cout du depot dans le capital d'infrastructure rail. */
 RAIL_DEPOT_COST <- false;
 OPS_PER_TICK <- 10000;
@@ -578,19 +564,11 @@ V161_PRIOR_NEIGHBOUR <- 2600;
 /* C14 : tampon de cargo au sol pour achat proportionnel (-1 = inactif/defaut). */
 AIR_FLEET_BUFFER <- -1;
 PAX_FULL_LOAD <- true;
-AIR_FULL_LOAD <- 0;
 C53_ORDER_NONSTOP <- false;
 COMPLEX_CARGO <- true;
 /* Bras experimental : reutiliser un aeroport rentable pour une nouvelle destination. */
 AIR_HUB <- true;
 RAIL_REFLEET <- true;
-/* V127 : regeneration route sur tresorerie oisive. 0 = inerte (defaut). */
-V127_IDLE_CASH_ROAD_REGEN <- false;
-V127_IDLE_CASH_MIN <- 100000;
-V127_ROAD_POOL_MIN <- 8;
-V127_ROAD_MAX_AGE_DAYS <- 90;
-V127_LAST_MONTH <- -1;
-V127_LAST_ROAD_REGEN_DATE <- -1;
 /* V217 : recharge du vivier rail sur tresorerie oisive (orchestrator.nut). 0 = inerte (defaut),
  * 1 = fret seul, 2 = fret et voyageurs. */
 V217_RAIL_REFILL <- 0;
@@ -670,10 +648,6 @@ RAIL_GEOMETRY_LIVE_REPLAN <- false;
 /* V101 : sonde de difficulte de terrain au demarrage d'une recherche rail (defaut 0). */
 RAIL_TERRAIN_PROBE <- false;
 
-/* C80 tranche 1 : migration de la recherche A* rail (_railSearch) dans le registre d'exécution.
- * 0 = désactivé (défaut), 1 = travailleur "rail_search" actif. */
-C80_WORKER_RAIL <- false;
-
 /* C80 tranche 2 : découpage de la croissance urbaine (_tryTownGrowth) en travailleur "town_growth".
  * 0 = désactivé (défaut), 1 = travailleur "town_growth" actif. */
 C80_WORKER_TOWN <- false;
@@ -704,14 +678,6 @@ AIR_CHOICE_MEMO <- {};
 AIR_CHOICE_MEMO_STATE <- 0;
 
 C80_MARGINAL_FLOOR_LEDGER <- null;
-
-/* C80 étape 1 : porte d'éligibilité rail passive (le projet n'entre dans alternatives
- * que s'il a un tracé prêt dans _railReadyStock). Défaut 0 (désactivé). */
-C80_RAIL_STOCK_GATE <- false;
-
-/* C80 étape 2 : worker producteur autonome RailSearchStock (N=1) sur reliquat.
- * N'a d'effet que si C80_RAIL_STOCK_GATE est actif. Défaut 0 (désactivé). */
-C80_RAIL_STOCK_WORKER <- false;
 
 /* C80 air eval fast : optimisations exactes de la planification aerienne (memo d'economie,
  * memo de trajectoire/revenu, report de GetOrderDistance). Defaut 0. */

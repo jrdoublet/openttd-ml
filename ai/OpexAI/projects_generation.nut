@@ -12,7 +12,7 @@ function OpexGenerateModeProjects(projects, catalog, budget, lines, abandonedPai
   };
   local freightCargo = (projects != null && ("freightCargo" in projects))
       ? projects.freightCargo : null;
-  if (freightCargo == null && !V183_RAIL_ALL_FREIGHT) {
+  if (freightCargo == null) {
     local freightOrder = OpexFreightCargoOrder(catalog);
     if (freightOrder.len() > 0) freightCargo = freightOrder[0];
   }
@@ -725,48 +725,9 @@ function OpexAir0310FilterAirAlternativesStillValid(alternatives, abandonedPairs
   return live;
 }
 
-/* C80 étape 1 : vérifie si un projet rail possède un tracé prêt validé dans le stock. */
-function OpexRailProjectHasReadyRoute(project, railReadyStock)
-{
-  if (project == null) return false;
-  if (("payload" in project) && project.payload != null
-      && ("railPlan" in project.payload) && project.payload.railPlan != null
-      && (!("ok" in project.payload.railPlan) || project.payload.railPlan.ok)) {
-    return true;
-  }
-  if (railReadyStock == null) return false;
-  local pairKey = OpexProjectPairKey(project.kind, project.cargo, project.src, project.dst);
-  if (!(pairKey in railReadyStock)) return false;
-  local entry = railReadyStock[pairKey];
-  if (entry == null || !("plan" in entry) || entry.plan == null) return false;
-  if (("ok" in entry.plan) && !entry.plan.ok) return false;
-  return true;
-}
-
-/* C80 étape 1 : filtre les alternatives rail sans tracé prêt validé dans le stock. */
-function OpexFilterRailStockGate(alternatives, railReadyStock)
-{
-  local kept = [];
-  foreach (project in alternatives) {
-    if (project != null && ("mode" in project) && project.mode == "rail") {
-      /* Le worker est le seul producteur de projets rail eligibles. */
-      if (C80_RAIL_STOCK_WORKER) continue;
-      if (!OpexRailProjectHasReadyRoute(project, railReadyStock)) continue;
-    }
-    kept.push(project);
-  }
-  if (C80_RAIL_STOCK_WORKER && railReadyStock != null) {
-    foreach (pairKey, entry in railReadyStock) {
-      if (entry != null && ("project" in entry) && entry.project != null)
-        kept.push(entry.project);
-    }
-  }
-  return kept;
-}
-
 /* Preparation C121 : attache le trace pret aux alternatives rail deja elues
  * et ajoute les projets du stock absents du vivier. Ne retire aucun rail
- * (contrairement a OpexFilterRailStockGate). Inerte pendant l'annee AIR. */
+ * sans retirer aucun rail du vivier. Inerte pendant l'annee AIR. */
 function OpexRailPrepMergeAlternatives(alternatives, railReadyStock)
 {
   if (!(MODE_AIR && MODE_RAIL) || C121_CATALOG_FIRST_YEAR_ACTIVE) return alternatives;
@@ -799,28 +760,6 @@ function OpexRailPrepMergeAlternatives(alternatives, railReadyStock)
     alternatives.push(entry.project);
   }
   return alternatives;
-}
-
-/* Meme sonde d'opcodes que la selection, limitee a la fusion par passe. */
-function OpexRailStockMergeAlternatives(alternatives, railReadyStock, stats)
-{
-  local mark = C80_RAIL_STOCK_WORKER ? OpexOpsMeasureBegin() : null;
-  local merged = OpexFilterRailStockGate(alternatives, railReadyStock);
-  if (mark != null) stats.railStockFusionOpcodes <- OpexOpsMeasureEnd(mark);
-  return merged;
-}
-
-/* Appele seulement dans une branche C80 deja armee ; la file des candidats
- * reste dans projects.rail, tandis que candidateGroups porte les autres modes. */
-function OpexRailStockStripCandidateGroups(groups)
-{
-  local nonRailGroups = {};
-  foreach (key, list in groups) {
-    local retained = [];
-    foreach (p in list) if (p != null && p.mode != "rail") retained.push(p);
-    if (retained.len() > 0) nonRailGroups.rawset(key, retained);
-  }
-  return nonRailGroups;
 }
 
 /* C38 : cle stable d'une tentative au sein d'un batch. Les plans air/eau sont des objets

@@ -69,46 +69,6 @@ class TestC89RailThroughputContract(unittest.TestCase):
         self.assertIn("function _v89TrackSearchDays(now);", main)
         self.assertIn("function _logC89AnnualRail(year);", main)
 
-    def test_guard_zero_leaves_historical_path_intact(self):
-        scheduler = _read("ai/OpexAI/scheduler.nut")
-        orchestrator = _read("ai/OpexAI/orchestrator.nut")
-        main = _read("ai/OpexAI/main.nut")
-        tasks = _read("ai/OpexAI/scheduler_tasks.nut")
-        projects = _read("ai/OpexAI/task_projects.nut")
-        town = _read("ai/OpexAI/task_town.nut")
-
-        # 1. _advanceRailSearchThroughput starts with guard
-        self.assertIn("function OpexAI::_advanceRailSearchThroughput(maxSlices = -1)", scheduler)
-        adv_start = scheduler.index("function OpexAI::_advanceRailSearchThroughput(maxSlices = -1)")
-        adv_body = scheduler[adv_start:adv_start + 300]
-        self.assertIn("if (C80_RAIL_STOCK_WORKER) return 0;", adv_body)
-        self.assertIn('if (this._railSearch == null || this._railSearch.phase != "search") return 0;', adv_body)
-
-        # 2. In scheduler.nut _runNextTask, historical slice is unconditionally called first
-        self.assertIn("this._advanceRailSearchSliceWithLedgers();", scheduler)
-        self.assertIn(
-            "if (!C80_RAIL_STOCK_WORKER) {\n      this._advanceRailSearchThroughput();\n    }",
-            scheduler,
-        )
-
-        # 3. In orchestrator.nut worker step, throughput is guarded
-        self.assertIn(
-            "if (!C80_RAIL_STOCK_WORKER) {\n    ai._advanceRailSearchThroughput();\n  }",
-            orchestrator,
-        )
-
-        # 4. In main.nut Start loop, throughput is guarded
-        self.assertIn("if (!C80_RAIL_STOCK_WORKER) this._advanceRailSearchThroughput();", main)
-
-        # 5. In scheduler_tasks.nut catalog, throughput calls are guarded
-        self.assertIn("if (!C80_RAIL_STOCK_WORKER) this._advanceRailSearchThroughput();", tasks)
-
-        # 6. In task_projects.nut _tryBuildProjects, throughput calls are guarded
-        self.assertIn("if (!C80_RAIL_STOCK_WORKER) this._advanceRailSearchThroughput();", projects)
-
-        # 7. In task_town.nut _tryTownGrowth, throughput call is guarded
-        self.assertIn("if (!C80_RAIL_STOCK_WORKER) this._advanceRailSearchThroughput();", town)
-
     def test_deadline_per_slice_preserved(self):
         rail = _read("ai/OpexAI/task_rail.nut")
         scheduler = _read("ai/OpexAI/scheduler.nut")
