@@ -1,0 +1,18 @@
+{
+  "legacy": {},
+  "one_month": {
+    "v233GoodsObservations": {"version": 1, "rows": [[57, 12500, 7, 8, 12005, 23641, 64, 0, 0, 1]]}
+  },
+  "two_months": {
+    "v233GoodsObservations": {"version": 1, "rows": [[57, 12500, 7, 8, 12005, 23642, 65, 64, 0, 2]]}
+  },
+  "three_months": {
+    "v233GoodsObservations": {"version": 1, "rows": [[57, 12500, 7, 8, 12005, 23643, 80, 65, 64, 3]]}
+  },
+  "zero_month": {
+    "v233GoodsObservations": {"version": 1, "rows": [[57, 12500, 7, 8, 12005, 23643, 0, 65, 64, 3]]}
+  },
+  "below_threshold": {
+    "v233GoodsObservations": {"version": 1, "rows": [[57, 12500, 7, 8, 12005, 23643, 63, 65, 64, 3]]}
+  }
+}

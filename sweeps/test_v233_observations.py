@@ -27,10 +27,11 @@ class GoodsObservations(unittest.TestCase):
     def test_bounded_independent_monthly_observation(self):
         self.assertIn('work.month != month', self.text)
         self.assertIn('n < 8 && work.lineCursor < this._lines.len()', self.text)
-        self.assertEqual(self.text.count('AIIndustry.GetLastMonthProduction('), 1)
+        observer = function_body(self.text, 'function OpexAI::_v233GoodsStep()')
+        self.assertEqual(observer.count('AIIndustry.GetLastMonthProduction('), 1)
         self.assertIn('work.keys[work.cursor++]', self.text)
         for banned in ('predCarried', 'OpexMakeCandidate(', 'OpexProjectRememberAll('):
-            self.assertNotIn(banned, self.text)
+            self.assertNotIn(banned, observer)
         self.assertIn('global_output=', self.text)
         self.assertIn('AICargo.TE_GOODS', self.text)
 
@@ -39,7 +40,7 @@ class GoodsObservations(unittest.TestCase):
         for token in ('OpexLineStationId(line, "B")', 'AIIndustry.IsValidIndustry',
                       'AICompany.IsMine', 'AICargoList_StationAccepting', 'line.scrapping'):
             self.assertIn(token, support)
-        self.assertIn('OpexV207PlatformUnionValue(support.line.platformB, cargo', self.text)
+        self.assertIn('OpexV233FactoryCovered(support.line.platformB, support.factoryId, cargo', self.text)
         self.assertIn('saved.factoryTile == support.factoryTile && saved.stationTile == support.stationTile', self.text)
 
     def test_short_full_save_and_legacy_load_without_api(self):

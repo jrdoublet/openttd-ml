@@ -6,7 +6,12 @@
  * coexistent, une categorie jointe conserve l'incertitude plutot que de fabriquer une attribution. */
 function OpexAI::_runNextTaskWithSlackLedger()
 {
-  if (V233_PENDING_CONTINUE && this._catalog != null) this._v233GoodsStep();
+  if (V233_GOODS_GRAFT && this._catalog != null) {
+    this._v233GoodsStep();
+    if (this._v233GoodsWork != null && this._v233GoodsWork.phase == "done") {
+      if (!this._v233PlanStep()) this._v233GraftStep();
+    }
+  }
   if (V216_PROBE) OpexV216MonthlyTick();
   if (V211_RIVALS) OpexV211QuarterlyTick();
   if (V217_RAIL_REFILL > 0) this._v217RailRefill();

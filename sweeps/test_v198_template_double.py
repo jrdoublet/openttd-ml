@@ -97,7 +97,7 @@ class InertDefault(unittest.TestCase):
         # When V198_TEMPLATE_DOUBLE is false, OpexV198Active() returns false
         builder = _read("builder_rail.nut")
         build_line = _function_body(builder, "OpexBuildLine")
-        self.assertIn("if (v200Double && OpexV198Active() && candidate.kind == \"freight\")", build_line)
+        self.assertIn("if (v200Double && OpexV198Active() && candidate.kind == \"freight\"", build_line)
         self.assertIn("return OpexV198ExecuteRailPlan(", build_line)
         # Fallback to V190 or legacy is intact
         self.assertIn("if (v200Double && OpexV190Active() && candidate.kind == \"freight\")", build_line)

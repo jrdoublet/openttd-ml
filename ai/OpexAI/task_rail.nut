@@ -140,6 +140,28 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
   if (project == null) return { outcome = "no_candidate", discards = passDiscards };
   local i = rank;
       local candidate = project.payload;
+      local v233Graft = V233_GOODS_GRAFT && OpexV233IsGraft(candidate);
+      local v233Ready = false;
+      if (v233Graft) {
+        if (!this._v233CandidateLive(candidate)) return { outcome = "rejected", discards = passDiscards };
+        local stockKey = OpexV233PlanKey(candidate);
+        local stockEntry = (this._v233Plans != null && stockKey in this._v233Plans)
+          ? this._v233Plans[stockKey] : null;
+        v233Ready = stockEntry != null && stockEntry.phase == "ready"
+          && AIDate.GetCurrentDate() - stockEntry.date < V233_PLAN_TTL_DAYS
+          && ("railPlan" in candidate) && candidate.railPlan == stockEntry.plan;
+        if (!v233Ready && stockEntry != null) return { outcome = "rejected", discards = passDiscards };
+        if (!v233Ready && this._v233Plans != null && this._v233Plans.len() >= V233_PLAN_LIMIT)
+          return { outcome = "rejected", discards = passDiscards };
+        if (v233Ready) {
+          local checked = this._revalidateRailStockPlan(candidate, candidate.railPlan);
+          if (!checked.ok) {
+            if (checked.reason != "cash" && checked.reason != "no_vehicle_slot")
+              this._v233ForgetPlan(candidate, checked.reason);
+            return { outcome = "rejected", discards = passDiscards };
+          }
+        }
+      }
       /* Trace prepare pendant l'annee AIR : il n'est pas dans best. S'il y
        * reapparait quand meme, on refuse sans lancer d'A* et sans stopper la passe. */
       local c121PrepPlan = false;
@@ -172,7 +194,7 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
                          && this._railSearch.candidate.originServed ? 1 : 0));
         }
       }
-      if (!c121PrepPlan && builtCount > 0 && ("railPlan" in candidate)) {
+      if (!c121PrepPlan && !v233Ready && builtCount > 0 && ("railPlan" in candidate)) {
         /* Le trace A* memorise vise la carte de la generation. Le premier chantier peut avoir
          * occupe un quai, un depot ou une tuile du trace ; le jeter force OpexBuildLine a
          * replanifier sur la carte vivante. Inerte pour maxBatch=1, precedent mesure.
@@ -189,7 +211,7 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
        * deja depose a son railPlan : on le pose sans nouvel A*, meme si une autre
        * recherche occupe le slot. */
       local searchBlocked = (this._railSearch != null);
-      if (searchBlocked && !c121PrepPlan) {
+      if (searchBlocked && !c121PrepPlan && !v233Ready) {
         if (RAIL_FAILURE_AUDIT) OpexRailFailureAudit("early", candidate, "search_in_progress", 0, 0, 0, i);
         if (RAIL_FAILURE_AUDIT) OpexRailSearchBlockerAudit(candidate, this._railSearch, project, i);
         if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "search_in_progress", extra = "" });
@@ -242,7 +264,7 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
 
       if (OPEX_ECONOMY_OPCODE_COMPAT_FALSE) {}
 
-      if (V178_RAIL_SHARED_DEST && !("joinPlatform" in candidate)) {
+      if (V178_RAIL_SHARED_DEST && !v233Graft && !("joinPlatform" in candidate)) {
         this._tryAttachSharedDest(candidate);
       }
 
@@ -301,6 +323,12 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
       }
       local result = OpexBuildLine(this._catalog, this._budget, candidate, alternativeRatio,
                                    OpexCashReserve(), hardCap);
+      if (v233Graft && result.reason == "V233_REPRICE") {
+        local entry = this._v233Plans[OpexV233PlanKey(candidate)];
+        entry.phase = "platforms"; entry.cursor = 1;
+        this._v233NeedsPublish = true;
+        return { outcome = "rejected", discards = passDiscards };
+      }
       if (result.reason == "CASH") {
         if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "cash_at_build", extra = "" });
         return { outcome = "rejected", discards = passDiscards };
@@ -308,6 +336,26 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
       if (("railPlan" in candidate)) candidate.railPlan = null;
 
       local recorded = this._recordRailAttempt(candidate, result, posPacked, year);
+      if (v233Graft) {
+        this._v233ForgetPlan(candidate, recorded ? "built" : "build_failed");
+        if (recorded) {
+          local work = this._v233GoodsWork;
+          if (work != null) work.outputs[candidate.src + "|" + candidate.cargo] <- true;
+          /* Scalar identity survives reload with flags OFF; no economic dependency. */
+          foreach (line in this._lines) {
+            if (OpexLineStationId(line, "A") == candidate.joinStationId
+                || OpexLineStationId(line, "B") == candidate.joinStationId)
+              line.v233SharedStationId <- candidate.joinStationId;
+          }
+          local liveLine = this._lines[this._lines.len() - 1];
+          liveLine.v233FactoryId <- candidate.v233FactoryId;
+          liveLine.v233GoodsCargo <- candidate.cargo;
+          this._saveProjection = null;
+          if (DECISION_LOG) OpexDecide("V233_BUILD", "factory=" + candidate.v233FactoryId
+            + " cargo=" + candidate.cargo + " station=" + candidate.joinStationId
+            + " line=" + (this._nextLineId - 1));
+        }
+      }
       if (c121PrepPlan && candidate != null && this._railReadyStock != null
           && ("kind" in candidate) && ("cargo" in candidate)
           && ("src" in candidate) && ("dst" in candidate)) {
@@ -778,6 +826,9 @@ function OpexAI::_startRailSearch(candidate, alternativeRatio, hardCap, posPacke
   local astarSlice = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
   this._continueRailSearch();
   if (astarSlice != null) OpexSpanAgg("astar.slice", astarSlice);
+  if (V233_GOODS_GRAFT && OpexV233IsGraft(candidate)
+      && (this._railSearch == null || this._railSearch.phase == "search"))
+    return { pending = true, plan = null };
   if (PROBE_SPAN_TRACE && this._railSearch != null && this._railSearch.phase == "build") {
     OpexSpanEvent("astar_ready", "kind=primary");
   }
@@ -937,6 +988,11 @@ function OpexAI::_continueRailSearch()
     state.candidate.railPlan <- plan;
     state.pathfinder = null;
     state.phase = "build";
+    if (V233_GOODS_GRAFT && OpexV233IsGraft(state.candidate) && plan.ok) {
+      this._v233StorePlan(state.candidate, plan);
+      this._railSearch = null;
+      return;
+    }
     if (DECISION_LOG && V131_TOWN_CLEARANCE && ("clearanceTiles" in state) && state.clearanceTiles != null) {
       OpexV131LogClearance(state.candidate, plan, state.clearanceTiles);
     }
@@ -2534,7 +2590,7 @@ function OpexAI::_revalidateRailStockPlan(candidate, plan)
 
   if (!OpexRailVehicleSlotAvailable()) return { ok = false, reason = "no_vehicle_slot" };
 
-  if (candidate.kind != "pax") {
+  if (candidate.kind != "pax" && !(V233_GOODS_GRAFT && OpexV233IsGraft(candidate))) {
     /* src/dst sont des tuiles (OpexMakeCandidate), pas des IndustryID. */
     if (!AIIndustry.IsValidIndustry(AIIndustry.GetIndustryID(candidate.src)) || !AIIndustry.IsValidIndustry(AIIndustry.GetIndustryID(candidate.dst))) {
       return { ok = false, reason = "industry_closed" };
@@ -2550,7 +2606,7 @@ function OpexAI::_revalidateRailStockPlan(candidate, plan)
 
   /* Si V131_RAIL_REPAIR est inactif (defaut 0), executer le chemin de reference
    * d'origine avec STRICTEMENT ZERO opcode ajoute et aucun test supplementaire. */
-  if (!V131_RAIL_REPAIR) {
+  if (!V131_RAIL_REPAIR || (V233_GOODS_GRAFT && OpexV233IsGraft(candidate))) {
     local testMode = AITestMode();
     local stIdA = ("stationId" in planA) ? planA.stationId : AIStation.STATION_NEW;
     local stIdB = ("stationId" in planB) ? planB.stationId : AIStation.STATION_NEW;

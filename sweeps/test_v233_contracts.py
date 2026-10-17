@@ -2,7 +2,8 @@
 import unittest
 from pathlib import Path
 
-from bench_1v1_5y_20seeds import extract_company_record
+# Reuse the collector fixtures' dependency stub when openttdlab is absent on the host.
+from test_profit_coverage import extract_company_record
 
 ROOT = Path(__file__).resolve().parents[1]
 AI = ROOT / "ai/OpexAI"

@@ -38,7 +38,7 @@ class PendingContracts(unittest.TestCase):
         text = (AI / "task_projects.nut").read_text()
         self.assertLess(text.index('if (V233_PENDING_CONTINUE && project.mode == "rail"'),
                         text.index('local c121ChainAttempt = false;'))
-        self.assertIn('if (!prepared) continue;', text)
+        self.assertIn('if (!prepared && !graftReady) continue;', text)
 
     def test_dates_and_attempts(self):
         text = (AI / "task_projects.nut").read_text()

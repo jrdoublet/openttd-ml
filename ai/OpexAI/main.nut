@@ -144,6 +144,12 @@ class OpexAI extends AIController {
   _railSearch = null;
   _v233GoodsObservations = null;
   _v233GoodsWork = null;
+  _v233Offers = null;
+  _v233Plans = null;
+  _v233PublishedProjects = null;
+  _v233PublishedGroups = null;
+  _v233NeedsPublish = false;
+  _v233Generation = null;
   /* V184 : etat des slots reinitialise au demarrage et au rechargement (une recherche). */
   _v184RailSlots = null;
   _v184SlotCursor = 0;
@@ -455,6 +461,13 @@ class OpexAI extends AIController {
   function Start();
   function _tooClose(candidate);
   function _v233GoodsStep();
+  function _v233WorldRevision();
+  function _v233GraftStep();
+  function _v233CandidateLive(candidate);
+  function _v233Publish();
+  function _v233StorePlan(candidate, plan);
+  function _v233PlanStep();
+  function _v233ForgetPlan(candidate, reason);
   function _tryAttachSharedDest(candidate);
   function _tryBuildProjects(year);
   function _ensureSelection();

@@ -1144,6 +1144,12 @@ function OpexAI::_c78LogAirSlotLine(phase, project, rank, tail)
 function OpexAI::_consumeResumableRailAtPassStart(year, passDiscards, c49Best, c49BuiltRanks,
                                                   c75BuiltKeys, c69BuiltProjects)
 {
+  if (V233_GOODS_GRAFT && OpexV233IsGraft(this._railSearch.candidate)
+      && this._railSearch.candidate.railPlan != null && this._railSearch.candidate.railPlan.ok) {
+    this._v233StorePlan(this._railSearch.candidate, this._railSearch.candidate.railPlan);
+    this._railSearch = null;
+    return false;
+  }
   /* Un A* de preparation depose son trace dans le stock. Le consommer ici
    * construirait le rail, y compris pendant l'annee reservee a l'AIR. */
   if ((MODE_AIR && MODE_RAIL) && this._railSearch != null
@@ -1296,6 +1302,7 @@ function OpexAI::_tryBuildProjects(year)
   }
   local spPass = PROBE_SPAN_TRACE ? OpexSpanBegin("projects.pass") : null;
   this._ensureSelection();
+  if (V233_GOODS_GRAFT) this._v233Publish();
   if (R1_R3_TEST_ONLY) R1_R3_TEST_PASS++;
   local c75KPassData = null;
   local c75StopReason = null;
@@ -1461,9 +1468,12 @@ function OpexAI::_tryBuildProjects(year)
       local payload = project.payload;
       local prepared = ("c121PrepStock" in payload) && payload.c121PrepStock
         && ("railPlan" in payload) && payload.railPlan != null;
-      if (!prepared) continue;
+      local graftReady = V233_GOODS_GRAFT && OpexV233IsGraft(payload)
+        && ("railPlan" in payload) && payload.railPlan != null;
+      if (!prepared && !graftReady) continue;
     }
-
+    if (V233_GOODS_GRAFT && project.mode == "rail" && OpexV233IsGraft(project.payload)
+        && OpexProjectFinanceCapital(project) > OpexAvailableCapital()) continue;
 
     local r1r3BypassBefore = false;
     local r1r3Threshold = 0;
