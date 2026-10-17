@@ -79,3 +79,40 @@ meilleure »), `v177_*`, `v207_*` (défauts sur branche V207), `v197/v198/v199/v
   aucun banc lancé par l'agent.
 - Validation par Claude : relecture du diff, contrats, smoke 1×1 ; pour 2A (gros retrait sur un
   chemin AIR), 20×10 neutre selon la règle opcodes avant fusion.
+
+## Lot V232 (préparé le 17/10, en attente d'accord)
+
+Trié à partir de l'inventaire des 226 réglages restants après V231. Ne sont retenus que les réglages à défaut 0 (ou neutres) dont un verdict négatif ou nul est écrit. Ensuite, comme pour V231 : défaut figé, branche inactive retirée et documentée au maximum dans `suppressions_parametres_idees_20261017.md`, smoke, puis 20×10 si le smoke diffère. **35 réglages, 226 → 191.**
+
+### Rail (moi), 11 réglages
+| Réglages | Verdict |
+|---|---|
+| `v88_goods_chain` + `v88_chain_force`, `v88_step2_plan_immediate`, `v88_all_inputs`, `v88_chain_step1_finance`, `v88_step2_rail_prio`, `v88_step2_cash_reserve` | Rail seul 10×3 (14/10) : −298,5 k£/an, 0/9, p = 0,004, valeur −60,8 %. **Garder** la jointure de quai V88 (`OpexJoinPlatformPlans`), qui sert à V178. |
+| `c80_rail_stock_gate`, `c80_rail_stock_worker`, `c80_worker_rail` | Stock + worker en rail seul : −374,0 k£/an, 0/10, p = 0,002. V149 (stock + worker au reliquat) : porte A −73,6 k. Thème inerte au défaut (relecture du 12/10). L'idée « A* dans les workers » reste dans la fiche cible. |
+| `rail_expand` | Rail seul 10×3 : −14,4 k, 4/4/2, nul. Rallonger les rames est réfuté ailleurs (V180, V204). |
+
+### Villes et route (agy), 13 réglages
+| Réglages | Verdict |
+|---|---|
+| `town_growth`, `town_growth_plan_memo`, `town_growth_skip_noop`, `town_growth_roi_gate`, `c80_worker_town` | Retest C121 : −8,08 %, IC95 négatif. Désactivé le 02/10 sur décision utilisateur. |
+| `road_finance_unbias_p0`, `road_finance_gate_shadow_p0`, `road_quote_components_shadow_p0` | Biais route 121 % : retrait échoué en V102 A40×3 (`road_finance_unbias_p0_20261009.md`). Les deux ombres en dépendent. |
+| `road_time_scaled_cap` | −0,41 %, IC95 [−31 ; +18] k : nul. |
+| `policy_vehicle_events` | −1,06 % ; retrait aveugle des véhicules déficitaires jugé destructeur. |
+| `project_top_k_dynamic` | 5×6 : −8,0 % en moyenne, 2/5. |
+| `v139_feeder_bus` | Porte A 40×5 réfutée. Le calcul seul coûte −48,8 k£/an et −17,75 avions. Idée de rabattement reprise pour la réécriture (§9.3). |
+| `road_pax_dwell_days` | Réglage numérique au défaut 6 : devient une constante (`ROAD_PAX_STOP_DWELL_DAYS`, toujours lue par `economy.nut`). |
+
+### AIR (grok), 10 réglages
+| Réglages | Verdict |
+|---|---|
+| `air_site_cost_quote`, `air_site_cost_margin_pct`, `air_site_quote_keep_legacy_margin` | V126, porte A 40×3 `fail_primary` : −92,7 k£/an, 20/20. |
+| `c121_air_visible_competition`, `c121_air_visible_fused`, `air_fleet_c121_preguard` | Porte A 40×6 du 08/10 : −0,89 %. Défaut 0. V161 couvre le profit net de renfort. |
+| `air_batch_town_reserve` | 5×6 du 24/09 : −179,9 k£/an. |
+| `c82_engine_calibration` | Défaut 0 depuis C82. Moteur quasi fixe par partie (V96). |
+| `c80_air_choice_memo`, `c80_air_eval_fast` | Opcodes divisés par deux mais profit en baisse sur 3 graines ; non retenus. |
+
+### Écartés de ce lot
+- Interdits ou mis de côté : `c67_*`, `v177`–`v182`, `v207_*`, `v190`/`v197`–`v200`, `rail_geometry_*`, `c122_*`, `c83_*`, `v133`/`v134`, `v131_*`, `rail_depot_cost`.
+- Prometteurs ou en attente de décision : `c76_freight_rotation` (+61 k en rail seul), `v163_multi_cargo` (neutre, adoption à décider), `homogeneous_preselect` (+7 à +13 % de valeur sur des graines isolées).
+- Verdict introuvable, à vérifier avant un lot ultérieur : `v171_rail_knots` (porte A du 13/10), `v183_rail_all_freight`, `v127_idle_cash_road_regen`, `c69_fleet_demand_batch`, `exp_air_hub_pair_prefilter`, `air_bfail_dispose_orphan`, `road_loading_fix` (+0,10 %, quasi inerte).
+- Les sondes (`probe_*`, `*_shadow`) forment un lot à part : elles ne changent rien au comportement, mais leur retrait est à arbitrer (outils de diagnostic).

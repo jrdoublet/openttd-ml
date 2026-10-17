@@ -104,3 +104,109 @@ Lots V225 réunis (`8b87526`), 20×10 contre master : +0,40 %, 9/11, p = 0,90, v
 | `v185_rail_short_freight_pct` | Facteur fixe sur le revenu prédit du fret rail < 100 tuiles (réalisé 0,50 pour 0,69 prédit). | Négatif (−44,7 k). Une correction apprise par cellule est préférable (V229). |
 
 20×10 contre V227 : +0,22 %, 10/10, p = 0,87, valeur −0,61 % : neutre.
+
+## 9. V231 : famille `rail_origin_reuse`, mémoire TRKFAIL fret, bus interurbains, P7, invalidation légère, lot AIR
+
+Décision utilisateur du 17/10 : **tout supprimer plutôt que réparer**. Ces idées seront refaites plus tard avec un meilleur modèle et plus d'effort. Cette section garde donc le maximum de matière pour une réécriture **from scratch**. Commits : `df2f045` et `819b367` (moi), `c62bee0` (agy, `air_efficiency_*`), `39c0154` (grok, V92/V93.1). Smoke graine 42 : value 544 872, profit 573 573. Il diffère de master, sans doute par les opcodes du lot rail. Le lot AIR, lui, ne change rien au smoke. La fixture R1 passe en entier. 20×10 `v231_20x10_20261017` contre V230 : profit −82,8 k£/an (−2,28 %), 10/10, p = 0,29, IC95 [−220 k ; +51 k], valeur −1,72 % : **neutre**, fusionné le 17/10.
+
+### 9.1 `rail_origin_reuse` et ses 11 sous-réglages (−3 900 lignes)
+
+**Idée.** Le générateur rail exclut toute paire dont **une** extrémité est déjà servie par nous (`origin_served`, `candidates.nut`). On n'étend donc jamais le réseau à partir d'une gare existante. `rail_origin_reuse=1` relâchait cette exclusivité : une paire n'était rejetée que si **ses deux** extrémités étaient servies. Le chantier rejoignait alors la gare existante par un quai parallèle, au lieu d'en construire une à moins de `MIN_SEPARATION` (motif de rejet `too_close_no_join`, 600 à 750 par banc rail seul, premier motif de rejet).
+
+**Mécanique retirée.** C'est utile pour une réécriture.
+- **Contrat de compatibilité** `OpexRailOriginCompatibleService`. Le service existant doit avoir :
+  - une seule gare logique (StationID unique) ;
+  - un quai connu ;
+  - le même genre (pax/fret) et le même cargo ;
+  - en fret, le même rôle (A→A, B→B) : on ne transforme pas une destination en source.
+  - `_multiline_match` testait toutes nos lignes de même StationID, pas seulement la première.
+  - `_cross_cargo` autorisait un autre cargo sur la même gare fret, en ignorant le rôle.
+- **Sous-familles** `_pax` et `_freight`, à 1, sous le parent.
+- **`_fallback`.** Les extensions ne remplissaient le vivier que s'il restait sous TOP_K avec les seules origines libres. Le défaut diagnostique était l'égalité de priorité.
+- **Évaluation différée** (`deferReuseAdmission`, `OpexRailOriginReuseFinalize`). Les extensions étaient évaluées après les candidats libres. `OpexRailSelectFreightReusePool` choisissait le pool fret. Les compteurs de pré-appariement étaient journalisés (`RAIL_PREPAIR`, `RAIL_ORIGIN_REUSE_FALLBACK`).
+- **Priorité AIR.** `_air_priority_shadow` mesurait si une extension rail aurait déplacé le projet AIR finançable suivant. `_air_priority` l'appliquait (`OpexRailOriginReuseAirOpportunity` dans `_tryBuildProjects`).
+- **`_search_cap_k`.** Plafond d'itérations A* propre aux extensions (`OpexRailCandidateHardCap`, 40 k).
+- **`_search_supersede`.** Une extension pouvait remplacer une recherche A* en cours sur une paire moins bonne (`_maybeSupersedeRailSearchForOriginReuse`).
+- **Ombres d'exposition** `rail_origin_exposure_shadow` et `_detail_shadow` : comptaient les paires que le relâchement aurait exposées, sans rien décider.
+- **Ce qui reste.** Le comportement historique, c'est-à-dire l'exclusion dès qu'une extrémité est servie. Restent aussi la jointure de quai V88 (`OpexJoinPlatformPlans`, 4 tuiles latérales, plat strict) et la destination partagée **V178** (`strictOriginReuseJoin` ne dépend plus que de `V178_RAIL_SHARED_DEST` et de `candidate.shared_dest`).
+
+**Mesures.**
+- Rail seul 10×3 (`railseul_origin_reuse_10x3_20261014`) : +0,7 k£/an, 7/3, p = 0,56. 11 lignes jointes, 10 échecs `SITEAB` (quai parallèle introuvable).
+- Avec V179 sur la base de l'époque (`reuse_railseul_10x3_20261014`) : −13,2 k£/an, 3/4/2.
+- Contre la pile B (`reuse_railseul_10x3_20261015`) : −30,7 k£/an, médiane −40,6 k, 4/6, p = 0,32, IC95 [−84,9 ; +25,2] k. **147 lignes posées contre 144** : relâcher `origin_served` n'apporte pas de volume.
+- Diagnostic agy du 14/10 sur 598 `too_close_no_join` du bras reuse : 51 % visent une **destination** déjà desservie, 42 % une source.
+
+**Leçons pour la réécriture.**
+1. Le goulot n'était pas l'offre de paires. Le vivier rail est vide en 1972-73 parce qu'il n'est régénéré qu'une fois par an (V217). Or la **pose** échoue : `SITEAB`, géométrie de quai joint trop stricte.
+2. Côté destination, l'idée vit dans V178/V179, gardés. V178 fait +68 k£/an en rail seul, mais `fail_primary` en partie complète.
+3. Le bon modèle est sans doute celui d'AAAHogEx : un hub et des rabattements en **transfert** (voir taches.md, 15/10). C'est la réutilisation d'origine à grande échelle, avec un tronc capable d'absorber le flux. Cela suppose double voie et multi-trains (V197-V201, horizon 10 ans), pas un simple relâchement du filtre. Voir V226 (réseau araignée).
+4. Un réécrivain doit prévoir dès le départ un générateur de quai joint plus permissif (pentes, longueurs variables). V188, retiré au §6, testait les pentes.
+
+### 9.2 `rail_freight_trkfail_memory`
+
+**Idée.** Mémoriser les paires fret dont la pose échoue (`TRKFAIL`) pour ne pas les rechoisir. `task_rail.nut` ne bannit la paire que pour `ABND`/`SITE*`/`NOPA`/`STNFAIL`, pas pour `TRKFAIL`. `OpexRailTrackFailureIsPersistentPathLead` reconnaissait l'échec persistant au `lead` A*.
+
+**Constat.** Graine 42 sous sondes : 29 échecs fret en 1974-75, sur **deux paires** seulement, 218 851 £ de tentatives sans ligne. Cause : `ERR_AREA_NOT_CLEAR` (err = 260, persistante, pas `ERR_VEHICLE_IN_THE_WAY`). Elle tombe à la tuile `lead` de la gare B, sur la **dernière** pièce posée. L'A* validait pourtant cette pièce en `AITestMode` : l'occupation apparaît entre la recherche et la pose. Hypothèses H1-H4 dans taches.md (ligne « C61 »).
+
+Second défaut, géométrique, démontré par lecture : un pont ou un tunnel dont l'extrémité tombe sur le `lead` laisse la transition finale non posée.
+
+**Mesure.**
+- Prototype 1×6 : 31 → 5 `TRKFAIL` fret.
+- Porte A 40×5 sans sondes : −7,9 k£/an, 5/11/24, p = 0,38. `fail_primary`.
+- L'effet sur le moteur est réel, le gain économique nul. Les pertes sont concentrées sur peu de graines.
+
+**Ce qui reste.** La garde géométrique `rail_geometry_guard` + `rail_geometry_pair_memory` (V100, intouchable) couvre le cas géométrique. `trackFailure` n'est plus rempli que sous `DECISION_LOG || RAIL_GEOMETRY_GUARD`.
+
+**Réécriture.** Corriger la **cause** plutôt que mémoriser l'échec :
+- revalider le tracé en `AITestMode` juste avant la pose (`OpexTestRailTrack` existe) ;
+- ou poser la voie avant les gares ;
+- ou refuser les franchissements collés à une sortie de gare (`startx`/`endx`).
+
+### 9.3 Bus interurbains : `road_pax_build`, `road_pax_catchment_pct`, `road_stop_catchment_houses`
+
+**Idée.** Lignes de bus passagers ville → ville (`OpexRoadPaxCandidates`) avec un bassin de captage par arrêt :
+- `road_pax_catchment_pct=86` : part de la production de la ville captée par arrêt, mesurée le 30/08 (22 % historiques) ;
+- `road_stop_catchment_houses=10` : plafond physique de maisons dans un rayon de 3 (`OpexTownBusCatchment`).
+
+**Mesure.** Retest C121 du 03/10 (`resultats_retests_c121_nuit_20261004.md`) : `road_pax_build` 0→1 donne −60,4 k£/an (−4,22 %), IC95 [−100,9 ; −22,6], p = 0,014, valeur −2,66 %. Défaut 0 depuis, pour préserver la demande des aéroports : les bus siphonnent les mêmes villes.
+
+**Décision du 07/10.** La route n'est qu'un rabattement vers les gares et aéroports (`route_pas_prioritaire`). AAAHogEx a 78 % de bus, mais en **transfert** vers ses gares (53 %).
+
+**Ce qui reste.** Le fret routier, `road_pax_dwell_days` et les constantes de captage encore lues par l'économie.
+
+**Réécriture.** Ne plus faire de bus autonomes. Les faire en **rabattement** (ordre de transfert vers une gare rail ou un aéroport à nous), et compter la demande prise à l'AIR.
+
+### 9.4 `c76_lean_invalidation`
+
+**Idée.** Sous `c76_regen_targeted=1`, éviter la reconstruction complète du vivier quand seuls le budget, une ligne ou une subvention changent : simple resélection ou invalidation de couche ciblée (`_c76PurgeInvalidCandidates`).
+
+**Mesure.** Rejeté en duel 20×10 : −151 k£/an (`c76_c77_reliquat_audit_20261012.md`). Une partie du « coût » des reconstructions complètes est en fait **utile** : elles réexaminent le vivier avec la nouvelle caisse.
+
+**Ce qui reste.** `_c76BumpLayer("lines", false)` sur les changements de lignes et de villes. `_portfolioInvalidated = true` sur une subvention périmée pendant un devis route. `budgetStale = stale`.
+
+**Réécriture.** Distinguer ce qui change le **vivier** (nouvelles paires possibles) de ce qui ne change que la **sélection** (caisse). L'audit des reconstructions du 12/10 donne 72 % des opcodes à l'intention réactive `regen`.
+
+### 9.5 `exp_scheduler_skip_not_due` (P7)
+
+**Idée.** L'ordonnanceur sautait les tâches pas encore dues dans la même passe (`OpexExpSchedulerSkipReason`, `OpexExpSchedulerSelectTask`).
+
+**Audit du 11/10.** Gain plafonné à un tick par saut. Environ 1 jour de jeu et 10 k opcodes sur 6 ans : indétectable. Le −17,2 k£/an du 5×6 du 30/09 était du bruit de duel.
+
+**Ce qui reste.** Scan suffixe, puis file entière au cycle suivant. Ne pas rouvrir.
+
+### 9.6 Lot AIR, agy : `air_efficiency_batch`, `_preflight`, `_dedupe`, `_reselect`
+
+| Réglage | Idée | Mesure |
+|---|---|---|
+| `air_efficiency_batch` | Chapeau A/B combinant les trois suivants. | 5×6 : −97,9 k£/an, valeur −8,26 % (02/10). |
+| `air_efficiency_preflight` | Pré-tester les deux extrémités d'un aéroport (`OpexAirPreflightEndpoint`) avant de payer le chantier. | 20×10 canonique : −89,3 k£/an, 4/14/2, p = 0,031, `fail_primary`. Le helper reste pour la sonde `air_bfail_precheck_shadow`. |
+| `air_efficiency_dedupe` | Une seule entrée AIR par paire OD (`airPairBest`) dans la sélection. | Smoke : −43,9 k£/an, valeur −21 %. Plusieurs variantes d'une même paire laissent le choix au sac à dos. |
+| `air_efficiency_reselect` | Resélection déclenchée par un seuil de caisse plutôt que la cadence du catalogue. | 5×6 : −94,8 k£/an, 1/4, valeur −8,07 %. « Interdit de réactivation » (taches.md, cadence des passes). |
+
+Repli : `stale = gainOk && doubleOk`, `cadenceFresh = this._lastCatalogMonth == ym`.
+
+### 9.7 Lot AIR, grok : `v92_air_service_choice`, `v93_air_demand_production`
+
+- **V92.** Choisir un **service** AIR (moteur × nombre d'avions), plus une variante bon marché à un avion de la même route, avec rééquipement ultérieur (`v92PendingEngine`). Mesure : −570 k / −469 k£/an, 0/5, IC95 [−887 ; −254] k, valeur −42 %. Ce qui reste : mémo C80 → `OpexAirChooseRoutePlaneFull`, courrier forfaitaire 15 %, durée de vie 20 ans. Le moteur est quasi fixe par partie (V96, table moteurs C121) : choisir le service ne sert à rien.
+- **V93.1.** Demande AIR tirée de la production pax du mois précédent (`AITown.GetLastMonthProduction`), moins la part concurrente, plafonnée par ligne, aux deux bouts. Mesure : 20×10 −421,5 k£/an, valeur −18,24 %. La demande reste le proxy population × `TOWN_CATCHMENT_SHARE_PCT` (plancher 10). **`v93_airport_no_pop_floor` (qualifié) est gardé.** Le paramètre positionnel `serviceScan` d'`OpexAirEconomics` reste, toujours faux.
+- **Réécriture.** La demande mesurée sous-estime la demande induite par un nouvel aéroport, puisque la production suit le service. Si on la reprend, la mesurer **après** desserte, pour les renforts et non pour l'ouverture.
