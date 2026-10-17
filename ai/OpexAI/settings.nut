@@ -19,8 +19,6 @@ OPEX_PROBE_GROUPS <- {
   c122_air_threat_probe = 16,
   probe_rail_search = 32,
   rail_failure_audit = 32,
-  probe_rail_preastar = 32,
-  probe_rail_terrain = 32,
   probe_cost = 64,
   c67_water_exposure_probe = 64,
   probe_events = 128,
@@ -51,9 +49,7 @@ function OpexLoadSettings()
       || AIController.GetSetting("decision_log") != 0;
   PORTFOLIO_LOG = DECISION_LOG;
   SAVE_FULL_STATE = AIController.GetSetting("save_full_state") != 0;
-  /* Résolution au chargement : aucun test ajouté aux boucles de génération au défaut. */
-  ::OpexTopK <- AIController.GetSetting("homogeneous_preselect") != 0
-      ? OpexTopKFund : OpexTopKLegacy;
+
 
   /* --- 2. Interrupteurs de mode et options rail --- */
 
@@ -112,9 +108,7 @@ function OpexLoadSettings()
   RAIL_GEOMETRY_PREFILTER = AIController.GetSetting("rail_geometry_prefilter") != 0;
   RAIL_GEOMETRY_PAIR_MEMORY = AIController.GetSetting("rail_geometry_pair_memory") != 0;
   RAIL_FAILURE_AUDIT = OpexProbeSetting("rail_failure_audit") != 0;
-  RAIL_PREASTAR_PROBE = OpexProbeSetting("probe_rail_preastar") != 0;
   RAIL_GEOMETRY_LIVE_REPLAN = AIController.GetSetting("rail_geometry_live_replan") != 0;
-  RAIL_TERRAIN_PROBE = OpexProbeSetting("probe_rail_terrain") != 0;
 
   V163_MULTI_CARGO = AIController.GetSetting("v163_multi_cargo") == 1;
 

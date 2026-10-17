@@ -38,44 +38,6 @@ function OpexRoadStopsTooClose(tile, excludeTiles) {
   return false;
 }
 
-function OpexRoadSiteListSame(a, b) {
-  if (a == null || b == null || a.len() != b.len()) return false;
-  for (local i = 0; i < a.len(); i++) {
-    local x = a[i];
-    local y = b[i];
-    if (x.tile != y.tile || x.front != y.front || x.value != y.value || x.score != y.score) return false;
-  }
-  return true;
-}
-
-function OpexRoadSiteListDiff(a, b) {
-  if (a == null || b == null) return "sites=null";
-  if (a.len() != b.len()) return "sites=" + a.len() + "/" + b.len();
-  for (local i = 0; i < a.len(); i++) {
-    local x = a[i];
-    local y = b[i];
-    if (x.tile != y.tile) return "i=" + i + " tile=" + x.tile + "/" + y.tile;
-    if (x.front != y.front) return "i=" + i + " front=" + x.front + "/" + y.front;
-    if (x.value != y.value) return "i=" + i + " value=" + x.value + "/" + y.value;
-    if (x.score != y.score) return "i=" + i + " score=" + x.score + "/" + y.score;
-  }
-  return "sites=ok";
-}
-
-function OpexRoadHuntSame(a, b) {
-  if (a == null || b == null) return false;
-  if (a.nCargo != b.nCargo || a.nBuildable != b.nBuildable || a.nCmd != b.nCmd || a.probes != b.probes) return false;
-  return OpexRoadSiteListSame(a.sites, b.sites);
-}
-
-function OpexRoadHuntDiff(a, b) {
-  if (a == null || b == null) return "hunt=null";
-  if (a.nCargo != b.nCargo) return "nCargo=" + a.nCargo + "/" + b.nCargo;
-  if (a.nBuildable != b.nBuildable) return "nBuildable=" + a.nBuildable + "/" + b.nBuildable;
-  if (a.nCmd != b.nCmd) return "nCmd=" + a.nCmd + "/" + b.nCmd;
-  if (a.probes != b.probes) return "probes=" + a.probes + "/" + b.probes;
-  return OpexRoadSiteListDiff(a.sites, b.sites);
-}
 
 function OpexRoadHuntCore(hunt) {
   return { sites = hunt.sites, nCargo = hunt.nCargo, nBuildable = hunt.nBuildable,

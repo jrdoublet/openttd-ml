@@ -617,7 +617,6 @@ require("persist.nut");
 require("probes.nut");
 require("probe_v216.nut");
 require("rivals_v211.nut");
-require("rail_preastar_probe.nut");
 require("scheduler.nut");
 require("scheduler_tasks.nut");
 require("settings.nut");

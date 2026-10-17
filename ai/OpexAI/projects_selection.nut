@@ -107,28 +107,6 @@ function OpexC121AutopsyProjectFields(project, rank, seq)
   return fields;
 }
 
-function OpexC121AutopsySelection(affordable, capitalBudget, kDec, kDecData, floorProfit)
-{
-  if (!C121_AUTOPSY_TEST_ONLY || affordable == null || affordable.len() == 0) return;
-  local n = affordable.len() < 8 ? affordable.len() : 8;
-  local interesting = false;
-  for (local i = 0; i < n; i++) {
-    if (OpexC121AutopsyIsAirRelated(affordable[i])) { interesting = true; break; }
-  }
-  if (!interesting) return;
-
-  C121_AUTOPSY_SELECTION_SEQ++;
-  local seq = C121_AUTOPSY_SELECTION_SEQ;
-  OpexC121AutopsyLog("SEL", "seq=" + seq + " budget=" + capitalBudget
-      + " k_dec=" + kDec + " floor=" + floorProfit + " affordable=" + affordable.len()
-      + " F=" + (kDecData != null && ("F" in kDecData) ? kDecData.F : -1)
-      + " tau=" + (kDecData != null && ("tau" in kDecData) ? kDecData.tau : -1)
-      + " N=" + (kDecData != null && ("N" in kDecData) ? kDecData.N : -1));
-  for (local i = 0; i < n; i++) {
-    OpexC121AutopsyLog("CAND", OpexC121AutopsyProjectFields(affordable[i], i, seq));
-  }
-}
-
 /* Observation du retour EXISTANT du fit, pas de seconde evaluation. Ne touche
  * ni au vivier ni a son payload : seule la copie admise porte la filiation. */
 function OpexR1R3FitTrace(project, fitted, budget)

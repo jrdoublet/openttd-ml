@@ -584,9 +584,6 @@ RAIL_GEOMETRY_PAIR_MEMORY <- true;
 const INCR_REVALIDATE_INDEX = 1;
 /* Sondes de tentatives / refus de proximite ferroviaires, OFF par defaut. */
 RAIL_FAILURE_AUDIT <- false;
-/* Sonde locale d'acces aux quais avant A*, avec issues appariees (defaut 0). */
-RAIL_PREASTAR_PROBE <- false;
-RAIL_PREASTAR_SEQ <- 0;
 /* Si un devis vivant STNFAIL sur le quai exact choisi avant l'A*, recalculer une fois les plans
  * de quai a longueur identique et ne garder qu'un plan exposant le meme [lead, station_exit].
  * Aucun nouvel A* ; defaut 0 pendant qualification. */
@@ -594,8 +591,6 @@ RAIL_GEOMETRY_LIVE_REPLAN <- false;
 /* Optimisation experimentale des regenerations ciblees industrie : dans le fallback multi-cargo,
  * ignorer un cargo seulement si le catalogue prouve que l'industrie cible n'est ni source d'une
  * paire valide ni puits d'une paire valide pour CE cargo. Defaut 0 pendant qualification. */
-/* V101 : sonde de difficulte de terrain au demarrage d'une recherche rail (defaut 0). */
-RAIL_TERRAIN_PROBE <- false;
 
 /* C67.4 : carte par blocs dans le reliquat de tick, sans consommateur (contrat C67 §14).
  * 0 = service absent (défaut), 1 = service construit et rempli en fond. */

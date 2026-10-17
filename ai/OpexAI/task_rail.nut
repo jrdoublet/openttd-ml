@@ -718,9 +718,6 @@ function OpexAI::_continueRailExpansion()
  * Fonction de classe, pas une closure : Squirrel ne capture jamais les locales englobantes. */
 function OpexAI::_startRailSearch(candidate, alternativeRatio, hardCap, posPacked)
 {
-  /* V101 : une mesure par recherche primaire demarree. Aucun rejet.
-   * candidate.src et candidate.dst sont des tuiles, emises telles quelles. */
-  OpexRailTerrainProbe(candidate.src, candidate.dst);
   local plan = OpexPrepareRailRoute(this._catalog, this._budget, candidate, alternativeRatio, hardCap);
   if (plan.plansA == null) return { pending = false, plan = plan };
   local clearanceTiles = V131_TOWN_CLEARANCE ? OpexV131BuildTownClearance(candidate, plan.plansA, plan.plansB) : null;
@@ -772,8 +769,6 @@ function OpexAI::_startRailSearch(candidate, alternativeRatio, hardCap, posPacke
     startTick = curTick,
     slotIndex = 0,
   };
-
-  if (RAIL_PREASTAR_PROBE) OpexRailPreAstarStart(this._railSearch, "primary", plan.plansA, plan.plansB);
   if (C56_TASK_TRACE) {
     OpexC56TaskLog("RAIL_SEARCH_START", "primary", this._taskCycle,
                    "src=" + candidate.src + " dst=" + candidate.dst
@@ -916,7 +911,6 @@ function OpexAI::_continueRailSearch()
       }
     }
   }
-  if (RAIL_PREASTAR_PROBE) OpexRailPreAstarEnd(state, slice.stop);
 
   if (state.kind == "primary") {
     if (C56_TASK_TRACE) {
@@ -983,8 +977,6 @@ function OpexAI::_consumeRailSearch(year)
     local need = candidate.capital + OpexCashReserve();
     local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
     if (money < need) {
-      if (RAIL_PREASTAR_PROBE && ("preastarRid" in state))
-        OpexRailPreAstarLog("BUILD", "rid=" + state.preastarRid + " reason=CASH ok=0 status=cash");
       if (C50_CHRONOLOGY_PROBE) this._logC50CashRefusal("rail", -1, candidate.capital, candidate.profitAnnual, candidate.roi, candidate.src, candidate.dst, need, money);
       /* C41.47 : pendant de la garde G3S1 ci-dessus, applique au motif tresorerie -- des le
        * premier blocage constate, liberer _railSearch pour que _expandRailLines et les AUTRES
@@ -1004,8 +996,6 @@ function OpexAI::_consumeRailSearch(year)
                                OpexCashReserve(), state.hardCap);
   /* Ne pas jeter le plan sur CASH : on reessaiera au prochain tour, sans refaire l'A*. */
   if (result.reason == "CASH") {
-    if (RAIL_PREASTAR_PROBE && ("preastarRid" in state))
-      OpexRailPreAstarLog("BUILD", "rid=" + state.preastarRid + " reason=CASH ok=0 status=cash");
     if (C50_CHRONOLOGY_PROBE) this._logC50CashRefusal("rail", -1, candidate.capital, candidate.profitAnnual, candidate.roi, candidate.src, candidate.dst, candidate.capital, AICompany.GetBankBalance(AICompany.COMPANY_SELF));
     {
       this._railSearch = null;
@@ -1026,7 +1016,6 @@ function OpexAI::_consumeRailSearch(year)
  * panneaux OR/OB restent identiques. */
 function OpexAI::_recordRailAttempt(candidate, result, posPacked, year)
 {
-  if (RAIL_PREASTAR_PROBE) OpexRailPreAstarBuild(candidate, result);
   if (RAIL_FAILURE_AUDIT) OpexRailFailureAudit("attempt", candidate,
       (result.ok ? "OK" : (("reason" in result) && result.reason != "" ? result.reason : "UNKNOWN")),
       (result.ok ? 1 : 0), (("actualCost" in result) ? result.actualCost : 0),
@@ -1249,7 +1238,6 @@ function OpexAI::_startRailUpgradeSearch(line, prep)
     line = line,
     prep = prep,
   };
-  if (RAIL_PREASTAR_PROBE) OpexRailPreAstarStart(this._railSearch, "upgrade", prep.dualA, prep.dualB);
   if (spUpgrade != null) OpexSpanEnd(spUpgrade);
   local upgradeSlice = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
   this._continueRailSearch();
@@ -1264,7 +1252,6 @@ function OpexAI::_consumeRailUpgrade()
   local year = AIDate.GetYear(AIDate.GetCurrentDate());
   local upgrade = OpexExecuteUpgradeAfterSearch(this._catalog, this._budget, state.line,
                                                 OpexCashReserve(), state.search, state.prep);
-  if (RAIL_PREASTAR_PROBE) OpexRailPreAstarUpgradeBuild(state, upgrade);
   /* Appliquer au doublement la meme politique de liberation cash que pour
    * une recherche primaire, sinon l'unique slot _railSearch gele tout le rail. */
   if (upgrade.reason == "CASH") {
@@ -1394,9 +1381,6 @@ function OpexAI::_startRailStockSearch(candidate, isRepair = false, repairReason
     repairReason = repairReason,
     coarseScore = coarseScore
   };
-  if (RAIL_PREASTAR_PROBE) OpexRailPreAstarStart(this._railSearch, "stock", plan.plansA, plan.plansB);
-  if (RAIL_PREASTAR_PROBE && ("preastarRid" in this._railSearch))
-    plan.rawset("railPreastarRid", this._railSearch.preastarRid);
 
   this._activeWorker = {
     kind = "rail_stock",
@@ -1434,7 +1418,6 @@ function OpexAI::_handleRailStockSearchTimeout()
     this._v131FailRepair(state, "timeout");
     return;
   }
-  if (RAIL_PREASTAR_PROBE) OpexRailPreAstarEnd(state, "TIMEOUT");
   local candidate = state.candidate;
   local iters = state.spent;
   local curDate = AIDate.GetCurrentDate();
@@ -1486,7 +1469,6 @@ function OpexAI::_handleRailStockSearchCompleted()
 
   local readyProject = (plan != null && ("ok" in plan) && plan.ok)
       ? OpexProjectFromCandidate(candidate) : null;
-  if (RAIL_PREASTAR_PROBE) OpexRailPreAstarStockReady(state, readyProject != null);
   if (readyProject != null) {
     local readyFinanceCapital = OpexProjectFinanceCapital(readyProject);
     local readyProfit = OpexCalibratedProfit(readyProject);

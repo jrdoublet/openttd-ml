@@ -29,18 +29,6 @@ function OpexAirProbeSite(site, airportType)
   return err;
 }
 
-/* Le refus municipal est le seul cas rattrapable : on plante alors des arbres -- HORS bouclier,
- * cette depense-la est reelle -- et on resonde. ERR_LOCAL_AUTHORITY_REFUSES couvre AUSSI le
- * plafond de bruit (script_error.hpp), que les arbres ne reparent pas : le second sondage tranche
- * entre les deux au lieu de le deviner. */
-function OpexAirSiteRefusal(site, airportType)
-{
-  local err = OpexAirProbeSite(site, airportType);
-  if (err != AIError.ERR_LOCAL_AUTHORITY_REFUSES) return err;
-  OpexBoostTownRating(site.town.id, 800, 40);
-  return OpexAirProbeSite(site, airportType);
-}
-
 function OpexAirRollback(airportA, airportB, planes, pairKey = "")
 {
   local airports = [];

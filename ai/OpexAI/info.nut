@@ -425,27 +425,8 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
-      name = "probe_rail_preastar",
-      description = "Passive rail station-access probe before A* with matched search/build outcomes; 0 = off (default)",
-      min_value = 0, max_value = 1,
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0, step_size = 1,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
       name = "rail_geometry_live_replan",
       description = "on a live STNFAIL quote, retry an exact same-interface refresh once; if that interface disappeared, keep the pair eligible so the scheduler can replan it with a fresh A*; 0 = off (default)",
-      min_value = 0, max_value = 1,
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      step_size = 1,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "probe_rail_terrain",
-      description = "log a cheap terrain-roughness summary of the straight line between both stations when a rail A* search starts, to test whether terrain predicts iteration-cap abandons; 0 = off (default)",
       min_value = 0, max_value = 1,
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
@@ -598,13 +579,6 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
-    AddSetting({
-      name = "homogeneous_preselect",
-      description = "Rank rail and road candidate pools by the portfolio funding score: 1 = enabled, 0 = historical ranking (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
 
     /* AC04-B et AC05 : qualifies separement et en cumul, rollback 0. */
     AddSetting({

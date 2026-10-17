@@ -560,21 +560,6 @@ function OpexGetCandidateTownEndpoints(candidate)
   return res;
 }
 
-/* C60 : Extrait un ID de ville valide depuis une extremite (ID, tuile, ou table). */
-function OpexTownIdFromEndpoint(endpoint)
-{
-  if (endpoint == null) return -1;
-  if (typeof endpoint == "table") {
-    if ("town" in endpoint && "id" in endpoint.town) return endpoint.town.id;
-    if ("srcTown" in endpoint && endpoint.srcTown >= 0) return endpoint.srcTown;
-    if ("dstTown" in endpoint && endpoint.dstTown >= 0) return endpoint.dstTown;
-    if ("tile" in endpoint) return AITile.GetClosestTown(endpoint.tile);
-  }
-  if (AITown.IsValidTown(endpoint)) return endpoint;
-  if (AIMap.IsValidTile(endpoint)) return AITile.GetClosestTown(endpoint);
-  return -1;
-}
-
 /* C60 : Verifie si la note municipale autorise la construction d'une gare.
  * Adapte de SuperLib.Town::TownRatingAllowStationBuilding.
  * 1. Si town_council_tolerance == 0 (permissif), OpenTTD autorise toujours la construction.
@@ -857,30 +842,6 @@ function OpexTopK(all, k)
   return best;
 }
 
-/* Variante de tri, installée une fois au chargement des réglages. Le chemin
- * historique OpexTopK reste exactement celui exécuté au défaut. */
-OpexTopKLegacy <- OpexTopK;
-function OpexTopKFund(all, k)
-{
-  local best = [];
-  local floor = 0.0;
-  foreach (candidate in all) {
-    local project = OpexProjectFromCandidate(candidate);
-    if (project == null) continue;
-    local financeCapital = OpexProjectFinanceCapital(project);
-    local score = OpexProjectScore(OpexCalibratedProfit(project),
-                                   financeCapital);
-    if ("fundScore" in candidate) candidate.fundScore = score;
-    else candidate.fundScore <- score;
-    if (best.len() >= k && score <= floor) continue;
-    local pos = best.len();
-    while (pos > 0 && best[pos - 1].fundScore < score) pos--;
-    best.insert(pos, candidate);
-    if (best.len() > k) best.pop();
-    if (best.len() >= k) floor = best[best.len() - 1].fundScore;
-  }
-  return best;
-}
 
 /* Exclusion a la GENERATION plutot qu'au FILTRAGE (2026-08-28). Mesure sur graine 42/20 ans
  * (results/opex_full_campaign_20y.json) : les stalles restants de la campagne sont 20/20 candidats du

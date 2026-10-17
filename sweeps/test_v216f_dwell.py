@@ -29,8 +29,8 @@ class TestV216fDwell(unittest.TestCase):
 
     def test_rail_cycles_use_dwell(self):
         rail = self.economy.count("OpexLoadedTripsPerMonth(oneWayDays + dwellDays, roundTripDays + dwellDays")
-        self.assertEqual(rail, 4)
-        self.assertEqual(self.economy.count("local dwellDays = OpexRailStationDwellDays(wagon);"), 2)
+        self.assertEqual(rail, 3)
+        self.assertEqual(self.economy.count("local dwellDays = OpexRailStationDwellDays(wagon);"), 1)
         # Definition + routier (ROAD_PAX_STOP_DWELL_DAYS), inchange.
         self.assertEqual(self.economy.count("OpexLoadedTripsPerMonth(oneWayDays, roundTripDays"), 2)
 

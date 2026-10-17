@@ -6,13 +6,6 @@
  * cash. L'ancien break en examinait 1 ; parcourir les 19 restants est le cout borne qui rend enfin
  * visible un candidat moins rentable par iteration mais financable en capital. */
 TOP_K <- 20;
-CASH_CANDIDATE_SCAN_LIMIT <- TOP_K;
-/* Compatibilite historique uniquement : ces deux constantes ne sont plus lues par la phase
- * routiere actuelle. Elles NE constituent donc pas des plafonds actifs et ne doivent pas etre
- * citees comme tels dans un banc. Conservees pour ne pas casser un ancien script/require qui
- * referencerait encore leur symbole. */
-ROAD_MAX_NEW_LINES_PER_YEAR <- 36;
-ROAD_MAX_ATTEMPTS_PER_YEAR <- 60;
 /* Seuil de remboursement d'emprunt : sous ce plancher de tresorerie on ne rembourse pas, un
  * emprunt a 5 % coute bien moins qu'une ligne manquee faute de cash. Au-dessus, l'argent qui
  * dort ne rapporte rien -- autant reduire l'emprunt.
