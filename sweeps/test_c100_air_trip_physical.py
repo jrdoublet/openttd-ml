@@ -31,9 +31,9 @@ class C100AirTripPhysicalTests(unittest.TestCase):
         body = match.group(1)
         self.assertIn("physicalTiming = C100_AIR_TRIP_PHYSICAL || C105_AIR_REPLAY_CHOICE_PHYSICAL_ECONOMICS", body)
         self.assertIn("|| forcePhysicalTiming", body)
-        self.assertIn("local c100ReplayTiming = C114_AIR_C100_FULL_REPLAY || forceC100RankReplay;", body)
+        self.assertIn("local c100ReplayTiming = forceC100RankReplay;", body)
         self.assertIn("directSpeed = physicalTiming || c100ReplayTiming", body)
-        self.assertIn("C99_AIR_SPEED_API_FIX || directSpeed", body)
+        self.assertIn("directSpeed", body)
         self.assertIn("speed.tofloat()", body)
         self.assertIn("OpexC100AirManeuverDays(engineId, airportType, airportType)", body)
 

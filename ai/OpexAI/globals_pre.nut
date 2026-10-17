@@ -477,7 +477,6 @@ C97_AIR_C69_ENGINE_PROBE <- false;
 /* C98 : sonde passive du biais du modele AIR par moteur/ligne. Compare la
  * prevision de construction au realise annuel sans modifier aucun choix. */
 C98_AIR_REALIZED_PROBE <- false;
-C99_AIR_SPEED_API_FIX <- false;
 C100_AIR_TRIP_PHYSICAL <- false;
 C101_AIR_PHYSICAL_ENGINE_CHOICE <- false;
 /* C103 : replay causal du classement moteur du premier C100 positif. Le timing
@@ -500,7 +499,6 @@ C106_AIR_MARGINAL_PHYSICAL_ENGINE_CHOICE <- false;
 C108_AIR_ONESTEP_PHYSICAL_ECONOMICS <- false;
 /* C109 : economie C100.1 partout et choix moteur par elasticite relative du
  * profit au gain de vitesse. Seuil e50 = 0.5, sans cash ni EngineID. */
-C109_AIR_SPEED_ELASTICITY_PHYSICAL <- false;
 /* C110 : reutilise l'apprentissage C82 realise/predit uniquement pour le choix
  * du moteur AIR. Le classement portefeuille reste celui de C70. */
 C110_AIR_ENGINE_CALIBRATION_CHOICE_ONLY <- false;
@@ -510,12 +508,10 @@ C110_AIR_ENGINE_CALIBRATION_CHOICE_ONLY <- false;
 C111_AIR_C100_DECISION_SHADOW <- false;
 /* C112 : economie C100.1 partout, moteur choisi par elasticite relative
  * profit/vitesse avec seuil e75 = 0.75. Aucun seuil de caisse ni EngineID. */
-C112_AIR_SPEED_ELASTICITY_E75_PHYSICAL <- false;
 /* C113 : isolation C100 complete. Reutilise le shadow C68 de C111 jusque dans
  * l'admission pre-portefeuille ; l'economie du moteur choisi ne fournit plus
  * que capital/flotte/constructibilite. */
 C113_AIR_C100_FULL_DECISION_SHADOW <- false;
-C114_AIR_C100_FULL_REPLAY <- false;
 /* C115 : regularisateur C100 conditionne par le goulot macroeconomique C69.
  * Le replay n'est utilise que tant que le capital du choix C68 depasse K_dec ;
  * aucun seuil de caisse, d'annee ou d'EngineID n'est introduit. */

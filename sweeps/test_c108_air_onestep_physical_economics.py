@@ -48,7 +48,6 @@ class C108AirOneStepPhysicalEconomicsTests(unittest.TestCase):
         full = AIR[AIR.index("function OpexAirChooseRoutePlaneFull("):]
         self.assertIn("if (C108_AIR_ONESTEP_PHYSICAL_ECONOMICS && C72_PLANE_CHOICE == 0", full)
         self.assertIn("!C106_AIR_MARGINAL_PHYSICAL_ENGINE_CHOICE", full)
-        self.assertIn("!C109_AIR_SPEED_ELASTICITY_PHYSICAL", full)
 
 
 if __name__ == "__main__":

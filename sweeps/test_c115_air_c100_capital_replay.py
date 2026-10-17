@@ -43,7 +43,6 @@ class C115CapitalReplayTests(unittest.TestCase):
         start = AIR.index("if (C115_AIR_C100_CAPITAL_REPLAY")
         end = AIR.index("if (C82_ENGINE_CALIBRATION", start)
         body = AIR[start:end]
-        self.assertIn("!C114_AIR_C100_FULL_REPLAY", body)
         trip_start = AIR.index("function OpexAirTripModel(")
         trip_end = AIR.index("function OpexAirLiveRoutesAtAirport", trip_start)
         self.assertNotIn("C115_AIR_C100_CAPITAL_REPLAY", AIR[trip_start:trip_end])

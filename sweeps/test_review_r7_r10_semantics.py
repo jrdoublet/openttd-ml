@@ -33,31 +33,24 @@ def _r10_state(**overrides):
         "c72": 0,
         "c104": False,
         "c105": False,
-        "c109": False,
         "c111": False,
-        "c112": False,
         "c115": False,
     }
     state.update(overrides)
     c72 = state["c72"]
     c104 = state["c104"]
     c105 = state["c105"]
-    c109 = state["c109"]
     c111 = state["c111"]
-    c112 = state["c112"]
     c115 = state["c115"]
 
     # All unrelated exclusion flags are fixed false in this directed matrix.
-    probe104 = c104 and not c115 and c72 == 0 and not c105 and not c109 and not c111 and not c112
-    choose105 = c105 and c72 == 0 and not c109 and not c111 and not c112
-    choose109 = c109 and c72 == 0 and not c104 and not c105 and not c111 and not c112
-    choose111 = c111 and c72 == 0 and not c104 and not c105 and not c109 and not c112
-    choose112 = c112 and c72 == 0 and not c104 and not c105 and not c109 and not c111
-    choose115 = c115 and c72 == 0 and not c105 and not c109 and not c111 and not c112
-    physical_timing = c105 or c109 or c112
+    probe104 = c104 and not c115 and c72 == 0 and not c105 and not c111
+    choose105 = c105 and c72 == 0 and not c111
+    choose111 = c111 and c72 == 0 and not c104 and not c105
+    choose115 = c115 and c72 == 0 and not c105 and not c111
+    physical_timing = c105
     active = [name for name, enabled in (
-        ("c105", choose105), ("c109", choose109), ("c111", choose111),
-        ("c112", choose112), ("c115", choose115),
+        ("c105", choose105), ("c111", choose111), ("c115", choose115),
     ) if enabled]
     return {"probe104": probe104, "active": active, "physical_timing": physical_timing}
 
@@ -90,13 +83,9 @@ class ReviewR10CompositionTest(unittest.TestCase):
     def test_live_source_contains_the_matrix_gates_and_global_timing(self):
         self.assertIn("if (C104_AIR_C100_COMPARE_PROBE && !C115_AIR_C100_CAPITAL_REPLAY", AIR)
         self.assertIn("if (C105_AIR_REPLAY_CHOICE_PHYSICAL_ECONOMICS && C72_PLANE_CHOICE == 0", AIR)
-        self.assertIn("if (C109_AIR_SPEED_ELASTICITY_PHYSICAL && C72_PLANE_CHOICE == 0", AIR)
         self.assertIn("if (C111_AIR_C100_DECISION_SHADOW && C72_PLANE_CHOICE == 0", AIR)
-        self.assertIn("if (C112_AIR_SPEED_ELASTICITY_E75_PHYSICAL && C72_PLANE_CHOICE == 0", AIR)
         self.assertIn("if (C115_AIR_C100_CAPITAL_REPLAY && C72_PLANE_CHOICE == 0", AIR)
         self.assertIn("C105_AIR_REPLAY_CHOICE_PHYSICAL_ECONOMICS", AIR)
-        self.assertIn("C109_AIR_SPEED_ELASTICITY_PHYSICAL", AIR)
-        self.assertIn("C112_AIR_SPEED_ELASTICITY_E75_PHYSICAL", AIR)
 
     def test_c72_masks_new_choosers_but_c105_timing_remains_global(self):
         c115 = _r10_state(c72=1, c115=True)
@@ -109,14 +98,12 @@ class ReviewR10CompositionTest(unittest.TestCase):
 
     def test_standalone_controls_activate_exactly_one_expected_path(self):
         self.assertEqual(_r10_state(c105=True)["active"], ["c105"])
-        self.assertEqual(_r10_state(c109=True)["active"], ["c109"])
         self.assertEqual(_r10_state(c111=True)["active"], ["c111"])
-        self.assertEqual(_r10_state(c112=True)["active"], ["c112"])
         self.assertEqual(_r10_state(c115=True)["active"], ["c115"])
         self.assertTrue(_r10_state(c104=True)["probe104"])
 
-    def test_c104_is_mutually_exclusive_with_c109_c111_c112(self):
-        for flag in ("c109", "c111", "c112"):
+    def test_c104_is_mutually_exclusive_with_c111(self):
+        for flag in ("c111",):
             state = _r10_state(c104=True, **{flag: True})
             self.assertFalse(state["probe104"], flag)
             self.assertEqual(state["active"], [], flag)

@@ -339,8 +339,6 @@ def main():
     parser.add_argument("--years", type=int, default=4)
     parser.add_argument("--seeds", nargs="+", type=int, default=DEFAULT_SEEDS)
     parser.add_argument("--max-workers", type=int, default=3)
-    parser.add_argument("--c99-air-speed-api-fix", action="store_true",
-                        help="active C99 pendant la sonde C98 pour mesurer le biais du modele corrige")
     parser.add_argument("--c100-air-trip-physical", action="store_true",
                         help="active C100 pendant la sonde C98 : vitesse API + manoeuvres aeroport physiques")
     parser.add_argument("--out", type=Path,
@@ -351,8 +349,6 @@ def main():
 
     enable_savegame_cleanup()
     settings = [("decision_log", 1), ("c98_air_realized_probe", 1)]
-    if args.c99_air_speed_api_fix:
-        settings.append(("c99_air_speed_api_fix", 1))
     if args.c100_air_trip_physical:
         settings.append(("c100_air_trip_physical", 1))
     opex = local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI", tuple(settings))
@@ -362,7 +358,6 @@ def main():
             "bench_context": "solo",
             "bench_arm": "OpexAI[" + ",".join(
                 ["decision_log=1", "c98_air_realized_probe=1"]
-                + (["c99_air_speed_api_fix=1"] if args.c99_air_speed_api_fix else [])
                 + (["c100_air_trip_physical=1"] if args.c100_air_trip_physical else [])
             ) + "]",
             "seed": seed,
@@ -391,7 +386,6 @@ def main():
         "settings": {
             "decision_log": 1,
             "c98_air_realized_probe": 1,
-            "c99_air_speed_api_fix": int(args.c99_air_speed_api_fix),
             "c100_air_trip_physical": int(args.c100_air_trip_physical),
         },
         "rows": rows,

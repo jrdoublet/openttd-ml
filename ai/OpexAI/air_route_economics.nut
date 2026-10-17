@@ -19,7 +19,7 @@ function OpexAirEconomics(catalog, airport, plane, distance, monthlyPax,
         + "|pt=" + ((C100_AIR_TRIP_PHYSICAL || C105_AIR_REPLAY_CHOICE_PHYSICAL_ECONOMICS
             || C108_AIR_ONESTEP_PHYSICAL_ECONOMICS
             || forcePhysicalTiming) ? 1 : 0)
-        + "|rr=" + ((C114_AIR_C100_FULL_REPLAY || forceC100RankReplay) ? 1 : 0);
+        + "|rr=" + (forceC100RankReplay ? 1 : 0);
     if (econKey in AIR_ECONOMICS_MEMO) {
       return AIR_ECONOMICS_MEMO[econKey];
     }
@@ -35,7 +35,7 @@ function OpexAirEconomics(catalog, airport, plane, distance, monthlyPax,
     local physicalTiming = C100_AIR_TRIP_PHYSICAL || C105_AIR_REPLAY_CHOICE_PHYSICAL_ECONOMICS
         || C108_AIR_ONESTEP_PHYSICAL_ECONOMICS
         || forcePhysicalTiming;
-    local tripKey = (C114_AIR_C100_FULL_REPLAY || forceC100RankReplay)
+    local tripKey = forceC100RankReplay
         ? ("r|" + plane.id + "|" + airport.type + "|" + distance)
         : (physicalTiming
             ? (plane.id + "|" + airport.type + "|" + distance)

@@ -40,7 +40,7 @@ class C101AirPhysicalEngineChoiceTests(unittest.TestCase):
     def test_c101_isolated_from_other_engine_choice_modes(self):
         full = AIR[AIR.index("function OpexAirChooseRoutePlaneFull("):]
         self.assertIn("C101_AIR_PHYSICAL_ENGINE_CHOICE && C72_PLANE_CHOICE == 0", full)
-        self.assertIn("!C99_AIR_SPEED_API_FIX && !C100_AIR_TRIP_PHYSICAL", full)
+        self.assertIn("!C100_AIR_TRIP_PHYSICAL", full)
         self.assertIn("!C85_AIR_EQUIPMENT_FRONTIER", full)
         self.assertIn("if (C82_ENGINE_CALIBRATION || C110_AIR_ENGINE_CALIBRATION_CHOICE_ONLY)", full)
 

@@ -489,7 +489,6 @@ function OpexLoadSettings()
   AIR_SITE_STALE_SHADOW = OpexProbeSetting("air_site_stale_shadow") != 0;
   C97_AIR_C69_ENGINE_PROBE = OpexProbeSetting("c97_air_c69_engine_probe") != 0;
   C98_AIR_REALIZED_PROBE = OpexProbeSetting("c98_air_realized_probe") != 0;
-  C99_AIR_SPEED_API_FIX = AIController.GetSetting("c99_air_speed_api_fix") != 0;
   C100_AIR_TRIP_PHYSICAL = AIController.GetSetting("c100_air_trip_physical") != 0;
   C101_AIR_PHYSICAL_ENGINE_CHOICE = AIController.GetSetting("c101_air_physical_engine_choice") != 0;
   C103_AIR_C100_RANK_REPLAY = AIController.GetSetting("c103_air_c100_rank_replay") != 0;
@@ -497,12 +496,9 @@ function OpexLoadSettings()
   C105_AIR_REPLAY_CHOICE_PHYSICAL_ECONOMICS = AIController.GetSetting("c105_air_replay_choice_physical_economics") != 0;
   C106_AIR_MARGINAL_PHYSICAL_ENGINE_CHOICE = AIController.GetSetting("c106_air_marginal_physical_engine_choice") != 0;
   C108_AIR_ONESTEP_PHYSICAL_ECONOMICS = AIController.GetSetting("c108_air_onestep_physical_economics") != 0;
-  C109_AIR_SPEED_ELASTICITY_PHYSICAL = AIController.GetSetting("c109_air_speed_elasticity_physical") != 0;
   C110_AIR_ENGINE_CALIBRATION_CHOICE_ONLY = AIController.GetSetting("c110_air_engine_calibration_choice_only") != 0;
   C111_AIR_C100_DECISION_SHADOW = AIController.GetSetting("c111_air_c100_decision_shadow") != 0;
-  C112_AIR_SPEED_ELASTICITY_E75_PHYSICAL = AIController.GetSetting("c112_air_speed_elasticity_e75_physical") != 0;
   C113_AIR_C100_FULL_DECISION_SHADOW = AIController.GetSetting("c113_air_c100_full_decision_shadow") != 0;
-  C114_AIR_C100_FULL_REPLAY = AIController.GetSetting("c114_air_c100_full_replay") != 0;
   C115_AIR_C100_CAPITAL_REPLAY = AIController.GetSetting("c115_air_c100_capital_replay") != 0;
   C116_AIR_PROJECT_PROBE = OpexProbeSetting("c116_air_project_probe") != 0;
   C117_AIR_THROUGHPUT_PROBE = OpexProbeSetting("c117_air_throughput_probe") != 0;

@@ -507,13 +507,6 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
-    AddSetting({
-      name = "c99_air_speed_api_fix",
-      description = "C99: use AIEngine.GetMaxSpeed directly in AIR economics because NoAI already applies vehicle.plane_speed; 1 = corrected, 0 = legacy extra /4 (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
 
     AddSetting({
       name = "c100_air_trip_physical",
@@ -571,13 +564,6 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
-    AddSetting({
-      name = "c109_air_speed_elasticity_physical",
-      description = "C109: C100.1 physical AIR economics plus relative speed-profit elasticity engine choice (threshold 0.5); 1 = enabled, 0 = default",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
 
     AddSetting({
       name = "c110_air_engine_calibration_choice_only",
@@ -595,13 +581,6 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
-    AddSetting({
-      name = "c112_air_speed_elasticity_e75_physical",
-      description = "C112: C100.1 physical AIR economics plus relative speed-profit elasticity engine choice (threshold 0.75); no cash or EngineID threshold; 1 = enabled, 0 = default",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
 
     AddSetting({
       name = "c113_air_c100_full_decision_shadow",
@@ -611,13 +590,6 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
-    AddSetting({
-      name = "c114_air_c100_full_replay",
-      description = "C114 diagnostic: replay the first positive C100 globally (NoAI direct speed plus historical maneuver helper) in AIR route economics and engine choice; 1 = enabled, 0 = default",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
 
     AddSetting({
       name = "c115_air_c100_capital_replay",

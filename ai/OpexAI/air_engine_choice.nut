@@ -1255,33 +1255,6 @@ function OpexC105ChooseRoutePlane(catalog, airport, selectedPlane, selectedEcono
   return { plane = replay.plane, economics = physical };
 }
 
-/* C109 actif : le timing/economie du portefeuille reste C100.1 et le moteur est
- * choisi uniquement par elasticite relative profit/vitesse, seuil e50 = 0.5. */
-function OpexC109ChooseRoutePlane(catalog, airport, selectedPlane, selectedEconomics,
-                                  distance, monthlyPax, infrastructureMaintenance,
-                                  maxCapital, newAirportCount, opcodePadding)
-{
-  local choice = OpexC109OneStepSpeedElasticityChoice(catalog, airport, distance, monthlyPax,
-      infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding, 500);
-  if (choice == null || !("plane" in choice) || !("economics" in choice) || choice.economics == null) {
-    return { plane = selectedPlane, economics = selectedEconomics };
-  }
-  return { plane = choice.plane, economics = choice.economics };
-}
-
-/* C112 : meme economie physique que C109, mais seuil d'elasticite e75. C104
- * montre que ce seuil est le plus proche du replay C100 en 1970 et sur newpair. */
-function OpexC112ChooseRoutePlane(catalog, airport, selectedPlane, selectedEconomics,
-                                  distance, monthlyPax, infrastructureMaintenance,
-                                  maxCapital, newAirportCount, opcodePadding)
-{
-  local choice = OpexC109OneStepSpeedElasticityChoice(catalog, airport, distance, monthlyPax,
-      infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding, 750);
-  if (choice == null || !("plane" in choice) || !("economics" in choice) || choice.economics == null) {
-    return { plane = selectedPlane, economics = selectedEconomics };
-  }
-  return { plane = choice.plane, economics = choice.economics };
-}
 
 /* C111 : cellule d'isolation manquante apres C103/C109.
  * - equipement : meme replay moteur que le premier C100 positif (C103), avec
@@ -1463,88 +1436,61 @@ function OpexAirChooseRoutePlaneFull(catalog, airport, selectedPlane, distance, 
   }
   if (C104_AIR_C100_COMPARE_PROBE && !C115_AIR_C100_CAPITAL_REPLAY
       && C72_PLANE_CHOICE == 0 && !C82_ENGINE_CALIBRATION
-      && !C85_AIR_EQUIPMENT_FRONTIER && !C99_AIR_SPEED_API_FIX && !C100_AIR_TRIP_PHYSICAL
+      && !C85_AIR_EQUIPMENT_FRONTIER && !C100_AIR_TRIP_PHYSICAL
       && !C101_AIR_PHYSICAL_ENGINE_CHOICE && !C103_AIR_C100_RANK_REPLAY
       && !C105_AIR_REPLAY_CHOICE_PHYSICAL_ECONOMICS
       && !C106_AIR_MARGINAL_PHYSICAL_ENGINE_CHOICE
       && !C108_AIR_ONESTEP_PHYSICAL_ECONOMICS
-      && !C109_AIR_SPEED_ELASTICITY_PHYSICAL && !C111_AIR_C100_DECISION_SHADOW
-      && !C112_AIR_SPEED_ELASTICITY_E75_PHYSICAL) {
+      && !C111_AIR_C100_DECISION_SHADOW) {
     OpexC104ProbeAirEngineCompare(catalog, airport, distance, monthlyPax,
         infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding);
   }
   if (C105_AIR_REPLAY_CHOICE_PHYSICAL_ECONOMICS && C72_PLANE_CHOICE == 0
       && !C82_ENGINE_CALIBRATION && !C85_AIR_EQUIPMENT_FRONTIER
-      && !C99_AIR_SPEED_API_FIX && !C100_AIR_TRIP_PHYSICAL
+      && !C100_AIR_TRIP_PHYSICAL
       && !C101_AIR_PHYSICAL_ENGINE_CHOICE && !C103_AIR_C100_RANK_REPLAY
       && !C106_AIR_MARGINAL_PHYSICAL_ENGINE_CHOICE
       && !C108_AIR_ONESTEP_PHYSICAL_ECONOMICS
-      && !C109_AIR_SPEED_ELASTICITY_PHYSICAL && !C111_AIR_C100_DECISION_SHADOW
-      && !C112_AIR_SPEED_ELASTICITY_E75_PHYSICAL) {
+      && !C111_AIR_C100_DECISION_SHADOW) {
     return OpexC105ChooseRoutePlane(catalog, airport, selectedPlane, selectedEconomics,
         distance, monthlyPax, infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding);
   }
   if (C106_AIR_MARGINAL_PHYSICAL_ENGINE_CHOICE && C72_PLANE_CHOICE == 0
       && !C82_ENGINE_CALIBRATION && !C85_AIR_EQUIPMENT_FRONTIER
-      && !C99_AIR_SPEED_API_FIX && !C100_AIR_TRIP_PHYSICAL
+      && !C100_AIR_TRIP_PHYSICAL
       && !C101_AIR_PHYSICAL_ENGINE_CHOICE && !C103_AIR_C100_RANK_REPLAY
       && !C105_AIR_REPLAY_CHOICE_PHYSICAL_ECONOMICS
       && !C108_AIR_ONESTEP_PHYSICAL_ECONOMICS
-      && !C109_AIR_SPEED_ELASTICITY_PHYSICAL && !C111_AIR_C100_DECISION_SHADOW
-      && !C112_AIR_SPEED_ELASTICITY_E75_PHYSICAL) {
+      && !C111_AIR_C100_DECISION_SHADOW) {
     return OpexC106ChooseRoutePlane(catalog, airport, selectedPlane, selectedEconomics,
         distance, monthlyPax, infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding);
   }
   if (C108_AIR_ONESTEP_PHYSICAL_ECONOMICS && C72_PLANE_CHOICE == 0
       && !C82_ENGINE_CALIBRATION && !C85_AIR_EQUIPMENT_FRONTIER
-      && !C99_AIR_SPEED_API_FIX && !C100_AIR_TRIP_PHYSICAL
+      && !C100_AIR_TRIP_PHYSICAL
       && !C101_AIR_PHYSICAL_ENGINE_CHOICE && !C103_AIR_C100_RANK_REPLAY
       && !C105_AIR_REPLAY_CHOICE_PHYSICAL_ECONOMICS
       && !C106_AIR_MARGINAL_PHYSICAL_ENGINE_CHOICE
-      && !C109_AIR_SPEED_ELASTICITY_PHYSICAL && !C111_AIR_C100_DECISION_SHADOW
-      && !C112_AIR_SPEED_ELASTICITY_E75_PHYSICAL) {
+      && !C111_AIR_C100_DECISION_SHADOW) {
     return OpexC108ChooseRoutePlane(catalog, airport, selectedPlane, selectedEconomics,
-        distance, monthlyPax, infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding);
-  }
-  if (C109_AIR_SPEED_ELASTICITY_PHYSICAL && C72_PLANE_CHOICE == 0
-      && !C82_ENGINE_CALIBRATION && !C85_AIR_EQUIPMENT_FRONTIER
-      && !C99_AIR_SPEED_API_FIX && !C100_AIR_TRIP_PHYSICAL
-      && !C101_AIR_PHYSICAL_ENGINE_CHOICE && !C103_AIR_C100_RANK_REPLAY
-      && !C104_AIR_C100_COMPARE_PROBE && !C105_AIR_REPLAY_CHOICE_PHYSICAL_ECONOMICS
-      && !C106_AIR_MARGINAL_PHYSICAL_ENGINE_CHOICE
-      && !C108_AIR_ONESTEP_PHYSICAL_ECONOMICS && !C111_AIR_C100_DECISION_SHADOW
-      && !C112_AIR_SPEED_ELASTICITY_E75_PHYSICAL) {
-    return OpexC109ChooseRoutePlane(catalog, airport, selectedPlane, selectedEconomics,
         distance, monthlyPax, infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding);
   }
   if (C111_AIR_C100_DECISION_SHADOW && C72_PLANE_CHOICE == 0
       && !C82_ENGINE_CALIBRATION
-      && !C85_AIR_EQUIPMENT_FRONTIER && !C99_AIR_SPEED_API_FIX && !C100_AIR_TRIP_PHYSICAL
+      && !C85_AIR_EQUIPMENT_FRONTIER && !C100_AIR_TRIP_PHYSICAL
       && !C101_AIR_PHYSICAL_ENGINE_CHOICE && !C103_AIR_C100_RANK_REPLAY
       && !C104_AIR_C100_COMPARE_PROBE && !C105_AIR_REPLAY_CHOICE_PHYSICAL_ECONOMICS
-      && !C106_AIR_MARGINAL_PHYSICAL_ENGINE_CHOICE && !C108_AIR_ONESTEP_PHYSICAL_ECONOMICS
-      && !C109_AIR_SPEED_ELASTICITY_PHYSICAL && !C112_AIR_SPEED_ELASTICITY_E75_PHYSICAL) {
+      && !C106_AIR_MARGINAL_PHYSICAL_ENGINE_CHOICE && !C108_AIR_ONESTEP_PHYSICAL_ECONOMICS) {
     return OpexC111ChooseRoutePlane(catalog, airport, selectedPlane, selectedEconomics,
-        distance, monthlyPax, infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding);
-  }
-  if (C112_AIR_SPEED_ELASTICITY_E75_PHYSICAL && C72_PLANE_CHOICE == 0
-      && !C82_ENGINE_CALIBRATION && !C110_AIR_ENGINE_CALIBRATION_CHOICE_ONLY
-      && !C85_AIR_EQUIPMENT_FRONTIER && !C99_AIR_SPEED_API_FIX && !C100_AIR_TRIP_PHYSICAL
-      && !C101_AIR_PHYSICAL_ENGINE_CHOICE && !C103_AIR_C100_RANK_REPLAY
-      && !C104_AIR_C100_COMPARE_PROBE && !C105_AIR_REPLAY_CHOICE_PHYSICAL_ECONOMICS
-      && !C106_AIR_MARGINAL_PHYSICAL_ENGINE_CHOICE && !C108_AIR_ONESTEP_PHYSICAL_ECONOMICS
-      && !C109_AIR_SPEED_ELASTICITY_PHYSICAL && !C111_AIR_C100_DECISION_SHADOW) {
-    return OpexC112ChooseRoutePlane(catalog, airport, selectedPlane, selectedEconomics,
         distance, monthlyPax, infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding);
   }
   if (C115_AIR_C100_CAPITAL_REPLAY && C72_PLANE_CHOICE == 0
       && !C82_ENGINE_CALIBRATION && !C110_AIR_ENGINE_CALIBRATION_CHOICE_ONLY
-      && !C85_AIR_EQUIPMENT_FRONTIER && !C99_AIR_SPEED_API_FIX && !C100_AIR_TRIP_PHYSICAL
+      && !C85_AIR_EQUIPMENT_FRONTIER && !C100_AIR_TRIP_PHYSICAL
       && !C101_AIR_PHYSICAL_ENGINE_CHOICE && !C103_AIR_C100_RANK_REPLAY
       && !C105_AIR_REPLAY_CHOICE_PHYSICAL_ECONOMICS
       && !C106_AIR_MARGINAL_PHYSICAL_ENGINE_CHOICE && !C108_AIR_ONESTEP_PHYSICAL_ECONOMICS
-      && !C109_AIR_SPEED_ELASTICITY_PHYSICAL && !C111_AIR_C100_DECISION_SHADOW
-      && !C112_AIR_SPEED_ELASTICITY_E75_PHYSICAL && !C114_AIR_C100_FULL_REPLAY) {
+      && !C111_AIR_C100_DECISION_SHADOW) {
     return OpexC115ChooseRoutePlane(catalog, airport, selectedPlane, selectedEconomics,
         distance, monthlyPax, infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding);
   }
@@ -1553,22 +1499,20 @@ function OpexAirChooseRoutePlaneFull(catalog, airport, selectedPlane, distance, 
         monthlyPax, infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding);
   }
   if (C103_AIR_C100_RANK_REPLAY && C72_PLANE_CHOICE == 0
-      && !C99_AIR_SPEED_API_FIX && !C100_AIR_TRIP_PHYSICAL
+      && !C100_AIR_TRIP_PHYSICAL
       && !C85_AIR_EQUIPMENT_FRONTIER && !C105_AIR_REPLAY_CHOICE_PHYSICAL_ECONOMICS
       && !C106_AIR_MARGINAL_PHYSICAL_ENGINE_CHOICE
       && !C108_AIR_ONESTEP_PHYSICAL_ECONOMICS
-      && !C109_AIR_SPEED_ELASTICITY_PHYSICAL && !C111_AIR_C100_DECISION_SHADOW
-      && !C112_AIR_SPEED_ELASTICITY_E75_PHYSICAL) {
+      && !C111_AIR_C100_DECISION_SHADOW) {
     return OpexC103ChooseRoutePlane(catalog, airport, selectedPlane, selectedEconomics,
         distance, monthlyPax, infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding);
   }
   if (C101_AIR_PHYSICAL_ENGINE_CHOICE && C72_PLANE_CHOICE == 0
-      && !C99_AIR_SPEED_API_FIX && !C100_AIR_TRIP_PHYSICAL
+      && !C100_AIR_TRIP_PHYSICAL
       && !C85_AIR_EQUIPMENT_FRONTIER && !C105_AIR_REPLAY_CHOICE_PHYSICAL_ECONOMICS
       && !C106_AIR_MARGINAL_PHYSICAL_ENGINE_CHOICE
       && !C108_AIR_ONESTEP_PHYSICAL_ECONOMICS
-      && !C109_AIR_SPEED_ELASTICITY_PHYSICAL && !C111_AIR_C100_DECISION_SHADOW
-      && !C112_AIR_SPEED_ELASTICITY_E75_PHYSICAL) {
+      && !C111_AIR_C100_DECISION_SHADOW) {
     return OpexC101ChooseRoutePlane(catalog, airport, selectedPlane, selectedEconomics,
         distance, monthlyPax, infrastructureMaintenance, maxCapital, newAirportCount, opcodePadding);
   }
