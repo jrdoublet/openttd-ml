@@ -426,23 +426,12 @@ function OpexAI::_advanceRailSearchThroughput(maxSlices = -1)
 
   local slicesRan = 0;
   local minThreshold = (this._v89EstimatedSliceOps > 1500) ? this._v89EstimatedSliceOps : 1500;
-  if (V88_STEP2_RAIL_PRIO && minThreshold > 2500 && ("candidate" in this._railSearch) && this._railSearch.candidate != null
-      && ((("isChainStep1" in this._railSearch.candidate) && this._railSearch.candidate.isChainStep1)
-          || (("isChainStep2" in this._railSearch.candidate) && this._railSearch.candidate.isChainStep2))) {
-    minThreshold = 2500;
-  }
   while (this._railSearch != null && this._railSearch.phase == "search"
          && AIController.GetOpsTillSuspend() >= minThreshold) {
     if (maxSlices > 0 && slicesRan >= maxSlices) break;
     this._advanceRailSearchSliceWithLedgers();
     slicesRan++;
     minThreshold = (this._v89EstimatedSliceOps > 1500) ? this._v89EstimatedSliceOps : 1500;
-    /* daycap peut avoir libere le creneau dans la tranche : ne pas lire une table nulle. */
-    if (V88_STEP2_RAIL_PRIO && minThreshold > 2500 && this._railSearch != null && ("candidate" in this._railSearch) && this._railSearch.candidate != null
-        && ((("isChainStep1" in this._railSearch.candidate) && this._railSearch.candidate.isChainStep1)
-            || (("isChainStep2" in this._railSearch.candidate) && this._railSearch.candidate.isChainStep2))) {
-      minThreshold = 2500;
-    }
   }
   if (spThru != null) OpexSpanEnd(spThru);
   return slicesRan;

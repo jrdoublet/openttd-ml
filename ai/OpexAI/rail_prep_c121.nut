@@ -238,7 +238,6 @@ function OpexC121RailPrepCandidateBlocked(ai, candidate, curDate)
   if (ai == null || candidate == null) return true;
   if (!(("kind" in candidate) && ("cargo" in candidate)
       && ("src" in candidate) && ("dst" in candidate))) return true;
-  if (("isChain" in candidate) && candidate.isChain) return true;
   if (("mode" in candidate) && candidate.mode != "rail") return true;
   local pairKey = OpexProjectPairKey(candidate.kind, candidate.cargo, candidate.src, candidate.dst);
   if (ai._railReadyStock != null && (pairKey in ai._railReadyStock)) return true;

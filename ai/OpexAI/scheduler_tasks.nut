@@ -955,15 +955,6 @@ function OpexAI::_dispatchReport(task, year)
   local spReportYear = PROBE_SPAN_TRACE ? OpexSpanBegin("report.year") : null;
   this._reportYear(year, this._ranked);
   if (spReportYear != null) OpexSpanEnd(spReportYear);
-  if (V88_GOODS_CHAIN) {
-    local rs = this._railSearch;
-    local own = (rs != null && ("candidate" in rs) && rs.candidate != null
-        && ("isChainStep2" in rs.candidate)) ? 1 : 0;
-    OpexV88Log("CHAIN_STATE", "active=" + (this._activeGoodsChain != null ? this._activeGoodsChain.step : 0)
-        + " search=" + (rs != null ? rs.kind + "/" + rs.phase : "none") + " own=" + own
-        + " spent=" + ((rs != null && "spent" in rs) ? rs.spent : -1)
-        + " budget=" + ((rs != null && "iterationBudget" in rs) ? rs.iterationBudget : -1));
-  }
   local spReportLines = PROBE_SPAN_TRACE ? OpexSpanBegin("report.lines") : null;
   this._reportLines(year);
   if (spReportLines != null) OpexSpanEnd(spReportLines);

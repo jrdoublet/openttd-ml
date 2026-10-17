@@ -184,7 +184,8 @@ class TestRailGeometryGuard(unittest.TestCase):
         record = function_body(self.task, "function OpexAI::_recordRailAttempt(")
         memory = record[record.index("if (ABANDON_MEMORY &&"):]
         self.assertNotIn('result.reason == "REPLAN_GEOM"', memory)
-        self.assertGreaterEqual(self.task.count('!= "REPLAN_GEOM"'), 2)
+        # V232 : les deux gardes REPLAN_GEOM etaient dans la chaine V88, retiree
+        self.assertEqual(self.task.count('!= "REPLAN_GEOM"'), 0)
 
         reasons = function_body(self.lines, "function OpexAttemptReasonCode(reason)")
         self.assertIn('if (reason == "REPLAN_GEOM") return "J";', reasons)

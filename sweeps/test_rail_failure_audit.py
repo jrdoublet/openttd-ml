@@ -17,7 +17,7 @@ class RailFailureAuditTest(unittest.TestCase):
         self.assertIn('RAIL_FAILURE_AUDIT = OpexProbeSetting("rail_failure_audit") != 0;',
                       (ROOT / "settings.nut").read_text(encoding="utf-8"))
         rail = (ROOT / "task_rail.nut").read_text(encoding="utf-8")
-        self.assertEqual(rail.count('OpexRailFailureAudit("precheck",'), 4)
+        self.assertEqual(rail.count('OpexRailFailureAudit("precheck",'), 2)
         self.assertEqual(rail.count('OpexRailFailureAudit("attempt",'), 1)
         self.assertGreaterEqual(rail.count('OpexRailFailureAudit("early",'), 5)
         self.assertEqual(rail.count("OpexRailSearchBlockerAudit(candidate, this._railSearch, project, i)"), 2)

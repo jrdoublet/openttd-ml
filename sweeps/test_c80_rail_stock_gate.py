@@ -66,7 +66,7 @@ class TestC80RailStockGateContract(unittest.TestCase):
         self.assertIn('return { outcome = "rejected", discards = passDiscards };', self.task_rail)
         # 2. Vérification que C80_RAIL_STOCK_GATE est présent avant chaque appel à this._startRailSearch
         call_sites = [m.start() for m in re.finditer(r"this\._startRailSearch", self.task_rail)]
-        self.assertEqual(len(call_sites), 3, "Il doit y avoir exactement 3 sites d'appel à this._startRailSearch")
+        self.assertEqual(len(call_sites), 1, "Il doit y avoir exactement 1 site d appel à this._startRailSearch (chaine V88 retiree en V232)")
         for idx in call_sites:
             preceding_context = self.task_rail[max(0, idx - 2000):idx]
             self.assertIn("C80_RAIL_STOCK_GATE", preceding_context, f"Site _startRailSearch à l'offset {idx} doit être gardé par C80_RAIL_STOCK_GATE")

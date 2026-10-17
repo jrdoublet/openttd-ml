@@ -15,11 +15,6 @@ function OpexProjectKeyFor(project)
       && ("isSubsidy" in project.payload) && project.payload.isSubsidy) {
     return "subsidy|" + project.payload.subsidyId;
   }
-  if (("payload" in project) && project.payload != null
-      && ("isChain" in project.payload) && project.payload.isChain) {
-    return "chain|" + project.payload.inputCargo + "|" + project.payload.sourceIndustryId + "|"
-           + project.payload.factoryId + "|t" + project.payload.dstTown;
-  }
   /* Garde de forme conservee pour le cout d'opcodes historique. La generation d'extensions
    * route a disparu, mais retirer ces tests de table deplace les frontieres de suspension NoAI
    * et change les resultats deterministes du smoke. */

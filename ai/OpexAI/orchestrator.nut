@@ -878,9 +878,7 @@ function OpexAI::_v217RailRefill()
       if (project == null || project.mode != "rail" || !("payload" in project) || project.payload == null) continue;
       local c = project.payload;
       if (ABANDON_MEMORY && this._abandonedPairs != null && (OpexAbandonedPairKey(c) in this._abandonedPairs)) continue;
-      local probe = (("isChain" in c) && c.isChain && ("inputCandidate" in c) && c.inputCandidate != null)
-          ? c.inputCandidate : c;
-      local close = this._tooClose(probe);
+      local close = this._tooClose(c);
       if (close.hard >= 0 || close.blocking >= 0) continue;
       startable++;
       if (startable >= V217_POOL_MIN) {

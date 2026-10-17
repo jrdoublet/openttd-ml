@@ -1,6 +1,6 @@
 """Diagnostic solo : V89 espace-t-il les passages de `projects` pendant une recherche A* rail ?
 
-Reprend le harnais de diag_v88_investigation.py (bench_v2, -d script=4) et ne garde que :
+Reprend le harnais de diag_v88_investigation.py (retire en V232) (bench_v2, -d script=4) et ne garde que :
 - C56_TASK TASK_ENTER name=projects (sous probe_events) ;
 - C56_TASK RAIL_SEARCH_START / RAIL_SEARCH_END ;
 - C50_CHRONO phase=project_built (sous la sonde C50 si active) et C78_SLOT projects_pass/pass_stop.

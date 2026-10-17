@@ -48,7 +48,7 @@ class TestV217RailRefill(unittest.TestCase):
         self.assertIn("if (startable >= V217_POOL_MIN) {", self.body)
         self.assertEqual(self.body.count('if (DECISION_LOG) OpexDecide("V217_RAIL_SKIP"'), 2)
         self.assertNotIn("_c77RefreshModeCatalog", self.body)
-        self.assertIn("this._tooClose(probe)", self.body)
+        self.assertIn("this._tooClose(c)", self.body)
 
     def test_rail_only_regen_and_flag_reset(self):
         regen = re.findall(r'OpexRegenerateModeProjects\([^;]*"(\w+)"', self.body, re.S)

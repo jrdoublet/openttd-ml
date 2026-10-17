@@ -395,12 +395,6 @@ function OpexAI::_reportLines(year)
     line.vehCount <- vehCount;
     line.lastProfit <- profit;
     line.lastRevenue <- currentRevenue;
-    if (V88_GOODS_CHAIN && vehicleType == AIVehicle.VT_RAIL && AICargo.GetTownEffect(line.cargo) == AICargo.TE_GOODS) {
-      if (!("goodsDeliveredLogged" in line) && (profit + runCost > 0)) {
-        line.goodsDeliveredLogged <- true;
-        OpexV88Log("CHAIN_DELIVERY", "line=" + line.lineId + " year=" + year + " profit=" + profit + " rev=" + (profit + runCost));
-      }
-    }
     if (C50_CHRONOLOGY_PROBE) {
       local cLabel = AICargo.IsValidCargo(line.cargo) ? AICargo.GetCargoLabel(line.cargo) : "unknown";
       local lMode = ("mode" in line) ? line.mode : "unknown";

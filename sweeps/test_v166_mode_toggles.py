@@ -92,7 +92,7 @@ class Gates(unittest.TestCase):
         self.assertLess(gate, body.index("if (generatePax) {"))
         self.assertRegex(body[gate:gate + 120], r"generatePax = false;\s*generateFreight = false;")
         # aucun autre appelant des generateurs rail que OpexBuildCandidates
-        for name in ("OpexPaxCandidates", "OpexFreightCandidates", "OpexGoodsChainCandidates"):
+        for name in ("OpexPaxCandidates", "OpexFreightCandidates"):
             for path in AI.glob("*.nut"):
                 src = path.read_text(encoding="utf-8")
                 calls = len(re.findall(r"(?<!function )\b" + name + r"\(", src))

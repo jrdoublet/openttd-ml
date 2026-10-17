@@ -290,7 +290,7 @@ class TestC80RailStockWorkerContract(unittest.TestCase):
         self.assertIn('RAIL_SEARCH_RESUMABLE && this._railSearch != null && !(("railPlan" in candidate) && candidate.railPlan != null)', self.task_rail)
         # Sous la porte, _startRailSearch n'est pas appelé depuis _tryBuildRailProject
         call_sites = [m.start() for m in re.finditer(r"this\._startRailSearch", self.task_rail)]
-        self.assertEqual(len(call_sites), 3, "Il doit y avoir exactement 3 sites d'appel à this._startRailSearch")
+        self.assertEqual(len(call_sites), 1, "Il doit y avoir exactement 1 site d appel à this._startRailSearch (chaine V88 retiree en V232)")
         for idx in call_sites:
             preceding_context = self.task_rail[max(0, idx - 2000):idx]
             self.assertIn("C80_RAIL_STOCK_GATE", preceding_context)

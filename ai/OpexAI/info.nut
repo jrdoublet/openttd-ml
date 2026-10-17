@@ -678,61 +678,12 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
-    AddSetting({
-      name = "v88_goods_chain",
-      description = "V88: complete goods industrial chains (input feeder line to transformer + goods delivery line to town); 1 = on, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
 
-    AddSetting({
-      name = "v88_chain_force",
-      description = "V88 test only: under v88_goods_chain, goods chain projects bypass top-K, profit floor and ranking to validate their construction path: 1 = enabled, 0 = disabled (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
 
-    AddSetting({
-      name = "v88_step2_plan_immediate",
-      description = "V88: allow goods chain step 2 to build when railPlan is already computed, without waiting for railSearch to be idle: 1 = enabled, 0 = disabled (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
 
-    AddSetting({
-      name = "v88_all_inputs",
-      description = "V88: evaluate all transformer input cargos regardless of freight rotation: 1 = enabled, 0 = disabled (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
 
-    AddSetting({
-      name = "v88_chain_step1_finance",
-      description = "V88: finance capital of goods chain candidate based on step 1 only: 1 = enabled, 0 = disabled (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
 
-    AddSetting({
-      name = "v88_step2_rail_prio",
-      description = "V88: priority for chain rail searches: block new rail searches while step 2 is pending, and throughput slice cap: 1 = enabled, 0 = disabled (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
 
-    AddSetting({
-      name = "v88_step2_cash_reserve",
-      description = "V88: reserve capital for goods chain step 2 when step 1 is built: 1 = enabled, 0 = disabled (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
 
     AddSetting({
       name = "air_full_load",

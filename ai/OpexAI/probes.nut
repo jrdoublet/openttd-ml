@@ -39,14 +39,6 @@ function OpexSign(anchor, name)
   if (name != null && name.len() > 31) name = name.slice(0, 31);
   AISign.BuildSign(anchor, name);
 }
-/* V88 : evenements de chaine de biens, sous decision_log ou probe_events (moins perturbant). */
-function OpexV88Log(kind, fields)
-{
-  if (!DECISION_LOG && !C56_TASK_TRACE) return;
-  local date = AIDate.GetCurrentDate();
-  AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
-             + AIDate.GetDayOfMonth(date) + " " + kind + " " + fields);
-}
 function OpexDecide(kind, fields)
 {
   local date = AIDate.GetCurrentDate();
@@ -93,9 +85,8 @@ function OpexRailSearchBlockerAudit(candidate, state, project = null, rank = -1)
   local score = project != null && ("fundScore" in project) ? project.fundScore : -1;
   local profit = project != null && ("profitAnnual" in project) ? project.profitAnnual : -1;
   local financeHint = project != null && ("budgetCapital" in project) ? project.budgetCapital : -1;
-  local isChain = ("isChain" in candidate) && candidate.isChain;
-  local destination = candidate.kind == "pax" ? "town" : (isChain ? "chain" :
-      (("dstTown" in candidate) && candidate.dstTown >= 0 ? "town" : "industry"));
+  local destination = candidate.kind == "pax" ? "town" :
+      (("dstTown" in candidate) && candidate.dstTown >= 0 ? "town" : "industry");
   local date = AIDate.GetCurrentDate();
   AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
       + AIDate.GetDayOfMonth(date) + " RAIL_BLOCKER requested_kind=" + candidate.kind

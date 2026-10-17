@@ -90,11 +90,9 @@ class IterationFilters(unittest.TestCase):
         self.assertLess(body.index("if (distance > bounds.railMax) {"),
                         body.index("if (V168_RAIL_MAX_DIST <= 0 && iterations >"))
 
-    def test_goods_chain_filter_kept_at_default(self):
-        source = _read("candidates.nut")
-        self.assertIn("if (goodsDist > bounds.railMax) continue;", source)
-        self.assertIn("if (V168_RAIL_MAX_DIST <= 0 && itersGoods > (HARD_ITERATION_CAP * 12) / 10) continue;",
-                      source)
+    def test_goods_chain_generator_removed(self):
+        # V232 : la chaine de biens V88 est retiree, plus de filtre itersGoods
+        self.assertNotIn("itersGoods", _read("candidates.nut"))
 
     def test_no_other_predicted_iteration_filter(self):
         # tout filtre par iterations predites contre le plafond doit etre gouverne par V168

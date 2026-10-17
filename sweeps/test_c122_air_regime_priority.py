@@ -250,7 +250,7 @@ class TestC122AirRegimePriority(unittest.TestCase):
 
     def test_economics_engine_and_build_paths_do_not_reference_c122(self):
         from_air = body(PROJECTS, "function OpexProjectFromAir", "function OpexProjectFromWater")
-        score = body(PROJECTS, "function OpexProjectSelectionScore", "/* V88 test")
+        score = body(PROJECTS, "function OpexProjectSelectionScore", "/* Insertion bornee et stable")
         realization = body(PROJECTS, "function OpexC121RealizationFactor", "function OpexC121RealizationSums")
         for block in (from_air, score, realization, AIR, TASK_AIR):
             self.assertNotIn("C122_AIR_REGIME_PRIORITY", block)

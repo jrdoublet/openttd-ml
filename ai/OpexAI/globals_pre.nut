@@ -620,21 +620,6 @@ C121_AIR_HUB_DELAY_UPDATE_SAMPLES <- 0;
 C116_AIR_PROJECT_SNAPSHOT <- null;
 /* Cargo passagers retenu pour le catchment de site. -1 tant qu'il n'est pas connu. */
 AIR_DEMAND_PAX_CARGO <- -1;
-/* V88 : chaines industrielles de biens completes (intrant vers usine + biens vers ville). Defaut 0. */
-V88_GOODS_CHAIN <- false;
-/* V88 test : force les projets chaine en tete (validation du chemin de construction). */
-V88_CHAIN_FORCE <- false;
-/* V88 : autorise l'etape 2 a construire sans attendre idle si son railPlan est pret. Defaut 0. */
-V88_STEP2_PLAN_IMMEDIATE <- false;
-/* V88 : evalue tous les cargos d'intrant sans le filtre de rotation freightCargo. Defaut 0. */
-V88_ALL_INPUTS <- false;
-/* V88 : financabilite initiale du candidat chaine basee sur l'etape 1 seule. Defaut 0. */
-V88_CHAIN_STEP1_FINANCE <- false;
-/* V88 : priorite ferroviaire de la chaine (blocage des recherches ordinaires et cap de seuil de debit). Defaut 0. */
-V88_STEP2_RAIL_PRIO <- false;
-/* V88 : reserve de tresorerie pour l'etape 2 de la chaine active. Defaut 0. */
-V88_STEP2_CASH_RESERVE <- false;
-V88_STEP2_RESERVE_AMOUNT <- 0;
 /* C75 : plusieurs chantiers par passe en phase riche tant que Capital < K_pass et Capital <= Disponible. */
 C75_MULTI_BUILD <- false;
 /* C75 bis : autorise une seule nouvelle ligne finançable a franchir K_pass par passe. Defaut 0. */

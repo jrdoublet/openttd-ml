@@ -101,10 +101,6 @@ const DEAD_STREAK_THRESHOLD = 2;
  * largement le temps a un vehicule sain de rejoindre son depot. */
 const SCRAP_TIMEOUT_YEARS = 2;
 
-/* V88 : Hypothese de conversion intrants -> biens pour une usine de transformation (Factory).
- * En climat tempere avec un seul intrant actif (cereales, betail ou acier), chaque unite
- * d'intrant livree produit environ une unite de biens (ratio de transformation standard = 1.0). */
-const OPEX_GOODS_CHAIN_OUTPUT_PER_INPUT = 1.0;
 
 class OpexAI extends AIController {
   _budget = null;
@@ -121,8 +117,6 @@ class OpexAI extends AIController {
   _abandonCounts = null;
   _airBuilt = false;
   _waterBuilt = false;
-  /* V88 : etat de la chaine industrielle de biens en cours (etape 2 en attente de fonds/recherche) */
-  _activeGoodsChain = null;
   /* Ordonnanceur permanent : une tache utile et due par tour de file. dueCycle reporte le
    * travail inutile a un tour futur ; le calendrier du jeu ne reordonne jamais la file. */
   _taskQueue = null;
@@ -457,14 +451,11 @@ class OpexAI extends AIController {
       { name = "town_growth", dueCycle = 0, enabled = true },
       { name = "repay", dueCycle = 0, enabled = true },
     ];
-    this._activeGoodsChain = null;
   }
 
   function Start();
   function _tooClose(candidate);
   function _tryAttachSharedDest(candidate);
-  function _tryBuildGoodsChainStep2(year, passDiscards, anchor, yy);
-  function _setActiveGoodsChain(chain);
   function _tryBuildAir(year);
   function _tryBuildProjects(year);
   function _ensureSelection();

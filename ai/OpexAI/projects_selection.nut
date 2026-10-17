@@ -606,7 +606,7 @@ function OpexC122TraceShadow(winner, project, prior, projectC77Tier, priorC77Tie
  * meme etat territorial, aucun nouveau scan. Elle tourne dans les deux bras des
  * smokes matched-shadow afin de ne pas creer un cout de mesure asymetrique.
  * `same_tier_blockers` compte les projets AIR sans nouvelle ville, deja devant le
- * meilleur candidat territorial dans la meme classe lexicographique C77/V88 ;
+ * meilleur candidat territorial dans la meme classe lexicographique C77 ;
  * c'est exactement la population que C122 devrait depasser pour changer un choix. */
 function OpexC122ProbeExposure(affordable)
 {
@@ -630,8 +630,7 @@ function OpexC122ProbeExposure(affordable)
     if (project == null || !("mode" in project) || project.mode != "air") continue;
     local airRank = airCount;
     airCount++;
-    local tier = OpexProjectDefensiveAirPriority(project)
-        + ((V88_CHAIN_FORCE && OpexProjectIsForcedChain(project)) ? 1000 : 0);
+    local tier = OpexProjectDefensiveAirPriority(project);
     local score = AIR_EARLY_SLOT ? OpexProjectSelectionScore(project, "fundScore")
         : project.fundScore;
     local newClaims = ("defensiveNewTownClaims" in project)
@@ -1164,8 +1163,7 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSel
       }
       continue;
     }
-    if (project.profitAnnual < floorProfit
-        && !(V88_CHAIN_FORCE && OpexProjectIsForcedChain(project))) {
+    if (project.profitAnnual < floorProfit) {
       if (PROBE_SELECT_REJECT && project.mode == "air") {
         OpexSelectRejectLog(project, "floor", affordable, scoreKey, kDec);
       }
@@ -1417,12 +1415,6 @@ function OpexProjectSelectionScore(project, field)
   return score * factor;
 }
 
-/* V88 test (v88_chain_force) : projet chaine force en tete du classement. */
-function OpexProjectIsForcedChain(project)
-{
-  return V88_CHAIN_FORCE && project != null && ("isChain" in project) && project.isChain;
-}
-
 /* Insertion bornee et stable avec classe defensive C77 permanente. */
 function OpexProjectInsertDefensive(best, project, field, limit, applyEarlySlot = false, forceHistoric = false)
 {
@@ -1432,8 +1424,7 @@ function OpexProjectInsertDefensive(best, project, field, limit, applyEarlySlot 
   local pos = 0;
   if (useBisect) {
     local projectC77Tier = OpexProjectDefensiveAirPriority(project);
-    local projectTier = projectC77Tier
-        + ((V88_CHAIN_FORCE && OpexProjectIsForcedChain(project)) ? 1000 : 0);
+    local projectTier = projectC77Tier;
     local projectScore = applyEarlySlot ? OpexProjectSelectionScore(project, field) : project[field];
     local projectRevenue = ("revenueAnnual" in project) ? project.revenueAnnual : 0;
 
@@ -1459,8 +1450,7 @@ function OpexProjectInsertDefensive(best, project, field, limit, applyEarlySlot 
         priorRevenue = prior._bsRevenue;
       } else {
         local priorC77Tier = OpexProjectDefensiveAirPriority(prior);
-        priorTier = priorC77Tier
-            + ((V88_CHAIN_FORCE && OpexProjectIsForcedChain(prior)) ? 1000 : 0);
+        priorTier = priorC77Tier;
         priorScore = applyEarlySlot ? OpexProjectSelectionScore(prior, field) : prior[field];
         priorRevenue = ("revenueAnnual" in prior) ? prior.revenueAnnual : 0;
         prior.rawset("_bsTier", priorTier);
@@ -1489,15 +1479,13 @@ function OpexProjectInsertDefensive(best, project, field, limit, applyEarlySlot 
     pos = lo;
   } else {
     local projectC77Tier = OpexProjectDefensiveAirPriority(project);
-    local projectTier = projectC77Tier
-        + ((V88_CHAIN_FORCE && OpexProjectIsForcedChain(project)) ? 1000 : 0);
+    local projectTier = projectC77Tier;
     local projectScore = applyEarlySlot ? OpexProjectSelectionScore(project, field) : project[field];
     pos = best.len();
     while (pos > 0) {
       local prior = best[pos - 1];
       local priorC77Tier = OpexProjectDefensiveAirPriority(prior);
-      local priorTier = priorC77Tier
-          + ((V88_CHAIN_FORCE && OpexProjectIsForcedChain(prior)) ? 1000 : 0);
+      local priorTier = priorC77Tier;
       if (priorTier > projectTier) break;
       if (priorTier < projectTier) {
         pos--;

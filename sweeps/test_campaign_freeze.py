@@ -237,14 +237,13 @@ class TestCampaignFreeze(unittest.TestCase):
                      "c121_air_project_realization_adaptive", "c121_air_first_live_growth",
                      "c80_marginal_floor"):
             self.assertEqual(defaults[name], 1, name)
-        for name in ("c69_fleet_demand_batch", "c72_plane_choice", "v88_goods_chain", "v88_chain_force", "v88_step2_plan_immediate",
+        for name in ("c69_fleet_demand_batch", "c72_plane_choice",
                      "c76_freight_rotation",
                      "c80_worker_rail", "c80_rail_stock_gate", "c80_rail_stock_worker", "c80_worker_town", "c80_air_choice_memo", "c80_air_eval_fast", "air_full_load",
                      "c82_engine_calibration", "rail_depot_cost",
                      "v90_pathfinder_check", "c83_fixes",
                      "c83_preempt_open", "air_batch_town_reserve",
                      "v95_air_post73_probe",
-                     "v88_all_inputs", "v88_chain_step1_finance", "v88_step2_rail_prio", "v88_step2_cash_reserve",
                      "v94_air_site_check", "c67_terrain_map", "c67_water_exposure_probe",
                      "c97_air_c69_engine_probe", "c98_air_realized_probe"):
             self.assertEqual(defaults[name], 0, name)
@@ -279,7 +278,9 @@ class TestCampaignFreeze(unittest.TestCase):
         self.assertEqual(set(defaults), set(specs))
         self.assertEqual(defaults["debug_signs"], 1)
         for name in ("road_pax_build", "road_pax_catchment_pct", "road_stop_catchment_houses",
-                     "c76_lean_invalidation", "exp_scheduler_skip_not_due"):
+                     "c76_lean_invalidation", "exp_scheduler_skip_not_due",
+                     "v88_goods_chain", "v88_chain_force", "v88_step2_plan_immediate", "v88_all_inputs",
+                     "v88_chain_step1_finance", "v88_step2_rail_prio", "v88_step2_cash_reserve"):
             self.assertNotIn(name, defaults)
         self.assertTrue(specs["town_growth_skip_noop"]["boolean"])
         self.assertEqual(specs["air_early_slot_min_pop"]["step_size"], 100)
