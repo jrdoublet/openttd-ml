@@ -1,5 +1,7 @@
 # V88 — Chaînes industrielles complètes de biens (goods)
 
+> 🔴 **Code retiré le 17/10/2026 (V232)** sur décision utilisateur : on repartira de zéro (tâche **V233** de [taches.md](taches.md), à ne pas déléguer à agy). Cette fiche reste la référence historique de la conception et des mesures.
+
 Fiche de conception et protocole de qualification pour le chantier **V88**.
 
 > **Statut courant : V88 suspendu, ne pas relancer.** Les duels négatifs et défauts confirmés

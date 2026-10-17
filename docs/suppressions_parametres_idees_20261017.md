@@ -210,3 +210,57 @@ Repli : `stale = gainOk && doubleOk`, `cadenceFresh = this._lastCatalogMonth == 
 - **V92.** Choisir un **service** AIR (moteur × nombre d'avions), plus une variante bon marché à un avion de la même route, avec rééquipement ultérieur (`v92PendingEngine`). Mesure : −570 k / −469 k£/an, 0/5, IC95 [−887 ; −254] k, valeur −42 %. Ce qui reste : mémo C80 → `OpexAirChooseRoutePlaneFull`, courrier forfaitaire 15 %, durée de vie 20 ans. Le moteur est quasi fixe par partie (V96, table moteurs C121) : choisir le service ne sert à rien.
 - **V93.1.** Demande AIR tirée de la production pax du mois précédent (`AITown.GetLastMonthProduction`), moins la part concurrente, plafonnée par ligne, aux deux bouts. Mesure : 20×10 −421,5 k£/an, valeur −18,24 %. La demande reste le proxy population × `TOWN_CATCHMENT_SHARE_PCT` (plancher 10). **`v93_airport_no_pop_floor` (qualifié) est gardé.** Le paramètre positionnel `serviceScan` d'`OpexAirEconomics` reste, toujours faux.
 - **Réécriture.** La demande mesurée sous-estime la demande induite par un nouvel aéroport, puisque la production suit le service. Si on la reprend, la mesurer **après** desserte, pour les renforts et non pour l'ouverture.
+
+## 10. V232 : chaîne de biens V88 et lot AIR
+
+Décision utilisateur du 17/10 : **supprimer V88 et repartir de zéro** (tâche V233, marquée « compliquée, ne pas confier à agy »). Commit `c862fd8` : 7 réglages, −1 900 lignes, dont 5 scripts Python V88.
+
+### 10.1 `v88_goods_chain` et ses 6 sous-réglages
+
+**Idée.** Construire une chaîne industrielle complète en deux étapes, notée comme **un seul projet** : (1) intrants (céréales, bétail, acier) → usine de transformation ; (2) biens → ville acceptatrice, au départ d'un quai joint à la gare de l'usine.
+- **Verrou visé.** Une usine non alimentée a une production nulle, donc le générateur ordinaire ne propose jamais de ligne biens.
+- **Estimation des biens.** Le volume aval était déduit du volume amont transporté (`OPEX_GOODS_CHAIN_OUTPUT_PER_INPUT = 1.0`).
+- **Chiffrage du projet.** Capital, profit et ROI cumulés des deux étapes : `ratio = opcodeRatio + 15 × roi`.
+
+**Mécanique retirée.**
+- **Générateur.** `OpexGoodsChainCandidates` (`candidates.nut`) : pour chaque cargo à effet biens et chaque usine transformatrice non bloquée, chaque intrant accepté, chaque source libre productive et chaque ville acceptatrice libre dans la borne rail. Il appelait deux fois `OpexMakeCandidate`. Journal `CHAIN_GEN`.
+- **Étape 1** (`task_rail.nut`, dans `_tryBuildRailProject`).
+  - Refus `chain_in_progress` si une chaîne est déjà active.
+  - `_tooClose` est testé sur l'étape 1.
+  - Lancement de l'A* de l'étape 1 (`isChainStep1`, `chainParent`).
+  - À la pose, `_setActiveGoodsChain({step = 2, factoryId, townId, inputLineId, factoryStationId, factoryPlatform, goodsCandidate, year})`.
+- **Étape 2** (`_tryBuildGoodsChainStep2`).
+  - Vérifie que l'usine et la ligne d'intrants existent toujours, puis pose `joinPlatform`, `joinStationId` et `joinLineId`.
+  - Lance l'A* et construit.
+  - Bannit la paire en cas d'échec, sauf `REPLAN_GEOM`.
+  - Reprise en tête de passe dans `_tryBuildProjects`, et à la consommation de l'A* (`_consumeRailSearch`).
+- **État persistant.** `_activeGoodsChain`, sauvegardé (`OpexSaveGoodsChain` / `OpexLoadGoodsChain`, sans flottants) et réconcilié au chargement (usine, ville, ligne, gare, locomotive). Les sauvegardes anciennes qui portent la clé `activeGoodsChain` sont simplement ignorées.
+- **Sous-réglages.**
+  - `v88_chain_force` : chaîne forcée en tête (palier +1000 dans l'insertion, exemption du plancher de profit).
+  - `v88_step2_plan_immediate` : étape 2 construite dès que son tracé est prêt, même si le créneau A* est occupé.
+  - `v88_all_inputs` : tous les intrants sans la rotation `freightCargo`.
+  - `v88_chain_step1_finance` : `budgetCapital` = capital de l'étape 1 seule.
+  - `v88_step2_rail_prio` : refus `chain_step2_prio` des autres projets rail, seuil de tranche V89 plafonné à 2 500 opcodes.
+  - `v88_step2_cash_reserve` : capital de l'étape 2 réservé dans `OpexAvailableCapital`.
+- **Clés.** Clé de projet `chain|…` (`projects_models.nut`), clé d'abandon par étape (`lines.nut`), destination `chain` dans la sonde de portefeuille, exclusion de la préparation A* C121, sonde V217 sur l'étape 1.
+- **Ce qui reste.** La jointure de quai `OpexJoinPlatformPlans` et les champs `join*`, utilisés par **V178** (destination partagée). La branche « joindre A » de `OpexRailStationPlans` n'a plus d'appelant au défaut, mais elle est gardée parce qu'elle appartient au code V178. Le flag `isTransformer` du catalogue reste aussi, non utilisé.
+
+**Mesures.**
+- Solo 5×8, 25-26/09 ([27_v88_chaines_biens.md](27_v88_chaines_biens.md) §5.4-5.6) :
+  - sans correctifs : 2 chaînes livrant sur 5 graines, décision → étape 2 en 2,37 ans ;
+  - avec les 4 correctifs : 7 chaînes livrant, 5/5 graines, 1,85 an médian, premières livraisons 6,7 à 14,5 k£/an.
+- Duels 5×6 du 26/09 (§5.7) :
+  - 4 correctifs : −286,6 k£/an, 0/5, valeur −15,1 % ;
+  - sans réserve ni priorité : −234,2 k ;
+  - chaînes seules : −117,1 k.
+  - Dans les trois cas, effondrement de l'AIR (graine 5678 : 109 → 31 avions).
+- Rail seul 10×3 du 14/10 : −298,5 k£/an, 0/9, p = 0,004, valeur −60,8 %. 11 423 `CHAIN_GEN` sur la graine 42, 5 lignes par partie au lieu de 15.
+- V193 (génération bornée, retiré en V227) : −31,7 k, nul ; seulement 8 lignes marchandises sur 10 parties.
+- V218 (greffe sur une ligne existante, grok, non fusionné) : porte A −27,0 k£/an, 17/23.
+
+**Défauts jamais corrigés** (lecture de code, 26/09 et 16/10).
+1. Score gonflé sous `step1_finance` : profit des deux étapes ÷ capital de l'étape 1.
+2. `_tryBuildGoodsChainStep2` rend `true` au simple lancement de l'A* : `builtCount` est faux et `k_pass` appliqué à tort.
+3. Une passe `projects` qui lance un A* s'arrête et saute tous les projets suivants, AIR compris : AAA prend alors les places d'aéroport.
+
+**Leçons pour la réécriture (V233).** Ne pas générer usine × ville × source. Valoriser l'aval comme une **option** dans le score des lignes vers transformateur. Greffer la ligne biens sur la production **mesurée**. Pas de verrou global, pas de réserve, pas d'arrêt de passe. Qualifier sur 6-10 ans en surveillant la flotte AIR.

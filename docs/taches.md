@@ -41,6 +41,22 @@ ne créent pas une tâche. Protocole et pilotage des bancs : [AGENTS.md](../AGEN
 
 ### Réseau araignée — idée à garder (demande du 17/10)
 
+- [ ] **V233 — Chaînes industrielles et cargo transformé : à refaire DE ZÉRO (17/10, demande utilisateur).** ⚠️ **TÂCHE COMPLIQUÉE : ne PAS la confier à agy (ni à grok)**. Elle touche à la fois le générateur, le score du portefeuille, l'ordonnancement du créneau A* rail, la trésorerie et Save/Load. Les deux tentatives déléguées ont échoué : V88 (−298,5 k£/an en rail seul) et V218 (grok, porte A −27 k£/an). Elle demande un modèle fort, un effort élevé et une conception relue avant le code. Le code V88 a été **retiré en V232** ; historique complet au §10 de [suppressions_parametres_idees_20261017.md](suppressions_parametres_idees_20261017.md) et dans [27_v88_chaines_biens.md](27_v88_chaines_biens.md).
+  - **Constat (17/10).** Le générateur fret ordinaire ne voit les biens que par accident. Une usine n'est source que si elle a produit le mois dernier (`GetLastMonthProduction > 0`), donc seulement si quelqu'un l'alimente déjà, nous ou AAA. Les biens peuvent aller vers une ville (`COMPLEX_CARGO` vrai). `isTransformer` est calculé par le catalogue (`catalog.nut:966`) mais **aucun score ne s'en sert** : une ligne céréales → usine ne vaut que son propre revenu, sans valeur pour les biens qu'elle crée ni pour la ligne qu'elle rend possible.
+  - **Écart avec AAAHogEx.** AAA livre d'abord céréales et bétail aux usines, puis en 1972 exploite les cargos transformés. Marchandises : 3 trains, ROI 2 736. Acier : 4 trains de 22 wagons. En 1974 son rail rapporte 745 k£ (dont marchandises 149 k), contre 89 k£ pour tout notre rail (ventilation 06/10).
+  - **Pourquoi V88 a échoué.**
+    - (1) Le générateur énumérait usine × ville × source à chaque génération : 11 423 `CHAIN_GEN` sur une seule graine, budget d'opcodes dévoré.
+    - (2) Une seule chaîne active à la fois (`_activeGoodsChain`), et le créneau `_railSearch` unique est monopolisé par les étapes 1 puis 2.
+    - (3) Délai décision → étape 2 : 1,85 an médian. Étape 2 → première livraison : 217 j.
+    - (4) Défauts jamais corrigés : score gonflé (profit des deux étapes ÷ capital de l'étape 1) ; `builtCount` incrémenté au simple lancement de l'A* ; passe `projects` arrêtée par `pending`, qui saute aussi l'AIR.
+    - (5) En duel, l'AIR s'effondre (109 → 31 avions sur une graine) pendant les gels, et AAA prend les places d'aéroport.
+  - **Piste proposée pour la réécriture** (à concevoir et relire avant tout code) :
+    - (a) **Bonus d'option** au score des lignes fret vers un transformateur : valeur actualisée de la ligne biens qu'elles rendront possible, sans génération supplémentaire (borne de coût nulle).
+    - (b) **Greffe déclenchée par la production réelle.** Proposer la ligne biens → ville (quai joint à l'usine, idée V218) seulement quand la production mesurée de l'usine dépasse un seuil, pas sur une estimation.
+    - (c) **Aucun verrou global ni réserve de caisse.** La greffe est un projet ordinaire du portefeuille.
+    - (d) Ne jamais compter un A* lancé comme une construction ; ne jamais arrêter la passe sur `pending`.
+    - (e) **Qualifier sur 6-10 ans**, pas sur la porte A à 3 ans : la chaîne est un pari long. Mesurer aussi la flotte AIR des deux bras.
+    - (f) Lien avec V226 (araignée) et les rabattements en transfert d'AAA : à concevoir ensemble.
 - [ ] **V226 — réseau ferré en araignée sur le modèle d'AAAHogEx.** Plutôt que des lignes point à point isolées, faire converger plusieurs branches vers une gare déjà desservie (destination ou nœud partagé) et enchaîner les villes, comme le réseau d'AAAHogEx. Précurseurs retirés le 17/10 (V227) : `v193_chain_towns` (chaîne de villes vers une usine, rail seul 10×3 : −31,7 k£/an, 4/5, valeur −7,8 %) et `v194_short_to_served_dst` (lignes courtes vers une destination servie : −17 k, nul). Ces deux prototypes ont été jugés en rail seul à 3 ans : ils ne réfutent pas l'idée. Reprise : lire d'abord comment AAAHogEx structure son réseau dans `ai/AAAHogEx-115` (embranchements, gares partagées, transferts), puis concevoir sur la base du code courant plutôt que de restaurer V193/V194 (`git show <commit>~1:` pour leur code). Mémoire : [suppressions_parametres_idees_20261017.md](suppressions_parametres_idees_20261017.md).
 
 ### Cartographie — reprise (demande du 17/10)
