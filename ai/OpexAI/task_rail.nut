@@ -131,50 +131,6 @@ function OpexC41RepairJunction(center, exclude)
   return AIRail.AreTilesConnected(exclude, center, candidate) ? 1 : 2;
 }
 
-/* Expérience causale origin-reuse, désactivée par défaut. Le slot A* unique peut rester occupé
- * plusieurs mois par une recherche primaire devenue très faible dans le portefeuille courant.
- * Si, et seulement si, une extension originServed est maintenant LE projet rang 0, elle peut
- * remplacer une recherche primaire non-reuse encore en phase search. On ne touche ni aux upgrades,
- * ni aux chaînes V88/C121, ni à une recherche origin-reuse déjà engagée. Le candidat abandonné ne
- * possède encore aucun railPlan : il pourra être régénéré normalement plus tard. */
-function OpexAI::_maybeSupersedeRailSearchForOriginReuse(candidate, rank)
-{
-  if (!RAIL_ORIGIN_REUSE_SEARCH_SUPERSEDE || candidate == null || rank != 0) return false;
-  if (!("originServed" in candidate) || !candidate.originServed) return false;
-  if (this._railSearch == null) return false;
-  local state = this._railSearch;
-  if (!("kind" in state) || state.kind != "primary" || !("phase" in state) || state.phase != "search") return false;
-  if (!("candidate" in state) || state.candidate == null) return false;
-  local old = state.candidate;
-  if (("originServed" in old) && old.originServed) return false;
-  if (("isChain" in old) || ("isChainStep1" in old) || ("isChainStep2" in old)
-      || ("c121PrepStock" in old)) return false;
-
-  if (DECISION_LOG) {
-    OpexDecide("RAIL_REUSE_SUPERSEDE", "old_src=" + old.src + " old_dst=" + old.dst
-               + " old_profit=" + (("profitAnnual" in old) ? old.profitAnnual : -1)
-               + " spent=" + (("spent" in state) ? state.spent : -1)
-               + " budget=" + (("iterationBudget" in state) ? state.iterationBudget : -1)
-               + " new_src=" + candidate.src + " new_dst=" + candidate.dst
-               + " new_profit=" + (("profitAnnual" in candidate) ? candidate.profitAnnual : -1)
-               + " rank=" + rank);
-  }
-  if (RAIL_PREASTAR_PROBE) OpexRailPreAstarEnd(state, "SUPERSEDE");
-  if (("pathfinder" in state) && state.pathfinder != null) state.pathfinder = null;
-  if (("segmented" in state) && state.segmented != null) state.segmented = null;
-  this._railSearch = null;
-  if (V184_RAIL_SEARCH_SLOTS > 1 && ("slotIndex" in state) && this._v184RailSlots != null
-      && state.slotIndex >= 0 && state.slotIndex < this._v184RailSlots.len()) {
-    this._v184RailSlots[state.slotIndex] = null;
-    this._v184SyncRailSearch();
-  }
-  if (C80_WORKER_RAIL && this._activeWorker != null
-      && this._activeWorker.kind == "rail_search") {
-    this._activeWorker = null;
-  }
-  return true;
-}
-
 /* C38 etape 2 : une tentative rail est une transaction explicite. Le balayage decide
  * seulement quoi faire ensuite ; cette fonction decide si le candidat a ete construit,
  * refuse, ou suspendu par A*. `passDiscards` reste une reference partagee pour
@@ -215,7 +171,6 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
                          && ("originServed" in this._railSearch.candidate)
                          && this._railSearch.candidate.originServed ? 1 : 0));
         }
-        this._maybeSupersedeRailSearchForOriginReuse(candidate, i);
       }
       if (C80_RAIL_STOCK_GATE) {
         local pairKey = OpexProjectPairKey(candidate.kind, candidate.cargo, candidate.src, candidate.dst);
@@ -338,8 +293,7 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
         inputCand.chainParent <- candidate;
         inputCand.isChainStep1 <- true;
         local alternativeRatio = MIN_RATIO;
-        local hardCap = OpexRailCandidateHardCap(inputCand,
-            OpexDynamicHardCap(this._lines.len(), lowCash));
+        local hardCap = OpexDynamicHardCap(this._lines.len(), lowCash);
         local posPacked = i * TOP_K + this._projects.best.len();
         if (RAIL_SEARCH_RESUMABLE && !(("railPlan" in inputCand) && inputCand.railPlan != null)) {
           if (C80_RAIL_STOCK_GATE) {
@@ -473,8 +427,7 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
       OpexSign(anchor, "IP|" + yy + "|T|" + project.budgetScore + "|" + project.opcodeScore);
 
       local alternativeRatio = MIN_RATIO;
-      local hardCap = OpexRailCandidateHardCap(candidate,
-          OpexDynamicHardCap(this._lines.len(), lowCash));
+      local hardCap = OpexDynamicHardCap(this._lines.len(), lowCash);
       local posPacked = i * TOP_K + this._projects.best.len();
       if (RAIL_SEARCH_RESUMABLE &&
           !(("railPlan" in candidate) && candidate.railPlan != null)) {
@@ -692,8 +645,7 @@ function OpexAI::_tryBuildGoodsChainStep2(year, passDiscards, anchor, yy)
   }
 
   local alternativeRatio = MIN_RATIO;
-  local hardCap = OpexRailCandidateHardCap(goodsCand,
-      OpexDynamicHardCap(this._lines.len(), lowCash));
+  local hardCap = OpexDynamicHardCap(this._lines.len(), lowCash);
   local posPacked = 0;
 
   if (RAIL_SEARCH_RESUMABLE && !(("railPlan" in goodsCand) && goodsCand.railPlan != null)) {
@@ -1717,7 +1669,6 @@ function OpexAI::_recordRailAttempt(candidate, result, posPacked, year)
     OpexDecide("RAIL_ATTEMPT", "src=" + candidate.src + " dst=" + candidate.dst
                + " kind=" + candidate.kind + " manh=" + candidate.distance
                + " reuse=" + ((("originServed" in candidate) && candidate.originServed) ? 1 : 0)
-               + " reuse_alt=" + ((("joinMatchedAlternate" in candidate) && candidate.joinMatchedAlternate) ? 1 : 0)
                + " join_end=" + (("joinEnd" in candidate) ? candidate.joinEnd : "-")
                + " shared_dest=" + ((("shared_dest" in candidate) && candidate.shared_dest) ? 1 : 0)
                + " pred_profit=" + (("profitAnnual" in candidate) ? candidate.profitAnnual : -1)
@@ -1738,7 +1689,6 @@ function OpexAI::_recordRailAttempt(candidate, result, posPacked, year)
       OpexDecide("RAIL_BUILD", "line=" + this._nextLineId + " src=" + candidate.src + " dst=" + candidate.dst
                  + " cargo=" + cargoStr + " dist=" + candidate.distance
                  + " reuse=" + ((("originServed" in candidate) && candidate.originServed) ? 1 : 0)
-                 + " reuse_alt=" + ((("joinMatchedAlternate" in candidate) && candidate.joinMatchedAlternate) ? 1 : 0)
                  + " join_end=" + (("joinEnd" in candidate) ? candidate.joinEnd : "-")
                  + " shared_dest=" + ((("shared_dest" in candidate) && candidate.shared_dest) ? 1 : 0)
                  + " pred_profit=" + (("profitAnnual" in candidate) ? candidate.profitAnnual : -1)
@@ -1866,8 +1816,7 @@ function OpexAI::_recordRailAttempt(candidate, result, posPacked, year)
   }
   if (ABANDON_MEMORY && (result.reason == "ABND" || result.reason == "SITEA" || result.reason == "SITEB" ||
                          result.reason == "SITEAB" || result.reason == "NOPA" || result.reason == "STNFAIL"
-                         || (((RAIL_GEOMETRY_GUARD && RAIL_GEOMETRY_PAIR_MEMORY)
-                              || (RAIL_FREIGHT_TRKFAIL_MEMORY && candidate.kind == "freight"))
+                         || (RAIL_GEOMETRY_GUARD && RAIL_GEOMETRY_PAIR_MEMORY
                              && result.reason == "TRKFAIL"
                              && ("persistentGeometry" in result) && result.persistentGeometry))) {
     this._markPairAbandoned(OpexAbandonedPairKey(candidate));
@@ -2101,8 +2050,7 @@ function OpexAI::_startRailStockSearch(candidate, isRepair = false, repairReason
   }
 
   local alternativeRatio = MIN_RATIO;
-  local hardCap = OpexRailCandidateHardCap(candidate,
-      OpexDynamicHardCap(this._lines.len(), false));
+  local hardCap = OpexDynamicHardCap(this._lines.len(), false);
   local posPacked = 0;
 
   local plan = OpexPrepareRailRoute(this._catalog, this._budget, candidate, alternativeRatio, hardCap);

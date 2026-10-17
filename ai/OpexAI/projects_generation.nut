@@ -23,11 +23,9 @@ function OpexGenerateModeProjects(projects, catalog, budget, lines, abandonedPai
     local generatePax = (!targeted || entityKind == "town") && !V217_REGEN_NO_PAX;
     local generateFreight = !targeted || entityKind == "industry";
     local freightOrder = OpexFreightCargoOrder(catalog);
-    local deferRailReuseAdmission = generateFreight && freightCargo != null
-        && freightOrder.len() > 1;
     local rail = OpexBuildCandidates(catalog, budget, lines, abandonedPairs,
         null, null, null, null, null, generatePax, generateFreight, PAX_BAND_ALL,
-        freightCargo, entityKind, entityId, deferRailReuseAdmission);
+        freightCargo, entityKind, entityId);
     local hasFreight = false;
     foreach (candidate in rail.candidates) {
       if (candidate.kind == "freight") { hasFreight = true; break; }
@@ -51,15 +49,14 @@ function OpexGenerateModeProjects(projects, catalog, budget, lines, abandonedPai
         }
         local extra = OpexBuildCandidates(catalog, budget, lines, abandonedPairs,
             null, null, null, null, null, false, true, PAX_BAND_ALL, fallbackCargo,
-            entityKind, entityId, deferRailReuseAdmission);
+            entityKind, entityId);
         if (DECISION_LOG && impossibleTargetCargo) {
           OpexDecide("RAIL_TARGET_CARGO_SHADOW", "industry=" + entityId
                      + " cargo=" + fallbackCargo + " opcodes=" + extra.opcodes
                      + " candidates=" + extra.candidates.len());
         }
         if (extra.candidates.len() == 0) continue;
-        rail = OpexRailSelectFreightReusePool(rail, extra);
-        rail = OpexMergeRailCandidateSet(rail, extra, false);
+        rail = OpexMergeRailCandidateSet(rail, extra);
         freightCargo = fallbackCargo;
         generated.freightCargo = freightCargo;
         /* Sous C77, le mode route est traite a la tranche suivante : publier le fallback reel
@@ -68,7 +65,6 @@ function OpexGenerateModeProjects(projects, catalog, budget, lines, abandonedPai
         break;
       }
     }
-    rail = OpexRailOriginReuseFinalize(rail, TOP_K, catalog, budget, lines);
     generated.rail = rail;
     foreach (candidate in rail.candidates) {
       if (ABANDON_GEN_FILTER && ABANDON_MEMORY && abandonedPairs != null

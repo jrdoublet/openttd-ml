@@ -111,17 +111,6 @@ function OpexDynamicHardCap(linesCount, isPreplanOrLowCash)
   return cap;
 }
 
-/* Expérience causale origin-reuse : A3 garde le rail normal a 10k, mais une extension deja
- * qualifiee `originServed` peut recevoir un plafond distinct. Le setting vaut 0 par defaut ; il
- * n'altère donc aucun chemin historique. 40k reproduit uniquement pour ces extensions l'ancien
- * cap pre-A3, choisi historiquement au-dessus du plus grand succes mesure (36,6k). */
-function OpexRailCandidateHardCap(candidate, baseCap)
-{
-  if (candidate == null || RAIL_ORIGIN_REUSE_SEARCH_CAP <= baseCap) return baseCap;
-  if (!("originServed" in candidate) || !candidate.originServed) return baseCap;
-  return RAIL_ORIGIN_REUSE_SEARCH_CAP;
-}
-
 function OpexIterationBudget(profitAnnual, alternativeRatio, hardCap = 10000)
 {
   /* Le chemin est retourne avec le budget pour l'instrumentation : Z = pas d'alternative,
@@ -497,27 +486,21 @@ function OpexRailPlatformPlans(catalog, candidate)
   local sawA = false;
   local sawB = false;
 
-  /* V88 + rail_origin_reuse : si le candidat dispose d'un quai joint a une gare existante.
-   * Historiquement V88 joint toujours A. `joinEnd=B` permet une extension vers une origine deja
-   * servie sans inverser src/dst (interdit pour le fret). */
+  /* V88 / V178 : si le candidat dispose d'un quai joint a une gare existante.
+   * Historiquement V88 joint toujours A. `joinEnd=B` (V178, destination partagee) joint B
+   * sans inverser src/dst (interdit pour le fret). */
   if (("joinPlatform" in candidate) && candidate.joinPlatform != null &&
       ("joinStationId" in candidate) && candidate.joinStationId >= 0) {
     local joinB = ("joinEnd" in candidate) && candidate.joinEnd == "B";
     local jointLength = candidate.joinPlatform.length;
     local joinHasA = false;
     local joinHasB = false;
-    /* Une reutilisation d'origine n'est PAS un simple indice de placement : c'est le contrat
-     * physique du candidat. L'ancien station_join rendait SITE* immediatement si le quai joint
-     * ou l'autre extremite n'existaient pas. Sans ce garde, tomber dans la recherche libre plus
+    /* V178 : un rattachement a une destination partagee n'est PAS un simple indice de placement,
+     * c'est le contrat physique du candidat. Sans ce garde, tomber dans la recherche libre plus
      * bas tout en gardant joinLineId fait ignorer la ligne existante dans _tooClose et permet de
-     * contourner ORIGIN_SEPARATION avec une seconde gare. V88 conserve son fallback historique
-     * actuel : seul un candidat marque originServed + joinEnd est strict ici. */
-    local strictOriginReuseJoin = RAIL_ORIGIN_REUSE
-        && ("originServed" in candidate) && candidate.originServed
-        && ("joinEnd" in candidate);
-    if (V178_RAIL_SHARED_DEST && ("shared_dest" in candidate) && candidate.shared_dest) {
-      strictOriginReuseJoin = true;
-    }
+     * contourner ORIGIN_SEPARATION avec une seconde gare. V88 conserve son fallback historique. */
+    local strictOriginReuseJoin = V178_RAIL_SHARED_DEST
+        && ("shared_dest" in candidate) && candidate.shared_dest;
     if (!joinB) {
       local jointPlansA = OpexJoinPlatformPlans(candidate.joinPlatform, candidate.joinStationId, statsA);
       joinHasA = jointPlansA.len() > 0;
@@ -1461,22 +1444,6 @@ function OpexRailTrackFailureIsPersistentGeometry(failure, planA, planB)
   local leadA = (planA != null && ("lead" in planA)) ? planA.lead : null;
   local leadB = (planB != null && ("lead" in planB)) ? planB.lead : null;
   return failure.tile == leadA || failure.tile == leadB;
-}
-
-/* Quand le match historique sur station_exit remplace le quai initial,
- * le lead d'A* (tiles[1]/tiles[last-1]) peut differer de planA.lead/planB.lead.
- * Une gare propre qui couvre ce lead apres pose donne alors un TRKFAIL
- * permanent jusqu'au changement de geometrie. Signature fret seulement. */
-function OpexRailTrackFailureIsPersistentPathLead(failure, tiles)
-{
-  if (failure == null || tiles == null || tiles.len() < 3) return false;
-  if (!("error" in failure) || failure.error != AIError.ERR_AREA_NOT_CLEAR) return false;
-  if (!("is_station" in failure) || failure.is_station != 1) return false;
-  if (!("owner_self" in failure) || failure.owner_self != 1) return false;
-  if (!("index" in failure) || !("tile" in failure)) return false;
-  local last = tiles.len() - 1;
-  return (failure.index == 1 && failure.tile == tiles[1])
-      || (failure.index == last - 1 && failure.tile == tiles[last - 1]);
 }
 
 /* Une voie parallele d'upgrade doit rester une branche independante. Le pathfinder peut donner
@@ -3499,19 +3466,15 @@ function OpexExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
 
   /* Table seulement sous decision_log ou garde geometrique : null au defaut 0/0. */
   local trackFailure = null;
-  if (DECISION_LOG || RAIL_GEOMETRY_GUARD
-      || (RAIL_FREIGHT_TRKFAIL_MEMORY && candidate.kind == "freight")) trackFailure = {};
+  if (DECISION_LOG || RAIL_GEOMETRY_GUARD) trackFailure = {};
   local trackFailed = OpexBuildTrack(tiles, plan.structures, trackFailure);
   local last = tiles.len() - 1;
   local connected = trackFailed == 0 &&
       OpexRailEndConnected(planA.station_exit, tiles[1], tiles[2], "A") &&
       OpexRailEndConnected(planB.station_exit, tiles[last - 1], tiles[last - 2], "B");
   if (!connected) {
-    if (trackFailed > 0 &&
-        ((RAIL_GEOMETRY_GUARD && RAIL_GEOMETRY_PAIR_MEMORY
-            && OpexRailTrackFailureIsPersistentGeometry(trackFailure, planA, planB))
-         || (RAIL_FREIGHT_TRKFAIL_MEMORY && candidate.kind == "freight"
-             && OpexRailTrackFailureIsPersistentPathLead(trackFailure, tiles)))) {
+    if (RAIL_GEOMETRY_GUARD && RAIL_GEOMETRY_PAIR_MEMORY && trackFailed > 0 &&
+        OpexRailTrackFailureIsPersistentGeometry(trackFailure, planA, planB)) {
       result.persistentGeometry <- true;
       result.error = trackFailure.error;
     }
@@ -4039,8 +4002,7 @@ function OpexV190ExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
   }
 
   local trackFailure = null;
-  if (DECISION_LOG || RAIL_GEOMETRY_GUARD
-      || (RAIL_FREIGHT_TRKFAIL_MEMORY && candidate.kind == "freight")) trackFailure = {};
+  if (DECISION_LOG || RAIL_GEOMETRY_GUARD) trackFailure = {};
   local trackOpt1 = { isDouble = (plan.doubleTrack == 1), trainLength = candidate.platformLength, initialBudget = plan.iterationBudget };
   local trackFailed = OpexBuildTrack(tiles, plan.structures, trackFailure, trackOpt1);
   local last = tiles.len() - 1;
@@ -4048,11 +4010,8 @@ function OpexV190ExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
       OpexRailEndConnected(planA.station_exit, tiles[1], tiles[2], "A") &&
       OpexRailEndConnected(planB.station_exit, tiles[last - 1], tiles[last - 2], "B");
   if (!connected) {
-    if (trackFailed > 0 &&
-        ((RAIL_GEOMETRY_GUARD && RAIL_GEOMETRY_PAIR_MEMORY
-            && OpexRailTrackFailureIsPersistentGeometry(trackFailure, planA, planB))
-         || (RAIL_FREIGHT_TRKFAIL_MEMORY && candidate.kind == "freight"
-             && OpexRailTrackFailureIsPersistentPathLead(trackFailure, tiles)))) {
+    if (RAIL_GEOMETRY_GUARD && RAIL_GEOMETRY_PAIR_MEMORY && trackFailed > 0 &&
+        OpexRailTrackFailureIsPersistentGeometry(trackFailure, planA, planB)) {
       result.persistentGeometry <- true;
       result.error = trackFailure.error;
     }

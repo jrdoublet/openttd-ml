@@ -884,9 +884,6 @@ RAIL_GEOMETRY_GUARD <- false;
 RAIL_GEOMETRY_EXACT_IDENTITY <- true;
 RAIL_GEOMETRY_PREFILTER <- true;
 RAIL_GEOMETRY_PAIR_MEMORY <- true;
-/* Isolation fret : memorise uniquement un TRKFAIL de quai propre prouve persistant,
- * sans activer les autres branches du garde V100. Defaut 0. */
-RAIL_FREIGHT_TRKFAIL_MEMORY <- false;
 /* V153 : raccordement terminal rail quand le dernier segment est un saut (pont/tunnel).
  * Defaut 0 pendant qualification. */
 RAIL_END_JUMP_CONNECT <- false;
@@ -901,50 +898,10 @@ RAIL_PREASTAR_SEQ <- 0;
  * de quai a longueur identique et ne garder qu'un plan exposant le meme [lead, station_exit].
  * Aucun nouvel A* ; defaut 0 pendant qualification. */
 RAIL_GEOMETRY_LIVE_REPLAN <- false;
-/* Relache l'exclusivite d'origine uniquement dans la generation rail : une paire reste eligible
- * si exactement une extremite est deja servie. La revalidation rail applique deja cette regle.
- * Defaut 0 pendant qualification causale. */
-RAIL_ORIGIN_REUSE <- false;
-/* Shadow passif du verrou historique OR de generation rail. Quand actif, classifie uniquement
- * les paires rejetees car au moins une extremite est deja servie ; aucun candidat supplementaire
- * n'est cree ni admis. Defaut 0. */
-RAIL_ORIGIN_EXPOSURE_SHADOW <- false;
-/* Niveau 2 : classification structurelle detaillee des exactly-one-served exposes par le shadow.
- * Reste separee du compteur d'exposition car le resolver de jointure a un cout opcode mesurable. */
-RAIL_ORIGIN_EXPOSURE_DETAIL_SHADOW <- false;
 /* Optimisation experimentale des regenerations ciblees industrie : dans le fallback multi-cargo,
  * ignorer un cargo seulement si le catalogue prouve que l'industrie cible n'est ni source d'une
  * paire valide ni puits d'une paire valide pour CE cargo. Defaut 0 pendant qualification. */
 RAIL_TARGET_CARGO_PREFILTER <- false;
-/* Sous rail_origin_reuse, ne laisse pas les extensions concurrencer un vivier libre deja plein :
- * elles ne font que remplir les places manquantes jusqu'a TOP_K. Defaut 0 pour isoler la mesure. */
-RAIL_ORIGIN_REUSE_FALLBACK <- false;
-/* Sous-interrupteurs diagnostiques de rail_origin_reuse. Ils valent 1 pour reproduire exactement
- * le candidat parent ; sans le parent (defaut 0), ils sont sans effet. */
-RAIL_ORIGIN_REUSE_PAX <- true;
-RAIL_ORIGIN_REUSE_FREIGHT <- true;
-/* Quand plusieurs lignes rail partagent le meme StationID a une origine, chercher une ligne
- * compatible (kind/cargo/role) parmi elles au lieu de ne tester que la premiere rencontree.
- * Defaut 0 pendant qualification causale. */
-RAIL_ORIGIN_REUSE_MULTILINE_MATCH <- false;
-/* Autorise une gare fret deja servie a etre rejointe par un AUTRE cargo. A/B est un role relatif
- * au flux : pour un cargo different, une gare de transformation peut etre puits de l'ancien flux
- * et source du nouveau. Meme cargo conserve le garde historique A->A / B->B. */
-RAIL_ORIGIN_REUSE_CROSS_CARGO <- false;
-/* Garde causal optionnel : si une extension rail reutilisee classée juste avant un projet AIR
- * vivant consommerait le capital qui rend cet AIR finançable, différer l'extension. Le shadow
- * paie exactement le meme look-ahead sans changer la décision. Défaut 0 pendant qualification. */
-RAIL_ORIGIN_REUSE_AIR_PRIORITY_SHADOW <- false;
-RAIL_ORIGIN_REUSE_AIR_PRIORITY <- false;
-/* Override A* EXCLUSIVEMENT pour les candidats originServed. 0 = aucun override et cap rail
- * historique courant. Valeur diagnostique candidate : 40k, ancien cap pre-A3 qui couvrait le
- * maximum de succes mesure a 36,6k sans rouvrir le cap pour toutes les lignes rail. */
-RAIL_ORIGIN_REUSE_SEARCH_CAP <- 0;
-/* Expérience causale très locale : si une extension originServed devient LE projet rail rang 0
- * pendant qu'une recherche primaire non-reuse occupe encore le slot A*, elle peut remplacer cette
- * recherche. 0 = aucun changement. Ce n'est pas C41.49 : aucun arbitrage global air/route/eau et
- * aucune règle de score arbitraire, seulement la priorité déjà décidée par le portefeuille courant. */
-RAIL_ORIGIN_REUSE_SEARCH_SUPERSEDE <- false;
 /* V101 : sonde de difficulte de terrain au demarrage d'une recherche rail (defaut 0). */
 RAIL_TERRAIN_PROBE <- false;
 

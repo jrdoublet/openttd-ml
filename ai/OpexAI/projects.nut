@@ -99,16 +99,11 @@ function OpexStagedWaterPlanStillValid(catalog, plan, lines, abandonedPairs = nu
   return project != null && OpexIncrementalCandidateStillValid(project, lines, abandonedPairs);
 }
 
-function OpexMergeRailCandidateSet(base, extra, mergeReuse = true)
+function OpexMergeRailCandidateSet(base, extra)
 {
   if (base == null) return extra;
   if (extra == null) return base;
   foreach (candidate in extra.candidates) base.candidates.append(candidate);
-  if (mergeReuse && ("reuseCandidates" in extra) && extra.reuseCandidates != null
-      && extra.reuseCandidates.len() > 0) {
-    if (!("reuseCandidates" in base) || base.reuseCandidates == null) base.reuseCandidates <- [];
-    foreach (candidate in extra.reuseCandidates) base.reuseCandidates.append(candidate);
-  }
   base.all = base.candidates.len();
   base.best = OpexTopK(base.candidates, TOP_K);
   base.bands = OpexBands(base.candidates);
@@ -121,37 +116,6 @@ function OpexMergeRailCandidateSet(base, extra, mergeReuse = true)
       }
     }
   }
-  return base;
-}
-
-/* Le fallback freightCargo choisit un seul cargo actif. Quand un cargo suivant fournit enfin du
- * fret FRAIS, conserver les reuse pax de la passe initiale mais remplacer le pool reuse fret par
- * celui de ce cargo selectionne. Les reuse des cargos vides intermediaires ne doivent pas fuir
- * dans le portefeuille final. */
-function OpexRailSelectFreightReusePool(base, selected)
-{
-  if (base == null) return selected;
-  if (selected != null && ("reuseFreightDeferred" in selected)
-      && selected.reuseFreightDeferred != null) {
-    base.reuseFreightDeferred <- selected.reuseFreightDeferred;
-  } else if ("reuseFreightDeferred" in base) {
-    /* Le cargo frais selectionne n'a aucun reuse fret : ne pas conserver ceux du cargo precedent. */
-    base.reuseFreightDeferred = null;
-  }
-  local keep = [];
-  if (("reuseCandidates" in base) && base.reuseCandidates != null) {
-    foreach (candidate in base.reuseCandidates) {
-      if (!("kind" in candidate) || candidate.kind != "freight") keep.append(candidate);
-    }
-  }
-  if (selected != null && ("reuseCandidates" in selected)
-      && selected.reuseCandidates != null) {
-    foreach (candidate in selected.reuseCandidates) {
-      if (("kind" in candidate) && candidate.kind == "freight") keep.append(candidate);
-    }
-  }
-  if (keep.len() > 0) base.reuseCandidates <- keep;
-  else if ("reuseCandidates" in base) base.reuseCandidates = [];
   return base;
 }
 
@@ -242,13 +206,11 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
   local railPaxCruiseCache = C41_RAIL_PAX_CRUISE_CACHE ? {} : null;
   local railFreightCruiseCache = C41_RAIL_FREIGHT_CRUISE_CACHE ? {} : null;
   local rail;
-  local deferRailReuseAdmission = doFreight && freightCargo != null
-      && freightCargoOrder != null && freightCargoOrder.len() > 1;
   if (doPaxRail || doFreight) {
     local spRail = PROBE_SPAN_TRACE ? OpexSpanBegin("build.rail") : null;
     rail = OpexBuildCandidates(catalog, budget, lines, abandonedPairs, railCandidateProfile,
         railPaxProfile, railPaxCandidateProfile, railPaxCruiseCache, railFreightCruiseCache,
-        doPaxRail, doFreight, paxBand, freightCargo, null, -1, deferRailReuseAdmission);
+        doPaxRail, doFreight, paxBand, freightCargo, null, -1);
     if (spRail != null) OpexSpanEnd(spRail);
     if (priorProjects != null && ("rail" in priorProjects)
         && priorProjects.rail != null && ("candidates" in priorProjects.rail)) {
@@ -302,12 +264,11 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
         local spRailFb = PROBE_SPAN_TRACE ? OpexSpanBegin("build.rail") : null;
         local extraFreight = OpexBuildCandidates(catalog, budget, lines, abandonedPairs,
             railCandidateProfile, null, null, null, railFreightCruiseCache,
-            false, true, PAX_BAND_ALL, nextCargo, null, -1, deferRailReuseAdmission);
+            false, true, PAX_BAND_ALL, nextCargo, null, -1);
         if (spRailFb != null) OpexSpanEnd(spRailFb);
         tried++;
         if (extraFreight.candidates.len() == 0) continue;
-        rail = OpexRailSelectFreightReusePool(rail, extraFreight);
-        rail = OpexMergeRailCandidateSet(rail, extraFreight, false);
+        rail = OpexMergeRailCandidateSet(rail, extraFreight);
         local previousCargo = freightCargo;
         freightCargo = nextCargo;
         hasFreight = true;
@@ -323,9 +284,6 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
                    + " to=none tried=" + tried + " candidates=0");
       }
     }
-    rail = OpexRailOriginReuseFinalize(rail, TOP_K, catalog, budget, lines,
-        railCandidateProfile, railPaxProfile, railPaxCandidateProfile,
-        railPaxCruiseCache, railFreightCruiseCache);
   }
   if (railProfile != null) {
     railProfile.generationOps = OpexOpsMeasureEnd(railGenerationMark);

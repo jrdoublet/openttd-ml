@@ -42,9 +42,6 @@ OPEX_PROBE_GROUPS <- {
   rail_freight_select_shadow = 32,
   rail_failure_audit = 32,
   probe_rail_preastar = 32,
-  rail_origin_exposure_shadow = 32,
-  rail_origin_exposure_detail_shadow = 32,
-  rail_origin_reuse_air_priority_shadow = 32,
   probe_rail_terrain = 32,
   probe_cost = 64,
   road_finance_gate_shadow_p0 = 64,
@@ -236,32 +233,12 @@ function OpexLoadSettings()
   RAIL_GEOMETRY_EXACT_IDENTITY = AIController.GetSetting("rail_geometry_exact_identity") != 0;
   RAIL_GEOMETRY_PREFILTER = AIController.GetSetting("rail_geometry_prefilter") != 0;
   RAIL_GEOMETRY_PAIR_MEMORY = AIController.GetSetting("rail_geometry_pair_memory") != 0;
-  RAIL_FREIGHT_TRKFAIL_MEMORY = AIController.GetSetting("rail_freight_trkfail_memory") != 0;
   RAIL_END_JUMP_CONNECT = AIController.GetSetting("rail_end_jump_connect") != 0;
   INCR_REVALIDATE_INDEX = AIController.GetSetting("incr_revalidate_index");
   RAIL_FAILURE_AUDIT = OpexProbeSetting("rail_failure_audit") != 0;
   RAIL_PREASTAR_PROBE = OpexProbeSetting("probe_rail_preastar") != 0;
   RAIL_GEOMETRY_LIVE_REPLAN = AIController.GetSetting("rail_geometry_live_replan") != 0;
-  RAIL_ORIGIN_REUSE = AIController.GetSetting("rail_origin_reuse") != 0;
-  RAIL_ORIGIN_EXPOSURE_SHADOW = OpexProbeSetting("rail_origin_exposure_shadow") != 0;
-  RAIL_ORIGIN_EXPOSURE_DETAIL_SHADOW = RAIL_ORIGIN_EXPOSURE_SHADOW
-      && OpexProbeSetting("rail_origin_exposure_detail_shadow") != 0;
   RAIL_TARGET_CARGO_PREFILTER = AIController.GetSetting("rail_target_cargo_prefilter") != 0;
-  RAIL_ORIGIN_REUSE_FALLBACK = AIController.GetSetting("rail_origin_reuse_fallback") != 0;
-  RAIL_ORIGIN_REUSE_PAX = AIController.GetSetting("rail_origin_reuse_pax") != 0;
-  RAIL_ORIGIN_REUSE_FREIGHT = AIController.GetSetting("rail_origin_reuse_freight") != 0;
-  RAIL_ORIGIN_REUSE_MULTILINE_MATCH = RAIL_ORIGIN_REUSE
-      && AIController.GetSetting("rail_origin_reuse_multiline_match") != 0;
-  RAIL_ORIGIN_REUSE_CROSS_CARGO = RAIL_ORIGIN_REUSE
-      && AIController.GetSetting("rail_origin_reuse_cross_cargo") != 0;
-  RAIL_ORIGIN_REUSE_AIR_PRIORITY_SHADOW = RAIL_ORIGIN_REUSE
-      && OpexProbeSetting("rail_origin_reuse_air_priority_shadow") != 0;
-  RAIL_ORIGIN_REUSE_AIR_PRIORITY = RAIL_ORIGIN_REUSE
-      && AIController.GetSetting("rail_origin_reuse_air_priority") != 0;
-  RAIL_ORIGIN_REUSE_SEARCH_CAP = RAIL_ORIGIN_REUSE
-      ? AIController.GetSetting("rail_origin_reuse_search_cap_k") * 1000 : 0;
-  RAIL_ORIGIN_REUSE_SEARCH_SUPERSEDE = RAIL_ORIGIN_REUSE
-      && AIController.GetSetting("rail_origin_reuse_search_supersede") != 0;
   RAIL_TERRAIN_PROBE = OpexProbeSetting("probe_rail_terrain") != 0;
 
   local acd = AIController.GetSetting("abandon_cooldown_days");

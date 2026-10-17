@@ -43,26 +43,12 @@ def digest(body):
 def without_freight_memory(body):
     """Project the current builder onto the original capture/rollback contract.
 
-    The three replacements correspond to the adopted freight failure memory:
-    allocating the capture table, recognizing a persistent path-lead failure,
-    and publishing the original A-side lead in the failure log. Require each
+    The freight failure memory (rail_freight_trkfail_memory) was removed on
+    2026-10-17; what remains is publishing the original A-side lead in the
+    failure log and the end-connection helper. Require each
     exact addition so that unrelated builder edits still invalidate the SHA.
     """
     replacements = (
-        (
-            'if (DECISION_LOG || RAIL_GEOMETRY_GUARD\n'
-            '      || (RAIL_FREIGHT_TRKFAIL_MEMORY && candidate.kind == "freight")) trackFailure = {};',
-            'if (DECISION_LOG || RAIL_GEOMETRY_GUARD) trackFailure = {};',
-        ),
-        (
-            'if (trackFailed > 0 &&\n'
-            '        ((RAIL_GEOMETRY_GUARD && RAIL_GEOMETRY_PAIR_MEMORY\n'
-            '            && OpexRailTrackFailureIsPersistentGeometry(trackFailure, planA, planB))\n'
-            '         || (RAIL_FREIGHT_TRKFAIL_MEMORY && candidate.kind == "freight"\n'
-            '             && OpexRailTrackFailureIsPersistentPathLead(trackFailure, tiles)))) {',
-            'if (RAIL_GEOMETRY_GUARD && RAIL_GEOMETRY_PAIR_MEMORY && trackFailed > 0 &&\n'
-            '        OpexRailTrackFailureIsPersistentGeometry(trackFailure, planA, planB)) {',
-        ),
         (
             '      if ("lead" in planA) fields += " leada=" + planA.lead;\n',
             '',
@@ -143,17 +129,13 @@ class TestRailTrackFailureCapture(unittest.TestCase):
         self.assertEqual(digest(without_v199_v163_plan(without_freight_memory(current))),
                          PRE_EXTRACTION_HASHES["OpexExecuteRailPlan"])
 
-    def test_freight_memory_does_not_skip_failure_diagnostics_or_rollback(self):
+    def test_freight_memory_removed(self):
         body = function_body(self.source, "OpexExecuteRailPlan")
-        self.assertEqual(body.count('RAIL_FREIGHT_TRKFAIL_MEMORY && candidate.kind == "freight"'), 2)
-        self.assertLess(body.index("local trackFailed = OpexBuildTrack(tiles, plan.structures, trackFailure);"),
-                        body.index("OpexRailTrackFailureIsPersistentPathLead(trackFailure, tiles)"))
-        self.assertLess(body.index("OpexRailTrackFailureIsPersistentPathLead(trackFailure, tiles)"),
-                        body.index('OpexDecide("RAIL_TRACK_FAIL", fields);'))
+        self.assertNotIn("RAIL_FREIGHT_TRKFAIL_MEMORY", self.source)
+        self.assertNotIn("OpexRailTrackFailureIsPersistentPathLead", self.source)
         self.assertLess(body.index('OpexDecide("RAIL_TRACK_FAIL", fields);'),
                         body.index("OpexRollback(tiles, planA, planB, null, null);"))
         self.assertIn('result.opcodes += budget.end("build_track"); result.reason = "TRKFAIL"; return result;', body)
-
 
 if __name__ == "__main__":
     unittest.main()

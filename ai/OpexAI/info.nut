@@ -1136,15 +1136,6 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
-    AddSetting({
-      name = "rail_freight_trkfail_memory",
-      description = "Isolated freight-only memory for persistent own-station lead TRKFAIL; 0 = off (default)",
-      min_value = 0, max_value = 1,
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      step_size = 1,
-      flags = AICONFIG_BOOLEAN
-    });
 
     AddSetting({
       name = "rail_end_jump_connect",
@@ -1193,35 +1184,8 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
-    AddSetting({
-      name = "rail_origin_reuse",
-      description = "allow rail candidate generation when exactly one endpoint is already served; reject only pairs with both endpoints served; 0 = historical exclusivity (default)",
-      min_value = 0, max_value = 1,
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      step_size = 1,
-      flags = AICONFIG_BOOLEAN
-    });
 
-    AddSetting({
-      name = "rail_origin_exposure_shadow",
-      description = "shadow-only: count rail pairs rejected by historical served-endpoint exclusivity; never admits candidates; 0 = off (default)",
-      min_value = 0, max_value = 1,
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      step_size = 1,
-      flags = AICONFIG_BOOLEAN
-    });
 
-    AddSetting({
-      name = "rail_origin_exposure_detail_shadow",
-      description = "with rail_origin_exposure_shadow, classify exactly-one-served rejects using the existing rail-origin join contract; diagnostic only; 0 = off (default)",
-      min_value = 0, max_value = 1,
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      step_size = 1,
-      flags = AICONFIG_BOOLEAN
-    });
 
     AddSetting({
       name = "rail_target_cargo_prefilter",
@@ -1233,95 +1197,14 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
-    AddSetting({
-      name = "rail_origin_reuse_fallback",
-      description = "with rail_origin_reuse, publish one-served rail extensions only to fill a free-origin candidate pool below TOP_K; 0 = equal-priority reuse (diagnostic default)",
-      min_value = 0, max_value = 1,
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      step_size = 1,
-      flags = AICONFIG_BOOLEAN
-    });
 
-    AddSetting({
-      name = "rail_origin_reuse_pax",
-      description = "diagnostic sub-switch for passenger one-served rail extensions; 1 reproduces rail_origin_reuse candidate behavior",
-      min_value = 0, max_value = 1,
-      easy_value = 1, medium_value = 1, hard_value = 1,
-      custom_value = 1,
-      step_size = 1,
-      flags = AICONFIG_BOOLEAN
-    });
 
-    AddSetting({
-      name = "rail_origin_reuse_freight",
-      description = "diagnostic sub-switch for freight one-served rail extensions; 1 reproduces rail_origin_reuse candidate behavior",
-      min_value = 0, max_value = 1,
-      easy_value = 1, medium_value = 1, hard_value = 1,
-      custom_value = 1,
-      step_size = 1,
-      flags = AICONFIG_BOOLEAN
-    });
 
-    AddSetting({
-      name = "rail_origin_reuse_multiline_match",
-      description = "with rail_origin_reuse, resolve a compatible line among all rail lines sharing the same StationID instead of testing only the first; 0 = historical first-line behavior (default)",
-      min_value = 0, max_value = 1,
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      step_size = 1,
-      flags = AICONFIG_BOOLEAN
-    });
 
-    AddSetting({
-      name = "rail_origin_reuse_cross_cargo",
-      description = "with rail_origin_reuse, allow a freight StationID to be reused by a different cargo; cross-cargo ignores the old line A/B role while same-cargo keeps the historical same-role guard; 0 = off (default)",
-      min_value = 0, max_value = 1,
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      step_size = 1,
-      flags = AICONFIG_BOOLEAN
-    });
 
-    AddSetting({
-      name = "rail_origin_reuse_air_priority_shadow",
-      description = "measure whether a one-served rail extension would directly displace the immediately following fundable AIR project; no decision change; 0 = off (default)",
-      min_value = 0, max_value = 1,
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      step_size = 1,
-      flags = AICONFIG_BOOLEAN
-    });
 
-    AddSetting({
-      name = "rail_origin_reuse_air_priority",
-      description = "defer a one-served rail extension only when it would directly make the immediately following live AIR project unfundable; 0 = off (default)",
-      min_value = 0, max_value = 1,
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      step_size = 1,
-      flags = AICONFIG_BOOLEAN
-    });
 
-    AddSetting({
-      name = "rail_origin_reuse_search_cap_k",
-      description = "experimental hard A* cap override in thousands for origin-served rail extensions only; 0 = keep normal rail cap (default), 40 = pre-A3 diagnostic cap",
-      min_value = 0, max_value = 100,
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      step_size = 5,
-      flags = 0
-    });
 
-    AddSetting({
-      name = "rail_origin_reuse_search_supersede",
-      description = "experimental: when an origin-served rail extension is current rank 0, let it replace an in-progress primary non-reuse rail search; 0 = off (default)",
-      min_value = 0, max_value = 1,
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      step_size = 1,
-      flags = AICONFIG_BOOLEAN
-    });
 
     AddSetting({
       name = "probe_rail_terrain",
