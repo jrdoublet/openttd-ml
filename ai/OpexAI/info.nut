@@ -63,30 +63,6 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
-      name = "road_finance_unbias_p0",
-      description = "P0 isolated ROAD finance experiment: replace 121% by 100% of unchanged physical quote, preserving reserves; 0 = historical (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "road_finance_gate_shadow_p0",
-      description = "P0 passive ROAD finance gate comparison 121% vs 100% on identical generated projects; log only, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "road_quote_components_shadow_p0",
-      description = "P0 passive ROAD physical command-tariff quote and AIAccounting phase costs after siting; log only, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
       name = "probe_scheduler",
       description = "Enable scheduler opcode, latency and idle-tour diagnostic ledgers (C41, C39, V95); 1 = on, 0 = off (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,
@@ -126,13 +102,9 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
-
-
-
-
     AddSetting({
       name = "probe_candidates_road",
-      description = "Enable road candidate generation opcode profiling (pax, freight, town, feeder); 1 = on, 0 = off (default)",
+      description = "Enable road candidate generation opcode profiling (pax, freight, town); 1 = on, 0 = off (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
       flags = AICONFIG_BOOLEAN
@@ -178,7 +150,6 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
-
     AddSetting({
       name = "c69_decision_bottleneck",
       description = "C69: rank projects by P/max(C, F*tau), F = operating cash flow, tau = days per build; 1 = on (default), 0 = off",
@@ -186,7 +157,6 @@ class OpexAIInfo extends AIInfo {
       custom_value = 1,
       flags = AICONFIG_BOOLEAN
     });
-
 
     AddSetting({
       name = "c70_mode_calibration",
@@ -247,19 +217,6 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
-
-
-
-
-
-
-
-
-
-
-
-
-
     AddSetting({
       name = "c121_air_project_realization_adaptive",
       description = "C121 adaptive AIR strategy: use the learned reused-hub realization correction in observe, race and efficiency; 1 = on (default), 0 = off",
@@ -267,8 +224,6 @@ class OpexAIInfo extends AIInfo {
       custom_value = 1,
       flags = AICONFIG_BOOLEAN
     });
-
-
 
     AddSetting({
       name = "c122_air_regime_shadow",
@@ -302,7 +257,6 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
-
     AddSetting({
       name = "probe_events",
       description = "Enable AI event, crash, fleet depth and equipment selection probes; 1 = on, 0 = off (default)",
@@ -312,7 +266,6 @@ class OpexAIInfo extends AIInfo {
     });
 
     /* --- 3. Macro-politiques adoptees unifiees (8 groupes) --- */
-
 
     AddSetting({
       name = "policy_rail",
@@ -348,7 +301,7 @@ class OpexAIInfo extends AIInfo {
 
     AddSetting({
       name = "mode_road",
-      description = "V166: Road (buses, trucks, airport feeder buses) mode on/off. 0 = no candidate, catalogue scan, construction or fleet of this mode (mono-mode benches); 1 = enabled (default)",
+      description = "V166: Road (buses, trucks) mode on/off. 0 = no candidate, catalogue scan, construction or fleet of this mode (mono-mode benches); 1 = enabled (default)",
       easy_value = 1, medium_value = 1, hard_value = 1,
       custom_value = 1,
       flags = AICONFIG_BOOLEAN
@@ -416,7 +369,6 @@ class OpexAIInfo extends AIInfo {
       step_size = 1,
       flags = AICONFIG_BOOLEAN
     });
-
 
     AddSetting({
       name = "v216_probe",
@@ -487,16 +439,7 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
-    AddSetting({
-      name = "policy_vehicle_events",
-      description = "Vehicle lifecycle and crash handling (C52): 1 = active handling, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
     /* --- 4. Calibrations physiques et options reelles --- */
-
 
     AddSetting({
       name = "rail_geometry_guard",
@@ -538,8 +481,6 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
-
-
     AddSetting({
       name = "rail_failure_audit",
       description = "Diagnostic-only rail attempts and proximity refusals by kind; 0 = off (default)",
@@ -568,7 +509,6 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
-
     AddSetting({
       name = "probe_rail_terrain",
       description = "log a cheap terrain-roughness summary of the straight line between both stations when a rail A* search starts, to test whether terrain predicts iteration-cap abandons; 0 = off (default)",
@@ -582,80 +522,6 @@ class OpexAIInfo extends AIInfo {
     AddSetting({
       name = "rail_depot_cost",
       description = "Include rail depot construction cost in rail line infrastructure economics (F-RAIL-ECON-01): 1 = enabled, 0 = disabled (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "project_top_k_dynamic",
-      description = "Cale PROJECT_TOP_K sur (villes + industries) de la carte: 1 = dynamique, 0 = fixe (defaut)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "road_loading_fix",
-      description = "Ignore vehicles loading at berths during road jam detection (docs/taches.md C26b): 1 = active, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "road_pax_dwell_days",
-      description = "Average station dwell and loading time for passenger road vehicles in days (default 6)",
-      min_value = 1, max_value = 30,
-      easy_value = 6, medium_value = 6, hard_value = 6,
-      custom_value = 6,
-      step_size = 1,
-      flags = 0
-    });
-
-    AddSetting({
-      name = "town_growth",
-      description = "Boost served town growth with one base bus line per town: 1 = enabled, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "town_growth_plan_memo",
-      description = "Town growth: remember a town whose bus-line planning failed (TRACEX/DEPOTX/SITE) and retry only when its house count changed; 1 = on (default), 0 = off",
-      easy_value = 1, medium_value = 1, hard_value = 1,
-      custom_value = 1,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "town_growth_skip_noop",
-      description = "After an empty town-growth attempt, run the next task immediately: 1 = skip slot, 0 = historical (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "town_growth_roi_gate",
-      description = "C87: build a town-growth bus line only if its predicted annual profit is positive, and close one losing money two full years in a row; 1 = on (default), 0 = off",
-      easy_value = 1, medium_value = 1, hard_value = 1,
-      custom_value = 1,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "road_time_scaled_cap",
-      description = "B3 experiment: scale pax road fleet cap from simultaneous berth capacity: 1 = test arm, 0 = historical cap (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "c80_worker_town",
-      description = "C80 tranche 2: migrate town growth to execution register worker: 1 = enabled, 0 = disabled (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
       flags = AICONFIG_BOOLEAN
@@ -693,7 +559,6 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
-
     AddSetting({
       name = "c80_air_choice_memo",
       description = "C80 tranche 5: the aircraft chosen per air route by a full pool regeneration is reused (only its economics recomputed) by the post-build updates: 1 = enabled, 0 = disabled (default)",
@@ -709,7 +574,6 @@ class OpexAIInfo extends AIInfo {
       custom_value = 0,
       flags = AICONFIG_BOOLEAN
     });
-
 
     AddSetting({
       name = "v195_v182_years",
@@ -802,9 +666,6 @@ class OpexAIInfo extends AIInfo {
       flags = 0
     });
 
-
-
-
     AddSetting({
       name = "v131_rail_repair",
       description = "V131: local repair of a stocked rail plan blocked on obstacle/station (extended anchors, bypass A* with adaptive budget, platform shift, duplicate-own-rail drop). 0 = off (default), no decision change. Not qualified",
@@ -821,7 +682,6 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
-
     AddSetting({
       name = "homogeneous_preselect",
       description = "Rank rail and road candidate pools by the portfolio funding score: 1 = enabled, 0 = historical ranking (default)",
@@ -829,19 +689,6 @@ class OpexAIInfo extends AIInfo {
       custom_value = 0,
       flags = AICONFIG_BOOLEAN
     });
-
-
-    AddSetting({
-      name = "v139_feeder_bus",
-      description = "V139: feeder bus shuttle from uncovered town center to airport; 0 = disabled (default), 1 = enabled",
-      min_value = 0, max_value = 1,
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      step_size = 1,
-      flags = AICONFIG_BOOLEAN
-    });
-
-
 
     /* AC04-B et AC05 : qualifies separement et en cumul, rollback 0. */
     AddSetting({

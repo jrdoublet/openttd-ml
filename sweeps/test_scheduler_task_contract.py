@@ -20,7 +20,7 @@ class TestSchedulerTaskContract(unittest.TestCase):
         self.assertEqual(queue, EXPECTED_TASKS)
         for name in queue:
             method = task_to_method(name)
-            if name in ("c41_road", "c41_water"):
+            if name in ("c41_road", "c41_water", "town_growth"):
                 self.assertIn(
                     f'{{ name = "{name}", dueCycle = 2147483647, enabled = false }}',
                     main,

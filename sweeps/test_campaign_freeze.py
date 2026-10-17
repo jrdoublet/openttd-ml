@@ -236,10 +236,10 @@ class TestCampaignFreeze(unittest.TestCase):
             INFO.read_text(encoding="utf-8").count("AddSetting("),
         )
         for name in ("c69_decision_bottleneck", "c70_mode_calibration", "c75_multi_build",
-                     "town_growth_roi_gate", "c76_regen_targeted",
-                     "town_growth_plan_memo", "c121_air_project_realization_adaptive"):
+                     "c76_regen_targeted",
+                     "c121_air_project_realization_adaptive"):
             self.assertEqual(defaults[name], 1, name)
-        for name in ("c76_freight_rotation", "c80_worker_town", "c80_air_choice_memo", "c80_air_eval_fast", "rail_depot_cost", "c83_fixes", "c83_preempt_open", "c67_terrain_map", "c67_water_exposure_probe"):
+        for name in ("c76_freight_rotation", "c80_air_choice_memo", "c80_air_eval_fast", "rail_depot_cost", "c83_fixes", "c83_preempt_open", "c67_terrain_map", "c67_water_exposure_probe"):
             self.assertEqual(defaults[name], 0, name)
         for name in ("v90_pathfinder_check", "v95_air_post73_probe", "v94_air_site_check", "c97_air_c69_engine_probe", "c98_air_realized_probe"):
             self.assertNotIn(name, defaults)  # V239 : sondes retirees
@@ -297,7 +297,7 @@ class TestCampaignFreeze(unittest.TestCase):
                      "v88_goods_chain", "v88_chain_force", "v88_step2_plan_immediate", "v88_all_inputs",
                      "v88_chain_step1_finance", "v88_step2_rail_prio", "v88_step2_cash_reserve"):
             self.assertNotIn(name, defaults)
-        self.assertTrue(specs["town_growth_skip_noop"]["boolean"])
+        self.assertNotIn("town_growth_skip_noop", specs)
         self.assertNotIn("air_early_slot_min_pop", specs)  # V236 : constante
         from v237_contracts import RETIRED, assert_retired
         assert_retired(self, RETIRED)
@@ -327,11 +327,11 @@ class TestCampaignFreeze(unittest.TestCase):
     def test_effective_settings_merge_and_unknown_rejection(self):
         resolved = effective_ai_settings(
             INFO,
-            (("c80_air_choice_memo", 1), ("town_growth_skip_noop", 1)),
+            (("c80_air_choice_memo", 1), ("probe_cost", 1)),
         )
         self.assertEqual(resolved["defaults"]["c80_air_choice_memo"], 0)
         self.assertEqual(resolved["effective"]["c80_air_choice_memo"], 1)
-        self.assertEqual(resolved["effective"]["town_growth_skip_noop"], 1)
+        self.assertEqual(resolved["effective"]["probe_cost"], 1)
         with self.assertRaises(ValueError):
             effective_ai_settings(INFO, (("does_not_exist", 1),))
 
@@ -438,13 +438,13 @@ class TestCampaignFreeze(unittest.TestCase):
     def test_bench_audit_detects_identical_and_shared_nondefault_arms(self):
         identical = comparison_setting_audit(resolved_arm_settings([
             "OpexAI",
-            "OpexAI[town_growth_skip_noop=0]",
+            "OpexAI[probe_cost=0]",
         ]))
         self.assertEqual(len(identical["identical_effective_arms"]), 1)
 
         shared = comparison_setting_audit(resolved_arm_settings([
             "OpexAI[c80_air_choice_memo=1]",
-            "OpexAI[c80_air_choice_memo=1,town_growth_skip_noop=1]",
+            "OpexAI[c80_air_choice_memo=1,probe_cost=1]",
         ]))
         self.assertEqual(
             [item["setting"] for item in shared["shared_nondefault_explicit"]],

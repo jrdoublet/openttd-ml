@@ -242,7 +242,6 @@ class OpexAI extends AIController {
   _c39PassClockSliceOps = -1;
   /* C39.6 : accumulateur annuel, cle = "<nom de tache>|slice" ou "<nom de tache>|noslice". */
   _c39PassClockLedger = null;
-  _townWorkerStats = null;
   /* V95 item 1 : pile de frames observatoires (selection de tache). Jamais sauvegardee. */
   _schedIdlePeekTask = null;
   _schedIdlePredReason = null;
@@ -297,9 +296,6 @@ class OpexAI extends AIController {
   _c39CadenceLastCycle = null;
   _c39FinanceableSince = null;
   _startYear = -1;
-  /* town_growth_plan_memo : townId -> nombre de maisons au moment du dernier echec de planification.
-   * Non sauvegarde : apres chargement, chaque ville est simplement replanifiee une fois. */
-  _townPlanFailures = null;
   /* Dates C69/C75 lues dans la sauvegarde, restaurees par _reconcileAfterLoad(). */
   _reloadC69BuildDates = null;
   _reloadC75PassDates = null;
@@ -417,7 +413,6 @@ class OpexAI extends AIController {
     this._c41OpportunityLedger = {};
     this._c41AdmissionLedger = {};
     this._c39PassClockLedger = {};
-    this._townWorkerStats = { slices = 0, opsMax = 0, opsTotal = 0, built = 0 };
     this._c39CadenceLastDate = -1;
     this._c39CadenceLastTick = -1;
     this._c39CadenceLastCycle = -1;
@@ -431,7 +426,7 @@ class OpexAI extends AIController {
     this._reactiveQueue = OpexReactiveQueue();
     this._activeWorker = null;
     /* Priorite : donnees et stop-loss, croissance des flottes existantes avant nouveaux projets,
-     * portefeuille multimodal ROI, croissance urbaine, dette. */
+     * portefeuille multimodal ROI, dette. */
     this._taskQueue = [
       { name = "catalog", dueCycle = 0, enabled = true },
       /* Slots historiques conserves pour la compatibilite du taskCursor numerique des sauvegardes.
@@ -449,7 +444,8 @@ class OpexAI extends AIController {
       { name = "projects", dueCycle = 0, enabled = true },
       { name = "expand", dueCycle = 0, enabled = true },
       { name = "refleet", dueCycle = 0, enabled = true },
-      { name = "town_growth", dueCycle = 0, enabled = true },
+      /* Reserved inert slot: preserve numeric taskCursor from legacy saves. No dispatcher. */
+      { name = "town_growth", dueCycle = 2147483647, enabled = false },
       { name = "repay", dueCycle = 0, enabled = true },
     ];
   }
@@ -462,11 +458,7 @@ class OpexAI extends AIController {
   function _ensureSelection();
   function _logAirLazySelect(year);
   function _c39StampFinanceable(capital = null, isProjectsTurn = false);
-  function _tryTownGrowth(year);
-  function _prepareTownGrowth();
-  function _tryTownGrowthCity(townId, year, anchor = null);
   function _markTownGrowthRejected(townId);
-  function _recordTownWorkerSlice(sliceOps, builtCount);
   function _runNextTask();
   function _runNextTaskWithSlackLedger();
   function _logC41SlackLedger(year);
@@ -546,7 +538,6 @@ class OpexAI extends AIController {
   function _dispatchProjects(task, year);
   function _dispatchExpand(task, year);
   function _dispatchRefleet(task, year);
-  function _dispatchTownGrowth(task, year);
   function _dispatchRepay(task, year);
   function _c76RecordRegen(kind, ops, days, year, reason = "unknown");
   function _c76RecordAvoided(year);
@@ -643,9 +634,7 @@ require("task_rail.nut");
 require("rail_prep_c121.nut");
 require("task_report.nut");
 require("task_road.nut");
-require("feeder_bus.nut");
 require("task_terrain.nut");
-require("task_town.nut");
 require("task_water.nut");
 require("selftests.nut");
 

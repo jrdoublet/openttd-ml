@@ -149,16 +149,6 @@ function OpexAI::_recordC39PassClockLedger(key, days, ticks, ops, sliceDays, sli
   entry.sliceOps += sliceOps;
   this._c39PassClockLedger.rawset(key, entry);
 }
-function OpexAI::_recordTownWorkerSlice(sliceOps, builtCount)
-{
-  if (this._townWorkerStats == null) {
-    this._townWorkerStats = { slices = 0, opsMax = 0, opsTotal = 0, built = 0 };
-  }
-  this._townWorkerStats.slices++;
-  this._townWorkerStats.opsTotal += sliceOps;
-  if (sliceOps > this._townWorkerStats.opsMax) this._townWorkerStats.opsMax = sliceOps;
-  this._townWorkerStats.built += builtCount;
-}
 
 /* Publication annuelle, comme les autres ledgers C39/C41 : une ligne par cle, reset apres
  * publication pour que chaque ligne decrive une fenetre comparable (meme motif que
@@ -176,14 +166,7 @@ function OpexAI::_logC39PassClockLedger(year)
     }
     this._c39PassClockLedger = {};
   }
-  if (this._townWorkerStats != null && (this._townWorkerStats.slices > 0 || C80_WORKER_TOWN)) {
-    OpexC39PassClockLog("phase=town_worker_year year=" + year
-                        + " slices=" + this._townWorkerStats.slices
-                        + " ops_max=" + this._townWorkerStats.opsMax
-                        + " ops_total=" + this._townWorkerStats.opsTotal
-                        + " built=" + this._townWorkerStats.built);
-    this._townWorkerStats = { slices = 0, opsMax = 0, opsTotal = 0, built = 0 };
-  }
+
 }
 
 /* V95 item 1 — tours de file selectionnes vs no-op. Piggyback sur
@@ -206,7 +189,6 @@ function OpexAI::_logC39PassClockLedger(year)
  *       Seul projects_useful compte comme passage utile.
  *   expand: 2e train / wagon ajoute ou recherche/expansion demarree (curVehs > preVehs || railExp || railSearch).
  *   refleet: vehicule ajoute (curVehs > preVehs).
- *   town_growth: travailleur cree ou vehicule/gare/ligne ajoutee.
  *   taches desactivees (c41_water, c41_road, etc.): task_disabled (cls=pred).
  *
  * Invariant : pour chaque tache, did_work + noop == selected.
@@ -319,11 +301,6 @@ function OpexAI::_schedIdlePreDispatch()
   } else if (taskName == "expand") {
     if (!RAIL_REFLEET) {
       this._schedIdlePredReason = "expand_disabled";
-      this._schedIdlePredClass = "pred";
-    }
-  } else if (taskName == "town_growth") {
-    if (!TOWN_GROWTH_ENABLED) {
-      this._schedIdlePredReason = "town_growth_disabled";
       this._schedIdlePredClass = "pred";
     }
   } else if (taskName == "catalog") {
@@ -754,20 +731,6 @@ function OpexAI::_schedIdlePostDispatch(taskName, ran, ops, days, ticks)
       didWork = true; reason = "refleet_work"; skipClass = "work";
     } else {
       didWork = false; reason = "refleet_no_work"; skipClass = "after";
-    }
-  } else if (taskName == "town_growth") {
-    if (this._schedIdlePredReason == "town_growth_disabled") {
-      if (!ran) { didWork = false; reason = "town_growth_disabled"; skipClass = "pred"; }
-      else { didWork = true; reason = "town_growth_mismatch"; skipClass = "work"; }
-    } else {
-      local curVehs = AIVehicleList().Count();
-      local curLines = this._lines.len();
-      local worker = this._activeWorker != null && this._schedIdlePreActiveWorker == null;
-      if (curVehs > this._schedIdlePreVehCount || curLines > this._schedIdlePreLinesCount || worker) {
-        didWork = true; reason = "town_growth_work"; skipClass = "work";
-      } else {
-        didWork = false; reason = "town_growth_no_work"; skipClass = "after";
-      }
     }
   } else {
     if (this._schedIdlePredReason != null) {

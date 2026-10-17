@@ -121,7 +121,7 @@ class V92AirServiceChoiceTests(unittest.TestCase):
         self.assertNotIn("OpexAirClearReequip", scrap)
         retire = function_body(self.report, "function OpexAI::_scrapRetiredVehicles(")
         self.assertNotIn("OpexAirLineReequipPending", retire)
-        self.assertIn("if (AIVehicle.SendVehicleToDepot(vehicle))", self.events)
+        self.assertNotIn("UNPROFITABLE_RETIRE", self.events)
         self.assertNotIn("defer_v92", self.events)
 
 

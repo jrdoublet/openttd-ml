@@ -140,17 +140,3 @@ PRICING_ROAD_OPS <- true;
  * 1 (defaut) sert d'abord la ligne au meilleur profit PAR APPAREIL, donc celle qui rembourse
  * l'avion suivant le plus vite ; 0 rend l'ordre historique pour que le banc puisse trancher. */
 AIR_ROI_ORDER <- true;
-/* Croissance urbaine : repli FAUX jusqu'a la lecture unique de town_growth dans Start().
- * Defaut 0 depuis le 2026-10-02 par decision utilisateur apres les A/B ON/OFF.
- * Complete avec 5-n stations de bus pour chaque ville desservie comptant n gares/aeroports. */
-TOWN_GROWTH_ENABLED <- false;
-TOWN_GROWTH_SKIP_NOOP <- false;
-/* Memoire des echecs de planification town_growth : une ville n'est replanifiee que si son nombre
- * de maisons a change depuis l'echec (mesure : 20 villes replanifiees jusqu'a 41 fois en 6 ans pour
- * TRACEX/DEPOTX, 97 % d'echecs). */
-TOWN_GROWTH_PLAN_MEMO <- false;
-/* C87 : ligne de croissance urbaine construite seulement si son profit annuel predit est positif,
- * et fermee apres deux annees pleines deficitaires. La ville refusee est memorisee dans
- * _abandonedPairs (cle "town_growth|<townId>", sauvegardee et purgee au meme delai).
- * Defaut 1 depuis le 2026-09-24 par decision utilisateur (les bus deficitaires pesent sur la note). */
-TOWN_GROWTH_ROI_GATE <- true;

@@ -22,9 +22,6 @@ const OPEX_STAGE_COMPLETE = 4;
  * -- mord fort. Rendu reglable pour le banc factoriel 32 contre 64, jamais retouche depuis 2026-09-02
  * avant cette mesure. */
 PROJECT_TOP_K <- 64;
-/* Propose par l'utilisateur le 2026-09-08 : caler PROJECT_TOP_K sur villes+industries de la carte
- * plutot que sur une constante fixe. Defaut 0 : aucun changement de comportement. */
-PROJECT_TOP_K_DYNAMIC <- false;
 
 /* Mesures communes. Le pathfinder rail consomme environ 2 700 opcodes par iteration. Pour les
  * autres modes, la partie plan est mesuree pendant la generation ; les constantes ci-dessous
@@ -474,16 +471,7 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
       }
       OpexProjectRememberAll(winners, OpexProjectFromCandidate(candidate), stats);
     }
-    if (V139_FEEDER_BUS) {
-      local feeders = OpexBuildFeederCandidates(catalog, lines);
-      foreach (candidate in feeders) {
-        if (ABANDON_GEN_FILTER && ABANDON_MEMORY && abandonedPairs != null && (OpexAbandonedPairKey(candidate) in abandonedPairs)) {
-          abandonFiltered++;
-          continue;
-        }
-        OpexProjectRememberAll(winners, OpexProjectFromCandidate(candidate), stats);
-      }
-    }
+
     foreach (plan in airPlans) {
       OpexProjectRememberAll(winners, OpexProjectFromAir(catalog, plan, airOpsPerPlan), stats);
     }

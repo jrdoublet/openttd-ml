@@ -294,12 +294,7 @@ function OpexAI::_runNextTask()
     if (spTask != null) OpexSpanEnd(spTask);
     return ranTask;
   }
-  if (task.name == "town_growth") {
-    spTask = PROBE_SPAN_TRACE ? OpexSpanBegin("task.town_growth") : null;
-    ranTask = this._dispatchTownGrowth(task, year);
-    if (spTask != null) OpexSpanEnd(spTask);
-    return ranTask;
-  }
+
   if (task.name == "repay") {
     spTask = PROBE_SPAN_TRACE ? OpexSpanBegin("task.repay") : null;
     ranTask = this._dispatchRepay(task, year);

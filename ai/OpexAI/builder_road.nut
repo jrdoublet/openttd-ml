@@ -627,38 +627,6 @@ function OpexRoadBuildTrace(trace, added)
   return true;
 }
 
-/* P0 B0, SHADOW only. Counts commands/road edges missing on the PRE-BUILD
- * map. BT_ROAD is a tariff proxy, not the exact execution charge (terrain,
- * clearing and multi-bit tiles may vary). Never set capitalIsActual or alter
- * economics/financing from this descriptive quote. */
-function OpexRoadQuotePlanComponents(catalog, plan, candidate)
-{
-  local missingEdges = 0;
-  foreach (edge in plan.trace) {
-    if (!AIRoad.AreRoadTilesConnected(edge.from, edge.to)) missingEdges++;
-  }
-  local driveThrough = ("driveThrough" in plan) && plan.driveThrough;
-  local stopStubs = 0;
-  if (!driveThrough) {
-    if (!AIRoad.AreRoadTilesConnected(plan.stopA.front, plan.stopA.tile)) stopStubs++;
-    if (!AIRoad.AreRoadTilesConnected(plan.stopB.front, plan.stopB.tile)) stopStubs++;
-  }
-  local depotStub = AIRoad.AreRoadTilesConnected(plan.depot.front, plan.depot.tile) ? 0 : 1;
-  local stopTariff = AICargo.HasCargoClass(candidate.cargo, AICargo.CC_PASSENGERS)
-      ? catalog.costRoadBusStop : catalog.costRoadTruckStop;
-  local traceQuote = missingEdges * catalog.costRoadPerTile;
-  local stopsQuote = 2 * stopTariff + stopStubs * catalog.costRoadPerTile;
-  local depotQuote = catalog.costRoadDepot + depotStub * catalog.costRoadPerTile;
-  local vehicleQuote = candidate.trains * candidate.engine.price;
-  return {
-    missingEdges = missingEdges, stopStubs = stopStubs,
-    depotStub = depotStub, driveThrough = driveThrough,
-    traceQuote = traceQuote, stopsQuote = stopsQuote,
-    depotQuote = depotQuote, vehicleQuote = vehicleQuote,
-    quote = traceQuote + stopsQuote + depotQuote + vehicleQuote
-  };
-}
-
 /* La capacite du catalogue est celle du cargo D'ORIGINE du moteur ; celle qui compte est la
  * capacite APRES refit, et un NewGRF peut la faire dependre du depot. On la relit donc ici, une
  * fois le depot bati -- c'est la seule valeur qui ait une chance d'etre exacte. */
@@ -679,9 +647,6 @@ function OpexBuildRoadRoute(catalog, budget, plan, candidate)
    * Aucun AITestMode n'est appele depuis cette fonction (verifie : OpexRoadBuildTrace et le reste
    * du corps n'exécutent que de vraies commandes) -- pas de bouclier imbrique necessaire. */
   local costs = AIAccounting();
-  local p0TraceSpend = 0;
-  local p0StopsSpend = 0;
-  local p0DepotSpend = 0;
   AIRoad.SetCurrentRoadType(catalog.roadType);
   local balanceBefore = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
   local cargo = candidate.cargo;
@@ -712,7 +677,6 @@ function OpexBuildRoadRoute(catalog, budget, plan, candidate)
     OpexRoadRollback(null, null, null, built, added); result.reason = "ROAD"; return result;
   }
   result.opcodes = budget.end("build_roads");
-  if (ROAD_QUOTE_COMPONENTS_SHADOW_P0) p0TraceSpend = costs.GetCosts();
 
   budget.begin();
   /* Meme bug que le depot (cf. commentaire sur OpexRoadFindDepot et sur OpexRoadSites) :
@@ -774,7 +738,6 @@ function OpexBuildRoadRoute(catalog, budget, plan, candidate)
   }
 
   result.opcodes += budget.end("build_road_stops");
-  if (ROAD_QUOTE_COMPONENTS_SHADOW_P0) p0StopsSpend = costs.GetCosts();
 
   budget.begin();
   /* Le vrai bug (2026-08-28, prouve dans road_cmd.cpp:1151/script_road.cpp:524, cf. commentaire
@@ -800,7 +763,6 @@ function OpexBuildRoadRoute(catalog, budget, plan, candidate)
       AIRoad.GetRoadDepotFrontTile(plan.depot.tile) == plan.depot.front &&
       AIRoad.AreRoadTilesConnected(plan.depot.tile, plan.depot.front)) depot = plan.depot.tile;
   result.opcodes += budget.end("build_road_depot");
-  if (ROAD_QUOTE_COMPONENTS_SHADOW_P0) p0DepotSpend = costs.GetCosts();
   if (depot == null) {
     result.error = AIError.GetLastError(); OpexRoadRollback(stopA, stopB, null, built, added);
     result.actualCost = costs.GetCosts();
@@ -855,7 +817,7 @@ function OpexBuildRoadRoute(catalog, budget, plan, candidate)
    * ce qui vaut mieux qu'un rollback complet pour un vehicule d'appoint.
    * ⚠️ Le plafond vient du jeu, pas de nous : un arret n'accueille que DEUX vehicules a la fois,
    * au-dela ils font la queue sur la route et se bloquent (docs/mecanique_jeu.md S11). C'est
-   * MAX_ROAD_VEHICLES dans economy.nut qui borne candidate.trains. */
+   * OpexRoadPhysicalVehicleCap dans economy.nut qui borne candidate.trains. */
   local want = candidate.trains;
   if (OPEX_ECONOMY_OPCODE_COMPAT_FALSE) {}
   for (local i = 1; i < want; i++) {
@@ -907,14 +869,7 @@ function OpexBuildRoadRoute(catalog, budget, plan, candidate)
   }
   result.cost = balanceBefore - AICompany.GetBankBalance(AICompany.COMPANY_SELF);
   result.actualCost = costs.GetCosts();
-  if (ROAD_QUOTE_COMPONENTS_SHADOW_P0) {
-    result.phaseCosts <- {
-      trace = p0TraceSpend,
-      stops = p0StopsSpend - p0TraceSpend,
-      depot = p0DepotSpend - p0StopsSpend,
-      vehicles = result.actualCost - p0DepotSpend
-    };
-  }
+
   return result;
 }
 
@@ -922,7 +877,7 @@ function OpexBuildRoadRoute(catalog, budget, plan, candidate)
  * a un passage a niveau, renouvellement qui n'a pas suivi). L'infrastructure est deja payee :
  * on ne replanifie rien. Si un vehicule reste, on le clone (ordres partages). S'il n'en reste
  * aucun, on reconstitue moteur + ordres comme a la construction. N'ajoute jamais au-dela du
- * plafond de quais de la ligne (2 x min(nStopsA, nStopsB), sinon MAX_ROAD_VEHICLES).
+ * plafond de quais de la ligne (2 x min(nStopsA, nStopsB), au moins deux vehicules).
  * Rend { added, after, reason }. */
 function OpexRoadRefleet(catalog, line, have, target)
 {

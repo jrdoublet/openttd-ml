@@ -40,31 +40,19 @@ class TestB3RoadFleetTargets(unittest.TestCase):
         self.persist = source("persist.nut")
 
     def test_switch_defaults_off_and_is_bound_once(self):
-        setting = re.search(
-            r'name\s*=\s*"road_time_scaled_cap".*?custom_value\s*=\s*(\d+)',
-            self.info,
-            re.S,
-        )
-        self.assertIsNotNone(setting)
-        self.assertEqual(setting.group(1), "0")
-        self.assertIn("ROAD_TIME_SCALED_CAP <- false", self.globals_pre)
-        self.assertIn(
-            'ROAD_TIME_SCALED_CAP = AIController.GetSetting("road_time_scaled_cap") != 0',
-            self.settings,
-        )
+        for text in (self.info, self.settings, self.globals_pre):
+            self.assertNotIn("road_time_scaled_cap", text)
+            self.assertNotIn("ROAD_TIME_SCALED_CAP", text)
 
     def test_time_scaled_cap_is_pax_only_conservative_and_bounded(self):
-        body = function_body(self.economy, "function OpexRoadFleetVehicleCap(")
-        self.assertIn("local berthCapacity = OpexRoadPhysicalVehicleCap", body)
-        self.assertIn('if (!ROAD_TIME_SCALED_CAP || kind != "pax") return berthCapacity', body)
-        self.assertIn("(berthCapacity * oneWayDays) / ROAD_PAX_STOP_DWELL_DAYS", body)
-        self.assertIn("if (cap < berthCapacity) cap = berthCapacity", body)
-        self.assertIn("if (cap > MAX_ROAD_VEHICLES) cap = MAX_ROAD_VEHICLES", body)
+        self.assertNotIn("function OpexRoadFleetVehicleCap(", self.economy)
+        self.assertIn("function OpexRoadPhysicalVehicleCap(", self.economy)
 
     def test_switch_zero_and_freight_keep_historical_berth_cap(self):
-        body = function_body(self.economy, "function OpexRoadFleetVehicleCap(")
-        self.assertIn('!ROAD_TIME_SCALED_CAP || kind != "pax"', body)
-        self.assertIn("return berthCapacity", body)
+        body = function_body(self.economy, "function OpexRoadLineEconomics(")
+        self.assertIn("local roadBerthCapacity = OpexRoadPhysicalVehicleCap(1, 1)", body)
+        self.assertIn("if (vehicles > roadVehicleCap) vehicles = roadVehicleCap", body)
+        self.assertNotIn("OpexRoadFleetVehicleCap", body)
 
     def test_economics_exposes_raw_berth_fleet_cap_and_selected_target(self):
         body = function_body(self.economy, "function OpexRoadLineEconomics(")
@@ -72,8 +60,8 @@ class TestB3RoadFleetTargets(unittest.TestCase):
         self.assertIn("local vehicles = vehiclesForVolume", body)
         self.assertIn("local roadBerthCapacity = OpexRoadPhysicalVehicleCap(1, 1)", body)
         self.assertIn("local roadVehicleCap = OPEX_ECONOMY_OPCODE_COMPAT_FALSE ? 1 : roadBerthCapacity", body)
-        self.assertIn('if (!OPEX_ECONOMY_OPCODE_COMPAT_FALSE && ROAD_TIME_SCALED_CAP && kind == "pax")', body)
-        self.assertIn("roadVehicleCap = OpexRoadFleetVehicleCap(1, 1, oneWayDays, kind)", body)
+        self.assertNotIn("ROAD_TIME_SCALED_CAP", body)
+        self.assertNotIn("OpexRoadFleetVehicleCap", body)
         self.assertIn("if (vehicles > roadVehicleCap) vehicles = roadVehicleCap", body)
         self.assertIn("vehiclesForVolume = vehiclesForVolume", body)
         self.assertIn("roadBerthCapacity = roadBerthCapacity", body)
@@ -127,8 +115,8 @@ class TestB3RoadFleetTargets(unittest.TestCase):
         body = function_body(self.road, "function OpexAI::_refleetRoadLines(")
         self.assertIn("local physicalCap = OpexRoadPhysicalVehicleCap(", body)
         self.assertNotIn("C50B_ROAD_CAP_RELAX", body)
-        self.assertIn("ROAD_TIME_SCALED_CAP", body)
-        self.assertIn("OpexRoadFleetVehicleCap(nStopsA, nStopsB, oneWayDays, line.kind)", body)
+        self.assertNotIn("ROAD_TIME_SCALED_CAP", body)
+        self.assertNotIn("OpexRoadFleetVehicleCap", body)
         self.assertIn("if (target > physicalCap) target = physicalCap", body)
 
     def test_annual_report_separates_raw_berth_vehicle_cap_and_actual_fleet(self):
@@ -146,7 +134,7 @@ class TestB3RoadFleetTargets(unittest.TestCase):
         ):
             self.assertIn(field, body)
         self.assertIn("OpexRoadPhysicalVehicleCap(nStopsA, nStopsB)", body)
-        self.assertIn("OpexRoadFleetVehicleCap(nStopsA, nStopsB, predDays, lKind)", body)
+        self.assertIn("local vehicleCap = berthCap;", body)
 
     def test_line_fields_survive_generic_serialization(self):
         save = function_body(self.persist, "function OpexAI::Save()")

@@ -346,71 +346,6 @@ function OpexWorkerRailStockCancel(worker)
 // Enregistrement du travailleur rail_stock
 OpexRegisterWorker("rail_stock", OpexWorkerRailStockStep, OpexWorkerRailStockCancel);
 
-/* Travailleur "town_growth" (Tranche 2 de C80) :
- * Découpe la croissance urbaine en 1 ville par tranche.
- * Son state contient uniquement des entiers et tableaux d'entiers :
- *   { cursorTownIndex, servedTownsList, year }
- * Step : traite 1 seule ville éligible.
- *        "done" si une ligne a été construite ou si toutes les villes ont été examinées.
- *        "running" s'il reste des villes à examiner.
- * Cancel : annulation propre.
- */
-function OpexWorkerTownGrowthStep(worker, opsBudget, deadlineTick)
-{
-  if (worker == null || !("state" in worker) || worker.state == null || typeof worker.state != "table") {
-    return "cancelled";
-  }
-  local s = worker.state;
-  if (!("cursorTownIndex" in s)) s.cursorTownIndex <- 0;
-  if (!("servedTownsList" in s) || s.servedTownsList == null) return "done";
-  local towns = s.servedTownsList;
-
-  local isMock = ("mockResults" in s && s.mockResults != null);
-  if (!isMock) {
-    while (s.cursorTownIndex < towns.len() && !AITown.IsValidTown(towns[s.cursorTownIndex])) {
-      s.cursorTownIndex++;
-    }
-  }
-  if (s.cursorTownIndex >= towns.len()) return "done";
-
-  local townId = towns[s.cursorTownIndex];
-  s.cursorTownIndex++;
-
-  local built = false;
-  if (isMock && (townId in s.mockResults)) {
-    built = s.mockResults[townId];
-  } else {
-    local ai = ("ai" in worker) ? worker.ai : (("ai" in s) ? s.ai : null);
-    if (ai == null) return "cancelled";
-    local measureMark = C39_PASS_CLOCK_LEDGER ? OpexOpsMeasureBegin() : null;
-    local year = ("year" in s) ? s.year : AIDate.GetYear(AIDate.GetCurrentDate());
-    built = ai._tryTownGrowthCity(townId, year);
-    if (measureMark != null) {
-      local sliceOps = OpexOpsMeasureEnd(measureMark);
-      ai._recordTownWorkerSlice(sliceOps, built ? 1 : 0);
-    }
-  }
-
-  if (built) return "done";
-  if (!isMock) {
-    while (s.cursorTownIndex < towns.len() && !AITown.IsValidTown(towns[s.cursorTownIndex])) {
-      s.cursorTownIndex++;
-    }
-  }
-  if (s.cursorTownIndex >= towns.len()) return "done";
-  return "running";
-}
-
-function OpexWorkerTownGrowthCancel(worker)
-{
-  if (worker != null && ("state" in worker) && worker.state != null && typeof worker.state == "table") {
-    worker.state.cancelled <- true;
-  }
-}
-
-// Enregistrement du travailleur town_growth
-OpexRegisterWorker("town_growth", OpexWorkerTownGrowthStep, OpexWorkerTownGrowthCancel);
-
 /* Travailleur "regen_candidates" (C77) : regenere, mode par mode, les candidats d'une entite
  * touchee par un evenement (ville, industrie) ou d'un mode dont un moteur vient d'arriver,
  * puis enfile la construction. Son state ne contient que des valeurs serialisables ;
@@ -688,9 +623,9 @@ function OpexAI::_dispatchReactiveIntention(intention)
       return false;
     }
     if (intention.kind == "c77_entity") {
-      /* Si le travailleur actif est rail_search ou town_growth, exécuter la
+      /* Si le travailleur actif est rail_search, exécuter la
        * régénération ciblée de l'entité de façon synchrone au lieu d'attendre. */
-      if (this._activeWorker.kind == "rail_search" || this._activeWorker.kind == "town_growth") {
+      if (this._activeWorker.kind == "rail_search") {
         sp = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.orch.reactive.c77_entity") : null;
         OpexRegenEntitySync(this, intention.payload);
         if (sp != null) OpexSpanEnd(sp);
@@ -1056,27 +991,6 @@ function OpexAI::_runOrchestratorTick()
          * Le candidat suivant part dans _c121RailPrepAfterProjectsPass,
          * apres que l'AIR a eu la passe. */
       }
-    } else if (this._activeWorker.kind == "town_growth") {
-      local opsBudget = AIController.GetOpsTillSuspend();
-      local deadlineTick = AIController.GetTick() + BUILD_TICK_MARGIN;
-      local outcome = null;
-      if (C39_PASS_CLOCK_LEDGER) {
-        local c39DateBefore = AIDate.GetCurrentDate();
-        local mark = OpexOpsMeasureBegin();
-        outcome = OpexC56WorkerStep(this._activeWorker, opsBudget, deadlineTick);
-        local ops = OpexOpsMeasureEnd(mark);
-        local passDays = AIDate.GetCurrentDate() - c39DateBefore;
-        local passTicks = AIController.GetTick() - mark.tick;
-        this._recordC39PassClockLedger("worker|town_growth", passDays, passTicks, ops, 0, 0, 0);
-      } else {
-        outcome = OpexC56WorkerStep(this._activeWorker, opsBudget, deadlineTick);
-      }
-      if (outcome == "done" || outcome == "cancelled") {
-        this._activeWorker = null;
-      }
-      // ORDRE PRÉSERVÉ (Contrat C80 tranche 2 §3) :
-      // Comme rail_search, la tranche town_growth est jouée puis la file de fond
-      // enchaîne dans le MÊME tick (pas de return true ici).
     } else {
       local opsBudget = AIController.GetOpsTillSuspend();
       local deadlineTick = AIController.GetTick() + BUILD_TICK_MARGIN;

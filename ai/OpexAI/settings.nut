@@ -22,8 +22,6 @@ OPEX_PROBE_GROUPS <- {
   probe_rail_preastar = 32,
   probe_rail_terrain = 32,
   probe_cost = 64,
-  road_finance_gate_shadow_p0 = 64,
-  road_quote_components_shadow_p0 = 64,
   c67_water_exposure_probe = 64,
   probe_events = 128,
   probe_vehicle_lost = 128,
@@ -152,17 +150,9 @@ function OpexLoadSettings()
   VIVIER_RATIO_FILTER = polPort;
   COMPLEX_CARGO = polPort;
   CAPITAL_CALIBRATION = polPort;
-  ROAD_FINANCE_UNBIAS_P0 = AIController.GetSetting("road_finance_unbias_p0") != 0;
-  ROAD_FINANCE_GATE_SHADOW_P0 = OpexProbeSetting("road_finance_gate_shadow_p0") != 0;
-  ROAD_QUOTE_COMPONENTS_SHADOW_P0 = OpexProbeSetting("road_quote_components_shadow_p0") != 0;
   DYNAMIC_CASH_RESERVE = polPort;
   C53_ORDER_NONSTOP = polPort;
   EVENT_CATALOG_INVALIDATE = polPort;
-
-  // 8. policy_vehicle_events : crash recovery, unprofitable retirement (C52)
-  local polVehEvents = AIController.GetSetting("policy_vehicle_events") != 0;
-  EVENT_VEHICLE_CRASHED = polVehEvents;
-  EVENT_VEHICLE_UNPROFITABLE = polVehEvents;
 
   /* --- 3. Calibrations physiques et options reelles --- */
 
@@ -175,19 +165,7 @@ function OpexLoadSettings()
   RAIL_GEOMETRY_LIVE_REPLAN = AIController.GetSetting("rail_geometry_live_replan") != 0;
   RAIL_TERRAIN_PROBE = OpexProbeSetting("probe_rail_terrain") != 0;
 
-  PROJECT_TOP_K_DYNAMIC = AIController.GetSetting("project_top_k_dynamic") != 0;
-
-  ROAD_LOADING_FIX = AIController.GetSetting("road_loading_fix") != 0;
-
-  local roadPaxDwell = AIController.GetSetting("road_pax_dwell_days");
-  if (roadPaxDwell >= 0) ROAD_PAX_STOP_DWELL_DAYS = roadPaxDwell;
-
   V163_MULTI_CARGO = AIController.GetSetting("v163_multi_cargo") == 1;
-
-  TOWN_GROWTH_ENABLED = AIController.GetSetting("town_growth") != 0;
-  TOWN_GROWTH_SKIP_NOOP = AIController.GetSetting("town_growth_skip_noop") != 0;
-  TOWN_GROWTH_PLAN_MEMO = AIController.GetSetting("town_growth_plan_memo") != 0;
-  TOWN_GROWTH_ROI_GATE = AIController.GetSetting("town_growth_roi_gate") != 0;
 
   /* --- 4. Sondes de diagnostic unifiees (9 groupes) --- */
 
@@ -229,7 +207,7 @@ function OpexLoadSettings()
   C41_RAIL_SLICE_LEDGER = probeScheduler;
   V95_SCHED_IDLE_LEDGER = probeScheduler;
 
-  // 3. probe_candidates_road : profiles pax, freight, town sinks, feeder
+  // 3. probe_candidates_road : profiles pax, freight, town sinks
   local probeCandRoad = OpexProbeSetting("probe_candidates_road") != 0;
   C41_ROAD_CANDIDATE_PROFILE = probeCandRoad;
   C41_ROAD_FREIGHT_PROFILE = probeCandRoad;
@@ -465,13 +443,11 @@ function OpexLoadSettings()
   /* --- 5. Pistes formellement abandonnees / constantes neutres verrouillees --- */
   /* R7 : zero global conserve ; le reglage defensif C121 ne retablit pas de plancher positif. */
   PORTFOLIO_FLOOR_PCT = 0;
-  ROAD_TIME_SCALED_CAP = AIController.GetSetting("road_time_scaled_cap") != 0;
   C76_REGEN_TARGETED = AIController.GetSetting("c76_regen_targeted") != 0;
   C67_TERRAIN_MAP = AIController.GetSetting("c67_terrain_map") != 0;
   C67_WATER_EXPOSURE = OpexProbeSetting("c67_water_exposure_probe") != 0;
   C67_SLACK_HOOK = C67_TERRAIN_MAP || C67_WATER_EXPOSURE;
   /* C77 corrige est permanent et repose sur le socle du double registre. */
-  C80_WORKER_TOWN = AIController.GetSetting("c80_worker_town") != 0;
   C76_FREIGHT_ROTATION = C76_REGEN_TARGETED && (AIController.GetSetting("c76_freight_rotation") != 0);
   C80_AIR_CHOICE_MEMO = AIController.GetSetting("c80_air_choice_memo") != 0;
   C80_AIR_EVAL_FAST = AIController.GetSetting("c80_air_eval_fast") != 0;
@@ -484,7 +460,6 @@ function OpexLoadSettings()
   RAIL_DEPOT_COST = AIController.GetSetting("rail_depot_cost") != 0;
   V131_RAIL_REPAIR = AIController.GetSetting("v131_rail_repair") != 0;
   V131_TOWN_CLEARANCE = AIController.GetSetting("v131_town_clearance") != 0;
-  V139_FEEDER_BUS = AIController.GetSetting("v139_feeder_bus") != 0;
   WATER_OPCODE_COMPAT_FALSE = false;
   WATER_OPCODE_COMPAT_FALSE = false;
   AIR_MAX_DISTANCE = 0;

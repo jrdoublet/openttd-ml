@@ -163,6 +163,20 @@ function OpexUpdateAirLineHealth(line, year, anchor, profit)
   if (nextStreak > 0) OpexSign(anchor, "DL|" + year + "|" + line.lineId + "|" + nextStreak);
 }
 
+/* Legacy loaded town-growth lines retain their default health/rejection policy. */
+function OpexTownGrowthRejectKey(townId)
+{
+  return "town_growth|" + townId;
+}
+
+function OpexAI::_markTownGrowthRejected(townId)
+{
+  local key = OpexTownGrowthRejectKey(townId);
+  local count = (key in this._abandonCounts) ? (this._abandonCounts[key] + 1) : 1;
+  this._abandonCounts[key] <- count;
+  this._abandonedPairs[key] <- { date = AIDate.GetCurrentDate(), count = count };
+}
+
 /* R13 : sante annuelle d'une ligne de croissance urbaine (C87) ; peut rejeter la ville.
  * Fonction libre recevant l'instance : main.nut (non modifie ici) declare les methodes
  * de OpexAI dans le corps de classe. */
@@ -453,7 +467,7 @@ function OpexAI::_reportLines(year)
         local nStopsA = ("nStopsA" in line) ? line.nStopsA : 1;
         local nStopsB = ("nStopsB" in line) ? line.nStopsB : 1;
         local berthCap = OpexRoadPhysicalVehicleCap(nStopsA, nStopsB);
-        local vehicleCap = OpexRoadFleetVehicleCap(nStopsA, nStopsB, predDays, lKind);
+        local vehicleCap = berthCap;
         extra = " raw_vehs=" + rawVehs + " pred_berth_cap=" + predBerthCap
               + " pred_vehicle_cap=" + predVehicleCap + " berth_cap=" + berthCap
               + " vehicle_cap=" + vehicleCap
@@ -520,7 +534,7 @@ function OpexAI::_reportLines(year)
       OpexUpdateFreightLineHealth(line, year, anchor, stationB, profit, runCost, srcAlive, srcProd);
     } else if (vehicleType == AIVehicle.VT_AIR) {
       OpexUpdateAirLineHealth(line, year, anchor, profit);
-    } else if (TOWN_GROWTH_ROI_GATE && ("purpose" in line) && line.purpose == "town_growth") {
+    } else if (("purpose" in line) && line.purpose == "town_growth") {
       OpexUpdateTownGrowthLineHealth(this, line, year, anchor, profit);
     }
   }

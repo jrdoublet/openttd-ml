@@ -337,7 +337,7 @@ def prove(orig_events, orig_sched, new_events, new_sched, handlers, tasks):
     if "IsEventWaiting" in handlers:
         problems.append("event_handlers contient la boucle")
     if "_taskQueue" in tasks and "this._taskCursor" in tasks:
-        # town_growth rappelle _runNextTask, pas le curseur
+        # Les dispatchers ne doivent pas deplacer le curseur.
         pass
     if "this._taskCursor" in tasks:
         problems.append("scheduler_tasks deplace le curseur")

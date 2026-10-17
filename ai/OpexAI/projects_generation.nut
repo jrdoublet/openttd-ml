@@ -84,15 +84,7 @@ function OpexGenerateModeProjects(projects, catalog, budget, lines, abandonedPai
       local p = OpexProjectFromCandidate(candidate);
       if (p != null) generated.projects.append(p);
     }
-    if (V139_FEEDER_BUS) {
-      local feeders = OpexBuildFeederCandidates(catalog, lines);
-      foreach (candidate in feeders) {
-        if (ABANDON_GEN_FILTER && ABANDON_MEMORY && abandonedPairs != null
-            && (OpexAbandonedPairKey(candidate) in abandonedPairs)) continue;
-        local p = OpexProjectFromCandidate(candidate);
-        if (p != null) generated.projects.append(p);
-      }
-    }
+
   } else if (mode == "air") {
     local mark = OpexOpsMeasureBegin();
     local plans = [];
@@ -312,24 +304,6 @@ function OpexCandidateStillValid(p, lines, abandonedPairs = null)
       return true;
     }
 
-    local isFeeder = (("kind" in p) && p.kind == "feeder") ||
-                     (("payload" in p) && p.payload != null &&
-                      ("isFeeder" in p.payload) && p.payload.isFeeder);
-    if (isFeeder) {
-      local airportId = (("payload" in p) && p.payload != null && ("airportStationId" in p.payload))
-          ? p.payload.airportStationId
-          : (("src" in p) ? p.src : -1);
-      if (!AIStation.IsValidStation(airportId)) return false;
-      foreach (line in lines) {
-        if (line != null && ("mode" in line) && line.mode == "road"
-            && ("isFeeder" in line) && line.isFeeder
-            && ("airportStationId" in line) && line.airportStationId == airportId) {
-          return false;
-        }
-      }
-      return true;
-    }
-
     if (p.kind == "pax") {
       local endpoints = OpexGetCandidateTownEndpoints(p.payload);
       if ((endpoints.srcTown >= 0 && OpexTownBusPaxServed(lines, endpoints.srcTown)) ||
@@ -437,7 +411,6 @@ function OpexIncrRevalidateIndexContext(lines)
     servedRailOnly = {},
     townBusPaxServed = {},
     roadFreightBusy = {},
-    roadFeederAirports = {},
     airOrigins = [],
     airTownServed = {},
     airHubRouteCounts = {},
@@ -494,9 +467,7 @@ function OpexIncrRevalidateIndexContext(lines)
 
     /* 3. Aides mode route */
     if (isRoad) {
-      if (("isFeeder" in line) && line.isFeeder && ("airportStationId" in line)) {
-        ctx.roadFeederAirports.rawset(line.airportStationId, true);
-      }
+
       if (!("scrapping" in line && line.scrapping) && hasCargo && line.cargo >= 0
           && AICargo.HasCargoClass(line.cargo, AICargo.CC_PASSENGERS)) {
         local srcTown = ("srcTown" in line && line.srcTown >= 0)
@@ -570,18 +541,6 @@ function OpexCandidateStillValidIndexed(p, lines, abandonedPairs, ctx)
       local oneWay = ("oneWayDays" in p.payload) ? p.payload.oneWayDays : -1;
       local chantier = ("chantierDays" in p.payload) ? p.payload.chantierDays : OpexSubsidyChantierDays(oneWay);
       if (AISubsidy.GetExpireDate(subId) - today < chantier) return false;
-      return true;
-    }
-
-    local isFeeder = (("kind" in p) && p.kind == "feeder") ||
-                     (("payload" in p) && p.payload != null &&
-                      ("isFeeder" in p.payload) && p.payload.isFeeder);
-    if (isFeeder) {
-      local airportId = (("payload" in p) && p.payload != null && ("airportStationId" in p.payload))
-          ? p.payload.airportStationId
-          : (("src" in p) ? p.src : -1);
-      if (!AIStation.IsValidStation(airportId)) return false;
-      if (airportId in ctx.roadFeederAirports) return false;
       return true;
     }
 

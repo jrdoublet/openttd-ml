@@ -122,22 +122,7 @@ function OpexSaveActiveWorker(worker)
       state = {}
     };
   }
-  if (worker.kind == "town_growth") {
-    /* C80 tranche 2 : le state de town_growth ne contient que des entiers et tableaux d'entiers. */
-    local s = worker.state;
-    local townsCopy = [];
-    if ("servedTownsList" in s && s.servedTownsList != null) {
-      foreach (t in s.servedTownsList) townsCopy.append(t);
-    }
-    return {
-      kind = worker.kind,
-      state = {
-        cursorTownIndex = ("cursorTownIndex" in s) ? s.cursorTownIndex : 0,
-        servedTownsList = townsCopy,
-        year = ("year" in s) ? s.year : 0
-      }
-    };
-  }
+
   if (worker.kind == "regen_candidates") {
     /* C78.4 : la tranche AIR contient temporairement des plans/economics avec
      * des flottants, interdits par le format de sauvegarde. Rien n'est publie
@@ -172,6 +157,8 @@ function OpexLoadActiveWorker(data)
   if (data == null || typeof data != "table") return null;
   if (!("kind" in data) || !("state" in data) || data.state == null || typeof data.state != "table") return null;
   local kind = data.kind;
+  /* Legacy saves may contain the retired urban worker; never resume it. */
+  if (kind == "town_growth") return null;
   if (!(kind in OPEX_WORKER_REGISTRY)) {
     AILog.Warning("C80: dropped active worker of unknown kind: " + kind);
     return null;
@@ -594,27 +581,6 @@ function OpexAI::_refreshSaveProjection()
   this._saveProjection = cache;
 }
 
-function OpexV139SaveUnjoinedStops(target)
-{
-  if (!V139_FEEDER_BUS || V139_UNJOINED_STOPS.len() == 0 || target == null) return;
-  local flat = [];
-  foreach (tile, apId in V139_UNJOINED_STOPS) {
-    flat.append(tile.tointeger());
-    flat.append(apId.tointeger());
-  }
-  target.v139UnjoinedStops <- flat;
-}
-
-function OpexV139LoadUnjoinedStops(data)
-{
-  V139_UNJOINED_STOPS = {};
-  if (data == null || !("v139UnjoinedStops" in data) || data.v139UnjoinedStops == null) return;
-  local flat = data.v139UnjoinedStops;
-  for (local i = 0; i + 1 < flat.len(); i += 2) {
-    V139_UNJOINED_STOPS.rawset(flat[i], flat[i + 1]);
-  }
-}
-
 function OpexAI::Save()
 {
   /* A 0, conserver exactement le format historique : la charge complete est experimentale et
@@ -645,7 +611,6 @@ function OpexAI::Save()
     if (OpexC121StrategyStateEnabled()) OpexSaveC121Strategy(shortSave);
     if (OPEX_AIR_ROLLBACKS.len() > 0) shortSave.airRollbacks <- OPEX_AIR_ROLLBACKS;
     if (V133_AIR_BUILD_RETRY) OpexV133SaveQuarantine(shortSave);
-    if (V139_FEEDER_BUS) OpexV139SaveUnjoinedStops(shortSave);
     return shortSave;
   }
 
@@ -725,7 +690,6 @@ function OpexAI::Save()
   if (OpexC121StrategyStateEnabled()) OpexSaveC121Strategy(saveObj);
   if (OPEX_AIR_ROLLBACKS.len() > 0) saveObj.airRollbacks <- OPEX_AIR_ROLLBACKS;
   if (V133_AIR_BUILD_RETRY) OpexV133SaveQuarantine(saveObj);
-  if (V139_FEEDER_BUS) OpexV139SaveUnjoinedStops(saveObj);
   return saveObj;
 }
 function OpexAI::Load(version, data)
@@ -735,7 +699,7 @@ function OpexAI::Load(version, data)
   OPEX_AIR_ROLLBACKS = [];
   if (data == null) return;
   OpexV133LoadQuarantine(data);
-  OpexV139LoadUnjoinedStops(data);
+  /* Legacy v139UnjoinedStops is deliberately ignored: feeder construction was removed. */
   if ("airRollbacks" in data) OPEX_AIR_ROLLBACKS = OpexLoadAirRollbacks(data.airRollbacks);
   if ("c121Strategy" in data) OPEX_RELOAD_C121_STRATEGY = OpexLoadC121Strategy(data.c121Strategy);
   this._reloadC69BuildDates = ("c69BuildDates" in data) ? data.c69BuildDates : null;
@@ -941,28 +905,6 @@ function OpexAI::_reconcileAfterLoad()
   /* C77 : le travailleur regen_candidates retrouve son instance (non sauvegardee). */
   if (this._activeWorker != null && this._activeWorker.kind == "regen_candidates") {
     this._activeWorker.ai <- this;
-  }
-
-  /* C80 tranche 2 : au rechargement, un travailleur "town_growth" reprend à la ville suivante
-   * en sautant les villes devenues invalides. */
-  if (this._activeWorker != null && this._activeWorker.kind == "town_growth") {
-    this._activeWorker.ai <- this;
-    if ("state" in this._activeWorker && this._activeWorker.state != null) {
-      local s = this._activeWorker.state;
-      if (!("cursorTownIndex" in s)) s.cursorTownIndex <- 0;
-      if (!("servedTownsList" in s) || s.servedTownsList == null) {
-        this._activeWorker = null;
-      } else {
-        while (s.cursorTownIndex < s.servedTownsList.len() && !AITown.IsValidTown(s.servedTownsList[s.cursorTownIndex])) {
-          s.cursorTownIndex++;
-        }
-        if (s.cursorTownIndex >= s.servedTownsList.len()) {
-          this._activeWorker = null;
-        }
-      }
-    } else {
-      this._activeWorker = null;
-    }
   }
 
   this._c41RailSignalLines = this._filterPersistedRailRepairQueue(this._c41RailSignalLines);

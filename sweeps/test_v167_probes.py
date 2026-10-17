@@ -107,7 +107,7 @@ class Declaration(unittest.TestCase):
 class Groups(unittest.TestCase):
     def test_table_shape(self):
         groups = _groups()
-        self.assertGreaterEqual(len(groups), 20)
+        self.assertGreaterEqual(len(groups), 19)
         self.assertLessEqual(set(groups.values()), GROUP_BITS)
         self.assertEqual(set(groups.values()), GROUP_BITS, "chaque groupe a au moins une sonde")
 

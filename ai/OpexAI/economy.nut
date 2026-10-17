@@ -740,7 +740,7 @@ function OpexApplyRoadEconomics(candidate, economics, actualDistance = null)
  *  1. Le plafond de quai. docs/mecanique_jeu.md S11 : "un arret de bus n'accueille au plus que
  *     DEUX bus a la fois", idem pour une aire de chargement camion. Au-dela les vehicules font la
  *     queue SUR LA ROUTE et se bloquent. Le modele rail a son propre plafond MAX_RAIL_TRAINS et
- *     prescrirait donc une flotte auto-congestionnee. MAX_ROAD_VEHICLES = 2 est la traduction
+ *     prescrirait donc une flotte auto-congestionnee. OpexRoadPhysicalVehicleCap(1, 1) = 2 est la traduction
  *     directe de la regle du jeu, pas une precaution. Le classement ici reste borne a 2.
  *  2. Le rendement de vitesse. Un vehicule routier traverse des villes, s'arrete a chaque
  *     extremite et suit un trace en L (deux angles droits par sens) sur des distances ou
@@ -755,64 +755,16 @@ function OpexApplyRoadEconomics(candidate, economics, actualDistance = null)
  *     formule jours = distance / (0,036 * vitesse) sans facteur de detour.
  */
 const ROAD_SPEED_EFFICIENCY_PCT = 60;
-const MAX_ROAD_VEHICLES = 8;
-/* Rayon de couverture d'un arret de bus (7x7). Deux arrets a d < 7 se chevauchent. */
-const ROAD_PAX_CATCHMENT_RADIUS = 3;
 /* Seuil global entre deux arrets bus. Cette constante est aussi verifiee au dernier moment par
  * le constructeur : un candidat mis en cache ne peut donc pas contourner la regle. */
 const ROAD_BUS_STOP_MIN_DISTANCE = 6;
 ROAD_PAX_OVERLAP <- true;
-
-/* Fraction de l'empreinte A (carre Chebyshev de rayon rA) qui recouvre l'empreinte B,
- * pire cas aligne (meme rangee). 0 si d >= rA+rB+1, 1 si d <= |rB-rA|. */
-function OpexRoadCatchmentOverlapFrac(distance, radiusA, radiusB)
-{
-  if (distance < 0) distance = 0;
-  local spanA = 2 * radiusA + 1;
-  local overlapX = radiusA + radiusB + 1 - distance;
-  if (overlapX <= 0) return 0.0;
-  if (overlapX > spanA) overlapX = spanA;
-  local spanB = 2 * radiusB + 1;
-  local overlapY = spanA < spanB ? spanA : spanB;
-  return (overlapX * overlapY).tofloat() / (spanA * spanA).tofloat();
-}
-
-/* Demande pax ville-ville : les maisons dans le chevauchement marchent, elles ne prennent
- * pas le bus. Si d < 7 les deux "villes" sont un meme blob : on ne compte pas A+B. */
-function OpexRoadPaxUniqueMonthly(capturedA, capturedB, distance)
-{
-  local o = OpexRoadCatchmentOverlapFrac(distance, ROAD_PAX_CATCHMENT_RADIUS, ROAD_PAX_CATCHMENT_RADIUS);
-  local uniq = 1.0 - o;
-  local base = capturedA + capturedB;
-  local span = 2 * ROAD_PAX_CATCHMENT_RADIUS + 1;
-  if (distance < span) {
-    base = capturedA > capturedB ? capturedA : capturedB;
-  }
-  local monthly = (base.tofloat() * uniq).tointeger();
-  return monthly > 0 ? monthly : 0;
-}
 
 function OpexRoadPhysicalVehicleCap(nStopsA, nStopsB)
 {
   local nMin = nStopsA < nStopsB ? nStopsA : nStopsB;
   if (nMin < 1) nMin = 1;
   return 2 * nMin;
-}
-
-/* B3 : `OpexRoadPhysicalVehicleCap` est une capacité SIMULTANÉE aux quais, pas une flotte totale.
- * Le bras expérimental la remet à l'échelle du temps passé à l'arrêt pour le pax, dont le modèle
- * possède un dwell explicite. On reste volontairement conservateur : division entière vers le bas
- * et garde-fou historique MAX_ROAD_VEHICLES. Le fret garde la borne historique car son temps de
- * chargement dépend du FULL_LOAD et n'est pas modélisé par un dwell constant. */
-function OpexRoadFleetVehicleCap(nStopsA, nStopsB, oneWayDays, kind)
-{
-  local berthCapacity = OpexRoadPhysicalVehicleCap(nStopsA, nStopsB);
-  if (!ROAD_TIME_SCALED_CAP || kind != "pax") return berthCapacity;
-  if (ROAD_PAX_STOP_DWELL_DAYS <= 0 || oneWayDays <= 0) return berthCapacity;
-  local cap = (berthCapacity * oneWayDays) / ROAD_PAX_STOP_DWELL_DAYS;
-  if (cap < berthCapacity) cap = berthCapacity;
-  if (cap > MAX_ROAD_VEHICLES) cap = MAX_ROAD_VEHICLES;
-  return cap;
 }
 
 /* Economie complete d'une ligne routiere. Rend null si le materiel manque pour ce cargo.
@@ -854,9 +806,7 @@ function OpexRoadLineEconomics(catalog, cargo, distance, monthlyUnits, engine, k
   if (vehicles < 1) vehicles = 1;
   local roadBerthCapacity = OpexRoadPhysicalVehicleCap(1, 1);
   local roadVehicleCap = OPEX_ECONOMY_OPCODE_COMPAT_FALSE ? 1 : roadBerthCapacity;
-  if (!OPEX_ECONOMY_OPCODE_COMPAT_FALSE && ROAD_TIME_SCALED_CAP && kind == "pax") {
-    roadVehicleCap = OpexRoadFleetVehicleCap(1, 1, oneWayDays, kind);
-  }
+
   if (vehicles > roadVehicleCap) vehicles = roadVehicleCap;
   local monthlyCapacity = vehicles * engine.capacity * tripsPerMonth;
   local carried = offered < monthlyCapacity ? offered : monthlyCapacity;

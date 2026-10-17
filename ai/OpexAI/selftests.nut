@@ -163,55 +163,6 @@ function OpexAI::_c80RunSelfTest()
     return false;
   }
 
-  // 5. Test du travailleur town_growth (Tranche 2) :
-  // Travailleur de test qui simule 3 villes, vérifie qu'il s'arrête après la première "construction" et qu'il est "done".
-  local townWorker = {
-    kind = "town_growth",
-    state = {
-      cursorTownIndex = 0,
-      servedTownsList = [101, 102, 103],
-      year = 1970,
-      mockResults = {}
-    }
-  };
-  townWorker.state.mockResults.rawset(101, false);
-  townWorker.state.mockResults.rawset(102, true);
-  townWorker.state.mockResults.rawset(103, false);
-  this._activeWorker = townWorker;
-
-  local tr1 = OpexWorkerStep(this._activeWorker, budgetOps, deadlineTick);
-  if (tr1 != "running" || townWorker.state.cursorTownIndex != 1) {
-    AILog.Info("C80 selftest FAIL town worker step 1 expected running with cursor 1, got " + tr1);
-    this._clearReactiveQueue();
-    this._activeWorker = null;
-    return false;
-  }
-
-  local tr2 = OpexWorkerStep(this._activeWorker, budgetOps, deadlineTick);
-  if (tr2 != "done") {
-    AILog.Info("C80 selftest FAIL town worker step 2 expected done, got " + tr2);
-    this._clearReactiveQueue();
-    this._activeWorker = null;
-    return false;
-  }
-
-  if (townWorker.state.cursorTownIndex != 2) {
-    AILog.Info("C80 selftest FAIL town worker did not stop after first build, cursor=" + townWorker.state.cursorTownIndex);
-    this._clearReactiveQueue();
-    this._activeWorker = null;
-    return false;
-  }
-
-  this._activeWorker = null;
-  this._clearReactiveQueue();
-
-  if (this._reactiveQueue.len() != 0 || this._activeWorker != null) {
-    AILog.Info("C80 selftest FAIL state not clean after town worker test");
-    this._clearReactiveQueue();
-    this._activeWorker = null;
-    return false;
-  }
-
   // 6. Test (a) Aller-retour Save/Load en memoire de la file reactive et d'un travailleur regen_candidates
   local savedOrigQueue = (this._reactiveQueue != null) ? OpexSaveReactiveQueue(this._reactiveQueue) : null;
   local savedOrigWorker = this._activeWorker;

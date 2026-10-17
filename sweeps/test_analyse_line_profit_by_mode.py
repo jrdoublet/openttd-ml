@@ -169,7 +169,7 @@ class TestSquirrelTraceContracts(unittest.TestCase):
             self.assertIn("if (C56_TASK_TRACE) {", src[idx - 60:idx])
             self.assertIn('"line=" + ', src[idx:idx + 200])
             self.assertIn('" cost=" + ', src[idx:idx + 200])
-        for path in ("ai/OpexAI/task_road.nut", "ai/OpexAI/task_town.nut", "ai/OpexAI/task_water.nut"):
+        for path in ("ai/OpexAI/task_road.nut", "ai/OpexAI/task_water.nut"):
             self.assertNotIn("actualCost = ", _read(path))
 
 

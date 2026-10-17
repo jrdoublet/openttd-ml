@@ -9,9 +9,7 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
         return { outcome = "rejected", discards = passDiscards };
       }
       local candidate = project.payload;
-      if (V139_FEEDER_BUS && candidate != null && ("isFeeder" in candidate) && candidate.isFeeder) {
-        return this._tryBuildFeederProject(year, project, rank, passDiscards, anchor, yy);
-      }
+
       local isSubsidy = ("isSubsidy" in candidate) && candidate.isSubsidy;
       if (isSubsidy) {
         local subId = candidate.subsidyId;
@@ -95,8 +93,6 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
 
       OpexSign(anchor, "IP|" + yy + "|R|" + project.budgetScore + "|" + project.opcodeScore);
 
-      local roadP0QuoteBeforePlan = ROAD_FINANCE_GATE_SHADOW_P0 ? candidate.capital : -1;
-      local roadComponentsPreCapital = ROAD_QUOTE_COMPONENTS_SHADOW_P0 ? candidate.capital : -1;
       this._budget.begin();
       local planning = OpexRoadPlanFor(this._catalog, candidate);
       local planOps = this._budget.end("build_road_plans");
@@ -134,22 +130,7 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
         return { outcome = "rejected", discards = passDiscards };
       }
       OpexApplyRoadEconomics(candidate, economics, actualDist);
-      local roadComponentsOpsMark = ROAD_QUOTE_COMPONENTS_SHADOW_P0
-          ? OpexOpsMeasureBegin() : null;
-      local roadComponents = ROAD_QUOTE_COMPONENTS_SHADOW_P0
-          ? OpexRoadQuotePlanComponents(this._catalog, plan, candidate) : null;
-      local roadComponentsQuoteOps = roadComponentsOpsMark != null
-          ? OpexOpsMeasureEnd(roadComponentsOpsMark) : 0;
-      if (ROAD_FINANCE_GATE_SHADOW_P0) {
-        local roadP0Cash = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
-        local roadP0RevisedNeed = candidate.capital + OpexCashReserve() + ROAD_CAPITAL_MARGIN;
-        AILog.Info("ROAD_FINANCE_POSTPLAN_P0 date=" + AIDate.GetCurrentDate()
-            + " variant=" + (ROAD_FINANCE_UNBIAS_P0 ? 1 : 0)
-            + " src=" + candidate.src + " dst=" + candidate.dst
-            + " before=" + roadP0QuoteBeforePlan + " after=" + candidate.capital
-            + " cash=" + roadP0Cash + " need=" + roadP0RevisedNeed
-            + " shortage=" + (roadP0Cash < roadP0RevisedNeed ? 1 : 0));
-      }
+
       if (isSubsidy) {
         candidate.baseRevenueAnnual = economics.revenueAnnual;
         candidate.baseProfitAnnual = economics.profitAnnual;
@@ -188,40 +169,7 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
         }
       }
       local result = OpexBuildRoadRoute(this._catalog, this._budget, plan, candidate);
-      if (roadComponents != null) {
-        local split = (("phaseCosts" in result) && result.phaseCosts != null)
-            ? result.phaseCosts : null;
-        local nBuilt = (("vehicles" in result) && result.vehicles != null)
-            ? result.vehicles.len() : 0;
-        AILog.Info("ROAD_COMPONENTS_P0 date=" + AIDate.GetCurrentDate()
-            + " src=" + candidate.src + " dst=" + candidate.dst
-            + " kind=" + candidate.kind + " cargo=" + candidate.cargo
-            + " drive=" + (roadComponents.driveThrough ? 1 : 0)
-            + " edges=" + roadComponents.missingEdges
-            + " stopstubs=" + roadComponents.stopStubs
-            + " depotstub=" + roadComponents.depotStub
-            + " pre=" + roadComponentsPreCapital
-            + " post=" + candidate.capital + " components=" + roadComponents.quote
-            + " quote_ops=" + roadComponentsQuoteOps
-            + " quote_trace=" + roadComponents.traceQuote
-            + " quote_stops=" + roadComponents.stopsQuote
-            + " quote_depot=" + roadComponents.depotQuote
-            + " quote_vehicles=" + roadComponents.vehicleQuote
-            + " real_trace=" + (split != null ? split.trace : -1)
-            + " real_stops=" + (split != null ? split.stops : -1)
-            + " real_depot=" + (split != null ? split.depot : -1)
-            + " real_vehicles=" + (split != null ? split.vehicles : -1)
-            + " actual=" + result.actualCost
-            + " planned_vehicles=" + candidate.trains + " built_vehicles=" + nBuilt
-            + " comparable=" + ((result.ok && nBuilt == candidate.trains) ? 1 : 0)
-            + " ok=" + (result.ok ? 1 : 0));
-      }
-      if (ROAD_FINANCE_GATE_SHADOW_P0)
-        AILog.Info("ROAD_FINANCE_BUILD_P0 date=" + AIDate.GetCurrentDate()
-            + " variant=" + (ROAD_FINANCE_UNBIAS_P0 ? 1 : 0)
-            + " src=" + candidate.src + " dst=" + candidate.dst
-            + " planned=" + candidate.capital + " actual=" + result.actualCost
-            + " ok=" + (result.ok ? 1 : 0));
+
       if (C63_INVEST_PROBE) OpexC63RecordSpendResult("road", result, candidate.capital);
       OpexSign(anchor, "RB|" + yy + "|" + idx + "|1|" + planOps + "|" + result.opcodes);
       if (ROAD_COST_PROBE) {
@@ -340,7 +288,7 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
  * l'infrastructure est payee, auto-renouvellement n'a pas suivi. Mesure, plusieurs campagnes
  * graine 42 : 2 -> 1 -> 0, notes 54 -> -1, plus jamais de reconstitution. On complete jusqu'au
  * predTrains d'origine, borne par les quais de la ligne (2 x min(nStops), sinon
- * MAX_ROAD_VEHICLES). Avant _tryBuild : un camion sur une route
+ * OpexRoadPhysicalVehicleCap). Avant _tryBuild : un camion sur une route
  * deja posee rapporte plus, a l'opcode, qu'une ligne neuve. Panneau RF|year|id|added|after
  * (succes) ou RF|year|id|0|REASON (echec). */
 function OpexAI::_refleetRoadLines(year)
@@ -382,7 +330,7 @@ function OpexAI::_refleetRoadLines(year)
     foreach (v in vehicles) {
       if (!AIVehicle.IsValidVehicle(v)) continue;
       if (AIVehicle.GetCurrentSpeed(v) == 0) {
-        if ((!OPEX_ECONOMY_OPCODE_COMPAT_FALSE && !ROAD_LOADING_FIX) || AIVehicle.GetState(v) != AIVehicle.VS_AT_STATION) isAnyWaiting = true;
+        if (!OPEX_ECONOMY_OPCODE_COMPAT_FALSE || AIVehicle.GetState(v) != AIVehicle.VS_AT_STATION) isAnyWaiting = true;
         else movingCount++;
       } else movingCount++;
     }
@@ -406,16 +354,10 @@ function OpexAI::_refleetRoadLines(year)
     local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
     local extraNeeded = 0;
 
-    /* Chemin historique conservé littéralement sous switch 0. */
+    /* Plafond physique historique des arrets. */
     local physicalCap = OpexRoadPhysicalVehicleCap(
         ("nStopsA" in line) ? line.nStopsA : 1, ("nStopsB" in line) ? line.nStopsB : 1);
-    if (ROAD_TIME_SCALED_CAP &&
-        ("kind" in line) && line.kind == "pax") {
-      local nStopsA = ("nStopsA" in line) ? line.nStopsA : 1;
-      local nStopsB = ("nStopsB" in line) ? line.nStopsB : 1;
-      local oneWayDays = ("predOneWayDays" in line) ? line.predOneWayDays : 0;
-      physicalCap = OpexRoadFleetVehicleCap(nStopsA, nStopsB, oneWayDays, line.kind);
-    }
+
     if (have >= physicalCap) {
       if (C50_CHRONOLOGY_PROBE && dedupRoad && C50_NON_EXPANSION_LEDGER != null) {
         C50_NON_EXPANSION_LEDGER.road.physical_cap_hit++;

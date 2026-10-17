@@ -37,7 +37,7 @@ class TestM1MeasurementTruth(unittest.TestCase):
         cls.probes = source(AI / "probes.nut")
         cls.task_projects = source(AI / "task_projects.nut")
         cls.scheduler = source(AI / "scheduler_tasks.nut")
-        cls.town = source(AI / "task_town.nut")
+        assert not (AI / "task_town.nut").exists()
         cls.parser = source(SWEEPS / "opex_full_campaign.py")
 
     def test_c50_uses_current_quarter_company_value(self):
@@ -76,8 +76,7 @@ class TestM1MeasurementTruth(unittest.TestCase):
         self.assertIn('" remaining="', body)
 
     def test_selected_capital_value_is_preserved(self):
-        town = function_body(self.town, "function OpexAI::_tryTownGrowth(")
-        self.assertNotIn("GROWTH_YIELDS", town)
+        self.assertFalse((AI / "task_town.nut").exists())
         self.assertGreaterEqual(self.projects.count(".selectedCapital = selectedCap"), 3)
         self.assertGreaterEqual(self.projects.count("selectionPoolCapital"), 5)
         self.assertGreaterEqual(self.projects.count("nextProjectCapital"), 5)

@@ -94,7 +94,7 @@ V172_RAIL_LONG_WEIGHT_DIST <- 100;
  * route seule. Le fret accompagne la premiere passe. */
 STAGED_BOOTSTRAP <- true;
 /* D4 : Dwell time de chargement/dechargement a la station pour les bus passagers (jours) */
-ROAD_PAX_STOP_DWELL_DAYS <- 6;
+const ROAD_PAX_STOP_DWELL_DAYS = 6;
 /* D4, extension aerienne : le diagnostic 10 ans x 5 graines
  * (results/diag_road_purpose.json) donne revenu reel/predit median = 1,0427 pour
  * air|pax. Le modele etait donc legerement conservateur. Ce facteur ne touche
@@ -119,13 +119,6 @@ AIR_COST_PROBE <- false;
 /* Symetrique route de RAIL_COST_PROBE/AIR_COST_PROBE, jamais construit avant (docs/taches.md,
  * retrouve le 2026-09-08). Panneau RP| par tentative, reussie ou non (RC| deja pris). */
 ROAD_COST_PROBE <- false;
-/* P0 ROAD : declarations indispensables avant OpexLoadSettings().
- * Le default 0 preserve le financement et la selection historiques. */
-ROAD_FINANCE_UNBIAS_P0 <- false;
-ROAD_FINANCE_GATE_SHADOW_P0 <- false;
-/* Diagnostic ROAD passif : le slot doit exister avant OpexLoadSettings.
- * OFF = aucune mesure ni modification des devis/constructions. */
-ROAD_QUOTE_COMPONENTS_SHADOW_P0 <- false;
 /* C33.2 : Arrets de rabattement joints dans le chantier aeroport */
 AIR_JOINED_STOPS <- false;
 /* B9/G4 : sonde passive post-chantier du catchment AIR. Defaut 0 : aucune tuile
@@ -505,9 +498,6 @@ C78_SLOT_PASS_COUNTER <- 0;
 MONTHLY_FUNNEL <- false;
 C50_REFUSE_CACHE <- {};
 C50_NON_EXPANSION_LEDGER <- null;
-/* B3 : test du plafond routier remis à l'échelle par le temps passé à quai. Défaut 0 tant que
- * le banc apparié n'a pas justifié une adoption. Le fret reste sur la borne historique. */
-ROAD_TIME_SCALED_CAP <- false;
 /* C50b : test causal du seuil de backlog avant doublement d'une ligne rail existante. */
 /* air_fleet_probe : _resizeAirFleets n'emet que ses SUCCES (FG|). Quand une ligne aerienne
  * n'grandit pas, la cause est invisible. FR| donne le premier refus rencontre, une fois par ligne
@@ -583,11 +573,7 @@ ROAD_FLEET_FIX <- true;
 AIR_FLEET_LINE_PRICE <- true;
 /* C16 : Plafond physique de flotte aerienne derive de la cadence d'absorption de la piste */
 AIR_CADENCE_CAP <- true;
-/* C26b : Correctif du faux embouteillage lorsque le vehicule est a l'arret a quai en chargement
- * Ce correctif reste desactive : il empile jusqu'a 16 camions sur des arrets a 1 seul quai. */
-ROAD_LOADING_FIX <- false;
-/* C52 : symbole de compatibilite. Le remappage ET_VEHICLE_AUTOREPLACED est maintenant
- * inconditionnel ; le reglage homonyme est deprecated et sa valeur est ignoree. */
+/* C52 : compatibilite ; le remappage ET_VEHICLE_AUTOREPLACED est inconditionnel. */
 EVENT_VEHICLE_AUTOREPLACED <- true;
 /* C52 : sonde annuelle des remappages; le ledger reste nul hors sonde. */
 C52_AUTOREPLACE_LOG <- false;
@@ -595,12 +581,7 @@ C52_AUTOREPLACE_LEDGER <- null;
 /* C52 : sonde passive de frequence des evenements. Le ledger reste nul hors sonde. */
 C52_EVENT_EXPOSURE_PROBE <- false;
 C52_EVENT_EXPOSURE_LEDGER <- null;
-/* C52 #2 : reaction et reconstitution sur tout crash de vehicule */
-EVENT_VEHICLE_CRASHED <- false;
 C52_CRASH_LOG <- false;
-/* C52 #4 : reaction aux vehicules non rentables chroniques */
-EVENT_VEHICLE_UNPROFITABLE <- false;
-UNPROFITABLE_STREAK_THRESHOLD <- 3;
 C52_UNPROFITABLE_LOG <- false;
 /* C52 #7 : sonde ET_STATION_FIRST_VEHICLE */
 C52_STATION_FIRST_VEHICLE_LOG <- false;
@@ -647,10 +628,6 @@ RAIL_GEOMETRY_LIVE_REPLAN <- false;
  * paire valide ni puits d'une paire valide pour CE cargo. Defaut 0 pendant qualification. */
 /* V101 : sonde de difficulte de terrain au demarrage d'une recherche rail (defaut 0). */
 RAIL_TERRAIN_PROBE <- false;
-
-/* C80 tranche 2 : découpage de la croissance urbaine (_tryTownGrowth) en travailleur "town_growth".
- * 0 = désactivé (défaut), 1 = travailleur "town_growth" actif. */
-C80_WORKER_TOWN <- false;
 
 /* C67.4 : carte par blocs dans le reliquat de tick, sans consommateur (contrat C67 §14).
  * 0 = service absent (défaut), 1 = service construit et rempli en fond. */
@@ -726,11 +703,6 @@ V131_REPAIR_MAX_ITERS <- 2500;
  * et leurs emprises aeroportuaires futures. Defaut 0 : cout nul. */
 V131_TOWN_CLEARANCE <- false;
 V131_TOWN_CLEAR_BUFFER <- 4;
-/* V139 : feeder bus navette centre-ville vers aéroport. Défaut 0 (désactivé). */
-V139_FEEDER_BUS <- 0;
-
-/* V139 : table des arrêts déliés (tile -> airportStationId). */
-V139_UNJOINED_STOPS <- {};
 
 /* F-EVENT-BACKLOG-01 : ne relancer la reselection dans _c77RemoveSubsidy que si
  * la purge a reellement retire des candidats de subvention. 0 = inconditionnel (historique) ; defaut 1 depuis le 11/10. */

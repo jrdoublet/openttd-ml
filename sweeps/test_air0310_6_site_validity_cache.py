@@ -333,7 +333,6 @@ class TestAir0310SiteValidityCache(unittest.TestCase):
         for rel, count in (
             ("ai/OpexAI/task_air.nut", 2),
             ("ai/OpexAI/task_road.nut", 1),
-            ("ai/OpexAI/task_town.nut", 1),
             ("ai/OpexAI/task_water.nut", 1),
             ("ai/OpexAI/task_rail.nut", 1),
         ):

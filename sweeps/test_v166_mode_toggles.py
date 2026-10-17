@@ -119,10 +119,10 @@ class Gates(unittest.TestCase):
         # le catalogue route (dont depend le rabattement) n'est rafraichi que sous ROAD_BUILD_ENABLED
         refresh = _function_body(_read("catalog.nut"), "OpexCatalog::refresh")
         self.assertLess(refresh.index("if (ROAD_BUILD_ENABLED) {"), refresh.index("this._refreshRoad();"))
-        feeder = _function_body(_read("feeder_bus.nut"), "OpexBuildFeederCandidates")
-        self.assertIn("!(catalog.paxCargo in catalog.roadEngineByCargo)) return [];", feeder)
+        self.assertFalse((ROOT / "ai/OpexAI/feeder_bus.nut").exists())
         road = _function_body(_read("task_road.nut"), "OpexAI::_tryBuildRoadProject")
-        self.assertLess(road.index("if (!ROAD_BUILD_ENABLED"), road.index("_tryBuildFeederProject"))
+        self.assertIn("if (!ROAD_BUILD_ENABLED", road)
+        self.assertNotIn("_tryBuildFeederProject", road)
 
     def test_road_off_keeps_airport_joined_stops(self):
         # sans catalogue route, le type de route courant reste pose pour les arrets joints aux
