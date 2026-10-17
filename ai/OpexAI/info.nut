@@ -1773,16 +1773,6 @@ class OpexAIInfo extends AIInfo {
       custom_value = 0,
       flags = AICONFIG_BOOLEAN
     });
-    AddSetting({
-      name = "air_efficiency_batch",
-      description = "AIR 2026-10-02 A/B: preflight both sites, one top64 plan per OD pair, event/cash portfolio reselection; 1 = candidate, 0 = previous behavior (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-    AddSetting({ name = "air_efficiency_preflight", description = "AIR efficiency A/B: preflight both airport endpoints before spending", easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0, flags = AICONFIG_BOOLEAN });
-    AddSetting({ name = "air_efficiency_dedupe", description = "AIR efficiency A/B: keep one ranked AIR plan per OD pair in top K", easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0, flags = AICONFIG_BOOLEAN });
-    AddSetting({ name = "air_efficiency_reselect", description = "AIR efficiency A/B: event-driven catalog plus cash-threshold local reselection", easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0, flags = AICONFIG_BOOLEAN });
 
     AddSetting({
       name = "air0310_v96_shortcut_lean",

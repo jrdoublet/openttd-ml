@@ -296,24 +296,10 @@ function OpexBuildAirRoute(catalog, budget, plan, lines = null)
   local reuseA = ("reuseA" in plan) && plan.reuseA;
   local reuseB = ("reuseB" in plan) && plan.reuseB;
 
-  /* Tester A et B ensemble avant AIAccounting/LevelTiles/BuildAirport : un site B
-   * devenu impossible ne doit plus laisser les frais de terrassement/aeroport A. */
-  local preA = AIR_EFFICIENCY_PREFLIGHT ? OpexAirPreflightEndpoint(plan.siteA, airport, planeChoice, reuseA) : null;
-  if (preA != null && !preA.ok) {
-    if (!reuseA) {
-      OpexAirInvalidateCachedSite(plan.siteA, airport);
-      result.error = preA.error;
-      result.errorText = preA.errorText;
-    }
-    result.reason = reuseA ? "HUB" : "PREA";
-    return result;
-  }
-  local preB = AIR_EFFICIENCY_PREFLIGHT ? OpexAirPreflightEndpoint(plan.siteB, airport, planeChoice, reuseB) : null;
-  /* Shadow uniquement sur newpair. Le preflight actif et historiquement rejete
-   * economiquement garde ses propres decisions. Le shadow ne peut jamais
+  /* Shadow uniquement sur newpair. Le shadow ne peut jamais
    * retourner PREB ni invalider le cache : la route est TOUJOURS construite. */
   if (AIR_BFAIL_PRECHECK_SHADOW && !reuseA && !reuseB) {
-    if (preB == null) preB = OpexAirPreflightEndpoint(plan.siteB, airport, planeChoice, false);
+    local preB = OpexAirPreflightEndpoint(plan.siteB, airport, planeChoice, false);
     result.preBShadow <- {
       ok = preB.ok, error = preB.error,
       anchor = plan.siteB.anchor,
@@ -321,15 +307,6 @@ function OpexBuildAirRoute(catalog, budget, plan, lines = null)
           preB.error == AIError.ERR_FLAT_LAND_REQUIRED ? "defer_level" :
           preB.error == AIError.ERR_LOCAL_AUTHORITY_REFUSES ? "defer_authority" : "accept"
     };
-  }
-  if (AIR_EFFICIENCY_PREFLIGHT && preB != null && !preB.ok) {
-    if (!reuseB) {
-      OpexAirInvalidateCachedSite(plan.siteB, airport);
-      result.error = preB.error;
-      result.errorText = preB.errorText;
-    }
-    result.reason = reuseB ? "HUBB" : "PREB";
-    return result;
   }
 
   /* air_cost_probe : le cout REEL de la ligne aerienne, nivellement, aeroports, avions et

@@ -19,13 +19,13 @@ class ShadowSafety(unittest.TestCase):
 
     def test_shadow_never_takes_preb_path(self):
         src = (ROOT / "air_construction.nut").read_text(encoding="utf-8")
-        probe = src.split("local preB = AIR_EFFICIENCY_PREFLIGHT ?", 1)[1].split("if (AIR_EFFICIENCY_PREFLIGHT && preB", 1)[0]
-        self.assertIn("if (AIR_BFAIL_PRECHECK_SHADOW && !reuseA && !reuseB)", probe)
+        self.assertNotIn("AIR_EFFICIENCY_PREFLIGHT", src)
+        probe = src.split("if (AIR_BFAIL_PRECHECK_SHADOW && !reuseA && !reuseB)", 1)[1].split("local costs = AIAccounting();", 1)[0]
+        self.assertIn("local preB = OpexAirPreflightEndpoint(plan.siteB, airport, planeChoice, false);", probe)
         self.assertIn("result.preBShadow <-", probe)
         self.assertNotIn("return result;", probe)
         self.assertNotIn("OpexAirInvalidateCachedSite", probe)
         self.assertNotIn("OpexAirRollback", probe)
-        self.assertIn("if (AIR_EFFICIENCY_PREFLIGHT && preB != null && !preB.ok)", src)
 
     def test_telemetry_intra_call_not_saved_or_used_as_choice(self):
         task = (ROOT / "task_air.nut").read_text(encoding="utf-8")

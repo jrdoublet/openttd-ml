@@ -34,9 +34,10 @@ class ProbeSelectRejectTests(unittest.TestCase):
         self.assertIn('OpexSelectRejectLog(project, "cash", affordable, scoreKey, kDec)', SELECTION)
         # 2. Floor rejection
         self.assertIn('OpexSelectRejectLog(project, "floor", affordable, scoreKey, kDec)', SELECTION)
-        # 3. Dedupe rejection
-        self.assertIn('OpexSelectRejectLog(prior, "dedupe", affordable, scoreKey, kDec)', SELECTION)
-        self.assertIn('OpexSelectRejectLog(project, "dedupe", affordable, scoreKey, kDec)', SELECTION)
+        # 3. Dedupe rejection removed with air_efficiency_dedupe
+        self.assertNotIn("AIR_EFFICIENCY_DEDUPE", SELECTION)
+        self.assertNotIn('OpexSelectRejectLog(prior, "dedupe", affordable, scoreKey, kDec)', SELECTION)
+        self.assertNotIn('OpexSelectRejectLog(project, "dedupe", affordable, scoreKey, kDec)', SELECTION)
         # 4. Top-K truncation
         self.assertIn('OpexSelectRejectLogTopK(dropped, best, limit)', SELECTION)
 

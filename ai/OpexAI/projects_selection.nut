@@ -1114,7 +1114,6 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSel
   local kDec = 0;
   local kDecData = null;
   local c69Affordable = null;
-  local airPairBest = {};
   /* Mesure pure : les deux prix ROAD sur les MEMES candidats, avant
    * admission. Ne constitue pas un contrefactuel de construction. */
   local roadFinanceExposure = (ROAD_FINANCE_GATE_SHADOW_P0 && realSelection)
@@ -1211,33 +1210,7 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSel
       project.c69Score <- OpexProjectScore(OpexCalibratedProfit(project), denom);
       OpexProjectInsertDefensive(c69Affordable, project, "c69Score", limit, AIR_EARLY_SLOT);
     }
-    if (AIR_EFFICIENCY_DEDUPE && project.mode == "air") {
-      local pairKey = OpexProjectPairKey(project.kind, project.cargo, project.src, project.dst);
-      if (pairKey in airPairBest) {
-        local prior = airPairBest[pairKey];
-        local pairBest = [prior];
-        OpexProjectInsertDefensive(pairBest, project, scoreKey, 1, AIR_EARLY_SLOT);
-        if (pairBest[0] != prior) {
-          airPairBest[pairKey] = pairBest[0];
-          for (local ai = affordable.len() - 1; ai >= 0; ai--) {
-            if (affordable[ai] == prior) { affordable.remove(ai); break; }
-          }
-          if (PROBE_SELECT_REJECT) {
-            OpexSelectRejectLog(prior, "dedupe", affordable, scoreKey, kDec);
-          }
-          OpexProjectInsertDefensive(affordable, pairBest[0], scoreKey, limit, AIR_EARLY_SLOT);
-        } else {
-          if (PROBE_SELECT_REJECT) {
-            OpexSelectRejectLog(project, "dedupe", affordable, scoreKey, kDec);
-          }
-        }
-      } else {
-        airPairBest.rawset(pairKey, project);
-        OpexProjectInsertDefensive(affordable, project, scoreKey, limit, AIR_EARLY_SLOT);
-      }
-    } else {
-      OpexProjectInsertDefensive(affordable, project, scoreKey, limit, AIR_EARLY_SLOT);
-    }
+    OpexProjectInsertDefensive(affordable, project, scoreKey, limit, AIR_EARLY_SLOT);
     if (insertMark != null) {
       OpexSpanAgg("pub.select.score.insert", insertMark);
       insertMark = null;
@@ -1250,7 +1223,6 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSel
   if (affordable.len() == 0 && floorProfit > 0) {
     SELECT_BISECT_STAMP++;
     if (C69_BOTTLENECK_PROBE) c69Affordable = [];
-    airPairBest = {};
     if (c121KDecColdRows != null) c121KDecColdRows.clear();
     foreach (project in alternatives) {
       local fundMark = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
@@ -1291,26 +1263,7 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSel
         project.c69Score <- OpexProjectScore(OpexCalibratedProfit(project), denom);
         OpexProjectInsertDefensive(c69Affordable, project, "c69Score", limit, AIR_EARLY_SLOT);
       }
-        if (AIR_EFFICIENCY_DEDUPE && project.mode == "air") {
-          local pairKey = OpexProjectPairKey(project.kind, project.cargo, project.src, project.dst);
-          if (pairKey in airPairBest) {
-            local prior = airPairBest[pairKey];
-            local pairBest = [prior];
-            OpexProjectInsertDefensive(pairBest, project, scoreKey, 1, AIR_EARLY_SLOT);
-            if (pairBest[0] != prior) {
-              airPairBest[pairKey] = pairBest[0];
-              for (local ai = affordable.len() - 1; ai >= 0; ai--) {
-                if (affordable[ai] == prior) { affordable.remove(ai); break; }
-              }
-              OpexProjectInsertDefensive(affordable, pairBest[0], scoreKey, limit, AIR_EARLY_SLOT);
-            }
-          } else {
-            airPairBest.rawset(pairKey, project);
-            OpexProjectInsertDefensive(affordable, project, scoreKey, limit, AIR_EARLY_SLOT);
-          }
-        } else {
-          OpexProjectInsertDefensive(affordable, project, scoreKey, limit, AIR_EARLY_SLOT);
-        }
+      OpexProjectInsertDefensive(affordable, project, scoreKey, limit, AIR_EARLY_SLOT);
       if (insertMark != null) {
         OpexSpanAgg("pub.select.score.insert", insertMark);
         insertMark = null;

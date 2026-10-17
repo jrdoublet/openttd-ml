@@ -761,12 +761,6 @@ V163_MULTI_CARGO <- false;
 /* Mesure du 12/10 (v160_B20x10, 1973-74) : +13,4 k sur la ligne, -2,6 k par voisine. */
 V161_PRIOR_OWN <- 13000;
 V161_PRIOR_NEIGHBOUR <- 2600;
-/* Lot AIR 2026-10-02 : preflight des deux sites, dedup top64 et refresh event/cash.
- * Toggle de qualification A/B ; 0 conserve le comportement precedent. */
-AIR_EFFICIENCY_BATCH <- false;
-AIR_EFFICIENCY_PREFLIGHT <- false;
-AIR_EFFICIENCY_DEDUPE <- false;
-AIR_EFFICIENCY_RESELECT <- false;
 /* V158 : publication AIR avec selection paresseuse (0 = desactive/defaut, 1 = actif). */
 AIR_PUBLISH_LAZY_SELECT <- 0;
 /* C14 : tampon de cargo au sol pour achat proportionnel (-1 = inactif/defaut). */

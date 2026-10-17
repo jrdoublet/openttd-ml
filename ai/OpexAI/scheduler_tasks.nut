@@ -382,10 +382,6 @@ function OpexAI::_dispatchCatalog(task, year)
     local budgetNow = OpexAvailableCapital();
     if (spCapital != null) OpexSpanEnd(spCapital);
     local budgetThen = this._projects.capitalBudget;
-    local nextCap = ("stats" in this._projects) && this._projects.stats != null
-        && ("nextProjectCapital" in this._projects.stats) && this._projects.stats.nextProjectCapital > 0
-        ? this._projects.stats.nextProjectCapital : 0;
-    local crossedNext = nextCap > 0 && budgetThen < nextCap && budgetNow >= nextCap;
     local gainOk = budgetNow > budgetThen + PORTFOLIO_REFRESH_MIN_GAIN;
     local doubleOk = budgetNow > budgetThen * 2;
     if (PORTFOLIO_REFRESH_PROBE) {
@@ -396,7 +392,7 @@ function OpexAI::_dispatchCatalog(task, year)
        * que le doublement aurait seul autorise -- utile seulement si budgetThen < MIN_GAIN. */
       if (doubleOk && !gainOk) PORTFOLIO_REFRESH_PROBE_DOUBLE_ONLY++;
     }
-    stale = AIR_EFFICIENCY_RESELECT ? crossedNext : (gainOk && doubleOk);
+    stale = gainOk && doubleOk;
   }
   local c76LayerChanged = false;
   local c76PeriodicDue = false;
@@ -407,7 +403,7 @@ function OpexAI::_dispatchCatalog(task, year)
     c76CurQuarter = year;
     c76PeriodicDue = (this._c76LastRegenQuarter < 0 || c76CurQuarter > this._c76LastRegenQuarter);
     c76ReloadDue = this._c76ForceReloadRegen;
-    local cadenceFresh = AIR_EFFICIENCY_RESELECT || this._lastCatalogMonth == ym;
+    local cadenceFresh = this._lastCatalogMonth == ym;
     if (cadenceFresh && this._projects != null && !stale && !this._portfolioInvalidated
         && !c76LayerChanged && !c76PeriodicDue && !c76ReloadDue) {
       if (spGuard != null) OpexSpanEnd(spGuard);
@@ -417,7 +413,7 @@ function OpexAI::_dispatchCatalog(task, year)
   } else {
     /* Une invalidation evenementielle prime toujours la cadence mensuelle et le seuil de
      * tresorerie : le portefeuille est derive du catalogue, pas seulement du capital. */
-    local cadenceFresh = AIR_EFFICIENCY_RESELECT || this._lastCatalogMonth == ym;
+    local cadenceFresh = this._lastCatalogMonth == ym;
     if (cadenceFresh && this._projects != null && !stale && !this._portfolioInvalidated) {
       if (spGuard != null) OpexSpanEnd(spGuard);
       if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);
@@ -427,24 +423,6 @@ function OpexAI::_dispatchCatalog(task, year)
   if (spGuard != null) OpexSpanEnd(spGuard);
   refreshReason = this._portfolioInvalidated ? "event"
       : (stale ? "capital" : (c76ReloadDue ? "reload" : (c76LayerChanged ? "layers" : "event")));
-  if (AIR_EFFICIENCY_RESELECT && stale && !this._portfolioInvalidated && !c76LayerChanged && !c76PeriodicDue && !c76ReloadDue
-      && this._projects != null) {
-    local reselectMark = CATALOG_COST_PROBE ? OpexOpsMeasureBegin() : null;
-    local budgetNow = OpexAvailableCapital();
-    this._projects = OpexReselectProjects(this._projects, budgetNow, this._abandonedPairs, this._lines);
-    this._ranked = this._projects.rail;
-    if (CATALOG_COST_PROBE) {
-      task.catalogCost <- OpexCatalogCostNew("capital");
-      task.catalogCost.path = "reselect";
-      task.catalogCost.reselectOps += OpexOpsMeasureEnd(reselectMark);
-      task.catalogCost.considered = this._projects.stats.budgetConsidered;
-      task.catalogCost.selected = this._projects.best.len();
-      OpexCatalogCostLog(task.catalogCost);
-      delete task.catalogCost;
-    }
-    if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);
-    return true;
-  }
   if (CATALOG_COST_PROBE) {
     task.catalogCost <- OpexCatalogCostNew(refreshReason);
     CATALOG_COST_ACTIVE = task.catalogCost;
@@ -480,7 +458,7 @@ function OpexAI::_dispatchCatalog(task, year)
     this._recomputeEpochBounds = false;
   }
   if (C76_REGEN_TARGETED) {
-    local budgetStale = stale && !AIR_EFFICIENCY_RESELECT;
+    local budgetStale = stale;
     local c76NeedFullRegen = (this._projects == null) || c76LayerChanged ||
         this._portfolioInvalidated || budgetStale || c76PeriodicDue || c76ReloadDue;
     local c80Modes = null;
