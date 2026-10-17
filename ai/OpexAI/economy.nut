@@ -389,9 +389,6 @@ function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPl
     local monthlyCapacity = trains * perTrain * tripsPerMonth;
     local carried = (offered < monthlyCapacity ? offered : monthlyCapacity).tointeger();
     local revenueAnnual = (12 * carried * AICargo.GetCargoIncome(cargo, distance, incomeDays)).tointeger();
-    /* V185 : le fret rail < 100 tuiles realise 0,50 du capital pour 0,69 predit (rail seul, 14/10). */
-    if (V185_RAIL_SHORT_FREIGHT_PCT > 0 && kind == "freight" && distance < 100)
-      revenueAnnual = (revenueAnnual * V185_RAIL_SHORT_FREIGHT_PCT) / 100;
     local vehicleCost = trains * (loco.price + wagons * wagon.price);
     local carried2 = 0;
     local revenue2 = 0;

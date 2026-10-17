@@ -262,6 +262,7 @@ class TestCampaignFreeze(unittest.TestCase):
         self.assertNotIn("c85_air_equipment_frontier", defaults)
         self.assertNotIn("v193_chain_towns", defaults)
         self.assertNotIn("v194_short_to_served_dst", defaults)
+        self.assertNotIn("v185_rail_short_freight_pct", defaults)
         self.assertNotIn("c77_opportunistic_candidates", defaults)
         self.assertNotIn("c77_targeted_build", defaults)
         self.assertNotIn("c77_fixes", defaults)
