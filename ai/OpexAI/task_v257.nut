@@ -18,24 +18,85 @@ function OpexV257Engine(engine, cargo, wagon)
   };
 }
 
+/* train_cmd.cpp:184-188 : cached_max_speed est le min des vitesses non nulles.
+ * Un wagon ne compte que si vehicle.wagon_speed_limits est actif ; une vitesse
+ * 0 signifie « pas de plafond », pas un min a zero. economy.cpp:1747-1764
+ * copie ensuite ce cache dans last_speed, tronque a un uint8. GetMaxSpeed rail
+ * est deja cette unite (engine.cpp:360, km-ish/h), avant le plafond.
+ * OpexRailCruiseSpeed ignore aussi le 0, mais c'est une vitesse de trajet :
+ * elle ne plaque pas a 255 et ne lit pas le reglage. */
+function OpexV257WagonSpeedLimits()
+{
+  if (!AIGameSettings.IsValid("vehicle.wagon_speed_limits")) return false;
+  return AIGameSettings.GetValue("vehicle.wagon_speed_limits") != 0;
+}
+
+function OpexV257ConsistLastSpeed(loco, wagon, wagonLimits)
+{
+  local speed = loco.speed;
+  if (wagonLimits && wagon != null && wagon.speed > 0 && wagon.speed < speed) speed = wagon.speed;
+  if (speed > 255) speed = 255;
+  if (speed < 0) speed = 0;
+  return speed;
+}
+
+/* station_cmd.cpp:4048-4049 : rating += (last_speed - 85) >> 2 si last_speed >= 85.
+ * OpexC121SpeedRatingPoints est ce meme terme APRES conversion avion
+ * (plane_speed, puis * 10 / 128). L'appeler avec une vitesse rail fausserait
+ * les points. OpexStationRatingForHeadway ne fait varier que le ramassage
+ * d'une ligne neuve et ecraserait la note observee. */
+function OpexV257SpeedRatingPoints(lastSpeed)
+{
+  if (lastSpeed > 255) lastSpeed = 255;
+  if (lastSpeed <= 85) return 0;
+  return (lastSpeed - 85) >> 2;
+}
+
+/* Note prevue = note observee (octet, via l'inverse deja livre) + ecart de
+ * points de vitesse. MoveGoodsToStation, gare seule (station_cmd.cpp:4629-4632)
+ * puis UpdateStationWaiting (station_cmd.cpp:4411, amount >>= 8) :
+ * production captee = production * (note + 1) / 256. La demande observee est
+ * deja cette part. Le ratio (note_prevue + 1) / (note_observee + 1) reutilise
+ * OpexC121StationAllocatedMonthly, cas sans concurrent. note 0 exclut la gare
+ * (station_cmd.cpp:4584). Meme vitesse : la demande observee, sans derivee. */
+function OpexV257CapturedMonthly(monthly, ratingPercent, serviceSpeed, planSpeed)
+{
+  if (monthly <= 0 || ratingPercent < 0) return monthly;
+  if (planSpeed == serviceSpeed) return monthly;
+  local observed = OpexC121RatingPercentToByteMid(ratingPercent);
+  local predicted = observed + OpexV257SpeedRatingPoints(planSpeed) - OpexV257SpeedRatingPoints(serviceSpeed);
+  if (predicted < 0) predicted = 0;
+  if (predicted > 255) predicted = 255;
+  if (predicted <= 0) return 0;
+  if (observed <= 0) return monthly;
+  local observedShare = OpexC121StationAllocatedMonthly(1.0, observed, null);
+  local predictedShare = OpexC121StationAllocatedMonthly(1.0, predicted, null);
+  if (observedShare <= 0) return monthly;
+  return monthly.tofloat() * predictedShare / observedShare;
+}
+
 /* Cash-flow annuel d'UNE rame, sans amortissement : le remboursement compte deja
- * l'achat net. La demande est celle observee, sans relever artificiellement la note. */
-function OpexV257Plan(line, loco, wagon, wagons, monthly)
+ * l'achat net. monthly est le flux capte observe. Chaque plan le recale sur
+ * sa propre note de vitesse avant de plafonner le transport. */
+function OpexV257Plan(line, loco, wagon, wagons, monthly, rating, serviceSpeed, wagonLimits)
 {
   local distance = ("routeDistance" in line) ? line.routeDistance : line.distance;
   local speed = OpexRailEffectiveSpeed(loco, wagon, wagons, distance);
   if (speed <= 0 || monthly <= 0) return null;
+  local captured = OpexV257CapturedMonthly(monthly, rating, serviceSpeed, OpexV257ConsistLastSpeed(loco, wagon, wagonLimits));
+  if (captured <= 0) return null;
   local days = distance.tofloat() / (0.036 * speed);
   if (days < 1) days = 1;
   local dwell = OpexRailStationDwellDays(wagon);
   local trips = OpexLoadedTripsPerMonth(days + dwell, 2 * days + dwell, line.kind == "pax");
   local capacity = wagons * wagon.capacity;
   local carried = capacity * trips;
-  /* Deux plans satures par la meme demande, avec le meme jour entier de
-   * paiement, ont un ratio de recettes egal a 1 : le gain se reduit a
-   * l'ecart d'entretien. Les wagons vanilla ont une classe de cout courant
-   * nulle, donc leur nombre ne change pas cet ecart. */
-  if (carried > monthly) carried = monthly;
+  /* Le plafond est la demande de CE plan. Deux plans de meme last_speed
+   * gardent le meme plafond : leur ecart de recette ne vient plus que du
+   * trajet. Un plan plus lent perd des points de note, donc du fret remis,
+   * meme s'il saturait l'ancienne demande. Les wagons vanilla ont une classe
+   * de cout courant nulle, donc leur nombre ne change pas l'entretien. */
+  if (carried > captured) carried = captured;
   local revenue = 12 * carried * AICargo.GetCargoIncome(line.cargo, line.distance, OpexCeilDiv(days, 1));
   return { loco = loco, wagon = wagon, wagons = wagons, revenue = revenue,
            running = loco.runningCost + wagons * wagon.runningCost,
@@ -122,6 +183,53 @@ function OpexAI::_v257ReactiveStep()
   if (DECISION_LOG) OpexDecide("V257_OPS", "ops=" + ops + " cursor=" + this._v257Cursor);
 }
 
+/* Meilleur couple pour UNE rame en service. La note prevue depend de sa
+ * last_speed : le cache inclut donc la note observee et cette vitesse.
+ * Deux rames de vitesses differentes ne partagent pas le meme choix. */
+function OpexV257BestPlan(owner, line, monthly, rating, serviceSpeed, railType, wagonLimits)
+{
+  if (owner._v257Cache == null) owner._v257Cache = {};
+  local cached = (line.lineId in owner._v257Cache) ? owner._v257Cache[line.lineId] : null;
+  if (cached != null && cached.monthly == monthly && cached.railType == railType
+      && cached.platformLength == line.platformLength && cached.rating == rating
+      && cached.serviceSpeed == serviceSpeed && cached.wagonLimits == wagonLimits) {
+    return cached.target;
+  }
+  local best = null;
+  local locos = [];
+  local wagons = [];
+  local engines = AIEngineList(AIVehicle.VT_RAIL);
+  for (local engine = engines.Begin(); !engines.IsEnd(); engine = engines.Next()) {
+    if (!AIEngine.IsBuildable(engine) || !AIEngine.CanRunOnRail(engine, railType)) continue;
+    /* GetCapacity vaut -1, jamais 0, si aucune partie ne porte de cargo
+     * (OpenTTD 15.3 ScriptEngine::GetCapacity). == 0 excluait toute locomotive. */
+    if (AIEngine.IsWagon(engine)) {
+      if (AIEngine.GetCargoType(engine) == line.cargo && AIEngine.GetCapacity(engine) > 0)
+        wagons.append(OpexV257Engine(engine, line.cargo, true));
+    } else if (AIEngine.HasPowerOnRail(engine, railType) && AIEngine.GetCapacity(engine) <= 0 && AIEngine.GetPower(engine) > 0
+               && AIEngine.GetMaxSpeed(engine) > 0 && AIEngine.GetMaxTractiveEffort(engine) > 0) {
+      locos.append(OpexV257Engine(engine, line.cargo, false));
+    }
+  }
+  local length = line.platformLength;
+  local maxLength = AIGameSettings.GetValue("vehicle.max_train_length");
+  if (maxLength < length) length = maxLength;
+  foreach (loco in locos) {
+    foreach (wagon in wagons) {
+      for (local number = 1; number <= OpexRailNominalMaxWagons(length); number++) {
+        local plan = OpexV257Plan(line, loco, wagon, number, monthly, rating, serviceSpeed, wagonLimits);
+        if (plan == null) continue;
+        if (best == null || plan.revenue - plan.running > best.revenue - best.running
+            || (plan.revenue - plan.running == best.revenue - best.running && plan.price < best.price)) best = plan;
+      }
+    }
+  }
+  owner._v257Cache.rawset(line.lineId, { target = best, monthly = monthly,
+      railType = railType, platformLength = line.platformLength, rating = rating,
+      serviceSpeed = serviceSpeed, wagonLimits = wagonLimits });
+  return best;
+}
+
 function OpexAI::_v257Review(line, state, date, force)
 {
   if (!("vehicles" in line) || line.vehicles == null || line.vehicles.len() == 0) return;
@@ -185,72 +293,58 @@ function OpexAI::_v257Review(line, state, date, force)
   local selectedCost = 0;
   local selectedCurrent = -1;
   local currentYearStart = AIDate.GetDate(year - 1, 1, 1);
-  local best = null;
-  /* Cache par ligne, y compris le meilleur materiel et sa demande. Il est
-   * reconstruit seulement pour cette ligne, apres invalidation de catalogue/demande. */
-  local cached = (line.lineId in this._v257Cache) ? this._v257Cache[line.lineId] : null;
-  if (cached != null && cached.monthly == monthly && cached.railType == railType
-      && cached.platformLength == line.platformLength) {
-    best = cached.target;
-  } else {
-    local locos = [];
-    local wagons = [];
-    local engines = AIEngineList(AIVehicle.VT_RAIL);
-    for (local engine = engines.Begin(); !engines.IsEnd(); engine = engines.Next()) {
-      if (!AIEngine.IsBuildable(engine) || !AIEngine.CanRunOnRail(engine, railType)) continue;
-      /* GetCapacity vaut -1, jamais 0, si aucune partie ne porte de cargo
-       * (OpenTTD 15.3 ScriptEngine::GetCapacity). == 0 excluait toute locomotive. */
-      if (AIEngine.IsWagon(engine)) {
-        if (AIEngine.GetCargoType(engine) == line.cargo && AIEngine.GetCapacity(engine) > 0)
-          wagons.append(OpexV257Engine(engine, line.cargo, true));
-      } else if (AIEngine.HasPowerOnRail(engine, railType) && AIEngine.GetCapacity(engine) <= 0 && AIEngine.GetPower(engine) > 0
-                 && AIEngine.GetMaxSpeed(engine) > 0 && AIEngine.GetMaxTractiveEffort(engine) > 0) {
-        locos.append(OpexV257Engine(engine, line.cargo, false));
-      }
-    }
-    local length = line.platformLength;
-    local maxLength = AIGameSettings.GetValue("vehicle.max_train_length");
-    if (maxLength < length) length = maxLength;
-    foreach (loco in locos) {
-      foreach (wagon in wagons) {
-        for (local number = 1; number <= OpexRailNominalMaxWagons(length); number++) {
-          local plan = OpexV257Plan(line, loco, wagon, number, monthly);
-          if (plan == null) continue;
-          if (best == null || plan.revenue - plan.running > best.revenue - best.running
-              || (plan.revenue - plan.running == best.revenue - best.running && plan.price < best.price)) best = plan;
-        }
-      }
-    }
-    this._v257Cache.rawset(line.lineId, { target = best, monthly = monthly,
-        railType = railType, platformLength = line.platformLength });
-  }
-  if (best == null) {
-    OpexV257ReviewLog(line, -1, -1, 0, 0, "keep", "catalogue", lineProfit, waiting, rating, load, state.delivered);
-    return;
-  }
+  /* Le choix depend de la last_speed de la rame en service. Une composition
+   * non modelisable (automotrice, rame mixte, trop courte) garde l'ancien
+   * catalogue non recale, seulement pour le journal. */
+  local wagonLimits = OpexV257WagonSpeedLimits();
+  local catalogueLogged = false;
   foreach (vehicle in line.vehicles) {
     if (!AIVehicle.IsValidVehicle(vehicle)) continue;
     if (this._vehiclesToRetire != null && (vehicle in this._vehiclesToRetire)) continue;
-    if (date - AIVehicle.GetAge(vehicle) > currentYearStart) {
-      OpexV257ReviewLog(line, AIVehicle.GetEngineType(vehicle), best.loco.id, 0, 0, "keep", "partial_profit_year");
+    local currentEngine = AIVehicle.GetEngineType(vehicle);
+    local number = AIVehicle.GetNumWagons(vehicle) - 1; // API 15.3 inclut la locomotive.
+    local wagonEngine = -1;
+    local homogeneous = false;
+    if (number >= 1) {
+      wagonEngine = AIVehicle.GetWagonEngineType(vehicle, 1);
+      homogeneous = true;
+      for (local index = 1; index <= number; index++) {
+        if (AIVehicle.GetWagonEngineType(vehicle, index) != wagonEngine) homogeneous = false;
+      }
+    }
+    local serviceLoco = null;
+    local serviceWagon = null;
+    local serviceSpeed = 0;
+    local planRating = -1;
+    if (number >= 1 && homogeneous && AIEngine.GetCapacity(currentEngine) <= 0
+        && AIEngine.IsWagon(wagonEngine) && AIEngine.GetCargoType(wagonEngine) == line.cargo) {
+      serviceLoco = OpexV257Engine(currentEngine, line.cargo, false);
+      serviceWagon = OpexV257Engine(wagonEngine, line.cargo, true);
+      serviceSpeed = OpexV257ConsistLastSpeed(serviceLoco, serviceWagon, wagonLimits);
+      planRating = rating;
+    }
+    local best = OpexV257BestPlan(this, line, monthly, planRating, serviceSpeed, railType, wagonLimits);
+    if (best == null) {
+      /* Une autre rame de la ligne peut encore avoir un plan. Ne pas effacer
+       * un remplacement deja retenu en sortant de la boucle. */
+      if (!catalogueLogged) {
+        OpexV257ReviewLog(line, -1, -1, 0, 0, "keep", "catalogue", lineProfit, waiting, rating, load, state.delivered);
+        catalogueLogged = true;
+      }
       continue;
     }
-    local currentEngine = AIVehicle.GetEngineType(vehicle);
-    if (AIEngine.GetCapacity(currentEngine) > 0) continue; // automotrices : modele dedie necessaire.
-    local number = AIVehicle.GetNumWagons(vehicle) - 1; // API 15.3 inclut la locomotive.
-    if (number < 1) continue;
-    local wagonEngine = AIVehicle.GetWagonEngineType(vehicle, 1);
-    local homogeneous = true;
-    for (local index = 1; index <= number; index++) {
-      if (AIVehicle.GetWagonEngineType(vehicle, index) != wagonEngine) homogeneous = false;
+    if (date - AIVehicle.GetAge(vehicle) > currentYearStart) {
+      OpexV257ReviewLog(line, currentEngine, best.loco.id, 0, 0, "keep", "partial_profit_year");
+      continue;
     }
+    if (AIEngine.GetCapacity(currentEngine) > 0) continue; // automotrices : modele dedie necessaire.
+    if (number < 1) continue;
     if (!homogeneous || !AIEngine.IsWagon(wagonEngine) || AIEngine.GetCargoType(wagonEngine) != line.cargo) continue;
     if (currentEngine == best.loco.id && number == best.wagons && wagonEngine == best.wagon.id) {
       OpexV257ReviewLog(line, currentEngine, best.loco.id, 0, 0, "keep", "current_best");
       continue;
     }
-    local current = OpexV257Plan(line, OpexV257Engine(currentEngine, line.cargo, false),
-        OpexV257Engine(wagonEngine, line.cargo, true), number, monthly);
+    local current = OpexV257Plan(line, serviceLoco, serviceWagon, number, monthly, planRating, serviceSpeed, wagonLimits);
     if (current == null || current.revenue <= 0) continue;
     /* Ancrage au cash-flow reel : la recette prevue est calibree par le profit
      * realise + le cout courant reel. Aucun gain d'amortissement fictif. */
@@ -344,9 +438,24 @@ function OpexAI::_v257ReplaceStep()
     local stock = AIStation.GetCargoWaiting(AIStation.GetStationID(line.stationA), line.cargo);
     if (line.kind == "pax") stock += AIStation.GetCargoWaiting(AIStation.GetStationID(line.stationB), line.cargo);
     local monthly = (state.annualDelivered * 365.0 / state.annualDays + stock) / (12 * line.vehicles.len());
-    local current = OpexV257Plan(line, OpexV257Engine(AIVehicle.GetEngineType(oldVehicle), line.cargo, false),
-        OpexV257Engine(wagonEngine, line.cargo, true), number, monthly);
-    local target = OpexV257Plan(line, loco, wagon, pending.wagons, monthly);
+    local stationA = AIStation.GetStationID(line.stationA);
+    if (AIStation.IsValidStation(stationA)) {
+      local ratingNow = AIStation.GetCargoRating(stationA, line.cargo);
+      if (line.kind == "pax") {
+        local stationB = AIStation.GetStationID(line.stationB);
+        if (AIStation.IsValidStation(stationB)) {
+          local ratingB = AIStation.GetCargoRating(stationB, line.cargo);
+          if (ratingB < ratingNow) ratingNow = ratingB;
+        }
+      }
+      if (ratingNow >= 0) rating = ratingNow;
+    }
+    local wagonLimits = OpexV257WagonSpeedLimits();
+    local serviceLoco = OpexV257Engine(AIVehicle.GetEngineType(oldVehicle), line.cargo, false);
+    local serviceWagon = OpexV257Engine(wagonEngine, line.cargo, true);
+    local serviceSpeed = OpexV257ConsistLastSpeed(serviceLoco, serviceWagon, wagonLimits);
+    local current = OpexV257Plan(line, serviceLoco, serviceWagon, number, monthly, rating, serviceSpeed, wagonLimits);
+    local target = OpexV257Plan(line, loco, wagon, pending.wagons, monthly, rating, serviceSpeed, wagonLimits);
     local realRevenue = AIVehicle.GetProfitLastYear(oldVehicle) + AIVehicle.GetRunningCost(oldVehicle);
     if (current != null && target != null && current.revenue > 0 && realRevenue > 0) {
       gain = realRevenue * (target.revenue.tofloat() / current.revenue - 1.0)

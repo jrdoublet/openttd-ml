@@ -29,6 +29,48 @@ def expression(source, variable, **values):
     return eval(code, {"__builtins__": {}, "float": float}, values)
 
 
+def translate_squirrel(src, integer_div=False):
+    """Fonctions pures a une instruction par ligne. La division entiere Squirrel
+    n'est demandee que pour l'inverse d'octet, dont tous les operandes sont entiers."""
+    src = re.sub(r"/\*.*?\*/", "", src, flags=re.S)
+    src = re.sub(r"//[^\n]*", "", src)
+    lines = []
+    for line in src.splitlines():
+        statement = line.strip()
+        if not statement or statement in ("{", "}"):
+            continue
+        statement = statement.replace("&&", " and ").replace("||", " or ")
+        statement = re.sub(r"(?<![=!<>])!(?!=)", " not ", statement)
+        statement = statement.replace("null", "None")
+        statement = re.sub(r"\blocal\s+", "", statement)
+        statement = re.sub(r"([\w.]+)\.tofloat\(\)", r"float(\1)", statement)
+        statement = re.sub(r"([\w.]+)\.tointeger\(\)", r"int(\1)", statement)
+        if integer_div:
+            statement = statement.replace("/", "//")
+        if statement.endswith(";"):
+            statement = statement[:-1]
+        returned = re.match(r"if \((.*)\) return (.*)$", statement)
+        if returned:
+            lines.append("if %s: return %s" % (returned.group(1), returned.group(2)))
+            continue
+        conditional = re.match(r"if \((.*)\) (.*)$", statement)
+        if conditional:
+            lines.append("if %s: %s" % (conditional.group(1), conditional.group(2)))
+            continue
+        lines.append(statement)
+    if not lines:
+        raise AssertionError("empty squirrel body")
+    return "\n".join("    " + line for line in lines)
+
+
+def compile_squirrel(source, signature, namespace, integer_div=False):
+    match = re.match(r"function (\w+)\((.*)\)", signature)
+    name, args = match.group(1), match.group(2)
+    script = "def %s(%s):\n%s\n" % (name, args, translate_squirrel(body(source, signature), integer_div))
+    exec(script, namespace)
+    return namespace[name]
+
+
 class RailRefresh(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -38,6 +80,7 @@ class RailRefresh(unittest.TestCase):
         cls.review = body(cls.task, "function OpexAI::_v257Review(line, state, date, force)")
         cls.replace = body(cls.task, "function OpexAI::_v257ReplaceStep()")
         cls.reconcile = body(cls.task, "function OpexV257Reconcile(owner)")
+        cls.choice = body(cls.task, "function OpexV257BestPlan(owner, line, monthly, rating, serviceSpeed, railType, wagonLimits)")
 
     def test_setting_off_at_every_difficulty(self):
         setting = re.search(r'name = "v257_rail_refresh",(.*?)\}\);', self.sources["info.nut"], re.S).group(1)
@@ -72,22 +115,27 @@ class RailRefresh(unittest.TestCase):
         self.assertIn("this._v257Cursor = 0;", self.step)
         self.assertIn("this._v257Cache = {};", self.step)
         self.assertIn("this._v257PriorityRemaining =", self.step)
-        self.assertIn("cached.monthly == monthly", self.review)
-        self.assertIn("cached.railType == railType", self.review)
-        self.assertIn("cached.platformLength == line.platformLength", self.review)
-        self.assertIn("best = cached.target;", self.review)
+        self.assertIn("cached.monthly == monthly", self.choice)
+        self.assertIn("cached.railType == railType", self.choice)
+        self.assertIn("cached.platformLength == line.platformLength", self.choice)
+        self.assertIn("cached.rating == rating", self.choice)
+        self.assertIn("cached.serviceSpeed == serviceSpeed", self.choice)
+        self.assertIn("cached.wagonLimits == wagonLimits", self.choice)
+        self.assertIn("return cached.target;", self.choice)
+        self.assertIn("OpexV257BestPlan(this, line, monthly, planRating, serviceSpeed, railType, wagonLimits)", self.review)
 
     def test_line_rail_type_and_platform_not_future_catalogue_type(self):
         self.assertIn("AIRail.GetRailType(line.depot)", self.review)
-        self.assertIn("AIEngine.CanRunOnRail(engine, railType)", self.review)
-        self.assertIn("AIEngine.HasPowerOnRail(engine, railType)", self.review)
+        self.assertIn("AIEngine.CanRunOnRail(engine, railType)", self.choice)
+        self.assertIn("AIEngine.HasPowerOnRail(engine, railType)", self.choice)
         self.assertNotIn("this._catalog.railType", self.review)
-        self.assertIn("OpexRailNominalMaxWagons(length)", self.review)
-        self.assertIn('AIGameSettings.GetValue("vehicle.max_train_length")', self.review)
+        self.assertNotIn("this._catalog.railType", self.choice)
+        self.assertIn("OpexRailNominalMaxWagons(length)", self.choice)
+        self.assertIn('AIGameSettings.GetValue("vehicle.max_train_length")', self.choice)
 
     def _loco_gate(self, **values):
         """Predicat livre : une locomotive sans cargo entre dans la boucle de plans."""
-        condition = re.search(r"else if \((.*?)\) \{", self.review, re.S).group(1)
+        condition = re.search(r"else if \((.*?)\) \{", self.choice, re.S).group(1)
         for source, name in (
             ("AIEngine.HasPowerOnRail(engine, railType)", "has_power"),
             ("AIEngine.GetCapacity(engine)", "capacity"),
@@ -107,8 +155,9 @@ class RailRefresh(unittest.TestCase):
         laissait donc locos vide, la boucle loco x wagon x nombre ne creait aucun
         plan, et best restait null (reason=catalogue) sur des lignes en service.
         """
+        self.assertNotRegex(self.choice, r"GetCapacity\(engine\)\s*==\s*0")
+        self.assertRegex(self.choice, r"GetCapacity\(engine\)\s*<=\s*0")
         self.assertNotRegex(self.review, r"GetCapacity\(engine\)\s*==\s*0")
-        self.assertRegex(self.review, r"GetCapacity\(engine\)\s*<=\s*0")
         powered = {"has_power": True, "power": 600, "speed": 112, "tractive": 120}
         self.assertTrue(self._loco_gate(capacity=-1, **powered))
         self.assertTrue(self._loco_gate(capacity=0, **powered))
@@ -136,13 +185,20 @@ class RailRefresh(unittest.TestCase):
         self.assertFalse(expression(self.review, "pays", gain=8000, remaining=12, cost=96001))
 
     def test_physics_reused_and_running_costs_include_wagons(self):
-        plan = body(self.task, "function OpexV257Plan(line, loco, wagon, wagons, monthly)")
+        plan = body(self.task, "function OpexV257Plan(line, loco, wagon, wagons, monthly, rating, serviceSpeed, wagonLimits)")
         for helper in ("OpexRailEffectiveSpeed", "OpexLoadedTripsPerMonth", "OpexRailStationDwellDays"):
             self.assertIn(helper + "(", plan)
+        self.assertIn("OpexV257CapturedMonthly(", plan)
+        self.assertIn("if (carried > captured) carried = captured;", plan)
+        self.assertNotIn("if (carried > monthly)", plan)
         self.assertIn("loco.runningCost + wagons * wagon.runningCost", plan)
         for physics in ("2048", "512", "746", "OpexRailResistance", "OpexRailForce"):
             self.assertNotIn(physics, plan)
         self.assertNotIn("amortAnnual", plan)
+        # Le terme avion convertit les unites ; le modele rail de note neuve
+        # ecrase la note observee. Aucun des deux ne remplace le terme source.
+        self.assertNotIn("OpexC121SpeedRatingPoints(", self.task)
+        self.assertNotIn("OpexStationRatingForHeadway(", self.task)
 
     def test_real_profit_waiting_ratings_and_unloading(self):
         for api in ("AIVehicle.GetProfitLastYear", "AIVehicle.GetRunningCost", "AIVehicle.GetCargoLoad",
@@ -256,6 +312,9 @@ class RailRefresh(unittest.TestCase):
     def test_gain_is_recomputed_after_arrival_not_reused_blindly(self):
         self.assertIn("AIVehicle.GetProfitLastYear(oldVehicle) + AIVehicle.GetRunningCost(oldVehicle)", self.replace)
         self.assertIn("AIStation.GetCargoWaiting", self.replace)
+        self.assertIn("AIStation.GetCargoRating", self.replace)
+        self.assertIn("OpexV257ConsistLastSpeed(serviceLoco, serviceWagon, wagonLimits)", self.replace)
+        self.assertEqual(self.replace.count("OpexV257Plan("), 2)
         self.assertIn("local target = OpexV257Plan(", self.replace)
         self.assertLess(self.replace.index("pending.gain = gain.tointeger()"),
                         self.replace.index("pending.gain * remaining < cost"))
@@ -268,7 +327,9 @@ class RailRefresh(unittest.TestCase):
     def test_no_magic_money_age_or_profit_threshold(self):
         code = re.sub(r"/\*.*?\*/|//[^\n]*|\"[^\"]*\"", "", self.task, flags=re.S)
         numbers = set(re.findall(r"(?<![\w.])\d+(?:\.\d+)?(?![\w.])", code))
-        self.assertLessEqual(numbers, {"0", "0.0", "1", "1.0", "2", "12", "365", "365.0", "0.036"})
+        # 85 et 255 : station_cmd.cpp:4048 (last_speed - 85) et le plafond
+        # uint8 de economy.cpp:1764. Le decalage >> 2 reutilise le 2 deja livre.
+        self.assertLessEqual(numbers, {"0", "0.0", "1", "1.0", "2", "12", "365", "365.0", "0.036", "85", "255"})
 
     def test_persistence_outside_monthly_projection_and_after_live_lines(self):
         persist = self.sources["persist.nut"]
@@ -311,6 +372,114 @@ class RailRefresh(unittest.TestCase):
         self.assertIn("OpexOpsMeasureBegin()", self.step)
         self.assertIn("OpexOpsMeasureEnd(mark)", self.step)
         self.assertIn('OpexSpanBegin("task.v257_rail_refresh")', self.step)
+
+    def test_speed_rating_changes_captured_demand_on_the_exposure(self):
+        """160 km/h vers 128 km/h perd de la demande captee, donc de la recette
+        quand la ligne est plafonnee. Les sept `decision=replace` de
+        results/v257rev_expo2_3x4_20261018_engine sont rejoues sur la paire
+        journalisee. Les vitesses sont celles de engines.h (1 unite = 1 km-ish/h,
+        la meme unite que last_speed avant le plafond uint8) : 23 = 160, 13 = 128,
+        14 = 144. Le profit de ligne n'est le profit du train revu que s'il est seul.
+        """
+        coverage = self.sources["air_coverage.nut"]
+        self.assertIn("if (rawMonthly <= 0.0 || rating <= 0) return 0.0;", coverage)
+        self.assertIn("return rawMonthly.tofloat() * (rating + 1).tofloat() / 256.0;", coverage)
+        captured_src = body(self.task, "function OpexV257CapturedMonthly(monthly, ratingPercent, serviceSpeed, planSpeed)")
+        self.assertIn("if (planSpeed == serviceSpeed) return monthly;", captured_src)
+        self.assertIn("OpexC121RatingPercentToByteMid(ratingPercent)", captured_src)
+        self.assertIn("OpexC121StationAllocatedMonthly(1.0, observed, null)", captured_src)
+        self.assertIn("OpexC121StationAllocatedMonthly(1.0, predicted, null)", captured_src)
+        self.assertIn("if (predicted <= 0) return 0;", captured_src)
+        points_src = body(self.task, "function OpexV257SpeedRatingPoints(lastSpeed)")
+        self.assertIn("return (lastSpeed - 85) >> 2;", points_src)
+        self.assertIn('IsValid("vehicle.wagon_speed_limits")', self.task)
+        self.assertIn("wagon.speed > 0 && wagon.speed < speed", self.task)
+
+        namespace = {"__builtins__": {}, "float": float}
+        compile_squirrel(coverage, "function OpexC121RatingPercentToByteMid(pct)", namespace, integer_div=True)
+        share = re.search(
+            r"return (rawMonthly\.tofloat\(\) \* \(rating \+ 1\)\.tofloat\(\) / 256\.0);",
+            coverage).group(1)
+        share = re.sub(r"\((rating \+ 1)\)\.tofloat\(\)", r"float(\1)", share)
+        share = re.sub(r"([\w.]+)\.tofloat\(\)", r"float(\1)", share)
+
+        def allocated(rawMonthly, rating, competition):
+            if competition is not None:
+                raise AssertionError("concurrence hors du cas gare seule")
+            if rawMonthly <= 0.0 or rating <= 0:
+                return 0.0
+            return eval(share, {"__builtins__": {}, "float": float},
+                        {"rawMonthly": rawMonthly, "rating": rating})
+
+        namespace["OpexC121StationAllocatedMonthly"] = allocated
+        compile_squirrel(self.task, "function OpexV257SpeedRatingPoints(lastSpeed)", namespace)
+        compile_squirrel(self.task, "function OpexV257CapturedMonthly(monthly, ratingPercent, serviceSpeed, planSpeed)", namespace)
+        points = namespace["OpexV257SpeedRatingPoints"]
+        captured = namespace["OpexV257CapturedMonthly"]
+        byte_mid = namespace["OpexC121RatingPercentToByteMid"]
+        for speed, expected in ((85, 0), (128, (128 - 85) >> 2), (144, (144 - 85) >> 2),
+                                (160, (160 - 85) >> 2), (255, (255 - 85) >> 2), (300, (255 - 85) >> 2)):
+            self.assertEqual(points(speed), expected)
+        self.assertEqual(captured(100, 78, 160, 160), 100)
+
+        # Paire journalisee. real_rev/real_prof/real_run/vehs : LINE_REVENUE de
+        # l'annee 1973 de la meme ligne rail, pas le journal de decision.
+        rows = (
+            dict(seed=100, line=10, best=13, gain=1084, cost=-2437, line_profit=56069,
+                 rating=78, plan=128, real_rev=61131, real_prof=56069, real_run=5062, vehs=2),
+            dict(seed=100, line=12, best=13, gain=1084, cost=-1619, line_profit=45033,
+                 rating=55, plan=128, real_rev=47564, real_prof=45033, real_run=2531, vehs=1),
+            dict(seed=100, line=15, best=14, gain=703, cost=-598, line_profit=3155,
+                 rating=42, plan=144, real_rev=5686, real_prof=3155, real_run=2531, vehs=1),
+            dict(seed=100, line=18, best=13, gain=1084, cost=-2899, line_profit=41269,
+                 rating=52, plan=128, real_rev=43800, real_prof=41269, real_run=2531, vehs=1),
+            dict(seed=42, line=15, best=13, gain=1084, cost=-1952, line_profit=22661,
+                 rating=71, plan=128, real_rev=25192, real_prof=22661, real_run=2531, vehs=1),
+            dict(seed=42, line=16, best=13, gain=1084, cost=-2032, line_profit=14401,
+                 rating=78, plan=128, real_rev=16932, real_prof=14401, real_run=2531, vehs=1),
+            dict(seed=7, line=16, best=13, gain=1084, cost=-2738, line_profit=10501,
+                 rating=78, plan=128, real_rev=13032, real_prof=10501, real_run=2531, vehs=1),
+        )
+        stay_replace = set()
+        become_keep = set()
+        for row in rows:
+            self.assertEqual(row["real_prof"], row["line_profit"])
+            self.assertEqual(row["real_rev"], row["real_prof"] + row["real_run"])
+            self.assertLess(row["cost"], 0)
+            ratio = captured(1.0, row["rating"], 160, row["plan"])
+            observed = byte_mid(row["rating"])
+            predicted = observed + points(row["plan"]) - points(160)
+            self.assertGreater(predicted, 0)
+            self.assertAlmostEqual(ratio, (predicted + 1) / (observed + 1))
+            self.assertLess(ratio, 1.0)
+            if row["plan"] == 128:
+                self.assertLess(points(row["plan"]), points(160))
+            if row["vehs"] != 1:
+                per_run = row["real_run"] // row["vehs"]
+                self.assertEqual(row["real_run"], per_run * row["vehs"])
+                full = (row["line_profit"] + per_run) * (ratio - 1.0) + row["gain"]
+                self.assertLess(full, 0)
+                threshold_profit = row["gain"] / (1.0 - ratio) - per_run
+                just_below = (threshold_profit - 1) + per_run
+                just_above = (threshold_profit + 1) + per_run
+                self.assertGreater(just_below * (ratio - 1.0) + row["gain"], 0)
+                self.assertLess(just_above * (ratio - 1.0) + row["gain"], 0)
+                self.assertFalse(((threshold_profit + per_run) * (ratio - 1.0) + row["gain"]) > 0)
+                continue
+            real = row["real_rev"]
+            loss = real * (1.0 - ratio)
+            new_gain = real * (ratio - 1.0) + row["gain"]
+            self.assertGreater(loss, 0)
+            self.assertAlmostEqual(new_gain, row["gain"] - loss)
+            # Cout net negatif et vie restante deja positive le jour du replace :
+            # un gain encore positif suffit, un gain negatif ou nul ne remplace plus.
+            key = (row["seed"], row["line"])
+            if new_gain > 0:
+                stay_replace.add(key)
+            else:
+                become_keep.add(key)
+        self.assertEqual(stay_replace, {(100, 15), (42, 16), (7, 16)})
+        self.assertEqual(become_keep, {(100, 12), (100, 18), (42, 15)})
 
 
 if __name__ == "__main__":
