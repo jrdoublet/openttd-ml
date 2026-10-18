@@ -11,7 +11,7 @@
  * - OpexLevelAllows(feature) est la fonction unique de consultation des capacites.
  * - Le niveau 3 n'a aucun bridage et reste strictement identique au comportement historique.
  * - Le niveau 2 autorise tout sauf les gestes anticoncurrentiels (V250, actions futures visant un rival).
- * - Les niveaux 0 et 1 n'ont pas encore de bridage propre (proposition en attente).
+ * - Les niveaux 0 et 1 appliquent aussi les gardes de courtoisie ci-dessous.
  */
 
 OPEX_DIFFICULTY <- 2;
@@ -28,6 +28,11 @@ OPEX_DIFFICULTY_MIN_LEVEL <- {
    * Reserve au niveau 3 (personnalise). Coupe en difficile (2), moyen (1), facile (0). */
   v250_rights = 3,
   anticompetitive = 3,
+
+  /* V261b, decision utilisateur du 18/10 : courtoisie sans reglage public. */
+  air_joined_road_stops = 2,
+  water_depot_dock_front = 3,
+  secondary_graft_rival_served = 3,
 
   /* Levier A : aeroports */
   preempt_last_airport_slot = 2,

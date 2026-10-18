@@ -4907,7 +4907,7 @@ function OpexConvertDoubleTrackToLoop(line, diag = null)
         local sharedOk = AIOrder.ShareOrders(otherTrain, firstTrain);
         if (!sharedOk) {
           while (AIOrder.GetOrderCount(otherTrain) > 0) {
-            AIOrder.RemoveOrder(otherTrain, 0);
+            if (!AIOrder.RemoveOrder(otherTrain, 0)) break; // V262 : pas de boucle sans progres
           }
           sharedOk = AIOrder.ShareOrders(otherTrain, firstTrain);
           if (!sharedOk) {

@@ -52,6 +52,62 @@ function OpexDecide(kind, fields)
   AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
              + AIDate.GetDayOfMonth(date) + " " + kind + " " + fields);
 }
+/* V251 etape 1 : etiquettes de cargo d'une AIList, separees par des virgules. */
+function OpexV251CargoLabels(list)
+{
+  local out = "";
+  if (list == null) return "-";
+  for (local c = list.Begin(); !list.IsEnd(); c = list.Next()) {
+    if (out != "") out += ",";
+    out += AICargo.IsValidCargo(c) ? AICargo.GetCargoLabel(c) : ("" + c);
+  }
+  if (out == "") out = "-";
+  return out;
+}
+/* V251 etape 1 : inventaire lecture seule des types d'industrie finançables.
+ * Une passe au demarrage, uniquement sous DECISION_LOG. Aucun achat. */
+function OpexV251LogIndustryTypes()
+{
+  if (!DECISION_LOG) return;
+  local rawValid = AIGameSettings.IsValid("construction.raw_industry_construction") ? 1 : 0;
+  local rawVal = rawValid != 0
+      ? AIGameSettings.GetValue("construction.raw_industry_construction") : -1;
+  if (DECISION_LOG) OpexDecide("V251_INDUSTRY_TYPE",
+      "scope=setting raw_industry_construction=" + rawVal + " valid=" + rawValid);
+  local types = AIIndustryTypeList();
+  for (local type = types.Begin(); !types.IsEnd(); type = types.Next()) {
+    if (!AIIndustryType.IsValidIndustryType(type)) continue;
+    local rawName = AIIndustryType.GetName(type);
+    local name = "";
+    if (rawName != null) {
+      local ni = 0;
+      while (ni < rawName.len()) {
+        local ch = rawName.slice(ni, ni + 1);
+        name += (ch == " ") ? "_" : ch;
+        ni++;
+      }
+    }
+    if (name == "") name = "-";
+    local canBuild = AIIndustryType.CanBuildIndustry(type) ? 1 : 0;
+    local canProspect = AIIndustryType.CanProspectIndustry(type) ? 1 : 0;
+    local cost = AIIndustryType.GetConstructionCost(type);
+    local isRaw = AIIndustryType.IsRawIndustry(type) ? 1 : 0;
+    local isProc = AIIndustryType.IsProcessingIndustry(type) ? 1 : 0;
+    local produced = OpexV251CargoLabels(AIIndustryType.GetProducedCargo(type));
+    local accepted = OpexV251CargoLabels(AIIndustryType.GetAcceptedCargo(type));
+    if (DECISION_LOG) OpexDecide("V251_INDUSTRY_TYPE",
+        "scope=type type=" + type
+        + " name=" + name
+        + " can_build=" + canBuild
+        + " can_prospect=" + canProspect
+        + " cost=" + cost
+        + " raw=" + isRaw
+        + " proc=" + isProc
+        + " produced=" + produced
+        + " accepted=" + accepted
+        + " raw_industry_construction=" + rawVal);
+  }
+}
 /* Evenement leger et unique par tentative, ou par passage devant _tooClose.
  * Ne pas passer par OpexDecide : son logging de TASK ajoute d'autres evenements. */
 function OpexRailFailureAudit(stage, candidate, reason, ok, actual, opcodes, rank = -1)
