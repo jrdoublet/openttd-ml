@@ -7,6 +7,35 @@ No conversion of physical demand to incremental demand, or capital to expense.
 from rva_dry_cycle import known
 
 
+def service_externality(*, demand_before_month, allocation_delta_month,
+                        capacity_month, waiting, horizon_months,
+                        observed_delivered_month, final_receipts_annual,
+                        avoidable_cost_delta_annual=0):
+    """Marginal receipts, with fixed fleet costs unchanged by lost passengers.
+
+    Stock can sustain a saturated service over the common horizon. Vehicle
+    transfer credits are NOT final receipts. Values must be same cargo/price
+    context; aggregate each station's routes before allocating to vehicles.
+    """
+    nonnegative = (demand_before_month, capacity_month, waiting,
+                   observed_delivered_month, final_receipts_annual)
+    if (any(not known(v) or v < 0 for v in nonnegative)
+            or not known(allocation_delta_month) or not known(horizon_months)
+            or horizon_months <= 0 or not known(avoidable_cost_delta_annual)
+            or observed_delivered_month <= 0):
+        return {'status': 'not_covered', 'revenue_delta_annual': None}
+    before = min(capacity_month, demand_before_month + waiting / horizon_months)
+    after = min(capacity_month, max(0, demand_before_month + allocation_delta_month)
+                + waiting / horizon_months)
+    # Empirical receipts per delivered unit, not profit per unit (fixed costs).
+    delta = (after - before) / observed_delivered_month * final_receipts_annual
+    return {'status': 'estimated_constant_marginal_receipts',
+            'revenue_delta_annual': delta,
+            'avoidable_cost_delta_annual': avoidable_cost_delta_annual,
+            'profit_delta_annual': delta - avoidable_cost_delta_annual,
+            'served_delta_month': after - before}
+
+
 def company_gain(line, affected_services, *, affected_inventory_complete):
     """All cashflows are per the same explicit economic year/context/horizon.
 

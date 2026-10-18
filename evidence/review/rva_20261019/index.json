@@ -6,6 +6,12 @@
       "raw_sha256": "2da80da27a04f7172043e4c8ec2785e7ea26aed2504f98a97d161b5c3148c863",
       "gzip_sha256": "e3dfd9b3f957d455f531a014680f7067c9f84b4b72479abb233036a1c47bc584",
       "source": "offline reanalysis of 80 hashed V216 probe logs, see embedded sources"
+    },
+    {
+      "file": "network.json.gz",
+      "raw_sha256": "ff498cdf245dd59c50bcc88c0996eb1fc7e36143255ea29c122f380bb8abafbf",
+      "gzip_sha256": "b49c5df6c81dbee981b2bd524835deba45d20d2b1a2a03169140de1221c2c3a2",
+      "source": "paired package summary and 20 hashed engine logs"
     }
   ]
 }
