@@ -195,14 +195,14 @@ function OpexAI::_dispatchV249Statue(task, year)
          * annuel d'un convoi par marchandise ni par station. On utilise donc le profit
          * global annuel de la ligne (AIVehicle.GetProfitLastYear) pondere par le gain
          * relatif de captage ((min(note + 26, 255) - note) / note) a chaque gare qui
-         * charge ce cargo. Si la ligne relie deux gares de la meme ville, le profit
-         * est pondere a 50 % par extremite pour eviter le double comptage. */
+         * charge ce cargo. Quand les DEUX extremites chargent le cargo (voyageurs,
+         * courrier), chacune ne porte que la moitie du profit : une statue ne releve
+         * que le flux de sa ville. Le fret ne charge qu'a la source, qui porte tout. */
         local stA = OpexLineStationId(line, "A");
         local stB = OpexLineStationId(line, "B");
-        local sameTown = false;
-        if (stA >= 0 && stB >= 0 && AIStation.IsValidStation(stA) && AIStation.IsValidStation(stB)) {
-          if (AIStation.GetNearestTown(stA) == AIStation.GetNearestTown(stB)) sameTown = true;
-        }
+        local loadsA = hasCargo && stA >= 0 && AIStation.IsValidStation(stA) && AIStation.HasCargoRating(stA, cargo);
+        local loadsB = hasCargo && stB >= 0 && AIStation.IsValidStation(stB) && AIStation.HasCargoRating(stB, cargo);
+        local endShare = (loadsA && loadsB) ? 0.5 : 1.0;
 
         foreach (endName in ["A", "B"]) {
           local stationId = (endName == "A") ? stA : stB;
@@ -228,7 +228,7 @@ function OpexAI::_dispatchV249Statue(task, year)
               local targetNote = note + 26;
               if (targetNote > 255) targetNote = 255;
               local relGain = (targetNote - note).tofloat() / note.tofloat();
-              local weight = sameTown ? (lineProfit.tofloat() * 0.5) : lineProfit.tofloat();
+              local weight = lineProfit.tofloat() * endShare;
               cData.gain += relGain * weight;
             }
           }

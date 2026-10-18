@@ -135,7 +135,8 @@ class TestV249Statues(unittest.TestCase):
         # Weighted by line profit
         self.assertIn("local lineProfit = OpexV249LineProfit(line);", self.dispatch)
         # 50% split for intra-town lines
-        self.assertIn("sameTown ? (lineProfit.tofloat() * 0.5) : lineProfit.tofloat()", self.dispatch)
+        self.assertIn("local endShare = (loadsA && loadsB) ? 0.5 : 1.0;", self.dispatch)
+        self.assertIn("local weight = lineProfit.tofloat() * endShare;", self.dispatch)
 
     def test_mode2_payback_vehicle_life(self):
         # Uses vehicle remaining service life (GetMaxAge - GetAge) / 365
