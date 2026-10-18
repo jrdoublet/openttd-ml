@@ -366,7 +366,7 @@ function OpexAirPlansFindSites(ctx, comboIndex, combo, airport, plane, resumingC
       if (C69_BOTTLENECK_PROBE) OpexC73RecordExamined("air", 1);
       if (V133_AIR_BUILD_RETRY && OpexV133AirTownSkip(ctx, towns[i].id)) {
         /* V133 : ville en quarantaine, aucun site newpair/hubsite. Le curseur de tranche suit. */
-      } else if (OPEX_LEVEL_LIMITS && !OpexTownAirportAllowedByLevel(towns[i], null, -1, catalog)) {
+      } else if (OPEX_LEVEL_LIMITS && !OpexTownAirportAllowedByLevel(towns[i], null, -1, ctx.catalog)) {
         /* Levier A : bridage de difficulte (niveaux 0 et 1). Niveaux 2 et 3 : zero opcode. */
       } else if (towns[i].id in stationLimitedTowns) {
         if (C69_BOTTLENECK_PROBE) OpexC73RecordRejection("air", "town_station_limit", 1);
