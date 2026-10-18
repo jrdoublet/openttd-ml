@@ -103,7 +103,7 @@ def main():
     if args.out.exists():
         parser.error('Output already exists; choose a new path')
     output = {}
-    for path in sorted(args.log_dir.glob('v233chain_mode5_seed*_r0.log')):
+    for path in sorted(args.log_dir.glob('*mode5_seed*_r0.log')):
         seed = re.search(r'seed(\d+)_r0', path.name)[1]
         output[seed] = dict(path=str(path), sha256=hashlib.sha256(path.read_bytes()).hexdigest(),
                             **audit(events(path)))
