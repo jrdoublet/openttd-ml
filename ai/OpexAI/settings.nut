@@ -126,7 +126,7 @@ function OpexLoadSettings()
   local rights = AIController.GetSetting("v250_rights");
   if (rights == null || rights < 0 || rights > 4) rights = 0;
   /* V250 entiere reservee au niveau 3 (personnalise) : geste anticoncurrentiel. */
-  if (OPEX_DIFFICULTY != 3) rights = 0;
+  if (!OpexLevelAllows("v250_rights")) rights = 0;
   V250_RIGHTS = rights;
 
   // V246 : paquets adoptes figes ; les interrupteurs de mode restent actifs.

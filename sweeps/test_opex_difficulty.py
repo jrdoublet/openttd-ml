@@ -13,8 +13,7 @@ import unittest
 
 AI = Path(__file__).resolve().parents[1] / "ai" / "OpexAI"
 ALLOWED = {
-    "info.nut", "globals_pre.nut", "settings.nut",
-    "task_v250.nut", "task_projects.nut", "main.nut",
+    "info.nut", "difficulty.nut", "settings.nut",
 }
 
 
@@ -30,7 +29,7 @@ class TestOpexDifficulty(unittest.TestCase):
         block = block[:block.index("});") + 3]
         self.assertIn("min_value = 0", block)
         self.assertIn("max_value = 3", block)
-        self.assertIn("flags = 8", block)
+        self.assertIn("flags = 0", block)
         self.assertNotIn("CONFIG_DEVELOPER", block)
         self.assertNotIn("AICONFIG_BOOLEAN", block)
         for level in ("easy_value", "medium_value", "hard_value", "custom_value", "default_value"):
@@ -41,7 +40,7 @@ class TestOpexDifficulty(unittest.TestCase):
         self.assertIn('_1 = "medium"', labels)
         self.assertIn('_2 = "hard"', labels)
         self.assertIn('_3 = "custom"', labels)
-        self.assertIn("OPEX_DIFFICULTY <- 3;", self.sources["globals_pre.nut"])
+        self.assertIn("OPEX_DIFFICULTY <- 3;", self.sources["difficulty.nut"])
 
     def test_read_once_with_legacy_profile_fallback(self):
         reads = [name for name, text in self.sources.items()

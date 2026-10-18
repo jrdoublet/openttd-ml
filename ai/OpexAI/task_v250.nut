@@ -1,7 +1,7 @@
 /* V250 : droits de transport exclusifs (AITown.TOWN_ACTION_BUY_RIGHTS).
  * 0 : la tache retourne avant toute API.
  * 1 : ville la plus disputee (gares a nous et gares rivales dans la meme
- *     desserte), seulement si OPEX_DIFFICULTY vaut 2 ou 3 et si l'on est
+ *     desserte), seulement si la difficulte l'autorise (niveau 3) et si l'on est
  *     riche au sens V249. Facile et moyen restent coupes.
  * 2 : test. Villes ou le regime sans bruit (meme porte que C83) a
  *     GetAllowedNoise == 0 et ou nous n'avons aucun aeroport. On rachete a
@@ -284,7 +284,7 @@ function OpexV250BuyOrdered(ai, date, ordered, ownCounts, mode)
 function OpexAI::_dispatchV250Rights(task, year)
 {
   if (V250_RIGHTS == 0) return false;
-  if (V250_RIGHTS == 1 && OPEX_DIFFICULTY < 2) return false;
+  if (!OpexLevelAllows("v250_rights")) return false;
   local date = AIDate.GetCurrentDate();
   local ym = year * 12 + AIDate.GetMonth(date);
   if (this._v250Month == ym) return false;

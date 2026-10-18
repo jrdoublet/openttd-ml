@@ -60,7 +60,7 @@ class TestV250Rights(unittest.TestCase):
         guard = "if (V250_RIGHTS == 0) return false;"
         self.assertIn(guard, self.dispatch)
         guard_at = self.dispatch.index(guard)
-        level = "if (V250_RIGHTS == 1 && OPEX_DIFFICULTY < 2) return false;"
+        level = 'if (!OpexLevelAllows("v250_rights")) return false;'
         self.assertIn(level, self.dispatch)
         self.assertLess(guard_at, self.dispatch.index(level))
         for api in ("AIDate", "AICompany", "AITown", "AIStation", "AIAccounting",
@@ -70,12 +70,11 @@ class TestV250Rights(unittest.TestCase):
                 self.assertGreater(found, self.dispatch.index(level), api)
         start = self.sources["main.nut"]
         statue = 'this._taskQueue.append({ name = "v249_statue", dueCycle = 0, enabled = V249_STATUE });'
-        rights = ('this._taskQueue.append({ name = "v250_rights", dueCycle = 0, '
-                  'enabled = V250_RIGHTS >= 2 || (V250_RIGHTS == 1 && OPEX_DIFFICULTY >= 2) });')
+        rights = 'this._taskQueue.append({ name = "v250_rights", dueCycle = 0, enabled = V250_RIGHTS > 0 });'
         self.assertLess(start.index(statue), start.index(rights))
         self.assertIn('task.name == "v250_rights"', self.sources["scheduler.nut"])
         self.assertIn("this._dispatchV250Rights(task, year)", self.sources["scheduler.nut"])
-        hook = 'if (V250_RIGHTS == 1 && OPEX_DIFFICULTY >= 2 && c75StopReason == "cash") ::V250_CASH_STOP = true;'
+        hook = 'if (V250_RIGHTS == 1 && c75StopReason == "cash") ::V250_CASH_STOP = true;'
         self.assertEqual(self.sources["task_projects.nut"].count(hook), 1)
 
     def test_mode1_rich_and_difficulty_filter(self):
@@ -154,7 +153,7 @@ class TestV250Level3AndTargeted(unittest.TestCase):
         cls.task = (AI / "task_v250.nut").read_text(encoding="utf-8")
 
     def test_level_three_only(self):
-        gate = "if (OPEX_DIFFICULTY != 3) rights = 0;"
+        gate = 'if (!OpexLevelAllows("v250_rights")) rights = 0;'
         self.assertIn(gate, self.settings)
         self.assertLess(self.settings.index("OPEX_DIFFICULTY = OpexResolveDifficulty();"),
                         self.settings.index(gate))
