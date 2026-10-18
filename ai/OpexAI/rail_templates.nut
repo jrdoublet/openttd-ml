@@ -377,7 +377,12 @@ function OpexBuildSourceTemplateReal(templateInfo)
 
   local rails = OpexSourceRails(originTile, orientation, length);
   local railTiles = [];
+  OpexRefreshForbid90DegTurns();
   foreach (seg in rails) {
+    if (OPEX_FORBID_90_DEG && OpexRailBuildCreates90DegTurn(seg[0], seg[1], seg[2])) {
+      return { ok = false, reason = "RAIL_FAIL", stationId = stId, platformTile = platformTile,
+               depotTile = depotTile, railTiles = railTiles };
+    }
     if (!AIRail.BuildRail(seg[0], seg[1], seg[2])) {
       return { ok = false, reason = "RAIL_FAIL", stationId = stId, platformTile = platformTile,
                depotTile = depotTile, railTiles = railTiles };
@@ -454,7 +459,12 @@ function OpexBuildDestTemplateReal(templateInfo)
 
   local rails = OpexDestRails(originTile, orientation, length);
   local railTiles = [];
+  OpexRefreshForbid90DegTurns();
   foreach (seg in rails) {
+    if (OPEX_FORBID_90_DEG && OpexRailBuildCreates90DegTurn(seg[0], seg[1], seg[2])) {
+      return { ok = false, reason = "RAIL_FAIL", stationId = stId, platformTile = platformTile,
+               railTiles = railTiles };
+    }
     if (!AIRail.BuildRail(seg[0], seg[1], seg[2])) {
       return { ok = false, reason = "RAIL_FAIL", stationId = stId, platformTile = platformTile,
                railTiles = railTiles };
