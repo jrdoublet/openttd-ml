@@ -408,6 +408,24 @@ function OpexSaveC83Preempt(saveObj, ai)
   saveObj.c83PreemptRace <- race;
 }
 
+/* Cles ajoutees seulement quand v250_rights est arme. A 0, Save() ne gagne
+ * aucun champ. L'echeance reste dans le monde (GetExclusiveRightsDuration) :
+ * on ne sauve que les villes suivies et celles dont le creneau a deja ete note. */
+function OpexSaveV250(saveObj, ai)
+{
+  if (V250_RIGHTS == 0 || saveObj == null || ai == null) return;
+  local targets = {};
+  if (ai._v250Targets != null) {
+    foreach (townId, mark in ai._v250Targets) targets.rawset(townId, 1);
+  }
+  local freed = {};
+  if (ai._v250Freed != null) {
+    foreach (townId, mark in ai._v250Freed) freed.rawset(townId, 1);
+  }
+  saveObj.v250Targets <- targets;
+  saveObj.v250Freed <- freed;
+}
+
 /* R20 : Load precede les reglages. Tampon prive a la persistance, consomme
  * par _reconcileAfterLoad ; ni cache catalogue ni nouveau reglage public. */
 OPEX_RELOAD_C121_STRATEGY <- null;
@@ -608,6 +626,7 @@ function OpexAI::Save()
       shortSave.c76Revisions <- this._c76SaveRevisions();
     }
     if (C83_PREEMPT_OPEN) OpexSaveC83Preempt(shortSave, this);
+    if (V250_RIGHTS != 0) OpexSaveV250(shortSave, this);
     if (OpexC121StrategyStateEnabled()) OpexSaveC121Strategy(shortSave);
     if (OPEX_AIR_ROLLBACKS.len() > 0) shortSave.airRollbacks <- OPEX_AIR_ROLLBACKS;
     if (V133_AIR_BUILD_RETRY) OpexV133SaveQuarantine(shortSave);
@@ -687,6 +706,7 @@ function OpexAI::Save()
     saveObj.c76Revisions <- this._c76SaveRevisions();
   }
   if (C83_PREEMPT_OPEN) OpexSaveC83Preempt(saveObj, this);
+  if (V250_RIGHTS != 0) OpexSaveV250(saveObj, this);
   if (OpexC121StrategyStateEnabled()) OpexSaveC121Strategy(saveObj);
   if (OPEX_AIR_ROLLBACKS.len() > 0) saveObj.airRollbacks <- OPEX_AIR_ROLLBACKS;
   if (V133_AIR_BUILD_RETRY) OpexV133SaveQuarantine(saveObj);
@@ -763,6 +783,8 @@ function OpexAI::Load(version, data)
   if ("c83PreemptStopped" in data) this._reloadC83PreemptStopped = data.c83PreemptStopped;
   if ("c83PreemptQueued" in data) this._reloadC83PreemptQueued = data.c83PreemptQueued;
   if ("c83PreemptRace" in data) this._reloadC83PreemptRace = data.c83PreemptRace;
+  if ("v250Targets" in data) this._reloadV250Targets = data.v250Targets;
+  if ("v250Freed" in data) this._reloadV250Freed = data.v250Freed;
   /* C80 étape 2 : mémoire transitoire du seuil de sélection du stock rail, remise à 0 au rechargement. */
   this._railStockLastFundedScore = 0.0;
   this._railStockLastFundedDate = -1;
@@ -795,6 +817,18 @@ function OpexAI::_reconcileAfterLoad()
   this._reloadC83PreemptStopped = null;
   this._reloadC83PreemptQueued = null;
   this._reloadC83PreemptRace = null;
+  if (V250_RIGHTS != 0) {
+    if (this._reloadV250Targets != null && typeof this._reloadV250Targets == "table") {
+      this._v250Targets = {};
+      foreach (townId, mark in this._reloadV250Targets) this._v250Targets.rawset(townId, 1);
+    }
+    if (this._reloadV250Freed != null && typeof this._reloadV250Freed == "table") {
+      this._v250Freed = {};
+      foreach (townId, mark in this._reloadV250Freed) this._v250Freed.rawset(townId, 1);
+    }
+  }
+  this._reloadV250Targets = null;
+  this._reloadV250Freed = null;
   this._reloadC69BuildDates = null;
   this._reloadC75PassDates = null;
 

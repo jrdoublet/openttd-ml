@@ -95,6 +95,11 @@ OPEX_DIFFICULTY <- 3;
 /* Vrai si une passe projets s'est arretee faute de caisse depuis le dernier
  * passage statue. Vrai au depart : le premier mois ne compte pas. Pas sauvegarde. */
 V249_CASH_STOP <- true;
+/* V250 : 0 inerte, 1 droits en ville disputee, 2 test de creneau aeroport. */
+V250_RIGHTS <- 0;
+/* Meme signal que V249, mais reserve au mode 1. Le mode 2 ne le lit pas.
+ * Vrai au depart : le premier mois de mode 1 ne compte pas. Pas sauvegarde. */
+V250_CASH_STOP <- true;
 V172_RAIL_LONG_WEIGHT_DIST <- 100;
 /* Cascade pax par distance decroissante : air seul, air+rail, rail seul,
  * route seule. Le fret accompagne la premiere passe. */

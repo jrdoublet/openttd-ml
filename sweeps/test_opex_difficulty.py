@@ -4,14 +4,18 @@ OpenTTD 15.3 n'applique plus easy/medium/hard/custom. Le reglage
 opex_difficulty vaut donc 3 aux quatre niveaux et dans default_value, pour
 que le harnais (qui lit custom_value) et le moteur (qui lit default_value,
 sinon medium_value) restent d'accord sans allonger la ligne [ai_players].
-Aucune decision ne lit OPEX_DIFFICULTY.
+A l'etape 1 aucune decision ne le lisait. V250 est le premier lecteur :
+mode 1 seulement, dans la tache, le crochet caisse et l'activation de la file.
 """
 from pathlib import Path
 import unittest
 
 
 AI = Path(__file__).resolve().parents[1] / "ai" / "OpexAI"
-ALLOWED = {"info.nut", "globals_pre.nut", "settings.nut"}
+ALLOWED = {
+    "info.nut", "globals_pre.nut", "settings.nut",
+    "task_v250.nut", "task_projects.nut", "main.nut",
+}
 
 
 class TestOpexDifficulty(unittest.TestCase):

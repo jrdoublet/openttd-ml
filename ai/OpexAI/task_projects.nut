@@ -1278,6 +1278,7 @@ function OpexAI::_finalizeC75PassOutcome(year, builtCount, c75KPassData, c75Stop
   if (builtCount > 0) OpexC75BypassRecordStop(c75StopReason);
   OpexC75RecordPassOutcome(year, builtCount, c75KPassData, c75StopReason);
   if (V249_STATUE && c75StopReason == "cash") ::V249_CASH_STOP = true;
+  if (V250_RIGHTS == 1 && OPEX_DIFFICULTY >= 2 && c75StopReason == "cash") ::V250_CASH_STOP = true;
   return c75StopReason;
 }
 

@@ -650,6 +650,17 @@ class OpexAIInfo extends AIInfo {
       custom_value = 0,
       flags = AICONFIG_BOOLEAN
     });
+    /* Quatre niveaux a 0 : le banc qui ne passe pas le reglage reste identique.
+     * Mode 1 coupe en facile/moyen meme si la valeur est 1. Mode 2 ignore le niveau. */
+    AddSetting({
+      name = "v250_rights",
+      description = "V250 exclusive transport rights. 0 = off at easy, medium, hard and custom (default). 1 = normal policy, and only when OPEX_DIFFICULTY is hard (2) or custom (3): buy in the town where we and a rival share the most station catchment, and only when rich in the V249 sense (no loan, no project pass stopped for cash, cash after the purchase still covers the reserve and the most expensive listed project). Easy and medium keep mode 1 off even if this setting is 1. A later fair_play switch will also cut mode 1. 2 = test, not filtered by difficulty or wealth: in the no-noise two-airport regime, rebuy rights in the largest towns where GetAllowedNoise is 0 and we own no airport, while cash covers the cost plus the reserve, for at most as many towns as one year of rights (one purchase lasts 12 economy months) that cash can pay. A freed slot is only logged; the normal AIR pipeline takes it.",
+      min_value = 0, max_value = 2,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0, default_value = 0,
+      step_size = 1,
+      flags = 0
+    });
   }
 }
 

@@ -1,0 +1,141 @@
+"""V250 : contrats statiques des droits exclusifs.
+
+Defaut 0 aux quatre niveaux et dans default_value. A 0 la tache ne touche
+aucune API. Le mode 1 reste coupe en facile et moyen. Le mode 2 ne l'est pas.
+Le journal est garde par DECISION_LOG sur la meme ligne qu'OpexDecide.
+Aucune cle de sauvegarde n'est ecrite quand le reglage est a 0.
+"""
+from pathlib import Path
+import re
+import unittest
+
+
+AI = Path(__file__).resolve().parents[1] / "ai" / "OpexAI"
+
+
+def _body(source, signature):
+    match = re.search(re.escape(signature) + r"\n\{(.*?)\n\}", source, re.S)
+    return match.group(1) if match else ""
+
+
+class TestV250Rights(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.sources = {p.name: p.read_text(encoding="utf-8") for p in AI.glob("*.nut")}
+        cls.task = cls.sources["task_v250.nut"]
+        cls.dispatch = _body(cls.task, "function OpexAI::_dispatchV250Rights(task, year)")
+        cls.measure = _body(cls.task, "function OpexV250MeasureRightsCost(townId)")
+        cls.buy = _body(cls.task, "function OpexV250BuyRights(ai, townId, mode, pop, reserve)")
+        cls.slots = _body(cls.task, "function OpexV250YearSlots(cash, reserve, cost)")
+        cls.normal = _body(cls.task, "function OpexV250RunNormal(ai)")
+        cls.test = _body(cls.task, "function OpexV250RunTest(ai, date)")
+        cls.save = _body(cls.sources["persist.nut"], "function OpexSaveV250(saveObj, ai)")
+
+    def test_setting_default_zero_at_four_levels(self):
+        block = re.search(
+            r'name = "v250_rights",(.*?)\}\);', self.sources["info.nut"], re.S)
+        self.assertIsNotNone(block)
+        body = block.group(1)
+        self.assertIn("min_value = 0", body)
+        self.assertIn("max_value = 2", body)
+        self.assertIn("flags = 0", body)
+        self.assertNotIn("AICONFIG_BOOLEAN", body)
+        for level in ("easy_value", "medium_value", "hard_value", "custom_value", "default_value"):
+            self.assertRegex(body, level + r" = 0\b")
+        self.assertIn("Easy and medium keep mode 1 off", body)
+        self.assertIn("not filtered by difficulty", body)
+        self.assertIn("fair_play", body)
+        self.assertNotIn('name = "fair_play"', self.sources["info.nut"])
+        self.assertIn("V250_RIGHTS <- 0;", self.sources["globals_pre.nut"])
+        self.assertIn("V250_CASH_STOP <- true;", self.sources["globals_pre.nut"])
+
+    def test_setting_read_once(self):
+        reads = [(name, text.count('GetSetting("v250_rights")'))
+                 for name, text in self.sources.items()]
+        self.assertEqual(sum(count for _, count in reads), 1)
+        self.assertIn('GetSetting("v250_rights")', self.sources["settings.nut"])
+
+    def test_zero_cost_guard_and_queue(self):
+        self.assertTrue(self.dispatch)
+        guard = "if (V250_RIGHTS == 0) return false;"
+        self.assertIn(guard, self.dispatch)
+        guard_at = self.dispatch.index(guard)
+        level = "if (V250_RIGHTS == 1 && OPEX_DIFFICULTY < 2) return false;"
+        self.assertIn(level, self.dispatch)
+        self.assertLess(guard_at, self.dispatch.index(level))
+        for api in ("AIDate", "AICompany", "AITown", "AIStation", "AIAccounting",
+                    "AITestMode", "OpexDecide", "AITile", "OpexAir"):
+            found = self.dispatch.find(api)
+            if found >= 0:
+                self.assertGreater(found, self.dispatch.index(level), api)
+        start = self.sources["main.nut"]
+        statue = 'this._taskQueue.append({ name = "v249_statue", dueCycle = 0, enabled = V249_STATUE });'
+        rights = ('this._taskQueue.append({ name = "v250_rights", dueCycle = 0, '
+                  'enabled = V250_RIGHTS == 2 || (V250_RIGHTS == 1 && OPEX_DIFFICULTY >= 2) });')
+        self.assertLess(start.index(statue), start.index(rights))
+        self.assertIn('task.name == "v250_rights"', self.sources["scheduler.nut"])
+        self.assertIn("this._dispatchV250Rights(task, year)", self.sources["scheduler.nut"])
+        hook = 'if (V250_RIGHTS == 1 && OPEX_DIFFICULTY >= 2 && c75StopReason == "cash") ::V250_CASH_STOP = true;'
+        self.assertEqual(self.sources["task_projects.nut"].count(hook), 1)
+
+    def test_mode1_rich_and_difficulty_filter(self):
+        self.assertIn("local cashStop = V250_CASH_STOP;", self.normal)
+        self.assertLess(self.normal.index("::V250_CASH_STOP = false;"),
+                        self.normal.index("OpexV250Contested()"))
+        self.assertLess(self.normal.index("AICompany.GetLoanAmount()"),
+                        self.normal.index("OpexV250Contested()"))
+        self.assertIn("OpexCashReserve()", self.normal)
+        self.assertIn("if (mode == 1) need += OpexV249MaxListedCapital(ai._projects);", self.buy)
+        self.assertIn("cash - cost < need", self.buy)
+        self.assertNotIn("OPEX_DIFFICULTY", self.test)
+        self.assertNotIn("V250_CASH_STOP", self.test)
+        self.assertEqual(self.normal.count("OpexV250BuyRights"), 1)
+
+    def test_mode2_slot_signal_and_derived_cap(self):
+        self.assertLess(self.test.index("OpexV250Watch(ai, date, ownCounts);"),
+                        self.test.index("if (!OpexAirC83SlotSignalEnabled()) return true;"))
+        self.assertIn("OpexAirOwnSlotTownCounts()", self.test)
+        self.assertIn("AITown.GetAllowedNoise(townId) != 0", self.test)
+        self.assertIn("if (own != 0) continue;", self.test)
+        self.assertIn("OpexV250YearSlots(cash, reserve, cost)", self.test)
+        self.assertIn("local spendable = cash - reserve;", self.slots)
+        self.assertIn("(spendable / cost).tointeger()", self.slots)
+        self.assertNotRegex(self.slots, r"\b[1-9]\d*\b")
+        self.assertNotIn("BuildAirport", self.task)
+        self.assertNotIn("AIAirport", self.task)
+        self.assertIn("noise >= 1", self.task)
+
+    def test_measure_shield_and_journal(self):
+        self.assertLess(self.measure.index("local test = AITestMode();"),
+                        self.measure.index("AITown.PerformTownAction"))
+        self.assertLess(self.measure.index("local account = AIAccounting();"),
+                        self.measure.index("local test = AITestMode();"))
+        self.assertLess(self.buy.index("OpexV250MeasureRightsCost(townId)"),
+                        self.buy.index("local bought = AITown.PerformTownAction"))
+        for line in self.task.splitlines():
+            if "OpexDecide(" in line:
+                self.assertIn("DECISION_LOG", line, line)
+        self.assertIn(
+            'OpexDecide("V250_RIGHTS", "town=" + townId + " cost=" + cost + " mode=" + mode + " pop=" + pop + " noise=" + noise)',
+            self.buy)
+        self.assertIn(
+            'OpexDecide("V250_WATCH", "town=" + townId + " noise=" + noise + " own=" + own)',
+            self.task)
+        self.assertIn(
+            'OpexDecide("V250_SLOT_FREED", "town=" + townId + " date=" + date)',
+            self.task)
+
+    def test_no_saved_state_at_default(self):
+        self.assertTrue(self.save)
+        self.assertLess(self.save.index("if (V250_RIGHTS == 0 || saveObj == null || ai == null) return;"),
+                        self.save.index("v250Targets"))
+        persist = self.sources["persist.nut"]
+        self.assertEqual(persist.count("OpexSaveV250("), 3)
+        self.assertIn("if (V250_RIGHTS != 0)", persist)
+        self.assertNotIn('GetSetting("v250_rights")', persist)
+        self.assertIn("_v250Month = -1;", self.sources["main.nut"])
+        self.assertNotIn("_v250Month", persist)
+
+
+if __name__ == "__main__":
+    unittest.main()

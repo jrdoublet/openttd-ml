@@ -115,6 +115,9 @@ function OpexLoadSettings()
   local v190Max = AIController.GetSetting("v190_rail_max_trains");
   V190_RAIL_MAX_TRAINS = (v190Max != null && v190Max >= 2 && v190Max <= 8) ? v190Max : 4;
   V249_STATUE = AIController.GetSetting("v249_statue") == 1;
+  local rights = AIController.GetSetting("v250_rights");
+  if (rights == null || rights < 0 || rights > 2) rights = 0;
+  V250_RIGHTS = rights;
 
   // V246 : paquets adoptes figes ; les interrupteurs de mode restent actifs.
   ROAD_BUILD_ENABLED = MODE_ROAD;

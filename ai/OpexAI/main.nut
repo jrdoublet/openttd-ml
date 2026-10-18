@@ -208,6 +208,10 @@ class OpexAI extends AIController {
   _lastRepayMonth = -1;
   /* V249 : mois du dernier passage statue. Memoire de cadence, pas un etat de partie. */
   _v249StatueMonth = -1;
+  /* V250 : cadence mensuelle, villes du mode test, villes dont le creneau a deja ete journalise. */
+  _v250Month = -1;
+  _v250Targets = {};
+  _v250Freed = {};
   /* V89 : débit de recherche A* rail opportuniste et instrumentation passive */
   _v89EstimatedSliceOps = 2000;
   _v89LastDay = -1;
@@ -306,6 +310,9 @@ class OpexAI extends AIController {
   _reloadC83PreemptStopped = null;
   _reloadC83PreemptQueued = null;
   _reloadC83PreemptRace = null;
+  /* V250 : appliques par _reconcileAfterLoad seulement si le reglage est arme. */
+  _reloadV250Targets = null;
+  _reloadV250Freed = null;
   /* Retraites C52 unitaires, consommees par la tache de rebut dediee. */
   _vehiclesToRetire = null;
   /* C52 #4 : suivi des annees consecutives de deficit par vehicule */
@@ -535,6 +542,7 @@ class OpexAI extends AIController {
   function _dispatchRefleet(task, year);
   function _dispatchRepay(task, year);
   function _dispatchV249Statue(task, year);
+  function _dispatchV250Rights(task, year);
   function _c76RecordRegen(kind, ops, days, year, reason = "unknown");
   function _c76RecordAvoided(year);
   function _c76RotateFreight(year);
@@ -632,6 +640,7 @@ require("task_road.nut");
 require("task_terrain.nut");
 require("task_water.nut");
 require("task_v249.nut");
+require("task_v250.nut");
 require("selftests.nut");
 
 function OpexAI::Start()
@@ -645,6 +654,7 @@ function OpexAI::Start()
   /* Apres les phases V147 : un index insere avant elles decalerait taskCursor. */
   if (this._taskQueue != null) {
     this._taskQueue.append({ name = "v249_statue", dueCycle = 0, enabled = V249_STATUE });
+    this._taskQueue.append({ name = "v250_rights", dueCycle = 0, enabled = V250_RIGHTS == 2 || (V250_RIGHTS == 1 && OPEX_DIFFICULTY >= 2) });
   }
 
   if (!STAGED_BOOTSTRAP) this._generationStage = OPEX_STAGE_COMPLETE;
