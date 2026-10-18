@@ -135,6 +135,8 @@ function OpexLoadSettings()
   /* V250 entiere reservee au niveau 3 (personnalise) : geste anticoncurrentiel. */
   if (!OpexLevelAllows("v250_rights")) rights = 0;
   V250_RIGHTS = rights;
+  local v259Renew = AIController.GetSetting("v259_bridge_renew");
+  V259_BRIDGE_RENEW = (v259Renew != null && v259Renew == 1) ? 1 : 0;
 
   // V246 : paquets adoptes figes ; les interrupteurs de mode restent actifs.
   ROAD_BUILD_ENABLED = MODE_ROAD;

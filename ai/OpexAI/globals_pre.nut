@@ -104,6 +104,8 @@ V250_RIGHTS <- 0;
 /* Meme signal que V249, mais reserve au mode 1. Le mode 2 ne le lit pas.
  * Vrai au depart : le premier mois de mode 1 ne compte pas. Pas sauvegarde. */
 V250_CASH_STOP <- true;
+/* V259 : renouvellement des ponts plus rapides (task_v259.nut). */
+V259_BRIDGE_RENEW <- 0;
 V172_RAIL_LONG_WEIGHT_DIST <- 100;
 /* Cascade pax par distance decroissante : air seul, air+rail, rail seul,
  * route seule. Le fret accompagne la premiere passe. */
