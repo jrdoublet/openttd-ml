@@ -140,8 +140,9 @@ class V233eContracts(unittest.TestCase):
         check = ebody('OpexV233eDestinationCargoOk')
         for item in ('AIIndustry.IsValidIndustry(industry)', 'AIIndustry.GetLocation(industry) != candidate.dst',
                      'GetAcceptedCargo', 'AITileList_IndustryAccepting(industry, coverage)',
-                     'AITileList_StationType(p.stationId, AIStation.STATION_ANY)'):
+                     'AITileList_StationType(p.stationId, AIStation.STATION_TRAIN)'):
             self.assertIn(item, check)
+        self.assertNotIn('AIStation.STATION_ANY', check)
         validate = body('task_rail.nut', 'function OpexV131PlatformCargoOk(')
         self.assertIn('V233_GOODS_POLICY == 3 && !OpexV233eDestinationCargoOk', validate)
         self.assertIn('OpexV233AcceptingStation(p.stationId', validate)

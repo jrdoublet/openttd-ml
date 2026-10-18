@@ -28,6 +28,7 @@
     "AIStation.GetNearestTown",
     "AIStation.STATION_ANY",
     "AIStation.STATION_NEW",
+    "AIStation.STATION_TRAIN",
     "AITile.GetSlope",
     "AITile.IsBuildable",
     "AITile.SLOPE_FLAT",

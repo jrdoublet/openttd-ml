@@ -116,7 +116,8 @@ function OpexV233eCandidateLive(ai, candidate)
 }
 
 /* Require the named industry, rather than aggregate acceptance from a neighbour.
- * For a joined station its existing facilities may provide the catchment. */
+ * For a joined station existing RAIL facilities may provide the catchment.
+ * Other station types have different radii: never apply rail coverage to them. */
 function OpexV233eDestinationCargoOk(p, candidate, coverage)
 {
   if (candidate.dstTown >= 0) return true; // ordinary full-rectangle/station guard below
@@ -128,7 +129,7 @@ function OpexV233eDestinationCargoOk(p, candidate, coverage)
   for (local i = 0; i < p.length; i++)
     if (catchment.HasItem(p.anchor + p.step * i)) return true;
   if ("stationId" in p) {
-    local tiles = AITileList_StationType(p.stationId, AIStation.STATION_ANY);
+    local tiles = AITileList_StationType(p.stationId, AIStation.STATION_TRAIN);
     for (local tile = tiles.Begin(); !tiles.IsEnd(); tile = tiles.Next())
       if (catchment.HasItem(tile)) return true;
   }
@@ -255,9 +256,8 @@ function OpexV233ePlatformPlans(catalog, candidate, statsA, statsB)
           if (candidate.dstTown >= 0 && AIStation.GetNearestTown(station) != candidate.dstTown) continue;
           local tile = AIStation.GetLocation(station);
           if (!OpexV233AcceptingStation(station, tile, candidate.cargo)) continue;
-          // Industry joins must reach that industry's catchment, not a distant outlet.
-          local identity = { anchor = tile, step = 0, length = 1, stationId = station };
-          if (!OpexV233eDestinationCargoOk(identity, candidate, catalog.railCoverage)) continue;
+          // The prospective rail footprint below must reach the named industry.
+          // A road-only station can therefore acquire its first output rail quay.
           plansB = OpexV233eStationPlans(tile, length, candidate.cargo, catalog.railCoverage,
             statsB, station, -1, candidate);
           if (plansB.len() > 0) break;
