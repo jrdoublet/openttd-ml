@@ -11,6 +11,19 @@ RVA_EVAL_SERIAL <- 0;
 RVA_EVAL_OPS <- 0;
 RVA_EVAL_PEAK <- 0;
 
+function OpexRvaResetTransient()
+{
+  RVA_EVAL_WORK = null;
+  RVA_EVAL_SERIAL = 0;
+  RVA_EVAL_OPS = 0;
+  RVA_EVAL_PEAK = 0;
+  RVA_CYCLE_STATE = null;
+  RVA_CYCLE_OPS = 0;
+  RVA_CYCLE_CALLS = 0;
+  RVA_CYCLE_SKIPS = 0;
+  RVA_CYCLE_MODEL_OPS = 0;
+}
+
 function OpexRvaProjectKey(c)
 {
   return "rail|" + c.src + "|" + c.dst + "|" + c.cargo + "|" + c.kind;

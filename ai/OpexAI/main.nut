@@ -689,6 +689,7 @@ function OpexAI::Start()
   this._startTick = AIController.GetTick();
 
   OpexLoadSettings();
+  if (RVA_CYCLE_PROBE) OpexRvaResetTransient();
   OpexV147ExtendQueue(this);
   this._v184InitRailSlots();
   /* Apres les phases V147 : un index insere avant elles decalerait taskCursor. */
