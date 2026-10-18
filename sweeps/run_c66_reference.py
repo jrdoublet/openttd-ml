@@ -84,6 +84,8 @@ def probes_need_script_debug(probes: int) -> bool:
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--campaign", required=True)
+    parser.add_argument("--rva-profile", type=Path,
+                        help="Profil JSON local, chemins relatifs au profil, sous le dépôt monté")
     parser.add_argument("--image", default="openttd-lab:latest")
     parser.add_argument("--mount-root", type=Path, help="Shared ancestor containing this worktree; default is the worktree itself")
     parser.add_argument("--container-name", help="Nom optionnel pour nettoyage borné par l'orchestrateur")
@@ -203,6 +205,18 @@ def main():
                 parser.error("--min-useful-primary-delta-pct doit etre >= 0")
 
     mount_root, container_workdir = docker_workspace(args.mount_root)
+    profile_relative = None
+    if args.rva_profile is not None:
+        try:
+            try:
+                from sweeps.rva_profile import load_profile
+            except ImportError:
+                from rva_profile import load_profile
+            profile_path = (ROOT / args.rva_profile).resolve()
+            load_profile(profile_path, ROOT)
+            profile_relative = profile_path.relative_to(ROOT)
+        except (ValueError, OSError) as exc:
+            parser.error(str(exc))
 
     git_sha = _output(["git", "rev-parse", "HEAD"])
     git_status = _output(["git", "status", "--porcelain=v1", "--untracked-files=all"])
@@ -215,6 +229,8 @@ def main():
         "--campaign", args.campaign,
         "--policy-id", args.policy_id,
     ]
+    if profile_relative is not None:
+        benchmark += ["--rva-profile", str(profile_relative)]
     if args.years is not None:
         benchmark += ["--years", str(args.years)]
     if args.seeds is not None:

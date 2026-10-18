@@ -144,6 +144,7 @@ LIBRARY_SPECS = (
 )
 
 CAMPAIGN_HARNESS_FILES = (
+    "sweeps/rva_profile.py",
     "sweeps/savegame_archive.py",
     "sweeps/rail_budget_signs.py",
     "sweeps/station_supply.py",
@@ -2182,6 +2183,8 @@ def main():
     parser.add_argument("--repeats", type=int, default=1)
     parser.add_argument("--max-workers", type=int, default=3)
     parser.add_argument("--campaign", help="Identifiant C66.3 nouveau ; derive de --out ou horodate si omis")
+    parser.add_argument("--rva-profile", type=Path,
+                        help="Profil JSON local configuration/NewGRF, ressources obligatoires et gelées")
     parser.add_argument("--policy-id", default="reference", help="Identifiant de la politique OpexAI testee")
     parser.add_argument("--reference", help="C66.4 : politique de reference explicite, ex. OpexAI[c76_freight_rotation=0]")
     parser.add_argument("--variant", help="C66.4 : ex. OpexAI[c76_freight_rotation=1]")
@@ -2361,6 +2364,7 @@ def main():
         starting_year=args.start_year,
         map_size=args.map_size,
         config_text=cfg,
+        simulation_profile=args.rva_profile,
         opex_explicit_settings=tuple(reference_settings),
         aaahogex_explicit_settings=aaahogex_explicit_settings,
         library_specs=LIBRARY_SPECS,
@@ -2462,6 +2466,13 @@ def execute_frozen_campaign(campaign):
     enable_engine_failure_capture(timeout_sec=args.engine_timeout)
     enable_savegame_cleanup(getattr(args, "retain_savegames", None))
 
+    profile = campaign.manifest.get("simulation_profile")
+    libraries = campaign.ai_libraries
+    if profile and profile["resources"]:
+        from rva_profile import resource_descriptor, resource_directory_wrapper
+        libraries = tuple(libraries) + (resource_descriptor(campaign.bundle_dir, profile["resources"]),)
+        openttdlab._run_experiment = resource_directory_wrapper(openttdlab._run_experiment)
+
     start_year = getattr(args, "start_year", getattr(args, "starting_year", STARTING_YEAR))
     map_size = getattr(args, "map_size", 8)
 
@@ -2501,7 +2512,7 @@ def execute_frozen_campaign(campaign):
         max_workers=args.max_workers,
         result_processor=keep,
         experiments=exps,
-        ai_libraries=campaign.ai_libraries,
+        ai_libraries=libraries,
     ))
 
     last_year = expected_last_year(start_year, args.years)

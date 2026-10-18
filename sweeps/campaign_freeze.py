@@ -438,6 +438,7 @@ def prepare_frozen_campaign(
     intervention_settings=(),
     decision_rule=None,
     execution_options=None,
+    simulation_profile=None,
 ) -> FrozenCampaign:
     """Create every immutable campaign input before the first OpenTTD process starts."""
     root = Path(root).resolve()
@@ -449,6 +450,13 @@ def prepare_frozen_campaign(
     if repeats < 1:
         raise ValueError("repeats doit etre >= 1")
     validate_simulation_bounds(starting_year, map_size)
+    profile = None
+    if simulation_profile is not None:
+        try:
+            from sweeps.rva_profile import load_profile
+        except ImportError:
+            from rva_profile import load_profile
+        profile = load_profile(simulation_profile, root)
 
     manifest_path = out_path.with_suffix(".manifest.json")
     checkpoint_path = out_path.with_suffix(".jsonl")
@@ -478,6 +486,15 @@ def prepare_frozen_campaign(
     libraries_dir = bundle_dir / "ai_libraries"
     ai_libraries, library_manifest = freeze_bananas_libraries(library_specs, libraries_dir)
     libraries_fingerprint = fingerprint_tree(libraries_dir)
+
+    profile_manifest = None
+    if profile is not None:
+        try:
+            from sweeps.rva_profile import freeze_profile
+        except ImportError:
+            from rva_profile import freeze_profile
+        config_text, profile_manifest = freeze_profile(
+            profile, bundle_dir / "simulation_profile", config_text)
 
     bundle_fingerprint = fingerprint_tree(bundle_dir)
     if policy_definitions is None:
@@ -621,6 +638,7 @@ def prepare_frozen_campaign(
             "ai_libraries": libraries_fingerprint,
         },
         "libraries": library_manifest,
+        "simulation_profile": profile_manifest,
         "source_bundle": {
             "path": str(bundle_dir),
             "sha256": bundle_fingerprint["sha256"],
