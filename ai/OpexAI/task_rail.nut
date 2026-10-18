@@ -1129,6 +1129,7 @@ function OpexAI::_recordRailAttempt(candidate, result, posPacked, year)
                + " weight=" + (("searchWeight" in candidate) ? candidate.searchWeight : (V91_ASTAR_WEIGHT_PCT)));
     if (result.ok) {
       local cargoStr = AICargo.GetCargoLabel(candidate.cargo);
+      if (RVA_CYCLE_PROBE) OpexRvaCycleModel(this._nextLineId, candidate, result);
       OpexDecide("RAIL_BUILD", "line=" + this._nextLineId + " src=" + candidate.src + " dst=" + candidate.dst
                  + " cargo=" + cargoStr + " dist=" + candidate.distance
                  + " reuse=" + ((("originServed" in candidate) && candidate.originServed) ? 1 : 0)

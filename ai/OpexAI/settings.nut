@@ -1,8 +1,8 @@
 /* V167 : un seul reglage entier `probes` pilote panneaux, journal et sondes (somme de bits).
- *   1 = tout : panneaux, journal et groupes 8 a 128 (pas les verifications 256)
+ *   1 = tout : panneaux, journal et groupes 8 a 128 (pas la sonde RVA 256)
  *   2 = panneaux (avec veto de debug_signs=0)   4 = journal de decision
  *   8 = opcodes et ordonnanceur   16 = AIR   32 = rail   64 = route, eau et couts
- *   128 = evenements et portefeuille   256 = verifications par double calcul
+ *   128 = evenements et portefeuille   256 = cycle rail voyageurs passif (RVA)
  * Tout groupe de sondes active aussi le journal. Les anciens reglages individuels restent lus :
  * une sonde est active si son groupe l'est OU si son reglage propre est non nul. Seules les
  * sondes sans effet sur les decisions sont groupees. */
@@ -67,6 +67,7 @@ function OpexLoadSettings()
   if (probes < 0) probes = 2;
   if ((probes & 1) != 0) probes = probes | 254;
   OPEX_PROBE_MASK = probes;
+  RVA_CYCLE_PROBE = (probes & 256) != 0;
   DEBUG_SIGNS = (probes & 2) != 0
       && AIController.GetSetting("debug_signs") != 0;
   DECISION_LOG = (probes & 508) != 0

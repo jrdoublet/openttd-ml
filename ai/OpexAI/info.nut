@@ -29,7 +29,7 @@ class OpexAIInfo extends AIInfo {
      * Defaut 2 = panneaux seuls, le comportement historique. */
     AddSetting({
       name = "probes",
-      description = "Diagnostics bitmask: 0 none, 1 everything except 256 (signs, log, groups 8-128), 2 signs (default), 4 decision log, 8 opcodes/scheduler, 16 air, 32 rail, 64 road/water/costs, 128 events/portfolio (256 reserved, checks removed in V239); any probe group also enables the log; never changes decisions",
+      description = "Diagnostics bitmask: 0 none, 1 everything except 256 (signs, log, groups 8-128), 2 signs (default), 4 decision log, 8 opcodes/scheduler, 16 air, 32 rail, 64 road/water/costs, 128 events/portfolio, 256 passive passenger rail cycle (RVA); any probe group also enables the log; never changes decisions",
       min_value = 0, max_value = 511,
       easy_value = 2, medium_value = 2, hard_value = 2,
       custom_value = 2,

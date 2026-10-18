@@ -1,0 +1,13 @@
+[engine] OPEX 1970-1-1 RVA_BEGIN v=1 clock=controller_ticks date_clock=calendar_days timekeeping=0 model_ticks_day=74 model_days_month=30 length_unit=1/16_tile reset=load_or_start
+[engine] OPEX 1970-1-1 RVA_MODEL v=1 line=7 model_date=100 a=11 b=22 one_way_days=1 trips_month=15 headway_days=2 income_days=1 per_train=40 trains=1 monthly_capacity=600 dwell_model_days=1 per_train2=20 cargo=0 cargo2=2 dwell_pct=100
+OPEX 1970-1-1 RVA_SAMPLE v=1 seq=1 line=7 vehicle=19 build_date=100 tick=0 date=100 phase=A a=11 b=22 engine=5 age_days=1 length_16tile=24 parts=2 part=0 part_engine=5 cargo=0 cap=40 load=30 cargo2=2 cap2=20 load2=10
+OPEX 1970-1-1 RVA_SAMPLE v=1 seq=2 line=7 vehicle=19 build_date=100 tick=74 date=101 phase=R a=11 b=22 engine=5 age_days=2 length_16tile=24 parts=2 part=1 part_engine=8 cargo=0 cap=40 load=30 cargo2=2 cap2=20 load2=10
+OPEX 1970-1-1 RVA_SAMPLE v=1 seq=3 line=7 vehicle=19 build_date=100 tick=148 date=102 phase=B a=11 b=22 engine=5 age_days=3 length_16tile=24 parts=2 part=0 part_engine=5 cargo=0 cap=40 load=10 cargo2=2 cap2=20 load2=4
+OPEX 1970-1-1 RVA_SAMPLE v=1 seq=4 line=7 vehicle=19 build_date=100 tick=222 date=103 phase=B a=11 b=22 engine=5 age_days=4 length_16tile=24 parts=2 part=1 part_engine=8 cargo=0 cap=40 load=35 cargo2=2 cap2=20 load2=15
+OPEX 1970-1-1 RVA_SAMPLE v=1 seq=5 line=7 vehicle=19 build_date=100 tick=296 date=104 phase=R a=11 b=22 engine=5 age_days=5 length_16tile=24 parts=2 part=0 part_engine=5 cargo=0 cap=40 load=35 cargo2=2 cap2=20 load2=15
+OPEX 1970-1-1 RVA_SAMPLE v=1 seq=6 line=7 vehicle=19 build_date=100 tick=370 date=105 phase=A a=11 b=22 engine=5 age_days=6 length_16tile=24 parts=2 part=1 part_engine=8 cargo=0 cap=40 load=5 cargo2=2 cap2=20 load2=3
+OPEX 1970-1-1 RVA_SAMPLE v=1 seq=7 line=7 vehicle=19 build_date=100 tick=444 date=106 phase=A a=11 b=22 engine=5 age_days=7 length_16tile=24 parts=2 part=0 part_engine=5 cargo=0 cap=40 load=32 cargo2=2 cap2=20 load2=12
+OPEX 1970-1-1 RVA_SAMPLE v=1 seq=8 line=7 vehicle=19 build_date=100 tick=518 date=107 phase=R a=11 b=22 engine=5 age_days=8 length_16tile=24 parts=2 part=1 part_engine=8 cargo=0 cap=40 load=32 cargo2=2 cap2=20 load2=12
+OPEX 1970-1-1 RVA_COST seq=1 ops_prefix=610 previous_total=na
+OPEX 1970-1-1 RVA_COST seq=2 ops_prefix=530 previous_total=790
+OPEX 1970-1-1 RVA_MODEL_COST line=7 ops_prefix=410
