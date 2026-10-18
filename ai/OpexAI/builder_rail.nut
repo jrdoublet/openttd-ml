@@ -3275,10 +3275,32 @@ function OpexQuoteRailCapital(catalog, candidate, plan, failure = null)
   return realInfra + depotCost + vehicleCost;
 }
 
+/* V262 T12/T29 : plafond du mode, une lecture par chantier (pas par tuile).
+ * Caps : game_settings.ini:245-291 (defauts 500/500/200/300, bancs 500).
+ * GetFreeUnitNumber refuse si group_all[type].num_vehicle >= max (vehicle.cpp:1876-1891).
+ * GetNumVehicles compte les primaires (group_cmd.cpp:139, IsPrimaryVehicle).
+ * IsDisabledVehicleType lit ai.ai_disable_veh_* (script_gamesettings.cpp:49-55). */
+function OpexVehicleSlotAvailable(vehicleType, planned)
+{
+  if (planned == null || planned < 1) planned = 1;
+  if (AIGameSettings.IsDisabledVehicleType(vehicleType)) return false;
+  local setting = "vehicle.max_trains";
+  if (vehicleType == AIVehicle.VT_ROAD) setting = "vehicle.max_roadveh";
+  else if (vehicleType == AIVehicle.VT_AIR) setting = "vehicle.max_aircraft";
+  else if (vehicleType == AIVehicle.VT_WATER) setting = "vehicle.max_ships";
+  else if (vehicleType != AIVehicle.VT_RAIL) return true;
+  if (!AIGameSettings.IsValid(setting)) return true;
+  local cap = AIGameSettings.GetValue(setting);
+  local used = AIGroup.GetNumVehicles(AIGroup.GROUP_ALL, vehicleType);
+  if (planned > 1) return used + planned <= cap;
+  return used < cap;
+}
+
 /* M4/16.2 : ne jamais engager d'infrastructure si OpenTTD n'a plus aucun slot train.
  * Ce test est volontairement duplique au plus pres de la transaction : task_rail l'utilise avant
  * de lancer l'A*, mais une recherche reprenable peut terminer plusieurs ticks plus tard, apres
- * qu'un autre chemin a consomme le dernier slot. */
+ * qu'un autre chemin a consomme le dernier slot. Corps inchange : les appels rail existants
+ * gardent le predicat `used < cap` et les opcodes du chemin historique. */
 function OpexRailVehicleSlotAvailable()
 {
   local setting = "vehicle.max_trains";

@@ -536,6 +536,14 @@ function OpexBuildWaterRoute(catalog, budget, plan)
     return OpexWaterStampCost(result, costs);
   }
 
+  /* V262 T12 : revérifier le plafond navires juste avant la premiere depense. Une ligne eau
+   * n'achete qu'un navire (OpexBuildWaterRoute / OpexTensionProjectVehicleCount). */
+  if (!OpexVehicleSlotAvailable(AIVehicle.VT_WATER, 1)) {
+    result.reason = "NOSLOT";
+    OpexDecide("VEHICLE_SLOT", "mode=water planned=1 reason=NOSLOT");
+    return OpexWaterStampCost(result, costs);
+  }
+
   budget.begin();
   OpexAir0310InvalidateSiteValidity();
   local okA = AIMarine.BuildDock(plan.siteA.dock, AIStation.STATION_NEW);

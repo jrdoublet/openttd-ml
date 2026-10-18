@@ -707,6 +707,14 @@ function OpexBuildRoadRoute(catalog, budget, plan, candidate)
     }
   }
 
+  /* V262 T12 : revérifier le plafond route juste avant la premiere depense. */
+  local plannedRoad = (("trains" in candidate) && candidate.trains > 0) ? candidate.trains : 1;
+  if (!OpexVehicleSlotAvailable(AIVehicle.VT_ROAD, plannedRoad)) {
+    result.reason = "NOSLOT";
+    OpexDecide("VEHICLE_SLOT", "mode=road planned=" + plannedRoad + " reason=NOSLOT");
+    return result;
+  }
+
   budget.begin();
   OpexAir0310InvalidateSiteValidity();
   if (!OpexRoadBuildTrace(plan.trace, added)) {
