@@ -313,6 +313,12 @@ function OpexAI::_runNextTask()
     if (spTask != null) OpexSpanEnd(spTask);
     return ranTask;
   }
+  if (task.name == "v250_rights") {
+    spTask = PROBE_SPAN_TRACE ? OpexSpanBegin("task.v250_rights") : null;
+    ranTask = this._dispatchV250Rights(task, year);
+    if (spTask != null) OpexSpanEnd(spTask);
+    return ranTask;
+  }
   AILog.Error("Unknown scheduler task name: " + task.name);
   task.enabled = false;
   if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);

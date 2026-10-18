@@ -52,6 +52,28 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
+    /* OpenTTD 15.3 n'applique plus easy/medium/hard/custom (script_info.cpp :
+     * easy/hard/custom ignores, medium seulement en repli de default_value) et
+     * script.settings_profile n'existe plus. Les quatre valeurs restent donc
+     * egales a 3 (personnalise) : le harnais, qui ne passe un reglage que s'il
+     * differe de custom_value, n'allonge pas la ligne [ai_players]. flags = 8
+     * est le bit developpeur (ai/ai_info.cpp) : cache hors outils de debug. */
+    AddSetting({
+      name = "opex_difficulty",
+      description = "Technical level read once into OPEX_DIFFICULTY: 0 easy, 1 medium, 2 hard, 3 custom (default). OpenTTD 15.3 ignores the per-level values and no longer has script.settings_profile, so every level stays at 3 and benches do not pass this setting. No decision reads it until a later feature is armed. Hidden unless AI developer tools are on.",
+      min_value = 0, max_value = 3,
+      easy_value = 3, medium_value = 3, hard_value = 3,
+      custom_value = 3, default_value = 3,
+      step_size = 1,
+      flags = 8
+    });
+    AddLabels("opex_difficulty", {
+      _0 = "easy",
+      _1 = "medium",
+      _2 = "hard",
+      _3 = "custom"
+    });
+
     /* --- 2. Sondes de diagnostic unifiees (9 groupes) --- */
 
     AddSetting({
@@ -634,6 +656,17 @@ class OpexAIInfo extends AIInfo {
       min_value = 0, max_value = 2,
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
+      step_size = 1,
+      flags = 0
+    });
+    /* Quatre niveaux a 0 : le banc qui ne passe pas le reglage reste identique.
+     * Mode 1 coupe en facile/moyen meme si la valeur est 1. Mode 2 ignore le niveau. */
+    AddSetting({
+      name = "v250_rights",
+      description = "V250 exclusive transport rights. 0 = off at easy, medium, hard and custom (default). 1 = normal policy, and only when OPEX_DIFFICULTY is hard (2) or custom (3): buy in the town where we and a rival share the most station catchment, and only when rich in the V249 sense (no loan, no project pass stopped for cash, cash after the purchase still covers the reserve and the most expensive listed project). Easy and medium keep mode 1 off even if this setting is 1. A later fair_play switch will also cut mode 1. 2 = test, not filtered by difficulty or wealth: in the no-noise two-airport regime, rebuy rights in the largest towns where GetAllowedNoise is 0 and we own no airport, while cash covers the cost plus the reserve, for at most as many towns as one year of rights (one purchase lasts 12 economy months) that cash can pay. A freed slot is only logged; the normal AIR pipeline takes it.",
+      min_value = 0, max_value = 2,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0, default_value = 0,
       step_size = 1,
       flags = 0
     });

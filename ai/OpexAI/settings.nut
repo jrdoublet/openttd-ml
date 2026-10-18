@@ -33,6 +33,24 @@ function OpexProbeSetting(name)
   return value;
 }
 
+/* Niveau 0..3. Sur OpenTTD <= 13.4, script.settings_profile (0 facile, 1 moyen,
+ * 2 difficile ; 3 personnalise existait hors menu) fait foi. Sur 14/15.3 le
+ * reglage a disparu : opex_difficulty, dont les quatre valeurs valent 3, est
+ * le niveau. Un banc qui ne le passe pas reste donc a personnalise. */
+function OpexResolveDifficulty()
+{
+  if (AIGameSettings.IsValid("script.settings_profile")) {
+    local profile = AIGameSettings.GetValue("script.settings_profile");
+    if (profile == null || profile < 0) return 0;
+    if (profile > 3) return 3;
+    return profile;
+  }
+  local value = AIController.GetSetting("opex_difficulty");
+  if (value == null || value < 0) return 3;
+  if (value > 3) return 3;
+  return value;
+}
+
 /* C65 passe 2 & regroupement macro-politiques : lecture unique des reglages.
  * Fonction libre : n'affecte que des globales. Les mutations d'instance
  * restent dans Start(), juste apres l'appel. */
@@ -49,6 +67,7 @@ function OpexLoadSettings()
       || AIController.GetSetting("decision_log") != 0;
   PORTFOLIO_LOG = DECISION_LOG;
   SAVE_FULL_STATE = AIController.GetSetting("save_full_state") != 0;
+  OPEX_DIFFICULTY = OpexResolveDifficulty();
 
 
   /* --- 2. Interrupteurs de mode et options rail --- */
@@ -98,6 +117,9 @@ function OpexLoadSettings()
   V249_STATUE = AIController.GetSetting("v249_statue") == 1;
   local v252Refresh = AIController.GetSetting("v252_air_engine_refresh");
   V252_AIR_ENGINE_REFRESH = (v252Refresh != null && v252Refresh >= 0 && v252Refresh <= 2) ? v252Refresh : 0;
+  local rights = AIController.GetSetting("v250_rights");
+  if (rights == null || rights < 0 || rights > 2) rights = 0;
+  V250_RIGHTS = rights;
 
   // V246 : paquets adoptes figes ; les interrupteurs de mode restent actifs.
   ROAD_BUILD_ENABLED = MODE_ROAD;

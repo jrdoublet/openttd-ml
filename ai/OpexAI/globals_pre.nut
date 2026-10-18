@@ -89,6 +89,9 @@ V216A_GHOST_DEMAND <- 0;
 V216F_DWELL_PCT <- 0;
 /* V249 : statue quand on est riche, sans seuil en livres (task_v249.nut). */
 V249_STATUE <- false;
+/* Niveau technique : 0 facile, 1 moyen, 2 difficile, 3 personnalise.
+ * Defaut 3. Aucune decision ne le lit tant qu'une fonctionnalite ne s'arme pas. */
+OPEX_DIFFICULTY <- 3;
 /* Vrai si une passe projets s'est arretee faute de caisse depuis le dernier
  * passage statue. Vrai au depart : le premier mois ne compte pas. Pas sauvegarde. */
 V249_CASH_STOP <- true;
@@ -98,6 +101,11 @@ V252_AIR_ENGINE_REFRESH <- 0;
 /* Vrai si une passe projets s'est arretee faute de caisse depuis le dernier
  * passage de rafraichissement aerien. Vrai au depart. Pas sauvegarde. */
 V252_CASH_STOP <- true;
+/* V250 : 0 inerte, 1 droits en ville disputee, 2 test de creneau aeroport. */
+V250_RIGHTS <- 0;
+/* Meme signal que V249, mais reserve au mode 1. Le mode 2 ne le lit pas.
+ * Vrai au depart : le premier mois de mode 1 ne compte pas. Pas sauvegarde. */
+V250_CASH_STOP <- true;
 V172_RAIL_LONG_WEIGHT_DIST <- 100;
 /* Cascade pax par distance decroissante : air seul, air+rail, rail seul,
  * route seule. Le fret accompagne la premiere passe. */
