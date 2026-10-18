@@ -718,6 +718,7 @@ function OpexAI::Start()
     OpexDecide("SETTINGS", "road_pax_voirie=" + true
                + " road_pax_overlap=" + true);
   }
+  OpexV251LogIndustryTypes();
   OpexAirResetSiteCache();
 
   /* 🔴 RENOUVELLEMENT AUTOMATIQUE (2026-08-29). Mesure : campagne 20 ans, graine 42 -- trois des
