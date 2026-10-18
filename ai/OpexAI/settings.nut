@@ -124,7 +124,7 @@ function OpexLoadSettings()
   local v252Refresh = AIController.GetSetting("v252_air_engine_refresh");
   V252_AIR_ENGINE_REFRESH = (v252Refresh != null && v252Refresh >= 0 && v252Refresh <= 2) ? v252Refresh : 0;
   local rights = AIController.GetSetting("v250_rights");
-  if (rights == null || rights < 0 || rights > 2) rights = 0;
+  if (rights == null || rights < 0 || rights > 3) rights = 0;
   V250_RIGHTS = rights;
 
   // V246 : paquets adoptes figes ; les interrupteurs de mode restent actifs.

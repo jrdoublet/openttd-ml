@@ -25,10 +25,10 @@ class TestV250Rights(unittest.TestCase):
         cls.task = cls.sources["task_v250.nut"]
         cls.dispatch = _body(cls.task, "function OpexAI::_dispatchV250Rights(task, year)")
         cls.measure = _body(cls.task, "function OpexV250MeasureRightsCost(townId)")
-        cls.buy = _body(cls.task, "function OpexV250BuyRights(ai, townId, mode, pop, reserve)")
+        cls.buy = _body(cls.task, "function OpexV250BuyRights(ai, townId, mode, pop, reserve, mark = 1)")
         cls.slots = _body(cls.task, "function OpexV250YearSlots(cash, reserve, cost)")
         cls.normal = _body(cls.task, "function OpexV250RunNormal(ai)")
-        cls.test = _body(cls.task, "function OpexV250RunTest(ai, date)")
+        cls.test = _body(cls.task, "function OpexV250RunTest(ai, date, allRival = false)")
         cls.save = _body(cls.sources["persist.nut"], "function OpexSaveV250(saveObj, ai)")
 
     def test_setting_default_zero_at_four_levels(self):
@@ -37,7 +37,7 @@ class TestV250Rights(unittest.TestCase):
         self.assertIsNotNone(block)
         body = block.group(1)
         self.assertIn("min_value = 0", body)
-        self.assertIn("max_value = 2", body)
+        self.assertIn("max_value = 3", body)
         self.assertIn("flags = 0", body)
         self.assertNotIn("AICONFIG_BOOLEAN", body)
         for level in ("easy_value", "medium_value", "hard_value", "custom_value", "default_value"):
@@ -71,7 +71,7 @@ class TestV250Rights(unittest.TestCase):
         start = self.sources["main.nut"]
         statue = 'this._taskQueue.append({ name = "v249_statue", dueCycle = 0, enabled = V249_STATUE });'
         rights = ('this._taskQueue.append({ name = "v250_rights", dueCycle = 0, '
-                  'enabled = V250_RIGHTS == 2 || (V250_RIGHTS == 1 && OPEX_DIFFICULTY >= 2) });')
+                  'enabled = V250_RIGHTS >= 2 || (V250_RIGHTS == 1 && OPEX_DIFFICULTY >= 2) });')
         self.assertLess(start.index(statue), start.index(rights))
         self.assertIn('task.name == "v250_rights"', self.sources["scheduler.nut"])
         self.assertIn("this._dispatchV250Rights(task, year)", self.sources["scheduler.nut"])
@@ -104,6 +104,13 @@ class TestV250Rights(unittest.TestCase):
         self.assertNotIn("BuildAirport", self.task)
         self.assertNotIn("AIAirport", self.task)
         self.assertIn("noise >= 1", self.task)
+
+    def test_mode3_all_rival_towns(self):
+        self.assertIn("local rival = 2 - noise - own;", self.test)
+        self.assertIn("if (rival <= 0) continue;", self.test)
+        self.assertIn("foreach (item in others) ordered.append(item);", self.test)
+        self.assertIn("OpexV250RunTest(this, date, V250_RIGHTS == 3)", self.dispatch)
+        self.assertIn("if (mark == 1) OpexV250WatchTown(ai, townId, date, ownCounts);", self.task)
 
     def test_measure_shield_and_journal(self):
         self.assertLess(self.measure.index("local test = AITestMode();"),

@@ -676,7 +676,7 @@ function OpexAI::Start()
   if (this._taskQueue != null) {
     this._taskQueue.append({ name = "v249_statue", dueCycle = 0, enabled = V249_STATUE });
     this._taskQueue.append({ name = "v252_air_engine_refresh", dueCycle = 0, enabled = V252_AIR_ENGINE_REFRESH == 2 });
-    this._taskQueue.append({ name = "v250_rights", dueCycle = 0, enabled = V250_RIGHTS == 2 || (V250_RIGHTS == 1 && OPEX_DIFFICULTY >= 2) });
+    this._taskQueue.append({ name = "v250_rights", dueCycle = 0, enabled = V250_RIGHTS >= 2 || (V250_RIGHTS == 1 && OPEX_DIFFICULTY >= 2) });
   }
 
   if (!STAGED_BOOTSTRAP) this._generationStage = OPEX_STAGE_COMPLETE;

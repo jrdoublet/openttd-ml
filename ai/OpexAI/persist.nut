@@ -416,7 +416,7 @@ function OpexSaveV250(saveObj, ai)
   if (V250_RIGHTS == 0 || saveObj == null || ai == null) return;
   local targets = {};
   if (ai._v250Targets != null) {
-    foreach (townId, mark in ai._v250Targets) targets.rawset(townId, 1);
+    foreach (townId, mark in ai._v250Targets) targets.rawset(townId, mark);
   }
   local freed = {};
   if (ai._v250Freed != null) {
@@ -834,7 +834,7 @@ function OpexAI::_reconcileAfterLoad()
   if (V250_RIGHTS != 0) {
     if (this._reloadV250Targets != null && typeof this._reloadV250Targets == "table") {
       this._v250Targets = {};
-      foreach (townId, mark in this._reloadV250Targets) this._v250Targets.rawset(townId, 1);
+      foreach (townId, mark in this._reloadV250Targets) this._v250Targets.rawset(townId, typeof mark == "integer" ? mark : 1);
     }
     if (this._reloadV250Freed != null && typeof this._reloadV250Freed == "table") {
       this._v250Freed = {};

@@ -101,7 +101,8 @@ V252_AIR_ENGINE_REFRESH <- 2;
 /* Vrai si une passe projets s'est arretee faute de caisse depuis le dernier
  * passage de rafraichissement aerien. Vrai au depart. Pas sauvegarde. */
 V252_CASH_STOP <- true;
-/* V250 : 0 inerte, 1 droits en ville disputee, 2 test de creneau aeroport. */
+/* V250 : 0 inerte, 1 droits en ville disputee, 2 test de creneau aeroport,
+ * 3 test elargi a toutes les villes ou un rival a un aeroport. */
 V250_RIGHTS <- 0;
 /* Meme signal que V249, mais reserve au mode 1. Le mode 2 ne le lit pas.
  * Vrai au depart : le premier mois de mode 1 ne compte pas. Pas sauvegarde. */

@@ -11,8 +11,14 @@
  * L'echeance est relue via IsActionAvailable (exclusive_counter != 0 refuse
  * l'achat, town_cmd.cpp). GetExclusiveRightsCompany / Duration existent en
  * API 15 mais le mode compagnie de la premiere rend une date sauvee inutile.
+ * 3 : test elargi. Les ordres d'AAA sont invisibles (AIVehicleList filtre sur
+ *     le proprietaire, script_vehiclelist.cpp) : on ne sait pas quelles villes
+ *     sont reliees a une ville saturee. On prend donc toutes les villes ou un
+ *     rival a un aeroport (2 - bruit - les notres > 0), saturees d'abord, pour
+ *     que les deux extremites des routes d'AAA ne chargent plus rien.
  * Un creneau libere (bruit >= 1, y compris un saut 0 -> 2) est seulement
- * journalise : C83 reagit deja a GetAllowedNoise == 1. */
+ * journalise : C83 reagit deja a GetAllowedNoise == 1. Seules les villes
+ * saturees a l'achat (marque 1) sont suivies ; marque 2 = ville non saturee. */
 
 /* Cout que PerformTownAction paierait. AITestMode n'achete rien.
  * AIAccounting imbriquee isole le cout simule du compteur de la compagnie. */
@@ -27,7 +33,7 @@ function OpexV250MeasureRightsCost(townId)
 }
 
 /* 1 achete, 0 indisponible ou refus, -1 caisse insuffisante (arreter la passe). */
-function OpexV250BuyRights(ai, townId, mode, pop, reserve)
+function OpexV250BuyRights(ai, townId, mode, pop, reserve, mark = 1)
 {
   if (!AITown.IsValidTown(townId)) return 0;
   if (!AITown.IsActionAvailable(townId, AITown.TOWN_ACTION_BUY_RIGHTS)) return 0;
@@ -38,7 +44,7 @@ function OpexV250BuyRights(ai, townId, mode, pop, reserve)
   if (cost <= 0 || cash - cost < need) return -1;
   local bought = AITown.PerformTownAction(townId, AITown.TOWN_ACTION_BUY_RIGHTS);
   if (!bought) return 0;
-  if (mode == 2 && ai._v250Targets != null) ai._v250Targets.rawset(townId, 1);
+  if (mode >= 2 && ai._v250Targets != null && !(townId in ai._v250Targets)) ai._v250Targets.rawset(townId, mark);
   local noise = AITown.GetAllowedNoise(townId);
   if (DECISION_LOG) OpexDecide("V250_RIGHTS", "town=" + townId + " cost=" + cost + " mode=" + mode + " pop=" + pop + " noise=" + noise);
   return 1;
@@ -100,7 +106,9 @@ function OpexV250WatchTown(ai, townId, date, ownCounts)
 function OpexV250Watch(ai, date, ownCounts)
 {
   if (ai._v250Targets == null) return;
-  foreach (townId, mark in ai._v250Targets) OpexV250WatchTown(ai, townId, date, ownCounts);
+  foreach (townId, mark in ai._v250Targets) {
+    if (mark == 1) OpexV250WatchTown(ai, townId, date, ownCounts);
+  }
 }
 
 /* Une passe : nos gares, puis les tuiles de desserte. Une gare rivale compte
@@ -161,20 +169,31 @@ function OpexV250RunNormal(ai)
   return true;
 }
 
-function OpexV250RunTest(ai, date)
+function OpexV250RunTest(ai, date, allRival = false)
 {
   local ownCounts = OpexAirOwnSlotTownCounts();
   OpexV250Watch(ai, date, ownCounts);
   if (!OpexAirC83SlotSignalEnabled()) return true;
 
   local ordered = [];
+  local others = [];
   local towns = AITownList();
   for (local townId = towns.Begin(); !towns.IsEnd(); townId = towns.Next()) {
-    if (AITown.GetAllowedNoise(townId) != 0) continue;
+    local noise = AITown.GetAllowedNoise(townId);
     local own = (townId in ownCounts) ? ownCounts[townId] : 0;
-    if (own != 0) continue;
-    OpexV250InsertByPop(ordered, townId, AITown.GetPopulation(townId));
+    if (!allRival) {
+      if (AITown.GetAllowedNoise(townId) != 0) continue;
+      if (own != 0) continue;
+      OpexV250InsertByPop(ordered, townId, AITown.GetPopulation(townId));
+      continue;
+    }
+    /* Mode 3 : aeroports rivaux = creneaux pris moins les notres. */
+    local rival = 2 - noise - own;
+    if (rival <= 0) continue;
+    if (noise == 0 && own == 0) OpexV250InsertByPop(ordered, townId, AITown.GetPopulation(townId));
+    else OpexV250InsertByPop(others, townId, AITown.GetPopulation(townId));
   }
+  foreach (item in others) ordered.append(item);
 
   local renew = [];
   if (ai._v250Targets != null) {
@@ -197,14 +216,16 @@ function OpexV250RunTest(ai, date)
     if (kept >= slots) break;
     kept++;
     if (!AITown.IsActionAvailable(item.id, AITown.TOWN_ACTION_BUY_RIGHTS)) continue;
-    if (OpexV250BuyRights(ai, item.id, 2, item.pop, reserve) < 0) break;
+    if (OpexV250BuyRights(ai, item.id, allRival ? 3 : 2, item.pop, reserve) < 0) break;
   }
   foreach (item in ordered) {
     if (OpexV250TargetCount(ai) >= slots) break;
     if (ai._v250Targets != null && (item.id in ai._v250Targets)) continue;
-    local bought = OpexV250BuyRights(ai, item.id, 2, item.pop, reserve);
+    local saturated = AITown.GetAllowedNoise(item.id) == 0
+        && !(item.id in ownCounts && ownCounts[item.id] > 0);
+    local bought = OpexV250BuyRights(ai, item.id, allRival ? 3 : 2, item.pop, reserve, saturated ? 1 : 2);
     if (bought < 0) break;
-    if (bought > 0) OpexV250WatchTown(ai, item.id, date, ownCounts);
+    if (bought > 0 && saturated) OpexV250WatchTown(ai, item.id, date, ownCounts);
   }
   return true;
 }
@@ -219,6 +240,6 @@ function OpexAI::_dispatchV250Rights(task, year)
   this._v250Month = ym;
   if (this._v250Targets == null) this._v250Targets = {};
   if (this._v250Freed == null) this._v250Freed = {};
-  if (V250_RIGHTS == 2) return OpexV250RunTest(this, date);
+  if (V250_RIGHTS >= 2) return OpexV250RunTest(this, date, V250_RIGHTS == 3);
   return OpexV250RunNormal(this);
 }
