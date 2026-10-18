@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Read one company's engine log, in order. No game calls or inferred deliveries.
 
-Durations are sampling intervals in controller ticks. Calendar/model residuals
+Durations use journal dates, never controller ticks. Calendar/model residuals
 are only covered for calendar timekeeping. A sampled rotation cannot rule out
 an entire unobserved rotation. Never merge different games/companies in one input.
 """
@@ -9,6 +9,7 @@ import argparse
 import json
 import re
 from pathlib import Path
+from rva_dry_cycle import from_snapshot
 
 EVENT = re.compile(r"\b(RVA_[A-Z_]+)\s+(.*)")
 FIELDS = re.compile(r"([\w.]+)=([^\s]+)")
@@ -40,9 +41,10 @@ def number(item):
 
 
 def analyze(lines):
-    output = {"schema": 1, "coverage": "not_covered", "sessions": 0,
+    output = {"schema": 2, "coverage": "not_covered", "sessions": 0,
               "samples": 0, "lines_observed": [], "vehicles": [], "transitions": [],
               "missing": [], "cycles": [], "contexts": [], "cargo_scopes": [], "sweeps": [],
+              "equipment": [],
               "cost": {"frames": [], "prefix_ops": [], "previous_total_ops": [],
                                                         "model_prefix_ops": []}}
     models, fleet = {}, {}
@@ -76,34 +78,43 @@ def analyze(lines):
                "composition_coverage": "sampled_complete" if len(track["parts"]) == sample["parts"]
                    else "not_covered", "length_16tile": sample["length_16tile"],
                "max_sample_gap_ticks": track["max_gap"], "residual_coverage": "not_covered", "residuals": None}
+        # Dates have one-day resolution. Include the whole final sample day;
+        # old logs lack date_end, so an intra-sample rollover is not covered.
+        dates = [edge["dates"] for edge in path]
+        if all(d is not None for d in dates):
+            for label, first, last in (("cycle", 0, 4), ("outbound", 0, 1),
+                                       ("dwell_b", 1, 2), ("return", 2, 3), ("dwell_a", 3, 4)):
+                row[label + "_days"] = duration(dates[first], dates[last])
+        row["date_precision_days"] = 1
+        row["sample_rollover_coverage"] = "covered" if all(e["date_end_known"] for e in path) else "not_covered"
         model = models.get(key[0])
         # A build snapshot is required; no reconstruction from rounded signs.
         valid = (model and number(model.get("trips_month")) and model["trips_month"] > 0
                  and number(model.get("one_way_days"))
-                 and context.get("timekeeping") == 0 and total[0] > 0
+                 and context.get("timekeeping") == 0 and row.get("cycle_days", [0])[0] > 0
                  and model.get("a") == sample.get("a") and model.get("b") == sample.get("b")
-                 and context.get("model_ticks_day", 0) > 0
                  and context.get("model_days_month", 0) > 0)
         if valid:
-            td, dm = context["model_ticks_day"], context["model_days_month"]
+            dm = context["model_days_month"]
+            total_days = row["cycle_days"]
             predicted_cycle = 2 * dm / model["trips_month"]
             residual = {"coverage": "sampled", "model_cycle_days": predicted_cycle,
                         "model_dwell_per_leg_days": dm / model["trips_month"] - model["one_way_days"],
                         "model_headway_days": model.get("headway_days"),
                         "model_income_days": model.get("income_days"),
-                        "cycle_delta_model_days": [t / td - predicted_cycle for t in total],
-                        "outbound_delta_model_days": [t / td - model["one_way_days"] for t in row["outbound_ticks"]],
-                        "return_delta_model_days": [t / td - model["one_way_days"] for t in row["return_ticks"]],
+                        "cycle_delta_model_days": [d - predicted_cycle for d in total_days],
+                        "outbound_delta_model_days": [d - model["one_way_days"] for d in row["outbound_days"]],
+                        "return_delta_model_days": [d - model["one_way_days"] for d in row["return_days"]],
                         "cargo": []}
             for end in ("a", "b"):
                 residual[f"dwell_{end}_delta_model_days"] = [
-                    t / td - residual["model_dwell_per_leg_days"] for t in row[f"dwell_{end}_ticks"]]
+                    d - residual["model_dwell_per_leg_days"] for d in row[f"dwell_{end}_days"]]
             for suffix, pred in (("", "per_train"), ("2", "per_train2")):
                 cap = sample.get("cap" + suffix)
                 loads = [path[i]["load" + suffix] for i in (0, 2)]
                 if cap is None:
                     continue
-                capacity_rate = [2 * cap * dm * td / total[i] for i in (1, 0)]
+                capacity_rate = [2 * cap * dm / total_days[i] for i in (1, 0)]
                 expected = model.get(pred)
                 if model.get("cargo" + suffix) != sample.get("cargo" + suffix):
                     expected = None
@@ -112,11 +123,12 @@ def analyze(lines):
                     "unit": "cargo_units_per_model_30day_month_per_train",
                     "capacity_rate": capacity_rate, "model_capacity_rate": expected,
                     "capacity_delta": [r - expected for r in capacity_rate] if expected is not None else None,
-                    "departing_payload_rate_proxy": [sum(loads) * dm * td / total[i] for i in (1, 0)]
+                    "departing_payload_rate_proxy": [sum(loads) * dm / total_days[i] for i in (1, 0)]
                         if all(load is not None for load in loads) else None,
                     "delivered_rate": None})
             row["residuals"] = residual
             row["residual_coverage"] = "sampled"
+            row["dry_cycle"] = from_snapshot(model)
         output["cycles"].append(row)
 
     for kind, row in records(lines):
@@ -132,6 +144,8 @@ def analyze(lines):
                 models[row["line"]] = row
         elif kind == "RVA_CARGOS":
             output["cargo_scopes"].append({"session": session, **row})
+        elif kind == "RVA_EQUIPMENT":
+            output["equipment"].append({"session": session, **row})
         elif kind == "RVA_SWEEP":
             output["sweeps"].append({"session": session, **row})
         elif kind in ("RVA_COST", "RVA_MODEL_COST"):
@@ -167,7 +181,9 @@ def analyze(lines):
                               ("build_date", "engine", "parts", "length_16tile", "cargo", "cap", "cargo2", "cap2", "a", "b"))
             track = fleet.get(key)
             if track and (track["signature"] != signature or row["tick"] <= track["last"]["tick"]
-                          or row.get("age_days", 0) < track["last"].get("age_days", 0)):
+                          or row.get("age_days", 0) < track["last"].get("age_days", 0)
+                          or (number(row.get("date")) and number(track["last"].get("date"))
+                              and row["date"] < track["last"]["date"])):
                 missing(key, "identity_composition_or_clock_changed")
                 track = None
             if track is None:
@@ -191,6 +207,11 @@ def analyze(lines):
                 edge = {"session": session, "line": key[0], "vehicle": key[1],
                         "from": pair[0], "to": pair[1], "ticks": [old["tick"], row.get("tick_end", row["tick"])],
                         "load": row.get("load"), "load2": row.get("load2")}
+                date_end = row.get("date_end", row.get("date"))
+                edge["dates"] = ([old["date"], date_end + 1]
+                    if number(old.get("date")) and number(row.get("date")) and number(date_end)
+                    and date_end >= row["date"] >= old["date"] else None)
+                edge["date_end_known"] = "date_end" in row and edge["dates"] is not None
                 output["transitions"].append(edge)
                 expected = [("R", "B"), ("B", "R"), ("R", "A"), ("A", "R")]
                 if track["path"]:

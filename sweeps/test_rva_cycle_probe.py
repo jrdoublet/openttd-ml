@@ -1,9 +1,11 @@
 """Passive probe contract and engine-log fixture; no OpenTTD execution."""
 from pathlib import Path
 import re
+import tempfile
 import unittest
 
 from analyze_rva_cycle import analyze
+from summarize_rva_cycle import summarize
 
 ROOT = Path(__file__).resolve().parents[1]
 AI = ROOT / "ai/OpexAI"
@@ -40,7 +42,7 @@ class ProbeContract(unittest.TestCase):
                    "AIVehicle.GetWagonEngineType", "AIVehicle.GetCapacity", "AIVehicle.GetCargoLoad",
                    "AICargo.HasCargoClass", "AIOrder.GetOrderDestination",
                    "AIController.GetTick", "AIController.GetOpsTillSuspend",
-                   "AIGameSettings.IsValid", "AIGameSettings.GetValue"}
+                   "AIGameSettings.IsValid", "AIGameSettings.GetValue", "AIRail.GetRailType"}
         self.assertLessEqual(calls, allowed)
         source = read("probe_rva_cycle.nut")
         self.assertNotRegex(source, r"\b(?:foreach|while|for)\s*\(")
@@ -74,9 +76,9 @@ class Reader(unittest.TestCase):
         self.assertEqual(row["dwell_b_ticks"], [74, 222])
         self.assertEqual(row["composition"], {0: 5, 1: 8})
         self.assertEqual(row["residuals"]["model_dwell_per_leg_days"], 1)
-        self.assertEqual(row["residuals"]["cycle_delta_model_days"], [1, 3])
+        self.assertEqual(row["residuals"]["cycle_delta_model_days"], [0, 4])
         primary, mail = row["residuals"]["cargo"]
-        self.assertEqual(primary["capacity_rate"], [80 * 30 / 7, 80 * 30 / 5])
+        self.assertEqual(primary["capacity_rate"], [80 * 30 / 8, 80 * 30 / 4])
         self.assertEqual(mail["model_capacity_rate"], 300)
         self.assertIsNone(mail["delivered_rate"])
         self.assertEqual(row["dwell_cause"], "unknown")
@@ -86,6 +88,31 @@ class Reader(unittest.TestCase):
         rows = FIXTURE.splitlines()
         before_begin = "\n".join([rows[1], rows[0]] + rows[2:])
         self.assertIsNotNone(self.run_log(before_begin)["cycles"][0]["residuals"])
+
+    def test_dates_are_independent_of_controller_tick_rate(self):
+        scaled = re.sub(r"tick=(\d+)", lambda m: "tick=" + str(int(m[1]) * 4), FIXTURE)
+        original = self.run_log()["cycles"][0]
+        changed = self.run_log(scaled)["cycles"][0]
+        self.assertEqual(original["residuals"], changed["residuals"])
+        self.assertEqual(original["cycle_days"], [4, 8])
+        self.assertIsNone(self.run_log(re.sub(r" date=\d+", "", FIXTURE))["cycles"][0]["residuals"])
+        rollover = FIXTURE.replace("date=107", "date=107 date_end=109")
+        self.assertEqual(self.run_log(rollover)["cycles"][0]["cycle_days"], [4, 10])
+        backwards = FIXTURE.replace("date=104", "date=99")
+        self.assertEqual(self.run_log(backwards)["cycles"], [])
+        invalid_end = FIXTURE.replace("date=107", "date=107 date_end=106")
+        self.assertIsNone(self.run_log(invalid_end)["cycles"][0]["residuals"])
+
+    def test_summary_keeps_games_separate_and_hashes_sources(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            paths = [Path(tmp) / name for name in ("seed42.log", "seed7.log")]
+            for path in paths:
+                path.write_text(FIXTURE, encoding="utf-8")
+            result = summarize(paths)
+            self.assertEqual(result["summary"]["cycles"], 2)
+            self.assertEqual(result["summary"]["ratio_median"], 1.5)
+            self.assertEqual(len(result["sources"][0]["sha256"]), 64)
+            self.assertEqual({r["source"] for r in result["cycles"]}, {p.name for p in paths})
 
     def test_empty_and_truncated_never_zero(self):
         result = self.run_log("")

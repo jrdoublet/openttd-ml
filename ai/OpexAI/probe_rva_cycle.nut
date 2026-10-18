@@ -26,6 +26,8 @@ function OpexRvaCycleModel(lineId, candidate, result)
       + " income_days=" + OpexCeilDiv(candidate.oneWayDays, 1)
       + " per_train=" + candidate.perTrain + " trains=" + candidate.trains
       + " monthly_capacity=" + candidate.monthlyCapacity
+      + " monthly=" + candidate.monthly + " monthly2=" + OpexRvaCycleValue(candidate, "monthly2")
+      + " wagons=" + candidate.wagons + " wagons2=" + OpexRvaCycleValue(candidate, "wagons2")
       + " dwell_model_days=" + (30.0 / candidate.tripsPerMonth - candidate.oneWayDays)
       + " per_train2=" + OpexRvaCycleValue(candidate, "perTrain2")
       + " cargo=" + candidate.cargo + " cargo2=" + OpexRvaCycleValue(candidate, "cargo2")
@@ -87,8 +89,23 @@ function OpexRvaCycleSample(lines, work)
       + " cap2=" + (cargo2 != null ? AIVehicle.GetCapacity(vehicle, cargo2) : "na")
       + " load2=" + (cargo2 != null ? AIVehicle.GetCargoLoad(vehicle, cargo2) : "na");
   fields += " order_tile=" + AIOrder.GetOrderDestination(vehicle, AIOrder.ORDER_CURRENT);
-  fields += " tick_end=" + AIController.GetTick();
+  fields += " date_end=" + AIDate.GetCurrentDate() + " tick_end=" + AIController.GetTick();
   OpexDecide("RVA_SAMPLE", fields);
+  // Un seul element par visite ; ne pas enumerer moteurs/cargos/voies ici.
+  if (wi >= 0) {
+    local equipment = OpexRvaEquipment(AIVehicle.GetWagonEngineType(vehicle, wi), cargo,
+        AIRail.GetRailType(line.stationA));
+    if (equipment != null) OpexDecide("RVA_EQUIPMENT", "seq=" + work.seq
+        + " line=" + line.lineId + " vehicle=" + vehicle + " part=" + wi
+        + " engine=" + equipment.engine + " cargo=" + equipment.cargo + " rail_type=" + equipment.railType
+        + " date=" + equipment.date + " buildable=" + equipment.buildable
+        + " wagon=" + equipment.wagon + " articulated=" + equipment.articulated
+        + " primary_cargo=" + equipment.primaryCargo + " can_refit=" + equipment.canRefit
+        + " nominal_main_capacity=" + equipment.nominalMainCapacity
+        + " capacity_status=" + equipment.capacityStatus + " runs=" + equipment.runs
+        + " powered=" + equipment.powered + " can_pull=" + equipment.canPullCargo
+        + " assembly=" + equipment.assemblyStatus + " loading=" + equipment.loadingStatus);
+  }
 }
 
 function OpexRvaCycleStep(lines)

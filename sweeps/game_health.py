@@ -129,8 +129,14 @@ def engine_failure_from_records(records):
     return None
 
 
-def engine_failure_row(experiment, output, *, kind, returncode=None, date="1970-01-01"):
+def engine_failure_row(experiment, output, *, kind, returncode=None, date=None):
     """Ligne brute openttdlab-like pour `keep()` après un crash ou un timeout."""
+    if date is None:
+        # Même en cas d'échec avant le premier checkpoint, conserver l'époque
+        # demandée. La configuration est aussi disponible dans les anciens plans.
+        cfg = (experiment or {}).get("openttd_config", "")
+        match = re.search(r"^\s*starting_year\s*=\s*(\d+)\s*$", cfg, re.M)
+        date = f"{int(match[1]) if match else 1970:04d}-01-01"
     return {
         "experiment": experiment or {},
         "date": date,
