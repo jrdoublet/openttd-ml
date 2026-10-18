@@ -1,0 +1,5092 @@
+{
+  "schema": 2,
+  "coverage": "descriptive_existing_logs_not_economic_qualification",
+  "method": "date intervals; final sample day included; midpoint summaries; correlated cycles, not independent seeds",
+  "sources": [
+    {
+      "path": "results/rva_cycle_railseul_3x3_20261018_engine/rva_cycle_rail_seed100_r0.log",
+      "sha256": "bd868ed56206aa7861f78f1214bebe4bf33b1e390e349060226dff5ea5d64b66",
+      "samples": 2278,
+      "cycles": 19
+    },
+    {
+      "path": "results/rva_cycle_railseul_3x3_20261018_engine/rva_cycle_rail_seed42_r0.log",
+      "sha256": "f4b2d4486cea22a21c200c23626a74c875dcb135881fae5c009c1cd31f5e47d1",
+      "samples": 865,
+      "cycles": 7
+    },
+    {
+      "path": "results/rva_cycle_railseul_3x3_20261018_engine/rva_cycle_rail_seed7_r0.log",
+      "sha256": "e0523935614fd27e58e069e48eb5bb625c730703dd4ec19ed3af7f4aa2c07340",
+      "samples": 172,
+      "cycles": 5
+    }
+  ],
+  "summary": {
+    "cycles": 31,
+    "residual_covered_cycles": 31,
+    "ratio_median": 1.0182336116666668,
+    "ratio_quartiles_inclusive": [
+      0.9816065033333334,
+      1.0182336116666668,
+      1.1671056954166668
+    ],
+    "dwell_endpoint_median_midpoint_days": 11.0,
+    "dwell_endpoint_median_bounds_days": [
+      4.0,
+      20.0
+    ],
+    "model_dwell_endpoint_median_days": 8.648648993929882,
+    "cycle_median_midpoint_days": 76.5,
+    "model_cycle_median_days": 71.46560592649976
+  },
+  "cycles": [
+    {
+      "source": "rva_cycle_rail_seed100_r0.log",
+      "session": 1,
+      "line": 1,
+      "vehicle": 13,
+      "coverage": "sampled_complete",
+      "exhaustive_coverage": "not_covered",
+      "cycle_ticks": [
+        1448,
+        1656
+      ],
+      "outbound_ticks": [
+        386,
+        595
+      ],
+      "dwell_b_ticks": [
+        478,
+        491
+      ],
+      "return_ticks": [
+        407,
+        420
+      ],
+      "dwell_a_ticks": [
+        157,
+        170
+      ],
+      "dwell_cause": "unknown",
+      "composition": {
+        "2": 28,
+        "3": 27,
+        "4": 27,
+        "0": 23,
+        "1": 28
+      },
+      "composition_coverage": "sampled_complete",
+      "length_16tile": 40,
+      "max_sample_gap_ticks": 202,
+      "residual_coverage": "sampled",
+      "residuals": {
+        "coverage": "sampled",
+        "model_cycle_days": 68.2554565118322,
+        "model_dwell_per_leg_days": 8.648650255916095,
+        "model_headway_days": 50.958157,
+        "model_income_days": 26,
+        "cycle_delta_model_days": [
+          9.744543488167807,
+          22.744543488167807
+        ],
+        "outbound_delta_model_days": [
+          -5.479078000000001,
+          8.520921999999999
+        ],
+        "return_delta_model_days": [
+          -4.479078000000001,
+          -1.4790780000000012
+        ],
+        "cargo": [
+          {
+            "cargo": 0,
+            "capacity": 80,
+            "unit": "cargo_units_per_model_30day_month_per_train",
+            "capacity_rate": [
+              52.747252747252745,
+              61.53846153846154
+            ],
+            "model_capacity_rate": 70.324048,
+            "capacity_delta": [
+              -17.57679525274726,
+              -8.785586461538465
+            ],
+            "departing_payload_rate_proxy": [
+              52.747252747252745,
+              61.53846153846154
+            ],
+            "delivered_rate": null
+          },
+          {
+            "cargo": 2,
+            "capacity": 60,
+            "unit": "cargo_units_per_model_30day_month_per_train",
+            "capacity_rate": [
+              39.56043956043956,
+              46.15384615384615
+            ],
+            "model_capacity_rate": 52.743036000000004,
+            "capacity_delta": [
+              -13.182596439560442,
+              -6.58918984615385
+            ],
+            "departing_payload_rate_proxy": [
+              27.032967032967033,
+              31.53846153846154
+            ],
+            "delivered_rate": null
+          }
+        ],
+        "dwell_a_delta_model_days": [
+          -0.6486502559160954,
+          1.3513497440839046
+        ],
+        "dwell_b_delta_model_days": [
+          15.351349744083905,
+          19.351349744083905
+        ]
+      },
+      "cycle_days": [
+        78,
+        91
+      ],
+      "outbound_days": [
+        20,
+        34
+      ],
+      "dwell_b_days": [
+        24,
+        28
+      ],
+      "return_days": [
+        21,
+        24
+      ],
+      "dwell_a_days": [
+        8,
+        10
+      ],
+      "date_precision_days": 1,
+      "sample_rollover_coverage": "not_covered",
+      "dry_cycle": {
+        "coverage": "estimated",
+        "cycle_days": 68.2554565118322,
+        "cargos": [
+          {
+            "cargo": 0,
+            "capacity_month": 70.324048,
+            "offered_month": null,
+            "carried_month": null,
+            "unit": "cargo_units_per_model_30day_month"
+          },
+          {
+            "cargo": 2,
+            "capacity_month": 52.743036000000004,
+            "offered_month": null,
+            "carried_month": null,
+            "unit": "cargo_units_per_model_30day_month"
+          }
+        ],
+        "travel_source": "C41_candidate_snapshot",
+        "rating_source": "Opex_headway_proxy",
+        "delivered_rate": null,
+        "one_way_days": 25.479078,
+        "dwell_a_days": 8.648650255916095,
+        "dwell_b_days": 8.648650255916095,
+        "headway_days": 68.2554565118322,
+        "rating_pct": 12.745098039215685,
+        "loaded_legs_per_train_month": 0.8790506,
+        "dwell_source": "legacy_primary_shared_assumption",
+        "mixed_loading_coverage": "not_covered",
+        "waiting_source": "pax_orders_without_full_load_assumption"
+      },
+      "ratio_midpoint": 1.2379962616666667
+    },
+    {
+      "source": "rva_cycle_rail_seed100_r0.log",
+      "session": 1,
+      "line": 1,
+      "vehicle": 13,
+      "coverage": "sampled_complete",
+      "exhaustive_coverage": "not_covered",
+      "cycle_ticks": [
+        1138,
+        1154
+      ],
+      "outbound_ticks": [
+        404,
+        418
+      ],
+      "dwell_b_ticks": [
+        139,
+        361
+      ],
+      "return_ticks": [
+        206,
+        430
+      ],
+      "dwell_a_ticks": [
+        157,
+        177
+      ],
+      "dwell_cause": "unknown",
+      "composition": {
+        "2": 28,
+        "3": 27,
+        "4": 27,
+        "0": 23,
+        "1": 28
+      },
+      "composition_coverage": "sampled_complete",
+      "length_16tile": 40,
+      "max_sample_gap_ticks": 214,
+      "residual_coverage": "sampled",
+      "residuals": {
+        "coverage": "sampled",
+        "model_cycle_days": 68.2554565118322,
+        "model_dwell_per_leg_days": 8.648650255916095,
+        "model_headway_days": 50.958157,
+        "model_income_days": 26,
+        "cycle_delta_model_days": [
+          -8.255456511832193,
+          -5.255456511832193
+        ],
+        "outbound_delta_model_days": [
+          -4.479078000000001,
+          -2.4790780000000012
+        ],
+        "return_delta_model_days": [
+          -15.479078000000001,
+          -1.4790780000000012
+        ],
+        "cargo": [
+          {
+            "cargo": 0,
+            "capacity": 80,
+            "unit": "cargo_units_per_model_30day_month_per_train",
+            "capacity_rate": [
+              76.19047619047619,
+              80.0
+            ],
+            "model_capacity_rate": 70.324048,
+            "capacity_delta": [
+              5.866428190476185,
+              9.675951999999995
+            ],
+            "departing_payload_rate_proxy": [
+              76.19047619047619,
+              80.0
+            ],
+            "delivered_rate": null
+          },
+          {
+            "cargo": 2,
+            "capacity": 60,
+            "unit": "cargo_units_per_model_30day_month_per_train",
+            "capacity_rate": [
+              57.142857142857146,
+              60.0
+            ],
+            "model_capacity_rate": 52.743036000000004,
+            "capacity_delta": [
+              4.399821142857142,
+              7.256963999999996
+            ],
+            "departing_payload_rate_proxy": [
+              57.142857142857146,
+              60.0
+            ],
+            "delivered_rate": null
+          }
+        ],
+        "dwell_a_delta_model_days": [
+          -1.6486502559160954,
+          2.3513497440839046
+        ],
+        "dwell_b_delta_model_days": [
+          -1.6486502559160954,
+          11.351349744083905
+        ]
+      },
+      "cycle_days": [
+        60,
+        63
+      ],
+      "outbound_days": [
+        21,
+        23
+      ],
+      "dwell_b_days": [
+        7,
+        20
+      ],
+      "return_days": [
+        10,
+        24
+      ],
+      "dwell_a_days": [
+        7,
+        11
+      ],
+      "date_precision_days": 1,
+      "sample_rollover_coverage": "not_covered",
+      "dry_cycle": {
+        "coverage": "estimated",
+        "cycle_days": 68.2554565118322,
+        "cargos": [
+          {
+            "cargo": 0,
+            "capacity_month": 70.324048,
+            "offered_month": null,
+            "carried_month": null,
+            "unit": "cargo_units_per_model_30day_month"
+          },
+          {
+            "cargo": 2,
+            "capacity_month": 52.743036000000004,
+            "offered_month": null,
+            "carried_month": null,
+            "unit": "cargo_units_per_model_30day_month"
+          }
+        ],
+        "travel_source": "C41_candidate_snapshot",
+        "rating_source": "Opex_headway_proxy",
+        "delivered_rate": null,
+        "one_way_days": 25.479078,
+        "dwell_a_days": 8.648650255916095,
+        "dwell_b_days": 8.648650255916095,
+        "headway_days": 68.2554565118322,
+        "rating_pct": 12.745098039215685,
+        "loaded_legs_per_train_month": 0.8790506,
+        "dwell_source": "legacy_primary_shared_assumption",
+        "mixed_loading_coverage": "not_covered",
+        "waiting_source": "pax_orders_without_full_load_assumption"
+      },
+      "ratio_midpoint": 0.9010268650000001
+    },
+    {
+      "source": "rva_cycle_rail_seed100_r0.log",
+      "session": 1,
+      "line": 3,
+      "vehicle": 46,
+      "coverage": "sampled_complete",
+      "exhaustive_coverage": "not_covered",
+      "cycle_ticks": [
+        1548,
+        1568
+      ],
+      "outbound_ticks": [
+        471,
+        521
+      ],
+      "dwell_b_ticks": [
+        390,
+        440
+      ],
+      "return_ticks": [
+        481,
+        501
+      ],
+      "dwell_a_ticks": [
+        146,
+        166
+      ],
+      "dwell_cause": "unknown",
+      "composition": {
+        "2": 28,
+        "3": 27,
+        "4": 27,
+        "0": 23,
+        "1": 28
+      },
+      "composition_coverage": "sampled_complete",
+      "length_16tile": 40,
+      "max_sample_gap_ticks": 41,
+      "residual_coverage": "sampled",
+      "residuals": {
+        "coverage": "sampled",
+        "model_cycle_days": 78.67212467643631,
+        "model_dwell_per_leg_days": 8.648648338218155,
+        "model_headway_days": 61.37483,
+        "model_income_days": 31,
+        "cycle_delta_model_days": [
+          4.327875323563688,
+          7.327875323563688
+        ],
+        "outbound_delta_model_days": [
+          -5.687414,
+          -1.6874140000000004
+        ],
+        "return_delta_model_days": [
+          -5.687414,
+          -2.6874140000000004
+        ],
+        "cargo": [
+          {
+            "cargo": 0,
+            "capacity": 80,
+            "unit": "cargo_units_per_model_30day_month_per_train",
+            "capacity_rate": [
+              55.81395348837209,
+              57.83132530120482
+            ],
+            "model_capacity_rate": 61.012716,
+            "capacity_delta": [
+              -5.198762511627905,
+              -3.1813906987951768
+            ],
+            "departing_payload_rate_proxy": [
+              55.81395348837209,
+              57.83132530120482
+            ],
+            "delivered_rate": null
+          },
+          {
+            "cargo": 2,
+            "capacity": 60,
+            "unit": "cargo_units_per_model_30day_month_per_train",
+            "capacity_rate": [
+              41.86046511627907,
+              43.373493975903614
+            ],
+            "model_capacity_rate": 45.759536999999995,
+            "capacity_delta": [
+              -3.8990718837209215,
+              -2.386043024096381
+            ],
+            "departing_payload_rate_proxy": [
+              24.41860465116279,
+              25.301204819277107
+            ],
+            "delivered_rate": null
+          }
+        ],
+        "dwell_a_delta_model_days": [
+          -1.6486483382181554,
+          1.3513516617818446
+        ],
+        "dwell_b_delta_model_days": [
+          11.351351661781845,
+          16.351351661781845
+        ]
+      },
+      "cycle_days": [
+        83,
+        86
+      ],
+      "outbound_days": [
+        25,
+        29
+      ],
+      "dwell_b_days": [
+        20,
+        25
+      ],
+      "return_days": [
+        25,
+        28
+      ],
+      "dwell_a_days": [
+        7,
+        10
+      ],
+      "date_precision_days": 1,
+      "sample_rollover_coverage": "not_covered",
+      "dry_cycle": {
+        "coverage": "estimated",
+        "cycle_days": 78.67212467643631,
+        "cargos": [
+          {
+            "cargo": 0,
+            "capacity_month": 61.012716,
+            "offered_month": null,
+            "carried_month": null,
+            "unit": "cargo_units_per_model_30day_month"
+          },
+          {
+            "cargo": 2,
+            "capacity_month": 45.759536999999995,
+            "offered_month": null,
+            "carried_month": null,
+            "unit": "cargo_units_per_model_30day_month"
+          }
+        ],
+        "travel_source": "C41_candidate_snapshot",
+        "rating_source": "Opex_headway_proxy",
+        "delivered_rate": null,
+        "one_way_days": 30.687414,
+        "dwell_a_days": 8.648648338218155,
+        "dwell_b_days": 8.648648338218155,
+        "headway_days": 78.67212467643631,
+        "rating_pct": 12.745098039215685,
+        "loaded_legs_per_train_month": 0.76265895,
+        "dwell_source": "legacy_primary_shared_assumption",
+        "mixed_loading_coverage": "not_covered",
+        "waiting_source": "pax_orders_without_full_load_assumption"
+      },
+      "ratio_midpoint": 1.0740780212499998
+    },
+    {
+      "source": "rva_cycle_rail_seed100_r0.log",
+      "session": 1,
+      "line": 1,
+      "vehicle": 13,
+      "coverage": "sampled_complete",
+      "exhaustive_coverage": "not_covered",
+      "cycle_ticks": [
+        1236,
+        1255
+      ],
+      "outbound_ticks": [
+        403,
+        423
+      ],
+      "dwell_b_ticks": [
+        146,
+        166
+      ],
+      "return_ticks": [
+        509,
+        529
+      ],
+      "dwell_a_ticks": [
+        148,
+        167
+      ],
+      "dwell_cause": "unknown",
+      "composition": {
+        "2": 28,
+        "3": 27,
+        "4": 27,
+        "0": 23,
+        "1": 28
+      },
+      "composition_coverage": "sampled_complete",
+      "length_16tile": 40,
+      "max_sample_gap_ticks": 214,
+      "residual_coverage": "sampled",
+      "residuals": {
+        "coverage": "sampled",
+        "model_cycle_days": 68.2554565118322,
+        "model_dwell_per_leg_days": 8.648650255916095,
+        "model_headway_days": 50.958157,
+        "model_income_days": 26,
+        "cycle_delta_model_days": [
+          -2.255456511832193,
+          0.7445434881678068
+        ],
+        "outbound_delta_model_days": [
+          -4.479078000000001,
+          -1.4790780000000012
+        ],
+        "return_delta_model_days": [
+          1.5209219999999988,
+          4.520921999999999
+        ],
+        "cargo": [
+          {
+            "cargo": 0,
+            "capacity": 80,
+            "unit": "cargo_units_per_model_30day_month_per_train",
+            "capacity_rate": [
+              69.56521739130434,
+              72.72727272727273
+            ],
+            "model_capacity_rate": 70.324048,
+            "capacity_delta": [
+              -0.7588306086956607,
+              2.403224727272729
+            ],
+            "departing_payload_rate_proxy": [
+              69.56521739130434,
+              72.72727272727273
+            ],
+            "delivered_rate": null
+          },
+          {
+            "cargo": 2,
+            "capacity": 60,
+            "unit": "cargo_units_per_model_30day_month_per_train",
+            "capacity_rate": [
+              52.17391304347826,
+              54.54545454545455
+            ],
+            "model_capacity_rate": 52.743036000000004,
+            "capacity_delta": [
+              -0.5691229565217455,
+              1.8024185454545432
+            ],
+            "departing_payload_rate_proxy": [
+              52.17391304347826,
+              54.54545454545455
+            ],
+            "delivered_rate": null
+          }
+        ],
+        "dwell_a_delta_model_days": [
+          -1.6486502559160954,
+          1.3513497440839046
+        ],
+        "dwell_b_delta_model_days": [
+          -2.6486502559160954,
+          1.3513497440839046
+        ]
+      },
+      "cycle_days": [
+        66,
+        69
+      ],
+      "outbound_days": [
+        21,
+        24
+      ],
+      "dwell_b_days": [
+        6,
+        10
+      ],
+      "return_days": [
+        27,
+        30
+      ],
+      "dwell_a_days": [
+        7,
+        10
+      ],
+      "date_precision_days": 1,
+      "sample_rollover_coverage": "not_covered",
+      "dry_cycle": {
+        "coverage": "estimated",
+        "cycle_days": 68.2554565118322,
+        "cargos": [
+          {
+            "cargo": 0,
+            "capacity_month": 70.324048,
+            "offered_month": null,
+            "carried_month": null,
+            "unit": "cargo_units_per_model_30day_month"
+          },
+          {
+            "cargo": 2,
+            "capacity_month": 52.743036000000004,
+            "offered_month": null,
+            "carried_month": null,
+            "unit": "cargo_units_per_model_30day_month"
+          }
+        ],
+        "travel_source": "C41_candidate_snapshot",
+        "rating_source": "Opex_headway_proxy",
+        "delivered_rate": null,
+        "one_way_days": 25.479078,
+        "dwell_a_days": 8.648650255916095,
+        "dwell_b_days": 8.648650255916095,
+        "headway_days": 68.2554565118322,
+        "rating_pct": 12.745098039215685,
+        "loaded_legs_per_train_month": 0.8790506,
+        "dwell_source": "legacy_primary_shared_assumption",
+        "mixed_loading_coverage": "not_covered",
+        "waiting_source": "pax_orders_without_full_load_assumption"
+      },
+      "ratio_midpoint": 0.988931925
+    },
+    {
+      "source": "rva_cycle_rail_seed100_r0.log",
+      "session": 1,
+      "line": 3,
+      "vehicle": 46,
+      "coverage": "sampled_complete",
+      "exhaustive_coverage": "not_covered",
+      "cycle_ticks": [
+        1401,
+        1475
+      ],
+      "outbound_ticks": [
+        491,
+        511
+      ],
+      "dwell_b_ticks": [
+        108,
+        284
+      ],
+      "return_ticks": [
+        496,
+        729
+      ],
+      "dwell_a_ticks": [
+        63,
+        194
+      ],
+      "dwell_cause": "unknown",
+      "composition": {
+        "2": 28,
+        "3": 27,
+        "4": 27,
+        "0": 23,
+        "1": 28
+      },
+      "composition_coverage": "sampled_complete",
+      "length_16tile": 40,
+      "max_sample_gap_ticks": 192,
+      "residual_coverage": "sampled",
+      "residuals": {
+        "coverage": "sampled",
+        "model_cycle_days": 78.67212467643631,
+        "model_dwell_per_leg_days": 8.648648338218155,
+        "model_headway_days": 61.37483,
+        "model_income_days": 31,
+        "cycle_delta_model_days": [
+          -4.672124676436312,
+          2.3278753235636884
+        ],
+        "outbound_delta_model_days": [
+          -5.687414,
+          -1.6874140000000004
+        ],
+        "return_delta_model_days": [
+          -4.687414,
+          10.312586
+        ],
+        "cargo": [
+          {
+            "cargo": 0,
+            "capacity": 80,
+            "unit": "cargo_units_per_model_30day_month_per_train",
+            "capacity_rate": [
+              59.25925925925926,
+              64.86486486486487
+            ],
+            "model_capacity_rate": 61.012716,
+            "capacity_delta": [
+              -1.753456740740738,
+              3.8521488648648727
+            ],
+            "departing_payload_rate_proxy": [
+              59.25925925925926,
+              64.86486486486487
+            ],
+            "delivered_rate": null
+          },
+          {
+            "cargo": 2,
+            "capacity": 60,
+            "unit": "cargo_units_per_model_30day_month_per_train",
+            "capacity_rate": [
+              44.44444444444444,
+              48.648648648648646
+            ],
+            "model_capacity_rate": 45.759536999999995,
+            "capacity_delta": [
+              -1.3150925555555517,
+              2.889111648648651
+            ],
+            "departing_payload_rate_proxy": [
+              43.333333333333336,
+              47.432432432432435
+            ],
+            "delivered_rate": null
+          }
+        ],
+        "dwell_a_delta_model_days": [
+          -6.648648338218155,
+          3.3513516617818446
+        ],
+        "dwell_b_delta_model_days": [
+          -4.648648338218155,
+          7.351351661781845
+        ]
+      },
+      "cycle_days": [
+        74,
+        81
+      ],
+      "outbound_days": [
+        25,
+        29
+      ],
+      "dwell_b_days": [
+        4,
+        16
+      ],
+      "return_days": [
+        26,
+        41
+      ],
+      "dwell_a_days": [
+        2,
+        12
+      ],
+      "date_precision_days": 1,
+      "sample_rollover_coverage": "not_covered",
+      "dry_cycle": {
+        "coverage": "estimated",
+        "cycle_days": 78.67212467643631,
+        "cargos": [
+          {
+            "cargo": 0,
+            "capacity_month": 61.012716,
+            "offered_month": null,
+            "carried_month": null,
+            "unit": "cargo_units_per_model_30day_month"
+          },
+          {
+            "cargo": 2,
+            "capacity_month": 45.759536999999995,
+            "offered_month": null,
+            "carried_month": null,
+            "unit": "cargo_units_per_model_30day_month"
+          }
+        ],
+        "travel_source": "C41_candidate_snapshot",
+        "rating_source": "Opex_headway_proxy",
+        "delivered_rate": null,
+        "one_way_days": 30.687414,
+        "dwell_a_days": 8.648648338218155,
+        "dwell_b_days": 8.648648338218155,
+        "headway_days": 78.67212467643631,
+        "rating_pct": 12.745098039215685,
+        "loaded_legs_per_train_month": 0.76265895,
+        "dwell_source": "legacy_primary_shared_assumption",
+        "mixed_loading_coverage": "not_covered",
+        "waiting_source": "pax_orders_without_full_load_assumption"
+      },
+      "ratio_midpoint": 0.9851011437499999
+    },
+    {
+      "source": "rva_cycle_rail_seed100_r0.log",
+      "session": 1,
+      "line": 2,
+      "vehicle": 26,
+      "coverage": "sampled_complete",
+      "exhaustive_coverage": "not_covered",
+      "cycle_ticks": [
+        1236,
+        1396
+      ],
+      "outbound_ticks": [
+        511,
+        586
+      ],
+      "dwell_b_ticks": [
+        68,
+        235
+      ],
+      "return_ticks": [
+        375,
+        592
+      ],
+      "dwell_a_ticks": [
+        0,
+        265
+      ],
+      "dwell_cause": "unknown",
+      "composition": {
+        "3": 27,
+        "4": 27,
+        "0": 23,
+        "1": 28,
+        "2": 28
+      },
+      "composition_coverage": "sampled_complete",
+      "length_16tile": 40,
+      "max_sample_gap_ticks": 257,
+      "residual_coverage": "sampled",
+      "residuals": {
+        "coverage": "sampled",
+        "model_cycle_days": 75.54712550364435,
+        "model_dwell_per_leg_days": 8.648648751822176,
+        "model_headway_days": 29.124914,
+        "model_income_days": 30,
+        "cycle_delta_model_days": [
+          -9.547125503644352,
+          1.4528744963556477
+        ],
+        "outbound_delta_model_days": [
+          -2.1249140000000004,
+          3.8750859999999996
+        ],
+        "return_delta_model_days": [
+          -9.124914,
+          3.8750859999999996
+        ],
+        "cargo": [
+          {
+            "cargo": 0,
+            "capacity": 80,
+            "unit": "cargo_units_per_model_30day_month_per_train",
+            "capacity_rate": [
+              62.33766233766234,
+              72.72727272727273
+            ],
+            "model_capacity_rate": 63.536500800000006,
+            "capacity_delta": [
+              -1.1988384623376689,
+              9.190771927272728
+            ],
+            "departing_payload_rate_proxy": [
+              62.33766233766234,
+              72.72727272727273
+            ],
+            "delivered_rate": null
+          },
+          {
+            "cargo": 2,
+            "capacity": 60,
+            "unit": "cargo_units_per_model_30day_month_per_train",
+            "capacity_rate": [
+              46.753246753246756,
+              54.54545454545455
+            ],
+            "model_capacity_rate": 47.652375600000006,
+            "capacity_delta": [
+              -0.8991288467532499,
+              6.8930789454545405
+            ],
+            "departing_payload_rate_proxy": [
+              46.753246753246756,
+              54.54545454545455
+            ],
+            "delivered_rate": null
+          }
+        ],
+        "dwell_a_delta_model_days": [
+          -8.648648751822176,
+          6.351351248177824
+        ],
+        "dwell_b_delta_model_days": [
+          -5.648648751822176,
+          4.351351248177824
+        ]
+      },
+      "cycle_days": [
+        66,
+        77
+      ],
+      "outbound_days": [
+        27,
+        33
+      ],
+      "dwell_b_days": [
+        3,
+        13
+      ],
+      "return_days": [
+        20,
+        33
+      ],
+      "dwell_a_days": [
+        0,
+        15
+      ],
+      "date_precision_days": 1,
+      "sample_rollover_coverage": "not_covered",
+      "dry_cycle": {
+        "coverage": "estimated",
+        "cycle_days": 75.54712550364435,
+        "cargos": [
+          {
+            "cargo": 0,
+            "capacity_month": 127.07300160000001,
+            "offered_month": null,
+            "carried_month": null,
+            "unit": "cargo_units_per_model_30day_month"
+          },
+          {
+            "cargo": 2,
+            "capacity_month": 95.30475120000001,
+            "offered_month": null,
+            "carried_month": null,
+            "unit": "cargo_units_per_model_30day_month"
+          }
+        ],
+        "travel_source": "C41_candidate_snapshot",
+        "rating_source": "Opex_headway_proxy",
+        "delivered_rate": null,
+        "one_way_days": 29.124914,
+        "dwell_a_days": 8.648648751822176,
+        "dwell_b_days": 8.648648751822176,
+        "headway_days": 37.773562751822176,
+        "rating_pct": 22.54901960784314,
+        "loaded_legs_per_train_month": 0.79420626,
+        "dwell_source": "legacy_primary_shared_assumption",
+        "mixed_loading_coverage": "not_covered",
+        "waiting_source": "pax_orders_without_full_load_assumption"
+      },
+      "ratio_midpoint": 0.9464291265
+    },
+    {
+      "source": "rva_cycle_rail_seed100_r0.log",
+      "session": 1,
+      "line": 1,
+      "vehicle": 13,
+      "coverage": "sampled_complete",
+      "exhaustive_coverage": "not_covered",
+      "cycle_ticks": [
+        1140,
+        1349
+      ],
+      "outbound_ticks": [
+        346,
+        649
+      ],
+      "dwell_b_ticks": [
+        97,
+        282
+      ],
+      "return_ticks": [
+        160,
+        454
+      ],
+      "dwell_a_ticks": [
+        134,
+        367
+      ],
+      "dwell_cause": "unknown",
+      "composition": {
+        "2": 28,
+        "3": 27,
+        "4": 27,
+        "0": 23,
+        "1": 28
+      },
+      "composition_coverage": "sampled_complete",
+      "length_16tile": 40,
+      "max_sample_gap_ticks": 218,
+      "residual_coverage": "sampled",
+      "residuals": {
+        "coverage": "sampled",
+        "model_cycle_days": 68.2554565118322,
+        "model_dwell_per_leg_days": 8.648650255916095,
+        "model_headway_days": 50.958157,
+        "model_income_days": 26,
+        "cycle_delta_model_days": [
+          -7.255456511832193,
+          5.744543488167807
+        ],
+        "outbound_delta_model_days": [
+          -7.479078000000001,
+          10.520921999999999
+        ],
+        "return_delta_model_days": [
+          -17.479078,
+          0.5209219999999988
+        ],
+        "cargo": [
+          {
+            "cargo": 0,
+            "capacity": 80,
+            "unit": "cargo_units_per_model_30day_month_per_train",
+            "capacity_rate": [
+              64.86486486486487,
+              78.68852459016394
+            ],
+            "model_capacity_rate": 70.324048,
+            "capacity_delta": [
+              -5.4591831351351345,
+              8.364476590163932
+            ],
+            "departing_payload_rate_proxy": [
+              64.86486486486487,
+              78.68852459016394
+            ],
+            "delivered_rate": null
+          },
+          {
+            "cargo": 2,
+            "capacity": 60,
+            "unit": "cargo_units_per_model_30day_month_per_train",
+            "capacity_rate": [
+              48.648648648648646,
+              59.01639344262295
+            ],
+            "model_capacity_rate": 52.743036000000004,
+            "capacity_delta": [
+              -4.094387351351358,
+              6.273357442622945
+            ],
+            "departing_payload_rate_proxy": [
+              48.648648648648646,
+              59.01639344262295
+            ],
+            "delivered_rate": null
+          }
+        ],
+        "dwell_a_delta_model_days": [
+          -2.6486502559160954,
+          12.351349744083905
+        ],
+        "dwell_b_delta_model_days": [
+          -4.648650255916095,
+          7.351349744083905
+        ]
+      },
+      "cycle_days": [
+        61,
+        74
+      ],
+      "outbound_days": [
+        18,
+        36
+      ],
+      "dwell_b_days": [
+        4,
+        16
+      ],
+      "return_days": [
+        8,
+        26
+      ],
+      "dwell_a_days": [
+        6,
+        21
+      ],
+      "date_precision_days": 1,
+      "sample_rollover_coverage": "not_covered",
+      "dry_cycle": {
+        "coverage": "estimated",
+        "cycle_days": 68.2554565118322,
+        "cargos": [
+          {
+            "cargo": 0,
+            "capacity_month": 70.324048,
+            "offered_month": null,
+            "carried_month": null,
+            "unit": "cargo_units_per_model_30day_month"
+          },
+          {
+            "cargo": 2,
+            "capacity_month": 52.743036000000004,
+            "offered_month": null,
+            "carried_month": null,
+            "unit": "cargo_units_per_model_30day_month"
+          }
+        ],
+        "travel_source": "C41_candidate_snapshot",
+        "rating_source": "Opex_headway_proxy",
+        "delivered_rate": null,
+        "one_way_days": 25.479078,
+        "dwell_a_days": 8.648650255916095,
+        "dwell_b_days": 8.648650255916095,
+        "headway_days": 68.2554565118322,
+        "rating_pct": 12.745098039215685,
+        "loaded_legs_per_train_month": 0.8790506,
+        "dwell_source": "legacy_primary_shared_assumption",
+        "mixed_loading_coverage": "not_covered",
+        "waiting_source": "pax_orders_without_full_load_assumption"
+      },
+      "ratio_midpoint": 0.988931925
+    },
+    {
+      "source": "rva_cycle_rail_seed100_r0.log",
+      "session": 1,
+      "line": 3,
+      "vehicle": 46,
+      "coverage": "sampled_complete",
+      "exhaustive_coverage": "not_covered",
+      "cycle_ticks": [
+        1363,
+        1472
+      ],
+      "outbound_ticks": [
+        454,
+        625
+      ],
+      "dwell_b_ticks": [
+        0,
+        220
+      ],
+      "return_ticks": [
+        555,
+        681
+      ],
+      "dwell_a_ticks": [
+        121,
+        179
+      ],
+      "dwell_cause": "unknown",
+      "composition": {
+        "2": 28,
+        "3": 27,
+        "4": 27,
+        "0": 23,
+        "1": 28
+      },
+      "composition_coverage": "sampled_complete",
+      "length_16tile": 40,
+      "max_sample_gap_ticks": 272,
+      "residual_coverage": "sampled",
+      "residuals": {
+        "coverage": "sampled",
+        "model_cycle_days": 78.67212467643631,
+        "model_dwell_per_leg_days": 8.648648338218155,
+        "model_headway_days": 61.37483,
+        "model_income_days": 31,
+        "cycle_delta_model_days": [
+          -6.672124676436312,
+          2.3278753235636884
+        ],
+        "outbound_delta_model_days": [
+          -7.687414,
+          4.312586
+        ],
+        "return_delta_model_days": [
+          -1.6874140000000004,
+          7.312586
+        ],
+        "cargo": [
+          {
+            "cargo": 0,
+            "capacity": 80,
+            "unit": "cargo_units_per_model_30day_month_per_train",
+            "capacity_rate": [
+              59.25925925925926,
+              66.66666666666667
+            ],
+            "model_capacity_rate": 61.012716,
+            "capacity_delta": [
+              -1.753456740740738,
+              5.653950666666674
+            ],
+            "departing_payload_rate_proxy": [
+              59.25925925925926,
+              66.66666666666667
+            ],
+            "delivered_rate": null
+          },
+          {
+            "cargo": 2,
+            "capacity": 60,
+            "unit": "cargo_units_per_model_30day_month_per_train",
+            "capacity_rate": [
+              44.44444444444444,
+              50.0
+            ],
+            "model_capacity_rate": 45.759536999999995,
+            "capacity_delta": [
+              -1.3150925555555517,
+              4.240463000000005
+            ],
+            "departing_payload_rate_proxy": [
+              39.629629629629626,
+              44.583333333333336
+            ],
+            "delivered_rate": null
+          }
+        ],
+        "dwell_a_delta_model_days": [
+          -3.6486483382181554,
+          2.3513516617818446
+        ],
+        "dwell_b_delta_model_days": [
+          -8.648648338218155,
+          4.351351661781845
+        ]
+      },
+      "cycle_days": [
+        72,
+        81
+      ],
+      "outbound_days": [
+        23,
+        35
+      ],
+      "dwell_b_days": [
+        0,
+        13
+      ],
+      "return_days": [
+        29,
+        38
+      ],
+      "dwell_a_days": [
+        5,
+        11
+      ],
+      "date_precision_days": 1,
+      "sample_rollover_coverage": "not_covered",
+      "dry_cycle": {
+        "coverage": "estimated",
+        "cycle_days": 78.67212467643631,
+        "cargos": [
+          {
+            "cargo": 0,
+            "capacity_month": 61.012716,
+            "offered_month": null,
+            "carried_month": null,
+            "unit": "cargo_units_per_model_30day_month"
+          },
+          {
+            "cargo": 2,
+            "capacity_month": 45.759536999999995,
+            "offered_month": null,
+            "carried_month": null,
+            "unit": "cargo_units_per_model_30day_month"
+          }
+        ],
+        "travel_source": "C41_candidate_snapshot",
+        "rating_source": "Opex_headway_proxy",
+        "delivered_rate": null,
+        "one_way_days": 30.687414,
+        "dwell_a_days": 8.648648338218155,
+        "dwell_b_days": 8.648648338218155,
+        "headway_days": 78.67212467643631,
+        "rating_pct": 12.745098039215685,
+        "loaded_legs_per_train_month": 0.76265895,
+        "dwell_source": "legacy_primary_shared_assumption",
+        "mixed_loading_coverage": "not_covered",
+        "waiting_source": "pax_orders_without_full_load_assumption"
+      },
+      "ratio_midpoint": 0.9723901612499999
+    },
+    {
+      "source": "rva_cycle_rail_seed100_r0.log",
+      "session": 1,
+      "line": 1,
+      "vehicle": 84,
+      "coverage": "sampled_complete",
+      "exhaustive_coverage": "not_covered",
+      "cycle_ticks": [
+        1055,
+        1260
+      ],
+      "outbound_ticks": [
+        315,
+        534
+      ],
+      "dwell_b_ticks": [
+        15,
+        271
+      ],
+      "return_ticks": [
+        351,
+        551
+      ],
+      "dwell_a_ticks": [
+        105,
+        173
+      ],
+      "dwell_cause": "unknown",
+      "composition": {
+        "4": 27,
+        "0": 23,
+        "1": 28,
+        "2": 28,
+        "3": 27
+      },
+      "composition_coverage": "sampled_complete",
+      "length_16tile": 40,
+      "max_sample_gap_ticks": 187,
+      "residual_coverage": "sampled",
+      "residuals": {
+        "coverage": "sampled",
+        "model_cycle_days": 68.2554565118322,
+        "model_dwell_per_leg_days": 8.648650255916095,
+        "model_headway_days": 50.958157,
+        "model_income_days": 26,
+        "cycle_delta_model_days": [
+          -12.255456511832193,
+          0.7445434881678068
+        ],
+        "outbound_delta_model_days": [
+          -9.479078000000001,
+          3.5209219999999988
+        ],
+        "return_delta_model_days": [
+          -7.479078000000001,
+          5.520921999999999
+        ],
+        "cargo": [
+          {
+            "cargo": 0,
+            "capacity": 80,
+            "unit": "cargo_units_per_model_30day_month_per_train",
+            "capacity_rate": [
+              69.56521739130434,
+              85.71428571428571
+            ],
+            "model_capacity_rate": 70.324048,
+            "capacity_delta": [
+              -0.7588306086956607,
+              15.390237714285703
+            ],
+            "departing_payload_rate_proxy": [
+              69.56521739130434,
+              85.71428571428571
+            ],
+            "delivered_rate": null
+          },
+          {
+            "cargo": 2,
+            "capacity": 60,
+            "unit": "cargo_units_per_model_30day_month_per_train",
+            "capacity_rate": [
+              52.17391304347826,
+              64.28571428571429
+            ],
+            "model_capacity_rate": 52.743036000000004,
+            "capacity_delta": [
+              -0.5691229565217455,
+              11.542678285714288
+            ],
+            "departing_payload_rate_proxy": [
+              52.17391304347826,
+              64.28571428571429
+            ],
+            "delivered_rate": null
+          }
+        ],
+        "dwell_a_delta_model_days": [
+          -3.6486502559160954,
+          2.3513497440839046
+        ],
+        "dwell_b_delta_model_days": [
+          -8.648650255916095,
+          6.351349744083905
+        ]
+      },
+      "cycle_days": [
+        56,
+        69
+      ],
+      "outbound_days": [
+        16,
+        29
+      ],
+      "dwell_b_days": [
+        0,
+        15
+      ],
+      "return_days": [
+        18,
+        31
+      ],
+      "dwell_a_days": [
+        5,
+        11
+      ],
+      "date_precision_days": 1,
+      "sample_rollover_coverage": "not_covered",
+      "dry_cycle": {
+        "coverage": "estimated",
+        "cycle_days": 68.2554565118322,
+        "cargos": [
+          {
+            "cargo": 0,
+            "capacity_month": 70.324048,
+            "offered_month": null,
+            "carried_month": null,
+            "unit": "cargo_units_per_model_30day_month"
+          },
+          {
+            "cargo": 2,
+            "capacity_month": 52.743036000000004,
+            "offered_month": null,
+            "carried_month": null,
+            "unit": "cargo_units_per_model_30day_month"
+          }
+        ],
+        "travel_source": "C41_candidate_snapshot",
+        "rating_source": "Opex_headway_proxy",
+        "delivered_rate": null,
+        "one_way_days": 25.479078,
+        "dwell_a_days": 8.648650255916095,
+        "dwell_b_days": 8.648650255916095,
+        "headway_days": 68.2554565118322,
+        "rating_pct": 12.745098039215685,
+        "loaded_legs_per_train_month": 0.8790506,
+        "dwell_source": "legacy_primary_shared_assumption",
+        "mixed_loading_coverage": "not_covered",
+        "waiting_source": "pax_orders_without_full_load_assumption"
+      },
+      "ratio_midpoint": 0.9156777083333334
+    },
+    {
+      "source": "rva_cycle_rail_seed100_r0.log",
+      "session": 1,
+      "line": 1,
+      "vehicle": 84,
+      "coverage": "sampled_complete",
+      "exhaustive_coverage": "not_covered",
+      "cycle_ticks": [
+        1217,
+        1286
+      ],
+      "outbound_ticks": [
+        0,
+        523
+      ],
+      "dwell_b_ticks": [
+        145,
+        710
+      ],
+      "return_ticks": [
+        347,
+        458
+      ],
+      "dwell_a_ticks": [
+        146,
+        174
+      ],
+      "dwell_cause": "unknown",
+      "composition": {
+        "4": 27,
+        "0": 23,
+        "1": 28,
+        "2": 28,
+        "3": 27
+      },
+      "composition_coverage": "sampled_complete",
+      "length_16tile": 40,
+      "max_sample_gap_ticks": 468,
+      "residual_coverage": "sampled",
+      "residuals": {
+        "coverage": "sampled",
+        "model_cycle_days": 68.2554565118322,
+        "model_dwell_per_leg_days": 8.648650255916095,
+        "model_headway_days": 50.958157,
+        "model_income_days": 26,
+        "cycle_delta_model_days": [
+          -4.255456511832193,
+          1.7445434881678068
+        ],
+        "outbound_delta_model_days": [
+          -25.479078,
+          3.5209219999999988
+        ],
+        "return_delta_model_days": [
+          -7.479078000000001,
+          0.5209219999999988
+        ],
+        "cargo": [
+          {
+            "cargo": 0,
+            "capacity": 80,
+            "unit": "cargo_units_per_model_30day_month_per_train",
+            "capacity_rate": [
+              68.57142857142857,
+              75.0
+            ],
+            "model_capacity_rate": 70.324048,
+            "capacity_delta": [
+              -1.7526194285714354,
+              4.675951999999995
+            ],
+            "departing_payload_rate_proxy": [
+              68.57142857142857,
+              75.0
+            ],
+            "delivered_rate": null
+          },
+          {
+            "cargo": 2,
+            "capacity": 60,
+            "unit": "cargo_units_per_model_30day_month_per_train",
+            "capacity_rate": [
+              51.42857142857143,
+              56.25
+            ],
+            "model_capacity_rate": 52.743036000000004,
+            "capacity_delta": [
+              -1.314464571428573,
+              3.5069639999999964
+            ],
+            "departing_payload_rate_proxy": [
+              39.857142857142854,
+              43.59375
+            ],
+            "delivered_rate": null
+          }
+        ],
+        "dwell_a_delta_model_days": [
+          -2.6486502559160954,
+          1.3513497440839046
+        ],
+        "dwell_b_delta_model_days": [
+          -1.6486502559160954,
+          30.351349744083905
+        ]
+      },
+      "cycle_days": [
+        64,
+        70
+      ],
+      "outbound_days": [
+        0,
+        29
+      ],
+      "dwell_b_days": [
+        7,
+        39
+      ],
+      "return_days": [
+        18,
+        26
+      ],
+      "dwell_a_days": [
+        6,
+        10
+      ],
+      "date_precision_days": 1,
+      "sample_rollover_coverage": "not_covered",
+      "dry_cycle": {
+        "coverage": "estimated",
+        "cycle_days": 68.2554565118322,
+        "cargos": [
+          {
+            "cargo": 0,
+            "capacity_month": 70.324048,
+            "offered_month": null,
+            "carried_month": null,
+            "unit": "cargo_units_per_model_30day_month"
+          },
+          {
+            "cargo": 2,
+            "capacity_month": 52.743036000000004,
+            "offered_month": null,
+            "carried_month": null,
+            "unit": "cargo_units_per_model_30day_month"
+          }
+        ],
+        "travel_source": "C41_candidate_snapshot",
+        "rating_source": "Opex_headway_proxy",
+        "delivered_rate": null,
+        "one_way_days": 25.479078,
+        "dwell_a_days": 8.648650255916095,
+        "dwell_b_days": 8.648650255916095,
+        "headway_days": 68.2554565118322,
+        "rating_pct": 12.745098039215685,
+        "loaded_legs_per_train_month": 0.8790506,
+        "dwell_source": "legacy_primary_shared_assumption",
+        "mixed_loading_coverage": "not_covered",
+        "waiting_source": "pax_orders_without_full_load_assumption"
+      },
+      "ratio_midpoint": 0.9816065033333334
+    },
+    {
+      "source": "rva_cycle_rail_seed100_r0.log",
+      "session": 1,
+      "line": 3,
+      "vehicle": 46,
+      "coverage": "sampled_complete",
+      "exhaustive_coverage": "not_covered",
+      "cycle_ticks": [
+        1411,
+        1469
+      ],
+      "outbound_ticks": [
+        152,
+        659
+      ],
+      "dwell_b_ticks": [
+        0,
+        606
+      ],
+      "return_ticks": [
+        493,
+        650
+      ],
+      "dwell_a_ticks": [
+        147,
+        173
+      ],
+      "dwell_cause": "unknown",
+      "composition": {
+        "2": 28,
+        "3": 27,
+        "4": 27,
+        "0": 23,
+        "1": 28
+      },
+      "composition_coverage": "sampled_complete",
+      "length_16tile": 40,
+      "max_sample_gap_ticks": 462,
+      "residual_coverage": "sampled",
+      "residuals": {
+        "coverage": "sampled",
+        "model_cycle_days": 78.67212467643631,
+        "model_dwell_per_leg_days": 8.648648338218155,
+        "model_headway_days": 61.37483,
+        "model_income_days": 31,
+        "cycle_delta_model_days": [
+          -3.6721246764363116,
+          2.3278753235636884
+        ],
+        "outbound_delta_model_days": [
+          -23.687414,
+          6.312586
+        ],
+        "return_delta_model_days": [
+          -5.687414,
+          5.312586
+        ],
+        "cargo": [
+          {
+            "cargo": 0,
+            "capacity": 80,
+            "unit": "cargo_units_per_model_30day_month_per_train",
+            "capacity_rate": [
+              59.25925925925926,
+              64.0
+            ],
+            "model_capacity_rate": 61.012716,
+            "capacity_delta": [
+              -1.753456740740738,
+              2.9872840000000025
+            ],
+            "departing_payload_rate_proxy": [
+              59.25925925925926,
+              64.0
+            ],
+            "delivered_rate": null
+          },
+          {
+            "cargo": 2,
+            "capacity": 60,
+            "unit": "cargo_units_per_model_30day_month_per_train",
+            "capacity_rate": [
+              44.44444444444444,
+              48.0
+            ],
+            "model_capacity_rate": 45.759536999999995,
+            "capacity_delta": [
+              -1.3150925555555517,
+              2.2404630000000054
+            ],
+            "departing_payload_rate_proxy": [
+              32.22222222222222,
+              34.8
+            ],
+            "delivered_rate": null
+          }
+        ],
+        "dwell_a_delta_model_days": [
+          -1.6486483382181554,
+          2.3513516617818446
+        ],
+        "dwell_b_delta_model_days": [
+          -8.648648338218155,
+          25.351351661781845
+        ]
+      },
+      "cycle_days": [
+        75,
+        81
+      ],
+      "outbound_days": [
+        7,
+        37
+      ],
+      "dwell_b_days": [
+        0,
+        34
+      ],
+      "return_days": [
+        25,
+        36
+      ],
+      "dwell_a_days": [
+        7,
+        11
+      ],
+      "date_precision_days": 1,
+      "sample_rollover_coverage": "not_covered",
+      "dry_cycle": {
+        "coverage": "estimated",
+        "cycle_days": 78.67212467643631,
+        "cargos": [
+          {
+            "cargo": 0,
+            "capacity_month": 61.012716,
+            "offered_month": null,
+            "carried_month": null,
+            "unit": "cargo_units_per_model_30day_month"
+          },
+          {
+            "cargo": 2,
+            "capacity_month": 45.759536999999995,
+            "offered_month": null,
+            "carried_month": null,
+            "unit": "cargo_units_per_model_30day_month"
+          }
+        ],
+        "travel_source": "C41_candidate_snapshot",
+        "rating_source": "Opex_headway_proxy",
+        "delivered_rate": null,
+        "one_way_days": 30.687414,
+        "dwell_a_days": 8.648648338218155,
+        "dwell_b_days": 8.648648338218155,
+        "headway_days": 78.67212467643631,
+        "rating_pct": 12.745098039215685,
+        "loaded_legs_per_train_month": 0.76265895,
+        "dwell_source": "legacy_primary_shared_assumption",
+        "mixed_loading_coverage": "not_covered",
+        "waiting_source": "pax_orders_without_full_load_assumption"
+      },
+      "ratio_midpoint": 0.9914566349999999
+    },
+    {
+      "source": "rva_cycle_rail_seed100_r0.log",
+      "session": 1,
+      "line": 1,
+      "vehicle": 13,
+      "coverage": "sampled_complete",
+      "exhaustive_coverage": "not_covered",
+      "cycle_ticks": [
+        1119,
+        1273
+      ],
+      "outbound_ticks": [
+        394,
+        421
+      ],
+      "dwell_b_ticks": [
+        160,
+        187
+      ],
+      "return_ticks": [
+        323,
+        438
+      ],
+      "dwell_a_ticks": [
+        113,
+        356
+      ],
+      "dwell_cause": "unknown",
+      "composition": {
+        "2": 28,
+        "3": 27,
+        "4": 27,
+        "0": 23,
+        "1": 28
+      },
+      "composition_coverage": "sampled_complete",
+      "length_16tile": 40,
+      "max_sample_gap_ticks": 478,
+      "residual_coverage": "sampled",
+      "residuals": {
+        "coverage": "sampled",
+        "model_cycle_days": 68.2554565118322,
+        "model_dwell_per_leg_days": 8.648650255916095,
+        "model_headway_days": 50.958157,
+        "model_income_days": 26,
+        "cycle_delta_model_days": [
+          -8.255456511832193,
+          0.7445434881678068
+        ],
+        "outbound_delta_model_days": [
+          -4.479078000000001,
+          -2.4790780000000012
+        ],
+        "return_delta_model_days": [
+          -9.479078000000001,
+          -0.4790780000000012
+        ],
+        "cargo": [
+          {
+            "cargo": 0,
+            "capacity": 80,
+            "unit": "cargo_units_per_model_30day_month_per_train",
+            "capacity_rate": [
+              69.56521739130434,
+              80.0
+            ],
+            "model_capacity_rate": 70.324048,
+            "capacity_delta": [
+              -0.7588306086956607,
+              9.675951999999995
+            ],
+            "departing_payload_rate_proxy": [
+              69.56521739130434,
+              80.0
+            ],
+            "delivered_rate": null
+          },
+          {
+            "cargo": 2,
+            "capacity": 60,
+            "unit": "cargo_units_per_model_30day_month_per_train",
+            "capacity_rate": [
+              52.17391304347826,
+              60.0
+            ],
+            "model_capacity_rate": 52.743036000000004,
+            "capacity_delta": [
+              -0.5691229565217455,
+              7.256963999999996
+            ],
+            "departing_payload_rate_proxy": [
+              46.95652173913044,
+              54.0
+            ],
+            "delivered_rate": null
+          }
+        ],
+        "dwell_a_delta_model_days": [
+          -3.6486502559160954,
+          11.351349744083905
+        ],
+        "dwell_b_delta_model_days": [
+          -0.6486502559160954,
+          2.3513497440839046
+        ]
+      },
+      "cycle_days": [
+        60,
+        69
+      ],
+      "outbound_days": [
+        21,
+        23
+      ],
+      "dwell_b_days": [
+        8,
+        11
+      ],
+      "return_days": [
+        16,
+        25
+      ],
+      "dwell_a_days": [
+        5,
+        20
+      ],
+      "date_precision_days": 1,
+      "sample_rollover_coverage": "not_covered",
+      "dry_cycle": {
+        "coverage": "estimated",
+        "cycle_days": 68.2554565118322,
+        "cargos": [
+          {
+            "cargo": 0,
+            "capacity_month": 70.324048,
+            "offered_month": null,
+            "carried_month": null,
+            "unit": "cargo_units_per_model_30day_month"
+          },
+          {
+            "cargo": 2,
+            "capacity_month": 52.743036000000004,
+            "offered_month": null,
+            "carried_month": null,
+            "unit": "cargo_units_per_model_30day_month"
+          }
+        ],
+        "travel_source": "C41_candidate_snapshot",
+        "rating_source": "Opex_headway_proxy",
+        "delivered_rate": null,
+        "one_way_days": 25.479078,
+        "dwell_a_days": 8.648650255916095,
+        "dwell_b_days": 8.648650255916095,
+        "headway_days": 68.2554565118322,
+        "rating_pct": 12.745098039215685,
+        "loaded_legs_per_train_month": 0.8790506,
+        "dwell_source": "legacy_primary_shared_assumption",
+        "mixed_loading_coverage": "not_covered",
+        "waiting_source": "pax_orders_without_full_load_assumption"
+      },
+      "ratio_midpoint": 0.944979395
+    },
+    {
+      "source": "rva_cycle_rail_seed100_r0.log",
+      "session": 1,
+      "line": 1,
+      "vehicle": 84,
+      "coverage": "sampled_complete",
+      "exhaustive_coverage": "not_covered",
+      "cycle_ticks": [
+        1328,
+        1504
+      ],
+      "outbound_ticks": [
+        409,
+        534
+      ],
+      "dwell_b_ticks": [
+        0,
+        228
+      ],
+      "return_ticks": [
+        518,
+        808
+      ],
+      "dwell_a_ticks": [
+        0,
+        335
+      ],
+      "dwell_cause": "unknown",
+      "composition": {
+        "4": 27,
+        "0": 23,
+        "1": 28,
+        "2": 28,
+        "3": 27
+      },
+      "composition_coverage": "sampled_complete",
+      "length_16tile": 40,
+      "max_sample_gap_ticks": 468,
+      "residual_coverage": "sampled",
+      "residuals": {
+        "coverage": "sampled",
+        "model_cycle_days": 68.2554565118322,
+        "model_dwell_per_leg_days": 8.648650255916095,
+        "model_headway_days": 50.958157,
+        "model_income_days": 26,
+        "cycle_delta_model_days": [
+          2.744543488167807,
+          14.744543488167807
+        ],
+        "outbound_delta_model_days": [
+          -4.479078000000001,
+          4.520921999999999
+        ],
+        "return_delta_model_days": [
+          1.5209219999999988,
+          19.520922
+        ],
+        "cargo": [
+          {
+            "cargo": 0,
+            "capacity": 80,
+            "unit": "cargo_units_per_model_30day_month_per_train",
+            "capacity_rate": [
+              57.83132530120482,
+              67.6056338028169
+            ],
+            "model_capacity_rate": 70.324048,
+            "capacity_delta": [
+              -12.492722698795184,
+              -2.718414197183108
+            ],
+            "departing_payload_rate_proxy": [
+              57.83132530120482,
+              67.6056338028169
+            ],
+            "delivered_rate": null
+          },
+          {
+            "cargo": 2,
+            "capacity": 60,
+            "unit": "cargo_units_per_model_30day_month_per_train",
+            "capacity_rate": [
+              43.373493975903614,
+              50.70422535211268
+            ],
+            "model_capacity_rate": 52.743036000000004,
+            "capacity_delta": [
+              -9.36954202409639,
+              -2.038810647887324
+            ],
+            "departing_payload_rate_proxy": [
+              28.55421686746988,
+              33.38028169014085
+            ],
+            "delivered_rate": null
+          }
+        ],
+        "dwell_a_delta_model_days": [
+          -8.648650255916095,
+          10.351349744083905
+        ],
+        "dwell_b_delta_model_days": [
+          -8.648650255916095,
+          5.351349744083905
+        ]
+      },
+      "cycle_days": [
+        71,
+        83
+      ],
+      "outbound_days": [
+        21,
+        30
+      ],
+      "dwell_b_days": [
+        0,
+        14
+      ],
+      "return_days": [
+        27,
+        45
+      ],
+      "dwell_a_days": [
+        0,
+        19
+      ],
+      "date_precision_days": 1,
+      "sample_rollover_coverage": "not_covered",
+      "dry_cycle": {
+        "coverage": "estimated",
+        "cycle_days": 68.2554565118322,
+        "cargos": [
+          {
+            "cargo": 0,
+            "capacity_month": 70.324048,
+            "offered_month": null,
+            "carried_month": null,
+            "unit": "cargo_units_per_model_30day_month"
+          },
+          {
+            "cargo": 2,
+            "capacity_month": 52.743036000000004,
+            "offered_month": null,
+            "carried_month": null,
+            "unit": "cargo_units_per_model_30day_month"
+          }
+        ],
+        "travel_source": "C41_candidate_snapshot",
+        "rating_source": "Opex_headway_proxy",
+        "delivered_rate": null,
+        "one_way_days": 25.479078,
+        "dwell_a_days": 8.648650255916095,
+        "dwell_b_days": 8.648650255916095,
+        "headway_days": 68.2554565118322,
+        "rating_pct": 12.745098039215685,
+        "loaded_legs_per_train_month": 0.8790506,
+        "dwell_source": "legacy_primary_shared_assumption",
+        "mixed_loading_coverage": "not_covered",
+        "waiting_source": "pax_orders_without_full_load_assumption"
+      },
+      "ratio_midpoint": 1.1281149366666667
+    },
+    {
+      "source": "rva_cycle_rail_seed100_r0.log",
+      "session": 1,
+      "line": 3,
+      "vehicle": 46,
+      "coverage": "sampled_complete",
+      "exhaustive_coverage": "not_covered",
+      "cycle_ticks": [
+        1664,
+        1772
+      ],
+      "outbound_ticks": [
+        588,
+        708
+      ],
+      "dwell_b_ticks": [
+        0,
+        216
+      ],
+      "return_ticks": [
+        478,
+        745
+      ],
+      "dwell_a_ticks": [
+        224,
+        477
+      ],
+      "dwell_cause": "unknown",
+      "composition": {
+        "2": 28,
+        "3": 27,
+        "4": 27,
+        "0": 23,
+        "1": 28
+      },
+      "composition_coverage": "sampled_complete",
+      "length_16tile": 40,
+      "max_sample_gap_ticks": 462,
+      "residual_coverage": "sampled",
+      "residuals": {
+        "coverage": "sampled",
+        "model_cycle_days": 78.67212467643631,
+        "model_dwell_per_leg_days": 8.648648338218155,
+        "model_headway_days": 61.37483,
+        "model_income_days": 31,
+        "cycle_delta_model_days": [
+          10.327875323563688,
+          18.32787532356369
+        ],
+        "outbound_delta_model_days": [
+          0.3125859999999996,
+          8.312586
+        ],
+        "return_delta_model_days": [
+          -5.687414,
+          11.312586
+        ],
+        "cargo": [
+          {
+            "cargo": 0,
+            "capacity": 80,
+            "unit": "cargo_units_per_model_30day_month_per_train",
+            "capacity_rate": [
+              49.48453608247423,
+              53.93258426966292
+            ],
+            "model_capacity_rate": 61.012716,
+            "capacity_delta": [
+              -11.528179917525769,
+              -7.080131730337079
+            ],
+            "departing_payload_rate_proxy": [
+              49.48453608247423,
+              53.93258426966292
+            ],
+            "delivered_rate": null
+          },
+          {
+            "cargo": 2,
+            "capacity": 60,
+            "unit": "cargo_units_per_model_30day_month_per_train",
+            "capacity_rate": [
+              37.11340206185567,
+              40.449438202247194
+            ],
+            "model_capacity_rate": 45.759536999999995,
+            "capacity_delta": [
+              -8.646134938144321,
+              -5.310098797752801
+            ],
+            "departing_payload_rate_proxy": [
+              27.835051546391753,
+              30.337078651685392
+            ],
+            "delivered_rate": null
+          }
+        ],
+        "dwell_a_delta_model_days": [
+          2.3513516617818446,
+          18.351351661781845
+        ],
+        "dwell_b_delta_model_days": [
+          -8.648648338218155,
+          3.3513516617818446
+        ]
+      },
+      "cycle_days": [
+        89,
+        97
+      ],
+      "outbound_days": [
+        31,
+        39
+      ],
+      "dwell_b_days": [
+        0,
+        12
+      ],
+      "return_days": [
+        25,
+        42
+      ],
+      "dwell_a_days": [
+        11,
+        27
+      ],
+      "date_precision_days": 1,
+      "sample_rollover_coverage": "not_covered",
+      "dry_cycle": {
+        "coverage": "estimated",
+        "cycle_days": 78.67212467643631,
+        "cargos": [
+          {
+            "cargo": 0,
+            "capacity_month": 61.012716,
+            "offered_month": null,
+            "carried_month": null,
+            "unit": "cargo_units_per_model_30day_month"
+          },
+          {
+            "cargo": 2,
+            "capacity_month": 45.759536999999995,
+            "offered_month": null,
+            "carried_month": null,
+            "unit": "cargo_units_per_model_30day_month"
+          }
+        ],
+        "travel_source": "C41_candidate_snapshot",
+        "rating_source": "Opex_headway_proxy",
+        "delivered_rate": null,
+        "one_way_days": 30.687414,
+        "dwell_a_days": 8.648648338218155,
+        "dwell_b_days": 8.648648338218155,
+        "headway_days": 78.67212467643631,
+        "rating_pct": 12.745098039215685,
+        "loaded_legs_per_train_month": 0.76265895,
+        "dwell_source": "legacy_primary_shared_assumption",
+        "mixed_loading_coverage": "not_covered",
+        "waiting_source": "pax_orders_without_full_load_assumption"
+      },
+      "ratio_midpoint": 1.1821213725
+    },
+    {
+      "source": "rva_cycle_rail_seed100_r0.log",
+      "session": 1,
+      "line": 1,
+      "vehicle": 84,
+      "coverage": "sampled_complete",
+      "exhaustive_coverage": "not_covered",
+      "cycle_ticks": [
+        1153,
+        1332
+      ],
+      "outbound_ticks": [
+        324,
+        587
+      ],
+      "dwell_b_ticks": [
+        0,
+        278
+      ],
+      "return_ticks": [
+        389,
+        582
+      ],
+      "dwell_a_ticks": [
+        146,
+        179
+      ],
+      "dwell_cause": "unknown",
+      "composition": {
+        "4": 27,
+        "0": 23,
+        "1": 28,
+        "2": 28,
+        "3": 27
+      },
+      "composition_coverage": "sampled_complete",
+      "length_16tile": 40,
+      "max_sample_gap_ticks": 468,
+      "residual_coverage": "sampled",
+      "residuals": {
+        "coverage": "sampled",
+        "model_cycle_days": 68.2554565118322,
+        "model_dwell_per_leg_days": 8.648650255916095,
+        "model_headway_days": 50.958157,
+        "model_income_days": 26,
+        "cycle_delta_model_days": [
+          -7.255456511832193,
+          4.744543488167807
+        ],
+        "outbound_delta_model_days": [
+          -9.479078000000001,
+          7.520921999999999
+        ],
+        "return_delta_model_days": [
+          -5.479078000000001,
+          6.520921999999999
+        ],
+        "cargo": [
+          {
+            "cargo": 0,
+            "capacity": 80,
+            "unit": "cargo_units_per_model_30day_month_per_train",
+            "capacity_rate": [
+              65.75342465753425,
+              78.68852459016394
+            ],
+            "model_capacity_rate": 70.324048,
+            "capacity_delta": [
+              -4.570623342465751,
+              8.364476590163932
+            ],
+            "departing_payload_rate_proxy": [
+              65.75342465753425,
+              78.68852459016394
+            ],
+            "delivered_rate": null
+          },
+          {
+            "cargo": 2,
+            "capacity": 60,
+            "unit": "cargo_units_per_model_30day_month_per_train",
+            "capacity_rate": [
+              49.31506849315068,
+              59.01639344262295
+            ],
+            "model_capacity_rate": 52.743036000000004,
+            "capacity_delta": [
+              -3.4279675068493205,
+              6.273357442622945
+            ],
+            "departing_payload_rate_proxy": [
+              35.75342465753425,
+              42.78688524590164
+            ],
+            "delivered_rate": null
+          }
+        ],
+        "dwell_a_delta_model_days": [
+          -1.6486502559160954,
+          2.3513497440839046
+        ],
+        "dwell_b_delta_model_days": [
+          -8.648650255916095,
+          7.351349744083905
+        ]
+      },
+      "cycle_days": [
+        61,
+        73
+      ],
+      "outbound_days": [
+        16,
+        33
+      ],
+      "dwell_b_days": [
+        0,
+        16
+      ],
+      "return_days": [
+        20,
+        32
+      ],
+      "dwell_a_days": [
+        7,
+        11
+      ],
+      "date_precision_days": 1,
+      "sample_rollover_coverage": "not_covered",
+      "dry_cycle": {
+        "coverage": "estimated",
+        "cycle_days": 68.2554565118322,
+        "cargos": [
+          {
+            "cargo": 0,
+            "capacity_month": 70.324048,
+            "offered_month": null,
+            "carried_month": null,
+            "unit": "cargo_units_per_model_30day_month"
+          },
+          {
+            "cargo": 2,
+            "capacity_month": 52.743036000000004,
+            "offered_month": null,
+            "carried_month": null,
+            "unit": "cargo_units_per_model_30day_month"
+          }
+        ],
+        "travel_source": "C41_candidate_snapshot",
+        "rating_source": "Opex_headway_proxy",
+        "delivered_rate": null,
+        "one_way_days": 25.479078,
+        "dwell_a_days": 8.648650255916095,
+        "dwell_b_days": 8.648650255916095,
+        "headway_days": 68.2554565118322,
+        "rating_pct": 12.745098039215685,
+        "loaded_legs_per_train_month": 0.8790506,
+        "dwell_source": "legacy_primary_shared_assumption",
+        "mixed_loading_coverage": "not_covered",
+        "waiting_source": "pax_orders_without_full_load_assumption"
+      },
+      "ratio_midpoint": 0.9816065033333334
+    },
+    {
+      "source": "rva_cycle_rail_seed100_r0.log",
+      "session": 1,
+      "line": 1,
+      "vehicle": 84,
+      "coverage": "sampled_complete",
+      "exhaustive_coverage": "not_covered",
+      "cycle_ticks": [
+        1088,
+        1412
+      ],
+      "outbound_ticks": [
+        430,
+        467
+      ],
+      "dwell_b_ticks": [
+        37,
+        346
+      ],
+      "return_ticks": [
+        162,
+        601
+      ],
+      "dwell_a_ticks": [
+        0,
+        457
+      ],
+      "dwell_cause": "unknown",
+      "composition": {
+        "4": 27,
+        "0": 23,
+        "1": 28,
+        "2": 28,
+        "3": 27
+      },
+      "composition_coverage": "sampled_complete",
+      "length_16tile": 40,
+      "max_sample_gap_ticks": 468,
+      "residual_coverage": "sampled",
+      "residuals": {
+        "coverage": "sampled",
+        "model_cycle_days": 68.2554565118322,
+        "model_dwell_per_leg_days": 8.648650255916095,
+        "model_headway_days": 50.958157,
+        "model_income_days": 26,
+        "cycle_delta_model_days": [
+          -10.255456511832193,
+          8.744543488167807
+        ],
+        "outbound_delta_model_days": [
+          -3.4790780000000012,
+          0.5209219999999988
+        ],
+        "return_delta_model_days": [
+          -17.479078,
+          8.520921999999999
+        ],
+        "cargo": [
+          {
+            "cargo": 0,
+            "capacity": 80,
+            "unit": "cargo_units_per_model_30day_month_per_train",
+            "capacity_rate": [
+              62.33766233766234,
+              82.75862068965517
+            ],
+            "model_capacity_rate": 70.324048,
+            "capacity_delta": [
+              -7.986385662337668,
+              12.43457268965517
+            ],
+            "departing_payload_rate_proxy": [
+              62.33766233766234,
+              82.75862068965517
+            ],
+            "delivered_rate": null
+          },
+          {
+            "cargo": 2,
+            "capacity": 60,
+            "unit": "cargo_units_per_model_30day_month_per_train",
+            "capacity_rate": [
+              46.753246753246756,
+              62.06896551724138
+            ],
+            "model_capacity_rate": 52.743036000000004,
+            "capacity_delta": [
+              -5.989789246753247,
+              9.325929517241377
+            ],
+            "departing_payload_rate_proxy": [
+              36.62337662337662,
+              48.62068965517241
+            ],
+            "delivered_rate": null
+          }
+        ],
+        "dwell_a_delta_model_days": [
+          -8.648650255916095,
+          16.351349744083905
+        ],
+        "dwell_b_delta_model_days": [
+          -7.648650255916095,
+          11.351349744083905
+        ]
+      },
+      "cycle_days": [
+        58,
+        77
+      ],
+      "outbound_days": [
+        22,
+        26
+      ],
+      "dwell_b_days": [
+        1,
+        20
+      ],
+      "return_days": [
+        8,
+        34
+      ],
+      "dwell_a_days": [
+        0,
+        25
+      ],
+      "date_precision_days": 1,
+      "sample_rollover_coverage": "not_covered",
+      "dry_cycle": {
+        "coverage": "estimated",
+        "cycle_days": 68.2554565118322,
+        "cargos": [
+          {
+            "cargo": 0,
+            "capacity_month": 70.324048,
+            "offered_month": null,
+            "carried_month": null,
+            "unit": "cargo_units_per_model_30day_month"
+          },
+          {
+            "cargo": 2,
+            "capacity_month": 52.743036000000004,
+            "offered_month": null,
+            "carried_month": null,
+            "unit": "cargo_units_per_model_30day_month"
+          }
+        ],
+        "travel_source": "C41_candidate_snapshot",
+        "rating_source": "Opex_headway_proxy",
+        "delivered_rate": null,
+        "one_way_days": 25.479078,
+        "dwell_a_days": 8.648650255916095,
+        "dwell_b_days": 8.648650255916095,
+        "headway_days": 68.2554565118322,
+        "rating_pct": 12.745098039215685,
+        "loaded_legs_per_train_month": 0.8790506,
+        "dwell_source": "legacy_primary_shared_assumption",
+        "mixed_loading_coverage": "not_covered",
+        "waiting_source": "pax_orders_without_full_load_assumption"
+      },
+      "ratio_midpoint": 0.988931925
+    },
+    {
+      "source": "rva_cycle_rail_seed100_r0.log",
+      "session": 1,
+      "line": 3,
+      "vehicle": 46,
+      "coverage": "sampled_complete",
+      "exhaustive_coverage": "not_covered",
+      "cycle_ticks": [
+        1918,
+        2331
+      ],
+      "outbound_ticks": [
+        487,
+        598
+      ],
+      "dwell_b_ticks": [
+        140,
+        171
+      ],
+      "return_ticks": [
+        482,
+        517
+      ],
+      "dwell_a_ticks": [
+        758,
+        1096
+      ],
+      "dwell_cause": "unknown",
+      "composition": {
+        "2": 28,
+        "3": 27,
+        "4": 27,
+        "0": 23,
+        "1": 28
+      },
+      "composition_coverage": "sampled_complete",
+      "length_16tile": 40,
+      "max_sample_gap_ticks": 462,
+      "residual_coverage": "sampled",
+      "residuals": {
+        "coverage": "sampled",
+        "model_cycle_days": 78.67212467643631,
+        "model_dwell_per_leg_days": 8.648648338218155,
+        "model_headway_days": 61.37483,
+        "model_income_days": 31,
+        "cycle_delta_model_days": [
+          24.32787532356369,
+          48.32787532356369
+        ],
+        "outbound_delta_model_days": [
+          -5.687414,
+          2.3125859999999996
+        ],
+        "return_delta_model_days": [
+          -5.687414,
+          -1.6874140000000004
+        ],
+        "cargo": [
+          {
+            "cargo": 0,
+            "capacity": 80,
+            "unit": "cargo_units_per_model_30day_month_per_train",
+            "capacity_rate": [
+              37.79527559055118,
+              46.601941747572816
+            ],
+            "model_capacity_rate": 61.012716,
+            "capacity_delta": [
+              -23.21744040944882,
+              -14.410774252427181
+            ],
+            "departing_payload_rate_proxy": [
+              37.79527559055118,
+              46.601941747572816
+            ],
+            "delivered_rate": null
+          },
+          {
+            "cargo": 2,
+            "capacity": 60,
+            "unit": "cargo_units_per_model_30day_month_per_train",
+            "capacity_rate": [
+              28.346456692913385,
+              34.95145631067961
+            ],
+            "model_capacity_rate": 45.759536999999995,
+            "capacity_delta": [
+              -17.41308030708661,
+              -10.808080689320384
+            ],
+            "departing_payload_rate_proxy": [
+              21.968503937007874,
+              27.0873786407767
+            ],
+            "delivered_rate": null
+          }
+        ],
+        "dwell_a_delta_model_days": [
+          31.351351661781845,
+          52.35135166178185
+        ],
+        "dwell_b_delta_model_days": [
+          -1.6486483382181554,
+          1.3513516617818446
+        ]
+      },
+      "cycle_days": [
+        103,
+        127
+      ],
+      "outbound_days": [
+        25,
+        33
+      ],
+      "dwell_b_days": [
+        7,
+        10
+      ],
+      "return_days": [
+        25,
+        29
+      ],
+      "dwell_a_days": [
+        40,
+        61
+      ],
+      "date_precision_days": 1,
+      "sample_rollover_coverage": "not_covered",
+      "dry_cycle": {
+        "coverage": "estimated",
+        "cycle_days": 78.67212467643631,
+        "cargos": [
+          {
+            "cargo": 0,
+            "capacity_month": 61.012716,
+            "offered_month": null,
+            "carried_month": null,
+            "unit": "cargo_units_per_model_30day_month"
+          },
+          {
+            "cargo": 2,
+            "capacity_month": 45.759536999999995,
+            "offered_month": null,
+            "carried_month": null,
+            "unit": "cargo_units_per_model_30day_month"
+          }
+        ],
+        "travel_source": "C41_candidate_snapshot",
+        "rating_source": "Opex_headway_proxy",
+        "delivered_rate": null,
+        "one_way_days": 30.687414,
+        "dwell_a_days": 8.648648338218155,
+        "dwell_b_days": 8.648648338218155,
+        "headway_days": 78.67212467643631,
+        "rating_pct": 12.745098039215685,
+        "loaded_legs_per_train_month": 0.76265895,
+        "dwell_source": "legacy_primary_shared_assumption",
+        "mixed_loading_coverage": "not_covered",
+        "waiting_source": "pax_orders_without_full_load_assumption"
+      },
+      "ratio_midpoint": 1.4617629874999998
+    },
+    {
+      "source": "rva_cycle_rail_seed100_r0.log",
+      "session": 1,
+      "line": 1,
+      "vehicle": 84,
+      "coverage": "sampled_complete",
+      "exhaustive_coverage": "not_covered",
+      "cycle_ticks": [
+        1122,
+        1449
+      ],
+      "outbound_ticks": [
+        93,
+        660
+      ],
+      "dwell_b_ticks": [
+        0,
+        416
+      ],
+      "return_ticks": [
+        453,
+        629
+      ],
+      "dwell_a_ticks": [
+        140,
+        180
+      ],
+      "dwell_cause": "unknown",
+      "composition": {
+        "4": 27,
+        "0": 23,
+        "1": 28,
+        "2": 28,
+        "3": 27
+      },
+      "composition_coverage": "sampled_complete",
+      "length_16tile": 40,
+      "max_sample_gap_ticks": 468,
+      "residual_coverage": "sampled",
+      "residuals": {
+        "coverage": "sampled",
+        "model_cycle_days": 68.2554565118322,
+        "model_dwell_per_leg_days": 8.648650255916095,
+        "model_headway_days": 50.958157,
+        "model_income_days": 26,
+        "cycle_delta_model_days": [
+          -8.255456511832193,
+          10.744543488167807
+        ],
+        "outbound_delta_model_days": [
+          -21.479078,
+          11.520921999999999
+        ],
+        "return_delta_model_days": [
+          -2.4790780000000012,
+          9.520921999999999
+        ],
+        "cargo": [
+          {
+            "cargo": 0,
+            "capacity": 80,
+            "unit": "cargo_units_per_model_30day_month_per_train",
+            "capacity_rate": [
+              60.75949367088607,
+              80.0
+            ],
+            "model_capacity_rate": 70.324048,
+            "capacity_delta": [
+              -9.564554329113932,
+              9.675951999999995
+            ],
+            "departing_payload_rate_proxy": [
+              60.75949367088607,
+              80.0
+            ],
+            "delivered_rate": null
+          },
+          {
+            "cargo": 2,
+            "capacity": 60,
+            "unit": "cargo_units_per_model_30day_month_per_train",
+            "capacity_rate": [
+              45.56962025316456,
+              60.0
+            ],
+            "model_capacity_rate": 52.743036000000004,
+            "capacity_delta": [
+              -7.173415746835445,
+              7.256963999999996
+            ],
+            "departing_payload_rate_proxy": [
+              32.65822784810127,
+              43.0
+            ],
+            "delivered_rate": null
+          }
+        ],
+        "dwell_a_delta_model_days": [
+          -2.6486502559160954,
+          2.3513497440839046
+        ],
+        "dwell_b_delta_model_days": [
+          -8.648650255916095,
+          15.351349744083905
+        ]
+      },
+      "cycle_days": [
+        60,
+        79
+      ],
+      "outbound_days": [
+        4,
+        37
+      ],
+      "dwell_b_days": [
+        0,
+        24
+      ],
+      "return_days": [
+        23,
+        35
+      ],
+      "dwell_a_days": [
+        6,
+        11
+      ],
+      "date_precision_days": 1,
+      "sample_rollover_coverage": "not_covered",
+      "dry_cycle": {
+        "coverage": "estimated",
+        "cycle_days": 68.2554565118322,
+        "cargos": [
+          {
+            "cargo": 0,
+            "capacity_month": 70.324048,
+            "offered_month": null,
+            "carried_month": null,
+            "unit": "cargo_units_per_model_30day_month"
+          },
+          {
+            "cargo": 2,
+            "capacity_month": 52.743036000000004,
+            "offered_month": null,
+            "carried_month": null,
+            "unit": "cargo_units_per_model_30day_month"
+          }
+        ],
+        "travel_source": "C41_candidate_snapshot",
+        "rating_source": "Opex_headway_proxy",
+        "delivered_rate": null,
+        "one_way_days": 25.479078,
+        "dwell_a_days": 8.648650255916095,
+        "dwell_b_days": 8.648650255916095,
+        "headway_days": 68.2554565118322,
+        "rating_pct": 12.745098039215685,
+        "loaded_legs_per_train_month": 0.8790506,
+        "dwell_source": "legacy_primary_shared_assumption",
+        "mixed_loading_coverage": "not_covered",
+        "waiting_source": "pax_orders_without_full_load_assumption"
+      },
+      "ratio_midpoint": 1.0182336116666668
+    },
+    {
+      "source": "rva_cycle_rail_seed100_r0.log",
+      "session": 1,
+      "line": 3,
+      "vehicle": 46,
+      "coverage": "sampled_complete",
+      "exhaustive_coverage": "not_covered",
+      "cycle_ticks": [
+        1162,
+        2076
+      ],
+      "outbound_ticks": [
+        94,
+        682
+      ],
+      "dwell_b_ticks": [
+        0,
+        420
+      ],
+      "return_ticks": [
+        448,
+        618
+      ],
+      "dwell_a_ticks": [
+        180,
+        796
+      ],
+      "dwell_cause": "unknown",
+      "composition": {
+        "2": 28,
+        "3": 27,
+        "4": 27,
+        "0": 23,
+        "1": 28
+      },
+      "composition_coverage": "sampled_complete",
+      "length_16tile": 40,
+      "max_sample_gap_ticks": 596,
+      "residual_coverage": "sampled",
+      "residuals": {
+        "coverage": "sampled",
+        "model_cycle_days": 78.67212467643631,
+        "model_dwell_per_leg_days": 8.648648338218155,
+        "model_headway_days": 61.37483,
+        "model_income_days": 31,
+        "cycle_delta_model_days": [
+          -16.67212467643631,
+          34.32787532356369
+        ],
+        "outbound_delta_model_days": [
+          -26.687414,
+          6.312586
+        ],
+        "return_delta_model_days": [
+          -7.687414,
+          4.312586
+        ],
+        "cargo": [
+          {
+            "cargo": 0,
+            "capacity": 80,
+            "unit": "cargo_units_per_model_30day_month_per_train",
+            "capacity_rate": [
+              42.47787610619469,
+              77.41935483870968
+            ],
+            "model_capacity_rate": 61.012716,
+            "capacity_delta": [
+              -18.534839893805305,
+              16.406638838709682
+            ],
+            "departing_payload_rate_proxy": [
+              42.47787610619469,
+              77.41935483870968
+            ],
+            "delivered_rate": null
+          },
+          {
+            "cargo": 2,
+            "capacity": 60,
+            "unit": "cargo_units_per_model_30day_month_per_train",
+            "capacity_rate": [
+              31.858407079646017,
+              58.064516129032256
+            ],
+            "model_capacity_rate": 45.759536999999995,
+            "capacity_delta": [
+              -13.901129920353977,
+              12.304979129032262
+            ],
+            "departing_payload_rate_proxy": [
+              24.424778761061948,
+              44.516129032258064
+            ],
+            "delivered_rate": null
+          }
+        ],
+        "dwell_a_delta_model_days": [
+          0.3513516617818446,
+          35.35135166178185
+        ],
+        "dwell_b_delta_model_days": [
+          -8.648648338218155,
+          15.351351661781845
+        ]
+      },
+      "cycle_days": [
+        62,
+        113
+      ],
+      "outbound_days": [
+        4,
+        37
+      ],
+      "dwell_b_days": [
+        0,
+        24
+      ],
+      "return_days": [
+        23,
+        35
+      ],
+      "dwell_a_days": [
+        9,
+        44
+      ],
+      "date_precision_days": 1,
+      "sample_rollover_coverage": "not_covered",
+      "dry_cycle": {
+        "coverage": "estimated",
+        "cycle_days": 78.67212467643631,
+        "cargos": [
+          {
+            "cargo": 0,
+            "capacity_month": 61.012716,
+            "offered_month": null,
+            "carried_month": null,
+            "unit": "cargo_units_per_model_30day_month"
+          },
+          {
+            "cargo": 2,
+            "capacity_month": 45.759536999999995,
+            "offered_month": null,
+            "carried_month": null,
+            "unit": "cargo_units_per_model_30day_month"
+          }
+        ],
+        "travel_source": "C41_candidate_snapshot",
+        "rating_source": "Opex_headway_proxy",
+        "delivered_rate": null,
+        "one_way_days": 30.687414,
+        "dwell_a_days": 8.648648338218155,
+        "dwell_b_days": 8.648648338218155,
+        "headway_days": 78.67212467643631,
+        "rating_pct": 12.745098039215685,
+        "loaded_legs_per_train_month": 0.76265895,
+        "dwell_source": "legacy_primary_shared_assumption",
+        "mixed_loading_coverage": "not_covered",
+        "waiting_source": "pax_orders_without_full_load_assumption"
+      },
+      "ratio_midpoint": 1.11221096875
+    },
+    {
+      "source": "rva_cycle_rail_seed42_r0.log",
+      "session": 1,
+      "line": 9,
+      "vehicle": 189,
+      "coverage": "sampled_complete",
+      "exhaustive_coverage": "not_covered",
+      "cycle_ticks": [
+        1635,
+        1890
+      ],
+      "outbound_ticks": [
+        377,
+        1021
+      ],
+      "dwell_b_ticks": [
+        0,
+        698
+      ],
+      "return_ticks": [
+        393,
+        586
+      ],
+      "dwell_a_ticks": [
+        150,
+        300
+      ],
+      "dwell_cause": "unknown",
+      "composition": {
+        "3": 27,
+        "4": 27,
+        "5": 27,
+        "6": 27,
+        "0": 23,
+        "1": 28,
+        "2": 28
+      },
+      "composition_coverage": "sampled_complete",
+      "length_16tile": 56,
+      "max_sample_gap_ticks": 522,
+      "residual_coverage": "sampled",
+      "residuals": {
+        "coverage": "sampled",
+        "model_cycle_days": 71.46560592649976,
+        "model_dwell_per_leg_days": 8.64864896324988,
+        "model_headway_days": 27.084154,
+        "model_income_days": 28,
+        "cycle_delta_model_days": [
+          16.534394073500238,
+          31.534394073500238
+        ],
+        "outbound_delta_model_days": [
+          -7.084154000000002,
+          28.915846
+        ],
+        "return_delta_model_days": [
+          -7.084154000000002,
+          5.915845999999998
+        ],
+        "cargo": [
+          {
+            "cargo": 0,
+            "capacity": 160,
+            "unit": "cargo_units_per_model_30day_month_per_train",
+            "capacity_rate": [
+              93.20388349514563,
+              109.0909090909091
+            ],
+            "model_capacity_rate": 134.330352,
+            "capacity_delta": [
+              -41.12646850485437,
+              -25.23944290909091
+            ],
+            "departing_payload_rate_proxy": [
+              90.29126213592232,
+              105.68181818181819
+            ],
+            "delivered_rate": null
+          },
+          {
+            "cargo": 2,
+            "capacity": 60,
+            "unit": "cargo_units_per_model_30day_month_per_train",
+            "capacity_rate": [
+              34.95145631067961,
+              40.90909090909091
+            ],
+            "model_capacity_rate": 50.373882,
+            "capacity_delta": [
+              -15.422425689320391,
+              -9.464791090909095
+            ],
+            "departing_payload_rate_proxy": [
+              34.95145631067961,
+              40.90909090909091
+            ],
+            "delivered_rate": null
+          }
+        ],
+        "dwell_a_delta_model_days": [
+          -1.6486489632498795,
+          8.35135103675012
+        ],
+        "dwell_b_delta_model_days": [
+          -8.64864896324988,
+          30.35135103675012
+        ]
+      },
+      "cycle_days": [
+        88,
+        103
+      ],
+      "outbound_days": [
+        20,
+        56
+      ],
+      "dwell_b_days": [
+        0,
+        39
+      ],
+      "return_days": [
+        20,
+        33
+      ],
+      "dwell_a_days": [
+        7,
+        17
+      ],
+      "date_precision_days": 1,
+      "sample_rollover_coverage": "not_covered",
+      "dry_cycle": {
+        "coverage": "estimated",
+        "cycle_days": 71.46560592649976,
+        "cargos": [
+          {
+            "cargo": 0,
+            "capacity_month": 268.660704,
+            "offered_month": null,
+            "carried_month": null,
+            "unit": "cargo_units_per_model_30day_month"
+          },
+          {
+            "cargo": 2,
+            "capacity_month": 100.747764,
+            "offered_month": null,
+            "carried_month": null,
+            "unit": "cargo_units_per_model_30day_month"
+          }
+        ],
+        "travel_source": "C41_candidate_snapshot",
+        "rating_source": "Opex_headway_proxy",
+        "delivered_rate": null,
+        "one_way_days": 27.084154,
+        "dwell_a_days": 8.64864896324988,
+        "dwell_b_days": 8.64864896324988,
+        "headway_days": 35.73280296324988,
+        "rating_pct": 22.54901960784314,
+        "loaded_legs_per_train_month": 0.8395647,
+        "dwell_source": "legacy_primary_shared_assumption",
+        "mixed_loading_coverage": "not_covered",
+        "waiting_source": "pax_orders_without_full_load_assumption"
+      },
+      "ratio_midpoint": 1.3363071475000001
+    },
+    {
+      "source": "rva_cycle_rail_seed42_r0.log",
+      "session": 1,
+      "line": 9,
+      "vehicle": 189,
+      "coverage": "sampled_complete",
+      "exhaustive_coverage": "not_covered",
+      "cycle_ticks": [
+        1260,
+        1514
+      ],
+      "outbound_ticks": [
+        291,
+        552
+      ],
+      "dwell_b_ticks": [
+        0,
+        245
+      ],
+      "return_ticks": [
+        476,
+        719
+      ],
+      "dwell_a_ticks": [
+        122,
+        369
+      ],
+      "dwell_cause": "unknown",
+      "composition": {
+        "3": 27,
+        "4": 27,
+        "5": 27,
+        "6": 27,
+        "0": 23,
+        "1": 28,
+        "2": 28
+      },
+      "composition_coverage": "sampled_complete",
+      "length_16tile": 56,
+      "max_sample_gap_ticks": 522,
+      "residual_coverage": "sampled",
+      "residuals": {
+        "coverage": "sampled",
+        "model_cycle_days": 71.46560592649976,
+        "model_dwell_per_leg_days": 8.64864896324988,
+        "model_headway_days": 27.084154,
+        "model_income_days": 28,
+        "cycle_delta_model_days": [
+          -4.465605926499762,
+          11.534394073500238
+        ],
+        "outbound_delta_model_days": [
+          -12.084154000000002,
+          3.9158459999999984
+        ],
+        "return_delta_model_days": [
+          -2.0841540000000016,
+          12.915845999999998
+        ],
+        "cargo": [
+          {
+            "cargo": 0,
+            "capacity": 160,
+            "unit": "cargo_units_per_model_30day_month_per_train",
+            "capacity_rate": [
+              115.66265060240964,
+              143.28358208955223
+            ],
+            "model_capacity_rate": 134.330352,
+            "capacity_delta": [
+              -18.667701397590363,
+              8.953230089552221
+            ],
+            "departing_payload_rate_proxy": [
+              115.66265060240964,
+              143.28358208955223
+            ],
+            "delivered_rate": null
+          },
+          {
+            "cargo": 2,
+            "capacity": 60,
+            "unit": "cargo_units_per_model_30day_month_per_train",
+            "capacity_rate": [
+              43.373493975903614,
+              53.73134328358209
+            ],
+            "model_capacity_rate": 50.373882,
+            "capacity_delta": [
+              -7.000388024096388,
+              3.35746128358209
+            ],
+            "departing_payload_rate_proxy": [
+              43.373493975903614,
+              53.73134328358209
+            ],
+            "delivered_rate": null
+          }
+        ],
+        "dwell_a_delta_model_days": [
+          -3.6486489632498795,
+          12.35135103675012
+        ],
+        "dwell_b_delta_model_days": [
+          -8.64864896324988,
+          5.3513510367501205
+        ]
+      },
+      "cycle_days": [
+        67,
+        83
+      ],
+      "outbound_days": [
+        15,
+        31
+      ],
+      "dwell_b_days": [
+        0,
+        14
+      ],
+      "return_days": [
+        25,
+        40
+      ],
+      "dwell_a_days": [
+        5,
+        21
+      ],
+      "date_precision_days": 1,
+      "sample_rollover_coverage": "not_covered",
+      "dry_cycle": {
+        "coverage": "estimated",
+        "cycle_days": 71.46560592649976,
+        "cargos": [
+          {
+            "cargo": 0,
+            "capacity_month": 268.660704,
+            "offered_month": null,
+            "carried_month": null,
+            "unit": "cargo_units_per_model_30day_month"
+          },
+          {
+            "cargo": 2,
+            "capacity_month": 100.747764,
+            "offered_month": null,
+            "carried_month": null,
+            "unit": "cargo_units_per_model_30day_month"
+          }
+        ],
+        "travel_source": "C41_candidate_snapshot",
+        "rating_source": "Opex_headway_proxy",
+        "delivered_rate": null,
+        "one_way_days": 27.084154,
+        "dwell_a_days": 8.64864896324988,
+        "dwell_b_days": 8.64864896324988,
+        "headway_days": 35.73280296324988,
+        "rating_pct": 22.54901960784314,
+        "loaded_legs_per_train_month": 0.8395647,
+        "dwell_source": "legacy_primary_shared_assumption",
+        "mixed_loading_coverage": "not_covered",
+        "waiting_source": "pax_orders_without_full_load_assumption"
+      },
+      "ratio_midpoint": 1.049455875
+    },
+    {
+      "source": "rva_cycle_rail_seed42_r0.log",
+      "session": 1,
+      "line": 10,
+      "vehicle": 270,
+      "coverage": "sampled_complete",
+      "exhaustive_coverage": "not_covered",
+      "cycle_ticks": [
+        1779,
+        2081
+      ],
+      "outbound_ticks": [
+        399,
+        679
+      ],
+      "dwell_b_ticks": [
+        514,
+        884
+      ],
+      "return_ticks": [
+        374,
+        742
+      ],
+      "dwell_a_ticks": [
+        0,
+        268
+      ],
+      "dwell_cause": "unknown",
+      "composition": {
+        "5": 27,
+        "6": 27,
+        "0": 23,
+        "1": 28,
+        "2": 28,
+        "3": 27,
+        "4": 27
+      },
+      "composition_coverage": "sampled_complete",
+      "length_16tile": 56,
+      "max_sample_gap_ticks": 246,
+      "residual_coverage": "sampled",
+      "residuals": {
+        "coverage": "sampled",
+        "model_cycle_days": 74.24338565677184,
+        "model_dwell_per_leg_days": 8.648649828385917,
+        "model_headway_days": 28.473043,
+        "model_income_days": 29,
+        "cycle_delta_model_days": [
+          21.756614343228165,
+          38.756614343228165
+        ],
+        "outbound_delta_model_days": [
+          -7.4730430000000005,
+          9.526957
+        ],
+        "return_delta_model_days": [
+          -9.473043,
+          13.526957
+        ],
+        "cargo": [
+          {
+            "cargo": 0,
+            "capacity": 160,
+            "unit": "cargo_units_per_model_30day_month_per_train",
+            "capacity_rate": [
+              84.95575221238938,
+              100.0
+            ],
+            "model_capacity_rate": 129.304448,
+            "capacity_delta": [
+              -44.34869578761062,
+              -29.304448000000008
+            ],
+            "departing_payload_rate_proxy": [
+              68.76106194690266,
+              80.9375
+            ],
+            "delivered_rate": null
+          },
+          {
+            "cargo": 2,
+            "capacity": 60,
+            "unit": "cargo_units_per_model_30day_month_per_train",
+            "capacity_rate": [
+              31.858407079646017,
+              37.5
+            ],
+            "model_capacity_rate": 48.489168,
+            "capacity_delta": [
+              -16.630760920353982,
+              -10.989168
+            ],
+            "departing_payload_rate_proxy": [
+              31.858407079646017,
+              37.5
+            ],
+            "delivered_rate": null
+          }
+        ],
+        "dwell_a_delta_model_days": [
+          -8.648649828385917,
+          6.351350171614083
+        ],
+        "dwell_b_delta_model_days": [
+          17.351350171614083,
+          40.35135017161409
+        ]
+      },
+      "cycle_days": [
+        96,
+        113
+      ],
+      "outbound_days": [
+        21,
+        38
+      ],
+      "dwell_b_days": [
+        26,
+        49
+      ],
+      "return_days": [
+        19,
+        42
+      ],
+      "dwell_a_days": [
+        0,
+        15
+      ],
+      "date_precision_days": 1,
+      "sample_rollover_coverage": "not_covered",
+      "dry_cycle": {
+        "coverage": "estimated",
+        "cycle_days": 74.24338565677184,
+        "cargos": [
+          {
+            "cargo": 0,
+            "capacity_month": 258.608896,
+            "offered_month": null,
+            "carried_month": null,
+            "unit": "cargo_units_per_model_30day_month"
+          },
+          {
+            "cargo": 2,
+            "capacity_month": 96.978336,
+            "offered_month": null,
+            "carried_month": null,
+            "unit": "cargo_units_per_model_30day_month"
+          }
+        ],
+        "travel_source": "C41_candidate_snapshot",
+        "rating_source": "Opex_headway_proxy",
+        "delivered_rate": null,
+        "one_way_days": 28.473043,
+        "dwell_a_days": 8.648649828385917,
+        "dwell_b_days": 8.648649828385917,
+        "headway_days": 37.12169282838592,
+        "rating_pct": 22.54901960784314,
+        "loaded_legs_per_train_month": 0.8081528,
+        "dwell_source": "legacy_primary_shared_assumption",
+        "mixed_loading_coverage": "not_covered",
+        "waiting_source": "pax_orders_without_full_load_assumption"
+      },
+      "ratio_midpoint": 1.4075327933333335
+    },
+    {
+      "source": "rva_cycle_rail_seed42_r0.log",
+      "session": 1,
+      "line": 9,
+      "vehicle": 189,
+      "coverage": "sampled_complete",
+      "exhaustive_coverage": "not_covered",
+      "cycle_ticks": [
+        1200,
+        1430
+      ],
+      "outbound_ticks": [
+        270,
+        636
+      ],
+      "dwell_b_ticks": [
+        0,
+        425
+      ],
+      "return_ticks": [
+        349,
+        685
+      ],
+      "dwell_a_ticks": [
+        0,
+        265
+      ],
+      "dwell_cause": "unknown",
+      "composition": {
+        "3": 27,
+        "4": 27,
+        "5": 27,
+        "6": 27,
+        "0": 23,
+        "1": 28,
+        "2": 28
+      },
+      "composition_coverage": "sampled_complete",
+      "length_16tile": 56,
+      "max_sample_gap_ticks": 522,
+      "residual_coverage": "sampled",
+      "residuals": {
+        "coverage": "sampled",
+        "model_cycle_days": 71.46560592649976,
+        "model_dwell_per_leg_days": 8.64864896324988,
+        "model_headway_days": 27.084154,
+        "model_income_days": 28,
+        "cycle_delta_model_days": [
+          -7.465605926499762,
+          6.534394073500238
+        ],
+        "outbound_delta_model_days": [
+          -14.084154000000002,
+          8.915845999999998
+        ],
+        "return_delta_model_days": [
+          -9.084154000000002,
+          10.915845999999998
+        ],
+        "cargo": [
+          {
+            "cargo": 0,
+            "capacity": 160,
+            "unit": "cargo_units_per_model_30day_month_per_train",
+            "capacity_rate": [
+              123.07692307692308,
+              150.0
+            ],
+            "model_capacity_rate": 134.330352,
+            "capacity_delta": [
+              -11.253428923076925,
+              15.669647999999995
+            ],
+            "departing_payload_rate_proxy": [
+              123.07692307692308,
+              150.0
+            ],
+            "delivered_rate": null
+          },
+          {
+            "cargo": 2,
+            "capacity": 60,
+            "unit": "cargo_units_per_model_30day_month_per_train",
+            "capacity_rate": [
+              46.15384615384615,
+              56.25
+            ],
+            "model_capacity_rate": 50.373882,
+            "capacity_delta": [
+              -4.2200358461538485,
+              5.876117999999998
+            ],
+            "departing_payload_rate_proxy": [
+              46.15384615384615,
+              56.25
+            ],
+            "delivered_rate": null
+          }
+        ],
+        "dwell_a_delta_model_days": [
+          -8.64864896324988,
+          6.3513510367501205
+        ],
+        "dwell_b_delta_model_days": [
+          -8.64864896324988,
+          15.35135103675012
+        ]
+      },
+      "cycle_days": [
+        64,
+        78
+      ],
+      "outbound_days": [
+        13,
+        36
+      ],
+      "dwell_b_days": [
+        0,
+        24
+      ],
+      "return_days": [
+        18,
+        38
+      ],
+      "dwell_a_days": [
+        0,
+        15
+      ],
+      "date_precision_days": 1,
+      "sample_rollover_coverage": "not_covered",
+      "dry_cycle": {
+        "coverage": "estimated",
+        "cycle_days": 71.46560592649976,
+        "cargos": [
+          {
+            "cargo": 0,
+            "capacity_month": 268.660704,
+            "offered_month": null,
+            "carried_month": null,
+            "unit": "cargo_units_per_model_30day_month"
+          },
+          {
+            "cargo": 2,
+            "capacity_month": 100.747764,
+            "offered_month": null,
+            "carried_month": null,
+            "unit": "cargo_units_per_model_30day_month"
+          }
+        ],
+        "travel_source": "C41_candidate_snapshot",
+        "rating_source": "Opex_headway_proxy",
+        "delivered_rate": null,
+        "one_way_days": 27.084154,
+        "dwell_a_days": 8.64864896324988,
+        "dwell_b_days": 8.64864896324988,
+        "headway_days": 35.73280296324988,
+        "rating_pct": 22.54901960784314,
+        "loaded_legs_per_train_month": 0.8395647,
+        "dwell_source": "legacy_primary_shared_assumption",
+        "mixed_loading_coverage": "not_covered",
+        "waiting_source": "pax_orders_without_full_load_assumption"
+      },
+      "ratio_midpoint": 0.993484895
+    },
+    {
+      "source": "rva_cycle_rail_seed42_r0.log",
+      "session": 1,
+      "line": 10,
+      "vehicle": 270,
+      "coverage": "sampled_complete",
+      "exhaustive_coverage": "not_covered",
+      "cycle_ticks": [
+        1255,
+        1688
+      ],
+      "outbound_ticks": [
+        371,
+        697
+      ],
+      "dwell_b_ticks": [
+        0,
+        294
+      ],
+      "return_ticks": [
+        386,
+        611
+      ],
+      "dwell_a_ticks": [
+        93,
+        491
+      ],
+      "dwell_cause": "unknown",
+      "composition": {
+        "5": 27,
+        "6": 27,
+        "0": 23,
+        "1": 28,
+        "2": 28,
+        "3": 27,
+        "4": 27
+      },
+      "composition_coverage": "sampled_complete",
+      "length_16tile": 56,
+      "max_sample_gap_ticks": 287,
+      "residual_coverage": "sampled",
+      "residuals": {
+        "coverage": "sampled",
+        "model_cycle_days": 74.24338565677184,
+        "model_dwell_per_leg_days": 8.648649828385917,
+        "model_headway_days": 28.473043,
+        "model_income_days": 29,
+        "cycle_delta_model_days": [
+          -7.243385656771835,
+          17.756614343228165
+        ],
+        "outbound_delta_model_days": [
+          -9.473043,
+          9.526957
+        ],
+        "return_delta_model_days": [
+          -8.473043,
+          5.5269569999999995
+        ],
+        "cargo": [
+          {
+            "cargo": 0,
+            "capacity": 160,
+            "unit": "cargo_units_per_model_30day_month_per_train",
+            "capacity_rate": [
+              104.34782608695652,
+              143.28358208955223
+            ],
+            "model_capacity_rate": 129.304448,
+            "capacity_delta": [
+              -24.95662191304349,
+              13.979134089552218
+            ],
+            "departing_payload_rate_proxy": [
+              104.34782608695652,
+              143.28358208955223
+            ],
+            "delivered_rate": null
+          },
+          {
+            "cargo": 2,
+            "capacity": 60,
+            "unit": "cargo_units_per_model_30day_month_per_train",
+            "capacity_rate": [
+              39.130434782608695,
+              53.73134328358209
+            ],
+            "model_capacity_rate": 48.489168,
+            "capacity_delta": [
+              -9.358733217391304,
+              5.2421752835820925
+            ],
+            "departing_payload_rate_proxy": [
+              39.130434782608695,
+              53.73134328358209
+            ],
+            "delivered_rate": null
+          }
+        ],
+        "dwell_a_delta_model_days": [
+          -4.648649828385917,
+          19.351350171614083
+        ],
+        "dwell_b_delta_model_days": [
+          -8.648649828385917,
+          8.351350171614083
+        ]
+      },
+      "cycle_days": [
+        67,
+        92
+      ],
+      "outbound_days": [
+        19,
+        38
+      ],
+      "dwell_b_days": [
+        0,
+        17
+      ],
+      "return_days": [
+        20,
+        34
+      ],
+      "dwell_a_days": [
+        4,
+        28
+      ],
+      "date_precision_days": 1,
+      "sample_rollover_coverage": "not_covered",
+      "dry_cycle": {
+        "coverage": "estimated",
+        "cycle_days": 74.24338565677184,
+        "cargos": [
+          {
+            "cargo": 0,
+            "capacity_month": 258.608896,
+            "offered_month": null,
+            "carried_month": null,
+            "unit": "cargo_units_per_model_30day_month"
+          },
+          {
+            "cargo": 2,
+            "capacity_month": 96.978336,
+            "offered_month": null,
+            "carried_month": null,
+            "unit": "cargo_units_per_model_30day_month"
+          }
+        ],
+        "travel_source": "C41_candidate_snapshot",
+        "rating_source": "Opex_headway_proxy",
+        "delivered_rate": null,
+        "one_way_days": 28.473043,
+        "dwell_a_days": 8.648649828385917,
+        "dwell_b_days": 8.648649828385917,
+        "headway_days": 37.12169282838592,
+        "rating_pct": 22.54901960784314,
+        "loaded_legs_per_train_month": 0.8081528,
+        "dwell_source": "legacy_primary_shared_assumption",
+        "mixed_loading_coverage": "not_covered",
+        "waiting_source": "pax_orders_without_full_load_assumption"
+      },
+      "ratio_midpoint": 1.0708024600000001
+    },
+    {
+      "source": "rva_cycle_rail_seed42_r0.log",
+      "session": 1,
+      "line": 9,
+      "vehicle": 189,
+      "coverage": "sampled_complete",
+      "exhaustive_coverage": "not_covered",
+      "cycle_ticks": [
+        1267,
+        1530
+      ],
+      "outbound_ticks": [
+        380,
+        642
+      ],
+      "dwell_b_ticks": [
+        0,
+        451
+      ],
+      "return_ticks": [
+        314,
+        734
+      ],
+      "dwell_a_ticks": [
+        0,
+        276
+      ],
+      "dwell_cause": "unknown",
+      "composition": {
+        "3": 27,
+        "4": 27,
+        "5": 27,
+        "6": 27,
+        "0": 23,
+        "1": 28,
+        "2": 28
+      },
+      "composition_coverage": "sampled_complete",
+      "length_16tile": 56,
+      "max_sample_gap_ticks": 522,
+      "residual_coverage": "sampled",
+      "residuals": {
+        "coverage": "sampled",
+        "model_cycle_days": 71.46560592649976,
+        "model_dwell_per_leg_days": 8.64864896324988,
+        "model_headway_days": 27.084154,
+        "model_income_days": 28,
+        "cycle_delta_model_days": [
+          -3.4656059264997623,
+          11.534394073500238
+        ],
+        "outbound_delta_model_days": [
+          -7.084154000000002,
+          7.915845999999998
+        ],
+        "return_delta_model_days": [
+          -11.084154000000002,
+          13.915845999999998
+        ],
+        "cargo": [
+          {
+            "cargo": 0,
+            "capacity": 160,
+            "unit": "cargo_units_per_model_30day_month_per_train",
+            "capacity_rate": [
+              115.66265060240964,
+              141.1764705882353
+            ],
+            "model_capacity_rate": 134.330352,
+            "capacity_delta": [
+              -18.667701397590363,
+              6.846118588235299
+            ],
+            "departing_payload_rate_proxy": [
+              115.66265060240964,
+              141.1764705882353
+            ],
+            "delivered_rate": null
+          },
+          {
+            "cargo": 2,
+            "capacity": 60,
+            "unit": "cargo_units_per_model_30day_month_per_train",
+            "capacity_rate": [
+              43.373493975903614,
+              52.94117647058823
+            ],
+            "model_capacity_rate": 50.373882,
+            "capacity_delta": [
+              -7.000388024096388,
+              2.56729447058823
+            ],
+            "departing_payload_rate_proxy": [
+              43.373493975903614,
+              52.94117647058823
+            ],
+            "delivered_rate": null
+          }
+        ],
+        "dwell_a_delta_model_days": [
+          -8.64864896324988,
+          7.3513510367501205
+        ],
+        "dwell_b_delta_model_days": [
+          -8.64864896324988,
+          16.35135103675012
+        ]
+      },
+      "cycle_days": [
+        68,
+        83
+      ],
+      "outbound_days": [
+        20,
+        35
+      ],
+      "dwell_b_days": [
+        0,
+        25
+      ],
+      "return_days": [
+        16,
+        41
+      ],
+      "dwell_a_days": [
+        0,
+        16
+      ],
+      "date_precision_days": 1,
+      "sample_rollover_coverage": "not_covered",
+      "dry_cycle": {
+        "coverage": "estimated",
+        "cycle_days": 71.46560592649976,
+        "cargos": [
+          {
+            "cargo": 0,
+            "capacity_month": 268.660704,
+            "offered_month": null,
+            "carried_month": null,
+            "unit": "cargo_units_per_model_30day_month"
+          },
+          {
+            "cargo": 2,
+            "capacity_month": 100.747764,
+            "offered_month": null,
+            "carried_month": null,
+            "unit": "cargo_units_per_model_30day_month"
+          }
+        ],
+        "travel_source": "C41_candidate_snapshot",
+        "rating_source": "Opex_headway_proxy",
+        "delivered_rate": null,
+        "one_way_days": 27.084154,
+        "dwell_a_days": 8.64864896324988,
+        "dwell_b_days": 8.64864896324988,
+        "headway_days": 35.73280296324988,
+        "rating_pct": 22.54901960784314,
+        "loaded_legs_per_train_month": 0.8395647,
+        "dwell_source": "legacy_primary_shared_assumption",
+        "mixed_loading_coverage": "not_covered",
+        "waiting_source": "pax_orders_without_full_load_assumption"
+      },
+      "ratio_midpoint": 1.0564522475
+    },
+    {
+      "source": "rva_cycle_rail_seed42_r0.log",
+      "session": 1,
+      "line": 10,
+      "vehicle": 270,
+      "coverage": "sampled_complete",
+      "exhaustive_coverage": "not_covered",
+      "cycle_ticks": [
+        1045,
+        1529
+      ],
+      "outbound_ticks": [
+        141,
+        742
+      ],
+      "dwell_b_ticks": [
+        0,
+        612
+      ],
+      "return_ticks": [
+        133,
+        590
+      ],
+      "dwell_a_ticks": [
+        0,
+        356
+      ],
+      "dwell_cause": "unknown",
+      "composition": {
+        "5": 27,
+        "6": 27,
+        "0": 23,
+        "1": 28,
+        "2": 28,
+        "3": 27,
+        "4": 27
+      },
+      "composition_coverage": "sampled_complete",
+      "length_16tile": 56,
+      "max_sample_gap_ticks": 314,
+      "residual_coverage": "sampled",
+      "residuals": {
+        "coverage": "sampled",
+        "model_cycle_days": 74.24338565677184,
+        "model_dwell_per_leg_days": 8.648649828385917,
+        "model_headway_days": 28.473043,
+        "model_income_days": 29,
+        "cycle_delta_model_days": [
+          -19.243385656771835,
+          9.756614343228165
+        ],
+        "outbound_delta_model_days": [
+          -22.473043,
+          12.526957
+        ],
+        "return_delta_model_days": [
+          -21.473043,
+          4.5269569999999995
+        ],
+        "cargo": [
+          {
+            "cargo": 0,
+            "capacity": 160,
+            "unit": "cargo_units_per_model_30day_month_per_train",
+            "capacity_rate": [
+              114.28571428571429,
+              174.54545454545453
+            ],
+            "model_capacity_rate": 129.304448,
+            "capacity_delta": [
+              -15.018733714285716,
+              45.241006545454525
+            ],
+            "departing_payload_rate_proxy": [
+              114.28571428571429,
+              174.54545454545453
+            ],
+            "delivered_rate": null
+          },
+          {
+            "cargo": 2,
+            "capacity": 60,
+            "unit": "cargo_units_per_model_30day_month_per_train",
+            "capacity_rate": [
+              42.857142857142854,
+              65.45454545454545
+            ],
+            "model_capacity_rate": 48.489168,
+            "capacity_delta": [
+              -5.632025142857145,
+              16.965377454545454
+            ],
+            "departing_payload_rate_proxy": [
+              42.857142857142854,
+              65.45454545454545
+            ],
+            "delivered_rate": null
+          }
+        ],
+        "dwell_a_delta_model_days": [
+          -8.648649828385917,
+          11.351350171614083
+        ],
+        "dwell_b_delta_model_days": [
+          -8.648649828385917,
+          25.351350171614083
+        ]
+      },
+      "cycle_days": [
+        55,
+        84
+      ],
+      "outbound_days": [
+        6,
+        41
+      ],
+      "dwell_b_days": [
+        0,
+        34
+      ],
+      "return_days": [
+        7,
+        33
+      ],
+      "dwell_a_days": [
+        0,
+        20
+      ],
+      "date_precision_days": 1,
+      "sample_rollover_coverage": "not_covered",
+      "dry_cycle": {
+        "coverage": "estimated",
+        "cycle_days": 74.24338565677184,
+        "cargos": [
+          {
+            "cargo": 0,
+            "capacity_month": 258.608896,
+            "offered_month": null,
+            "carried_month": null,
+            "unit": "cargo_units_per_model_30day_month"
+          },
+          {
+            "cargo": 2,
+            "capacity_month": 96.978336,
+            "offered_month": null,
+            "carried_month": null,
+            "unit": "cargo_units_per_model_30day_month"
+          }
+        ],
+        "travel_source": "C41_candidate_snapshot",
+        "rating_source": "Opex_headway_proxy",
+        "delivered_rate": null,
+        "one_way_days": 28.473043,
+        "dwell_a_days": 8.648649828385917,
+        "dwell_b_days": 8.648649828385917,
+        "headway_days": 37.12169282838592,
+        "rating_pct": 22.54901960784314,
+        "loaded_legs_per_train_month": 0.8081528,
+        "dwell_source": "legacy_primary_shared_assumption",
+        "mixed_loading_coverage": "not_covered",
+        "waiting_source": "pax_orders_without_full_load_assumption"
+      },
+      "ratio_midpoint": 0.9361103266666667
+    },
+    {
+      "source": "rva_cycle_rail_seed7_r0.log",
+      "session": 1,
+      "line": 10,
+      "vehicle": 195,
+      "coverage": "sampled_complete",
+      "exhaustive_coverage": "not_covered",
+      "cycle_ticks": [
+        1608,
+        2012
+      ],
+      "outbound_ticks": [
+        302,
+        543
+      ],
+      "dwell_b_ticks": [
+        418,
+        713
+      ],
+      "return_ticks": [
+        457,
+        729
+      ],
+      "dwell_a_ticks": [
+        0,
+        458
+      ],
+      "dwell_cause": "unknown",
+      "composition": {
+        "1": 28,
+        "2": 28,
+        "3": 28,
+        "4": 27,
+        "5": 27,
+        "6": 27,
+        "7": 27,
+        "0": 23
+      },
+      "composition_coverage": "sampled_complete",
+      "length_16tile": 64,
+      "max_sample_gap_ticks": 418,
+      "residual_coverage": "sampled",
+      "residuals": {
+        "coverage": "sampled",
+        "model_cycle_days": 79.33423765549345,
+        "model_dwell_per_leg_days": 8.648648827746726,
+        "model_headway_days": 31.01847,
+        "model_income_days": 32,
+        "cycle_delta_model_days": [
+          6.665762344506547,
+          30.665762344506547
+        ],
+        "outbound_delta_model_days": [
+          -15.01847,
+          -1.0184700000000007
+        ],
+        "return_delta_model_days": [
+          -7.018470000000001,
+          8.98153
+        ],
+        "cargo": [
+          {
+            "cargo": 0,
+            "capacity": 160,
+            "unit": "cargo_units_per_model_30day_month_per_train",
+            "capacity_rate": [
+              87.27272727272727,
+              111.62790697674419
+            ],
+            "model_capacity_rate": 121.007024,
+            "capacity_delta": [
+              -33.734296727272735,
+              -9.379117023255816
+            ],
+            "departing_payload_rate_proxy": [
+              87.27272727272727,
+              111.62790697674419
+            ],
+            "delivered_rate": null
+          },
+          {
+            "cargo": 2,
+            "capacity": 90,
+            "unit": "cargo_units_per_model_30day_month_per_train",
+            "capacity_rate": [
+              49.09090909090909,
+              62.7906976744186
+            ],
+            "model_capacity_rate": 68.066451,
+            "capacity_delta": [
+              -18.975541909090907,
+              -5.275753325581398
+            ],
+            "departing_payload_rate_proxy": [
+              44.18181818181818,
+              56.51162790697674
+            ],
+            "delivered_rate": null
+          }
+        ],
+        "dwell_a_delta_model_days": [
+          -8.648648827746726,
+          17.351351172253274
+        ],
+        "dwell_b_delta_model_days": [
+          13.351351172253274,
+          30.351351172253274
+        ]
+      },
+      "cycle_days": [
+        86,
+        110
+      ],
+      "outbound_days": [
+        16,
+        30
+      ],
+      "dwell_b_days": [
+        22,
+        39
+      ],
+      "return_days": [
+        24,
+        40
+      ],
+      "dwell_a_days": [
+        0,
+        26
+      ],
+      "date_precision_days": 1,
+      "sample_rollover_coverage": "not_covered",
+      "dry_cycle": {
+        "coverage": "estimated",
+        "cycle_days": 79.33423765549345,
+        "cargos": [
+          {
+            "cargo": 0,
+            "capacity_month": 242.014048,
+            "offered_month": null,
+            "carried_month": null,
+            "unit": "cargo_units_per_model_30day_month"
+          },
+          {
+            "cargo": 2,
+            "capacity_month": 136.132902,
+            "offered_month": null,
+            "carried_month": null,
+            "unit": "cargo_units_per_model_30day_month"
+          }
+        ],
+        "travel_source": "C41_candidate_snapshot",
+        "rating_source": "Opex_headway_proxy",
+        "delivered_rate": null,
+        "one_way_days": 31.01847,
+        "dwell_a_days": 8.648648827746726,
+        "dwell_b_days": 8.648648827746726,
+        "headway_days": 39.66711882774673,
+        "rating_pct": 22.54901960784314,
+        "loaded_legs_per_train_month": 0.7562939,
+        "dwell_source": "legacy_primary_shared_assumption",
+        "mixed_loading_coverage": "not_covered",
+        "waiting_source": "pax_orders_without_full_load_assumption"
+      },
+      "ratio_midpoint": 1.2352800366666667
+    },
+    {
+      "source": "rva_cycle_rail_seed7_r0.log",
+      "session": 1,
+      "line": 11,
+      "vehicle": 216,
+      "coverage": "sampled_complete",
+      "exhaustive_coverage": "not_covered",
+      "cycle_ticks": [
+        1376,
+        1915
+      ],
+      "outbound_ticks": [
+        0,
+        802
+      ],
+      "dwell_b_ticks": [
+        164,
+        831
+      ],
+      "return_ticks": [
+        263,
+        585
+      ],
+      "dwell_a_ticks": [
+        136,
+        510
+      ],
+      "dwell_cause": "unknown",
+      "composition": {
+        "3": 28,
+        "4": 27,
+        "5": 27,
+        "6": 27,
+        "7": 27,
+        "0": 23,
+        "1": 28,
+        "2": 28
+      },
+      "composition_coverage": "sampled_complete",
+      "length_16tile": 64,
+      "max_sample_gap_ticks": 491,
+      "residual_coverage": "sampled",
+      "residuals": {
+        "coverage": "sampled",
+        "model_cycle_days": 77.25090798785976,
+        "model_dwell_per_leg_days": 8.648648993929882,
+        "model_headway_days": 29.976805,
+        "model_income_days": 30,
+        "cycle_delta_model_days": [
+          -4.250907987859762,
+          27.74909201214024
+        ],
+        "outbound_delta_model_days": [
+          -29.976805,
+          14.023195000000001
+        ],
+        "return_delta_model_days": [
+          -16.976805,
+          3.023195000000001
+        ],
+        "cargo": [
+          {
+            "cargo": 0,
+            "capacity": 160,
+            "unit": "cargo_units_per_model_30day_month_per_train",
+            "capacity_rate": [
+              91.42857142857143,
+              131.5068493150685
+            ],
+            "model_capacity_rate": 124.270384,
+            "capacity_delta": [
+              -32.84181257142858,
+              7.2364653150685
+            ],
+            "departing_payload_rate_proxy": [
+              91.42857142857143,
+              131.5068493150685
+            ],
+            "delivered_rate": null
+          },
+          {
+            "cargo": 2,
+            "capacity": 90,
+            "unit": "cargo_units_per_model_30day_month_per_train",
+            "capacity_rate": [
+              51.42857142857143,
+              73.97260273972603
+            ],
+            "model_capacity_rate": 69.902091,
+            "capacity_delta": [
+              -18.473519571428568,
+              4.0705117397260295
+            ],
+            "departing_payload_rate_proxy": [
+              41.714285714285715,
+              60.0
+            ],
+            "delivered_rate": null
+          }
+        ],
+        "dwell_a_delta_model_days": [
+          -2.648648993929882,
+          20.351351006070118
+        ],
+        "dwell_b_delta_model_days": [
+          -0.6486489939298821,
+          37.35135100607012
+        ]
+      },
+      "cycle_days": [
+        73,
+        105
+      ],
+      "outbound_days": [
+        0,
+        44
+      ],
+      "dwell_b_days": [
+        8,
+        46
+      ],
+      "return_days": [
+        13,
+        33
+      ],
+      "dwell_a_days": [
+        6,
+        29
+      ],
+      "date_precision_days": 1,
+      "sample_rollover_coverage": "not_covered",
+      "dry_cycle": {
+        "coverage": "estimated",
+        "cycle_days": 77.25090798785976,
+        "cargos": [
+          {
+            "cargo": 0,
+            "capacity_month": 248.540768,
+            "offered_month": null,
+            "carried_month": null,
+            "unit": "cargo_units_per_model_30day_month"
+          },
+          {
+            "cargo": 2,
+            "capacity_month": 139.804182,
+            "offered_month": null,
+            "carried_month": null,
+            "unit": "cargo_units_per_model_30day_month"
+          }
+        ],
+        "travel_source": "C41_candidate_snapshot",
+        "rating_source": "Opex_headway_proxy",
+        "delivered_rate": null,
+        "one_way_days": 29.976805,
+        "dwell_a_days": 8.648648993929882,
+        "dwell_b_days": 8.648648993929882,
+        "headway_days": 38.62545399392988,
+        "rating_pct": 22.54901960784314,
+        "loaded_legs_per_train_month": 0.7766899,
+        "dwell_source": "legacy_primary_shared_assumption",
+        "mixed_loading_coverage": "not_covered",
+        "waiting_source": "pax_orders_without_full_load_assumption"
+      },
+      "ratio_midpoint": 1.1520900183333334
+    },
+    {
+      "source": "rva_cycle_rail_seed7_r0.log",
+      "session": 1,
+      "line": 10,
+      "vehicle": 195,
+      "coverage": "sampled_complete",
+      "exhaustive_coverage": "not_covered",
+      "cycle_ticks": [
+        1125,
+        1662
+      ],
+      "outbound_ticks": [
+        0,
+        636
+      ],
+      "dwell_b_ticks": [
+        0,
+        464
+      ],
+      "return_ticks": [
+        337,
+        843
+      ],
+      "dwell_a_ticks": [
+        0,
+        507
+      ],
+      "dwell_cause": "unknown",
+      "composition": {
+        "1": 28,
+        "2": 28,
+        "3": 28,
+        "4": 27,
+        "5": 27,
+        "6": 27,
+        "7": 27,
+        "0": 23
+      },
+      "composition_coverage": "sampled_complete",
+      "length_16tile": 64,
+      "max_sample_gap_ticks": 475,
+      "residual_coverage": "sampled",
+      "residuals": {
+        "coverage": "sampled",
+        "model_cycle_days": 79.33423765549345,
+        "model_dwell_per_leg_days": 8.648648827746726,
+        "model_headway_days": 31.01847,
+        "model_income_days": 32,
+        "cycle_delta_model_days": [
+          -19.334237655493453,
+          11.665762344506547
+        ],
+        "outbound_delta_model_days": [
+          -31.01847,
+          4.981529999999999
+        ],
+        "return_delta_model_days": [
+          -13.01847,
+          14.98153
+        ],
+        "cargo": [
+          {
+            "cargo": 0,
+            "capacity": 160,
+            "unit": "cargo_units_per_model_30day_month_per_train",
+            "capacity_rate": [
+              105.49450549450549,
+              160.0
+            ],
+            "model_capacity_rate": 121.007024,
+            "capacity_delta": [
+              -15.512518505494512,
+              38.992976
+            ],
+            "departing_payload_rate_proxy": [
+              105.49450549450549,
+              160.0
+            ],
+            "delivered_rate": null
+          },
+          {
+            "cargo": 2,
+            "capacity": 90,
+            "unit": "cargo_units_per_model_30day_month_per_train",
+            "capacity_rate": [
+              59.34065934065934,
+              90.0
+            ],
+            "model_capacity_rate": 68.066451,
+            "capacity_delta": [
+              -8.725791659340658,
+              21.933549
+            ],
+            "departing_payload_rate_proxy": [
+              59.34065934065934,
+              90.0
+            ],
+            "delivered_rate": null
+          }
+        ],
+        "dwell_a_delta_model_days": [
+          -8.648648827746726,
+          19.351351172253274
+        ],
+        "dwell_b_delta_model_days": [
+          -8.648648827746726,
+          17.351351172253274
+        ]
+      },
+      "cycle_days": [
+        60,
+        91
+      ],
+      "outbound_days": [
+        0,
+        36
+      ],
+      "dwell_b_days": [
+        0,
+        26
+      ],
+      "return_days": [
+        18,
+        46
+      ],
+      "dwell_a_days": [
+        0,
+        28
+      ],
+      "date_precision_days": 1,
+      "sample_rollover_coverage": "not_covered",
+      "dry_cycle": {
+        "coverage": "estimated",
+        "cycle_days": 79.33423765549345,
+        "cargos": [
+          {
+            "cargo": 0,
+            "capacity_month": 242.014048,
+            "offered_month": null,
+            "carried_month": null,
+            "unit": "cargo_units_per_model_30day_month"
+          },
+          {
+            "cargo": 2,
+            "capacity_month": 136.132902,
+            "offered_month": null,
+            "carried_month": null,
+            "unit": "cargo_units_per_model_30day_month"
+          }
+        ],
+        "travel_source": "C41_candidate_snapshot",
+        "rating_source": "Opex_headway_proxy",
+        "delivered_rate": null,
+        "one_way_days": 31.01847,
+        "dwell_a_days": 8.648648827746726,
+        "dwell_b_days": 8.648648827746726,
+        "headway_days": 39.66711882774673,
+        "rating_pct": 22.54901960784314,
+        "loaded_legs_per_train_month": 0.7562939,
+        "dwell_source": "legacy_primary_shared_assumption",
+        "mixed_loading_coverage": "not_covered",
+        "waiting_source": "pax_orders_without_full_load_assumption"
+      },
+      "ratio_midpoint": 0.9516698241666667
+    },
+    {
+      "source": "rva_cycle_rail_seed7_r0.log",
+      "session": 1,
+      "line": 13,
+      "vehicle": 320,
+      "coverage": "sampled_complete",
+      "exhaustive_coverage": "not_covered",
+      "cycle_ticks": [
+        1438,
+        1767
+      ],
+      "outbound_ticks": [
+        197,
+        660
+      ],
+      "dwell_b_ticks": [
+        209,
+        843
+      ],
+      "return_ticks": [
+        172,
+        711
+      ],
+      "dwell_a_ticks": [
+        0,
+        413
+      ],
+      "dwell_cause": "unknown",
+      "composition": {
+        "3": 27,
+        "4": 27,
+        "5": 27,
+        "0": 23,
+        "1": 28,
+        "2": 28
+      },
+      "composition_coverage": "sampled_complete",
+      "length_16tile": 48,
+      "max_sample_gap_ticks": 405,
+      "residual_coverage": "sampled",
+      "residuals": {
+        "coverage": "sampled",
+        "model_cycle_days": 68.4672019280364,
+        "model_dwell_per_leg_days": 8.648649964018201,
+        "model_headway_days": 51.169903,
+        "model_income_days": 26,
+        "cycle_delta_model_days": [
+          8.532798071963597,
+          28.532798071963597
+        ],
+        "outbound_delta_model_days": [
+          -15.584951,
+          11.415049
+        ],
+        "return_delta_model_days": [
+          -16.584951,
+          14.415049
+        ],
+        "cargo": [
+          {
+            "cargo": 0,
+            "capacity": 120,
+            "unit": "cargo_units_per_model_30day_month_per_train",
+            "capacity_rate": [
+              74.22680412371135,
+              93.50649350649351
+            ],
+            "model_capacity_rate": 105.15984,
+            "capacity_delta": [
+              -30.933035876288656,
+              -11.65334649350649
+            ],
+            "departing_payload_rate_proxy": [
+              72.68041237113403,
+              91.55844155844156
+            ],
+            "delivered_rate": null
+          },
+          {
+            "cargo": 2,
+            "capacity": 60,
+            "unit": "cargo_units_per_model_30day_month_per_train",
+            "capacity_rate": [
+              37.11340206185567,
+              46.753246753246756
+            ],
+            "model_capacity_rate": 52.57992,
+            "capacity_delta": [
+              -15.466517938144328,
+              -5.826673246753245
+            ],
+            "departing_payload_rate_proxy": [
+              37.11340206185567,
+              46.753246753246756
+            ],
+            "delivered_rate": null
+          }
+        ],
+        "dwell_a_delta_model_days": [
+          -8.648649964018201,
+          14.351350035981799
+        ],
+        "dwell_b_delta_model_days": [
+          1.351350035981799,
+          37.351350035981795
+        ]
+      },
+      "cycle_days": [
+        77,
+        97
+      ],
+      "outbound_days": [
+        10,
+        37
+      ],
+      "dwell_b_days": [
+        10,
+        46
+      ],
+      "return_days": [
+        9,
+        40
+      ],
+      "dwell_a_days": [
+        0,
+        23
+      ],
+      "date_precision_days": 1,
+      "sample_rollover_coverage": "not_covered",
+      "dry_cycle": {
+        "coverage": "estimated",
+        "cycle_days": 68.4672019280364,
+        "cargos": [
+          {
+            "cargo": 0,
+            "capacity_month": 105.15984,
+            "offered_month": null,
+            "carried_month": null,
+            "unit": "cargo_units_per_model_30day_month"
+          },
+          {
+            "cargo": 2,
+            "capacity_month": 52.57992,
+            "offered_month": null,
+            "carried_month": null,
+            "unit": "cargo_units_per_model_30day_month"
+          }
+        ],
+        "travel_source": "C41_candidate_snapshot",
+        "rating_source": "Opex_headway_proxy",
+        "delivered_rate": null,
+        "one_way_days": 25.584951,
+        "dwell_a_days": 8.648649964018201,
+        "dwell_b_days": 8.648649964018201,
+        "headway_days": 68.4672019280364,
+        "rating_pct": 12.745098039215685,
+        "loaded_legs_per_train_month": 0.876332,
+        "dwell_source": "legacy_primary_shared_assumption",
+        "mixed_loading_coverage": "not_covered",
+        "waiting_source": "pax_orders_without_full_load_assumption"
+      },
+      "ratio_midpoint": 1.2706814
+    },
+    {
+      "source": "rva_cycle_rail_seed7_r0.log",
+      "session": 1,
+      "line": 14,
+      "vehicle": 251,
+      "coverage": "sampled_complete",
+      "exhaustive_coverage": "not_covered",
+      "cycle_ticks": [
+        1628,
+        2002
+      ],
+      "outbound_ticks": [
+        196,
+        658
+      ],
+      "dwell_b_ticks": [
+        512,
+        1049
+      ],
+      "return_ticks": [
+        195,
+        599
+      ],
+      "dwell_a_ticks": [
+        0,
+        421
+      ],
+      "dwell_cause": "unknown",
+      "composition": {
+        "5": 27,
+        "0": 23,
+        "1": 28,
+        "2": 28,
+        "3": 27,
+        "4": 27
+      },
+      "composition_coverage": "sampled_complete",
+      "length_16tile": 48,
+      "max_sample_gap_ticks": 321,
+      "residual_coverage": "sampled",
+      "residuals": {
+        "coverage": "sampled",
+        "model_cycle_days": 73.32830708526213,
+        "model_dwell_per_leg_days": 8.648648542631062,
+        "model_headway_days": 28.015505,
+        "model_income_days": 29,
+        "cycle_delta_model_days": [
+          13.671692914737875,
+          35.671692914737875
+        ],
+        "outbound_delta_model_days": [
+          -19.015505,
+          8.984494999999999
+        ],
+        "return_delta_model_days": [
+          -18.015505,
+          5.984494999999999
+        ],
+        "cargo": [
+          {
+            "cargo": 0,
+            "capacity": 120,
+            "unit": "cargo_units_per_model_30day_month_per_train",
+            "capacity_rate": [
+              66.05504587155963,
+              82.75862068965517
+            ],
+            "model_capacity_rate": 98.188548,
+            "capacity_delta": [
+              -32.13350212844037,
+              -15.429927310344823
+            ],
+            "departing_payload_rate_proxy": [
+              66.05504587155963,
+              82.75862068965517
+            ],
+            "delivered_rate": null
+          },
+          {
+            "cargo": 2,
+            "capacity": 60,
+            "unit": "cargo_units_per_model_30day_month_per_train",
+            "capacity_rate": [
+              33.027522935779814,
+              41.37931034482759
+            ],
+            "model_capacity_rate": 49.094274,
+            "capacity_delta": [
+              -16.066751064220185,
+              -7.7149636551724114
+            ],
+            "departing_payload_rate_proxy": [
+              28.89908256880734,
+              36.206896551724135
+            ],
+            "delivered_rate": null
+          }
+        ],
+        "dwell_a_delta_model_days": [
+          -8.648648542631062,
+          14.351351457368938
+        ],
+        "dwell_b_delta_model_days": [
+          17.35135145736894,
+          49.351351457368935
+        ]
+      },
+      "cycle_days": [
+        87,
+        109
+      ],
+      "outbound_days": [
+        9,
+        37
+      ],
+      "dwell_b_days": [
+        26,
+        58
+      ],
+      "return_days": [
+        10,
+        34
+      ],
+      "dwell_a_days": [
+        0,
+        23
+      ],
+      "date_precision_days": 1,
+      "sample_rollover_coverage": "not_covered",
+      "dry_cycle": {
+        "coverage": "estimated",
+        "cycle_days": 73.32830708526213,
+        "cargos": [
+          {
+            "cargo": 0,
+            "capacity_month": 196.377096,
+            "offered_month": null,
+            "carried_month": null,
+            "unit": "cargo_units_per_model_30day_month"
+          },
+          {
+            "cargo": 2,
+            "capacity_month": 98.188548,
+            "offered_month": null,
+            "carried_month": null,
+            "unit": "cargo_units_per_model_30day_month"
+          }
+        ],
+        "travel_source": "C41_candidate_snapshot",
+        "rating_source": "Opex_headway_proxy",
+        "delivered_rate": null,
+        "one_way_days": 28.015505,
+        "dwell_a_days": 8.648648542631062,
+        "dwell_b_days": 8.648648542631062,
+        "headway_days": 36.66415354263106,
+        "rating_pct": 22.54901960784314,
+        "loaded_legs_per_train_month": 0.8182379,
+        "dwell_source": "legacy_primary_shared_assumption",
+        "mixed_loading_coverage": "not_covered",
+        "waiting_source": "pax_orders_without_full_load_assumption"
+      },
+      "ratio_midpoint": 1.3364552366666667
+    }
+  ]
+}
