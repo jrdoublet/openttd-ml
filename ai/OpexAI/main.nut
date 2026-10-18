@@ -208,6 +208,8 @@ class OpexAI extends AIController {
   _lastRepayMonth = -1;
   /* V249 : mois du dernier passage statue. Memoire de cadence, pas un etat de partie. */
   _v249StatueMonth = -1;
+  /* V252 : mois du dernier rafraichissement aerien actif. Memoire de cadence, pas un etat de partie. */
+  _v252RefreshMonth = -1;
   /* V89 : débit de recherche A* rail opportuniste et instrumentation passive */
   _v89EstimatedSliceOps = 2000;
   _v89LastDay = -1;
@@ -535,6 +537,7 @@ class OpexAI extends AIController {
   function _dispatchRefleet(task, year);
   function _dispatchRepay(task, year);
   function _dispatchV249Statue(task, year);
+  function _dispatchV252AirEngineRefresh(task, year);
   function _c76RecordRegen(kind, ops, days, year, reason = "unknown");
   function _c76RecordAvoided(year);
   function _c76RotateFreight(year);
@@ -632,6 +635,7 @@ require("task_road.nut");
 require("task_terrain.nut");
 require("task_water.nut");
 require("task_v249.nut");
+require("task_v252.nut");
 require("selftests.nut");
 
 function OpexAI::Start()
@@ -645,6 +649,7 @@ function OpexAI::Start()
   /* Apres les phases V147 : un index insere avant elles decalerait taskCursor. */
   if (this._taskQueue != null) {
     this._taskQueue.append({ name = "v249_statue", dueCycle = 0, enabled = V249_STATUE });
+    this._taskQueue.append({ name = "v252_air_engine_refresh", dueCycle = 0, enabled = V252_AIR_ENGINE_REFRESH == 2 });
   }
 
   if (!STAGED_BOOTSTRAP) this._generationStage = OPEX_STAGE_COMPLETE;

@@ -628,6 +628,15 @@ class OpexAIInfo extends AIInfo {
       custom_value = 0,
       flags = AICONFIG_BOOLEAN
     });
+    AddSetting({
+      name = "v252_air_engine_refresh",
+      description = "V252: modernize air fleet; 0 = inert master default (clone/refleetEngine), 1 = buy best available engine on reinforce/crash, 2 = mode 1 + active monthly replacement when rich; default 0",
+      min_value = 0, max_value = 2,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      step_size = 1,
+      flags = 0
+    });
   }
 }
 
