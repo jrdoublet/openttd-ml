@@ -187,9 +187,17 @@ class ForumBehaviours(unittest.TestCase):
             self.assertIn("OpexRailVehicleSlotAvailable()", body("builder_rail.nut", function))
         self.assertIn("OpexRailVehicleSlotAvailable()", source("task_rail.nut"))
 
-    @unittest.expectedFailure  # Les mode_* ne lisent pas IsDisabledVehicleType ; autres caps = sonde.
     def test_2_1_disabled_vehicle_types_are_read(self):
-        self.assertIn("AIGameSettings.IsDisabledVehicleType(", "\n".join(all_code().values()))
+        # Decision utilisateur du 18/10 : correctif de robustesse a tous les niveaux.
+        self.assertIn("AIGameSettings.IsDisabledVehicleType(", source("tension.nut"))
+        settings = source("settings.nut")
+        for mode in ("AIR", "RAIL", "ROAD", "WATER"):
+            with self.subTest(mode=mode):
+                self.assertIn("if (MODE_%s && !OpexModeAllowedByGame(" % mode, settings)
+        self.assertLess(settings.index('MODE_WATER = AIController.GetSetting("mode_water")'),
+                        settings.index("ROAD_BUILD_ENABLED = MODE_ROAD"))
+        self.assertIn("if (!OpexModeVehicleRoom(project.mode, OpexTensionProjectVehicleCount(project))) continue;",
+                      source("task_projects.nut"))
 
     def test_2_2_no_numeric_cargo_or_transport_type_ids(self):
         # Sentinelles -1 autorisées ; aucune exception pour un identifiant réel.

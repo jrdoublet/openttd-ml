@@ -1465,6 +1465,8 @@ function OpexAI::_tryBuildProjects(year)
     if (project == null) continue;
     local c121LiveOpp = null;
     if ((OpexC69AttemptKey(project) in c75BuiltKeys)) continue;
+    // V261 point 6 : pas de chantier dont les vehicules ne tiendraient pas sous le plafond.
+    if (!OpexModeVehicleRoom(project.mode, OpexTensionProjectVehicleCount(project))) continue;
     /* Reject an unavailable rail slot BEFORE K_pass: it cannot consume a bypass
      * or stop the pass ahead of a fundable AIR project. Ready grafts remain ordinary. */
     if (V233_PENDING_CONTINUE && project.mode == "rail" && this._railSearch != null) {
