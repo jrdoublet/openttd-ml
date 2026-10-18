@@ -678,6 +678,13 @@ class OpexAIInfo extends AIInfo {
       step_size = 1,
       flags = 0
     });
+    AddSetting({
+      name = "v229_c70_cells",
+      description = "V229: C70 realized/predicted factor by cell (mode, passengers or mail versus other cargo, two distance bands cut at the median of matured lines in that group). 0 = mode factor only (default, same as before). 1 = cell factor, Bayesian fallback on the mode factor",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
   }
 }
 

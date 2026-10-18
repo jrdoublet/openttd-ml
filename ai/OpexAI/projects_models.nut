@@ -54,6 +54,8 @@ function OpexC70RecomputeFactors(lines)
     C70_MODE_FACTOR[m] = (acc[0] + 1.0) / (acc[1] + 1).tofloat();
     OpexC69Log("phase=c70_reload mode=" + m + " lines=" + acc[1] + " k=" + C70_MODE_FACTOR[m]);
   }
+  /* Meme calcul que la publication annuelle. A 0, aucun parcours des cellules. */
+  if (V229_C70_CELLS) OpexC70ApplyCells(lines, null);
 }
 
 /* C121 : le facteur de realisation corrige le revenu brut du modele physique,
@@ -145,13 +147,166 @@ function OpexC121ProjectHasRealization(project)
   return false;
 }
 
-/* C70 : facteur du mode d'un projet. Un projet de flotte ajoute des avions a une ligne aerienne. */
+/* C70 : facteur du mode d'un projet. Un projet de flotte ajoute des avions a une ligne aerienne.
+ * Corps historique. V229 ne le remplace (OpexC70FactorCells) que si v229_c70_cells = 1,
+ * dans OpexLoadSettings : a 0 ce corps reste celui qui est appele. */
 function OpexC70Factor(project)
 {
   local mode = ("mode" in project) ? project.mode : "unknown";
   if (mode == "fleet") {
     mode = "air";
   }
+  return (mode in C70_MODE_FACTOR) ? C70_MODE_FACTOR[mode] : 1.0;
+}
+
+/* Cargo -> "pax" (passagers ou courrier) ou "freight". null si le cargo n'est pas lisible. */
+function OpexC70CargoKind(cargo)
+{
+  if (typeof cargo != "integer") return null;
+  if (!AICargo.IsValidCargo(cargo)) return null;
+  if (AICargo.HasCargoClass(cargo, AICargo.CC_PASSENGERS)
+      || AICargo.HasCargoClass(cargo, AICargo.CC_MAIL)) return "pax";
+  return "freight";
+}
+
+function OpexC70Number(value)
+{
+  local valueType = typeof value;
+  if (valueType != "integer" && valueType != "float") return null;
+  return value;
+}
+
+/* Mediane sans seuil en tuiles. Effectif impair : element central. Pair : moyenne des
+ * deux centraux, comme OpexMedianFloat. La copie n'est pas la liste de l'appelant. */
+function OpexC70Median(values)
+{
+  local n = values.len();
+  if (n <= 0) return null;
+  local copy = [];
+  foreach (v in values) copy.append(v);
+  for (local i = 1; i < n; i++) {
+    local v = copy[i];
+    local j = i;
+    while (j > 0 && copy[j - 1] > v) {
+      copy[j] = copy[j - 1];
+      j--;
+    }
+    copy[j] = v;
+  }
+  if (n % 2 == 1) return copy[n / 2];
+  return (copy[n / 2 - 1] + copy[n / 2]) / 2.0;
+}
+
+/* Lignes qui ont un cumul C70 et dont la cellule est lisible (cargo + distance).
+ * Sans l'un de ces champs, la ligne reste dans le facteur du mode seulement. */
+function OpexC70CollectCellSamples(lines)
+{
+  local groups = {};
+  if (lines == null) return groups;
+  foreach (line in lines) {
+    if (line == null || !("mode" in line)) continue;
+    local mode = line.mode;
+    if (!(mode in C70_MODE_FACTOR)) continue;
+    if (!("c70Pred" in line) || !("c70Real" in line) || line.c70Pred <= 0) continue;
+    if (!("cargo" in line) || !("distance" in line)) continue;
+    local distance = OpexC70Number(line.distance);
+    if (distance == null) continue;
+    local cellKind = OpexC70CargoKind(line.cargo);
+    if (cellKind == null) continue;
+    local ratio = line.c70Real.tofloat() / line.c70Pred.tofloat();
+    if (!(mode in groups)) groups[mode] <- {};
+    if (!(cellKind in groups[mode])) groups[mode][cellKind] <- [];
+    groups[mode][cellKind].append({ distance = distance, ratio = ratio });
+  }
+  return groups;
+}
+
+/* k_cell = (somme des ratios de la cellule + k_mode) / (n_cell + 1). */
+function OpexC70StoreCell(mode, cellKind, band, sumRatio, nCell, kMode, median, year)
+{
+  if (nCell <= 0) return;
+  local k = (sumRatio + kMode) / (nCell + 1).tofloat();
+  C70_CELL_FACTOR[mode + "|" + cellKind + "|" + band] <- k;
+  /* Meme journal que phase=c70_factor : OpexC69Log, arme par la sonde portefeuille. */
+  if (year != null && C69_BOTTLENECK_PROBE) {
+    OpexC69Log("phase=c70_factor year=" + year + " mode=" + mode
+        + " kind=" + cellKind + " band=" + band + " median=" + median
+        + " n=" + nCell + " k=" + k);
+  }
+}
+
+/* Publication et rechargement : un seul calcul. year = null au rechargement (pas de journal).
+ * Tranche : distance < mediane -> short, sinon long. */
+function OpexC70ApplyCells(lines, year)
+{
+  C70_CELL_FACTOR = {};
+  C70_CELL_MEDIAN = {};
+  local groups = OpexC70CollectCellSamples(lines);
+  foreach (mode, kinds in groups) {
+    local kMode = C70_MODE_FACTOR[mode];
+    foreach (cellKind, samples in kinds) {
+      local distances = [];
+      foreach (sample in samples) distances.append(sample.distance);
+      local median = OpexC70Median(distances);
+      if (median == null) continue;
+      C70_CELL_MEDIAN[mode + "|" + cellKind] <- median;
+      local shortSum = 0.0;
+      local shortN = 0;
+      local longSum = 0.0;
+      local longN = 0;
+      foreach (sample in samples) {
+        if (sample.distance < median) {
+          shortSum += sample.ratio;
+          shortN++;
+        } else {
+          longSum += sample.ratio;
+          longN++;
+        }
+      }
+      OpexC70StoreCell(mode, cellKind, "short", shortSum, shortN, kMode, median, year);
+      OpexC70StoreCell(mode, cellKind, "long", longSum, longN, kMode, median, year);
+    }
+  }
+}
+
+/* Cellule d'un projet deja ramene a son mode C70 (flotte -> air). null : repli sur k_mode.
+ * La flotte prend la distance de sa ligne, pas project.distance (toujours 0). */
+function OpexC70CellFactor(project, mode)
+{
+  if (project == null || !(mode in C70_MODE_FACTOR)) return null;
+  local fleet = ("mode" in project) && project.mode == "fleet";
+  local cargo = ("cargo" in project) ? project.cargo : null;
+  local distance = null;
+  if (fleet) {
+    if (!("payload" in project) || project.payload == null) return null;
+    if (!("line" in project.payload) || project.payload.line == null) return null;
+    local line = project.payload.line;
+    if (cargo == null && ("cargo" in line)) cargo = line.cargo;
+    if (!("distance" in line)) return null;
+    distance = OpexC70Number(line.distance);
+  } else {
+    if (!("distance" in project)) return null;
+    distance = OpexC70Number(project.distance);
+  }
+  if (distance == null) return null;
+  local cellKind = OpexC70CargoKind(cargo);
+  if (cellKind == null) return null;
+  local medKey = mode + "|" + cellKind;
+  if (!(medKey in C70_CELL_MEDIAN)) return null;
+  local band = (distance < C70_CELL_MEDIAN[medKey]) ? "short" : "long";
+  local key = medKey + "|" + band;
+  if (!(key in C70_CELL_FACTOR)) return null;
+  return C70_CELL_FACTOR[key];
+}
+
+function OpexC70FactorCells(project)
+{
+  local mode = ("mode" in project) ? project.mode : "unknown";
+  if (mode == "fleet") {
+    mode = "air";
+  }
+  local cellK = OpexC70CellFactor(project, mode);
+  if (cellK != null) return cellK;
   return (mode in C70_MODE_FACTOR) ? C70_MODE_FACTOR[mode] : 1.0;
 }
 

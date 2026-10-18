@@ -125,6 +125,9 @@ function OpexLoadSettings()
   V249_STATUE = AIController.GetSetting("v249_statue") == 1;
   local v252Refresh = AIController.GetSetting("v252_air_engine_refresh");
   V252_AIR_ENGINE_REFRESH = (v252Refresh != null && v252Refresh >= 0 && v252Refresh <= 2) ? v252Refresh : 0;
+  /* V229 : a 0, ne pas remplacer OpexC70Factor (chemin de score inchange). */
+  V229_C70_CELLS = AIController.GetSetting("v229_c70_cells") == 1;
+  if (V229_C70_CELLS) ::OpexC70Factor <- OpexC70FactorCells;
   local rights = AIController.GetSetting("v250_rights");
   if (rights == null || rights < 0 || rights > 4) rights = 0;
   /* V250 entiere reservee au niveau 3 (personnalise) : geste anticoncurrentiel. */

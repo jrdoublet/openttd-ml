@@ -95,7 +95,7 @@ function OpexC70C82AccumulateLine(line, year, profit, vehCount, c70Sums)
 }
 
 /* C70 : publication des facteurs par mode (etat global lu par l'economie). */
-function OpexC70PublishModeFactors(c70Sums, year)
+function OpexC70PublishModeFactors(c70Sums, year, lines = null)
 {
   /* Pseudo-ligne a 1 : k = (somme des ratios + 1) / (n + 1). Sans ligne mure, k = 1 ; la premiere
    * ligne ne pese que la moitie ; l'effet s'efface a mesure que les lignes s'accumulent. */
@@ -106,6 +106,8 @@ function OpexC70PublishModeFactors(c70Sums, year)
           + " k=" + C70_MODE_FACTOR[m]);
     }
   }
+  /* Apres k_mode : la cellule s'appuie dessus. A 0, pas d'appel. */
+  if (V229_C70_CELLS) OpexC70ApplyCells(lines, year);
 }
 
 /* R13 : sante annuelle d'une ligne fret (compteur deadStreak lu par _scrapDeadLines).
@@ -557,7 +559,7 @@ function OpexAI::_reportLines(year)
         + " prof_lines=" + profCount + " loss_lines=" + lossCount);
   }
   {
-    OpexC70PublishModeFactors(c70Sums, year);
+    OpexC70PublishModeFactors(c70Sums, year, this._lines);
   }
   if (c121RealizationSums != null) {
     OpexC121ApplyRealizationSums(c121RealizationSums, year, "annual");
