@@ -48,6 +48,7 @@ class V233eContracts(unittest.TestCase):
         observer = ebody('OpexV233eGoodsStep')
         self.assertIn('work.phase == "done" && work.month != month && generated', observer)
         self.assertIn('gen.cursor >= work.keys.len()', observer)
+        self.assertIn('work != null && gen != null && gen.current == null', observer)
         self.assertNotIn('work.revision !=', observer)
         self.assertNotIn('month_coverage', observer)
         self.assertIn('lineLimit = ai._lines.len()', observer)

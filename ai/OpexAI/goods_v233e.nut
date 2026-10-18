@@ -13,7 +13,9 @@ function OpexV233eGoodsStep(ai)
   local month = OpexV233eMonth();
   local work = ai._v233GoodsWork;
   local gen = ai._v233Generation;
-  local generated = work == null || gen == null || (gen.current == null && gen.cursor >= work.keys.len());
+  // A not-yet-started generator is not a completed one: even an index finishing
+  // on the last day of a month must get its first generation turn before reset.
+  local generated = work != null && gen != null && gen.current == null && gen.cursor >= work.keys.len();
   // Finish a bounded sweep AND its destinations across calendar boundaries.
   // New fleet revisions do not restart the cursor. Each support is checked live.
   if (work == null || (work.phase == "done" && work.month != month && generated)) {
