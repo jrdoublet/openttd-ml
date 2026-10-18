@@ -69,6 +69,10 @@ def analyze(lines):
         edges = [edge["ticks"] for edge in path]
         total = duration(edges[0], edges[4])
         row = {"session": session, "line": key[0], "vehicle": key[1],
+               "forecast_tick": edges[0][0], "observed_tick": edges[4][1],
+               "engine": sample.get("engine"), "cargo": sample.get("cargo"),
+               "cargo2": sample.get("cargo2"), "cap": sample.get("cap"), "cap2": sample.get("cap2"),
+               "a": sample.get("a"), "b": sample.get("b"),
                "coverage": "sampled_complete", "exhaustive_coverage": "not_covered",
                "cycle_ticks": total, "outbound_ticks": duration(edges[0], edges[1]),
                "dwell_b_ticks": duration(edges[1], edges[2]),

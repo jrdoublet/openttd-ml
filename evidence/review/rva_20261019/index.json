@@ -12,6 +12,12 @@
       "raw_sha256": "ff498cdf245dd59c50bcc88c0996eb1fc7e36143255ea29c122f380bb8abafbf",
       "gzip_sha256": "b49c5df6c81dbee981b2bd524835deba45d20d2b1a2a03169140de1221c2c3a2",
       "source": "paired package summary and 20 hashed engine logs"
+    },
+    {
+      "file": "learning.json.gz",
+      "raw_sha256": "dee466d3b32d29019415716724fd78621593ced0a60d0df159ebba82aa2f042d",
+      "gzip_sha256": "6942e6f0cb56863068be6e23b9b06f10f260e3114c20f7098d0f266439df2ea5",
+      "source": "12 existing RVA cycle logs, source hashes embedded"
     }
   ]
 }
