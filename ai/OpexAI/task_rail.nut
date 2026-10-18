@@ -852,6 +852,7 @@ function OpexAI::_continueRailSearch()
   local state = this._railSearch;
   if (state.phase == "build") {
     if (state.kind == "upgrade") this._consumeRailUpgrade();
+    else if (V265_BRANCH_EXTENSION && state.kind == "v265") this._v265ConsumeSearch();
     return;
   }
   if (state.phase != "search") return;
@@ -996,6 +997,11 @@ function OpexAI::_continueRailSearch()
     if (DECISION_LOG && V131_TOWN_CLEARANCE && ("clearanceTiles" in state) && state.clearanceTiles != null) {
       OpexV131LogClearance(state.candidate, plan, state.clearanceTiles);
     }
+    return;
+  }
+  if (V265_BRANCH_EXTENSION && state.kind == "v265") {
+    state.search <- slice;
+    state.phase = "build";
     return;
   }
   if (state.kind == "upgrade") {

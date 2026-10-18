@@ -104,16 +104,9 @@ V250_RIGHTS <- 0;
 /* Meme signal que V249, mais reserve au mode 1. Le mode 2 ne le lit pas.
  * Vrai au depart : le premier mois de mode 1 ne compte pas. Pas sauvegarde. */
 V250_CASH_STOP <- true;
-/* V265 : prolongement d'une ligne rail par embranchement (modèle AAAHogEx). 0 = inerte (défaut). */
+/* V265 : prolongement d'une ligne fret rail vers une destination plus lointaine (task_v265.nut).
+ * 0 = inerte (defaut). Aucune constante propre : voir l'en-tete de task_v265.nut. */
 V265_BRANCH_EXTENSION <- false;
-/* Longueur minimale de branche : OpenTTD 15.3 src/station_cmd.cpp (_settings_game.station.station_spread = 12)
- * couvre quai (3) + gorge/aiguillage (2) + canton PBS (2) + marge de captage (5). */
-const V265_MIN_BRANCH_TILES = 12;
-/* Réserve de caisse pour avion le plus cher en 1970 (BAC 1-11 ~48 k£, Viscount ~36 k£, catalog.nut:145).
- * Empêche le rail de priver l'aérien de capital d'amorçage (mémoire V149/V207/V214). */
-const V265_BRANCH_AIR_CAPITAL_GUARD = 50000;
-/* Cadence de scan d'extension : trimestrielle (90 jours) pour préserver les opcodes (scheduler.nut:35). */
-const V265_BRANCH_SCAN_COOLDOWN_DAYS = 90;
 V172_RAIL_LONG_WEIGHT_DIST <- 100;
 /* Cascade pax par distance decroissante : air seul, air+rail, rail seul,
  * route seule. Le fret accompagne la premiere passe. */

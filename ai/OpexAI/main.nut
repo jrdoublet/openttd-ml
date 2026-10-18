@@ -223,8 +223,12 @@ class OpexAI extends AIController {
   _v250Month = -1;
   _v250Targets = {};
   _v250Freed = {};
-  /* V265 : mois du dernier scan d'embranchement ferroviaire. Cadence trimestrielle. */
-  _v265LastMonth = -1;
+  /* V265 : curseur de balayage (une ligne par appel, une passe par mois), echecs date par
+   * "ligne|industrie". Caches non sauvegardes : apres chargement, la passe repart de zero. */
+  _v265Cursor = 0;
+  _v265SweepMonth = -1;
+  _v265SweepDone = false;
+  _v265Failed = null;
   /* V89 : débit de recherche A* rail opportuniste et instrumentation passive */
   _v89EstimatedSliceOps = 2000;
   _v89LastDay = -1;
@@ -566,8 +570,10 @@ class OpexAI extends AIController {
   function _dispatchV252AirEngineRefresh(task, year);
   function _dispatchV250Rights(task, year);
   function _dispatchV265BranchExtension(task, year);
-  function _v265AntiBlockStep();
-  function _v265ScanAndBranchLine(year);
+  function _v265AirReserve();
+  function _v265TryLine(line, date);
+  function _v265Fail(line, ind, reason);
+  function _v265ConsumeSearch();
   function _c76RecordRegen(kind, ops, days, year, reason = "unknown");
   function _c76RecordAvoided(year);
   function _c76RotateFreight(year);
