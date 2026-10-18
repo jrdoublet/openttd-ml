@@ -18,6 +18,12 @@
       "raw_sha256": "dee466d3b32d29019415716724fd78621593ced0a60d0df159ebba82aa2f042d",
       "gzip_sha256": "6942e6f0cb56863068be6e23b9b06f10f260e3114c20f7098d0f266439df2ea5",
       "source": "12 existing RVA cycle logs, source hashes embedded"
+    },
+    {
+      "file": "replay.json.gz",
+      "raw_sha256": "3d72d995841af05f82e49854381512ffe0f940c3930e64d6106399cc89a73c34",
+      "gzip_sha256": "e3deb51a69f3c730a2d11057f52eb7722cae2e65934e50b15ff0e616e7470e2c",
+      "source": "all recoverable V216 selection snapshots, 80 source hashes embedded"
     }
   ]
 }
