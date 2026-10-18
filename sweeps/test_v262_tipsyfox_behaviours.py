@@ -191,11 +191,12 @@ class TipsyfoxBehaviours(unittest.TestCase):
         for key in ['lines', 'airRollbacks', 'startYear']:
             self.assertIn(f'"{key}" in data', code)
 
-    @unittest.expectedFailure  # line != null ne valide pas son type avant l'opérateur in.
     def test_loaded_line_type_checked_before_field_membership(self):
         code = body('persist.nut', 'OpexAI::_reconcileAfterLoad')
         prefix = code.split('!("stationA" in line)')[0]
         self.assertRegex(prefix, r'typeof line\s*(?:!=|==)\s*"table"')
+        self.assertIn('AILog.Warning(', prefix)
+        self.assertIn('typeof this._pendingLines', prefix)
 
     def test_order_removal_loop_checks_progress(self):
         code = body('builder_rail.nut', 'OpexConvertDoubleTrackToLoop')

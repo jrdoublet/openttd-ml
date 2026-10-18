@@ -171,7 +171,7 @@ function OpexLoadActiveWorker(data)
 
 function OpexAI::_railLineHasVehicle(line, vehicle)
 {
-  if (line == null || !("vehicles" in line) || line.vehicles == null) return false;
+  if (line == null || typeof line != "table" || !("vehicles" in line) || line.vehicles == null) return false;
   foreach (known in line.vehicles) {
     if (known == vehicle) return true;
   }
@@ -264,7 +264,7 @@ function OpexAI::_reconcileRailExpansionAfterLoad()
        state.commitStage == "metadata_done");
   local shapeValid = ("oldWagons" in state) && ("newWagons" in state) &&
       state.newWagons == state.oldWagons + 1;
-  local lineValid = line != null && ("mode" in line) && line.mode == "rail" &&
+  local lineValid = line != null && typeof line == "table" && ("mode" in line) && line.mode == "rail" &&
       this._railLineHasVehicle(line, state.vehicle);
   local depotValid = lineValid && ("depot" in line) && AIMap.IsValidTile(line.depot) &&
       AIRail.IsRailDepotTile(line.depot);
@@ -367,7 +367,7 @@ function OpexAI::_filterPersistedRailRepairQueue(source)
   foreach (key, ignored in source) {
     local lineId = key.tointeger();
     local line = this._findLineById(lineId);
-    if (line != null && ("mode" in line) && line.mode == "rail" &&
+    if (line != null && typeof line == "table" && ("mode" in line) && line.mode == "rail" &&
         ("doubleTrack" in line) && line.doubleTrack == 1) {
       out.rawset("" + lineId, true);
     }
@@ -865,13 +865,21 @@ function OpexAI::_reconcileAfterLoad()
   local purgedVehicles = 0;
   local liveLines = [];
   if (this._pendingLines != null) {
-    foreach (line in this._pendingLines) {
-      saved++;
-      if (line == null || !("stationA" in line) || !("stationB" in line) ||
-          !AIMap.IsValidTile(line.stationA) || !AIMap.IsValidTile(line.stationB)) {
-        dropped++;
-        continue;
-      }
+    if (typeof this._pendingLines != "array") {
+      AILog.Warning("OpexAI: loaded lines is not an array (got " + typeof this._pendingLines + "), ignoring.");
+    } else {
+      foreach (line in this._pendingLines) {
+        saved++;
+        if (typeof line != "table") {
+          dropped++;
+          AILog.Warning("OpexAI: invalid line entry in savegame (expected table, got " + typeof line + "), skipping.");
+          continue;
+        }
+        if (!("stationA" in line) || !("stationB" in line) ||
+            !AIMap.IsValidTile(line.stationA) || !AIMap.IsValidTile(line.stationB)) {
+          dropped++;
+          continue;
+        }
       local stationA = AIStation.GetStationID(line.stationA);
       local stationB = AIStation.GetStationID(line.stationB);
       if (!AIStation.IsValidStation(stationA) || !AIStation.IsValidStation(stationB) ||
@@ -910,6 +918,7 @@ function OpexAI::_reconcileAfterLoad()
       kept++;
     }
   }
+  }
   this._lines = liveLines;
   /* World validation is rebuilt in bounded steps from these restored lines.
    * Short saves without support cannot revive observations. OFF never generates work. */
@@ -929,13 +938,13 @@ function OpexAI::_reconcileAfterLoad()
 
   local selfComp = AICompany.ResolveCompanyID(AICompany.COMPANY_SELF);
   foreach (line in this._lines) {
-    if (line == null) continue;
-    if (!("bridges" in line) || line.bridges == null) {
+    if (line == null || typeof line != "table") continue;
+    if (!("bridges" in line) || line.bridges == null || typeof line.bridges != "array") {
       line.bridges <- [];
     } else {
       local liveBridges = [];
       foreach (b in line.bridges) {
-        if (b != null && ("start" in b) && ("end" in b) &&
+        if (b != null && typeof b == "table" && ("start" in b) && ("end" in b) &&
             AIBridge.IsBridgeTile(b.start) && AIBridge.GetOtherBridgeEnd(b.start) == b.end &&
             AITile.GetOwner(b.start) == selfComp) {
           liveBridges.append(b);
