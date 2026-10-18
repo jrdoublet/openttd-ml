@@ -74,3 +74,18 @@ anciennes versions, calibration, métriques, bugs et ruptures de campagne.
 restent consultables depuis l'index. Leurs anciens « à faire » ne sont pas actifs.
 Les résultats antérieurs au **9 septembre 2026** ne font plus preuve actuelle ;
 les plus récents exigent aussi des sources et un protocole vérifiables.
+
+<!-- repo-stats:begin -->
+## Repo stats
+
+| Language | files | blank | comment | code |
+|---|---:|---:|---:|---:|
+| Squirrel | 73 | 2780 | 5597 | 43315 |
+| Markdown | 1 | 14 | 0 | 155 |
+| **SUM** | **74** | **2794** | **5597** | **43470** |
+
+- **API usage is 40.10%**
+- **API call count is 5979**
+
+There are 1167 APIs (classes, functions, enums, error types etc.) exposed to AIs by OpenTTD 15.3, of which 468 are used by OpexAI. Scope: tracked files of `ai/OpexAI/`; tests (`sweeps/`) are excluded. Regenerate with `python3 sweeps/repo_stats.py report --write-readme`.
+<!-- repo-stats:end -->
