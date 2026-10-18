@@ -439,7 +439,7 @@ function OpexAI::_tryAttachSharedDest(candidate)
 function OpexAI::_findLineById(lineId)
 {
   foreach (line in this._lines) {
-    if (line != null && typeof line == "table" && ("lineId" in line) && line.lineId == lineId) return line;
+    if (("lineId" in line) && line.lineId == lineId) return line;
   }
   return null;
 }

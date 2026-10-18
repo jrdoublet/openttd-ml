@@ -44,7 +44,7 @@ function OpexC70RecomputeFactors(lines)
   local sums = { rail = [0.0, 0], road = [0.0, 0], air = [0.0, 0], water = [0.0, 0] };
   if (lines != null) {
     foreach (line in lines) {
-      if (line == null || typeof line != "table" || !("mode" in line) || !(line.mode in sums)) continue;
+      if (line == null || !("mode" in line) || !(line.mode in sums)) continue;
       if (!("c70Pred" in line) || !("c70Real" in line) || line.c70Pred <= 0) continue;
       sums[line.mode][0] += line.c70Real.tofloat() / line.c70Pred.tofloat();
       sums[line.mode][1]++;
@@ -118,7 +118,7 @@ function OpexC121RecomputeRealizationFactors(lines)
   local year = AIDate.GetYear(AIDate.GetCurrentDate());
   if (lines != null) {
     foreach (line in lines) {
-      if (line == null || typeof line != "table" || !("mode" in line) || line.mode != "air"
+      if (line == null || !("mode" in line) || line.mode != "air"
           || !("c121Arm" in line) || !(line.c121Arm in sums)
           || !("c121RealizationPm" in line) || !("c121RealizationYear" in line)
           || line.c121RealizationYear < year - 1) continue;
