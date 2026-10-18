@@ -233,6 +233,10 @@ function OpexRememberClosest(distance, threshold, closest)
  * changement de l'ordre de catalog.towns entre deux rafraichissements. */
 function OpexAbandonedPairKey(candidate)
 {
+  // NoAI's invalid IndustryID need not be negative. Keep the graft's explicit
+  // town identity; one impossible city must not poison another goods outlet.
+  if (V233_GOODS_GRAFT && OpexV233IsGraft(candidate))
+    return "freight|" + candidate.cargo + "|" + candidate.v233FactoryId + "|t" + candidate.dstTown;
 
   if (("isSubsidy" in candidate) && candidate.isSubsidy) {
     return "subsidy|" + candidate.subsidyId;

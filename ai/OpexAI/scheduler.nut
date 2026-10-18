@@ -7,6 +7,7 @@
 function OpexAI::_runNextTaskWithSlackLedger()
 {
   if (V233_GOODS_GRAFT && this._catalog != null) {
+    if (DECISION_LOG) this._v233DeliveryStep();
     this._v233GoodsStep();
     if (this._v233GoodsWork != null && this._v233GoodsWork.phase == "done") {
       if (!this._v233PlanStep()) this._v233GraftStep();

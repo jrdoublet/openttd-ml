@@ -141,6 +141,8 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
   local i = rank;
       local candidate = project.payload;
       local v233Graft = V233_GOODS_GRAFT && OpexV233IsGraft(candidate);
+      if (DECISION_LOG && v233Graft) OpexDecide("V233_GRAFT", "state=attempt factory=" + candidate.v233FactoryId
+        + " cargo=" + candidate.cargo + " station=" + candidate.joinStationId + " rank=" + rank);
       local v233Ready = false;
       if (v233Graft) {
         if (!this._v233CandidateLive(candidate)) return { outcome = "rejected", discards = passDiscards };
@@ -317,10 +319,20 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
         }
         local start = this._startRailSearch(candidate, alternativeRatio, hardCap, posPacked);
         if (start.pending) return { outcome = "pending", discards = passDiscards };
+        if (v233Graft && start.plan != null && start.plan.ok) {
+          // The synchronous completion must obey the same rank/quote boundary
+          // as a sliced search. It has no acquired right to spend this pass.
+          this._v233StorePlan(candidate, start.plan);
+          return { outcome = "rejected", discards = passDiscards };
+        }
         /* Le candidat n'a pas encore cette cle dans le chemin qui termine sa
          * recherche dans le meme tour : creation de slot Squirrel avec `<-`. */
         candidate.railPlan <- start.plan;
       }
+      if (DECISION_LOG && v233Graft) OpexDecide("V233_GRAFT", "state="
+        + ((candidate.railPlan != null && candidate.railPlan.ok) ? "pose_attempt" : "search_failed")
+        + " factory=" + candidate.v233FactoryId
+        + " cargo=" + candidate.cargo + " station=" + candidate.joinStationId + " rank=" + rank);
       local result = OpexBuildLine(this._catalog, this._budget, candidate, alternativeRatio,
                                    OpexCashReserve(), hardCap);
       if (v233Graft && result.reason == "V233_REPRICE") {
@@ -337,6 +349,10 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
 
       local recorded = this._recordRailAttempt(candidate, result, posPacked, year);
       if (v233Graft) {
+        if (DECISION_LOG) OpexDecide("V233_GRAFT", "state=result factory=" + candidate.v233FactoryId
+          + " cargo=" + candidate.cargo + " station=" + candidate.joinStationId
+          + " built=" + (recorded ? 1 : 0) + " reason=" + result.reason
+          + " error=" + (("error" in result) ? result.error : 0));
         this._v233ForgetPlan(candidate, recorded ? "built" : "build_failed");
         if (recorded) {
           local work = this._v233GoodsWork;

@@ -485,6 +485,8 @@ function OpexRailPlatformPlans(catalog, candidate)
              slopeRelaxed = 0, reason = "SITEA", statsA = statsA, statsB = statsB };
 
   local floor = OpexRailMinimumPlatformLength();
+  if (V233_GOODS_GRAFT && V233_GOODS_POLICY == 2 && OpexV233IsGraft(candidate))
+    return OpexV233PlatformPlans(catalog, candidate, statsA, statsB);
   local wanted = candidate.platformLength;
   if (wanted > catalog.platformLength) wanted = catalog.platformLength;
   local sawA = false;

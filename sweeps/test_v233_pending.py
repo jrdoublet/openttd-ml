@@ -38,13 +38,15 @@ class PendingContracts(unittest.TestCase):
         text = (AI / "task_projects.nut").read_text()
         self.assertLess(text.index('if (V233_PENDING_CONTINUE && project.mode == "rail"'),
                         text.index('local c121ChainAttempt = false;'))
-        self.assertIn('if (!prepared && !graftReady) continue;', text)
+        self.assertIn('if (!prepared && !graftReady) {', text)
+        self.assertIn('v233Trace.skippedSlot++;', text)
 
     def test_dates_and_attempts(self):
         text = (AI / "task_projects.nut").read_text()
         self.assertIn('if (!V233_PENDING_CONTINUE) OpexC75RecordPassDate(now);', text)
         self.assertIn('if (builtCount > 0) {\n    if (V233_PENDING_CONTINUE) OpexC75RecordPassDate', text)
-        self.assertIn('if (attemptKey in v233Attempts) continue;', text)
+        self.assertIn('if (attemptKey in v233Attempts) {', text)
+        self.assertIn('v233Trace.skippedDuplicate++;', text)
         self.assertLess(text.index('v233Attempts[attemptKey] <- true;'),
                         text.index('local attempt = this._tryBuildFleetProject'))
 

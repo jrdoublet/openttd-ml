@@ -1,5 +1,57 @@
 /* V233: bounded observation of GLOBAL factory output, not proof of our contribution.
  * No projects are inserted by this observer. No API calls from the save codec. */
+function OpexV233TraceAttempt(trace, project, rank, attempt)
+{
+  if (trace == null || trace.pendingRank < 0) return;
+  local reason = attempt.outcome;
+  foreach (d in attempt.discards)
+    if (d.rank == rank && d.mode == project.mode) reason = d.reason;
+  OpexDecide("V233_CONVERSION", "state=result pass=" + trace.pass
+    + " pending_rank=" + trace.pendingRank + " rank=" + rank + " mode=" + project.mode
+    + " key=" + OpexProjectAttemptKey(project) + " outcome=" + attempt.outcome
+    + " reason=" + reason);
+}
+
+/* Conservative delivery witness, one line per scheduler call. A missed unload
+ * remains unknown. This transient probe never infers delivery from revenue and
+ * restarts after Load; the event is the first WITNESSED unload since that load. */
+function OpexAI::_v233DeliveryStep()
+{
+  if (!DECISION_LOG || !V233_GOODS_GRAFT || this._lines.len() == 0) return;
+  if (this._v233DeliveryProbe == null) this._v233DeliveryProbe = { cursor = 0, lines = {} };
+  local probe = this._v233DeliveryProbe;
+  if (probe.cursor >= this._lines.len()) probe.cursor = 0;
+  local line = this._lines[probe.cursor++];
+  if (!("v233FactoryId" in line) || !("v233GoodsCargo" in line)
+      || line.cargo != line.v233GoodsCargo || line.vehicles == null) return;
+  local key = line.lineId;
+  if (!(key in probe.lines)) probe.lines[key] <- { done = false, loads = {} };
+  local witness = probe.lines[key];
+  if (witness.done) return;
+  local station = OpexLineStationId(line, "B");
+  if (!AIStation.IsValidStation(station)) return;
+  local accepting = AICargoList_StationAccepting(station);
+  if (!accepting.HasItem(line.cargo)) return;
+  foreach (vehicle in line.vehicles) {
+    if (!AIVehicle.IsValidVehicle(vehicle)) continue;
+    // The ordinary goods orders deliver at B; never count a transfer as delivery.
+    local flags = AIOrder.GetOrderFlags(vehicle, AIOrder.ORDER_CURRENT);
+    if ((flags & AIOrder.OF_TRANSFER) != 0) continue;
+    local quantity = AIVehicle.GetCargoLoad(vehicle, line.cargo);
+    local tile = AIVehicle.GetLocation(vehicle);
+    local atB = AIRail.IsRailStationTile(tile) && AIStation.GetStationID(tile) == station
+      && AIVehicle.GetState(vehicle) == AIVehicle.VS_AT_STATION;
+    if (vehicle in witness.loads && atB && witness.loads[vehicle] > quantity) {
+      OpexDecide("V233_DELIVERY", "state=first_observed_since_load factory=" + line.v233FactoryId
+        + " cargo=" + line.cargo + " station=" + station + " line=" + line.lineId
+        + " vehicle=" + vehicle + " observed_unloaded=" + (witness.loads[vehicle] - quantity));
+      witness.done = true;
+      return;
+    }
+    witness.loads[vehicle] <- quantity;
+  }
+}
+
 function OpexV233ObservationKey(factory, cargo, station)
 {
   return factory + "|" + cargo + "|" + station;
@@ -23,7 +75,16 @@ function OpexV233Quantity(row, month)
   if (row == null || row.count != 3 || row.lastMonth != month) return 0;
   local q = row.q0 < row.q1 ? row.q0 : row.q1;
   if (row.q2 < q) q = row.q2;
+  // Mode 2 retains real zero months and requires all three calendar observations.
+  if (V233_GOODS_POLICY == 2) q = (row.q0 + row.q1 + row.q2) / 3;
   return q >= V233_GOODS_MIN_MONTHLY ? q : 0;
+}
+
+function OpexV233CurrentOutputValid(factory, cargo)
+{
+  local q = AIIndustry.GetLastMonthProduction(factory, cargo);
+  // A zero is a valid month in the mean policy, never an unknown reading.
+  return V233_GOODS_POLICY == 2 ? q >= 0 : q >= V233_GOODS_MIN_MONTHLY;
 }
 
 function OpexV233Support(line)
@@ -93,9 +154,15 @@ function OpexAI::_v233GoodsStep()
   local month = AIDate.GetYear(date) * 12 + AIDate.GetMonth(date);
   local work = this._v233GoodsWork;
   local revision = this._v233WorldRevision();
-  if (work == null || work.month != month || work.revision != revision) {
+  // In mode 2 finish the bounded index/observation sweep despite fleet revisions.
+  // Each support is checked live; stale revisions still prohibit publication/spend.
+  if (work == null || work.month != month || (work.revision != revision
+      && (V233_GOODS_POLICY != 2 || work.phase == "done"))) {
     if (DECISION_LOG && work != null && work.phase != "done")
-      OpexDecide("V233_DROP", "reason=month_coverage month=" + work.month);
+      OpexDecide("V233_DROP", "reason=month_coverage month=" + work.month
+        + " cause=" + (work.month != month ? "calendar" : "revision")
+        + " phase=" + work.phase + " indexed=" + work.lineCursor + " observed=" + work.cursor
+        + " expected=" + work.keys.len());
     work = { month = month, revision = revision, phase = "index", lineCursor = 0, rows = {},
              keys = [], cursor = 0, supports = {}, outputs = {} };
     this._v233GoodsWork = work;
@@ -151,10 +218,16 @@ function OpexAI::_v233GoodsStep()
   local quantity = AIIndustry.GetLastMonthProduction(row.factoryId, row.cargo);
   if (quantity < 0) { delete work.rows[key]; return; }
   if (!OpexV233Sample(row, month, quantity)) return;
+  if (V233_GOODS_POLICY == 2) {
+    if (this._v233GoodsObservations == null) this._v233GoodsObservations = {};
+    this._v233GoodsObservations[key] <- row;
+  }
   if (DECISION_LOG) {
     OpexDecide("V233_OBS", "factory=" + row.factoryId + " cargo=" + row.cargo
       + " station=" + row.stationId + " month=" + month + " global_output=" + quantity
-      + " support_line=" + work.supports[key].lineId + " count=" + row.count);
+      + " support_line=" + work.supports[key].lineId + " count=" + row.count
+      + " q0=" + row.q0 + " q1=" + row.q1 + " q2=" + row.q2
+      + " policy=" + V233_GOODS_POLICY + " eligible_quantity=" + OpexV233Quantity(row, month));
     if (OpexV233Quantity(row, month) > 0)
       OpexDecide("V233_ELIGIBLE", "factory=" + row.factoryId + " cargo=" + row.cargo
         + " station=" + row.stationId + " month=" + month + " quantity=" + OpexV233Quantity(row, month));
@@ -203,6 +276,39 @@ function OpexV233FactoryCovered(platform, factory, cargo, coverage)
   return false;
 }
 
+/* A goods train need not inherit the input train's platform length. Try the
+ * ordinary economic length down to the common physical minimum, with a strict
+ * StationID join throughout. No free-station fallback or reuse of old track. */
+function OpexV233PlatformPlans(catalog, candidate, statsA, statsB)
+{
+  local support = candidate.joinPlatform;
+  local wanted = candidate.platformLength;
+  if (wanted > support.length) wanted = support.length;
+  if (wanted > catalog.platformLength) wanted = catalog.platformLength;
+  local sawA = false;
+  local sawB = false;
+  for (local length = wanted; length >= OpexRailMinimumPlatformLength(); length--) {
+    local seed = { anchor = support.anchor, direction = support.direction,
+                   step = support.step, length = length };
+    local plansA = [];
+    foreach (p in OpexJoinPlatformPlans(seed, candidate.joinStationId, statsA)) {
+      if (!OpexV233FactoryCovered(p, candidate.v233FactoryId, candidate.cargo, catalog.railCoverage)) continue;
+      p.stationId <- candidate.joinStationId;
+      plansA.append(p);
+    }
+    if (plansA.len() == 0) continue;
+    sawA = true;
+    local plansB = OpexStationPlans(candidate.dst, candidate.src, STATION_SEARCH_RADIUS,
+      length, MAX_STATION_PLANS, candidate.cargo, catalog.railCoverage, false, statsB);
+    if (plansB.len() == 0) continue;
+    sawB = true;
+    return { plansA = plansA, plansB = plansB, length = length, slopeRelaxed = 0,
+             reason = "OK", statsA = statsA, statsB = statsB };
+  }
+  return { plansA = null, plansB = null, length = wanted, slopeRelaxed = 0,
+           reason = OpexRailSiteReason(sawA, sawB), statsA = statsA, statsB = statsB };
+}
+
 function OpexAI::_v233CandidateLive(candidate)
 {
   if (!V233_GOODS_GRAFT || !OpexV233IsGraft(candidate)) return false;
@@ -214,12 +320,17 @@ function OpexAI::_v233CandidateLive(candidate)
   local key = OpexV233ObservationKey(candidate.v233FactoryId, candidate.cargo, candidate.joinStationId);
   if (!(key in work.rows) || !(key in work.supports)) return false;
   local row = work.rows[key];
-  if (OpexV233Quantity(row, month) != candidate.monthly) return false;
+  local observedQuantity = OpexV233Quantity(row, month);
+  if (V233_GOODS_POLICY == 2) {
+    // Keep an already priced, conservative offer when the measured mean rises.
+    // A fall below its own volume still invalidates it; never inflate its score.
+    if (observedQuantity < candidate.monthly) return false;
+  } else if (observedQuantity != candidate.monthly) return false;
   if ((candidate.src + "|" + candidate.cargo) in work.outputs) return false;
   local support = OpexV233Support(work.supports[key]);
   if (support == null || support.stationId != row.stationId || support.factoryTile != row.factoryTile) return false;
   if (!OpexV233JoinContextValid(candidate, candidate.cargo, candidate.src, this._catalog.railCoverage)) return false;
-  if (AIIndustry.GetLastMonthProduction(row.factoryId, row.cargo) < V233_GOODS_MIN_MONTHLY) return false;
+  if (!OpexV233CurrentOutputValid(row.factoryId, row.cargo)) return false;
   if (!AITown.IsValidTown(candidate.dstTown) || AITown.GetLocation(candidate.dstTown) != candidate.dst) return false;
   if (OpexAbandonedPairKey(candidate) in this._abandonedPairs) return false;
   return true;
@@ -294,6 +405,16 @@ function OpexAI::_v233GraftStep()
     foreach (key, value in state.context) candidate[key] <- value;
     candidate.v233Graft <- true;
     candidate.dstTown <- town.id;
+    if (V233_GOODS_POLICY == 2) {
+      local sites = OpexRailPlatformPlans(this._catalog, candidate);
+      if (sites.reason != "OK") {
+        if (DECISION_LOG) OpexDecide("V233_GRAFT", "state=site_rejected factory=" + candidate.v233FactoryId
+          + " town=" + town.id + " reason=" + sites.reason
+          + " clearA=" + sites.statsA.nClear + " commandA=" + sites.statsA.nCmd
+          + " clearB=" + sites.statsB.nClear + " commandB=" + sites.statsB.nCmd);
+        return;
+      }
+    }
     if (!this._v233CandidateLive(candidate) || this._tooClose(candidate).hard >= 0
         || this._tooClose(candidate).blocking >= 0) return;
     if (state.preferred == null || candidate.roi > state.preferred.roi) state.preferred = candidate;
@@ -353,7 +474,7 @@ function OpexV233NewPlatform(p)
 function OpexV233SpendAllowed(catalog, candidate, plan)
 {
   if (!OpexV233JoinContextValid(candidate, candidate.cargo, candidate.src, catalog.railCoverage)
-      || AIIndustry.GetLastMonthProduction(candidate.v233FactoryId, candidate.cargo) < V233_GOODS_MIN_MONTHLY
+      || !OpexV233CurrentOutputValid(candidate.v233FactoryId, candidate.cargo)
       || !("stationId" in plan.planA) || plan.planA.stationId != candidate.joinStationId
       || !OpexV131PlatformCargoOk(plan.planB, candidate, catalog, false)
       || !OpexV233FactoryCovered(plan.planA, candidate.v233FactoryId, candidate.cargo, catalog.railCoverage)) return false;

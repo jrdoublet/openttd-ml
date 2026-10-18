@@ -718,6 +718,7 @@ function OpexAI::Save()
 }
 function OpexAI::Load(version, data)
 {
+  this._v233DeliveryProbe = null;
   this._v233Plans = null;
   this._v233Offers = null;
   this._v233Generation = null;

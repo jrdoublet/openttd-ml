@@ -1312,6 +1312,9 @@ function OpexAI::_tryBuildProjects(year)
   local c75BuiltKeys = {};
   local c75BypassConsumed = false;
   local v233Attempts = V233_PENDING_CONTINUE ? {} : null;
+  local v233Trace = (V233_PENDING_CONTINUE && DECISION_LOG)
+    ? { pass = AIController.GetTick(), pendingRank = -1, builtBefore = 0, skippedSlot = 0,
+        skippedDuplicate = 0, examined = 0 } : null;
   local c121FirstYearAirBatch = MODE_AIR
       && this._generationStageMonth >= 0
       && year == (this._generationStageMonth - 1) / 12;
@@ -1463,6 +1466,7 @@ function OpexAI::_tryBuildProjects(year)
   for (local i = 0; i < this._projects.best.len(); i++) {
     local project = this._projects.best[i];
     if (project == null) continue;
+    if (v233Trace != null && v233Trace.pendingRank >= 0) v233Trace.examined++;
     local c121LiveOpp = null;
     if ((OpexC69AttemptKey(project) in c75BuiltKeys)) continue;
     /* Reject an unavailable rail slot BEFORE K_pass: it cannot consume a bypass
@@ -1473,7 +1477,10 @@ function OpexAI::_tryBuildProjects(year)
         && ("railPlan" in payload) && payload.railPlan != null;
       local graftReady = V233_GOODS_GRAFT && OpexV233IsGraft(payload)
         && ("railPlan" in payload) && payload.railPlan != null;
-      if (!prepared && !graftReady) continue;
+      if (!prepared && !graftReady) {
+        if (v233Trace != null && v233Trace.pendingRank >= 0) v233Trace.skippedSlot++;
+        continue;
+      }
     }
     if (V233_GOODS_GRAFT && project.mode == "rail" && OpexV233IsGraft(project.payload)
         && OpexProjectFinanceCapital(project) > OpexAvailableCapital()) continue;
@@ -1598,7 +1605,10 @@ function OpexAI::_tryBuildProjects(year)
 
     if (V233_PENDING_CONTINUE && (mode == "rail" || mode == "fleet")) {
       local attemptKey = OpexProjectAttemptKey(project);
-      if (attemptKey in v233Attempts) continue;
+      if (attemptKey in v233Attempts) {
+        if (v233Trace != null && v233Trace.pendingRank >= 0) v233Trace.skippedDuplicate++;
+        continue;
+      }
       v233Attempts[attemptKey] <- true;
     }
 
@@ -1607,6 +1617,7 @@ function OpexAI::_tryBuildProjects(year)
       local c78DiscardsLen = (C69_BOTTLENECK_PROBE && passDiscards != null) ? passDiscards.len() : 0;
       local attempt = this._tryBuildFleetProject(year, project, i, passDiscards);
       passDiscards = attempt.discards;
+      if (DECISION_LOG && V233_PENDING_CONTINUE) OpexV233TraceAttempt(v233Trace, project, i, attempt);
       if (C69_BOTTLENECK_PROBE) OpexC78LogBuild(year, i, mode, project, attempt, passDiscards, c78DiscardsLen);
       if (C49_SCARCITY_LEDGER && attempt.outcome == "built") c49BuiltRanks.rawset(i, true);
       if (fallthroughProbeActive) {
@@ -1615,7 +1626,10 @@ function OpexAI::_tryBuildProjects(year)
       }
       if (attempt.outcome == "pending") {
         if (V233_PENDING_CONTINUE) {
-          if (DECISION_LOG) OpexDecide("V233_SEARCH", "state=continue mode=" + mode + " rank=" + i + " built=" + builtCount);
+          if (v233Trace != null && v233Trace.pendingRank < 0) {
+            v233Trace.pendingRank = i; v233Trace.builtBefore = builtCount;
+          }
+          if (DECISION_LOG) OpexDecide("V233_SEARCH", "state=continue mode=" + mode + " rank=" + i + " built=" + builtCount + " pass=" + v233Trace.pass);
           continue;
         }
         if (DECISION_LOG) OpexDecide("V233_SEARCH", "state=pending mode=" + mode + " rank=" + i + " built=" + builtCount);
@@ -1696,6 +1710,7 @@ function OpexAI::_tryBuildProjects(year)
       OpexC122ThreatNoteOutcome(project, i, attempt);
       OpexC122ThreatRetryUnbuildable(this, project, i, attempt);
       passDiscards = attempt.discards;
+      if (DECISION_LOG && V233_PENDING_CONTINUE) OpexV233TraceAttempt(v233Trace, project, i, attempt);
       if (C69_BOTTLENECK_PROBE) OpexC78LogBuild(year, i, mode, project, attempt, passDiscards, c78DiscardsLen);
       if (C78_SLOT_INTERCEPT_PROBE) {
         local c78Reason = (attempt.outcome == "built") ? "built" : "unknown";
@@ -1749,6 +1764,7 @@ function OpexAI::_tryBuildProjects(year)
       local c78DiscardsLen = (C69_BOTTLENECK_PROBE && passDiscards != null) ? passDiscards.len() : 0;
       local attempt = this._tryBuildRoadProject(year, project, i, passDiscards, anchor, yy);
       passDiscards = attempt.discards;
+      if (DECISION_LOG && V233_PENDING_CONTINUE) OpexV233TraceAttempt(v233Trace, project, i, attempt);
       if (C69_BOTTLENECK_PROBE) OpexC78LogBuild(year, i, mode, project, attempt, passDiscards, c78DiscardsLen);
       if (C49_SCARCITY_LEDGER && attempt.outcome == "built") c49BuiltRanks.rawset(i, true);
       if (fallthroughProbeActive) {
@@ -1772,6 +1788,7 @@ function OpexAI::_tryBuildProjects(year)
       local attempt = this._tryBuildRailProject(year, project, i, liveBuiltCount, passDiscards,
                                                  anchor, yy);
       passDiscards = attempt.discards;
+      if (DECISION_LOG && V233_PENDING_CONTINUE) OpexV233TraceAttempt(v233Trace, project, i, attempt);
       if (RAIL_FAILURE_AUDIT) {
         local outcomeReason = attempt.outcome;
         if (attempt.outcome == "rejected" && passDiscards != null && passDiscards.len() > 0) {
@@ -1789,7 +1806,10 @@ function OpexAI::_tryBuildProjects(year)
       if (C49_SCARCITY_LEDGER && attempt.outcome == "built") c49BuiltRanks.rawset(i, true);
       if (attempt.outcome == "pending") {
         if (V233_PENDING_CONTINUE) {
-          if (DECISION_LOG) OpexDecide("V233_SEARCH", "state=continue mode=" + mode + " rank=" + i + " built=" + builtCount);
+          if (v233Trace != null && v233Trace.pendingRank < 0) {
+            v233Trace.pendingRank = i; v233Trace.builtBefore = builtCount;
+          }
+          if (DECISION_LOG) OpexDecide("V233_SEARCH", "state=continue mode=" + mode + " rank=" + i + " built=" + builtCount + " pass=" + v233Trace.pass);
           continue;
         }
         if (DECISION_LOG) OpexDecide("V233_SEARCH", "state=pending mode=" + mode + " rank=" + i + " built=" + builtCount);
@@ -1837,6 +1857,7 @@ function OpexAI::_tryBuildProjects(year)
       local attempt = this._tryBuildWaterProject(year, project, i, liveBuiltCount, passDiscards,
                                                   anchor, yy);
       passDiscards = attempt.discards;
+      if (DECISION_LOG && V233_PENDING_CONTINUE) OpexV233TraceAttempt(v233Trace, project, i, attempt);
       if (C49_SCARCITY_LEDGER && attempt.outcome == "built") c49BuiltRanks.rawset(i, true);
       if (fallthroughProbeActive) {
         fallthroughAttempted++;
@@ -1871,6 +1892,14 @@ function OpexAI::_tryBuildProjects(year)
   }
   }
 
+  if (v233Trace != null && v233Trace.pendingRank >= 0) {
+    OpexDecide("V233_CONVERSION", "state=pass_end pass=" + v233Trace.pass
+      + " pending_rank=" + v233Trace.pendingRank + " examined=" + v233Trace.examined
+      + " built_after=" + (builtCount - v233Trace.builtBefore)
+      + " slot_skipped=" + v233Trace.skippedSlot + " duplicate_skipped=" + v233Trace.skippedDuplicate
+      + " stop=" + (c75StopReason != null ? c75StopReason : "list_end")
+      + " available=" + OpexAvailableCapital());
+  }
   this._finalizeProjectsPassDiagnostics(builtCount, c49Best, c49BuiltRanks,
       c49AttemptedRanks, passDiscards, c73Cash, c73Avail, funnelAttempted, true,
       c75StopReason);

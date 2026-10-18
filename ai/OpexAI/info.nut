@@ -14,10 +14,10 @@ class OpexAIInfo extends AIInfo {
   function GetSettings()
   {
     AddSetting({ name = "v233_goods_graft",
-      description = "V233: measured goods to town graft (requires v233_pending_continue)",
-      min_value = 0, max_value = 1,
+      description = "V233: goods graft: 0 off, 1 three monthly minima, 2 three-month mean (requires pending continue)",
+      min_value = 0, max_value = 2,
       easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
-      flags = AICONFIG_BOOLEAN });
+      flags = 0 });
     AddSetting({ name = "v233_pending_continue",
       description = "V233: continue portfolio pass after pending rail/fleet search",
       min_value = 0, max_value = 1,
