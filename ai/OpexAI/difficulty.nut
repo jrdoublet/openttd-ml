@@ -11,7 +11,7 @@
  * - OpexLevelAllows(feature) est la fonction unique de consultation des capacites.
  * - Le niveau 3 n'a aucun bridage et reste strictement identique au comportement historique.
  * - Le niveau 2 autorise tout sauf les gestes anticoncurrentiels (V250, actions futures visant un rival).
- * - Les niveaux 0 et 1 brident les comportements agressifs selon la table des capacites.
+ * - Les niveaux 0 et 1 n'ont pas encore de bridage propre (proposition en attente).
  */
 
 OPEX_DIFFICULTY <- 3;
@@ -21,18 +21,10 @@ OPEX_DIFFICULTY <- 3;
  */
 OPEX_DIFFICULTY_MIN_LEVEL <- {
   /* Gestes anticoncurrentiels (droits exclusifs V250, actions futures ciblant un rival).
-   * Reserve au niveau 3 (personnalise). Coupe en difficile (2), moyen (1), facile (0). */
-  "v250_rights": 3,
-  "anticompetitive": 3,
-
-  /* Bridages simples pour niveaux 0 et 1 (ne coutent rien au niveau 3) :
-   * - "preempt_last_airport_slot" : prendre le dernier creneau aeroport d'une ville dispute (niveau 2+)
-   * - "encroach_rival_catchment" : construire dans le bassin d'une gare rivale (niveau 2+)
-   * - "aggressive_expansion" : developpement rapide continu (niveau 1+)
-   */
-  "preempt_last_airport_slot": 2,
-  "encroach_rival_catchment": 2,
-  "aggressive_expansion": 1,
+   * Reserve au niveau 3 (personnalise). Coupe en difficile (2), moyen (1), facile (0).
+   * Les bridages des niveaux 0 et 1 attendent la validation de l'utilisateur. */
+  v250_rights = 3,
+  anticompetitive = 3
 };
 
 /* Consultation unique d'autorisation d'une fonctionnalite selon le niveau actif. */
@@ -43,20 +35,4 @@ function OpexLevelAllows(feature)
     return OPEX_DIFFICULTY >= OPEX_DIFFICULTY_MIN_LEVEL[feature];
   }
   return true;
-}
-
-/* Helper pour tester un niveau minimum sans exposer la variable OPEX_DIFFICULTY */
-function OpexDifficultyAtLeast(level)
-{
-  return OPEX_DIFFICULTY >= level;
-}
-
-/* Nom du niveau pour affichage ou journalisation */
-function OpexDifficultyName(level = null)
-{
-  if (level == null) level = OPEX_DIFFICULTY;
-  if (level == 0) return "easy";
-  if (level == 1) return "medium";
-  if (level == 2) return "hard";
-  return "custom";
 }

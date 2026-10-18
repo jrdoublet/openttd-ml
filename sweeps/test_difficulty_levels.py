@@ -120,7 +120,7 @@ class TestDifficultyLevels(unittest.TestCase):
         self.assertLess(self.settings.index(gate), self.settings.index("V250_RIGHTS = rights;"))
 
         # Table des capacites dans difficulty.nut
-        self.assertIn('"v250_rights": 3', self.difficulty)
+        self.assertIn('v250_rights = 3', self.difficulty)
         self.assertIn('"anticompetitive": 3', self.difficulty)
 
         # Garde dans le dispatch de la tache V250
