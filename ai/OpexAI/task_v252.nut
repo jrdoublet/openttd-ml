@@ -35,10 +35,8 @@ function OpexAI::_dispatchV252AirEngineRefresh(task, year)
   local bestAge = -1;
   local bestProfit = 0;
   local bestNewEngine = -1;
-  local bestDemandOld = 0;
-  local bestDemandNow = 0;
-  local bestPlan = null;
   local curEngine = -1;
+  local bestPlan = null;
   local nAirLines = 0;
   local nOutdated = 0;
   local candidates = [];
@@ -81,35 +79,24 @@ function OpexAI::_dispatchV252AirEngineRefresh(task, year)
   });
 
   local lineTargetCache = {};
-
   foreach (cand in candidates) {
     local lineKey = ("lineId" in cand.line) ? cand.line.lineId : cand.line;
     if (!(lineKey in lineTargetCache)) {
-      if (V252_AIR_ENGINE_REFRESH == 4) {
-        lineTargetCache[lineKey] <- OpexV253MarginalPlanForVehicle(cand.line, this._catalog, cand.veh);
-      } else {
-        local target = OpexAirBestEngineForLine(cand.line, this._catalog, this._lines);
-        local dOld = 0;
-        local dNow = 0;
-        if (DECISION_LOG) {
-          dOld = V252_LAST_DEMAND_OLD;
-          dNow = V252_LAST_DEMAND_NOW;
-        }
-        lineTargetCache[lineKey] <- {
-          replace = (target != null && target != cand.engine),
-          targetEngine = target,
-          demandOld = dOld,
-          demandNow = dNow
-        };
-      }
+      lineTargetCache[lineKey] <- V252_AIR_ENGINE_REFRESH == 4
+          ? OpexV253MarginalPlanForVehicle(cand.line, this._catalog, cand.veh)
+          : OpexAirBestEngineForLine(cand.line, this._catalog, this._lines);
     }
 
-    local entry = lineTargetCache[lineKey];
-    if (entry == null) continue;
-    local targetEngine = entry.targetEngine;
+    local targetEngine = lineTargetCache[lineKey];
+    local plan = null;
+    if (V252_AIR_ENGINE_REFRESH == 4) {
+      /* Plan marginal calcule sur l'avion le plus prioritaire de la ligne. */
+      plan = targetEngine;
+      if (plan == null || !plan.replace) continue;
+      targetEngine = plan.targetEngine;
+    }
     if (targetEngine == null) continue;
     if (cand.engine == targetEngine) continue;
-    if (("replace" in entry) && !entry.replace) continue;
 
     nOutdated = 1;
     bestLine = cand.line;
@@ -117,12 +104,8 @@ function OpexAI::_dispatchV252AirEngineRefresh(task, year)
     bestAge = cand.age;
     bestProfit = cand.profit;
     bestNewEngine = targetEngine;
-    bestPlan = entry;
     curEngine = cand.engine;
-    if ("demandOld" in entry) {
-      bestDemandOld = entry.demandOld;
-      bestDemandNow = entry.demandNow;
-    }
+    bestPlan = plan;
     break;
   }
 
@@ -190,19 +173,10 @@ function OpexAI::_dispatchV252AirEngineRefresh(task, year)
     }
   }
 
-  if (DECISION_LOG) {
-    local dOld = bestDemandOld;
-    local dNow = bestDemandNow;
-    local logMsg = "line=" + bestLine.lineId + " old_engine=" + curEngine
+  if (DECISION_LOG) OpexDecide("V252_REPLACE", "line=" + bestLine.lineId + " old_engine=" + curEngine
              + " new_engine=" + bestNewEngine + " old_veh=" + bestVeh + " new_veh=" + newPlane
-             + " price=" + price + " age=" + bestAge + " profit=" + bestProfit;
-    if (V252_AIR_ENGINE_REFRESH == 4 && bestPlan != null) {
-      logMsg += " gain=" + bestPlan.gain + " rev_new=" + bestPlan.revNew + " rev_old=" + bestPlan.revOld
-             + " rating_pred=" + bestPlan.ratingPred + " payback=" + bestPlan.payback;
-    } else {
-      logMsg += " demand_old=" + dOld + " demand_now=" + dNow;
-    }
-    if (DECISION_LOG) OpexDecide("V252_REPLACE", logMsg);
-  }
+             + " price=" + price + " age=" + bestAge + " profit=" + bestProfit
+             + (bestPlan == null ? "" : " gain=" + bestPlan.gain + " rev_new=" + bestPlan.revNew
+                + " rev_old=" + bestPlan.revOld + " rating_pred=" + bestPlan.ratingPred + " payback=" + bestPlan.payback));
   return true;
 }

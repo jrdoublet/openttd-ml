@@ -303,7 +303,7 @@ class TestV253MarginalRefresh(unittest.TestCase):
 
         # 7. Coût d'opcodes : cache par ligne dans task_v252.nut
         self.assertIn("local lineTargetCache = {};", self.dispatch)
-        self.assertIn("lineTargetCache[lineKey] <- OpexV253MarginalPlanForVehicle", self.dispatch)
+        self.assertIn("? OpexV253MarginalPlanForVehicle(cand.line, this._catalog, cand.veh)", self.dispatch)
 
         # 8. Journal V252_KEEP et V252_REPLACE avec tous les champs requis
         self.assertIn('OpexDecide("V252_KEEP"', self.marginal_plan)
