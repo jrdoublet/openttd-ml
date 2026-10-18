@@ -16,6 +16,10 @@
 
 OPEX_DIFFICULTY <- 3;
 
+/* Vrai seulement aux niveaux 0 et 1 (leviers A et B). Lu en garde avant tout appel
+ * de bridage pour que les niveaux 2 et 3 ne paient qu'une lecture de globale. */
+OPEX_LEVEL_LIMITS <- false;
+
 /* Niveaux minimums requis pour chaque fonctionnalite / comportement.
  * Une fonctionnalite est autorisee si OPEX_DIFFICULTY >= OPEX_DIFFICULTY_MIN_LEVEL[feature].
  */

@@ -1080,7 +1080,7 @@ function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null
 
     foreach (si in sources) {
       local source = industries[si];
-      if (OpexIndustryPrimaryRivalServed(source.id, source.tile)) continue;
+      if (OPEX_LEVEL_LIMITS && OpexIndustryPrimaryRivalServed(source.id, source.tile)) continue;
       local monthly = AIIndustry.GetLastMonthProduction(source.id, cargo);
       local ss = served[si];
       local others2 = V163_MULTI_CARGO ? OpexV163SourceOtherCargos(catalog, source.id, cargo) : null;
@@ -1581,7 +1581,7 @@ function OpexRoadFreightCandidates(catalog, lines, out, stats, abandonedPairs = 
         continue;
       }
       local source = industries[si];
-      if (OpexIndustryPrimaryRivalServed(source.id, source.tile)) continue;
+      if (OPEX_LEVEL_LIMITS && OpexIndustryPrimaryRivalServed(source.id, source.tile)) continue;
       local monthly = AIIndustry.GetLastMonthProduction(source.id, cargo);
       if (monthly <= 0) { stats.noMonthly++; continue; }
 
@@ -1959,7 +1959,7 @@ function OpexGenerateSubsidyCandidates(catalog, lines, activeSubsidies, stats, a
 
     // 4a. Production a la source
     if (sub.srcType == AISubsidy.SPT_INDUSTRY) {
-      if (OpexIndustryPrimaryRivalServed(sub.srcId, srcTile)) continue;
+      if (OPEX_LEVEL_LIMITS && OpexIndustryPrimaryRivalServed(sub.srcId, srcTile)) continue;
       monthlyProd = AIIndustry.GetLastMonthProduction(sub.srcId, cargo);
       if (monthlyProd <= 0) continue;
     } else {

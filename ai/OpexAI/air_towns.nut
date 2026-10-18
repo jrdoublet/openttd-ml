@@ -589,7 +589,7 @@ function OpexTownRivalAirports(townId, ownCounts = null)
   if (!AIMap.IsValidTile(center)) return 0;
   local cx = AIMap.GetTileX(center);
   local cy = AIMap.GetTileY(center);
-  local radius = 30;
+  local radius = STATION_SEARCH_RADIUS;
   local minX = cx - radius < 1 ? 1 : cx - radius;
   local minY = cy - radius < 1 ? 1 : cy - radius;
   local maxX = cx + radius > AIMap.GetMapSizeX() - 2 ? AIMap.GetMapSizeX() - 2 : cx + radius;
@@ -602,7 +602,7 @@ function OpexTownRivalAirports(townId, ownCounts = null)
   local seenStations = {};
   foreach (tile, _ in tiles) {
     local owner = AITile.GetOwner(tile);
-    if (owner != me && owner != AICompany.COMPANY_INVALID && AIAirport.IsAirportTile(tile)) {
+    if (owner != me && AICompany.ResolveCompanyID(owner) != AICompany.COMPANY_INVALID && AIAirport.IsAirportTile(tile)) {
       if (AITile.GetClosestTown(tile) == townId) {
         local stId = AIStation.GetStationID(tile);
         if (!(stId in seenStations)) {

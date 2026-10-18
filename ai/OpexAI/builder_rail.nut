@@ -296,7 +296,7 @@ function OpexV207RankStationPlans(plans, maxPlans, cargo, coverage, rankPct, cen
 function OpexStationPlans(center, otherCenter, radius, length, maxPlans, cargo, coverage,
                           wantProduction, stats = null, requireDouble = false, rankPct = 0)
 {
-  if (wantProduction) {
+  if (OPEX_LEVEL_LIMITS && wantProduction) {
     local indId = AITile.GetIndustryID(center);
     if (indId >= 0 && OpexIndustryPrimaryRivalServed(indId, center, coverage)) return [];
   }
@@ -334,7 +334,7 @@ function OpexStationPlans(center, otherCenter, radius, length, maxPlans, cargo, 
               if (wantProduction ? (cargoValue <= 0) : (cargoValue < 8)) continue;
               if (stats != null) stats.nCargo++;
               /* Levier B, Niveau 0 : rejet si le rayon de captage chevauche celui d'une gare rivale */
-              if (!OpexLevelAllows("encroach_rival_catchment")) {
+              if (OPEX_LEVEL_LIMITS && !OpexLevelAllows("encroach_rival_catchment")) {
                 local endTile = anchor + step * (length - 1);
                 local x1 = AIMap.GetTileX(anchor), y1 = AIMap.GetTileY(anchor);
                 local x2 = AIMap.GetTileX(endTile), y2 = AIMap.GetTileY(endTile);

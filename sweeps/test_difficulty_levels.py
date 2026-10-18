@@ -203,8 +203,8 @@ class TestDifficultyLevels(unittest.TestCase):
         self.assertTrue(primary_body)
         self.assertIn('OpexLevelAllows("compete_primary_industry")', primary_body)
         self.assertLess(primary_body.index('OpexLevelAllows("compete_primary_industry")'),
-                        primary_body.index("AITileList()"),
-                        "Le test compete_primary_industry doit preceder AITileList")
+                        primary_body.index("AITileList_IndustryProducing("),
+                        "Le test compete_primary_industry doit preceder AITileList_IndustryProducing")
 
         # Dans OpexStationEncroachesRival : test OpexLevelAllows avant AITileList
         encroach_body = _extract_function_body(self.sources["spatial.nut"], "OpexStationEncroachesRival")
@@ -232,3 +232,21 @@ class TestDifficultyLevels(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestLevelLimitsGlobal(unittest.TestCase):
+    """18/10 relecture : les niveaux 2-3 ne paient qu'une lecture de globale aux sites d'appel."""
+
+    def test_call_sites_guarded(self):
+        import re as _re
+        ai = Path(__file__).resolve().parents[1] / "ai" / "OpexAI"
+        for p in ai.glob("*.nut"):
+            text = p.read_text(encoding="utf-8")
+            for line in text.splitlines():
+                for fn in ("OpexTownAirportAllowedByLevel(", "OpexIndustryPrimaryRivalServed("):
+                    if fn in line and "function " not in line and "indId >= 0" not in line:
+                        self.assertIn("OPEX_LEVEL_LIMITS", line, p.name + ": " + line)
+        settings = (ai / "settings.nut").read_text(encoding="utf-8")
+        self.assertLess(settings.index("OPEX_DIFFICULTY = OpexResolveDifficulty();"),
+                        settings.index("OPEX_LEVEL_LIMITS = "))
+

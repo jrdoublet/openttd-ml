@@ -499,7 +499,7 @@ function OpexAirFindSiteCatchmentListed(town, airport, probes, requiredSlotTownI
  * pas seulement contre son coin. */
 function OpexAirFindSite(town, airport, probes, requiredSlotTownId = -1)
 {
-  if (!OpexTownAirportAllowedByLevel(town)) return null;
+  if (OPEX_LEVEL_LIMITS && !OpexTownAirportAllowedByLevel(town)) return null;
   if (C60_TOWN_RATING_PROBE) {
     OpexC60ObserveTownRating("air", "find_site", town.id);
   }

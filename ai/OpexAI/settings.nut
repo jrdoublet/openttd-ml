@@ -74,6 +74,8 @@ function OpexLoadSettings()
   PORTFOLIO_LOG = DECISION_LOG;
   SAVE_FULL_STATE = AIController.GetSetting("save_full_state") != 0;
   OPEX_DIFFICULTY = OpexResolveDifficulty();
+  OPEX_LEVEL_LIMITS = !OpexLevelAllows("encroach_rival_catchment") || !OpexLevelAllows("compete_primary_industry")
+      || !OpexLevelAllows("airport_rival_town") || !OpexLevelAllows("preempt_last_airport_slot");
 
 
   /* --- 2. Interrupteurs de mode et options rail --- */

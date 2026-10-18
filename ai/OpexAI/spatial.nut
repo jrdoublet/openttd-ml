@@ -91,58 +91,23 @@ function OpexSpatialGrid::GetCandidatesFor(townIndex)
 function OpexIndustryPrimaryRivalServed(industryId, industryTile = null, coverage = -1)
 {
   if (OpexLevelAllows("compete_primary_industry")) return false;
-
   if (!AIIndustry.IsValidIndustry(industryId)) return false;
   local indType = AIIndustry.GetIndustryType(industryId);
-  if (!AIIndustryType.IsValidIndustryType(indType) || !AIIndustryType.IsRawIndustry(indType)) {
-    return false;
-  }
-
+  if (!AIIndustryType.IsValidIndustryType(indType) || !AIIndustryType.IsRawIndustry(indType)) return false;
   if (AIIndustry.GetAmountOfStationsAround(industryId) == 0) return false;
-
-  if (coverage <= 0) {
-    coverage = AIStation.GetCoverageRadius(AIStation.STATION_TRAIN);
-    if (coverage <= 0) coverage = 4;
-  }
-
-  if (industryTile == null || !AIMap.IsValidTile(industryTile)) {
-    industryTile = AIIndustry.GetLocation(industryId);
-    if (!AIMap.IsValidTile(industryTile)) return false;
-  }
-
+  if (coverage <= 0) coverage = AIStation.GetCoverageRadius(AIStation.STATION_TRAIN);
+  /* Tuiles d'ou une gare capterait la production : exactement le critere « desservie ». */
   local me = AICompany.ResolveCompanyID(AICompany.COMPANY_SELF);
-  local cx = AIMap.GetTileX(industryTile);
-  local cy = AIMap.GetTileY(industryTile);
-  local margin = coverage + 4;
-  local minX = cx - margin < 1 ? 1 : cx - margin;
-  local minY = cy - margin < 1 ? 1 : cy - margin;
-  local mapX = AIMap.GetMapSizeX() - 2;
-  local mapY = AIMap.GetMapSizeY() - 2;
-  local maxX = cx + margin > mapX ? mapX : cx + margin;
-  local maxY = cy + margin > mapY ? mapY : cy + margin;
-
-  local tiles = AITileList();
-  tiles.AddRectangle(AIMap.GetTileIndex(minX, minY), AIMap.GetTileIndex(maxX, maxY));
+  local tiles = AITileList_IndustryProducing(industryId, coverage);
   tiles.Valuate(AITile.IsStationTile);
   tiles.KeepValue(1);
-
   foreach (tile, _ in tiles) {
     local owner = AITile.GetOwner(tile);
-    if (owner != me && owner != AICompany.COMPANY_INVALID) {
-      for (local dx = -coverage; dx <= coverage; dx++) {
-        for (local dy = -coverage; dy <= coverage; dy++) {
-          local checkTile = tile + AIMap.GetTileIndex(dx, dy);
-          if (AIMap.IsValidTile(checkTile) && AITile.GetIndustryID(checkTile) == industryId) {
-            if (DECISION_LOG) {
-              OpexDecide("LEVEL_SKIP", "feature=compete_primary_industry industry=" + industryId + " rival_tile=" + tile + " rival_owner=" + owner);
-            }
-            return true;
-          }
-        }
-      }
-    }
+    if (owner == me || AICompany.ResolveCompanyID(owner) == AICompany.COMPANY_INVALID) continue;
+    if (DECISION_LOG) OpexDecide("LEVEL_SKIP", "feature=compete_primary_industry industry=" + industryId
+        + " rival_tile=" + tile + " rival_owner=" + owner);
+    return true;
   }
-
   return false;
 }
 
@@ -153,10 +118,7 @@ function OpexStationEncroachesRival(minX, minY, maxX, maxY, coverage = -1)
 {
   if (OpexLevelAllows("encroach_rival_catchment")) return false;
 
-  if (coverage <= 0) {
-    coverage = AIStation.GetCoverageRadius(AIStation.STATION_TRAIN);
-    if (coverage <= 0) coverage = 4;
-  }
+  if (coverage <= 0) coverage = AIStation.GetCoverageRadius(AIStation.STATION_TRAIN);
 
   local me = AICompany.ResolveCompanyID(AICompany.COMPANY_SELF);
   local sMinX = minX - coverage < 1 ? 1 : minX - coverage;
@@ -173,7 +135,7 @@ function OpexStationEncroachesRival(minX, minY, maxX, maxY, coverage = -1)
 
   foreach (tile, _ in tiles) {
     local owner = AITile.GetOwner(tile);
-    if (owner != me && owner != AICompany.COMPANY_INVALID) {
+    if (owner != me && AICompany.ResolveCompanyID(owner) != AICompany.COMPANY_INVALID) {
       if (DECISION_LOG) {
         OpexDecide("LEVEL_SKIP", "feature=encroach_rival_catchment tile=" + tile + " rival_owner=" + owner);
       }
