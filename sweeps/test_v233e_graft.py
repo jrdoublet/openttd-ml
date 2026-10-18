@@ -33,13 +33,14 @@ class V233eContracts(unittest.TestCase):
                 for dispatch in dispatches:
                     code = code.replace(dispatch, '')
                 code = code.replace('if (V233_GOODS_OPPORTUNITY && !OpexV233AirYieldAllows(candidate)) return false;', '')
+                code = code.replace('if (V233_GOODS_CHAIN && !OpexV233AirYieldAllows(candidate)) return false;', '')
                 code = re.sub(r'//[^\n]*|/\*[\s\S]*?\*/', '', code)
                 code = re.sub(r'\s+', '', code)
                 self.assertEqual(hashlib.sha256(code.encode()).hexdigest(), expected)
 
     def test_setting_dependency_default_and_public_count(self):
         block = (AI / 'info.nut').read_text().split('name = "v233_goods_graft"')[1].split('});')[0]
-        self.assertIn('max_value = 4', block)
+        self.assertIn('max_value = 5', block)
         for difficulty in ('easy', 'medium', 'hard', 'custom'):
             self.assertIn(difficulty + '_value = 0', block)
         self.assertLessEqual((AI / 'info.nut').read_text().count('AddSetting('), 76)
@@ -72,7 +73,7 @@ class V233eContracts(unittest.TestCase):
 
     def test_observer_keeps_cursor_across_month_and_revision_changes(self):
         observer = ebody('OpexV233eGoodsStep')
-        self.assertIn('work.phase == "done" && work.month != month && generated', observer)
+        self.assertIn('work.phase == "done" && work.month != month && (generated || V233_GOODS_CHAIN)', observer)
         self.assertIn('gen.cursor >= work.keys.len()', observer)
         self.assertIn('work != null && gen != null && gen.current == null', observer)
         self.assertNotIn('work.revision !=', observer)

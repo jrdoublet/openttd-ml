@@ -62,7 +62,7 @@ class StaticContracts(unittest.TestCase):
 
     def test_generation_guarded(self):
         body = _function_body(_read("candidates.nut"), "OpexFreightCandidates")
-        self.assertIn("local others2 = V163_MULTI_CARGO ? OpexV163SourceOtherCargos(catalog, source.id, cargo) : null;",
+        self.assertIn("local others2 = (V163_MULTI_CARGO || chainSlice != null) ? OpexV163SourceOtherCargos(catalog, source.id, cargo) : null;",
                       body)
         self.assertIn("local secondary = (others2 != null && others2.len() > 0)\n"
                       "            ? OpexV163SecondaryCargo(others2, industries[di].id) : null;", body)

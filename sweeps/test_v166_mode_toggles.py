@@ -100,6 +100,9 @@ class Gates(unittest.TestCase):
                 calls = len(re.findall(r"(?<!function )\b" + name + r"\(", src))
                 if path.name == "candidates.nut":
                     self.assertEqual(calls, 1, name)
+                elif path.name == "goods_v233chain.nut" and name == "OpexFreightCandidates":
+                    self.assertEqual(calls, 1)
+                    self.assertIn("!V233_GOODS_CHAIN || !MODE_RAIL", src)
                 else:
                     self.assertEqual(calls, 0, (path.name, name))
 

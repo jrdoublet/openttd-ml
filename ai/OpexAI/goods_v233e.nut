@@ -18,12 +18,12 @@ function OpexV233eGoodsStep(ai)
   local generated = work != null && gen != null && gen.current == null && gen.cursor >= work.keys.len();
   // Finish a bounded sweep AND its destinations across calendar boundaries.
   // New fleet revisions do not restart the cursor. Each support is checked live.
-  if (work == null || (work.phase == "done" && work.month != month && generated)) {
+  if (work == null || (work.phase == "done" && work.month != month && (generated || V233_GOODS_CHAIN))) {
     work = { month = month, revision = ai._v233WorldRevision(), phase = "index",
       lineCursor = 0, lineLimit = ai._lines.len(), rows = {}, keys = [],
       cursor = 0, supports = {}, outputs = {} };
     ai._v233GoodsWork = work;
-    ai._v233Generation = null;
+    if (!V233_GOODS_CHAIN || generated) ai._v233Generation = null;
     ai._v233NeedsPublish = true;
   }
   if (work.phase != "index") return;
@@ -59,7 +59,7 @@ function OpexV233eGoodsStep(ai)
         + " station=" + row.stationId + " month=" + month + " global_output=" + quantity
         + " support_line=" + line.lineId + " count=" + row.count
         + " q0=" + row.q0 + " q1=" + row.q1 + " q2=" + row.q2
-        + " policy=3 eligible_quantity=" + quantity);
+        + " policy=" + (V233_GOODS_CHAIN ? 5 : 3) + " eligible_quantity=" + quantity);
       if (DECISION_LOG && quantity > 0) OpexDecide("V233_ELIGIBLE", "factory=" + row.factoryId
         + " cargo=" + cargo + " station=" + row.stationId + " month=" + month + " quantity=" + quantity);
     }
@@ -98,10 +98,12 @@ function OpexV233eCandidateLive(ai, candidate)
 {
   if (!("v233EngineRevision" in candidate)
       || candidate.v233EngineRevision != ai._c76GetLayerRevision("engines.rail")) return false;
+  if (V233_GOODS_CHAIN && !OpexV233ChainGraftLive(ai, candidate)) return false;
   if (OpexV233eSupport(ai, candidate) == null
       || !OpexV233JoinContextValid(candidate, candidate.cargo, candidate.src, ai._catalog.railCoverage)) return false;
   // Conservative offer: a rise does not reprice it; a fall below its priced flow does.
-  if (AIIndustry.GetLastMonthProduction(candidate.v233FactoryId, candidate.cargo) < candidate.monthly) return false;
+  if (!V233_GOODS_CHAIN
+      && AIIndustry.GetLastMonthProduction(candidate.v233FactoryId, candidate.cargo) < candidate.monthly) return false;
   if (OpexV233eOutputAllocated(ai, candidate.src, candidate.cargo)) return false;
   if (candidate.dstTown >= 0) {
     if (!AITown.IsValidTown(candidate.dstTown) || AITown.GetLocation(candidate.dstTown) != candidate.dst) return false;
@@ -296,6 +298,8 @@ function OpexV233eGraftStep(ai)
     if (outputKey in gen.seen) return;
     gen.seen[outputKey] <- true;
     if (OpexV233eOutputAllocated(ai, row.factoryTile, row.cargo)) return;
+    if (V233_GOODS_CHAIN && (OpexV233ChainFactory(row.factoryId) != row.cargo
+        || !OpexV233ChainFed(ai, row.factoryId) || OpexV233ChainVolume(row) <= 0)) return;
     if (outputKey in ai._v233Offers) {
       if (ai._v233CandidateLive(ai._v233Offers[outputKey])) return;
       ai._v233ForgetPlan(ai._v233Offers[outputKey], "observation_changed");
@@ -314,10 +318,11 @@ function OpexV233eGraftStep(ai)
     // without a town effect. Full footprint acceptance is always checked later.
     local towns = (AICargo.GetTownEffect(row.cargo) != AICargo.TE_NONE
       || row.cargo in ai._catalog.townAcceptors) ? ai._catalog.towns : [];
-    local industries = row.cargo in ai._catalog.acceptors ? ai._catalog.acceptors[row.cargo] : [];
+    local industries = !V233_GOODS_CHAIN && row.cargo in ai._catalog.acceptors ? ai._catalog.acceptors[row.cargo] : [];
     gen.current = { row = row, outputKey = outputKey, context = context, towns = towns,
       industries = industries, industryRows = ai._catalog.industries,
-      cursor = 0, nearest = [], evaluate = 0, preferred = null };
+      cursor = 0, nearest = [], evaluate = 0, preferred = null, ranked = [], siteCursor = 0,
+      monthlyQuantity = V233_GOODS_CHAIN ? OpexV233ChainVolume(row) : 0 };
     return;
   }
   local state = gen.current;
@@ -342,32 +347,47 @@ function OpexV233eGraftStep(ai)
     }
     return;
   }
-  if (state.evaluate < state.nearest.len()) {
-    local sink = state.nearest[state.evaluate++];
-    if (!sink.town && state.preferred != null && state.preferred.dstTown >= 0) {
-      state.evaluate = state.nearest.len();
-      return;
-    }
-    local pair = "freight|" + state.row.cargo + "|" + state.row.factoryId
-      + "|" + (sink.town ? "t" + sink.id : sink.id.tostring());
-    if (pair in ai._abandonedPairs) return;
-    if (OpexV233SourceSiteKey(state.context, state.row.cargo) in ai._abandonedPairs) { gen.current = null; return; }
-    if (OpexV233eSupport(ai, state.context) == null
-        || !OpexV233JoinContextValid(state.context, state.row.cargo, state.row.factoryTile, ai._catalog.railCoverage)) {
-      gen.current = null;
-      return;
-    }
-    local monthly = AIIndustry.GetLastMonthProduction(state.row.factoryId, state.row.cargo);
-    if (monthly <= 0) { gen.current = null; return; }
-    // Economic admission sizes a real train, checks profit, ROI and distance.
-    local candidate = OpexMakeCandidate(ai._catalog, "freight", state.row.cargo,
-      state.row.factoryTile, sink.tile, monthly, true, OpexRailCandidateStats(), sink.transformer,
-      null, null, null, state.context);
-    if (candidate == null) return;
-    foreach (key, value in state.context) candidate[key] <- value;
-    candidate.v233Graft <- true;
-    candidate.dstTown <- sink.town ? sink.id : -1;
-    candidate.v233DstIndustry <- sink.town ? -1 : sink.id;
+  if (state.evaluate < state.nearest.len()
+      || (V233_GOODS_CHAIN && state.siteCursor < state.ranked.len() && state.preferred == null)) {
+    local candidate = null;
+    if (state.evaluate < state.nearest.len()) {
+      local sink = state.nearest[state.evaluate++];
+      if (!sink.town && state.preferred != null && state.preferred.dstTown >= 0) {
+        state.evaluate = state.nearest.len();
+        return;
+      }
+      local pair = "freight|" + state.row.cargo + "|" + state.row.factoryId
+        + "|" + (sink.town ? "t" + sink.id : sink.id.tostring());
+      if (pair in ai._abandonedPairs) return;
+      if (OpexV233SourceSiteKey(state.context, state.row.cargo) in ai._abandonedPairs) { gen.current = null; return; }
+      if (OpexV233eSupport(ai, state.context) == null
+          || !OpexV233JoinContextValid(state.context, state.row.cargo, state.row.factoryTile, ai._catalog.railCoverage)) {
+        gen.current = null;
+        return;
+      }
+      local monthly = AIIndustry.GetLastMonthProduction(state.row.factoryId, state.row.cargo);
+      if (V233_GOODS_CHAIN) monthly = state.monthlyQuantity;
+      if (monthly <= 0) { gen.current = null; return; }
+      // Economic admission sizes a real train, checks profit, ROI and distance.
+      candidate = OpexMakeCandidate(ai._catalog, "freight", state.row.cargo,
+        state.row.factoryTile, sink.tile, monthly, true, OpexRailCandidateStats(), sink.transformer,
+        null, null, null, state.context);
+      if (candidate == null) return;
+      if (V233_GOODS_CHAIN && !OpexV233ChainTrainReady(candidate, state.row)) return;
+      foreach (key, value in state.context) candidate[key] <- value;
+      candidate.v233Graft <- true;
+      candidate.dstTown <- sink.town ? sink.id : -1;
+      candidate.v233DstIndustry <- sink.town ? -1 : sink.id;
+      if (V233_GOODS_CHAIN) {
+        // Rank all town economics before running any expensive physical site scan.
+        local parts = OpexV233ChainParts(candidate);
+        local value = parts.profit / parts.capital;
+        local pos = 0;
+        while (pos < state.ranked.len() && state.ranked[pos].value >= value) pos++;
+        state.ranked.insert(pos, { candidate = candidate, value = value });
+        return;
+      }
+    } else candidate = state.ranked[state.siteCursor++].candidate;
     if (!ai._v233CandidateLive(candidate)) return;
     local sites = OpexRailPlatformPlans(ai._catalog, candidate);
     if (sites.reason != "OK") {
@@ -386,11 +406,11 @@ function OpexV233eGraftStep(ai)
       return;
     }
     if (ai._tooClose(candidate).hard >= 0 || ai._tooClose(candidate).blocking >= 0) return;
-    // One output, one ordinary offer. Continue to another town on a rejection,
-    // but publish the first feasible destination rather than exhaust all towns
-    // before giving the other supported industries their scheduler turn.
+    // One ordinary offer per output. Mode 5 tries sites in descending economic
+    // yield after comparing all towns; legacy modes keep their first feasible town.
     state.preferred = candidate;
-    state.evaluate = state.nearest.len();
+    if (!V233_GOODS_CHAIN) state.evaluate = state.nearest.len();
+    else state.siteCursor = state.ranked.len();
     return;
   }
   if (state.preferred != null && ai._v233CandidateLive(state.preferred)) {

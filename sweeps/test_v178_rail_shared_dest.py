@@ -37,7 +37,7 @@ class TestV178RailSharedDest(unittest.TestCase):
         self.assertIn("function OpexAI::_tryAttachSharedDest(candidate)", lines)
         body = lines[lines.index("function OpexAI::_tryAttachSharedDest(candidate)"):]
         # Preconditions
-        self.assertIn("if (!V178_RAIL_SHARED_DEST) return false;", body)
+        self.assertIn("if (!V178_RAIL_SHARED_DEST && !(V233_GOODS_CHAIN && candidate != null\n      && (\"v233ChainInput\" in candidate))) return false;", body)
         self.assertIn('candidate.kind != "freight"', body)
         # Source must remain fresh
         self.assertIn("ORIGIN_SEPARATION", body)
@@ -60,7 +60,7 @@ class TestV178RailSharedDest(unittest.TestCase):
 
     def test_task_rail_precheck_invokes_attachment(self):
         task_rail = _read("task_rail.nut")
-        self.assertIn("if (V178_RAIL_SHARED_DEST && !v233Graft && !(\"joinPlatform\" in candidate))", task_rail)
+        self.assertIn("if ((V178_RAIL_SHARED_DEST || (V233_GOODS_CHAIN && (\"v233ChainInput\" in candidate))) && !v233Graft && !(\"joinPlatform\" in candidate))", task_rail)
         attach_idx = task_rail.index("this._tryAttachSharedDest(candidate);")
         too_close_idx = task_rail.index("local close = this._tooClose(candidate);", attach_idx)
         self.assertLess(attach_idx, too_close_idx)

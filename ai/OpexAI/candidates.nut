@@ -1057,7 +1057,7 @@ function OpexPaxCandidates(catalog, lines, out, stats, abandonedPairs = null, pr
 
 /* Industries : on n'apparie que des couples producteur/accepteur du MEME cargo, ce qui garde
  * l'etage 1 lineaire en nombre d'industries plutot que quadratique sur tout le catalogue. */
-function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null, profile = null, cruiseCache = null, freightCargo = null, targetKind = null, targetId = -1)
+function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null, profile = null, cruiseCache = null, freightCargo = null, targetKind = null, targetId = -1, chainSlice = null)
 {
   /* C41.44 : les lignes sont immuables pendant une generation ; une ville peut donc reutiliser
    * exactement son resultat OpexOriginService, y compris null et l'etat blocked. */
@@ -1066,7 +1066,8 @@ function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null
   local industries = catalog.industries;
   local served = [];
   for (local i = 0; i < industries.len(); i++) {
-    local service = OpexOriginService(lines, industries[i].tile);
+    local needed = chainSlice == null || i == chainSlice.source || industries[i].id == chainSlice.factory;
+    local service = needed ? OpexOriginService(lines, industries[i].tile) : null;
     served.append(service);
     if (service != null) stats.industriesServed++; else stats.industriesUnserved++;
   }
@@ -1079,14 +1080,16 @@ function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null
     local sinks = hasIndustrySinks ? catalog.acceptors[cargo] : [];
 
     foreach (si in sources) {
+      if (chainSlice != null && si != chainSlice.source) continue;
       local source = industries[si];
       if (OPEX_LEVEL_LIMITS && OpexIndustryPrimaryRivalServed(source.id, source.tile)) continue;
       local monthly = AIIndustry.GetLastMonthProduction(source.id, cargo);
       local ss = served[si];
-      local others2 = V163_MULTI_CARGO ? OpexV163SourceOtherCargos(catalog, source.id, cargo) : null;
+      local others2 = (V163_MULTI_CARGO || chainSlice != null) ? OpexV163SourceOtherCargos(catalog, source.id, cargo) : null;
       local industryMark = profile != null ? OpexOpsMeasureBegin() : null;
       for (local k = 0; k < sinks.len(); k++) {
         local di = sinks[k];
+        if (chainSlice != null && industries[di].id != chainSlice.factory) continue;
         if (di == si) continue;
         if (targetKind == "town") continue;
         if (targetKind == "industry" && targetId >= 0
@@ -1098,7 +1101,7 @@ function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null
         stats.pairsTotal++;
         local sd = served[di];
         /* V179 : source neuve, destination deja desservie : on garde la paire, V178 la rattache. */
-        local v179Keep = V179_RAIL_GEN_DEST_SERVED && ss == null && sd != null;
+        local v179Keep = (V179_RAIL_GEN_DEST_SERVED || chainSlice != null) && ss == null && sd != null;
         if (!v179Keep && (ss != null || sd != null)) {
           stats.pairsOriginServed++;
           continue;
@@ -1122,7 +1125,7 @@ function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null
       if (profile != null) profile.freightIndustryOps += OpexOpsMeasureEnd(industryMark);
 
       /* Livraison des marchandises complexes aux villes acceptatrices (Goods, Food, Mail, etc.) */
-      if (hasTownSinks) {
+      if (hasTownSinks && chainSlice == null) {
         local townMark = profile != null ? OpexOpsMeasureBegin() : null;
         local townSinks = catalog.townAcceptors[cargo];
         for (local k = 0; k < townSinks.len(); k++) {

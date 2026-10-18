@@ -786,6 +786,8 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSel
     project.fundScore <- OpexProjectScore(OpexProjectFundProfit(project),
         (kDec > scoreDecisionFinanceCapital && !fleetExemptDecision)
             ? kDec : scoreDecisionFinanceCapital);
+    if (V233_GOODS_CHAIN && project.mode == "rail")
+      project.fundScore = OpexV233ChainScore(project, kDec);
     if (project.mode == "air" && ("payload" in project) && project.payload != null && ("c121CatalogKey" in project.payload) && project.payload.c121CatalogKey in C121_CATALOG_CACHE)
       C121_CATALOG_CACHE[project.payload.c121CatalogKey].lastScore = project.fundScore;
     if (fundMark != null) {

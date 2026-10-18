@@ -14,8 +14,8 @@ class OpexAIInfo extends AIInfo {
   function GetSettings()
   {
     AddSetting({ name = "v233_goods_graft",
-      description = "V233: graft: 0 off, 1 monthly minima, 2 monthly mean, 3 secondary outputs, 4 measured air yield floor (requires pending continue)",
-      min_value = 0, max_value = 4,
+      description = "V233: graft: 0 off, 1 monthly minima, 2 monthly mean, 3 secondary outputs, 4 measured air yield floor, 5 own inputs then best goods town (requires pending continue)",
+      min_value = 0, max_value = 5,
       easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
       flags = 0 });
     AddSetting({ name = "v233_pending_continue",

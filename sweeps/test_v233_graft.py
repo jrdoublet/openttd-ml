@@ -20,7 +20,7 @@ class GraftContracts(unittest.TestCase):
         self.assertIn('V233_GOODS_GRAFT = false;', settings)
         self.assertNotIn('V233_PENDING_CONTINUE = true', settings)
         scheduler = body('scheduler.nut', 'function OpexAI::_runNextTaskWithSlackLedger()')
-        self.assertIn('if (V233_GOODS_GRAFT && this._catalog != null)', scheduler)
+        self.assertIn('if (V233_GOODS_GRAFT && this._catalog != null && (!V233_GOODS_CHAIN || MODE_RAIL))', scheduler)
         self.assertNotIn('if (V233_PENDING_CONTINUE', scheduler)
 
     def test_context_identity_and_factory_specific_capture(self):
@@ -56,8 +56,10 @@ class GraftContracts(unittest.TestCase):
         self.assertEqual(generate.count('OpexMakeCandidate('), 1)
         self.assertNotIn('OpexReselectProjects(', generate)
         self.assertNotIn('predCarried', generate)
-        for file in ('projects_models.nut', 'projects_selection.nut', 'economy.nut'):
+        for file in ('projects_models.nut', 'economy.nut'):
             self.assertNotIn('V233', (AI / file).read_text())
+        selection = (AI / 'projects_selection.nut').read_text()
+        self.assertIn('if (V233_GOODS_CHAIN && project.mode == "rail")', selection)
         publish = body('goods_v233.nut', 'function OpexAI::_v233Publish()')
         for token in ('OpexProjectFromCandidate(', 'OpexProjectRememberAll(',
                       'OpexProjectsRecountGroups(', 'OpexReselectProjects('):

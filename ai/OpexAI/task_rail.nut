@@ -140,6 +140,8 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
   if (project == null) return { outcome = "no_candidate", discards = passDiscards };
   local i = rank;
       local candidate = project.payload;
+      if (V233_GOODS_CHAIN && ("v233ChainInput" in candidate)
+          && !OpexV233ChainInputLive(this, candidate)) return { outcome = "rejected", discards = passDiscards };
       local v233Graft = V233_GOODS_GRAFT && OpexV233IsGraft(candidate);
       if (DECISION_LOG && v233Graft) OpexDecide("V233_GRAFT", "state=attempt factory=" + candidate.v233FactoryId
         + " cargo=" + candidate.cargo + " station=" + candidate.joinStationId + " rank=" + rank);
@@ -266,7 +268,7 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
 
       if (OPEX_ECONOMY_OPCODE_COMPAT_FALSE) {}
 
-      if (V178_RAIL_SHARED_DEST && !v233Graft && !("joinPlatform" in candidate)) {
+      if ((V178_RAIL_SHARED_DEST || (V233_GOODS_CHAIN && ("v233ChainInput" in candidate))) && !v233Graft && !("joinPlatform" in candidate)) {
         this._tryAttachSharedDest(candidate);
       }
 
@@ -348,6 +350,7 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
       if (("railPlan" in candidate)) candidate.railPlan = null;
 
       local recorded = this._recordRailAttempt(candidate, result, posPacked, year);
+
       if (v233Graft) {
         if (DECISION_LOG) OpexDecide("V233_GRAFT", "state=result factory=" + candidate.v233FactoryId
           + " cargo=" + candidate.cargo + " station=" + candidate.joinStationId
@@ -370,10 +373,13 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
           local liveLine = this._lines[this._lines.len() - 1];
           liveLine.v233FactoryId <- candidate.v233FactoryId;
           liveLine.v233GoodsCargo <- candidate.cargo;
+          if (V233_GOODS_CHAIN) liveLine.v233ChainFactory <- candidate.v233FactoryId;
           this._saveProjection = null;
           if (DECISION_LOG) OpexDecide("V233_BUILD", "factory=" + candidate.v233FactoryId
             + " cargo=" + candidate.cargo + " station=" + candidate.joinStationId
             + " line=" + (this._nextLineId - 1)
+            + (V233_GOODS_CHAIN ? " policy=5 town=" + candidate.dstTown + " distance=" + candidate.distance
+              + " wagons=" + result.wagons : "")
             + ((V233_GOODS_POLICY == 2 || V233_GOODS_POLICY == 3) && ("v233JoinB" in candidate)
               ? (candidate.v233JoinB >= 0 ? " joinB=" + candidate.v233JoinB : " newB") : ""));
         }
@@ -1260,6 +1266,25 @@ function OpexAI::_recordRailAttempt(candidate, result, posPacked, year)
       built.wagons2 <- candidate.wagons2;
       built.monthly2 <- candidate.monthly2;
       built.predRevenue2 <- candidate.revenue2;
+    }
+    if (V233_GOODS_CHAIN && ("v233ChainInput" in candidate)) {
+      local line = this._lines[this._lines.len() - 1];
+      line.v233InputCapital <- result.actualCost
+        + (("immobilise" in candidate) ? candidate.immobilise : 0);
+      line.v233InputProfit <- candidate.profitAnnual;
+      line.v233InputCarried2 <- ("carried2" in candidate) ? candidate.carried2 : 0;
+      line.v233ChainFactory <- candidate.v233FactoryId;
+      if (("shared_dest" in candidate) && candidate.shared_dest) {
+        foreach (peer in this._lines)
+          if (OpexLineStationId(peer, "B") == candidate.joinStationId)
+            peer.v233SharedStationBId <- candidate.joinStationId;
+      }
+      this._saveProjection = null;
+      if (DECISION_LOG) OpexDecide("V233_CHAIN", "state=input_built factory=" + candidate.v233FactoryId
+        + " line=" + line.lineId + " cargo=" + candidate.cargo + " capital=" + result.actualCost
+        + " distance=" + candidate.distance + " wagons=" + candidate.wagons
+        + " cargo2=" + (("cargo2" in candidate) ? candidate.cargo2 : -1)
+        + " wagons2=" + (("wagons2" in candidate) ? candidate.wagons2 : 0));
     }
     this._nextLineId++;
     if (DECISION_LOG && OpexV190Active() && candidate.kind == "freight") {

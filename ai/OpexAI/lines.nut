@@ -327,7 +327,7 @@ function OpexAI::_tooClose(candidate)
   local joinStationId = ("joinStationId" in candidate) ? candidate.joinStationId : -1;
   local graftDestStation = v233Join && (V233_GOODS_POLICY == 2 || V233_GOODS_POLICY == 3) && ("v233JoinB" in candidate)
     ? candidate.v233JoinB : -1;
-  local isSharedDest = V178_RAIL_SHARED_DEST && ("shared_dest" in candidate) && candidate.shared_dest == 1;
+  local isSharedDest = (V178_RAIL_SHARED_DEST || (V233_GOODS_CHAIN && ("v233ChainInput" in candidate))) && ("shared_dest" in candidate) && candidate.shared_dest == 1;
   local entries = [["A", candidate.src], ["B", candidate.dst]];
 
   local originA = -1;
@@ -377,7 +377,8 @@ function OpexAI::_tooClose(candidate)
  * est a moins de MIN_SEPARATION, tout en exigeant une source neuve. */
 function OpexAI::_tryAttachSharedDest(candidate)
 {
-  if (!V178_RAIL_SHARED_DEST) return false;
+  if (!V178_RAIL_SHARED_DEST && !(V233_GOODS_CHAIN && candidate != null
+      && ("v233ChainInput" in candidate))) return false;
   if (candidate == null) return false;
   if (!("kind" in candidate) || candidate.kind != "freight") return false;
   if (!("cargo" in candidate) || !AICargo.IsValidCargo(candidate.cargo)) return false;

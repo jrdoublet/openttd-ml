@@ -631,6 +631,7 @@ function OpexV233NewPlatform(p)
 function OpexV233SpendAllowed(catalog, candidate, plan)
 {
   if (V233_GOODS_OPPORTUNITY && !OpexV233AirYieldAllows(candidate)) return false;
+  if (V233_GOODS_CHAIN && !OpexV233AirYieldAllows(candidate)) return false;
   if (!OpexV233JoinContextValid(candidate, candidate.cargo, candidate.src, catalog.railCoverage)
       || !OpexV233CurrentOutputValid(candidate.v233FactoryId, candidate.cargo)
       || !("stationId" in plan.planA) || plan.planA.stationId != candidate.joinStationId
@@ -735,7 +736,8 @@ function OpexAI::_v233Publish()
       && this._v233PublishedGroups == this._projects.candidateGroups && !this._v233NeedsPublish) return;
   foreach (key, group in this._projects.candidateGroups) {
     for (local i = group.len() - 1; i >= 0; i--)
-      if (OpexV233IsGraft(group[i].payload)) group.remove(i);
+      if (OpexV233IsGraft(group[i].payload)
+          || (V233_GOODS_CHAIN && ("v233ChainInput" in group[i].payload))) group.remove(i);
   }
   local dead = [];
   local stats = { modeCandidates = 0, modeAlternatives = 0 };
@@ -757,6 +759,7 @@ function OpexAI::_v233Publish()
     this._v233ForgetPlan(this._v233Offers[key], "publication_not_live");
     delete this._v233Offers[key];
   }
+  if (V233_GOODS_CHAIN) OpexV233ChainPublish(this, stats);
   OpexProjectsRecountGroups(this._projects);
   OpexReselectProjects(this._projects, OpexAvailableCapital(), this._abandonedPairs, this._lines);
   this._v233PublishedProjects = this._projects;

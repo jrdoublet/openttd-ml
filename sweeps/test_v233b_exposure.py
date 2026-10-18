@@ -50,7 +50,7 @@ class ExposureAnalysis(unittest.TestCase):
 class V233bContracts(unittest.TestCase):
     def test_mode_two_is_integer_default_off_and_not_an_extra_setting(self):
         setting = (AI / 'info.nut').read_text().split('name = "v233_goods_graft"', 1)[1].split('});', 1)[0]
-        self.assertIn('max_value = 4', setting)
+        self.assertIn('max_value = 5', setting)
         self.assertNotIn('AICONFIG_BOOLEAN', setting)
         for level in ('easy', 'medium', 'hard', 'custom'):
             self.assertIn(f'{level}_value = 0', setting)

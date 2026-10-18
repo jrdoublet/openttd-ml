@@ -58,9 +58,11 @@ function OpexLoadSettings()
 {
   V233_PENDING_CONTINUE = AIController.GetSetting("v233_pending_continue") != 0;
   V233_GOODS_POLICY = AIController.GetSetting("v233_goods_graft");
-  // Mode 4 reuses exactly the mode 3 generator and physical contracts.
+  // Modes 4/5 share mode 3 physical contracts; their economic guards are separate.
+  V233_GOODS_CHAIN = V233_GOODS_POLICY == 5;
   V233_GOODS_OPPORTUNITY = V233_GOODS_POLICY == 4;
   if (V233_GOODS_OPPORTUNITY) V233_GOODS_POLICY = 3;
+  if (V233_GOODS_CHAIN) V233_GOODS_POLICY = 3;
   V233_GOODS_GRAFT = V233_GOODS_POLICY != 0;
   if (V233_GOODS_GRAFT && !V233_PENDING_CONTINUE) {
     AILog.Warning("V233: v233_goods_graft refused: v233_pending_continue=0");

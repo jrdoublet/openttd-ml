@@ -722,6 +722,8 @@ function OpexAI::Load(version, data)
   this._v233Plans = null;
   this._v233Offers = null;
   this._v233Generation = null;
+  this._v233ChainWork = null;
+  this._v233ChainOffers = null;
   this._v233PublishedProjects = null;
   this._v233PublishedGroups = null;
   this._v233NeedsPublish = false;
@@ -906,6 +908,8 @@ function OpexAI::_reconcileAfterLoad()
   this._v233Plans = null;
   this._v233Offers = null;
   this._v233Generation = null;
+  this._v233ChainWork = null;
+  this._v233ChainOffers = null;
   this._v233PublishedProjects = null;
   this._v233PublishedGroups = null;
   this._v233NeedsPublish = false;

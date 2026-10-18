@@ -126,6 +126,15 @@ class TestRailTrackFailureCapture(unittest.TestCase):
 
     def test_failure_logs_and_rollback_order_are_unchanged(self):
         current = function_body(self.source, "OpexExecuteRailPlan")
+        chain_guard = '''  if (V233_GOODS_CHAIN && ("v233ChainInput" in candidate)
+      && (!OpexV233ChainInputSpend(candidate)
+          || !OpexV233ChainInputPlan(candidate, plan, catalog.railCoverage))) {
+    result.reason = "V233_STALE";
+    return result;
+  }
+'''
+        self.assertEqual(current.count(chain_guard), 1)
+        current = current.replace(chain_guard, "")
         # E3 adds one guarded fail-before-spend block, independently tested by V233.
         # Remove exactly that block to keep the historical hash checking every other token.
         guard = '''  if (V233_GOODS_GRAFT && OpexV233IsGraft(candidate)) {

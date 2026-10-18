@@ -523,7 +523,7 @@ function OpexRailPlatformPlans(catalog, candidate)
      * c'est le contrat physique du candidat. Sans ce garde, tomber dans la recherche libre plus
      * bas tout en gardant joinLineId fait ignorer la ligne existante dans _tooClose et permet de
      * contourner ORIGIN_SEPARATION avec une seconde gare. V88 conserve son fallback historique. */
-    local strictOriginReuseJoin = (V178_RAIL_SHARED_DEST
+    local strictOriginReuseJoin = ((V178_RAIL_SHARED_DEST || (V233_GOODS_CHAIN && ("v233ChainInput" in candidate)))
         && ("shared_dest" in candidate) && candidate.shared_dest)
         || (V233_GOODS_GRAFT && ("strictJoin" in candidate) && candidate.strictJoin);
     if (!joinB) {
@@ -3430,6 +3430,12 @@ function OpexExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
     }
   }
 
+  if (V233_GOODS_CHAIN && ("v233ChainInput" in candidate)
+      && (!OpexV233ChainInputSpend(candidate)
+          || !OpexV233ChainInputPlan(candidate, plan, catalog.railCoverage))) {
+    result.reason = "V233_STALE";
+    return result;
+  }
   local costs = AIAccounting();
 
   budget.begin();

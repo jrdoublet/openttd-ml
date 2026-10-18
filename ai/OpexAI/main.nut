@@ -151,6 +151,8 @@ class OpexAI extends AIController {
   _v233PublishedGroups = null;
   _v233NeedsPublish = false;
   _v233Generation = null;
+  _v233ChainWork = null;
+  _v233ChainOffers = null;
   _v233DeliveryProbe = null;
   /* V184 : etat des slots reinitialise au demarrage et au rechargement (une recherche). */
   _v184RailSlots = null;
@@ -648,6 +650,7 @@ require("lines.nut");
 require("goods_v233.nut");
 require("goods_v233e.nut");
 require("goods_v233score.nut");
+require("goods_v233chain.nut");
 require("orchestrator.nut");
 require("persist.nut");
 require("probes.nut");

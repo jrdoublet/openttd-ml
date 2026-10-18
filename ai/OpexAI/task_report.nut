@@ -504,6 +504,10 @@ function OpexAI::_reportLines(year)
       }
       OpexDecide("LINE_REVENUE", "line=" + line.lineId + " mode=" + lMode + " kind=" + lKind + " cargo=" + cLabel + " year=" + year + " age=" + lAge + " pred_rev=" + predRevenue + " real_rev=" + realRevenue + " pred_prof=" + predProfit + " real_prof=" + profit + " pred_run=" + predRunning + " real_run=" + runCost + " vehs=" + vehCount + " low_ratio=" + isLow + " op_ratio=" + opRatio + " purpose=" + lPurpose + extra);
 
+      if (V233_GOODS_CHAIN && ("v233ChainFactory" in line) && DECISION_LOG)
+        OpexDecide("V233_CHAIN", "state=realized factory=" + line.v233ChainFactory
+          + " line=" + line.lineId + " year=" + year + " profit=" + profit + " revenue=" + realRevenue);
+
       /* C98 : vue AIR au meme instant annuel que C70/C82, mais sans agregation.
        * Le profit/revenu viennent de l'annee ecoulee ; rating, charge et vitesse sont
        * des instantanes au jour du rapport. NoAI n'expose pas le nombre annuel de
