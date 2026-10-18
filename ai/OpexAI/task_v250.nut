@@ -120,9 +120,11 @@ function OpexV250Contested()
     local tiles = AITileList_StationCoverage(st);
     for (local tile = tiles.Begin(); !tiles.IsEnd(); tile = tiles.Next()) {
       if (!AITile.IsStationTile(tile)) continue;
-      if (AITile.GetOwner(tile) == selfId) continue;
+      local owner = AITile.GetOwner(tile);
+      if (owner == selfId || AICompany.ResolveCompanyID(owner) == AICompany.COMPANY_INVALID) continue;
+      /* IsValidStation est faux pour une gare rivale : ne pas le tester. */
       local rival = AIStation.GetStationID(tile);
-      if (rival == st || rival < 0 || !AIStation.IsValidStation(rival)) continue;
+      if (rival == st || rival < 0) continue;
       if (rival in byTown[townId].seen) continue;
       byTown[townId].seen[rival] <- 1;
       byTown[townId].rivals++;
