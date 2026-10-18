@@ -658,15 +658,6 @@ class OpexAIInfo extends AIInfo {
       custom_value = 0,
       flags = AICONFIG_BOOLEAN
     });
-    AddSetting({
-      name = "v252_air_engine_refresh",
-      description = "V252: modernize air fleet; 0 = clone the existing plane (former behaviour), 1 = buy best available engine on reinforce/crash, 2 = mode 1 + active monthly replacement when rich (default, qualified 18/10: gate A +179 k/yr, gate B +180 k/yr)",
-      min_value = 0, max_value = 2,
-      easy_value = 2, medium_value = 2, hard_value = 2,
-      custom_value = 2,
-      step_size = 1,
-      flags = 0
-    });
     /* Quatre niveaux a 0 : le banc qui ne passe pas le reglage reste identique.
      * Mode 1 coupe en facile/moyen meme si la valeur est 1. Mode 2 ignore le niveau. */
     AddSetting({
