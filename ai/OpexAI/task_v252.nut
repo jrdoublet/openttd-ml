@@ -37,6 +37,8 @@ function OpexAI::_dispatchV252AirEngineRefresh(task, year)
   local curEngine = -1;
   local nAirLines = 0;
   local nOutdated = 0;
+  local candidates = [];
+  local rank = 0;
 
   foreach (line in this._lines) {
     if (line == null) continue;
@@ -52,29 +54,47 @@ function OpexAI::_dispatchV252AirEngineRefresh(task, year)
     /* Ligne rentable requise */
     if (lineProfit <= 0) continue;
 
-    local targetEngine = OpexAirBestEngineForLine(line, this._catalog);
-    if (targetEngine == null) continue;
-
     foreach (v in line.vehicles) {
       if (!AIVehicle.IsValidVehicle(v)) continue;
       if (this._vehiclesToRetire != null && (v in this._vehiclesToRetire)) continue;
-      local e = AIVehicle.GetEngineType(v);
-      if (e == targetEngine) continue;
-      nOutdated++;
-
-      local age = AIVehicle.GetAge(v);
-      local prof = AIVehicle.GetProfitLastYear(v);
-
-      /* Cibler l'avion le plus vieux, ou de plus faible rendement a age egal */
-      if (bestVeh < 0 || age > bestAge || (age == bestAge && prof < bestProfit)) {
-        bestLine = line;
-        bestVeh = v;
-        bestAge = age;
-        bestProfit = prof;
-        bestNewEngine = targetEngine;
-        curEngine = e;
-      }
+      candidates.append({
+        veh = v,
+        line = line,
+        age = AIVehicle.GetAge(v),
+        profit = AIVehicle.GetProfitLastYear(v),
+        engine = AIVehicle.GetEngineType(v),
+        rank = rank++
+      });
     }
+  }
+
+  /* Ordre de preference : age decroissant, profit croissant, rang croissant */
+  candidates.sort(function(a, b) {
+    if (a.age != b.age) return a.age > b.age ? -1 : 1;
+    if (a.profit != b.profit) return a.profit < b.profit ? -1 : 1;
+    if (a.rank != b.rank) return a.rank < b.rank ? -1 : 1;
+    return 0;
+  });
+
+  local lineTargetCache = {};
+  foreach (cand in candidates) {
+    local lineKey = ("lineId" in cand.line) ? cand.line.lineId : cand.line;
+    if (!(lineKey in lineTargetCache)) {
+      lineTargetCache[lineKey] <- OpexAirBestEngineForLine(cand.line, this._catalog);
+    }
+
+    local targetEngine = lineTargetCache[lineKey];
+    if (targetEngine == null) continue;
+    if (cand.engine == targetEngine) continue;
+
+    nOutdated = 1;
+    bestLine = cand.line;
+    bestVeh = cand.veh;
+    bestAge = cand.age;
+    bestProfit = cand.profit;
+    bestNewEngine = targetEngine;
+    curEngine = cand.engine;
+    break;
   }
 
   if (bestVeh < 0 || bestLine == null) {

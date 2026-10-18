@@ -223,6 +223,11 @@ class OpexAI extends AIController {
   _v250Month = -1;
   _v250Targets = {};
   _v250Freed = {};
+  /* V259 : renouvellement des ponts */
+  _v259KnownBridgesCount = -1;
+  _v259Queue = null;
+  _v259Cursor = 0;
+  _v259LastCheckMonth = -1;
   /* V89 : débit de recherche A* rail opportuniste et instrumentation passive */
   _v89EstimatedSliceOps = 2000;
   _v89LastDay = -1;
@@ -324,6 +329,10 @@ class OpexAI extends AIController {
   /* V250 : appliques par _reconcileAfterLoad seulement si le reglage est arme. */
   _reloadV250Targets = null;
   _reloadV250Freed = null;
+  /* V259 : ponts et queue recharges */
+  _reloadV259KnownBridgesCount = null;
+  _reloadV259Cursor = null;
+  _reloadV259Queue = null;
   /* Retraites C52 unitaires, consommees par la tache de rebut dediee. */
   _vehiclesToRetire = null;
   /* C52 #4 : suivi des annees consecutives de deficit par vehicule */
@@ -521,7 +530,7 @@ class OpexAI extends AIController {
   function _startRailSearch(candidate, alternativeRatio, hardCap, projectIndex);
   function _continueRailSearch();
   function _consumeRailSearch(year);
-  function _recordRailAttempt(candidate, result, posPacked, year);
+  function _recordRailAttempt(candidate, result, posPacked, year, railPlan = null);
   function _startRailUpgradeSearch(line, prep);
   function _consumeRailUpgrade();
   function _v184InitRailSlots();
@@ -563,6 +572,10 @@ class OpexAI extends AIController {
   function _dispatchV249Statue(task, year);
   function _dispatchV252AirEngineRefresh(task, year);
   function _dispatchV250Rights(task, year);
+  function _v259CheckNewBridges();
+  function _v259PrepareBridgeQueue();
+  function _v259StepBridgeRenew();
+  function _v259EvaluateAndRenew(item);
   function _c76RecordRegen(kind, ops, days, year, reason = "unknown");
   function _c76RecordAvoided(year);
   function _c76RotateFreight(year);
@@ -665,6 +678,7 @@ require("task_water.nut");
 require("task_v249.nut");
 require("task_v252.nut");
 require("task_v250.nut");
+require("task_v259.nut");
 require("selftests.nut");
 
 function OpexAI::Start()
@@ -720,6 +734,7 @@ function OpexAI::Start()
     OpexDecide("SETTINGS", "road_pax_voirie=" + true
                + " road_pax_overlap=" + true);
   }
+  OpexV251LogIndustryTypes();
   OpexAirResetSiteCache();
 
   /* 🔴 RENOUVELLEMENT AUTOMATIQUE (2026-08-29). Mesure : campagne 20 ans, graine 42 -- trois des

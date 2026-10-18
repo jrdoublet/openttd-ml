@@ -585,7 +585,13 @@ def classify_company(
     elif not floor_values_known:
         status = "missing_data"
         failure_reason = f"missing_activity_floor: company {name}"
-    elif last_vehicles < 1 or last_stations < 1 or last_value <= 1:
+    # CalculateCompanyValue (OpenTTD 15.3, economy.cpp) renvoie
+    # max(actifs + caisse - prêt, 1). Ce 1 £ est la valeur officielle d'une
+    # compagnie encore sous son prêt, pas une compagnie morte. En départ 1950
+    # (inflation coupée) le réseau vapeur d'AAAHogEx reste sous le prêt toute
+    # l'année avec des véhicules et des gares. L'inactivité est l'absence de
+    # flotte ou de gare ; un crash NoAI est déjà classé plus haut.
+    elif last_vehicles < 1 or last_stations < 1:
         status = "inactive_company"
         failure_reason = (
             f"inactive_company: vehicles={last_vehicles} stations={last_stations} "
