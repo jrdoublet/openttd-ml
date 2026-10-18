@@ -96,8 +96,8 @@ OPEX_DIFFICULTY <- 3;
  * passage statue. Vrai au depart : le premier mois ne compte pas. Pas sauvegarde. */
 V249_CASH_STOP <- true;
 /* V252 : modernisation de la flotte aerienne (air_fleet.nut, task_v252.nut).
- * 0 = inerte, 1 = renfort/crash au meilleur modele, 2 = mode 1 + remplacement actif quand riche. */
-V252_AIR_ENGINE_REFRESH <- 0;
+ * 0 = clonage, 1 = renfort/crash au meilleur modele, 2 = mode 1 + remplacement actif quand riche (defaut depuis le 18/10). */
+V252_AIR_ENGINE_REFRESH <- 2;
 /* Vrai si une passe projets s'est arretee faute de caisse depuis le dernier
  * passage de rafraichissement aerien. Vrai au depart. Pas sauvegarde. */
 V252_CASH_STOP <- true;

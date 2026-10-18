@@ -28,7 +28,7 @@ class TestV252EngineRefresh(unittest.TestCase):
         cls.add_plane = _body(cls.fleet, "function OpexAirAddPlane(line, catalog = null, lines = null)")
         cls.refleet = _body(cls.fleet, "function OpexAirRefleetCrashedPlane(line, catalog = null)")
 
-    def test_setting_declared_default_zero(self):
+    def test_setting_declared_default_two(self):
         block = re.search(
             r'name = "v252_air_engine_refresh",(.*?)\}\);', self.sources["info.nut"], re.S)
         self.assertIsNotNone(block)
@@ -37,8 +37,8 @@ class TestV252EngineRefresh(unittest.TestCase):
         self.assertIn("max_value = 2", body)
         self.assertIn("step_size = 1", body)
         for level in ("easy_value", "medium_value", "hard_value", "custom_value"):
-            self.assertRegex(body, level + r" = 0\b")
-        self.assertIn("V252_AIR_ENGINE_REFRESH <- 0;", self.sources["globals_pre.nut"])
+            self.assertRegex(body, level + r" = 2\b")  # defaut 2 depuis le 18/10 (portes A et B)
+        self.assertIn("V252_AIR_ENGINE_REFRESH <- 2;", self.sources["globals_pre.nut"])
         self.assertIn("V252_CASH_STOP <- true;", self.sources["globals_pre.nut"])
 
     def test_setting_read_once(self):
