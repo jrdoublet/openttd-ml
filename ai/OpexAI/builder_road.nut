@@ -150,6 +150,31 @@ function OpexRoadTraceBuildable(trace)
 function OpexRoadSites(center, townId, cargo, vehType, coverage, wantProduction, radius,
                        otherCenter, requireCargo = true, excludeTiles = null)
 {
+  /* Levier B, Niveau 1 : pas de chargement sur industrie primaire rival-servie */
+  if (OPEX_LEVEL_LIMITS && wantProduction && townId < 0) {
+    local indId = AIIndustry.GetIndustryID(center);
+    if (indId >= 0 && OpexIndustryPrimaryRivalServed(indId, center, coverage)) {
+      return { sites = [], stats = null };
+    }
+  }
+
+  /* Levier B, Niveau 0 : rejet si le rayon de captage chevauche celui d'une gare rivale */
+  if (OPEX_LEVEL_LIMITS && !OpexLevelAllows("encroach_rival_catchment")) {
+    local res = OpexRoadSitesGated(center, townId, cargo, vehType, coverage, wantProduction, radius, otherCenter, requireCargo, excludeTiles);
+    if (res != null && ("sites" in res) && res.sites != null) {
+      local filtered = [];
+      foreach (s in res.sites) {
+        local tx = AIMap.GetTileX(s.tile);
+        local ty = AIMap.GetTileY(s.tile);
+        if (!OpexStationEncroachesRival(tx, ty, tx, ty, coverage)) {
+          filtered.append(s);
+        }
+      }
+      res.sites = filtered;
+    }
+    return res;
+  }
+
   return OpexRoadSitesGated(center, townId, cargo, vehType, coverage, wantProduction, radius, otherCenter, requireCargo, excludeTiles);
 }
 
@@ -395,6 +420,21 @@ function OpexRoadBfsPath(src, dst, maxNodes, srcFront = null, dstFront = null)
 function OpexRoadPaxVoirieSites(center, townId, cargo, vehType, coverage, otherCenter,
                                 requireCargo = true, excludeTiles = null)
 {
+  if (OPEX_LEVEL_LIMITS && !OpexLevelAllows("encroach_rival_catchment")) {
+    local sites = OpexRoadPaxVoirieGated(center, townId, cargo, vehType, coverage, otherCenter, requireCargo, excludeTiles);
+    if (sites != null) {
+      local filtered = [];
+      foreach (s in sites) {
+        local tx = AIMap.GetTileX(s.tile);
+        local ty = AIMap.GetTileY(s.tile);
+        if (!OpexStationEncroachesRival(tx, ty, tx, ty, coverage)) {
+          filtered.append(s);
+        }
+      }
+      return filtered;
+    }
+    return sites;
+  }
   return OpexRoadPaxVoirieGated(center, townId, cargo, vehType, coverage, otherCenter, requireCargo, excludeTiles);
 }
 

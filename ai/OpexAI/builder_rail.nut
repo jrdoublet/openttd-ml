@@ -296,6 +296,11 @@ function OpexV207RankStationPlans(plans, maxPlans, cargo, coverage, rankPct, cen
 function OpexStationPlans(center, otherCenter, radius, length, maxPlans, cargo, coverage,
                           wantProduction, stats = null, requireDouble = false, rankPct = 0)
 {
+  if (OPEX_LEVEL_LIMITS && wantProduction) {
+    local indId = AIIndustry.GetIndustryID(center);
+    if (indId >= 0 && OpexIndustryPrimaryRivalServed(indId, center, coverage)) return [];
+  }
+
   local plans = [];
   local axes = [
     [AIRail.RAILTRACK_NE_SW, AIMap.GetTileIndex(1, 0)],
@@ -328,6 +333,15 @@ function OpexStationPlans(center, otherCenter, radius, length, maxPlans, cargo, 
                                                              wantProduction);
               if (wantProduction ? (cargoValue <= 0) : (cargoValue < 8)) continue;
               if (stats != null) stats.nCargo++;
+              /* Levier B, Niveau 0 : rejet si le rayon de captage chevauche celui d'une gare rivale */
+              if (OPEX_LEVEL_LIMITS && !OpexLevelAllows("encroach_rival_catchment")) {
+                local endTile = anchor + step * (length - 1);
+                local x1 = AIMap.GetTileX(anchor), y1 = AIMap.GetTileY(anchor);
+                local x2 = AIMap.GetTileX(endTile), y2 = AIMap.GetTileY(endTile);
+                local minX = x1 < x2 ? x1 : x2, maxX = x1 > x2 ? x1 : x2;
+                local minY = y1 < y2 ? y1 : y2, maxY = y1 > y2 ? y1 : y2;
+                if (OpexStationEncroachesRival(minX, minY, maxX, maxY, coverage)) continue;
+              }
               /* Le rectangle plat ne prouve pas que la commande respecte le station_spread ou les
                * regles de gare. Ce test est au plus MAX_STATION_PLANS * 2 commandes par tentative
                * (24 avec le plafond deja mesure), tres petit devant les milliers d'iterations A* ;

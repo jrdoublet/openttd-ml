@@ -1,7 +1,7 @@
 /* V250 : droits de transport exclusifs (AITown.TOWN_ACTION_BUY_RIGHTS).
  * 0 : la tache retourne avant toute API.
  * 1 : ville la plus disputee (gares a nous et gares rivales dans la meme
- *     desserte), seulement si OPEX_DIFFICULTY vaut 2 ou 3 et si l'on est
+ *     desserte), seulement si la difficulte l'autorise (niveau 3) et si l'on est
  *     riche au sens V249. Facile et moyen restent coupes.
  * 2 : test. Villes ou le regime sans bruit (meme porte que C83) a
  *     GetAllowedNoise == 0 et ou nous n'avons aucun aeroport. On rachete a
@@ -16,6 +16,10 @@
  *     sont reliees a une ville saturee. On prend donc toutes les villes ou un
  *     rival a un aeroport (2 - bruit - les notres > 0), saturees d'abord, pour
  *     que les deux extremites des routes d'AAA ne chargent plus rien.
+ * 4 : cible. Villes ou un rival a une note de ville et nous aucune (monopole
+ *     rival), puis villes ou les deux en ont une et dont la population est dans
+ *     le quart superieur de la carte. Meme plafond de caisse que le mode 2.
+ * Toute la V250 est coupee hors niveau 3 (settings.nut force V250_RIGHTS a 0).
  * Un creneau libere (bruit >= 1, y compris un saut 0 -> 2) est seulement
  * journalise : C83 reagit deja a GetAllowedNoise == 1. Seules les villes
  * saturees a l'achat (marque 1) sont suivies ; marque 2 = ville non saturee. */
@@ -169,10 +173,42 @@ function OpexV250RunNormal(ai)
   return true;
 }
 
+/* Une note de ville existe des qu'une compagnie a une gare dans la zone
+ * d'influence (have_ratings) : c'est la presence lisible d'un rival. */
+function OpexV250TargetedOrder()
+{
+  local self = AICompany.ResolveCompanyID(AICompany.COMPANY_SELF);
+  local rivals = [];
+  for (local c = AICompany.COMPANY_FIRST; c <= AICompany.COMPANY_LAST; c++) {
+    if (c == self || AICompany.ResolveCompanyID(c) == AICompany.COMPANY_INVALID) continue;
+    rivals.append(c);
+  }
+  local pops = [];
+  local towns = AITownList();
+  for (local townId = towns.Begin(); !towns.IsEnd(); townId = towns.Next()) pops.append(AITown.GetPopulation(townId));
+  pops.sort();
+  local bigPop = pops.len() > 0 ? pops[pops.len() * 3 / 4] : 0;
+  local monopoly = [];
+  local contested = [];
+  for (local townId = towns.Begin(); !towns.IsEnd(); townId = towns.Next()) {
+    local rival = false;
+    foreach (c in rivals) {
+      if (AITown.GetRating(townId, c) != AITown.TOWN_RATING_NONE) { rival = true; break; }
+    }
+    if (!rival) continue;
+    local pop = AITown.GetPopulation(townId);
+    if (AITown.GetRating(townId, self) == AITown.TOWN_RATING_NONE) OpexV250InsertByPop(monopoly, townId, pop);
+    else if (pop >= bigPop) OpexV250InsertByPop(contested, townId, pop);
+  }
+  foreach (item in contested) monopoly.append(item);
+  return monopoly;
+}
+
 function OpexV250RunTest(ai, date, allRival = false)
 {
   local ownCounts = OpexAirOwnSlotTownCounts();
   OpexV250Watch(ai, date, ownCounts);
+  if (V250_RIGHTS == 4) return OpexV250BuyOrdered(ai, date, OpexV250TargetedOrder(), ownCounts, 4);
   if (!OpexAirC83SlotSignalEnabled()) return true;
 
   local ordered = [];
@@ -194,7 +230,22 @@ function OpexV250RunTest(ai, date, allRival = false)
     else OpexV250InsertByPop(others, townId, AITown.GetPopulation(townId));
   }
   foreach (item in others) ordered.append(item);
+  return OpexV250BuyOrdered(ai, date, ordered, ownCounts, allRival ? 3 : 2);
+}
 
+/* Rachat des villes tenues, puis nouvelles villes dans l'ordre donne, tant
+ * qu'une annee de droits tient dans la caisse au-dessus de la reserve. */
+function OpexV250BuyOrdered(ai, date, ordered, ownCounts, mode)
+{
+  /* Mode 4 : une ville sortie de la cible (nous y sommes venus, ou elle a
+   * quitte le quart superieur) n'est plus rachetee. */
+  if (mode == 4 && ai._v250Targets != null) {
+    local keep = {};
+    foreach (item in ordered) keep[item.id] <- 1;
+    local drop = [];
+    foreach (townId, mark in ai._v250Targets) if (!(townId in keep)) drop.append(townId);
+    foreach (townId in drop) ai._v250Targets.rawdelete(townId);
+  }
   local renew = [];
   if (ai._v250Targets != null) {
     foreach (townId, mark in ai._v250Targets) {
@@ -216,14 +267,14 @@ function OpexV250RunTest(ai, date, allRival = false)
     if (kept >= slots) break;
     kept++;
     if (!AITown.IsActionAvailable(item.id, AITown.TOWN_ACTION_BUY_RIGHTS)) continue;
-    if (OpexV250BuyRights(ai, item.id, allRival ? 3 : 2, item.pop, reserve) < 0) break;
+    if (OpexV250BuyRights(ai, item.id, mode, item.pop, reserve) < 0) break;
   }
   foreach (item in ordered) {
     if (OpexV250TargetCount(ai) >= slots) break;
     if (ai._v250Targets != null && (item.id in ai._v250Targets)) continue;
     local saturated = AITown.GetAllowedNoise(item.id) == 0
         && !(item.id in ownCounts && ownCounts[item.id] > 0);
-    local bought = OpexV250BuyRights(ai, item.id, allRival ? 3 : 2, item.pop, reserve, saturated ? 1 : 2);
+    local bought = OpexV250BuyRights(ai, item.id, mode, item.pop, reserve, saturated ? 1 : 2);
     if (bought < 0) break;
     if (bought > 0 && saturated) OpexV250WatchTown(ai, item.id, date, ownCounts);
   }
@@ -233,13 +284,13 @@ function OpexV250RunTest(ai, date, allRival = false)
 function OpexAI::_dispatchV250Rights(task, year)
 {
   if (V250_RIGHTS == 0) return false;
-  if (V250_RIGHTS == 1 && OPEX_DIFFICULTY < 2) return false;
+  if (!OpexLevelAllows("v250_rights")) return false;
   local date = AIDate.GetCurrentDate();
   local ym = year * 12 + AIDate.GetMonth(date);
   if (this._v250Month == ym) return false;
   this._v250Month = ym;
   if (this._v250Targets == null) this._v250Targets = {};
   if (this._v250Freed == null) this._v250Freed = {};
-  if (V250_RIGHTS >= 2) return OpexV250RunTest(this, date, V250_RIGHTS == 3);
+  if (V250_RIGHTS >= 2) return OpexV250RunTest(this, date, V250_RIGHTS >= 3);
   return OpexV250RunNormal(this);
 }
