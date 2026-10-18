@@ -136,6 +136,7 @@ ne créent pas une tâche. Protocole et pilotage des bancs : [AGENTS.md](../AGEN
 - **18/10 nuit — décisions utilisateur (« je suis tes recommandations »)** :
   - `v251` fusionné dans master : inventaire des types d'industrie au démarrage, actif seulement sous `decision_log`, et contrats des panneaux. Le conflit de `task_report.nut` a été résolu en gardant la version de master : la garde `DEBUG_SIGNS` y était déjà, et la version de la branche aurait déplacé des calculs, donc changé les opcodes.
   - `v257rev` et `v257comp` : non fusionnés, abandonnés.
+  - **19/10 — confirmation V257rev par porte A 20×10 PC** (`v257rev_20x10_pc_20261019`, [rapport](v257rev_porteA_20x10_20261019.md)) : 20/20 paires complètes, `profit_year` +120,0 k£/an (+3,27 %, 13V/7D ; IC95 bootstrap [−59,8 ; +309,5] k£), `company_value` +1,72 %, garde valeur OK ; **`fail_primary`** (seuil +4 % et IC non qualifiants). `V257_REPLACE` exposé (114 traces) ; abandon maintenu, pas de fusion.
   - `v229` : en attente. Porte A sur le PC ou abandon, à décider.
   - `v259y1990` : en attente du banc 20×10 de 1990 sur le PC.
   - V258 : sera rejugé avec la passe V263, pas fusionné seul.
