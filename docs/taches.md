@@ -135,7 +135,8 @@ ne créent pas une tâche. Protocole et pilotage des bancs : [AGENTS.md](../AGEN
 
 - **18/10 nuit — décisions utilisateur (« je suis tes recommandations »)** :
   - `v251` fusionné dans master : inventaire des types d'industrie au démarrage, actif seulement sous `decision_log`, et contrats des panneaux. Le conflit de `task_report.nut` a été résolu en gardant la version de master : la garde `DEBUG_SIGNS` y était déjà, et la version de la branche aurait déplacé des calculs, donc changé les opcodes.
-  - `v257rev` et `v257comp` : non fusionnés, abandonnés.
+  - `v257comp` : non fusionné, abandonné.
+  - **`v257rev` ROUVERT à la demande de l'utilisateur.** Il n'a jamais été joué sur une longue durée : seulement trois expositions en rail seul, de 3 graines × 4 ans, avec 3 remplacements en tout. Or de nouvelles locomotives sortent pendant la partie, et le mécanisme a besoin de temps pour agir. Master a été fusionné dans la branche (`fe468a6`, 2 036 tests OK, poussée). Banc PC en partie complète, 20 graines × 10 ans, `v257_rail_refresh` 0 contre 1, `decision_log` et `--script-debug`, campagne `v257rev_20x10_pc_20261019`. À lire au retour : nombre de `V257_REPLACE` par graine et par année (sans remplacement, l'écart n'est que de la perturbation), puis le verdict.
   - `v229` : en attente. Porte A sur le PC ou abandon, à décider.
   - `v259y1990` : en attente du banc 20×10 de 1990 sur le PC.
   - V258 : sera rejugé avec la passe V263, pas fusionné seul.
