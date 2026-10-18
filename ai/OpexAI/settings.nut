@@ -35,8 +35,8 @@ function OpexProbeSetting(name)
 
 /* Niveau 0..3. Sur OpenTTD <= 13.4, script.settings_profile (0 facile, 1 moyen,
  * 2 difficile ; 3 personnalise existait hors menu) fait foi. Sur 14/15.3 le
- * reglage a disparu : opex_difficulty, dont les quatre valeurs valent 3, est
- * le niveau. Un banc qui ne le passe pas reste donc a personnalise. */
+ * reglage a disparu : opex_difficulty, dont les quatre valeurs valent 2, est
+ * le niveau. Un banc qui ne le passe pas joue donc en difficile. */
 function OpexResolveDifficulty()
 {
   if (AIGameSettings.IsValid("script.settings_profile")) {
@@ -46,7 +46,7 @@ function OpexResolveDifficulty()
     return profile;
   }
   local value = AIController.GetSetting("opex_difficulty");
-  if (value == null || value < 0) return 3;
+  if (value == null || value < 0) return 2;
   if (value > 3) return 3;
   return value;
 }
@@ -74,6 +74,8 @@ function OpexLoadSettings()
   PORTFOLIO_LOG = DECISION_LOG;
   SAVE_FULL_STATE = AIController.GetSetting("save_full_state") != 0;
   OPEX_DIFFICULTY = OpexResolveDifficulty();
+  OPEX_LEVEL_LIMITS = !OpexLevelAllows("encroach_rival_catchment") || !OpexLevelAllows("compete_primary_industry")
+      || !OpexLevelAllows("airport_rival_town") || !OpexLevelAllows("preempt_last_airport_slot");
 
 
   /* --- 2. Interrupteurs de mode et options rail --- */
@@ -124,7 +126,9 @@ function OpexLoadSettings()
   local v252Refresh = AIController.GetSetting("v252_air_engine_refresh");
   V252_AIR_ENGINE_REFRESH = (v252Refresh != null && v252Refresh >= 0 && v252Refresh <= 2) ? v252Refresh : 0;
   local rights = AIController.GetSetting("v250_rights");
-  if (rights == null || rights < 0 || rights > 3) rights = 0;
+  if (rights == null || rights < 0 || rights > 4) rights = 0;
+  /* V250 entiere reservee au niveau 3 (personnalise) : geste anticoncurrentiel. */
+  if (!OpexLevelAllows("v250_rights")) rights = 0;
   V250_RIGHTS = rights;
 
   // V246 : paquets adoptes figes ; les interrupteurs de mode restent actifs.

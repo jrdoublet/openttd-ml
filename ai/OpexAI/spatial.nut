@@ -84,3 +84,64 @@ function OpexSpatialGrid::GetCandidatesFor(townIndex)
   }
   return out;
 }
+
+/* Levier B, Niveau 1 : verifie si une tuile de station rivale se trouve dans le rayon de captage
+ * d'une industrie primaire (pas de gare de chargement sur industrie primaire rival-servie).
+ * Niveaux 2 et 3 : zero opcode de plus (court-circuit en premiere ligne). */
+function OpexIndustryPrimaryRivalServed(industryId, industryTile = null, coverage = -1)
+{
+  if (OpexLevelAllows("compete_primary_industry")) return false;
+  if (!AIIndustry.IsValidIndustry(industryId)) return false;
+  local indType = AIIndustry.GetIndustryType(industryId);
+  if (!AIIndustryType.IsValidIndustryType(indType) || !AIIndustryType.IsRawIndustry(indType)) return false;
+  if (AIIndustry.GetAmountOfStationsAround(industryId) == 0) return false;
+  if (coverage <= 0) coverage = AIStation.GetCoverageRadius(AIStation.STATION_TRAIN);
+  /* Tuiles d'ou une gare capterait la production : exactement le critere « desservie ». */
+  local me = AICompany.ResolveCompanyID(AICompany.COMPANY_SELF);
+  local tiles = AITileList_IndustryProducing(industryId, coverage);
+  tiles.Valuate(AITile.IsStationTile);
+  tiles.KeepValue(1);
+  foreach (tile, _ in tiles) {
+    local owner = AITile.GetOwner(tile);
+    if (owner == me || AICompany.ResolveCompanyID(owner) == AICompany.COMPANY_INVALID) continue;
+    if (DECISION_LOG) OpexDecide("LEVEL_SKIP", "feature=compete_primary_industry industry=" + industryId
+        + " rival_tile=" + tile + " rival_owner=" + owner);
+    return true;
+  }
+  return false;
+}
+
+/* Levier B, Niveau 0 : verifie si une tuile de station rivale se trouve dans l'emprise etendue
+ * du rayon de captage du type de gare (aucune gare chevauchant une gare rivale existante).
+ * Niveaux 1, 2 et 3 : zero opcode de plus (court-circuit en premiere ligne). */
+function OpexStationEncroachesRival(minX, minY, maxX, maxY, coverage = -1)
+{
+  if (OpexLevelAllows("encroach_rival_catchment")) return false;
+
+  if (coverage <= 0) coverage = AIStation.GetCoverageRadius(AIStation.STATION_TRAIN);
+
+  local me = AICompany.ResolveCompanyID(AICompany.COMPANY_SELF);
+  local sMinX = minX - coverage < 1 ? 1 : minX - coverage;
+  local sMinY = minY - coverage < 1 ? 1 : minY - coverage;
+  local mapX = AIMap.GetMapSizeX() - 2;
+  local mapY = AIMap.GetMapSizeY() - 2;
+  local sMaxX = maxX + coverage > mapX ? mapX : maxX + coverage;
+  local sMaxY = maxY + coverage > mapY ? mapY : maxY + coverage;
+
+  local tiles = AITileList();
+  tiles.AddRectangle(AIMap.GetTileIndex(sMinX, sMinY), AIMap.GetTileIndex(sMaxX, sMaxY));
+  tiles.Valuate(AITile.IsStationTile);
+  tiles.KeepValue(1);
+
+  foreach (tile, _ in tiles) {
+    local owner = AITile.GetOwner(tile);
+    if (owner != me && AICompany.ResolveCompanyID(owner) != AICompany.COMPANY_INVALID) {
+      if (DECISION_LOG) {
+        OpexDecide("LEVEL_SKIP", "feature=encroach_rival_catchment tile=" + tile + " rival_owner=" + owner);
+      }
+      return true;
+    }
+  }
+
+  return false;
+}

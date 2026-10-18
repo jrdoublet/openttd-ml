@@ -366,6 +366,8 @@ function OpexAirPlansFindSites(ctx, comboIndex, combo, airport, plane, resumingC
       if (C69_BOTTLENECK_PROBE) OpexC73RecordExamined("air", 1);
       if (V133_AIR_BUILD_RETRY && OpexV133AirTownSkip(ctx, towns[i].id)) {
         /* V133 : ville en quarantaine, aucun site newpair/hubsite. Le curseur de tranche suit. */
+      } else if (OPEX_LEVEL_LIMITS && !OpexTownAirportAllowedByLevel(towns[i], null, -1, ctx.catalog)) {
+        /* Levier A : bridage de difficulte (niveaux 0 et 1). Niveaux 2 et 3 : zero opcode. */
       } else if (towns[i].id in stationLimitedTowns) {
         if (C69_BOTTLENECK_PROBE) OpexC73RecordRejection("air", "town_station_limit", 1);
         if (c78Gen) OpexC78Log("C78_AIRTOWN", "year=" + c78Year + " combo=" + airport.type + ":" + plane.id + " town=" + towns[i].id + " rank=" + i + " outcome=town_station_limit");
@@ -1103,6 +1105,7 @@ function OpexAirPlansDiscoverHubs(ctx, combo, airport, plane)
         hubProbes.townsLeft = limit - i;
         if (C83_FIXES && targetTownId >= 0) hubProbes.townsLeft = hubScanEnd - i;
         if (V133_AIR_BUILD_RETRY && OpexV133AirTownSkip(ctx, towns[i].id)) continue;
+        if (OPEX_LEVEL_LIMITS && !OpexTownAirportAllowedByLevel(towns[i], null, -1, ctx.catalog)) continue;
         if (towns[i].id in stationLimitedTowns) {
           continue;
         }

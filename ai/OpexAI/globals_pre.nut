@@ -89,9 +89,6 @@ V216A_GHOST_DEMAND <- 0;
 V216F_DWELL_PCT <- 0;
 /* V249 : statue quand on est riche, sans seuil en livres (task_v249.nut). */
 V249_STATUE <- false;
-/* Niveau technique : 0 facile, 1 moyen, 2 difficile, 3 personnalise.
- * Defaut 3. Aucune decision ne le lit tant qu'une fonctionnalite ne s'arme pas. */
-OPEX_DIFFICULTY <- 3;
 /* Vrai si une passe projets s'est arretee faute de caisse depuis le dernier
  * passage statue. Vrai au depart : le premier mois ne compte pas. Pas sauvegarde. */
 V249_CASH_STOP <- true;

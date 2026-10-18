@@ -551,3 +551,117 @@ function OpexV133LoadQuarantine(data)
     V133_AIR_QUARANTINE.rawset(flat[i], flat[i + 1]);
   }
 }
+
+/* Levier A : calcul du seuil de population pour le quart superieur de la carte (top 25%). */
+function OpexTownPopulationTopQuartileThreshold(catalog = null)
+{
+  local pops = [];
+  if (catalog != null && ("towns" in catalog) && catalog.towns != null && catalog.towns.len() > 0) {
+    foreach (t in catalog.towns) pops.append(t.pop);
+  } else {
+    local towns = AITownList();
+    for (local t = towns.Begin(); !towns.IsEnd(); t = towns.Next()) {
+      pops.append(AITown.GetPopulation(t));
+    }
+  }
+  if (pops.len() == 0) return 0;
+  pops.sort();
+  return pops[pops.len() * 3 / 4];
+}
+
+/* Levier A : nombre d'aeroports rivaux dans une ville. */
+function OpexTownRivalAirports(townId, ownCounts = null)
+{
+  if (!AITown.IsValidTown(townId)) return 0;
+  local own = 0;
+  if (ownCounts != null && (townId in ownCounts)) own = ownCounts[townId];
+  else {
+    local counts = OpexAirOwnSlotTownCounts();
+    if (townId in counts) own = counts[townId];
+  }
+  if (OpexAirC83SlotSignalEnabled()) {
+    local noise = AITown.GetAllowedNoise(townId);
+    local rivals = 2 - noise - own;
+    return rivals > 0 ? rivals : 0;
+  }
+  local me = AICompany.ResolveCompanyID(AICompany.COMPANY_SELF);
+  local center = AITown.GetLocation(townId);
+  if (!AIMap.IsValidTile(center)) return 0;
+  local cx = AIMap.GetTileX(center);
+  local cy = AIMap.GetTileY(center);
+  local radius = STATION_SEARCH_RADIUS;
+  local minX = cx - radius < 1 ? 1 : cx - radius;
+  local minY = cy - radius < 1 ? 1 : cy - radius;
+  local maxX = cx + radius > AIMap.GetMapSizeX() - 2 ? AIMap.GetMapSizeX() - 2 : cx + radius;
+  local maxY = cy + radius > AIMap.GetMapSizeY() - 2 ? AIMap.GetMapSizeY() - 2 : cy + radius;
+  local tiles = AITileList();
+  tiles.AddRectangle(AIMap.GetTileIndex(minX, minY), AIMap.GetTileIndex(maxX, maxY));
+  tiles.Valuate(AITile.IsStationTile);
+  tiles.KeepValue(1);
+  local rivals = 0;
+  local seenStations = {};
+  foreach (tile, _ in tiles) {
+    local owner = AITile.GetOwner(tile);
+    if (owner != me && AICompany.ResolveCompanyID(owner) != AICompany.COMPANY_INVALID && AIAirport.IsAirportTile(tile)) {
+      if (AITile.GetClosestTown(tile) == townId) {
+        local stId = AIStation.GetStationID(tile);
+        if (!(stId in seenStations)) {
+          seenStations.rawset(stId, true);
+          rivals++;
+        }
+      }
+    }
+  }
+  return rivals;
+}
+
+/* Levier A : verification d'autorisation d'un aeroport dans une ville selon le niveau actif.
+ * Niveau 0 : jamais d'aeroport dans une ville ou un concurrent a deja un aeroport.
+ * Niveau 1 : ne jamais prendre le dernier creneau d'une ville ou un concurrent est seul
+ *            (1 rival, 0 a nous), sauf si la population est dans le quart superieur.
+ * Niveaux 2 et 3 : zero opcode de plus (court-circuit en premiere ligne). */
+function OpexTownAirportAllowedByLevel(town, ownCounts = null, topPopThreshold = -1, catalog = null)
+{
+  local allowRivalTown = OpexLevelAllows("airport_rival_town");
+  local allowPreemptLast = OpexLevelAllows("preempt_last_airport_slot");
+  if (allowRivalTown && allowPreemptLast) return true;
+
+  if (town == null || !("id" in town) || !AITown.IsValidTown(town.id)) return true;
+
+  local rivals = OpexTownRivalAirports(town.id, ownCounts);
+
+  /* Niveau 0 : refus si un rival est present */
+  if (!allowRivalTown && rivals > 0) {
+    if (DECISION_LOG) {
+      OpexDecide("LEVEL_SKIP", "feature=airport_rival_town town=" + town.id + " rivals=" + rivals);
+    }
+    return false;
+  }
+
+  /* Niveau 1 : refus si dernier creneau pris a un rival seul hors quart superieur */
+  if (!allowPreemptLast) {
+    local own = 0;
+    if (ownCounts != null && (town.id in ownCounts)) own = ownCounts[town.id];
+    else {
+      local counts = OpexAirOwnSlotTownCounts();
+      if (town.id in counts) own = counts[town.id];
+    }
+    if (own == 0 && rivals == 1) {
+      local isLastSlot = (AITown.GetAllowedNoise(town.id) == 1);
+      if (isLastSlot) {
+        local pop = ("pop" in town) ? town.pop : AITown.GetPopulation(town.id);
+        if (topPopThreshold < 0) {
+          topPopThreshold = OpexTownPopulationTopQuartileThreshold(catalog);
+        }
+        if (pop < topPopThreshold) {
+          if (DECISION_LOG) {
+            OpexDecide("LEVEL_SKIP", "feature=preempt_last_airport_slot town=" + town.id + " pop=" + pop + " top_pop=" + topPopThreshold);
+          }
+          return false;
+        }
+      }
+    }
+  }
+
+  return true;
+}
