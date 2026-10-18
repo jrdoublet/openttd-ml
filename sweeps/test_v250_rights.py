@@ -37,7 +37,7 @@ class TestV250Rights(unittest.TestCase):
         self.assertIsNotNone(block)
         body = block.group(1)
         self.assertIn("min_value = 0", body)
-        self.assertIn("max_value = 3", body)
+        self.assertIn("max_value = 4", body)
         self.assertIn("flags = 0", body)
         self.assertNotIn("AICONFIG_BOOLEAN", body)
         for level in ("easy_value", "medium_value", "hard_value", "custom_value", "default_value"):
@@ -97,7 +97,7 @@ class TestV250Rights(unittest.TestCase):
         self.assertIn("OpexAirOwnSlotTownCounts()", self.test)
         self.assertIn("AITown.GetAllowedNoise(townId) != 0", self.test)
         self.assertIn("if (own != 0) continue;", self.test)
-        self.assertIn("OpexV250YearSlots(cash, reserve, cost)", self.test)
+        self.assertIn("OpexV250YearSlots(cash, reserve, cost)", self.task)
         self.assertIn("local spendable = cash - reserve;", self.slots)
         self.assertIn("(spendable / cost).tointeger()", self.slots)
         self.assertNotRegex(self.slots, r"\b[1-9]\d*\b")
@@ -109,7 +109,7 @@ class TestV250Rights(unittest.TestCase):
         self.assertIn("local rival = 2 - noise - own;", self.test)
         self.assertIn("if (rival <= 0) continue;", self.test)
         self.assertIn("foreach (item in others) ordered.append(item);", self.test)
-        self.assertIn("OpexV250RunTest(this, date, V250_RIGHTS == 3)", self.dispatch)
+        self.assertIn("OpexV250RunTest(this, date, V250_RIGHTS >= 3)", self.dispatch)
         self.assertIn("if (mark == 1) OpexV250WatchTown(ai, townId, date, ownCounts);", self.task)
 
     def test_measure_shield_and_journal(self):
@@ -143,6 +143,33 @@ class TestV250Rights(unittest.TestCase):
         self.assertIn("_v250Month = -1;", self.sources["main.nut"])
         self.assertNotIn("_v250Month", persist)
 
+
+
+class TestV250Level3AndTargeted(unittest.TestCase):
+    """18/10 : toute la V250 est reservee au niveau 3 ; mode 4 cible."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.settings = (AI / "settings.nut").read_text(encoding="utf-8")
+        cls.task = (AI / "task_v250.nut").read_text(encoding="utf-8")
+
+    def test_level_three_only(self):
+        gate = "if (OPEX_DIFFICULTY != 3) rights = 0;"
+        self.assertIn(gate, self.settings)
+        self.assertLess(self.settings.index("OPEX_DIFFICULTY = OpexResolveDifficulty();"),
+                        self.settings.index(gate))
+        self.assertLess(self.settings.index(gate), self.settings.index("V250_RIGHTS = rights;"))
+
+    def test_mode4_targets(self):
+        order = _body(self.task, "function OpexV250TargetedOrder()")
+        self.assertIn("AITown.GetRating(townId, c) != AITown.TOWN_RATING_NONE", order)
+        self.assertIn("AITown.GetRating(townId, self) == AITown.TOWN_RATING_NONE", order)
+        self.assertIn("pops[pops.len() * 3 / 4]", order)
+        self.assertIn("else if (pop >= bigPop)", order)
+        self.assertIn("if (V250_RIGHTS == 4) return OpexV250BuyOrdered(ai, date, OpexV250TargetedOrder(), ownCounts, 4);",
+                      self.task)
+        buy = _body(self.task, "function OpexV250BuyOrdered(ai, date, ordered, ownCounts, mode)")
+        self.assertIn("if (mode == 4 && ai._v250Targets != null)", buy)
 
 if __name__ == "__main__":
     unittest.main()
