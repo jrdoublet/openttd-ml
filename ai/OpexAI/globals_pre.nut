@@ -18,6 +18,8 @@ V177_RAIL_PAX_MIN_DIST <- 0;
 V182_RAIL_FREIGHT_MIN_DIST <- 0;
 V178_RAIL_SHARED_DEST <- false;
 V179_RAIL_GEN_DEST_SERVED <- false;
+/* V264 : fret convergent vers une industrie deja desservie. 0 = aucun calcul du mecanisme. */
+V264_CONVERGENT_FREIGHT <- false;
 V180_RAIL_WAGON_BOOST_PCT <- 0;
 V180_RAIL_WAGON_BOOST_DELAY <- 0;
 V180_START_YEAR <- -1;

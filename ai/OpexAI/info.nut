@@ -678,6 +678,15 @@ class OpexAIInfo extends AIInfo {
       step_size = 1,
       flags = 0
     });
+    AddSetting({
+      name = "v264_convergent_freight",
+      description = "V264: a fresh rail-freight source may deliver to an industry we already serve, by joining one platform on that station (parallel, or any anchor whose union fits station.station_spread). 0 = inert at easy, medium, hard and custom (default). Does not exempt the freight distance floor and does not change the score.",
+      min_value = 0, max_value = 1,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      step_size = 1,
+      flags = AICONFIG_BOOLEAN
+    });
   }
 }
 
