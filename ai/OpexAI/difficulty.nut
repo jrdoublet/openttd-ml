@@ -21,10 +21,17 @@ OPEX_DIFFICULTY <- 3;
  */
 OPEX_DIFFICULTY_MIN_LEVEL <- {
   /* Gestes anticoncurrentiels (droits exclusifs V250, actions futures ciblant un rival).
-   * Reserve au niveau 3 (personnalise). Coupe en difficile (2), moyen (1), facile (0).
-   * Les bridages des niveaux 0 et 1 attendent la validation de l'utilisateur. */
+   * Reserve au niveau 3 (personnalise). Coupe en difficile (2), moyen (1), facile (0). */
   v250_rights = 3,
-  anticompetitive = 3
+  anticompetitive = 3,
+
+  /* Levier A : aeroports */
+  preempt_last_airport_slot = 2,
+  airport_rival_town = 1,
+
+  /* Levier B : gares */
+  compete_primary_industry = 2,
+  encroach_rival_catchment = 1
 };
 
 /* Consultation unique d'autorisation d'une fonctionnalite selon le niveau actif. */
