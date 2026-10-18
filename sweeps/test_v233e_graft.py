@@ -7,6 +7,7 @@ import tempfile
 import unittest
 
 from analyze_v233_sites import analyze_directory, analyze_sites
+from analyze_v233_exposure import analyze_score_lines
 from test_v233b_exposure import body
 from test_v233_contracts import AI
 
@@ -31,18 +32,43 @@ class V233eContracts(unittest.TestCase):
                 code = body('goods_v233.nut', 'function ' + name + '(')
                 for dispatch in dispatches:
                     code = code.replace(dispatch, '')
+                code = code.replace('if (V233_GOODS_OPPORTUNITY && !OpexV233AirYieldAllows(candidate)) return false;', '')
                 code = re.sub(r'//[^\n]*|/\*[\s\S]*?\*/', '', code)
                 code = re.sub(r'\s+', '', code)
                 self.assertEqual(hashlib.sha256(code.encode()).hexdigest(), expected)
 
     def test_setting_dependency_default_and_public_count(self):
         block = (AI / 'info.nut').read_text().split('name = "v233_goods_graft"')[1].split('});')[0]
-        self.assertIn('max_value = 3', block)
+        self.assertIn('max_value = 4', block)
         for difficulty in ('easy', 'medium', 'hard', 'custom'):
             self.assertIn(difficulty + '_value = 0', block)
         self.assertLessEqual((AI / 'info.nut').read_text().count('AddSetting('), 76)
         self.assertIn('V233_GOODS_GRAFT && !V233_PENDING_CONTINUE', (AI / 'settings.nut').read_text())
         self.assertIn('require("goods_v233e.nut");', (AI / 'main.nut').read_text())
+
+    def test_mode_four_reuses_three_and_checks_live_and_final_spend(self):
+        settings = (AI / 'settings.nut').read_text()
+        self.assertIn('V233_GOODS_OPPORTUNITY = V233_GOODS_POLICY == 4;', settings)
+        self.assertIn('if (V233_GOODS_OPPORTUNITY) V233_GOODS_POLICY = 3;', settings)
+        for name in ('OpexAI::_v233CandidateLive', 'OpexV233SpendAllowed'):
+            self.assertIn('if (V233_GOODS_OPPORTUNITY && !OpexV233AirYieldAllows(candidate)) return false;',
+                          body('goods_v233.nut', 'function ' + name + '('))
+
+    def test_opportunity_uses_complete_observed_cohorts_net_of_depreciation(self):
+        score = body('goods_v233score.nut', 'function OpexV233AirYieldAllows(')
+        for term in ('AIVehicleList()', 'AIVehicle.VT_AIR', 'GetProfitLastYear(vehicle)',
+                     'GetAge(vehicle) < date - fullYearStart', 'GetYear(date) - 1, 1, 1',
+                     'AIEngine.GetPrice(engine)', 'AIEngine.GetMaxAge(engine)',
+                     'AIEngine.IsBuildable(engine)',
+                     '365.0 / life', 'row.profit / row.capital',
+                     'observedYield > best', 'best != null && capital > 0 && profit > 0',
+                     'OpexProjectFundProfit(project)', 'OpexProjectFinanceCapital(project)',
+                     'profit.tofloat() / capital.tofloat() >= best'):
+            self.assertIn(term, score)
+        for forbidden in ('GetProfitThisYear', 'GetProfitLastYear(vehicle) <= 0',
+                          'V252_', 'Sleep(', '= function(', 'local yield '):
+            self.assertNotIn(forbidden, score)
+        self.assertIn('require("goods_v233score.nut");', (AI / 'main.nut').read_text())
 
     def test_observer_keeps_cursor_across_month_and_revision_changes(self):
         observer = ebody('OpexV233eGoodsStep')
@@ -167,6 +193,24 @@ class V233eContracts(unittest.TestCase):
 
 
 class V233eLogContracts(unittest.TestCase):
+    def test_score_join_uses_explicit_build_line_and_preserves_missing_age_two(self):
+        data = analyze_score_lines([
+            'OPEX 1971-4-10 V233_SEARCH state=ready factory=33 cargo=5 station=34 capital=36571 profit=2480',
+            'OPEX 1971-4-14 RAIL_BUILD line=13 cost=36496 pred_profit=2480',
+            'OPEX 1971-4-14 V233_BUILD factory=33 cargo=5 station=34 line=13',
+            'OPEX 1973-1-23 LINE_REVENUE line=13 age=2 real_prof=4542 pred_prof=2480',
+            'OPEX 1973-1-23 LINE_REVENUE line=99 age=2 real_prof=999999',
+            'OPEX 1975-4-14 V233_BUILD factory=4 cargo=5 station=35 line=14',
+            'OPEX 1975-4-14 V252_SKIP reason=order_failed',
+        ])
+        first, second = data['builds']
+        self.assertEqual(first['rail']['cost'], '36496')
+        self.assertEqual(first['ready']['capital'], '36571')
+        self.assertEqual(first['age2']['real_prof'], '4542')
+        self.assertIsNone(second['age2'])
+        self.assertIsNone(second['ready'])
+        self.assertEqual(data['counts']['skip_order_failed'], 1)
+
     def test_real_calendar_interruption_is_not_a_failed_production_threshold(self):
         # v233d_mode2_seed512_r0.log:11499: every row observed, phase not yet marked done.
         result = analyze_sites(['OPEX 1973-3-3 V233_DROP reason=month_coverage month=23678 '

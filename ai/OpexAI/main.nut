@@ -647,6 +647,7 @@ require("ledgers.nut");
 require("lines.nut");
 require("goods_v233.nut");
 require("goods_v233e.nut");
+require("goods_v233score.nut");
 require("orchestrator.nut");
 require("persist.nut");
 require("probes.nut");

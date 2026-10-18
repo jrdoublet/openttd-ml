@@ -15,6 +15,51 @@ def fields(line):
     return dict(re.findall(r"(\w+)=([^ ]+)", line))
 
 
+def analyze_score_lines(lines):
+    """Join explicit line IDs, never infer a graft from cargo alone.
+
+    Age 2 is the annual report's age, not a rolling 730-day observation.
+    real_prof is vehicle operating profit; keep depreciation separate.
+    """
+    ready = {}
+    rail = {}
+    last_attempt = None
+    builds = []
+    revenue = defaultdict(list)
+    counts = Counter()
+    for number, raw in enumerate(lines, 1):
+        if 'OPEX ' not in raw:
+            continue
+        line = raw.split('OPEX ', 1)[1].strip()
+        row = fields(line)
+        event = {'number': number, **row}
+        if ' V252_REPLACE ' in line:
+            counts['replace'] += 1
+        if ' V252_ENGINE ' in line:
+            counts['engine_' + row['action']] += 1
+        if ' V252_SKIP ' in line:
+            counts['skip_' + row['reason']] += 1
+        if ' V233_SEARCH state=ready ' in line:
+            ready[row['factory'], row['cargo'], row['station']] = event
+        if ' RAIL_ATTEMPT ' in line:
+            last_attempt = event
+        if ' RAIL_BUILD ' in line:
+            if last_attempt is not None and all(row.get(k) == last_attempt.get(k) for k in ('src', 'dst')):
+                event['attempt'] = last_attempt
+            rail[row['line']] = event
+        if ' V233_BUILD factory=' in line:
+            builds.append({'build': event,
+                           'ready': ready.get((row['factory'], row['cargo'], row['station'])),
+                           'rail': rail.get(row['line'])})
+        if ' LINE_REVENUE ' in line:
+            revenue[row['line']].append(event)
+    for build in builds:
+        reports = revenue.get(build['build']['line'], [])
+        build['age2'] = next((r for r in reports if r.get('age') == '2'), None)
+        build['last'] = reports[-1] if reports else None
+    return {'builds': builds, 'counts': dict(counts)}
+
+
 def analyze_lines(lines):
     counts = Counter()
     failures = []

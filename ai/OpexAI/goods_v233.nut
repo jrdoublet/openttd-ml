@@ -450,6 +450,7 @@ function OpexV233PlatformPlans(catalog, candidate, statsA, statsB)
 function OpexAI::_v233CandidateLive(candidate)
 {
   if (!V233_GOODS_GRAFT || !OpexV233IsGraft(candidate)) return false;
+  if (V233_GOODS_OPPORTUNITY && !OpexV233AirYieldAllows(candidate)) return false;
   if (V233_GOODS_POLICY == 3) return OpexV233eCandidateLive(this, candidate);
   local work = this._v233GoodsWork;
   local date = AIDate.GetCurrentDate();
@@ -629,6 +630,7 @@ function OpexV233NewPlatform(p)
  * changing tiles between slices. Snapshot shared station tiles for every rollback path. */
 function OpexV233SpendAllowed(catalog, candidate, plan)
 {
+  if (V233_GOODS_OPPORTUNITY && !OpexV233AirYieldAllows(candidate)) return false;
   if (!OpexV233JoinContextValid(candidate, candidate.cargo, candidate.src, catalog.railCoverage)
       || !OpexV233CurrentOutputValid(candidate.v233FactoryId, candidate.cargo)
       || !("stationId" in plan.planA) || plan.planA.stationId != candidate.joinStationId
