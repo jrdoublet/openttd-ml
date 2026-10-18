@@ -37,7 +37,7 @@ class TestV250Rights(unittest.TestCase):
         self.assertIsNotNone(block)
         body = block.group(1)
         self.assertIn("min_value = 0", body)
-        self.assertIn("max_value = 4", body)
+        self.assertIn("max_value = 5", body)
         self.assertIn("flags = 0", body)
         self.assertNotIn("AICONFIG_BOOLEAN", body)
         for level in ("easy_value", "medium_value", "hard_value", "custom_value", "default_value"):
@@ -101,7 +101,13 @@ class TestV250Rights(unittest.TestCase):
         self.assertIn("(spendable / cost).tointeger()", self.slots)
         self.assertNotRegex(self.slots, r"\b[1-9]\d*\b")
         self.assertNotIn("BuildAirport", self.task)
-        self.assertNotIn("AIAirport", self.task)
+        for signature in (
+            "function OpexV250RunNormal(ai)",
+            "function OpexV250RunTest(ai, date, allRival = false)",
+            "function OpexV250TargetedOrder()",
+            "function OpexV250BuyOrdered(ai, date, ordered, ownCounts, mode)",
+        ):
+            self.assertNotIn("AIAirport", _body(self.task, signature), signature)
         self.assertIn("noise >= 1", self.task)
 
     def test_mode3_all_rival_towns(self):
@@ -168,7 +174,114 @@ class TestV250Level3AndTargeted(unittest.TestCase):
         self.assertIn("if (V250_RIGHTS == 4) return OpexV250BuyOrdered(ai, date, OpexV250TargetedOrder(), ownCounts, 4);",
                       self.task)
         buy = _body(self.task, "function OpexV250BuyOrdered(ai, date, ordered, ownCounts, mode)")
-        self.assertIn("if (mode == 4 && ai._v250Targets != null)", buy)
+        self.assertIn("if ((mode == 4 || mode == 5) && ai._v250Targets != null)", buy)
+
+
+class TestV250Mode5AirMonopoly(unittest.TestCase):
+    """Mode 5 : monopole aerien rival, meme rachat que le mode 4."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.task = (AI / "task_v250.nut").read_text(encoding="utf-8")
+        cls.info = (AI / "info.nut").read_text(encoding="utf-8")
+        cls.settings = (AI / "settings.nut").read_text(encoding="utf-8")
+        cls.difficulty = (AI / "difficulty.nut").read_text(encoding="utf-8")
+        cls.persist = (AI / "persist.nut").read_text(encoding="utf-8")
+        cls.order = _body(cls.task, "function OpexV250AirMonopolyOrder(ownCounts)")
+        cls.count = _body(cls.task, "function OpexV250RivalAirportCount(townId, loc, radius, side, selfId, stationTown)")
+        cls.anchor = _body(cls.task, "function OpexV250AirportAnchor(tile, stationId, side)")
+        cls.radius = _body(cls.task, "function OpexV250ScanRadius(gap, side, loc)")
+        cls.side = _body(cls.task, "function OpexV250MaxAirportSide()")
+        cls.buy = _body(cls.task, "function OpexV250BuyOrdered(ai, date, ordered, ownCounts, mode)")
+        cls.test = _body(cls.task, "function OpexV250RunTest(ai, date, allRival = false)")
+
+    def test_setting_accepts_five_and_keeps_defaults(self):
+        block = re.search(r'name = "v250_rights",(.*?)\}\);', self.info, re.S)
+        self.assertIsNotNone(block)
+        body = block.group(1)
+        self.assertIn("max_value = 5", body)
+        self.assertIn("5 = air monopoly only", body)
+        self.assertIn("GetClosestTown", body)
+        self.assertIn("GetNearestTown rejects a rival station", body)
+        for level in ("easy_value", "medium_value", "hard_value", "custom_value", "default_value"):
+            self.assertRegex(body, level + r" = 0\b")
+        self.assertIn("if (rights == null || rights < 0 || rights > 5) rights = 0;", self.settings)
+        self.assertNotIn("rights > 4", self.settings)
+        self.assertIn("v250_rights = 3", self.difficulty)
+        self.assertLessEqual(self.info.count("AddSetting("), 76)
+        self.assertNotIn("v250_air", self.info)
+        self.assertNotIn("v250_air", self.task)
+
+    def test_direct_tiles_not_noise_estimate(self):
+        for body in (self.order, self.count, self.anchor, self.radius, self.side):
+            self.assertTrue(body)
+        self.assertIn("AIAirport.IsAirportTile", self.count)
+        self.assertIn("AITile.GetOwner(tile)", self.count)
+        self.assertIn("AIStation.GetStationID(tile)", self.count)
+        self.assertIn("AITile.GetClosestTown(anchor)", self.count)
+        self.assertIn("AICompany.COMPANY_INVALID", self.count)
+        self.assertIn("tiles.Valuate(AIAirport.IsAirportTile)", self.count)
+        self.assertIn("tiles.KeepValue(1)", self.count)
+        self.assertIn("OpexV250AirportAnchor(tile, stationId, side)", self.count)
+        for body in (self.order, self.count, self.anchor, self.radius, self.side):
+            self.assertNotIn("GetNearestTown", body)
+            self.assertNotIn("GetAllowedNoise", body)
+            self.assertNotIn("2 - noise", body)
+            self.assertNotIn("GetRating", body)
+            self.assertNotIn("function ", body)
+        self.assertNotIn("AIMap.GetMapSize()", self.task)
+
+    def test_anchor_is_north_tile_of_same_station(self):
+        self.assertIn("if (side <= 1) return tile;", self.anchor)
+        self.assertIn("box.Valuate(AIAirport.IsAirportTile)", self.anchor)
+        self.assertIn("box.KeepValue(1)", self.anchor)
+        self.assertIn("if (AIStation.GetStationID(other) != stationId) continue;", self.anchor)
+        self.assertIn("if (other < anchor) anchor = other;", self.anchor)
+        self.assertNotIn("GetAirportType", self.anchor)
+
+    def test_radius_from_neighbor_gap_and_airport_side(self):
+        self.assertIn("AIMap.DistanceMax(locs[townId], locs[other])", self.order)
+        self.assertIn("OpexV250MaxAirportSide()", self.order)
+        self.assertIn("OpexV250ScanRadius(gaps[townId], side, locs[townId])", self.order)
+        self.assertIn("reach = reach / 2", self.radius)
+        self.assertIn("AIMap.GetMapSizeX()", self.radius)
+        self.assertIn("AIMap.GetMapSizeY()", self.radius)
+        self.assertIn("if (side > 0) reach += side;", self.radius)
+        self.assertIn("AIAirport.GetAirportWidth(type)", self.side)
+        self.assertIn("AIAirport.GetAirportHeight(type)", self.side)
+        for body in (self.order, self.radius, self.count, self.side):
+            self.assertNotIn("AIR_SITE_RADIUS", body)
+            for literal in ("= 12", "= 20", "= 25", "= 40", "= 64"):
+                self.assertNotIn(literal, body)
+
+    def test_our_airports_population_order_and_exit(self):
+        mode5 = "if (V250_RIGHTS == 5) return OpexV250BuyOrdered(ai, date, OpexV250AirMonopolyOrder(ownCounts), ownCounts, 5);"
+        self.assertIn("local ownCounts = OpexAirOwnSlotTownCounts();", self.test)
+        self.assertLess(self.test.index("local ownCounts = OpexAirOwnSlotTownCounts();"), self.test.index(mode5))
+        self.assertLess(self.test.index(mode5), self.test.index("if (!OpexAirC83SlotSignalEnabled()) return true;"))
+        self.assertLess(self.test.index("if (V250_RIGHTS == 4) return OpexV250BuyOrdered"), self.test.index(mode5))
+        self.assertIn("local rival = 2 - noise - own;", self.test)
+        self.assertGreater(self.test.index("local rival = 2 - noise - own;"), self.test.index(mode5))
+        self.assertIn("if (own > 0) continue;", self.order)
+        self.assertIn("if (rival <= 0) continue;", self.order)
+        self.assertIn("OpexV250InsertByPop(ordered, townId, AITown.GetPopulation(townId));", self.order)
+        self.assertIn("if ((mode == 4 || mode == 5) && ai._v250Targets != null)", self.buy)
+        self.assertIn("OpexV250YearSlots(cash, reserve, cost)", self.buy)
+        self.assertIn('OpexDecide("V250_RIGHTS", "town=" + townId + " cost=" + cost + " mode=" + mode', self.task)
+
+    def test_target_journal_and_no_new_save_key(self):
+        journal = 'if (DECISION_LOG) OpexDecide("V250_TARGET", "town=" + townId + " mode=5 rival=" + rival + " own=" + own);'
+        self.assertIn(journal, self.order)
+        for line in self.task.splitlines():
+            if "OpexDecide(" in line:
+                self.assertIn("DECISION_LOG", line, line)
+        save = _body(self.persist, "function OpexSaveV250(saveObj, ai)")
+        self.assertIn("v250Targets", save)
+        self.assertIn("v250Freed", save)
+        self.assertNotIn("v250Air", save)
+        self.assertNotIn("stationTown", self.persist)
+        self.assertEqual(self.persist.count("saveObj.v250"), 2)
+
 
 if __name__ == "__main__":
     unittest.main()

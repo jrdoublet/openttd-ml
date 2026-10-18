@@ -19,6 +19,18 @@
  * 4 : cible. Villes ou un rival a une note de ville et nous aucune (monopole
  *     rival), puis villes ou les deux en ont une et dont la population est dans
  *     le quart superieur de la carte. Meme plafond de caisse que le mode 2.
+ * 5 : monopole aerien seulement. Meme rachat annuel, plafond de caisse
+ *     (OpexV250YearSlots) et sortie de cible que le mode 4. Une ville n'est
+ *     prise que si au moins un aeroport rival lui est rattache et si nous n'y
+ *     avons aucun aeroport (OpexAirOwnSlotTownCounts). AIStation.GetNearestTown
+ *     renvoie une ville invalide pour une gare rivale (IsValidStation exige
+ *     notre compagnie, script_station.cpp). Le moteur pose station->town par
+ *     ClosestTownFromTile de l'ancre nord (BuildStationPart) : c'est
+ *     AITile.GetClosestTown, qui vaut pour toute tuile. On ne balaie pas la
+ *     carte : un carre par ville sans aeroport a nous, de demi-diagonale
+ *     DistanceMax vers la ville la plus proche plus le plus grand cote
+ *     d'aeroport connu. Une ville sort des qu'un aeroport a nous y est pose
+ *     ou que l'aeroport rival disparait ; les droits en cours vont a terme.
  * Toute la V250 est coupee hors niveau 3 (settings.nut force V250_RIGHTS a 0).
  * Un creneau libere (bruit >= 1, y compris un saut 0 -> 2) est seulement
  * journalise : C83 reagit deja a GetAllowedNoise == 1. Seules les villes
@@ -204,11 +216,161 @@ function OpexV250TargetedOrder()
   return monopoly;
 }
 
+/* Plus grand cote d'aeroport encore decrit par l'API. Un NewGRF remplace
+ * ces types en place : GetAirportWidth / Height renvoient la taille reelle. */
+function OpexV250MaxAirportSide()
+{
+  local side = 0;
+  local types = [
+    AIAirport.AT_SMALL, AIAirport.AT_LARGE, AIAirport.AT_METROPOLITAN,
+    AIAirport.AT_INTERNATIONAL, AIAirport.AT_COMMUTER, AIAirport.AT_INTERCON,
+    AIAirport.AT_HELIPORT, AIAirport.AT_HELISTATION, AIAirport.AT_HELIDEPOT
+  ];
+  foreach (type in types) {
+    if (!AIAirport.IsAirportInformationAvailable(type)) continue;
+    local w = AIAirport.GetAirportWidth(type);
+    local h = AIAirport.GetAirportHeight(type);
+    if (w > side) side = w;
+    if (h > side) side = h;
+  }
+  return side;
+}
+
+/* Demi DistanceMax vers la ville la plus proche, plus le plus grand cote
+ * d'aeroport. Le carre couvre la bissectrice du voisin le plus proche et
+ * une emprise qui deborde de l'ancre. Un aeroport dont aucune tuile n'entre
+ * dans ce carre (lobe eloigne de la cellule) n'est pas vu : le chercher
+ * serait un balayage du reste de la carte. Ville seule : coin le plus loin. */
+function OpexV250ScanRadius(gap, side, loc)
+{
+  local reach = gap;
+  if (reach < 0) {
+    local x = AIMap.GetTileX(loc);
+    local y = AIMap.GetTileY(loc);
+    local farX = AIMap.GetMapSizeX() - 1 - x;
+    if (x > farX) farX = x;
+    local farY = AIMap.GetMapSizeY() - 1 - y;
+    if (y > farY) farY = y;
+    reach = farX > farY ? farX : farY;
+  } else {
+    reach = reach / 2;
+  }
+  if (side > 0) reach += side;
+  return reach;
+}
+
+function OpexV250ClampIndex(v, size)
+{
+  if (v < 0) return 0;
+  if (v >= size) return size - 1;
+  return v;
+}
+
+/* Coin nord de l'aeroport : plus petit index de tuile. GetAirportType vaut
+ * AT_INVALID sur un rival (HasStationType passe par IsValidStation). Le
+ * carre de recherche fait un cote d'aeroport autour de la tuile vue. */
+function OpexV250AirportAnchor(tile, stationId, side)
+{
+  if (side <= 1) return tile;
+  local span = side - 1;
+  local mapX = AIMap.GetMapSizeX();
+  local mapY = AIMap.GetMapSizeY();
+  local x = AIMap.GetTileX(tile);
+  local y = AIMap.GetTileY(tile);
+  local minX = OpexV250ClampIndex(x - span, mapX);
+  local minY = OpexV250ClampIndex(y - span, mapY);
+  local maxX = OpexV250ClampIndex(x + span, mapX);
+  local maxY = OpexV250ClampIndex(y + span, mapY);
+  local box = AITileList();
+  box.AddRectangle(AIMap.GetTileIndex(minX, minY), AIMap.GetTileIndex(maxX, maxY));
+  box.Valuate(AIAirport.IsAirportTile);
+  box.KeepValue(1);
+  local anchor = tile;
+  foreach (other, flag in box) {
+    if (AIStation.GetStationID(other) != stationId) continue;
+    if (other < anchor) anchor = other;
+  }
+  return anchor;
+}
+
+/* Aeroports rivaux dont l'ancre est rattachee a cette ville. stationTown
+ * memorise le rattachement deja calcule dans la passe (les carres se
+ * recouvrent). Compte des stations, pas des tuiles. */
+function OpexV250RivalAirportCount(townId, loc, radius, side, selfId, stationTown)
+{
+  local mapX = AIMap.GetMapSizeX();
+  local mapY = AIMap.GetMapSizeY();
+  local x = AIMap.GetTileX(loc);
+  local y = AIMap.GetTileY(loc);
+  local minX = OpexV250ClampIndex(x - radius, mapX);
+  local minY = OpexV250ClampIndex(y - radius, mapY);
+  local maxX = OpexV250ClampIndex(x + radius, mapX);
+  local maxY = OpexV250ClampIndex(y + radius, mapY);
+  local tiles = AITileList();
+  tiles.AddRectangle(AIMap.GetTileIndex(minX, minY), AIMap.GetTileIndex(maxX, maxY));
+  tiles.Valuate(AIAirport.IsAirportTile);
+  tiles.KeepValue(1);
+  local counted = {};
+  local n = 0;
+  foreach (tile, flag in tiles) {
+    local owner = AITile.GetOwner(tile);
+    if (owner == selfId || AICompany.ResolveCompanyID(owner) == AICompany.COMPANY_INVALID) continue;
+    local stationId = AIStation.GetStationID(tile);
+    if (stationId < 0) continue;
+    if (!(stationId in stationTown)) {
+      local anchor = OpexV250AirportAnchor(tile, stationId, side);
+      stationTown.rawset(stationId, AITile.GetClosestTown(anchor));
+    }
+    if (stationTown[stationId] != townId) continue;
+    if (stationId in counted) continue;
+    counted.rawset(stationId, 1);
+    n++;
+  }
+  return n;
+}
+
+/* Villes ou un rival a un aeroport et nous aucun, population decroissante. */
+function OpexV250AirMonopolyOrder(ownCounts)
+{
+  local side = OpexV250MaxAirportSide();
+  local selfId = AICompany.ResolveCompanyID(AICompany.COMPANY_SELF);
+  local towns = AITownList();
+  local ids = [];
+  local locs = {};
+  for (local townId = towns.Begin(); !towns.IsEnd(); townId = towns.Next()) {
+    ids.append(townId);
+    locs.rawset(townId, AITown.GetLocation(townId));
+  }
+  local gaps = {};
+  foreach (townId in ids) {
+    local best = -1;
+    foreach (other in ids) {
+      if (other == townId) continue;
+      local d = AIMap.DistanceMax(locs[townId], locs[other]);
+      if (best < 0 || d < best) best = d;
+    }
+    gaps.rawset(townId, best);
+  }
+  local ordered = [];
+  local stationTown = {};
+  foreach (townId in ids) {
+    local own = (ownCounts != null && (townId in ownCounts)) ? ownCounts[townId] : 0;
+    if (own > 0) continue;
+    local radius = OpexV250ScanRadius(gaps[townId], side, locs[townId]);
+    local rival = OpexV250RivalAirportCount(townId, locs[townId], radius, side, selfId, stationTown);
+    if (rival <= 0) continue;
+    OpexV250InsertByPop(ordered, townId, AITown.GetPopulation(townId));
+    if (DECISION_LOG) OpexDecide("V250_TARGET", "town=" + townId + " mode=5 rival=" + rival + " own=" + own);
+  }
+  return ordered;
+}
+
 function OpexV250RunTest(ai, date, allRival = false)
 {
   local ownCounts = OpexAirOwnSlotTownCounts();
   OpexV250Watch(ai, date, ownCounts);
   if (V250_RIGHTS == 4) return OpexV250BuyOrdered(ai, date, OpexV250TargetedOrder(), ownCounts, 4);
+  if (V250_RIGHTS == 5) return OpexV250BuyOrdered(ai, date, OpexV250AirMonopolyOrder(ownCounts), ownCounts, 5);
   if (!OpexAirC83SlotSignalEnabled()) return true;
 
   local ordered = [];
@@ -237,9 +399,11 @@ function OpexV250RunTest(ai, date, allRival = false)
  * qu'une annee de droits tient dans la caisse au-dessus de la reserve. */
 function OpexV250BuyOrdered(ai, date, ordered, ownCounts, mode)
 {
-  /* Mode 4 : une ville sortie de la cible (nous y sommes venus, ou elle a
-   * quitte le quart superieur) n'est plus rachetee. */
-  if (mode == 4 && ai._v250Targets != null) {
+  /* Modes 4 et 5 : une ville sortie de la cible n'est plus rachetee.
+   * Mode 4 : nous y sommes, ou elle a quitte le quart superieur.
+   * Mode 5 : nous y avons un aeroport, ou le monopole aerien a disparu.
+   * Les droits deja achetes courent jusqu'a leur terme. */
+  if ((mode == 4 || mode == 5) && ai._v250Targets != null) {
     local keep = {};
     foreach (item in ordered) keep[item.id] <- 1;
     local drop = [];
