@@ -30,9 +30,11 @@ function OpexAirBestEngineForLine(line, catalog)
     distance = AIMap.DistanceManhattan(line.stationA, line.stationB);
   }
   local cargo = ("cargo" in line) ? line.cargo : catalog.paxCargo;
+  /* Demande inconnue : pas de choix, le renfort clone comme avant. */
   local monthlyPax = ("airMonthlyPax" in line && line.airMonthlyPax > 0)
       ? line.airMonthlyPax
-      : (("monthlyPax" in line && line.monthlyPax > 0) ? line.monthlyPax : 100);
+      : (("monthlyPax" in line && line.monthlyPax > 0) ? line.monthlyPax : 0);
+  if (monthlyPax <= 0) return null;
 
   local airportTile = ("originA" in line) && AIAirport.IsAirportTile(line.originA)
       ? line.originA : line.stationA;
@@ -41,7 +43,8 @@ function OpexAirBestEngineForLine(line, catalog)
 
   local bestPlaneId = -1;
   local bestEconomics = null;
-  local airportObj = { type = airportType };
+  /* OpexAirEconomics lit price et maintenance sans condition : aeroports deja payes. */
+  local airportObj = { type = airportType, price = 0, maintenance = 0 };
 
   foreach (plane in choices) {
     if (!AIEngine.IsValidEngine(plane.id) || !AIEngine.IsBuildable(plane.id)) continue;
@@ -57,23 +60,6 @@ function OpexAirBestEngineForLine(line, catalog)
         (economics.profitAnnual == bestEconomics.profitAnnual && economics.roi > bestEconomics.roi)) {
       bestEconomics = economics;
       bestPlaneId = plane.id;
-    }
-  }
-
-  if (bestPlaneId < 0) {
-    local bestCap = -1;
-    local bestSpd = -1;
-    foreach (plane in choices) {
-      if (!AIEngine.IsValidEngine(plane.id) || !AIEngine.IsBuildable(plane.id)) continue;
-      if (!OpexAirPlaneInRange(plane, distance)) continue;
-      if (!OpexAirAirportAcceptsPlane(typeA, plane.planeType) || !OpexAirAirportAcceptsPlane(typeB, plane.planeType)) continue;
-      if (!AIEngine.CanRefitCargo(plane.id, cargo)) continue;
-      if (hasHangar && AIVehicle.GetBuildWithRefitCapacity(hangar, plane.id, cargo) <= 0) continue;
-      if (plane.capacity > bestCap || (plane.capacity == bestCap && plane.speed > bestSpd)) {
-        bestCap = plane.capacity;
-        bestSpd = plane.speed;
-        bestPlaneId = plane.id;
-      }
     }
   }
 
