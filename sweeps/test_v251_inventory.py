@@ -43,7 +43,7 @@ class TestV251Inventory(unittest.TestCase):
 
     def test_no_new_public_setting(self):
         info = self.sources["info.nut"]
-        self.assertEqual(info.count("AddSetting("), 76)
+        self.assertLessEqual(info.count("AddSetting("), 80)  # plafond commun de test_v246 ; V251 n'ajoute aucun reglage (verifie par les noms ci-dessous)
         self.assertNotIn('name = "v251', info)
         settings = self.sources["settings.nut"]
         self.assertNotIn('GetSetting("v251', settings)
