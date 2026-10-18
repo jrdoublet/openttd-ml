@@ -85,6 +85,56 @@ class RailRefresh(unittest.TestCase):
         self.assertIn("OpexRailNominalMaxWagons(length)", self.review)
         self.assertIn('AIGameSettings.GetValue("vehicle.max_train_length")', self.review)
 
+    def _loco_gate(self, **values):
+        """Predicat livre : une locomotive sans cargo entre dans la boucle de plans."""
+        condition = re.search(r"else if \((.*?)\) \{", self.review, re.S).group(1)
+        for source, name in (
+            ("AIEngine.HasPowerOnRail(engine, railType)", "has_power"),
+            ("AIEngine.GetCapacity(engine)", "capacity"),
+            ("AIEngine.GetPower(engine)", "power"),
+            ("AIEngine.GetMaxSpeed(engine)", "speed"),
+            ("AIEngine.GetMaxTractiveEffort(engine)", "tractive"),
+        ):
+            condition = condition.replace(source, name)
+        condition = " ".join(condition.replace("&&", " and ").replace("||", " or ").split())
+        return eval(condition, {"__builtins__": {}}, values)
+
+    def test_pure_locomotive_capacity_sentinel_produces_a_candidate(self):
+        """GetCapacity renvoie -1, jamais 0, quand aucune partie articulee n'a de cargo.
+
+        OpenTTD 15.3 src/script/api/script_engine.cpp, ScriptEngine::GetCapacity :
+        la boucle rend la premiere capacite non nulle, sinon -1. Le filtre == 0
+        laissait donc locos vide, la boucle loco x wagon x nombre ne creait aucun
+        plan, et best restait null (reason=catalogue) sur des lignes en service.
+        """
+        self.assertNotRegex(self.review, r"GetCapacity\(engine\)\s*==\s*0")
+        self.assertRegex(self.review, r"GetCapacity\(engine\)\s*<=\s*0")
+        powered = {"has_power": True, "power": 600, "speed": 112, "tractive": 120}
+        self.assertTrue(self._loco_gate(capacity=-1, **powered))
+        self.assertTrue(self._loco_gate(capacity=0, **powered))
+        self.assertFalse(self._loco_gate(capacity=40, **powered))
+        self.assertFalse(self._loco_gate(capacity=-1, has_power=False, power=600, speed=112, tractive=120))
+        self.assertFalse(self._loco_gate(capacity=-1, has_power=True, power=0, speed=112, tractive=120))
+        # Le catalogue retient les non-wagons sans tester la capacite.
+        refresh = body(self.sources["catalog.nut"], "function OpexCatalog::_refreshRail()")
+        loco_branch = refresh.split("} else {", 1)[1].split("this.railLocos.append(entry);", 1)[0]
+        self.assertNotIn("GetCapacity", loco_branch)
+        self.assertIn("HasPowerOnRail(e, chosen)", loco_branch)
+
+    def test_replacement_branch_stays_open_for_a_pure_locomotive(self):
+        """Apres un plan non nul, une locomotive de capacite -1 n'est pas une automotrice.
+
+        Le remboursement peut alors loguer decision=replace : gain strictement
+        positif, vie restante strictement positive, gain * vie >= cout net.
+        """
+        skip = re.search(r"if \((AIEngine\.GetCapacity\(currentEngine\) > 0)\)", self.review).group(1)
+        skip = skip.replace("AIEngine.GetCapacity(currentEngine)", "capacity")
+        self.assertFalse(eval(skip, {"__builtins__": {}}, {"capacity": -1}))
+        self.assertTrue(eval(skip, {"__builtins__": {}}, {"capacity": 40}))
+        self.assertIn('pays ? "replace" : "keep"', self.review)
+        self.assertTrue(expression(self.review, "pays", gain=8000, remaining=12, cost=90000))
+        self.assertFalse(expression(self.review, "pays", gain=8000, remaining=12, cost=96001))
+
     def test_physics_reused_and_running_costs_include_wagons(self):
         plan = body(self.task, "function OpexV257Plan(line, loco, wagon, wagons, monthly)")
         for helper in ("OpexRailEffectiveSpeed", "OpexLoadedTripsPerMonth", "OpexRailStationDwellDays"):

@@ -194,10 +194,12 @@ function OpexAI::_v257Review(line, state, date, force)
     local engines = AIEngineList(AIVehicle.VT_RAIL);
     for (local engine = engines.Begin(); !engines.IsEnd(); engine = engines.Next()) {
       if (!AIEngine.IsBuildable(engine) || !AIEngine.CanRunOnRail(engine, railType)) continue;
+      /* GetCapacity vaut -1, jamais 0, si aucune partie ne porte de cargo
+       * (OpenTTD 15.3 ScriptEngine::GetCapacity). == 0 excluait toute locomotive. */
       if (AIEngine.IsWagon(engine)) {
         if (AIEngine.GetCargoType(engine) == line.cargo && AIEngine.GetCapacity(engine) > 0)
           wagons.append(OpexV257Engine(engine, line.cargo, true));
-    } else if (AIEngine.HasPowerOnRail(engine, railType) && AIEngine.GetCapacity(engine) == 0 && AIEngine.GetPower(engine) > 0
+      } else if (AIEngine.HasPowerOnRail(engine, railType) && AIEngine.GetCapacity(engine) <= 0 && AIEngine.GetPower(engine) > 0
                  && AIEngine.GetMaxSpeed(engine) > 0 && AIEngine.GetMaxTractiveEffort(engine) > 0) {
         locos.append(OpexV257Engine(engine, line.cargo, false));
       }
