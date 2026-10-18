@@ -1,5 +1,5 @@
 /* V249 : une statue par mois quand on est riche. Aucun montant fixe :
- * riche = aucun emprunt, aucune passe projets arretee faute de caisse depuis le
+ * modes 1/2 : riche = aucun emprunt, aucune passe projets arretee faute de caisse depuis le
  * mois precedent (V249_CASH_STOP, pose dans task_projects.nut), et apres la
  * statue la caisse couvre encore la reserve et le projet le plus cher du
  * portefeuille. Aucun etat sauvegarde. La statue est un bit du monde
@@ -10,7 +10,48 @@
  * Mode 1 : ville au plus fort profit brut de lignes (historique).
  * Mode 2 : ville au plus fort gain annuel attendu (effet source +26 de note cible,
  * station_cmd.cpp, pondere par profit annuel de ligne), avec filtre d'amortissement
- * base sur la duree de vie restante des convois existants. */
+ * base sur la duree de vie restante des convois existants.
+ * Mode 3 : meme effet DIRECT +26 (pas la hausse brute avant/apres), revenu
+ * annuel observe au lieu du profit net comme assiette du cargo supplementaire,
+ * caisse nette de dette non placee et amortissement filtre AVANT classement.
+ * Audit : docs/v249_effet_statue_20261018.md. Aucun coefficient causal mesure
+ * n'est disponible : gain est une estimation de captage, non une calibration. */
+
+function OpexV249RemainingYears(lines)
+{
+  local seen = {};
+  local days = 0.0;
+  local count = 0;
+  foreach (line, _ in lines) {
+    local vehicleType = OpexLineVehicleType(line);
+    local vehicles = OpexV249LineVehicles(line);
+    if (vehicles == null) continue;
+    foreach (v in vehicles) {
+      if (!AIVehicle.IsValidVehicle(v) || AIVehicle.GetVehicleType(v) != vehicleType || (v in seen)) continue;
+      seen[v] <- true;
+      local rem = AIVehicle.GetMaxAge(v) - AIVehicle.GetAge(v);
+      if (rem < 0) rem = 0;
+      days += rem;
+      count++;
+    }
+  }
+  // Meme conversion jours/annee que le mode 2 et le modele de vie du materiel.
+  return count > 0 ? days / count.tofloat() / 365.0 : 0.0;
+}
+
+function OpexV249LineRevenue(line)
+{
+  // Mesure existante task_report.nut : revenu implicite = profit + running cost.
+  // Le cout annuel courant approxime celui de l'annee ecoulee (meme limite que LINE_REVENUE).
+  local revenue = OpexV249LineProfit(line);
+  local vehicleType = OpexLineVehicleType(line);
+  local vehicles = OpexV249LineVehicles(line);
+  if (vehicles == null) return revenue;
+  foreach (v in vehicles) {
+    if (AIVehicle.IsValidVehicle(v) && AIVehicle.GetVehicleType(v) == vehicleType) revenue += AIVehicle.GetRunningCost(v);
+  }
+  return revenue;
+}
 
 /* Capital du projet le plus cher encore liste : la statue ne doit jamais
  * prendre l'argent d'un projet que le portefeuille veut financer. */
@@ -34,7 +75,7 @@ function OpexV249LineVehicles(line)
   return [];
 }
 
-function OpexV249LineProfit(line)
+function OpexV249LineProfit(line, thisYear = false)
 {
   local vehicles = OpexV249LineVehicles(line);
   if (vehicles == null) return 0;
@@ -43,7 +84,7 @@ function OpexV249LineProfit(line)
   foreach (v in vehicles) {
     if (!AIVehicle.IsValidVehicle(v)) continue;
     if (AIVehicle.GetVehicleType(v) != vehicleType) continue;
-    profit += AIVehicle.GetProfitLastYear(v);
+    profit += thisYear ? AIVehicle.GetProfitThisYear(v) : AIVehicle.GetProfitLastYear(v);
   }
   return profit;
 }
@@ -111,14 +152,14 @@ function OpexAI::_dispatchV249Statue(task, year)
   if (this._v249StatueMonth == ym) return false;
   this._v249StatueMonth = ym;
 
-  if (V249_STATUE == 2 && DECISION_LOG && this._v249StatueTowns != null && this._v249StatueTowns.len() > 0) {
+  if (V249_STATUE >= 2 && DECISION_LOG && this._v249StatueTowns != null && this._v249StatueTowns.len() > 0) {
     this._v249LogStatueRatings();
   }
 
   local cashStop = V249_CASH_STOP;
   ::V249_CASH_STOP = false;
   local loan = AICompany.GetLoanAmount();
-  if (loan > 0) {
+  if (V249_STATUE < 3 && loan > 0) {
     if (DECISION_LOG) OpexDecide("V249_SKIP", "reason=loan loan=" + loan);
     return true;
   }
@@ -215,7 +256,7 @@ function OpexAI::_dispatchV249Statue(task, year)
           }
           local cData = candidates[townId];
           cData.stations[stationId] <- 1;
-          cData.lines[line] <- 1;
+          if (V249_STATUE == 2) cData.lines[line] <- 1;
 
           if (hasCargo && AIStation.HasCargoRating(stationId, cargo)) {
             local rKey = stationId + ":" + cargo;
@@ -224,13 +265,27 @@ function OpexAI::_dispatchV249Statue(task, year)
             if (!(rKey in cData.seenRatings)) {
               cData.seenRatings[rKey] <- note;
             }
+            local lineGain = 0.0;
             if (note > 0 && lineProfit > 0) {
+              if (V249_STATUE == 3) cData.lines[line] <- 1;
               local targetNote = note + 26;
               if (targetNote > 255) targetNote = 255;
               local relGain = (targetNote - note).tofloat() / note.tofloat();
+              // Mode 3 : MoveGoodsToStation, station_cmd.cpp:4630-4632, multiplie
+              // par (rating + 1) pour une gare isolee. En concurrence, les parts
+              // dependent aussi des autres gares (:4635-4660) : approximation explicite.
+              if (V249_STATUE == 3) relGain = (targetNote - note).tofloat() / (note + 1).tofloat();
               local weight = lineProfit.tofloat() * endShare;
-              cData.gain += relGain * weight;
+              // Source 15.3 station_cmd.cpp:4066,4077 : +26 de CIBLE, borne 255,
+              // pas +40/+50 deduits d'une trajectoire sans temoin (audit V249d).
+              // Mode 3 : flux suppose proportionnel a la note, flotte inchangee.
+              // Le gain porte sur le revenu observe, les running costs sont deja payes.
+              // Cette hypothese ne prouve ni capacite libre ni gain causal de profit.
+              if (V249_STATUE == 3) weight = OpexV249LineRevenue(line).tofloat() * endShare;
+              lineGain = relGain * weight;
+              cData.gain += lineGain;
             }
+            if (V249_STATUE == 3 && DECISION_LOG) OpexDecide("V249_LINE", "town=" + townId + " line=" + line.lineId + " station=" + stationId + " cargo=" + cargo + " rating=" + note + " profit_last=" + lineProfit + " profit_this=" + OpexV249LineProfit(line, true) + " revenue_last=" + OpexV249LineRevenue(line) + " share=" + endShare + " model_gain=" + lineGain.tointeger());
           }
         }
       }
@@ -247,6 +302,20 @@ function OpexAI::_dispatchV249Statue(task, year)
         continue;
       }
       if (cData.gain <= 0.0) continue;
+
+      if (V249_STATUE == 3) {
+        local candidateCost = OpexV249MeasureStatueCost(townId);
+        local candidateCash = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+        local candidateThreshold = OpexCashReserve() + OpexV249MaxListedCapital(this._projects);
+        local remaining = OpexV249RemainingYears(cData.lines);
+        // Aucune constante monetaire : dette entierement provisionnee, puis reserve
+        // et plus gros projet liste comme les modes historiques. Pas de nouvel emprunt.
+        local rich = candidateCost > 0 && candidateCash - loan - candidateCost >= candidateThreshold;
+        local pays = candidateCost > 0 && cData.gain * remaining >= candidateCost;
+        if (DECISION_LOG) OpexDecide("V249_CANDIDATE", "town=" + townId + " gain=" + cData.gain.tointeger() + " cost=" + candidateCost + " veh_years=" + remaining + " cash=" + candidateCash + " loan=" + loan + " threshold=" + candidateThreshold + " rich=" + rich + " pays=" + pays + " calibration=unavailable");
+        // Un premier candidat non remboursable ne masque plus le suivant.
+        if (!rich || !pays) continue;
+      }
 
       if (!found || cData.gain > bestGain || (cData.gain == bestGain && townId < bestTown)) {
         found = true;
@@ -272,7 +341,7 @@ function OpexAI::_dispatchV249Statue(task, year)
 
   local cost = OpexV249MeasureStatueCost(bestTown);
 
-  if (V249_STATUE == 2) {
+  if (V249_STATUE >= 2) {
     /* Duree de vie et amortissement (mode 2) : pas de fin de partie connue de l'IA
      * (le jeu peut durer indefiniment) ; la statue est permanente (source OpenTTD).
      * On compare le delai de remboursement cout/gain a la duree de service moyenne restante
@@ -311,6 +380,8 @@ function OpexAI::_dispatchV249Statue(task, year)
 
   local cash = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
   local threshold = OpexCashReserve() + OpexV249MaxListedCapital(this._projects);
+  // Recontrole apres les appels API ; les modes 1/2 gardent leur contrat historique.
+  if (V249_STATUE == 3) cash -= loan;
   if (cost <= 0 || cash - cost < threshold) {
     if (DECISION_LOG) OpexDecide("V249_SKIP", "reason=cost cash=" + cash + " cost=" + cost + " threshold=" + threshold + " town=" + bestTown);
     return true;

@@ -653,8 +653,8 @@ class OpexAIInfo extends AIInfo {
     });
     AddSetting({
       name = "v249_statue",
-      description = "V249: build at most one town statue per month when rich; 0 = off (default), 1 = served town with highest line profit, 2 = served town with highest expected gain and vehicle life payback check",
-      min_value = 0, max_value = 2,
+      description = "V249: build at most one town statue per month when rich; 0 = off (default), 1 = served town with highest line profit, 2 = expected gain and vehicle life payback, 3 = experimental observed revenue model (+26 target rating), idle cash net of debt, payback before ranking; gain not empirically calibrated",
+      min_value = 0, max_value = 3,
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
       step_size = 1,

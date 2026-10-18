@@ -33,7 +33,7 @@ class TestV249Statues(unittest.TestCase):
         self.assertIsNotNone(block)
         body = block.group(1)
         self.assertIn("min_value = 0", body)
-        self.assertIn("max_value = 2", body)
+        self.assertIn("max_value = 3", body)
         for level in ("easy_value", "medium_value", "hard_value", "custom_value"):
             self.assertRegex(body, level + r" = 0\b")
         self.assertIn("V249_STATUE <- 0;", self.sources["globals_pre.nut"])
@@ -47,7 +47,7 @@ class TestV249Statues(unittest.TestCase):
                  for name, text in self.sources.items()]
         self.assertEqual(sum(count for _, count in reads), 1)
         self.assertIn('AIController.GetSetting("v249_statue")', self.sources["settings.nut"])
-        self.assertIn('V249_STATUE = (v249 != null && v249 >= 0 && v249 <= 2) ? v249 : 0;',
+        self.assertIn('V249_STATUE = (v249 != null && v249 >= 0 && v249 <= 3) ? v249 : 0;',
                       self.sources["settings.nut"])
 
     def test_zero_cost_guard(self):
@@ -77,7 +77,8 @@ class TestV249Statues(unittest.TestCase):
         self.assertIn("local threshold = OpexCashReserve() + OpexV249MaxListedCapital(this._projects);",
                       self.dispatch)
         self.assertIn("cash - cost < threshold", self.dispatch)
-        self.assertNotRegex(self.task, r"\b\d{4,}\b")
+        code = re.sub(r'/\*.*?\*/|//[^\n]*', '', self.task, flags=re.S)
+        self.assertNotRegex(code, r"\b\d{4,}\b")
 
     def test_at_most_one_statue_per_pass(self):
         self.assertEqual(self.dispatch.count("AITown.PerformTownAction"), 1)
@@ -148,10 +149,22 @@ class TestV249Statues(unittest.TestCase):
     def test_mode2_monthly_rating_tracking(self):
         self.assertTrue(self.ratings)
         # Called only in mode 2 and guarded by DECISION_LOG
-        self.assertIn("if (V249_STATUE == 2 && DECISION_LOG && this._v249StatueTowns != null", self.dispatch)
+        self.assertIn("if (V249_STATUE >= 2 && DECISION_LOG && this._v249StatueTowns != null", self.dispatch)
         # Strictly O(statue towns)
         self.assertIn("foreach (townId in this._v249StatueTowns)", self.ratings)
         self.assertIn("if (!(townId in tracked)) continue;", self.ratings)
+
+    def test_mode3_provisions_debt_and_filters_before_ranking(self):
+        self.assertIn('if (V249_STATUE < 3 && loan > 0)', self.dispatch)
+        self.assertIn('candidateCash - loan - candidateCost >= candidateThreshold', self.dispatch)
+        gate = self.dispatch.index('if (!rich || !pays) continue;')
+        rank = self.dispatch.index('if (!found || cData.gain > bestGain')
+        self.assertLess(gate, rank)
+        self.assertIn('if (V249_STATUE == 3) cash -= loan;', self.dispatch)
+        self.assertIn('cData.gain * remaining >= candidateCost', self.dispatch)
+        self.assertIn('calibration=unavailable', self.dispatch)
+        self.assertIn('OpexV249LineRevenue(line).tofloat() * endShare', self.dispatch)
+        self.assertIn('" profit_this=" + OpexV249LineProfit(line, true)', self.dispatch)
 
 
 if __name__ == "__main__":
