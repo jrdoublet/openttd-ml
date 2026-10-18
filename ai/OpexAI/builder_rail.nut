@@ -2630,6 +2630,14 @@ function OpexBuildTrains(catalog, cargo, kind, depotTile, exitA, exitB, wanted, 
    * optimiste que le quai bati. */
   local nominalMaxWagons = OpexRailNominalMaxWagons(platformLength);
   local trainLengthLimit = platformLength * 16;
+  /* T26 : borner aussi par le reglage du jeu vehicle.max_train_length (catalog.maxTrainLength en tuiles),
+   * pour que ni le quai bati ni les wagons demandes n'excedent le plafond moteur (train_cmd.cpp:1023). */
+  if (catalog != null && ("maxTrainLength" in catalog) && catalog.maxTrainLength > 0) {
+    local gameTrainLimit = catalog.maxTrainLength * 16;
+    if (gameTrainLimit < trainLengthLimit) trainLengthLimit = gameTrainLimit;
+    local gameMaxWagons = OpexRailNominalMaxWagons(catalog.maxTrainLength);
+    if (gameMaxWagons < nominalMaxWagons) nominalMaxWagons = gameMaxWagons;
+  }
   if (wagons < 1 || wagons + wagons2 > nominalMaxWagons || trainLengthLimit < 1) {
     return { built = 0, vehicles = vehicles, rollbackVehicles = rollbackVehicles,
              failed = true, failure = "LENGTH", error = 0, diag = diag };

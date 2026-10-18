@@ -175,10 +175,13 @@ class TipsyfoxBehaviours(unittest.TestCase):
         self.assertIn('if (!AIVehicle.MoveWagon(car, 0, train, 0))', code)
         self.assertNotRegex(code, r'\bwhile\s*\(')
 
-    @unittest.expectedFailure  # Le clamp max_train_length est limité aux pax V207, fret exclu.
     def test_max_train_length_clamp_is_not_limited_to_v207_pax(self):
         code = body('economy.nut', 'OpexLineEconomics')
         self.assertNotRegex(code, r'kind == "pax" && OpexV207Active\(\) && catalog.maxTrainLength')
+        self.assertIn('if (catalog.maxTrainLength > 0)', code)
+        rail_code = body('builder_rail.nut', 'OpexBuildTrains')
+        self.assertIn('catalog.maxTrainLength', rail_code)
+        self.assertIn('gameTrainLimit < trainLengthLimit', rail_code)
 
     def test_all_mode_switches_are_loaded(self):
         code = uncomment(source('settings.nut'))
