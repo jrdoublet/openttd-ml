@@ -431,6 +431,7 @@ function OpexAI::_expandRailLines(year)
                 OpexSign(anchor, "RD|" + (year % 100) + "|" + line.lineId + "|" + line.trains);
                 if (DECISION_LOG) {
                   OpexDecide("RAIL_EXPAND", "action=second_train line=" + line.lineId + " trains=" + line.trains);
+                  OpexLogStoredRailFleet(line, this._catalog);
                 }
                 return;
               }
@@ -553,6 +554,7 @@ function OpexAI::_expandRailLines(year)
           if (DECISION_LOG) {
             OpexDecide("V190", "action=add_train line=" + line.lineId + " trains=" + line.trains + " reason=OK");
             OpexDecide("RAIL_EXPAND", "action=clone line=" + line.lineId + " trains=" + line.trains);
+            OpexLogStoredRailFleet(line, this._catalog);
           }
           return;
         }
@@ -1139,6 +1141,25 @@ function OpexAI::_recordRailAttempt(candidate, result, posPacked, year)
                  + ((("wagons2" in candidate) && candidate.wagons2 > 0)
                     ? " cargo2=" + AICargo.GetCargoLabel(candidate.cargo2) + " wagons2=" + candidate.wagons2
                       + " pred_revenue2=" + candidate.revenue2 : ""));
+      if (("loco" in candidate) && candidate.loco != null) {
+        local fleetWagon = -1;
+        if (("cargo" in candidate) && (candidate.cargo in this._catalog.wagonByCargo)) {
+          fleetWagon = this._catalog.wagonByCargo[candidate.cargo].id;
+        }
+        local fleetWagons2 = -1;
+        local fleetWagon2 = -1;
+        if (("wagons2" in candidate) && candidate.wagons2 > 0) {
+          fleetWagons2 = candidate.wagons2;
+          if (("cargo2" in candidate) && (candidate.cargo2 in this._catalog.wagonByCargo)) {
+            fleetWagon2 = this._catalog.wagonByCargo[candidate.cargo2].id;
+          }
+        }
+        local fleetVmax = ("speed" in candidate.loco) ? candidate.loco.speed : -1;
+        local fleetPower = ("power" in candidate.loco) ? candidate.loco.power : -1;
+        OpexLineFleetLog("rail", this._nextLineId, candidate.loco.id, fleetVmax, fleetPower,
+                         result.wagons, fleetWagon, result.trains,
+                         OpexVehicleIdList(result.vehicles), fleetWagons2, fleetWagon2);
+      }
     } else {
       OpexDecide("RAIL_BUILD_FAIL", "line=" + this._nextLineId + " reason=" + result.reason + " error=" + result.error + " iters=" + result.iterations + " budget=" + iterationBudget);
     }

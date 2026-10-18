@@ -52,6 +52,64 @@ function OpexDecide(kind, fields)
   AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
              + AIDate.GetDayOfMonth(date) + " " + kind + " " + fields);
 }
+/* V257 : composition d'une ligne, seulement si DECISION_LOG est deja vrai.
+ * Au defaut (panneaux seuls) ces fonctions ne sont pas appelees : aucun
+ * GetName, GetPower ni GetMaxSpeed supplementaire. Le nom est en dernier
+ * champ : il contient des espaces et des apostrophes. */
+function OpexVehicleIdList(ids)
+{
+  if (ids == null) return "";
+  local text = "";
+  local first = true;
+  foreach (id in ids) {
+    if (!first) text += ",";
+    first = false;
+    text += id;
+  }
+  return text;
+}
+function OpexLineFleetLog(mode, lineId, engineId, vmax, power, wagons, wagonId, trains, vehText, wagons2, wagonId2)
+{
+  if (!DECISION_LOG) return;
+  if (!AIEngine.IsValidEngine(engineId)) return;
+  local name = AIEngine.GetName(engineId);
+  if (vmax < 0) vmax = AIEngine.GetMaxSpeed(engineId);
+  if (power < 0) power = AIEngine.GetPower(engineId);
+  local fields = "mode=" + mode + " line=" + lineId + " engine=" + engineId;
+  if (vmax >= 0) fields += " vmax=" + vmax;
+  if (power >= 0) fields += " power=" + power;
+  if (wagons >= 0) fields += " wagons=" + wagons;
+  if (wagonId >= 0) fields += " wagon=" + wagonId;
+  if (wagons2 > 0) {
+    fields += " wagons2=" + wagons2;
+    if (wagonId2 >= 0) fields += " wagon2=" + wagonId2;
+  }
+  fields += " trains=" + trains + " vehs=" + vehText + " name=" + name;
+  OpexDecide("LINE_FLEET", fields);
+}
+function OpexLogStoredRailFleet(line, catalog)
+{
+  if (!DECISION_LOG) return;
+  if (line == null || !("lineId" in line)) return;
+  if (!("loco" in line) || line.loco == null) return;
+  local wagonId = ("wagonId" in line) ? line.wagonId : -1;
+  local wagons = ("wagons" in line) ? line.wagons : -1;
+  local trains = ("trains" in line) ? line.trains : 0;
+  local vehText = ("vehicles" in line) ? OpexVehicleIdList(line.vehicles) : "";
+  local wagons2 = -1;
+  local wagonId2 = -1;
+  if (("wagons2" in line) && line.wagons2 > 0) {
+    wagons2 = line.wagons2;
+    if (catalog != null && ("wagonByCargo" in catalog) && ("cargo2" in line)
+        && (line.cargo2 in catalog.wagonByCargo)) {
+      wagonId2 = catalog.wagonByCargo[line.cargo2].id;
+    }
+  }
+  local vmax = ("speed" in line.loco) ? line.loco.speed : -1;
+  local power = ("power" in line.loco) ? line.loco.power : -1;
+  OpexLineFleetLog("rail", line.lineId, line.loco.id, vmax, power,
+                   wagons, wagonId, trains, vehText, wagons2, wagonId2);
+}
 /* Evenement leger et unique par tentative, ou par passage devant _tooClose.
  * Ne pas passer par OpexDecide : son logging de TASK ajoute d'autres evenements. */
 function OpexRailFailureAudit(stage, candidate, reason, ok, actual, opcodes, rank = -1)

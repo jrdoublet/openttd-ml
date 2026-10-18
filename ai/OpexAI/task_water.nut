@@ -58,6 +58,9 @@ function OpexAI::_tryBuildWaterProject(year, project, rank, builtCount, passDisc
           local cargoStr = AICargo.GetCargoLabel(this._catalog.paxCargo);
           OpexDecide("PROJECT_CHOSEN", "rank=" + i + " mode=water cargo=" + cargoStr + " src=" + result.dockA + " dst=" + result.dockB + " dist=" + plan.distance + " cost=" + capital + " roi=" + project.roi);
           OpexDecide("WATER_BUILD", "line=" + this._nextLineId + " src=" + result.dockA + " dst=" + result.dockB + " cargo=" + cargoStr + " dist=" + plan.distance + " cost=" + capital);
+          local fleetEngine = AIVehicle.GetEngineType(result.vehicle);
+          OpexLineFleetLog("water", this._nextLineId, fleetEngine, -1, -1, -1, -1, 1,
+                           result.vehicle.tostring(), -1, -1);
         }
         if (C56_TASK_TRACE) {
           OpexC56TaskLog("WATER_BUILT", "water", "-",

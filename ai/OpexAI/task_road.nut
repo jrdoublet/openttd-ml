@@ -210,6 +210,10 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
             : "";
         OpexDecide("PROJECT_CHOSEN", "rank=" + i + " mode=road kind=" + candidate.kind + " cargo=" + cargoStr + " src=" + candidate.src + " dst=" + candidate.dst + " dist=" + candidate.distance + " cost=" + candidate.capital + " profit=" + candidate.profitAnnual + " roi=" + candidate.roi + fleetDiag + extraSub);
         OpexDecide("ROAD_BUILD", "line=" + idx + " src=" + candidate.src + " dst=" + candidate.dst + " cargo=" + cargoStr + " dist=" + candidate.distance + " profit=" + candidate.profitAnnual + " cost=" + result.cost + " vehicles=" + result.vehicles.len());
+        if (("engine" in candidate) && candidate.engine != null) {
+          OpexLineFleetLog("road", idx, candidate.engine.id, candidate.engine.speed, -1,
+                           -1, -1, result.vehicles.len(), OpexVehicleIdList(result.vehicles), -1, -1);
+        }
       }
 
       OpexSign(anchor, "OF|" + idx + "|" + candidate.revenueAnnual);
