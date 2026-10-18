@@ -18,6 +18,11 @@ class OpexAIInfo extends AIInfo {
       min_value = 0, max_value = 1,
       easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
       flags = AICONFIG_BOOLEAN });
+    AddSetting({ name = "v257_rail_refresh",
+      description = "V257: review existing rail consists using observed traffic and replacement payback (default 1 since 19/10, user decision)",
+      min_value = 0, max_value = 1, default_value = 1,
+      easy_value = 1, medium_value = 1, hard_value = 1, custom_value = 1,
+      flags = AICONFIG_BOOLEAN });
     AddSetting({ name = "v233_goods_graft",
       description = "V233: measured goods to town graft (requires v233_pending_continue)",
       min_value = 0, max_value = 1,
@@ -678,6 +683,15 @@ class OpexAIInfo extends AIInfo {
       name = "v250_rights",
       description = "V250 exclusive transport rights, only when difficulty is custom (3): any other level forces 0. 0 = off at easy, medium, hard and custom (default). 1 = normal policy, and only when difficulty is hard (2) or custom (3): buy in the town where we and a rival share the most station catchment, and only when rich in the V249 sense (no loan, no project pass stopped for cash, cash after the purchase still covers the reserve and the most expensive listed project). Easy and medium keep mode 1 off even if this setting is 1. A later fair_play switch will also cut mode 1. 2 = test, not filtered by difficulty or wealth: in the no-noise two-airport regime, rebuy rights in the largest towns where GetAllowedNoise is 0 and we own no airport, while cash covers the cost plus the reserve, for at most as many towns as one year of rights (one purchase lasts 12 economy months) that cash can pay. A freed slot is only logged; the normal AIR pipeline takes it. 3 = wider test: rival airport links are invisible to an AI, so buy rights in every town holding a rival airport (two-airport towns first, then by population), same cash cap; only towns saturated at purchase are watched for a freed slot. 4 = targeted: towns where a rival holds a town rating and we hold none (rival monopoly), then towns where both hold one and the population is in the top quarter of the map; each list by population, same cash cap and yearly rebuy as mode 2.",
       min_value = 0, max_value = 4,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0, default_value = 0,
+      step_size = 1,
+      flags = 0
+    });
+    AddSetting({
+      name = "v259_bridge_renew",
+      description = "V259: renew rail (and road) bridges when faster bridge types become available and vehicles are speed-limited; 0 = off (default), 1 = economic renewal triggered on new bridge types",
+      min_value = 0, max_value = 1,
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0, default_value = 0,
       step_size = 1,

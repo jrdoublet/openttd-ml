@@ -596,6 +596,12 @@ function OpexAI::_dispatchReactiveIntention(intention)
 {
   if (intention == null) return false;
   local sp = null;
+  if (intention.key == "v259_bridge" || intention.kind == "v259_bridge") {
+    sp = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.orch.reactive.v259_bridge") : null;
+    local res = this._v259StepBridgeRenew();
+    if (sp != null) OpexSpanEnd(sp);
+    return res;
+  }
   if (intention.key == "regen" || intention.kind == "regen") {
     {
       sp = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.orch.reactive.regen") : null;
@@ -927,6 +933,10 @@ function OpexAI::_c77InjectSubsidy(subId)
 function OpexAI::_runOrchestratorTick()
 {
   this._railWorkerSteppedThisTick = false;
+
+  /* V257 : une seule garde au defaut. Une ligne de la file de revision par
+   * passage reactif ; ne bloque ni la FIFO existante ni le worker rail. */
+  if (V257_RAIL_REFRESH) this._v257ReactiveStep();
 
   // (b) Intention réactive
   if (this._hasReactiveIntentions()) {

@@ -92,6 +92,8 @@ V249_STATUE <- false;
 /* Vrai si une passe projets s'est arretee faute de caisse depuis le dernier
  * passage statue. Vrai au depart : le premier mois ne compte pas. Pas sauvegarde. */
 V249_CASH_STOP <- true;
+/* V257 : revision des rames existantes, experimentale OFF. */
+V257_RAIL_REFRESH <- false;
 /* V252 : modernisation de la flotte aerienne (air_fleet.nut, task_v252.nut).
  * 0 = clonage, 1 = renfort/crash au meilleur modele, 2 = mode 1 + remplacement actif quand riche (defaut depuis le 18/10). */
 V252_AIR_ENGINE_REFRESH <- 2;
@@ -107,6 +109,8 @@ V250_CASH_STOP <- true;
 /* V265 : prolongement d'une ligne fret rail vers une destination plus lointaine (task_v265.nut).
  * 0 = inerte (defaut). Aucune constante propre : voir l'en-tete de task_v265.nut. */
 V265_BRANCH_EXTENSION <- false;
+/* V259 : renouvellement des ponts plus rapides (task_v259.nut). */
+V259_BRIDGE_RENEW <- 0;
 V172_RAIL_LONG_WEIGHT_DIST <- 100;
 /* Cascade pax par distance decroissante : air seul, air+rail, rail seul,
  * route seule. Le fret accompagne la premiere passe. */
