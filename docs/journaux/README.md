@@ -13,6 +13,9 @@ Les autres mesures exigent toujours bundle, protocole et santé vérifiables.
 
 | Journal | Contenu / portée |
 |---|---|
+| [19 octobre](journal_2026-10-19.md) | V257rev adopté par dérogation, V259 conservé ; position face à AAA (3 ans 107 %, 10 ans 47 %) ; V262 T30/T12, T04 en mesure ; V264/V265 en 40×10 PC ; RVA-16 inerte |
+| [18 octobre](journal_2026-10-18.md) | V252 qualifié (défaut 2), V256, niveaux de difficulté (défaut 2), V261/V262 fair-play fusionnés ; échecs V233, V249, V250, V253, V258, V266 |
+| [17 octobre](journal_2026-10-17.md) | Simplification des paramètres 282 → ~70 réglages (V222-V247, 20×10 neutres) ; V217 défaut 1 ; V218, V220, V221 clos ; plan RVA |
 | [12 octobre](journal_2026-10-12.md) | Catalogue AIR : adoption explicite AC06 v2 malgré +32 opcodes initiaux, cumul avec AC04-B/AC05, validation Save/Load et intégration locale |
 | [11 octobre](journal_2026-10-11.md) | P0 RAIL : sonde 5×5 non qualifiée et autopsie historique 40×5 ; divergences AIR précoces, réadmission rejetée, microbench des gardes proposé |
 | [8 octobre](journal_2026-10-08.md) | C121 : mesure fantôme du flux PASS par aéroport, smoke OFF/ON sain ; bornes basses exposées, aucune recalibration de flotte |
