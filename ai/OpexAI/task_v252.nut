@@ -2,6 +2,7 @@
  * Riche = aucun emprunt, aucune passe projets arretee faute de caisse depuis le mois
  * precedent (V252_CASH_STOP), et apres l'achat la caisse couvre encore la reserve
  * et le projet le plus cher du portefeuille. Au plus un remplacement par passage.
+ * V253 mode 4 : regle marginale nette (gain annuel > 0 et remboursement sur duree restante).
  * Aucun nombre a 4 chiffres ou plus dans ce fichier. */
 
 function OpexAI::_dispatchV252AirEngineRefresh(task, year)
@@ -36,9 +37,12 @@ function OpexAI::_dispatchV252AirEngineRefresh(task, year)
   local bestNewEngine = -1;
   local bestDemandOld = 0;
   local bestDemandNow = 0;
+  local bestPlan = null;
   local curEngine = -1;
   local nAirLines = 0;
   local nOutdated = 0;
+  local candidates = [];
+  local rank = 0;
 
   foreach (line in this._lines) {
     if (line == null) continue;
@@ -54,31 +58,72 @@ function OpexAI::_dispatchV252AirEngineRefresh(task, year)
     /* Ligne rentable requise */
     if (lineProfit <= 0) continue;
 
-    local targetEngine = OpexAirBestEngineForLine(line, this._catalog, this._lines);
-    if (targetEngine == null) continue;
-
     foreach (v in line.vehicles) {
       if (!AIVehicle.IsValidVehicle(v)) continue;
       if (this._vehiclesToRetire != null && (v in this._vehiclesToRetire)) continue;
-      local e = AIVehicle.GetEngineType(v);
-      if (e == targetEngine) continue;
-      nOutdated++;
+      candidates.append({
+        veh = v,
+        line = line,
+        age = AIVehicle.GetAge(v),
+        profit = AIVehicle.GetProfitLastYear(v),
+        engine = AIVehicle.GetEngineType(v),
+        rank = rank++
+      });
+    }
+  }
 
-      local age = AIVehicle.GetAge(v);
-      local prof = AIVehicle.GetProfitLastYear(v);
+  /* Ordre de preference : age decroissant, profit croissant, rang croissant */
+  candidates.sort(function(a, b) {
+    if (a.age != b.age) return a.age > b.age ? -1 : 1;
+    if (a.profit != b.profit) return a.profit < b.profit ? -1 : 1;
+    if (a.rank != b.rank) return a.rank < b.rank ? -1 : 1;
+    return 0;
+  });
 
-      /* Cibler l'avion le plus vieux, ou de plus faible rendement a age egal */
-      if (bestVeh < 0 || age > bestAge || (age == bestAge && prof < bestProfit)) {
-        bestLine = line;
-        bestVeh = v;
-        bestAge = age;
-        bestProfit = prof;
-        bestNewEngine = targetEngine;
-        bestDemandOld = V252_LAST_DEMAND_OLD;
-        bestDemandNow = V252_LAST_DEMAND_NOW;
-        curEngine = e;
+  local lineTargetCache = {};
+
+  foreach (cand in candidates) {
+    local lineKey = ("lineId" in cand.line) ? cand.line.lineId : cand.line;
+    if (!(lineKey in lineTargetCache)) {
+      if (V252_AIR_ENGINE_REFRESH == 4) {
+        lineTargetCache[lineKey] <- OpexV253MarginalPlanForVehicle(cand.line, this._catalog, cand.veh);
+      } else {
+        local target = OpexAirBestEngineForLine(cand.line, this._catalog, this._lines);
+        local dOld = 0;
+        local dNow = 0;
+        if (DECISION_LOG) {
+          dOld = V252_LAST_DEMAND_OLD;
+          dNow = V252_LAST_DEMAND_NOW;
+        }
+        lineTargetCache[lineKey] <- {
+          replace = (target != null && target != cand.engine),
+          targetEngine = target,
+          demandOld = dOld,
+          demandNow = dNow
+        };
       }
     }
+
+    local entry = lineTargetCache[lineKey];
+    if (entry == null) continue;
+    local targetEngine = entry.targetEngine;
+    if (targetEngine == null) continue;
+    if (cand.engine == targetEngine) continue;
+    if (("replace" in entry) && !entry.replace) continue;
+
+    nOutdated = 1;
+    bestLine = cand.line;
+    bestVeh = cand.veh;
+    bestAge = cand.age;
+    bestProfit = cand.profit;
+    bestNewEngine = targetEngine;
+    bestPlan = entry;
+    curEngine = cand.engine;
+    if ("demandOld" in entry) {
+      bestDemandOld = entry.demandOld;
+      bestDemandNow = entry.demandNow;
+    }
+    break;
   }
 
   if (bestVeh < 0 || bestLine == null) {
@@ -145,11 +190,19 @@ function OpexAI::_dispatchV252AirEngineRefresh(task, year)
     }
   }
 
-  local dOld = bestDemandOld;
-  local dNow = bestDemandNow;
-  if (DECISION_LOG) OpexDecide("V252_REPLACE", "line=" + bestLine.lineId + " old_engine=" + curEngine
+  if (DECISION_LOG) {
+    local dOld = bestDemandOld;
+    local dNow = bestDemandNow;
+    local logMsg = "line=" + bestLine.lineId + " old_engine=" + curEngine
              + " new_engine=" + bestNewEngine + " old_veh=" + bestVeh + " new_veh=" + newPlane
-             + " price=" + price + " age=" + bestAge + " profit=" + bestProfit
-             + " demand_old=" + dOld + " demand_now=" + dNow);
+             + " price=" + price + " age=" + bestAge + " profit=" + bestProfit;
+    if (V252_AIR_ENGINE_REFRESH == 4 && bestPlan != null) {
+      logMsg += " gain=" + bestPlan.gain + " rev_new=" + bestPlan.revNew + " rev_old=" + bestPlan.revOld
+             + " rating_pred=" + bestPlan.ratingPred + " payback=" + bestPlan.payback;
+    } else {
+      logMsg += " demand_old=" + dOld + " demand_now=" + dNow;
+    }
+    if (DECISION_LOG) OpexDecide("V252_REPLACE", logMsg);
+  }
   return true;
 }

@@ -36,7 +36,7 @@ class TestV252EngineRefresh(unittest.TestCase):
         self.assertIsNotNone(block)
         body = block.group(1)
         self.assertIn("min_value = 0", body)
-        self.assertIn("max_value = 3", body)
+        self.assertIn("max_value = 4", body)
         self.assertIn("step_size = 1", body)
         for level in ("easy_value", "medium_value", "hard_value", "custom_value"):
             self.assertRegex(body, level + r" = 2\b")  # defaut 2 depuis le 18/10 (portes A et B)
@@ -83,13 +83,13 @@ class TestV252EngineRefresh(unittest.TestCase):
     def test_mode_3_guards(self):
         # Recalcul de la demande active seulement au mode 3
         self.assertTrue(self.best_engine)
-        self.assertIn("if (V252_AIR_ENGINE_REFRESH >= 3)", self.best_engine)
-        guard_pos = self.best_engine.index("if (V252_AIR_ENGINE_REFRESH >= 3)")
+        self.assertIn("if (V252_AIR_ENGINE_REFRESH == 3)", self.best_engine)
+        guard_pos = self.best_engine.index("if (V252_AIR_ENGINE_REFRESH == 3)")
         recalc_pos = self.best_engine.index("OpexAirRefreshC121Plan(line, catalog, lines, airportType)")
         self.assertGreater(recalc_pos, guard_pos)
 
-        # settings.nut borne max_value a 3
-        self.assertIn("v252Refresh <= 3", self.sources["settings.nut"])
+        # settings.nut borne max_value a 4
+        self.assertIn("v252Refresh <= 4", self.sources["settings.nut"])
 
     def test_rich_without_fixed_amount(self):
         loan = self.dispatch.index('reason=loan')

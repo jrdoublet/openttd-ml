@@ -78,7 +78,7 @@ function OpexAirBestEngineForLine(line, catalog, lines = null)
   local demandNow = demandOld;
 
   local refreshPlan = null;
-  if (V252_AIR_ENGINE_REFRESH >= 3) {
+  if (V252_AIR_ENGINE_REFRESH == 3) {
     refreshPlan = OpexAirRefreshC121Plan(line, catalog, lines, airportType);
     if (refreshPlan == null) return null;
     demandNow = refreshPlan.c121Demand.paxA + refreshPlan.c121Demand.paxB;
@@ -131,6 +131,252 @@ function OpexAirBestEngineForLine(line, catalog, lines = null)
 
   if (bestPlaneId < 0) return null;
   return bestPlaneId;
+}
+
+/* V253 (Proposition 2) : Choix incrémental marginal par flux de trésorerie net.
+ * Évalue les caractéristiques physiques et économiques d'un aéronef sur une liaison.
+ * Rotations à la vitesse réelle NoAI (OpenTTD 15.3 script_engine.cpp:120, déjà
+ * divisée par vehicle.plane_speed ; aucun /4 supplémentaire).
+ * Constantes et sources :
+ * - 0.036 : facteur cinématique OpenTTD de traversée de tuile par jour à V km/h (air_trip.nut:51).
+ * - 3.0 : délai d'aéroport minimal terminal et roulage en jours (air_trip.nut:52).
+ * - 365.0 : jours par an du calendrier OpenTTD (TimerGameCalendar::DAYS_IN_YEAR).
+ * - (R + 1) / 256.0 : part captée par la note de gare MoveGoodsToStation (air_coverage.nut:445).
+ */
+function OpexV253PlaneOperations(catalog, planeObj, distance, demandAnnual, observedByte, servicePlane = null)
+{
+  local speed = (("speed" in planeObj) && planeObj.speed > 0)
+      ? planeObj.speed.tofloat() : AIEngine.GetMaxSpeed(planeObj.id).tofloat();
+  if (speed < 1.0) speed = 1.0;
+
+  local flightDays = distance.tofloat() / (0.036 * speed);
+  local oneWayDays = flightDays + 3.0;
+  if (oneWayDays < 1.0) oneWayDays = 1.0;
+
+  local incomeDays = oneWayDays.tointeger();
+  if (incomeDays.tofloat() < oneWayDays) incomeDays++;
+  if (incomeDays < 1) incomeDays = 1;
+
+  local fare = OpexAirFarePerPax(catalog, planeObj, distance, incomeDays);
+  if (fare <= 0.0) fare = 1.0;
+
+  local predByte = observedByte;
+  local capturedDemand = demandAnnual;
+  if (servicePlane != null) {
+    local ptsService = OpexC121SpeedRatingPoints(servicePlane);
+    local ptsCand = OpexC121SpeedRatingPoints(planeObj);
+    predByte = observedByte + ptsCand - ptsService;
+    if (predByte < 0) predByte = 0;
+    if (predByte > 255) predByte = 255;
+    local obsShare = (observedByte + 1).tofloat() / 256.0;
+    local predShare = (predByte + 1).tofloat() / 256.0;
+    if (obsShare > 0.0) capturedDemand = demandAnnual.tofloat() * predShare / obsShare;
+  }
+
+  local cap = (("capacity" in planeObj) && planeObj.capacity > 0)
+      ? planeObj.capacity : AIEngine.GetCapacity(planeObj.id);
+  local roundTripDays = 2.0 * oneWayDays;
+  local rotationsPerYear = 365.0 / roundTripDays;
+  local annualCapacity = rotationsPerYear * (2.0 * cap);
+
+  local carried = (annualCapacity < capturedDemand) ? annualCapacity : capturedDemand;
+  local revenue = (carried * fare).tointeger();
+  local running = (("runningCost" in planeObj) && planeObj.runningCost > 0)
+      ? planeObj.runningCost : AIEngine.GetRunningCost(planeObj.id);
+
+  return {
+    engineId = planeObj.id,
+    speed = speed,
+    oneWayDays = oneWayDays,
+    fare = fare,
+    predByte = predByte,
+    annualCapacity = annualCapacity,
+    capturedDemand = capturedDemand,
+    carried = carried,
+    revenue = revenue,
+    running = running
+  };
+}
+
+/* V253 (mode 4) : Évalue le remplacement marginal d'un aéronef en service sur une ligne.
+ * Remplace seulement si :
+ *   gain annuel = Δrecette - Δentretien > 0, ET
+ *   gain annuel * durée de vie restante de s >= prix d'achat(c) - valeur de revente(s).
+ * Retourne une table { replace, targetEngine, gain, revNew, revOld, ratingPred, payback, price }.
+ */
+function OpexV253MarginalPlanForVehicle(line, catalog, vehicle, lines = null)
+{
+  if (catalog == null || !("airPlaneChoicesByAirport" in catalog) || catalog.airPlaneChoicesByAirport == null) {
+    return null;
+  }
+  if (line == null || !("stationA" in line) || !("stationB" in line)) return null;
+  if (!AIAirport.IsAirportTile(line.stationA) || !AIAirport.IsAirportTile(line.stationB)) return null;
+
+  local typeA = AIAirport.GetAirportType(line.stationA);
+  local typeB = AIAirport.GetAirportType(line.stationB);
+  if (!AIAirport.IsValidAirportType(typeA) || !AIAirport.IsValidAirportType(typeB)) return null;
+
+  local isSmall = (typeA == AIAirport.AT_SMALL || typeA == AIAirport.AT_COMMUTER ||
+                   typeB == AIAirport.AT_SMALL || typeB == AIAirport.AT_COMMUTER);
+  local airportType = isSmall ? ((typeA == AIAirport.AT_SMALL || typeA == AIAirport.AT_COMMUTER) ? typeA : typeB) : typeA;
+
+  if (!(airportType in catalog.airPlaneChoicesByAirport)) return null;
+  local choices = catalog.airPlaneChoicesByAirport[airportType];
+  if (choices == null || choices.len() == 0) return null;
+
+  if (!AIVehicle.IsValidVehicle(vehicle)) return null;
+  local curEngine = AIVehicle.GetEngineType(vehicle);
+  if (!AIEngine.IsValidEngine(curEngine)) return null;
+
+  local distance = ("distance" in line && line.distance > 0) ? line.distance : 0;
+  if (distance <= 0) {
+    distance = AIMap.DistanceManhattan(line.stationA, line.stationB);
+  }
+  if (distance <= 0) return null;
+  local cargo = ("cargo" in line) ? line.cargo : catalog.paxCargo;
+
+  local airportTile = ("originA" in line) && AIAirport.IsAirportTile(line.originA)
+      ? line.originA : line.stationA;
+  local hangar = AIAirport.GetHangarOfAirport(airportTile);
+  local hasHangar = AIMap.IsValidTile(hangar) && AIAirport.IsHangarTile(hangar);
+
+  local curValue = AIVehicle.GetCurrentValue(vehicle);
+  if (curValue < 0) curValue = 0;
+  local ageLeftDays = AIVehicle.GetAgeLeft(vehicle);
+  local remainingYears = ageLeftDays.tofloat() / 365.0;
+  if (remainingYears < 0.0) remainingYears = 0.0;
+
+  /* Demande observée de la ligne : transportés réels de l'an dernier + stock en attente. */
+  local lineRevenue = 0;
+  local nPlanes = 0;
+  if (("vehicles" in line) && line.vehicles != null) {
+    foreach (v in line.vehicles) {
+      if (!AIVehicle.IsValidVehicle(v)) continue;
+      nPlanes++;
+      local prof = AIVehicle.GetProfitLastYear(v);
+      local run = AIVehicle.GetRunningCost(v);
+      if (prof + run > 0) lineRevenue += (prof + run);
+    }
+  }
+  if (nPlanes < 1) nPlanes = 1;
+
+  local currentBaseOps = OpexV253PlaneOperations(catalog, { id = curEngine }, distance, 1.0, 50, null);
+  local fare_s = currentBaseOps.fare;
+  local annualDelivered = lineRevenue > 0 ? (lineRevenue.tofloat() / fare_s) : 0.0;
+
+  local stA = AIStation.GetStationID(line.stationA);
+  local stB = AIStation.GetStationID(line.stationB);
+  local waiting = 0;
+  if (AIStation.IsValidStation(stA)) waiting += AIStation.GetCargoWaiting(stA, cargo);
+  if (AIStation.IsValidStation(stB)) waiting += AIStation.GetCargoWaiting(stB, cargo);
+
+  local annualDemandPerPlane = (annualDelivered + waiting.tofloat()) / nPlanes.tofloat();
+  if (annualDemandPerPlane < 1.0) annualDemandPerPlane = 1.0;
+
+  local ratingA = AIStation.IsValidStation(stA) ? AIStation.GetCargoRating(stA, cargo) : -1;
+  local ratingB = AIStation.IsValidStation(stB) ? AIStation.GetCargoRating(stB, cargo) : -1;
+  local rating = ratingA;
+  if (ratingB >= 0 && (rating < 0 || ratingB < rating)) rating = ratingB;
+  if (rating < 0) rating = 50;
+  local observedByte = OpexC121RatingPercentToByteMid(rating);
+
+  local servicePlaneObj = { id = curEngine, speed = currentBaseOps.speed };
+  local sOps = OpexV253PlaneOperations(catalog, servicePlaneObj, distance, annualDemandPerPlane, observedByte, null);
+  local rev_s = sOps.revenue;
+  local run_s = sOps.running;
+
+  local bestPlan = null;
+  local bestKeepCand = null;
+
+  foreach (c in choices) {
+    if (!AIEngine.IsValidEngine(c.id) || !AIEngine.IsBuildable(c.id)) continue;
+    if (!OpexAirPlaneInRange(c, distance)) continue;
+    if (!OpexAirAirportAcceptsPlane(typeA, c.planeType) || !OpexAirAirportAcceptsPlane(typeB, c.planeType)) continue;
+    if (!AIEngine.CanRefitCargo(c.id, cargo)) continue;
+    if (hasHangar && AIVehicle.GetBuildWithRefitCapacity(hangar, c.id, cargo) <= 0) continue;
+
+    local cOps = OpexV253PlaneOperations(catalog, c, distance, annualDemandPerPlane, observedByte, servicePlaneObj);
+    local rev_c = cOps.revenue;
+    local run_c = cOps.running;
+    local deltaRev = rev_c - rev_s;
+    local deltaRun = run_c - run_s;
+    local gain = deltaRev - deltaRun;
+
+    local price_c = (("price" in c) && c.price > 0) ? c.price : AIEngine.GetPrice(c.id);
+    local netCost = price_c - curValue;
+    local pays = (c.id != curEngine) && (gain > 0) && (netCost <= 0 || (remainingYears > 0.0 && gain.tofloat() * remainingYears >= netCost));
+    local payback = (gain > 0 && netCost > 0) ? (netCost.tofloat() / gain.tofloat()) : 0.0;
+
+    if (pays) {
+      if (bestPlan == null || gain > bestPlan.gain || (gain == bestPlan.gain && netCost < bestPlan.netCost)) {
+        bestPlan = {
+          engineId = c.id,
+          gain = gain,
+          revNew = rev_c,
+          revOld = rev_s,
+          ratingPred = cOps.predByte,
+          payback = payback,
+          price = price_c,
+          netCost = netCost
+        };
+      }
+    }
+
+    if (c.id != curEngine) {
+      if (bestKeepCand == null || gain > bestKeepCand.gain) {
+        bestKeepCand = {
+          engineId = c.id,
+          gain = gain,
+          revCand = rev_c,
+          ratingPred = cOps.predByte,
+          payback = payback,
+          pays = pays
+        };
+      }
+    }
+  }
+
+  if (bestPlan != null) {
+    return {
+      replace = true,
+      targetEngine = bestPlan.engineId,
+      gain = bestPlan.gain,
+      revNew = bestPlan.revNew,
+      revOld = bestPlan.revOld,
+      ratingPred = bestPlan.ratingPred,
+      payback = bestPlan.payback,
+      price = bestPlan.price
+    };
+  }
+
+  local reason = "current_best";
+  if (bestKeepCand == null) reason = "no_candidate";
+  else if (bestKeepCand.gain <= 0) reason = "gain_negative";
+  else if (!bestKeepCand.pays) reason = "payback_failed";
+
+  if (DECISION_LOG) {
+    local candId = bestKeepCand != null ? bestKeepCand.engineId : -1;
+    local candGain = bestKeepCand != null ? bestKeepCand.gain : 0;
+    local candRev = bestKeepCand != null ? bestKeepCand.revCand : 0;
+    local candRating = bestKeepCand != null ? bestKeepCand.ratingPred : observedByte;
+    local candPayback = bestKeepCand != null ? bestKeepCand.payback : 0.0;
+    OpexDecide("V252_KEEP", "line=" + (("lineId" in line) ? line.lineId : -1)
+               + " old_engine=" + curEngine + " cand_engine=" + candId
+               + " gain=" + candGain + " rev_cand=" + candRev + " rev_old=" + rev_s
+               + " rating_pred=" + candRating + " payback=" + candPayback
+               + " reason=" + reason);
+  }
+
+  return {
+    replace = false,
+    targetEngine = curEngine,
+    gain = bestKeepCand != null ? bestKeepCand.gain : 0,
+    revNew = bestKeepCand != null ? bestKeepCand.revCand : 0,
+    revOld = rev_s,
+    ratingPred = bestKeepCand != null ? bestKeepCand.ratingPred : observedByte,
+    payback = bestKeepCand != null ? bestKeepCand.payback : 0.0,
+    reason = reason
+  };
 }
 
 function OpexAirAddPlane(line, catalog = null, lines = null)
