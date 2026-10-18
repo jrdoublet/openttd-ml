@@ -52,6 +52,28 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
+    /* OpenTTD 15.3 n'applique plus easy/medium/hard/custom (script_info.cpp :
+     * easy/hard/custom ignores, medium seulement en repli de default_value) et
+     * script.settings_profile n'existe plus. Les quatre valeurs restent donc
+     * egales a 3 (personnalise) : le harnais, qui ne passe un reglage que s'il
+     * differe de custom_value, n'allonge pas la ligne [ai_players]. flags = 8
+     * est le bit developpeur (ai/ai_info.cpp) : cache hors outils de debug. */
+    AddSetting({
+      name = "opex_difficulty",
+      description = "Technical level read once into OPEX_DIFFICULTY: 0 easy, 1 medium, 2 hard, 3 custom (default). OpenTTD 15.3 ignores the per-level values and no longer has script.settings_profile, so every level stays at 3 and benches do not pass this setting. No decision reads it until a later feature is armed. Hidden unless AI developer tools are on.",
+      min_value = 0, max_value = 3,
+      easy_value = 3, medium_value = 3, hard_value = 3,
+      custom_value = 3, default_value = 3,
+      step_size = 1,
+      flags = 8
+    });
+    AddLabels("opex_difficulty", {
+      _0 = "easy",
+      _1 = "medium",
+      _2 = "hard",
+      _3 = "custom"
+    });
+
     /* --- 2. Sondes de diagnostic unifiees (9 groupes) --- */
 
     AddSetting({
