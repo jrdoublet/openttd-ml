@@ -17,6 +17,7 @@ Lit <engine_dir>/<policy>_seed*_r0.log (journaux moteur, --script-debug) et ecri
 import collections
 import datetime
 import glob
+import gzip
 import os
 import re
 import statistics
@@ -99,7 +100,8 @@ def parse_log(path):
         'town_flow': [],
         'station_flow': [],
     }
-    with open(path, errors='replace') as fh:
+    opener = gzip.open if str(path).endswith('.gz') else open
+    with opener(path, 'rt', errors='replace') as fh:
         for line in fh:
             parsed = parse_line(line)
             if parsed is None:
