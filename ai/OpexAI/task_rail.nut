@@ -1202,7 +1202,7 @@ function OpexAI::_recordRailAttempt(candidate, result, posPacked, year, railPlan
     local lineBridges = [];
     if ("bridges" in result && result.bridges != null && result.bridges.len() > 0) {
       lineBridges = result.bridges;
-    } else if (railPlan != null) {
+    } else if (V259_BRIDGE_RENEW > 0 && railPlan != null) {
       local rType = AIRail.GetCurrentRailType();
       if (("tiles" in railPlan) && railPlan.tiles != null) {
         for (local i = 1; i < railPlan.tiles.len() - 1; i++) {
