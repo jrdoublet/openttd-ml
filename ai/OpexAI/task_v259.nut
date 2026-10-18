@@ -85,7 +85,7 @@ function OpexV259LineMaxVehicleSpeed(line)
   if (("vehicles" in line) && line.vehicles != null) {
     foreach (v in line.vehicles) {
       if (AIVehicle.IsValidVehicle(v)) {
-        local sp = AIVehicle.GetMaxSpeed(v);
+        local sp = AIEngine.GetMaxSpeed(AIVehicle.GetEngineType(v));
         if (sp > maxSp) maxSp = sp;
       }
     }

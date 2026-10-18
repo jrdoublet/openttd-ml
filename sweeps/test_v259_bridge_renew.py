@@ -98,6 +98,11 @@ class TestV259BridgeRenew(unittest.TestCase):
         self.assertIn('if (this._v259Cursor < this._v259Queue.len())', body_step)
         self.assertIn('this._enqueueReactive("v259_bridge", "v259_bridge", null)', body_step)
 
+    def test_vehicle_speed_uses_supported_engine_api(self):
+        speed_body = _body(self.task, "function OpexV259LineMaxVehicleSpeed(line)")
+        self.assertIn("AIEngine.GetMaxSpeed(AIVehicle.GetEngineType(v))", speed_body)
+        self.assertNotIn("AIVehicle.GetMaxSpeed", speed_body)
+
     def test_economic_decision_formula(self):
         eval_body = _body(self.task, "function OpexAI::_v259EvaluateAndRenew(item)")
         self.assertTrue(eval_body)
