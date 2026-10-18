@@ -129,6 +129,7 @@ function OpexLoadSettings()
   local v190Max = AIController.GetSetting("v190_rail_max_trains");
   V190_RAIL_MAX_TRAINS = (v190Max != null && v190Max >= 2 && v190Max <= 8) ? v190Max : 4;
   V249_STATUE = AIController.GetSetting("v249_statue") == 1;
+  V257_RAIL_REFRESH = AIController.GetSetting("v257_rail_refresh") == 1;
   local v252Refresh = AIController.GetSetting("v252_air_engine_refresh");
   V252_AIR_ENGINE_REFRESH = (v252Refresh != null && v252Refresh >= 0 && v252Refresh <= 2) ? v252Refresh : 0;
   local rights = AIController.GetSetting("v250_rights");
@@ -136,6 +137,8 @@ function OpexLoadSettings()
   /* V250 entiere reservee au niveau 3 (personnalise) : geste anticoncurrentiel. */
   if (!OpexLevelAllows("v250_rights")) rights = 0;
   V250_RIGHTS = rights;
+  local v259Renew = AIController.GetSetting("v259_bridge_renew");
+  V259_BRIDGE_RENEW = (v259Renew != null && v259Renew == 1) ? 1 : 0;
 
   // V246 : paquets adoptes figes ; les interrupteurs de mode restent actifs.
   ROAD_BUILD_ENABLED = MODE_ROAD;
