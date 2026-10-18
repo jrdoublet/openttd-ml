@@ -709,6 +709,12 @@ function OpexAI::Save()
   }
   if (C83_PREEMPT_OPEN) OpexSaveC83Preempt(saveObj, this);
   if (V250_RIGHTS != 0) OpexSaveV250(saveObj, this);
+  if (V257_RAIL_REFRESH) {
+    /* Hors projection mensuelle : la transaction et le curseur doivent etre exacts. */
+    saveObj.v257RailRefresh <- { cursor = this._v257Cursor, state = this._v257State,
+      pending = this._v257Pending, engineRevision = this._v257EngineRevision,
+      priorityRemaining = this._v257PriorityRemaining };
+  }
   if (OpexC121StrategyStateEnabled()) OpexSaveC121Strategy(saveObj);
   if (OPEX_AIR_ROLLBACKS.len() > 0) saveObj.airRollbacks <- OPEX_AIR_ROLLBACKS;
   if (V133_AIR_BUILD_RETRY) OpexV133SaveQuarantine(saveObj);
@@ -757,6 +763,14 @@ function OpexAI::Load(version, data)
   if ("lastRepayMonth" in data) this._lastRepayMonth = data.lastRepayMonth;
   if ("taskCycle" in data) this._taskCycle = data.taskCycle;
   if ("taskCursor" in data) this._taskCursor = data.taskCursor;
+  if ("v257RailRefresh" in data && typeof data.v257RailRefresh == "table") {
+    local railRefresh = data.v257RailRefresh;
+    this._v257Cursor = ("cursor" in railRefresh && typeof railRefresh.cursor == "integer") ? railRefresh.cursor : 0;
+    this._v257State = ("state" in railRefresh && typeof railRefresh.state == "table") ? railRefresh.state : null;
+    this._v257Pending = ("pending" in railRefresh && typeof railRefresh.pending == "table") ? railRefresh.pending : null;
+    this._v257EngineRevision = ("engineRevision" in railRefresh) ? railRefresh.engineRevision : -1;
+    this._v257PriorityRemaining = ("priorityRemaining" in railRefresh) ? railRefresh.priorityRemaining : 0;
+  }
   if ("vehiclesToRetire" in data && data.vehiclesToRetire != null) this._vehiclesToRetire = data.vehiclesToRetire;
   if ("unprofitableStreaks" in data && data.unprofitableStreaks != null) this._unprofitableStreaks = data.unprofitableStreaks;
   if ("activeSubsidies" in data && data.activeSubsidies != null) this._activeSubsidies = data.activeSubsidies;
@@ -898,6 +912,7 @@ function OpexAI::_reconcileAfterLoad()
     }
   }
   this._lines = liveLines;
+  OpexV257Reconcile(this);
   /* World validation is rebuilt in bounded steps from these restored lines.
    * Short saves without support cannot revive observations. OFF never generates work. */
   this._v233GoodsWork = null;

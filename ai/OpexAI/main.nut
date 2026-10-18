@@ -219,6 +219,15 @@ class OpexAI extends AIController {
   _v249StatueMonth = -1;
   /* V252 : mois du dernier rafraichissement aerien actif. Memoire de cadence, pas un etat de partie. */
   _v252RefreshMonth = -1;
+  /* V257 : cadence/observations/transaction persistantes ; cache reconstructible. */
+  _v257Cursor = 0;
+  _v257State = null;
+  _v257Pending = null;
+  _v257PendingLine = null; // reference vivante, reliee par lineId apres Load.
+  _v257Cache = null;
+  _v257CatalogRef = null;
+  _v257EngineRevision = -1;
+  _v257PriorityRemaining = 0;
   /* V250 : cadence mensuelle, villes du mode test, villes dont le creneau a deja ete journalise. */
   _v250Month = -1;
   _v250Targets = {};
@@ -562,6 +571,9 @@ class OpexAI extends AIController {
   function _dispatchRepay(task, year);
   function _dispatchV249Statue(task, year);
   function _dispatchV252AirEngineRefresh(task, year);
+  function _v257ReactiveStep();
+  function _v257Review(line, state, date, force);
+  function _v257ReplaceStep();
   function _dispatchV250Rights(task, year);
   function _c76RecordRegen(kind, ops, days, year, reason = "unknown");
   function _c76RecordAvoided(year);
@@ -662,6 +674,7 @@ require("task_terrain.nut");
 require("task_water.nut");
 require("task_v249.nut");
 require("task_v252.nut");
+require("task_v257.nut");
 require("task_v250.nut");
 require("selftests.nut");
 
