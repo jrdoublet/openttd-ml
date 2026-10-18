@@ -31,6 +31,10 @@ function OpexV257Plan(line, loco, wagon, wagons, monthly)
   local trips = OpexLoadedTripsPerMonth(days + dwell, 2 * days + dwell, line.kind == "pax");
   local capacity = wagons * wagon.capacity;
   local carried = capacity * trips;
+  /* Deux plans satures par la meme demande, avec le meme jour entier de
+   * paiement, ont un ratio de recettes egal a 1 : le gain se reduit a
+   * l'ecart d'entretien. Les wagons vanilla ont une classe de cout courant
+   * nulle, donc leur nombre ne change pas cet ecart. */
   if (carried > monthly) carried = monthly;
   local revenue = 12 * carried * AICargo.GetCargoIncome(line.cargo, line.distance, OpexCeilDiv(days, 1));
   return { loco = loco, wagon = wagon, wagons = wagons, revenue = revenue,
@@ -275,9 +279,18 @@ function OpexAI::_v257Review(line, state, date, force)
       engine = selected.loco.id, wagon = selected.wagon.id, wagons = selected.wagons,
       gain = selectedGain.tointeger(), cost = selectedCost, current = selectedCurrent,
       deadline = state.nextDate, newVehicle = -1, phase = "depot",
-      order = AIOrder.ResolveOrderPosition(selectedVehicle, AIOrder.ORDER_CURRENT) };
+      order = AIOrder.ResolveOrderPosition(selectedVehicle, AIOrder.ORDER_CURRENT),
+      lineProfit = lineProfit, waiting = waiting, rating = rating, load = load,
+      delivered = state.annualDelivered };
     this._v257PendingLine = line;
-    if (!AIVehicle.SendVehicleToDepot(selectedVehicle)) { this._v257Pending = null; this._v257PendingLine = null; }
+    /* 15.3 Vehicle::SendToDepot renvoie une erreur si la rame est deja arretee
+     * au depot. La transaction continue au passage suivant. Tout autre echec
+     * est journalise ; l'ancienne rame n'est pas vendue. */
+    if (!AIVehicle.IsStoppedInDepot(selectedVehicle) && !AIVehicle.SendVehicleToDepot(selectedVehicle)) {
+      OpexV257ReviewLog(line, selectedCurrent, selected.loco.id, selectedGain, selectedCost, "keep",
+          "depot_send_failed", lineProfit, waiting, rating, load, state.annualDelivered);
+      this._v257Pending = null; this._v257PendingLine = null;
+    }
   }
 }
 
@@ -286,6 +299,12 @@ function OpexAI::_v257ReplaceStep()
   local pending = this._v257Pending;
   local line = this._v257PendingLine; // pas de recherche O(nombre de lignes) par passage.
   local oldVehicle = pending.vehicle;
+  /* Champs absents d'une sauvegarde anterieure : les defauts du journal. */
+  local lineProfit = ("lineProfit" in pending) ? pending.lineProfit : 0;
+  local waiting = ("waiting" in pending) ? pending.waiting : 0;
+  local rating = ("rating" in pending) ? pending.rating : -1;
+  local load = ("load" in pending) ? pending.load : 0;
+  local delivered = ("delivered" in pending) ? pending.delivered : 0;
   if (line == null || (("scrapping" in line) && line.scrapping) || !AIVehicle.IsValidVehicle(oldVehicle)) {
     this._v257Pending = null; this._v257PendingLine = null;
     return;
@@ -293,7 +312,8 @@ function OpexAI::_v257ReplaceStep()
   if (!AIVehicle.IsStoppedInDepot(oldVehicle)) {
     if (AIDate.GetCurrentDate() >= pending.deadline) {
       AIVehicle.SendVehicleToDepot(oldVehicle); // deuxieme appel : annule l'ordre automatique.
-      OpexV257ReviewLog(line, pending.current, pending.engine, pending.gain, pending.cost, "keep", "depot_timeout");
+      OpexV257ReviewLog(line, pending.current, pending.engine, pending.gain, pending.cost, "keep", "depot_timeout",
+          lineProfit, waiting, rating, load, delivered);
       this._v257Pending = null; this._v257PendingLine = null;
     }
     return;
@@ -321,9 +341,9 @@ function OpexAI::_v257ReplaceStep()
   local gain = 0.0;
   if (state != null && state.annualDays > 0 && number > 0 && line.vehicles.len() > 0) {
     local wagonEngine = AIVehicle.GetWagonEngineType(oldVehicle, 1);
-    local waiting = AIStation.GetCargoWaiting(AIStation.GetStationID(line.stationA), line.cargo);
-    if (line.kind == "pax") waiting += AIStation.GetCargoWaiting(AIStation.GetStationID(line.stationB), line.cargo);
-    local monthly = (state.annualDelivered * 365.0 / state.annualDays + waiting) / (12 * line.vehicles.len());
+    local stock = AIStation.GetCargoWaiting(AIStation.GetStationID(line.stationA), line.cargo);
+    if (line.kind == "pax") stock += AIStation.GetCargoWaiting(AIStation.GetStationID(line.stationB), line.cargo);
+    local monthly = (state.annualDelivered * 365.0 / state.annualDays + stock) / (12 * line.vehicles.len());
     local current = OpexV257Plan(line, OpexV257Engine(AIVehicle.GetEngineType(oldVehicle), line.cargo, false),
         OpexV257Engine(wagonEngine, line.cargo, true), number, monthly);
     local target = OpexV257Plan(line, loco, wagon, pending.wagons, monthly);
@@ -341,7 +361,8 @@ function OpexAI::_v257ReplaceStep()
       || AICompany.GetBankBalance(AICompany.COMPANY_SELF) - price < OpexCashReserve()) {
     pending.phase = "resume";
     local resumed = AIVehicle.StartStopVehicle(oldVehicle);
-    OpexV257ReviewLog(line, pending.current, pending.engine, pending.gain, cost, "keep", "depot_recheck");
+    OpexV257ReviewLog(line, pending.current, pending.engine, pending.gain, cost, "keep", "depot_recheck",
+        lineProfit, waiting, rating, load, delivered);
     if (resumed) { this._v257Pending = null; this._v257PendingLine = null; }
     return;
   }
@@ -365,14 +386,30 @@ function OpexAI::_v257ReplaceStep()
   AIRail.SetCurrentRailType(previousType);
   local newVehicle = built.vehicles.len() > 0 ? built.vehicles[0] : -1;
   pending.newVehicle = newVehicle;
-  if (built.failed || !AIOrder.CopyOrders(newVehicle, oldVehicle)
-      || !AIOrder.SkipToOrder(newVehicle, pending.order) || !AIVehicle.StartStopVehicle(newVehicle)) {
+  /* CopyOrders ne reinitialise l'index que si le nombre d'ordres differe
+   * (15.3 CmdCloneOrder). La rame neuve est deja sur l'ordre 0, et
+   * CmdSkipToOrder refuse l'ordre deja courant. Deja courant = succes. */
+  local reason = null;
+  if (built.failed) {
+    reason = "build_failed";
+  } else if (!AIOrder.CopyOrders(newVehicle, oldVehicle)) {
+    reason = "copy_orders_failed";
+  } else {
+    local here = AIOrder.ResolveOrderPosition(newVehicle, AIOrder.ORDER_CURRENT);
+    if (here != pending.order && !AIOrder.SkipToOrder(newVehicle, pending.order)) {
+      reason = "skip_order_failed";
+    } else if (!AIVehicle.StartStopVehicle(newVehicle)) {
+      reason = "start_failed";
+    }
+  }
+  if (reason != null) {
     foreach (vehicle in built.rollbackVehicles) {
       OpexV257Discard(this, vehicle);
     }
     pending.phase = "resume";
     local resumed = AIVehicle.StartStopVehicle(oldVehicle);
-    OpexV257ReviewLog(line, pending.current, pending.engine, pending.gain, cost, "keep", "build_order_start_failed");
+    OpexV257ReviewLog(line, pending.current, pending.engine, pending.gain, cost, "keep", reason,
+        lineProfit, waiting, rating, load, delivered);
     if (resumed) { this._v257Pending = null; this._v257PendingLine = null; }
     return;
   }

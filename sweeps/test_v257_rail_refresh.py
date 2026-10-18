@@ -216,6 +216,35 @@ class RailRefresh(unittest.TestCase):
         self.assertIn("lineId = -1", discard)
         self.assertIn("AIVehicle.StartStopVehicle(oldVehicle)", self.replace)
         self.assertIn("this._vehiclesToRetire.rawset(oldVehicle", self.replace)
+        for reason in ("build_failed", "copy_orders_failed", "skip_order_failed", "start_failed"):
+            self.assertIn('reason = "' + reason + '"', self.replace)
+        self.assertNotIn("build_order_start_failed", self.task)
+        self.assertLess(self.replace.index("if (reason != null)"), self.replace.index("OpexV257Discard(this, vehicle)"))
+        self.assertLess(self.replace.index("OpexV257Discard(this, vehicle)"),
+                        self.replace.index("AIVehicle.SellVehicle(oldVehicle)"))
+
+    def test_skip_already_current_order_is_success(self):
+        """CmdSkipToOrder refuse l'index deja courant. Une rame neuve y est deja."""
+        self.assertLess(self.replace.index("here != pending.order"),
+                        self.replace.index("AIOrder.SkipToOrder(newVehicle, pending.order)"))
+        self.assertIn("AIOrder.ResolveOrderPosition(newVehicle, AIOrder.ORDER_CURRENT)", self.replace)
+        self.assertLess(self.replace.index("AIOrder.CopyOrders(newVehicle, oldVehicle)"),
+                        self.replace.index("here != pending.order"))
+
+    def test_depot_send_failure_keeps_the_old_train(self):
+        """Deja au depot : pas d'envoi, la transaction reste. Sinon journal, sans vente."""
+        compact = " ".join(self.review.split())
+        self.assertLess(self.review.index("AIVehicle.IsStoppedInDepot(selectedVehicle)"),
+                        self.review.index("AIVehicle.SendVehicleToDepot(selectedVehicle)"))
+        self.assertIn("!AIVehicle.IsStoppedInDepot(selectedVehicle) && !AIVehicle.SendVehicleToDepot(selectedVehicle)",
+                      compact)
+        self.assertIn("depot_send_failed", self.review)
+        self.assertNotIn("SellVehicle(selectedVehicle)", self.review)
+        self.assertNotIn("SellVehicle(oldVehicle)", self.review)
+        self.assertIn("lineProfit = lineProfit", self.review)
+        for call in ("depot_timeout", "depot_recheck"):
+            self.assertIn(call, self.replace)
+        self.assertEqual(self.replace.count("lineProfit, waiting, rating, load, delivered"), 3)
 
     def test_resume_and_purchase_have_gross_cash_and_fresh_payback_guards(self):
         self.assertIn("GetBankBalance(AICompany.COMPANY_SELF) - price < OpexCashReserve()", self.replace)
