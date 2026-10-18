@@ -121,7 +121,7 @@ class TestDifficultyLevels(unittest.TestCase):
 
         # Table des capacites dans difficulty.nut
         self.assertIn('v250_rights = 3', self.difficulty)
-        self.assertIn('"anticompetitive": 3', self.difficulty)
+        self.assertIn('anticompetitive = 3', self.difficulty)
 
         # Garde dans le dispatch de la tache V250
         dispatch_body = _extract_function_body(self.sources["task_v250.nut"], "OpexAI::_dispatchV250Rights")
