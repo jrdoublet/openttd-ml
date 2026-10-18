@@ -297,7 +297,7 @@ function OpexStationPlans(center, otherCenter, radius, length, maxPlans, cargo, 
                           wantProduction, stats = null, requireDouble = false, rankPct = 0)
 {
   if (OPEX_LEVEL_LIMITS && wantProduction) {
-    local indId = AITile.GetIndustryID(center);
+    local indId = AIIndustry.GetIndustryID(center);
     if (indId >= 0 && OpexIndustryPrimaryRivalServed(indId, center, coverage)) return [];
   }
 

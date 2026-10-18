@@ -152,7 +152,7 @@ function OpexRoadSites(center, townId, cargo, vehType, coverage, wantProduction,
 {
   /* Levier B, Niveau 1 : pas de chargement sur industrie primaire rival-servie */
   if (OPEX_LEVEL_LIMITS && wantProduction && townId < 0) {
-    local indId = AITile.GetIndustryID(center);
+    local indId = AIIndustry.GetIndustryID(center);
     if (indId >= 0 && OpexIndustryPrimaryRivalServed(indId, center, coverage)) {
       return { sites = [], stats = null };
     }
