@@ -84,6 +84,7 @@ from campaign_freeze import (
     validate_policy_settings,
     validate_simulation_bounds,
 )
+from line_fleet import annotate_line_telemetry_logs
 
 STARTING_YEAR = 1970
 DEFAULT_YEARS = 5
@@ -147,6 +148,7 @@ CAMPAIGN_HARNESS_FILES = (
     "sweeps/savegame_archive.py",
     "sweeps/rail_budget_signs.py",
     "sweeps/station_supply.py",
+    "sweeps/line_fleet.py",
     "sweeps/bench_1v1_5y_20seeds.py",
     "sweeps/c83_reaction.py",
     "sweeps/bench_v2.py",
@@ -905,6 +907,97 @@ def _vehicle_station_orders(chunks, common):
             "order_list_id": str(raw_head), "station_ids": []}
 
 
+def _unique_in_order(values):
+    seen = []
+    for value in values:
+        if value not in seen:
+            seen.append(value)
+    return seen
+
+
+def _vehicle_consist_fields(chunks, detail):
+    """EngineID de tete, et wagons rail relus sur le common brut.
+
+    Un consist invalide laisse wagon_count a None : 0 veut dire une locomotive
+    seule, observee. Les parts avec le bit moteur (subtype & 1) ne sont pas
+    des wagons. L'air (ombres, rotors) n'entre pas dans ce compte.
+    """
+    engine_id = detail.get("engine_type")
+    vehicle_id = detail.get("index")
+    empty = {
+        "vehicle_id": vehicle_id,
+        "engine_id": engine_id,
+        "wagon_count": None,
+        "wagon_engine_ids": None,
+    }
+    if detail.get("mode") != "rail":
+        return empty
+    if detail.get("consist_valid") is False:
+        return empty
+    indices = detail.get("consist_indices")
+    if not isinstance(indices, list):
+        return empty
+    wagon_ids = []
+    for index in indices[1:]:
+        common = _raw_vehicle_common(chunks, index, "rail")
+        if not isinstance(common, dict):
+            return empty
+        try:
+            subtype = int(common.get("subtype") or 0)
+        except (TypeError, ValueError):
+            subtype = 0
+        if subtype & 1:
+            continue
+        wagon_ids.append(common.get("engine_type"))
+    return {
+        "vehicle_id": vehicle_id,
+        "engine_id": engine_id,
+        "wagon_count": len(wagon_ids),
+        "wagon_engine_ids": wagon_ids,
+    }
+
+
+def _finalize_line_fleet(line):
+    """Champs de ligne toujours presents une fois la telemetrie calculee."""
+    consists = line.get("consists") or []
+    engines = [item.get("engine_id") for item in consists]
+    known_engines = [engine for engine in engines if engine is not None]
+    unique_engines = _unique_in_order(known_engines)
+    if engines and len(known_engines) == len(engines) and len(unique_engines) == 1:
+        line["engine_id"] = unique_engines[0]
+    else:
+        line["engine_id"] = None
+    line["engine_ids"] = unique_engines
+    line["engine_name"] = None
+    line["max_speed"] = None
+    line["power"] = None
+    line["opex_line_id"] = None
+    if line.get("mode") != "rail":
+        line["wagon_count"] = None
+        line["wagon_engine_id"] = None
+        line["wagon_engine_ids"] = None
+        line["train_count"] = None
+        return
+    line["train_count"] = line.get("vehicles")
+    counts = [item.get("wagon_count") for item in consists]
+    if not consists or any(count is None for count in counts) or len(set(counts)) != 1:
+        line["wagon_count"] = None
+        line["wagon_engine_id"] = None
+        line["wagon_engine_ids"] = None
+        return
+    line["wagon_count"] = counts[0]
+    wagon_ids = []
+    for item in consists:
+        wagon_ids.extend(item.get("wagon_engine_ids") or [])
+    known_wagons = [wagon for wagon in wagon_ids if wagon is not None]
+    unique_wagons = _unique_in_order(known_wagons)
+    line["wagon_engine_ids"] = unique_wagons
+    if wagon_ids and len(known_wagons) == len(wagon_ids) and len(unique_wagons) == 1:
+        line["wagon_engine_id"] = unique_wagons[0]
+    else:
+        line["wagon_engine_id"] = None
+
+
 def extract_line_telemetry(chunks, owner):
     """Reconstruit passivement les lignes exploitees d'une compagnie."""
     decoded = decode_vehicles((chunks or {}).get("VEHS"), target_owner=owner)
@@ -990,6 +1083,7 @@ def extract_line_telemetry(chunks, owner):
                 "destination_town": ordered_town_ids[1] if len(ordered_town_ids) > 1 else None,
                 "endpoint_towns": list(canonical_town_ids),
                 "vehicle_ids": [],
+                "consists": [],
                 "vehicle_financials": [],
                 "unitnumbers": [],
                 "order_list_ids": [],
@@ -1002,6 +1096,7 @@ def extract_line_telemetry(chunks, owner):
         line = groups[key]
         line["vehicles"] += 1
         line["vehicle_ids"].append(vehicle_id)
+        line["consists"].append(_vehicle_consist_fields(chunks, detail))
         line["unitnumbers"].append(common.get("unitnumber"))
         order_list_id = orders.get("order_list_id")
         if order_list_id is not None and order_list_id not in line["order_list_ids"]:
@@ -1047,6 +1142,7 @@ def extract_line_telemetry(chunks, owner):
         line["endpoint_cargo_stats"] = endpoint_cargo_stats
         line["profit_this_year_gbp"] = round(line["profit_this_year_gbp"], 6)
         line["profit_last_year_gbp"] = round(line["profit_last_year_gbp"], 6)
+        _finalize_line_fleet(line)
         lines.append(line)
     lines.sort(key=lambda item: (item["mode"], item["market_key"], item["line_key_local"]))
     return {"ok": True, "error": None, "lines": lines, "unresolved_vehicles": unresolved}
@@ -1076,6 +1172,7 @@ def build_line_telemetry_report(rows):
             "error": telemetry.get("error"),
             "unresolved_vehicles": telemetry.get("unresolved_vehicles", []),
             "lines": telemetry.get("lines", []),
+            "build_trains_by_year": telemetry.get("build_trains_by_year") or {},
         })
     return {
         "schema_version": 1,
@@ -1089,6 +1186,9 @@ def build_line_telemetry_report(rows):
             "profit_this_year_gbp", "profit_last_year_gbp", "vehicle_value",
             "vehicle_financials.{vehicle_id,profit_this_year_gbp,profit_last_year_gbp,vehicle_value}",
             "endpoint_cargo_stats.airport.{tile,width,height,type,layout,rotation}",
+            "engine_id", "engine_ids", "engine_name", "max_speed", "power",
+            "wagon_count", "wagon_engine_id", "wagon_engine_ids", "train_count",
+            "opex_line_id", "consists", "build_trains_by_year",
         ],
         "unavailable_fields": ["revenue", "running_cost"],
         "snapshots": snapshots,
@@ -1223,6 +1323,7 @@ def keep(row):
     if LINE_TELEMETRY and (LINE_TELEMETRY_MONTHLY or _annual_line_checkpoint(date)):
         rec0["line_telemetry"] = extract_line_telemetry(chunks, 0)
         rec1["line_telemetry"] = extract_line_telemetry(chunks, 1)
+        annotate_line_telemetry_logs(rec0, rec1, output, date)
     structural = {}
     structural.update(airport_slot_metrics(chunks))
     structural.update(early_slot_sign_metrics(chunks))
