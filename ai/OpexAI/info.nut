@@ -653,10 +653,12 @@ class OpexAIInfo extends AIInfo {
     });
     AddSetting({
       name = "v249_statue",
-      description = "V249: when rich (no loan, no project pass stopped for cash during the last month, cash still covering the reserve and the most expensive listed project after the statue), build at most one town statue per month in the served town with the highest line profit; 1 = on, 0 = off (default)",
+      description = "V249: build at most one town statue per month when rich; 0 = off (default), 1 = served town with highest line profit, 2 = served town with highest expected gain and vehicle life payback check",
+      min_value = 0, max_value = 2,
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
-      flags = AICONFIG_BOOLEAN
+      step_size = 1,
+      flags = 0
     });
     AddSetting({
       name = "v252_air_engine_refresh",

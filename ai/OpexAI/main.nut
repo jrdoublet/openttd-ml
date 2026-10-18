@@ -215,8 +215,9 @@ class OpexAI extends AIController {
   _portfolioRefreshProbeLastRefreshOps = 0;
   _portfolioRefreshProbeLastRefreshCount = 0;
   _lastRepayMonth = -1;
-  /* V249 : mois du dernier passage statue. Memoire de cadence, pas un etat de partie. */
+  /* V249 : mois du dernier passage statue et liste des villes a statue dans la session. */
   _v249StatueMonth = -1;
+  _v249StatueTowns = null;
   /* V252 : mois du dernier rafraichissement aerien actif. Memoire de cadence, pas un etat de partie. */
   _v252RefreshMonth = -1;
   /* V250 : cadence mensuelle, villes du mode test, villes dont le creneau a deja ete journalise. */
@@ -360,6 +361,7 @@ class OpexAI extends AIController {
 
   constructor()
   {
+    this._v249StatueTowns = [];
     this._lastBestCount = -1;
     this._lastEmptyProbeMonth = -1;
     this._c76Revisions = {
@@ -561,6 +563,7 @@ class OpexAI extends AIController {
   function _dispatchRefleet(task, year);
   function _dispatchRepay(task, year);
   function _dispatchV249Statue(task, year);
+  function _v249LogStatueRatings();
   function _dispatchV252AirEngineRefresh(task, year);
   function _dispatchV250Rights(task, year);
   function _c76RecordRegen(kind, ops, days, year, reason = "unknown");
