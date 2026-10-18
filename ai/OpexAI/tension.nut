@@ -74,6 +74,29 @@ function OpexTensionVehicleSetting(mode)
   return null;
 }
 
+/* V261 point 6 : un mode n'est jouable que si la partie ne l'interdit pas aux IA
+ * (ScriptGameSettings::IsDisabledVehicleType, reglages ai.ai_disable_veh_*,
+ * script_gamesettings.cpp:49-55) et si son plafond de vehicules n'est pas nul. */
+function OpexModeAllowedByGame(mode)
+{
+  local type = OpexC49VehicleType(mode);
+  if (type < 0) return true;
+  if (AIGameSettings.IsDisabledVehicleType(type)) return false;
+  local setting = OpexTensionVehicleSetting(mode);
+  if (setting != null && AIGameSettings.IsValid(setting) && AIGameSettings.GetValue(setting) <= 0) return false;
+  return true;
+}
+
+/* Reste-t-il de quoi mettre `planned` vehicules de plus sous le plafond du mode ?
+ * Sinon l'infrastructure resterait vide (defaut reproche a LuDiAI sur tipsyfox). */
+function OpexModeVehicleRoom(mode, planned)
+{
+  local type = OpexC49VehicleType(mode);
+  local setting = OpexTensionVehicleSetting(mode == "fleet" ? "air" : mode);
+  if (type < 0 || setting == null || !AIGameSettings.IsValid(setting)) return true;
+  return AIGroup.GetNumVehicles(AIGroup.GROUP_ALL, type) + planned <= AIGameSettings.GetValue(setting);
+}
+
 /* UN SEUL parcours de la flotte par cycle : il rend a la fois les effectifs par type et le cout
  * de fonctionnement. GetRunningCost est annuel (verifie dans script_engine.hpp : "per
  * economy-year"), d'ou la division par 12 -- meme convention qu'OpexCashReserve. */

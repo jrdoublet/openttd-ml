@@ -85,6 +85,11 @@ function OpexLoadSettings()
   MODE_RAIL = AIController.GetSetting("mode_rail") != 0;
   MODE_ROAD = AIController.GetSetting("mode_road") != 0;
   MODE_WATER = AIController.GetSetting("mode_water") != 0;
+  // V261 point 6 : couper aussi les modes que la partie interdit aux IA ou dont le plafond vaut 0.
+  if (MODE_AIR && !OpexModeAllowedByGame("air")) MODE_AIR = false;
+  if (MODE_RAIL && !OpexModeAllowedByGame("rail")) MODE_RAIL = false;
+  if (MODE_ROAD && !OpexModeAllowedByGame("road")) MODE_ROAD = false;
+  if (MODE_WATER && !OpexModeAllowedByGame("water")) MODE_WATER = false;
   V177_RAIL_PAX_MIN_DIST = AIController.GetSetting("v177_rail_pax_min_dist");
   if (V177_RAIL_PAX_MIN_DIST < 0) V177_RAIL_PAX_MIN_DIST = 0;
   local freightMin = AIController.GetSetting("v182_rail_freight_min_dist");
