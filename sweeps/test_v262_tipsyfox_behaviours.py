@@ -197,7 +197,6 @@ class TipsyfoxBehaviours(unittest.TestCase):
         prefix = code.split('!("stationA" in line)')[0]
         self.assertRegex(prefix, r'typeof line\s*(?:!=|==)\s*"table"')
 
-    @unittest.expectedFailure  # Fallback ShareOrders : RemoveOrder peut échouer sans progrès.
     def test_order_removal_loop_checks_progress(self):
         code = body('builder_rail.nut', 'OpexConvertDoubleTrackToLoop')
         loop = re.search(r'while \(AIOrder.GetOrderCount\(otherTrain\) > 0\) \{([^}]+)', code)[1]
