@@ -52,8 +52,12 @@ class ProbeContract(unittest.TestCase):
             self.assertIn(token, source)
         # Results cannot be consumed by decisions or persistence.
         for path in AI.glob("*.nut"):
-            if path.name != "probe_rva_cycle.nut":
+            if path.name not in ("probe_rva_cycle.nut", "rva_evaluator.nut"):
                 self.assertNotIn("RVA_CYCLE_STATE", path.read_text(encoding="utf-8"))
+        # RVA-15 adds only a reset of this reconstructible telemetry after Load.
+        evaluator = read("rva_evaluator.nut")
+        self.assertEqual(evaluator.count("RVA_CYCLE_STATE"), 1)
+        self.assertIn("RVA_CYCLE_STATE = null;", evaluator)
 
     def test_units_and_no_reserved_identifiers(self):
         source = read("probe_rva_cycle.nut")

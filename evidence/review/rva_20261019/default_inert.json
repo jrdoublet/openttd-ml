@@ -1,0 +1,11 @@
+{
+  "schema": 1,
+  "reference": "b229674",
+  "function": "OpexExecuteRailPlan",
+  "comparison": "remove exact lazy RVA guard, ignore comments/whitespace only",
+  "reference_token_sha256": "8c61cd26a9e95367b4129097135f5b4e0a192d934e1e4ab6c1b0ef45cde2325e",
+  "default_projection_token_sha256": "8c61cd26a9e95367b4129097135f5b4e0a192d934e1e4ab6c1b0ef45cde2325e",
+  "match": true,
+  "changed_purchase_witness": "sweeps/fixtures/rva_purchase_witness.json",
+  "scope": "static proof, no VM/game or empirical changed-buy count"
+}

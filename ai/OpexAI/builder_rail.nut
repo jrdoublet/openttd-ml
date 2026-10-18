@@ -3424,6 +3424,12 @@ function OpexExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
     }
   }
 
+  /* RVA-16 : after the actual quote/site refresh, before ANY physical spending.
+   * At 0 no model/API/enumeration is executed. Economics is not a geometry failure. */
+  if (RVA_POLICY == 1 && OpexRvaRejectLocalPurchase(candidate, plan)) {
+    result.reason = "RVA_GAIN";
+    return result;
+  }
   local costs = AIAccounting();
 
   budget.begin();

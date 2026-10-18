@@ -665,6 +665,7 @@ require("probe_rva_cycle.nut");
 require("rva_equipment.nut");
 require("rva_distribution.nut");
 require("rva_evaluator.nut");
+require("rva_policy.nut");
 require("rivals_v211.nut");
 require("scheduler.nut");
 require("scheduler_tasks.nut");
@@ -689,8 +690,8 @@ function OpexAI::Start()
   this._startTick = AIController.GetTick();
 
   OpexLoadSettings();
-  if (RVA_CYCLE_PROBE) OpexRvaResetTransient();
   OpexV147ExtendQueue(this);
+  if (RVA_CYCLE_PROBE) OpexRvaResetTransient();
   this._v184InitRailSlots();
   /* Apres les phases V147 : un index insere avant elles decalerait taskCursor. */
   if (this._taskQueue != null) {

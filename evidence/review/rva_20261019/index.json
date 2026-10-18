@@ -24,6 +24,11 @@
       "raw_sha256": "3d72d995841af05f82e49854381512ffe0f940c3930e64d6106399cc89a73c34",
       "gzip_sha256": "e3deb51a69f3c730a2d11057f52eb7722cae2e65934e50b15ff0e616e7470e2c",
       "source": "all recoverable V216 selection snapshots, 80 source hashes embedded"
+    },
+    {
+      "file": "default_inert.json",
+      "raw_sha256": "4ab2eb5eeeaa7e45a3dff88980e689b58b8b59e80a74799d370f5101ba1614b8",
+      "source": "static comparison with master imported at b229674, not a game"
     }
   ]
 }

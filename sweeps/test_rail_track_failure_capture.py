@@ -141,6 +141,16 @@ class TestRailTrackFailureCapture(unittest.TestCase):
 '''
         self.assertEqual(current.count(guard), 1)
         current = current.replace(guard, "")
+        # RVA-16 adds an OFF-by-default purchase veto, independently checked by
+        # test_rva_policy. Strip its exact lazy guard; retain the historical SHA
+        # for every other token (including all spending and rollback commands).
+        rva_guard = '''  if (RVA_POLICY == 1 && OpexRvaRejectLocalPurchase(candidate, plan)) {
+    result.reason = "RVA_GAIN";
+    return result;
+  }
+'''
+        self.assertEqual(current.count(rva_guard), 1)
+        current = current.replace(rva_guard, "")
         # V237 makes the existing site-cache invalidation unconditional.
         call = "OpexAir0310InvalidateSiteValidity();"
         self.assertEqual(current.count(call), 1)

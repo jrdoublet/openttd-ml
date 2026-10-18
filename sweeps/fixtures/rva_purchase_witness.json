@@ -1,0 +1,26 @@
+{
+  "provenance": "synthetic reachable admission witness, not an observed game",
+  "world": "manual cargo, modified catchment, no own coverage overlap, no mail, no joined stops",
+  "reference_candidate": {
+    "monthly": 440,
+    "monthly_capacity": 160,
+    "raw_station_rating": 89.25,
+    "income_per_unit": 50,
+    "running_annual": 2531,
+    "amort_annual": 1450,
+    "capital": 50000,
+    "budget": 100000
+  },
+  "local_inventory": {
+    "town_production_month": 1000,
+    "town_houses": 500,
+    "covered_producers_after_platform_clearance": 5
+  },
+  "expected": {
+    "reference_carried_month": 154,
+    "rva_carried_month": 3,
+    "rva_gain_annual": -2181,
+    "reference_buys_if_existing_prechecks_pass": 1,
+    "rva1_buys": 0
+  }
+}

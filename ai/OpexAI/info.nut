@@ -13,6 +13,11 @@ class OpexAIInfo extends AIInfo {
    * Entre IA, la regle est de jouer a armes egales, sans auto-handicap. */
   function GetSettings()
   {
+    AddSetting({ name = "rva_policy",
+      description = "RVA experiment: 0 reference (default), 1 refuse standalone passenger rail with nonpositive local site profit; uncovered cases keep reference",
+      min_value = 0, max_value = 1,
+      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
+      flags = AICONFIG_BOOLEAN });
     AddSetting({ name = "v233_goods_graft",
       description = "V233: measured goods to town graft (requires v233_pending_continue)",
       min_value = 0, max_value = 1,

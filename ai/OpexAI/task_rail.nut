@@ -334,6 +334,11 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
         if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "cash_at_build", extra = "" });
         return { outcome = "rejected", discards = passDiscards };
       }
+      if (RVA_POLICY == 1 && result.reason == "RVA_GAIN") {
+        if (RVA_CYCLE_PROBE) OpexDecide("RVA_PURCHASE", "key=" + OpexRvaProjectKey(candidate)
+            + " result=veto_before_spend path=immediate");
+        return { outcome = "rejected", discards = passDiscards };
+      }
       if (("railPlan" in candidate)) candidate.railPlan = null;
 
       local recorded = this._recordRailAttempt(candidate, result, posPacked, year, railPlanRef);
@@ -1052,6 +1057,12 @@ function OpexAI::_consumeRailSearch(year)
   local railPlanRef = ("railPlan" in candidate) ? candidate.railPlan : null;
   local result = OpexBuildLine(this._catalog, this._budget, candidate, state.alternativeRatio,
                                OpexCashReserve(), state.hardCap);
+  if (RVA_POLICY == 1 && result.reason == "RVA_GAIN") {
+    if (RVA_CYCLE_PROBE) OpexDecide("RVA_PURCHASE", "key=" + OpexRvaProjectKey(candidate)
+        + " result=veto_before_spend path=resumable");
+    this._railSearch = null;
+    return { outcome = "rejected", reason = "RVA_GAIN", error = 0 };
+  }
   /* Ne pas jeter le plan sur CASH : on reessaiera au prochain tour, sans refaire l'A*. */
   if (result.reason == "CASH") {
     if (C50_CHRONOLOGY_PROBE) this._logC50CashRefusal("rail", -1, candidate.capital, candidate.profitAnnual, candidate.roi, candidate.src, candidate.dst, candidate.capital, AICompany.GetBankBalance(AICompany.COMPANY_SELF));

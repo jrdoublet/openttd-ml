@@ -41,7 +41,7 @@ class DwellModel:
     def load(cls, state, fingerprint, resumed_tick):
         model = cls()
         model.load_status = 'cold_incompatible_state'
-        if (not isinstance(state,dict) or state.get('version')!=VERSION
+        if (not isinstance(state,dict) or type(state.get('version')) is not int or state.get('version')!=VERSION
                 or state.get('fingerprint')!=fingerprint or not fingerprint
                 or type(resumed_tick) is not int or resumed_tick<0
                 or type(state.get('saved_tick')) is not int or state['saved_tick']>resumed_tick
