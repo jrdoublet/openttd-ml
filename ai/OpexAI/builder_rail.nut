@@ -490,6 +490,7 @@ function OpexRailSiteReason(sawA, sawB)
  */
 function OpexRailPlatformPlans(catalog, candidate)
 {
+  if (V266_RAIL_AIR_FEEDER && OpexV266IsFeeder(candidate)) return OpexV266Platforms(catalog, candidate);
   local statsA = { nClear = 0, nCargo = 0, nCmd = 0 };
   local statsB = { nClear = 0, nCargo = 0, nCmd = 0 };
 
@@ -2640,6 +2641,9 @@ function OpexBuildTrains(catalog, cargo, kind, depotTile, exitA, exitB, wanted, 
   local nonstopFlag = AIOrder.OF_NON_STOP_INTERMEDIATE;
   local flagsA = AIOrder.OF_FULL_LOAD_ANY | nonstopFlag;
   local flagsB = ((kind == "freight") ? AIOrder.OF_NONE : AIOrder.OF_FULL_LOAD_ANY) | nonstopFlag;
+  // AAA trainroute.nut:1334; OpenTTD script_order.hpp: OF_TRANSFER/OF_NO_LOAD.
+  if (V266_RAIL_AIR_FEEDER && kind == "feeder")
+    flagsB = nonstopFlag | AIOrder.OF_TRANSFER | AIOrder.OF_NO_LOAD;
   for (local i = 0; i < wanted; i++) {
     local train = AIVehicle.BuildVehicle(depotTile, loco.id);
     if (!AIVehicle.IsValidVehicle(train)) {
@@ -3424,6 +3428,15 @@ function OpexExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
     }
   }
 
+  if (V266_RAIL_AIR_FEEDER && OpexV266IsFeeder(candidate)) {
+    // Re-evaluate after the actual quote, immediately before the first expense.
+    OpexV266Value(candidate);
+    if (candidate.profitAnnual <= 0 || plan.planB == null
+        || !("stationId" in plan.planB) || plan.planB.stationId != candidate.v266Airport) {
+      result.reason = "V266_VALUE_OR_JOIN";
+      return result;
+    }
+  }
   local costs = AIAccounting();
 
   budget.begin();

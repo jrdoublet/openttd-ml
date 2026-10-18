@@ -57,6 +57,7 @@ function OpexResolveDifficulty()
 function OpexLoadSettings()
 {
   V233_PENDING_CONTINUE = AIController.GetSetting("v233_pending_continue") != 0;
+  V266_RAIL_AIR_FEEDER = AIController.GetSetting("v266_rail_air_feeder") != 0;
   V233_GOODS_GRAFT = AIController.GetSetting("v233_goods_graft") != 0;
   if (V233_GOODS_GRAFT && !V233_PENDING_CONTINUE) {
     AILog.Warning("V233: v233_goods_graft refused: v233_pending_continue=0");

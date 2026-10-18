@@ -691,6 +691,7 @@ V147_TASK_BASE <- -1;
  * 0 = insertion lineaire historique (defaut) ; 1 = dichotomie sur cles mises en cache. */
 SELECT_BISECT_STAMP <- 0;
 V233_PENDING_CONTINUE <- false;
+V266_RAIL_AIR_FEEDER <- false;
 V233_GOODS_GRAFT <- false;
 const V233_PLAN_LIMIT = 4;
 const V233_PLAN_TTL_DAYS = 90;

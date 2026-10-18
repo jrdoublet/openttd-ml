@@ -540,6 +540,7 @@ function OpexApplyRailEconomics(candidate, economics)
   } else if ("wagons2" in candidate) {
     candidate.wagons2 = 0;
   }
+  if (V266_RAIL_AIR_FEEDER && OpexV266IsFeeder(candidate)) OpexV266Value(candidate);
 }
 
 /* V163 : second cargo memorise sur un candidat rail, a repasser a OpexLineEconomics quand le

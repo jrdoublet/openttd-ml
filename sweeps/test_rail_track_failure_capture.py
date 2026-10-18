@@ -141,6 +141,20 @@ class TestRailTrackFailureCapture(unittest.TestCase):
 '''
         self.assertEqual(current.count(guard), 1)
         current = current.replace(guard, "")
+        # V266 adds a fail-before-spend admission guard. Require its exact body
+        # before projecting it away; retain the original rollback/capture hash.
+        v266_guard = '''  if (V266_RAIL_AIR_FEEDER && OpexV266IsFeeder(candidate)) {
+    // Re-evaluate after the actual quote, immediately before the first expense.
+    OpexV266Value(candidate);
+    if (candidate.profitAnnual <= 0 || plan.planB == null
+        || !("stationId" in plan.planB) || plan.planB.stationId != candidate.v266Airport) {
+      result.reason = "V266_VALUE_OR_JOIN";
+      return result;
+    }
+  }
+'''
+        self.assertEqual(current.count(v266_guard), 1)
+        current = current.replace(v266_guard, "")
         # V237 makes the existing site-cache invalidation unconditional.
         call = "OpexAir0310InvalidateSiteValidity();"
         self.assertEqual(current.count(call), 1)

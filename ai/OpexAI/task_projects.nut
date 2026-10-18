@@ -1144,6 +1144,12 @@ function OpexAI::_c78LogAirSlotLine(phase, project, rank, tail)
 function OpexAI::_consumeResumableRailAtPassStart(year, passDiscards, c49Best, c49BuiltRanks,
                                                   c75BuiltKeys, c69BuiltProjects)
 {
+  if (V266_RAIL_AIR_FEEDER && OpexV266IsFeeder(this._railSearch.candidate)) {
+    this._v266.ready = { candidate = this._railSearch.candidate,
+      plan = this._railSearch.candidate.railPlan };
+    this._railSearch = null;
+    return false; // Stage only: normal AIR pass precedes residual feeder spending.
+  }
   if (V233_GOODS_GRAFT && OpexV233IsGraft(this._railSearch.candidate)
       && this._railSearch.candidate.railPlan != null && this._railSearch.candidate.railPlan.ok) {
     this._v233StorePlan(this._railSearch.candidate, this._railSearch.candidate.railPlan);
@@ -1982,6 +1988,11 @@ function OpexAI::_tryBuildProjects(year)
     local spPrep = PROBE_SPAN_TRACE ? OpexSpanBegin("railprep.after_pass") : null;
     this._c121RailPrepAfterProjectsPass();
     if (spPrep != null) OpexSpanEnd(spPrep);
+  }
+  if (V266_RAIL_AIR_FEEDER) {
+    local mark = DECISION_LOG ? OpexOpsMeasureBegin() : null;
+    this._v266AfterPass();
+    if (mark != null && this._v266 != null) OpexV266Ops(this._v266, mark, true);
   }
   return false;
 }

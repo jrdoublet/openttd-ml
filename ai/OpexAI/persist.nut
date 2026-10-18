@@ -719,6 +719,7 @@ function OpexAI::Save()
 function OpexAI::Load(version, data)
 {
   this._v233Plans = null;
+  if (V266_RAIL_AIR_FEEDER) this._v266 = null; // Require fresh departures after reload.
   this._v233Offers = null;
   this._v233Generation = null;
   this._v233PublishedProjects = null;

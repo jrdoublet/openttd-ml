@@ -389,6 +389,7 @@ function OpexAI::_expandRailLines(year)
   OpexSign(AIMap.GetTileIndex(1, 1), "EU|" + (year % 100) + "|0|0|0|0|" + decisionOps);
   {
     foreach (line in this._lines) {
+        if (V266_RAIL_AIR_FEEDER && OpexV266IsFeeder(line)) continue;
         if ((("mode" in line) && line.mode != "rail") || !("wagons" in line) || !("loco" in line) || !("kind" in line)) continue;
         /* V181 retire (defaut 0) : plafond historique de 2 trains, sauf fret V190. */
         if (!OpexV190Active() || line.kind != "freight") {
@@ -1240,6 +1241,15 @@ function OpexAI::_recordRailAttempt(candidate, result, posPacked, year)
       built.predRevenue2 <- candidate.revenue2;
     }
     this._nextLineId++;
+    if (V266_RAIL_AIR_FEEDER && OpexV266IsFeeder(candidate)) {
+      local feeder = this._lines[this._lines.len() - 1];
+      feeder.v266AirLine <- candidate.v266AirLine;
+      feeder.v266Airport <- candidate.v266Airport;
+      // Company marginal revenue is never a rail calibration target (V139).
+      feeder.predicted = 0;
+      feeder.predRevenue = 0;
+      this._saveProjection = null;
+    }
     if (DECISION_LOG && OpexV190Active() && candidate.kind == "freight") {
       if (("v181Loop" in result) && result.v181Loop) {
         OpexDecide("V190", "action=build_double line=" + idx + " trains=" + result.trains + " reason=OK");

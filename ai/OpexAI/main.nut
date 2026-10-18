@@ -144,6 +144,7 @@ class OpexAI extends AIController {
    * termine en remettant _railSearch = null. Le pathfinder lui-meme est dans state.pathfinder. */
   _railSearch = null;
   _v233GoodsObservations = null;
+  _v266 = null; // Reconstructible departure observations; never saved.
   _v233GoodsWork = null;
   _v233Offers = null;
   _v233Plans = null;
@@ -473,6 +474,10 @@ class OpexAI extends AIController {
   function Start();
   function _tooClose(candidate);
   function _v233GoodsStep();
+  function _v266Observe();
+  function _v266AfterPass();
+  function _v266Finish(candidate, plan);
+  function _v266Reserve();
   function _v233WorldRevision();
   function _v233GraftStep();
   function _v233CandidateLive(candidate);
@@ -644,6 +649,7 @@ require("event_handlers.nut");
 require("ledgers.nut");
 require("lines.nut");
 require("goods_v233.nut");
+require("rail_air_v266.nut");
 require("orchestrator.nut");
 require("persist.nut");
 require("probes.nut");
