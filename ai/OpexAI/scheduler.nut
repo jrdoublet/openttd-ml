@@ -7,6 +7,7 @@
 function OpexAI::_runNextTaskWithSlackLedger()
 {
   if (RVA_CYCLE_PROBE) OpexRvaCycleStep(this._lines);
+  if (RVA_CYCLE_PROBE) OpexRvaEvalStep();
   if (V233_GOODS_GRAFT && this._catalog != null) {
     this._v233GoodsStep();
     if (this._v233GoodsWork != null && this._v233GoodsWork.phase == "done") {

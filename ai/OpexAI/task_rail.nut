@@ -1074,6 +1074,7 @@ function OpexAI::_consumeRailSearch(year)
  * panneaux OR/OB restent identiques. */
 function OpexAI::_recordRailAttempt(candidate, result, posPacked, year, railPlan = null)
 {
+  if (RVA_CYCLE_PROBE) OpexRvaObserveAttempt(candidate, result, this._nextLineId);
   if (RAIL_FAILURE_AUDIT) OpexRailFailureAudit("attempt", candidate,
       (result.ok ? "OK" : (("reason" in result) && result.reason != "" ? result.reason : "UNKNOWN")),
       (result.ok ? 1 : 0), (("actualCost" in result) ? result.actualCost : 0),
