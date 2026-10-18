@@ -362,7 +362,7 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
             if (OpexLineStationId(line, "A") == candidate.joinStationId
                 || OpexLineStationId(line, "B") == candidate.joinStationId)
               line.v233SharedStationId <- candidate.joinStationId;
-            if (V233_GOODS_POLICY == 2 && ("v233JoinB" in candidate) && candidate.v233JoinB >= 0
+            if ((V233_GOODS_POLICY == 2 || V233_GOODS_POLICY == 3) && ("v233JoinB" in candidate) && candidate.v233JoinB >= 0
                 && (OpexLineStationId(line, "A") == candidate.v233JoinB
                     || OpexLineStationId(line, "B") == candidate.v233JoinB))
               line.v233SharedStationBId <- candidate.v233JoinB;
@@ -374,7 +374,7 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
           if (DECISION_LOG) OpexDecide("V233_BUILD", "factory=" + candidate.v233FactoryId
             + " cargo=" + candidate.cargo + " station=" + candidate.joinStationId
             + " line=" + (this._nextLineId - 1)
-            + (V233_GOODS_POLICY == 2 && ("v233JoinB" in candidate)
+            + ((V233_GOODS_POLICY == 2 || V233_GOODS_POLICY == 3) && ("v233JoinB" in candidate)
               ? (candidate.v233JoinB >= 0 ? " joinB=" + candidate.v233JoinB : " newB") : ""));
         }
       }
@@ -1747,7 +1747,8 @@ function OpexV131PlatformCargoOk(p, candidate, catalog, wantProduction)
   if (catalog != null && ("railCoverage" in catalog) && catalog.railCoverage > 0) {
     coverage = catalog.railCoverage;
   }
-  if (V233_GOODS_GRAFT && V233_GOODS_POLICY == 2 && OpexV233IsGraft(candidate) && !wantProduction) {
+  if (V233_GOODS_GRAFT && (V233_GOODS_POLICY == 2 || V233_GOODS_POLICY == 3) && OpexV233IsGraft(candidate) && !wantProduction) {
+    if (V233_GOODS_POLICY == 3 && !OpexV233eDestinationCargoOk(p, candidate, coverage)) return false;
     if ("stationId" in p) {
       if (!("v233JoinB" in candidate) || p.stationId != candidate.v233JoinB
           || !("v233StationTile" in p)) return false;

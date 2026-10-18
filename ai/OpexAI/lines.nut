@@ -237,6 +237,8 @@ function OpexAbandonedPairKey(candidate)
 {
   // NoAI's invalid IndustryID need not be negative. Keep the graft's explicit
   // town identity; one impossible city must not poison another goods outlet.
+  if (V233_GOODS_GRAFT && V233_GOODS_POLICY == 3 && OpexV233IsGraft(candidate) && candidate.dstTown < 0)
+    return "freight|" + candidate.cargo + "|" + candidate.v233FactoryId + "|" + candidate.v233DstIndustry;
   if (V233_GOODS_GRAFT && OpexV233IsGraft(candidate))
     return "freight|" + candidate.cargo + "|" + candidate.v233FactoryId + "|t" + candidate.dstTown;
 
@@ -323,7 +325,7 @@ function OpexAI::_tooClose(candidate)
   /* V178 : la ligne rattachee partage volontairement la gare de la ligne existante. */
   local joinLineId = ("joinLineId" in candidate) ? candidate.joinLineId : -1;
   local joinStationId = ("joinStationId" in candidate) ? candidate.joinStationId : -1;
-  local graftDestStation = v233Join && V233_GOODS_POLICY == 2 && ("v233JoinB" in candidate)
+  local graftDestStation = v233Join && (V233_GOODS_POLICY == 2 || V233_GOODS_POLICY == 3) && ("v233JoinB" in candidate)
     ? candidate.v233JoinB : -1;
   local isSharedDest = V178_RAIL_SHARED_DEST && ("shared_dest" in candidate) && candidate.shared_dest == 1;
   local entries = [["A", candidate.src], ["B", candidate.dst]];

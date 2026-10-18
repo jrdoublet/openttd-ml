@@ -1,0 +1,18 @@
+{
+  "source_commit": "69398cdc0f442e15ba044203eed60bce3dd427ba",
+  "functions": {
+    "OpexAI::_v233GoodsStep": "867da26df4aeee54fcb7f6f89a0a12b1ac673c245ef69a68352f6182c54010ad",
+    "OpexAI::_v233GraftStep": "ceb6f55cd3aa65af4626ff7a517b8eecc055609e5f77029d1b07cb9e097a7ab2",
+    "OpexAI::_v233CandidateLive": "f85a3d2576e12b1b371387bfad6528bd1c1c92053812558a65d8a12a4844134a",
+    "OpexV233PlatformPlans": "6d8d5f6593f32b3b26ff27d0750a66606a291fb580921842ad63f2c5625af9d3",
+    "OpexV233TownPlans": "805142aedf52e5f38b522fd12415427b32f3f824ef860754b45ee63e396a22d7",
+    "OpexV233Quantity": "17205e547b024ead1b7ab0556b6630de5b8171615bcc42aca48436d83ab41672",
+    "OpexV233Support": "1499910d7c13b5cfaf99e88b9822f738dd426b19ad2ac9bca25b49e099c64920",
+    "OpexV233SaveObservations": "ca5c998510f3fd7b1c1a2315d5836fc2057aba5a800c94678595a397f611cc3e",
+    "OpexV233LoadObservations": "0b957fe0cf809420de8329c5c4fac75e870a88e7ce8e964e51b15b5b5942770a",
+    "OpexV233FactoryCovered": "de9abda2ee268ec2f6e8ad138f03d010f1f6f9c5c49b02be003953f068dae892",
+    "OpexV233JoinedTownPlans": "09a2a57f46071b8c3cfd33e3cba0df60d91aa4e5a6625fddba570beaf2423c14",
+    "OpexV233SourceSiteKey": "03a75e30476a0290935070295d3f7b9a3b9d45682073c864ffdbd0469ecece07",
+    "OpexAI::_v233WorldRevision": "a77499edec96bb51c661e8f99437ea01e31f4f17989075e1435fd916e0cad5e0"
+  }
+}

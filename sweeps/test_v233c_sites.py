@@ -48,7 +48,7 @@ class SiteContracts(unittest.TestCase):
 
     def test_validation_matches_search_only_for_mode_two_graft_destination(self):
         validate = body('task_rail.nut', 'function OpexV131PlatformCargoOk(')
-        self.assertIn('V233_GOODS_GRAFT && V233_GOODS_POLICY == 2 && OpexV233IsGraft(candidate) && !wantProduction', validate)
+        self.assertIn('V233_GOODS_GRAFT && (V233_GOODS_POLICY == 2 || V233_GOODS_POLICY == 3) && OpexV233IsGraft(candidate) && !wantProduction', validate)
         self.assertIn('return OpexV233TownAcceptance(p, candidate.cargo, coverage) >= 8;', validate)
         self.assertIn('OpexRailPlatformCargoValue(', validate)
         for signature in ('function OpexV233SpendAllowed(', 'function OpexAI::_v233PlanStep('):

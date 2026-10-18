@@ -50,7 +50,7 @@ class ExposureAnalysis(unittest.TestCase):
 class V233bContracts(unittest.TestCase):
     def test_mode_two_is_integer_default_off_and_not_an_extra_setting(self):
         setting = (AI / 'info.nut').read_text().split('name = "v233_goods_graft"', 1)[1].split('});', 1)[0]
-        self.assertIn('max_value = 2', setting)
+        self.assertIn('max_value = 3', setting)
         self.assertNotIn('AICONFIG_BOOLEAN', setting)
         for level in ('easy', 'medium', 'hard', 'custom'):
             self.assertIn(f'{level}_value = 0', setting)
@@ -73,7 +73,7 @@ class V233bContracts(unittest.TestCase):
         generate = body('goods_v233.nut', 'function OpexAI::_v233GraftStep(')
         self.assertLess(generate.index('sites.reason != "OK"'), generate.index('candidate.roi > state.preferred.roi'))
         builder = body('builder_rail.nut', 'function OpexRailPlatformPlans(')
-        self.assertIn('V233_GOODS_GRAFT && V233_GOODS_POLICY == 2 && OpexV233IsGraft(candidate)', builder)
+        self.assertIn('V233_GOODS_GRAFT && (V233_GOODS_POLICY == 2 || V233_GOODS_POLICY == 3) && OpexV233IsGraft(candidate)', builder)
 
     def test_synchronous_search_cannot_bypass_stock_or_reprice_missing_entry(self):
         attempt = body('task_rail.nut', 'function OpexAI::_tryBuildRailProject(')

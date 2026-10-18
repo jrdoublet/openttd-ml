@@ -479,13 +479,17 @@ function OpexRailPlatformPlans(catalog, candidate)
   local statsA = { nClear = 0, nCargo = 0, nCmd = 0 };
   local statsB = { nClear = 0, nCargo = 0, nCmd = 0 };
 
+  if (V233_GOODS_GRAFT && V233_GOODS_POLICY == 3 && OpexV233IsGraft(candidate)) {
+    OpexV233eInitSiteStats(statsA);
+    OpexV233eInitSiteStats(statsB);
+  }
   if (V233_GOODS_GRAFT && ("strictJoin" in candidate) && candidate.strictJoin
       && !OpexV233JoinContextValid(candidate, candidate.cargo, candidate.src, catalog.railCoverage))
     return { plansA = [], plansB = [], length = candidate.platformLength,
              slopeRelaxed = 0, reason = "SITEA", statsA = statsA, statsB = statsB };
 
   local floor = OpexRailMinimumPlatformLength();
-  if (V233_GOODS_GRAFT && V233_GOODS_POLICY == 2 && OpexV233IsGraft(candidate))
+  if (V233_GOODS_GRAFT && (V233_GOODS_POLICY == 2 || V233_GOODS_POLICY == 3) && OpexV233IsGraft(candidate))
     return OpexV233PlatformPlans(catalog, candidate, statsA, statsB);
   local wanted = candidate.platformLength;
   if (wanted > catalog.platformLength) wanted = catalog.platformLength;

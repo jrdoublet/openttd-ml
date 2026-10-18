@@ -14,6 +14,7 @@ def analyze_sites(lines):
     rejects = []
     results = []
     deliveries = []
+    drops = []
     for number, line in enumerate(lines, 1):
         if ' V233_GRAFT ' in line:
             data = fields(line.strip())
@@ -25,18 +26,22 @@ def analyze_sites(lines):
                 counts['built'] += data['built'] == '1'
         if ' V233_DELIVERY ' in line:
             deliveries.append({'line': number, **fields(line.strip())})
-        if ' V233_DROP reason=month_coverage ' in line:
-            counts['month_coverage'] += 1
+        if ' V233_DROP ' in line:
+            data = fields(line.strip())
+            drops.append({'line': number, **data})
+            counts['drop_' + data['reason']] += 1
+            if data['reason'] == 'month_coverage':
+                counts['month_coverage'] += 1
     return {'counts': dict(counts), 'rejections': rejects,
-            'results': results, 'deliveries': deliveries}
+            'results': results, 'deliveries': deliveries, 'drops': drops}
 
 
-def analyze_directory(directory):
+def analyze_directory(directory, pattern='v233b_e13_mode2_seed*_r0.log'):
     logs = {}
     totals = Counter()
     seeds_built = []
     seeds_delivered = []
-    for path in sorted(directory.glob('v233b_e13_mode2_seed*_r0.log')):
+    for path in sorted(directory.glob(pattern)):
         seed = int(re.search(r'_seed(\d+)_', path.name)[1])
         raw = path.read_bytes()
         result = analyze_sites(raw.decode('utf-8').splitlines())
@@ -58,8 +63,9 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('directory', type=Path)
     parser.add_argument('--out', required=True, type=Path)
+    parser.add_argument('--pattern', default='v233b_e13_mode2_seed*_r0.log')
     args = parser.parse_args()
-    result = analyze_directory(args.directory)
+    result = analyze_directory(args.directory, args.pattern)
     with args.out.open('x', encoding='utf-8') as stream:
         json.dump(result, stream, ensure_ascii=False, indent=2)
         stream.write('\n')

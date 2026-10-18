@@ -645,6 +645,7 @@ require("event_handlers.nut");
 require("ledgers.nut");
 require("lines.nut");
 require("goods_v233.nut");
+require("goods_v233e.nut");
 require("orchestrator.nut");
 require("persist.nut");
 require("probes.nut");

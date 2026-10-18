@@ -83,6 +83,7 @@ function OpexV233Quantity(row, month)
 function OpexV233CurrentOutputValid(factory, cargo)
 {
   local q = AIIndustry.GetLastMonthProduction(factory, cargo);
+  if (V233_GOODS_POLICY == 3) return q > 0;
   // A zero is a valid month in the mean policy, never an unknown reading.
   return V233_GOODS_POLICY == 2 ? q >= 0 : q >= V233_GOODS_MIN_MONTHLY;
 }
@@ -150,6 +151,7 @@ function OpexAI::_v233WorldRevision()
 
 function OpexAI::_v233GoodsStep()
 {
+  if (V233_GOODS_POLICY == 3) { OpexV233eGoodsStep(this); return; }
   local date = AIDate.GetCurrentDate();
   local month = AIDate.GetYear(date) * 12 + AIDate.GetMonth(date);
   local work = this._v233GoodsWork;
@@ -255,7 +257,8 @@ function OpexV233JoinContextValid(context, cargo, source, coverage)
       || AIStation.GetStationID(context.v233StationTile) != context.joinStationId
       || !AICompany.IsMine(AITile.GetOwner(context.v233StationTile))) return false;
   local produced = AIIndustryType.GetProducedCargo(AIIndustry.GetIndustryType(context.v233FactoryId));
-  if (!produced.HasItem(cargo) || AICargo.GetTownEffect(cargo) != AICargo.TE_GOODS) return false;
+  if (!produced.HasItem(cargo)
+      || (V233_GOODS_POLICY != 3 && AICargo.GetTownEffect(cargo) != AICargo.TE_GOODS)) return false;
   local p = context.joinPlatform;
   if (p == null) return false;
   for (local i = 0; i < p.length; i++) {
@@ -263,7 +266,9 @@ function OpexV233JoinContextValid(context, cargo, source, coverage)
     if (!AIRail.IsRailStationTile(tile) || AIStation.GetStationID(tile) != context.joinStationId
         || !AICompany.IsMine(AITile.GetOwner(tile))) return false;
   }
-  return OpexV233FactoryCovered(p, context.v233FactoryId, cargo, coverage);
+  // Mode 3 checks production on the NEW output platform, not on the input one.
+  // The existing input platform still has to belong to this exact station.
+  return V233_GOODS_POLICY == 3 || OpexV233FactoryCovered(p, context.v233FactoryId, cargo, coverage);
 }
 
 function OpexV233FactoryCovered(platform, factory, cargo, coverage)
@@ -400,6 +405,7 @@ function OpexV233SourceSiteKey(context, cargo)
  * StationID join at A throughout. No reuse of old track. */
 function OpexV233PlatformPlans(catalog, candidate, statsA, statsB)
 {
+  if (V233_GOODS_POLICY == 3) return OpexV233ePlatformPlans(catalog, candidate, statsA, statsB);
   statsB.tiles <- 0;
   statsB.tried <- 0;
   statsB.last <- "not_searched";
@@ -444,6 +450,7 @@ function OpexV233PlatformPlans(catalog, candidate, statsA, statsB)
 function OpexAI::_v233CandidateLive(candidate)
 {
   if (!V233_GOODS_GRAFT || !OpexV233IsGraft(candidate)) return false;
+  if (V233_GOODS_POLICY == 3) return OpexV233eCandidateLive(this, candidate);
   local work = this._v233GoodsWork;
   local date = AIDate.GetCurrentDate();
   local month = AIDate.GetYear(date) * 12 + AIDate.GetMonth(date);
@@ -471,6 +478,7 @@ function OpexAI::_v233CandidateLive(candidate)
 
 function OpexAI::_v233GraftStep()
 {
+  if (V233_GOODS_POLICY == 3) { OpexV233eGraftStep(this); return; }
   local work = this._v233GoodsWork;
   if (work == null || work.phase != "done" || this._projects == null) return;
   if (this._v233Offers == null) this._v233Offers = {};
@@ -629,7 +637,7 @@ function OpexV233SpendAllowed(catalog, candidate, plan)
   local protectedTiles = {};
   local existing = AITileList_StationType(candidate.joinStationId, AIStation.STATION_TRAIN);
   for (local tile = existing.Begin(); !existing.IsEnd(); tile = existing.Next()) protectedTiles[tile] <- true;
-  if (V233_GOODS_POLICY == 2) {
+  if (V233_GOODS_POLICY == 2 || V233_GOODS_POLICY == 3) {
     foreach (p in [plan.planA, plan.planB]) {
       if (!("stationId" in p)) continue;
       local allTiles = AITileList_StationType(p.stationId, AIStation.STATION_ANY);
@@ -670,7 +678,7 @@ function OpexAI::_v233PlanStep()
   local entry = chosen;
   local plan = entry.plan;
   local candidate = entry.candidate;
-  if (entry.revision != this._v233WorldRevision()) {
+  if (V233_GOODS_POLICY != 3 && entry.revision != this._v233WorldRevision()) {
     entry.revision = this._v233WorldRevision();
     entry.phase = "platforms"; entry.cursor = 1;
   }

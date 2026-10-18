@@ -40,7 +40,7 @@ class V233dContracts(unittest.TestCase):
         self.assertIn(': OpexV233TownPlans(candidate.dst', plans)
         self.assertIn('candidate.v233JoinB <- joinB ? plansB[0].stationId : -1', plans)
         dispatch = body('builder_rail.nut', 'function OpexRailPlatformPlans(')
-        self.assertIn('V233_GOODS_GRAFT && V233_GOODS_POLICY == 2 && OpexV233IsGraft(candidate)', dispatch)
+        self.assertIn('V233_GOODS_GRAFT && (V233_GOODS_POLICY == 2 || V233_GOODS_POLICY == 3) && OpexV233IsGraft(candidate)', dispatch)
 
     def test_multimodal_station_must_be_ours_accepting_and_in_destination_town(self):
         finder = body('goods_v233.nut', 'function OpexV233JoinedTownPlans(')
@@ -88,7 +88,7 @@ class V233dContracts(unittest.TestCase):
         generate = body('goods_v233.nut', 'function OpexAI::_v233GraftStep(')
         self.assertIn('V233_GOODS_POLICY != 2 && OpexOriginService', generate)
         separation = body('lines.nut', 'function OpexAI::_tooClose(')
-        self.assertIn('v233Join && V233_GOODS_POLICY == 2', separation)
+        self.assertIn('v233Join && (V233_GOODS_POLICY == 2 || V233_GOODS_POLICY == 3)', separation)
         self.assertEqual(separation.count('entry[0] == "B" && graftDestStation >= 0'), 2)
         self.assertIn('OpexLineStationId(line, lineEnd) == graftDestStation', separation)
         self.assertIn('stationId == graftDestStation', separation)
