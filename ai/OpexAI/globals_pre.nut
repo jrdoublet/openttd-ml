@@ -92,6 +92,8 @@ V249_STATUE <- false;
 /* Vrai si une passe projets s'est arretee faute de caisse depuis le dernier
  * passage statue. Vrai au depart : le premier mois ne compte pas. Pas sauvegarde. */
 V249_CASH_STOP <- true;
+/* V257 : revision des rames existantes, experimentale OFF. */
+V257_RAIL_REFRESH <- false;
 /* V252 : modernisation de la flotte aerienne (air_fleet.nut, task_v252.nut).
  * 0 = clonage, 1 = renfort/crash au meilleur modele, 2 = mode 1 + remplacement actif quand riche (defaut depuis le 18/10). */
 V252_AIR_ENGINE_REFRESH <- 2;
