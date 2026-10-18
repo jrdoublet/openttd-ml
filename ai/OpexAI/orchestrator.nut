@@ -596,6 +596,12 @@ function OpexAI::_dispatchReactiveIntention(intention)
 {
   if (intention == null) return false;
   local sp = null;
+  if (intention.key == "v259_bridge" || intention.kind == "v259_bridge") {
+    sp = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.orch.reactive.v259_bridge") : null;
+    local res = this._v259StepBridgeRenew();
+    if (sp != null) OpexSpanEnd(sp);
+    return res;
+  }
   if (intention.key == "regen" || intention.kind == "regen") {
     {
       sp = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.orch.reactive.regen") : null;

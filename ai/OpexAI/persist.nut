@@ -632,6 +632,11 @@ function OpexAI::Save()
     if (V133_AIR_BUILD_RETRY) OpexV133SaveQuarantine(shortSave);
     if (V233_GOODS_GRAFT && this._v233GoodsObservations != null)
       shortSave.v233GoodsObservations <- OpexV233SaveObservations(this._v233GoodsObservations);
+    if (V259_BRIDGE_RENEW != 0) {
+      shortSave.v259KnownBridgesCount <- this._v259KnownBridgesCount;
+      shortSave.v259Cursor <- this._v259Cursor;
+      shortSave.v259Queue <- OpexV259SaveQueue(this._v259Queue);
+    }
     return shortSave;
   }
 
@@ -714,6 +719,11 @@ function OpexAI::Save()
   if (V133_AIR_BUILD_RETRY) OpexV133SaveQuarantine(saveObj);
   if (V233_GOODS_GRAFT && this._v233GoodsObservations != null)
     saveObj.v233GoodsObservations <- OpexV233SaveObservations(this._v233GoodsObservations);
+  if (V259_BRIDGE_RENEW != 0) {
+    saveObj.v259KnownBridgesCount <- this._v259KnownBridgesCount;
+    saveObj.v259Cursor <- this._v259Cursor;
+    saveObj.v259Queue <- OpexV259SaveQueue(this._v259Queue);
+  }
   return saveObj;
 }
 function OpexAI::Load(version, data)
@@ -799,6 +809,9 @@ function OpexAI::Load(version, data)
   if ("c83PreemptRace" in data) this._reloadC83PreemptRace = data.c83PreemptRace;
   if ("v250Targets" in data) this._reloadV250Targets = data.v250Targets;
   if ("v250Freed" in data) this._reloadV250Freed = data.v250Freed;
+  if ("v259KnownBridgesCount" in data) this._reloadV259KnownBridgesCount = data.v259KnownBridgesCount;
+  if ("v259Cursor" in data) this._reloadV259Cursor = data.v259Cursor;
+  if ("v259Queue" in data) this._reloadV259Queue = data.v259Queue;
   /* C80 étape 2 : mémoire transitoire du seuil de sélection du stock rail, remise à 0 au rechargement. */
   this._railStockLastFundedScore = 0.0;
   this._railStockLastFundedDate = -1;
@@ -913,6 +926,35 @@ function OpexAI::_reconcileAfterLoad()
    * tournait sur la liste encore vide et remettait tous les facteurs a 1 (mesure 2026-09-22). */
   OpexC70RecomputeFactors(this._lines);
   OpexC121RecomputeRealizationFactors(this._lines);
+
+  local selfComp = AICompany.ResolveCompanyID(AICompany.COMPANY_SELF);
+  foreach (line in this._lines) {
+    if (line == null) continue;
+    if (!("bridges" in line) || line.bridges == null) {
+      line.bridges <- [];
+    } else {
+      local liveBridges = [];
+      foreach (b in line.bridges) {
+        if (b != null && ("start" in b) && ("end" in b) &&
+            AIBridge.IsBridgeTile(b.start) && AIBridge.GetOtherBridgeEnd(b.start) == b.end &&
+            AITile.GetOwner(b.start) == selfComp) {
+          liveBridges.append(b);
+        }
+      }
+      line.bridges = liveBridges;
+    }
+  }
+
+  if (V259_BRIDGE_RENEW != 0) {
+    if (this._reloadV259KnownBridgesCount != null) this._v259KnownBridgesCount = this._reloadV259KnownBridgesCount;
+    if (this._reloadV259Cursor != null) this._v259Cursor = this._reloadV259Cursor;
+    if (this._reloadV259Queue != null) {
+      this._v259Queue = OpexV259LoadQueue(this._reloadV259Queue, this._lines);
+    }
+  }
+  this._reloadV259KnownBridgesCount = null;
+  this._reloadV259Cursor = null;
+  this._reloadV259Queue = null;
 
   local railExpansion = this._reconcileRailExpansionAfterLoad();
 

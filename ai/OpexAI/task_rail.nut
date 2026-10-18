@@ -321,6 +321,7 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
          * recherche dans le meme tour : creation de slot Squirrel avec `<-`. */
         candidate.railPlan <- start.plan;
       }
+      local railPlanRef = ("railPlan" in candidate) ? candidate.railPlan : null;
       local result = OpexBuildLine(this._catalog, this._budget, candidate, alternativeRatio,
                                    OpexCashReserve(), hardCap);
       if (v233Graft && result.reason == "V233_REPRICE") {
@@ -335,7 +336,7 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
       }
       if (("railPlan" in candidate)) candidate.railPlan = null;
 
-      local recorded = this._recordRailAttempt(candidate, result, posPacked, year);
+      local recorded = this._recordRailAttempt(candidate, result, posPacked, year, railPlanRef);
       if (v233Graft) {
         this._v233ForgetPlan(candidate, recorded ? "built" : "build_failed");
         if (recorded) {
@@ -1048,6 +1049,7 @@ function OpexAI::_consumeRailSearch(year)
     }
   }
 
+  local railPlanRef = ("railPlan" in candidate) ? candidate.railPlan : null;
   local result = OpexBuildLine(this._catalog, this._budget, candidate, state.alternativeRatio,
                                OpexCashReserve(), state.hardCap);
   /* Ne pas jeter le plan sur CASH : on reessaiera au prochain tour, sans refaire l'A*. */
@@ -1062,7 +1064,7 @@ function OpexAI::_consumeRailSearch(year)
     return { outcome = "cash", reason = "cash_at_build", error = cashError };
   }
   candidate.railPlan = null;
-  local built = this._recordRailAttempt(candidate, result, state.posPacked, year);
+  local built = this._recordRailAttempt(candidate, result, state.posPacked, year, railPlanRef);
   local reason = ("reason" in result && result.reason != "") ? result.reason : "build_failed";
   local error = ("error" in result) ? result.error : 0;
   return { outcome = built ? "built" : "failed", reason = reason, error = error };
@@ -1070,7 +1072,7 @@ function OpexAI::_consumeRailSearch(year)
 /* Panneaux + enregistrement d'une tentative rail, reussie ou non. Facteur commun au chemin
  * bloquant et au chemin reprenable, pour que le denominateur (result.iterations) et les
  * panneaux OR/OB restent identiques. */
-function OpexAI::_recordRailAttempt(candidate, result, posPacked, year)
+function OpexAI::_recordRailAttempt(candidate, result, posPacked, year, railPlan = null)
 {
   if (RAIL_FAILURE_AUDIT) OpexRailFailureAudit("attempt", candidate,
       (result.ok ? "OK" : (("reason" in result) && result.reason != "" ? result.reason : "UNKNOWN")),
@@ -1197,6 +1199,36 @@ function OpexAI::_recordRailAttempt(candidate, result, posPacked, year)
                              + candidate.trains + "|" + result.trains + "|"
                              + result.doubleTrack);
     }
+    local lineBridges = [];
+    if ("bridges" in result && result.bridges != null && result.bridges.len() > 0) {
+      lineBridges = result.bridges;
+    } else if (railPlan != null) {
+      local rType = AIRail.GetCurrentRailType();
+      if (("tiles" in railPlan) && railPlan.tiles != null) {
+        for (local i = 1; i < railPlan.tiles.len() - 1; i++) {
+          local c = railPlan.tiles[i];
+          local n = railPlan.tiles[i + 1];
+          if (AIMap.DistanceManhattan(c, n) > 1) {
+            local kind = OpexPlannedStructureKind(("structures" in railPlan ? railPlan.structures : null), c, n);
+            if (kind != "tunnel" && (kind == "bridge" || AITunnel.GetOtherTunnelEnd(c) != n)) {
+              lineBridges.append({ start = c, end = n, vtype = AIVehicle.VT_RAIL, railType = rType });
+            }
+          }
+        }
+      }
+      if (("doubleTrack" in result) && result.doubleTrack == 1 && ("tiles2" in railPlan) && railPlan.tiles2 != null) {
+        for (local i = 1; i < railPlan.tiles2.len() - 1; i++) {
+          local c = railPlan.tiles2[i];
+          local n = railPlan.tiles2[i + 1];
+          if (AIMap.DistanceManhattan(c, n) > 1) {
+            local kind = OpexPlannedStructureKind(("structures2" in railPlan ? railPlan.structures2 : null), c, n);
+            if (kind != "tunnel" && (kind == "bridge" || AITunnel.GetOtherTunnelEnd(c) != n)) {
+              lineBridges.append({ start = c, end = n, vtype = AIVehicle.VT_RAIL, railType = rType });
+            }
+          }
+        }
+      }
+    }
     OpexAir0310InvalidateSiteValidity();
     this._lines.append({
       stationA = result.stationA, stationB = result.stationB,
@@ -1214,6 +1246,7 @@ function OpexAI::_recordRailAttempt(candidate, result, posPacked, year)
       headwayDays = candidate.headwayDays, stationRating = candidate.stationRating,
       vehicles = result.vehicles, platformA = result.platformA, platformB = result.platformB,
       depot = result.depot,
+      bridges = lineBridges,
       doubleTrack = ("doubleTrack" in result) ? result.doubleTrack : 0,
       loop = ("loop" in result) ? result.loop : 0,
       v181Loop = ("v181Loop" in result) ? result.v181Loop : false,
