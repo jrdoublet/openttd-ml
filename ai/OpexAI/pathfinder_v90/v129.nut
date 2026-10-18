@@ -315,7 +315,6 @@ class OpexRailPathFinderV129 extends OpexRailPathFinderV90
 	function InitializePath(sources, goals, ignored_tiles = [])
 	{
 		local nsources = [];
-		OpexRailPathfinderBindNeighbours(this);
 
 		local target_fn = (this._weight > 100) ? this._EstimateWeighted : this._Estimate;
 		if (this._pathfinder._estimate_callback != target_fn) {

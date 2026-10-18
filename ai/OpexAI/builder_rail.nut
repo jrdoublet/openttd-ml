@@ -1266,130 +1266,6 @@ function OpexV214PathGeometry(tiles)
   return { steps = steps, turns = turns, exits = exits, tight = tight };
 }
 
-/* V262 T28 : cache du réglage forbid_90, relu une fois par recherche / chantier.
- * OpenTTD 15.3 stocke l'option sous pf.forbid_90_deg (pathfinding_settings.ini:43,
- * settings_type.h:493, défaut true). Le contrat V261 nomme vehicle.forbid_90_deg :
- * on le consulte d'abord, puis le nom moteur. */
-OPEX_FORBID_90_DEG <- false;
-
-function OpexGameForbids90DegTurns()
-{
-  if (AIGameSettings.IsValid("vehicle.forbid_90_deg")) {
-    return AIGameSettings.GetValue("vehicle.forbid_90_deg") != 0;
-  }
-  if (AIGameSettings.IsValid("pf.forbid_90_deg")) {
-    return AIGameSettings.GetValue("pf.forbid_90_deg") != 0;
-  }
-  return false;
-}
-
-function OpexRefreshForbid90DegTurns()
-{
-  OPEX_FORBID_90_DEG = OpexGameForbids90DegTurns();
-  return OPEX_FORBID_90_DEG;
-}
-
-function OpexRailPathfinderBindNeighbours(pathfinder)
-{
-  pathfinder._forbid90 = OpexRefreshForbid90DegTurns();
-  local wanted = pathfinder._forbid90 ? pathfinder._NeighboursForbid90 : pathfinder._Neighbours;
-  if (pathfinder._pathfinder._neighbours_callback != wanted) {
-    pathfinder._pathfinder._neighbours_callback = wanted;
-  }
-}
-
-/* Coude serre V214 : deux pas droits, coin, deux pas perpendiculaires
- * (globals_pre.nut V214_RAIL_TIGHT_TURN_COST, _Cost V129, OpexV214PathGeometry). */
-function OpexRailIsTight90Turn(t0, t1, t2, t3, t4)
-{
-  if (AIMap.DistanceManhattan(t0, t3) != 3) return false;
-  if (AIMap.DistanceManhattan(t0, t4) != 4) return false;
-  if (AIMap.DistanceManhattan(t0, t1) != 1) return false;
-  if (AIMap.DistanceManhattan(t1, t2) != 1) return false;
-  if (AIMap.DistanceManhattan(t2, t3) != 1) return false;
-  if (AIMap.DistanceManhattan(t3, t4) != 1) return false;
-  local s0 = t1 - t0;
-  local s1 = t2 - t1;
-  local s2 = t3 - t2;
-  local s3 = t4 - t3;
-  return s0 == s1 && s2 == s3 && s1 != s2;
-}
-
-function OpexRailFilterTight90Neighbours(cur_node, par_tile, gp_tile, ggp_tile, tiles)
-{
-  local kept = [];
-  foreach (item in tiles) {
-    if (!OpexRailIsTight90Turn(ggp_tile, gp_tile, par_tile, cur_node, item[0])) kept.append(item);
-  }
-  return kept;
-}
-
-function OpexRailTilesHaveTight90(tiles)
-{
-  if (tiles == null) return false;
-  local n = tiles.len();
-  for (local i = 0; i + 4 < n; i++) {
-    if (OpexRailIsTight90Turn(tiles[i], tiles[i + 1], tiles[i + 2], tiles[i + 3], tiles[i + 4])) return true;
-  }
-  return false;
-}
-
-/* Tracks qui forment un virage a 90° avec `track` : track_data.h:36-43 TrackCrossesTracks.
- * TRAIN applique ce masque si Rail90DegTurnDisallowed (train_cmd.cpp:3926-3930, pbs.cpp:401). */
-function OpexRailTracksCrossing(track)
-{
-  if (track == AIRail.RAILTRACK_NE_SW) return AIRail.RAILTRACK_NW_SE;
-  if (track == AIRail.RAILTRACK_NW_SE) return AIRail.RAILTRACK_NE_SW;
-  if (track == AIRail.RAILTRACK_NW_NE || track == AIRail.RAILTRACK_SW_SE) {
-    return AIRail.RAILTRACK_NW_SW | AIRail.RAILTRACK_NE_SE;
-  }
-  if (track == AIRail.RAILTRACK_NW_SW || track == AIRail.RAILTRACK_NE_SE) {
-    return AIRail.RAILTRACK_NW_NE | AIRail.RAILTRACK_SW_SE;
-  }
-  return 0;
-}
-
-/* Track pose par BuildRail(from, tile, to) : script_rail.cpp:293-348 SimulateDrag. */
-function OpexRailTrackFromTiles(from, tile, to)
-{
-  local fromX = AIMap.GetTileX(from);
-  local fromY = AIMap.GetTileY(from);
-  local tileX = AIMap.GetTileX(tile);
-  local tileY = AIMap.GetTileY(tile);
-  local toX = AIMap.GetTileX(to);
-  local toY = AIMap.GetTileY(to);
-  if (fromY == toY) return AIRail.RAILTRACK_NE_SW;
-  if (fromX == toX) return AIRail.RAILTRACK_NW_SE;
-  if (fromY < tileY) {
-    if (toX < tileX) return AIRail.RAILTRACK_NW_NE;
-    return AIRail.RAILTRACK_NW_SW;
-  }
-  if (fromY > tileY) {
-    if (toX < tileX) return AIRail.RAILTRACK_NE_SE;
-    return AIRail.RAILTRACK_SW_SE;
-  }
-  if (fromX < tileX) {
-    if (toY < tileY) return AIRail.RAILTRACK_NW_NE;
-    return AIRail.RAILTRACK_NE_SE;
-  }
-  if (fromX > tileX) {
-    if (toY < tileY) return AIRail.RAILTRACK_NW_SW;
-    return AIRail.RAILTRACK_SW_SE;
-  }
-  return 0;
-}
-
-function OpexRailBuildCreates90DegTurn(from, tile, to)
-{
-  if (!AIRail.IsRailTile(tile)) return false;
-  if (AIRail.IsRailStationTile(tile) || AIRail.IsRailDepotTile(tile)) return false;
-  local existing = AIRail.GetRailTracks(tile);
-  if (existing == 0 || existing == AIRail.RAILTRACK_INVALID) return false;
-  local track = OpexRailTrackFromTiles(from, tile, to);
-  if (track == 0) return false;
-  return (existing & OpexRailTracksCrossing(track)) != 0;
-}
-
 /* Un succes segmente porte `tiles` (prefixe complet, y compris ponts/tunnels locaux)
  * et pas seulement le dernier noeud AyStar. L'A* classique n'a pas ce champ. */
 function OpexResolveSearchTiles(search)
@@ -1823,7 +1699,6 @@ function OpexV190TraceParallelTrack(tiles1, planA, planB, planA2, planB2, side, 
     hitSet[planB2.station_exit] <- true;
   }
 
-  if (OPEX_FORBID_90_DEG && OpexRailTilesHaveTight90(tiles2)) return null;
   return { tiles = tiles2, structures = structures2 };
 }
 
@@ -1912,7 +1787,6 @@ function OpexV197BuildGuideTiles(tiles, side, forbidden)
  * En cas d'obstacle infranchissable en parallele direct, bascule sur recherche A*. */
 function OpexV190PlanDoubleTrack(catalog, planA, planB, tiles, iterationBudget, deadlineTick, structures = null)
 {
-  OpexRefreshForbid90DegTurns();
   local acc = { ok = false, skip = 2, reason = "NOPARALLEL", step = "NONE", tiles = null, planA = null, planB = null,
                 iterations = 0, structures = null };
 
@@ -2618,7 +2492,6 @@ function OpexTestRailTrack(tiles, structures = null)
  * chaque etape : un appel qui renvoie "reussi" ne prouve pas que le resultat est raccorde. */
 function OpexBuildDepot(tiles, forbidden = null)
 {
-  OpexRefreshForbid90DegTurns();
   local offsets = [
     AIMap.GetTileIndex(1, 0), AIMap.GetTileIndex(-1, 0),
     AIMap.GetTileIndex(0, 1), AIMap.GetTileIndex(0, -1),
@@ -2655,7 +2528,6 @@ function OpexBuildDepot(tiles, forbidden = null)
         if (!AIRail.BuildRailDepot(candidate, anchor)) continue;
       }
       AITile.DemolishTile(candidate);
-      if (OPEX_FORBID_90_DEG && OpexRailBuildCreates90DegTurn(stationSide, anchor, candidate)) continue;
       AIRail.BuildRail(stationSide, anchor, candidate);
       if (!AIRail.AreTilesConnected(stationSide, anchor, candidate) ||
           !AIRail.AreTilesConnected(stationSide, anchor, lineSide)) {
@@ -4723,7 +4595,6 @@ function OpexV181TryBuildSwitchSegment(tPrev, tCur, tNext, recordList, isSimulat
   if (AIMap.DistanceManhattan(tPrev, tCur) != 1 || AIMap.DistanceManhattan(tCur, tNext) != 1) return false;
   if (AIBridge.IsBridgeTile(tCur) || AITunnel.IsTunnelTile(tCur)) return false;
   if (AIRail.IsRailStationTile(tCur) || AIRail.IsRailDepotTile(tCur)) return false;
-  if (OPEX_FORBID_90_DEG && OpexRailBuildCreates90DegTurn(tPrev, tCur, tNext)) return false;
 
   if (!isSimulation) {
     if (AIRail.GetSignalType(tCur, tPrev) != AIRail.SIGNALTYPE_NONE) {
@@ -4840,7 +4711,6 @@ function OpexV181BuildOneWaySignal(tile, front)
  * et unifie les ordres partages de tous les trains existants. */
 function OpexConvertDoubleTrackToLoop(line, diag = null)
 {
-  OpexRefreshForbid90DegTurns();
   local loopDiag = diag != null ? diag : (("diag" in line) ? line.diag : null);
 
   if (line == null || !("mode" in line) || line.mode != "rail") {

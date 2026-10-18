@@ -57,7 +57,6 @@ class OpexRailPathFinderV90
 	_cache_buildable = null;
 	_outwardSide = null;
 	_guideTiles = null;
-	_forbid90 = false;
 
 	constructor(weight = null)
 	{
@@ -96,7 +95,6 @@ class OpexRailPathFinderV90
 		this._cache_tunnel = {};
 		this._cache_rail = {};
 		this._cache_buildable = {};
-		this._forbid90 = false;
 	}
 
 	/**
@@ -134,7 +132,6 @@ class OpexRailPathFinderV90
 	function _EstimateWeighted(cur_tile, cur_direction, goal_tiles, self);
 	function SetWeight(weight);
 	function _Neighbours(path, cur_node, self);
-	function _NeighboursForbid90(path, cur_node, self);
 	function _CheckDirection(tile, existing_direction, new_direction, self);
 	function _GetBridgeNumSlopes(end_a, end_b);
 	function _GetTunnelsBridges(last_node, cur_node, bridge_dir);
@@ -203,7 +200,6 @@ function OpexRailPathFinderV90::SetWeight(weight)
 function OpexRailPathFinderV90::InitializePath(sources, goals, ignored_tiles = [])
 {
 	local nsources = [];
-	OpexRailPathfinderBindNeighbours(this);
 
 	/* V91 : synchroniser le callback d'estimation selon le poids effectif */
 	local target_fn = (this._weight > 100) ? this._EstimateWeighted : this._Estimate;
@@ -532,20 +528,6 @@ function OpexRailPathFinderV90::_Neighbours(path, cur_node, self)
 		}
 	}
 	return tiles;
-}
-
-/* V262 T28 : voisins sans coude serre V214. Branchee seulement si forbid_90 vaut 1 ;
- * a 0 le callback reste _Neighbours (memes voisins, memes couts). */
-function OpexRailPathFinderV90::_NeighboursForbid90(path, cur_node, self)
-{
-	local tiles = self._Neighbours(path, cur_node, self);
-	local par = path.GetParent();
-	if (par == null) return tiles;
-	local gp = par.GetParent();
-	if (gp == null) return tiles;
-	local ggp = gp.GetParent();
-	if (ggp == null) return tiles;
-	return OpexRailFilterTight90Neighbours(cur_node, par.GetTile(), gp.GetTile(), ggp.GetTile(), tiles);
 }
 
 function OpexRailPathFinderV90::_CheckDirection(tile, existing_direction, new_direction, self)
