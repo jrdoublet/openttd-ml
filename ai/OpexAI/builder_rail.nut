@@ -2554,7 +2554,7 @@ function OpexRollback(tiles, planA, planB, depot, vehicles)
       }
     }
   }
-  if (depot != null) AITile.DemolishTile(depot);
+  if (depot != null && (v233Protected == null || !(depot in v233Protected))) AITile.DemolishTile(depot);
   if (planA != null) {
     for (local i = 0; i < planA.length; i++) {
       local t = planA.anchor + planA.step * i;

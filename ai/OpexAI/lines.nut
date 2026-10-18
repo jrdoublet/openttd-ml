@@ -101,9 +101,11 @@ function OpexLineVehicleIds(line, stationId)
     return roadIds;
   }
   if ("vehicles" in line) return line.vehicles;
-  if (("v233SharedStationId" in line) && ("mode" in line) && line.mode == "rail") {
+  if ((("v233SharedStationId" in line) || ("v233SharedStationBId" in line))
+      && ("mode" in line) && line.mode == "rail") {
     local ownIds = [];
     local other = OpexLineStationId(line, "B");
+    if (("v233SharedStationBId" in line) && other == stationId) other = OpexLineStationId(line, "A");
     local atStation = AIVehicleList_Station(stationId);
     for (local v = atStation.Begin(); !atStation.IsEnd(); v = atStation.Next()) {
       if (other < 0 || other == stationId || !OpexVehicleServesStation(v, other)) continue;
@@ -321,6 +323,8 @@ function OpexAI::_tooClose(candidate)
   /* V178 : la ligne rattachee partage volontairement la gare de la ligne existante. */
   local joinLineId = ("joinLineId" in candidate) ? candidate.joinLineId : -1;
   local joinStationId = ("joinStationId" in candidate) ? candidate.joinStationId : -1;
+  local graftDestStation = v233Join && V233_GOODS_POLICY == 2 && ("v233JoinB" in candidate)
+    ? candidate.v233JoinB : -1;
   local isSharedDest = V178_RAIL_SHARED_DEST && ("shared_dest" in candidate) && candidate.shared_dest == 1;
   local entries = [["A", candidate.src], ["B", candidate.dst]];
 
@@ -333,6 +337,7 @@ function OpexAI::_tooClose(candidate)
       local originTile = lineEnd == "A" ? line.originA : line.originB;
       foreach (entry in entries) {
         if (v233Join && entry[0] == "A" && OpexLineStationId(line, lineEnd) == joinStationId) continue;
+        if (entry[0] == "B" && graftDestStation >= 0 && OpexLineStationId(line, lineEnd) == graftDestStation) continue;
         if (isSharedDest && entry[0] == "B") continue;
         local d = AIMap.DistanceManhattan(entry[1], originTile);
         if (d >= ORIGIN_SEPARATION) continue;
@@ -356,6 +361,7 @@ function OpexAI::_tooClose(candidate)
       local stationTile = lineEnd == "A" ? line.stationA : line.stationB;
       foreach (entry in entries) {
         if (v233Join && entry[0] == "A" && stationId == joinStationId) continue;
+        if (entry[0] == "B" && graftDestStation >= 0 && stationId == graftDestStation) continue;
         if (isSharedDest && entry[0] == "B") continue;
         local d = AIMap.DistanceManhattan(entry[1], stationTile);
         blocking = OpexRememberClosest(d, MIN_SEPARATION, blocking);

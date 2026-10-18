@@ -35,14 +35,14 @@ class SiteContracts(unittest.TestCase):
         self.assertEqual(acceptance.count('GetCargoAcceptance('), 1)
         self.assertNotIn('for (', acceptance)
         finder = body('goods_v233.nut', 'function OpexV233TownPlans(')
-        for token in ('r <= STATION_SEARCH_RADIUS', 'AIRail.RAILTRACK_NE_SW',
+        for token in ('local radius = STATION_SEARCH_RADIUS', 'r <= radius', 'AIRail.RAILTRACK_NE_SW',
                       'AIRail.RAILTRACK_NW_SE', 'sign += 2', 'SLOPE_FLAT',
-                      'acceptance < 8', 'AIStation.STATION_NEW', 'AITestMode()',
+                      '!joining && acceptance < 8', 'stationId != AIStation.STATION_NEW', 'AITestMode()',
                       'AIAccounting()', 'AIError.GetLastError()', 'stats.nCargo++',
                       'stats.bestAcceptance = acceptance', 'AIMap.DistanceManhattan'):
             self.assertIn(token, finder)
         self.assertLess(finder.index('acceptance < 8'), finder.index('AIRail.BuildRailStation('))
-        self.assertIn('if (DECISION_LOG) unionOnly = OpexRailPlatformCargoValue', finder)
+        self.assertIn('if (DECISION_LOG && !joining) unionOnly = OpexRailPlatformCargoValue', finder)
         self.assertIn('if (DECISION_LOG && unionOnly) OpexDecide("V233_SITE"', finder)
         self.assertGreater(finder.index('state=union_recovered'), finder.index('if (!ok)'))
 

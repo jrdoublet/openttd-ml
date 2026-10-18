@@ -362,6 +362,10 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
             if (OpexLineStationId(line, "A") == candidate.joinStationId
                 || OpexLineStationId(line, "B") == candidate.joinStationId)
               line.v233SharedStationId <- candidate.joinStationId;
+            if (V233_GOODS_POLICY == 2 && ("v233JoinB" in candidate) && candidate.v233JoinB >= 0
+                && (OpexLineStationId(line, "A") == candidate.v233JoinB
+                    || OpexLineStationId(line, "B") == candidate.v233JoinB))
+              line.v233SharedStationBId <- candidate.v233JoinB;
           }
           local liveLine = this._lines[this._lines.len() - 1];
           liveLine.v233FactoryId <- candidate.v233FactoryId;
@@ -369,7 +373,9 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
           this._saveProjection = null;
           if (DECISION_LOG) OpexDecide("V233_BUILD", "factory=" + candidate.v233FactoryId
             + " cargo=" + candidate.cargo + " station=" + candidate.joinStationId
-            + " line=" + (this._nextLineId - 1));
+            + " line=" + (this._nextLineId - 1)
+            + (V233_GOODS_POLICY == 2 && ("v233JoinB" in candidate)
+              ? (candidate.v233JoinB >= 0 ? " joinB=" + candidate.v233JoinB : " newB") : ""));
         }
       }
       if (c121PrepPlan && candidate != null && this._railReadyStock != null
@@ -1741,8 +1747,15 @@ function OpexV131PlatformCargoOk(p, candidate, catalog, wantProduction)
   if (catalog != null && ("railCoverage" in catalog) && catalog.railCoverage > 0) {
     coverage = catalog.railCoverage;
   }
-  if (V233_GOODS_GRAFT && V233_GOODS_POLICY == 2 && OpexV233IsGraft(candidate) && !wantProduction)
+  if (V233_GOODS_GRAFT && V233_GOODS_POLICY == 2 && OpexV233IsGraft(candidate) && !wantProduction) {
+    if ("stationId" in p) {
+      if (!("v233JoinB" in candidate) || p.stationId != candidate.v233JoinB
+          || !("v233StationTile" in p)) return false;
+      return OpexV233AcceptingStation(p.stationId, p.v233StationTile, candidate.cargo);
+    }
+    if (("v233JoinB" in candidate) && candidate.v233JoinB >= 0) return false;
     return OpexV233TownAcceptance(p, candidate.cargo, coverage) >= 8;
+  }
   local value = OpexRailPlatformCargoValue(p.anchor, p.step, p.length,
       candidate.cargo, coverage, wantProduction);
   if (wantProduction) return value > 0;

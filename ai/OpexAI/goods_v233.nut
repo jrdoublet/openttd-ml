@@ -290,12 +290,15 @@ function OpexV233TownAcceptance(p, cargo, coverage)
  * Keep this separate so neither ordinary rail nor modes 0/1 change their filter.
  * Counters accumulate across lengths; tiles counts visited endpoint positions,
  * tried counts oriented footprints (neither is a count of distinct map tiles). */
-function OpexV233TownPlans(center, length, cargo, coverage, stats)
+function OpexV233TownPlans(center, length, cargo, coverage, stats, stationId = AIStation.STATION_NEW)
 {
   local plans = [];
+  local joining = stationId != AIStation.STATION_NEW;
+  local radius = STATION_SEARCH_RADIUS;
+  if (joining) radius = AIGameSettings.GetValue("station.station_spread") - 1;
   local axes = [[AIRail.RAILTRACK_NE_SW, AIMap.GetTileIndex(1, 0)],
                 [AIRail.RAILTRACK_NW_SE, AIMap.GetTileIndex(0, 1)]];
-  for (local r = 0; r <= STATION_SEARCH_RADIUS && plans.len() < MAX_STATION_PLANS; r++) {
+  for (local r = 0; r <= radius && plans.len() < MAX_STATION_PLANS; r++) {
     for (local dx = -r; dx <= r && plans.len() < MAX_STATION_PLANS; dx++) {
       for (local dy = -r; dy <= r && plans.len() < MAX_STATION_PLANS; dy++) {
         if (abs(dx) != r && abs(dy) != r) continue;
@@ -328,16 +331,16 @@ function OpexV233TownPlans(center, length, cargo, coverage, stats)
                         direction = axis[0], step = axis[1], length = length };
             local acceptance = OpexV233TownAcceptance(p, cargo, coverage);
             if (acceptance > stats.bestAcceptance) stats.bestAcceptance = acceptance;
-            if (acceptance < 8) { stats.last = "acceptance"; continue; }
+            if (!joining && acceptance < 8) { stats.last = "acceptance"; continue; }
             stats.nCargo++;
             local unionOnly = false;
-            if (DECISION_LOG) unionOnly = OpexRailPlatformCargoValue(anchor, axis[1], length,
+            if (DECISION_LOG && !joining) unionOnly = OpexRailPlatformCargoValue(anchor, axis[1], length,
               cargo, coverage, false) < 8;
             local ok = false;
             {
               local accounting = AIAccounting(); // discard simulated costs
               local probe = AITestMode();
-              ok = AIRail.BuildRailStation(anchor, axis[0], 1, length, AIStation.STATION_NEW);
+              ok = AIRail.BuildRailStation(anchor, axis[0], 1, length, stationId);
               if (!ok) stats.lastError = AIError.GetLastError();
             }
             if (!ok) { stats.last = "command"; continue; }
@@ -346,6 +349,10 @@ function OpexV233TownPlans(center, length, cargo, coverage, stats)
               + " anchor=" + anchor + " length=" + length + " direction=" + axis[0]
               + " acceptance=" + acceptance);
             p.cargoValue <- acceptance;
+            if (joining) {
+              p.stationId <- stationId;
+              p.v233StationTile <- center;
+            }
             plans.append(p);
             if (plans.len() >= MAX_STATION_PLANS) break;
           }
@@ -355,6 +362,37 @@ function OpexV233TownPlans(center, length, cargo, coverage, stats)
     }
   }
   return plans;
+}
+
+/* AIStationList is our company's list. Native acceptance is for the complete
+ * multimodal station (>= one full unit), not just the prospective rail catchment. */
+function OpexV233AcceptingStation(station, tile, cargo)
+{
+  if (!AIStation.IsValidStation(station) || !AIMap.IsValidTile(tile)
+      || AIStation.GetStationID(tile) != station || !AICompany.IsMine(AITile.GetOwner(tile))) return false;
+  return AICargoList_StationAccepting(station).HasItem(cargo);
+}
+
+function OpexV233JoinedTownPlans(candidate, length, coverage, stats)
+{
+  local stations = AIStationList(AIStation.STATION_ANY);
+  for (local station = stations.Begin(); !stations.IsEnd(); station = stations.Next()) {
+    if (station == candidate.joinStationId || AIStation.GetNearestTown(station) != candidate.dstTown) continue;
+    local tile = AIStation.GetLocation(station);
+    if (!OpexV233AcceptingStation(station, tile, candidate.cargo)) continue;
+    local plans = OpexV233TownPlans(tile, length, candidate.cargo, coverage, stats, station);
+    if (plans.len() > 0) return plans;
+  }
+  return [];
+}
+
+/* Geometry-specific source failure: changing the input platform permits a new
+ * search; otherwise the existing persisted cooldown applies across ALL towns. */
+function OpexV233SourceSiteKey(context, cargo)
+{
+  local p = context.joinPlatform;
+  return "v233_siteA|" + context.v233FactoryId + "|" + cargo + "|" + context.joinStationId
+    + "|" + p.anchor + "|" + p.direction + "|" + p.length;
 }
 
 /* A goods train need not inherit the input train's platform length. Try the
@@ -373,25 +411,34 @@ function OpexV233PlatformPlans(catalog, candidate, statsA, statsB)
   if (wanted > catalog.platformLength) wanted = catalog.platformLength;
   local sawA = false;
   local sawB = false;
-  for (local length = wanted; length >= OpexRailMinimumPlatformLength(); length--) {
-    local seed = { anchor = support.anchor, direction = support.direction,
-                   step = support.step, length = length };
-    local plansA = [];
-    foreach (p in OpexJoinPlatformPlans(seed, candidate.joinStationId, statsA)) {
-      if (!OpexV233FactoryCovered(p, candidate.v233FactoryId, candidate.cargo, catalog.railCoverage)) continue;
-      p.stationId <- candidate.joinStationId;
-      plansA.append(p);
+  // Exhaust joining lengths before falling back to the V233c new-station finder.
+  foreach (joinB in [true, false]) {
+    for (local length = wanted; length >= OpexRailMinimumPlatformLength(); length--) {
+      local seed = { anchor = support.anchor, direction = support.direction,
+                     step = support.step, length = length };
+      local plansA = [];
+      foreach (p in OpexJoinPlatformPlans(seed, candidate.joinStationId, statsA)) {
+        if (!OpexV233FactoryCovered(p, candidate.v233FactoryId, candidate.cargo, catalog.railCoverage)) continue;
+        p.stationId <- candidate.joinStationId;
+        plansA.append(p);
+      }
+      if (plansA.len() == 0) continue;
+      sawA = true;
+      local plansB = joinB ? OpexV233JoinedTownPlans(candidate, length, catalog.railCoverage, statsB)
+        : OpexV233TownPlans(candidate.dst, length, candidate.cargo, catalog.railCoverage, statsB);
+      if (plansB.len() == 0) continue;
+      sawB = true;
+      candidate.v233JoinB <- joinB ? plansB[0].stationId : -1;
+      if (DECISION_LOG) OpexDecide("V233_SITE", "factory=" + candidate.v233FactoryId
+        + " town=" + candidate.dstTown + (joinB ? " joinB=" + candidate.v233JoinB : " newB"));
+      return { plansA = plansA, plansB = plansB, length = length, slopeRelaxed = 0,
+               reason = "OK", statsA = statsA, statsB = statsB };
     }
-    if (plansA.len() == 0) continue;
-    sawA = true;
-    local plansB = OpexV233TownPlans(candidate.dst, length, candidate.cargo, catalog.railCoverage, statsB);
-    if (plansB.len() == 0) continue;
-    sawB = true;
-    return { plansA = plansA, plansB = plansB, length = length, slopeRelaxed = 0,
-             reason = "OK", statsA = statsA, statsB = statsB };
+    if (!sawA) break; // B cannot repair an impossible source.
   }
   return { plansA = null, plansB = null, length = wanted, slopeRelaxed = 0,
-           reason = OpexRailSiteReason(sawA, sawB), statsA = statsA, statsB = statsB };
+           reason = OpexRailSiteReason(sawA, sawB), sourceFailed = !sawA,
+           statsA = statsA, statsB = statsB };
 }
 
 function OpexAI::_v233CandidateLive(candidate)
@@ -418,6 +465,7 @@ function OpexAI::_v233CandidateLive(candidate)
   if (!OpexV233CurrentOutputValid(row.factoryId, row.cargo)) return false;
   if (!AITown.IsValidTown(candidate.dstTown) || AITown.GetLocation(candidate.dstTown) != candidate.dst) return false;
   if (OpexAbandonedPairKey(candidate) in this._abandonedPairs) return false;
+  if (V233_GOODS_POLICY == 2 && OpexV233SourceSiteKey(candidate, candidate.cargo) in this._abandonedPairs) return false;
   return true;
 }
 
@@ -481,7 +529,12 @@ function OpexAI::_v233GraftStep()
   if (state.evaluate < state.nearest.len()) {
     local town = state.nearest[state.evaluate++].town;
     local pair = "freight|" + state.row.cargo + "|" + state.row.factoryId + "|t" + town.id;
-    if (pair in this._abandonedPairs || OpexOriginService(this._lines, town.tile) != null) return;
+    if (pair in this._abandonedPairs
+        || (V233_GOODS_POLICY != 2 && OpexOriginService(this._lines, town.tile) != null)) return;
+    if (V233_GOODS_POLICY == 2 && OpexV233SourceSiteKey(state.context, state.row.cargo) in this._abandonedPairs) {
+      gen.current = null;
+      return;
+    }
     /* At most ONE normal economic evaluation per invocation, with all common filters. */
     local candidate = OpexMakeCandidate(this._catalog, "freight", state.row.cargo,
       state.row.factoryTile, town.tile, OpexV233Quantity(state.row, work.month), true,
@@ -503,6 +556,10 @@ function OpexAI::_v233GraftStep()
           + " lastB=" + (("last" in sites.statsB) ? sites.statsB.last : "join_invalid")
           + " errorB=" + (("lastError" in sites.statsB) ? sites.statsB.lastError : -1)
           + " best_acceptanceB=" + (("bestAcceptance" in sites.statsB) ? sites.statsB.bestAcceptance : -1));
+        if (("sourceFailed" in sites) && sites.sourceFailed) {
+          this._markPairAbandoned(OpexV233SourceSiteKey(candidate, candidate.cargo));
+          gen.current = null;
+        } else this._markPairAbandoned(OpexAbandonedPairKey(candidate));
         return;
       }
     }
@@ -572,6 +629,13 @@ function OpexV233SpendAllowed(catalog, candidate, plan)
   local protectedTiles = {};
   local existing = AITileList_StationType(candidate.joinStationId, AIStation.STATION_TRAIN);
   for (local tile = existing.Begin(); !existing.IsEnd(); tile = existing.Next()) protectedTiles[tile] <- true;
+  if (V233_GOODS_POLICY == 2) {
+    foreach (p in [plan.planA, plan.planB]) {
+      if (!("stationId" in p)) continue;
+      local allTiles = AITileList_StationType(p.stationId, AIStation.STATION_ANY);
+      for (local tile = allTiles.Begin(); !allTiles.IsEnd(); tile = allTiles.Next()) protectedTiles[tile] <- true;
+    }
+  }
   local platforms = [plan.planA, plan.planB];
   if (("planA2" in plan) && plan.planA2 != null) platforms.append(plan.planA2);
   if (("planB2" in plan) && plan.planB2 != null) platforms.append(plan.planB2);
