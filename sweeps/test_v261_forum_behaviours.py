@@ -1,6 +1,6 @@
 """V261: contrats source, sans VM ni partie (limites détaillées dans l'audit).
 
-Les expectedFailure décrivent des lacunes présentes, sans modifier l'IA.
+Deux expectedFailure restent en attente de décision (F2.1).
 Une présence textuelle ne prouve ni fluidité, ni absence de deadlock, ni type
 récursif du graphe Save. Aucun chemin externe n'est requis par cette suite.
 """
@@ -53,11 +53,10 @@ class ForumBehaviours(unittest.TestCase):
         self.assertIn("OpexRoadTileTooClose(", code)
         self.assertIn("OpexRoadOurBusTiles(", source("builder_road.nut"))
 
-    @unittest.expectedFailure  # Arrêts AIR joints sans garde fair-play/niveau.
     def test_1_1_air_joined_stops_require_courtesy_gate(self):
         code = body("air_construction.nut", "OpexAirBuildJoinedStops")
         build = code.index("AIRoad.BuildDriveThroughRoadStation(")
-        self.assertIn("OpexLevelAllows(", code[:build])
+        self.assertIn('if (!OpexLevelAllows("air_joined_road_stops")) return summary;', code[:build])
 
     def test_1_2_water_does_not_build_canals_buoys_or_terraform(self):
         code = uncomment(source("builder_water.nut"))
@@ -66,13 +65,18 @@ class ForumBehaviours(unittest.TestCase):
         for bound in ("WATER_MAX_SITE_PROBES", "WATER_MAX_DEPOT_PROBES", "WATER_BFS_MAX_NODES"):
             self.assertIn(bound, code)
 
-    @unittest.expectedFailure  # Le BFS sonde ses premières cases, les fronts du quai A.
     def test_1_3_depot_excludes_both_dock_loading_fronts(self):
         code = body("builder_water.nut", "OpexWaterFindDepot")
         probe = code.index("AIMarine.BuildWaterDepot(")
         prefix = code[:probe]
-        # siteB.waterTiles n'est jamais consulté ; aucune exclusion des fronts A/B.
-        self.assertIn("siteB.waterTiles", prefix)
+        self.assertIn('if (!OpexLevelAllows("water_depot_dock_front"))', prefix)
+        for site in ("siteA", "siteB"):
+            self.assertIn(f'foreach (tile in {site}.waterTiles) protectedFronts[tile] <- true;', prefix)
+        self.assertIn('if (!(current in protectedFronts) && !(next in protectedFronts))', prefix)
+        # Une paire interdite n'empêche pas l'exploration depuis le front.
+        self.assertIn('if (!(next in seen)) { seen.rawset(next, true); queue.append(next); }', code)
+        self.assertIn('return null;', code)
+        self.assertNotRegex(code, r'\b(?:DemolishTile|RemoveWaterDepot)\(')
 
     def test_1_4_airport_difficulty_capabilities(self):
         code = uncomment(source("difficulty.nut"))
@@ -85,9 +89,17 @@ class ForumBehaviours(unittest.TestCase):
         code = body("task_v250.nut", "OpexAI::_dispatchV250Rights")
         self.assertIn('if (!OpexLevelAllows("v250_rights")) return false;', code)
 
-    @unittest.expectedFailure  # V233 n'a pas de protection de la production secondaire rivale.
     def test_1_6_secondary_graft_requires_courtesy_gate(self):
-        self.assertIn("OpexLevelAllows(", uncomment(source("goods_v233.nut")))
+        guard = body("goods_v233.nut", "OpexV233SecondaryRivalServed")
+        self.assertIn('if (OpexLevelAllows("secondary_graft_rival_served")) return false;', guard)
+        for api in ('AITileList_IndustryAccepting(factory, radius)', 'AIStation.GetCoverageRadius(stationType)',
+                    'AITile.GetOwner(tile)', 'AICompany.IsMine(owner)', 'AICompany.COMPANY_INVALID',
+                    'AIRail.IsRailStationTile(tile)', 'AITile.TRANSPORT_ROAD', 'AIMarine.IsDockTile(tile)'):
+            self.assertIn(api, guard)
+        context = body("goods_v233.nut", "OpexV233JoinContextValid")
+        self.assertIn('if (OpexV233SecondaryRivalServed(context.v233FactoryId)) return false;', context)
+        for function in ('OpexAI::_v233CandidateLive', 'OpexV233SpendAllowed'):
+            self.assertIn('OpexV233JoinContextValid(', body('goods_v233.nut', function))
 
     def test_1_7_demolition_protects_rival_rail_and_rail_stations(self):
         code = body("builder_rail.nut", "OpexV199CanDemolishTile")
@@ -113,13 +125,49 @@ class ForumBehaviours(unittest.TestCase):
             self.assertIn(f'name = "{setting}"', source("info.nut"))
         self.assertIn("if (!DEBUG_SIGNS) return;", body("probes.nut", "OpexSign"))
 
-    @unittest.expectedFailure  # BT/BC contournent DEBUG_SIGNS (audit initial §5.1).
     def test_1_9_budget_signs_honor_debug_signs(self):
         code = uncomment(source("task_report.nut"))
-        # Cette section annuelle n'a aucune garde DEBUG_SIGNS.
         begin = code.index('local btText')
         end = code.index('AISign.BuildSign', begin)
         self.assertIn("DEBUG_SIGNS", code[begin:end])
+
+    def test_1_9_all_direct_sign_builds_are_guarded(self):
+        # Inventaire exhaustif : chaque appel direct doit être dans OpexSign
+        # (retour anticipé testé plus haut) ou sous une garde positive englobante.
+        for name, code in all_code().items():
+            if name == 'probes.nut':
+                wrapper = body(name, 'OpexSign')
+                self.assertEqual(code.count('AISign.BuildSign('), wrapper.count('AISign.BuildSign('))
+                continue
+            scopes = []
+            previous = 0
+            for token in re.finditer(r'"(?:\\.|[^"\\])*"|[{}]|AISign\.BuildSign\s*\(', code):
+                if token[0] == '{':
+                    scopes.append(bool(re.search(r'if\s*\(DEBUG_SIGNS\)\s*$', code[previous:token.start()])))
+                elif token[0] == '}':
+                    scopes.pop()
+                elif token[0].startswith('AISign.'):
+                    self.assertTrue(any(scopes), f'{name}: panneau sans DEBUG_SIGNS')
+                previous = token.end()
+
+    def check_level_capability(self, feature, expected):
+        code = uncomment(source('difficulty.nut'))
+        table = re.search(r'OPEX_DIFFICULTY_MIN_LEVEL\s*<-\s*\{(.*?)\};', code, re.S)[1]
+        entries = re.findall(r'\b' + re.escape(feature) + r'\s*=\s*(\d+)\b', table)
+        self.assertEqual(len(entries), 1)
+        resolver = body('difficulty.nut', 'OpexLevelAllows')
+        self.assertIn('if (OPEX_DIFFICULTY >= 3) return true;', resolver)
+        self.assertIn('return OPEX_DIFFICULTY >= OPEX_DIFFICULTY_MIN_LEVEL[feature];', resolver)
+        self.assertEqual([level >= int(entries[0]) for level in range(4)], expected)
+
+    def test_air_joined_road_stops_levels(self):
+        self.check_level_capability('air_joined_road_stops', [False, False, True, True])
+
+    def test_water_depot_dock_front_levels(self):
+        self.check_level_capability('water_depot_dock_front', [False, False, False, True])
+
+    def test_secondary_graft_rival_served_levels(self):
+        self.check_level_capability('secondary_graft_rival_served', [False, False, False, True])
 
     def test_1_10_freight_generation_exists(self):
         for function in ("OpexFreightCandidates", "OpexRoadFreightCandidates"):

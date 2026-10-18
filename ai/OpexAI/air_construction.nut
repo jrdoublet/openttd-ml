@@ -55,6 +55,7 @@ function OpexAirRollback(airportA, airportB, planes, pairKey = "")
 function OpexAirBuildJoinedStops(airportTile, stationId, airport, town, paxCargo)
 {
   local summary = { count = 0, monthlyPax = 0 };
+  if (!OpexLevelAllows("air_joined_road_stops")) return summary;
   if (!AIStation.IsValidStation(stationId)) return summary;
   local mapX = AIMap.GetMapSizeX();
   local mapY = AIMap.GetMapSizeY();

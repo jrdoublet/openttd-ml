@@ -403,31 +403,43 @@ possibles. « Non conforme » désigne une garde de courtoisie absente, sans jug
 sur sa légalité dans le jeu. « Partiel » signifie qu'une protection existe mais
 ne couvre pas toute l'allégation. Les contrôles dynamiques restent **non exécutés**.
 Tests : `sweeps/test_v261_forum_behaviours.py`, préfixes `test_1_…` à `test_4_…`
-correspondant aux identifiants F ci-dessous. Aucun code IA, défaut, famille
-protégée ou protocole économique n'est changé.
+correspondant aux identifiants F ci-dessous. L'audit initial ne modifiait pas
+l'IA ; la suite V261b applique les décisions utilisateur du 18/10 ci-dessous.
+Aucun réglage public ajouté, aucune famille protégée ni harnais modifié.
 
 `fair_play` reste une proposition, sans réglage implémenté. La table effective
 est `ai/OpexAI/difficulty.nut:26` : droits exclusifs/anticompetitive au niveau 3,
 dernier créneau et concurrence primaire dès 2, ville rivale et chevauchement dès 1.
-Les comportements nouveaux proposés ci-dessous devront passer par cette table
-et `OpexLevelAllows`, avec un veto fair_play applicable aux tiers sans distinguer
-humain/IA. **Aucun nouveau niveau ni seuil numérique n'est décidé ici.** Les
-limitations de courtoisie s'appliqueraient aux quatre niveaux quand fair_play
-est activé ; sans fair_play les niveaux existants restent ceux du code.
+**Décisions utilisateur V261b, 18/10 :** les trois nouvelles clés passent par
+`OpexLevelAllows`, sans ajouter le réglage `fair_play` proposé aux §2–4.
+Ces propositions historiques ne constituent pas la spécification adoptée.
+
+| Capacité (`difficulty.nut`) | 0 facile | 1 moyen | 2 difficile (défaut) | 3 personnalisé (« niveau 4 ») |
+|---|---|---|---|---|
+| `air_joined_road_stops` | Interdit | Interdit | Autorisé | Autorisé |
+| `water_depot_dock_front` | Interdit | Interdit | Interdit | Autorisé |
+| `secondary_graft_rival_served` | Interdit | Interdit | Interdit | Autorisé |
+
+Les panneaux restent actifs au défaut des bancs : `probes=2` et `debug_signs=1`
+inchangés. Tous les appels directs de pose sont désormais sous `DEBUG_SIGNS`
+(BT/BC compris). `probes=0` ou `debug_signs=0` empêche toute nouvelle pose ;
+cela ne supprime pas les panneaux déjà présents dans une partie rechargée.
+F2.1a (`forbid_90_deg`) reste ignoré sur décision utilisateur ; F2.1c
+(types de véhicules désactivés) attend une explication, sans modification.
 
 ### 5.2 (a) Interactions avec les autres joueurs
 
 | Point de l'extrait | État OpexAI et preuve fichier:ligne | Mesure / contrat machine |
 |---|---|---|
-| **F1.1 — Spam d'arrêts municipaux traversants** | **Partiel**. `ai/OpexAI/builder_road.nut:679` vérifie la distance aux arrêts propres avant pose, mais construit aussi des traversants (`:729`, `:753`). Surtout `air_construction.nut:55`, `:130`, `:143` construit des arrêts joints sans bus et sans garde de niveau. L'ancien commentaire « traversants abandonnés » ne décrit plus tout le code. | Conserver l'espacement ; en fair_play interdire les arrêts AIR fantômes, examiner les conflits de circulation des vrais arrêts. Rattacher l'implantation à `encroach_rival_catchment` et à une capacité de courtoisie à décider. Tests espacement vert, garde AIR **expectedFailure**. Sur futurs journaux VOIRIE_PLAN et ordres des bus, contrôler desserte et congestion ; présence d'un traversant seule ≠ blocage. |
+| **F1.1 — Spam d'arrêts municipaux traversants** | **Partiel**, garde AIR corrigée V261b. `ai/OpexAI/builder_road.nut:679` conserve l'espacement propre. `ai/OpexAI/air_construction.nut:58` refuse les arrêts joints avant recherche/pose si `air_joined_road_stops` est interdit (0–1), les autorise à 2–3. | Tests espacement et garde AIR verts, sans expectedFailure. Congestion et desserte effective restent non mesurées ; présence d'un traversant seule ≠ blocage. |
 | **F1.2 — Colonisation maritime / côtes bloquées** | **Partiel**. `ai/OpexAI/builder_water.nut:1` ne construit ni canal, écluse, bouée, ni terraformage ; sondes et BFS bornés. `:134` choisit les quais sans `OpexStationEncroachesRival`. Le nombre global d'installations et l'accès des tiers ne sont pas garantis par ces bornes par recherche. | Étendre la garde de captage aux quais et préserver les passages navigables en fair_play, à tous niveaux ; pas d'interdiction générale du transport maritime. Test absence de constructions agressives vert. Futur contrôle topologique et journaux d'échec d'accès par compagnie. L'issue #10490 ne prouve pas une colonisation intentionnelle (voir §5.4). |
-| **F1.3 — Dépôt sur l'accès immédiat du quai** | **Non conforme** à la prévention demandée. `ai/OpexAI/builder_water.nut:252` initialise le BFS avec `siteA.waterTiles`, puis `:265` teste le dépôt sur `current,next`, sans exclusion des fronts A/B. Après construction réelle `:566`, ces waterTiles sont justement les fronts d'accostage ; le site B n'est pas exclu non plus. | Exclure les deux tuiles du dépôt et son accès des zones de chargement de nos quais et des quais tiers. Sécurité fonctionnelle à tous niveaux, avec protection des tiers en fair_play. Test **expectedFailure** (absence de consultation des fronts B avant sondage). La survenue d'un blocage Full Load reste à contrôler en jeu, pas démontrée par le test source. |
+| **F1.3 — Dépôt sur l'accès immédiat du quai** | **Garde A/B corrigée V261b**. `ai/OpexAI/builder_water.nut:239` exclut `siteA.waterTiles` et `siteB.waterTiles` des deux tuiles candidates du dépôt aux niveaux 0–2 (`water_depot_dock_front` réservé à 3). Les fronts restent traversables par le BFS pour chercher ailleurs ; aucun dépôt existant n'est démoli. | Test vert : deux fronts, deux cases du dépôt, poursuite du BFS et retour null si aucun candidat. La protection porte sur les deux quais de la liaison ; pas d'inventaire supplémentaire de tous les quais tiers. Aucun test moteur de Full Load, de pose alternative ou de topologie dynamique effectué. |
 | **F1.4 — Étouffement urbain par plusieurs aéroports** | **Partiel**. `ai/OpexAI/air_towns.nut:623` consulte les deux capacités de niveau, avec exceptions ; `projects_selection.nut:416`, `:434`, `:461` autorise le second aéroport propre C83. Pas de preuve d'une politique systématique « 2 à 3 par ville ». | Fair_play : empêcher la capture des deux sites propres et la prise du dernier créneau rival ; conserver les niveaux existants hors fair_play. Test des capacités vert, sans prétendre tester un plafond fair_play inexistant. Vérifier futurs comptes d'aéroports/bruit et refus des tiers. |
 | **F1.5 — Droits exclusifs** | **Conforme** au niveau 2 par défaut : `ai/OpexAI/task_v250.nut:287` refuse si `OpexLevelAllows("v250_rights")` faux ; `difficulty.nut:29` réserve à 3. | Maintenir le veto absolu fair_play même au niveau 3 ; test vert de la garde existante. L'exemple LudAIAfterFix n'a pas été vérifié et n'est pas une preuve sur OpexAI. |
-| **F1.6 — Captation de production secondaire financée par un tiers** | **Non conforme** à cette protection de courtoisie **si V233 activé** : `ai/OpexAI/goods_v233.nut:208` reconnaît les greffes sans garde de niveau, `info.nut:16` défaut 0. | Corrige la recommandation trop générale du §2.5 : **livrer des intrants** peut bénéficier à tous ; **collecter la production sortante** rivalise avec le transporteur existant. Faire arbitrer la collecte, la rattacher à la table de capacités et la couper en fair_play si elle parasite le tiers. Test **expectedFailure** ; pas de modification de V233. Contrôler production, sens des ordres et propriétaires dans les futurs relevés. |
+| **F1.6 — Captation de production secondaire financée par un tiers** | **Garde corrigée V261b si V233 activé** (défaut V233 inchangé). `ai/OpexAI/goods_v233.nut:181` détecte une desserte rivale de la secondaire ; `OpexV233JoinContextValid` applique le veto à 0–2, court-circuité à 3 par `secondary_graft_rival_served`. La même validation est appelée à l'éligibilité puis juste avant dépense. | Test vert des API, propriétaires, veto et revalidation. Définition opérationnelle : une tuile de gare rail, arrêt routier (route/tram) ou quai appartenant à une autre compagnie valide est dans `AITileList_IndustryAccepting(factory, rayon API du type)`. Arrêts bus inclus par précaution (rayon max bus/camion). Cela prouve une couverture d'acceptation, pas un intrant livré : gare inactive ou collectrice et bus peuvent être des faux positifs. Aucun historique de livraison par compagnie n'est utilisé. Aéroports seuls et desserte amont sans gare près de la secondaire ne sont pas détectés. Aucun cache ni état sauvegardé ajouté ; les observations et plans V233 existants sont revalidés par le chemin commun. |
 | **F1.7 — Destruction massive de maisons / arbres** | **Partiel**. `ai/OpexAI/builder_rail.nut:2037` protège rail tiers et stations/dépôts rail, pas tous les bâtiments municipaux ; V199 reste optionnel (`info.nut:551`). `air_sites.nut:143` nivelle les emprises AIR. Ni destruction « massive » ni note sous Poor ne se déduisent du source. | Fair_play : revoir démolition municipale et terraformage au voisinage tiers ; aucun changement de la famille protégée V199. Test protection rail vert. Mesurer à l'avenir les commandes réellement exécutées et notes avant/après par compagnie. Une chute de notre note ne prouve pas celle de tous les joueurs ; corrige la formulation du §3.1. Le moteur contrôle la légalité du terrain, le §3.2 ne prouve pas une destruction de voie tierce par nivellement. |
 | **F1.8 — Infrastructures fantômes après échec / abandon recommandé** | **Partiel**. `ai/OpexAI/builder_road.nut:549`, `builder_rail.nut:2556`, `builder_water.nut:489` ont des rollbacks. `air_recovery.nut:34` attend vente réelle des avions, protège les aéroports réutilisés/occupés et conserve des tickets persistés (`persist.nut:630`). | Ne pas appliquer l'abandon systématique de l'extrait : conserver nettoyage des actifs neufs sûrs, tickets de reprise et mémoire des échecs. Fair_play doit traiter les obstacles orphelins aux tiers sans démolir un service actif. Tests présence des rollbacks verts ; journaux AIR_ROLLBACK et inventaire des actifs après chaque échec à contrôler. « ~25 000 £ » n'est ni un prix garanti ni un seuil retenu. |
-| **F1.9 — Pollution du journal / verbosité** | **Partiel**. `ai/OpexAI/settings.nut:66` charge `probes`, `debug_signs`, `decision_log` ; `probes.nut:39` garde les panneaux génériques. `task_report.nut:908` pose BT/BC sans DEBUG_SIGNS ; `air_recovery.nut:97` journalise directement. Aucun `log_level` global. | Réglages existants testés verts, BT/BC **expectedFailure**. Futur fair_play : couper les panneaux et permettre de réduire les messages ordinaires, conserver erreurs utiles. Pas de preuve d'un rythme « toutes les trois secondes » : compter messages par date/tick/catégorie sur journaux de banc existants ou futurs, sans lancement ici. |
+| **F1.9 — Pollution du journal / verbosité** | **Panneaux corrigés V261b**. `ai/OpexAI/settings.nut:70` combine le bit panneaux de probes et debug_signs. `ai/OpexAI/probes.nut:38` garde OpexSign ; `ai/OpexAI/task_report.nut:909` garde pose et renommage BT/BC. Défauts conservés pour les bancs. Journal ordinaire inchangé, aucun log_level ajouté. | Test BT/BC vert et inventaire exhaustif des appels directs `AISign.BuildSign` gardés. Aucune nouvelle pose avec probes=0 ou debug_signs=0 ; les panneaux préexistants ne sont pas effacés. Pas de preuve d'un rythme « toutes les trois secondes » ; débit des messages et comportement en jeu non mesurés. |
 | **F1.10 — Délaissement du fret** | **Sans objet** comme comportement déloyal : choisir les voyageurs n'agresse pas en soi un tiers. Fret présent dans `ai/OpexAI/candidates.nut:1060`, `:1200`, `:1528`. Aucune garantie de diversité sur chaque carte. | Tests génération fret verts ; si objectif de variété, le traiter dans les profils de stratégie, sans règle punitive fair_play. Futur journal de portefeuille : candidats/rejets/constructions par cargo, réglages et disponibilité du matériel. |
 
 ### 5.3 (b) Robustesse, CPU et RAM — pas des règles de fair-play
@@ -546,7 +558,16 @@ coût global restent à surveiller dans les journaux.
 | `ai/OpexAI/tension.nut` | `AIVehicle.GetRunningCost` (L84) |
 | `ai/OpexAI/terrain_valuate.nut` | `AITile.IsWaterTile` (L121); `AITile.IsCoastTile` (L127); `AITile.IsBuildable` (L133); `AITile.GetSlope` (L139); `AITile.GetMinHeight` (L145); `AITile.GetMaxHeight` (L155); `AITile.IsWaterTile` (L280); `AITile.IsCoastTile` (L297); `AITile.IsBuildable` (L314); `AITile.GetSlope` (L331); `AITile.GetMinHeight` (L348); `AITile.GetMaxHeight` (L376) |
 
-Validation V261 : `PYTHONPATH=sweeps python3 -m unittest discover -s sweeps -p "test_*.py"`
+Validation initiale V261 (`95d8a98`) : `PYTHONPATH=sweeps python3 -m unittest discover -s sweeps -p "test_*.py"`
 — **1 953 tests, OK, 3 skipped, 6 expectedFailure** ; 31 nouveaux tests V261.
 Les trois skips proviennent des tests existants. Aucun banc, Docker ou moteur lancé.
 Extrait examiné : SHA-256 `9674d6723e43f42399f4b0572c1d4154da3c8a8372e2a1922992bacaacdb64d4`.
+
+Validation V261b (18/10) : même commande, **1 957 tests, OK, 3 skipped,
+2 expectedFailure**, 25,573 s. Module V261 : 35 tests, quatre expectedFailure
+retirés (F1.1/F1.3/F1.6/F1.9), trois tests de table par niveau et un inventaire
+exhaustif des appels directs de pose ajoutés. `git diff --check` vert.
+Les deux expectedFailure F2.1a/F2.1c sont conservés sans modification.
+Aucun banc, Docker, partie, compilation Squirrel ni test Save/Load moteur,
+conformément à la demande utilisateur ; aucune qualification économique.
+Les messages smoke/gain_short/non_erosion de la suite viennent de fixtures Python.

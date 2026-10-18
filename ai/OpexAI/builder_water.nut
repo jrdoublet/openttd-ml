@@ -236,6 +236,13 @@ function OpexWaterFindConnection(siteA, siteB)
  * donc les empreintes effectivement occupees par les docks. */
 function OpexWaterFindDepot(siteA, siteB)
 {
+  /* Les deux cases du depot doivent laisser libres les fronts A ET B.
+   * Le BFS traverse ces fronts pour chercher ailleurs, sans demolir l'existant. */
+  local protectedFronts = {};
+  if (!OpexLevelAllows("water_depot_dock_front")) {
+    foreach (tile in siteA.waterTiles) protectedFronts[tile] <- true;
+    foreach (tile in siteB.waterTiles) protectedFronts[tile] <- true;
+  }
   local ax = AIMap.GetTileX(siteA.dock);
   local ay = AIMap.GetTileY(siteA.dock);
   local bx = AIMap.GetTileX(siteB.dock);
@@ -262,8 +269,10 @@ function OpexWaterFindDepot(siteA, siteB)
       local next = AIMap.GetTileIndex(nx, ny);
       if (!AITile.IsWaterTile(next) || !AIMarine.AreWaterTilesConnected(current, next)) continue;
       local depotOk = false;
-      { local probe = AITestMode(); depotOk = AIMarine.BuildWaterDepot(current, next); }
-      probes++;
+      if (!(current in protectedFronts) && !(next in protectedFronts)) {
+        { local probe = AITestMode(); depotOk = AIMarine.BuildWaterDepot(current, next); }
+        probes++;
+      }
       if (depotOk) return { tile = current, front = next };
       if (!(next in seen)) { seen.rawset(next, true); queue.append(next); }
     }

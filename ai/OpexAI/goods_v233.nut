@@ -172,6 +172,34 @@ function OpexV233PlanKey(candidate)
     + "|" + candidate.joinStationId;
 }
 
+/* V261b : proxy public de desserte tierce, pas une preuve de livraison.
+ * Une tuile de gare rail, arret routier ou quai rival couvre la zone d'acceptation
+ * de la secondaire. Les rayons viennent de l'API ; les aeroports seuls ne sont
+ * pas couverts (type/rayon rival non accessible par AIStation).
+ * Un arret bus peut etre un faux positif : precaution volontaire de courtoisie.
+ * Aucun historique de livraison par compagnie n'est expose ici par NoAI. */
+function OpexV233SecondaryRivalServed(factory)
+{
+  if (OpexLevelAllows("secondary_graft_rival_served")) return false;
+  if (!AIIndustry.IsValidIndustry(factory)) return false;
+  local types = [AIStation.STATION_TRAIN, AIStation.STATION_TRUCK_STOP, AIStation.STATION_DOCK];
+  foreach (stationType in types) {
+    local radius = AIStation.GetCoverageRadius(stationType);
+    if (stationType == AIStation.STATION_TRUCK_STOP)
+      radius = max(radius, AIStation.GetCoverageRadius(AIStation.STATION_BUS_STOP));
+    local tiles = AITileList_IndustryAccepting(factory, radius);
+    foreach (tile, _ in tiles) {
+      if (!AITile.IsStationTile(tile)) continue;
+      local owner = AITile.GetOwner(tile);
+      if (AICompany.IsMine(owner) || AICompany.ResolveCompanyID(owner) == AICompany.COMPANY_INVALID) continue;
+      if ((stationType == AIStation.STATION_TRAIN && AIRail.IsRailStationTile(tile))
+          || (stationType == AIStation.STATION_TRUCK_STOP && AITile.HasTransportType(tile, AITile.TRANSPORT_ROAD))
+          || (stationType == AIStation.STATION_DOCK && AIMarine.IsDockTile(tile))) return true;
+    }
+  }
+  return false;
+}
+
 function OpexV233JoinContextValid(context, cargo, source, coverage)
 {
   if (!("strictJoin" in context) || !context.strictJoin || context.joinEnd != "A"
@@ -181,6 +209,7 @@ function OpexV233JoinContextValid(context, cargo, source, coverage)
       || !AIMap.IsValidTile(context.v233StationTile)
       || AIStation.GetStationID(context.v233StationTile) != context.joinStationId
       || !AICompany.IsMine(AITile.GetOwner(context.v233StationTile))) return false;
+  if (OpexV233SecondaryRivalServed(context.v233FactoryId)) return false;
   local produced = AIIndustryType.GetProducedCargo(AIIndustry.GetIndustryType(context.v233FactoryId));
   if (!produced.HasItem(cargo) || AICargo.GetTownEffect(cargo) != AICargo.TE_GOODS) return false;
   local p = context.joinPlatform;
