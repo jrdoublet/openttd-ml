@@ -475,19 +475,7 @@ function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPl
     result.carried2 <- best.carried2;
     result.revenue2 <- best.revenue2;
   }
-  /* V212 : recalage pax applique APRES le choix du nombre de trains, pour ne deplacer que le
-   * classement et le budget, jamais la rame ni la double voie. Le devis remplace ensuite le
-   * capital (OpexApplyRailActualCapital) : la garde de tresorerie reste sur le cout reel. */
-  if (kind == "pax" && (V212_RAIL_PAX_REVENUE_PCT != 100 || V212_RAIL_PAX_CAPITAL_PCT != 100)) {
-    /* Le recalage porte sur le revenu ; le profit en decoule comme dans
-     * OpexApplyRailActualCapital, pour rester coherent apres le devis. */
-    result.revenueAnnual = (result.revenueAnnual * V212_RAIL_PAX_REVENUE_PCT) / 100;
-    result.profitAnnual = result.revenueAnnual - result.runningAnnual - result.amortAnnual;
-    result.capital = (result.capital * V212_RAIL_PAX_CAPITAL_PCT) / 100;
-    local totalCapital = result.capital + result.immobilise;
-    result.roi = (result.profitAnnual > 0 && totalCapital > 0)
-        ? (result.profitAnnual * 1000) / totalCapital : 0;
-  }
+
   if (profile != null) {
     local postOps = OpexOpsMeasureEnd(postMark);
     profile.paxEconomicsPostOps += postOps;

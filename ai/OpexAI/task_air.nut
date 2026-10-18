@@ -475,15 +475,10 @@ function OpexAI::_resizeAirFleets(year, plan = null)
     local priorityPath = (("scrapping" in line) && line.scrapping)
         || (("needsRefleet" in line) && line.needsRefleet);
     if (!priorityPath) {
-      local cooldown = false;
-      if (AIR_FLEET_CADENCE_DAYS >= 365) {
-        cooldown = ("lastAirFleetYear" in line) && line.lastAirFleetYear == year;
-      } else {
-        local lastDate = ("lastAirFleetDate" in line) ? line.lastAirFleetDate
-            : (("buildDate" in line) ? line.buildDate : 0);
-        cooldown = lastDate > 0
-            && (AIDate.GetCurrentDate() - lastDate) < AIR_FLEET_CADENCE_DAYS;
-      }
+      local lastDate = ("lastAirFleetDate" in line) ? line.lastAirFleetDate
+          : (("buildDate" in line) ? line.buildDate : 0);
+      local cooldown = lastDate > 0
+          && (AIDate.GetCurrentDate() - lastDate) < AIR_FLEET_CADENCE_DAYS;
       if (cooldown) {
         local spRef = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
         OpexAirFleetRefusal(line, year, "Y");
@@ -541,26 +536,14 @@ function OpexAI::_resizeAirFleets(year, plan = null)
       }
       continue;
     }
-    /* C15 : Cadence d'extension de flotte aerienne.
-     * Si AIR_FLEET_CADENCE_DAYS >= 365 : conservation exacte du verrou annuel historique.
-     * Sinon : verrou glissant en jours depuis la derniere extension (ou la creation de la ligne). */
-    if (AIR_FLEET_CADENCE_DAYS >= 365) {
-      if (("lastAirFleetYear" in line) && line.lastAirFleetYear == year) {
-        local spRef = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
-        OpexAirFleetRefusal(line, year, "Y");
-        if (spRef != null) OpexSpanAgg("fleet.refusal", spRef);
-        if (plan != null && C69_BOTTLENECK_PROBE) OpexC73RecordRejection("fleet", "already_grown_this_year", 1);
-        continue;
-      }
-    } else {
-      local lastDate = ("lastAirFleetDate" in line) ? line.lastAirFleetDate : (("buildDate" in line) ? line.buildDate : 0);
-      if (lastDate > 0 && (AIDate.GetCurrentDate() - lastDate) < AIR_FLEET_CADENCE_DAYS) {
-        local spRef = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
-        OpexAirFleetRefusal(line, year, "Y");
-        if (spRef != null) OpexSpanAgg("fleet.refusal", spRef);
-        if (plan != null && C69_BOTTLENECK_PROBE) OpexC73RecordRejection("fleet", "already_grown_this_year", 1);
-        continue;
-      }
+    /* C15 : Cadence d'extension de flotte aerienne. Verrou glissant en jours depuis la derniere extension (ou la creation de la ligne). */
+    local lastDate = ("lastAirFleetDate" in line) ? line.lastAirFleetDate : (("buildDate" in line) ? line.buildDate : 0);
+    if (lastDate > 0 && (AIDate.GetCurrentDate() - lastDate) < AIR_FLEET_CADENCE_DAYS) {
+      local spRef = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
+      OpexAirFleetRefusal(line, year, "Y");
+      if (spRef != null) OpexSpanAgg("fleet.refusal", spRef);
+      if (plan != null && C69_BOTTLENECK_PROBE) OpexC73RecordRejection("fleet", "already_grown_this_year", 1);
+      continue;
     }
     local have = ("vehCount" in line) ? line.vehCount : (("vehicles" in line) ? line.vehicles.len() : 0);
     if (have < 1) {
