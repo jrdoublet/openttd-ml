@@ -59,10 +59,11 @@ class TestV259BridgeRenew(unittest.TestCase):
         self.assertEqual(sum(count for _, count in reads), 1, "v259_bridge_renew doit etre lu une seule fois")
         self.assertIn('AIController.GetSetting("v259_bridge_renew")', self.settings)
 
-    def test_ceiling_raised_to_77_with_comment(self):
+    def test_ceiling_raised_with_comment(self):
+        # Plafond porte a 80 sur master (18/10 soir), commentaire citant V259.
         test_v246 = (Path(__file__).resolve().parent / "test_v246_fixed_policies.py").read_text(encoding="utf-8")
-        self.assertIn("77", test_v246)
-        self.assertIn("v259_bridge_renew", test_v246)
+        self.assertIn('count("AddSetting("), 80)', test_v246)
+        self.assertIn("V259", test_v246)
 
     def test_zero_opcode_guard_at_default(self):
         # 1. Garde dans scheduler.nut
@@ -96,6 +97,11 @@ class TestV259BridgeRenew(unittest.TestCase):
         # Re-enfilement si le curseur n'a pas fini
         self.assertIn('if (this._v259Cursor < this._v259Queue.len())', body_step)
         self.assertIn('this._enqueueReactive("v259_bridge", "v259_bridge", null)', body_step)
+
+    def test_vehicle_speed_uses_supported_engine_api(self):
+        speed_body = _body(self.task, "function OpexV259LineMaxVehicleSpeed(line)")
+        self.assertIn("AIEngine.GetMaxSpeed(AIVehicle.GetEngineType(v))", speed_body)
+        self.assertNotIn("AIVehicle.GetMaxSpeed", speed_body)
 
     def test_economic_decision_formula(self):
         eval_body = _body(self.task, "function OpexAI::_v259EvaluateAndRenew(item)")

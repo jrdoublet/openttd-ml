@@ -283,5 +283,10 @@
     "terrain_valuate.nut",
     "work",
     "AITile.GetMaxHeight"
+  ],
+  [
+    "task_v259.nut",
+    "bridges",
+    "AIBridge.GetMaxSpeed"
   ]
 ]
