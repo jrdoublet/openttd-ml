@@ -112,8 +112,8 @@ function OpexAirBestEngineForLine(line, catalog, lines = null)
     if (recalc > 0) demandNow = recalc;
   }
 
-  line.rawset("demandOld", demandOld);
-  line.rawset("demandNow", demandNow);
+  /* Pour le journal seulement : jamais sur la ligne, qui est sauvegardee telle quelle. */
+  if (DECISION_LOG) { V252_LAST_DEMAND_OLD = demandOld; V252_LAST_DEMAND_NOW = demandNow; }
 
   local monthlyPax = demandNow;
   if (monthlyPax <= 0) return null;
@@ -233,8 +233,8 @@ function OpexAirAddPlane(line, catalog = null, lines = null)
   line.vehicles.append(extra);
   if (targetEngine != oldEngine) {
     line.refleetEngine = targetEngine;
-    local dOld = ("demandOld" in line) ? line.demandOld : (("airMonthlyPax" in line) ? line.airMonthlyPax : 0);
-    local dNow = ("demandNow" in line) ? line.demandNow : dOld;
+    local dOld = V252_LAST_DEMAND_OLD;
+    local dNow = V252_LAST_DEMAND_NOW;
     if (DECISION_LOG) OpexDecide("V252_ENGINE", "action=reinforce line=" + (("lineId" in line) ? line.lineId : -1)
                  + " old_engine=" + oldEngine + " new_engine=" + targetEngine + " price=" + price
                  + " demand_old=" + dOld + " demand_now=" + dNow
@@ -308,8 +308,8 @@ function OpexAirRefleetCrashedPlane(line, catalog = null, lines = null)
   else line.vehicle <- plane;
   if (targetEngine != oldEngine) {
     line.refleetEngine = targetEngine;
-    local dOld = ("demandOld" in line) ? line.demandOld : (("airMonthlyPax" in line) ? line.airMonthlyPax : 0);
-    local dNow = ("demandNow" in line) ? line.demandNow : dOld;
+    local dOld = V252_LAST_DEMAND_OLD;
+    local dNow = V252_LAST_DEMAND_NOW;
     if (DECISION_LOG) OpexDecide("V252_ENGINE", "action=crash line=" + (("lineId" in line) ? line.lineId : -1)
                  + " old_engine=" + oldEngine + " new_engine=" + targetEngine + " price=" + price
                  + " demand_old=" + dOld + " demand_now=" + dNow

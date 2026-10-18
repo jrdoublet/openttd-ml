@@ -34,6 +34,8 @@ function OpexAI::_dispatchV252AirEngineRefresh(task, year)
   local bestAge = -1;
   local bestProfit = 0;
   local bestNewEngine = -1;
+  local bestDemandOld = 0;
+  local bestDemandNow = 0;
   local curEngine = -1;
   local nAirLines = 0;
   local nOutdated = 0;
@@ -72,6 +74,8 @@ function OpexAI::_dispatchV252AirEngineRefresh(task, year)
         bestAge = age;
         bestProfit = prof;
         bestNewEngine = targetEngine;
+        bestDemandOld = V252_LAST_DEMAND_OLD;
+        bestDemandNow = V252_LAST_DEMAND_NOW;
         curEngine = e;
       }
     }
@@ -141,8 +145,8 @@ function OpexAI::_dispatchV252AirEngineRefresh(task, year)
     }
   }
 
-  local dOld = ("demandOld" in bestLine) ? bestLine.demandOld : (("airMonthlyPax" in bestLine) ? bestLine.airMonthlyPax : 0);
-  local dNow = ("demandNow" in bestLine) ? bestLine.demandNow : dOld;
+  local dOld = bestDemandOld;
+  local dNow = bestDemandNow;
   if (DECISION_LOG) OpexDecide("V252_REPLACE", "line=" + bestLine.lineId + " old_engine=" + curEngine
              + " new_engine=" + bestNewEngine + " old_veh=" + bestVeh + " new_veh=" + newPlane
              + " price=" + price + " age=" + bestAge + " profit=" + bestProfit
