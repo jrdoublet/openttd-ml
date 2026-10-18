@@ -898,32 +898,34 @@ function OpexAI::_reportYear(year, ranked)
                  + this._budget.get("build_ships");
   OpexSign(anchor, "OW|" + year + "|" + buildOps + "|" + this._lines.len());
 
-  local elapsedTicks = AIController.GetTick() - this._startTick;
-  local totalAvail = elapsedTicks * OPS_PER_TICK;
-  local totalUsed = this._budget.total();
-  local totalUnused = totalAvail - totalUsed;
-  if (totalUnused < 0) totalUnused = 0;
-  local pctUsed = (totalAvail > 0) ? ((totalUsed * 1000) / totalAvail) : 0;
-  local pctUnused = 1000 - pctUsed;
-  local btText = "BT|" + (totalUsed / 1000000) + "M|" + (totalUnused / 1000000) + "M|" + pctUsed + "|" + pctUnused;
-  if ("tot" in _budgetSignIds && AISign.IsValidSign(_budgetSignIds["tot"])) {
-    AISign.SetName(_budgetSignIds["tot"], btText);
-  } else {
-    _budgetSignIds["tot"] <- AISign.BuildSign(AIMap.GetTileIndex(20, 1), btText);
-  }
-
-  local catY = 2;
-  foreach (cat, spent in this._budget.totals) {
-    local catPct = (totalUsed > 0) ? ((spent * 1000) / totalUsed) : 0;
-    local availPct = (totalAvail > 0) ? ((spent * 1000) / totalAvail) : 0;
-    local bcText = "BC|" + cat + "|" + (spent / 1000) + "k|" + catPct + "|" + availPct;
-    if (bcText.len() > 31) bcText = bcText.slice(0, 31);
-    if (cat in _budgetSignIds && AISign.IsValidSign(_budgetSignIds[cat])) {
-      AISign.SetName(_budgetSignIds[cat], bcText);
+  if (DEBUG_SIGNS) {
+    local elapsedTicks = AIController.GetTick() - this._startTick;
+    local totalAvail = elapsedTicks * OPS_PER_TICK;
+    local totalUsed = this._budget.total();
+    local totalUnused = totalAvail - totalUsed;
+    if (totalUnused < 0) totalUnused = 0;
+    local pctUsed = (totalAvail > 0) ? ((totalUsed * 1000) / totalAvail) : 0;
+    local pctUnused = 1000 - pctUsed;
+    local btText = "BT|" + (totalUsed / 1000000) + "M|" + (totalUnused / 1000000) + "M|" + pctUsed + "|" + pctUnused;
+    if ("tot" in _budgetSignIds && AISign.IsValidSign(_budgetSignIds["tot"])) {
+      AISign.SetName(_budgetSignIds["tot"], btText);
     } else {
-      _budgetSignIds[cat] <- AISign.BuildSign(AIMap.GetTileIndex(20, catY), bcText);
+      _budgetSignIds["tot"] <- AISign.BuildSign(AIMap.GetTileIndex(20, 1), btText);
     }
-    catY++;
+
+    local catY = 2;
+    foreach (cat, spent in this._budget.totals) {
+      local catPct = (totalUsed > 0) ? ((spent * 1000) / totalUsed) : 0;
+      local availPct = (totalAvail > 0) ? ((spent * 1000) / totalAvail) : 0;
+      local bcText = "BC|" + cat + "|" + (spent / 1000) + "k|" + catPct + "|" + availPct;
+      if (bcText.len() > 31) bcText = bcText.slice(0, 31);
+      if (cat in _budgetSignIds && AISign.IsValidSign(_budgetSignIds[cat])) {
+        AISign.SetName(_budgetSignIds[cat], bcText);
+      } else {
+        _budgetSignIds[cat] <- AISign.BuildSign(AIMap.GetTileIndex(20, catY), bcText);
+      }
+      catY++;
+    }
   }
 
   /* Ces quatre panneaux mesurent les rejets AVANT TOP_K : sans eux, ranked.all ne dit pas si le
