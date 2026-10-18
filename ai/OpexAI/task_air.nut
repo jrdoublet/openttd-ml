@@ -520,7 +520,7 @@ function OpexAI::_resizeAirFleets(year, plan = null)
      * jamais redevenir un template. OpexAirRefleetCrashedPlane reconstruit les
      * ordres depuis les metadonnees durables de la ligne. */
     if (("needsRefleet" in line) && line.needsRefleet) {
-      local recovered = OpexAirRefleetCrashedPlane(line, this._catalog);
+      local recovered = OpexAirRefleetCrashedPlane(line, this._catalog, this._lines);
       routesIndex = null;
       if (recovered.added > 0) {
         local afterCrash = (("vehCount" in line) ? line.vehCount : 0) + recovered.added;

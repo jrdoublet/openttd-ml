@@ -6,7 +6,7 @@
 
 function OpexAI::_dispatchV252AirEngineRefresh(task, year)
 {
-  if (V252_AIR_ENGINE_REFRESH != 2) return false;
+  if (V252_AIR_ENGINE_REFRESH < 2) return false;
   local date = AIDate.GetCurrentDate();
   local ym = year * 12 + AIDate.GetMonth(date);
   if (this._v252RefreshMonth == ym) return false;
@@ -52,7 +52,7 @@ function OpexAI::_dispatchV252AirEngineRefresh(task, year)
     /* Ligne rentable requise */
     if (lineProfit <= 0) continue;
 
-    local targetEngine = OpexAirBestEngineForLine(line, this._catalog);
+    local targetEngine = OpexAirBestEngineForLine(line, this._catalog, this._lines);
     if (targetEngine == null) continue;
 
     foreach (v in line.vehicles) {
@@ -141,8 +141,11 @@ function OpexAI::_dispatchV252AirEngineRefresh(task, year)
     }
   }
 
+  local dOld = ("demandOld" in bestLine) ? bestLine.demandOld : (("airMonthlyPax" in bestLine) ? bestLine.airMonthlyPax : 0);
+  local dNow = ("demandNow" in bestLine) ? bestLine.demandNow : dOld;
   if (DECISION_LOG) OpexDecide("V252_REPLACE", "line=" + bestLine.lineId + " old_engine=" + curEngine
              + " new_engine=" + bestNewEngine + " old_veh=" + bestVeh + " new_veh=" + newPlane
-             + " price=" + price + " age=" + bestAge + " profit=" + bestProfit);
+             + " price=" + price + " age=" + bestAge + " profit=" + bestProfit
+             + " demand_old=" + dOld + " demand_now=" + dNow);
   return true;
 }
