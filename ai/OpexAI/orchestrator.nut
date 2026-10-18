@@ -934,6 +934,10 @@ function OpexAI::_runOrchestratorTick()
 {
   this._railWorkerSteppedThisTick = false;
 
+  /* V257 : une seule garde au defaut. Une ligne de la file de revision par
+   * passage reactif ; ne bloque ni la FIFO existante ni le worker rail. */
+  if (V257_RAIL_REFRESH) this._v257ReactiveStep();
+
   // (b) Intention réactive
   if (this._hasReactiveIntentions()) {
     local intention = this._popReactive();
