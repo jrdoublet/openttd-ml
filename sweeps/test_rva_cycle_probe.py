@@ -30,7 +30,7 @@ class ProbeContract(unittest.TestCase):
         block = info.split('name = "probes",')[1].split("});")[0]
         for difficulty in ("easy", "medium", "hard", "custom"):
             self.assertRegex(block, rf"{difficulty}_value\s*=\s*2")
-        self.assertLessEqual(info.count("AddSetting("), 76)
+        self.assertLessEqual(info.count("AddSetting("), 80)  # plafond commun de test_v246 (19/10)
         self.assertIn('require("probe_rva_cycle.nut");', read("main.nut"))
 
     def test_only_read_only_api_calls(self):
