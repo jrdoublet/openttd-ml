@@ -15,6 +15,7 @@ function OpexAI::_runNextTaskWithSlackLedger()
   if (V216_PROBE) OpexV216MonthlyTick();
   if (V211_RIVALS) OpexV211QuarterlyTick();
   if (V217_RAIL_REFILL > 0) this._v217RailRefill();
+  if (V265_BRANCH_EXTENSION) this._v265AntiBlockStep();
   if ((!C41_SLACK_LEDGER && !C41_MONTHLY_BUSY_LEDGER && !C41_OPPORTUNITY_LEDGER && !C41_ADMISSION_LEDGER
        && !C41_RAIL_SLICE_LEDGER && !C39_PASS_CLOCK_LEDGER)
       || this._c41SlackLedger == null) {
@@ -322,6 +323,12 @@ function OpexAI::_runNextTask()
   if (task.name == "v250_rights") {
     spTask = PROBE_SPAN_TRACE ? OpexSpanBegin("task.v250_rights") : null;
     ranTask = this._dispatchV250Rights(task, year);
+    if (spTask != null) OpexSpanEnd(spTask);
+    return ranTask;
+  }
+  if (task.name == "v265_branch_extension") {
+    spTask = PROBE_SPAN_TRACE ? OpexSpanBegin("task.v265_branch_extension") : null;
+    ranTask = this._dispatchV265BranchExtension(task, year);
     if (spTask != null) OpexSpanEnd(spTask);
     return ranTask;
   }

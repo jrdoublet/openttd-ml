@@ -223,6 +223,8 @@ class OpexAI extends AIController {
   _v250Month = -1;
   _v250Targets = {};
   _v250Freed = {};
+  /* V265 : mois du dernier scan d'embranchement ferroviaire. Cadence trimestrielle. */
+  _v265LastMonth = -1;
   /* V89 : débit de recherche A* rail opportuniste et instrumentation passive */
   _v89EstimatedSliceOps = 2000;
   _v89LastDay = -1;
@@ -563,6 +565,9 @@ class OpexAI extends AIController {
   function _dispatchV249Statue(task, year);
   function _dispatchV252AirEngineRefresh(task, year);
   function _dispatchV250Rights(task, year);
+  function _dispatchV265BranchExtension(task, year);
+  function _v265AntiBlockStep();
+  function _v265ScanAndBranchLine(year);
   function _c76RecordRegen(kind, ops, days, year, reason = "unknown");
   function _c76RecordAvoided(year);
   function _c76RotateFreight(year);
@@ -663,6 +668,7 @@ require("task_water.nut");
 require("task_v249.nut");
 require("task_v252.nut");
 require("task_v250.nut");
+require("task_v265.nut");
 require("selftests.nut");
 
 function OpexAI::Start()
@@ -678,6 +684,7 @@ function OpexAI::Start()
     this._taskQueue.append({ name = "v249_statue", dueCycle = 0, enabled = V249_STATUE });
     this._taskQueue.append({ name = "v252_air_engine_refresh", dueCycle = 0, enabled = V252_AIR_ENGINE_REFRESH == 2 });
     this._taskQueue.append({ name = "v250_rights", dueCycle = 0, enabled = V250_RIGHTS > 0 });
+    this._taskQueue.append({ name = "v265_branch_extension", dueCycle = 0, enabled = V265_BRANCH_EXTENSION });
   }
 
   if (!STAGED_BOOTSTRAP) this._generationStage = OPEX_STAGE_COMPLETE;
