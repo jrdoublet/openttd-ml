@@ -34,8 +34,6 @@ function OpexAI::_dispatchV252AirEngineRefresh(task, year)
   local bestAge = -1;
   local bestProfit = 0;
   local bestNewEngine = -1;
-  local bestDemandOld = 0;
-  local bestDemandNow = 0;
   local curEngine = -1;
   local nAirLines = 0;
   local nOutdated = 0;
@@ -82,22 +80,10 @@ function OpexAI::_dispatchV252AirEngineRefresh(task, year)
   foreach (cand in candidates) {
     local lineKey = ("lineId" in cand.line) ? cand.line.lineId : cand.line;
     if (!(lineKey in lineTargetCache)) {
-      local target = OpexAirBestEngineForLine(cand.line, this._catalog);
-      local dOld = 0;
-      local dNow = 0;
-      if (DECISION_LOG) {
-        dOld = V252_LAST_DEMAND_OLD;
-        dNow = V252_LAST_DEMAND_NOW;
-      }
-      lineTargetCache[lineKey] <- {
-        targetEngine = target,
-        demandOld = dOld,
-        demandNow = dNow
-      };
+      lineTargetCache[lineKey] <- OpexAirBestEngineForLine(cand.line, this._catalog);
     }
 
-    local entry = lineTargetCache[lineKey];
-    local targetEngine = entry.targetEngine;
+    local targetEngine = lineTargetCache[lineKey];
     if (targetEngine == null) continue;
     if (cand.engine == targetEngine) continue;
 
@@ -107,8 +93,6 @@ function OpexAI::_dispatchV252AirEngineRefresh(task, year)
     bestAge = cand.age;
     bestProfit = cand.profit;
     bestNewEngine = targetEngine;
-    bestDemandOld = entry.demandOld;
-    bestDemandNow = entry.demandNow;
     curEngine = cand.engine;
     break;
   }
@@ -177,11 +161,8 @@ function OpexAI::_dispatchV252AirEngineRefresh(task, year)
     }
   }
 
-  local dOld = bestDemandOld;
-  local dNow = bestDemandNow;
-  local demandLog = (dOld > 0 || dNow > 0) ? (" demand_old=" + dOld + " demand_now=" + dNow) : "";
   if (DECISION_LOG) OpexDecide("V252_REPLACE", "line=" + bestLine.lineId + " old_engine=" + curEngine
              + " new_engine=" + bestNewEngine + " old_veh=" + bestVeh + " new_veh=" + newPlane
-             + " price=" + price + " age=" + bestAge + " profit=" + bestProfit + demandLog);
+             + " price=" + price + " age=" + bestAge + " profit=" + bestProfit);
   return true;
 }

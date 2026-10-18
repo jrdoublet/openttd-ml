@@ -150,11 +150,6 @@ class TestV252EngineRefresh(unittest.TestCase):
         pos_chooser = self.dispatch.index("OpexAirBestEngineForLine(")
         self.assertGreater(pos_chooser, pos_sort)
 
-        # 6. bestDemandOld et bestDemandNow associes au cache
-        self.assertIn("demandOld = dOld", self.dispatch)
-        self.assertIn("demandNow = dNow", self.dispatch)
-        self.assertIn("bestDemandOld = entry.demandOld;", self.dispatch)
-        self.assertIn("bestDemandNow = entry.demandNow;", self.dispatch)
 
     def test_v252_selection_simulation_and_budget(self):
         import random
