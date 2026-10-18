@@ -165,7 +165,8 @@ function OpexStationRatingForHeadway(headwayDays)
  * comme OpexRoadLineEconomics distingue deja les deux. */
 function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPlatformLength = 0,
                            routeDistance = null, profile = null, cruiseCache = null,
-                           wagonOverride = null, locoChoicesOverride = null, secondary = null)
+                           wagonOverride = null, locoChoicesOverride = null, secondary = null,
+                           fixedTrains = 0)
 {
   local setupMark = profile != null ? OpexOpsMeasureBegin() : null;
   local freightDetail = profile != null && kind == "freight" && C41_RAIL_FREIGHT_ECONOMICS_DETAIL_PROFILE;
@@ -362,7 +363,10 @@ function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPl
   local loopMark = profile != null ? OpexOpsMeasureBegin() : null;
   local best = null;
   local startTrains = (OpexV190Active() && kind == "freight") ? 2 : 1;
-  for (local trains = startTrains; trains <= MAX_RAIL_TRAINS; trains++) {
+  local lastTrains = MAX_RAIL_TRAINS;
+  /* V265 : evaluer une ligne existante a son nombre de rames reel. */
+  if (fixedTrains > 0) { startTrains = fixedTrains; lastTrains = fixedTrains; }
+  for (local trains = startTrains; trains <= lastTrains; trains++) {
     local headwayDays = roundTripDays / trains;
     local effectiveHeadway = headwayDays;
     if (kind == "freight") {

@@ -16,15 +16,25 @@
  * la reserve du meilleur projet AIR financable (meme calcul que V266). Au defaut 0, la tache est
  * desactivee dans la file et aucune fonction de ce fichier n'est appelee. */
 
-/* Profit annuel par rame du modele de ligne, a distance de revenu et longueur de voie donnees.
- * La ligne garde une seule rame : on compare donc le profit par rame, pas le total du modele. */
+/* Profit annuel du modele de ligne a UNE rame (la seule de la ligne), a distance de revenu et
+ * longueur de voie donnees. Exposition 3x10 du 19/10 : diviser le profit du modele a N rames par
+ * N surestimait le prolongement (prevu 26,5 k, realise 5 a 10 k) : une rame seule passe moins
+ * souvent, la note de gare baisse et elle ne porte que sa capacite. */
 function OpexV265PerTrainProfit(catalog, line, incomeDistance, routeDistance)
 {
   local econ = OpexLineEconomics(catalog, line.cargo, incomeDistance, line.monthly, line.kind,
-                                 line.platformLength, routeDistance);
+                                 line.platformLength, routeDistance, null, null, null, null, null, 1);
   if (econ == null) return null;
-  local trains = econ.trains > 0 ? econ.trains : 1;
-  return econ.profitAnnual / trains;
+  return econ.profitAnnual;
+}
+
+/* Annees de vie restantes de la rame : horizon de remboursement, comme V249 et V259
+ * (gain x vie restante >= cout). GetMaxAge et GetAge rendent des jours (catalog.nut). */
+function OpexV265RemainingYears(line)
+{
+  local v = line.vehicles[0];
+  local days = AIVehicle.GetMaxAge(v) - AIVehicle.GetAge(v);
+  return days > 0 ? days / 365 : 0;
 }
 
 /* Lignes prolongeables : fret, voie unique, une rame, quais connus, pas de second cargo. */
@@ -82,7 +92,7 @@ function OpexV265TraceTrack(startStationTile, leadTile, endStationTile)
       visited[far] <- true;
       prev = far;
       found = far + dir;
-      if (!AIRail.IsRailTile(found) && !OpexV265WorkHead(found, dir)) return { tiles = null, reason = "exit" };
+      if (!AIRail.IsRailTile(found) && !OpexV265WorkHead(found, dir)) return { tiles = null, reason = "exit_" + far + "_" + found };
     } else {
       if (!AIRail.IsRailTile(cur)) return { tiles = null, reason = "notrail" };
       foreach (off in offsets) {
@@ -94,7 +104,7 @@ function OpexV265TraceTrack(startStationTile, leadTile, endStationTile)
         found = n;
         break;
       }
-      if (found == null) return { tiles = null, reason = "gap" };
+      if (found == null) return { tiles = null, reason = "gap_" + cur };
       prev = cur;
     }
     if (found in visited) return { tiles = null, reason = "cycle" };
@@ -219,6 +229,8 @@ function OpexAI::_v265TryLine(line, date)
   /* Avant l'A*, longueurs de voie approchees par la distance Manhattan des deux cotes. */
   local current = OpexV265PerTrainProfit(catalog, line, dAB, dAB);
   if (current == null) return;
+  local life = OpexV265RemainingYears(line);
+  if (life <= 0) return;
   local traceKey = line.lineId + "|-1";
   if ((traceKey in this._v265Failed) && date - this._v265Failed[traceKey] < ABANDON_COOLDOWN_DAYS) return;
 
@@ -238,6 +250,7 @@ function OpexAI::_v265TryLine(line, date)
     /* Meme cout de voie que le modele de ligne (economy.nut, effectiveTrackCost). */
     local capital = dBC * catalog.costTrackPerTile * RAIL_TERRAIN_FACTOR / 100 + line.platformLength * catalog.costStation;
     if (money < capital + reserve) continue;
+    if ((after - current) * life < capital) continue;
     local score = OpexProjectScore(after - current, capital);
     if (best == null || score > best.score)
       best = { ind = ind, tile = indTile, gain = after - current, capital = capital, score = score };
@@ -338,6 +351,10 @@ function OpexAI::_v265ConsumeSearch()
     return;
   }
   local capital = tiles.len() * catalog.costTrackPerTile * RAIL_TERRAIN_FACTOR / 100 + planC.length * catalog.costStation;
+  if ((after - current) * OpexV265RemainingYears(line) < capital) {
+    this._v265Fail(line, v.ind, "payback");
+    return;
+  }
   local reserve = this._v265AirReserve();
   if (reserve == null || AICompany.GetBankBalance(AICompany.COMPANY_SELF) < capital + reserve) {
     /* Refus de caisse : pas un echec du site, on reessaiera a une passe suivante. */
