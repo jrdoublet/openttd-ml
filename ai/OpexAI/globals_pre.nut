@@ -92,6 +92,12 @@ V249_STATUE <- false;
 /* Vrai si une passe projets s'est arretee faute de caisse depuis le dernier
  * passage statue. Vrai au depart : le premier mois ne compte pas. Pas sauvegarde. */
 V249_CASH_STOP <- true;
+/* V252 : modernisation de la flotte aerienne (air_fleet.nut, task_v252.nut).
+ * 0 = inerte, 1 = renfort/crash au meilleur modele, 2 = mode 1 + remplacement actif quand riche. */
+V252_AIR_ENGINE_REFRESH <- 0;
+/* Vrai si une passe projets s'est arretee faute de caisse depuis le dernier
+ * passage de rafraichissement aerien. Vrai au depart. Pas sauvegarde. */
+V252_CASH_STOP <- true;
 V172_RAIL_LONG_WEIGHT_DIST <- 100;
 /* Cascade pax par distance decroissante : air seul, air+rail, rail seul,
  * route seule. Le fret accompagne la premiere passe. */
