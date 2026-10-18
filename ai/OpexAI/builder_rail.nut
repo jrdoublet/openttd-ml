@@ -2610,11 +2610,12 @@ function OpexV163Wagons2(line)
 }
 
 function OpexBuildTrains(catalog, cargo, kind, depotTile, exitA, exitB, wanted, loco, wagons, platformLength, startVehicles = true,
-                         cargo2 = -1, wagons2 = 0)
+                         cargo2 = -1, wagons2 = 0, savedWagon = null, savedWagon2 = null)
 {
-  local wagon = catalog.wagonByCargo[cargo];
+  local wagon = savedWagon != null ? savedWagon : catalog.wagonByCargo[cargo];
   /* V163 : wagons du second cargo, attaches derriere ceux du premier dans la meme rame. */
   local wagon2 = (wagons2 > 0 && (cargo2 in catalog.wagonByCargo)) ? catalog.wagonByCargo[cargo2] : null;
+  if (savedWagon2 != null) wagon2 = savedWagon2;
   if (wagon2 == null) wagons2 = 0;
   local built = 0;
   local vehicles = [];          // locomotives tete : identite persistante de la ligne
@@ -2954,6 +2955,7 @@ function OpexCompleteRailRouteAfterSearch(catalog, candidate, plan, search)
   plan.structures = OpexResolveSearchStructures(search);
   plan.planA = planA;
   plan.planB = planB;
+  if (V257_CONSIST > 0) OpexV257ObservePair(candidate, planA, planB);
 
   /* Recalibrer avec la longueur effectivement trouvee AVANT de decider si une
    * seconde voie est necessaire. Sinon un detour peut faire passer le besoin de
@@ -2971,6 +2973,7 @@ function OpexCompleteRailRouteAfterSearch(catalog, candidate, plan, search)
     if (EQUIPMENT_ROI_PROBE) {
       OpexM3ProbeRailEquipment(catalog, candidate, plan.length, routeDistance, economics);
     }
+    if (V257_CONSIST > 0 && economics == null) { plan.reason = "ECON"; return plan; }
     if (economics != null) {
       plan.capital = economics.capital;
       OpexApplyRailEconomics(candidate, economics);
@@ -4094,7 +4097,9 @@ function OpexV190ExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
 
   local trains = OpexBuildTrains(catalog, candidate.cargo, candidate.kind, depot,
                                  planA.station_exit, planB.station_exit, 1, candidate.loco,
-                                 candidate.wagons, candidate.platformLength, false);
+                                 candidate.wagons, candidate.platformLength, false,
+                                 V257_CONSIST > 0 ? OpexV163Cargo2(candidate) : -1,
+                                 V257_CONSIST > 0 ? OpexV163Wagons2(candidate) : 0);
   if (trains.failed || trains.built == 0) {
     result.opcodes += budget.end("build_trains");
     result.error = trains.error;
@@ -4149,7 +4154,9 @@ function OpexV190ExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
         local trainDepot = (depot2 != null) ? depot2 : depot;
         local second = OpexBuildTrains(catalog, candidate.cargo, candidate.kind, trainDepot,
                                        planA2.station_exit, planB2.station_exit, 1, candidate.loco,
-                                       candidate.wagons, candidate.platformLength, false);
+                                       candidate.wagons, candidate.platformLength, false,
+                                       V257_CONSIST > 0 ? OpexV163Cargo2(candidate) : -1,
+                                       V257_CONSIST > 0 ? OpexV163Wagons2(candidate) : 0);
         if (!second.failed && second.built > 0) {
             secondRollbackVehicles = second.rollbackVehicles;
             local loopLine = {
@@ -4442,7 +4449,9 @@ function OpexExecuteUpgradeAfterSearch(catalog, budget, line, cashReserve, searc
   local newTrains = OpexBuildTrains(catalog, line.cargo, line.kind, depot2,
                                     planA2.station_exit, planB2.station_exit, 1,
                                     line.loco, line.wagons, line.platformLength, true,
-                                    OpexV163Cargo2(line), OpexV163Wagons2(line));
+                                    OpexV163Cargo2(line), OpexV163Wagons2(line),
+                                    ("v257Wagon" in line) ? line.v257Wagon : null,
+                                    ("v257Wagon2" in line) ? line.v257Wagon2 : null);
   if (newTrains.failed || newTrains.built == 0) {
     OpexRollback(tiles2, planA2, planB2, depot2, newTrains.rollbackVehicles);
     result.reason = "TRAINFAIL";
@@ -4478,7 +4487,9 @@ function OpexBuildSecondTrain(catalog, line, cashReserve)
   local stB = (("stationB2" in line) && line.stationB2 != null) ? line.stationB2 : line.stationB;
   local newTrains = OpexBuildTrains(catalog, line.cargo, line.kind, line.depot2,
                                     stA, stB, 1, line.loco, line.wagons, line.platformLength, true,
-                                    OpexV163Cargo2(line), OpexV163Wagons2(line));
+                                    OpexV163Cargo2(line), OpexV163Wagons2(line),
+                                    ("v257Wagon" in line) ? line.v257Wagon : null,
+                                    ("v257Wagon2" in line) ? line.v257Wagon2 : null);
   if (newTrains.failed || newTrains.built == 0) {
     OpexRollback(null, null, null, null, newTrains.rollbackVehicles);
     result.reason = "TRAINFAIL"; return result;

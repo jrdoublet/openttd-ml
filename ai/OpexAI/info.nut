@@ -610,6 +610,14 @@ class OpexAIInfo extends AIInfo {
     });
 
 
+    /* V257 : experience de composition, non qualifiee, temoin a 0. */
+    AddSetting({
+      name = "v257_consist",
+      description = "V257: 0 legacy, 1 production-sized rail consists, 2 also mixed cargo; experimental",
+      min_value = 0, max_value = 2,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0, step_size = 1, flags = 0
+    });
     /* AC04-B et AC05 : qualifies separement et en cumul, rollback 0. */
     AddSetting({
       name = "v163_multi_cargo",

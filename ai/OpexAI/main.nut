@@ -45,6 +45,7 @@ const CASH_RESERVE_MAX = 25000;
 require("budget.nut");
 require("catalog.nut");
 require("economy.nut");
+require("rail_consist_v257.nut");
 require("spatial.nut");
 require("terrain_map.nut");
 require("water_graph.nut");

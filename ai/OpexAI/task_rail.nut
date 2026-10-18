@@ -507,7 +507,8 @@ function OpexAI::_expandRailLines(year)
           }
           if (trainWaitingAtSource) continue;
 
-          local trainCost = line.loco.price + line.wagons * wagon.price;
+          local trainCost = line.loco.price + line.wagons * wagon.price
+              + (V257_CONSIST > 0 ? OpexV163WagonsPrice(this._catalog, line) : 0);
           local need = trainCost + OpexCashReserve() + 1000;
           local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
           if (money < need) continue;
@@ -1169,6 +1170,15 @@ function OpexAI::_recordRailAttempt(candidate, result, posPacked, year)
                      + " search_to_service_days=" + delaySearchDays);
     }
     OpexSign(anchor, "OF|" + idx + "|" + candidate.revenueAnnual);
+    if (DECISION_LOG && V257_CONSIST > 0) {
+      OpexDecide("V257_CONSIST", "line=" + idx + " mode=" + V257_CONSIST
+          + " monthly=" + candidate.monthly + " wagons=" + candidate.wagons
+          + " cargo2=" + OpexV163Cargo2(candidate) + " wagons2=" + OpexV163Wagons2(candidate)
+          + " monthly2=" + (("monthly2" in candidate) ? candidate.monthly2 : 0)
+          + " platform=" + result.platformLength + " length=" + result.trainLength
+          + " loco=" + candidate.loco.id + " speed=" + candidate.effectiveSpeed
+          + " predicted_trains=" + candidate.trains + " built_trains=" + result.trains);
+    }
     OpexSign(anchor, "OJ|" + idx + "|" + candidate.runningAnnual);
     OpexSign(anchor, "OK|" + idx + "|" + candidate.amortAnnual);
     OpexSign(anchor, "OQ|" + idx + "|" + candidate.carried + "|" + candidate.trains
@@ -1231,6 +1241,13 @@ function OpexAI::_recordRailAttempt(candidate, result, posPacked, year)
       opcodeRatio = ("opcodeRatio" in candidate) ? candidate.opcodeRatio : -1,
       lineId = idx,
     });
+    if (V257_CONSIST > 0) {
+      // Tables de valeurs API sauvegardees par OpexSaveProjectLine, jamais un objet moteur.
+      local built = this._lines[this._lines.len() - 1];
+      built.v257Wagon <- clone this._catalog.wagonByCargo[candidate.cargo];
+      if (OpexV163Wagons2(candidate) > 0)
+        built.v257Wagon2 <- clone this._catalog.wagonByCargo[candidate.cargo2];
+    }
     /* V163 : la rame porte un second cargo ; les seconds trains et le doublement le reprennent. */
     if (("wagons2" in candidate) && candidate.wagons2 > 0) {
       local built = this._lines[this._lines.len() - 1];

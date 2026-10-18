@@ -62,7 +62,7 @@ class StaticContracts(unittest.TestCase):
 
     def test_generation_guarded(self):
         body = _function_body(_read("candidates.nut"), "OpexFreightCandidates")
-        self.assertIn("local others2 = V163_MULTI_CARGO ? OpexV163SourceOtherCargos(catalog, source.id, cargo) : null;",
+        self.assertIn("local others2 = (V257_CONSIST == 2 || V163_MULTI_CARGO) ? OpexV163SourceOtherCargos(catalog, source.id, cargo) : null;",
                       body)
         self.assertIn("local secondary = (others2 != null && others2.len() > 0)\n"
                       "            ? OpexV163SecondaryCargo(others2, industries[di].id) : null;", body)
@@ -71,7 +71,7 @@ class StaticContracts(unittest.TestCase):
         self.assertLess(body.index("OpexV163SourceOtherCargos"), body.index("for (local k = 0; k < sinks.len(); k++)",
                                                                              body.index("OpexV163SourceOtherCargos") - 400))
         reeval = _function_body(_read("economy.nut"), "OpexV163CandidateSecondary")
-        self.assertIn("if (!V163_MULTI_CARGO", reeval)
+        self.assertIn("if (V257_CONSIST != 2 && !V163_MULTI_CARGO", reeval)
 
     def test_secondary_cargo_selection(self):
         others = _function_body(_read("economy.nut"), "OpexV163SourceOtherCargos")
@@ -102,8 +102,9 @@ class StaticContracts(unittest.TestCase):
         body = _function_body(src, "OpexBuildTrains")
         self.assertIn("wagons + wagons2 > nominalMaxWagons", body)
         self.assertIn("w < wagons ? wagon.id : wagon2.id", body)
-        # construction initiale (2 rames), doublement et second train passent le second cargo
+        # Construction initiale ; V190 ajoute deux chemins gardes par V257.
         self.assertEqual(src.count("OpexV163Cargo2(candidate), OpexV163Wagons2(candidate)"), 2)
+        self.assertEqual(src.count("V257_CONSIST > 0 ? OpexV163Wagons2(candidate) : 0"), 2)
         self.assertEqual(src.count("OpexV163Cargo2(line), OpexV163Wagons2(line)"), 2)
         # definition + doublement + second train
         self.assertEqual(src.count("OpexV163WagonsPrice(catalog, line)"), 3)
@@ -115,7 +116,7 @@ class StaticContracts(unittest.TestCase):
         self.assertIn("built.cargo2 <- candidate.cargo2;", src)
         self.assertIn("built.wagons2 <- candidate.wagons2;", src)
         self.assertNotIn("line.wagons + OpexV163Wagons2(line) >= OpexRailNominalMaxWagons(line.platformLength)", src)
-        self.assertEqual(src.count("OpexV163WagonsPrice(this._catalog, line)"), 2)
+        self.assertEqual(src.count("OpexV163WagonsPrice(this._catalog, line)"), 3)
 
     def test_probe_decision_log_only(self):
         src = _read("task_report.nut")

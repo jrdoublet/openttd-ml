@@ -103,7 +103,7 @@ class TestV207PaxAndMailCandidates(unittest.TestCase):
         # Check share logic
         self.assertIn("V207_RAIL_PAX_SHARE_PCT > 0 ? V207_RAIL_PAX_SHARE_PCT : TOWN_CATCHMENT_SHARE_PCT", body)
         # Check mail condition
-        self.assertIn("V207_RAIL_MAIL && catalog.mailCargo >= 0 && (catalog.mailCargo in catalog.wagonByCargo)", body)
+        self.assertIn("(V257_CONSIST == 2 || V207_RAIL_MAIL) && catalog.mailCargo >= 0 && (catalog.mailCargo in catalog.wagonByCargo)", body)
         # Check secondary passed to OpexMakeCandidate
         self.assertIn("OpexMakeCandidate(catalog, \"pax\", cargo, towns[a].tile, towns[b].tile,\n"
                       "                                          monthly, false, stats, false, candidateProfile, cruiseCache,\n"

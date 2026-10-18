@@ -542,6 +542,7 @@ AIR_FLEET_CADENCE_DAYS <- 7;
  * Un renfort reste a sa valeur modele perd l'exemption C70. */
 /* V163 : second cargo d'une ligne rail de fret (meme source, meme destination). Defaut 0. */
 V163_MULTI_CARGO <- false;
+V257_CONSIST <- 0;
 /* Mesure du 12/10 (v160_B20x10, 1973-74) : +13,4 k sur la ligne, -2,6 k par voisine. */
 V161_PRIOR_OWN <- 13000;
 V161_PRIOR_NEIGHBOUR <- 2600;

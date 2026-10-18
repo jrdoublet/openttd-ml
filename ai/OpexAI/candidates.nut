@@ -813,7 +813,7 @@ function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, orig
     isLowRatio = isLowRatio,
   };
   /* V163 : le second cargo n'est garde que s'il a trouve place dans la rame. */
-  if (("wagons2" in economics) && economics.wagons2 > 0) {
+  if (("wagons2" in economics) && (economics.wagons2 > 0 || V257_CONSIST == 2)) {
     candidate.cargo2 <- economics.cargo2;
     candidate.monthly2 <- economics.monthly2;
     candidate.wagons2 <- economics.wagons2;
@@ -972,13 +972,13 @@ function OpexPaxCandidates(catalog, lines, out, stats, abandonedPairs = null, pr
   local preparationMark = profile != null ? OpexOpsMeasureBegin() : null;
   for (local i = 0; i < n; i++) {
     local p = AITown.GetLastMonthProduction(towns[i].id, cargo);
-    if (p <= 0 && towns[i].pop > 0) p = (towns[i].pop * 22) / 100;
+    if (V257_CONSIST == 0 && p <= 0 && towns[i].pop > 0) p = (towns[i].pop * 22) / 100;
     produced.append(p);
     local service = OpexOriginService(lines, towns[i].tile);
     served.append(service);
     if (service != null) stats.townsServed++; else stats.townsUnserved++;
   }
-  local hasMail = V207_RAIL_MAIL && catalog.mailCargo >= 0 && (catalog.mailCargo in catalog.wagonByCargo);
+  local hasMail = (V257_CONSIST == 2 || V207_RAIL_MAIL) && catalog.mailCargo >= 0 && (catalog.mailCargo in catalog.wagonByCargo);
   local mailProduced = null;
   if (hasMail) {
     mailProduced = [];
@@ -1030,11 +1030,14 @@ function OpexPaxCandidates(catalog, lines, out, stats, abandonedPairs = null, pr
       local prodB = produced[b];
       local part = V207_RAIL_PAX_SHARE_PCT > 0 ? V207_RAIL_PAX_SHARE_PCT : TOWN_CATCHMENT_SHARE_PCT;
       local monthly = ((prodA + prodB) * part) / 100;
+      // V257 : production mesuree des deux villes, sans double abattement captage puis note.
+      if (V257_CONSIST > 0) monthly = prodA + prodB;
       local secondary = null;
       if (hasMail) {
         local mailA = mailProduced[a];
         local mailB = mailProduced[b];
         local mailMonthly = ((mailA + mailB) * part) / 100;
+        if (V257_CONSIST > 0) mailMonthly = mailA + mailB;
         secondary = { cargo = catalog.mailCargo, monthly = mailMonthly };
       }
       local candidateMark = profile != null ? OpexOpsMeasureBegin() : null;
@@ -1083,7 +1086,7 @@ function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null
       if (OPEX_LEVEL_LIMITS && OpexIndustryPrimaryRivalServed(source.id, source.tile)) continue;
       local monthly = AIIndustry.GetLastMonthProduction(source.id, cargo);
       local ss = served[si];
-      local others2 = V163_MULTI_CARGO ? OpexV163SourceOtherCargos(catalog, source.id, cargo) : null;
+      local others2 = (V257_CONSIST == 2 || V163_MULTI_CARGO) ? OpexV163SourceOtherCargos(catalog, source.id, cargo) : null;
       local industryMark = profile != null ? OpexOpsMeasureBegin() : null;
       for (local k = 0; k < sinks.len(); k++) {
         local di = sinks[k];

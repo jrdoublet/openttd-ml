@@ -146,6 +146,7 @@ function OpexLoadSettings()
   RAIL_GEOMETRY_LIVE_REPLAN = AIController.GetSetting("rail_geometry_live_replan") != 0;
 
   V163_MULTI_CARGO = AIController.GetSetting("v163_multi_cargo") == 1;
+  V257_CONSIST = AIController.GetSetting("v257_consist");
 
   /* --- 4. Sondes de diagnostic unifiees (9 groupes) --- */
 

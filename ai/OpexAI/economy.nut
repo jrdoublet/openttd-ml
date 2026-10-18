@@ -168,6 +168,7 @@ function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPl
                            wagonOverride = null, locoChoicesOverride = null, secondary = null)
 {
   local setupMark = profile != null ? OpexOpsMeasureBegin() : null;
+  if (V257_CONSIST == 1) secondary = null;
   local freightDetail = profile != null && kind == "freight" && C41_RAIL_FREIGHT_ECONOMICS_DETAIL_PROFILE;
   local freightSetupDetail = profile != null && kind == "freight" && C41_RAIL_FREIGHT_ECONOMICS_SETUP_PROFILE;
   local freightConsistDetail = profile != null && kind == "freight" && C41_RAIL_FREIGHT_ECONOMICS_CONSIST_PROFILE;
@@ -201,6 +202,10 @@ function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPl
   if (fixedPlatformLength > 0) {
     local platformMaxWagons = OpexRailNominalMaxWagons(fixedPlatformLength);
     if (platformMaxWagons < maxWagons) maxWagons = platformMaxWagons;
+  }
+  if (V257_CONSIST > 0 && catalog.maxTrainLength > 0) {
+    local physicalMax = OpexRailNominalMaxWagons(catalog.maxTrainLength);
+    if (physicalMax < maxWagons) maxWagons = physicalMax;
   }
   /* V207 : une rame passagers (+ courrier) plus longue que vehicle.max_train_length ne quitte
    * jamais le depot (MoveWagon : ERR_VEHICLE_TOO_LONG, voir V206). Borne limitee aux rames pax
@@ -294,7 +299,19 @@ function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPl
    * Sans place ou sans locomotive pour le total, la ligne reste mono-cargo. */
   local wagon2 = null;
   local wagons2 = 0;
-  if (secondary != null && secondary.monthly > 0 && (secondary.cargo in catalog.wagonByCargo)) {
+  if (V257_CONSIST > 0) {
+    local consist = OpexV257ConsistPlan(catalog, cargo, monthlyUnits, kind, secondary,
+                                       fixedPlatformLength, travelDist, choices, wagon);
+    if (consist == null) return null;
+    wagons = consist.wagons;
+    wagons2 = consist.wagons2;
+    wagon2 = consist.wagon2;
+    loco = consist.loco;
+    effectiveSpeed = consist.speed;
+    oneWayDays = consist.days;
+    roundTripDays = 2 * oneWayDays;
+    tripsPerMonth = consist.trips;
+  } else if (secondary != null && secondary.monthly > 0 && (secondary.cargo in catalog.wagonByCargo)) {
     wagon2 = catalog.wagonByCargo[secondary.cargo];
     wagons2 = OpexCeilDiv((secondary.monthly * STATION_RATING_PCT) / 100.0, wagon2.capacity * tripsPerMonth);
     if (wagons2 < 1) wagons2 = 1;
@@ -362,7 +379,9 @@ function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPl
   local loopMark = profile != null ? OpexOpsMeasureBegin() : null;
   local best = null;
   local startTrains = (OpexV190Active() && kind == "freight") ? 2 : 1;
-  for (local trains = startTrains; trains <= MAX_RAIL_TRAINS; trains++) {
+  // V257 : classer la flotte livrable, une rame sur voie simple (deux sous V190).
+  local endTrains = V257_CONSIST > 0 ? startTrains : MAX_RAIL_TRAINS;
+  for (local trains = startTrains; trains <= endTrains; trains++) {
     local headwayDays = roundTripDays / trains;
     local effectiveHeadway = headwayDays;
     if (kind == "freight") {
@@ -398,6 +417,9 @@ function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPl
     }
     local amortAnnual = vehicleCost / locoLife + ((infraCost * INFRA_AMORT_PCT / 100) / INFRA_LIFE_YEARS);
     local runningAnnual = trains * loco.runningCost;
+    // NoAI AIEngine.GetRunningCost, deja lu par catalog.nut pour CHAQUE wagon.
+    if (V257_CONSIST > 0) runningAnnual += trains * (wagons * wagon.runningCost
+        + (wagon2 != null ? wagons2 * wagon2.runningCost : 0));
     local profitAnnual = revenueAnnual - runningAnnual - amortAnnual;
     local capital = vehicleCost + infraCost;
     local immobilise = (TRANSIT_COST_PERMILLE > 0)
@@ -546,7 +568,7 @@ function OpexApplyRailEconomics(candidate, economics)
  * quai ou le trace reels sont connus. null hors V163 ou sans second cargo. */
 function OpexV163CandidateSecondary(candidate)
 {
-  if (!V163_MULTI_CARGO && !(V207_RAIL_MAIL && (("kind" in candidate) && candidate.kind == "pax"))) return null;
+  if (V257_CONSIST != 2 && !V163_MULTI_CARGO && !(V207_RAIL_MAIL && (("kind" in candidate) && candidate.kind == "pax"))) return null;
   if (!("cargo2" in candidate) || !("monthly2" in candidate)) return null;
   return { cargo = candidate.cargo2, monthly = candidate.monthly2 };
 }

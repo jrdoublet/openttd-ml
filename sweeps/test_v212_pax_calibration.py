@@ -64,7 +64,7 @@ class TestV212Economics(unittest.TestCase):
                       self.body)
 
     def test_applied_after_train_choice(self):
-        loop = self.body.index("for (local trains = startTrains; trains <= MAX_RAIL_TRAINS; trains++)")
+        loop = self.body.index("for (local trains = startTrains; trains <= endTrains; trains++)")
         result = self.body.index("local result = {")
         calib = self.body.index("V212_RAIL_PAX_REVENUE_PCT != 100")
         ret = self.body.rindex("return result;")
