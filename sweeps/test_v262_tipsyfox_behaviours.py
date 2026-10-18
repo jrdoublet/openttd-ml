@@ -132,21 +132,36 @@ class TipsyfoxBehaviours(unittest.TestCase):
             self.assertIn(token, body('air_recovery.nut', 'OpexAirContinueRollback'))
         self.assertIn('airRollbacks', body('persist.nut', 'OpexAI::Save'))
 
-    @unittest.expectedFailure  # Aucun contrôle local max_roadveh avant BuildTrace.
     def test_road_vehicle_limit_rechecked_before_infrastructure(self):
         prefix = body('builder_road.nut', 'OpexBuildRoadRoute').split('OpexRoadBuildTrace(')[0]
         self.assertRegex(prefix, r'Opex\w*SlotAvailable\(|"vehicle.max_roadveh"')
 
-    @unittest.expectedFailure  # Tension globale != vérification transactionnelle max_aircraft.
     def test_air_vehicle_limit_rechecked_before_infrastructure(self):
         prefix = body('air_construction.nut', 'OpexBuildAirRoute').split('OpexAirLevelFootprint(')[0]
         self.assertRegex(prefix, r'Opex\w*SlotAvailable\(|"vehicle.max_aircraft"')
 
-    @unittest.expectedFailure  # Aucun contrôle local max_ships avant construction des quais.
     def test_ship_vehicle_limit_rechecked_before_infrastructure(self):
         code = body('builder_water.nut', 'OpexBuildWaterRoute')
         prefix = code.split('AIMarine.BuildDock(')[0]
         self.assertRegex(prefix, r'Opex\w*SlotAvailable\(|"vehicle.max_ships"')
+
+    def test_vehicle_slot_helper_covers_all_modes_and_disabled_types(self):
+        code = body('builder_rail.nut', 'OpexVehicleSlotAvailable')
+        for fragment in ('AIGameSettings.IsDisabledVehicleType(vehicleType)',
+                         '"vehicle.max_trains"', '"vehicle.max_roadveh"',
+                         '"vehicle.max_aircraft"', '"vehicle.max_ships"',
+                         'AIGameSettings.GetValue(setting)',
+                         'AIGroup.GetNumVehicles(AIGroup.GROUP_ALL, vehicleType)',
+                         'return used < cap'):
+            self.assertIn(fragment, code)
+        self.assertIn('OpexVehicleSlotAvailable(AIVehicle.VT_ROAD, plannedRoad)',
+                      body('builder_road.nut', 'OpexBuildRoadRoute'))
+        self.assertIn('OpexVehicleSlotAvailable(AIVehicle.VT_AIR, plannedAir)',
+                      body('air_construction.nut', 'OpexBuildAirRoute'))
+        self.assertIn('OpexVehicleSlotAvailable(AIVehicle.VT_WATER, 1)',
+                      body('builder_water.nut', 'OpexBuildWaterRoute'))
+        self.assertIn('result.reason = "NOSLOT"', body('builder_road.nut', 'OpexBuildRoadRoute'))
+        self.assertIn('reason == "NOSLOT"', body('lines.nut', 'OpexBuildFailureIsAbandonable'))
 
     def test_road_partial_rollback_removes_added_edges_in_reverse(self):
         code = body('builder_road.nut', 'OpexRoadRollback')
