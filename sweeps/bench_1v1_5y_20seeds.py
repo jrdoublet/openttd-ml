@@ -1141,6 +1141,8 @@ def extract_company_record(chunks, owner, run_key, date, output=None):
         "performance_history": last_closed.get("performance_history", 0),
         "income_last_year": last_closed.get("income", 0),
         "expenses_last_year": last_closed.get("expenses", 0),
+        # Company totals by cargo; no attribution to a V233 factory or route.
+        "delivered_cargo_last_quarter": last_closed.get("delivered_cargo"),
         "profit": quarter_profit(last_closed),
         **year_profit_metrics(closed),
         "median_station_rating": (statistics.median(ratings) if ratings else None),

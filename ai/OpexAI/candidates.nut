@@ -615,7 +615,7 @@ function OpexC60ObserveTownRating(mode, phase, townId)
   return allowed;
 }
 
-function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, originServed, stats, isTransformer = false, profile = null, cruiseCache = null, secondary = null)
+function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, originServed, stats, isTransformer = false, profile = null, cruiseCache = null, secondary = null, joinContext = null)
 {
   if (monthly <= 0) {
     stats.noMonthly++;
@@ -676,7 +676,9 @@ function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, orig
    * ~5 sur 256x256 et croit avec la taille de carte, donc le gain est le plus grand la ou il
    * sert le plus (C46, cartes 1024x1024). */
   local sitable = true;
-  {
+  if (V233_GOODS_GRAFT && joinContext != null) {
+    sitable = OpexV233JoinContextValid(joinContext, cargo, srcTile, catalog.railCoverage);
+  } else {
     local sitableKey = srcTile * 64 + cargo;
     if (sitableKey in ::OpexSitableCache) {
       sitable = ::OpexSitableCache[sitableKey];

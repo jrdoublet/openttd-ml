@@ -630,6 +630,8 @@ function OpexAI::Save()
     if (OpexC121StrategyStateEnabled()) OpexSaveC121Strategy(shortSave);
     if (OPEX_AIR_ROLLBACKS.len() > 0) shortSave.airRollbacks <- OPEX_AIR_ROLLBACKS;
     if (V133_AIR_BUILD_RETRY) OpexV133SaveQuarantine(shortSave);
+    if (V233_GOODS_GRAFT && this._v233GoodsObservations != null)
+      shortSave.v233GoodsObservations <- OpexV233SaveObservations(this._v233GoodsObservations);
     return shortSave;
   }
 
@@ -710,14 +712,26 @@ function OpexAI::Save()
   if (OpexC121StrategyStateEnabled()) OpexSaveC121Strategy(saveObj);
   if (OPEX_AIR_ROLLBACKS.len() > 0) saveObj.airRollbacks <- OPEX_AIR_ROLLBACKS;
   if (V133_AIR_BUILD_RETRY) OpexV133SaveQuarantine(saveObj);
+  if (V233_GOODS_GRAFT && this._v233GoodsObservations != null)
+    saveObj.v233GoodsObservations <- OpexV233SaveObservations(this._v233GoodsObservations);
   return saveObj;
 }
 function OpexAI::Load(version, data)
 {
+  this._v233Plans = null;
+  this._v233Offers = null;
+  this._v233Generation = null;
+  this._v233PublishedProjects = null;
+  this._v233PublishedGroups = null;
+  this._v233NeedsPublish = false;
+  this._v233GoodsObservations = null;
+  this._v233GoodsWork = null;
   this._loadedFromSave = true;
   OPEX_RELOAD_C121_STRATEGY = null;
   OPEX_AIR_ROLLBACKS = [];
   if (data == null) return;
+  if ("v233GoodsObservations" in data)
+    this._v233GoodsObservations = OpexV233LoadObservations(data.v233GoodsObservations);
   OpexV133LoadQuarantine(data);
   /* Legacy v139UnjoinedStops is deliberately ignored: feeder construction was removed. */
   if ("airRollbacks" in data) OPEX_AIR_ROLLBACKS = OpexLoadAirRollbacks(data.airRollbacks);
@@ -884,6 +898,16 @@ function OpexAI::_reconcileAfterLoad()
     }
   }
   this._lines = liveLines;
+  /* World validation is rebuilt in bounded steps from these restored lines.
+   * Short saves without support cannot revive observations. OFF never generates work. */
+  this._v233GoodsWork = null;
+  if (!V233_GOODS_GRAFT || this._lines.len() == 0) this._v233GoodsObservations = null;
+  this._v233Plans = null;
+  this._v233Offers = null;
+  this._v233Generation = null;
+  this._v233PublishedProjects = null;
+  this._v233PublishedGroups = null;
+  this._v233NeedsPublish = false;
   this._pendingLines = null;
   /* C70 : recalcul des facteurs APRES la reconstitution de this._lines. Appele plus haut, il
    * tournait sur la liste encore vide et remettait tous les facteurs a 1 (mesure 2026-09-22). */

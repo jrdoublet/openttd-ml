@@ -692,3 +692,9 @@ V147_TASK_BASE <- -1;
 /* V154 : insertion par dichotomie dans OpexProjectInsertDefensive (optimisation opcodes).
  * 0 = insertion lineaire historique (defaut) ; 1 = dichotomie sur cles mises en cache. */
 SELECT_BISECT_STAMP <- 0;
+V233_PENDING_CONTINUE <- false;
+V233_GOODS_GRAFT <- false;
+const V233_PLAN_LIMIT = 4;
+const V233_PLAN_TTL_DAYS = 90;
+
+const V233_GOODS_MIN_MONTHLY = 64;
