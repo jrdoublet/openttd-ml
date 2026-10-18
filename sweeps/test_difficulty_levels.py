@@ -139,6 +139,96 @@ class TestDifficultyLevels(unittest.TestCase):
         self.assertLess(self.main.index('require("globals_pre.nut");'),
                         self.main.index('require("difficulty.nut");'))
 
+    def test_difficulty_table_syntax_no_json(self):
+        """8. Syntaxe Squirrel 2 sans JSON dans difficulty.nut (cle = valeur)."""
+        # Aucune syntaxe JSON "cle": ou 'cle':
+        self.assertNotRegex(self.difficulty, r'"[a-zA-Z0-9_]+"\s*:',
+                            "Syntaxe JSON interdite dans difficulty.nut")
+        self.assertNotRegex(self.difficulty, r"'[a-zA-Z0-9_]+'\s*:",
+                            "Syntaxe JSON interdite dans difficulty.nut")
+
+        # Entrees requises dans OPEX_DIFFICULTY_MIN_LEVEL
+        expected_entries = [
+            ("v250_rights", 3),
+            ("anticompetitive", 3),
+            ("preempt_last_airport_slot", 2),
+            ("compete_primary_industry", 2),
+            ("airport_rival_town", 1),
+            ("encroach_rival_catchment", 1),
+        ]
+        for key, level in expected_entries:
+            pattern = rf'{key}\s*=\s*{level}\b'
+            self.assertRegex(self.difficulty, pattern,
+                             f"Entree {key} = {level} manquante dans OPEX_DIFFICULTY_MIN_LEVEL")
+
+    def test_guards_presence_and_call_sites(self):
+        """9. Presence des fonctions de gardes et de leurs sites d'appel."""
+        # Helpers Levier A dans air_towns.nut
+        self.assertIn("function OpexTownPopulationTopQuartileThreshold", self.sources["air_towns.nut"])
+        self.assertIn("function OpexTownRivalAirports", self.sources["air_towns.nut"])
+        self.assertIn("function OpexTownAirportAllowedByLevel", self.sources["air_towns.nut"])
+
+        # Sites d'appel Levier A
+        self.assertIn("OpexTownAirportAllowedByLevel(towns[i]", self.sources["air_planning.nut"])
+        self.assertIn("OpexTownAirportAllowedByLevel(town)", self.sources["air_c83_repair.nut"])
+        self.assertIn("OpexTownAirportAllowedByLevel(town)", self.sources["air_sites.nut"])
+
+        # Helpers Levier B dans spatial.nut
+        self.assertIn("function OpexIndustryPrimaryRivalServed", self.sources["spatial.nut"])
+        self.assertIn("function OpexStationEncroachesRival", self.sources["spatial.nut"])
+
+        # Sites d'appel Levier B (Niveau 1 : industrie primaire)
+        self.assertIn("OpexIndustryPrimaryRivalServed(source.id, source.tile)", self.sources["candidates.nut"])
+        self.assertIn("OpexIndustryPrimaryRivalServed(sub.srcId, srcTile)", self.sources["candidates.nut"])
+        self.assertIn("OpexIndustryPrimaryRivalServed(indId, center, coverage)", self.sources["builder_rail.nut"])
+        self.assertIn("OpexIndustryPrimaryRivalServed(indId, center, coverage)", self.sources["builder_road.nut"])
+
+        # Sites d'appel Levier B (Niveau 0 : chevauchement de captage)
+        self.assertIn("OpexStationEncroachesRival(minX, minY, maxX, maxY, coverage)", self.sources["builder_rail.nut"])
+        self.assertIn("OpexStationEncroachesRival(tx, ty, tx, ty, coverage)", self.sources["builder_road.nut"])
+
+    def test_level_check_precedes_tile_scans(self):
+        """10. Niveau 3 et 2 : zero opcode, le test de niveau vient AVANT tout scan de tuiles."""
+        # Dans OpexTownAirportAllowedByLevel : test OpexLevelAllows avant scan ou comptage rival
+        airport_body = _extract_function_body(self.sources["air_towns.nut"], "OpexTownAirportAllowedByLevel")
+        self.assertTrue(airport_body)
+        self.assertIn('OpexLevelAllows("airport_rival_town")', airport_body)
+        self.assertIn('OpexLevelAllows("preempt_last_airport_slot")', airport_body)
+        self.assertLess(airport_body.index('OpexLevelAllows("airport_rival_town")'),
+                        airport_body.index("OpexTownRivalAirports"),
+                        "Le test de niveau doit preceder le calcul des aéroports rivaux")
+
+        # Dans OpexIndustryPrimaryRivalServed : test OpexLevelAllows avant AITileList
+        primary_body = _extract_function_body(self.sources["spatial.nut"], "OpexIndustryPrimaryRivalServed")
+        self.assertTrue(primary_body)
+        self.assertIn('OpexLevelAllows("compete_primary_industry")', primary_body)
+        self.assertLess(primary_body.index('OpexLevelAllows("compete_primary_industry")'),
+                        primary_body.index("AITileList()"),
+                        "Le test compete_primary_industry doit preceder AITileList")
+
+        # Dans OpexStationEncroachesRival : test OpexLevelAllows avant AITileList
+        encroach_body = _extract_function_body(self.sources["spatial.nut"], "OpexStationEncroachesRival")
+        self.assertTrue(encroach_body)
+        self.assertIn('OpexLevelAllows("encroach_rival_catchment")', encroach_body)
+        self.assertLess(encroach_body.index('OpexLevelAllows("encroach_rival_catchment")'),
+                        encroach_body.index("AITileList()"),
+                        "Le test encroach_rival_catchment doit preceder AITileList")
+
+        # Dans OpexStationPlans : le test de niveau vient avant OpexStationEncroachesRival et avant BuildRailStation
+        rail_body = _extract_function_body(self.sources["builder_rail.nut"], "OpexStationPlans")
+        self.assertTrue(rail_body)
+        self.assertIn('!OpexLevelAllows("encroach_rival_catchment")', rail_body)
+        self.assertLess(rail_body.index('!OpexLevelAllows("encroach_rival_catchment")'),
+                        rail_body.index("AIRail.BuildRailStation"),
+                        "La garde de niveau doit preceder le test de construction AIRail.BuildRailStation")
+
+    def test_decision_log_on_level_skip(self):
+        """11. Journalisation DECISION_LOG d'un OpexDecide LEVEL_SKIP a chaque refus."""
+        self.assertIn('OpexDecide("LEVEL_SKIP", "feature=airport_rival_town', self.sources["air_towns.nut"])
+        self.assertIn('OpexDecide("LEVEL_SKIP", "feature=preempt_last_airport_slot', self.sources["air_towns.nut"])
+        self.assertIn('OpexDecide("LEVEL_SKIP", "feature=compete_primary_industry', self.sources["spatial.nut"])
+        self.assertIn('OpexDecide("LEVEL_SKIP", "feature=encroach_rival_catchment', self.sources["spatial.nut"])
+
 
 if __name__ == "__main__":
     unittest.main()
