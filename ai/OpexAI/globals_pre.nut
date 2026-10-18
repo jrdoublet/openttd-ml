@@ -101,6 +101,10 @@ V252_CASH_STOP <- true;
 /* V250 : 0 inerte, 1 droits en ville disputee, 2 test de creneau aeroport,
  * 3 test elargi a toutes les villes ou un rival a un aeroport. */
 V250_RIGHTS <- 0;
+/* V250 : garde d'equite (choix utilisateur du 18/10, pas de reglage public) :
+ * les droits ne s'achetent que si un rival a un profit des trimestres clos
+ * >= 80 % du notre. 0 couperait la garde. */
+V250_RIVAL_PROFIT_PCT <- 80;
 /* Meme signal que V249, mais reserve au mode 1. Le mode 2 ne le lit pas.
  * Vrai au depart : le premier mois de mode 1 ne compte pas. Pas sauvegarde. */
 V250_CASH_STOP <- true;

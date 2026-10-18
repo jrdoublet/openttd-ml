@@ -455,6 +455,44 @@ function OpexV250BuyOrdered(ai, date, ordered, ownCounts, mode)
   return true;
 }
 
+/* Profit des trimestres clos (4 au plus, moins en debut de partie) d'une
+ * compagnie : revenus + depenses, comme V211. */
+function OpexV250ClosedProfit(company, quarters)
+{
+  local profit = 0;
+  for (local q = 1; q <= quarters; q++) {
+    profit += AICompany.GetQuarterlyIncome(company, q) + AICompany.GetQuarterlyExpenses(company, q);
+  }
+  return profit;
+}
+
+/* Garde d'equite : vrai si un rival gagne au moins V250_RIVAL_PROFIT_PCT % de
+ * notre profit sur les trimestres clos. Sans trimestre clos, aucun achat. */
+function OpexV250RivalEarnsEnough()
+{
+  if (V250_RIVAL_PROFIT_PCT <= 0) return true;
+  local now = AIDate.GetCurrentDate();
+  local closed = (AIDate.GetYear(now) - OPEX_START_YEAR) * 4 + (AIDate.GetMonth(now) - 1) / 3;
+  local quarters = closed < 4 ? closed : 4;
+  if (quarters <= 0) return false;
+  local self = AICompany.ResolveCompanyID(AICompany.COMPANY_SELF);
+  local mine = OpexV250ClosedProfit(self, quarters);
+  local best = null;
+  local bestId = -1;
+  for (local c = AICompany.COMPANY_FIRST; c <= AICompany.COMPANY_LAST; c++) {
+    if (c == self || AICompany.ResolveCompanyID(c) == AICompany.COMPANY_INVALID) continue;
+    local profit = OpexV250ClosedProfit(c, quarters);
+    if (best == null || profit > best) { best = profit; bestId = c; }
+  }
+  /* Comparaison en entiers : rival * 100 >= pct * nous. Si notre profit est
+   * negatif, tout rival au-dessus du seuil (donc a fortiori positif) l'ouvre. */
+  local open = best != null && best * 100 >= V250_RIVAL_PROFIT_PCT * mine;
+  if (DECISION_LOG) OpexDecide("V250_FAIR", "open=" + (open ? 1 : 0) + " quarters=" + quarters
+      + " own=" + mine + " rival=" + (best == null ? "none" : best.tostring())
+      + " rival_id=" + bestId + " pct=" + V250_RIVAL_PROFIT_PCT);
+  return open;
+}
+
 function OpexAI::_dispatchV250Rights(task, year)
 {
   if (V250_RIGHTS == 0) return false;
@@ -463,6 +501,7 @@ function OpexAI::_dispatchV250Rights(task, year)
   local ym = year * 12 + AIDate.GetMonth(date);
   if (this._v250Month == ym) return false;
   this._v250Month = ym;
+  if (!OpexV250RivalEarnsEnough()) return true;
   if (this._v250Targets == null) this._v250Targets = {};
   if (this._v250Freed == null) this._v250Freed = {};
   if (V250_RIGHTS >= 2) return OpexV250RunTest(this, date, V250_RIGHTS >= 3);
