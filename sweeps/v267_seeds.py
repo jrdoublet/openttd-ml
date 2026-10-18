@@ -103,8 +103,8 @@ def cmd_command(args: argparse.Namespace) -> None:
         campaign = args.campaign if chunks == 1 else f"{args.campaign}_c{i + 1}"
         cmd = [
             "python3", "sweeps/run_c66_reference.py", "--campaign", campaign,
-            "--reference", args.reference, "--variant", args.variant,
-            "--variant-policy-id", args.variant_policy_id,
+            "--reference", args.reference,
+            *([] if args.no_control else ["--variant", args.variant, "--variant-policy-id", args.variant_policy_id]),
             "--decision-rule", "non_erosion", "--primary-metric", "profit_year",
             "--min-useful-primary-delta-pct", "4", "--value-guard-max-loss-pct", "5",
             "--years", str(args.years), "--repeats", "1", "--seeds", *map(str, part),
@@ -280,6 +280,7 @@ def main() -> None:
     c.add_argument("--reference", default=CONTROL_REFERENCE)
     c.add_argument("--variant", default=CONTROL_VARIANT)
     c.add_argument("--variant-policy-id", default="v267_control")
+    c.add_argument("--no-control", action="store_true", help="un seul bras (C66.3), cout divise par deux")
     c.set_defaults(func=cmd_command)
     s = sub.add_parser("select")
     s.add_argument("jsonl", nargs="+")
