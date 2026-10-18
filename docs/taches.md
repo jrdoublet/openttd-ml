@@ -132,6 +132,14 @@ ne créent pas une tâche. Protocole et pilotage des bancs : [AGENTS.md](../AGEN
   - **18/10 nuit — livré par codex (`17d42ca`, `v266`, poussé ; `docs/v266_rail_air_feeder_20261018.md`), relu** : module `rail_air_v266.nut` ; une navette rail par aéroport, seulement après deux départs observés du même avion dans le même sens ; sièges vides plafonnés par l'offre de la source et la capacité du train ; valeur = billet complet − marche et amortissement, hors portefeuille et hors calibration rail (V139) ; financée sur la caisse restant après réservation du meilleur projet AIR, revérifiée au devis réel avant la première dépense ; gare d'arrivée jointe à l'aéroport, `OF_TRANSFER | OF_NO_LOAD` ; journal `V266_*`. Toutes les insertions sont derrière `V266_RAIL_AIR_FEEDER` (relu) ; 2 007 tests OK, contrôles statiques à la base. **Smoke 1×1 puis exposition 3×3 en partie complète lancés sur le VPS** (`v266_expo_3x3_20261018`) ; porte A sur le PC si l'exposition montre des navettes posées.
   - **18/10 nuit — exposition 3×3 (VPS, `v266_expo_3x3_20261018`) : NÉGATIVE.** 0/3 graines, delta moyen −83,2 k£/an (médiane −11,1 k), IC95 [−232,1 ; −6,4] k, valeur −0,48 %, `fail_primary`. Navettes bien posées (`V266_BUILD` 7, 18 et 38 selon la graine), donc le mécanisme tourne mais ne paie pas. Pas de porte A ; défaut 0. À rouvrir seulement avec une mesure des sièges réellement remplis par transfert.
 
+
+- **18/10 nuit — décisions utilisateur (« je suis tes recommandations »)** :
+  - `v251` fusionné dans master : inventaire des types d'industrie au démarrage, actif seulement sous `decision_log`, et contrats des panneaux. Le conflit de `task_report.nut` a été résolu en gardant la version de master : la garde `DEBUG_SIGNS` y était déjà, et la version de la branche aurait déplacé des calculs, donc changé les opcodes.
+  - `v257rev` et `v257comp` : non fusionnés, abandonnés.
+  - `v229` : en attente. Porte A sur le PC ou abandon, à décider.
+  - `v259y1990` : en attente du banc 20×10 de 1990 sur le PC.
+  - V258 : sera rejugé avec la passe V263, pas fusionné seul.
+  - V267 : un passage à 10 ans, en relevant les années 3, 6 et 10.
 - [ ] **V267 — Choisir les 40 graines de banc les plus complémentaires (demande utilisateur du 18/10).** Les portes jouent aujourd'hui une liste de graines historique, jamais choisie. Objectif : jouer un grand nombre de graines une fois, puis retenir 40 graines qui, ensemble, reproduisent au mieux ce que donnerait toute la population, pour des bancs futurs plus fiables à coût égal.
   - **Budget : ~6 h de PC.** Cadence mesurée le 18/10 sur la porte A V257comp (80 parties × 3 ans en 7 min 18 s, 10 workers) : ~1,8 s de PC par partie-année, soit ~11 800 parties-années en 6 h. C'est un ordre de grandeur : une année tardive coûte plus qu'une année de 1970-1972, il faut donc d'abord un pilote (par exemple 30 graines à 3 ans et 30 à 10 ans) pour mesurer le coût réel par horizon.
   - **Horizon : à fixer avec le pilote.** Pistes :
