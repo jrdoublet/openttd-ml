@@ -95,8 +95,7 @@ function OpexLoadSettings()
   V190_FROM_YEAR = AIDate.GetYear(AIDate.GetCurrentDate()) + v190Delay;
   local v190Max = AIController.GetSetting("v190_rail_max_trains");
   V190_RAIL_MAX_TRAINS = (v190Max != null && v190Max >= 2 && v190Max <= 8) ? v190Max : 4;
-  local statueCash = AIController.GetSetting("v249_statue_cash");
-  V249_STATUE_CASH = (statueCash != null && statueCash >= 0 && statueCash <= 10000) ? statueCash : 0;
+  V249_STATUE = AIController.GetSetting("v249_statue") == 1;
 
   // V246 : paquets adoptes figes ; les interrupteurs de mode restent actifs.
   ROAD_BUILD_ENABLED = MODE_ROAD;

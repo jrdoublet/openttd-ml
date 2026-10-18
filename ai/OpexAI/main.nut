@@ -644,12 +644,7 @@ function OpexAI::Start()
   this._v184InitRailSlots();
   /* Apres les phases V147 : un index insere avant elles decalerait taskCursor. */
   if (this._taskQueue != null) {
-    this._taskQueue.append({ name = "v249_statue", dueCycle = 0, enabled = V249_STATUE_CASH > 0 });
-  }
-  if (V249_STATUE_CASH > 0 && V249_BASE_MAX_LOAN <= 0) {
-    local loanSetting = AIGameSettings.GetValue("difficulty.max_loan");
-    if (loanSetting == null || loanSetting <= 0) loanSetting = AICompany.GetMaxLoanAmount();
-    V249_BASE_MAX_LOAN = loanSetting;
+    this._taskQueue.append({ name = "v249_statue", dueCycle = 0, enabled = V249_STATUE });
   }
 
   if (!STAGED_BOOTSTRAP) this._generationStage = OPEX_STAGE_COMPLETE;

@@ -87,11 +87,11 @@ V211_LAST_QUARTER <- -1;
 V216A_GHOST_DEMAND <- 0;
 /* V216f : sejour mecanique en gare dans le cycle rail, en % de l'estimation EST-16 (economy.nut). */
 V216F_DWELL_PCT <- 0;
-/* V249 : k£ de caisse nette (banque - emprunt) au-dessus desquels une statue
- * est posée. 0 = inerte. Le montant est indexé comme AAA GetInflatedMoney. */
-V249_STATUE_CASH <- 0;
-/* difficulty.max_loan, relu dans Start si le réglage est actif. Pas sauvegardé. */
-V249_BASE_MAX_LOAN <- 0;
+/* V249 : statue quand on est riche, sans seuil en livres (task_v249.nut). */
+V249_STATUE <- false;
+/* Vrai si une passe projets s'est arretee faute de caisse depuis le dernier
+ * passage statue. Vrai au depart : le premier mois ne compte pas. Pas sauvegarde. */
+V249_CASH_STOP <- true;
 V172_RAIL_LONG_WEIGHT_DIST <- 100;
 /* Cascade pax par distance decroissante : air seul, air+rail, rail seul,
  * route seule. Le fret accompagne la premiere passe. */

@@ -622,13 +622,11 @@ class OpexAIInfo extends AIInfo {
       flags = 0
     });
     AddSetting({
-      name = "v249_statue_cash",
-      description = "V249: net cash (bank balance minus loan), in thousands of pounds and scaled with inflation like the max loan, above which at most one town statue is built per month in the served town with the highest line profit. 0 = off (default)",
-      min_value = 0, max_value = 10000,
+      name = "v249_statue",
+      description = "V249: when rich (no loan, no project pass stopped for cash during the last month, cash still covering the reserve and the most expensive listed project after the statue), build at most one town statue per month in the served town with the highest line profit; 1 = on, 0 = off (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
-      step_size = 50,
-      flags = 0
+      flags = AICONFIG_BOOLEAN
     });
   }
 }

@@ -1,19 +1,22 @@
-/* V249 : une statue par mois quand la caisse nette depasse un seuil indexe.
- * Aucun etat sauvegarde. La statue est un bit du monde (AITown.HasStatue).
- * _v249StatueMonth ne fait que borner la cadence dans la session courante ;
- * V249_BASE_MAX_LOAN est relu depuis difficulty.max_loan a chaque Start.
- * NoAI 15 n'expose pas AITown.GetActionCost (script_town.hpp, release/15). */
+/* V249 : une statue par mois quand on est riche. Aucun montant fixe :
+ * riche = aucun emprunt, aucune passe projets arretee faute de caisse depuis le
+ * mois precedent (V249_CASH_STOP, pose dans task_projects.nut), et apres la
+ * statue la caisse couvre encore la reserve et le projet le plus cher du
+ * portefeuille. Aucun etat sauvegarde. La statue est un bit du monde
+ * (AITown.HasStatue). _v249StatueMonth ne fait que borner la cadence dans la
+ * session courante. NoAI 15 n'expose pas AITown.GetActionCost. */
 
-function OpexV249Threshold()
+/* Capital du projet le plus cher encore liste : la statue ne doit jamais
+ * prendre l'argent d'un projet que le portefeuille veut financer. */
+function OpexV249MaxListedCapital(projects)
 {
-  /* Meme principe qu'AAAHogEx GetInflatedMoney : montant * emprunt max courant
-   * / difficulty.max_loan, tronque vers zero. */
-  local pounds = V249_STATUE_CASH * 1000;
-  local loanBase = V249_BASE_MAX_LOAN;
-  if (loanBase <= 0) return pounds;
-  local maxLoan = AICompany.GetMaxLoanAmount();
-  if (maxLoan <= 0) return pounds;
-  return (pounds.tofloat() * maxLoan.tofloat() / loanBase.tofloat()).tointeger();
+  if (projects == null || !("best" in projects) || projects.best == null) return 0;
+  local most = 0;
+  foreach (project in projects.best) {
+    local capital = OpexProjectFinanceCapital(project);
+    if (capital > most) most = capital;
+  }
+  return most;
 }
 
 function OpexV249LineProfit(line)
@@ -52,18 +55,21 @@ function OpexV249MeasureStatueCost(townId)
 
 function OpexAI::_dispatchV249Statue(task, year)
 {
-  if (V249_STATUE_CASH <= 0) return false;
+  if (!V249_STATUE) return false;
   local date = AIDate.GetCurrentDate();
   local ym = year * 12 + AIDate.GetMonth(date);
   if (this._v249StatueMonth == ym) return false;
   this._v249StatueMonth = ym;
 
-  local cash = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+  local cashStop = V249_CASH_STOP;
+  ::V249_CASH_STOP = false;
   local loan = AICompany.GetLoanAmount();
-  local net = cash - loan;
-  local threshold = OpexV249Threshold();
-  if (net <= threshold) {
-    if (DECISION_LOG) OpexDecide("V249_SKIP", "reason=cash cash=" + net + " threshold=" + threshold);
+  if (loan > 0) {
+    if (DECISION_LOG) OpexDecide("V249_SKIP", "reason=loan loan=" + loan);
+    return true;
+  }
+  if (cashStop) {
+    if (DECISION_LOG) OpexDecide("V249_SKIP", "reason=cash_stop");
     return true;
   }
 
@@ -119,18 +125,17 @@ function OpexAI::_dispatchV249Statue(task, year)
   }
 
   local cost = OpexV249MeasureStatueCost(bestTown);
-  cash = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
-  loan = AICompany.GetLoanAmount();
-  net = cash - loan;
-  if (cost <= 0 || net - cost < threshold) {
-    if (DECISION_LOG) OpexDecide("V249_SKIP", "reason=cost cash=" + net + " cost=" + cost + " threshold=" + threshold + " town=" + bestTown);
+  local cash = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+  local threshold = OpexCashReserve() + OpexV249MaxListedCapital(this._projects);
+  if (cost <= 0 || cash - cost < threshold) {
+    if (DECISION_LOG) OpexDecide("V249_SKIP", "reason=cost cash=" + cash + " cost=" + cost + " threshold=" + threshold + " town=" + bestTown);
     return true;
   }
   local built = AITown.PerformTownAction(bestTown, AITown.TOWN_ACTION_BUILD_STATUE);
   if (!built) {
-    if (DECISION_LOG) OpexDecide("V249_SKIP", "reason=failed town=" + bestTown + " cost=" + cost + " cash=" + net + " threshold=" + threshold);
+    if (DECISION_LOG) OpexDecide("V249_SKIP", "reason=failed town=" + bestTown + " cost=" + cost + " cash=" + cash + " threshold=" + threshold);
     return true;
   }
-  if (DECISION_LOG) OpexDecide("V249_STATUE", "town=" + bestTown + " cost=" + cost + " cash=" + net + " threshold=" + threshold + " lines=" + bestLines + " profit=" + bestProfit);
+  if (DECISION_LOG) OpexDecide("V249_STATUE", "town=" + bestTown + " cost=" + cost + " cash=" + cash + " threshold=" + threshold + " lines=" + bestLines + " profit=" + bestProfit);
   return true;
 }

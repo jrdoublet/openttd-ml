@@ -1,6 +1,6 @@
 """V249 : contrats statiques des statues de ville.
 
-Reglage entier v249_statue_cash, defaut 0, lu une fois. A 0 la tache ne touche
+Reglage booleen v249_statue, defaut 0, lu une fois ; riche sans montant fixe. A 0 la tache ne touche
 aucune API de jeu. Un passage pose au plus une statue. Le journal est garde
 par DECISION_LOG avant le formatage des champs. Aucun etat n'est sauvegarde.
 """
@@ -27,42 +27,53 @@ class TestV249Statues(unittest.TestCase):
 
     def test_setting_declared_default_zero(self):
         block = re.search(
-            r'name = "v249_statue_cash",(.*?)\}\);', self.sources["info.nut"], re.S)
+            r'name = "v249_statue",(.*?)\}\);', self.sources["info.nut"], re.S)
         self.assertIsNotNone(block)
         body = block.group(1)
-        self.assertIn("min_value = 0", body)
-        self.assertIn("max_value = 10000", body)
-        self.assertIn("step_size = 50", body)
+        self.assertIn("flags = AICONFIG_BOOLEAN", body)
         for level in ("easy_value", "medium_value", "hard_value", "custom_value"):
             self.assertRegex(body, level + r" = 0\b")
-        self.assertIn("V249_STATUE_CASH <- 0;", self.sources["globals_pre.nut"])
+        self.assertIn("V249_STATUE <- false;", self.sources["globals_pre.nut"])
+        self.assertIn("V249_CASH_STOP <- true;", self.sources["globals_pre.nut"])
+        joined = "".join(self.sources.values())
+        self.assertNotIn("v249_statue_cash", joined)
+        self.assertNotIn("V249_STATUE_CASH", joined)
 
     def test_setting_read_once(self):
-        reads = [(name, text.count('GetSetting("v249_statue_cash")'))
+        reads = [(name, text.count('GetSetting("v249_statue")'))
                  for name, text in self.sources.items()]
         self.assertEqual(sum(count for _, count in reads), 1)
-        self.assertEqual(self.sources["settings.nut"].count('GetSetting("v249_statue_cash")'), 1)
-        self.assertIn("function OpexLoadSettings()", self.sources["settings.nut"])
-        self.assertRegex(
-            self.sources["settings.nut"],
-            r'statueCash >= 0 && statueCash <= 10000\) \? statueCash : 0')
+        self.assertIn('V249_STATUE = AIController.GetSetting("v249_statue") == 1;',
+                      self.sources["settings.nut"])
 
     def test_zero_cost_guard(self):
         self.assertTrue(self.dispatch)
-        guard = "if (V249_STATUE_CASH <= 0) return false;"
+        guard = "if (!V249_STATUE) return false;"
         self.assertIn(guard, self.dispatch)
         guard_at = self.dispatch.index(guard)
         for api in ("AIDate", "AICompany", "AITown", "AIStation", "AIVehicle",
-                    "AIAccounting", "AITestMode", "AIGameSettings", "OpexDecide"):
+                    "AIAccounting", "AITestMode", "OpexDecide", "V249_CASH_STOP"):
             found = self.dispatch.find(api)
             if found >= 0:
                 self.assertGreater(found, guard_at, api)
         start = self.sources["main.nut"]
-        appended = 'this._taskQueue.append({ name = "v249_statue", dueCycle = 0, enabled = V249_STATUE_CASH > 0 });'
+        appended = 'this._taskQueue.append({ name = "v249_statue", dueCycle = 0, enabled = V249_STATUE });'
         self.assertIn(appended, start)
         self.assertLess(start.index("OpexV147ExtendQueue(this);"), start.index(appended))
-        loan = start.index("AIGameSettings.GetValue(\"difficulty.max_loan\")")
-        self.assertLess(start.index("if (V249_STATUE_CASH > 0 && V249_BASE_MAX_LOAN <= 0)"), loan)
+        hook = 'if (V249_STATUE && c75StopReason == "cash") ::V249_CASH_STOP = true;'
+        self.assertEqual(self.sources["task_projects.nut"].count(hook), 1)
+
+    def test_rich_without_fixed_amount(self):
+        loan = self.dispatch.index('reason=loan')
+        stop = self.dispatch.index('reason=cash_stop')
+        cost = self.dispatch.index('OpexV249MeasureStatueCost(bestTown)')
+        self.assertLess(loan, cost)
+        self.assertLess(stop, cost)
+        self.assertLess(self.dispatch.index("::V249_CASH_STOP = false;"), stop)
+        self.assertIn("local threshold = OpexCashReserve() + OpexV249MaxListedCapital(this._projects);",
+                      self.dispatch)
+        self.assertIn("cash - cost < threshold", self.dispatch)
+        self.assertNotRegex(self.task, r"\b\d{4,}\b")
 
     def test_at_most_one_statue_per_pass(self):
         self.assertEqual(self.dispatch.count("AITown.PerformTownAction"), 1)
@@ -84,10 +95,10 @@ class TestV249Statues(unittest.TestCase):
             if "OpexDecide(" in line:
                 self.assertIn("DECISION_LOG", line, line)
         self.assertIn(
-            'OpexDecide("V249_STATUE", "town=" + bestTown + " cost=" + cost + " cash=" + net'
+            'OpexDecide("V249_STATUE", "town=" + bestTown + " cost=" + cost + " cash=" + cash'
             ' + " threshold=" + threshold + " lines=" + bestLines + " profit=" + bestProfit)',
             self.dispatch)
-        self.assertIn('OpexDecide("V249_SKIP", "reason=cash cash="', self.dispatch)
+        self.assertIn('OpexDecide("V249_SKIP", "reason=cash_stop")', self.dispatch)
         self.assertIn(
             '"reason=no_town statue=" + nStatue + " unavailable=" + nUnavail',
             self.dispatch)
@@ -99,7 +110,7 @@ class TestV249Statues(unittest.TestCase):
         persist = self.sources["persist.nut"]
         self.assertNotIn("v249", persist.lower())
         self.assertNotIn("_v249StatueMonth", persist)
-        self.assertNotIn("V249_BASE_MAX_LOAN", persist)
+        self.assertNotIn("V249_CASH_STOP", persist)
         self.assertIn("_v249StatueMonth = -1;", self.sources["main.nut"])
 
 
