@@ -601,6 +601,9 @@ function OpexAI::_refreshSaveProjection()
 
 function OpexAI::Save()
 {
+  local startOps = null;
+  if (DECISION_LOG) startOps = AIController.GetOpsTillSuspend();
+
   /* A 0, conserver exactement le format historique : la charge complete est experimentale et
    * le serialiseur execute Save() sous budget d'opcodes. _abandonedPairs ne contient que des
    * cles chaine -> { date, count } entiers : le rendre directement conserve exactement le meme
@@ -636,6 +639,16 @@ function OpexAI::Save()
       shortSave.v259KnownBridgesCount <- this._v259KnownBridgesCount;
       shortSave.v259Cursor <- this._v259Cursor;
       shortSave.v259Queue <- OpexV259SaveQueue(this._v259Queue);
+    }
+    if (DECISION_LOG && startOps != null) {
+      local endOps = AIController.GetOpsTillSuspend();
+      local opsSpent = startOps - endOps;
+      if (opsSpent < 0) opsSpent = 0;
+      local lCount = (this._lines != null) ? this._lines.len() : 0;
+      local aCount = (this._abandonedPairs != null) ? this._abandonedPairs.len() : 0;
+      local hCount = (this._abandonCounts != null) ? this._abandonCounts.len() : 0;
+      local tCount = (this._taskQueue != null) ? this._taskQueue.len() : 0;
+      OpexDecide("V262_SAVE", "ops=" + opsSpent + " budget=100000 lines=" + lCount + " abandons=" + aCount + " abandonCounts=" + hCount + " tasks=" + tCount + " full=0");
     }
     return shortSave;
   }
@@ -723,6 +736,16 @@ function OpexAI::Save()
     saveObj.v259KnownBridgesCount <- this._v259KnownBridgesCount;
     saveObj.v259Cursor <- this._v259Cursor;
     saveObj.v259Queue <- OpexV259SaveQueue(this._v259Queue);
+  }
+  if (DECISION_LOG && startOps != null) {
+    local endOps = AIController.GetOpsTillSuspend();
+    local opsSpent = startOps - endOps;
+    if (opsSpent < 0) opsSpent = 0;
+    local lCount = (this._lines != null) ? this._lines.len() : 0;
+    local aCount = (this._abandonedPairs != null) ? this._abandonedPairs.len() : 0;
+    local hCount = (this._abandonCounts != null) ? this._abandonCounts.len() : 0;
+    local tCount = (this._taskQueue != null) ? this._taskQueue.len() : 0;
+    OpexDecide("V262_SAVE", "ops=" + opsSpent + " budget=100000 lines=" + lCount + " abandons=" + aCount + " abandonCounts=" + hCount + " tasks=" + tCount + " full=1");
   }
   return saveObj;
 }
