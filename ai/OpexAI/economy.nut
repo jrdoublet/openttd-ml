@@ -543,10 +543,12 @@ function OpexApplyRailEconomics(candidate, economics)
 }
 
 /* V163 : second cargo memorise sur un candidat rail, a repasser a OpexLineEconomics quand le
- * quai ou le trace reels sont connus. null hors V163 ou sans second cargo. */
+ * quai ou le trace reels sont connus. Le mode 5 cree aussi ces rames sans V163. */
 function OpexV163CandidateSecondary(candidate)
 {
-  if (!V163_MULTI_CARGO && !(V207_RAIL_MAIL && (("kind" in candidate) && candidate.kind == "pax"))) return null;
+  local chainInput = V233_GOODS_CHAIN && ("v233ChainInput" in candidate) && candidate.v233ChainInput;
+  if (!V163_MULTI_CARGO && !chainInput
+      && !(V207_RAIL_MAIL && (("kind" in candidate) && candidate.kind == "pax"))) return null;
   if (!("cargo2" in candidate) || !("monthly2" in candidate)) return null;
   return { cargo = candidate.cargo2, monthly = candidate.monthly2 };
 }

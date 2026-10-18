@@ -76,17 +76,32 @@ function OpexV233ChainTrainReady(candidate, row)
 function OpexV233ChainInputLive(ai, candidate)
 {
   if (!("v233ChainInput" in candidate)) return false;
-  if (AIDate.GetCurrentDate() - candidate.v233ChainDate >= V233_PLAN_TTL_DAYS) return false;
+  if (AIDate.GetCurrentDate() - candidate.v233ChainDate >= V233_PLAN_TTL_DAYS)
+    return OpexV233ChainUnavailable(candidate, "expired");
   if (!AIIndustry.IsValidIndustry(candidate.v233InputSource)
       || AIIndustry.GetLocation(candidate.v233InputSource) != candidate.src
       || !AIIndustry.IsValidIndustry(candidate.v233FactoryId)
-      || AIIndustry.GetLocation(candidate.v233FactoryId) != candidate.dst) return false;
-  if (OpexOriginService(ai._lines, candidate.src) != null) return false;
-  if (AIIndustry.GetLastMonthProduction(candidate.v233InputSource, candidate.cargo) < candidate.monthly) return false;
+      || AIIndustry.GetLocation(candidate.v233FactoryId) != candidate.dst)
+    return OpexV233ChainUnavailable(candidate, "industry_changed");
+  if (OpexOriginService(ai._lines, candidate.src) != null)
+    return OpexV233ChainUnavailable(candidate, "origin_served");
+  if (AIIndustry.GetLastMonthProduction(candidate.v233InputSource, candidate.cargo) < candidate.monthly)
+    return OpexV233ChainUnavailable(candidate, "production_primary");
   if (("cargo2" in candidate) && candidate.wagons2 > 0
-      && AIIndustry.GetLastMonthProduction(candidate.v233InputSource, candidate.cargo2) < candidate.monthly2) return false;
-  if (OpexAbandonedPairKey(candidate) in ai._abandonedPairs) return false;
+      && AIIndustry.GetLastMonthProduction(candidate.v233InputSource, candidate.cargo2) < candidate.monthly2)
+    return OpexV233ChainUnavailable(candidate, "production_secondary");
+  if (OpexAbandonedPairKey(candidate) in ai._abandonedPairs)
+    return OpexV233ChainUnavailable(candidate, "abandoned_pair");
   return OpexV233ChainInputSpend(candidate);
+}
+
+// Mode 5 callers only. Preserve the refusal while exposing its formerly silent cause.
+function OpexV233ChainUnavailable(candidate, reason)
+{
+  if (DECISION_LOG) OpexDecide("V233_CHAIN", "state=unavailable factory=" + candidate.v233FactoryId
+    + " src=" + candidate.src + " dst=" + candidate.dst + " cargo=" + candidate.cargo
+    + " offered=" + candidate.v233ChainDate + " reason=" + reason);
+  return false;
 }
 
 function OpexV233ChainInputSpend(candidate)
@@ -288,6 +303,11 @@ function OpexV233ChainStep(ai)
             * downstream.parts.profit / downstream.economics.profitAnnual;
           c.v233GoodsCapital <- downstream.parts.capital;
           c.v233OptionRepresentative <- i == 0;
+          if (DECISION_LOG) OpexDecide("V233_CHAIN", "state=offer factory=" + c.v233FactoryId
+            + " src=" + c.src + " dst=" + c.dst + " cargo=" + c.cargo + " monthly=" + c.monthly
+            + " wagons=" + c.wagons + " cargo2=" + (("cargo2" in c) ? c.cargo2 : -1)
+            + " monthly2=" + (("monthly2" in c) ? c.monthly2 : 0)
+            + " wagons2=" + (("wagons2" in c) ? c.wagons2 : 0));
           ai._v233ChainOffers[OpexAbandonedPairKey(c)] <- c;
         }
         ai._v233NeedsPublish = true;
@@ -313,6 +333,8 @@ function OpexV233ChainPublish(ai, stats)
         if (group[i].mode == "rail") group.remove(i);
     }
     OpexProjectRememberAll(ai._projects.candidateGroups, project, stats);
+    if (DECISION_LOG) OpexDecide("V233_CHAIN", "state=published factory=" + candidate.v233FactoryId
+      + " src=" + candidate.src + " dst=" + candidate.dst + " cargo=" + candidate.cargo);
   }
   foreach (key in dead) delete ai._v233ChainOffers[key];
 }

@@ -57,7 +57,13 @@ class GraftContracts(unittest.TestCase):
         self.assertNotIn('OpexReselectProjects(', generate)
         self.assertNotIn('predCarried', generate)
         for file in ('projects_models.nut', 'economy.nut'):
-            self.assertNotIn('V233', (AI / file).read_text())
+            source = (AI / file).read_text()
+            if file == 'economy.nut':
+                # Mode 5 must preserve its own mixed consist when the ordinary
+                # builder reprices it. No chain bonus belongs in line economics.
+                helper = body(file, 'function OpexV163CandidateSecondary(')
+                source = source.replace(helper, '')
+            self.assertNotIn('V233', source)
         selection = (AI / 'projects_selection.nut').read_text()
         self.assertIn('if (V233_GOODS_CHAIN && project.mode == "rail")', selection)
         publish = body('goods_v233.nut', 'function OpexAI::_v233Publish()')

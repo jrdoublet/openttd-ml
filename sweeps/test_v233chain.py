@@ -1,4 +1,6 @@
 """Mode 5 contracts. No engine launch and no claim of Squirrel compilation."""
+import itertools
+import re
 import unittest
 
 from test_v233_contracts import AI
@@ -10,6 +12,46 @@ def chain(name):
 
 
 class ChainContracts(unittest.TestCase):
+    def test_secondary_repricing_guard_truth_table(self):
+        # Evaluate the actual pure Squirrel guard, translating only its boolean
+        # operators. This catches the original loss with V163=0 in both builders.
+        helper = body('economy.nut', 'function OpexV163CandidateSecondary(')
+        chain_expr = re.search(r'local chainInput = (.*?);', helper).group(1)
+        refusal = re.search(r'if \((!V163_MULTI_CARGO.*?)\) return null;', helper, re.S).group(1)
+
+        def boolean(expr, context):
+            expr = expr.replace('&&', ' and ').replace('||', ' or ')
+            expr = re.sub(r'!(?!=)', ' not ', expr).strip()
+            return eval('(' + expr + ')', {'__builtins__': {}}, context)
+
+        class Fields(dict):
+            __getattr__ = dict.__getitem__
+
+        for v163, mode5, marked, mail, kind in itertools.product(
+                (False, True), (False, True), (None, False, True),
+                (False, True), ('freight', 'pax')):
+            candidate = Fields(kind=kind, cargo2=4, monthly2=80)
+            if marked is not None:
+                candidate['v233ChainInput'] = marked
+            context = dict(candidate=candidate, V163_MULTI_CARGO=v163,
+                           V233_GOODS_CHAIN=mode5, V207_RAIL_MAIL=mail)
+            context['chainInput'] = boolean(chain_expr, context)
+            with self.subTest(v163=v163, mode5=mode5, marked=marked, mail=mail, kind=kind):
+                self.assertEqual(not boolean(refusal, context),
+                                 v163 or (mode5 and marked is True) or (mail and kind == 'pax'))
+        self.assertIn('!("cargo2" in candidate) || !("monthly2" in candidate)', helper)
+        builder = (AI / 'builder_rail.nut').read_text()
+        self.assertEqual(builder.count('OpexV163CandidateSecondary(candidate)'), 2)
+
+    def test_mode_five_trace_exposes_offer_publication_and_silent_refusals(self):
+        source = (AI / 'goods_v233chain.nut').read_text()
+        for event in ('state=offer', 'state=published', 'state=unavailable'):
+            self.assertIn(event, source)
+        live = chain('OpexV233ChainInputLive')
+        for reason in ('expired', 'industry_changed', 'origin_served',
+                       'production_primary', 'production_secondary', 'abandoned_pair'):
+            self.assertIn('"' + reason + '"', live)
+
     def test_mode_five_reuses_three_without_enabling_other_public_settings(self):
         info = (AI / 'info.nut').read_text()
         setting = info.split('name = "v233_goods_graft"')[1].split('});')[0]
