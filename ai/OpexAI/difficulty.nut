@@ -3,8 +3,8 @@
  * Quatre niveaux :
  *   0 = facile (easy)
  *   1 = moyen (medium)
- *   2 = difficile (hard)
- *   3 = personnalise (custom) — profil de reference des bancs.
+ *   2 = difficile (hard) — defaut : jeu complet sans geste anticoncurrentiel.
+ *   3 = personnalise (custom) — autorise en plus les gestes anticoncurrentiels.
  *
  * Contrat :
  * - Aucune decision ne lit OPEX_DIFFICULTY directement hors de difficulty.nut et settings.nut.
@@ -14,7 +14,7 @@
  * - Les niveaux 0 et 1 n'ont pas encore de bridage propre (proposition en attente).
  */
 
-OPEX_DIFFICULTY <- 3;
+OPEX_DIFFICULTY <- 2;
 
 /* Vrai seulement aux niveaux 0 et 1 (leviers A et B). Lu en garde avant tout appel
  * de bridage pour que les niveaux 2 et 3 ne paient qu'une lecture de globale. */

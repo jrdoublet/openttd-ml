@@ -63,14 +63,14 @@ class TestDifficultyLevels(unittest.TestCase):
         self.assertIn("Hard", block)
         self.assertIn("Custom", block)
 
-    def test_default_is_three(self):
-        """2. Le defaut est 3 (personnalise, profil des bancs)."""
+    def test_default_is_two(self):
+        """2. Le defaut est 2 (difficile : sans geste anticoncurrentiel)."""
         block = _extract_setting_block(self.info, "opex_difficulty")
         for level in ("easy_value", "medium_value", "hard_value", "custom_value", "default_value"):
-            self.assertRegex(block, level + r"\s*=\s*3\b")
+            self.assertRegex(block, level + r"\s*=\s*2\b")
 
-        # Initialisation par defaut de la variable globale a 3
-        self.assertIn("OPEX_DIFFICULTY <- 3;", self.difficulty)
+        # Initialisation par defaut de la variable globale a 2
+        self.assertIn("OPEX_DIFFICULTY <- 2;", self.difficulty)
 
     def test_read_is_unique(self):
         """3. Lecture unique dans settings.nut et compatibilite OpenTTD <= 13.4."""

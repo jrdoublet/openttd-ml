@@ -68,10 +68,10 @@ class OpexAIInfo extends AIInfo {
      * (personnalise) pour le profil de reference des bancs. */
     AddSetting({
       name = "opex_difficulty",
-      description = "AI difficulty level: 0 = Easy, 1 = Medium, 2 = Hard (full competitive play without unfair actions), 3 = Custom (default benchmark profile with all features enabled).",
+      description = "AI difficulty level: 0 = Easy, 1 = Medium, 2 = Hard (default: full competitive play without unfair actions), 3 = Custom (anticompetitive actions such as exclusive rights allowed).",
       min_value = 0, max_value = 3,
-      easy_value = 3, medium_value = 3, hard_value = 3,
-      custom_value = 3, default_value = 3,
+      easy_value = 2, medium_value = 2, hard_value = 2,
+      custom_value = 2, default_value = 2,
       step_size = 1,
       flags = 0
     });

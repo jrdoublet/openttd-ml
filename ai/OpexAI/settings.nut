@@ -35,8 +35,8 @@ function OpexProbeSetting(name)
 
 /* Niveau 0..3. Sur OpenTTD <= 13.4, script.settings_profile (0 facile, 1 moyen,
  * 2 difficile ; 3 personnalise existait hors menu) fait foi. Sur 14/15.3 le
- * reglage a disparu : opex_difficulty, dont les quatre valeurs valent 3, est
- * le niveau. Un banc qui ne le passe pas reste donc a personnalise. */
+ * reglage a disparu : opex_difficulty, dont les quatre valeurs valent 2, est
+ * le niveau. Un banc qui ne le passe pas joue donc en difficile. */
 function OpexResolveDifficulty()
 {
   if (AIGameSettings.IsValid("script.settings_profile")) {
@@ -46,7 +46,7 @@ function OpexResolveDifficulty()
     return profile;
   }
   local value = AIController.GetSetting("opex_difficulty");
-  if (value == null || value < 0) return 3;
+  if (value == null || value < 0) return 2;
   if (value > 3) return 3;
   return value;
 }
