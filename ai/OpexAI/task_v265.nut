@@ -44,6 +44,67 @@ function OpexV265LineEligible(line)
   return true;
 }
 
+/* Tete de pont ou de tunnel ferroviaire dont l'ouvrage part dans la direction dir.
+ * AIRail.IsRailTile les exclut (script_rail.cpp:34-40, OpenTTD 15). */
+function OpexV265WorkHead(tile, dir)
+{
+  if (!AIMap.IsValidTile(tile) || !AITile.HasTransportType(tile, AITile.TRANSPORT_RAIL)) return false;
+  local far = null;
+  if (AIBridge.IsBridgeTile(tile)) far = AIBridge.GetOtherBridgeEnd(tile);
+  else if (AITunnel.IsTunnelTile(tile)) far = AITunnel.GetOtherTunnelEnd(tile);
+  if (far == null || far == tile) return false;
+  return (far - tile) / AIMap.DistanceManhattan(tile, far) == dir;
+}
+
+/* Voie A->B lue sur la carte, comme OpexTraceTrackTiles (builder_rail.nut) mais en traversant
+ * ponts et tunnels. OpexTraceTrackTiles ne les franchit pas : AIRail.IsRailTile est faux sur
+ * une tete d'ouvrage (script_rail.cpp:34-40), et AreTilesConnected exige un predecesseur
+ * adjacent (script_rail.cpp:268-271). Smoke du 18/10 : 6 echecs sur 6, motif gap.
+ * Rend { tiles, reason }. */
+function OpexV265TraceTrack(startStationTile, leadTile, endStationTile)
+{
+  if (!AIMap.IsValidTile(leadTile)) return { tiles = null, reason = "lead" };
+  local endStId = AIStation.GetStationID(endStationTile);
+  local tiles = [startStationTile, leadTile];
+  local visited = {};
+  visited[startStationTile] <- true;
+  visited[leadTile] <- true;
+  local offsets = [AIMap.GetTileIndex(1, 0), AIMap.GetTileIndex(-1, 0), AIMap.GetTileIndex(0, 1), AIMap.GetTileIndex(0, -1)];
+  local prev = startStationTile;
+  local cur = leadTile;
+  while (!(AIRail.IsRailStationTile(cur) && AIStation.GetStationID(cur) == endStId)) {
+    local found = null;
+    local dir = cur - prev;
+    if (AIMap.DistanceManhattan(prev, cur) == 1 && OpexV265WorkHead(cur, dir)) {
+      /* Entree d'ouvrage : sauter a l'autre tete, puis continuer dans l'axe. */
+      local far = AIBridge.IsBridgeTile(cur) ? AIBridge.GetOtherBridgeEnd(cur) : AITunnel.GetOtherTunnelEnd(cur);
+      tiles.append(far);
+      visited[far] <- true;
+      prev = far;
+      found = far + dir;
+      if (!AIRail.IsRailTile(found) && !OpexV265WorkHead(found, dir)) return { tiles = null, reason = "exit" };
+    } else {
+      if (!AIRail.IsRailTile(cur)) return { tiles = null, reason = "notrail" };
+      foreach (off in offsets) {
+        local n = cur + off;
+        if (n == prev || !AIMap.IsValidTile(n)) continue;
+        if (!AIRail.AreTilesConnected(prev, cur, n)) continue;
+        if (!AIRail.IsRailTile(n) && !OpexV265WorkHead(n, off)) continue;
+        if (AIRail.IsRailStationTile(n) && AIStation.GetStationID(n) != endStId) continue;
+        found = n;
+        break;
+      }
+      if (found == null) return { tiles = null, reason = "gap" };
+      prev = cur;
+    }
+    if (found in visited) return { tiles = null, reason = "cycle" };
+    visited[found] <- true;
+    tiles.append(found);
+    cur = found;
+  }
+  return { tiles = tiles, reason = "ok" };
+}
+
 /* Reserve = meilleur projet AIR (ou renfort AIR) encore financable, plus la reserve de caisse.
  * Copie du calcul V266 (branche v266, non fusionnee) : candidateGroups contient tous les modes
  * avant la troncature au financable (projects.nut). null tant que le portefeuille n'existe pas. */
@@ -158,6 +219,8 @@ function OpexAI::_v265TryLine(line, date)
   /* Avant l'A*, longueurs de voie approchees par la distance Manhattan des deux cotes. */
   local current = OpexV265PerTrainProfit(catalog, line, dAB, dAB);
   if (current == null) return;
+  local traceKey = line.lineId + "|-1";
+  if ((traceKey in this._v265Failed) && date - this._v265Failed[traceKey] < ABANDON_COOLDOWN_DAYS) return;
 
   local best = null;
   local inds = AIIndustryList_CargoAccepting(line.cargo);
@@ -172,7 +235,8 @@ function OpexAI::_v265TryLine(line, date)
     local dBC = AIMap.DistanceManhattan(line.stationB, indTile);
     local after = OpexV265PerTrainProfit(catalog, line, dAC, dAB + dBC);
     if (after == null || after <= current) continue;
-    local capital = dBC * catalog.costTrackPerTile + line.platformLength * catalog.costStation;
+    /* Meme cout de voie que le modele de ligne (economy.nut, effectiveTrackCost). */
+    local capital = dBC * catalog.costTrackPerTile * RAIL_TERRAIN_FACTOR / 100 + line.platformLength * catalog.costStation;
     if (money < capital + reserve) continue;
     local score = OpexProjectScore(after - current, capital);
     if (best == null || score > best.score)
@@ -181,9 +245,12 @@ function OpexAI::_v265TryLine(line, date)
   if (best == null) return;
 
   local leadA = OpexC41RailApproachLead(line.platformA, line.stationA);
-  local path = (leadA == null) ? null : OpexTraceTrackTiles(line.stationA, leadA, line.stationB);
+  local trace = (leadA == null) ? { tiles = null, reason = "lead" }
+      : OpexV265TraceTrack(line.stationA, leadA, line.stationB);
+  local path = trace.tiles;
   if (path == null) {
-    this._v265Fail(line, best.ind, "trace");
+    /* La voie ne depend pas de C : memoriser l'echec pour la ligne entiere (ind -1). */
+    this._v265Fail(line, -1, "trace_" + trace.reason);
     return;
   }
   local forks = OpexV265ForkSources(path);
@@ -270,7 +337,7 @@ function OpexAI::_v265ConsumeSearch()
     this._v265Fail(line, v.ind, "econ_after_path");
     return;
   }
-  local capital = tiles.len() * catalog.costTrackPerTile + planC.length * catalog.costStation;
+  local capital = tiles.len() * catalog.costTrackPerTile * RAIL_TERRAIN_FACTOR / 100 + planC.length * catalog.costStation;
   local reserve = this._v265AirReserve();
   if (reserve == null || AICompany.GetBankBalance(AICompany.COMPANY_SELF) < capital + reserve) {
     /* Refus de caisse : pas un echec du site, on reessaiera a une passe suivante. */

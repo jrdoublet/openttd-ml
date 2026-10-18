@@ -61,7 +61,8 @@ class TestV265BranchExtension(unittest.TestCase):
         self.assertNotIn("GetLoanAmount", self.task)
         # Seuls littéraux numériques admis : indices, 0/1, et les bornes de boucle du tracé.
         numbers = set(re.findall(r"(?<![\w.])\d+(?![\w.])", re.sub(r"/\*.*?\*/", "", self.task, flags=re.S)))
-        self.assertLessEqual(numbers, {"0", "1", "2", "4", "12"}, numbers)  # 12 = mois par an
+        # 12 = mois par an ; 100 = RAIL_TERRAIN_FACTOR est en pourcentage (economy.nut).
+        self.assertLessEqual(numbers, {"0", "1", "2", "4", "12", "100"}, numbers)
 
     def test_reserve_is_best_fundable_air_project(self):
         for needle in ("OpexC121AutopsyIsAirRelated", "OpexProjectFinanceCapital", "OpexCashReserve()",
