@@ -4,7 +4,7 @@ Reglage entier v252_air_engine_refresh, defaut 2, lu une fois ;
 0 = inerte au defaut (aucun opcode supplementaire hors test de globale),
 1 = meilleur avion achetable sur renfort et remplacement apres crash,
 2 = mode 1 + remplacement actif mensuel quand riche, sans montant fixe en livres (defaut),
-3 = mode 2 + recalcul de la demande mensuelle courante selon le modele du planificateur.
+3 = mode 2 + economie C121 de flotte reelle, demande courante.
 """
 from pathlib import Path
 import re
@@ -17,22 +17,6 @@ AI = Path(__file__).resolve().parents[1] / "ai" / "OpexAI"
 def _body(source, signature):
     match = re.search(re.escape(signature) + r"\n\{(.*?)\n\}", source, re.S)
     return match.group(1) if match else ""
-
-
-def _demand_model_py(pop_a, routes_a, pop_b, routes_b, catchment_share_pct=22):
-    if routes_a <= 1 and routes_b <= 1:
-        monthly = ((pop_a + pop_b) * catchment_share_pct) // 100
-    else:
-        part_a = (pop_a * catchment_share_pct) // 100
-        if routes_a > 1:
-            part_a = part_a // routes_a
-        part_b = (pop_b * catchment_share_pct) // 100
-        if routes_b > 1:
-            part_b = part_b // routes_b
-        monthly = part_a + part_b
-    if monthly < 10:
-        monthly = 10
-    return monthly
 
 
 class TestV252EngineRefresh(unittest.TestCase):
@@ -101,7 +85,7 @@ class TestV252EngineRefresh(unittest.TestCase):
         self.assertTrue(self.best_engine)
         self.assertIn("if (V252_AIR_ENGINE_REFRESH >= 3)", self.best_engine)
         guard_pos = self.best_engine.index("if (V252_AIR_ENGINE_REFRESH >= 3)")
-        recalc_pos = self.best_engine.index("OpexAirRecomputeLineDemand(line, lines)")
+        recalc_pos = self.best_engine.index("OpexAirRefreshC121Plan(line, catalog, lines, airportType)")
         self.assertGreater(recalc_pos, guard_pos)
 
         # settings.nut borne max_value a 3
@@ -143,62 +127,63 @@ class TestV252EngineRefresh(unittest.TestCase):
         self.assertIn('demand_old=" + dOld + " demand_now=" + dNow', self.add_plane)
         self.assertIn('demand_old=" + dOld + " demand_now=" + dNow', self.refleet)
 
-    def test_factorization_equivalence(self):
-        # 1. Structure de la fonction factorisee dans air_fleet.nut
-        self.assertIn("function OpexAirDemandModel(popA, routesA, popB, routesB)", self.fleet)
-        self.assertIn("TOWN_CATCHMENT_SHARE_PCT", self.fleet)
-        self.assertIn("function OpexAirRecomputeLineDemand(line, lines)", self.fleet)
+    def test_c121_fleet_contract(self):
+        plan = _body(self.fleet, "function OpexAirRefreshC121Plan(line, catalog, lines, airportType)")
+        self.assertIn("if (lines == null) return null;", plan)
+        self.assertIn("AIStation.GetStationID(tile)", plan)
+        self.assertIn("AIStation.IsValidStation(station)", plan)
+        self.assertIn("AITown.IsValidTown(town)", plan)
+        self.assertIn("OpexFlightDistance(line.stationA, line.stationB)", plan)
+        self.assertIn("reuseA = true, reuseB = true", plan)
+        self.assertIn("price = 0, maintenance = 0", plan)
+        self.assertIn("if (other != line) others.append(other)", plan)
+        self.assertIn("OpexAirLiveRoutesAtAirport(tile, lines) - (count > 0 ? 1 : 0)", plan)
+        self.assertIn("AIVehicle.IsValidVehicle(vehicle)", plan)
+        self.assertIn("AIVehicle.GetVehicleType(vehicle) == AIVehicle.VT_AIR", plan)
+        self.assertIn("if (count < 1) count = 1;", plan)
+        self.assertIn("OpexC121PrepareDemandShadow(catalog, plan, others)", plan)
+        self.assertIn("OpexC121PrepareEngineStatic(catalog, plan)", plan)
+        self.assertIn("OpexC121EngineEconomics(catalog, refreshPlan, plane, refreshPlan.refreshPlanes)", self.best_engine)
+        self.assertNotIn("rawset", plan)  # aucune mutation de la ligne sauvegardee
+        self.assertNotIn("OpexC121ChooseRoutePlane", self.best_engine)  # pas de V96/memo global
 
-        # 2. Equivalence mathematique stricte avec les formules de air_planning.nut
-        # Cas 1 : newpair (air_planning.nut:708 / :710)
-        # local monthlyPax = ((popA + popB) * TOWN_CATCHMENT_SHARE_PCT) / 100;
-        # if (monthlyPax < 10) monthlyPax = 10;
-        test_pops = [10, 50, 100, 350, 800, 1500, 4200, 12000, 25000]
-        for pop_a in test_pops:
-            for pop_b in test_pops:
-                planner_newpair = max(10, ((pop_a + pop_b) * 22) // 100)
-                model_newpair = _demand_model_py(pop_a, 1, pop_b, 1)
-                self.assertEqual(planner_newpair, model_newpair,
-                                 f"Mismatch on newpair pop_a={pop_a} pop_b={pop_b}")
-                # routes <= 1
-                model_zero = _demand_model_py(pop_a, 0, pop_b, 0)
-                self.assertEqual(planner_newpair, model_zero)
+    def test_mode_two_economics_unchanged(self):
+        self.assertIn("local refreshPlan = null;", self.best_engine)
+        self.assertIn("if (refreshPlan == null) return null;", self.best_engine)
+        self.assertIn(": OpexAirEconomics(catalog, airportObj, plane, distance, monthlyPax, false, 0, 0, 0, 1)", self.best_engine)
+        self.assertIn("economics.profitAnnual > bestEconomics.profitAnnual", self.best_engine)
+        self.assertIn("economics.roi > bestEconomics.roi", self.best_engine)
+        self.assertEqual(self.sources["info.nut"].count("AddSetting({"), 76)
 
-        # Cas 2 : hubsite (air_planning.nut:1350-1354)
-        # local hubMonthly = (((hub.town.pop * TOWN_CATCHMENT_SHARE_PCT) / 100) / (hub.routes + 1));
-        # local newMonthly = (site.town.pop * TOWN_CATCHMENT_SHARE_PCT) / 100;
-        # local monthlyPax = hubMonthly + newMonthly;
-        # if (monthlyPax < 10) monthlyPax = 10;
-        for hub_pop in test_pops:
-            for site_pop in test_pops:
-                for hub_routes in range(1, 8):
-                    planner_hubsite = max(10, (((hub_pop * 22) // 100) // (hub_routes + 1)) + ((site_pop * 22) // 100))
-                    model_hubsite = _demand_model_py(hub_pop, hub_routes + 1, site_pop, 1)
-                    self.assertEqual(planner_hubsite, model_hubsite,
-                                     f"Mismatch on hubsite hub_pop={hub_pop} site_pop={site_pop} routes={hub_routes}")
+    def test_replay_low_rating_cost_dominates(self):
+        from analyse_v253_chooser import engines_from_code, replay
+        engines = engines_from_code()
+        dart = replay(engines[217], 156, 214)
+        lb10 = replay(engines[223], 156, 214)
+        self.assertAlmostEqual(dart['rating'], 12.745098, places=5)
+        self.assertEqual(dart['days'], 77)
+        self.assertEqual((dart['carried'], lb10['carried']), (27, 27))
+        self.assertEqual(dart['revenue'], lb10['revenue'])
+        self.assertEqual(dart['profit'] - lb10['profit'], 2052)
+        # Le forfait courrier ne departage pas les deux avions de meme vitesse.
+        self.assertEqual(replay(engines[217], 156, 214, mail=False)['profit']
+                         - replay(engines[223], 156, 214, mail=False)['profit'], 2052)
+        # Davantage de demande peut inverser le choix : pas un biais de cout seul.
+        self.assertGreater(replay(engines[223], 156, 417)['profit'],
+                           replay(engines[217], 156, 417)['profit'])
 
-        # Cas 3 : hubhub (air_planning.nut:1530-1534)
-        # local monthly1 = (((hub1.town.pop * TOWN_CATCHMENT_SHARE_PCT) / 100) / (hub1.routes + 1));
-        # local monthly2 = ((hub2.town.pop * TOWN_CATCHMENT_SHARE_PCT) / 100) / (hub2.routes + 1);
-        # local monthlyPax = monthly1 + monthly2;
-        # if (monthlyPax < 10) monthlyPax = 10;
-        for h1_pop in test_pops[::2]:
-            for h2_pop in test_pops[::2]:
-                for r1 in range(1, 6):
-                    for r2 in range(1, 6):
-                        planner_hubhub = max(10, (((h1_pop * 22) // 100) // (r1 + 1)) + (((h2_pop * 22) // 100) // (r2 + 1)))
-                        model_hubhub = _demand_model_py(h1_pop, r1 + 1, h2_pop, r2 + 1)
-                        self.assertEqual(planner_hubhub, model_hubhub,
-                                         f"Mismatch on hubhub h1={h1_pop} h2={h2_pop} r1={r1} r2={r2}")
-
-    def test_recompute_line_demand_missing_data_fallback(self):
-        recompute = _body(self.fleet, "function OpexAirRecomputeLineDemand(line, lines)")
-        self.assertIn("return fallback;", recompute)
-        self.assertIn("local fallback =", recompute)
-        self.assertIn("AIStation.GetStationID(line.stationA)", recompute)
-        self.assertIn("AIStation.GetStationID(line.stationB)", recompute)
-        self.assertIn("AIStation.GetNearestTown", recompute)
-        self.assertIn("AITown.GetPopulation", recompute)
+    def test_replay_headway_and_tariff(self):
+        from analyse_v253_chooser import engines_from_code, replay
+        from analyse_c119_air_income_shadow import cargo_income, PAX_PAYMENT, MAIL_PAYMENT
+        # Tarifs C121_BUILD ligne 0 graine 42 : donnees journalisees, pas synthetiques.
+        self.assertEqual(cargo_income(268, 41, PAX_PAYMENT), 97)
+        self.assertEqual(cargo_income(268, 41, MAIL_PAYMENT), 148)
+        engine = engines_from_code()[217]
+        one = replay(engine, 156, 214)
+        four = replay(engine, 156, 214, planes=4)
+        self.assertGreater(four['rating'], one['rating'])
+        self.assertGreater(four['carried'], one['carried'])
+        self.assertLess(replay(engine, 156, 214, direct=True)['days'], one['days'])
 
     def test_no_saved_state(self):
         persist = self.sources["persist.nut"]

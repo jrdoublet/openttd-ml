@@ -660,7 +660,7 @@ class OpexAIInfo extends AIInfo {
     });
     AddSetting({
       name = "v252_air_engine_refresh",
-      description = "V252: modernize air fleet; 0 = clone the existing plane (former behaviour), 1 = buy best available engine on reinforce/crash, 2 = mode 1 + active monthly replacement when rich (default, qualified 18/10: gate A +179 k/yr, gate B +180 k/yr), 3 = mode 2 + recompute current route demand for engine choice",
+      description = "V252: modernize air fleet; 0 = clone the existing plane (former behaviour), 1 = buy best available engine on reinforce/crash, 2 = mode 1 + active monthly replacement when rich (default, qualified 18/10: gate A +179 k/yr, gate B +180 k/yr), 3 = mode 2 + C121 current demand and live fleet economics for engine choice",
       min_value = 0, max_value = 3,
       easy_value = 2, medium_value = 2, hard_value = 2,
       custom_value = 2,

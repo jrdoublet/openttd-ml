@@ -2,77 +2,48 @@
 /* Ajoute un seul avion a une liaison deja mesuree. Le clonage partage les ordres et ne refait ni
  * recherche de sites ni construction d'infrastructure : c'est le chemin marginal au meilleur
  * profit/opcode. Toute decision de l'appeler reste dans main.nut, apres une annee de donnees. */
-/* Demande mensuelle d'une paire aerienne selon le modele du planificateur
- * (air_planning.nut:708 / :1349-1354 / :1529-1534).
- * popA, popB : population des villes.
- * routesA, routesB : nombre de routes aeriennes desservies par chaque aeroport.
- * Si les deux extremites ont au plus 1 route (nouvelle liaison point a point), captage global sur popA + popB.
- * Si au moins une extremite est un hub (routes > 1), captage individuel divise par le nombre de routes.
- * Plancher commun de 10 passagers/mois. */
-function OpexAirDemandModel(popA, routesA, popB, routesB)
+/* V253 mode 3 : economie C121 d'une flotte homogene de taille reelle.
+ * Retirer la ligne du service existant : le candidat represente deja sa flotte.
+ * Ce proxy compare les moteurs a nombre de creneaux constant ; il ne predit pas
+ * exactement une flotte mixte pendant sa transition. Aucun etat sur la ligne. */
+function OpexAirRefreshC121Plan(line, catalog, lines, airportType)
 {
-  local monthlyPax = 0;
-  if (routesA <= 1 && routesB <= 1) {
-    monthlyPax = ((popA + popB) * TOWN_CATCHMENT_SHARE_PCT) / 100;
-  } else {
-    local partA = (popA * TOWN_CATCHMENT_SHARE_PCT) / 100;
-    if (routesA > 1) partA = partA / routesA;
-    local partB = (popB * TOWN_CATCHMENT_SHARE_PCT) / 100;
-    if (routesB > 1) partB = partB / routesB;
-    monthlyPax = partA + partB;
+  if (lines == null) return null;
+  local count = 0;
+  if (("vehicles" in line) && line.vehicles != null) {
+    foreach (vehicle in line.vehicles) {
+      if (AIVehicle.IsValidVehicle(vehicle) && AIVehicle.GetVehicleType(vehicle) == AIVehicle.VT_AIR) count++;
+    }
+  } else if (("vehicle" in line) && AIVehicle.IsValidVehicle(line.vehicle)
+      && AIVehicle.GetVehicleType(line.vehicle) == AIVehicle.VT_AIR) count++;
+  local sites = [];
+  foreach (tile in [line.stationA, line.stationB]) {
+    local station = AIStation.GetStationID(tile);
+    if (!AIStation.IsValidStation(station)) return null;
+    local town = AIStation.GetNearestTown(station);
+    if (!AITown.IsValidTown(town)) return null;
+    local routes = OpexAirLiveRoutesAtAirport(tile, lines) - (count > 0 ? 1 : 0);
+    if (routes < 0) routes = 0;
+    sites.append({ anchor = tile, stationId = station, routes = routes,
+        town = { id = town, tile = AITown.GetLocation(town), pop = AITown.GetPopulation(town) } });
   }
-  if (monthlyPax < 10) monthlyPax = 10;
-  return monthlyPax;
-}
-
-/* Recalcule la demande mensuelle courante d'une ligne aerienne existante
- * selon le modele du planificateur en interrogeant la population actuelle des villes
- * et le nombre de routes aeriennes actuellement reliees aux aeroports.
- * Si une donnee manque, retombe sur line.airMonthlyPax (ou line.monthlyPax). */
-function OpexAirRecomputeLineDemand(line, lines)
-{
-  local fallback = ("airMonthlyPax" in line && line.airMonthlyPax > 0)
-      ? line.airMonthlyPax
-      : (("monthlyPax" in line && line.monthlyPax > 0) ? line.monthlyPax : 0);
-
-  if (line == null || !("stationA" in line) || !("stationB" in line)) return fallback;
-  if (!AIMap.IsValidTile(line.stationA) || !AIMap.IsValidTile(line.stationB)) return fallback;
-  if (!AIAirport.IsAirportTile(line.stationA) || !AIAirport.IsAirportTile(line.stationB)) return fallback;
-
-  local stA = AIStation.GetStationID(line.stationA);
-  local stB = AIStation.GetStationID(line.stationB);
-  if (!AIStation.IsValidStation(stA) || !AIStation.IsValidStation(stB)) return fallback;
-
-  local townA = ("townA" in line && AITown.IsValidTown(line.townA))
-      ? line.townA : AIStation.GetNearestTown(stA);
-  local townB = ("townB" in line && AITown.IsValidTown(line.townB))
-      ? line.townB : AIStation.GetNearestTown(stB);
-  if (!AITown.IsValidTown(townA) || !AITown.IsValidTown(townB)) return fallback;
-
-  local popA = AITown.GetPopulation(townA);
-  local popB = AITown.GetPopulation(townB);
-  if (popA <= 0 || popB <= 0) return fallback;
-
-  if (lines == null) return fallback;
-
-  local routesA = 0;
-  local routesB = 0;
-  foreach (other in lines) {
-    if (other == null || typeof other != "table" || !("mode" in other) || other.mode != "air") continue;
-    local otherA = OpexAirLineStationId(other, 0);
-    local otherB = OpexAirLineStationId(other, 1);
-    if (otherA == stA || otherB == stA) routesA++;
-    if (otherA == stB || otherB == stB) routesB++;
-  }
-  if (routesA < 1) routesA = 1;
-  if (routesB < 1) routesB = 1;
-
-  return OpexAirDemandModel(popA, routesA, popB, routesB);
+  /* Crash sans survivant : evaluer l'unique appareil a reconstituer. */
+  if (count < 1) count = 1;
+  local others = [];
+  foreach (other in lines) { if (other != line) others.append(other); }
+  local plan = { siteA = sites[0], siteB = sites[1], reuseA = true, reuseB = true,
+      airport = { type = airportType, price = 0, maintenance = 0 },
+      distance = OpexFlightDistance(line.stationA, line.stationB),
+      monthlyPax = 0, refreshPlanes = count };
+  OpexC121PrepareDemandShadow(catalog, plan, others);
+  if (!("c121Demand" in plan)) return null;
+  OpexC121PrepareEngineStatic(catalog, plan);
+  return plan;
 }
 
 /* V252 Mode 1 : determine le meilleur modele d'avion actuellement constructible
  * pour une ligne donnee selon le critere causal du catalogue AIR (C68 / OpexAirEconomics).
- * V252 Mode 3 : recalcule la demande courante au lieu de figer sur line.airMonthlyPax.
+ * V253 Mode 3 : C121 courant, nombre reel de creneaux, profit puis ROI.
  * Retourne l'EngineID retenu, ou null si choix indisponible ou impossible. */
 function OpexAirBestEngineForLine(line, catalog, lines = null)
 {
@@ -106,10 +77,11 @@ function OpexAirBestEngineForLine(line, catalog, lines = null)
       : (("monthlyPax" in line && line.monthlyPax > 0) ? line.monthlyPax : 0);
   local demandNow = demandOld;
 
-  /* V252 Mode 3 : demande courante recalculee maintenant via le modele du planificateur. */
+  local refreshPlan = null;
   if (V252_AIR_ENGINE_REFRESH >= 3) {
-    local recalc = OpexAirRecomputeLineDemand(line, lines);
-    if (recalc > 0) demandNow = recalc;
+    refreshPlan = OpexAirRefreshC121Plan(line, catalog, lines, airportType);
+    if (refreshPlan == null) return null;
+    demandNow = refreshPlan.c121Demand.paxA + refreshPlan.c121Demand.paxB;
   }
 
   /* Pour le journal seulement : jamais sur la ligne, qui est sauvegardee telle quelle. */
@@ -135,8 +107,20 @@ function OpexAirBestEngineForLine(line, catalog, lines = null)
     if (!AIEngine.CanRefitCargo(plane.id, cargo)) continue;
     if (hasHangar && AIVehicle.GetBuildWithRefitCapacity(hangar, plane.id, cargo) <= 0) continue;
 
-    local economics = OpexAirEconomics(catalog, airportObj, plane, distance, monthlyPax, false, 0, 0, 0, 1);
+    local economics = refreshPlan != null
+        ? OpexC121EngineEconomics(catalog, refreshPlan, plane, refreshPlan.refreshPlanes)
+        : OpexAirEconomics(catalog, airportObj, plane, distance, monthlyPax, false, 0, 0, 0, 1);
     if (economics == null) continue;
+    if (DECISION_LOG && refreshPlan != null) OpexDecide("V253_CHOICE",
+        "line=" + (("lineId" in line) ? line.lineId : -1)
+        + " engine=" + plane.id + " distance=" + refreshPlan.distance
+        + " demand=" + demandNow + " planes=" + refreshPlan.refreshPlanes
+        + " speed=" + plane.speed + " capacity=" + plane.capacity
+        + " price=" + plane.price + " running=" + plane.runningCost
+        + " profit=" + economics.profitAnnual + " revenue=" + economics.revenueAnnual
+        + " amort=" + economics.amortAnnual + " roi=" + economics.roi
+        + " income_days=" + economics.incomeDays + " headway=" + economics.headwayDays
+        + " pax=" + economics.carriedPax + " mail=" + economics.carriedMail);
 
     if (bestEconomics == null || economics.profitAnnual > bestEconomics.profitAnnual ||
         (economics.profitAnnual == bestEconomics.profitAnnual && economics.roi > bestEconomics.roi)) {
