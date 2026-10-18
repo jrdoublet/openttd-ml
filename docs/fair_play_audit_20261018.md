@@ -571,3 +571,338 @@ Les deux expectedFailure F2.1a/F2.1c sont conservés sans modification.
 Aucun banc, Docker, partie, compilation Squirrel ni test Save/Load moteur,
 conformément à la demande utilisateur ; aucune qualification économique.
 Les messages smoke/gain_short/non_erosion de la suite viennent de fixtures Python.
+
+## 6. tipsyfox / t=90674 (V262)
+
+### 6.1 Périmètre, provenance et lecture des statuts
+
+Audit statique du 18/10/2026 sur `v261`, base `d83de3d` (master fusionné,
+V261/V261b conservés). Aucun changement dans `ai/`, aucune famille protégée
+modifiée, aucun moteur, banc, Docker ou push. Les correctifs ci-dessous sont
+**des propositions à décider**, pas des travaux autorisés ni des gains mesurés.
+
+Source de la liste : extrait utilisateur
+`/home/deploy/.claude/jobs/e230de46/tmp/tipsyfox_extract_v262.md`.
+Le [site Tipsy Fox](https://tipsyfox.net/ottd/) est accessible et annonce une
+mise à jour juin 2026. Le [fil t=90674](https://www.tt-forums.net/viewtopic.php?t=90674)
+renvoie une page de blocage « Oh noes! » au lecteur web : ses détails restent
+attribués à l'extrait fourni, pas à une vérification indépendante des messages.
+Les noms d'IA de l'extrait servent à identifier les symptômes, jamais à prouver
+un défaut d'OpexAI. Une erreur fatale peut arrêter l'IA ; un redémarrage
+automatique universel avec perte totale de progression n'est pas établi ici.
+
+**« Concerné » qualifie le symptôme nuisible**, pas la simple présence de l'API.
+« Oui » = mécanisme visible ; « non » = mécanisme précis exclu par le code ;
+« partiellement » = protections présentes mais couverture incomplète ;
+« non vérifiable statiquement » = résultat dynamique sans preuve suffisante.
+Un « non » local n'est jamais une garantie universelle d'absence de crash.
+Les chemins `ai/OpexAI/` sont abrégés dans les tableaux. Les lignes désignent
+l'arbre audité, inchangé par V262.
+
+Tests : `sweeps/test_v262_tipsyfox_behaviours.py` (préfixes `test_` omis
+ci-dessous), inventaire figé `sweeps/fixtures/v262_valuate_inventory.json`.
+Les contrats V261 cités restent actifs dans `test_v261_forum_behaviours.py`.
+Un expectedFailure décrit une exigence absente ou insuffisante ; il ne constitue
+ni une reproduction en VM ni une permission de corriger.
+
+### 6.2 Valuate, tailles et calcul du budget
+
+Le source fourni est réellement sous
+`/home/deploy/.claude/jobs/e230de46/tmp/ottd15/src/src/` (noté **moteur/**).
+`moteur/script/api/script_list.hpp:17` fixe `MAX_VALUATE_OPS=1000000` ;
+`script_list.cpp:842` accepte les closures natives et Squirrel ; `:852` installe
+le limiteur **sur tout le Valuate**, `:866` appelle chaque callback et `:910`
+débite **5 opcodes par élément**, même pour une API native. Aucun découpage
+implicite au milieu de cette boucle C++.
+
+Complément au §5.4 : la distribution fournie omet `src/3rdparty/`. Les fichiers
+manquants ont été lus depuis le **tag officiel 15.3**, sans modifier ce source
+ni le dépôt : [sqapi.cpp](https://github.com/OpenTTD/OpenTTD/blob/15.3/src/3rdparty/squirrel/squirrel/sqapi.cpp#L1300)
+`:1300-1312` fixe le seuil au compteur d'entrée moins le budget ;
+[sqvm.h](https://github.com/OpenTTD/OpenTTD/blob/15.3/src/3rdparty/squirrel/squirrel/sqvm.h#L180)
+`:180-187` teste strictement `< seuil` ; `sqapi.cpp:980-983` vérifie après l'appel
+natif et émet **« excessive CPU usage in valuator function »**.
+`sqvm.cpp:742-745` débite/vérifie les instructions Squirrel.
+Le message est donc désormais retrouvé, contrairement à V261.
+
+Pour les 57 sites actuels : callbacks API natifs, sans réentrée Squirrel ni
+DoCommand, wrappers `moteur/script/squirrel_helper.hpp:316-333` ; coût imputé
+**dans la boucle = 5N**. Avec une future closure, ajouter la somme de ses
+opcodes par item : `5N + Σ callback_ops`. Ce n'est **pas un coût CPU réel** :
+recherche de ville, calcul de production, coût d'un convoi et mise à jour des
+arbres C++ ne sont pas proportionnellement débités. Le temps natif peut croître
+sans déclencher l'erreur. Une API erronée peut échouer pour une autre raison.
+Nuance de bord : après 200 001 items natifs, le dernier débit dépasse le budget
+mais le contrôle n'arrive qu'au callback suivant ; 200 002 items provoquent
+donc l'erreur dans ce cas simple. Ne pas utiliser cette marge comme seuil métier.
+
+| Sites (inventaire exhaustif détaillé en 6.7) | N maximal par appel / débit 5N ; croissance | Risque du message CPU dans l'arbre actuel / proposition |
+|---|---|---|
+| `capital.nut:8`, `tension.nut:84` | `V` = véhicules propres primaires **+ rames de wagons libres** ; `5V`. Croît avec flotte/état des dépôts. | Théoriquement possible si V dépasse le budget ; aucune mesure d'exposition. Les plafonds ordinaires ne suffisent pas pour les wagons libres. Proposer une somme/scan reprenable, tous niveaux, si exposition confirmée. |
+| `catalog.nut:426,610,726,781,783`, `candidates.nut:161,165,168,173,190` | Au plus E moteurs disponibles (diminue après filtres). `EngineID` limité à 64 000 (`moteur/engine_type.h:26`) ⇒ au plus **320 000** par appel. Croît avec NewGRF/époque, pas la surface de carte seule. | Ce budget seul ne peut dépasser 1 M avec ces callbacks. Temps CPU natif non mesuré ; ne pas remplacer systématiquement par Slow Valuate. |
+| `task_air.nut:285` | A aéroports propres ≤ 64 000 stations (`moteur/station_type.h:16`) ⇒ **320 000** par appel. | Pas de dépassement 1 M par cardinalité seule. |
+| `catalog.nut:404`, ponts `builder_rail.nut:863…3242`, `task_rail.nut:1624` | `5R` railtypes / `5B` types de pont compatibles avec la portée ; matériel, pas flotte ni carte. | Pas d'indice de dépassement ; petits ensembles de types moteur. |
+| `air_sites.nut:232…244` | Anneau après retrait intérieur, ≤ `8r`, r ≤ `AIR_SITE_RADIUS=25` (`builder_air.nut:14`) ⇒ **1 000** par appel ; la création du rectangle temporaire est plus grande que l'anneau. | Pas de dépassement du budget Valuate avec ces bornes. |
+| `air_towns.nut:599` | Carré rayon `STATION_SEARCH_RADIUS=30` (`builder_rail.nut:22`) ⇒ N ≤ 61², **18 605**. | Pas de dépassement de ce Valuate. |
+| `air_coverage.nut:208…222`, `opcode_exact.nut:558…566` | Rectangle autorisé par `station_spread=S`, largeur ≤ `2S-w`, hauteur ≤ `2S-h` ; sous-listes filtrées ≤ ce rectangle. Débit ≤ `5(2S-w)(2S-h)`. | Fenêtre locale, pas liste de carte entière ; S ≤ 64 en 15.3 (`moteur/table/settings/game_settings.ini`, entrée station_spread). Même majoration grossière `5(2S)² = 81 920` reste sous 1 M. |
+| `air_coverage.nut:484,492`, `opcode_exact.nut:535` | N = union des tuiles de captage, pas nombre de stations × carte ; ≤ rectangle d'emprise étendu du rayon C : `5 min(carte,(S+2C)²)`. | Pas de Valuate de carte entière démontré. Vérifier les dimensions effectives si extension du modèle / NewGRF ; coût natif par tuile non constant. |
+| `spatial.nut:102,133` | N = emprise industrie étendue de coverage, ou rectangle gare étendu (`sMinX…sMaxY`). Débit `5 min(carte, largeur×hauteur)`. | Pas de borne métier universelle de toutes emprises NewGRF démontrée ici ; pas de dépassement établi. Garde de taille/découpage si les dimensions exposent le seuil, tous niveaux. |
+| `probe_v216.nut:371` | Carré de côté `2(radius+V216_ADV_MAX_RADIUS)+1`, bord carte ; débit 5×aire. `V216_ADV_MAX_RADIUS=5` (`:297`). | Fenêtre paramétrée, pas carte entière ; vérifier les rayons transmis pour une configuration exotique. |
+| `terrain_valuate.nut:121…155,280…376` | Bloc de côté side : N ≤ side², débit ≤ 5side² par appel. Consommateur courant `C67_SIDE=5` (`task_terrain.nut:9`) ⇒ **125** ; six passes distinctes. | Pas de dépassement avec side courant. La méthode publique n'impose pas cette taille à un futur consommateur. C67 reste sans consommateur économique. |
+
+`AIVehicleList` inclut les wagons libres :
+`moteur/script/api/script_vehiclelist.cpp:23-36`. Les quatre plafonds usuels sont
+au plus 5 000 chacun (`moteur/table/settings/game_settings.ini:245-291`) :
+20 000 primaires donneraient 100 000 opcodes, **pas 1 M**. En revanche la réserve
+globale de VehicleID va jusqu'à `0xFF000` (`moteur/vehicle_type.h:17`) : la borne
+brute de pool donnerait 5 222 400, largement au-dessus. Ce scénario théorique
+demande énormément de wagons libres propres ; OpexAI suit normalement leurs
+rollbacks (`builder_rail.nut:2621,2684`). Aucun crash CPU actuel n'est prouvé.
+Les constructeurs sans filtre ne partagent pas le limiteur de filtre optionnel
+(`script_list.hpp:94-99`) ; une grande construction de liste peut aussi coûter du
+temps sans erreur Valuate.
+
+**Boucles longues hors Valuate** : coût Squirrel généralement suspendable,
+donc latence/starvation possible sans message de valuator. Aucun total exact
+d'opcodes par appel ne se déduit d'un nombre de lignes ; les bornes ci-dessous
+sont des estimations de complexité, pas des mesures ni un prix fixe par tuile.
+
+| Famille / preuves | Pire croissance structurelle par invocation ; protection actuelle |
+|---|---|
+| Catalogue `catalog.nut:842-874,937-976`, choix matériel `:514-582,799-815` | O(T×C + I×C + E×C + E×longueurs×cargos), villes/industries/matériel ; pas de plafond d'opcodes global par méthode. Les lots production ville ont une tranche explicite (`:894-910`). |
+| Candidats `candidates.nut:964-1059,1069-1182,1528-1691` | Paires villes O(T²) au pire si toutes dans les cellules voisines ; fret O(I²) / O(I×T), plus scans de lignes L. L'index spatial réduit le cas usuel, ne prouve pas une borne indépendante de carte. |
+| Captage AIR `air_coverage.nut:360-425,482-495`, listes d'aéroports `air_planning.nut:839,1198`, `air_towns.nut:175,197,562` | Stations × tuiles de captage / villes / choix de paires ; cache et filtrage géométrique, sans preuve d'un coût absolu fixe. |
+| Inventaire par ligne `lines.nut:78-193`, `task_report.nut:209-622`, `task_road.nut:294-428`, `task_rail.nut:380-563`, `task_air.nut:461` | O(L×V) possible avec scans `AIVehicleList_Station` répétés, puis ordres/convois ; flotte croissante. Le rapport annuel peut retarder la construction sans crash VM. |
+| Arrêts existants `builder_road.nut:351-371`, recovery `air_recovery.nut:34-83` | O(stations+tuiles bus), puis tests de proximité O(arrêts) par site ; tickets×lignes et scans de véhicules par gare. |
+| Route `builder_road.nut:77-112,376-414`, eau `builder_water.nut:206-232,237-287`, rail `builder_rail.nut:4513`, A* | Traces O(distance), reconstruction route par `insert(0)` jusqu'à O(chemin²) ; BFS route ≤ maxNodes (retour null), eau ≤ WATER_BFS_MAX_NODES, A* par itérations/deadline, parcours rail borné steps/limit. Un budget d'itérations n'est pas une borne du temps C++ d'une itération. |
+| Terrain `terrain_map.nut` Step, `terrain_valuate.nut:88-155` | O(surface carte / side²) au total, repris par Step ; O(side²) local, cache de capacité bornée. |
+| Sondes `probe_v216.nut:182,199,209,336-375`, `probes.nut:1730,2341`, `ledgers.nut:1383`, `rivals_v211.nut:71-90` | Villes, industries, stations, flotte ou moteurs ; distinguer sondes OFF et diagnostics activés. Coût sous sonde ne qualifie pas le défaut. |
+| V250 `task_v250.nut:124-144,187,216`, V233 `goods_v233.nut:390-405,417-444` | Stations/captages/villes et plans×chemins ; V250 soumis au niveau 3, V233 expérimental. Ne pas désarmer une garde pour l'audit. |
+| Conversion boucle `builder_rail.nut:4909-4911` | **Boucle sans progrès garanti** : RemoveOrder ignoré ; si échec permanent avec ordre restant, boucle indéfinie (suspensions possibles). Proposition tous niveaux : tester retour/progrès et abandonner proprement. Contrat `order_removal_loop_checks_progress` expectedFailure. |
+
+Pas de parallélisation interne proposée : les scripts utilisent leur VM/budget ;
+le nombre de workers du banc ne change pas le budget d'un Valuate.
+
+### 6.3 Save/Load : volume, profondeur et limites réelles
+
+**Deux coûts distincts.** `moteur/script/script_info.hpp:19` :
+`MAX_SL_OPS=100000`. `script_instance.cpp:537` l'applique à **l'exécution de
+Save()**, `:558-562` émet « This script took too long to Save. », sauve vide et
+marque le script en crash. Load a aussi un budget/diagnostic (`:236`, `:801`).
+Ce n'est ni une limite en millisecondes ni une limite d'octets du graphe retourné.
+Après retour, SaveObject parcourt le graphe une fois pour validation puis pour
+écriture (`:565-568`), en C++, **hors de ce budget de Save()**.
+Temps de sérialisation O(nombre d'entrées/occurrences + octets chaînes), sans
+borne temporelle fixe identifiée ; un partage de table est retraversé par occurrence.
+
+Format (`script_instance.cpp:370-500`, `script_instance.hpp:22`) : profondeur
+25, pas de float, chaîne utile au plus 253 octets UTF-8 (condition `len>=255`,
+len incluant NUL). Entier : 1 octet tag + 8 valeur ; bool : tag + 1 ; null : tag ;
+chaîne : tag + longueur sur 1 octet + NUL + octets ; conteneur : tag + contenu
++ marqueur fin ; table sérialise clés et valeurs, tableau ses valeurs.
+Pas de plafond global de taille identifié dans ce chemin. Un cycle ou une
+profondeur excessive est rejeté au plafond récursif ; pas de preuve de corruption
+du fichier de partie entier. Ces règles viennent du moteur, aucun seuil ajouté.
+
+`persist.nut:602-717` : défaut `save_full_state=1` (`info.nut:58-63`), payload
+complet = lignes L et leurs champs F, vecteurs de véhicules V, historique des
+abandons A et compteurs distincts H, tâches, dates C69/C75, queues réactives,
+expansion rail, tickets de retrait/rollback, états optionnels C83/V250/V233.
+Le format court évite les lignes mais garde abandons et tickets : pas une borne
+globale de taille. Les pathfinders et caches terrain ne sont pas exportés.
+Préparation complète estimée O(A + tâches + L + U×F + états auxiliaires), où U
+désigne les lignes absentes du cache mensuel. La projection (`:585-599`) déplace
+une grande partie du travail hors Save, mais le parcours L, la copie A et les
+auxiliaires restent dans le budget. Un gros lot de nouvelles lignes peut encore
+dépasser 100k ; on ne dispose pas du bytecode/exposition pour donner un L critique.
+Le commentaire `:578-583` rapporte un ancien dépassement, pas une nouvelle mesure V262.
+
+Croissance : L/V avec l'activité ; A est purgé après cooldown
+(`lines.nut:292-310`), **H `_abandonCounts` n'est pas purgé avec A** ; les clés
+distinctes accumulent donc l'historique de la partie. Tickets de récupération
+peuvent rester si la démolition échoue. Une table de ligne est projetée seulement
+en surface (`persist.nut:557-575`) ; les arrays/tables sont partagés. Aucune
+validation récursive globale de floats, cycles, instances ou profondeur n'est
+présente. Les structures ordinaires sont peu profondes (racine→lignes→ligne→
+vehicles→ID), mais **la profondeur maximale de tous les états optionnels n'est
+pas prouvée par cet audit**. Charge binaire, temps et opcodes maximaux demandent
+une capture tardive et Save/Load en VM. Proposition tous niveaux : construire
+un payload validé hors Save, contrôler récursivement le schéma et tester les
+états tardifs ; ne pas jeter un état décisionnel pour respecter le budget.
+
+Load filtre tuiles/stations/propriétaires/véhicules (`persist.nut:855-901`),
+relance les tâches et reconstruit les caches (`:918-979`). Les scalaires de ligne
+projetés mensuellement peuvent être anciens ; les tables imbriquées restent
+partagées. Le test `loaded_line_type_checked_before_field_membership` relève
+que **un élément non-table de `data.lines`** atteindrait `"stationA" in line`
+sans validation de type (`:857`) : robustesse incomplète face à un payload
+incompatible, pas un crash de sauvegarde normale démontré.
+
+### 6.4 Chaque symptôme de l'extrait : statut, preuves et propositions
+
+Tous les correctifs de **robustesse** proposés s'appliqueraient aux **0–3**.
+Les mesures de **courtoisie** proposées sont explicitées par niveau ; aucune
+nouvelle valeur numérique ni modification des familles protégées n'est proposée.
+
+| ID / point de l'extrait | Concerné | Preuve fichier:ligne / contrat machine | Proposition de correctif et niveaux |
+|---|---|---|---|
+| T01 CPU excessif dans Valuate (PAXLink, AIAI, DictatorAI, FastPTPAI, MailAI, Denver & Rio Grande, TracAI) | Partiellement : taille variable, crash non observé | 6.2 ; `capital.nut:8`, `tension.nut:84` ; `cpu_each_valuate_site_is_reviewed`, `cpu_fleet_valuators_are_native_and_single_pass`, V261 `3_2` | Scan reprenable seulement si exposition, 0–3 ; pas de Slow Valuate universel sans mesure. |
+| T02 CPU immédiat après rechargement (PAXLink) | Non vérifiable statiquement | `persist.nut:808-979`, `main.nut:668` ; `load_reconciles_objects_and_discards_missing_vehicles` | Stress reload tardif, distinguer Load plafonné et première reconstruction, 0–3. |
+| T03 Pathfinding trop long, aucune construction (RoadAI) | Partiellement | `builder_road.nut:376-414`, `builder_water.nut:216`, rail `OpexAdvanceRailPathfinder` ; `pathfinding_has_failure_bounds_not_busy_wait`, V261 `3_1,3_4` | Diagnostiquer latence/horizon puis découper le poste exposé, 0–3 ; les budgets peuvent aussi refuser une ligne valide. |
+| T04 Too long to save / save error (PathZilla, NoCAB) | Partiellement, garantie de budget absente | `persist.nut:578-717`, moteur `script_instance.cpp:537,559` ; `save_projection_is_outside_save_and_reused`, **xfail** `save_payload_preparation_has_no_state_sized_loop` | Payload préparé hors Save et schéma récursif, 0–3 ; taille/temps à mesurer. |
+| T05 Renvoi soudain de tous les véhicules au dépôt (NoCAB) | Non vérifiable statiquement ; pas de renvoi global inconditionnel identifié | `task_report.nut:625-658,733-838`, `air_recovery.nut:34-54` ; `depot_orders_are_not_repeatedly_toggled` | Vérifier causes de retrait et reprise sur lignes réelles, 0–3. Une mauvaise rentabilité collective peut déclencher plusieurs retraits légitimes. |
+| T06 Crash reload GetLocation inexistant (Mungo) | Non pour la méthode d'instance perdue ; reload global non garanti | Appels qualifiés API, `lines.nut:173-182`, `persist.nut:557-575` ; `missing_getlocation_method_is_not_a_persisted_instance_call` | Conserver appels API et reconstruction des instances, 0–3 ; Save/Load moteur reste nécessaire. |
+| T07 Objet disparu : ville/industrie/véhicule, GetLocation invalide | Partiellement | `event_handlers.nut:151-159,265-276,414-437`, `candidates.nut:1936-1950`, `persist.nut:855-899`, `lines.nut:173-182` ; tests `industry_closed…`, `getlocation_spatial…`, `load_reconciles…` | Auditer les références mises en cache après suspensions/commandes ; scénarios industrie fermée et vente, 0–3. Les gardes locales ne prouvent pas tous les appels. |
+| T08 Clonage infini / saturation ferroviaire (AdmiralAI, TrAIns) | Non pour clonage illimité ; saturation non vérifiable | `task_rail.nut:481-540`, `globals_pre.nut:79` (cap V190), attente source et slots ; `rail_cloning_has_line_cap_and_global_slot_check` | Conserver bornes ; congestion effective à tester, 0–3. Pas de bride économique arbitraire. |
+| T09 Essaims de bus courts déficitaires (PAXLink) | Partiellement : pertes possibles, essaim illimité exclu par ligne | `economy.nut:666-671`, `candidates.nut:1415-1423`, `task_road.nut:360-399`, `builder_road.nut:700-708` ; `road_reinforcement_is_capped_even_when_profitable`, V261 `1_1` | Mesurer profit/congestion agrégés et santé ; robustesse 0–3 ; éventuelle courtoisie de voirie 0–1 à décider. |
+| T10 Gares jamais utilisées / non détruites après abandon (BorkAI, EpicTrans, TrAIns) | Oui pour conservation après retrait ; jamais utilisées non garanti | `task_report.nut:660-727` retire `_lines`, sans démolir gares/rails/routes ; **xfail** `retired_lines_schedule_physical_infrastructure_cleanup` | Nettoyage différé avec propriété, partage et usage réel vérifiés, 0–3 ; ne pas démolir une station encore utilisée. |
+| T11 Aéroports jamais utilisés (TransAI) | Partiellement | Échec de chantier : tickets `air_construction.nut:32-49`, démolition retry `air_recovery.nut:34-83` ; retrait normal T10 ; `air_build_failure_retains_retryable_cleanup_ticket` | Étendre le suivi aux abandons normaux, 0–3 ; délai « jamais » à mesurer. |
+| T12 Infrastructures construites sans slots (LuDiAI) | Partiellement : rail protégé, précontrôle local absent route/air/eau | Rail `builder_rail.nut::OpexRailVehicleSlotAvailable`, V261 `2_1_train_zero_limit…` ; route `builder_road.nut:714,819`, air `air_construction.nut:231,358`, eau `builder_water.nut:524-630` ; trois **xfail** `*_vehicle_limit_rechecked_before_infrastructure` | Généraliser contrôle transactionnel du plafond du mode, 0–3. Les limites lues par `tension.nut:133-136` ne prouvent pas un refus physique avant dépenses. |
+| T13 Gares/dépôts à côté mais non raccordés ; implantation incohérente (CluelessPlus) | Partiellement | Route : raccord et contrôle réel `builder_road.nut:791-808`, BFS `:376-414` ; V261 `2_3` et tests `road_depot_connectivity…`, `road_passenger_reuse…` | Contrôles après construction et graphe praticable jusqu'aux deux stations, 0–3 ; cohérence esthétique dynamique. |
+| T14 Trop de dépôts routiers (Snake) | Partiellement | Un dépôt par construction `builder_road.nut:794`, conservé au retrait T10 ; `road_construction_builds_one_depot_not_one_per_path_tile` | Réutilisation sûre/collecte des dépôts orphelins, 0–3 ; « trop » demande une mesure, pas un seuil inventé. |
+| T15 Restes routes/rails après démolition (Snake) | Oui après retrait normal ; rollback partiel présent | `builder_road.nut:549-574`, `builder_rail.nut::OpexRollback`, mais `task_report.nut:721-727` ; `road_partial_rollback…`, xfail T10, V261 `1_8` | Journal d'ouvrages ajoutés, démontage différé sans toucher tiers/partages, 0–3. Les retours d'échec de suppression ne sont pas tous repris. |
+| T16 Arrêts de bus hors réseau urbain (AIAI, NotPerfectAI) | Partiellement | Voirie voyageurs réutilisée : `builder_road.nut:420-540` et BFS connecté ; autres plans tracent des routes `opcode_exact.nut:404-456` ; `road_passenger_reuse_traverses_connected_existing_roads` | Distinguer desserte fret légitime et arrêt voyageurs isolé ; robustesse connectivité 0–3, restriction de courtoisie éventuelle 0–1. |
+| T17 Bouées excessives (HeliFerry) | Non | Aucun `AIMarine.BuildBuoy` dans tous les `.nut` ; `buoys_canals_and_locks_are_not_built`, V261 `1_2` | Aucun correctif. |
+| T18 Navigation suit aveuglément littoral / détour estuaire (HeliFerry) | Non pour algorithme côtier imposé ; détour effectif non vérifiable | `builder_water.nut:206-232` BFS eau, puis économie distance navigable `:291-338` ; `pathfinding_has_failure_bounds_not_busy_wait` | Scénario estuaire sur eau ouverte, 0–3 si défaut ; ne pas réintroduire Lakes ni fabriquer un nouvel itinéraire. |
+| T19 Joining adjacent stations OFF ⇒ labyrinthe routier (MogulAI) | Partiellement : option non lue, pas de labyrinthe prouvé | `builder_road.nut:580-652` tente deux côtés, teste commande, rollback ; `air_construction.nut:55-155` explicite StationID ; `adjacent_join_attempt_has_rollback_on_failure` | Scénario avec `station.adjacent_stations` OFF ; corriger les retries/joins incompatibles si exposés, 0–3. Absence de lecture ≠ crash. |
+| T20 Tracés ferrés absurdes / wild track building (ChooChoo, AAAHogEx) | Non vérifiable statiquement | A* borné et seconde voie parallèle `builder_rail.nut:1573`, appels `FindPath(PATH_CHUNK)` ; V261 `3_1,3_4` | Inspection du tracé/détour/congestion en partie avant proposition, 0–3 ; esthétique seule éventuellement courtoisie 0–1. |
+| T21 Routes/ponts défectueux sur marshland (KrakenAI) | Non vérifiable statiquement | `builder_road.nut:115-147` AITestMode + construction réelle, `:791-808` connexion ; `terrain_is_tested_by_commands_not_a_marshland_enum` | Carte/version/terrain exposant ce symptôme puis test connexion, 0–3 ; ne pas inventer un enum marshland NoAI. |
+| T22 Droits exclusifs irritants (LuDiAI AfterFix) | Oui en custom configuré ; non en 0–2 | `difficulty.nut:29`, `task_v250.nut::_dispatchV250Rights` ; V261 `1_5` | Règle déjà livrée : interdits 0–2, autorisés 3 si configurés ; aucun nouveau correctif. |
+| T23 Spam panneaux / debug non coupé (MailAI, CPU) | Oui au défaut pour instrumentation ; désactivable | `settings.nut` debug_signs, `probes.nut::OpexSign`, `task_report.nut` ; V261 `1_9` inventaire de tous BuildSign | Courtoisie : proposer profil sans panneaux 0–1 ou tous niveaux en partie humaine, décision requise ; garder les besoins du banc distincts. Aucun seuil nouveau. |
+| T24 Arrêts sur voirie retardant les tiers (AAAHogEx 2023, PAXLink) | Oui possible ; gêne non mesurée | `builder_road.nut:420-540`, `air_construction.nut:55-155`, V261 `1_1` | Gardes AIR jointes **déjà interdites 0–1**, autorisées 2–3 ; ne pas confondre avec interdiction de tous les bus. Autre courtoisie voirie 0–1 seulement après exposition. |
+| T25 Saturation rapide du plafond global (AroAI) | Non vérifiable statiquement | Caps par ligne `task_road.nut:391`, `task_rail.nut:483`, tension `tension.nut:133-182` ; `road_reinforcement…`, `rail_cloning…` | Distinguer utilisation rentable des slots et gaspillage ; pas de réserve arbitraire proposée. Voir T12, robustesse 0–3. |
+| T26 Double tête / max_train_length ⇒ boucle infinie (OtviAI) | Non pour boucle d'ajout ; partiellement pour longueur admissible | `builder_rail.nut:2642-2712` nombre fini de wagons, longueur réelle convoi, retour sur échec MoveWagon ; `catalog.nut:395`, `economy.nut:208-211` clamp seulement pax V207 ; `double_head_cannot_create_an_unbounded_wagon_retry`, **xfail** `max_train_length_clamp_is_not_limited_to_v207_pax` | Borner tous convois à la longueur autorisée et mesurer double tête, 0–3 ; pas d'ajout séparé de motrice arrière en boucle identifié. |
+| T27 Joueur fonde une ville ⇒ crash (AdmiralAI) | Non pour catalogue figé sans handler ; crash global non vérifiable | `events.nut:360`, `event_handlers.nut:414-437` validation/dirty/refresh ; `town_founded_refreshes_catalog_with_validity_guard` | Scénario fondation pendant travail en cours, 0–3 si défaut. |
+| T28 forbid 90 degree turns mal géré (Denver & Rio Grande, MailAI) | Partiellement | Pas de lecture explicite `vehicle.forbid_90_deg` ; V261 **xfail** `2_1_forbid_90_setting_is_consulted` ; A* ne prouve pas tous les raccords | Vérifier routes complètes sous option ON, corriger raccords exposés, 0–3 ; lecture seule du réglage ne suffirait pas à prouver conformité. |
+| T29 Plafond avions à 0 / mode désactivé / IA monomodale inutile | Partiellement : multimodale, switches internes mais pas API globale | `settings.nut` charge les quatre mode_*, `tension.nut:70-73,133-136`, T12 ; V261 **xfail** `2_1_disabled_vehicle_types_are_read`, nouveau `all_mode_switches_are_loaded` | Combiner capacité/type autorisé et slots dès sélection, revalider avant construction, 0–3. Distinguer `mode_air=0`, max_aircraft=0 et type interdit dans paramètres IA ; autres modes peuvent fonctionner. |
+| T30 Index absent / pptile / null / invalid location (LuDiAI, MpAI, Rythorn, TracAI, RoadRunner, CivilAI, TeshiNet) | Partiellement ; pas de crash courant reproduit | Champs optionnels testés dans `persist.nut:735-755`, validations T07 ; **absence de contrôle type ligne** `:857` ; `optional_loaded_keys_have_membership_guards`, **xfail** `loaded_line_type_checked_before_field_membership` | Valider schéma à Load et frontières de tâches, 0–3. Ces tests ne constituent pas une analyse de flot Squirrel globale ; API invalide peut retourner sentinelle plutôt que crasher. |
+
+Compléments V261b à préserver : `difficulty.nut:33-35` autorise les arrêts
+joints AIR seulement en **2–3**, le dépôt naval devant quai et la greffe sur
+secondaire tierce seulement en **3**. Les tests V261
+`air_joined_road_stops_levels`, `water_depot_dock_front_levels`,
+`secondary_graft_rival_served_levels` vérifient les quatre niveaux.
+Les propositions V262 ne rouvrent pas cette décision ni les pistes économiques
+abandonnées ; robustesse et courtoisie ne sont pas interchangeables.
+
+### 6.5 Cinq risques prioritaires (ordre d'audit, pas fréquence mesurée)
+
+1. **Save/Load tardif** : budget 100k encore dépendant de l'état, schéma récursif
+   non garanti ; conséquence possible = arrêt de l'IA / état absent. T04/T30.
+2. **Boucle RemoveOrder sans progrès** (`builder_rail.nut:4909`) : si l'échec
+   persiste, l'IA ne sort pas de la conversion. Risque de blocage, pas un
+   dépassement Valuate. Scénario d'échec commande nécessaire.
+3. **Infrastructures orphelines après retrait** : mécanisme confirmé T10/T15 ;
+   perte économique/occupation de carte, disparition du suivi après timeout.
+4. **Slots/modes interdits hors rail** : dépenses avant échec de véhicule T12/T29,
+   même avec rollback ultérieur ; exposition max=0 à vérifier.
+5. **Longueur de train / géométrie sous paramètres non standard** : boucle Otvi
+   exclue, mais clamp incomplet T26 et raccords forbid_90 T28 à éprouver.
+
+Le dépassement Valuate sur flotte extrême demeure un risque théorique surveillé,
+**pas un crash courant établi** justifiant de le classer devant ces lacunes.
+
+### 6.6 Validation et questions qui demandent un moteur
+
+Contrats statiques : inventaire exact des 57 sites, assertions locales positives,
+huit nouveaux expectedFailure documentés (Save indépendant de taille, nettoyage
+infrastructures, trois contrôles slots, clamp longueur, type ligne chargé,
+progrès suppression d'ordres). Deux expectedFailure V261 conservés (forbid_90,
+véhicules désactivés). Les tests verts ne compilent pas Squirrel et ne prouvent
+ni santé longue durée, ni profit, ni absence universelle de crash.
+
+Restent à trancher **sans lancement dans ce lot** : Save/Load tardif et payload
+optionnel maximal (opcodes, profondeur, octets, durée), reprise après fondation
+ville/fermeture industrie/vente entre tranches, échec permanent de RemoveOrder,
+plafonds 0 et types désactivés dans chaque mode, NewGRF double tête et longueur
+réduite, joining adjacent OFF, forbid_90 ON, connexion physique des deux gares,
+marshland dans un runtime identifié, congestion/profit des bus, durée de vie des
+orphelins, détour des navires dans un estuaire, CPU réel sur grande carte/flotte.
+Un scénario de robustesse ciblé suffit d'abord ; des portes économiques ne
+seraient pertinentes qu'après décision d'un changement comportemental.
+
+Validation V262 : `PYTHONPATH=sweeps python3 -m unittest discover -s sweeps -p "test_*.py"`
+— **1 991 tests en 24,596 s, OK (3 skipped, 10 expectedFailure)** ; 32 nouveaux
+tests V262, dont 8 expectedFailure. `git diff --check` vert. Les trois skips
+préexistaient ; les messages de campagne de la suite proviennent de fixtures
+Python. Aucun lancement OpenTTD/Docker/banc ni validation Save/Load en VM.
+
+
+### 6.7 Registre des 57 sites Valuate audités
+
+Chaque ligne est un appel distinct, y compris répétitions de callbacks. Les
+variables N, V, E, A, B, R et les bornes sont définies en 6.2 ; les sous-listes
+filtrées ne peuvent excéder leur liste initiale. Le fixture JSON fige fichier,
+récepteur et arguments (hors espaces), sans dépendance au source moteur local.
+
+| Site `ai/OpexAI/` | Récepteur / callback (arguments conservés dans le fixture) | Majoration par appel |
+|---|---|---|
+| `air_coverage.nut:208` | `tiles` / `AIRoad.IsRoadTile` | rectangle spread / union captage ; 5N |
+| `air_coverage.nut:210` | `tiles` / `AIRoad.IsRoadStationTile` | rectangle spread / union captage ; 5N |
+| `air_coverage.nut:212` | `tiles` / `AIRoad.IsRoadDepotTile` | rectangle spread / union captage ; 5N |
+| `air_coverage.nut:214` | `tiles` / `AITile.IsStationTile` | rectangle spread / union captage ; 5N |
+| `air_coverage.nut:216` | `tiles` / `AITile.GetCargoProduction` | rectangle spread / union captage ; 5N |
+| `air_coverage.nut:222` | `townRoad` / `AITile.GetClosestTown` | rectangle spread / union captage ; 5N |
+| `air_coverage.nut:484` | `cargoTiles` / `AITile.GetCargoProduction` | rectangle spread / union captage ; 5N |
+| `air_coverage.nut:492` | `townOwned` / `AITile.GetClosestTown` | rectangle spread / union captage ; 5N |
+| `air_sites.nut:232` | `tiles` / `AITile.IsWaterTile` | anneau ≤ 8r ; ≤ 40r |
+| `air_sites.nut:234` | `tiles` / `AITile.IsCoastTile` | anneau ≤ 8r ; ≤ 40r |
+| `air_sites.nut:237` | `tiles` / `AITile.GetClosestTown` | anneau ≤ 8r ; ≤ 40r |
+| `air_sites.nut:240` | `tiles` / `AIAirport.GetNearestTown` | anneau ≤ 8r ; ≤ 40r |
+| `air_sites.nut:244` | `tiles` / `AIMap.GetTileX` | anneau ≤ 8r ; ≤ 40r |
+| `air_towns.nut:599` | `tiles` / `AITile.IsStationTile` | carré rayon 30 ; ≤ 18 605 |
+| `builder_rail.nut:863` | `bridges` / `AIBridge.GetMaxSpeed` | B types de ponts ; 5B |
+| `builder_rail.nut:1622` | `bridges` / `AIBridge.GetMaxSpeed` | B types de ponts ; 5B |
+| `builder_rail.nut:2281` | `bridges` / `AIBridge.GetMaxSpeed` | B types de ponts ; 5B |
+| `builder_rail.nut:2323` | `bridges` / `AIBridge.GetMaxSpeed` | B types de ponts ; 5B |
+| `builder_rail.nut:2473` | `bridges` / `AIBridge.GetMaxSpeed` | B types de ponts ; 5B |
+| `builder_rail.nut:3190` | `bridges` / `AIBridge.GetMaxSpeed` | B types de ponts ; 5B |
+| `builder_rail.nut:3242` | `bridges` / `AIBridge.GetMaxSpeed` | B types de ponts ; 5B |
+| `candidates.nut:161` | `list` / `AIEngine.IsBuildable` | E moteurs ; 5E |
+| `candidates.nut:165` | `list` / `AIEngine.IsWagon` | E moteurs ; 5E |
+| `candidates.nut:168` | `list` / `AIEngine.HasPowerOnRail` | E moteurs ; 5E |
+| `candidates.nut:173` | `list` / `AIEngine.CanRefitCargo` | E moteurs ; 5E |
+| `candidates.nut:190` | `list` / `AIEngine.GetMaxSpeed` | E moteurs ; 5E |
+| `capital.nut:8` | `vehicles` / `AIVehicle.GetRunningCost` | V ; 5V (primaires + wagons libres) |
+| `catalog.nut:404` | `types` / `AIRail.IsRailTypeAvailable` | R railtypes / E moteurs ; 5R / 5E |
+| `catalog.nut:426` | `engines` / `AIEngine.IsBuildable` | R railtypes / E moteurs ; 5R / 5E |
+| `catalog.nut:610` | `engines` / `AIEngine.IsBuildable` | R railtypes / E moteurs ; 5R / 5E |
+| `catalog.nut:726` | `engines` / `AIEngine.IsBuildable` | R railtypes / E moteurs ; 5R / 5E |
+| `catalog.nut:781` | `engines` / `AIEngine.IsBuildable` | R railtypes / E moteurs ; 5R / 5E |
+| `catalog.nut:783` | `engines` / `AIEngine.IsArticulated` | R railtypes / E moteurs ; 5R / 5E |
+| `opcode_exact.nut:535` | `coverageTiles` / `AITile.GetCargoProduction` | union captage / rectangle spread ; 5N |
+| `opcode_exact.nut:558` | `tiles` / `AIRoad.IsRoadTile` | union captage / rectangle spread ; 5N |
+| `opcode_exact.nut:560` | `tiles` / `AIRoad.IsRoadStationTile` | union captage / rectangle spread ; 5N |
+| `opcode_exact.nut:562` | `tiles` / `AIRoad.IsRoadDepotTile` | union captage / rectangle spread ; 5N |
+| `opcode_exact.nut:564` | `tiles` / `AITile.IsStationTile` | union captage / rectangle spread ; 5N |
+| `opcode_exact.nut:566` | `tiles` / `AITile.GetCargoProduction` | union captage / rectangle spread ; 5N |
+| `probe_v216.nut:371` | `tiles` / `AITile.IsStationTile` | carré rayon étendu ; 5N |
+| `spatial.nut:102` | `tiles` / `AITile.IsStationTile` | emprise étendue industrie / gare ; 5N |
+| `spatial.nut:133` | `tiles` / `AITile.IsStationTile` | emprise étendue industrie / gare ; 5N |
+| `task_air.nut:285` | `ownAirports` / `AIStation.GetNearestTown` | A aéroports propres ; 5A |
+| `task_rail.nut:1624` | `bridges` / `AIBridge.GetMaxSpeed` | B types de ponts ; 5B |
+| `tension.nut:84` | `vehicles` / `AIVehicle.GetRunningCost` | V ; 5V (primaires + wagons libres) |
+| `terrain_valuate.nut:121` | `work` / `AITile.IsWaterTile` | bloc side² ; ≤ 5side² |
+| `terrain_valuate.nut:127` | `work` / `AITile.IsCoastTile` | bloc side² ; ≤ 5side² |
+| `terrain_valuate.nut:133` | `work` / `AITile.IsBuildable` | bloc side² ; ≤ 5side² |
+| `terrain_valuate.nut:139` | `work` / `AITile.GetSlope` | bloc side² ; ≤ 5side² |
+| `terrain_valuate.nut:145` | `work` / `AITile.GetMinHeight` | bloc side² ; ≤ 5side² |
+| `terrain_valuate.nut:155` | `work` / `AITile.GetMaxHeight` | bloc side² ; ≤ 5side² |
+| `terrain_valuate.nut:280` | `work` / `AITile.IsWaterTile` | bloc side² ; ≤ 5side² |
+| `terrain_valuate.nut:297` | `work` / `AITile.IsCoastTile` | bloc side² ; ≤ 5side² |
+| `terrain_valuate.nut:314` | `work` / `AITile.IsBuildable` | bloc side² ; ≤ 5side² |
+| `terrain_valuate.nut:331` | `work` / `AITile.GetSlope` | bloc side² ; ≤ 5side² |
+| `terrain_valuate.nut:348` | `work` / `AITile.GetMinHeight` | bloc side² ; ≤ 5side² |
+| `terrain_valuate.nut:376` | `work` / `AITile.GetMaxHeight` | bloc side² ; ≤ 5side² |
+
+Traçabilité de lecture (SHA-256 ; sources externes non requises par les tests) :
+
+- `tipsyfox_extract_v262.md` : `af135e4feb65ce77e9b6ce007b220f2a13edeaf3f6e00884ab45026729d058c4`.
+- `script_list.cpp` : `c265df3005f36ad2029c1c1dd3d0cd452d07ccb40f2231420e5ec75e3a93a138`.
+- `script_list.hpp` : `fa1faaf736743e127f601db61b73b4066d05e037b572df0d3eca5697cbc32a09`.
+- `script_instance.cpp` : `077e4f9a5dcd5e70ce44e7c4c01ef0014cb3b3379ed3dd0b2e0c0b026b03fe1d`.
+- `script_info.hpp` : `1094fd15cd608ce54dc7aa98fc29d0cd7a722d9df72d3fcad74d02e799526fd9`.
+- `v262_sqapi.cpp` : `b6caeba4e033bce8443d817aff828fa18d42409417041739bb66e4f53b1de71b`.
+- `v262_sqvm.cpp` : `3ba7d708ddd80805505543f7f078a38c452624d77c90c9d9734e98d7bd0c414d`.
+- `v262_sqvm.h` : `8abca78ab52e8d1049c4a5fa2571c57aa8a3af5ce45871fd720ed57b5a62df7e`.
+- `v262_squirrel.h` : `a453931bd22120b91a621177c2dad75ca1bd081723cb8b249466f06891ac6647`.
