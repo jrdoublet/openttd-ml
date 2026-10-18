@@ -255,7 +255,7 @@ class TestV250Mode5AirMonopoly(unittest.TestCase):
                 self.assertNotIn(literal, body)
 
     def test_our_airports_population_order_and_exit(self):
-        mode5 = "if (V250_RIGHTS == 5) return OpexV250BuyOrdered(ai, date, OpexV250AirMonopolyOrder(ownCounts), ownCounts, 5);"
+        mode5 = "return OpexV250BuyOrdered(ai, date, OpexV250AirMonopolyOrder(ownCounts), ownCounts, 5);"
         self.assertIn("local ownCounts = OpexAirOwnSlotTownCounts();", self.test)
         self.assertLess(self.test.index("local ownCounts = OpexAirOwnSlotTownCounts();"), self.test.index(mode5))
         self.assertLess(self.test.index(mode5), self.test.index("if (!OpexAirC83SlotSignalEnabled()) return true;"))
@@ -266,6 +266,10 @@ class TestV250Mode5AirMonopoly(unittest.TestCase):
         self.assertIn("if (rival <= 0) continue;", self.order)
         self.assertIn("OpexV250InsertByPop(ordered, townId, AITown.GetPopulation(townId));", self.order)
         self.assertIn("if ((mode == 4 || mode == 5) && ai._v250Targets != null)", self.buy)
+        # Pas de balayage sans une annee de droits dans la caisse.
+        gate = self.test.index("if (OpexV250YearSlots(cash, OpexCashReserve(), cost) <= 0) return true;")
+        self.assertLess(gate, self.test.index(mode5))
+        self.assertLess(self.test.index("if (V250_RIGHTS == 5) {"), gate)
         self.assertIn("OpexV250YearSlots(cash, reserve, cost)", self.buy)
         self.assertIn('OpexDecide("V250_RIGHTS", "town=" + townId + " cost=" + cost + " mode=" + mode', self.task)
 

@@ -370,7 +370,17 @@ function OpexV250RunTest(ai, date, allRival = false)
   local ownCounts = OpexAirOwnSlotTownCounts();
   OpexV250Watch(ai, date, ownCounts);
   if (V250_RIGHTS == 4) return OpexV250BuyOrdered(ai, date, OpexV250TargetedOrder(), ownCounts, 4);
-  if (V250_RIGHTS == 5) return OpexV250BuyOrdered(ai, date, OpexV250AirMonopolyOrder(ownCounts), ownCounts, 5);
+  if (V250_RIGHTS == 5) {
+    /* Le prix des droits ne depend pas de la ville (prix d'action de ville
+     * multiplie par un coefficient fixe) : sans une annee de droits dans la
+     * caisse, le balayage des aeroports rivaux ne servirait a rien. */
+    local towns = AITownList();
+    if (towns.IsEmpty()) return true;
+    local cost = OpexV250MeasureRightsCost(towns.Begin());
+    local cash = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+    if (OpexV250YearSlots(cash, OpexCashReserve(), cost) <= 0) return true;
+    return OpexV250BuyOrdered(ai, date, OpexV250AirMonopolyOrder(ownCounts), ownCounts, 5);
+  }
   if (!OpexAirC83SlotSignalEnabled()) return true;
 
   local ordered = [];
