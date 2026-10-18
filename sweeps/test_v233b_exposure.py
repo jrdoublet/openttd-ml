@@ -67,7 +67,7 @@ class V233bContracts(unittest.TestCase):
         sites = body('goods_v233.nut', 'function OpexV233PlatformPlans(')
         for token in ('length--', 'OpexRailMinimumPlatformLength()', 'OpexJoinPlatformPlans(',
                       'OpexV233FactoryCovered(', 'p.stationId <- candidate.joinStationId',
-                      'OpexStationPlans(candidate.dst', 'reason = OpexRailSiteReason'):
+                      'OpexV233TownPlans(candidate.dst', 'reason = OpexRailSiteReason'):
             self.assertIn(token, sites)
         self.assertNotIn('OpexStationPlans(candidate.src', sites)
         generate = body('goods_v233.nut', 'function OpexAI::_v233GraftStep(')

@@ -276,11 +276,97 @@ function OpexV233FactoryCovered(platform, factory, cargo, coverage)
   return false;
 }
 
+/* One API query over the entire footprint: overlapping catchments must not be
+ * summed, and max(single-tile catchment) can miss distributed acceptance. */
+function OpexV233TownAcceptance(p, cargo, coverage)
+{
+  local horizontal = p.step == AIMap.GetTileIndex(1, 0);
+  return AITile.GetCargoAcceptance(p.anchor, cargo,
+    horizontal ? p.length : 1, horizontal ? 1 : p.length, coverage);
+}
+
+/* Mode 2 only. Same rings, axes, flat land and native command as the ordinary
+ * finder, but test acceptance on the full platform, including peripheral sites.
+ * Keep this separate so neither ordinary rail nor modes 0/1 change their filter.
+ * Counters accumulate across lengths; tiles counts visited endpoint positions,
+ * tried counts oriented footprints (neither is a count of distinct map tiles). */
+function OpexV233TownPlans(center, length, cargo, coverage, stats)
+{
+  local plans = [];
+  local axes = [[AIRail.RAILTRACK_NE_SW, AIMap.GetTileIndex(1, 0)],
+                [AIRail.RAILTRACK_NW_SE, AIMap.GetTileIndex(0, 1)]];
+  for (local r = 0; r <= STATION_SEARCH_RADIUS && plans.len() < MAX_STATION_PLANS; r++) {
+    for (local dx = -r; dx <= r && plans.len() < MAX_STATION_PLANS; dx++) {
+      for (local dy = -r; dy <= r && plans.len() < MAX_STATION_PLANS; dy++) {
+        if (abs(dx) != r && abs(dy) != r) continue;
+        local x = AIMap.GetTileX(center) + dx;
+        local y = AIMap.GetTileY(center) + dy;
+        if (x < 0 || y < 0 || x >= AIMap.GetMapSizeX() || y >= AIMap.GetMapSizeY()) continue;
+        local endpoint = AIMap.GetTileIndex(x, y);
+        stats.tiles++;
+        foreach (axis in axes) {
+          for (local sign = -1; sign <= 1; sign += 2) {
+            stats.tried++;
+            stats.last = "bounds";
+            local anchor = sign > 0 ? endpoint : endpoint - axis[1] * (length - 1);
+            local stationExit = sign > 0 ? anchor + axis[1] * (length - 1) : anchor;
+            local lead = sign > 0 ? stationExit + axis[1] : stationExit - axis[1];
+            if (!AIMap.IsValidTile(anchor) || !AIMap.IsValidTile(lead)
+                || !AIMap.IsValidTile(anchor + axis[1] * (length - 1))) continue;
+            /* Linear tile arithmetic must not wrap into the next map row. */
+            if (AIMap.DistanceManhattan(anchor, lead) != (sign > 0 ? length : 1)
+                || AIMap.DistanceManhattan(anchor, anchor + axis[1] * (length - 1)) != length - 1) continue;
+            local usable = true;
+            for (local i = -1; i < length && usable; i++) {
+              local tile = i < 0 ? lead : anchor + axis[1] * i;
+              if (!AITile.IsBuildable(tile)) { stats.last = "occupied"; usable = false; }
+              else if (AITile.GetSlope(tile) != AITile.SLOPE_FLAT) { stats.last = "slope"; usable = false; }
+            }
+            if (!usable) continue;
+            stats.nClear++;
+            local p = { anchor = anchor, station_exit = stationExit, lead = lead,
+                        direction = axis[0], step = axis[1], length = length };
+            local acceptance = OpexV233TownAcceptance(p, cargo, coverage);
+            if (acceptance > stats.bestAcceptance) stats.bestAcceptance = acceptance;
+            if (acceptance < 8) { stats.last = "acceptance"; continue; }
+            stats.nCargo++;
+            local unionOnly = false;
+            if (DECISION_LOG) unionOnly = OpexRailPlatformCargoValue(anchor, axis[1], length,
+              cargo, coverage, false) < 8;
+            local ok = false;
+            {
+              local accounting = AIAccounting(); // discard simulated costs
+              local probe = AITestMode();
+              ok = AIRail.BuildRailStation(anchor, axis[0], 1, length, AIStation.STATION_NEW);
+              if (!ok) stats.lastError = AIError.GetLastError();
+            }
+            if (!ok) { stats.last = "command"; continue; }
+            stats.nCmd++;
+            if (DECISION_LOG && unionOnly) OpexDecide("V233_SITE", "state=union_recovered center=" + center
+              + " anchor=" + anchor + " length=" + length + " direction=" + axis[0]
+              + " acceptance=" + acceptance);
+            p.cargoValue <- acceptance;
+            plans.append(p);
+            if (plans.len() >= MAX_STATION_PLANS) break;
+          }
+          if (plans.len() >= MAX_STATION_PLANS) break;
+        }
+      }
+    }
+  }
+  return plans;
+}
+
 /* A goods train need not inherit the input train's platform length. Try the
  * ordinary economic length down to the common physical minimum, with a strict
- * StationID join throughout. No free-station fallback or reuse of old track. */
+ * StationID join at A throughout. No reuse of old track. */
 function OpexV233PlatformPlans(catalog, candidate, statsA, statsB)
 {
+  statsB.tiles <- 0;
+  statsB.tried <- 0;
+  statsB.last <- "not_searched";
+  statsB.lastError <- -1; // no failed native command observed yet
+  statsB.bestAcceptance <- -1; // no geometrically usable footprint observed yet
   local support = candidate.joinPlatform;
   local wanted = candidate.platformLength;
   if (wanted > support.length) wanted = support.length;
@@ -298,8 +384,7 @@ function OpexV233PlatformPlans(catalog, candidate, statsA, statsB)
     }
     if (plansA.len() == 0) continue;
     sawA = true;
-    local plansB = OpexStationPlans(candidate.dst, candidate.src, STATION_SEARCH_RADIUS,
-      length, MAX_STATION_PLANS, candidate.cargo, catalog.railCoverage, false, statsB);
+    local plansB = OpexV233TownPlans(candidate.dst, length, candidate.cargo, catalog.railCoverage, statsB);
     if (plansB.len() == 0) continue;
     sawB = true;
     return { plansA = plansA, plansB = plansB, length = length, slopeRelaxed = 0,
@@ -411,7 +496,13 @@ function OpexAI::_v233GraftStep()
         if (DECISION_LOG) OpexDecide("V233_GRAFT", "state=site_rejected factory=" + candidate.v233FactoryId
           + " town=" + town.id + " reason=" + sites.reason
           + " clearA=" + sites.statsA.nClear + " commandA=" + sites.statsA.nCmd
-          + " clearB=" + sites.statsB.nClear + " commandB=" + sites.statsB.nCmd);
+          + " clearB=" + sites.statsB.nClear + " cargoB=" + sites.statsB.nCargo
+          + " commandB=" + sites.statsB.nCmd
+          + " tilesB=" + (("tiles" in sites.statsB) ? sites.statsB.tiles : 0)
+          + " triedB=" + (("tried" in sites.statsB) ? sites.statsB.tried : 0)
+          + " lastB=" + (("last" in sites.statsB) ? sites.statsB.last : "join_invalid")
+          + " errorB=" + (("lastError" in sites.statsB) ? sites.statsB.lastError : -1)
+          + " best_acceptanceB=" + (("bestAcceptance" in sites.statsB) ? sites.statsB.bestAcceptance : -1));
         return;
       }
     }

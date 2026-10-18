@@ -1741,6 +1741,8 @@ function OpexV131PlatformCargoOk(p, candidate, catalog, wantProduction)
   if (catalog != null && ("railCoverage" in catalog) && catalog.railCoverage > 0) {
     coverage = catalog.railCoverage;
   }
+  if (V233_GOODS_GRAFT && V233_GOODS_POLICY == 2 && OpexV233IsGraft(candidate) && !wantProduction)
+    return OpexV233TownAcceptance(p, candidate.cargo, coverage) >= 8;
   local value = OpexRailPlatformCargoValue(p.anchor, p.step, p.length,
       candidate.cargo, coverage, wantProduction);
   if (wantProduction) return value > 0;
