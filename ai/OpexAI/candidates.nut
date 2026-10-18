@@ -647,12 +647,7 @@ function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, orig
     stats.distanceShort++;
     return null;
   }
-  /* Plafond A* avant l'economie : les paires trop longues etaient evaluees puis rejetees. */
   local iterations = OpexRailIterations(distance);
-  if (V168_RAIL_MAX_DIST <= 0 && iterations > (HARD_ITERATION_CAP * 12) / 10) {
-    stats.distanceLong++;
-    return null;
-  }
   /* Source seulement, et seulement si origin_sitable = 1. Les 7 a 15 SITEA mesures etaient
    * tous du fret a nCargo=0 cote A. Filtrer aussi le puits enlevait des paires urbaines encore
    * constructibles. A 0, le classement est celui d'avant le filtre (SITEA reste possible).

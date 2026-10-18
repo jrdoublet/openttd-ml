@@ -43,7 +43,8 @@ class ReviewR6R10ContractsTest(unittest.TestCase):
         self.assertNotIn('name = "c121_air_defensive_floor"', info)
         self.assertNotIn("C121_AIR_DEFENSIVE_FLOOR", settings)
         self.assertIn('PORTFOLIO_FLOOR_PCT = 0;', settings)
-        self.assertIn('if (PORTFOLIO_FLOOR_PCT > 0)', projects)
+        # V258 : constante figee a 0, la branche if (PORTFOLIO_FLOOR_PCT > 0) est retiree
+        self.assertNotIn('if (PORTFOLIO_FLOOR_PCT > 0)', projects)
         self.assertNotIn("C121_AIR_DEFENSIVE_FLOOR", projects)
 
     def test_r8_removed_dead_helpers_are_not_defined_anymore(self):

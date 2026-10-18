@@ -291,7 +291,6 @@ function OpexAI::_markPairAbandoned(key)
  * Délai = ABANDON_COOLDOWN_DAYS * count (plafonné à 5 ans / 1825 jours). */
 function OpexAI::_pruneAbandonedPairs(now)
 {
-  if (ABANDON_COOLDOWN_DAYS <= 0) return;
   local toDelete = [];
   foreach (key, val in this._abandonedPairs) {
     if (typeof val != "table" || !("date" in val)) continue;
