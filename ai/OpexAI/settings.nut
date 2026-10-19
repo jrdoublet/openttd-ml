@@ -101,6 +101,7 @@ function OpexLoadSettings()
   V178_RAIL_SHARED_DEST = AIController.GetSetting("v178_rail_shared_dest") != 0;
   V179_RAIL_GEN_DEST_SERVED = AIController.GetSetting("v179_rail_gen_dest_served") != 0;
   V264_CONVERGENT_FREIGHT = AIController.GetSetting("v264_convergent_freight") != 0;
+  V268_C70_EARLY = AIController.GetSetting("v268_c70_early") != 0;
   local wagonBoost = AIController.GetSetting("v180_rail_wagon_boost_pct");
   local boostDelay = AIController.GetSetting("v180_rail_wagon_boost_delay");
   V180_RAIL_WAGON_BOOST_DELAY = (boostDelay != null && boostDelay > 0 && boostDelay <= 5) ? boostDelay : 0;
@@ -315,6 +316,8 @@ function OpexLoadSettings()
   C117_AIR_LAST_DATE = -1;
   C117_AIR_LINE_STATE = {};
   C117_AIR_VEHICLE_STATE = {};
+  V268_LAST_SAMPLE_DATE = -1;
+  V268_VEHICLE_STATE = {};
   {
     C69_BUILD_DATES = [];
     C69_PENDING_FOLLOWUPS = [];

@@ -691,6 +691,7 @@ require("task_v252.nut");
 require("task_v257.nut");
 require("task_v250.nut");
 require("task_v259.nut");
+require("task_v268_early.nut");
 require("selftests.nut");
 
 function OpexAI::Start()
@@ -815,6 +816,11 @@ function OpexAI::Start()
     local spC117 = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.c117") : null;
     OpexC117AirThroughputStep(this._lines, this._catalog);
     if (spC117 != null) OpexSpanEnd(spC117);
+    if (V268_C70_EARLY) {
+      local spV268 = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.v268") : null;
+      OpexV268Step(this._lines, this._catalog);
+      if (spV268 != null) OpexSpanEnd(spV268);
+    }
     if (C56_TASK_TRACE) this._v89TrackSearchDays(AIDate.GetCurrentDate());
     local spOrch = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.orch") : null;
     this._runOrchestratorTick();

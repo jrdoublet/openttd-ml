@@ -21,6 +21,11 @@ V179_RAIL_GEN_DEST_SERVED <- true;
 /* V264 : fret convergent vers une industrie deja desservie. Defaut vrai depuis le 19/10 (40x10 PC
  * +111,8 k/an sur 39 paires, accepte par derogation utilisateur). 0 = aucun calcul du mecanisme. */
 V264_CONVERGENT_FREIGHT <- true;
+/* V268 : estimation precoce du rendement realise des lignes a 3, 6, 12, 24 mois.
+ * Defaut faux partout. A faux, aucun appel API ni etat nouveau (test booleen en tete). */
+V268_C70_EARLY <- false;
+V268_VEHICLE_STATE <- {};
+V268_LAST_SAMPLE_DATE <- -1;
 V180_RAIL_WAGON_BOOST_PCT <- 0;
 V180_RAIL_WAGON_BOOST_DELAY <- 0;
 V180_START_YEAR <- -1;
