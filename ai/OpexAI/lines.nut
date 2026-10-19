@@ -320,6 +320,11 @@ function OpexAI::_tooClose(candidate)
   local joinLineId = ("joinLineId" in candidate) ? candidate.joinLineId : -1;
   local joinStationId = ("joinStationId" in candidate) ? candidate.joinStationId : -1;
   local isSharedDest = V178_RAIL_SHARED_DEST && ("shared_dest" in candidate) && candidate.shared_dest == 1;
+  /* V264 : l'extremite B est la gare deja posee a l'industrie. V194 gardait la paire
+   * sans jointure et _tooClose la rejetait too_close_no_join (MIN_SEPARATION, main.nut).
+   * On n'exempte B que si le candidat porte deja le quai a joindre. A reste controlee. */
+  local shareEndB = isSharedDest
+      || (V264_CONVERGENT_FREIGHT && ("convergent_dest" in candidate) && candidate.convergent_dest == 1);
   local entries = [["A", candidate.src], ["B", candidate.dst]];
 
   local originA = -1;
@@ -332,6 +337,7 @@ function OpexAI::_tooClose(candidate)
       foreach (entry in entries) {
         if (v233Join && entry[0] == "A" && OpexLineStationId(line, lineEnd) == joinStationId) continue;
         if (isSharedDest && entry[0] == "B") continue;
+        if (shareEndB && entry[0] == "B") continue;
         local d = AIMap.DistanceManhattan(entry[1], originTile);
         if (d >= ORIGIN_SEPARATION) continue;
         if (entry[0] == "A") originA = OpexRememberClosest(d, ORIGIN_SEPARATION, originA);
@@ -355,6 +361,7 @@ function OpexAI::_tooClose(candidate)
       foreach (entry in entries) {
         if (v233Join && entry[0] == "A" && stationId == joinStationId) continue;
         if (isSharedDest && entry[0] == "B") continue;
+        if (shareEndB && entry[0] == "B") continue;
         local d = AIMap.DistanceManhattan(entry[1], stationTile);
         blocking = OpexRememberClosest(d, MIN_SEPARATION, blocking);
       }

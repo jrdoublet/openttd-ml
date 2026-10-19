@@ -684,6 +684,15 @@ class OpexAIInfo extends AIInfo {
       flags = 0
     });
     AddSetting({
+      name = "v264_convergent_freight",
+      description = "V264: a fresh rail-freight source may deliver to an industry we already serve, by joining one platform on that station (parallel, or any anchor whose union fits station.station_spread). 0 = inert, 1 = on (default since 19/10: 40x10 PC +111.8 k/yr on 39 pairs, accepted by user waiver). Does not exempt the freight distance floor and does not change the score.",
+      min_value = 0, max_value = 1,
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
+      step_size = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+    AddSetting({
       name = "v259_bridge_renew",
       description = "V259: renew rail (and road) bridges when faster bridge types become available and vehicles are speed-limited; 0 = off (default), 1 = economic renewal triggered on new bridge types",
       min_value = 0, max_value = 1,

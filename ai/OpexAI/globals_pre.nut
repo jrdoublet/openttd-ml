@@ -18,6 +18,9 @@ V177_RAIL_PAX_MIN_DIST <- 0;
 V182_RAIL_FREIGHT_MIN_DIST <- 0;
 V178_RAIL_SHARED_DEST <- true;
 V179_RAIL_GEN_DEST_SERVED <- true;
+/* V264 : fret convergent vers une industrie deja desservie. Defaut vrai depuis le 19/10 (40x10 PC
+ * +111,8 k/an sur 39 paires, accepte par derogation utilisateur). 0 = aucun calcul du mecanisme. */
+V264_CONVERGENT_FREIGHT <- true;
 V180_RAIL_WAGON_BOOST_PCT <- 0;
 V180_RAIL_WAGON_BOOST_DELAY <- 0;
 V180_START_YEAR <- -1;
