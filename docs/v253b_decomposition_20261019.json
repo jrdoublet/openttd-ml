@@ -1,0 +1,2768 @@
+{
+  "schema": 1,
+  "campaign": "v273_expo_3x10_20261019",
+  "bundle_sha256": "c91dff13461726e03e3afeebb3320f92d2764be535cb242c45fe04df9d7c67ce",
+  "scope": "reference only; December 1 YTD vehicle operating profit; pooled ratios across seeds",
+  "identifiable_identity": "profit_per_plane = profit_per_airport / planes_per_airport",
+  "causal_factorization_identified": false,
+  "years": {
+    "1973": {
+      "arms": {
+        "OpexAI": {
+          "planes": 258,
+          "airports": 120,
+          "pairs": 154,
+          "profit_ytd_gbp": 5650556.2422,
+          "profit_per_plane": 21901.38078372093,
+          "profit_per_airport": 47087.968685,
+          "planes_per_airport": 2.15,
+          "planes_per_pair": 1.6753246753246753,
+          "pairs_per_airport": 1.2833333333333334,
+          "by_seed": [
+            {
+              "planes": 96,
+              "airports": 37,
+              "pairs": 51,
+              "lines": 51,
+              "profit_ytd_gbp": 1901776.242192,
+              "profit_per_plane": 19810.1691895,
+              "profit_per_airport": 51399.35789708108,
+              "planes_per_airport": 2.5945945945945947,
+              "planes_per_pair": 1.8823529411764706,
+              "routes_per_airport": 2.7567567567567566,
+              "distance_euclidean_plane_weighted": 183.38015817152817,
+              "distance_manhattan_plane_weighted": 245.64583333333334,
+              "capacity_by_cargo_per_plane": {
+                "0": 164.84375,
+                "2": 27.5
+              },
+              "rating_by_cargo": {
+                "0": 162.45945945945945,
+                "2": 161.62857142857143
+              },
+              "rating_count_by_cargo": {
+                "0": 37,
+                "2": 35
+              },
+              "pickup_periods_by_cargo": {
+                "0": 4.4324324324324325,
+                "2": 16.675675675675677
+              },
+              "max_waiting_rating_stat_by_cargo": {
+                "0": 6.108108108108108,
+                "2": 3.027027027027027
+              },
+              "cargo_services": {
+                "0,2": {
+                  "planes": 96,
+                  "profit_ytd_gbp": 1901776.242192
+                }
+              },
+              "sources": [
+                "$.line_telemetry.snapshots[6].lines[mode=air]"
+              ],
+              "seed": 42
+            },
+            {
+              "planes": 84,
+              "airports": 40,
+              "pairs": 51,
+              "lines": 51,
+              "profit_ytd_gbp": 2199810.867197,
+              "profit_per_plane": 26188.224609488094,
+              "profit_per_airport": 54995.271679925,
+              "planes_per_airport": 2.1,
+              "planes_per_pair": 1.6470588235294117,
+              "routes_per_airport": 2.55,
+              "distance_euclidean_plane_weighted": 177.8719680803483,
+              "distance_manhattan_plane_weighted": 240.6547619047619,
+              "capacity_by_cargo_per_plane": {
+                "0": 190.95238095238096,
+                "2": 32.916666666666664
+              },
+              "rating_by_cargo": {
+                "0": 141.125,
+                "2": 139.87179487179486
+              },
+              "rating_count_by_cargo": {
+                "0": 40,
+                "2": 39
+              },
+              "pickup_periods_by_cargo": {
+                "0": 5.85,
+                "2": 6.2
+              },
+              "max_waiting_rating_stat_by_cargo": {
+                "0": 8.85,
+                "2": 5.35
+              },
+              "cargo_services": {
+                "0,2": {
+                  "planes": 84,
+                  "profit_ytd_gbp": 2199810.867197
+                }
+              },
+              "sources": [
+                "$.line_telemetry.snapshots[46].lines[mode=air]"
+              ],
+              "seed": 7
+            },
+            {
+              "planes": 78,
+              "airports": 43,
+              "pairs": 52,
+              "lines": 52,
+              "profit_ytd_gbp": 1548969.132811,
+              "profit_per_plane": 19858.57862578205,
+              "profit_per_airport": 36022.53797234884,
+              "planes_per_airport": 1.813953488372093,
+              "planes_per_pair": 1.5,
+              "routes_per_airport": 2.4186046511627906,
+              "distance_euclidean_plane_weighted": 163.60380682647485,
+              "distance_manhattan_plane_weighted": 220.35897435897436,
+              "capacity_by_cargo_per_plane": {
+                "0": 183.84615384615384,
+                "2": 28.26923076923077
+              },
+              "rating_by_cargo": {
+                "0": 130.53488372093022,
+                "2": 129.71428571428572
+              },
+              "rating_count_by_cargo": {
+                "0": 43,
+                "2": 42
+              },
+              "pickup_periods_by_cargo": {
+                "0": 7.232558139534884,
+                "2": 12.953488372093023
+              },
+              "max_waiting_rating_stat_by_cargo": {
+                "0": 7.255813953488372,
+                "2": 3.0697674418604652
+              },
+              "cargo_services": {
+                "0,2": {
+                  "planes": 78,
+                  "profit_ytd_gbp": 1548969.132811
+                }
+              },
+              "sources": [
+                "$.line_telemetry.snapshots[86].lines[mode=air]"
+              ],
+              "seed": 1234
+            }
+          ],
+          "distance_euclidean_plane_weighted": 175.60789703752326,
+          "distance_manhattan_plane_weighted": 236.37596899224806,
+          "rating_by_cargo": {
+            "2": 142.75862068965517,
+            "0": 143.90833333333333
+          },
+          "cargo_services": {
+            "0,2": {
+              "planes": 258,
+              "profit_ytd_gbp": 5650556.2422,
+              "profit_per_plane": 21901.38078372093
+            }
+          },
+          "engines": {
+            "223": 93,
+            "218": 23,
+            "228": 22,
+            "217": 49,
+            "227": 14,
+            "221": 4,
+            "225": 1,
+            "220": 52
+          },
+          "capacity_by_cargo_per_plane": {
+            "0": 179.0891472868217,
+            "2": 29.496124031007753
+          },
+          "engine_sources": [
+            "JSONL:169:air_engine_counts,air_capacities_by_cargo",
+            "JSONL:335:air_engine_counts,air_capacities_by_cargo",
+            "JSONL:1055:air_engine_counts,air_capacities_by_cargo"
+          ],
+          "nominal_kmh": 1069.0426356589148,
+          "running_cost_factor": 197.39147286821705,
+          "nominal_pax": 179.0891472868217
+        },
+        "AAAHogEx": {
+          "planes": 110,
+          "airports": 96,
+          "pairs": 48,
+          "profit_ytd_gbp": 6353343.097657001,
+          "profit_per_plane": 57757.66452415455,
+          "profit_per_airport": 66180.65726726042,
+          "planes_per_airport": 1.1458333333333333,
+          "planes_per_pair": 2.2916666666666665,
+          "pairs_per_airport": 0.5,
+          "by_seed": [
+            {
+              "planes": 32,
+              "airports": 28,
+              "pairs": 14,
+              "lines": 14,
+              "profit_ytd_gbp": 1986976.878906,
+              "profit_per_plane": 62093.0274658125,
+              "profit_per_airport": 70963.45996092857,
+              "planes_per_airport": 1.1428571428571428,
+              "planes_per_pair": 2.2857142857142856,
+              "routes_per_airport": 1.0,
+              "distance_euclidean_plane_weighted": 165.83677710600202,
+              "distance_manhattan_plane_weighted": 231.09375,
+              "capacity_by_cargo_per_plane": {
+                "2": 101.5625,
+                "0": 130.625
+              },
+              "rating_by_cargo": {
+                "2": 115.28571428571429,
+                "0": 142.55
+              },
+              "rating_count_by_cargo": {
+                "2": 28,
+                "0": 20
+              },
+              "pickup_periods_by_cargo": {
+                "2": 10.75,
+                "0": 5.6
+              },
+              "max_waiting_rating_stat_by_cargo": {
+                "2": 21.107142857142858,
+                "0": 65.65
+              },
+              "cargo_services": {
+                "2": {
+                  "planes": 9,
+                  "profit_ytd_gbp": 470379.546875
+                },
+                "0,2": {
+                  "planes": 23,
+                  "profit_ytd_gbp": 1516597.332031
+                }
+              },
+              "sources": [
+                "$.line_telemetry.snapshots[7].lines[mode=air]"
+              ],
+              "seed": 42
+            },
+            {
+              "planes": 42,
+              "airports": 34,
+              "pairs": 17,
+              "lines": 17,
+              "profit_ytd_gbp": 2616039.585938,
+              "profit_per_plane": 62286.65680804762,
+              "profit_per_airport": 76942.34076288236,
+              "planes_per_airport": 1.2352941176470589,
+              "planes_per_pair": 2.4705882352941178,
+              "routes_per_airport": 1.0,
+              "distance_euclidean_plane_weighted": 177.2619633701384,
+              "distance_manhattan_plane_weighted": 246.47619047619048,
+              "capacity_by_cargo_per_plane": {
+                "0": 129.04761904761904,
+                "2": 64.52380952380952,
+                "5": 12.5
+              },
+              "rating_by_cargo": {
+                "0": 142.9090909090909,
+                "2": 132.3125
+              },
+              "rating_count_by_cargo": {
+                "0": 22,
+                "2": 32
+              },
+              "pickup_periods_by_cargo": {
+                "0": 5.454545454545454,
+                "2": 7.34375,
+                "5": 129.0
+              },
+              "max_waiting_rating_stat_by_cargo": {
+                "0": 87.77272727272727,
+                "2": 55.59375,
+                "5": 2.5
+              },
+              "cargo_services": {
+                "0,2": {
+                  "planes": 29,
+                  "profit_ytd_gbp": 1849114.9257820002
+                },
+                "5": {
+                  "planes": 3,
+                  "profit_ytd_gbp": 87408.410156
+                },
+                "2": {
+                  "planes": 10,
+                  "profit_ytd_gbp": 679516.25
+                }
+              },
+              "sources": [
+                "$.line_telemetry.snapshots[47].lines[mode=air]"
+              ],
+              "seed": 7
+            },
+            {
+              "planes": 36,
+              "airports": 34,
+              "pairs": 17,
+              "lines": 17,
+              "profit_ytd_gbp": 1750326.6328130001,
+              "profit_per_plane": 48620.18424480556,
+              "profit_per_airport": 51480.1950827353,
+              "planes_per_airport": 1.0588235294117647,
+              "planes_per_pair": 2.1176470588235294,
+              "routes_per_airport": 1.0,
+              "distance_euclidean_plane_weighted": 169.81570046245713,
+              "distance_manhattan_plane_weighted": 232.0,
+              "capacity_by_cargo_per_plane": {
+                "2": 64.58333333333333,
+                "0": 150.55555555555554
+              },
+              "rating_by_cargo": {
+                "2": 113.1470588235294,
+                "0": 139.92307692307693
+              },
+              "rating_count_by_cargo": {
+                "2": 34,
+                "0": 26
+              },
+              "pickup_periods_by_cargo": {
+                "2": 12.970588235294118,
+                "0": 6.461538461538462
+              },
+              "max_waiting_rating_stat_by_cargo": {
+                "2": 8.0,
+                "0": 20.384615384615383
+              },
+              "cargo_services": {
+                "2": {
+                  "planes": 9,
+                  "profit_ytd_gbp": 282619.625
+                },
+                "0,2": {
+                  "planes": 27,
+                  "profit_ytd_gbp": 1467707.0078130001
+                }
+              },
+              "sources": [
+                "$.line_telemetry.snapshots[87].lines[mode=air]"
+              ],
+              "seed": 1234
+            }
+          ],
+          "distance_euclidean_plane_weighted": 171.50131405078488,
+          "distance_manhattan_plane_weighted": 237.26363636363635,
+          "rating_by_cargo": {
+            "2": 120.30851063829788,
+            "0": 141.66176470588235
+          },
+          "cargo_services": {
+            "0,2": {
+              "planes": 79,
+              "profit_ytd_gbp": 4833419.265626,
+              "profit_per_plane": 61182.522349696206
+            },
+            "2": {
+              "planes": 28,
+              "profit_ytd_gbp": 1432515.421875,
+              "profit_per_plane": 51161.26506696428
+            },
+            "5": {
+              "planes": 3,
+              "profit_ytd_gbp": 87408.410156,
+              "profit_per_plane": 29136.136718666665
+            }
+          },
+          "engines": {
+            "220": 38,
+            "226": 17,
+            "225": 4,
+            "228": 7,
+            "218": 4,
+            "223": 28,
+            "227": 12
+          },
+          "capacity_by_cargo_per_plane": {
+            "0": 136.54545454545453,
+            "2": 75.31818181818181,
+            "5": 4.7727272727272725
+          },
+          "engine_sources": [
+            "JSONL:170:air_engine_counts,air_capacities_by_cargo",
+            "JSONL:336:air_engine_counts,air_capacities_by_cargo",
+            "JSONL:1056:air_engine_counts,air_capacities_by_cargo"
+          ],
+          "nominal_kmh": 996.7818181818182,
+          "running_cost_factor": 215.88181818181818,
+          "nominal_pax": 189.54545454545453
+        }
+      },
+      "accounting_factors": {
+        "profit_per_plane_ratio": 0.3791943625864869,
+        "airport_yield_factor": 0.7115065130713717,
+        "inverse_density_factor": 0.5329457364341085,
+        "inverse_pairs_per_airport_factor": 0.3896103896103896,
+        "inverse_planes_per_pair_factor": 1.367894056847545,
+        "product": 0.3791943625864868,
+        "three_factor_product": 0.37919436258648676
+      },
+      "descriptive_ratios_not_causal_factors": {
+        "distance_euclidean_plane_weighted": 1.0239449068333222,
+        "distance_manhattan_plane_weighted": 0.99625872980372,
+        "nominal_kmh": 1.0724941167254678,
+        "nominal_pax": 0.9448348298105702,
+        "running_cost_factor": 0.9143496869290385,
+        "planes_per_pair": 0.7310507674144038
+      },
+      "opex_hub_residual_last_per_station": {
+        "mean_days": 2.5122044308620692,
+        "stations": 116,
+        "qualification": "Opex-only inferred residual, not dock time; correlated with density",
+        "sources": [
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:28801",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:28598",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:28921",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:28858",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:28714",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:29187",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:28802",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:28803",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:28597",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:28920",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:28743",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:29184",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:29186",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:28334",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:29133",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:28160",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:29125",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:29134",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:29171",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:29136",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:29135",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:27996",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:29185",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:28344",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:28505",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:28433",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:28599",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:28504",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:28744",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:28314",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:28516",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:28333",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:28654",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:28904",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:28789",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:27765",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:28081",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:27706",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:27717",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:26944",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:27727",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:27673",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:27005",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:27636",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:27674",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:27162",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:27269",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:27998",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:27997",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:27345",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:27193",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:28099",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:27344",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:27467",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:27129",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:28013",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:27677",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:27346",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:27393",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:27354",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:27573",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:27163",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:27244",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:27394",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:27759",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:27456",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:27635",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:27305",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:27560",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:27406",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:27785",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:27407",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:26920",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:26981",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:28061",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:26863",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:26351",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:27008",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:26645",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:26019",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:26215",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:27196",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:25999",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:26001",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:27079",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:27138",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:25911",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:25910",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:27057",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:27195",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:25858",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:26423",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:26774",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:23632",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:26353",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:26577",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:26017",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:26424",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:26352",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:26363",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:26422",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:26452",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:26388",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:26372",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:26990",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:26921",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:26018",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:27058",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:26216",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:26000",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:26002",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:26579",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:26425",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:24597",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:27029",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:26255"
+        ]
+      },
+      "log_summary": {
+        "counts": {
+          "C121_HUB_DELAY": 360,
+          "AIR_FLEET": 1105,
+          "LINE_REVENUE": 165,
+          "C121_FLEET_MARGINAL": 7
+        },
+        "examples_and_nonpositive_marginals": [
+          {
+            "seed": 42,
+            "year": 1973,
+            "kind": "C121_HUB_DELAY",
+            "fields": {
+              "station": "11",
+              "days": "2.388176",
+              "raw_days": "2.388176",
+              "window_n": "6",
+              "observations": "29",
+              "variance": "64.272835",
+              "last_update": "720614",
+              "update_ops_total": "104156",
+              "update_samples": "865",
+              "update_ops_mean": "120.41156"
+            },
+            "source": "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:25075"
+          },
+          {
+            "seed": 42,
+            "year": 1973,
+            "kind": "AIR_FLEET",
+            "fields": {
+              "action": "refuse",
+              "line": "0",
+              "reason": "already_grown_this_year",
+              "planes": "3",
+              "yield": "72584"
+            },
+            "source": "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:25092"
+          },
+          {
+            "seed": 42,
+            "year": 1973,
+            "kind": "LINE_REVENUE",
+            "fields": {
+              "line": "0",
+              "mode": "air",
+              "kind": "unknown",
+              "cargo": "PASS",
+              "year": "1973",
+              "age": "3",
+              "pred_rev": "408036",
+              "real_rev": "165683",
+              "pred_prof": "393340",
+              "real_prof": "144338",
+              "pred_run": "10800",
+              "real_run": "21345",
+              "vehs": "3",
+              "low_ratio": "0",
+              "op_ratio": "-1",
+              "purpose": "profit"
+            },
+            "source": "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:25343"
+          },
+          {
+            "seed": 42,
+            "year": 1973,
+            "kind": "C121_FLEET_MARGINAL",
+            "fields": {
+              "line": "8",
+              "year": "1973",
+              "added": "1",
+              "obs_profit": "29796",
+              "obs_revenue": "35962",
+              "avg_profit": "29796",
+              "avg_revenue": "35962",
+              "samples": "1"
+            },
+            "source": "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:25364"
+          }
+        ]
+      }
+    },
+    "1976": {
+      "arms": {
+        "OpexAI": {
+          "planes": 401,
+          "airports": 120,
+          "pairs": 163,
+          "profit_ytd_gbp": 7097343.999991,
+          "profit_per_plane": 17699.112219428927,
+          "profit_per_airport": 59144.53333325833,
+          "planes_per_airport": 3.341666666666667,
+          "planes_per_pair": 2.460122699386503,
+          "pairs_per_airport": 1.3583333333333334,
+          "by_seed": [
+            {
+              "planes": 133,
+              "airports": 37,
+              "pairs": 51,
+              "lines": 51,
+              "profit_ytd_gbp": 2565471.746091,
+              "profit_per_plane": 19289.26124880451,
+              "profit_per_airport": 69337.07421867567,
+              "planes_per_airport": 3.5945945945945947,
+              "planes_per_pair": 2.607843137254902,
+              "routes_per_airport": 2.7567567567567566,
+              "distance_euclidean_plane_weighted": 184.20630770509626,
+              "distance_manhattan_plane_weighted": 248.1954887218045,
+              "capacity_by_cargo_per_plane": {
+                "0": 119.54887218045113,
+                "2": 17.406015037593985
+              },
+              "rating_by_cargo": {
+                "0": 159.9189189189189,
+                "2": 157.3783783783784
+              },
+              "rating_count_by_cargo": {
+                "0": 37,
+                "2": 37
+              },
+              "pickup_periods_by_cargo": {
+                "0": 3.108108108108108,
+                "2": 3.135135135135135
+              },
+              "max_waiting_rating_stat_by_cargo": {
+                "0": 5.378378378378378,
+                "2": 5.675675675675675
+              },
+              "cargo_services": {
+                "0,2": {
+                  "planes": 133,
+                  "profit_ytd_gbp": 2565471.7460910007
+                }
+              },
+              "sources": [
+                "$.line_telemetry.snapshots[12].lines[mode=air]"
+              ],
+              "seed": 42
+            },
+            {
+              "planes": 139,
+              "airports": 40,
+              "pairs": 54,
+              "lines": 54,
+              "profit_ytd_gbp": 2784135.804683,
+              "profit_per_plane": 20029.75399052518,
+              "profit_per_airport": 69603.395117075,
+              "planes_per_airport": 3.475,
+              "planes_per_pair": 2.574074074074074,
+              "routes_per_airport": 2.7,
+              "distance_euclidean_plane_weighted": 176.48693733155412,
+              "distance_manhattan_plane_weighted": 238.49640287769785,
+              "capacity_by_cargo_per_plane": {
+                "0": 134.1726618705036,
+                "2": 20.359712230215827
+              },
+              "rating_by_cargo": {
+                "0": 160.25,
+                "2": 158.925
+              },
+              "rating_count_by_cargo": {
+                "0": 40,
+                "2": 40
+              },
+              "pickup_periods_by_cargo": {
+                "0": 4.3,
+                "2": 4.325
+              },
+              "max_waiting_rating_stat_by_cargo": {
+                "0": 8.125,
+                "2": 4.225
+              },
+              "cargo_services": {
+                "0,2": {
+                  "planes": 139,
+                  "profit_ytd_gbp": 2784135.8046829994
+                }
+              },
+              "sources": [
+                "$.line_telemetry.snapshots[52].lines[mode=air]"
+              ],
+              "seed": 7
+            },
+            {
+              "planes": 129,
+              "airports": 43,
+              "pairs": 58,
+              "lines": 58,
+              "profit_ytd_gbp": 1747736.449217,
+              "profit_per_plane": 13548.344567573644,
+              "profit_per_airport": 40645.03370272093,
+              "planes_per_airport": 3.0,
+              "planes_per_pair": 2.2241379310344827,
+              "routes_per_airport": 2.697674418604651,
+              "distance_euclidean_plane_weighted": 161.23798059568304,
+              "distance_manhattan_plane_weighted": 216.7906976744186,
+              "capacity_by_cargo_per_plane": {
+                "0": 138.06201550387595,
+                "2": 20.232558139534884
+              },
+              "rating_by_cargo": {
+                "0": 154.74418604651163,
+                "2": 153.42857142857142
+              },
+              "rating_count_by_cargo": {
+                "0": 43,
+                "2": 42
+              },
+              "pickup_periods_by_cargo": {
+                "0": 3.5348837209302326,
+                "2": 9.44186046511628
+              },
+              "max_waiting_rating_stat_by_cargo": {
+                "0": 4.069767441860465,
+                "2": 5.1395348837209305
+              },
+              "cargo_services": {
+                "0,2": {
+                  "planes": 129,
+                  "profit_ytd_gbp": 1747736.4492170003
+                }
+              },
+              "sources": [
+                "$.line_telemetry.snapshots[92].lines[mode=air]"
+              ],
+              "seed": 1234
+            }
+          ],
+          "distance_euclidean_plane_weighted": 174.1417025204662,
+          "distance_manhattan_plane_weighted": 234.73067331670822,
+          "rating_by_cargo": {
+            "2": 156.50420168067228,
+            "0": 158.175
+          },
+          "cargo_services": {
+            "0,2": {
+              "planes": 401,
+              "profit_ytd_gbp": 7097343.999991001,
+              "profit_per_plane": 17699.11221942893
+            }
+          },
+          "engines": {
+            "218": 49,
+            "228": 25,
+            "223": 49,
+            "217": 206,
+            "227": 26,
+            "221": 7,
+            "225": 8,
+            "220": 29,
+            "233": 2
+          },
+          "capacity_by_cargo_per_plane": {
+            "0": 130.57356608478804,
+            "2": 19.33915211970075
+          },
+          "engine_sources": [
+            "JSONL:425:air_engine_counts,air_capacities_by_cargo",
+            "JSONL:539:air_engine_counts,air_capacities_by_cargo",
+            "JSONL:1257:air_engine_counts,air_capacities_by_cargo"
+          ],
+          "nominal_kmh": 1114.284289276808,
+          "running_cost_factor": 170.4563591022444,
+          "nominal_pax": 130.57356608478804
+        },
+        "AAAHogEx": {
+          "planes": 126,
+          "airports": 106,
+          "pairs": 53,
+          "profit_ytd_gbp": 8607143.980468,
+          "profit_per_plane": 68310.6665116508,
+          "profit_per_airport": 81199.47151384906,
+          "planes_per_airport": 1.1886792452830188,
+          "planes_per_pair": 2.3773584905660377,
+          "pairs_per_airport": 0.5,
+          "by_seed": [
+            {
+              "planes": 32,
+              "airports": 28,
+              "pairs": 14,
+              "lines": 14,
+              "profit_ytd_gbp": 3139915.730468,
+              "profit_per_plane": 98122.366577125,
+              "profit_per_airport": 112139.84751671428,
+              "planes_per_airport": 1.1428571428571428,
+              "planes_per_pair": 2.2857142857142856,
+              "routes_per_airport": 1.0,
+              "distance_euclidean_plane_weighted": 167.22109205074486,
+              "distance_manhattan_plane_weighted": 232.5625,
+              "capacity_by_cargo_per_plane": {
+                "2": 109.6875,
+                "0": 157.8125
+              },
+              "rating_by_cargo": {
+                "2": 131.46428571428572,
+                "0": 150.65
+              },
+              "rating_count_by_cargo": {
+                "2": 28,
+                "0": 20
+              },
+              "pickup_periods_by_cargo": {
+                "2": 8.75,
+                "0": 6.15
+              },
+              "max_waiting_rating_stat_by_cargo": {
+                "2": 34.92857142857143,
+                "0": 105.3
+              },
+              "cargo_services": {
+                "2": {
+                  "planes": 8,
+                  "profit_ytd_gbp": 758244.398438
+                },
+                "0,2": {
+                  "planes": 24,
+                  "profit_ytd_gbp": 2381671.33203
+                }
+              },
+              "sources": [
+                "$.line_telemetry.snapshots[13].lines[mode=air]"
+              ],
+              "seed": 42
+            },
+            {
+              "planes": 46,
+              "airports": 40,
+              "pairs": 20,
+              "lines": 20,
+              "profit_ytd_gbp": 3172132.769533,
+              "profit_per_plane": 68959.40803332608,
+              "profit_per_airport": 79303.319238325,
+              "planes_per_airport": 1.15,
+              "planes_per_pair": 2.3,
+              "routes_per_airport": 1.0,
+              "distance_euclidean_plane_weighted": 178.25072593237002,
+              "distance_manhattan_plane_weighted": 248.1086956521739,
+              "capacity_by_cargo_per_plane": {
+                "0": 119.56521739130434,
+                "2": 68.58695652173913,
+                "5": 15.217391304347826
+              },
+              "rating_by_cargo": {
+                "0": 174.42857142857142,
+                "2": 163.97297297297297
+              },
+              "rating_count_by_cargo": {
+                "0": 28,
+                "2": 37
+              },
+              "pickup_periods_by_cargo": {
+                "0": 4.0,
+                "2": 8.263157894736842,
+                "5": 127.5
+              },
+              "max_waiting_rating_stat_by_cargo": {
+                "0": 220.57142857142858,
+                "2": 68.86842105263158,
+                "5": 0.0
+              },
+              "cargo_services": {
+                "0,2": {
+                  "planes": 33,
+                  "profit_ytd_gbp": 2135698.175783
+                },
+                "5": {
+                  "planes": 4,
+                  "profit_ytd_gbp": 343406.46875
+                },
+                "2": {
+                  "planes": 9,
+                  "profit_ytd_gbp": 693028.125
+                }
+              },
+              "sources": [
+                "$.line_telemetry.snapshots[53].lines[mode=air]"
+              ],
+              "seed": 7
+            },
+            {
+              "planes": 48,
+              "airports": 38,
+              "pairs": 19,
+              "lines": 19,
+              "profit_ytd_gbp": 2295095.480467,
+              "profit_per_plane": 47814.48917639584,
+              "profit_per_airport": 60397.24948597368,
+              "planes_per_airport": 1.263157894736842,
+              "planes_per_pair": 2.526315789473684,
+              "routes_per_airport": 1.0,
+              "distance_euclidean_plane_weighted": 170.69854862709118,
+              "distance_manhattan_plane_weighted": 235.91666666666666,
+              "capacity_by_cargo_per_plane": {
+                "2": 63.229166666666664,
+                "0": 130.625
+              },
+              "rating_by_cargo": {
+                "2": 141.81578947368422,
+                "0": 159.16666666666666
+              },
+              "rating_count_by_cargo": {
+                "2": 38,
+                "0": 30
+              },
+              "pickup_periods_by_cargo": {
+                "2": 7.157894736842105,
+                "0": 5.1
+              },
+              "max_waiting_rating_stat_by_cargo": {
+                "2": 35.78947368421053,
+                "0": 89.13333333333334
+              },
+              "cargo_services": {
+                "2": {
+                  "planes": 10,
+                  "profit_ytd_gbp": 484373.296874
+                },
+                "0,2": {
+                  "planes": 38,
+                  "profit_ytd_gbp": 1810722.183593
+                }
+              },
+              "sources": [
+                "$.line_telemetry.snapshots[93].lines[mode=air]"
+              ],
+              "seed": 1234
+            }
+          ],
+          "distance_euclidean_plane_weighted": 172.57252914772408,
+          "distance_manhattan_plane_weighted": 239.515873015873,
+          "rating_by_cargo": {
+            "2": 146.96116504854368,
+            "0": 162.46153846153845
+          },
+          "cargo_services": {
+            "0,2": {
+              "planes": 95,
+              "profit_ytd_gbp": 6328091.691406,
+              "profit_per_plane": 66611.49148848421
+            },
+            "2": {
+              "planes": 27,
+              "profit_ytd_gbp": 1935645.8203119999,
+              "profit_per_plane": 71690.58593748148
+            },
+            "5": {
+              "planes": 4,
+              "profit_ytd_gbp": 343406.46875,
+              "profit_per_plane": 85851.6171875
+            }
+          },
+          "engines": {
+            "218": 36,
+            "228": 31,
+            "232": 8,
+            "221": 4,
+            "226": 13,
+            "223": 19,
+            "227": 9,
+            "233": 4,
+            "217": 2
+          },
+          "capacity_by_cargo_per_plane": {
+            "0": 133.4920634920635,
+            "2": 76.98412698412699,
+            "5": 5.555555555555555
+          },
+          "engine_sources": [
+            "JSONL:426:air_engine_counts,air_capacities_by_cargo",
+            "JSONL:540:air_engine_counts,air_capacities_by_cargo",
+            "JSONL:1258:air_engine_counts,air_capacities_by_cargo"
+          ],
+          "nominal_kmh": 1338.142857142857,
+          "running_cost_factor": 227.03174603174602,
+          "nominal_pax": 189.04761904761904
+        }
+      },
+      "accounting_factors": {
+        "profit_per_plane_ratio": 0.2590973434055169,
+        "airport_yield_factor": 0.7283856930419907,
+        "inverse_density_factor": 0.3557144873664894,
+        "inverse_pairs_per_airport_factor": 0.36809815950920244,
+        "inverse_planes_per_pair_factor": 0.9663576906789629,
+        "product": 0.2590973434055169,
+        "three_factor_product": 0.2590973434055169
+      },
+      "descriptive_ratios_not_causal_factors": {
+        "distance_euclidean_plane_weighted": 1.0090928340709366,
+        "distance_manhattan_plane_weighted": 0.9800213671064395,
+        "nominal_kmh": 0.832709514779295,
+        "nominal_pax": 0.6906914075013978,
+        "running_cost_factor": 0.7508040707153323,
+        "planes_per_pair": 1.0348135164086085
+      },
+      "opex_hub_residual_last_per_station": {
+        "mean_days": 10.075787346333334,
+        "stations": 120,
+        "qualification": "Opex-only inferred residual, not dock time; correlated with density",
+        "sources": [
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:39771",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:40938",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:39916",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:40931",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:39971",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:40065",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:39970",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:40936",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:40418",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:40084",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:40932",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:40934",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:40940",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:39935",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:40930",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:39907",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:40471",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:40066",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:40340",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:40933",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:40939",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:40419",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:40937",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:40156",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:40295",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:40547",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:40548",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:40587",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:40889",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:40617",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:40618",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:40472",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:39684",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:40955",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:39653",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:40088",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:40956",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:40310",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:40646",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:40743",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:40093",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:40973",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:39348",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:40728",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:40889",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:39958",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:40946",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:40726",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:40972",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:40119",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:39502",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:40761",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:40645",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:40566",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:40859",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:40860",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:40644",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:40727",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:40760",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:40742",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:40312",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:40858",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:40564",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:39668",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:39665",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:40945",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:40643",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:40647",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:39757",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:40861",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:40762",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:39794",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:40998",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:39349",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:39325",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:39350",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:39795",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:41281",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:41318",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:41319",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:42029",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:41893",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:42158",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:42219",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:41642",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:41423",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:41789",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:41487",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:42150",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:41228",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:41571",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:42151",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:42267",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:41007",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:42220",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:42157",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:42159",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:42264",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:42152",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:40578",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:42265",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:42299",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:42529",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:42614",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:41006",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:41378",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:41226",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:41283",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:41230",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:41229",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:41231",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:41572",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:41227",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:41422",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:41488",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:41284",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:41379",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:42298",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:40846",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:40579"
+        ]
+      },
+      "log_summary": {
+        "counts": {
+          "AIR_FLEET": 880,
+          "C121_HUB_DELAY": 392,
+          "C121_FLEET_MARGINAL": 62,
+          "LINE_REVENUE": 216
+        },
+        "examples_and_nonpositive_marginals": [
+          {
+            "seed": 42,
+            "year": 1976,
+            "kind": "AIR_FLEET",
+            "fields": {
+              "action": "refuse",
+              "line": "33",
+              "reason": "already_grown_this_year",
+              "planes": "3",
+              "yield": "12162"
+            },
+            "source": "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:37719"
+          },
+          {
+            "seed": 42,
+            "year": 1976,
+            "kind": "C121_HUB_DELAY",
+            "fields": {
+              "station": "27",
+              "days": "0",
+              "raw_days": "-0.5690854",
+              "window_n": "6",
+              "observations": "93",
+              "variance": "30.626665",
+              "last_update": "721717",
+              "update_ops_total": "337245",
+              "update_samples": "3509",
+              "update_ops_mean": "96.10858"
+            },
+            "source": "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:37741"
+          },
+          {
+            "seed": 42,
+            "year": 1976,
+            "kind": "C121_FLEET_MARGINAL",
+            "fields": {
+              "line": "0",
+              "year": "1976",
+              "added": "1",
+              "obs_profit": "-56008",
+              "obs_revenue": "-46945",
+              "avg_profit": "-15080",
+              "avg_revenue": "-4302",
+              "samples": "2"
+            },
+            "source": "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:37849"
+          },
+          {
+            "seed": 42,
+            "year": 1976,
+            "kind": "C121_FLEET_MARGINAL",
+            "fields": {
+              "line": "0",
+              "year": "1976",
+              "added": "1",
+              "obs_profit": "-56008",
+              "obs_revenue": "-46945",
+              "avg_profit": "-15080",
+              "avg_revenue": "-4302",
+              "samples": "2"
+            },
+            "source": "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:37849"
+          },
+          {
+            "seed": 42,
+            "year": 1976,
+            "kind": "C121_FLEET_MARGINAL",
+            "fields": {
+              "line": "3",
+              "year": "1976",
+              "added": "1",
+              "obs_profit": "-8255",
+              "obs_revenue": "724",
+              "avg_profit": "42830",
+              "avg_revenue": "52625",
+              "samples": "2"
+            },
+            "source": "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:37869"
+          },
+          {
+            "seed": 42,
+            "year": 1976,
+            "kind": "C121_FLEET_MARGINAL",
+            "fields": {
+              "line": "41",
+              "year": "1976",
+              "added": "1",
+              "obs_profit": "-5318",
+              "obs_revenue": "-1458",
+              "avg_profit": "-5318",
+              "avg_revenue": "-1458",
+              "samples": "1"
+            },
+            "source": "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:37920"
+          },
+          {
+            "seed": 42,
+            "year": 1976,
+            "kind": "C121_FLEET_MARGINAL",
+            "fields": {
+              "line": "50",
+              "year": "1976",
+              "added": "1",
+              "obs_profit": "-2474",
+              "obs_revenue": "3130",
+              "avg_profit": "-2474",
+              "avg_revenue": "3130",
+              "samples": "1"
+            },
+            "source": "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:37940"
+          },
+          {
+            "seed": 42,
+            "year": 1976,
+            "kind": "C121_FLEET_MARGINAL",
+            "fields": {
+              "line": "52",
+              "year": "1976",
+              "added": "1",
+              "obs_profit": "-6732",
+              "obs_revenue": "-1128",
+              "avg_profit": "-6732",
+              "avg_revenue": "-1128",
+              "samples": "1"
+            },
+            "source": "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:37951"
+          },
+          {
+            "seed": 7,
+            "year": 1976,
+            "kind": "C121_FLEET_MARGINAL",
+            "fields": {
+              "line": "0",
+              "year": "1976",
+              "added": "1",
+              "obs_profit": "-71734",
+              "obs_revenue": "-62671",
+              "avg_profit": "-30974",
+              "avg_revenue": "-20196",
+              "samples": "2"
+            },
+            "source": "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:37360"
+          },
+          {
+            "seed": 7,
+            "year": 1976,
+            "kind": "C121_FLEET_MARGINAL",
+            "fields": {
+              "line": "1",
+              "year": "1976",
+              "added": "1",
+              "obs_profit": "-57817",
+              "obs_revenue": "-48754",
+              "avg_profit": "-20900",
+              "avg_revenue": "-10122",
+              "samples": "2"
+            },
+            "source": "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:37362"
+          },
+          {
+            "seed": 7,
+            "year": 1976,
+            "kind": "C121_FLEET_MARGINAL",
+            "fields": {
+              "line": "6",
+              "year": "1976",
+              "added": "1",
+              "obs_profit": "-15719",
+              "obs_revenue": "-6740",
+              "avg_profit": "-7528",
+              "avg_revenue": "2266",
+              "samples": "2"
+            },
+            "source": "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:37369"
+          },
+          {
+            "seed": 7,
+            "year": 1976,
+            "kind": "C121_FLEET_MARGINAL",
+            "fields": {
+              "line": "8",
+              "year": "1976",
+              "added": "1",
+              "obs_profit": "-2435",
+              "obs_revenue": "3872",
+              "avg_profit": "34150",
+              "avg_revenue": "40457",
+              "samples": "2"
+            },
+            "source": "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:37373"
+          },
+          {
+            "seed": 7,
+            "year": 1976,
+            "kind": "C121_FLEET_MARGINAL",
+            "fields": {
+              "line": "35",
+              "year": "1976",
+              "added": "1",
+              "obs_profit": "-30202",
+              "obs_revenue": "-26342",
+              "avg_profit": "-30202",
+              "avg_revenue": "-26342",
+              "samples": "1"
+            },
+            "source": "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:37443"
+          },
+          {
+            "seed": 7,
+            "year": 1976,
+            "kind": "C121_FLEET_MARGINAL",
+            "fields": {
+              "line": "37",
+              "year": "1976",
+              "added": "1",
+              "obs_profit": "-3469",
+              "obs_revenue": "391",
+              "avg_profit": "-3469",
+              "avg_revenue": "391",
+              "samples": "1"
+            },
+            "source": "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:37451"
+          },
+          {
+            "seed": 7,
+            "year": 1976,
+            "kind": "C121_FLEET_MARGINAL",
+            "fields": {
+              "line": "41",
+              "year": "1976",
+              "added": "1",
+              "obs_profit": "-1798",
+              "obs_revenue": "2062",
+              "avg_profit": "-1798",
+              "avg_revenue": "2062",
+              "samples": "1"
+            },
+            "source": "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:37458"
+          },
+          {
+            "seed": 7,
+            "year": 1976,
+            "kind": "C121_FLEET_MARGINAL",
+            "fields": {
+              "line": "44",
+              "year": "1976",
+              "added": "1",
+              "obs_profit": "-4640",
+              "obs_revenue": "-780",
+              "avg_profit": "-4640",
+              "avg_revenue": "-780",
+              "samples": "1"
+            },
+            "source": "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:37462"
+          },
+          {
+            "seed": 7,
+            "year": 1976,
+            "kind": "C121_FLEET_MARGINAL",
+            "fields": {
+              "line": "48",
+              "year": "1976",
+              "added": "1",
+              "obs_profit": "-16447",
+              "obs_revenue": "-12587",
+              "avg_profit": "-16447",
+              "avg_revenue": "-12587",
+              "samples": "1"
+            },
+            "source": "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:37467"
+          },
+          {
+            "seed": 7,
+            "year": 1976,
+            "kind": "C121_FLEET_MARGINAL",
+            "fields": {
+              "line": "50",
+              "year": "1976",
+              "added": "1",
+              "obs_profit": "-39281",
+              "obs_revenue": "-35421",
+              "avg_profit": "-39281",
+              "avg_revenue": "-35421",
+              "samples": "1"
+            },
+            "source": "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:37470"
+          },
+          {
+            "seed": 1234,
+            "year": 1976,
+            "kind": "C121_FLEET_MARGINAL",
+            "fields": {
+              "line": "0",
+              "year": "1976",
+              "added": "2",
+              "obs_profit": "-6345",
+              "obs_revenue": "1868",
+              "avg_profit": "-6345",
+              "avg_revenue": "1868",
+              "samples": "1"
+            },
+            "source": "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:35851"
+          },
+          {
+            "seed": 1234,
+            "year": 1976,
+            "kind": "C121_FLEET_MARGINAL",
+            "fields": {
+              "line": "25",
+              "year": "1976",
+              "added": "1",
+              "obs_profit": "-856",
+              "obs_revenue": "5107",
+              "avg_profit": "-856",
+              "avg_revenue": "5107",
+              "samples": "1"
+            },
+            "source": "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:35927"
+          },
+          {
+            "seed": 1234,
+            "year": 1976,
+            "kind": "C121_FLEET_MARGINAL",
+            "fields": {
+              "line": "31",
+              "year": "1976",
+              "added": "1",
+              "obs_profit": "-11934",
+              "obs_revenue": "-6674",
+              "avg_profit": "-11934",
+              "avg_revenue": "-6674",
+              "samples": "1"
+            },
+            "source": "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:35938"
+          },
+          {
+            "seed": 1234,
+            "year": 1976,
+            "kind": "C121_FLEET_MARGINAL",
+            "fields": {
+              "line": "34",
+              "year": "1976",
+              "added": "1",
+              "obs_profit": "-27744",
+              "obs_revenue": "-22484",
+              "avg_profit": "-27744",
+              "avg_revenue": "-22484",
+              "samples": "1"
+            },
+            "source": "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:35944"
+          },
+          {
+            "seed": 1234,
+            "year": 1976,
+            "kind": "C121_FLEET_MARGINAL",
+            "fields": {
+              "line": "36",
+              "year": "1976",
+              "added": "1",
+              "obs_profit": "-11385",
+              "obs_revenue": "-6125",
+              "avg_profit": "-11385",
+              "avg_revenue": "-6125",
+              "samples": "1"
+            },
+            "source": "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:35947"
+          },
+          {
+            "seed": 1234,
+            "year": 1976,
+            "kind": "C121_FLEET_MARGINAL",
+            "fields": {
+              "line": "39",
+              "year": "1976",
+              "added": "1",
+              "obs_profit": "-13442",
+              "obs_revenue": "-8182",
+              "avg_profit": "-13442",
+              "avg_revenue": "-8182",
+              "samples": "1"
+            },
+            "source": "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:35952"
+          },
+          {
+            "seed": 1234,
+            "year": 1976,
+            "kind": "C121_FLEET_MARGINAL",
+            "fields": {
+              "line": "42",
+              "year": "1976",
+              "added": "1",
+              "obs_profit": "-7191",
+              "obs_revenue": "-1931",
+              "avg_profit": "-7191",
+              "avg_revenue": "-1931",
+              "samples": "1"
+            },
+            "source": "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:35958"
+          },
+          {
+            "seed": 1234,
+            "year": 1976,
+            "kind": "C121_FLEET_MARGINAL",
+            "fields": {
+              "line": "43",
+              "year": "1976",
+              "added": "1",
+              "obs_profit": "-18171",
+              "obs_revenue": "-12911",
+              "avg_profit": "-18171",
+              "avg_revenue": "-12911",
+              "samples": "1"
+            },
+            "source": "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:35960"
+          },
+          {
+            "seed": 1234,
+            "year": 1976,
+            "kind": "C121_FLEET_MARGINAL",
+            "fields": {
+              "line": "45",
+              "year": "1976",
+              "added": "1",
+              "obs_profit": "-11155",
+              "obs_revenue": "-5895",
+              "avg_profit": "-11155",
+              "avg_revenue": "-5895",
+              "samples": "1"
+            },
+            "source": "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:35963"
+          },
+          {
+            "seed": 1234,
+            "year": 1976,
+            "kind": "C121_FLEET_MARGINAL",
+            "fields": {
+              "line": "46",
+              "year": "1976",
+              "added": "1",
+              "obs_profit": "-1302",
+              "obs_revenue": "7333",
+              "avg_profit": "-1302",
+              "avg_revenue": "7333",
+              "samples": "1"
+            },
+            "source": "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:35965"
+          },
+          {
+            "seed": 1234,
+            "year": 1976,
+            "kind": "C121_FLEET_MARGINAL",
+            "fields": {
+              "line": "47",
+              "year": "1976",
+              "added": "1",
+              "obs_profit": "-9373",
+              "obs_revenue": "-4113",
+              "avg_profit": "-9373",
+              "avg_revenue": "-4113",
+              "samples": "1"
+            },
+            "source": "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:35967"
+          },
+          {
+            "seed": 1234,
+            "year": 1976,
+            "kind": "C121_FLEET_MARGINAL",
+            "fields": {
+              "line": "50",
+              "year": "1976",
+              "added": "1",
+              "obs_profit": "-10970",
+              "obs_revenue": "-5710",
+              "avg_profit": "-10970",
+              "avg_revenue": "-5710",
+              "samples": "1"
+            },
+            "source": "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:35972"
+          },
+          {
+            "seed": 42,
+            "year": 1976,
+            "kind": "LINE_REVENUE",
+            "fields": {
+              "line": "0",
+              "mode": "air",
+              "kind": "unknown",
+              "cargo": "PASS",
+              "year": "1976",
+              "age": "6",
+              "pred_rev": "408036",
+              "real_rev": "219950",
+              "pred_prof": "393340",
+              "real_prof": "191490",
+              "pred_run": "10800",
+              "real_run": "28460",
+              "vehs": "4",
+              "low_ratio": "0",
+              "op_ratio": "-1",
+              "purpose": "profit"
+            },
+            "source": "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:37850"
+          }
+        ]
+      }
+    },
+    "1979": {
+      "arms": {
+        "OpexAI": {
+          "planes": 455,
+          "airports": 120,
+          "pairs": 161,
+          "profit_ytd_gbp": 9211869.550779,
+          "profit_per_plane": 20245.86714456923,
+          "profit_per_airport": 76765.57958982499,
+          "planes_per_airport": 3.7916666666666665,
+          "planes_per_pair": 2.8260869565217392,
+          "pairs_per_airport": 1.3416666666666666,
+          "by_seed": [
+            {
+              "planes": 149,
+              "airports": 37,
+              "pairs": 50,
+              "lines": 50,
+              "profit_ytd_gbp": 3105796.507812,
+              "profit_per_plane": 20844.271864510065,
+              "profit_per_airport": 83940.44615708108,
+              "planes_per_airport": 4.027027027027027,
+              "planes_per_pair": 2.98,
+              "routes_per_airport": 2.7027027027027026,
+              "distance_euclidean_plane_weighted": 184.10587089130343,
+              "distance_manhattan_plane_weighted": 248.06711409395973,
+              "capacity_by_cargo_per_plane": {
+                "0": 118.02013422818791,
+                "2": 16.97986577181208
+              },
+              "rating_by_cargo": {
+                "0": 150.72972972972974,
+                "2": 149.8108108108108
+              },
+              "rating_count_by_cargo": {
+                "0": 37,
+                "2": 37
+              },
+              "pickup_periods_by_cargo": {
+                "0": 4.27027027027027,
+                "2": 4.216216216216216
+              },
+              "max_waiting_rating_stat_by_cargo": {
+                "0": 7.405405405405405,
+                "2": 15.81081081081081
+              },
+              "cargo_services": {
+                "0,2": {
+                  "planes": 149,
+                  "profit_ytd_gbp": 3105796.507812
+                }
+              },
+              "sources": [
+                "$.line_telemetry.snapshots[18].lines[mode=air]"
+              ],
+              "seed": 42
+            },
+            {
+              "planes": 155,
+              "airports": 40,
+              "pairs": 53,
+              "lines": 53,
+              "profit_ytd_gbp": 3245551.609373,
+              "profit_per_plane": 20939.042641116128,
+              "profit_per_airport": 81138.790234325,
+              "planes_per_airport": 3.875,
+              "planes_per_pair": 2.9245283018867925,
+              "routes_per_airport": 2.65,
+              "distance_euclidean_plane_weighted": 176.55712329715254,
+              "distance_manhattan_plane_weighted": 238.0,
+              "capacity_by_cargo_per_plane": {
+                "0": 128.58064516129033,
+                "2": 19.06451612903226
+              },
+              "rating_by_cargo": {
+                "0": 143.425,
+                "2": 142.175
+              },
+              "rating_count_by_cargo": {
+                "0": 40,
+                "2": 40
+              },
+              "pickup_periods_by_cargo": {
+                "0": 4.225,
+                "2": 4.225
+              },
+              "max_waiting_rating_stat_by_cargo": {
+                "0": 6.55,
+                "2": 7.1
+              },
+              "cargo_services": {
+                "0,2": {
+                  "planes": 155,
+                  "profit_ytd_gbp": 3245551.6093729995
+                }
+              },
+              "sources": [
+                "$.line_telemetry.snapshots[58].lines[mode=air]"
+              ],
+              "seed": 7
+            },
+            {
+              "planes": 151,
+              "airports": 43,
+              "pairs": 58,
+              "lines": 58,
+              "profit_ytd_gbp": 2860521.433594,
+              "profit_per_plane": 18943.85055360265,
+              "profit_per_airport": 66523.75426962791,
+              "planes_per_airport": 3.511627906976744,
+              "planes_per_pair": 2.603448275862069,
+              "routes_per_airport": 2.697674418604651,
+              "distance_euclidean_plane_weighted": 160.57625505440262,
+              "distance_manhattan_plane_weighted": 215.63576158940398,
+              "capacity_by_cargo_per_plane": {
+                "0": 115.66225165562913,
+                "2": 16.05960264900662
+              },
+              "rating_by_cargo": {
+                "0": 157.0,
+                "2": 156.76190476190476
+              },
+              "rating_count_by_cargo": {
+                "0": 43,
+                "2": 42
+              },
+              "pickup_periods_by_cargo": {
+                "0": 4.046511627906977,
+                "2": 4.1395348837209305
+              },
+              "max_waiting_rating_stat_by_cargo": {
+                "0": 8.837209302325581,
+                "2": 23.953488372093023
+              },
+              "cargo_services": {
+                "0,2": {
+                  "planes": 151,
+                  "profit_ytd_gbp": 2860521.4335939996
+                }
+              },
+              "sources": [
+                "$.line_telemetry.snapshots[98].lines[mode=air]"
+              ],
+              "seed": 1234
+            }
+          ],
+          "distance_euclidean_plane_weighted": 173.72558986170912,
+          "distance_manhattan_plane_weighted": 233.87472527472528,
+          "rating_by_cargo": {
+            "2": 149.69747899159663,
+            "0": 150.54166666666666
+          },
+          "cargo_services": {
+            "0,2": {
+              "planes": 455,
+              "profit_ytd_gbp": 9211869.550779,
+              "profit_per_plane": 20245.86714456923
+            }
+          },
+          "engines": {
+            "218": 55,
+            "228": 24,
+            "223": 50,
+            "217": 261,
+            "227": 26,
+            "225": 22,
+            "221": 8,
+            "233": 4,
+            "220": 5
+          },
+          "capacity_by_cargo_per_plane": {
+            "0": 120.83516483516483,
+            "2": 17.384615384615383
+          },
+          "engine_sources": [
+            "JSONL:669:air_engine_counts,air_capacities_by_cargo",
+            "JSONL:719:air_engine_counts,air_capacities_by_cargo",
+            "JSONL:1439:air_engine_counts,air_capacities_by_cargo"
+          ],
+          "nominal_kmh": 1112.4835164835165,
+          "running_cost_factor": 161.96043956043957,
+          "nominal_pax": 120.83516483516483
+        },
+        "AAAHogEx": {
+          "planes": 150,
+          "airports": 114,
+          "pairs": 57,
+          "profit_ytd_gbp": 11300409.574219,
+          "profit_per_plane": 75336.06382812666,
+          "profit_per_airport": 99126.39977385088,
+          "planes_per_airport": 1.3157894736842106,
+          "planes_per_pair": 2.6315789473684212,
+          "pairs_per_airport": 0.5,
+          "by_seed": [
+            {
+              "planes": 48,
+              "airports": 34,
+              "pairs": 17,
+              "lines": 17,
+              "profit_ytd_gbp": 3755881.828125,
+              "profit_per_plane": 78247.5380859375,
+              "profit_per_airport": 110467.11259191176,
+              "planes_per_airport": 1.411764705882353,
+              "planes_per_pair": 2.823529411764706,
+              "routes_per_airport": 1.0,
+              "distance_euclidean_plane_weighted": 159.98676771155905,
+              "distance_manhattan_plane_weighted": 220.14583333333334,
+              "capacity_by_cargo_per_plane": {
+                "5": 7.625,
+                "2": 84.16666666666667,
+                "0": 145.625
+              },
+              "rating_by_cargo": {
+                "2": 150.03333333333333,
+                "0": 152.1818181818182
+              },
+              "rating_count_by_cargo": {
+                "2": 30,
+                "0": 22
+              },
+              "pickup_periods_by_cargo": {
+                "5": 127.75,
+                "2": 7.966666666666667,
+                "0": 4.181818181818182
+              },
+              "max_waiting_rating_stat_by_cargo": {
+                "5": 9.0,
+                "2": 56.13333333333333,
+                "0": 160.8181818181818
+              },
+              "cargo_services": {
+                "5": {
+                  "planes": 6,
+                  "profit_ytd_gbp": 112094.34375
+                },
+                "2": {
+                  "planes": 11,
+                  "profit_ytd_gbp": 842534.0078130001
+                },
+                "0,2": {
+                  "planes": 31,
+                  "profit_ytd_gbp": 2801253.4765620003
+                }
+              },
+              "sources": [
+                "$.line_telemetry.snapshots[19].lines[mode=air]"
+              ],
+              "seed": 42
+            },
+            {
+              "planes": 59,
+              "airports": 42,
+              "pairs": 21,
+              "lines": 21,
+              "profit_ytd_gbp": 4721425.703125,
+              "profit_per_plane": 80024.16445974576,
+              "profit_per_airport": 112414.89769345238,
+              "planes_per_airport": 1.4047619047619047,
+              "planes_per_pair": 2.8095238095238093,
+              "routes_per_airport": 1.0,
+              "distance_euclidean_plane_weighted": 178.77903826399847,
+              "distance_manhattan_plane_weighted": 247.74576271186442,
+              "capacity_by_cargo_per_plane": {
+                "0": 181.01694915254237,
+                "2": 79.91525423728814,
+                "5": 11.864406779661017
+              },
+              "rating_by_cargo": {
+                "0": 154.0,
+                "2": 152.525
+              },
+              "rating_count_by_cargo": {
+                "0": 28,
+                "2": 40
+              },
+              "pickup_periods_by_cargo": {
+                "0": 6.678571428571429,
+                "2": 8.35,
+                "5": 127.5
+              },
+              "max_waiting_rating_stat_by_cargo": {
+                "0": 387.0,
+                "2": 139.075,
+                "5": 0.0
+              },
+              "cargo_services": {
+                "0,2": {
+                  "planes": 45,
+                  "profit_ytd_gbp": 3313691.496093
+                },
+                "5": {
+                  "planes": 4,
+                  "profit_ytd_gbp": 344556.4375
+                },
+                "2": {
+                  "planes": 10,
+                  "profit_ytd_gbp": 1063177.769532
+                }
+              },
+              "sources": [
+                "$.line_telemetry.snapshots[59].lines[mode=air]"
+              ],
+              "seed": 7
+            },
+            {
+              "planes": 43,
+              "airports": 38,
+              "pairs": 19,
+              "lines": 19,
+              "profit_ytd_gbp": 2823102.042969,
+              "profit_per_plane": 65653.535883,
+              "profit_per_airport": 74292.1590255,
+              "planes_per_airport": 1.131578947368421,
+              "planes_per_pair": 2.263157894736842,
+              "routes_per_airport": 1.0,
+              "distance_euclidean_plane_weighted": 169.87106640948173,
+              "distance_manhattan_plane_weighted": 232.7674418604651,
+              "capacity_by_cargo_per_plane": {
+                "2": 44.651162790697676,
+                "0": 122.79069767441861
+              },
+              "rating_by_cargo": {
+                "2": 147.81578947368422,
+                "0": 161.03333333333333
+              },
+              "rating_count_by_cargo": {
+                "2": 38,
+                "0": 30
+              },
+              "pickup_periods_by_cargo": {
+                "2": 9.447368421052632,
+                "0": 5.566666666666666
+              },
+              "max_waiting_rating_stat_by_cargo": {
+                "2": 123.84210526315789,
+                "0": 194.73333333333332
+              },
+              "cargo_services": {
+                "2": {
+                  "planes": 8,
+                  "profit_ytd_gbp": 502844.589843
+                },
+                "0,2": {
+                  "planes": 35,
+                  "profit_ytd_gbp": 2320257.4531260002
+                }
+              },
+              "sources": [
+                "$.line_telemetry.snapshots[99].lines[mode=air]"
+              ],
+              "seed": 1234
+            }
+          ],
+          "distance_euclidean_plane_weighted": 170.21189308892306,
+          "distance_manhattan_plane_weighted": 234.62,
+          "rating_by_cargo": {
+            "2": 150.17592592592592,
+            "0": 156.1375
+          },
+          "cargo_services": {
+            "0,2": {
+              "planes": 111,
+              "profit_ytd_gbp": 8435202.425781,
+              "profit_per_plane": 75992.81464667567
+            },
+            "2": {
+              "planes": 29,
+              "profit_ytd_gbp": 2408556.367188,
+              "profit_per_plane": 83053.66783406897
+            },
+            "5": {
+              "planes": 10,
+              "profit_ytd_gbp": 456650.78125,
+              "profit_per_plane": 45665.078125
+            }
+          },
+          "engines": {
+            "220": 3,
+            "228": 51,
+            "218": 45,
+            "223": 27,
+            "221": 4,
+            "226": 9,
+            "233": 7,
+            "227": 2,
+            "225": 2
+          },
+          "capacity_by_cargo_per_plane": {
+            "0": 153.0,
+            "2": 71.16666666666667,
+            "5": 7.1066666666666665
+          },
+          "engine_sources": [
+            "JSONL:670:air_engine_counts,air_capacities_by_cargo",
+            "JSONL:720:air_engine_counts,air_capacities_by_cargo",
+            "JSONL:1440:air_engine_counts,air_capacities_by_cargo"
+          ],
+          "nominal_kmh": 1357.7,
+          "running_cost_factor": 233.61333333333334,
+          "nominal_pax": 203.33333333333334
+        }
+      },
+      "accounting_factors": {
+        "profit_per_plane_ratio": 0.2687407081787362,
+        "airport_yield_factor": 0.774421140735058,
+        "inverse_density_factor": 0.3470213996529786,
+        "inverse_pairs_per_airport_factor": 0.3726708074534162,
+        "inverse_planes_per_pair_factor": 0.9311740890688259,
+        "product": 0.26874070817873613,
+        "three_factor_product": 0.2687407081787362
+      },
+      "descriptive_ratios_not_causal_factors": {
+        "distance_euclidean_plane_weighted": 1.020643074399921,
+        "distance_manhattan_plane_weighted": 0.9968234816926318,
+        "nominal_kmh": 0.8193883158897521,
+        "nominal_pax": 0.5942713024680237,
+        "running_cost_factor": 0.6932842284705762,
+        "planes_per_pair": 1.0739130434782609
+      },
+      "opex_hub_residual_last_per_station": {
+        "mean_days": 12.905699985932772,
+        "stations": 119,
+        "qualification": "Opex-only inferred residual, not dock time; correlated with density",
+        "sources": [
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:52318",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:52819",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:52760",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:52758",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:52682",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:52759",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:52443",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:52820",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:51881",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:51882",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:53207",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:52080",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:52100",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:51981",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:53220",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:53257",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:52224",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:52225",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:52265",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:52325",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:52383",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:52319",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:52815",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:52151",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:52382",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:52441",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:52442",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:52444",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:52499",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:52378",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:52323",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:52445",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:52916",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:52580",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:52324",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:52835",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:52498",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:52751",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:52971",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:52257",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:52535",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:52830",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:52901",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:52973",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:53021",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:53064",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:52454",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:52992",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:52978",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:52172",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:52194",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:53063",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:53092",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:52233",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:52330",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:52331",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:52332",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:52333",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:52371",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:52418",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:52395",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:52224",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:52453",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:52419",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:52467",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:52503",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:52372",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:52504",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:53011",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:53020",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:52588",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:52972",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:52974",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:53052",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:52846",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:52420",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log:52074",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:54318",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:54531",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:53985",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:54247",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:54301",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:54425",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:54320",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:54244",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:54231",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:54230",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:54559",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:54503",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:54300",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:54248",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:54246",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:54290",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:54405",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:54404",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:54411",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:54249",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:54302",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:54476",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:53754",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:54319",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:53755",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:54436",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:54474",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:53433",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:54424",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:54545",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:54505",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:54501",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:54434",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:54433",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:54477",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:54069",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:54245",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:54435",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:54326",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:54567",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:54544",
+          "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:54504"
+        ]
+      },
+      "log_summary": {
+        "counts": {
+          "C121_HUB_DELAY": 366,
+          "LINE_REVENUE": 228,
+          "C121_FLEET_MARGINAL": 24,
+          "AIR_FLEET": 779
+        },
+        "examples_and_nonpositive_marginals": [
+          {
+            "seed": 42,
+            "year": 1979,
+            "kind": "C121_HUB_DELAY",
+            "fields": {
+              "station": "0",
+              "days": "4.7231307",
+              "raw_days": "4.7231307",
+              "window_n": "12",
+              "observations": "261",
+              "variance": "83.690186",
+              "last_update": "722802",
+              "update_ops_total": "589163",
+              "update_samples": "6733",
+              "update_ops_mean": "87.503784"
+            },
+            "source": "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:49730"
+          },
+          {
+            "seed": 42,
+            "year": 1979,
+            "kind": "LINE_REVENUE",
+            "fields": {
+              "line": "0",
+              "mode": "air",
+              "kind": "unknown",
+              "cargo": "PASS",
+              "year": "1979",
+              "age": "9",
+              "pred_rev": "408036",
+              "real_rev": "208912",
+              "pred_prof": "393340",
+              "real_prof": "180452",
+              "pred_run": "10800",
+              "real_run": "28460",
+              "vehs": "4",
+              "low_ratio": "0",
+              "op_ratio": "-1",
+              "purpose": "profit"
+            },
+            "source": "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:49820"
+          },
+          {
+            "seed": 42,
+            "year": 1979,
+            "kind": "C121_FLEET_MARGINAL",
+            "fields": {
+              "line": "10",
+              "year": "1979",
+              "added": "1",
+              "obs_profit": "83696",
+              "obs_revenue": "91044",
+              "avg_profit": "61064",
+              "avg_revenue": "68412",
+              "samples": "4"
+            },
+            "source": "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:49840"
+          },
+          {
+            "seed": 42,
+            "year": 1979,
+            "kind": "C121_FLEET_MARGINAL",
+            "fields": {
+              "line": "28",
+              "year": "1979",
+              "added": "1",
+              "obs_profit": "-35346",
+              "obs_revenue": "-27998",
+              "avg_profit": "8873",
+              "avg_revenue": "16221",
+              "samples": "3"
+            },
+            "source": "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:49938"
+          },
+          {
+            "seed": 42,
+            "year": 1979,
+            "kind": "C121_FLEET_MARGINAL",
+            "fields": {
+              "line": "33",
+              "year": "1979",
+              "added": "1",
+              "obs_profit": "-29445",
+              "obs_revenue": "-23841",
+              "avg_profit": "1693",
+              "avg_revenue": "6716",
+              "samples": "3"
+            },
+            "source": "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:49946"
+          },
+          {
+            "seed": 1234,
+            "year": 1979,
+            "kind": "C121_FLEET_MARGINAL",
+            "fields": {
+              "line": "51",
+              "year": "1979",
+              "added": "1",
+              "obs_profit": "-13403",
+              "obs_revenue": "-11237",
+              "avg_profit": "3323",
+              "avg_revenue": "7036",
+              "samples": "2"
+            },
+            "source": "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:52771"
+          },
+          {
+            "seed": 1234,
+            "year": 1979,
+            "kind": "C121_FLEET_MARGINAL",
+            "fields": {
+              "line": "53",
+              "year": "1979",
+              "added": "1",
+              "obs_profit": "-2100",
+              "obs_revenue": "66",
+              "avg_profit": "1687",
+              "avg_revenue": "5400",
+              "samples": "2"
+            },
+            "source": "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:52775"
+          },
+          {
+            "seed": 1234,
+            "year": 1979,
+            "kind": "C121_FLEET_MARGINAL",
+            "fields": {
+              "line": "55",
+              "year": "1979",
+              "added": "1",
+              "obs_profit": "-26785",
+              "obs_revenue": "-24619",
+              "avg_profit": "2838",
+              "avg_revenue": "6551",
+              "samples": "2"
+            },
+            "source": "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:52780"
+          },
+          {
+            "seed": 1234,
+            "year": 1979,
+            "kind": "C121_FLEET_MARGINAL",
+            "fields": {
+              "line": "56",
+              "year": "1979",
+              "added": "1",
+              "obs_profit": "-3263",
+              "obs_revenue": "-1097",
+              "avg_profit": "-838",
+              "avg_revenue": "2874",
+              "samples": "2"
+            },
+            "source": "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log:52782"
+          },
+          {
+            "seed": 42,
+            "year": 1979,
+            "kind": "AIR_FLEET",
+            "fields": {
+              "action": "refuse",
+              "line": "4",
+              "reason": "airport_capacity_reached",
+              "planes": "4",
+              "yield": "60717"
+            },
+            "source": "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log:50051"
+          }
+        ]
+      }
+    }
+  },
+  "unavailable": {
+    "departure_load_A_to_B": "No departure cargo/capacity series for both companies",
+    "departure_load_B_to_A": "No departure cargo/capacity series for both companies",
+    "town_population": "No town population in annual line telemetry; town IDs are not populations",
+    "dock_days": "C121_HUB_DELAY is an Opex-only inferred residual, not measured dock time",
+    "running_cost_actual": "line_telemetry.unavailable_fields includes running_cost",
+    "depreciation_charge_in_vehicle_profit": "Not charged in profit_this_year_gbp; book value is a stock",
+    "maintenance_airports": "No separate bill per airport in this telemetry",
+    "instant_waiting": "max_waiting_cargo is a rating statistic, not GetCargoWaiting",
+    "rating_qualification": "Historical collector may use Acceptance instead of Rating; inspect frozen harness"
+  },
+  "engine_table": {
+    "215": {
+      "nominal_kmh": 473,
+      "running_cost_factor": 85,
+      "nominal_pax": 25,
+      "nominal_mail": 4,
+      "source_line": 612,
+      "name": "Sampson U52"
+    },
+    "216": {
+      "nominal_kmh": 473,
+      "running_cost_factor": 100,
+      "nominal_pax": 65,
+      "nominal_mail": 8,
+      "source_line": 613,
+      "name": "Coleman Count"
+    },
+    "217": {
+      "nominal_kmh": 947,
+      "running_cost_factor": 130,
+      "nominal_pax": 90,
+      "nominal_mail": 10,
+      "source_line": 614,
+      "name": "FFP Dart"
+    },
+    "218": {
+      "nominal_kmh": 2316,
+      "running_cost_factor": 250,
+      "nominal_pax": 100,
+      "nominal_mail": 20,
+      "source_line": 615,
+      "name": "Yate Haugan"
+    },
+    "219": {
+      "nominal_kmh": 473,
+      "running_cost_factor": 98,
+      "nominal_pax": 30,
+      "nominal_mail": 6,
+      "source_line": 616,
+      "name": "Bakewell Cotswald LB-3"
+    },
+    "220": {
+      "nominal_kmh": 947,
+      "running_cost_factor": 240,
+      "nominal_pax": 200,
+      "nominal_mail": 30,
+      "source_line": 617,
+      "name": "Bakewell Luckett LB-8"
+    },
+    "221": {
+      "nominal_kmh": 947,
+      "running_cost_factor": 150,
+      "nominal_pax": 100,
+      "nominal_mail": 15,
+      "source_line": 618,
+      "name": "Bakewell Luckett LB-9"
+    },
+    "222": {
+      "nominal_kmh": 947,
+      "running_cost_factor": 245,
+      "nominal_pax": 150,
+      "nominal_mail": 30,
+      "source_line": 619,
+      "name": "Bakewell Luckett LB80"
+    },
+    "223": {
+      "nominal_kmh": 947,
+      "running_cost_factor": 192,
+      "nominal_pax": 220,
+      "nominal_mail": 40,
+      "source_line": 620,
+      "name": "Bakewell Luckett LB-10"
+    },
+    "224": {
+      "nominal_kmh": 947,
+      "running_cost_factor": 190,
+      "nominal_pax": 230,
+      "nominal_mail": 25,
+      "source_line": 621,
+      "name": "Bakewell Luckett LB-11"
+    },
+    "225": {
+      "nominal_kmh": 947,
+      "running_cost_factor": 135,
+      "nominal_pax": 95,
+      "nominal_mail": 10,
+      "source_line": 622,
+      "name": "Yate Aerospace YAC 1-11"
+    },
+    "226": {
+      "nominal_kmh": 947,
+      "running_cost_factor": 240,
+      "nominal_pax": 170,
+      "nominal_mail": 35,
+      "source_line": 623,
+      "name": "Darwin 100"
+    },
+    "227": {
+      "nominal_kmh": 947,
+      "running_cost_factor": 155,
+      "nominal_pax": 110,
+      "nominal_mail": 15,
+      "source_line": 624,
+      "name": "Darwin 200"
+    },
+    "228": {
+      "nominal_kmh": 947,
+      "running_cost_factor": 253,
+      "nominal_pax": 300,
+      "nominal_mail": 50,
+      "source_line": 625,
+      "name": "Darwin 300"
+    },
+    "229": {
+      "nominal_kmh": 947,
+      "running_cost_factor": 210,
+      "nominal_pax": 200,
+      "nominal_mail": 25,
+      "source_line": 626,
+      "name": "Darwin 400"
+    },
+    "230": {
+      "nominal_kmh": 947,
+      "running_cost_factor": 220,
+      "nominal_pax": 240,
+      "nominal_mail": 25,
+      "source_line": 627,
+      "name": "Darwin 500"
+    },
+    "231": {
+      "nominal_kmh": 947,
+      "running_cost_factor": 230,
+      "nominal_pax": 260,
+      "nominal_mail": 40,
+      "source_line": 628,
+      "name": "Darwin 600"
+    },
+    "232": {
+      "nominal_kmh": 947,
+      "running_cost_factor": 225,
+      "nominal_pax": 240,
+      "nominal_mail": 35,
+      "source_line": 629,
+      "name": "Guru Galaxy"
+    },
+    "233": {
+      "nominal_kmh": 947,
+      "running_cost_factor": 235,
+      "nominal_pax": 260,
+      "nominal_mail": 30,
+      "source_line": 630,
+      "name": "Airtaxi A21"
+    },
+    "234": {
+      "nominal_kmh": 947,
+      "running_cost_factor": 220,
+      "nominal_pax": 210,
+      "nominal_mail": 25,
+      "source_line": 631,
+      "name": "Airtaxi A31"
+    },
+    "235": {
+      "nominal_kmh": 947,
+      "running_cost_factor": 170,
+      "nominal_pax": 160,
+      "nominal_mail": 20,
+      "source_line": 632,
+      "name": "Airtaxi A32"
+    },
+    "236": {
+      "nominal_kmh": 947,
+      "running_cost_factor": 210,
+      "nominal_pax": 220,
+      "nominal_mail": 20,
+      "source_line": 633,
+      "name": "Airtaxi A33"
+    },
+    "237": {
+      "nominal_kmh": 947,
+      "running_cost_factor": 125,
+      "nominal_pax": 80,
+      "nominal_mail": 10,
+      "source_line": 634,
+      "name": "Yate Aerospace YAe46"
+    },
+    "238": {
+      "nominal_kmh": 947,
+      "running_cost_factor": 145,
+      "nominal_pax": 85,
+      "nominal_mail": 10,
+      "source_line": 635,
+      "name": "Dinger 100"
+    },
+    "239": {
+      "nominal_kmh": 947,
+      "running_cost_factor": 130,
+      "nominal_pax": 75,
+      "nominal_mail": 10,
+      "source_line": 636,
+      "name": "AirTaxi A34-1000"
+    },
+    "240": {
+      "nominal_kmh": 947,
+      "running_cost_factor": 149,
+      "nominal_pax": 85,
+      "nominal_mail": 10,
+      "source_line": 637,
+      "name": "Yate Z-Shuttle"
+    },
+    "241": {
+      "nominal_kmh": 947,
+      "running_cost_factor": 170,
+      "nominal_pax": 65,
+      "nominal_mail": 18,
+      "source_line": 638,
+      "name": "Kelling K1"
+    },
+    "242": {
+      "nominal_kmh": 947,
+      "running_cost_factor": 210,
+      "nominal_pax": 110,
+      "nominal_mail": 25,
+      "source_line": 639,
+      "name": "Kelling K6"
+    },
+    "243": {
+      "nominal_kmh": 947,
+      "running_cost_factor": 230,
+      "nominal_pax": 180,
+      "nominal_mail": 60,
+      "source_line": 640,
+      "name": "Kelling K7"
+    },
+    "244": {
+      "nominal_kmh": 947,
+      "running_cost_factor": 220,
+      "nominal_pax": 150,
+      "nominal_mail": 65,
+      "source_line": 641,
+      "name": "Darwin 700"
+    },
+    "245": {
+      "nominal_kmh": 2316,
+      "running_cost_factor": 160,
+      "nominal_pax": 85,
+      "nominal_mail": 45,
+      "source_line": 642,
+      "name": "FFP Hyperdart 2"
+    },
+    "246": {
+      "nominal_kmh": 947,
+      "running_cost_factor": 248,
+      "nominal_pax": 400,
+      "nominal_mail": 80,
+      "source_line": 643,
+      "name": "Dinger 200"
+    },
+    "247": {
+      "nominal_kmh": 2316,
+      "running_cost_factor": 251,
+      "nominal_pax": 130,
+      "nominal_mail": 45,
+      "source_line": 644,
+      "name": "Dinger 1000"
+    },
+    "248": {
+      "nominal_kmh": 473,
+      "running_cost_factor": 85,
+      "nominal_pax": 25,
+      "nominal_mail": 5,
+      "source_line": 645,
+      "name": "Ploddyphut 100"
+    },
+    "249": {
+      "nominal_kmh": 473,
+      "running_cost_factor": 100,
+      "nominal_pax": 60,
+      "nominal_mail": 9,
+      "source_line": 646,
+      "name": "Ploddyphut 500"
+    },
+    "250": {
+      "nominal_kmh": 947,
+      "running_cost_factor": 140,
+      "nominal_pax": 90,
+      "nominal_mail": 12,
+      "source_line": 647,
+      "name": "Flashbang X1"
+    },
+    "251": {
+      "nominal_kmh": 947,
+      "running_cost_factor": 220,
+      "nominal_pax": 200,
+      "nominal_mail": 40,
+      "source_line": 648,
+      "name": "Juggerplane M1"
+    },
+    "252": {
+      "nominal_kmh": 2316,
+      "running_cost_factor": 255,
+      "nominal_pax": 100,
+      "nominal_mail": 30,
+      "source_line": 649,
+      "name": "Flashbang Wizzer"
+    },
+    "253": {
+      "nominal_kmh": 320,
+      "running_cost_factor": 81,
+      "nominal_pax": 40,
+      "nominal_mail": 15,
+      "source_line": 650,
+      "name": "Tricario Helicopter"
+    },
+    "254": {
+      "nominal_kmh": 512,
+      "running_cost_factor": 77,
+      "nominal_pax": 55,
+      "nominal_mail": 20,
+      "source_line": 651,
+      "name": "Guru X2 Helicopter"
+    },
+    "255": {
+      "nominal_kmh": 320,
+      "running_cost_factor": 80,
+      "nominal_pax": 40,
+      "nominal_mail": 10,
+      "source_line": 652,
+      "name": "Powernaut Helicopter"
+    }
+  },
+  "inputs": [
+    {
+      "path": "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019.json",
+      "sha256": "fa30e1951e6034260beb9dd946064b46cae17e362574022e1c24224cc2848123"
+    },
+    {
+      "path": "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019.jsonl",
+      "sha256": "7834acf8816da5f286f4233fe8f33545a7194d1a30c2de893a0e0900c42ae55c"
+    },
+    {
+      "path": "/home/deploy/.claude/jobs/e230de46/tmp/ottd15/src/src/table/engines.h",
+      "sha256": "cd24ffce5fd8c1652214961f4a00eb4c40e1cc4388db6af19fd9efce3f3bf796"
+    },
+    {
+      "path": "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed42_r0.log",
+      "sha256": "42df06833086fc6f5497f8c32d044fee316d663c62194c02ca227296fd456981"
+    },
+    {
+      "path": "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed7_r0.log",
+      "sha256": "a54b22b6e22ecc96cd43e0d6fe88721ac0edbe86665687628764043fdfd26f3e"
+    },
+    {
+      "path": "/home/deploy/projects/wt-v273/results/v273_expo_3x10_20261019_engine/reference_seed1234_r0.log",
+      "sha256": "cdf7721dbcf848976a89747ee7f1b49af803ad5abf393cd7ccff433a356414cb"
+    }
+  ],
+  "reduction": "Derived from v274_air_decomposition.py stdout: log_evidence replaced by counts, first event per kind and all nonpositive marginal events; no raw game data modified."
+}
