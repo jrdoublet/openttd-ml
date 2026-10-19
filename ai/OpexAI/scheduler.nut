@@ -233,6 +233,11 @@ function OpexAI::_runNextTask()
 
   local spTask = null;
   local ranTask = false;
+  if (task.name == "v271_recover") {
+    this._v271Continue();
+    task.enabled = this._v271Pending != null;
+    return true;
+  }
   if (task.name == "catalog") {
     spTask = PROBE_SPAN_TRACE ? OpexSpanBegin("task.catalog") : null;
     ranTask = this._dispatchCatalog(task, year);

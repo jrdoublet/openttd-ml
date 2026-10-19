@@ -60,10 +60,10 @@ class TestV259BridgeRenew(unittest.TestCase):
         self.assertIn('AIController.GetSetting("v259_bridge_renew")', self.settings)
 
     def test_ceiling_raised_with_comment(self):
-        # Plafond porte a 80 sur master (18/10 soir), commentaire citant V259.
+        # 19/10 V271 : plafond de branche 81, provisoire avant fusion.
         test_v246 = (Path(__file__).resolve().parent / "test_v246_fixed_policies.py").read_text(encoding="utf-8")
-        self.assertIn('count("AddSetting("), 80)', test_v246)
-        self.assertIn("V259", test_v246)
+        self.assertIn('count("AddSetting("), 81)', test_v246)
+        self.assertIn("19/10 V271, branche seulement, à résorber avant fusion", test_v246)
 
     def test_zero_opcode_guard_at_default(self):
         # 1. Garde dans scheduler.nut

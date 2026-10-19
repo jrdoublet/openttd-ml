@@ -2765,6 +2765,106 @@ function OpexTryBuildSignal(tile, front)
   return 0;
 }
 
+/* V271 : raccord borne, sans A*. S = sortie primaire, d = vers la ligne,
+ * v = decalage lateral d'UNE tuile. Convergence a S+j*d (2 <= j <= 9) :
+ * [S+v, S+v+d, ..., S+v+j*d, S+j*d, S+(j+1)*d]. Les PBS sont sur
+ * S+(j-1)*d et S+v+d, avant la convergence, jamais sur un aiguillage.
+ * OpexJoinPlatformPlans est la variante V178 a deux extremites ; ici le
+ * helper V190 conserve directement le bon cote de sortie (jamais le heurtoir).
+ * OpexPlaceJoinSignals/OpexTryBuildSignal ne conviennent pas : signaux sur
+ * la ligne/depot pour le premier, repli bloc possible pour le second. */
+function OpexV271PlatformPlan(line)
+{
+  local original = line.platformA;
+  local d = original.lead - original.station_exit;
+  if (AIMap.DistanceManhattan(original.lead, original.station_exit) != 1) return null;
+  local mergeDistance = -1;
+  /* Le depot primaire est souvent raccorde au lead immediat. Dans ce cas
+   * laisser son aiguillage intact et mettre le PBS sur la prochaine tuile
+   * droite, TOUJOURS avant la convergence des deux quais. */
+  for (local distance = 1; distance <= 8; distance++) {
+    local tile = original.station_exit + distance * d;
+    local next = tile + d;
+    if (!AIMap.IsValidTile(tile) || !AIMap.IsValidTile(next) ||
+        AIMap.DistanceManhattan(tile, next) != 1 ||
+        !AIRail.IsRailTile(tile) || AIRail.IsRailStationTile(tile) ||
+        AIBridge.IsBridgeTile(tile) || AITunnel.IsTunnelTile(tile) ||
+        !AIRail.AreTilesConnected(tile - d, tile, next)) break;
+    if (OpexTileTrackCount(tile) == 1 && OpexTileTrackCount(next) == 1 &&
+        !AIBridge.IsBridgeTile(next) && !AITunnel.IsTunnelTile(next) &&
+        AIRail.AreTilesConnected(tile, next, next + d)) { mergeDistance = distance + 1; break; }
+  }
+  if (mergeDistance < 0) return null;
+  foreach (plan in OpexV190FindParallelPlatformPlans(original)) {
+    if (AIMap.DistanceManhattan(plan.anchor, original.anchor) != 1) continue;
+    local path = [plan.station_exit];
+    for (local i = 1; i <= mergeDistance; i++) path.append(plan.station_exit + i * d);
+    path.append(original.station_exit + mergeDistance * d);
+    path.append(original.station_exit + (mergeDistance + 1) * d);
+    local usable = true;
+    for (local i = 1; i < path.len(); i++) {
+      if (!AIMap.IsValidTile(path[i]) || AIMap.DistanceManhattan(path[i - 1], path[i]) != 1) usable = false;
+      if (i <= mergeDistance && (!AITile.IsBuildable(path[i]) ||
+          AITile.GetSlope(path[i]) != AITile.SLOPE_FLAT)) usable = false;
+    }
+    if (!usable) continue;
+    /* Ne pas compter les sondages deux fois dans la facture du caller. */
+    local accepted = true;
+    {
+      local shield = AIAccounting();
+      local testMode = AITestMode();
+      for (local i = 1; i + 1 < path.len(); i++) {
+        if (!AIRail.BuildRail(path[i - 1], path[i], path[i + 1])) accepted = false;
+      }
+    }
+    if (accepted) return { platform = plan, tiles = path,
+        signalTile = original.station_exit + (mergeDistance - 1) * d,
+        signalFront = original.station_exit + (mergeDistance - 2) * d };
+  }
+  return null;
+}
+
+/* Le trace existant est borne a 2000 tuiles par OpexTraceTrackTiles, pas a
+ * la taille de la carte. Refuser toute branche hors depot, partage ou signal
+ * preexistant : ne jamais retirer une protection appartenant a la ligne. */
+function OpexV271IsolatedRoute(line)
+{
+  local route = OpexTraceTrackTiles(line.stationA, line.platformA.lead, line.stationB);
+  if (route == null || route[route.len() - 1] != line.stationB) return false;
+  local offsets = [1, -1, AIMap.GetTileIndex(0, 1), -AIMap.GetTileIndex(0, 1)];
+  for (local i = 1; i + 1 < route.len(); i++) {
+    local tile = route[i];
+    if (AIRail.IsRailStationTile(tile)) return false;
+    foreach (offset in offsets) {
+      local neighbor = tile + offset;
+      if (!AIMap.IsValidTile(neighbor) || AIMap.DistanceManhattan(tile, neighbor) != 1) continue;
+      if (AIRail.GetSignalType(tile, neighbor) != AIRail.SIGNALTYPE_NONE) return false;
+      if (neighbor != line.depot && AIRail.IsRailDepotTile(neighbor)) return false;
+      if (AIMap.DistanceManhattan(route[i - 1], tile) != 1 ||
+          neighbor == route[i - 1] || neighbor == route[i + 1] || neighbor == line.depot) continue;
+      if (AIRail.IsRailTile(neighbor) && AIRail.AreTilesConnected(route[i - 1], tile, neighbor)) return false;
+    }
+  }
+  return true;
+}
+
+/* Snapshot AVANT la premiere commande. Le rollback enleve les bits ajoutes,
+ * jamais les rails initiaux ni une gare via DemolishTile/OpexRollback. */
+function OpexV271RestoreTracks(snapshots)
+{
+  local ok = true;
+  local bits = [AIRail.RAILTRACK_NE_SW, AIRail.RAILTRACK_NW_SE, AIRail.RAILTRACK_NW_NE,
+                AIRail.RAILTRACK_SW_SE, AIRail.RAILTRACK_NW_SW, AIRail.RAILTRACK_NE_SE];
+  foreach (snapshot in snapshots) {
+    if (!AIRail.IsRailTile(snapshot.tile) || AIRail.IsRailStationTile(snapshot.tile)) continue;
+    local added = AIRail.GetRailTracks(snapshot.tile) & ~snapshot.tracks;
+    foreach (bit in bits) {
+      if ((added & bit) != 0 && !AIRail.RemoveRailTrack(snapshot.tile, bit)) ok = false;
+    }
+  }
+  return ok;
+}
+
 function OpexTileTrackCount(tile)
 {
   if (!AIRail.IsRailTile(tile) || AIRail.IsRailStationTile(tile) || AIRail.IsRailDepotTile(tile)) {

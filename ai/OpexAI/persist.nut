@@ -556,6 +556,8 @@ OPEX_SAVE_LINE_SKIP <- {
  * imbriques restent partages avec la ligne vivante. */
 function OpexSaveProjectLine(line)
 {
+  /* V271 : v271Tandem/v271Failed et platformA2/stationA2 suivent la copie
+   * generique des champs optionnels, sans changement de version. */
   local serializableLine = clone line;
   foreach (key, val in line) {
     if (key in OPEX_SAVE_LINE_SKIP) {
@@ -734,6 +736,9 @@ function OpexAI::Save()
       priorityRemaining = this._v257PriorityRemaining };
   }
   if (OpexC121StrategyStateEnabled()) OpexSaveC121Strategy(saveObj);
+  if (V271_RAIL_TANDEM_SOURCE > 0 || this._v271Pending != null) {
+    saveObj.v271TandemSource <- { year = this._v271Year, pending = this._v271Pending };
+  }
   if (OPEX_AIR_ROLLBACKS.len() > 0) saveObj.airRollbacks <- OPEX_AIR_ROLLBACKS;
   if (V133_AIR_BUILD_RETRY) OpexV133SaveQuarantine(saveObj);
   if (V233_GOODS_GRAFT && this._v233GoodsObservations != null)
@@ -792,6 +797,11 @@ function OpexAI::Load(version, data)
     foreach (key, val in data.abandonedPairs) this._abandonedPairs[key] <- val;
   }
   if ("lines" in data) this._pendingLines = data.lines;
+  if ("v271TandemSource" in data && typeof data.v271TandemSource == "table") {
+    local tandem = data.v271TandemSource;
+    this._v271Year = ("year" in tandem) ? tandem.year : -1;
+    this._v271Pending = ("pending" in tandem) ? tandem.pending : null;
+  }
   if ("abandonCounts" in data && data.abandonCounts != null) this._abandonCounts = data.abandonCounts;
   if ("lastRepayMonth" in data) this._lastRepayMonth = data.lastRepayMonth;
   if ("taskCycle" in data) this._taskCycle = data.taskCycle;
@@ -957,6 +967,15 @@ function OpexAI::_reconcileAfterLoad()
   }
   }
   this._lines = liveLines;
+  /* Changer le reglage a 0 au Load ne doit pas abandonner un chantier actif.
+   * Tache creee uniquement dans ce cas, sans appel API sur une partie OFF neuve. */
+  if (this._v271Pending != null && V271_RAIL_TANDEM_SOURCE == 0) {
+    if (this._v271Pending.phase != "commit") {
+      this._v271Pending.phase = "rollback";
+      this._v271Pending.reason = "disabled_after_load";
+    }
+    this._taskQueue.append({ name = "v271_recover", dueCycle = this._taskCycle, enabled = true });
+  }
   OpexV257Reconcile(this);
   /* World validation is rebuilt in bounded steps from these restored lines.
    * Short saves without support cannot revive observations. OFF never generates work. */

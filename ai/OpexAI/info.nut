@@ -355,6 +355,15 @@ class OpexAIInfo extends AIInfo {
       flags = 0
     });
     AddSetting({
+      name = "v271_rail_tandem_source",
+      description = "V271: N years after start, idle cash funds a second source platform and identical freight train; 0 = inert (default)",
+      min_value = 0, max_value = 9,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      step_size = 1,
+      flags = 0
+    });
+    AddSetting({
       name = "v180_rail_wagon_boost_pct",
       description = "V180: rail consist sizing offers N% more cargo than the 50% rating calibration (bigger trains); 0 = inert (default)",
       min_value = 0, max_value = 400,

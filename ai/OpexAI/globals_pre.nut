@@ -26,6 +26,8 @@ V180_START_YEAR <- -1;
 V270_RAIL_LATE_GROWTH <- 0;
 V270_IDLE_CASH_MIN <- 1000000;
 V270_MIN_SPEED_PCT <- 85;
+/* V271, 19/10 : tandem fret a la source, branche experimentale uniquement. */
+V271_RAIL_TANDEM_SOURCE <- 0;
 /* V269 : relachement tardif du vivier rail (orchestrator.nut, _v217RailRefill). 0 = inerte (defaut),
  * N = annees apres le depart. Quand le vivier est vide et la caisse oisive, la regeneration V217
  * accepte le fret jusqu'a V269_RAIL_MAX_DIST tuiles, et V178/V179 s'activent pour le reste de la

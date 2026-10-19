@@ -643,6 +643,7 @@ function OpexAI::_reportLines(year)
 
 function OpexAI::_triggerScrapLine(line, criterion)
 {
+  if (this._v271Pending != null && this._v271Pending.lineId == line.lineId) return;
   if (("scrapping" in line) && line.scrapping) return;
   line.scrapping = true;
   line.deadStreak = DEAD_STREAK_THRESHOLD;

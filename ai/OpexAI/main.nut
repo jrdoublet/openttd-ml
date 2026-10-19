@@ -223,6 +223,8 @@ class OpexAI extends AIController {
   _v257Cursor = 0;
   _v257State = null;
   _v257Pending = null;
+  _v271Pending = null; // Transaction serialisable, aucune reference de ligne vivante.
+  _v271Year = -1;
   _v257PendingLine = null; // reference vivante, reliee par lineId apres Load.
   _v257Cache = null;
   _v257CatalogRef = null;
@@ -535,6 +537,8 @@ class OpexAI extends AIController {
   function _refleetCrashedWaterLines(year);
   function _resizeAirFleets(year);
   function _expandRailLines(year);
+  function _v271TandemSource(year);
+  function _v271Continue();
   function _continueRailExpansion();
   function _v270StartWagonExpansion(year);
   function _startRailSearch(candidate, alternativeRatio, hardCap, projectIndex);
@@ -690,6 +694,7 @@ require("task_water.nut");
 require("task_v249.nut");
 require("task_v252.nut");
 require("task_v257.nut");
+require("task_v271.nut");
 require("task_v250.nut");
 require("task_v259.nut");
 require("selftests.nut");

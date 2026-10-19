@@ -384,6 +384,7 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
  * la demande pax surestimee du catalogue. */
 function OpexAI::_expandRailLines(year)
 {
+  if (V271_RAIL_TANDEM_SOURCE > 0 && this._v271TandemSource(year)) return;
   /* G6§1 : le bloc RAIL_REFLEET (second train, double voie) vit ici.
    * L'expansion de wagons (rail_expand) a ete figee a 0 et retiree. */
   if (this._railExpansion != null) return;
@@ -396,6 +397,7 @@ function OpexAI::_expandRailLines(year)
   OpexSign(AIMap.GetTileIndex(1, 1), "EU|" + (year % 100) + "|0|0|0|0|" + decisionOps);
   {
     foreach (line in this._lines) {
+        if (("v271Tandem" in line) && line.v271Tandem) continue;
         if ((("mode" in line) && line.mode != "rail") || !("wagons" in line) || !("loco" in line) || !("kind" in line)) continue;
         /* V181 retire (defaut 0) : plafond historique de 2 trains, sauf fret V190. */
         if (!OpexV190Active() || line.kind != "freight") {
@@ -586,6 +588,7 @@ function OpexAI::_v270StartWagonExpansion(year)
   if (this._v257Pending != null) return false;
   local best = null;
   foreach (line in this._lines) {
+    if (("v271Tandem" in line) && line.v271Tandem) continue;
     if ((("mode" in line) && line.mode != "rail") || !("wagons" in line) || !("platformLength" in line) ||
         !("loco" in line) || !("kind" in line) || !("depot" in line) || !("effectiveSpeed" in line)) continue;
     if (line.trains != 1 || line.vehicles.len() != 1) continue;

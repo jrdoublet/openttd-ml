@@ -137,6 +137,7 @@ function OpexV257Discard(owner, vehicle)
 
 function OpexAI::_v257ReactiveStep()
 {
+  if (this._v271Pending != null) return; // V271 : aucun renouvellement pendant la transaction.
   /* Le format court ne conserve pas les lignes : aucune transaction de flotte
    * n'y est ouverte. Le defaut save_full_state=1 reste intact. */
   if (!SAVE_FULL_STATE) return;

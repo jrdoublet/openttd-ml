@@ -107,6 +107,8 @@ function OpexLoadSettings()
   V180_RAIL_WAGON_BOOST_PCT = (wagonBoost != null && wagonBoost > 0 && wagonBoost <= 400) ? wagonBoost : 0;
   local lateGrowth = AIController.GetSetting("v270_rail_late_growth");
   V270_RAIL_LATE_GROWTH = (lateGrowth != null && lateGrowth > 0 && lateGrowth <= 9) ? lateGrowth : 0;
+  local tandemSource = AIController.GetSetting("v271_rail_tandem_source");
+  V271_RAIL_TANDEM_SOURCE = (tandemSource != null && tandemSource > 0 && tandemSource <= 9) ? tandemSource : 0;
   local lateRelax = AIController.GetSetting("v269_rail_late_relax");
   V269_RAIL_LATE_RELAX = (lateRelax != null && lateRelax > 0 && lateRelax <= 9) ? lateRelax : 0;
   local v182Years = AIController.GetSetting("v195_v182_years");
