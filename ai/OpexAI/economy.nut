@@ -330,9 +330,18 @@ function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPl
    * marge de 2 wagons ajoute donc la plus petite croissance geometrique non nulle. Apres le site,
    * `fixedPlatformLength` ecrase ce souhait. Le capital compte ainsi 2 quais de la longueur qui
    * sera effectivement posee, pas `station.station_spread` lu a 12. */
-  local platformLength = fixedPlatformLength > 0
-      ? fixedPlatformLength
-      : OpexRailWantedPlatformLength(wagons + wagons2, catalog.platformLength);
+  local platformLength = 0;
+  if (fixedPlatformLength > 0) {
+    platformLength = fixedPlatformLength;
+  } else if (V272_RAIL_ROOM > 0 && kind == "freight") {
+    /* V272 : quai fret plus long que la rame, pour que V270 l'allonge ensuite ; jamais plus long
+     * qu'une rame autorisee (V206 : au-dela, MoveWagon rend 525). */
+    local roomMaximum = catalog.platformLength;
+    if (catalog.maxTrainLength > 0 && catalog.maxTrainLength < roomMaximum) roomMaximum = catalog.maxTrainLength;
+    platformLength = OpexRailWantedPlatformLength(wagons + wagons2, roomMaximum, V272_RAIL_ROOM);
+  } else {
+    platformLength = OpexRailWantedPlatformLength(wagons + wagons2, catalog.platformLength);
+  }
   local effectiveTrackCost = (catalog.costTrackPerTile * RAIL_TERRAIN_FACTOR) / 100;
   local infraCost = travelDist * effectiveTrackCost + 2 * platformLength * catalog.costStation
       + (RAIL_DEPOT_COST ? catalog.costRailDepot : 0);

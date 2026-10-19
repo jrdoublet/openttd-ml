@@ -592,7 +592,8 @@ function OpexAI::_v270StartWagonExpansion(year)
     if (("scrapping" in line) && line.scrapping) continue;
     if (("expandBlocked" in line) && line.expandBlocked) continue;
     if (("expandRetryCycle" in line) && line.expandRetryCycle > this._taskCycle) continue;
-    if (("v270Year" in line) && line.v270Year == year) continue;
+    if (("v270Year" in line) && line.v270Year == year &&
+        (V272_RAIL_ROOM <= 0 || !("v272Count" in line) || line.v272Count >= line.v272Quota)) continue;
     if (!("lastProfit" in line) || line.lastProfit <= 0) continue;
     if (!(line.cargo in this._catalog.wagonByCargo)) continue;
     if (line.depot == null || !AIRail.IsRailDepotTile(line.depot)) continue;
@@ -613,6 +614,17 @@ function OpexAI::_v270StartWagonExpansion(year)
   if (best == null) return false;
   local line = best.line;
   if (AICompany.GetBankBalance(AICompany.COMPANY_SELF) < best.wagon.price + OpexCashReserve()) return false;
+  if (V272_RAIL_ROOM > 0) {
+    /* V272 : quota annuel = wagons en attente au rapport, 1 a 4 ; un wagon par passage au depot. */
+    if (!("v270Year" in line) || line.v270Year != year) {
+      local quota = (best.waiting / best.wagon.capacity).tointeger();
+      if (quota < 1) quota = 1;
+      if (quota > V272_MAX_WAGONS_PER_YEAR) quota = V272_MAX_WAGONS_PER_YEAR;
+      line.v272Quota <- quota;
+      line.v272Count <- 0;
+    }
+    line.v272Count <- line.v272Count + 1;
+  }
   line.v270Year <- year;
   local newWagons = line.wagons + 1;
   local newSpeed = OpexRailEffectiveSpeed(line.loco, best.wagon, newWagons + OpexV163Wagons2(line), line.distance);

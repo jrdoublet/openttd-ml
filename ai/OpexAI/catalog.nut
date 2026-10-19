@@ -46,9 +46,9 @@ function OpexRailMinimumPlatformLength()
 /* Le reglage de partie reste une borne haute, jamais la longueur ordonnee par defaut. Ajouter
  * deux wagons puis inverser la capacite nominale donne le quai voulu ; le min protege le cas ou
  * la partie limite deja le quai avant que la marge ne tienne. */
-function OpexRailWantedPlatformLength(targetWagons, gameMaximum)
+function OpexRailWantedPlatformLength(targetWagons, gameMaximum, margin = RAIL_PLATFORM_GROWTH_WAGONS)
 {
-  local wanted = OpexRailPlatformLengthForWagons(targetWagons + RAIL_PLATFORM_GROWTH_WAGONS);
+  local wanted = OpexRailPlatformLengthForWagons(targetWagons + margin);
   return wanted < gameMaximum ? wanted : gameMaximum;
 }
 

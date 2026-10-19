@@ -26,6 +26,11 @@ V180_START_YEAR <- -1;
 V270_RAIL_LATE_GROWTH <- 0;
 V270_IDLE_CASH_MIN <- 1000000;
 V270_MIN_SPEED_PCT <- 85;
+/* V272 : place de croissance des lignes rail fret. 0 = inerte (defaut : marge de 2 wagons au quai,
+ * un wagon V270 par ligne et par an) ; M = quai fret pose avec M wagons de marge (borne par
+ * vehicle.max_train_length), et V270 peut allonger la meme ligne jusqu'a 4 fois par an selon l'attente. */
+V272_RAIL_ROOM <- 0;
+const V272_MAX_WAGONS_PER_YEAR = 4;
 /* V269 : relachement tardif du vivier rail (orchestrator.nut, _v217RailRefill). 0 = inerte (defaut),
  * N = annees apres le depart. Quand le vivier est vide et la caisse oisive, la regeneration V217
  * accepte le fret jusqu'a V269_RAIL_MAX_DIST tuiles, et V178/V179 s'activent pour le reste de la

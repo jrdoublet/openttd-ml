@@ -355,6 +355,15 @@ class OpexAIInfo extends AIInfo {
       flags = 0
     });
     AddSetting({
+      name = "v272_rail_room",
+      description = "V272: freight platforms built with M wagons of growth room (capped by max_train_length) and V270 may lengthen the same line up to 4 times a year from the waiting cargo; 0 = inert (default)",
+      min_value = 0, max_value = 12,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      step_size = 1,
+      flags = 0
+    });
+    AddSetting({
       name = "v180_rail_wagon_boost_pct",
       description = "V180: rail consist sizing offers N% more cargo than the 50% rating calibration (bigger trains); 0 = inert (default)",
       min_value = 0, max_value = 400,
