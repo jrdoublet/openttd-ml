@@ -2829,23 +2829,30 @@ function OpexV271PlatformPlan(line)
  * preexistant : ne jamais retirer une protection appartenant a la ligne. */
 function OpexV271IsolatedRoute(line)
 {
+  return OpexV271RouteIssue(line) == "";
+}
+
+/* 19/10 : raison du refus, journalisee par V271 (le smoke refusait sans dire pourquoi). */
+function OpexV271RouteIssue(line)
+{
   local route = OpexTraceTrackTiles(line.stationA, line.platformA.lead, line.stationB);
-  if (route == null || route[route.len() - 1] != line.stationB) return false;
+  if (route == null) return "trace";
+  if (route[route.len() - 1] != line.stationB) return "trace_end";
   local offsets = [1, -1, AIMap.GetTileIndex(0, 1), -AIMap.GetTileIndex(0, 1)];
   for (local i = 1; i + 1 < route.len(); i++) {
     local tile = route[i];
-    if (AIRail.IsRailStationTile(tile)) return false;
+    if (AIRail.IsRailStationTile(tile)) return "station_on_route";
     foreach (offset in offsets) {
       local neighbor = tile + offset;
       if (!AIMap.IsValidTile(neighbor) || AIMap.DistanceManhattan(tile, neighbor) != 1) continue;
-      if (AIRail.GetSignalType(tile, neighbor) != AIRail.SIGNALTYPE_NONE) return false;
-      if (neighbor != line.depot && AIRail.IsRailDepotTile(neighbor)) return false;
+      if (AIRail.GetSignalType(tile, neighbor) != AIRail.SIGNALTYPE_NONE) return "signal";
+      if (neighbor != line.depot && AIRail.IsRailDepotTile(neighbor)) return "other_depot";
       if (AIMap.DistanceManhattan(route[i - 1], tile) != 1 ||
           neighbor == route[i - 1] || neighbor == route[i + 1] || neighbor == line.depot) continue;
-      if (AIRail.IsRailTile(neighbor) && AIRail.AreTilesConnected(route[i - 1], tile, neighbor)) return false;
+      if (AIRail.IsRailTile(neighbor) && AIRail.AreTilesConnected(route[i - 1], tile, neighbor)) return "branch";
     }
   }
-  return true;
+  return "";
 }
 
 /* Snapshot AVANT la premiere commande. Le rollback enleve les bits ajoutes,

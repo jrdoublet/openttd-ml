@@ -26,7 +26,8 @@ function OpexAI::_v271TandemSource(year)
         (("scrapping" in line) && line.scrapping) ||
         (("expandBlocked" in line) && line.expandBlocked) ||
         (("v271Tandem" in line) && line.v271Tandem) ||
-        (("v271Failed" in line) && line.v271Failed)) continue;
+        (("v271Failed" in line) && line.v271Failed) ||
+        (("v271SkipYear" in line) && line.v271SkipYear == year)) continue;
     if (!("lastProfit" in line) || line.lastProfit <= 0 || line.depot == null ||
         !AIRail.IsRailDepotTile(line.depot) || line.platformA == null || line.platformB == null) continue;
     if (!("lead" in line.platformA) || !("station_exit" in line.platformA)) continue;
@@ -58,10 +59,16 @@ function OpexAI::_v271TandemSource(year)
     if (other == line || !("mode" in other) || other.mode != "rail") continue;
     if (OpexLineStationId(other, "A") == stationA || OpexLineStationId(other, "B") == stationA ||
         OpexLineStationId(other, "A") == stationB || OpexLineStationId(other, "B") == stationB) {
+      line.v271Failed <- true; this._saveProjection = null;
       OpexV271Log(state, "skip", "shared_station"); return false;
     }
   }
-  if (!OpexV271IsolatedRoute(line)) { OpexV271Log(state, "skip", "route_or_signals"); return false; }
+  /* 19/10 : marquer la ligne, sinon la meilleure ligne refusee bloque toutes les autres chaque mois. */
+  local routeIssue = OpexV271RouteIssue(line);
+  if (routeIssue != "") {
+    line.v271Failed <- true; this._saveProjection = null;
+    OpexV271Log(state, "skip", "route_" + routeIssue); return false;
+  }
   local previousType = AIRail.GetCurrentRailType();
   AIRail.SetCurrentRailType(AIRail.GetRailType(line.depot));
   local geometry = OpexV271PlatformPlan(line);
@@ -96,6 +103,7 @@ function OpexAI::_v271TandemSource(year)
   /* Payback sur gain NET de marche ; strictement avant l'horizon. */
   if (!quoted || state.gain <= running || state.cost >= (state.gain - running) * remaining ||
       OpexAvailableCapital() < state.cost + OpexCashReserve()) {
+    line.v271SkipYear <- year;
     OpexV271Log(state, "skip", "running_payback_or_cash"); return false;
   }
   state.vehicle <- best.vehicle;
