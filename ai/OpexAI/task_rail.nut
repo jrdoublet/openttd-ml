@@ -387,6 +387,8 @@ function OpexAI::_expandRailLines(year)
   /* G6§1 : le bloc RAIL_REFLEET (second train, double voie) vit ici.
    * L'expansion de wagons (rail_expand) a ete figee a 0 et retiree. */
   if (this._railExpansion != null) return;
+  /* V270 : l'allongement ne prend pas le creneau A*, il passe avant sa garde. */
+  if (OpexV270Active(year) && this._v270StartWagonExpansion(year)) return;
   /* Une recherche A* en cours (ligne neuve ou upgrade) : ne pas en empiler une seconde. */
   if (this._railSearch != null && !OpexV190Active()) return;
   this._budget.begin();
@@ -565,6 +567,93 @@ function OpexAI::_expandRailLines(year)
     }
 }
 
+/* V270 : croissance tardive des lignes rail. Mesure du 19/10 (`v265fix_expo_complete_3x10`) : de
+ * 1975 a 1979, les lignes rail d'AAAHogEx deja ouvertes gagnent 16 trains et 2 576 places, les
+ * notres 2 trains et 210 places ; nos rames gardent leur longueur de construction toute la partie
+ * (rail_expand retire le 17/10, mesure seulement a 3 ans, quand le capital manquait). Une fois la
+ * caisse oisive, une rame unique dont la gare source avait au moins un wagon en attente au dernier
+ * rapport annuel recoit un wagon, un par ligne et par an, dans la limite de son quai. La transaction
+ * est _continueRailExpansion (approche du depot, ajout, reprise), conservee et sauvegardee. */
+function OpexV270Active(year)
+{
+  if (V270_RAIL_LATE_GROWTH <= 0) return false;
+  if (year < OPEX_START_YEAR + V270_RAIL_LATE_GROWTH) return false;
+  return OpexAvailableCapital() >= V270_IDLE_CASH_MIN;
+}
+
+function OpexAI::_v270StartWagonExpansion(year)
+{
+  if (this._v257Pending != null) return false;
+  local best = null;
+  foreach (line in this._lines) {
+    if ((("mode" in line) && line.mode != "rail") || !("wagons" in line) || !("platformLength" in line) ||
+        !("loco" in line) || !("kind" in line) || !("depot" in line) || !("effectiveSpeed" in line)) continue;
+    if (line.trains != 1 || line.vehicles.len() != 1) continue;
+    if (("scrapping" in line) && line.scrapping) continue;
+    if (("expandBlocked" in line) && line.expandBlocked) continue;
+    if (("expandRetryCycle" in line) && line.expandRetryCycle > this._taskCycle) continue;
+    if (("v270Year" in line) && line.v270Year == year) continue;
+    if (!("lastProfit" in line) || line.lastProfit <= 0) continue;
+    if (!(line.cargo in this._catalog.wagonByCargo)) continue;
+    if (line.depot == null || !AIRail.IsRailDepotTile(line.depot)) continue;
+    if (line.wagons + OpexV163Wagons2(line) >= OpexRailNominalMaxWagons(line.platformLength)) continue;
+    local wagon = this._catalog.wagonByCargo[line.cargo];
+    local waitingA = ("lastWaitingA" in line) ? line.lastWaitingA : 0;
+    local waitingB = ("lastWaitingB" in line) ? line.lastWaitingB : 0;
+    local waiting = line.kind == "freight" ? waitingA : waitingA + waitingB;
+    local threshold = line.kind == "freight" ? wagon.capacity : 2 * wagon.capacity;
+    if (wagon.capacity <= 0 || waiting < threshold) continue;
+    local vehicle = line.vehicles[0];
+    if (!AIVehicle.IsValidVehicle(vehicle) || AIVehicle.GetVehicleType(vehicle) != AIVehicle.VT_RAIL) continue;
+    local score = waiting.tofloat() / wagon.capacity;
+    if (best == null || score > best.score) {
+      best = { line = line, vehicle = vehicle, wagon = wagon, waiting = waiting, score = score };
+    }
+  }
+  if (best == null) return false;
+  local line = best.line;
+  if (AICompany.GetBankBalance(AICompany.COMPANY_SELF) < best.wagon.price + OpexCashReserve()) return false;
+  line.v270Year <- year;
+  local newWagons = line.wagons + 1;
+  local newSpeed = OpexRailEffectiveSpeed(line.loco, best.wagon, newWagons + OpexV163Wagons2(line), line.distance);
+  if (newSpeed < 1 || newSpeed * 100 < V270_MIN_SPEED_PCT * line.effectiveSpeed) {
+    /* La locomotive ne tire pas la rame allongee sans perdre plus de 15 % de vitesse. */
+    line.expandBlocked <- true;
+    if (DECISION_LOG) OpexDecide("V270", "action=skip line=" + line.lineId + " reason=speed wagons=" + line.wagons
+                                 + " speed=" + line.effectiveSpeed.tointeger() + " new_speed=" + newSpeed.tointeger());
+    return false;
+  }
+  local newOneWayDays = line.distance.tofloat() / (0.036 * newSpeed);
+  if (newOneWayDays < 1) newOneWayDays = 1;
+  local waitDays = (2 * newOneWayDays).tointeger() + 60;
+  if (waitDays < 120) waitDays = 120;
+  if (waitDays > 730) waitDays = 730;
+  this._railExpansion = {
+    lineId = line.lineId, vehicle = best.vehicle, wagonId = best.wagon.id,
+    oldWagons = line.wagons, newWagons = newWagons,
+    oldTrainLength = AIVehicle.GetLength(best.vehicle),
+    oldExpansionCount = ("railExpansions" in line) ? line.railExpansions : 0,
+    decisionYear = year,
+    newSpeed = newSpeed, newOneWayDays = newOneWayDays,
+    gain = 0, waiting = best.waiting, util = 0,
+    decisionDate = AIDate.GetCurrentDate(), waitDays = waitDays,
+    startDate = AIDate.GetCurrentDate(), phase = "approach", dispatchAttempts = 0,
+    resumeAttempts = 0,
+    temporaryOrder = false, temporaryOrderPosition = -1,
+    commitStage = "idle", pendingWagon = -1,
+    ops = 0, cost = 0,
+  };
+  if (DECISION_LOG) OpexDecide("V270", "action=wagon line=" + line.lineId + " kind=" + line.kind
+                               + " cargo=" + AICargo.GetCargoLabel(line.cargo) + " old_wagons=" + line.wagons
+                               + " new_wagons=" + newWagons + " platform=" + line.platformLength
+                               + " waiting=" + best.waiting + " wagon_cap=" + best.wagon.capacity
+                               + " speed=" + line.effectiveSpeed.tointeger() + " new_speed=" + newSpeed.tointeger());
+  if (AIVehicle.IsStoppedInDepot(best.vehicle) ||
+      AIMap.DistanceManhattan(AIVehicle.GetLocation(best.vehicle), line.depot)
+          <= RAIL_EXPAND_APPROACH_TILES) this._continueRailExpansion();
+  return true;
+}
+
 /* Avance la transaction sans attente bloquante. Tant que la rame est loin du depot, elle garde
  * ses ordres et son revenu normaux ; l'ordre d'arret temporaire n'est injecte qu'a l'approche. */
 function OpexAI::_continueRailExpansion()
@@ -728,6 +817,7 @@ function OpexAI::_continueRailExpansion()
     line.expandStreak <- 0;
     line.expandBlocked <- true;
     OpexSign(anchor, "EX|" + year + "|" + state.lineId + "|L|" + state.ops + "|0");
+    if (DECISION_LOG) OpexDecide("V270", "action=fail line=" + state.lineId + " reason=length");
     this._railExpansion = null;
     return true;
   }
@@ -756,6 +846,7 @@ function OpexAI::_continueRailExpansion()
   local expansionCount = ("railExpansions" in line) ? line.railExpansions : 0;
   line.railExpansions <- expansionCount + 1;
   line.lastExpansionYear <- AIDate.GetYear(AIDate.GetCurrentDate());
+  if (DECISION_LOG) OpexDecide("V270", "action=done line=" + state.lineId + " wagons=" + state.newWagons + " cost=" + state.cost);
   state.commitStage = "metadata_done";
   state.phase = "resume";
   local resumed = AIVehicle.StartStopVehicle(state.vehicle);
