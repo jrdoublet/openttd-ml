@@ -75,7 +75,7 @@ class TandemSource(unittest.TestCase):
         self.assertIn("AIRail.BuildRailStation(plan.anchor, plan.direction, 1, plan.length, state.stationId)", self.task)
 
     def test_route_audited_without_removing_existing_signals(self):
-        self.assertIn("OpexTraceTrackTiles(line.stationA, line.platformA.lead, line.stationB)", self.geometry)
+        self.assertIn("OpexTraceTrackTiles(line.stationA, line.platformA.lead, line.stationB, true)", self.geometry)
         self.assertIn("route[route.len() - 1] != line.stationB", self.geometry)
         self.assertIn("AIRail.GetSignalType(tile, neighbor) != AIRail.SIGNALTYPE_NONE", self.geometry)
         self.assertIn("neighbor == line.depot", self.geometry)

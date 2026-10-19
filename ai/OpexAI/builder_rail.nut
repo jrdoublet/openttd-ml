@@ -2835,7 +2835,7 @@ function OpexV271IsolatedRoute(line)
 /* 19/10 : raison du refus, journalisee par V271 (le smoke refusait sans dire pourquoi). */
 function OpexV271RouteIssue(line)
 {
-  local route = OpexTraceTrackTiles(line.stationA, line.platformA.lead, line.stationB);
+  local route = OpexTraceTrackTiles(line.stationA, line.platformA.lead, line.stationB, true);
   if (route == null) return "trace";
   if (route[route.len() - 1] != line.stationB) return "trace_end";
   local offsets = [1, -1, AIMap.GetTileIndex(0, 1), -AIMap.GetTileIndex(0, 1)];
@@ -4619,7 +4619,9 @@ function OpexBuildSecondTrain(catalog, line, cashReserve)
 }
 
 /* V181 : Trace les tuiles d'une voie ferree entre la sortie d'une gare et la gare destination. */
-function OpexTraceTrackTiles(startStationTile, leadTile, endStationTile)
+/* 19/10 V271 : crossStructures = traverser ponts et tunnels. AIRail.IsRailTile est faux sur
+ * leurs tetes (script_rail.cpp:34-40) : sans ce drapeau la trace s'arrete au premier pont. */
+function OpexTraceTrackTiles(startStationTile, leadTile, endStationTile, crossStructures = false)
 {
   if (!AIMap.IsValidTile(startStationTile) || !AIMap.IsValidTile(leadTile) ||
       !AIMap.IsValidTile(endStationTile) || !AIRail.IsRailTile(leadTile)) return null;
@@ -4662,8 +4664,23 @@ function OpexTraceTrackTiles(startStationTile, leadTile, endStationTile)
     }
 
     local found = null;
-    foreach (off in offsets) {
+    if (crossStructures && AIMap.DistanceManhattan(prev, cur) > 1) {
+      /* Sortie de pont ou de tunnel : la tuile suivante prolonge la structure. */
+      local dx = AIMap.GetTileX(cur) - AIMap.GetTileX(prev);
+      local dy = AIMap.GetTileY(cur) - AIMap.GetTileY(prev);
+      local step = dx != 0 ? (dx > 0 ? xStep : -xStep) : (dy > 0 ? yStep : -yStep);
+      local next = cur + step;
+      if (AIMap.IsValidTile(next) && (AIRail.IsRailTile(next) || AIBridge.IsBridgeTile(next) || AITunnel.IsTunnelTile(next))) found = next;
+    }
+    if (found == null) foreach (off in offsets) {
       local neighbor = cur + off;
+      if (crossStructures && AIMap.IsValidTile(neighbor) && neighbor != prev &&
+          (AIBridge.IsBridgeTile(neighbor) || AITunnel.IsTunnelTile(neighbor)) &&
+          AITile.HasTransportType(neighbor, AITile.TRANSPORT_RAIL) &&
+          AIMap.DistanceManhattan(prev, cur) == 1 && AIRail.AreTilesConnected(prev, cur, neighbor)) {
+        found = neighbor;
+        break;
+      }
       if (!AIMap.IsValidTile(neighbor) || !AIRail.IsRailTile(neighbor)) continue;
       if (neighbor == prev) continue;
       if (AIRail.IsRailDepotTile(neighbor)) continue;
