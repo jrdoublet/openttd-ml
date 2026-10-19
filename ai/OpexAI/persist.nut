@@ -957,6 +957,7 @@ function OpexAI::_reconcileAfterLoad()
   }
   }
   this._lines = liveLines;
+  if (V279_RESELECT_MEMO != 0) OPEX_LINES_REVISION++;
   OpexV257Reconcile(this);
   /* World validation is rebuilt in bounded steps from these restored lines.
    * Short saves without support cannot revive observations. OFF never generates work. */

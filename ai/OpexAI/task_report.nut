@@ -724,6 +724,7 @@ function OpexAI::_scrapDeadLines(year)
   for (local k = toRemove.len() - 1; k >= 0; k--) {
     this._lines.remove(toRemove[k]);
   }
+  if (toRemove.len() > 0 && V279_RESELECT_MEMO != 0) OPEX_LINES_REVISION++;
   if (toRemove.len() > 0) OpexAir0310InvalidateSiteValidity();
   if (toRemove.len() > 0) this._c76BumpLayer("lines", false);
 }

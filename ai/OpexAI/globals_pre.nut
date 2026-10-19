@@ -708,3 +708,14 @@ const V233_PLAN_LIMIT = 4;
 const V233_PLAN_TTL_DAYS = 90;
 
 const V233_GOODS_MIN_MONTHLY = 64;
+
+/* V279 : re-selection incrementale exacte (0=historique, 1=memoise, 2=controle). */
+V279_RESELECT_MEMO <- 0;
+OPEX_LINES_REVISION <- 0;
+OPEX_AIR_SITE_EPOCH <- 0;
+V279_FILTER_STAMP_ID <- 0;
+V279_LAST_MONTH <- -1;
+V279_LAST_LINES_REV <- -1;
+V279_LAST_SITE_EPOCH <- -1;
+V279_LAST_ABND_COUNT <- -1;
+V279_LAST_HAS_LINES <- null;

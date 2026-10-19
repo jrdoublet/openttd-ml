@@ -404,6 +404,7 @@ class OpexAI extends AIController {
     this._budget = OpexBudget();
     this._catalog = OpexCatalog();
     this._lines = [];
+    if (V279_RESELECT_MEMO != 0) OPEX_LINES_REVISION++;
     this._pendingLines = null;
     this._abandonedPairs = {};
     this._abandonCounts = {};
