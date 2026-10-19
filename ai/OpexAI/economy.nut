@@ -478,12 +478,15 @@ function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPl
   /* V212 : recalage pax applique APRES le choix du nombre de trains, pour ne deplacer que le
    * classement et le budget, jamais la rame ni la double voie. Le devis remplace ensuite le
    * capital (OpexApplyRailActualCapital) : la garde de tresorerie reste sur le cout reel. */
-  if (kind == "pax" && (V212_RAIL_PAX_REVENUE_PCT != 100 || V212_RAIL_PAX_CAPITAL_PCT != 100)) {
+  /* V275 bit 2 : le recalage V212 qualifie en rail seul (150/85), rejoue sous V275. */
+  local v212Revenue = (V275_RAIL_PAX_MM & 2) ? 150 : V212_RAIL_PAX_REVENUE_PCT;
+  local v212Capital = (V275_RAIL_PAX_MM & 2) ? 85 : V212_RAIL_PAX_CAPITAL_PCT;
+  if (kind == "pax" && (v212Revenue != 100 || v212Capital != 100)) {
     /* Le recalage porte sur le revenu ; le profit en decoule comme dans
      * OpexApplyRailActualCapital, pour rester coherent apres le devis. */
-    result.revenueAnnual = (result.revenueAnnual * V212_RAIL_PAX_REVENUE_PCT) / 100;
+    result.revenueAnnual = (result.revenueAnnual * v212Revenue) / 100;
     result.profitAnnual = result.revenueAnnual - result.runningAnnual - result.amortAnnual;
-    result.capital = (result.capital * V212_RAIL_PAX_CAPITAL_PCT) / 100;
+    result.capital = (result.capital * v212Capital) / 100;
     local totalCapital = result.capital + result.immobilise;
     result.roi = (result.profitAnnual > 0 && totalCapital > 0)
         ? (result.profitAnnual * 1000) / totalCapital : 0;

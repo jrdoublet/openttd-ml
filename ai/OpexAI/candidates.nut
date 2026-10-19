@@ -965,10 +965,26 @@ function OpexPaxCandidates(catalog, lines, out, stats, abandonedPairs = null, pr
 {
   local cargo = catalog.paxCargo;
   if (cargo < 0) return;
+  /* V275 bit 4 : l'aerien d'abord. Les premieres annees, la caisse borne et un avion rend
+   * plus par livre ; le rail voyageurs attend la 3e annee. Inerte en rail seul. */
+  if ((V275_RAIL_PAX_MM & 4) && MODE_AIR
+      && OPEX_START_YEAR >= 0 && AIDate.GetYear(AIDate.GetCurrentDate()) < OPEX_START_YEAR + 2) return;
   local towns = catalog.towns;
   local n = towns.len();
   local produced = [];
   local served = [];
+  /* V275 bit 1 : villes ou nous avons deja un aeroport. Le rail y partagerait les memes
+   * maisons que nos avions (V216 : 84 % du deficit rail voyageurs vient de nos modes). */
+  local airTowns = null;
+  if (V275_RAIL_PAX_MM & 1) {
+    airTowns = {};
+    foreach (line in lines) {
+      if (!("mode" in line) || line.mode != "air") continue;
+      if (("scrapping" in line) && line.scrapping) continue;
+      airTowns.rawset(line.originA, true);
+      airTowns.rawset(line.originB, true);
+    }
+  }
   local preparationMark = profile != null ? OpexOpsMeasureBegin() : null;
   for (local i = 0; i < n; i++) {
     local p = AITown.GetLastMonthProduction(towns[i].id, cargo);
@@ -1019,6 +1035,10 @@ function OpexPaxCandidates(catalog, lines, out, stats, abandonedPairs = null, pr
       local sa = served[a];
       local sb = served[b];
       if (sa != null || sb != null) {
+        stats.pairsOriginServed++;
+        continue;
+      }
+      if (airTowns != null && ((towns[a].tile in airTowns) || (towns[b].tile in airTowns))) {
         stats.pairsOriginServed++;
         continue;
       }

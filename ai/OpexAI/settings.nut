@@ -123,6 +123,8 @@ function OpexLoadSettings()
   V207_RAIL_PAX_JOINED_STOPS = (v207Stops != null && v207Stops >= 0 && v207Stops <= 4) ? v207Stops : 0;
   local v207Rank = AIController.GetSetting("v207_rail_pax_site_rank_pct");
   V207_RAIL_PAX_SITE_RANK_PCT = (v207Rank != null && v207Rank >= 0 && v207Rank <= 100) ? v207Rank : 0;
+  local v275 = AIController.GetSetting("v275_rail_pax_mm");
+  V275_RAIL_PAX_MM = (v275 != null && v275 >= 0 && v275 <= 7) ? v275 : 0;
   local v190Delay = AIController.GetSetting("v190_rail_double_delay");
   if (v190Delay == null || v190Delay < 0) v190Delay = 0;
   V190_FROM_YEAR = AIDate.GetYear(AIDate.GetCurrentDate()) + v190Delay;

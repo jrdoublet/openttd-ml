@@ -52,6 +52,8 @@ V207_RAIL_PAX_SITE_RANK_PCT <- 0;
  * perdant en partie complete (16/10 : -244 k/an, p=0,027, l'aerien recule de 20 %) : defaut 100. */
 V212_RAIL_PAX_REVENUE_PCT <- 100;
 V212_RAIL_PAX_CAPITAL_PCT <- 100;
+/* V275 : masque rail voyageurs en multimodal (voir info.nut). */
+V275_RAIL_PAX_MM <- 0;
 /* V214 : couts de virage du A* rail a la AAAHogEx (pathfinder.nut, InitializeParameters/__Cost).
  * Defaut 300/1500 adopte sur decision utilisateur le 16/10 apres B 20x10 positif,
  * avec portes A 40x3 et 40x5 non qualifiees. 0 = historique (50 a chaque changement de direction,
