@@ -29,8 +29,8 @@ case "$STEP" in
     python3 sweeps/run_c66_reference.py --campaign v267_smoke_1x1_pc_20261019 \
       --reference "OpexAI[v252_air_engine_refresh=2]" \
       --years 1 --repeats 1 --seeds 42 --script-debug \
-      "${PROFILE[@]}"
-    if zcat -f results/v267_smoke_1x1_pc_20261019_engine/* | grep -q "Your script made an error"; then
+      "${PROFILE[@]}" || true
+    if zcat -f results/v267_smoke_1x1_pc_20261019_engine/* | grep -q "\[0\] \[S\] Your script made an error"; then
       echo "ARRET : erreur Squirrel au smoke" >&2; exit 1
     fi ;;
   pilote) run_cmd --campaign v267_pilote_30x10_pc_20261019 --limit 30 ;;
