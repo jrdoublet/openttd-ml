@@ -124,7 +124,16 @@ function OpexLoadSettings()
   local v207Rank = AIController.GetSetting("v207_rail_pax_site_rank_pct");
   V207_RAIL_PAX_SITE_RANK_PCT = (v207Rank != null && v207Rank >= 0 && v207Rank <= 100) ? v207Rank : 0;
   local v275 = AIController.GetSetting("v275_rail_pax_mm");
-  V275_RAIL_PAX_MM = (v275 != null && v275 >= 0 && v275 <= 7) ? v275 : 0;
+  V275_RAIL_PAX_MM = (v275 != null && v275 >= 0 && v275 <= 15) ? v275 : 0;
+  /* V275 bit 8 : aerien actif, tout le paquet rail voyageurs reste inerte. En multimodal,
+   * meme garde par les bits 1 et 4, il prend au fret son creneau rail (3x10 du 19/10). */
+  if ((V275_RAIL_PAX_MM & 8) && MODE_AIR) {
+    V207_RAIL_PAX_SHARE_PCT = 0;
+    V207_RAIL_MAIL = false;
+    V207_RAIL_PAX_JOINED_STOPS = 0;
+    V207_RAIL_PAX_SITE_RANK_PCT = 0;
+    V275_RAIL_PAX_MM = 0;
+  }
   local v190Delay = AIController.GetSetting("v190_rail_double_delay");
   if (v190Delay == null || v190Delay < 0) v190Delay = 0;
   V190_FROM_YEAR = AIDate.GetYear(AIDate.GetCurrentDate()) + v190Delay;

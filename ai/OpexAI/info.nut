@@ -658,8 +658,8 @@ class OpexAIInfo extends AIInfo {
     });
     AddSetting({
       name = "v275_rail_pax_mm",
-      description = "V275: passenger rail compatible with air (bitmask): 1 = no passenger rail pair touching a town served by one of our airports, 2 = V212 recalibration (revenue 150 %, capital 85 %), 4 = with air enabled, no passenger rail candidate before the third year; 0 = off (default)",
-      min_value = 0, max_value = 7,
+      description = "V275: passenger rail compatible with air (bitmask): 1 = no passenger rail pair touching a town served by one of our airports, 2 = V212 recalibration (revenue 150 %, capital 85 %), 4 = with air enabled, no passenger rail candidate before the third year, 8 = with air enabled, the whole passenger rail package (V207 and V275) stays off; 0 = off (default)",
+      min_value = 0, max_value = 15,
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
       step_size = 1,

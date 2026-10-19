@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# V275 : paquet rail voyageurs (V207 part 40 + courrier + 2 arrets joints) + v275_rail_pax_mm=7
-# (pas de rail voyageurs vers nos villes a aeroport, recalage V212 150/85, aerien d'abord 2 ans),
+# V275 : paquet rail voyageurs (V207 part 40 + courrier + 2 arrets joints) + v275_rail_pax_mm=15
+# (pas de rail voyageurs vers nos villes a aeroport, recalage V212 150/85, aerien d'abord 2 ans ;
+# bit 8 : paquet entier inerte quand l'aerien est actif),
 # contre le master. A lancer depuis la racine d'un checkout de la branche v275, sur le PC.
 #   GATE=A (defaut) : smoke 1 graine x 1 an, puis porte A gain_short 40 graines x 3 ans
 #                     (Wilcoxon, IC95 bootstrap, seuil relatif 4 %, garde de valeur 5 %) ;
@@ -21,7 +22,7 @@ if [ "${RAILSEUL:-0}" = 1 ]; then
        --aaahogex-setting disable_veh_tram=1 --aaahogex-setting disable_veh_ship=1)
   TAG=railseul
 fi
-PAX="v207_rail_pax_share_pct=40,v207_rail_mail=1,v207_rail_pax_joined_stops=2,v275_rail_pax_mm=7"
+PAX="v207_rail_pax_share_pct=40,v207_rail_mail=1,v207_rail_pax_joined_stops=2,v275_rail_pax_mm=15"
 REF="OpexAI[v275_rail_pax_mm=0${MODES}]"
 VAR="OpexAI[${PAX}${MODES}]"
 
