@@ -56,6 +56,7 @@ function OpexResolveDifficulty()
  * restent dans Start(), juste apres l'appel. */
 function OpexLoadSettings()
 {
+  PO01_REACTIVE_SPLIT = AIController.GetSetting("po01_reactive_split") != 0;
   V233_PENDING_CONTINUE = AIController.GetSetting("v233_pending_continue") != 0;
   V233_GOODS_GRAFT = AIController.GetSetting("v233_goods_graft") != 0;
   if (V233_GOODS_GRAFT && !V233_PENDING_CONTINUE) {

@@ -712,3 +712,4 @@ const V233_GOODS_MIN_MONTHLY = 64;
 /* PO-01 : contexte transitoire, jamais sauvegarde. */
 PO01_PROBE_CONTEXT <- null;
 PO01_PROBE_SEQUENCE <- 0;
+PO01_REACTIVE_SPLIT <- false;

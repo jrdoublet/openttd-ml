@@ -603,6 +603,11 @@ function OpexAI::_dispatchReactiveIntention(intention)
     return res;
   }
   if (intention.key == "regen" || intention.kind == "regen") {
+    if (PO01_REACTIVE_SPLIT) {
+      /* Une demande pendant le calcul rejoint le prochain snapshot, jamais celui en cours. */
+      this._po01Pending = true;
+      return true;
+    }
     {
       sp = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.orch.reactive.regen") : null;
       local date = AIDate.GetCurrentDate();

@@ -13,6 +13,11 @@ class OpexAIInfo extends AIInfo {
    * Entre IA, la regle est de jouer a armes egales, sans auto-handicap. */
   function GetSettings()
   {
+    AddSetting({ name = "po01_reactive_split",
+      description = "PO-01: resumable reactive regeneration by dependency (prototype, default off)",
+      min_value = 0, max_value = 1, default_value = 0,
+      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
+      flags = AICONFIG_BOOLEAN });
     AddSetting({ name = "v257_rail_refresh",
       description = "V257: review existing rail consists using observed traffic and replacement payback (default 1 since 19/10, user decision)",
       min_value = 0, max_value = 1, default_value = 1,

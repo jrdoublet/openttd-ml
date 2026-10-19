@@ -319,6 +319,10 @@ function OpexC78ContinueCatalogAirRebuild(owner, task, year)
 
 function OpexAI::_dispatchCatalog(task, year)
 {
+  /* PO-01 detient un catalogue prive ; ne pas ouvrir une generation AIR concurrente.
+   * A 0 : aucun appel ajoute. A 1 : aucune echeance annuelle rail/route pendant AIR. */
+  if (PO01_REACTIVE_SPLIT && this._po01Job != null) return false;
+
   if (MODE_AIR) {
     if (this._generationStageMonth < 0)
       this._generationStageMonth = year * 12 + AIDate.GetMonth(AIDate.GetCurrentDate());

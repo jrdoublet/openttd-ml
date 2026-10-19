@@ -156,6 +156,9 @@ class OpexAI extends AIController {
   _v184SlotCursor = 0;
   /* C80 : orchestrateur à double registre (intentions réactives et registre d'exécution). */
   _reactiveQueue = null;
+  _po01Job = null;
+  _po01Pending = false;
+  _po01LastTick = -1;
   _activeWorker = null;
   _railWorkerSteppedThisTick = false;
   /* C80 étape 1 : table des tracés rail prêts validés par les workers, indexée par pairKey.
@@ -671,6 +674,7 @@ require("lines.nut");
 require("goods_v233.nut");
 require("orchestrator.nut");
 require("po01_reactive.nut");
+require("po01_generators.nut");
 require("persist.nut");
 require("probes.nut");
 require("probe_v216.nut");
@@ -708,6 +712,7 @@ function OpexAI::Start()
     this._taskQueue.append({ name = "v252_air_engine_refresh", dueCycle = 0, enabled = V252_AIR_ENGINE_REFRESH == 2 });
     this._taskQueue.append({ name = "v250_rights", dueCycle = 0, enabled = V250_RIGHTS > 0 });
   }
+  if (PO01_REACTIVE_SPLIT) OpexPO01ExtendQueue(this);
 
   if (!STAGED_BOOTSTRAP) this._generationStage = OPEX_STAGE_COMPLETE;
 

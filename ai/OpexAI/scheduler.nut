@@ -246,6 +246,7 @@ function OpexAI::_runNextTask()
     return ranTask;
   }
   if (task.name == "c41_water") return false;
+  if (PO01_REACTIVE_SPLIT && task.name == "po01_reactive") return OpexPO01Step(this);
   if (this._projects == null) {
     /* `_taskCycle` (et non `+ 1`) laissait la tache due au cycle COURANT. Or le cycle n'avance que
      * lorsque le balayage depuis _taskCursor ne trouve plus rien de du : une tache qui reste

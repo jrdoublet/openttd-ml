@@ -163,14 +163,16 @@ function OpexApplyGeneratedModeProjects(projects, generated, abandonedPairs, mod
 }
 
 function OpexRegenerateModeProjects(projects, catalog, budget, lines, abandonedPairs, mode,
-                                    waterSiteCatalog = null, entityKind = null, entityId = -1)
+                                    waterSiteCatalog = null, entityKind = null, entityId = -1,
+                                    completedGeneration = null)
 {
   if (projects == null || !(("candidateGroups" in projects)) || projects.candidateGroups == null) {
     return projects;
   }
   local spMode = PROBE_SPAN_TRACE ? OpexSpanBegin("regen.mode") : null;
-  local generated = OpexGenerateModeProjects(projects, catalog, budget, lines, abandonedPairs,
-                                             mode, waterSiteCatalog, entityKind, entityId);
+  local generated = completedGeneration != null ? completedGeneration
+      : OpexGenerateModeProjects(projects, catalog, budget, lines, abandonedPairs,
+                                 mode, waterSiteCatalog, entityKind, entityId);
   local applied = OpexApplyGeneratedModeProjects(projects, generated, abandonedPairs, mode,
                                         entityKind, entityId, lines);
   if (spMode != null) OpexSpanEnd(spMode);
@@ -182,7 +184,8 @@ function OpexRegenerateModeProjects(projects, catalog, budget, lines, abandonedP
  * opsBudget/deadlineTick et reprend exactement au curseur combo/a/b. */
 function OpexRegenerateAirProjectsSlice(projects, catalog, budget, lines, abandonedPairs,
                                         sliceState, opsBudget, deadlineTick,
-                                        entityKind = null, entityId = -1, c83Race = false)
+                                        entityKind = null, entityId = -1, c83Race = false,
+                                        completedResult = null)
 {
   if (projects == null || !(("candidateGroups" in projects)) || projects.candidateGroups == null) {
     return { done = true, projects = projects };
@@ -235,6 +238,13 @@ function OpexRegenerateAirProjectsSlice(projects, catalog, budget, lines, abando
         + " searched=" + (repair != null ? repair.targetSearched : 0)
         + " partners=" + (repair != null ? repair.partners : 0)
         + " ops=" + sliceState.ops + " ticks=" + (AIController.GetTick() - sliceState.c83StartTick));
+  }
+  /* PO-01 garde le resultat brut : aucune selection ni mutation des projets vivants
+   * avant la publication du lot entier. Les appelants historiques gardent leur chemin. */
+  if (completedResult != null) {
+    completedResult.generated <- generated;
+    if (spAirSlice != null) OpexSpanEnd(spAirSlice);
+    return { done = true, projects = projects };
   }
   local appliedAir = OpexApplyGeneratedModeProjects(projects, generated, abandonedPairs, "air",
                                               entityKind, entityId, lines);

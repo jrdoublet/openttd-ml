@@ -757,6 +757,11 @@ function OpexAI::Save()
 }
 function OpexAI::Load(version, data)
 {
+  /* Les generateurs et les lots prives ne sont pas serialisables. Le filet Load C76
+   * reconstruit le portefeuille ; aucun acquittement anticipe n'a ete sauvegarde. */
+  this._po01Job = null;
+  this._po01Pending = false;
+  this._po01LastTick = -1;
   this._v233Plans = null;
   this._v233Offers = null;
   this._v233Generation = null;
