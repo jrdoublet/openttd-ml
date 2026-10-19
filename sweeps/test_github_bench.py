@@ -84,7 +84,8 @@ class MakePlanTests(OfflineTestCase):
 
     def test_gain_short_profile_and_legacy_request_rejection(self):
         plan = bench.make_plan(environment(BENCH_MODE="paired", BENCH_PROFILE="gain_short", BENCH_VARIANT=VARIANT))
-        self.assertEqual((plan["years"], plan["expected_games"], plan["seeds"]), (3, 80, None))
+        self.assertEqual((plan["years"], plan["expected_games"], plan["seeds"]), (3, 80, bench.SEEDS_40))
+        self.assertNotIn(73, plan["seeds"])
         command = bench.command_for(plan)
         self.assert_option(command, "--decision-rule", "gain_short")
         self.assert_option(command, "--required-seeds", 40)
@@ -120,11 +121,12 @@ class MakePlanTests(OfflineTestCase):
                     self.assertEqual(plan["expected_games"],
                                      len(seeds) * (2 if mode == "paired" else 1))
 
-    def test_non_erosion_defers_canonical_seeds_to_harness(self):
+    def test_non_erosion_pins_canonical_seeds_without_73(self):
         plan = bench.make_plan(environment(
             BENCH_MODE="paired", BENCH_PROFILE="non_erosion", BENCH_VARIANT=VARIANT))
         self.assertEqual(plan["years"], 10)
-        self.assertIsNone(plan["seeds"])
+        self.assertEqual(plan["seeds"], bench.SEEDS)
+        self.assertNotIn(73, plan["seeds"])
         self.assertEqual(plan["expected_games"], 40)
 
     def test_custom_accepts_mixed_separators_and_uint32_endpoints(self):
@@ -309,10 +311,11 @@ class CommandForTests(OfflineTestCase):
                 self.assertEqual(command[start:start + 5], ["42", "100", "999", "1234", "5678"])
                 self.assertIn("--line-telemetry", command)
 
-    def test_non_erosion_omits_seeds_and_keeps_two_workers(self):
+    def test_non_erosion_pins_seeds_and_keeps_two_workers(self):
         command = bench.command_for(bench.make_plan(environment(
             BENCH_MODE="paired", BENCH_PROFILE="non_erosion", BENCH_VARIANT=VARIANT)))
-        self.assertNotIn("--seeds", command)
+        start = command.index("--seeds") + 1
+        self.assertEqual(command[start:start + 20], [str(seed) for seed in bench.SEEDS])
         self.assertNotIn("--line-telemetry", command)
         self.assert_option(command, "--years", 10)
         self.assert_option(command, "--max-workers", 2)

@@ -3032,12 +3032,12 @@ def selftest():
         "STNN": {
             0: {"normal": {"base": {"owner": 1, "town": 10, "facilities": 8, "xy": 1000},
                            "goods": [
-                               {"status": 1, "time_since_pickup": 5, "rating": 120, "max_waiting_cargo": 40},
+                               {"status": 3, "time_since_pickup": 5, "rating": 120, "max_waiting_cargo": 40},
                                {"status": 0, "time_since_pickup": 255, "rating": 175, "max_waiting_cargo": 0},
                            ]}},
             1: {"normal": {"base": {"owner": 1, "town": 20, "facilities": 8, "xy": 2000},
                            "goods": [
-                               {"status": 1, "time_since_pickup": 9, "rating": 90, "max_waiting_cargo": 80},
+                               {"status": 3, "time_since_pickup": 9, "rating": 90, "max_waiting_cargo": 80},
                                {"status": 0, "time_since_pickup": 255, "rating": 175, "max_waiting_cargo": 0},
                            ]}},
         },
@@ -3085,6 +3085,7 @@ def selftest():
             "cargo": {
                 "0": {
                     "rated": True,
+                    "accepts": True,
                     "rating": 120,
                     "time_since_pickup": 5,
                     "max_waiting_cargo": 40,
@@ -3102,6 +3103,7 @@ def selftest():
             "cargo": {
                 "0": {
                     "rated": True,
+                    "accepts": True,
                     "rating": 90,
                     "time_since_pickup": 9,
                     "max_waiting_cargo": 80,

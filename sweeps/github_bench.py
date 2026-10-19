@@ -20,6 +20,8 @@ import tarfile
 import tempfile
 from urllib.request import Request, urlopen
 
+from qualification import SEEDS, SEEDS_40
+
 
 ROOT = Path(__file__).resolve().parents[1]
 AAAHOGEX_URL = (
@@ -57,7 +59,8 @@ def make_plan(env):
     elif profile in ("gain_short", "non_erosion"):
         if mode != "paired":
             raise ValueError("Les portes V102 exigent paired")
-        years, seeds = (3 if profile == "gain_short" else 10), None
+        # Graines explicites (73 remplacee) plutot que celles du harnais hote.
+        years, seeds = (3, list(SEEDS_40)) if profile == "gain_short" else (10, list(SEEDS))
     elif profile == "custom":
         years = int(custom_years)
         seeds = [int(value) for value in custom_seeds.replace(",", " ").split()]
