@@ -28,6 +28,7 @@ Exemples (parcours complet : sweeps/run_v267_pc.sh) :
 from __future__ import annotations
 
 import argparse
+import gzip
 import json
 import math
 import random
@@ -259,7 +260,9 @@ def coverage_seeds(quotas: dict, per_tail: int, budget: int) -> tuple[list[int],
 def load_maps(paths: list[str]) -> dict[int, dict[str, float]]:
     out = {}
     for path in paths:
-        for line in Path(path).read_text().splitlines():
+        raw = Path(path).read_bytes()
+        text = (gzip.decompress(raw) if path.endswith(".gz") else raw).decode()
+        for line in text.splitlines():
             if line.strip():
                 row = json.loads(line)
                 seed = row.pop("seed")

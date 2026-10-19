@@ -16,6 +16,8 @@ STEP="${1:?smoke|maps|pop|main|select}"
 MAPS="${MAPS:-3000}"
 COUNT="${COUNT:-300}"
 MAPS_FILE="results/v267_maps_${MAPS}.jsonl"
+# Criblage VPS du 19/10 (3000 cartes, init 20261019) versionne : l'etape maps est facultative.
+[ -f "$MAPS_FILE" ] || [ "$MAPS" != 3000 ] || MAPS_FILE="sweeps/v267_data/v267_maps_3000.jsonl.gz"
 POP_FILE="results/v267_pop_${COUNT}.txt"
 CTRL=(--no-control)
 [ "${CONTROL:-0}" = "1" ] && CTRL=()
