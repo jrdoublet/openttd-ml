@@ -159,6 +159,7 @@ class OpexAI extends AIController {
   _po01Job = null;
   _po01Pending = false;
   _po01LastTick = -1;
+  _po01AirWaitSince = -1;
   _activeWorker = null;
   _railWorkerSteppedThisTick = false;
   /* C80 étape 1 : table des tracés rail prêts validés par les workers, indexée par pairKey.

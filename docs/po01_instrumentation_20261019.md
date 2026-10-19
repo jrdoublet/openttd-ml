@@ -77,8 +77,9 @@ nouvelles gardes ajoutent des opcodes et les deux bras doivent partager le code.
 
 À 1, le dispatch pose un booléen coalescé. Une entrée ajoutée **après toutes les
 entrées existantes** (`main.nut:715`, `scheduler.nut:249`) porte le calcul de fond.
-`po01_reactive.nut:195` attend un portefeuille, la fin du bootstrap, la fin des
-phases C78 **scan/publish/apply**, et l’absence de worker actif. Aucun rafraîchissement
+`po01_reactive.nut:195` attend un portefeuille, la fin du bootstrap,
+l’absence de worker actif et la disponibilité de C78
+**scan/publish/apply**, avec le repli borné ajouté ci-dessous. Aucun rafraîchissement
 annuel rail/route n’est ajouté pendant AIR : V143 n’est pas réintroduit. Le scan
 AIR C78 peut absorber les révisions avant le départ du lot ; dans ce cas, la
 demande devient inutile et est retirée sans nouvelle reconstruction.
@@ -128,7 +129,7 @@ Les API du monde restent vivantes pendant le calcul ; le snapshot couvre les
 le retard des demandes coalescées, la starvation et le coût mémoire des
 générateurs/copies restent à mesurer. Aucune équivalence économique n’est prouvée.
 
-Validation exécutée : **19 contrats PO-01 verts** ; suite complète : **2 101 tests,
+Validation initiale (avant PO-01b) : **19 contrats PO-01 verts** ; suite complète : **2 101 tests,
 2 082 succès ordinaires, 3 ignorés, 3 échecs attendus, 12 erreurs et 1 échec**.
 Les 13 anomalies sont les mêmes que sur `master` (2 082 tests) et proviennent de
 l’absence de `ai/AAAHogEx-115/info.nut` dans ce worktree. Les tests ne sont pas
@@ -142,3 +143,63 @@ Le smoke d’un an ne suffira probablement pas à exposer PO-01, qui attend la f
 du scan AIR initial (27 mois sur une graine historique). Prévoir ensuite les
 vrais événements villes/lignes/moteurs AIR, un Save/Load en cours de lot et les
 mesures d’opcodes par reprise, avant toute qualification économique.
+
+
+## Correctif PO-01b — famine constatée dans le moteur
+
+Constat fourni par Claude : exposition `po01_expo_3x3_20261019_4489ed2b`
+(42, 100, 7 × 3 ans, split 0/1, `decision_log=1,probes=10`), journaux
+`results/po01_expo_3x3_20261019_4489ed2b_engine/`. Référence : une reconstruction
+réactive par partie au 01/01/1972 ; variante : aucune publication PO-01.
+La sonde temporaire `results/po01_dbg_42x3_20261019_engine/` identifie seulement
+`OpexPO01AirPending` comme verrou. Ce constat est fourni, pas remesuré ici.
+
+Explication vérifiée dans le code :
+
+- `scheduler_tasks.nut:42` installe `c78AirRebuild`. Les fonctions aux lignes
+  87, 101 et 125 sélectionnent les phases V147 sans retirer cet état.
+  Les publications partielles effacent `partialPending`, pas `c78AirRebuild`
+  (ligne 204) ; seul l’apply final le supprime (ligne 238).
+- `main.nut:836` poursuit les tranches dès que le moteur dispose d’opcodes ;
+  cette présence en file n’est donc pas une courte transaction de publication.
+- `orchestrator.nut:595` n’attend pas C78 dans le dispatch historique : il appelle
+  `_c76DoFullRegen("reactive")` (ligne 618), qui rafraîchit le catalogue puis
+  reconstruit le portefeuille (ligne 1214). `_rebuildProjects`,
+  `task_projects.nut:2014–2035`, recycle le lot AIR courant si le pool de villes
+  dépasse 64 et si C78 est présent ; il n’attend pas la fin de son scan.
+
+Choix : **repli historique complet après 30 jours de jeu** depuis le premier
+passage admissible bloqué par AIR. À l’échéance, le premier passage admissible
+traite la demande même si C78 est toujours présent, dans n’importe quelle phase.
+Le délai n’est pas réarmé par les intentions coalescées. Si AIR disparaît avant,
+le lot PO-01 normal démarre ; si les révisions ont déjà été absorbées, la demande
+est retirée sans travail redondant. Les protections bootstrap, budget, worker et
+invalidation restent prioritaires : aucune borne absolue de délai n’est promise
+si ces autres prérequis restent bloqués.
+
+Ce choix conserve l’exclusion entre un lot privé PO-01 et C78/V147 et évite
+une nouvelle politique de publications concurrentes ou d’acquittements partiels.
+Il ne déclenche aucun rafraîchissement annuel V143 : une intention et des révisions
+sales sont nécessaires. Compromis explicite : le repli conserve le coût synchrone
+historique ; ce correctif garantit la progression face au verrou AIR, pas un gain
+d’opcodes ni un bornage strict. Aucun calcul physique C115 n’est modifié.
+
+`_po01AirWaitSince` est transitoire, déclaré dans `main.nut:162`, réinitialisé
+au Load (`persist.nut:765`) et lors d’une invalidation. Aucun nouvel état Save.
+Le défaut reste 0 ; aucun site d’appel du chemin OFF n’est modifié.
+La sonde gardée `PO01_FALLBACK reason=air_wait days=30` identifie le seuil du repli,
+avec le contexte de causes et les coûts historiques existants.
+
+Validation PO-01b : contrat source de l’échéance, du non-réarmement, des gardes et
+du repli ; modèle de progression avec demandes quotidiennes coalescées et C78
+permanent dans chacune des phases primary/fallback/publication/apply ; Load
+vérifié statiquement. Ces tests Python ne compilent pas Squirrel.
+Aucun banc, Docker ni moteur lancé, conformément à la demande.
+
+Résultats PO-01b : **2 103 tests, OK (3 ignorés, 3 échecs attendus)**,
+23,397 s ; les 13 anomalies liées à AAAHogEx absent ont disparu. **21 contrats
+PO-01**, dont les deux nouveaux contrats anti-famine. `undecl.py` ne rapporte
+que les deux symboles NoAI externes déjà connus (`AICONFIG_BOOLEAN`,
+`CONFIG_BOOLEAN`) ; `delim.py` ne rapporte aucun diagnostic.
+`git diff --check` est propre. Compilation et exposition moteur du correctif,
+Save/Load réel, gain d’opcodes et effet économique restent non mesurés.

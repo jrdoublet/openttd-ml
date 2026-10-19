@@ -201,20 +201,45 @@ function OpexPO01Step(owner)
     /* Ne pas bloquer le filet de surete catalogue avec un lot devenu inutilisable. */
     if (owner._po01Job != null) owner._po01Pending = true;
     owner._po01Job = null;
+    owner._po01AirWaitSince = -1;
     return false;
   }
-  /* Ne jamais remplacer/devancer scan, publish OU apply AIR, ni ouvrir rail/route
-   * entre deux tranches du scan initial (V143 reste exclu). */
-  if (OpexPO01AirPending(owner) || owner._activeWorker != null
+  if (owner._activeWorker != null
       || owner._projects == null || owner._catalog == null
       || owner._c76Revisions == null || owner._c76AckRevisions == null
       || (STAGED_BOOTSTRAP && owner._generationStage < OPEX_STAGE_COMPLETE)
       || (MODE_AIR && AIDate.GetYear(AIDate.GetCurrentDate()) == OPEX_START_YEAR)) return false;
   if (owner._po01Job == null) {
-    if (!owner._po01Pending) return false;
+    if (!owner._po01Pending) { owner._po01AirWaitSince = -1; return false; }
     local description = OpexPO01Describe(owner);
+    if (description.layers.len() == 0) {
+      owner._po01Pending = false;
+      owner._po01AirWaitSince = -1;
+      return false;
+    }
+    /* C78 peut rester en file presque continuellement. Ne pas entrelacer son
+     * scan/publish/apply avec un lot prive PO-01 : 30 jours apres le premier
+     * passage admissible bloque,
+     * reprendre la transaction historique, qui sait reconstruire pendant C78
+     * (reutilisation du lot AIR courant sur grande carte dans _rebuildProjects).
+     * Les intentions coalescees ne repoussent jamais cette echeance.
+     * Aucun refresh periodique V143 : il faut une demande ET une revision sale. */
+    if (OpexPO01AirPending(owner)) {
+      local date = AIDate.GetCurrentDate();
+      if (owner._po01AirWaitSince < 0) owner._po01AirWaitSince = date;
+      if (date - owner._po01AirWaitSince < 30) return false;
+      owner._po01Pending = false;
+      owner._po01AirWaitSince = -1;
+      if (C39_INVALIDATION_PROBE || DECISION_LOG) {
+        OpexPO01ProbeBegin(owner);
+        OpexDecide("PO01_FALLBACK", PO01_PROBE_CONTEXT + " reason=air_wait days=30");
+      }
+      owner._c76DoFullRegen("reactive", AIDate.GetYear(date));
+      PO01_PROBE_CONTEXT = null;
+      return true;
+    }
+    owner._po01AirWaitSince = -1;
     owner._po01Pending = false;
-    if (description.layers.len() == 0) return false;
     /* Snapshot AVANT refresh/calcul. Les demandes tardives restent dans _po01Pending. */
     local snapshot = OpexAC06CaptureRevisionNumbers(owner);
     local modes = [];

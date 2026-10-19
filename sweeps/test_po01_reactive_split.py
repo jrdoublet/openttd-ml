@@ -69,7 +69,9 @@ class SourceContract(unittest.TestCase):
         src = read("po01_reactive.nut")
         step = body(src, "function OpexPO01Step(")
         start = body(step, "if (owner._po01Job == null)")
-        self.assertIn("if (!owner._po01Pending) return false;", start)
+        idle = body(start, "if (!owner._po01Pending)")
+        self.assertIn("return false;", idle)
+        self.assertIn("owner._po01AirWaitSince = -1;", idle)
         self.assertIn("owner._po01Pending = false;", start)
         self.assertNotIn("_enqueueReactive", step)
         self.assertIn("owner._po01LastTick == tick", step)
@@ -90,6 +92,23 @@ class SourceContract(unittest.TestCase):
         self.assertIn("OpexRegenerateAirProjectsSlice", step)
         self.assertNotIn("OpexAirPlans(", step)
 
+    def test_persistent_air_queue_has_bounded_fallback(self):
+        step = body(read("po01_reactive.nut"), "function OpexPO01Step(")
+        start = body(step, "if (owner._po01Job == null)")
+        wait = body(start, "if (OpexPO01AirPending(owner))")
+        self.assertIn("if (owner._po01AirWaitSince < 0) owner._po01AirWaitSince = date;", wait)
+        self.assertIn("if (date - owner._po01AirWaitSince < 30) return false;", wait)
+        self.assertIn('owner._c76DoFullRegen("reactive", AIDate.GetYear(date));', wait)
+        self.assertIn("owner._po01Pending = false;", wait)
+        self.assertIn("owner._po01AirWaitSince = -1;", wait)
+        self.assertIn('OpexDecide("PO01_FALLBACK"', wait)
+        self.assertLess(start.index("description.layers.len() == 0"), start.index("OpexPO01AirPending"))
+        dispatch = body(read("orchestrator.nut"), "if (PO01_REACTIVE_SPLIT)")
+        self.assertNotIn("_po01AirWaitSince", dispatch)
+        # Le repli est reserve aux demandes, apres les gardes bootstrap/worker.
+        self.assertLess(step.index("owner._activeWorker != null"), step.index("OpexPO01AirPending"))
+        self.assertLess(start.index("if (!owner._po01Pending)"), start.index("OpexPO01AirPending"))
+
     def test_only_finished_generation_published_on_current_capital(self):
         src = read("po01_reactive.nut")
         publish = body(src, "function OpexPO01Publish(")
@@ -108,7 +127,7 @@ class SourceContract(unittest.TestCase):
     def test_load_discards_generators_before_null_data_and_keeps_safety(self):
         persist = read("persist.nut")
         load = body(persist, "function OpexAI::Load(")
-        for line in ("this._po01Job = null;", "this._po01Pending = false;", "this._po01LastTick = -1;"):
+        for line in ("this._po01Job = null;", "this._po01Pending = false;", "this._po01LastTick = -1;", "this._po01AirWaitSince = -1;"):
             self.assertIn(line, load)
             self.assertLess(load.index(line), load.index("if (data == null) return;"))
         save = body(persist, "function OpexAI::Save(")
@@ -181,6 +200,30 @@ def affected(layers):
 
 
 class TransitionModel(unittest.TestCase):
+    def test_air_queued_forever_cannot_starve_coalesced_request(self):
+        # SourceContract lie ce modele aux gardes et au delai du Squirrel.
+        for phase in ("primary", "fallback", "partialPending", "apply"):
+            with self.subTest(phase=phase):
+                since = -1
+                pending = True
+                handled = []
+                for date in range(100, 161):
+                    # De nouvelles intentions quotidiennes ne rajeunissent pas l'attente.
+                    if date <= 130:
+                        pending = True
+                    if not pending:
+                        since = -1
+                        continue
+                    if since < 0:
+                        since = date
+                    if date - since < 30:
+                        continue
+                    pending = False
+                    since = -1
+                    handled.append(date)
+                self.assertEqual(handled, [130])
+                self.assertFalse(pending)
+
     def test_air_engine_does_not_regenerate_land_modes(self):
         self.assertEqual(affected({"engines.air"}), {"air", "fleet"})
 

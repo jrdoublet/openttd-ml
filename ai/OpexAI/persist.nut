@@ -762,6 +762,7 @@ function OpexAI::Load(version, data)
   this._po01Job = null;
   this._po01Pending = false;
   this._po01LastTick = -1;
+  this._po01AirWaitSince = -1;
   this._v233Plans = null;
   this._v233Offers = null;
   this._v233Generation = null;
