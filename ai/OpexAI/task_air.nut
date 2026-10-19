@@ -570,6 +570,12 @@ function OpexAI::_resizeAirFleets(year, plan = null)
       if (plan != null && C69_BOTTLENECK_PROBE) OpexC73RecordRejection("fleet", "no_live_aircraft", 1);
       continue;
     }
+    /* V274 : filtre commun aux renforts sous cible C121 et au chemin C14.
+     * A 0 : un seul test entier, aucun appel ni lecture API supplementaire. */
+    if (V274_AIR_GROWTH_STOCK == 1) {
+      if (routesIndex == null) routesIndex = OpexAirBuildRoutesIndex(this._lines);
+      if (!OpexV274AirGrowthStock(line, "plan", this._lines, routesIndex)) continue;
+    }
     local c121BelowTarget = ("targetAirPlanes" in line)
         && line.targetAirPlanes > have;
     local c121FirstLiveEntry = false;

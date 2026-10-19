@@ -67,9 +67,52 @@ function OpexAirBestEngineForLine(line, catalog)
   return bestPlaneId;
 }
 
+/* V274 : une cible theorique et un profit total positif ne prouvent pas que le
+ * prochain avion aura du cargo. Le stock PAR ROUTE doit couvrir un avion aux
+ * DEUX bouts : le meme stock d'un hub ne finance pas chaque liaison en entier.
+ * Aucun etat ajoute : observations relues au plan et a la depense (cache stale).
+ * Capacite des appareils vivants, pas planeCapacity fige avant V252. La plus
+ * grande capacite est prudente en flotte mixte ; ce n'est pas un choix de moteur.
+ * Les deux appelants gardent le test entier hors de cet auxiliaire. */
+function OpexV274AirGrowthStock(line, phase, lines, routesIndex = null)
+{
+  local capacity = 0;
+  if (("vehicles" in line) && line.vehicles != null) {
+    foreach (v in line.vehicles) {
+      if (!AIVehicle.IsValidVehicle(v) || AIVehicle.GetVehicleType(v) != AIVehicle.VT_AIR) continue;
+      local liveCapacity = AIVehicle.GetCapacity(v, line.cargo);
+      if (liveCapacity > capacity) capacity = liveCapacity;
+    }
+  }
+  local stationA = OpexAirLineStationId(line, 0);
+  local stationB = OpexAirLineStationId(line, 1);
+  local waitA = AIStation.IsValidStation(stationA) ? AIStation.GetCargoWaiting(stationA, line.cargo) : -1;
+  local waitB = AIStation.IsValidStation(stationB) ? AIStation.GetCargoWaiting(stationB, line.cargo) : -1;
+  local routesA = routesIndex != null ? OpexAirRoutesIndexAt(line.stationA, routesIndex)
+      : OpexAirLiveRoutesAtAirport(line.stationA, lines);
+  local routesB = routesIndex != null ? OpexAirRoutesIndexAt(line.stationB, routesIndex)
+      : OpexAirLiveRoutesAtAirport(line.stationB, lines);
+  /* Sans inventaire de lignes, pas de preuve de partage du stock. */
+  local allow = capacity > 0 && routesA > 0 && routesB > 0
+      && waitA >= capacity * routesA && waitB >= capacity * routesB;
+  if (DECISION_LOG) OpexDecide("V274", "phase=" + phase
+      + " action=" + (allow ? "allow" : "block")
+      + " line=" + (("lineId" in line) ? line.lineId : -1)
+      + " stationA=" + stationA + " stationB=" + stationB
+      + " cargo=" + line.cargo + " cap=" + capacity
+      + " waitA=" + waitA + " waitB=" + waitB
+      + " routesA=" + routesA + " routesB=" + routesB);
+  return allow;
+}
+
 function OpexAirAddPlane(line, catalog = null, lines = null)
 {
   local result = { added = 0, reason = "" };
+  if (V274_AIR_GROWTH_STOCK == 1) {
+    if (!OpexV274AirGrowthStock(line, "buy", lines)) {
+      result.reason = "V274_STOCK"; return result;
+    }
+  }
   if (!("vehicles" in line) || line.vehicles.len() == 0) {
     result.reason = "NOVEH"; return result;
   }

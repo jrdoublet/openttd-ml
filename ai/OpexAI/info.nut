@@ -693,6 +693,15 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
     AddSetting({
+      name = "v274_air_growth_stock",
+      description = "V274: share observed airport cargo stock across its live AIR routes; require one live aircraft capacity per route at BOTH endpoints before reinforcement, including below the C121 target. Rechecked before purchase. 0 = off (default), 1 = on.",
+      min_value = 0, max_value = 1,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      step_size = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+    AddSetting({
       name = "v259_bridge_renew",
       description = "V259: renew rail (and road) bridges when faster bridge types become available and vehicles are speed-limited; 0 = off (default), 1 = economic renewal triggered on new bridge types",
       min_value = 0, max_value = 1,

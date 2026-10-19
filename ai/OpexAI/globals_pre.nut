@@ -21,6 +21,8 @@ V179_RAIL_GEN_DEST_SERVED <- true;
 /* V264 : fret convergent vers une industrie deja desservie. Defaut vrai depuis le 19/10 (40x10 PC
  * +111,8 k/an sur 39 paires, accepte par derogation utilisateur). 0 = aucun calcul du mecanisme. */
 V264_CONVERGENT_FREIGHT <- true;
+/* V274 : renfort AIR sur stock observe aux deux extremites, jamais sur cible seule. */
+V274_AIR_GROWTH_STOCK <- 0;
 V180_RAIL_WAGON_BOOST_PCT <- 0;
 V180_RAIL_WAGON_BOOST_DELAY <- 0;
 V180_START_YEAR <- -1;
