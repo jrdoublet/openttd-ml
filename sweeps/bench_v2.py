@@ -28,6 +28,7 @@ from pathlib import Path
 import re
 import shutil
 import statistics
+import time
 
 import openttdlab
 from openttdlab import bananas_ai, bananas_ai_library, local_folder, run_experiments
@@ -297,6 +298,22 @@ def arm_notes():
     return None
 
 
+def open_checkpoint_append(path):
+    """Open a shared checkpoint, tolerating brief Windows bind-mount read locks.
+
+    Windows readers (and scanners) can temporarily deny O_APPEND on Docker's
+    bind mount. Retry only the open, for at most five seconds; persistent
+    permissions errors still abort the campaign rather than losing records.
+    """
+    for attempt in range(21):
+        try:
+            return os.open(path, os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o644)
+        except PermissionError:
+            if attempt == 20:
+                raise
+            time.sleep(0.25)
+
+
 def append_checkpoint(record):
     """Ajoute une ligne complete sans reecrire le checkpoint partage par les workers."""
     if CHECKPOINT_PATH is None:
@@ -304,7 +321,7 @@ def append_checkpoint(record):
     encoded = (json.dumps(record, separators=(",", ":")) + "\n").encode("utf-8")
     # O_APPEND evite que deux workers ecrivent au meme offset. Une ligne est petite et ecrite en
     # un appel : un crash laisse au pire sa derniere ligne incomplete, qu'une relecture ligne a ligne ignore.
-    fd = os.open(CHECKPOINT_PATH, os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o644)
+    fd = open_checkpoint_append(CHECKPOINT_PATH)
     try:
         os.write(fd, encoded)
     finally:

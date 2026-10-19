@@ -168,7 +168,7 @@ def append_checkpoint(record):
     if CHECKPOINT_PATH is None:
         return
     encoded = (json.dumps(record, separators=(",", ":")) + "\n").encode("utf-8")
-    fd = os.open(CHECKPOINT_PATH, os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o644)
+    fd = bench_v2.open_checkpoint_append(CHECKPOINT_PATH)
     try:
         os.write(fd, encoded)
     finally:
