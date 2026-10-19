@@ -41,6 +41,8 @@ function OpexBuildFailureIsAbandonable(result)
   if (("reason" in result) && result.reason == "RECOVERY") return false;
 
   if (("reason" in result) && result.reason == "CASH") return false;
+  /* Plafond de vehicules : transitoire, des slots peuvent se liberer. */
+  if (("reason" in result) && result.reason == "NOSLOT") return false;
   if (("reason" in result) && (result.reason == "V233_STALE" || result.reason == "V233_REPRICE")) return false;
   if (("error" in result) && result.error == AIError.ERR_NOT_ENOUGH_CASH) return false;
   return true;

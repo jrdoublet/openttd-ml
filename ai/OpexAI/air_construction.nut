@@ -187,6 +187,15 @@ function OpexBuildAirRoute(catalog, budget, plan)
     result.reason = "RECOVERY";
     return result;
   }
+
+  /* V262 T12 : revérifier le plafond avions juste avant la premiere depense. */
+  local plannedAir = (("planes" in plan) && plan.planes > 0) ? plan.planes : 1;
+  if (!OpexVehicleSlotAvailable(AIVehicle.VT_AIR, plannedAir)) {
+    result.reason = "NOSLOT";
+    OpexDecide("VEHICLE_SLOT", "mode=air planned=" + plannedAir + " reason=NOSLOT");
+    return result;
+  }
+
   local spBuild = null;
   local airportA = null;
   local airportB = null;

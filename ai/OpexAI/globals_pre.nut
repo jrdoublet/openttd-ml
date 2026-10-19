@@ -83,6 +83,11 @@ V172_RAIL_LONG_WEIGHT_PCT <- 200;
 V216_PROBE <- false;
 V211_RIVALS <- false;
 V211_LAST_QUARTER <- -1;
+/* V262 T10/T15 : annee et date du dernier releve orphelins. Non persistes
+ * (un rechargement un 1er decembre peut journaliser une seconde fois).
+ * Aucune decision ne lit ces valeurs. */
+V262_ORPHAN_YEAR <- -1;
+V262_ORPHAN_DATE <- -1;
 /* V216a : 0 inerte, 1 gain net de la compagnie, 2 part de la ligne (probe_v216.nut). */
 V216A_GHOST_DEMAND <- 0;
 /* V216f : sejour mecanique en gare dans le cycle rail, en % de l'estimation EST-16 (economy.nut). */

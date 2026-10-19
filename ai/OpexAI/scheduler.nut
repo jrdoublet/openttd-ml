@@ -14,6 +14,7 @@ function OpexAI::_runNextTaskWithSlackLedger()
   }
   if (V216_PROBE) OpexV216MonthlyTick();
   if (V211_RIVALS) OpexV211QuarterlyTick();
+  if (DECISION_LOG) OpexV262OrphanSurvey(this._lines);
   if (V217_RAIL_REFILL > 0) this._v217RailRefill();
   if (V259_BRIDGE_RENEW > 0) this._v259CheckNewBridges();
   if ((!C41_SLACK_LEDGER && !C41_MONTHLY_BUSY_LEDGER && !C41_OPPORTUNITY_LEDGER && !C41_ADMISSION_LEDGER

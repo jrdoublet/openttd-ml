@@ -46,7 +46,7 @@ function OpexV259LoadQueue(data, lines)
     local line = null;
     if (lines != null) {
       foreach (l in lines) {
-        if (l != null && ("lineId" in l) && l.lineId == item.lineId) {
+        if (l != null && typeof l == "table" && ("lineId" in l) && l.lineId == item.lineId) {
           line = l;
           break;
         }

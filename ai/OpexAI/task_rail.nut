@@ -352,6 +352,10 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
           liveLine.v233FactoryId <- candidate.v233FactoryId;
           liveLine.v233GoodsCargo <- candidate.cargo;
           this._saveProjection = null;
+          /* V262 T04 : sans remise du mois, _refreshSaveProjection ne reconstruit pas le
+           * cache avant le mois suivant et Save() reprojetterait toutes les lignes
+           * (~850 opcodes par ligne mesures, budget 100k). */
+          this._saveProjectionMonth = -1;
           if (DECISION_LOG) OpexDecide("V233_BUILD", "factory=" + candidate.v233FactoryId
             + " cargo=" + candidate.cargo + " station=" + candidate.joinStationId
             + " line=" + (this._nextLineId - 1));
