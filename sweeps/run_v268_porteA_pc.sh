@@ -5,18 +5,27 @@
 # 2) regle gain_short a 40 graines et 3 ans (Wilcoxon, IC95 bootstrap, seuil relatif 4 %, garde de valeur 5 %).
 # Graines : SEEDS_40 de bench_v2.py, la 73 (plantage deterministe d'AAAHogEx) remplacee par 373684.
 # PROFILE remplace le profil Docker du PC ; SMOKE_ONLY=1 s'arrete apres le smoke.
+# RAILSEUL=1 : rail seul des deux cotes (OpexAI sans air/route/eau, AAAHogEx sans avions/routiers/trams/bateaux),
+#              comme railseul_40x3_20261018.
 set -euo pipefail
 
 read -r -a PC <<< "${PROFILE:---cpus 10 --memory 8g --max-workers 10 --network host}"
-REF="OpexAI[v268_c70_early=0]"
-VAR="OpexAI[v268_c70_early=2]"
-CAMP="${CAMPAIGN:-v268m2_porteA_40x3_pc_20261019}"
+MODES=""; AAA=(); DEFCAMP=v268m2_porteA_40x3_pc_20261019
+if [ "${RAILSEUL:-0}" = 1 ]; then
+  MODES=",mode_air=0,mode_road=0,mode_water=0"
+  AAA=(--aaahogex-setting disable_veh_aircraft=1 --aaahogex-setting disable_veh_roadveh=1
+       --aaahogex-setting disable_veh_tram=1 --aaahogex-setting disable_veh_ship=1)
+  DEFCAMP=v268m2_railseul_porteA_40x3_pc_20261019
+fi
+REF="OpexAI[v268_c70_early=0${MODES}]"
+VAR="OpexAI[v268_c70_early=2${MODES}]"
+CAMP="${CAMPAIGN:-$DEFCAMP}"
 RULE=(--variant-policy-id v268_c70_early --decision-rule gain_short --required-seeds 40 --required-years 3
       --primary-metric profit_year --min-useful-primary-delta-pct 4 --value-guard-max-loss-pct 5)
 
 python3 sweeps/run_c66_reference.py --campaign "${CAMP}_smoke" \
   --reference "$REF" --variant "$VAR" "${RULE[@]}" \
-  --years 1 --repeats 1 --seeds 42 --script-debug "${PC[@]}"
+  --years 1 --repeats 1 --seeds 42 --script-debug "${AAA[@]}" "${PC[@]}"
 if zcat -f results/"${CAMP}_smoke"_engine/* | grep -q "Your script made an error"; then
   zcat -f results/"${CAMP}_smoke"_engine/* | grep "Your script made an error" | head -5
   echo "ARRET : erreur Squirrel au smoke, porte A non lancee" >&2
@@ -32,4 +41,4 @@ SEEDS=(
 
 python3 sweeps/run_c66_reference.py --campaign "$CAMP" \
   --reference "$REF" --variant "$VAR" "${RULE[@]}" \
-  --years 3 --repeats 1 --seeds "${SEEDS[@]}" --script-debug "${PC[@]}" "$@"
+  --years 3 --repeats 1 --seeds "${SEEDS[@]}" --script-debug "${AAA[@]}" "${PC[@]}" "$@"
