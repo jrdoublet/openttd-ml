@@ -8,7 +8,7 @@
  * Suivi par vehicule et par ligne : chaque vehicule ajoute ou remplace ouvre sa
  * propre fenetre temporelle (startDate = now, profitObs = 0, trips = 0).
  * Comptage des trajets charges termines par transition d'ordre NoAI (comme C117).
- * Aucun recours a AICargoMonitor (inaccessible aux IA dans NoAI 15.3).
+ * AICargoMonitor (disponible en 15.3) n'est pas utilise a cette etape.
  *
  * Aux paliers 3, 6, 12 et 24 mois (~90, 180, 365, 730 jours), journalisation :
  * OpexDecide("V268_EST", "palier=... line=... mode=... kind=... veh=... days=... trips=... profit_obs=... p_annual=... pred_amort=... predicted=...")
@@ -66,7 +66,10 @@ function OpexV268Step(lines, catalog = null, forceSample = false)
     else if (mode == "road") expectedVt = AIVehicle.VT_ROAD;
 
     local cargo = ("cargo" in line) ? line.cargo : -1;
-    local kindStr = (("kind" in line) && line.kind == "pax") ? "pax" : "fret";
+    /* Les lignes AIR et ROAD ne portent pas toujours `kind` : classer par la cargaison. */
+    local kindStr = ((("kind" in line) && line.kind == "pax")
+        || (cargo >= 0 && (AICargo.HasCargoClass(cargo, AICargo.CC_PASSENGERS)
+            || AICargo.HasCargoClass(cargo, AICargo.CC_MAIL)))) ? "pax" : "fret";
     local predAmort = ("predAmort" in line) ? line.predAmort : 0;
     local predProfit = ("predicted" in line) ? line.predicted : 0;
 
