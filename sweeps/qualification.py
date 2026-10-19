@@ -16,7 +16,9 @@ from campaign_freeze import effective_ai_settings, fingerprint_tree
 from paired_statistics import bootstrap_mean_ci, exact_wilcoxon_signed_rank_p
 
 
-SEEDS = [42, 100, 7, 999, 2026, 1, 17, 73, 314, 512, 1024, 1337,
+# Graines canoniques, la 73 remplacee par 373684 : AAAHogEx y plante de facon
+# deterministe (route.nut:2056), ce qui rendrait toute porte incomplete.
+SEEDS = [42, 100, 7, 999, 2026, 1, 17, 373684, 314, 512, 1024, 1337,
          4096, 8191, 12345, 54321, 65537, 123456, 424242, 8675309]
 SEEDS_40 = SEEDS + [423960, 613553, 515222, 781335, 375172, 999533, 442018,
                     746035, 455216, 230185, 706990, 983759, 802204, 232037,
