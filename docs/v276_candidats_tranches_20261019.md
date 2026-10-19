@@ -7,7 +7,7 @@ banc, Docker ou moteur ; commits locaux autorisés, aucun push ; C115 intact.
 
 Prototype derrière `v276_cand_slices`, **0 aux quatre difficultés**. Il retire
 les boucles quadratiques synchrones des appelants rail lorsque le réglage vaut
-1. **Le plafond strict demandé « aucune tranche au-delà du budget hors appels
+1 ou 2. **Le plafond strict demandé « aucune tranche au-delà du budget hors appels
 natifs » n'est pas satisfait** : une évaluation économique et la publication
 du portefeuille restent des atomes Squirrel. Le budget est un seuil de retour
 entre opérations, comme pour le scan AIR existant. Ne pas présenter ce travail
@@ -109,3 +109,30 @@ présents avant V276 ; `delim.py` et `git diff --check` sans anomalie.
 Ces contrôles ne compilent pas Squirrel, ne prouvent pas la santé moteur,
 Save/Load réel, absence de famine en partie ni gain économique. Aucun de ces
 résultats n'est revendiqué. Aucun banc lancé conformément à la demande.
+
+## V276b — pondération par la production
+
+Extension demandée le 19 octobre : plage 0..2, défaut 0 aux quatre difficultés.
+Le chargement conserve désormais la valeur entière ; tous les consommateurs
+activent le découpage par `V276_CAND_SLICES > 0` (ou son complément pour OFF).
+Le mode 1 conserve le tri fret par revenu unitaire à 80 tuiles, délai à vRail.
+Le mode 2 multiplie ce revenu par la somme de
+`AIIndustry.GetLastMonthProduction(catalog.industries[source].id, cargo)`
+sur toutes les sources du cargo du catalogue. Ce calcul est effectué dans
+`OpexV276CargoOrder`, après la garde du cache annuel existant : pas de somme
+à chaque tranche. Les cargos sans sources et les voyageurs restent exclus.
+Les unités voyageurs et leur score `popA * popB * sqrt(distance Manhattan)`
+restent inchangés, comme les autres traitements entre les modes 1 et 2.
+
+Les contrats V276 couvrent les deux classements, la somme multi-sources,
+la production nulle, l'exclusion voyageurs, le cache annuel, le chargement
+entier, les défauts 0, la borne 2 et le plafond de 100 `AddSetting`.
+Aucun banc, Docker ou moteur pour V276b, conformément à la mission.
+Les limites de compilation, santé moteur et mesure économique ci-dessus
+restent applicables ; C115 et les défauts sont inchangés.
+
+Validation V276b : 20 tests ciblés OK ; suite complète
+`python3 -m unittest discover -s sweeps -p 'test_*.py'` : **2 102 tests OK**
+(3 ignorés, 3 échecs attendus). `delim.py` et `git diff --check` propres ;
+`undecl.py` retrouve uniquement les deux identifiants connus
+`AICONFIG_BOOLEAN` et `CONFIG_BOOLEAN`.

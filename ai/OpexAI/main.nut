@@ -701,14 +701,14 @@ function OpexAI::Start()
 
   OpexLoadSettings();
   OpexV147ExtendQueue(this);
-  if (V276_CAND_SLICES) V276_CATALOG_TASK = this._taskQueue[0];
+  if (V276_CAND_SLICES > 0) V276_CATALOG_TASK = this._taskQueue[0];
   this._v184InitRailSlots();
   /* Apres les phases V147 : un index insere avant elles decalerait taskCursor. */
   if (this._taskQueue != null) {
     this._taskQueue.append({ name = "v249_statue", dueCycle = 0, enabled = V249_STATUE });
     this._taskQueue.append({ name = "v252_air_engine_refresh", dueCycle = 0, enabled = V252_AIR_ENGINE_REFRESH == 2 });
     this._taskQueue.append({ name = "v250_rights", dueCycle = 0, enabled = V250_RIGHTS > 0 });
-    if (V276_CAND_SLICES)
+    if (V276_CAND_SLICES > 0)
       this._taskQueue.append({ name = "v276_candidates", dueCycle = 0, enabled = true });
   }
 

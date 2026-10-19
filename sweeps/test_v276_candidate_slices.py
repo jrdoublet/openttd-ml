@@ -17,6 +17,14 @@ def read(name):
     return (AI / name).read_text(encoding="utf-8")
 
 
+def freight_order(mode, incomes, productions, pax):
+    """Oracle du classement annuel des cargos (hors voyageurs)."""
+    scores = {cargo: income * (sum(productions[cargo]) if mode == 2 else 1)
+              for cargo, income in incomes.items()
+              if cargo != pax and productions[cargo]}
+    return sorted(scores, key=scores.get, reverse=True)
+
+
 class Cursor:
     """Enumeration geometrique, puis file native de priorite (modele)."""
 
@@ -63,6 +71,13 @@ class Cursor:
 
 
 class Models(unittest.TestCase):
+    def test_freight_order_unit_income_or_total_production(self):
+        incomes = {0: 10000, 1: 100, 2: 80, 3: 200, 4: 500}
+        # Deux sources du cargo 2 : leur somme inverse l'ordre 1/2.
+        productions = {0: [10000], 1: [10], 2: [7, 8], 3: [0], 4: []}
+        self.assertEqual(freight_order(1, incomes, productions, pax=0), [3, 1, 2])
+        self.assertEqual(freight_order(2, incomes, productions, pax=0), [2, 1, 3])
+
     def setUp(self):
         rng = random.Random(276)
         self.towns = [(rng.randrange(1024), rng.randrange(1024), rng.randrange(50, 5000))
@@ -173,15 +188,37 @@ class Contracts(unittest.TestCase):
         block = re.search(r'AddSetting\(\{\s*name = "v276_cand_slices".*?\}\);', info, re.S)[0]
         for difficulty in ("easy", "medium", "hard", "custom"):
             self.assertIn(difficulty + "_value = 0", block)
-        self.assertIn("min_value = 0, max_value = 1", block)
+        self.assertIn("min_value = 0, max_value = 2", block)
         self.assertLessEqual(info.count("AddSetting("), 100)
-        self.assertIn('GetSetting("v276_cand_slices")', read("settings.nut"))
+        self.assertIn('V276_CAND_SLICES = AIController.GetSetting("v276_cand_slices");',
+                      read("settings.nut"))
+        self.assertIn('V276_CAND_SLICES <- 0;', read("candidates_v276.nut"))
+
+    def test_production_weight_is_freight_only_and_cached_annually(self):
+        src = read("candidates_v276.nut")
+        order = src[src.index('function OpexV276CargoOrder'):src.index('function OpexV276Request')]
+        self.assertLess(order.index('V276_CARGO_YEAR == year'), order.index('foreach (cargo, sources'))
+        self.assertLess(order.index('cargo == catalog.paxCargo || sources.len() == 0) continue'),
+                        order.index('local score = AICargo.GetCargoIncome(cargo, 80, days);'))
+        self.assertRegex(order, r'if \(V276_CAND_SLICES == 2\) \{\s*/\*.*?\*/\s*'
+                         r'local monthly = 0;\s*foreach \(source in sources\)\s*'
+                         r'monthly \+= AIIndustry.GetLastMonthProduction\('
+                         r'catalog.industries\[source\].id, cargo\);\s*score \*= monthly;\s*\}')
+        self.assertIn('ranked.AddItem(cargo, score);', order)
+        self.assertEqual(src.count('AIIndustry.GetLastMonthProduction('), 1)
+        self.assertIn('V276_CARGO_ORDER = result;', order)
+
+    def test_slice_activation_accepts_both_positive_values(self):
+        for path in AI.glob('*.nut'):
+            for line in path.read_text(encoding="utf-8").splitlines():
+                if 'V276_CAND_SLICES' in line and path.name not in ('settings.nut', 'candidates_v276.nut'):
+                    self.assertRegex(line, r'V276_CAND_SLICES (?:> 0|<= 0)')
 
     def test_legacy_rail_early_guard(self):
         src = read("candidates.nut")
-        guard = src.index('if (V276_CAND_SLICES) return OpexV276Published')
+        guard = src.index('if (V276_CAND_SLICES > 0) return OpexV276Published')
         self.assertLess(guard, src.index('  ::OpexSitableCache = {};', guard))
-        self.assertIn('if (V276_CAND_SLICES && !v276Pair)', src)
+        self.assertIn('if (V276_CAND_SLICES > 0 && !v276Pair)', src)
 
     def test_unit_order_depends_on_air(self):
         src = read("candidates_v276.nut")
@@ -210,7 +247,7 @@ class Contracts(unittest.TestCase):
 
     def test_task_and_load_transaction_contract(self):
         main = read("main.nut")
-        self.assertIn('if (V276_CAND_SLICES)\n      this._taskQueue.append({ name = "v276_candidates"', main)
+        self.assertIn('if (V276_CAND_SLICES > 0)\n      this._taskQueue.append({ name = "v276_candidates"', main)
         self.assertIn('task.name == "v276_candidates"', read("scheduler.nut"))
         persist = read("persist.nut")
         for key in ('v276', 'v276Request', 'v276Rail', 'v276Road', 'v276Batches'):

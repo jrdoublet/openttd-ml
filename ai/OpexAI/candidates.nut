@@ -36,7 +36,7 @@ const PAX_BAND_ROUTE_ONLY = 4;
  * liaison particuliere. Le cargoId ne sert qu'a rendre les ex-aequo stables. */
 function OpexFreightCargoOrder(catalog)
 {
-  if (V276_CAND_SLICES && catalog != null) return OpexV276CargoOrder(catalog);
+  if (V276_CAND_SLICES > 0 && catalog != null) return OpexV276CargoOrder(catalog);
   local ranked = [];
   if (catalog == null || catalog.producers == null) return ranked;
   foreach (cargo, sources in catalog.producers) {
@@ -1280,7 +1280,7 @@ function OpexRailCandidateStats()
 
 function OpexBuildCandidates(catalog, budget, lines, abandonedPairs = null, profile = null, paxProfile = null, paxCandidateProfile = null, paxCruiseCache = null, freightCruiseCache = null, generatePax = true, generateFreight = true, paxBand = PAX_BAND_ALL, freightCargo = null, targetKind = null, targetId = -1)
 {
-  if (V276_CAND_SLICES) return OpexV276Published(catalog, targetKind, targetId);
+  if (V276_CAND_SLICES > 0) return OpexV276Published(catalog, targetKind, targetId);
   /* Memo origin_sitable vide a chaque passe de generation : une gare ou un rail bati depuis la
    * derniere passe change le predicat, donc rien n'est reporte d'une passe a l'autre. Portee
    * volontairement plus courte que celle des caches de croisiere (crees dans OpexBuildProjects
@@ -1780,7 +1780,7 @@ function OpexRoadFreightCandidates(catalog, lines, out, stats, abandonedPairs = 
  * le budget historique. */
 function OpexBuildRoadCandidates(catalog, budget, lines, abandonedPairs = null, profile = null, freightCargo = null, targetKind = null, targetId = -1, v276Pair = false)
 {
-  if (V276_CAND_SLICES && !v276Pair) {
+  if (V276_CAND_SLICES > 0 && !v276Pair) {
     OpexV276Request(catalog, targetKind, targetId);
     if (V276_CATALOG_TASK != null && ("v276Road" in V276_CATALOG_TASK))
       return OpexV276CopyResult(V276_CATALOG_TASK.v276Road);

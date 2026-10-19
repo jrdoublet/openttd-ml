@@ -694,8 +694,8 @@ class OpexAIInfo extends AIInfo {
     });
     AddSetting({
       name = "v276_cand_slices",
-      description = "V276: resumable rail and road candidate units, 0 = legacy (default), 1 = sliced",
-      min_value = 0, max_value = 1,
+      description = "V276: resumable rail and road candidate units, 0 = legacy (default), 1 = freight ordered by unit income at 80 tiles, 2 = same income times total monthly cargo production (annual cache)",
+      min_value = 0, max_value = 2,
       easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
       step_size = 1, flags = 0
     });

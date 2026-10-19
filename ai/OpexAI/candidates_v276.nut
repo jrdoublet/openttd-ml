@@ -3,7 +3,7 @@
  * Enumerateur bon marche -> AIList.Sort natif -> evaluation d'une paire.
  * Une evaluation economique reste atomique, comme un combo de sites AIR.
  * Aucune boucle quadratique ne se trouve dans cette operation atomique. */
-V276_CAND_SLICES <- false;
+V276_CAND_SLICES <- 0;
 V276_CATALOG_TASK <- null;
 V276_CARGO_YEAR <- -1;
 V276_CARGO_ORDER <- null;
@@ -17,8 +17,16 @@ function OpexV276CargoOrder(catalog)
   local days = (80.0 * OpexDaysPerTile(bounds.vRail > 0 ? bounds.vRail : 1,
                                       bounds.ticksPerDay)).tointeger();
   foreach (cargo, sources in catalog.producers) {
-    if (cargo != catalog.paxCargo && sources.len() > 0)
-      ranked.AddItem(cargo, AICargo.GetCargoIncome(cargo, 80, days));
+    if (cargo == catalog.paxCargo || sources.len() == 0) continue;
+    local score = AICargo.GetCargoIncome(cargo, 80, days);
+    if (V276_CAND_SLICES == 2) {
+      /* Somme annuelle dans ce cache, jamais dans le worker par tranche. */
+      local monthly = 0;
+      foreach (source in sources)
+        monthly += AIIndustry.GetLastMonthProduction(catalog.industries[source].id, cargo);
+      score *= monthly;
+    }
+    ranked.AddItem(cargo, score);
   }
   ranked.Sort(AIList.SORT_BY_VALUE, false);
   local result = [];

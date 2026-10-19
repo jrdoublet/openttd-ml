@@ -1100,7 +1100,7 @@ function OpexAI::_c76ModeNeedsRegen(mode)
 
 function OpexAI::_c76AnyLayerChanged()
 {
-  if (V276_CAND_SLICES && !OpexV276Pending()) {
+  if (V276_CAND_SLICES > 0 && !OpexV276Pending()) {
     if (MODE_RAIL && this._c76ModeNeedsRegen("rail")) return true;
     if (MODE_ROAD && this._c76ModeNeedsRegen("road")) return true;
   }
@@ -1134,7 +1134,7 @@ function OpexAI::_c76AcknowledgeAllLayers()
 
   local modes = ["air", "rail_pax", "rail_freight", "road_pax", "road_freight", "water", "fleet", "rail", "road"];
   foreach (mode in modes) {
-    if (V276_CAND_SLICES && OpexV276DeferredMode(mode)) continue;
+    if (V276_CAND_SLICES > 0 && OpexV276DeferredMode(mode)) continue;
     local deps = this._c76GetModeDeps(mode);
     if (!(mode in this._c76ModeConsumed)) this._c76ModeConsumed.rawset(mode, {});
     local sumRev = 0;
@@ -1193,7 +1193,7 @@ function OpexAC06AcknowledgeSnapshot(owner, snapshot)
   local modes = ["air", "rail_pax", "rail_freight", "road_pax", "road_freight",
       "water", "fleet", "rail", "road"];
   foreach (mode in modes) {
-    if (V276_CAND_SLICES && OpexV276DeferredMode(mode)) continue;
+    if (V276_CAND_SLICES > 0 && OpexV276DeferredMode(mode)) continue;
     local deps = owner._c76GetModeDeps(mode);
     if (!(mode in owner._c76ModeConsumed))
       owner._c76ModeConsumed.rawset(mode, {});
@@ -1293,9 +1293,9 @@ function OpexAI::_c80ModeRegenModes()
   local a = this._c76AckRevisions;
   if (r.towns > a.towns || r.lines > a.lines || r.engines.air > a.engines.air) return null;
   local rail = r.industries > a.industries || r.engines.rail > a.engines.rail
-      || (V276_CAND_SLICES && MODE_RAIL && this._c76ModeNeedsRegen("rail"));
+      || (V276_CAND_SLICES > 0 && MODE_RAIL && this._c76ModeNeedsRegen("rail"));
   local road = r.industries > a.industries || r.engines.road > a.engines.road
-      || (V276_CAND_SLICES && MODE_ROAD && this._c76ModeNeedsRegen("road"));
+      || (V276_CAND_SLICES > 0 && MODE_ROAD && this._c76ModeNeedsRegen("road"));
   local modes = [];
   if (rail) modes.append("rail");
   if (road) modes.append("road");
@@ -1329,7 +1329,7 @@ function OpexAI::_c80DoModeRegen(modes, reason, year)
   a.engines.road = r.engines.road;
   a.engines.water = r.engines.water;
   foreach (mode, layers in this._c76ModeConsumed) {
-    if (V276_CAND_SLICES && OpexV276DeferredMode(mode)) continue;
+    if (V276_CAND_SLICES > 0 && OpexV276DeferredMode(mode)) continue;
     foreach (layer in ["industries", "engines.rail", "engines.road", "engines.water"]) {
       if (layer in layers) layers.rawset(layer, this._c76GetLayerRevision(layer));
     }

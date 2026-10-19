@@ -2014,8 +2014,8 @@ function OpexAI::_rebuildProjects(fleetPlan, airOverride = null, advanceStage = 
    * fin du scan. */
   if (airOverride == null && this._catalog != null && ("towns" in this._catalog)
       && this._catalog.towns != null
-      && (V276_CAND_SLICES || OpexAirTownPoolLimit(this._catalog.towns) > 64)
-      && (!V276_CAND_SLICES || MODE_AIR)
+      && (V276_CAND_SLICES > 0 || OpexAirTownPoolLimit(this._catalog.towns) > 64)
+      && (V276_CAND_SLICES <= 0 || MODE_AIR)
       && this._projects != null && this._taskQueue != null) {
     local c78Pending = false;
     foreach (task in this._taskQueue) {
@@ -2025,7 +2025,7 @@ function OpexAI::_rebuildProjects(fleetPlan, airOverride = null, advanceStage = 
         break;
       }
     }
-    if (c78Pending || V276_CAND_SLICES) {
+    if (c78Pending || V276_CAND_SLICES > 0) {
       airOverride = {
         complete = true,
         airPlan = ("airPlan" in this._projects) ? this._projects.airPlan : null,

@@ -168,7 +168,7 @@ function OpexRegenerateModeProjects(projects, catalog, budget, lines, abandonedP
   if (projects == null || !(("candidateGroups" in projects)) || projects.candidateGroups == null) {
     return projects;
   }
-  if (V276_CAND_SLICES && (mode == "rail" || mode == "road")) {
+  if (V276_CAND_SLICES > 0 && (mode == "rail" || mode == "road")) {
     OpexV276Request(catalog, entityKind, entityId);
     return OpexReselectProjects(projects, OpexAvailableCapital(), abandonedPairs, lines);
   }
