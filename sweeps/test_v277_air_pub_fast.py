@@ -111,12 +111,12 @@ class TestV277AirPubFast(unittest.TestCase):
             self.filter_body,
         )
         self.assertIn(
-            "local ctx = (V277_AIR_PUB_FAST >= 1 && C83_FIXES && lines != null) ? OpexIncrRevalidateIndexContext(lines) : null;",
+            "local ctx = (V277_AIR_PUB_FAST == 2 && C83_FIXES && lines != null) ? OpexIncrRevalidateIndexContext(lines) : null;",
             self.filter_body,
         )
 
     def test_filter_builds_context_once_outside_loop(self):
-        ctx_decl = "local ctx = (V277_AIR_PUB_FAST >= 1 && C83_FIXES && lines != null) ? OpexIncrRevalidateIndexContext(lines) : null;"
+        ctx_decl = "local ctx = (V277_AIR_PUB_FAST == 2 && C83_FIXES && lines != null) ? OpexIncrRevalidateIndexContext(lines) : null;"
         self.assertEqual(self.filter_body.count("OpexIncrRevalidateIndexContext(lines)"), 1)
         self.assertIn(ctx_decl, self.filter_body)
         loop_start = self.filter_body.index("foreach (project in alternatives)")
@@ -139,7 +139,8 @@ class TestV277AirPubFast(unittest.TestCase):
         self.assertIn("projects.candidateGroups = rebuilt;", self.publish_body)
 
         # Verification filtre en mode 2
-        self.assertIn("else if (V277_AIR_PUB_FAST == 2 && C83_FIXES && lines != null)", self.filter_body)
+        self.assertIn("if (V277_AIR_PUB_FAST == 2 && C83_FIXES && lines != null)", self.filter_body)
+        self.assertNotIn("V277_AIR_PUB_FAST == 1 && C83_FIXES", self.filter_body)
         self.assertIn('OpexDecide("V277_CHECK", msg);', self.filter_body)
         self.assertIn('if (!DECISION_LOG) AILog.Warning("V277_CHECK " + msg);', self.filter_body)
         self.assertIn("if (!histVerdict) continue;", self.filter_body)

@@ -652,7 +652,9 @@ function OpexAir0310FilterAirAlternativesStillValid(alternatives, abandonedPairs
   local live = [];
   local stationLimitedTowns = {};
   local validity = OpexAir0310SiteValidityBegin(stationLimitedTowns);
-  local ctx = (V277_AIR_PUB_FAST >= 1 && C83_FIXES && lines != null) ? OpexIncrRevalidateIndexContext(lines) : null;
+  /* V277 : le predicat indexe n'est calcule qu'en mode controle. Mesure du 20/10 (1 an, carte 256x256) :
+   * 0 ecart, mais 26,8 k par filtre contre 23,0 k, le contexte V156 coute plus qu'il n'economise. */
+  local ctx = (V277_AIR_PUB_FAST == 2 && C83_FIXES && lines != null) ? OpexIncrRevalidateIndexContext(lines) : null;
   foreach (project in alternatives) {
     if (project != null && ("mode" in project) && project.mode == "air") {
       if (!("payload" in project) || project.payload == null
@@ -663,9 +665,7 @@ function OpexAir0310FilterAirAlternativesStillValid(alternatives, abandonedPairs
       if (!("siteA" in plan) || !("siteB" in plan) || !("airport" in plan) || !("plane" in plan)) {
         continue;
       }
-      if (V277_AIR_PUB_FAST == 1 && C83_FIXES && lines != null) {
-        if (!OpexAirBatchPlanStillLiveIndexed(plan, lines, ctx)) continue;
-      } else if (V277_AIR_PUB_FAST == 2 && C83_FIXES && lines != null) {
+      if (V277_AIR_PUB_FAST == 2 && C83_FIXES && lines != null) {
         local histVerdict = OpexAirBatchPlanStillLive(plan, lines);
         local fastVerdict = (ctx != null) ? OpexAirBatchPlanStillLiveIndexed(plan, lines, ctx) : histVerdict;
         if (fastVerdict != histVerdict) {
