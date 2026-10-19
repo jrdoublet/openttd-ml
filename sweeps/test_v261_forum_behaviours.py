@@ -1,6 +1,9 @@
 """V261: contrats source, sans VM ni partie (limites détaillées dans l'audit).
 
-Deux expectedFailure restent en attente de décision (F2.1).
+F2.1 est clos par l'audit T28 : `vehicle.forbid_90_deg` n'existe pas en 15.3.
+`pf.forbid_90_deg` vaut vrai par défaut et le filtre A* refuse déjà le
+demi-tour de tuile (d2 == -d0). Le contrat constate ce filtre ; il n'exige
+pas une lecture script du réglage.
 Une présence textuelle ne prouve ni fluidité, ni absence de deadlock, ni type
 récursif du graphe Save. Aucun chemin externe n'est requis par cette suite.
 """
@@ -174,10 +177,25 @@ class ForumBehaviours(unittest.TestCase):
             self.assertIn("cargo", body("candidates.nut", function))
         self.assertIn("generateFreight", body("candidates.nut", "OpexBuildCandidates"))
 
-    @unittest.expectedFailure  # Pas de consultation explicite de forbid_90_deg.
     def test_2_1_forbid_90_setting_is_consulted(self):
-        self.assertRegex("\n".join(all_code().values()),
-                         r'AIGameSettings\.(?:GetValue|IsValid)\("vehicle\.forbid_90_deg"\)')
+        # Audit T28 : les deux pathfinders sautent le voisin d2 == -d0
+        # (pathfinder_v90/v129.nut, pathfinder_v90/rail.nut). Le nom
+        # vehicle.forbid_90_deg n'existe pas. Lire pf.forbid_90_deg ici ne
+        # changerait aucun tracé : l'A* applique déjà la règle.
+        v129 = source("pathfinder_v90/v129.nut")
+        rail = source("pathfinder_v90/rail.nut")
+        self.assertIn("/* Disallow 90 degree turns */", v129)
+        self.assertIn("local blocked = (gp != null) ? (gp._tile - par_tile) : 0;", v129)
+        self.assertIn("if (gp != null && offset == blocked) continue;", v129)
+        self.assertIn("/* Disallow 90 degree turns */", rail)
+        self.assertIn(
+            "next_tile - cur_node == path.GetParent().GetParent().GetTile() - path.GetParent().GetTile()",
+            rail)
+        self.assertIn("OpexNewRailPathfinderV129()", source("builder_rail.nut"))
+        tree = "\n".join(all_code().values())
+        self.assertNotIn("vehicle.forbid_90_deg", tree)
+        self.assertNotRegex(tree, r'AIGameSettings\.(?:GetValue|IsValid)\("pf\.forbid_90_deg"\)')
+        self.assertNotRegex(tree, r'AIGameSettings\.(?:GetValue|IsValid)\("vehicle\.forbid_90_deg"\)')
 
     def test_2_1_train_zero_limit_checked_before_build(self):
         code = body("builder_rail.nut", "OpexRailVehicleSlotAvailable")
