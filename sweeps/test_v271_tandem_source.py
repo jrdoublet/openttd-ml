@@ -37,7 +37,7 @@ class TandemSource(unittest.TestCase):
 
     def test_year_cash_and_transaction_guards(self):
         for guard in ("year < OPEX_START_YEAR + V271_RAIL_TANDEM_SOURCE", "OpexAvailableCapital() < V270_IDLE_CASH_MIN",
-                      "this._v271Year == year", "this._railExpansion != null", "this._v257Pending != null",
+                      "this._v271Year == quotaKey", "this._railExpansion != null", "this._v257Pending != null",
                       "this._railSearch != null", "!SAVE_FULL_STATE"):
             self.assertIn(guard, self.task)
 

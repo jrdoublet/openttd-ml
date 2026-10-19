@@ -14,7 +14,9 @@ function OpexAI::_v271TandemSource(year)
   if (this._v271Pending != null) { this._v271Continue(); return true; }
   if (!SAVE_FULL_STATE || year < OPEX_START_YEAR + V271_RAIL_TANDEM_SOURCE ||
       year >= OPEX_START_YEAR + 10 || OpexAvailableCapital() < V270_IDLE_CASH_MIN) return false;
-  if (this._v271Year == year || this._railExpansion != null || this._v257Pending != null ||
+  /* 19/10 : quota mensuel (une ligne par an plafonnait a 5 tandems par partie). */
+  local quotaKey = year * 12 + AIDate.GetMonth(AIDate.GetCurrentDate());
+  if (this._v271Year == quotaKey || this._railExpansion != null || this._v257Pending != null ||
       this._railSearch != null || this._catalog == null) return false;
   local best = null;
   foreach (line in this._lines) {
@@ -41,7 +43,7 @@ function OpexAI::_v271TandemSource(year)
     local gain = line.lastProfit * (min(rating + 20, 85).tofloat() / rating - 1.0);
     if (best == null || gain > best.gain) best = { line = line, vehicle = vehicle, rating = rating, gain = gain };
   }
-  this._v271Year = year;
+  this._v271Year = quotaKey;
   local state = { lineId = -1, cargo = -1, rating = -1, gain = 0, cost = 0 };
   if (best == null) { OpexV271Log(state, "skip", "no_candidate"); return false; }
   local line = best.line;
