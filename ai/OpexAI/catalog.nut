@@ -992,26 +992,34 @@ function OpexCatalog::refresh(budget, year)
 
   budget.begin();
   spStep = PROBE_SPAN_TRACE ? OpexSpanBegin("catalog.refresh.cargos") : null;
+  local po01_refreshCargos = PO01_PROBE_CONTEXT != null ? OpexOpsMeasureBegin() : null;
   this._refreshCargos();
+  if (po01_refreshCargos != null) OpexPO01ProbeCost(po01_refreshCargos, "layer", "cargos");
   if (spStep != null) OpexSpanEnd(spStep);
   budget.end("cat_cargos");
 
   budget.begin();
   spStep = PROBE_SPAN_TRACE ? OpexSpanBegin("catalog.refresh.rail") : null;
+  local po01_refreshRail = PO01_PROBE_CONTEXT != null ? OpexOpsMeasureBegin() : null;
   this._refreshRail();
+  if (po01_refreshRail != null) OpexPO01ProbeCost(po01_refreshRail, "layer", "engines.rail");
   if (spStep != null) OpexSpanEnd(spStep);
   budget.end("cat_rail");
 
   budget.begin();
   spStep = PROBE_SPAN_TRACE ? OpexSpanBegin("catalog.refresh.towns") : null;
+  local po01_refreshTowns = PO01_PROBE_CONTEXT != null ? OpexOpsMeasureBegin() : null;
   this._refreshTowns();
+  if (po01_refreshTowns != null) OpexPO01ProbeCost(po01_refreshTowns, "layer", "towns");
   if (spStep != null) OpexSpanEnd(spStep);
   if (CATALOG_COST_ACTIVE != null) CATALOG_COST_ACTIVE.catalogTowns = this.towns.len();
   budget.end("cat_towns");
 
   budget.begin();
   spStep = PROBE_SPAN_TRACE ? OpexSpanBegin("catalog.refresh.industries") : null;
+  local po01_refreshIndustries = PO01_PROBE_CONTEXT != null ? OpexOpsMeasureBegin() : null;
   this._refreshIndustries();
+  if (po01_refreshIndustries != null) OpexPO01ProbeCost(po01_refreshIndustries, "layer", "industries");
   if (spStep != null) OpexSpanEnd(spStep);
   if (CATALOG_COST_ACTIVE != null) CATALOG_COST_ACTIVE.catalogIndustries = this.industries.len();
   budget.end("cat_industries");
@@ -1019,7 +1027,9 @@ function OpexCatalog::refresh(budget, year)
   budget.begin();
   local airRefreshMark = CATALOG_COST_ACTIVE != null ? OpexOpsMeasureBegin() : null;
   spStep = PROBE_SPAN_TRACE ? OpexSpanBegin("catalog.refresh.air") : null;
+  local po01_refreshAir = PO01_PROBE_CONTEXT != null ? OpexOpsMeasureBegin() : null;
   this._refreshAir();
+  if (po01_refreshAir != null) OpexPO01ProbeCost(po01_refreshAir, "layer", "engines.air");
   {
     foreach (airportType, choices in this.airPlaneChoicesByAirport) {
       local prices = "";
@@ -1044,7 +1054,9 @@ function OpexCatalog::refresh(budget, year)
 
   budget.begin();
   spStep = PROBE_SPAN_TRACE ? OpexSpanBegin("catalog.refresh.water") : null;
+  local po01_refreshWater = PO01_PROBE_CONTEXT != null ? OpexOpsMeasureBegin() : null;
   this._refreshWater();
+  if (po01_refreshWater != null) OpexPO01ProbeCost(po01_refreshWater, "layer", "engines.water");
   if (spStep != null) OpexSpanEnd(spStep);
   budget.end("cat_water");
 
@@ -1054,7 +1066,9 @@ function OpexCatalog::refresh(budget, year)
   if (ROAD_BUILD_ENABLED) {
     budget.begin();
     spStep = PROBE_SPAN_TRACE ? OpexSpanBegin("catalog.refresh.road") : null;
+    local po01_refreshRoad = PO01_PROBE_CONTEXT != null ? OpexOpsMeasureBegin() : null;
     this._refreshRoad();
+    if (po01_refreshRoad != null) OpexPO01ProbeCost(po01_refreshRoad, "layer", "engines.road");
     if (spStep != null) OpexSpanEnd(spStep);
     budget.end("cat_road");
   } else if (AIRoad.IsRoadTypeAvailable(AIRoad.ROADTYPE_ROAD)) {

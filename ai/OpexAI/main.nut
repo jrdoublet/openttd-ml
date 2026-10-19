@@ -670,6 +670,7 @@ require("ledgers.nut");
 require("lines.nut");
 require("goods_v233.nut");
 require("orchestrator.nut");
+require("po01_reactive.nut");
 require("persist.nut");
 require("probes.nut");
 require("probe_v216.nut");

@@ -708,3 +708,7 @@ const V233_PLAN_LIMIT = 4;
 const V233_PLAN_TTL_DAYS = 90;
 
 const V233_GOODS_MIN_MONTHLY = 64;
+
+/* PO-01 : contexte transitoire, jamais sauvegarde. */
+PO01_PROBE_CONTEXT <- null;
+PO01_PROBE_SEQUENCE <- 0;

@@ -120,6 +120,7 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
                            freightCargoOrder = null, activeSubsidies = null, airOverride = null,
                            railReadyStock = null)
 {
+  local po01Mark = PO01_PROBE_CONTEXT != null ? OpexOpsMeasureBegin() : null;
   local cost = CATALOG_COST_ACTIVE;
   local costMark = cost != null ? OpexOpsMeasureBegin() : null;
   if (generationStage == null) generationStage = OPEX_STAGE_COMPLETE;
@@ -144,6 +145,11 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
   if (!MODE_ROAD) doRoad = false;
   if (!MODE_AIR) doAir = false;
   if (!MODE_WATER) doWater = false;
+  if (PO01_PROBE_CONTEXT != null) {
+    OpexDecide("PO01_EXEC", PO01_PROBE_CONTEXT + " rail_pax=" + (doPaxRail ? 1 : 0)
+        + " rail_freight=" + (doFreight ? 1 : 0) + " road=" + (doRoad ? 1 : 0)
+        + " air=" + (doAir ? 1 : 0) + " water=" + (doWater ? 1 : 0));
+  }
   local paxBand = generationStage == OPEX_STAGE_AIR_RAIL ? PAX_BAND_AIR_RAIL
       : (generationStage == OPEX_STAGE_RAIL_ONLY ? PAX_BAND_RAIL_ONLY : PAX_BAND_ALL);
   local airBand = generationStage == OPEX_STAGE_AIR_ONLY ? PAX_BAND_AIR_ONLY
@@ -287,6 +293,10 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
     railProfile.topKCandidates = rail.best.len();
   }
   if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_EXIT", "c56_stage_rail", "-");
+  if (po01Mark != null) {
+    OpexPO01ProbeCost(po01Mark, "mode", "rail");
+    po01Mark = OpexOpsMeasureBegin();
+  }
   if (cost != null) {
     cost.railOps += OpexOpsMeasureEnd(costMark);
     cost.railCandidates = rail.candidates.len();
@@ -317,6 +327,10 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
     road = OpexProjectEmptyRoad();
   }
   if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_EXIT", "c56_stage_road", "-");
+  if (po01Mark != null) {
+    OpexPO01ProbeCost(po01Mark, "mode", "road");
+    po01Mark = OpexOpsMeasureBegin();
+  }
   if (cost != null) {
     cost.roadOps += OpexOpsMeasureEnd(costMark);
     cost.roadCandidates = road.candidates.len();
@@ -393,6 +407,10 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
     }
   }
   if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_EXIT", "c56_stage_air", "-");
+  if (po01Mark != null) {
+    OpexPO01ProbeCost(po01Mark, "mode", "air");
+    po01Mark = OpexOpsMeasureBegin();
+  }
   if (cost != null) {
     cost.airOps += OpexOpsMeasureEnd(costMark);
     cost.airPlans = airPlans.len();
@@ -420,6 +438,10 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
     waterOps = ("waterPlanningOpcodes" in priorProjects) ? priorProjects.waterPlanningOpcodes : 0;
   }
   if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_EXIT", "c56_stage_water", "-");
+  if (po01Mark != null) {
+    OpexPO01ProbeCost(po01Mark, "mode", "water");
+    po01Mark = OpexOpsMeasureBegin();
+  }
   if (cost != null) {
     cost.waterOps += OpexOpsMeasureEnd(costMark);
     cost.waterPlans = waterPlans.len();
@@ -585,5 +607,6 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
     ret.c69Best <- ::C69_LAST_AFFORDABLE;
     ret.c69KDecData <- ::C69_LAST_KDEC_DATA;
   }
+  if (po01Mark != null) OpexPO01ProbeCost(po01Mark, "mode", "assembly_selection_fleet_subsidies");
   return ret;
 }

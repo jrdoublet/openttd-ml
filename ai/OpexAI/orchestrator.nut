@@ -609,7 +609,9 @@ function OpexAI::_dispatchReactiveIntention(intention)
       local year = AIDate.GetYear(date);
       local modes = (this._projects != null) ? this._c80ModeRegenModes() : null;
       if (modes == null) {
+        if (C39_INVALIDATION_PROBE || DECISION_LOG) OpexPO01ProbeBegin(this);
         this._c76DoFullRegen("reactive", year);
+        PO01_PROBE_CONTEXT = null;
       } else if (modes.len() > 0) {
         this._c80DoModeRegen(modes, "reactive", year);
       }
@@ -1226,7 +1228,9 @@ function OpexAI::_c76DoFullRegen(reason, year)
   local fleetPlan = null;
   {
     fleetPlan = [];
+    local po01Fleet = PO01_PROBE_CONTEXT != null ? OpexOpsMeasureBegin() : null;
     this._resizeAirFleets(AIDate.GetYear(date), fleetPlan);
+    if (po01Fleet != null) OpexPO01ProbeCost(po01Fleet, "mode", "fleet");
   }
 
   if (this._recomputeEpochBounds) {
