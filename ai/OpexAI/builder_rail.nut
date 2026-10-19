@@ -150,7 +150,7 @@ function OpexRailPlatformCargoValue(anchor, step, length, cargo, coverage, wantP
 /* V190 : Recherche les quais paralleles candidats pour un plan de quai avant construction de la gare. */
 /* 19/10 V271 : allowSlopes = laisser le sondage AITestMode juger les pentes (fondations),
  * au lieu d'exiger des tuiles plates. Defaut faux : V190 inchange. */
-function OpexV190FindParallelPlatformPlans(platform, allowSlopes = false)
+function OpexV190FindParallelPlatformPlans(platform, allowSlopes = false, maxSide = JOIN_PARALLEL_MAX_SIDE)
 {
   local length = platform.length;
   local plans = [];
@@ -159,7 +159,7 @@ function OpexV190FindParallelPlatformPlans(platform, allowSlopes = false)
   local existingStId = ("stationId" in platform) ? platform.stationId
       : (AIMap.IsValidTile(platform.anchor) ? AIStation.GetStationID(platform.anchor) : AIStation.STATION_INVALID);
 
-  for (local dist = 1; dist <= JOIN_PARALLEL_MAX_SIDE; dist++) {
+  for (local dist = 1; dist <= maxSide; dist++) {
     for (local flip = -1; flip <= 1; flip += 2) {
       local anchor2 = platform.anchor + sideways * (dist * flip);
       local farExit = (platform.station_exit != platform.anchor) ? 1 : 0;
@@ -2767,65 +2767,112 @@ function OpexTryBuildSignal(tile, front)
   return 0;
 }
 
-/* V271 : raccord borne, sans A*. S = sortie primaire, d = vers la ligne,
- * v = decalage lateral d'UNE tuile. Convergence a S+j*d (2 <= j <= 9) :
- * [S+v, S+v+d, ..., S+v+j*d, S+j*d, S+(j+1)*d]. Les PBS sont sur
- * S+(j-1)*d et S+v+d, avant la convergence, jamais sur un aiguillage.
- * OpexJoinPlatformPlans est la variante V178 a deux extremites ; ici le
- * helper V190 conserve directement le bon cote de sortie (jamais le heurtoir).
- * OpexPlaceJoinSignals/OpexTryBuildSignal ne conviennent pas : signaux sur
- * la ligne/depot pour le premier, repli bloc possible pour le second. */
+/* V271b : seule la tuile de convergence peut appartenir a la voie primaire.
+ * Recherche locale : 12 tuiles de trace, 4 quais (deux cotes, distances 1/2),
+ * 256 etats et 16 nouvelles tuiles au maximum par quai. Aucun ouvrage nouveau.
+ * Les sondages jugent les pentes ; aucune modification reelle ici. */
 function OpexV271PlatformPlan(line)
 {
   local original = line.platformA;
-  local d = original.lead - original.station_exit;
   V271_LAST_GEOMETRY_ISSUE = "lead";
   if (AIMap.DistanceManhattan(original.lead, original.station_exit) != 1) return null;
-  local mergeDistance = -1;
-  /* Le depot primaire est souvent raccorde au lead immediat. Dans ce cas
-   * laisser son aiguillage intact et mettre le PBS sur la prochaine tuile
-   * droite, TOUJOURS avant la convergence des deux quais. */
-  for (local distance = 1; distance <= 8; distance++) {
-    local tile = original.station_exit + distance * d;
-    local next = tile + d;
-    if (!AIMap.IsValidTile(tile) || !AIMap.IsValidTile(next) ||
-        AIMap.DistanceManhattan(tile, next) != 1 ||
-        !AIRail.IsRailTile(tile) || AIRail.IsRailStationTile(tile) ||
-        AIBridge.IsBridgeTile(tile) || AITunnel.IsTunnelTile(tile) ||
-        !AIRail.AreTilesConnected(tile - d, tile, next)) break;
-    if (OpexTileTrackCount(tile) == 1 && OpexTileTrackCount(next) == 1 &&
-        !AIBridge.IsBridgeTile(next) && !AITunnel.IsTunnelTile(next) &&
-        AIRail.AreTilesConnected(tile, next, next + d)) { mergeDistance = distance + 1; break; }
+  local route = OpexTraceTrackTiles(original.station_exit, original.lead, line.stationB, true);
+  if (route == null) { V271_LAST_GEOMETRY_ISSUE = "trace"; return null; }
+  local merges = {};
+  local signalIndex = -1;
+  for (local i = 1; i <= 12 && i + 1 < route.len(); i++) {
+    local tile = route[i];
+    local straight = AIRail.IsRailTile(tile) && !AIRail.IsRailStationTile(tile) &&
+        !AIRail.IsRailDepotTile(tile) && !AIBridge.IsBridgeTile(tile) && !AITunnel.IsTunnelTile(tile) &&
+        OpexTileTrackCount(tile) == 1 && AIMap.DistanceManhattan(route[i - 1], tile) == 1 &&
+        AIMap.DistanceManhattan(tile, route[i + 1]) == 1 &&
+        tile - route[i - 1] == route[i + 1] - tile &&
+        AIRail.AreTilesConnected(route[i - 1], tile, route[i + 1]);
+    if (!straight) continue;
+    if (signalIndex >= 0) merges[tile] <- { next = route[i + 1],
+        after = i + 2 < route.len() ? route[i + 2] : null,
+        signalTile = route[signalIndex], signalFront = route[signalIndex - 1] };
+    /* Premier emplacement droit : reste strictement AVANT tous les merges. */
+    if (signalIndex < 0) signalIndex = i;
   }
-  if (mergeDistance < 0) { V271_LAST_GEOMETRY_ISSUE = "no_straight_lead"; return null; }
+  if (signalIndex < 0) { V271_LAST_GEOMETRY_ISSUE = "no_primary_signal"; return null; }
+  if (merges.len() == 0) { V271_LAST_GEOMETRY_ISSUE = "no_merge_tile"; return null; }
   V271_LAST_GEOMETRY_ISSUE = "no_adjacent_platform";
-  foreach (plan in OpexV190FindParallelPlatformPlans(original, true)) {
-    if (AIMap.DistanceManhattan(plan.anchor, original.anchor) != 1) continue;
-    V271_LAST_GEOMETRY_ISSUE = "path_blocked";
-    local path = [plan.station_exit];
-    for (local i = 1; i <= mergeDistance; i++) path.append(plan.station_exit + i * d);
-    path.append(original.station_exit + mergeDistance * d);
-    path.append(original.station_exit + (mergeDistance + 1) * d);
-    local usable = true;
-    for (local i = 1; i < path.len(); i++) {
-      if (!AIMap.IsValidTile(path[i]) || AIMap.DistanceManhattan(path[i - 1], path[i]) != 1) usable = false;
-      /* 19/10 : pentes laissees au sondage AITestMode ci-dessous (fondations). */
-      if (i <= mergeDistance && !AITile.IsBuildable(path[i])) usable = false;
-    }
-    if (!usable) continue;
-    V271_LAST_GEOMETRY_ISSUE = "test_build";
-    /* Ne pas compter les sondages deux fois dans la facture du caller. */
-    local accepted = true;
-    {
-      local shield = AIAccounting();
-      local testMode = AITestMode();
-      for (local i = 1; i + 1 < path.len(); i++) {
-        if (!AIRail.BuildRail(path[i - 1], path[i], path[i + 1])) accepted = false;
+  foreach (plan in OpexV190FindParallelPlatformPlans(original, true, 2)) {
+    V271_LAST_GEOMETRY_ISSUE = "path";
+    local path = OpexV271ConnectionPath(plan, merges);
+    if (path == null) continue;
+    local merge = merges[path[path.len() - 2]];
+    return { platform = plan, tiles = path,
+        signalTile = merge.signalTile, signalFront = merge.signalFront };
+  }
+  return null;
+}
+
+/* Marche guidee : chaque etat contient les deux derniers pas (virages a 90
+ * interdits), son chemin simple et son parent implicite. Terrain libre requis
+ * hors merge, y compris aux autres voies, depots, quais, ponts et tunnels.
+ * AITestMode n'applique pas les commandes : verifier explicitement les pas et
+ * cycles, puis sonder chaque triple, dont l'aiguillage vers B. */
+function OpexV271ConnectionPath(plan, merges)
+{
+  local d = plan.lead - plan.station_exit;
+  local queue = OpexBinaryHeapV90(); // deja charge pour les raccords rail
+  queue.Insert([plan.station_exit, plan.lead], 0);
+  local queued = 1;
+  local seen = {};
+  local offsets = [1, -1, AIMap.GetTileIndex(0, 1), -AIMap.GetTileIndex(0, 1)];
+  local shield = AIAccounting();
+  local testMode = AITestMode();
+  for (local head = 0; queue.Count() > 0 && head < 256; head++) {
+    local path = queue.Pop();
+    local n = path.len();
+    local cur = path[n - 1];
+    local prev = path[n - 2];
+    foreach (offset in offsets) {
+      /* PBS secondaire sur le lead droit, jamais sur une courbe. */
+      if (n == 2 && offset != d) continue;
+      local next = cur + offset;
+      if (!AIMap.IsValidTile(next) || AIMap.DistanceManhattan(cur, next) != 1 ||
+          OpexWaterContains(path, next)) continue;
+      /* Deux courbes de meme sens consecutives = virage a 90 degres. */
+      if (n >= 3 && offset == path[n - 3] - prev) continue;
+      local joining = next in merges;
+      if (!joining && (!AITile.IsBuildable(next) || AIRail.IsRailTile(next) ||
+          AIBridge.IsBridgeTile(next) || AITunnel.IsTunnelTile(next))) continue;
+      /* Ne jamais traverser ni longer dans le quai en construction. */
+      local inPlatform = false;
+      for (local i = 0; i < plan.length; i++) {
+        if (next == plan.anchor + i * plan.step) inPlatform = true;
       }
+      if (inPlatform) continue;
+      if (!AIRail.BuildRail(prev, cur, next)) continue;
+      if (joining) {
+        local goal = merges[next];
+        if (goal.next == cur || goal.next - next == prev - cur ||
+            OpexWaterContains(path, goal.next)) continue;
+        // Inclure la premiere courbe existante apres le merge dans le test 90.
+        if (goal.after != null && goal.after - goal.next == cur - next) continue;
+        if (!AIRail.BuildRail(cur, next, goal.next)) {
+          V271_LAST_GEOMETRY_ISSUE = "test_build"; continue;
+        }
+        local result = clone path;
+        result.append(next);
+        result.append(goal.next);
+        return result;
+      }
+      if (n >= 17 || queued >= 256) continue;
+      local key = cur + ":" + next + ":" + (cur - prev);
+      if (key in seen) continue;
+      seen[key] <- true;
+      local extended = clone path;
+      extended.append(next);
+      local distance = 1000000;
+      foreach (tile, goal in merges) distance = min(distance, AIMap.DistanceManhattan(next, tile));
+      // Priorite geometrique, sans promesse de plus court chemin exhaustif.
+      queue.Insert(extended, n + 2 * distance);
+      queued++;
     }
-    if (accepted) return { platform = plan, tiles = path,
-        signalTile = original.station_exit + (mergeDistance - 1) * d,
-        signalFront = original.station_exit + (mergeDistance - 2) * d };
   }
   return null;
 }

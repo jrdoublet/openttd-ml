@@ -268,6 +268,13 @@ function OpexAI::_v271Continue()
     for (local i = 1; i + 2 < state.tiles.len(); i++) {
       if (!AITile.IsBuildable(state.tiles[i])) clear = false;
     }
+    /* V271b : entre devis et arret au depot, conserver les deux supports
+     * primaires droits et simples, ainsi que l'orientation vers B du merge. */
+    local merge = state.tiles[state.tiles.len() - 2];
+    local next = state.tiles[state.tiles.len() - 1];
+    if (OpexTileTrackCount(state.lead) != 1 || OpexTileTrackCount(merge) != 1 ||
+        !AIRail.AreTilesConnected(state.exit, state.lead, state.lead + (state.lead - state.exit)) ||
+        !AIRail.AreTilesConnected(merge - (next - merge), merge, next)) clear = false;
     if (!clear || !OpexV271IsolatedRoute(line)) {
       state.reason = "route_changed"; state.phase = "rollback";
     } else {

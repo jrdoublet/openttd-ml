@@ -122,7 +122,7 @@ class PresenceDesEtapes(unittest.TestCase):
         self.econ = _read("economy.nut")
 
     def test_parallel_platforms_discovery(self):
-        self.assertIn("function OpexV190FindParallelPlatformPlans(platform, allowSlopes = false)", self.builder)  # 19/10 V271 : drapeau, défaut inchangé
+        self.assertIn("function OpexV190FindParallelPlatformPlans(platform, allowSlopes = false, maxSide = JOIN_PARALLEL_MAX_SIDE)", self.builder)  # V271b : bornage optionnel, défaut V190 inchangé
         find_body = _function_body(self.builder, "OpexV190FindParallelPlatformPlans")
         self.assertIn("local probe = AITestMode();", find_body)
         self.assertIn("AIRail.BuildRailStation(", find_body)
