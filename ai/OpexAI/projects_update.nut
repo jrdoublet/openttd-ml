@@ -598,8 +598,10 @@ function OpexAir0310PublishIncremental(owner, scanPlans, publishedCount, airOps,
   projects.candidateGroups = rebuilt;
   projects.airPlans = storedPlans;
   projects.airPlanningOpcodes = airOps;
-  projects.airOpsPerPlan <- airOpsPerPlan;
-  projects.airEconomicsDate <- AIDate.GetCurrentDate();
+  if (V277_AIR_PUB_FAST >= 1) {
+    projects.airOpsPerPlan <- airOpsPerPlan;
+    projects.airEconomicsDate <- AIDate.GetCurrentDate();
+  }
   if (stage == OPEX_STAGE_AIR_RAIL && hadAirPlans && storedPlans.len() > 0) {
     projects.airPlan = storedPlans[0];
   } else if ("airPlan" in projects) {
