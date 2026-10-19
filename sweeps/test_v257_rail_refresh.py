@@ -348,7 +348,8 @@ class RailRefresh(unittest.TestCase):
         self.assertIn('pending.phase = "building"', self.replace)
         self.assertIn("pending.before.append(vehicle)", self.replace)
         self.assertIn("local vehicles = AIVehicleList()", self.reconcile)
-        self.assertIn("pending.before.find(vehicle) == null", self.reconcile)
+        # 19/10 : array.find n'existe pas dans le Squirrel d'OpenTTD (plantage du smoke V271).
+        self.assertIn("!OpexWaterContains(pending.before, vehicle)", self.reconcile)
         self.assertIn("line.vehicles[index] = newVehicle", self.reconcile)
         self.assertIn("if (!mapped) line.vehicles.append(newVehicle)", self.reconcile)
         self.assertIn('pending.phase != "depot"', self.reconcile)
