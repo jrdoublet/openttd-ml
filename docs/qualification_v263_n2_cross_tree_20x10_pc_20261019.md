@@ -143,9 +143,15 @@ n'est engagée dans cette documentation.
   `.jsonl`, les bundles et journaux moteur de même préfixe.
 - La tentative `results/v263_cross_tree_20x10_pc_20261019.json` **n'a pas
   produit de fichier qualifié** : l'assertion sur les réglages a arrêté l'outil.
-- Les gros artefacts restent localement sous `results/` (ignoré par Git) ; les
-  empreintes ci-dessus permettent de vérifier les copies d'origine. Cette
-  documentation ne constitue **pas** un archivage Git des JSON bruts.
+- **Archivage Git demandé le 19/10 :** les JSON finaux, JSONL complets, manifestes
+  et journaux moteur des deux campagnes et de leurs smokes sont conservés dans
+  [le paquet de preuves V263](../evidence/review/v263_pc_20261019/README.md).
+  Ses 54 archives gzip sont vérifiées par décompression, tailles et SHA-256 ;
+  l'index distingue les deux worktrees d'origine. Les quatre bundles ont été
+  vérifiés localement contre leurs manifestes (114/114/111/111 fichiers) et
+  restent locaux avec le code tiers. Les originaux sous `results/` sont inchangés.
+  Les 40 journaux des campagnes complètes sont vides (`script_debug=false`) ;
+  les traces moteur disponibles sont celles des deux smokes. Aucun nouveau banc.
 
 **Décision de ce rapport :** état du banc clôturé, **qualification V263 non établie**.
 Aucun nouveau banc, aucune modification de comportement OpexAI et aucune
