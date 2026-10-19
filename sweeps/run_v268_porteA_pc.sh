@@ -25,9 +25,9 @@ RULE=(--variant-policy-id v268_c70_early --decision-rule gain_short --required-s
 
 python3 sweeps/run_c66_reference.py --campaign "${CAMP}_smoke" \
   --reference "$REF" --variant "$VAR" "${RULE[@]}" \
-  --years 1 --repeats 1 --seeds 42 --script-debug "${AAA[@]}" "${PC[@]}"
-if zcat -f results/"${CAMP}_smoke"_engine/* | grep -q "Your script made an error"; then
-  zcat -f results/"${CAMP}_smoke"_engine/* | grep "Your script made an error" | head -5
+  --years 1 --repeats 1 --seeds 42 --script-debug "${AAA[@]}" "${PC[@]}" || true
+if zcat -f results/"${CAMP}_smoke"_engine/* | grep -q "\[0\] \[S\] Your script made an error"; then
+  zcat -f results/"${CAMP}_smoke"_engine/* | grep -A6 "\[0\] \[S\] Your script made an error" | head -20
   echo "ARRET : erreur Squirrel au smoke, porte A non lancee" >&2
   exit 1
 fi
