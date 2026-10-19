@@ -14,7 +14,7 @@ Le binaire >= 15 exige libgomp1 et libglib2.0-0, ajoutes au Dockerfile.
 Metrique : PLYR[0]["old_economy"][0] donne company_value, performance_history (score
 officiel 0-1000), income et expenses du DERNIER TRIMESTRE CLOTURE. Profit = income + expenses
 (expenses deja signe negatif en 15.3). profit_year somme jusqu'a 4 trimestres. Note de gare :
-mediane STNN.goods.rating des cargos qui ont une note (status & 1, ramasses). cur_economy a
+mediane STNN.goods.rating des cargos qui ont une note (status & 2 = Rating, ramasses ; & 1 jusqu'au 19/10 = Acceptance, a tort). cur_economy a
 company_value = 0 : ne pas l'utiliser. max_loan est parse en -9223372036854775808 a cette
 version : champ ininterpretable.
 """
@@ -394,7 +394,7 @@ def station_ratings(chunks, owner=0):
         for good in body.get("goods") or []:
             if not isinstance(good, dict):
                 continue
-            if (good.get("status") or 0) & 1 == 0:
+            if (good.get("status") or 0) & 2 == 0:
                 continue
             if good.get("time_since_pickup", 255) >= 255:
                 continue

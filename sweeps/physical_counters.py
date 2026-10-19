@@ -508,12 +508,14 @@ def decode_stations(stnn_chunk: Union[dict, list, None], target_owner: int = 0) 
         if is_multimodal:
             multimodal_ids.append(sid)
 
-        # Notes des cargos deja ramasses (status bit 0), pas la valeur par defaut 175.
+        # Notes des cargos deja ramasses : bit 1 = GoodsEntry::State::Rating (station_base.h,
+        # 15.3) ; le bit 0 est Acceptance (lu par erreur jusqu'au 19/10), pas la valeur par
+        # defaut 175.
         ratings = []
         for good in body.get("goods") or []:
             if not isinstance(good, dict):
                 continue
-            if (good.get("status") or 0) & 1 == 0:
+            if (good.get("status") or 0) & 2 == 0:
                 continue
             if good.get("time_since_pickup", 255) >= 255:
                 continue
