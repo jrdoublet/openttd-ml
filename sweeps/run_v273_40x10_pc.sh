@@ -14,6 +14,8 @@ SMOKE="${CAMPAIGN:-v273_40x10_pc_20261019}_smoke"
 
 python3 sweeps/run_c66_reference.py --campaign "$SMOKE" \
   --reference "$REF" --variant "$VAR" --variant-policy-id v273_shared_dest_spread \
+  --decision-rule gain_short --required-seeds 40 --required-years 10 \
+  --min-useful-primary-delta-pct 4 --value-guard-max-loss-pct 5 \
   --years 1 --repeats 1 --seeds 42 --script-debug "${PC[@]}"
 if zcat -f results/"$SMOKE"_engine/* | grep -q "Your script made an error"; then
   zcat -f results/"$SMOKE"_engine/* | grep "Your script made an error" | head -5
