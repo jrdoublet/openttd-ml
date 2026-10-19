@@ -214,7 +214,7 @@ class TestV264ConvergentFreight(unittest.TestCase):
         self.assertNotIn("80", blob)
         spread = _function_body(builder, "OpexV264SpreadJoinPlans")
         self.assertTrue(spread.split("{", 1)[1].lstrip().startswith(
-            "if (!V264_CONVERGENT_FREIGHT) return [];"))
+            "if (!V264_CONVERGENT_FREIGHT && !V273_SHARED_DEST_SPREAD) return [];"))
         self.assertIn("if (spread == null || spread < 4) return [];", spread)
         self.assertNotIn("spread = 12", spread)
         for name in names:

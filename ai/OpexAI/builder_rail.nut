@@ -629,7 +629,7 @@ function OpexV264SpreadScan(plans, platform, stationId, stats, box, spread, leng
  * Un spread < 4 est refuse : c'est le minimum moteur, sans repli a 12. */
 function OpexV264SpreadJoinPlans(platform, stationId, stats = null)
 {
-  if (!V264_CONVERGENT_FREIGHT) return [];
+  if (!V264_CONVERGENT_FREIGHT && !V273_SHARED_DEST_SPREAD) return [];
   if (platform == null) return [];
   if (!("length" in platform) || !("anchor" in platform)
       || !("direction" in platform) || !("step" in platform)) return [];
@@ -758,7 +758,10 @@ function OpexRailPlatformPlans(catalog, candidate)
       }
     } else {
       local jointPlansB = OpexJoinPlatformPlans(candidate.joinPlatform, candidate.joinStationId, statsB);
-      if (V264_CONVERGENT_FREIGHT && ("convergent_dest" in candidate) && candidate.convergent_dest == 1) {
+      /* V273 : meme repli en T pour une destination partagee V178 (joinLineId pose, B exempte). */
+      local v264Spread = V264_CONVERGENT_FREIGHT && ("convergent_dest" in candidate) && candidate.convergent_dest == 1;
+      local v273Spread = V273_SHARED_DEST_SPREAD && ("shared_dest" in candidate) && candidate.shared_dest == 1;
+      if (v264Spread || v273Spread) {
         local joinMode = "parallel";
         if (jointPlansB.len() == 0) {
           jointPlansB = OpexV264SpreadJoinPlans(candidate.joinPlatform, candidate.joinStationId, statsB);
@@ -768,7 +771,8 @@ function OpexRailPlatformPlans(catalog, candidate)
           local joinedLength = jointPlansB.len() > 0 ? jointPlansB[0].length : 0;
           OpexDecide("V264_JOIN", "mode=" + joinMode + " n=" + jointPlansB.len()
               + " len=" + joinedLength + " station=" + candidate.joinStationId
-              + " src=" + candidate.src + " dst=" + candidate.dst);
+              + " src=" + candidate.src + " dst=" + candidate.dst
+              + " via=" + (v264Spread ? "v264" : "v178"));
         }
       }
       joinHasB = jointPlansB.len() > 0;

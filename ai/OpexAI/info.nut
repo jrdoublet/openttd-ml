@@ -693,6 +693,15 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
     AddSetting({
+      name = "v273_shared_dest_spread",
+      description = "V273: when a V178 shared-destination rail candidate finds no parallel platform at the existing station, try the V264 spread join (any anchor whose union fits station.station_spread) before giving up. 0 = off (default), 1 = on.",
+      min_value = 0, max_value = 1,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      step_size = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+    AddSetting({
       name = "v259_bridge_renew",
       description = "V259: renew rail (and road) bridges when faster bridge types become available and vehicles are speed-limited; 0 = off (default), 1 = economic renewal triggered on new bridge types",
       min_value = 0, max_value = 1,
