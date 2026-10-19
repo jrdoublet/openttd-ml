@@ -5,6 +5,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from bench_1v1_5y_20seeds import _station_route_index  # noqa: E402
+from bench_v2 import station_ratings  # noqa: E402
 
 
 def _chunks(goods):
@@ -30,6 +31,12 @@ class GoodsRatingBit(unittest.TestCase):
             self.assertFalse(index[key]["rated"])
             self.assertTrue(index[key]["accepts"])
             self.assertIsNone(index[key]["rating"])
+
+    def test_median_rating_counts_freight_sources(self):
+        goods = [{"status": 2, "rating": 180, "time_since_pickup": 3},   # source fret
+                 {"status": 1, "rating": 175, "time_since_pickup": 4},   # puits jamais charge
+                 {"status": 3, "rating": 150, "time_since_pickup": 1}]   # voyageurs
+        self.assertEqual(sorted(station_ratings(_chunks(goods), owner=0)), [150, 180])
 
 
 if __name__ == "__main__":
