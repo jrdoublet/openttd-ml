@@ -40,7 +40,7 @@ class TestV275Setting(unittest.TestCase):
         info = read_file("info.nut")
         block = info[info.index('name = "v275_rail_pax_mm"'):]
         block = block[:block.index("});")]
-        self.assertIn("min_value = 0, max_value = 15", block)
+        self.assertIn("min_value = 0, max_value = 7", block)
         self.assertIn("easy_value = 0, medium_value = 0, hard_value = 0", block)
         self.assertIn("custom_value = 0", block)
         self.assertIn("V275_RAIL_PAX_MM <- 0;", read_file("globals_pre.nut"))
@@ -48,19 +48,7 @@ class TestV275Setting(unittest.TestCase):
     def test_read_and_bounded(self):
         settings = read_file("settings.nut")
         self.assertIn('AIController.GetSetting("v275_rail_pax_mm")', settings)
-        self.assertIn("V275_RAIL_PAX_MM = (v275 != null && v275 >= 0 && v275 <= 15) ? v275 : 0;", settings)
-
-    def test_bit8_disables_package_with_air(self):
-        settings = read_file("settings.nut")
-        start = settings.index("if ((V275_RAIL_PAX_MM & 8) && MODE_AIR) {")
-        block = settings[start:settings.index("}", start)]
-        for name in ("V207_RAIL_PAX_SHARE_PCT = 0;", "V207_RAIL_MAIL = false;",
-                     "V207_RAIL_PAX_JOINED_STOPS = 0;", "V207_RAIL_PAX_SITE_RANK_PCT = 0;",
-                     "V275_RAIL_PAX_MM = 0;"):
-            self.assertIn(name, block)
-        # MODE_AIR est lu (et borne par la partie) avant le paquet.
-        self.assertLess(settings.index('MODE_AIR = AIController.GetSetting("mode_air") != 0;'), start)
-        self.assertLess(settings.index('AIController.GetSetting("v207_rail_pax_site_rank_pct")'), start)
+        self.assertIn("V275_RAIL_PAX_MM = (v275 != null && v275 >= 0 && v275 <= 7) ? v275 : 0;", settings)
 
 
 class TestV275Candidates(unittest.TestCase):
