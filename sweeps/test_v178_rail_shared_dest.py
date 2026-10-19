@@ -20,12 +20,13 @@ def _read(name: str) -> str:
 class TestV178RailSharedDest(unittest.TestCase):
     def test_setting(self):
         spec = parse_ai_setting_specs(AI / "info.nut")["v178_rail_shared_dest"]
-        self.assertEqual(spec["default"], 0)
+        # 19/10 : defaut 1 apres portes A (40x10 +235,6 k) et B (20x10).
+        self.assertEqual(spec["default"], 1)
         self.assertEqual((spec["min_value"], spec["max_value"]), (0, 1))
         self.assertEqual(spec["step_size"], 1)
 
     def test_loaded_once(self):
-        self.assertIn("V178_RAIL_SHARED_DEST <- false;", _read("globals_pre.nut"))
+        self.assertIn("V178_RAIL_SHARED_DEST <- true;", _read("globals_pre.nut"))
         self.assertEqual(_read("settings.nut").count('GetSetting("v178_rail_shared_dest")'), 1)
 
     def test_method_declared_in_main(self):
