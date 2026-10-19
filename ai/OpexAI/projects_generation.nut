@@ -652,6 +652,7 @@ function OpexAir0310FilterAirAlternativesStillValid(alternatives, abandonedPairs
   local live = [];
   local stationLimitedTowns = {};
   local validity = OpexAir0310SiteValidityBegin(stationLimitedTowns);
+  local ctx = (V277_AIR_PUB_FAST >= 1 && C83_FIXES && lines != null) ? OpexIncrRevalidateIndexContext(lines) : null;
   foreach (project in alternatives) {
     if (project != null && ("mode" in project) && project.mode == "air") {
       if (!("payload" in project) || project.payload == null
@@ -662,8 +663,23 @@ function OpexAir0310FilterAirAlternativesStillValid(alternatives, abandonedPairs
       if (!("siteA" in plan) || !("siteB" in plan) || !("airport" in plan) || !("plane" in plan)) {
         continue;
       }
-      if (C83_FIXES && lines != null && !OpexAirBatchPlanStillLive(plan, lines)) {
-        continue;
+      if (V277_AIR_PUB_FAST == 1 && C83_FIXES && lines != null) {
+        if (!OpexAirBatchPlanStillLiveIndexed(plan, lines, ctx)) continue;
+      } else if (V277_AIR_PUB_FAST == 2 && C83_FIXES && lines != null) {
+        local histVerdict = OpexAirBatchPlanStillLive(plan, lines);
+        local fastVerdict = (ctx != null) ? OpexAirBatchPlanStillLiveIndexed(plan, lines, ctx) : histVerdict;
+        if (fastVerdict != histVerdict) {
+          local townAId = ("siteA" in plan && plan.siteA != null && ("town" in plan.siteA) && plan.siteA.town != null) ? plan.siteA.town.id : -1;
+          local townBId = ("siteB" in plan && plan.siteB != null && ("town" in plan.siteB) && plan.siteB.town != null) ? plan.siteB.town.id : -1;
+          local msg = "filter townA=" + townAId + " townB=" + townBId + " hist=" + histVerdict + " fast=" + fastVerdict;
+          OpexDecide("V277_CHECK", msg);
+          if (!DECISION_LOG) AILog.Warning("V277_CHECK " + msg);
+        }
+        if (!histVerdict) continue;
+      } else {
+        if (C83_FIXES && lines != null && !OpexAirBatchPlanStillLive(plan, lines)) {
+          continue;
+        }
       }
 
       local reuseA = ("reuseA" in plan) && plan.reuseA;

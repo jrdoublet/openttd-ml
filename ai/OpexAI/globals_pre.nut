@@ -116,6 +116,8 @@ V250_RIGHTS <- 0;
 V250_CASH_STOP <- true;
 /* V259 : renouvellement des ponts plus rapides (task_v259.nut). */
 V259_BRIDGE_RENEW <- 0;
+/* V277 : publication rapide des projets air et filtre indexe de re-selection. */
+V277_AIR_PUB_FAST <- 0;
 V172_RAIL_LONG_WEIGHT_DIST <- 100;
 /* Cascade pax par distance decroissante : air seul, air+rail, rail seul,
  * route seule. Le fret accompagne la premiere passe. */

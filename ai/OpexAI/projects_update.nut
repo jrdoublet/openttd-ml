@@ -324,6 +324,34 @@ function OpexV141RefreshPublishedAir(project, catalog, planningOps)
   project.cargo = catalog.paxCargo;
 }
 
+/* V277 : insertion rapide d'un lot de projets aeriens neufs dans candidateGroups
+ * et mise a jour incrementale de odProjects, modeCandidates, modeAlternatives. */
+function OpexV277AirPubFastInsert(groups, stats, newKeyOrder, pendingNew)
+{
+  foreach (slotKey in newKeyOrder) {
+    foreach (created in pendingNew[slotKey]) {
+      if (!(slotKey in groups)) {
+        groups.rawset(slotKey, [created]);
+        stats.odProjects++;
+        stats.modeCandidates++;
+      } else {
+        local list = groups[slotKey];
+        local insertIdx = -1;
+        for (local i = 0; i < list.len(); i++) {
+          if (OpexAir0310ModeIsLate(list[i])) {
+            insertIdx = i;
+            break;
+          }
+        }
+        if (insertIdx >= 0) list.insert(insertIdx, created);
+        else list.append(created);
+        stats.modeCandidates++;
+        stats.modeAlternatives++;
+      }
+    }
+  }
+}
+
 /* Publication partielle AIR 03/10 1. Ne reconvertit que les plans neufs et
  * reecrit les projets air deja materialises la ou OpexProjectFromAir depend
  * de l'etat courant :
@@ -397,6 +425,10 @@ function OpexAir0310PublishIncremental(owner, scanPlans, publishedCount, airOps,
       invalidated++;
       continue;
     }
+    if (V277_AIR_PUB_FAST >= 1 && !OpexV141PublishedAirStillValid(created.payload)) {
+      invalidated++;
+      continue;
+    }
     local createdKey = OpexProjectKeyFor(created);
     if (!(createdKey in pendingNew)) {
       pendingNew.rawset(createdKey, []);
@@ -406,6 +438,50 @@ function OpexAir0310PublishIncremental(owner, scanPlans, publishedCount, airOps,
     added++;
   }
   if (spPubNew != null) OpexSpanEnd(spPubNew);
+
+  /* V277 : publication rapide sans reparcours du vivier (mode 1 et mode 2). */
+  local v277FastGroups = null;
+  local v277FastStats = null;
+  if (V277_AIR_PUB_FAST == 1 && priorRaw.len() == 0) {
+    OpexV277AirPubFastInsert(projects.candidateGroups, projects.stats, newKeyOrder, pendingNew);
+    projects.all = projects.stats.odProjects;
+
+    local fastStoredPlans = [];
+    foreach (plan in scanPlans) fastStoredPlans.append(plan);
+    projects.airPlans = fastStoredPlans;
+    projects.airPlanningOpcodes = airOps;
+    projects.airOpsPerPlan <- airOpsPerPlan;
+    projects.airEconomicsDate <- AIDate.GetCurrentDate();
+    if (stage == OPEX_STAGE_AIR_RAIL && hadAirPlans && fastStoredPlans.len() > 0) {
+      projects.airPlan = fastStoredPlans[0];
+    } else if ("airPlan" in projects) {
+      projects.airPlan = bestPlan;
+    } else {
+      projects.airPlan <- bestPlan;
+    }
+
+    if ("_lazyPubsYear" in owner) owner._lazyPubsYear++;
+    {
+      if ("selectionStale" in projects) projects["selectionStale"] = true;
+      else projects["selectionStale"] <- true;
+      if ("_lazyDeferredYear" in owner) owner._lazyDeferredYear++;
+    }
+    return { added = added, reconverted = 0, invalidated = invalidated,
+        refreshed = 0 };
+  } else if (V277_AIR_PUB_FAST == 2 && priorRaw.len() == 0) {
+    v277FastGroups = {};
+    foreach (slotKey, list in projects.candidateGroups) {
+      local copyList = [];
+      foreach (item in list) copyList.append(item);
+      v277FastGroups.rawset(slotKey, copyList);
+    }
+    v277FastStats = {
+      odProjects = projects.stats.odProjects,
+      modeCandidates = projects.stats.modeCandidates,
+      modeAlternatives = projects.stats.modeAlternatives,
+    };
+    OpexV277AirPubFastInsert(v277FastGroups, v277FastStats, newKeyOrder, pendingNew);
+  }
 
   local spPubFilter = PROBE_SPAN_TRACE ? OpexSpanBegin("pub.filter") : null;
   local keptAir = {};
@@ -522,6 +598,8 @@ function OpexAir0310PublishIncremental(owner, scanPlans, publishedCount, airOps,
   projects.candidateGroups = rebuilt;
   projects.airPlans = storedPlans;
   projects.airPlanningOpcodes = airOps;
+  projects.airOpsPerPlan <- airOpsPerPlan;
+  projects.airEconomicsDate <- AIDate.GetCurrentDate();
   if (stage == OPEX_STAGE_AIR_RAIL && hadAirPlans && storedPlans.len() > 0) {
     projects.airPlan = storedPlans[0];
   } else if ("airPlan" in projects) {
@@ -533,6 +611,55 @@ function OpexAir0310PublishIncremental(owner, scanPlans, publishedCount, airOps,
   local spPubRecount = PROBE_SPAN_TRACE ? OpexSpanBegin("pub.recount") : null;
   OpexProjectsRecountGroups(projects);
   if (spPubRecount != null) OpexSpanEnd(spPubRecount);
+  if (V277_AIR_PUB_FAST == 2 && priorRaw.len() == 0 && v277FastGroups != null) {
+    local mismatch = null;
+    if (v277FastGroups.len() != projects.candidateGroups.len()) {
+      mismatch = "group_count hist=" + projects.candidateGroups.len() + " fast=" + v277FastGroups.len();
+    } else {
+      foreach (slotKey, histList in projects.candidateGroups) {
+        if (!(slotKey in v277FastGroups)) {
+          mismatch = "missing_key_in_fast " + slotKey;
+          break;
+        }
+        local fList = v277FastGroups[slotKey];
+        if (histList.len() != fList.len()) {
+          mismatch = "len_mismatch key=" + slotKey + " hist=" + histList.len() + " fast=" + fList.len();
+          break;
+        }
+        for (local compIdx = 0; compIdx < histList.len(); compIdx++) {
+          if (histList[compIdx] != fList[compIdx]) {
+            mismatch = "obj_mismatch key=" + slotKey + " idx=" + compIdx;
+            break;
+          }
+        }
+        if (mismatch != null) break;
+      }
+    }
+    if (mismatch == null) {
+      foreach (slotKey, fList in v277FastGroups) {
+        if (!(slotKey in projects.candidateGroups)) {
+          mismatch = "missing_key_in_hist " + slotKey;
+          break;
+        }
+      }
+    }
+    if (mismatch == null) {
+      if (projects.all != v277FastStats.odProjects) {
+        mismatch = "all_mismatch hist=" + projects.all + " fast=" + v277FastStats.odProjects;
+      } else if (projects.stats.odProjects != v277FastStats.odProjects) {
+        mismatch = "od_mismatch hist=" + projects.stats.odProjects + " fast=" + v277FastStats.odProjects;
+      } else if (projects.stats.modeCandidates != v277FastStats.modeCandidates) {
+        mismatch = "candidates_mismatch hist=" + projects.stats.modeCandidates + " fast=" + v277FastStats.modeCandidates;
+      } else if (projects.stats.modeAlternatives != v277FastStats.modeAlternatives) {
+        mismatch = "alternatives_mismatch hist=" + projects.stats.modeAlternatives + " fast=" + v277FastStats.modeAlternatives;
+      }
+    }
+    if (mismatch != null) {
+      local checkMsg = "air_pub_fast publish mismatch: " + mismatch;
+      OpexDecide("V277_CHECK", checkMsg);
+      if (!DECISION_LOG) AILog.Warning("V277_CHECK " + checkMsg);
+    }
+  }
   /* V158 : selection paresseuse. Si active, on pose selectionStale et differe la reelection. */
   if ("_lazyPubsYear" in owner) owner._lazyPubsYear++;
   {
