@@ -33,9 +33,9 @@ for c in "${CONDS[@]}"; do
   read -r -a OPTS <<< "$(opts_for "$c")"
   camp="v228_${c}_20x10_pc_20261019"
   python3 sweeps/run_c66_reference.py --campaign "${camp}_smoke" --reference "$REF" \
-    --years 1 --repeats 1 --seeds 42 --script-debug "${OPTS[@]}" "${PROFILE[@]}"
-  if zcat -f results/"${camp}_smoke"_engine/* | grep -q "Your script made an error"; then
-    zcat -f results/"${camp}_smoke"_engine/* | grep "Your script made an error" | head -5
+    --years 1 --repeats 1 --seeds 42 --script-debug "${OPTS[@]}" "${PROFILE[@]}" || true
+  if zcat -f results/"${camp}_smoke"_engine/* | grep -q "\[0\] \[S\] Your script made an error"; then
+    zcat -f results/"${camp}_smoke"_engine/* | grep -A6 "\[0\] \[S\] Your script made an error" | head -20
     echo "ARRET : erreur Squirrel au smoke $c" >&2; exit 1
   fi
   python3 sweeps/run_c66_reference.py --campaign "$camp" --reference "$REF" \
