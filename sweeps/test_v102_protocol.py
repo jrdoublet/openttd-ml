@@ -147,8 +147,10 @@ class GitHubGateIntegrationTests(unittest.TestCase):
         import qualification as q
         from test_qualification import fixture, spec, SHA
 
-        self.assertEqual(list(SEEDS), q.SEEDS)
-        self.assertEqual(list(SEEDS_40), q.SEEDS_40)
+        # Seule divergence admise : la 73 (plantage deterministe d'AAAHogEx) -> 373684.
+        swap = lambda seeds: [373684 if seed == 73 else seed for seed in seeds]
+        self.assertEqual(swap(SEEDS), q.SEEDS)
+        self.assertEqual(swap(SEEDS_40), q.SEEDS_40)
         previous = None
         for stage in q.PROFILES:
             report, manifest = fixture(stage)
