@@ -10,17 +10,19 @@ Trois sous-commandes, bibliotheque standard seule :
   command   ecrit la ou les commandes PC (run_c66_reference.py, profil PC du 18/10).
             Bras de reference = master au defaut ; bras variante = un effet deja qualifie
             (controle de detection, critere b de V267).
-  select    lit les JSONL d'une ou plusieurs campagnes, releve les annees 3, 6 et 10, et choisit
-            les graines par glouton qui minimise l'ecart de distribution (MMD, noyau gaussien
-            sur variables centrees reduites) entre les graines retenues et toute la population.
+  select    lit les variables de carte (v267_maps.py) et/ou les JSONL de campagnes (annees 3, 6, 10).
+            Remplit d'abord des quotas : quelques graines dans chacun des deux deciles extremes de
+            chaque variable de couverture (COVERAGE : relief, mer, rivieres, ponts a franchir,
+            industries, parts de mode...), puis complete par glouton MMD (noyau gaussien sur
+            variables centrees reduites) pour rester representatif de la population.
             Rapport : moyenne et quantiles population / selection / liste historique, et effet
             du controle (variante - reference) par horizon.
 
-Exemples :
-  python3 sweeps/v267_seeds.py generate --count 300 --out results/v267_seeds.txt
-  python3 sweeps/v267_seeds.py command --seeds-file results/v267_seeds.txt --campaign v267_pilote_30x10_pc_20261019 --limit 30
-  python3 sweeps/v267_seeds.py command --seeds-file results/v267_seeds.txt --campaign v267_pop_10y_pc_20261019 --offset 30 --chunks 4
-  python3 sweeps/v267_seeds.py select results/v267_pilote_30x10_pc_20261019.jsonl results/v267_pop_10y_pc_20261019_c*.jsonl --k 40
+Exemples (parcours complet : sweeps/run_v267_pc.sh) :
+  python3 sweeps/v267_maps.py screen --count 3000 --out results/v267_maps_3000.jsonl   # dans Docker
+  python3 sweeps/v267_seeds.py select --maps results/v267_maps_3000.jsonl --no-control --k 300 --seeds-out results/v267_pop_300.txt
+  python3 sweeps/v267_seeds.py command --seeds-file results/v267_pop_300.txt --campaign v267_main_x10_pc_20261019 --no-control
+  python3 sweeps/v267_seeds.py select results/v267_main_x10_pc_20261019*.jsonl --maps results/v267_maps_3000.jsonl --no-control --k 40
 """
 
 from __future__ import annotations
@@ -103,7 +105,9 @@ def cmd_command(args: argparse.Namespace) -> None:
         campaign = args.campaign if chunks == 1 else f"{args.campaign}_c{i + 1}"
         cmd = [
             "python3", "sweeps/run_c66_reference.py", "--campaign", campaign,
-            "--reference", args.reference,
+            # Un bras sans --reference : OpexAI aux defauts de l'arbre (policy-id "reference").
+            *(["--reference", args.reference or CONTROL_REFERENCE] if not args.no_control
+              else (["--reference", args.reference] if args.reference else [])),
             *([] if args.no_control else ["--variant", args.variant, "--variant-policy-id", args.variant_policy_id]),
             # Un seul bras (C66.3) : le lanceur refuse les options de decision C66.4.
             *([] if args.no_control else [
@@ -180,17 +184,26 @@ def standardize(feats: dict[int, dict[str, float]], names: list[str]) -> dict[in
     return {s: [(feats[s][n] - mu[n]) / sd[n] for n in names] for s in feats}
 
 
-def greedy_mmd(z: dict[int, list[float]], k: int) -> list[int]:
-    """Glouton : a chaque pas, la graine qui minimise la MMD^2 entre selection et population."""
+def greedy_mmd(z: dict[int, list[float]], k: int, initial: list[int] | None = None) -> list[int]:
+    """Glouton : a chaque pas, la graine qui minimise la MMD^2 entre selection et population.
+
+    initial : graines deja retenues (quotas de couverture), completees jusqu'a k.
+    """
     seeds = list(z)
     n = len(seeds)
+    index = {s: i for i, s in enumerate(seeds)}
     dim = len(next(iter(z.values())))
     gamma = 1.0 / (2.0 * dim)  # largeur de bande = dimension (variables centrees reduites)
     K = [[math.exp(-gamma * sum((a - b) ** 2 for a, b in zip(z[s], z[t]))) for t in seeds] for s in seeds]
     pop_mean = [sum(row) / n for row in K]  # moyenne du noyau de chaque graine vers la population
     chosen: list[int] = []
     sum_k = [0.0] * n  # somme des noyaux vers les graines deja choisies
-    for step in range(min(k, n)):
+    for seed in initial or []:
+        best = index[seed]
+        chosen.append(best)
+        for j in range(n):
+            sum_k[j] += K[j][best]
+    for step in range(len(chosen), min(k, n)):
         m = step + 1
         best, best_val = None, None
         for i in range(n):
@@ -206,6 +219,52 @@ def greedy_mmd(z: dict[int, list[float]], k: int) -> list[int]:
         for j in range(n):
             sum_k[j] += K[j][best]
     return [seeds[i] for i in chosen]
+
+
+def tail_quotas(feats: dict[int, dict[str, float]], names: list[str], tail: float, per_tail: int) -> dict:
+    """{(variable, 'haut'|'bas'): graines du decile extreme} pour chaque variable de couverture."""
+    quotas = {}
+    for n in names:
+        ranked = sorted(feats, key=lambda s: (feats[s][n], s))
+        size = max(per_tail, int(round(tail * len(ranked))))
+        lo, hi = ranked[:size], ranked[-size:]
+        if feats[lo[-1]][n] < feats[hi[0]][n]:  # variable non degeneree
+            quotas[(n, "bas")] = set(lo)
+            quotas[(n, "haut")] = set(hi)
+    return quotas
+
+
+def coverage_seeds(quotas: dict, per_tail: int, budget: int) -> tuple[list[int], list]:
+    """Glouton de couverture : la graine qui remplit le plus de quotas encore ouverts."""
+    need = {key: per_tail for key in quotas}
+    chosen: list[int] = []
+    candidates = sorted(set().union(*quotas.values())) if quotas else []
+    while len(chosen) < budget:
+        best, gain = None, 0
+        for s in candidates:
+            if s in chosen:
+                continue
+            g = sum(1 for key, members in quotas.items() if need[key] > 0 and s in members)
+            if g > gain:
+                best, gain = s, g
+        if best is None:
+            break
+        chosen.append(best)
+        for key, members in quotas.items():
+            if best in members and need[key] > 0:
+                need[key] -= 1
+    return chosen, sorted(key for key, left in need.items() if left > 0)
+
+
+def load_maps(paths: list[str]) -> dict[int, dict[str, float]]:
+    out = {}
+    for path in paths:
+        for line in Path(path).read_text().splitlines():
+            if line.strip():
+                row = json.loads(line)
+                seed = row.pop("seed")
+                out[seed] = {f"map_{k}": float(v) for k, v in row.items() if isinstance(v, (int, float))}
+    return out
 
 
 def quantile(values: list[float], q: float) -> float:
@@ -232,22 +291,54 @@ def describe(label: str, feats: dict, seeds: list[int], names: list[str]) -> Non
               f"  q50 {quantile(v, .5):>14.3f}  q90 {quantile(v, .9):>14.3f}")
 
 
+# Variables de couverture (quotas des deux deciles extremes) : la carte elle-meme, puis ce que
+# l'IA y a fait quand des parties existent. Les variables absentes ou constantes sont ignorees.
+COVERAGE = (
+    "map_height_mean", "map_roughness", "map_sea_share", "map_river_share", "map_wide_water_share",
+    "map_coastal_towns", "map_town_tiles_max", "map_industries_primary", "map_industries_secondary",
+    "map_power_stations", "map_town_river_cross_share", "map_town_river_run_max",
+    "map_town_sea_cross_share", "map_town_climb_p90", "map_coal_river_run_max",
+    "share_water_y10", "share_rail_y10", "share_air_y10", "profit_ratio_y10",
+)
+
+
 def cmd_select(args: argparse.Namespace) -> None:
-    rows = load_rows(args.jsonl)
     variant = None if args.no_control else args.variant_policy_id
-    feats = seed_features(rows, args.reference_policy_id, variant)
+    feats: dict[int, dict[str, float]] = {}
+    if args.jsonl:
+        feats = seed_features(load_rows(args.jsonl), args.reference_policy_id, variant)
+    if args.maps:
+        maps = load_maps(args.maps)
+        feats = {s: {**maps[s], **feats[s]} for s in feats if s in maps} if args.jsonl else maps
+    for s in args.exclude:
+        feats.pop(s, None)
     if len(feats) < args.k:
         sys.exit(f"{len(feats)} graines completes seulement, moins que k={args.k}")
-    names = sorted(next(iter(feats.values())))
+    names = sorted(n for n in next(iter(feats.values()))
+                   if len({feats[s][n] for s in feats}) > 1 and not n.endswith(("_tiles", "_pairs")))
     z = standardize(feats, names)
-    chosen = greedy_mmd(z, args.k)
+    per_tail = max(1, int(round(args.k * args.tail / 2)))
+    cover = [n for n in COVERAGE if n in names]
+    quotas = tail_quotas(feats, cover, args.tail, per_tail)
+    first, _ = coverage_seeds(quotas, per_tail, int(args.k * args.coverage_share))
+    chosen = greedy_mmd(z, args.k, initial=first)
+    unmet = sorted(key for key, members in quotas.items()
+                   if sum(1 for s in chosen if s in members) < per_tail)
     population = sorted(feats)
     historic = [s for s in SEEDS_40 if s in feats]
     describe("population", feats, population, names)
     describe("selection", feats, chosen, names)
     if historic:
         describe("liste historique SEEDS_40 presente", feats, historic, names)
-    if variant is not None:
+    print(f"\n== couverture des deciles extremes ({per_tail} graine(s) par queue, "
+          f"{len(first)} graines de quotas puis {args.k - len(first)} par MMD)")
+    for key, members in sorted(quotas.items()):
+        got = sum(1 for s in chosen if s in members)
+        old = sum(1 for s in historic if s in members)
+        print(f"  {key[0]:32s} {key[1]:4s} selection {got:2d}   historique {old:2d}")
+    if unmet:
+        print("  quotas non remplis : " + ", ".join(f"{a}/{b}" for a, b in unmet))
+    if variant is not None and args.jsonl:
         print("\n== controle de detection (variante - reference, profit_year)")
         for h in HORIZONS:
             n = f"control_delta_y{h}"
@@ -259,9 +350,14 @@ def cmd_select(args: argparse.Namespace) -> None:
                 print(f"  annee {h:2d} {label:11s} moy {statistics.fmean(v):>12.0f}  IC95 [{lo:.0f} ; {hi:.0f}]")
     print("\nSELECTION " + " ".join(str(s) for s in chosen))
     if args.out:
-        Path(args.out).write_text(json.dumps({"k": args.k, "seeds": chosen, "features": names,
-                                              "population": population}, indent=2) + "\n")
+        Path(args.out).write_text(json.dumps({
+            "k": args.k, "seeds": chosen, "coverage_seeds": first, "features": names,
+            "coverage": [list(k) for k in sorted(quotas)], "unmet": [list(k) for k in unmet],
+            "population": population}, indent=2) + "\n")
         print(f"-> {args.out}")
+    if args.seeds_out:
+        Path(args.seeds_out).write_text("\n".join(str(s) for s in chosen) + "\n")
+        print(f"-> {args.seeds_out}")
 
 
 def main() -> None:
@@ -279,13 +375,19 @@ def main() -> None:
     c.add_argument("--chunks", type=int, default=1)
     c.add_argument("--limit", type=int, default=0, help="pilote : premieres graines seulement")
     c.add_argument("--offset", type=int, default=0, help="campagne principale : sauter les graines du pilote")
-    c.add_argument("--reference", default=CONTROL_REFERENCE)
+    c.add_argument("--reference", default=None, help=f"defaut : {CONTROL_REFERENCE} avec controle, defauts sinon")
     c.add_argument("--variant", default=CONTROL_VARIANT)
     c.add_argument("--variant-policy-id", default="v267_control")
     c.add_argument("--no-control", action="store_true", help="un seul bras (C66.3), cout divise par deux")
     c.set_defaults(func=cmd_command)
     s = sub.add_parser("select")
-    s.add_argument("jsonl", nargs="+")
+    s.add_argument("jsonl", nargs="*", help="campagnes jouees ; vide = cartes seules (--maps)")
+    s.add_argument("--maps", nargs="*", default=[], help="JSONL de v267_maps.py screen")
+    s.add_argument("--tail", type=float, default=0.1, help="taille de chaque decile extreme")
+    s.add_argument("--coverage-share", type=float, default=0.6,
+                   help="part maximale de k donnee aux quotas, le reste par MMD")
+    s.add_argument("--exclude", type=int, nargs="*", default=[])
+    s.add_argument("--seeds-out", help="liste de graines, une par ligne (population a jouer)")
     s.add_argument("--k", type=int, default=40)
     s.add_argument("--reference-policy-id", default="reference")
     s.add_argument("--variant-policy-id", default="v267_control")

@@ -1,24 +1,28 @@
 #!/usr/bin/env bash
-# V267 : choisir les 40 graines de banc les plus complementaires, sur le PC.
-# A lancer depuis la racine d'un checkout de la branche v267 (master du 19/10 fusionne).
+# V267 : choisir 40 graines de banc diverses (types de cartes et situations), sur le PC.
+# A lancer depuis la racine d'un checkout de la branche v267.
 # Etapes (argument 1) :
 #   smoke   1 graine x 1 an, un bras : verifie que la commande demarre et que le journal est sain ;
-#   main    toute la population x 10 ans (controle V252 2 contre 0, ou un bras avec NOCONTROL=1) ;
-#   select  relit main et retient 40 graines (glouton MMD), resultat dans results/v267_selection_20261019.json.
-# Pas de pilote : le cout d'une partie de 10 ans au profil PC est connu par V263 (2 x 20 duels du 19/10).
-# Variables : COUNT (taille de la population, defaut 300), NOCONTROL=1 (un seul bras, cout / 2).
+#   maps    lit la carte de MAPS graines (partie d'un jour sans IA, deterministe) : relief, mer,
+#           rivieres, cotes, villes, industries, rivieres et mer a franchir entre villes ;
+#   pop     choisit COUNT graines diverses parmi les MAPS (quotas des deciles extremes, puis MMD) ;
+#   main    joue la population COUNT x 10 ans, un bras (OpexAI aux defauts contre AAAHogEx) ;
+#   select  relit cartes + parties et retient 40 graines : results/v267_selection_20261019.{json,txt}.
+# Variables : MAPS (defaut 3000), COUNT (defaut 300 ; ~38 s par partie de 10 ans a 10 workers),
+#             CONTROL=1 (second bras V252 0 contre 2, cout x2 ; desactive par defaut).
 set -euo pipefail
 PROFILE=(${PROFILE:---cpus 10 --memory 8g --max-workers 10 --network host})
-STEP="${1:?smoke|main|select}"
+STEP="${1:?smoke|maps|pop|main|select}"
+MAPS="${MAPS:-3000}"
 COUNT="${COUNT:-300}"
-SEEDS_FILE="results/v267_seeds_${COUNT}.txt"
-CTRL=()
-[ "${NOCONTROL:-0}" = "1" ] && CTRL=(--no-control)
+MAPS_FILE="results/v267_maps_${MAPS}.jsonl"
+POP_FILE="results/v267_pop_${COUNT}.txt"
+CTRL=(--no-control)
+[ "${CONTROL:-0}" = "1" ] && CTRL=()
 mkdir -p results
-[ -f "$SEEDS_FILE" ] || python3 sweeps/v267_seeds.py generate --count "$COUNT" --out "$SEEDS_FILE"
 
 run_cmd() {  # la sous-commande "command" imprime une ligne run_c66_reference.py par tranche
-  python3 sweeps/v267_seeds.py command --seeds-file "$SEEDS_FILE" "${CTRL[@]}" "$@" | while read -r line; do
+  python3 sweeps/v267_seeds.py command --seeds-file "$POP_FILE" "${CTRL[@]}" "$@" | while read -r line; do
     echo "+ $line"
     eval "$line"
   done
@@ -27,15 +31,24 @@ run_cmd() {  # la sous-commande "command" imprime une ligne run_c66_reference.py
 case "$STEP" in
   smoke)
     python3 sweeps/run_c66_reference.py --campaign v267_smoke_1x1_pc_20261019 \
-      --reference "OpexAI[v252_air_engine_refresh=2]" \
       --years 1 --repeats 1 --seeds 42 --script-debug \
       "${PROFILE[@]}" || true
     if zcat -f results/v267_smoke_1x1_pc_20261019_engine/* | grep -q "\[0\] \[S\] Your script made an error"; then
       echo "ARRET : erreur Squirrel au smoke" >&2; exit 1
     fi ;;
-  main)   run_cmd --campaign v267_main_x10_pc_20261019 ;;
+  maps)
+    docker run --rm --network host --cpus=10 --memory=8g -v openttd-lab-home:/home/lab \
+      -v "$PWD":/work -w /work openttd-lab:latest \
+      python3 sweeps/v267_maps.py screen --count "$MAPS" --out "$MAPS_FILE" --workers 10 --batch 200 ;;
+  pop)
+    python3 sweeps/v267_seeds.py select --maps "$MAPS_FILE" --no-control --k "$COUNT" \
+      --exclude 73 --out "results/v267_pop_${COUNT}.json" --seeds-out "$POP_FILE" ;;
+  main)
+    [ -f "$POP_FILE" ] || { echo "lancer d'abord l'etape pop" >&2; exit 1; }
+    run_cmd --campaign v267_main_x10_pc_20261019 ;;
   select)
-    python3 sweeps/v267_seeds.py select results/v267_main_x10_pc_20261019*.jsonl \
-      "${CTRL[@]}" --k 40 --out results/v267_selection_20261019.json ;;
+    python3 sweeps/v267_seeds.py select results/v267_main_x10_pc_20261019*.jsonl --maps "$MAPS_FILE" \
+      "${CTRL[@]}" --k 40 --out results/v267_selection_20261019.json \
+      --seeds-out results/v267_selection_20261019.txt ;;
   *) echo "etape inconnue : $STEP" >&2; exit 2 ;;
 esac

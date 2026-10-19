@@ -11,9 +11,10 @@ import zlib
 
 # Original airports only, table/airport_defaults.h at OpenTTD 15.3.
 AIRPORT_CATCHMENTS = (4, 5, 4, 6, 8, 4, 4, 10, 4, 4)
+MAP_CHUNKS = ("MAPT", "MAP2", "MAPE", "M3LO", "MAP8")
 
 
-def raw_map_chunks(data):
+def raw_map_chunks(data, wanted=MAP_CHUNKS):
     if len(data) < 8:
         raise ValueError("truncated header")
     version = int.from_bytes(data[4:6], "big")
@@ -59,7 +60,7 @@ def raw_map_chunks(data):
         if kind == 0:
             size = (m >> 4) << 24 | int.from_bytes(read(3), "big")
             block = read(size)
-            if tag in (b"MAPT", b"MAP2", b"MAPE", b"M3LO", b"MAP8"):
+            if tag.decode("latin-1") in wanted:
                 chunks[tag.decode()] = block
         elif kind in (1, 2, 3, 4) and m == kind:
             while (size := gamma()) != 0:
@@ -68,7 +69,7 @@ def raw_map_chunks(data):
             raise ValueError("unsupported chunk framing")
     if offset != len(payload):
         raise ValueError("trailing bytes")
-    if set(chunks) != {"MAPT", "MAP2", "MAPE", "M3LO", "MAP8"}:
+    if set(chunks) != set(wanted):
         raise ValueError("missing map chunk")
     return chunks
 
