@@ -708,8 +708,6 @@ function OpexAI::Start()
     this._taskQueue.append({ name = "v249_statue", dueCycle = 0, enabled = V249_STATUE });
     this._taskQueue.append({ name = "v252_air_engine_refresh", dueCycle = 0, enabled = V252_AIR_ENGINE_REFRESH == 2 });
     this._taskQueue.append({ name = "v250_rights", dueCycle = 0, enabled = V250_RIGHTS > 0 });
-    if (V276_CAND_SLICES > 0)
-      this._taskQueue.append({ name = "v276_candidates", dueCycle = 0, enabled = true });
   }
 
   if (!STAGED_BOOTSTRAP) this._generationStage = OPEX_STAGE_COMPLETE;
@@ -857,6 +855,9 @@ function OpexAI::Start()
       this._c67SlackHook();
       if (spC67 != null) OpexSpanEnd(spC67);
     }
+    /* V276c : apres la file et ses continuations, uniquement sur le reliquat.
+     * Aucun dueCycle supplementaire et aucune tache de file retardee. */
+    if (V276_CAND_SLICES > 0) OpexV276Tick(this);
     local spSleep = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.sleep") : null;
     AIController.Sleep(1);
     if (spSleep != null) OpexSpanEnd(spSleep);

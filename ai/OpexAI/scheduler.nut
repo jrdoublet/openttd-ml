@@ -245,13 +245,6 @@ function OpexAI::_runNextTask()
     if (spTask != null) OpexSpanEnd(spTask);
     return ranTask;
   }
-  if (task.name == "v276_candidates") {
-    local tick = AIController.GetTick();
-    local remaining = AIController.GetOpsTillSuspend() - 2000;
-    if (remaining <= 1000) return false;
-    return OpexV276Continue(this, this._taskQueue[0],
-        remaining < 6000 ? remaining : 6000, tick + 1);
-  }
   if (task.name == "c41_water") return false;
   if (this._projects == null) {
     /* `_taskCycle` (et non `+ 1`) laissait la tache due au cycle COURANT. Or le cycle n'avance que

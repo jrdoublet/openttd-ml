@@ -32,6 +32,7 @@ class OpexSpatialGrid {
   function Clear();
   function Build(townList, cellSize);
   function GetCandidatesFor(townIndex);
+  function GetCandidatesAt(tile, minIndex = -1);
 }
 
 function OpexSpatialGrid::Clear()
@@ -66,9 +67,15 @@ function OpexSpatialGrid::Build(townList, cellSize)
  * la symmetrie (equivalent au ancien `for b = a + 1`). */
 function OpexSpatialGrid::GetCandidatesFor(townIndex)
 {
+  if (this._towns == null || townIndex < 0 || townIndex >= this._towns.len()) return [];
+  return this.GetCandidatesAt(this._towns[townIndex].tile, townIndex);
+}
+
+/* Requete depuis une source externe : fret oriente et pax cible, sans filtre
+ * de symetrie par defaut. Les indices restent ceux du catalogue des puits. */
+function OpexSpatialGrid::GetCandidatesAt(tile, minIndex = -1)
+{
   local out = [];
-  if (this._towns == null || townIndex < 0 || townIndex >= this._towns.len()) return out;
-  local tile = this._towns[townIndex].tile;
   local cellSize = this._cellSize;
   local cx = AIMap.GetTileX(tile) / cellSize;
   local cy = AIMap.GetTileY(tile) / cellSize;
@@ -78,7 +85,7 @@ function OpexSpatialGrid::GetCandidatesFor(townIndex)
       if (!(key in this._cells)) continue;
       local bucket = this._cells[key];
       foreach (idx in bucket) {
-        if (idx > townIndex) out.append(idx);
+        if (idx > minIndex) out.append(idx);
       }
     }
   }

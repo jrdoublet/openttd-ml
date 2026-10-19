@@ -7,6 +7,18 @@ V276_CAND_SLICES <- 0;
 V276_CATALOG_TASK <- null;
 V276_CARGO_YEAR <- -1;
 V276_CARGO_ORDER <- null;
+const V276_PUBLISH_EVERY = 50;
+const V276_EVAL_CAP = 500;
+
+function OpexV276Tick(owner)
+{
+  if (!OpexV276Pending()) return false;
+  local tick = AIController.GetTick();
+  local remaining = AIController.GetOpsTillSuspend() - 2000;
+  if (remaining <= 1000) return false;
+  return OpexV276Continue(owner, V276_CATALOG_TASK,
+      remaining < 6000 ? remaining : 6000, tick + 1);
+}
 
 function OpexV276CargoOrder(catalog)
 {
@@ -96,12 +108,43 @@ function OpexV276Start(owner, task)
     if (("v276Batches" in task) && (key in task.v276Batches))
       batches.rawset(key, task.v276Batches[key]);
   }
-  task.v276 <- { catalog = catalog, units = units, batches = batches, unit = 0, phase = "prepare",
+  task.v276 <- { catalog = catalog, units = units, batches = batches, unit = 0, phase = "init",
     a = 0, b = 0, target = -1, targetScan = 0, targetA = -1, targetB = -1,
-    prep = 0, pairs = AIList(), unitBest = [], lastAtom = "start",
+    prep = 0, pairs = AIList(), unitBest = [], lastAtom = "start", context = null,
+    enumerated = 0, evaluated = 0, publications = 0, unitEvaluated = 0, lastPublished = -1,
     kind = request.kind, id = request.id,
     revisions = OpexAC06CaptureRevisionNumbers(owner) };
   task.v276Request = null;
+}
+
+/* Invariants calcules une fois par unite. Les positions des puits sont celles
+ * attendues par le micro-catalogue (industries, puis villes). */
+function OpexV276PrepareUnit(s, u)
+{
+  local towns = s.catalog.towns;
+  local sources = !u.pax && (u.cargo in s.catalog.producers) ? s.catalog.producers[u.cargo] : [];
+  local sinks = !u.pax && (u.cargo in s.catalog.acceptors) ? s.catalog.acceptors[u.cargo] : [];
+  local townSinks = u.mode == "road" ? towns
+      : (!u.pax && (u.cargo in s.catalog.townAcceptors) ? s.catalog.townAcceptors[u.cargo] : []);
+  local destinations = [];
+  if (u.pax) destinations = towns;
+  else {
+    foreach (i in sinks) destinations.append(s.catalog.industries[i]);
+    foreach (town in townSinks) destinations.append(town);
+  }
+  local bounds = s.catalog.bounds;
+  local maxDistance = u.mode == "road"
+      ? (("roadGenMax" in bounds) ? bounds.roadGenMax : bounds.roadMax) : bounds.railMax;
+  if (u.pax && u.band == PAX_BAND_RAIL_ONLY) maxDistance = bounds.railAirOverlapMin - 1;
+  local grid = OpexSpatialGrid();
+  grid.Build(destinations, maxDistance);
+  s.context = { towns = towns, sources = sources, sinks = sinks, townSinks = townSinks,
+    destinations = destinations, n = destinations.len(), outer = u.pax ? towns.len() : sources.len(),
+    grid = grid, neighbors = null,
+    roadStats = { roadDistanceShort = 0, roadDistanceLong = 0 } };
+  s.unitEvaluated = 0; s.lastPublished = -1;
+  s.unitBest = []; s.pairs = AIList();
+  s.phase = "prepare";
 }
 
 /* Une seule paire du catalogue original, avec indices remappes. Les gardes
@@ -182,8 +225,57 @@ function OpexV276Publish(owner, task, s, u)
   owner._projects = OpexApplyGeneratedModeProjects(owner._projects, generated,
       owner._abandonedPairs, u.mode, s.kind, s.id, owner._lines);
   if (u.mode == "rail") owner._ranked = result;
-  if (DECISION_LOG) OpexDecide("V276_PUBLISH", "mode=" + u.mode + " cargo=" + u.cargo
-      + " band=" + u.band + " kept=" + s.unitBest.len() + " unit=" + s.unit);
+  s.publications++;
+  s.lastPublished = s.unitEvaluated;
+  if (DECISION_LOG) OpexDecide("V276_PUBLISH", "unit=" + s.unit
+      + " evaluated=" + s.unitEvaluated + " kept=" + s.unitBest.len()
+      + " mode=" + u.mode + " cargo=" + u.cargo + " band=" + u.band);
+}
+
+/* Plusieurs voisins par passage, invariants charges une fois ; garde entre
+ * chaque paire, y compris celles rejetees, et curseur conserve entre ticks. */
+function OpexV276Enumerate(s, u, mark, opsBudget, startTick, deadlineTick)
+{
+  local c = s.context;
+  local towns = c.towns, sources = c.sources, sinks = c.sinks;
+  local n = c.n;
+  local targetedPax = u.pax && s.kind != null;
+  local targetedFreight = !u.pax && s.kind != null && s.id >= 0;
+  local outer = targetedPax ? (s.kind == "town" && s.target >= 0 ? 1 : 0) : c.outer;
+  s.lastAtom = "enumerate";
+  while (OpexOpsMeasureEnd(mark) < opsBudget && AIController.GetTick() == startTick
+      && AIController.GetTick() < deadlineTick && AIController.GetOpsTillSuspend() >= 2000) {
+    if (s.a >= outer || n == 0) {
+      s.lastAtom = "native_sort";
+      s.pairs.Sort(AIList.SORT_BY_VALUE, false); // natif, pas de comparateur Squirrel
+      s.phase = "evaluate";
+      return;
+    }
+    local wholeRow = !targetedFreight || s.a == s.targetA;
+    local a = targetedPax ? s.target : s.a;
+    local src = u.pax ? towns[a] : s.catalog.industries[sources[a]];
+    if (c.neighbors == null) {
+      c.neighbors = wholeRow ? c.grid.GetCandidatesAt(src.tile, u.pax && !targetedPax ? a : -1)
+          : (s.targetB >= 0 ? [s.targetB] : []);
+    }
+    if (s.b >= c.neighbors.len()) { s.a++; s.b = 0; c.neighbors = null; continue; }
+    local b = c.neighbors[s.b];
+    s.b++;
+    s.enumerated++;
+    if (u.pax && a == b) continue;
+    local dst = c.destinations[b];
+    if (!u.pax && src.tile == dst.tile) continue;
+    if (!u.pax && s.kind != null && s.id >= 0) {
+      local touches = s.kind == "industry" ? src.id == s.id || (b < sinks.len() && dst.id == s.id)
+          : b >= sinks.len() && dst.id == s.id;
+      if (!touches) continue;
+    }
+    local distance = AIMap.DistanceManhattan(src.tile, dst.tile);
+    if (u.mode == "rail" && !OpexRailPaxPairInBand(s.catalog.bounds, distance, u.band)) continue;
+    if (u.mode == "road" && !OpexRoadDistanceAllowed(s.catalog, distance, c.roadStats)) continue;
+    local score = u.pax ? (src.pop.tofloat() * dst.pop * sqrt(distance.tofloat())).tointeger() : distance;
+    s.pairs.AddItem(a * n + b, score);
+  }
 }
 
 /* Admission identique au scan AIR : mesurer aussi le reliquat du tick et
@@ -212,14 +304,11 @@ function OpexV276Continue(owner, task, opsBudget, deadlineTick)
         || AIController.GetOpsTillSuspend() < 2000)) return OpexV276Yield(s, mark, opsBudget);
     progressed = true;
     local u = s.units[s.unit];
-    local towns = s.catalog.towns;
-    local sources = !u.pax && (u.cargo in s.catalog.producers) ? s.catalog.producers[u.cargo] : [];
-    local sinks = !u.pax && (u.cargo in s.catalog.acceptors) ? s.catalog.acceptors[u.cargo] : [];
-    local townSinks = u.mode == "road" ? towns
-        : (!u.pax && (u.cargo in s.catalog.townAcceptors) ? s.catalog.townAcceptors[u.cargo] : []);
-    local n = u.pax ? towns.len() : sinks.len() + townSinks.len();
-    local outer = u.pax ? towns.len() : sources.len();
+    if (s.phase == "init") { OpexV276PrepareUnit(s, u); continue; }
+    local n = s.context.n;
     if (s.phase == "prepare") {
+      local c = s.context;
+      local towns = c.towns, sources = c.sources, sinks = c.sinks, townSinks = c.townSinks;
       /* Recherche de l'entite cible elle-meme reprenable, puis O(n) pax. */
       if (u.pax && s.kind == "town" && s.id >= 0 && s.targetScan < towns.len()) {
         local i = s.targetScan++;
@@ -239,45 +328,15 @@ function OpexV276Continue(owner, task, opsBudget, deadlineTick)
         continue;
       }
       s.phase = "enumerate";
-      s.a = 0; s.b = u.pax && s.kind == null ? 1 : 0;
-      s.unitBest = []; s.pairs = AIList();
+      s.a = 0; s.b = 0;
       continue;
     }
-    local targetedPax = u.pax && s.kind != null;
-    if (targetedPax) outer = s.kind == "town" && s.target >= 0 ? 1 : 0;
     if (s.phase == "enumerate") {
-      if (s.a >= outer || n == 0) {
-        s.lastAtom = "native_sort";
-        s.pairs.Sort(AIList.SORT_BY_VALUE, false); // natif, pas de comparateur Squirrel
-        s.phase = "evaluate";
-        continue;
-      }
-      local targetedFreight = !u.pax && s.kind != null && s.id >= 0;
-      local wholeRow = !targetedFreight || s.a == s.targetA;
-      local width = wholeRow ? n : (s.targetB >= 0 ? 1 : 0);
-      if (s.b >= width) { s.a++; s.b = u.pax && !targetedPax ? s.a + 1 : 0; continue; }
-      local a = targetedPax ? s.target : s.a;
-      local b = !wholeRow ? s.targetB : s.b;
-      s.b++;
-      if (u.pax && a == b) continue;
-      local src = u.pax ? towns[a] : s.catalog.industries[sources[a]];
-      local dst = u.pax ? towns[b] : (b < sinks.len()
-          ? s.catalog.industries[sinks[b]] : townSinks[b - sinks.len()]);
-      if (!u.pax && src.tile == dst.tile) continue;
-      if (!u.pax && s.kind != null && s.id >= 0) {
-        local touches = s.kind == "industry" ? src.id == s.id || (b < sinks.len() && dst.id == s.id)
-            : b >= sinks.len() && dst.id == s.id;
-        if (!touches) continue;
-      }
-      local distance = AIMap.DistanceManhattan(src.tile, dst.tile);
-      if (u.mode == "rail" && !OpexRailPaxPairInBand(s.catalog.bounds, distance, u.band)) continue;
-      if (u.mode == "road" && !OpexRoadDistanceAllowed(s.catalog, distance, { roadDistanceShort = 0, roadDistanceLong = 0 })) continue;
-      local score = u.pax ? (src.pop.tofloat() * dst.pop * sqrt(distance.tofloat())).tointeger() : distance;
-      s.pairs.AddItem(a * n + b, score);
+      OpexV276Enumerate(s, u, mark, opsBudget, startTick, deadlineTick);
       continue;
     }
     if (s.phase == "evaluate") {
-      if (s.pairs.Count() == 0) { s.phase = "publish"; continue; }
+      if (s.pairs.Count() == 0 || s.unitEvaluated >= V276_EVAL_CAP) { s.phase = "publish"; continue; }
       local key = s.pairs.Begin();
       s.pairs.RemoveItem(key); // curseur exact, meme si l'evaluation suspend la VM
       ::OpexSitableCache = {}; // terrain/gares peuvent avoir change entre deux tranches
@@ -286,12 +345,19 @@ function OpexV276Continue(owner, task, opsBudget, deadlineTick)
                                         owner._lines, owner._abandonedPairs, owner._budget);
       foreach (candidate in evaluated) s.unitBest.append(candidate);
       s.unitBest = OpexTopK(s.unitBest, TOP_K);
+      s.unitEvaluated++; s.evaluated++;
+      if (s.unitEvaluated % V276_PUBLISH_EVERY == 0) s.phase = "publish";
       continue;
     }
     s.lastAtom = "publish";
-    OpexV276Publish(owner, task, s, u);
+    if (s.lastPublished != s.unitEvaluated) OpexV276Publish(owner, task, s, u);
+    if (s.pairs.Count() > 0 && s.unitEvaluated < V276_EVAL_CAP) {
+      s.phase = "evaluate";
+      continue;
+    }
     s.unit++;
-    s.phase = "prepare";
+    s.phase = "init";
+    s.context = null;
     s.prep = 0; s.targetA = -1; s.targetB = -1;
   }
   if (s.kind == null) OpexV276Acknowledge(owner, s.revisions);
@@ -350,6 +416,8 @@ function OpexV276Yield(s, mark, opsBudget)
   if (DECISION_LOG) {
     local used = OpexOpsMeasureEnd(mark);
     OpexDecide("V276_SLICE", "unit=" + s.unit + " phase=" + s.phase
+        + " enumerated=" + s.enumerated + " evaluated=" + s.evaluated
+        + " publications=" + s.publications
         + " atom=" + s.lastAtom + " ops=" + used + " budget=" + opsBudget
         + " ticks=" + (AIController.GetTick() - mark.tick)
         + " overrun=" + (used > opsBudget ? 1 : 0));

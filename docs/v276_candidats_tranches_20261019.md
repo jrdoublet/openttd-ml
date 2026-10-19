@@ -17,14 +17,15 @@ comme une qualification économique ni comme une preuve de plafond dur.
 
 - `candidates_v276.nut` : demande coalescée et transaction sur la tâche
   `catalog`, photographie du catalogue et des révisions AC06 au démarrage.
-  Le worker a un créneau `v276_candidates` ajouté en fin de file, actif
-  uniquement sous le réglage. Les autres tâches, notamment AIR, gardent leurs
-  créneaux ; aucun redémarrage du curseur pendant une transaction.
+  Depuis V276c, le worker utilise le reliquat en fin de chaque tick de la boucle
+  principale, après la file, ses continuations et les hooks A*/C67, uniquement
+  sous le réglage. Il n'a plus de créneau `v276_candidates` dans la file.
+  Aucun redémarrage du curseur pendant une transaction.
 - AIR actif : première publication AIR (ou fin du scan), fret rail par revenu,
   voyageurs rail par bande, puis fret route. Sans AIR : voyageurs rail, fret
   rail, route. La priorité porte sur la génération, pas sur une nouvelle
   priorité des constructions du portefeuille commun.
-- Voyageurs : énumération reprenable des paires, score
+- Voyageurs : énumération reprenable des voisins par grille spatiale, score
   `popA * popB * sqrt(distance Manhattan)`, `AIList.Sort` natif décroissant,
   évaluation en ordre de score. Bandes disjointes du helper existant
   `OpexRailPaxPairInBand`. Fret : revenu sur 80 tuiles et délai calculé à
@@ -34,7 +35,8 @@ comme une qualification économique ni comme une preuve de plafond dur.
   d'une source et d'un puits. Ils conservent les gardes métier et le courrier,
   notamment V163/V179/V264, sans réimplémenter l'économie. La route énumère
   aussi ses puits urbains via le filtre d'acceptation historique.
-- TOP_K maintenu au fil des évaluations ; à la fin de chaque unité, remplacement
+- TOP_K maintenu au fil des évaluations ; publication toutes les 50 évaluations
+  et en fin d'unité (au plus 500 évaluations par unité et par scan), remplacement
   de son lot et conservation des lots des unités encore non recalculées,
   application via `OpexApplyGeneratedModeProjects` et resélection sur le
   capital courant. Les candidats devenus invalides sont filtrés avant application.
@@ -60,8 +62,10 @@ initial, de `deadlineTick` et du reliquat entre deux étapes ; un atome commenc�
 est terminé avant retour. Le curseur avance avant l'évaluation et reprend
 exactement, sans répéter la paire après une suspension VM.
 
-Une étape d'énumération est O(1), hors indexation native ; estimation statique
-de l'ordre de quelques centaines d'opcodes, **non mesurée**. Coût d'une tranche :
+Depuis V276c, les invariants et la grille sont construits une fois par unité.
+La requête de voisinage matérialise les indices des neuf cellules et reste
+atomique ; son coût dépend de leur population. L'énumérateur traite ensuite
+plusieurs paires par appel, avec une garde entre chaque paire. Coût d'une tranche :
 seuil utile (≤ 6 000) + dernière opération + retour/instrumentation. Aucun
 majorant numérique honnête du coût économique/publication n'est établi ici.
 `V276_SLICE` sous `DECISION_LOG` rapporte ops, budget, ticks, dernier atome et
@@ -75,8 +79,8 @@ plafond strict, il faut des curseurs supplémentaires sur ces parcours et sur
 la sélection/application ; une simple garde autour de l'appel ne suffirait pas.
 Le rafraîchissement du catalogue, la génération eau et les autres traitements
 historiques ne sont pas découpés par cette livraison. La file bon marché peut
-encore contenir O(n²) paires ; seules les alternatives économiques conservées
-sont limitées à TOP_K par unité. Les valeurs de score sont converties en entiers
+encore contenir O(n²) paires dans une zone très dense ; seules les alternatives
+économiques conservées sont limitées à TOP_K par unité. Les valeurs de score sont converties en entiers
 pour `AIList`, avec les arrondis flottants ordinaires du moteur.
 
 ## Ordre AIR vérifié, non modifié
@@ -136,3 +140,67 @@ Validation V276b : 20 tests ciblés OK ; suite complète
 (3 ignorés, 3 échecs attendus). `delim.py` et `git diff --check` propres ;
 `undecl.py` retrouve uniquement les deux identifiants connus
 `AICONFIG_BOOLEAN` et `CONFIG_BOOLEAN`.
+
+## V276c — débit, grille et publications intermédiaires
+
+Correction demandée après la mesure moteur communiquée par Claude le 19/10 :
+copie figée de `632bd47`, mode 1, 1024², graine 42, un an ; 86 tranches restées
+à `unit=0 phase=enumerate`, aucune publication. Cette observation concerne V276
+initial, pas le code V276c. Aucun nouveau moteur, Docker ou banc autorisé ici.
+
+`OpexV276Tick` est appelé après les tâches et continuations à chaque passage de
+la boucle principale. Il conserve l'admission précédente : reliquat moins
+2 000 opcodes, plafond de 6 000, aucun appel si le budget utile est ≤ 1 000.
+La file garde son ordre et ses créneaux ; une opération atomique peut toujours
+franchir un tick. Ce changement augmente les occasions de progresser, sans
+preuve moteur de cadence ou d'absence de retard due à ces débordements.
+
+Chaque unité mémorise villes, sources, puits industriels puis urbains, taille,
+borne extérieure et grille `OpexSpatialGrid`. Cellule = borne maximale de sa
+bande : `railMax`, `railAirOverlapMin - 1` pour voyageurs rail seuls, ou
+`roadGenMax` (repli `roadMax`) pour route ; minimum technique 1. Une requête
+3×3 conserve tous les voisins possibles en distance Manhattan, puis les filtres
+de bande historiques retirent les faux positifs. Le fret interroge la grille
+des puits depuis la tuile source, avec indices orientés conservés. Le ciblage
+garde sa recherche reprenable et ses lignes/colonnes ; le voyageur ciblé peut
+voir les indices inférieurs au sien, sans perte par symétrie. L'énumérateur
+traite les voisins jusqu'au budget et conserve le curseur exact entre ticks.
+
+Deux constantes littérales, sans nouveau réglage ni modification du défaut :
+
+- `V276_PUBLISH_EVERY = 50` : rendre exploitable le TOP_K courant après les
+  50 premières évaluations puis chaque lot de 50, tout en amortissant le coût
+  atomique de fusion/application du portefeuille. Une évaluation sans candidat
+  compte aussi ; les unités courtes publient leur reste, même vide.
+- `V276_EVAL_CAP = 500` : limiter à dix lots l'économie coûteuse par unité et
+  par scan, en conservant les 500 premiers scores du tri natif décroissant.
+  Puis avancer à l'unité suivante pour qu'elle ait aussi accès aux évaluations.
+  Le prochain scan réénumère et reprend **en tête du nouveau tri**, sans curseur
+  économique résiduel. Les paires restantes redeviennent éligibles ; des scores
+  inchangés ne garantissent pas qu'une paire classée au-delà de 500 sera évaluée.
+
+Ces valeurs sont un compromis de débit demandé, pas un optimum mesuré.
+La publication périodique ne fait pas avancer l'unité ; celle de fin n'est pas
+doublée à 50/500. Elle remplace seulement le lot de l'unité courante avec son
+TOP_K cumulé et conserve les autres lots. Les unités vides publient une fois.
+Ordre selon MODE_AIR, score, modes 1/2, ACK sur photographie et abandon des
+transactions au Load restent conservés.
+
+Sous `decision_log`, `V276_SLICE` ajoute `enumerated`, `evaluated`,
+`publications`, cumulés depuis le début du scan. `enumerated` compte les
+voisins examinés avant les filtres exacts ; `evaluated` compte les appels
+économiques terminés. `V276_PUBLISH unit= evaluated= kept=` rapporte l'index
+d'unité, ses évaluations cumulées et la taille de son TOP_K, puis mode/cargo/bande.
+Les compteurs sont transitoires, sans changement de Save/Load.
+
+Validation V276c : 25 tests ciblés OK, couvrant créneau par tick/reliquat,
+grille contre oracle exhaustif filtré (voyageurs, fret, cibles, bornes),
+publication tous les N, plafond, unités courtes/vides, absence de doublon,
+reprise aux petits budgets et nouveau tri au scan suivant. Ces modèles Python
+et contrats statiques ne compilent pas Squirrel et ne remplacent pas une
+mesure moteur. Le plafond dur, le débit en partie et l'économie restent non mesurés.
+
+Suite complète : `python3 -m unittest discover -s sweeps -p 'test_*.py'`,
+**2 107 tests OK** (3 ignorés, 3 échecs attendus). `delim.py` et
+`git diff --check` propres ; `undecl.py` retrouve seulement les identifiants
+connus `AICONFIG_BOOLEAN` et `CONFIG_BOOLEAN`.

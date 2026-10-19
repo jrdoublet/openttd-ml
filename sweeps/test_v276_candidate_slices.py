@@ -25,13 +25,46 @@ def freight_order(mode, incomes, productions, pax):
     return sorted(scores, key=scores.get, reverse=True)
 
 
+class Grid:
+    """Modele de OpexSpatialGrid, indices conserves et voisinage 3x3."""
+
+    def __init__(self, destinations, maximum):
+        self.size = max(1, maximum)
+        self.cells = {}
+        for i, (x, y, *_) in enumerate(destinations):
+            self.cells.setdefault((x // self.size, y // self.size), []).append(i)
+
+    def neighbors(self, source, minimum=-1):
+        x, y = source[:2]
+        cx, cy = x // self.size, y // self.size
+        return [i for dx in (-1, 0, 1) for dy in (-1, 0, 1)
+                for i in self.cells.get((cx + dx, cy + dy), []) if i > minimum]
+
+
+def freight_pairs(sources, sinks, low, high, target_source=-1, target_sink=-1, targeted=False):
+    grid = Grid(sinks, high)
+    for a, src in enumerate(sources):
+        neighbors = (grid.neighbors(src) if not targeted or a == target_source
+                     else ([target_sink] if target_sink >= 0 else []))
+        for b in neighbors:
+            dst = sinks[b]
+            distance = abs(src[0] - dst[0]) + abs(src[1] - dst[1])
+            if low <= distance <= high and src[:2] != dst[:2]:
+                yield a, b
+
+
 class Cursor:
     """Enumeration geometrique, puis file native de priorite (modele)."""
 
-    def __init__(self, towns, target=None):
+    def __init__(self, towns, target=None, low=0, high=2048, cap=None, every=50):
         self.towns = towns
         self.target = target
-        self.a, self.b = 0, 1 if target is None else 0
+        self.a, self.b = 0, 0
+        self.grid = Grid(towns, high)
+        self.neighbors = None
+        self.low, self.high, self.cap, self.every = low, high, cap, every
+        self.publications = []
+        self.last_published = -1
         self.pairs = {}
         self.output = []
         self.phase = "enumerate"
@@ -43,24 +76,36 @@ class Cursor:
             if self.a >= outer:
                 self.phase = "evaluate"
                 return
-            if self.b >= n:
-                self.a += 1
-                self.b = self.a + 1 if self.target is None else 0
-                return
             a = self.a if self.target is None else self.target
-            b = self.b
+            if self.neighbors is None:
+                self.neighbors = self.grid.neighbors(self.towns[a], a if self.target is None else -1)
+            if self.b >= len(self.neighbors):
+                self.a += 1
+                self.b = 0
+                self.neighbors = None
+                return
+            b = self.neighbors[self.b]
             self.b += 1
             if a == b:
                 return
             x, y = self.towns[a], self.towns[b]
             d = abs(x[0] - y[0]) + abs(x[1] - y[1])
-            self.pairs[a * n + b] = int(x[2] * y[2] * sqrt(d))
-        elif self.pairs:
+            if self.low <= d <= self.high:
+                self.pairs[a * n + b] = int(x[2] * y[2] * sqrt(d))
+        elif self.phase == "publish":
+            if self.last_published != len(self.output):
+                self.publications.append(tuple(self.output))
+                self.last_published = len(self.output)
+            self.phase = ("evaluate" if self.pairs and (self.cap is None or len(self.output) < self.cap)
+                          else "done")
+        elif self.pairs and (self.cap is None or len(self.output) < self.cap):
             key = max(self.pairs, key=lambda k: (self.pairs[k], -k))
             score = self.pairs.pop(key)
             self.output.append((key // n, key % n, score))
+            if len(self.output) % self.every == 0:
+                self.phase = "publish"
         else:
-            self.phase = "done"
+            self.phase = "publish"
 
     def slice(self, budget):
         used = 0
@@ -117,12 +162,12 @@ class Models(unittest.TestCase):
                 steps += cursor.slice(1)
             expected = {(target, i) for i in range(35) if i != target}
             self.assertEqual({(a, b) for a, b, _ in cursor.output}, expected)
-            self.assertLess(steps, 3 * len(self.towns) + 6)
+            self.assertLess(steps, 4 * len(self.towns) + 6)
 
     def test_empty_and_singleton_finish(self):
         for towns in ([], [(0, 0, 100)]):
             cursor = Cursor(towns)
-            for _ in range(6):
+            for _ in range(8):
                 cursor.slice(1)
             self.assertEqual(cursor.phase, "done")
             self.assertEqual(cursor.output, [])
@@ -166,20 +211,76 @@ class Models(unittest.TestCase):
         self.assertEqual(consumed, snapshot)
         self.assertTrue(all(consumed[k] < current[k] for k in current))
 
-    def test_round_robin_no_famine_with_permanent_air_activity(self):
-        queue = ["catalog", "projects", "air_scan", "v276_candidates"]
-        remaining = 71
-        air_visits = project_visits = 0
-        for task in queue * 71:
-            if task == "air_scan":
-                air_visits += 1
-            if task == "projects":
-                project_visits += 1
-            if task == "v276_candidates" and remaining:
-                remaining -= 1
-        self.assertEqual(remaining, 0)
-        self.assertEqual(air_visits, 71)
-        self.assertEqual(project_visits, 71)
+    def test_worker_uses_remainder_every_tick_without_moving_queue(self):
+        queue = ["catalog", "projects", "air_scan"]
+        visits, worker_ticks = [], []
+        costs = [1000, 9800, 5000, 6900, 0, 8500] * 12
+        for tick, cost in enumerate(costs):
+            visits.append(queue[tick % len(queue)])
+            remaining = 10000 - cost - 2000
+            if remaining > 1000:
+                worker_ticks.append((tick, min(6000, remaining)))
+        self.assertEqual(visits, queue * 24)
+        self.assertEqual(len(worker_ticks), 48)
+        self.assertTrue(all(budget <= 10000 - costs[tick] - 2000 for tick, budget in worker_ticks))
+
+    def test_grid_equals_complete_filtered_pax_including_boundaries_and_targets(self):
+        towns = self.towns + [(0, 0, 100), (80, 0, 100), (79, 1, 100), (81, 0, 100)]
+        for low, high in ((0, 0), (7, 79), (80, 160), (0, 2048)):
+            for target in (None, 0, 36):
+                cursor = Cursor(towns, target, low, high)
+                while cursor.phase != "done":
+                    cursor.slice(3)
+                candidates = (combinations(range(len(towns)), 2) if target is None
+                              else ((target, b) for b in range(len(towns)) if b != target))
+                expected = {(a, b) for a, b in candidates
+                            if low <= abs(towns[a][0] - towns[b][0]) + abs(towns[a][1] - towns[b][1]) <= high}
+                self.assertEqual({(a, b) for a, b, _ in cursor.output}, expected)
+
+    def test_grid_freight_oriented_sinks_and_targeted_rows_columns(self):
+        # Puits industriels et urbains partagent le meme index plat.
+        sources = [(0, 0), (80, 0), (400, 300), (1023, 1023)]
+        sinks = [(0, 0), (79, 1), (80, 0), (81, 0), (401, 301), (1023, 943)]
+        for low, high in ((0, 0), (1, 80), (80, 160), (0, 2048)):
+            for targeted, a_target, b_target in ((False, -1, -1), (True, 1, 2),
+                                                  (True, -1, 5), (True, 2, -1), (True, -1, -1)):
+                expected = {(a, b) for a, b in product(range(len(sources)), range(len(sinks)))
+                            if (not targeted or a == a_target or b == b_target)
+                            and sources[a] != sinks[b]
+                            and low <= abs(sources[a][0] - sinks[b][0]) + abs(sources[a][1] - sinks[b][1]) <= high}
+                self.assertEqual(set(freight_pairs(sources, sinks, low, high, a_target, b_target, targeted)), expected)
+
+    def test_publication_frequency_cap_and_resume_at_all_boundaries(self):
+        for size, expected in ((0, [0]), (1, [0]), (10, [45]), (11, [50, 55]), (40, list(range(50, 501, 50)))):
+            towns = [(i, i * 2, 100 + i) for i in range(size)]
+            oracle = None
+            for budget in (1, 2, 7, 49, 50, 51, 5000):
+                cursor = Cursor(towns, cap=500)
+                while cursor.phase != "done":
+                    cursor.slice(budget)
+                self.assertEqual([len(p) for p in cursor.publications], expected)
+                self.assertEqual(len(cursor.output), min(500, size * (size - 1) // 2))
+                self.assertEqual(len({(a, b) for a, b, _ in cursor.output}), len(cursor.output))
+                if oracle is None:
+                    oracle = cursor.output
+                self.assertEqual(cursor.output, oracle)
+
+    def test_next_scan_restarts_at_new_score_head_and_next_unit_is_not_starved(self):
+        towns = [(i, i * 2, 100 + i) for i in range(40)]
+        first = Cursor(towns, cap=500)
+        while first.phase != "done":
+            first.slice(7)
+        towns[0] = (0, 0, 1000000)
+        second = Cursor(towns, cap=500)
+        following = Cursor(towns[:3], cap=500)
+        for cursor in (second, following):
+            while cursor.phase != "done":
+                cursor.slice(1)
+        expected = sorted((int(a[2] * b[2] * sqrt(abs(a[0] - b[0]) + abs(a[1] - b[1])))
+                           for a, b in combinations(towns, 2)), reverse=True)[:500]
+        self.assertEqual([score for _, _, score in second.output], expected)
+        self.assertNotEqual(first.output[0], second.output[0])
+        self.assertEqual(len(following.output), 3)
 
 
 class Contracts(unittest.TestCase):
@@ -247,13 +348,34 @@ class Contracts(unittest.TestCase):
 
     def test_task_and_load_transaction_contract(self):
         main = read("main.nut")
-        self.assertIn('if (V276_CAND_SLICES > 0)\n      this._taskQueue.append({ name = "v276_candidates"', main)
-        self.assertIn('task.name == "v276_candidates"', read("scheduler.nut"))
+        self.assertNotIn('name = "v276_candidates"', main)
+        self.assertNotIn('task.name == "v276_candidates"', read("scheduler.nut"))
+        tick = main.index('if (V276_CAND_SLICES > 0) OpexV276Tick(this);')
+        self.assertLess(main.rindex('this._runOrchestratorTick();'), tick)
+        self.assertLess(main.rindex('this._advanceRailSearchThroughput();'), tick)
+        self.assertLess(tick, main.index('AIController.Sleep(1);', tick))
         persist = read("persist.nut")
         for key in ('v276', 'v276Request', 'v276Rail', 'v276Road', 'v276Batches'):
             self.assertIn('delete task.' + key, persist)
         save = persist[persist.index('function OpexAI::Save'):persist.index('function OpexAI::Load')]
         self.assertNotIn('v276', save)
+
+    def test_grid_invariants_batched_enumeration_and_observable_cap(self):
+        src = read("candidates_v276.nut")
+        for marker in ('const V276_PUBLISH_EVERY = 50;', 'const V276_EVAL_CAP = 500;',
+                       's.unitEvaluated >= V276_EVAL_CAP', 's.unitEvaluated % V276_PUBLISH_EVERY == 0',
+                       's.lastPublished != s.unitEvaluated', 'grid.Build(destinations, maxDistance)',
+                       'bounds.railAirOverlapMin - 1', 'c.grid.GetCandidatesAt(src.tile',
+                       'enumerated=" + s.enumerated', 'evaluated=" + s.evaluated',
+                       'publications=" + s.publications', 'evaluated=" + s.unitEvaluated'):
+            self.assertIn(marker, src)
+        enumeration = src[src.index('function OpexV276Enumerate'):src.index('function OpexV276Continue')]
+        self.assertIn('while (OpexOpsMeasureEnd(mark) < opsBudget', enumeration)
+        self.assertLess(enumeration.index('local n = c.n;'), enumeration.index('while ('))
+        self.assertNotIn('s.catalog.producers[u.cargo]', enumeration)
+        grid = read("spatial.nut")
+        self.assertIn('return this.GetCandidatesAt(this._towns[townIndex].tile, townIndex);', grid)
+        self.assertIn('if (idx > minIndex) out.append(idx);', grid)
 
     def test_publication_snapshot_and_existing_mode_application(self):
         src = read("candidates_v276.nut")
