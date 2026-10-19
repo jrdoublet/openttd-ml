@@ -809,9 +809,20 @@ function OpexAI::_v217RailRefill()
   this._pruneAbandonedPairs(date);
   this._projects.rawset("freightCargo", freightCargos[nextCargo]);
   V217_REGEN_NO_PAX = (V217_RAIL_REFILL == 1);
+  /* V269 : vivier vide et caisse oisive, N ans apres le depart. */
+  V269_RELAXED = V269_RAIL_LATE_RELAX > 0 && year >= OPEX_START_YEAR + V269_RAIL_LATE_RELAX
+      && cash >= V270_IDLE_CASH_MIN;
+  if (V269_RELAXED && !V269_ON) {
+    V269_ON = true;
+    V178_RAIL_SHARED_DEST = true;
+    V179_RAIL_GEN_DEST_SERVED = true;
+    if (DECISION_LOG) OpexDecide("V269", "action=on month=" + ym + " cash=" + cash);
+  }
+  local v269Relaxed = V269_RELAXED;
   this._projects = OpexRegenerateModeProjects(this._projects, this._catalog, this._budget,
       this._lines, this._abandonedPairs, "rail", null, null, -1);
   V217_REGEN_NO_PAX = false;
+  V269_RELAXED = false;
   if (("freightCargo" in this._projects) && this._projects.freightCargo != null) {
     this._lastFreightCargo = this._projects.freightCargo;
   }
@@ -823,7 +834,7 @@ function OpexAI::_v217RailRefill()
     local cargo = (("freightCargo" in this._projects) && this._projects.freightCargo != null)
         ? AICargo.GetCargoLabel(this._projects.freightCargo) : "all";
     OpexDecide("V217_RAIL_REFILL", "month=" + ym + " cash=" + cash + " startable=" + startable
-        + " cargo=" + cargo + " candidates=" + n + " ops=" + ops);
+        + " cargo=" + cargo + " candidates=" + n + " ops=" + ops + " v269=" + (v269Relaxed ? 1 : 0));
   }
 }
 

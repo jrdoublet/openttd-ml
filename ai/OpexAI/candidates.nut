@@ -638,7 +638,7 @@ function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, orig
       stats.distanceLong++;
       return null;
     }
-  } else if (distance > bounds.railMax) {
+  } else if (distance > ((V269_RELAXED && V269_RAIL_MAX_DIST > bounds.railMax) ? V269_RAIL_MAX_DIST : bounds.railMax)) {
     stats.distanceLong++;
     return null;
   } else if (V182_RAIL_FREIGHT_MIN_DIST > 0 && distance < V182_RAIL_FREIGHT_MIN_DIST
