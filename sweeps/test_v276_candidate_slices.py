@@ -350,15 +350,21 @@ class Contracts(unittest.TestCase):
         main = read("main.nut")
         self.assertNotIn('name = "v276_candidates"', main)
         self.assertNotIn('task.name == "v276_candidates"', read("scheduler.nut"))
-        tick = main.index('if (V276_CAND_SLICES > 0) OpexV276Tick(this);')
-        self.assertLess(main.rindex('this._runOrchestratorTick();'), tick)
-        self.assertLess(main.rindex('this._advanceRailSearchThroughput();'), tick)
-        self.assertLess(tick, main.index('AIController.Sleep(1);', tick))
         persist = read("persist.nut")
         for key in ('v276', 'v276Request', 'v276Rail', 'v276Road', 'v276Batches'):
             self.assertIn('delete task.' + key, persist)
         save = persist[persist.index('function OpexAI::Save'):persist.index('function OpexAI::Load')]
         self.assertNotIn('v276', save)
+
+    def test_loop_tick_placement_in_both_loops(self):
+        for name in ("main.nut", "probes.nut"):
+            src = read(name)
+            self.assertEqual(src.count("OpexV276Tick(this);"), 1)
+            tick = src.index("OpexV276Tick(this);")
+            orch = src.index("this._runOrchestratorTick();")
+            resume = src.index("c121_catalog_resume")
+            self.assertLess(orch, tick)
+            self.assertLess(tick, resume)
 
     def test_grid_invariants_batched_enumeration_and_observable_cap(self):
         src = read("candidates_v276.nut")

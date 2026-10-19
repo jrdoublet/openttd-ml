@@ -821,6 +821,14 @@ function OpexAI::Start()
     local spOrch = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.orch") : null;
     this._runOrchestratorTick();
     if (spOrch != null) OpexSpanEnd(spOrch);
+    /* V276d : place immediatement apres l'orchestrateur et avant la reprise
+     * AIR (qui consomme jusqu'a 2 000 opcodes restants alors qu'OpexV276Tick
+     * en exige > 3 000, privant V276 de passages utiles). */
+    if (V276_CAND_SLICES > 0) {
+      local spV276 = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.v276") : null;
+      OpexV276Tick(this);
+      if (spV276 != null) OpexSpanEnd(spV276);
+    }
     {
       local spResume = null;
       local catalogPending = true;
@@ -855,9 +863,6 @@ function OpexAI::Start()
       this._c67SlackHook();
       if (spC67 != null) OpexSpanEnd(spC67);
     }
-    /* V276c : apres la file et ses continuations, uniquement sur le reliquat.
-     * Aucun dueCycle supplementaire et aucune tache de file retardee. */
-    if (V276_CAND_SLICES > 0) OpexV276Tick(this);
     local spSleep = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.sleep") : null;
     AIController.Sleep(1);
     if (spSleep != null) OpexSpanEnd(spSleep);

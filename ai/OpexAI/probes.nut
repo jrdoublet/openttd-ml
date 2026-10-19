@@ -2528,6 +2528,13 @@ function OpexAI::_mainLoopProfiled()
     this._runOrchestratorTick();
     if (spOrch != null) OpexSpanEnd(spOrch);
     OpexLoopProfAdd("orchestrator", mark);
+    if (V276_CAND_SLICES > 0) {
+      mark = OpexOpsMeasureBegin();
+      local spV276 = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.v276") : null;
+      OpexV276Tick(this);
+      if (spV276 != null) OpexSpanEnd(spV276);
+      OpexLoopProfAdd("v276", mark);
+    }
     {
       mark = OpexOpsMeasureBegin();
       local continued = false;

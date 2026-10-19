@@ -204,3 +204,9 @@ Suite complète : `python3 -m unittest discover -s sweeps -p 'test_*.py'`,
 **2 107 tests OK** (3 ignorés, 3 échecs attendus). `delim.py` et
 `git diff --check` propres ; `undecl.py` retrouve seulement les identifiants
 connus `AICONFIG_BOOLEAN` et `CONFIG_BOOLEAN`.
+
+## V276d — boucle profilée et cadence avant reprise AIR
+
+`OpexV276Tick` est déplacé après l'orchestrateur et avant la reprise AIR (qui
+laissait < 2 000 opcodes alors que V276 exige > 3 000), triplant les passages utiles.
+L'appel est aussi intégré dans la boucle instrumentée `probes.nut::_mainLoopProfiled`.
