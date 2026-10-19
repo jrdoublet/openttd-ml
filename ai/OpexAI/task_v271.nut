@@ -76,7 +76,7 @@ function OpexAI::_v271TandemSource(year)
   if (geometry == null) {
     line.v271Failed <- true;
     this._saveProjection = null;
-    OpexV271Log(state, "fail", "no_parallel_connection"); return false;
+    OpexV271Log(state, "fail", "geometry_" + V271_LAST_GEOMETRY_ISSUE); return false;
   }
   /* Cout de marche des moteurs REELS, pas le wagon du catalogue courant. */
   local running = 0;

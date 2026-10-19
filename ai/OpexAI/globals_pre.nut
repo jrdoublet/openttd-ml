@@ -32,6 +32,7 @@ V271_RAIL_TANDEM_SOURCE <- 0;
  * N = annees apres le depart. Quand le vivier est vide et la caisse oisive, la regeneration V217
  * accepte le fret jusqu'a V269_RAIL_MAX_DIST tuiles, et V178/V179 s'activent pour le reste de la
  * partie (destination deja desservie, source neuve). */
+V271_LAST_GEOMETRY_ISSUE <- ""; /* 19/10 : raison du dernier refus de geometrie V271 (journal) */
 V269_RAIL_LATE_RELAX <- 0;
 V269_RAIL_MAX_DIST <- 250;
 V269_RELAXED <- false;

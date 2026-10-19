@@ -148,7 +148,9 @@ function OpexRailPlatformCargoValue(anchor, step, length, cargo, coverage, wantP
 }
 
 /* V190 : Recherche les quais paralleles candidats pour un plan de quai avant construction de la gare. */
-function OpexV190FindParallelPlatformPlans(platform)
+/* 19/10 V271 : allowSlopes = laisser le sondage AITestMode juger les pentes (fondations),
+ * au lieu d'exiger des tuiles plates. Defaut faux : V190 inchange. */
+function OpexV190FindParallelPlatformPlans(platform, allowSlopes = false)
 {
   local length = platform.length;
   local plans = [];
@@ -165,11 +167,11 @@ function OpexV190FindParallelPlatformPlans(platform)
       local lead2 = farExit != 0 ? stationExit2 + platform.step : stationExit2 - platform.step;
 
       local usable = AIMap.IsValidTile(lead2) && AITile.IsBuildable(lead2) &&
-          AITile.GetSlope(lead2) == AITile.SLOPE_FLAT;
+          (allowSlopes || AITile.GetSlope(lead2) == AITile.SLOPE_FLAT);
       for (local i = 0; i < length && usable; i++) {
         local tile = anchor2 + platform.step * i;
         usable = AIMap.IsValidTile(tile) && AITile.IsBuildable(tile) &&
-            AITile.GetSlope(tile) == AITile.SLOPE_FLAT;
+            (allowSlopes || AITile.GetSlope(tile) == AITile.SLOPE_FLAT);
       }
       if (!usable) continue;
 
@@ -2777,6 +2779,7 @@ function OpexV271PlatformPlan(line)
 {
   local original = line.platformA;
   local d = original.lead - original.station_exit;
+  V271_LAST_GEOMETRY_ISSUE = "lead";
   if (AIMap.DistanceManhattan(original.lead, original.station_exit) != 1) return null;
   local mergeDistance = -1;
   /* Le depot primaire est souvent raccorde au lead immediat. Dans ce cas
@@ -2794,9 +2797,11 @@ function OpexV271PlatformPlan(line)
         !AIBridge.IsBridgeTile(next) && !AITunnel.IsTunnelTile(next) &&
         AIRail.AreTilesConnected(tile, next, next + d)) { mergeDistance = distance + 1; break; }
   }
-  if (mergeDistance < 0) return null;
-  foreach (plan in OpexV190FindParallelPlatformPlans(original)) {
+  if (mergeDistance < 0) { V271_LAST_GEOMETRY_ISSUE = "no_straight_lead"; return null; }
+  V271_LAST_GEOMETRY_ISSUE = "no_adjacent_platform";
+  foreach (plan in OpexV190FindParallelPlatformPlans(original, true)) {
     if (AIMap.DistanceManhattan(plan.anchor, original.anchor) != 1) continue;
+    V271_LAST_GEOMETRY_ISSUE = "path_blocked";
     local path = [plan.station_exit];
     for (local i = 1; i <= mergeDistance; i++) path.append(plan.station_exit + i * d);
     path.append(original.station_exit + mergeDistance * d);
@@ -2804,10 +2809,11 @@ function OpexV271PlatformPlan(line)
     local usable = true;
     for (local i = 1; i < path.len(); i++) {
       if (!AIMap.IsValidTile(path[i]) || AIMap.DistanceManhattan(path[i - 1], path[i]) != 1) usable = false;
-      if (i <= mergeDistance && (!AITile.IsBuildable(path[i]) ||
-          AITile.GetSlope(path[i]) != AITile.SLOPE_FLAT)) usable = false;
+      /* 19/10 : pentes laissees au sondage AITestMode ci-dessous (fondations). */
+      if (i <= mergeDistance && !AITile.IsBuildable(path[i])) usable = false;
     }
     if (!usable) continue;
+    V271_LAST_GEOMETRY_ISSUE = "test_build";
     /* Ne pas compter les sondages deux fois dans la facture du caller. */
     local accepted = true;
     {

@@ -67,7 +67,7 @@ class TandemSource(unittest.TestCase):
         self.assertNotIn("SIGNALTYPE_NORMAL", helper)
 
     def test_geometry_same_station_and_line_side(self):
-        self.assertIn("OpexV190FindParallelPlatformPlans(original)", self.geometry)
+        self.assertIn("OpexV190FindParallelPlatformPlans(original, true)", self.geometry)
         self.assertIn("AIMap.DistanceManhattan(plan.anchor, original.anchor) != 1", self.geometry)
         self.assertIn("original.lead - original.station_exit", self.geometry)
         self.assertIn("distance <= 8", self.geometry)
