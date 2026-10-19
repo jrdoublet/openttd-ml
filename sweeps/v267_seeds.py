@@ -105,8 +105,10 @@ def cmd_command(args: argparse.Namespace) -> None:
             "python3", "sweeps/run_c66_reference.py", "--campaign", campaign,
             "--reference", args.reference,
             *([] if args.no_control else ["--variant", args.variant, "--variant-policy-id", args.variant_policy_id]),
-            "--decision-rule", "non_erosion", "--primary-metric", "profit_year",
-            "--min-useful-primary-delta-pct", "4", "--value-guard-max-loss-pct", "5",
+            # Un seul bras (C66.3) : le lanceur refuse les options de decision C66.4.
+            *([] if args.no_control else [
+                "--decision-rule", "non_erosion", "--primary-metric", "profit_year",
+                "--min-useful-primary-delta-pct", "4", "--value-guard-max-loss-pct", "5"]),
             "--years", str(args.years), "--repeats", "1", "--seeds", *map(str, part),
             *PC_PROFILE,
         ]
