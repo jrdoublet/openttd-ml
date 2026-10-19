@@ -7,6 +7,7 @@ Etape 1 : shadow / observation seule, aucune decision modifiee.
 """
 
 from pathlib import Path
+import os
 import re
 import sys
 import unittest
@@ -43,18 +44,18 @@ class TestV268C70Early(unittest.TestCase):
         idx = self.info.index('name = "v268_c70_early"')
         block = self.info[idx:self.info.index("});", idx)]
         self.assertIn("min_value = 0", block)
-        self.assertIn("max_value = 1", block)
+        self.assertIn("max_value = 2", block)
         for lvl in ("easy_value = 0", "medium_value = 0", "hard_value = 0", "custom_value = 0"):
             self.assertIn(lvl, block)
-        self.assertIn("AICONFIG_BOOLEAN", block)
+        self.assertNotIn("AICONFIG_BOOLEAN", block)
 
         # Globale dans globals_pre.nut
-        self.assertIn("V268_C70_EARLY <- false;", self.globals)
+        self.assertIn("V268_C70_EARLY <- 0;", self.globals)
         self.assertIn("V268_VEHICLE_STATE <- {};", self.globals)
         self.assertIn("V268_LAST_SAMPLE_DATE <- -1;", self.globals)
 
         # Lecture dans settings.nut
-        self.assertIn('V268_C70_EARLY = AIController.GetSetting("v268_c70_early") != 0;', self.settings)
+        self.assertIn('V268_C70_EARLY = AIController.GetSetting("v268_c70_early");', self.settings)
         self.assertIn("V268_VEHICLE_STATE = {};", self.settings)
         self.assertIn("V268_LAST_SAMPLE_DATE = -1;", self.settings)
 
@@ -63,7 +64,7 @@ class TestV268C70Early(unittest.TestCase):
         self.assertTrue(self.task, "task_v268_early.nut manquant")
 
         # Dans main.nut : appel garde par if (V268_C70_EARLY)
-        self.assertIn("if (V268_C70_EARLY)", self.main)
+        self.assertIn("if (V268_C70_EARLY > 0)", self.main)
         self.assertIn("OpexV268Step(this._lines, this._catalog);", self.main)
 
         # En tete de OpexV268Step dans task_v268_early.nut
@@ -71,15 +72,15 @@ class TestV268C70Early(unittest.TestCase):
         self.assertIsNotNone(fn_match)
         body = fn_match.group(1).strip()
         lines = [line.strip() for line in body.splitlines() if line.strip() and not line.strip().startswith("/*")]
-        self.assertEqual(lines[0], "if (!V268_C70_EARLY) return;")
-        self.assertEqual(lines[1], "if (!DECISION_LOG) return;")
+        self.assertEqual(lines[0], "if (V268_C70_EARLY <= 0) return;")
+        self.assertIn("V268_C70_EARLY == 1 && !DECISION_LOG", "\n".join(lines[:6]))
 
         # En tete de OpexV268MonthlyReport
         monthly_match = re.search(r"function\s+OpexV268MonthlyReport\s*\([^)]*\)\s*\{([^}]+)\}", self.task)
         self.assertIsNotNone(monthly_match)
         monthly_body = monthly_match.group(1).strip()
         monthly_lines = [l.strip() for l in monthly_body.splitlines() if l.strip() and not l.strip().startswith("/*")]
-        self.assertEqual(monthly_lines[0], "if (!V268_C70_EARLY) return;")
+        self.assertEqual(monthly_lines[0], "if (V268_C70_EARLY <= 0) return;")
 
     def test_static_squirrel_hygiene(self):
         """3. Controles statiques : pas de reserved words, pas de nested closure, pas de forbidden array methods."""
@@ -160,6 +161,31 @@ class TestV268C70Early(unittest.TestCase):
         self.assertEqual(results["MODE_AIR"]["3m_vs_12m"]["n"], 1)
         self.assertEqual(results["MODE_AIR"]["3m_vs_12m"]["bias"], 2000.0)
 
+
+
+class TestV268Mode2C70(unittest.TestCase):
+    def setUp(self):
+        base = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "ai", "OpexAI")
+        self.report = open(os.path.join(base, "task_report.nut"), encoding="utf-8").read()
+        self.early = open(os.path.join(base, "task_v268_early.nut"), encoding="utf-8").read()
+
+    def test_mode2_only_for_young_lines_and_never_cumulated(self):
+        i = self.report.index("V268_C70_EARLY == 2")
+        block = self.report[i:i + 1200]
+        self.assertIn("cAge < 2", block)
+        self.assertIn("c70Sums != null", block)
+        self.assertNotIn("c70Real +=", block)
+        self.assertIn("OpexV268LineEarlyProfit(line)", block)
+
+    def test_early_profit_uses_six_month_floor(self):
+        self.assertIn("V268_EARLY_MIN_DAYS", self.early)
+        i = self.early.index("function OpexV268LineEarlyProfit")
+        body = self.early[i:i + 1200]
+        self.assertIn("days < V268_EARLY_MIN_DAYS", body)
+        self.assertIn("return null", body)
+
+    def test_mode1_still_requires_decision_log(self):
+        self.assertIn("V268_C70_EARLY == 1 && !DECISION_LOG", self.early)
 
 if __name__ == "__main__":
     unittest.main()

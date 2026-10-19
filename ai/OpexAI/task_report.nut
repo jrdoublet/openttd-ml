@@ -85,6 +85,20 @@ function OpexC70C82AccumulateLine(line, year, profit, vehCount, c70Sums)
     if (!("c70Real" in line)) { line.c70Real <- 0.0; line.c70Pred <- 0.0; }
     line.c70Real += real;
     line.c70Pred += cPred.tofloat();
+  } else if (V268_C70_EARLY == 2 && cAge >= 0 && cAge < 2 && cPred > 0 && cN0 > 0
+      && c70Sums != null && (cMode in c70Sums) && !(("c70Pred" in line) && line.c70Pred > 0)) {
+    /* V268 : ligne trop jeune pour une annee pleine ; ratio provisoire a partir du profit
+     * observe depuis 6 mois, recalcule a chaque rapport et jamais cumule dans c70Real. */
+    local early = OpexV268LineEarlyProfit(line);
+    if (early != null) {
+      local cAmortE = ("predAmort" in line) ? line.predAmort : 0;
+      local ratio = (early * cN0 - cAmortE) / cPred.tofloat();
+      c70Sums[cMode][0] += ratio;
+      c70Sums[cMode][1]++;
+      if (DECISION_LOG) OpexDecide("V268_C70", "line=" + line.lineId + " mode=" + cMode
+          + " age=" + cAge + " per_veh=" + early.tointeger() + " n0=" + cN0
+          + " pred=" + cPred + " ratio=" + ratio);
+    }
   }
   if (("c70Pred" in line) && line.c70Pred > 0 && (cMode in c70Sums)) {
     /* tofloat : apres chargement, les cumuls sont des entiers (la sauvegarde arrondit les

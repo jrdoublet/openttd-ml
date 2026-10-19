@@ -816,7 +816,7 @@ function OpexAI::Start()
     local spC117 = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.c117") : null;
     OpexC117AirThroughputStep(this._lines, this._catalog);
     if (spC117 != null) OpexSpanEnd(spC117);
-    if (V268_C70_EARLY) {
+    if (V268_C70_EARLY > 0) {
       local spV268 = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.v268") : null;
       OpexV268Step(this._lines, this._catalog);
       if (spV268 != null) OpexSpanEnd(spV268);

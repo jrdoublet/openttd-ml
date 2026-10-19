@@ -694,12 +694,12 @@ class OpexAIInfo extends AIInfo {
     });
     AddSetting({
       name = "v268_c70_early",
-      description = "V268: shadow early line profitability estimation at 3, 6, 12, 24 months. 0 = off (default), 1 = on under decision_log.",
-      min_value = 0, max_value = 1,
+      description = "V268: early realised line profitability. 0 = off (default), 1 = shadow log at 3/6/12/24 months (decision_log), 2 = also feed C70 with the 6-month estimate of lines younger than 2 years.",
+      min_value = 0, max_value = 2,
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
       step_size = 1,
-      flags = AICONFIG_BOOLEAN
+      flags = 0
     });
     AddSetting({
       name = "v259_bridge_renew",

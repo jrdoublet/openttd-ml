@@ -20,8 +20,10 @@
 
 function OpexV268Step(lines, catalog = null, forceSample = false)
 {
-  if (!V268_C70_EARLY) return;
-  if (!DECISION_LOG) return;
+  if (V268_C70_EARLY <= 0) return;
+  /* Le mode 1 n'est qu'un journal : sans decision_log, rien a faire. Le mode 2 echantillonne
+   * toujours, C70 en depend. */
+  if (V268_C70_EARLY == 1 && !DECISION_LOG) return;
   if (lines == null) return;
 
   local now = AIDate.GetCurrentDate();
@@ -158,6 +160,7 @@ function OpexV268Step(lines, catalog = null, forceSample = false)
           local minDays = entry[1];
           if (daysObs >= minDays && !(p in vehicleState.milestones)) {
             vehicleState.milestones.rawset(p, true);
+            if (!DECISION_LOG) continue;
             local pAnnual = (365.25 / daysObs.tofloat() * vehicleState.profitObs - predAmort).tointeger();
             local fields = "palier=" + p
                 + " line=" + line.lineId
@@ -178,8 +181,31 @@ function OpexV268Step(lines, catalog = null, forceSample = false)
   }
 }
 
+/* V268 mode 2 : profit annualise moyen par vehicule de la ligne, sur les vehicules observes
+ * depuis au moins V268_EARLY_MIN_DAYS (6 mois : biais ~0 contre le realise a 12 mois,
+ * exposition 3x5 du 19/10 ; 3 mois sous-estime de moitie). Brut : sans amortissement,
+ * comme GetProfitLastYear dans C70. null sans vehicule assez ancien. */
+function OpexV268LineEarlyProfit(line)
+{
+  if (!("vehicles" in line) || line.vehicles == null || !("lineId" in line)) return null;
+  local now = AIDate.GetCurrentDate();
+  local sum = 0.0;
+  local n = 0;
+  foreach (v in line.vehicles) {
+    if (!(v in V268_VEHICLE_STATE)) continue;
+    local st = V268_VEHICLE_STATE[v];
+    if (st.lineId != line.lineId) continue;
+    local days = now - st.startDate;
+    if (days < V268_EARLY_MIN_DAYS) continue;
+    sum += 365.25 / days.tofloat() * st.profitObs;
+    n++;
+  }
+  if (n == 0) return null;
+  return sum / n;
+}
+
 function OpexV268MonthlyReport(lines, catalog = null)
 {
-  if (!V268_C70_EARLY) return;
+  if (V268_C70_EARLY <= 0) return;
   OpexV268Step(lines, catalog, true);
 }

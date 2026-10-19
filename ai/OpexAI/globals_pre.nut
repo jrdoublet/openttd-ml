@@ -22,8 +22,10 @@ V179_RAIL_GEN_DEST_SERVED <- true;
  * +111,8 k/an sur 39 paires, accepte par derogation utilisateur). 0 = aucun calcul du mecanisme. */
 V264_CONVERGENT_FREIGHT <- true;
 /* V268 : estimation precoce du rendement realise des lignes a 3, 6, 12, 24 mois.
- * Defaut faux partout. A faux, aucun appel API ni etat nouveau (test booleen en tete). */
-V268_C70_EARLY <- false;
+ * 0 (defaut) = rien ; 1 = journal shadow seul ; 2 = C70 lit aussi l'estimation a 6 mois
+ * des lignes encore trop jeunes (age < 2). A 0, aucun appel API ni etat nouveau. */
+V268_C70_EARLY <- 0;
+V268_EARLY_MIN_DAYS <- 180;
 V268_VEHICLE_STATE <- {};
 V268_LAST_SAMPLE_DATE <- -1;
 V180_RAIL_WAGON_BOOST_PCT <- 0;
