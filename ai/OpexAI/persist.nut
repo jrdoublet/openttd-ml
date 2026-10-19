@@ -171,7 +171,7 @@ function OpexLoadActiveWorker(data)
 
 function OpexAI::_railLineHasVehicle(line, vehicle)
 {
-  if (line == null || !("vehicles" in line) || line.vehicles == null) return false;
+  if (line == null || typeof line != "table" || !("vehicles" in line) || line.vehicles == null) return false;
   foreach (known in line.vehicles) {
     if (known == vehicle) return true;
   }
@@ -264,7 +264,7 @@ function OpexAI::_reconcileRailExpansionAfterLoad()
        state.commitStage == "metadata_done");
   local shapeValid = ("oldWagons" in state) && ("newWagons" in state) &&
       state.newWagons == state.oldWagons + 1;
-  local lineValid = line != null && ("mode" in line) && line.mode == "rail" &&
+  local lineValid = line != null && typeof line == "table" && ("mode" in line) && line.mode == "rail" &&
       this._railLineHasVehicle(line, state.vehicle);
   local depotValid = lineValid && ("depot" in line) && AIMap.IsValidTile(line.depot) &&
       AIRail.IsRailDepotTile(line.depot);
@@ -367,7 +367,7 @@ function OpexAI::_filterPersistedRailRepairQueue(source)
   foreach (key, ignored in source) {
     local lineId = key.tointeger();
     local line = this._findLineById(lineId);
-    if (line != null && ("mode" in line) && line.mode == "rail" &&
+    if (line != null && typeof line == "table" && ("mode" in line) && line.mode == "rail" &&
         ("doubleTrack" in line) && line.doubleTrack == 1) {
       out.rawset("" + lineId, true);
     }
@@ -601,6 +601,9 @@ function OpexAI::_refreshSaveProjection()
 
 function OpexAI::Save()
 {
+  local startOps = null;
+  if (DECISION_LOG) startOps = AIController.GetOpsTillSuspend();
+
   /* A 0, conserver exactement le format historique : la charge complete est experimentale et
    * le serialiseur execute Save() sous budget d'opcodes. _abandonedPairs ne contient que des
    * cles chaine -> { date, count } entiers : le rendre directement conserve exactement le meme
@@ -632,6 +635,21 @@ function OpexAI::Save()
     if (V133_AIR_BUILD_RETRY) OpexV133SaveQuarantine(shortSave);
     if (V233_GOODS_GRAFT && this._v233GoodsObservations != null)
       shortSave.v233GoodsObservations <- OpexV233SaveObservations(this._v233GoodsObservations);
+    if (V259_BRIDGE_RENEW != 0) {
+      shortSave.v259KnownBridgesCount <- this._v259KnownBridgesCount;
+      shortSave.v259Cursor <- this._v259Cursor;
+      shortSave.v259Queue <- OpexV259SaveQueue(this._v259Queue);
+    }
+    if (DECISION_LOG && startOps != null) {
+      local endOps = AIController.GetOpsTillSuspend();
+      local opsSpent = startOps - endOps;
+      if (opsSpent < 0) opsSpent = 0;
+      local lCount = (this._lines != null) ? this._lines.len() : 0;
+      local aCount = (this._abandonedPairs != null) ? this._abandonedPairs.len() : 0;
+      local hCount = (this._abandonCounts != null) ? this._abandonCounts.len() : 0;
+      local tCount = (this._taskQueue != null) ? this._taskQueue.len() : 0;
+      OpexDecide("V262_SAVE", "ops=" + opsSpent + " budget=100000 lines=" + lCount + " abandons=" + aCount + " abandonCounts=" + hCount + " tasks=" + tCount + " full=0");
+    }
     return shortSave;
   }
 
@@ -709,11 +727,32 @@ function OpexAI::Save()
   }
   if (C83_PREEMPT_OPEN) OpexSaveC83Preempt(saveObj, this);
   if (V250_RIGHTS != 0) OpexSaveV250(saveObj, this);
+  if (V257_RAIL_REFRESH) {
+    /* Hors projection mensuelle : la transaction et le curseur doivent etre exacts. */
+    saveObj.v257RailRefresh <- { cursor = this._v257Cursor, state = this._v257State,
+      pending = this._v257Pending, engineRevision = this._v257EngineRevision,
+      priorityRemaining = this._v257PriorityRemaining };
+  }
   if (OpexC121StrategyStateEnabled()) OpexSaveC121Strategy(saveObj);
   if (OPEX_AIR_ROLLBACKS.len() > 0) saveObj.airRollbacks <- OPEX_AIR_ROLLBACKS;
   if (V133_AIR_BUILD_RETRY) OpexV133SaveQuarantine(saveObj);
   if (V233_GOODS_GRAFT && this._v233GoodsObservations != null)
     saveObj.v233GoodsObservations <- OpexV233SaveObservations(this._v233GoodsObservations);
+  if (V259_BRIDGE_RENEW != 0) {
+    saveObj.v259KnownBridgesCount <- this._v259KnownBridgesCount;
+    saveObj.v259Cursor <- this._v259Cursor;
+    saveObj.v259Queue <- OpexV259SaveQueue(this._v259Queue);
+  }
+  if (DECISION_LOG && startOps != null) {
+    local endOps = AIController.GetOpsTillSuspend();
+    local opsSpent = startOps - endOps;
+    if (opsSpent < 0) opsSpent = 0;
+    local lCount = (this._lines != null) ? this._lines.len() : 0;
+    local aCount = (this._abandonedPairs != null) ? this._abandonedPairs.len() : 0;
+    local hCount = (this._abandonCounts != null) ? this._abandonCounts.len() : 0;
+    local tCount = (this._taskQueue != null) ? this._taskQueue.len() : 0;
+    OpexDecide("V262_SAVE", "ops=" + opsSpent + " budget=100000 lines=" + lCount + " abandons=" + aCount + " abandonCounts=" + hCount + " tasks=" + tCount + " full=1");
+  }
   return saveObj;
 }
 function OpexAI::Load(version, data)
@@ -757,6 +796,14 @@ function OpexAI::Load(version, data)
   if ("lastRepayMonth" in data) this._lastRepayMonth = data.lastRepayMonth;
   if ("taskCycle" in data) this._taskCycle = data.taskCycle;
   if ("taskCursor" in data) this._taskCursor = data.taskCursor;
+  if ("v257RailRefresh" in data && typeof data.v257RailRefresh == "table") {
+    local railRefresh = data.v257RailRefresh;
+    this._v257Cursor = ("cursor" in railRefresh && typeof railRefresh.cursor == "integer") ? railRefresh.cursor : 0;
+    this._v257State = ("state" in railRefresh && typeof railRefresh.state == "table") ? railRefresh.state : null;
+    this._v257Pending = ("pending" in railRefresh && typeof railRefresh.pending == "table") ? railRefresh.pending : null;
+    this._v257EngineRevision = ("engineRevision" in railRefresh) ? railRefresh.engineRevision : -1;
+    this._v257PriorityRemaining = ("priorityRemaining" in railRefresh) ? railRefresh.priorityRemaining : 0;
+  }
   if ("vehiclesToRetire" in data && data.vehiclesToRetire != null) this._vehiclesToRetire = data.vehiclesToRetire;
   if ("unprofitableStreaks" in data && data.unprofitableStreaks != null) this._unprofitableStreaks = data.unprofitableStreaks;
   if ("activeSubsidies" in data && data.activeSubsidies != null) this._activeSubsidies = data.activeSubsidies;
@@ -799,6 +846,9 @@ function OpexAI::Load(version, data)
   if ("c83PreemptRace" in data) this._reloadC83PreemptRace = data.c83PreemptRace;
   if ("v250Targets" in data) this._reloadV250Targets = data.v250Targets;
   if ("v250Freed" in data) this._reloadV250Freed = data.v250Freed;
+  if ("v259KnownBridgesCount" in data) this._reloadV259KnownBridgesCount = data.v259KnownBridgesCount;
+  if ("v259Cursor" in data) this._reloadV259Cursor = data.v259Cursor;
+  if ("v259Queue" in data) this._reloadV259Queue = data.v259Queue;
   /* C80 étape 2 : mémoire transitoire du seuil de sélection du stock rail, remise à 0 au rechargement. */
   this._railStockLastFundedScore = 0.0;
   this._railStockLastFundedDate = -1;
@@ -852,13 +902,21 @@ function OpexAI::_reconcileAfterLoad()
   local purgedVehicles = 0;
   local liveLines = [];
   if (this._pendingLines != null) {
-    foreach (line in this._pendingLines) {
-      saved++;
-      if (line == null || !("stationA" in line) || !("stationB" in line) ||
-          !AIMap.IsValidTile(line.stationA) || !AIMap.IsValidTile(line.stationB)) {
-        dropped++;
-        continue;
-      }
+    if (typeof this._pendingLines != "array") {
+      AILog.Warning("OpexAI: loaded lines is not an array (got " + typeof this._pendingLines + "), ignoring.");
+    } else {
+      foreach (line in this._pendingLines) {
+        saved++;
+        if (typeof line != "table") {
+          dropped++;
+          AILog.Warning("OpexAI: invalid line entry in savegame (expected table, got " + typeof line + "), skipping.");
+          continue;
+        }
+        if (!("stationA" in line) || !("stationB" in line) ||
+            !AIMap.IsValidTile(line.stationA) || !AIMap.IsValidTile(line.stationB)) {
+          dropped++;
+          continue;
+        }
       local stationA = AIStation.GetStationID(line.stationA);
       local stationB = AIStation.GetStationID(line.stationB);
       if (!AIStation.IsValidStation(stationA) || !AIStation.IsValidStation(stationB) ||
@@ -897,7 +955,9 @@ function OpexAI::_reconcileAfterLoad()
       kept++;
     }
   }
+  }
   this._lines = liveLines;
+  OpexV257Reconcile(this);
   /* World validation is rebuilt in bounded steps from these restored lines.
    * Short saves without support cannot revive observations. OFF never generates work. */
   this._v233GoodsWork = null;
@@ -913,6 +973,35 @@ function OpexAI::_reconcileAfterLoad()
    * tournait sur la liste encore vide et remettait tous les facteurs a 1 (mesure 2026-09-22). */
   OpexC70RecomputeFactors(this._lines);
   OpexC121RecomputeRealizationFactors(this._lines);
+
+  local selfComp = AICompany.ResolveCompanyID(AICompany.COMPANY_SELF);
+  foreach (line in this._lines) {
+    if (line == null || typeof line != "table") continue;
+    if (!("bridges" in line) || line.bridges == null || typeof line.bridges != "array") {
+      line.bridges <- [];
+    } else {
+      local liveBridges = [];
+      foreach (b in line.bridges) {
+        if (b != null && typeof b == "table" && ("start" in b) && ("end" in b) &&
+            AIBridge.IsBridgeTile(b.start) && AIBridge.GetOtherBridgeEnd(b.start) == b.end &&
+            AITile.GetOwner(b.start) == selfComp) {
+          liveBridges.append(b);
+        }
+      }
+      line.bridges = liveBridges;
+    }
+  }
+
+  if (V259_BRIDGE_RENEW != 0) {
+    if (this._reloadV259KnownBridgesCount != null) this._v259KnownBridgesCount = this._reloadV259KnownBridgesCount;
+    if (this._reloadV259Cursor != null) this._v259Cursor = this._reloadV259Cursor;
+    if (this._reloadV259Queue != null) {
+      this._v259Queue = OpexV259LoadQueue(this._reloadV259Queue, this._lines);
+    }
+  }
+  this._reloadV259KnownBridgesCount = null;
+  this._reloadV259Cursor = null;
+  this._reloadV259Queue = null;
 
   local railExpansion = this._reconcileRailExpansionAfterLoad();
 

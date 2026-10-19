@@ -440,6 +440,218 @@ function OpexJoinPlatformPlans(platform, stationId, stats = null)
   return plans;
 }
 
+/* V264 : boite inclusive des tuiles train de la gare (AITileList_StationType). */
+function OpexV264StationRailBox(stationId)
+{
+  local tiles = AITileList_StationType(stationId, AIStation.STATION_TRAIN);
+  local x0 = -1;
+  local y0 = -1;
+  local x1 = -1;
+  local y1 = -1;
+  for (local tile = tiles.Begin(); !tiles.IsEnd(); tile = tiles.Next()) {
+    local x = AIMap.GetTileX(tile);
+    local y = AIMap.GetTileY(tile);
+    if (x0 < 0 || x < x0) x0 = x;
+    if (y0 < 0 || y < y0) y0 = y;
+    if (x > x1) x1 = x;
+    if (y > y1) y1 = y;
+  }
+  if (x0 < 0) return null;
+  return { x0 = x0, y0 = y0, x1 = x1, y1 = y1 };
+}
+
+/* Distance de Tchebychev d'une ancre a un rectangle inclusif. 0 = dans le rectangle. */
+function OpexV264RectDistance(ax, ay, x0, y0, x1, y1)
+{
+  local dx = 0;
+  if (ax < x0) dx = x0 - ax;
+  else if (ax > x1) dx = ax - x1;
+  local dy = 0;
+  if (ay < y0) dy = y0 - ay;
+  else if (ay > y1) dy = ay - y1;
+  return dx > dy ? dx : dy;
+}
+
+/* Union du quai neuf avec la gare : largeur et hauteur <= station.station_spread.
+ * station_cmd.cpp CanExpandRailStation (~1204) et w_org/h_org (~1471).
+ * script_rail.cpp:162 : NE_SW = AXIS_X (longueur en X), NW_SE = AXIS_Y.
+ * alongX vrai : quai de `length` tuiles en X et 1 en Y. */
+function OpexV264SpreadWindow(box, spread, length, alongX)
+{
+  local ax0;
+  local ax1;
+  local ay0;
+  local ay1;
+  if (alongX) {
+    ax0 = box.x1 - spread + 1;
+    ax1 = box.x0 + spread - length;
+    ay0 = box.y1 - spread + 1;
+    ay1 = box.y0 + spread - 1;
+  } else {
+    ax0 = box.x1 - spread + 1;
+    ax1 = box.x0 + spread - 1;
+    ay0 = box.y1 - spread + 1;
+    ay1 = box.y0 + spread - length;
+  }
+  return { ax0 = ax0, ax1 = ax1, ay0 = ay0, ay1 = ay1 };
+}
+
+function OpexV264AnchorInWindow(win, ax, ay)
+{
+  return ax >= win.ax0 && ax <= win.ax1 && ay >= win.ay0 && ay <= win.ay1;
+}
+
+/* Ancres deja sondees par OpexJoinPlatformPlans : meme axe, offset perpendiculaire
+ * 1..JOIN_PARALLEL_MAX_SIDE (builder_rail.nut:29). NE_SW decale en Y, sinon en X
+ * (OpexJoinPlatformPlans, sideways). */
+function OpexV264ParallelAnchor(platform, ax, ay)
+{
+  local px = AIMap.GetTileX(platform.anchor);
+  local py = AIMap.GetTileY(platform.anchor);
+  local sx = 1;
+  local sy = 0;
+  if (platform.direction == AIRail.RAILTRACK_NE_SW) {
+    sx = 0;
+    sy = 1;
+  }
+  local dx = ax - px;
+  local dy = ay - py;
+  if (sx == 0) {
+    if (dx != 0 || dy == 0) return false;
+    local ady = dy < 0 ? -dy : dy;
+    return ady >= 1 && ady <= JOIN_PARALLEL_MAX_SIDE;
+  }
+  if (dy != 0 || dx == 0) return false;
+  local adx = dx < 0 ? -dx : dx;
+  return adx >= 1 && adx <= JOIN_PARALLEL_MAX_SIDE;
+}
+
+/* Un quai, deux sorties, meme contrat que OpexJoinPlatformPlans. Longueur unique :
+ * platform.length, celle que OpexBuildTrains lit sur le candidat. */
+function OpexV264TrySpreadAnchor(plans, stationId, stats, length, ax, ay, direction, step)
+{
+  if (plans.len() >= MAX_STATION_PLANS) return;
+  local anchor = AIMap.GetTileIndex(ax, ay);
+  for (local farExit = 0; farExit <= 1; farExit++) {
+    if (plans.len() >= MAX_STATION_PLANS) return;
+    local stationExit = farExit != 0 ? anchor + step * (length - 1) : anchor;
+    local lead = farExit != 0 ? stationExit + step : stationExit - step;
+    local usable = AIMap.IsValidTile(lead) && AITile.IsBuildable(lead) &&
+        AITile.GetSlope(lead) == AITile.SLOPE_FLAT;
+    for (local i = 0; i < length && usable; i++) {
+      local tile = anchor + step * i;
+      usable = AIMap.IsValidTile(tile) && AITile.IsBuildable(tile) &&
+          AITile.GetSlope(tile) == AITile.SLOPE_FLAT;
+    }
+    if (!usable) continue;
+    if (stats != null) {
+      stats.nClear++;
+      stats.nCargo++;
+    }
+    local joins = false;
+    {
+      local probe = AITestMode();
+      joins = AIRail.BuildRailStation(anchor, direction, 1, length, stationId);
+    }
+    if (!joins) continue;
+    if (stats != null) stats.nCmd++;
+    /* stationId est pose par l'appelant avec <- : le slot ne doit pas deja exister. */
+    local built = { anchor = anchor, station_exit = stationExit, lead = lead,
+                    direction = direction, step = step, length = length };
+    plans.push(built);
+  }
+}
+
+function OpexV264SpreadVisit(plans, platform, stationId, stats, length, ax, ay, scan, dist)
+{
+  if (plans.len() >= MAX_STATION_PLANS) return;
+  if (ax < 0 || ay < 0 || ax >= scan.mapX || ay >= scan.mapY) return;
+  if (OpexV264RectDistance(ax, ay, scan.x0, scan.y0, scan.x1, scan.y1) != dist) return;
+  if (OpexV264AnchorInWindow(scan.winX, ax, ay)) {
+    if (platform.direction != AIRail.RAILTRACK_NE_SW || !OpexV264ParallelAnchor(platform, ax, ay)) {
+      OpexV264TrySpreadAnchor(plans, stationId, stats, length, ax, ay,
+                              AIRail.RAILTRACK_NE_SW, scan.stepX);
+    }
+  }
+  if (plans.len() >= MAX_STATION_PLANS) return;
+  if (OpexV264AnchorInWindow(scan.winY, ax, ay)) {
+    if (platform.direction != AIRail.RAILTRACK_NW_SE || !OpexV264ParallelAnchor(platform, ax, ay)) {
+      OpexV264TrySpreadAnchor(plans, stationId, stats, length, ax, ay,
+                              AIRail.RAILTRACK_NW_SE, scan.stepY);
+    }
+  }
+}
+
+/* Anneau de Tchebychev autour du rectangle existant. Le proche (1..JOIN_PARALLEL_MAX_SIDE)
+ * passe avant le reste de la boite, pour qu'un quai perpendiculaire adjacent ne balaie
+ * pas toute l'emprise. Plafond MAX_STATION_PLANS (builder_rail.nut:23). */
+function OpexV264SpreadScan(plans, platform, stationId, stats, box, spread, length, distMin, distMax)
+{
+  local scan = {
+    mapX = AIMap.GetMapSizeX(),
+    mapY = AIMap.GetMapSizeY(),
+    x0 = box.x0, y0 = box.y0, x1 = box.x1, y1 = box.y1,
+    winX = OpexV264SpreadWindow(box, spread, length, true),
+    winY = OpexV264SpreadWindow(box, spread, length, false),
+    stepX = AIMap.GetTileIndex(1, 0),
+    stepY = AIMap.GetTileIndex(0, 1)
+  };
+  for (local dist = distMin; dist <= distMax; dist++) {
+    if (plans.len() >= MAX_STATION_PLANS) return;
+    local xLo = box.x0 - dist;
+    local xHi = box.x1 + dist;
+    local yNorth = box.y0 - dist;
+    local ySouth = box.y1 + dist;
+    for (local ax = xLo; ax <= xHi; ax++) {
+      if (plans.len() >= MAX_STATION_PLANS) return;
+      OpexV264SpreadVisit(plans, platform, stationId, stats, length, ax, yNorth, scan, dist);
+      if (ySouth != yNorth) {
+        OpexV264SpreadVisit(plans, platform, stationId, stats, length, ax, ySouth, scan, dist);
+      }
+    }
+    local yLo = box.y0 - dist + 1;
+    local yHi = box.y1 + dist - 1;
+    for (local ay = yLo; ay <= yHi; ay++) {
+      if (plans.len() >= MAX_STATION_PLANS) return;
+      OpexV264SpreadVisit(plans, platform, stationId, stats, length, xLo, ay, scan, dist);
+      if (xHi != xLo) {
+        OpexV264SpreadVisit(plans, platform, stationId, stats, length, xHi, ay, scan, dist);
+      }
+    }
+  }
+}
+
+/* V264 : quai joint hors du parallele, dans l'emprise moteur. Une seule longueur,
+ * celle du quai deja pose. Echec = liste vide (pas de seconde gare, pas de quai plus court).
+ * Aucun seuil de caisse ajoute : la reserve reste CASH_RESERVE_MIN/MAX (main.nut:42-43).
+ * station.distant_join_stations (game_settings.ini:136, defaut vrai) et
+ * station.station_spread (game_settings.ini:108, defaut 12, min 4, max 64).
+ * Un spread < 4 est refuse : c'est le minimum moteur, sans repli a 12. */
+function OpexV264SpreadJoinPlans(platform, stationId, stats = null)
+{
+  if (!V264_CONVERGENT_FREIGHT) return [];
+  if (platform == null) return [];
+  if (!("length" in platform) || !("anchor" in platform)
+      || !("direction" in platform) || !("step" in platform)) return [];
+  local length = platform.length;
+  if (length < 1) return [];
+  if (!AIStation.IsValidStation(stationId)) return [];
+  if (!AIStation.HasStationType(stationId, AIStation.STATION_TRAIN)) return [];
+  if (!AIGameSettings.GetValue("station.distant_join_stations")) return [];
+  local spread = AIGameSettings.GetValue("station.station_spread");
+  if (spread == null || spread < 4) return [];
+  if (length > spread) return [];
+  local box = OpexV264StationRailBox(stationId);
+  if (box == null) return [];
+  local plans = [];
+  OpexV264SpreadScan(plans, platform, stationId, stats, box, spread, length, 1, JOIN_PARALLEL_MAX_SIDE);
+  if (plans.len() < MAX_STATION_PLANS) {
+    OpexV264SpreadScan(plans, platform, stationId, stats, box, spread, length,
+                       JOIN_PARALLEL_MAX_SIDE + 1, spread);
+  }
+  return plans;
+}
+
 /* Un couple de plans a une longueur donnee. Rend nA/nB meme en echec : c'est ce qui permet de
  * distinguer SITEA, SITEB et SITEAB, au lieu du seau unique NOPLAN. Les closures Squirrel de
  * cet environnement ne capturent pas les locaux englobants -- d'ou une fonction libre. */
@@ -519,7 +731,8 @@ function OpexRailPlatformPlans(catalog, candidate)
      * contourner ORIGIN_SEPARATION avec une seconde gare. V88 conserve son fallback historique. */
     local strictOriginReuseJoin = (V178_RAIL_SHARED_DEST
         && ("shared_dest" in candidate) && candidate.shared_dest)
-        || (V233_GOODS_GRAFT && ("strictJoin" in candidate) && candidate.strictJoin);
+        || (V233_GOODS_GRAFT && ("strictJoin" in candidate) && candidate.strictJoin)
+        || (V264_CONVERGENT_FREIGHT && ("convergent_dest" in candidate) && candidate.convergent_dest);
     if (!joinB) {
       local jointPlansA = OpexJoinPlatformPlans(candidate.joinPlatform, candidate.joinStationId, statsA);
       if (V233_GOODS_GRAFT && ("strictJoin" in candidate) && candidate.strictJoin) {
@@ -545,6 +758,19 @@ function OpexRailPlatformPlans(catalog, candidate)
       }
     } else {
       local jointPlansB = OpexJoinPlatformPlans(candidate.joinPlatform, candidate.joinStationId, statsB);
+      if (V264_CONVERGENT_FREIGHT && ("convergent_dest" in candidate) && candidate.convergent_dest == 1) {
+        local joinMode = "parallel";
+        if (jointPlansB.len() == 0) {
+          jointPlansB = OpexV264SpreadJoinPlans(candidate.joinPlatform, candidate.joinStationId, statsB);
+          joinMode = "spread";
+        }
+        if (DECISION_LOG) {
+          local joinedLength = jointPlansB.len() > 0 ? jointPlansB[0].length : 0;
+          OpexDecide("V264_JOIN", "mode=" + joinMode + " n=" + jointPlansB.len()
+              + " len=" + joinedLength + " station=" + candidate.joinStationId
+              + " src=" + candidate.src + " dst=" + candidate.dst);
+        }
+      }
       joinHasB = jointPlansB.len() > 0;
       if (jointPlansB.len() > 0) {
         foreach (p in jointPlansB) {
@@ -3275,10 +3501,32 @@ function OpexQuoteRailCapital(catalog, candidate, plan, failure = null)
   return realInfra + depotCost + vehicleCost;
 }
 
+/* V262 T12/T29 : plafond du mode, une lecture par chantier (pas par tuile).
+ * Caps : game_settings.ini:245-291 (defauts 500/500/200/300, bancs 500).
+ * GetFreeUnitNumber refuse si group_all[type].num_vehicle >= max (vehicle.cpp:1876-1891).
+ * GetNumVehicles compte les primaires (group_cmd.cpp:139, IsPrimaryVehicle).
+ * IsDisabledVehicleType lit ai.ai_disable_veh_* (script_gamesettings.cpp:49-55). */
+function OpexVehicleSlotAvailable(vehicleType, planned)
+{
+  if (planned == null || planned < 1) planned = 1;
+  if (AIGameSettings.IsDisabledVehicleType(vehicleType)) return false;
+  local setting = "vehicle.max_trains";
+  if (vehicleType == AIVehicle.VT_ROAD) setting = "vehicle.max_roadveh";
+  else if (vehicleType == AIVehicle.VT_AIR) setting = "vehicle.max_aircraft";
+  else if (vehicleType == AIVehicle.VT_WATER) setting = "vehicle.max_ships";
+  else if (vehicleType != AIVehicle.VT_RAIL) return true;
+  if (!AIGameSettings.IsValid(setting)) return true;
+  local cap = AIGameSettings.GetValue(setting);
+  local used = AIGroup.GetNumVehicles(AIGroup.GROUP_ALL, vehicleType);
+  if (planned > 1) return used + planned <= cap;
+  return used < cap;
+}
+
 /* M4/16.2 : ne jamais engager d'infrastructure si OpenTTD n'a plus aucun slot train.
  * Ce test est volontairement duplique au plus pres de la transaction : task_rail l'utilise avant
  * de lancer l'A*, mais une recherche reprenable peut terminer plusieurs ticks plus tard, apres
- * qu'un autre chemin a consomme le dernier slot. */
+ * qu'un autre chemin a consomme le dernier slot. Corps inchange : les appels rail existants
+ * gardent le predicat `used < cap` et les opcodes du chemin historique. */
 function OpexRailVehicleSlotAvailable()
 {
   local setting = "vehicle.max_trains";

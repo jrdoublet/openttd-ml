@@ -1055,6 +1055,74 @@ function OpexPaxCandidates(catalog, lines, out, stats, abandonedPairs = null, pr
   if (profile != null) profile.paxPairTotalOps += OpexOpsMeasureEnd(pairTotalMark);
 }
 
+/* V264 : une source rail neuve peut livrer une industrie deja desservie, sur la gare
+ * existante. Appelee seulement si V264_CONVERGENT_FREIGHT est vrai. Pas de filtre
+ * isTransformer : une centrale (IT_POWER_STATION) n'en est pas une et reste un puits
+ * de charbon. Les puits urbains ne passent pas ici. */
+function OpexV264ConvergentService(lines, service, cargo, srcTile)
+{
+  if (!V264_CONVERGENT_FREIGHT) return null;
+  if (service == null || service.blocked) return null;
+  local stationId = service.stationId;
+  if (stationId < 0 || !AIStation.IsValidStation(stationId)) return null;
+  if (!AIStation.HasStationType(stationId, AIStation.STATION_TRAIN)) return null;
+  if (!("line" in service) || service.line == null || !("lineEnd" in service)) return null;
+  if (!("lineId" in service.line)) return null;
+  local platformKey = service.lineEnd == "A" ? "platformA" : "platformB";
+  if (!(platformKey in service.line) || service.line[platformKey] == null) return null;
+  local platform = service.line[platformKey];
+  if (!("direction" in platform) || !("length" in platform)
+      || !("anchor" in platform) || !("step" in platform)) return null;
+  if (platform.length < 1) return null;
+  /* Meme comparaison que _tooClose : tuile d'industrie contre la tuile de gare
+   * enregistree, seuil MIN_SEPARATION (main.nut:74). ORIGIN_SEPARATION (main.nut:83)
+   * est deja faux : l'appelant exige ss == null via OpexOriginService. */
+  foreach (line in lines) {
+    if (("mode" in line) && line.mode != "rail") continue;
+    foreach (lineEnd in ["A", "B"]) {
+      local sid = OpexLineStationId(line, lineEnd);
+      if (sid < 0) continue;
+      local stationTile = lineEnd == "A" ? line.stationA : line.stationB;
+      if (AIMap.DistanceManhattan(srcTile, stationTile) < MIN_SEPARATION) return null;
+    }
+  }
+  local accepting = AICargoList_StationAccepting(stationId);
+  if (!accepting.HasItem(cargo)) return null;
+  return { platform = platform, stationId = stationId, lineId = service.line.lineId };
+}
+
+/* V264 : meme economie que la paire libre (OpexMakeCandidate), puis le quai a joindre.
+ * joinLineId n'est pas pose : _tooClose sauterait toute la ligne, y compris l'extremite A. */
+function OpexV264EmitConvergent(catalog, stats, profile, cruiseCache, cargo, source, destIndustry, monthly, others2, attached)
+{
+  if (!V264_CONVERGENT_FREIGHT) return null;
+  local isTransformer = ("isTransformer" in destIndustry) && destIndustry.isTransformer;
+  local candidateMark = profile != null ? OpexOpsMeasureBegin() : null;
+  local secondary = (others2 != null && others2.len() > 0)
+      ? OpexV163SecondaryCargo(others2, destIndustry.id) : null;
+  local candidate = OpexMakeCandidate(catalog, "freight", cargo, source.tile,
+                                      destIndustry.tile, monthly, false, stats, isTransformer, profile, cruiseCache,
+                                      secondary);
+  if (profile != null) {
+    profile.freightIndustryCandidateOps += OpexOpsMeasureEnd(candidateMark);
+    profile.freightIndustryCandidateCalls++;
+  }
+  if (candidate == null) return null;
+  candidate.convergent_dest <- 1;
+  candidate.joinPlatform <- attached.platform;
+  candidate.joinStationId <- attached.stationId;
+  candidate.joinEnd <- "B";
+  /* Cle deja creee par OpexMakeCandidate. Une gare reutilisee : tension.nut compte 1 origine. */
+  candidate.originServed = true;
+  if (DECISION_LOG) {
+    local label = AICargo.IsValidCargo(cargo) ? AICargo.GetCargoLabel(cargo) : "?";
+    OpexDecide("V264_KEEP", "cargo=" + label + " src=" + source.tile
+        + " dst=" + destIndustry.tile + " station=" + attached.stationId
+        + " line=" + attached.lineId);
+  }
+  return candidate;
+}
+
 /* Industries : on n'apparie que des couples producteur/accepteur du MEME cargo, ce qui garde
  * l'etage 1 lineaire en nombre d'industries plutot que quadratique sur tout le catalogue. */
 function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null, profile = null, cruiseCache = null, freightCargo = null, targetKind = null, targetId = -1)
@@ -1097,10 +1165,22 @@ function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null
         }
         stats.pairsTotal++;
         local sd = served[di];
-        /* V179 : source neuve, destination deja desservie : on garde la paire, V178 la rattache. */
+        /* V179 : source neuve, destination deja desservie : on garde la paire, V178 la rattache.
+         * Ce chemin n'est pas marque convergent : V264 ne s'execute que dans l'exclusion. */
         local v179Keep = V179_RAIL_GEN_DEST_SERVED && ss == null && sd != null;
         if (!v179Keep && (ss != null || sd != null)) {
-          stats.pairsOriginServed++;
+          /* Paires deja rejetees. A 0 le drapeau est faux : aucun appel, pairsOriginServed. */
+          local attached = null;
+          if (V264_CONVERGENT_FREIGHT && ss == null && sd != null) {
+            attached = OpexV264ConvergentService(lines, sd, cargo, source.tile);
+          }
+          if (attached == null) {
+            stats.pairsOriginServed++;
+            continue;
+          }
+          local kept = OpexV264EmitConvergent(catalog, stats, profile, cruiseCache, cargo,
+                                              source, industries[di], monthly, others2, attached);
+          if (kept != null) out.append(kept);
           continue;
         }
         local isTransformer = ("isTransformer" in industries[di]) && industries[di].isTransformer;

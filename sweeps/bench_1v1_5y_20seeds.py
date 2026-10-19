@@ -757,6 +757,10 @@ def c120_sign_metrics(chunks):
     }
 
 
+GOODS_STATE_ACCEPTANCE = 1 << 0
+GOODS_STATE_RATING = 1 << 1
+
+
 def _station_route_index(chunks):
     """Index passif station -> ville/proprietaire/facilities/qualite cargo depuis STNN."""
     stnn = (chunks or {}).get("STNN") or {}
@@ -790,15 +794,20 @@ def _station_route_index(chunks):
             } if int(base.get("facilities") or 0) & 8 else None,
             "goods": {
                 str(cargo_id): {
+                    # GoodsEntry::State (station_base.h, OpenTTD 15.3) : bit 0 =
+                    # Acceptance, bit 1 = Rating. Jusqu'au 19/10 on lisait le bit 0 :
+                    # « rated » valait « accepte », et la note du fret a la source
+                    # n'etait jamais rapportee.
                     "rated": bool(
-                        ((good.get("status") or 0) & 1)
+                        ((good.get("status") or 0) & GOODS_STATE_RATING)
                         and good.get("time_since_pickup", 255) < 255
                         and good.get("rating") is not None
                     ),
+                    "accepts": bool((good.get("status") or 0) & GOODS_STATE_ACCEPTANCE),
                     "rating": (
                         int(good["rating"])
                         if (
-                            ((good.get("status") or 0) & 1)
+                            ((good.get("status") or 0) & GOODS_STATE_RATING)
                             and good.get("time_since_pickup", 255) < 255
                             and good.get("rating") is not None
                         )

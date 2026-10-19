@@ -100,6 +100,7 @@ function OpexLoadSettings()
   V216F_DWELL_PCT = AIController.GetSetting("v216f_dwell_pct");
   V178_RAIL_SHARED_DEST = AIController.GetSetting("v178_rail_shared_dest") != 0;
   V179_RAIL_GEN_DEST_SERVED = AIController.GetSetting("v179_rail_gen_dest_served") != 0;
+  V264_CONVERGENT_FREIGHT = AIController.GetSetting("v264_convergent_freight") != 0;
   local wagonBoost = AIController.GetSetting("v180_rail_wagon_boost_pct");
   local boostDelay = AIController.GetSetting("v180_rail_wagon_boost_delay");
   V180_RAIL_WAGON_BOOST_DELAY = (boostDelay != null && boostDelay > 0 && boostDelay <= 5) ? boostDelay : 0;
@@ -128,6 +129,7 @@ function OpexLoadSettings()
   local v190Max = AIController.GetSetting("v190_rail_max_trains");
   V190_RAIL_MAX_TRAINS = (v190Max != null && v190Max >= 2 && v190Max <= 8) ? v190Max : 4;
   V249_STATUE = AIController.GetSetting("v249_statue") == 1;
+  V257_RAIL_REFRESH = AIController.GetSetting("v257_rail_refresh") == 1;
   local v252Refresh = AIController.GetSetting("v252_air_engine_refresh");
   V252_AIR_ENGINE_REFRESH = (v252Refresh != null && v252Refresh >= 0 && v252Refresh <= 2) ? v252Refresh : 0;
   local rights = AIController.GetSetting("v250_rights");
@@ -135,6 +137,8 @@ function OpexLoadSettings()
   /* V250 entiere reservee au niveau 3 (personnalise) : geste anticoncurrentiel. */
   if (!OpexLevelAllows("v250_rights")) rights = 0;
   V250_RIGHTS = rights;
+  local v259Renew = AIController.GetSetting("v259_bridge_renew");
+  V259_BRIDGE_RENEW = (v259Renew != null && v259Renew == 1) ? 1 : 0;
 
   // V246 : paquets adoptes figes ; les interrupteurs de mode restent actifs.
   ROAD_BUILD_ENABLED = MODE_ROAD;

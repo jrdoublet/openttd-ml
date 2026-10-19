@@ -16,8 +16,11 @@ MODE_WATER <- true;
 V168_RAIL_MAX_DIST <- 160;
 V177_RAIL_PAX_MIN_DIST <- 0;
 V182_RAIL_FREIGHT_MIN_DIST <- 0;
-V178_RAIL_SHARED_DEST <- false;
-V179_RAIL_GEN_DEST_SERVED <- false;
+V178_RAIL_SHARED_DEST <- true;
+V179_RAIL_GEN_DEST_SERVED <- true;
+/* V264 : fret convergent vers une industrie deja desservie. Defaut vrai depuis le 19/10 (40x10 PC
+ * +111,8 k/an sur 39 paires, accepte par derogation utilisateur). 0 = aucun calcul du mecanisme. */
+V264_CONVERGENT_FREIGHT <- true;
 V180_RAIL_WAGON_BOOST_PCT <- 0;
 V180_RAIL_WAGON_BOOST_DELAY <- 0;
 V180_START_YEAR <- -1;
@@ -83,6 +86,11 @@ V172_RAIL_LONG_WEIGHT_PCT <- 200;
 V216_PROBE <- false;
 V211_RIVALS <- false;
 V211_LAST_QUARTER <- -1;
+/* V262 T10/T15 : annee et date du dernier releve orphelins. Non persistes
+ * (un rechargement un 1er decembre peut journaliser une seconde fois).
+ * Aucune decision ne lit ces valeurs. */
+V262_ORPHAN_YEAR <- -1;
+V262_ORPHAN_DATE <- -1;
 /* V216a : 0 inerte, 1 gain net de la compagnie, 2 part de la ligne (probe_v216.nut). */
 V216A_GHOST_DEMAND <- 0;
 /* V216f : sejour mecanique en gare dans le cycle rail, en % de l'estimation EST-16 (economy.nut). */
@@ -92,6 +100,8 @@ V249_STATUE <- false;
 /* Vrai si une passe projets s'est arretee faute de caisse depuis le dernier
  * passage statue. Vrai au depart : le premier mois ne compte pas. Pas sauvegarde. */
 V249_CASH_STOP <- true;
+/* V257 : revision des rames existantes, experimentale OFF. */
+V257_RAIL_REFRESH <- false;
 /* V252 : modernisation de la flotte aerienne (air_fleet.nut, task_v252.nut).
  * 0 = clonage, 1 = renfort/crash au meilleur modele, 2 = mode 1 + remplacement actif quand riche (defaut depuis le 18/10). */
 V252_AIR_ENGINE_REFRESH <- 2;
@@ -104,6 +114,8 @@ V250_RIGHTS <- 0;
 /* Meme signal que V249, mais reserve au mode 1. Le mode 2 ne le lit pas.
  * Vrai au depart : le premier mois de mode 1 ne compte pas. Pas sauvegarde. */
 V250_CASH_STOP <- true;
+/* V259 : renouvellement des ponts plus rapides (task_v259.nut). */
+V259_BRIDGE_RENEW <- 0;
 V172_RAIL_LONG_WEIGHT_DIST <- 100;
 /* Cascade pax par distance decroissante : air seul, air+rail, rail seul,
  * route seule. Le fret accompagne la premiere passe. */
