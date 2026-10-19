@@ -171,13 +171,13 @@ class TestRealRepoIntegration(unittest.TestCase):
         api = rso.load_api_inventory()
         api_stats = rso.analyze_api_usage(files, api)
         self.assertEqual(api_stats["total_api"], 1167)
-        self.assertEqual(api_stats["used_count"], 488)
-        self.assertAlmostEqual(api_stats["coverage_pct"], 41.82, places=2)
-        self.assertEqual(api_stats["total_calls"], 6439)
+        self.assertEqual(api_stats["used_count"], 466)
+        self.assertAlmostEqual(api_stats["coverage_pct"], 39.93, places=2)
+        self.assertEqual(api_stats["total_calls"], 5682)
 
         # Top 5 des classes
         top_names = [r["class"] for r in api_stats["top_20"][:5]]
-        self.assertEqual(top_names, ["AIMap", "AIDate", "AIVehicle", "AIList", "AITile"])
+        self.assertEqual(top_names, ["AIMap", "AIDate", "AIVehicle", "AITile", "AIRail"])
 
     def test_generated_file_matches_pipeline(self):
         """Vérifie que python3 sweeps/repo_stats_opexai.py régénère exactement docs/repo_stats_opexai.md."""
@@ -187,6 +187,36 @@ class TestRealRepoIntegration(unittest.TestCase):
 
             existing_doc = rso.DEFAULT_OUT_FILE.read_text(encoding="utf-8")
             self.assertEqual(generated_text, existing_doc)
+
+
+class TestInstanceMethodAttribution(unittest.TestCase):
+    """Un appel .Nom( n'est credite qu'aux classes referencees, une seule fois."""
+
+    def stats(self, code):
+        api = [("class", "AIList", ""), ("method", "AIList", "Count"),
+               ("class", "AIEventFoo", ""), ("method", "AIEventFoo", "GetVehicleID"),
+               ("class", "AIEventBar", ""), ("method", "AIEventBar", "GetVehicleID"),
+               ("static", "AIStation", "GetStationID"), ("method", "AIEventBar", "GetStationID")]
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "main.nut"
+            path.write_text(code, encoding="utf-8")
+            return rso.analyze_api_usage([path], api)
+
+    def test_unreferenced_class_gets_nothing(self):
+        stats = self.stats("local l = AIList(); l.Count(); e.GetVehicleID();")
+        calls = {r["class"]: r["calls"] for r in stats["top_20"]}
+        self.assertEqual(calls.get("AIList"), 2)  # constructeur + Count
+        self.assertFalse(calls.get("AIEventFoo") or calls.get("AIEventBar"))
+
+    def test_shared_name_counted_once_as_ambiguous(self):
+        stats = self.stats("AIEventFoo.Convert(e); AIEventBar.Convert(e); e.GetVehicleID();")
+        calls = {r["class"]: r["calls"] for r in stats["top_20"]}
+        self.assertEqual(calls.get(rso.AMBIGUOUS_OWNER), 1)
+
+    def test_static_receiver_is_not_an_instance_call(self):
+        stats = self.stats("AIEventBar.Convert(e); AIStation.GetStationID(t);")
+        self.assertEqual(stats["by_kind"]["method"]["calls"], 0)
+        self.assertEqual(stats["by_kind"]["static"]["calls"], 1)
 
 
 if __name__ == "__main__":

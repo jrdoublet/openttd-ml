@@ -17,43 +17,43 @@ Périmètre : fichiers suivis sous `ai/OpexAI/` (répertoires de tests exclus s'
 - **Source officielle de l'API 15** :
   - Liaisons Squirrel générées d'OpenTTD 15.3 (`SquirrelExport.cmake`, APIUC=AI, `ai_*.sq.hpp` et `ai_controller.sq.hpp`), répertoriées dans `docs/noai_api_15.3.tsv` (1 167 éléments).
   - En-têtes C++ officiels `src/script/api/script_*.hpp` du tag `15.0` / `15.3` (https://github.com/OpenTTD/OpenTTD/tree/15.3) archivés dans `results/api15/`.
-- **Éléments d'API utilisés** : **488 / 1 167** (41.82 %)
-- **Nombre total d'appels / références d'API** : **6 439**
+- **Éléments d'API utilisés** : **466 / 1 167** (39.93 %)
+- **Nombre total d'appels / références d'API** : **5 682**
 
 ### Ventilation par catégorie d'API
 
 | Catégorie | Utilisés | Total API | Couverture (%) | Appels | Part des appels (%) |
 |---|---:|---:|---:|---:|---:|
-| Méthodes statiques | 274 | 528 | 51.89 % | 4 387 | 68.13 % |
-| Méthodes d'instance | 55 | 91 | 60.44 % | 1 096 | 17.02 % |
-| Constantes & Enums | 133 | 434 | 30.65 % | 769 | 11.94 % |
-| Classes (constructeurs/refs) | 26 | 114 | 22.81 % | 187 | 2.90 % |
-| **Total** | **488** | **1 167** | **41.82 %** | **6 439** | **100.00 %** |
+| Méthodes statiques | 274 | 528 | 51.89 % | 4 387 | 77.21 % |
+| Méthodes d'instance | 33 | 91 | 36.26 % | 339 | 5.97 % |
+| Constantes & Enums | 133 | 434 | 30.65 % | 769 | 13.53 % |
+| Classes (constructeurs/refs) | 26 | 114 | 22.81 % | 187 | 3.29 % |
+| **Total** | **466** | **1 167** | **39.93 %** | **5 682** | **100.00 %** |
 
 ### 20 classes NoAI les plus utilisées
 
 | Rang | Classe | Appels | Part des appels (%) | Éléments utilisés | Couverture classe (%) |
 |---:|---|---:|---:|---:|---:|
-| 1 | `AIMap` | 896 | 13.92 % | 7 / 13 | 53.8 % |
-| 2 | `AIDate` | 544 | 8.45 % | 7 / 8 | 87.5 % |
-| 3 | `AIVehicle` | 481 | 7.47 % | 36 / 74 | 48.6 % |
-| 4 | `AIList` | 411 | 6.38 % | 18 / 37 | 48.6 % |
-| 5 | `AITile` | 387 | 6.01 % | 39 / 90 | 43.3 % |
-| 6 | `AIRail` | 348 | 5.40 % | 36 / 63 | 57.1 % |
-| 7 | `AIStation` | 340 | 5.28 % | 17 / 33 | 51.5 % |
-| 8 | `AICompany` | 293 | 4.55 % | 22 / 83 | 26.5 % |
-| 9 | `AIController` | 272 | 4.22 % | 7 / 10 | 70.0 % |
-| 10 | `AIAirport` | 197 | 3.06 % | 22 / 33 | 66.7 % |
-| 11 | `AITown` | 169 | 2.62 % | 22 / 58 | 37.9 % |
-| 12 | `AIEngine` | 163 | 2.53 % | 22 / 29 | 75.9 % |
-| 13 | `AIRoad` | 136 | 2.11 % | 24 / 54 | 44.4 % |
-| 14 | `AILog` | 132 | 2.05 % | 3 / 4 | 75.0 % |
-| 15 | `AIEventEnginePreview` | 126 | 1.96 % | 7 / 10 | 70.0 % |
-| 16 | `AIOrder` | 122 | 1.89 % | 22 / 84 | 26.2 % |
-| 17 | `AIError` | 111 | 1.72 % | 10 / 38 | 26.3 % |
-| 18 | `AICargo` | 102 | 1.58 % | 11 / 39 | 28.2 % |
-| 19 | `AIEventStationFirstVehicle` | 97 | 1.51 % | 3 / 4 | 75.0 % |
-| 20 | `AIEventDisasterZeppelinerCleared` | 91 | 1.41 % | 1 / 3 | 33.3 % |
+| 1 | `AIMap` | 896 | 15.77 % | 7 / 13 | 53.8 % |
+| 2 | `AIDate` | 544 | 9.57 % | 7 / 8 | 87.5 % |
+| 3 | `AIVehicle` | 481 | 8.47 % | 36 / 74 | 48.6 % |
+| 4 | `AITile` | 387 | 6.81 % | 39 / 90 | 43.3 % |
+| 5 | `AIRail` | 348 | 6.12 % | 36 / 63 | 57.1 % |
+| 6 | `AIStation` | 340 | 5.98 % | 17 / 33 | 51.5 % |
+| 7 | `AICompany` | 293 | 5.16 % | 22 / 83 | 26.5 % |
+| 8 | `AIController` | 272 | 4.79 % | 7 / 10 | 70.0 % |
+| 9 | `AIList` | 263 | 4.63 % | 15 / 37 | 40.5 % |
+| 10 | `AIAirport` | 197 | 3.47 % | 22 / 33 | 66.7 % |
+| 11 | `AITown` | 169 | 2.97 % | 22 / 58 | 37.9 % |
+| 12 | `AIEngine` | 163 | 2.87 % | 22 / 29 | 75.9 % |
+| 13 | `AIRoad` | 136 | 2.39 % | 24 / 54 | 44.4 % |
+| 14 | `AILog` | 132 | 2.32 % | 3 / 4 | 75.0 % |
+| 15 | `AIOrder` | 122 | 2.15 % | 22 / 84 | 26.2 % |
+| 16 | `AIError` | 111 | 1.95 % | 10 / 38 | 26.3 % |
+| 17 | `AICargo` | 102 | 1.80 % | 11 / 39 | 28.2 % |
+| 18 | `AIAccounting` | 89 | 1.57 % | 2 / 3 | 66.7 % |
+| 19 | `AIIndustry` | 76 | 1.34 % | 10 / 25 | 40.0 % |
+| 20 | `AIEvent` | 64 | 1.13 % | 19 / 37 | 51.4 % |
 
 ## 3. Méthodologie et limites de l'analyse
 

@@ -217,6 +217,9 @@ def strip_squirrel_code(text: str) -> str:
     return "\n".join(lines)
 
 
+AMBIGUOUS_OWNER = "(methodes d'instance a plusieurs classes possibles)"
+
+
 def analyze_api_usage(files: list[Path], api: list[tuple[str, str, str]]) -> dict:
     """Analyse l'utilisation de l'API NoAI par OpexAI.
 
@@ -231,7 +234,10 @@ def analyze_api_usage(files: list[Path], api: list[tuple[str, str, str]]) -> dic
 
     # Extraction rapide en une passe
     dot_counts = Counter(re.findall(r"\b(AI[A-Za-z0-9_]+)\.([A-Za-z0-9_]+)\b", clean_code))
-    method_counts = Counter(re.findall(r"\.([A-Za-z0-9_]+)\s*\(", clean_code))
+    api_classes = {cls for _, cls, _ in api}
+    # .Yyy( sur un objet : exclut AIXxx.Yyy( (deja compte en methode statique)
+    method_counts = Counter(name for recv, name in re.findall(r"([A-Za-z0-9_]*)\.([A-Za-z0-9_]+)\s*\(", clean_code)
+                            if recv not in api_classes)
     bare_counts = Counter(re.findall(r"\b([A-Za-z0-9_]+)\s*\(", clean_code))
     class_counts = Counter(re.findall(r"\b(AI[A-Za-z0-9_]+)\b(?!\.)", clean_code))
 
@@ -250,6 +256,17 @@ def analyze_api_usage(files: list[Path], api: list[tuple[str, str, str]]) -> dic
     by_class_used_items = defaultdict(set)
     by_class_total_items = defaultdict(set)
 
+    # Sans inference de type, un appel .Nom( n'est attribue qu'aux classes de l'API reellement
+    # referencees dans le code (AIList, AIEventVehicleCrashed.Convert...), jamais deux fois, et
+    # jamais quand OpexAI definit lui-meme une fonction de ce nom (homonyme local).
+    referenced = set(class_counts) | {c for c, _ in dot_counts}
+    own_defined = set(re.findall(r"\bfunction\s+(?:[A-Za-z0-9_]+::)?([A-Za-z0-9_]+)\s*\(", clean_code))
+    owners = defaultdict(set)
+    for kind, cls, name in api:
+        if kind == "method" and cls in referenced:
+            owners[name].add(cls)
+    counted_methods = set()
+
     for kind, cls, name in api:
         by_class_total_items[cls].add((kind, name))
         if kind in by_kind:
@@ -258,7 +275,8 @@ def analyze_api_usage(files: list[Path], api: list[tuple[str, str, str]]) -> dic
         if kind == "class":
             n = class_counts.get(cls, 0)
         elif kind == "method":
-            n = method_counts.get(name, 0)
+            n = (method_counts.get(name, 0)
+                 if cls in referenced and name not in own_defined else 0)
         elif cls == "AIController" and kind == "static":
             n = bare_counts.get(name, 0)
         else:
@@ -266,15 +284,23 @@ def analyze_api_usage(files: list[Path], api: list[tuple[str, str, str]]) -> dic
 
         if n > 0:
             used_elements.add((kind, cls, name))
-            total_calls += n
-            by_class_calls[cls] += n
             by_class_used_items[cls].add((kind, name))
             if kind in by_kind:
                 by_kind[kind]["used"] += 1
+            if kind == "method":
+                if name in counted_methods:
+                    continue  # meme appel deja compte pour une autre classe referencee
+                counted_methods.add(name)
+                owner = cls if len(owners[name]) == 1 else AMBIGUOUS_OWNER
+            else:
+                owner = cls
+            total_calls += n
+            by_class_calls[owner] += n
+            if kind in by_kind:
                 by_kind[kind]["calls"] += n
 
     # Top 20 classes ordonnées par appels décroissants, puis part utilisée décroissante, puis nom
-    all_classes = sorted(by_class_total_items.keys())
+    all_classes = sorted(set(by_class_total_items) | ({AMBIGUOUS_OWNER} & set(by_class_calls)))
     class_records = []
     for cls in all_classes:
         calls = by_class_calls[cls]
