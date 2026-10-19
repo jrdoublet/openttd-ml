@@ -757,6 +757,14 @@ function OpexAI::Save()
 }
 function OpexAI::Load(version, data)
 {
+  V276_CATALOG_TASK = null;
+  if (this._taskQueue != null) foreach (task in this._taskQueue) {
+    if ("v276" in task) delete task.v276;
+    if ("v276Request" in task) delete task.v276Request;
+    if ("v276Rail" in task) delete task.v276Rail;
+    if ("v276Road" in task) delete task.v276Road;
+    if ("v276Batches" in task) delete task.v276Batches;
+  }
   this._v233Plans = null;
   this._v233Offers = null;
   this._v233Generation = null;

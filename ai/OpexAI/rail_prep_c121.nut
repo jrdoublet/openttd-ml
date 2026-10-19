@@ -182,6 +182,12 @@ function OpexAI::_c121RailPrepMaybeCatalog()
   local stamp = AIDate.GetYear(date) * 12 + AIDate.GetMonth(date);
   if (this._c121RailPrepMonth == stamp && this._c121RailPrepCandidates != null) return;
   local mark = OpexOpsMeasureBegin();
+  if (V276_CAND_SLICES) {
+    local published = OpexV276Published(this._catalog);
+    this._c121RailPrepCandidates = published.best;
+    /* Ne pas estampiller le mois : une unite peut publier dans le meme mois. */
+    return;
+  }
   local built = OpexBuildCandidates(this._catalog, this._budget, this._lines,
       this._abandonedPairs, null, null, null, null, null, true, true, PAX_BAND_ALL, null);
   local ranked = null;

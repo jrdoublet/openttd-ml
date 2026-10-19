@@ -438,6 +438,10 @@ function OpexLoadSettings()
   local railRefill = AIController.GetSetting("v217_rail_refill");
   V217_RAIL_REFILL = (railRefill != null && railRefill >= 0 && railRefill <= 2) ? railRefill : 0;
   V217_LAST_MONTH = -1;
+  V276_CAND_SLICES = AIController.GetSetting("v276_cand_slices") != 0;
+  V276_CATALOG_TASK = null;
+  V276_CARGO_YEAR = -1;
+  V276_CARGO_ORDER = null;
   AIR0310_SITE_VALIDITY_STATE = null;
   RAIL_DEPOT_COST = AIController.GetSetting("rail_depot_cost") != 0;
   V131_RAIL_REPAIR = AIController.GetSetting("v131_rail_repair") != 0;

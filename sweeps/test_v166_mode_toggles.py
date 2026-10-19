@@ -93,13 +93,18 @@ class Gates(unittest.TestCase):
         gate = body.index("if (!MODE_RAIL) {")
         self.assertLess(gate, body.index("if (generatePax) {"))
         self.assertRegex(body[gate:gate + 120], r"generatePax = false;\s*generateFreight = false;")
-        # aucun autre appelant des generateurs rail que OpexBuildCandidates
+        # V276 ajoute un evaluateur de micro-catalogue, explicitement garde par mode.
         for name in ("OpexPaxCandidates", "OpexFreightCandidates"):
             for path in AI.glob("*.nut"):
                 src = path.read_text(encoding="utf-8")
                 calls = len(re.findall(r"(?<!function )\b" + name + r"\(", src))
                 if path.name == "candidates.nut":
                     self.assertEqual(calls, 1, name)
+                elif path.name == "candidates_v276.nut":
+                    self.assertEqual(calls, 1, name)
+                    sliced = _function_body(src, "OpexV276Evaluate")
+                    self.assertLess(sliced.index('if (u.mode == "rail" && !MODE_RAIL) return out;'),
+                                    sliced.index(name + "("))
                 else:
                     self.assertEqual(calls, 0, (path.name, name))
 
