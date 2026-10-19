@@ -107,6 +107,7 @@ reste diagnostique ; il ne constitue pas la porte A V102 du lanceur hôte.
 - **value_guard** : perte maximale de valeur acceptée, défaut **5 %**.
 - **line_telemetry** : uniquement duel/paired ; ajoute la télémétrie annuelle
   par ligne, avec davantage de données et de temps de traitement.
+- **start_year** et **map_size** : année de départ (défaut `"1970"`, bornes 1920-2050) et exposant de carte (défaut `"8"` = 256², `"9"` = 512², `"10"` = 1024²), réservés aux duels.
 
 Exemple de syntaxe, **pas recommandation d'adoption** : mode `paired`, profil
 `smoke`, référence `OpexAI`, variante `OpexAI[c80_worker_rail=1]` si ce réglage
@@ -180,8 +181,9 @@ Il ne publie pas le code implicitement et ne déclenche rien pour une édition d
 
 Avec GitHub CLI authentifié, les opérations à utiliser sont `gh auth status`,
 `gh workflow run bench.yml --repo <owner/repo> --ref <branche>` avec tous les inputs
-du plan via `--json` (ou arguments `-f` séparés), puis identification du run par
-workflow/branche/SHA/heure/acteur et vérification de `request.json`. En cas d'ambiguïté,
+du plan via `--json` (ou arguments `-f` séparés, ex.
+`gh workflow run bench.yml -f mode=paired -f profile=custom -f years=3 -f seeds="42 7" -f start_year=1950 -f map_size=8 -f reference=OpexAI -f variant="OpexAI[c80_worker_rail=1]"`),
+puis identification du run par workflow/branche/SHA/heure/acteur et vérification de `request.json`. En cas d'ambiguïté,
 ne pas choisir arbitrairement le run le plus récent et ne pas relancer en double.
 Suivre l'ID exact avec `gh run watch <run-id> --repo <owner/repo> --exit-status`,
 puis récupérer les artefacts avec `gh run download <run-id> --repo <owner/repo> --dir <dossier-neuf>`.
