@@ -597,7 +597,7 @@ function OpexV257Reconcile(owner)
     local vehicles = AIVehicleList();
     for (local vehicle = vehicles.Begin(); !vehicles.IsEnd(); vehicle = vehicles.Next()) {
       if (AIVehicle.GetLocation(vehicle) == pending.depot && AIVehicle.IsStoppedInDepot(vehicle)
-          && pending.before.find(vehicle) == null) OpexV257Discard(owner, vehicle);
+          && !OpexWaterContains(pending.before, vehicle)) OpexV257Discard(owner, vehicle); /* pas de array.find en Squirrel d'OpenTTD */
     }
   }
   if (adopted || !V257_RAIL_REFRESH || !SAVE_FULL_STATE || line == null || pending.phase != "depot") {

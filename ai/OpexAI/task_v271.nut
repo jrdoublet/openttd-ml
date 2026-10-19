@@ -128,7 +128,7 @@ function OpexV271FindNewVehicle(state, depot)
 {
   local vehicles = AIVehicleList();
   for (local vehicle = vehicles.Begin(); !vehicles.IsEnd(); vehicle = vehicles.Next()) {
-    if (vehicle == state.vehicle || AIVehicle.GetLocation(vehicle) != depot || state.before.find(vehicle) != null) continue;
+    if (vehicle == state.vehicle || AIVehicle.GetLocation(vehicle) != depot || OpexWaterContains(state.before, vehicle)) continue;
     return vehicle;
   }
   return -1;
@@ -161,7 +161,8 @@ function OpexAI::_v271Continue()
     if (line == null) { OpexV271Log(state, "fail", "committed_line_lost"); this._v271Pending = null; return; }
     /* Une fois un train lance, ne JAMAIS retirer l'infrastructure sous lui.
      * Rejouer le commit apres Load est sans effet sur les trains deja partis. */
-    if (line.vehicles.find(state.newVehicle) == null) line.vehicles.append(state.newVehicle);
+    /* Squirrel d'OpenTTD : pas de array.find (plantage du smoke du 19/10). */
+    if (!OpexWaterContains(line.vehicles, state.newVehicle)) line.vehicles.append(state.newVehicle);
     line.trains = line.vehicles.len();
     line.vehCount <- line.trains;
     line.lastLiveVehicles <- line.trains;
