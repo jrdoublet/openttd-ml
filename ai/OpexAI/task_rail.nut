@@ -783,6 +783,7 @@ function OpexAI::_v285StartWagonExpansion(year)
   if (!OpexV285Active() || !(V285_RAIL_PAX_GROWTH & 2)) return false;
   if (this._v257Pending != null) return false;
   local best = null;
+  local currentDate = (V285_RAIL_PAX_GROWTH & 4) ? AIDate.GetCurrentDate() : null;
   foreach (line in this._lines) {
     if ((("mode" in line) && line.mode != "rail") || !("wagons" in line) || !("platformLength" in line) ||
         !("loco" in line) || !("kind" in line) || !("depot" in line) || !("effectiveSpeed" in line)) continue;
@@ -791,7 +792,11 @@ function OpexAI::_v285StartWagonExpansion(year)
     if (("scrapping" in line) && line.scrapping) continue;
     if (("expandBlocked" in line) && line.expandBlocked) continue;
     if (("expandRetryCycle" in line) && line.expandRetryCycle > this._taskCycle) continue;
-    if (("v285Year" in line) && line.v285Year == year) continue;
+    if (V285_RAIL_PAX_GROWTH & 4) {
+      if (("v285LastDate" in line) && currentDate - line.v285LastDate < 90) continue;
+    } else {
+      if (("v285Year" in line) && line.v285Year == year) continue;
+    }
     if (!("lastProfit" in line) || line.lastProfit <= 0) continue;
     if (!(line.cargo in this._catalog.wagonByCargo)) continue;
     if (line.depot == null || !AIRail.IsRailDepotTile(line.depot)) continue;
@@ -818,7 +823,11 @@ function OpexAI::_v285StartWagonExpansion(year)
   if (best == null) return false;
   local line = best.line;
   if (AICompany.GetBankBalance(AICompany.COMPANY_SELF) < best.wagon.price + OpexCashReserve()) return false;
-  line.v285Year <- year;
+  if (V285_RAIL_PAX_GROWTH & 4) {
+    line.v285LastDate <- currentDate;
+  } else {
+    line.v285Year <- year;
+  }
   local newWagons = line.wagons + 1;
   local newSpeed = OpexRailEffectiveSpeed(line.loco, best.wagon, newWagons + OpexV163Wagons2(line), line.distance);
   if (newSpeed < 1 || newSpeed * 100 < 85 * line.effectiveSpeed) {

@@ -598,8 +598,8 @@ class OpexAIInfo extends AIInfo {
     });
     AddSetting({
       name = "v285_rail_pax_growth",
-      description = "V285: rail passenger consist and platform growth (bitmask): 1 = full platform length at build, 2 = add wagons when waiting exceeds train capacity, 3 = both; 0 = inert (default)",
-      min_value = 0, max_value = 3,
+      description = "V285: rail passenger consist and platform growth (bitmask): 1 = full platform length at build, 2 = add wagons when waiting exceeds train capacity, 4 = 90-day cooldown per line instead of annual guard (7 = all); 0 = inert (default)",
+      min_value = 0, max_value = 7,
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
       step_size = 1,

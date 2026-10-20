@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # V285 : croissance des rames voyageurs (quai 7 tuiles a la pose + wagon ajoute quand l'attente
-# depasse la rame), v285_rail_pax_growth=3 contre 0, sur les defauts du master (V275=15 inclus).
+# depasse la rame avec delai 90 jours), v285_rail_pax_growth=7 contre 0, sur les defauts du master (V275=15 inclus).
 # A lancer depuis la racine d'un checkout de la branche v285, sur le PC.
 #   GATE=A (defaut) : smoke 1 graine x 1 an, puis porte A gain_short 40 graines x 3 ans ;
 #   GATE=B          : porte B non_erosion 20 graines x 10 ans.
@@ -19,7 +19,7 @@ if [ "${RAILSEUL:-1}" = 1 ]; then
   TAG=railseul
 fi
 REF="OpexAI[v285_rail_pax_growth=0${MODES}]"
-VAR="OpexAI[v285_rail_pax_growth=3${MODES}]"
+VAR="OpexAI[v285_rail_pax_growth=7${MODES}]"
 
 SEEDS=(
   42 100 7 999 2026 1 17 373684 314 512 1024 1337 4096 8191 12345 54321 65537 123456 424242 8675309

@@ -24,19 +24,21 @@ class TestV285RailPaxGrowth(unittest.TestCase):
         start = self.info.index('name = "v285_rail_pax_growth"')
         block = self.info[start:self.info.index("});", start)]
         self.assertIn("min_value = 0", block)
-        self.assertIn("max_value = 3", block)
+        self.assertIn("max_value = 7", block)
         self.assertIn("easy_value = 0", block)
         self.assertIn("medium_value = 0", block)
         self.assertIn("hard_value = 0", block)
         self.assertIn("custom_value = 0", block)
         self.assertIn("flags = 0", block)
+        self.assertIn("4 = 90-day cooldown", block)
 
     def test_setting_loaded_in_settings(self):
         self.assertEqual(self.settings.count('GetSetting("v285_rail_pax_growth")'), 1)
-        self.assertIn("V285_RAIL_PAX_GROWTH = (paxGrowth != null && paxGrowth > 0 && paxGrowth <= 3) ? paxGrowth : 0;", self.settings)
+        self.assertIn("V285_RAIL_PAX_GROWTH = (paxGrowth != null && paxGrowth > 0 && paxGrowth <= 7) ? paxGrowth : 0;", self.settings)
 
     def test_globals_declared(self):
         self.assertIn("V285_RAIL_PAX_GROWTH <- 0;", self.globals)
+        self.assertIn("4 = delai de 90 jours", self.globals)
 
     def test_main_method_declared(self):
         self.assertIn("function _v285StartWagonExpansion(year);", self.main)
@@ -62,6 +64,16 @@ class TestV285RailPaxGrowth(unittest.TestCase):
         self.assertIn("waiting < trainPaxCapacity", body)
         self.assertIn("85 * line.effectiveSpeed", body)
         self.assertIn("this._continueRailExpansion()", body)
+
+    def test_task_rail_bit4_delay_contract(self):
+        start = self.task_rail.index("function OpexAI::_v285StartWagonExpansion(year)")
+        end = self.task_rail.index("\n/* Demarre une recherche A*", start)
+        body = self.task_rail[start:end]
+        self.assertIn("V285_RAIL_PAX_GROWTH & 4", body)
+        self.assertIn("currentDate - line.v285LastDate < 90", body)
+        self.assertIn("line.v285LastDate <- currentDate;", body)
+        self.assertIn("line.v285Year == year", body)
+        self.assertIn("line.v285Year <- year;", body)
 
 
 if __name__ == "__main__":
