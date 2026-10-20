@@ -683,8 +683,11 @@ function OpexSelectRejectLogTopK(dropped, best, limit)
   OpexDecide("SELECT_REJECT", "pair=" + pairStr + " type=" + typeStr + " reason=topk rank=" + limit + " score=" + score + " top=" + topScore);
 }
 
-function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSelection = true)
+function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSelection = true, v297Floor = -1)
 {
+  /* V297b : plancher effectif de cet appel ; -1 = plancher configure. */
+  if (v297Floor < 0) v297Floor = V297_RAIL_ROI_FLOOR;
+  local v297RawAlternatives = alternatives;
   SELECT_BISECT_STAMP++;
   local spSelect = PROBE_SPAN_TRACE ? OpexSpanBegin("select.full") : null;
   /* R1 : dimensionnement AVANT plancher, sondes et classement commun a tous
@@ -760,8 +763,8 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSel
      * ROI ne realisent que 39 % de leur profit predit (11 % du capital, sous les interets et l'entretien),
      * celles au-dessus de 80 % en realisent 115 a 155 %. Plancher ABSOLU, pas relatif : quand tout est
      * mediocre, on ne batit pas le moins mediocre. */
-    if (V297_RAIL_ROI_FLOOR > 0 && project.mode == "rail" && ("roi" in project)
-        && project.roi < V297_RAIL_ROI_FLOOR) {
+    if (v297Floor > 0 && project.mode == "rail" && ("roi" in project)
+        && project.roi < v297Floor) {
       v297Rejected++;
       if (project.roi > v297BestRejected) v297BestRejected = project.roi;
       continue;
@@ -809,7 +812,27 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSel
   }
   if (v297Rejected > 0 && DECISION_LOG && realSelection) {
     OpexDecide("V297_FLOOR", "rejected=" + v297Rejected + " best_roi=" + v297BestRejected
-               + " floor=" + V297_RAIL_ROI_FLOOR + " kept=" + affordable.len());
+               + " floor=" + v297Floor + " kept=" + affordable.len());
+  }
+  /* V297b (demande utilisateur du 21/10) : le plancher sert a ne pas immobiliser du capital dans une
+   * ligne mediocre quand mieux existe. Quand la selection ne garde plus aucun projet de ligne (seulement
+   * des renforts de flotte) et que le reseau rail est deja fourni, la meilleure ligne sous le plancher
+   * bat la tresorerie oisive : on refait la selection une fois avec le plancher divise par deux. */
+  if (V297_RELAX_STATIONS > 0 && v297Rejected > 0 && v297Floor == V297_RAIL_ROI_FLOOR) {
+    local v297HasLine = false;
+    foreach (p in affordable) {
+      if (p.mode != "fleet") { v297HasLine = true; break; }
+    }
+    if (!v297HasLine) {
+      local v297Stations = AIStationList(AIStation.STATION_TRAIN).Count();
+      if (v297Stations >= V297_RELAX_STATIONS) {
+        if (DECISION_LOG && realSelection)
+          OpexDecide("V297_RELAX", "stations=" + v297Stations + " floor=" + v297Floor
+                     + " relaxed=" + (v297Floor / 2) + " best_roi=" + v297BestRejected);
+        return OpexProjectSelectAffordable(v297RawAlternatives, capitalBudget, limit, realSelection,
+                                           v297Floor / 2);
+      }
+    }
   }
   /* Filet de securite : si le plancher a tout ecarte -- il ne le peut pas puisque le meilleur
    * projet l'atteint par construction, mais un profitAnnual nul ou negatif rendrait bestProfit nul

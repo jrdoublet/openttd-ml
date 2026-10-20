@@ -732,3 +732,5 @@ V279_LAST_STATS_MONTH <- -1;
 V295_ASTAR_FAST <- 0;
 /* V297 : plancher absolu de ROI annuel predit des nouvelles lignes rail, en pour mille du capital. */
 V297_RAIL_ROI_FLOOR <- 0;
+/* V297b : nombre de gares rail a partir duquel le plancher est divise par deux faute d'autre ligne ; 0 = jamais. */
+V297_RELAX_STATIONS <- 0;

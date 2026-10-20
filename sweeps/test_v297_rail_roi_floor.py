@@ -33,7 +33,7 @@ class TestV297RailRoiFloor(unittest.TestCase):
         self.assertIn("V297_RAIL_ROI_FLOOR <- 0;", self.globals_pre)
 
     def test_filter_guarded_and_placed(self):
-        guard = 'if (V297_RAIL_ROI_FLOOR > 0 && project.mode == "rail" && ("roi" in project)'
+        guard = 'if (v297Floor > 0 && project.mode == "rail" && ("roi" in project)'
         self.assertEqual(self.select.count(guard), 1)
         pos = self.select.index(guard)
         self.assertLess(self.select.index("if (project.profitAnnual < floorProfit)"), pos)
@@ -42,6 +42,27 @@ class TestV297RailRoiFloor(unittest.TestCase):
     def test_single_aggregated_log(self):
         self.assertEqual(self.select.count('OpexDecide("V297_FLOOR"'), 1)
         self.assertIn("if (v297Rejected > 0 && DECISION_LOG && realSelection)", self.select)
+
+
+    def test_v297b_relax(self):
+        """V297b : defaut 0, plancher effectif par appel, une seule relance au plancher divise par deux."""
+        block = re.search(r'AddSetting\(\{\s*name = "v297_relax_stations",(.*?)\}\);', self.info, re.S)
+        self.assertIsNotNone(block)
+        for level in ("easy", "medium", "hard", "custom"):
+            self.assertRegex(block.group(1), rf"{level}_value\s*=\s*0\b")
+        self.assertEqual(self.settings.count('GetSetting("v297_relax_stations")'), 1)
+        self.assertIn("V297_RELAX_STATIONS <- 0;", self.globals_pre)
+        self.assertIn("if (v297Floor < 0) v297Floor = V297_RAIL_ROI_FLOOR;", self.select)
+        # Relance unique : seulement depuis le plancher configure, jamais depuis le plancher reduit.
+        self.assertIn("if (V297_RELAX_STATIONS > 0 && v297Rejected > 0 && v297Floor == V297_RAIL_ROI_FLOOR)",
+                      self.select)
+        self.assertIn('if (p.mode != "fleet") { v297HasLine = true; break; }', self.select)
+        self.assertIn("AIStationList(AIStation.STATION_TRAIN).Count()", self.select)
+        self.assertEqual(self.select.count("return OpexProjectSelectAffordable(v297RawAlternatives"), 1)
+        self.assertIn("v297Floor / 2);", self.select)
+        # Les alternatives brutes (avant dimensionnement) sont gardees pour la relance.
+        self.assertLess(self.select.index("local v297RawAlternatives = alternatives;"),
+                        self.select.index("alternatives = fittedAlternatives;"))
 
 
 if __name__ == "__main__":

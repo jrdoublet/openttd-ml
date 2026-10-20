@@ -193,6 +193,8 @@ function OpexLoadSettings()
   V295_ASTAR_FAST = (v295Fast != null && v295Fast == 1) ? 1 : 0;
   local v297Floor = AIController.GetSetting("v297_rail_roi_floor");
   V297_RAIL_ROI_FLOOR = (v297Floor != null && v297Floor > 0) ? v297Floor : 0;
+  local v297Relax = AIController.GetSetting("v297_relax_stations");
+  V297_RELAX_STATIONS = (v297Relax != null && v297Relax > 0) ? v297Relax : 0;
 
   // V246 : paquets adoptes figes ; les interrupteurs de mode restent actifs.
   ROAD_BUILD_ENABLED = MODE_ROAD;

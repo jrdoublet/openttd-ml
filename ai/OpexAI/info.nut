@@ -744,6 +744,13 @@ class OpexAIInfo extends AIInfo {
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0, flags = 0, step_size = 50
     });
+    AddSetting({
+      name = "v297_relax_stations",
+      description = "V297b: once we own at least this many rail stations and no line project passes the V297 floor, halve the floor for that selection; 0 = never (default)",
+      min_value = 0, max_value = 100,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0, flags = 0, step_size = 2
+    });
   }
 }
 
