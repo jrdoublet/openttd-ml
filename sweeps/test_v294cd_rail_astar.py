@@ -145,5 +145,41 @@ class TestV294fRailReverseProbe(unittest.TestCase):
         self.assertIn("revTiles.reverse();", probe)
 
 
+class TestV294iRailDistDecouple(unittest.TestCase):
+    def test_setting_declared_default_zero(self):
+        info = read("info.nut")
+        match = re.search(r'AddSetting\(\{\s*name\s*=\s*"v294_rail_dist_decouple"(.*?)\}\);', info, re.S)
+        self.assertIsNotNone(match, "v294_rail_dist_decouple non déclaré dans info.nut")
+        block = match.group(1)
+        for level in ("easy", "medium", "hard", "custom"):
+            self.assertRegex(block, rf"{level}_value\s*=\s*0\b")
+        self.assertIn("min_value = 0", block)
+        self.assertIn("max_value = 500", block)
+
+    def test_global_declared_and_loaded_once(self):
+        globals_pre = read("globals_pre.nut")
+        self.assertIn("V294_RAIL_DIST_DECOUPLE <- 0;", globals_pre)
+        settings = read("settings.nut")
+        self.assertEqual(settings.count('GetSetting("v294_rail_dist_decouple")'), 1)
+        self.assertIn("V294_RAIL_DIST_DECOUPLE = distDecouple;", settings)
+
+    def test_decouple_logic_in_candidates(self):
+        cand = read("candidates.nut")
+        refresh = function_body(cand, "OpexRefreshEpochBounds")
+        self.assertIn("if (V294_RAIL_DIST_DECOUPLE > 0) railMax = V294_RAIL_DIST_DECOUPLE;", refresh)
+        bounds = function_body(cand, "OpexCatalogBounds")
+        self.assertIn("if (V294_RAIL_DIST_DECOUPLE > 0) railMax = V294_RAIL_DIST_DECOUPLE;", bounds)
+
+    def test_opex_dynamic_hard_cap_absent_and_cleanups(self):
+        for nut in ("builder_rail.nut", "task_rail.nut", "candidates.nut", "projects_builders.nut"):
+            self.assertNotIn("OpexDynamicHardCap", read(nut))
+        builder = read("projects_builders.nut")
+        self.assertNotIn("HARD_ITERATION_CAP (10 000)", builder)
+        self.assertIn("HARD_ITERATION_CAP (5 000)", builder)
+        rail = read("builder_rail.nut")
+        self.assertNotIn("15k", rail)
+        self.assertNotIn("60k", rail)
+
+
 if __name__ == "__main__":
     unittest.main()

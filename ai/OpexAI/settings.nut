@@ -173,6 +173,10 @@ function OpexLoadSettings()
   if (revProbe != null && revProbe >= 0) {
     V294_RAIL_REVERSE_PROBE = revProbe;
   }
+  local distDecouple = AIController.GetSetting("v294_rail_dist_decouple");
+  if (distDecouple != null && distDecouple >= 0) {
+    V294_RAIL_DIST_DECOUPLE = distDecouple;
+  }
 
   // V246 : paquets adoptes figes ; les interrupteurs de mode restent actifs.
   ROAD_BUILD_ENABLED = MODE_ROAD;

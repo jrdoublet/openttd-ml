@@ -97,19 +97,6 @@ const ATTEMPT_FLOOR = 2000;
  * acceptable au prochain classement annuel. Le cas <=0 reste seulement un garde-fou defensif.
  */
 
-/* Plafond dur d'iterations A* dynamique :
- * 1. Faible au debut (15k) pour filtrer rapidement les lignes faciles sans bruler de temps.
- * 2. Augmente pendant le precalcul ou quand la tresorerie manque (60k) pour exploiter les opcodes dormants.
- * 3. Augmente avec la maturite du reseau (15k + 7.5k * nLines, jusqu'a 60k) quand les couloirs faciles sont epuises. */
-function OpexDynamicHardCap(linesCount, isPreplanOrLowCash)
-{
-
-  if (isPreplanOrLowCash) return HARD_ITERATION_CAP;
-  local cap = 5000 + linesCount * 1000;
-  if (cap > HARD_ITERATION_CAP) cap = HARD_ITERATION_CAP;
-  return cap;
-}
-
 function OpexIterationBudget(profitAnnual, alternativeRatio, hardCap = 10000)
 {
   /* Le chemin est retourne avec le budget pour l'instrumentation : Z = pas d'alternative,

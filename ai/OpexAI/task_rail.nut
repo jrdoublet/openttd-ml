@@ -288,8 +288,7 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
       /* G3§2 : pour le chemin reprenable sans railPlan, la recherche A* ne coute aucune
        * tresorerie et le cash peut arriver pendant les tranches. On ne saute que le chemin
        * non reprenable (construction immediate). _consumeRailSearch verifiera la caisse a
-       * la fin. Cela active aussi la branche isPreplanOrLowCash de OpexDynamicHardCap, qui
-       * remonte au plafond dur pour exploiter les opcodes dormants pendant l'attente. */
+       * la fin. */
       local willStartSearch = !(("railPlan" in candidate) && candidate.railPlan != null);
       if (lowCash && !willStartSearch) {
         if (RAIL_FAILURE_AUDIT) OpexRailFailureAudit("early", candidate, "insufficient_cash", 0, 0, 0, i);
@@ -302,7 +301,7 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
       OpexSign(anchor, "IP|" + yy + "|T|" + project.budgetScore + "|" + project.opcodeScore);
 
       local alternativeRatio = MIN_RATIO;
-      local hardCap = OpexDynamicHardCap(this._lines.len(), lowCash);
+      local hardCap = HARD_ITERATION_CAP;
       local posPacked = i * TOP_K + this._projects.best.len();
       if (!(("railPlan" in candidate) && candidate.railPlan != null)) {
         if (DECISION_LOG) {
@@ -1454,7 +1453,7 @@ function OpexAI::_startRailStockSearch(candidate, isRepair = false, repairReason
   }
 
   local alternativeRatio = MIN_RATIO;
-  local hardCap = OpexDynamicHardCap(this._lines.len(), false);
+  local hardCap = HARD_ITERATION_CAP;
   local posPacked = 0;
 
   local plan = OpexPrepareRailRoute(this._catalog, this._budget, candidate, alternativeRatio, hardCap);

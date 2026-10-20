@@ -304,7 +304,8 @@ class ForumBehaviours(unittest.TestCase):
 
     def test_3_4_astar_uses_current_cap_not_forum_constant(self):
         self.assertRegex(uncomment(source("globals_pre.nut")), r"HARD_ITERATION_CAP\s*<-\s*5000\s*;")
-        self.assertIn("HARD_ITERATION_CAP", body("builder_rail.nut", "OpexDynamicHardCap"))
+        self.assertNotIn("function OpexDynamicHardCap", source("builder_rail.nut"))
+        self.assertIn("local hardCap = HARD_ITERATION_CAP;", source("task_rail.nut"))
 
     def test_3_4_map_work_is_bounded_and_resumable(self):
         code = uncomment(source("terrain_map.nut"))

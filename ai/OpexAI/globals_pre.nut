@@ -126,6 +126,8 @@ V294_RAIL_WEIGHT_PCT <- 0;
 V294_RAIL_AAA_COSTS <- 0;
 /* V294f : sonde A* inverse avant recherche ferroviaire (défaut 0 = inerte). AAA : 300 iters. */
 V294_RAIL_REVERSE_PROBE <- 0;
+/* V294i : découplage distance railMax des candidats du plafond d'itérations (défaut 0 = inerte). */
+V294_RAIL_DIST_DECOUPLE <- 0;
 V172_RAIL_LONG_WEIGHT_DIST <- 100;
 /* Cascade pax par distance decroissante : air seul, air+rail, rail seul,
  * route seule. Le fret accompagne la premiere passe. */
