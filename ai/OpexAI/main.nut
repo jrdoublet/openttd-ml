@@ -251,6 +251,9 @@ class OpexAI extends AIController {
   _v289TownMonth = -1;
   _v289RailWhy = null;
   _v289RailStartDate = -1;
+  _v289OpsPerIter = 0;
+  _v289PhaseMonth = -1;
+  _v289AirPhase = false;
   /* V89 : débit de recherche A* rail opportuniste et instrumentation passive */
   _v89EstimatedSliceOps = 2000;
   _v89LastDay = -1;
@@ -439,7 +442,7 @@ class OpexAI extends AIController {
     this._c121RailPrepYieldLogged = false;
     this._c121RailPrepMinAirCap = -1;
     this._v289TownFundDate = {};
-    this._v289RailWhy = { year1 = 0, full = 0, gap = 0, low = 0, none = 0 };
+    this._v289RailWhy = { year1 = 0, air = 0, full = 0, gap = 0, low = 0, none = 0 };
     this._v289EstOps = { [1] = 2000, [2] = 2500, [4] = 1500 };
     this._c41RailSignalLines = {};
     this._c41RailJunctionLines = {};
@@ -614,6 +617,7 @@ class OpexAI extends AIController {
   function _v289RailPrepEligibleInFlight(candidate, curDate);
   function _v289PickRailCandidate(curDate);
   function _v289ExpireStock(curDate);
+  function _v289AirPhaseOpen();
   function _v289StepMap();
   function _v289StepTown();
   function _c76RecordRegen(kind, ops, days, year, reason = "unknown");

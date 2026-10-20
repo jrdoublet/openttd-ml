@@ -851,7 +851,7 @@ function OpexAI::_startRailSearch(candidate, alternativeRatio, hardCap, posPacke
   return { pending = true, plan = null };
 }
 /* Avance d'une tranche, ou consomme un plan/upgrade pret. Appele en TETE de _runNextTask. */
-function OpexAI::_continueRailSearch(deadlineOverride = -1)
+function OpexAI::_continueRailSearch(sliceItersOverride = -1)
 {
   if (this._railSearch == null) return;
   local state = this._railSearch;
@@ -868,16 +868,17 @@ function OpexAI::_continueRailSearch(deadlineOverride = -1)
      * laisse une large marge de securite contre un blocage dans la tranche sans jamais
      * imputer le temps des autres taches de la file (docs/cible.md §2.1). */
     deadlineTick = AIController.GetTick() + RAIL_SEARCH_SLICE / 3 + BUILD_TICK_MARGIN;
-    /* V289 : la tranche du reliquat s'arrete des que le tick avance. */
-    if (deadlineOverride >= 0) deadlineTick = deadlineOverride;
   }
+  /* V289 : une tranche plus courte, dimensionnee sur le reliquat du tick. L'echeance reste
+   * celle de securite : franchie, elle termine la recherche (DEAD), elle ne la suspend pas. */
+  local sliceIters = (sliceItersOverride > 0) ? sliceItersOverride : RAIL_SEARCH_SLICE;
   local slice;
   local spentBefore = state.spent;
   if (("segmented" in state) && state.segmented != null) {
-    slice = OpexAdvanceSegmentedSearch(state.segmented, RAIL_SEARCH_SLICE, deadlineTick);
+    slice = OpexAdvanceSegmentedSearch(state.segmented, sliceIters, deadlineTick);
   } else {
     slice = OpexAdvanceRailPathfinder(state.pathfinder, state.spent, state.iterationBudget,
-                                      deadlineTick, RAIL_SEARCH_SLICE);
+                                      deadlineTick, sliceIters);
   }
   /* spent est le CUMUL de toutes les tranches : c'est le denominateur du classement. */
   state.spent = slice.iterations;

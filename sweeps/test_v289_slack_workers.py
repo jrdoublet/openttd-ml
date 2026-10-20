@@ -47,7 +47,7 @@ class TestV289SlackWorkers(unittest.TestCase):
         self.assertIsNotNone(block, "v289_slack_workers doit être déclaré dans info.nut")
         body = block.group(1)
         self.assertIn("min_value = 0", body)
-        self.assertIn("max_value = 7", body)
+        self.assertIn("max_value = 15", body)
         self.assertIn("default_value = 0", body)
         self.assertIn("flags = 0", body)
         for level in ("easy_value", "medium_value", "hard_value", "custom_value"):
@@ -58,7 +58,7 @@ class TestV289SlackWorkers(unittest.TestCase):
                  for name, text in self.sources.items()]
         self.assertEqual(sum(count for _, count in reads), 1, "v289_slack_workers doit être lu une seule fois")
         self.assertIn('local v289Slack = AIController.GetSetting("v289_slack_workers");', self.settings)
-        self.assertIn("V289_SLACK_WORKERS = (v289Slack != null && v289Slack >= 0 && v289Slack <= 7) ? v289Slack : 0;", self.settings)
+        self.assertIn("V289_SLACK_WORKERS = (v289Slack != null && v289Slack >= 0 && v289Slack <= 15) ? v289Slack : 0;", self.settings)
 
     def test_globals_declared(self):
         self.assertIn("V289_SLACK_WORKERS <- 0;", self.globals_pre)
@@ -110,7 +110,7 @@ class TestV289SlackWorkers(unittest.TestCase):
         self.assertIn("this._railSearch = slot;", self.body_rail)
         self.assertEqual(self.body_rail.count("this._railSearch = savedSearch;"), 2)
         self.assertEqual(self.body_rail.count("this._activeWorker = savedWorker;"), 2)
-        self.assertIn("this._continueRailSearch(AIController.GetTick() + 1);", self.body_rail)
+        self.assertIn("this._continueRailSearch(iters);", self.body_rail)
         self.assertIn("while (AIController.GetTick() == tick0 && AIController.GetOpsTillSuspend() >= V289_SLACK_MIN)", self.task)
         self.assertNotIn("_advanceRailSearchSliceWithLedgers", self.body_rail)
         self.assertNotIn("_ensureSelection", self.task)

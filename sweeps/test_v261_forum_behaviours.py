@@ -275,7 +275,8 @@ class ForumBehaviours(unittest.TestCase):
             "AIRoad.IsRoadTile", "AIStation.GetNearestTown", "AITile.GetCargoProduction",
             "AITile.GetClosestTown", "AITile.GetMaxHeight", "AITile.GetMinHeight",
             "AITile.GetSlope", "AITile.IsBuildable", "AITile.IsCoastTile",
-            "AITile.IsStationTile", "AITile.IsWaterTile", "AIVehicle.GetRunningCost",
+            "AITile.IsStationTile", "AITile.IsWaterTile", "AITown.GetPopulation",
+            "AIVehicle.GetRunningCost",
         }
         api = set()
         for line in (ROOT / "docs/noai_api_15.3.tsv").read_text().splitlines():

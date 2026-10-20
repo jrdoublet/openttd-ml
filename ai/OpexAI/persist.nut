@@ -1055,7 +1055,10 @@ function OpexAI::_reconcileAfterLoad()
   this._v289RailSearch = null;
   this._v289TownMonth = -1;
   this._v289RailStartDate = -1;
-  this._v289RailWhy = { year1 = 0, full = 0, gap = 0, low = 0, none = 0 };
+  this._v289OpsPerIter = 0;
+  this._v289PhaseMonth = -1;
+  this._v289AirPhase = false;
+  this._v289RailWhy = { year1 = 0, air = 0, full = 0, gap = 0, low = 0, none = 0 };
 
   /* C77 : le travailleur regen_candidates retrouve son instance (non sauvegardee). */
   if (this._activeWorker != null && this._activeWorker.kind == "regen_candidates") {

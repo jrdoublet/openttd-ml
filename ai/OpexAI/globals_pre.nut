@@ -125,7 +125,11 @@ const V289_SLACK_MIN = 2500;
 /* V289 : un A* de reliquat ne demarre qu'avec ce reliquat (preparation des quais
  * comprise) ; trace en vol ou depose au stock perime apres ce delai. */
 const V289_RAIL_START_MIN = 6000;
-const V289_STOCK_TTL_DAYS = 180;
+/* Avec la reparation locale V131 a la pose, un trace perime coute 60-124 k opcodes a
+ * reparer contre ~1,5 M pour un A* complet (V131c, 09/10) : stock profond et long. */
+const V289_STOCK_TTL_DAYS = 365;
+const V289_STOCK_MAX = 6;
+const V289_SEARCH_TTL_DAYS = 180;
 const V289_RAIL_START_GAP_DAYS = 30;
 V172_RAIL_LONG_WEIGHT_DIST <- 100;
 /* Cascade pax par distance decroissante : air seul, air+rail, rail seul,

@@ -30,10 +30,11 @@ function OpexAI::_v289CheckMonthlyLog()
                  + " ops_map=" + this._v289OpsMap
                  + " ops_town=" + this._v289OpsTown
                  + " skipped_low=" + this._v289SkippedLow
-                 + " rail_year1=" + this._v289RailWhy.year1 + " rail_full=" + this._v289RailWhy.full
+                 + " rail_year1=" + this._v289RailWhy.year1 + " rail_air=" + this._v289RailWhy.air + " rail_full=" + this._v289RailWhy.full
                  + " rail_gap=" + this._v289RailWhy.gap + " rail_low=" + this._v289RailWhy.low + " rail_none=" + this._v289RailWhy.none
                  + " stock=" + (this._railReadyStock != null ? this._railReadyStock.len() : -1)
-                 + " rail_flight=" + (this._v289RailSearch != null ? 1 : 0));
+                 + " rail_flight=" + (this._v289RailSearch != null ? 1 : 0)
+                 + " ops_per_iter=" + this._v289OpsPerIter);
     }
     this._v289LastStatsMonth = curMonth;
     this._v289Calls = 0;
@@ -41,7 +42,7 @@ function OpexAI::_v289CheckMonthlyLog()
     this._v289OpsMap = 0;
     this._v289OpsTown = 0;
     this._v289SkippedLow = 0;
-    this._v289RailWhy = { year1 = 0, full = 0, gap = 0, low = 0, none = 0 };
+    this._v289RailWhy = { year1 = 0, air = 0, full = 0, gap = 0, low = 0, none = 0 };
   }
 }
 
@@ -83,6 +84,49 @@ function OpexAI::_v289PickRailCandidate(curDate)
   return null;
 }
 
+/* Bit 8 : phase d'expansion aerienne. Tant qu'une ville du premier quartile de
+ * population n'est ni desservie par une de nos lignes AIR ni notee par un concurrent,
+ * l'AIR a encore des villes a prendre : le rail attend. Recalcule une fois par mois.
+ * Sans AIR, la porte est ouverte. */
+function OpexAI::_v289AirPhaseOpen()
+{
+  if (!(V289_SLACK_WORKERS & 8) || !MODE_AIR) return false;
+  local today = AIDate.GetCurrentDate();
+  local stamp = AIDate.GetYear(today) * 12 + AIDate.GetMonth(today);
+  if (this._v289PhaseMonth == stamp) return this._v289AirPhase;
+  this._v289PhaseMonth = stamp;
+  local airTiles = {};
+  if (this._lines != null) {
+    foreach (line in this._lines) {
+      if (line == null || !("mode" in line) || line.mode != "air") continue;
+      airTiles.rawset(line.originA, true);
+      airTiles.rawset(line.originB, true);
+    }
+  }
+  local towns = AITownList();
+  towns.Valuate(AITown.GetPopulation);
+  towns.Sort(AIList.SORT_BY_VALUE, false);
+  local quartile = (towns.Count() + 3) / 4;
+  local seen = 0, free = 0;
+  foreach (town, pop in towns) {
+    if (seen >= quartile) break;
+    seen++;
+    if (AITown.GetLocation(town) in airTiles) continue;
+    local taken = false;
+    for (local c = AICompany.COMPANY_FIRST; c <= AICompany.COMPANY_LAST && !taken; c++) {
+      if (AICompany.ResolveCompanyID(c) == AICompany.COMPANY_INVALID) continue;
+      if (AICompany.IsMine(c)) continue;
+      if (AITown.GetRating(town, c) != AITown.TOWN_RATING_NONE) taken = true;
+    }
+    if (!taken) free++;
+  }
+  local phase = free > 0;
+  if (DECISION_LOG && phase != this._v289AirPhase)
+    OpexDecide("V289_PHASE", "air_phase=" + (phase ? 1 : 0) + " q1=" + quartile + " free=" + free);
+  this._v289AirPhase = phase;
+  return phase;
+}
+
 /* Les traces deposes par le reliquat vieillissent : passe V289_STOCK_TTL_DAYS,
  * la carte a change et la paire n'a pas ete retenue, on libere la place. */
 function OpexAI::_v289ExpireStock(curDate)
@@ -115,12 +159,13 @@ function OpexAI::_v289ExpireStock(curDate)
 function OpexAI::_v289StepRail()
 {
   if (!MODE_RAIL || C121_CATALOG_FIRST_YEAR_ACTIVE) { this._v289RailWhy.year1++; return false; }
+  if (this._v289RailSearch == null && this._v289AirPhaseOpen()) { this._v289RailWhy.air++; return false; }
   if (this._railReadyStock == null || this._catalog == null || this._lines == null) return false;
   local curDate = AIDate.GetCurrentDate();
   local slot = this._v289RailSearch;
   if (slot == null) {
     this._v289ExpireStock(curDate);
-    if (this._railReadyStock.len() >= C121_RAIL_PREP_MAX) { this._v289RailWhy.full++; return false; }
+    if (this._railReadyStock.len() >= V289_STOCK_MAX) { this._v289RailWhy.full++; return false; }
     /* Un demarrage (quais + plans) coute ~190 k opcodes mesures : il franchit le
      * tick. Un seul essai par V289_RAIL_START_GAP_DAYS, reussi ou non. */
     if (this._v289RailStartDate >= 0 && curDate - this._v289RailStartDate < V289_RAIL_START_GAP_DAYS) {
@@ -155,11 +200,28 @@ function OpexAI::_v289StepRail()
   local savedSearch = this._railSearch;
   local savedWorker = this._activeWorker;
   this._railSearch = slot;
-  if (curDate - slot.startDate > V289_STOCK_TTL_DAYS) {
+  if (curDate - slot.startDate > V289_SEARCH_TTL_DAYS) {
     if (DECISION_LOG) OpexDecide("V289_RAIL_TIMEOUT", "src=" + c.src + " dst=" + c.dst + " iters=" + slot.spent);
     this._handleRailStockSearchTimeout();
   } else {
-    if (slot.phase == "search") this._continueRailSearch(AIController.GetTick() + 1);
+    if (slot.phase == "search") {
+      /* Iterations que le reliquat paie au cout mesure d'une iteration, marge de 1 500. */
+      local left = AIController.GetOpsTillSuspend() - 1500;
+      local iters = (this._v289OpsPerIter > 0) ? left / this._v289OpsPerIter : 5;
+      if (iters < 1) iters = 1;
+      if (iters > RAIL_SEARCH_SLICE) iters = RAIL_SEARCH_SLICE;
+      local spentBefore = slot.spent;
+      local sliceMark = OpexOpsMeasureBegin();
+      this._continueRailSearch(iters);
+      local sliceOps = OpexOpsMeasureEnd(sliceMark);
+      local done = slot.spent - spentBefore;
+      if (done > 0) {
+        local perIter = sliceOps / done;
+        if (perIter < 20) perIter = 20;
+        /* Moyenne glissante : un segment neuf coute plus que les iterations suivantes. */
+        this._v289OpsPerIter = (this._v289OpsPerIter > 0) ? (this._v289OpsPerIter * 3 + perIter) / 4 : perIter;
+      }
+    }
     if (this._railSearch != null && this._railSearch.phase == "build") {
       local cand = this._railSearch.candidate;
       local pairKey = OpexProjectPairKey(cand.kind, cand.cargo, cand.src, cand.dst);

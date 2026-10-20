@@ -288,5 +288,10 @@
     "task_v259.nut",
     "bridges",
     "AIBridge.GetMaxSpeed"
+  ],
+  [
+    "task_v289.nut",
+    "towns",
+    "AITown.GetPopulation"
   ]
 ]
