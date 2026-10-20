@@ -171,6 +171,27 @@ class TestRailTrackFailureCapture(unittest.TestCase):
         quote = "  {\n    local quoteFailure = {};"
         self.assertEqual(current.count(quote), 1)
         current = current.replace(quote, "  if (RAIL_DEVIS) {\n    local quoteFailure = {};")
+        # V296c adds phaseOps tracking
+        current = current.replace(
+            "                   phaseOps = { plans = plan.phaseOps.plans, search = plan.phaseOps.search,\n                                stations = plan.phaseOps.stations, track = plan.phaseOps.track,\n                                trains = plan.phaseOps.trains },\n",
+            ""
+        )
+        current = current.replace(
+            "    local stnOps = budget.end(\"build_stations\");\n    result.opcodes += stnOps;\n    if (result.phaseOps.stations < 0) result.phaseOps.stations = 0;\n    result.phaseOps.stations += stnOps;\n    result.reason = \"STNFAIL\"; return result;",
+            "    result.opcodes += budget.end(\"build_stations\"); result.reason = \"STNFAIL\"; return result;"
+        )
+        current = current.replace(
+            "    local trkOps = budget.end(\"build_track\");\n    result.opcodes += trkOps;\n    if (result.phaseOps.track < 0) result.phaseOps.track = 0;\n    result.phaseOps.track += trkOps;\n    result.reason = \"TRKFAIL\"; return result;",
+            "    result.opcodes += budget.end(\"build_track\"); result.reason = \"TRKFAIL\"; return result;"
+        )
+        current = current.replace(
+            "  local trkOps = budget.end(\"build_track\");\n  result.opcodes += trkOps;\n  if (result.phaseOps.track < 0) result.phaseOps.track = 0;\n  result.phaseOps.track += trkOps;",
+            "  result.opcodes += budget.end(\"build_track\");"
+        )
+        current = current.replace(
+            "  local trnOps = budget.end(\"build_trains\");\n  result.opcodes += trnOps;\n  if (result.phaseOps.trains < 0) result.phaseOps.trains = 0;\n  result.phaseOps.trains += trnOps;",
+            "  result.opcodes += budget.end(\"build_trains\");"
+        )
         self.assertEqual(digest(without_v199_v163_plan(without_freight_memory(current))),
                          PRE_EXTRACTION_HASHES["OpexExecuteRailPlan"])
 
@@ -180,7 +201,8 @@ class TestRailTrackFailureCapture(unittest.TestCase):
         self.assertNotIn("OpexRailTrackFailureIsPersistentPathLead", self.source)
         self.assertLess(body.index('OpexDecide("RAIL_TRACK_FAIL", fields);'),
                         body.index("OpexRollback(tiles, planA, planB, null, null);"))
-        self.assertIn('result.opcodes += budget.end("build_track"); result.reason = "TRKFAIL"; return result;', body)
+        self.assertIn('result.reason = "TRKFAIL"; return result;', body)
+        self.assertIn('budget.end("build_track")', body)
 
 if __name__ == "__main__":
     unittest.main()
