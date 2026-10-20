@@ -105,7 +105,7 @@ class TestV289SlackWorkers(unittest.TestCase):
     def test_rail_worker_contract(self):
         self.assertTrue(self.body_rail)
         # L'annee AIR de C121 garde le creneau principal
-        self.assertIn("if (!MODE_RAIL || C121_CATALOG_FIRST_YEAR_ACTIVE) return false;", self.body_rail)
+        self.assertIn("if (!MODE_RAIL || C121_CATALOG_FIRST_YEAR_ACTIVE) { this._v289RailWhy.year1++; return false; }", self.body_rail)
         # Creneau dedie : _railSearch n'est echange que le temps de la tranche, puis restaure
         self.assertIn("this._railSearch = slot;", self.body_rail)
         self.assertEqual(self.body_rail.count("this._railSearch = savedSearch;"), 2)

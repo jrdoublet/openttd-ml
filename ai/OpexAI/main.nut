@@ -249,6 +249,7 @@ class OpexAI extends AIController {
   _v289EstOps = null;
   _v289RailSearch = null;
   _v289TownMonth = -1;
+  _v289RailWhy = null;
   /* V89 : débit de recherche A* rail opportuniste et instrumentation passive */
   _v89EstimatedSliceOps = 2000;
   _v89LastDay = -1;
@@ -437,6 +438,7 @@ class OpexAI extends AIController {
     this._c121RailPrepYieldLogged = false;
     this._c121RailPrepMinAirCap = -1;
     this._v289TownFundDate = {};
+    this._v289RailWhy = { year1 = 0, full = 0, low = 0, none = 0 };
     this._v289EstOps = { [1] = 2000, [2] = 2500, [4] = 1500 };
     this._c41RailSignalLines = {};
     this._c41RailJunctionLines = {};

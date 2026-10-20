@@ -29,7 +29,11 @@ function OpexAI::_v289CheckMonthlyLog()
                  + " ops_rail=" + this._v289OpsRail
                  + " ops_map=" + this._v289OpsMap
                  + " ops_town=" + this._v289OpsTown
-                 + " skipped_low=" + this._v289SkippedLow);
+                 + " skipped_low=" + this._v289SkippedLow
+                 + " rail_year1=" + this._v289RailWhy.year1 + " rail_full=" + this._v289RailWhy.full
+                 + " rail_low=" + this._v289RailWhy.low + " rail_none=" + this._v289RailWhy.none
+                 + " stock=" + (this._railReadyStock != null ? this._railReadyStock.len() : -1)
+                 + " rail_flight=" + (this._v289RailSearch != null ? 1 : 0));
     }
     this._v289LastStatsMonth = curMonth;
     this._v289Calls = 0;
@@ -37,6 +41,7 @@ function OpexAI::_v289CheckMonthlyLog()
     this._v289OpsMap = 0;
     this._v289OpsTown = 0;
     this._v289SkippedLow = 0;
+    this._v289RailWhy = { year1 = 0, full = 0, low = 0, none = 0 };
   }
 }
 
@@ -108,16 +113,16 @@ function OpexAI::_v289ExpireStock(curDate)
  * L'annee AIR de C121 garde le creneau principal pour sa propre preparation. */
 function OpexAI::_v289StepRail()
 {
-  if (!MODE_RAIL || C121_CATALOG_FIRST_YEAR_ACTIVE) return false;
+  if (!MODE_RAIL || C121_CATALOG_FIRST_YEAR_ACTIVE) { this._v289RailWhy.year1++; return false; }
   if (this._railReadyStock == null || this._catalog == null || this._lines == null) return false;
   local curDate = AIDate.GetCurrentDate();
   local slot = this._v289RailSearch;
   if (slot == null) {
     this._v289ExpireStock(curDate);
-    if (this._railReadyStock.len() >= C121_RAIL_PREP_MAX) return false;
-    if (AIController.GetOpsTillSuspend() < V289_RAIL_START_MIN) return false;
+    if (this._railReadyStock.len() >= C121_RAIL_PREP_MAX) { this._v289RailWhy.full++; return false; }
+    if (AIController.GetOpsTillSuspend() < V289_RAIL_START_MIN) { this._v289RailWhy.low++; return false; }
     local candidate = this._v289PickRailCandidate(curDate);
-    if (candidate == null) return false;
+    if (candidate == null) { this._v289RailWhy.none++; return false; }
     local savedSearch = this._railSearch;
     local savedWorker = this._activeWorker;
     this._railSearch = null;
@@ -140,6 +145,7 @@ function OpexAI::_v289StepRail()
   local savedWorker = this._activeWorker;
   this._railSearch = slot;
   if (curDate - slot.startDate > V289_STOCK_TTL_DAYS) {
+    if (DECISION_LOG) OpexDecide("V289_RAIL_TIMEOUT", "src=" + c.src + " dst=" + c.dst + " iters=" + slot.spent);
     this._handleRailStockSearchTimeout();
   } else {
     if (slot.phase == "search") this._continueRailSearch();
@@ -204,7 +210,10 @@ function OpexAI::_v289StepTown()
   if (this._v289TownMonth == stamp) return false;
   this._v289TownMonth = stamp;
   local loan = AICompany.GetLoanAmount();
-  if (loan > 0) return false;
+  if (loan > 0) {
+    if (DECISION_LOG) OpexDecide("V289_TOWN_SKIP", "reason=loan loan=" + loan);
+    return false;
+  }
 
   local curDate = AIDate.GetCurrentDate();
   if (this._v289TownFundDate == null) this._v289TownFundDate = {};
@@ -246,7 +255,10 @@ function OpexAI::_v289StepTown()
     }
   }
 
-  if (!found) return false;
+  if (!found) {
+    if (DECISION_LOG) OpexDecide("V289_TOWN_SKIP", "reason=no_town towns=" + byTown.len());
+    return false;
+  }
 
   local account = AIAccounting();
   {
@@ -258,7 +270,11 @@ function OpexAI::_v289StepTown()
 
   local cash = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
   local threshold = OpexCashReserve() + OpexV249MaxListedCapital(this._projects);
-  if (cash - cost < threshold) return false;
+  if (cash - cost < threshold) {
+    if (DECISION_LOG) OpexDecide("V289_TOWN_SKIP", "reason=cash cash=" + cash + " cost=" + cost
+                                 + " threshold=" + threshold);
+    return false;
+  }
 
   local executed = AITown.PerformTownAction(bestTown, AITown.TOWN_ACTION_FUND_BUILDINGS);
   if (executed) {
@@ -319,6 +335,8 @@ function OpexAI::_v289SlackWorkers()
       if (inFlight && ops > 0) {
         local nextEst = ops + 500;
         if (nextEst < 1500) nextEst = 1500;
+        /* Une tranche qui a franchi le tick ne doit pas geler le worker : borne. */
+        if (nextEst > V289_RAIL_START_MIN) nextEst = V289_RAIL_START_MIN;
         this._v289EstOps[1] = nextEst;
       }
     } else if (workerId == 2) {
