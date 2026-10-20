@@ -76,7 +76,7 @@ class GraftContracts(unittest.TestCase):
         self.assertLess(consumer.index('this._v233StorePlan'), consumer.index('this._consumeRailSearch'))
         attempt = body('task_rail.nut', 'function OpexAI::_tryBuildRailProject(')
         self.assertIn('searchBlocked && !c121PrepPlan && !v233Ready', attempt)
-        self.assertIn('!c121PrepPlan && !v233Ready && builtCount > 0', attempt)
+        self.assertIn('!c121PrepPlan && !v233Ready && !v294Ready && builtCount > 0', attempt)
         self.assertIn('if (start.pending) return { outcome = "pending"', attempt)
         self.assertNotIn('if (v233Graft) return { outcome = "pending"', attempt)
         self.assertIn('this._revalidateRailStockPlan(candidate, candidate.railPlan)', attempt)

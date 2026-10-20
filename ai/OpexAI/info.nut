@@ -340,6 +340,14 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "v294_rail_defer",
+      description = "V294h: 0 = off; N = rail A* first tries N iterations in the search slot, then an aborted search continues in the background on leftover tick opcodes (20000 iterations, 365 days) and its path is reused when the pair is selected again",
+      min_value = 0, max_value = 5000,
+      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
+      step_size = 100, flags = 0
+    });
+
+    AddSetting({
       name = "v216_probe",
       description = "V216: passive estimator probe (SCORE_DECOMP, TOWN_FLOW, generation rejects) until end of year 3. 0 = inert",
       min_value = 0, max_value = 1,

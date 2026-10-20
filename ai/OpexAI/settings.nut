@@ -111,6 +111,8 @@ function OpexLoadSettings()
   local lateRelax = AIController.GetSetting("v269_rail_late_relax");
   local railGrowth = AIController.GetSetting("v284_rail_growth");
   if (railGrowth != null && railGrowth >= 0 && railGrowth <= 10) V284_RAIL_GROWTH = railGrowth;
+  local railDefer = AIController.GetSetting("v294_rail_defer");
+  if (railDefer != null && railDefer >= 0 && railDefer <= 5000) V294H_RAIL_DEFER = railDefer;
   V269_RAIL_LATE_RELAX = (lateRelax != null && lateRelax > 0 && lateRelax <= 9) ? lateRelax : 0;
   local v182Years = AIController.GetSetting("v195_v182_years");
   V195_V182_YEARS = (v182Years != null && v182Years > 0 && v182Years <= 10) ? v182Years : 0;

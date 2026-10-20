@@ -26,6 +26,7 @@ V264_CONVERGENT_FREIGHT <- true;
 V269_RAIL_LATE_RELAX <- 5;
 V269_RAIL_MAX_DIST <- 250;
 V269_IDLE_CASH_MIN <- 1000000;
+V294H_RAIL_DEFER <- 0; // 0 : master ; N : trace rapide de N iterations, puis recherche de fond au reliquat (V294h).
 V284_RAIL_GROWTH <- 0; // 0 : master ; N : croissance fret apres N ans et 1 M£ disponible.
 V269_RELAXED <- false;
 V269_ON <- false;

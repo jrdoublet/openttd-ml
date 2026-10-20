@@ -1055,6 +1055,9 @@ function OpexAI::_reconcileAfterLoad()
   this._railReadyStock = {};
   /* C80 étape 2 : la table de retrait temporaire des paires est reconstructible. */
   this._railStockCooldown = {};
+  /* V294h : recherches differees et traces prets ne sont pas sauves. */
+  this._v294Deferred = [];
+  this._v294Ready = {};
   /* C121 : la liste de preparation et l'A* en cours ne sont pas sauves. On recalcule. */
   this._c121RailPrepCandidates = null;
   this._c121RailPrepMonth = -1;

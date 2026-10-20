@@ -181,6 +181,17 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
         }
         c121PrepPlan = true;
       }
+      local v294Ready = false;
+      if (V294H_RAIL_DEFER > 0 && !v233Graft && !c121PrepPlan) {
+        local v294 = OpexV294hBeforeSearch(this, candidate);
+        if (v294.blocked) {
+          if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL)
+            passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst,
+                                  reason = "v294_deferred", extra = "" });
+          return { outcome = "rejected", discards = passDiscards };
+        }
+        v294Ready = v294.attached;
+      }
       if (this._railSearch != null && !c121PrepPlan
           && (!("railPlan" in candidate) || candidate.railPlan == null)) {
         if (DECISION_LOG && ("originServed" in candidate) && candidate.originServed) {
@@ -194,7 +205,7 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
                          && this._railSearch.candidate.originServed ? 1 : 0));
         }
       }
-      if (!c121PrepPlan && !v233Ready && builtCount > 0 && ("railPlan" in candidate)) {
+      if (!c121PrepPlan && !v233Ready && !v294Ready && builtCount > 0 && ("railPlan" in candidate)) {
         /* Le trace A* memorise vise la carte de la generation. Le premier chantier peut avoir
          * occupe un quai, un depot ou une tuile du trace ; le jeter force OpexBuildLine a
          * replanifier sur la carte vivante. Inerte pour maxBatch=1, precedent mesure.
@@ -211,7 +222,7 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
        * deja depose a son railPlan : on le pose sans nouvel A*, meme si une autre
        * recherche occupe le slot. */
       local searchBlocked = (this._railSearch != null);
-      if (searchBlocked && !c121PrepPlan && !v233Ready) {
+      if (searchBlocked && !c121PrepPlan && !v233Ready && !v294Ready) {
         if (RAIL_FAILURE_AUDIT) OpexRailFailureAudit("early", candidate, "search_in_progress", 0, 0, 0, i);
         if (RAIL_FAILURE_AUDIT) OpexRailSearchBlockerAudit(candidate, this._railSearch, project, i);
         if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "search_in_progress", extra = "" });
@@ -324,6 +335,7 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
       local railPlanRef = ("railPlan" in candidate) ? candidate.railPlan : null;
       local result = OpexBuildLine(this._catalog, this._budget, candidate, alternativeRatio,
                                    OpexCashReserve(), hardCap);
+      if (v294Ready && result.reason != "CASH") OpexV294hConsumed(this, candidate, result);
       if (v233Graft && result.reason == "V233_REPRICE") {
         local entry = this._v233Plans[OpexV233PlanKey(candidate)];
         entry.phase = "platforms"; entry.cursor = 1;
@@ -787,7 +799,9 @@ function OpexAI::_startRailSearch(candidate, alternativeRatio, hardCap, posPacke
   local pathfinder = null;
   local segmented = null;
   {
-    segmented = OpexCreateSegmentedSearch(plan.plansA, plan.plansB, plan.iterationBudget, clearanceTiles, searchWeight, outwardSide, null);
+    /* V294h : le creneau ne tente que le trace rapide ; le reste se joue en fond. */
+    local searchBudget = (V294H_RAIL_DEFER > 0) ? OpexV294hQuickBudget(plan.iterationBudget) : plan.iterationBudget;
+    segmented = OpexCreateSegmentedSearch(plan.plansA, plan.plansB, searchBudget, clearanceTiles, searchWeight, outwardSide, null);
     if (segmented == null) {
       if (DECISION_LOG) {
 
@@ -994,6 +1008,9 @@ function OpexAI::_continueRailSearch()
                      + " ticks=" + searchTicks);
     }
     local plan = OpexCompleteRailRouteAfterSearch(this._catalog, state.candidate, state.plan, slice);
+    if (V294H_RAIL_DEFER > 0 && !(V233_GOODS_GRAFT && OpexV233IsGraft(state.candidate))) {
+      OpexV294hTryDefer(this, state, slice, plan);
+    }
     state.candidate.railPlan <- plan;
     state.pathfinder = null;
     state.phase = "build";
