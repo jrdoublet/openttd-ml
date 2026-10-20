@@ -3923,6 +3923,10 @@ function OpexBuildLine(catalog, budget, candidate, alternativeRatio, cashReserve
     plan = candidate.railPlan;
   } else {
     plan = OpexPlanRailRoute(catalog, budget, candidate, alternativeRatio, hardCap);
+    if (V259_BRIDGE_RENEW > 0) {
+      if (!("railPlan" in candidate)) candidate.railPlan <- plan;
+      else candidate.railPlan = plan;
+    }
   }
   if (!plan.ok) {
     return { ok = false, reason = plan.reason, iterations = plan.iterations, opcodes = plan.opcodes,

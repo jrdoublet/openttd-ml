@@ -334,6 +334,7 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
         if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "cash_at_build", extra = "" });
         return { outcome = "rejected", discards = passDiscards };
       }
+      if (railPlanRef == null && ("railPlan" in candidate)) railPlanRef = candidate.railPlan;
       if (("railPlan" in candidate)) candidate.railPlan = null;
 
       local recorded = this._recordRailAttempt(candidate, result, posPacked, year, railPlanRef);
@@ -1070,6 +1071,7 @@ function OpexAI::_consumeRailSearch(year)
     local cashError = ("error" in result) ? result.error : 0;
     return { outcome = "cash", reason = "cash_at_build", error = cashError };
   }
+  if (railPlanRef == null && ("railPlan" in candidate)) railPlanRef = candidate.railPlan;
   candidate.railPlan = null;
   local built = this._recordRailAttempt(candidate, result, state.posPacked, year, railPlanRef);
   local reason = ("reason" in result && result.reason != "") ? result.reason : "build_failed";
@@ -1209,26 +1211,31 @@ function OpexAI::_recordRailAttempt(candidate, result, posPacked, year, railPlan
     local lineBridges = [];
     if ("bridges" in result && result.bridges != null && result.bridges.len() > 0) {
       lineBridges = result.bridges;
-    } else if (V259_BRIDGE_RENEW > 0 && railPlan != null) {
+    } else if (V259_BRIDGE_RENEW > 0) {
+      local activePlan = (railPlan != null) ? railPlan : (("railPlan" in result) ? result.railPlan : null);
       local rType = AIRail.GetCurrentRailType();
-      if (("tiles" in railPlan) && railPlan.tiles != null) {
-        for (local i = 1; i < railPlan.tiles.len() - 1; i++) {
-          local c = railPlan.tiles[i];
-          local n = railPlan.tiles[i + 1];
+      local t1 = ("tiles" in result && result.tiles != null) ? result.tiles : (activePlan != null && ("tiles" in activePlan) ? activePlan.tiles : null);
+      local s1 = ("structures" in result && result.structures != null) ? result.structures : (activePlan != null && ("structures" in activePlan) ? activePlan.structures : null);
+      if (t1 != null) {
+        for (local i = 1; i < t1.len() - 1; i++) {
+          local c = t1[i];
+          local n = t1[i + 1];
           if (AIMap.DistanceManhattan(c, n) > 1) {
-            local kind = OpexPlannedStructureKind(("structures" in railPlan ? railPlan.structures : null), c, n);
+            local kind = OpexPlannedStructureKind(s1, c, n);
             if (kind != "tunnel" && (kind == "bridge" || AITunnel.GetOtherTunnelEnd(c) != n)) {
               lineBridges.append({ start = c, end = n, vtype = AIVehicle.VT_RAIL, railType = rType });
             }
           }
         }
       }
-      if (("doubleTrack" in result) && result.doubleTrack == 1 && ("tiles2" in railPlan) && railPlan.tiles2 != null) {
-        for (local i = 1; i < railPlan.tiles2.len() - 1; i++) {
-          local c = railPlan.tiles2[i];
-          local n = railPlan.tiles2[i + 1];
+      local t2 = ("tiles2" in result && result.tiles2 != null) ? result.tiles2 : (activePlan != null && ("tiles2" in activePlan) ? activePlan.tiles2 : null);
+      local s2 = ("structures2" in result && result.structures2 != null) ? result.structures2 : (activePlan != null && ("structures2" in activePlan) ? activePlan.structures2 : null);
+      if (("doubleTrack" in result) && result.doubleTrack == 1 && t2 != null) {
+        for (local i = 1; i < t2.len() - 1; i++) {
+          local c = t2[i];
+          local n = t2[i + 1];
           if (AIMap.DistanceManhattan(c, n) > 1) {
-            local kind = OpexPlannedStructureKind(("structures2" in railPlan ? railPlan.structures2 : null), c, n);
+            local kind = OpexPlannedStructureKind(s2, c, n);
             if (kind != "tunnel" && (kind == "bridge" || AITunnel.GetOtherTunnelEnd(c) != n)) {
               lineBridges.append({ start = c, end = n, vtype = AIVehicle.VT_RAIL, railType = rType });
             }
@@ -1381,6 +1388,24 @@ function OpexAI::_consumeRailUpgrade()
     line.vehicles.append(upgrade.train);
     line.trains = line.vehicles.len();
     line.vehCount <- line.vehicles.len();
+    if (V259_BRIDGE_RENEW > 0 && state.search != null) {
+      if (!("bridges" in line) || line.bridges == null) line.bridges <- [];
+      local rType = AIRail.GetCurrentRailType();
+      local t2 = OpexResolveSearchTiles(state.search);
+      local s2 = OpexResolveSearchStructures(state.search);
+      if (t2 != null) {
+        for (local i = 1; i < t2.len() - 1; i++) {
+          local c = t2[i];
+          local n = t2[i + 1];
+          if (AIMap.DistanceManhattan(c, n) > 1) {
+            local kind = OpexPlannedStructureKind(s2, c, n);
+            if (kind != "tunnel" && (kind == "bridge" || AITunnel.GetOtherTunnelEnd(c) != n)) {
+              line.bridges.append({ start = c, end = n, vtype = AIVehicle.VT_RAIL, railType = rType });
+            }
+          }
+        }
+      }
+    }
     if (C50_CHRONOLOGY_PROBE) {
       if (C50_NON_EXPANSION_LEDGER != null) C50_NON_EXPANSION_LEDGER.rail.double_built++;
       OpexC50ChronologyLog("phase=fleet_built mode=rail line=" + line.lineId + " added=1 total=" + line.trains + " cash_after=" + AICompany.GetBankBalance(AICompany.COMPANY_SELF));

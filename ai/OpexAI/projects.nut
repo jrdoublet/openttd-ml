@@ -371,7 +371,8 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
    * qu'aucun plan pax aerien n'a franchi ses filtres ; dans ce seul cas, ouvrir
    * le rail pax maintenant plutot que laisser un premier vivier 100 % fret. */
   if (generationStage == OPEX_STAGE_AIR_ONLY && airPlans.len() == 0) {
-    if (airOverride == null || !("complete" in airOverride) || !airOverride.complete) {
+    if ((airOverride == null || !("complete" in airOverride) || !airOverride.complete)
+        && ((catalog.airCombos != null && catalog.airCombos.len() > 0) || catalog.airport != null)) {
       budget.begin();
       airPlan = OpexAirPlans(catalog, lines, 0, airPlans, abandonedPairs, PAX_BAND_AIR_RAIL);
       airOps += budget.end("project_air_overlap_fallback");

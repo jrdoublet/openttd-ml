@@ -56,7 +56,8 @@ function OpexFreightCargoOrder(catalog)
     local hasSink = (cargo in catalog.acceptors)
         || (cargo in catalog.townAcceptors);
     if (!hasSink) continue;
-    local hasRail = catalog.wagonByCargo != null && (cargo in catalog.wagonByCargo);
+    local hasRail = catalog.wagonByCargo != null && (cargo in catalog.wagonByCargo)
+        && (catalog.locoByCargoWagons == null || (cargo in catalog.locoByCargoWagons));
     local hasRoad = catalog.roadEngineByCargo != null && (cargo in catalog.roadEngineByCargo);
     if (!hasRail && !hasRoad) continue;
     ranked.append({ cargo = cargo, price = AICargo.GetCargoIncome(cargo, 20, 0) });
@@ -960,6 +961,7 @@ function OpexPaxCandidates(catalog, lines, out, stats, abandonedPairs = null, pr
 {
   local cargo = catalog.paxCargo;
   if (cargo < 0) return;
+  if (catalog.locoByCargoWagons != null && !(cargo in catalog.locoByCargoWagons)) return;
   /* V275 bit 4 : l'aerien d'abord. Les premieres annees, la caisse borne et un avion rend
    * plus par livre ; le rail voyageurs attend la 3e annee. Inerte en rail seul. */
   if ((V275_RAIL_PAX_MM & 4) && MODE_AIR
@@ -1155,6 +1157,7 @@ function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null
   if (profile != null) profile.freightPreparationOps += OpexOpsMeasureEnd(preparationMark);
   foreach (cargo, sources in catalog.producers) {
     if (freightCargo != null && cargo != freightCargo) continue;
+    if (catalog.locoByCargoWagons != null && !(cargo in catalog.locoByCargoWagons)) continue;
     local hasIndustrySinks = (cargo in catalog.acceptors);
     local hasTownSinks = (cargo in catalog.townAcceptors);
     if (!hasIndustrySinks && !hasTownSinks) continue;
@@ -1806,7 +1809,7 @@ function OpexBuildRoadCandidates(catalog, budget, lines, abandonedPairs = null, 
     /* C43/E3 famille 2 : ROAD_MIN_DISTANCE/ROAD_MAX_DISTANCE mordent-elles ? */
     roadDistanceShort = 0, roadDistanceLong = 0,
   };
-  if (catalog.roadType < 0) return { all = 0, best = [], stats = stats, opcodes = 0 };
+  if (catalog.roadType < 0 || (catalog.roadEngineByCargo != null && catalog.roadEngineByCargo.len() == 0)) return { all = 0, best = [], stats = stats, opcodes = 0 };
 
   budget.begin();
   /* Les marques C41.17 internes ne doivent jamais etre imbriquees dans une mesure globale :
