@@ -1133,8 +1133,8 @@ function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null
   local preparationMark = profile != null ? OpexOpsMeasureBegin() : null;
   local industries = catalog.industries;
   /* V280 diagnostic seulement : identites exactes pour croiser les anciens journaux. */
-  if (DECISION_LOG && !("v280MapLogged" in catalog)) {
-    catalog.v280MapLogged <- true;
+  if (DECISION_LOG && !V280_DIAG_MAP_LOGGED) {
+    V280_DIAG_MAP_LOGGED = true;
     foreach (industry in industries) {
       OpexDecide("V280_INDUSTRY", "id=" + industry.id + " tile=" + industry.tile
           + " name=" + AIIndustry.GetName(industry.id));
