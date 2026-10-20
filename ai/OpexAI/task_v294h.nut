@@ -65,6 +65,7 @@ function OpexV294hTryDefer(owner, state, slice, plan)
     plan = clone plan,
     segmented = seg,
     quickIters = seg.iterations,
+    slices = 0,
     startDate = AIDate.GetCurrentDate(),
   });
   plan.reason = "DEFER";
@@ -92,6 +93,7 @@ function OpexV294hAdvance(owner)
     local deadlineTick = tick + RAIL_SEARCH_SLICE / 3 + BUILD_TICK_MARGIN;
     local slice = OpexAdvanceSegmentedSearch(entry.segmented, RAIL_SEARCH_SLICE, deadlineTick);
     slices++;
+    entry.slices++;
     if (slice.done) OpexV294hFinish(owner, entry, slice, slice.stop);
   }
   return slices;
@@ -118,7 +120,7 @@ function OpexV294hFinish(owner, entry, slice, stop)
   }
   OpexV294hLog(ok ? "found" : "fail", "src=" + candidate.src + " dst=" + candidate.dst
                + " manh=" + candidate.distance + " stop=" + stop + " quick_iters=" + entry.quickIters
-               + " iters=" + iters + " days=" + (now - entry.startDate));
+               + " iters=" + iters + " slices=" + entry.slices + " days=" + (now - entry.startDate));
   if (!ok) owner._markPairAbandoned(OpexAbandonedPairKey(candidate));
 }
 
