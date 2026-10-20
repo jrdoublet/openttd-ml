@@ -730,3 +730,7 @@ V279_LAST_STATS_MONTH <- -1;
 
 /* V295 : optimisations exactes A* rail V129 (filtre de Bloom ancetres et dedoublonnage buts). */
 V295_ASTAR_FAST <- 0;
+/* V296a : pose de voie groupee, une commande BuildRail par alignement droit ou diagonal. */
+V296_RAIL_BATCH_BUILD <- 0;
+/* V296a : vrai apres un trace groupe different du trace prevu ; la pose groupee s'arrete pour la partie. */
+V296A_MISMATCH <- false;
