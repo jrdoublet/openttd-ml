@@ -151,6 +151,14 @@ class TestV289SlackWorkers(unittest.TestCase):
         self.assertIn('"slack.map"', self.task)
         self.assertIn('"slack.town"', self.task)
 
+    def test_endpoint_reservation_guard(self):
+        body = _function_body(self.task, "function OpexAI::_v289EndpointTaken(candidate, ownPairKey)")
+        self.assertIn("this._railReadyStock", body)
+        self.assertIn("this._railSearch", body)
+        self.assertIn('candidate.kind != "pax" && r[2] != "pax"', body)
+        for sig in ("function OpexAI::_v289RailPrepEligible(candidate, curDate)", "function OpexAI::_v289RailPrepEligibleInFlight(candidate, curDate)"):
+            self.assertIn("this._v289EndpointTaken(candidate,", _function_body(self.task, sig))
+
     def test_persist_reconstruction(self):
         # Les structures transitoires sont réinitialisées au rechargement
         self.assertIn("this._v289TownFundDate = {};", self.persist)

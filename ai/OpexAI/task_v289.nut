@@ -46,6 +46,35 @@ function OpexAI::_v289CheckMonthlyLog()
   }
 }
 
+/* Vrai si une extremite du candidat est deja prise : ligne rail posee, recherche du
+ * creneau principal ou trace en stock. Seule exception, la destination fret partagee
+ * (V179 joint la gare). Sans cette garde, le reliquat stockait des paires qu'un chantier
+ * voisin rendait too_close_hard ou too_close_no_join a la pose (smoke v289f). */
+function OpexAI::_v289EndpointTaken(candidate, ownPairKey)
+{
+  local reserved = [];
+  foreach (line in this._lines) {
+    if (("mode" in line) && line.mode != "rail") continue;
+    reserved.append([line.originA, line.originB, ("kind" in line) ? line.kind : ""]);
+  }
+  local main = this._railSearch;
+  if (main != null && ("candidate" in main) && main.candidate != null && ("src" in main.candidate))
+    reserved.append([main.candidate.src, main.candidate.dst, ("kind" in main.candidate) ? main.candidate.kind : ""]);
+  foreach (key, entry in this._railReadyStock) {
+    if (key == ownPairKey || entry.candidate == null || !("src" in entry.candidate)) continue;
+    reserved.append([entry.candidate.src, entry.candidate.dst, ("kind" in entry.candidate) ? entry.candidate.kind : ""]);
+  }
+  foreach (r in reserved) {
+    if (AIMap.DistanceManhattan(candidate.src, r[0]) < ORIGIN_SEPARATION
+        || AIMap.DistanceManhattan(candidate.src, r[1]) < ORIGIN_SEPARATION) return true;
+    local shareDest = candidate.kind != "pax" && r[2] != "pax";
+    if (shareDest && AIMap.DistanceManhattan(candidate.dst, r[1]) < ORIGIN_SEPARATION) continue;
+    if (AIMap.DistanceManhattan(candidate.dst, r[0]) < ORIGIN_SEPARATION
+        || AIMap.DistanceManhattan(candidate.dst, r[1]) < ORIGIN_SEPARATION) return true;
+  }
+  return false;
+}
+
 /* Vrai si ce candidat peut recevoir un A* de reliquat : pas deja en stock ni en
  * recherche dans le creneau principal, pas de trace attache. */
 function OpexAI::_v289RailPrepEligible(candidate, curDate)
@@ -58,6 +87,7 @@ function OpexAI::_v289RailPrepEligible(candidate, curDate)
       && ("kind" in main.candidate) && ("cargo" in main.candidate)
       && OpexProjectPairKey(main.candidate.kind, main.candidate.cargo, main.candidate.src, main.candidate.dst)
          == OpexProjectPairKey(candidate.kind, candidate.cargo, candidate.src, candidate.dst)) return false;
+  if (this._v289EndpointTaken(candidate, null)) return false;
   return true;
 }
 
@@ -194,7 +224,7 @@ function OpexAI::_v289StepRail()
   local c = slot.candidate;
   if (!this._v289RailPrepEligibleInFlight(c, curDate)) {
     this._v289RailSearch = null;
-    if (DECISION_LOG) OpexDecide("V289_RAIL_DROP", "src=" + c.src + " dst=" + c.dst + " reason=taken");
+    if (DECISION_LOG) OpexDecide("V289_RAIL_DROP", "src=" + c.src + " dst=" + c.dst + " reason=taken_or_endpoint");
     return true;
   }
   local savedSearch = this._railSearch;
@@ -257,6 +287,7 @@ function OpexAI::_v289RailPrepEligibleInFlight(candidate, curDate)
       && OpexProjectPairKey(main.candidate.kind, main.candidate.cargo, main.candidate.src, main.candidate.dst) == pairKey)
     return false;
   if (this._abandonedPairs != null && (OpexAbandonedPairKey(candidate) in this._abandonedPairs)) return false;
+  if (this._v289EndpointTaken(candidate, pairKey)) return false;
   return true;
 }
 
