@@ -17,22 +17,22 @@ class OpexRailPathFinderV296 extends OpexRailPathFinderV129
 
     constructor(weight = null)
     {
-        base.constructor(weight);
+        OpexRailPathFinderV129.constructor.call(this, weight);
         this._pathfinder = { _open = null };
     }
 
-    function SetWeight(weight)
+    function _SetWeightV296(weight)
     {
         this._weight = (weight >= 100) ? weight : 100;
         this._estCache = {};
     }
 
-    function _Append(tile, direction, cost, parent)
+    function _Append(tile, direction, cost, parentId)
     {
         local id = this._tiles.len();
         this._tiles.append(tile); this._dirs.append(direction); this._costs.append(cost);
-        this._parents.append(parent);
-        this._blooms.append((parent < 0 ? 0 : this._blooms[parent]) | (1 << (tile % 61)));
+        this._parents.append(parentId);
+        this._blooms.append((parentId < 0 ? 0 : this._blooms[parentId]) | (1 << (tile % 61)));
         return id;
     }
 
@@ -84,7 +84,7 @@ class OpexRailPathFinderV296 extends OpexRailPathFinderV129
         return result;
     }
 
-    function InitializePath(sources, goals, ignored_tiles = [])
+    function _InitializePathV296(sources, goals, ignored_tiles = [])
     {
         if (sources.len() == 0 || goals.len() == 0) throw("empty sources/goals");
         this._tiles = []; this._dirs = []; this._costs = []; this._parents = []; this._blooms = [];
@@ -173,10 +173,17 @@ class OpexRailPathFinderV296 extends OpexRailPathFinderV129
         this._consumed = 1;
     }
 
-    function FindPath(iterations);
+    function _FindPathV296(iterations);
+
+    /* Points d'entree publics. Le controleur V296_CHECK appelle les implementations _...V296 comme des
+     * methodes ordinaires : un appel Classe.methode.call(...) passe par du code natif, ou le script
+     * ne peut pas se suspendre, et OpenTTD refuse alors toute commande, meme en mode test (21/10). */
+    function SetWeight(weight) { this._SetWeightV296(weight); }
+    function InitializePath(sources, goals, ignored_tiles = []) { this._InitializePathV296(sources, goals, ignored_tiles); }
+    function FindPath(iterations) { return this._FindPathV296(iterations); }
 };
 
-function OpexRailPathFinderV296::FindPath(iterations)
+function OpexRailPathFinderV296::_FindPathV296(iterations)
 {
     local test_mode = AITestMode();
     local open = this._pathfinder._open;
@@ -505,9 +512,9 @@ class OpexRailPathfinderCheckerV296 extends OpexRailPathFinderV296
             if (typeof(node) == "array") pairs.append(node);
             else {
                 imported = true;
-                local parent = node.GetParent();
-                if (parent == null) throw("rail source requires a predecessor");
-                pairs.append([node.GetTile(), parent.GetTile()]);
+                local srcParent = node.GetParent();
+                if (srcParent == null) throw("rail source requires a predecessor");
+                pairs.append([node.GetTile(), srcParent.GetTile()]);
             }
         }
         this._reference.InitializePath(pairs, goals, ignored_tiles);
@@ -532,12 +539,12 @@ class OpexRailPathfinderCheckerV296 extends OpexRailPathFinderV296
             }
             this._reference._pathfinder.InitializePath(seeds, goals, ignored_tiles);
         }
-        base.InitializePath(sources, goals, ignored_tiles);
+        this._InitializePathV296(sources, goals, ignored_tiles);
     }
 
     function SetWeight(weight)
     {
-        base.SetWeight(weight);
+        this._SetWeightV296(weight);
         if (this._reference != null) this._reference.SetWeight(weight);
     }
 
@@ -554,7 +561,7 @@ class OpexRailPathfinderCheckerV296 extends OpexRailPathFinderV296
     {
         local test_mode = AITestMode();
         local mark = OpexOpsMeasureBegin();
-        local result = base.FindPath(iterations);
+        local result = this._FindPathV296(iterations);
         this._ops296 += OpexOpsMeasureEnd(mark);
         this._iters296 += this.LastConsumed();
         this._AdvanceReference(iterations);

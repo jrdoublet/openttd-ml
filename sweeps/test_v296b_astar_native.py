@@ -22,7 +22,7 @@ class TestV296Native(unittest.TestCase):
     def setUpClass(cls):
         cls.src = read("pathfinder_v90/v296.nut")
         cls.old = read("pathfinder_v90/v129.nut")
-        cls.hot = function_body(cls.src, "function OpexRailPathFinderV296::FindPath(iterations)")
+        cls.hot = function_body(cls.src, "function OpexRailPathFinderV296::_FindPathV296(iterations)")
 
     def test_setting_and_load_order(self):
         block = re.search(r'AddSetting\(\{\s*name = "v296_astar_native",(.*?)\}\);', read("info.nut"), re.S)
@@ -145,13 +145,25 @@ class TestV296Native(unittest.TestCase):
         self.assertIn('if ("FrontierAlternatives" in pathfinder)', read("builder_rail.nut"))
 
     def test_sources_import_complete_ancestry_and_rebuild_bloom(self):
-        init = function_body(self.src, "function InitializePath(sources, goals, ignored_tiles = [])")
+        init = function_body(self.src, "function _InitializePathV296(sources, goals, ignored_tiles = [])")
         self.assertIn("n = n.GetParent()", init)
         self.assertIn("n.GetCost(), id", init)
         self.assertIn("this._pathfinder._open.AddItem(id, this._costs[id]);", init)
         self.assertNotIn(".Path(", init)
-        append = function_body(self.src, "function _Append(tile, direction, cost, parent)")
-        self.assertIn("this._blooms[parent]) | (1 << (tile % 61))", append)
+        append = function_body(self.src, "function _Append(tile, direction, cost, parentId)")
+        self.assertIn("this._blooms[parentId]) | (1 << (tile % 61))", append)
+
+    def test_no_squirrel_reserved_identifier(self):
+        """`parent` est un mot reserve de la VM d'OpenTTD : echec de compilation au premier banc (21/10)."""
+        self.assertIsNone(re.search(r"\bparent\b", self.src))
+        # `base` n'existe pas dans la VM d'OpenTTD (smoke GitHub du 21/10) : appels explicites a la classe.
+        self.assertIsNone(re.search(r"\bbase\.", self.src))
+        self.assertIn("OpexRailPathFinderV129.constructor.call(this, weight);", self.src)
+        # Aucun Classe.methode.call(this, ...) hors constructeur : le script ne peut pas se suspendre
+        # dans un appel natif, et OpenTTD refuse alors les commandes de l'A* (banc VPS du 21/10).
+        self.assertEqual(self.src.count(".call(this"), 1)
+        for name in ("SetWeight", "InitializePath", "FindPath"):
+            self.assertIn(f"this._{name}V296(", self.src)
 
     def test_checker_independent_completion_and_measurements(self):
         checker = self.src.split("class OpexRailPathfinderCheckerV296", 1)[1]
