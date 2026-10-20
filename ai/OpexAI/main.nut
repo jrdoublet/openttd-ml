@@ -49,6 +49,7 @@ require("spatial.nut");
 require("terrain_map.nut");
 require("water_graph.nut");
 require("candidates.nut");
+require("candidates_v276.nut");
 require("tension.nut");
 require("projects.nut");
 require("pathfinder_v90/binary_heap.nut");
@@ -701,6 +702,7 @@ function OpexAI::Start()
 
   OpexLoadSettings();
   OpexV147ExtendQueue(this);
+  if (V276_CAND_SLICES > 0) V276_CATALOG_TASK = this._taskQueue[0];
   this._v184InitRailSlots();
   /* Apres les phases V147 : un index insere avant elles decalerait taskCursor. */
   if (this._taskQueue != null) {
@@ -820,6 +822,14 @@ function OpexAI::Start()
     local spOrch = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.orch") : null;
     this._runOrchestratorTick();
     if (spOrch != null) OpexSpanEnd(spOrch);
+    /* V276d : place immediatement apres l'orchestrateur et avant la reprise
+     * AIR (qui consomme jusqu'a 2 000 opcodes restants alors qu'OpexV276Tick
+     * en exige > 3 000, privant V276 de passages utiles). */
+    if (V276_CAND_SLICES > 0) {
+      local spV276 = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.v276") : null;
+      OpexV276Tick(this);
+      if (spV276 != null) OpexSpanEnd(spV276);
+    }
     {
       local spResume = null;
       local catalogPending = true;

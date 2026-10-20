@@ -56,6 +56,11 @@ function OpexResolveDifficulty()
  * restent dans Start(), juste apres l'appel. */
 function OpexLoadSettings()
 {
+  /* V276/V278 (defaut auto depuis le 20/10, decision utilisateur) : qualifies ensemble a 1024x1024
+   * seulement (portes A +631 k et B +1,11 M), sans gain mesure a 256x256 ; actifs des 1024x1024 tuiles. */
+  local bigMap = AIMap.GetMapSizeX() * AIMap.GetMapSizeY() >= 1024 * 1024;
+  local v278 = AIController.GetSetting("v278_air_lazy_sites");
+  V278_AIR_LAZY_SITES = v278 == 1 || (v278 == 2 && bigMap);
   V279_RESELECT_MEMO = AIController.GetSetting("v279_reselect_memo");
   V233_PENDING_CONTINUE = AIController.GetSetting("v233_pending_continue") != 0;
   V233_GOODS_GRAFT = AIController.GetSetting("v233_goods_graft") != 0;
@@ -442,6 +447,11 @@ function OpexLoadSettings()
   local railRefill = AIController.GetSetting("v217_rail_refill");
   V217_RAIL_REFILL = (railRefill != null && railRefill >= 0 && railRefill <= 2) ? railRefill : 0;
   V217_LAST_MONTH = -1;
+  local v276 = AIController.GetSetting("v276_cand_slices");
+  V276_CAND_SLICES = (v276 == 3) ? (bigMap ? 2 : 0) : v276;
+  V276_CATALOG_TASK = null;
+  V276_CARGO_YEAR = -1;
+  V276_CARGO_ORDER = null;
   AIR0310_SITE_VALIDITY_STATE = null;
   RAIL_DEPOT_COST = AIController.GetSetting("rail_depot_cost") != 0;
   V131_RAIL_REPAIR = AIController.GetSetting("v131_rail_repair") != 0;

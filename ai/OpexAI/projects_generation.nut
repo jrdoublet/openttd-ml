@@ -168,6 +168,10 @@ function OpexRegenerateModeProjects(projects, catalog, budget, lines, abandonedP
   if (projects == null || !(("candidateGroups" in projects)) || projects.candidateGroups == null) {
     return projects;
   }
+  if (V276_CAND_SLICES > 0 && (mode == "rail" || mode == "road")) {
+    OpexV276Request(catalog, entityKind, entityId);
+    return OpexReselectProjects(projects, OpexAvailableCapital(), abandonedPairs, lines);
+  }
   local spMode = PROBE_SPAN_TRACE ? OpexSpanBegin("regen.mode") : null;
   local generated = OpexGenerateModeProjects(projects, catalog, budget, lines, abandonedPairs,
                                              mode, waterSiteCatalog, entityKind, entityId);

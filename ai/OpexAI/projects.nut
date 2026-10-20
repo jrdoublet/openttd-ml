@@ -120,6 +120,7 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
                            freightCargoOrder = null, activeSubsidies = null, airOverride = null,
                            railReadyStock = null)
 {
+  if (V276_CAND_SLICES > 0) OpexV276Request(catalog);
   local cost = CATALOG_COST_ACTIVE;
   local costMark = cost != null ? OpexOpsMeasureBegin() : null;
   if (generationStage == null) generationStage = OPEX_STAGE_COMPLETE;
@@ -208,7 +209,7 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
         railPaxProfile, railPaxCandidateProfile, railPaxCruiseCache, railFreightCruiseCache,
         doPaxRail, doFreight, paxBand, freightCargo, null, -1);
     if (spRail != null) OpexSpanEnd(spRail);
-    if (priorProjects != null && ("rail" in priorProjects)
+    if (V276_CAND_SLICES <= 0 && priorProjects != null && ("rail" in priorProjects)
         && priorProjects.rail != null && ("candidates" in priorProjects.rail)) {
       local merged = [];
       foreach (c in priorProjects.rail.candidates) {

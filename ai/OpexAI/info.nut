@@ -13,6 +13,11 @@ class OpexAIInfo extends AIInfo {
    * Entre IA, la regle est de jouer a armes egales, sans auto-handicap. */
   function GetSettings()
   {
+    AddSetting({ name = "v278_air_lazy_sites",
+      description = "V278: population ordered lazy AIR sites and scan preparation cache; 0 = off, 1 = on, 2 = auto: on when the map has at least 1024x1024 tiles (default since 20/10, qualified at 1024x1024 only)",
+      min_value = 0, max_value = 2,
+      easy_value = 2, medium_value = 2, hard_value = 2, custom_value = 2,
+      flags = 0 });
     AddSetting({ name = "v279_reselect_memo",
       description = "V279: incremental memoization for OpexReselectProjects (0=historic, 1=memoized, 2=control check)",
       min_value = 0, max_value = 2,
@@ -622,6 +627,13 @@ class OpexAIInfo extends AIInfo {
       custom_value = 1,
       step_size = 1,
       flags = AICONFIG_BOOLEAN
+    });
+    AddSetting({
+      name = "v276_cand_slices",
+      description = "V276: resumable rail and road candidate units, 0 = legacy, 1 = freight ordered by unit income at 80 tiles, 2 = same income times total monthly cargo production (annual cache), 3 = auto: 2 when the map has at least 1024x1024 tiles, else 0 (default since 20/10)",
+      min_value = 0, max_value = 3,
+      easy_value = 3, medium_value = 3, hard_value = 3, custom_value = 3,
+      step_size = 1, flags = 0
     });
     AddSetting({
       name = "v259_bridge_renew",
