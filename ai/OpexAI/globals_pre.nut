@@ -730,3 +730,6 @@ V279_LAST_STATS_MONTH <- -1;
 
 /* V295 : optimisations exactes A* rail V129 (filtre de Bloom ancetres et dedoublonnage buts). */
 V295_ASTAR_FAST <- 0;
+
+/* V296c : recherche de quais par predicats natifs AITileList. */
+V296_NATIVE_SITES <- 0;

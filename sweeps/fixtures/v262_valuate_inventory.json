@@ -293,5 +293,15 @@
     "task_projects.nut",
     "engines",
     "AIEngine.IsBuildable"
+  ],
+  [
+    "builder_rail.nut",
+    "set",
+    "AITile.IsBuildable"
+  ],
+  [
+    "builder_rail.nut",
+    "set",
+    "AITile.GetSlope"
   ]
 ]
