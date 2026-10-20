@@ -255,7 +255,9 @@ class TestV278Source(unittest.TestCase):
 
     def test_prepare_dynamic_inputs_and_monthly_memos(self):
         prepare = function(read("air_planning.nut"), "OpexAirPlansPrepare")
-        self.assertLess(prepare.index("AIR_MEMO_MONTH = memoMonth"), prepare.index("OpexV278RestorePrepare"))
+        # v287 : V263b a retire les memos mensuels C80 ; plus rien a placer avant la reprise V278.
+        self.assertNotIn("AIR_MEMO_MONTH", prepare)
+        self.assertIn("OpexV278RestorePrepare", prepare)
         restore = function(read("air_lazy_sites.nut"), "OpexV278RestorePrepare")
         for guard in ("memo.catalog != ctx.catalog", "OpexV278LinesSignature", "V278_AIR_EPOCH", "AIController.GetTick()"):
             self.assertIn(guard, restore)
@@ -324,7 +326,7 @@ class TestV278Frontier(unittest.TestCase):
         self.assertEqual(-frontier.visited[0][0], 9999900000)
 
 
-PAIRS_HASH = "79535f762260f3d8fb1232f8335c8ed98ace4751a0747cb0a547ab1d1711f56b"
+PAIRS_HASH = "13fc6cfea57750b91c9a927f944c90eb192460214df5f530a9b851caceb94058"  # v287 : NewPairs de master apres V263b (C80_AIR_EVAL_FAST retire)
 DRIVER_HASH = "839151bc21f858e455f8021e54e8913dfe7f278421ec3ef1d086ec7ed9795b56"
 
 if __name__ == "__main__":

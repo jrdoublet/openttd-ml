@@ -95,6 +95,7 @@ function OpexAirProcessRollbacks(lines)
   if (finished) {
     AILog.Info("AIR_ROLLBACK_DONE pair=" + ticket.pairKey);
     OPEX_AIR_ROLLBACKS.remove(0);
+    if (V279_RESELECT_MEMO != 0) OPEX_AIR_ROLLBACK_REVISION++;
     return;
   }
   /* Construire hors de la file publiee : Save ne doit jamais voir le ticket
@@ -102,6 +103,7 @@ function OpexAirProcessRollbacks(lines)
   local rotated = OPEX_AIR_ROLLBACKS.slice(1);
   rotated.append(ticket);
   OPEX_AIR_ROLLBACKS = rotated;
+  if (V279_RESELECT_MEMO != 0) OPEX_AIR_ROLLBACK_REVISION++;
 }
 
 /* Une sauvegarde peut couper entre vente et mise a jour du tableau. Purger les
@@ -123,6 +125,7 @@ function OpexAirReconcileRollbacks()
     if (vehicles.len() > 0 || airports.len() > 0) pending.append(ticket);
   }
   OPEX_AIR_ROLLBACKS = pending;
+  if (V279_RESELECT_MEMO != 0) OPEX_AIR_ROLLBACK_REVISION++;
 }
 
 /* Load : validation de forme uniquement, sans API du monde ni commandes.

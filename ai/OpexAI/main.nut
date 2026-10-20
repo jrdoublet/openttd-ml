@@ -405,8 +405,10 @@ class OpexAI extends AIController {
     this._budget = OpexBudget();
     this._catalog = OpexCatalog();
     this._lines = [];
+    if (V279_RESELECT_MEMO != 0) OPEX_LINES_REVISION++;
     this._pendingLines = null;
     this._abandonedPairs = {};
+    if (V279_RESELECT_MEMO != 0) OPEX_ABANDON_REVISION++;
     this._abandonCounts = {};
     this._vehiclesToRetire = {};
     this._unprofitableStreaks = {};
@@ -591,7 +593,6 @@ class OpexAI extends AIController {
   function _v259EvaluateAndRenew(item);
   function _c76RecordRegen(kind, ops, days, year, reason = "unknown");
   function _c76RecordAvoided(year);
-  function _c76RotateFreight(year);
   function _c76BumpLayer(layer, isEvent = false);
   function _c76GetLayerRevision(layer);
   function _c76GetModeDeps(mode);
@@ -706,7 +707,7 @@ function OpexAI::Start()
   /* Apres les phases V147 : un index insere avant elles decalerait taskCursor. */
   if (this._taskQueue != null) {
     this._taskQueue.append({ name = "v249_statue", dueCycle = 0, enabled = V249_STATUE });
-    this._taskQueue.append({ name = "v252_air_engine_refresh", dueCycle = 0, enabled = V252_AIR_ENGINE_REFRESH == 2 });
+    this._taskQueue.append({ name = "v252_air_engine_refresh", dueCycle = 0, enabled = true });
     this._taskQueue.append({ name = "v250_rights", dueCycle = 0, enabled = V250_RIGHTS > 0 });
   }
 

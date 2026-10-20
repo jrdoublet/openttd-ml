@@ -16,14 +16,18 @@ MODE_WATER <- true;
 V168_RAIL_MAX_DIST <- 160;
 V177_RAIL_PAX_MIN_DIST <- 0;
 V182_RAIL_FREIGHT_MIN_DIST <- 0;
-V178_RAIL_SHARED_DEST <- true;
-V179_RAIL_GEN_DEST_SERVED <- true;
 /* V264 : fret convergent vers une industrie deja desservie. Defaut vrai depuis le 19/10 (40x10 PC
  * +111,8 k/an sur 39 paires, accepte par derogation utilisateur). 0 = aucun calcul du mecanisme. */
 V264_CONVERGENT_FREIGHT <- true;
-V180_RAIL_WAGON_BOOST_PCT <- 0;
-V180_RAIL_WAGON_BOOST_DELAY <- 0;
-V180_START_YEAR <- -1;
+/* V269 : relachement tardif du vivier rail (orchestrator.nut, _v217RailRefill). 0 = inerte,
+ * N = annees apres le depart (defaut 5 depuis le 20/10, decision utilisateur apres le 40x10
+ * GitHub +83,1 k, 24/16, IC95 [-8 k ; +174 k]). Quand le vivier est vide et la caisse oisive,
+ * la regeneration V217 accepte le fret jusqu'a V269_RAIL_MAX_DIST tuiles. */
+V269_RAIL_LATE_RELAX <- 5;
+V269_RAIL_MAX_DIST <- 250;
+V269_IDLE_CASH_MIN <- 1000000;
+V269_RELAXED <- false;
+V269_ON <- false;
 /* V195 : V182 limite aux N premieres annees (0 = toujours). */
 V195_V182_YEARS <- 0;
 /* V186 : tranches A* rail avancees par passage de file (1..16, defaut 1 = historique). */
@@ -52,6 +56,8 @@ V207_RAIL_PAX_SITE_RANK_PCT <- 0;
  * perdant en partie complete (16/10 : -244 k/an, p=0,027, l'aerien recule de 20 %) : defaut 100. */
 V212_RAIL_PAX_REVENUE_PCT <- 100;
 V212_RAIL_PAX_CAPITAL_PCT <- 100;
+/* V275 : masque rail voyageurs en multimodal (voir info.nut). */
+V275_RAIL_PAX_MM <- 15;
 /* V214 : couts de virage du A* rail a la AAAHogEx (pathfinder.nut, InitializeParameters/__Cost).
  * Defaut 300/1500 adopte sur decision utilisateur le 16/10 apres B 20x10 positif,
  * avec portes A 40x3 et 40x5 non qualifiees. 0 = historique (50 a chaque changement de direction,
@@ -100,11 +106,6 @@ V249_STATUE <- false;
 /* Vrai si une passe projets s'est arretee faute de caisse depuis le dernier
  * passage statue. Vrai au depart : le premier mois ne compte pas. Pas sauvegarde. */
 V249_CASH_STOP <- true;
-/* V257 : revision des rames existantes, experimentale OFF. */
-V257_RAIL_REFRESH <- false;
-/* V252 : modernisation de la flotte aerienne (air_fleet.nut, task_v252.nut).
- * 0 = clonage, 1 = renfort/crash au meilleur modele, 2 = mode 1 + remplacement actif quand riche (defaut depuis le 18/10). */
-V252_AIR_ENGINE_REFRESH <- 2;
 /* Vrai si une passe projets s'est arretee faute de caisse depuis le dernier
  * passage de rafraichissement aerien. Vrai au depart. Pas sauvegarde. */
 V252_CASH_STOP <- true;
@@ -116,6 +117,8 @@ V250_RIGHTS <- 0;
 V250_CASH_STOP <- true;
 /* V259 : renouvellement des ponts plus rapides (task_v259.nut). */
 V259_BRIDGE_RENEW <- 0;
+/* V277 : publication rapide des projets air et filtre indexe de re-selection. */
+V277_AIR_PUB_FAST <- 0;
 V172_RAIL_LONG_WEIGHT_DIST <- 100;
 /* Cascade pax par distance decroissante : air seul, air+rail, rail seul,
  * route seule. Le fret accompagne la premiere passe. */
@@ -339,9 +342,8 @@ C69_PLANE_CHOICE_DIFFER_ROI <- 0;
 C69_PLANE_CHOICE_DIFFER_C69 <- 0;
 /* C73 : sonde passive du vivier avant selection et des passes du portefeuille */
 C73_VIVIER_LEDGER <- null;
-/* V93 : pas de plancher a 600 habitants pour poser un aeroport. Defaut 0.
+/* V93 fige : pas de plancher a 600 habitants pour poser un aeroport.
  * Le plancher minimal n'est pas un reglage : il evite seulement les hameaux. */
-V93_AIRPORT_NO_POP_FLOOR <- true;
 V93_AIRPORT_MIN_POP <- 100;
 V95_AIR_POST73_YEAR <- -1;
 /* V134 : second aeroport point-a-point (newpair) vers une ville libre pour une
@@ -555,8 +557,6 @@ AIR_FLEET_CADENCE_DAYS <- 7;
 /* V161 : valeur d'un renfort AIR plafonnee par un a priori net des voisines
  * (V161_PRIOR_OWN - V161_PRIOR_NEIGHBOUR x voisines partageant une gare - amortissement).
  * Un renfort reste a sa valeur modele perd l'exemption C70. */
-/* V163 : second cargo d'une ligne rail de fret (meme source, meme destination). Defaut 0. */
-V163_MULTI_CARGO <- false;
 /* Mesure du 12/10 (v160_B20x10, 1973-74) : +13,4 k sur la ligne, -2,6 k par voisine. */
 V161_PRIOR_OWN <- 13000;
 V161_PRIOR_NEIGHBOUR <- 2600;
@@ -634,29 +634,10 @@ C67_WATER_EXPOSURE <- false;
 C67_SLACK_HOOK <- false;
 C67_WATER_EXPO <- null;
 
-/* C76 : un mois sans regeneration complete fait quand meme tourner le
- * cargo fret (regeneration des seuls modes rail et route sur le cargo suivant). Sans lui, le lot
- * fret reste fige entre deux regenerations completes. 0 = desactive (defaut). */
-C76_FREIGHT_ROTATION <- false;
-
 /* C80 tranche 4 : sous C76, une couche industries ou moteurs non aeriens ne regenere que les
  * modes qui en dependent (rail, route, eau) au lieu du vivier entier. 0 = desactive (defaut). */
 
-/* C80 tranche 5 : memo de l'avion choisi par route aerienne. Rempli par la generation complete
- * (etat 1), relu par les mises a jour apres chantier (etat 2) qui ne recalculent que l'economie
- * de l'avion memorise. Cache reconstructible, non sauvegarde : vide apres chargement. */
-C80_AIR_CHOICE_MEMO <- false;
-AIR_CHOICE_MEMO <- {};
-AIR_CHOICE_MEMO_STATE <- 0;
-
 C80_MARGINAL_FLOOR_LEDGER <- null;
-
-/* C80 air eval fast : optimisations exactes de la planification aerienne (memo d'economie,
- * memo de trajectoire/revenu, report de GetOrderDistance). Defaut 0. */
-C80_AIR_EVAL_FAST <- false;
-AIR_ECONOMICS_MEMO <- {};
-AIR_TRIP_MEMO <- {};
-AIR_MEMO_MONTH <- -1;
 
 /* Sonde incrementale air sous probe_portfolio */
 C80_AIR_INC_COUNTS <- { full = 0, targeted = 0, none = 0 };
@@ -711,3 +692,20 @@ const V233_PLAN_LIMIT = 4;
 const V233_PLAN_TTL_DAYS = 90;
 
 const V233_GOODS_MIN_MONTHLY = 64;
+
+/* V279 : re-selection incrementale exacte (0=historique, 1=memoise, 2=controle). */
+V279_RESELECT_MEMO <- 0;
+OPEX_LINES_REVISION <- 0;
+OPEX_AIR_SITE_EPOCH <- 0;
+OPEX_ABANDON_REVISION <- 0;
+OPEX_AIR_ROLLBACK_REVISION <- 0;
+V279_FILTER_STAMP_ID <- 0;
+V279_LAST_MONTH <- -1;
+V279_LAST_LINES_REV <- -1;
+V279_LAST_SITE_EPOCH <- -1;
+V279_LAST_ABND_REV <- -1;
+V279_LAST_ROLLBACK_REV <- -1;
+V279_LAST_HAS_LINES <- null;
+V279_HITS <- 0;
+V279_MISSES <- 0;
+V279_LAST_STATS_MONTH <- -1;

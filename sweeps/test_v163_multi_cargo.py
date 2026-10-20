@@ -1,11 +1,8 @@
 #!/usr/bin/env python3
-"""Tests pour V163 — second cargo d'une ligne rail de fret (même source, même destination).
+"""Retrait V163 fret ; contrats de la plomberie second cargo conservee pour V207.
 
-Couvre :
-1. Contrats statiques : réglage (info.nut ↔ globals_pre.nut ↔ settings.nut), défaut 0, génération
-   gardée par V163_MULTI_CARGO, second cargo repassé aux deux réévaluations du constructeur,
-   wagons du second cargo construits, comptés au capital et dans les limites de quai.
-2. Modèle Python du dimensionnement des wagons du second cargo dans OpexLineEconomics.
+Le dimensionnement, le devis, les constructeurs et les champs de lignes restent
+couverts. Les generateurs et extracteurs fret propres a V163 sont retires.
 """
 from __future__ import annotations
 
@@ -53,34 +50,20 @@ def wagons2(monthly2, capacity2, trips, wagons, max_wagons, rating_pct=50):
 
 class StaticContracts(unittest.TestCase):
     def test_setting_default_off(self):
-        block = _setting_block("v163_multi_cargo")
-        for key in ("easy_value", "medium_value", "hard_value", "custom_value"):
-            self.assertRegex(block, key + r" = 0\b")
-        self.assertIn("V163_MULTI_CARGO <- false;", _read("globals_pre.nut"))
-        self.assertIn('V163_MULTI_CARGO = AIController.GetSetting("v163_multi_cargo") == 1;',
-                      _read("settings.nut"))
+        self.assertNotIn('name = "v163_multi_cargo"', _read("info.nut"))
+        self.assertNotIn("V163_MULTI_CARGO", _read("globals_pre.nut"))
+        self.assertNotIn('GetSetting("v163_multi_cargo")', _read("settings.nut"))
 
     def test_generation_guarded(self):
         body = _function_body(_read("candidates.nut"), "OpexFreightCandidates")
-        self.assertIn("local others2 = V163_MULTI_CARGO ? OpexV163SourceOtherCargos(catalog, source.id, cargo) : null;",
-                      body)
-        self.assertIn("local secondary = (others2 != null && others2.len() > 0)\n"
-                      "            ? OpexV163SecondaryCargo(others2, industries[di].id) : null;", body)
-        self.assertEqual(body.count("OpexV163SecondaryCargo"), 1)
-        # la liste des cargos produits se calcule hors de la boucle des destinations
-        self.assertLess(body.index("OpexV163SourceOtherCargos"), body.index("for (local k = 0; k < sinks.len(); k++)",
-                                                                             body.index("OpexV163SourceOtherCargos") - 400))
+        self.assertIn("local others2 = null;", body)
+        self.assertNotIn("OpexV163SourceOtherCargos", body)
         reeval = _function_body(_read("economy.nut"), "OpexV163CandidateSecondary")
-        self.assertIn("if (!V163_MULTI_CARGO", reeval)
+        self.assertIn('V207_RAIL_MAIL && (("kind" in candidate) && candidate.kind == "pax")', reeval)
 
     def test_secondary_cargo_selection(self):
-        others = _function_body(_read("economy.nut"), "OpexV163SourceOtherCargos")
-        self.assertIn("c == cargo", others)
-        self.assertIn("(c in catalog.wagonByCargo)", others)
-        self.assertIn("monthly <= 0", others)
-        body = _function_body(_read("economy.nut"), "OpexV163SecondaryCargo")
-        self.assertIn("AIIndustry.IsCargoAccepted(sinkId, o.cargo) != AIIndustry.CAS_ACCEPTED", body)
-        self.assertIn("o.monthly > best.monthly", body)
+        for name in ("OpexV163SourceOtherCargos", "OpexV163SecondaryCargo"):
+            self.assertNotIn(name, _read("economy.nut"))
 
     def test_builder_reevaluations_keep_secondary(self):
         src = _read("builder_rail.nut")

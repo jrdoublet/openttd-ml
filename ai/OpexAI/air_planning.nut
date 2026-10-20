@@ -46,7 +46,6 @@ function OpexAirCalcDeltaOps(t0, l0)
     : l0 + (elapsed - 1) * OPS_PER_TICK + (OPS_PER_TICK - left);
 }
 
-
 /* 1. Preparation : combos, villes, OpexAirTownPoolLimit, indices et reprise. */
 function OpexAirPlansPrepare(ctx)
 {
@@ -64,20 +63,7 @@ function OpexAirPlansPrepare(ctx)
     resumeState.stationCoverageTownCacheInit <- true;
   }
 
-  if (C80_AIR_EVAL_FAST) {
-    /* Les prix changent au debut de chaque mois (inflation) : une planification decoupee qui
-     * enjambe un changement de mois repart avec des memos vides pour rester exacte. */
-    local memoDate = AIDate.GetCurrentDate();
-    local memoMonth = AIDate.GetYear(memoDate) * 12 + AIDate.GetMonth(memoDate);
-    if (!sliced || !("airFastInit" in resumeState) || AIR_MEMO_MONTH != memoMonth) {
-      AIR_ECONOMICS_MEMO = {};
-      AIR_TRIP_MEMO = {};
-      if (sliced) resumeState.airFastInit <- true;
-    }
-    AIR_MEMO_MONTH = memoMonth;
-  }
-  /* V278 : seule la preparation stable est sautee ; les memos de prix
-   * ci-dessus restent mensuels et les entrees vivantes sont relues. */
+  /* V278 : seule la preparation stable est sautee ; les entrees vivantes sont relues. */
   if (V278_AIR_LAZY_SITES && sliced && ("v278Prepare" in resumeState)
       && !resumeState.done && OpexV278RestorePrepare(ctx)) return true;
   if (sliced) {
@@ -172,10 +158,7 @@ function OpexAirPlansPrepare(ctx)
       resumeState.sites = null;
       resumeState.done = true;
     }
-    if (C80_AIR_EVAL_FAST) {
-      AIR_ECONOMICS_MEMO = {};
-      AIR_TRIP_MEMO = {};
-    }
+
     ctx.bestPlan = null;
     return false;
   }
@@ -393,13 +376,8 @@ function OpexAirPlansFindSites(ctx, comboIndex, combo, airport, plane, resumingC
         if (skipServed) {
           if (C69_BOTTLENECK_PROBE) OpexC73RecordRejection("air", "origin_served", 1);
           if (c78Gen) OpexC78Log("C78_AIRTOWN", "year=" + c78Year + " combo=" + airport.type + ":" + plane.id + " town=" + towns[i].id + " rank=" + i + " outcome=origin_served");
-        } else if (!V93_AIRPORT_NO_POP_FLOOR && combo.kind == "large" && towns[i].pop < 600) {
-          /* Grands aeroports : accessibles des 600 habitants. A 0, le booleen
-           * est le seul test ajoute sur ce chemin. */
-          if (C69_BOTTLENECK_PROBE) OpexC73RecordRejection("air", "town_pop_small", 1);
-          if (c78Gen) OpexC78Log("C78_AIRTOWN", "year=" + c78Year + " combo=" + airport.type + ":" + plane.id + " town=" + towns[i].id + " rank=" + i + " outcome=town_pop_small");
-        } else if (V93_AIRPORT_NO_POP_FLOOR && towns[i].pop < V93_AIRPORT_MIN_POP) {
-          /* V93 : plancher minimal, grand ou petit. A 0 ce test est faux. */
+        } else if (towns[i].pop < V93_AIRPORT_MIN_POP) {
+          /* V93 fige : plancher minimal, grand ou petit. */
           if (C69_BOTTLENECK_PROBE) OpexC73RecordRejection("air", "town_pop_v93", 1);
           if (c78Gen) OpexC78Log("C78_AIRTOWN", "year=" + c78Year + " combo=" + airport.type + ":" + plane.id + " town=" + towns[i].id + " rank=" + i + " outcome=town_pop_v93");
         } else {
@@ -424,7 +402,7 @@ function OpexAirPlansFindSites(ctx, comboIndex, combo, airport, plane, resumingC
             if (V278_AIR_LAZY_SITES) OpexV278RememberFoundSite(site, airport, v278Started);
             scanSites.append(site);
             if (c78Gen) {
-              if (V93_AIRPORT_NO_POP_FLOOR && towns[i].pop < 600) {
+              if (towns[i].pop < 600) {
                 OpexC78Log("C78_AIRTOWN", "year=" + c78Year + " combo=" + airport.type + ":" + plane.id + " town=" + towns[i].id + " rank=" + i + " outcome=site v93=1 pop=" + towns[i].pop);
               } else {
                 OpexC78Log("C78_AIRTOWN", "year=" + c78Year + " combo=" + airport.type + ":" + plane.id + " town=" + towns[i].id + " rank=" + i + " outcome=site");
@@ -674,17 +652,11 @@ function OpexAirPlansNewPairs(ctx, comboIndex, combo, airport, plane, minDist, r
       }
       if (C69_BOTTLENECK_PROBE) OpexC73RecordExamined("air", 1);
       local distance = AIMap.DistanceManhattan(sites[a].town.tile, sites[b].town.tile);
-      if (C80_AIR_EVAL_FAST) {
-        if (distance < minDist) {
-          if (C69_BOTTLENECK_PROBE) OpexC73RecordRejection("air", "distance_short", 1);
-          if (c78Gen) OpexC78Log("C78_AIRPAIR", "year=" + c78Year + " arm=newpair combo=" + airport.type + ":" + plane.id + " townA=" + sites[a].town.id + " townB=" + sites[b].town.id + " dist=" + distance + " outcome=distance_short P=-1 C=-1");
-          continue;
-        }
-      }
-      local orderDistance = C80_AIR_EVAL_FAST ? 0 : AIOrder.GetOrderDistance(AIVehicle.VT_AIR,
+
+      local orderDistance = AIOrder.GetOrderDistance(AIVehicle.VT_AIR,
                                                       sites[a].anchor, sites[b].anchor);
       local flightDistance = OpexFlightDistance(sites[a].anchor, sites[b].anchor);
-      if (!C80_AIR_EVAL_FAST && distance < minDist) {
+      if (distance < minDist) {
         if (C69_BOTTLENECK_PROBE) OpexC73RecordRejection("air", "distance_short", 1);
         if (c78Gen) OpexC78Log("C78_AIRPAIR", "year=" + c78Year + " arm=newpair combo=" + airport.type + ":" + plane.id + " townA=" + sites[a].town.id + " townB=" + sites[b].town.id + " dist=" + distance + " outcome=distance_short P=-1 C=-1");
         continue;
@@ -766,9 +738,6 @@ function OpexAirPlansNewPairs(ctx, comboIndex, combo, airport, plane, minDist, r
         continue;
       }
 
-      if (C80_AIR_EVAL_FAST) {
-        orderDistance = AIOrder.GetOrderDistance(AIVehicle.VT_AIR, sites[a].anchor, sites[b].anchor);
-      }
       plan.orderDistance = orderDistance;
       plan.plane = routePlane;
       plan.planes = economics.planes;
@@ -1123,9 +1092,8 @@ function OpexAirPlansDiscoverHubs(ctx, combo, airport, plane)
         local c83OwnSecondSlot = isServed && (towns[i].id in c83TopTownIds)
             && OpexAirC83SecondSlotOpen(towns[i]);
         if (isServed && !c83OwnSecondSlot) continue;
-        /* Typage : grands aeroports des 600 hab. A 0, seul le booleen est ajoute. */
-        if (!V93_AIRPORT_NO_POP_FLOOR && combo.kind == "large" && towns[i].pop < 600) continue;
-        if (V93_AIRPORT_NO_POP_FLOOR && towns[i].pop < V93_AIRPORT_MIN_POP) continue;
+        /* V93 fige : plancher sanitaire commun aux types d'aeroport. */
+        if (towns[i].pop < V93_AIRPORT_MIN_POP) continue;
         if (combo.kind == "small" && towns[i].pop >= 2500) continue;
         local c83RequiredSlotTown = (targetTownId >= 0 && towns[i].id == targetTownId)
             ? targetTownId : -1;
@@ -1139,7 +1107,7 @@ function OpexAirPlansDiscoverHubs(ctx, combo, airport, plane)
           if (c83OwnSecondSlot) extraSite.c83OwnSecondSlot <- true;
           if (C83_FIXES && c83RequiredSlotTown >= 0) extraSite.c83SlotTown <- c83RequiredSlotTown;
           /* v93=1 seulement si le scan principal n'a pas deja retenu cette ville. */
-          if (V93_AIRPORT_NO_POP_FLOOR && towns[i].pop < 600 && ("c78Gen" in ctx) && ctx.c78Gen) {
+          if (towns[i].pop < 600 && ("c78Gen" in ctx) && ctx.c78Gen) {
             local v93Already = false;
             foreach (prev in sites) {
               if (("town" in prev) && prev.town != null && ("id" in prev.town) && prev.town.id == towns[i].id) {
@@ -1289,9 +1257,6 @@ function OpexAirPlansHubToSite(ctx, combo, airport, plane)
   for (local hi = resumeHub; hi < hubs.len(); hi++) {
     local hub = hubs[hi];
     if (hub.ac04Blocked) continue;
-    local hubMonthlyPre = C80_AIR_EVAL_FAST
-        ? (((hub.town.pop * TOWN_CATCHMENT_SHARE_PCT) / 100) / (hub.routes + 1))
-        : 0;
     for (local sj = hi == resumeHub ? resumeSite : 0; sj < sites.len(); sj++) {
       if (incrementalSlice) {
         local used = OpexAirCalcDeltaOps(ctx.t0_all, ctx.l0_all);
@@ -1330,7 +1295,7 @@ function OpexAirPlansHubToSite(ctx, combo, airport, plane)
         if (c78Gen) OpexC78Log("C78_AIRPAIR", "year=" + c78Year + " arm=hubsite combo=" + airport.type + ":" + plane.id + " townA=" + OpexC78HubTownId(hub) + " townB=" + site.town.id + " dist=" + distance + " outcome=distance_short P=-1 C=-1");
         continue;
       }
-      local orderDistance = C80_AIR_EVAL_FAST ? 0 : AIOrder.GetOrderDistance(AIVehicle.VT_AIR,
+      local orderDistance = AIOrder.GetOrderDistance(AIVehicle.VT_AIR,
                                                       hub.anchor, site.anchor);
       local flightDistance = OpexFlightDistance(hub.anchor, site.anchor);
       if (!OpexAirPairInBand(catalog, distance, flightDistance, paxBand)) {
@@ -1355,9 +1320,7 @@ function OpexAirPlansHubToSite(ctx, combo, airport, plane)
           continue;
         }
       }
-      local hubMonthly = C80_AIR_EVAL_FAST
-          ? hubMonthlyPre
-          : (((hub.town.pop * TOWN_CATCHMENT_SHARE_PCT) / 100) / (hub.routes + 1));
+      local hubMonthly = (((hub.town.pop * TOWN_CATCHMENT_SHARE_PCT) / 100) / (hub.routes + 1));
       local newMonthly = (site.town.pop * TOWN_CATCHMENT_SHARE_PCT) / 100;
       local monthlyPax = hubMonthly + newMonthly;
       local opcodePadding = 0;
@@ -1397,9 +1360,7 @@ function OpexAirPlansHubToSite(ctx, combo, airport, plane)
         if (hubSiteMark != null) OpexSpanAgg("air.hub_site_pair", hubSiteMark);
         continue;
       }
-      if (C80_AIR_EVAL_FAST) {
-        orderDistance = AIOrder.GetOrderDistance(AIVehicle.VT_AIR, hub.anchor, site.anchor);
-      }
+
       plan.orderDistance = orderDistance;
       plan.plane = routePlane;
       plan.planes = economics.planes;
@@ -1453,9 +1414,6 @@ function OpexAirPlansHubToHub(ctx, combo, airport, plane)
       ? ctx.resumeState.hubHubJ : 1;
   local progressed = false;
   for (local i = resumeI; i < hubs.len(); i++) {
-    local hub1MonthlyPre = C80_AIR_EVAL_FAST
-        ? (((hubs[i].town.pop * TOWN_CATCHMENT_SHARE_PCT) / 100) / (hubs[i].routes + 1))
-        : 0;
     for (local j = i == resumeI ? resumeJ : i + 1; j < hubs.len(); j++) {
       if (incrementalSlice) {
         local used = OpexAirCalcDeltaOps(ctx.t0_all, ctx.l0_all);
@@ -1513,7 +1471,7 @@ function OpexAirPlansHubToHub(ctx, combo, airport, plane)
         if (c78Gen) OpexC78Log("C78_AIRPAIR", "year=" + c78Year + " arm=hub combo=" + airport.type + ":" + plane.id + " townA=" + OpexC78HubTownId(hub1) + " townB=" + OpexC78HubTownId(hub2) + " dist=" + distance + " outcome=distance_short P=-1 C=-1");
         continue;
       }
-      local orderDistance = C80_AIR_EVAL_FAST ? 0 : AIOrder.GetOrderDistance(AIVehicle.VT_AIR, hub1.anchor, hub2.anchor);
+      local orderDistance = AIOrder.GetOrderDistance(AIVehicle.VT_AIR, hub1.anchor, hub2.anchor);
       local flightDistance = OpexFlightDistance(hub1.anchor, hub2.anchor);
       if (!OpexAirPairInBand(catalog, distance, flightDistance, paxBand)) {
         if (C69_BOTTLENECK_PROBE) OpexC73RecordRejection("air", "pax_band", 1);
@@ -1535,9 +1493,7 @@ function OpexAirPlansHubToHub(ctx, combo, airport, plane)
         if (c78Gen) OpexC78Log("C78_AIRPAIR", "year=" + c78Year + " arm=hub combo=" + airport.type + ":" + plane.id + " townA=" + OpexC78HubTownId(hub1) + " townB=" + OpexC78HubTownId(hub2) + " dist=" + distance + " outcome=abandoned P=-1 C=-1");
         continue;
       }
-      local monthly1 = C80_AIR_EVAL_FAST
-          ? hub1MonthlyPre
-          : (((hub1.town.pop * TOWN_CATCHMENT_SHARE_PCT) / 100) / (hub1.routes + 1));
+      local monthly1 = (((hub1.town.pop * TOWN_CATCHMENT_SHARE_PCT) / 100) / (hub1.routes + 1));
       local monthly2 = ((hub2.town.pop * TOWN_CATCHMENT_SHARE_PCT) / 100) / (hub2.routes + 1);
       local monthlyPax = monthly1 + monthly2;
       local opcodePadding = 0;
@@ -1580,9 +1536,7 @@ function OpexAirPlansHubToHub(ctx, combo, airport, plane)
         if (hubHubMark != null) OpexSpanAgg("air.hub_hub_pair", hubHubMark);
         continue;
       }
-      if (C80_AIR_EVAL_FAST) {
-        orderDistance = AIOrder.GetOrderDistance(AIVehicle.VT_AIR, hub1.anchor, hub2.anchor);
-      }
+
       plan.orderDistance = orderDistance;
       plan.plane = routePlane;
       plan.planes = economics.planes;
@@ -1664,10 +1618,6 @@ function OpexAirPlansFinalize(ctx)
     resumeState.towns = null;
     resumeState.combos = null;
     if (V278_AIR_LAZY_SITES && ("v278Prepare" in resumeState)) delete resumeState.v278Prepare;
-    if (C80_AIR_EVAL_FAST) {
-      AIR_ECONOMICS_MEMO = {};
-      AIR_TRIP_MEMO = {};
-    }
   }
   local elapsedDays = elapsedTicks / 74;
   if (DECISION_LOG) {
@@ -1702,10 +1652,7 @@ function OpexAirPlansFinalize(ctx)
     local actualPlans = (projects != null) ? projects.len() : (bestPlan != null ? 1 : 0);
     OpexC73RecordProduced("air", actualPlans, actualPlans);
   }
-  if (C80_AIR_EVAL_FAST && !sliced) {
-    AIR_ECONOMICS_MEMO = {};
-    AIR_TRIP_MEMO = {};
-  }
+
   return bestPlan;
 }
 
@@ -1812,7 +1759,7 @@ function OpexAirPlansCompleteCombo(ctx, comboIndex, combo)
      * booleen provoque le meme break, sans helper ni appel d'API. */
     local bestPlan = ctx.bestPlan;
     if (bestPlan != null && bestPlan.airport.allowBig) {
-      if (!V93_AIRPORT_NO_POP_FLOOR) return -1;
+
       if (!(("kind" in combo) && combo.kind == "small")) {
         local nextSmall = OpexAirV93NextSmallCombo(ctx.combos, comboIndex);
         if (nextSmall < 0) return -1;

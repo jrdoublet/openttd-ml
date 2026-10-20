@@ -133,8 +133,7 @@ function OpexAirLargeAirportMinPop()
  * arme, le plancher minimal de ce reglage remplace les 600, et seulement ici. */
 function OpexAirPreemptMinPop()
 {
-  if (V93_AIRPORT_NO_POP_FLOOR) return V93_AIRPORT_MIN_POP;
-  return OpexAirLargeAirportMinPop();
+  return V93_AIRPORT_MIN_POP;
 }
 
 /* Plus grande ville encore vide : deux slots libres, population au plancher,

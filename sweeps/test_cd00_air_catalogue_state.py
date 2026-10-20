@@ -202,7 +202,7 @@ class CD00SourceContracts(unittest.TestCase):
         # All phase guards must remain present even if the driver is extracted.
         self.assertIn("OpexAirV93NextSmallCombo", AIR)
         self.assertIn('combo.kind == "small"', AIR)
-        self.assertIn("V93_AIRPORT_NO_POP_FLOOR", AIR)
+        self.assertIn("towns[i].pop < V93_AIRPORT_MIN_POP", AIR)
         self.assertIn("resumeState.hubPhase <- 0;", AIR)
         self.assertIn("resumeState.hubHubJ <- 1;", AIR)
         snap = function(AIR, "OpexAir0310HubSnapshotPrepare")

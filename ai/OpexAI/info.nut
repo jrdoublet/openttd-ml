@@ -18,11 +18,11 @@ class OpexAIInfo extends AIInfo {
       min_value = 0, max_value = 1,
       easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
       flags = 0 });
-    AddSetting({ name = "v257_rail_refresh",
-      description = "V257: review existing rail consists using observed traffic and replacement payback (default 1 since 19/10, user decision)",
-      min_value = 0, max_value = 1, default_value = 1,
-      easy_value = 1, medium_value = 1, hard_value = 1, custom_value = 1,
-      flags = AICONFIG_BOOLEAN });
+    AddSetting({ name = "v279_reselect_memo",
+      description = "V279: incremental memoization for OpexReselectProjects (0=historic, 1=memoized, 2=control check)",
+      min_value = 0, max_value = 2,
+      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
+      flags = 0 });
     AddSetting({ name = "v233_goods_graft",
       description = "V233: measured goods to town graft (requires v233_pending_continue)",
       min_value = 0, max_value = 1,
@@ -215,17 +215,6 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
-      name = "v93_airport_no_pop_floor",
-      description = "V93: a town under 600 people can take a large airport when route economics pass, down to 100 people; 1 = on (default), 0 = off",
-      min_value = 0,
-      max_value = 1,
-      easy_value = 1, medium_value = 1, hard_value = 1,
-      custom_value = 1,
-      step_size = 1,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
       name = "v134_air_p2p_saturated_hub",
       description = "V134: allow a second airport in point-to-point (newpair) to a free town when existing airport reached air_hub_max_routes and town opens a 2nd slot; 1 = on, 0 = off (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,
@@ -333,40 +322,13 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
-      name = "v180_rail_wagon_boost_delay",
-      description = "V180: years after game start before the wagon boost applies; 0 = from start (default)",
-      min_value = 0, max_value = 5,
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
+      name = "v269_rail_late_relax",
+      description = "V269: N years after game start, when the rail pool is empty and cash idle, regenerate rail freight up to 250 tiles; 0 = inert, 5 = default (20/10, 40x10 +83.1 k/yr, 24/16)",
+      min_value = 0, max_value = 9,
+      easy_value = 5, medium_value = 5, hard_value = 5,
+      custom_value = 5,
       step_size = 1,
       flags = 0
-    });
-    AddSetting({
-      name = "v180_rail_wagon_boost_pct",
-      description = "V180: rail consist sizing offers N% more cargo than the 50% rating calibration (bigger trains); 0 = inert (default)",
-      min_value = 0, max_value = 400,
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      step_size = 25,
-      flags = 0
-    });
-    AddSetting({
-      name = "v179_rail_gen_dest_served",
-      description = "V179: rail freight generator keeps pairs whose destination industry is already served (fresh source), for V178 to attach; 0 = inert, 1 = on (default, qualified 19/10 with V178: gate A 40x10 +235.6 k/yr, gate B 20x10 +192.2 k/yr)",
-      min_value = 0, max_value = 1,
-      easy_value = 1, medium_value = 1, hard_value = 1,
-      custom_value = 1,
-      step_size = 1,
-      flags = AICONFIG_BOOLEAN
-    });
-    AddSetting({
-      name = "v178_rail_shared_dest",
-      description = "V178: freight candidates share accepting rail station when destination is within MIN_SEPARATION of our existing station; 0 = inert, 1 = on (default, qualified 19/10 with V179: gate A 40x10 +235.6 k/yr, gate B 20x10 +192.2 k/yr)",
-      min_value = 0, max_value = 1,
-      easy_value = 1, medium_value = 1, hard_value = 1,
-      custom_value = 1,
-      step_size = 1,
-      flags = AICONFIG_BOOLEAN
     });
 
     AddSetting({
@@ -483,14 +445,6 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
-      name = "c76_freight_rotation",
-      description = "C76: a month without full pool regeneration still rotates the freight cargo by regenerating only the rail and road candidates: 1 = enabled, 0 = disabled (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
       name = "c67_water_exposure_probe",
       description = "C67.6: passive probe, re-checks water pairs rejected by the bounded BFS with the block oracle in tick slack: 1 = enabled, 0 = disabled (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,
@@ -501,22 +455,6 @@ class OpexAIInfo extends AIInfo {
     AddSetting({
       name = "c67_terrain_map",
       description = "C67.4: block terrain map filled in tick slack before Sleep, no consumer: 1 = enabled, 0 = disabled (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "c80_air_choice_memo",
-      description = "C80 tranche 5: the aircraft chosen per air route by a full pool regeneration is reused (only its economics recomputed) by the post-build updates: 1 = enabled, 0 = disabled (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "c80_air_eval_fast",
-      description = "C80 air eval fast: exact memoization and deferred checks in air planning (same decisions, fewer opcodes): 1 = enabled, 0 = disabled (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
       flags = AICONFIG_BOOLEAN
@@ -619,14 +557,7 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
-
     /* AC04-B et AC05 : qualifies separement et en cumul, rollback 0. */
-    AddSetting({
-      name = "v163_multi_cargo",
-      description = "V163: a rail freight train also carries a second cargo produced by its source industry and accepted by its destination industry (e.g. GRAI + LVST farm to factory), wagons sized per cargo; 0 = off (default), 1 = on",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0, flags = AICONFIG_BOOLEAN
-    });
     AddSetting({
       name = "v207_rail_pax_share_pct",
       description = "V207: predicted share of town passenger production captured by a rail line (0 = legacy 22%, 1..100 = custom percentage); 0 = off (default)",
@@ -662,20 +593,20 @@ class OpexAIInfo extends AIInfo {
       flags = 0
     });
     AddSetting({
+      name = "v275_rail_pax_mm",
+      description = "V275: passenger rail compatible with air (bitmask): 1 = no passenger rail pair touching a town served by one of our airports, 2 = V212 recalibration (revenue 150 %, capital 85 %), 4 = with air enabled, no passenger rail candidate before the third year, 8 = by mode: without air, bits 1/2/4 plus the V207 package (share 40, mail, 2 joined stops) when V207 settings are at their defaults; with air, whole mask cleared; 15 = default, 0 = off",
+      min_value = 0, max_value = 15,
+      easy_value = 15, medium_value = 15, hard_value = 15,
+      custom_value = 15,
+      step_size = 1,
+      flags = 0
+    });
+    AddSetting({
       name = "v249_statue",
       description = "V249: when rich (no loan, no project pass stopped for cash during the last month, cash still covering the reserve and the most expensive listed project after the statue), build at most one town statue per month in the served town with the highest line profit; 1 = on, 0 = off (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
       flags = AICONFIG_BOOLEAN
-    });
-    AddSetting({
-      name = "v252_air_engine_refresh",
-      description = "V252: modernize air fleet; 0 = clone the existing plane (former behaviour), 1 = buy best available engine on reinforce/crash, 2 = mode 1 + active monthly replacement when rich (default, qualified 18/10: gate A +179 k/yr, gate B +180 k/yr)",
-      min_value = 0, max_value = 2,
-      easy_value = 2, medium_value = 2, hard_value = 2,
-      custom_value = 2,
-      step_size = 1,
-      flags = 0
     });
     /* Quatre niveaux a 0 : le banc qui ne passe pas le reglage reste identique.
      * Mode 1 coupe en facile/moyen meme si la valeur est 1. Mode 2 ignore le niveau. */
@@ -708,6 +639,15 @@ class OpexAIInfo extends AIInfo {
       name = "v259_bridge_renew",
       description = "V259: renew rail (and road) bridges when faster bridge types become available and vehicles are speed-limited; 0 = off (default), 1 = economic renewal triggered on new bridge types",
       min_value = 0, max_value = 1,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0, default_value = 0,
+      step_size = 1,
+      flags = 0
+    });
+    AddSetting({
+      name = "v277_air_pub_fast",
+      description = "V277: fast air project publication and indexed re-selection filter; 0 = historical path (default), 1 = fast paths, 2 = control mode (runs both, logs differences, keeps historical)",
+      min_value = 0, max_value = 2,
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0, default_value = 0,
       step_size = 1,
