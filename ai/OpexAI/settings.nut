@@ -169,6 +169,10 @@ function OpexLoadSettings()
   if (aaaCosts != null && (aaaCosts == 0 || aaaCosts == 1)) {
     V294_RAIL_AAA_COSTS = aaaCosts;
   }
+  local revProbe = AIController.GetSetting("v294_rail_reverse_probe");
+  if (revProbe != null && revProbe >= 0) {
+    V294_RAIL_REVERSE_PROBE = revProbe;
+  }
 
   // V246 : paquets adoptes figes ; les interrupteurs de mode restent actifs.
   ROAD_BUILD_ENABLED = MODE_ROAD;

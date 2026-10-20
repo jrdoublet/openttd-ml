@@ -784,6 +784,19 @@ function OpexAI::_startRailSearch(candidate, alternativeRatio, hardCap, posPacke
   local outwardSide = (V197_GUIDED_DOUBLE && OpexV190Active() && candidate.kind == "freight") ? 1 : null;
   local searchWeight = OpexRailAstarWeight(candidate.distance);
   candidate.searchWeight <- searchWeight;
+  if (V294_RAIL_REVERSE_PROBE > 0) {
+    local revSlice = OpexV294fReverseProbe(plan.plansA, plan.plansB, clearanceTiles, searchWeight, candidate, V294_RAIL_REVERSE_PROBE);
+    if (revSlice != null) {
+      local planResult = OpexCompleteRailRouteAfterSearch(this._catalog, candidate, plan, revSlice);
+      if (DECISION_LOG && V131_TOWN_CLEARANCE && clearanceTiles != null) {
+        OpexV131LogClearance(candidate, planResult, clearanceTiles);
+      }
+      if (V233_GOODS_GRAFT && OpexV233IsGraft(candidate) && planResult.ok) {
+        this._v233StorePlan(candidate, planResult);
+      }
+      return { pending = false, plan = planResult };
+    }
+  }
   local pathfinder = null;
   local segmented = null;
   {

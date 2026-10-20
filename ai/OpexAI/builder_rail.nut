@@ -877,6 +877,43 @@ function OpexCreateRailPathfinder(plansA, plansB, ignoredTiles = null, weight = 
   return pathfinder;
 }
 
+/* V294f : sonde inverse bornée à iterationCap iterations (sources = plansB, buts = plansA).
+ * Si un chemin est trouvé, il est retourné inversé au format attendu par la pose. */
+function OpexV294fReverseProbe(plansA, plansB, clearanceTiles, searchWeight, candidate, iterationCap)
+{
+  local revPf = OpexCreateRailPathfinder(plansB, plansA, clearanceTiles, searchWeight, null, null);
+  if (revPf == null) {
+    if (DECISION_LOG) {
+      local manh = (candidate != null && ("distance" in candidate)) ? candidate.distance :
+                   (plansA.len() > 0 && plansB.len() > 0 ? AIMap.DistanceManhattan(plansA[0].lead, plansB[0].lead) : 0);
+      OpexDecide("V294F_PROBE", "ok=0 iters=0 manh=" + manh);
+    }
+    return null;
+  }
+  local revRes = revPf.FindPath(iterationCap);
+  local iters = revPf.LastConsumed();
+  local ok = (revRes != null && revRes != false);
+  if (DECISION_LOG) {
+    local manh = (candidate != null && ("distance" in candidate)) ? candidate.distance :
+                 (plansA.len() > 0 && plansB.len() > 0 ? AIMap.DistanceManhattan(plansA[0].lead, plansB[0].lead) : 0);
+    OpexDecide("V294F_PROBE", "ok=" + (ok ? 1 : 0) + " iters=" + iters + " manh=" + manh);
+  }
+  if (!ok) return null;
+  local revTiles = OpexPathTiles(revRes);
+  revTiles.reverse();
+  return {
+    path = revRes,
+    tiles = revTiles,
+    structures = [],
+    iterations = iters,
+    stop = "OK",
+    done = true,
+    segments = 1,
+    backtracks = 0,
+    localChoices = 0,
+  };
+}
+
 /* Une tranche d'A*. `spent` est le cumul DEJA consomme (denominateur du classement : mesurer,
  * pas estimer, et surtout pas remettre a zero d'une tranche a l'autre). `sliceIters` borne
  * CETTE tranche ; passer iterationBudget reconstitue la boucle bloquante historique.

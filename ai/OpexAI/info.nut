@@ -675,6 +675,13 @@ class OpexAIInfo extends AIInfo {
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0, flags = 0, step_size = 1
     });
+    AddSetting({
+      name = "v294_rail_reverse_probe",
+      description = "V294f: reverse A* probe before rail search (sources = B, goals = A) bounded by N iterations (e.g. 300, like AAA); 0 = off (default), >0 = iteration cap",
+      min_value = 0, max_value = 5000,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0, flags = 0, step_size = 50
+    });
   }
 }
 
