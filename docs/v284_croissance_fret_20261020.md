@@ -152,3 +152,27 @@ volume `openttd-lab-home` présent, aucune campagne moteur en cours.
 Montage : `/home/deploy/projects/wt-v284:/work`. Harnais `--help` vérifié,
 plafond swap égal aux 2 Go de RAM. Campagne prévue :
 `v284_smoke_42x6_20261020`, N=3, un bras actif contre AAA, sans règle A/B.
+
+## Smoke, avant l'exposition
+
+`v284_smoke_42x6_20261020`, code `65afb7a`, arbre propre :
+bundle `978f1e918b544887db02f50d8eae95ab428cb3a35a5b31040d8383997b67bbaf`,
+manifeste `8e1fdb41485e2e1246627674073a8c4da9ed304b0f3d1341396af45e31616616`.
+Horizon 1975-12-01, **1/1 partie saine, deux compagnies complètes/actives,
+aucune erreur de script ou erreur non attribuée**.
+
+Six choix, **cinq allongements réussis**, zéro échec ; trois refus traction,
+un délai d'approche expiré puis réussite au choix suivant. Vitesses C41
+avant→après : **99→109, 109→117, 146→157, 139→151, 121→132**.
+Les cinq opérations changent effectivement de locomotive. Capacités
+30→60→90 sur la ligne 16, 60→90 (67), 120→150 (65), 160→180 (61).
+Toutes les longueurs mesurées respectent les bornes. Premier déclenchement
+le 24/03/1974 ; **aucun deuxième train encore exposé**.
+Profit global 2 549 174 £/an : descriptif, pas de témoin OFF dans ce smoke.
+
+Exposition désormais autorisée par ce smoke sain :
+`v284_expo_3x10_20261020`, code IA inchangé, graines **42/7/1234**,
+référence `OpexAI[v284_rail_growth=0,decision_log=1]`,
+variante `OpexAI[v284_rail_growth=3,decision_log=1]`, policy-id `v284`.
+Règle/seuil/horizon/budget tels que pré-enregistrés ci-dessus, une seule
+campagne supplémentaire de six parties, pas de relance économique.
