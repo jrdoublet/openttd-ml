@@ -668,6 +668,13 @@ class OpexAIInfo extends AIInfo {
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0, flags = 0, step_size = 1
     });
+    AddSetting({
+      name = "v294_rail_aaa_costs",
+      description = "V294d: align rail A* cost table with AAAHogEx (tunnel 0/tile + overcost >7 and >11, bridge 100/tile + overcost, level crossing +900, diagonal 67); 0 = off (default), 1 = on",
+      min_value = 0, max_value = 1,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0, flags = 0, step_size = 1
+    });
   }
 }
 

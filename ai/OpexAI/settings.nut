@@ -165,6 +165,10 @@ function OpexLoadSettings()
   if (railWeightPct != null && (railWeightPct == 0 || (railWeightPct >= 100 && railWeightPct <= 400))) {
     V294_RAIL_WEIGHT_PCT = railWeightPct;
   }
+  local aaaCosts = AIController.GetSetting("v294_rail_aaa_costs");
+  if (aaaCosts != null && (aaaCosts == 0 || aaaCosts == 1)) {
+    V294_RAIL_AAA_COSTS = aaaCosts;
+  }
 
   // V246 : paquets adoptes figes ; les interrupteurs de mode restent actifs.
   ROAD_BUILD_ENABLED = MODE_ROAD;

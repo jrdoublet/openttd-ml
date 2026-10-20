@@ -861,6 +861,16 @@ function OpexCreateRailPathfinder(plansA, plansB, ignoredTiles = null, weight = 
   if (weight != null) {
     pathfinder.cost.astar_weight_pct = weight;
   }
+  if (V294_RAIL_AAA_COSTS > 0) {
+    pathfinder.cost.diagonal_tile = 67;
+    pathfinder.cost.bridge_per_tile = 100;
+    pathfinder.cost.tunnel_per_tile = 0;
+    pathfinder.cost.level_crossing = 900;
+    pathfinder.cost.bridge_per_tile_ex = 200;
+    pathfinder.cost.bridge_per_tile_ex2 = 400;
+    pathfinder.cost.tunnel_per_tile_ex = 200;
+    pathfinder.cost.tunnel_per_tile_ex2 = 300;
+  }
   if (outwardSide != null) pathfinder._outwardSide = outwardSide;
   if (guideTiles != null) pathfinder._guideTiles = guideTiles;
   pathfinder.InitializePath(sources, goals, ignoredTiles == null ? [] : ignoredTiles);
@@ -1237,6 +1247,16 @@ function OpexAdvanceSegmentedSearch(state, sliceIters, deadlineTick)
       pathfinder.cost.max_cost = PATHFINDER_MAX_COST;
       if (("weight" in state) && state.weight != null) {
         pathfinder.cost.astar_weight_pct = state.weight;
+      }
+      if (V294_RAIL_AAA_COSTS > 0) {
+        pathfinder.cost.diagonal_tile = 67;
+        pathfinder.cost.bridge_per_tile = 100;
+        pathfinder.cost.tunnel_per_tile = 0;
+        pathfinder.cost.level_crossing = 900;
+        pathfinder.cost.bridge_per_tile_ex = 200;
+        pathfinder.cost.bridge_per_tile_ex2 = 400;
+        pathfinder.cost.tunnel_per_tile_ex = 200;
+        pathfinder.cost.tunnel_per_tile_ex2 = 300;
       }
       if (("outwardSide" in state) && state.outwardSide != null) pathfinder._outwardSide = state.outwardSide;
       if (("guideTiles" in state) && state.guideTiles != null) pathfinder._guideTiles = state.guideTiles;

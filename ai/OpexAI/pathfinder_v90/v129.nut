@@ -481,8 +481,20 @@ class OpexRailPathFinderV129 extends OpexRailPathFinderV90
 			if (distManhattan > 1) {
 				if (AITunnel.GetOtherTunnelEnd(new_tile) == prev_tile) {
 					step_cost = distManhattan * (self._cost_tile + self._cost_tunnel_per_tile);
+					if (self._cost_tunnel_per_tile_ex > 0 && distManhattan > 7) {
+						step_cost += (distManhattan - 7) * self._cost_tunnel_per_tile_ex;
+					}
+					if (self._cost_tunnel_per_tile_ex2 > 0 && distManhattan > 11) {
+						step_cost += (distManhattan - 11) * self._cost_tunnel_per_tile_ex2;
+					}
 				} else {
 					step_cost = distManhattan * (self._cost_tile + self._cost_bridge_per_tile) + self._GetBridgeNumSlopes(new_tile, prev_tile) * self._cost_slope;
+					if (self._cost_bridge_per_tile_ex > 0 && distManhattan > 7) {
+						step_cost += (distManhattan - 7) * self._cost_bridge_per_tile_ex;
+					}
+					if (self._cost_bridge_per_tile_ex2 > 0 && distManhattan > 11) {
+						step_cost += (distManhattan - 11) * self._cost_bridge_per_tile_ex2;
+					}
 				}
 				if (par != null) {
 					local gp = par._prev;
@@ -493,6 +505,9 @@ class OpexRailPathFinderV129 extends OpexRailPathFinderV90
 				}
 			} else {
 				step_cost = self._cost_tile;
+				if (self._cost_level_crossing > 0 && AITile.HasTransportType(new_tile, AITile.TRANSPORT_ROAD)) {
+					step_cost += self._cost_level_crossing;
+				}
 				if (par != null) {
 					local par_tile = par._tile;
 					if (AIMap.DistanceManhattan(par_tile, prev_tile) == 1 && par_tile - prev_tile != prev_tile - new_tile) step_cost = self._cost_diagonal_tile;

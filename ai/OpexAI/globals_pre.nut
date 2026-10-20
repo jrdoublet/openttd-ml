@@ -122,6 +122,8 @@ V259_BRIDGE_RENEW <- 0;
 V277_AIR_PUB_FAST <- 0;
 /* V294c : poids heuristique A* rail unifié à toutes les distances (défaut 0 = inerte). AAA : 200 partout. */
 V294_RAIL_WEIGHT_PCT <- 0;
+/* V294d : table de coûts A* rail alignée sur AAAHogEx (défaut 0 = inerte). */
+V294_RAIL_AAA_COSTS <- 0;
 V172_RAIL_LONG_WEIGHT_DIST <- 100;
 /* Cascade pax par distance decroissante : air seul, air+rail, rail seul,
  * route seule. Le fret accompagne la premiere passe. */
