@@ -1,0 +1,22 @@
+# Prompt — V294g : échec rapide et mémoire des échecs avec expiration (rail)
+
+Dépôt `openttd-ml`, IA OpenTTD `ai/OpexAI/` (Squirrel/NoAI). Lis d'abord `AGENTS.md` (§4, protocole V102), `ai/OpexAI/CLAUDE.md` (pièges Squirrel) et, dans `docs/taches.md`, les entrées **RAIL-ECH** et **V294** (sous-item V294g).
+
+Crée un worktree depuis `master` : `git worktree add -b v294g ../wt-v294g master`. Travaille seulement là. Ne change aucun défaut, ne fusionne rien, ne lance pas de banc moteur.
+
+## Constat (RAIL-ECH, 20/10)
+- AAAHogEx échoue vite et pour pas cher : la médiane de ses échecs de `RouteBuilder` est de 5 jours, surtout `No destStation` (aucun site de gare, décidé avant toute recherche). Il mémorise ensuite **le lieu** (`AddNgPlace … limit:<date>`) et **la paire** (`AddNgPathFindPair`), avec une date d'expiration propre à chaque cas. Code : `ai/AAAHogEx-115/` (grep `AddNgPlace`, `AddNgPathFindPair`, `No destStation`).
+- Chez nous, la mémoire porte seulement sur **la paire** : `_markPairAbandoned(OpexAbandonedPairKey(candidate))` (`lines.nut:236-290`). Elle est appelée sur ABND/SITEA/SITEB/SITEAB/NOPA/STNFAIL (`task_rail.nut:1308`). Le délai vaut `ABANDON_COOLDOWN_DAYS` (365, `globals_post.nut:38`) × le nombre d'échecs, plafonné à 1 825 jours (`_pruneAbandonedPairs`). Une ville ou une industrie sans site de gare échoue donc une fois **par paire** qui la contient, et chaque échec repasse par `OpexPrepareRailRoute`.
+- Le planning des gares (`OpexPrepareRailRoute`, motifs SITEA/SITEB/SITEAB, `builder_rail.nut:656-711`) s'exécute avant l'A* : le refus sur site est déjà précoce, mais rien ne retient le lieu.
+
+## À faire
+1. **Mesure d'abord (sans changer le comportement)** : avec les journaux existants (`RAIL_ATTEMPT`, `ABANDON_PAIR`, `PROJECT_DISCARD`), et les JSONL d'un banc récent avec `decision_log=1` (archives `results/worktrees_archives_20261020/`, campagnes `v270_expo_3x10_20261019` ou `v265fix_expo_complete_3x10_20261019`, lire avec `zcat` si `.gz`), compte combien d'échecs SITE* visent une extrémité déjà en échec SITE* pour une autre paire, et le coût en jours de créneau et en opcodes de ces refus répétés. Écris le résultat dans le rapport : si le gain potentiel est négligeable, arrête-toi là et dis-le.
+2. Nouveau réglage `v294_rail_fail_memory` (défaut 0 = master ; 1 = mémoire par lieu ; 2 = mémoire par lieu + expiration selon le motif). `info.nut` (quatre `*_value` à 0), une seule lecture dans `settings.nut`, globale dans `globals_pre.nut`.
+3. Mode 1 : sur SITEA (resp. SITEB), mémoriser l'extrémité source (resp. destination) avec sa date. La clé est l'identifiant de ville ou d'industrie, comme dans `OpexAbandonedPairKey`, pas la tuile. Un candidat rail dont une extrémité est mémorisée est refusé **à la génération** et avant `OpexPrepareRailRoute` : voir `OpexStagedCandidateStillValid` (`candidates_v276.nut:209-226`), `orchestrator.nut:783` et `_tryBuildRailProject` (`task_rail.nut`). Motif de rejet journalisé `v294g_place`. La mémoire est sauvée et rechargée comme `_abandonedPairs` (`persist.nut:608-650`) ; un champ absent au chargement doit donner une table vide.
+4. Mode 2 : expiration par motif au lieu de 365 × n. Base de départ, à justifier dans le rapport : site de gare 2 ans (les villes grandissent lentement) ; ABND 180 jours (le terrain change, et V294h peut reprendre la recherche en fond) ; NOPA 1 an ; STNFAIL 90 jours. Constantes `const` littérales, commentées.
+5. Sous `DECISION_LOG` : `OpexDecide("V294G", "event=place_ban|place_skip|expire key=.. reason=.. until=..")`. Aucun coût au défaut 0.
+6. Tests : `sweeps/test_v294g_fail_memory.py` (défaut 0, une lecture, gardes, sauvegarde/rechargement, aucune globale non déclarée, aucune closure). Relève de 1 les plafonds `AddSetting(` dans les quatre tests listés par le chantier V294h (`test_v246_fixed_policies.py`, `test_v251_inventory.py`, `test_v259_bridge_renew.py`, `test_v284_rail_growth.py`). Lance aussi `sweeps/save_load_roundtrip.py` si possible, sinon dis pourquoi. Suite complète `python3 -m unittest discover -s sweeps -p 'test_*.py'` verte.
+7. Commit sur `v294g` (« V294g: memoire d'echec rail par lieu et expiration par motif, defaut 0 »), sans `ai/AAAHogEx-115`. Rapport : la mesure de l'étape 1, les fichiers et lignes, ce qui est vérifié et ce qui ne l'est pas.
+
+## Critère au banc (pour information)
+Smoke 42×3 avec `decision_log=1` : moins de tentatives SITE* répétées et moins de jours de créneau perdus, sans baisse du nombre de lignes rail posées. Puis porte A 40×3 `gain_short`.
