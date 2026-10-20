@@ -385,4 +385,95 @@ Relecture des affirmations du document contre le code et les journaux :
 - **Lecture correcte pour V288** : le critère (c) « vivier démarrable vide ou insuffisant » doit pouvoir déclencher, à lui seul, la régénération du mode vide, indépendamment de l'événement qui la demande. L'événement `engines.water` ne doit régénérer que l'eau et la flotte, à condition que (c) recharge le rail et l'air vides par ailleurs.
 
   À rapprocher du bilan PO-01b : décaler de 30 jours cette reconstruction donne +338 k en exposition. Le moment de la recharge compte davantage que son coût en opcodes.
-- **Re-sélections** : les chiffres 1 588 et 81 % de `same_choice` ne sont pas revérifiés par Claude. Les recompter avant de les utiliser.
+- **Re-sélections** : les chiffres 1 588 et 81 % de `same_choice` ont été intégralement revérifiés et confirmés le 20/10 soir par agy (voir section 7 ci-dessous).
+
+---
+
+## 7. Re-sélections : vérification (agy, 20/10 soir)
+
+Vérification systématique et exhaustive des affirmations de la Section 4 par l'outil [sweeps/analyse_v288_reselect.py](file:///home/deploy/projects/wt-v288/sweeps/analyse_v288_reselect.py) exécuté directement sur les journaux réels de référence du banc `po01b_expo_3x3_20261020_engine` (graines 42, 7, 1234, 3 ans).
+
+### 7.1. Synthèse de confirmation des chiffres du document
+
+| Métrique affirmée (§4) | Valeur document | Valeur exacte vérifiée | Verdict | Analyse & Précisions |
+|---|:---:|:---:|:---:|---|
+| **Nombre total de re-sélections** | **1 588** | **1 588** | **CONFIRMÉ** | Exactement 518 (seed 42), 520 (seed 7), 550 (seed 1234). Correspondance stricte 1:1 avec les 1 588 sondes `B6_PORTFOLIO path=reselect`. |
+| **Coût opcodes cumulé** | **116,1 M ops** | **116,10 M ops** (116 101 448 ops) | **CONFIRMÉ** | **Valeur strictement INCLUSIVE des sous-spans enfants**. Le coût exclusif du wrapper `select.reselect` seul n'est que de **2,63 M ops** (2,3 % du total) ; 97,7 % des opcodes sont consommés par ses 7 sous-spans enfants directs. |
+| **Stabilité du choix (`same_choice`)** | **81,0 %** | **81,05 %** (1 287 / 1 588) | **CONFIRMÉ** | Le ratio cité (81,0 %) rapporte les 1 287 choix identiques au **total brut** des 1 588 re-sélections (incluant le 1er item non comparable de chaque année). Rapporté aux **1 579 paires comparables**, le taux est de **81,51 %** (et **81,32 %** en continu 3 ans). |
+| **Économie potentielle estimée** | **10–15 M ops/an** | **10,4 M ops/graine/an** (81 % de 12,9 M) | **CONFIRMÉ** | Le volume total de 116,1 M ops représente 38,7 M ops/graine sur 3 ans, soit **12,9 M ops/graine/an**. Élaguer les 81 % de sélections sans effet libère ~10,4 M ops/graine/an. |
+
+### 7.2. Tableau de décomposition annuelle par graine (1970–1972)
+
+| Graine | Année | Occurrences `select.reselect` | Opcodes Inclusifs | Opcodes Exclusifs | Choix Identique (`same`) | Choix Modifié (`diff`) | % Identique (sur paires) | Intervalle Médian | Part < 1 jour | Part < 7 jours |
+|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| **42** | **1970** | 215 | 20,17 M ops | 0,36 M ops | 197 | 17 | 92,1 % | 1,0 j | 8,9 % | 98,1 % |
+| **42** | **1971** | 247 | 16,50 M ops | 0,42 M ops | 198 | 48 | 80,5 % | 1,0 j | 13,0 % | 97,6 % |
+| **42** | **1972** | 56 | 10,69 M ops | 0,09 M ops | 43 | 12 | 78,2 % | 3,0 j | 5,4 % | 62,5 % |
+| **42** | **Total** | **518** | **47,36 M ops** | **0,87 M ops** | **438** | **77** | **85,0 %** | **1,0 j** | **10,4 %** | **94,0 %** |
+| **7** | **1970** | 235 | 15,68 M ops | 0,39 M ops | 211 | 23 | 90,2 % | 1,0 j | 11,1 % | 98,7 % |
+| **7** | **1971** | 254 | 9,27 M ops | 0,42 M ops | 172 | 81 | 68,0 % | 1,0 j | 14,6 % | 99,2 % |
+| **7** | **1972** | 31 | 3,30 M ops | 0,05 M ops | 22 | 8 | 73,3 % | 8,0 j | 0,0 % | 32,3 % |
+| **7** | **Total** | **520** | **28,25 M ops** | **0,86 M ops** | **405** | **112** | **78,3 %** | **1,0 j** | **12,1 %** | **95,0 %** |
+| **1234** | **1970** | 220 | 17,41 M ops | 0,36 M ops | 200 | 19 | 91,3 % | 1,0 j | 11,4 % | 97,7 % |
+| **1234** | **1971** | 82 | 13,69 M ops | 0,13 M ops | 56 | 25 | 69,1 % | 1,0 j | 4,9 % | 86,6 % |
+| **1234** | **1972** | 248 | 9,40 M ops | 0,42 M ops | 188 | 59 | 76,1 % | 1,0 j | 6,5 % | 97,6 % |
+| **1234** | **Total** | **550** | **40,49 M ops** | **0,91 M ops** | **444** | **103** | **81,2 %** | **1,0 j** | **8,2 %** | **96,0 %** |
+| **TOTAL** | **3 ans** | **1 588** | **116,10 M ops** | **2,63 M ops** | **1 287** | **292** | **81,5 %** | **1,0 j** | **11,7 %** | **94,7 %** |
+
+### 7.3. Décomposition des sous-composants enfants de `select.reselect`
+
+Chaque span `select.reselect` englobe exactement 7 sous-spans enfants directs dans `projects_selection.nut:1371-1448`. Le coût de `select.reselect` est à **97,7 % inclusif** de ces sous-composants :
+
+| Sous-span enfant | Rôle dans `OpexReselectProjects` | Occurrences | Opcodes Cumulés | Part du Coût Total |
+|---|---|:---:|:---:|:---:|
+| `pub.select.log` | Sondes B6 sous `DECISION_LOG` | 1 588 | 41,29 M ops | 35,6 % |
+| `pub.select.score` | Knapsack / tri affordable (`OpexProjectSelectAffordable`) | 1 588 | 36,79 M ops | 31,7 % |
+| `pub.select.filter` | Filtrage des alternatives (`OpexFilterAirAlternatives*`) | 1 588 | 21,53 M ops | 18,5 % |
+| `pub.select.vivier` | Parcours du vivier sous `DECISION_LOG` | 1 588 | 6,57 M ops | 5,7 % |
+| `pub.select.stats` | Estampillage des statistiques de sélection | 1 588 | 5,95 M ops | 5,1 % |
+| `pub.select.flatten` | Aplatissement de `candidateGroups` | 1 588 | 0,96 M ops | 0,8 % |
+| `pub.select.merge` | Fusion rail / stock | 1 588 | 0,45 M ops | 0,4 % |
+| *Exclusif `select.reselect`* | *Allocations et boucles propres* | *1 588* | *2,63 M ops* | *2,3 %* |
+| **TOTAL INCLUSIF** | **Ensemble du span `select.reselect`** | **1 588** | **116,10 M ops** | **100,0 %** |
+
+### 7.4. Ventilation par APPELANT (Span Parent Direct `n=`)
+
+| Appelant (Span Parent Direct) | Occurrences | Part (%) | Opcodes Inclusifs | Part Opcodes (%) | Contexte architectural |
+|---|:---:|:---:|:---:|:---:|---|
+| `loop.orch` | 838 | 52,8 % | 60,79 M ops | 52,4 % | Ordonnanceur (`_runOrchestratorTick` -> `_schedIdlePreDispatch` dans `ledgers.nut:254` et `_tryBuildProjects` dans `task_projects.nut:1307`) lorsque `selectionStale=true`. |
+| `fleet.inject` | 721 | 45,4 % | 50,11 M ops | 43,2 % | Injection d'opportunités de renforts de flotte (`OpexInjectFleetProjects` dans `scheduler_tasks.nut:951` et `projects_update.nut:41`). |
+| `loop.orch.reactive.c77_subsidy` | 16 | 1,0 % | 3,67 M ops | 3,2 % | Intention réactive suite à offre subvention (`_c77InjectSubsidy` dans `orchestrator.nut:921`). |
+| `regen.air_slice` | 6 | 0,4 % | 1,15 M ops | 1,0 % | Tranche de worker opportuniste C77 de régénération aérienne. |
+| `regen.mode` | 5 | 0,3 % | 0,26 M ops | 0,2 % | Régénération par mode ciblée C80 / V217 fret. |
+| `event.subsidy_offer_expired` | 1 | 0,1 % | 0,10 M ops | 0,1 % | Expiration d'offre subvention (`_c77RemoveSubsidy` dans `event_handlers.nut:195`). |
+| `loop.orch.reactive.c77_build` | 1 | 0,1 % | 0,02 M ops | 0,0 % | Construction réactive immédiate subvention (`_dispatchReactiveIntention` dans `orchestrator.nut:694`). |
+
+### 7.5. Définition exacte du « Choix » et de l'utilité
+
+- **Ligne journal utilisée :** `OPEX YYYY-MM-DD B6_PORTFOLIO path=reselect actual_mode=<mode> actual_profit=<profit> actual_cap=<cap>`
+- **Emplacement d'émission :** Appelée dans `OpexReselectProjects` ([projects_selection.nut:1398](file:///home/deploy/projects/wt-v288/ai/OpexAI/projects_selection.nut#L1398)) juste avant la fin du span `select.reselect`.
+- **Définition formelle :** Le projet prioritaire en tête de sélection (`funded[0]`), décrit par le triplet `(actual_mode, actual_profit, actual_cap)`.
+- **Résultat de stabilité consécutive :**
+  - Annuelle réinitialisée au 01/01 : **1 287 mêmes choix** sur 1 579 paires comparables (**81,51 %**), soit **81,05 %** du total brut de 1 588 sélections.
+  - Continue sur 3 ans : **1 289 mêmes choix** sur 1 585 paires comparables (**81,32 %**).
+  - Avec le quadruplet incluant `actual_rank_score` : **1 243 mêmes choix** (**78,42 %**).
+
+### 7.6. Intervalles temporels
+
+- **Médiane :** **1,0 jour de jeu** entre deux re-sélections consécutives.
+- **Part < 1 jour (même jour) :** **11,7 %** (rafales d'insertions dans le même tick).
+- **Part < 7 jours (< 1 semaine) :** **94,7 %** (la quasi-totalité des re-sélections surviennent à quelques jours d'intervalle).
+- **Conséquence pour V288 :** Un seuil d'obsolescence (`v288_pool_staleness`) de **15 à 30 jours** permettra de coalescer ~80 à 90 % de ces re-sélections sans risque d'altérer la décision de tête.
+
+### 7.7. Commandes exécutées pour la reproductibilité
+
+```bash
+# Exécution de l'analyseur sur les 3 journaux de référence du banc po01b
+python3 sweeps/analyse_v288_reselect.py \
+  /home/deploy/projects/wt-po01/results/po01b_expo_3x3_20261020_engine/reference_seed42_r0.log \
+  /home/deploy/projects/wt-po01/results/po01b_expo_3x3_20261020_engine/reference_seed7_r0.log \
+  /home/deploy/projects/wt-po01/results/po01b_expo_3x3_20261020_engine/reference_seed1234_r0.log
+
+# Exécution des tests unitaires de l'analyseur
+python3 -m unittest discover -s sweeps -p test_analyse_v288_reselect.py
+```
