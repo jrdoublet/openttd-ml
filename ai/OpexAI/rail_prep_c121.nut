@@ -110,7 +110,13 @@ function OpexAI::_c121RailPrepDropStock(candidate, reason, ops, ticks)
       && ("src" in candidate) && ("dst" in candidate)
       && this._railReadyStock != null) {
     local pairKey = OpexProjectPairKey(candidate.kind, candidate.cargo, candidate.src, candidate.dst);
-    if (pairKey in this._railReadyStock) delete this._railReadyStock[pairKey];
+    if (pairKey in this._railReadyStock) {
+      local entry = this._railReadyStock[pairKey];
+      /* V289 : un trace du reliquat rejete a la revalidation n'est pas refait aussitot. */
+      if (entry != null && ("v289" in entry) && entry.v289)
+        this._railStockCooldown[pairKey] <- AIDate.GetCurrentDate() + V289_STOCK_TTL_DAYS;
+      delete this._railReadyStock[pairKey];
+    }
   }
   if ("railPlan" in candidate) candidate.railPlan = null;
   if ("c121PrepStock" in candidate) candidate.c121PrepStock = false;

@@ -31,7 +31,7 @@ function OpexAI::_v289CheckMonthlyLog()
                  + " ops_town=" + this._v289OpsTown
                  + " skipped_low=" + this._v289SkippedLow
                  + " rail_year1=" + this._v289RailWhy.year1 + " rail_full=" + this._v289RailWhy.full
-                 + " rail_low=" + this._v289RailWhy.low + " rail_none=" + this._v289RailWhy.none
+                 + " rail_gap=" + this._v289RailWhy.gap + " rail_low=" + this._v289RailWhy.low + " rail_none=" + this._v289RailWhy.none
                  + " stock=" + (this._railReadyStock != null ? this._railReadyStock.len() : -1)
                  + " rail_flight=" + (this._v289RailSearch != null ? 1 : 0));
     }
@@ -41,7 +41,7 @@ function OpexAI::_v289CheckMonthlyLog()
     this._v289OpsMap = 0;
     this._v289OpsTown = 0;
     this._v289SkippedLow = 0;
-    this._v289RailWhy = { year1 = 0, full = 0, low = 0, none = 0 };
+    this._v289RailWhy = { year1 = 0, full = 0, gap = 0, low = 0, none = 0 };
   }
 }
 
@@ -96,6 +96,7 @@ function OpexAI::_v289ExpireStock(curDate)
   foreach (pairKey in stale) {
     local entry = this._railReadyStock[pairKey];
     delete this._railReadyStock[pairKey];
+    this._railStockCooldown[pairKey] <- curDate + V289_STOCK_TTL_DAYS;
     if (entry.candidate != null) {
       if ("railPlan" in entry.candidate) entry.candidate.railPlan = null;
       if ("c121PrepStock" in entry.candidate) entry.candidate.c121PrepStock = false;
@@ -120,9 +121,17 @@ function OpexAI::_v289StepRail()
   if (slot == null) {
     this._v289ExpireStock(curDate);
     if (this._railReadyStock.len() >= C121_RAIL_PREP_MAX) { this._v289RailWhy.full++; return false; }
+    /* Un demarrage (quais + plans) coute ~190 k opcodes mesures : il franchit le
+     * tick. Un seul essai par V289_RAIL_START_GAP_DAYS, reussi ou non. */
+    if (this._v289RailStartDate >= 0 && curDate - this._v289RailStartDate < V289_RAIL_START_GAP_DAYS) {
+      this._v289RailWhy.gap++;
+      return false;
+    }
     if (AIController.GetOpsTillSuspend() < V289_RAIL_START_MIN) { this._v289RailWhy.low++; return false; }
     local candidate = this._v289PickRailCandidate(curDate);
     if (candidate == null) { this._v289RailWhy.none++; return false; }
+    this._v289RailStartDate = curDate;
+    local startMark = OpexOpsMeasureBegin();
     local savedSearch = this._railSearch;
     local savedWorker = this._activeWorker;
     this._railSearch = null;
@@ -130,8 +139,10 @@ function OpexAI::_v289StepRail()
     this._v289RailSearch = started ? this._railSearch : null;
     this._railSearch = savedSearch;
     this._activeWorker = savedWorker;
-    if (started && DECISION_LOG) OpexDecide("V289_RAIL_START", "src=" + candidate.src + " dst=" + candidate.dst
-        + " kind=" + candidate.kind + " budget=" + this._v289RailSearch.iterationBudget);
+    local startOps = OpexOpsMeasureEnd(startMark);
+    if (DECISION_LOG) OpexDecide("V289_RAIL_START", "src=" + candidate.src + " dst=" + candidate.dst
+        + " kind=" + candidate.kind + " ok=" + (started ? 1 : 0) + " ops=" + startOps
+        + " budget=" + (started ? this._v289RailSearch.iterationBudget : 0));
     return started;
   }
   /* Le chantier reel a pris la meme paire : la preparation ne sert plus. */

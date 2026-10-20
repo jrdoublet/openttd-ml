@@ -126,6 +126,7 @@ const V289_SLACK_MIN = 2500;
  * comprise) ; trace en vol ou depose au stock perime apres ce delai. */
 const V289_RAIL_START_MIN = 6000;
 const V289_STOCK_TTL_DAYS = 180;
+const V289_RAIL_START_GAP_DAYS = 30;
 V172_RAIL_LONG_WEIGHT_DIST <- 100;
 /* Cascade pax par distance decroissante : air seul, air+rail, rail seul,
  * route seule. Le fret accompagne la premiere passe. */
