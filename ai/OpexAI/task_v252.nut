@@ -6,7 +6,6 @@
 
 function OpexAI::_dispatchV252AirEngineRefresh(task, year)
 {
-  if (V252_AIR_ENGINE_REFRESH != 2) return false;
   local date = AIDate.GetCurrentDate();
   local ym = year * 12 + AIDate.GetMonth(date);
   if (this._v252RefreshMonth == ym) return false;

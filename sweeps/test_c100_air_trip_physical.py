@@ -51,11 +51,12 @@ class C100AirTripPhysicalTests(unittest.TestCase):
     def test_economics_passes_engine_and_airport_type(self):
         self.assertGreaterEqual(
             AIR.count("OpexAirTripModel(plane.speed, plane.capacity, distance, plane.id, airport.type,"),
-            2,
+            1,
         )
 
     def test_physical_trip_memo_key_contains_airport_type(self):
-        self.assertIn('plane.id + "|" + airport.type + "|" + distance', AIR)
+        self.assertNotIn("AIR_TRIP_MEMO", AIR)
+        self.assertIn("forcePhysicalTiming, forceC100RankReplay);", AIR)
 
 
 if __name__ == "__main__":

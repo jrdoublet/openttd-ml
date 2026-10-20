@@ -88,10 +88,10 @@ function OpexGenerateModeProjects(projects, catalog, budget, lines, abandonedPai
   } else if (mode == "air") {
     local mark = OpexOpsMeasureBegin();
     local plans = [];
-    if (C80_AIR_CHOICE_MEMO) AIR_CHOICE_MEMO_STATE = 2;
+
     local best = OpexAirPlans(catalog, lines, 0, plans, abandonedPairs, PAX_BAND_ALL,
                               entityKind == "town" ? entityId : -1);
-    AIR_CHOICE_MEMO_STATE = 0;
+
     local ops = OpexOpsMeasureEnd(mark);
     local perPlan = plans.len() > 0 ? ops / plans.len() : ops;
     generated.airPlan = best;
@@ -202,11 +202,11 @@ function OpexRegenerateAirProjectsSlice(projects, catalog, budget, lines, abando
       sliceState.airCursor.c83Repair <- OpexC83RepairSnapshot(projects);
     }
   }
-  if (C80_AIR_CHOICE_MEMO) AIR_CHOICE_MEMO_STATE = 2;
+
   local best = OpexAirPlans(catalog, lines, 0, sliceState.plans, abandonedPairs, PAX_BAND_ALL,
                             entityKind == "town" ? entityId : -1,
                             sliceState.airCursor, opsBudget, deadlineTick);
-  AIR_CHOICE_MEMO_STATE = 0;
+
   sliceState.ops += OpexOpsMeasureEnd(mark);
   if (!("done" in sliceState.airCursor) || !sliceState.airCursor.done) {
     if (spAirSlice != null) OpexSpanEnd(spAirSlice);

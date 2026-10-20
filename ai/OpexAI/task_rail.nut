@@ -264,7 +264,7 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
 
       if (OPEX_ECONOMY_OPCODE_COMPAT_FALSE) {}
 
-      if (V178_RAIL_SHARED_DEST && !v233Graft && !("joinPlatform" in candidate)) {
+      if (!v233Graft && !("joinPlatform" in candidate)) {
         this._tryAttachSharedDest(candidate);
       }
 

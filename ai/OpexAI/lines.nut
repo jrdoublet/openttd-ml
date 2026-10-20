@@ -294,7 +294,6 @@ function OpexAI::_markPairAbandoned(key)
  * Délai = ABANDON_COOLDOWN_DAYS * count (plafonné à 5 ans / 1825 jours). */
 function OpexAI::_pruneAbandonedPairs(now)
 {
-  if (ABANDON_COOLDOWN_DAYS <= 0) return;
   local toDelete = [];
   foreach (key, val in this._abandonedPairs) {
     if (typeof val != "table" || !("date" in val)) continue;
@@ -321,7 +320,7 @@ function OpexAI::_tooClose(candidate)
   /* V178 : la ligne rattachee partage volontairement la gare de la ligne existante. */
   local joinLineId = ("joinLineId" in candidate) ? candidate.joinLineId : -1;
   local joinStationId = ("joinStationId" in candidate) ? candidate.joinStationId : -1;
-  local isSharedDest = V178_RAIL_SHARED_DEST && ("shared_dest" in candidate) && candidate.shared_dest == 1;
+  local isSharedDest = ("shared_dest" in candidate) && candidate.shared_dest == 1;
   /* V264 : l'extremite B est la gare deja posee a l'industrie. V194 gardait la paire
    * sans jointure et _tooClose la rejetait too_close_no_join (MIN_SEPARATION, main.nut).
    * On n'exempte B que si le candidat porte deja le quai a joindre. A reste controlee. */
@@ -376,7 +375,7 @@ function OpexAI::_tooClose(candidate)
  * est a moins de MIN_SEPARATION, tout en exigeant une source neuve. */
 function OpexAI::_tryAttachSharedDest(candidate)
 {
-  if (!V178_RAIL_SHARED_DEST) return false;
+
   if (candidate == null) return false;
   if (!("kind" in candidate) || candidate.kind != "freight") return false;
   if (!("cargo" in candidate) || !AICargo.IsValidCargo(candidate.cargo)) return false;

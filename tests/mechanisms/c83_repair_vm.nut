@@ -14,8 +14,7 @@ function FxC83Context(anchors, budget = 0) {
 function FxC83Start(ai) {
   local saved = { slot = OpexAirSlotTownId, live = OpexAirSiteStillBuildable,
     find = OpexAirFindSite, served = OpexAirTownServed, second = OpexAirC83SecondSlotOpen,
-    ops = OpexAirCalcDeltaOps, cache = AIR_SITE_CACHE, cacheOn = AIR_SITE_CACHE_ENABLED,
-    pop = V93_AIRPORT_NO_POP_FLOOR };
+    ops = OpexAirCalcDeltaOps, cache = AIR_SITE_CACHE, cacheOn = AIR_SITE_CACHE_ENABLED };
   OpexAirSlotTownId = function(anchor) { return anchor == 101 ? 9 : 1; };
   OpexAirSiteStillBuildable = function(site, airport, plane, reuse, limited = null) {
     return !(site.anchor in FXC83.invalid);
@@ -29,7 +28,6 @@ function FxC83Start(ai) {
   OpexAirTownServed = function(town, lines, diag = null) { return false; };
   OpexAirC83SecondSlotOpen = function(town) { return false; };
   OpexAirCalcDeltaOps = function(tick, ops) { FXC83.ops += 5; return FXC83.ops; };
-  V93_AIRPORT_NO_POP_FLOOR = false;
   local combo = { kind = "large" };
   local airport = { type = 1 };
   for (local caseId = 1; caseId <= 7; caseId++) {
@@ -72,7 +70,6 @@ function FxC83Start(ai) {
   OpexAirFindSite = saved.find; OpexAirTownServed = saved.served;
   OpexAirC83SecondSlotOpen = saved.second; OpexAirCalcDeltaOps = saved.ops;
   AIR_SITE_CACHE = saved.cache; AIR_SITE_CACHE_ENABLED = saved.cacheOn;
-  V93_AIRPORT_NO_POP_FLOOR = saved.pop;
   FXC83 = null;
   AILog.Info("C83_REPAIR_VM complete=1 cases=8 restored=1");
 }

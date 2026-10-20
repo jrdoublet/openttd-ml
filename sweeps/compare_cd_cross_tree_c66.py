@@ -65,7 +65,31 @@ def collect(result_path, opcode=True):
     return data, manifest, records, by_game
 
 
-def compare(refpath, varpath, opcode=True):
+def parse_expected_removed(value):
+    """Parse an explicit, non-empty list; reject typos and duplicate names."""
+    result = {}
+    for item in value.split(","):
+        name, sep, raw = item.strip().partition("=")
+        if not sep or not name or name in result:
+            raise argparse.ArgumentTypeError("Expected unique name=integer entries")
+        try:
+            result[name] = int(raw)
+        except ValueError as exc:
+            raise argparse.ArgumentTypeError("Expected name=integer") from exc
+    return result
+
+
+def validate_settings(reference, variant, expected_removed=None):
+    expected_removed = expected_removed or {}
+    for name, value in expected_removed.items():
+        assert name not in variant, f"Removed setting still in variant: {name}"
+        assert name in reference, f"Removed setting absent from reference: {name}"
+        assert reference[name] == value, f"Unexpected reference value: {name}"
+    retained = {k: v for k, v in reference.items() if k not in expected_removed}
+    assert retained == variant, "Unexpected changed AI setting"
+
+
+def compare(refpath, varpath, opcode=True, expected_removed=None):
     ref, rm, rs, ro = collect(refpath, opcode=opcode)
     var, vm, vs, vo = collect(varpath, opcode=opcode)
     assert ref["years"] == var["years"]
@@ -79,7 +103,7 @@ def compare(refpath, varpath, opcode=True):
     assert rm["libraries"] == vm["libraries"]
     ref_settings = rm["policies"][0]["settings"]["effective"]
     var_settings = vm["policies"][0]["settings"]["effective"]
-    assert ref_settings == var_settings, "Unexpected changed AI setting"
+    validate_settings(ref_settings, var_settings, expected_removed)
     assert rm["sources"]["OpexAI"]["sha256"] != vm["sources"]["OpexAI"]["sha256"], (
         "No source-tree delta to evaluate")
     keys = sorted(rs)
@@ -97,6 +121,8 @@ def compare(refpath, varpath, opcode=True):
         "economic": {},
         "opcode": {},
     }
+    if expected_removed:
+        result["expected_removed"] = dict(expected_removed)
     for metric in ("profit_year", "company_value", "primary_vehicles", "n_stations"):
         diffs = [vs[key][metric] - rs[key][metric] for key in keys]
         reference = [rs[key][metric] for key in keys]
@@ -148,8 +174,11 @@ if __name__ == "__main__":
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--economic-only", action="store_true",
                         help="Validate economic metrics without inventing LOOP_OPS when probes were OFF")
+    parser.add_argument("--expected-removed", type=parse_expected_removed,
+                        help="Only allowed setting removals: name=value[,name=value...]; values in reference")
     args = parser.parse_args()
-    result = compare(args.reference, args.variant, opcode=not args.economic_only)
+    result = compare(args.reference, args.variant, opcode=not args.economic_only,
+                     expected_removed=args.expected_removed)
     args.out.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(json.dumps({"valid": result["valid"], "n": result["n"],
                       "economic": result["economic"]["profit_year"],

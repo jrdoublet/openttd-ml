@@ -78,7 +78,6 @@ function OpexLoadSettings()
   OPEX_LEVEL_LIMITS = !OpexLevelAllows("encroach_rival_catchment") || !OpexLevelAllows("compete_primary_industry")
       || !OpexLevelAllows("airport_rival_town") || !OpexLevelAllows("preempt_last_airport_slot");
 
-
   /* --- 2. Interrupteurs de mode et options rail --- */
 
   // V166 : interrupteurs de mode conserves pour les bancs monomodes.
@@ -99,14 +98,7 @@ function OpexLoadSettings()
   V211_RIVALS = AIController.GetSetting("v211_rivals_log") != 0;
   V216A_GHOST_DEMAND = AIController.GetSetting("v216a_ghost_demand");
   V216F_DWELL_PCT = AIController.GetSetting("v216f_dwell_pct");
-  V178_RAIL_SHARED_DEST = AIController.GetSetting("v178_rail_shared_dest") != 0;
-  V179_RAIL_GEN_DEST_SERVED = AIController.GetSetting("v179_rail_gen_dest_served") != 0;
   V264_CONVERGENT_FREIGHT = AIController.GetSetting("v264_convergent_freight") != 0;
-  local wagonBoost = AIController.GetSetting("v180_rail_wagon_boost_pct");
-  local boostDelay = AIController.GetSetting("v180_rail_wagon_boost_delay");
-  V180_RAIL_WAGON_BOOST_DELAY = (boostDelay != null && boostDelay > 0 && boostDelay <= 5) ? boostDelay : 0;
-  if (V180_START_YEAR < 0) V180_START_YEAR = AIDate.GetYear(AIDate.GetCurrentDate());
-  V180_RAIL_WAGON_BOOST_PCT = (wagonBoost != null && wagonBoost > 0 && wagonBoost <= 400) ? wagonBoost : 0;
   local v182Years = AIController.GetSetting("v195_v182_years");
   V195_V182_YEARS = (v182Years != null && v182Years > 0 && v182Years <= 10) ? v182Years : 0;
   V190_RAIL_DOUBLE_BUILD = AIController.GetSetting("v190_rail_double_build") != 0;
@@ -130,9 +122,6 @@ function OpexLoadSettings()
   local v190Max = AIController.GetSetting("v190_rail_max_trains");
   V190_RAIL_MAX_TRAINS = (v190Max != null && v190Max >= 2 && v190Max <= 8) ? v190Max : 4;
   V249_STATUE = AIController.GetSetting("v249_statue") == 1;
-  V257_RAIL_REFRESH = AIController.GetSetting("v257_rail_refresh") == 1;
-  local v252Refresh = AIController.GetSetting("v252_air_engine_refresh");
-  V252_AIR_ENGINE_REFRESH = (v252Refresh != null && v252Refresh >= 0 && v252Refresh <= 2) ? v252Refresh : 0;
   local rights = AIController.GetSetting("v250_rights");
   if (rights == null || rights < 0 || rights > 4) rights = 0;
   /* V250 entiere reservee au niveau 3 (personnalise) : geste anticoncurrentiel. */
@@ -156,8 +145,6 @@ function OpexLoadSettings()
   RAIL_GEOMETRY_PAIR_MEMORY = AIController.GetSetting("rail_geometry_pair_memory") != 0;
   RAIL_FAILURE_AUDIT = OpexProbeSetting("rail_failure_audit") != 0;
   RAIL_GEOMETRY_LIVE_REPLAN = AIController.GetSetting("rail_geometry_live_replan") != 0;
-
-  V163_MULTI_CARGO = AIController.GetSetting("v163_multi_cargo") == 1;
 
   /* --- 4. Sondes de diagnostic unifiees (9 groupes) --- */
 
@@ -265,7 +252,6 @@ function OpexLoadSettings()
   C83_FIXES = AIController.GetSetting("c83_fixes") != 0;
   C83_LOCAL_REPAIR = AIController.GetSetting("c83_local_repair") != 0;
   C83_PREEMPT_OPEN = AIController.GetSetting("c83_preempt_open") != 0;
-  V93_AIRPORT_NO_POP_FLOOR = AIController.GetSetting("v93_airport_no_pop_floor") != 0;
   V95_AIR_POST73_YEAR = -1;
   V134_AIR_P2P_SATURATED_HUB = AIController.GetSetting("v134_air_p2p_saturated_hub") != 0;
   V133_AIR_BUILD_RETRY = AIController.GetSetting("v133_air_build_retry") != 0;
@@ -433,9 +419,6 @@ function OpexLoadSettings()
   C67_WATER_EXPOSURE = OpexProbeSetting("c67_water_exposure_probe") != 0;
   C67_SLACK_HOOK = C67_TERRAIN_MAP || C67_WATER_EXPOSURE;
   /* C77 corrige est permanent et repose sur le socle du double registre. */
-  C76_FREIGHT_ROTATION = (AIController.GetSetting("c76_freight_rotation") != 0);
-  C80_AIR_CHOICE_MEMO = AIController.GetSetting("c80_air_choice_memo") != 0;
-  C80_AIR_EVAL_FAST = AIController.GetSetting("c80_air_eval_fast") != 0;
   C41_RAIL_LOST_SIGNAL_REPAIR = false;
   C41_RAIL_LOST_JUNCTION_REPAIR = false;
   local railRefill = AIController.GetSetting("v217_rail_refill");

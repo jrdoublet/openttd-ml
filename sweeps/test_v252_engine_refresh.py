@@ -1,9 +1,7 @@
 """V252 : contrats statiques de la modernisation de la flotte aerienne.
 
-Reglage entier v252_air_engine_refresh, defaut 0, lu une fois ;
-0 = inerte au defaut (aucun opcode supplementaire hors test de globale),
-1 = meilleur avion achetable sur renfort et remplacement apres crash,
-2 = mode 1 + remplacement actif mensuel quand riche, sans montant fixe en livres.
+Mode 2 fige par V263b : meilleur avion sur renfort/crash et remplacement
+actif mensuel quand riche, sans montant fixe en livres.
 """
 from pathlib import Path
 import re
@@ -28,53 +26,24 @@ class TestV252EngineRefresh(unittest.TestCase):
         cls.add_plane = _body(cls.fleet, "function OpexAirAddPlane(line, catalog = null, lines = null)")
         cls.refleet = _body(cls.fleet, "function OpexAirRefleetCrashedPlane(line, catalog = null)")
 
-    def test_setting_declared_default_two(self):
-        block = re.search(
-            r'name = "v252_air_engine_refresh",(.*?)\}\);', self.sources["info.nut"], re.S)
-        self.assertIsNotNone(block)
-        body = block.group(1)
-        self.assertIn("min_value = 0", body)
-        self.assertIn("max_value = 2", body)
-        self.assertIn("step_size = 1", body)
-        for level in ("easy_value", "medium_value", "hard_value", "custom_value"):
-            self.assertRegex(body, level + r" = 2\b")  # defaut 2 depuis le 18/10 (portes A et B)
-        self.assertIn("V252_AIR_ENGINE_REFRESH <- 2;", self.sources["globals_pre.nut"])
+    def test_setting_frozen_at_two(self):
+        # V263 : mode 2 qualifie (portes A et B du 18/10), fige ; reglage retire.
+        for name, text in self.sources.items():
+            self.assertNotIn('GetSetting("v252_air_engine_refresh")', text, name)
+            self.assertNotIn("V252_AIR_ENGINE_REFRESH", text, name)
+        self.assertNotIn('name = "v252_air_engine_refresh"', self.sources["info.nut"])
         self.assertIn("V252_CASH_STOP <- true;", self.sources["globals_pre.nut"])
 
-    def test_setting_read_once(self):
-        reads = [(name, text.count('GetSetting("v252_air_engine_refresh")'))
-                 for name, text in self.sources.items()]
-        self.assertEqual(sum(count for _, count in reads), 1)
-        self.assertIn('AIController.GetSetting("v252_air_engine_refresh")',
-                      self.sources["settings.nut"])
-
-    def test_zero_cost_guards(self):
-        self.assertTrue(self.dispatch)
-        guard = "if (V252_AIR_ENGINE_REFRESH != 2) return false;"
-        self.assertIn(guard, self.dispatch)
-        guard_at = self.dispatch.index(guard)
-        for api in ("AIDate", "AICompany", "AITown", "AIStation", "AIVehicle",
-                    "AIAccounting", "AITestMode", "OpexDecide", "V252_CASH_STOP"):
-            found = self.dispatch.find(api)
-            if found >= 0:
-                self.assertGreater(found, guard_at, api)
-
-        # Main queue enqueue guard
+    def test_always_on(self):
         start = self.sources["main.nut"]
-        appended = 'this._taskQueue.append({ name = "v252_air_engine_refresh", dueCycle = 0, enabled = V252_AIR_ENGINE_REFRESH == 2 });'
+        appended = 'this._taskQueue.append({ name = "v252_air_engine_refresh", dueCycle = 0, enabled = true });'
         self.assertIn(appended, start)
-
-        # Scheduler dispatch guard
         sched = self.sources["scheduler.nut"]
         self.assertIn('if (task.name == "v252_air_engine_refresh")', sched)
-
-        # air_fleet.nut guards for Mode 1
-        self.assertIn("V252_AIR_ENGINE_REFRESH >= 1", self.add_plane)
-        self.assertIn("V252_AIR_ENGINE_REFRESH >= 1", self.refleet)
-
-        # Cash stop hook covers both settings
+        self.assertIn("if (catalog != null) {", self.add_plane)
+        self.assertIn("if (catalog != null) {", self.refleet)
         hook_v249 = 'if (V249_STATUE && c75StopReason == "cash") ::V249_CASH_STOP = true;'
-        hook_v252 = 'if (V252_AIR_ENGINE_REFRESH == 2 && c75StopReason == "cash") ::V252_CASH_STOP = true;'
+        hook_v252 = 'if (c75StopReason == "cash") ::V252_CASH_STOP = true;'
         self.assertEqual(self.sources["task_projects.nut"].count(hook_v249), 1)
         self.assertEqual(self.sources["task_projects.nut"].count(hook_v252), 1)
 

@@ -71,13 +71,8 @@ class V931AirDemandTests(unittest.TestCase):
         self.assertNotIn('name = "v93_air_demand_production"', self.info)
         self.assertNotIn("V93_AIR_DEMAND_PRODUCTION", self.globals)
         self.assertNotIn('GetSetting("v93_air_demand_production")', self.settings)
-        self.assertEqual(defaults["v93_airport_no_pop_floor"], 1)
-        self.assertIn("V93_AIRPORT_NO_POP_FLOOR <- true;", self.globals)
+        self.assertNotIn("v93_airport_no_pop_floor", defaults)
         self.assertIn("V93_AIRPORT_MIN_POP <- 100;", self.globals)
-        self.assertIn(
-            'V93_AIRPORT_NO_POP_FLOOR = AIController.GetSetting("v93_airport_no_pop_floor") != 0;',
-            self.settings,
-        )
         self.assertIn("AIR_PAX_REVENUE_CALIBRATION_PCT <- 104;", self.globals)
         self.assertNotIn("C82_ENGINE_CALIBRATION", self.globals)
         self.assertNotIn("v93_air_line_pax", self.info)
