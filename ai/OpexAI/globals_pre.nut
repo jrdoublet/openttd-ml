@@ -131,6 +131,11 @@ const V289_STOCK_TTL_DAYS = 365;
 const V289_STOCK_MAX = 6;
 const V289_SEARCH_TTL_DAYS = 180;
 const V289_RAIL_START_GAP_DAYS = 30;
+/* V289 bit 4 : FUND_BUILDINGS (3 mois de croissance acceleree, town_cmd.cpp:3559). Gain = maisons
+ * supplementaires x habitants par maison x recette annuelle par habitant de nos lignes voyageurs/courrier
+ * de la ville, sur un horizon fixe ; la part des nouvelles maisons dans notre desserte est prudente. */
+const V289_TOWN_HORIZON_YEARS = 5;
+const V289_TOWN_CATCH_PCT = 50;
 V172_RAIL_LONG_WEIGHT_DIST <- 100;
 /* Cascade pax par distance decroissante : air seul, air+rail, rail seul,
  * route seule. Le fret accompagne la premiere passe. */

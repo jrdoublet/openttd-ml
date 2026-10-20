@@ -4,7 +4,7 @@
  * Bitmask v289_slack_workers :
  *   - bit 1 : worker rail (A* de preparation dans un creneau dedie, trace au stock)
  *   - bit 2 : cartographie (un pas de _c67TerrainSlackStep)
- *   - bit 4 : croissance urbaine (TOWN_ACTION_FUND_BUILDINGS sous garde de richesse, mensuel)
+ *   - bit 4 : croissance urbaine (TOWN_ACTION_FUND_BUILDINGS si le gain predit couvre le cout, mensuel)
  *
  * Contrat d'opcodes :
  * - Arret immediat si GetOpsTillSuspend() < V289_SLACK_MIN (2500).
@@ -305,10 +305,40 @@ function OpexAI::_v289StepMap()
   return hooksAfter > hooksBefore;
 }
 
+/* Maisons gagnees par 3 mois de FUND_BUILDINGS, d'apres GetNormalGrowthRate (town_cmd.cpp:3836-3859) :
+ * intervalle m(gares actives n) >> 1 (town_growth_rate = 2), /2 pour une metropole, / (maisons/50 + 1),
+ * en ticks de croissance (70 ticks de jeu, 74 par jour). n n'est pas expose : on retient celui dont
+ * l'intervalle normal predit est le plus proche de GetGrowthRate. */
+function OpexV289FundExtraHouses(townId)
+{
+  local houses = AITown.GetHouseCount(townId);
+  local rate = AITown.GetGrowthRate(townId);
+  if (houses <= 0 || rate <= 0) return 0.0;
+  local normal = [320, 420, 300, 220, 160, 100];
+  local funded = [120, 120, 120, 100, 80, 60];
+  local div = houses / 50 + 1;
+  local city = AITown.IsCity(townId);
+  local best = -1, bestErr = 0, bestNormal = 0.0, bestFunded = 0.0;
+  for (local n = 0; n < 6; n++) {
+    local mn = normal[n] >> 1, mf = funded[n] >> 1;
+    if (city) { mn /= 2; mf /= 2; }
+    local dn = ((mn / div) + 1) * 70.0 / 74.0;
+    local df = ((mf / div) + 1) * 70.0 / 74.0;
+    local err = dn > rate ? dn - rate : rate - dn;
+    if (best < 0 || err < bestErr) { best = n; bestErr = err; bestNormal = dn; bestFunded = df; }
+  }
+  /* Le financement ne descend pas sous une maison par 2 x 70 ticks (town_cmd.cpp:3564). */
+  if (bestFunded < 140.0 / 74.0) bestFunded = 140.0 / 74.0;
+  local extra = 90.0 / bestFunded - 90.0 / bestNormal;
+  return extra > 0 ? extra : 0.0;
+}
+
+/* Bit 4 : au plus un financement par mois, dans la ville ou le gain predit est le plus grand,
+ * seulement s'il couvre le cout sur V289_TOWN_HORIZON_YEARS. Pas de reserve de caisse (decision
+ * utilisateur du 20/10) ; la caisse restante doit seulement couvrir le projet le plus cher encore
+ * liste, pour ne jamais prendre l'argent d'un chantier du portefeuille. Zero achat est valide. */
 function OpexAI::_v289StepTown()
 {
-  /* Une seule tentative par mois : le parcours des lignes et la sonde de cout
-   * (AITestMode) ne se repetent pas a chaque reliquat. */
   local today = AIDate.GetCurrentDate();
   local stamp = AIDate.GetYear(today) * 12 + AIDate.GetMonth(today);
   if (this._v289TownMonth == stamp) return false;
@@ -318,48 +348,44 @@ function OpexAI::_v289StepTown()
     if (DECISION_LOG) OpexDecide("V289_TOWN_SKIP", "reason=loan loan=" + loan);
     return false;
   }
-
-  local curDate = AIDate.GetCurrentDate();
   if (this._v289TownFundDate == null) this._v289TownFundDate = {};
 
+  /* Recette annuelle de nos lignes voyageurs/courrier par ville : chaque extremite charge,
+   * le profit de la ligne est partage entre ses deux villes. Le fret ne depend pas des maisons. */
   local byTown = {};
   if (this._lines != null) {
     foreach (line in this._lines) {
-      if (line == null) continue;
+      if (line == null || (("kind" in line) && line.kind == "freight")) continue;
       local profit = OpexV249LineProfit(line);
-      local seenTown = {};
+      if (profit <= 0) continue;
+      local towns = [];
       foreach (endName in ["A", "B"]) {
         local stationId = OpexLineStationId(line, endName);
         if (stationId < 0) continue;
         local townId = AIStation.GetNearestTown(stationId);
-        if (!AITown.IsValidTown(townId)) continue;
-        if (townId in seenTown) continue;
-        seenTown[townId] <- 1;
-        if (!(townId in byTown)) byTown[townId] <- { profit = 0, lines = 0 };
-        byTown[townId].profit += profit;
-        byTown[townId].lines++;
+        if (AITown.IsValidTown(townId) && (towns.len() == 0 || towns[0] != townId)) towns.append(townId);
+      }
+      if (towns.len() == 0) continue;
+      local share = profit / 2;
+      foreach (townId in towns) {
+        if (!(townId in byTown)) byTown[townId] <- 0;
+        byTown[townId] += share;
       }
     }
   }
 
-  local bestTown = -1;
-  local bestProfit = 0;
-  local found = false;
-  foreach (townId, info in byTown) {
-    if ((townId in this._v289TownFundDate) && (curDate - this._v289TownFundDate[townId] < 182)) {
-      continue;
-    }
-    if (!AITown.IsActionAvailable(townId, AITown.TOWN_ACTION_FUND_BUILDINGS)) {
-      continue;
-    }
-    if (!found || info.profit > bestProfit || (info.profit == bestProfit && townId < bestTown)) {
-      found = true;
-      bestTown = townId;
-      bestProfit = info.profit;
-    }
+  local bestTown = -1, bestGain = 0, bestExtra = 0.0, bestProfit = 0;
+  foreach (townId, profit in byTown) {
+    if ((townId in this._v289TownFundDate) && (today - this._v289TownFundDate[townId] < 90)) continue;
+    if (!AITown.IsActionAvailable(townId, AITown.TOWN_ACTION_FUND_BUILDINGS)) continue;
+    local pop = AITown.GetPopulation(townId);
+    local houses = AITown.GetHouseCount(townId);
+    if (pop <= 0 || houses <= 0) continue;
+    local extra = OpexV289FundExtraHouses(townId);
+    local gain = (extra * pop / houses * profit / pop * V289_TOWN_CATCH_PCT / 100).tointeger();
+    if (gain > bestGain) { bestTown = townId; bestGain = gain; bestExtra = extra; bestProfit = profit; }
   }
-
-  if (!found) {
+  if (bestTown < 0) {
     if (DECISION_LOG) OpexDecide("V289_TOWN_SKIP", "reason=no_town towns=" + byTown.len());
     return false;
   }
@@ -371,25 +397,25 @@ function OpexAI::_v289StepTown()
   }
   local cost = account.GetCosts();
   if (cost <= 0) return false;
-
-  local cash = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
-  local threshold = OpexCashReserve() + OpexV249MaxListedCapital(this._projects);
-  if (cash - cost < threshold) {
-    if (DECISION_LOG) OpexDecide("V289_TOWN_SKIP", "reason=cash cash=" + cash + " cost=" + cost
-                                 + " threshold=" + threshold);
+  local value = bestGain * V289_TOWN_HORIZON_YEARS;
+  local detail = "town=" + bestTown + " pop=" + AITown.GetPopulation(bestTown)
+      + " houses=" + AITown.GetHouseCount(bestTown) + " rate=" + AITown.GetGrowthRate(bestTown)
+      + " extra_houses=" + (bestExtra * 10).tointeger() / 10.0 + " profit=" + bestProfit
+      + " gain_y=" + bestGain + " value=" + value + " cost=" + cost;
+  if (value < cost) {
+    if (DECISION_LOG) OpexDecide("V289_TOWN_SKIP", "reason=unprofitable " + detail);
     return false;
   }
-
-  local executed = AITown.PerformTownAction(bestTown, AITown.TOWN_ACTION_FUND_BUILDINGS);
-  if (executed) {
-    this._v289TownFundDate[bestTown] <- curDate;
-    if (DECISION_LOG) {
-      OpexDecide("V289_TOWN", "town=" + bestTown + " cost=" + cost + " cash=" + cash
-                 + " threshold=" + threshold + " profit=" + bestProfit);
-    }
-    return true;
+  local cash = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+  local threshold = OpexV249MaxListedCapital(this._projects);
+  if (cash - cost < threshold) {
+    if (DECISION_LOG) OpexDecide("V289_TOWN_SKIP", "reason=cash cash=" + cash + " threshold=" + threshold + " " + detail);
+    return false;
   }
-  return false;
+  if (!AITown.PerformTownAction(bestTown, AITown.TOWN_ACTION_FUND_BUILDINGS)) return false;
+  this._v289TownFundDate[bestTown] <- today;
+  if (DECISION_LOG) OpexDecide("V289_TOWN", "cash=" + cash + " threshold=" + threshold + " " + detail);
+  return true;
 }
 
 function OpexAI::_v289SlackWorkers()

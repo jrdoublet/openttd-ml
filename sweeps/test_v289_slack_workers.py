@@ -10,7 +10,7 @@ Vérifie :
 7. Contrôle des 3 travailleurs :
    - bit 1 : worker rail (A* de préparation sans pose, respect de _c121RailPrepHold).
    - bit 2 : cartographie (un pas de _c67TerrainSlackStep).
-   - bit 4 : croissance urbaine (TOWN_ACTION_FUND_BUILDINGS en AITestMode, garde de richesse).
+   - bit 4 : croissance urbaine (TOWN_ACTION_FUND_BUILDINGS si le gain marginal predit couvre le cout mesure en AITestMode).
 8. Journal mensuel V289_SLACK sous DECISION_LOG et spans PROBE_SPAN_TRACE.
 """
 from pathlib import Path
@@ -130,12 +130,30 @@ class TestV289SlackWorkers(unittest.TestCase):
         self.assertIn("AITown.TOWN_ACTION_FUND_BUILDINGS", self.body_town)
         self.assertIn("AITestMode()", self.body_town)
         self.assertIn("AIAccounting()", self.body_town)
-        # Garde de richesse : réserve + max project capital
-        self.assertIn("OpexCashReserve()", self.body_town)
+        # Pas de reserve de caisse (decision du 20/10) ; seul le plus gros projet liste est protege
+        self.assertNotIn("OpexCashReserve()", self.body_town)
         self.assertIn("OpexV249MaxListedCapital(this._projects)", self.body_town)
-        # Cadence 6 mois (182 jours) par ville, une tentative par mois
-        self.assertIn("182", self.body_town)
+        # Gain marginal : maisons supplementaires x recette par habitant, sur l'horizon
+        self.assertIn("OpexV289FundExtraHouses(townId)", self.body_town)
+        self.assertIn("V289_TOWN_HORIZON_YEARS", self.body_town)
+        self.assertIn("V289_TOWN_CATCH_PCT", self.body_town)
+        self.assertIn('line.kind == "freight"', self.body_town)
+        self.assertIn("reason=unprofitable", self.body_town)
+        # Une tentative par mois, 90 jours entre deux financements d'une ville (duree de l'effet)
+        self.assertIn("< 90", self.body_town)
         self.assertIn("if (this._v289TownMonth == stamp) return false;", self.body_town)
+
+    def test_fund_extra_houses_formula(self):
+        body = _function_body(self.task, "function OpexV289FundExtraHouses(townId)")
+        self.assertTrue(body)
+        # Tables de GetNormalGrowthRate (town_cmd.cpp), town_growth_rate=2 => >> 1
+        self.assertIn("[320, 420, 300, 220, 160, 100]", body)
+        self.assertIn("[120, 120, 120, 100, 80, 60]", body)
+        self.assertIn(">> 1", body)
+        self.assertIn("houses / 50 + 1", body)
+        self.assertIn("AITown.IsCity(townId)", body)
+        self.assertIn("AITown.GetGrowthRate(townId)", body)
+        self.assertNotIn("abs(", body)
 
     def test_decision_log_and_spans(self):
         # Decision log mensuel
