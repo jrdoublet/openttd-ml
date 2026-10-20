@@ -1270,6 +1270,61 @@ function OpexSegmentedResult(state, path, stop, done)
   };
 }
 
+/* V294c : le but A* est goal[0] (lead), goal[1] etant le voisin de gare
+ * ajoute une fois le but atteint. Plusieurs quais B sont possibles. */
+function OpexV294cGoalDistance(state, tile)
+{
+  local nearest = null;
+  foreach (goal in state.goals) {
+    local dist = AIMap.DistanceManhattan(tile, goal[0]);
+    if (nearest == null || dist < nearest) nearest = dist;
+  }
+  return nearest == null ? 0 : nearest;
+}
+
+function OpexV294cSourceDistance(state)
+{
+  local nearest = null;
+  foreach (source in state.activeSources) {
+    local dist = OpexV294cGoalDistance(state, source[0]);
+    if (nearest == null || dist < nearest) nearest = dist;
+  }
+  return nearest == null ? 0 : nearest;
+}
+
+/* 0 = poids N, 1 = poids V172 historique, 2 = A* standard a 100 %.
+ * Toute progression >= 10 % de la distance au depart du segment remet N. */
+function OpexV294cSwitchWeight(state, stalled, remaining)
+{
+  if (stalled) {
+    if (state.v294cTier < 2) state.v294cTier++;
+  } else {
+    state.v294cTier = 0;
+  }
+  local nextWeight = V294C_RAIL_WEIGHT_ADAPT;
+  if (state.v294cTier == 1) nextWeight = state.weight;
+  else if (state.v294cTier == 2) nextWeight = 100;
+  if (nextWeight != state.v294cWeight && DECISION_LOG) {
+    OpexDecide("V294C", "event=weight from=" + state.v294cWeight + " to=" + nextWeight
+        + " seg=" + state.segments + " remaining=" + remaining);
+  }
+  state.v294cWeight = nextWeight;
+}
+
+/* NOPA local : une derniere exploration plus large n'est possible que tant
+ * qu'il reste du budget et un niveau de repli. Ne jamais remettre les compteurs
+ * d'iterations a zero. */
+function OpexV294cRetryNoPath(state, deadlineTick)
+{
+  if (state.v294cTier >= 2 || state.iterations >= state.iterationBudget ||
+      state.iterations >= state.timeSafe || AIController.GetTick() >= deadlineTick) return false;
+  OpexV294cSwitchWeight(state, true, OpexV294cSourceDistance(state));
+  state.pathfinder = null;
+  state.segmentPath = false;
+  state.segmentUsed = 0;
+  return true;
+}
+
 function OpexTrySegmentedBacktrack(state)
 {
   if (state.alternatives.len() > 0 && state.backtracks < SEGMENTED_MAX_BACKTRACKS) {
@@ -1277,6 +1332,9 @@ function OpexTrySegmentedBacktrack(state)
     state.prefix = OpexCopySegmentTiles(alternative.prefix);
     state.structures = OpexCopySegmentStructures(alternative.structures);
     state.activeSources = alternative.sources;
+    if (V294C_RAIL_WEIGHT_ADAPT > 0) {
+      OpexV294cSwitchWeight(state, true, OpexV294cSourceDistance(state));
+    }
     state.backtracks++;
     state.nextSegmentLimit = SEGMENTED_RECOVERY_ITERS;
     state.pathfinder = null;
@@ -1311,7 +1369,7 @@ function OpexCreateSegmentedSearch(plansA, plansB, iterationBudget, ignoredTiles
     weight = OpexRailAstarWeight(dist);
   }
 
-  return {
+  local state = {
     activeSources = sources,
     goals = goals,
     ignoredTiles = ignoredTiles == null ? [] : ignoredTiles,
@@ -1338,6 +1396,16 @@ function OpexCreateSegmentedSearch(plansA, plansB, iterationBudget, ignoredTiles
     guideTiles = guideTiles,
     engine = engine,
   };
+  if (V294C_RAIL_WEIGHT_ADAPT > 0) {
+    state.v294cWeight <- V294C_RAIL_WEIGHT_ADAPT;
+    state.v294cTier <- 0;
+    state.v294cLastDist <- OpexV294cSourceDistance(state);
+    if (DECISION_LOG && state.v294cWeight != state.weight) {
+      OpexDecide("V294C", "event=weight from=" + state.weight + " to=" + state.v294cWeight
+          + " seg=0 remaining=" + state.v294cLastDist);
+    }
+  }
+  return state;
 }
 
 /* Une tranche de recherche segmentee. `state.iterations` est le denominateur du
@@ -1360,11 +1428,16 @@ function OpexAdvanceSegmentedSearch(state, sliceIters, deadlineTick)
       state.segments++;
       state.currentSegmentLimit = state.nextSegmentLimit;
       state.nextSegmentLimit = SEGMENTED_SEGMENT_ITERS;
+      if (V294C_RAIL_WEIGHT_ADAPT > 0) {
+        state.v294cLastDist = OpexV294cSourceDistance(state);
+      }
       local pathfinder;
       pathfinder = OpexNewRailPathfinderV129();
       /* Table de cout inchangee : seulement max_cost, comme l'A* classique. */
       pathfinder.cost.max_cost = PATHFINDER_MAX_COST;
-      if (("weight" in state) && state.weight != null) {
+      if (V294C_RAIL_WEIGHT_ADAPT > 0) {
+        pathfinder.cost.astar_weight_pct = state.v294cWeight;
+      } else if (("weight" in state) && state.weight != null) {
         pathfinder.cost.astar_weight_pct = state.weight;
       }
       OpexV294ApplyRailCosts(pathfinder, ("engine" in state) ? state.engine : null);
@@ -1430,6 +1503,7 @@ function OpexAdvanceSegmentedSearch(state, sliceIters, deadlineTick)
         state.pathfinder = null;
         state.segmentPath = false;
         if (OpexTrySegmentedBacktrack(state)) continue;
+        if (V294C_RAIL_WEIGHT_ADAPT > 0 && OpexV294cRetryNoPath(state, deadlineTick)) continue;
         return OpexSegmentedResult(state, null, "NOPA", true);
       }
       if (state.prefix == null) state.prefix = tail;
@@ -1441,6 +1515,7 @@ function OpexAdvanceSegmentedSearch(state, sliceIters, deadlineTick)
     if (path == null) {
       state.pathfinder = null;
       if (OpexTrySegmentedBacktrack(state)) continue;
+      if (V294C_RAIL_WEIGHT_ADAPT > 0 && OpexV294cRetryNoPath(state, deadlineTick)) continue;
       return OpexSegmentedResult(state, null, "NOPA", true);
     }
 
@@ -1472,10 +1547,16 @@ function OpexAdvanceSegmentedSearch(state, sliceIters, deadlineTick)
     }
     if (usable.len() == 0) {
       if (OpexTrySegmentedBacktrack(state)) continue;
+      if (V294C_RAIL_WEIGHT_ADAPT > 0 && OpexV294cRetryNoPath(state, deadlineTick)) continue;
       return OpexSegmentedResult(state, null, "NOPA", true);
     }
 
     local tail = usable[0].tail;
+    if (V294C_RAIL_WEIGHT_ADAPT > 0) {
+      local remaining = OpexV294cGoalDistance(state, tail[tail.len() - 1]);
+      local progress = state.v294cLastDist - remaining;
+      OpexV294cSwitchWeight(state, progress * 10 < state.v294cLastDist, remaining);
+    }
     /* Moins bon -> meilleur : Pop() essaie le deuxieme noeud tout de suite. */
     for (local i = usable.len() - 1; i >= 1; i--) {
       local alternativeTail = usable[i].tail;
