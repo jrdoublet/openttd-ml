@@ -319,7 +319,7 @@ function OpexAI::_dispatchCatalog(task, year)
   if (MODE_AIR) {
     if (this._generationStageMonth < 0)
       this._generationStageMonth = year * 12 + AIDate.GetMonth(AIDate.GetCurrentDate());
-    C121_CATALOG_FIRST_YEAR_ACTIVE = year == (this._generationStageMonth - 1) / 12;
+    C121_CATALOG_FIRST_YEAR_ACTIVE = year == (this._generationStageMonth - 1) / 12 && OpexV293AirEngineBuildable();
   }
   if (C121_CATALOG_TOWN_BATCH_DATE != AIDate.GetCurrentDate()) {
     C121_CATALOG_TOWN_BATCH_DATE = AIDate.GetCurrentDate();

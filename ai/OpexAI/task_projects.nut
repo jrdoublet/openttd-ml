@@ -1985,13 +1985,24 @@ function OpexAI::_tryBuildProjects(year)
   }
   return false;
 }
+/* V293 : l'annee AIR seule (C121) suppose qu'un avion existe. Avant ~1928 (table/engines.h)
+ * aucun ne l'est : sans cette garde, un depart en 1925 gelait toute la premiere annee
+ * (BOOTSTRAP_STAGE air=1 seul, 0 vehicule jusqu'a mi-1926). L'evaluation n'a lieu que
+ * pendant la premiere annee, grace au court-circuit de l'appelant. */
+function OpexV293AirEngineBuildable()
+{
+  local engines = AIEngineList(AIVehicle.VT_AIR);
+  engines.Valuate(AIEngine.IsBuildable);
+  engines.KeepValue(1);
+  return !engines.IsEmpty();
+}
 function OpexAI::_rebuildProjects(fleetPlan, airOverride = null, advanceStage = true)
 {
   if (MODE_AIR) {
     local yearNow = AIDate.GetYear(AIDate.GetCurrentDate());
     if (this._generationStageMonth < 0)
       this._generationStageMonth = yearNow * 12 + AIDate.GetMonth(AIDate.GetCurrentDate());
-    C121_CATALOG_FIRST_YEAR_ACTIVE = yearNow == (this._generationStageMonth - 1) / 12;
+    C121_CATALOG_FIRST_YEAR_ACTIVE = yearNow == (this._generationStageMonth - 1) / 12 && OpexV293AirEngineBuildable();
   }
   /* B6/06.11 : conserver le vivier cache uniquement comme oracle passif. Le
    * rebuild normal reste l'unique producteur du nouveau portefeuille. */
