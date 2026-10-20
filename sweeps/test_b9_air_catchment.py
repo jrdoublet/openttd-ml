@@ -35,16 +35,16 @@ class TestB9AirCatchment(unittest.TestCase):
     def test_probe_is_default_off_and_loaded_once(self):
         defaults = parse_ai_settings(INFO)
         self.assertEqual(defaults["probe_events"], 0)
-        self.assertEqual(defaults["b9_air_catchment_probe"], 0)
-        self.assertEqual(defaults["b9_air_demand_shadow"], 0)
+        # V243 : anciens reglages B9 supprimes, sonde pilotee par probe_events.
+        self.assertNotIn("b9_air_catchment_probe", defaults)
+        self.assertNotIn("b9_air_demand_shadow", defaults)
         self.assertIn("AIR_CATCHMENT_PROBE <- false;", GLOBALS.read_text(encoding="utf-8"))
         self.assertIn(
-            "AIR_CATCHMENT_PROBE = probeEvents || b9CatchmentProbe;",
+            "AIR_CATCHMENT_PROBE = probeEvents;",
             SETTINGS.read_text(encoding="utf-8"),
         )
 
-
-    def test_demand_shadow_is_post_decision_and_default_off(self):
+    def test_demand_shadow_is_post_decision_and_probed_only_when_enabled(self):
         coverage = COVERAGE.read_text(encoding="utf-8")
         task = TASK_AIR.read_text(encoding="utf-8")
         selected = task.index("local buildPlan = plan;")
@@ -52,9 +52,10 @@ class TestB9AirCatchment(unittest.TestCase):
         build = task.index("OpexBuildAirRoute(this._catalog, this._budget, buildPlan")
         self.assertGreater(shadow, selected)
         self.assertLess(shadow, build)
-        self.assertIn("OpexC121PrepareDemandShadow(this._catalog, plan, this._lines);", task)
-        self.assertIn("!B9_AIR_DEMAND_SHADOW && !C121_AIR_ECONOMICS_SHADOW", coverage)
-        self.assertIn("!AIR_CATCHMENT_PROBE && !C117_AIR_THROUGHPUT_PROBE", coverage)
+        # C121 prepare aussi la demande avant choix du moteur ; le build reuse ce plan.
+        economics = (ROOT / "ai" / "OpexAI" / "air_economics_c121.nut").read_text(encoding="utf-8")
+        self.assertIn("OpexC121PrepareDemandShadow(catalog, plan, lines);", economics)
+        self.assertIn('if (AIR_CATCHMENT_PROBE) OpexAirCatchmentLog("AIR_DEMAND_SHADOW",', coverage)
         self.assertIn("AIR_DEMAND_SHADOW", coverage)
 
     def test_demand_shadow_uses_square_station_catchment_geometry(self):

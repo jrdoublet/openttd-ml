@@ -60,9 +60,9 @@ class TestV259BridgeRenew(unittest.TestCase):
         self.assertIn('AIController.GetSetting("v259_bridge_renew")', self.settings)
 
     def test_ceiling_after_v263b(self):
-        # V263b ramene le plafond a 70 ; V259 reste conserve.
+        # V263b ramene le plafond a 70 ; V259 reste conserve. +1 V294c.
         test_v246 = (Path(__file__).resolve().parent / "test_v246_fixed_policies.py").read_text(encoding="utf-8")
-        self.assertIn('count("AddSetting("), 75)', test_v246)
+        self.assertIn('count("AddSetting("), 76)', test_v246)
         self.assertIn("V263b", test_v246)
 
     def test_zero_opcode_guard_at_default(self):

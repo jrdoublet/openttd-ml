@@ -340,6 +340,14 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "v294_rail_weight_adapt",
+      description = "V294c: 0 = historic A* weights; N = initial weight 100..400%, lower to historic then 100% only after a stalled rail segment",
+      min_value = 0, max_value = 400,
+      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
+      step_size = 1, flags = 0
+    });
+
+    AddSetting({
       name = "v216_probe",
       description = "V216: passive estimator probe (SCORE_DECOMP, TOWN_FLOW, generation rejects) until end of year 3. 0 = inert",
       min_value = 0, max_value = 1,
