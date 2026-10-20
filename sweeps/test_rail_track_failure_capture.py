@@ -79,6 +79,26 @@ def without_v199(body):
     return body
 
 
+def without_v296a(body):
+    """Project OpexBuildTrack onto its pre-V296a form (grouped track laying).
+
+    V296a adds the `batch` declaration, one guarded block at the top of the
+    loop and an OpexV296aLog(batch) before each of the 3 returns. Each exact
+    addition is required, so that unrelated builder edits still change the SHA.
+    """
+    decl = re.search(r'\n  /\* V296a : .*?\? \{ runs = 0, tiles = 0, single = 0, fallbacks = 0, mismatch = 0, skipUntil = 0 \} : null;', body, re.S)
+    if decl is None:
+        raise AssertionError("V296a declaration missing")
+    body = body[:decl.start()] + body[decl.end():]
+    block = re.search(r'    if \(batch != null && i > batch\.skipUntil\) \{.*?\n        batch\.single\+\+;\n      \}\n    \}\n', body, re.S)
+    if block is None:
+        raise AssertionError("V296a loop block missing")
+    body = body[:block.start()] + body[block.end():]
+    if body.count("OpexV296aLog(batch);") != 3:
+        raise AssertionError("V296a logs missing or duplicated")
+    return re.sub(r'OpexV296aLog\(batch\);\s*', '', body)
+
+
 def without_v199_v163_plan(body):
     """Project OpexExecuteRailPlan onto its pre-V199/V163 form.
 
@@ -118,7 +138,7 @@ class TestRailTrackFailureCapture(unittest.TestCase):
             self.assertEqual(body.count(call), 1)
             body = body.replace(call, helper.replace("failure.kind <- kind;",
                                                     "failure.kind <- " + kind + ";"))
-        self.assertEqual(digest(without_v199(body)), PRE_EXTRACTION_HASHES["OpexBuildTrack"])
+        self.assertEqual(digest(without_v199(without_v296a(body))), PRE_EXTRACTION_HASHES["OpexBuildTrack"])
 
     def test_testmode_twin_is_unchanged(self):
         self.assertEqual(digest(function_body(self.source, "OpexTestRailTrack")),

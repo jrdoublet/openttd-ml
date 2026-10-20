@@ -191,6 +191,8 @@ function OpexLoadSettings()
   }
   local v295Fast = AIController.GetSetting("v295_astar_fast");
   V295_ASTAR_FAST = (v295Fast != null && v295Fast == 1) ? 1 : 0;
+  local v296Batch = AIController.GetSetting("v296_rail_batch_build");
+  V296_RAIL_BATCH_BUILD = (v296Batch != null && v296Batch == 1) ? 1 : 0;
 
   // V246 : paquets adoptes figes ; les interrupteurs de mode restent actifs.
   ROAD_BUILD_ENABLED = MODE_ROAD;

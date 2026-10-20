@@ -2702,6 +2702,43 @@ function OpexV199RebuildForHomeward(tiles1, side = 1, budgetK = 20)
  * echec deja enregistre, aucun appel. connect = BuildRail vrai mais
  * AreTilesConnected faux.
  * `options` optionnel (V199) : isDouble, trainLength, initialBudget, accounting, retrySearchCost. */
+/* V296a : chaque commande reelle suspend le script au moins un tick ; poser tuile par tuile coutait
+ * ~1 tick par tuile (1,36 M d'opcodes hors A* par ligne posee, 20/10). AIRail.BuildRail(from, tile, to)
+ * pose d'une seule commande tout un alignement droit ou diagonal (CmdBuildRailroadTrack, qui fait le
+ * meme CMD_BUILD_SINGLE_RAIL par tuile ; en mode test il echoue en bloc sur le premier obstacle, et un
+ * echec ne suspend pas). Rend le dernier indice k >= i tel que tiles[i..k] forme un tel alignement avec
+ * tiles[i - 1] et tiles[k + 1] (k <= len - 2 : ni la premiere ni la derniere tuile ne sont posees),
+ * ou i si aucun alignement de 2 tuiles ou plus. Une tuile deja en rail coupe l'alignement : la pose
+ * unitaire y echoue (ALREADY_BUILT) alors que la pose groupee la sauterait. */
+function OpexV296aRunEnd(tiles, i)
+{
+  local n = tiles.len();
+  if (i + 1 > n - 2) return i;
+  local s1 = tiles[i] - tiles[i - 1];
+  local s2 = tiles[i + 1] - tiles[i];
+  if (s2 == -s1) return i;
+  if (AIMap.DistanceManhattan(tiles[i - 1], tiles[i]) != 1 ||
+      AIMap.DistanceManhattan(tiles[i], tiles[i + 1]) != 1) return i;
+  if (AIRail.IsRailTile(tiles[i])) return i;
+  local straight = (s1 == s2);
+  local last = i;
+  for (local k = i + 1; k <= n - 2; k++) {
+    /* Droit : toujours s1 ; diagonale : s1, s2, s1, s2... depuis tiles[i - 1]. */
+    local expect = (straight || ((k - i) % 2 == 1)) ? s1 : s2;
+    if (tiles[k + 1] - tiles[k] != expect) break;
+    if (AIRail.IsRailTile(tiles[k])) break;
+    last = k;
+  }
+  return last;
+}
+
+function OpexV296aLog(batch)
+{
+  if (batch == null || !DECISION_LOG || (batch.runs + batch.fallbacks + batch.mismatch) == 0) return;
+  OpexDecide("V296A", "runs=" + batch.runs + " tiles=" + batch.tiles + " single=" + batch.single
+             + " fallbacks=" + batch.fallbacks + " mismatch=" + batch.mismatch);
+}
+
 function OpexBuildTrack(tiles, structures = null, failure = null, options = null)
 {
   local failed = 0;
@@ -2713,12 +2750,44 @@ function OpexBuildTrack(tiles, structures = null, failure = null, options = null
   local signalDist = 0;
   local signalsBuiltCount = 0;
   local retriesCount = 0;
+  /* V296a : la signalisation V199 de la double voie se pose tuile par tuile, on ne groupe pas. */
+  local batch = (V296_RAIL_BATCH_BUILD && !V296A_MISMATCH && !(V199_ROBUST_BUILD && isDouble))
+      ? { runs = 0, tiles = 0, single = 0, fallbacks = 0, mismatch = 0, skipUntil = 0 } : null;
 
   for (local i = 1; i < tiles.len() - 1; i++) {
     local prev = tiles[i - 1];
     local cur = tiles[i];
     local next = tiles[i + 1];
     local ok = false;
+    if (batch != null && i > batch.skipUntil) {
+      local last = OpexV296aRunEnd(tiles, i);
+      if (last > i) {
+        local to = tiles[last + 1];
+        if (AIRail.BuildRail(prev, cur, to)) {
+          local k = i;
+          while (k <= last && AIRail.AreTilesConnected(tiles[k - 1], tiles[k], tiles[k + 1])) k++;
+          if (k > last) {
+            batch.runs++;
+            batch.tiles += last - i + 1;
+            i = last;
+            continue;
+          }
+          /* Trace different du trace prevu : on defait la meme commande et on ne groupe plus. */
+          AIRail.RemoveRail(prev, cur, to);
+          batch.mismatch++;
+          V296A_MISMATCH = true;
+          OpexV296aLog(batch);
+          batch = null;
+        } else {
+          /* Obstacle, argent, pente : la pose unitaire rejoue l'alignement et garde la gestion
+           * d'echec existante (V199, capture de l'erreur). */
+          batch.fallbacks++;
+          batch.skipUntil = last;
+        }
+      } else {
+        batch.single++;
+      }
+    }
     if (prev == next) {
       ok = true;                                   // aller-retour, rien a poser
     } else if (AIMap.DistanceManhattan(prev, cur) > 1) {
@@ -2819,6 +2888,7 @@ function OpexBuildTrack(tiles, structures = null, failure = null, options = null
             OpexRailCaptureTrackFailure(failure, tiles, i, cur, "rail", err, manhPrev, manhNext);
           }
           failed++;
+          OpexV296aLog(batch);
           return failed;
         }
       } else {
@@ -2840,6 +2910,7 @@ function OpexBuildTrack(tiles, structures = null, failure = null, options = null
           OpexRailCaptureTrackFailure(failure, tiles, i, cur, "rail", err, manhPrev, manhNext);
         }
         failed++;
+        OpexV296aLog(batch);
         return failed;
       }
     }
@@ -2894,6 +2965,7 @@ function OpexBuildTrack(tiles, structures = null, failure = null, options = null
     OpexDecide("V199", "step=signal ok=1 n=" + signalsBuiltCount + " cost=" + sigCost);
   }
 
+  OpexV296aLog(batch);
   return failed;
 }
 
