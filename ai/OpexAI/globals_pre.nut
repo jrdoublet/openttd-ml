@@ -16,6 +16,9 @@ MODE_WATER <- true;
 V168_RAIL_MAX_DIST <- 160;
 /* V280 : 0 historique ; N annees avant ouverture fret a 350 avec 1 M disponible. */
 V280_RAIL_LONG <- 0;
+/* V206 (repris en V282) : 0 historique ; 1 = rame bornee par vehicle.max_train_length pour tous les
+ * cargos (le quai reste a station_spread) ; 2 = rame et quai bornes (correctif V206 d'origine). */
+V206_TRAIN_LENGTH_CAP <- 0;
 V177_RAIL_PAX_MIN_DIST <- 0;
 V182_RAIL_FREIGHT_MIN_DIST <- 0;
 V178_RAIL_SHARED_DEST <- true;

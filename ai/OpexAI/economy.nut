@@ -209,6 +209,12 @@ function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPl
     local trainMaxWagons = OpexRailNominalMaxWagons(catalog.maxTrainLength);
     if (trainMaxWagons < maxWagons) maxWagons = trainMaxWagons;
   }
+  /* V206 (V282) : meme borne pour tous les cargos. Sans elle, une rame fret de plus de 13 wagons
+   * meurt en NOTRAIN (erreur 525) apres la pose de la voie, rollback compris. */
+  if (V206_TRAIN_LENGTH_CAP > 0 && catalog.maxTrainLength > 0) {
+    local capMaxWagons = OpexRailNominalMaxWagons(catalog.maxTrainLength);
+    if (capMaxWagons < maxWagons) maxWagons = capMaxWagons;
+  }
   if (maxWagons < 1) return null;
   local referenceLoco = choices[maxWagons - 1];
   if (referenceLoco == null) return null;

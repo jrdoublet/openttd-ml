@@ -443,6 +443,8 @@ function OpexLoadSettings()
   V217_LAST_MONTH = -1;
   local railLong = AIController.GetSetting("v280_rail_long");
   V280_RAIL_LONG = (railLong != null && railLong >= 0 && railLong <= 10) ? railLong : 0;
+  local trainLengthCap = AIController.GetSetting("v206_train_length_cap");
+  V206_TRAIN_LENGTH_CAP = (trainLengthCap != null && trainLengthCap >= 0 && trainLengthCap <= 2) ? trainLengthCap : 0;
   AIR0310_SITE_VALIDITY_STATE = null;
   RAIL_DEPOT_COST = AIController.GetSetting("rail_depot_cost") != 0;
   V131_RAIL_REPAIR = AIController.GetSetting("v131_rail_repair") != 0;

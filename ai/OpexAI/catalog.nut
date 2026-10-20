@@ -393,6 +393,10 @@ function OpexCatalog::_refreshRail()
    * vaut alors rendre le rail non constructible que fabriquer une longueur silencieuse. */
   this.platformLength = AIGameSettings.GetValue("station.station_spread");
   this.maxTrainLength = AIGameSettings.GetValue("vehicle.max_train_length");
+  /* V206 mode 2 : le quai ne depasse pas la plus longue rame admise (pas de tuiles payees pour rien). */
+  if (V206_TRAIN_LENGTH_CAP >= 2 && this.maxTrainLength >= 1 && this.maxTrainLength < this.platformLength) {
+    this.platformLength = this.maxTrainLength;
+  }
   this.freightTrainMultiplier = AIGameSettings.GetValue("vehicle.freight_trains");
   this.railCoverage = AIStation.GetCoverageRadius(AIStation.STATION_TRAIN);
   if (this.platformLength < 1 || this.freightTrainMultiplier < 1 || this.railCoverage < 1) return;

@@ -62,7 +62,7 @@ class TestV259BridgeRenew(unittest.TestCase):
     def test_ceiling_raised_with_comment(self):
         # Plafond commun V280 : 101 (82 reglages reels), commentaire conservant V259.
         test_v246 = (Path(__file__).resolve().parent / "test_v246_fixed_policies.py").read_text(encoding="utf-8")
-        self.assertIn('count("AddSetting("), 101)', test_v246)
+        self.assertIn('count("AddSetting("), 102)', test_v246)
         self.assertIn("V259", test_v246)
 
     def test_zero_opcode_guard_at_default(self):

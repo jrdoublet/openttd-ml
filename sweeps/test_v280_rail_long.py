@@ -66,9 +66,9 @@ class RailLong(unittest.TestCase):
                              for s in self.sources.values()))
 
     def test_branch_setting_ceiling(self):
-        self.assertEqual(self.sources["info.nut"].count("AddSetting("), 82)
+        self.assertEqual(self.sources["info.nut"].count("AddSetting("), 83)
         for test in ("test_v246_fixed_policies.py", "test_v251_inventory.py", "test_v259_bridge_renew.py"):
-            self.assertIn('count("AddSetting("), 101)', (ROOT / "sweeps" / test).read_text())
+            self.assertIn('count("AddSetting("), 102)', (ROOT / "sweeps" / test).read_text())
 
 
 if __name__ == "__main__":

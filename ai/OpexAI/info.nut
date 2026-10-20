@@ -421,6 +421,14 @@ class OpexAIInfo extends AIInfo {
       custom_value = 0, default_value = 0,
       step_size = 1, flags = 0
     });
+    AddSetting({
+      name = "v206_train_length_cap",
+      description = "V206/V282: 0 historical (default); 1 = every rail consist bounded by vehicle.max_train_length (a longer train cannot leave the depot: ERR_VEHICLE_TOO_LONG after the track is laid), platform unchanged; 2 = consist and platform bounded",
+      min_value = 0, max_value = 2,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0, default_value = 0,
+      step_size = 1, flags = 0
+    });
     /* --- 4. Calibrations physiques et options reelles --- */
 
     AddSetting({
