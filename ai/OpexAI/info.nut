@@ -701,6 +701,15 @@ class OpexAIInfo extends AIInfo {
       step_size = 1,
       flags = 0
     });
+    AddSetting({
+      name = "v277_air_pub_fast",
+      description = "V277: fast air project publication and indexed re-selection filter; 0 = historical path (default), 1 = fast paths, 2 = control mode (runs both, logs differences, keeps historical)",
+      min_value = 0, max_value = 2,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0, default_value = 0,
+      step_size = 1,
+      flags = 0
+    });
   }
 }
 
