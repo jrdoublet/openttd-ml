@@ -29,7 +29,7 @@ L'inventaire ci-dessous recense l'ensemble des chemins exécutables dans `ai/Ope
 | **6. Mise à jour incrémentale post-build (`_tryIncrementalAfterBuild`)** | [task_projects.nut:1911-1934](file:///home/deploy/projects/wt-v288/ai/OpexAI/task_projects.nut#L1911-L1934) | Succès de construction en régime de croisière (`_generationStage >= OPEX_STAGE_COMPLETE`) | **Incrémental ciblé** | Appelle `OpexIncrementalUpdateProjects` ([projects_update.nut:1](file:///home/deploy/projects/wt-v288/ai/OpexAI/projects_update.nut#L1)), recalcule les alternatives touchées et acquitte la couche `lines` si aucune ville air n'est différée. |
 | **7. Repli complet post-build (`_onPostBuildProject` fallback)** | [task_projects.nut:1936-1945](file:///home/deploy/projects/wt-v288/ai/OpexAI/task_projects.nut#L1936-L1945) | Échec ou indisponibilité de `candidateGroups` après construction | **Complet** | Appelle `_rebuildProjects(fleetPlan)` avec motif `"post_build"`. |
 | **8. Recharge rail fret oisif V217 (`_v217RailRefill`)** | [orchestrator.nut:762](file:///home/deploy/projects/wt-v288/ai/OpexAI/orchestrator.nut#L762) | Tête de tour d'ordonnanceur ([scheduler.nut:18](file:///home/deploy/projects/wt-v288/ai/OpexAI/scheduler.nut#L18)) si `year >= 1972`, caisse > 100 k£, candidats rail démarrables < 2 | **Mode `rail` seul (fret tournant)** | Fait tourner `freightCargo` au cargo suivant, active `V217_REGEN_NO_PAX=1` (sans pax), appelle `OpexRegenerateModeProjects(..., "rail", ...)`. |
-| **9. Ancienne rotation C76 (`_c76RotateFreight`)** | [orchestrator.nut:1330](file:///home/deploy/projects/wt-v288/ai/OpexAI/orchestrator.nut#L1330) *(historique)* | Tâche catalogue mensuelle hors régénération complète sous `c76_freight_rotation=1` | **Modes `rail` et `road`** | **Retiré le 20/10/2026 dans V263b (`89e1239`)**. Remplacé par V217 ci-dessus. Régénérait rail et route sur le cargo suivant. |
+| **9. Ancienne rotation C76 (`_c76RotateFreight`)** | *(retiré, absent du code)* | Tâche catalogue mensuelle hors régénération complète sous `c76_freight_rotation=1` | **Modes `rail` et `road`** | **Retiré le 20/10/2026 dans V263b (`89e1239`)**. Remplacé par V217 ci-dessus. Régénérait rail et route sur le cargo suivant. |
 | **10. Worker opportuniste C77 (`regen_candidates`)** | [orchestrator.nut:470-520](file:///home/deploy/projects/wt-v288/ai/OpexAI/orchestrator.nut#L470-L520) | Intention `c77_entity` enfilée sur événement (`IndustryOpen`, etc.), exécutée par tranches de worker C80 | **Modes spécifiés dans l'intention** | Appelle `OpexRegenerateAirProjectsSlice` pour l'air, et `OpexRegenerateModeProjects` pour les autres modes ciblés par entité. |
 | **11. Première publication partielle AIR C78/V147** | [scheduler_tasks.nut:170](file:///home/deploy/projects/wt-v288/ai/OpexAI/scheduler_tasks.nut#L170) | Tâche ordonnanceur `air_cat_publish` ([scheduler.nut:237](file:///home/deploy/projects/wt-v288/ai/OpexAI/scheduler.nut#L237)) quand `lastPublishedCount == 0` | **Complet avec override AIR partiel** | La première publication d'un nouveau scan C78 passe par `_rebuildProjects(fleetPlan, partialAir, false)` car les groupes de candidats air n'existent pas encore. |
 | **12. Publications partielles AIR ultérieures (AIR 03/10)** | [scheduler_tasks.nut:166](file:///home/deploy/projects/wt-v288/ai/OpexAI/scheduler_tasks.nut#L166) | Tâche `air_cat_publish` quand `lastPublishedCount > 0` | **Mode `air` inséré** | Appelle `OpexAir0310PublishIncremental` ([projects_update.nut:367](file:///home/deploy/projects/wt-v288/ai/OpexAI/projects_update.nut#L367)), insère les plans dans `candidateGroups`, et arme `projects.selectionStale = true` ([L464, L667](file:///home/deploy/projects/wt-v288/ai/OpexAI/projects_update.nut#L464)). |
@@ -41,7 +41,7 @@ L'inventaire ci-dessous recense l'ensemble des chemins exécutables dans `ai/Ope
 | **18. Expiration / Purge de subvention (`_c77RemoveSubsidy`)** | [event_handlers.nut:187-198](file:///home/deploy/projects/wt-v288/ai/OpexAI/event_handlers.nut#L187-L198) | Événement NoAI `ET_SUBSIDY_OFFER_EXPIRED` | **Suppression de candidat subvention** | Supprime `subsidy|<id>` de `candidateGroups` et appelle `OpexReselectProjects` ([L195](file:///home/deploy/projects/wt-v288/ai/OpexAI/event_handlers.nut#L195)). |
 | **19. Injection de renforts de flotte (`OpexInjectFleetProjects`)** | [scheduler_tasks.nut:951](file:///home/deploy/projects/wt-v288/ai/OpexAI/scheduler_tasks.nut#L951) | Tâche `projects` périodique dans l'ordonnanceur | **Projets `fleet` injectés** | Évalue le besoin en véhicules des lignes vivantes, met à jour les projets flotte dans `candidateGroups`, puis appelle `_ensureSelection()` ([L963](file:///home/deploy/projects/wt-v288/ai/OpexAI/scheduler_tasks.nut#L963)). |
 | **20. Greffes fret marchandises V233 (`_v233Publish`)** | [goods_v233.nut:474-508](file:///home/deploy/projects/wt-v288/ai/OpexAI/goods_v233.nut#L474-L508) | En tête de passe `projects.pass` si une offre de marchandises a été découverte | **Mode rail fret (greffe)** | Insère les branches d'usines dans `candidateGroups` et appelle `OpexReselectProjects` ([L504](file:///home/deploy/projects/wt-v288/ai/OpexAI/goods_v233.nut#L504)). |
-| **21. Rechargement de sauvegarde (Load / `_reconcileAfterLoad`)** | [persist.nut:1128](file:///home/deploy/projects/wt-v288/ai/OpexAI/persist.nut#L1128) | Immédiatement après chargement d'une sauvegarde | **Complet de sûreté** | Positionne `_c76ForceReloadRegen = true` et `_projects = null`, forçant le premier passage catalogue à tout reconstruire de zéro. |
+| **21. Rechargement de sauvegarde (Load / `_reconcileAfterLoad`)** | [persist.nut:1080](file:///home/deploy/projects/wt-v288/ai/OpexAI/persist.nut#L1080) | Immédiatement après chargement d'une sauvegarde | **Complet de sûreté** | Positionne `_c76ForceReloadRegen = true` et `_projects = null`, forçant le premier passage catalogue à tout reconstruire de zéro. |
 
 ---
 
@@ -120,8 +120,8 @@ La fiche `PO-01b` de `docs/taches.md` indique qu'au 1ᵉʳ janvier 1972, une ré
 L'audit approfondi du code et des journaux **confirme et précise** la cause exacte :
 
 1. **L'événement déclencheur premier :**  
-   Le 1ᵉʳ janvier 1972, OpenTTD introduit un nouveau navire (moteur id 207). Le moteur NoAI émet `AIEvent.ET_ENGINE_AVAILABLE` ([events.nut:49](file:///home/deploy/projects/wt-v288/ai/OpexAI/events.nut#L49)).  
-   Le gestionnaire `_onEngineAvailable` ([event_handlers.nut:630](file:///home/deploy/projects/wt-v288/ai/OpexAI/event_handlers.nut#L630)) appelle :
+   Le 1ᵉʳ janvier 1972, OpenTTD introduit un nouveau navire (moteur id 207). Le moteur NoAI émet `AIEvent.ET_ENGINE_AVAILABLE` ([events.nut:363](file:///home/deploy/projects/wt-v288/ai/OpexAI/events.nut#L363)).  
+   Le gestionnaire `_onEngineAvailable` ([event_handlers.nut:440](file:///home/deploy/projects/wt-v288/ai/OpexAI/event_handlers.nut#L440)) appelle :
    ```squirrel
    this._c76BumpLayer("engines.water", true);
    ```
@@ -173,7 +173,7 @@ Lors du rebuild complet de janvier/février 1972 :
 ### 3.3. Une régénération limitée aux modes touchés suffirait-elle ?
 
 **OUI, incontestablement.**
-1. **Dans le catalogue :** la méthode `this._catalog.refresh(budget, year)` n'altère pour `engines.water` que la table `this.waterVessels` ([catalog.nut:260](file:///home/deploy/projects/wt-v288/ai/OpexAI/catalog.nut#L260)). Les tables de locomotives, wagons, véhicules routiers, avions, aéroports, villes et industries demeurent strictement inchangées.
+1. **Dans le catalogue :** la méthode `this._catalog.refresh(budget, year)` n'altère pour `engines.water` que la table `this.ships` (`_refreshWater`) ([catalog.nut:716](file:///home/deploy/projects/wt-v288/ai/OpexAI/catalog.nut#L716)). Les tables de locomotives, wagons, véhicules routiers, avions, aéroports, villes et industries demeurent strictement inchangées.
 2. **Matrice des dépendances C76 :** [orchestrator.nut:1094-1095](file:///home/deploy/projects/wt-v288/ai/OpexAI/orchestrator.nut#L1094-L1095) spécifie expressément que seuls `water` et `fleet` dépendent de `engines.water`. Ni `air`, ni `rail`, ni `road` n'en dépendent.
 3. **Preuve par le bras PO-01b :** Dans PO-01b, le simple fait de retarder de 30 jours ce recalcul massif du 1/1/1972 a rapporté **+338,3 k£/an** (médiane +209,9 k£, 3V/0D, IC95 [+77 k ; +728 k]), démontrant qu'interrompre le jeu par 9 millions d'opcodes pour recalculer des modes non touchés nuit gravement à la performance économique.
 
@@ -245,7 +245,7 @@ Lors du codage futur du mécanisme d'obsolescence par le prochain agent, les gar
 3. **Garde de rotation fret V217 :**  
    La rotation V217 ne doit pas être bloquée si la caisse dépasse 1 M£ et que le réseau ferroviaire attend du fret pour investir. L'obsolescence doit s'effacer dès que le nombre de projets ferroviaires viables tombe à zéro sous caisse excédentaire.
 4. **Garde de rechargement de sauvegarde (Load) :**  
-   Au rechargement d'une partie (`Load`), l'état en mémoire n'étant pas persisté intégralement (`_projects = null`), la régénération complète de sûreté (`_c76ForceReloadRegen = true` dans [persist.nut:1128](file:///home/deploy/projects/wt-v288/ai/OpexAI/persist.nut#L1128)) doit être maintenue pour reconstituer le vivier à froid sans supposer une fraîcheur fictive.
+   Au rechargement d'une partie (`Load`), l'état en mémoire n'étant pas persisté intégralement (`_projects = null`), la régénération complète de sûreté (`_c76ForceReloadRegen = true` dans [persist.nut:1080](file:///home/deploy/projects/wt-v288/ai/OpexAI/persist.nut#L1080)) doit être maintenue pour reconstituer le vivier à froid sans supposer une fraîcheur fictive.
 5. **Absence de régression V143 :**  
    Ne pas réintroduire de rafraîchissement annuel artificiel des modes non-air pendant qu'un scan air est actif (V143 avait coûté −252 k£/an en mélangeant des générations incohérentes).
 
@@ -369,3 +369,20 @@ L'ensemble des chiffres, occurrences et décomptes cités dans ce rapport ont é
    grep -n "function OpexAI::_rebuildProjects" ai/OpexAI/task_projects.nut
    grep -n "function OpexBuildProjects" ai/OpexAI/projects.nut
    ```
+
+## Erratum (Claude, 20/10 17h10) — à lire avant la conception
+
+Relecture des affirmations du document contre le code et les journaux :
+
+- **Numéros de ligne corrigés** : `persist.nut:1080` (pas 1128, fichier de 1 094 lignes), `event_handlers.nut:440` pour `_onEngineAvailable` (pas 630, fichier de 497 lignes), `events.nut:363`, `catalog.nut:716` (`_refreshWater` remplit `this.ships`, il n'existe pas de `waterVessels`). `_c76RotateFreight` n'existe plus dans le code.
+- **Chiffres confirmés** : les reconstructions complètes réactives de 1972 coûtent 9 097 491 opcodes (graine 42, achevée le 21/02, `days=49`) et 6 062 762 (graine 7, achevée le 04/02, `days=33`), avec `engines_changed_water=1` et `lines_delta=0`. Sur la graine 1234, la régénération `kind=mode reason=reactive_water` du 04/01 coûte 431 359.
+- **🔴 Conclusion infirmée : « une régénération limitée à l'eau et à la flotte suffirait »**. Cette reconstruction n'est PAS inutile : c'est elle qui recharge les viviers vidés en fin d'année.
+  - Graine 42 : `cand_rail_n` 0 → 19 (`same_keys_pct=0`), `cand_air_n` 15 → 305 (`same_keys_pct=4,92`).
+  - Graine 7 : rail 0 → 22, air 0 → 120 (`same_keys_pct=0`).
+  - Graine 1234 (régénération par mode seulement) : `cand_rail_n=0` du 01/01 au moins jusqu'à fin mars 1972, faute de reconstruction complète.
+
+  Le déclencheur est bien `engines.water` (moteur naval au 01/01), mais la valeur vient de la recharge des autres modes. Elle tient lieu de filet annuel (`c76PeriodicDue`). L'isoler à l'eau supprimerait la seule recharge rail/air de l'année.
+- **Lecture correcte pour V288** : le critère (c) « vivier démarrable vide ou insuffisant » doit pouvoir déclencher, à lui seul, la régénération du mode vide, indépendamment de l'événement qui la demande. L'événement `engines.water` ne doit régénérer que l'eau et la flotte, à condition que (c) recharge le rail et l'air vides par ailleurs.
+
+  À rapprocher du bilan PO-01b : décaler de 30 jours cette reconstruction donne +338 k en exposition. Le moment de la recharge compte davantage que son coût en opcodes.
+- **Re-sélections** : les chiffres 1 588 et 81 % de `same_choice` ne sont pas revérifiés par Claude. Les recompter avant de les utiliser.
