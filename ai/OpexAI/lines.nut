@@ -280,6 +280,7 @@ function OpexAI::_markPairAbandoned(key)
   local count = (key in this._abandonCounts) ? (this._abandonCounts[key] + 1) : 1;
   this._abandonCounts[key] <- count;
   this._abandonedPairs[key] <- { date = now, count = count };
+  if (V279_RESELECT_MEMO != 0) OPEX_ABANDON_REVISION++;
   /* G4§1 : signaler qu'un abandon a eu lieu dans cette passe. _tryBuildProjects lit ce
    * drapeau pour declencher la reelection incrementale C36.1 apres un echec, sans
    * dependre de passDiscards qui est garde par DECISION_LOG (defaut 0). */
@@ -307,6 +308,7 @@ function OpexAI::_pruneAbandonedPairs(now)
   foreach (k in toDelete) {
     delete this._abandonedPairs[k];
   }
+  if (toDelete.len() > 0 && V279_RESELECT_MEMO != 0) OPEX_ABANDON_REVISION++;
   if (toDelete.len() > 0 && DECISION_LOG) {
     OpexDecide("ABANDON_PRUNE", "count=" + toDelete.len() + " remaining=" + this._abandonedPairs.len());
   }
