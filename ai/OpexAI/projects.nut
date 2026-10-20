@@ -38,6 +38,7 @@ require("projects_rank_log.nut");
 require("projects_models.nut");
 require("projects_finance.nut");
 require("projects_builders.nut");
+require("pool_staleness.nut");
 require("projects_selection.nut");
 require("projects_generation.nut");
 require("projects_diagnostics.nut");
@@ -145,6 +146,37 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
   if (!MODE_ROAD) doRoad = false;
   if (!MODE_AIR) doAir = false;
   if (!MODE_WATER) doWater = false;
+  local v288Tickets = null;
+  if (V288_POOL_STALENESS > 0 && generationStage == OPEX_STAGE_COMPLETE) {
+    v288Tickets = {};
+    priorProjects = V288_OWNER._projects;
+    if (doFreight || doPaxRail) {
+      local ticket = OpexV288Begin("rail", priorProjects);
+      if (ticket == null) { doFreight = false; doPaxRail = false; }
+      else v288Tickets.rawset("rail", ticket);
+    }
+    if (doRoad) {
+      local ticket = OpexV288Begin("road", priorProjects);
+      if (ticket == null) doRoad = false;
+      else v288Tickets.rawset("road", ticket);
+    }
+    if (doWater) {
+      local ticket = OpexV288Begin("water", priorProjects);
+      if (ticket == null) doWater = false;
+      else v288Tickets.rawset("water", ticket);
+    }
+    /* A C78 override is already computed: always publish it, never stamp a
+     * partial publication as the completion of an AIR scan. */
+  }
+  if (V288_POOL_STALENESS > 0 && doAir && airOverride == null) {
+      if (v288Tickets == null) v288Tickets = {};
+      local ticket = OpexV288Begin("air", priorProjects);
+      if (ticket == null) { doAir = false; priorProjects = V288_OWNER._projects; }
+      else v288Tickets.rawset("air", ticket);
+  }
+  if (V288_POOL_STALENESS > 0 && !doFreight && !doRoad
+      && priorProjects != null && ("freightCargo" in priorProjects))
+    freightCargo = priorProjects.freightCargo;
   local paxBand = generationStage == OPEX_STAGE_AIR_RAIL ? PAX_BAND_AIR_RAIL
       : (generationStage == OPEX_STAGE_RAIL_ONLY ? PAX_BAND_RAIL_ONLY : PAX_BAND_ALL);
   local airBand = generationStage == OPEX_STAGE_AIR_ONLY ? PAX_BAND_AIR_ONLY
@@ -158,6 +190,7 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
                + " freight_price=" + (freightCargo != null ? AICargo.GetCargoIncome(freightCargo, 20, 0) : 0));
   }
   if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_ENTER", "c56_stage_rail", "-");
+  local v288railMark = V288_POOL_STALENESS > 0 ? OpexOpsMeasureBegin() : null;
   /* C41.22 : intervalles disjoints du chemin rail historique. */
   local railProfile = C41_RAIL_PORTFOLIO_PROFILE
       ? { generationOps = 0, generationCandidates = 0, topKCandidates = 0,
@@ -209,7 +242,7 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
         railPaxProfile, railPaxCandidateProfile, railPaxCruiseCache, railFreightCruiseCache,
         doPaxRail, doFreight, paxBand, freightCargo, null, -1);
     if (spRail != null) OpexSpanEnd(spRail);
-    if (V276_CAND_SLICES <= 0 && priorProjects != null && ("rail" in priorProjects)
+    if (V276_CAND_SLICES <= 0 && !(V288_POOL_STALENESS > 0 && generationStage == OPEX_STAGE_COMPLETE) && priorProjects != null && ("rail" in priorProjects)
         && priorProjects.rail != null && ("candidates" in priorProjects.rail)) {
       local merged = [];
       foreach (c in priorProjects.rail.candidates) {
@@ -287,6 +320,8 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
     railProfile.generationCandidates = rail.candidates.len();
     railProfile.topKCandidates = rail.best.len();
   }
+  if (v288Tickets != null && ("rail" in v288Tickets))
+    v288Tickets.rail.rawset("ops", OpexOpsMeasureEnd(v288railMark));
   if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_EXIT", "c56_stage_rail", "-");
   if (cost != null) {
     cost.railOps += OpexOpsMeasureEnd(costMark);
@@ -294,6 +329,7 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
     costMark = OpexOpsMeasureBegin();
   }
   if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_ENTER", "c56_stage_road", "-");
+  local v288roadMark = V288_POOL_STALENESS > 0 ? OpexOpsMeasureBegin() : null;
   /* C41.16/C41.17 : mesure seulement les etapes de generation route pendant la passe historique. */
   local roadProfile = (C41_ROAD_CANDIDATE_PROFILE || C41_ROAD_FREIGHT_PROFILE || C41_ROAD_FREIGHT_TOWN_PROFILE)
       ? { paxOps = 0, freightOps = 0, topKOps = 0,
@@ -317,6 +353,8 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
   } else {
     road = OpexProjectEmptyRoad();
   }
+  if (v288Tickets != null && ("road" in v288Tickets))
+    v288Tickets.road.rawset("ops", OpexOpsMeasureEnd(v288roadMark));
   if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_EXIT", "c56_stage_road", "-");
   if (cost != null) {
     cost.roadOps += OpexOpsMeasureEnd(costMark);
@@ -333,6 +371,7 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
   local airPlans = [];
   local airOps = 0;
   if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_ENTER", "c56_stage_air", "-");
+  local v288airMark = V288_POOL_STALENESS > 0 ? OpexOpsMeasureBegin() : null;
   if (doAir && ((catalog.airCombos != null && catalog.airCombos.len() > 0) || catalog.airport != null)) {
     if (airOverride != null && typeof airOverride == "table"
         && ("complete" in airOverride) && airOverride.complete) {
@@ -390,6 +429,8 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
       OpexDecide("BOOTSTRAP_PAX_FALLBACK", "air=0 rail_pax=" + paxFallback.candidates.len());
     }
   }
+  if (v288Tickets != null && ("air" in v288Tickets))
+    v288Tickets.air.rawset("ops", OpexOpsMeasureEnd(v288airMark));
   if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_EXIT", "c56_stage_air", "-");
   if (cost != null) {
     cost.airOps += OpexOpsMeasureEnd(costMark);
@@ -401,6 +442,7 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
   local waterPlans = [];
   local waterOps = 0;
   if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_ENTER", "c56_stage_water", "-");
+  local v288waterMark = V288_POOL_STALENESS > 0 ? OpexOpsMeasureBegin() : null;
   if (doWater && catalog.ships.len() > 0 && catalog.paxCargo >= 0) {
     budget.begin();
     local spWater = PROBE_SPAN_TRACE ? OpexSpanBegin("build.water") : null;
@@ -417,6 +459,8 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
     waterPlan = waterPlans.len() > 0 ? waterPlans[0] : null;
     waterOps = ("waterPlanningOpcodes" in priorProjects) ? priorProjects.waterPlanningOpcodes : 0;
   }
+  if (v288Tickets != null && ("water" in v288Tickets))
+    v288Tickets.water.rawset("ops", OpexOpsMeasureEnd(v288waterMark));
   if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_EXIT", "c56_stage_water", "-");
   if (cost != null) {
     cost.waterOps += OpexOpsMeasureEnd(costMark);
@@ -582,6 +626,12 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
   if (C69_BOTTLENECK_PROBE) {
     ret.c69Best <- ::C69_LAST_AFFORDABLE;
     ret.c69KDecData <- ::C69_LAST_KDEC_DATA;
+  }
+  if (v288Tickets != null) {
+    foreach (mode, ticket in v288Tickets) {
+      if (V276_CAND_SLICES > 0 && (mode == "rail" || mode == "road")) continue;
+      OpexV288Complete(ticket);
+    }
   }
   return ret;
 }

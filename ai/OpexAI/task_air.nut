@@ -343,7 +343,7 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
           isLowRatio = false, opcodeRatio = -1,   /* plan, pas de candidat : sans objet */
           lineId = this._nextLineId,
         });
-        if (V279_RESELECT_MEMO != 0) OPEX_LINES_REVISION++;
+        if (V279_RESELECT_MEMO != 0 || V288_POOL_STALENESS > 0) OPEX_LINES_REVISION++;
         OpexC121AttachLineShadow(this._lines[this._lines.len() - 1], this._nextLineId, buildPlan, result);
         local builtLine = this._lines[this._lines.len() - 1];
         builtLine.targetAirPlanes <- ("c121TargetPlanes" in builtLine)

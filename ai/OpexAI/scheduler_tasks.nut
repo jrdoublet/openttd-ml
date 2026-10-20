@@ -37,9 +37,15 @@ function OpexC78StartCatalogAirRebuild(owner, task, ym, fleetPlan, refreshReason
   /* Le catalogue C121 est decoupe quelle que soit la taille du vivier. */
   if (!("towns" in owner._catalog) || owner._catalog.towns == null) return false;
 
+  local v288Ticket = null;
+  if (V288_POOL_STALENESS > 0) {
+    v288Ticket = OpexV288Begin("air", owner._projects);
+    if (v288Ticket == null) return false;
+  }
   local band = stage == OPEX_STAGE_AIR_ONLY ? PAX_BAND_AIR_ONLY
       : (stage == OPEX_STAGE_AIR_RAIL ? PAX_BAND_AIR_RAIL : PAX_BAND_ALL);
   task.c78AirRebuild <- {
+    v288Ticket = v288Ticket,
     ym = ym,
     stage = stage,
     phase = "primary",
@@ -234,6 +240,10 @@ function OpexC78ApplyAir(owner, task, year, s)
       owner._c76LastRegenQuarter = s.c76Quarter;
       owner._c76ForceReloadRegen = false;
     }
+    if (V288_POOL_STALENESS > 0 && s.v288Ticket != null) {
+      s.v288Ticket.rawset("ops", s.airOps);
+      OpexV288Complete(s.v288Ticket);
+    }
     owner._lastCatalogMonth = s.ym;
     delete task.c78AirRebuild;
     return true;
@@ -379,6 +389,8 @@ function OpexAI::_dispatchCatalog(task, year)
   local c76PeriodicDue = false;
   local c76ReloadDue = false;
   local c76CurQuarter = 0;
+  local v288Empty = V288_POOL_STALENESS > 0 && this._lastCatalogMonth != ym
+      && OpexV288NeedsRefill(this);
   {
     c76LayerChanged = this._c76AnyLayerChanged();
     c76CurQuarter = year;
@@ -386,7 +398,7 @@ function OpexAI::_dispatchCatalog(task, year)
     c76ReloadDue = this._c76ForceReloadRegen;
     local cadenceFresh = this._lastCatalogMonth == ym;
     if (cadenceFresh && this._projects != null && !stale && !this._portfolioInvalidated
-        && !c76LayerChanged && !c76PeriodicDue && !c76ReloadDue) {
+        && !c76LayerChanged && !c76PeriodicDue && !c76ReloadDue && !v288Empty) {
       if (spGuard != null) OpexSpanEnd(spGuard);
       if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);
       return false;
@@ -428,10 +440,10 @@ function OpexAI::_dispatchCatalog(task, year)
   {
     local budgetStale = stale;
     local c76NeedFullRegen = (this._projects == null) || c76LayerChanged ||
-        this._portfolioInvalidated || budgetStale || c76PeriodicDue || c76ReloadDue;
+        this._portfolioInvalidated || budgetStale || c76PeriodicDue || c76ReloadDue || v288Empty;
     local c80Modes = null;
     if (c76LayerChanged && this._projects != null
-        && !this._portfolioInvalidated && !budgetStale && !c76PeriodicDue && !c76ReloadDue) {
+        && !this._portfolioInvalidated && !budgetStale && !c76PeriodicDue && !c76ReloadDue && !v288Empty) {
       c80Modes = this._c80ModeRegenModes();
     }
     if (c80Modes != null) {

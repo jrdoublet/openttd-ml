@@ -175,7 +175,7 @@ function OpexAI::_markTownGrowthRejected(townId)
   local count = (key in this._abandonCounts) ? (this._abandonCounts[key] + 1) : 1;
   this._abandonCounts[key] <- count;
   this._abandonedPairs[key] <- { date = AIDate.GetCurrentDate(), count = count };
-  if (V279_RESELECT_MEMO != 0) OPEX_ABANDON_REVISION++;
+  if (V279_RESELECT_MEMO != 0 || V288_POOL_STALENESS > 0) OPEX_ABANDON_REVISION++;
 }
 
 /* R13 : sante annuelle d'une ligne de croissance urbaine (C87) ; peut rejeter la ville.
@@ -725,7 +725,7 @@ function OpexAI::_scrapDeadLines(year)
   for (local k = toRemove.len() - 1; k >= 0; k--) {
     this._lines.remove(toRemove[k]);
   }
-  if (toRemove.len() > 0 && V279_RESELECT_MEMO != 0) OPEX_LINES_REVISION++;
+  if (toRemove.len() > 0 && (V279_RESELECT_MEMO != 0 || V288_POOL_STALENESS > 0)) OPEX_LINES_REVISION++;
   if (toRemove.len() > 0) OpexAir0310InvalidateSiteValidity();
   if (toRemove.len() > 0) this._c76BumpLayer("lines", false);
 }

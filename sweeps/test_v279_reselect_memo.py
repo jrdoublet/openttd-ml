@@ -138,44 +138,44 @@ class TestV279ReselectMemo(unittest.TestCase):
     def test_abandon_revision_increments_at_all_mutations(self):
         # 5 sites de mutation de _abandonedPairs identifiés
         # 1. lines.nut:282 (_markPairAbandoned)
-        self.assertIn("this._abandonedPairs[key] <- { date = now, count = count };\n  if (V279_RESELECT_MEMO != 0) OPEX_ABANDON_REVISION++;", self.lines)
+        self.assertIn("this._abandonedPairs[key] <- { date = now, count = count };\n  if (V279_RESELECT_MEMO != 0 || V288_POOL_STALENESS > 0) OPEX_ABANDON_REVISION++;", self.lines)
         # 2. lines.nut:308 (_pruneAbandonedPairs)
-        self.assertIn("if (toDelete.len() > 0 && V279_RESELECT_MEMO != 0) OPEX_ABANDON_REVISION++;", self.lines)
+        self.assertIn("if (toDelete.len() > 0 && (V279_RESELECT_MEMO != 0 || V288_POOL_STALENESS > 0)) OPEX_ABANDON_REVISION++;", self.lines)
         # 3. task_report.nut:177 (_markTownGrowthRejected)
-        self.assertIn("this._abandonedPairs[key] <- { date = AIDate.GetCurrentDate(), count = count };\n  if (V279_RESELECT_MEMO != 0) OPEX_ABANDON_REVISION++;", self.task_report)
+        self.assertIn("this._abandonedPairs[key] <- { date = AIDate.GetCurrentDate(), count = count };\n  if (V279_RESELECT_MEMO != 0 || V288_POOL_STALENESS > 0) OPEX_ABANDON_REVISION++;", self.task_report)
         # 4. main.nut:409 (constructeur)
-        self.assertIn("this._abandonedPairs = {};\n    if (V279_RESELECT_MEMO != 0) OPEX_ABANDON_REVISION++;", self.main)
+        self.assertIn("this._abandonedPairs = {};\n    if (V279_RESELECT_MEMO != 0 || V288_POOL_STALENESS > 0) OPEX_ABANDON_REVISION++;", self.main)
         # 5. persist.nut:791-792 (chargement)
-        self.assertIn("this._abandonedPairs = {};\n    foreach (key, val in data.abandonedPairs) this._abandonedPairs[key] <- val;\n    if (V279_RESELECT_MEMO != 0) OPEX_ABANDON_REVISION++;", self.persist)
+        self.assertIn("this._abandonedPairs = {};\n    foreach (key, val in data.abandonedPairs) this._abandonedPairs[key] <- val;\n    if (V279_RESELECT_MEMO != 0 || V288_POOL_STALENESS > 0) OPEX_ABANDON_REVISION++;", self.persist)
 
     def test_rollback_revision_increments_at_all_mutations(self):
         # 6 sites de mutation de OPEX_AIR_ROLLBACKS identifiés
         # 1. air_construction.nut:41 (append) & :44 (pop)
-        self.assertIn("OPEX_AIR_ROLLBACKS.append(ticket);\n  if (V279_RESELECT_MEMO != 0) OPEX_AIR_ROLLBACK_REVISION++;", self.air_construction)
-        self.assertIn("OPEX_AIR_ROLLBACKS.pop();\n    if (V279_RESELECT_MEMO != 0) OPEX_AIR_ROLLBACK_REVISION++;", self.air_construction)
+        self.assertIn("OPEX_AIR_ROLLBACKS.append(ticket);\n  if (V279_RESELECT_MEMO != 0 || V288_POOL_STALENESS > 0) OPEX_AIR_ROLLBACK_REVISION++;", self.air_construction)
+        self.assertIn("OPEX_AIR_ROLLBACKS.pop();\n    if (V279_RESELECT_MEMO != 0 || V288_POOL_STALENESS > 0) OPEX_AIR_ROLLBACK_REVISION++;", self.air_construction)
         # 2. air_recovery.nut:97 (remove)
-        self.assertIn("OPEX_AIR_ROLLBACKS.remove(0);\n    if (V279_RESELECT_MEMO != 0) OPEX_AIR_ROLLBACK_REVISION++;", self.air_recovery)
+        self.assertIn("OPEX_AIR_ROLLBACKS.remove(0);\n    if (V279_RESELECT_MEMO != 0 || V288_POOL_STALENESS > 0) OPEX_AIR_ROLLBACK_REVISION++;", self.air_recovery)
         # 3. air_recovery.nut:104 (rotated)
-        self.assertIn("OPEX_AIR_ROLLBACKS = rotated;\n  if (V279_RESELECT_MEMO != 0) OPEX_AIR_ROLLBACK_REVISION++;", self.air_recovery)
+        self.assertIn("OPEX_AIR_ROLLBACKS = rotated;\n  if (V279_RESELECT_MEMO != 0 || V288_POOL_STALENESS > 0) OPEX_AIR_ROLLBACK_REVISION++;", self.air_recovery)
         # 4. air_recovery.nut:125 (reconcile)
-        self.assertIn("OPEX_AIR_ROLLBACKS = pending;\n  if (V279_RESELECT_MEMO != 0) OPEX_AIR_ROLLBACK_REVISION++;", self.air_recovery)
+        self.assertIn("OPEX_AIR_ROLLBACKS = pending;\n  if (V279_RESELECT_MEMO != 0 || V288_POOL_STALENESS > 0) OPEX_AIR_ROLLBACK_REVISION++;", self.air_recovery)
         # 5. persist.nut:770 (reset) & :776 (load)
-        self.assertIn("OPEX_AIR_ROLLBACKS = [];\n  if (V279_RESELECT_MEMO != 0) OPEX_AIR_ROLLBACK_REVISION++;", self.persist)
-        self.assertIn('if ("airRollbacks" in data && V279_RESELECT_MEMO != 0) OPEX_AIR_ROLLBACK_REVISION++;', self.persist)
+        self.assertIn("OPEX_AIR_ROLLBACKS = [];\n  if (V279_RESELECT_MEMO != 0 || V288_POOL_STALENESS > 0) OPEX_AIR_ROLLBACK_REVISION++;", self.persist)
+        self.assertIn('if ("airRollbacks" in data && (V279_RESELECT_MEMO != 0 || V288_POOL_STALENESS > 0)) OPEX_AIR_ROLLBACK_REVISION++;', self.persist)
 
     def test_lines_revision_increments_at_all_mutations(self):
         # 7 sites de mutation de _lines identifiés
-        self.assertIn("this._lines = [];\n    if (V279_RESELECT_MEMO != 0) OPEX_LINES_REVISION++;", self.main)
-        self.assertIn("this._lines = liveLines;\n  if (V279_RESELECT_MEMO != 0) OPEX_LINES_REVISION++;", self.persist)
+        self.assertIn("this._lines = [];\n    if (V279_RESELECT_MEMO != 0 || V288_POOL_STALENESS > 0) OPEX_LINES_REVISION++;", self.main)
+        self.assertIn("this._lines = liveLines;\n  if (V279_RESELECT_MEMO != 0 || V288_POOL_STALENESS > 0) OPEX_LINES_REVISION++;", self.persist)
         self.assertIn("this._lines.append({\n", self.task_air)
-        self.assertIn("if (V279_RESELECT_MEMO != 0) OPEX_LINES_REVISION++;", self.task_air)
+        self.assertIn("if (V279_RESELECT_MEMO != 0 || V288_POOL_STALENESS > 0) OPEX_LINES_REVISION++;", self.task_air)
         self.assertIn("this._lines.append({\n", self.task_rail)
-        self.assertIn("if (V279_RESELECT_MEMO != 0) OPEX_LINES_REVISION++;", self.task_rail)
+        self.assertIn("if (V279_RESELECT_MEMO != 0 || V288_POOL_STALENESS > 0) OPEX_LINES_REVISION++;", self.task_rail)
         self.assertIn("this._lines.append({\n", self.task_road)
-        self.assertIn("if (V279_RESELECT_MEMO != 0) OPEX_LINES_REVISION++;", self.task_road)
+        self.assertIn("if (V279_RESELECT_MEMO != 0 || V288_POOL_STALENESS > 0) OPEX_LINES_REVISION++;", self.task_road)
         self.assertIn("this._lines.append({\n", self.task_water)
-        self.assertIn("if (V279_RESELECT_MEMO != 0) OPEX_LINES_REVISION++;", self.task_water)
-        self.assertIn("if (toRemove.len() > 0 && V279_RESELECT_MEMO != 0) OPEX_LINES_REVISION++;", self.task_report)
+        self.assertIn("if (V279_RESELECT_MEMO != 0 || V288_POOL_STALENESS > 0) OPEX_LINES_REVISION++;", self.task_water)
+        self.assertIn("if (toRemove.len() > 0 && (V279_RESELECT_MEMO != 0 || V288_POOL_STALENESS > 0)) OPEX_LINES_REVISION++;", self.task_report)
 
     def test_site_epoch_increments_at_all_invalidations(self):
         # 3 sites d'invalidation de cache de sites

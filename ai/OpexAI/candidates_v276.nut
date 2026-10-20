@@ -115,6 +115,11 @@ function OpexV276Start(owner, task)
     kind = request.kind, id = request.id,
     revisions = OpexAC06CaptureRevisionNumbers(owner) };
   task.v276Request = null;
+  if (V288_POOL_STALENESS > 0) {
+    task.v276.v288Tickets <- {};
+    foreach (mode in ["rail", "road"])
+      task.v276.v288Tickets.rawset(mode, OpexV288Begin(mode, owner._projects, request.kind));
+  }
 }
 
 /* Invariants calcules une fois par unite. Les positions des puits sont celles
@@ -304,6 +309,10 @@ function OpexV276Continue(owner, task, opsBudget, deadlineTick)
         || AIController.GetOpsTillSuspend() < 2000)) return OpexV276Yield(s, mark, opsBudget);
     progressed = true;
     local u = s.units[s.unit];
+    if (V288_POOL_STALENESS > 0 && s.v288Tickets[u.mode] == null) {
+      s.unit++;
+      continue;
+    }
     if (s.phase == "init") { OpexV276PrepareUnit(s, u); continue; }
     local n = s.context.n;
     if (s.phase == "prepare") {
@@ -361,6 +370,8 @@ function OpexV276Continue(owner, task, opsBudget, deadlineTick)
     s.prep = 0; s.targetA = -1; s.targetB = -1;
   }
   if (s.kind == null) OpexV276Acknowledge(owner, s.revisions);
+  if (V288_POOL_STALENESS > 0 && s.kind == null)
+    foreach (mode, ticket in s.v288Tickets) OpexV288Complete(ticket);
   task.v276 = null;
   return OpexV276Yield(s, mark, opsBudget);
 }

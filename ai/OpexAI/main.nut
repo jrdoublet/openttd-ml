@@ -405,10 +405,10 @@ class OpexAI extends AIController {
     this._budget = OpexBudget();
     this._catalog = OpexCatalog();
     this._lines = [];
-    if (V279_RESELECT_MEMO != 0) OPEX_LINES_REVISION++;
+    if (V279_RESELECT_MEMO != 0 || V288_POOL_STALENESS > 0) OPEX_LINES_REVISION++;
     this._pendingLines = null;
     this._abandonedPairs = {};
-    if (V279_RESELECT_MEMO != 0) OPEX_ABANDON_REVISION++;
+    if (V279_RESELECT_MEMO != 0 || V288_POOL_STALENESS > 0) OPEX_ABANDON_REVISION++;
     this._abandonCounts = {};
     this._vehiclesToRetire = {};
     this._unprofitableStreaks = {};
@@ -702,6 +702,7 @@ function OpexAI::Start()
 
   OpexLoadSettings();
   OpexV147ExtendQueue(this);
+  if (V288_POOL_STALENESS > 0) { V288_OWNER = this; V288_POOLS = {}; }
   if (V276_CAND_SLICES > 0) V276_CATALOG_TASK = this._taskQueue[0];
   this._v184InitRailSlots();
   /* Apres les phases V147 : un index insere avant elles decalerait taskCursor. */

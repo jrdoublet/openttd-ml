@@ -8,6 +8,15 @@ function OpexInjectFleetProjects(projects, fleetPlan, abandonedPairs = null, cap
     return projects;
   }
   if (capitalBudget == null) capitalBudget = OpexAvailableCapital();
+  local v288Ticket = null;
+  local v288Fleet = null;
+  if (V288_POOL_STALENESS > 0) {
+    v288Fleet = OpexV288FleetOffers(fleetPlan);
+    v288Ticket = OpexV288Begin("fleet", projects,
+        v288Fleet.changed ? "fleet_demand" : null);
+    if (v288Ticket == null)
+      return OpexReselectProjects(projects, capitalBudget, abandonedPairs, lines);
+  }
 
   local winners = {};
   local scratch = { modeCandidates = 0, modeAlternatives = 0 };
@@ -25,8 +34,10 @@ function OpexInjectFleetProjects(projects, fleetPlan, abandonedPairs = null, cap
 
   /* 2. Injecter les opportunites de flotte fraiches */
   if (fleetPlan != null) {
+    local v288OfferIndex = 0;
     foreach (entry in fleetPlan) {
-      local p = OpexProjectFromFleet(entry);
+      local p = V288_POOL_STALENESS > 0
+          ? v288Fleet.offers[v288OfferIndex++] : OpexProjectFromFleet(entry);
       if (p != null) {
         if (C69_BOTTLENECK_PROBE) OpexC73RecordProduced("fleet", 1, 1);
         OpexProjectRememberAll(winners, p, scratch);
@@ -38,6 +49,10 @@ function OpexInjectFleetProjects(projects, fleetPlan, abandonedPairs = null, cap
 
   projects.candidateGroups = winners;
   OpexProjectsRecountGroups(projects);
+  if (V288_POOL_STALENESS > 0) {
+    V288_FLEET_SIGNATURE = v288Fleet.signature;
+    OpexV288Complete(v288Ticket);
+  }
   return OpexReselectProjects(projects, capitalBudget, abandonedPairs, lines);
 }
 

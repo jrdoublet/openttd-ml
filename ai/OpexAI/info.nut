@@ -13,6 +13,11 @@ class OpexAIInfo extends AIInfo {
    * Entre IA, la regle est de jouer a armes egales, sans auto-handicap. */
   function GetSettings()
   {
+    AddSetting({ name = "v288_pool_staleness",
+      description = "V288: completed pool lifetime in days (0 = historical behavior)",
+      min_value = 0, max_value = 365,
+      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
+      flags = 0 });
     AddSetting({ name = "v278_air_lazy_sites",
       description = "V278: population ordered lazy AIR sites and scan preparation cache; 0 = off, 1 = on, 2 = auto: on when the map has at least 1024x1024 tiles (default since 20/10, qualified at 1024x1024 only)",
       min_value = 0, max_value = 2,

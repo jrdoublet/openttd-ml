@@ -1380,6 +1380,12 @@ function OpexReselectProjects(projects, capitalBudget, abandonedPairs = null, li
     alternatives = OpexRailPrepMergeAlternatives(alternatives, railReadyStock);
   }
   if (spPubMerge != null) OpexSpanEnd(spPubMerge);
+  if (V288_POOL_STALENESS > 0
+      && OpexV288EmptySelection(projects, alternatives, capitalBudget)) {
+    if (spReselect != null) OpexSpanEnd(spReselect);
+    return projects;
+  }
+  local v288Inputs = V288_POOL_STALENESS > 0 ? OpexV288SelectionInputs(alternatives) : null;
   local spPubFilt = PROBE_SPAN_TRACE ? OpexSpanBegin("pub.select.filter") : null;
   alternatives = (V279_RESELECT_MEMO != 0)
       ? OpexFilterAirAlternativesV279Memo(alternatives, abandonedPairs, lines)
@@ -1425,6 +1431,10 @@ function OpexReselectProjects(projects, capitalBudget, abandonedPairs = null, li
   OpexProjectsStampSelectionStats(projects.stats, projects, alternatives, funded, capitalBudget, null);
 
   projects.best = funded;
+  if (V288_POOL_STALENESS > 0) {
+    projects.rawset("v288EmptyInputs", funded.len() == 0 ? v288Inputs : []);
+    projects.rawset("v288PoolRevision", V288_PUBLICATION_REV);
+  }
   if ((MODE_AIR && MODE_RAIL) && railReadyStock != null) {
     if ("railReadyStock" in projects) projects.railReadyStock = railReadyStock;
     else projects.railReadyStock <- railReadyStock;
@@ -1447,6 +1457,8 @@ function OpexReselectProjects(projects, capitalBudget, abandonedPairs = null, li
   }
   if (spPubVivier != null) OpexSpanEnd(spPubVivier);
 
+  if (V288_POOL_STALENESS > 0)
+    OpexV288Log("selection", "serve", "event:inputs_or_capital", 0, OpexOpsMeasureEnd(opsMark));
   if (spReselect != null) OpexSpanEnd(spReselect);
   return projects;
 }

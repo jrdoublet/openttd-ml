@@ -61,6 +61,7 @@ function OpexLoadSettings()
   local bigMap = AIMap.GetMapSizeX() * AIMap.GetMapSizeY() >= 1024 * 1024;
   local v278 = AIController.GetSetting("v278_air_lazy_sites");
   V278_AIR_LAZY_SITES = v278 == 1 || (v278 == 2 && bigMap);
+  V288_POOL_STALENESS = AIController.GetSetting("v288_pool_staleness");
   V279_RESELECT_MEMO = AIController.GetSetting("v279_reselect_memo");
   V233_PENDING_CONTINUE = AIController.GetSetting("v233_pending_continue") != 0;
   V233_GOODS_GRAFT = AIController.GetSetting("v233_goods_graft") != 0;

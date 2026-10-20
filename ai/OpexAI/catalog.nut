@@ -931,6 +931,7 @@ function OpexC121CatalogTownProductionBatch(catalog)
     } else C121_CATALOG_TOWN_PROD.rawset(id, { pax = pax, mail = mail });
   }
   C121_CATALOG_TOWN_CURSOR = (C121_CATALOG_TOWN_CURSOR + 8) % count;
+  if (changed && V288_POOL_STALENESS > 0) V288_PRODUCTION_REV++;
   return changed;
 }
 
@@ -965,6 +966,8 @@ function OpexCatalog::_refreshIndustries()
     local isTransformer = (producedByType[type].len() > 0 && acceptedByType[type].len() > 0);
     this.industries[k].isTransformer <- isTransformer;
     foreach (cargo in producedByType[type]) {
+      if (V288_POOL_STALENESS > 0)
+        OpexV288IndustryProduction(this.industries[k].id, cargo);
       if (!(cargo in this.producers)) this.producers.rawset(cargo, []);
       this.producers[cargo].append(k);
     }

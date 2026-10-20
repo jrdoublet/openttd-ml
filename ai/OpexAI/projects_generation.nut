@@ -172,12 +172,22 @@ function OpexRegenerateModeProjects(projects, catalog, budget, lines, abandonedP
     OpexV276Request(catalog, entityKind, entityId);
     return OpexReselectProjects(projects, OpexAvailableCapital(), abandonedPairs, lines);
   }
+  local v288Ticket = null;
+  if (V288_POOL_STALENESS > 0) {
+    v288Ticket = OpexV288Begin(mode, projects,
+        entityKind != null ? entityKind : (V217_REGEN_NO_PAX ? "freight_rotation" : null));
+    if (v288Ticket == null) return projects;
+  }
   local spMode = PROBE_SPAN_TRACE ? OpexSpanBegin("regen.mode") : null;
   local generated = OpexGenerateModeProjects(projects, catalog, budget, lines, abandonedPairs,
                                              mode, waterSiteCatalog, entityKind, entityId);
   local applied = OpexApplyGeneratedModeProjects(projects, generated, abandonedPairs, mode,
                                         entityKind, entityId, lines);
   if (spMode != null) OpexSpanEnd(spMode);
+  if (V288_POOL_STALENESS > 0 && entityKind == null && !V217_REGEN_NO_PAX)
+    OpexV288Complete(v288Ticket);
+  else if (V288_POOL_STALENESS > 0 && v288Ticket != null)
+    OpexV288Log(mode, "serve", v288Ticket.cause, v288Ticket.age, OpexOpsMeasureEnd(v288Ticket.mark));
   return applied;
 }
 
@@ -193,6 +203,11 @@ function OpexRegenerateAirProjectsSlice(projects, catalog, budget, lines, abando
   }
   if (sliceState == null || typeof sliceState != "table") {
     return { done = true, projects = projects };
+  }
+  if (V288_POOL_STALENESS > 0 && !("v288Ticket" in sliceState)) {
+    sliceState.v288Ticket <- OpexV288Begin("air", projects,
+        entityKind != null ? entityKind : null);
+    if (sliceState.v288Ticket == null) return { done = true, projects = projects };
   }
   local spAirSlice = PROBE_SPAN_TRACE ? OpexSpanBegin("regen.air_slice") : null;
   if (!("plans" in sliceState)) sliceState.plans <- [];
@@ -242,6 +257,8 @@ function OpexRegenerateAirProjectsSlice(projects, catalog, budget, lines, abando
   }
   local appliedAir = OpexApplyGeneratedModeProjects(projects, generated, abandonedPairs, "air",
                                               entityKind, entityId, lines);
+  if (V288_POOL_STALENESS > 0 && entityKind == null)
+    OpexV288Complete(sliceState.v288Ticket);
   if (spAirSlice != null) OpexSpanEnd(spAirSlice);
   return {
     done = true,

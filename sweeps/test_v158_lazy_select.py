@@ -127,6 +127,7 @@ class TestV158BestReadersAudit(unittest.TestCase):
         # Fichier projects_diagnostics.nut : oracle de fraîcheur C66/B6 lors d'un rebuild
         "projects_diagnostics.nut": "Oracle de fraîcheur b6StaleProjects comparé au nouveau portefeuille dans _rebuildProjects",
         # Fichier projects_update.nut : assignation de projects.best dans OpexIncrementalUpdateProjects
+        "pool_staleness.nut": "V288 admission inside the selection producer; never consumes a nonempty stale head",
         "projects_update.nut": "Assignation projects.best = funded dans le producteur incrémental",
         # Sous-fonctions de task_projects.nut appelées exclusivement dans _tryBuildProjects
         "task_projects.nut:OpexAI::_recordMonthlyFunnelPass": "Appelé exclusivement en fin de _tryBuildProjects (déjà matérialisé)",
