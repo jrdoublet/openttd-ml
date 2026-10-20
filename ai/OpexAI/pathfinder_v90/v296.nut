@@ -27,12 +27,12 @@ class OpexRailPathFinderV296 extends OpexRailPathFinderV129
         this._estCache = {};
     }
 
-    function _Append(tile, direction, cost, parent)
+    function _Append(tile, direction, cost, parentId)
     {
         local id = this._tiles.len();
         this._tiles.append(tile); this._dirs.append(direction); this._costs.append(cost);
-        this._parents.append(parent);
-        this._blooms.append((parent < 0 ? 0 : this._blooms[parent]) | (1 << (tile % 61)));
+        this._parents.append(parentId);
+        this._blooms.append((parentId < 0 ? 0 : this._blooms[parentId]) | (1 << (tile % 61)));
         return id;
     }
 
@@ -505,9 +505,9 @@ class OpexRailPathfinderCheckerV296 extends OpexRailPathFinderV296
             if (typeof(node) == "array") pairs.append(node);
             else {
                 imported = true;
-                local parent = node.GetParent();
-                if (parent == null) throw("rail source requires a predecessor");
-                pairs.append([node.GetTile(), parent.GetTile()]);
+                local srcParent = node.GetParent();
+                if (srcParent == null) throw("rail source requires a predecessor");
+                pairs.append([node.GetTile(), srcParent.GetTile()]);
             }
         }
         this._reference.InitializePath(pairs, goals, ignored_tiles);
