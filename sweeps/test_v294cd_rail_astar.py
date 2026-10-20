@@ -139,7 +139,7 @@ class TestV294fRailReverseProbe(unittest.TestCase):
     def test_probe_helper_in_builder_rail(self):
         builder = read("builder_rail.nut")
         probe = function_body(builder, "OpexV294fReverseProbe")
-        self.assertIn("local revPf = OpexCreateRailPathfinder(plansB, plansA, clearanceTiles, searchWeight, null, null);", probe)
+        self.assertIn("local revPf = OpexCreateRailPathfinder(plansB, plansA, clearanceTiles, searchWeight, null, null, engine);", probe)
         self.assertIn('OpexDecide("V294F_PROBE", "ok=" + (ok ? 1 : 0) + " iters=" + iters + " manh=" + manh);', probe)
         self.assertIn("local revTiles = OpexPathTiles(revRes);", probe)
         self.assertIn("revTiles.reverse();", probe)
@@ -179,6 +179,43 @@ class TestV294iRailDistDecouple(unittest.TestCase):
         rail = read("builder_rail.nut")
         self.assertNotIn("15k", rail)
         self.assertNotIn("60k", rail)
+
+
+class TestV294jRailSlopeEngine(unittest.TestCase):
+    def test_setting_declared_default_zero(self):
+        info = read("info.nut")
+        match = re.search(r'AddSetting\(\{\s*name\s*=\s*"v294_rail_slope_engine"(.*?)\}\);', info, re.S)
+        self.assertIsNotNone(match, "v294_rail_slope_engine non déclaré dans info.nut")
+        block = match.group(1)
+        for level in ("easy", "medium", "hard", "custom"):
+            self.assertRegex(block, rf"{level}_value\s*=\s*0\b")
+        self.assertIn("min_value = 0", block)
+        self.assertIn("max_value = 1", block)
+
+    def test_global_declared_and_loaded_once(self):
+        globals_pre = read("globals_pre.nut")
+        self.assertIn("V294_RAIL_SLOPE_ENGINE <- 0;", globals_pre)
+        settings = read("settings.nut")
+        self.assertEqual(settings.count('GetSetting("v294_rail_slope_engine")'), 1)
+        self.assertIn("V294_RAIL_SLOPE_ENGINE = slopeEngine;", settings)
+
+    def test_slope_engine_logic_and_guards(self):
+        builder = read("builder_rail.nut")
+        self.assertIn("function OpexV294jApplySlopeEngineCosts(pathfinder, engine)", builder)
+        self.assertIn("if (V294_RAIL_SLOPE_ENGINE <= 0 || engine == null) return;", builder)
+        self.assertIn("pathfinder.cost.slope = 1500;", builder)
+        self.assertIn("pathfinder.cost.turn = 100;", builder)
+        self.assertIn("AIEngine.GetMaxTractiveEffort(engine)", builder)
+        self.assertIn("AIEngine.GetPower(engine)", builder)
+        self.assertIn("function OpexIsMountainousMap()", builder)
+        self.assertIn("function OpexTrainSlopeSteepness()", builder)
+        # Guards at pathfinder creation
+        self.assertIn("if (V294_RAIL_SLOPE_ENGINE > 0 && engine != null)", builder)
+        self.assertIn("if (V294_RAIL_SLOPE_ENGINE > 0 && (\"engine\" in state) && state.engine != null)", builder)
+
+    def test_v129_turn_cost_guarded(self):
+        v129 = read("pathfinder_v90/v129.nut")
+        self.assertIn("V294_RAIL_SLOPE_ENGINE > 0", v129)
 
 
 if __name__ == "__main__":

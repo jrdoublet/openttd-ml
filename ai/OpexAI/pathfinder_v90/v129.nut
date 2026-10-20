@@ -342,6 +342,8 @@ class OpexRailPathFinderV129 extends OpexRailPathFinderV90
 
 		/* V214 : couts de virage a la AAAHogEx, lus une fois par recherche (pas dans _Cost). */
 		this._v214Turn = V214_RAIL_TURN_COST;
+		/* V294j : si v294_rail_slope_engine actif et locomotive trop faible, cout de virage aligne a 100 comme AAA. */
+		if (V294_RAIL_SLOPE_ENGINE > 0 && this._cost_turn == 100) this._v214Turn = 100;
 		this._v214Tight = V214_RAIL_TIGHT_TURN_COST;
 		if (this._v214Tight > 0) {
 			/* AAA ramene le coude serre a 100 sous 40 tuiles de trajet. La recherche segmentee fixe

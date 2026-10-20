@@ -128,6 +128,8 @@ V294_RAIL_AAA_COSTS <- 0;
 V294_RAIL_REVERSE_PROBE <- 0;
 /* V294i : découplage distance railMax des candidats du plafond d'itérations (défaut 0 = inerte). */
 V294_RAIL_DIST_DECOUPLE <- 0;
+/* V294j : adaptation des coûts A* rail selon la force de la locomotive (défaut 0 = inerte). AAA : pente 1500, virage 100 si faible. */
+V294_RAIL_SLOPE_ENGINE <- 0;
 V172_RAIL_LONG_WEIGHT_DIST <- 100;
 /* Cascade pax par distance decroissante : air seul, air+rail, rail seul,
  * route seule. Le fret accompagne la premiere passe. */

@@ -177,6 +177,10 @@ function OpexLoadSettings()
   if (distDecouple != null && distDecouple >= 0) {
     V294_RAIL_DIST_DECOUPLE = distDecouple;
   }
+  local slopeEngine = AIController.GetSetting("v294_rail_slope_engine");
+  if (slopeEngine != null && slopeEngine >= 0) {
+    V294_RAIL_SLOPE_ENGINE = slopeEngine;
+  }
 
   // V246 : paquets adoptes figes ; les interrupteurs de mode restent actifs.
   ROAD_BUILD_ENABLED = MODE_ROAD;
