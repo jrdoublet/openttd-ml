@@ -80,7 +80,7 @@ function OpexProjectFromCandidate(candidate)
   local expectedOps = 0;
   if (mode == "rail") {
     /* C21 : candidate.iterations peut prédire 36k à 75k itérations sur les longues distances,
-     * mais le pathfinder réel est plafonné à HARD_ITERATION_CAP (10 000). Ne pas borner ici
+     * mais le pathfinder réel est plafonné à HARD_ITERATION_CAP (5 000). Ne pas borner ici
      * surestime expectedOps d'un facteur 4 à 7 et pénalise le rail dans opcodeScore. */
     local iters = candidate.iterations;
     if (iters > HARD_ITERATION_CAP) iters = HARD_ITERATION_CAP;

@@ -89,7 +89,9 @@ class TestV294RailAstar(unittest.TestCase):
         self.assertIn("V294_RAIL_CONTINUOUS <- 0;", self.globals_pre)
 
     def test_no_undeclared_v294_globals(self):
-        allowed = {"V294_RAIL_BRIDGE_LEN", "V294_RAIL_CONTINUOUS"}
+        allowed = {"V294_RAIL_BRIDGE_LEN", "V294_RAIL_CONTINUOUS",  # v294 ; integration v294all :
+                   "V294_RAIL_WEIGHT_PCT", "V294_RAIL_AAA_COSTS", "V294_RAIL_REVERSE_PROBE",
+                   "V294_RAIL_DIST_DECOUPLE", "V294_RAIL_SLOPE_ENGINE"}
         found = set()
         for fn, text in self.sources.items():
             for m in re.finditer(r"\b(V294_[A-Z0-9_]+)\b", text):
@@ -118,20 +120,20 @@ class TestV294RailAstar(unittest.TestCase):
         # 2. Dans task_rail.nut : _startRailSearch
         body_start = _function_body(self.task_rail, "function OpexAI::_startRailSearch(")
         self.assertIn("if (V294_RAIL_CONTINUOUS > 0) {", body_start)
-        self.assertIn("pathfinder = OpexCreateRailPathfinder(plan.plansA, plan.plansB, clearanceTiles, searchWeight, outwardSide, null);", body_start)
-        self.assertIn("segmented = OpexCreateSegmentedSearch(plan.plansA, plan.plansB, plan.iterationBudget, clearanceTiles, searchWeight, outwardSide, null);", body_start)
+        self.assertIn("pathfinder = OpexCreateRailPathfinder(plan.plansA, plan.plansB, clearanceTiles, searchWeight, outwardSide, null, candidateEngine);", body_start)
+        self.assertIn("segmented = OpexCreateSegmentedSearch(plan.plansA, plan.plansB, searchBudget, clearanceTiles, searchWeight, outwardSide, null, candidateEngine);", body_start)
 
         # 3. Dans task_rail.nut : _startRailUpgradeSearch
         body_upg = _function_body(self.task_rail, "function OpexAI::_startRailUpgradeSearch(")
         self.assertIn("if (V294_RAIL_CONTINUOUS > 0) {", body_upg)
-        self.assertIn("pathfinder = OpexCreateRailPathfinder(prep.dualA, prep.dualB, prep.ignored, searchWeight, null, null);", body_upg)
-        self.assertIn("segmented = OpexCreateSegmentedSearch(prep.dualA, prep.dualB, prep.iterationBudget, prep.ignored, searchWeight);", body_upg)
+        self.assertIn("pathfinder = OpexCreateRailPathfinder(prep.dualA, prep.dualB, prep.ignored, searchWeight, null, null, lineEngine);", body_upg)
+        self.assertIn("segmented = OpexCreateSegmentedSearch(prep.dualA, prep.dualB, prep.iterationBudget, prep.ignored, searchWeight, null, null, lineEngine);", body_upg)
 
         # 4. Dans task_rail.nut : _scheduleStockRailSearch
         body_stock = _function_body(self.task_rail, "function OpexAI::_startRailStockSearch(")
         self.assertIn("if (V294_RAIL_CONTINUOUS > 0) {", body_stock)
-        self.assertIn("pathfinder = OpexCreateRailPathfinder(plan.plansA, plan.plansB, clearanceTiles, searchWeight, outwardSide, null);", body_stock)
-        self.assertIn("segmented = OpexCreateSegmentedSearch(plan.plansA, plan.plansB, plan.iterationBudget, clearanceTiles, searchWeight, outwardSide, null);", body_stock)
+        self.assertIn("pathfinder = OpexCreateRailPathfinder(plan.plansA, plan.plansB, clearanceTiles, searchWeight, outwardSide, null, candidateEngine);", body_stock)
+        self.assertIn("segmented = OpexCreateSegmentedSearch(plan.plansA, plan.plansB, plan.iterationBudget, clearanceTiles, searchWeight, outwardSide, null, candidateEngine);", body_stock)
 
     def test_continuous_result_format_matches_segmented(self):
         # Verifier les 9 cles retournees par OpexSegmentedResult

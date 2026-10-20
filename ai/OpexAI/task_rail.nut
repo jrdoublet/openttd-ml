@@ -299,8 +299,7 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
       /* G3§2 : pour le chemin reprenable sans railPlan, la recherche A* ne coute aucune
        * tresorerie et le cash peut arriver pendant les tranches. On ne saute que le chemin
        * non reprenable (construction immediate). _consumeRailSearch verifiera la caisse a
-       * la fin. Cela active aussi la branche isPreplanOrLowCash de OpexDynamicHardCap, qui
-       * remonte au plafond dur pour exploiter les opcodes dormants pendant l'attente. */
+       * la fin. */
       local willStartSearch = !(("railPlan" in candidate) && candidate.railPlan != null);
       if (lowCash && !willStartSearch) {
         if (RAIL_FAILURE_AUDIT) OpexRailFailureAudit("early", candidate, "insufficient_cash", 0, 0, 0, i);
@@ -313,7 +312,7 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
       OpexSign(anchor, "IP|" + yy + "|T|" + project.budgetScore + "|" + project.opcodeScore);
 
       local alternativeRatio = MIN_RATIO;
-      local hardCap = OpexDynamicHardCap(this._lines.len(), lowCash);
+      local hardCap = HARD_ITERATION_CAP;
       local posPacked = i * TOP_K + this._projects.best.len();
       if (!(("railPlan" in candidate) && candidate.railPlan != null)) {
         if (DECISION_LOG) {
@@ -796,10 +795,28 @@ function OpexAI::_startRailSearch(candidate, alternativeRatio, hardCap, posPacke
   local outwardSide = (V197_GUIDED_DOUBLE && OpexV190Active() && candidate.kind == "freight") ? 1 : null;
   local searchWeight = OpexRailAstarWeight(candidate.distance);
   candidate.searchWeight <- searchWeight;
+  if (V294_RAIL_REVERSE_PROBE > 0) {
+    local revSlice = OpexV294fReverseProbe(plan.plansA, plan.plansB, clearanceTiles, searchWeight, candidate, V294_RAIL_REVERSE_PROBE);
+    if (revSlice != null) {
+      local planResult = OpexCompleteRailRouteAfterSearch(this._catalog, candidate, plan, revSlice);
+      if (DECISION_LOG && V131_TOWN_CLEARANCE && clearanceTiles != null) {
+        OpexV131LogClearance(candidate, planResult, clearanceTiles);
+      }
+      if (V233_GOODS_GRAFT && OpexV233IsGraft(candidate) && planResult.ok) {
+        this._v233StorePlan(candidate, planResult);
+      }
+      return { pending = false, plan = planResult };
+    }
+  }
+  local candidateEngine = null;
+  if (candidate != null && ("loco" in candidate) && candidate.loco != null) {
+    if (typeof(candidate.loco) == "table" && ("id" in candidate.loco)) candidateEngine = candidate.loco.id;
+    else if (typeof(candidate.loco) == "integer") candidateEngine = candidate.loco;
+  }
   local pathfinder = null;
   local segmented = null;
   if (V294_RAIL_CONTINUOUS > 0) {
-    pathfinder = OpexCreateRailPathfinder(plan.plansA, plan.plansB, clearanceTiles, searchWeight, outwardSide, null);
+    pathfinder = OpexCreateRailPathfinder(plan.plansA, plan.plansB, clearanceTiles, searchWeight, outwardSide, null, candidateEngine);
     if (pathfinder == null) {
       if (DECISION_LOG) {
         OpexDecide("RAIL_SEARCH", "type=resumable outcome=NOPA iters=0 budget=" + plan.iterationBudget);
@@ -810,7 +827,7 @@ function OpexAI::_startRailSearch(candidate, alternativeRatio, hardCap, posPacke
   } else {
     /* V294h : le creneau ne tente que le trace rapide ; le reste se joue en fond. */
     local searchBudget = (V294H_RAIL_DEFER > 0) ? OpexV294hQuickBudget(plan.iterationBudget) : plan.iterationBudget;
-    segmented = OpexCreateSegmentedSearch(plan.plansA, plan.plansB, searchBudget, clearanceTiles, searchWeight, outwardSide, null);
+    segmented = OpexCreateSegmentedSearch(plan.plansA, plan.plansB, searchBudget, clearanceTiles, searchWeight, outwardSide, null, candidateEngine);
     if (segmented == null) {
       if (DECISION_LOG) {
         OpexDecide("RAIL_SEARCH", "type=resumable outcome=NOPA iters=0 budget=" + plan.iterationBudget);
@@ -1343,10 +1360,15 @@ function OpexAI::_startRailUpgradeSearch(line, prep)
 {
   local searchWeight = OpexRailAstarWeight(line.distance);
   line.searchWeight <- searchWeight;
+  local lineEngine = null;
+  if (line != null && ("loco" in line) && line.loco != null) {
+    if (typeof(line.loco) == "table" && ("id" in line.loco)) lineEngine = line.loco.id;
+    else if (typeof(line.loco) == "integer") lineEngine = line.loco;
+  }
   local pathfinder = null;
   local segmented = null;
   if (V294_RAIL_CONTINUOUS > 0) {
-    pathfinder = OpexCreateRailPathfinder(prep.dualA, prep.dualB, prep.ignored, searchWeight, null, null);
+    pathfinder = OpexCreateRailPathfinder(prep.dualA, prep.dualB, prep.ignored, searchWeight, null, null, lineEngine);
     if (pathfinder == null) {
       if (DECISION_LOG) OpexDecide("RAIL_SEARCH", "type=resumable outcome=NOPA iters=0 budget=" + prep.iterationBudget);
       OpexSign(AIMap.GetTileIndex(1, 1), "RU|" + (AIDate.GetYear(AIDate.GetCurrentDate()) % 100)
@@ -1354,7 +1376,7 @@ function OpexAI::_startRailUpgradeSearch(line, prep)
       return;
     }
   } else {
-    segmented = OpexCreateSegmentedSearch(prep.dualA, prep.dualB, prep.iterationBudget, prep.ignored, searchWeight);
+    segmented = OpexCreateSegmentedSearch(prep.dualA, prep.dualB, prep.iterationBudget, prep.ignored, searchWeight, null, null, lineEngine);
     if (segmented == null) {
       if (DECISION_LOG) OpexDecide("RAIL_SEARCH", "type=resumable outcome=NOPA iters=0 budget=" + prep.iterationBudget);
       OpexSign(AIMap.GetTileIndex(1, 1), "RU|" + (AIDate.GetYear(AIDate.GetCurrentDate()) % 100)
@@ -1474,7 +1496,7 @@ function OpexAI::_startRailStockSearch(candidate, isRepair = false, repairReason
   }
 
   local alternativeRatio = MIN_RATIO;
-  local hardCap = OpexDynamicHardCap(this._lines.len(), false);
+  local hardCap = HARD_ITERATION_CAP;
   local posPacked = 0;
 
   local plan = OpexPrepareRailRoute(this._catalog, this._budget, candidate, alternativeRatio, hardCap);
@@ -1496,10 +1518,15 @@ function OpexAI::_startRailStockSearch(candidate, isRepair = false, repairReason
   local outwardSide = (V197_GUIDED_DOUBLE && OpexV190Active() && candidate.kind == "freight") ? 1 : null;
   local searchWeight = OpexRailAstarWeight(candidate.distance);
   candidate.searchWeight <- searchWeight;
+  local candidateEngine = null;
+  if (candidate != null && ("loco" in candidate) && candidate.loco != null) {
+    if (typeof(candidate.loco) == "table" && ("id" in candidate.loco)) candidateEngine = candidate.loco.id;
+    else if (typeof(candidate.loco) == "integer") candidateEngine = candidate.loco;
+  }
   local pathfinder = null;
   local segmented = null;
   if (V294_RAIL_CONTINUOUS > 0) {
-    pathfinder = OpexCreateRailPathfinder(plan.plansA, plan.plansB, clearanceTiles, searchWeight, outwardSide, null);
+    pathfinder = OpexCreateRailPathfinder(plan.plansA, plan.plansB, clearanceTiles, searchWeight, outwardSide, null, candidateEngine);
     if (pathfinder == null) {
       local pairKey = OpexProjectPairKey(candidate.kind, candidate.cargo, candidate.src, candidate.dst);
       this._railStockCooldown[pairKey] <- AIDate.GetCurrentDate() + 365;
@@ -1511,7 +1538,7 @@ function OpexAI::_startRailStockSearch(candidate, isRepair = false, repairReason
       return false;
     }
   } else {
-    segmented = OpexCreateSegmentedSearch(plan.plansA, plan.plansB, plan.iterationBudget, clearanceTiles, searchWeight, outwardSide, null);
+    segmented = OpexCreateSegmentedSearch(plan.plansA, plan.plansB, plan.iterationBudget, clearanceTiles, searchWeight, outwardSide, null, candidateEngine);
     if (segmented == null) {
       local pairKey = OpexProjectPairKey(candidate.kind, candidate.cargo, candidate.src, candidate.dst);
       this._railStockCooldown[pairKey] <- AIDate.GetCurrentDate() + 365;

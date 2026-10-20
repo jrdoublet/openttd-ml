@@ -125,6 +125,16 @@ V250_CASH_STOP <- true;
 V259_BRIDGE_RENEW <- 0;
 /* V277 : publication rapide des projets air et filtre indexe de re-selection. */
 V277_AIR_PUB_FAST <- 0;
+/* V294c : poids heuristique A* rail unifié à toutes les distances (défaut 0 = inerte). AAA : 200 partout. */
+V294_RAIL_WEIGHT_PCT <- 0;
+/* V294d : table de coûts A* rail alignée sur AAAHogEx (défaut 0 = inerte). */
+V294_RAIL_AAA_COSTS <- 0;
+/* V294f : sonde A* inverse avant recherche ferroviaire (défaut 0 = inerte). AAA : 300 iters. */
+V294_RAIL_REVERSE_PROBE <- 0;
+/* V294i : découplage distance railMax des candidats du plafond d'itérations (défaut 0 = inerte). */
+V294_RAIL_DIST_DECOUPLE <- 0;
+/* V294j : adaptation des coûts A* rail selon la force de la locomotive (défaut 0 = inerte). AAA : pente 1500, virage 100 si faible. */
+V294_RAIL_SLOPE_ENGINE <- 0;
 V172_RAIL_LONG_WEIGHT_DIST <- 100;
 /* Cascade pax par distance decroissante : air seul, air+rail, rail seul,
  * route seule. Le fret accompagne la premiere passe. */

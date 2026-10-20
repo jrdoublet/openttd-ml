@@ -167,6 +167,26 @@ function OpexLoadSettings()
   local v277Pub = AIController.GetSetting("v277_air_pub_fast");
   if (v277Pub == 3) v277Pub = AIMap.GetMapSizeX() * AIMap.GetMapSizeY() >= 1024 * 1024 ? 1 : 0;
   V277_AIR_PUB_FAST = (v277Pub != null && v277Pub >= 0 && v277Pub <= 2) ? v277Pub : 0;
+  local railWeightPct = AIController.GetSetting("v294_rail_weight_pct");
+  if (railWeightPct != null && (railWeightPct == 0 || (railWeightPct >= 100 && railWeightPct <= 400))) {
+    V294_RAIL_WEIGHT_PCT = railWeightPct;
+  }
+  local aaaCosts = AIController.GetSetting("v294_rail_aaa_costs");
+  if (aaaCosts != null && (aaaCosts == 0 || aaaCosts == 1)) {
+    V294_RAIL_AAA_COSTS = aaaCosts;
+  }
+  local revProbe = AIController.GetSetting("v294_rail_reverse_probe");
+  if (revProbe != null && revProbe >= 0) {
+    V294_RAIL_REVERSE_PROBE = revProbe;
+  }
+  local distDecouple = AIController.GetSetting("v294_rail_dist_decouple");
+  if (distDecouple != null && distDecouple >= 0) {
+    V294_RAIL_DIST_DECOUPLE = distDecouple;
+  }
+  local slopeEngine = AIController.GetSetting("v294_rail_slope_engine");
+  if (slopeEngine != null && slopeEngine >= 0) {
+    V294_RAIL_SLOPE_ENGINE = slopeEngine;
+  }
 
   // V246 : paquets adoptes figes ; les interrupteurs de mode restent actifs.
   ROAD_BUILD_ENABLED = MODE_ROAD;

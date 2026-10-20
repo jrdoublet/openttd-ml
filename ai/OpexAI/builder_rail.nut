@@ -97,19 +97,6 @@ const ATTEMPT_FLOOR = 2000;
  * acceptable au prochain classement annuel. Le cas <=0 reste seulement un garde-fou defensif.
  */
 
-/* Plafond dur d'iterations A* dynamique :
- * 1. Faible au debut (15k) pour filtrer rapidement les lignes faciles sans bruler de temps.
- * 2. Augmente pendant le precalcul ou quand la tresorerie manque (60k) pour exploiter les opcodes dormants.
- * 3. Augmente avec la maturite du reseau (15k + 7.5k * nLines, jusqu'a 60k) quand les couloirs faciles sont epuises. */
-function OpexDynamicHardCap(linesCount, isPreplanOrLowCash)
-{
-
-  if (isPreplanOrLowCash) return HARD_ITERATION_CAP;
-  local cap = 5000 + linesCount * 1000;
-  if (cap > HARD_ITERATION_CAP) cap = HARD_ITERATION_CAP;
-  return cap;
-}
-
 function OpexIterationBudget(profitAnnual, alternativeRatio, hardCap = 10000)
 {
   /* Le chemin est retourne avec le budget pour l'instrumentation : Z = pas d'alternative,
@@ -824,18 +811,72 @@ function OpexAddRailSearchOps(candidate, ops)
 
 /* V172 : poids heuristique A* rail adaptatif a la distance Manhattan de la recherche.
  * Si v172_rail_long_weight_pct > 0 et distance >= v172_rail_long_weight_dist,
- * utilise ce poids au lieu de V91_ASTAR_WEIGHT_PCT. */
+ * utilise ce poids au lieu de V91_ASTAR_WEIGHT_PCT.
+ * V294c : si v294_rail_weight_pct > 0, poids unifié utilisé à toutes les distances (AAA : 200). */
 function OpexRailAstarWeight(dist = null)
 {
+  if (V294_RAIL_WEIGHT_PCT > 0) {
+    return V294_RAIL_WEIGHT_PCT;
+  }
   if (dist != null && V172_RAIL_LONG_WEIGHT_PCT > 0 && dist >= V172_RAIL_LONG_WEIGHT_DIST) {
     return V172_RAIL_LONG_WEIGHT_PCT;
   }
   return V91_ASTAR_WEIGHT_PCT;
 }
 
+/* V294j : cache carte montagneuse (>= 30 de hauteur max sur 100 tuiles sonder, aligné sur AAA main.nut:3625). */
+::OpexMountainousMapCache <- null;
+
+function OpexIsMountainousMap()
+{
+  if (::OpexMountainousMapCache != null) return ::OpexMountainousMapCache;
+  local mapSize = AIMap.GetMapSize();
+  local maxH = 0;
+  for (local i = 0; i < 100; ++i) {
+    local tile = AIBase.RandRange(mapSize);
+    local h = AITile.GetMaxHeight(tile);
+    if (h > maxH) maxH = h;
+  }
+  ::OpexMountainousMapCache = (maxH >= 30);
+  return ::OpexMountainousMapCache;
+}
+
+function OpexTrainSlopeSteepness()
+{
+  if (AIGameSettings.IsValid("vehicle.train_slope_steepness")) {
+    return AIGameSettings.GetValue("vehicle.train_slope_steepness");
+  }
+  if (AIGameSettings.IsValid("train_slope_steepness")) {
+    return AIGameSettings.GetValue("train_slope_steepness");
+  }
+  return 3;
+}
+
+/* V294j : adaptation des coûts de pente et virage si la locomotive est trop faible.
+ * Si la locomotive n'est pas connue à la création (engine == null), rien n'est appliqué. */
+function OpexV294jApplySlopeEngineCosts(pathfinder, engine)
+{
+  if (V294_RAIL_SLOPE_ENGINE <= 0 || engine == null) return;
+  if (!AIEngine.IsValidEngine(engine)) return;
+
+  local slope = OpexTrainSlopeSteepness();
+  local te = AIEngine.GetMaxTractiveEffort(engine);
+  local isWeak = false;
+  if (te < slope * 50) {
+    isWeak = true;
+  } else if (OpexIsMountainousMap() && AIEngine.GetPower(engine) < slope * 600) {
+    isWeak = true;
+  }
+
+  if (isWeak) {
+    pathfinder.cost.slope = 1500;
+    pathfinder.cost.turn = 100;
+  }
+}
+
 /* Cree le pathfinder. L'objet doit survivre entre les tours (stocke sur this._railSearch) :
  * FindPath(PATH_CHUNK) reprend exactement ou il s'etait arrete. Ne pas recreer a chaque tranche. */
-function OpexCreateRailPathfinder(plansA, plansB, ignoredTiles = null, weight = null, outwardSide = null, guideTiles = null)
+function OpexCreateRailPathfinder(plansA, plansB, ignoredTiles = null, weight = null, outwardSide = null, guideTiles = null, engine = null)
 {
   local sources = [];
   local goals = [];
@@ -861,10 +902,65 @@ function OpexCreateRailPathfinder(plansA, plansB, ignoredTiles = null, weight = 
     pathfinder.cost.max_bridge_length = V294_RAIL_BRIDGE_LEN;
     pathfinder.cost.max_tunnel_length = V294_RAIL_BRIDGE_LEN;
   }
+  if (V294_RAIL_AAA_COSTS > 0) {
+    pathfinder.cost.diagonal_tile = 67;
+    pathfinder.cost.bridge_per_tile = 100;
+    pathfinder.cost.tunnel_per_tile = 0;
+    pathfinder.cost.level_crossing = 900;
+    pathfinder.cost.bridge_per_tile_ex = 200;
+    pathfinder.cost.bridge_per_tile_ex2 = 400;
+    pathfinder.cost.tunnel_per_tile_ex = 200;
+    pathfinder.cost.tunnel_per_tile_ex2 = 300;
+  }
+  if (V294_RAIL_SLOPE_ENGINE > 0 && engine != null) {
+    OpexV294jApplySlopeEngineCosts(pathfinder, engine);
+  }
   if (outwardSide != null) pathfinder._outwardSide = outwardSide;
   if (guideTiles != null) pathfinder._guideTiles = guideTiles;
   pathfinder.InitializePath(sources, goals, ignoredTiles == null ? [] : ignoredTiles);
   return pathfinder;
+}
+
+/* V294f : sonde inverse bornée à iterationCap iterations (sources = plansB, buts = plansA).
+ * Si un chemin est trouvé, il est retourné inversé au format attendu par la pose. */
+function OpexV294fReverseProbe(plansA, plansB, clearanceTiles, searchWeight, candidate, iterationCap)
+{
+  local engine = null;
+  if (candidate != null && ("loco" in candidate) && candidate.loco != null) {
+    if (typeof(candidate.loco) == "table" && ("id" in candidate.loco)) engine = candidate.loco.id;
+    else if (typeof(candidate.loco) == "integer") engine = candidate.loco;
+  }
+  local revPf = OpexCreateRailPathfinder(plansB, plansA, clearanceTiles, searchWeight, null, null, engine);
+  if (revPf == null) {
+    if (DECISION_LOG) {
+      local manh = (candidate != null && ("distance" in candidate)) ? candidate.distance :
+                   (plansA.len() > 0 && plansB.len() > 0 ? AIMap.DistanceManhattan(plansA[0].lead, plansB[0].lead) : 0);
+      OpexDecide("V294F_PROBE", "ok=0 iters=0 manh=" + manh);
+    }
+    return null;
+  }
+  local revRes = revPf.FindPath(iterationCap);
+  local iters = revPf.LastConsumed();
+  local ok = (revRes != null && revRes != false);
+  if (DECISION_LOG) {
+    local manh = (candidate != null && ("distance" in candidate)) ? candidate.distance :
+                 (plansA.len() > 0 && plansB.len() > 0 ? AIMap.DistanceManhattan(plansA[0].lead, plansB[0].lead) : 0);
+    OpexDecide("V294F_PROBE", "ok=" + (ok ? 1 : 0) + " iters=" + iters + " manh=" + manh);
+  }
+  if (!ok) return null;
+  local revTiles = OpexPathTiles(revRes);
+  revTiles.reverse();
+  return {
+    path = revRes,
+    tiles = revTiles,
+    structures = [],
+    iterations = iters,
+    stop = "OK",
+    done = true,
+    segments = 1,
+    backtracks = 0,
+    localChoices = 0,
+  };
 }
 
 /* Une tranche d'A*. `spent` est le cumul DEJA consomme (denominateur du classement : mesurer,
@@ -1182,7 +1278,7 @@ function OpexTrySegmentedBacktrack(state)
 /* Cree l'etat d'une recherche segmentee. Table passee en parametre : Squirrel ici
  * ne capture pas les locales englobantes (piege 6). pathfinder reste null jusqu'au
  * premier segment : le closed set ne survit jamais d'un segment a l'autre. */
-function OpexCreateSegmentedSearch(plansA, plansB, iterationBudget, ignoredTiles = null, weight = null, outwardSide = null, guideTiles = null)
+function OpexCreateSegmentedSearch(plansA, plansB, iterationBudget, ignoredTiles = null, weight = null, outwardSide = null, guideTiles = null, engine = null)
 {
   local sources = [];
   local goals = [];
@@ -1228,6 +1324,7 @@ function OpexCreateSegmentedSearch(plansA, plansB, iterationBudget, ignoredTiles
     bridgeLen = (V294_RAIL_BRIDGE_LEN > 0) ? V294_RAIL_BRIDGE_LEN : null,
     outwardSide = outwardSide,
     guideTiles = guideTiles,
+    engine = engine,
   };
 }
 
@@ -1261,6 +1358,19 @@ function OpexAdvanceSegmentedSearch(state, sliceIters, deadlineTick)
       if (V294_RAIL_BRIDGE_LEN > 0) {
         pathfinder.cost.max_bridge_length = V294_RAIL_BRIDGE_LEN;
         pathfinder.cost.max_tunnel_length = V294_RAIL_BRIDGE_LEN;
+      }
+      if (V294_RAIL_AAA_COSTS > 0) {
+        pathfinder.cost.diagonal_tile = 67;
+        pathfinder.cost.bridge_per_tile = 100;
+        pathfinder.cost.tunnel_per_tile = 0;
+        pathfinder.cost.level_crossing = 900;
+        pathfinder.cost.bridge_per_tile_ex = 200;
+        pathfinder.cost.bridge_per_tile_ex2 = 400;
+        pathfinder.cost.tunnel_per_tile_ex = 200;
+        pathfinder.cost.tunnel_per_tile_ex2 = 300;
+      }
+      if (V294_RAIL_SLOPE_ENGINE > 0 && ("engine" in state) && state.engine != null) {
+        OpexV294jApplySlopeEngineCosts(pathfinder, state.engine);
       }
       if (("outwardSide" in state) && state.outwardSide != null) pathfinder._outwardSide = state.outwardSide;
       if (("guideTiles" in state) && state.guideTiles != null) pathfinder._guideTiles = state.guideTiles;
