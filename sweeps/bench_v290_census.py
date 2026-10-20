@@ -391,8 +391,21 @@ def main() -> None:
         print(f"Error: Output file already exists: {out_path}", file=sys.stderr)
         sys.exit(1)
 
+    import bench_v2
+    import openttdlab
     from game_health import enable_engine_failure_capture
     from openttdlab import local_folder, run_experiments
+
+    # OpenTTDLab ne capture AILog qu'avec `-d script=4` (cf. diag_c39_events.py).
+    real_check_output = openttdlab.subprocess.check_output
+
+    def check_output_with_script_debug(cmd, *rest, **kwargs):
+        cmd = tuple(cmd)
+        if any(str(arg).startswith("-vnull") for arg in cmd):
+            cmd = cmd[:1] + ("-d", "script=4") + cmd[1:]
+        return real_check_output(cmd, *rest, **kwargs)
+
+    openttdlab.subprocess.check_output = check_output_with_script_debug
 
     bundle = out_path.with_name(out_path.stem + "_fixture")
     manifest = stage_fixture(bundle)
@@ -431,13 +444,16 @@ def main() -> None:
 
     # Group output by seed and analyze
     results_by_seed: dict[int, dict] = {}
-    logs_by_seed: dict[int, list[str]] = defaultdict(list)
+    # Chaque ligne mensuelle recopie le journal complet : garder le plus long par graine.
+    logs_by_seed: dict[int, str] = defaultdict(str)
     for r in rows:
         seed = r.get("run", [NAME, 42, 0])[1]
-        logs_by_seed[seed].append(r.get("output") or "")
+        out = r.get("output") or ""
+        if len(out) > len(logs_by_seed[seed]):
+            logs_by_seed[seed] = out
 
     for seed in seeds:
-        seed_log = "\n".join(logs_by_seed[seed])
+        seed_log = logs_by_seed[seed]
         results_by_seed[seed] = analyze_census(seed_log, years=args.years)
 
     # Write summary CSV
