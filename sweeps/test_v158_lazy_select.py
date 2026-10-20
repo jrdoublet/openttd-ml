@@ -165,6 +165,7 @@ class TestV158BestReadersAudit(unittest.TestCase):
         "orchestrator.nut:OpexAI::_c76DoFullRegen": "Exécuté immédiatement après _rebuildProjects (resélection fraîche)",
         "scheduler_tasks.nut:OpexAI::_dispatchCatalog": "Exécuté immédiatement après _rebuildProjects ou OpexReselectProjects",
         "task_v249.nut:OpexV249MaxListedCapital": "V249 : borne de garde (capital max listé) ; une liste périmée suffit, pas de resélection pour ne pas déplacer son coût",
+        "task_v249.nut:OpexV249BestAdmissibleCapital": "V249 mode 2 : meilleur projet admissible et finançable dans projects.best sans resélection",
     }
 
     def _find_enclosing_function(self, content: str, pos: int) -> str:

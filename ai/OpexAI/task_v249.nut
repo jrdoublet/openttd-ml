@@ -1,10 +1,15 @@
-/* V249 : une statue par mois quand on est riche. Aucun montant fixe :
- * riche = aucun emprunt, aucune passe projets arretee faute de caisse depuis le
- * mois precedent (V249_CASH_STOP, pose dans task_projects.nut), et apres la
- * statue la caisse couvre encore la reserve et le projet le plus cher du
- * portefeuille. Aucun etat sauvegarde. La statue est un bit du monde
- * (AITown.HasStatue). _v249StatueMonth ne fait que borner la cadence dans la
- * session courante. NoAI 15 n'expose pas AITown.GetActionCost. */
+/* V249 : une statue par mois quand on est riche. Aucun montant fixe.
+ * Mode 1 : riche = aucun emprunt, aucune passe projets arretee faute de caisse depuis le
+ * mois precedent (V249_CASH_STOP), et apres la statue la caisse couvre encore la
+ * reserve et le projet le plus cher du portefeuille. Ville au plus fort profit historique.
+ * Mode 2 (V249a+b+c) : gain marginal capturable sur les gares qui chargent, note cible (+26),
+ * production disponible (ville pour passagers/courrier, industrie source pour fret),
+ * plafonnee par la capacite disponible de la ligne (saturation). Achat seulement si
+ * gain annuel x horizon (5 ans) > cout mesure. Pas de reserve de caisse requise,
+ * mais preservation du meilleur projet admissible et financable et de la flotte V252.
+ * Aucun etat sauvegarde. La statue est un bit du monde (AITown.HasStatue). */
+
+const V249_HORIZON_YEARS = 5;
 
 /* Capital du projet le plus cher encore liste : la statue ne doit jamais
  * prendre l'argent d'un projet que le portefeuille veut financer. */
@@ -17,6 +22,86 @@ function OpexV249MaxListedCapital(projects)
     if (capital > most) most = capital;
   }
   return most;
+}
+
+/* V249 mode 2 : capital du meilleur projet admissible et financable maintenant dans projects.best */
+function OpexV249BestAdmissibleCapital(projects, lines, currentCash)
+{
+  if (projects == null || !("best" in projects) || projects.best == null) return 0;
+  foreach (project in projects.best) {
+    if (project == null) continue;
+    if (!OpexModeVehicleRoom(project.mode, OpexTensionProjectVehicleCount(project))) continue;
+    if (project.mode == "air" && !OpexAirBatchPlanStillLive(project.payload, lines)) continue;
+    local cap = OpexProjectFinanceCapital(project);
+    if (cap > 0 && cap <= currentCash) {
+      return cap;
+    }
+  }
+  return 0;
+}
+
+/* V249 mode 2 : cout du renouvellement V252 en attente sur une ligne rentable (ne pas l'evincer) */
+function OpexV249GetPendingV252Cost(ai)
+{
+  if (ai == null || ai._lines == null || ai._lines.len() == 0 || ai._catalog == null) return 0;
+  local loan = AICompany.GetLoanAmount();
+  if (loan > 0) return 0;
+  if (("V252_CASH_STOP" in getroottable()) && ::V252_CASH_STOP) return 0;
+
+  local candidates = [];
+  local rank = 0;
+  foreach (line in ai._lines) {
+    if (line == null) continue;
+    if (("mode" in line) && line.mode != "air") continue;
+    if (!("vehicles" in line) || line.vehicles == null || line.vehicles.len() == 0) continue;
+    if (("scrapping" in line) && line.scrapping) continue;
+
+    local lineProfit = 0;
+    foreach (v in line.vehicles) {
+      if (AIVehicle.IsValidVehicle(v)) lineProfit += AIVehicle.GetProfitLastYear(v);
+    }
+    if (lineProfit <= 0) continue;
+
+    foreach (v in line.vehicles) {
+      if (!AIVehicle.IsValidVehicle(v)) continue;
+      if (ai._vehiclesToRetire != null && (v in ai._vehiclesToRetire)) continue;
+      candidates.append({
+        veh = v,
+        line = line,
+        age = AIVehicle.GetAge(v),
+        profit = AIVehicle.GetProfitLastYear(v),
+        engine = AIVehicle.GetEngineType(v),
+        rank = rank++
+      });
+    }
+  }
+  if (candidates.len() == 0) return 0;
+
+  candidates.sort(function(a, b) {
+    if (a.age != b.age) return a.age > b.age ? -1 : 1;
+    if (a.profit != b.profit) return a.profit < b.profit ? -1 : 1;
+    if (a.rank != b.rank) return a.rank < b.rank ? -1 : 1;
+    return 0;
+  });
+
+  local lineTargetCache = {};
+  foreach (cand in candidates) {
+    local lineKey = ("lineId" in cand.line) ? cand.line.lineId : cand.line;
+    if (!(lineKey in lineTargetCache)) {
+      lineTargetCache[lineKey] <- OpexAirBestEngineForLine(cand.line, ai._catalog);
+    }
+    local targetEngine = lineTargetCache[lineKey];
+    if (targetEngine == null || cand.engine == targetEngine) continue;
+
+    local airportTile = ("originA" in cand.line) && AIAirport.IsAirportTile(cand.line.originA)
+        ? cand.line.originA : cand.line.stationA;
+    local hangar = AIAirport.GetHangarOfAirport(airportTile);
+    if (!AIMap.IsValidTile(hangar) || !AIAirport.IsHangarTile(hangar)) continue;
+
+    local price = AIEngine.GetPrice(targetEngine);
+    if (price > 0) return price;
+  }
+  return 0;
 }
 
 function OpexV249LineProfit(line)
@@ -53,6 +138,246 @@ function OpexV249MeasureStatueCost(townId)
   return account.GetCosts();
 }
 
+/* Capacite disponible et revenu unitaire estime d'une ligne pour un cargo donne */
+function OpexV249LineServiceInfo(line, stationId, cargo)
+{
+  local vehicles = OpexLineVehicleIds(line, stationId);
+  local totalVehCap = 0;
+  local vehCount = 0;
+  if (vehicles != null) {
+    foreach (v in vehicles) {
+      if (!AIVehicle.IsValidVehicle(v)) continue;
+      totalVehCap += AIVehicle.GetCapacity(v, cargo);
+      vehCount++;
+    }
+  }
+  if (vehCount == 0 || totalVehCap <= 0) {
+    return { spareCapacity = 0, unitRevenue = 0.0 };
+  }
+
+  local waiting = AIStation.GetCargoWaiting(stationId, cargo);
+  if (waiting > totalVehCap * 2) {
+    return { spareCapacity = 0, unitRevenue = 0.0 };
+  }
+
+  local oneWayDays = 0;
+  if (("predOneWayDays" in line) && line.predOneWayDays > 0) {
+    oneWayDays = line.predOneWayDays;
+  } else if (("distance" in line) && line.distance > 0) {
+    oneWayDays = line.distance;
+  } else {
+    oneWayDays = 30;
+  }
+  local roundTripDays = 2 * oneWayDays;
+  if (roundTripDays < 1) roundTripDays = 1;
+  local annualTrips = 365.0 / roundTripDays;
+  local annualCapacity = (totalVehCap * annualTrips).tointeger();
+
+  local currentCarried = ("predCarried" in line && line.predCarried > 0) ? line.predCarried : 0;
+  local spareCapacity = annualCapacity - currentCarried;
+  if (spareCapacity < 0) spareCapacity = 0;
+
+  local profit = OpexV249LineProfit(line);
+  local unitRevenue = 0.0;
+  if (profit > 0 && currentCarried > 0) {
+    unitRevenue = profit.tofloat() / currentCarried;
+  } else if (("predRevenue" in line) && line.predRevenue > 0 && ("predCarried" in line) && line.predCarried > 0) {
+    unitRevenue = line.predRevenue.tofloat() / line.predCarried;
+  } else if (("predicted" in line) && line.predicted > 0 && ("predCarried" in line) && line.predCarried > 0) {
+    unitRevenue = line.predicted.tofloat() / line.predCarried;
+  }
+
+  return { spareCapacity = spareCapacity, unitRevenue = unitRevenue };
+}
+
+/* V249 mode 2 : gain marginal capturable (V249a + V249b + V249c) */
+function OpexV249DispatchMode2(ai, ym, year)
+{
+  local byTownCargoStation = {};
+  local nLines = 0;
+  if (ai._lines != null) {
+    foreach (line in ai._lines) {
+      if (line == null) continue;
+      nLines++;
+      local isFreight = (("kind" in line) && line.kind == "freight");
+      local cargos = [line.cargo];
+      if (("cargo2" in line) && line.cargo2 >= 0 && line.cargo2 != line.cargo) {
+        cargos.append(line.cargo2);
+      }
+
+      foreach (cg in cargos) {
+        if (!AICargo.IsValidCargo(cg)) continue;
+        local loadingEnds = [];
+        if (isFreight) {
+          loadingEnds.append("A");
+        } else {
+          loadingEnds.append("A");
+          loadingEnds.append("B");
+        }
+
+        foreach (endName in loadingEnds) {
+          local stationId = OpexLineStationId(line, endName);
+          if (stationId < 0 || !AIStation.IsValidStation(stationId)) continue;
+          if (!AIStation.HasCargoRating(stationId, cg)) continue;
+          local townId = AIStation.GetNearestTown(stationId);
+          if (!AITown.IsValidTown(townId)) continue;
+
+          if (!(townId in byTownCargoStation)) byTownCargoStation[townId] <- {};
+          if (!(cg in byTownCargoStation[townId])) byTownCargoStation[townId][cg] <- {};
+          if (!(stationId in byTownCargoStation[townId][cg])) {
+            byTownCargoStation[townId][cg][stationId] <- [];
+          }
+          byTownCargoStation[townId][cg][stationId].append(line);
+        }
+      }
+    }
+  }
+
+  local bestTown = -1;
+  local bestGain = 0;
+  local bestStation = -1;
+  local bestCargo = -1;
+  local bestRating = -1;
+  local bestProd = 0;
+  local found = false;
+  local nStatue = 0;
+  local nUnavail = 0;
+  local nTowns = 0;
+
+  foreach (townId, cargoMap in byTownCargoStation) {
+    nTowns++;
+    if (AITown.HasStatue(townId)) {
+      nStatue++;
+      continue;
+    }
+    if (!AITown.IsActionAvailable(townId, AITown.TOWN_ACTION_BUILD_STATUE)) {
+      nUnavail++;
+      continue;
+    }
+
+    local townGain = 0;
+    local topSt = -1;
+    local topCg = -1;
+    local topRt = -1;
+    local topPr = 0;
+    local topStGain = -1;
+
+    foreach (cg, stations in cargoMap) {
+      local isPax = AICargo.HasCargoClass(cg, AICargo.CC_PASSENGERS) || AICargo.HasCargoClass(cg, AICargo.CC_MAIL);
+      local prodMonthly = 0;
+      if (isPax) {
+        prodMonthly = AITown.GetLastMonthProduction(townId, cg);
+      } else {
+        foreach (stId, linesList in stations) {
+          foreach (line in linesList) {
+            local ind = ("srcIndustry" in line && AIIndustry.IsValidIndustry(line.srcIndustry))
+                ? line.srcIndustry
+                : (("originA" in line) ? AIIndustry.GetIndustryID(line.originA) : -1);
+            if (AIIndustry.IsValidIndustry(ind)) {
+              local p = AIIndustry.GetLastMonthProduction(ind, cg);
+              if (p > prodMonthly) prodMonthly = p;
+            }
+            if (prodMonthly <= 0 && ("monthly" in line) && line.monthly > prodMonthly) {
+              prodMonthly = line.monthly;
+            }
+          }
+        }
+      }
+      if (prodMonthly <= 0) continue;
+      local annualProd = prodMonthly * 12;
+      local maxTownExtra = (annualProd * 26) / 256;
+
+      local cargoExtraTotal = 0;
+      local cargoRevSum = 0.0;
+
+      foreach (stId, linesList in stations) {
+        local ratingPct = AIStation.GetCargoRating(stId, cg);
+        if (ratingPct < 0) continue;
+        local curByte = OpexC121RatingPercentToByteMid(ratingPct);
+        local targetByte = curByte + 26;
+        if (targetByte > 255) targetByte = 255;
+        local deltaByte = targetByte - curByte;
+        if (deltaByte <= 0) continue;
+
+        local stationDeltaCargo = (annualProd * deltaByte) / 256;
+        local stationSpareCap = 0;
+        local stationRevWeighted = 0.0;
+
+        foreach (line in linesList) {
+          local sInfo = OpexV249LineServiceInfo(line, stId, cg);
+          stationSpareCap += sInfo.spareCapacity;
+          stationRevWeighted += sInfo.spareCapacity * sInfo.unitRevenue;
+        }
+
+        if (stationSpareCap <= 0) continue;
+        local stationAvgUnitRev = stationRevWeighted / stationSpareCap;
+        local deliverableStation = stationDeltaCargo < stationSpareCap ? stationDeltaCargo : stationSpareCap;
+        if (deliverableStation <= 0) continue;
+
+        local stGain = (deliverableStation * stationAvgUnitRev).tointeger();
+        if (stGain > topStGain) {
+          topStGain = stGain;
+          topSt = stId;
+          topCg = cg;
+          topRt = ratingPct;
+          topPr = prodMonthly;
+        }
+
+        cargoExtraTotal += deliverableStation;
+        cargoRevSum += deliverableStation * stationAvgUnitRev;
+      }
+
+      if (cargoExtraTotal <= 0) continue;
+      local deliverableCargoTown = cargoExtraTotal < maxTownExtra ? cargoExtraTotal : maxTownExtra;
+      local avgCargoUnitRev = cargoRevSum / cargoExtraTotal;
+      townGain += (deliverableCargoTown * avgCargoUnitRev).tointeger();
+    }
+
+    if (townGain <= 0) continue;
+    if (!found || townGain > bestGain || (townGain == bestGain && townId < bestTown)) {
+      found = true;
+      bestTown = townId;
+      bestGain = townGain;
+      bestStation = topSt;
+      bestCargo = topCg;
+      bestRating = topRt;
+      bestProd = topPr;
+    }
+  }
+
+  if (!found) {
+    if (DECISION_LOG) OpexDecide("V249_SKIP", "reason=no_town statue=" + nStatue + " unavailable=" + nUnavail + " towns=" + nTowns + " lines=" + nLines);
+    return true;
+  }
+
+  local cost = OpexV249MeasureStatueCost(bestTown);
+  local bestCargoLabel = AICargo.IsValidCargo(bestCargo) ? AICargo.GetCargoLabel(bestCargo) : "unknown";
+
+  if (bestGain * V249_HORIZON_YEARS <= cost) {
+    if (DECISION_LOG) OpexDecide("V249_SKIP", "reason=payback town=" + bestTown + " station=" + bestStation + " cargo=" + bestCargoLabel + " rating=" + bestRating + " prod=" + bestProd + " gain=" + bestGain + " cost=" + cost + " horizon=" + V249_HORIZON_YEARS);
+    return true;
+  }
+
+  local cash = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+  local bestProjCap = OpexV249BestAdmissibleCapital(ai._projects, ai._lines, cash);
+  local v252Cost = OpexV249GetPendingV252Cost(ai);
+  local threshold = bestProjCap + v252Cost;
+
+  if (cost <= 0 || cash - cost < threshold) {
+    if (DECISION_LOG) OpexDecide("V249_SKIP", "reason=cost town=" + bestTown + " station=" + bestStation + " cargo=" + bestCargoLabel + " rating=" + bestRating + " prod=" + bestProd + " gain=" + bestGain + " cost=" + cost + " cash=" + cash + " threshold=" + threshold + " best_proj=" + bestProjCap + " v252=" + v252Cost);
+    return true;
+  }
+
+  local built = AITown.PerformTownAction(bestTown, AITown.TOWN_ACTION_BUILD_STATUE);
+  if (!built) {
+    if (DECISION_LOG) OpexDecide("V249_SKIP", "reason=failed town=" + bestTown + " station=" + bestStation + " cargo=" + bestCargoLabel + " rating=" + bestRating + " prod=" + bestProd + " gain=" + bestGain + " cost=" + cost + " cash=" + cash + " threshold=" + threshold);
+    return true;
+  }
+
+  if (DECISION_LOG) OpexDecide("V249_STATUE", "town=" + bestTown + " station=" + bestStation + " cargo=" + bestCargoLabel + " rating=" + bestRating + " prod=" + bestProd + " gain=" + bestGain + " cost=" + cost + " cash=" + cash + " threshold=" + threshold + " horizon=" + V249_HORIZON_YEARS);
+  return true;
+}
+
 function OpexAI::_dispatchV249Statue(task, year)
 {
   if (!V249_STATUE) return false;
@@ -71,6 +396,10 @@ function OpexAI::_dispatchV249Statue(task, year)
   if (cashStop) {
     if (DECISION_LOG) OpexDecide("V249_SKIP", "reason=cash_stop");
     return true;
+  }
+
+  if (V249_STATUE == 2) {
+    return OpexV249DispatchMode2(this, ym, year);
   }
 
   local byTown = {};
