@@ -615,6 +615,17 @@ function OpexC60ObserveTownRating(mode, phase, townId)
   return allowed;
 }
 
+/* V280 : appele seulement pour un fret hors de la borne historique et reglage actif.
+ * Pas de mutation du catalogue/bandes multimodales, ni d'etat a sauvegarder. */
+function OpexV280RailLongAllowed(distance, srcTile, dstTile)
+{
+  if (distance > 350) return false;
+  if (AIDate.GetYear(AIDate.GetCurrentDate()) < OPEX_START_YEAR + V280_RAIL_LONG) return false;
+  if (OpexAvailableCapital() < 1000000) return false;
+  if (DECISION_LOG) OpexDecide("V280_RAIL_LONG", "src=" + srcTile + " dst=" + dstTile + " dist=" + distance);
+  return true;
+}
+
 function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, originServed, stats, isTransformer = false, profile = null, cruiseCache = null, secondary = null, joinContext = null)
 {
   if (monthly <= 0) {
@@ -638,7 +649,7 @@ function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, orig
       stats.distanceLong++;
       return null;
     }
-  } else if (distance > bounds.railMax) {
+  } else if (distance > bounds.railMax && !(V280_RAIL_LONG > 0 && OpexV280RailLongAllowed(distance, srcTile, dstTile))) {
     stats.distanceLong++;
     return null;
   } else if (V182_RAIL_FREIGHT_MIN_DIST > 0 && distance < V182_RAIL_FREIGHT_MIN_DIST
@@ -1132,14 +1143,6 @@ function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null
   local townServiceCache = {};
   local preparationMark = profile != null ? OpexOpsMeasureBegin() : null;
   local industries = catalog.industries;
-  /* V280 diagnostic seulement : identites exactes pour croiser les anciens journaux. */
-  if (DECISION_LOG && !V280_DIAG_MAP_LOGGED) {
-    V280_DIAG_MAP_LOGGED = true;
-    foreach (industry in industries) {
-      OpexDecide("V280_INDUSTRY", "id=" + industry.id + " tile=" + industry.tile
-          + " name=" + AIIndustry.GetName(industry.id));
-    }
-  }
   local served = [];
   for (local i = 0; i < industries.len(); i++) {
     local service = OpexOriginService(lines, industries[i].tile);

@@ -4,7 +4,6 @@
  * decision. Le defaut vrai est celui de info.nut ; 0 reconstitue la baseline sans route, dont le
  * chemin d'opcodes reste alors EXACTEMENT celui des campagnes anterieures. */
 ROAD_BUILD_ENABLED <- true;
-V280_DIAG_MAP_LOGGED <- false;
 /* V166 : interrupteurs de mode (bancs mono-mode, rail contre rail, air contre air). Un mode a faux
  * ne genere ni candidat ni balayage de catalogue et ne construit rien ; les quatre a vrai = defaut. */
 MODE_AIR <- true;
@@ -15,6 +14,8 @@ MODE_WATER <- true;
  * du plafond d'A* par la table de noeuds (94 tuiles a 10k) ; N = N tuiles, sans le filtre
  * d'iterations predites. */
 V168_RAIL_MAX_DIST <- 160;
+/* V280 : 0 historique ; N annees avant ouverture fret a 350 avec 1 M disponible. */
+V280_RAIL_LONG <- 0;
 V177_RAIL_PAX_MIN_DIST <- 0;
 V182_RAIL_FREIGHT_MIN_DIST <- 0;
 V178_RAIL_SHARED_DEST <- true;
