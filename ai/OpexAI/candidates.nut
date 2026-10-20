@@ -1132,6 +1132,14 @@ function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null
   local townServiceCache = {};
   local preparationMark = profile != null ? OpexOpsMeasureBegin() : null;
   local industries = catalog.industries;
+  /* V280 diagnostic seulement : identites exactes pour croiser les anciens journaux. */
+  if (DECISION_LOG && !("v280MapLogged" in catalog)) {
+    catalog.v280MapLogged <- true;
+    foreach (industry in industries) {
+      OpexDecide("V280_INDUSTRY", "id=" + industry.id + " tile=" + industry.tile
+          + " name=" + AIIndustry.GetName(industry.id));
+    }
+  }
   local served = [];
   for (local i = 0; i < industries.len(); i++) {
     local service = OpexOriginService(lines, industries[i].tile);
