@@ -808,11 +808,7 @@ function OpexAI::_startRailSearch(candidate, alternativeRatio, hardCap, posPacke
       return { pending = false, plan = planResult };
     }
   }
-  local candidateEngine = null;
-  if (candidate != null && ("loco" in candidate) && candidate.loco != null) {
-    if (typeof(candidate.loco) == "table" && ("id" in candidate.loco)) candidateEngine = candidate.loco.id;
-    else if (typeof(candidate.loco) == "integer") candidateEngine = candidate.loco;
-  }
+  local candidateEngine = OpexRailEngineOf(candidate);
   local pathfinder = null;
   local segmented = null;
   if (V294_RAIL_CONTINUOUS > 0) {
@@ -1360,11 +1356,7 @@ function OpexAI::_startRailUpgradeSearch(line, prep)
 {
   local searchWeight = OpexRailAstarWeight(line.distance);
   line.searchWeight <- searchWeight;
-  local lineEngine = null;
-  if (line != null && ("loco" in line) && line.loco != null) {
-    if (typeof(line.loco) == "table" && ("id" in line.loco)) lineEngine = line.loco.id;
-    else if (typeof(line.loco) == "integer") lineEngine = line.loco;
-  }
+  local lineEngine = OpexRailEngineOf(line);
   local pathfinder = null;
   local segmented = null;
   if (V294_RAIL_CONTINUOUS > 0) {
@@ -1518,11 +1510,7 @@ function OpexAI::_startRailStockSearch(candidate, isRepair = false, repairReason
   local outwardSide = (V197_GUIDED_DOUBLE && OpexV190Active() && candidate.kind == "freight") ? 1 : null;
   local searchWeight = OpexRailAstarWeight(candidate.distance);
   candidate.searchWeight <- searchWeight;
-  local candidateEngine = null;
-  if (candidate != null && ("loco" in candidate) && candidate.loco != null) {
-    if (typeof(candidate.loco) == "table" && ("id" in candidate.loco)) candidateEngine = candidate.loco.id;
-    else if (typeof(candidate.loco) == "integer") candidateEngine = candidate.loco;
-  }
+  local candidateEngine = OpexRailEngineOf(candidate);
   local pathfinder = null;
   local segmented = null;
   if (V294_RAIL_CONTINUOUS > 0) {

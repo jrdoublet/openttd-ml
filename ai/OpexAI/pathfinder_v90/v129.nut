@@ -548,9 +548,6 @@ class OpexRailPathFinderV129 extends OpexRailPathFinderV90
 				}
 			} else {
 				step_cost = self._cost_tile;
-				if (self._cost_level_crossing > 0 && AITile.HasTransportType(new_tile, AITile.TRANSPORT_ROAD)) {
-					step_cost += self._cost_level_crossing;
-				}
 				if (par != null) {
 					local par_tile = par._tile;
 					if (AIMap.DistanceManhattan(par_tile, prev_tile) == 1 && par_tile - prev_tile != prev_tile - new_tile) step_cost = self._cost_diagonal_tile;
@@ -579,6 +576,10 @@ class OpexRailPathFinderV129 extends OpexRailPathFinderV90
 
 				if (self._IsCoast(new_tile)) {
 					step_cost += self._cost_coast;
+				}
+				/* V294d : passage a niveau, apres l'affectation du cout diagonal qui l'ecraserait. */
+				if (self._cost_level_crossing > 0 && AITile.HasTransportType(new_tile, AITile.TRANSPORT_ROAD)) {
+					step_cost += self._cost_level_crossing;
 				}
 
 				if (par != null && !self._IsBridge(prev_tile) && !self._IsTunnel(prev_tile) &&

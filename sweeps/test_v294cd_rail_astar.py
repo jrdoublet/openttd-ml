@@ -81,7 +81,7 @@ class TestV294dRailAaaCosts(unittest.TestCase):
 
     def test_guarded_in_pathfinder_creation(self):
         builder = read("builder_rail.nut")
-        create = function_body(builder, "OpexCreateRailPathfinder")
+        create = function_body(builder, "OpexV294ApplyRailCosts")
         self.assertIn("if (V294_RAIL_AAA_COSTS > 0)", create)
         self.assertIn("pathfinder.cost.diagonal_tile = 67;", create)
         self.assertIn("pathfinder.cost.bridge_per_tile = 100;", create)
@@ -92,8 +92,8 @@ class TestV294dRailAaaCosts(unittest.TestCase):
         self.assertIn("pathfinder.cost.tunnel_per_tile_ex = 200;", create)
         self.assertIn("pathfinder.cost.tunnel_per_tile_ex2 = 300;", create)
 
-        advance = function_body(builder, "OpexAdvanceSegmentedSearch")
-        self.assertIn("if (V294_RAIL_AAA_COSTS > 0)", advance)
+        self.assertIn("OpexV294ApplyRailCosts(pathfinder, engine);", function_body(builder, "OpexCreateRailPathfinder"))
+        self.assertIn("OpexV294ApplyRailCosts(", function_body(builder, "OpexAdvanceSegmentedSearch"))
 
     def test_pathfinder_cost_fields_and_guards(self):
         rail = read("pathfinder_v90/rail.nut")
@@ -210,8 +210,23 @@ class TestV294jRailSlopeEngine(unittest.TestCase):
         self.assertIn("function OpexIsMountainousMap()", builder)
         self.assertIn("function OpexTrainSlopeSteepness()", builder)
         # Guards at pathfinder creation
-        self.assertIn("if (V294_RAIL_SLOPE_ENGINE > 0 && engine != null)", builder)
-        self.assertIn("if (V294_RAIL_SLOPE_ENGINE > 0 && (\"engine\" in state) && state.engine != null)", builder)
+        self.assertIn("if (V294_RAIL_SLOPE_ENGINE > 0 && engine != null) OpexV294jApplySlopeEngineCosts(pathfinder, engine);", builder)
+
+    def test_engine_lookup_helper(self):
+        rail = (AI / "task_rail.nut").read_text(encoding="utf-8")
+        builder = (AI / "builder_rail.nut").read_text(encoding="utf-8")
+        self.assertIn("function OpexRailEngineOf(obj)", builder)
+        self.assertEqual(rail.count("local candidateEngine = OpexRailEngineOf(candidate);"), 2)
+        self.assertEqual(rail.count("local lineEngine = OpexRailEngineOf(line);"), 1)
+        self.assertIn("local engine = OpexRailEngineOf(candidate);", builder)
+
+    def test_level_crossing_after_diagonal(self):
+        for name in ("pathfinder_v90/rail.nut", "pathfinder_v90/v129.nut"):
+            code = read(name)
+            crossing = code.index("step_cost += self._cost_level_crossing;")
+            diagonal = code.rindex("step_cost = self._cost_diagonal_tile;", 0, crossing)
+            self.assertLess(diagonal, crossing, name)
+            self.assertEqual(code.count("step_cost += self._cost_level_crossing;"), 1, name)
 
     def test_v129_turn_cost_guarded(self):
         v129 = read("pathfinder_v90/v129.nut")

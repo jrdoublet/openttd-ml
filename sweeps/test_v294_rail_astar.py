@@ -99,17 +99,15 @@ class TestV294RailAstar(unittest.TestCase):
         self.assertEqual(found, allowed, f"Symboles V294 non autorises trouves: {found - allowed}")
 
     def test_guards_around_all_v294_bridge_len_paths(self):
-        # 1. Dans OpexCreateRailPathfinder
+        # Options regroupees dans OpexV294ApplyRailCosts, appelee a la creation et a chaque segment.
+        helper = _function_body(self.builder_rail, "function OpexV294ApplyRailCosts(")
+        self.assertIn("if (V294_RAIL_BRIDGE_LEN > 0) {", helper)
+        self.assertIn("pathfinder.cost.max_bridge_length = V294_RAIL_BRIDGE_LEN;", helper)
+        self.assertIn("pathfinder.cost.max_tunnel_length = V294_RAIL_BRIDGE_LEN;", helper)
         body_create = _function_body(self.builder_rail, "function OpexCreateRailPathfinder(")
-        self.assertIn("if (V294_RAIL_BRIDGE_LEN > 0) {", body_create)
-        self.assertIn("pathfinder.cost.max_bridge_length = V294_RAIL_BRIDGE_LEN;", body_create)
-        self.assertIn("pathfinder.cost.max_tunnel_length = V294_RAIL_BRIDGE_LEN;", body_create)
-
-        # 2. Dans OpexAdvanceSegmentedSearch
+        self.assertIn("OpexV294ApplyRailCosts(pathfinder, engine);", body_create)
         body_advance = _function_body(self.builder_rail, "function OpexAdvanceSegmentedSearch(")
-        self.assertIn("if (V294_RAIL_BRIDGE_LEN > 0) {", body_advance)
-        self.assertIn("pathfinder.cost.max_bridge_length = V294_RAIL_BRIDGE_LEN;", body_advance)
-        self.assertIn("pathfinder.cost.max_tunnel_length = V294_RAIL_BRIDGE_LEN;", body_advance)
+        self.assertIn('OpexV294ApplyRailCosts(pathfinder, ("engine" in state) ? state.engine : null);', body_advance)
 
     def test_guards_around_all_v294_continuous_paths(self):
         # 1. Dans builder_rail.nut : OpexAdvanceRailPathfinder

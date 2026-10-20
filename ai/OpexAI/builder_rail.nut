@@ -874,6 +874,38 @@ function OpexV294jApplySlopeEngineCosts(pathfinder, engine)
   }
 }
 
+/* V294j : locomotive d'un candidat ou d'une ligne (entree de catalogue {id=...} ou identifiant
+ * brut), null si inconnue. */
+function OpexRailEngineOf(obj)
+{
+  if (obj == null || !("loco" in obj) || obj.loco == null) return null;
+  if (typeof(obj.loco) == "table") return ("id" in obj.loco) ? obj.loco.id : null;
+  if (typeof(obj.loco) == "integer") return obj.loco;
+  return null;
+}
+
+/* V294a/d/j : options de l'A* rail, appliquees a la creation du pathfinder et a chaque
+ * segment de la recherche segmentee. Au defaut (tout a 0), rien n'est touche. */
+function OpexV294ApplyRailCosts(pathfinder, engine)
+{
+  if (V294_RAIL_BRIDGE_LEN > 0) {
+    pathfinder.cost.max_bridge_length = V294_RAIL_BRIDGE_LEN;
+    pathfinder.cost.max_tunnel_length = V294_RAIL_BRIDGE_LEN;
+  }
+  if (V294_RAIL_AAA_COSTS > 0) {
+    /* Table d'AAAHogEx (pathfinder.nut:102-185) ; surcouts des ouvrages au-dela de 7 et 11 tuiles. */
+    pathfinder.cost.diagonal_tile = 67;
+    pathfinder.cost.bridge_per_tile = 100;
+    pathfinder.cost.tunnel_per_tile = 0;
+    pathfinder.cost.level_crossing = 900;
+    pathfinder.cost.bridge_per_tile_ex = 200;
+    pathfinder.cost.bridge_per_tile_ex2 = 400;
+    pathfinder.cost.tunnel_per_tile_ex = 200;
+    pathfinder.cost.tunnel_per_tile_ex2 = 300;
+  }
+  if (V294_RAIL_SLOPE_ENGINE > 0 && engine != null) OpexV294jApplySlopeEngineCosts(pathfinder, engine);
+}
+
 /* Cree le pathfinder. L'objet doit survivre entre les tours (stocke sur this._railSearch) :
  * FindPath(PATH_CHUNK) reprend exactement ou il s'etait arrete. Ne pas recreer a chaque tranche. */
 function OpexCreateRailPathfinder(plansA, plansB, ignoredTiles = null, weight = null, outwardSide = null, guideTiles = null, engine = null)
@@ -898,23 +930,7 @@ function OpexCreateRailPathfinder(plansA, plansB, ignoredTiles = null, weight = 
   if (weight != null) {
     pathfinder.cost.astar_weight_pct = weight;
   }
-  if (V294_RAIL_BRIDGE_LEN > 0) {
-    pathfinder.cost.max_bridge_length = V294_RAIL_BRIDGE_LEN;
-    pathfinder.cost.max_tunnel_length = V294_RAIL_BRIDGE_LEN;
-  }
-  if (V294_RAIL_AAA_COSTS > 0) {
-    pathfinder.cost.diagonal_tile = 67;
-    pathfinder.cost.bridge_per_tile = 100;
-    pathfinder.cost.tunnel_per_tile = 0;
-    pathfinder.cost.level_crossing = 900;
-    pathfinder.cost.bridge_per_tile_ex = 200;
-    pathfinder.cost.bridge_per_tile_ex2 = 400;
-    pathfinder.cost.tunnel_per_tile_ex = 200;
-    pathfinder.cost.tunnel_per_tile_ex2 = 300;
-  }
-  if (V294_RAIL_SLOPE_ENGINE > 0 && engine != null) {
-    OpexV294jApplySlopeEngineCosts(pathfinder, engine);
-  }
+  OpexV294ApplyRailCosts(pathfinder, engine);
   if (outwardSide != null) pathfinder._outwardSide = outwardSide;
   if (guideTiles != null) pathfinder._guideTiles = guideTiles;
   pathfinder.InitializePath(sources, goals, ignoredTiles == null ? [] : ignoredTiles);
@@ -925,11 +941,7 @@ function OpexCreateRailPathfinder(plansA, plansB, ignoredTiles = null, weight = 
  * Si un chemin est trouvé, il est retourné inversé au format attendu par la pose. */
 function OpexV294fReverseProbe(plansA, plansB, clearanceTiles, searchWeight, candidate, iterationCap)
 {
-  local engine = null;
-  if (candidate != null && ("loco" in candidate) && candidate.loco != null) {
-    if (typeof(candidate.loco) == "table" && ("id" in candidate.loco)) engine = candidate.loco.id;
-    else if (typeof(candidate.loco) == "integer") engine = candidate.loco;
-  }
+  local engine = OpexRailEngineOf(candidate);
   local revPf = OpexCreateRailPathfinder(plansB, plansA, clearanceTiles, searchWeight, null, null, engine);
   if (revPf == null) {
     if (DECISION_LOG) {
@@ -1355,23 +1367,7 @@ function OpexAdvanceSegmentedSearch(state, sliceIters, deadlineTick)
       if (("weight" in state) && state.weight != null) {
         pathfinder.cost.astar_weight_pct = state.weight;
       }
-      if (V294_RAIL_BRIDGE_LEN > 0) {
-        pathfinder.cost.max_bridge_length = V294_RAIL_BRIDGE_LEN;
-        pathfinder.cost.max_tunnel_length = V294_RAIL_BRIDGE_LEN;
-      }
-      if (V294_RAIL_AAA_COSTS > 0) {
-        pathfinder.cost.diagonal_tile = 67;
-        pathfinder.cost.bridge_per_tile = 100;
-        pathfinder.cost.tunnel_per_tile = 0;
-        pathfinder.cost.level_crossing = 900;
-        pathfinder.cost.bridge_per_tile_ex = 200;
-        pathfinder.cost.bridge_per_tile_ex2 = 400;
-        pathfinder.cost.tunnel_per_tile_ex = 200;
-        pathfinder.cost.tunnel_per_tile_ex2 = 300;
-      }
-      if (V294_RAIL_SLOPE_ENGINE > 0 && ("engine" in state) && state.engine != null) {
-        OpexV294jApplySlopeEngineCosts(pathfinder, state.engine);
-      }
+      OpexV294ApplyRailCosts(pathfinder, ("engine" in state) ? state.engine : null);
       if (("outwardSide" in state) && state.outwardSide != null) pathfinder._outwardSide = state.outwardSide;
       if (("guideTiles" in state) && state.guideTiles != null) pathfinder._guideTiles = state.guideTiles;
       /* V214 : le coude serre ramene a 100 sous 40 tuiles se juge sur le trajet complet, pas sur

@@ -399,9 +399,6 @@ function OpexRailPathFinderV90::_Cost(path, new_tile, new_direction, self)
 			}
 		} else {
 			step_cost = self._cost_tile;
-			if (self._cost_level_crossing > 0 && AITile.HasTransportType(new_tile, AITile.TRANSPORT_ROAD)) {
-				step_cost += self._cost_level_crossing;
-			}
 			if (par != null && AIMap.DistanceManhattan(par.GetTile(), prev_tile) == 1 && par.GetTile() - prev_tile != prev_tile - new_tile) step_cost = self._cost_diagonal_tile;
 			if (par != null && par.GetParent() != null &&
 					AIMap.DistanceManhattan(new_tile, par.GetParent().GetTile()) == 3 &&
@@ -411,6 +408,10 @@ function OpexRailPathFinderV90::_Cost(path, new_tile, new_direction, self)
 
 			if (self._IsCoast(new_tile)) {
 				step_cost += self._cost_coast;
+			}
+			/* V294d : passage a niveau, apres l'affectation du cout diagonal qui l'ecraserait. */
+			if (self._cost_level_crossing > 0 && AITile.HasTransportType(new_tile, AITile.TRANSPORT_ROAD)) {
+				step_cost += self._cost_level_crossing;
 			}
 
 			if (par != null && !self._IsBridge(prev_tile) && !self._IsTunnel(prev_tile) &&
