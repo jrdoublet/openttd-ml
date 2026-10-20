@@ -2,6 +2,7 @@
 from pathlib import Path
 import hashlib
 import random
+import re
 import unittest
 
 from campaign_freeze import parse_ai_setting_specs
@@ -23,6 +24,12 @@ def function(source, name):
         depth += (source[end] == "{") - (source[end] == "}")
         end += 1
     return source[start:end]
+
+
+def scan_initializers():
+    body = function(read("air_lazy_sites.nut"), "OpexV278ExtendSites")
+    literal = body.split("lazy.scan = {", 1)[1].split("};", 1)[0]
+    return dict(re.findall(r"(\w+)\s*=\s*([^,]+)", literal))
 
 
 class Frontier:
@@ -98,6 +105,76 @@ class Frontier:
 
 
 class TestV278Source(unittest.TestCase):
+    def test_scan_initializes_every_historical_resume_access(self):
+        source = read("air_planning.nut")
+        initialized = scan_initializers()
+        for name in ("OpexAirPlansFindSites", "OpexAirPlansNewPairs"):
+            body = function(source, name)
+            writes = set(re.findall(r"resumeState\.(\w+)\s*=(?!=)", body))
+            # Includes += and all reads, even guarded ones: stronger than the
+            # requested write contract. c83Repair is tested only with `in`.
+            accesses = set(re.findall(r"resumeState\.(\w+)", body))
+            self.assertLessEqual(writes, initialized.keys(), name)
+            self.assertLessEqual(accesses, initialized.keys(), name)
+
+    def test_work_context_inputs_and_outputs(self):
+        source = read("air_planning.nut")
+        driver = function(source, "OpexAirPlans")
+        initial = driver.split("local ctx = {", 1)[1].split("};", 1)[0]
+        fields = set(re.findall(r"(\w+)\s*=", initial))
+        lazy = read("air_lazy_sites.nut")
+        for callee, caller in (("OpexAirPlansFindSites", "OpexV278ExtendSites"),
+                               ("OpexAirPlansNewPairs", "OpexV278LazyPairs")):
+            body = function(source, callee)
+            accesses = set(re.findall(r"ctx\.(\w+)", body))
+            self.assertLessEqual(accesses - {"v278ScanEnd"}, fields)
+            outputs = set(re.findall(r"ctx\.(\w+)\s*=(?!=)", body))
+            wrapper = function(lazy, caller)
+            for key in outputs - {"sites"}:
+                self.assertIn(f"ctx.{key} = work.{key};", wrapper)
+            self.assertIn('if ("v133Skip" in work) ctx.v133Skip <- work.v133Skip;', wrapper)
+        extension = function(lazy, "OpexV278ExtendSites")
+        self.assertLess(extension.index("ctx.bestPlan = work.bestPlan"),
+                        extension.index("if (!ok) return false"))
+        self.assertIn("foreach (site in work.sites)", extension)
+        self.assertIn("lazy.sites.append(site)", extension)
+        self.assertIn("ctx.sites = lazy.sites", lazy)
+
+    def test_scan_and_rank_suspension_with_strict_existing_slots(self):
+        # Execute the actual initializer expressions and the two checkpoint
+        # assignment blocks. This models Squirrel `=` (no implicit new slot),
+        # not the engine's geometry/economics or automatic tick suspension.
+        from types import SimpleNamespace
+        ctx = SimpleNamespace(bestPlan=None, stationLimitedTowns={},
+                              perfOpsSites=0, perfOpsEval=0, perfProbesCount=0,
+                              perfCheapSkip=0, perfSitesFound=0)
+        lazy = SimpleNamespace(covered=0, probes={"left": 20, "tested": 0})
+        env = dict(ctx=ctx, lazy=lazy, comboIndex=0, null=None)
+        state = {key: eval(expr, {"__builtins__": {}}, env)
+                 for key, expr in scan_initializers().items()}
+        source = function(read("air_planning.nut"), "OpexAirPlansFindSites")
+        checkpoints = re.findall(
+            r"resumeState.bestPlan = bestPlan;(.*?)return false;", source, re.S)
+        self.assertEqual(len(checkpoints), 2)
+        winner = object()
+        ctx.bestPlan = winner  # winner from a pair before an extended batch
+        for pass_index, block in enumerate(checkpoints, 1):
+            values = dict(bestPlan=ctx.bestPlan, stationLimitedTowns=ctx.stationLimitedTowns,
+                          perfOpsSites=10 * pass_index, perfOpsEval=7,
+                          perfProbesCount=pass_index, perfCheapSkip=0,
+                          perfSitesFound=pass_index, scanSliceOps=100, rankSliceOps=100)
+            assignments = "resumeState.bestPlan = bestPlan;" + block
+            for key, op, rhs in re.findall(r"resumeState\.(\w+)\s*(\+=|=)\s*(\w+);", assignments):
+                self.assertIn(key, state)  # Python dict assignment alone hides the bug
+                state[key] = state[key] + values[rhs] if op == "+=" else values[rhs]
+            for key, rhs in re.findall(r"ctx\.(\w+) = (\w+);", block):
+                setattr(ctx, key, values[rhs])
+            # RestorePrepare reads the outer checkpoint on the next call.
+            self.assertIs(state["bestPlan"], winner)
+            self.assertEqual(state["perfOpsSites"], ctx.perfOpsSites)
+            self.assertIs(state["scanProbes"], lazy.probes)
+        self.assertEqual(state["totalOps"], 200)
+
     def test_setting_off_equal_difficulties_and_loaded_once(self):
         spec = parse_ai_setting_specs(AI / "info.nut")["v278_air_lazy_sites"]
         self.assertEqual((spec["min_value"], spec["max_value"], spec["default"]), (0, 1, 0))

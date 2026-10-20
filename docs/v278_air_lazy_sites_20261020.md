@@ -175,3 +175,58 @@ surcoût de la frontière et simple déplacement du travail. Tester une sauvegar
 pendant une extension puis pendant la phase hub. Le smoke de compilation et ces
 profils restent préalables à toute qualification économique ou adoption ; le
 défaut reste 0.
+
+## V278b — correctif des états de reprise
+
+Base du correctif : `e2c00592f4c1fcc53671f7eb3e2e0f4780778c2b`, branche
+`v278`, arbre initial propre. L'utilisateur rapporte un plantage moteur
+`bestPlan` absent lors du checkpoint de FindSites le 17/01/1970, graine 42,
+cartes 1024² et 256², `probes=2,probe_span_trace=1,v278_air_lazy_sites=1`.
+Cette mesure est fournie ; aucune partie n'est exécutée ici.
+
+Audit par recherche des accès `resumeState.<clé>` et des affectations `=` :
+
+- FindSites utilise `combo`, `scanIndex`, `scanSites`, `scanProbes`, `rankIndex`,
+  `rankSites`, `sites`, `a`, `b`, `bestPlan`, `stationLimitedTowns`,
+  `perfOpsSites`, `perfOpsEval`, `perfProbesCount`, `perfCheapSkip`,
+  `perfSitesFound`, `totalOps` (ce dernier en `+=`). Toutes ces clés sont
+  maintenant initialisées dans `lazy.scan`, y compris les sept manquantes.
+  `bestPlan`, la table des villes limitées et les compteurs reprennent le
+  contexte courant : null/table vide/zéros au départ comme Prepare, résultats
+  cumulés pour les lots étendus. Les curseurs restent propres au lot et le
+  sondage est partagé pour tout le combo.
+- NewPairs utilise un sous-ensemble des mêmes clés. Son appel V278 est atomique,
+  `sliced=false`, `resumingCombo=false`, `resumeState=null` : toutes les lectures
+  et écritures de ce dernier sont court-circuitées. Aucun autre état de travail
+  n'est passé à Prepare ; l'état extérieur est initialisé par Prepare avant
+  création de `v278Prepare`/`v278Lazy` et avant les checkpoints V278.
+- Prepare initialise également `done`, `startTick`, `towns`, `combos`,
+  `townLimit`, `c83TopTownIds`, les deux mémos C121 ; `c78Year` et `c78Gen`
+  sont créés ensemble, `servedDiag` est gardé par `in`. Les marqueurs de cache
+  sont créés avec `<-`. Le retour rapide `v278Prepare` lit donc un état déjà
+  préparé, jamais `lazy.scan`.
+- Tous les champs de contexte lus directement par FindSites/NewPairs sont
+  déclarés dans le contexte du driver, puis copiés par `rawset`. `v278ScanEnd`
+  est ajouté avant FindSites et lu sous garde. Les tableaux/tables partagés
+  (notamment `projects`, `stationLimitedTowns`, `servedDiag`) gardent leurs
+  mutations ; `sites` est fusionné dans `lazy.sites`, jamais remplacé par les
+  deux extrémités atomiques. `bestPlan` et les cinq compteurs sont explicitement
+  recopiés après les deux appels, avant un éventuel retour false. Le helper
+  V133 peut créer `v133Skip` : cette table est aussi remontée sous garde.
+  Le chemin C83 Repair est exclu par LazyEnabled et absent de `lazy.scan`.
+- Chaque champ `lazy.*` est créé par LazyState, `scan` est testé contre null
+  avant création/réemploi, puis libéré uniquement à la fin du lot.
+  `v278ExtendingPairs` est créé avec `<-` et testé avec `in` ; `v278Lazy`
+  est créé avant LazyPairs et supprimé à la fin du combo. `v278Prepare` est
+  créé après préparation complète ; ses champs de mémo sont initialisés
+  ensemble et vérifiés avant restauration. Aucun nouvel état Save/Load.
+
+Trois contrats supplémentaires vérifient tous les accès du sous-curseur,
+les entrées/sorties des copies de contexte, puis rejouent les affectations des
+deux checkpoints réels avec refus d'écrire une clé absente. La simulation
+conserve un gagnant antérieur à l'extension et le même objet de sondage entre
+les suspensions de scan et de classement. Elle ne compile pas Squirrel et ne
+simule pas la géométrie moteur. Les 19 tests V278 passent ; suite complète :
+2 109 tests, 3 ignorés, 3 échecs attendus, aucun échec inattendu. `undecl.py` :
+seulement les diagnostics préexistants `AICONFIG_BOOLEAN`, `CONFIG_BOOLEAN` ;
+`delim.py` et `git diff --check` sans diagnostic. Défaut toujours 0.

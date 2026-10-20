@@ -163,8 +163,14 @@ function OpexV278ExtendSites(ctx, comboIndex, combo, airport, plane, lazy)
 {
   if (lazy.covered >= lazy.end) return true;
   if (lazy.scan == null) {
+    /* Meme schema de reprise que Prepare, avec le resultat cumule courant
+     * (null/0 au premier lot). FindSites suspend aussi pendant le classement. */
     lazy.scan = { combo = comboIndex, scanIndex = lazy.covered, scanSites = [],
         scanProbes = lazy.probes, rankIndex = 0, rankSites = [], sites = null,
+        bestPlan = ctx.bestPlan, stationLimitedTowns = ctx.stationLimitedTowns,
+        perfOpsSites = ctx.perfOpsSites, perfOpsEval = ctx.perfOpsEval,
+        perfProbesCount = ctx.perfProbesCount, perfCheapSkip = ctx.perfCheapSkip,
+        perfSitesFound = ctx.perfSitesFound,
         a = 0, b = 1, totalOps = 0 };
   }
   local work = OpexV278CopyContext(ctx);
@@ -177,7 +183,11 @@ function OpexV278ExtendSites(ctx, comboIndex, combo, airport, plane, lazy)
       ? OpexSpanBegin("air.sites") : null;
   local ok = OpexAirPlansFindSites(work, comboIndex, combo, airport, plane, false);
   if (mark != null) OpexSpanEnd(mark);
+  if ("v133Skip" in work) ctx.v133Skip <- work.v133Skip;
+  ctx.bestPlan = work.bestPlan;
+  ctx.stationLimitedTowns = work.stationLimitedTowns;
   ctx.perfOpsSites = work.perfOpsSites;
+  ctx.perfOpsEval = work.perfOpsEval;
   ctx.perfProbesCount = work.perfProbesCount;
   ctx.perfCheapSkip = work.perfCheapSkip;
   ctx.perfSitesFound = work.perfSitesFound;
@@ -261,8 +271,13 @@ function OpexV278LazyPairs(ctx, comboIndex, combo, airport, plane, minDist)
     /* Une seule paire atomique, comme la garantie de progres historique.
      * Pas de copie de l'economie C121 ni de ses filtres d'admission. */
     OpexAirPlansNewPairs(work, comboIndex, combo, airport, plane, minDist, false);
+    if ("v133Skip" in work) ctx.v133Skip <- work.v133Skip;
     ctx.bestPlan = work.bestPlan;
+    ctx.perfOpsSites = work.perfOpsSites;
     ctx.perfOpsEval = work.perfOpsEval;
+    ctx.perfProbesCount = work.perfProbesCount;
+    ctx.perfCheapSkip = work.perfCheapSkip;
+    ctx.perfSitesFound = work.perfSitesFound;
   }
   /* Meme un vivier sans paire doit fournir tous les sites aux bras hubs. */
   lazy.end = lazy.towns.len();
