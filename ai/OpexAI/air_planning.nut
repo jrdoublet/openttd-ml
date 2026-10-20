@@ -76,6 +76,10 @@ function OpexAirPlansPrepare(ctx)
     }
     AIR_MEMO_MONTH = memoMonth;
   }
+  /* V278 : seule la preparation stable est sautee ; les memos de prix
+   * ci-dessus restent mensuels et les entrees vivantes sont relues. */
+  if (V278_AIR_LAZY_SITES && sliced && ("v278Prepare" in resumeState)
+      && !resumeState.done && OpexV278RestorePrepare(ctx)) return true;
   if (sliced) {
     if (!("done" in resumeState)) resumeState.done <- false;
     if (resumeState.done) {
@@ -302,6 +306,7 @@ function OpexAirPlansPrepare(ctx)
   ctx.perfCheapSkip = perfCheapSkip;
   ctx.perfSitesFound = perfSitesFound;
 
+  if (V278_AIR_LAZY_SITES && sliced) OpexV278StorePrepare(ctx);
   return true;
 }
 
@@ -346,6 +351,7 @@ function OpexAirPlansFindSites(ctx, comboIndex, combo, airport, plane, resumingC
           };
     local scanStart = sliced ? resumeState.scanIndex : 0;
     local scanEnd = limit;
+    if (V278_AIR_LAZY_SITES && ("v278ScanEnd" in ctx)) scanEnd = ctx.v278ScanEnd;
     if (C83_FIXES && targetTownId >= 0) {
       scanEnd = scanStart;
       for (local c83Scan = scanStart; c83Scan < limit; c83Scan++) {
@@ -406,6 +412,7 @@ function OpexAirPlansFindSites(ctx, comboIndex, combo, airport, plane, resumingC
             c83RequiredSlotTown = towns[i].id;
           }
           if (c78Gen && ("c78NoSite" in probes)) probes.c78NoSite = null;
+          local v278Started = V278_AIR_LAZY_SITES ? AIController.GetTick() : -1;
           local site = OpexAirFindSite(towns[i], airport, probes, c83RequiredSlotTown);
           if (site != null) {
             if (c83OwnSecondSlot) site.c83OwnSecondSlot <- true;
@@ -414,6 +421,7 @@ function OpexAirPlansFindSites(ctx, comboIndex, combo, airport, plane, resumingC
               site.v134HubRoutes <- v134State.hubRoutes;
             }
             if (C83_FIXES && c83RequiredSlotTown >= 0) site.c83SlotTown <- c83RequiredSlotTown;
+            if (V278_AIR_LAZY_SITES) OpexV278RememberFoundSite(site, airport, v278Started);
             scanSites.append(site);
             if (c78Gen) {
               if (V93_AIRPORT_NO_POP_FLOOR && towns[i].pop < 600) {
@@ -484,7 +492,9 @@ function OpexAirPlansFindSites(ctx, comboIndex, combo, airport, plane, resumingC
     local rankStart = sliced ? resumeState.rankIndex : 0;
     for (local rankIndex = rankStart; rankIndex < scanSites.len(); rankIndex++) {
       local site = scanSites[rankIndex];
-      if (OpexAirSiteStillBuildable(site, airport, plane, false, stationLimitedTowns)) {
+      if (V278_AIR_LAZY_SITES
+          ? OpexV278SiteOk(site, airport, plane, stationLimitedTowns)
+          : OpexAirSiteStillBuildable(site, airport, plane, false, stationLimitedTowns)) {
         rankableSites.append(site);
       } else if (C69_BOTTLENECK_PROBE) {
         OpexC73RecordRejection("air", "site_stale_before_rank", 1);
@@ -708,7 +718,7 @@ function OpexAirPlansNewPairs(ctx, comboIndex, combo, airport, plane, minDist, r
       local monthlyPax = ((popA + popB) * TOWN_CATCHMENT_SHARE_PCT) / 100;
       local opcodePadding = 0;
       if (monthlyPax < 10) monthlyPax = 10;
-      if (a == 0 && b == 1) {
+      if (a == 0 && b == 1 && !(V278_AIR_LAZY_SITES && ("v278SinglePair" in ctx))) {
         OpexSign(AIMap.GetTileIndex(1, 5), "AX|PA=" + popA + "|PB=" + popB + "|MPX=" + monthlyPax);
       }
 
@@ -769,7 +779,7 @@ function OpexAirPlansNewPairs(ctx, comboIndex, combo, airport, plane, minDist, r
       plan.targetPlanes <- routeChoice.targetPlanes;
       OpexAirReserveJoinedStops(catalog, plan);
 
-      if (a == 0 && b == 1) {
+      if (a == 0 && b == 1 && !(V278_AIR_LAZY_SITES && ("v278SinglePair" in ctx))) {
         OpexSign(AIMap.GetTileIndex(1, 8), "AY|" + economics.capital + "|"
                                               + economics.profitAnnual);
         OpexSign(AIMap.GetTileIndex(1, 9), "AV|" + routePlane.speed + "|" + routePlane.capacity
@@ -1653,6 +1663,7 @@ function OpexAirPlansFinalize(ctx)
     resumeState.sites = null;
     resumeState.towns = null;
     resumeState.combos = null;
+    if (V278_AIR_LAZY_SITES && ("v278Prepare" in resumeState)) delete resumeState.v278Prepare;
     if (C80_AIR_EVAL_FAST) {
       AIR_ECONOMICS_MEMO = {};
       AIR_TRIP_MEMO = {};
@@ -1733,7 +1744,9 @@ function OpexAirPlansStepFindSites(ctx, comboIndex, combo, airport, plane, resum
 {
   if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_ENTER", "air_find_sites", "-");
   local spSites = PROBE_SPAN_TRACE ? OpexSpanBegin("air.sites") : null;
-  local sitesOk = OpexAirPlansFindSites(ctx, comboIndex, combo, airport, plane, resumingCombo);
+  local sitesOk = V278_AIR_LAZY_SITES && OpexV278LazyEnabled(ctx)
+      ? OpexV278LazySites(ctx, comboIndex, combo, airport, plane)
+      : OpexAirPlansFindSites(ctx, comboIndex, combo, airport, plane, resumingCombo);
   if (spSites != null) OpexSpanEnd(spSites);
   if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_EXIT", "air_find_sites", "-",
       "combo=" + comboIndex + " sites=" + ctx.sites.len() + " probes=" + ctx.perfProbesCount);
@@ -1746,7 +1759,9 @@ function OpexAirPlansStepNewPairs(ctx, comboIndex, combo, airport, plane, minDis
 {
   if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_ENTER", "air_new_pairs", "-");
   local spPairs = PROBE_SPAN_TRACE ? OpexSpanBegin("air.new_pairs") : null;
-  local pairsOk = OpexAirPlansNewPairs(ctx, comboIndex, combo, airport, plane, minDist, resumingCombo);
+  local pairsOk = V278_AIR_LAZY_SITES && OpexV278LazyEnabled(ctx)
+      ? OpexV278LazyPairs(ctx, comboIndex, combo, airport, plane, minDist)
+      : OpexAirPlansNewPairs(ctx, comboIndex, combo, airport, plane, minDist, resumingCombo);
   if (spPairs != null) OpexSpanEnd(spPairs);
   if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_EXIT", "air_new_pairs", "-",
       "combo=" + comboIndex + " plans=" + (ctx.projects != null ? ctx.projects.len() : -1));
@@ -1763,6 +1778,7 @@ function OpexAirPlansCompleteCombo(ctx, comboIndex, combo)
     }
     OpexSign(AIMap.GetTileIndex(1, 4), "AE|S=" + ctx.sites.len() + "|B=" + (ctx.bestPlan != null ? ctx.bestPlan.economics.profitAnnual : "NO"));
     if (ctx.sliced) {
+      if (V278_AIR_LAZY_SITES && ("v278Lazy" in ctx.resumeState)) delete ctx.resumeState.v278Lazy;
       ctx.resumeState.combo = comboIndex + 1;
       ctx.resumeState.a = 0;
       ctx.resumeState.b = 1;
