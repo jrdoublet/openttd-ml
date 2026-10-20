@@ -17,7 +17,7 @@ class OpexRailPathFinderV296 extends OpexRailPathFinderV129
 
     constructor(weight = null)
     {
-        base.constructor(weight);
+        OpexRailPathFinderV129.constructor.call(this, weight);
         this._pathfinder = { _open = null };
     }
 
@@ -532,12 +532,12 @@ class OpexRailPathfinderCheckerV296 extends OpexRailPathFinderV296
             }
             this._reference._pathfinder.InitializePath(seeds, goals, ignored_tiles);
         }
-        base.InitializePath(sources, goals, ignored_tiles);
+        OpexRailPathFinderV296.InitializePath.call(this, sources, goals, ignored_tiles);
     }
 
     function SetWeight(weight)
     {
-        base.SetWeight(weight);
+        OpexRailPathFinderV296.SetWeight.call(this, weight);
         if (this._reference != null) this._reference.SetWeight(weight);
     }
 
@@ -554,7 +554,7 @@ class OpexRailPathfinderCheckerV296 extends OpexRailPathFinderV296
     {
         local test_mode = AITestMode();
         local mark = OpexOpsMeasureBegin();
-        local result = base.FindPath(iterations);
+        local result = OpexRailPathFinderV296.FindPath.call(this, iterations);
         this._ops296 += OpexOpsMeasureEnd(mark);
         this._iters296 += this.LastConsumed();
         this._AdvanceReference(iterations);

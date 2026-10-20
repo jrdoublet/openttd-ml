@@ -156,6 +156,9 @@ class TestV296Native(unittest.TestCase):
     def test_no_squirrel_reserved_identifier(self):
         """`parent` est un mot reserve de la VM d'OpenTTD : echec de compilation au premier banc (21/10)."""
         self.assertIsNone(re.search(r"\bparent\b", self.src))
+        # `base` n'existe pas dans la VM d'OpenTTD (smoke GitHub du 21/10) : appels explicites a la classe.
+        self.assertIsNone(re.search(r"\bbase\.", self.src))
+        self.assertIn("OpexRailPathFinderV129.constructor.call(this, weight);", self.src)
 
     def test_checker_independent_completion_and_measurements(self):
         checker = self.src.split("class OpexRailPathfinderCheckerV296", 1)[1]
