@@ -4,17 +4,22 @@
 Vérifications statiques :
 1. Déclaration du réglage entier v279_reselect_memo dans info.nut (0..2, défaut 0, 4 *_value à 0).
 2. Lecture du réglage dans settings.nut vers la globale V279_RESELECT_MEMO.
-3. Déclaration des globales V279_RESELECT_MEMO, OPEX_LINES_REVISION, OPEX_AIR_SITE_EPOCH dans globals_pre.nut.
-4. Intégrité du chemin 0 : code historique exécuté à l'identique au caractère près hors condition.
-5. Mode contrôle (2) : calcul des deux chemins, comparaison complète (best, fundScore, capitalRemaining, stats)
-   et retour du résultat historique intact, avec signalement V279_CHECK via OpexDecide et AILog.Warning.
-6. Incrémentation de la révision des lignes OPEX_LINES_REVISION à chaque mutation repérée de _lines.
-7. Incrémentation de l'époque des sites OPEX_AIR_SITE_EPOCH à chaque invalidation de cache de sites.
-8. Présence de la mémoïsation du filtre AIR (OpexFilterAirAlternativesV279Memo) et du scoring (OpexProjectSelectAffordableMemoized).
+3. Déclaration des globales V279 dans globals_pre.nut (révisions, époques, compteurs hits/misses).
+4. Intégrité du chemin 0 : code exécuté à l'identique de master ac78c8e au caractère près.
+5. git diff ac78c8e -- ai/OpexAI/projects_selection.nut strictement limité au filtre et à l'appel.
+6. Absence totale de mémoïsation du score (_v279FinCap, _v279DecCap, _v279FundProfit).
+7. Incrémentation de OPEX_ABANDON_REVISION à chaque mutation repérée de _abandonedPairs.
+8. Incrémentation de OPEX_AIR_ROLLBACK_REVISION à chaque mutation repérée de OPEX_AIR_ROLLBACKS.
+9. Incrémentation de OPEX_LINES_REVISION à chaque mutation repérée de _lines.
+10. Incrémentation de OPEX_AIR_SITE_EPOCH à chaque invalidation de cache de sites.
+11. Exclusion des plans à second créneau (c83OwnSecondSlotA/B, v134SecondSlotA/B) de la mémoïsation.
+12. Mode contrôle 2 dans le filtre : calcul historique, comparaison memo/hist, alerte V279_CHECK et retour historique.
+13. Journalisation mensuelle des statistiques de hits/misses sous V279_STATS.
 """
 from __future__ import annotations
 
 import re
+import subprocess
 import unittest
 from pathlib import Path
 
@@ -42,6 +47,9 @@ class TestV279ReselectMemo(unittest.TestCase):
         cls.globals_pre = _read("globals_pre.nut")
         cls.selection = _read("projects_selection.nut")
         cls.air_coverage = _read("air_coverage.nut")
+        cls.air_construction = _read("air_construction.nut")
+        cls.air_recovery = _read("air_recovery.nut")
+        cls.lines = _read("lines.nut")
         cls.main = _read("main.nut")
         cls.persist = _read("persist.nut")
         cls.task_air = _read("task_air.nut")
@@ -74,107 +82,139 @@ class TestV279ReselectMemo(unittest.TestCase):
         self.assertIn("V279_RESELECT_MEMO <- 0;", self.globals_pre)
         self.assertIn("OPEX_LINES_REVISION <- 0;", self.globals_pre)
         self.assertIn("OPEX_AIR_SITE_EPOCH <- 0;", self.globals_pre)
+        self.assertIn("OPEX_ABANDON_REVISION <- 0;", self.globals_pre)
+        self.assertIn("OPEX_AIR_ROLLBACK_REVISION <- 0;", self.globals_pre)
         self.assertIn("V279_FILTER_STAMP_ID <- 0;", self.globals_pre)
         self.assertIn("V279_LAST_MONTH <- -1;", self.globals_pre)
         self.assertIn("V279_LAST_LINES_REV <- -1;", self.globals_pre)
         self.assertIn("V279_LAST_SITE_EPOCH <- -1;", self.globals_pre)
-        self.assertIn("V279_LAST_ABND_COUNT <- -1;", self.globals_pre)
+        self.assertIn("V279_LAST_ABND_REV <- -1;", self.globals_pre)
+        self.assertIn("V279_LAST_ROLLBACK_REV <- -1;", self.globals_pre)
         self.assertIn("V279_LAST_HAS_LINES <- null;", self.globals_pre)
+        self.assertIn("V279_HITS <- 0;", self.globals_pre)
+        self.assertIn("V279_MISSES <- 0;", self.globals_pre)
+        self.assertIn("V279_LAST_STATS_MONTH <- -1;", self.globals_pre)
 
     def test_path_0_intact(self):
         reselect = _function_body(self.selection, "function OpexReselectProjects(")
-        self.assertIn("if (!forceHistoric) {", reselect)
-        self.assertIn("if (V279_RESELECT_MEMO == 1) {", reselect)
-        self.assertIn("return OpexV279ReselectProjectsMemoized(", reselect)
-        self.assertIn("if (V279_RESELECT_MEMO == 2) {", reselect)
-        self.assertIn("return OpexV279ReselectProjectsControl(", reselect)
-        # Vérifier que le corps historique suit immédiatement sans altération
-        self.assertIn("projects.selectionStale = false;", reselect)
-        self.assertIn("OpexFilterAirAlternativesStillValid(alternatives, abandonedPairs, lines);", reselect)
+        self.assertIn("alternatives = (V279_RESELECT_MEMO != 0)", reselect)
+        self.assertIn("? OpexFilterAirAlternativesV279Memo(alternatives, abandonedPairs, lines)", reselect)
+        self.assertIn(": OpexFilterAirAlternativesStillValid(alternatives, abandonedPairs, lines);", reselect)
         self.assertIn("funded = OpexProjectSelectAffordable(alternatives, capitalBudget, PROJECT_TOP_K);", reselect)
+        # Vérifier que le corps d'OpexProjectSelectAffordable ne mentionne aucun symbole V279
+        affordable = _function_body(self.selection, "function OpexProjectSelectAffordable(")
+        self.assertNotIn("V279", affordable)
+        self.assertNotIn("_v279", affordable)
 
-    def test_control_mode_behavior(self):
-        control = _function_body(self.selection, "function OpexV279ReselectProjectsControl(")
-        # 1. Sauvegarde d'état mutable
-        self.assertIn("savedScores", control)
-        self.assertIn("savedCatalogScores", control)
-        self.assertIn("origBisectStamp", control)
-        # 2. Exécution mémoïsée
-        self.assertIn("OpexV279ReselectProjectsMemoized(projects, capitalBudget, abandonedPairs, lines, railReadyStock);", control)
-        # 3. Restauration d'état
-        self.assertIn("p.fundScore = savedScores[p];", control)
-        self.assertIn("delete p.fundScore;", control)
-        self.assertIn("entry.lastScore = savedCatalogScores[k];", control)
-        self.assertIn("SELECT_BISECT_STAMP = origBisectStamp;", control)
-        # 4. Exécution historique
-        self.assertIn("OpexReselectProjects(projects, capitalBudget, abandonedPairs, lines, railReadyStock, true);", control)
-        # 5. Comparaisons exigées
-        self.assertIn("best_len", control)
-        self.assertIn("best_order", control)
-        self.assertIn("fund_score", control)
-        self.assertIn("capital_remaining", control)
-        self.assertIn("selected_capital", control)
-        self.assertIn("selected_revenue", control)
-        self.assertIn("next_project_capital", control)
-        # 6. Journalisation en cas de divergence
-        self.assertIn('OpexDecide("V279_CHECK", diffMsg);', control)
-        self.assertIn('AILog.Warning("V279_CHECK " + diffMsg);', control)
-        # 7. Retour du résultat historique
-        self.assertIn("return projects;", control)
+    def test_no_scoring_memoization(self):
+        # Vérifier l'absence absolue de champs de mémoïsation de score dans tous les fichiers .nut
+        for nut_path in AI.glob("*.nut"):
+            content = nut_path.read_text(encoding="utf-8")
+            self.assertNotIn("_v279FinCap", content, f"_v279FinCap trouvé dans {nut_path.name}")
+            self.assertNotIn("_v279DecCap", content, f"_v279DecCap trouvé dans {nut_path.name}")
+            self.assertNotIn("_v279FundProfit", content, f"_v279FundProfit trouvé dans {nut_path.name}")
+            self.assertNotIn("OpexProjectSelectAffordableMemoized", content, f"OpexProjectSelectAffordableMemoized trouvé dans {nut_path.name}")
+            self.assertNotIn("OpexV279ReselectProjectsMemoized", content, f"OpexV279ReselectProjectsMemoized trouvé dans {nut_path.name}")
+            self.assertNotIn("OpexV279ReselectProjectsControl", content, f"OpexV279ReselectProjectsControl trouvé dans {nut_path.name}")
+            self.assertNotIn("OpexHookV216", content, f"OpexHookV216 trouvé dans {nut_path.name}")
+
+    def test_diff_projects_selection_limited(self):
+        # git diff ac78c8e -- ai/OpexAI/projects_selection.nut doit être limité au filtre et à l'appel
+        diff = subprocess.check_output(
+            ["git", "diff", "ac78c8e", "--", "ai/OpexAI/projects_selection.nut"],
+            cwd=str(ROOT),
+            text=True,
+        )
+        # Vérifier les fonctions modifiées
+        self.assertIn("function OpexFilterAirAlternativesV279Memo(", diff)
+        self.assertIn("alternatives = (V279_RESELECT_MEMO != 0)", diff)
+        # Aucune autre fonction ne doit être touchée
+        self.assertNotIn("OpexProjectSelectAffordableMemoized", diff)
+        self.assertNotIn("OpexV279ReselectProjectsMemoized", diff)
+        self.assertNotIn("OpexV279ReselectProjectsControl", diff)
+        self.assertNotIn("OpexHookV216", diff)
+        self.assertNotIn("forceHistoric", diff)
+
+    def test_abandon_revision_increments_at_all_mutations(self):
+        # 5 sites de mutation de _abandonedPairs identifiés
+        # 1. lines.nut:282 (_markPairAbandoned)
+        self.assertIn("this._abandonedPairs[key] <- { date = now, count = count };\n  if (V279_RESELECT_MEMO != 0) OPEX_ABANDON_REVISION++;", self.lines)
+        # 2. lines.nut:308 (_pruneAbandonedPairs)
+        self.assertIn("if (toDelete.len() > 0 && V279_RESELECT_MEMO != 0) OPEX_ABANDON_REVISION++;", self.lines)
+        # 3. task_report.nut:177 (_markTownGrowthRejected)
+        self.assertIn("this._abandonedPairs[key] <- { date = AIDate.GetCurrentDate(), count = count };\n  if (V279_RESELECT_MEMO != 0) OPEX_ABANDON_REVISION++;", self.task_report)
+        # 4. main.nut:409 (constructeur)
+        self.assertIn("this._abandonedPairs = {};\n    if (V279_RESELECT_MEMO != 0) OPEX_ABANDON_REVISION++;", self.main)
+        # 5. persist.nut:791-792 (chargement)
+        self.assertIn("this._abandonedPairs = {};\n    foreach (key, val in data.abandonedPairs) this._abandonedPairs[key] <- val;\n    if (V279_RESELECT_MEMO != 0) OPEX_ABANDON_REVISION++;", self.persist)
+
+    def test_rollback_revision_increments_at_all_mutations(self):
+        # 6 sites de mutation de OPEX_AIR_ROLLBACKS identifiés
+        # 1. air_construction.nut:41 (append) & :44 (pop)
+        self.assertIn("OPEX_AIR_ROLLBACKS.append(ticket);\n  if (V279_RESELECT_MEMO != 0) OPEX_AIR_ROLLBACK_REVISION++;", self.air_construction)
+        self.assertIn("OPEX_AIR_ROLLBACKS.pop();\n    if (V279_RESELECT_MEMO != 0) OPEX_AIR_ROLLBACK_REVISION++;", self.air_construction)
+        # 2. air_recovery.nut:97 (remove)
+        self.assertIn("OPEX_AIR_ROLLBACKS.remove(0);\n    if (V279_RESELECT_MEMO != 0) OPEX_AIR_ROLLBACK_REVISION++;", self.air_recovery)
+        # 3. air_recovery.nut:104 (rotated)
+        self.assertIn("OPEX_AIR_ROLLBACKS = rotated;\n  if (V279_RESELECT_MEMO != 0) OPEX_AIR_ROLLBACK_REVISION++;", self.air_recovery)
+        # 4. air_recovery.nut:125 (reconcile)
+        self.assertIn("OPEX_AIR_ROLLBACKS = pending;\n  if (V279_RESELECT_MEMO != 0) OPEX_AIR_ROLLBACK_REVISION++;", self.air_recovery)
+        # 5. persist.nut:770 (reset) & :776 (load)
+        self.assertIn("OPEX_AIR_ROLLBACKS = [];\n  if (V279_RESELECT_MEMO != 0) OPEX_AIR_ROLLBACK_REVISION++;", self.persist)
+        self.assertIn('if ("airRollbacks" in data && V279_RESELECT_MEMO != 0) OPEX_AIR_ROLLBACK_REVISION++;', self.persist)
 
     def test_lines_revision_increments_at_all_mutations(self):
-        # 7 sites de mutation identifiés
-        # 1. main.nut (Constructor: this._lines = [])
+        # 7 sites de mutation de _lines identifiés
         self.assertIn("this._lines = [];\n    if (V279_RESELECT_MEMO != 0) OPEX_LINES_REVISION++;", self.main)
-        # 2. persist.nut (Load: this._lines = liveLines)
         self.assertIn("this._lines = liveLines;\n  if (V279_RESELECT_MEMO != 0) OPEX_LINES_REVISION++;", self.persist)
-        # 3. task_air.nut (air line append)
         self.assertIn("this._lines.append({\n", self.task_air)
         self.assertIn("if (V279_RESELECT_MEMO != 0) OPEX_LINES_REVISION++;", self.task_air)
-        # 4. task_rail.nut (rail line append)
         self.assertIn("this._lines.append({\n", self.task_rail)
         self.assertIn("if (V279_RESELECT_MEMO != 0) OPEX_LINES_REVISION++;", self.task_rail)
-        # 5. task_road.nut (road line append)
         self.assertIn("this._lines.append({\n", self.task_road)
         self.assertIn("if (V279_RESELECT_MEMO != 0) OPEX_LINES_REVISION++;", self.task_road)
-        # 6. task_water.nut (water line append)
         self.assertIn("this._lines.append({\n", self.task_water)
         self.assertIn("if (V279_RESELECT_MEMO != 0) OPEX_LINES_REVISION++;", self.task_water)
-        # 7. task_report.nut (scrap line remove)
         self.assertIn("if (toRemove.len() > 0 && V279_RESELECT_MEMO != 0) OPEX_LINES_REVISION++;", self.task_report)
 
     def test_site_epoch_increments_at_all_invalidations(self):
-        # 1. air_coverage.nut: OpexAirResetSiteCache
+        # 3 sites d'invalidation de cache de sites
         reset_body = _function_body(self.air_coverage, "function OpexAirResetSiteCache(")
         self.assertIn("if (V279_RESELECT_MEMO != 0) OPEX_AIR_SITE_EPOCH++;", reset_body)
-        # 2. air_coverage.nut: OpexAir0310InvalidateSiteValidity
         inval_body = _function_body(self.air_coverage, "function OpexAir0310InvalidateSiteValidity(")
         self.assertIn("if (V279_RESELECT_MEMO != 0) OPEX_AIR_SITE_EPOCH++;", inval_body)
-        # 3. air_coverage.nut: OpexAirInvalidateCachedSite
         cached_body = _function_body(self.air_coverage, "function OpexAirInvalidateCachedSite(")
         self.assertIn("if (V279_RESELECT_MEMO != 0) OPEX_AIR_SITE_EPOCH++;", cached_body)
 
-    def test_filter_memo_logic(self):
+    def test_filter_memo_excludes_second_slot(self):
         memo_filt = _function_body(self.selection, "function OpexFilterAirAlternativesV279Memo(")
-        self.assertIn("OpexAir0310SiteValidityMonth()", memo_filt)
-        self.assertIn("OPEX_LINES_REVISION", memo_filt)
-        self.assertIn("OPEX_AIR_SITE_EPOCH", memo_filt)
-        self.assertIn("abandonedPairs.len()", memo_filt)
-        self.assertIn("V279_FILTER_STAMP_ID++", memo_filt)
-        self.assertIn('project.rawset("_v279Stamp", V279_FILTER_STAMP_ID);', memo_filt)
-        self.assertIn('project.rawset("_v279Live", isLive);', memo_filt)
-        self.assertIn("OpexAirBatchPlanStillLive(plan, lines)", memo_filt)
-        self.assertIn("OpexAir0310SiteValidityOk(", memo_filt)
+        self.assertIn("c83OwnSecondSlotA", memo_filt)
+        self.assertIn("c83OwnSecondSlotB", memo_filt)
+        self.assertIn("v134SecondSlotA", memo_filt)
+        self.assertIn("v134SecondSlotB", memo_filt)
+        self.assertIn("isSecondSlot", memo_filt)
+        # Ne mémorise jamais si isSecondSlot
+        self.assertIn("!isSecondSlot", memo_filt)
 
-    def test_scoring_memo_logic(self):
-        memo_score = _function_body(self.selection, "function OpexProjectSelectAffordableMemoized(")
-        self.assertIn('_v279FinCap', memo_score)
-        self.assertIn('_v279DecCap', memo_score)
-        self.assertIn('_v279FundProfit', memo_score)
-        self.assertIn("OpexProjectFitFleetToBudget(project, capitalBudget)", memo_score)
-        self.assertIn("OpexProjectRefreshEarlySlot(project, earlySlotState)", memo_score)
-        self.assertIn("OpexProjectRefreshDefensiveSlot(project, defensiveSlotState)", memo_score)
-        self.assertIn("OpexProjectInsertDefensive(affordable, project, scoreKey, limit, true)", memo_score)
+    def test_filter_mode_2_control(self):
+        memo_filt = _function_body(self.selection, "function OpexFilterAirAlternativesV279Memo(")
+        self.assertIn("V279_RESELECT_MEMO == 2", memo_filt)
+        # Amorçage de validité dès l'entrée en mode 2
+        self.assertIn("stationLimitedTowns = {};", memo_filt)
+        self.assertIn("validity = OpexAir0310SiteValidityBegin(stationLimitedTowns);", memo_filt)
+        # Comparaison memo vs hist et log d'écart
+        self.assertIn("memoLive != histLive", memo_filt)
+        self.assertIn('OpexDecide("V279_CHECK", diffMsg);', memo_filt)
+        self.assertIn('AILog.Warning("V279_CHECK " + diffMsg);', memo_filt)
+        # Retour historique et mise à jour de l'entrée avec verdict historique
+        self.assertIn('project.rawset("_v279Live", histLive);', memo_filt)
+        self.assertIn("if (histLive) live.append(project);", memo_filt)
+
+    def test_stats_logging(self):
+        memo_filt = _function_body(self.selection, "function OpexFilterAirAlternativesV279Memo(")
+        self.assertIn("V279_HITS++", memo_filt)
+        self.assertIn("V279_MISSES++", memo_filt)
+        self.assertIn('OpexDecide("V279_STATS"', memo_filt)
 
 
 if __name__ == "__main__":

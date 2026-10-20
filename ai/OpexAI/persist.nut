@@ -768,12 +768,14 @@ function OpexAI::Load(version, data)
   this._loadedFromSave = true;
   OPEX_RELOAD_C121_STRATEGY = null;
   OPEX_AIR_ROLLBACKS = [];
+  if (V279_RESELECT_MEMO != 0) OPEX_AIR_ROLLBACK_REVISION++;
   if (data == null) return;
   if ("v233GoodsObservations" in data)
     this._v233GoodsObservations = OpexV233LoadObservations(data.v233GoodsObservations);
   OpexV133LoadQuarantine(data);
   /* Legacy v139UnjoinedStops is deliberately ignored: feeder construction was removed. */
   if ("airRollbacks" in data) OPEX_AIR_ROLLBACKS = OpexLoadAirRollbacks(data.airRollbacks);
+  if ("airRollbacks" in data && V279_RESELECT_MEMO != 0) OPEX_AIR_ROLLBACK_REVISION++;
   if ("c121Strategy" in data) OPEX_RELOAD_C121_STRATEGY = OpexLoadC121Strategy(data.c121Strategy);
   this._reloadC69BuildDates = ("c69BuildDates" in data) ? data.c69BuildDates : null;
   this._reloadC75PassDates = ("c75PassDates" in data) ? data.c75PassDates : null;
@@ -790,6 +792,7 @@ function OpexAI::Load(version, data)
   if ("abandonedPairs" in data && data.abandonedPairs != null) {
     this._abandonedPairs = {};
     foreach (key, val in data.abandonedPairs) this._abandonedPairs[key] <- val;
+    if (V279_RESELECT_MEMO != 0) OPEX_ABANDON_REVISION++;
   }
   if ("lines" in data) this._pendingLines = data.lines;
   if ("abandonCounts" in data && data.abandonCounts != null) this._abandonCounts = data.abandonCounts;

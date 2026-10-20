@@ -683,16 +683,6 @@ function OpexSelectRejectLogTopK(dropped, best, limit)
   OpexDecide("SELECT_REJECT", "pair=" + pairStr + " type=" + typeStr + " reason=topk rank=" + limit + " score=" + score + " top=" + topScore);
 }
 
-function OpexHookV216KDec(kDec, realSelection)
-{
-  if (V216_PROBE && realSelection) V216_LAST_KDEC = kDec;
-}
-
-function OpexHookV216LogSelection(path, alternatives, funded, capitalBudget)
-{
-  if (V216_PROBE) OpexV216LogSelection(path, alternatives, funded, capitalBudget);
-}
-
 function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSelection = true)
 {
   SELECT_BISECT_STAMP++;
@@ -746,7 +736,7 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSel
   {
     kDecData = OpexC69ComputeKDec();
     kDec = kDecData.K_dec;
-    OpexHookV216KDec(kDec, realSelection);
+    if (V216_PROBE && realSelection) V216_LAST_KDEC = kDec;
     if (C69_BOTTLENECK_PROBE) c69Affordable = [];
   }
   if (spStates != null) OpexSpanEnd(spStates);
@@ -1231,62 +1221,139 @@ function OpexEnsureSelection(owner)
   if ("_lazyMaterializedYear" in owner) owner._lazyMaterializedYear++;
 }
 
-/* V279 : Filtre AIR memoise sous estampille d'invalidation (mois, lignes, epoque sites, abandons). */
+/* V279 : Filtre AIR memoise sous estampille d'invalidation.
+ * Mode 1 : revalidation incrementale exacte (utilise le cache si estampille valide, sauf creneau secondaire).
+ * Mode 2 : controle actif (evalue l'historique a chaque appel, compare avec la memoisation, alerte sur divergence). */
 function OpexFilterAirAlternativesV279Memo(alternatives, abandonedPairs = null, lines = null)
 {
+  if (V279_RESELECT_MEMO == 0) {
+    return OpexFilterAirAlternativesStillValid(alternatives, abandonedPairs, lines);
+  }
+
   local month = OpexAir0310SiteValidityMonth();
-  local abndCount = (abandonedPairs != null) ? abandonedPairs.len() : 0;
   local hasLines = (lines != null);
   if (month != V279_LAST_MONTH
       || OPEX_LINES_REVISION != V279_LAST_LINES_REV
       || OPEX_AIR_SITE_EPOCH != V279_LAST_SITE_EPOCH
-      || abndCount != V279_LAST_ABND_COUNT
+      || OPEX_ABANDON_REVISION != V279_LAST_ABND_REV
+      || OPEX_AIR_ROLLBACK_REVISION != V279_LAST_ROLLBACK_REV
       || hasLines != V279_LAST_HAS_LINES) {
     V279_FILTER_STAMP_ID++;
     V279_LAST_MONTH = month;
     V279_LAST_LINES_REV = OPEX_LINES_REVISION;
     V279_LAST_SITE_EPOCH = OPEX_AIR_SITE_EPOCH;
-    V279_LAST_ABND_COUNT = abndCount;
+    V279_LAST_ABND_REV = OPEX_ABANDON_REVISION;
+    V279_LAST_ROLLBACK_REV = OPEX_AIR_ROLLBACK_REVISION;
     V279_LAST_HAS_LINES = hasLines;
+  }
+
+  if (V279_LAST_STATS_MONTH < 0) {
+    V279_LAST_STATS_MONTH = month;
+  } else if (month != V279_LAST_STATS_MONTH) {
+    local total = V279_HITS + V279_MISSES;
+    local pct = (total > 0) ? ((V279_HITS * 100) / total) : 0;
+    OpexDecide("V279_STATS", "month=" + V279_LAST_STATS_MONTH + " hits=" + V279_HITS + " misses=" + V279_MISSES + " total=" + total + " hit_pct=" + pct);
+    V279_LAST_STATS_MONTH = month;
   }
 
   local live = [];
   local stationLimitedTowns = null;
   local validity = null;
 
+  if (V279_RESELECT_MEMO == 2) {
+    stationLimitedTowns = {};
+    validity = OpexAir0310SiteValidityBegin(stationLimitedTowns);
+  }
+
   foreach (project in alternatives) {
     if (project != null && ("mode" in project) && project.mode == "air") {
-      if (("_v279Stamp" in project) && project._v279Stamp == V279_FILTER_STAMP_ID) {
-        if (project._v279Live) live.append(project);
-        continue;
+      local plan = ("payload" in project) ? project.payload : null;
+      local isSecondSlot = false;
+      if (plan != null) {
+        local c83OwnSecondA = ("c83OwnSecondSlotA" in plan) && plan.c83OwnSecondSlotA;
+        local c83OwnSecondB = ("c83OwnSecondSlotB" in plan) && plan.c83OwnSecondSlotB;
+        local v134SecondA = V134_AIR_P2P_SATURATED_HUB && ("v134SecondSlotA" in plan) && plan.v134SecondSlotA;
+        local v134SecondB = V134_AIR_P2P_SATURATED_HUB && ("v134SecondSlotB" in plan) && plan.v134SecondSlotB;
+        isSecondSlot = (c83OwnSecondA || c83OwnSecondB || v134SecondA || v134SecondB);
       }
 
-      local isLive = false;
-      if (("payload" in project) && project.payload != null
-          && !OpexCandidateIsAbandoned(project, abandonedPairs)) {
-        local plan = project.payload;
-        if (("siteA" in plan) && ("siteB" in plan) && ("airport" in plan) && ("plane" in plan)) {
-          if (!C83_FIXES || lines == null || OpexAirBatchPlanStillLive(plan, lines)) {
-            if (validity == null) {
-              stationLimitedTowns = {};
-              validity = OpexAir0310SiteValidityBegin(stationLimitedTowns);
-            }
-            local reuseA = ("reuseA" in plan) && plan.reuseA;
-            local reuseB = ("reuseB" in plan) && plan.reuseB;
-            local keyA = (reuseA ? "R|" : "N|") + plan.airport.type + "|" + plan.plane.planeType + "|" + plan.siteA.anchor;
-            local keyB = (reuseB ? "R|" : "N|") + plan.airport.type + "|" + plan.plane.planeType + "|" + plan.siteB.anchor;
-            if (OpexAir0310SiteValidityOk(validity, keyA,
-                  plan.siteA, plan.airport, plan.plane, reuseA, stationLimitedTowns)
-                && OpexAir0310SiteValidityOk(validity, keyB,
-                  plan.siteB, plan.airport, plan.plane, reuseB, stationLimitedTowns)) {
-              isLive = true;
+      local stampValid = !isSecondSlot && ("_v279Stamp" in project) && project._v279Stamp == V279_FILTER_STAMP_ID;
+
+      if (V279_RESELECT_MEMO == 1) {
+        if (stampValid) {
+          V279_HITS++;
+          if (project._v279Live) live.append(project);
+          continue;
+        }
+
+        V279_MISSES++;
+        if (validity == null) {
+          stationLimitedTowns = {};
+          validity = OpexAir0310SiteValidityBegin(stationLimitedTowns);
+        }
+        local isLive = false;
+        if (plan != null && !OpexCandidateIsAbandoned(project, abandonedPairs)) {
+          if (("siteA" in plan) && ("siteB" in plan) && ("airport" in plan) && ("plane" in plan)) {
+            if (!C83_FIXES || lines == null || OpexAirBatchPlanStillLive(plan, lines)) {
+              local reuseA = ("reuseA" in plan) && plan.reuseA;
+              local reuseB = ("reuseB" in plan) && plan.reuseB;
+              local keyA = (reuseA ? "R|" : "N|") + plan.airport.type + "|" + plan.plane.planeType + "|" + plan.siteA.anchor;
+              local keyB = (reuseB ? "R|" : "N|") + plan.airport.type + "|" + plan.plane.planeType + "|" + plan.siteB.anchor;
+              if (OpexAir0310SiteValidityOk(validity, keyA,
+                    plan.siteA, plan.airport, plan.plane, reuseA, stationLimitedTowns)
+                  && OpexAir0310SiteValidityOk(validity, keyB,
+                    plan.siteB, plan.airport, plan.plane, reuseB, stationLimitedTowns)) {
+                isLive = true;
+              }
             }
           }
         }
+        if (!isSecondSlot) {
+          project.rawset("_v279Stamp", V279_FILTER_STAMP_ID);
+          project.rawset("_v279Live", isLive);
+        }
+        if (isLive) live.append(project);
+      } else if (V279_RESELECT_MEMO == 2) {
+        local histLive = false;
+        if (plan != null && !OpexCandidateIsAbandoned(project, abandonedPairs)) {
+          if (("siteA" in plan) && ("siteB" in plan) && ("airport" in plan) && ("plane" in plan)) {
+            if (!C83_FIXES || lines == null || OpexAirBatchPlanStillLive(plan, lines)) {
+              local reuseA = ("reuseA" in plan) && plan.reuseA;
+              local reuseB = ("reuseB" in plan) && plan.reuseB;
+              local keyA = (reuseA ? "R|" : "N|") + plan.airport.type + "|" + plan.plane.planeType + "|" + plan.siteA.anchor;
+              local keyB = (reuseB ? "R|" : "N|") + plan.airport.type + "|" + plan.plane.planeType + "|" + plan.siteB.anchor;
+              if (OpexAir0310SiteValidityOk(validity, keyA,
+                    plan.siteA, plan.airport, plan.plane, reuseA, stationLimitedTowns)
+                  && OpexAir0310SiteValidityOk(validity, keyB,
+                    plan.siteB, plan.airport, plan.plane, reuseB, stationLimitedTowns)) {
+                histLive = true;
+              }
+            }
+          }
+        }
+
+        if (stampValid) {
+          V279_HITS++;
+          local memoLive = ("_v279Live" in project) ? project._v279Live : false;
+          if (memoLive != histLive) {
+            local townA = (plan != null && ("siteA" in plan) && ("town" in plan.siteA) && plan.siteA.town != null && ("id" in plan.siteA.town)) ? plan.siteA.town.id : -1;
+            local townB = (plan != null && ("siteB" in plan) && ("town" in plan.siteB) && plan.siteB.town != null && ("id" in plan.siteB.town)) ? plan.siteB.town.id : -1;
+            local diffMsg = "filter town_a=" + townA + " town_b=" + townB + " memo=" + (memoLive ? 1 : 0) + " hist=" + (histLive ? 1 : 0) + " stamp=" + V279_FILTER_STAMP_ID;
+            OpexDecide("V279_CHECK", diffMsg);
+            if (!DECISION_LOG) {
+              AILog.Warning("V279_CHECK " + diffMsg);
+            }
+          }
+        } else {
+          V279_MISSES++;
+        }
+
+        if (!isSecondSlot) {
+          project.rawset("_v279Stamp", V279_FILTER_STAMP_ID);
+          project.rawset("_v279Live", histLive);
+        }
+        if (histLive) live.append(project);
       }
-      project.rawset("_v279Stamp", V279_FILTER_STAMP_ID);
-      project.rawset("_v279Live", isLive);
-      if (isLive) live.append(project);
     } else {
       live.append(project);
     }
@@ -1294,448 +1361,13 @@ function OpexFilterAirAlternativesV279Memo(alternatives, abandonedPairs = null, 
   return live;
 }
 
-/* V279 : Scoring affordable avec memoisation des termes independants du budget et de kDec. */
-function OpexProjectSelectAffordableMemoized(alternatives, capitalBudget, limit, realSelection = true)
-{
-  SELECT_BISECT_STAMP++;
-  local spSelect = PROBE_SPAN_TRACE ? OpexSpanBegin("select.full") : null;
-  local fittedAlternatives = [];
-  foreach (project in alternatives) {
-    local fitMark = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
-    local fitted = OpexProjectFitFleetToBudget(project, capitalBudget);
-    if (R1_R3_TEST_ONLY) fitted = OpexR1R3FitTrace(project, fitted, capitalBudget);
-    if (fitted != null) fittedAlternatives.append(fitted);
-    if (fitMark != null) OpexSpanAgg("pub.select.score.fit", fitMark);
-  }
-  alternatives = fittedAlternatives;
-  local spStates = PROBE_SPAN_TRACE ? OpexSpanBegin("pub.select.score.states") : null;
-
-  local floorProfit = 0;
-  if (PORTFOLIO_FLOOR_PCT > 0) {
-    local bestProfit = 0;
-    foreach (project in alternatives) {
-      local financeCapital = 0;
-      if (project.mode == "fleet") {
-        financeCapital = OpexProjectFinanceCapital(project);
-      } else {
-        if (!("_v279FinCap" in project)) {
-          project._v279FinCap <- OpexProjectFinanceCapital(project);
-        }
-        financeCapital = project._v279FinCap;
-      }
-      if (financeCapital > capitalBudget) continue;
-      if (project.profitAnnual > bestProfit) bestProfit = project.profitAnnual;
-    }
-    if (bestProfit > 0) floorProfit = bestProfit * PORTFOLIO_FLOOR_PCT / 100;
-  }
-
-  local affordable = [];
-  local earlySlotState = OpexEarlySlotSelectionState();
-  local defensiveSlotState = OpexDefensiveSlotSelectionState(earlySlotState);
-  local scoreKey = "fundScore";
-
-  local kDec = 0;
-  local kDecData = null;
-  local c69Affordable = null;
-  {
-    kDecData = OpexC69ComputeKDec();
-    kDec = kDecData.K_dec;
-    OpexHookV216KDec(kDec, realSelection);
-    if (C69_BOTTLENECK_PROBE) c69Affordable = [];
-  }
-  if (spStates != null) OpexSpanEnd(spStates);
-
-  foreach (project in alternatives) {
-    local fundMark = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
-    local slotMark = null;
-    local insertMark = null;
-    local financeCapital = 0;
-    if (project.mode == "fleet") {
-      financeCapital = OpexProjectFinanceCapital(project);
-    } else {
-      if (!("_v279FinCap" in project)) {
-        project._v279FinCap <- OpexProjectFinanceCapital(project);
-      }
-      financeCapital = project._v279FinCap;
-    }
-
-    if (fundMark != null) {
-      OpexSpanAgg("pub.select.score.fund_score", fundMark);
-      fundMark = null;
-    }
-    if (financeCapital > capitalBudget) {
-      if (PROBE_SELECT_REJECT && project.mode == "air") {
-        OpexSelectRejectLog(project, "cash", affordable, scoreKey, kDec);
-      }
-      continue;
-    }
-    if (project.profitAnnual < floorProfit) {
-      if (PROBE_SELECT_REJECT && project.mode == "air") {
-        OpexSelectRejectLog(project, "floor", affordable, scoreKey, kDec);
-      }
-      continue;
-    }
-    slotMark = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
-    OpexProjectRefreshEarlySlot(project, earlySlotState);
-    OpexProjectRefreshDefensiveSlot(project, defensiveSlotState);
-    if (slotMark != null) {
-      OpexSpanAgg("pub.select.score.refresh_slots", slotMark);
-      slotMark = null;
-    }
-    fundMark = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
-    local decisionFinanceCapital = financeCapital;
-    local fundProfit = 0;
-    local fleetExemptDecision = false;
-    if (project.mode == "fleet") {
-      fleetExemptDecision = !OpexC121ProjectHasRealization(project);
-      fundProfit = OpexProjectFundProfit(project);
-    } else {
-      if (!("_v279DecCap" in project)) {
-        local dec = financeCapital;
-        if (project.mode == "air" && ("decisionFinanceCapital" in project)
-            && project.decisionFinanceCapital > 0)
-          dec = project.decisionFinanceCapital;
-        project._v279DecCap <- dec;
-      }
-      decisionFinanceCapital = project._v279DecCap;
-      if (!("_v279FundProfit" in project)) {
-        project._v279FundProfit <- OpexProjectFundProfit(project);
-      }
-      fundProfit = project._v279FundProfit;
-    }
-    local scoreDecisionFinanceCapital = decisionFinanceCapital;
-    project.rawset("fundScore", OpexProjectScore(fundProfit,
-        (kDec > scoreDecisionFinanceCapital && !fleetExemptDecision)
-            ? kDec : scoreDecisionFinanceCapital));
-    if (project.mode == "air" && ("payload" in project) && project.payload != null && ("c121CatalogKey" in project.payload) && project.payload.c121CatalogKey in C121_CATALOG_CACHE)
-      C121_CATALOG_CACHE[project.payload.c121CatalogKey].lastScore = project.fundScore;
-    if (fundMark != null) {
-      OpexSpanAgg("pub.select.score.fund_score", fundMark);
-      fundMark = null;
-    }
-    insertMark = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
-    if (C69_BOTTLENECK_PROBE) {
-      local denom = financeCapital > kDec ? financeCapital : kDec;
-      project.rawset("c69Score", OpexProjectScore(OpexCalibratedProfit(project), denom));
-      OpexProjectInsertDefensive(c69Affordable, project, "c69Score", limit, true);
-    }
-    OpexProjectInsertDefensive(affordable, project, scoreKey, limit, true);
-    if (insertMark != null) {
-      OpexSpanAgg("pub.select.score.insert", insertMark);
-      insertMark = null;
-    }
-  }
-
-  if (affordable.len() == 0 && floorProfit > 0) {
-    SELECT_BISECT_STAMP++;
-    if (C69_BOTTLENECK_PROBE) c69Affordable = [];
-    foreach (project in alternatives) {
-      local fundMark = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
-      local slotMark = null;
-      local insertMark = null;
-      local financeCapital = 0;
-      if (project.mode == "fleet") {
-        financeCapital = OpexProjectFinanceCapital(project);
-      } else {
-        financeCapital = ("_v279FinCap" in project) ? project._v279FinCap : OpexProjectFinanceCapital(project);
-      }
-      if (fundMark != null) {
-        OpexSpanAgg("pub.select.score.fund_score", fundMark);
-        fundMark = null;
-      }
-      if (financeCapital > capitalBudget) continue;
-      slotMark = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
-      OpexProjectRefreshEarlySlot(project, earlySlotState);
-      OpexProjectRefreshDefensiveSlot(project, defensiveSlotState);
-      if (slotMark != null) {
-        OpexSpanAgg("pub.select.score.refresh_slots", slotMark);
-        slotMark = null;
-      }
-      fundMark = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
-      local decisionFinanceCapital = financeCapital;
-      local fundProfit = 0;
-      local fleetExemptDecision = false;
-      if (project.mode == "fleet") {
-        fleetExemptDecision = !OpexC121ProjectHasRealization(project);
-        fundProfit = OpexProjectFundProfit(project);
-      } else {
-        decisionFinanceCapital = ("_v279DecCap" in project) ? project._v279DecCap : financeCapital;
-        fundProfit = ("_v279FundProfit" in project) ? project._v279FundProfit : OpexProjectFundProfit(project);
-      }
-      local scoreDecisionFinanceCapital = decisionFinanceCapital;
-      project.rawset("fundScore", OpexProjectScore(fundProfit,
-          (kDec > scoreDecisionFinanceCapital && !fleetExemptDecision)
-              ? kDec : scoreDecisionFinanceCapital));
-      if (fundMark != null) {
-        OpexSpanAgg("pub.select.score.fund_score", fundMark);
-        fundMark = null;
-      }
-      insertMark = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
-      if (C69_BOTTLENECK_PROBE) {
-        local denom = financeCapital > kDec ? financeCapital : kDec;
-        project.rawset("c69Score", OpexProjectScore(OpexCalibratedProfit(project), denom));
-        OpexProjectInsertDefensive(c69Affordable, project, "c69Score", limit, true);
-      }
-      OpexProjectInsertDefensive(affordable, project, scoreKey, limit, true);
-      if (insertMark != null) {
-        OpexSpanAgg("pub.select.score.insert", insertMark);
-        insertMark = null;
-      }
-    }
-  }
-  local spEpilogue = PROBE_SPAN_TRACE ? OpexSpanBegin("pub.select.score.epilogue") : null;
-
-  if (C69_BOTTLENECK_PROBE) {
-    ::C69_LAST_AFFORDABLE = c69Affordable;
-    ::C69_LAST_KDEC_DATA = kDecData;
-    local toSel = { rail = 0, road = 0, air = 0, water = 0, fleet = 0 };
-    local aff = { rail = 0, road = 0, air = 0, water = 0, fleet = 0 };
-    local sel = { rail = 0, road = 0, air = 0, water = 0, fleet = 0 };
-    foreach (p in alternatives) {
-      local m = ("mode" in p) ? p.mode : "unknown";
-      if (m in toSel) toSel[m]++;
-      local fc = ("_v279FinCap" in p) ? p._v279FinCap : OpexProjectFinanceCapital(p);
-      if (fc <= capitalBudget && (floorProfit <= 0 || p.profitAnnual >= floorProfit)) {
-        if (m in aff) aff[m]++;
-      }
-    }
-    foreach (p in affordable) {
-      local m = ("mode" in p) ? p.mode : "unknown";
-      if (m in sel) sel[m]++;
-    }
-    OpexC73RecordSelection(toSel, aff, sel);
-  }
-
-  OpexC121RecordPressureSnapshot(defensiveSlotState);
-  if (R1_R3_TEST_ONLY) {
-    foreach (project in alternatives) {
-      if (!("r1r3Id" in project)) continue;
-      local rank = -1;
-      for (local k = 0; k < affordable.len(); k++) {
-        if (affordable[k] == project) { rank = k; break; }
-      }
-      OpexR1R3Log("mechanism=R1 phase=rank id=" + project.r1r3Id
-          + " rank=" + rank + " score=" + (("fundScore" in project) ? project.fundScore : "unknown")
-          + " finance=" + (("_v279FinCap" in project) ? project._v279FinCap : OpexProjectFinanceCapital(project))
-          + " budget=" + capitalBudget);
-    }
-  }
-  if (spEpilogue != null) OpexSpanEnd(spEpilogue);
-  if (spSelect != null) OpexSpanEnd(spSelect);
-  return affordable;
-}
-
-/* V279 : Reselection memoisee. */
-function OpexV279ReselectProjectsMemoized(projects, capitalBudget, abandonedPairs = null, lines = null, railReadyStock = null)
-{
-  if (projects != null && ("selectionStale" in projects)) {
-    projects.selectionStale = false;
-  }
-  local spReselect = PROBE_SPAN_TRACE ? OpexSpanBegin("select.reselect") : null;
-  local b6BudgetDate = AIDate.GetCurrentDate();
-  local funded = null;
-  local considered = 0;
-  local opsMark = OpexOpsMeasureBegin();
-  local alternatives = [];
-  local spPubFlat = PROBE_SPAN_TRACE ? OpexSpanBegin("pub.select.flatten") : null;
-  foreach (key, list in projects.candidateGroups) {
-    foreach (project in list) alternatives.push(project);
-  }
-  if (spPubFlat != null) OpexSpanEnd(spPubFlat);
-  local spPubMerge = PROBE_SPAN_TRACE ? OpexSpanBegin("pub.select.merge") : null;
-  if ((MODE_AIR && MODE_RAIL) && !C121_CATALOG_FIRST_YEAR_ACTIVE) {
-    if (railReadyStock == null && ("railReadyStock" in projects) && projects.railReadyStock != null)
-      railReadyStock = projects.railReadyStock;
-    alternatives = OpexRailPrepMergeAlternatives(alternatives, railReadyStock);
-  }
-  if (spPubMerge != null) OpexSpanEnd(spPubMerge);
-  local spPubFilt = PROBE_SPAN_TRACE ? OpexSpanBegin("pub.select.filter") : null;
-  alternatives = OpexFilterAirAlternativesV279Memo(alternatives, abandonedPairs, lines);
-  if (spPubFilt != null) OpexSpanEnd(spPubFilt);
-  local spPubScore = PROBE_SPAN_TRACE ? OpexSpanBegin("pub.select.score") : null;
-  funded = OpexProjectSelectAffordableMemoized(alternatives, capitalBudget, PROJECT_TOP_K);
-  if (RAIL_FAILURE_AUDIT) OpexRailPortfolioAudit("reselect", alternatives, funded,
-      capitalBudget, 0, 0);
-  if (spPubScore != null) OpexSpanEnd(spPubScore);
-  considered = alternatives.len();
-  projects.stats.knapsackNodes = 0;
-  projects.stats.knapsackExact = false;
-  projects.stats.selectionOpcodes <- OpexOpsMeasureEnd(opsMark);
-  local spPubLog = PROBE_SPAN_TRACE ? OpexSpanBegin("pub.select.log") : null;
-  OpexB6LogSelectionCausality("reselect", alternatives, funded, capitalBudget, b6BudgetDate);
-  OpexHookV216LogSelection("reselect", alternatives, funded, capitalBudget);
-  if (spPubLog != null) OpexSpanEnd(spPubLog);
-
-  local spPubStats = PROBE_SPAN_TRACE ? OpexSpanBegin("pub.select.stats") : null;
-  projects.stats.budgetConsidered = considered;
-  projects.stats.budgetSelected = funded.len();
-  projects.stats.budgetRejected = considered - funded.len();
-
-  local selectedRev = 0;
-  local selectedCap = 0;
-  foreach (project in funded) {
-    selectedRev += project.revenueAnnual;
-    selectedCap += ("_v279FinCap" in project) ? project._v279FinCap : OpexProjectFinanceCapital(project);
-  }
-  projects.stats.selectedRevenue = selectedRev;
-  projects.stats.selectedCapital = selectedCap;
-  if ("selectionPoolCapital" in projects.stats) projects.stats.selectionPoolCapital = selectedCap;
-  else projects.stats.selectionPoolCapital <- selectedCap;
-  local nextProjectCapital = funded.len() > 0
-      ? (("_v279FinCap" in funded[0]) ? funded[0]._v279FinCap : OpexProjectFinanceCapital(funded[0]))
-      : 0;
-  if ("nextProjectCapital" in projects.stats) projects.stats.nextProjectCapital = nextProjectCapital;
-  else projects.stats.nextProjectCapital <- nextProjectCapital;
-
-  projects.capitalBudget = capitalBudget;
-  projects.capitalRemaining = capitalBudget - selectedCap;
-  if (projects.capitalRemaining < 0) projects.capitalRemaining = 0;
-
-  OpexProjectsStampSelectionStats(projects.stats, projects, alternatives, funded, capitalBudget, null);
-
-  projects.best = funded;
-  if ((MODE_AIR && MODE_RAIL) && railReadyStock != null) {
-    if ("railReadyStock" in projects) projects.railReadyStock = railReadyStock;
-    else projects.railReadyStock <- railReadyStock;
-  }
-  if (C69_BOTTLENECK_PROBE) {
-    projects.c69Best <- ::C69_LAST_AFFORDABLE;
-    projects.c69KDecData <- ::C69_LAST_KDEC_DATA;
-  }
-  if (spPubStats != null) OpexSpanEnd(spPubStats);
-
-  local spPubVivier = PROBE_SPAN_TRACE ? OpexSpanBegin("pub.select.vivier") : null;
-  if (DECISION_LOG) {
-    local vivierPool = [];
-    if (("candidateGroups" in projects) && projects.candidateGroups != null) {
-      foreach (key, list in projects.candidateGroups) {
-        foreach (project in list) vivierPool.push(project);
-      }
-    }
-    OpexLogVivier("reselect", vivierPool, projects.stats, projects.capitalBudget, projects.capitalRemaining);
-  }
-  if (spPubVivier != null) OpexSpanEnd(spPubVivier);
-
-  if (spReselect != null) OpexSpanEnd(spReselect);
-  return projects;
-}
-
-/* V279 : Mode controle. Calcule les deux chemins, compare et journalise toute divergence sous V279_CHECK. */
-function OpexV279ReselectProjectsControl(projects, capitalBudget, abandonedPairs = null, lines = null, railReadyStock = null)
-{
-  local savedScores = {};
-  if (("candidateGroups" in projects) && projects.candidateGroups != null) {
-    foreach (key, list in projects.candidateGroups) {
-      foreach (p in list) {
-        if (p != null && ("fundScore" in p)) savedScores.rawset(p, p.fundScore);
-      }
-    }
-  }
-  local savedCatalogScores = {};
-  foreach (k, entry in C121_CATALOG_CACHE) {
-    if ("lastScore" in entry) savedCatalogScores.rawset(k, entry.lastScore);
-  }
-  local origBisectStamp = SELECT_BISECT_STAMP;
-  local savedAccumSamples = (C121_AIR_PRESSURE_ACCUM != null) ? C121_AIR_PRESSURE_ACCUM.samples : 0;
-
-  // 1. Chemin memoise
-  OpexV279ReselectProjectsMemoized(projects, capitalBudget, abandonedPairs, lines, railReadyStock);
-  local memoBest = [];
-  if (("best" in projects) && projects.best != null) {
-    foreach (p in projects.best) memoBest.append(p);
-  }
-  local memoCapRemaining = projects.capitalRemaining;
-  local memoStatsSelectedCapital = projects.stats.selectedCapital;
-  local memoStatsSelectedRevenue = projects.stats.selectedRevenue;
-  local memoStatsNextProjectCapital = projects.stats.nextProjectCapital;
-  local memoFundScores = {};
-  foreach (p in memoBest) {
-    memoFundScores.rawset(p, ("fundScore" in p) ? p.fundScore : null);
-  }
-
-  // 2. Restauration pour execution du chemin historique sans effet de bord
-  if (("candidateGroups" in projects) && projects.candidateGroups != null) {
-    foreach (key, list in projects.candidateGroups) {
-      foreach (p in list) {
-        if (p == null) continue;
-        if (p in savedScores) p.fundScore = savedScores[p];
-        else if ("fundScore" in p) delete p.fundScore;
-      }
-    }
-  }
-  foreach (k, entry in C121_CATALOG_CACHE) {
-    if (k in savedCatalogScores) entry.lastScore = savedCatalogScores[k];
-    else if ("lastScore" in entry) delete entry.lastScore;
-  }
-  SELECT_BISECT_STAMP = origBisectStamp;
-  if (C121_AIR_PRESSURE_ACCUM != null) C121_AIR_PRESSURE_ACCUM.samples = savedAccumSamples;
-
-  // 3. Chemin historique
-  OpexReselectProjects(projects, capitalBudget, abandonedPairs, lines, railReadyStock, true);
-
-  // 4. Comparaison
-  local diffs = [];
-  local histBest = projects.best;
-  if (memoBest.len() != histBest.len()) {
-    diffs.append("best_len(memo=" + memoBest.len() + ",hist=" + histBest.len() + ")");
-  } else {
-    for (local i = 0; i < memoBest.len(); i++) {
-      if (memoBest[i] != histBest[i]) {
-        diffs.append("best_order_at_" + i + "(memo=" + OpexProjectAttemptKey(memoBest[i]) + ",hist=" + OpexProjectAttemptKey(histBest[i]) + ")");
-        break;
-      }
-      local fsMemo = (memoBest[i] in memoFundScores) ? memoFundScores[memoBest[i]] : null;
-      local fsHist = ("fundScore" in histBest[i]) ? histBest[i].fundScore : null;
-      if (fsMemo != fsHist) {
-        diffs.append("fund_score_at_" + i + "(memo=" + fsMemo + ",hist=" + fsHist + ")");
-        break;
-      }
-    }
-  }
-  if (memoCapRemaining != projects.capitalRemaining) {
-    diffs.append("capital_remaining(memo=" + memoCapRemaining + ",hist=" + projects.capitalRemaining + ")");
-  }
-  if (memoStatsSelectedCapital != projects.stats.selectedCapital) {
-    diffs.append("selected_capital(memo=" + memoStatsSelectedCapital + ",hist=" + projects.stats.selectedCapital + ")");
-  }
-  if (memoStatsSelectedRevenue != projects.stats.selectedRevenue) {
-    diffs.append("selected_revenue(memo=" + memoStatsSelectedRevenue + ",hist=" + projects.stats.selectedRevenue + ")");
-  }
-  if (memoStatsNextProjectCapital != projects.stats.nextProjectCapital) {
-    diffs.append("next_project_capital(memo=" + memoStatsNextProjectCapital + ",hist=" + projects.stats.nextProjectCapital + ")");
-  }
-
-  if (diffs.len() > 0) {
-    local diffMsg = "";
-    foreach (d in diffs) {
-      if (diffMsg != "") diffMsg += " ";
-      diffMsg += d;
-    }
-    OpexDecide("V279_CHECK", diffMsg);
-    if (!DECISION_LOG) {
-      AILog.Warning("V279_CHECK " + diffMsg);
-    }
-  }
-
-  return projects;
-}
-
 /* Rejoue UNIQUEMENT la contrainte de capital sur les projets deja produits par le catalogue.
  * candidateGroups porte le vivier ; cette fonction se contente de reaplatir ses alternatives et
  * de retester le capital. Aucune planification rail, recherche de site aerien ou generation de
  * route ne repasse ici. Les statistiques sont remplacees ensemble car IG| et IB| doivent decrire
  * la meme solution que best, y compris lorsque la selection n'a pas prouve son optimum. */
-function OpexReselectProjects(projects, capitalBudget, abandonedPairs = null, lines = null, railReadyStock = null, forceHistoric = false)
+function OpexReselectProjects(projects, capitalBudget, abandonedPairs = null, lines = null, railReadyStock = null)
 {
-  if (!forceHistoric) {
-    if (V279_RESELECT_MEMO == 1) {
-      return OpexV279ReselectProjectsMemoized(projects, capitalBudget, abandonedPairs, lines, railReadyStock);
-    }
-    if (V279_RESELECT_MEMO == 2) {
-      return OpexV279ReselectProjectsControl(projects, capitalBudget, abandonedPairs, lines, railReadyStock);
-    }
-  }
-
   if (projects != null && ("selectionStale" in projects)) {
     projects.selectionStale = false;
   }
@@ -1758,7 +1390,9 @@ function OpexReselectProjects(projects, capitalBudget, abandonedPairs = null, li
   }
   if (spPubMerge != null) OpexSpanEnd(spPubMerge);
   local spPubFilt = PROBE_SPAN_TRACE ? OpexSpanBegin("pub.select.filter") : null;
-  alternatives = OpexFilterAirAlternativesStillValid(alternatives, abandonedPairs, lines);
+  alternatives = (V279_RESELECT_MEMO != 0)
+      ? OpexFilterAirAlternativesV279Memo(alternatives, abandonedPairs, lines)
+      : OpexFilterAirAlternativesStillValid(alternatives, abandonedPairs, lines);
   if (spPubFilt != null) OpexSpanEnd(spPubFilt);
   local spPubScore = PROBE_SPAN_TRACE ? OpexSpanBegin("pub.select.score") : null;
   funded = OpexProjectSelectAffordable(alternatives, capitalBudget, PROJECT_TOP_K);
@@ -1771,7 +1405,7 @@ function OpexReselectProjects(projects, capitalBudget, abandonedPairs = null, li
   projects.stats.selectionOpcodes <- OpexOpsMeasureEnd(opsMark);
   local spPubLog = PROBE_SPAN_TRACE ? OpexSpanBegin("pub.select.log") : null;
   OpexB6LogSelectionCausality("reselect", alternatives, funded, capitalBudget, b6BudgetDate);
-  OpexHookV216LogSelection("reselect", alternatives, funded, capitalBudget);
+  if (V216_PROBE) OpexV216LogSelection("reselect", alternatives, funded, capitalBudget);
   if (spPubLog != null) OpexSpanEnd(spPubLog);
 
   local spPubStats = PROBE_SPAN_TRACE ? OpexSpanBegin("pub.select.stats") : null;
