@@ -284,15 +284,18 @@ class Models(unittest.TestCase):
 
 
 class Contracts(unittest.TestCase):
-    def test_setting_four_zero_defaults_and_current_ceiling(self):
+    def test_setting_four_auto_defaults_and_current_ceiling(self):
+        # Defaut 3 = auto depuis le 20/10 (decision utilisateur) : mode 2 des 1024x1024 tuiles.
         info = read("info.nut")
         block = re.search(r'AddSetting\(\{\s*name = "v276_cand_slices".*?\}\);', info, re.S)[0]
         for difficulty in ("easy", "medium", "hard", "custom"):
-            self.assertIn(difficulty + "_value = 0", block)
-        self.assertIn("min_value = 0, max_value = 2", block)
+            self.assertIn(difficulty + "_value = 3", block)
+        self.assertIn("min_value = 0, max_value = 3", block)
         self.assertLessEqual(info.count("AddSetting("), 100)
-        self.assertIn('V276_CAND_SLICES = AIController.GetSetting("v276_cand_slices");',
-                      read("settings.nut"))
+        settings = read("settings.nut")
+        self.assertIn('local v276 = AIController.GetSetting("v276_cand_slices");', settings)
+        self.assertIn("V276_CAND_SLICES = (v276 == 3) ? (bigMap ? 2 : 0) : v276;", settings)
+        self.assertIn("local bigMap = AIMap.GetMapSizeX() * AIMap.GetMapSizeY() >= 1024 * 1024;", settings)
         self.assertIn('V276_CAND_SLICES <- 0;', read("candidates_v276.nut"))
 
     def test_production_weight_is_freight_only_and_cached_annually(self):

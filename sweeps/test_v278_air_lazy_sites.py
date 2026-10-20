@@ -175,12 +175,14 @@ class TestV278Source(unittest.TestCase):
             self.assertIs(state["scanProbes"], lazy.probes)
         self.assertEqual(state["totalOps"], 200)
 
-    def test_setting_off_equal_difficulties_and_loaded_once(self):
+    def test_setting_auto_equal_difficulties_and_loaded_once(self):
+        # Defaut 2 = auto depuis le 20/10 (decision utilisateur) : actif des 1024x1024 tuiles.
         spec = parse_ai_setting_specs(AI / "info.nut")["v278_air_lazy_sites"]
-        self.assertEqual((spec["min_value"], spec["max_value"], spec["default"]), (0, 1, 0))
+        self.assertEqual((spec["min_value"], spec["max_value"], spec["default"]), (0, 2, 2))
         block = read("info.nut").split('name = "v278_air_lazy_sites"', 1)[1].split("});", 1)[0]
         for difficulty in ("easy", "medium", "hard", "custom"):
-            self.assertIn(difficulty + "_value = 0", block)
+            self.assertIn(difficulty + "_value = 2", block)
+        self.assertIn("V278_AIR_LAZY_SITES = v278 == 1 || (v278 == 2 && bigMap);", read("settings.nut"))
         self.assertIn("V278_AIR_LAZY_SITES <- false;", read("globals_pre.nut"))
         self.assertEqual(read("settings.nut").count('GetSetting("v278_air_lazy_sites")'), 1)
 

@@ -14,9 +14,9 @@ class OpexAIInfo extends AIInfo {
   function GetSettings()
   {
     AddSetting({ name = "v278_air_lazy_sites",
-      description = "V278: population ordered lazy AIR sites and scan preparation cache (experimental)",
-      min_value = 0, max_value = 1,
-      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
+      description = "V278: population ordered lazy AIR sites and scan preparation cache; 0 = off, 1 = on, 2 = auto: on when the map has at least 1024x1024 tiles (default since 20/10, qualified at 1024x1024 only)",
+      min_value = 0, max_value = 2,
+      easy_value = 2, medium_value = 2, hard_value = 2, custom_value = 2,
       flags = 0 });
     AddSetting({ name = "v279_reselect_memo",
       description = "V279: incremental memoization for OpexReselectProjects (0=historic, 1=memoized, 2=control check)",
@@ -630,9 +630,9 @@ class OpexAIInfo extends AIInfo {
     });
     AddSetting({
       name = "v276_cand_slices",
-      description = "V276: resumable rail and road candidate units, 0 = legacy (default), 1 = freight ordered by unit income at 80 tiles, 2 = same income times total monthly cargo production (annual cache)",
-      min_value = 0, max_value = 2,
-      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
+      description = "V276: resumable rail and road candidate units, 0 = legacy, 1 = freight ordered by unit income at 80 tiles, 2 = same income times total monthly cargo production (annual cache), 3 = auto: 2 when the map has at least 1024x1024 tiles, else 0 (default since 20/10)",
+      min_value = 0, max_value = 3,
+      easy_value = 3, medium_value = 3, hard_value = 3, custom_value = 3,
       step_size = 1, flags = 0
     });
     AddSetting({
