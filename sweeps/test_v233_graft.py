@@ -67,7 +67,7 @@ class GraftContracts(unittest.TestCase):
         self.assertIn('this._v233PublishedGroups == this._projects.candidateGroups', publish)
 
     def test_search_completion_deposits_without_spending_and_ready_bypasses_slot(self):
-        continuation = body('task_rail.nut', 'function OpexAI::_continueRailSearch()')
+        continuation = body('task_rail.nut', 'function OpexAI::_continueRailSearch(deadlineOverride = -1)')
         deposit = continuation.split('if (V233_GOODS_GRAFT && OpexV233IsGraft(state.candidate) && plan.ok)', 1)[1].split('return;', 1)[0]
         self.assertIn('this._v233StorePlan(state.candidate, plan);', deposit)
         self.assertIn('this._railSearch = null;', deposit)

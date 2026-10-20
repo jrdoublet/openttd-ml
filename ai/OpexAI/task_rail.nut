@@ -851,7 +851,7 @@ function OpexAI::_startRailSearch(candidate, alternativeRatio, hardCap, posPacke
   return { pending = true, plan = null };
 }
 /* Avance d'une tranche, ou consomme un plan/upgrade pret. Appele en TETE de _runNextTask. */
-function OpexAI::_continueRailSearch()
+function OpexAI::_continueRailSearch(deadlineOverride = -1)
 {
   if (this._railSearch == null) return;
   local state = this._railSearch;
@@ -868,6 +868,8 @@ function OpexAI::_continueRailSearch()
      * laisse une large marge de securite contre un blocage dans la tranche sans jamais
      * imputer le temps des autres taches de la file (docs/cible.md §2.1). */
     deadlineTick = AIController.GetTick() + RAIL_SEARCH_SLICE / 3 + BUILD_TICK_MARGIN;
+    /* V289 : la tranche du reliquat s'arrete des que le tick avance. */
+    if (deadlineOverride >= 0) deadlineTick = deadlineOverride;
   }
   local slice;
   local spentBefore = state.spent;

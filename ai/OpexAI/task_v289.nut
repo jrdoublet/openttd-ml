@@ -159,7 +159,7 @@ function OpexAI::_v289StepRail()
     if (DECISION_LOG) OpexDecide("V289_RAIL_TIMEOUT", "src=" + c.src + " dst=" + c.dst + " iters=" + slot.spent);
     this._handleRailStockSearchTimeout();
   } else {
-    if (slot.phase == "search") this._continueRailSearch();
+    if (slot.phase == "search") this._continueRailSearch(AIController.GetTick() + 1);
     if (this._railSearch != null && this._railSearch.phase == "build") {
       local cand = this._railSearch.candidate;
       local pairKey = OpexProjectPairKey(cand.kind, cand.cargo, cand.src, cand.dst);
@@ -323,8 +323,11 @@ function OpexAI::_v289SlackWorkers()
     this._v289EstOps = { [1] = railEst, [2] = 2500, [4] = 1500 };
   }
 
+  /* Un pas qui franchit le tick remet GetOpsTillSuspend() a plein : sans cette
+   * borne, le repartiteur continuerait sur le budget du tick suivant. */
+  local tick0 = AIController.GetTick();
   local idleCount = 0;
-  while (AIController.GetOpsTillSuspend() >= V289_SLACK_MIN) {
+  while (AIController.GetTick() == tick0 && AIController.GetOpsTillSuspend() >= V289_SLACK_MIN) {
     local workerId = active[this._v289WorkerCursor % nActive];
     this._v289WorkerCursor++;
 
