@@ -1143,6 +1143,7 @@ function OpexSegmentPrefixContains(prefix, tile)
  * fenetre avant le prochain FindPath. */
 function OpexFrontierAlternatives(pathfinder, maxAlternatives)
 {
+  if ("FrontierAlternatives" in pathfinder) return pathfinder.FrontierAlternatives(maxAlternatives);
   local open = pathfinder._pathfinder._open;
   if (open == null || open.Count() == 0) return [];
   local nodes = [];

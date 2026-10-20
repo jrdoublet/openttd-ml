@@ -56,6 +56,7 @@ require("pathfinder_v90/binary_heap.nut");
 require("pathfinder_v90/aystar.nut");
 require("pathfinder_v90/rail.nut");
 require("pathfinder_v90/v129.nut");
+require("pathfinder_v90/v296.nut");
 require("builder_rail.nut");
 require("rail_templates.nut");
 require("builder_air.nut");
