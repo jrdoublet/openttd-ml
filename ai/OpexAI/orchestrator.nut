@@ -949,7 +949,9 @@ function OpexAI::_runOrchestratorTick()
 
   /* V257 : une seule garde au defaut. Une ligne de la file de revision par
    * passage reactif ; ne bloque ni la FIFO existante ni le worker rail. */
-  this._v257ReactiveStep();
+  /* Point commun aux boucles normale et _mainLoopProfiled. OFF court-circuite. */
+  if (V284_RAIL_GROWTH > 0) OpexV284Tick(this);
+  if (V284_RAIL_GROWTH <= 0 || !OpexV284Busy(this)) this._v257ReactiveStep();
 
   // (b) Intention réactive
   if (this._hasReactiveIntentions()) {

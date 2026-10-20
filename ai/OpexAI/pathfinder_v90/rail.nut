@@ -57,6 +57,11 @@ class OpexRailPathFinderV90
 	_cache_buildable = null;
 	_outwardSide = null;
 	_guideTiles = null;
+	_cost_level_crossing = 0;
+	_cost_bridge_per_tile_ex = 0;
+	_cost_bridge_per_tile_ex2 = 0;
+	_cost_tunnel_per_tile_ex = 0;
+	_cost_tunnel_per_tile_ex2 = 0;
 
 	constructor(weight = null)
 	{
@@ -68,6 +73,11 @@ class OpexRailPathFinderV90
 		this._cost_bridge_per_tile = 150;
 		this._cost_tunnel_per_tile = 120;
 		this._cost_coast = 20;
+		this._cost_level_crossing = 0;
+		this._cost_bridge_per_tile_ex = 0;
+		this._cost_bridge_per_tile_ex2 = 0;
+		this._cost_tunnel_per_tile_ex = 0;
+		this._cost_tunnel_per_tile_ex2 = 0;
 		this._max_bridge_length = 6;
 		this._max_tunnel_length = 6;
 		this._weight = (weight != null) ? weight : V91_ASTAR_WEIGHT_PCT;
@@ -160,6 +170,11 @@ class OpexRailPathFinderV90.Cost
 			case "max_bridge_length": this._main._max_bridge_length = val; break;
 			case "max_tunnel_length": this._main._max_tunnel_length = val; break;
 			case "astar_weight_pct":  this._main.SetWeight(val); break;
+			case "level_crossing":       this._main._cost_level_crossing = val; break;
+			case "bridge_per_tile_ex":   this._main._cost_bridge_per_tile_ex = val; break;
+			case "bridge_per_tile_ex2":  this._main._cost_bridge_per_tile_ex2 = val; break;
+			case "tunnel_per_tile_ex":   this._main._cost_tunnel_per_tile_ex = val; break;
+			case "tunnel_per_tile_ex2":  this._main._cost_tunnel_per_tile_ex2 = val; break;
 			default: throw("the index '" + idx + "' does not exist");
 		}
 
@@ -180,6 +195,11 @@ class OpexRailPathFinderV90.Cost
 			case "max_bridge_length": return this._main._max_bridge_length;
 			case "max_tunnel_length": return this._main._max_tunnel_length;
 			case "astar_weight_pct":  return this._main._weight;
+			case "level_crossing":       return this._main._cost_level_crossing;
+			case "bridge_per_tile_ex":   return this._main._cost_bridge_per_tile_ex;
+			case "bridge_per_tile_ex2":  return this._main._cost_bridge_per_tile_ex2;
+			case "tunnel_per_tile_ex":   return this._main._cost_tunnel_per_tile_ex;
+			case "tunnel_per_tile_ex2":  return this._main._cost_tunnel_per_tile_ex2;
 			default: throw("the index '" + idx + "' does not exist");
 		}
 	}
@@ -358,8 +378,20 @@ function OpexRailPathFinderV90::_Cost(path, new_tile, new_direction, self)
 		if (distManhattan > 1) {
 			if (AITunnel.GetOtherTunnelEnd(new_tile) == prev_tile) {
 				step_cost = distManhattan * (self._cost_tile + self._cost_tunnel_per_tile);
+				if (self._cost_tunnel_per_tile_ex > 0 && distManhattan > 7) {
+					step_cost += (distManhattan - 7) * self._cost_tunnel_per_tile_ex;
+				}
+				if (self._cost_tunnel_per_tile_ex2 > 0 && distManhattan > 11) {
+					step_cost += (distManhattan - 11) * self._cost_tunnel_per_tile_ex2;
+				}
 			} else {
 				step_cost = distManhattan * (self._cost_tile + self._cost_bridge_per_tile) + self._GetBridgeNumSlopes(new_tile, prev_tile) * self._cost_slope;
+				if (self._cost_bridge_per_tile_ex > 0 && distManhattan > 7) {
+					step_cost += (distManhattan - 7) * self._cost_bridge_per_tile_ex;
+				}
+				if (self._cost_bridge_per_tile_ex2 > 0 && distManhattan > 11) {
+					step_cost += (distManhattan - 11) * self._cost_bridge_per_tile_ex2;
+				}
 			}
 			if (par != null && par.GetParent() != null &&
 					par.GetParent().GetTile() - par.GetTile() != max(AIMap.GetTileX(prev_tile) - AIMap.GetTileX(new_tile), AIMap.GetTileY(prev_tile) - AIMap.GetTileY(new_tile)) / distManhattan) {
@@ -376,6 +408,10 @@ function OpexRailPathFinderV90::_Cost(path, new_tile, new_direction, self)
 
 			if (self._IsCoast(new_tile)) {
 				step_cost += self._cost_coast;
+			}
+			/* V294d : passage a niveau, apres l'affectation du cout diagonal qui l'ecraserait. */
+			if (self._cost_level_crossing > 0 && AITile.HasTransportType(new_tile, AITile.TRANSPORT_ROAD)) {
+				step_cost += self._cost_level_crossing;
 			}
 
 			if (par != null && !self._IsBridge(prev_tile) && !self._IsTunnel(prev_tile) &&

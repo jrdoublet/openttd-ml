@@ -181,6 +181,17 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
         }
         c121PrepPlan = true;
       }
+      local v294Ready = false;
+      if (V294H_RAIL_DEFER > 0 && !v233Graft && !c121PrepPlan) {
+        local v294 = OpexV294hBeforeSearch(this, candidate);
+        if (v294.blocked) {
+          if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL)
+            passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst,
+                                  reason = "v294_deferred", extra = "" });
+          return { outcome = "rejected", discards = passDiscards };
+        }
+        v294Ready = v294.attached;
+      }
       if (this._railSearch != null && !c121PrepPlan
           && (!("railPlan" in candidate) || candidate.railPlan == null)) {
         if (DECISION_LOG && ("originServed" in candidate) && candidate.originServed) {
@@ -194,7 +205,7 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
                          && this._railSearch.candidate.originServed ? 1 : 0));
         }
       }
-      if (!c121PrepPlan && !v233Ready && builtCount > 0 && ("railPlan" in candidate)) {
+      if (!c121PrepPlan && !v233Ready && !v294Ready && builtCount > 0 && ("railPlan" in candidate)) {
         /* Le trace A* memorise vise la carte de la generation. Le premier chantier peut avoir
          * occupe un quai, un depot ou une tuile du trace ; le jeter force OpexBuildLine a
          * replanifier sur la carte vivante. Inerte pour maxBatch=1, precedent mesure.
@@ -211,7 +222,7 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
        * deja depose a son railPlan : on le pose sans nouvel A*, meme si une autre
        * recherche occupe le slot. */
       local searchBlocked = (this._railSearch != null);
-      if (searchBlocked && !c121PrepPlan && !v233Ready) {
+      if (searchBlocked && !c121PrepPlan && !v233Ready && !v294Ready) {
         if (RAIL_FAILURE_AUDIT) OpexRailFailureAudit("early", candidate, "search_in_progress", 0, 0, 0, i);
         if (RAIL_FAILURE_AUDIT) OpexRailSearchBlockerAudit(candidate, this._railSearch, project, i);
         if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "search_in_progress", extra = "" });
@@ -288,8 +299,7 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
       /* G3§2 : pour le chemin reprenable sans railPlan, la recherche A* ne coute aucune
        * tresorerie et le cash peut arriver pendant les tranches. On ne saute que le chemin
        * non reprenable (construction immediate). _consumeRailSearch verifiera la caisse a
-       * la fin. Cela active aussi la branche isPreplanOrLowCash de OpexDynamicHardCap, qui
-       * remonte au plafond dur pour exploiter les opcodes dormants pendant l'attente. */
+       * la fin. */
       local willStartSearch = !(("railPlan" in candidate) && candidate.railPlan != null);
       if (lowCash && !willStartSearch) {
         if (RAIL_FAILURE_AUDIT) OpexRailFailureAudit("early", candidate, "insufficient_cash", 0, 0, 0, i);
@@ -302,7 +312,7 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
       OpexSign(anchor, "IP|" + yy + "|T|" + project.budgetScore + "|" + project.opcodeScore);
 
       local alternativeRatio = MIN_RATIO;
-      local hardCap = OpexDynamicHardCap(this._lines.len(), lowCash);
+      local hardCap = HARD_ITERATION_CAP;
       local posPacked = i * TOP_K + this._projects.best.len();
       if (!(("railPlan" in candidate) && candidate.railPlan != null)) {
         if (DECISION_LOG) {
@@ -324,6 +334,7 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
       local railPlanRef = ("railPlan" in candidate) ? candidate.railPlan : null;
       local result = OpexBuildLine(this._catalog, this._budget, candidate, alternativeRatio,
                                    OpexCashReserve(), hardCap);
+      if (v294Ready && result.reason != "CASH") OpexV294hConsumed(this, candidate, result);
       if (v233Graft && result.reason == "V233_REPRICE") {
         local entry = this._v233Plans[OpexV233PlanKey(candidate)];
         entry.phase = "platforms"; entry.cursor = 1;
@@ -334,6 +345,7 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
         if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "cash_at_build", extra = "" });
         return { outcome = "rejected", discards = passDiscards };
       }
+      if (railPlanRef == null && ("railPlan" in candidate)) railPlanRef = candidate.railPlan;
       if (("railPlan" in candidate)) candidate.railPlan = null;
 
       local recorded = this._recordRailAttempt(candidate, result, posPacked, year, railPlanRef);
@@ -387,6 +399,8 @@ function OpexAI::_expandRailLines(year)
   /* G6§1 : le bloc RAIL_REFLEET (second train, double voie) vit ici.
    * L'expansion de wagons (rail_expand) a ete figee a 0 et retiree. */
   if (this._railExpansion != null) return;
+  /* Port du declencheur V270 c71b707 : avant la garde A*, sans prendre son creneau. */
+  if (V284_RAIL_GROWTH > 0 && OpexV284Select(this, year)) return;
   /* Une recherche A* en cours (ligne neuve ou upgrade) : ne pas en empiler une seconde. */
   if (this._railSearch != null && !OpexV190Active()) return;
   this._budget.begin();
@@ -394,6 +408,7 @@ function OpexAI::_expandRailLines(year)
   OpexSign(AIMap.GetTileIndex(1, 1), "EU|" + (year % 100) + "|0|0|0|0|" + decisionOps);
   {
     foreach (line in this._lines) {
+        if (V284_RAIL_GROWTH > 0 && this._v284State != null && (("kind" in line) && line.kind == "freight")) continue;
         if ((("mode" in line) && line.mode != "rail") || !("wagons" in line) || !("loco" in line) || !("kind" in line)) continue;
         /* V181 retire (defaut 0) : plafond historique de 2 trains, sauf fret V190. */
         if (!OpexV190Active() || line.kind != "freight") {
@@ -780,13 +795,37 @@ function OpexAI::_startRailSearch(candidate, alternativeRatio, hardCap, posPacke
   local outwardSide = (V197_GUIDED_DOUBLE && OpexV190Active() && candidate.kind == "freight") ? 1 : null;
   local searchWeight = OpexRailAstarWeight(candidate.distance);
   candidate.searchWeight <- searchWeight;
+  if (V294_RAIL_REVERSE_PROBE > 0) {
+    local revSlice = OpexV294fReverseProbe(plan.plansA, plan.plansB, clearanceTiles, searchWeight, candidate, V294_RAIL_REVERSE_PROBE);
+    if (revSlice != null) {
+      local planResult = OpexCompleteRailRouteAfterSearch(this._catalog, candidate, plan, revSlice);
+      if (DECISION_LOG && V131_TOWN_CLEARANCE && clearanceTiles != null) {
+        OpexV131LogClearance(candidate, planResult, clearanceTiles);
+      }
+      if (V233_GOODS_GRAFT && OpexV233IsGraft(candidate) && planResult.ok) {
+        this._v233StorePlan(candidate, planResult);
+      }
+      return { pending = false, plan = planResult };
+    }
+  }
+  local candidateEngine = OpexRailEngineOf(candidate);
   local pathfinder = null;
   local segmented = null;
-  {
-    segmented = OpexCreateSegmentedSearch(plan.plansA, plan.plansB, plan.iterationBudget, clearanceTiles, searchWeight, outwardSide, null);
+  if (V294_RAIL_CONTINUOUS > 0) {
+    pathfinder = OpexCreateRailPathfinder(plan.plansA, plan.plansB, clearanceTiles, searchWeight, outwardSide, null, candidateEngine);
+    if (pathfinder == null) {
+      if (DECISION_LOG) {
+        OpexDecide("RAIL_SEARCH", "type=resumable outcome=NOPA iters=0 budget=" + plan.iterationBudget);
+      }
+      plan.reason = "NOPA";
+      return { pending = false, plan = plan };
+    }
+  } else {
+    /* V294h : le creneau ne tente que le trace rapide ; le reste se joue en fond. */
+    local searchBudget = (V294H_RAIL_DEFER > 0) ? OpexV294hQuickBudget(plan.iterationBudget) : plan.iterationBudget;
+    segmented = OpexCreateSegmentedSearch(plan.plansA, plan.plansB, searchBudget, clearanceTiles, searchWeight, outwardSide, null, candidateEngine);
     if (segmented == null) {
       if (DECISION_LOG) {
-
         OpexDecide("RAIL_SEARCH", "type=resumable outcome=NOPA iters=0 budget=" + plan.iterationBudget);
       }
       plan.reason = "NOPA";
@@ -989,7 +1028,17 @@ function OpexAI::_continueRailSearch()
                      + " budget=" + state.iterationBudget + " days=" + searchDays
                      + " ticks=" + searchTicks);
     }
+    if (V294C_RAIL_WEIGHT_ADAPT > 0 && DECISION_LOG && ("segmented" in state) && state.segmented != null) {
+      /* V294c : le weight= de RAIL_ATTEMPT reste le poids historique ; le poids adaptatif est a part. */
+      local seg = state.segmented;
+      local adaptLog = seg.v294cWeight + "/" + seg.v294cMin + "/" + seg.v294cSwitches;
+      if (!("v294cAdapt" in state.candidate)) state.candidate.v294cAdapt <- adaptLog;
+      else state.candidate.v294cAdapt = adaptLog;
+    }
     local plan = OpexCompleteRailRouteAfterSearch(this._catalog, state.candidate, state.plan, slice);
+    if (V294H_RAIL_DEFER > 0 && !(V233_GOODS_GRAFT && OpexV233IsGraft(state.candidate))) {
+      OpexV294hTryDefer(this, state, slice, plan);
+    }
     state.candidate.railPlan <- plan;
     state.pathfinder = null;
     state.phase = "build";
@@ -1067,6 +1116,7 @@ function OpexAI::_consumeRailSearch(year)
     local cashError = ("error" in result) ? result.error : 0;
     return { outcome = "cash", reason = "cash_at_build", error = cashError };
   }
+  if (railPlanRef == null && ("railPlan" in candidate)) railPlanRef = candidate.railPlan;
   candidate.railPlan = null;
   local built = this._recordRailAttempt(candidate, result, state.posPacked, year, railPlanRef);
   local reason = ("reason" in result && result.reason != "") ? result.reason : "build_failed";
@@ -1132,7 +1182,9 @@ function OpexAI::_recordRailAttempt(candidate, result, posPacked, year, railPlan
                + " search_ops=" + (("searchOps" in candidate) ? candidate.searchOps : -1)
                + " startx=" + (("startx" in result) ? result.startx : -1)
                + " endx=" + (("endx" in result) ? result.endx : -1)
-               + " weight=" + (("searchWeight" in candidate) ? candidate.searchWeight : (V91_ASTAR_WEIGHT_PCT)));
+               + " weight=" + (("searchWeight" in candidate) ? candidate.searchWeight : (V91_ASTAR_WEIGHT_PCT))
+               + " adapt=" + (("v294cAdapt" in candidate) ? candidate.v294cAdapt : "-")
+               + " len=" + (("routeLen" in candidate) ? candidate.routeLen : -1));
     if (result.ok) {
       local cargoStr = AICargo.GetCargoLabel(candidate.cargo);
       OpexDecide("RAIL_BUILD", "line=" + this._nextLineId + " src=" + candidate.src + " dst=" + candidate.dst
@@ -1206,26 +1258,31 @@ function OpexAI::_recordRailAttempt(candidate, result, posPacked, year, railPlan
     local lineBridges = [];
     if ("bridges" in result && result.bridges != null && result.bridges.len() > 0) {
       lineBridges = result.bridges;
-    } else if (V259_BRIDGE_RENEW > 0 && railPlan != null) {
+    } else if (V259_BRIDGE_RENEW > 0) {
+      local activePlan = (railPlan != null) ? railPlan : (("railPlan" in result) ? result.railPlan : null);
       local rType = AIRail.GetCurrentRailType();
-      if (("tiles" in railPlan) && railPlan.tiles != null) {
-        for (local i = 1; i < railPlan.tiles.len() - 1; i++) {
-          local c = railPlan.tiles[i];
-          local n = railPlan.tiles[i + 1];
+      local t1 = ("tiles" in result && result.tiles != null) ? result.tiles : (activePlan != null && ("tiles" in activePlan) ? activePlan.tiles : null);
+      local s1 = ("structures" in result && result.structures != null) ? result.structures : (activePlan != null && ("structures" in activePlan) ? activePlan.structures : null);
+      if (t1 != null) {
+        for (local i = 1; i < t1.len() - 1; i++) {
+          local c = t1[i];
+          local n = t1[i + 1];
           if (AIMap.DistanceManhattan(c, n) > 1) {
-            local kind = OpexPlannedStructureKind(("structures" in railPlan ? railPlan.structures : null), c, n);
+            local kind = OpexPlannedStructureKind(s1, c, n);
             if (kind != "tunnel" && (kind == "bridge" || AITunnel.GetOtherTunnelEnd(c) != n)) {
               lineBridges.append({ start = c, end = n, vtype = AIVehicle.VT_RAIL, railType = rType });
             }
           }
         }
       }
-      if (("doubleTrack" in result) && result.doubleTrack == 1 && ("tiles2" in railPlan) && railPlan.tiles2 != null) {
-        for (local i = 1; i < railPlan.tiles2.len() - 1; i++) {
-          local c = railPlan.tiles2[i];
-          local n = railPlan.tiles2[i + 1];
+      local t2 = ("tiles2" in result && result.tiles2 != null) ? result.tiles2 : (activePlan != null && ("tiles2" in activePlan) ? activePlan.tiles2 : null);
+      local s2 = ("structures2" in result && result.structures2 != null) ? result.structures2 : (activePlan != null && ("structures2" in activePlan) ? activePlan.structures2 : null);
+      if (("doubleTrack" in result) && result.doubleTrack == 1 && t2 != null) {
+        for (local i = 1; i < t2.len() - 1; i++) {
+          local c = t2[i];
+          local n = t2[i + 1];
           if (AIMap.DistanceManhattan(c, n) > 1) {
-            local kind = OpexPlannedStructureKind(("structures2" in railPlan ? railPlan.structures2 : null), c, n);
+            local kind = OpexPlannedStructureKind(s2, c, n);
             if (kind != "tunnel" && (kind == "bridge" || AITunnel.GetOtherTunnelEnd(c) != n)) {
               lineBridges.append({ start = c, end = n, vtype = AIVehicle.VT_RAIL, railType = rType });
             }
@@ -1308,10 +1365,19 @@ function OpexAI::_startRailUpgradeSearch(line, prep)
 {
   local searchWeight = OpexRailAstarWeight(line.distance);
   line.searchWeight <- searchWeight;
+  local lineEngine = OpexRailEngineOf(line);
   local pathfinder = null;
   local segmented = null;
-  {
-    segmented = OpexCreateSegmentedSearch(prep.dualA, prep.dualB, prep.iterationBudget, prep.ignored, searchWeight);
+  if (V294_RAIL_CONTINUOUS > 0) {
+    pathfinder = OpexCreateRailPathfinder(prep.dualA, prep.dualB, prep.ignored, searchWeight, null, null, lineEngine);
+    if (pathfinder == null) {
+      if (DECISION_LOG) OpexDecide("RAIL_SEARCH", "type=resumable outcome=NOPA iters=0 budget=" + prep.iterationBudget);
+      OpexSign(AIMap.GetTileIndex(1, 1), "RU|" + (AIDate.GetYear(AIDate.GetCurrentDate()) % 100)
+               + "|" + line.lineId + "|NOPATH");
+      return;
+    }
+  } else {
+    segmented = OpexCreateSegmentedSearch(prep.dualA, prep.dualB, prep.iterationBudget, prep.ignored, searchWeight, null, null, lineEngine);
     if (segmented == null) {
       if (DECISION_LOG) OpexDecide("RAIL_SEARCH", "type=resumable outcome=NOPA iters=0 budget=" + prep.iterationBudget);
       OpexSign(AIMap.GetTileIndex(1, 1), "RU|" + (AIDate.GetYear(AIDate.GetCurrentDate()) % 100)
@@ -1378,6 +1444,24 @@ function OpexAI::_consumeRailUpgrade()
     line.vehicles.append(upgrade.train);
     line.trains = line.vehicles.len();
     line.vehCount <- line.vehicles.len();
+    if (V259_BRIDGE_RENEW > 0 && state.search != null) {
+      if (!("bridges" in line) || line.bridges == null) line.bridges <- [];
+      local rType = AIRail.GetCurrentRailType();
+      local t2 = OpexResolveSearchTiles(state.search);
+      local s2 = OpexResolveSearchStructures(state.search);
+      if (t2 != null) {
+        for (local i = 1; i < t2.len() - 1; i++) {
+          local c = t2[i];
+          local n = t2[i + 1];
+          if (AIMap.DistanceManhattan(c, n) > 1) {
+            local kind = OpexPlannedStructureKind(s2, c, n);
+            if (kind != "tunnel" && (kind == "bridge" || AITunnel.GetOtherTunnelEnd(c) != n)) {
+              line.bridges.append({ start = c, end = n, vtype = AIVehicle.VT_RAIL, railType = rType });
+            }
+          }
+        }
+      }
+    }
     if (C50_CHRONOLOGY_PROBE) {
       if (C50_NON_EXPANSION_LEDGER != null) C50_NON_EXPANSION_LEDGER.rail.double_built++;
       OpexC50ChronologyLog("phase=fleet_built mode=rail line=" + line.lineId + " added=1 total=" + line.trains + " cash_after=" + AICompany.GetBankBalance(AICompany.COMPANY_SELF));
@@ -1413,7 +1497,7 @@ function OpexAI::_startRailStockSearch(candidate, isRepair = false, repairReason
   }
 
   local alternativeRatio = MIN_RATIO;
-  local hardCap = OpexDynamicHardCap(this._lines.len(), false);
+  local hardCap = HARD_ITERATION_CAP;
   local posPacked = 0;
 
   local plan = OpexPrepareRailRoute(this._catalog, this._budget, candidate, alternativeRatio, hardCap);
@@ -1435,10 +1519,23 @@ function OpexAI::_startRailStockSearch(candidate, isRepair = false, repairReason
   local outwardSide = (V197_GUIDED_DOUBLE && OpexV190Active() && candidate.kind == "freight") ? 1 : null;
   local searchWeight = OpexRailAstarWeight(candidate.distance);
   candidate.searchWeight <- searchWeight;
+  local candidateEngine = OpexRailEngineOf(candidate);
   local pathfinder = null;
   local segmented = null;
-  {
-    segmented = OpexCreateSegmentedSearch(plan.plansA, plan.plansB, plan.iterationBudget, clearanceTiles, searchWeight, outwardSide, null);
+  if (V294_RAIL_CONTINUOUS > 0) {
+    pathfinder = OpexCreateRailPathfinder(plan.plansA, plan.plansB, clearanceTiles, searchWeight, outwardSide, null, candidateEngine);
+    if (pathfinder == null) {
+      local pairKey = OpexProjectPairKey(candidate.kind, candidate.cargo, candidate.src, candidate.dst);
+      this._railStockCooldown[pairKey] <- AIDate.GetCurrentDate() + 365;
+      if (isRepair && C56_TASK_TRACE) {
+        OpexC56TaskLog("RAIL_STOCK_REPAIR", "rail_stock", this._taskCycle,
+                       "src=" + candidate.src + " dst=" + candidate.dst
+                       + " reason=" + repairReason + " issue=failed");
+      }
+      return false;
+    }
+  } else {
+    segmented = OpexCreateSegmentedSearch(plan.plansA, plan.plansB, plan.iterationBudget, clearanceTiles, searchWeight, outwardSide, null, candidateEngine);
     if (segmented == null) {
       local pairKey = OpexProjectPairKey(candidate.kind, candidate.cargo, candidate.src, candidate.dst);
       this._railStockCooldown[pairKey] <- AIDate.GetCurrentDate() + 365;

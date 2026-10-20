@@ -97,19 +97,6 @@ const ATTEMPT_FLOOR = 2000;
  * acceptable au prochain classement annuel. Le cas <=0 reste seulement un garde-fou defensif.
  */
 
-/* Plafond dur d'iterations A* dynamique :
- * 1. Faible au debut (15k) pour filtrer rapidement les lignes faciles sans bruler de temps.
- * 2. Augmente pendant le precalcul ou quand la tresorerie manque (60k) pour exploiter les opcodes dormants.
- * 3. Augmente avec la maturite du reseau (15k + 7.5k * nLines, jusqu'a 60k) quand les couloirs faciles sont epuises. */
-function OpexDynamicHardCap(linesCount, isPreplanOrLowCash)
-{
-
-  if (isPreplanOrLowCash) return HARD_ITERATION_CAP;
-  local cap = 5000 + linesCount * 1000;
-  if (cap > HARD_ITERATION_CAP) cap = HARD_ITERATION_CAP;
-  return cap;
-}
-
 function OpexIterationBudget(profitAnnual, alternativeRatio, hardCap = 10000)
 {
   /* Le chemin est retourne avec le budget pour l'instrumentation : Z = pas d'alternative,
@@ -824,18 +811,104 @@ function OpexAddRailSearchOps(candidate, ops)
 
 /* V172 : poids heuristique A* rail adaptatif a la distance Manhattan de la recherche.
  * Si v172_rail_long_weight_pct > 0 et distance >= v172_rail_long_weight_dist,
- * utilise ce poids au lieu de V91_ASTAR_WEIGHT_PCT. */
+ * utilise ce poids au lieu de V91_ASTAR_WEIGHT_PCT.
+ * V294c : si v294_rail_weight_pct > 0, poids unifié utilisé à toutes les distances (AAA : 200). */
 function OpexRailAstarWeight(dist = null)
 {
+  if (V294_RAIL_WEIGHT_PCT > 0) {
+    return V294_RAIL_WEIGHT_PCT;
+  }
   if (dist != null && V172_RAIL_LONG_WEIGHT_PCT > 0 && dist >= V172_RAIL_LONG_WEIGHT_DIST) {
     return V172_RAIL_LONG_WEIGHT_PCT;
   }
   return V91_ASTAR_WEIGHT_PCT;
 }
 
+/* V294j : cache carte montagneuse (>= 30 de hauteur max sur 100 tuiles sonder, aligné sur AAA main.nut:3625). */
+::OpexMountainousMapCache <- null;
+
+function OpexIsMountainousMap()
+{
+  if (::OpexMountainousMapCache != null) return ::OpexMountainousMapCache;
+  local mapSize = AIMap.GetMapSize();
+  local maxH = 0;
+  for (local i = 0; i < 100; ++i) {
+    local tile = AIBase.RandRange(mapSize);
+    local h = AITile.GetMaxHeight(tile);
+    if (h > maxH) maxH = h;
+  }
+  ::OpexMountainousMapCache = (maxH >= 30);
+  return ::OpexMountainousMapCache;
+}
+
+function OpexTrainSlopeSteepness()
+{
+  if (AIGameSettings.IsValid("vehicle.train_slope_steepness")) {
+    return AIGameSettings.GetValue("vehicle.train_slope_steepness");
+  }
+  if (AIGameSettings.IsValid("train_slope_steepness")) {
+    return AIGameSettings.GetValue("train_slope_steepness");
+  }
+  return 3;
+}
+
+/* V294j : adaptation des coûts de pente et virage si la locomotive est trop faible.
+ * Si la locomotive n'est pas connue à la création (engine == null), rien n'est appliqué. */
+function OpexV294jApplySlopeEngineCosts(pathfinder, engine)
+{
+  if (V294_RAIL_SLOPE_ENGINE <= 0 || engine == null) return;
+  if (!AIEngine.IsValidEngine(engine)) return;
+
+  local slope = OpexTrainSlopeSteepness();
+  local te = AIEngine.GetMaxTractiveEffort(engine);
+  local isWeak = false;
+  if (te < slope * 50) {
+    isWeak = true;
+  } else if (OpexIsMountainousMap() && AIEngine.GetPower(engine) < slope * 600) {
+    isWeak = true;
+  }
+
+  if (isWeak) {
+    pathfinder.cost.slope = 1500;
+    pathfinder.cost.turn = 100;
+  }
+}
+
+/* V294j : locomotive d'un candidat ou d'une ligne (entree de catalogue {id=...} ou identifiant
+ * brut), null si inconnue. */
+function OpexRailEngineOf(obj)
+{
+  if (obj == null || !("loco" in obj) || obj.loco == null) return null;
+  if (typeof(obj.loco) == "table") return ("id" in obj.loco) ? obj.loco.id : null;
+  if (typeof(obj.loco) == "integer") return obj.loco;
+  return null;
+}
+
+/* V294a/d/j : options de l'A* rail, appliquees a la creation du pathfinder et a chaque
+ * segment de la recherche segmentee. Au defaut (tout a 0), rien n'est touche. */
+function OpexV294ApplyRailCosts(pathfinder, engine)
+{
+  if (V294_RAIL_BRIDGE_LEN > 0) {
+    pathfinder.cost.max_bridge_length = V294_RAIL_BRIDGE_LEN;
+    pathfinder.cost.max_tunnel_length = V294_RAIL_BRIDGE_LEN;
+  }
+  if (V294_RAIL_AAA_COSTS > 0) {
+    /* Table d'AAAHogEx (pathfinder.nut:102-185) ; surcouts des ouvrages au-dela de 7 et 11 tuiles. */
+    pathfinder.cost.diagonal_tile = 67;
+    pathfinder.cost.bridge_per_tile = 100;
+    pathfinder.cost.tunnel_per_tile = 0;
+    pathfinder.cost.level_crossing = 900;
+    pathfinder.cost.bridge_per_tile_ex = 200;
+    pathfinder.cost.bridge_per_tile_ex2 = 400;
+    pathfinder.cost.tunnel_per_tile_ex = 200;
+    pathfinder.cost.tunnel_per_tile_ex2 = 300;
+  }
+  if (V294_RAIL_SLOPE_ENGINE > 0 && engine != null) OpexV294jApplySlopeEngineCosts(pathfinder, engine);
+}
+
 /* Cree le pathfinder. L'objet doit survivre entre les tours (stocke sur this._railSearch) :
  * FindPath(PATH_CHUNK) reprend exactement ou il s'etait arrete. Ne pas recreer a chaque tranche. */
-function OpexCreateRailPathfinder(plansA, plansB, ignoredTiles = null, weight = null, outwardSide = null, guideTiles = null)
+function OpexCreateRailPathfinder(plansA, plansB, ignoredTiles = null, weight = null, outwardSide = null, guideTiles = null, engine = null)
 {
   local sources = [];
   local goals = [];
@@ -857,10 +930,49 @@ function OpexCreateRailPathfinder(plansA, plansB, ignoredTiles = null, weight = 
   if (weight != null) {
     pathfinder.cost.astar_weight_pct = weight;
   }
+  OpexV294ApplyRailCosts(pathfinder, engine);
   if (outwardSide != null) pathfinder._outwardSide = outwardSide;
   if (guideTiles != null) pathfinder._guideTiles = guideTiles;
   pathfinder.InitializePath(sources, goals, ignoredTiles == null ? [] : ignoredTiles);
   return pathfinder;
+}
+
+/* V294f : sonde inverse bornée à iterationCap iterations (sources = plansB, buts = plansA).
+ * Si un chemin est trouvé, il est retourné inversé au format attendu par la pose. */
+function OpexV294fReverseProbe(plansA, plansB, clearanceTiles, searchWeight, candidate, iterationCap)
+{
+  local engine = OpexRailEngineOf(candidate);
+  local revPf = OpexCreateRailPathfinder(plansB, plansA, clearanceTiles, searchWeight, null, null, engine);
+  if (revPf == null) {
+    if (DECISION_LOG) {
+      local manh = (candidate != null && ("distance" in candidate)) ? candidate.distance :
+                   (plansA.len() > 0 && plansB.len() > 0 ? AIMap.DistanceManhattan(plansA[0].lead, plansB[0].lead) : 0);
+      OpexDecide("V294F_PROBE", "ok=0 iters=0 manh=" + manh);
+    }
+    return null;
+  }
+  local revRes = revPf.FindPath(iterationCap);
+  local iters = revPf.LastConsumed();
+  local ok = (revRes != null && revRes != false);
+  if (DECISION_LOG) {
+    local manh = (candidate != null && ("distance" in candidate)) ? candidate.distance :
+                 (plansA.len() > 0 && plansB.len() > 0 ? AIMap.DistanceManhattan(plansA[0].lead, plansB[0].lead) : 0);
+    OpexDecide("V294F_PROBE", "ok=" + (ok ? 1 : 0) + " iters=" + iters + " manh=" + manh);
+  }
+  if (!ok) return null;
+  local revTiles = OpexPathTiles(revRes);
+  revTiles.reverse();
+  return {
+    path = revRes,
+    tiles = revTiles,
+    structures = [],
+    iterations = iters,
+    stop = "OK",
+    done = true,
+    segments = 1,
+    backtracks = 0,
+    localChoices = 0,
+  };
 }
 
 /* Une tranche d'A*. `spent` est le cumul DEJA consomme (denominateur du classement : mesurer,
@@ -895,6 +1007,25 @@ function OpexAdvanceRailPathfinder(pathfinder, spent, iterationBudget, deadlineT
     else { stop = "CONT"; done = false; }
   } else if (path == null) {
     stop = "NOPA";
+  }
+  if (V294_RAIL_CONTINUOUS > 0) {
+    local tiles = null;
+    local structures = null;
+    if (stop == "OK" && path != null && path != false) {
+      tiles = OpexPathTiles(path);
+      structures = [];
+    }
+    return {
+      path = path,
+      tiles = tiles,
+      structures = structures,
+      iterations = spent,
+      stop = stop,
+      done = done,
+      segments = 1,
+      backtracks = 0,
+      localChoices = 0,
+    };
   }
   return { path = path, iterations = spent, stop = stop, done = done };
 }
@@ -1139,6 +1270,69 @@ function OpexSegmentedResult(state, path, stop, done)
   };
 }
 
+/* V294c : le but A* est goal[0] (lead), goal[1] etant le voisin de gare
+ * ajoute une fois le but atteint. Plusieurs quais B sont possibles. */
+function OpexV294cGoalDistance(state, tile)
+{
+  local nearest = null;
+  foreach (goal in state.goals) {
+    local dist = AIMap.DistanceManhattan(tile, goal[0]);
+    if (nearest == null || dist < nearest) nearest = dist;
+  }
+  return nearest == null ? 0 : nearest;
+}
+
+function OpexV294cSourceDistance(state)
+{
+  local nearest = null;
+  foreach (source in state.activeSources) {
+    local dist = OpexV294cGoalDistance(state, source[0]);
+    if (nearest == null || dist < nearest) nearest = dist;
+  }
+  return nearest == null ? 0 : nearest;
+}
+
+/* 0 = poids N, 1 = poids V172 historique, 2 = A* standard a 100 %.
+ * Toute progression >= 10 % de la distance au depart du segment remet N. */
+function OpexV294cSwitchWeight(state, stalled, remaining)
+{
+  if (stalled) {
+    if (state.v294cTier < 2) state.v294cTier++;
+  } else {
+    state.v294cTier = 0;
+  }
+  local nextWeight = V294C_RAIL_WEIGHT_ADAPT;
+  if (state.v294cTier == 1) nextWeight = state.weight;
+  else if (state.v294cTier == 2) nextWeight = 100;
+  if (nextWeight != state.v294cWeight) {
+    state.v294cSwitches++;
+    if (nextWeight < state.v294cMin) state.v294cMin = nextWeight;
+    if (DECISION_LOG) {
+      OpexDecide("V294C", "event=weight from=" + state.v294cWeight + " to=" + nextWeight
+          + " seg=" + state.segments + " remaining=" + remaining);
+    }
+  }
+  state.v294cWeight = nextWeight;
+}
+
+/* NOPA local : une derniere exploration plus large n'est possible que tant
+ * qu'il reste du budget et un niveau de repli. Ne jamais remettre les compteurs
+ * d'iterations a zero. */
+function OpexV294cRetryNoPath(state, deadlineTick)
+{
+  if (state.v294cTier >= 2 || state.iterations >= state.iterationBudget ||
+      state.iterations >= state.timeSafe || AIController.GetTick() >= deadlineTick) return false;
+  /* Un palier de meme poids rejouerait exactement la meme recherche : passer au suivant. */
+  local before = state.v294cWeight;
+  local remaining = OpexV294cSourceDistance(state);
+  while (state.v294cTier < 2 && state.v294cWeight == before) OpexV294cSwitchWeight(state, true, remaining);
+  if (state.v294cWeight == before) return false;
+  state.pathfinder = null;
+  state.segmentPath = false;
+  state.segmentUsed = 0;
+  return true;
+}
+
 function OpexTrySegmentedBacktrack(state)
 {
   if (state.alternatives.len() > 0 && state.backtracks < SEGMENTED_MAX_BACKTRACKS) {
@@ -1146,6 +1340,9 @@ function OpexTrySegmentedBacktrack(state)
     state.prefix = OpexCopySegmentTiles(alternative.prefix);
     state.structures = OpexCopySegmentStructures(alternative.structures);
     state.activeSources = alternative.sources;
+    if (V294C_RAIL_WEIGHT_ADAPT > 0) {
+      OpexV294cSwitchWeight(state, true, OpexV294cSourceDistance(state));
+    }
     state.backtracks++;
     state.nextSegmentLimit = SEGMENTED_RECOVERY_ITERS;
     state.pathfinder = null;
@@ -1159,7 +1356,7 @@ function OpexTrySegmentedBacktrack(state)
 /* Cree l'etat d'une recherche segmentee. Table passee en parametre : Squirrel ici
  * ne capture pas les locales englobantes (piege 6). pathfinder reste null jusqu'au
  * premier segment : le closed set ne survit jamais d'un segment a l'autre. */
-function OpexCreateSegmentedSearch(plansA, plansB, iterationBudget, ignoredTiles = null, weight = null, outwardSide = null, guideTiles = null)
+function OpexCreateSegmentedSearch(plansA, plansB, iterationBudget, ignoredTiles = null, weight = null, outwardSide = null, guideTiles = null, engine = null)
 {
   local sources = [];
   local goals = [];
@@ -1180,7 +1377,7 @@ function OpexCreateSegmentedSearch(plansA, plansB, iterationBudget, ignoredTiles
     weight = OpexRailAstarWeight(dist);
   }
 
-  return {
+  local state = {
     activeSources = sources,
     goals = goals,
     ignoredTiles = ignoredTiles == null ? [] : ignoredTiles,
@@ -1202,9 +1399,23 @@ function OpexCreateSegmentedSearch(plansA, plansB, iterationBudget, ignoredTiles
     bridgeTests = 0,
     tunnelTests = 0,
     weight = weight,
+    bridgeLen = (V294_RAIL_BRIDGE_LEN > 0) ? V294_RAIL_BRIDGE_LEN : null,
     outwardSide = outwardSide,
     guideTiles = guideTiles,
+    engine = engine,
   };
+  if (V294C_RAIL_WEIGHT_ADAPT > 0) {
+    state.v294cWeight <- V294C_RAIL_WEIGHT_ADAPT;
+    state.v294cTier <- 0;
+    state.v294cLastDist <- OpexV294cSourceDistance(state);
+    state.v294cMin <- V294C_RAIL_WEIGHT_ADAPT;
+    state.v294cSwitches <- 0;
+    if (DECISION_LOG && state.v294cWeight != state.weight) {
+      OpexDecide("V294C", "event=weight from=" + state.weight + " to=" + state.v294cWeight
+          + " seg=0 remaining=" + state.v294cLastDist);
+    }
+  }
+  return state;
 }
 
 /* Une tranche de recherche segmentee. `state.iterations` est le denominateur du
@@ -1227,13 +1438,19 @@ function OpexAdvanceSegmentedSearch(state, sliceIters, deadlineTick)
       state.segments++;
       state.currentSegmentLimit = state.nextSegmentLimit;
       state.nextSegmentLimit = SEGMENTED_SEGMENT_ITERS;
+      if (V294C_RAIL_WEIGHT_ADAPT > 0) {
+        state.v294cLastDist = OpexV294cSourceDistance(state);
+      }
       local pathfinder;
       pathfinder = OpexNewRailPathfinderV129();
       /* Table de cout inchangee : seulement max_cost, comme l'A* classique. */
       pathfinder.cost.max_cost = PATHFINDER_MAX_COST;
-      if (("weight" in state) && state.weight != null) {
+      if (V294C_RAIL_WEIGHT_ADAPT > 0) {
+        pathfinder.cost.astar_weight_pct = state.v294cWeight;
+      } else if (("weight" in state) && state.weight != null) {
         pathfinder.cost.astar_weight_pct = state.weight;
       }
+      OpexV294ApplyRailCosts(pathfinder, ("engine" in state) ? state.engine : null);
       if (("outwardSide" in state) && state.outwardSide != null) pathfinder._outwardSide = state.outwardSide;
       if (("guideTiles" in state) && state.guideTiles != null) pathfinder._guideTiles = state.guideTiles;
       /* V214 : le coude serre ramene a 100 sous 40 tuiles se juge sur le trajet complet, pas sur
@@ -1296,6 +1513,7 @@ function OpexAdvanceSegmentedSearch(state, sliceIters, deadlineTick)
         state.pathfinder = null;
         state.segmentPath = false;
         if (OpexTrySegmentedBacktrack(state)) continue;
+        if (V294C_RAIL_WEIGHT_ADAPT > 0 && OpexV294cRetryNoPath(state, deadlineTick)) continue;
         return OpexSegmentedResult(state, null, "NOPA", true);
       }
       if (state.prefix == null) state.prefix = tail;
@@ -1307,6 +1525,9 @@ function OpexAdvanceSegmentedSearch(state, sliceIters, deadlineTick)
     if (path == null) {
       state.pathfinder = null;
       if (OpexTrySegmentedBacktrack(state)) continue;
+      /* V294c : pas de reprise a poids plus bas ici. Le tas s'est vide : tout ce qui est
+       * atteignable sous max_cost a ete ferme, et max_cost elague sur g (v129.nut:649), pas sur
+       * f ; le poids ne change que l'ordre d'exploration, la reprise repaierait la recherche. */
       return OpexSegmentedResult(state, null, "NOPA", true);
     }
 
@@ -1338,10 +1559,16 @@ function OpexAdvanceSegmentedSearch(state, sliceIters, deadlineTick)
     }
     if (usable.len() == 0) {
       if (OpexTrySegmentedBacktrack(state)) continue;
+      if (V294C_RAIL_WEIGHT_ADAPT > 0 && OpexV294cRetryNoPath(state, deadlineTick)) continue;
       return OpexSegmentedResult(state, null, "NOPA", true);
     }
 
     local tail = usable[0].tail;
+    if (V294C_RAIL_WEIGHT_ADAPT > 0) {
+      local remaining = OpexV294cGoalDistance(state, tail[tail.len() - 1]);
+      local progress = state.v294cLastDist - remaining;
+      OpexV294cSwitchWeight(state, progress * 10 < state.v294cLastDist, remaining);
+    }
     /* Moins bon -> meilleur : Pop() essaie le deuxieme noeud tout de suite. */
     for (local i = usable.len() - 1; i >= 1; i--) {
       local alternativeTail = usable[i].tail;
@@ -3188,6 +3415,11 @@ function OpexCompleteRailRouteAfterSearch(catalog, candidate, plan, search)
   for (local i = 1; i < tiles.len(); i++) {
     routeDistance += AIMap.DistanceManhattan(tiles[i - 1], tiles[i]);
   }
+  /* Journal seulement : longueur du trace pour RAIL_ATTEMPT (detour du poids A*). */
+  if (DECISION_LOG) {
+    if (!("routeLen" in candidate)) candidate.routeLen <- routeDistance;
+    else candidate.routeLen = routeDistance;
+  }
   if (routeDistance > 0) {
     local economics = OpexLineEconomics(catalog, candidate.cargo, candidate.distance,
                                         candidate.monthly, candidate.kind, plan.length,
@@ -3923,6 +4155,10 @@ function OpexBuildLine(catalog, budget, candidate, alternativeRatio, cashReserve
     plan = candidate.railPlan;
   } else {
     plan = OpexPlanRailRoute(catalog, budget, candidate, alternativeRatio, hardCap);
+    if (V259_BRIDGE_RENEW > 0) {
+      if (!("railPlan" in candidate)) candidate.railPlan <- plan;
+      else candidate.railPlan = plan;
+    }
   }
   if (!plan.ok) {
     return { ok = false, reason = plan.reason, iterations = plan.iterations, opcodes = plan.opcodes,

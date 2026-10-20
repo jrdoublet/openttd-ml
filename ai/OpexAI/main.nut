@@ -140,6 +140,7 @@ class OpexAI extends AIController {
   /* Transaction asynchrone d'expansion rail : le train roule vers son depot pendant que la
    * boucle principale continue par pas de dix jours. Jamais de Sleep bloquant dans la tache. */
   _railExpansion = null;
+  _v284State = null; // entiers/identites uniquement ; transaction et cadence hors projection.
   /* Recherche A* ferroviaire reprise d'un tour de file a l'autre (docs/taches.md A4). Meme
    * patron que _railExpansion : l'etat vit ici, il est repris en TETE de _runNextTask, et on
    * termine en remettant _railSearch = null. Le pathfinder lui-meme est dans state.pathfinder. */
@@ -165,6 +166,9 @@ class OpexAI extends AIController {
   /* C80 étape 2 : table des paires en retrait temporaire (cooldown), indexée par pairKey.
    * Transitoire / reconstructible : initialisée à {}, jamais persistée dans Save(). */
   _railStockCooldown = null;
+  /* V294h : recherches rail differees au reliquat et traces prets par paire. Transitoires. */
+  _v294Deferred = null;
+  _v294Ready = null;
   /* C121 preparation rail de l'annee AIR : liste de candidats et mois de generation.
    * Non sauvegardes. Reconstructibles au prochain passage projects si le reglage est arme.
    * MinAirCap : -1 = aucun plan AIR vivant au dernier scan (fin de passe). */
@@ -418,6 +422,8 @@ class OpexAI extends AIController {
     this._activeSubsidies = {};
     this._railReadyStock = {};
     this._railStockCooldown = {};
+    this._v294Deferred = [];
+    this._v294Ready = {};
     this._railStockLastFundedScore = 0.0;
     this._railStockLastFundedDate = -1;
     this._c121RailPrepCandidates = null;
@@ -691,6 +697,8 @@ require("task_water.nut");
 require("task_v249.nut");
 require("task_v252.nut");
 require("task_v257.nut");
+require("task_v284.nut");
+require("task_v294h.nut");
 require("task_v250.nut");
 require("task_v259.nut");
 require("selftests.nut");
@@ -858,6 +866,7 @@ function OpexAI::Start()
     }
     local spAstar = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.astar_v89") : null;
     this._advanceRailSearchThroughput();
+    if (V294H_RAIL_DEFER > 0) OpexV294hAdvance(this);
     if (spAstar != null) OpexSpanEnd(spAstar);
     if (C67_SLACK_HOOK) {
       local spC67 = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.c67") : null;

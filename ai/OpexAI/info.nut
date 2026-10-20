@@ -19,9 +19,9 @@ class OpexAIInfo extends AIInfo {
       easy_value = 2, medium_value = 2, hard_value = 2, custom_value = 2,
       flags = 0 });
     AddSetting({ name = "v279_reselect_memo",
-      description = "V279: incremental memoization for OpexReselectProjects (0=historic, 1=memoized, 2=control check)",
-      min_value = 0, max_value = 2,
-      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
+      description = "V279: incremental memoization for OpexReselectProjects (0=historic, 1=memoized, 2=control check, 3=auto: 1 when the map has at least 1024x1024 tiles, else 0; default since 20/10, qualified at 1024x1024 only)",
+      min_value = 0, max_value = 3,
+      easy_value = 3, medium_value = 3, hard_value = 3, custom_value = 3,
       flags = 0 });
     AddSetting({ name = "v233_goods_graft",
       description = "V233: measured goods to town graft (requires v233_pending_continue)",
@@ -329,6 +329,30 @@ class OpexAIInfo extends AIInfo {
       custom_value = 5,
       step_size = 1,
       flags = 0
+    });
+
+    AddSetting({
+      name = "v284_rail_growth",
+      description = "V284: 0 = off; N = grow saturated existing freight trains after N years with 1M cash, preserve speed, then passing loop and second train at platform limit (default 3 since 20/10, user decision after 40x10 +136 k)",
+      min_value = 0, max_value = 10,
+      easy_value = 3, medium_value = 3, hard_value = 3, custom_value = 3,
+      step_size = 1, flags = 0
+    });
+
+    AddSetting({
+      name = "v294_rail_defer",
+      description = "V294h: 0 = off; N = rail A* first tries N iterations in the search slot, then an aborted search continues in the background on leftover tick opcodes (20000 iterations, 365 days) and its path is reused when the pair is selected again",
+      min_value = 0, max_value = 5000,
+      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
+      step_size = 100, flags = 0
+    });
+
+    AddSetting({
+      name = "v294_rail_weight_adapt",
+      description = "V294c: 0 = historic A* weights; N = initial weight 100..400%, lower to historic then 100% only after a stalled rail segment",
+      min_value = 0, max_value = 400,
+      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
+      step_size = 1, flags = 0
     });
 
     AddSetting({
@@ -648,12 +672,72 @@ class OpexAIInfo extends AIInfo {
     });
     AddSetting({
       name = "v277_air_pub_fast",
-      description = "V277: fast air project publication and indexed re-selection filter; 0 = historical path (default), 1 = fast paths, 2 = control mode (runs both, logs differences, keeps historical)",
-      min_value = 0, max_value = 2,
+      description = "V277: fast air project publication and indexed re-selection filter; 0 = historical path, 1 = fast paths, 2 = control mode (runs both, logs differences, keeps historical), 3 = auto: 1 when the map has at least 1024x1024 tiles, else 0 (default since 20/10, qualified at 1024x1024 only)",
+      min_value = 0, max_value = 3,
+      easy_value = 3, medium_value = 3, hard_value = 3,
+      custom_value = 3, default_value = 3,
+      step_size = 1,
+      flags = 0
+    });
+    AddSetting({
+      name = "v294_rail_bridge_len",
+      description = "V294: maximum rail bridge and tunnel length in A* pathfinder (0 = legacy 6/tiles limit 5; N in 1..30 = max length in tiles)",
+      min_value = 0, max_value = 30,
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0, default_value = 0,
       step_size = 1,
       flags = 0
+    });
+    AddSetting({
+      name = "v294_rail_continuous",
+      description = "V294: 0 = legacy segmented search; 1 = continuous single A* search for rail lines, preserving closed set across chunks",
+      min_value = 0, max_value = 1,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0, default_value = 0,
+      step_size = 1,
+      flags = 0
+    });
+    AddSetting({
+      name = "v294_rail_weight_pct",
+      description = "V294c: unified rail A* heuristic weight percentage across all distances (AAA uses 200 everywhere); 0 = off (uses V91/V172 distance-based weight, default), 100..400 = weight pct",
+      min_value = 0, max_value = 400,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0, flags = 0, step_size = 1
+    });
+    AddSetting({
+      name = "v294_rail_aaa_costs",
+      description = "V294d: align rail A* cost table with AAAHogEx (tunnel 0/tile + overcost >7 and >11, bridge 100/tile + overcost, level crossing +900, diagonal 67); 0 = off (default), 1 = on",
+      min_value = 0, max_value = 1,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0, flags = 0, step_size = 1
+    });
+    AddSetting({
+      name = "v294_rail_reverse_probe",
+      description = "V294f: reverse A* probe before rail search (sources = B, goals = A) bounded by N iterations (e.g. 300, like AAA); 0 = off (default), >0 = iteration cap",
+      min_value = 0, max_value = 5000,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0, flags = 0, step_size = 50
+    });
+    AddSetting({
+      name = "v294_rail_dist_decouple",
+      description = "V294i: decouple candidate railMax from iteration cap (HARD_ITERATION_CAP*12/10); 0 = off (uses derived/V168 bound, default), >0 = max tile distance",
+      min_value = 0, max_value = 500,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0, flags = 0, step_size = 10
+    });
+    AddSetting({
+      name = "v294_rail_slope_engine",
+      description = "V294j: consider engine strength in rail A* costs (slope 1500, turn 100 if weak); 0 = disabled (default), 1 = enabled",
+      min_value = 0, max_value = 1,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0, flags = 0, step_size = 1
+    });
+    AddSetting({
+      name = "v295_astar_fast",
+      description = "V295: exact opcode optimizations for rail A* V129 (parent chain bloom filter and deduplicated goal coords); 0 = off (default), 1 = on",
+      min_value = 0, max_value = 1,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0, flags = 0, step_size = 1
     });
   }
 }

@@ -66,12 +66,12 @@ class TestV277AirPubFast(unittest.TestCase):
             "function OpexAir0310FilterAirAlternativesStillValid(",
         )
 
-    def test_setting_declared_default_zero_bounds_0_to_2(self):
+    def test_setting_declared_default_auto_bounds_0_to_3(self):
         block = re.search(r'name = "v277_air_pub_fast",(.*?)\}\);', self.info, re.S)
         self.assertIsNotNone(block, "v277_air_pub_fast doit etre declare dans info.nut")
         body = block.group(1)
         self.assertIn("min_value = 0", body)
-        self.assertIn("max_value = 2", body)
+        self.assertIn("max_value = 3", body)
         self.assertIn("step_size = 1", body)
         self.assertIn("flags = 0", body)
         for level in (
@@ -81,7 +81,8 @@ class TestV277AirPubFast(unittest.TestCase):
             "custom_value",
             "default_value",
         ):
-            self.assertRegex(body, level + r" = 0\b", f"{level} doit valoir 0")
+            # Defaut auto (3) depuis le 20/10 : actif des 1024x1024 seulement.
+            self.assertRegex(body, level + r" = 3\b", f"{level} doit valoir 3")
 
     def test_global_declared_and_read_once(self):
         self.assertIn("V277_AIR_PUB_FAST <- 0;", self.globals_pre)
