@@ -11,6 +11,7 @@ function OpexC121InvalidateEndpointGeometry()
 
 function OpexAirResetSiteCache(invalidateGeometry = true)
 {
+  if (V278_AIR_LAZY_SITES) OpexV278InvalidateSites();
   AIR_SITE_CACHE.clear();
   AIR_STATION_COVERAGE_TOWN_CACHE.clear();
   AIR_C121_STATION_COVERAGE_CACHE.clear();
@@ -46,6 +47,7 @@ function OpexAir0310SiteValidityMonth()
 
 function OpexAir0310InvalidateSiteValidity()
 {
+  if (V278_AIR_LAZY_SITES) OpexV278InvalidateSites();
   AIR0310_SITE_VALIDITY_STATE = null;
 }
 
@@ -79,11 +81,62 @@ function OpexAir0310SiteValidityOk(state, key, site, airport, plane, reuse, stat
  * forcer la recherche d'une alternative dans cette meme ville et pour ce meme type d'aeroport. */
 function OpexAirInvalidateCachedSite(site, airport)
 {
+  if (V278_AIR_LAZY_SITES) OpexV278InvalidateSites();
   if (site == null) return;
   local key = site.town.id + "_" + airport.type;
   if (key in AIR_SITE_CACHE && AIR_SITE_CACHE[key] == site.anchor) {
     delete AIR_SITE_CACHE[key];
   }
+}
+
+/* V278 : uniquement le tick de DEBUT d'une preuve complete. Une suspension
+ * automatique au milieu du predicat interdit de memoriser sa reponse.
+ * Les chantiers de tous les modes appellent deja InvalidateSiteValidity ;
+ * ResetSiteCache(false) et l'echec d'une ancre invalident aussi ce memo. */
+function OpexV278InvalidateSites()
+{
+  V278_AIR_VALIDITY = null;
+  V278_AIR_EPOCH++;
+}
+
+function OpexV278SiteKey(site, airport)
+{
+  return airport.type + "|" + site.anchor + "|" + site.town.id + "|"
+      + (("c83SlotTown" in site) ? site.c83SlotTown : -1);
+}
+
+function OpexV278SiteMemo()
+{
+  local tick = AIController.GetTick();
+  if (V278_AIR_VALIDITY == null || V278_AIR_VALIDITY.tick != tick)
+    V278_AIR_VALIDITY = { tick = tick, entries = {} };
+  return V278_AIR_VALIDITY;
+}
+
+function OpexV278SiteOk(site, airport, plane, limited)
+{
+  if (site.town.id in limited) return false;
+  local memo = OpexV278SiteMemo();
+  local key = OpexV278SiteKey(site, airport);
+  if ((key in memo.entries) && AIController.GetTick() == memo.tick
+      && V278_AIR_VALIDITY == memo) return memo.entries[key];
+  local ok = OpexAirSiteStillBuildable(site, airport, plane, false, limited);
+  if (AIController.GetTick() == memo.tick && V278_AIR_VALIDITY == memo)
+    memo.entries.rawset(key, ok);
+  return ok;
+}
+
+/* FindSite a deja prouve nearest-town, footprint et BuildAirport/terrassement.
+ * Completer les deux gardes propres a StillBuildable, apres ajout du slot C83.
+ * Ne rien memoriser si la recherche a traverse un tick. */
+function OpexV278RememberFoundSite(site, airport, started)
+{
+  if (AIController.GetTick() != started || OpexAirRecoveryOwnsAirport(site.anchor)) return;
+  if (C83_FIXES && ("c83SlotTown" in site) && site.c83SlotTown >= 0
+      && OpexAirSlotTownId(site.anchor) != site.c83SlotTown) return;
+  local memo = OpexV278SiteMemo();
+  if (AIController.GetTick() == started)
+    memo.entries.rawset(OpexV278SiteKey(site, airport), true);
 }
 
 /* Distance euclidienne exacte ÃƒÆ’Ã‚Â  vol d'oiseau pour la cinÃƒÆ’Ã‚Â©matique et le paiement aÃƒÆ’Ã‚Â©rien :

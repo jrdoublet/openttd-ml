@@ -357,6 +357,9 @@ V134_AIR_P2P_SATURATED_HUB <- false;
  * construction. V133_AIR_LAST_SITE_ERROR : dernier code du test de site,
  * lu seulement si le reglage est actif. */
 V133_AIR_BUILD_RETRY <- false;
+V278_AIR_LAZY_SITES <- false;
+V278_AIR_VALIDITY <- null;
+V278_AIR_EPOCH <- 0;
 V133_AIR_QUARANTINE <- {};
 V133_AIR_BATCH_FAILED <- {};
 V133_AIR_SKIP_LOGGED <- {};

@@ -59,6 +59,7 @@ require("air_fleet.nut");
 require("air_engine_choice.nut");
 
 require("air_planning.nut");
+require("air_lazy_sites.nut");
 
 require("air_construction.nut");
 
