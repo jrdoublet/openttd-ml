@@ -617,6 +617,17 @@ function OpexC60ObserveTownRating(mode, phase, townId)
   return allowed;
 }
 
+/* V280 : appele seulement pour un fret hors de la borne historique et reglage actif.
+ * Pas de mutation du catalogue/bandes multimodales, ni d'etat a sauvegarder. */
+function OpexV280RailLongAllowed(distance, srcTile, dstTile)
+{
+  if (distance > 350) return false;
+  if (AIDate.GetYear(AIDate.GetCurrentDate()) < OPEX_START_YEAR + V280_RAIL_LONG) return false;
+  if (OpexAvailableCapital() < 1000000) return false;
+  if (DECISION_LOG) OpexDecide("V280_RAIL_LONG", "src=" + srcTile + " dst=" + dstTile + " dist=" + distance);
+  return true;
+}
+
 function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, originServed, stats, isTransformer = false, profile = null, cruiseCache = null, secondary = null, joinContext = null)
 {
   if (monthly <= 0) {
@@ -640,7 +651,7 @@ function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, orig
       stats.distanceLong++;
       return null;
     }
-  } else if (distance > ((V269_RAIL_LATE_RELAX > 0 && V269_RELAXED && V269_RAIL_MAX_DIST > bounds.railMax) ? V269_RAIL_MAX_DIST : bounds.railMax)) {
+  } else if (distance > ((V269_RAIL_LATE_RELAX > 0 && V269_RELAXED && V269_RAIL_MAX_DIST > bounds.railMax) ? V269_RAIL_MAX_DIST : bounds.railMax) && !(V280_RAIL_LONG > 0 && OpexV280RailLongAllowed(distance, srcTile, dstTile))) {
     stats.distanceLong++;
     return null;
   } else if (V182_RAIL_FREIGHT_MIN_DIST > 0 && distance < V182_RAIL_FREIGHT_MIN_DIST

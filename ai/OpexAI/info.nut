@@ -383,6 +383,14 @@ class OpexAIInfo extends AIInfo {
       custom_value = 1,
       flags = 0
     });
+    AddSetting({
+      name = "v280_rail_long",
+      description = "V280: 0 historical (default); N years after start, with 1M available capital, allow freight rail candidates up to 350 tiles without waiting for an empty pool. Origin filters, scoring and pathfinder budgets unchanged",
+      min_value = 0, max_value = 10,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0, default_value = 0,
+      step_size = 1, flags = 0
+    });
     /* --- 4. Calibrations physiques et options reelles --- */
 
     AddSetting({

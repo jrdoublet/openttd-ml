@@ -14,6 +14,8 @@ MODE_WATER <- true;
  * du plafond d'A* par la table de noeuds (94 tuiles a 10k) ; N = N tuiles, sans le filtre
  * d'iterations predites. */
 V168_RAIL_MAX_DIST <- 160;
+/* V280 : 0 historique ; N annees avant ouverture fret a 350 avec 1 M disponible. */
+V280_RAIL_LONG <- 0;
 V177_RAIL_PAX_MIN_DIST <- 0;
 V182_RAIL_FREIGHT_MIN_DIST <- 0;
 /* V264 : fret convergent vers une industrie deja desservie. Defaut vrai depuis le 19/10 (40x10 PC

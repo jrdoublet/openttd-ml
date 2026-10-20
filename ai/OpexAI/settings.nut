@@ -459,6 +459,8 @@ function OpexLoadSettings()
   V276_CATALOG_TASK = null;
   V276_CARGO_YEAR = -1;
   V276_CARGO_ORDER = null;
+  local railLong = AIController.GetSetting("v280_rail_long");
+  V280_RAIL_LONG = (railLong != null && railLong >= 0 && railLong <= 10) ? railLong : 0;
   AIR0310_SITE_VALIDITY_STATE = null;
   RAIL_DEPOT_COST = AIController.GetSetting("rail_depot_cost") != 0;
   V131_RAIL_REPAIR = AIController.GetSetting("v131_rail_repair") != 0;
