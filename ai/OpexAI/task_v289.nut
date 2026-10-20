@@ -477,3 +477,29 @@ function OpexAI::_v289SlackWorkers()
     }
   }
 }
+
+/* La passe principale choisit une paire que le reliquat cherche : elle prend son etat
+ * (meme recherche segmentee, memes quais) dans le creneau principal. Sans cela, 12
+ * recherches sur 17 etaient jetees au smoke v289g, la passe refaisant l'A* de zero. */
+function OpexAI::_v289AdoptRailSearch(candidate, alternativeRatio, hardCap, posPacked)
+{
+  local slot = this._v289RailSearch;
+  if (slot == null || this._railSearch != null || slot.phase != "search") return false;
+  local c = slot.candidate;
+  if (c == null || !("kind" in candidate) || !("cargo" in candidate)) return false;
+  if (OpexProjectPairKey(c.kind, c.cargo, c.src, c.dst)
+      != OpexProjectPairKey(candidate.kind, candidate.cargo, candidate.src, candidate.dst)) return false;
+  this._v289RailSearch = null;
+  slot.candidate = candidate;
+  slot.alternativeRatio = alternativeRatio;
+  slot.hardCap = hardCap;
+  slot.posPacked = posPacked;
+  slot.isStockSearch = false;
+  slot.safetyDeadline = AIController.GetTick() + RAIL_SEARCH_SAFETY_TICKS;
+  if (!("slotIndex" in slot)) slot.slotIndex <- 0;
+  candidate.searchWeight <- slot.weight;
+  this._railSearch = slot;
+  if (DECISION_LOG) OpexDecide("V289_RAIL_ADOPT", "src=" + candidate.src + " dst=" + candidate.dst
+      + " iters=" + slot.spent + " days=" + (AIDate.GetCurrentDate() - slot.startDate));
+  return true;
+}

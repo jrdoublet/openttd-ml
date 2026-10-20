@@ -159,6 +159,17 @@ class TestV289SlackWorkers(unittest.TestCase):
         for sig in ("function OpexAI::_v289RailPrepEligible(candidate, curDate)", "function OpexAI::_v289RailPrepEligibleInFlight(candidate, curDate)"):
             self.assertIn("this._v289EndpointTaken(candidate,", _function_body(self.task, sig))
 
+    def test_main_slot_adopts_inflight_search(self):
+        body = _function_body(self.task, "function OpexAI::_v289AdoptRailSearch(candidate, alternativeRatio, hardCap, posPacked)")
+        self.assertIn("this._v289RailSearch = null;", body)
+        self.assertIn("slot.candidate = candidate;", body)
+        self.assertIn("this._railSearch = slot;", body)
+        self.assertIn('slot.phase != "search"', body)
+        rail = self.sources["task_rail.nut"]
+        start = rail.index("function OpexAI::_startRailSearch(candidate, alternativeRatio, hardCap, posPacked)")
+        self.assertLess(rail.index("this._v289AdoptRailSearch(candidate, alternativeRatio, hardCap, posPacked)", start),
+                        rail.index("OpexPrepareRailRoute(", start))
+
     def test_persist_reconstruction(self):
         # Les structures transitoires sont réinitialisées au rechargement
         self.assertIn("this._v289TownFundDate = {};", self.persist)

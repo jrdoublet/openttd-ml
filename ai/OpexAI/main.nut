@@ -613,6 +613,7 @@ class OpexAI extends AIController {
   function _v289SlackWorkers();
   function _v289CheckMonthlyLog();
   function _v289StepRail();
+  function _v289AdoptRailSearch(candidate, alternativeRatio, hardCap, posPacked);
   function _v289EndpointTaken(candidate, ownPairKey);
   function _v289RailPrepEligible(candidate, curDate);
   function _v289RailPrepEligibleInFlight(candidate, curDate);

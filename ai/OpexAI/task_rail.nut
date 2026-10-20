@@ -771,6 +771,20 @@ function OpexAI::_continueRailExpansion()
  * Fonction de classe, pas une closure : Squirrel ne capture jamais les locales englobantes. */
 function OpexAI::_startRailSearch(candidate, alternativeRatio, hardCap, posPacked)
 {
+  /* V289 : le reliquat cherchait deja cette paire ; la passe reprend sa recherche
+   * (quais et A* deja avances) au lieu de tout recommencer. */
+  if (this._v289AdoptRailSearch(candidate, alternativeRatio, hardCap, posPacked)) {
+    this._continueRailSearch();
+    if (this._railSearch == null) {
+      return { pending = false, plan = (("railPlan" in candidate) ? candidate.railPlan : null) };
+    }
+    if (this._railSearch.phase == "build") {
+      local adopted = candidate.railPlan;
+      this._railSearch = null;
+      return { pending = false, plan = adopted };
+    }
+    return { pending = true, plan = null };
+  }
   local plan = OpexPrepareRailRoute(this._catalog, this._budget, candidate, alternativeRatio, hardCap);
   if (plan.plansA == null) return { pending = false, plan = plan };
   local clearanceTiles = V131_TOWN_CLEARANCE ? OpexV131BuildTownClearance(candidate, plan.plansA, plan.plansB) : null;
