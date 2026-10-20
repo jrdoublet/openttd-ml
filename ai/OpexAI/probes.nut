@@ -2569,10 +2569,6 @@ function OpexAI::_mainLoopProfiled()
     }
     mark = OpexOpsMeasureBegin();
     local spAstar = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.astar_v89") : null;
-    /* V294h : V89 s'arrete quand le reliquat passe sous son seuil, celui de V294h ; sans
-     * priorite un tick sur deux, la file de fond n'avance jamais tant qu'une recherche
-     * principale tourne (smoke du 20/10 : 0 fin sur 7 differees). */
-    if (V294H_RAIL_DEFER > 0 && (AIController.GetTick() % 2) == 0) OpexV294hAdvance(this);
     this._advanceRailSearchThroughput();
     if (V294H_RAIL_DEFER > 0) OpexV294hAdvance(this);
     if (spAstar != null) OpexSpanEnd(spAstar);

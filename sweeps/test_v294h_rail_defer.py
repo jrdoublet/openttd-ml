@@ -63,6 +63,8 @@ class TestV294hRailDefer(unittest.TestCase):
 
     def test_no_closure_and_no_undeclared_globals(self):
         self.assertNotRegex(self.code, r"function\s*\(")
+        # Le Squirrel d'OpenTTD n'a pas array.find (plantage du smoke du 20/10).
+        self.assertNotIn(".find(", self.code)
         for name in set(re.findall(r"\bV294H_[A-Z_]+\b", self.code)):
             declared = (f"const {name} =" in self.code) or (f"{name} <-" in read("globals_pre.nut"))
             self.assertTrue(declared, name)

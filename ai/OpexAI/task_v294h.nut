@@ -14,6 +14,9 @@ const V294H_QUEUE_MAX = 3;
 /* Duree de vie d'une recherche de fond et d'un trace pret, en jours de jeu. */
 const V294H_BG_MAX_DAYS = 365;
 const V294H_READY_TTL_DAYS = 180;
+/* Opcodes gardes en reserve sous la suspension, et plus petite tranche utile. */
+const V294H_OPS_MARGIN = 800;
+const V294H_MIN_SLICE_ITERS = 5;
 
 function OpexV294hPairKey(candidate)
 {
@@ -66,6 +69,9 @@ function OpexV294hTryDefer(owner, state, slice, plan)
     segmented = seg,
     quickIters = seg.iterations,
     slices = 0,
+    calls = 0,
+    starved = 0,
+    lastLog = AIDate.GetCurrentDate(),
     startDate = AIDate.GetCurrentDate(),
   });
   plan.reason = "DEFER";
@@ -74,16 +80,33 @@ function OpexV294hTryDefer(owner, state, slice, plan)
   return true;
 }
 
-/* Reliquat du tick : tranches de la premiere recherche differee tant qu'il reste de quoi
- * payer une tranche, et sans franchir le tick courant. */
+/* Reliquat du tick, en tranches taillees sur les opcodes restants. Une tranche de
+ * RAIL_SEARCH_SLICE (50) iterations coute ~10 k opcodes, soit un tick entier : le seuil V89
+ * (_v89EstimatedSliceOps) n'est presque jamais atteint en fin de boucle (smoke du 20/10 :
+ * 652 passages sur 653 sans tranche, ~6 k opcodes restants en moyenne). Le cout par
+ * iteration est mesure sur nos propres tranches (V294H_OPS_PER_ITER). */
 function OpexV294hAdvance(owner)
 {
   if (V294H_RAIL_DEFER <= 0 || owner._v294Deferred == null || owner._v294Deferred.len() == 0) return 0;
   local tick = AIController.GetTick();
   local slices = 0;
+  local head = owner._v294Deferred[0];
+  head.calls++;
+  if (DECISION_LOG && AIDate.GetCurrentDate() - head.lastLog >= 30) {
+    head.lastLog = AIDate.GetCurrentDate();
+    OpexV294hLog("progress", "src=" + head.candidate.src + " dst=" + head.candidate.dst
+                 + " iters=" + head.segmented.iterations + " slices=" + head.slices + " calls=" + head.calls
+                 + " starved=" + head.starved + " ops=" + AIController.GetOpsTillSuspend()
+                 + " per_iter=" + V294H_OPS_PER_ITER);
+  }
   while (owner._v294Deferred.len() > 0 && AIController.GetTick() == tick) {
-    local minThreshold = (owner._v89EstimatedSliceOps > 1500) ? owner._v89EstimatedSliceOps : 1500;
-    if (AIController.GetOpsTillSuspend() < minThreshold) break;
+    local opsBefore = AIController.GetOpsTillSuspend();
+    local iters = (opsBefore - V294H_OPS_MARGIN) / V294H_OPS_PER_ITER;
+    if (iters < V294H_MIN_SLICE_ITERS) {
+      if (slices == 0) head.starved++;
+      break;
+    }
+    if (iters > RAIL_SEARCH_SLICE) iters = RAIL_SEARCH_SLICE;
     local entry = owner._v294Deferred[0];
     local now = AIDate.GetCurrentDate();
     if (now - entry.startDate > V294H_BG_MAX_DAYS) {
@@ -91,18 +114,31 @@ function OpexV294hAdvance(owner)
       continue;
     }
     local deadlineTick = tick + RAIL_SEARCH_SLICE / 3 + BUILD_TICK_MARGIN;
-    local slice = OpexAdvanceSegmentedSearch(entry.segmented, RAIL_SEARCH_SLICE, deadlineTick);
+    local itersBefore = entry.segmented.iterations;
+    local slice = OpexAdvanceSegmentedSearch(entry.segmented, iters, deadlineTick);
+    local spent = entry.segmented.iterations - itersBefore;
+    /* Mesure seulement dans le meme tick : une suspension remet le compteur a neuf. */
+    if (spent > 0 && AIController.GetTick() == tick) {
+      local perIter = (opsBefore - AIController.GetOpsTillSuspend()) / spent;
+      if (perIter > 0) V294H_OPS_PER_ITER = (3 * V294H_OPS_PER_ITER + perIter) / 4;
+    }
     slices++;
     entry.slices++;
     if (slice.done) OpexV294hFinish(owner, entry, slice, slice.stop);
+    else if (spent == 0) break;
   }
   return slices;
 }
 
 function OpexV294hFinish(owner, entry, slice, stop)
 {
-  local idx = owner._v294Deferred.find(entry);
-  if (idx != null) owner._v294Deferred.remove(idx);
+  /* Pas de array.find dans le Squirrel d'OpenTTD (smoke du 20/10 : « the index 'find' does not exist »). */
+  for (local i = 0; i < owner._v294Deferred.len(); i++) {
+    if (owner._v294Deferred[i] == entry) {
+      owner._v294Deferred.remove(i);
+      break;
+    }
+  }
   local candidate = entry.candidate;
   local now = AIDate.GetCurrentDate();
   local iters = entry.segmented.iterations;
