@@ -33,7 +33,7 @@ class TestV296Native(unittest.TestCase):
         self.assertIn("V296_ASTAR_NATIVE <- 0;", read("globals_pre.nut"))
         settings = read("settings.nut")
         self.assertEqual(settings.count('GetSetting("v296_astar_native")'), 1)
-        self.assertIn("v296Native >= 0 && v296Native <= 2", settings)
+        self.assertIn("v296Astar >= 0 && v296Astar <= 2", settings)
         main = read("main.nut")
         self.assertLess(main.index('require("pathfinder_v90/v129.nut")'), main.index('require("pathfinder_v90/v296.nut")'))
         self.assertLess(main.index('require("pathfinder_v90/v296.nut")'), main.index('require("builder_rail.nut")'))

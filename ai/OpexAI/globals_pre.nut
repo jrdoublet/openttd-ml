@@ -735,7 +735,5 @@ V296_RAIL_BATCH_BUILD <- 0;
 /* V296a : vrai apres un trace groupe different du trace prevu ; la pose groupee s'arrete pour la partie. */
 V296A_MISMATCH <- false;
 
-/* V296c : recherche de quais par predicats natifs AITileList. */
-V296_NATIVE_SITES <- 0;
 /* V296b : file native AIList et noeuds en tableaux ; 2 = comparaison V129. */
 V296_ASTAR_NATIVE <- 0;
