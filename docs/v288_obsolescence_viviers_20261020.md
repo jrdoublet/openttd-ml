@@ -477,3 +477,16 @@ python3 sweeps/analyse_v288_reselect.py \
 # Exécution des tests unitaires de l'analyseur
 python3 -m unittest discover -s sweeps -p test_analyse_v288_reselect.py
 ```
+
+### Re-sélections : recoupement (Claude, 20/10 18h15)
+
+Recompté sur `actual_mode/actual_profit/actual_cap` des lignes `B6_PORTFOLIO path=reselect` (bras référence po01b, `zcat -f ... | grep -o 'B6_PORTFOLIO path=reselect.*'`) :
+
+| graine | re-sélections | même tête que la précédente | dont `none` → `none` |
+|---|---|---|---|
+| 42 | 518 | 439 | 261 |
+| 7 | 520 | 406 | 331 |
+| 1234 | 550 | 444 | 270 |
+| total | 1 588 | 1 289 (81,2 %) | 862 (67 % des répétitions) |
+
+Les chiffres d'agy (1 588 ; 81 %) sont confirmés. Mais **les deux tiers des répétitions sont des re-sélections sans aucun projet retenu** (`actual_mode=none`, rien de finançable). Garde la plus simple et la plus sûre pour V288 : ne pas relancer la sélection complète tant que le budget n'a pas franchi le capital du moins cher des projets listés (ni nouveau projet, ni vivier rechargé) depuis une sélection vide. « Même tête » ne prouve pas un portefeuille identique au-delà de `funded[0]` : la coalescence des autres cas (même tête non nulle) doit garder la revalidation de la tête.
