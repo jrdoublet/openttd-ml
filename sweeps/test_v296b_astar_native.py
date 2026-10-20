@@ -150,8 +150,12 @@ class TestV296Native(unittest.TestCase):
         self.assertIn("n.GetCost(), id", init)
         self.assertIn("this._pathfinder._open.AddItem(id, this._costs[id]);", init)
         self.assertNotIn(".Path(", init)
-        append = function_body(self.src, "function _Append(tile, direction, cost, parent)")
-        self.assertIn("this._blooms[parent]) | (1 << (tile % 61))", append)
+        append = function_body(self.src, "function _Append(tile, direction, cost, parentId)")
+        self.assertIn("this._blooms[parentId]) | (1 << (tile % 61))", append)
+
+    def test_no_squirrel_reserved_identifier(self):
+        """`parent` est un mot reserve de la VM d'OpenTTD : echec de compilation au premier banc (21/10)."""
+        self.assertIsNone(re.search(r"\bparent\b", self.src))
 
     def test_checker_independent_completion_and_measurements(self):
         checker = self.src.split("class OpexRailPathfinderCheckerV296", 1)[1]
