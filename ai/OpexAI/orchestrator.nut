@@ -762,7 +762,7 @@ function OpexAI::_c77EnqueueEntity(modes, entityKind = null, entityId = -1, buil
  * depasse 500 kGBP des 1973. Appele en tete de chaque tour de file (la branche « regeneration
  * evitee » de la tache catalogue n'est presque jamais atteinte sous AIR_EFFICIENCY_RESELECT : smoke
  * du 16/10). Au plus une fois par mois, seul le rail est regenere sur le
- * cargo fret suivant (meme rotation que _c76RotateFreight, sans la route), quand moins de
+ * cargo fret suivant (rotation rail V217, sans la route), quand moins de
  * V217_POOL_MIN candidats rail du portefeuille peuvent demarrer (ni abandonnes ni trop
  * proches). Jamais pendant les deux premieres annees : le rail y prend le capital de l'AIR
  * (porte A V149 du 13/10). 1 = sans le rail voyageurs (90 % du cout d'une regeneration). */
@@ -812,13 +812,25 @@ function OpexAI::_v217RailRefill()
   /* La reconstruction AIR du catalogue est presque toujours en cours (smoke du 16/10) : elle
    * travaille sur son propre etat et ne lit que le catalogue, les lignes et les abandons. Ne pas
    * rafraichir le catalogue ici (son curseur parcourt les villes) ; le catalogue du jour suffit,
-   * comme pour _c76RotateFreight et la regeneration V149. */
+   * comme pour la regeneration V149. */
   this._pruneAbandonedPairs(date);
   this._projects.rawset("freightCargo", freightCargos[nextCargo]);
   V217_REGEN_NO_PAX = (V217_RAIL_REFILL == 1);
+  local v269Relaxed = false;
+  if (V269_RAIL_LATE_RELAX > 0) {
+    /* V269 : vivier vide et caisse oisive, N ans apres le depart. */
+    V269_RELAXED = year >= OPEX_START_YEAR + V269_RAIL_LATE_RELAX && cash >= V269_IDLE_CASH_MIN;
+    if (V269_RELAXED && !V269_ON) {
+      V269_ON = true;
+      /* V178/V179 sont figes a 1 depuis V263b : plus rien a activer ici. */
+      if (DECISION_LOG) OpexDecide("V269", "action=on month=" + ym + " cash=" + cash);
+    }
+    v269Relaxed = V269_RELAXED;
+  }
   this._projects = OpexRegenerateModeProjects(this._projects, this._catalog, this._budget,
       this._lines, this._abandonedPairs, "rail", null, null, -1);
   V217_REGEN_NO_PAX = false;
+  if (V269_RAIL_LATE_RELAX > 0) V269_RELAXED = false;
   if (("freightCargo" in this._projects) && this._projects.freightCargo != null) {
     this._lastFreightCargo = this._projects.freightCargo;
   }
@@ -829,8 +841,9 @@ function OpexAI::_v217RailRefill()
         && this._projects.rail.candidates != null) ? this._projects.rail.candidates.len() : -1;
     local cargo = (("freightCargo" in this._projects) && this._projects.freightCargo != null)
         ? AICargo.GetCargoLabel(this._projects.freightCargo) : "all";
+    local v269Suffix = (V269_RAIL_LATE_RELAX > 0) ? (" v269=" + (v269Relaxed ? 1 : 0)) : "";
     OpexDecide("V217_RAIL_REFILL", "month=" + ym + " cash=" + cash + " startable=" + startable
-        + " cargo=" + cargo + " candidates=" + n + " ops=" + ops);
+        + " cargo=" + cargo + " candidates=" + n + " ops=" + ops + v269Suffix);
   }
 }
 
@@ -943,7 +956,7 @@ function OpexAI::_runOrchestratorTick()
 
   /* V257 : une seule garde au defaut. Une ligne de la file de revision par
    * passage reactif ; ne bloque ni la FIFO existante ni le worker rail. */
-  if (V257_RAIL_REFRESH) this._v257ReactiveStep();
+  this._v257ReactiveStep();
 
   // (b) Intention réactive
   if (this._hasReactiveIntentions()) {
@@ -1333,49 +1346,6 @@ function OpexAI::_c80DoModeRegen(modes, reason, year)
     foreach (layer in ["industries", "engines.rail", "engines.road", "engines.water"]) {
       if (layer in layers) layers.rawset(layer, this._c76GetLayerRevision(layer));
     }
-  }
-}
-
-/* C76 : rotation du cargo fret sans regeneration complete. Une regeneration complete ne produit
- * le fret que pour UN cargo et fait tourner _lastFreightCargo (_rebuildProjects) ; sous C76, un
- * mois sans regeneration complete laissait le lot fret fige. Ici, seuls les modes rail et route
- * sont regeneres sur le cargo suivant (l'etape AIR, la plus chere, n'est pas rejouee). Le
- * catalogue vient d'etre rafraichi et les abandons elagues par la tache catalogue. */
-function OpexAI::_c76RotateFreight(year)
-{
-  local freightCargos = OpexFreightCargoOrder(this._catalog);
-  if (this._projects == null || !("candidateGroups" in this._projects)
-      || this._projects.candidateGroups == null || freightCargos.len() == 0) {
-    if (this._projects != null) {
-      this._projects = OpexReselectProjects(this._projects, OpexAvailableCapital(),
-                                            this._abandonedPairs, this._lines);
-    }
-    return;
-  }
-  local nextCargo = 0;
-  if (this._lastFreightCargo >= 0) {
-    for (local i = 0; i < freightCargos.len(); i++) {
-      if (freightCargos[i] == this._lastFreightCargo) {
-        nextCargo = (i + 1) % freightCargos.len();
-        break;
-      }
-    }
-  }
-  local mark = C39_INVALIDATION_PROBE ? OpexOpsMeasureBegin() : null;
-  this._projects.rawset("freightCargo", freightCargos[nextCargo]);
-  /* Rail d'abord : son repli sur un cargo sans candidat publie le cargo reel, que la route
-   * reprend ensuite. Chaque appel se termine par OpexReselectProjects. */
-  foreach (mode in ["rail", "road"]) {
-    this._projects = OpexRegenerateModeProjects(this._projects, this._catalog, this._budget,
-        this._lines, this._abandonedPairs, mode, null, null, -1);
-  }
-  if (("freightCargo" in this._projects) && this._projects.freightCargo != null) {
-    this._lastFreightCargo = this._projects.freightCargo;
-  }
-  this._ranked = this._projects.rail;
-  if (C39_INVALIDATION_PROBE) {
-    local ops = OpexOpsMeasureEnd(mark);
-    this._c76RecordRegen("freight", ops, (ops + 93000) / 186000, year, "rotation");
   }
 }
 

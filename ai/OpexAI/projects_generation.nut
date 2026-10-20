@@ -88,10 +88,10 @@ function OpexGenerateModeProjects(projects, catalog, budget, lines, abandonedPai
   } else if (mode == "air") {
     local mark = OpexOpsMeasureBegin();
     local plans = [];
-    if (C80_AIR_CHOICE_MEMO) AIR_CHOICE_MEMO_STATE = 2;
+
     local best = OpexAirPlans(catalog, lines, 0, plans, abandonedPairs, PAX_BAND_ALL,
                               entityKind == "town" ? entityId : -1);
-    AIR_CHOICE_MEMO_STATE = 0;
+
     local ops = OpexOpsMeasureEnd(mark);
     local perPlan = plans.len() > 0 ? ops / plans.len() : ops;
     generated.airPlan = best;
@@ -205,11 +205,11 @@ function OpexRegenerateAirProjectsSlice(projects, catalog, budget, lines, abando
       sliceState.airCursor.c83Repair <- OpexC83RepairSnapshot(projects);
     }
   }
-  if (C80_AIR_CHOICE_MEMO) AIR_CHOICE_MEMO_STATE = 2;
+
   local best = OpexAirPlans(catalog, lines, 0, sliceState.plans, abandonedPairs, PAX_BAND_ALL,
                             entityKind == "town" ? entityId : -1,
                             sliceState.airCursor, opsBudget, deadlineTick);
-  AIR_CHOICE_MEMO_STATE = 0;
+
   sliceState.ops += OpexOpsMeasureEnd(mark);
   if (!("done" in sliceState.airCursor) || !sliceState.airCursor.done) {
     if (spAirSlice != null) OpexSpanEnd(spAirSlice);
@@ -662,6 +662,9 @@ function OpexAir0310FilterAirAlternativesStillValid(alternatives, abandonedPairs
   local live = [];
   local stationLimitedTowns = {};
   local validity = OpexAir0310SiteValidityBegin(stationLimitedTowns);
+  /* V277 : le predicat indexe n'est calcule qu'en mode controle. Mesure du 20/10 (1 an, carte 256x256) :
+   * 0 ecart, mais 26,8 k par filtre contre 23,0 k, le contexte V156 coute plus qu'il n'economise. */
+  local ctx = (V277_AIR_PUB_FAST == 2 && C83_FIXES && lines != null) ? OpexIncrRevalidateIndexContext(lines) : null;
   foreach (project in alternatives) {
     if (project != null && ("mode" in project) && project.mode == "air") {
       if (!("payload" in project) || project.payload == null
@@ -672,8 +675,21 @@ function OpexAir0310FilterAirAlternativesStillValid(alternatives, abandonedPairs
       if (!("siteA" in plan) || !("siteB" in plan) || !("airport" in plan) || !("plane" in plan)) {
         continue;
       }
-      if (C83_FIXES && lines != null && !OpexAirBatchPlanStillLive(plan, lines)) {
-        continue;
+      if (V277_AIR_PUB_FAST == 2 && C83_FIXES && lines != null) {
+        local histVerdict = OpexAirBatchPlanStillLive(plan, lines);
+        local fastVerdict = (ctx != null) ? OpexAirBatchPlanStillLiveIndexed(plan, lines, ctx) : histVerdict;
+        if (fastVerdict != histVerdict) {
+          local townAId = ("siteA" in plan && plan.siteA != null && ("town" in plan.siteA) && plan.siteA.town != null) ? plan.siteA.town.id : -1;
+          local townBId = ("siteB" in plan && plan.siteB != null && ("town" in plan.siteB) && plan.siteB.town != null) ? plan.siteB.town.id : -1;
+          local msg = "filter townA=" + townAId + " townB=" + townBId + " hist=" + histVerdict + " fast=" + fastVerdict;
+          OpexDecide("V277_CHECK", msg);
+          if (!DECISION_LOG) AILog.Warning("V277_CHECK " + msg);
+        }
+        if (!histVerdict) continue;
+      } else {
+        if (C83_FIXES && lines != null && !OpexAirBatchPlanStillLive(plan, lines)) {
+          continue;
+        }
       }
 
       local reuseA = ("reuseA" in plan) && plan.reuseA;

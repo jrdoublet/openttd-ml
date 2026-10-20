@@ -1,4 +1,4 @@
-"""Contrat V93 : pas de plancher a 600 hab. pour un grand aeroport, defaut 0."""
+"""Contrat V93 : pas de plancher a 600 hab. pour un grand aeroport, fige actif par V263b."""
 from pathlib import Path
 import unittest
 from pathlib import Path as _AirSrcPath
@@ -32,65 +32,20 @@ def function_body(text, signature):
 
 class V93AirportNoPopFloorTests(unittest.TestCase):
     def test_setting_defaults_off_and_count_matches_info(self):
-        self.assertIn("V93_AIRPORT_NO_POP_FLOOR <- true;", GLOBALS)
+        self.assertNotIn("V93_AIRPORT_NO_POP_FLOOR", GLOBALS)
         self.assertIn("V93_AIRPORT_MIN_POP <- 100;", GLOBALS)
-        self.assertNotIn("V93_SMALL_AIRPORT_TOWNS", GLOBALS)
-        self.assertNotIn("V93_SMALL_AIRPORT_MIN_POP", GLOBALS)
-        self.assertEqual(INFO.count('name = "v93_airport_no_pop_floor"'), 1)
-        start = INFO.index('name = "v93_airport_no_pop_floor"')
-        block = INFO[start:INFO.index("});", start)]
-        for token in (
-            "min_value = 0",
-            "max_value = 1",
-            "easy_value = 1",
-            "medium_value = 1",
-            "hard_value = 1",
-            "custom_value = 1",
-        ):
-            self.assertIn(token, block)
-        self.assertNotIn("v93_airport_min_pop", INFO)
-        self.assertNotIn("v93_small_airport_towns", INFO)
-        self.assertIn(
-            'V93_AIRPORT_NO_POP_FLOOR = AIController.GetSetting("v93_airport_no_pop_floor") != 0;',
-            SETTINGS,
-        )
-        self.assertNotIn("v93_small_airport_towns", SETTINGS)
+        self.assertNotIn('name = "v93_airport_no_pop_floor"', INFO)
+        self.assertNotIn('GetSetting("v93_airport_no_pop_floor")', SETTINGS)
 
     def test_large_floor_is_a_boolean_and_the_sanity_floor_is_behind_the_setting(self):
         sites = function_body(BUILDER, "function OpexAirPlansFindSites(")
-        origin = sites.index("outcome=origin_served")
-        large = sites.index(
-            '!V93_AIRPORT_NO_POP_FLOOR && combo.kind == "large" && towns[i].pop < 600'
-        )
-        floor = sites.index(
-            "V93_AIRPORT_NO_POP_FLOOR && towns[i].pop < V93_AIRPORT_MIN_POP"
-        )
-        find = sites.index("OpexAirFindSite(")
-        flag = sites.index("outcome=site v93=1 pop=")
-        plain = sites.index('outcome=site");')
-        self.assertLess(origin, large)
-        self.assertLess(large, floor)
-        self.assertLess(floor, find)
-        self.assertLess(find, flag)
-        self.assertLess(flag, plain)
-        self.assertIn("outcome=town_pop_small", sites)
-        self.assertIn("outcome=town_pop_v93", sites)
-        self.assertNotIn('else if (combo.kind == "large" && towns[i].pop < 600)', sites)
-        self.assertNotIn("V93_SMALL_AIRPORT", sites)
-
-        hubs = function_body(BUILDER, "function OpexAirPlansDiscoverHubs(")
-        self.assertLess(
-            hubs.index(
-                '!V93_AIRPORT_NO_POP_FLOOR && combo.kind == "large" && towns[i].pop < 600'
-            ),
-            hubs.index("V93_AIRPORT_NO_POP_FLOOR && towns[i].pop < V93_AIRPORT_MIN_POP"),
-        )
-        self.assertLess(
-            hubs.index("V93_AIRPORT_NO_POP_FLOOR && towns[i].pop < V93_AIRPORT_MIN_POP"),
-            hubs.index('combo.kind == "small" && towns[i].pop >= 2500'),
-        )
-        self.assertIn("outcome=site v93=1 pop=", hubs)
-        self.assertNotIn('if (combo.kind == "large" && towns[i].pop < 600) continue', hubs)
+        self.assertNotIn("town_pop_small", sites)
+        self.assertLess(sites.index("towns[i].pop < V93_AIRPORT_MIN_POP"), sites.index("OpexAirFindSite("))
+        for name in ("OpexAirPlansDiscoverHubs", "OpexC83RepairFindSites"):
+            text = BUILDER if name == "OpexAirPlansDiscoverHubs" else (ROOT / "ai/OpexAI/air_c83_repair.nut").read_text()
+            part = function_body(text, "function " + name + "(")
+            self.assertNotIn("combo.kind == \"large\" && towns[i].pop < 600", part)
+            self.assertIn("V93_AIRPORT_MIN_POP", part)
 
     def test_town_pool_ranking_is_unchanged(self):
         pool = function_body(BUILDER, "function OpexAirTownPoolLimit(")
@@ -109,9 +64,9 @@ class V93AirportNoPopFloorTests(unittest.TestCase):
         plans = function_body(BUILDER, "function OpexAirPlans(")
         closing = function_body(BUILDER, "function OpexAirPlansCompleteCombo(")
         self.assertIn("OpexAirPlansCompleteCombo(ctx, comboIndex, combo)", plans)
-        guard = closing.index("if (!V93_AIRPORT_NO_POP_FLOOR) return -1;")
+        self.assertNotIn("V93_AIRPORT_NO_POP_FLOOR", closing)
         helper = closing.index("OpexAirV93NextSmallCombo(ctx.combos, comboIndex)")
-        self.assertLess(guard, helper)
+        self.assertGreater(helper, 0)
         self.assertNotIn(
             "if (bestPlan != null && bestPlan.airport.allowBig) break;",
             closing,

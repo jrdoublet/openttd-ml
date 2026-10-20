@@ -9,10 +9,26 @@ function OpexPO01PaxCandidates(catalog, lines, out, stats, abandonedPairs = null
 {
   local cargo = catalog.paxCargo;
   if (cargo < 0) return;
+  /* V275 bit 4 : l'aerien d'abord. Les premieres annees, la caisse borne et un avion rend
+   * plus par livre ; le rail voyageurs attend la 3e annee. Inerte en rail seul. */
+  if ((V275_RAIL_PAX_MM & 4) && MODE_AIR
+      && OPEX_START_YEAR >= 0 && AIDate.GetYear(AIDate.GetCurrentDate()) < OPEX_START_YEAR + 2) return;
   local towns = catalog.towns;
   local n = towns.len();
   local produced = [];
   local served = [];
+  /* V275 bit 1 : villes ou nous avons deja un aeroport. Le rail y partagerait les memes
+   * maisons que nos avions (V216 : 84 % du deficit rail voyageurs vient de nos modes). */
+  local airTowns = null;
+  if (V275_RAIL_PAX_MM & 1) {
+    airTowns = {};
+    foreach (line in lines) {
+      if (!("mode" in line) || line.mode != "air") continue;
+      if (("scrapping" in line) && line.scrapping) continue;
+      airTowns.rawset(line.originA, true);
+      airTowns.rawset(line.originB, true);
+    }
+  }
   local preparationMark = profile != null ? OpexOpsMeasureBegin() : null;
   for (local i = 0; i < n; i++) {
     yield null; // PO01_CHECKPOINT
@@ -67,6 +83,10 @@ function OpexPO01PaxCandidates(catalog, lines, out, stats, abandonedPairs = null
       local sa = served[a];
       local sb = served[b];
       if (sa != null || sb != null) {
+        stats.pairsOriginServed++;
+        continue;
+      }
+      if (airTowns != null && ((towns[a].tile in airTowns) || (towns[b].tile in airTowns))) {
         stats.pairsOriginServed++;
         continue;
       }
@@ -132,7 +152,7 @@ function OpexPO01FreightCandidates(catalog, lines, out, stats, abandonedPairs = 
       if (OPEX_LEVEL_LIMITS && OpexIndustryPrimaryRivalServed(source.id, source.tile)) continue;
       local monthly = AIIndustry.GetLastMonthProduction(source.id, cargo);
       local ss = served[si];
-      local others2 = V163_MULTI_CARGO ? OpexV163SourceOtherCargos(catalog, source.id, cargo) : null;
+      local others2 = null;
       local industryMark = profile != null ? OpexOpsMeasureBegin() : null;
       for (local k = 0; k < sinks.len(); k++) {
     yield null; // PO01_CHECKPOINT
@@ -149,7 +169,7 @@ function OpexPO01FreightCandidates(catalog, lines, out, stats, abandonedPairs = 
         local sd = served[di];
         /* V179 : source neuve, destination deja desservie : on garde la paire, V178 la rattache.
          * Ce chemin n'est pas marque convergent : V264 ne s'execute que dans l'exclusion. */
-        local v179Keep = V179_RAIL_GEN_DEST_SERVED && ss == null && sd != null;
+        local v179Keep = ss == null && sd != null;
         if (!v179Keep && (ss != null || sd != null)) {
           /* Paires deja rejetees. A 0 le drapeau est faux : aucun appel, pairsOriginServed. */
           local attached = null;
@@ -167,8 +187,7 @@ function OpexPO01FreightCandidates(catalog, lines, out, stats, abandonedPairs = 
         }
         local isTransformer = ("isTransformer" in industries[di]) && industries[di].isTransformer;
         local candidateMark = profile != null ? OpexOpsMeasureBegin() : null;
-        local secondary = (others2 != null && others2.len() > 0)
-            ? OpexV163SecondaryCargo(others2, industries[di].id) : null;
+        local secondary = null;
         local candidate = OpexMakeCandidate(catalog, "freight", cargo, source.tile,
                                             industries[di].tile, monthly, false, stats, isTransformer, profile, cruiseCache,
                                             secondary);

@@ -77,12 +77,10 @@ class Bounds(unittest.TestCase):
 
 
 class IterationFilters(unittest.TestCase):
-    def test_candidate_filter_kept_at_default(self):
+    def test_candidate_filter_dead_branch_removed(self):
+        # V258 : V168_RAIL_MAX_DIST etant fige a 160, le filtre mort <= 0 est retire
         body = _function_body(_read("candidates.nut"), "OpexMakeCandidate")
-        self.assertIn("if (V168_RAIL_MAX_DIST <= 0 && iterations > (HARD_ITERATION_CAP * 12) / 10) {", body)
-        # la borne de distance reste testee avant le filtre d'iterations
-        self.assertLess(body.index("if (distance > bounds.railMax) {"),
-                        body.index("if (V168_RAIL_MAX_DIST <= 0 && iterations >"))
+        self.assertNotIn("V168_RAIL_MAX_DIST <= 0", body)
 
     def test_goods_chain_generator_removed(self):
         # V232 : la chaine de biens V88 est retiree, plus de filtre itersGoods

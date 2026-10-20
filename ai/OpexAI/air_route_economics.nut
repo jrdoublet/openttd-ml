@@ -7,75 +7,25 @@ function OpexAirEconomics(catalog, airport, plane, distance, monthlyPax,
                           serviceScan = false, forcePhysicalTiming = false,
                           forceC100RankReplay = false)
 {
-  local econKey = null;
-  local canMemo = C80_AIR_EVAL_FAST && fixedPlanes == 0 && opcodePadding == 0 && !targetSizing && !serviceScan;
-  if (canMemo) {
-    /* Memo valable seulement dans le mois ou il a ete rempli (prix indexes chaque mois). */
-    local nowDate = AIDate.GetCurrentDate();
-    if (AIR_MEMO_MONTH != AIDate.GetYear(nowDate) * 12 + AIDate.GetMonth(nowDate)) canMemo = false;
-  }
-  if (canMemo) {
-    econKey = plane.id + "|" + airport.type + "|" + distance + "|" + monthlyPax + "|" + newAirportCount + "|" + maxCapital + "|" + (infrastructureMaintenance ? 1 : 0)
-        + "|pt=" + (forcePhysicalTiming ? 1 : 0)
-        + "|rr=" + (forceC100RankReplay ? 1 : 0);
-    if (econKey in AIR_ECONOMICS_MEMO) {
-      return AIR_ECONOMICS_MEMO[econKey];
-    }
-  }
-
   local oneWayDays = 0;
   local roundTripDays = 0;
   local tripsPerMonth = 0;
   local capacityPerPlane = 0;
   local incomePerUnit = 0.0;
 
-  if (canMemo) {
-    local physicalTiming = forcePhysicalTiming;
-    local tripKey = forceC100RankReplay
-        ? ("r|" + plane.id + "|" + airport.type + "|" + distance)
-        : (physicalTiming
-            ? (plane.id + "|" + airport.type + "|" + distance)
-            : ((plane.id * 10000) + distance));
-    if (tripKey in AIR_TRIP_MEMO) {
-      local tripData = AIR_TRIP_MEMO[tripKey];
-      oneWayDays = tripData.oneWayDays;
-      roundTripDays = tripData.roundTripDays;
-      tripsPerMonth = tripData.tripsPerMonth;
-      capacityPerPlane = tripData.capacityPerPlane;
-      incomePerUnit = tripData.incomePerUnit;
-    } else {
-      local trip = OpexAirTripModel(plane.speed, plane.capacity, distance, plane.id, airport.type,
-          forcePhysicalTiming, forceC100RankReplay);
-      oneWayDays = trip.oneWayDays;
-      roundTripDays = trip.roundTripDays;
-      tripsPerMonth = trip.tripsPerMonth;
-      capacityPerPlane = trip.capacityPerPlane;
-      if (capacityPerPlane > 0) {
-        local incomeDays = OpexCeilDiv(oneWayDays, 1);
-        incomePerUnit = OpexAirFarePerPax(catalog, plane, distance, incomeDays);
-      }
-      AIR_TRIP_MEMO.rawset(tripKey, {
-        oneWayDays = oneWayDays,
-        roundTripDays = roundTripDays,
-        tripsPerMonth = tripsPerMonth,
-        capacityPerPlane = capacityPerPlane,
-        incomePerUnit = incomePerUnit
-      });
-    }
-  } else {
-    local trip = OpexAirTripModel(plane.speed, plane.capacity, distance, plane.id, airport.type,
-        forcePhysicalTiming, forceC100RankReplay);
-    oneWayDays = trip.oneWayDays;
-    roundTripDays = trip.roundTripDays;
-    tripsPerMonth = trip.tripsPerMonth;
-    capacityPerPlane = trip.capacityPerPlane;
-    if (capacityPerPlane <= 0) return null;
-    local incomeDays = OpexCeilDiv(oneWayDays, 1);
-    /* En soute, ~15 % du tarif postal par passager. */
-    incomePerUnit = OpexAirFarePerPax(catalog, plane, distance, incomeDays);
-  }
+  local trip = OpexAirTripModel(plane.speed, plane.capacity, distance, plane.id, airport.type,
+      forcePhysicalTiming, forceC100RankReplay);
+  oneWayDays = trip.oneWayDays;
+  roundTripDays = trip.roundTripDays;
+  tripsPerMonth = trip.tripsPerMonth;
+  capacityPerPlane = trip.capacityPerPlane;
+  if (capacityPerPlane <= 0) return null;
+  local incomeDays = OpexCeilDiv(oneWayDays, 1);
+  /* En soute, ~15 % du tarif postal par passager. */
+  incomePerUnit = OpexAirFarePerPax(catalog, plane, distance, incomeDays);
+
   if (capacityPerPlane <= 0) {
-    if (canMemo) AIR_ECONOMICS_MEMO.rawset(econKey, null);
+
     return null;
   }
   local airportMaintenanceAnnual =
@@ -138,7 +88,7 @@ function OpexAirEconomics(catalog, airport, plane, distance, monthlyPax,
       };
     }
   }
-  if (canMemo) AIR_ECONOMICS_MEMO.rawset(econKey, best);
+
   return best;
 }
 

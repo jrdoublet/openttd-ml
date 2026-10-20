@@ -94,7 +94,7 @@ class V92AirServiceChoiceTests(unittest.TestCase):
         economics = function_body(self.builder, "function OpexAirEconomics(")
         self.assertIn("serviceScan = false", economics)
         self.assertIn("(targetSizing || serviceScan) ? multiPlaneMax", economics)
-        self.assertIn("&& !serviceScan", economics)
+        self.assertNotIn("AIR_ECONOMICS_MEMO", economics)
         self.assertIn("local lifeYears = 20;", economics)
         self.assertIn("plane.price / lifeYears", economics)
         self.assertNotIn("plane.ageYears", economics)

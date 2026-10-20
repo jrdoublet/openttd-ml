@@ -18,8 +18,8 @@ from unittest import mock
 from sweeps import github_bench as bench
 
 
-VARIANT = "OpexAI[c80_air_choice_memo=1]"
-REFERENCE = "OpexAI[c80_air_choice_memo=0]"
+VARIANT = "OpexAI[c83_local_repair=1]"
+REFERENCE = "OpexAI[c83_local_repair=0]"
 
 
 class OpponentDownloadTests(unittest.TestCase):
@@ -102,6 +102,7 @@ class MakePlanTests(OfflineTestCase):
             "mode": "solo", "profile": "smoke", "reference": "OpexAI",
             "variant": "", "years": 1, "seeds": [42], "minimum": 4.0,
             "guard": 5.0, "telemetry": False, "campaign": "gha-123456-2",
+            "start_year": 1970, "map_size": 8,
             "output": "results/gha-123456-2/bench.json", "expected_games": 1,
         })
 
@@ -255,6 +256,46 @@ class MakePlanTests(OfflineTestCase):
                     else:
                         self.assertIs(bench.make_plan(env)["telemetry"], value == "true")
 
+    def test_start_year_and_map_size_custom_values_in_duel(self):
+        plan = bench.make_plan(environment(BENCH_MODE="duel", BENCH_START_YEAR="1990", BENCH_MAP_SIZE="10"))
+        self.assertEqual(plan["start_year"], 1990)
+        self.assertEqual(plan["map_size"], 10)
+
+        plan9 = bench.make_plan(environment(BENCH_MODE="duel", BENCH_START_YEAR="1950", BENCH_MAP_SIZE="9"))
+        self.assertEqual(plan9["start_year"], 1950)
+        self.assertEqual(plan9["map_size"], 9)
+
+    def test_start_year_and_map_size_invalid_values_rejected(self):
+        # Bounds: 1920-2050
+        for bad_year in ("1919", "2051", "1800", "2100"):
+            with self.subTest(bad_year=bad_year):
+                with self.assertRaises(ValueError):
+                    bench.make_plan(environment(BENCH_MODE="duel", BENCH_START_YEAR=bad_year))
+
+        # Choices: 8, 9, 10 (11 is outside choice, 7 is outside choice)
+        for bad_size in ("11", "7", "6", "12", "5", "13"):
+            with self.subTest(bad_size=bad_size):
+                with self.assertRaises(ValueError):
+                    bench.make_plan(environment(BENCH_MODE="duel", BENCH_MAP_SIZE=bad_size))
+
+        # Non-integer values
+        for non_int in ("abc", "1970.5", "1970x"):
+            with self.subTest(non_int_year=non_int):
+                with self.assertRaises(ValueError):
+                    bench.make_plan(environment(BENCH_MODE="duel", BENCH_START_YEAR=non_int))
+        for non_int in ("abc", "8.5", "8x"):
+            with self.subTest(non_int_size=non_int):
+                with self.assertRaises(ValueError):
+                    bench.make_plan(environment(BENCH_MODE="duel", BENCH_MAP_SIZE=non_int))
+
+    def test_solo_rejects_custom_start_year_or_map_size(self):
+        with self.assertRaisesRegex(ValueError, "solo"):
+            bench.make_plan(environment(BENCH_MODE="solo", BENCH_START_YEAR="1990"))
+        with self.assertRaisesRegex(ValueError, "solo"):
+            bench.make_plan(environment(BENCH_MODE="solo", BENCH_MAP_SIZE="9"))
+        with self.assertRaisesRegex(ValueError, "solo"):
+            bench.make_plan(environment(BENCH_MODE="solo", BENCH_MAP_SIZE="10"))
+
 
 class CommandForTests(OfflineTestCase):
     def test_solo_docker_command_and_resource_contract(self):
@@ -333,6 +374,55 @@ class CommandForTests(OfflineTestCase):
             BENCH_MODE="paired", BENCH_REFERENCE=REFERENCE, BENCH_VARIANT="OpexAI"))
         with self.assertRaisesRegex(ValueError, "variante doit expliciter"):
             bench.command_for(plan)
+
+    def test_default_commands_unchanged_for_smoke_gain_short_and_non_erosion(self):
+        # Smoke (solo): default start_year and map_size
+        smoke_plan = bench.make_plan(environment(BENCH_MODE="solo", BENCH_PROFILE="smoke"))
+        smoke_cmd = bench.command_for(smoke_plan)
+        self.assertNotIn("--start-year", smoke_cmd)
+        self.assertNotIn("--map-size", smoke_cmd)
+        self.assertIn("sweeps/smoke_test.py", smoke_cmd)
+
+        # gain_short (paired): default start_year and map_size
+        gs_plan = bench.make_plan(environment(
+            BENCH_MODE="paired", BENCH_PROFILE="gain_short", BENCH_VARIANT=VARIANT))
+        gs_cmd = bench.command_for(gs_plan)
+        self.assertNotIn("--start-year", gs_cmd)
+        self.assertNotIn("--map-size", gs_cmd)
+        self.assert_option(gs_cmd, "--engine-timeout", 1800)
+
+        # non_erosion (paired): default start_year and map_size
+        ne_plan = bench.make_plan(environment(
+            BENCH_MODE="paired", BENCH_PROFILE="non_erosion", BENCH_VARIANT=VARIANT))
+        ne_cmd = bench.command_for(ne_plan)
+        self.assertNotIn("--start-year", ne_cmd)
+        self.assertNotIn("--map-size", ne_cmd)
+        self.assert_option(ne_cmd, "--engine-timeout", 1800)
+
+    def test_custom_start_year_and_map_size_forwarded(self):
+        plan = bench.make_plan(environment(
+            BENCH_MODE="duel", BENCH_START_YEAR="1990", BENCH_MAP_SIZE="10"))
+        cmd = bench.command_for(plan)
+        self.assert_option(cmd, "--start-year", 1990)
+        self.assert_option(cmd, "--map-size", 10)
+
+    def test_engine_timeout_scaling_with_map_size(self):
+        for map_size, expected_timeout in (("8", 1800), ("9", 3600), ("10", 7200)):
+            with self.subTest(map_size=map_size):
+                plan = bench.make_plan(environment(BENCH_MODE="duel", BENCH_MAP_SIZE=map_size))
+                cmd = bench.command_for(plan)
+                self.assert_option(cmd, "--engine-timeout", expected_timeout)
+
+    def test_solo_command_rejects_custom_parameters_in_plan(self):
+        plan_year = bench.make_plan(environment(BENCH_MODE="solo"))
+        plan_year["start_year"] = 1990
+        with self.assertRaisesRegex(ValueError, "solo"):
+            bench.command_for(plan_year)
+
+        plan_map = bench.make_plan(environment(BENCH_MODE="solo"))
+        plan_map["map_size"] = 10
+        with self.assertRaisesRegex(ValueError, "solo"):
+            bench.command_for(plan_map)
 
 
 class InstallOpponentTests(OfflineTestCase):
@@ -528,6 +618,17 @@ class SummaryTextTests(OfflineTestCase):
                 self.assertIn("JSON, JSONL, logs", text)
                 self.assertIn("manifeste et bundle", text)
                 self.assertTrue(text.endswith("\n"))
+
+    def test_summary_includes_start_year_and_map_size(self):
+        plan = bench.make_plan(environment(BENCH_MODE="duel", BENCH_START_YEAR="1990", BENCH_MAP_SIZE="10"))
+        text = bench.summary_text(plan, {})
+        self.assertIn("- Année de départ : 1990", text)
+        self.assertIn("- Taille de carte : 1024² (exposant 10)", text)
+
+        plan_default = bench.make_plan(environment(BENCH_MODE="duel"))
+        text_default = bench.summary_text(plan_default, {})
+        self.assertIn("- Année de départ : 1970", text_default)
+        self.assertIn("- Taille de carte : 256² (exposant 8)", text_default)
 
 
 class ProfitRatioTests(OfflineTestCase):

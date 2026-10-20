@@ -93,7 +93,7 @@ function OpexAirAddPlane(line, catalog = null, lines = null)
   local oldEngine = AIVehicle.GetEngineType(template);
   local targetEngine = oldEngine;
 
-  if (V252_AIR_ENGINE_REFRESH >= 1 && catalog != null) {
+  if (catalog != null) {
     local candidate = OpexAirBestEngineForLine(line, catalog);
     if (candidate != null && candidate != oldEngine && AIEngine.IsBuildable(candidate)) {
       targetEngine = candidate;
@@ -179,7 +179,7 @@ function OpexAirRefleetCrashedPlane(line, catalog = null)
 
   local oldEngine = line.refleetEngine;
   local targetEngine = oldEngine;
-  if (V252_AIR_ENGINE_REFRESH >= 1 && catalog != null) {
+  if (catalog != null) {
     local candidate = OpexAirBestEngineForLine(line, catalog);
     if (candidate != null && candidate != oldEngine && AIEngine.IsBuildable(candidate)) {
       targetEngine = candidate;

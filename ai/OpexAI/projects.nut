@@ -356,13 +356,10 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
       airOps = ("airOps" in airOverride) ? airOverride.airOps : 0;
     } else {
       budget.begin();
-      /* C80 tranche 5 : la generation complete refait tous les choix d'avion et les memorise. */
-      if (C80_AIR_CHOICE_MEMO) {
-        AIR_CHOICE_MEMO = {};
-        AIR_CHOICE_MEMO_STATE = 1;
-      }
+
+
       airPlan = OpexAirPlans(catalog, lines, 0, airPlans, abandonedPairs, airBand);
-      AIR_CHOICE_MEMO_STATE = 0;
+
       airOps = budget.end("project_air");
     }
     if (generationStage == OPEX_STAGE_AIR_RAIL && priorProjects != null

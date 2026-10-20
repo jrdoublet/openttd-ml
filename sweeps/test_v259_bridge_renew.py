@@ -59,11 +59,11 @@ class TestV259BridgeRenew(unittest.TestCase):
         self.assertEqual(sum(count for _, count in reads), 1, "v259_bridge_renew doit etre lu une seule fois")
         self.assertIn('AIController.GetSetting("v259_bridge_renew")', self.settings)
 
-    def test_ceiling_raised_with_comment(self):
-        # Plafond porte a 80 sur master (18/10 soir), commentaire citant V259 ; 100 depuis le 19/10 (decision utilisateur).
+    def test_ceiling_after_v263b(self):
+        # V263b ramene le plafond a 70 ; V259 reste conserve.
         test_v246 = (Path(__file__).resolve().parent / "test_v246_fixed_policies.py").read_text(encoding="utf-8")
-        self.assertIn('count("AddSetting("), 100)', test_v246)
-        self.assertIn("V259", test_v246)
+        self.assertIn('count("AddSetting("), 73)', test_v246)
+        self.assertIn("V263b", test_v246)
 
     def test_zero_opcode_guard_at_default(self):
         # 1. Garde dans scheduler.nut

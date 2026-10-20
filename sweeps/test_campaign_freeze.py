@@ -241,11 +241,11 @@ class TestCampaignFreeze(unittest.TestCase):
         )
         for name in ("c121_air_project_realization_adaptive",):
             self.assertEqual(defaults[name], 1, name)
-        for name in ("c76_freight_rotation", "c80_air_choice_memo", "c80_air_eval_fast", "rail_depot_cost", "c83_fixes", "c83_preempt_open", "c67_terrain_map", "c67_water_exposure_probe"):
+        for name in ("rail_depot_cost", "c83_fixes", "c83_preempt_open", "c67_terrain_map", "c67_water_exposure_probe"):
             self.assertEqual(defaults[name], 0, name)
         for name in ("v90_pathfinder_check", "v95_air_post73_probe", "v94_air_site_check", "c97_air_c69_engine_probe", "c98_air_realized_probe"):
             self.assertNotIn(name, defaults)  # V239 : sondes retirees
-        self.assertEqual(defaults["v93_airport_no_pop_floor"], 1)
+        self.assertNotIn("v93_airport_no_pop_floor", defaults)
         for name in ("rail_finance_bias_pct", "air_hub_max_routes", "v91_astar_weight_pct",
                      "c121_air_first_live_growth_phase_years", "unprofitable_streak_threshold"):
             self.assertNotIn(name, defaults)  # V236 : constantes
@@ -330,10 +330,10 @@ class TestCampaignFreeze(unittest.TestCase):
     def test_effective_settings_merge_and_unknown_rejection(self):
         resolved = effective_ai_settings(
             INFO,
-            (("c80_air_choice_memo", 1), ("probe_cost", 1)),
+            (("c83_local_repair", 1), ("probe_cost", 1)),
         )
-        self.assertEqual(resolved["defaults"]["c80_air_choice_memo"], 0)
-        self.assertEqual(resolved["effective"]["c80_air_choice_memo"], 1)
+        self.assertEqual(resolved["defaults"]["c83_local_repair"], 0)
+        self.assertEqual(resolved["effective"]["c83_local_repair"], 1)
         self.assertEqual(resolved["effective"]["probe_cost"], 1)
         with self.assertRaises(ValueError):
             effective_ai_settings(INFO, (("does_not_exist", 1),))
@@ -420,22 +420,22 @@ class TestCampaignFreeze(unittest.TestCase):
 
     def test_policy_guard_rejects_unannounced_and_no_effect(self):
         diff = validate_policy_settings(
-            {"c76_freight_rotation": 0, "road_mode": 0},
-            {"c76_freight_rotation": 1, "road_mode": 0},
-            intervention_settings=("c76_freight_rotation",),
+            {"c83_local_repair": 0, "road_mode": 0},
+            {"c83_local_repair": 1, "road_mode": 0},
+            intervention_settings=("c83_local_repair",),
         )
-        self.assertEqual(set(diff), {"c76_freight_rotation"})
+        self.assertEqual(set(diff), {"c83_local_repair"})
         with self.assertRaises(ValueError):
             validate_policy_settings(
-                {"c76_freight_rotation": 0, "road_mode": 0},
-                {"c76_freight_rotation": 1, "road_mode": 1},
-                intervention_settings=("c76_freight_rotation",),
+                {"c83_local_repair": 0, "road_mode": 0},
+                {"c83_local_repair": 1, "road_mode": 1},
+                intervention_settings=("c83_local_repair",),
             )
         with self.assertRaises(ValueError):
             validate_policy_settings(
-                {"c76_freight_rotation": 0},
-                {"c76_freight_rotation": 0},
-                intervention_settings=("c76_freight_rotation",),
+                {"c83_local_repair": 0},
+                {"c83_local_repair": 0},
+                intervention_settings=("c83_local_repair",),
             )
 
     def test_bench_audit_detects_identical_and_shared_nondefault_arms(self):
@@ -446,12 +446,12 @@ class TestCampaignFreeze(unittest.TestCase):
         self.assertEqual(len(identical["identical_effective_arms"]), 1)
 
         shared = comparison_setting_audit(resolved_arm_settings([
-            "OpexAI[c80_air_choice_memo=1]",
-            "OpexAI[c80_air_choice_memo=1,probe_cost=1]",
+            "OpexAI[c83_local_repair=1]",
+            "OpexAI[c83_local_repair=1,probe_cost=1]",
         ]))
         self.assertEqual(
             [item["setting"] for item in shared["shared_nondefault_explicit"]],
-            ["c80_air_choice_memo"],
+            ["c83_local_repair"],
         )
         self.assertFalse(shared["transportable_to_shipped_defaults"])
 

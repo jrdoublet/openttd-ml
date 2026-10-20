@@ -555,7 +555,7 @@ function OpexV257Reconcile(owner)
   if (owner._v257PriorityRemaining < 0) owner._v257PriorityRemaining = 0;
   if (owner._v257PriorityRemaining > owner._lines.len()) owner._v257PriorityRemaining = owner._lines.len();
   local states = {};
-  if (V257_RAIL_REFRESH && SAVE_FULL_STATE && owner._v257State != null) {
+  if (SAVE_FULL_STATE && owner._v257State != null) {
     foreach (line in owner._lines) {
       if (!(line.lineId in owner._v257State)) continue;
       local state = owner._v257State[line.lineId];
@@ -565,7 +565,7 @@ function OpexV257Reconcile(owner)
       states.rawset(line.lineId, state);
     }
   }
-  owner._v257State = V257_RAIL_REFRESH && SAVE_FULL_STATE ? states : null;
+  owner._v257State = SAVE_FULL_STATE ? states : null;
   local pending = owner._v257Pending;
   if (pending == null) return;
   local line = owner._findLineById(pending.lineId);
@@ -599,12 +599,12 @@ function OpexV257Reconcile(owner)
           && !OpexWaterContains(pending.before, vehicle)) OpexV257Discard(owner, vehicle);
     }
   }
-  if (adopted || !V257_RAIL_REFRESH || !SAVE_FULL_STATE || line == null || pending.phase != "depot") {
+  if (adopted || !SAVE_FULL_STATE || line == null || pending.phase != "depot") {
     local keepResume = false;
     if (!adopted && line != null && (!("scrapping" in line) || !line.scrapping)
         && AIVehicle.IsValidVehicle(pending.vehicle)) {
       if (AIVehicle.IsStoppedInDepot(pending.vehicle)) {
-        if (!AIVehicle.StartStopVehicle(pending.vehicle) && V257_RAIL_REFRESH && SAVE_FULL_STATE) {
+        if (!AIVehicle.StartStopVehicle(pending.vehicle) && SAVE_FULL_STATE) {
           pending.phase = "resume";
           keepResume = true;
         }

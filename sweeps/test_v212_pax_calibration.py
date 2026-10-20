@@ -59,24 +59,25 @@ class TestV212Economics(unittest.TestCase):
     def setUp(self):
         self.body = function_body(read_file("economy.nut"), "OpexLineEconomics")
 
-    def test_guarded_by_pax_and_non_default(self):
-        self.assertIn('if (kind == "pax" && (V212_RAIL_PAX_REVENUE_PCT != 100 || V212_RAIL_PAX_CAPITAL_PCT != 100)) {',
-                      self.body)
+    def test_dead_branch_removed(self):
+        # V258 : les constantes V212_RAIL_PAX_*_PCT etant figees a 100, la branche
+        # != 100 qui etait devenue morte est retiree d'OpexLineEconomics.
+        self.assertNotIn("V212_RAIL_PAX_REVENUE_PCT != 100", self.body)
+        self.assertNotIn("V212_RAIL_PAX_CAPITAL_PCT != 100", self.body)
 
-    def test_applied_after_train_choice(self):
+    def test_v275_bit2_applied_after_train_choice(self):
         loop = self.body.index("for (local trains = startTrains; trains <= MAX_RAIL_TRAINS; trains++)")
         result = self.body.index("local result = {")
-        calib = self.body.index("V212_RAIL_PAX_REVENUE_PCT != 100")
+        calib = self.body.index('if (kind == "pax" && (V275_RAIL_PAX_MM & 2)) {')
         ret = self.body.rindex("return result;")
         self.assertLess(loop, result)
         self.assertLess(result, calib)
         self.assertLess(calib, ret)
 
-    def test_profit_and_roi_recomputed(self):
-        self.assertIn("result.revenueAnnual = (result.revenueAnnual * V212_RAIL_PAX_REVENUE_PCT) / 100;", self.body)
+    def test_v275_bit2_profit_and_roi_recomputed(self):
+        self.assertIn("result.revenueAnnual = (result.revenueAnnual * 150) / 100;", self.body)
         self.assertIn("result.profitAnnual = result.revenueAnnual - result.runningAnnual - result.amortAnnual;", self.body)
-        self.assertIn("result.capital = (result.capital * V212_RAIL_PAX_CAPITAL_PCT) / 100;", self.body)
-        self.assertIn("local totalCapital = result.capital + result.immobilise;", self.body)
+        self.assertIn("result.capital = (result.capital * 85) / 100;", self.body)
         self.assertIn("? (result.profitAnnual * 1000) / totalCapital : 0;", self.body)
 
 

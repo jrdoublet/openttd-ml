@@ -112,7 +112,7 @@ class TestV207PaxAndMailCandidates(unittest.TestCase):
     def test_secondary_unblocked_in_economy(self):
         body = function_body(self.economy_src, "OpexV163CandidateSecondary")
         # Must retain V163 compatibility and allow V207_RAIL_MAIL for pax
-        self.assertIn("!V163_MULTI_CARGO", body)
+        self.assertNotIn("V163_MULTI_CARGO", body)
         self.assertIn("V207_RAIL_MAIL", body)
         self.assertIn('candidate.kind == "pax"', body)
 

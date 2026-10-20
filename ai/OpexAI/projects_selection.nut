@@ -715,15 +715,6 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSel
    * moment. Le plancher est relatif, donc il ne depend ni de l'epoque, ni de la taille de la carte,
    * ni de l'inflation : a 0 il reproduit exactement le comportement mesure ci-dessus. */
   local floorProfit = 0;
-  if (PORTFOLIO_FLOOR_PCT > 0) {
-    local bestProfit = 0;
-    foreach (project in alternatives) {
-      local financeCapital = OpexProjectFinanceCapital(project);
-      if (financeCapital > capitalBudget) continue;
-      if (project.profitAnnual > bestProfit) bestProfit = project.profitAnnual;
-    }
-    if (bestProfit > 0) floorProfit = bestProfit * PORTFOLIO_FLOOR_PCT / 100;
-  }
 
   local affordable = [];
   local earlySlotState = OpexEarlySlotSelectionState();
@@ -1221,6 +1212,146 @@ function OpexEnsureSelection(owner)
   if ("_lazyMaterializedYear" in owner) owner._lazyMaterializedYear++;
 }
 
+/* V279 : Filtre AIR memoise sous estampille d'invalidation.
+ * Mode 1 : revalidation incrementale exacte (utilise le cache si estampille valide, sauf creneau secondaire).
+ * Mode 2 : controle actif (evalue l'historique a chaque appel, compare avec la memoisation, alerte sur divergence). */
+function OpexFilterAirAlternativesV279Memo(alternatives, abandonedPairs = null, lines = null)
+{
+  if (V279_RESELECT_MEMO == 0) {
+    return OpexFilterAirAlternativesStillValid(alternatives, abandonedPairs, lines);
+  }
+
+  local month = OpexAir0310SiteValidityMonth();
+  local hasLines = (lines != null);
+  if (month != V279_LAST_MONTH
+      || OPEX_LINES_REVISION != V279_LAST_LINES_REV
+      || OPEX_AIR_SITE_EPOCH != V279_LAST_SITE_EPOCH
+      || OPEX_ABANDON_REVISION != V279_LAST_ABND_REV
+      || OPEX_AIR_ROLLBACK_REVISION != V279_LAST_ROLLBACK_REV
+      || hasLines != V279_LAST_HAS_LINES) {
+    V279_FILTER_STAMP_ID++;
+    V279_LAST_MONTH = month;
+    V279_LAST_LINES_REV = OPEX_LINES_REVISION;
+    V279_LAST_SITE_EPOCH = OPEX_AIR_SITE_EPOCH;
+    V279_LAST_ABND_REV = OPEX_ABANDON_REVISION;
+    V279_LAST_ROLLBACK_REV = OPEX_AIR_ROLLBACK_REVISION;
+    V279_LAST_HAS_LINES = hasLines;
+  }
+
+  if (V279_LAST_STATS_MONTH < 0) {
+    V279_LAST_STATS_MONTH = month;
+  } else if (month != V279_LAST_STATS_MONTH) {
+    local total = V279_HITS + V279_MISSES;
+    local pct = (total > 0) ? ((V279_HITS * 100) / total) : 0;
+    OpexDecide("V279_STATS", "month=" + V279_LAST_STATS_MONTH + " hits=" + V279_HITS + " misses=" + V279_MISSES + " total=" + total + " hit_pct=" + pct);
+    V279_LAST_STATS_MONTH = month;
+  }
+
+  local live = [];
+  local stationLimitedTowns = null;
+  local validity = null;
+
+  if (V279_RESELECT_MEMO == 2) {
+    stationLimitedTowns = {};
+    validity = OpexAir0310SiteValidityBegin(stationLimitedTowns);
+  }
+
+  foreach (project in alternatives) {
+    if (project != null && ("mode" in project) && project.mode == "air") {
+      local plan = ("payload" in project) ? project.payload : null;
+      local isSecondSlot = false;
+      if (plan != null) {
+        local c83OwnSecondA = ("c83OwnSecondSlotA" in plan) && plan.c83OwnSecondSlotA;
+        local c83OwnSecondB = ("c83OwnSecondSlotB" in plan) && plan.c83OwnSecondSlotB;
+        local v134SecondA = V134_AIR_P2P_SATURATED_HUB && ("v134SecondSlotA" in plan) && plan.v134SecondSlotA;
+        local v134SecondB = V134_AIR_P2P_SATURATED_HUB && ("v134SecondSlotB" in plan) && plan.v134SecondSlotB;
+        isSecondSlot = (c83OwnSecondA || c83OwnSecondB || v134SecondA || v134SecondB);
+      }
+
+      local stampValid = !isSecondSlot && ("_v279Stamp" in project) && project._v279Stamp == V279_FILTER_STAMP_ID;
+
+      if (V279_RESELECT_MEMO == 1) {
+        if (stampValid) {
+          V279_HITS++;
+          if (project._v279Live) live.append(project);
+          continue;
+        }
+
+        V279_MISSES++;
+        if (validity == null) {
+          stationLimitedTowns = {};
+          validity = OpexAir0310SiteValidityBegin(stationLimitedTowns);
+        }
+        local isLive = false;
+        if (plan != null && !OpexCandidateIsAbandoned(project, abandonedPairs)) {
+          if (("siteA" in plan) && ("siteB" in plan) && ("airport" in plan) && ("plane" in plan)) {
+            if (!C83_FIXES || lines == null || OpexAirBatchPlanStillLive(plan, lines)) {
+              local reuseA = ("reuseA" in plan) && plan.reuseA;
+              local reuseB = ("reuseB" in plan) && plan.reuseB;
+              local keyA = (reuseA ? "R|" : "N|") + plan.airport.type + "|" + plan.plane.planeType + "|" + plan.siteA.anchor;
+              local keyB = (reuseB ? "R|" : "N|") + plan.airport.type + "|" + plan.plane.planeType + "|" + plan.siteB.anchor;
+              if (OpexAir0310SiteValidityOk(validity, keyA,
+                    plan.siteA, plan.airport, plan.plane, reuseA, stationLimitedTowns)
+                  && OpexAir0310SiteValidityOk(validity, keyB,
+                    plan.siteB, plan.airport, plan.plane, reuseB, stationLimitedTowns)) {
+                isLive = true;
+              }
+            }
+          }
+        }
+        if (!isSecondSlot) {
+          project.rawset("_v279Stamp", V279_FILTER_STAMP_ID);
+          project.rawset("_v279Live", isLive);
+        }
+        if (isLive) live.append(project);
+      } else if (V279_RESELECT_MEMO == 2) {
+        local histLive = false;
+        if (plan != null && !OpexCandidateIsAbandoned(project, abandonedPairs)) {
+          if (("siteA" in plan) && ("siteB" in plan) && ("airport" in plan) && ("plane" in plan)) {
+            if (!C83_FIXES || lines == null || OpexAirBatchPlanStillLive(plan, lines)) {
+              local reuseA = ("reuseA" in plan) && plan.reuseA;
+              local reuseB = ("reuseB" in plan) && plan.reuseB;
+              local keyA = (reuseA ? "R|" : "N|") + plan.airport.type + "|" + plan.plane.planeType + "|" + plan.siteA.anchor;
+              local keyB = (reuseB ? "R|" : "N|") + plan.airport.type + "|" + plan.plane.planeType + "|" + plan.siteB.anchor;
+              if (OpexAir0310SiteValidityOk(validity, keyA,
+                    plan.siteA, plan.airport, plan.plane, reuseA, stationLimitedTowns)
+                  && OpexAir0310SiteValidityOk(validity, keyB,
+                    plan.siteB, plan.airport, plan.plane, reuseB, stationLimitedTowns)) {
+                histLive = true;
+              }
+            }
+          }
+        }
+
+        if (stampValid) {
+          V279_HITS++;
+          local memoLive = ("_v279Live" in project) ? project._v279Live : false;
+          if (memoLive != histLive) {
+            local townA = (plan != null && ("siteA" in plan) && ("town" in plan.siteA) && plan.siteA.town != null && ("id" in plan.siteA.town)) ? plan.siteA.town.id : -1;
+            local townB = (plan != null && ("siteB" in plan) && ("town" in plan.siteB) && plan.siteB.town != null && ("id" in plan.siteB.town)) ? plan.siteB.town.id : -1;
+            local diffMsg = "filter town_a=" + townA + " town_b=" + townB + " memo=" + (memoLive ? 1 : 0) + " hist=" + (histLive ? 1 : 0) + " stamp=" + V279_FILTER_STAMP_ID;
+            OpexDecide("V279_CHECK", diffMsg);
+            if (!DECISION_LOG) {
+              AILog.Warning("V279_CHECK " + diffMsg);
+            }
+          }
+        } else {
+          V279_MISSES++;
+        }
+
+        if (!isSecondSlot) {
+          project.rawset("_v279Stamp", V279_FILTER_STAMP_ID);
+          project.rawset("_v279Live", histLive);
+        }
+        if (histLive) live.append(project);
+      }
+    } else {
+      live.append(project);
+    }
+  }
+  return live;
+}
+
 /* Rejoue UNIQUEMENT la contrainte de capital sur les projets deja produits par le catalogue.
  * candidateGroups porte le vivier ; cette fonction se contente de reaplatir ses alternatives et
  * de retester le capital. Aucune planification rail, recherche de site aerien ou generation de
@@ -1250,7 +1381,9 @@ function OpexReselectProjects(projects, capitalBudget, abandonedPairs = null, li
   }
   if (spPubMerge != null) OpexSpanEnd(spPubMerge);
   local spPubFilt = PROBE_SPAN_TRACE ? OpexSpanBegin("pub.select.filter") : null;
-  alternatives = OpexFilterAirAlternativesStillValid(alternatives, abandonedPairs, lines);
+  alternatives = (V279_RESELECT_MEMO != 0)
+      ? OpexFilterAirAlternativesV279Memo(alternatives, abandonedPairs, lines)
+      : OpexFilterAirAlternativesStillValid(alternatives, abandonedPairs, lines);
   if (spPubFilt != null) OpexSpanEnd(spPubFilt);
   local spPubScore = PROBE_SPAN_TRACE ? OpexSpanBegin("pub.select.score") : null;
   funded = OpexProjectSelectAffordable(alternatives, capitalBudget, PROJECT_TOP_K);

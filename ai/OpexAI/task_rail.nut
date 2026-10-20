@@ -264,7 +264,7 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
 
       if (OPEX_ECONOMY_OPCODE_COMPAT_FALSE) {}
 
-      if (V178_RAIL_SHARED_DEST && !v233Graft && !("joinPlatform" in candidate)) {
+      if (!v233Graft && !("joinPlatform" in candidate)) {
         this._tryAttachSharedDest(candidate);
       }
 
@@ -1268,6 +1268,7 @@ function OpexAI::_recordRailAttempt(candidate, result, posPacked, year, railPlan
       opcodeRatio = ("opcodeRatio" in candidate) ? candidate.opcodeRatio : -1,
       lineId = idx,
     });
+    if (V279_RESELECT_MEMO != 0) OPEX_LINES_REVISION++;
     /* V163 : la rame porte un second cargo ; les seconds trains et le doublement le reprennent. */
     if (("wagons2" in candidate) && candidate.wagons2 > 0) {
       local built = this._lines[this._lines.len() - 1];

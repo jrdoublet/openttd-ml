@@ -231,11 +231,6 @@ function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPl
   }
   local consistMark = freightSetupDetail ? OpexOpsMeasureBegin() : null;
   local calibrationOffered = (monthlyUnits * STATION_RATING_PCT) / 100.0;
-  /* V180 : rame plus longue que l'offre calibree a 50 % (chargement complet, note qui monte). */
-  if (V180_RAIL_WAGON_BOOST_PCT > 0
-      && (V180_RAIL_WAGON_BOOST_DELAY == 0
-          || AIDate.GetYear(AIDate.GetCurrentDate()) >= V180_START_YEAR + V180_RAIL_WAGON_BOOST_DELAY))
-    calibrationOffered = calibrationOffered * (100 + V180_RAIL_WAGON_BOOST_PCT) / 100.0;
   if (calibrationOffered <= 0) return null;
   local wagons = OpexCeilDiv(calibrationOffered, wagon.capacity * referenceTrips);
   if (wagons < 1) wagons = 1;
@@ -475,15 +470,17 @@ function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPl
     result.carried2 <- best.carried2;
     result.revenue2 <- best.revenue2;
   }
-  /* V212 : recalage pax applique APRES le choix du nombre de trains, pour ne deplacer que le
-   * classement et le budget, jamais la rame ni la double voie. Le devis remplace ensuite le
-   * capital (OpexApplyRailActualCapital) : la garde de tresorerie reste sur le cout reel. */
-  if (kind == "pax" && (V212_RAIL_PAX_REVENUE_PCT != 100 || V212_RAIL_PAX_CAPITAL_PCT != 100)) {
+
+  /* V275 bit 2 : recalage pax V212 (revenu 150 %, capital 85 %), qualifie en rail seul,
+   * applique APRES le choix du nombre de trains pour ne deplacer que le classement et le
+   * budget, jamais la rame ni la double voie. Le devis remplace ensuite le capital
+   * (OpexApplyRailActualCapital) : la garde de tresorerie reste sur le cout reel. */
+  if (kind == "pax" && (V275_RAIL_PAX_MM & 2)) {
     /* Le recalage porte sur le revenu ; le profit en decoule comme dans
      * OpexApplyRailActualCapital, pour rester coherent apres le devis. */
-    result.revenueAnnual = (result.revenueAnnual * V212_RAIL_PAX_REVENUE_PCT) / 100;
+    result.revenueAnnual = (result.revenueAnnual * 150) / 100;
     result.profitAnnual = result.revenueAnnual - result.runningAnnual - result.amortAnnual;
-    result.capital = (result.capital * V212_RAIL_PAX_CAPITAL_PCT) / 100;
+    result.capital = (result.capital * 85) / 100;
     local totalCapital = result.capital + result.immobilise;
     result.roi = (result.profitAnnual > 0 && totalCapital > 0)
         ? (result.profitAnnual * 1000) / totalCapital : 0;
@@ -543,41 +540,12 @@ function OpexApplyRailEconomics(candidate, economics)
 }
 
 /* V163 : second cargo memorise sur un candidat rail, a repasser a OpexLineEconomics quand le
- * quai ou le trace reels sont connus. null hors V163 ou sans second cargo. */
+ * quai ou le trace reels sont connus. Conserve pour V207 courrier ; null hors pax V207. */
 function OpexV163CandidateSecondary(candidate)
 {
-  if (!V163_MULTI_CARGO && !(V207_RAIL_MAIL && (("kind" in candidate) && candidate.kind == "pax"))) return null;
+  if (!(V207_RAIL_MAIL && (("kind" in candidate) && candidate.kind == "pax"))) return null;
   if (!("cargo2" in candidate) || !("monthly2" in candidate)) return null;
   return { cargo = candidate.cargo2, monthly = candidate.monthly2 };
-}
-
-/* V163 : cargo produit par la source, autre que `cargo`, accepte par l'industrie destination et
- * transportable par wagon ; le plus produit le mois dernier. null s'il n'y en a pas. */
-function OpexV163SourceOtherCargos(catalog, sourceId, cargo)
-{
-  /* Une fois par source : les autres cargos produits, transportables, avec une production.
-   * Hors ferme la liste est vide et la boucle des destinations ne paie plus rien. */
-  local out = [];
-  if (!AIIndustry.IsValidIndustry(sourceId)) return out;
-  local produced = AICargoList_IndustryProducing(sourceId);
-  for (local c = produced.Begin(); !produced.IsEnd(); c = produced.Next()) {
-    if (c == cargo || !(c in catalog.wagonByCargo)) continue;
-    local monthly = AIIndustry.GetLastMonthProduction(sourceId, c);
-    if (monthly <= 0) continue;
-    out.append({ cargo = c, monthly = monthly });
-  }
-  return out;
-}
-
-function OpexV163SecondaryCargo(others, sinkId)
-{
-  if (!AIIndustry.IsValidIndustry(sinkId)) return null;
-  local best = null;
-  foreach (o in others) {
-    if (AIIndustry.IsCargoAccepted(sinkId, o.cargo) != AIIndustry.CAS_ACCEPTED) continue;
-    if (best == null || o.monthly > best.monthly) best = o;
-  }
-  return best;
 }
 
 /* G3 : le devis AITestMode et le cout finalement debite ne doivent pas seulement proteger la

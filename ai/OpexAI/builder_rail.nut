@@ -729,8 +729,7 @@ function OpexRailPlatformPlans(catalog, candidate)
      * c'est le contrat physique du candidat. Sans ce garde, tomber dans la recherche libre plus
      * bas tout en gardant joinLineId fait ignorer la ligne existante dans _tooClose et permet de
      * contourner ORIGIN_SEPARATION avec une seconde gare. V88 conserve son fallback historique. */
-    local strictOriginReuseJoin = (V178_RAIL_SHARED_DEST
-        && ("shared_dest" in candidate) && candidate.shared_dest)
+    local strictOriginReuseJoin = (("shared_dest" in candidate) && candidate.shared_dest)
         || (V233_GOODS_GRAFT && ("strictJoin" in candidate) && candidate.strictJoin)
         || (V264_CONVERGENT_FREIGHT && ("convergent_dest" in candidate) && candidate.convergent_dest);
     if (!joinB) {

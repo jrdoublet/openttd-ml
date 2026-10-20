@@ -67,8 +67,7 @@ function OpexC83RepairFindSites(ctx, comboIndex, combo, airport, plane)
     local served = OpexAirTownServed(town, ctx.lines, ctx.servedDiag);
     local secondSlot = served && (town.id in ctx.c83TopTownIds) && OpexAirC83SecondSlotOpen(town);
     if (served && !secondSlot) continue;
-    if (!V93_AIRPORT_NO_POP_FLOOR && combo.kind == "large" && town.pop < 600) continue;
-    if (V93_AIRPORT_NO_POP_FLOOR && town.pop < V93_AIRPORT_MIN_POP) continue;
+    if (town.pop < V93_AIRPORT_MIN_POP) continue;
     local target = town.id == ctx.targetTownId;
     local key = town.id + "_" + airport.type;
     local site = null;

@@ -268,6 +268,7 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
         subsidyMultiplier = (isSubsidy && ("subsidyMultiplier" in candidate)) ? candidate.subsidyMultiplier : 1.0,
         lineId = idx,
       });
+      if (V279_RESELECT_MEMO != 0) OPEX_LINES_REVISION++;
       if (("isSubsidy" in candidate) && candidate.isSubsidy) {
         if (this._activeSubsidies != null && (candidate.subsidyId in this._activeSubsidies)) {
           delete this._activeSubsidies[candidate.subsidyId];

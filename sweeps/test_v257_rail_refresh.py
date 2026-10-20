@@ -83,20 +83,15 @@ class RailRefresh(unittest.TestCase):
         cls.choice = body(cls.task, "function OpexV257BestPlan(owner, line, monthly, rating, serviceSpeed, railType, wagonLimits)")
 
     def test_setting_on_at_every_difficulty(self):
-        # 19/10 : defaut 1 a tous les niveaux (decision utilisateur apres la porte A 20x10 PC).
-        setting = re.search(r'name = "v257_rail_refresh",(.*?)\}\);', self.sources["info.nut"], re.S).group(1)
-        for level in ("easy", "medium", "hard", "custom", "default"):
-            self.assertRegex(setting, level + r"_value = 1\b")
-        self.assertIn("min_value = 0, max_value = 1", setting)
-        self.assertIn("V257_RAIL_REFRESH <- false;", self.sources["globals_pre.nut"])
-        self.assertEqual(sum(s.count('GetSetting("v257_rail_refresh")') for s in self.sources.values()), 1)
-        self.assertIn('GetSetting("v257_rail_refresh") == 1', self.sources["settings.nut"])
+        self.assertNotIn('name = "v257_rail_refresh"', self.sources["info.nut"])
+        for text in self.sources.values():
+            self.assertNotIn("V257_RAIL_REFRESH", text)
 
     def test_only_one_hot_path_guard(self):
         orchestrator = self.sources["orchestrator.nut"]
-        self.assertEqual(orchestrator.count("V257_RAIL_REFRESH"), 1)
+        self.assertEqual(orchestrator.count("V257_RAIL_REFRESH"), 0)
         self.assertEqual(orchestrator.count("this._v257ReactiveStep()"), 1)
-        self.assertIn("if (V257_RAIL_REFRESH) this._v257ReactiveStep();", orchestrator)
+        self.assertIn("this._v257ReactiveStep();", orchestrator)
         for name in ("scheduler.nut", "scheduler_tasks.nut", "catalog.nut", "event_handlers.nut"):
             self.assertNotIn("V257", self.sources[name])
 
