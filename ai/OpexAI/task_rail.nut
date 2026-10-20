@@ -786,11 +786,19 @@ function OpexAI::_startRailSearch(candidate, alternativeRatio, hardCap, posPacke
   candidate.searchWeight <- searchWeight;
   local pathfinder = null;
   local segmented = null;
-  {
+  if (V294_RAIL_CONTINUOUS > 0) {
+    pathfinder = OpexCreateRailPathfinder(plan.plansA, plan.plansB, clearanceTiles, searchWeight, outwardSide, null);
+    if (pathfinder == null) {
+      if (DECISION_LOG) {
+        OpexDecide("RAIL_SEARCH", "type=resumable outcome=NOPA iters=0 budget=" + plan.iterationBudget);
+      }
+      plan.reason = "NOPA";
+      return { pending = false, plan = plan };
+    }
+  } else {
     segmented = OpexCreateSegmentedSearch(plan.plansA, plan.plansB, plan.iterationBudget, clearanceTiles, searchWeight, outwardSide, null);
     if (segmented == null) {
       if (DECISION_LOG) {
-
         OpexDecide("RAIL_SEARCH", "type=resumable outcome=NOPA iters=0 budget=" + plan.iterationBudget);
       }
       plan.reason = "NOPA";
@@ -1320,7 +1328,15 @@ function OpexAI::_startRailUpgradeSearch(line, prep)
   line.searchWeight <- searchWeight;
   local pathfinder = null;
   local segmented = null;
-  {
+  if (V294_RAIL_CONTINUOUS > 0) {
+    pathfinder = OpexCreateRailPathfinder(prep.dualA, prep.dualB, prep.ignored, searchWeight, null, null);
+    if (pathfinder == null) {
+      if (DECISION_LOG) OpexDecide("RAIL_SEARCH", "type=resumable outcome=NOPA iters=0 budget=" + prep.iterationBudget);
+      OpexSign(AIMap.GetTileIndex(1, 1), "RU|" + (AIDate.GetYear(AIDate.GetCurrentDate()) % 100)
+               + "|" + line.lineId + "|NOPATH");
+      return;
+    }
+  } else {
     segmented = OpexCreateSegmentedSearch(prep.dualA, prep.dualB, prep.iterationBudget, prep.ignored, searchWeight);
     if (segmented == null) {
       if (DECISION_LOG) OpexDecide("RAIL_SEARCH", "type=resumable outcome=NOPA iters=0 budget=" + prep.iterationBudget);
@@ -1465,7 +1481,19 @@ function OpexAI::_startRailStockSearch(candidate, isRepair = false, repairReason
   candidate.searchWeight <- searchWeight;
   local pathfinder = null;
   local segmented = null;
-  {
+  if (V294_RAIL_CONTINUOUS > 0) {
+    pathfinder = OpexCreateRailPathfinder(plan.plansA, plan.plansB, clearanceTiles, searchWeight, outwardSide, null);
+    if (pathfinder == null) {
+      local pairKey = OpexProjectPairKey(candidate.kind, candidate.cargo, candidate.src, candidate.dst);
+      this._railStockCooldown[pairKey] <- AIDate.GetCurrentDate() + 365;
+      if (isRepair && C56_TASK_TRACE) {
+        OpexC56TaskLog("RAIL_STOCK_REPAIR", "rail_stock", this._taskCycle,
+                       "src=" + candidate.src + " dst=" + candidate.dst
+                       + " reason=" + repairReason + " issue=failed");
+      }
+      return false;
+    }
+  } else {
     segmented = OpexCreateSegmentedSearch(plan.plansA, plan.plansB, plan.iterationBudget, clearanceTiles, searchWeight, outwardSide, null);
     if (segmented == null) {
       local pairKey = OpexProjectPairKey(candidate.kind, candidate.cargo, candidate.src, candidate.dst);

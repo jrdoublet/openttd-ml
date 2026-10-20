@@ -857,6 +857,10 @@ function OpexCreateRailPathfinder(plansA, plansB, ignoredTiles = null, weight = 
   if (weight != null) {
     pathfinder.cost.astar_weight_pct = weight;
   }
+  if (V294_RAIL_BRIDGE_LEN > 0) {
+    pathfinder.cost.max_bridge_length = V294_RAIL_BRIDGE_LEN;
+    pathfinder.cost.max_tunnel_length = V294_RAIL_BRIDGE_LEN;
+  }
   if (outwardSide != null) pathfinder._outwardSide = outwardSide;
   if (guideTiles != null) pathfinder._guideTiles = guideTiles;
   pathfinder.InitializePath(sources, goals, ignoredTiles == null ? [] : ignoredTiles);
@@ -895,6 +899,25 @@ function OpexAdvanceRailPathfinder(pathfinder, spent, iterationBudget, deadlineT
     else { stop = "CONT"; done = false; }
   } else if (path == null) {
     stop = "NOPA";
+  }
+  if (V294_RAIL_CONTINUOUS > 0) {
+    local tiles = null;
+    local structures = null;
+    if (stop == "OK" && path != null && path != false) {
+      tiles = OpexPathTiles(path);
+      structures = [];
+    }
+    return {
+      path = path,
+      tiles = tiles,
+      structures = structures,
+      iterations = spent,
+      stop = stop,
+      done = done,
+      segments = 1,
+      backtracks = 0,
+      localChoices = 0,
+    };
   }
   return { path = path, iterations = spent, stop = stop, done = done };
 }
@@ -1202,6 +1225,7 @@ function OpexCreateSegmentedSearch(plansA, plansB, iterationBudget, ignoredTiles
     bridgeTests = 0,
     tunnelTests = 0,
     weight = weight,
+    bridgeLen = (V294_RAIL_BRIDGE_LEN > 0) ? V294_RAIL_BRIDGE_LEN : null,
     outwardSide = outwardSide,
     guideTiles = guideTiles,
   };
@@ -1233,6 +1257,10 @@ function OpexAdvanceSegmentedSearch(state, sliceIters, deadlineTick)
       pathfinder.cost.max_cost = PATHFINDER_MAX_COST;
       if (("weight" in state) && state.weight != null) {
         pathfinder.cost.astar_weight_pct = state.weight;
+      }
+      if (V294_RAIL_BRIDGE_LEN > 0) {
+        pathfinder.cost.max_bridge_length = V294_RAIL_BRIDGE_LEN;
+        pathfinder.cost.max_tunnel_length = V294_RAIL_BRIDGE_LEN;
       }
       if (("outwardSide" in state) && state.outwardSide != null) pathfinder._outwardSide = state.outwardSide;
       if (("guideTiles" in state) && state.guideTiles != null) pathfinder._guideTiles = state.guideTiles;
