@@ -3415,6 +3415,11 @@ function OpexCompleteRailRouteAfterSearch(catalog, candidate, plan, search)
   for (local i = 1; i < tiles.len(); i++) {
     routeDistance += AIMap.DistanceManhattan(tiles[i - 1], tiles[i]);
   }
+  /* Journal seulement : longueur du trace pour RAIL_ATTEMPT (detour du poids A*). */
+  if (DECISION_LOG) {
+    if (!("routeLen" in candidate)) candidate.routeLen <- routeDistance;
+    else candidate.routeLen = routeDistance;
+  }
   if (routeDistance > 0) {
     local economics = OpexLineEconomics(catalog, candidate.cargo, candidate.distance,
                                         candidate.monthly, candidate.kind, plan.length,

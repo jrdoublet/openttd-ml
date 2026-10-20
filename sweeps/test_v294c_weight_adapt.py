@@ -98,6 +98,9 @@ class TestV294cWeightAdapt(unittest.TestCase):
         rail = (AI / "task_rail.nut").read_text(encoding="utf-8")
         self.assertIn("if (V294C_RAIL_WEIGHT_ADAPT > 0 && DECISION_LOG && (\"segmented\" in state)", rail)
         self.assertIn('" adapt=" + (("v294cAdapt" in candidate) ? candidate.v294cAdapt : "-")', rail)
+        self.assertIn('" len=" + (("routeLen" in candidate) ? candidate.routeLen : -1)', rail)
+        builder = (AI / "builder_rail.nut").read_text(encoding="utf-8")
+        self.assertIn("if (!(\"routeLen\" in candidate)) candidate.routeLen <- routeDistance;", builder)
 
     def test_new_calls_are_guarded_and_no_unregistered_global_or_closure(self):
         create = function(self.builder, "OpexCreateSegmentedSearch")

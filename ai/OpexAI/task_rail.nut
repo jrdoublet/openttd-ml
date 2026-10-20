@@ -1183,7 +1183,8 @@ function OpexAI::_recordRailAttempt(candidate, result, posPacked, year, railPlan
                + " startx=" + (("startx" in result) ? result.startx : -1)
                + " endx=" + (("endx" in result) ? result.endx : -1)
                + " weight=" + (("searchWeight" in candidate) ? candidate.searchWeight : (V91_ASTAR_WEIGHT_PCT))
-               + " adapt=" + (("v294cAdapt" in candidate) ? candidate.v294cAdapt : "-"));
+               + " adapt=" + (("v294cAdapt" in candidate) ? candidate.v294cAdapt : "-")
+               + " len=" + (("routeLen" in candidate) ? candidate.routeLen : -1));
     if (result.ok) {
       local cargoStr = AICargo.GetCargoLabel(candidate.cargo);
       OpexDecide("RAIL_BUILD", "line=" + this._nextLineId + " src=" + candidate.src + " dst=" + candidate.dst
