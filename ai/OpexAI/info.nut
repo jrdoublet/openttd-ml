@@ -317,6 +317,16 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "v269_rail_late_relax",
+      description = "V269: N years after game start, when the rail pool is empty and cash idle, regenerate rail freight up to 250 tiles; 0 = inert, 5 = default (20/10, 40x10 +83.1 k/yr, 24/16)",
+      min_value = 0, max_value = 9,
+      easy_value = 5, medium_value = 5, hard_value = 5,
+      custom_value = 5,
+      step_size = 1,
+      flags = 0
+    });
+
+    AddSetting({
       name = "v216_probe",
       description = "V216: passive estimator probe (SCORE_DECOMP, TOWN_FLOW, generation rejects) until end of year 3. 0 = inert",
       min_value = 0, max_value = 1,

@@ -99,6 +99,8 @@ function OpexLoadSettings()
   V216A_GHOST_DEMAND = AIController.GetSetting("v216a_ghost_demand");
   V216F_DWELL_PCT = AIController.GetSetting("v216f_dwell_pct");
   V264_CONVERGENT_FREIGHT = AIController.GetSetting("v264_convergent_freight") != 0;
+  local lateRelax = AIController.GetSetting("v269_rail_late_relax");
+  V269_RAIL_LATE_RELAX = (lateRelax != null && lateRelax > 0 && lateRelax <= 9) ? lateRelax : 0;
   local v182Years = AIController.GetSetting("v195_v182_years");
   V195_V182_YEARS = (v182Years != null && v182Years > 0 && v182Years <= 10) ? v182Years : 0;
   V190_RAIL_DOUBLE_BUILD = AIController.GetSetting("v190_rail_double_build") != 0;

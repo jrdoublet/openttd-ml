@@ -19,6 +19,15 @@ V182_RAIL_FREIGHT_MIN_DIST <- 0;
 /* V264 : fret convergent vers une industrie deja desservie. Defaut vrai depuis le 19/10 (40x10 PC
  * +111,8 k/an sur 39 paires, accepte par derogation utilisateur). 0 = aucun calcul du mecanisme. */
 V264_CONVERGENT_FREIGHT <- true;
+/* V269 : relachement tardif du vivier rail (orchestrator.nut, _v217RailRefill). 0 = inerte,
+ * N = annees apres le depart (defaut 5 depuis le 20/10, decision utilisateur apres le 40x10
+ * GitHub +83,1 k, 24/16, IC95 [-8 k ; +174 k]). Quand le vivier est vide et la caisse oisive,
+ * la regeneration V217 accepte le fret jusqu'a V269_RAIL_MAX_DIST tuiles. */
+V269_RAIL_LATE_RELAX <- 5;
+V269_RAIL_MAX_DIST <- 250;
+V269_IDLE_CASH_MIN <- 1000000;
+V269_RELAXED <- false;
+V269_ON <- false;
 /* V195 : V182 limite aux N premieres annees (0 = toujours). */
 V195_V182_YEARS <- 0;
 /* V186 : tranches A* rail avancees par passage de file (1..16, defaut 1 = historique). */
