@@ -189,6 +189,10 @@ function OpexLoadSettings()
   if (slopeEngine != null && slopeEngine >= 0) {
     V294_RAIL_SLOPE_ENGINE = slopeEngine;
   }
+  local failMemory = AIController.GetSetting("v294_rail_fail_memory");
+  if (failMemory != null && failMemory >= 0 && failMemory <= 2) {
+    V294_RAIL_FAIL_MEMORY = failMemory;
+  }
   local v295Fast = AIController.GetSetting("v295_astar_fast");
   V295_ASTAR_FAST = (v295Fast != null && v295Fast == 1) ? 1 : 0;
 

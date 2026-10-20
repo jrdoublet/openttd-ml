@@ -116,6 +116,7 @@ class OpexAI extends AIController {
    * petite (quelques abandons par partie) plutot qu'un historique de toutes les tentatives. */
   _abandonedPairs = null;
   _abandonCounts = null;
+  _abandonedPlaces = null;
   _airBuilt = false;
   _waterBuilt = false;
   /* Ordonnanceur permanent : une tache utile et due par tour de file. dueCycle reporte le
@@ -414,6 +415,7 @@ class OpexAI extends AIController {
     this._abandonedPairs = {};
     if (V279_RESELECT_MEMO != 0) OPEX_ABANDON_REVISION++;
     this._abandonCounts = {};
+    this._abandonedPlaces = {};
     this._vehiclesToRetire = {};
     this._unprofitableStreaks = {};
     /* Avant Start(), vider les caches sans avancer l'epoque geometrique,
@@ -558,8 +560,10 @@ class OpexAI extends AIController {
                       portfolio = false, selection = false, affectedKind = null, affectedId = -1,
                       affectedMode = null, targetedRelevant = true);
   function _logStalenessRefresh(reason);
-  function _markPairAbandoned(key);
+  function _markPairAbandoned(key, reason = null);
   function _pruneAbandonedPairs(now);
+  function _markPlaceAbandoned(candidate, end, reason);
+  function _pruneAbandonedPlaces(now);
   function _purgeSubsidyFromProjects(subId);
   function _onVehicleCrashed(event);
   function _onVehicleAutoreplaced(event);

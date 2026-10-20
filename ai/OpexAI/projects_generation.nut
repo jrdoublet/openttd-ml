@@ -1,7 +1,8 @@
 /* Extrait de projects.nut (R14) : Generation par mode, validation des candidats et porte stock rail. Requis depuis projects.nut. */
 
 function OpexGenerateModeProjects(projects, catalog, budget, lines, abandonedPairs, mode,
-                                  waterSiteCatalog = null, entityKind = null, entityId = -1)
+                                  waterSiteCatalog = null, entityKind = null, entityId = -1,
+                                  abandonedPlaces = null)
 {
   local generated = {
     projects = [],
@@ -25,7 +26,7 @@ function OpexGenerateModeProjects(projects, catalog, budget, lines, abandonedPai
     local freightOrder = OpexFreightCargoOrder(catalog);
     local rail = OpexBuildCandidates(catalog, budget, lines, abandonedPairs,
         null, null, null, null, null, generatePax, generateFreight, PAX_BAND_ALL,
-        freightCargo, entityKind, entityId);
+        freightCargo, entityKind, entityId, abandonedPlaces);
     local hasFreight = false;
     foreach (candidate in rail.candidates) {
       if (candidate.kind == "freight") { hasFreight = true; break; }
@@ -49,7 +50,7 @@ function OpexGenerateModeProjects(projects, catalog, budget, lines, abandonedPai
         }
         local extra = OpexBuildCandidates(catalog, budget, lines, abandonedPairs,
             null, null, null, null, null, false, true, PAX_BAND_ALL, fallbackCargo,
-            entityKind, entityId);
+            entityKind, entityId, abandonedPlaces);
         if (DECISION_LOG && impossibleTargetCargo) {
           OpexDecide("RAIL_TARGET_CARGO_SHADOW", "industry=" + entityId
                      + " cargo=" + fallbackCargo + " opcodes=" + extra.opcodes
@@ -69,6 +70,8 @@ function OpexGenerateModeProjects(projects, catalog, budget, lines, abandonedPai
     foreach (candidate in rail.candidates) {
       if (abandonedPairs != null
           && (OpexAbandonedPairKey(candidate) in abandonedPairs)) continue;
+      if (V294_RAIL_FAIL_MEMORY > 0 && abandonedPlaces != null
+          && OpexRailCandidateBannedPlace(candidate, abandonedPlaces) != null) continue;
       local p = OpexProjectFromCandidate(candidate);
       if (p != null) generated.projects.append(p);
     }
@@ -163,7 +166,8 @@ function OpexApplyGeneratedModeProjects(projects, generated, abandonedPairs, mod
 }
 
 function OpexRegenerateModeProjects(projects, catalog, budget, lines, abandonedPairs, mode,
-                                    waterSiteCatalog = null, entityKind = null, entityId = -1)
+                                    waterSiteCatalog = null, entityKind = null, entityId = -1,
+                                    abandonedPlaces = null)
 {
   if (projects == null || !(("candidateGroups" in projects)) || projects.candidateGroups == null) {
     return projects;
@@ -174,7 +178,8 @@ function OpexRegenerateModeProjects(projects, catalog, budget, lines, abandonedP
   }
   local spMode = PROBE_SPAN_TRACE ? OpexSpanBegin("regen.mode") : null;
   local generated = OpexGenerateModeProjects(projects, catalog, budget, lines, abandonedPairs,
-                                             mode, waterSiteCatalog, entityKind, entityId);
+                                             mode, waterSiteCatalog, entityKind, entityId,
+                                             abandonedPlaces);
   local applied = OpexApplyGeneratedModeProjects(projects, generated, abandonedPairs, mode,
                                         entityKind, entityId, lines);
   if (spMode != null) OpexSpanEnd(spMode);
@@ -249,19 +254,25 @@ function OpexRegenerateAirProjectsSlice(projects, catalog, budget, lines, abando
   };
 }
 
-function OpexCandidateIsAbandoned(p, abandonedPairs)
+function OpexCandidateIsAbandoned(p, abandonedPairs, abandonedPlaces = null)
 {
-  if (p == null || abandonedPairs == null) return false;
+  if (p == null) return false;
   local mode = ("mode" in p) ? p.mode : "";
   if (mode == "air") {
+    if (abandonedPairs == null) return false;
     local plan = ("payload" in p) ? p.payload : null;
     if (plan != null && ("siteA" in plan) && ("siteB" in plan)) {
       if (OpexAirPairIsAbandoned(abandonedPairs, plan.siteA, plan.siteB)) return true;
     }
   } else if ((mode == "road" || mode == "rail")) {
     if (("payload" in p) && p.payload != null) {
-      local aKey = OpexAbandonedPairKey(p.payload);
-      if (aKey in abandonedPairs) return true;
+      if (abandonedPairs != null) {
+        local aKey = OpexAbandonedPairKey(p.payload);
+        if (aKey in abandonedPairs) return true;
+      }
+      if (mode == "rail" && V294_RAIL_FAIL_MEMORY > 0 && abandonedPlaces != null) {
+        if (OpexRailCandidateBannedPlace(p.payload, abandonedPlaces) != null) return true;
+      }
     }
   }
   return false;
@@ -271,13 +282,13 @@ function OpexCandidateIsAbandoned(p, abandonedPairs)
  * Verifie qu'aucune extremite n'est devenue invalide, qu'aucune ligne identique n'a ete batie,
  * et que les contraintes physiques du mode tiennent toujours. */
 /* C36.1 : Revalidation rapide d'un candidat deja en memoire contre this._lines. */
-function OpexCandidateStillValid(p, lines, abandonedPairs = null)
+function OpexCandidateStillValid(p, lines, abandonedPairs = null, abandonedPlaces = null)
 {
   if (p == null) return false;
   local mode = p.mode;
 
   /* 0. Candidat abandonne (echec de trace ou depot) */
-  if (OpexCandidateIsAbandoned(p, abandonedPairs)) return false;
+  if (OpexCandidateIsAbandoned(p, abandonedPairs, abandonedPlaces)) return false;
 
   if (mode == "road" && ("payload" in p) && p.payload != null &&
       ("isRoadExtension" in p.payload) && p.payload.isRoadExtension) {
@@ -398,10 +409,11 @@ function OpexCandidateStillValid(p, lines, abandonedPairs = null)
 }
 
 /* C36.1 : Point d'entree unifie de revalidation incrementale. */
-function OpexIncrementalCandidateStillValid(p, lines, abandonedPairs = null, ctx = null)
+/* function OpexIncrementalCandidateStillValid(p, lines, abandonedPairs = null, ctx = null) */
+function OpexIncrementalCandidateStillValid(p, lines, abandonedPairs = null, ctx = null, abandonedPlaces = null)
 {
-  if (ctx != null) return OpexCandidateStillValidIndexed(p, lines, abandonedPairs, ctx);
-  return OpexCandidateStillValid(p, lines, abandonedPairs);
+  if (ctx != null) return OpexCandidateStillValidIndexed(p, lines, abandonedPairs, ctx, abandonedPlaces);
+  return OpexCandidateStillValid(p, lines, abandonedPairs, abandonedPlaces);
 }
 
 /* V156 : Construction d'un contexte d'indexation pour la revalidation incrementale du vivier.
@@ -515,13 +527,14 @@ function OpexIncrRevalidateIndexContext(lines)
 
 /* V156 : Revalidation incrementale indexee d'un candidat du vivier contre ctx et lines.
  * Structure de decision et court-circuits strictement equivalents a OpexCandidateStillValid. */
-function OpexCandidateStillValidIndexed(p, lines, abandonedPairs, ctx)
+/* function OpexCandidateStillValidIndexed(p, lines, abandonedPairs, ctx) */
+function OpexCandidateStillValidIndexed(p, lines, abandonedPairs, ctx, abandonedPlaces = null)
 {
   if (p == null) return false;
   local mode = p.mode;
 
   /* 0. Candidat abandonne (echec de trace ou depot) */
-  if (OpexCandidateIsAbandoned(p, abandonedPairs)) return false;
+  if (OpexCandidateIsAbandoned(p, abandonedPairs, abandonedPlaces)) return false;
 
   if (mode == "road" && ("payload" in p) && p.payload != null &&
       ("isRoadExtension" in p.payload) && p.payload.isRoadExtension) {

@@ -259,6 +259,21 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
         if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "abandoned_pair", extra = "" });
         return { outcome = "rejected", discards = passDiscards };
       }
+      if (V294_RAIL_FAIL_MEMORY > 0 && this._abandonedPlaces != null) {
+        local placeKey = OpexRailCandidateBannedPlace(candidate, this._abandonedPlaces);
+        if (placeKey != null) {
+          local entry = this._abandonedPlaces[placeKey];
+          local rsn = ("reason" in entry) ? entry.reason : "SITE";
+          local unt = ("until" in entry) ? entry.until : (entry.date + (("cooldown" in entry) ? entry.cooldown : ABANDON_COOLDOWN_DAYS));
+          if (DECISION_LOG) {
+            OpexDecide("V294G", "event=place_skip key=" + placeKey + " reason=" + rsn + " until=" + unt);
+          }
+          if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL)
+            passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst,
+                                  reason = "v294g_place", extra = "place=" + placeKey });
+          return { outcome = "rejected", discards = passDiscards };
+        }
+      }
       /* M4/16.2 : aucun A* ni devis terrain pour un projet qui ne pourra physiquement acheter
        * aucun train. OpexExecuteRailPlan refait la meme garde juste avant la premiere depense pour
        * couvrir la course avec une recherche reprenable. */
@@ -1357,7 +1372,15 @@ function OpexAI::_recordRailAttempt(candidate, result, posPacked, year, railPlan
                          || (RAIL_GEOMETRY_GUARD && RAIL_GEOMETRY_PAIR_MEMORY
                              && result.reason == "TRKFAIL"
                              && ("persistentGeometry" in result) && result.persistentGeometry))) {
-    this._markPairAbandoned(OpexAbandonedPairKey(candidate));
+    this._markPairAbandoned(OpexAbandonedPairKey(candidate), result.reason);
+    if (V294_RAIL_FAIL_MEMORY > 0) {
+      if (result.reason == "SITEA" || result.reason == "SITEAB") {
+        this._markPlaceAbandoned(candidate, "A", result.reason);
+      }
+      if (result.reason == "SITEB" || result.reason == "SITEAB") {
+        this._markPlaceAbandoned(candidate, "B", result.reason);
+      }
+    }
   }
   return false;
 }

@@ -74,11 +74,11 @@ function OpexEmptyRailCandidates()
  * construction peut avoir rendu une paire desservie entre deux etapes. Passer
  * les objets bruts par la meme validation que le cache incremental avant de les
  * reinjecter empeche le projet qui vient d'etre construit de revenir en tete. */
-function OpexStagedCandidateStillValid(candidate, lines, abandonedPairs = null)
+function OpexStagedCandidateStillValid(candidate, lines, abandonedPairs = null, abandonedPlaces = null)
 {
   if (candidate == null) return false;
   local project = OpexProjectFromCandidate(candidate);
-  return project != null && OpexIncrementalCandidateStillValid(project, lines, abandonedPairs);
+  return project != null && OpexIncrementalCandidateStillValid(project, lines, abandonedPairs, null, abandonedPlaces);
 }
 
 function OpexStagedAirPlanStillValid(catalog, plan, lines, abandonedPairs = null)
@@ -118,7 +118,7 @@ function OpexMergeRailCandidateSet(base, extra)
 function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPairs = null,
                            generationStage = null, priorProjects = null, freightCargo = null,
                            freightCargoOrder = null, activeSubsidies = null, airOverride = null,
-                           railReadyStock = null)
+                           railReadyStock = null, abandonedPlaces = null)
 {
   if (V276_CAND_SLICES > 0) OpexV276Request(catalog);
   local cost = CATALOG_COST_ACTIVE;
@@ -207,7 +207,7 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
     local spRail = PROBE_SPAN_TRACE ? OpexSpanBegin("build.rail") : null;
     rail = OpexBuildCandidates(catalog, budget, lines, abandonedPairs, railCandidateProfile,
         railPaxProfile, railPaxCandidateProfile, railPaxCruiseCache, railFreightCruiseCache,
-        doPaxRail, doFreight, paxBand, freightCargo, null, -1);
+        doPaxRail, doFreight, paxBand, freightCargo, null, -1, abandonedPlaces);
     if (spRail != null) OpexSpanEnd(spRail);
     if (V276_CAND_SLICES <= 0 && priorProjects != null && ("rail" in priorProjects)
         && priorProjects.rail != null && ("candidates" in priorProjects.rail)) {
@@ -217,7 +217,7 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
          * normale vient de la regenerer avec l'etat courant : ne conserver
          * ici que le fret herite pour ne pas dupliquer chaque paire pax. */
         local replaced = generationStage == OPEX_STAGE_AIR_RAIL && c.kind == "pax";
-        if (!replaced && OpexStagedCandidateStillValid(c, lines, abandonedPairs)) {
+        if (!replaced && OpexStagedCandidateStillValid(c, lines, abandonedPairs, abandonedPlaces)) {
           merged.append(c);
         }
       }
@@ -230,7 +230,7 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
     rail = priorProjects.rail;
     local liveRail = [];
     foreach (c in rail.candidates) {
-      if (OpexStagedCandidateStillValid(c, lines, abandonedPairs)) liveRail.append(c);
+      if (OpexStagedCandidateStillValid(c, lines, abandonedPairs, abandonedPlaces)) liveRail.append(c);
     }
     rail.candidates = liveRail;
     rail.best = OpexTopK(liveRail, TOP_K);
@@ -261,7 +261,7 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
         local spRailFb = PROBE_SPAN_TRACE ? OpexSpanBegin("build.rail") : null;
         local extraFreight = OpexBuildCandidates(catalog, budget, lines, abandonedPairs,
             railCandidateProfile, null, null, null, railFreightCruiseCache,
-            false, true, PAX_BAND_ALL, nextCargo, null, -1);
+            false, true, PAX_BAND_ALL, nextCargo, null, -1, abandonedPlaces);
         if (spRailFb != null) OpexSpanEnd(spRailFb);
         tried++;
         if (extraFreight.candidates.len() == 0) continue;
@@ -380,7 +380,8 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
     local spPaxFb = PROBE_SPAN_TRACE ? OpexSpanBegin("build.rail") : null;
     local paxFallback = OpexBuildCandidates(catalog, budget, lines, abandonedPairs,
         railCandidateProfile, railPaxProfile, railPaxCandidateProfile,
-        railPaxCruiseCache, railFreightCruiseCache, true, false, PAX_BAND_AIR_RAIL);
+        railPaxCruiseCache, railFreightCruiseCache, true, false, PAX_BAND_AIR_RAIL,
+        null, null, -1, abandonedPlaces);
     if (spPaxFb != null) OpexSpanEnd(spPaxFb);
     rail = OpexMergeRailCandidateSet(rail, paxFallback);
     if (railProfile != null) {
@@ -453,6 +454,10 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
     local railProjectsBefore = stats.modeCandidates;
     foreach (candidate in rail.candidates) {
       if (abandonedPairs != null && (OpexAbandonedPairKey(candidate) in abandonedPairs)) {
+        abandonFiltered++;
+        continue;
+      }
+      if (V294_RAIL_FAIL_MEMORY > 0 && OpexRailCandidateBannedPlace(candidate, abandonedPlaces) != null) {
         abandonFiltered++;
         continue;
       }

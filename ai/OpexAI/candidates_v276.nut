@@ -150,7 +150,7 @@ function OpexV276PrepareUnit(s, u)
 /* Une seule paire du catalogue original, avec indices remappes. Les gardes
  * metier (V163/V179/V264, courrier, origine, abandon) restent dans les generateurs.
  * Aucun appel OpexBuildCandidates ici : pas de recursion ni de drapeau global bypass. */
-function OpexV276Evaluate(s, u, a, b, lines, abandonedPairs, budget)
+function OpexV276Evaluate(s, u, a, b, lines, abandonedPairs, budget, abandonedPlaces = null)
 {
   local catalog = clone s.catalog;
   local out = [];
@@ -160,7 +160,7 @@ function OpexV276Evaluate(s, u, a, b, lines, abandonedPairs, budget)
     catalog.towns = a < b ? [s.catalog.towns[a], s.catalog.towns[b]]
         : [s.catalog.towns[b], s.catalog.towns[a]];
     OpexPaxCandidates(catalog, lines, out, OpexRailCandidateStats(), abandonedPairs,
-                      null, null, null, u.band);
+                      null, null, null, u.band, null, -1, abandonedPlaces);
   } else {
     local sources = s.catalog.producers[u.cargo];
     local sinks = u.cargo in s.catalog.acceptors ? s.catalog.acceptors[u.cargo] : [];
@@ -185,7 +185,7 @@ function OpexV276Evaluate(s, u, a, b, lines, abandonedPairs, budget)
       local road = OpexBuildRoadCandidates(catalog, budget, lines, abandonedPairs, null, u.cargo, null, -1, true);
       out = road.candidates;
     } else OpexFreightCandidates(catalog, lines, out, OpexRailCandidateStats(),
-                                 abandonedPairs, null, null, u.cargo);
+                                 abandonedPairs, null, null, u.cargo, null, -1, abandonedPlaces);
   }
   return out;
 }
@@ -206,7 +206,7 @@ function OpexV276Publish(owner, task, s, u)
     local unitKey = OpexV276UnitKey(unit);
     if (unit.mode != u.mode || !(unitKey in s.batches)) continue;
     foreach (candidate in s.batches[unitKey]) {
-      if (OpexStagedCandidateStillValid(candidate, owner._lines, owner._abandonedPairs)) pool.append(candidate);
+      if (OpexStagedCandidateStillValid(candidate, owner._lines, owner._abandonedPairs, owner._abandonedPlaces)) pool.append(candidate);
     }
   }
   /* Le vivier conserve TOP_K par unite, pas les ~100000 paires enumerees. */
@@ -216,7 +216,7 @@ function OpexV276Publish(owner, task, s, u)
   result["best"] = OpexTopK(pool, TOP_K);
   result.all = pool.len();
   foreach (candidate in pool) {
-    if (!OpexStagedCandidateStillValid(candidate, owner._lines, owner._abandonedPairs)) continue;
+    if (!OpexStagedCandidateStillValid(candidate, owner._lines, owner._abandonedPairs, owner._abandonedPlaces)) continue;
     local project = OpexProjectFromCandidate(candidate);
     if (project != null) generated.projects.append(project);
   }
@@ -342,7 +342,8 @@ function OpexV276Continue(owner, task, opsBudget, deadlineTick)
       ::OpexSitableCache = {}; // terrain/gares peuvent avoir change entre deux tranches
       s.lastAtom = "economics";
       local evaluated = OpexV276Evaluate(s, u, key / n, key % n,
-                                        owner._lines, owner._abandonedPairs, owner._budget);
+                                        owner._lines, owner._abandonedPairs, owner._budget,
+                                        owner._abandonedPlaces);
       foreach (candidate in evaluated) s.unitBest.append(candidate);
       s.unitBest = OpexTopK(s.unitBest, TOP_K);
       s.unitEvaluated++; s.evaluated++;
