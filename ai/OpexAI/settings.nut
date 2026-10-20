@@ -195,6 +195,8 @@ function OpexLoadSettings()
   V296_RAIL_BATCH_BUILD = (v296Batch != null && v296Batch == 1) ? 1 : 0;
   local v296Native = AIController.GetSetting("v296_native_sites");
   V296_NATIVE_SITES = (v296Native != null && v296Native >= 0 && v296Native <= 2) ? v296Native : 0;
+  local v296Astar = AIController.GetSetting("v296_astar_native");
+  V296_ASTAR_NATIVE = (v296Astar != null && v296Astar >= 0 && v296Astar <= 2) ? v296Astar : 0;
 
   // V246 : paquets adoptes figes ; les interrupteurs de mode restent actifs.
   ROAD_BUILD_ENABLED = MODE_ROAD;

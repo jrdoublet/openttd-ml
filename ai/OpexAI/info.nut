@@ -751,6 +751,13 @@ class OpexAIInfo extends AIInfo {
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0, flags = 0, step_size = 1
     });
+    AddSetting({
+      name = "v296_astar_native",
+      description = "V296b: native AIList rail A*; 0 = V129 (default), 1 = native, 2 = compare with V129",
+      min_value = 0, max_value = 2,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0, flags = 0, step_size = 1
+    });
   }
 }
 
