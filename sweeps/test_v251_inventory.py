@@ -43,7 +43,7 @@ class TestV251Inventory(unittest.TestCase):
 
     def test_no_new_public_setting(self):
         info = self.sources["info.nut"]
-        self.assertLessEqual(info.count("AddSetting("), 70)  # V263b : 81 moins 11 retraits approuves le 20/10.
+        self.assertLessEqual(info.count("AddSetting("), 71)  # V263b : 81 moins 11 retraits approuves le 20/10 ; +1 V275 (fusion du 20/10).
         self.assertNotIn('name = "v251', info)
         settings = self.sources["settings.nut"]
         self.assertNotIn('GetSetting("v251', settings)

@@ -578,6 +578,15 @@ class OpexAIInfo extends AIInfo {
       flags = 0
     });
     AddSetting({
+      name = "v275_rail_pax_mm",
+      description = "V275: passenger rail compatible with air (bitmask): 1 = no passenger rail pair touching a town served by one of our airports, 2 = V212 recalibration (revenue 150 %, capital 85 %), 4 = with air enabled, no passenger rail candidate before the third year, 8 = by mode: without air, bits 1/2/4 plus the V207 package (share 40, mail, 2 joined stops) when V207 settings are at their defaults; with air, whole mask cleared; 15 = default, 0 = off",
+      min_value = 0, max_value = 15,
+      easy_value = 15, medium_value = 15, hard_value = 15,
+      custom_value = 15,
+      step_size = 1,
+      flags = 0
+    });
+    AddSetting({
       name = "v249_statue",
       description = "V249: when rich (no loan, no project pass stopped for cash during the last month, cash still covering the reserve and the most expensive listed project after the statue), build at most one town statue per month in the served town with the highest line profit; 1 = on, 0 = off (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,

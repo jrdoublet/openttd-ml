@@ -457,6 +457,22 @@
       "raw_sha256": "1f2b594573f7a62b1866f95d14d9307467a41e9e76919e9e682a7906fec06e3b",
       "gzip_bytes": 1767,
       "gzip_sha256": "bd8b61f9d4790a47bccbcd30bc7cead39526c273d7066e4f64d5452e4d73e44d"
+    },
+    {
+      "source": "results/v275_railseul_porteA_40x3_pc_20261019.json",
+      "evidence": "evidence/review/results/v275_railseul_porteA_40x3_pc_20261019.json.gz",
+      "raw_bytes": 1609154,
+      "raw_sha256": "3576492ffe5079981efc5056c14f40fae497e248650445da7474c4b4b39dc70c",
+      "gzip_bytes": 77300,
+      "gzip_sha256": "cec13d870343690747bd56558b82d6ba93593e4d66ec402869fece0448efbbc0"
+    },
+    {
+      "source": "results/v275_railseul_porteA_40x3_pc_20261019.manifest.json",
+      "evidence": "evidence/review/results/v275_railseul_porteA_40x3_pc_20261019.manifest.json.gz",
+      "raw_bytes": 76753,
+      "raw_sha256": "37021b087baa95b027259288c03173439ff4a57a6e8f9ed2a2963657812a29af",
+      "gzip_bytes": 12127,
+      "gzip_sha256": "80cfe12066a96862b1db0cf15e51de8e60548658d520a224331b2a9db7a39a16"
     }
   ],
   "missing": []

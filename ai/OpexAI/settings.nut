@@ -116,6 +116,22 @@ function OpexLoadSettings()
   V207_RAIL_PAX_JOINED_STOPS = (v207Stops != null && v207Stops >= 0 && v207Stops <= 4) ? v207Stops : 0;
   local v207Rank = AIController.GetSetting("v207_rail_pax_site_rank_pct");
   V207_RAIL_PAX_SITE_RANK_PCT = (v207Rank != null && v207Rank >= 0 && v207Rank <= 100) ? v207Rank : 0;
+  local v275 = AIController.GetSetting("v275_rail_pax_mm");
+  V275_RAIL_PAX_MM = (v275 != null && v275 >= 0 && v275 <= 15) ? v275 : 0;
+  /* V275 bit 8 (defaut 15 depuis le 20/10, decision utilisateur) : reglage selon le mode.
+   * Sans aerien, paquet qualifie en rail seul (portes A +635 k et B +791 k) : bits 1/2/4 et,
+   * si les reglages V207 sont a leur defaut, part 40 + courrier + 2 arrets joints. Avec
+   * l'aerien, masque ramene a 0 : le paquet y perd a 3 ans (-71 k) et le bras sobre y est
+   * neutre (+0,2 k), donc le comportement multimodal reste celui d'avant V275. */
+  if (V275_RAIL_PAX_MM & 8) {
+    if (MODE_AIR) {
+      V275_RAIL_PAX_MM = 0;
+    } else if (V207_RAIL_PAX_SHARE_PCT == 0 && !V207_RAIL_MAIL && V207_RAIL_PAX_JOINED_STOPS == 0) {
+      V207_RAIL_PAX_SHARE_PCT = 40;
+      V207_RAIL_MAIL = true;
+      V207_RAIL_PAX_JOINED_STOPS = 2;
+    }
+  }
   local v190Delay = AIController.GetSetting("v190_rail_double_delay");
   if (v190Delay == null || v190Delay < 0) v190Delay = 0;
   V190_FROM_YEAR = AIDate.GetYear(AIDate.GetCurrentDate()) + v190Delay;
