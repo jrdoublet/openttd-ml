@@ -203,6 +203,15 @@ class TestV249Statues(unittest.TestCase):
                     self.assertIn(part, valid_api)
 
 
+class V249CarriedUnits(unittest.TestCase):
+    def test_pred_carried_is_annualised(self):
+        # predCarried est mensuel : le revenu par unite et la capacite libre sont annuels.
+        import pathlib
+        code = pathlib.Path(__file__).resolve().parents[1].joinpath("ai", "OpexAI", "task_v249.nut").read_text()
+        self.assertIn("line.predCarried * 12 : 0", code)
+        self.assertNotIn("/ line.predCarried;", code)
+
+
 class V249NoRootTable(unittest.TestCase):
     def test_no_getroottable(self):
         # getroottable() n'existe pas dans le Squirrel d'OpenTTD (erreur au smoke du 20/10).

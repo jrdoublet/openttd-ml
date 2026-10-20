@@ -173,7 +173,9 @@ function OpexV249LineServiceInfo(line, stationId, cargo)
   local annualTrips = 365.0 / roundTripDays;
   local annualCapacity = (totalVehCap * annualTrips).tointeger();
 
-  local currentCarried = ("predCarried" in line && line.predCarried > 0) ? line.predCarried : 0;
+  /* predCarried est mensuel (economy.nut, air_economics_c121.nut : capacite par mois) ; le reste
+   * du calcul est annuel. */
+  local currentCarried = ("predCarried" in line && line.predCarried > 0) ? line.predCarried * 12 : 0;
   local spareCapacity = annualCapacity - currentCarried;
   if (spareCapacity < 0) spareCapacity = 0;
 
@@ -182,9 +184,9 @@ function OpexV249LineServiceInfo(line, stationId, cargo)
   if (profit > 0 && currentCarried > 0) {
     unitRevenue = profit.tofloat() / currentCarried;
   } else if (("predRevenue" in line) && line.predRevenue > 0 && ("predCarried" in line) && line.predCarried > 0) {
-    unitRevenue = line.predRevenue.tofloat() / line.predCarried;
+    unitRevenue = line.predRevenue.tofloat() / (line.predCarried * 12);
   } else if (("predicted" in line) && line.predicted > 0 && ("predCarried" in line) && line.predCarried > 0) {
-    unitRevenue = line.predicted.tofloat() / line.predCarried;
+    unitRevenue = line.predicted.tofloat() / (line.predCarried * 12);
   }
 
   return { spareCapacity = spareCapacity, unitRevenue = unitRevenue };
