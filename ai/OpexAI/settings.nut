@@ -56,6 +56,7 @@ function OpexResolveDifficulty()
  * restent dans Start(), juste apres l'appel. */
 function OpexLoadSettings()
 {
+  V279_RESELECT_MEMO = AIController.GetSetting("v279_reselect_memo");
   V233_PENDING_CONTINUE = AIController.GetSetting("v233_pending_continue") != 0;
   V233_GOODS_GRAFT = AIController.GetSetting("v233_goods_graft") != 0;
   if (V233_GOODS_GRAFT && !V233_PENDING_CONTINUE) {
@@ -141,6 +142,8 @@ function OpexLoadSettings()
   V250_RIGHTS = rights;
   local v259Renew = AIController.GetSetting("v259_bridge_renew");
   V259_BRIDGE_RENEW = (v259Renew != null && v259Renew == 1) ? 1 : 0;
+  local v277Pub = AIController.GetSetting("v277_air_pub_fast");
+  V277_AIR_PUB_FAST = (v277Pub != null && v277Pub >= 0 && v277Pub <= 2) ? v277Pub : 0;
 
   // V246 : paquets adoptes figes ; les interrupteurs de mode restent actifs.
   ROAD_BUILD_ENABLED = MODE_ROAD;

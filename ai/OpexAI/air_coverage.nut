@@ -18,6 +18,7 @@ function OpexAirResetSiteCache(invalidateGeometry = true)
   AIR_STATION_COVERAGE_HITS = 0;
   AIR_STATION_COVERAGE_MISSES = 0;
   if (invalidateGeometry) OpexAir0310InvalidateSiteValidity();
+  if (V279_RESELECT_MEMO != 0) OPEX_AIR_SITE_EPOCH++;
 }
 
 function OpexAirResetStationCoverageTownCache()
@@ -47,6 +48,7 @@ function OpexAir0310SiteValidityMonth()
 function OpexAir0310InvalidateSiteValidity()
 {
   AIR0310_SITE_VALIDITY_STATE = null;
+  if (V279_RESELECT_MEMO != 0) OPEX_AIR_SITE_EPOCH++;
 }
 
 function OpexAir0310SiteValidityBegin(stationLimitedTowns)
@@ -83,6 +85,7 @@ function OpexAirInvalidateCachedSite(site, airport)
   local key = site.town.id + "_" + airport.type;
   if (key in AIR_SITE_CACHE && AIR_SITE_CACHE[key] == site.anchor) {
     delete AIR_SITE_CACHE[key];
+    if (V279_RESELECT_MEMO != 0) OPEX_AIR_SITE_EPOCH++;
   }
 }
 

@@ -20,7 +20,12 @@ import tarfile
 import tempfile
 from urllib.request import Request, urlopen
 
-from qualification import SEEDS, SEEDS_40
+try:
+    from sweeps.qualification import SEEDS, SEEDS_40
+    from sweeps.campaign_freeze import validate_simulation_bounds
+except ImportError:
+    from qualification import SEEDS, SEEDS_40
+    from campaign_freeze import validate_simulation_bounds
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -79,6 +84,25 @@ def make_plan(env):
     telemetry = env.get("BENCH_LINE_TELEMETRY", "false")
     if telemetry not in ("true", "false") or (mode == "solo" and telemetry == "true"):
         raise ValueError("line_telemetry est un booleen reserve aux duels")
+    raw_start_year = env.get("BENCH_START_YEAR")
+    raw_start_year = ("" if raw_start_year is None else str(raw_start_year)).strip()
+    raw_map_size = env.get("BENCH_MAP_SIZE")
+    raw_map_size = ("" if raw_map_size is None else str(raw_map_size)).strip()
+    try:
+        start_year = int(raw_start_year) if raw_start_year else 1970
+    except ValueError:
+        raise ValueError(f"start_year doit être un entier (reçu: {raw_start_year!r})")
+    try:
+        map_size = int(raw_map_size) if raw_map_size else 8
+    except ValueError:
+        raise ValueError(f"map_size doit être un entier (reçu: {raw_map_size!r})")
+
+    validate_simulation_bounds(start_year, map_size)
+    if map_size not in (8, 9, 10):
+        raise ValueError(f"map_size doit être parmi 8, 9, 10 (reçu: {map_size})")
+    if mode == "solo" and (start_year != 1970 or map_size != 8):
+        raise ValueError("Le mode solo (smoke_test.py) ne supporte pas d'année de départ ou de taille de carte non standard")
+
     run_id, attempt = env.get("GITHUB_RUN_ID", ""), env.get("GITHUB_RUN_ATTEMPT", "")
     if not re.fullmatch(r"\d+", run_id) or not re.fullmatch(r"\d+", attempt):
         raise ValueError("Identifiants GitHub run/attempt requis")
@@ -86,6 +110,7 @@ def make_plan(env):
     return dict(mode=mode, profile=profile, reference=reference, variant=variant,
                 years=years, seeds=seeds, minimum=minimum, guard=guard,
                 telemetry=telemetry == "true", campaign=campaign,
+                start_year=start_year, map_size=map_size,
                 output=f"results/{campaign}/bench.json",
                 expected_games=(len(seeds) if seeds is not None else
                                 40 if profile == "gain_short" else 20) * (2 if mode == "paired" else 1))
@@ -96,13 +121,16 @@ def command_for(plan, root=ROOT):
     if plan["seeds"] is not None:
         common += ["--seeds", *map(str, plan["seeds"])]
     if plan["mode"] == "solo":
+        if plan.get("start_year", 1970) != 1970 or plan.get("map_size", 8) != 8:
+            raise ValueError("Le mode solo (smoke_test.py) ne supporte pas d'année de départ ou de taille de carte non standard")
         return ["docker", "run", "--rm", "--cpus=3", "--memory=2g", "--memory-swap=2g",
                 "-v", "openttd-lab-home:/home/lab", "-v", f"{root}:/work", "-w", "/work",
                 "openttd-lab:github", "python3", "sweeps/smoke_test.py",
                 "--arm", plan["reference"], *common]
+    timeout = 1800 * 4 if plan["map_size"] >= 10 else 1800 * 2 if plan["map_size"] == 9 else 1800
     command = [sys.executable, "sweeps/run_c66_reference.py", "--image", "openttd-lab:github",
                "--campaign", plan["campaign"], "--cpus", "3", "--memory", "2g",
-               "--engine-timeout", "1800", "--decision-rule",
+               "--engine-timeout", str(timeout), "--decision-rule",
                "non_erosion" if plan["profile"] == "non_erosion" else "gain_short", *common]
     if plan["reference"] != "OpexAI":
         command += ["--reference", plan["reference"]]
@@ -117,6 +145,10 @@ def command_for(plan, root=ROOT):
             command += ["--required-seeds", "40", "--required-years", "3"]
     if plan["telemetry"]:
         command += ["--line-telemetry"]
+    if plan["start_year"] != 1970:
+        command += ["--start-year", str(plan["start_year"])]
+    if plan["map_size"] != 8:
+        command += ["--map-size", str(plan["map_size"])]
     return command
 
 
@@ -242,9 +274,13 @@ def profit_summary_lines(plan, report):
 
 
 def summary_text(plan, report):
+    start_year = plan.get("start_year", 1970)
+    map_size = plan.get("map_size", 8)
     lines = ["## Banc OpenTTD", f"- Campagne : `{plan['campaign']}`",
              f"- Mode / profil : `{plan['mode']}` / `{plan['profile']}`",
-             f"- Horizon : {plan['years']} ans ; parties attendues : {plan['expected_games']}"]
+             f"- Horizon : {plan['years']} ans ; parties attendues : {plan['expected_games']}",
+             f"- Année de départ : {start_year}",
+             f"- Taille de carte : {2**map_size}² (exposant {map_size})"]
     if report is None:
         lines += ["- **Rapport final absent : campagne non validée.** Consulter les logs et artefacts partiels."]
     elif plan["mode"] == "solo":

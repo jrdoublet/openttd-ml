@@ -39,9 +39,11 @@ function OpexAirRollback(airportA, airportB, planes, pairKey = "")
   local traceId = "";
   /* Enregistrer AVANT toute commande susceptible de suspendre / sauvegarder. */
   OPEX_AIR_ROLLBACKS.append(ticket);
+  if (V279_RESELECT_MEMO != 0) OPEX_AIR_ROLLBACK_REVISION++;
   OpexAir0310InvalidateSiteValidity();
   if (OpexAirContinueRollback(ticket)) {
     OPEX_AIR_ROLLBACKS.pop();
+    if (V279_RESELECT_MEMO != 0) OPEX_AIR_ROLLBACK_REVISION++;
     AILog.Info("AIR_ROLLBACK_DONE pair=" + pairKey + " immediate=1");
   }
   else AILog.Warning("AIR_ROLLBACK_PENDING pair=" + pairKey

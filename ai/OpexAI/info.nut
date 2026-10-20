@@ -13,6 +13,11 @@ class OpexAIInfo extends AIInfo {
    * Entre IA, la regle est de jouer a armes egales, sans auto-handicap. */
   function GetSettings()
   {
+    AddSetting({ name = "v279_reselect_memo",
+      description = "V279: incremental memoization for OpexReselectProjects (0=historic, 1=memoized, 2=control check)",
+      min_value = 0, max_value = 2,
+      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
+      flags = 0 });
     AddSetting({ name = "v257_rail_refresh",
       description = "V257: review existing rail consists using observed traffic and replacement payback (default 1 since 19/10, user decision)",
       min_value = 0, max_value = 1, default_value = 1,
@@ -705,6 +710,15 @@ class OpexAIInfo extends AIInfo {
       name = "v259_bridge_renew",
       description = "V259: renew rail (and road) bridges when faster bridge types become available and vehicles are speed-limited; 0 = off (default), 1 = economic renewal triggered on new bridge types",
       min_value = 0, max_value = 1,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0, default_value = 0,
+      step_size = 1,
+      flags = 0
+    });
+    AddSetting({
+      name = "v277_air_pub_fast",
+      description = "V277: fast air project publication and indexed re-selection filter; 0 = historical path (default), 1 = fast paths, 2 = control mode (runs both, logs differences, keeps historical)",
+      min_value = 0, max_value = 2,
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0, default_value = 0,
       step_size = 1,

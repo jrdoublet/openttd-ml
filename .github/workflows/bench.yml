@@ -1,5 +1,5 @@
 name: Bancs OpenTTD
-run-name: "Banc ${{ inputs.mode }} / ${{ inputs.profile }} — ${{ github.ref_name }}"
+run-name: "Banc ${{ inputs.mode }} / ${{ inputs.profile }}${{ (inputs.start_year != '1970' || inputs.map_size != '8') && format(' ({0}, 2^{1})', inputs.start_year, inputs.map_size) || '' }} — ${{ github.ref_name }}"
 
 on:
   workflow_dispatch:
@@ -30,6 +30,15 @@ on:
         description: "custom seulement : 1 à 40 graines uniques séparées par espaces"
         type: string
         default: ""
+      start_year:
+        description: "Année de départ (1920-2050)"
+        type: string
+        default: "1970"
+      map_size:
+        description: "Taille de carte : exposant (8 = 256², 9 = 512², 10 = 1024²)"
+        type: choice
+        options: ["8", "9", "10"]
+        default: "8"
       min_delta_pct:
         description: "A/B : seuil relatif de profit_year (% référence), fixé AVANT le banc"
         type: number
@@ -66,6 +75,8 @@ jobs:
       BENCH_VARIANT: ${{ inputs.variant }}
       BENCH_YEARS: ${{ inputs.years }}
       BENCH_SEEDS: ${{ inputs.seeds }}
+      BENCH_START_YEAR: ${{ inputs.start_year }}
+      BENCH_MAP_SIZE: ${{ inputs.map_size }}
       BENCH_MIN_DELTA_PCT: ${{ inputs.min_delta_pct }}
       BENCH_VALUE_GUARD: ${{ inputs.value_guard }}
       BENCH_LINE_TELEMETRY: ${{ inputs.line_telemetry }}
