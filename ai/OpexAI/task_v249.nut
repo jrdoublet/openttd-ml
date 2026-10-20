@@ -46,7 +46,7 @@ function OpexV249GetPendingV252Cost(ai)
   if (ai == null || ai._lines == null || ai._lines.len() == 0 || ai._catalog == null) return 0;
   local loan = AICompany.GetLoanAmount();
   if (loan > 0) return 0;
-  if (("V252_CASH_STOP" in getroottable()) && ::V252_CASH_STOP) return 0;
+  if (V252_CASH_STOP) return 0;
 
   local candidates = [];
   local rank = 0;

@@ -203,5 +203,13 @@ class TestV249Statues(unittest.TestCase):
                     self.assertIn(part, valid_api)
 
 
+class V249NoRootTable(unittest.TestCase):
+    def test_no_getroottable(self):
+        # getroottable() n'existe pas dans le Squirrel d'OpenTTD (erreur au smoke du 20/10).
+        import pathlib
+        for path in pathlib.Path(__file__).resolve().parents[1].joinpath("ai", "OpexAI").glob("*.nut"):
+            self.assertNotIn("getroottable", path.read_text(encoding="utf-8", errors="replace"), path.name)
+
+
 if __name__ == "__main__":
     unittest.main()
