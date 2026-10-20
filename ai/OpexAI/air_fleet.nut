@@ -110,14 +110,15 @@ function OpexAirAddPlane(line, catalog = null, lines = null)
     }
   }
 
-  local extra = null;
+  /* AIVehicle.IsValidVehicle attend un VehicleID entier, jamais null. */
+  local extra = -1;
   if (targetEngine == oldEngine) {
     extra = AIVehicle.CloneVehicle(hangar, template, true);
-    if (!AIVehicle.IsValidVehicle(extra)) {
+    if (extra == null || !AIVehicle.IsValidVehicle(extra)) {
       local engine = AIVehicle.GetEngineType(template);
       local cargo = ("cargo" in line) ? line.cargo : 0;
       extra = AIVehicle.BuildVehicleWithRefit(hangar, engine, cargo);
-      if (AIVehicle.IsValidVehicle(extra)) {
+      if (extra != null && AIVehicle.IsValidVehicle(extra)) {
         if (!AIOrder.ShareOrders(extra, template)) {
           if (AIVehicle.IsStoppedInDepot(extra)) AIVehicle.SellVehicle(extra);
           result.reason = "ORDER"; return result;
@@ -127,20 +128,21 @@ function OpexAirAddPlane(line, catalog = null, lines = null)
   } else {
     local cargo = ("cargo" in line) ? line.cargo : 0;
     extra = AIVehicle.BuildVehicleWithRefit(hangar, targetEngine, cargo);
-    if (AIVehicle.IsValidVehicle(extra)) {
+    if (extra != null && AIVehicle.IsValidVehicle(extra)) {
       if (!AIOrder.ShareOrders(extra, template) && !AIOrder.CopyOrders(extra, template)) {
         if (AIVehicle.IsStoppedInDepot(extra)) AIVehicle.SellVehicle(extra);
-        extra = null;
+        /* L'avion a ete revendu : repli sur le clonage de l'ancien modele. */
+        extra = -1;
       }
     }
-    if (!AIVehicle.IsValidVehicle(extra)) {
+    if (extra == null || !AIVehicle.IsValidVehicle(extra)) {
       targetEngine = oldEngine;
       price = AIEngine.GetPrice(oldEngine);
       extra = AIVehicle.CloneVehicle(hangar, template, true);
     }
   }
 
-  if (!AIVehicle.IsValidVehicle(extra)) {
+  if (extra == null || !AIVehicle.IsValidVehicle(extra)) {
     result.reason = "CLONE|" + AIError.GetLastError();
     return result;
   }

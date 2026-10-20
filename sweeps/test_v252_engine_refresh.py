@@ -77,6 +77,23 @@ class TestV252EngineRefresh(unittest.TestCase):
             if 'OpexDecide("V252_ENGINE"' in line:
                 self.assertIn("DECISION_LOG", line, line)
 
+    def test_air_reinforcement_failed_orders_never_validate_null_vehicle(self):
+        """Regression seed 123456, 1971-08-04: IsValidVehicle(null) crashed OpexAI."""
+        self.assertIn("local extra = -1;", self.add_plane)
+        self.assertNotIn("extra = null;", self.add_plane)
+        fail = self.add_plane.index("!AIOrder.ShareOrders(extra, template) && !AIOrder.CopyOrders(extra, template)")
+        fallback = self.add_plane.index("extra = AIVehicle.CloneVehicle(hangar, template, true);", fail)
+        segment = self.add_plane[fail:fallback]
+        self.assertIn("AIVehicle.SellVehicle(extra);", segment)
+        self.assertIn("extra = -1;", segment)
+        self.assertIn("if (extra == null || !AIVehicle.IsValidVehicle(extra))", segment)
+        self.assertIn("targetEngine = oldEngine;", segment)
+        self.assertIn("price = AIEngine.GetPrice(oldEngine);", segment)
+        # Validate all remaining IsValidVehicle(extra) calls only after a null guard.
+        checks = re.findall(r"if \(([^\n]*AIVehicle\.IsValidVehicle\(extra\)[^\n]*)\)", self.add_plane)
+        self.assertEqual(len(checks), 5)
+        self.assertTrue(all("extra == null ||" in check or "extra != null &&" in check for check in checks))
+
     def test_no_saved_state(self):
         persist = self.sources["persist.nut"]
         self.assertNotIn("v252", persist.lower())
