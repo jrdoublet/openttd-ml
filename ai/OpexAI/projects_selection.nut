@@ -715,15 +715,6 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSel
    * moment. Le plancher est relatif, donc il ne depend ni de l'epoque, ni de la taille de la carte,
    * ni de l'inflation : a 0 il reproduit exactement le comportement mesure ci-dessus. */
   local floorProfit = 0;
-  if (PORTFOLIO_FLOOR_PCT > 0) {
-    local bestProfit = 0;
-    foreach (project in alternatives) {
-      local financeCapital = OpexProjectFinanceCapital(project);
-      if (financeCapital > capitalBudget) continue;
-      if (project.profitAnnual > bestProfit) bestProfit = project.profitAnnual;
-    }
-    if (bestProfit > 0) floorProfit = bestProfit * PORTFOLIO_FLOOR_PCT / 100;
-  }
 
   local affordable = [];
   local earlySlotState = OpexEarlySlotSelectionState();

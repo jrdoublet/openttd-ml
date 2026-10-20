@@ -727,12 +727,12 @@ function OpexAI::Save()
   }
   if (C83_PREEMPT_OPEN) OpexSaveC83Preempt(saveObj, this);
   if (V250_RIGHTS != 0) OpexSaveV250(saveObj, this);
-  if (V257_RAIL_REFRESH) {
-    /* Hors projection mensuelle : la transaction et le curseur doivent etre exacts. */
-    saveObj.v257RailRefresh <- { cursor = this._v257Cursor, state = this._v257State,
-      pending = this._v257Pending, engineRevision = this._v257EngineRevision,
-      priorityRemaining = this._v257PriorityRemaining };
-  }
+
+  /* Hors projection mensuelle : la transaction et le curseur doivent etre exacts. */
+  saveObj.v257RailRefresh <- { cursor = this._v257Cursor, state = this._v257State,
+    pending = this._v257Pending, engineRevision = this._v257EngineRevision,
+    priorityRemaining = this._v257PriorityRemaining };
+
   if (OpexC121StrategyStateEnabled()) OpexSaveC121Strategy(saveObj);
   if (OPEX_AIR_ROLLBACKS.len() > 0) saveObj.airRollbacks <- OPEX_AIR_ROLLBACKS;
   if (V133_AIR_BUILD_RETRY) OpexV133SaveQuarantine(saveObj);

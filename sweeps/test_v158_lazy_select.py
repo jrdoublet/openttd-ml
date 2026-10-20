@@ -163,7 +163,7 @@ class TestV158BestReadersAudit(unittest.TestCase):
         "task_rail.nut:OpexAI::_tryBuildRailProject": "Appelé exclusivement depuis _tryBuildProjects (_buildCandidate)",
         # Post-rebuild / post-reselect directs
         "orchestrator.nut:OpexAI::_c76DoFullRegen": "Exécuté immédiatement après _rebuildProjects (resélection fraîche)",
-        "scheduler_tasks.nut:OpexAI::_dispatchCatalog": "Exécuté immédiatement après _rebuildProjects, _c76RotateFreight ou OpexReselectProjects",
+        "scheduler_tasks.nut:OpexAI::_dispatchCatalog": "Exécuté immédiatement après _rebuildProjects ou OpexReselectProjects",
         "task_v249.nut:OpexV249MaxListedCapital": "V249 : borne de garde (capital max listé) ; une liste périmée suffit, pas de resélection pour ne pas déplacer son coût",
     }
 

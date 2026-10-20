@@ -142,7 +142,6 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
     }
   }
 
-
   /* 4. Injection des projets aeriens frais (notamment les lignes hub ouvertes par un nouvel aeroport) */
   if (((catalog.airCombos != null && catalog.airCombos.len() > 0) || catalog.airport != null)) {
     if (airBuilt) {
@@ -152,9 +151,9 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
     } else if (airBuilt) {
       if (C69_BOTTLENECK_PROBE) OpexC80RecordAirIncremental("targeted");
       local freshAirPlans = [];
-      if (C80_AIR_CHOICE_MEMO) AIR_CHOICE_MEMO_STATE = 2;
+
       OpexAirPlans(catalog, lines, 0, freshAirPlans, abandonedPairs);
-      AIR_CHOICE_MEMO_STATE = 0;
+
       local airOpsPerPlan = (freshAirPlans.len() > 0) ? (PROJECT_AIR_TRANSACTION_OPS / freshAirPlans.len()) : PROJECT_AIR_TRANSACTION_OPS;
       foreach (plan in freshAirPlans) {
         local p = OpexProjectFromAir(catalog, plan, airOpsPerPlan);

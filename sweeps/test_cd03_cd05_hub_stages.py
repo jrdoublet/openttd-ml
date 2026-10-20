@@ -200,7 +200,7 @@ class CD03CD05HubStageTests(unittest.TestCase):
             self.assertIn("delete ctx.resumeState." + field, CLOSE)
         self.assertLess(CLOSE.index("ctx.resumeState.perfSitesFound = ctx.perfSitesFound;"),
                         CLOSE.index("if (bestPlan != null && bestPlan.airport.allowBig)"))
-        self.assertLess(CLOSE.index("if (!V93_AIRPORT_NO_POP_FLOOR) return -1;"),
+        self.assertLess(CLOSE.index("if (bestPlan != null && bestPlan.airport.allowBig)"),
                         CLOSE.index("OpexAirV93NextSmallCombo(ctx.combos, comboIndex)"))
         self.assertIn("if (ctx.sliced) ctx.resumeState.combo = nextSmall;", CLOSE)
         self.assertIn("return comboIndex + 1;", CLOSE)

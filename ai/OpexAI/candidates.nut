@@ -647,12 +647,7 @@ function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, orig
     stats.distanceShort++;
     return null;
   }
-  /* Plafond A* avant l'economie : les paires trop longues etaient evaluees puis rejetees. */
   local iterations = OpexRailIterations(distance);
-  if (V168_RAIL_MAX_DIST <= 0 && iterations > (HARD_ITERATION_CAP * 12) / 10) {
-    stats.distanceLong++;
-    return null;
-  }
   /* Source seulement, et seulement si origin_sitable = 1. Les 7 a 15 SITEA mesures etaient
    * tous du fret a nCargo=0 cote A. Filtrer aussi le puits enlevait des paires urbaines encore
    * constructibles. A 0, le classement est celui d'avant le filtre (SITEA reste possible).
@@ -843,7 +838,6 @@ function OpexTopK(all, k)
   }
   return best;
 }
-
 
 /* Exclusion a la GENERATION plutot qu'au FILTRAGE (2026-08-28). Mesure sur graine 42/20 ans
  * (results/opex_full_campaign_20y.json) : les stalles restants de la campagne sont 20/20 candidats du
@@ -1098,8 +1092,7 @@ function OpexV264EmitConvergent(catalog, stats, profile, cruiseCache, cargo, sou
   if (!V264_CONVERGENT_FREIGHT) return null;
   local isTransformer = ("isTransformer" in destIndustry) && destIndustry.isTransformer;
   local candidateMark = profile != null ? OpexOpsMeasureBegin() : null;
-  local secondary = (others2 != null && others2.len() > 0)
-      ? OpexV163SecondaryCargo(others2, destIndustry.id) : null;
+  local secondary = null;
   local candidate = OpexMakeCandidate(catalog, "freight", cargo, source.tile,
                                       destIndustry.tile, monthly, false, stats, isTransformer, profile, cruiseCache,
                                       secondary);
@@ -1151,7 +1144,7 @@ function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null
       if (OPEX_LEVEL_LIMITS && OpexIndustryPrimaryRivalServed(source.id, source.tile)) continue;
       local monthly = AIIndustry.GetLastMonthProduction(source.id, cargo);
       local ss = served[si];
-      local others2 = V163_MULTI_CARGO ? OpexV163SourceOtherCargos(catalog, source.id, cargo) : null;
+      local others2 = null;
       local industryMark = profile != null ? OpexOpsMeasureBegin() : null;
       for (local k = 0; k < sinks.len(); k++) {
         local di = sinks[k];
@@ -1167,7 +1160,7 @@ function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null
         local sd = served[di];
         /* V179 : source neuve, destination deja desservie : on garde la paire, V178 la rattache.
          * Ce chemin n'est pas marque convergent : V264 ne s'execute que dans l'exclusion. */
-        local v179Keep = V179_RAIL_GEN_DEST_SERVED && ss == null && sd != null;
+        local v179Keep = ss == null && sd != null;
         if (!v179Keep && (ss != null || sd != null)) {
           /* Paires deja rejetees. A 0 le drapeau est faux : aucun appel, pairsOriginServed. */
           local attached = null;
@@ -1185,8 +1178,7 @@ function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null
         }
         local isTransformer = ("isTransformer" in industries[di]) && industries[di].isTransformer;
         local candidateMark = profile != null ? OpexOpsMeasureBegin() : null;
-        local secondary = (others2 != null && others2.len() > 0)
-            ? OpexV163SecondaryCargo(others2, industries[di].id) : null;
+        local secondary = null;
         local candidate = OpexMakeCandidate(catalog, "freight", cargo, source.tile,
                                             industries[di].tile, monthly, false, stats, isTransformer, profile, cruiseCache,
                                             secondary);

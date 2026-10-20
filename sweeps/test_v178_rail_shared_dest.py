@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""V178 : partage de gare de destination acceptante pour les candidats fret rail (defaut 0)."""
+"""V178 : partage de gare de destination acceptante pour les candidats fret rail (fige actif par V263b)."""
 from __future__ import annotations
 
 import sys
@@ -19,15 +19,11 @@ def _read(name: str) -> str:
 
 class TestV178RailSharedDest(unittest.TestCase):
     def test_setting(self):
-        spec = parse_ai_setting_specs(AI / "info.nut")["v178_rail_shared_dest"]
-        # 19/10 : defaut 1 apres portes A (40x10 +235,6 k) et B (20x10 +192,2 k).
-        self.assertEqual(spec["default"], 1)
-        self.assertEqual((spec["min_value"], spec["max_value"]), (0, 1))
-        self.assertEqual(spec["step_size"], 1)
+        self.assertNotIn("v178_rail_shared_dest", parse_ai_setting_specs(AI / "info.nut"))
 
     def test_loaded_once(self):
-        self.assertIn("V178_RAIL_SHARED_DEST <- true;", _read("globals_pre.nut"))
-        self.assertEqual(_read("settings.nut").count('GetSetting("v178_rail_shared_dest")'), 1)
+        self.assertNotIn("V178_RAIL_SHARED_DEST", _read("globals_pre.nut"))
+        self.assertNotIn('GetSetting("v178_rail_shared_dest")', _read("settings.nut"))
 
     def test_method_declared_in_main(self):
         main = _read("main.nut")
@@ -38,7 +34,7 @@ class TestV178RailSharedDest(unittest.TestCase):
         self.assertIn("function OpexAI::_tryAttachSharedDest(candidate)", lines)
         body = lines[lines.index("function OpexAI::_tryAttachSharedDest(candidate)"):]
         # Preconditions
-        self.assertIn("if (!V178_RAIL_SHARED_DEST) return false;", body)
+        self.assertNotIn("V178_RAIL_SHARED_DEST", body)
         self.assertIn('candidate.kind != "freight"', body)
         # Source must remain fresh
         self.assertIn("ORIGIN_SEPARATION", body)
@@ -55,20 +51,20 @@ class TestV178RailSharedDest(unittest.TestCase):
     def test_too_close_ignores_shared_dest_endpoint_b(self):
         lines = _read("lines.nut")
         tc = lines[lines.index("function OpexAI::_tooClose(candidate)"):lines.index("function OpexAI::_tryAttachSharedDest(candidate)")]
-        self.assertIn("V178_RAIL_SHARED_DEST", tc)
+        self.assertNotIn("V178_RAIL_SHARED_DEST", tc)
         self.assertIn('("shared_dest" in candidate)', tc)
         self.assertIn('if (isSharedDest && entry[0] == "B") continue;', tc)
 
     def test_task_rail_precheck_invokes_attachment(self):
         task_rail = _read("task_rail.nut")
-        self.assertIn("if (V178_RAIL_SHARED_DEST && !v233Graft && !(\"joinPlatform\" in candidate))", task_rail)
+        self.assertIn("if (!v233Graft && !(\"joinPlatform\" in candidate))", task_rail)
         attach_idx = task_rail.index("this._tryAttachSharedDest(candidate);")
         too_close_idx = task_rail.index("local close = this._tooClose(candidate);", attach_idx)
         self.assertLess(attach_idx, too_close_idx)
 
     def test_builder_strict_fallback(self):
         builder = _read("builder_rail.nut")
-        self.assertIn("V178_RAIL_SHARED_DEST", builder)
+        self.assertNotIn("V178_RAIL_SHARED_DEST", builder)
         self.assertIn('("shared_dest" in candidate)', builder)
         self.assertIn("strictOriginReuseJoin", builder)
 

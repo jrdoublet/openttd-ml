@@ -270,15 +270,12 @@ function OpexC78ContinueCatalogAirRebuild(owner, task, year)
   if (sliceBudget > AIR_PLAN_SLICE_OPS) sliceBudget = AIR_PLAN_SLICE_OPS;
   if (sliceBudget > 150000) sliceBudget = 150000;
   local mark = OpexOpsMeasureBegin();
-  /* C80 tranche 5 : generation complete decoupee, memo remis a zero a la premiere tranche. */
-  if (C80_AIR_CHOICE_MEMO) {
-    if (s.airOps == 0) AIR_CHOICE_MEMO = {};
-    AIR_CHOICE_MEMO_STATE = 1;
-  }
+
+
   local best = OpexAirPlans(owner._catalog, owner._lines, 0, s.plans,
       owner._abandonedPairs, s.band, -1, s.cursor,
       sliceBudget, AIController.GetTick() + BUILD_TICK_MARGIN);
-  AIR_CHOICE_MEMO_STATE = 0;
+
   local sliceOps = OpexOpsMeasureEnd(mark);
   if (CATALOG_COST_ACTIVE != null) CATALOG_COST_ACTIVE.airOps += sliceOps;
   if (CATALOG_COST_ACTIVE != null) {
@@ -474,15 +471,11 @@ function OpexAI::_dispatchCatalog(task, year)
     } else {
       // Régénération évitée : resélection du vivier existant sous capital courant
       local reselectMark = CATALOG_COST_ACTIVE != null ? OpexOpsMeasureBegin() : null;
-      /* Cette branche n'est atteinte qu'au changement de mois (_lastCatalogMonth != ym) : la
-       * rotation du fret y est donc au plus mensuelle. */
-      if (C76_FREIGHT_ROTATION && !(STAGED_BOOTSTRAP && this._generationStage < OPEX_STAGE_COMPLETE)) {
-        this._c76RotateFreight(year);
-      } else {
-        local budgetNow = OpexAvailableCapital();
-        this._projects = OpexReselectProjects(
-            this._projects, budgetNow, this._abandonedPairs, this._lines);
-      }
+
+      local budgetNow = OpexAvailableCapital();
+      this._projects = OpexReselectProjects(
+          this._projects, budgetNow, this._abandonedPairs, this._lines);
+
       this._c76RecordAvoided(year);
       if (CATALOG_COST_ACTIVE != null) {
         CATALOG_COST_ACTIVE.path = "reselect";
