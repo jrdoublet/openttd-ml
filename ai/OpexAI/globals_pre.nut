@@ -27,6 +27,9 @@ V269_RAIL_LATE_RELAX <- 5;
 V269_RAIL_MAX_DIST <- 250;
 V269_IDLE_CASH_MIN <- 1000000;
 V284_RAIL_GROWTH <- 0; // 0 : master ; N : croissance fret apres N ans et 1 M£ disponible.
+/* V294 : ponts/tunnels longs et recherche A* continue (defauts 0 = master inchange). */
+V294_RAIL_BRIDGE_LEN <- 0;
+V294_RAIL_CONTINUOUS <- 0;
 V269_RELAXED <- false;
 V269_ON <- false;
 /* V195 : V182 limite aux N premieres annees (0 = toujours). */

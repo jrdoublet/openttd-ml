@@ -661,6 +661,24 @@ class OpexAIInfo extends AIInfo {
       step_size = 1,
       flags = 0
     });
+    AddSetting({
+      name = "v294_rail_bridge_len",
+      description = "V294: maximum rail bridge and tunnel length in A* pathfinder (0 = legacy 6/tiles limit 5; N in 1..30 = max length in tiles)",
+      min_value = 0, max_value = 30,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0, default_value = 0,
+      step_size = 1,
+      flags = 0
+    });
+    AddSetting({
+      name = "v294_rail_continuous",
+      description = "V294: 0 = legacy segmented search; 1 = continuous single A* search for rail lines, preserving closed set across chunks",
+      min_value = 0, max_value = 1,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0, default_value = 0,
+      step_size = 1,
+      flags = 0
+    });
   }
 }
 
