@@ -1809,7 +1809,7 @@ function OpexBuildRoadCandidates(catalog, budget, lines, abandonedPairs = null, 
     /* C43/E3 famille 2 : ROAD_MIN_DISTANCE/ROAD_MAX_DISTANCE mordent-elles ? */
     roadDistanceShort = 0, roadDistanceLong = 0,
   };
-  if (catalog.roadType < 0 || (catalog.roadEngineByCargo != null && catalog.roadEngineByCargo.len() == 0)) return { all = 0, best = [], stats = stats, opcodes = 0 };
+  if (catalog.roadType < 0 || (catalog.roadEngineByCargo != null && catalog.roadEngineByCargo.len() == 0)) return { all = 0, candidates = [], best = [], stats = stats, opcodes = 0, profile = profile };
 
   budget.begin();
   /* Les marques C41.17 internes ne doivent jamais etre imbriquees dans une mesure globale :
