@@ -107,6 +107,8 @@ function OpexLoadSettings()
   V180_RAIL_WAGON_BOOST_DELAY = (boostDelay != null && boostDelay > 0 && boostDelay <= 5) ? boostDelay : 0;
   if (V180_START_YEAR < 0) V180_START_YEAR = AIDate.GetYear(AIDate.GetCurrentDate());
   V180_RAIL_WAGON_BOOST_PCT = (wagonBoost != null && wagonBoost > 0 && wagonBoost <= 400) ? wagonBoost : 0;
+  local lateGrowth = AIController.GetSetting("v270_rail_late_growth");
+  V270_RAIL_LATE_GROWTH = (lateGrowth != null && lateGrowth > 0 && lateGrowth <= 9) ? lateGrowth : 0;
   local v182Years = AIController.GetSetting("v195_v182_years");
   V195_V182_YEARS = (v182Years != null && v182Years > 0 && v182Years <= 10) ? v182Years : 0;
   V190_RAIL_DOUBLE_BUILD = AIController.GetSetting("v190_rail_double_build") != 0;

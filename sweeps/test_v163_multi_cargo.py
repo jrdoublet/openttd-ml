@@ -114,7 +114,10 @@ class StaticContracts(unittest.TestCase):
         src = _read("task_rail.nut")
         self.assertIn("built.cargo2 <- candidate.cargo2;", src)
         self.assertIn("built.wagons2 <- candidate.wagons2;", src)
-        self.assertNotIn("line.wagons + OpexV163Wagons2(line) >= OpexRailNominalMaxWagons(line.platformLength)", src)
+        # 19/10 : la borne de quai V163 ne vit plus que dans l'allongement tardif V270.
+        guard = "line.wagons + OpexV163Wagons2(line) >= OpexRailNominalMaxWagons(line.platformLength)"
+        self.assertEqual(src.count(guard), 1)
+        self.assertGreater(src.index(guard), src.index("function OpexAI::_v270StartWagonExpansion(year)"))
         self.assertEqual(src.count("OpexV163WagonsPrice(this._catalog, line)"), 2)
 
     def test_probe_decision_log_only(self):

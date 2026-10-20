@@ -24,6 +24,11 @@ V264_CONVERGENT_FREIGHT <- true;
 V180_RAIL_WAGON_BOOST_PCT <- 0;
 V180_RAIL_WAGON_BOOST_DELAY <- 0;
 V180_START_YEAR <- -1;
+/* V270 : croissance tardive des lignes rail (task_rail.nut). 0 = inerte (defaut), N = annees apres
+ * le depart avant d'allonger les rames saturees, et seulement quand la caisse est oisive. */
+V270_RAIL_LATE_GROWTH <- 0;
+V270_IDLE_CASH_MIN <- 1000000;
+V270_MIN_SPEED_PCT <- 85;
 /* V195 : V182 limite aux N premieres annees (0 = toujours). */
 V195_V182_YEARS <- 0;
 /* V186 : tranches A* rail avancees par passage de file (1..16, defaut 1 = historique). */

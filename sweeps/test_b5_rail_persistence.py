@@ -40,7 +40,8 @@ class TestB5RailPersistence(unittest.TestCase):
 
     def test_approach_radius_is_defined_from_existing_local_window(self):
         self.assertIn("const RAIL_EXPAND_APPROACH_TILES = 8;", self.main)
-        self.assertEqual(self.rail.count("RAIL_EXPAND_APPROACH_TILES"), 1)
+        # 19/10 : V270 rearme la transaction et intercepte la rame a la meme distance.
+        self.assertEqual(self.rail.count("RAIL_EXPAND_APPROACH_TILES"), 2)
         self.assertIn("maxDistance=8", self.main)
 
     def test_default_path_still_has_expansion_disabled(self):

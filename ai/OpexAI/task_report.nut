@@ -479,6 +479,25 @@ function OpexAI::_reportLines(year)
               + " rating_b=" + ratingB + " pop_a=" + popA + " pop_b=" + popB + " prod_a=" + prodA
               + " prod_b=" + prodB + " wait_a=" + waitA + " wait_b=" + waitB + " cap=" + cap;
       }
+      if (lMode == "rail") {
+        /* V270 : la ligne est-elle limitee par l'offre ou par la rame ? Production et part
+         * transportee de l'industrie source (moteur de la croissance de production en economie
+         * lisse, docs/mecanique_jeu.md section 4), note et attente a la gare A, rame et quai. */
+        local srcInd = ("srcIndustry" in line) ? line.srcIndustry : -1;
+        local srcOk = srcInd != null && srcInd >= 0 && AIIndustry.IsValidIndustry(srcInd);
+        local trainCap = 0;
+        foreach (v in vehicles) {
+          if (AIVehicle.IsValidVehicle(v)) trainCap += AIVehicle.GetCapacity(v, line.cargo);
+        }
+        extra = " src_prod=" + (srcOk ? AIIndustry.GetLastMonthProduction(srcInd, line.cargo) : -1)
+              + " src_pct=" + (srcOk ? AIIndustry.GetLastMonthTransportedPercentage(srcInd, line.cargo) : -1)
+              + " rating_a=" + ratingA + " wait_a=" + AIStation.GetCargoWaiting(stationA, line.cargo)
+              + " wagons=" + (("wagons" in line) ? line.wagons : -1)
+              + " platform=" + (("platformLength" in line) ? line.platformLength : -1)
+              + " cap=" + trainCap + " expansions=" + (("railExpansions" in line) ? line.railExpansions : 0)
+              + " double=" + (("doubleTrack" in line) ? line.doubleTrack : 0)
+              + " dist=" + (("distance" in line) ? line.distance : -1);
+      }
       if (("wagons2" in line) && line.wagons2 > 0 && ("cargo2" in line)) {
         /* V163 : le second cargo est-il reellement charge ? Note et attente des deux cargos a la
          * gare source, chargement et capacite instantanes sur les convois de la ligne. Le revenu
