@@ -106,3 +106,49 @@ attendu sur trois paires ; aucun verdict d'adoption.
 Mesurer trains/ligne fret, places/train, vitesses modélisées et disponibles
 dans les sondes, profit rail en 1979 et caisse. Aucun défaut changé, aucun push.
 Une proposition 40×10 GitHub sera fournie sans lancement.
+
+## Implémentation et contrôles avant le smoke
+
+Déclencheur et sonde V270 portés manuellement depuis `c71b707` : les points
+d'insertion existent sur `a9437f8`, mais le réglage V270 séparé n'est pas
+réintroduit. `task_v284.nut` porte la transaction adaptée au remplacement
+complet, avec le constructeur commun intact. Un choix/mois et une croissance
+par ligne tous les 90 jours au plus ; refus traction/géométrie mémorisé un an.
+Priorité distance × attente / capacité ; fret homogène mono-rame seulement.
+Deux trains maximum, un seul évitement, 32 fenêtres testées au plus.
+Avant l'ouverture effective (âge et caisse), l'expansion historique demeure ;
+après, V284 remplace le doublement historique du fret. Le pax reste inchangé.
+
+Le prix de la locomotive départage les matériels qui maintiennent la vitesse,
+avec cinq ans d'entretien ; aucune conversion du type de rail. La rame complète
+est reconstruite même lorsque le moteur choisi est identique : coût brut et
+revente sont distincts, c'est un coût possible de ce premier prototype.
+Attente recontrôlée au dépôt, détournement à vide seulement. Les formes
+mixtes V163 sont exclues. Quai limité à sa longueur déjà construite.
+
+État entier sauvegardé hors projection mensuelle ; récupération du train
+démarré par son identité, suppression des constructions non démarrées et
+retour arrière limité aux pièces ajoutées. `Load` lit l'état avant les réglages ;
+la réconciliation attend `liveLines`. Aucun round-trip moteur supplémentaire
+autorisé dans le budget : cette partie est vérifiée par contrats, pas mesurée
+en partie rechargée. Point d'avancement commun aux boucles normale et profilée
+dans `_runOrchestratorTick`.
+
+Contrats : 11 V284 ; **suite 2 137 tests OK**, 3 ignorés, 3 échecs attendus
+(base 2 126, mêmes exceptions). Les empreintes des fonctions historiques
+expansion/constructeur et du corps orchestrateur après retrait des gardes
+correspondent à `a9437f8`. Plafond AddSetting **72→73** dans V246/V251/V259.
+`undecl` : seulement `AICONFIG_BOOLEAN`/`CONFIG_BOOLEAN`, comme master ;
+`delim` et `git diff --check` propres.
+
+API de signalisation vérifiée sur le
+[code OpenTTD 15.3](https://github.com/OpenTTD/OpenTTD/blob/15.3/src/script/api/script_rail.cpp) :
+`AreTilesConnected` ne traverse pas une tête d'ouvrage ; la trace V284
+traite donc explicitement l'entrée et la sortie dans l'axe.
+
+Prévol : Docker `default`, socket local `/var/run/docker.sock`, image
+`sha256:a0e0a0727f5003532764eeaeee6b83e9ab96a7470df3c76208c6446d10b88c8c`,
+volume `openttd-lab-home` présent, aucune campagne moteur en cours.
+Montage : `/home/deploy/projects/wt-v284:/work`. Harnais `--help` vérifié,
+plafond swap égal aux 2 Go de RAM. Campagne prévue :
+`v284_smoke_42x6_20261020`, N=3, un bras actif contre AAA, sans règle A/B.

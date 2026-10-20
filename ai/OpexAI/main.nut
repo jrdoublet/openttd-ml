@@ -139,6 +139,7 @@ class OpexAI extends AIController {
   /* Transaction asynchrone d'expansion rail : le train roule vers son depot pendant que la
    * boucle principale continue par pas de dix jours. Jamais de Sleep bloquant dans la tache. */
   _railExpansion = null;
+  _v284State = null; // entiers/identites uniquement ; transaction et cadence hors projection.
   /* Recherche A* ferroviaire reprise d'un tour de file a l'autre (docs/taches.md A4). Meme
    * patron que _railExpansion : l'etat vit ici, il est repris en TETE de _runNextTask, et on
    * termine en remettant _railSearch = null. Le pathfinder lui-meme est dans state.pathfinder. */
@@ -690,6 +691,7 @@ require("task_water.nut");
 require("task_v249.nut");
 require("task_v252.nut");
 require("task_v257.nut");
+require("task_v284.nut");
 require("task_v250.nut");
 require("task_v259.nut");
 require("selftests.nut");

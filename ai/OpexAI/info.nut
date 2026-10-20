@@ -327,6 +327,14 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "v284_rail_growth",
+      description = "V284: 0 = master; N = grow saturated existing freight trains after N years with 1M cash, preserve speed, then passing loop and second train at platform limit",
+      min_value = 0, max_value = 10,
+      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
+      step_size = 1, flags = 0
+    });
+
+    AddSetting({
       name = "v216_probe",
       description = "V216: passive estimator probe (SCORE_DECOMP, TOWN_FLOW, generation rejects) until end of year 3. 0 = inert",
       min_value = 0, max_value = 1,

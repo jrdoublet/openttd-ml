@@ -479,6 +479,23 @@ function OpexAI::_reportLines(year)
               + " rating_b=" + ratingB + " pop_a=" + popA + " pop_b=" + popB + " prod_a=" + prodA
               + " prod_b=" + prodB + " wait_a=" + waitA + " wait_b=" + waitB + " cap=" + cap;
       }
+      if (V284_RAIL_GROWTH > 0 && lMode == "rail") {
+        /* Sonde V270 c71b707 portee, sous le reglage pour conserver le chemin 0. */
+        local srcInd = ("srcIndustry" in line) ? line.srcIndustry : -1;
+        local srcOk = srcInd != null && srcInd >= 0 && AIIndustry.IsValidIndustry(srcInd);
+        local trainCap = 0;
+        foreach (v in vehicles) {
+          if (AIVehicle.IsValidVehicle(v)) trainCap += AIVehicle.GetCapacity(v, line.cargo);
+        }
+        extra = " src_prod=" + (srcOk ? AIIndustry.GetLastMonthProduction(srcInd, line.cargo) : -1)
+              + " src_pct=" + (srcOk ? AIIndustry.GetLastMonthTransportedPercentage(srcInd, line.cargo) : -1)
+              + " rating_a=" + ratingA + " wait_a=" + AIStation.GetCargoWaiting(stationA, line.cargo)
+              + " wagons=" + (("wagons" in line) ? line.wagons : -1)
+              + " platform=" + (("platformLength" in line) ? line.platformLength : -1)
+              + " cap=" + trainCap + " speed_model=" + (("effectiveSpeed" in line) ? line.effectiveSpeed.tointeger() : -1)
+              + " double=" + (("doubleTrack" in line) ? line.doubleTrack : 0)
+              + " dist=" + (("distance" in line) ? line.distance : -1);
+      }
       if (("wagons2" in line) && line.wagons2 > 0 && ("cargo2" in line)) {
         /* V163 : le second cargo est-il reellement charge ? Note et attente des deux cargos a la
          * gare source, chargement et capacite instantanes sur les convois de la ligne. Le revenu

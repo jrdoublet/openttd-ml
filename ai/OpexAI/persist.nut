@@ -732,6 +732,7 @@ function OpexAI::Save()
   saveObj.v257RailRefresh <- { cursor = this._v257Cursor, state = this._v257State,
     pending = this._v257Pending, engineRevision = this._v257EngineRevision,
     priorityRemaining = this._v257PriorityRemaining };
+  if (V284_RAIL_GROWTH > 0) saveObj.v284Growth <- this._v284State;
 
   if (OpexC121StrategyStateEnabled()) OpexSaveC121Strategy(saveObj);
   if (OPEX_AIR_ROLLBACKS.len() > 0) saveObj.airRollbacks <- OPEX_AIR_ROLLBACKS;
@@ -814,6 +815,9 @@ function OpexAI::Load(version, data)
    * _reconcileAfterLoad(), appelé depuis Start() après OpexLoadSettings(). Les sauvegardes
    * stateVersion=1 n'ont simplement pas ces champs et gardent les valeurs constructeur. */
   if ("railExpansion" in data) this._railExpansion = OpexLoadRailExpansion(data.railExpansion);
+  /* Load precede OpexLoadSettings : ne pas tester la globale encore a 0 ici. */
+  if (("v284Growth" in data) && typeof data.v284Growth == "table")
+    this._v284State = data.v284Growth;
   this._reloadDroppedRailSearch = ("railSearchPending" in data) && data.railSearchPending;
   if (("dynamicBatchPending" in data) && data.dynamicBatchPending) {
     this._projects = null;
@@ -962,6 +966,7 @@ function OpexAI::_reconcileAfterLoad()
   this._lines = liveLines;
   if (V279_RESELECT_MEMO != 0) OPEX_LINES_REVISION++;
   OpexV257Reconcile(this);
+  if (V284_RAIL_GROWTH > 0) OpexV284Reconcile(this);
   /* World validation is rebuilt in bounded steps from these restored lines.
    * Short saves without support cannot revive observations. OFF never generates work. */
   this._v233GoodsWork = null;
