@@ -333,6 +333,15 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "v269_rail_late_relax",
+      description = "V269: N years after game start, when the rail pool is empty and cash idle, regenerate rail freight up to 250 tiles and enable V178/V179 (served destination, fresh source); 0 = inert (default)",
+      min_value = 0, max_value = 9,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      step_size = 1,
+      flags = 0
+    });
+    AddSetting({
       name = "v270_rail_late_growth",
       description = "V270: N years after game start, with idle cash, add one wagon per year to single-train rail lines whose source keeps a wagon waiting (up to the platform); 0 = inert (default)",
       min_value = 0, max_value = 9,

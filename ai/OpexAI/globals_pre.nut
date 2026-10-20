@@ -29,6 +29,15 @@ V180_START_YEAR <- -1;
 V270_RAIL_LATE_GROWTH <- 0;
 V270_IDLE_CASH_MIN <- 1000000;
 V270_MIN_SPEED_PCT <- 85;
+/* V269 : relachement tardif du vivier rail (orchestrator.nut, _v217RailRefill). 0 = inerte (defaut),
+ * N = annees apres le depart. Quand le vivier est vide et la caisse oisive, la regeneration V217
+ * accepte le fret jusqu'a V269_RAIL_MAX_DIST tuiles, et V178/V179 s'activent pour le reste de la
+ * partie (destination deja desservie, source neuve). */
+V269_RAIL_LATE_RELAX <- 0;
+V269_RAIL_MAX_DIST <- 250;
+V269_IDLE_CASH_MIN <- 1000000;
+V269_RELAXED <- false;
+V269_ON <- false;
 /* V195 : V182 limite aux N premieres annees (0 = toujours). */
 V195_V182_YEARS <- 0;
 /* V186 : tranches A* rail avancees par passage de file (1..16, defaut 1 = historique). */
