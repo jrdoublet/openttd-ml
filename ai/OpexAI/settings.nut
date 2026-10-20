@@ -61,7 +61,11 @@ function OpexLoadSettings()
   local bigMap = AIMap.GetMapSizeX() * AIMap.GetMapSizeY() >= 1024 * 1024;
   local v278 = AIController.GetSetting("v278_air_lazy_sites");
   V278_AIR_LAZY_SITES = v278 == 1 || (v278 == 2 && bigMap);
-  V279_RESELECT_MEMO = AIController.GetSetting("v279_reselect_memo");
+  /* V277/V279 (defaut auto depuis le 20/10, decision utilisateur) : qualifies a 1024x1024 par V287
+   * (porte B +680 k, porte A +237 k non significative) ; negatifs a 256x256 (banc PC -195 k, 6/14).
+   * 3 = auto : 1 des 1024x1024 tuiles, 0 sinon. */
+  local v279 = AIController.GetSetting("v279_reselect_memo");
+  V279_RESELECT_MEMO = (v279 == 3) ? (bigMap ? 1 : 0) : v279;
   V233_PENDING_CONTINUE = AIController.GetSetting("v233_pending_continue") != 0;
   V233_GOODS_GRAFT = AIController.GetSetting("v233_goods_graft") != 0;
   if (V233_GOODS_GRAFT && !V233_PENDING_CONTINUE) {
@@ -153,6 +157,7 @@ function OpexLoadSettings()
   local v259Renew = AIController.GetSetting("v259_bridge_renew");
   V259_BRIDGE_RENEW = (v259Renew != null && v259Renew == 1) ? 1 : 0;
   local v277Pub = AIController.GetSetting("v277_air_pub_fast");
+  if (v277Pub == 3) v277Pub = AIMap.GetMapSizeX() * AIMap.GetMapSizeY() >= 1024 * 1024 ? 1 : 0;
   V277_AIR_PUB_FAST = (v277Pub != null && v277Pub >= 0 && v277Pub <= 2) ? v277Pub : 0;
 
   // V246 : paquets adoptes figes ; les interrupteurs de mode restent actifs.

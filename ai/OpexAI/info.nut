@@ -19,9 +19,9 @@ class OpexAIInfo extends AIInfo {
       easy_value = 2, medium_value = 2, hard_value = 2, custom_value = 2,
       flags = 0 });
     AddSetting({ name = "v279_reselect_memo",
-      description = "V279: incremental memoization for OpexReselectProjects (0=historic, 1=memoized, 2=control check)",
-      min_value = 0, max_value = 2,
-      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
+      description = "V279: incremental memoization for OpexReselectProjects (0=historic, 1=memoized, 2=control check, 3=auto: 1 when the map has at least 1024x1024 tiles, else 0; default since 20/10, qualified at 1024x1024 only)",
+      min_value = 0, max_value = 3,
+      easy_value = 3, medium_value = 3, hard_value = 3, custom_value = 3,
       flags = 0 });
     AddSetting({ name = "v233_goods_graft",
       description = "V233: measured goods to town graft (requires v233_pending_continue)",
@@ -646,10 +646,10 @@ class OpexAIInfo extends AIInfo {
     });
     AddSetting({
       name = "v277_air_pub_fast",
-      description = "V277: fast air project publication and indexed re-selection filter; 0 = historical path (default), 1 = fast paths, 2 = control mode (runs both, logs differences, keeps historical)",
-      min_value = 0, max_value = 2,
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0, default_value = 0,
+      description = "V277: fast air project publication and indexed re-selection filter; 0 = historical path, 1 = fast paths, 2 = control mode (runs both, logs differences, keeps historical), 3 = auto: 1 when the map has at least 1024x1024 tiles, else 0 (default since 20/10, qualified at 1024x1024 only)",
+      min_value = 0, max_value = 3,
+      easy_value = 3, medium_value = 3, hard_value = 3,
+      custom_value = 3, default_value = 3,
       step_size = 1,
       flags = 0
     });
