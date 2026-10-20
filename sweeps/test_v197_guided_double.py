@@ -109,8 +109,8 @@ class PresenceDesDeuxOptions(unittest.TestCase):
 
     def test_signatures_contain_both_options(self):
         self.assertIn("function OpexSearchPath(plansA, plansB, iterationBudget, deadlineTick, ignoredTiles = null, weight = null, outwardSide = null, guideTiles = null)", self.builder)
-        self.assertIn("function OpexCreateRailPathfinder(plansA, plansB, ignoredTiles = null, weight = null, outwardSide = null, guideTiles = null)", self.builder)
-        self.assertIn("function OpexCreateSegmentedSearch(plansA, plansB, iterationBudget, ignoredTiles = null, weight = null, outwardSide = null, guideTiles = null)", self.builder)
+        self.assertIn("function OpexCreateRailPathfinder(plansA, plansB, ignoredTiles = null, weight = null, outwardSide = null, guideTiles = null, engine = null)", self.builder)
+        self.assertIn("function OpexCreateSegmentedSearch(plansA, plansB, iterationBudget, ignoredTiles = null, weight = null, outwardSide = null, guideTiles = null, engine = null)", self.builder)
 
     def test_advance_segmented_search_forwards_options(self):
         body = _function_body(self.builder, "OpexAdvanceSegmentedSearch")

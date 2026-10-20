@@ -370,6 +370,7 @@ function OpexRefreshEpochBounds(catalog)
    * recherches de 80-94 tuiles prennent 2 204 iterations medianes contre 7 745 predites, et
    * AAAHogEx pose ses lignes a 117 tuiles medianes. Le reglage remplace la borne derivee. */
   if (V168_RAIL_MAX_DIST > 0) railMax = V168_RAIL_MAX_DIST;
+  if (V294_RAIL_DIST_DECOUPLE > 0) railMax = V294_RAIL_DIST_DECOUPLE;
   if (railMax < roadMax) railMax = roadMax;
 
   /* Si le rail s'amortit des le bassin, la bande exclusive route est vide. On
@@ -445,6 +446,7 @@ function OpexCatalogBounds(catalog)
   local roadMin = (busR * 2) + 1;
   local railMax = OpexRailDistanceForIterations((HARD_ITERATION_CAP * 12) / 10);
   if (V168_RAIL_MAX_DIST > 0) railMax = V168_RAIL_MAX_DIST;
+  if (V294_RAIL_DIST_DECOUPLE > 0) railMax = V294_RAIL_DIST_DECOUPLE;
   return {
     roadMin = roadMin, roadMax = roadMin, roadGenMax = railMax, railMin = roadMin,
     railAirOverlapMin = railMax, railMax = railMax, airMax = 0, airMin = railMax,

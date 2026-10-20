@@ -111,6 +111,12 @@ function OpexLoadSettings()
   local lateRelax = AIController.GetSetting("v269_rail_late_relax");
   local railGrowth = AIController.GetSetting("v284_rail_growth");
   if (railGrowth != null && railGrowth >= 0 && railGrowth <= 10) V284_RAIL_GROWTH = railGrowth;
+  local v294BridgeLen = AIController.GetSetting("v294_rail_bridge_len");
+  V294_RAIL_BRIDGE_LEN = (v294BridgeLen != null && v294BridgeLen >= 0 && v294BridgeLen <= 30) ? v294BridgeLen : 0;
+  local v294Continuous = AIController.GetSetting("v294_rail_continuous");
+  V294_RAIL_CONTINUOUS = (v294Continuous != null && v294Continuous > 0) ? 1 : 0;
+  local railDefer = AIController.GetSetting("v294_rail_defer");
+  if (railDefer != null && railDefer >= 0 && railDefer <= 5000) V294H_RAIL_DEFER = railDefer;
   V269_RAIL_LATE_RELAX = (lateRelax != null && lateRelax > 0 && lateRelax <= 9) ? lateRelax : 0;
   local v182Years = AIController.GetSetting("v195_v182_years");
   V195_V182_YEARS = (v182Years != null && v182Years > 0 && v182Years <= 10) ? v182Years : 0;
@@ -161,6 +167,28 @@ function OpexLoadSettings()
   local v277Pub = AIController.GetSetting("v277_air_pub_fast");
   if (v277Pub == 3) v277Pub = AIMap.GetMapSizeX() * AIMap.GetMapSizeY() >= 1024 * 1024 ? 1 : 0;
   V277_AIR_PUB_FAST = (v277Pub != null && v277Pub >= 0 && v277Pub <= 2) ? v277Pub : 0;
+  local railWeightPct = AIController.GetSetting("v294_rail_weight_pct");
+  if (railWeightPct != null && (railWeightPct == 0 || (railWeightPct >= 100 && railWeightPct <= 400))) {
+    V294_RAIL_WEIGHT_PCT = railWeightPct;
+  }
+  local aaaCosts = AIController.GetSetting("v294_rail_aaa_costs");
+  if (aaaCosts != null && (aaaCosts == 0 || aaaCosts == 1)) {
+    V294_RAIL_AAA_COSTS = aaaCosts;
+  }
+  local revProbe = AIController.GetSetting("v294_rail_reverse_probe");
+  if (revProbe != null && revProbe >= 0) {
+    V294_RAIL_REVERSE_PROBE = revProbe;
+  }
+  local distDecouple = AIController.GetSetting("v294_rail_dist_decouple");
+  if (distDecouple != null && distDecouple >= 0) {
+    V294_RAIL_DIST_DECOUPLE = distDecouple;
+  }
+  local slopeEngine = AIController.GetSetting("v294_rail_slope_engine");
+  if (slopeEngine != null && slopeEngine >= 0) {
+    V294_RAIL_SLOPE_ENGINE = slopeEngine;
+  }
+  local v295Fast = AIController.GetSetting("v295_astar_fast");
+  V295_ASTAR_FAST = (v295Fast != null && v295Fast == 1) ? 1 : 0;
 
   // V246 : paquets adoptes figes ; les interrupteurs de mode restent actifs.
   ROAD_BUILD_ENABLED = MODE_ROAD;

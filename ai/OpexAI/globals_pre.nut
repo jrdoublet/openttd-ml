@@ -26,7 +26,12 @@ V264_CONVERGENT_FREIGHT <- true;
 V269_RAIL_LATE_RELAX <- 5;
 V269_RAIL_MAX_DIST <- 250;
 V269_IDLE_CASH_MIN <- 1000000;
+V294H_RAIL_DEFER <- 0; // 0 : master ; N : trace rapide de N iterations, puis recherche de fond au reliquat (V294h).
+V294H_OPS_PER_ITER <- 200; // V294h : cout mesure d'une iteration A* (moyenne glissante, transitoire).
 V284_RAIL_GROWTH <- 0; // 0 : master ; N : croissance fret apres N ans et 1 M£ disponible.
+/* V294 : ponts/tunnels longs et recherche A* continue (defauts 0 = master inchange). */
+V294_RAIL_BRIDGE_LEN <- 0;
+V294_RAIL_CONTINUOUS <- 0;
 V269_RELAXED <- false;
 V269_ON <- false;
 /* V195 : V182 limite aux N premieres annees (0 = toujours). */
@@ -120,6 +125,16 @@ V250_CASH_STOP <- true;
 V259_BRIDGE_RENEW <- 0;
 /* V277 : publication rapide des projets air et filtre indexe de re-selection. */
 V277_AIR_PUB_FAST <- 0;
+/* V294c : poids heuristique A* rail unifié à toutes les distances (défaut 0 = inerte). AAA : 200 partout. */
+V294_RAIL_WEIGHT_PCT <- 0;
+/* V294d : table de coûts A* rail alignée sur AAAHogEx (défaut 0 = inerte). */
+V294_RAIL_AAA_COSTS <- 0;
+/* V294f : sonde A* inverse avant recherche ferroviaire (défaut 0 = inerte). AAA : 300 iters. */
+V294_RAIL_REVERSE_PROBE <- 0;
+/* V294i : découplage distance railMax des candidats du plafond d'itérations (défaut 0 = inerte). */
+V294_RAIL_DIST_DECOUPLE <- 0;
+/* V294j : adaptation des coûts A* rail selon la force de la locomotive (défaut 0 = inerte). AAA : pente 1500, virage 100 si faible. */
+V294_RAIL_SLOPE_ENGINE <- 0;
 V172_RAIL_LONG_WEIGHT_DIST <- 100;
 /* Cascade pax par distance decroissante : air seul, air+rail, rail seul,
  * route seule. Le fret accompagne la premiere passe. */
@@ -710,3 +725,6 @@ V279_LAST_HAS_LINES <- null;
 V279_HITS <- 0;
 V279_MISSES <- 0;
 V279_LAST_STATS_MONTH <- -1;
+
+/* V295 : optimisations exactes A* rail V129 (filtre de Bloom ancetres et dedoublonnage buts). */
+V295_ASTAR_FAST <- 0;

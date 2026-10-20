@@ -166,6 +166,9 @@ class OpexAI extends AIController {
   /* C80 étape 2 : table des paires en retrait temporaire (cooldown), indexée par pairKey.
    * Transitoire / reconstructible : initialisée à {}, jamais persistée dans Save(). */
   _railStockCooldown = null;
+  /* V294h : recherches rail differees au reliquat et traces prets par paire. Transitoires. */
+  _v294Deferred = null;
+  _v294Ready = null;
   /* C121 preparation rail de l'annee AIR : liste de candidats et mois de generation.
    * Non sauvegardes. Reconstructibles au prochain passage projects si le reglage est arme.
    * MinAirCap : -1 = aucun plan AIR vivant au dernier scan (fin de passe). */
@@ -419,6 +422,8 @@ class OpexAI extends AIController {
     this._activeSubsidies = {};
     this._railReadyStock = {};
     this._railStockCooldown = {};
+    this._v294Deferred = [];
+    this._v294Ready = {};
     this._railStockLastFundedScore = 0.0;
     this._railStockLastFundedDate = -1;
     this._c121RailPrepCandidates = null;
@@ -693,6 +698,7 @@ require("task_v249.nut");
 require("task_v252.nut");
 require("task_v257.nut");
 require("task_v284.nut");
+require("task_v294h.nut");
 require("task_v250.nut");
 require("task_v259.nut");
 require("selftests.nut");
@@ -860,6 +866,7 @@ function OpexAI::Start()
     }
     local spAstar = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.astar_v89") : null;
     this._advanceRailSearchThroughput();
+    if (V294H_RAIL_DEFER > 0) OpexV294hAdvance(this);
     if (spAstar != null) OpexSpanEnd(spAstar);
     if (C67_SLACK_HOOK) {
       local spC67 = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.c67") : null;
