@@ -730,3 +730,5 @@ V279_LAST_STATS_MONTH <- -1;
 
 /* V295 : optimisations exactes A* rail V129 (filtre de Bloom ancetres et dedoublonnage buts). */
 V295_ASTAR_FAST <- 0;
+/* V297 : plancher absolu de ROI annuel predit des nouvelles lignes rail, en pour mille du capital. */
+V297_RAIL_ROI_FLOOR <- 0;

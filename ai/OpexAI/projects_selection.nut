@@ -732,6 +732,8 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSel
   }
   if (spStates != null) OpexSpanEnd(spStates);
 
+  local v297Rejected = 0;
+  local v297BestRejected = -1;
   foreach (project in alternatives) {
     local fundMark = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
     local slotMark = null;
@@ -752,6 +754,16 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSel
       if (PROBE_SELECT_REJECT && project.mode == "air") {
         OpexSelectRejectLog(project, "floor", affordable, scoreKey, kDec);
       }
+      continue;
+    }
+    /* V297 : diagnostic du 21/10 (v294c_adapt400_long250_6x3) : les lignes rail predites sous 40 % de
+     * ROI ne realisent que 39 % de leur profit predit (11 % du capital, sous les interets et l'entretien),
+     * celles au-dessus de 80 % en realisent 115 a 155 %. Plancher ABSOLU, pas relatif : quand tout est
+     * mediocre, on ne batit pas le moins mediocre. */
+    if (V297_RAIL_ROI_FLOOR > 0 && project.mode == "rail" && ("roi" in project)
+        && project.roi < V297_RAIL_ROI_FLOOR) {
+      v297Rejected++;
+      if (project.roi > v297BestRejected) v297BestRejected = project.roi;
       continue;
     }
     slotMark = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
@@ -794,6 +806,10 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSel
       OpexSpanAgg("pub.select.score.insert", insertMark);
       insertMark = null;
     }
+  }
+  if (v297Rejected > 0 && DECISION_LOG && realSelection) {
+    OpexDecide("V297_FLOOR", "rejected=" + v297Rejected + " best_roi=" + v297BestRejected
+               + " floor=" + V297_RAIL_ROI_FLOOR + " kept=" + affordable.len());
   }
   /* Filet de securite : si le plancher a tout ecarte -- il ne le peut pas puisque le meilleur
    * projet l'atteint par construction, mais un profitAnnual nul ou negatif rendrait bestProfit nul
