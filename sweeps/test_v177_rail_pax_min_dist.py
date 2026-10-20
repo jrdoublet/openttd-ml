@@ -32,7 +32,8 @@ class V177(unittest.TestCase):
         body = src[src.index("function OpexMakeCandidate("):]
         pax = body.index('if (kind == "pax") {')
         guard = body.index("if (V177_RAIL_PAX_MIN_DIST > 0 && distance < V177_RAIL_PAX_MIN_DIST) {")
-        other = body.index("} else if (distance > bounds.railMax) {")
+        # V280 ajoute une ouverture gardee dans la seule branche fret.
+        other = body.index("} else if (distance > bounds.railMax")
         self.assertLess(pax, guard)
         self.assertLess(guard, other)
 
