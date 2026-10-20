@@ -1304,9 +1304,13 @@ function OpexV294cSwitchWeight(state, stalled, remaining)
   local nextWeight = V294C_RAIL_WEIGHT_ADAPT;
   if (state.v294cTier == 1) nextWeight = state.weight;
   else if (state.v294cTier == 2) nextWeight = 100;
-  if (nextWeight != state.v294cWeight && DECISION_LOG) {
-    OpexDecide("V294C", "event=weight from=" + state.v294cWeight + " to=" + nextWeight
-        + " seg=" + state.segments + " remaining=" + remaining);
+  if (nextWeight != state.v294cWeight) {
+    state.v294cSwitches++;
+    if (nextWeight < state.v294cMin) state.v294cMin = nextWeight;
+    if (DECISION_LOG) {
+      OpexDecide("V294C", "event=weight from=" + state.v294cWeight + " to=" + nextWeight
+          + " seg=" + state.segments + " remaining=" + remaining);
+    }
   }
   state.v294cWeight = nextWeight;
 }
@@ -1318,7 +1322,11 @@ function OpexV294cRetryNoPath(state, deadlineTick)
 {
   if (state.v294cTier >= 2 || state.iterations >= state.iterationBudget ||
       state.iterations >= state.timeSafe || AIController.GetTick() >= deadlineTick) return false;
-  OpexV294cSwitchWeight(state, true, OpexV294cSourceDistance(state));
+  /* Un palier de meme poids rejouerait exactement la meme recherche : passer au suivant. */
+  local before = state.v294cWeight;
+  local remaining = OpexV294cSourceDistance(state);
+  while (state.v294cTier < 2 && state.v294cWeight == before) OpexV294cSwitchWeight(state, true, remaining);
+  if (state.v294cWeight == before) return false;
   state.pathfinder = null;
   state.segmentPath = false;
   state.segmentUsed = 0;
@@ -1400,6 +1408,8 @@ function OpexCreateSegmentedSearch(plansA, plansB, iterationBudget, ignoredTiles
     state.v294cWeight <- V294C_RAIL_WEIGHT_ADAPT;
     state.v294cTier <- 0;
     state.v294cLastDist <- OpexV294cSourceDistance(state);
+    state.v294cMin <- V294C_RAIL_WEIGHT_ADAPT;
+    state.v294cSwitches <- 0;
     if (DECISION_LOG && state.v294cWeight != state.weight) {
       OpexDecide("V294C", "event=weight from=" + state.weight + " to=" + state.v294cWeight
           + " seg=0 remaining=" + state.v294cLastDist);
@@ -1515,7 +1525,9 @@ function OpexAdvanceSegmentedSearch(state, sliceIters, deadlineTick)
     if (path == null) {
       state.pathfinder = null;
       if (OpexTrySegmentedBacktrack(state)) continue;
-      if (V294C_RAIL_WEIGHT_ADAPT > 0 && OpexV294cRetryNoPath(state, deadlineTick)) continue;
+      /* V294c : pas de reprise a poids plus bas ici. Le tas s'est vide : tout ce qui est
+       * atteignable sous max_cost a ete ferme, et max_cost elague sur g (v129.nut:649), pas sur
+       * f ; le poids ne change que l'ordre d'exploration, la reprise repaierait la recherche. */
       return OpexSegmentedResult(state, null, "NOPA", true);
     }
 

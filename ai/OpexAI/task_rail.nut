@@ -1028,6 +1028,13 @@ function OpexAI::_continueRailSearch()
                      + " budget=" + state.iterationBudget + " days=" + searchDays
                      + " ticks=" + searchTicks);
     }
+    if (V294C_RAIL_WEIGHT_ADAPT > 0 && DECISION_LOG && ("segmented" in state) && state.segmented != null) {
+      /* V294c : le weight= de RAIL_ATTEMPT reste le poids historique ; le poids adaptatif est a part. */
+      local seg = state.segmented;
+      local adaptLog = seg.v294cWeight + "/" + seg.v294cMin + "/" + seg.v294cSwitches;
+      if (!("v294cAdapt" in state.candidate)) state.candidate.v294cAdapt <- adaptLog;
+      else state.candidate.v294cAdapt = adaptLog;
+    }
     local plan = OpexCompleteRailRouteAfterSearch(this._catalog, state.candidate, state.plan, slice);
     if (V294H_RAIL_DEFER > 0 && !(V233_GOODS_GRAFT && OpexV233IsGraft(state.candidate))) {
       OpexV294hTryDefer(this, state, slice, plan);
@@ -1175,7 +1182,8 @@ function OpexAI::_recordRailAttempt(candidate, result, posPacked, year, railPlan
                + " search_ops=" + (("searchOps" in candidate) ? candidate.searchOps : -1)
                + " startx=" + (("startx" in result) ? result.startx : -1)
                + " endx=" + (("endx" in result) ? result.endx : -1)
-               + " weight=" + (("searchWeight" in candidate) ? candidate.searchWeight : (V91_ASTAR_WEIGHT_PCT)));
+               + " weight=" + (("searchWeight" in candidate) ? candidate.searchWeight : (V91_ASTAR_WEIGHT_PCT))
+               + " adapt=" + (("v294cAdapt" in candidate) ? candidate.v294cAdapt : "-"));
     if (result.ok) {
       local cargoStr = AICargo.GetCargoLabel(candidate.cargo);
       OpexDecide("RAIL_BUILD", "line=" + this._nextLineId + " src=" + candidate.src + " dst=" + candidate.dst
