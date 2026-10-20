@@ -577,7 +577,7 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
     generationStage = generationStage,
     freightCargo = freightCargo,
   };
-  if ((MODE_AIR && MODE_RAIL) && railReadyStock != null) ret.railReadyStock <- railReadyStock;
+  if (OpexRailReadyStockActive() && railReadyStock != null) ret.railReadyStock <- railReadyStock;
   if (C69_BOTTLENECK_PROBE) {
     ret.c69Best <- ::C69_LAST_AFFORDABLE;
     ret.c69KDecData <- ::C69_LAST_KDEC_DATA;

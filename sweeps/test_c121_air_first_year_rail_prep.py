@@ -87,7 +87,10 @@ class TestC121RailPrepAndOneOrTwoSettings(unittest.TestCase):
             "function OpexRailPrepMergeAlternatives(", 1)[1].split(
             "function OpexProjectAttemptKey(", 1)[0]
         self.assertNotIn("OpexFilterRailStockGate", merge)
-        self.assertIn('!(MODE_AIR && MODE_RAIL) || C121_CATALOG_FIRST_YEAR_ACTIVE', merge)
+        self.assertIn('!OpexRailReadyStockActive() || C121_CATALOG_FIRST_YEAR_ACTIVE', merge)
+        # V289 : le stock sert aussi en rail seul, seulement sous le worker rail du reliquat.
+        self.assertIn("return MODE_RAIL && (MODE_AIR || (V289_SLACK_WORKERS & 1) != 0);",
+                      source("rail_prep_c121.nut"))
         for name in ("projects.nut", "projects_update.nut", "projects_selection.nut"):
             text = source(name)
             self.assertIn(

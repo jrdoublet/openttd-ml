@@ -705,7 +705,7 @@ function OpexAir0310FilterAirAlternativesStillValid(alternatives, abandonedPairs
  * sans retirer aucun rail du vivier. Inerte pendant l'annee AIR. */
 function OpexRailPrepMergeAlternatives(alternatives, railReadyStock)
 {
-  if (!(MODE_AIR && MODE_RAIL) || C121_CATALOG_FIRST_YEAR_ACTIVE) return alternatives;
+  if (!OpexRailReadyStockActive() || C121_CATALOG_FIRST_YEAR_ACTIVE) return alternatives;
   if (railReadyStock == null || alternatives == null) return alternatives;
   if (railReadyStock.len() == 0) return alternatives;
   local seen = {};

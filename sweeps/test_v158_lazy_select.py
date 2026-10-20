@@ -164,6 +164,7 @@ class TestV158BestReadersAudit(unittest.TestCase):
         # Post-rebuild / post-reselect directs
         "orchestrator.nut:OpexAI::_c76DoFullRegen": "Exécuté immédiatement après _rebuildProjects (resélection fraîche)",
         "scheduler_tasks.nut:OpexAI::_dispatchCatalog": "Exécuté immédiatement après _rebuildProjects ou OpexReselectProjects",
+        "task_v289.nut:OpexAI::_v289PickRailCandidate": "V289 : le reliquat lit best tel quel ; une resélection (~60 k opcodes) franchirait le tick",
         "task_v249.nut:OpexV249MaxListedCapital": "V249 : borne de garde (capital max listé) ; une liste périmée suffit, pas de resélection pour ne pas déplacer son coût",
     }
 

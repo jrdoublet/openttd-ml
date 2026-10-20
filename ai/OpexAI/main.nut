@@ -247,6 +247,8 @@ class OpexAI extends AIController {
   _v289SkippedLow = 0;
   _v289TownFundDate = null;
   _v289EstOps = null;
+  _v289RailSearch = null;
+  _v289TownMonth = -1;
   /* V89 : débit de recherche A* rail opportuniste et instrumentation passive */
   _v89EstimatedSliceOps = 2000;
   _v89LastDay = -1;
@@ -605,6 +607,10 @@ class OpexAI extends AIController {
   function _v289SlackWorkers();
   function _v289CheckMonthlyLog();
   function _v289StepRail();
+  function _v289RailPrepEligible(candidate, curDate);
+  function _v289RailPrepEligibleInFlight(candidate, curDate);
+  function _v289PickRailCandidate(curDate);
+  function _v289ExpireStock(curDate);
   function _v289StepMap();
   function _v289StepTown();
   function _c76RecordRegen(kind, ops, days, year, reason = "unknown");

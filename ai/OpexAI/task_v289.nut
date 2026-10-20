@@ -2,14 +2,15 @@
  *
  * Repartit les opcodes restants en fin de boucle principale avant Sleep(1).
  * Bitmask v289_slack_workers :
- *   - bit 1 : worker rail (preparation de traces A* sans pose)
+ *   - bit 1 : worker rail (A* de preparation dans un creneau dedie, trace au stock)
  *   - bit 2 : cartographie (un pas de _c67TerrainSlackStep)
- *   - bit 4 : croissance urbaine (TOWN_ACTION_FUND_BUILDINGS sous garde de richesse)
+ *   - bit 4 : croissance urbaine (TOWN_ACTION_FUND_BUILDINGS sous garde de richesse, mensuel)
  *
  * Contrat d'opcodes :
  * - Arret immediat si GetOpsTillSuspend() < V289_SLACK_MIN (2500).
  * - Cout de chaque pas borne et memorise dans _v289EstOps (analogue a _v89EstimatedSliceOps).
- * - Ne franchit jamais le tick.
+ * - Une tranche d'A* ne franchit pas le tick ; le demarrage d'un A* et le pas
+ *   mensuel de la ville peuvent le franchir (rares).
  * - Au defaut 0 : inerte (aucun travail, aucun appel d'API de jeu).
  */
 
@@ -39,91 +40,145 @@ function OpexAI::_v289CheckMonthlyLog()
   }
 }
 
-function OpexAI::_v289StepRail()
+/* Vrai si ce candidat peut recevoir un A* de reliquat : pas deja en stock ni en
+ * recherche dans le creneau principal, pas de trace attache. */
+function OpexAI::_v289RailPrepEligible(candidate, curDate)
 {
-  // 1. Si une recherche est deja en vol
-  if (this._railSearch != null) {
-    if (this._c121RailPrepHold) return false;
-    if (this._railSearch.phase == "search") {
-      this._advanceRailSearchSliceWithLedgers();
-      return true;
-    }
-    if (this._railSearch.phase == "build") {
-      local isStock = (("isStockSearch" in this._railSearch) && this._railSearch.isStockSearch)
-          || (("isC121RailPrep" in this._railSearch) && this._railSearch.isC121RailPrep);
-      if (isStock) {
-        this._handleRailStockSearchCompleted();
-        return true;
-      }
-    }
-    return false;
-  }
+  if (candidate == null) return false;
+  if (("railPlan" in candidate) && candidate.railPlan != null) return false;
+  if (OpexC121RailPrepCandidateBlocked(this, candidate, curDate)) return false;
+  local main = this._railSearch;
+  if (main != null && ("candidate" in main) && main.candidate != null
+      && ("kind" in main.candidate) && ("cargo" in main.candidate)
+      && OpexProjectPairKey(main.candidate.kind, main.candidate.cargo, main.candidate.src, main.candidate.dst)
+         == OpexProjectPairKey(candidate.kind, candidate.cargo, candidate.src, candidate.dst)) return false;
+  return true;
+}
 
-  // 2. Si aucune recherche en vol, amorcer la preparation du prochain candidat de tete
-  if (this._railReadyStock != null && this._railReadyStock.len() >= C121_RAIL_PREP_MAX) {
-    return false;
-  }
-
-  local curDate = AIDate.GetCurrentDate();
-
-  // Priorite 1 : candidat rail selectionne dans this._projects.best non encore prepare
-  if (this._projects != null) {
-    this._ensureSelection();
-    if (("best" in this._projects) && this._projects.best != null) {
-      foreach (project in this._projects.best) {
-        if (project == null || !("mode" in project) || project.mode != "rail") continue;
-        if (!("payload" in project) || project.payload == null) continue;
-        local candidate = project.payload;
-        if (("railPlan" in candidate) && candidate.railPlan != null) continue;
-        if (OpexC121RailPrepCandidateBlocked(this, candidate, curDate)) continue;
-        if (this._startRailStockSearch(candidate)) {
-          if (this._railSearch != null) this._railSearch.isC121RailPrep <- true;
-          this._c121RailPrepHold = false;
-          this._c121RailPrepYieldLogged = false;
-          return true;
-        }
-      }
+/* Le premier candidat rail eligible : best tel quel (jamais de re-selection
+ * depuis le reliquat), puis la tete du vivier rail. null si aucun. */
+function OpexAI::_v289PickRailCandidate(curDate)
+{
+  if (this._projects == null) return null;
+  if (("best" in this._projects) && this._projects.best != null) {
+    foreach (project in this._projects.best) {
+      if (project == null || !("mode" in project) || project.mode != "rail") continue;
+      if (!("payload" in project) || project.payload == null) continue;
+      if (this._v289RailPrepEligible(project.payload, curDate)) return project.payload;
     }
   }
-
-  // Priorite 2 : candidat rail du vivier (this._projects.rail.candidates)
-  if (this._projects != null && ("rail" in this._projects) && this._projects.rail != null
+  if (("rail" in this._projects) && this._projects.rail != null
       && ("candidates" in this._projects.rail) && this._projects.rail.candidates != null) {
     local list = this._projects.rail.candidates;
     local limit = list.len() < TOP_K ? list.len() : TOP_K;
     for (local i = 0; i < limit; i++) {
-      local candidate = list[i];
-      if (candidate == null) continue;
-      if (("railPlan" in candidate) && candidate.railPlan != null) continue;
-      if (OpexC121RailPrepCandidateBlocked(this, candidate, curDate)) continue;
-      if (this._startRailStockSearch(candidate)) {
-        if (this._railSearch != null) this._railSearch.isC121RailPrep <- true;
-        this._c121RailPrepHold = false;
-        this._c121RailPrepYieldLogged = false;
-        return true;
+      if (this._v289RailPrepEligible(list[i], curDate)) return list[i];
+    }
+  }
+  return null;
+}
+
+/* Les traces deposes par le reliquat vieillissent : passe V289_STOCK_TTL_DAYS,
+ * la carte a change et la paire n'a pas ete retenue, on libere la place. */
+function OpexAI::_v289ExpireStock(curDate)
+{
+  if (this._railReadyStock == null) return;
+  local stale = [];
+  foreach (pairKey, entry in this._railReadyStock) {
+    if (entry == null || !("v289" in entry) || !entry.v289) continue;
+    if (curDate - entry.readyDate > V289_STOCK_TTL_DAYS) stale.append(pairKey);
+  }
+  foreach (pairKey in stale) {
+    local entry = this._railReadyStock[pairKey];
+    delete this._railReadyStock[pairKey];
+    if (entry.candidate != null) {
+      if ("railPlan" in entry.candidate) entry.candidate.railPlan = null;
+      if ("c121PrepStock" in entry.candidate) entry.candidate.c121PrepStock = false;
+    }
+    if (DECISION_LOG) OpexDecide("V289_STOCK_EXPIRE", "pair=" + pairKey + " age=" + (curDate - entry.readyDate));
+  }
+  if (stale.len() > 0) this._c121RailPrepRememberStock();
+}
+
+/* Worker rail : un A* de preparation dans son PROPRE creneau _v289RailSearch.
+ * Le creneau principal _railSearch n'est echange que le temps de la tranche :
+ * les chantiers reels ne voient jamais cette recherche, ne l'avancent pas et ne
+ * la consomment pas ; elle n'avance que sur le reliquat. Le trace termine va au
+ * stock (_railReadyStock), que la passe projects pose sans nouvel A*.
+ * L'annee AIR de C121 garde le creneau principal pour sa propre preparation. */
+function OpexAI::_v289StepRail()
+{
+  if (!MODE_RAIL || C121_CATALOG_FIRST_YEAR_ACTIVE) return false;
+  if (this._railReadyStock == null || this._catalog == null || this._lines == null) return false;
+  local curDate = AIDate.GetCurrentDate();
+  local slot = this._v289RailSearch;
+  if (slot == null) {
+    this._v289ExpireStock(curDate);
+    if (this._railReadyStock.len() >= C121_RAIL_PREP_MAX) return false;
+    if (AIController.GetOpsTillSuspend() < V289_RAIL_START_MIN) return false;
+    local candidate = this._v289PickRailCandidate(curDate);
+    if (candidate == null) return false;
+    local savedSearch = this._railSearch;
+    local savedWorker = this._activeWorker;
+    this._railSearch = null;
+    local started = this._startRailStockSearch(candidate);
+    this._v289RailSearch = started ? this._railSearch : null;
+    this._railSearch = savedSearch;
+    this._activeWorker = savedWorker;
+    if (started && DECISION_LOG) OpexDecide("V289_RAIL_START", "src=" + candidate.src + " dst=" + candidate.dst
+        + " kind=" + candidate.kind + " budget=" + this._v289RailSearch.iterationBudget);
+    return started;
+  }
+  /* Le chantier reel a pris la meme paire : la preparation ne sert plus. */
+  local c = slot.candidate;
+  if (!this._v289RailPrepEligibleInFlight(c, curDate)) {
+    this._v289RailSearch = null;
+    if (DECISION_LOG) OpexDecide("V289_RAIL_DROP", "src=" + c.src + " dst=" + c.dst + " reason=taken");
+    return true;
+  }
+  local savedSearch = this._railSearch;
+  local savedWorker = this._activeWorker;
+  this._railSearch = slot;
+  if (curDate - slot.startDate > V289_STOCK_TTL_DAYS) {
+    this._handleRailStockSearchTimeout();
+  } else {
+    if (slot.phase == "search") this._continueRailSearch();
+    if (this._railSearch != null && this._railSearch.phase == "build") {
+      local cand = this._railSearch.candidate;
+      local pairKey = OpexProjectPairKey(cand.kind, cand.cargo, cand.src, cand.dst);
+      this._handleRailStockSearchCompleted();
+      if (pairKey in this._railReadyStock) {
+        local entry = this._railReadyStock[pairKey];
+        entry.rawset("v289", true);
+        cand.rawset("c121PrepStock", true);
+        this._c121RailPrepRememberStock();
+        if (DECISION_LOG) OpexDecide("V289_RAIL_DEPOSIT", "src=" + cand.src + " dst=" + cand.dst
+            + " iters=" + slot.spent + " days=" + (curDate - slot.startDate) + " stock=" + this._railReadyStock.len());
+      } else if (DECISION_LOG) {
+        OpexDecide("V289_RAIL_FAIL", "src=" + cand.src + " dst=" + cand.dst + " iters=" + slot.spent);
       }
     }
   }
+  this._v289RailSearch = this._railSearch;
+  this._railSearch = savedSearch;
+  this._activeWorker = savedWorker;
+  return true;
+}
 
-  // Priorite 3 : vivier prepare de l'annee 1 (_c121RailPrepCandidates)
-  if (this._c121RailPrepCandidates != null) {
-    local list = this._c121RailPrepCandidates;
-    local limit = list.len() < TOP_K ? list.len() : TOP_K;
-    for (local i = 0; i < limit; i++) {
-      local candidate = list[i];
-      if (candidate == null) continue;
-      if (("railPlan" in candidate) && candidate.railPlan != null) continue;
-      if (OpexC121RailPrepCandidateBlocked(this, candidate, curDate)) continue;
-      if (this._startRailStockSearch(candidate)) {
-        if (this._railSearch != null) this._railSearch.isC121RailPrep <- true;
-        this._c121RailPrepHold = false;
-        this._c121RailPrepYieldLogged = false;
-        return true;
-      }
-    }
-  }
-
-  return false;
+/* En vol, seul compte que la paire n'ait pas ete prise par le creneau principal
+ * ni deja deposee au stock. */
+function OpexAI::_v289RailPrepEligibleInFlight(candidate, curDate)
+{
+  if (candidate == null) return false;
+  local pairKey = OpexProjectPairKey(candidate.kind, candidate.cargo, candidate.src, candidate.dst);
+  if (pairKey in this._railReadyStock) return false;
+  local main = this._railSearch;
+  if (main != null && ("candidate" in main) && main.candidate != null && ("kind" in main.candidate)
+      && ("cargo" in main.candidate)
+      && OpexProjectPairKey(main.candidate.kind, main.candidate.cargo, main.candidate.src, main.candidate.dst) == pairKey)
+    return false;
+  if (this._abandonedPairs != null && (OpexAbandonedPairKey(candidate) in this._abandonedPairs)) return false;
+  return true;
 }
 
 function OpexAI::_v289StepMap()
@@ -142,6 +197,12 @@ function OpexAI::_v289StepMap()
 
 function OpexAI::_v289StepTown()
 {
+  /* Une seule tentative par mois : le parcours des lignes et la sonde de cout
+   * (AITestMode) ne se repetent pas a chaque reliquat. */
+  local today = AIDate.GetCurrentDate();
+  local stamp = AIDate.GetYear(today) * 12 + AIDate.GetMonth(today);
+  if (this._v289TownMonth == stamp) return false;
+  this._v289TownMonth = stamp;
   local loan = AICompany.GetLoanAmount();
   if (loan > 0) return false;
 
@@ -247,16 +308,18 @@ function OpexAI::_v289SlackWorkers()
     local worked = false;
     if (workerId == 1) {
       local sp = PROBE_SPAN_TRACE ? OpexSpanBegin("slack.rail") : null;
+      local inFlight = this._v289RailSearch != null && this._v289RailSearch.phase == "search";
       local mark = OpexOpsMeasureBegin();
       worked = this._v289StepRail();
       local ops = OpexOpsMeasureEnd(mark);
       if (sp != null) OpexSpanEnd(sp);
       this._v289OpsRail += ops;
-      if (ops > 0) {
+      /* Seule une tranche d'A* en vol renseigne l'estimation : un demarrage (quais)
+       * coute davantage et a son propre seuil V289_RAIL_START_MIN. */
+      if (inFlight && ops > 0) {
         local nextEst = ops + 500;
         if (nextEst < 1500) nextEst = 1500;
         this._v289EstOps[1] = nextEst;
-        this._v89EstimatedSliceOps = nextEst;
       }
     } else if (workerId == 2) {
       local sp = PROBE_SPAN_TRACE ? OpexSpanBegin("slack.map") : null;
@@ -268,6 +331,7 @@ function OpexAI::_v289SlackWorkers()
       if (ops > 0) {
         local nextEst = ops + 500;
         if (nextEst < 1500) nextEst = 1500;
+        if (nextEst > C67_SLACK_MIN) nextEst = C67_SLACK_MIN;
         this._v289EstOps[2] = nextEst;
       }
     } else if (workerId == 4) {
@@ -276,12 +340,8 @@ function OpexAI::_v289SlackWorkers()
       worked = this._v289StepTown();
       local ops = OpexOpsMeasureEnd(mark);
       if (sp != null) OpexSpanEnd(sp);
+      /* Pas d'estimation : le pas est mensuel, son cout ne predit pas le suivant. */
       this._v289OpsTown += ops;
-      if (ops > 0) {
-        local nextEst = ops + 500;
-        if (nextEst < 1500) nextEst = 1500;
-        this._v289EstOps[4] = nextEst;
-      }
     }
 
     if (worked) {

@@ -165,7 +165,7 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
       /* Trace prepare pendant l'annee AIR : il n'est pas dans best. S'il y
        * reapparait quand meme, on refuse sans lancer d'A* et sans stopper la passe. */
       local c121PrepPlan = false;
-      if ((MODE_AIR && MODE_RAIL) && candidate != null
+      if (OpexRailReadyStockActive() && candidate != null
           && ("c121PrepStock" in candidate) && candidate.c121PrepStock
           && ("railPlan" in candidate) && candidate.railPlan != null) {
         local stillFirstYear = C121_CATALOG_FIRST_YEAR_ACTIVE;

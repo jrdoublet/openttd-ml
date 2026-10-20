@@ -1052,6 +1052,8 @@ function OpexAI::_reconcileAfterLoad()
   this._v289TownFundDate = {};
   this._v289EstOps = { [1] = 2000, [2] = 2500, [4] = 1500 };
   this._v289WorkerCursor = 0;
+  this._v289RailSearch = null;
+  this._v289TownMonth = -1;
 
   /* C77 : le travailleur regen_candidates retrouve son instance (non sauvegardee). */
   if (this._activeWorker != null && this._activeWorker.kind == "regen_candidates") {

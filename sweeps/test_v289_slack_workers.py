@@ -104,10 +104,16 @@ class TestV289SlackWorkers(unittest.TestCase):
 
     def test_rail_worker_contract(self):
         self.assertTrue(self.body_rail)
-        # Respecte _c121RailPrepHold
-        self.assertIn("if (this._c121RailPrepHold) return false;", self.body_rail)
-        # Utilise le code existant
-        self.assertIn("this._advanceRailSearchSliceWithLedgers();", self.body_rail)
+        # L'annee AIR de C121 garde le creneau principal
+        self.assertIn("if (!MODE_RAIL || C121_CATALOG_FIRST_YEAR_ACTIVE) return false;", self.body_rail)
+        # Creneau dedie : _railSearch n'est echange que le temps de la tranche, puis restaure
+        self.assertIn("this._railSearch = slot;", self.body_rail)
+        self.assertEqual(self.body_rail.count("this._railSearch = savedSearch;"), 2)
+        self.assertEqual(self.body_rail.count("this._activeWorker = savedWorker;"), 2)
+        self.assertIn("this._continueRailSearch();", self.body_rail)
+        self.assertNotIn("_advanceRailSearchSliceWithLedgers", self.body_rail)
+        self.assertNotIn("_ensureSelection", self.task)
+        self.assertNotIn("_v89EstimatedSliceOps = ", self.task)
         self.assertIn("this._startRailStockSearch(candidate)", self.body_rail)
         self.assertIn("this._handleRailStockSearchCompleted();", self.body_rail)
         # Ne pose JAMAIS de rail
@@ -126,8 +132,9 @@ class TestV289SlackWorkers(unittest.TestCase):
         # Garde de richesse : réserve + max project capital
         self.assertIn("OpexCashReserve()", self.body_town)
         self.assertIn("OpexV249MaxListedCapital(this._projects)", self.body_town)
-        # Cadence 6 mois (182 jours)
+        # Cadence 6 mois (182 jours) par ville, une tentative par mois
         self.assertIn("182", self.body_town)
+        self.assertIn("if (this._v289TownMonth == stamp) return false;", self.body_town)
 
     def test_decision_log_and_spans(self):
         # Decision log mensuel

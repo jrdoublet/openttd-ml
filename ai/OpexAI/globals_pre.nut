@@ -122,6 +122,10 @@ V277_AIR_PUB_FAST <- 0;
 /* V289 : travailleurs sur reliquat de tick avant Sleep(1). Bitmask 0..7. */
 V289_SLACK_WORKERS <- 0;
 const V289_SLACK_MIN = 2500;
+/* V289 : un A* de reliquat ne demarre qu'avec ce reliquat (preparation des quais
+ * comprise) ; trace en vol ou depose au stock perime apres ce delai. */
+const V289_RAIL_START_MIN = 6000;
+const V289_STOCK_TTL_DAYS = 180;
 V172_RAIL_LONG_WEIGHT_DIST <- 100;
 /* Cascade pax par distance decroissante : air seul, air+rail, rail seul,
  * route seule. Le fret accompagne la premiere passe. */

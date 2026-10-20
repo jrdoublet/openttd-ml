@@ -239,7 +239,7 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
   projects.capitalBudget = capitalBudget;
   projects.capitalRemaining = remaining;
   projects.candidateGroups = newWinners;
-  if ((MODE_AIR && MODE_RAIL) && railReadyStock != null) {
+  if (OpexRailReadyStockActive() && railReadyStock != null) {
     if ("railReadyStock" in projects) projects.railReadyStock = railReadyStock;
     else projects.railReadyStock <- railReadyStock;
   }

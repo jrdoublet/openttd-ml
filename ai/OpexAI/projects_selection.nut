@@ -1425,7 +1425,7 @@ function OpexReselectProjects(projects, capitalBudget, abandonedPairs = null, li
   OpexProjectsStampSelectionStats(projects.stats, projects, alternatives, funded, capitalBudget, null);
 
   projects.best = funded;
-  if ((MODE_AIR && MODE_RAIL) && railReadyStock != null) {
+  if (OpexRailReadyStockActive() && railReadyStock != null) {
     if ("railReadyStock" in projects) projects.railReadyStock = railReadyStock;
     else projects.railReadyStock <- railReadyStock;
   }

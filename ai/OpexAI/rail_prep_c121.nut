@@ -11,6 +11,13 @@
  */
 const C121_RAIL_PREP_MAX = 3;
 
+/* Le stock de traces prepares est lu par la passe projects : sous AIR + rail
+ * (C121), et en rail seul quand le worker rail du reliquat V289 l'alimente. */
+function OpexRailReadyStockActive()
+{
+  return MODE_RAIL && (MODE_AIR || (V289_SLACK_WORKERS & 1) != 0);
+}
+
 /* Moindre capital finançable des plans AIR encore vivants, dans tout le vivier
  * (pas seulement best, qui est deja filtre par la caisse). -1 si aucun. */
 function OpexAI::_c121CheapestLivingAirCap()
@@ -98,7 +105,7 @@ function OpexAI::_c121RailPrepRememberStock()
  * ulterieur (apres l'annee 1) relance un A* normal au lieu de reposer le trace. */
 function OpexAI::_c121RailPrepDropStock(candidate, reason, ops, ticks)
 {
-  if (!(MODE_AIR && MODE_RAIL) || candidate == null) return;
+  if (!OpexRailReadyStockActive() || candidate == null) return;
   if (("kind" in candidate) && ("cargo" in candidate)
       && ("src" in candidate) && ("dst" in candidate)
       && this._railReadyStock != null) {
