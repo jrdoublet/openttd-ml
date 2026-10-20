@@ -187,6 +187,8 @@ function OpexLoadSettings()
   if (slopeEngine != null && slopeEngine >= 0) {
     V294_RAIL_SLOPE_ENGINE = slopeEngine;
   }
+  local v295Fast = AIController.GetSetting("v295_astar_fast");
+  V295_ASTAR_FAST = (v295Fast != null && v295Fast == 1) ? 1 : 0;
 
   // V246 : paquets adoptes figes ; les interrupteurs de mode restent actifs.
   ROAD_BUILD_ENABLED = MODE_ROAD;

@@ -725,3 +725,6 @@ V279_LAST_HAS_LINES <- null;
 V279_HITS <- 0;
 V279_MISSES <- 0;
 V279_LAST_STATS_MONTH <- -1;
+
+/* V295 : optimisations exactes A* rail V129 (filtre de Bloom ancetres et dedoublonnage buts). */
+V295_ASTAR_FAST <- 0;
