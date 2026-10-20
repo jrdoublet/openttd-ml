@@ -1,0 +1,234 @@
+{
+  "1972": {
+    "n": 20,
+    "profit_year": {
+      "reference": 1025915.0,
+      "variant": 1072655.35,
+      "delta": 46740.35,
+      "median_delta": 54192.5,
+      "wins": 15,
+      "losses": 5
+    },
+    "company_value": {
+      "reference": 1490505.0,
+      "variant": 1550624.0,
+      "delta": 60119.0,
+      "median_delta": 70654.0,
+      "wins": 15,
+      "losses": 5
+    },
+    "money": {
+      "reference": 588405.3,
+      "variant": 692670.1,
+      "delta": 104264.8,
+      "median_delta": 84017.0,
+      "wins": 15,
+      "losses": 5
+    },
+    "primary_vehicles": {
+      "reference": 22.1,
+      "variant": 21.4,
+      "delta": -0.7,
+      "median_delta": -1.0,
+      "wins": 8,
+      "losses": 12
+    },
+    "n_stations": {
+      "reference": 35.65,
+      "variant": 40.4,
+      "delta": 4.75,
+      "median_delta": 5.5,
+      "wins": 16,
+      "losses": 4
+    },
+    "passenger_capacity": {
+      "reference": 1376.0,
+      "variant": 1876.0,
+      "delta": 500.0
+    },
+    "passengers_last_quarter": {
+      "reference": 3612.45,
+      "variant": 4426.45,
+      "delta": 814.0
+    },
+    "mail_last_quarter": {
+      "reference": 1711.0,
+      "variant": 1365.5,
+      "delta": -345.5
+    }
+  },
+  "1974": {
+    "n": 20,
+    "profit_year": {
+      "reference": 1259192.1,
+      "variant": 1223675.8,
+      "delta": -35516.3,
+      "median_delta": 12585.0,
+      "wins": 10,
+      "losses": 10
+    },
+    "company_value": {
+      "reference": 3483632.2,
+      "variant": 3582429.45,
+      "delta": 98797.25,
+      "median_delta": 148437.0,
+      "wins": 12,
+      "losses": 8
+    },
+    "money": {
+      "reference": 2517772.9,
+      "variant": 2564788.6,
+      "delta": 47015.7,
+      "median_delta": 34904.0,
+      "wins": 11,
+      "losses": 9
+    },
+    "primary_vehicles": {
+      "reference": 29.75,
+      "variant": 29.0,
+      "delta": -0.75,
+      "median_delta": -2.5,
+      "wins": 6,
+      "losses": 13
+    },
+    "n_stations": {
+      "reference": 46.7,
+      "variant": 52.75,
+      "delta": 6.05,
+      "median_delta": 5.0,
+      "wins": 13,
+      "losses": 6
+    },
+    "passenger_capacity": {
+      "reference": 1594.0,
+      "variant": 2496.0,
+      "delta": 902.0
+    },
+    "passengers_last_quarter": {
+      "reference": 3876.15,
+      "variant": 4039.8,
+      "delta": 163.65
+    },
+    "mail_last_quarter": {
+      "reference": 1774.55,
+      "variant": 1360.95,
+      "delta": -413.6
+    }
+  },
+  "1976": {
+    "n": 20,
+    "profit_year": {
+      "reference": 1300434.65,
+      "variant": 1190205.7,
+      "delta": -110228.95,
+      "median_delta": -112078.5,
+      "wins": 7,
+      "losses": 13
+    },
+    "company_value": {
+      "reference": 5686623.55,
+      "variant": 5584655.35,
+      "delta": -101968.2,
+      "median_delta": 132043.0,
+      "wins": 11,
+      "losses": 9
+    },
+    "money": {
+      "reference": 4720555.75,
+      "variant": 4557495.5,
+      "delta": -163060.25,
+      "median_delta": -22051.5,
+      "wins": 9,
+      "losses": 11
+    },
+    "primary_vehicles": {
+      "reference": 34.6,
+      "variant": 34.35,
+      "delta": -0.25,
+      "median_delta": -2.5,
+      "wins": 9,
+      "losses": 11
+    },
+    "n_stations": {
+      "reference": 53.85,
+      "variant": 60.55,
+      "delta": 6.7,
+      "median_delta": 7.0,
+      "wins": 14,
+      "losses": 5
+    },
+    "passenger_capacity": {
+      "reference": 1650.0,
+      "variant": 2792.0,
+      "delta": 1142.0
+    },
+    "passengers_last_quarter": {
+      "reference": 3977.35,
+      "variant": 4314.4,
+      "delta": 337.05
+    },
+    "mail_last_quarter": {
+      "reference": 1819.85,
+      "variant": 1392.85,
+      "delta": -427.0
+    }
+  },
+  "1979": {
+    "n": 20,
+    "profit_year": {
+      "reference": 1413060.1,
+      "variant": 1293191.7,
+      "delta": -119868.4,
+      "median_delta": -106000.5,
+      "wins": 4,
+      "losses": 16
+    },
+    "company_value": {
+      "reference": 9335109.45,
+      "variant": 8895025.3,
+      "delta": -440084.15,
+      "median_delta": -155873.5,
+      "wins": 9,
+      "losses": 11
+    },
+    "money": {
+      "reference": 8501157.8,
+      "variant": 8069866.45,
+      "delta": -431291.35,
+      "median_delta": -135495.5,
+      "wins": 8,
+      "losses": 12
+    },
+    "primary_vehicles": {
+      "reference": 39.5,
+      "variant": 37.55,
+      "delta": -1.95,
+      "median_delta": -4.0,
+      "wins": 5,
+      "losses": 13
+    },
+    "n_stations": {
+      "reference": 60.6,
+      "variant": 66.2,
+      "delta": 5.6,
+      "median_delta": 4.5,
+      "wins": 17,
+      "losses": 3
+    },
+    "passenger_capacity": {
+      "reference": 1732.0,
+      "variant": 2982.0,
+      "delta": 1250.0
+    },
+    "passengers_last_quarter": {
+      "reference": 4254.75,
+      "variant": 4632.55,
+      "delta": 377.8
+    },
+    "mail_last_quarter": {
+      "reference": 1956.7,
+      "variant": 1421.2,
+      "delta": -535.5
+    }
+  }
+}

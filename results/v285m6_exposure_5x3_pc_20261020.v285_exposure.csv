@@ -1,0 +1,6 @@
+seed,attempts,moved,completed,resume_failed,failed,wagon_cost,distinct_lines_moved,cooldown_violations,min_repeated_attempt_gap_days
+7,13,12,12,0,0,17501,8,0,92
+42,17,17,17,0,0,24825,7,0,90
+100,20,20,20,0,0,29086,8,0,90
+999,17,16,16,0,0,16800,9,0,101
+2026,17,17,17,0,0,24800,8,0,94

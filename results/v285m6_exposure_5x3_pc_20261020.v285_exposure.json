@@ -1,0 +1,171 @@
+{
+  "policy": "v285m6",
+  "summary": {
+    "attempts": 84,
+    "moved": 82,
+    "completed": 82,
+    "resume_failed": 0,
+    "failed": 0,
+    "wagon_cost": 113012,
+    "cooldown_violations": 0,
+    "seeds": 5,
+    "seeds_with_moved": 5,
+    "gates": {
+      "cooldown": 154,
+      "eligible": 216,
+      "platform": 132,
+      "profit": 484,
+      "train_count": 64,
+      "waiting": 17
+    }
+  },
+  "by_seed": [
+    {
+      "seed": 7,
+      "attempts": 13,
+      "moved": 12,
+      "completed": 12,
+      "resume_failed": 0,
+      "failed": 0,
+      "wagon_cost": 17501,
+      "distinct_lines_moved": 8,
+      "cooldown_violations": 0,
+      "min_repeated_attempt_gap_days": 92,
+      "gates": {
+        "cooldown": 19,
+        "eligible": 32,
+        "platform": 16,
+        "profit": 130,
+        "train_count": 26
+      },
+      "moves_by_line": {
+        "0": 1,
+        "1": 2,
+        "10": 1,
+        "11": 1,
+        "12": 1,
+        "2": 3,
+        "7": 2,
+        "9": 1
+      }
+    },
+    {
+      "seed": 42,
+      "attempts": 17,
+      "moved": 17,
+      "completed": 17,
+      "resume_failed": 0,
+      "failed": 0,
+      "wagon_cost": 24825,
+      "distinct_lines_moved": 7,
+      "cooldown_violations": 0,
+      "min_repeated_attempt_gap_days": 90,
+      "gates": {
+        "cooldown": 39,
+        "eligible": 22,
+        "platform": 43,
+        "profit": 85,
+        "train_count": 12,
+        "waiting": 9
+      },
+      "moves_by_line": {
+        "0": 2,
+        "10": 2,
+        "2": 2,
+        "4": 3,
+        "5": 3,
+        "7": 3,
+        "8": 2
+      }
+    },
+    {
+      "seed": 100,
+      "attempts": 20,
+      "moved": 20,
+      "completed": 20,
+      "resume_failed": 0,
+      "failed": 0,
+      "wagon_cost": 29086,
+      "distinct_lines_moved": 8,
+      "cooldown_violations": 0,
+      "min_repeated_attempt_gap_days": 90,
+      "gates": {
+        "cooldown": 42,
+        "eligible": 43,
+        "platform": 34,
+        "profit": 67,
+        "train_count": 10,
+        "waiting": 8
+      },
+      "moves_by_line": {
+        "0": 3,
+        "1": 2,
+        "2": 2,
+        "3": 3,
+        "4": 2,
+        "5": 3,
+        "6": 3,
+        "9": 2
+      }
+    },
+    {
+      "seed": 999,
+      "attempts": 17,
+      "moved": 16,
+      "completed": 16,
+      "resume_failed": 0,
+      "failed": 0,
+      "wagon_cost": 16800,
+      "distinct_lines_moved": 9,
+      "cooldown_violations": 0,
+      "min_repeated_attempt_gap_days": 101,
+      "gates": {
+        "cooldown": 23,
+        "eligible": 67,
+        "platform": 17,
+        "profit": 99
+      },
+      "moves_by_line": {
+        "0": 2,
+        "1": 3,
+        "10": 1,
+        "12": 1,
+        "14": 1,
+        "2": 2,
+        "4": 3,
+        "8": 2,
+        "9": 1
+      }
+    },
+    {
+      "seed": 2026,
+      "attempts": 17,
+      "moved": 17,
+      "completed": 17,
+      "resume_failed": 0,
+      "failed": 0,
+      "wagon_cost": 24800,
+      "distinct_lines_moved": 8,
+      "cooldown_violations": 0,
+      "min_repeated_attempt_gap_days": 94,
+      "gates": {
+        "cooldown": 31,
+        "eligible": 52,
+        "platform": 22,
+        "profit": 103,
+        "train_count": 16
+      },
+      "moves_by_line": {
+        "0": 2,
+        "1": 2,
+        "10": 1,
+        "12": 2,
+        "3": 2,
+        "5": 3,
+        "6": 2,
+        "8": 3
+      }
+    }
+  ],
+  "note": "moved = wagon physique; attempts = decision; les logs exigent decision_log=1"
+}

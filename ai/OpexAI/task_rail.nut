@@ -581,6 +581,7 @@ function OpexAI::_continueRailExpansion()
   if (line == null || !AIVehicle.IsValidVehicle(state.vehicle)) {
     state.ops += this._budget.end("expand_rail_build");
     OpexSign(anchor, "EX|" + year + "|" + state.lineId + "|V|" + state.ops + "|0");
+    OpexV285ResultLog(state, "failed", "vehicle");
     this._railExpansion = null;
     return true;
   }
@@ -590,6 +591,7 @@ function OpexAI::_continueRailExpansion()
     state.ops += this._budget.end("expand_rail_build");
     if (resumed) {
       OpexSign(anchor, "EX|" + year + "|" + state.lineId + "|K|" + state.ops + "|" + state.cost);
+      OpexV285ResultLog(state, "completed", "resumed");
       this._railExpansion = null;
     } else {
       if (!("resumeAttempts" in state)) state.resumeAttempts <- 0;
@@ -598,6 +600,7 @@ function OpexAI::_continueRailExpansion()
         line.expandRetryCycle <- this._taskCycle + 3;
         OpexSign(anchor, "EX|" + year + "|" + state.lineId + "|R|" + state.ops
                          + "|" + AIError.GetLastError());
+        OpexV285ResultLog(state, "resume_failed", "resume");
         this._railExpansion = null;
       }
     }
@@ -613,6 +616,7 @@ function OpexAI::_continueRailExpansion()
         line.expandStreak <- 0;
         line.expandRetryCycle <- this._taskCycle + 3;
         OpexSign(anchor, "EX|" + year + "|" + state.lineId + "|W|" + state.ops + "|0");
+        OpexV285ResultLog(state, "failed", "approach_timeout");
         this._railExpansion = null;
         return true;
       }
@@ -643,6 +647,7 @@ function OpexAI::_continueRailExpansion()
           line.expandRetryCycle <- this._taskCycle + 3;
           OpexSign(anchor, "EX|" + year + "|" + state.lineId + "|G|" + state.ops
                            + "|" + AIError.GetLastError());
+          OpexV285ResultLog(state, "failed", "dispatch");
           this._railExpansion = null;
         }
         return true;
@@ -666,6 +671,7 @@ function OpexAI::_continueRailExpansion()
       line.expandStreak <- 0;
       line.expandRetryCycle <- this._taskCycle + 3;
       OpexSign(anchor, "EX|" + year + "|" + state.lineId + "|T|" + state.ops + "|0");
+      OpexV285ResultLog(state, "failed", "depot_timeout");
       this._railExpansion = null;
       return true;
     }
@@ -692,6 +698,7 @@ function OpexAI::_continueRailExpansion()
     line.expandStreak <- 0;
     line.expandRetryCycle <- this._taskCycle + 3;
     OpexSign(anchor, "EX|" + year + "|" + state.lineId + "|D|" + state.ops + "|0");
+    OpexV285ResultLog(state, "failed", "depot_tile");
     this._railExpansion = null;
     return true;
   }
@@ -700,6 +707,7 @@ function OpexAI::_continueRailExpansion()
     AIVehicle.StartStopVehicle(state.vehicle);
     state.ops += this._budget.end("expand_rail_build");
     OpexSign(anchor, "EX|" + year + "|" + state.lineId + "|C|" + state.ops + "|0");
+    OpexV285ResultLog(state, "failed", "cash_at_build");
     this._railExpansion = null;
     return true;
   }
@@ -715,6 +723,7 @@ function OpexAI::_continueRailExpansion()
     line.expandStreak <- 0;
     line.expandRetryCycle <- this._taskCycle + 3;
     OpexSign(anchor, "EX|" + year + "|" + state.lineId + "|B|" + state.ops + "|0");
+    OpexV285ResultLog(state, "failed", "build_vehicle");
     this._railExpansion = null;
     return true;
   }
@@ -730,6 +739,7 @@ function OpexAI::_continueRailExpansion()
     line.expandStreak <- 0;
     line.expandBlocked <- true;
     OpexSign(anchor, "EX|" + year + "|" + state.lineId + "|L|" + state.ops + "|0");
+    OpexV285ResultLog(state, "failed", "physical_length");
     this._railExpansion = null;
     return true;
   }
@@ -742,6 +752,7 @@ function OpexAI::_continueRailExpansion()
     line.expandStreak <- 0;
     line.expandRetryCycle <- this._taskCycle + 3;
     OpexSign(anchor, "EX|" + year + "|" + state.lineId + "|M|" + state.ops + "|0");
+    OpexV285ResultLog(state, "failed", "move_wagon");
     this._railExpansion = null;
     return true;
   }
@@ -758,12 +769,14 @@ function OpexAI::_continueRailExpansion()
   local expansionCount = ("railExpansions" in line) ? line.railExpansions : 0;
   line.railExpansions <- expansionCount + 1;
   line.lastExpansionYear <- AIDate.GetYear(AIDate.GetCurrentDate());
+  OpexV285ResultLog(state, "moved", "move_wagon_ok");
   state.commitStage = "metadata_done";
   state.phase = "resume";
   local resumed = AIVehicle.StartStopVehicle(state.vehicle);
   state.ops += this._budget.end("expand_rail_build");
   if (resumed) {
     OpexSign(anchor, "EX|" + year + "|" + state.lineId + "|K|" + state.ops + "|" + state.cost);
+    OpexV285ResultLog(state, "completed", "resumed");
     this._railExpansion = null;
   }
   return true;
@@ -772,6 +785,36 @@ function OpexAI::_continueRailExpansion()
 function OpexV285Active()
 {
   return V285_RAIL_PAX_GROWTH > 0;
+}
+
+/* Diagnostic V285 explicite : une seule occurrence par ligne, motif et mois.
+ * DECISION_LOG=0 n'ajoute ni table de suivi ni log ; les decisions restent intactes.
+ * Les motifs sont des observations du premier filtre applicable, pas des echecs de construction. */
+function OpexV285GateLog(line, reason)
+{
+  if (!DECISION_LOG || !("lineId" in line)) return;
+  local date = AIDate.GetCurrentDate();
+  local month = AIDate.GetYear(date) * 12 + AIDate.GetMonth(date);
+  if (!("v285ProbeMonth" in line) || line.v285ProbeMonth != month) {
+    line.v285ProbeMonth <- month;
+    line.v285ProbeReasons <- {};
+  }
+  if (reason in line.v285ProbeReasons) return;
+  line.v285ProbeReasons[reason] <- true;
+  OpexDecide("V285_GATE", "line=" + line.lineId + " reason=" + reason
+      + " trains=" + line.trains + " wagons=" + line.wagons
+      + " platform=" + line.platformLength);
+}
+
+/* L'evenement moved prouve un MoveWagon physique reussi, distinct du demarrage
+ * (action=wagon) et de la reprise du train (completed / resume_failed). */
+function OpexV285ResultLog(state, action, reason)
+{
+  if (!DECISION_LOG) return;
+  OpexDecide("V285_RESULT", "action=" + action + " reason=" + reason
+      + " line=" + state.lineId + " date=" + state.decisionDate
+      + " old_wagons=" + state.oldWagons + " new_wagons=" + state.newWagons
+      + " cost=" + state.cost);
 }
 
 /* V285 : allongement des rames voyageurs lorsque l'attente en gare depasse la capacite de la
@@ -788,20 +831,38 @@ function OpexAI::_v285StartWagonExpansion(year)
     if ((("mode" in line) && line.mode != "rail") || !("wagons" in line) || !("platformLength" in line) ||
         !("loco" in line) || !("kind" in line) || !("depot" in line) || !("effectiveSpeed" in line)) continue;
     if (line.kind != "pax") continue;
-    if (line.trains != 1 || line.vehicles.len() != 1) continue;
+    if (line.trains != 1 || line.vehicles.len() != 1) {
+      OpexV285GateLog(line, "train_count");
+      continue;
+    }
     if (("scrapping" in line) && line.scrapping) continue;
-    if (("expandBlocked" in line) && line.expandBlocked) continue;
-    if (("expandRetryCycle" in line) && line.expandRetryCycle > this._taskCycle) continue;
+    if (("expandBlocked" in line) && line.expandBlocked) {
+      OpexV285GateLog(line, "blocked");
+      continue;
+    }
+    if (("expandRetryCycle" in line) && line.expandRetryCycle > this._taskCycle) {
+      OpexV285GateLog(line, "retry");
+      continue;
+    }
     if (V285_RAIL_PAX_GROWTH & 4) {
-      if (("v285LastDate" in line) && currentDate - line.v285LastDate < 90) continue;
+      if (("v285LastDate" in line) && currentDate - line.v285LastDate < 90) {
+        OpexV285GateLog(line, "cooldown");
+        continue;
+      }
     } else {
       if (("v285Year" in line) && line.v285Year == year) continue;
     }
-    if (!("lastProfit" in line) || line.lastProfit <= 0) continue;
+    if (!("lastProfit" in line) || line.lastProfit <= 0) {
+      OpexV285GateLog(line, "profit");
+      continue;
+    }
     if (!(line.cargo in this._catalog.wagonByCargo)) continue;
     if (line.depot == null || !AIRail.IsRailDepotTile(line.depot)) continue;
     local maxPlatformWagons = OpexRailNominalMaxWagons(line.platformLength);
-    if (line.wagons + OpexV163Wagons2(line) >= maxPlatformWagons) continue;
+    if (line.wagons + OpexV163Wagons2(line) >= maxPlatformWagons) {
+      OpexV285GateLog(line, "platform");
+      continue;
+    }
 
     local wagon = this._catalog.wagonByCargo[line.cargo];
     if (wagon.capacity <= 0) continue;
@@ -809,11 +870,19 @@ function OpexAI::_v285StartWagonExpansion(year)
     local waitingB = ("lastWaitingB" in line) ? line.lastWaitingB : 0;
     local waiting = waitingA > waitingB ? waitingA : waitingB;
     local trainPaxCapacity = line.wagons * wagon.capacity;
-    if (waiting < trainPaxCapacity) continue;
+    if (waiting < trainPaxCapacity) {
+      OpexV285GateLog(line, "waiting");
+      continue;
+    }
 
     local vehicle = line.vehicles[0];
     if (!AIVehicle.IsValidVehicle(vehicle) || AIVehicle.GetVehicleType(vehicle) != AIVehicle.VT_RAIL) continue;
-    if (AIVehicle.GetLength(vehicle) + 8 > line.platformLength * 16) continue;
+    if (AIVehicle.GetLength(vehicle) + 8 > line.platformLength * 16) {
+      OpexV285GateLog(line, "physical_length");
+      continue;
+    }
+
+    OpexV285GateLog(line, "eligible");
 
     local score = waiting.tofloat() / trainPaxCapacity;
     if (best == null || score > best.score) {
@@ -822,7 +891,10 @@ function OpexAI::_v285StartWagonExpansion(year)
   }
   if (best == null) return false;
   local line = best.line;
-  if (AICompany.GetBankBalance(AICompany.COMPANY_SELF) < best.wagon.price + OpexCashReserve()) return false;
+  if (AICompany.GetBankBalance(AICompany.COMPANY_SELF) < best.wagon.price + OpexCashReserve()) {
+    OpexV285GateLog(line, "cash");
+    return false;
+  }
   if (V285_RAIL_PAX_GROWTH & 4) {
     line.v285LastDate <- currentDate;
   } else {
@@ -832,6 +904,7 @@ function OpexAI::_v285StartWagonExpansion(year)
   local newSpeed = OpexRailEffectiveSpeed(line.loco, best.wagon, newWagons + OpexV163Wagons2(line), line.distance);
   if (newSpeed < 1 || newSpeed * 100 < 85 * line.effectiveSpeed) {
     line.expandBlocked <- true;
+    OpexV285GateLog(line, "speed");
     if (DECISION_LOG) OpexDecide("V285", "action=skip line=" + line.lineId + " reason=speed wagons=" + line.wagons
                                  + " speed=" + line.effectiveSpeed.tointeger() + " new_speed=" + newSpeed.tointeger());
     return false;

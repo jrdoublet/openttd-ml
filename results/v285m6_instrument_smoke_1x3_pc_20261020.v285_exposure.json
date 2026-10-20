@@ -1,0 +1,51 @@
+{
+  "policy": "v285m6",
+  "summary": {
+    "attempts": 17,
+    "moved": 17,
+    "completed": 17,
+    "resume_failed": 0,
+    "failed": 0,
+    "wagon_cost": 24825,
+    "seeds": 1,
+    "seeds_with_moved": 1,
+    "gates": {
+      "cooldown": 39,
+      "eligible": 22,
+      "platform": 43,
+      "profit": 85,
+      "train_count": 12,
+      "waiting": 9
+    }
+  },
+  "by_seed": [
+    {
+      "seed": 42,
+      "attempts": 17,
+      "moved": 17,
+      "completed": 17,
+      "resume_failed": 0,
+      "failed": 0,
+      "wagon_cost": 24825,
+      "distinct_lines_moved": 7,
+      "gates": {
+        "cooldown": 39,
+        "eligible": 22,
+        "platform": 43,
+        "profit": 85,
+        "train_count": 12,
+        "waiting": 9
+      },
+      "moves_by_line": {
+        "0": 2,
+        "10": 2,
+        "2": 2,
+        "4": 3,
+        "5": 3,
+        "7": 3,
+        "8": 2
+      }
+    }
+  ],
+  "note": "moved = wagon physique; attempts = decision; les logs exigent decision_log=1"
+}

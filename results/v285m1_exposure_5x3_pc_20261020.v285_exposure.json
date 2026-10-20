@@ -1,0 +1,77 @@
+{
+  "policy": "v285m1",
+  "summary": {
+    "attempts": 0,
+    "moved": 0,
+    "completed": 0,
+    "resume_failed": 0,
+    "failed": 0,
+    "wagon_cost": 0,
+    "seeds": 5,
+    "seeds_with_moved": 0,
+    "gates": {}
+  },
+  "by_seed": [
+    {
+      "seed": 7,
+      "attempts": 0,
+      "moved": 0,
+      "completed": 0,
+      "resume_failed": 0,
+      "failed": 0,
+      "wagon_cost": 0,
+      "distinct_lines_moved": 0,
+      "gates": {},
+      "moves_by_line": {}
+    },
+    {
+      "seed": 42,
+      "attempts": 0,
+      "moved": 0,
+      "completed": 0,
+      "resume_failed": 0,
+      "failed": 0,
+      "wagon_cost": 0,
+      "distinct_lines_moved": 0,
+      "gates": {},
+      "moves_by_line": {}
+    },
+    {
+      "seed": 100,
+      "attempts": 0,
+      "moved": 0,
+      "completed": 0,
+      "resume_failed": 0,
+      "failed": 0,
+      "wagon_cost": 0,
+      "distinct_lines_moved": 0,
+      "gates": {},
+      "moves_by_line": {}
+    },
+    {
+      "seed": 999,
+      "attempts": 0,
+      "moved": 0,
+      "completed": 0,
+      "resume_failed": 0,
+      "failed": 0,
+      "wagon_cost": 0,
+      "distinct_lines_moved": 0,
+      "gates": {},
+      "moves_by_line": {}
+    },
+    {
+      "seed": 2026,
+      "attempts": 0,
+      "moved": 0,
+      "completed": 0,
+      "resume_failed": 0,
+      "failed": 0,
+      "wagon_cost": 0,
+      "distinct_lines_moved": 0,
+      "gates": {},
+      "moves_by_line": {}
+    }
+  ],
+  "note": "moved = wagon physique; attempts = decision; les logs exigent decision_log=1"
+}
