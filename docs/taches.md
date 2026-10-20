@@ -7,6 +7,7 @@ ne créent pas une tâche. Protocole et pilotage des bancs : [AGENTS.md](../AGEN
 
 ## État courant
 
+- **20/10 — V282 : V206 mode 1 (rame bornée, quai inchangé) avec V280=3, PC 40×10 achevé.** [Bilan et preuves](qualification_v282_v206m1_v280n3_40x10_pc_20261020.md) : 80/80 jeux, 40/40 paires complètes, `profit_year` +74,1 k£/an (+1,90 %), médiane +22,7 k£, 21 V / 19 D, Wilcoxon p=0,609, IC95 bootstrap [−53,1 ; +210,9] k£/an, `company_value` +1,12 %. **`fail_primary`**, seuil +4 % non atteint ; 0 `NOTRAIN 525` dans les deux bras, exposition du bogue non démontrée. **V206 défaut 0 conservé**, aucune adoption de V280 justifiée par ce banc. Artefacts du banc et du smoke versionnés en JSON/manifeste/JSONL gzip ; journaux moteur hors Git.
 - **20/10 — V280, fret rail long (branche `v280`, défaut 0, sans push).**
   [Diagnostic avant correctif](v280_rail_long_20261020.md) : 16 lignes AAA >160,
   dont 7 >250 (52,9 % du profit de cet inventaire). Sur 9 sources identifiées
