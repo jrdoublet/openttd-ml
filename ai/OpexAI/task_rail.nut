@@ -387,6 +387,8 @@ function OpexAI::_expandRailLines(year)
   /* G6§1 : le bloc RAIL_REFLEET (second train, double voie) vit ici.
    * L'expansion de wagons (rail_expand) a ete figee a 0 et retiree. */
   if (this._railExpansion != null) return;
+  /* V285 : allongement des rames voyageurs quand l'attente depasse la rame. */
+  if (OpexV285Active() && (V285_RAIL_PAX_GROWTH & 2) && this._v285StartWagonExpansion(year)) return;
   /* Une recherche A* en cours (ligne neuve ou upgrade) : ne pas en empiler une seconde. */
   if (this._railSearch != null && !OpexV190Active()) return;
   this._budget.begin();
@@ -764,6 +766,96 @@ function OpexAI::_continueRailExpansion()
     OpexSign(anchor, "EX|" + year + "|" + state.lineId + "|K|" + state.ops + "|" + state.cost);
     this._railExpansion = null;
   }
+  return true;
+}
+
+function OpexV285Active()
+{
+  return V285_RAIL_PAX_GROWTH > 0;
+}
+
+/* V285 : allongement des rames voyageurs lorsque l'attente en gare depasse la capacite de la
+ * rame. Les rames voyageurs saturees (91 % gardent plus d'une rame en attente) recoivent un wagon
+ * supplementaire jusqu'a la limite physique du quai. Reutilise la transaction reprenable
+ * _continueRailExpansion. */
+function OpexAI::_v285StartWagonExpansion(year)
+{
+  if (!OpexV285Active() || !(V285_RAIL_PAX_GROWTH & 2)) return false;
+  if (this._v257Pending != null) return false;
+  local best = null;
+  foreach (line in this._lines) {
+    if ((("mode" in line) && line.mode != "rail") || !("wagons" in line) || !("platformLength" in line) ||
+        !("loco" in line) || !("kind" in line) || !("depot" in line) || !("effectiveSpeed" in line)) continue;
+    if (line.kind != "pax") continue;
+    if (line.trains != 1 || line.vehicles.len() != 1) continue;
+    if (("scrapping" in line) && line.scrapping) continue;
+    if (("expandBlocked" in line) && line.expandBlocked) continue;
+    if (("expandRetryCycle" in line) && line.expandRetryCycle > this._taskCycle) continue;
+    if (("v285Year" in line) && line.v285Year == year) continue;
+    if (!("lastProfit" in line) || line.lastProfit <= 0) continue;
+    if (!(line.cargo in this._catalog.wagonByCargo)) continue;
+    if (line.depot == null || !AIRail.IsRailDepotTile(line.depot)) continue;
+    local maxPlatformWagons = OpexRailNominalMaxWagons(line.platformLength);
+    if (line.wagons + OpexV163Wagons2(line) >= maxPlatformWagons) continue;
+
+    local wagon = this._catalog.wagonByCargo[line.cargo];
+    if (wagon.capacity <= 0) continue;
+    local waitingA = ("lastWaitingA" in line) ? line.lastWaitingA : 0;
+    local waitingB = ("lastWaitingB" in line) ? line.lastWaitingB : 0;
+    local waiting = waitingA > waitingB ? waitingA : waitingB;
+    local trainPaxCapacity = line.wagons * wagon.capacity;
+    if (waiting < trainPaxCapacity) continue;
+
+    local vehicle = line.vehicles[0];
+    if (!AIVehicle.IsValidVehicle(vehicle) || AIVehicle.GetVehicleType(vehicle) != AIVehicle.VT_RAIL) continue;
+    if (AIVehicle.GetLength(vehicle) + 8 > line.platformLength * 16) continue;
+
+    local score = waiting.tofloat() / trainPaxCapacity;
+    if (best == null || score > best.score) {
+      best = { line = line, vehicle = vehicle, wagon = wagon, waiting = waiting, score = score };
+    }
+  }
+  if (best == null) return false;
+  local line = best.line;
+  if (AICompany.GetBankBalance(AICompany.COMPANY_SELF) < best.wagon.price + OpexCashReserve()) return false;
+  line.v285Year <- year;
+  local newWagons = line.wagons + 1;
+  local newSpeed = OpexRailEffectiveSpeed(line.loco, best.wagon, newWagons + OpexV163Wagons2(line), line.distance);
+  if (newSpeed < 1 || newSpeed * 100 < 85 * line.effectiveSpeed) {
+    line.expandBlocked <- true;
+    if (DECISION_LOG) OpexDecide("V285", "action=skip line=" + line.lineId + " reason=speed wagons=" + line.wagons
+                                 + " speed=" + line.effectiveSpeed.tointeger() + " new_speed=" + newSpeed.tointeger());
+    return false;
+  }
+  local newOneWayDays = line.distance.tofloat() / (0.036 * newSpeed);
+  if (newOneWayDays < 1) newOneWayDays = 1;
+  local waitDays = (2 * newOneWayDays).tointeger() + 60;
+  if (waitDays < 120) waitDays = 120;
+  if (waitDays > 730) waitDays = 730;
+  this._railExpansion = {
+    lineId = line.lineId, vehicle = best.vehicle, wagonId = best.wagon.id,
+    oldWagons = line.wagons, newWagons = newWagons,
+    oldTrainLength = AIVehicle.GetLength(best.vehicle),
+    oldExpansionCount = ("railExpansions" in line) ? line.railExpansions : 0,
+    decisionYear = year,
+    newSpeed = newSpeed, newOneWayDays = newOneWayDays,
+    gain = 0, waiting = best.waiting, util = 0,
+    decisionDate = AIDate.GetCurrentDate(), waitDays = waitDays,
+    startDate = AIDate.GetCurrentDate(), phase = "approach", dispatchAttempts = 0,
+    resumeAttempts = 0,
+    temporaryOrder = false, temporaryOrderPosition = -1,
+    commitStage = "idle", pendingWagon = -1,
+    ops = 0, cost = 0,
+  };
+  if (DECISION_LOG) OpexDecide("V285", "action=wagon line=" + line.lineId + " kind=" + line.kind
+                               + " old_wagons=" + line.wagons + " new_wagons=" + newWagons
+                               + " platform=" + line.platformLength + " waiting=" + best.waiting
+                               + " train_cap=" + (line.wagons * best.wagon.capacity)
+                               + " speed=" + line.effectiveSpeed.tointeger() + " new_speed=" + newSpeed.tointeger());
+  local depotApproachTiles = 8;
+  if (AIVehicle.IsStoppedInDepot(best.vehicle) ||
+      AIMap.DistanceManhattan(AIVehicle.GetLocation(best.vehicle), line.depot)
+          <= depotApproachTiles) this._continueRailExpansion();
   return true;
 }
 /* Demarre une recherche A* ferroviaire reprenable. Premiere tranche dans ce tour ; si elle

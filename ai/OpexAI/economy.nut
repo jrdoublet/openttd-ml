@@ -324,10 +324,14 @@ function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPl
   /* Au classement, la rame cible choisit son quai : 1 tuile = 2 wagons vanilla de 8/16 et la
    * marge de 2 wagons ajoute donc la plus petite croissance geometrique non nulle. Apres le site,
    * `fixedPlatformLength` ecrase ce souhait. Le capital compte ainsi 2 quais de la longueur qui
-   * sera effectivement posee, pas `station.station_spread` lu a 12. */
+   * sera effectivement posee, pas `station.station_spread` lu a 12.
+   * V285 bit 1 : quai dimensionne a la longueur maximale (vehicle.max_train_length) des la pose
+   * pour les passagers/courrier (kind == "pax"). */
   local platformLength = fixedPlatformLength > 0
       ? fixedPlatformLength
-      : OpexRailWantedPlatformLength(wagons + wagons2, catalog.platformLength);
+      : (((V285_RAIL_PAX_GROWTH & 1) && kind == "pax")
+          ? (catalog.maxTrainLength > 0 && catalog.maxTrainLength <= catalog.platformLength ? catalog.maxTrainLength : catalog.platformLength)
+          : OpexRailWantedPlatformLength(wagons + wagons2, catalog.platformLength));
   local effectiveTrackCost = (catalog.costTrackPerTile * RAIL_TERRAIN_FACTOR) / 100;
   local infraCost = travelDist * effectiveTrackCost + 2 * platformLength * catalog.costStation
       + (RAIL_DEPOT_COST ? catalog.costRailDepot : 0);

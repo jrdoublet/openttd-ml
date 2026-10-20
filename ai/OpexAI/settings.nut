@@ -120,6 +120,8 @@ function OpexLoadSettings()
   V207_RAIL_PAX_SITE_RANK_PCT = (v207Rank != null && v207Rank >= 0 && v207Rank <= 100) ? v207Rank : 0;
   local v275 = AIController.GetSetting("v275_rail_pax_mm");
   V275_RAIL_PAX_MM = (v275 != null && v275 >= 0 && v275 <= 15) ? v275 : 0;
+  local paxGrowth = AIController.GetSetting("v285_rail_pax_growth");
+  V285_RAIL_PAX_GROWTH = (paxGrowth != null && paxGrowth > 0 && paxGrowth <= 3) ? paxGrowth : 0;
   /* V275 bit 8 (defaut 15 depuis le 20/10, decision utilisateur) : reglage selon le mode.
    * Sans aerien, paquet qualifie en rail seul (portes A +635 k et B +791 k) : bits 1/2/4 et,
    * si les reglages V207 sont a leur defaut, part 40 + courrier + 2 arrets joints. Avec

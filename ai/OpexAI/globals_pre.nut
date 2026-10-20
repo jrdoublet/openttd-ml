@@ -58,6 +58,9 @@ V212_RAIL_PAX_REVENUE_PCT <- 100;
 V212_RAIL_PAX_CAPITAL_PCT <- 100;
 /* V275 : masque rail voyageurs en multimodal (voir info.nut). */
 V275_RAIL_PAX_MM <- 15;
+/* V285 : croissance des rames et quais voyageurs en rail seul (economy.nut, task_rail.nut).
+ * 0 = inerte (defaut), 1 = quai max a la pose, 2 = wagons ajoutes quand l'attente depasse la rame, 3 = les deux. */
+V285_RAIL_PAX_GROWTH <- 0;
 /* V214 : couts de virage du A* rail a la AAAHogEx (pathfinder.nut, InitializeParameters/__Cost).
  * Defaut 300/1500 adopte sur decision utilisateur le 16/10 apres B 20x10 positif,
  * avec portes A 40x3 et 40x5 non qualifiees. 0 = historique (50 a chaque changement de direction,
