@@ -80,11 +80,13 @@ function OpexV294hTryDefer(owner, state, slice, plan)
   return true;
 }
 
-/* Reliquat du tick, en tranches taillees sur les opcodes restants. Une tranche de
- * RAIL_SEARCH_SLICE (50) iterations coute ~10 k opcodes, soit un tick entier : le seuil V89
- * (_v89EstimatedSliceOps) n'est presque jamais atteint en fin de boucle (smoke du 20/10 :
- * 652 passages sur 653 sans tranche, ~6 k opcodes restants en moyenne). Le cout par
- * iteration est mesure sur nos propres tranches (V294H_OPS_PER_ITER). */
+/* Fin de boucle, une tranche par passage. Une iteration A* coute ~1 500 opcodes (mediane
+ * 1 615 sur 115 tentatives des smokes du 20/10), une tranche de 50 environ 7 ticks : le seuil
+ * V89 n'est jamais atteint en fin de boucle (652 passages sur 653 sans tranche, ~6 k opcodes
+ * restants, ~2 a 5 passages par jour). V294H_OPS_PER_ITER part de 200 et n'est mis a jour
+ * que sans suspension : il reste en pratique a 200, d'ou ~30 iterations par passage, soit
+ * ~7 % du temps du script quand la file est non vide. Ce n'est PAS un pur reliquat : un
+ * reliquat strict donnerait ~3 iterations par passage et rendrait la file inerte. */
 function OpexV294hAdvance(owner)
 {
   if (V294H_RAIL_DEFER <= 0 || owner._v294Deferred == null || owner._v294Deferred.len() == 0) return 0;
