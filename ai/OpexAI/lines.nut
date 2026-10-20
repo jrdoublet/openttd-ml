@@ -27,6 +27,7 @@ function OpexAttemptReasonCode(reason)
   if (reason == "ORDFAIL") return "R";
   if (reason == "NOTRAIN") return "V";
   if (reason == "REPLAN_GEOM") return "J";
+  if (reason == "DEFER") return "W";
   return "X";
 }
 /* P4 : la memoire d'abandon ne doit retenir que les impossibilites durables.
