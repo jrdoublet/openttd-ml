@@ -1048,6 +1048,10 @@ function OpexAI::_reconcileAfterLoad()
   this._c121RailPrepHold = false;
   this._c121RailPrepYieldLogged = false;
   this._c121RailPrepMinAirCap = -1;
+  /* V289 : etat transitoire du reliquat (reconstruit au rechargement). */
+  this._v289TownFundDate = {};
+  this._v289EstOps = { [1] = 2000, [2] = 2500, [4] = 1500 };
+  this._v289WorkerCursor = 0;
 
   /* C77 : le travailleur regen_candidates retrouve son instance (non sauvegardee). */
   if (this._activeWorker != null && this._activeWorker.kind == "regen_candidates") {

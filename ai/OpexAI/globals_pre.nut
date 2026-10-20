@@ -119,6 +119,9 @@ V250_CASH_STOP <- true;
 V259_BRIDGE_RENEW <- 0;
 /* V277 : publication rapide des projets air et filtre indexe de re-selection. */
 V277_AIR_PUB_FAST <- 0;
+/* V289 : travailleurs sur reliquat de tick avant Sleep(1). Bitmask 0..7. */
+V289_SLACK_WORKERS <- 0;
+const V289_SLACK_MIN = 2500;
 V172_RAIL_LONG_WEIGHT_DIST <- 100;
 /* Cascade pax par distance decroissante : air seul, air+rail, rail seul,
  * route seule. Le fret accompagne la premiere passe. */

@@ -2572,6 +2572,11 @@ function OpexAI::_mainLoopProfiled()
       if (spC67 != null) OpexSpanEnd(spC67);
       OpexLoopProfAdd("c67_hook", mark);
     }
+    mark = OpexOpsMeasureBegin();
+    local spSlack = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.v289_slack") : null;
+    this._v289SlackWorkers();
+    if (spSlack != null) OpexSpanEnd(spSlack);
+    OpexLoopProfAdd("v289_slack", mark);
     OpexLoopProfAddRaw("sleep_left", AIController.GetOpsTillSuspend(), 0);
     local spSleep = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.sleep") : null;
     AIController.Sleep(1);

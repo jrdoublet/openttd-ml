@@ -641,6 +641,15 @@ class OpexAIInfo extends AIInfo {
       step_size = 1,
       flags = 0
     });
+    AddSetting({
+      name = "v289_slack_workers",
+      description = "V289: slack workers on remaining tick opcodes before Sleep(1): bit 1 = rail stock prep, bit 2 = C67 terrain mapping, bit 4 = served town building funding; 0 = off (default), 1..7 = active bitmask",
+      min_value = 0, max_value = 7,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0, default_value = 0,
+      step_size = 1,
+      flags = 0
+    });
   }
 }
 

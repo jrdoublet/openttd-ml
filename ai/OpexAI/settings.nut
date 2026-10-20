@@ -149,6 +149,8 @@ function OpexLoadSettings()
   V259_BRIDGE_RENEW = (v259Renew != null && v259Renew == 1) ? 1 : 0;
   local v277Pub = AIController.GetSetting("v277_air_pub_fast");
   V277_AIR_PUB_FAST = (v277Pub != null && v277Pub >= 0 && v277Pub <= 2) ? v277Pub : 0;
+  local v289Slack = AIController.GetSetting("v289_slack_workers");
+  V289_SLACK_WORKERS = (v289Slack != null && v289Slack >= 0 && v289Slack <= 7) ? v289Slack : 0;
 
   // V246 : paquets adoptes figes ; les interrupteurs de mode restent actifs.
   ROAD_BUILD_ENABLED = MODE_ROAD;

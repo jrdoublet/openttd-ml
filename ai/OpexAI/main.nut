@@ -237,6 +237,16 @@ class OpexAI extends AIController {
   _v259Queue = null;
   _v259Cursor = 0;
   _v259LastCheckMonth = -1;
+  /* V289 : repartition du reliquat de tick */
+  _v289WorkerCursor = 0;
+  _v289LastStatsMonth = -1;
+  _v289Calls = 0;
+  _v289OpsRail = 0;
+  _v289OpsMap = 0;
+  _v289OpsTown = 0;
+  _v289SkippedLow = 0;
+  _v289TownFundDate = null;
+  _v289EstOps = null;
   /* V89 : débit de recherche A* rail opportuniste et instrumentation passive */
   _v89EstimatedSliceOps = 2000;
   _v89LastDay = -1;
@@ -424,6 +434,8 @@ class OpexAI extends AIController {
     this._c121RailPrepHold = false;
     this._c121RailPrepYieldLogged = false;
     this._c121RailPrepMinAirCap = -1;
+    this._v289TownFundDate = {};
+    this._v289EstOps = { [1] = 2000, [2] = 2500, [4] = 1500 };
     this._c41RailSignalLines = {};
     this._c41RailJunctionLines = {};
     this._staleness = {
@@ -590,6 +602,11 @@ class OpexAI extends AIController {
   function _v259PrepareBridgeQueue();
   function _v259StepBridgeRenew();
   function _v259EvaluateAndRenew(item);
+  function _v289SlackWorkers();
+  function _v289CheckMonthlyLog();
+  function _v289StepRail();
+  function _v289StepMap();
+  function _v289StepTown();
   function _c76RecordRegen(kind, ops, days, year, reason = "unknown");
   function _c76RecordAvoided(year);
   function _c76BumpLayer(layer, isEvent = false);
@@ -692,6 +709,7 @@ require("task_v252.nut");
 require("task_v257.nut");
 require("task_v250.nut");
 require("task_v259.nut");
+require("task_v289.nut");
 require("selftests.nut");
 
 function OpexAI::Start()
@@ -854,6 +872,9 @@ function OpexAI::Start()
       this._c67SlackHook();
       if (spC67 != null) OpexSpanEnd(spC67);
     }
+    local spSlack = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.v289_slack") : null;
+    this._v289SlackWorkers();
+    if (spSlack != null) OpexSpanEnd(spSlack);
     local spSleep = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.sleep") : null;
     AIController.Sleep(1);
     if (spSleep != null) OpexSpanEnd(spSleep);
