@@ -824,9 +824,13 @@ function OpexAddRailSearchOps(candidate, ops)
 
 /* V172 : poids heuristique A* rail adaptatif a la distance Manhattan de la recherche.
  * Si v172_rail_long_weight_pct > 0 et distance >= v172_rail_long_weight_dist,
- * utilise ce poids au lieu de V91_ASTAR_WEIGHT_PCT. */
+ * utilise ce poids au lieu de V91_ASTAR_WEIGHT_PCT.
+ * V294c : si v294_rail_weight_pct > 0, poids unifié utilisé à toutes les distances (AAA : 200). */
 function OpexRailAstarWeight(dist = null)
 {
+  if (V294_RAIL_WEIGHT_PCT > 0) {
+    return V294_RAIL_WEIGHT_PCT;
+  }
   if (dist != null && V172_RAIL_LONG_WEIGHT_PCT > 0 && dist >= V172_RAIL_LONG_WEIGHT_DIST) {
     return V172_RAIL_LONG_WEIGHT_PCT;
   }

@@ -120,6 +120,8 @@ V250_CASH_STOP <- true;
 V259_BRIDGE_RENEW <- 0;
 /* V277 : publication rapide des projets air et filtre indexe de re-selection. */
 V277_AIR_PUB_FAST <- 0;
+/* V294c : poids heuristique A* rail unifié à toutes les distances (défaut 0 = inerte). AAA : 200 partout. */
+V294_RAIL_WEIGHT_PCT <- 0;
 V172_RAIL_LONG_WEIGHT_DIST <- 100;
 /* Cascade pax par distance decroissante : air seul, air+rail, rail seul,
  * route seule. Le fret accompagne la premiere passe. */

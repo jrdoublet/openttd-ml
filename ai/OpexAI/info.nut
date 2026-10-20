@@ -661,6 +661,13 @@ class OpexAIInfo extends AIInfo {
       step_size = 1,
       flags = 0
     });
+    AddSetting({
+      name = "v294_rail_weight_pct",
+      description = "V294c: unified rail A* heuristic weight percentage across all distances (AAA uses 200 everywhere); 0 = off (uses V91/V172 distance-based weight, default), 100..400 = weight pct",
+      min_value = 0, max_value = 400,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0, flags = 0, step_size = 1
+    });
   }
 }
 
