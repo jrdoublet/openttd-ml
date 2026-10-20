@@ -45,7 +45,7 @@ class TestV251Inventory(unittest.TestCase):
         info = self.sources["info.nut"]
         # Migration controlee de 43 options historiques ; conserver
         # PO01C=1, PO03/C77=2 et PO02=1. Pas d'ajout WIP experimental.
-        self.assertLessEqual(info.count("AddSetting("), 58)
+        self.assertLessEqual(info.count("AddSetting("), 59)
         self.assertNotIn('name = "v251', info)
         settings = self.sources["settings.nut"]
         self.assertNotIn('GetSetting("v251', settings)

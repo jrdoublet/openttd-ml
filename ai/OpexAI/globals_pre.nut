@@ -31,6 +31,13 @@ V284_RAIL_GROWTH <- 0; // 0 : master ; N : croissance fret apres N ans et 1 M£ 
 /* V294 : ponts/tunnels longs et recherche A* continue (defauts 0 = master inchange). */
 V294_RAIL_BRIDGE_LEN <- 20;  // defaut V294all depuis le 21/10 (decision utilisateur)
 V294_RAIL_CONTINUOUS <- 0;
+/* V294g : memoire d'echec rail par lieu et expiration par motif (defaut 0 = master). */
+V294_RAIL_FAIL_MEMORY <- 0;
+const V294G_EXPIRY_SITE_DAYS = 730;    /* 2 ans : les villes et industries grandissent lentement */
+const V294G_EXPIRY_ABND_DAYS = 180;    /* 180 jours : le terrain evolue, et V294h peut reprendre en fond */
+const V294G_EXPIRY_NOPA_DAYS = 365;    /* 1 an : reseau ou blocage A* peut s'eclaircir */
+const V294G_EXPIRY_STNFAIL_DAYS = 90;  /* 90 jours : echec d'assemblage / reservation de tuile tres transitoire */
+const V294G_EXPIRY_DEFAULT_DAYS = 365; /* 365 jours par defaut pour les autres motifs */
 V269_RELAXED <- false;
 V269_ON <- false;
 /* V190 : lignes rail fret posees en double voie a sens unique des la construction. */

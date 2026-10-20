@@ -830,6 +830,9 @@ function OpexAI::_v217RailRefill()
       if (project == null || project.mode != "rail" || !("payload" in project) || project.payload == null) continue;
       local c = project.payload;
       if (this._abandonedPairs != null && (OpexAbandonedPairKey(c) in this._abandonedPairs)) continue;
+      if (V294_RAIL_FAIL_MEMORY > 0 && this._abandonedPlaces != null) {
+        if (OpexRailCandidateBannedPlace(c, this._abandonedPlaces) != null) continue;
+      }
       local close = this._tooClose(c);
       if (close.hard >= 0 || close.blocking >= 0) continue;
       startable++;

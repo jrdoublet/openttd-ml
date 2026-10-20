@@ -91,7 +91,7 @@ class TestV294RailAstar(unittest.TestCase):
     def test_no_undeclared_v294_globals(self):
         allowed = {"V294_RAIL_BRIDGE_LEN", "V294_RAIL_CONTINUOUS",  # v294 ; integration v294all :
                    "V294_RAIL_WEIGHT_PCT", "V294_RAIL_AAA_COSTS", "V294_RAIL_REVERSE_PROBE",
-                   "V294_RAIL_DIST_DECOUPLE", "V294_RAIL_SLOPE_ENGINE"}
+                   "V294_RAIL_DIST_DECOUPLE", "V294_RAIL_SLOPE_ENGINE", "V294_RAIL_FAIL_MEMORY"}
         found = set()
         for fn, text in self.sources.items():
             for m in re.finditer(r"\b(V294_[A-Z0-9_]+)\b", text):

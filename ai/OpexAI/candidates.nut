@@ -942,7 +942,7 @@ function OpexOriginService(lines, tile)
 const TOWN_CATCHMENT_SHARE_PCT = 22;
 
 /* Paires de villes pour les passagers. */
-function OpexPaxCandidates(catalog, lines, out, stats, abandonedPairs = null, profile = null, candidateProfile = null, cruiseCache = null, paxBand = PAX_BAND_ALL, targetKind = null, targetId = -1)
+function OpexPaxCandidates(catalog, lines, out, stats, abandonedPairs = null, profile = null, candidateProfile = null, cruiseCache = null, paxBand = PAX_BAND_ALL, targetKind = null, targetId = -1, abandonedPlaces = null)
 {
   local cargo = catalog.paxCargo;
   if (cargo < 0) return;
@@ -1010,6 +1010,9 @@ function OpexPaxCandidates(catalog, lines, out, stats, abandonedPairs = null, pr
         if (tA > tB) { local swap = tA; tA = tB; tB = swap; }
         local pairKey = "pax|" + cargo + "|" + tA + "|" + tB;
         if (pairKey in abandonedPairs) continue;
+      }
+      if (V294_RAIL_FAIL_MEMORY > 0 && abandonedPlaces != null) {
+        if (("t" + towns[a].id in abandonedPlaces) || ("t" + towns[b].id in abandonedPlaces)) continue;
       }
       stats.pairsTotal++;
       if (profile != null) profile.paxPairsScanned++;
@@ -1123,7 +1126,7 @@ function OpexV264EmitConvergent(catalog, stats, profile, cruiseCache, cargo, sou
 
 /* Industries : on n'apparie que des couples producteur/accepteur du MEME cargo, ce qui garde
  * l'etage 1 lineaire en nombre d'industries plutot que quadratique sur tout le catalogue. */
-function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null, profile = null, cruiseCache = null, freightCargo = null, targetKind = null, targetId = -1)
+function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null, profile = null, cruiseCache = null, freightCargo = null, targetKind = null, targetId = -1, abandonedPlaces = null)
 {
   /* C41.44 : les lignes sont immuables pendant une generation ; une ville peut donc reutiliser
    * exactement son resultat OpexOriginService, y compris null et l'etat blocked. */
@@ -1161,6 +1164,9 @@ function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null
         if (abandonedPairs != null) {
           local pairKey = "freight|" + cargo + "|" + source.id + "|" + industries[di].id;
           if (pairKey in abandonedPairs) continue;
+        }
+        if (V294_RAIL_FAIL_MEMORY > 0 && abandonedPlaces != null) {
+          if (("" + source.id in abandonedPlaces) || ("" + industries[di].id in abandonedPlaces)) continue;
         }
         stats.pairsTotal++;
         local sd = served[di];
@@ -1213,6 +1219,12 @@ function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null
              * pour une ville), en coherence avec OpexAbandonedPairKey. */
             local pairKey = "freight|" + cargo + "|" + source.id + "|t" + town.id;
             if (pairKey in abandonedPairs) {
+              if (townGuardMark != null) { profile.freightTownGuardsOps += OpexOpsMeasureEnd(townGuardMark); profile.freightTownGuardsCalls++; }
+              continue;
+            }
+          }
+          if (V294_RAIL_FAIL_MEMORY > 0 && abandonedPlaces != null) {
+            if (("" + source.id in abandonedPlaces) || ("t" + town.id in abandonedPlaces)) {
               if (townGuardMark != null) { profile.freightTownGuardsOps += OpexOpsMeasureEnd(townGuardMark); profile.freightTownGuardsCalls++; }
               continue;
             }
@@ -1274,7 +1286,7 @@ function OpexRailCandidateStats()
   return stats;
 }
 
-function OpexBuildCandidates(catalog, budget, lines, abandonedPairs = null, profile = null, paxProfile = null, paxCandidateProfile = null, paxCruiseCache = null, freightCruiseCache = null, generatePax = true, generateFreight = true, paxBand = PAX_BAND_ALL, freightCargo = null, targetKind = null, targetId = -1)
+function OpexBuildCandidates(catalog, budget, lines, abandonedPairs = null, profile = null, paxProfile = null, paxCandidateProfile = null, paxCruiseCache = null, freightCruiseCache = null, generatePax = true, generateFreight = true, paxBand = PAX_BAND_ALL, freightCargo = null, targetKind = null, targetId = -1, abandonedPlaces = null)
 {
   if (V276_CAND_SLICES > 0) return OpexV276Published(catalog, targetKind, targetId);
   /* Memo origin_sitable vide a chaque passe de generation : une gare ou un rail bati depuis la
@@ -1298,7 +1310,7 @@ function OpexBuildCandidates(catalog, budget, lines, abandonedPairs = null, prof
   budget.begin();
   if (generatePax) {
     OpexPaxCandidates(catalog, lines, all, stats, abandonedPairs, paxProfile, paxCandidateProfile,
-                      paxCruiseCache, paxBand, targetKind, targetId);
+                      paxCruiseCache, paxBand, targetKind, targetId, abandonedPlaces);
   }
   local opsPax = budget.end("cand_pax");
   if (profile != null) profile.paxOps += OpexOpsMeasureEnd(paxMark);
@@ -1307,7 +1319,7 @@ function OpexBuildCandidates(catalog, budget, lines, abandonedPairs = null, prof
   budget.begin();
   if (generateFreight) {
     OpexFreightCandidates(catalog, lines, all, stats, abandonedPairs, profile, freightCruiseCache,
-                          freightCargo, targetKind, targetId);
+                          freightCargo, targetKind, targetId, abandonedPlaces);
   }
   local opsFreight = budget.end("cand_freight");
   if (profile != null) profile.freightOps += OpexOpsMeasureEnd(freightMark);

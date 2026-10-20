@@ -518,6 +518,13 @@ class OpexAIInfo extends AIInfo {
       custom_value = 1, flags = 0, step_size = 1
     });
     AddSetting({
+      name = "v294_rail_fail_memory",
+      description = "V294g: rail place failure memory (1) and expiry by failure reason (2); 0 = off (default)",
+      min_value = 0, max_value = 2,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0, flags = 0, step_size = 1
+    });
+    AddSetting({
       name = "v292_hq_hub",
       description = "V292b: build company HQ once near passenger station with highest waiting cargo; 0 = off, 1 = on (default since 21/10)",
       min_value = 0, max_value = 1,

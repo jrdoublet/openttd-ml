@@ -610,6 +610,7 @@ function OpexAI::Save()
       lastReportYear = this._lastReportYear,
       startYear = this._startYear,
       abandonedPairs = this._abandonedPairs != null ? this._abandonedPairs : {},
+      abandonedPlaces = this._abandonedPlaces != null ? this._abandonedPlaces : {},
       airBuilt = this._airBuilt,
       waterBuilt = this._waterBuilt,
     };
@@ -641,6 +642,11 @@ function OpexAI::Save()
   local abandoned = {};
   if (this._abandonedPairs != null) {
     foreach (key, val in this._abandonedPairs) abandoned[key] <- val;
+  }
+
+  local abandonedPlaces = {};
+  if (this._abandonedPlaces != null) {
+    foreach (key, val in this._abandonedPlaces) abandonedPlaces[key] <- val;
   }
 
   local taskDue = {};
@@ -688,6 +694,7 @@ function OpexAI::Save()
     lastReportYear = this._lastReportYear,
     startYear = this._startYear,
     abandonedPairs = abandoned,
+    abandonedPlaces = abandonedPlaces,
     airBuilt = this._airBuilt,
     waterBuilt = this._waterBuilt,
     lines = saveLines,
@@ -777,6 +784,12 @@ function OpexAI::Load(version, data)
     this._abandonedPairs = {};
     foreach (key, val in data.abandonedPairs) this._abandonedPairs[key] <- val;
     if (V279_RESELECT_MEMO != 0) OPEX_ABANDON_REVISION++;
+  }
+  if ("abandonedPlaces" in data && data.abandonedPlaces != null) {
+    this._abandonedPlaces = {};
+    foreach (key, val in data.abandonedPlaces) this._abandonedPlaces[key] <- val;
+  } else {
+    this._abandonedPlaces = {};
   }
   if ("lines" in data) this._pendingLines = data.lines;
   if ("abandonCounts" in data && data.abandonCounts != null) this._abandonCounts = data.abandonCounts;

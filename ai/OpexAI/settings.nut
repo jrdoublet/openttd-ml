@@ -168,6 +168,10 @@ function OpexLoadSettings()
   if (slopeEngine != null && slopeEngine >= 0) {
     V294_RAIL_SLOPE_ENGINE = slopeEngine;
   }
+  local failMemory = AIController.GetSetting("v294_rail_fail_memory");
+  if (failMemory != null && failMemory >= 0 && failMemory <= 2) {
+    V294_RAIL_FAIL_MEMORY = failMemory;
+  }
   local v292HqHub = AIController.GetSetting("v292_hq_hub");
   V292_HQ_HUB = (v292HqHub != null && v292HqHub == 1) ? 1 : 0;
 

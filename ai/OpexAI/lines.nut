@@ -273,20 +273,79 @@ function OpexRailUpgradeRejectKey(lineId)
 {
   return "rail_upgrade|" + lineId;
 }
+
+/* V294g : cle de lieu pour une extremite de candidat rail ("t" + townId ou "" + industryId). */
+function OpexRailCandidatePlaceKey(candidate, end)
+{
+  if (candidate == null) return null;
+  local tile = (end == "A" || end == "src") ? candidate.src : candidate.dst;
+  local isPax = ("kind" in candidate) && candidate.kind == "pax";
+  if (isPax) {
+    local townId = (end == "A" || end == "src")
+      ? (("srcTown" in candidate && candidate.srcTown >= 0) ? candidate.srcTown : AITile.GetClosestTown(tile))
+      : (("dstTown" in candidate && candidate.dstTown >= 0) ? candidate.dstTown : AITile.GetClosestTown(tile));
+    if (townId < 0) return null;
+    return "t" + townId;
+  }
+  /* Fret : industrie par defaut, repli sur ville prefixee "t" */
+  local indId = AIIndustry.GetIndustryID(tile);
+  if (indId >= 0) return "" + indId;
+  local townId = (end == "A" || end == "src")
+    ? (("srcTown" in candidate && candidate.srcTown >= 0) ? candidate.srcTown : AITile.GetClosestTown(tile))
+    : (("dstTown" in candidate && candidate.dstTown >= 0) ? candidate.dstTown : AITile.GetClosestTown(tile));
+  if (townId >= 0) return "t" + townId;
+  return null;
+}
+
+/* V294g : verifie si l'une des extremites d'un candidat rail est memorisee en echec. */
+function OpexRailCandidateBannedPlace(candidate, abandonedPlaces)
+{
+  if (candidate == null || abandonedPlaces == null || abandonedPlaces.len() == 0) return null;
+  local keyA = OpexRailCandidatePlaceKey(candidate, "A");
+  if (keyA != null && (keyA in abandonedPlaces)) return keyA;
+  local keyB = OpexRailCandidatePlaceKey(candidate, "B");
+  if (keyB != null && (keyB in abandonedPlaces)) return keyB;
+  return null;
+}
+
+/* V294g : delai d'expiration selon le motif d'echec (mode 2). */
+function OpexV294gReasonCooldown(reason)
+{
+  if (reason == "SITEA" || reason == "SITEB" || reason == "SITEAB") return V294G_EXPIRY_SITE_DAYS;
+  if (reason == "ABND") return V294G_EXPIRY_ABND_DAYS;
+  if (reason == "NOPA") return V294G_EXPIRY_NOPA_DAYS;
+  if (reason == "STNFAIL") return V294G_EXPIRY_STNFAIL_DAYS;
+  return V294G_EXPIRY_DEFAULT_DAYS;
+}
+
 /* C33.3 : Enregistre un échec de construction avec horodatage et compteur d'échecs cumulés. */
-function OpexAI::_markPairAbandoned(key)
+/* function OpexAI::_markPairAbandoned(key) */
+function OpexAI::_markPairAbandoned(key, reason = null)
 {
   local now = AIDate.GetCurrentDate();
   local count = (key in this._abandonCounts) ? (this._abandonCounts[key] + 1) : 1;
   this._abandonCounts[key] <- count;
+  local cooldown;
+  if (V294_RAIL_FAIL_MEMORY >= 2 && reason != null) {
+    cooldown = OpexV294gReasonCooldown(reason);
+  } else {
+    cooldown = ABANDON_COOLDOWN_DAYS * count;
+    if (cooldown > 1825) cooldown = 1825;
+  }
+  local until = now + cooldown;
   this._abandonedPairs[key] <- { date = now, count = count };
   if (V279_RESELECT_MEMO != 0) OPEX_ABANDON_REVISION++;
+  if (V294_RAIL_FAIL_MEMORY == 2) {
+    this._abandonedPairs[key].reason <- reason;
+    this._abandonedPairs[key].cooldown <- cooldown;
+    this._abandonedPairs[key].until <- until;
+  }
   /* G4§1 : signaler qu'un abandon a eu lieu dans cette passe. _tryBuildProjects lit ce
    * drapeau pour declencher la reelection incrementale C36.1 apres un echec, sans
    * dependre de passDiscards qui est garde par DECISION_LOG (defaut 0). */
   this._hadAbandonsThisPass = true;
   if (DECISION_LOG) {
-    OpexDecide("ABANDON_PAIR", "key=" + key + " count=" + count + " cooldown=" + (ABANDON_COOLDOWN_DAYS * count));
+    OpexDecide("ABANDON_PAIR", "key=" + key + " count=" + count + " cooldown=" + cooldown);
   }
   this._c76BumpLayer("lines", false);
 }
@@ -297,9 +356,14 @@ function OpexAI::_pruneAbandonedPairs(now)
   local toDelete = [];
   foreach (key, val in this._abandonedPairs) {
     if (typeof val != "table" || !("date" in val)) continue;
-    local count = ("count" in val) ? val.count : 1;
-    local cooldown = ABANDON_COOLDOWN_DAYS * count;
-    if (cooldown > 1825) cooldown = 1825;
+    local cooldown;
+    if (V294_RAIL_FAIL_MEMORY >= 2 && ("cooldown" in val)) {
+      cooldown = val.cooldown;
+    } else {
+      local count = ("count" in val) ? val.count : 1;
+      cooldown = ABANDON_COOLDOWN_DAYS * count;
+      if (cooldown > 1825) cooldown = 1825;
+    }
     if ((now - val.date) >= cooldown) {
       toDelete.append(key);
     }
@@ -311,6 +375,52 @@ function OpexAI::_pruneAbandonedPairs(now)
   if (toDelete.len() > 0 && DECISION_LOG) {
     OpexDecide("ABANDON_PRUNE", "count=" + toDelete.len() + " remaining=" + this._abandonedPairs.len());
   }
+  if (V294_RAIL_FAIL_MEMORY > 0) {
+    this._pruneAbandonedPlaces(now);
+  }
+}
+
+/* V294g : mémorise une extrémité en échec de site de gare (SITEA, SITEB, SITEAB). */
+function OpexAI::_markPlaceAbandoned(candidate, end, reason)
+{
+  if (V294_RAIL_FAIL_MEMORY <= 0) return;
+  local key = OpexRailCandidatePlaceKey(candidate, end);
+  if (key == null) return;
+  local now = AIDate.GetCurrentDate();
+  local cooldown = (V294_RAIL_FAIL_MEMORY >= 2) ? V294G_EXPIRY_SITE_DAYS : ABANDON_COOLDOWN_DAYS;
+  local until = now + cooldown;
+  this._abandonedPlaces[key] <- { date = now, reason = reason, cooldown = cooldown, until = until };
+  if (V279_RESELECT_MEMO != 0) OPEX_ABANDON_REVISION++;
+  this._hadAbandonsThisPass = true;
+  if (DECISION_LOG) {
+    OpexDecide("V294G", "event=place_ban key=" + key + " reason=" + reason + " until=" + until);
+  }
+  this._c76BumpLayer("lines", false);
+}
+
+/* V294g : purge les lieux dont le délai d'expiration est atteint. */
+function OpexAI::_pruneAbandonedPlaces(now)
+{
+  if (this._abandonedPlaces == null || this._abandonedPlaces.len() == 0) return;
+  local toDelete = [];
+  foreach (key, val in this._abandonedPlaces) {
+    if (typeof val != "table" || !("date" in val)) continue;
+    local cooldown = ("cooldown" in val) ? val.cooldown : ABANDON_COOLDOWN_DAYS;
+    local until = ("until" in val) ? val.until : (val.date + cooldown);
+    if (now >= until) {
+      toDelete.append(key);
+    }
+  }
+  foreach (k in toDelete) {
+    if (DECISION_LOG) {
+      local entry = this._abandonedPlaces[k];
+      local rsn = ("reason" in entry) ? entry.reason : "SITE";
+      local unt = ("until" in entry) ? entry.until : (entry.date + (("cooldown" in entry) ? entry.cooldown : ABANDON_COOLDOWN_DAYS));
+      OpexDecide("V294G", "event=expire key=" + k + " reason=" + rsn + " until=" + unt);
+    }
+    delete this._abandonedPlaces[k];
+  }
+  if (toDelete.len() > 0 && V279_RESELECT_MEMO != 0) OPEX_ABANDON_REVISION++;
 }
 /* Precalcule le trace des meilleurs candidats en avance pendant les ticks d'opcodes dormants. */
 /* Verifie les separations d'origine et de gare pour une nouvelle ligne rail. */
