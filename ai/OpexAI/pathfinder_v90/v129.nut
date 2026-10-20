@@ -162,13 +162,18 @@ function OpexAyStarV129::InitializePath(sources, goals, ignored_tiles = [])
 	this._open = this._queue_class();
 	this._closed = {};
 
+	local fastAstar = V295_ASTAR_FAST;
 	foreach (node in sources) {
 		if (typeof(node) == "array") {
 			if (node[1] <= 0) throw("directional value should never be zero or negative.");
 			local c = this._cost_callback(null, node[0], node[1], this._cost_callback_param);
-			local new_path = this.Path(null, node[0], node[1], c);
+			local b = fastAstar ? (1 << (node[0] % 61)) : 0;
+			local new_path = this.Path(null, node[0], node[1], c, b);
 			this._open.Insert(new_path, c + this._estimate_callback(node[0], node[1], goals, this._estimate_callback_param));
 		} else {
+			if (fastAstar && !("_bloom" in node)) {
+				node._bloom <- (1 << (node.GetTile() % 61));
+			}
 			this._open.Insert(node, node.GetCost());
 		}
 	}
@@ -199,6 +204,7 @@ function OpexAyStarV129::FindPath(iterations)
 	local nbCb = this._neighbours_callback;
 	local nbParam = this._neighbours_callback_param;
 	local pops = 0;
+	local fastAstar = V295_ASTAR_FAST;
 
 	while (open.Count() > 0 && (iterations == -1 || iterations-- > 0)) {
 		/* Get the path with the best score so far */
@@ -211,21 +217,25 @@ function OpexAyStarV129::FindPath(iterations)
 			local closed_dir = closed[cur_tile];
 			if ((closed_dir & cur_dir) != 0) continue;
 
-			/* Scan the path for a possible collision */
-			local scan_path = path._prev;
-			local mismatch = false;
-			while (scan_path != null) {
-				if (scan_path._tile == cur_tile) {
-					if (!this._check_direction_callback(cur_tile, scan_path._direction, cur_dir, this._check_direction_callback_param)) {
-						mismatch = true;
-						break;
+			if (fastAstar && ((path._prev == null) || ((path._prev._bloom & (1 << (cur_tile % 61))) == 0))) {
+				closed[cur_tile] = closed_dir | cur_dir;
+			} else {
+				/* Scan the path for a possible collision */
+				local scan_path = path._prev;
+				local mismatch = false;
+				while (scan_path != null) {
+					if (scan_path._tile == cur_tile) {
+						if (!this._check_direction_callback(cur_tile, scan_path._direction, cur_dir, this._check_direction_callback_param)) {
+							mismatch = true;
+							break;
+						}
 					}
+					scan_path = scan_path._prev;
 				}
-				scan_path = scan_path._prev;
-			}
-			if (mismatch) continue;
+				if (mismatch) continue;
 
-			closed[cur_tile] = closed_dir | cur_dir;
+				closed[cur_tile] = closed_dir | cur_dir;
+			}
 		} else {
 			closed[cur_tile] <- cur_dir;
 		}
@@ -255,14 +265,26 @@ function OpexAyStarV129::FindPath(iterations)
 		}
 		/* Scan all neighbours */
 		local neighbours = nbCb(path, cur_tile, nbParam);
-		foreach (node in neighbours) {
-			local ntile = node[0];
-			local ndir = node[1];
-			if (ndir <= 0) throw("directional value should never be zero or negative.");
+		if (fastAstar) {
+			foreach (node in neighbours) {
+				local ntile = node[0];
+				local ndir = node[1];
+				if (ndir <= 0) throw("directional value should never be zero or negative.");
 
-			if ((ntile in closed) && ((closed[ntile] & ndir) != 0)) continue;
-			local c = costCb(path, ntile, ndir, costParam);
-			open.Insert(this.Path(path, ntile, ndir, c), c + estCb(ntile, ndir, goals, estParam));
+				if ((ntile in closed) && ((closed[ntile] & ndir) != 0)) continue;
+				local c = costCb(path, ntile, ndir, costParam);
+				open.Insert(this.Path(path, ntile, ndir, c, path._bloom | (1 << (ntile % 61))), c + estCb(ntile, ndir, goals, estParam));
+			}
+		} else {
+			foreach (node in neighbours) {
+				local ntile = node[0];
+				local ndir = node[1];
+				if (ndir <= 0) throw("directional value should never be zero or negative.");
+
+				if ((ntile in closed) && ((closed[ntile] & ndir) != 0)) continue;
+				local c = costCb(path, ntile, ndir, costParam);
+				open.Insert(this.Path(path, ntile, ndir, c), c + estCb(ntile, ndir, goals, estParam));
+			}
 		}
 	}
 
@@ -287,13 +309,15 @@ class OpexAyStarV129.Path
 	_tile = null;
 	_direction = null;
 	_cost = null;
+	_bloom = 0;
 
-	constructor(old_path, new_tile, new_direction, new_cost)
+	constructor(old_path, new_tile, new_direction, new_cost, bloom = 0)
 	{
 		this._prev = old_path;
 		this._tile = new_tile;
 		this._direction = new_direction;
 		this._cost = new_cost;
+		this._bloom = bloom;
 	};
 
 	function GetTile() { return this._tile; }
@@ -330,14 +354,29 @@ class OpexRailPathFinderV129 extends OpexRailPathFinderV90
 		this._estCache = {};
 
 		this._goalCoords = [];
-		foreach (g in goals) {
-			local tile = (typeof(g) == "array") ? g[0] : g;
-			this._goalCoords.append({
-				goal = g,
-				tile = tile,
-				x = AIMap.GetTileX(tile),
-				y = AIMap.GetTileY(tile)
-			});
+		if (V295_ASTAR_FAST) {
+			local seen = {};
+			foreach (g in goals) {
+				local tile = (typeof(g) == "array") ? g[0] : g;
+				if (tile in seen) continue;
+				seen[tile] <- true;
+				this._goalCoords.append({
+					goal = g,
+					tile = tile,
+					x = AIMap.GetTileX(tile),
+					y = AIMap.GetTileY(tile)
+				});
+			}
+		} else {
+			foreach (g in goals) {
+				local tile = (typeof(g) == "array") ? g[0] : g;
+				this._goalCoords.append({
+					goal = g,
+					tile = tile,
+					x = AIMap.GetTileX(tile),
+					y = AIMap.GetTileY(tile)
+				});
+			}
 		}
 
 		/* V214 : couts de virage a la AAAHogEx, lus une fois par recherche (pas dans _Cost). */
@@ -375,10 +414,12 @@ class OpexRailPathFinderV129 extends OpexRailPathFinderV90
 		}
 		this._bestBridgeForLength = bridgeTable;
 
+		local fastAstar = V295_ASTAR_FAST;
 		foreach (node in sources) {
-			local p0 = this._pathfinder.Path(null, node[1], 0xFF, 0);
+			local p0 = this._pathfinder.Path(null, node[1], 0xFF, 0, fastAstar ? (1 << (node[1] % 61)) : 0);
 			local c1 = this._Cost(p0, node[0], 0xFF, this);
-			nsources.push(this._pathfinder.Path(p0, node[0], 0xFF, c1));
+			local b1 = fastAstar ? (p0._bloom | (1 << (node[0] % 61))) : 0;
+			nsources.push(this._pathfinder.Path(p0, node[0], 0xFF, c1, b1));
 		}
 		this._goals = goals;
 		this._pathfinder.InitializePath(nsources, goals, ignored_tiles);

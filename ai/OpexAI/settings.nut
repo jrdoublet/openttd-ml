@@ -161,6 +161,8 @@ function OpexLoadSettings()
   local v277Pub = AIController.GetSetting("v277_air_pub_fast");
   if (v277Pub == 3) v277Pub = AIMap.GetMapSizeX() * AIMap.GetMapSizeY() >= 1024 * 1024 ? 1 : 0;
   V277_AIR_PUB_FAST = (v277Pub != null && v277Pub >= 0 && v277Pub <= 2) ? v277Pub : 0;
+  local v295Fast = AIController.GetSetting("v295_astar_fast");
+  V295_ASTAR_FAST = (v295Fast != null && v295Fast == 1) ? 1 : 0;
 
   // V246 : paquets adoptes figes ; les interrupteurs de mode restent actifs.
   ROAD_BUILD_ENABLED = MODE_ROAD;
