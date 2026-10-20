@@ -400,7 +400,7 @@ Vérification systématique et exhaustive des affirmations de la Section 4 par l
 | **Nombre total de re-sélections** | **1 588** | **1 588** | **CONFIRMÉ** | Exactement 518 (seed 42), 520 (seed 7), 550 (seed 1234). Correspondance stricte 1:1 avec les 1 588 sondes `B6_PORTFOLIO path=reselect`. |
 | **Coût opcodes cumulé** | **116,1 M ops** | **116,10 M ops** (116 101 448 ops) | **CONFIRMÉ** | **Valeur strictement INCLUSIVE des sous-spans enfants**. Le coût exclusif du wrapper `select.reselect` seul n'est que de **2,63 M ops** (2,3 % du total) ; 97,7 % des opcodes sont consommés par ses 7 sous-spans enfants directs. |
 | **Stabilité du choix (`same_choice`)** | **81,0 %** | **81,05 %** (1 287 / 1 588) | **CONFIRMÉ** | Le ratio cité (81,0 %) rapporte les 1 287 choix identiques au **total brut** des 1 588 re-sélections (incluant le 1er item non comparable de chaque année). Rapporté aux **1 579 paires comparables**, le taux est de **81,51 %** (et **81,32 %** en continu 3 ans). |
-| **Économie potentielle estimée** | **10–15 M ops/an** | **10,4 M ops/graine/an** (81 % de 12,9 M) | **CONFIRMÉ** | Le volume total de 116,1 M ops représente 38,7 M ops/graine sur 3 ans, soit **12,9 M ops/graine/an**. Élaguer les 81 % de sélections sans effet libère ~10,4 M ops/graine/an. |
+| **Économie potentielle estimée** | **10–15 M ops/an** | **10,4 M ops/graine/an** (81 % de 12,9 M) | **ESTIMATION, non mesurée** | Le volume total de 116,1 M ops représente 38,7 M ops/graine sur 3 ans, soit **12,9 M ops/graine/an**. Élaguer les 81 % de sélections sans effet libère ~10,4 M ops/graine/an. |
 
 ### 7.2. Tableau de décomposition annuelle par graine (1970–1972)
 
@@ -463,7 +463,7 @@ Chaque span `select.reselect` englobe exactement 7 sous-spans enfants directs da
 - **Médiane :** **1,0 jour de jeu** entre deux re-sélections consécutives.
 - **Part < 1 jour (même jour) :** **11,7 %** (rafales d'insertions dans le même tick).
 - **Part < 7 jours (< 1 semaine) :** **94,7 %** (la quasi-totalité des re-sélections surviennent à quelques jours d'intervalle).
-- **Conséquence pour V288 :** Un seuil d'obsolescence (`v288_pool_staleness`) de **15 à 30 jours** permettra de coalescer ~80 à 90 % de ces re-sélections sans risque d'altérer la décision de tête.
+- **Conséquence pour V288 :** Un seuil d'obsolescence (`v288_pool_staleness`) de **15 à 30 jours** pourrait coalescer une partie de ces re-sélections ; ni le taux de 80–90 %, ni l’absence de changement de décision ne sont démontrés par la stabilité observée de la seule tête (correction Codex, 20/10).
 
 ### 7.7. Commandes exécutées pour la reproductibilité
 
@@ -490,3 +490,44 @@ Recompté sur `actual_mode/actual_profit/actual_cap` des lignes `B6_PORTFOLIO pa
 | total | 1 588 | 1 289 (81,2 %) | 862 (67 % des répétitions) |
 
 Les chiffres d'agy (1 588 ; 81 %) sont confirmés. Mais **les deux tiers des répétitions sont des re-sélections sans aucun projet retenu** (`actual_mode=none`, rien de finançable). Garde la plus simple et la plus sûre pour V288 : ne pas relancer la sélection complète tant que le budget n'a pas franchi le capital du moins cher des projets listés (ni nouveau projet, ni vivier rechargé) depuis une sélection vide. « Même tête » ne prouve pas un portefeuille identique au-delà de `funded[0]` : la coalescence des autres cas (même tête non nulle) doit garder la revalidation de la tête.
+
+
+## Implémentation V288 — pré-enregistrement Codex, 20/10
+
+Vérifications limitées demandées : `_c76DoFullRegen` 1226,
+`_c80ModeRegenModes` 1302, `OpexReselectProjects` 1360,
+`_onEngineAvailable` 440, avant modifications : exactes. Analyseur relancé sur
+les trois journaux : **1 588** re-sélections, **116 101 448** opcodes inclusifs,
+confirmés. Les sections 7 et le recoupement remplacent les chiffres de §4.
+Correction de §7.6 : une tête stable ne démontre pas l’innocuité d’un délai fixe.
+
+Intervention expérimentale, sans adoption : `v288_pool_staleness` 0..365,
+quatre défauts 0. L’arbre initial est `d10707d` sur `v288`, propre avant travaux.
+Il possède déjà 74 réglages (V276/V278 inclus) : plafond porté à **75**, pas 73.
+Dates/révisions V288 transitoires, abandonnées au Load ; reconstruction existante
+obligatoire conservée. Les snapshots consommés sont pris avant calcul. Une tranche
+partielle ou ciblée ne rajeunit pas tout le mode. Les opportunités de flotte et
+subventions gardent leurs événements propres. Pas de changement dans V289.
+
+Validation pré-enregistrée : contrats puis suite Python entière ; smoke causal
+**42 × 2 ans**, map-size 8, deux duels, 0 contre 60, `decision_log=1,probes=2,
+probe_span_trace=1`, `gain_short`, seuil 4 %, garde valeur 5 %, exigences 40×3
+(non atteintes volontairement : résultat attendu `diagnostic_only`). Campagne
+`v288_smoke_42x2_20261020`, 2 CPU / 2g / swap 2g, un worker, réseau host.
+Aucune porte économique ni changement de défaut autorisé dans ce travail.
+Comparer serve/defer par mode, spans exclusifs et santé, sans additionner parents
+et enfants ni confondre instrumentation et travail utile. Docker local `default`,
+image `sha256:a0e0a0727f5003532764eeaeee6b83e9ab96a7470df3c76208c6446d10b88c8c`,
+volume `openttd-lab-home` vérifiés ; aucun conteneur openttd-lab au contrôle initial.
+
+Premier smoke conservé (`v288_smoke_42x2_20261020`, bundle
+`360ddf96ec0a5adcea64c2b06549b4607527b5a72321a784d5cdcce8ffa5631b`) :
+2/2 duels complets, zéro erreur Squirrel, `diagnostic_only`, delta profit −106 419 £/an,
+valeur −9,03 %. Exposition : sélection 389 serve / 0 defer, flotte 221 serve / 0 defer ;
+aucun scan AIR achevé avant la fin des deux ans. La comparaison des adresses des projets
+rendait la garde vide inopérante lors de leur reconversion. Correction avant nouvelle mesure :
+clés/capitaux stables, révision de publication achevée ; pas de cache du choix non vide.
+Autres garde-fous de relecture : demande de recharge vide au plus au passage mensuel
+(non en boucle dans le même mois), cargo précédent conservé si aucun fret/route régénéré.
+Nouvelle campagne technique `v288_smoke_42x2_20261020b`, mêmes paramètres et critères,
+ancien résultat conservé. Ce n’est pas une relance de qualification économique.
