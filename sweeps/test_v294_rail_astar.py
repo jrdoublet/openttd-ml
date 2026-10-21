@@ -130,8 +130,8 @@ class TestV294RailAstar(unittest.TestCase):
         # 4. Dans task_rail.nut : _scheduleStockRailSearch
         body_stock = _function_body(self.task_rail, "function OpexAI::_startRailStockSearch(")
         self.assertIn("if (V294_RAIL_CONTINUOUS > 0) {", body_stock)
-        self.assertIn("pathfinder = OpexCreateRailPathfinder(plan.plansA, plan.plansB, clearanceTiles, searchWeight, outwardSide, null, candidateEngine);", body_stock)
-        self.assertIn("segmented = OpexCreateSegmentedSearch(plan.plansA, plan.plansB, plan.iterationBudget, clearanceTiles, searchWeight, outwardSide, null, candidateEngine);", body_stock)
+        self.assertIn("pathfinder = OpexCreateRailPathfinder(fromPlans, toPlans, clearanceTiles, searchWeight, outwardSide, null, candidateEngine);", body_stock)
+        self.assertIn("segmented = OpexCreateSegmentedSearch(fromPlans, toPlans, plan.iterationBudget, clearanceTiles, searchWeight, outwardSide, null, candidateEngine);", body_stock)
 
     def test_continuous_result_format_matches_segmented(self):
         # Verifier les 9 cles retournees par OpexSegmentedResult
