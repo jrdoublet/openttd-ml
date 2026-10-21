@@ -56,6 +56,8 @@ class PO01CContracts(unittest.TestCase):
         self.assertNotIn('_po01cJob =', branch)
         self.assertNotIn('_taskQueue.append', source('po01c_regen.nut'))
         self.assertIn('OpexPO01CStep(this)', body('orchestrator.nut', 'OpexAI::_runOrchestratorTick'))
+        self.assertIn('OpexPO01CStep(this)', body('probes.nut', 'OpexAI::_mainLoopProfiled'))
+        self.assertIn('while (true) {\n    if (PO01C_REGEN_SPLIT', source('main.nut'))
 
     def test_budget_and_no_forbidden_syntax(self):
         code = uncomment(source('po01c_regen.nut') + source('po01c_generators.nut'))

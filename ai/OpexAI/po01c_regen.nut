@@ -89,7 +89,7 @@ function OpexPO01CCopyLines(lines)
  * AIR vehicle counts are retained for its hub/capacity guards. */
 function OpexPO01CLineState(lines)
 {
-  local state = { rail = "", road = "", air = "", water = "" };
+  local state = { rail = "", road = "", air = "", water = "", airRail = "" };
   foreach (line in lines) {
     local mode = ("mode" in line) ? line.mode : "rail";
     if (!(mode in state)) continue;
@@ -105,6 +105,8 @@ function OpexPO01CLineState(lines)
         if (field in line[key]) record += key + "." + field + "=" + line[key][field] + ";";
     }
     state[mode] += record;
+    if (mode == "air") state.airRail += "|" + line.originA + "," + line.originB
+        + "," + (("scrapping" in line) && line.scrapping ? 1 : 0);
   }
   return state;
 }
@@ -115,7 +117,7 @@ function OpexPO01CLinesAffect(owner, state, mode)
   if (old == null || mode == "fleet") return true;
   if (mode == "road") return old.rail != state.rail || old.road != state.road;
   if (mode == "rail") return old.rail != state.rail
-      || ((V275_RAIL_PAX_MM & 1) && old.air != state.air);
+      || ((V275_RAIL_PAX_MM & 1) && old.airRail != state.airRail);
   return old[mode] != state[mode];
 }
 
@@ -243,8 +245,11 @@ function OpexPO01CAcknowledge(owner, s)
     }
   }
   /* Do not erase AIR's baseline when that mode was deferred. */
-  if (owner._po01cLineState == null) owner._po01cLineState = { rail = "?", road = "?", air = "?", water = "?" };
-  foreach (mode in s.coveredModes) if (mode != "fleet") owner._po01cLineState[mode] = s.lineState[mode];
+  if (owner._po01cLineState == null) owner._po01cLineState = { rail = "?", road = "?", air = "?", water = "?", airRail = "?" };
+  foreach (mode in s.coveredModes) if (mode != "fleet") {
+    owner._po01cLineState[mode] = s.lineState[mode];
+    if (mode == "rail") owner._po01cLineState.airRail = s.lineState.airRail;
+  }
 }
 
 function OpexPO01CPublish(owner, s)

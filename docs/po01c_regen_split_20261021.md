@@ -70,6 +70,17 @@ la seule boucle normale. Aucun lot ne progresse. Le hook est déplacé dans
 `_runOrchestratorTick`, commun aux deux boucles, avec garde une fois par tick.
 Cette exposition est un échec d'intégration, pas une mesure de performance.
 
+Le commit `1ef81fb` passe le smoke `po01c_smoke_20261021_c` (1 lot,
+maximum 2 jours). L'exposition `po01c_exposure_20261021_b` ne passe cependant
+pas le critère : 42/7/1234 publient respectivement 1/0/2 lots, maximum
+3/3/2 jours, aucune erreur. La graine 7 reste en calcul après 334 jours.
+La reprise reçoit trop peu de ticks après les traitements de début de boucle.
+Correction technique : passage supplémentaire au début des deux boucles,
+sans dépasser une tranche par tick, et signature AIR spécifique au filtre
+rail V275 (origines/scrapping, sans nombre d'avions). Nouveau smoke et nouvelle
+exposition nécessaires. Les résultats précédents restent non validés ; leurs
+deltas économiques ne motivent aucune relance.
+
 La suite complète initiale signalait sept contrats périmés sur le master de
 départ (score factorisé dans `OpexRailCalFundScore`, clés de tables cargos),
 trois plafonds de réglages périmés (93 déjà présents contre plafond 92),

@@ -815,6 +815,7 @@ function OpexAI::Start()
 
   if (PROBE_LOOP_OPS) this._mainLoopProfiled();
   while (true) {
+    if (PO01C_REGEN_SPLIT && (this._po01cPending || this._po01cJob != null)) OpexPO01CStep(this);
     if (PROBE_SPAN_TRACE) {
       OpexSpanRescueOrphans();
       OpexSpanYearRoll();
