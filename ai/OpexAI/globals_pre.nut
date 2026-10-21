@@ -27,6 +27,10 @@ V269_IDLE_CASH_MIN <- 1000000;
 /* V309 : sondage passif des tours en attente, sans changer l'ordonnanceur. */
 V309_IDLE_PROBE <- false;
 V309_IDLE_STATE <- null;
+/* V305 : 0 = V269 attend N ans ; M = V269 s'ouvre des que l'aerien n'a pose aucune ligne neuve depuis
+ * M mois (vivier rail vide et caisse oisive, comme V269), sans condition d'annee (regle utilisateur du 21/10 :
+ * liaisons longues des que l'aerien et le rail a fort ROI sont finis). */
+V305_AIR_IDLE_MONTHS <- 0;
 V284_RAIL_GROWTH <- 0; // 0 : master ; N : croissance fret apres N ans et 1 M£ disponible.
 /* V294 : ponts/tunnels longs et recherche A* continue (defauts 0 = master inchange). */
 V294_RAIL_BRIDGE_LEN <- 20;  // defaut V294all depuis le 21/10 (decision utilisateur)

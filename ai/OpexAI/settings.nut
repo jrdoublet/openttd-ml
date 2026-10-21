@@ -102,6 +102,8 @@ function OpexLoadSettings()
   local weightAdapt = AIController.GetSetting("v294_rail_weight_adapt");
   V294C_RAIL_WEIGHT_ADAPT = (weightAdapt != null && weightAdapt >= 100 && weightAdapt <= 400) ? weightAdapt : 0;
   V269_RAIL_LATE_RELAX = (lateRelax != null && lateRelax > 0 && lateRelax <= 9) ? lateRelax : 0;
+  local v305Idle = AIController.GetSetting("v305_air_idle_months");
+  V305_AIR_IDLE_MONTHS = (v305Idle != null && v305Idle > 0 && v305Idle <= 36) ? v305Idle : 0;
   V190_RAIL_DOUBLE_BUILD = AIController.GetSetting("v190_rail_double_build") != 0;
   V197_GUIDED_DOUBLE = AIController.GetSetting("v197_guided_double") != 0;
   V198_TEMPLATE_DOUBLE = AIController.GetSetting("v198_template_double") != 0;
