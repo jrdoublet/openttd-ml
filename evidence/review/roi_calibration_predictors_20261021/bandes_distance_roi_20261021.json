@@ -1,0 +1,1227 @@
+{
+  "bounds": {
+    "roadMin": 7,
+    "roadMax": 7,
+    "roadGen": 200,
+    "railMin": 7,
+    "railAir": 200,
+    "railMax": 200,
+    "airMin": 200,
+    "airMax": 512
+  },
+  "unique_bounds": 1,
+  "logged_bounds_events": 2109,
+  "seen_games": 80,
+  "subdivision": {
+    "rail_quarter_points": [
+      55,
+      103,
+      151
+    ],
+    "air_offset": 24
+  },
+  "counts": {
+    "solo": {
+      "air": {
+        "n": 2448,
+        "cascade": {
+          "air": 2416,
+          "air_rail": 32
+        },
+        "sub4": {
+          "air_a4": 611,
+          "air_a3": 390,
+          "air_a2": 641,
+          "air_a1": 774,
+          "air_rail_a1": 32
+        }
+      },
+      "rail": {
+        "n": 954,
+        "cascade": {
+          "rail": 912,
+          "air_rail": 6,
+          "air": 35,
+          "below_road": 1
+        },
+        "sub4": {
+          "rail_r2": 174,
+          "rail_r4": 369,
+          "rail_r3": 318,
+          "rail_r1": 51,
+          "air_rail_a1": 6,
+          "air_a1": 22,
+          "air_a2": 11,
+          "below_road_r1": 1,
+          "air_a3": 2
+        }
+      },
+      "road": {
+        "n": 32,
+        "cascade": {
+          "rail": 32
+        },
+        "sub4": {
+          "rail_r1": 32
+        }
+      }
+    },
+    "duel": {
+      "air": {
+        "n": 1892,
+        "cascade": {
+          "air": 1868,
+          "air_rail": 24
+        },
+        "sub4": {
+          "air_a4": 535,
+          "air_a3": 331,
+          "air_a2": 461,
+          "air_a1": 541,
+          "air_rail_a1": 24
+        }
+      },
+      "rail": {
+        "n": 958,
+        "cascade": {
+          "rail": 916,
+          "air": 38,
+          "air_rail": 4
+        },
+        "sub4": {
+          "rail_r2": 237,
+          "rail_r3": 281,
+          "rail_r4": 332,
+          "air_a2": 17,
+          "rail_r1": 66,
+          "air_rail_a1": 4,
+          "air_a1": 18,
+          "air_a3": 3
+        }
+      },
+      "road": {
+        "n": 48,
+        "cascade": {
+          "rail": 48
+        },
+        "sub4": {
+          "rail_r1": 48
+        }
+      }
+    }
+  },
+  "cv": {
+    "duel_cv": {
+      "air": {
+        "roi_only": {
+          "n": 1892,
+          "mae_roi_points": 14.472,
+          "median_abs_roi_points": 11.754,
+          "median_rank_rho": 0.706,
+          "gain_mae_per_seed_vs_baseline": -0.611,
+          "gain_ci95": [
+            -0.843,
+            -0.397
+          ],
+          "seed_wins": 6,
+          "seeds": 40
+        },
+        "simple": {
+          "n": 1892,
+          "mae_roi_points": 13.823,
+          "median_abs_roi_points": 10.828,
+          "median_rank_rho": 0.744,
+          "gain_mae_per_seed_vs_baseline": 0.069,
+          "gain_ci95": [
+            0.007,
+            0.128
+          ],
+          "seed_wins": 23,
+          "seeds": 40
+        },
+        "simple_plus_linear_distance": {
+          "n": 1892,
+          "mae_roi_points": 13.852,
+          "median_abs_roi_points": 10.807,
+          "median_rank_rho": 0.744,
+          "gain_mae_per_seed_vs_baseline": 0.039,
+          "gain_ci95": [
+            -0.014,
+            0.095
+          ],
+          "seed_wins": 24,
+          "seeds": 40
+        },
+        "simple_plus_cascade": {
+          "n": 1892,
+          "mae_roi_points": 13.822,
+          "median_abs_roi_points": 10.824,
+          "median_rank_rho": 0.749,
+          "gain_mae_per_seed_vs_baseline": 0.073,
+          "gain_ci95": [
+            0.009,
+            0.136
+          ],
+          "seed_wins": 25,
+          "seeds": 40
+        },
+        "simple_plus_sub2": {
+          "n": 1892,
+          "mae_roi_points": 13.822,
+          "median_abs_roi_points": 10.824,
+          "median_rank_rho": 0.749,
+          "gain_mae_per_seed_vs_baseline": 0.073,
+          "gain_ci95": [
+            0.009,
+            0.136
+          ],
+          "seed_wins": 25,
+          "seeds": 40
+        },
+        "simple_plus_sub4": {
+          "n": 1892,
+          "mae_roi_points": 13.835,
+          "median_abs_roi_points": 10.76,
+          "median_rank_rho": 0.753,
+          "gain_mae_per_seed_vs_baseline": 0.055,
+          "gain_ci95": [
+            -0.011,
+            0.119
+          ],
+          "seed_wins": 23,
+          "seeds": 40
+        },
+        "base_existing": {
+          "n": 1892,
+          "mae_roi_points": 13.891,
+          "median_abs_roi_points": 10.963,
+          "median_rank_rho": 0.743,
+          "gain_mae_per_seed_vs_baseline": 0.0,
+          "gain_ci95": [
+            0.0,
+            0.0
+          ],
+          "seed_wins": 0,
+          "seeds": 40
+        },
+        "baseline_plus_cascade": {
+          "n": 1892,
+          "mae_roi_points": 13.887,
+          "median_abs_roi_points": 10.963,
+          "median_rank_rho": 0.75,
+          "gain_mae_per_seed_vs_baseline": 0.007,
+          "gain_ci95": [
+            -0.017,
+            0.035
+          ],
+          "seed_wins": 20,
+          "seeds": 40
+        },
+        "baseline_plus_sub2": {
+          "n": 1892,
+          "mae_roi_points": 13.887,
+          "median_abs_roi_points": 10.963,
+          "median_rank_rho": 0.75,
+          "gain_mae_per_seed_vs_baseline": 0.007,
+          "gain_ci95": [
+            -0.017,
+            0.035
+          ],
+          "seed_wins": 20,
+          "seeds": 40
+        },
+        "baseline_plus_sub4": {
+          "n": 1892,
+          "mae_roi_points": 13.889,
+          "median_abs_roi_points": 10.886,
+          "median_rank_rho": 0.745,
+          "gain_mae_per_seed_vs_baseline": -0.001,
+          "gain_ci95": [
+            -0.037,
+            0.035
+          ],
+          "seed_wins": 21,
+          "seeds": 40
+        }
+      },
+      "rail": {
+        "roi_only": {
+          "n": 958,
+          "mae_roi_points": 13.404,
+          "median_abs_roi_points": 10.067,
+          "median_rank_rho": 0.711,
+          "gain_mae_per_seed_vs_baseline": -0.732,
+          "gain_ci95": [
+            -1.135,
+            -0.349
+          ],
+          "seed_wins": 10,
+          "seeds": 40
+        },
+        "simple": {
+          "n": 958,
+          "mae_roi_points": 12.696,
+          "median_abs_roi_points": 9.196,
+          "median_rank_rho": 0.732,
+          "gain_mae_per_seed_vs_baseline": -0.075,
+          "gain_ci95": [
+            -0.24,
+            0.095
+          ],
+          "seed_wins": 13,
+          "seeds": 40
+        },
+        "simple_plus_linear_distance": {
+          "n": 958,
+          "mae_roi_points": 12.698,
+          "median_abs_roi_points": 9.171,
+          "median_rank_rho": 0.715,
+          "gain_mae_per_seed_vs_baseline": -0.075,
+          "gain_ci95": [
+            -0.242,
+            0.092
+          ],
+          "seed_wins": 14,
+          "seeds": 40
+        },
+        "simple_plus_cascade": {
+          "n": 958,
+          "mae_roi_points": 12.693,
+          "median_abs_roi_points": 9.043,
+          "median_rank_rho": 0.725,
+          "gain_mae_per_seed_vs_baseline": -0.065,
+          "gain_ci95": [
+            -0.239,
+            0.112
+          ],
+          "seed_wins": 17,
+          "seeds": 40
+        },
+        "simple_plus_sub2": {
+          "n": 958,
+          "mae_roi_points": 12.707,
+          "median_abs_roi_points": 9.315,
+          "median_rank_rho": 0.73,
+          "gain_mae_per_seed_vs_baseline": -0.08,
+          "gain_ci95": [
+            -0.244,
+            0.086
+          ],
+          "seed_wins": 16,
+          "seeds": 40
+        },
+        "simple_plus_sub4": {
+          "n": 958,
+          "mae_roi_points": 12.74,
+          "median_abs_roi_points": 9.209,
+          "median_rank_rho": 0.708,
+          "gain_mae_per_seed_vs_baseline": -0.118,
+          "gain_ci95": [
+            -0.305,
+            0.074
+          ],
+          "seed_wins": 14,
+          "seeds": 40
+        },
+        "base_existing": {
+          "n": 958,
+          "mae_roi_points": 12.614,
+          "median_abs_roi_points": 9.238,
+          "median_rank_rho": 0.734,
+          "gain_mae_per_seed_vs_baseline": 0.0,
+          "gain_ci95": [
+            0.0,
+            0.0
+          ],
+          "seed_wins": 0,
+          "seeds": 40
+        },
+        "baseline_plus_cascade": {
+          "n": 958,
+          "mae_roi_points": 12.609,
+          "median_abs_roi_points": 9.13,
+          "median_rank_rho": 0.731,
+          "gain_mae_per_seed_vs_baseline": 0.007,
+          "gain_ci95": [
+            -0.013,
+            0.028
+          ],
+          "seed_wins": 18,
+          "seeds": 40
+        },
+        "baseline_plus_sub2": {
+          "n": 958,
+          "mae_roi_points": 12.625,
+          "median_abs_roi_points": 9.21,
+          "median_rank_rho": 0.73,
+          "gain_mae_per_seed_vs_baseline": -0.011,
+          "gain_ci95": [
+            -0.036,
+            0.017
+          ],
+          "seed_wins": 17,
+          "seeds": 40
+        },
+        "baseline_plus_sub4": {
+          "n": 958,
+          "mae_roi_points": 12.687,
+          "median_abs_roi_points": 9.211,
+          "median_rank_rho": 0.718,
+          "gain_mae_per_seed_vs_baseline": -0.075,
+          "gain_ci95": [
+            -0.157,
+            0.002
+          ],
+          "seed_wins": 14,
+          "seeds": 40
+        }
+      },
+      "road": {
+        "roi_only": {
+          "n": 48,
+          "mae_roi_points": 43.144,
+          "median_abs_roi_points": 28.933,
+          "median_rank_rho": 0.6,
+          "gain_mae_per_seed_vs_baseline": 11.571,
+          "gain_ci95": [
+            3.099,
+            21.713
+          ],
+          "seed_wins": 21,
+          "seeds": 29
+        },
+        "simple": {
+          "n": 48,
+          "mae_roi_points": 42.883,
+          "median_abs_roi_points": 34.079,
+          "median_rank_rho": 0.3,
+          "gain_mae_per_seed_vs_baseline": 12.998,
+          "gain_ci95": [
+            4.242,
+            24.137
+          ],
+          "seed_wins": 22,
+          "seeds": 29
+        },
+        "simple_plus_linear_distance": {
+          "n": 48,
+          "mae_roi_points": 42.907,
+          "median_abs_roi_points": 32.935,
+          "median_rank_rho": 0.2,
+          "gain_mae_per_seed_vs_baseline": 12.8,
+          "gain_ci95": [
+            3.887,
+            24.263
+          ],
+          "seed_wins": 21,
+          "seeds": 29
+        },
+        "simple_plus_cascade": {
+          "n": 48,
+          "mae_roi_points": 42.883,
+          "median_abs_roi_points": 34.079,
+          "median_rank_rho": 0.3,
+          "gain_mae_per_seed_vs_baseline": 12.998,
+          "gain_ci95": [
+            4.242,
+            24.137
+          ],
+          "seed_wins": 22,
+          "seeds": 29
+        },
+        "simple_plus_sub2": {
+          "n": 48,
+          "mae_roi_points": 42.883,
+          "median_abs_roi_points": 34.079,
+          "median_rank_rho": 0.3,
+          "gain_mae_per_seed_vs_baseline": 12.998,
+          "gain_ci95": [
+            4.242,
+            24.137
+          ],
+          "seed_wins": 22,
+          "seeds": 29
+        },
+        "simple_plus_sub4": {
+          "n": 48,
+          "mae_roi_points": 42.883,
+          "median_abs_roi_points": 34.079,
+          "median_rank_rho": 0.3,
+          "gain_mae_per_seed_vs_baseline": 12.998,
+          "gain_ci95": [
+            4.242,
+            24.137
+          ],
+          "seed_wins": 22,
+          "seeds": 29
+        },
+        "base_existing": {
+          "n": 48,
+          "mae_roi_points": 53.818,
+          "median_abs_roi_points": 43.179,
+          "median_rank_rho": 0.3,
+          "gain_mae_per_seed_vs_baseline": 0.0,
+          "gain_ci95": [
+            0.0,
+            0.0
+          ],
+          "seed_wins": 0,
+          "seeds": 29
+        },
+        "baseline_plus_cascade": {
+          "n": 48,
+          "mae_roi_points": 53.818,
+          "median_abs_roi_points": 43.179,
+          "median_rank_rho": 0.3,
+          "gain_mae_per_seed_vs_baseline": 0.0,
+          "gain_ci95": [
+            0.0,
+            0.0
+          ],
+          "seed_wins": 0,
+          "seeds": 29
+        },
+        "baseline_plus_sub2": {
+          "n": 48,
+          "mae_roi_points": 53.818,
+          "median_abs_roi_points": 43.179,
+          "median_rank_rho": 0.3,
+          "gain_mae_per_seed_vs_baseline": 0.0,
+          "gain_ci95": [
+            0.0,
+            0.0
+          ],
+          "seed_wins": 0,
+          "seeds": 29
+        },
+        "baseline_plus_sub4": {
+          "n": 48,
+          "mae_roi_points": 53.818,
+          "median_abs_roi_points": 43.179,
+          "median_rank_rho": 0.3,
+          "gain_mae_per_seed_vs_baseline": 0.0,
+          "gain_ci95": [
+            0.0,
+            0.0
+          ],
+          "seed_wins": 0,
+          "seeds": 29
+        }
+      }
+    },
+    "solo_to_duel": {
+      "air": {
+        "roi_only": {
+          "n": 1892,
+          "mae_roi_points": 20.862,
+          "median_abs_roi_points": 19.889,
+          "median_rank_rho": 0.706,
+          "gain_mae_per_seed_vs_baseline": -1.384,
+          "gain_ci95": [
+            -1.934,
+            -0.803
+          ],
+          "seed_wins": 8,
+          "seeds": 40
+        },
+        "simple": {
+          "n": 1892,
+          "mae_roi_points": 20.332,
+          "median_abs_roi_points": 19.119,
+          "median_rank_rho": 0.751,
+          "gain_mae_per_seed_vs_baseline": -0.845,
+          "gain_ci95": [
+            -1.334,
+            -0.329
+          ],
+          "seed_wins": 12,
+          "seeds": 40
+        },
+        "simple_plus_linear_distance": {
+          "n": 1892,
+          "mae_roi_points": 20.352,
+          "median_abs_roi_points": 19.264,
+          "median_rank_rho": 0.753,
+          "gain_mae_per_seed_vs_baseline": -0.866,
+          "gain_ci95": [
+            -1.342,
+            -0.356
+          ],
+          "seed_wins": 12,
+          "seeds": 40
+        },
+        "simple_plus_cascade": {
+          "n": 1892,
+          "mae_roi_points": 20.329,
+          "median_abs_roi_points": 19.176,
+          "median_rank_rho": 0.764,
+          "gain_mae_per_seed_vs_baseline": -0.839,
+          "gain_ci95": [
+            -1.312,
+            -0.331
+          ],
+          "seed_wins": 12,
+          "seeds": 40
+        },
+        "simple_plus_sub2": {
+          "n": 1892,
+          "mae_roi_points": 20.329,
+          "median_abs_roi_points": 19.176,
+          "median_rank_rho": 0.764,
+          "gain_mae_per_seed_vs_baseline": -0.839,
+          "gain_ci95": [
+            -1.312,
+            -0.331
+          ],
+          "seed_wins": 12,
+          "seeds": 40
+        },
+        "simple_plus_sub4": {
+          "n": 1892,
+          "mae_roi_points": 20.468,
+          "median_abs_roi_points": 19.422,
+          "median_rank_rho": 0.76,
+          "gain_mae_per_seed_vs_baseline": -0.975,
+          "gain_ci95": [
+            -1.455,
+            -0.478
+          ],
+          "seed_wins": 12,
+          "seeds": 40
+        },
+        "base_existing": {
+          "n": 1892,
+          "mae_roi_points": 19.503,
+          "median_abs_roi_points": 17.658,
+          "median_rank_rho": 0.709,
+          "gain_mae_per_seed_vs_baseline": 0.0,
+          "gain_ci95": [
+            0.0,
+            0.0
+          ],
+          "seed_wins": 0,
+          "seeds": 40
+        },
+        "baseline_plus_cascade": {
+          "n": 1892,
+          "mae_roi_points": 19.501,
+          "median_abs_roi_points": 17.611,
+          "median_rank_rho": 0.709,
+          "gain_mae_per_seed_vs_baseline": 0.005,
+          "gain_ci95": [
+            -0.016,
+            0.029
+          ],
+          "seed_wins": 11,
+          "seeds": 40
+        },
+        "baseline_plus_sub2": {
+          "n": 1892,
+          "mae_roi_points": 19.501,
+          "median_abs_roi_points": 17.611,
+          "median_rank_rho": 0.709,
+          "gain_mae_per_seed_vs_baseline": 0.005,
+          "gain_ci95": [
+            -0.016,
+            0.029
+          ],
+          "seed_wins": 11,
+          "seeds": 40
+        },
+        "baseline_plus_sub4": {
+          "n": 1892,
+          "mae_roi_points": 19.596,
+          "median_abs_roi_points": 17.634,
+          "median_rank_rho": 0.714,
+          "gain_mae_per_seed_vs_baseline": -0.09,
+          "gain_ci95": [
+            -0.162,
+            -0.016
+          ],
+          "seed_wins": 12,
+          "seeds": 40
+        }
+      },
+      "rail": {
+        "roi_only": {
+          "n": 958,
+          "mae_roi_points": 18.078,
+          "median_abs_roi_points": 12.403,
+          "median_rank_rho": 0.711,
+          "gain_mae_per_seed_vs_baseline": -0.318,
+          "gain_ci95": [
+            -0.742,
+            0.058
+          ],
+          "seed_wins": 17,
+          "seeds": 40
+        },
+        "simple": {
+          "n": 958,
+          "mae_roi_points": 17.79,
+          "median_abs_roi_points": 11.908,
+          "median_rank_rho": 0.715,
+          "gain_mae_per_seed_vs_baseline": -0.059,
+          "gain_ci95": [
+            -0.176,
+            0.047
+          ],
+          "seed_wins": 15,
+          "seeds": 40
+        },
+        "simple_plus_linear_distance": {
+          "n": 958,
+          "mae_roi_points": 17.802,
+          "median_abs_roi_points": 11.989,
+          "median_rank_rho": 0.717,
+          "gain_mae_per_seed_vs_baseline": -0.073,
+          "gain_ci95": [
+            -0.188,
+            0.031
+          ],
+          "seed_wins": 16,
+          "seeds": 40
+        },
+        "simple_plus_cascade": {
+          "n": 958,
+          "mae_roi_points": 17.814,
+          "median_abs_roi_points": 11.945,
+          "median_rank_rho": 0.717,
+          "gain_mae_per_seed_vs_baseline": -0.083,
+          "gain_ci95": [
+            -0.198,
+            0.025
+          ],
+          "seed_wins": 14,
+          "seeds": 40
+        },
+        "simple_plus_sub2": {
+          "n": 958,
+          "mae_roi_points": 17.919,
+          "median_abs_roi_points": 12.078,
+          "median_rank_rho": 0.713,
+          "gain_mae_per_seed_vs_baseline": -0.188,
+          "gain_ci95": [
+            -0.314,
+            -0.065
+          ],
+          "seed_wins": 11,
+          "seeds": 40
+        },
+        "simple_plus_sub4": {
+          "n": 958,
+          "mae_roi_points": 17.997,
+          "median_abs_roi_points": 12.203,
+          "median_rank_rho": 0.699,
+          "gain_mae_per_seed_vs_baseline": -0.263,
+          "gain_ci95": [
+            -0.408,
+            -0.118
+          ],
+          "seed_wins": 11,
+          "seeds": 40
+        },
+        "base_existing": {
+          "n": 958,
+          "mae_roi_points": 17.711,
+          "median_abs_roi_points": 12.244,
+          "median_rank_rho": 0.703,
+          "gain_mae_per_seed_vs_baseline": 0.0,
+          "gain_ci95": [
+            0.0,
+            0.0
+          ],
+          "seed_wins": 0,
+          "seeds": 40
+        },
+        "baseline_plus_cascade": {
+          "n": 958,
+          "mae_roi_points": 17.668,
+          "median_abs_roi_points": 12.17,
+          "median_rank_rho": 0.714,
+          "gain_mae_per_seed_vs_baseline": 0.039,
+          "gain_ci95": [
+            0.008,
+            0.071
+          ],
+          "seed_wins": 22,
+          "seeds": 40
+        },
+        "baseline_plus_sub2": {
+          "n": 958,
+          "mae_roi_points": 17.758,
+          "median_abs_roi_points": 12.214,
+          "median_rank_rho": 0.704,
+          "gain_mae_per_seed_vs_baseline": -0.052,
+          "gain_ci95": [
+            -0.114,
+            0.012
+          ],
+          "seed_wins": 14,
+          "seeds": 40
+        },
+        "baseline_plus_sub4": {
+          "n": 958,
+          "mae_roi_points": 17.862,
+          "median_abs_roi_points": 12.494,
+          "median_rank_rho": 0.701,
+          "gain_mae_per_seed_vs_baseline": -0.154,
+          "gain_ci95": [
+            -0.254,
+            -0.053
+          ],
+          "seed_wins": 12,
+          "seeds": 40
+        }
+      },
+      "road": {
+        "roi_only": {
+          "n": 48,
+          "mae_roi_points": 39.637,
+          "median_abs_roi_points": 23.389,
+          "median_rank_rho": 0.0,
+          "gain_mae_per_seed_vs_baseline": 1.893,
+          "gain_ci95": [
+            -3.052,
+            6.898
+          ],
+          "seed_wins": 16,
+          "seeds": 29
+        },
+        "simple": {
+          "n": 48,
+          "mae_roi_points": 39.222,
+          "median_abs_roi_points": 22.662,
+          "median_rank_rho": -0.2,
+          "gain_mae_per_seed_vs_baseline": 1.934,
+          "gain_ci95": [
+            -1.11,
+            5.329
+          ],
+          "seed_wins": 15,
+          "seeds": 29
+        },
+        "simple_plus_linear_distance": {
+          "n": 48,
+          "mae_roi_points": 39.869,
+          "median_abs_roi_points": 19.267,
+          "median_rank_rho": 0.2,
+          "gain_mae_per_seed_vs_baseline": 1.395,
+          "gain_ci95": [
+            -1.388,
+            4.139
+          ],
+          "seed_wins": 18,
+          "seeds": 29
+        },
+        "simple_plus_cascade": {
+          "n": 48,
+          "mae_roi_points": 39.222,
+          "median_abs_roi_points": 22.662,
+          "median_rank_rho": -0.2,
+          "gain_mae_per_seed_vs_baseline": 1.934,
+          "gain_ci95": [
+            -1.11,
+            5.329
+          ],
+          "seed_wins": 15,
+          "seeds": 29
+        },
+        "simple_plus_sub2": {
+          "n": 48,
+          "mae_roi_points": 39.222,
+          "median_abs_roi_points": 22.662,
+          "median_rank_rho": -0.2,
+          "gain_mae_per_seed_vs_baseline": 1.934,
+          "gain_ci95": [
+            -1.11,
+            5.329
+          ],
+          "seed_wins": 15,
+          "seeds": 29
+        },
+        "simple_plus_sub4": {
+          "n": 48,
+          "mae_roi_points": 39.222,
+          "median_abs_roi_points": 22.662,
+          "median_rank_rho": -0.2,
+          "gain_mae_per_seed_vs_baseline": 1.934,
+          "gain_ci95": [
+            -1.11,
+            5.329
+          ],
+          "seed_wins": 15,
+          "seeds": 29
+        },
+        "base_existing": {
+          "n": 48,
+          "mae_roi_points": 39.958,
+          "median_abs_roi_points": 22.172,
+          "median_rank_rho": 0.3,
+          "gain_mae_per_seed_vs_baseline": 0.0,
+          "gain_ci95": [
+            0.0,
+            0.0
+          ],
+          "seed_wins": 0,
+          "seeds": 29
+        },
+        "baseline_plus_cascade": {
+          "n": 48,
+          "mae_roi_points": 39.958,
+          "median_abs_roi_points": 22.172,
+          "median_rank_rho": 0.3,
+          "gain_mae_per_seed_vs_baseline": 0.0,
+          "gain_ci95": [
+            0.0,
+            0.0
+          ],
+          "seed_wins": 0,
+          "seeds": 29
+        },
+        "baseline_plus_sub2": {
+          "n": 48,
+          "mae_roi_points": 39.958,
+          "median_abs_roi_points": 22.172,
+          "median_rank_rho": 0.3,
+          "gain_mae_per_seed_vs_baseline": 0.0,
+          "gain_ci95": [
+            0.0,
+            0.0
+          ],
+          "seed_wins": 0,
+          "seeds": 29
+        },
+        "baseline_plus_sub4": {
+          "n": 48,
+          "mae_roi_points": 39.958,
+          "median_abs_roi_points": 22.172,
+          "median_rank_rho": 0.3,
+          "gain_mae_per_seed_vs_baseline": 0.0,
+          "gain_ci95": [
+            0.0,
+            0.0
+          ],
+          "seed_wins": 0,
+          "seeds": 29
+        }
+      }
+    }
+  },
+  "cost": {
+    "rail": {
+      "none": {
+        "n": 958,
+        "mae_cost_gbp": 26948.3,
+        "median_abs_cost_gbp": 24650.5,
+        "median_abs_pct_actual": 32.22,
+        "per_seed_mean_mae_gain_vs_global_gbp": -14180.0,
+        "per_seed_mean_gain_ci95_gbp": [
+          -15145.8,
+          -13232.8
+        ],
+        "seed_wins": 0,
+        "seeds": 40
+      },
+      "global": {
+        "n": 958,
+        "mae_cost_gbp": 12785.5,
+        "median_abs_cost_gbp": 10348.9,
+        "median_abs_pct_actual": 14.14,
+        "per_seed_mean_mae_gain_vs_global_gbp": 0.0,
+        "per_seed_mean_gain_ci95_gbp": [
+          0.0,
+          0.0
+        ],
+        "seed_wins": 0,
+        "seeds": 40
+      },
+      "linear_distance": {
+        "n": 958,
+        "mae_cost_gbp": 10342.3,
+        "median_abs_cost_gbp": 7822.6,
+        "median_abs_pct_actual": 10.78,
+        "per_seed_mean_mae_gain_vs_global_gbp": 2408.4,
+        "per_seed_mean_gain_ci95_gbp": [
+          1999.5,
+          2795.3
+        ],
+        "seed_wins": 39,
+        "seeds": 40
+      },
+      "cargo": {
+        "n": 958,
+        "mae_cost_gbp": 12282.7,
+        "median_abs_cost_gbp": 9661.1,
+        "median_abs_pct_actual": 14.1,
+        "per_seed_mean_mae_gain_vs_global_gbp": 474.9,
+        "per_seed_mean_gain_ci95_gbp": [
+          264.3,
+          680.4
+        ],
+        "seed_wins": 32,
+        "seeds": 40
+      },
+      "cascade_band": {
+        "n": 958,
+        "mae_cost_gbp": 12614.3,
+        "median_abs_cost_gbp": 10179.0,
+        "median_abs_pct_actual": 14.02,
+        "per_seed_mean_mae_gain_vs_global_gbp": 151.9,
+        "per_seed_mean_gain_ci95_gbp": [
+          9.9,
+          296.3
+        ],
+        "seed_wins": 22,
+        "seeds": 40
+      },
+      "sub2_band": {
+        "n": 958,
+        "mae_cost_gbp": 11347.5,
+        "median_abs_cost_gbp": 8496.7,
+        "median_abs_pct_actual": 12.08,
+        "per_seed_mean_mae_gain_vs_global_gbp": 1406.7,
+        "per_seed_mean_gain_ci95_gbp": [
+          1127.3,
+          1674.4
+        ],
+        "seed_wins": 36,
+        "seeds": 40
+      },
+      "sub4_band": {
+        "n": 958,
+        "mae_cost_gbp": 11007.7,
+        "median_abs_cost_gbp": 8356.1,
+        "median_abs_pct_actual": 11.65,
+        "per_seed_mean_mae_gain_vs_global_gbp": 1760.6,
+        "per_seed_mean_gain_ci95_gbp": [
+          1481.8,
+          2019.2
+        ],
+        "seed_wins": 40,
+        "seeds": 40
+      },
+      "cargo_sub4": {
+        "n": 958,
+        "mae_cost_gbp": 11530.9,
+        "median_abs_cost_gbp": 8911.3,
+        "median_abs_pct_actual": 12.55,
+        "per_seed_mean_mae_gain_vs_global_gbp": 1225.8,
+        "per_seed_mean_gain_ci95_gbp": [
+          1015.6,
+          1447.9
+        ],
+        "seed_wins": 38,
+        "seeds": 40
+      }
+    },
+    "road": {
+      "none": {
+        "n": 48,
+        "mae_cost_gbp": 5771.8,
+        "median_abs_cost_gbp": 5401.0,
+        "median_abs_pct_actual": 35.1,
+        "per_seed_mean_mae_gain_vs_global_gbp": 413.2,
+        "per_seed_mean_gain_ci95_gbp": [
+          -367.5,
+          1197.5
+        ],
+        "seed_wins": 16,
+        "seeds": 29
+      },
+      "global": {
+        "n": 48,
+        "mae_cost_gbp": 5981.3,
+        "median_abs_cost_gbp": 4079.8,
+        "median_abs_pct_actual": 22.43,
+        "per_seed_mean_mae_gain_vs_global_gbp": 0.0,
+        "per_seed_mean_gain_ci95_gbp": [
+          0.0,
+          0.0
+        ],
+        "seed_wins": 0,
+        "seeds": 29
+      },
+      "linear_distance": {
+        "n": 48,
+        "mae_cost_gbp": 5942.6,
+        "median_abs_cost_gbp": 5453.9,
+        "median_abs_pct_actual": 31.29,
+        "per_seed_mean_mae_gain_vs_global_gbp": 93.6,
+        "per_seed_mean_gain_ci95_gbp": [
+          -490.5,
+          656.4
+        ],
+        "seed_wins": 15,
+        "seeds": 29
+      },
+      "cargo": {
+        "n": 48,
+        "mae_cost_gbp": 5988.0,
+        "median_abs_cost_gbp": 4359.3,
+        "median_abs_pct_actual": 27.25,
+        "per_seed_mean_mae_gain_vs_global_gbp": 1.3,
+        "per_seed_mean_gain_ci95_gbp": [
+          -221.7,
+          236.3
+        ],
+        "seed_wins": 13,
+        "seeds": 29
+      },
+      "cascade_band": {
+        "n": 48,
+        "mae_cost_gbp": 5981.3,
+        "median_abs_cost_gbp": 4079.8,
+        "median_abs_pct_actual": 22.43,
+        "per_seed_mean_mae_gain_vs_global_gbp": 0.0,
+        "per_seed_mean_gain_ci95_gbp": [
+          0.0,
+          0.0
+        ],
+        "seed_wins": 0,
+        "seeds": 29
+      },
+      "sub2_band": {
+        "n": 48,
+        "mae_cost_gbp": 5981.3,
+        "median_abs_cost_gbp": 4079.8,
+        "median_abs_pct_actual": 22.43,
+        "per_seed_mean_mae_gain_vs_global_gbp": 0.0,
+        "per_seed_mean_gain_ci95_gbp": [
+          0.0,
+          0.0
+        ],
+        "seed_wins": 0,
+        "seeds": 29
+      },
+      "sub4_band": {
+        "n": 48,
+        "mae_cost_gbp": 5981.3,
+        "median_abs_cost_gbp": 4079.8,
+        "median_abs_pct_actual": 22.43,
+        "per_seed_mean_mae_gain_vs_global_gbp": 0.0,
+        "per_seed_mean_gain_ci95_gbp": [
+          0.0,
+          0.0
+        ],
+        "seed_wins": 0,
+        "seeds": 29
+      },
+      "cargo_sub4": {
+        "n": 48,
+        "mae_cost_gbp": 5979.7,
+        "median_abs_cost_gbp": 4322.1,
+        "median_abs_pct_actual": 25.66,
+        "per_seed_mean_mae_gain_vs_global_gbp": 5.6,
+        "per_seed_mean_gain_ci95_gbp": [
+          -139.3,
+          156.8
+        ],
+        "seed_wins": 13,
+        "seeds": 29
+      }
+    }
+  },
+  "linear_cost_model": {
+    "slope_per_tile": 0.0030658798608837385,
+    "intercept": 1.0519808768821857,
+    "global_median_cost_ratio": 1.4388575245243307,
+    "n_train": 954
+  },
+  "top5_shadow_discrete": {
+    "score_mass_by_family": {
+      "rail": {
+        "ranked_entries": 13695,
+        "weighted_mean_raw_factor": 1.00349,
+        "raw_cost_roi_factor_if_denominator_were_capital": 1.0,
+        "weighted_mean_new_multiplier": 0.8,
+        "median_multiplier": 0.80779,
+        "min_multiplier": 0.74178,
+        "max_multiplier": 0.89023
+      },
+      "road": {
+        "ranked_entries": 377,
+        "weighted_mean_raw_factor": 1.0,
+        "raw_cost_roi_factor_if_denominator_were_capital": 1.0,
+        "weighted_mean_new_multiplier": 0.8,
+        "median_multiplier": 0.8,
+        "min_multiplier": 0.8,
+        "max_multiplier": 0.8
+      },
+      "air": {
+        "ranked_entries": 6831,
+        "weighted_mean_raw_factor": 1.0,
+        "raw_cost_roi_factor_if_denominator_were_capital": 1.0,
+        "weighted_mean_new_multiplier": 0.8,
+        "median_multiplier": 0.8,
+        "min_multiplier": 0.8,
+        "max_multiplier": 0.8
+      }
+    },
+    "snapshots": 4848,
+    "multi_family_snapshots": 1919,
+    "potential_numeric_leader_changes": 133,
+    "transitions": {
+      "air->rail": 12,
+      "rail->rail": 111,
+      "rail->road": 1,
+      "rail->air": 9
+    },
+    "limitations": "top5 logs only; C77 priority tiers, fleet exemptions and off-catalog candidates prevent claim of true selection flips; no economics run"
+  },
+  "top5_shadow_linear": {
+    "score_mass_by_family": {
+      "rail": {
+        "ranked_entries": 13695,
+        "weighted_mean_raw_factor": 0.98873,
+        "raw_cost_roi_factor_if_denominator_were_capital": 0.68719,
+        "weighted_mean_new_multiplier": 0.8,
+        "median_multiplier": 0.79587,
+        "min_multiplier": 0.64022,
+        "max_multiplier": 1.0114
+      },
+      "road": {
+        "ranked_entries": 377,
+        "weighted_mean_raw_factor": 1.0,
+        "raw_cost_roi_factor_if_denominator_were_capital": 1.0,
+        "weighted_mean_new_multiplier": 0.8,
+        "median_multiplier": 0.8,
+        "min_multiplier": 0.8,
+        "max_multiplier": 0.8
+      },
+      "air": {
+        "ranked_entries": 6831,
+        "weighted_mean_raw_factor": 1.0,
+        "raw_cost_roi_factor_if_denominator_were_capital": 1.0,
+        "weighted_mean_new_multiplier": 0.8,
+        "median_multiplier": 0.8,
+        "min_multiplier": 0.8,
+        "max_multiplier": 0.8
+      }
+    },
+    "snapshots": 4848,
+    "multi_family_snapshots": 1919,
+    "potential_numeric_leader_changes": 221,
+    "transitions": {
+      "air->rail": 16,
+      "rail->rail": 192,
+      "rail->air": 13
+    },
+    "limitations": "top5 logs only; C77 priority tiers, fleet exemptions and off-catalog candidates prevent claim of true selection flips; no economics run"
+  },
+  "shadow_relative_cost_factor_train_by_band": {
+    "air|__fallback__": 1.0,
+    "rail|rail_r2": 1.08966,
+    "rail|rail_r4": 0.93046,
+    "rail|rail_r3": 1.01325,
+    "rail|rail_r1": 1.11667,
+    "rail|air_rail_a1": 0.98732,
+    "rail|air_a1": 0.9499,
+    "rail|air_a2": 0.9815,
+    "rail|below_road_r1": 1.00458,
+    "rail|air_a3": 0.99353,
+    "rail|__fallback__": 1.0,
+    "road|__fallback__": 1.0
+  },
+  "qualification": "shadow only, no AI modifications, no measured opcode overhead"
+}

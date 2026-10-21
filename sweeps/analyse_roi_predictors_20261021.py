@@ -66,6 +66,8 @@ def parse(folder, arm):
                     builds[kv["line"]] = {
                         "seed": seed, "arm": arm, "line": kv["line"], "mode": mode,
                         "cargo": kv.get("cargo", "PASS"), "year": year,
+                        "src_tile": num(p.get("src")),
+                        "dst_tile": num(p.get("dst")),
                         "dist": dist, "capital": cost, "pred_profit": pred_profit,
                         "real_capital": denominator, "n0": n0,
                         "rank": num(p.get("rank")) or 0.,
