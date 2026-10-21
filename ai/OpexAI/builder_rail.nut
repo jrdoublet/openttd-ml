@@ -744,6 +744,27 @@ function OpexRailPlatformPlans(catalog, candidate)
       }
     } else {
       local jointPlansB = OpexJoinPlatformPlans(candidate.joinPlatform, candidate.joinStationId, statsB);
+      /* V302 : le quai historique peut etre encercle apres plusieurs jointures.
+       * Reessayer depuis les autres quais connus de la meme gare, sans agrandir
+       * la recherche ni changer le contrat de longueur du candidat. */
+      if (V302_LONG_FREIGHT > 0 && candidate.kind == "freight" && candidate.distance > 160
+          && ("shared_dest" in candidate) && candidate.shared_dest
+          && jointPlansB.len() == 0 && ("v302JoinAlternatives" in candidate)) {
+        local tried = 0;
+        local mark = DECISION_LOG ? OpexOpsMeasureBegin() : null;
+        foreach (platform in candidate.v302JoinAlternatives) {
+          if (platform.length != jointLength) continue;
+          tried++;
+          jointPlansB = OpexJoinPlatformPlans(platform, candidate.joinStationId, statsB);
+          if (jointPlansB.len() > 0) break;
+        }
+        if (DECISION_LOG) {
+          local ops = OpexOpsMeasureEnd(mark);
+          OpexDecide("V302_JOIN", "src=" + candidate.src + " dst=" + candidate.dst
+              + " station=" + candidate.joinStationId + " tried=" + tried
+              + " plans=" + jointPlansB.len() + " length=" + jointLength + " ops=" + ops);
+        }
+      }
       if (V264_CONVERGENT_FREIGHT && ("convergent_dest" in candidate) && candidate.convergent_dest == 1) {
         local joinMode = "parallel";
         if (jointPlansB.len() == 0) {

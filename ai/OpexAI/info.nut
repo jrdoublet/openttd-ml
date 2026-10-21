@@ -356,6 +356,14 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "v302_long_freight",
+      description = "V302: long freight shared destinations retry parallel joins from other existing platforms of the same station and length; 0 = historic",
+      min_value = 0, max_value = 1,
+      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
+      step_size = 1, flags = 0
+    });
+
+    AddSetting({
       name = "v294_rail_weight_adapt",
       description = "V294c: 0 = historic A* weights; N = initial weight 100..400%, lower to historic then 100% only after a stalled rail segment",
       min_value = 0, max_value = 400,

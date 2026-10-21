@@ -445,6 +445,26 @@ function OpexAI::_tryAttachSharedDest(candidate)
   candidate.joinEnd <- "B";
   candidate.originServed <- true;
   candidate.shared_dest <- 1;
+  /* V302 : ancrages deja connus de la MEME gare, meme longueur. Metadonnees
+   * reconstructibles avec le candidat ; aucun plan sonde n'est mis en cache. */
+  if (V302_LONG_FREIGHT > 0 && candidate.distance > 160) {
+    local alternatives = [];
+    local seen = {};
+    seen[bestMatch.platform.anchor] <- true;
+    foreach (line in this._lines) {
+      if (("mode" in line) && line.mode != "rail") continue;
+      foreach (lineEnd in ["A", "B"]) {
+        if (OpexLineStationId(line, lineEnd) != bestMatch.stationId) continue;
+        local platformKey = lineEnd == "A" ? "platformA" : "platformB";
+        if (!(platformKey in line) || line[platformKey] == null) continue;
+        local platform = line[platformKey];
+        if (platform.length != bestMatch.platform.length || platform.anchor in seen) continue;
+        seen[platform.anchor] <- true;
+        alternatives.append(platform);
+      }
+    }
+    candidate.v302JoinAlternatives <- alternatives;
+  }
   return true;
 }
 function OpexAI::_findLineById(lineId)
