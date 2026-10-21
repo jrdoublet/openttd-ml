@@ -705,6 +705,7 @@ require("task_v284.nut");
 require("task_v294h.nut");
 require("task_v250.nut");
 require("task_v259.nut");
+require("probe_v307.nut");
 require("selftests.nut");
 
 function OpexAI::Start()
@@ -821,6 +822,7 @@ function OpexAI::Start()
     }
     local spEvents = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.events") : null;
     this._processEvents();
+    if (V307_LONG_PROBE > 0) OpexV307MaybeRun(this._loadedFromSave);
     if (spEvents != null) OpexSpanEnd(spEvents);
     if (this._lines != null && this._lines.len() >= SAVE_PROJECTION_MIN_LINES) {
       local spSave = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.save_projection") : null;

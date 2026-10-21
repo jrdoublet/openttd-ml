@@ -2514,6 +2514,7 @@ function OpexAI::_mainLoopProfiled()
     local mark = OpexOpsMeasureBegin();
     local spEvents = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.events") : null;
     this._processEvents();
+    if (V307_LONG_PROBE > 0) OpexV307MaybeRun(this._loadedFromSave);
     if (spEvents != null) OpexSpanEnd(spEvents);
     OpexLoopProfAdd("events", mark);
     local before = C117_AIR_LAST_DATE;
