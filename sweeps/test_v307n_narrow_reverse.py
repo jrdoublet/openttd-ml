@@ -54,6 +54,12 @@ class TestV307NarrowReverse(unittest.TestCase):
         self.assertIn("OpexV303CreateReverse(plan, clearanceTiles, searchWeight, candidate, v303Mode)", self.task)
         self.assertNotIn("V303_REVERSE_MODE == 2", self.task)
 
+    def test_stock_search_hooked(self):
+        body = self.task[self.task.index("function OpexAI::_startRailStockSearch("):]
+        body = body[:body.index("this._activeWorker = {")]
+        self.assertIn("if (V303_REVERSE_MODE >= 3 && OpexV307NarrowReverse(V303_REVERSE_MODE, plan, candidate)) {", body)
+        self.assertIn("this._railSearch.v303 <- OpexV303CreateReverse(plan, clearanceTiles, searchWeight, candidate, V303_REVERSE_MODE);", body)
+
     def test_whole_cap_and_nopa(self):
         body = self.rail[self.rail.index("function OpexV303CreateReverse("):self.rail.index("function OpexV303LogProbe(")]
         self.assertIn("V294_RAIL_REVERSE_PROBE > 0 || mode >= 3", body)

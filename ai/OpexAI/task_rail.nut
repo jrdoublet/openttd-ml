@@ -1602,6 +1602,10 @@ function OpexAI::_startRailStockSearch(candidate, isRepair = false, repairReason
     repairReason = repairReason,
     coarseScore = coarseScore
   };
+  /* V307 : le vivier stock porte la plupart des recherches primaires ; meme cote etroit. */
+  if (V303_REVERSE_MODE >= 3 && OpexV307NarrowReverse(V303_REVERSE_MODE, plan, candidate)) {
+    this._railSearch.v303 <- OpexV303CreateReverse(plan, clearanceTiles, searchWeight, candidate, V303_REVERSE_MODE);
+  }
 
   this._activeWorker = {
     kind = "rail_stock",
