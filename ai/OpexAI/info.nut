@@ -372,6 +372,14 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "v308_carto_probe",
+      description = "V308: passive one-shot survey of 400 random 8x8 blocks; 64-tile ground truth vs V307 and four six-point patterns; uses v307_probe_year. Blocking measurement only, 0 = off (default)",
+      min_value = 0, max_value = 1,
+      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
+      step_size = 1, flags = 0
+    });
+
+    AddSetting({
       name = "v307_abnd_autopsy",
       description = "V307: measurement only, needs decision_log. After each production rail search abandoned at its budget, rerun it blocking as fresh unsegmented forward and reverse A* (20k iterations) to tell an enclosed goal from a budget shortfall. 0 = inert (default)",
       min_value = 0, max_value = 1,

@@ -123,3 +123,38 @@ contre la vérité des 64 tuiles :
 On ne branche la carte dans une décision (devis 3.1, guidage 2.2) que si le quinconce manque
 nettement moins que les 5 points pour un coût comparable. Prompt :
 [`docs/prompts/v308_cartographie_quinconce_20261021.md`](prompts/v308_cartographie_quinconce_20261021.md).
+
+## 3. Résultats — préparation du 21 octobre (mesure moteur à effectuer)
+
+La sonde `ai/OpexAI/probe_v308.nut` est branchée dans les deux boucles sous
+`v308_carto_probe=1`, **désactivée par défaut aux quatre difficultés**. Elle se déclenche une
+seule fois au début de l'année `OPEX_START_YEAR + v307_probe_year`, sauf après Load.
+Chaque échantillon tire avec remise un bloc 8×8 intérieur, compare les 64 tuiles aux
+cinq motifs, et écrit exactement une ligne `V308_BLOCK` contenant la vérité, le témoin
+`t_river_cross` (connexité à quatre voisins et bords opposés), les classes détectées et
+les opcodes mesurés par motif. La sonde est bloquante et n'intervient pas dans
+les choix de transport. Activée, elle consomme cependant du temps de jeu et des
+tirages aléatoires, ce qui peut indirectement modifier la trajectoire d'une partie.
+
+Le script `sweeps/diag_v308_carto.py` calcule par motif le taux de classes manquées,
+les faux positifs et la médiane / p90 des opcodes. Une rivière vue par un point
+est un **indice** pour `river_cross`, non une preuve qu'elle traverse tout le bloc ;
+la vérité complète suit les composantes connexes des 64 tuiles. Les classes de ville
+incluent la règle de sélection : deux maisons vues ou autorité valide sur trois points.
+
+| Motif | Blocs analysés | Rivières traversantes manquées | Autres classes manquées | Opcodes médiane / p90 |
+|---|---:|---:|---:|---:|
+| `v307` (5 points) | À mesurer | À mesurer | À mesurer | À mesurer |
+| `full6` (6 points toujours) | À mesurer | À mesurer | À mesurer | À mesurer |
+| `short6` (saut après quatre points décisifs) | À mesurer | À mesurer | À mesurer | À mesurer |
+| `parity6` (décalage des blocs impairs) | À mesurer | À mesurer | À mesurer | À mesurer |
+| `flatdry6` (centres seulement si plat et sec) | À mesurer | À mesurer | À mesurer | À mesurer |
+
+Les 16 tests géométriques, de contrat et de lecture des journaux de
+`sweeps/test_v308_quinconce.py` passent ;
+les 19 tests ciblés V307/V309 passent également. Aucun runtime OpenTTD, smoke ni
+banc comparatif n'a été exécuté à cette étape. La comparaison réelle des motifs
+reste donc **non mesurée**, et il serait prématuré de retenir un motif pour une carte
+partagée. Après coordination des bancs : smoke 1×1 puis graines 42, 7 et 100 avec
+`v307_probe_year=0` et `=6`, et traitement des journaux avec
+`python sweeps/diag_v308_carto.py <dossier> --json <sortie.json>`.

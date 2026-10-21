@@ -123,6 +123,7 @@ function OpexLoadSettings()
   V307_LONG_PROBE = (v307Probe != null && v307Probe > 0 && v307Probe <= 9) ? v307Probe : 0;
   local v307Year = AIController.GetSetting("v307_probe_year");
   V307_PROBE_YEAR = (v307Year != null && v307Year > 0 && v307Year <= 9) ? v307Year : 0;
+  V308_CARTO_PROBE = AIController.GetSetting("v308_carto_probe") == 1 ? 1 : 0;
   V307_ABND_AUTOPSY = AIController.GetSetting("v307_abnd_autopsy") == 1;
   V307_SITES = AIController.GetSetting("v307_sites") == 1 ? 1 : 0;
   local v307Room = AIController.GetSetting("v307_sink_room");

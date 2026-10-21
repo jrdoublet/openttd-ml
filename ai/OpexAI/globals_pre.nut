@@ -82,6 +82,8 @@ V301_NOTRAIN_FIX <- 15;  // defaut depuis le 21/10 (decision utilisateur, porte 
 V307_LONG_PROBE <- 0;  // V307 : sonde de mesure des longs traces, bloquante, defaut 0
 V307_PROBE_YEAR <- 0;
 V307_DONE <- false;
+V308_CARTO_PROBE <- 0;  // V308 : mesure passive de cinq motifs sur des blocs 8x8
+V308_DONE <- false;
 V307_ABND_AUTOPSY <- false;
 V307_SITES <- 0;  // V307 1.8 : sites rail repartis par octant, defaut 0
 V307_SINK_ROOM <- 0; // V307 1.9b : 1 bande reservee, 2 gare fret a deux quais, defaut 0
