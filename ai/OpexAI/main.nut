@@ -705,6 +705,7 @@ require("task_v284.nut");
 require("task_v294h.nut");
 require("task_v250.nut");
 require("task_v259.nut");
+require("probe_v307.nut");
 require("selftests.nut");
 
 function OpexAI::Start()
@@ -805,6 +806,9 @@ function OpexAI::Start()
     this._c76RunSelfTest();
   }
   if (spSelf != null) OpexSpanEnd(spSelf);
+
+  /* V307 : mesure bloquante des longs traces, partie neuve seulement. */
+  if (V307_LONG_PROBE > 0 && !this._loadedFromSave) OpexV307LongProbe(V307_LONG_PROBE);
 
   if (PROBE_LOOP_OPS) this._mainLoopProfiled();
   while (true) {

@@ -356,6 +356,14 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "v307_long_probe",
+      description = "V307: measurement only. At game start, N town pairs per distance bin (120-179, 180-249, 250-349) are path-searched by the production A* (30k iterations), a coarse block A* and a corridor-guided A*; blocking, for solo measurement games. 0 = inert (default)",
+      min_value = 0, max_value = 9,
+      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
+      step_size = 1, flags = 0
+    });
+
+    AddSetting({
       name = "v294_rail_weight_adapt",
       description = "V294c: 0 = historic A* weights; N = initial weight 100..400%, lower to historic then 100% only after a stalled rail segment",
       min_value = 0, max_value = 400,
