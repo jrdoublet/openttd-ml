@@ -1,7 +1,8 @@
 # AGENTS.md — OpenTTD-ML / OpexAI
 
 Guide applicable à tout le dépôt. Consignes documentaires réconciliées le **2026-09-30** ;
-validation mise à jour le **2026-10-03** selon V102/V110 et le harnais livré.
+validation mise à jour le **2026-10-03** selon V102/V110 et le harnais livré ; lieux des bancs,
+pièges de mesure et délégation entre agents (§9) ajoutés le **2026-10-21**.
 Ces mises à jour ne constituent pas une nouvelle qualification économique.
 Ce fichier fixe les invariants et méthodes ; [docs/taches.md](docs/taches.md) est la
 **seule liste autoritaire du travail restant**. Les anciennes revues ne sont pas une file active.
@@ -20,17 +21,22 @@ Ce fichier fixe les invariants et méthodes ; [docs/taches.md](docs/taches.md) e
    « à faire » ou un commentaire ne prouve pas l'état actuel.
 4. Définir une intervention isolée et sa validation avant de modifier le comportement.
    Ne pas réactiver implicitement une politique abandonnée ou désarmée.
+5. Avant de proposer une piste, chercher son numéro (`V<n>`, `C<n>`) et ses mots-clés dans
+   `docs/taches.md` : beaucoup de leviers y sont déjà mesurés neutres, négatifs, clos ou
+   interdits. Une piste réfutée ne se rouvre qu'avec un fait nouveau, nommé.
+6. Quand une fonction perd dans un contexte, mesurer d'abord le canal causal (caisse, opcodes,
+   partage de ville, créneau) par appariement graine × paire ; proposer une voie de gain plutôt
+   qu'un interrupteur qui coupe la fonction là où elle perd.
 
 **Objectif :** améliorer les résultats économiques d'OpexAI face à AAAHogEx sur carte partagée.
 ROI, profit/opcode et scores internes sont des heuristiques ; leur hausse ne prouve pas un gain
 économique. Vérifier l'effet sur OpexAI elle-même, pas seulement la baisse de l'adversaire.
+Ni la valeur de compagnie ni la trésorerie ne sont des objectifs ; la garde de valeur −5 % des
+portes reste appliquée, et une tension avec elle se signale.
 
-**Repère historique :** au début du 21 septembre, `docs/taches.md` retenait `b68fafb` (C68 adopté,
-`air_route_plane_selection=1`, feeders supprimés). La frontière AIR capital→profit, le best
-equipment et leur cycle de vie sont abandonnés. C66 est qualifié/clos. Ce repère évite une
-réouverture accidentelle ; il n'autorise aucun reset ou changement de branche. Toujours relire
-l'état courant plutôt que considérer ce paragraphe comme un backlog permanent. Le défaut courant
-du 22 septembre inclut aussi C69 bis/C70/C75 ; les intégrations sont dans les journaux quotidiens.
+Les défauts courants et les décisions récentes sont dans l'« État courant » de `docs/taches.md`
+et ses journaux liés, jamais dans ce fichier. Un repère historique n'autorise aucun reset ni
+changement de branche.
 
 ## 2. Repères et architecture
 
@@ -70,6 +76,20 @@ ils sont historiques et ne définissent pas le runtime d'OpexAI.
   échec partiel de construction. Un déplacement de code peut changer le coût en opcodes.
 - Ne pas supposer qu'une fonction imbriquée capture les variables `local` englobantes : consulter
   le piège de portée documenté dans `docs/methode.md` et les usages existants.
+- Erreurs de **compilation** qui tuent l'IA sur tous les bras, défaut compris : identifiants
+  réservés (`clone`, `base`, `parent`, `static`, `delegate`, `vargc`, `vargv`, `resume`, `yield`,
+  `constructor`, `instanceof`) et `const` non littéral (ni référence à une constante ni
+  expression). `.find(` n'existe que sur les chaînes, pas sur les tableaux ; les contrats récents
+  refusent `.find(` et `function(` anonyme dans le code neuf. Une méthode nommée comme une
+  métaméthode (`_get`, `_set`, `_cmp`…) en prend le rôle **sans erreur** (`docs/methode.md`).
+- Un réglage neuf : globale déclarée dans `globals_pre.nut`, lue une fois dans `settings.nut`,
+  `AddSetting` aux quatre difficultés dans `info.nut` ; ajuster le plafond d'`AddSetting` de
+  `sweeps/test_v251_inventory.py` en le justifiant dans son commentaire.
+- Tout nouvel appel `X.Valuate` s'inscrit dans les inventaires `sweeps/test_v261_forum_behaviours.py`
+  et `sweeps/fixtures/v262_valuate_inventory.json` (indentation 2).
+- Sous `probes`, `OpexAI::Start` tourne dans `_mainLoopProfiled` (`probes.nut`), copie
+  instrumentée de la boucle de `main.nut` : tout appel ajouté à la boucle va dans **les deux**,
+  sinon le mécanisme est muet sous sonde et actif au banc.
 - Résoudre cargos et types de rail via l'API (`AICargo`, `AIRailTypeList`), sans IDs codés en dur.
 - `AISign.BuildSign` est limité à **31 caractères** ; préserver les formats lus par les décodeurs.
   Réutiliser les logs/sondes existants et vérifier leur activation effective.
@@ -92,6 +112,14 @@ ils sont historiques et ne définissent pas le runtime d'OpexAI.
   Ne pas écraser une campagne ni modifier un bundle figé pour le faire correspondre au code courant.
 - `sweeps/archive/` contient des références historiques : vérifier leurs dépendances et protocole
   avant toute réutilisation, plutôt que les traiter comme des harnais courants.
+- Le VPS (Linux) n'a ni `pytest` ni `numpy` : lancer la suite par
+  `python3 -m unittest discover -s sweeps -p 'test_*.py'` et nommer les tests qui les exigent.
+- `git worktree remove` efface sans avertir les fichiers **ignorés**, dont `results/` :
+  `git status --ignored`, puis déplacer les résultats vers le dépôt principal avant le retrait.
+- L'utilisateur ne travaille que sur `master` sur son PC : tout ce qu'il doit lire ou exécuter
+  (prompts, guides, scripts de banc) est poussé sur `master`. Les agents du PC y codent un
+  réglage neuf à **défaut 0** (chemin par défaut inchangé) ; fusionner une autre branche IA ou
+  changer un défaut reste à sa décision.
 
 ### Profils Docker : PC local et VPS
 
@@ -205,6 +233,19 @@ réanalysée ; cela n'autorise pas à requalifier automatiquement d'anciens reje
 Un sous-ensemble favorable ou un réglage hors défaut commun aux deux bras ne prouve
 pas un gain au défaut. Ne pas contourner les audits de réglages pour obtenir un verdict.
 
+Deux variantes déjà pratiquées, toujours décidées avant lancement :
+- un mécanisme dont l'exposition montre qu'il est **inerte à trois ans** (refus datés de
+  1976-1978, croissance tardive) reçoit une porte A `gain_short` **40×10** (`profile=custom`
+  sur GitHub). Elle ne remplace pas la porte B ;
+- une **famille de petits leviers** liés (ex. V294a-j) se qualifie en combinaison sur une
+  branche d'intégration : un smoke par levier vérifie son mécanisme, la porte A porte sur la
+  combinaison. Le `fail_primary` d'un levier isolé, sous le bruit d'un 40×3, ne réfute pas
+  la famille.
+
+Un correctif d'**estimateur** (coût, profit, calibration) se juge aussi au banc : la
+baisse ou la hausse de son erreur moyenne ne remplace pas la porte A comportementale et ne
+suffit pas à clore le chantier.
+
 ### 4.1 Pilotage automatique des bancs par les agents LLM
 
 **Décision utilisateur du 30/09, protocole actualisé le 03/10.** Pour une demande
@@ -274,19 +315,28 @@ durée réellement simulée. Le défaut CLI `signs20` est conservé pour compati
 toujours nommer la règle. Télémétrie OFF sauf besoin pré-enregistré et identique
 dans les deux bras ; distinguer exposition instrumentée et résultat sans sonde.
 
-**Migration GitHub V102 livrée localement le 07/10 :** `bench.yml` propose
-`gain_short` 40×3 et `non_erosion` 20×10 séparément ; `qualify.yml` et les
-plans de schéma 2 enchaînent contrats→smoke→A→B avec seuil relatif 4 %, garde
-5 %, exposition, provenance et contrôle des critères. Les plans de schéma 1
-restent historiques et sont refusés. Le parcours opcodes est distinct,
-smoke→20×10 avec gain d'opcodes préalable et critères dédiés conservés.
-Publication autorisée sur `codex/github-v102` ([PR #18](https://github.com/jrdoublet/openttd-ml/pull/18)),
-smoke `bench.yml` confirmé par le [run 37625779195](https://github.com/jrdoublet/openttd-ml/actions/runs/37625779195)
-tentative1 au code `a27ca28` : deux duels sains, artefacts audités et verdict
-`diagnostic_only` attendu. Contrats/fixtures Windows/Linux verts. Ce contrôle
-ne prouve pas une qualification économique complète A/B via `qualify.yml` ;
-la PR n'est pas fusionnée. [Guide GitHub](docs/bancs_github.md),
-[plans](qualifications/README.md), suivi dans `docs/taches.md`.
+**GitHub Actions (état au 21/10).** `bench.yml` est sur `master` et sert couramment
+aux portes A et aux smokes : profils `smoke`, `diagnostic`, `gain_short` 40×3,
+`non_erosion` 20×10 et `custom`, champs `start_year` et `map_size` ; par exemple
+`gh workflow run bench.yml --ref <branche> -f mode=paired -f profile=gain_short -f reference=... -f variant=...`.
+`qualify.yml` et les plans de schéma 2 (contrats→smoke→A→B enchaînés, plans de
+schéma 1 refusés) n'ont encore jamais tourné sur Actions ; la
+[PR #18](https://github.com/jrdoublet/openttd-ml/pull/18) d'origine reste ouverte, non fusionnée.
+Le parcours opcodes reste distinct : smoke→20×10 avec gain d'opcodes préalable.
+[Guide GitHub](docs/bancs_github.md), [plans](qualifications/README.md), suivi dans `docs/taches.md`.
+
+**Où lancer (décisions utilisateur du 19 au 21/10) :**
+
+| Hôte | Usage |
+|---|---|
+| GitHub Actions | d'abord pour les bancs courts (porte A 40×3, smokes, expositions ≤ 5 ans) ; 10 ans seulement la nuit, sur autorisation ; **porte B jamais sans l'accord explicite de l'utilisateur pour ce banc précis** |
+| VPS (3 workers) | bancs courts quand GitHub est occupé, diagnostics ; 10 ans seulement la nuit, sur autorisation |
+| PC de l'utilisateur (10 workers) | bancs à 10 ans (porte B 20×10, 40×10, expositions) : pousser la branche, fournir la commande GitHub et le script PC, puis demander |
+
+Avant un lancement, vérifier dans `docs/taches.md`, le lot de prompts courant et les runs
+GitHub que la même porte ne tourne pas déjà, notamment sur le PC : un doublon s'annule.
+Pour suivre un banc long sur GitHub, une seule boucle `gh run view <id> --json status`
+toutes les ~10 min ; plusieurs `gh run watch` simultanés épuisent la limite d'API (5 000/h).
 
 **Optimisations d'opcodes :** appliquer la règle dédiée du §4, déclarée avant
 mesure : gain d'opcodes mesuré sur le poste visé à entrées/protocoles comparables,
@@ -385,6 +435,27 @@ défauts/réglages explicites, runtime, graines et places. Un SHA Git seul ne su
 Conserver JSON, JSONL, manifeste, bundle et journaux uniques ; rapporter parties attendues/obtenues,
 statuts de santé et horizon atteint. Une campagne interrompue n'est pas un résultat d'adoption.
 
+### Pièges de mesure déjà rencontrés
+
+- **Censure :** compter les tentatives et leurs motifs d'échec, pas seulement les réussites.
+  Exemple V307 : la part de puits « à une seule ligne » ne comptait que les jonctions de gare
+  réussies ; 33 de 114 tentatives échouaient en `SITEAB`, faute de place pour un quai parallèle
+  ([correction](docs/v307_puits_lignes_20261021.md)).
+- **Journaux :** `--script-debug` ne fait que capturer AILog ; `decision_log` reste à 0. Pour
+  une autopsie, mettre `decision_log=1` dans les **deux** bras, et `--line-telemetry` pour
+  relier estimé et réalisé.
+- **Sondes et trajectoire :** le duel n'est quasi déterministe qu'à code et réglages
+  identiques. Une sonde, un cache ou une optimisation change le rythme d'opcodes, donc la
+  partie (jusqu'à ±0,5 M£/an par graine à trois ans). Ne pas interpréter une graine isolée ;
+  diagnostiquer une graine en comparant les deux bras sous la **même** sonde ; ne pas rejouer
+  « les pires graines » d'une porte avec une sonde en croyant reproduire la partie.
+- **Petits échantillons :** 3 graines établissent un mécanisme, jamais un gain.
+- **Télémétrie de ligne :** au cliché du 1er décembre de l'année Y, `profit_last_year` est
+  l'année civile Y−1. Pour l'année pleine qui suit un achat, lire `profit_this_year × 12/11`
+  au cliché Y+1, ou `profit_last_year` au cliché Y+2.
+- **AAAHogEx** plante de façon déterministe sur la graine 73 en duel 10 ans : ne pas rejouer
+  la paire ; les campagnes 40×10 pré-enregistrent son remplacement (373684).
+
 ## 6. Provenance des preuves
 
 **Décision utilisateur du 2026-09-11 : les résultats antérieurs au 2026-09-09 ne font plus foi.**
@@ -447,3 +518,34 @@ Avant de terminer : inspecter le diff, lancer les vérifications adaptées, s'as
 fichiers voulus ont changé. Rapporter ce qui a changé, ce qui a été effectivement validé et ce qui
 reste non mesuré. Mettre à jour `docs/taches.md`/le journal pertinent lorsqu'une décision ou un
 statut de chantier change, sans recopier tout l'historique dans ce fichier.
+
+## 9. Délégation entre agents LLM
+
+**Décisions utilisateur du 20 et du 21/10.** L'agent qui orchestre lit, conçoit, découpe,
+vérifie, lance les bancs autorisés et rend compte ; il ne délègue pas ce travail.
+
+- **Tâches simples et moyennes** (inventaire, dépouillement de journaux, sonde, script
+  d'analyse, contrats, passes mécaniques) : écrire un prompt autonome dans
+  `docs/prompts/<sujet>_<date>.md`, poussé sur `master` ; l'utilisateur le distribue à ses
+  agents. Ne pas lancer soi-même d'agent dessus.
+- **codex** : réservé à **une** sous-étape très complexe et bornée (une fonction ou un mécanisme
+  précis), fichiers et contrat fournis, sans smoke, banc ni rapport long. Jamais un chantier
+  entier : un prompt « conception + code + tests + smoke + exposition + rapport » a épuisé son
+  quota en ~200 k tokens le 21/10, avec trois commits et sans rapport.
+- **Un prompt autonome contient** : dépôt et branche (`git pull --rebase` avant de pousser),
+  fichiers à lire, fichiers autorisés (disjoints entre prompts lancés en parallèle), réglage à
+  défaut 0, contrats de tests, commandes exactes avec profil d'hôte, critère pré-enregistré,
+  livrable (document et commit), interdits (porte B, changement de défaut, fusion).
+- **Vérifier chaque livraison** avant de la reprendre à son compte : relire le diff, chercher les
+  variables non déclarées ou orphelines et l'équilibre des délimiteurs, lancer la suite de
+  tests, constater que le commit existe. Re-dériver dans les journaux les chiffres d'un
+  diagnostic avant de les transmettre.
+- **Surveiller par fichiers** : rapport présent et de taille stable plus commit sur la branche,
+  ou ligne `^exit=` en fin de script de chaîne. Jamais `pgrep -f` (il se trouve lui-même),
+  `kill -0` depuis une tâche de fond, ni `$!` après `setsid nohup`.
+- **Arrêt sur quota** : les commits restent, le contexte est perdu. Reprendre par
+  `codex exec resume <id de session>` (coûteux si la session est longue) ou par un prompt
+  réduit qui part des commits existants ; jamais une relance en boucle du prompt complet.
+  Après le rapport d'un agent, arrêter ses tâches de fond restantes.
+- Une question « pourquoi ? » de l'utilisateur appelle une explication, pas un changement du
+  plan en cours.
