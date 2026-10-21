@@ -1019,6 +1019,7 @@ function OpexAI::_dispatchRepay(task, year)
   if (this._lastRepayMonth == ym) { if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle); return false; }
   this._lastRepayMonth = ym;
   this._tryRepayLoan(year);
+  if (V292_HQ_HUB) this._v292TryBuildHq(year);
   if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);
   return true;
 }

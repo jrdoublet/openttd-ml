@@ -1460,3 +1460,132 @@ function OpexAI::_logAirLazySelect(year)
   this._lazyDeferredYear = 0;
   this._lazyMaterializedYear = 0;
 }
+
+/* V292b : pose du QG une seule fois pres de la gare voyageurs la plus chargee.
+ * Aucun deplacement. En cas d'echec, reessayer au plus une fois par an. */
+function OpexAI::_v292TryBuildHq(year)
+{
+  if (!V292_HQ_HUB) return;
+
+  // 1. Ne jamais demenager : si le QG existe deja, rien a faire.
+  local hqTile = AICompany.GetCompanyHQ(AICompany.COMPANY_SELF);
+  if (hqTile != null && AIMap.IsValidTile(hqTile)) return;
+
+  // 2. En cas d'echec precedent, reessayer au plus une fois par an.
+  if (this._v292LastHqTryYear >= 0 && year <= this._v292LastHqTryYear) return;
+
+  // 3. Identifier le cargo voyageurs.
+  local paxCargo = ("_catalog" in this && this._catalog != null && ("paxCargo" in this._catalog)) ? this._catalog.paxCargo : -1;
+  if (!AICargo.IsValidCargo(paxCargo)) {
+    local cList = AICargoList();
+    foreach (c, _ in cList) {
+      if (AICargo.HasCargoClass(c, AICargo.CC_PASSENGERS)) {
+        paxCargo = c;
+        break;
+      }
+    }
+  }
+  if (!AICargo.IsValidCargo(paxCargo)) return;
+
+  // 4. Parcourir toutes nos gares (toutes categories, AIStationList).
+  // Verifier qu'on a au moins une gare voyageurs et choisir celle qui a le plus de passagers en attente.
+  local bestStation = -1;
+  local maxWaiting = -1;
+  local stList = AIStationList(AIStation.STATION_ANY);
+  foreach (st, _ in stList) {
+    local isPax = false;
+    if (AIStation.HasStationType(st, AIStation.STATION_BUS_STOP) || AIStation.HasStationType(st, AIStation.STATION_AIRPORT)) {
+      isPax = true;
+    } else if (AIStation.HasCargoRating(st, paxCargo) || AIStation.GetCargoWaiting(st, paxCargo) > 0) {
+      isPax = true;
+    } else if (this._lines != null) {
+      foreach (line in this._lines) {
+        if (line == null) continue;
+        if (("cargo" in line) && AICargo.HasCargoClass(line.cargo, AICargo.CC_PASSENGERS)) {
+          if (OpexLineStationId(line, "A") == st || OpexLineStationId(line, "B") == st) {
+            isPax = true;
+            break;
+          }
+        }
+      }
+    }
+    if (!isPax) continue;
+
+    local waiting = AIStation.GetCargoWaiting(st, paxCargo);
+    if (waiting < 0) waiting = 0;
+    if (waiting > maxWaiting) {
+      maxWaiting = waiting;
+      bestStation = st;
+    }
+  }
+
+  // Si aucune gare voyageurs, ne rien faire (aucun essai consomme).
+  if (bestStation < 0) return;
+
+  local stTile = AIStation.GetLocation(bestStation);
+  if (stTile == null || !AIMap.IsValidTile(stTile)) return;
+
+  // 5. Rayon de captage de la gare.
+  local radius = -1;
+  if (AIStation.HasStationType(bestStation, AIStation.STATION_TRAIN)) {
+    radius = AIStation.GetCoverageRadius(AIStation.STATION_TRAIN);
+  } else if (AIStation.HasStationType(bestStation, AIStation.STATION_BUS_STOP)) {
+    radius = AIStation.GetCoverageRadius(AIStation.STATION_BUS_STOP);
+  } else if (AIStation.HasStationType(bestStation, AIStation.STATION_DOCK)) {
+    radius = AIStation.GetCoverageRadius(AIStation.STATION_DOCK);
+  } else if (AIStation.HasStationType(bestStation, AIStation.STATION_AIRPORT)) {
+    if ("GetStationCoverageRadius" in AIStation) {
+      radius = AIStation.GetStationCoverageRadius(bestStation);
+    }
+    if (radius <= 0 && AIAirport.IsAirportTile(stTile)) {
+      radius = AIAirport.GetAirportCoverageRadius(AIAirport.GetAirportType(stTile));
+    }
+  }
+  if (radius <= 0) radius = 4;
+
+  // 6. Tuiles d'un carre autour de la gare dans son rayon de captage, du plus proche au plus loin.
+  local cx = AIMap.GetTileX(stTile);
+  local cy = AIMap.GetTileY(stTile);
+  local candidates = [];
+  for (local dx = -radius; dx <= radius; dx++) {
+    local x = cx + dx;
+    for (local dy = -radius; dy <= radius; dy++) {
+      local y = cy + dy;
+      local t = AIMap.GetTileIndex(x, y);
+      if (!AIMap.IsValidTile(t)) continue;
+      local dist = AIMap.DistanceSquare(t, stTile);
+      candidates.append({ tile = t, dist = dist });
+    }
+  }
+
+  candidates.sort(function(a, b) {
+    if (a.dist < b.dist) return -1;
+    if (a.dist > b.dist) return 1;
+    return 0;
+  });
+
+  // 7. Essayer AICompany.BuildCompanyHQ(t) en s'arretant au premier succes, borne a 64 essais.
+  local tries = 0;
+  local built = false;
+  local builtTile = -1;
+  foreach (cand in candidates) {
+    tries++;
+    if (AICompany.BuildCompanyHQ(cand.tile)) {
+      built = true;
+      builtTile = cand.tile;
+      break;
+    }
+    if (tries >= 64) break;
+  }
+
+  if (built) {
+    if (DECISION_LOG) {
+      OpexDecide("V292_HQ", "event=built station=" + bestStation + " tile=" + builtTile + " tries=" + tries);
+    }
+  } else {
+    this._v292LastHqTryYear = year;
+    if (DECISION_LOG) {
+      OpexDecide("V292_HQ", "event=fail station=" + bestStation + " tile=-1 tries=" + tries);
+    }
+  }
+}

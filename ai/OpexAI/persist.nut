@@ -640,6 +640,7 @@ function OpexAI::Save()
       shortSave.v259Cursor <- this._v259Cursor;
       shortSave.v259Queue <- OpexV259SaveQueue(this._v259Queue);
     }
+    if (this._v292LastHqTryYear >= 0) shortSave.v292LastHqTryYear <- this._v292LastHqTryYear;
     if (DECISION_LOG && startOps != null) {
       local endOps = AIController.GetOpsTillSuspend();
       local opsSpent = startOps - endOps;
@@ -744,6 +745,7 @@ function OpexAI::Save()
     saveObj.v259Cursor <- this._v259Cursor;
     saveObj.v259Queue <- OpexV259SaveQueue(this._v259Queue);
   }
+  if (this._v292LastHqTryYear >= 0) saveObj.v292LastHqTryYear <- this._v292LastHqTryYear;
   if (DECISION_LOG && startOps != null) {
     local endOps = AIController.GetOpsTillSuspend();
     local opsSpent = startOps - endOps;
@@ -864,6 +866,7 @@ function OpexAI::Load(version, data)
   if ("v259KnownBridgesCount" in data) this._reloadV259KnownBridgesCount = data.v259KnownBridgesCount;
   if ("v259Cursor" in data) this._reloadV259Cursor = data.v259Cursor;
   if ("v259Queue" in data) this._reloadV259Queue = data.v259Queue;
+  this._v292LastHqTryYear = ("v292LastHqTryYear" in data) ? data.v292LastHqTryYear : -1;
   /* C80 étape 2 : mémoire transitoire du seuil de sélection du stock rail, remise à 0 au rechargement. */
   this._railStockLastFundedScore = 0.0;
   this._railStockLastFundedDate = -1;

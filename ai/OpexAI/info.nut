@@ -627,10 +627,12 @@ class OpexAIInfo extends AIInfo {
     });
     AddSetting({
       name = "v249_statue",
-      description = "V249: when rich (no loan, no project pass stopped for cash during the last month, cash still covering the reserve and the most expensive listed project after the statue), build at most one town statue per month in the served town with the highest line profit; 1 = on, 0 = off (default)",
+      description = "V249 town statues when rich. 0 = off (default). 1 = mode 1: build at most one statue per month in served town with highest line profit, requiring cash to cover reserve and most expensive listed project. 2 = mode 2 (V249a+b+c): buy statue whenever predicted annual marginal gain over horizon covers measured cost, without cash reserve, preserving admissible financeable projects and pending fleet renewal (V252).",
+      min_value = 0, max_value = 2,
       easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
+      custom_value = 0, default_value = 0,
+      step_size = 1,
+      flags = 0
     });
     /* Quatre niveaux a 0 : le banc qui ne passe pas le reglage reste identique.
      * Mode 1 coupe en facile/moyen meme si la valeur est 1. Mode 2 ignore le niveau. */
@@ -736,6 +738,13 @@ class OpexAIInfo extends AIInfo {
       min_value = 0, max_value = 1,
       easy_value = 1, medium_value = 1, hard_value = 1,
       custom_value = 1, flags = 0, step_size = 1
+    });
+    AddSetting({
+      name = "v292_hq_hub",
+      description = "V292b: build company HQ once near passenger station with highest waiting cargo; 0 = off (default), 1 = on",
+      min_value = 0, max_value = 1,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0, flags = 0, step_size = 1
     });
   }
 }
