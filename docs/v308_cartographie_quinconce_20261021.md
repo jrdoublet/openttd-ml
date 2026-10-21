@@ -62,6 +62,8 @@ centraux (2,3) et (5,4). Une ligne et une colonne intérieures chacune.
 
 ### Mon avis : bonne méthode, meilleure que V307, avec trois corrections
 
+**✅ Validé par l'utilisateur le 21/10 au soir** : méthode retenue avec les trois corrections ci-dessous (centraux lus aussi en relief, court-circuit limité aux classes décisives, décalage de parité à tester). Prochaine étape : la sonde de validation.
+
 **Ce qui est juste**
 - **Garantie de détection** : toute rivière droite d'une tuile, horizontale ou verticale, qui
   traverse le cœur 6×6 touche exactement un point. Les 5 points V307 n'en voient que la moitié
