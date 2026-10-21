@@ -737,6 +737,13 @@ class OpexAIInfo extends AIInfo {
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0, flags = 0, step_size = 1
     });
+    AddSetting({
+      name = "v292_hq_hub",
+      description = "V292b: build company HQ once near passenger station with highest waiting cargo; 0 = off (default), 1 = on",
+      min_value = 0, max_value = 1,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0, flags = 0, step_size = 1
+    });
   }
 }
 

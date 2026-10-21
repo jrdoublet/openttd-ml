@@ -730,3 +730,6 @@ V279_LAST_STATS_MONTH <- -1;
 
 /* V295 : optimisations exactes A* rail V129 (filtre de Bloom ancetres et dedoublonnage buts). */
 V295_ASTAR_FAST <- 0;
+
+/* V292b : pose du QG pres de la gare voyageurs la plus chargee (0/1, defaut 0). */
+V292_HQ_HUB <- 0;
