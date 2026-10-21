@@ -224,6 +224,8 @@ class OpexAI extends AIController {
   _v249StatueMonth = -1;
   /* V252 : mois du dernier rafraichissement aerien actif. Memoire de cadence, pas un etat de partie. */
   _v252RefreshMonth = -1;
+  /* V292 : annee du dernier essai infructueux de pose du QG (au plus une fois par an). */
+  _v292LastHqTryYear = -1;
   /* V257 : cadence/observations/transaction persistantes ; cache reconstructible. */
   _v257Cursor = 0;
   _v257State = null;
@@ -538,6 +540,7 @@ class OpexAI extends AIController {
   function _reportC78Candidates(year);
   function _scrapDeadLines(year);
   function _scrapRetiredVehicles(year);
+  function _v292TryBuildHq(year);
   function _purgeUnprofitableStreaks();
   function _triggerScrapLine(line, criterion);
   function _refleetRoadLines(year);

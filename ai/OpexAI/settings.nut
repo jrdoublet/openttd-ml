@@ -193,6 +193,8 @@ function OpexLoadSettings()
   }
   local v295Fast = AIController.GetSetting("v295_astar_fast");
   V295_ASTAR_FAST = (v295Fast != null && v295Fast == 1) ? 1 : 0;
+  local v292HqHub = AIController.GetSetting("v292_hq_hub");
+  V292_HQ_HUB = (v292HqHub != null && v292HqHub == 1) ? 1 : 0;
 
   // V246 : paquets adoptes figes ; les interrupteurs de mode restent actifs.
   ROAD_BUILD_ENABLED = MODE_ROAD;
