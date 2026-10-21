@@ -105,6 +105,21 @@
     "AIBridge.GetMaxSpeed"
   ],
   [
+    "builder_rail.nut",
+    "tiles",
+    "AITile.GetSlope"
+  ],
+  [
+    "builder_rail.nut",
+    "tiles",
+    "AITile.IsBuildable"
+  ],
+  [
+    "builder_rail.nut",
+    "tiles",
+    "AIMap.DistanceManhattan,center"
+  ],
+  [
     "candidates.nut",
     "list",
     "AIEngine.IsBuildable"
