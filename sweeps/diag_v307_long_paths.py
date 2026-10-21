@@ -8,6 +8,8 @@ coarse (A* grossier par blocs) et guided (production guidee par le couloir gross
 Tables par type x tranche : reussite, reussite au plafond actuel (cap_ok), iterations, opcodes,
 jours ; precision du grossier (longueur predite / longueur reelle, correlation des couts) ;
 guided contre base sur les memes paires. Les autopsies sont comptees par issue aller/inverse.
+V307_ENDPOINT : par evenement/type/cote, cause principale de l'occupation, octants des quais,
+autres octants avec terrain libre. Le scout ne teste pas la couverture cargo ni le quai.
 """
 import argparse
 import gzip
@@ -18,7 +20,7 @@ import statistics
 import sys
 from pathlib import Path
 
-LINE = re.compile(r"\[0\] \[I\] OPEX (\d+)-(\d+)-(\d+) (V307_ARM|V307_AUTOPSY|V307_START) (.*)$")
+LINE = re.compile(r"\[0\] \[I\] OPEX (\d+)-(\d+)-(\d+) (V307_ARM|V307_AUTOPSY|V307_START|V307_ENDPOINT) (.*)$")
 BINS = ["120-179", "180-249", "250-349"]
 SIDE = 8
 
@@ -67,7 +69,7 @@ def pearson(xs, ys):
 
 
 def collect(dirs):
-    pairs, autopsies, starts = {}, [], []
+    pairs, autopsies, starts, endpoints = {}, [], [], []
     for d in dirs:
         camp = Path(d).name.replace("_engine", "")
         for path in sorted(Path(d).glob("*.log*")):
@@ -79,11 +81,67 @@ def collect(dirs):
                 if kind == "V307_AUTOPSY":
                     autopsies.append(dict(f, campaign=camp, seed=seed))
                     continue
+                if kind == "V307_ENDPOINT":
+                    endpoints.append(dict(f, campaign=camp, seed=seed))
+                    continue
                 key = (camp, seed, f.get("kind"), f.get("a"), f.get("b"))
                 p = pairs.setdefault(key, {"campaign": camp, "seed": seed, "kind": f.get("kind"),
                                            "dist": f.get("dist"), "bin": f.get("bin"), "year": f["year"]})
                 p[f["arm"]] = f
-    return list(pairs.values()), autopsies, starts
+    return list(pairs.values()), autopsies, starts, endpoints
+
+
+ENDPOINT_CAUSES = ("own", "rival", "water", "house", "slope", "other")
+
+
+def dominant_endpoint_cause(endpoint):
+    """Classe les obstacles exclusifs du carre 7x7, sans ranger le terrain libre en obstacle."""
+    counts = {name: endpoint.get(name + "_sum", 0) for name in ENDPOINT_CAUSES}
+    name = max(ENDPOINT_CAUSES, key=lambda n: counts[n])
+    return name if counts[name] else "none"
+
+
+def endpoint_table(endpoints):
+    groups = {}
+    for e in endpoints:
+        key = (e.get("event"), e.get("kind"), e.get("side"), dominant_endpoint_cause(e))
+        groups.setdefault(key, []).append(e)
+    rows = []
+    for (event, kind, side, cause), xs in sorted(groups.items()):
+        rows.append({
+            "event": event, "kind": kind, "side": side, "cause": cause, "n": len(xs),
+            "plans_med": med([x.get("plans", 0) for x in xs]),
+            "maxdist_med": med([x.get("maxdist", 0) for x in xs]),
+            "octants_med": med([x.get("oct_n", 0) for x in xs]),
+            "octants_max": max(x.get("oct_n", 0) for x in xs),
+            "other_free": sum(x.get("other_n", 0) > 0 for x in xs),
+            "other_free_pct": round(100 * sum(x.get("other_n", 0) > 0 for x in xs) / len(xs), 1),
+            "free_med": med([x.get("free_sum", 0) for x in xs]),
+        })
+    # Chaque emission est atomique : V307_ENDPOINT side=A puis side=B, sans
+    # autres lignes V307_ENDPOINT intercalees par ce code. Conserver les
+    # occurrences distinctes d'un meme candidat repris dans la meme annee.
+    failures = []
+    for e in endpoints:
+        if e.get("side") == "A":
+            failures.append({"A": e})
+        elif e.get("side") == "B":
+            if failures and "B" not in failures[-1] and "A" in failures[-1]:
+                failures[-1]["B"] = e
+            else:
+                failures.append({"B": e})
+    has_other = lambda e: e is not None and e.get("other_n", 0) > 0
+    joined_b = [f for f in failures if f.get("B", {}).get("join") == "B"]
+    return {
+        "n_sides": len(endpoints), "n_failures": len(failures),
+        "other_free_sides": sum(e.get("other_n", 0) > 0 for e in endpoints),
+        "other_free_pct": round(100 * sum(e.get("other_n", 0) > 0 for e in endpoints) / len(endpoints), 1) if endpoints else None,
+        "other_free_any": sum(has_other(f.get("A")) or has_other(f.get("B")) for f in failures),
+        "other_free_B": sum(has_other(f.get("B")) for f in failures),
+        "join_B_failures": len(joined_b),
+        "join_B_own_dominant": sum(dominant_endpoint_cause(f["B"]) == "own" for f in joined_b),
+        "rows": rows,
+    }
 
 
 def arm_table(pairs, arm):
@@ -152,13 +210,20 @@ def autopsy_table(autopsies):
         rows.append({"dir": d, "out": o, "join": j, "n": len(xs),
                      "iters_med": med([x["iters"] for x in xs]), "days_med": med([x["days"] for x in xs]),
                      "dist_med": med([x["dist"] for x in xs if isinstance(x.get("dist"), int)])})
-    # Croisement aller x inverse par recherche (meme graine, src, dst, spent)
-    joint = {}
+    # Deux logs consecutifs par autopsie : la mesure bloquante peut franchir
+    # le Nouvel An entre aller et inverse. La clef (src,dst,annee) originale
+    # decoupait alors a tort une recherche en deux evenements.
+    joint = []
     for a in autopsies:
-        key = (a["campaign"], a["seed"], a.get("src"), a.get("dst"), a.get("spent"), a["year"])
-        joint.setdefault(key, {})[a.get("dir")] = a.get("out")
+        if a.get("dir") == "fwd":
+            joint.append({"fwd": a.get("out")})
+        elif a.get("dir") == "rev":
+            if joint and "rev" not in joint[-1] and "fwd" in joint[-1]:
+                joint[-1]["rev"] = a.get("out")
+            else:
+                joint.append({"rev": a.get("out")})
     cross = {}
-    for v in joint.values():
+    for v in joint:
         k = (v.get("fwd"), v.get("rev"))
         cross[str(k)] = cross.get(str(k), 0) + 1
     return {"rows": rows, "fwd_x_rev": cross, "searches": len(joint)}
@@ -177,12 +242,13 @@ def main():
     ap.add_argument("dirs", nargs="+")
     ap.add_argument("--json")
     args = ap.parse_args()
-    pairs, autopsies, starts = collect(args.dirs)
+    pairs, autopsies, starts, endpoints = collect(args.dirs)
     report = {"starts": len(starts), "pairs": len(pairs),
               "base": arm_table(pairs, "base"), "guided": arm_table(pairs, "guided"),
               "coarse": coarse_table(pairs), "guided_vs_base": guided_vs_base(pairs),
               "noplan": sum(1 for p in pairs if "plans" in p),
-              "autopsy": autopsy_table(autopsies) if autopsies else None}
+              "autopsy": autopsy_table(autopsies) if autopsies else None,
+              "endpoints": endpoint_table(endpoints)}
     print(f"sondes={len(starts)} paires={len(pairs)} sans quai={report['noplan']}")
     for arm in ("base", "guided"):
         print(f"\n== {arm}")
@@ -196,6 +262,18 @@ def main():
         print("\n== autopsies", report["autopsy"]["searches"], "recherches ; aller x inverse :", report["autopsy"]["fwd_x_rev"])
         for r in report["autopsy"]["rows"]:
             print(" ", r)
+    if endpoints:
+        result = report["endpoints"]
+        print(f"\n== endpoints : {result['n_failures']} evenements, {result['n_sides']} cotes ; "
+              f"autre octant libre {result['other_free_sides']}/{result['n_sides']} "
+              f"({result['other_free_pct']:.1f} % des cotes)")
+        print(f"autre octant libre par echec: A-ou-B={result['other_free_any']}/{result['n_failures']} "
+              f"; cote B={result['other_free_B']}/{result['n_failures']} ; "
+              f"jointures B avec notre rail dominant={result['join_B_own_dominant']}/{result['join_B_failures']}")
+        cols = ("event", "kind", "side", "cause", "n", "plans_med", "maxdist_med", "octants_med", "other_free", "other_free_pct")
+        print(" | ".join(cols))
+        for r in result["rows"]:
+            print(" | ".join(fmt(r[c]) for c in cols))
     if args.json:
         Path(args.json).write_text(json.dumps(report, indent=1, default=str))
 

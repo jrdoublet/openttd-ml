@@ -269,7 +269,7 @@ function OpexV307PairFields(pair)
       + " ta=" + pair.ta + " tb=" + pair.tb + " dist=" + pair.dist + " bin=" + pair.bin;
 }
 
-function OpexV307Log(arm, pair, r)
+function OpexV307Log(arm, pair, r, plansA, plansB)
 {
   local len = -1, cost = -1, jumps = 0;
   if (r.tiles != null) {
@@ -285,6 +285,118 @@ function OpexV307Log(arm, pair, r)
       + " ticks=" + r.ticks + " days=" + r.days + " segments=" + r.segments
       + " backtracks=" + r.backtracks + " len=" + len + " jumps=" + jumps + " cost=" + cost
       + " cap_ok=" + ((r.stop == "OK" && r.iters <= HARD_ITERATION_CAP) ? 1 : 0));
+  if (V307_ABND_AUTOPSY && (r.stop == "ABND" || r.stop == "NOPA")) {
+    local head = "event=arm arm=" + arm + " src=" + pair.a + " dst=" + pair.b
+        + " kind=" + pair.kind + " cargo=" + pair.cargo + " outcome=" + r.stop;
+    OpexV307EndpointPair(head, pair.ta, pair.tb, plansA, plansB);
+  }
+}
+
+/* Octants numerotes E, SE, S, SW, W, NW, N, NE (masque de 8 bits).
+ * Une tuile au centre n'indique aucune direction. */
+function OpexV307Octant(dx, dy)
+{
+  if (dx == 0 && dy == 0) return -1;
+  local ax = abs(dx), ay = abs(dy);
+  if (ax > 2 * ay) return dx > 0 ? 0 : 4;
+  if (ay > 2 * ax) return dy > 0 ? 2 : 6;
+  if (dx > 0) return dy > 0 ? 1 : 7;
+  return dy > 0 ? 3 : 5;
+}
+
+/* Dans le carre 7x7 autour du lead (sortie du quai), categories disjointes.
+ * L'ordre rail > eau > maison > relief > libre rend les sommes comparables.
+ * Les routes/industries et objets occupes non constructibles vont dans other. */
+function OpexV307EndpointTileClass(tile)
+{
+  if (AIRail.IsRailTile(tile) || AIRail.IsRailStationTile(tile) || AIRail.IsRailDepotTile(tile))
+    return AICompany.IsMine(AITile.GetOwner(tile)) ? 0 : 1;
+  if (AITile.IsWaterTile(tile)) return 2;
+  if (AITile.IsHouseTile(tile)) return 3;
+  if (AITile.GetSlope(tile) != AITile.SLOPE_FLAT) return 4;
+  if (AITile.IsBuildable(tile)) return 5;
+  return 6;
+}
+
+/* Explorateur approximatif : 8 rayons, pas de recherche de quais ni de couverture cargo.
+ * Un autre octant libre signifie terrain plat disponible, pas un quai constructible. */
+function OpexV307EndpointScout(center)
+{
+  local dirs = [[1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1], [0, -1], [1, -1]];
+  local cx = AIMap.GetTileX(center), cy = AIMap.GetTileY(center);
+  local mx = AIMap.GetMapSizeX(), my = AIMap.GetMapSizeY();
+  local mask = 0;
+  for (local k = 0; k < 8; k++) {
+    for (local radius = 4; radius <= STATION_SEARCH_RADIUS; radius += 4) {
+      local x = cx + dirs[k][0] * radius, y = cy + dirs[k][1] * radius;
+      if (x < 1 || y < 1 || x >= mx - 1 || y >= my - 1) continue;
+      local tile = AIMap.GetTileIndex(x, y);
+      if (AITile.IsBuildable(tile) && AITile.GetSlope(tile) == AITile.SLOPE_FLAT) {
+        mask = mask | (1 << k);
+        break;
+      }
+    }
+  }
+  return mask;
+}
+
+function OpexV307OctantCount(mask)
+{
+  local count = 0;
+  for (local k = 0; k < 8; k++) if ((mask & (1 << k)) != 0) count++;
+  return count;
+}
+
+function OpexV307EndpointOne(head, side, center, plans)
+{
+  local sums = [0, 0, 0, 0, 0, 0, 0];
+  local mins = [49, 49, 49, 49, 49, 49, 49];
+  local maxDist = 0, octMask = 0, scanned = 0;
+  local mx = AIMap.GetMapSizeX(), my = AIMap.GetMapSizeY();
+  foreach (p in plans) {
+    local d = AIMap.DistanceManhattan(p.anchor, center);
+    if (d > maxDist) maxDist = d;
+    local dx = AIMap.GetTileX(p.anchor) - AIMap.GetTileX(center);
+    local dy = AIMap.GetTileY(p.anchor) - AIMap.GetTileY(center);
+    if (dx == 0 && dy == 0) {
+      dx = AIMap.GetTileX(p.lead) - AIMap.GetTileX(center);
+      dy = AIMap.GetTileY(p.lead) - AIMap.GetTileY(center);
+    }
+    local oct = OpexV307Octant(dx, dy);
+    if (oct >= 0) octMask = octMask | (1 << oct);
+    local counts = [0, 0, 0, 0, 0, 0, 0];
+    local x0 = AIMap.GetTileX(p.lead), y0 = AIMap.GetTileY(p.lead);
+    for (local ox = -3; ox <= 3; ox++) {
+      local x = x0 + ox;
+      if (x < 1 || x >= mx - 1) continue;
+      for (local oy = -3; oy <= 3; oy++) {
+        local y = y0 + oy;
+        if (y < 1 || y >= my - 1) continue;
+        counts[OpexV307EndpointTileClass(AIMap.GetTileIndex(x, y))]++;
+      }
+    }
+    for (local k = 0; k < 7; k++) {
+      sums[k] += counts[k];
+      if (counts[k] < mins[k]) mins[k] = counts[k];
+    }
+    scanned++;
+  }
+  if (scanned == 0) for (local k = 0; k < 7; k++) mins[k] = 0;
+  local scoutMask = OpexV307EndpointScout(center);
+  local otherMask = scoutMask & (255 ^ octMask);
+  local names = ["own", "rival", "water", "house", "slope", "free", "other"];
+  local values = "";
+  for (local k = 0; k < 7; k++) values += " " + names[k] + "_sum=" + sums[k] + " " + names[k] + "_min=" + mins[k];
+  OpexDecide("V307_ENDPOINT", head + " side=" + side + " center=" + center
+      + " plans=" + scanned + " maxdist=" + maxDist + " oct_mask=" + octMask
+      + " oct_n=" + OpexV307OctantCount(octMask) + " scout_mask=" + scoutMask
+      + " other_mask=" + otherMask + " other_n=" + OpexV307OctantCount(otherMask) + values);
+}
+
+function OpexV307EndpointPair(head, centerA, centerB, plansA, plansB)
+{
+  OpexV307EndpointOne(head, "A", centerA, plansA);
+  OpexV307EndpointOne(head, "B", centerB, plansB);
 }
 
 function OpexV307RailType()
@@ -325,7 +437,7 @@ function OpexV307LongProbe(perBin)
       OpexDecide("V307_ARM", "arm=plans " + OpexV307PairFields(pair) + " outcome=NOPLAN na=" + plansA.len() + " nb=" + plansB.len());
       continue;
     }
-    OpexV307Log("base", pair, OpexV307Search(plansA, plansB, pair.dist, null));
+    OpexV307Log("base", pair, OpexV307Search(plansA, plansB, pair.dist, null), plansA, plansB);
 
     local mark = OpexOpsMeasureBegin();
     local coarse = OpexV307Coarse(plansA[0].lead, plansB[0].lead);
@@ -336,13 +448,18 @@ function OpexV307LongProbe(perBin)
         + " blocks=" + coarse.blocks.len() + " cost=" + coarse.cost
         + " water_blocks=" + (coarse.ok ? coarse.waterBlocks : -1)
         + " obst_blocks=" + (coarse.ok ? coarse.obstBlocks : -1));
+    if (V307_ABND_AUTOPSY && !coarse.ok) {
+      OpexV307EndpointPair("event=arm arm=coarse src=" + pair.a + " dst=" + pair.b
+          + " kind=" + pair.kind + " cargo=" + pair.cargo + " outcome=NOPA",
+          pair.ta, pair.tb, plansA, plansB);
+    }
     if (!coarse.ok) continue;
     mark = OpexOpsMeasureBegin();
     local guide = OpexV307Guide(coarse.blocks);
     local guideOps = OpexOpsMeasureEnd(mark);
     local r = OpexV307Search(plansA, plansB, pair.dist, guide);
     r.ops += guideOps;
-    OpexV307Log("guided", pair, r);
+    OpexV307Log("guided", pair, r, plansA, plansB);
   }
   OpexDecide("V307_END", "pairs=" + pairs.len());
 }
@@ -380,6 +497,7 @@ function OpexV307Autopsy(state)
       + " shared=" + ((("shared_dest" in cand) && cand.shared_dest) ? 1 : 0)
       + " na=" + plan.plansA.len() + " nb=" + plan.plansB.len()
       + " ignored=" + (ignored == null ? 0 : ignored.len()) + " spent=" + state.spent;
+  OpexV307EndpointPair("event=autopsy arm=autopsy " + head, cand.src, cand.dst, plan.plansA, plan.plansB);
   OpexDecide("V307_AUTOPSY", head + " dir=fwd " + OpexV307AutopsyOne(plan.plansA, plan.plansB, ignored, state.weight, outward, engine));
   OpexDecide("V307_AUTOPSY", head + " dir=rev " + OpexV307AutopsyOne(plan.plansB, plan.plansA, ignored, state.weight, null, engine));
 }

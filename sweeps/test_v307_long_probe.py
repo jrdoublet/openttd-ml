@@ -9,8 +9,11 @@ Verifie :
 - tranches de distance et heuristique octile admissible (transcriptions Python).
 """
 import re
+import tempfile
 import unittest
 from pathlib import Path
+
+from sweeps.diag_v307_long_paths import autopsy_table, collect, dominant_endpoint_cause, endpoint_table
 
 AI = Path(__file__).resolve().parents[1] / "ai" / "OpexAI"
 
@@ -132,6 +135,72 @@ class TestV307LongProbe(unittest.TestCase):
         self.assertEqual(step_cost(flat, {"n": 0, "h": 0, "water": 0, "obst": 0}, False), -1)
         wet = {"n": 5, "h": 10, "water": 5, "obst": 0}
         self.assertEqual(step_cost(flat, wet, False), 80 + 80 * 15 // 5)
+
+    def test_endpoint_hooks_only_on_failures(self):
+        body = self.probe[self.probe.index("function OpexV307Log("):self.probe.index("function OpexV307RailType(")]
+        self.assertIn('V307_ABND_AUTOPSY && (r.stop == "ABND" || r.stop == "NOPA")', body)
+        self.assertIn('V307_ABND_AUTOPSY && !coarse.ok', self.probe)
+        self.assertIn('OpexV307EndpointPair("event=autopsy arm=autopsy " + head', self.probe)
+        self.assertIn('OpexV307EndpointPair(head, pair.ta, pair.tb, plansA, plansB)', body)
+        self.assertEqual(self.probe.count('"V307_ENDPOINT"'), 1)
+        self.assertEqual(read("info.nut").count('name = "v307_abnd_autopsy"'), 1)
+        self.assertEqual(self.probe.count(".Valuate("), 3)  # Sonde historique seulement.
+
+    def test_endpoint_geometry_and_exclusive_classes(self):
+        body = self.probe[self.probe.index("function OpexV307EndpointTileClass("):
+                          self.probe.index("function OpexV307EndpointPair(")]
+        for symbol in ("AICompany.IsMine(AITile.GetOwner(tile))", "AIRail.IsRailTile(tile)",
+                       "AITile.IsWaterTile(tile)", "AITile.IsHouseTile(tile)",
+                       "AITile.GetSlope(tile)", "AITile.IsBuildable(tile)"):
+            self.assertIn(symbol, body)
+        self.assertIn("for (local ox = -3; ox <= 3; ox++)", body)
+        self.assertIn("for (local oy = -3; oy <= 3; oy++)", body)
+        self.assertIn("OpexV307Octant(dx, dy)", body)
+        self.assertIn("scoutMask & (255 ^ octMask)", body)
+        for f in ("plans=", "maxdist=", "oct_mask=", "oct_n=", "scout_mask=", "other_n=",
+                  "_sum=", "_min="):
+            self.assertIn(f, body)
+
+    def test_endpoint_reader_pairs_and_cause(self):
+        text = (
+            "[0] [I] OPEX 1977-09-12 V307_ENDPOINT event=autopsy arm=autopsy src=101 "
+            "dst=202 kind=freight side=A plans=12 maxdist=4 oct_n=2 other_n=2 "
+            "own_sum=50 rival_sum=0 water_sum=1 house_sum=9 slope_sum=5 free_sum=450 other_sum=0\n"
+            "[0] [I] OPEX 1977-09-12 V307_ENDPOINT event=autopsy arm=autopsy src=101 "
+            "dst=202 kind=freight side=B plans=1 maxdist=1 oct_n=1 other_n=5 "
+            "own_sum=24 rival_sum=2 water_sum=0 house_sum=4 slope_sum=3 free_sum=16 other_sum=0\n"
+            "[0] [I] OPEX 1977-09-12 V307_ENDPOINT event=arm arm=guided src=303 "
+            "dst=404 kind=pax side=A plans=12 maxdist=2 oct_n=2 other_n=0 "
+            "own_sum=0 rival_sum=0 water_sum=98 house_sum=6 slope_sum=8 free_sum=200 other_sum=0\n"
+            "[0] [I] OPEX 1977-09-12 V307_ENDPOINT event=arm arm=guided src=303 "
+            "dst=404 kind=pax side=B plans=12 maxdist=2 oct_n=2 other_n=0 "
+            "own_sum=0 rival_sum=0 water_sum=0 house_sum=10 slope_sum=30 free_sum=200 other_sum=0\n"
+        )
+        with tempfile.TemporaryDirectory() as td:
+            directory = Path(td)
+            (directory / "seed42_demo.log").write_text(text, encoding="utf-8")
+            _, _, _, endpoints = collect([directory])
+        self.assertEqual(len(endpoints), 4)
+        self.assertEqual(endpoints[0]["seed"], 42)
+        self.assertEqual(dominant_endpoint_cause(endpoints[1]), "own")
+        report = endpoint_table(endpoints)
+        self.assertEqual(report["n_failures"], 2)
+        self.assertEqual(report["other_free_sides"], 2)
+        self.assertEqual(report["other_free_pct"], 50.0)
+        self.assertEqual(report["other_free_any"], 1)
+        self.assertEqual(report["other_free_B"], 1)
+        self.assertEqual({r["cause"] for r in report["rows"]}, {"own", "water", "slope"})
+
+    def test_autopsy_can_cross_new_year(self):
+        events = [
+            {"dir": "fwd", "out": "CAP", "year": 1975, "src": 100, "dst": 200,
+             "campaign": "test", "seed": 42, "spent": 20000, "join": "B", "iters": 20000, "days": 95, "dist": 110},
+            {"dir": "rev", "out": "OK", "year": 1976, "src": 100, "dst": 200,
+             "campaign": "test", "seed": 42, "spent": 20000, "join": "B", "iters": 1600, "days": 8, "dist": 110},
+        ]
+        result = autopsy_table(events)
+        self.assertEqual(result["searches"], 1)
+        self.assertEqual(result["fwd_x_rev"], {"('CAP', 'OK')": 1})
 
 
 if __name__ == "__main__":
