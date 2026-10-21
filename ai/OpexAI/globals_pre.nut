@@ -26,6 +26,10 @@ V264_CONVERGENT_FREIGHT <- true;
 V269_RAIL_LATE_RELAX <- 5;
 V269_RAIL_MAX_DIST <- 250;
 V269_IDLE_CASH_MIN <- 1000000;
+/* V305 : 0 = V269 attend N ans ; M = V269 s'ouvre des que l'aerien n'a pose aucune ligne neuve depuis
+ * M mois (vivier rail vide et caisse oisive, comme V269), sans condition d'annee (regle utilisateur du 21/10 :
+ * liaisons longues des que l'aerien et le rail a fort ROI sont finis). */
+V305_AIR_IDLE_MONTHS <- 0;
 V294H_RAIL_DEFER <- 0; // 0 : master ; N : trace rapide de N iterations, puis recherche de fond au reliquat (V294h).
 V294H_OPS_PER_ITER <- 200; // V294h : cout mesure d'une iteration A* (moyenne glissante, transitoire).
 V284_RAIL_GROWTH <- 0; // 0 : master ; N : croissance fret apres N ans et 1 M£ disponible.

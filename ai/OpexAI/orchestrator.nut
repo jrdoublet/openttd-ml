@@ -759,6 +759,22 @@ function OpexAI::_c77EnqueueEntity(modes, entityKind = null, entityId = -1, buil
  * V217_POOL_MIN candidats rail du portefeuille peuvent demarrer (ni abandonnes ni trop
  * proches). Jamais pendant les deux premieres annees : le rail y prend le capital de l'AIR
  * (porte A V149 du 13/10). 1 = sans le rail voyageurs (90 % du cout d'une regeneration). */
+/* V305 : mois ecoules depuis la derniere ligne aerienne posee (buildDate, sinon 1er janvier de son
+ * annee) ; sans ligne aerienne (mode air coupe ou aucune pose), l'aerien est fini : 999. Sans etat
+ * sauvegarde : relu sur les lignes a chaque appel (mensuel). */
+function OpexV305AirIdleMonths(lines, date)
+{
+  local last = -1;
+  foreach (line in lines) {
+    if (!("mode" in line) || line.mode != "air") continue;
+    local d = ("buildDate" in line) ? line.buildDate
+        : (("year" in line) ? AIDate.GetDate(line.year, 1, 1) : -1);
+    if (d > last) last = d;
+  }
+  if (last < 0) return 999;
+  return (date - last) / 30;
+}
+
 function OpexAI::_v217RailRefill()
 {
   if (V217_RAIL_REFILL <= 0 || this._projects == null || this._catalog == null) return;
@@ -812,7 +828,14 @@ function OpexAI::_v217RailRefill()
   local v269Relaxed = false;
   if (V269_RAIL_LATE_RELAX > 0) {
     /* V269 : vivier vide et caisse oisive, N ans apres le depart. */
-    V269_RELAXED = year >= OPEX_START_YEAR + V269_RAIL_LATE_RELAX && cash >= V269_IDLE_CASH_MIN;
+    if (V305_AIR_IDLE_MONTHS > 0) {
+      /* V305 : l'aerien est fini quand aucune ligne aerienne neuve n'a ete posee depuis M mois. */
+      local airIdle = OpexV305AirIdleMonths(this._lines, date);
+      V269_RELAXED = airIdle >= V305_AIR_IDLE_MONTHS && cash >= V269_IDLE_CASH_MIN;
+      if (DECISION_LOG && V269_RELAXED && !V269_ON) OpexDecide("V305", "action=on month=" + ym + " air_idle=" + airIdle);
+    } else {
+      V269_RELAXED = year >= OPEX_START_YEAR + V269_RAIL_LATE_RELAX && cash >= V269_IDLE_CASH_MIN;
+    }
     if (V269_RELAXED && !V269_ON) {
       V269_ON = true;
       /* V178/V179 sont figes a 1 depuis V263b : plus rien a activer ici. */
