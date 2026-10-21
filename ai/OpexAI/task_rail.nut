@@ -1355,6 +1355,7 @@ function OpexAI::_recordRailAttempt(candidate, result, posPacked, year, railPlan
   if ((result.reason == "ABND" || result.reason == "SITEA" || result.reason == "SITEB" ||
                          result.reason == "SITEAB" || result.reason == "NOPA" || result.reason == "STNFAIL"
                          || ((V301_NOTRAIN_FIX & 1) && (result.reason == "NOTRAIN" || result.reason == "ORDFAIL"))
+                         || ((V301_NOTRAIN_FIX & 8) && result.reason == "TRKFAIL")
                          || (RAIL_GEOMETRY_GUARD && RAIL_GEOMETRY_PAIR_MEMORY
                              && result.reason == "TRKFAIL"
                              && ("persistentGeometry" in result) && result.persistentGeometry))) {

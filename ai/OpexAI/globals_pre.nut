@@ -76,7 +76,8 @@ V214_RAIL_TIGHT_TURN_COST <- 1500;
 /* V301 : correctifs NOTRAIN (masque). 1 = NOTRAIN/ORDFAIL ecartent la paire comme un ABND ;
  * 2 = la borne vehicle.max_train_length de V207 vaut aussi pour le fret ; 4 = une rame qui
  * deborderait (longueur mesuree ou ERR_VEHICLE_TOO_LONG) garde les wagons deja attaches au lieu
- * d'echouer. 0 = historique. */
+ * d'echouer ; 8 = tout TRKFAIL ecarte la paire (une paire voyageurs retentee 27 fois en 1972,
+ * meme tuile, meme erreur : la garde V100 ne couvre que ERR_AREA_NOT_CLEAR). 0 = historique. */
 V301_NOTRAIN_FIX <- 0;
 function OpexV207Active()
 {

@@ -349,8 +349,8 @@ class OpexAIInfo extends AIInfo {
 
     AddSetting({
       name = "v301_notrain_fix",
-      description = "V301: NOTRAIN fixes, bit mask. 1 = NOTRAIN/ORDFAIL abandons the pair; 2 = freight trains capped by vehicle.max_train_length; 4 = trim wagons that would not fit instead of failing. 0 = historic",
-      min_value = 0, max_value = 7,
+      description = "V301: NOTRAIN fixes, bit mask. 1 = NOTRAIN/ORDFAIL abandons the pair; 2 = freight trains capped by vehicle.max_train_length; 4 = trim wagons that would not fit instead of failing; 8 = any TRKFAIL abandons the pair. 0 = historic",
+      min_value = 0, max_value = 15,
       easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
       step_size = 1, flags = 0
     });

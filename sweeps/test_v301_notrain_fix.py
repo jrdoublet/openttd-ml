@@ -32,6 +32,10 @@ class TestV301NotrainFix(unittest.TestCase):
         self.assertIn('((V301_NOTRAIN_FIX & 1) && (result.reason == "NOTRAIN" || result.reason == "ORDFAIL"))',
                       read("task_rail.nut"))
 
+    def test_bit8_trkfail_abandons_pair(self):
+        self.assertIn('((V301_NOTRAIN_FIX & 8) && result.reason == "TRKFAIL")', read("task_rail.nut"))
+        self.assertIn("v301Fix <= 15)", read("settings.nut"))
+
     def test_bit2_freight_cap(self):
         self.assertIn('(kind != "pax" && (V301_NOTRAIN_FIX & 2))', read("economy.nut"))
 
