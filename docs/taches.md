@@ -7,6 +7,10 @@ ne créent pas une tâche. Protocole et pilotage des bancs : [AGENTS.md](../AGEN
 
 ## État courant
 
+- [ ] **21/10 — PAQUET du 21/10 (adapt400 + V294all + FIN-PARTIE + V296 + V301) contre son absence, GitHub** (référence `OpexAI` = master, variante = les 13 réglages à leur ancien défaut ; delta négatif = gain du paquet).
+  - **3 ans, 40 graines historiques, run 39576092386 : paquet +185,3 k£/an (médiane +168,6 k), 27 V / 13 D, p = 0,003, IC95 [+77 k ; +295 k] ; valeur +4,0 %.** Opex/AAA à 3 ans : **113,3 %** avec le paquet (2,25 M£ contre 1,99 M£), 100,4 % sans.
+  - En cours : 10 ans graines historiques (39575846272), 10 ans graines V267 (39576096262).
+- [ ] **V305b — V269 ouvert quand l'aérien a fini (Claude, branche `v305` `1b0ff890`, défaut 0).** `v305_air_idle_months` = M : la condition d'année de V269 est remplacée par « aucune ligne aérienne neuve depuis M mois » (lu sur `this._lines`, sans état sauvegardé), en gardant vivier rail vide et caisse ≥ 1 M£. 90 AddSetting, tests OK. GitHub 40×10 M = 6 run 39585231559 ; diagnostic 3×10 `decision_log` run 39585235170 (date de `V305 action=on`).
 - [x] **21/10 — V301 ADOPTÉ par décision utilisateur (porte B PC neutre +42,4 k, correctif de bogue)** : `notrain` fusionnée dans master, `v301_notrain_fix=15` par défaut aux quatre niveaux. 89 AddSetting.
 - [x] **21/10 — v296clean ADOPTÉ par décision utilisateur (porte B PC validée)** : `v296clean` fusionnée dans master, `v296_rail_batch_build=1` (V296a, pose groupée) et `v296_astar_native=1` (V296b, A* natif AIList) par défaut aux quatre niveaux. 88 AddSetting. Cumulé avec FIN-PARTIE (V249s + V292b) et V294all.
   - Porte B PC (`origin/publish/porteB-results-20261021`, `evidence/review/porteB_20261021/`) : **+144,3 k£/an**, 12 V / 8 D, p = 0,143, IC95 [−40,7 k ; +324,7 k], valeur +2,64 % ; `pass` non-érosion, gain non démontré (règle des optimisations d'opcodes).
