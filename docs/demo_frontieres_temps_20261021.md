@@ -108,42 +108,62 @@ tuiles dans la conversion frontière ; rail 80 et avion API 320 donnent
 46,63 tuiles en C100.1. Aucun facteur unique de distance ne corrige les
 deux situations.
 
-## Portée mesurable dans les lignes existantes
+## Portée sur les seules lignes RAIL voyageurs (`PASS`)
 
-Le JSON agrégé présente uniquement les bandes, dont les coupures RAIL
-`55, 103, 151` sur `roadMax..railAir=7..200`. Les lignes mesurées sont celles
-**construites, puis matures** (âge ≥2), et non l'univers des O-D candidats.
-On ne connaît pas les distances individuelles dans ce JSON et on ne peut pas
-mesurer de projets AIR nouveaux devenus admissibles. Pour le seuil physique
-62 de la formule ci-dessus, la démonstration donne des bornes exactes :
+**Rectification indispensable : la frontière RAIL/AIR est exclusivement une
+frontière de génération des projets VOYAGEURS.** Le fret RAIL est exploré
+avec `OpexFreightCandidates`, sans comparaison AIR équivalente ni refit
+AIR activé. Il est erroné de compter tous les cargos RAIL pour chiffrer
+la nouvelle zone de concurrence AIR : la première version de cette
+démonstration avait annoncé 827 lignes, alors qu'elle incluait le fret.
+Ce nombre est **annulé**, pas une estimation du changement de portefeuille.
 
-| Campagne | RAIL mature | RAIL jusque-là « rail seul » | Dans cette population, déplacements certains vers overlap | Déplacements possibles maximum | AIR mature anciennement overlap |
-|---|---:|---:|---:|---:|---:|
-| SOLO 40×10 | 954 | 912 | **687** | **861** | 32 |
-| DUEL 40×10 | 958 | 916 | **613** | **850** | 24 |
+Comptage exact de `cargo=PASS` sur les journaux de lignes matures :
 
-En DUEL, les **613** certains correspondent à `rail_r3=281` et
-`rail_r4=332`, les **237** de `rail_r2` (56–103 tuiles) étant inconnus
-individuellement. Les 38 lignes RAIL matures au-delà de 200 déjà observées
-proviennent de parcours plus permissifs (comme V269), elles ne prouvent pas
-une bande RAIL standard >200. Pour les 1 892 lignes AIR matures DUEL, les
-**1 868** classées « air seul » sont déjà >200 et **24** ont Manhattan=200.
+| Distance RAIL, tuiles | SOLO PASS (n=44) | DUEL PASS (n=54) |
+|---|---:|---:|
+| Moins de 64 | 22 | 29 |
+| 64 à 77 | 11 | 14 |
+| 78 à 199 | **11** | **11** |
+| 200 ou plus | 0 | 0 |
 
-Le responsable de la campagne a également contrôlé les **journaux bruts** de
-la même campagne DUEL (absents de ce worktree de revue) à **seuil arrondi 64** :
-**89 RAIL** en dessous de 64, **827 RAIL** de 64 à 199,
-**4** à 200, **38** au-dessus de 200 (total 958). Ce chiffre **827** est une
-vérification externe sur les lignes individuelles, distincte des bornes
-reproductibles localement. Le script sait le recalculer si ces journaux sont
-présents :
+La frontière d'essai de 64 tuiles ferait entrer **25 PASS RAIL DUEL**
+dans la bande où AIR serait également autorisé (14+11), et le scénario
+physique à 78 tuiles **11 PASS RAIL DUEL**. Ce sont des **lignes déjà
+construites**, pas le nombre de nouveaux candidats ni une estimation
+du profit. Le changement de frontières pourrait rendre possibles de
+nombreuses nouvelles paires AIR non calculées dans le banc ; l'effet
+d'opcodes de cette prospection reste inconnu. Sur SOLO, les chiffres
+correspondants sont 22 (frontière 64) et 11 (frontière 78).
+
+Les 1 892 lignes AIR DUEL matures sont toutes `PASS` (hors
+courrier secondaire) ; 24 étaient à la limite Manhattan 200,
+1 868 au-delà. On reconstruit Manhattan depuis les centres de villes :
+`AIR_BUILD.dist` mesure une autre distance, celle du vol.
+
+Le script peut reproduire les comptes voyageurs depuis les journaux
+bruts :
 
 ```powershell
 python -X utf8 sweeps/demo_frontieres_temps_20261021.py --duel-logs results/calibration_pc_20261021/results/calib_duel_40x10_pc_20261021_engine
 ```
 
-Les résultats ne disent rien des paires 62–199 qui auraient pu être
-**construites en AIR** sous une frontière différente ; inférer leur profit
-serait une extrapolation causale injustifiée.
+### Le forfait AIR de trois jours n'est pas un temps physique
+
+`OpexAirTripModel` a dans son chemin legacy `airportDelayDays=3.0`,
+mais cela ne valide **pas** une manœuvre de 3 jours en jeu ; c'est une
+hypothèse historique de l'estimateur de revenu/capacité. Le **proxy
+physique C100.1** calcule plutôt ~15,13 jours de roulage/mouvements
+verticaux dans l'exemple AT_LARGE 6x6, tandis que l'ancien helper de
+frontière compte ~26,19 jours : leur différence tient à la vitesse de
+taxi et à la longueur estimée au sol. Les temps de chargement AIR
+sont encore une troisième grandeur. Ces chiffres ne doivent pas être
+additionnés aveuglément aux délais C121 déjà attribués aux hubs.
+
+**Comparer les frontières en C100.1 n'autorise pas à changer le modèle
+AIR actif** : ses expériences causales passées n'ont pas qualifié une
+substitution à l'économie legacy. La première démonstration doit rester
+une illustration des frontières de vitesse, pas une prévision de ROI.
 
 ## ROUTE vers RAIL et temps d'arrêt
 

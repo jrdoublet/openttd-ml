@@ -64,29 +64,9 @@
       "economy_c121_direct": 85.28849744849745
     }
   },
-  "existing_built_lines_new_overlap_bounds": {
-    "solo": {
-      "old_rail_only": 912,
-      "new_overlap_min": 687,
-      "new_overlap_max": 861,
-      "distance_threshold": 62,
-      "classification_only": true,
-      "mature_rail_n": 954,
-      "mature_air_n": 2448,
-      "old_air_build_overlap_n": 32,
-      "old_rail_beyond_rail_max_n": 35
-    },
-    "duel": {
-      "old_rail_only": 916,
-      "new_overlap_min": 613,
-      "new_overlap_max": 850,
-      "distance_threshold": 62,
-      "classification_only": true,
-      "mature_rail_n": 958,
-      "mature_air_n": 1892,
-      "old_air_build_overlap_n": 24,
-      "old_rail_beyond_rail_max_n": 38
-    }
+  "passenger_reclassification": {
+    "requires_cargo_level_raw_logs": true,
+    "reason": "published distance histograms pool RAIL freight and PASS; freight is not subject to the PASS modal boundary"
   },
   "hypothetical_road_to_rail_fare_sensitivity": [
     {
@@ -118,17 +98,20 @@
     "Speed scenarios are hypothetical, not recovered from EPOCH_BOUNDS individual logs.",
     "Old railMax=200 remains fixed; reclassification does not measure newly constructed projects.",
     "Rail AIR boundary uses Manhattan city distance; AIR_BUILD.dist is flight distance.",
+    "Rail-air passenger boundary applies only to RAIL cargo PASS, NOT to RAIL freight.",
     "Rail mechanical station dwell is already included in economy.nut at v216f_dwell_pct=100.",
     "AIR loading dwell can be computed offline from engine loading slices but is not in trip model."
   ],
-  "verified_raw_duel_at_64": {
+  "verified_raw_duel_pass_at_64": {
     "source_folder": "results\\calibration_pc_20261021\\results\\calib_duel_40x10_pc_20261021_engine",
-    "mature_rail": 958,
-    "mature_air": 1892,
-    "rail_dist_lt_threshold": 89,
-    "rail_dist_threshold_to_199": 827,
-    "rail_dist_eq200": 4,
-    "rail_dist_gt200": 38,
+    "mature_rail_passengers": 54,
+    "mature_rail_all_cargos": 958,
+    "mature_air_passengers": 1892,
+    "rail_dist_lt_threshold": 29,
+    "rail_dist_threshold_to_199": 25,
+    "rail_dist_eq200": 0,
+    "rail_dist_gt200": 0,
+    "rail_overlap_at_physical_78": 11,
     "air_center_manhattan_eq200": 24,
     "air_center_manhattan_gt200": 1868,
     "parse_counts": {
