@@ -5,7 +5,7 @@ import re
 import tempfile
 import unittest
 
-from diag_v302_long_freight import analyze
+from diag_v302_long_freight import analyze, terminal_services
 from test_b5_rail_persistence import function_body
 
 AI = Path(__file__).resolve().parents[1] / 'ai' / 'OpexAI'
@@ -69,6 +69,22 @@ class V302Contracts(unittest.TestCase):
                 self.assertEqual(row['search_ops'], '-1')
                 self.assertEqual(len(data['aaa']), 1)
                 self.assertIsNone(data['aaa'][0]['trains_in_service'])
+
+    def test_terminal_counts_use_decoded_consists_and_keep_unknowns(self):
+        line = dict(line_key_local='rail|1,2', mode='rail', capacity_by_cargo={'1': 100},
+                    ordered_station_tiles=[0, 161], vehicles=3)
+        unknown = dict(line, line_key_local='rail|3', ordered_station_tiles=[None])
+        snapshot = dict(duel_policy_id='v302', arm='AAAHogEx', seed=42, repeat=0,
+                        date='1979-12-01', ok=True, unresolved_vehicles=[], lines=[line, unknown])
+        result = dict(line_telemetry=dict(snapshots=[snapshot, snapshot]))
+        services = terminal_services(result)
+        self.assertEqual(len(services), 1)
+        self.assertEqual(services[0]['trains'], 3)
+        self.assertEqual(len(services[0]['lines']), 1)
+        self.assertEqual(services[0]['unknown_lines'], ['rail|3'])
+        result['line_telemetry']['snapshots'].append(dict(snapshot, ok=False))
+        with self.assertRaises(ValueError):
+            terminal_services(result)
 
 
 if __name__ == '__main__':
