@@ -241,7 +241,7 @@ class TestC121AirEconomics(unittest.TestCase):
             "budgetScore = OpexProjectScore(decisionEconomics.revenueAnnual, decisionBudgetCapital)",
         ):
             self.assertIn(token, project)
-        self.assertIn("project.fundScore <- OpexProjectScore", self.projects)
+        self.assertIn("project.fundScore <- OpexRailCalFundScore", self.projects)
         self.assertIn("function OpexProjectFundProfit", self.projects)
         self.assertIn("OpexProjectFundProfit(project)", self.projects)
         self.assertIn("scoreDecisionFinanceCapital", self.projects)
@@ -345,7 +345,7 @@ class TestC121AirEconomics(unittest.TestCase):
         self.assertIn('local fleetExemptDecision = project.mode == "fleet"', self.projects)
         self.assertIn("&& !OpexC121ProjectHasRealization(project);", self.projects)
         self.assertGreaterEqual(self.projects.count("&& !fleetExemptDecision)"), 2)
-        self.assertGreaterEqual(self.projects.count("? kDec : scoreDecisionFinanceCapital"), 2)
+        self.assertGreaterEqual(self.projects.count("? kDec : scoreDecisionFinanceCapital"), 1)
 
     def test_causal_endpoint_demand_is_cached_per_planning_pass(self):
         endpoint = body(self.air, "function OpexAirB9DemandShadowEndpointCargo", "function OpexAirB9DemandShadowEndpoint(catalog")
@@ -364,7 +364,7 @@ class TestC121AirEconomics(unittest.TestCase):
         self.assertIn("decisionFinanceCapital = decisionBudgetCapital", project)
         self.assertIn("profitAnnual = decisionEconomics.profitAnnual", project)
         self.assertIn("revenueAnnual = decisionEconomics.revenueAnnual, roi = decisionEconomics.roi", project)
-        self.assertIn("project.fundScore <- OpexProjectScore", self.projects)
+        self.assertIn("project.fundScore <- OpexRailCalFundScore", self.projects)
 
         reconcile = body(self.air, "function OpexAirReconcileActualBuild", "function OpexAirReserveJoinedStops")
         self.assertNotIn('C121_AIR_ECONOMICS', reconcile)

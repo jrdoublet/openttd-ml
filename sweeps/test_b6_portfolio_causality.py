@@ -35,8 +35,8 @@ class TestB6PortfolioCausality(unittest.TestCase):
         self.assertIn('"fundScore"', select)
         # 9e29951 : le split C121 (defaut 0) factorise profit et capital de
         # classement ; hors split ils restent calibre C70 et decisionFinanceCapital.
-        self.assertIn("OpexProjectScore(OpexProjectFundProfit(project),", select)
-        flat = " ".join(select.split())
+        self.assertIn("OpexRailCalFundScore(project, kDec,", select)
+        flat = " ".join((select + body(self.projects, "function OpexRailCalFundScore(")).split())
         self.assertIn('(kDec > scoreDecisionFinanceCapital && !fleetExemptDecision) ? kDec : scoreDecisionFinanceCapital', flat)
         self.assertIn("local scoreDecisionFinanceCapital = decisionFinanceCapital;", select)
         fund = body(self.projects, "function OpexProjectFundProfit(")

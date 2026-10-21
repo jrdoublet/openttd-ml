@@ -3,6 +3,10 @@
 import os
 import tempfile
 import unittest
+import importlib.util
+
+if importlib.util.find_spec("numpy") is None:
+    raise unittest.SkipTest("optional numpy dependency is unavailable")
 
 from analyse_roi_predictors_20261021 import parse, quartiles, predict
 

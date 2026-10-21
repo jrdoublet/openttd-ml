@@ -3,6 +3,10 @@
 import os
 import tempfile
 import unittest
+import importlib.util
+
+if importlib.util.find_spec("numpy") is None:
+    raise unittest.SkipTest("optional numpy dependency is unavailable")
 
 from evaluer_bandes_roi_20261021 import (
     assign, factor_table, groups_for_distance, linear_cost_params,
