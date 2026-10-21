@@ -173,7 +173,7 @@ aucune campagne Docker et aucune mesure économique V309 n'ont été exécutés
 par ce worker ; compilation effective et coût d'instrumentation restent à
 vérifier avec le prime après intégration V308.
 
-Campagne d'exposition **préparée, non lancée** (trois graines, dix ans,
+Campagne d'exposition **exécutée et close** (trois graines, dix ans,
 duels référence et instrumentation sur même arbre ; ne constitue pas une
 porte V102) :
 
@@ -181,11 +181,94 @@ porte V102) :
 python -X utf8 sweeps/run_c66_reference.py --campaign v309_idle_expo_3x10_20261021 --reference "OpexAI[decision_log=1]" --variant "OpexAI[decision_log=1,v309_idle_probe=1]" --variant-policy-id v309_idle --decision-rule gain_short --primary-metric profit_year --min-useful-primary-delta-pct 4 --value-guard-max-loss-pct 5 --map-size 8 --repeats 1 --years 10 --seeds 42 7 100 --script-debug --cpus 10 --memory 8g --max-workers 3 --network host
 ```
 
-**Table empirique 1970–1979 : en attente du 3×10 et des journaux V309_IDLE.**
-Les résultats déjà mesurés dans l'étape 0 restent les seules valeurs
-quantifiées disponibles ; aucune extrapolation de tours inutiles ou de jours
-finançables n'est permise. Une décision de comportement devra séparer la
-période 1970–1972, où l'attente de trésorerie reste plausible, de la période
-postérieure à 1973, où le problème constaté concerne surtout un vivier ou
-une sélection insuffisante. V308 doit être validé et avoir un consommateur
-concret avant toute modification comportementale.
+## Résultats finaux V309 — exposition 3×10 (21/10/2026)
+
+`results/v309_bench_clean_20261021/results/v309_idle_expo_3x10_20261021.json` :
+**6/6 duels `complete` et `game_ok`, 3/3 paires**, `failed_runs=[]`,
+`comparison_complete=true`, `metric_coverage_complete=true`, zéro erreur
+Squirrel rapportée. Graines **42, 7, 100**, années **1970–1979**, une
+répétition ; mêmes paramètres de jeu et adversaire AAAHogEx par bras.
+Worktree propre au lancement, Git `0f934dd46c531b1ed4a0f61a159fc5eecedf819b` ;
+bundle figé SHA256 `ba54bf95d0e11161f62904394ec7e4dd3987b41ac85eb3c4fe936986b879a68e`,
+manifeste SHA256 `a7dea092a0725e9a8b1148de568776cfc1b149dda43cc5254d9290009eb9fc71`.
+Logs moteur dans le dossier frère `_engine`, trois références et trois variantes.
+Le smoke préalable 1×1 avait terminé **2/2** avec onze `V309_IDLE` et aucune
+erreur Squirrel.
+
+Décodage après **JSON final uniquement** :
+`python -X utf8 sweeps/diag_v309_idle.py --idle-logs results/v309_bench_clean_20261021/results/v309_idle_expo_3x10_20261021_engine`.
+Table du bras `v309_idle` : sommes sur les **trois parties** (ops en millions,
+arrondies) ; le pourcentage strict est `useless/loops`, l'attente est la
+moyenne des seuls `wait_days ≥ 0` rapportés dans les mois observés.
+
+| Année | Mois/36 | Tours | Strict `useless` | Proxy stable, tours | Proxy stable, Mops | `sleep_ops`, Mops | Jours sous capital | Attente connue, jours | Blocs théoriques / 1 024 |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| 1970 | 36 | 3 810 | 0 (0 %) | 3 145 (82,55 %) | 118,04 | 22,86 | 565 | 33,9 | 53 150 / 1 024 |
+| 1971 | 36 | 4 426 | 0 (0 %) | 1 812 (40,94 %) | 45,65 | 28,01 | 98 | 1,3 | 65 108 / 1 024 |
+| 1972 | 36 | 2 989 | 0 (0 %) | 1 598 (53,46 %) | 43,34 | 17,38 | 66 | 0,2 | 40 411 / 1 024 |
+| 1973 | 36 | 1 792 | 1 (0,06 %) | 674 (37,61 %) | 14,69 | 10,96 | 19 | 0,0 | 26 619 / 1 024 |
+| 1974 | 34 | 2 044 | 0 (0 %) | 180 (8,81 %) | 9,75 | 11,84 | 4 | 0,0 | 27 518 / 1 024 |
+| 1975 | 33 | 2 436 | 0 (0 %) | 0 | 0 | 15,11 | 0 | 0,0 | 35 128 / 1 024 |
+| 1976 | 36 | 2 843 | 0 (0 %) | 0 | 0 | 17,28 | 0 | 0,0 | 40 165 / 1 024 |
+| 1977 | 36 | 2 661 | 0 (0 %) | 0 | 0 | 16,16 | 0 | 0,0 | 37 570 / 1 024 |
+| 1978 | 33 | 2 258 | 0 (0 %) | 0 | 0 | 14,33 | 0 | 0,0 | 33 315 / 1 024 |
+| 1979 | 29 | 1 852 | 0 (0 %) | 0 | 0 | 11,67 | 0 | 0,0 | 27 127 / 1 024 |
+
+Au total, **27 111 tours** et **345 mois observés sur 360 possibles** : un seul
+tour répond au contrat strict `useless`, alors que **7 409 tours** relèvent du
+proxy de stabilité sans projet finançable, pour **231,46 M opcodes exécutés**.
+Le reliquat `Sleep` totalise séparément **165,61 M opcodes**. L'essentiel du
+proxy se situe de 1970 à 1974, et plus aucun tour de ce type n'est détecté à
+partir de 1975 dans ces trois parties.
+
+Le proxy `stable_unfunded` observe un portefeuille financé vide, un devis
+publié identique et les mêmes révisions ; il **ne prouve pas qu'une tâche
+entière serait évitable**. `best` ne contient que des projets déjà jugés
+finançables, d'où un `useless` strict quasi nul. Le prix peut être périmé et
+`wait_days` dépend d'un flux comptable trimestriel, sans modélisation de la
+prochaine dépense ; zéro observé et inconnu restent distincts dans le JSON du
+décodeur. La couverture mensuelle est partielle en 1974, 1975, 1978 et surtout
+1979 (flush du mois suivant indisponible en fin de partie et/ou mois non
+observés) : aucune interpolation des mois manquants.
+
+**Ne pas additionner** `stable_unfunded_ops` au nombre `blocks` : le proxy
+mesure des opcodes déjà dépensés, tandis que `blocks` est calculé sur
+`useless_ops + sleep_ops` (sans ces opcodes proxy), puis divisé par 430.
+Ces 27 000 à 65 000 blocs annuels cumulés sur trois graines ne sont ni des
+blocs de carte effectivement lus ni un gain net ; ils peuvent rebalayer les
+mêmes **1 024 blocs distincts** d'une carte 256². Leur réaffectation exigerait
+une orchestration, un cache valide et des coûts additionnels mesurés.
+
+Deux biais empêchent de convertir directement ces volumes en rentabilité :
+la condition enregistrée `cash < cost` **ignore la réserve de financement**
+effective de 5 000 à 25 000 £. Dans le smoke, deux mois affichent ainsi
+`wait_days=0` bien que le coût plus la réserve ne soit pas finançable ; les
+jours d'attente de capital sont sous-détectés. Et **430 opcodes/bloc** vient
+du V307 simplifié : V308 a observé environ **988 opcodes moyens/bloc** pour
+`short6` et 1 154–1 161 pour `full6`. La capacité de cartographie affichée
+peut donc surestimer d'environ ×2,3 le nombre de lectures `short6` réalisables,
+même avant les coûts du cache, des invalidations et de l'ordonnancement.
+Avant toute optimisation, mesurer le même instant `OpexAvailableCapital()` /
+capital requis, la cause de sélection vide et le coût réel d'une lecture
+cacheable.
+
+Comparaison économique terminale **ON − référence** sur le même arbre :
+
+| Graine | `profit_year` réf. | `profit_year` ON | Δ £/an | Δ valeur de compagnie |
+|---|---:|---:|---:|---:|
+| 42 | 4 589 234 | 4 175 446 | −413 788 | −2 403 048 |
+| 7 | 5 550 944 | 5 354 910 | −196 034 | −962 281 |
+| 100 | 2 596 485 | 2 592 963 | −3 522 | −934 987 |
+
+**Moyenne Δ `profit_year` −204 448 £/an**, médiane −196 034,
+3 pertes/0 gain, écart-type **205 262 £/an**, IC95 bootstrap de moyenne
+**[−413 788 ; −3 522]**, Wilcoxon exact bilatéral **p=0,25** (trois paires
+seulement). La valeur de compagnie baisse de **7,017 %** en ratio des moyennes,
+au-delà de la garde −5 %. Verdict brut du JSON :
+`fail_primary_and_value_guard`. Ce **3×10 est une exposition diagnostique**,
+pas une porte V102 de qualification ; aucune attribution causale précise à
+une ligne de sonde ne découle de trois trajectoires divergentes. L'activation
+de la sonde, malgré sa passivité fonctionnelle, consomme des opcodes et peut
+décaler les ordonnancements : neutralité économique **non établie**.
+Conserver `v309_idle_probe=0` par défaut. Aucun nouveau comportement de
+cartographie n'est qualifié à ce stade.
