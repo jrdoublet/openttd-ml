@@ -9,6 +9,59 @@ chacune, avec **les mêmes 40 graines SOLO et DUEL**. Les cinq plis
 excluent du SOLO d'entraînement les huit graines DUEL évaluées dans le pli.
 Aucun code `ai/OpexAI` modifié et aucun nouveau banc OpenTTD.
 
+## ⚠️ Remarques du 21/10 (Claude, contre-vérification VPS) — ne pas activer `F_rail` tel quel
+
+**Décision utilisateur du 21/10 : on ne touche pas à l'AIR pour l'instant**
+(malgré son profit réel ×0,24 du prédit, il fonctionne très bien). On
+calibre d'abord le RAIL seul, on **observe** de combien baisse le ROI RAIL
+calibré ; **si la baisse moyenne est d'environ 20 %, on baissera l'AIR
+de 20 % aussi** pour garder l'équilibre intermodal.
+
+1. **Le biais de coût est confirmé indépendamment.** Sur 3 parties VPS de
+   10 ans (graines 42/7/100, campagne `v303_before_3x10_20261021`, 77 tracés
+   réussis), coût réel / devis pré-A* par quartile de distance
+   (≤90 / 91–127 / 128–172 / ≥173) : **1,16 / 1,26 / 1,45 / 1,60** (PC :
+   1,22 / 1,43 / 1,56 / 1,69). Après A* le devis est exact
+   (`OpexApplyRailActualCapital`, réel/devis = 1,00) : le biais ne joue
+   qu'au classement et au financement des candidats non tracés.
+2. **Mais le profit est sous-estimé dans le même sens.** Profit réel /
+   prédit par quartile : PC **0,76 / 0,96 / 1,14 / 1,16**
+   ([quartiles](calibration_cout_profit_quartiles_20261021.md), §2), VPS
+   0,85 / 1,03 / 1,32 / 1,30. Le **ROI** réel / prédit est donc à peu près
+   **plat** en distance : PC 0,62 / 0,67 / 0,73 / 0,69, VPS
+   **0,75 / 0,80 / 0,90 / 0,79**. Les lignes **courtes** sont les plus
+   surestimées.
+3. **`F_rail` va dans le mauvais sens.** Dérivé du seul coût, il donne
+   ×1,18 sous 55 tuiles et ×0,81 au-delà de 200 : il favorise les lignes
+   que le ROI réel désavantage, contre l'objectif « longs tracés ». La
+   [régression sur variables prédictives](variables_predictives_roi_calibration_20261021.md)
+   le confirme : la distance n'ajoute rien à l'erreur de ROI RAIL
+   (+0,07 point, IC95 [−0,11 ; +0,25], 23/40), le **cargo** si
+   (+0,79, IC95 [+0,35 ; +1,21], 32/40).
+4. **Ce qu'il faut corriger à la place : coût ET profit, ensemble.**
+   - coût : la droite de RAIL-CAPEX-1, `devis × (1,052 + 0,003066 × d)`,
+     seulement si le coût n'est pas déjà physique (`capitalIsActual`) ;
+   - profit : un facteur par cargo × tranche de distance, rétréci vers le
+     facteur global quand la cellule est maigre. À titre indicatif, la
+     droite ajustée sur les quatre médianes PC est
+     `profit × (0,643 + 0,00274 × d)` ; à refaire ligne par ligne.
+   - Le ROI calibré qui en sort vaut ≈ 0,65 à 60 tuiles et ≈ 0,72 à
+     210 tuiles : à peu près neutre en distance. Il déclasse surtout les
+     mauvais cargos courts (COAL Q1 0,66, GOOD 0,25–0,58).
+   - Coût en opcodes : une table et deux multiplications par candidat RAIL.
+5. **Baisse moyenne attendue du ROI RAIL : −20 % (VPS) à −32 % (PC).**
+   C'est la grandeur à mesurer en premier (voir l'ordre ci-dessous) pour
+   décider de la correction AIR.
+
+**Ordre retenu :**
+1. sonde passive : ROI calibré calculé à côté de l'existant, ratio moyen
+   pondéré par le score sur le top-5 RAIL journalisé (réglage défaut 0) ;
+2. variante active RAIL seul (coût + profit), AIR, flotte AIR et ROAD
+   inchangés : smoke, puis porte A ; observer le nombre et la longueur des
+   lignes rail, la part modale et le profit ;
+3. si la baisse moyenne mesurée en 1 est d'environ 20 %, seconde variante
+   « RAIL calibré + AIR ×0,8 » contre la première, mêmes graines.
+
 ## Résultat : choisir un pivot linéaire hors ligne
 
 Le meilleur compromis coût/opcodes sur la carte observée `256×256` est

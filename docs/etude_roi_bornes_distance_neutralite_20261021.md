@@ -160,6 +160,17 @@ ne doit etre active sur les seules donnees hors ligne.
 
 ## Decision
 
+> **Remarque du 21/10 (Claude) :** la baisse de 31,3 % ci-dessus ne compte
+> que le cout. Le profit RAIL est sous-estime d'autant sur les longues
+> lignes (0,76 -> 1,16 du court au long), donc le ROI reel/predit est plat
+> en distance (VPS 0,75 / 0,80 / 0,90 / 0,79). Le facteur relatif
+> `rel_rail(d)` (cout seul) penalise donc a tort les longues lignes.
+> Corriger cout ET profit ensemble ; la baisse moyenne attendue du ROI RAIL
+> est alors de -20 % (VPS) a -32 % (PC). **Decision utilisateur : AIR
+> inchange d'abord ; si la baisse RAIL mesuree est d'environ 20 %, baisser
+> l'AIR de 20 % aussi.** Detail dans
+> [demo_recentrage_rail](demo_recentrage_rail_20261021.md) (section « Remarques du 21/10 »).
+
 1. Garder AIR, les profits, C70 et la selection intermodale
    inchanges. Ne pas introduire de penalisation AIR seule.
 2. Retenir en observation la pente de cout RAIL par distance :

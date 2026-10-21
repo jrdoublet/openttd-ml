@@ -56,6 +56,7 @@ Scripts, tests et JSON dans `sweeps/demo_*_20261021.py` et
     modèle AIR C121 gagnant et ne pas étendre la frontière au fret sans refit.
 
 - [ ] **RAIL-ROI-1 — essayer le recentrage affine du score RAIL à moyenne 1, sans toucher AIR/ROAD.**
+  - **🔴 Remarques du 21/10 (Claude) : ne pas activer `F_RAIL` tel quel.** Il est dérivé du seul coût, alors que le profit RAIL est sous-estimé dans le même sens (réel/prédit PC 0,76 / 0,96 / 1,14 / 1,16 par quartile de distance). Le ROI réel/prédit est plat (VPS 0,75 / 0,80 / 0,90 / 0,79 ; PC 0,62 / 0,67 / 0,73 / 0,69) : `F_RAIL` (×1,18 sous 55 tuiles, ×0,81 au-delà de 200) favoriserait les lignes courtes, les plus surestimées. La distance n'ajoute rien à l'erreur de ROI (+0,07, IC95 [−0,11 ; +0,25]), le cargo si (+0,79). **Remplacé par RAIL-CAL-1 ci-dessous.**
   - Démo hors ligne : `F_RAIL(d)=1+0,002101391934×(132,749776809−d)` ;
     appliquer **seulement au score de classement RAIL**, après le score
     financier existant, avant insertion C77, sans changer profit, devis,
@@ -90,6 +91,13 @@ Scripts, tests et JSON dans `sweeps/demo_*_20261021.py` et
     **Interdit : pénalisation relative isolée de l'AIR.** Toute expérimentation
     d'une baisse générale de 20 % doit traiter **AIR, flotte, RAIL, ROAD**
     par le même multiplicateur de score, et mesurer les effets des seuils.
+  - **Remarque du 21/10 (Claude) :** la droite de coût est confirmée au VPS (coût réel / devis pré-A* 1,16 / 1,26 / 1,45 / 1,60 par quartile, 3×10, 77 tracés). Après A*, devis = réel : seul le classement et le financement des candidats non tracés sont concernés. **Ne l'appliquer qu'avec la correction de profit du même estimateur** (RAIL-CAL-1), sinon elle pénalise les longues lignes d'environ ×1,4 par rapport aux courtes.
+
+- [ ] **RAIL-CAL-1 — calibrer coût ET profit RAIL ensemble, AIR inchangé d'abord (décision utilisateur du 21/10).**
+  - Coût : `devis × (1,052 + 0,003066 × d)` si non physique. Profit : facteur cargo × tranche de distance, rétréci vers le global sur les cellules maigres (indicatif : `0,643 + 0,00274 × d`). ROI calibré ≈ 0,65 à 60 tuiles, ≈ 0,72 à 210 : neutre en distance, déclasse les mauvais cargos courts.
+  - Étape 1, sonde passive (réglage défaut 0) : ROI calibré à côté de l'existant, ratio moyen pondéré par le score sur le top-5 RAIL. Attendu −20 % (VPS) à −32 % (PC).
+  - Étape 2, variante active RAIL seul (AIR, flotte AIR, ROAD inchangés) : smoke puis porte A ; observer nombre, longueur et cargo des lignes rail, part modale, profit.
+  - Étape 3 : **si la baisse moyenne mesurée est d'environ 20 %, seconde variante « RAIL calibré + AIR ×0,8 »** contre l'étape 2, mêmes graines. L'AIR reste intouché tant que cette mesure n'est pas faite (il fonctionne très bien malgré un profit réel ×0,24 du prédit).
 
 
 - [ ] **21/10 — PAQUET du 21/10 (adapt400 + V294all + FIN-PARTIE + V296 + V301) contre son absence, GitHub** (référence `OpexAI` = master, variante = les 13 réglages à leur ancien défaut ; delta négatif = gain du paquet).
