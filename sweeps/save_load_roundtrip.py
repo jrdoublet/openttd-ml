@@ -344,7 +344,12 @@ def main():
     if args.require_po01c_pending:
         from po01c_diagnostics import pending_save_dates
         pending_dates = pending_save_dates(output_a or "")
-        parsed_a = [record for record in parsed_a if record["date"][:10] in pending_dates]
+        # L'IA journalise Save() a sa derniere date traitee, la veille de la date du fichier
+        # (sauvegarde mensuelle du 1er) : accepter la date du journal ou le lendemain.
+        accepted = set(pending_dates)
+        for day in pending_dates:
+            accepted.add(str(date.fromisoformat(day) + timedelta(days=1)))
+        parsed_a = [record for record in parsed_a if record["date"][:10] in accepted]
         if not parsed_a:
             bench_v2.write_json_atomically(args.out, {
                 "status": "BLOQUE", "blocage": "No save proven inside a PO01C batch",
