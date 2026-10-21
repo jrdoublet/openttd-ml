@@ -1,0 +1,126 @@
+[
+  {
+    "source": "results/v304_before_3x10_20261021.json",
+    "archive": "v304_before_3x10_20261021.json.gz",
+    "raw_sha256": "7431266ab6a8be838a91e4a9ff68ecfb0720667716ec9d8a9e5bcd115d79cf71",
+    "gzip_sha256": "37c293e1345dbb4b2b622afe03fd4fda4987ec142713d0416083a6d06a0ddd09"
+  },
+  {
+    "source": "results/v304_before_3x10_20261021.manifest.json",
+    "archive": "v304_before_3x10_20261021.manifest.json.gz",
+    "raw_sha256": "989e885788fe79362aed91f614c32303b65061fc7e68958e2ea1666015b855cf",
+    "gzip_sha256": "073829d78f2f752912696d0f537772e13ac1359da2f8a7722ecb9e0f73aa0694"
+  },
+  {
+    "source": "results/v304_before_3x10_20261021_engine/reference_seed100_r0.log",
+    "archive": "v304_before_3x10_20261021_reference_seed100_r0.v304.log.gz",
+    "gzip_sha256": "44e70e64e502317c200381583fa696918cee828560817dee021b1aac2cc7d957",
+    "original_log_sha256": "4d1294e02fe4c0cf1b513195027038cdc0aed9bbe4120cb7b6eb6f6e94b38a41",
+    "extraction": "Opex [0] lines with V304_ or Your script made an error; full logs retained locally",
+    "raw_sha256": "7570891a9d8041d4c3055dbe3627bb6334e984f447e6e71daf6257ae6cae3088"
+  },
+  {
+    "source": "results/v304_before_3x10_20261021_engine/reference_seed42_r0.log",
+    "archive": "v304_before_3x10_20261021_reference_seed42_r0.v304.log.gz",
+    "gzip_sha256": "f8f48f0da66c5900241c7bb7276fa09308eaf1ce88b0463ee65d30150e3d31e3",
+    "original_log_sha256": "edb8c521d1e08e2adeeb889a3792715a3cf49e97e342db5ca540f7e1d4bd9d8d",
+    "extraction": "Opex [0] lines with V304_ or Your script made an error; full logs retained locally",
+    "raw_sha256": "a170141bd837f15e546719aa81936ad9f527becfe9e38cc06bfbbc9d25998a2a"
+  },
+  {
+    "source": "results/v304_before_3x10_20261021_engine/reference_seed7_r0.log",
+    "archive": "v304_before_3x10_20261021_reference_seed7_r0.v304.log.gz",
+    "gzip_sha256": "9ef1f6b7608079357f596f45ac3c37877d292c43fc8498af18625ed459d3b3ce",
+    "original_log_sha256": "d79073e5c1e4a008c2422d77636dad1c5d52f9641bbde83241092baf4750f9b1",
+    "extraction": "Opex [0] lines with V304_ or Your script made an error; full logs retained locally",
+    "raw_sha256": "41c28418e9453b3a8ebdbfd9dc502bc3afe5320f6e29211a2c50e63ee5f03fcd"
+  },
+  {
+    "source": "results/v304_compile_1x1_20261021.json",
+    "archive": "v304_compile_1x1_20261021.json.gz",
+    "raw_sha256": "fcd0d788c374f89bde71a2dc1ecc68cda593f25db163fbd36486c3a87928f58f",
+    "gzip_sha256": "84b63e100225cdffdc3c38cf721510cde0257a41c4ce5033551f66b2f1af66be"
+  },
+  {
+    "source": "results/v304_compile_1x1_20261021.manifest.json",
+    "archive": "v304_compile_1x1_20261021.manifest.json.gz",
+    "raw_sha256": "7fe7e2d2bd80fa9363ef444f2413262e8da5d185a9266b5045f7a6c0b63568d4",
+    "gzip_sha256": "8e411ea6cea8672457ce2127b1261c76476ff264021fde39ac1b8029d807aca0"
+  },
+  {
+    "source": "results/v304_compile_1x1_20261021_engine/reference_seed42_r0.log",
+    "archive": "v304_compile_1x1_20261021_reference_seed42_r0.v304.log.gz",
+    "gzip_sha256": "1c132f7afebee86fea54ae99882b5a75140b48aedb6a80d86833e591dc9b6e74",
+    "original_log_sha256": "42ab9a8e2c5277e728556cf35c6f14ad6527c18d48310459104408dcff26dec7",
+    "extraction": "Opex [0] lines with V304_ or Your script made an error; full logs retained locally",
+    "raw_sha256": "54a3abf70254b071b2afada6c71cd16334656e78f6779440c542e9ea04c1051a"
+  },
+  {
+    "source": "results/v304_compile_1x1_20261021_engine/v304_seed42_r0.log",
+    "archive": "v304_compile_1x1_20261021_v304_seed42_r0.v304.log.gz",
+    "gzip_sha256": "25e502c7f35017c48dc121caae184ff3f5c6893f6480b38dcb488a18182d2c2f",
+    "original_log_sha256": "9070ada0b38ddcb23eb76c2ffe566d2fb4b06314fa1b713e9487fc19285718d5",
+    "extraction": "Opex [0] lines with V304_ or Your script made an error; full logs retained locally",
+    "raw_sha256": "23ed3924a2a0ad78976d2d231b157e1eb67e20862937a30f182a2500f74f77f0"
+  },
+  {
+    "source": "results/v304_mech_3x10_20261021.json",
+    "archive": "v304_mech_3x10_20261021.json.gz",
+    "raw_sha256": "ef9f115a2aee69de7a28148c8d2e9f6cc21e41a4acb2f78963f1b43d8e974b90",
+    "gzip_sha256": "4eb50f47458c527e3e75568af556909a23045f95f81567930c9d92c10b40cf2d"
+  },
+  {
+    "source": "results/v304_mech_3x10_20261021.manifest.json",
+    "archive": "v304_mech_3x10_20261021.manifest.json.gz",
+    "raw_sha256": "c2045f41607a5b6a05239ec8d0776d7900321ecef193406c96e2280e3d1bb6a2",
+    "gzip_sha256": "3ab9885c0a5f9a226c3eb18b1c9eb172a8e09f445e413a0bfd83e1ec6122d40b"
+  },
+  {
+    "source": "results/v304_mech_3x10_20261021_engine/reference_seed100_r0.log",
+    "archive": "v304_mech_3x10_20261021_reference_seed100_r0.v304.log.gz",
+    "gzip_sha256": "8cc6aa2ecdaffb0897e98f60d5f1ebdab5629f855219d17d4934aa508c610ab9",
+    "original_log_sha256": "7cfa7499127a98a3041bf67d15460d774e698c3fdcc0891a797470039ed9ec43",
+    "extraction": "Opex [0] lines with V304_ or Your script made an error; full logs retained locally",
+    "raw_sha256": "dc15d81e45b6948583628eb1ae39aeec34b33b8bf4afb893bdab0a1a0bc4fc5d"
+  },
+  {
+    "source": "results/v304_mech_3x10_20261021_engine/reference_seed42_r0.log",
+    "archive": "v304_mech_3x10_20261021_reference_seed42_r0.v304.log.gz",
+    "gzip_sha256": "4bbf9e7a432a504a86b532428c27f383b38e4f7a873140fb84ff9e0b8834d270",
+    "original_log_sha256": "87523cd1cda24e057e286f225fb764c886444c445cf03dac2d3cc5663792392f",
+    "extraction": "Opex [0] lines with V304_ or Your script made an error; full logs retained locally",
+    "raw_sha256": "881561edef688a41465aa06293e256518581c48d381cdf862b71df390e1d5818"
+  },
+  {
+    "source": "results/v304_mech_3x10_20261021_engine/reference_seed7_r0.log",
+    "archive": "v304_mech_3x10_20261021_reference_seed7_r0.v304.log.gz",
+    "gzip_sha256": "32e74ded2f5abae0be523b739f50aa5c0cef95863b862fa6f54ea73fa2b3968a",
+    "original_log_sha256": "50492fce47eb3bc80904c6f23b2afe20aab3d03c3e5fdec08f24beef9dc73082",
+    "extraction": "Opex [0] lines with V304_ or Your script made an error; full logs retained locally",
+    "raw_sha256": "1b3be0ecb42ae6e334cfd7fb778ec098473c29927331a79bb91794789cd6a8c6"
+  },
+  {
+    "source": "results/v304_mech_3x10_20261021_engine/v304_seed100_r0.log",
+    "archive": "v304_mech_3x10_20261021_v304_seed100_r0.v304.log.gz",
+    "gzip_sha256": "c02f22fb885f033395de9327a8ccdb5ab0d96cf5272b589b9ad47b654a959cb3",
+    "original_log_sha256": "8f29113062636fd8c4cebe3d07aa9641cb7c717b43762d4e270fd8c9888895f9",
+    "extraction": "Opex [0] lines with V304_ or Your script made an error; full logs retained locally",
+    "raw_sha256": "969abbee4937bdad787810f072a0b269dae5570a3f1f8b34d7b1cc3cd54e45cb"
+  },
+  {
+    "source": "results/v304_mech_3x10_20261021_engine/v304_seed42_r0.log",
+    "archive": "v304_mech_3x10_20261021_v304_seed42_r0.v304.log.gz",
+    "gzip_sha256": "4e7c41ab474a7ae1745129732740bcba7056bfe8cd96c8b1dcfb8a51e2da3aee",
+    "original_log_sha256": "ddc498cea97020e61a7cea1c4e6690eab09c1345e1a0b88369373d87ef59fa6a",
+    "extraction": "Opex [0] lines with V304_ or Your script made an error; full logs retained locally",
+    "raw_sha256": "7c68e5218e91c2fbaa7cbc969b25c0143c781c218b777fcb1a7014ef47f2d8e1"
+  },
+  {
+    "source": "results/v304_mech_3x10_20261021_engine/v304_seed7_r0.log",
+    "archive": "v304_mech_3x10_20261021_v304_seed7_r0.v304.log.gz",
+    "gzip_sha256": "87903b63dd5ea3f90cdff309150eeaea887a5cbf6f82ada3a24d484192de67ae",
+    "original_log_sha256": "88f9d7fde0defe245b94709cd5b567d2399abe714e85c47cfc358b35f4d8c6f7",
+    "extraction": "Opex [0] lines with V304_ or Your script made an error; full logs retained locally",
+    "raw_sha256": "8cdd394bf8f6a8861a38ffbfe921a81d85f1cbd11a6264e88dca57d27aa9ec45"
+  }
+]

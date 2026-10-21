@@ -135,4 +135,67 @@ Les 81 fichiers Squirrel du worktree ont été comparés octet par octet avec ce
 bundle : aucun écart. Mémoire du conteneur échantillonnée pendant le banc :
 483,5 MiB sur 2 GiB (mesure globale, pas la mémoire du cache ni un pic certifié).
 
-Résultats du mécanisme et décision à compléter après exécution.
+## Résultats du mécanisme et décision
+
+Campagne `v304_mech_3x10_20261021` terminée : **6/6 parties saines**, trois
+paires complètes à dix ans, couverture métrique complète, zéro ligne
+`[0] [S] Your script made an error`. Verdict brut **`diagnostic_only`**,
+échantillon d'adoption incomplet. Code livré `ba829eae` identique au bundle.
+
+| Bras | Distance | Issue | n | Itérations moyennes | Segments moyens | Réexpansions tuiles moyennes | Réexpansions états moyennes |
+|---|---|---|---:|---:|---:|---:|---:|
+| 0 | <100 | OK | 21 | 246,4 | 1,0 | 0 | 0 |
+| 1 | <100 | OK | 22 | 482,3 | 1,0 | 18,6 | 0 |
+| 0 | <100 | ABND | 3 | 5 000 | 3,3 | 1 695 | 1 235,7 |
+| 1 | <100 | ABND | 1 | 5 000 | 4,0 | 616 | 1 |
+| 0 | <100 | NOPA | 1 | 523 | 1,0 | 0 | 0 |
+| 0 | 100–159 | OK | 26 | 445,4 | 1,0 | 43,4 | 31 |
+| 1 | 100–159 | OK | 15 | 513,9 | 1,1 | 32,5 | 1,3 |
+| 0 | 100–159 | ABND | 4 | 5 000 | 3,2 | 1 658,5 | 1 243 |
+| 1 | 100–159 | ABND | 2 | 5 000 | 3,5 | 1 077 | 837,5 |
+| 0 | ≥160 | OK | 30 | 626,8 | 1,0 | 4,7 | 2,3 |
+| 1 | ≥160 | OK | 29 | 620,6 | 1,0 | 9,8 | 0 |
+| 0 | ≥160 | ABND | 2 | 5 000 | 4,0 | 1 061 | 560 |
+| 1 | ≥160 | ABND | 5 | 5 000 | 3,0 | 1 036,2 | 719,6 |
+| 0 | ≥160 | NOPA | 2 | 1 173,5 | 2,5 | 0 | 0 |
+
+Couverture de toutes les sondes complète. Le mécanisme est exposé : 11 recherches
+multisegments dans la variante, **14 frontières sauvegardées, 7 reprises**,
+10 792 élagages et 7 358 améliorations g. Maximum observé : 3 106 entrées g,
+9 261 nœuds natifs, aucune saturation des plafonds de 50 000. Ce sont des nombres
+d'éléments, pas des octets de mémoire mesurés isolément.
+
+Les populations diffèrent (89 recherches contre 74). Les réexpansions de tuiles
+totales passent de 15 112 à 9 134, celles d'états de 10 674 à 5 294 ; les
+itérations totales de 83 430 à 76 316. **Cela ne prouve pas une économie par
+tracé** : sur les réussites, les itérations moyennes passent de **461,8 à 550,2**
+et les opcodes de **706 368 à 846 176**. Sur les ABND, 5 000 itérations des
+deux côtés, opcodes moyens **5,15 M → 5,90 M**. Les opcodes incluent la sonde,
+identique dans les deux bras, et le travail optionnel de mémoire.
+
+Première recherche par couple nominal graine/source/destination : 21 couples
+communs réussis, **16 tracés identiques**, quatre coûts inférieurs et un supérieur
+de 1 219 (graine 7, leads 59418→24661, extrémités finales différentes).
+**Ces 21 couples sont tous à un segment dans les deux bras** : ils ne valident
+donc pas le coût des chemins après transfert. Les cartes évoluent différemment
+entre duels ; une paire nominale commune n'est pas un rejeu sur terrain figé.
+La non-dégradation demandée reste **non validée**, sans attribution causale de
+l'écart positif au mécanisme.
+
+Économie descriptive : deltas profit_year graines 42/7/100 =
+−434 151 / −7 054 / −9 483 £/an ; moyenne **−150 229**, médiane −9 483,
+0 V / 3 D, Wilcoxon p=0,25, IC95 bootstrap [−434 151 ; −7 054]
+(20 000 tirages, graine 0), valeur +1,531 % (garde tenue).
+Trois graines ne qualifient ni un gain ni une neutralité.
+
+**Décision de livraison : expérimental, défaut 0 conservé.** La récupération
+du travail est observée, mais le critère d'itérations en baisse par réussite
+n'est pas satisfait et la qualité après segmentation reste non validée.
+Pas de relance pour chercher un résultat favorable, pas de porte A/B.
+V303 et la reprise différée V294h ne sont pas implémentées dans ce lot.
+
+Preuves versionnées : `evidence/review/v304_20261021/`, JSON finaux et manifestes
+compressés, extractions V304 des journaux, lignes décodées et agrégats, index
+SHA-256. Les journaux complets et bundles restent dans `results/` ; leur absence
+du paquet compact est explicite. Contrôle final répété : 2 289 tests OK
+(3 ignorés, 2 échecs attendus), délimiteurs sans sortie.
