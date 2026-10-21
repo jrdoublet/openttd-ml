@@ -223,3 +223,22 @@ référence, au-dessus du plafond ×1,5. **Ne pas lancer de porte A 40×3,
 ne pas modifier le défaut `v307_sites=0`.** Un prochain essai devrait
 éviter le double parcours intégral des sites sans perdre la garantie de
 faisabilité de la spirale ; ce serait un autre bundle et un autre test.
+
+### Contrats et traçabilité de publication
+
+Les **50 tests ciblés** V307S, V207 et V261 passent. Suite complète
+`python -X utf8 -m unittest discover -s sweeps -p 'test_*.py'` :
+**2 397 tests**, deux échecs, deux tests ignorés et deux échecs attendus.
+Les deux échecs restants sont les plafonds de `AddSetting` codés en dur
+dans `test_v246_fixed_policies.py` et `test_v284_rail_growth.py` (94
+attendu, **98 déjà dans le HEAD avant les modifications V307S=2**).
+Les deux autres échecs apparus pendant le développement (signature V207,
+clé d'audit `cargo=0`) sont corrigés ; tous les tests concernés passent.
+`git diff --check` est sain.
+
+Commit de code et de résultats de la file A : **`8f4ac6c1`** (après rebase
+sur `master`, contenu initial `59be7d4c`). Les bancs ont été gelés avant
+ce commit avec un arbre Git sale : le **bundle** précité est l'autorité
+de reproductibilité, et contient des modifications simultanées de la
+file B, dont les interrupteurs restent par défaut à zéro. Le commit
+sélectif de la file A n'embarque aucune modification de V307R.
