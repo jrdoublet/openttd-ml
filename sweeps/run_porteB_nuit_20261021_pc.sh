@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Portes B non_erosion 20 graines x 10 ans de la nuit du 21/10, sur le PC (accord de l'utilisateur).
 # A lancer depuis la racine d'un checkout de openttd-ml contenant ai/AAAHogEx-115 :
-#   bash sweeps/run_porteB_nuit_20261021_pc.sh [finpartie|v296clean|v301|adapt400|v297|v296a|all]
+#   bash sweeps/run_porteB_nuit_20261021_pc.sh [v305n3|finpartie|v296clean|v301|adapt400|v297|v296a|all]
 #   (defaut : all = finpartie v296clean v301, dans cet ordre ; adapt400 et v297 sont faits, 21/10)
 # Chaque candidat tourne dans un worktree detache de sa branche (origin), cree a cote du checkout
 # (../porteB-<candidat>) ; AAAHogEx y est copie. NE PAS retirer ces worktrees avant d'avoir copie
@@ -15,6 +15,9 @@
 #              GitHub 39531909017 : +286,5 k, p = 0,0005, valeur -3,4 %) ;
 #   v296clean : partie complete, branche v296clean, A* natif + pose groupee 0 contre 1 (portes A neutres :
 #              V296b +38,8 k, v296all +22,7 k ; regle des optimisations d'opcodes ; remplace v296a) ;
+#   v305n3   : master du 21/10 (paquet adopte), V269 relache des 1973 au lieu de 1975 (vivier rail vide,
+#              caisse >= 1 M) ; regle utilisateur : liaisons longues des que l'aerien et le rail a fort ROI
+#              sont finis ; a lancer apres la porte A GitHub.
 #   v301     : multimodal sous adapt400, branche notrain, correctifs NOTRAIN/TRKFAIL 0 contre 15
 #              (40x10 GitHub 39535936206 neutre +40,4 k ; correctif de bogue).
 # Campagnes nommees <candidat>_porteB_20x10_pc_<date du jour>.
@@ -55,6 +58,9 @@ run_one() {
     v301)     branch=notrain; setting=v301_notrain_fix
               ref="OpexAI[v294_rail_weight_adapt=400]"
               var="OpexAI[v294_rail_weight_adapt=400,v301_notrain_fix=15]" ;;
+    v305n3)   branch=master; setting=v269_rail_late_relax
+              ref="OpexAI"
+              var="OpexAI[v269_rail_late_relax=3]" ;;
     finpartie) branch=finpartie; setting=v292_hq_hub
               ref="OpexAI"
               var="OpexAI[v249_statue=2,v292_hq_hub=1]" ;;
