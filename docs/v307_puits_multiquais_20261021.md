@@ -207,3 +207,116 @@ quai prébâti, l'évolution `RAIL_BUILD` / `SITEAB` / `ABND`,
 le capital et l'entretien et les opcodes des sites. Critères enregistrés :
 +50 % de réussite relative des jonctions et −40 % de `SITEAB+ABND`,
 sans perte du nombre de lignes neuves. Aucune porte lancée.
+
+## Mesure V307R sur le bundle gelé `78d2aa5e` (21 octobre au soir)
+
+L'analyseur reproductible est `sweeps/diag_v307r_exposition.py`, qui lit les
+journaux moteur et le JSON final de chaque campagne sous
+`results/v307r_bench_clean_20261021/results/`. Le manifeste donne le commit
+`78d2aa5e1329e8905cdc026d648f43a5d65821d0`, arbre propre, et le bundle
+`51e0a09a4a1c7f35b7fcabf6ad9aac20c55506127f5eb7bfd5220cef52897f97`.
+Les comparaisons de volumes ne mélangent jamais des graines sans leurs deux
+bras ; si le JSON final est absent ou qu'un seul bras existe, tous les critères
+restent `not_evaluable`.
+
+### Smokes 1×1, année 1970 (graine 42)
+
+| Campagne | Sites V307R | Plans avant → après | Replis | Opcodes/site médiane, p90 | Tentatives rail | Lignes rail |
+|---|---:|---:|---:|---:|---:|---:|
+| `v307r_bit1_smoke_retry1_20261021` | 3 | 36 → 16 | 0 | 4 758 ; 5 487,6 | 0/0 | 0/0 |
+| `v307r_bit2_smoke_1x1_20261021` | 3 | 36 → 16 | 0 | 3 591 ; 11 183,8 | 0/0 | 0/0 |
+
+Les deux sondes sont exposées dans le choix de site : trois filtrages effectifs
+sur chaque variante. Aucun `RAIL_ATTEMPT` ni `RAIL_BUILD` n'a cependant été
+émis pendant les smokes. Ils ne renseignent donc ni la conversion en jonctions,
+ni les échecs de construction. Le `profit_year` initial ne contient que trois
+trimestres valides et n'entre pas dans la comparaison économique.
+
+### Bit 1 : réserver une bande, exposition 3 graines × 10 ans
+
+Campagne `v307r_bit1_expo_3x10_20261021`, **3/3 paires complètes** (42, 7,
+100), aucune erreur Squirrel. Le témoin porte `v307_sink_room=0`, la variante
+`=1`, `decision_log=1` pour les deux bras.
+
+| Mesure | Témoin | Bit 1 | Écart / lecture |
+|---|---:|---:|---:|
+| `V307R_SITE` | 0 | 65 | 60 sans repli, 5 avec repli |
+| Plans proposés avant → après filtre | — | 700 → 316 | 57 événements réduisent la liste |
+| Opcodes du filtre, total | — | 283 947 | médiane 4 640 ; p90 5 766,6 |
+| `RAIL_ATTEMPT` | 117 | 117 | 0 |
+| `RAIL_ATTEMPT ok=1` | 74 | 77 | +3 |
+| `SITEAB` | 27 | 11 | −16 |
+| `ABND` | 2 | 13 | +11 |
+| `SITEAB + ABND` | **29** | **24** | **−17,24 %** |
+| Tentatives de jonction B (`shared_dest=1`) | 54 | 43 | −11 |
+| Jonctions B construites / tentatives | 23/54 (42,6 %) | 20/43 (46,5 %) | **+9,2 %** de taux relatif |
+| `RAIL_BUILD` total | 74 | 77 | +3 |
+| Lignes neuves (destination non partagée) | **51** | **57** | **+6** |
+
+Les critères structurels préenregistrés donnent **2 échecs / 1 succès** :
+le taux de réussite des jonctions monte de seulement 9,2 % contre +50 % exigés ;
+`SITEAB+ABND` baisse de 17,24 % contre −40 % exigés ; les lignes neuves ne
+baissent pas (+6). Le nombre brut de jonctions construites diminue de 23 à 20.
+La diminution des `SITEAB` est partiellement compensée par davantage d'`ABND`.
+
+Au terme des dix ans, Δ `profit_year` OpexAI moyen = **+52 791,7 £/an**
+(IC95 bootstrap **[−73 138 ; +224 218]**, Wilcoxon p=0,75, 2 victoires sur 3).
+La valeur de société évolue en moyenne de **−220 136,7 £**
+(IC95 bootstrap **[−1 572 772 ; +767 711]**). Le moteur de comparaison
+rend `fail_primary` ; ce 3×10 n'est pas une porte économique d'adoption.
+
+**Limite opcodes :** les opcodes des 65 appels `V307R_SITE` sont directement
+mesurés, mais le témoin `v307_sink_room=0` n'exécute pas ce filtre et n'a donc
+pas de mesure du coût équivalent par plan. Le plafond de coût ×1,3 ne peut pas
+être validé par le simple ratio d'opcodes des tentatives, qui englobe A*, pose,
+choix de paire et trajectoires économiques différentes.
+
+### Bit 2 : bâtir immédiatement deux quais
+
+Campagne `v307r_bit2_expo_3x10_20261021`, **3/3 paires complètes** (42, 7,
+100), six parties saines, zéro erreur Squirrel, `comparison_complete`,
+`adoption_sample_complete` et `metric_coverage_complete` vérifiés dans le JSON
+final. Même commit/bundle que le bit 1. Le témoin porte `v307_sink_room=0`,
+la variante `=2`, `decision_log=1` pour les deux bras.
+
+| Mesure | Témoin | Bit 2 | Écart / lecture |
+|---|---:|---:|---:|
+| `V307R_SITE` | 0 | 57 | 51 sans repli, 6 avec repli |
+| Plans proposés avant → après filtre | — | 618 → 316 | 48 événements réduisent la liste |
+| Opcodes du filtre, total | — | 181 002 | médiane 3 267 ; p90 4 030 |
+| `RAIL_ATTEMPT` | 119 | 114 | −5 |
+| `RAIL_ATTEMPT ok=1` | 74 | 73 | −1 |
+| `SITEAB` | 26 | 15 | −11 |
+| `ABND` | 5 | 17 | +12 |
+| `SITEAB + ABND` | **31** | **32** | **+3,23 %** (hausse) |
+| Tentatives de jonction B (`shared_dest=1`) | 54 | 43 | −11 |
+| Jonctions B construites / tentatives | 23/54 (42,6 %) | 21/43 (48,8 %) | **+14,66 %** de taux relatif |
+| `RAIL_BUILD` total | 74 | 73 | −1 |
+| Lignes neuves (destination non partagée) | **51** | **52** | **+1** |
+
+Les critères structurels préenregistrés donnent **2 échecs / 1 succès** :
++14,66 % de réussite relative des jonctions contre +50 % exigés ;
+`SITEAB+ABND` augmente de 3,23 % alors qu'une baisse de 40 % est exigée ;
+le nombre de lignes neuves ne baisse pas (+1). Le total de jonctions
+construites passe de 23 à 21. La baisse des échecs `SITEAB` est plus que
+compensée par les `ABND` (5 → 17).
+
+Le bilan économique est **défavorable sur chacune des trois graines** :
+Δ `profit_year` OpexAI moyen = **−569 884,3 £/an**, médiane −618 419 £/an,
+IC95 bootstrap **[−669 247 ; −421 987]**, 0 victoire / 3 défaites.
+La valeur de société baisse en moyenne de **−1 732 326 £**,
+IC95 bootstrap **[−2 813 947 ; −654 548]** et ratio des moyennes
+**−8,328 %**. Le verdict économique du harnais est
+`fail_primary_and_value_guard`. Les résultats ne justifient pas d'adopter le
+bit 2.
+
+**Bilan des deux essais :** les deux mécanismes sont réellement activés dans
+la sélection des sites, mais **aucun ne passe les critères structurels**.
+Le bit 1 donne un profit moyen positif mais non concluant à trois graines ;
+le bit 2 présente une perte de profit et de valeur. Les réglages conservent
+leur défaut `0`. Les mesures d'opcodes V307R permettent de comparer le coût
+*absolu des sondages activés* (bit 1 : 4 640 opcodes médians ; bit 2 : 3 267),
+mais ne valident pas le plafond relatif ×1,3 : aucun chemin témoin ne mesure
+le même travail de sélection sans filtre et les tentatives ferroviaires ne sont
+pas des appels appariés sur un état physique identique. **Aucune porte
+d'adoption n'est autorisée par ces campagnes exploratoires 3×10.**
