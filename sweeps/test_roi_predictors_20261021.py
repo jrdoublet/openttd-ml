@@ -1,0 +1,63 @@
+#!/usr/bin/env python3
+"""Small read-only ROI-calibration parser checks, no simulation required."""
+import os
+import tempfile
+import unittest
+
+from analyse_roi_predictors_20261021 import parse, quartiles, predict
+
+
+class RoiPredictorsTest(unittest.TestCase):
+    def test_roi_from_chosen_to_mature_build(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = os.path.join(directory, "reference_seed42_r0.log")
+            with open(path, "w", encoding="utf-8") as fh:
+                fh.write("\n".join([
+                    "[0] [I] OPEX 1970-1-1 PROJECT_CHOSEN rank=1 mode=rail kind=freight cargo=COAL src=12 dst=22 dist=100 cost=1000 profit=500 roi=500",
+                    "[0] [I] OPEX 1970-1-2 RAIL_BUILD line=1 src=12 dst=22 cargo=COAL dist=100 cost=1500 reuse=1 trains=2",
+                    "[0] [I] OPEX 1971-1-1 LINE_REVENUE line=1 mode=rail cargo=COAL year=1971 age=1 pred_prof=500 real_prof=10000 vehs=2",
+                    "[0] [I] OPEX 1972-1-1 LINE_REVENUE line=1 mode=rail cargo=COAL year=1972 age=2 pred_prof=500 real_prof=-200 vehs=4",
+                    "[0] [I] OPEX 1973-1-1 LINE_REVENUE line=1 mode=rail cargo=COAL year=1973 age=3 pred_prof=500 real_prof=500 vehs=2",
+                    "[0] [I] OPEX 1970-1-1 PROJECT_CHOSEN rank=0 mode=air cargo=PASS src=3 dst=4 dist=180 cost=1000 profit=1000 roi=1000",
+                    "[0] [I] OPEX 1970-1-1 AIR_BUILD arm=hubsite line=2 src=3 dst=4 cargo=PASS dist=180 cost=1000 planes=1",
+                    "[0] [I] OPEX 1972-1-1 LINE_REVENUE line=2 mode=air cargo=PASS year=1972 age=2 pred_prof=1000 real_prof=200 vehs=1",
+                    "[1] [I] OPEX 1972-1-1 LINE_REVENUE line=2 mode=air cargo=PASS year=1972 age=2 pred_prof=1000 real_prof=999999 vehs=1",
+                ]) + "\n")
+            rows, counts = parse(directory, "duel")
+            self.assertEqual(len(rows), 2)
+            rail = next(r for r in rows if r["mode"] == "rail")
+            air = next(r for r in rows if r["mode"] == "air")
+            self.assertEqual(rail["n_years"], 2)
+            self.assertEqual(rail["real_profit"], 200.)  # -100 and +500
+            self.assertAlmostEqual(rail["roi_pred"], 50.)
+            self.assertAlmostEqual(rail["roi_real"], 200. / 1500. * 100.)
+            self.assertEqual(rail["reuse"], "1")
+            self.assertEqual(air["subtype"], "hubsite")
+            self.assertAlmostEqual(air["roi_real"], 20.)
+            self.assertEqual(counts["matched_rail"], 1)
+            self.assertEqual(counts["matched_air"], 1)
+
+    def test_quartiles_and_ridge_basic(self):
+        rows = []
+        for seed in range(20):
+            for i in range(4):
+                roi = 15. + seed + i
+                rows.append({
+                    "seed": seed, "line": str(i), "mode": "rail",
+                    "arm": "duel", "cargo": "COAL" if i % 2 else "WOOD",
+                    "roi_pred": roi, "roi_real": .5 * roi + i * 2,
+                    "dist": 20. + i * 10, "year": 1971 + i,
+                    "rank": i, "capital": 1000. + seed,
+                    "subtype": "freight", "reuse": "0",
+                    "profit_ratio": 1., "n_years": 2,
+                })
+        train = [r for r in rows if r["seed"] < 16]
+        test = [r for r in rows if r["seed"] >= 16]
+        fit = predict(train, test, ("roi", "roi2", "dist"))
+        self.assertEqual(len(fit), len(test))
+        self.assertLess(max(abs(a - b["roi_real"]) for a,b in zip(fit,test)), 4)
+        self.assertEqual(sum(x["n"] for x in quartiles(rows, "roi_pred")), 80)
+
+
+if __name__ == "__main__":
+    unittest.main()
