@@ -126,7 +126,43 @@ rail (`RAIL_ATTEMPT`, appariées à `PROJECT_CHOSEN` par src/dst).
 
 ### 2.5 Autopsies (`v307_autopsy_3x10_20261021`)
 
-_En file d'attente derrière la sonde de 1976._
+3 graines × 10 ans, duel, `decision_log`. Chaque `ABND` primaire de production (budget 5 000,
+segmenté) est rejoué deux fois avec un pathfinder neuf à 20 000 itérations : **aller** (des
+quais A vers les quais B, comme la production) et **inverse** (de B vers A). 12 abandons
+autopsiés ; 102 tentatives rail, dont 75 `OK` et 10 `ABND`. L'autopsie est bloquante, elle
+rallonge chaque abandon d'environ 150 jours : les durées et la trajectoire de cette campagne ne
+sont pas celles de la production.
+
+| Graine | Année | Type | Dist. | Jointure | Quais A / B | Aller (20 k) | Inverse (20 k) |
+|---|---|---|---:|---|---|---|---|
+| 42 | 1972 | fret | 101 | — | 12 / 12 | échec | **OK, 2 672 it.** |
+| 42 | 1974 | fret | 172 | B | 12 / 7 | échec | **OK, 6 540 it.** |
+| 100 | 1975 | fret | 186 | — | 12 / 4 | échec | **OK, 3 225 it.** |
+| 100 | 1976 | fret | 177 | B | 12 / **1** | échec | **OK, 8 316 it.** |
+| 42 | 1976 | fret | 133 | — | 12 / 8 | échec | **OK, 5 006 it.** |
+| 100 | 1977 | fret | 207 | B | 12 / **1** | échec | **OK, 5 900 it.** |
+| 100 | 1978 | fret | 196 | — | 12 / **1** | échec | `NOPA` en **4 it.** |
+| 7 | 1976 | villes | 28 | — | 12 / 12 | échec | échec |
+| 7 | 1978 | villes | 65 | — | 12 / 12 | OK, 4 860 it. | OK, 9 906 it. |
+| 7 | 1979 | villes | 68 | — | 12 / 12 | échec | échec |
+| 100 | 1979 | villes | 77 | — | 12 / 12 | OK, 12 352 it. | — |
+
+- **Fret : la recherche part du mauvais côté.** Les 7 abandons fret échouent à 20 000
+  itérations en aller. En inverse, 6 sont trouvés en 2 700 à 8 300 itérations, et le 7e est
+  prouvé impossible en 4 itérations. La destination fret est le côté étroit : 1 à 8 quais contre
+  12 à la source, et ce sont des puits déjà rejoints (`join=B`, destination 29140 deux fois).
+  Partie de la source, l'A* inonde le pourtour de la poche où se trouve la destination. Partie
+  de la destination, elle sort de la poche par le seul passage, puis file vers une source
+  ouverte. **C'est le problème de destination que l'utilisateur a pointé**, et il a un remède
+  presque gratuit : chercher depuis le côté étroit.
+- **Le côté étroit se reconnaît à l'avance** : `nb` (nombre de quais B) est petit, et la
+  destination est jointe.
+- **Villes** : la ville 53372 de la graine 7 est enclavée dans les deux sens (deux fois). Deux
+  autres tracés existent, en 4 860 et 12 352 itérations ; le premier tient sous 5 000 avec un
+  pathfinder neuf, mais il a échoué en production. Le préfixe figé de la segmentation coûte donc
+  aussi des tracés.
+- Une seule preuve d'enclavement (`NOPA`) tombe, et elle tombe en 4 itérations : la sonde
+  inverse V294f (300 itérations) l'aurait vue, si elle distinguait `null` de `false` (tâche 1.3).
 
 ## 3. Ce que la mesure change
 
@@ -184,15 +220,16 @@ leurs jours cumulés**, lus dans `RAIL_ATTEMPT`.
 |---|---|---|---|---|
 | 0.1 | Sonde de paires longues (villes et fret, 3 tranches, 3 bras) | P1 | C2 | ✅ codée, smokes 1970/1971, campagne 1973 lue |
 | 0.2 | Sonde 1976 (6 graines, duel) | P1 | C1 | ✅ lue (§ 2.3) |
-| 0.3 | Autopsie des `ABND` de production (aller et inverse, 20k) | P1 | C2 | ⏳ en file, 3×10 |
+| 0.3 | Autopsie des `ABND` de production (aller et inverse, 20k) | P1 | C2 | ✅ 3×10 lue (§ 2.5) |
 | 0.4 | Lecteur `diag_v307_long_paths.py` (bras, grossier, guidage, autopsies) | P1 | C1 | ✅ |
 | 0.5 | Inventaire des `RAIL_ATTEMPT` : durée, année, jointure, répétitions par extrémité (`sweeps/diag_v307_rail_attempts.py`) | P1 | C1 | ✅ sur 12 parties (§ 2.4) |
-| 0.6 | Classer chaque `ABND` de l'autopsie : but enclavé (`NOPA`), budget (`OK` à plus de 5 000), piège (`CAP` aller, mais `OK` guidé) ; croiser avec la jointure, la distance, l'année et le type | P1 | C1 | après 0.3 |
+| 0.6 | ✅ (§ 2.5) Classer chaque `ABND` de l'autopsie : but enclavé (`NOPA`), budget (`OK` à plus de 5 000), piège (`CAP` aller, mais `OK` guidé) ; croiser avec la jointure, la distance, l'année et le type | P1 | C1 | après 0.3 |
 
 ### Étape 1 — Ne jamais chercher deux fois une extrémité impossible
 
 | # | Tâche | P | C | Dépend de |
 |---|---|---|---|---|
+| 1.0 | **Chercher depuis le côté étroit** (autopsie § 2.5) : si la destination a moins de quais que la source (`plansB.len() < plansA.len()`, ou destination jointe), lancer la recherche de B vers A et retourner le tracé. La voie est sans sens, il suffit d'inverser la liste et d'échanger les rôles des quais pour la pose. Réglage à 0. Mesure : `ABND` fret primaires et jours cumulés, diagnostic 3×10 puis porte A 40×3. C'est un cas particulier de V303 (b), la recherche alternée de codex : à comparer, l'alternance coûtant deux A* vivants. | **P1** | C2 | — |
 | 1.1 | **Mémoire d'échec par extrémité** : tuile source ou destination → date du dernier `ABND`/`NOPA`. Tout candidat qui la touche est écarté pendant M mois, sauf si un événement de carte proche a eu lieu (rectangle d'invalidation C76, gare neuve ou retirée). Réglage à 0 ; sauvegarde à traiter (sinon la mémoire est perdue au rechargement, accepté au premier essai). | P1 | C2 | 0.5 |
 | 1.2 | **Abandon de paire persistant** : `_abandonedPairs` (clé `type|cargo|src|dst`, `lines.nut:279`) expire après `ABANDON_COOLDOWN_DAYS` × nombre d'échecs, soit 1 an puis 2 ans, plafonné à 5 (`globals_post.nut:38`, `_pruneAbandonedPairs`) : d'où les reprises 1972→1975, 1973→1978, 1975→1979. Ne reprendre une paire abandonnée en `ABND` que sur un événement de carte proche d'une extrémité. | P1 | C1 | 0.5 |
 | 1.3 | **Preuve d'enclavement bon marché avant l'aller** : la sonde inverse V294f (`FindPath(300)`) confond `null` (file vidée = inaccessible) et `false` (budget). Retourner une issue `NOPA` définitive sur `null`, et mesurer à quel budget inverse (300, 800, 2 000) la preuve tombe pour les `NOPA` de l'autopsie. | P1 | C1 | 0.3 |
@@ -254,7 +291,8 @@ le couloir).
 
 ## 5. Ordre proposé
 
-1. Lire 0.2 et 0.3, puis faire 0.6 (classement des abandons).
+1. ✅ 0.2, 0.3 et 0.6 lus. **En premier : 1.0 (chercher depuis le côté étroit)**, seul ou contre
+   V303 (b) si codex la livre, avec 1.3 (preuve `NOPA` bon marché) sur la même branche.
 2. Coder 1.1, 1.2 et 1.3 sur une branche d'intégration (C1/C2 ; 1.2 et 1.3 délégables).
    Diagnostic 3×10 sur les `ABND` primaires, puis porte A 40×3.
 3. En parallèle, en mesure seule : 2.1 (stagnation) et 3.1 (régression du coût sur les paires
