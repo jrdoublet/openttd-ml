@@ -92,3 +92,53 @@ deux quais dans les destinations fret à plusieurs sources (bit 2). Mesurer
 pour chaque option les jonctions réussies, `SITEAB`/`ABND`, les lignes neuves,
 le coût et les opcodes en conditions identiques. Aucune qualification
 économique ni changement de défaut n'est tiré de cette étape 0.
+
+## Préparation de l'étape 1 — tests avant code (file A, 21/10 soir)
+
+Le fichier `sweeps/test_v307_sink_room.py` a été écrit avant toute modification
+V307R du builder. Les **cinq tests de référence Python** couvrent : condition
+`freight` + au moins deux producteurs **distincts du même cargo**, exclusion
+des jonctions déjà existantes, bandes perpendiculaires de 1 ou 2 tuiles avec
+leur sortie, orientation opposée à la source et repli sur la liste initiale.
+Les tests d'intégration statique sont **rouges par construction** tant que le
+réglage `v307_sink_room` et sa logique Squirrel ne sont pas implantés.
+
+Plan de raccordement proposé, à valider après livraison et banc V307S :
+
+1. Déclarer `v307_sink_room` masque `0..3`, défaut `0` aux quatre profils,
+   une lecture dans `settings.nut` et la globale correspondante.
+2. Dans `OpexRailTryPlatformLength`, filtrer **les seuls plans B libres** de la
+   première ligne fret vers une industrie, quand `catalog.producers[cargo]`
+   contient au moins deux sources. Garder tous les plans d'origine lorsque
+   aucun ne laisse de place. Les candidats `shared_dest`, avec `joinPlatform`
+   ou les voyageurs gardent le traitement existant. Tester la bande et sa
+   tuile d'entrée (constructibles et plates, `AITestMode` moteur), côté opposé
+   au départ ; ne pas confondre une gare initiale avec une gare déjà jointe.
+3. **Préserver physiquement la bande** pendant l'A* : ajouter ses tuiles aux
+   `ignoredTiles` dans les deux constructeurs du builder
+   `OpexCreateRailPathfinder` et `OpexCreateSegmentedSearch`. Les passages
+   bloquant et reprenable ont actuellement leurs appels dans deux modules
+   (`builder_rail.nut` et `task_rail.nut`) ; cette interception dans les deux
+   constructeurs permet de ne pas toucher `task_rail.nut`.
+4. Pour le bit 2, seul un second quai **adjacent** (`dist=1`) peut être bâti
+   par `BuildRailStation(..., 2, ...)` ; si le côté libre est négatif, l'ancre
+   physique du rectangle doit être décalée sans modifier l'interface du quai
+   choisi pour l'A*. Propager largeur/ancre au devis physique
+   `OpexSimulateRailInfraCost`, aux deux constructeurs
+   `OpexExecuteRailPlan` et `OpexV190ExecuteRailPlan`, ainsi qu'à
+   `OpexRollback` : sinon le surcoût est oublié ou un quai reste orphelin.
+5. Journaliser `V307R_SITE` seulement sous `decision_log`, avec le nombre de
+   plans avant/après filtre, le côté, le bit actif et les opcodes. Vérifier le
+   plafond ×1,3 en partie, avec les deux réglages 1 et 2 séparément.
+
+**Point à résoudre avant le bit 2 :** `OpexJoinPlatformPlans` exige aujourd'hui
+`AITile.IsBuildable` sur chaque tuile du nouveau quai et appelle
+`BuildRailStation(..., 1, existingStationId)` ; or un quai déjà construit par
+le bit 2 n'est plus constructible et ne sera donc **pas réutilisé** par cette
+fonction. Permettre à une seconde ligne de reprendre ce quai prébâti touche
+le chemin de jointure, qui sort du périmètre initial « choix du plan B de la
+PREMIÈRE construction ». Le test `test_built_spare_platform_must_be_reusable_on_later_v178_join`
+rend cette limite explicite. Ne pas lancer le bit 2 avec l'hypothèse d'une
+augmentation des jonctions avant de régler ce point. Le côté opposé à la
+source est par ailleurs un substitut de l'approche réelle de la voie : les
+premiers segments A* devront confirmer qu'ils n'empiètent pas sur la bande.
