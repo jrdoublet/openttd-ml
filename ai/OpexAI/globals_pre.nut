@@ -95,8 +95,9 @@ V190_RAIL_MAX_TRAINS <- 4;
 /* V172 : heuristique A* rail renforcee sur longues distances (>= v172_rail_long_weight_dist).
  * 0 = inerte (poids V91_ASTAR_WEIGHT_PCT conserve, defaut) ; 100..300 = poids applique. */
 V172_RAIL_LONG_WEIGHT_PCT <- 200;
-/* V294c : 0 = poids historique ; N (100..400) = depart glouton, repli par segment. */
-V294C_RAIL_WEIGHT_ADAPT <- 0;
+/* V294c : 0 = poids historique ; N (100..400) = depart glouton, repli par segment.
+ * Defaut 400 depuis le 21/10 (decision utilisateur ; porte B 20x10 passee, +58,4 k). */
+V294C_RAIL_WEIGHT_ADAPT <- 400;
 V216_PROBE <- false;
 V211_RIVALS <- false;
 V211_LAST_QUARTER <- -1;

@@ -29,15 +29,15 @@ class TestV294cWeightAdapt(unittest.TestCase):
         cls.builder = source("builder_rail.nut")
         cls.task = source("task_rail.nut")
 
-    def test_public_setting_is_off_in_all_profiles_and_range_is_validated(self):
+    def test_public_setting_is_400_in_all_profiles_and_range_is_validated(self):
         match = re.search(r'AddSetting\(\{\s*name = "v294_rail_weight_adapt",(.*?)\}\);',
                           self.info, re.S)
         self.assertIsNotNone(match)
         block = match.group(1)
         self.assertIn("min_value = 0, max_value = 400", block)
         for profile in ("easy", "medium", "hard", "custom"):
-            self.assertRegex(block, rf"{profile}_value\s*=\s*0\b")
-        self.assertRegex(self.globals, r"\bV294C_RAIL_WEIGHT_ADAPT\s*<-\s*0;")
+            self.assertRegex(block, rf"{profile}_value\s*=\s*400\b")
+        self.assertRegex(self.globals, r"\bV294C_RAIL_WEIGHT_ADAPT\s*<-\s*400;")
         self.assertEqual(self.settings.count('AIController.GetSetting("v294_rail_weight_adapt")'), 1)
         self.assertEqual(sum(p.read_text(encoding="utf-8").count(
             'GetSetting("v294_rail_weight_adapt")') for p in AI.glob("*.nut")), 1)
