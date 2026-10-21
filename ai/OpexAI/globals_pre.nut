@@ -82,6 +82,7 @@ V301_NOTRAIN_FIX <- 15;  // defaut depuis le 21/10 (decision utilisateur, porte 
 V307_LONG_PROBE <- 0;  // V307 : sonde de mesure des longs traces, bloquante, defaut 0
 V307_PROBE_YEAR <- 0;
 V307_DONE <- false;
+V307_ABND_AUTOPSY <- false;
 function OpexV207Active()
 {
   return V207_RAIL_MAIL || V207_RAIL_PAX_SHARE_PCT > 0 || V207_RAIL_PAX_JOINED_STOPS > 0;

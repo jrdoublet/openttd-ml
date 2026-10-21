@@ -86,6 +86,23 @@ class TestV307LongProbe(unittest.TestCase):
         self.assertIn("CC_MAIL", body)
         self.assertIn('kind = "freight"', body)
 
+    def test_autopsy_guarded(self):
+        block = re.search(r'name = "v307_abnd_autopsy",(.*?)\}\);', self.info, re.S)
+        self.assertIsNotNone(block)
+        for level in ("easy", "medium", "hard", "custom"):
+            self.assertRegex(block.group(1), rf"{level}_value\s*=\s*0\b")
+        self.assertIn("V307_ABND_AUTOPSY <- false;", read("globals_pre.nut"))
+        self.assertEqual(read("settings.nut").count('GetSetting("v307_abnd_autopsy")'), 1)
+        rail = read("task_rail.nut")
+        hook = 'if (V307_ABND_AUTOPSY && slice.stop == "ABND" && state.kind == "primary") OpexV307Autopsy(state);'
+        self.assertEqual(rail.count(hook), 1)
+        # Sous DECISION_LOG, juste apres le journal RAIL_SEARCH resumable.
+        i = rail.index(hook)
+        self.assertIn('OpexDecide("RAIL_SEARCH", "type=resumable outcome="', rail[i - 300:i])
+        body = self.probe[self.probe.index("function OpexV307Autopsy("):]
+        self.assertIn("dir=fwd", body)
+        self.assertIn("dir=rev", body)
+
     def test_module_squirrel_traps(self):
         self.assertNotIn("function(", self.probe)
         self.assertNotIn(".find(", self.probe)

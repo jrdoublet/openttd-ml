@@ -346,3 +346,40 @@ function OpexV307LongProbe(perBin)
   }
   OpexDecide("V307_END", "pairs=" + pairs.len());
 }
+
+/* V307 autopsie : apres un ABND de production (recherche primaire), deux A* frais non segmentes,
+ * bloquants, de V307_ITERS iterations, avec les memes quais, interdictions, poids et moteur :
+ * aller (A -> B) et inverse (B -> A). null = file ouverte videe, but prouve inaccessible avec ces
+ * contraintes ; false = budget epuise ; sinon trace trouve (le plafond de production manquait). */
+function OpexV307AutopsyOne(plansFrom, plansTo, ignored, weight, outwardSide, engine)
+{
+  local mark = OpexOpsMeasureBegin();
+  local date0 = AIDate.GetCurrentDate();
+  local pf = OpexCreateRailPathfinder(plansFrom, plansTo, ignored, weight, outwardSide, null, engine);
+  if (pf == null) return "out=NOPLAN iters=0 ops=0 days=0 len=-1";
+  local res = pf.FindPath(V307_ITERS);
+  local out = res == null ? "NOPA" : (res == false ? "CAP" : "OK");
+  local len = -1;
+  if (out == "OK") len = OpexPathTiles(res).len();
+  return "out=" + out + " iters=" + pf.LastConsumed() + " ops=" + OpexOpsMeasureEnd(mark)
+      + " days=" + (AIDate.GetCurrentDate() - date0) + " len=" + len;
+}
+
+function OpexV307Autopsy(state)
+{
+  local plan = state.plan, cand = state.candidate;
+  if (plan == null || cand == null || plan.plansA == null || plan.plansB == null) return;
+  local seg = ("segmented" in state) ? state.segmented : null;
+  local ignored = ("clearanceTiles" in state) ? state.clearanceTiles : null;
+  local outward = (seg != null && ("outwardSide" in seg)) ? seg.outwardSide : null;
+  local engine = (seg != null && ("engine" in seg)) ? seg.engine : null;
+  local joinB = ("joinEnd" in cand) && cand.joinEnd == "B";
+  local joined = ("joinStationId" in cand) && cand.joinStationId != null && cand.joinStationId >= 0;
+  local head = "src=" + cand.src + " dst=" + cand.dst + " dist=" + (("distance" in cand) ? cand.distance : -1)
+      + " kind=" + cand.kind + " join=" + (joined ? (joinB ? "B" : "A") : "none")
+      + " shared=" + ((("shared_dest" in cand) && cand.shared_dest) ? 1 : 0)
+      + " na=" + plan.plansA.len() + " nb=" + plan.plansB.len()
+      + " ignored=" + (ignored == null ? 0 : ignored.len()) + " spent=" + state.spent;
+  OpexDecide("V307_AUTOPSY", head + " dir=fwd " + OpexV307AutopsyOne(plan.plansA, plan.plansB, ignored, state.weight, outward, engine));
+  OpexDecide("V307_AUTOPSY", head + " dir=rev " + OpexV307AutopsyOne(plan.plansB, plan.plansA, ignored, state.weight, null, engine));
+}

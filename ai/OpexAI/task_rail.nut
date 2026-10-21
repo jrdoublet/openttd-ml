@@ -999,6 +999,7 @@ function OpexAI::_continueRailSearch()
   if (DECISION_LOG) {
 
     OpexDecide("RAIL_SEARCH", "type=resumable outcome=" + slice.stop + " iters=" + state.spent + " budget=" + state.iterationBudget);
+    if (V307_ABND_AUTOPSY && slice.stop == "ABND" && state.kind == "primary") OpexV307Autopsy(state);
     if (slice.stop == "OK") {
       local v214Tiles = OpexResolveSearchTiles(slice);
       if (v214Tiles.len() >= 2) {
