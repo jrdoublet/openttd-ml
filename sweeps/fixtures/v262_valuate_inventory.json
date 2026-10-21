@@ -308,5 +308,35 @@
     "probe_v307.nut",
     "types",
     "AIRail.IsRailTypeAvailable"
+  ],
+  [
+    "po01c_generators.nut",
+    "types",
+    "AIRail.IsRailTypeAvailable"
+  ],
+  [
+    "po01c_generators.nut",
+    "engines",
+    "AIEngine.IsBuildable"
+  ],
+  [
+    "po01c_generators.nut",
+    "engines",
+    "AIEngine.IsBuildable"
+  ],
+  [
+    "po01c_generators.nut",
+    "engines",
+    "AIEngine.IsBuildable"
+  ],
+  [
+    "po01c_generators.nut",
+    "engines",
+    "AIEngine.IsBuildable"
+  ],
+  [
+    "po01c_generators.nut",
+    "engines",
+    "AIEngine.IsArticulated"
   ]
 ]

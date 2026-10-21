@@ -283,6 +283,10 @@ def parse_args():
     parser.add_argument("--years-b", type=int, default=2, help="duree de la phase B (apres rechargement)")
     parser.add_argument("--starting-year", type=int, default=1970)
     parser.add_argument("--out", type=Path, default=DEFAULT_OUT)
+    parser.add_argument("--work-dir", type=Path, default=WORK_DIR,
+                        help="Isolated working directory for this roundtrip")
+    parser.add_argument("--require-po01c-pending", action="store_true",
+                        help="Reload only a save with a PO01C save_pending log on its exact date")
     parser.add_argument(
         "--mid-fraction", type=float, default=0.5,
         help="position (0-1) de la sauvegarde de milieu de partie a recharger, par date",
@@ -300,8 +304,10 @@ def parse_args():
 
 
 def main():
-    global SCRIPT_DEBUG_LEVEL
+    global SCRIPT_DEBUG_LEVEL, WORK_DIR, CACHE_DIR
     args = parse_args()
+    WORK_DIR = args.work_dir
+    CACHE_DIR = WORK_DIR / "cache"
     SCRIPT_DEBUG_LEVEL = str(args.script_debug)
     args.out.parent.mkdir(parents=True, exist_ok=True)
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
@@ -335,6 +341,16 @@ def main():
     # run_experiments : c'est la source de verite pour choisir "le milieu de partie".
     parsed_a = [parse_sav_file(path) for path in files_a]
     parsed_a.sort(key=lambda record: record["date"])
+    if args.require_po01c_pending:
+        from po01c_diagnostics import pending_save_dates
+        pending_dates = pending_save_dates(output_a or "")
+        parsed_a = [record for record in parsed_a if record["date"][:10] in pending_dates]
+        if not parsed_a:
+            bench_v2.write_json_atomically(args.out, {
+                "status": "BLOQUE", "blocage": "No save proven inside a PO01C batch",
+                "pending_dates": sorted(pending_dates), "openttd_output_phase_a": output_a,
+            })
+            raise SystemExit(1)
     mid_index = min(len(parsed_a) - 1, max(0, int(len(parsed_a) * args.mid_fraction)))
     chosen = parsed_a[mid_index]
     print(
@@ -403,6 +419,7 @@ def main():
 
     report = {
         "status": "OK",
+        "po01c_pending_save_required": args.require_po01c_pending,
         "seed": args.seed,
         "years_a": args.years_a,
         "years_b": args.years_b,

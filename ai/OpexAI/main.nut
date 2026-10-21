@@ -160,6 +160,10 @@ class OpexAI extends AIController {
   /* C80 : orchestrateur à double registre (intentions réactives et registre d'exécution). */
   _reactiveQueue = null;
   _activeWorker = null;
+  _po01cJob = null;
+  _po01cPending = false;
+  _po01cLastTick = -1;
+  _po01cLineState = null;
   _railWorkerSteppedThisTick = false;
   /* C80 étape 1 : table des tracés rail prêts validés par les workers, indexée par pairKey.
    * Transitoire / reconstructible : initialisée à {}, jamais persistée dans Save(). */
@@ -682,6 +686,8 @@ require("ledgers.nut");
 require("lines.nut");
 require("goods_v233.nut");
 require("orchestrator.nut");
+require("po01c_generators.nut");
+require("po01c_regen.nut");
 require("persist.nut");
 require("probes.nut");
 require("probe_v216.nut");
