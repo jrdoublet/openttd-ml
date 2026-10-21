@@ -51,8 +51,10 @@ class PO01CContracts(unittest.TestCase):
 
     def test_coalesces_without_restarting(self):
         code = body('orchestrator.nut', 'OpexAI::_dispatchReactiveIntention')
-        branch = code[code.index('if (PO01C_REGEN_SPLIT'):code.index('local date')]
-        self.assertIn('_po01cPending = true', branch)
+        branch = code[code.index('if (modes == null)'):code.index('} else if (modes.len() > 0)')]
+        self.assertIn('if (PO01C_REGEN_SPLIT && this._projects != null) this._po01cPending = true;', branch)
+        self.assertIn('else this._c76DoFullRegen("reactive", year);', branch)
+        self.assertIn('this._c80DoModeRegen(modes, "reactive", year);', code)
         self.assertNotIn('_po01cJob =', branch)
         self.assertNotIn('_taskQueue.append', source('po01c_regen.nut'))
         self.assertIn('OpexPO01CStep(this)', body('orchestrator.nut', 'OpexAI::_runOrchestratorTick'))
@@ -61,9 +63,9 @@ class PO01CContracts(unittest.TestCase):
 
     def test_budget_and_no_forbidden_syntax(self):
         code = uncomment(source('po01c_regen.nut') + source('po01c_generators.nut'))
-        self.assertIn('AIController.GetTick() == tick', code)
-        self.assertIn('AIController.GetOpsTillSuspend() > 2500', code)
-        self.assertIn('OpexOpsMeasureEnd(mark) < 4000', code)
+        self.assertIn('const PO01C_SLICE_OPS = 40000;', code)
+        self.assertIn('OpexOpsMeasureEnd(mark) < PO01C_SLICE_OPS', code)
+        self.assertIn('if (tick == owner._po01cLastTick', code)
         self.assertNotIn('.find(', code)
         self.assertNotRegex(code, r'\blocal\s+(clone|base|parent|pass)\b')
         self.assertNotRegex(code, r'=\s*function\s*\(')

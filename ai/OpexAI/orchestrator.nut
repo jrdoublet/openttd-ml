@@ -603,17 +603,16 @@ function OpexAI::_dispatchReactiveIntention(intention)
     return res;
   }
   if (intention.key == "regen" || intention.kind == "regen") {
-    if (PO01C_REGEN_SPLIT && this._projects != null) {
-      this._po01cPending = true;
-      return true;
-    }
     {
       sp = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.orch.reactive.regen") : null;
       local date = AIDate.GetCurrentDate();
       local year = AIDate.GetYear(date);
       local modes = (this._projects != null) ? this._c80ModeRegenModes() : null;
       if (modes == null) {
-        this._c76DoFullRegen("reactive", year);
+        /* PO01C : seule la reconstruction COMPLETE est decoupee ; une regen par mode reste
+         * synchrone comme au defaut (elle est courte). Demande coalescee, jamais empilee. */
+        if (PO01C_REGEN_SPLIT && this._projects != null) this._po01cPending = true;
+        else this._c76DoFullRegen("reactive", year);
       } else if (modes.len() > 0) {
         this._c80DoModeRegen(modes, "reactive", year);
       }

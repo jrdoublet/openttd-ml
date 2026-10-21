@@ -1,4 +1,7 @@
 /* PO-01C: ephemeral reactive batch, private producers, selective publication. */
+/* Opcodes per call, across ticks if needed (about 4 ticks, < 1 day). The hook runs once
+ * per main-loop pass (~44 ticks measured), so 4000 left a batch at ~26 k ops/day. */
+const PO01C_SLICE_OPS = 40000;
 function OpexPO01CModeEnabled(mode)
 {
   if (mode == "air") return MODE_AIR;
@@ -379,7 +382,7 @@ function OpexPO01CStep(owner)
         return true;
       }
       local best = OpexAirPlans(s.catalog, s.lines, 0, s.airPlans, s.abandoned,
-          PAX_BAND_ALL, -1, s.airCursor, 4000, tick + 1);
+          PAX_BAND_ALL, -1, s.airCursor, PO01C_SLICE_OPS, tick + 5);
       if (("done" in s.airCursor) && s.airCursor.done) {
         local generated = OpexPO01CEmptyGenerated(s.seed);
         generated.airPlans = s.airPlans; generated.airPlan = best;
@@ -398,8 +401,7 @@ function OpexPO01CStep(owner)
     if (owner._c76AnyLayerChanged()) owner._po01cPending = true;
   }
   if (s.iterator != null) {
-    while (s.iterator.getstatus() != "dead" && AIController.GetTick() == tick
-        && AIController.GetOpsTillSuspend() > 2500 && OpexOpsMeasureEnd(mark) < 4000)
+    while (s.iterator.getstatus() != "dead" && OpexOpsMeasureEnd(mark) < PO01C_SLICE_OPS)
       resume s.iterator;
     if (s.iterator.getstatus() == "dead") {
       s.iterator = null;
