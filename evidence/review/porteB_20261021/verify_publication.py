@@ -18,6 +18,9 @@ CAMPAIGNS = (
     ("v294all_pc_stage_20261020", "v294all_adapt400_complet_1970_40x10_pc_20261021", 40),
     ("porteB-adapt400", "adapt400_porteB_20x10_pc_20261021", 20),
     ("porteB-v297", "v297_porteB_20x10_pc_20261021", 20),
+    ("porteB-finpartie", "finpartie_porteB_20x10_pc_20261021", 20),
+    ("porteB-v296clean", "v296clean_porteB_20x10_pc_20261021", 20),
+    ("porteB-v301", "v301_porteB_20x10_pc_20261021", 20),
 )
 INDEX = HERE / "SHA256SUMS.json"
 CHUNK = 1024 * 1024
@@ -111,12 +114,14 @@ def verify():
         assert all(game["game_ok"] and game["status"] == "complete" for game in report["summary"])
         manifest_hash, _size = digest(HERE / (campaign + ".manifest.json"))
         assert manifest_hash == report["manifest_sha256"], f"Manifest changed: {campaign}"
-    print(f"Verified {len(rows)} archives, 3 intact campaigns, 80 complete pairs, 160 games.")
+    total_pairs = sum(pairs for _, _, pairs in CAMPAIGNS)
+    print(f"Verified {len(rows)} archives, {len(CAMPAIGNS)} intact campaigns, "
+          f"{total_pairs} complete pairs, {2 * total_pairs} games.")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--archive-checkpoints", action="store_true", help="Compress three original sibling JSONL files")
+    parser.add_argument("--archive-checkpoints", action="store_true", help="Compress original sibling JSONL files not yet indexed")
     args = parser.parse_args()
     if args.archive_checkpoints:
         archive_checkpoints()

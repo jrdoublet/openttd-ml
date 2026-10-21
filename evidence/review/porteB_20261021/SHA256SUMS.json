@@ -7,29 +7,34 @@
       "sha256": "87b2354f969dbc1e106ea27865bb8101440ae86710980ef94b4cc9630737164d"
     },
     {
+      "file": "adapt400_porteB_20x10_pc_20261021.jsonl.gz",
+      "bytes": 6921798,
+      "sha256": "4b625ded4758d6844846c0bda50cc4e9276d49a2ca057f6dbd7e58cd5256b05a",
+      "original_file": "adapt400_porteB_20x10_pc_20261021.jsonl",
+      "original_bytes": 82134057,
+      "original_sha256": "1b1af7b69f64427cb55709dae9c7de1ca88f7cd9af7a99fe3733656a9cb2ad4b",
+      "original_lines": 9600,
+      "source_worktree": "porteB-adapt400"
+    },
+    {
       "file": "adapt400_porteB_20x10_pc_20261021.manifest.json",
       "bytes": 61847,
       "sha256": "38c8a1cfa29637c7b50f38dbd26af5ab81dfd54235c0d04e2ee89f0e55e34e93"
     },
     {
+      "file": "finpartie_porteB_20x10_pc_20261021.json",
+      "bytes": 1454584,
+      "sha256": "29976cca27e3ba2c0f1ba460e053c549489c32544f7c33768ee779599a8578ef"
+    },
+    {
+      "file": "finpartie_porteB_20x10_pc_20261021.manifest.json",
+      "bytes": 62260,
+      "sha256": "0430de5c021767881cd66e43bd6863b9c6f876239e214e85cc6597c800129e93"
+    },
+    {
       "file": "v294all_adapt400_complet_1970_40x10_pc_20261021.json",
       "bytes": 2882987,
       "sha256": "4a17f9ed4a180dcf80c1402fd26d6b8c029c9617aff46b11909848cbc5c44955"
-    },
-    {
-      "file": "v294all_adapt400_complet_1970_40x10_pc_20261021.manifest.json",
-      "bytes": 80437,
-      "sha256": "53607c3c0afa8cb408449981dce61abe392e592d36e1f918bcfcaee43bb3466d"
-    },
-    {
-      "file": "v297_porteB_20x10_pc_20261021.json",
-      "bytes": 1417945,
-      "sha256": "42d7b99b4f4e08a42ce95b3a50583d50d30413839487c768c4eec829abb618b9"
-    },
-    {
-      "file": "v297_porteB_20x10_pc_20261021.manifest.json",
-      "bytes": 62072,
-      "sha256": "0a0925d27f8abe97e189db502184cb1bce31e94d1a1d161e53b94c305343db6b"
     },
     {
       "file": "v294all_adapt400_complet_1970_40x10_pc_20261021.jsonl.gz",
@@ -42,14 +47,24 @@
       "source_worktree": "v294all_pc_stage_20261020"
     },
     {
-      "file": "adapt400_porteB_20x10_pc_20261021.jsonl.gz",
-      "bytes": 6921798,
-      "sha256": "4b625ded4758d6844846c0bda50cc4e9276d49a2ca057f6dbd7e58cd5256b05a",
-      "original_file": "adapt400_porteB_20x10_pc_20261021.jsonl",
-      "original_bytes": 82134057,
-      "original_sha256": "1b1af7b69f64427cb55709dae9c7de1ca88f7cd9af7a99fe3733656a9cb2ad4b",
-      "original_lines": 9600,
-      "source_worktree": "porteB-adapt400"
+      "file": "v294all_adapt400_complet_1970_40x10_pc_20261021.manifest.json",
+      "bytes": 80437,
+      "sha256": "53607c3c0afa8cb408449981dce61abe392e592d36e1f918bcfcaee43bb3466d"
+    },
+    {
+      "file": "v296clean_porteB_20x10_pc_20261021.json",
+      "bytes": 1487582,
+      "sha256": "19a768cf2e6f02bbc7c14137e1cafeedd8a5e40df002b23caf01637b55b8949f"
+    },
+    {
+      "file": "v296clean_porteB_20x10_pc_20261021.manifest.json",
+      "bytes": 62849,
+      "sha256": "535f8ae0bd8ef6e9f5159048739d26b321791310581b1c7fd2ca8efbbc31c966"
+    },
+    {
+      "file": "v297_porteB_20x10_pc_20261021.json",
+      "bytes": 1417945,
+      "sha256": "42d7b99b4f4e08a42ce95b3a50583d50d30413839487c768c4eec829abb618b9"
     },
     {
       "file": "v297_porteB_20x10_pc_20261021.jsonl.gz",
@@ -60,6 +75,51 @@
       "original_sha256": "500b8df242a909ddca9b383c3b4606dd6bae176225ed24f54bba9a0fb9a33862",
       "original_lines": 9600,
       "source_worktree": "porteB-v297"
+    },
+    {
+      "file": "v297_porteB_20x10_pc_20261021.manifest.json",
+      "bytes": 62072,
+      "sha256": "0a0925d27f8abe97e189db502184cb1bce31e94d1a1d161e53b94c305343db6b"
+    },
+    {
+      "file": "v301_porteB_20x10_pc_20261021.json",
+      "bytes": 1480332,
+      "sha256": "531c5a5c683bfa72b043c7fdd7d2340abc1cfa8a9d43d4c755851bdb68039548"
+    },
+    {
+      "file": "v301_porteB_20x10_pc_20261021.manifest.json",
+      "bytes": 61689,
+      "sha256": "19413b30b6b314974008e833f515543301fdbfbe4e11205273745feb7dc3cba4"
+    },
+    {
+      "file": "finpartie_porteB_20x10_pc_20261021.jsonl.gz",
+      "bytes": 6699707,
+      "sha256": "ee185a5d967c606e565b04146f012a425466fef5ba57be1fde0447b4554ad58c",
+      "original_file": "finpartie_porteB_20x10_pc_20261021.jsonl",
+      "original_bytes": 81440732,
+      "original_sha256": "6e029763913fa9f38813fe5c75ebc68eee323ca864cadeb9362a627f0cb4343d",
+      "original_lines": 9600,
+      "source_worktree": "porteB-finpartie"
+    },
+    {
+      "file": "v296clean_porteB_20x10_pc_20261021.jsonl.gz",
+      "bytes": 6868721,
+      "sha256": "e0cd958c891597b03b46d6ca82c173b1656f0066689a27f3622cf18172c69bf1",
+      "original_file": "v296clean_porteB_20x10_pc_20261021.jsonl",
+      "original_bytes": 84118986,
+      "original_sha256": "808710408853a5332dbd0944e95f7224f87d17f73459d6c1ad05dda88c248046",
+      "original_lines": 9600,
+      "source_worktree": "porteB-v296clean"
+    },
+    {
+      "file": "v301_porteB_20x10_pc_20261021.jsonl.gz",
+      "bytes": 6881531,
+      "sha256": "865c00d214c0589de7d599603fed1077d57413d570b56c81e1ef87a8a385eccb",
+      "original_file": "v301_porteB_20x10_pc_20261021.jsonl",
+      "original_bytes": 83571090,
+      "original_sha256": "45818dd523ea7a0a3e0fc0a86dace25dbdb6d4961bc04c11b9051e79487cc878",
+      "original_lines": 9600,
+      "source_worktree": "porteB-v301"
     }
   ]
 }

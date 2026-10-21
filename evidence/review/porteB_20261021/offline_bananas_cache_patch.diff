@@ -1,0 +1,42 @@
+diff --git a/sweeps/campaign_freeze.py b/sweeps/campaign_freeze.py
+index 3f1f08fd..0330e516 100644
+--- a/sweeps/campaign_freeze.py
++++ b/sweeps/campaign_freeze.py
+@@ -315,6 +315,37 @@ def freeze_bananas_libraries(specs, destination: Path):
+ 
+     destination = Path(destination)
+     destination.mkdir(parents=True, exist_ok=False)
++    # Local, hash-verified copy of an already frozen campaign is useful when
++    # the BaNaNaS metadata endpoint is temporarily unavailable (HTTP 502).
++    # Never silently switch versions: all declared specs and tar checksums
++    # must match the exact previously recorded manifest.
++    offline_dir = destination.parent.parent / "_bananas_offline_cache"
++    offline_manifest = offline_dir / "manifest.json"
++    if offline_manifest.is_file():
++        groups = json.loads(offline_manifest.read_text(encoding="utf-8"))
++        if len(groups) != len(specs):
++            raise ValueError("offline BaNaNaS cache: library spec count changed")
++        descriptors = []
++        for spec, group in zip(specs, groups):
++            if (group["requested_unique_id"] != spec["unique_id"] or
++                group["requested_name"] != spec["name"] or
++                group.get("requested_md5") != spec.get("md5")):
++                raise ValueError("offline BaNaNaS cache: requested library mismatch")
++            for item in group["resolved"]:
++                filename = item["filename"]
++                if Path(filename).name != filename:
++                    raise ValueError("offline BaNaNaS cache: invalid filename")
++                source = offline_dir / filename
++                if (not source.is_file() or source.stat().st_size != item["size"] or
++                    sha256_file(source) != item["sha256"]):
++                    raise ValueError(f"offline BaNaNaS cache: invalid tar {filename}")
++                target = destination / filename
++                if not target.exists():
++                    shutil.copyfile(source, target)
++                if sha256_file(target) != item["sha256"]:
++                    raise ValueError(f"offline BaNaNaS cache: target hash mismatch {filename}")
++            descriptors.append(_frozen_library_descriptor(spec["name"], group["resolved"], destination))
++        return tuple(descriptors), groups
+     frozen_descriptors = []
+     manifest_groups = []
+     known_files = {}

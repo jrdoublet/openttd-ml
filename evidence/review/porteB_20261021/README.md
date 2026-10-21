@@ -1,4 +1,6 @@
-# Campagnes du 21 octobre 2026 — publication des résultats achevés
+# Campagnes du 21 octobre 2026 — publication des résultats achevés (6 campagnes)
+
+## Première série (V294all, adapt400 et V297)
 
 Trois campagnes OpenTTD 15.3 / OpenGFX 7.1, démarrées en 1970, carte 256×256, sur dix ans (dernier relevé **1979-12-01**). Chaque graine donne un duel partagé indépendant `OpexAI` contre `AAAHogEx` pour la référence puis pour la variante. La métrique primaire est le `profit_year` terminal **OpexAI variante − OpexAI référence**, en £/an ; il ne s'agit ni du profit cumulé ni de l'écart de score face à AAAHogEx.
 
@@ -28,4 +30,32 @@ Les archives de checkpoints contiennent **19 200 lignes JSONL** pour V294all, **
 python -X utf8 evidence/review/porteB_20261021/verify_publication.py
 ```
 
-La campagne V296a est **hors périmètre**, et le script modifié du worktree `results/porteB_nuit_runner_stage_20261021` n'entre pas dans cette publication.
+La campagne V296a est **hors périmètre**. Le script de lancement de la deuxième série est maintenant inclus dans la branche de publication, avec les références explicites et les arrêts sur erreur corrigés.
+
+## Deuxième série (finpartie, V296clean, V301) — publication complémentaire
+
+Les trois autres campagnes du **21 octobre 2026** sont achevées, en **1970–1979**, carte 256×256, 20 graines et 10 années, 40 parties par campagne. Aucun échec (`failed_runs=[]`), couverture terminale complète, 20 paires appariées sur 20, aucune partie manquante. La métrique et la convention de delta sont les mêmes que dans la première série.
+
+| Campagne et mode | Δ profit_year moyen (£/an) | Δ % du ratio des moyennes | V/D/E | IC95 bootstrap (£/an) | p Wilcoxon | Valeur Opex, ratio des moyennes | Verdict harnais |
+|---|---:|---:|---:|---:|---:|---:|---|
+| `finpartie_porteB_20x10_pc_20261021` (partie complète) | **+407 477,75** | **+10,833921 %** | 17/3/0 | [+247 585,85 ; +567 803,95] | **0,000168** | +1,286376 % | `pass` |
+| `v296clean_porteB_20x10_pc_20261021` (partie complète) | +144 329,10 | +3,824396 % | 12/8/0 | [−40 733,75 ; +324 727,50] | 0,142906 | +2,636097 % | `pass` |
+| `v301_porteB_20x10_pc_20261021` (multimodal, sous adapt400) | +42 401,45 | +1,119791 % | 10/10/0 | [−115 608,80 ; +205 500,00] | 0,756166 | +0,551597 % | `pass` |
+
+**Portée :** `pass` ne signifie **pas** gain significatif sous `non_erosion`. Cette porte B rejette un candidat uniquement si la borne haute de l'IC95 bootstrap du delta de profit tombe sous zéro ou si la garde de valeur (−5 %) échoue. `finpartie` possède un gain positif avec IC95 entièrement positif ; V296clean et V301 restent incertains à dix ans, même si la règle accepte leur absence d'érosion démontrée. Le seuil indicatif de +4 % du profit de référence est reporté, pas une condition de réussite de cette porte.
+
+| Campagne | Intervention de la variante | Git de l'IA figé | SHA256 du bundle |
+|---|---|---|---|
+| finpartie | `v249_statue=0` → `2` et `v292_hq_hub=0` → `1` | `7352ba3693c7727425ece77be8809633acd3ecb8` | `fbc05626b98e0f0b241fcff95391d893380b31a911f1983d3a605f94be0730e0` |
+| V296clean | `v296_rail_batch_build=0` → `1` et `v296_astar_native=0` → `1` | `46afe330666b40b68e9bc0c1219b844e7ac0d527` | `eacc85e178333d749da1babf33751b5c540fd2eadd59bb39be7e772134fe9e77` |
+| V301 | `v301_notrain_fix=0` → `15`, avec `v294_rail_weight_adapt=400` sur les deux bras | `7353241aa3bbb13ab66f2a95c35e1983ac035b9a` | `a2f8a16d579c30687a9df1f7d264a0051d0a170ce855ecd52b60c74a6201e831` |
+
+**Reproductibilité et incident BaNaNaS :** finpartie a tourné avec Git propre. Les deux autres campagnes ont été exécutées sur leur IA non modifiée, mais le fichier de préparation `sweeps/campaign_freeze.py` était modifié localement (Git `dirty=1`) pour contourner une réponse HTTP 502 de BaNaNaS. Ce contournement récupère les quatre archives de bibliothèques depuis la campagne finpartie déjà figée et vérifie pour chacune le nom, la taille et l'empreinte SHA-256 attendue ; il ne change aucune règle d'IA ni aucune partie OpenTTD. Le diff exact `offline_bananas_cache_patch.diff` est joint. Les bundles et manifestes originaux identifient les sources effectivement employées ; leur empreinte ne doit pas être substituée par celle d'un checkout Git propre.
+
+Les rapports `.json`, manifestes `.manifest.json` et checkpoints compressés `.jsonl.gz` de cette deuxième série sont conservés dans ce même dossier, avec empreintes de chaque copie, empreintes des fichiers JSONL originaux et comptes de lignes dans `SHA256SUMS.json` (9 600 lignes JSONL par campagne). L'outil de vérification couvre désormais **six campagnes : 140 paires complètes, 280 parties** :
+
+```sh
+python -X utf8 evidence/review/porteB_20261021/verify_publication.py
+```
+
+Les profits absolus et différences OpexAI − AAAHogEx sont dans les rapports originaux ; les deltas du tableau sont **variante OpexAI − référence OpexAI**, pas une comparaison directe à AAAHogEx. Les campagnes finpartie et V296clean ont des références différentes des campagnes précédentes, et V301 réutilise adapt400 comme référence : ne pas interpréter la différence entre leurs niveaux de profit comme un duel entre candidats.
