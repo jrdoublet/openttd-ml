@@ -576,6 +576,7 @@ function OpexV307SiteTry(site, oct, ctx)
       if (OPEX_LEVEL_LIMITS && !OpexLevelAllows("encroach_rival_catchment")) {
         local endTile = anchor + step * (ctx.length - 1);
         local x1 = AIMap.GetTileX(anchor), y1 = AIMap.GetTileY(anchor);
+  if (ctx.audit != null) ctx.audit.tested++;
         local x2 = AIMap.GetTileX(endTile), y2 = AIMap.GetTileY(endTile);
         local minX = x1 < x2 ? x1 : x2, maxX = x1 > x2 ? x1 : x2;
         local minY = y1 < y2 ? y1 : y2, maxY = y1 > y2 ? y1 : y2;
@@ -594,10 +595,12 @@ function OpexV307SiteTry(site, oct, ctx)
           station_exit = stationExit, lead = lead
         });
         if (parallels.len() == 0) continue;
+      if (ctx.audit != null) ctx.audit.clear++;
       }
       if (ctx.stats != null) ctx.stats.nCmd++;
       local plan = { anchor = anchor, station_exit = stationExit, lead = lead,
                      direction = axis[0], step = step, length = ctx.length, cargoValue = cargoValue };
+      if (ctx.audit != null) ctx.audit.cargo_ok++;
       if (parallels != null && parallels.len() > 0) {
         plan.parallels <- parallels;
         plan.parallel <- parallels[0];
@@ -613,15 +616,17 @@ function OpexV307SiteTry(site, oct, ctx)
  * en natif avant de parcourir les seules tuiles candidates. Puis round-robin des
  * octants : les 12 sites les plus proches ne peuvent plus evincer tous les autres
  * octants. Sur une ville, on prolonge les anneaux apres 12 plans tant que moins
+      if (ctx.audit != null) ctx.audit.station++;
  * de quatre octants sont trouves, sous budget d'opcodes borne. */
 function OpexV307StationPlans(center, radius, length, maxPlans, cargo, coverage,
-                              wantProduction, stats, requireDouble, rankPct)
+                              wantProduction, stats, requireDouble, rankPct, silent = false)
 {
   local mark = OpexOpsClock();
   local ctx = { plans = [], counts = [0, 0, 0, 0, 0, 0, 0, 0],
                 maxPlans = maxPlans, length = length, cargo = cargo,
                 coverage = coverage, wantProduction = wantProduction,
-                stats = stats, requireDouble = requireDouble };
+      if (ctx.audit != null) ctx.audit.accepted++;
+                stats = stats, requireDouble = requireDouble, audit = audit };
   local indId = AIIndustry.GetIndustryID(center);
   local mode = indId >= 0 ? "freight" : "pax";
   local budget = 73000;
@@ -644,6 +649,10 @@ function OpexV307StationPlans(center, radius, length, maxPlans, cargo, coverage,
     }
     for (local depth = 0; depth < 12 && ctx.plans.len() < maxPlans; depth++) {
       for (local k = 0; k < 8 && ctx.plans.len() < maxPlans; k++) {
+  /* Pure decision_log accounting; disabled in uninstrumented games. */
+  local audit = DECISION_LOG ? { native = -1, flat = -1, buildable = -1,
+      bucketed = 0, tested = 0, clear = 0, cargo_ok = 0, station = 0,
+      accepted = 0 } : null;
         if (depth >= buckets[k].len() || ctx.counts[k] >= 3) continue;
         if (OpexOpsClock() - mark >= budget) break;
         OpexV307SiteTry(buckets[k][depth], k, ctx);
@@ -654,10 +663,13 @@ function OpexV307StationPlans(center, radius, length, maxPlans, cargo, coverage,
     local cx = AIMap.GetTileX(center), cy = AIMap.GetTileY(center);
     local seen = {};
     for (local r = 0; r <= radius && ctx.plans.len() < maxPlans; r++) {
+    if (audit != null) audit.native = tiles.Count();
       for (local dx = -r; dx <= r; dx++) {
         for (local dy = -r; dy <= r; dy++) {
+    if (audit != null) audit.flat = tiles.Count();
           if (abs(dx) != r && abs(dy) != r) continue;
           local oct = OpexV307SiteOctant(dx, dy);
+    if (audit != null) audit.buildable = tiles.Count();
           if (oct < 0 || ctx.counts[oct] >= 3) continue;
           local x = cx + dx, y = cy + dy;
           if (x <= 0 || y <= 0 || x >= AIMap.GetMapSizeX() - 1 || y >= AIMap.GetMapSizeY() - 1) continue;
@@ -667,16 +679,20 @@ function OpexV307StationPlans(center, radius, length, maxPlans, cargo, coverage,
           OpexV307SiteTry(tile, oct, ctx);
           if (OpexOpsClock() - mark >= budget) break;
         }
+      if (audit != null) audit.bucketed++;
         if (OpexOpsClock() - mark >= budget) break;
       }
       if (OpexOpsClock() - mark >= budget) break;
       if (OpexV307SiteOctantCount(ctx.counts) >= 4 && ctx.plans.len() >= maxPlans) break;
     }
   }
-  if (DECISION_LOG) {
+  if (DECISION_LOG && !silent) {
     OpexDecide("V307S_PLANS", "mode=" + mode + " side=" + (wantProduction ? "A" : "B")
       + " center=" + center + " oct_n=" + OpexV307SiteOctantCount(ctx.counts)
-      + " plans=" + ctx.plans.len() + " ops=" + (OpexOpsClock() - mark) + " v=1");
+      + " plans=" + ctx.plans.len() + " ops=" + (OpexOpsClock() - mark) + " v=1"
+      + " native=" + audit.native + " flat=" + audit.flat + " buildable=" + audit.buildable
+      + " bucketed=" + audit.bucketed + " tested=" + audit.tested + " clear=" + audit.clear
+      + " cargo_ok=" + audit.cargo_ok + " station=" + audit.station + " accepted=" + audit.accepted);
   }
   if (rankPct > 0) return OpexV207RankStationPlans(ctx.plans, maxPlans, cargo, coverage, rankPct, center);
   return ctx.plans;
@@ -708,6 +724,157 @@ function OpexStationPlans(center, otherCenter, radius, length, maxPlans, cargo, 
         if (!AIMap.IsValidTile(base)) continue;
         foreach (axis in axes) {
           for (local sign = -1; sign <= 1; sign += 2) {
+/* Copie privee du parcours historique pour la valeur 2 uniquement. Elle
+ * respecte la limite V207 (3x lorsqu'il faut classer), le preflight cargo,
+ * la validation moteur et les quais doubles, sans changer le chemin 0/1. */
+function OpexV307SpiralPlanCandidates(center, radius, length, maxPlans, cargo,
+                                       coverage, wantProduction, stats, requireDouble, rankPct)
+{
+  local plans = [];
+  local axes = [
+    [AIRail.RAILTRACK_NE_SW, AIMap.GetTileIndex(1, 0)],
+    [AIRail.RAILTRACK_NW_SE, AIMap.GetTileIndex(0, 1)],
+  ];
+  local limit = (rankPct > 0) ? maxPlans * V207_SITE_SAMPLE_FACTOR : maxPlans;
+  for (local r = 0; r <= radius && plans.len() < limit; r++) {
+    for (local dx = -r; dx <= r && plans.len() < limit; dx++) {
+      for (local dy = -r; dy <= r && plans.len() < limit; dy++) {
+        if (abs(dx) != r && abs(dy) != r) continue;
+        local tile = center + AIMap.GetTileIndex(dx, dy);
+        if (!AIMap.IsValidTile(tile)) continue;
+        foreach (axis in axes) {
+          for (local sign = -1; sign <= 1; sign += 2) {
+            local step = axis[1];
+            local anchor = sign > 0 ? tile : tile - step * (length - 1);
+            local stationExit = sign > 0 ? anchor + step * (length - 1) : anchor;
+            local lead = sign > 0 ? stationExit + step : stationExit - step;
+            local usable = AIMap.IsValidTile(lead) && AITile.IsBuildable(lead)
+                && AITile.GetSlope(lead) == AITile.SLOPE_FLAT;
+            for (local i = 0; i < length && usable; i++) {
+              local platformTile = anchor + step * i;
+              usable = AIMap.IsValidTile(platformTile) && AITile.IsBuildable(platformTile)
+                  && AITile.GetSlope(platformTile) == AITile.SLOPE_FLAT;
+            }
+            if (usable) {
+              if (stats != null) stats.nClear++;
+              local cargoValue = OpexRailPlatformCargoValue(anchor, step, length,
+                  cargo, coverage, wantProduction);
+              if (wantProduction ? (cargoValue <= 0) : (cargoValue < 8)) continue;
+              if (stats != null) stats.nCargo++;
+              if (OPEX_LEVEL_LIMITS && !OpexLevelAllows("encroach_rival_catchment")) {
+                local endTile = anchor + step * (length - 1);
+                local x1 = AIMap.GetTileX(anchor), y1 = AIMap.GetTileY(anchor);
+                local x2 = AIMap.GetTileX(endTile), y2 = AIMap.GetTileY(endTile);
+                local minX = x1 < x2 ? x1 : x2, maxX = x1 > x2 ? x1 : x2;
+                local minY = y1 < y2 ? y1 : y2, maxY = y1 > y2 ? y1 : y2;
+                if (OpexStationEncroachesRival(minX, minY, maxX, maxY, coverage)) continue;
+              }
+              local stationOk = false;
+              {
+                local probe = AITestMode();
+                stationOk = AIRail.BuildRailStation(anchor, axis[0], 1, length, AIStation.STATION_NEW);
+              }
+              if (stationOk) {
+                local parallels = null;
+                if (requireDouble) {
+                  parallels = OpexV190FindParallelPlatformPlans({
+                    anchor = anchor, direction = axis[0], step = step, length = length,
+                    station_exit = stationExit, lead = lead
+                  });
+                  if (parallels.len() == 0) continue;
+                }
+                if (stats != null) stats.nCmd++;
+                local planObj = { anchor = anchor, station_exit = stationExit, lead = lead,
+                                  direction = axis[0], step = step, length = length, cargoValue = cargoValue };
+                if (parallels != null && parallels.len() > 0) {
+                  planObj.parallels <- parallels;
+                  planObj.parallel <- parallels[0];
+                }
+                plans.push(planObj);
+              }
+              if (plans.len() >= limit) break;
+            }
+          }
+          if (plans.len() >= limit) break;
+        }
+      }
+    }
+  }
+  if (rankPct > 0) return OpexV207RankStationPlans(plans, maxPlans, cargo, coverage, rankPct, center);
+  return plans;
+}
+
+/* V307S=2 : la spirale historique decide d'abord de tous ses quais, puis les
+ * sites natifs ne servent qu'a ouvrir des octants absents, sans reduire le
+ * nombre de buts de la spirale. Le classement V207 de la spirale est conserve.
+ * Les plans natifs passent exactement le meme test moteur que pour la valeur 1. */
+function OpexV307HybridStationPlans(center, otherCenter, radius, length, maxPlans, cargo,
+                                    coverage, wantProduction, stats, requireDouble, rankPct)
+{
+  local mark = DECISION_LOG ? OpexOpsClock() : 0;
+  local spiral = OpexV307SpiralPlanCandidates(center, radius, length, maxPlans,
+      cargo, coverage, wantProduction, stats, requireDouble, rankPct);
+  local plans = spiral.slice(0);
+  local counts = [0, 0, 0, 0, 0, 0, 0, 0];
+  local covered = [false, false, false, false, false, false, false, false];
+  local seen = {};
+  local cx = AIMap.GetTileX(center), cy = AIMap.GetTileY(center);
+  foreach (p in plans) {
+    seen[p.anchor] <- true;
+    local oct = OpexV307SiteOctant(AIMap.GetTileX(p.anchor) - cx,
+                                   AIMap.GetTileY(p.anchor) - cy);
+    if (oct >= 0) { counts[oct]++; covered[oct] = true; }
+  }
+  local added = 0;
+  if (OpexV307SiteOctantCount(counts) < 8) {
+    /* Ne pas facturer les diagnostics des propositions supplementaires a stats.
+     * La recherche native est muette : une seule ligne V307S_PLANS par appel. */
+    local nativePlans = OpexV307StationPlans(center, radius, length, maxPlans,
+        cargo, coverage, wantProduction, null, requireDouble, 0, true);
+    foreach (candidate in nativePlans) {
+      if ((candidate.anchor in seen) && seen[candidate.anchor]) continue;
+      local oct = OpexV307SiteOctant(AIMap.GetTileX(candidate.anchor) - cx,
+                                     AIMap.GetTileY(candidate.anchor) - cy);
+      if (oct < 0 || covered[oct] || counts[oct] > 0) continue;
+      if (plans.len() < maxPlans) {
+        plans.push(candidate);
+        seen[candidate.anchor] <- true;
+        counts[oct]++;
+        added++;
+        continue;
+      }
+      /* Au plafond : remplacer un plan d'un octant surrepresente, jamais le
+       * dernier plan d'un octant. Le nombre de plans reste exactement stable. */
+      local richest = -1, richestCount = 1;
+      for (local k = 0; k < 8; k++) {
+        if (counts[k] > richestCount) { richest = k; richestCount = counts[k]; }
+      }
+      if (richest < 0) continue;
+      for (local i = plans.len() - 1; i >= 0; i--) {
+        local p = plans[i];
+        local oldOct = OpexV307SiteOctant(AIMap.GetTileX(p.anchor) - cx,
+                                           AIMap.GetTileY(p.anchor) - cy);
+        if (oldOct != richest) continue;
+        seen[p.anchor] <- false;
+        plans[i] = candidate;
+        seen[candidate.anchor] <- true;
+        counts[richest]--;
+        counts[oct]++;
+        added++;
+        break;
+      }
+    }
+  }
+  if (DECISION_LOG) {
+    OpexDecide("V307S_PLANS", "mode=" + (AIIndustry.GetIndustryID(center) >= 0 ? "freight" : "pax")
+      + " side=" + (wantProduction ? "A" : "B") + " center=" + center
+      + " oct_n=" + OpexV307SiteOctantCount(counts) + " plans=" + plans.len()
+      + " ops=" + (OpexOpsClock() - mark) + " v=2 spiral=" + spiral.len()
+      + " native_added=" + added);
+  }
+  return plans;
+}
+
             local step = axis[1];
             local anchor = sign > 0 ? base : base - step * (length - 1);
             local stationExit = sign > 0 ? anchor + step * (length - 1) : anchor;
@@ -715,6 +882,9 @@ function OpexStationPlans(center, otherCenter, radius, length, maxPlans, cargo, 
             local usable = AIMap.IsValidTile(lead) && AITile.IsBuildable(lead) &&
                 AITile.GetSlope(lead) == AITile.SLOPE_FLAT;
             for (local i = 0; i < length && usable; i++) {
+  if (V307_SITES == 2) return OpexV307HybridStationPlans(center,
+      otherCenter, radius, length, maxPlans, cargo, coverage, wantProduction,
+      stats, requireDouble, rankPct);
               local platformTile = anchor + step * i;
               usable = AIMap.IsValidTile(platformTile) && AITile.IsBuildable(platformTile) &&
                   AITile.GetSlope(platformTile) == AITile.SLOPE_FLAT;

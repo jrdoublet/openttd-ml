@@ -115,3 +115,111 @@ aucun changement de défaut ; `v307_sites=0`.** Pour reprendre cette piste, il
 faudrait garantir un repli de faisabilité (ou élargir les listes natives tout en
 préservant le rayon de captage) puis soumettre un nouveau bundle à une
 qualification indépendante.
+
+## Valeur 2 : repli spirale (22/10)
+
+### Étape 0 — autopsie des six journaux du 3×10 précédent
+
+Commande : `python -X utf8 sweeps/diag_v307_sites.py --logs
+results/v307s_expo_3x10_20261021_engine --autopsy`. Les trois graines
+42/7/100 sont conservées ; la table détaillée par année, côté et fret/pax est
+reproductible avec `--autopsy`. Tous les appels vides relevés sont du fret.
+
+| Recherche `plans=0` | Spirale v=0 | Native v=1 |
+|---|---:|---:|
+| Fret, côté A | 16 | 212 |
+| Fret, côté B | 25 | 145 |
+| **Total** | **41** | **357** |
+
+Sur le côté B natif, `plans=0` atteint 32/39 (82,1 %) en 1973,
+21/25 (84 %) en 1974 et 26/30 (86,7 %) en 1975 ; côté A natif,
+60/60 (100 %) en 1978 et 34/36 (94,4 %) en 1979. La population des appels
+diffère entre les bras : ce n'est pas une comparaison iso-état.
+
+**Diagnostic causal limité :** les anciens événements V307S_PLANS n'enregistrent
+ni l'effectif de la liste industrielle brute, ni les survivants de pente,
+constructibilité, rayon et quota, ni les rejets longueur + entrée, cargo,
+`AITestMode`, quai parallèle. Il est donc impossible d'attribuer **avec preuve**
+les 357 absences de plans à une étape particulière. Le code suggère que le
+préfiltrage `AITileList_Industry*` + 12 premières positions de chaque octant
+élimine des bases décalées pourtant capables de porter un quai de plusieurs
+tuiles. L'hypothèse de l'emprise de l'industrie est plausible, **non vérifiée**.
+Une instrumentation conditionnée à `decision_log` comptabilise désormais
+`native`, `flat`, `buildable`, `bucketed`, `tested`, `clear`, `cargo_ok`,
+`station`, `accepted` dans V307S_PLANS. Le décodage `--autopsy` distingue
+explicitement les anciens journaux « étape inconnue ». Aucun de ces compteurs
+n'est actif au défaut sans journal.
+
+### Étape 1 — variante v307_sites=2
+
+- Valeurs 0 et 1 : logique préexistante conservée, défaut **0** aux quatre
+  difficultés. La valeur 2 commence par l'appel exact au code de la spirale
+  historique (y compris le classement V207 quand actif), puis recherche les
+  sites natifs admissibles dans les seuls octants initialement absents.
+- Les ancres natives déjà utilisées sont écartées ; tant qu'il reste de la place,
+  les nouveaux octants sont ajoutés. Au plafond de 12, un quai d'un octant
+  surreprésenté peut être remplacé sans réduire le nombre de plans et sans
+  supprimer le dernier quai de cet octant. Aucun remplacement n'est imposé
+  si les propositions natives n'apportent pas d'octant supplémentaire.
+- La ligne `V307S_PLANS` de la variante porte `v=2`, `spiral=<n>`,
+  `native_added=<n>` et les opcodes de l'appel complet. La recherche native
+  interne est muette et ne crée pas de seconde ligne d'appel.
+
+**Contrats pré-enregistrés avant exposition :** smoke 1×1 (42, un an), puis
+3×10 (42/7/100, trois paires, horizon dix ans), `decision_log=1` des deux
+côtés et aucun réglage comportemental différent sauf `v307_sites=2`.
+Critères structurels cumulatifs : (1) `ABND+SITEB` ≤ 70 % de la référence,
+(2) `SITEA` ≤ référence + 2, (3) `RAIL_BUILD` ≥ référence, (4) médiane des octants B
+≥ référence + 1, (5) médiane d'opcodes par appel ≤ 1,5 × référence.
+Le delta `profit_year` du 3×10 est descriptif et **ne décide pas** du passage
+à une porte A. Aucun défaut ne change après le résultat.
+
+### Étape 2 — exposition 3×10 complète et verdict
+
+Smoke `results/v307s2_smoke_1x1_20261022.json` : deux duels terminés (graine
+42 × 1 an), **zéro erreur Squirrel**. Les six appels `V307S_PLANS v=2`
+observés gardent exactement les 12 plans de la spirale en effectif ; entre
+2 et 4 propositions natives remplacent des plans dans des octants déjà servis.
+
+Exposition `results/v307s2_expo_3x10_20261022.json`, six journaux dans
+`results/v307s2_expo_3x10_20261022_engine` : **3/3 paires complètes**, six
+parties saines, **zéro erreur de script**, comparabilité et couverture des
+métriques confirmées par `policy_comparison` du JSON final. Le smoke et
+l'exposition partagent le bundle figé
+`4d16f702141b566a36913bfe3465b603beb3798b893d410ef0b07358e836e95b` ;
+manifeste de l'exposition
+`ec9a73a974f78b2494b9b67f9eeca8bba1a8774c3f542ff2aaa442e90c8d2f9f`.
+Mêmes graines 42/7/100, horizon dix ans, mode apparié, `decision_log=1`,
+`--line-telemetry`, 3 workers et plafonds 10 CPU / 8 Go sur PC.
+
+| Critère pré-enregistré | Référence | V307S=2 | Condition | Verdict |
+|---|---:|---:|---|---|
+| 1. `ABND + SITEB` | 12 | 4 | Variante ≤ 8,4 | **Passe** |
+| 2. `SITEA` | 6 | 0 | Variante ≤ 8 | **Passe** |
+| 3. `RAIL_BUILD` | 78 | 80 | Variante ≥ 78 | **Passe** |
+| 4. Octants médians côté B | 3 | 6 | Variante ≥ 4 | **Passe** |
+| 5. Ops médianes par appel, tous côtés | 11 268 | 24 251 | Variante ≤ 16 902 | **Échoue : ×2,15** |
+
+Compléments : médiane d'opcodes côté A, 11 225,5 → 24 106,5 (×2,15) ;
+côté B, 11 582 → 25 437,5 (×2,20). Les appels `V307S_PLANS` sont 214
+en référence et 188 en variante, avec `plans=0` respectivement 23 et 12.
+Sur 188 appels v=2, **aucun** ne retourne moins de plans que sa spirale
+(`plans >= spiral`), et la somme des `native_added` vaut 310. Les
+distributions d'appels sont dépendantes des trajectoires et non iso-état ;
+les opcodes enregistrés peuvent aussi englober des ticks. La mesure est
+néanmoins celle pré-enregistrée pour décider de la qualification technique.
+
+**Économie exploratoire, non qualifiante :** delta `profit_year`
+`−259 768 £/an` (moyenne), `−411 154 £/an` (médiane), 1V/2D/0E,
+IC95 bootstrap de la moyenne `[−868 211 ; +500 061] £/an`
+(20 000 tirages, graine bootstrap 0), Wilcoxon p=0,75. Ratio des moyennes
+de valeur de compagnie `0,957211` (−4,279 %). Ce panel de trois graines
+n'autorise aucune conclusion sur un gain ou une perte à généraliser.
+
+**Décision : qualification technique REFUSÉE (4/5).** Le repli spirale
+élimine la majorité des `SITEA`/`SITEB` et améliore les constructions,
+mais la recherche combinée coûte **2,15 fois** les opcodes médians de la
+référence, au-dessus du plafond ×1,5. **Ne pas lancer de porte A 40×3,
+ne pas modifier le défaut `v307_sites=0`.** Un prochain essai devrait
+éviter le double parcours intégral des sites sans perdre la garantie de
+faisabilité de la spirale ; ce serait un autre bundle et un autre test.

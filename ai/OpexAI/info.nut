@@ -402,8 +402,8 @@ class OpexAIInfo extends AIInfo {
 
     AddSetting({
       name = "v307_sites",
-      description = "V307 1.8 experimental dispersed rail station sites: freight native industry catchment and city octant spread, at most three plans per octant. 0 = historical spiral (default), 1 = experimental",
-      min_value = 0, max_value = 1,
+      description = "V307 1.8 experimental rail station sites: 0 = historical spiral (default), 1 = native dispersed, 2 = spiral first with native octant supplementation",
+      min_value = 0, max_value = 2,
       easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
       step_size = 1, flags = 0
     });

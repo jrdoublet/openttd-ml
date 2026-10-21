@@ -125,15 +125,66 @@ def format_report(report):
     return "\n".join(lines)
 
 
+def autopsy(observations):
+    """Pre-existing logs: annual empty-plan rates; newer logs: first empty stage.
+
+    Stages are conditional diagnostic bounds, never an inference from opcodes.
+    """
+    groups = defaultdict(list)
+    for record in observations["sites"]:
+        key = (record["arm"], record["date"][:4], record.get("side", "?"),
+               record.get("mode", "?"))
+        groups[key].append(record)
+    lines = ["| Bras | Année | Côté | Type | Plans=0 | Appels | Taux |",
+             "|---|---|---|---|---:|---:|---:|"]
+    stage_counts = Counter()
+    undiagnosed = Counter()
+    total_zeros = Counter()
+    for (arm, year, side, mode), calls in sorted(groups.items()):
+        zeros = [x for x in calls if x.get("plans") == "0"]
+        lines.append(f"| {arm} | {year} | {side} | {mode} | {len(zeros)} | "
+                     f"{len(calls)} | {len(zeros) / len(calls):.1%} |")
+        total_zeros[arm] += len(zeros)
+        for rec in zeros:
+            stages = (("native_empty", "native"), ("no_flat", "flat"),
+                      ("not_buildable", "buildable"), ("out_of_radius_or_quota", "bucketed"),
+                      ("no_tested_start", "tested"), ("no_clear_platform_and_lead", "clear"),
+                      ("insufficient_cargo", "cargo_ok"),
+                      ("AITestMode_or_encroachment", "station"),
+                      ("parallel_platform_or_budget", "accepted"))
+            if "native" not in rec:
+                undiagnosed[arm] += 1
+                continue
+            for label, key in stages:
+                if int(rec.get(key, "-1")) == 0:
+                    stage_counts[(arm, label)] += 1
+                    break
+            else:
+                stage_counts[(arm, "other") ] += 1
+    lines += ["", "| Bras | Premiers filtres vides (diagnostic) | Appels |",
+              "|---|---|---:|"]
+    for (arm, label), count in sorted(stage_counts.items()):
+        lines.append(f"| {arm} | {label} | {count} |")
+    for arm in sorted(total_zeros):
+        if undiagnosed[arm]:
+            lines.append(f"| {arm} | étape inconnue (anciens logs sans compteurs) | "
+                         f"{undiagnosed[arm]} |")
+    return "\n".join(lines)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--logs", type=Path, required=True)
+    parser.add_argument("--autopsy", action="store_true",
+                        help="Taux plans=0 par année/côté/type et étapes de filtrage disponibles")
     args = parser.parse_args()
     paths = sorted(p for p in args.logs.iterdir() if p.name.endswith((".log", ".log.gz")))
     observations = parse_logs(paths)
     if not observations["files"]:
         parser.error("aucun journal moteur attendu (arm_seedN_rN.log) dans --logs")
     print(format_report(summarise(observations)))
+    if args.autopsy:
+        print("\n" + autopsy(observations))
 
 
 if __name__ == "__main__":

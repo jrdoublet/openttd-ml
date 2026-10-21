@@ -127,7 +127,8 @@ function OpexLoadSettings()
   V307_PROBE_YEAR = (v307Year != null && v307Year > 0 && v307Year <= 9) ? v307Year : 0;
   V308_CARTO_PROBE = AIController.GetSetting("v308_carto_probe") == 1 ? 1 : 0;
   V307_ABND_AUTOPSY = AIController.GetSetting("v307_abnd_autopsy") == 1;
-  V307_SITES = AIController.GetSetting("v307_sites") == 1 ? 1 : 0;
+  local v307Sites = AIController.GetSetting("v307_sites");
+  V307_SITES = (v307Sites == 1 || v307Sites == 2) ? v307Sites : 0;
   local v307Room = AIController.GetSetting("v307_sink_room");
   V307_SINK_ROOM = (v307Room != null && v307Room >= 0 && v307Room <= 3) ? v307Room : 0;
   /* RAIL-CAL-1 : lecture unique, ne modifie ni budget ni financement. */
