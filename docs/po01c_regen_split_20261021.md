@@ -90,4 +90,49 @@ modules NumPy sont explicitement sautés en son absence. Aucune installation.
 Les six sites Valuate des copies utilisent les mêmes API natives que leurs
 originaux ; inventaire V262 actualisé, contrat V261 conservé.
 
-Mesures finales et limites : à compléter après exécution.
+## Reprise par Claude (21/10, 23 h) : deux corrections, puis mesures
+
+Codex s'est arrêté sur quota après `4360b53` ; son smoke `po01c_smoke_20261021_d`
+(42 × 3 ans) était sain (2 lots, tranches ≤ 3 jours, 0 erreur) mais non dépouillé.
+Branche fusionnée avec master (`6f0de78`), copies régénérées (identiques), suite :
+aucun échec nouveau (17 échecs préexistants, contre 27 sur master).
+
+L'exposition `po01c_exposure_20261021_c` (code fusionné) échoue encore sur la graine 7
+(483 tranches en 1972, 0 lot publié). Deux causes :
+1. **Interception trop large** : `po01c_regen_split=1` captait toute intention `regen`,
+   y compris les regens par mode (`_c80DoModeRegen`). Sur la graine 7 la référence
+   n'a aucune reconstruction complète ; la variante lançait un lot 4 modes. Correction
+   (`a30056b`) : seul le cas `modes == null` est découpé.
+2. **Débit** : le crochet tourne une fois par passe de boucle (≈ 44 ticks mesurés,
+   1,3 tranche par jour) ; à 4 000 opcodes par appel, un lot recevait ≈ 26 k opcodes
+   par jour, contre ≈ 185 k pour la reconstruction synchrone. Tranche portée à
+   `PO01C_SLICE_OPS = 40000` (≈ 4 ticks, moins d'un jour), éventuellement à cheval
+   sur plusieurs ticks.
+
+**Exposition `po01c_exposure_20261021_d`** (`a30056b`, 42/7/1234 × 3 ans, `probes=10`,
+`decision_log=1` dans les deux bras) et smoke `po01c_smoke_20261021_f` :
+
+| Partie | Référence : reconstruction synchrone | Variante : lots publiés | Durée du lot | Opcodes | Tranche max | Erreurs |
+|---|---|---|---:|---:|---:|---:|
+| smoke 42 | 18 jours (19/01/1972) | 1 (10/03/1972) | 69 j | 3,80 M | 2 j | 0 |
+| 42 | 22 jours (24/01/1972) | 1 (07/03/1972) | 65 j | 3,43 M | 2 j | 0 |
+| 7 | aucune | 1 (30/03/1972) | 89 j | 4,64 M | 2 j | 0 |
+| 1234 | 45 jours (18/02/1972) | 0 : aucune demande complète | — | — | — | 0 |
+
+Critère pré-enregistré : **0 gel > 5 jours** ✅ (aucune reconstruction synchrone dans
+la variante), **0 erreur** ✅, **≥ 1 lot publié par partie variante** ❌ au sens littéral :
+la graine 1234 de la variante, dont la trajectoire diverge dès 1971, n'a jamais demandé
+de reconstruction complète. Le critère supposait une demande par partie ; il n'est pas
+réécrit après coup. Économie (diagnostic, n = 3) : +70,7 k£/an, médiane −0,6 k, 1 V / 2 D.
+
+**Save/Load** (`sweeps/save_load_roundtrip.py --require-po01c-pending`, solo) : graines
+42 et 7 sans lot en cours au moment d'une sauvegarde ; graine 100 : sauvegarde du
+01/02/1972 prise pendant un lot, rechargée, 0 erreur, `LOAD_RECONCILE` 37/37, partie
+poursuivie un an (109 → 213 véhicules). Correction du filtre (`d28202c`) : Save() est
+journalisé la veille de la date du fichier.
+
+**Limites** : un lot met 2 à 3 mois à aboutir ; pendant ce temps, le vivier des modes
+concernés reste celui d'avant (pas de gel, mais un portefeuille plus ancien). Le
+contenu publié est calculé sur les lignes et l'état du début du lot ; la resélection
+finale, elle, lit l'état courant. Aucune mesure à 10 ans (2 à 4 reconstructions par
+partie selon PO-01) : prochaine exposition 3×10, puis porte A.
