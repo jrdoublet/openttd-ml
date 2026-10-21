@@ -44,13 +44,13 @@ class TestV294cRailWeightPct(unittest.TestCase):
         self.assertIsNotNone(match, "v294_rail_weight_pct non déclaré dans info.nut")
         block = match.group(1)
         for level in ("easy", "medium", "hard", "custom"):
-            self.assertRegex(block, rf"{level}_value\s*=\s*0\b")
+            self.assertRegex(block, rf"{level}_value\s*=\s*200\b")
         self.assertIn("min_value = 0", block)
         self.assertIn("max_value = 400", block)
 
     def test_global_declared_and_loaded_once(self):
         globals_pre = read("globals_pre.nut")
-        self.assertIn("V294_RAIL_WEIGHT_PCT <- 0;", globals_pre)
+        self.assertIn("V294_RAIL_WEIGHT_PCT <- 200;", globals_pre)
         settings = read("settings.nut")
         self.assertEqual(settings.count('GetSetting("v294_rail_weight_pct")'), 1)
         self.assertIn("V294_RAIL_WEIGHT_PCT = railWeightPct;", settings)
@@ -68,13 +68,13 @@ class TestV294dRailAaaCosts(unittest.TestCase):
         self.assertIsNotNone(match, "v294_rail_aaa_costs non déclaré dans info.nut")
         block = match.group(1)
         for level in ("easy", "medium", "hard", "custom"):
-            self.assertRegex(block, rf"{level}_value\s*=\s*0\b")
+            self.assertRegex(block, rf"{level}_value\s*=\s*1\b")
         self.assertIn("min_value = 0", block)
         self.assertIn("max_value = 1", block)
 
     def test_global_declared_and_loaded_once(self):
         globals_pre = read("globals_pre.nut")
-        self.assertIn("V294_RAIL_AAA_COSTS <- 0;", globals_pre)
+        self.assertIn("V294_RAIL_AAA_COSTS <- 1;", globals_pre)
         settings = read("settings.nut")
         self.assertEqual(settings.count('GetSetting("v294_rail_aaa_costs")'), 1)
         self.assertIn("V294_RAIL_AAA_COSTS = aaaCosts;", settings)
@@ -119,13 +119,13 @@ class TestV294fRailReverseProbe(unittest.TestCase):
         self.assertIsNotNone(match, "v294_rail_reverse_probe non déclaré dans info.nut")
         block = match.group(1)
         for level in ("easy", "medium", "hard", "custom"):
-            self.assertRegex(block, rf"{level}_value\s*=\s*0\b")
+            self.assertRegex(block, rf"{level}_value\s*=\s*300\b")
         self.assertIn("min_value = 0", block)
         self.assertIn("max_value = 5000", block)
 
     def test_global_declared_and_loaded_once(self):
         globals_pre = read("globals_pre.nut")
-        self.assertIn("V294_RAIL_REVERSE_PROBE <- 0;", globals_pre)
+        self.assertIn("V294_RAIL_REVERSE_PROBE <- 300;", globals_pre)
         settings = read("settings.nut")
         self.assertEqual(settings.count('GetSetting("v294_rail_reverse_probe")'), 1)
         self.assertIn("V294_RAIL_REVERSE_PROBE = revProbe;", settings)
@@ -152,13 +152,13 @@ class TestV294iRailDistDecouple(unittest.TestCase):
         self.assertIsNotNone(match, "v294_rail_dist_decouple non déclaré dans info.nut")
         block = match.group(1)
         for level in ("easy", "medium", "hard", "custom"):
-            self.assertRegex(block, rf"{level}_value\s*=\s*0\b")
+            self.assertRegex(block, rf"{level}_value\s*=\s*200\b")
         self.assertIn("min_value = 0", block)
         self.assertIn("max_value = 500", block)
 
     def test_global_declared_and_loaded_once(self):
         globals_pre = read("globals_pre.nut")
-        self.assertIn("V294_RAIL_DIST_DECOUPLE <- 0;", globals_pre)
+        self.assertIn("V294_RAIL_DIST_DECOUPLE <- 200;", globals_pre)
         settings = read("settings.nut")
         self.assertEqual(settings.count('GetSetting("v294_rail_dist_decouple")'), 1)
         self.assertIn("V294_RAIL_DIST_DECOUPLE = distDecouple;", settings)
@@ -188,13 +188,13 @@ class TestV294jRailSlopeEngine(unittest.TestCase):
         self.assertIsNotNone(match, "v294_rail_slope_engine non déclaré dans info.nut")
         block = match.group(1)
         for level in ("easy", "medium", "hard", "custom"):
-            self.assertRegex(block, rf"{level}_value\s*=\s*0\b")
+            self.assertRegex(block, rf"{level}_value\s*=\s*1\b")
         self.assertIn("min_value = 0", block)
         self.assertIn("max_value = 1", block)
 
     def test_global_declared_and_loaded_once(self):
         globals_pre = read("globals_pre.nut")
-        self.assertIn("V294_RAIL_SLOPE_ENGINE <- 0;", globals_pre)
+        self.assertIn("V294_RAIL_SLOPE_ENGINE <- 1;", globals_pre)
         settings = read("settings.nut")
         self.assertEqual(settings.count('GetSetting("v294_rail_slope_engine")'), 1)
         self.assertIn("V294_RAIL_SLOPE_ENGINE = slopeEngine;", settings)

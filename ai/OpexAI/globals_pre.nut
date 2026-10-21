@@ -30,7 +30,7 @@ V294H_RAIL_DEFER <- 0; // 0 : master ; N : trace rapide de N iterations, puis re
 V294H_OPS_PER_ITER <- 200; // V294h : cout mesure d'une iteration A* (moyenne glissante, transitoire).
 V284_RAIL_GROWTH <- 0; // 0 : master ; N : croissance fret apres N ans et 1 M£ disponible.
 /* V294 : ponts/tunnels longs et recherche A* continue (defauts 0 = master inchange). */
-V294_RAIL_BRIDGE_LEN <- 0;
+V294_RAIL_BRIDGE_LEN <- 20;  // defaut V294all depuis le 21/10 (decision utilisateur)
 V294_RAIL_CONTINUOUS <- 0;
 V269_RELAXED <- false;
 V269_ON <- false;
@@ -129,15 +129,15 @@ V259_BRIDGE_RENEW <- 0;
 /* V277 : publication rapide des projets air et filtre indexe de re-selection. */
 V277_AIR_PUB_FAST <- 0;
 /* V294c : poids heuristique A* rail unifié à toutes les distances (défaut 0 = inerte). AAA : 200 partout. */
-V294_RAIL_WEIGHT_PCT <- 0;
+V294_RAIL_WEIGHT_PCT <- 200;  // defaut V294all depuis le 21/10 (decision utilisateur)
 /* V294d : table de coûts A* rail alignée sur AAAHogEx (défaut 0 = inerte). */
-V294_RAIL_AAA_COSTS <- 0;
+V294_RAIL_AAA_COSTS <- 1;  // defaut V294all depuis le 21/10 (decision utilisateur)
 /* V294f : sonde A* inverse avant recherche ferroviaire (défaut 0 = inerte). AAA : 300 iters. */
-V294_RAIL_REVERSE_PROBE <- 0;
+V294_RAIL_REVERSE_PROBE <- 300;  // defaut V294all depuis le 21/10 (decision utilisateur)
 /* V294i : découplage distance railMax des candidats du plafond d'itérations (défaut 0 = inerte). */
-V294_RAIL_DIST_DECOUPLE <- 0;
+V294_RAIL_DIST_DECOUPLE <- 200;  // defaut V294all depuis le 21/10 (decision utilisateur)
 /* V294j : adaptation des coûts A* rail selon la force de la locomotive (défaut 0 = inerte). AAA : pente 1500, virage 100 si faible. */
-V294_RAIL_SLOPE_ENGINE <- 0;
+V294_RAIL_SLOPE_ENGINE <- 1;  // defaut V294all depuis le 21/10 (decision utilisateur)
 V172_RAIL_LONG_WEIGHT_DIST <- 100;
 /* Cascade pax par distance decroissante : air seul, air+rail, rail seul,
  * route seule. Le fret accompagne la premiere passe. */
@@ -730,7 +730,7 @@ V279_MISSES <- 0;
 V279_LAST_STATS_MONTH <- -1;
 
 /* V295 : optimisations exactes A* rail V129 (filtre de Bloom ancetres et dedoublonnage buts). */
-V295_ASTAR_FAST <- 0;
+V295_ASTAR_FAST <- 1;  // defaut V294all depuis le 21/10 (decision utilisateur)
 
 /* V292b : pose du QG pres de la gare voyageurs la plus chargee (0/1, defaut 0). */
 V292_HQ_HUB <- 0;
