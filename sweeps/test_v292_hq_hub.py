@@ -31,14 +31,14 @@ class TestV292HqHub(unittest.TestCase):
         cls.persist = cls.sources["persist.nut"]
         cls.hq_body = _body(cls.report, "function OpexAI::_v292TryBuildHq(year)")
 
-    def test_setting_declared_default_zero(self):
+    def test_setting_declared_default_one(self):
         block = re.search(r'AddSetting\(\{\s*name = "v292_hq_hub",(.*?)\}\);', self.info, re.S)
         self.assertIsNotNone(block, "v292_hq_hub doit etre declare dans info.nut")
         body = block.group(1)
         for level in ("easy_value", "medium_value", "hard_value", "custom_value"):
-            self.assertRegex(body, rf"{level}\s*=\s*0\b")
+            self.assertRegex(body, rf"{level}\s*=\s*1\b")
         self.assertIn("min_value = 0, max_value = 1", body)
-        self.assertIn("V292_HQ_HUB <- 0;", self.globals_pre)
+        self.assertIn("V292_HQ_HUB <- 1;", self.globals_pre)
 
     def test_setting_read_once(self):
         reads = [(name, text.count('GetSetting("v292_hq_hub")'))

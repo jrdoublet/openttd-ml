@@ -29,7 +29,7 @@ class TestV249Statues(unittest.TestCase):
         cls.dispatch_m2 = _body(cls.task, "function OpexV249DispatchMode2(ai, ym, year)")
         cls.measure = _body(cls.task, "function OpexV249MeasureStatueCost(townId)")
 
-    def test_setting_declared_default_zero(self):
+    def test_setting_declared_default_two(self):
         block = re.search(
             r'name = "v249_statue",(.*?)\}\);', self.sources["info.nut"], re.S)
         self.assertIsNotNone(block)
@@ -38,8 +38,8 @@ class TestV249Statues(unittest.TestCase):
         self.assertIn("max_value = 2", body)
         self.assertIn("flags = 0", body)
         for level in ("easy_value", "medium_value", "hard_value", "custom_value"):
-            self.assertRegex(body, level + r" = 0\b")
-        self.assertIn("V249_STATUE <- 0;", self.sources["globals_pre.nut"])
+            self.assertRegex(body, level + r" = 2\b")
+        self.assertIn("V249_STATUE <- 2;", self.sources["globals_pre.nut"])
         self.assertIn("V249_CASH_STOP <- true;", self.sources["globals_pre.nut"])
         joined = "".join(self.sources.values())
         self.assertNotIn("v249_statue_cash", joined)

@@ -111,7 +111,7 @@ V216A_GHOST_DEMAND <- 0;
 /* V216f : sejour mecanique en gare dans le cycle rail, en % de l'estimation EST-16 (economy.nut). */
 V216F_DWELL_PCT <- 0;
 /* V249 : statue quand on est riche, sans seuil en livres (task_v249.nut). */
-V249_STATUE <- 0;
+V249_STATUE <- 2;  // defaut finpartie depuis le 21/10 (decision utilisateur)
 /* Vrai si une passe projets s'est arretee faute de caisse depuis le dernier
  * passage statue. Vrai au depart : le premier mois ne compte pas. Pas sauvegarde. */
 V249_CASH_STOP <- true;
@@ -733,4 +733,4 @@ V279_LAST_STATS_MONTH <- -1;
 V295_ASTAR_FAST <- 1;  // defaut V294all depuis le 21/10 (decision utilisateur)
 
 /* V292b : pose du QG pres de la gare voyageurs la plus chargee (0/1, defaut 0). */
-V292_HQ_HUB <- 0;
+V292_HQ_HUB <- 1;  // defaut finpartie depuis le 21/10 (decision utilisateur)
