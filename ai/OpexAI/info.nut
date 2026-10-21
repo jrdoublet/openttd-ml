@@ -348,6 +348,14 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "v301_notrain_fix",
+      description = "V301: NOTRAIN fixes, bit mask. 1 = NOTRAIN/ORDFAIL abandons the pair; 2 = freight trains capped by vehicle.max_train_length; 4 = trim wagons that would not fit instead of failing; 8 = any TRKFAIL abandons the pair. 0 = historic; 15 = all (default since 21/10)",
+      min_value = 0, max_value = 15,
+      easy_value = 15, medium_value = 15, hard_value = 15, custom_value = 15,
+      step_size = 1, flags = 0
+    });
+
+    AddSetting({
       name = "v294_rail_weight_adapt",
       description = "V294c: 0 = historic A* weights; N = initial weight 100..400%, lower to historic then 100% only after a stalled rail segment",
       min_value = 0, max_value = 400,

@@ -7,6 +7,7 @@ ne créent pas une tâche. Protocole et pilotage des bancs : [AGENTS.md](../AGEN
 
 ## État courant
 
+- [x] **21/10 — V301 ADOPTÉ par décision utilisateur (porte B PC neutre +42,4 k, correctif de bogue)** : `notrain` fusionnée dans master, `v301_notrain_fix=15` par défaut aux quatre niveaux. 89 AddSetting.
 - [x] **21/10 — v296clean ADOPTÉ par décision utilisateur (porte B PC validée)** : `v296clean` fusionnée dans master, `v296_rail_batch_build=1` (V296a, pose groupée) et `v296_astar_native=1` (V296b, A* natif AIList) par défaut aux quatre niveaux. 88 AddSetting. Cumulé avec FIN-PARTIE (V249s + V292b) et V294all.
   - Porte B PC (`origin/publish/porteB-results-20261021`, `evidence/review/porteB_20261021/`) : **+144,3 k£/an**, 12 V / 8 D, p = 0,143, IC95 [−40,7 k ; +324,7 k], valeur +2,64 % ; `pass` non-érosion, gain non démontré (règle des optimisations d'opcodes).
 - [x] **21/10 matin — V294all PAR DÉFAUT sur master (décision utilisateur)** : `v294_rail_weight_adapt=400`, `v294_rail_weight_pct=200`, `v294_rail_aaa_costs=1`, `v294_rail_bridge_len=20`, `v294_rail_dist_decouple=200`, `v294_rail_reverse_probe=300`, `v294_rail_slope_engine=1`, `v295_astar_fast=1` aux quatre niveaux et dans `globals_pre.nut` ; tests adaptés, suite OK. **Restent à 0** : `v294_rail_continuous` (V294b) et `v294_rail_defer` (V294h), voir V304. Preuves : porte B adapt400 seul passée (+58,4 k) ; 40×10 PC V294all+adapt400 diagnostic +69,3 k, valeur +3,7 % ; aucune porte B du paquet complet.

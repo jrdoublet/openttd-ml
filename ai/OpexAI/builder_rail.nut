@@ -3134,6 +3134,19 @@ function OpexV163Wagons2(line)
   return (("wagons2" in line) && line.wagons2 > 0 && ("cargo2" in line)) ? line.wagons2 : 0;
 }
 
+/* V301 : le wagon `car` (dernier de rollbackVehicles, pas encore attache) ne tient pas ; la rame
+ * garde ses `kept` wagons. Le wagon isole est vendu et retire de la liste de rollback. */
+function OpexV301Trim(car, rollbackVehicles, planned, kept, locoLength, limit)
+{
+  local err = AIError.GetLastError();
+  if (rollbackVehicles.len() > 0 && rollbackVehicles[rollbackVehicles.len() - 1] == car) rollbackVehicles.pop();
+  AIVehicle.SellVehicle(car);
+  if (DECISION_LOG) {
+    OpexDecide("V301_TRIM", "wagons=" + planned + "->" + kept + " loco_len=" + locoLength + " limit=" + limit
+               + " err=" + err);
+  }
+}
+
 function OpexBuildTrains(catalog, cargo, kind, depotTile, exitA, exitB, wanted, loco, wagons, platformLength, startVehicles = true,
                          cargo2 = -1, wagons2 = 0)
 {
@@ -3216,11 +3229,19 @@ function OpexBuildTrains(catalog, cargo, kind, depotTile, exitA, exitB, wanted, 
          * donne `wagons` AVANT de lancer le train ; un NewGRF plus long ne peut pas deborder
          * silencieusement du quai. */
         if (trainLength + carLength > trainLengthLimit) {
+          if ((V301_NOTRAIN_FIX & 4) && w > 0) {
+            OpexV301Trim(car, rollbackVehicles, wagons + wagons2, w, measuredLocoLength, trainLengthLimit);
+            break;
+          }
           return { built = built, vehicles = vehicles, rollbackVehicles = rollbackVehicles,
                    failed = true, failure = "LENGTH", error = 0, diag = diag, trainLength = trainLength,
                    locoLength = measuredLocoLength, wagonLength = measuredWagonLength };
         }
         if (!AIVehicle.MoveWagon(car, 0, train, 0)) {
+          if ((V301_NOTRAIN_FIX & 4) && w > 0 && AIError.GetLastError() == AIVehicle.ERR_VEHICLE_TOO_LONG) {
+            OpexV301Trim(car, rollbackVehicles, wagons + wagons2, w, measuredLocoLength, trainLengthLimit);
+            break;
+          }
           return { built = built, vehicles = vehicles, rollbackVehicles = rollbackVehicles,
                    failed = true, failure = "WAGON", error = AIError.GetLastError(), diag = diag,
                    trainLength = trainLength, locoLength = measuredLocoLength,
