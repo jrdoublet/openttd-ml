@@ -618,6 +618,11 @@ function OpexV198ShieldedSearch(plansA, plansB, iterationBudget, deadlineTick, i
 function OpexV198ExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
 {
   local result = { ok = false, reason = "", iterations = plan.iterations, opcodes = plan.opcodes,
+                   phaseOps = (("phaseOps" in plan) && plan.phaseOps != null)
+                       ? { plans = plan.phaseOps.plans, search = plan.phaseOps.search,
+                           stations = plan.phaseOps.stations, track = plan.phaseOps.track,
+                           trains = plan.phaseOps.trains }
+                       : { plans = -1, search = -1, stations = -1, track = -1, trains = -1 },
                    error = 0, diag = null, trains = 0, vehicles = [],
                    stationA = null, stationB = null, depot = null,
                    platformA = null, platformB = null, trainLength = 0, wagons = candidate.wagons,

@@ -1143,6 +1143,7 @@ function OpexSegmentPrefixContains(prefix, tile)
  * fenetre avant le prochain FindPath. */
 function OpexFrontierAlternatives(pathfinder, maxAlternatives)
 {
+  if ("FrontierAlternatives" in pathfinder) return pathfinder.FrontierAlternatives(maxAlternatives);
   local open = pathfinder._pathfinder._open;
   if (open == null || open.Count() == 0) return [];
   local nodes = [];
@@ -2702,6 +2703,43 @@ function OpexV199RebuildForHomeward(tiles1, side = 1, budgetK = 20)
  * echec deja enregistre, aucun appel. connect = BuildRail vrai mais
  * AreTilesConnected faux.
  * `options` optionnel (V199) : isDouble, trainLength, initialBudget, accounting, retrySearchCost. */
+/* V296a : chaque commande reelle suspend le script au moins un tick ; poser tuile par tuile coutait
+ * ~1 tick par tuile (1,36 M d'opcodes hors A* par ligne posee, 20/10). AIRail.BuildRail(from, tile, to)
+ * pose d'une seule commande tout un alignement droit ou diagonal (CmdBuildRailroadTrack, qui fait le
+ * meme CMD_BUILD_SINGLE_RAIL par tuile ; en mode test il echoue en bloc sur le premier obstacle, et un
+ * echec ne suspend pas). Rend le dernier indice k >= i tel que tiles[i..k] forme un tel alignement avec
+ * tiles[i - 1] et tiles[k + 1] (k <= len - 2 : ni la premiere ni la derniere tuile ne sont posees),
+ * ou i si aucun alignement de 2 tuiles ou plus. Une tuile deja en rail coupe l'alignement : la pose
+ * unitaire y echoue (ALREADY_BUILT) alors que la pose groupee la sauterait. */
+function OpexV296aRunEnd(tiles, i)
+{
+  local n = tiles.len();
+  if (i + 1 > n - 2) return i;
+  local s1 = tiles[i] - tiles[i - 1];
+  local s2 = tiles[i + 1] - tiles[i];
+  if (s2 == -s1) return i;
+  if (AIMap.DistanceManhattan(tiles[i - 1], tiles[i]) != 1 ||
+      AIMap.DistanceManhattan(tiles[i], tiles[i + 1]) != 1) return i;
+  if (AIRail.IsRailTile(tiles[i])) return i;
+  local straight = (s1 == s2);
+  local last = i;
+  for (local k = i + 1; k <= n - 2; k++) {
+    /* Droit : toujours s1 ; diagonale : s1, s2, s1, s2... depuis tiles[i - 1]. */
+    local expect = (straight || ((k - i) % 2 == 1)) ? s1 : s2;
+    if (tiles[k + 1] - tiles[k] != expect) break;
+    if (AIRail.IsRailTile(tiles[k])) break;
+    last = k;
+  }
+  return last;
+}
+
+function OpexV296aLog(batch)
+{
+  if (batch == null || !DECISION_LOG || (batch.runs + batch.fallbacks + batch.mismatch) == 0) return;
+  OpexDecide("V296A", "runs=" + batch.runs + " tiles=" + batch.tiles + " single=" + batch.single
+             + " fallbacks=" + batch.fallbacks + " mismatch=" + batch.mismatch);
+}
+
 function OpexBuildTrack(tiles, structures = null, failure = null, options = null)
 {
   local failed = 0;
@@ -2713,12 +2751,44 @@ function OpexBuildTrack(tiles, structures = null, failure = null, options = null
   local signalDist = 0;
   local signalsBuiltCount = 0;
   local retriesCount = 0;
+  /* V296a : la signalisation V199 de la double voie se pose tuile par tuile, on ne groupe pas. */
+  local batch = (V296_RAIL_BATCH_BUILD && !V296A_MISMATCH && !(V199_ROBUST_BUILD && isDouble))
+      ? { runs = 0, tiles = 0, single = 0, fallbacks = 0, mismatch = 0, skipUntil = 0 } : null;
 
   for (local i = 1; i < tiles.len() - 1; i++) {
     local prev = tiles[i - 1];
     local cur = tiles[i];
     local next = tiles[i + 1];
     local ok = false;
+    if (batch != null && i > batch.skipUntil) {
+      local last = OpexV296aRunEnd(tiles, i);
+      if (last > i) {
+        local to = tiles[last + 1];
+        if (AIRail.BuildRail(prev, cur, to)) {
+          local k = i;
+          while (k <= last && AIRail.AreTilesConnected(tiles[k - 1], tiles[k], tiles[k + 1])) k++;
+          if (k > last) {
+            batch.runs++;
+            batch.tiles += last - i + 1;
+            i = last;
+            continue;
+          }
+          /* Trace different du trace prevu : on defait la meme commande et on ne groupe plus. */
+          AIRail.RemoveRail(prev, cur, to);
+          batch.mismatch++;
+          V296A_MISMATCH = true;
+          OpexV296aLog(batch);
+          batch = null;
+        } else {
+          /* Obstacle, argent, pente : la pose unitaire rejoue l'alignement et garde la gestion
+           * d'echec existante (V199, capture de l'erreur). */
+          batch.fallbacks++;
+          batch.skipUntil = last;
+        }
+      } else {
+        batch.single++;
+      }
+    }
     if (prev == next) {
       ok = true;                                   // aller-retour, rien a poser
     } else if (AIMap.DistanceManhattan(prev, cur) > 1) {
@@ -2819,6 +2889,7 @@ function OpexBuildTrack(tiles, structures = null, failure = null, options = null
             OpexRailCaptureTrackFailure(failure, tiles, i, cur, "rail", err, manhPrev, manhNext);
           }
           failed++;
+          OpexV296aLog(batch);
           return failed;
         }
       } else {
@@ -2840,6 +2911,7 @@ function OpexBuildTrack(tiles, structures = null, failure = null, options = null
           OpexRailCaptureTrackFailure(failure, tiles, i, cur, "rail", err, manhPrev, manhNext);
         }
         failed++;
+        OpexV296aLog(batch);
         return failed;
       }
     }
@@ -2894,6 +2966,7 @@ function OpexBuildTrack(tiles, structures = null, failure = null, options = null
     OpexDecide("V199", "step=signal ok=1 n=" + signalsBuiltCount + " cost=" + sigCost);
   }
 
+  OpexV296aLog(batch);
   return failed;
 }
 
@@ -3319,6 +3392,7 @@ function OpexPrepareRailRoute(catalog, budget, candidate, alternativeRatio, hard
       && !(("capitalIsActual" in candidate) && candidate.capitalIsActual))
     candidate.preCapital <- candidate.capital;
   local plan = { ok = false, reason = "", iterations = 0, opcodes = 0,
+                 phaseOps = { plans = -1, search = -1, stations = -1, track = -1, trains = -1 },
                  plansA = null, plansB = null, planA = null, planB = null,
                  length = candidate.platformLength,
                  slopeRelaxed = 0, siteClear = 0, siteCargo = 0, siteCmd = 0,
@@ -3333,7 +3407,10 @@ function OpexPrepareRailRoute(catalog, budget, candidate, alternativeRatio, hard
 
   budget.begin();
   local platformPlans = OpexRailPlatformPlans(catalog, candidate);
-  plan.opcodes += budget.end("build_plans");
+  local plansOps = budget.end("build_plans");
+  plan.opcodes += plansOps;
+  if (plan.phaseOps.plans < 0) plan.phaseOps.plans = 0;
+  plan.phaseOps.plans += plansOps;
   if (platformPlans.plansA == null || platformPlans.reason != "OK") {
     plan.reason = platformPlans.reason;
     local stats = platformPlans.reason == "SITEB" ? platformPlans.statsB : platformPlans.statsA;
@@ -3578,6 +3655,8 @@ function OpexPlanRailRoute(catalog, budget, candidate, alternativeRatio, hardCap
   local search = OpexSearchPath(plan.plansA, plan.plansB, plan.iterationBudget, deadlineTick, clearanceTiles, null, outwardSide, null);
   local searchOps = budget.end("build_search");
   plan.opcodes += searchOps;
+  if (plan.phaseOps.search < 0) plan.phaseOps.search = 0;
+  plan.phaseOps.search += searchOps;
   if (DECISION_LOG) OpexAddRailSearchOps(candidate, searchOps);
   if (DECISION_LOG && V131_TOWN_CLEARANCE && clearanceTiles != null) {
     OpexV131LogClearance(candidate, plan, clearanceTiles);
@@ -3782,6 +3861,9 @@ function OpexV200WantDouble(candidate, cashReserve)
 function OpexExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
 {
   local result = { ok = false, reason = "", iterations = plan.iterations, opcodes = plan.opcodes,
+                   phaseOps = { plans = plan.phaseOps.plans, search = plan.phaseOps.search,
+                                stations = plan.phaseOps.stations, track = plan.phaseOps.track,
+                                trains = plan.phaseOps.trains },
                    error = 0, diag = null, trains = 0, vehicles = [],
                    stationA = null, stationB = null, depot = null,
                    platformA = null, platformB = null, trainLength = 0, wagons = candidate.wagons,
@@ -3931,7 +4013,11 @@ function OpexExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
     }
     OpexRollback(null, planA, planB, null, null);
     result.actualCost = costs != null ? costs.GetCosts() : 0;
-    result.opcodes += budget.end("build_stations"); result.reason = "STNFAIL"; return result;
+    local stnOps = budget.end("build_stations");
+    result.opcodes += stnOps;
+    if (result.phaseOps.stations < 0) result.phaseOps.stations = 0;
+    result.phaseOps.stations += stnOps;
+    result.reason = "STNFAIL"; return result;
   }
 
   /* Table seulement sous decision_log ou garde geometrique : null au defaut 0/0. */
@@ -4001,11 +4087,18 @@ function OpexExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
     }
     OpexRollback(tiles, planA, planB, null, null);
     result.actualCost = costs != null ? costs.GetCosts() : 0;
-    result.opcodes += budget.end("build_track"); result.reason = "TRKFAIL"; return result;
+    local trkOps = budget.end("build_track");
+    result.opcodes += trkOps;
+    if (result.phaseOps.track < 0) result.phaseOps.track = 0;
+    result.phaseOps.track += trkOps;
+    result.reason = "TRKFAIL"; return result;
   }
 
   local depot = OpexBuildDepot(tiles);
-  result.opcodes += budget.end("build_track");
+  local trkOps = budget.end("build_track");
+  result.opcodes += trkOps;
+  if (result.phaseOps.track < 0) result.phaseOps.track = 0;
+  result.phaseOps.track += trkOps;
   if (depot == null) {
     OpexRollback(tiles, planA, planB, null, null);
     result.actualCost = costs != null ? costs.GetCosts() : 0;
@@ -4095,7 +4188,10 @@ function OpexExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
       }
     }
   }
-  result.opcodes += budget.end("build_trains");
+  local trnOps = budget.end("build_trains");
+  result.opcodes += trnOps;
+  if (result.phaseOps.trains < 0) result.phaseOps.trains = 0;
+  result.phaseOps.trains += trnOps;
   result.error = trains.error;
   result.diag = trains.diag;
   if (trains.failed || trains.built == 0) {
@@ -4162,6 +4258,11 @@ function OpexBuildLine(catalog, budget, candidate, alternativeRatio, cashReserve
   }
   if (!plan.ok) {
     return { ok = false, reason = plan.reason, iterations = plan.iterations, opcodes = plan.opcodes,
+             phaseOps = (("phaseOps" in plan) && plan.phaseOps != null)
+                 ? { plans = plan.phaseOps.plans, search = plan.phaseOps.search,
+                     stations = plan.phaseOps.stations, track = plan.phaseOps.track,
+                     trains = plan.phaseOps.trains }
+                 : { plans = -1, search = -1, stations = -1, track = -1, trains = -1 },
              siteClear = plan.siteClear, siteCargo = plan.siteCargo, siteCmd = plan.siteCmd,
              siteKind = "N", error = 0, diag = null,
              persistentGeometry = (("persistentGeometry" in plan) && plan.persistentGeometry),
@@ -4348,6 +4449,9 @@ function OpexV190RollbackDoubleTrack(tiles1, planA1, planB1, depot1, tiles2, pla
 function OpexV190ExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
 {
   local result = { ok = false, reason = "", iterations = plan.iterations, opcodes = plan.opcodes,
+                   phaseOps = { plans = plan.phaseOps.plans, search = plan.phaseOps.search,
+                                stations = plan.phaseOps.stations, track = plan.phaseOps.track,
+                                trains = plan.phaseOps.trains },
                    error = 0, diag = null, trains = 0, vehicles = [],
                    stationA = null, stationB = null, depot = null,
                    platformA = null, platformB = null, trainLength = 0, wagons = candidate.wagons,
@@ -4489,7 +4593,11 @@ function OpexV190ExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
     }
     OpexRollback(null, planA, planB, null, null);
     result.actualCost = costs != null ? costs.GetCosts() : 0;
-    result.opcodes += budget.end("build_stations"); result.reason = "STNFAIL"; return result;
+    local stnOps = budget.end("build_stations");
+    result.opcodes += stnOps;
+    if (result.phaseOps.stations < 0) result.phaseOps.stations = 0;
+    result.phaseOps.stations += stnOps;
+    result.reason = "STNFAIL"; return result;
   }
 
   local trackFailure = null;
@@ -4518,7 +4626,11 @@ function OpexV190ExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
     }
     OpexRollback(tiles, planA, planB, null, null);
     result.actualCost = costs != null ? costs.GetCosts() : 0;
-    result.opcodes += budget.end("build_track"); result.reason = "TRKFAIL"; return result;
+    local trkOps = budget.end("build_track");
+    result.opcodes += trkOps;
+    if (result.phaseOps.track < 0) result.phaseOps.track = 0;
+    result.phaseOps.track += trkOps;
+    result.reason = "TRKFAIL"; return result;
   }
 
   local tiles2 = plan.tiles2;
@@ -4558,7 +4670,10 @@ function OpexV190ExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
   }
 
   local depot = OpexBuildDepot(tiles, forbiddenDepot1);
-  result.opcodes += budget.end("build_track");
+  local trkOps = budget.end("build_track");
+  result.opcodes += trkOps;
+  if (result.phaseOps.track < 0) result.phaseOps.track = 0;
+  result.phaseOps.track += trkOps;
   if (depot == null) {
     OpexRollback(tiles, planA, planB, null, null);
     result.actualCost = costs != null ? costs.GetCosts() : 0;
@@ -4579,7 +4694,10 @@ function OpexV190ExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
                                  planA.station_exit, planB.station_exit, 1, candidate.loco,
                                  candidate.wagons, candidate.platformLength, false);
   if (trains.failed || trains.built == 0) {
-    result.opcodes += budget.end("build_trains");
+    local trnOps = budget.end("build_trains");
+    result.opcodes += trnOps;
+    if (result.phaseOps.trains < 0) result.phaseOps.trains = 0;
+    result.phaseOps.trains += trnOps;
     result.error = trains.error;
     result.diag = trains.diag;
     OpexRollback(tiles, planA, planB, depot, trains.rollbackVehicles);
@@ -4738,7 +4856,10 @@ function OpexV190ExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
     foreach (train in started) {
       AIVehicle.StartStopVehicle(train);
     }
-    result.opcodes += budget.end("build_trains");
+    local trnOps = budget.end("build_trains");
+    result.opcodes += trnOps;
+    if (result.phaseOps.trains < 0) result.phaseOps.trains = 0;
+    result.phaseOps.trains += trnOps;
     result.error = trains.error;
     result.diag = trains.diag;
     if (tiles2 != null) OpexRollback(tiles2, planA2, planB2, depot2, trains.rollbackVehicles);
@@ -4748,7 +4869,10 @@ function OpexV190ExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
     return result;
   }
 
-  result.opcodes += budget.end("build_trains");
+  local trnOps = budget.end("build_trains");
+  result.opcodes += trnOps;
+  if (result.phaseOps.trains < 0) result.phaseOps.trains = 0;
+  result.phaseOps.trains += trnOps;
   result.ok = true;
   result.reason = "OK";
   result.trains = trains.built;

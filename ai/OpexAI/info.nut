@@ -746,6 +746,20 @@ class OpexAIInfo extends AIInfo {
       easy_value = 1, medium_value = 1, hard_value = 1,
       custom_value = 1, flags = 0, step_size = 1
     });
+    AddSetting({
+      name = "v296_rail_batch_build",
+      description = "V296a: lay each straight or diagonal run of rail track with one BuildRail command instead of one per tile (fewer suspended ticks); 0 = off, 1 = on (default since 21/10)",
+      min_value = 0, max_value = 1,
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1, flags = 0, step_size = 1
+    });
+    AddSetting({
+      name = "v296_astar_native",
+      description = "V296b: native AIList rail A*; 0 = V129, 1 = native (default since 21/10), 2 = compare with V129",
+      min_value = 0, max_value = 2,
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1, flags = 0, step_size = 1
+    });
   }
 }
 

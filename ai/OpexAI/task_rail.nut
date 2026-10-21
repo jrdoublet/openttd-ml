@@ -926,6 +926,10 @@ function OpexAI::_continueRailSearch()
   if (state.kind == "primary") {
     local searchSliceOps = this._budget.end("build_search");
     state.plan.opcodes += searchSliceOps;
+    if (("phaseOps" in state.plan) && state.plan.phaseOps != null) {
+      if (state.plan.phaseOps.search < 0) state.plan.phaseOps.search = 0;
+      state.plan.phaseOps.search += searchSliceOps;
+    }
     state.plan.iterations = state.spent;
     /* V129 : opcodes de la seule phase de recherche A*, pour la ligne RAIL_ATTEMPT (journal seulement). */
     if (DECISION_LOG && state.candidate != null) OpexAddRailSearchOps(state.candidate, searchSliceOps);
@@ -1164,6 +1168,15 @@ function OpexAI::_recordRailAttempt(candidate, result, posPacked, year, railPlan
 
   if (V216_PROBE && result.ok) OpexV216OnRailBuild(candidate);
   if (DECISION_LOG) {
+    local phasesStr = "-1/-1/-1/-1/-1";
+    if (("phaseOps" in result) && result.phaseOps != null) {
+      local p = result.phaseOps;
+      phasesStr = (("plans" in p) ? p.plans : -1) + "/"
+                + (("search" in p) ? p.search : -1) + "/"
+                + (("stations" in p) ? p.stations : -1) + "/"
+                + (("track" in p) ? p.track : -1) + "/"
+                + (("trains" in p) ? p.trains : -1);
+    }
     /* C67.6 rail : une ligne par tentative, reussie ou non, pour l'exposition du cout terrain. */
     OpexDecide("RAIL_ATTEMPT", "src=" + candidate.src + " dst=" + candidate.dst
                + " kind=" + candidate.kind + " manh=" + candidate.distance
@@ -1184,7 +1197,8 @@ function OpexAI::_recordRailAttempt(candidate, result, posPacked, year, railPlan
                + " endx=" + (("endx" in result) ? result.endx : -1)
                + " weight=" + (("searchWeight" in candidate) ? candidate.searchWeight : (V91_ASTAR_WEIGHT_PCT))
                + " adapt=" + (("v294cAdapt" in candidate) ? candidate.v294cAdapt : "-")
-               + " len=" + (("routeLen" in candidate) ? candidate.routeLen : -1));
+               + " len=" + (("routeLen" in candidate) ? candidate.routeLen : -1)
+               + " phases=" + phasesStr);
     if (result.ok) {
       local cargoStr = AICargo.GetCargoLabel(candidate.cargo);
       OpexDecide("RAIL_BUILD", "line=" + this._nextLineId + " src=" + candidate.src + " dst=" + candidate.dst

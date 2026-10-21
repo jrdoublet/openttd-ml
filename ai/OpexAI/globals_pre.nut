@@ -734,3 +734,10 @@ V295_ASTAR_FAST <- 1;  // defaut V294all depuis le 21/10 (decision utilisateur)
 
 /* V292b : pose du QG pres de la gare voyageurs la plus chargee (0/1, defaut 0). */
 V292_HQ_HUB <- 1;  // defaut finpartie depuis le 21/10 (decision utilisateur)
+/* V296a : pose de voie groupee, une commande BuildRail par alignement droit ou diagonal. */
+V296_RAIL_BATCH_BUILD <- 1;  // defaut v296clean depuis le 21/10 (decision utilisateur)
+/* V296a : vrai apres un trace groupe different du trace prevu ; la pose groupee s'arrete pour la partie. */
+V296A_MISMATCH <- false;
+
+/* V296b : file native AIList et noeuds en tableaux ; 2 = comparaison V129. */
+V296_ASTAR_NATIVE <- 1;  // defaut v296clean depuis le 21/10 (decision utilisateur)
