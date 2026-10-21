@@ -21,6 +21,7 @@ DEFAULT_OPCODE = ROOT / 'results/ac04v3_usage_B20x10_holdout_20261012_r1_opcode.
 BLOCK_OPS = 430
 BLOCKS_256 = 1024
 REGEN = re.compile(r'\bOPEX (\d{4})-\d+-\d+ C76_REGEN\s+(.*)')
+IDLE = re.compile(r'\bOPEX (\d{4})-(\d{1,2})-\d{1,2} V309_IDLE\s+(.*)')
 FIELDS = re.compile(r'([\w]+)=([^\s]+)')
 MODES = ('rail', 'road', 'air', 'water', 'fleet')
 
@@ -87,6 +88,120 @@ def read_regen_logs(directory):
     return len(logs), {y: dict(row) for y, row in sorted(stats.items())}
 
 
+def read_idle_logs(directory):
+    """Read PASSIVE monthly V309 observations, never extrapolate missing months.
+
+    Expected fields: loops, useless, useless_ops, sleep_ops, wait_days, blocks.
+    wait_days=-1 means unavailable (nonpositive net profit / absent data).
+    cash_below_days is optional for legacy fixtures, not silently zeroed when missing.
+    Each arm and year remain distinct; the source year/date is reported as-is.
+    """
+    grouped = defaultdict(lambda: defaultdict(lambda: {
+        'months': set(), 'loops': 0, 'useless': 0, 'useless_ops': 0,
+        'sleep_ops': 0, 'waits': [], 'blocks': 0, 'unavailable_waits': 0,
+        'cash_below_days': 0, 'cash_below_days_observations': 0,
+        'unknown_cost_loops': 0, 'unfunded_cost_loops': 0,
+        'cost_source_observations': 0, 'capped_wait_months': 0,
+        'stable_unfunded_loops': 0, 'stable_unfunded_ops': 0,
+        'stable_unfunded_observations': 0,
+    }))
+    seen_months = set()
+    logs = sorted(p for p in Path(directory).glob('*.log*')
+                  if re.search(r'_seed\d+_r\d+\.log(?:\.gz)?$', p.name))
+    for log in logs:
+        arm = re.sub(r'_seed\d+_r\d+\.log(?:\.gz)?$', '', log.name)
+        match = re.search(r'_seed(\d+)_r(\d+)', log.name)
+        stream_id = (arm, match.group(1), match.group(2)) if match else (arm, log.name)
+        opener = gzip.open if log.suffix == '.gz' else open
+        with opener(log, 'rt', encoding='utf-8', errors='replace') as stream:
+            for line in stream:
+                event = IDLE.search(line)
+                if event is None:
+                    continue
+                year, month = int(event.group(1)), int(event.group(2))
+                fields = dict(FIELDS.findall(event.group(3)))
+                required = ('loops', 'useless', 'useless_ops', 'sleep_ops', 'blocks')
+                try:
+                    values = {name: int(fields[name]) for name in required}
+                except (KeyError, ValueError):
+                    continue  # Missing fields cannot be interpreted as zero.
+                if (values['loops'] < 0 or not 0 <= values['useless'] <= values['loops']
+                        or any(values[name] < 0 for name in ('useless_ops', 'sleep_ops', 'blocks'))):
+                    continue
+                # One monthly flush per game; ignore duplicate replayed records
+                # and .log/.log.gz copies rather than inflating annual totals.
+                observation = (*stream_id, year, month)
+                if observation in seen_months:
+                    continue
+                seen_months.add(observation)
+                row = grouped[arm][year]
+                row['months'].add((stream_id, month))
+                for key, value in values.items():
+                    row[key] += value
+                try:
+                    row['cash_below_days'] += max(0, int(fields['cash_below_days']))
+                    row['cash_below_days_observations'] += 1
+                except (KeyError, ValueError):
+                    pass
+                try:
+                    unknown = int(fields['unknown_cost_loops'])
+                    unfunded = int(fields['unfunded_cost_loops'])
+                    if unknown < 0 or unfunded < 0 or unknown + unfunded > values['loops']:
+                        raise ValueError('invalid cost source counters')
+                    row['unknown_cost_loops'] += unknown
+                    row['unfunded_cost_loops'] += unfunded
+                    row['cost_source_observations'] += 1
+                except (KeyError, ValueError):
+                    pass  # Ne jamais assimiler une source manquante à zéro.
+                try:
+                    stable = int(fields['stable_unfunded_loops'])
+                    stable_ops = int(fields['stable_unfunded_ops'])
+                    if not 0 <= stable <= values['loops'] or stable_ops < 0:
+                        raise ValueError('invalid stable unfunded counters')
+                    row['stable_unfunded_loops'] += stable
+                    row['stable_unfunded_ops'] += stable_ops
+                    row['stable_unfunded_observations'] += 1
+                except (KeyError, ValueError):
+                    pass
+                if fields.get('wait_capped') == '1':
+                    row['capped_wait_months'] += 1
+                try:
+                    days = int(fields['wait_days'])
+                except (KeyError, ValueError):
+                    days = -1
+                if days >= 0:
+                    row['waits'].append(days)
+                else:
+                    row['unavailable_waits'] += 1
+    return {arm: {year: {
+        'months': len(row['months']),
+        'loops': row['loops'], 'useless': row['useless'],
+        'useless_pct': round(100.0 * row['useless'] / row['loops'], 2)
+                         if row['loops'] else None,
+        'useless_ops': row['useless_ops'], 'sleep_ops': row['sleep_ops'],
+        'blocks': row['blocks'],
+        'cash_below_days': (row['cash_below_days']
+                            if row['cash_below_days_observations'] == len(row['months'])
+                            else None),
+        'unknown_cost_loops': (row['unknown_cost_loops']
+                               if row['cost_source_observations'] == len(row['months'])
+                               else None),
+        'unfunded_cost_loops': (row['unfunded_cost_loops']
+                                if row['cost_source_observations'] == len(row['months'])
+                                else None),
+        'stable_unfunded_loops': (row['stable_unfunded_loops']
+                                  if row['stable_unfunded_observations'] == len(row['months'])
+                                  else None),
+        'stable_unfunded_ops': (row['stable_unfunded_ops']
+                                if row['stable_unfunded_observations'] == len(row['months'])
+                                else None),
+        'capped_wait_months': row['capped_wait_months'],
+        'wait_days_mean': round(mean(row['waits']), 2) if row['waits'] else None,
+        'unavailable_waits': row['unavailable_waits'],
+    } for year, row in sorted(years.items())}
+            for arm, years in sorted(grouped.items())}
+
+
 def analyse(opcode, logs=None, arm='reference'):
     annual = opcode_years(opcode, arm)
     n_logs, regeneration = read_regen_logs(logs) if logs else (0, {})
@@ -121,6 +236,24 @@ def render(result):
     print('Limites:', '; '.join(str(x) for x in result['missing'].values() if x))
 
 
+def render_idle(annual):
+    print('| Bras | Annee | Mois observes | Boucles | Inutiles (%) | Ops inutiles | Ops Sleep | Jours sous-finances | Cout inconnu (tours) | Prix hors selection (tours) | Attente stable sans selection (tours) | Ops pendant attente stable | Attente plafonnee (mois) | Jours avant financement (moy. connu) | Blocs /1024 |')
+    print('|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|')
+    for arm, years in annual.items():
+        for year, row in years.items():
+            pct = '-' if row['useless_pct'] is None else f"{row['useless_pct']:.2f}"
+            days = '-' if row['wait_days_mean'] is None else f"{row['wait_days_mean']:.1f}"
+            below_days = '-' if row['cash_below_days'] is None else str(row['cash_below_days'])
+            unknown = '-' if row['unknown_cost_loops'] is None else str(row['unknown_cost_loops'])
+            unfunded = '-' if row['unfunded_cost_loops'] is None else str(row['unfunded_cost_loops'])
+            stable = '-' if row['stable_unfunded_loops'] is None else str(row['stable_unfunded_loops'])
+            stable_ops = '-' if row['stable_unfunded_ops'] is None else str(row['stable_unfunded_ops'])
+            print(f"| {arm} | {year} | {row['months']} | {row['loops']} | {pct} | "
+                  f"{row['useless_ops']} | {row['sleep_ops']} | {below_days} | {unknown} | "
+                  f"{unfunded} | {stable} | {stable_ops} | {row['capped_wait_months']} | {days} | "
+                  f"{row['blocks']}/1024 |")
+
+
 def selftest():
     import tempfile
     with tempfile.TemporaryDirectory() as tmp:
@@ -134,6 +267,17 @@ def selftest():
         assert row['sleep_block_equiv_mean'] == 2
         assert row['sleep_left_pct_of_budget'] == 20.0
         assert row['useless_loops_pct'] is None
+        logs = Path(tmp) / 'logs'
+        logs.mkdir()
+        (logs / 'reference_seed42_r0.log').write_text(
+            '[0] [I] OPEX 1970-2-1 V309_IDLE loops=10 useless=4 useless_ops=120 '
+            'sleep_ops=430 wait_days=-1 blocks=1\n'
+            '[0] [I] OPEX 1970-3-1 V309_IDLE loops=30 useless=9 useless_ops=200 '
+            'sleep_ops=860 wait_days=60 blocks=2\n', encoding='utf-8')
+        x = read_idle_logs(logs)['reference'][1970]
+        assert x['months'] == 2 and x['loops'] == 40
+        assert x['useless_pct'] == 32.5 and x['blocks'] == 3
+        assert x['wait_days_mean'] == 60 and x['unavailable_waits'] == 1
     print('selftest OK')
 
 
@@ -141,12 +285,20 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument('--opcode-json', type=Path, default=DEFAULT_OPCODE)
     ap.add_argument('--logs', type=Path, help='Optionnel : logs de reference avec C76_REGEN')
+    ap.add_argument('--idle-logs', type=Path, help='Logs moteur (bras reference et variante) avec V309_IDLE mensuel')
     ap.add_argument('--arm', default='reference')
     ap.add_argument('--json', action='store_true')
     ap.add_argument('--selftest', action='store_true')
     args = ap.parse_args()
     if args.selftest:
         return selftest()
+    if args.idle_logs is not None:
+        rows = read_idle_logs(args.idle_logs)
+        if args.json:
+            print(json.dumps(rows, indent=2, ensure_ascii=False))
+        else:
+            render_idle(rows)
+        return
     result = analyse(args.opcode_json, args.logs, args.arm)
     if args.json:
         print(json.dumps(result, indent=2, ensure_ascii=False))

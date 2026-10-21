@@ -364,6 +364,14 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "v309_idle_probe",
+      description = "V309: passive monthly idle-loop, opcode and financial wait instrumentation; requires decision_log=1. 0 = off (default)",
+      min_value = 0, max_value = 1,
+      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
+      step_size = 1, flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
       name = "v307_probe_year",
       description = "V307: years after game start at which the v307_long_probe measurement runs (1 January); 0 = at start",
       min_value = 0, max_value = 9,

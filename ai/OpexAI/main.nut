@@ -716,6 +716,7 @@ function OpexAI::Start()
 
   OpexLoadSettings();
   OpexV147ExtendQueue(this);
+  if (V309_IDLE_PROBE) V309_IDLE_STATE = null;
   if (V276_CAND_SLICES > 0) V276_CATALOG_TASK = this._taskQueue[0];
   this._v184InitRailSlots();
   /* Apres les phases V147 : un index insere avant elles decalerait taskCursor. */
@@ -810,6 +811,7 @@ function OpexAI::Start()
 
   if (PROBE_LOOP_OPS) this._mainLoopProfiled();
   while (true) {
+    if (V309_IDLE_PROBE) OpexV309IdleBegin();
     if (PROBE_SPAN_TRACE) {
       OpexSpanRescueOrphans();
       OpexSpanYearRoll();
@@ -881,6 +883,7 @@ function OpexAI::Start()
       this._c67SlackHook();
       if (spC67 != null) OpexSpanEnd(spC67);
     }
+    if (V309_IDLE_PROBE) OpexV309IdleTick(this);
     local spSleep = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.sleep") : null;
     AIController.Sleep(1);
     if (spSleep != null) OpexSpanEnd(spSleep);

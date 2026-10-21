@@ -2449,6 +2449,203 @@ function OpexC76FlushYear(year)
              + reasonsStr);
 }
 
+/* V309 : observation passive des tours et de leur budget d'opcodes. La mesure
+ * n'est allouee qu'avec v309_idle_probe=1 ; sans decision_log, aucun journal.
+ * L'identite du projet est stable entre regenerations, jamais celle du payload. */
+function OpexV309IdleRevisionKey(ai)
+{
+  local r = ai._c76Revisions;
+  if (r == null || r.engines == null) return null;
+  return r.towns + "|" + r.industries + "|" + r.lines + "|"
+      + r.engines.rail + "|" + r.engines.road + "|" + r.engines.air + "|"
+      + r.engines.water + "|" + OPEX_LINES_REVISION + "|" + OPEX_ABANDON_REVISION
+      + "|" + OPEX_AIR_SITE_EPOCH + "|" + OPEX_AIR_ROLLBACK_REVISION;
+}
+
+/* Le selecteur conserve dans stats le prochain prix refusé par manque de
+ * capital. Lire ce prix quand best est vide ; ne pas inventer son identite.
+ * Le parcours de best (jusqu'a 64 entrees) n'est refait qu'au changement
+ * d'estampille, d'array, de longueur ou de statistique de financement. */
+function OpexV309IdleProjects(ai, state)
+{
+  local portfolio = ai._projects;
+  local best = portfolio != null && ("best" in portfolio) ? portfolio.best : null;
+  local count = best != null ? best.len() : 0;
+  local head = count > 0 ? best[0] : null;
+  local nextCost = -1;
+  local minCost = -1;
+  if (portfolio != null && ("stats" in portfolio) && portfolio.stats != null) {
+    local stats = portfolio.stats;
+    if ("nextProjectCapital" in stats) nextCost = stats.nextProjectCapital;
+    if ("minCapital" in stats) minCost = stats.minCapital;
+  }
+  if (state.cachedPortfolio == portfolio && state.cachedBest == best
+      && state.cachedBestCount == count && state.cachedHead == head
+      && state.cachedSelectStamp == SELECT_BISECT_STAMP
+      && state.cachedNextCost == nextCost && state.cachedMinCost == minCost)
+    return state.cachedProject;
+
+  local bestKey = null;
+  local minimumCost = null;
+  local source = "unknown";
+  if (best != null) {
+    foreach (p in best) {
+      if (p == null) continue;
+      if (bestKey == null) bestKey = OpexC69AttemptKey(p);
+      local cost = OpexProjectFinanceCapital(p);
+      if (cost <= 0) continue;
+      if (minimumCost == null || cost < minimumCost) minimumCost = cost;
+    }
+    if (minimumCost != null) source = "funded";
+  }
+  if (minimumCost == null && count == 0) {
+    if (nextCost > 0) minimumCost = nextCost;
+    else if (minCost > 0 && portfolio != null && ("capitalBudget" in portfolio)
+        && minCost > portfolio.capitalBudget) minimumCost = minCost;
+    if (minimumCost != null) source = "unfunded_snapshot";
+  }
+  local result = { key = bestKey, cost = minimumCost, source = source };
+  state.cachedPortfolio = portfolio;
+  state.cachedBest = best;
+  state.cachedBestCount = count;
+  state.cachedHead = head;
+  state.cachedSelectStamp = SELECT_BISECT_STAMP;
+  state.cachedNextCost = nextCost;
+  state.cachedMinCost = minCost;
+  state.cachedProject = result;
+  return result;
+}
+
+/* Dernier rapport comptable clos (trimestre 1), ramene a 30 jours par mois.
+ * Avant le premier trimestre complet, la vitesse de financement est inconnue.
+ * Les depenses trimestrielles de NoAI sont signees negativement. */
+function OpexV309IdleMonthlyNet()
+{
+  local date = AIDate.GetCurrentDate();
+  local quarters = (AIDate.GetYear(date) - OPEX_START_YEAR) * 4
+      + (AIDate.GetMonth(date) - 1) / 3;
+  if (quarters <= 0) return null;
+  return (AICompany.GetQuarterlyIncome(AICompany.COMPANY_SELF, 1).tofloat()
+      + AICompany.GetQuarterlyExpenses(AICompany.COMPANY_SELF, 1).tofloat()) / 3.0;
+}
+
+function OpexV309IdleFlush(state)
+{
+  if (!DECISION_LOG || state.loops <= 0) return;
+  local blockBudget = state.uselessOps + state.sleepOps;
+  local blocks = (blockBudget > 0) ? blockBudget / 430 : 0;
+  local reportDate = AIDate.GetDate(state.year, state.month, 1);
+  AILog.Info("OPEX " + state.year + "-" + state.month + "-"
+      + AIDate.GetDayOfMonth(reportDate) + " V309_IDLE loops=" + state.loops
+      + " useless=" + state.useless + " useless_ops=" + state.uselessOps
+      + " sleep_ops=" + state.sleepOps + " wait_days=" + state.waitDays
+      + " blocks=" + blocks + " cash_below=" + state.cashBelow
+      + " cash_below_days=" + state.cashBelowDays
+      + " unknown_cost_loops=" + state.unknownCostLoops
+      + " unfunded_cost_loops=" + state.unfundedCostLoops
+      + " stable_unfunded_loops=" + state.stableUnfundedLoops
+      + " stable_unfunded_ops=" + state.stableUnfundedOps
+      + " cost_source=" + state.costSource + " wait_capped=" + state.waitCapped
+      + " money=" + state.cash + " min_cost=" + state.minCost
+      + " net_month=" + state.netMonth);
+}
+
+function OpexV309IdleBegin()
+{
+  local date = AIDate.GetCurrentDate();
+  local year = AIDate.GetYear(date), month = AIDate.GetMonth(date);
+  local state = V309_IDLE_STATE;
+  if (state == null || state.year != year || state.month != month) {
+    if (state != null) OpexV309IdleFlush(state);
+    state = { year = year, month = month, loops = 0, useless = 0,
+        uselessOps = 0, sleepOps = 0, waitDays = -1, cashBelow = 0,
+        cashBelowDays = 0, lastCashDate = -1, unknownCostLoops = 0,
+        unfundedCostLoops = 0, costSource = "unknown", waitCapped = 0,
+        stableUnfundedLoops = 0, stableUnfundedOps = 0,
+        cash = -1, minCost = -1, netMonth = -1, netMeasured = false,
+        priorRevision = state != null ? state.priorRevision : null,
+        priorBest = state != null ? state.priorBest : null, mark = null,
+        priorCost = state != null ? state.priorCost : null,
+        priorSource = state != null ? state.priorSource : "unknown",
+        cachedPortfolio = null, cachedBest = null, cachedBestCount = -1,
+        cachedHead = null,
+        cachedSelectStamp = -1, cachedNextCost = -1, cachedMinCost = -1,
+        cachedProject = null };
+    V309_IDLE_STATE = state;
+  }
+  state.mark = OpexOpsMeasureBegin();
+}
+
+function OpexV309IdleTick(ai)
+{
+  local state = V309_IDLE_STATE;
+  if (state == null || state.mark == null) return;
+  local usedOps = OpexOpsMeasureEnd(state.mark);
+  if (usedOps < 0) usedOps = 0;
+  local revision = OpexV309IdleRevisionKey(ai);
+  local projects = OpexV309IdleProjects(ai, state);
+  local cash = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+  local below = projects.cost != null && cash < projects.cost;
+  local idle = below && revision != null && state.priorRevision != null
+      && revision == state.priorRevision && projects.key != null
+      && projects.key == state.priorBest;
+  if (idle) {
+    state.useless++;
+    state.uselessOps += usedOps;
+  }
+  /* Une selection vide par manque de capital n'a pas de meilleur projet
+   * identifiable : mesurer sa stabilite separement, sans la declarer inutile.
+   * Le prix publie peut etre perime tant que le selecteur n'est pas relance. */
+  if (projects.source == "unfunded_snapshot" && projects.cost != null
+      && state.priorSource == "unfunded_snapshot" && projects.cost == state.priorCost
+      && revision != null && revision == state.priorRevision) {
+    state.stableUnfundedLoops++;
+    state.stableUnfundedOps += usedOps;
+  }
+  if (below) {
+    state.cashBelow++;
+    local date = AIDate.GetCurrentDate();
+    if (state.lastCashDate != date) {
+      state.cashBelowDays++;
+      state.lastCashDate = date;
+    }
+  }
+  state.loops++;
+  if (projects.source == "unknown") state.unknownCostLoops++;
+  if (projects.source == "unfunded_snapshot") state.unfundedCostLoops++;
+  state.priorRevision = revision;
+  state.priorBest = projects.key;
+  state.priorCost = projects.cost;
+  state.priorSource = projects.source;
+  state.costSource = projects.source;
+  state.cash = cash;
+  state.minCost = (projects.cost != null) ? projects.cost : -1;
+  if (!state.netMeasured) {
+    local net = OpexV309IdleMonthlyNet();
+    state.netMonth = (net != null) ? net : -1;
+    state.netMeasured = true;
+  }
+  state.waitDays = -1;
+  state.waitCapped = 0;
+  if (projects.cost != null) {
+    if (!below) state.waitDays = 0;
+    else if (state.netMonth > 0) {
+      /* Convertir avant la soustraction : un gros solde/cout peut saturer
+       * l'entier signe 32 bits alors que la difference reste representable. */
+      local days = ((projects.cost.tofloat() - cash.tofloat()) * 30.0) / state.netMonth;
+      if (days > 36500.0) {
+        state.waitDays = 36500;
+        state.waitCapped = 1;
+      } else {
+        state.waitDays = days.tointeger();
+        if (state.waitDays < days) state.waitDays++;
+      }
+    }
+  }
+  /* Observer le reliquat au plus pres du Sleep, apres le cout propre de V309. */
+  state.sleepOps += AIController.GetOpsTillSuspend();
+}
+
 /* Sonde probe_loop_ops (diagnostic, defaut 0) : agregats annuels de la boucle principale.
  * ops = formule OpexOpsMeasureEnd : un tick traverse compte 10 000 opcodes, y compris un tick
  * passe a attendre une commande de construction. tk = ticks traverses, pour le distinguer.
@@ -2500,6 +2697,7 @@ function OpexLoopProfFlushIfNewYear()
 function OpexAI::_mainLoopProfiled()
 {
   while (true) {
+    if (V309_IDLE_PROBE) OpexV309IdleBegin();
     if (PROBE_SPAN_TRACE) {
       OpexSpanRescueOrphans();
       OpexSpanYearRoll();
@@ -2583,6 +2781,7 @@ function OpexAI::_mainLoopProfiled()
       OpexLoopProfAdd("c67_hook", mark);
     }
     OpexLoopProfAddRaw("sleep_left", AIController.GetOpsTillSuspend(), 0);
+    if (V309_IDLE_PROBE) OpexV309IdleTick(this);
     local spSleep = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.sleep") : null;
     AIController.Sleep(1);
     if (spSleep != null) OpexSpanEnd(spSleep);
