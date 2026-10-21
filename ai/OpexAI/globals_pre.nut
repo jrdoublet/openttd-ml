@@ -140,7 +140,7 @@ V294_RAIL_WEIGHT_PCT <- 200;  // defaut V294all depuis le 21/10 (decision utilis
 V294_RAIL_AAA_COSTS <- 1;  // defaut V294all depuis le 21/10 (decision utilisateur)
 /* V294f : sonde A* inverse avant recherche ferroviaire (défaut 0 = inerte). AAA : 300 iters. */
 V294_RAIL_REVERSE_PROBE <- 300;  // defaut V294all depuis le 21/10 (decision utilisateur)
-V303_REVERSE_MODE <- 0;         // 0 historique, 1 sonde decoupee, 2 A* alternes
+V303_REVERSE_MODE <- 0;         // 0 historique, 1 sonde decoupee, 2 A* alternes, 3-4 cote etroit (V307)
 /* V294i : découplage distance railMax des candidats du plafond d'itérations (défaut 0 = inerte). */
 V294_RAIL_DIST_DECOUPLE <- 200;  // defaut V294all depuis le 21/10 (decision utilisateur)
 /* V294j : adaptation des coûts A* rail selon la force de la locomotive (défaut 0 = inerte). AAA : pente 1500, virage 100 si faible. */

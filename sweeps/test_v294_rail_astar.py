@@ -117,7 +117,7 @@ class TestV294RailAstar(unittest.TestCase):
 
         # 2. Dans task_rail.nut : _startRailSearch
         body_start = _function_body(self.task_rail, "function OpexAI::_startRailSearch(")
-        self.assertIn("if (V294_RAIL_CONTINUOUS > 0 || V303_REVERSE_MODE == 2) {", body_start)
+        self.assertIn("if (V294_RAIL_CONTINUOUS > 0 || v303Mode == 2) {", body_start)
         self.assertIn("pathfinder = OpexCreateRailPathfinder(plan.plansA, plan.plansB, clearanceTiles, forwardWeight, outwardSide, null, candidateEngine);", body_start)
         self.assertIn("segmented = OpexCreateSegmentedSearch(plan.plansA, plan.plansB, searchBudget, clearanceTiles, searchWeight, outwardSide, null, candidateEngine);", body_start)
 

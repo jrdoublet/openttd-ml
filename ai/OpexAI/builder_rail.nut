@@ -983,16 +983,27 @@ function OpexV294fReverseProbe(plansA, plansB, clearanceTiles, searchWeight, can
 /* V303 : etat exclusivement possede par _railSearch, jamais serialise. Mode 1 ne
  * change ni le poids ni le plafond de la sonde ; mode 2 partage le plafond total
  * entre deux A* continus, sans memoire g ni transfert de closed set. */
-function OpexV303CreateReverse(plan, clearanceTiles, weight, candidate)
+/* V307 : modes 3 et 4, recherche depuis le cote etroit. L'autopsie 3x10 du 21/10 : 7 abandons
+ * fret sur 7 echouent en aller a 20 000 iterations ; en inverse, 6 sont trouves en 2 700 a
+ * 8 300 et le 7e est prouve impossible en 4. La destination avait 1 a 8 quais contre 12. */
+function OpexV307NarrowReverse(mode, plan, candidate)
+{
+  if (mode < 3) return false;
+  if (plan.plansB.len() < plan.plansA.len()) return true;
+  return mode == 4 && candidate.kind == "freight";
+}
+
+function OpexV303CreateReverse(plan, clearanceTiles, weight, candidate, mode)
 {
   local reversePf = null;
-  if (V294_RAIL_REVERSE_PROBE > 0) {
+  if (V294_RAIL_REVERSE_PROBE > 0 || mode >= 3) {
     reversePf = OpexCreateRailPathfinder(plan.plansB, plan.plansA, clearanceTiles,
         weight, null, null, OpexRailEngineOf(candidate));
   }
   return {
-    mode = V303_REVERSE_MODE, reversePf = reversePf,
-    reverseSpent = 0, forwardSpent = 0, reverseCap = V294_RAIL_REVERSE_PROBE,
+    mode = mode, reversePf = reversePf,
+    reverseSpent = 0, forwardSpent = 0,
+    reverseCap = (mode >= 3) ? plan.iterationBudget + V294_RAIL_REVERSE_PROBE : V294_RAIL_REVERSE_PROBE,
     totalCap = plan.iterationBudget + V294_RAIL_REVERSE_PROBE,
     reverseDone = reversePf == null, forwardDone = false, reverseTurn = true,
     probeLogged = false, ticks = 0, ops = 0, maxTicks = 0,
@@ -1016,12 +1027,13 @@ function OpexV303LogProbe(state, ok)
 function OpexV303AdvanceReverse(state, deadlineTick)
 {
   local s = state.v303;
-  local reverse = !s.reverseDone && (s.mode == 1 || s.reverseTurn || s.forwardDone);
+  local narrow = s.mode >= 3;
+  local reverse = !s.reverseDone && (s.mode == 1 || narrow || s.reverseTurn || s.forwardDone);
   local mark = DECISION_LOG ? OpexOpsMeasureBegin() : null;
   local slice = null;
   if (reverse || s.mode == 2) {
     local remaining = s.totalCap - s.reverseSpent - s.forwardSpent;
-    if (s.mode == 1) remaining = s.reverseCap - s.reverseSpent;
+    if (s.mode == 1 || narrow) remaining = s.reverseCap - s.reverseSpent;
     local chunk = PATH_CHUNK;
     if (chunk > RAIL_SEARCH_SLICE) chunk = RAIL_SEARCH_SLICE;
     if (chunk > remaining) chunk = remaining;
@@ -1036,7 +1048,7 @@ function OpexV303AdvanceReverse(state, deadlineTick)
       path = null;
     }
     local found = path != null && path != false;
-    if (reverse && (path != false || (s.mode == 1 && s.reverseSpent >= s.reverseCap))) s.reverseDone = true;
+    if (reverse && (path != false || ((s.mode == 1 || narrow) && s.reverseSpent >= s.reverseCap))) s.reverseDone = true;
     if (!reverse && path == null) s.forwardDone = true;
     local total = s.reverseSpent + s.forwardSpent;
     local stop = "CONT";
@@ -1044,6 +1056,7 @@ function OpexV303AdvanceReverse(state, deadlineTick)
     else if (AIController.GetTick() >= deadlineTick) stop = "DEAD";
     else if (total >= s.totalCap) stop = "ABND";
     else if (s.mode == 2 && s.forwardDone && s.reverseDone) stop = "NOPA";
+    else if (narrow && s.reverseDone) stop = (path == null) ? "NOPA" : "ABND";
     local tiles = null;
     if (found) {
       tiles = OpexPathTiles(path);

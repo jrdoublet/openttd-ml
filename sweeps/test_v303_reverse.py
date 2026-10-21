@@ -13,13 +13,13 @@ class ReverseContracts(unittest.TestCase):
         block = re.search(r'name = "v303_reverse_mode",(.*?)\}\);', read("info.nut"), re.S)[1]
         for level in ("easy", "medium", "hard", "custom"):
             self.assertIn(f"{level}_value = 0", block)
-        self.assertIn("min_value = 0, max_value = 2", block)
+        self.assertIn("min_value = 0, max_value = 4", block)
         self.assertIn("V303_REVERSE_MODE <- 0;", read("globals_pre.nut"))
         self.assertEqual(read("settings.nut").count('GetSetting("v303_reverse_mode")'), 1)
 
     def test_legacy_probe_remains_synchronous_and_guarded(self):
         body = function_body(read("task_rail.nut"), "OpexAI::_startRailSearch")
-        self.assertLess(body.index("if (V303_REVERSE_MODE == 0)"), body.index("OpexV294fReverseProbe("))
+        self.assertLess(body.index("if (v303Mode == 0)"), body.index("OpexV294fReverseProbe("))
         probe = function_body(read("builder_rail.nut"), "OpexV294fReverseProbe")
         self.assertIn("revPf.FindPath(iterationCap)", probe)
         self.assertIn("revTiles.reverse();", probe)

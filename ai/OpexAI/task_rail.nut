@@ -795,7 +795,10 @@ function OpexAI::_startRailSearch(candidate, alternativeRatio, hardCap, posPacke
   local outwardSide = (V197_GUIDED_DOUBLE && OpexV190Active() && candidate.kind == "freight") ? 1 : null;
   local searchWeight = OpexRailAstarWeight(candidate.distance);
   candidate.searchWeight <- searchWeight;
-  if (V303_REVERSE_MODE == 0) {
+  /* V307 : hors cote etroit, les modes 3 et 4 gardent le chemin historique (sonde comprise). */
+  local v303Mode = V303_REVERSE_MODE;
+  if (v303Mode >= 3 && !OpexV307NarrowReverse(v303Mode, plan, candidate)) v303Mode = 0;
+  if (v303Mode == 0) {
     if (V294_RAIL_REVERSE_PROBE > 0) {
       local revSlice = OpexV294fReverseProbe(plan.plansA, plan.plansB, clearanceTiles, searchWeight, candidate, V294_RAIL_REVERSE_PROBE);
       if (revSlice != null) {
@@ -813,9 +816,9 @@ function OpexAI::_startRailSearch(candidate, alternativeRatio, hardCap, posPacke
   local candidateEngine = OpexRailEngineOf(candidate);
   local pathfinder = null;
   local segmented = null;
-  if (V294_RAIL_CONTINUOUS > 0 || V303_REVERSE_MODE == 2) {
+  if (V294_RAIL_CONTINUOUS > 0 || v303Mode == 2) {
     /* Mode 2 garde le poids initial de l'aller courant, sans sa segmentation. */
-    local forwardWeight = (V303_REVERSE_MODE == 2 && V294_RAIL_CONTINUOUS == 0 && V294C_RAIL_WEIGHT_ADAPT > 0)
+    local forwardWeight = (v303Mode == 2 && V294_RAIL_CONTINUOUS == 0 && V294C_RAIL_WEIGHT_ADAPT > 0)
         ? V294C_RAIL_WEIGHT_ADAPT : searchWeight;
     pathfinder = OpexCreateRailPathfinder(plan.plansA, plan.plansB, clearanceTiles, forwardWeight, outwardSide, null, candidateEngine);
     if (pathfinder == null) {
@@ -866,8 +869,8 @@ function OpexAI::_startRailSearch(candidate, alternativeRatio, hardCap, posPacke
     startTick = curTick,
     slotIndex = 0,
   };
-  if (V303_REVERSE_MODE > 0) {
-    this._railSearch.v303 <- OpexV303CreateReverse(plan, clearanceTiles, searchWeight, candidate);
+  if (v303Mode > 0) {
+    this._railSearch.v303 <- OpexV303CreateReverse(plan, clearanceTiles, searchWeight, candidate, v303Mode);
   }
   if (C56_TASK_TRACE) {
     OpexC56TaskLog("RAIL_SEARCH_START", "primary", this._taskCycle,

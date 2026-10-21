@@ -728,8 +728,8 @@ class OpexAIInfo extends AIInfo {
     });
     AddSetting({
       name = "v303_reverse_mode",
-      description = "V303: reverse rail search; 0 historical synchronous probe, 1 sliced probe, 2 alternating forward/reverse A* with shared iteration cap",
-      min_value = 0, max_value = 2,
+      description = "V303: reverse rail search; 0 historical synchronous probe, 1 sliced probe, 2 alternating forward/reverse A* with shared iteration cap, 3 (V307) reverse only with the whole cap when the destination has fewer platform plans than the source, 4 = 3 plus every freight line",
+      min_value = 0, max_value = 4,
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0, flags = 0, step_size = 1
     });

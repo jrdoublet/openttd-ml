@@ -186,7 +186,7 @@ function OpexLoadSettings()
     V294_RAIL_REVERSE_PROBE = revProbe;
   }
   local reverseMode = AIController.GetSetting("v303_reverse_mode");
-  V303_REVERSE_MODE = (reverseMode != null && reverseMode >= 0 && reverseMode <= 2) ? reverseMode : 0;
+  V303_REVERSE_MODE = (reverseMode != null && reverseMode >= 0 && reverseMode <= 4) ? reverseMode : 0;
   local distDecouple = AIController.GetSetting("v294_rail_dist_decouple");
   if (distDecouple != null && distDecouple >= 0) {
     V294_RAIL_DIST_DECOUPLE = distDecouple;
