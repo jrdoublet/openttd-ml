@@ -62,7 +62,7 @@ class TestV294RailAstar(unittest.TestCase):
         self.assertIn("min_value = 0", body_b)
         self.assertIn("max_value = 30", body_b)
         for level in ("easy_value", "medium_value", "hard_value", "custom_value", "default_value"):
-            self.assertRegex(body_b, rf"{level}\s*=\s*0\b", f"{level} doit valoir 0 pour bridge_len")
+            self.assertRegex(body_b, rf"{level}\s*=\s*20\b", f"{level} doit valoir 20 pour bridge_len")
 
         # 2. v294_rail_continuous
         m_cont = re.search(r'name = "v294_rail_continuous",(.*?)\}\);', self.info, re.S)
@@ -85,7 +85,7 @@ class TestV294RailAstar(unittest.TestCase):
         self.assertIn("V294_RAIL_CONTINUOUS = (v294Continuous != null && v294Continuous > 0) ? 1 : 0;", self.settings)
 
     def test_globals_declared_in_globals_pre(self):
-        self.assertIn("V294_RAIL_BRIDGE_LEN <- 0;", self.globals_pre)
+        self.assertIn("V294_RAIL_BRIDGE_LEN <- 20;", self.globals_pre)
         self.assertIn("V294_RAIL_CONTINUOUS <- 0;", self.globals_pre)
 
     def test_no_undeclared_v294_globals(self):
