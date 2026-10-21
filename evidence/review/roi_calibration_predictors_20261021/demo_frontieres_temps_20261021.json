@@ -1,0 +1,151 @@
+{
+  "source": "evidence\\review\\roi_calibration_predictors_20261021\\bandes_distance_roi_20261021.json",
+  "observed": {
+    "bounds": {
+      "roadMin": 7,
+      "roadMax": 7,
+      "roadGen": 200,
+      "railMin": 7,
+      "railAir": 200,
+      "railMax": 200,
+      "airMin": 200,
+      "airMax": 512
+    },
+    "games": 80,
+    "epoch_events": 2109
+  },
+  "models_hypothetical": {
+    "1970_illustrative_rail115_air570": {
+      "v_rail_km_h": 115.0,
+      "v_air_api_km_h": 570.0,
+      "v_air_legacy_km_h": 142.5,
+      "fixed_boundary_legacy_days": 26.194594594594598,
+      "fixed_c100_physical_days": 15.124324324324325,
+      "boundary_legacy": 451.2149147727274,
+      "boundary_same_speed_3days": 51.67649147727274,
+      "boundary_c100_direct": 62.98382554945056,
+      "economy_legacy_3days": 64.35818181818182,
+      "economy_c121_direct": 78.44039679239678
+    },
+    "historical_document_rail128_air320": {
+      "v_rail_km_h": 128.0,
+      "v_air_api_km_h": 320.0,
+      "v_air_legacy_km_h": 80.0,
+      "fixed_boundary_legacy_days": 26.194594594594598,
+      "fixed_c100_physical_days": 15.124324324324325,
+      "boundary_legacy": null,
+      "boundary_same_speed_3days": null,
+      "boundary_c100_direct": 93.2666666666667,
+      "economy_legacy_3days": null,
+      "economy_c121_direct": 116.15481081081082
+    },
+    "slow_rail80_air320": {
+      "v_rail_km_h": 80.0,
+      "v_air_api_km_h": 320.0,
+      "v_air_legacy_km_h": 80.0,
+      "fixed_boundary_legacy_days": 26.194594594594598,
+      "fixed_c100_physical_days": 15.124324324324325,
+      "boundary_legacy": null,
+      "boundary_same_speed_3days": null,
+      "boundary_c100_direct": 46.63333333333333,
+      "economy_legacy_3days": null,
+      "economy_c121_direct": 58.077405405405415
+    },
+    "rail128_air700": {
+      "v_rail_km_h": 128.0,
+      "v_air_api_km_h": 700.0,
+      "v_air_legacy_km_h": 175.0,
+      "fixed_boundary_legacy_days": 26.194594594594598,
+      "fixed_c100_physical_days": 15.124324324324325,
+      "boundary_legacy": 360.8723404255322,
+      "boundary_same_speed_3days": 41.32978723404258,
+      "boundary_c100_direct": 68.48251748251751,
+      "economy_legacy_3days": 51.472340425531904,
+      "economy_c121_direct": 85.28849744849745
+    }
+  },
+  "existing_built_lines_new_overlap_bounds": {
+    "solo": {
+      "old_rail_only": 912,
+      "new_overlap_min": 687,
+      "new_overlap_max": 861,
+      "distance_threshold": 62,
+      "classification_only": true,
+      "mature_rail_n": 954,
+      "mature_air_n": 2448,
+      "old_air_build_overlap_n": 32,
+      "old_rail_beyond_rail_max_n": 35
+    },
+    "duel": {
+      "old_rail_only": 916,
+      "new_overlap_min": 613,
+      "new_overlap_max": 850,
+      "distance_threshold": 62,
+      "classification_only": true,
+      "mature_rail_n": 958,
+      "mature_air_n": 1892,
+      "old_air_build_overlap_n": 24,
+      "old_rail_beyond_rail_max_n": 38
+    }
+  },
+  "hypothetical_road_to_rail_fare_sensitivity": [
+    {
+      "delta_fare_20_tiles_gbp_pax": 0.25,
+      "computed_road_max": 7
+    },
+    {
+      "delta_fare_20_tiles_gbp_pax": 0.5,
+      "computed_road_max": 136
+    },
+    {
+      "delta_fare_20_tiles_gbp_pax": 1.0,
+      "computed_road_max": 39
+    },
+    {
+      "delta_fare_20_tiles_gbp_pax": 2.0,
+      "computed_road_max": 16
+    },
+    {
+      "delta_fare_20_tiles_gbp_pax": 4.0,
+      "computed_road_max": 7
+    },
+    {
+      "delta_fare_20_tiles_gbp_pax": 8.0,
+      "computed_road_max": 7
+    }
+  ],
+  "notes": [
+    "Speed scenarios are hypothetical, not recovered from EPOCH_BOUNDS individual logs.",
+    "Old railMax=200 remains fixed; reclassification does not measure newly constructed projects.",
+    "Rail AIR boundary uses Manhattan city distance; AIR_BUILD.dist is flight distance.",
+    "Rail mechanical station dwell is already included in economy.nut at v216f_dwell_pct=100.",
+    "AIR loading dwell can be computed offline from engine loading slices but is not in trip model."
+  ],
+  "verified_raw_duel_at_64": {
+    "source_folder": "results\\calibration_pc_20261021\\results\\calib_duel_40x10_pc_20261021_engine",
+    "mature_rail": 958,
+    "mature_air": 1892,
+    "rail_dist_lt_threshold": 89,
+    "rail_dist_threshold_to_199": 827,
+    "rail_dist_eq200": 4,
+    "rail_dist_gt200": 38,
+    "air_center_manhattan_eq200": 24,
+    "air_center_manhattan_gt200": 1868,
+    "parse_counts": {
+      "games": 40,
+      "built_air": 1932,
+      "matched_air": 1930,
+      "built_rail": 1088,
+      "unmatched_choice_rail": 74,
+      "matched_rail": 1014,
+      "built_road": 59,
+      "matched_road": 49,
+      "mature_air": 1892,
+      "mature_rail": 958,
+      "mature_road": 48,
+      "no_mature": 95,
+      "invalid_physical_cost": 10,
+      "invalid_prediction": 2
+    }
+  }
+}
