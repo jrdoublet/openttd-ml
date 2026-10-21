@@ -1,0 +1,220 @@
+{
+  "rail_cal4_smoke_1x1_20261021": {
+    "campaign": "rail_cal4_smoke_1x1_20261021",
+    "years": 1,
+    "seeds": [
+      42
+    ],
+    "bundle_sha256": "e40cb8af50b4ab9f782c69c0c0855c052c351ff4b6af62d2bb8f15ed5682a743",
+    "manifest_sha256": "2a26d63b2d667d19500e2253d32e3eb8384ce25c7b9a863c104f58fc298cdbc7",
+    "complete_pairs": 1,
+    "verdict": "fail_primary",
+    "mean_delta_profit_year": 15558.0,
+    "ratio_company_value_means": 1.0264484074961227,
+    "per_seed": [
+      {
+        "seed": 42,
+        "reference_profit_year": 480605,
+        "variant_profit_year": 496163,
+        "delta_profit_year": 15558,
+        "reference_company_value": 450046,
+        "variant_company_value": 461949,
+        "delta_company_value": 11903
+      }
+    ],
+    "arms": {
+      "reference": {
+        "by_seed": [
+          {
+            "seed": 42,
+            "rail_built": 0,
+            "distance_median": null,
+            "cargo_counts": {},
+            "rail_attempts": 0,
+            "rail_chosen": 0
+          }
+        ],
+        "rail_built_total": 0,
+        "rail_distance_median": null,
+        "cargo_counts_total": {},
+        "squirrel_errors": 0
+      },
+      "rail_cal_1": {
+        "by_seed": [
+          {
+            "seed": 42,
+            "rail_built": 0,
+            "distance_median": null,
+            "cargo_counts": {},
+            "rail_attempts": 0,
+            "rail_chosen": 0
+          }
+        ],
+        "rail_built_total": 0,
+        "rail_distance_median": null,
+        "cargo_counts_total": {},
+        "squirrel_errors": 0
+      }
+    }
+  },
+  "rail_cal4_probe_3x3_20261021": {
+    "campaign": "rail_cal4_probe_3x3_20261021",
+    "years": 3,
+    "seeds": [
+      42,
+      7,
+      100
+    ],
+    "bundle_sha256": "e40cb8af50b4ab9f782c69c0c0855c052c351ff4b6af62d2bb8f15ed5682a743",
+    "manifest_sha256": "f81240e26d4944dc234289f8f1afbecb3d5d9299820a5d29da8c3d6405ee8afd",
+    "complete_pairs": 3,
+    "verdict": "fail_primary",
+    "mean_delta_profit_year": 140645.0,
+    "ratio_company_value_means": 1.0355734395293157,
+    "per_seed": [
+      {
+        "seed": 42,
+        "reference_profit_year": 2153604,
+        "variant_profit_year": 2350137,
+        "delta_profit_year": 196533,
+        "reference_company_value": 4267054,
+        "variant_company_value": 4569011,
+        "delta_company_value": 301957
+      },
+      {
+        "seed": 7,
+        "reference_profit_year": 3022885,
+        "variant_profit_year": 3105785,
+        "delta_profit_year": 82900,
+        "reference_company_value": 5524778,
+        "variant_company_value": 5256557,
+        "delta_company_value": -268221
+      },
+      {
+        "seed": 100,
+        "reference_profit_year": 1200266,
+        "variant_profit_year": 1342768,
+        "delta_profit_year": 142502,
+        "reference_company_value": 1978607,
+        "variant_company_value": 2363586,
+        "delta_company_value": 384979
+      }
+    ],
+    "arms": {
+      "reference": {
+        "by_seed": [
+          {
+            "seed": 100,
+            "rail_built": 10,
+            "distance_median": 129.0,
+            "cargo_counts": {
+              "COAL": 1,
+              "GRAI": 1,
+              "IORE": 1,
+              "LVST": 2,
+              "OIL_": 3,
+              "PASS": 1,
+              "WOOD": 1
+            },
+            "rail_attempts": 17,
+            "rail_chosen": 21
+          },
+          {
+            "seed": 42,
+            "rail_built": 16,
+            "distance_median": 136.5,
+            "cargo_counts": {
+              "COAL": 6,
+              "GRAI": 2,
+              "IORE": 5,
+              "WOOD": 3
+            },
+            "rail_attempts": 22,
+            "rail_chosen": 21
+          },
+          {
+            "seed": 7,
+            "rail_built": 14,
+            "distance_median": 93.5,
+            "cargo_counts": {
+              "COAL": 7,
+              "PASS": 1,
+              "WOOD": 6
+            },
+            "rail_attempts": 14,
+            "rail_chosen": 11
+          }
+        ],
+        "rail_built_total": 40,
+        "rail_distance_median": 116.5,
+        "cargo_counts_total": {
+          "COAL": 14,
+          "GRAI": 3,
+          "IORE": 6,
+          "LVST": 2,
+          "OIL_": 3,
+          "PASS": 2,
+          "WOOD": 10
+        },
+        "squirrel_errors": 0
+      },
+      "rail_cal_1": {
+        "by_seed": [
+          {
+            "seed": 100,
+            "rail_built": 15,
+            "distance_median": 110,
+            "cargo_counts": {
+              "COAL": 4,
+              "GRAI": 2,
+              "LVST": 1,
+              "OIL_": 5,
+              "PASS": 1,
+              "WOOD": 2
+            },
+            "rail_attempts": 20,
+            "rail_chosen": 23
+          },
+          {
+            "seed": 42,
+            "rail_built": 10,
+            "distance_median": 96.0,
+            "cargo_counts": {
+              "COAL": 6,
+              "PASS": 1,
+              "WOOD": 3
+            },
+            "rail_attempts": 11,
+            "rail_chosen": 9
+          },
+          {
+            "seed": 7,
+            "rail_built": 18,
+            "distance_median": 128.0,
+            "cargo_counts": {
+              "COAL": 7,
+              "IORE": 5,
+              "STEL": 1,
+              "WOOD": 5
+            },
+            "rail_attempts": 18,
+            "rail_chosen": 16
+          }
+        ],
+        "rail_built_total": 43,
+        "rail_distance_median": 116,
+        "cargo_counts_total": {
+          "COAL": 17,
+          "GRAI": 2,
+          "IORE": 5,
+          "LVST": 1,
+          "OIL_": 5,
+          "PASS": 2,
+          "STEL": 1,
+          "WOOD": 10
+        },
+        "squirrel_errors": 0
+      }
+    }
+  }
+}

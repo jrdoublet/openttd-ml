@@ -83,6 +83,8 @@ V307_LONG_PROBE <- 0;  // V307 : sonde de mesure des longs traces, bloquante, de
 V307_PROBE_YEAR <- 0;
 V307_DONE <- false;
 V307_ABND_AUTOPSY <- false;
+/* RAIL-CAL-1 : 1 = score RAIL experimental cout + profit seulement (defaut 0). */
+RAIL_CAL <- 0;
 function OpexV207Active()
 {
   return V207_RAIL_MAIL || V207_RAIL_PAX_SHARE_PCT > 0 || V207_RAIL_PAX_JOINED_STOPS > 0;

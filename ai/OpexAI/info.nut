@@ -792,6 +792,14 @@ class OpexAIInfo extends AIInfo {
       easy_value = 1, medium_value = 1, hard_value = 1,
       custom_value = 1, flags = 0, step_size = 1
     });
+    AddSetting({
+      name = "rail_cal",
+      description = "RAIL-CAL-1 experimental: correct only the ranking score of unbuilt RAIL candidates for predicted cost and profit; 0 = legacy (default), 1 = test",
+      min_value = 0, max_value = 1,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0, default_value = 0,
+      flags = 0, step_size = 1
+    });
   }
 }
 

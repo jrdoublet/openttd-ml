@@ -619,6 +619,61 @@ function OpexProjectFundProfit(project)
   return calibrated;
 }
 
+/* RAIL-CAL-1 : table SOLO 40x10 du 21/10, volontairement experimentale et
+ * NON qualifiee sur les profits DUEL. Le drapeau reste a 0 par defaut.
+ * C70 est deja applique par OpexProjectFundProfit ; ne pas modifier C70.
+ * Les labels sont resolus par AICargo : les IDs dependent du NewGRF. */
+RAIL_CAL_PROFIT <- {
+  COAL = [0.8442, 1.1066, 1.3735, 1.4834],
+  GOOD = [0.8546, 1.2900, 1.2912, 1.4259],
+  GRAI = [1.0015, 1.1159, 1.3087, 1.3803],
+  IORE = [0.9875, 1.1785, 1.2944, 1.4475],
+  LVST = [1.0597, 1.0690, 1.3980, 1.5792],
+  OIL_ = [0.8823, 1.0358, 1.0943, 1.3488],
+  PASS = [0.6692, 0.8194, 1.1796, 1.4225],
+  STEL = [1.1237, 1.1145, 1.2912, 1.4225],
+  VALU = [0.7410, 1.1077, 1.3316, 1.4746],
+  WOOD = [0.9116, 1.1280, 1.3689, 1.3862],
+};
+RAIL_CAL_PROFIT_FALLBACK <- [0.905527, 1.114477, 1.291211, 1.422478];
+
+function OpexRailCalProfitFactor(project)
+{
+  local d = ("distance" in project) ? project.distance : 0;
+  local quartile = d <= 90 ? 0 : (d <= 127 ? 1 : (d <= 172 ? 2 : 3));
+  local label = ("cargo" in project && AICargo.IsValidCargo(project.cargo))
+      ? AICargo.GetCargoLabel(project.cargo) : "unknown";
+  return (label in RAIL_CAL_PROFIT) ? RAIL_CAL_PROFIT[label][quartile]
+      : RAIL_CAL_PROFIT_FALLBACK[quartile];
+}
+
+/* Ne changer QUE fundScore : profitAnnual, budgetCapital, K_dec, C70,
+ * OpexProjectFinanceCapital et la profitabilite reelle restent intacts.
+ * Si K_dec domine la mise de depart estimee, seule la calibration du profit
+ * agit ; le cout ne compte pas dans ce classement (convention max K_dec).
+ * Apres devis physique A*, capitalIsActual interdit les deux corrections. */
+function OpexRailCalFundScore(project, kDec, scoreDecisionFinanceCapital, fleetExemptDecision)
+{
+  local fundProfit = OpexProjectFundProfit(project);
+  if (RAIL_CAL == 1 && ("mode" in project) && project.mode == "rail") {
+    local actual = ("capitalIsActual" in project) && project.capitalIsActual;
+    if (!actual && ("payload" in project) && project.payload != null)
+      actual = ("capitalIsActual" in project.payload) && project.payload.capitalIsActual;
+    if (!actual) {
+      local d = ("distance" in project) ? project.distance : 0;
+      if (d < 0) d = 0;
+      local costFactor = 1.062686150395 + 0.003008780074 * d;
+      local profitFactor = OpexRailCalProfitFactor(project);
+      local calCost = scoreDecisionFinanceCapital * costFactor;
+      local denom = (kDec > calCost && !fleetExemptDecision) ? kDec : calCost;
+      return OpexProjectScore(fundProfit * profitFactor, denom);
+    }
+  }
+  return OpexProjectScore(fundProfit,
+      (kDec > scoreDecisionFinanceCapital && !fleetExemptDecision)
+          ? kDec : scoreDecisionFinanceCapital);
+}
+
 function OpexSelectRejectScore(project, kDec)
 {
   if (project == null) return 0;
@@ -774,9 +829,8 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSel
      * chemin legacy, mais pas pour une flotte portant une marge C121. */
     local fleetExemptDecision = project.mode == "fleet"
         && !OpexC121ProjectHasRealization(project);
-    project.fundScore <- OpexProjectScore(OpexProjectFundProfit(project),
-        (kDec > scoreDecisionFinanceCapital && !fleetExemptDecision)
-            ? kDec : scoreDecisionFinanceCapital);
+    project.fundScore <- OpexRailCalFundScore(project, kDec,
+        scoreDecisionFinanceCapital, fleetExemptDecision);
     if (project.mode == "air" && ("payload" in project) && project.payload != null && ("c121CatalogKey" in project.payload) && project.payload.c121CatalogKey in C121_CATALOG_CACHE)
       C121_CATALOG_CACHE[project.payload.c121CatalogKey].lastScore = project.fundScore;
     if (fundMark != null) {
@@ -827,9 +881,8 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSel
       local scoreDecisionFinanceCapital = decisionFinanceCapital;
       local fleetExemptDecision = project.mode == "fleet"
           && !OpexC121ProjectHasRealization(project);
-      project.fundScore <- OpexProjectScore(OpexProjectFundProfit(project),
-          (kDec > scoreDecisionFinanceCapital && !fleetExemptDecision)
-              ? kDec : scoreDecisionFinanceCapital);
+      project.fundScore <- OpexRailCalFundScore(project, kDec,
+          scoreDecisionFinanceCapital, fleetExemptDecision);
       if (fundMark != null) {
         OpexSpanAgg("pub.select.score.fund_score", fundMark);
         fundMark = null;
