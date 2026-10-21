@@ -5,7 +5,11 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
 
-from diag_v307_sink_joins import parse_lines, sinks_for_builds, summarize
+try:
+    from sweeps.diag_v307_sink_joins import parse_lines, sinks_for_builds, summarize
+except ModuleNotFoundError:
+    # Permet aussi `python sweeps/test_v307_sink_joins.py` depuis la racine.
+    from diag_v307_sink_joins import parse_lines, sinks_for_builds, summarize
 
 
 class SinkJoinsTest(unittest.TestCase):

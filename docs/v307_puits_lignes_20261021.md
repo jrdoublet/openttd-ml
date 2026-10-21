@@ -75,3 +75,26 @@ par la seule frequence de destinations.
 Ce diagnostic n'est ni une mesure du nombre de quais effectivement poses,
 ni une preuve que les quais reserves accroitraient le profit : attendre le
 diagnostic V307 1.7 d'enclavement et un smoke cout/opcodes de V307 1.9.
+
+## ⚠️ Correction du 21/10 au soir (Claude, remarque de l'utilisateur) : la mesure est censurée
+
+Le tableau ne compte que les **jonctions réussies**. Une destination déjà desservie ne reçoit une
+deuxième ligne que par jonction stricte V178 : un quai **parallèle** de même longueur, à 1-4 tuiles de
+côté (`OpexJoinPlatformPlans`, `JOIN_PARALLEL_MAX_SIDE = 4`), plat, constructible, avec sa tuile
+d'entrée libre. Sinon, la tentative échoue en `SITEAB`, sans repli vers une gare séparée
+(`strictOriginReuseJoin`). Nos gares sont toutes posées à **1 quai**. La part de puits « à une ligne »
+mesure donc aussi l'impossibilité de joindre, pas seulement l'absence de demande.
+
+Journaux 10 ans du VPS, bras référence, `RAIL_ATTEMPT shared_dest=1` :
+
+| Campagne | Tentatives de jonction | OK | SITEAB | ABND | Puits visés | Jamais joints |
+|---|---:|---:|---:|---:|---:|---:|
+| `v299_diag_3x10_20261021` | 74 | 23 (31 %) | 21 | 26 | 24 (pour 38 lignes neuves) | 9 |
+| `v307_autopsy_3x10_20261021` | 40 | 25 (62 %) | 12 | 3 | 19 (pour 50 lignes neuves) | 1 |
+
+Les `SITEAB` de jonction se répartissent selon le nombre de jonctions déjà réussies sur le puits :
+- 0 (pas de place pour le 2e quai) : 6 + 4 ;
+- 1 (pas de place pour le 3e quai) : 14 + 3 ;
+- 2 ou plus : 1 + 5.
+
+On compte 13 + 9 paires distinctes. Entre 38 % et 63 % des puits attirent au moins une tentative de deuxième ligne. La règle « 88 % des puits restent à 1-2 lignes » ne doit donc pas servir à écarter les gares de puits à plusieurs quais. Suite : prompt 5 de [`prompts/lot_21102026_soir.md`](prompts/lot_21102026_soir.md) (emprise réservée et mesure de la censure sur le 40×10 du PC).

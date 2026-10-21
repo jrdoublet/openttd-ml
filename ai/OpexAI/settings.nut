@@ -125,6 +125,7 @@ function OpexLoadSettings()
   local v307Year = AIController.GetSetting("v307_probe_year");
   V307_PROBE_YEAR = (v307Year != null && v307Year > 0 && v307Year <= 9) ? v307Year : 0;
   V307_ABND_AUTOPSY = AIController.GetSetting("v307_abnd_autopsy") == 1;
+  V307_SITES = AIController.GetSetting("v307_sites") == 1 ? 1 : 0;
   /* RAIL-CAL-1 : lecture unique, ne modifie ni budget ni financement. */
   RAIL_CAL = AIController.GetSetting("rail_cal") == 1 ? 1 : 0;
   local weightAdapt = AIController.GetSetting("v294_rail_weight_adapt");
