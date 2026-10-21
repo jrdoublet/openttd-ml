@@ -1,7 +1,9 @@
 # RAIL-CAL-1 — prompt 4 exécuté, variante active `rail_cal=1` (21/10/2026)
 
 **Décision de clôture : essai technique et 3×3 terminés ; variante non qualifiée, réglage par défaut `0` conservé.**
-Pas de porte A ni de pénalisation AIR. Le modèle de profit cargo×distance du prompt 2 ne passe pas
+Pas de porte A **40×3** ni de pénalisation AIR. Un diagnostic 40×10 supplémentaire a été terminé
+le 21/10 et a également échoué aux critères `gain_short` de ce banc (voir ci-dessous).
+Le modèle de profit cargo×distance du prompt 2 ne passe pas
 la validation hors échantillon du prompt 5, malgré un premier résultat économique favorable sur 3 graines.
 Preuves structurées : `evidence/review/rail_cal4_active_20261021/results_summary.json`.
 
@@ -88,6 +90,55 @@ du profit de 11 495 £/an brut contre 12 881 £/an avec facteur cargo×distance*
 le profit calibré du présent prompt n'est **pas qualifié comme estimateur**.
 La comptabilité réalisée ne contient pas l'amortissement prévu, empêchant
 une attribution naïve du biais à la recette.
+
+## Porte A — vérification de la demande du lot du 21/10 au soir
+
+Le [prompt 3](prompts/lot_21102026_soir.md) indique une **porte A 40×3 déjà
+terminée** ; aucun résultat local de `rail_cal=1` avec 40 graines × 3 ans
+n'a pu être identifié. Les chiffres du 3×3 exposés ci-dessus sont ceux d'un
+diagnostic, pas une porte A : son `p=0,25` ne satisfait pas le critère V102.
+Il n'existe donc **aucun verdict vérifié de porte A 40×3** à recopier.
+
+En revanche, une campagne **distincte**
+`rail_cal4_40x10_multimodal_pc_20261021` a terminé ses 40 paires de dix ans
+sur le bundle `e40cb8af...`, avec `gain_short`, année terminale 1979 et
+`required_years=10`. Résultat local reproductible :
+`results/rail_cal4_40x10_multimodal_pc_20261021.json`.
+
+| Critère du diagnostic **40×10** | Mesure |
+|---|---:|
+| Verdict | **`fail_primary`** |
+| Paires complètes | 40/40 |
+| Δ `profit_year` variante − référence, moyenne | **+70 538 £/an** |
+| Médiane | +34 616 £/an |
+| Victoires / défaites / égalités | 22 / 18 / 0 |
+| Wilcoxon exact bilatéral | p = 0,24793 |
+| IC95 bootstrap moyenne (20 000 rééchantillonnages) | [−40 682 ; +183 854] £/an |
+| Seuil 4 % du profit référence | **+173 126 £/an** |
+| `company_value`, ratio des moyennes | **+1,57 %** (garde −5 % respectée) |
+
+Exposition des constructions `RAIL_BUILD` sur les 80 journaux complets
+(distance en tuiles, cargo de chaque nouvelle ligne) :
+
+| Mesure | Référence `rail_cal=0` | Variante `rail_cal=1` |
+|---|---:|---:|
+| Lignes construites | **1 086** | **1 105** |
+| Distance médiane | 118 | 127 |
+| COAL | 225 | 229 |
+| GRAI | 199 | 179 |
+| IORE | 166 | 177 |
+| WOOD | 161 | 165 |
+| OIL_ | 119 | 123 |
+| PASS | 105 | 91 |
+| LVST | 70 | 93 |
+| GOOD | 26 | 37 |
+| STEL | 9 | 7 |
+| VALU | 6 | 4 |
+
+Le signal de gain à dix ans (+70,5 k£/an) reste incertain et inférieur au
+plancher du banc (173,1 k£/an). Ce **40×10 n'est pas une porte A 40×3** ;
+il n'autorise ni porte B automatique ni adoption. Le réglage reste à 0,
+indépendamment de la MAE de l'estimateur de profit.
 L'exploration de facteurs rétrécis dans `docs/rail_cal_profit_safe_20261021.md`
 réduit légèrement la MAE de certains candidats, **mais a été sélectionnée
 après inspection du DUEL** : pas de validation indépendante, pas de motif
