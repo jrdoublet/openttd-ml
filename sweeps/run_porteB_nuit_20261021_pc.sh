@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Portes B non_erosion 20 graines x 10 ans de la nuit du 21/10, sur le PC (accord de l'utilisateur).
 # A lancer depuis la racine d'un checkout de openttd-ml contenant ai/AAAHogEx-115 :
-#   bash sweeps/run_porteB_nuit_20261021_pc.sh [adapt400|v297|v296a|all]   (defaut : all, dans cet ordre)
+#   bash sweeps/run_porteB_nuit_20261021_pc.sh [adapt400|v297|v296a|finpartie|all]   (defaut : all, dans cet ordre)
 # Chaque candidat tourne dans un worktree detache de sa branche (origin), cree a cote du checkout
 # (../porteB-<candidat>) ; AAAHogEx y est copie. NE PAS retirer ces worktrees avant d'avoir copie
 # results/ : `git worktree remove` efface les fichiers ignores.
@@ -9,7 +9,9 @@
 #   v297     : rail seul, branche v297, plancher de ROI rail 0 contre 400 (porte A rail seul passee :
 #              +68,7 k, p = 0,019) ;
 #   v296a    : partie complete, branche v296a, pose groupee 0 contre 1 (portes A neutres, regle des
-#              optimisations d'opcodes).
+#              optimisations d'opcodes) ;
+#   finpartie : partie complete, branche finpartie, V249s mode 2 + V292b contre master (40x10 gain_short
+#              GitHub 39531909017 : +286,5 k, p = 0,0005, valeur -3,4 %).
 # Toutes les branches contiennent le correctif du renfort aerien (IsValidVehicle(null), graine 123456).
 # Graines : les 20 premieres de SEEDS_40 (la 73 remplacee par 373684). Sans decision_log.
 # PROFILE remplace le profil Docker ; EXTRA_VAR ajoute des reglages a la variante adapt400
@@ -41,6 +43,9 @@ run_one() {
     v296a)    branch=v296a; setting=v296_rail_batch_build
               ref="OpexAI"
               var="OpexAI[v296_rail_batch_build=1]" ;;
+    finpartie) branch=finpartie; setting=v292_hq_hub
+              ref="OpexAI"
+              var="OpexAI[v249_statue=2,v292_hq_hub=1]" ;;
     *) echo "candidat inconnu : $cand" >&2; return 2 ;;
   esac
   camp="${cand}_porteB_20x10_pc_20261021"
