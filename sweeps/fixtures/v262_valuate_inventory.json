@@ -293,5 +293,20 @@
     "task_projects.nut",
     "engines",
     "AIEngine.IsBuildable"
+  ],
+  [
+    "probe_v307.nut",
+    "towns",
+    "AITown.GetPopulation"
+  ],
+  [
+    "probe_v307.nut",
+    "prod",
+    "AIIndustry.GetLastMonthProduction,c"
+  ],
+  [
+    "probe_v307.nut",
+    "types",
+    "AIRail.IsRailTypeAvailable"
   ]
 ]
