@@ -22,4 +22,10 @@ Les modes diffèrent : V294all et adapt400 utilisent rail, route et air, alors q
 
 Les fichiers `.json` sont les rapports détaillés originaux avec les 40 ou 20 lignes de comparaison appariée et les résultats par graine ; les `.manifest.json` sont les manifestes originaux. Les fichiers `.jsonl.gz` (si présents) sont les checkpoints JSONL originaux compressés sans transformation. Les chemins `/work/results/...` inscrits dans les sources identifient leur emplacement lors de l'exécution ; le répertoire de cette publication est leur archive autonome. Le fichier `SHA256SUMS.json` donne la taille et l'empreinte SHA-256 des originaux et des copies archivées pour vérification.
 
+Les archives de checkpoints contiennent **19 200 lignes JSONL** pour V294all, **9 600** pour adapt400 et **9 600** pour V297. Leurs originaux mesurent respectivement 165 975 116, 82 134 057 et 94 020 034 octets ; les archives gzip mesurent 13 873 030, 6 921 798 et 7 414 768 octets. Les empreintes de tous les originaux sont enregistrées dans l'index. Pour vérifier les copies et leur décompression, sans lancer OpenTTD :
+
+```sh
+python -X utf8 evidence/review/porteB_20261021/verify_publication.py
+```
+
 La campagne V296a est **hors périmètre**, et le script modifié du worktree `results/porteB_nuit_runner_stage_20261021` n'entre pas dans cette publication.

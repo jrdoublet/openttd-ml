@@ -30,6 +30,36 @@
       "file": "v297_porteB_20x10_pc_20261021.manifest.json",
       "bytes": 62072,
       "sha256": "0a0925d27f8abe97e189db502184cb1bce31e94d1a1d161e53b94c305343db6b"
+    },
+    {
+      "file": "v294all_adapt400_complet_1970_40x10_pc_20261021.jsonl.gz",
+      "bytes": 13873030,
+      "sha256": "b571a3913f935b00c8a49d7ccb417559bdcf13c10858b679159ef323fea310f6",
+      "original_file": "v294all_adapt400_complet_1970_40x10_pc_20261021.jsonl",
+      "original_bytes": 165975116,
+      "original_sha256": "dae3593bac997015b9e0c92f59ef93d6fe50593041feaac3253cab84a305a857",
+      "original_lines": 19200,
+      "source_worktree": "v294all_pc_stage_20261020"
+    },
+    {
+      "file": "adapt400_porteB_20x10_pc_20261021.jsonl.gz",
+      "bytes": 6921798,
+      "sha256": "4b625ded4758d6844846c0bda50cc4e9276d49a2ca057f6dbd7e58cd5256b05a",
+      "original_file": "adapt400_porteB_20x10_pc_20261021.jsonl",
+      "original_bytes": 82134057,
+      "original_sha256": "1b1af7b69f64427cb55709dae9c7de1ca88f7cd9af7a99fe3733656a9cb2ad4b",
+      "original_lines": 9600,
+      "source_worktree": "porteB-adapt400"
+    },
+    {
+      "file": "v297_porteB_20x10_pc_20261021.jsonl.gz",
+      "bytes": 7414768,
+      "sha256": "64092616c14b4a0cd53845c3ec0b01ee05c058c12c25e1a6cfbb716e2f4594f6",
+      "original_file": "v297_porteB_20x10_pc_20261021.jsonl",
+      "original_bytes": 94020034,
+      "original_sha256": "500b8df242a909ddca9b383c3b4606dd6bae176225ed24f54bba9a0fb9a33862",
+      "original_lines": 9600,
+      "source_worktree": "porteB-v297"
     }
   ]
 }
