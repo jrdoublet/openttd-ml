@@ -73,6 +73,11 @@ V275_RAIL_PAX_MM <- 15;
  * droite perpendiculaire), 88 km/h en acceleration realiste ; ramene a 100 sous 40 tuiles. */
 V214_RAIL_TURN_COST <- 300;
 V214_RAIL_TIGHT_TURN_COST <- 1500;
+/* V301 : correctifs NOTRAIN (masque). 1 = NOTRAIN/ORDFAIL ecartent la paire comme un ABND ;
+ * 2 = la borne vehicle.max_train_length de V207 vaut aussi pour le fret ; 4 = une rame qui
+ * deborderait (longueur mesuree ou ERR_VEHICLE_TOO_LONG) garde les wagons deja attaches au lieu
+ * d'echouer. 0 = historique. */
+V301_NOTRAIN_FIX <- 0;
 function OpexV207Active()
 {
   return V207_RAIL_MAIL || V207_RAIL_PAX_SHARE_PCT > 0 || V207_RAIL_PAX_JOINED_STOPS > 0;

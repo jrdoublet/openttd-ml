@@ -205,7 +205,8 @@ function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPl
   /* V207 : une rame passagers (+ courrier) plus longue que vehicle.max_train_length ne quitte
    * jamais le depot (MoveWagon : ERR_VEHICLE_TOO_LONG, voir V206). Borne limitee aux rames pax
    * V207 : le quai, le fret et les defauts restent inchanges. */
-  if (kind == "pax" && OpexV207Active() && catalog.maxTrainLength > 0) {
+  if (((kind == "pax" && OpexV207Active()) || (kind != "pax" && (V301_NOTRAIN_FIX & 2)))
+      && catalog.maxTrainLength > 0) {
     local trainMaxWagons = OpexRailNominalMaxWagons(catalog.maxTrainLength);
     if (trainMaxWagons < maxWagons) maxWagons = trainMaxWagons;
   }

@@ -117,6 +117,8 @@ function OpexLoadSettings()
   V294_RAIL_CONTINUOUS = (v294Continuous != null && v294Continuous > 0) ? 1 : 0;
   local railDefer = AIController.GetSetting("v294_rail_defer");
   if (railDefer != null && railDefer >= 0 && railDefer <= 5000) V294H_RAIL_DEFER = railDefer;
+  local v301Fix = AIController.GetSetting("v301_notrain_fix");
+  V301_NOTRAIN_FIX = (v301Fix != null && v301Fix > 0 && v301Fix <= 7) ? v301Fix : 0;
   local weightAdapt = AIController.GetSetting("v294_rail_weight_adapt");
   V294C_RAIL_WEIGHT_ADAPT = (weightAdapt != null && weightAdapt >= 100 && weightAdapt <= 400) ? weightAdapt : 0;
   V269_RAIL_LATE_RELAX = (lateRelax != null && lateRelax > 0 && lateRelax <= 9) ? lateRelax : 0;
