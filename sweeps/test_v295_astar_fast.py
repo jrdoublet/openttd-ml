@@ -37,13 +37,13 @@ class TestV295AstarFast(unittest.TestCase):
         self.assertIsNotNone(block, "v295_astar_fast doit etre declare dans info.nut")
         body = block.group(1)
         for level in ("easy", "medium", "hard", "custom"):
-            self.assertRegex(body, rf"{level}_value\s*=\s*0\b",
-                             f"defaut {level} doit etre 0")
+            self.assertRegex(body, rf"{level}_value\s*=\s*1\b",
+                             f"defaut {level} doit etre 1")
         self.assertIn("min_value = 0, max_value = 1", body)
         self.assertEqual(self.settings.count('GetSetting("v295_astar_fast")'), 1,
                          "v295_astar_fast doit etre lu exactement une fois dans settings.nut")
-        self.assertIn("V295_ASTAR_FAST <- 0;", self.globals_pre,
-                      "V295_ASTAR_FAST doit etre declaree a 0 dans globals_pre.nut")
+        self.assertIn("V295_ASTAR_FAST <- 1;", self.globals_pre,
+                      "V295_ASTAR_FAST doit etre declaree a 1 dans globals_pre.nut")
 
     def test_findpath_scan_present_and_filter_guarded_by_fast_astar(self):
         body = function_body(self.v129, "function OpexAyStarV129::FindPath(iterations)")
