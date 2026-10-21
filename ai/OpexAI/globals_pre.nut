@@ -747,3 +747,4 @@ V296A_MISMATCH <- false;
 
 /* V296b : file native AIList et noeuds en tableaux ; 2 = comparaison V129. */
 V296_ASTAR_NATIVE <- 1;  // defaut v296clean depuis le 21/10 (decision utilisateur)
+V304_SEGMENT_MEMORY <- 0;

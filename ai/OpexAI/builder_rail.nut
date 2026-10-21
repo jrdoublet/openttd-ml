@@ -1252,6 +1252,26 @@ function OpexLocalStructureChoices(front, previous, destinationCenter, state)
 
 function OpexSegmentedResult(state, path, stop, done)
 {
+  if (DECISION_LOG && ("v304Probe" in state))
+    state.v304Probe.ops += OpexOpsMeasureEnd(state.v304Mark);
+  if (DECISION_LOG && done && ("v304Probe" in state)) {
+    local p = state.v304Probe;
+    OpexDecide("V304_SEARCH", "src=" + p.src + " dst=" + p.dst + " dist=" + p.dist
+        + " outcome=" + stop + " iters=" + state.iterations + " segments=" + state.segments
+        + " backtracks=" + state.backtracks + " expanded=" + p.expanded
+        + " tile_reexpanded=" + p.tileRepeat + " state_reexpanded=" + p.stateRepeat
+        + " tiles=" + p.tiles.len() + " states=" + p.states.len() + " overflow=" + p.overflow
+        + " native_segments=" + p.nativeSegments
+        + " memory=" + (("v304Memory" in state) ? 1 : 0)
+        + " search_ops=" + p.ops + " path_cost=" + p.pathCost + " path_len=" + p.pathLen);
+    if ("v304Memory" in state) {
+      local m = state.v304Memory;
+      OpexDecide("V304_MEMORY", "src=" + p.src + " dst=" + p.dst + " outcome=" + stop
+          + " pruned=" + m.pruned + " improved=" + m.improved + " entries=" + m.bestG.len()
+          + " nodes=" + m.nodes + " capped=" + (m.capped ? 1 : 0)
+          + " saved_frontiers=" + m.saved + " restored=" + m.restored);
+    }
+  }
   local tiles = null;
   local structures = null;
   if (stop == "OK") {
@@ -1416,7 +1436,35 @@ function OpexCreateSegmentedSearch(plansA, plansB, iterationBudget, ignoredTiles
           + " seg=0 remaining=" + state.v294cLastDist);
     }
   }
+  if (DECISION_LOG) {
+    state.v304Probe <- { src = sources[0][0], dst = goals[0][0],
+        dist = AIMap.DistanceManhattan(sources[0][0], goals[0][0]),
+        tiles = {}, states = {}, expanded = 0, tileRepeat = 0, stateRepeat = 0,
+        segment = 0, nativeSegments = 0, overflow = 0, ops = 0, pathCost = -1, pathLen = 0 };
+    state.v304Mark <- null;
+  }
+  if (V304_SEGMENT_MEMORY == 1 && V296_ASTAR_NATIVE == 1) {
+    state.v304Memory <- { bestG = {}, frames = [], pruned = 0, improved = 0,
+        active = false, capped = false, nodes = 0, saved = 0, restored = 0 };
+  }
   return state;
+}
+
+/* Count accepted closed-set expansions, not heap duplicates. A repeated tile/state
+ * was expanded in an EARLIER segment of this search. Bounded diagnostic storage;
+ * overflow makes coverage explicitly incomplete. No behavioural cache. */
+function OpexV304Observe(p, tile, direction)
+{
+  p.expanded++;
+  if (tile in p.tiles) {
+    if (p.tiles[tile] < p.segment) p.tileRepeat++;
+  } else if (p.tiles.len() < 50000) p.tiles[tile] <- p.segment;
+  else p.overflow++;
+  local key = tile + ":" + direction;
+  if (key in p.states) {
+    if (p.states[key] < p.segment) p.stateRepeat++;
+  } else if (p.states.len() < 50000) p.states[key] <- p.segment;
+  else p.overflow++;
 }
 
 /* Une tranche de recherche segmentee. `state.iterations` est le denominateur du
@@ -1429,6 +1477,7 @@ function OpexCreateSegmentedSearch(plansA, plansB, iterationBudget, ignoredTiles
  * traite comme le prototype, meme en mode reprenable. */
 function OpexAdvanceSegmentedSearch(state, sliceIters, deadlineTick)
 {
+  if (DECISION_LOG) state.v304Mark = OpexOpsMeasureBegin();
   local sliceSpent = 0;
 
   while (state.iterations < state.iterationBudget &&
@@ -1462,10 +1511,18 @@ function OpexAdvanceSegmentedSearch(state, sliceIters, deadlineTick)
       }
       local ignored = OpexSegmentIgnoredTiles(state);
       pathfinder.InitializePath(state.activeSources, state.goals, ignored);
+      if ("v304Memory" in state) pathfinder._v304Memory = state.v304Memory;
+      if (DECISION_LOG && ("_v304Probe" in pathfinder)) {
+        state.v304Probe.segment = state.segments;
+        state.v304Probe.nativeSegments++;
+        pathfinder._v304Probe = state.v304Probe;
+      }
       state.pathfinder = pathfinder;
       state.segmentPath = false;
       state.segmentUsed = 0;
     }
+
+    if ("v304Memory" in state) return OpexAdvanceSegmentMemory(state, sliceIters, deadlineTick);
 
     {
       /* V129 : FindPath(n) groupe. n est borne par TOUTES les limites de la boucle historique
@@ -1519,6 +1576,7 @@ function OpexAdvanceSegmentedSearch(state, sliceIters, deadlineTick)
       }
       if (state.prefix == null) state.prefix = tail;
       else for (local i = 2; i < tail.len(); i++) state.prefix.push(tail[i]);
+      if (DECISION_LOG) OpexV304LogPath(state, state.pathfinder);
       state.pathfinder = null;
       return OpexSegmentedResult(state, path, "OK", true);
     }
@@ -1622,6 +1680,139 @@ function OpexAdvanceSegmentedSearch(state, sliceIters, deadlineTick)
   if (state.iterations >= state.timeSafe || state.iterations >= state.iterationBudget) {
     return OpexSegmentedResult(state, false, "ABND", true);
   }
+  return OpexSegmentedResult(state, false, "CONT", false);
+}
+
+/* V304 keeps g relative to the ORIGINAL sources and keeps all ancestors/open nodes.
+ * At a segment boundary the best frontier node starts a focused branch; the other
+ * nodes are suspended, not discarded. A dead branch restores the previous frontier.
+ * Unlike a restart, it must NOT add its tentative prefix to ignored tiles or reset g.
+ * Local structure jumps of the legacy segmenter are replaced by the native A*'s
+ * bridge/tunnel successors, whose costs and ancestry are already represented.
+ * Experimental: this preserves segmentation, not bit-identical legacy trajectories. */
+function OpexV304Priority(id, pf)
+{
+  local h = pf._weight > 100 ? pf._EstimateWeighted(pf._tiles[id], pf._dirs[id], pf._goals, pf)
+      : pf._Estimate(pf._tiles[id], pf._dirs[id], pf._goals, pf);
+  return pf._costs[id] + h;
+}
+
+/* Reprice the WHOLE resulting trace, not just the last segment's local g.
+ * Diagnostic only; the common cost function is also used by the native finder. */
+function OpexV304LogPath(state, pf)
+{
+  local node = null;
+  local route = "";
+  foreach (tile in state.prefix) {
+    local cost = node == null ? 0 : pf._Cost(node, tile, 0, pf);
+    node = OpexAyStarV129.Path(node, tile, 0xFF, cost, 0);
+    route += tile + ",";
+  }
+  state.v304Probe.pathCost = node == null ? -1 : node.GetCost();
+  state.v304Probe.pathLen = state.prefix.len();
+  OpexDecide("V304_PATH", "src=" + state.v304Probe.src + " dst=" + state.v304Probe.dst + " tiles=" + route);
+}
+
+function OpexV304Reweight(state, remaining, stalled)
+{
+  if (V294C_RAIL_WEIGHT_ADAPT <= 0) return;
+  local pf = state.pathfinder;
+  local before = state.v294cWeight;
+  OpexV294cSwitchWeight(state, stalled, remaining);
+  if (before == state.v294cWeight) return;
+  pf.SetWeight(state.v294cWeight);
+  OpexV304ReweightQueue(pf._pathfinder._open, pf);
+  foreach (frame in state.v304Memory.frames) OpexV304ReweightQueue(frame, pf);
+}
+
+function OpexV304ReweightQueue(open, pf)
+{
+  // Mutating a sorted AIList during iteration invalidates its traversal.
+  // Copy only IDs (bounded by the 50k node cap), then update the native priorities.
+  local ids = [];
+  foreach (id, priority in open) ids.push(id);
+  foreach (id in ids) open.SetValue(id, OpexV304Priority(id, pf));
+}
+
+function OpexAdvanceSegmentMemory(state, sliceIters, deadlineTick)
+{
+  local pf = state.pathfinder;
+  local m = state.v304Memory;
+  local spent = 0;
+  while (state.iterations < state.iterationBudget && state.iterations < state.timeSafe
+      && spent < sliceIters && AIController.GetTick() < deadlineTick) {
+    local n = min(V129_RAIL_BATCH_ITERS, min(sliceIters - spent,
+        min(state.iterationBudget - state.iterations, state.timeSafe - state.iterations)));
+    n = min(n, state.currentSegmentLimit - state.segmentUsed);
+    local path = pf.FindPath(n);
+    local used = pf.LastConsumed();
+    state.iterations += used;
+    state.segmentUsed += used;
+    spent += used;
+    if (m.capped) return OpexSegmentedResult(state, false, "ABND", true);
+    if (path != null && path != false) {
+      state.prefix = OpexSegmentTiles(path);
+      if (DECISION_LOG) OpexV304LogPath(state, pf);
+      state.pathfinder = null;
+      return OpexSegmentedResult(state, path, "OK", true);
+    }
+    if (path == null) {
+      if (m.frames.len() == 0) return OpexSegmentedResult(state, null, "NOPA", true);
+      if (state.backtracks >= SEGMENTED_MAX_BACKTRACKS)
+        return OpexSegmentedResult(state, false, "ABND", true);
+      pf._pathfinder._open = m.frames.pop();
+      m.restored++;
+      state.backtracks++;
+      state.currentSegmentLimit = SEGMENTED_RECOVERY_ITERS;
+      local id = pf._pathfinder._open.Begin();
+      local remaining = OpexV294cGoalDistance(state, pf._tiles[id]);
+      OpexV304Reweight(state, remaining, true);
+      state.segmentUsed = 0;
+      state.segments++;
+      if (DECISION_LOG) {
+        state.v304Probe.segment = state.segments;
+        state.v304Probe.nativeSegments++;
+      }
+      continue;
+    }
+    if (state.segmentUsed >= state.currentSegmentLimit) {
+      if (state.iterations >= state.iterationBudget || state.iterations >= state.timeSafe)
+        return OpexSegmentedResult(state, false, "ABND", true);
+      if (!m.active) {
+        // The initial segment uses the historical closed-mask policy unchanged.
+        // From here on g can improve; retain only explicit caller exclusions in closed.
+        pf._closed = {};
+        foreach (tile in state.ignoredTiles) pf._closed[tile] <- ~0;
+        m.active = true;
+      }
+      local open = pf._pathfinder._open;
+      local id = open.Begin();
+      local remaining = OpexV294cGoalDistance(state, pf._tiles[id]);
+      if (V294C_RAIL_WEIGHT_ADAPT > 0) {
+        local progress = state.v294cLastDist - remaining;
+        OpexV304Reweight(state, remaining, progress * 10 < state.v294cLastDist);
+        state.v294cLastDist = remaining;
+        id = open.Begin();
+      }
+      local priority = open.GetValue(id);
+      open.RemoveItem(id);
+      if (!open.IsEmpty()) { m.frames.push(open); m.saved++; }
+      local branch = AIList();
+      branch.Sort(AIList.SORT_BY_VALUE, true);
+      branch.AddItem(id, priority);
+      pf._pathfinder._open = branch;
+      state.segmentUsed = 0;
+      state.currentSegmentLimit = SEGMENTED_SEGMENT_ITERS;
+      state.segments++;
+      if (DECISION_LOG) {
+        state.v304Probe.segment = state.segments;
+        state.v304Probe.nativeSegments++;
+      }
+    }
+  }
+  if (AIController.GetTick() >= deadlineTick) return OpexSegmentedResult(state, false, "DEAD", true);
+  if (state.iterations >= state.iterationBudget || state.iterations >= state.timeSafe)
+    return OpexSegmentedResult(state, false, "ABND", true);
   return OpexSegmentedResult(state, false, "CONT", false);
 }
 

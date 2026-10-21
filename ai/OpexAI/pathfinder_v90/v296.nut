@@ -14,6 +14,8 @@ class OpexRailPathFinderV296 extends OpexRailPathFinderV129
     _blooms = null;
     _closed = null;
     _goalSet = null;
+    _v304Probe = null; // DECISION_LOG only; shared across segments, never used for pruning.
+    _v304Memory = null; // Experimental search-local g table; live frontiers are retained too.
 
     constructor(weight = null)
     {
@@ -222,7 +224,26 @@ function OpexRailPathFinderV296::_FindPathV296(iterations)
         open.RemoveItem(id);
         pops++;
         local cur = tiles[id], direction = dirs[id], par = parents[id];
-        if (cur in closed) {
+        if (this._v304Memory != null && this._v304Memory.active) {
+            local memory = this._v304Memory;
+            // closed contains only caller-supplied ignored tiles in this mode.
+            if (cur in closed) continue;
+            if (par >= 0 && (blooms[par] & (1 << (cur % 61))) != 0) {
+                local scan = par;
+                while (scan >= 0 && tiles[scan] != cur) scan = parents[scan];
+                if (scan >= 0) continue;
+            }
+            local key = cur + ":" + direction;
+            if (key in memory.bestG) {
+                if (costs[id] >= memory.bestG[key]) { memory.pruned++; continue; }
+                memory.improved++;
+            } else if (memory.bestG.len() >= 50000) {
+                memory.capped = true;
+                this._consumed = pops;
+                return false;
+            }
+            memory.bestG[key] <- costs[id];
+        } else if (cur in closed) {
             local cd = closed[cur];
             if ((cd & direction) != 0) continue;
             if (par >= 0 && (blooms[par] & (1 << (cur % 61))) != 0) {
@@ -235,6 +256,9 @@ function OpexRailPathFinderV296::_FindPathV296(iterations)
         } else {
             closed[cur] <- direction;
         }
+        if (this._v304Memory != null && !this._v304Memory.active)
+            this._v304Memory.bestG[cur + ":" + direction] <- costs[id];
+        if (this._v304Probe != null) OpexV304Observe(this._v304Probe, cur, direction);
         local atGoal = cur in goalSet;
         if (atGoal) {
             foreach (goal in goals) {
@@ -465,6 +489,12 @@ function OpexRailPathFinderV296::_FindPathV296(iterations)
                 cache[new_tile] <- estimate;
             }
             local nid = tiles.len();
+            if (this._v304Memory != null && nid >= 50000) {
+                this._v304Memory.capped = true;
+                this._consumed = pops;
+                return false;
+            }
+            if (this._v304Memory != null) this._v304Memory.nodes = nid + 1;
             tiles.append(new_tile); dirs.append(new_direction); costs.append(c); parents.append(id);
             blooms.append(blooms[id] | (1 << (new_tile % 61)));
             open.AddItem(nid, c + estimate);
@@ -473,7 +503,10 @@ function OpexRailPathFinderV296::_FindPathV296(iterations)
     }
     this._consumed = pops == 0 ? 1 : pops;
     if (found >= 0) return this._Finish(found);
-    if (open.IsEmpty()) return this._Finish(-1);
+    if (open.IsEmpty()) {
+        if (this._v304Memory != null) return null; // Controller restores a suspended frontier.
+        return this._Finish(-1);
+    }
     this._running = true;
     return false;
 }
