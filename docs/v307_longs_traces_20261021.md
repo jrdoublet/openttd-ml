@@ -176,6 +176,7 @@ chemins sont branchés.
 | Référence (mode 0) | 8 | 718 | 77 | 9 | 12,08 M£ |
 | Mode 4 : A* continu inverse, poids de base | 20 | 1 985 | 70 | 13 | 12,36 M£ |
 | **Mode 6 : recherche segmentée de production, quais échangés** | **2** | **125** | 78 | 8 | 11,93 M£ |
+| Mode 5 : idem, côté étroit strict (B a moins de quais), sans tout le fret | 6 | 430 | 76 | 9 | 12,48 M£ |
 
 - **Mode 4, négatif** : 7 des paires qu'il abandonne étaient trouvées par l'aller de
   production. L'A* continu au poids de base, sans le poids adaptatif 200→400 ni les retours en
@@ -183,8 +184,10 @@ chemins sont branchés.
 - **Mode 6** : c'est la même recherche, mais partie de la destination (quais B moins nombreux,
   ou fret). **Les abandons tombent de 8 à 2, et leurs jours de 718 à 125.** Le profit sur 3
   graines (−1 %) ne dit rien : c'est un diagnostic.
-- Mode 5 (côté étroit au sens strict, sans « tout le fret ») : 3×10 en cours. Porte A 40×3 du
-  mode 6 : GitHub run 39613351704.
+- **Mode 5** : 31 recherches inversées seulement, 6 abandons. Le gain du mode 6 vient surtout
+  du fret à quais égaux (12/12), comme la graine 42 de 1972 dans l'autopsie : la destination
+  fret est le côté étroit même quand le nombre de quais ne le montre pas.
+- Porte A 40×3 du mode 6 : GitHub run 39613351704.
 
 ## 3. Ce que la mesure change
 
