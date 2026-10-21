@@ -85,11 +85,15 @@ def parallel_room(plan, source, clear, max_side=2):
 
 def room_filter(plans, source, clear, bit):
     """Spec : si tous les plans echouent, retour EXACT des plans originaux."""
-    if bit not in (1, 2):
+    if not bit & 3:
         return list(plans)
     tested = [(p, parallel_room(p, source, clear)) for p in plans]
     kept = [p for p, room in tested if any(
-        bit == 1 or dist == 1 for dist, _, _, _ in room)]
+        bit & 1 or dist == 1 for dist, _, _, _ in room)]
+    if bit & 4:
+        without_room = [p for p, room in tested if not any(
+            bit & 1 or dist == 1 for dist, _, _, _ in room)]
+        return kept + without_room
     return kept if kept else list(plans)
 
 
@@ -153,6 +157,23 @@ class TestPolicyReference(unittest.TestCase):
         clear_selective = lambda x, y: y not in (48, 49)
         self.assertEqual(room_filter([p_blocked, p], (10, 60), clear_selective, 1), [p])
 
+    def test_bit4_keeps_all_astar_goals_in_stable_priority_order(self):
+        plans = [Platform(20 + 20 * i, 40, 'x', 3, True) for i in range(4)]
+        clear = lambda x, y: (40 <= x < 60) or (80 <= x < 100)
+        self.assertEqual(room_filter(plans, (5, 100), clear, 1), [plans[1], plans[3]])
+        self.assertEqual(room_filter(plans, (5, 100), clear, 5),
+                         [plans[1], plans[3], plans[0], plans[2]])
+        self.assertEqual(room_filter(plans, (5, 100), clear, 13),
+                         [plans[1], plans[3], plans[0], plans[2]])
+        self.assertEqual(room_filter(plans, (5, 100), clear, 4), plans)
+        self.assertEqual(room_filter(plans, (5, 100), clear, 8), plans)
+
+    def test_bit8_does_not_change_site_choice_only_post_path_reservation(self):
+        p = Platform(20, 40, 'x', 3, True)
+        clear = lambda x, y: True
+        self.assertEqual(room_filter([p], (5, 100), clear, 9),
+                         room_filter([p], (5, 100), clear, 1))
+
     def test_two_platform_station_rectangle_keeps_original_platform_end(self):
         x_axis = Platform(15, 20, 'x', 4, True)
         y_axis = Platform(25, 30, 'y', 3, False)
@@ -178,8 +199,10 @@ class TestSquirrelIntegrationContract(unittest.TestCase):
             with self.subTest(level=level):
                 self.assertRegex(body, rf'\b{level}_value\s*=\s*0\b')
         self.assertRegex(body, r'\bmin_value\s*=\s*0\b')
-        self.assertRegex(body, r'\bmax_value\s*=\s*3\b')
+        self.assertRegex(body, r'\bmax_value\s*=\s*15\b')
         self.assertEqual(self.settings.count('AIController.GetSetting("v307_sink_room")'), 1)
+        self.assertRegex(self.settings, r'\bv307Room\s*<=\s*15\b',
+                         'La valeur experimentale 13 ne doit pas etre normalisee en 0 au chargement')
         self.assertRegex(self.globals, r'(?m)^V307_SINK_ROOM\s*<-\s*0\s*;')
 
     def test_only_first_new_freight_destination_and_cargo_producer_count(self):
@@ -236,6 +259,41 @@ class TestSquirrelIntegrationContract(unittest.TestCase):
         complete = squirrel_function(self.rail, 'OpexCompleteRailRouteAfterSearch')
         self.assertIn('OpexV307SinkRoomPathClear', complete,
                       'La voie choisie ne doit pas finalement traverser son quai reserve')
+
+    def test_bits4_8_are_inert_without_base_bits(self):
+        eligible = squirrel_function(self.rail, 'OpexV307SinkRoomEligible')
+        self.assertIn('(V307_SINK_ROOM & 3) == 0', eligible)
+        filtered = squirrel_function(self.rail, 'OpexV307SinkRoomFilterPlans')
+        self.assertIn('V307_SINK_ROOM & 4', filtered)
+        self.assertIn('unreserved.push(p)', filtered)
+        self.assertIn('foreach (p in unreserved) filtered.push(p)', filtered)
+        ignored = squirrel_function(self.rail, 'OpexV307SinkRoomIgnoredTiles')
+        self.assertIn('(V307_SINK_ROOM & 8) != 0', ignored)
+        self.assertIn('return ignoredTiles', ignored)
+
+    def test_bit8_drops_every_reservation_tag_when_path_crosses_strip(self):
+        complete = squirrel_function(self.rail, 'OpexCompleteRailRouteAfterSearch')
+        self.assertIn('OpexV307SinkRoomPathClear(planB, tiles)', complete)
+        self.assertIn('V307_SINK_ROOM & 8', complete)
+        self.assertIn('OpexV307SinkRoomDrop(planB, candidate)', complete)
+        drop = squirrel_function(self.rail, 'OpexV307SinkRoomDrop')
+        for name in ('v307RoomPlatforms', 'v307RoomAnchor', 'v307RoomStripAnchor',
+                     'v307RoomLead', 'v307RoomSide', 'v307RoomDistance'):
+            with self.subTest(tag=name):
+                self.assertIn(f'delete planB.{name}', drop)
+        self.assertIn('if (DECISION_LOG) OpexDecide("V307R_DROP"', drop)
+        self.assertIn('"src=" + candidate.src + " dst=" + candidate.dst', drop)
+
+    def test_drop_trace_is_counted_by_campaign_diagnostic(self):
+        from tempfile import TemporaryDirectory
+        from sweeps.diag_v307r_exposition import arm_events, parse_log
+
+        with TemporaryDirectory() as folder:
+            path = Path(folder) / 'v307r13_seed42_r0.log'
+            path.write_text('[script:4] [0] [I] OPEX 1972-1-1 V307R_DROP src=5 dst=42\n',
+                            encoding='utf-8')
+            actual = arm_events([parse_log(path)])
+        self.assertEqual(actual['room_drops'], 1)
 
     def test_built_spare_platform_must_be_reusable_on_later_v178_join(self):
         # Critique pour bit 2 : IsBuildable est FAUX pour une tuile deja gare.

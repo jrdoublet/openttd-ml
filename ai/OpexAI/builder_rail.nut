@@ -191,7 +191,7 @@ function OpexV190FindParallelPlatformPlans(platform)
  * V178/V179 conservent leurs sites et leur jointure sans aucun filtrage. */
 function OpexV307SinkRoomEligible(catalog, candidate)
 {
-  if (V307_SINK_ROOM == 0 || candidate.kind != "freight") return false;
+  if ((V307_SINK_ROOM & 3) == 0 || candidate.kind != "freight") return false;
   if (!("cargo" in candidate) || !(candidate.cargo in catalog.producers)
       || catalog.producers[candidate.cargo].len() < 2) return false;
   if (AIIndustry.GetIndustryID(candidate.dst) < 0) return false;
@@ -255,10 +255,15 @@ function OpexV307SinkRoomFilterPlans(plans, candidate)
 {
   local mark = DECISION_LOG ? OpexOpsClock() : 0;
   local filtered = [];
+  local unreserved = [];
+  local retainAll = (V307_SINK_ROOM & 4) != 0;
   local firstSide = 0;
   foreach (p in plans) {
     local rooms = OpexV307SinkRoomParallel(p, candidate.src, V307_SINK_ROOM);
-    if (rooms.len() == 0) continue;
+    if (rooms.len() == 0) {
+      if (retainAll) unreserved.push(p);
+      continue;
+    }
     local room = rooms[0];
     p.v307RoomPlatforms <- room.platforms;
     p.v307RoomAnchor <- room.stationAnchor;
@@ -270,9 +275,15 @@ function OpexV307SinkRoomFilterPlans(plans, candidate)
     filtered.push(p);
   }
   if (DECISION_LOG) OpexDecide("V307R_SITE", "src=" + candidate.src + " dst=" + candidate.dst
-      + " before=" + plans.len() + " after=" + (filtered.len() > 0 ? filtered.len() : plans.len())
+      + " before=" + plans.len() + " after=" + (retainAll || filtered.len() == 0 ? plans.len() : filtered.len())
       + " side=" + firstSide + " bit=" + V307_SINK_ROOM
       + " ops=" + (OpexOpsClock() - mark) + " fallback=" + (filtered.len() == 0 ? 1 : 0));
+  /* Bit 4 : tous les buts restent accessibles a l'A*. Les emprises libres
+   * restent prioritaires, sans changer l'ordre initial de chaque groupe. */
+  if (retainAll) {
+    foreach (p in unreserved) filtered.push(p);
+    return filtered;
+  }
   if (filtered.len() == 0) return plans;
   return filtered;
 }
@@ -282,7 +293,9 @@ function OpexV307SinkRoomFilterPlans(plans, candidate)
  * aucune recherche sans plans B etiquetes V307R. */
 function OpexV307SinkRoomIgnoredTiles(plansA, plansB, ignoredTiles)
 {
-  if (V307_SINK_ROOM == 0) return ignoredTiles;
+  /* Bit 8 : laisser l'A* explorer les futures bandes, puis renoncer a la
+   * reserve uniquement si le chemin retenu l'occupe. */
+  if ((V307_SINK_ROOM & 3) == 0 || (V307_SINK_ROOM & 8) != 0) return ignoredTiles;
   local protected = {};
   local anyRoom = false;
   foreach (p in plansB) {
@@ -326,6 +339,19 @@ function OpexV307SinkRoomPathClear(platform, tiles)
     if (tile in forbidden) return false;
   }
   return true;
+}
+
+/* Bit 8 : quai simple plutot qu'abandon de la ligne si l'A* occupe la
+ * reserve. Tous les champs doivent etre retires avant devis et pose. */
+function OpexV307SinkRoomDrop(planB, candidate)
+{
+  if (DECISION_LOG) OpexDecide("V307R_DROP", "src=" + candidate.src + " dst=" + candidate.dst);
+  if ("v307RoomPlatforms" in planB) delete planB.v307RoomPlatforms;
+  if ("v307RoomAnchor" in planB) delete planB.v307RoomAnchor;
+  if ("v307RoomStripAnchor" in planB) delete planB.v307RoomStripAnchor;
+  if ("v307RoomLead" in planB) delete planB.v307RoomLead;
+  if ("v307RoomSide" in planB) delete planB.v307RoomSide;
+  if ("v307RoomDistance" in planB) delete planB.v307RoomDistance;
 }
 
 function OpexV307SinkRoomPlatforms(plan)
@@ -4090,9 +4116,13 @@ function OpexCompleteRailRouteAfterSearch(catalog, candidate, plan, search)
       : OpexMatchPlan(plan.plansB, tiles[last]);
   if (planA == null || planB == null) { plan.reason = "NOMATCH"; return plan; }
   if (V307_SINK_ROOM > 0 && !OpexV307SinkRoomPathClear(planB, tiles)) {
-    plan.reason = "TRKFAIL";
-    plan.geometryReason <- "sink_room";
-    return plan;
+    if ((V307_SINK_ROOM & 8) != 0 && (V307_SINK_ROOM & 3) != 0) {
+      OpexV307SinkRoomDrop(planB, candidate);
+    } else {
+      plan.reason = "TRKFAIL";
+      plan.geometryReason <- "sink_room";
+      return plan;
+    }
   }
 
   if (RAIL_GEOMETRY_GUARD && RAIL_GEOMETRY_PREFILTER) {

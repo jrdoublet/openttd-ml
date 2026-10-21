@@ -130,7 +130,7 @@ function OpexLoadSettings()
   local v307Sites = AIController.GetSetting("v307_sites");
   V307_SITES = (v307Sites == 1 || v307Sites == 2) ? v307Sites : 0;
   local v307Room = AIController.GetSetting("v307_sink_room");
-  V307_SINK_ROOM = (v307Room != null && v307Room >= 0 && v307Room <= 3) ? v307Room : 0;
+  V307_SINK_ROOM = (v307Room != null && v307Room >= 0 && v307Room <= 15) ? v307Room : 0;
   /* RAIL-CAL-1 : lecture unique, ne modifie ni budget ni financement. */
   RAIL_CAL = AIController.GetSetting("rail_cal") == 1 ? 1 : 0;
   local weightAdapt = AIController.GetSetting("v294_rail_weight_adapt");

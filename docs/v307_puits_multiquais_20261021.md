@@ -320,3 +320,136 @@ mais ne valident pas le plafond relatif ×1,3 : aucun chemin témoin ne mesure
 le même travail de sélection sans filtre et les tentatives ferroviaires ne sont
 pas des appels appariés sur un état physique identique. **Aucune porte
 d'adoption n'est autorisée par ces campagnes exploratoires 3×10.**
+
+## Bits 4 et 8 (22/10)
+
+### Étape 0 — autopsie hors partie des abandons
+
+Analyse reproductible, sur les **3/3 paires saines** de chaque campagne du
+21/10 (bundle `51e0a09a4a1c7f35b7fcabf6ad9aac20c55506127f5eb7bfd5220cef52897f97`) :
+
+```powershell
+python -X utf8 sweeps/diag_v307r_exposition.py --abnd --campaign v307r_bit1_expo_3x10_20261021
+python -X utf8 sweeps/diag_v307r_exposition.py --abnd --campaign v307r_bit2_expo_3x10_20261021
+```
+
+L'option `--abnd` rapproche par campagne, bras, graine, répétition, paire
+exacte `(src,dst)` et ordre du journal chaque `RAIL_ATTEMPT ABND` de son
+dernier `V307R_SITE` antérieur. Aucun site d'une autre paire n'est imputé.
+
+| ABND, trois graines | Bit 1 | Bit 2 |
+|---|---:|---:|
+| Témoin / variante | 2 / **13** | 5 / **17** |
+| Variante : filtrés (`after < before`, `fallback=0`) | **3** | **3** |
+| Variante : non filtrés (`fallback=1` ou `after=before`) | **0** | **0** |
+| Variante : sans `V307R_SITE` de même paire | **10** | **14** |
+| Paires ABND communes au témoin et à la variante | **0** | **0** |
+| Paires ABND variante avec une tentative quelconque dans le témoin | **3** | **2** |
+
+Les six abandons filtrés (`freight`, `shared_dest=0`, aucune tentative
+intermédiaire de même paire) donnent les réductions suivantes :
+
+| Bit | Graine | `src → dst` | Plans avant → après |
+|---|---:|---|---:|
+| 1 | 100 | `7548 → 32285` | 12 → 2 |
+| 1 | 100 | `57293 → 27842` | 12 → 5 |
+| 1 | 100 | `4664 → 25972` | 12 → 3 |
+| 2 | 42 | `63361 → 56143` | 12 → 1 |
+| 2 | 42 | `12890 → 55647` | 12 → 3 |
+| 2 | 42 | `9580 → 4884` | 12 → 3 |
+
+Les dix ABND sans site au bit 1 sont **neuf jonctions fret
+`shared_dest=1` et un trajet voyageurs** ; ceux du bit 2 sont **six
+jonctions fret `shared_dest=1` et huit trajets voyageurs**. Ils sont hors
+périmètre *direct* du filtrage V307R, sans exclure une conséquence indirecte
+de trajectoire. Les paires ABND du témoin sont toutes absentes des abandons
+de la variante.
+
+**Conclusion : indéterminée.** L'hypothèse **(a)** — buts A* retirés — est
+compatible avec les six abandons filtrés, sans chemin contrefactuel observé.
+L'hypothèse **(b)** — bande/entrée bloquant l'A* — reste possible, sans cas
+discriminant ici. Les deux trajectoires divergent et aucune paire ABND ne
+coïncide : on ne peut attribuer les hausses 2→13 et 5→17 aux seuls filtres.
+
+### Étape 1 — code et choix de variante pré-enregistré
+
+Le résultat étant indéterminé, **`v307_sink_room=13` (bits 1+4+8)** est
+choisi **avant** le nouveau banc, conformément au protocole :
+
+- Bit **4** : ne plus écarter de buts, présenter les plans B avec réserve
+  en tête, puis tous les autres, dans l'ordre initial de chaque groupe.
+- Bit **8** : ne plus ajouter les tuiles des réserves aux interdictions de
+  recherche. Si le chemin choisi occupe la réserve de son plan B, émettre
+  `V307R_DROP src= dst=` sous `decision_log`, supprimer les six attributs
+  `v307Room*` et revenir au quai simple, plutôt que `TRKFAIL`.
+- Bits 4 et 8 **inertes sans 1 ou 2** ; `max_value=15`, défaut 0 aux quatre
+  niveaux, lecture unique inchangée. **Garde runtime `settings.nut` corrigée**
+  de `v307Room <= 3` à `<= 15` : sinon le masque 13 aurait été ramené
+  silencieusement à 0 malgré la borne de `info.nut`. C'est l'unique exception
+  indispensable au périmètre de fichiers initial. Ni `OpexExecuteRailPlan` ni
+  `OpexSimulateRailInfraCost` ne sont modifiés.
+
+Tests V307R ciblés **19/19 réussis**, diagnostic **8/8 réussis**. Le contrôle
+du diagnostic distingue désormais la complétude d'une porte structurelle 3×10
+(`comparison_complete`, `metric_coverage_complete`) de la non-éligibilité
+économique normale à 40 paires (`adoption_sample_complete=false`) ; il accepte
+les masques `1..15` et compte les événements `V307R_DROP`.
+
+Suite Python générale **2 398 tests, 2 échecs, 2 ignorés et 2 échecs attendus**.
+Les deux échecs (`test_exactly_five_public_settings_retired` et
+`test_single_setting_default_three_and_loaded_once`) figuraient déjà dans
+la suite de la file A (2 397 tests, 4 échecs) : **aucune nouvelle régression
+observée** entre ces deux validations. Le code V307S du commit de file A a
+par ailleurs dû être rétabli dans un commit correctif séparé (`aac77e26`) :
+la copie de travail des deux bancs contenait déjà ce code correct.
+
+### Étape 2 — critères et résultats du banc séquentiel
+
+Ordre respecté : **file A 3×10 complète d'abord**, puis Docker libre ; smoke
+1×1 sur 42 (2/2 saines), puis 3×10 sur 42, 7, 100 (6/6 saines), référence
+`OpexAI[decision_log=1]`, variante
+`OpexAI[decision_log=1,v307_sink_room=13]`. **Zéro erreur Squirrel,
+3/3 paires à quatre trimestres et JSON FINAL**. Smoke et campagne 3×10 ont
+exactement le même bundle figé
+`a1b5df6865936b89ed345189d9a100be0265a2eacf004e9de4a7f17a0664e645` ;
+source Git lors du bundle `e8c6f73d` avec modifications locales consignées
+(`dirty=1`). Les critères structurels ci-dessous sont ceux fixés **avant**
+le lancement :
+
+| Critère (somme des trois graines) | Référence | Valeur 13 | Seuil | Verdict |
+|---|---:|---:|---|---|
+| `SITEAB+ABND` | 27+10 = **37** | 31+7 = **38** | variante ≤ 22,2 (−40 %) | **ÉCHEC** (+2,70 %) |
+| Réussite jonctions B (`shared_dest=1`) | 23/60 = **38,33 %** | 24/58 = **41,38 %** | taux variante ≥ 57,5 % (+50 % relatif) | **ÉCHEC** (+7,95 % relatif) |
+| Lignes neuves (destination non partagée) | **55** | **52** | variante ≥ 55 | **ÉCHEC** (−3) |
+
+**Exposition et coûts descriptifs :** 58 `V307R_SITE`, dont 6 fallback et
+52 occasions avec réserve ; **651 → 651 plans** (zéro filtrage, bit 4 actif),
+`V307R_DROP=0` (aucun chemin retenu n'a nécessité l'abandon d'une réserve).
+Sondage `V307R_SITE` : médiane **4 718,5**, p90 **6 288,2**, somme
+**269 802 opcodes** sur les trois parties variantes. `RAIL_ATTEMPT` :
+128 → 118, `OK` 78 → 76 ; `ABND` seuls 10 → 7, mais `SITEAB`
+27 → 31 ; jonctions B construites 23 → 24. Les trajectoires divergent :
+l'absence de `DROP` ne démontre pas la neutralité de l'assouplissement bit 8.
+
+**Économie exploratoire, non décisionnelle :**
+
+| Graine | Δ `profit_year` (variante − témoin) | Δ valeur |
+|---:|---:|---:|
+| 42 | −245 393 £/an | +451 630 £ |
+| 7 | +220 388 £/an | −1 959 986 £ |
+| 100 | −433 273 £/an | −2 048 650 £ |
+
+Moyenne **−152 759,3 £/an**, médiane **−245 393 £/an**,
+**1 victoire / 2 défaites**, bootstrap IC95 **[−433 273 ; +220 388] £/an**.
+Valeur moyenne −1 185 668,7 £, IC95 bootstrap
+**[−2 048 650 ; +451 630] £** ; ratio des moyennes voisin de **−5,66 %**.
+Le rapport C66.4 reste `diagnostic_only` sur 3 graines, distinct du verdict
+structurel. Reproduire avec :
+
+```powershell
+python -X utf8 sweeps/diag_v307r_exposition.py --root results --campaign v307r_v13_expo_3x10_20261022 --json results/v307r_v13_expo_3x10_20261022_diagnostic.json
+```
+
+**Verdict B : ÉCHEC des trois critères structurels.** Pas de porte A
+GitHub 40×3 à proposer ou lancer ; le réglage par défaut reste **0**. Le
+test n'isole pas les retours marginaux des bits 4 et 8 pris séparément.

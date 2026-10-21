@@ -2,7 +2,7 @@
 """V307R : exposition et criteres structurels sur les bancs deja executes.
 
 Usage : python sweeps/diag_v307r_exposition.py [--root DIR] [--campaign NAME]
-        [--json OUT]
+        [--abnd] [--json OUT]
 
 Par defaut, chaque campagne V307R du checkout propre est analysee separement.
 Les seuils pre-enregistres (+50 % de reussite des jonctions, -40 % de
@@ -26,7 +26,7 @@ import statistics
 ROOT = Path(__file__).resolve().parents[1] / "results/v307r_bench_clean_20261021/results"
 LOG_RE = re.compile(r"^(?P<arm>.+)_seed(?P<seed>\d+)_r(?P<repeat>\d+)\.log(?:\.gz)?$")
 EVENT_RE = re.compile(r"\bOPEX\s+(?P<date>\d{4}-\d{1,2}-\d{1,2})\s+"
-                      r"(?P<tag>V307R_SITE|RAIL_ATTEMPT|RAIL_BUILD|RAIL_BUILD_FAIL)\s+(?P<fields>.*)$")
+                      r"(?P<tag>V307R_SITE|V307R_DROP|RAIL_ATTEMPT|RAIL_BUILD|RAIL_BUILD_FAIL)\s+(?P<fields>.*)$")
 FIELD_RE = re.compile(r"\b([a-zA-Z_][a-zA-Z_0-9]*)=([^\s]+)")
 ERROR_RE = re.compile(r"\[0\]\s+\[S\]\s+Your script made an error")
 EXPECTED_REASONS = ("OK", "SITEAB", "SITEA", "SITEB", "ABND")
@@ -64,7 +64,7 @@ def parse_log(path):
     fatal = 0
     opener = gzip.open if path.suffix == ".gz" else open
     with opener(path, "rt", encoding="utf-8", errors="replace") as handle:
-        for line in handle:
+        for line_number, line in enumerate(handle, 1):
             if ERROR_RE.search(line):
                 fatal += 1
             match = EVENT_RE.search(line)
@@ -72,6 +72,9 @@ def parse_log(path):
                 continue
             fields = dict(FIELD_RE.findall(match.group("fields")))
             fields.update(date=match.group("date"), arm=arm, seed=seed, repeat=repeat)
+            # Les dates du jeu ont une resolution d'un jour : le numero de ligne
+            # distingue plusieurs sites/tentatives sur la meme paire ce jour-la.
+            fields["_log_line"] = line_number
             events[match.group("tag")].append(fields)
     return {"arm": arm, "seed": seed, "repeat": repeat,
             "events": events, "fatal_errors": fatal, "source": str(path)}
@@ -93,6 +96,7 @@ def arm_events(records):
     attempts = [x for p in records for x in p["events"].get("RAIL_ATTEMPT", [])]
     builds = [x for p in records for x in p["events"].get("RAIL_BUILD", [])]
     sites = [x for p in records for x in p["events"].get("V307R_SITE", [])]
+    drops = [x for p in records for x in p["events"].get("V307R_DROP", [])]
     reason = Counter(x.get("reason", "MISSING") for x in attempts)
     attempt_shared = [x for x in attempts if integer(x, "shared_dest") == 1]
     build_shared = [x for x in builds if integer(x, "shared_dest") == 1]
@@ -109,7 +113,8 @@ def arm_events(records):
                                 for a in attempts if a.get("ok") in ("0", "1") and "reason" in a)
     return {
         "logs": len(records), "script_errors": sum(p["fatal_errors"] for p in records),
-        "site_calls": len(sites), "site_before_sum": sum(integer(s, "before", 0) for s in filtered),
+        "site_calls": len(sites), "room_drops": len(drops),
+        "site_before_sum": sum(integer(s, "before", 0) for s in filtered),
         "site_after_sum": sum(integer(s, "after", 0) for s in filtered),
         "site_before_median": percentile([integer(s, "before") for s in filtered], 50),
         "site_after_median": percentile([integer(s, "after") for s in filtered], 50),
@@ -235,7 +240,129 @@ def evaluate(ref, var, expected_pairs, actual_pairs, complete, long_horizon):
     }
 
 
-def analyze_campaign(directory, campaign, *, results_dir=None):
+def abnd_autopsy(refs, variants):
+    """Associe chaque ABND au dernier SITE de sa paire *avant* la tentative.
+
+    L'appariement ne traverse jamais une graine, repetition, bras ou campagne.
+    Une meme paire peut etre retentee : ne pas dedupliquer ses evenements ABND.
+    """
+    details = []
+    reference_abnd_pairs = set()
+    variant_abnd_pairs = set()
+    reference_abnd_events = 0
+    reference_details = []
+    by_seed = defaultdict(Counter)
+
+    for seed, repeat in sorted(refs.keys() & variants.keys()):
+        reference_attempts = defaultdict(list)
+        variant_attempts = defaultdict(list)
+        for attempt in variants[(seed, repeat)]["events"].get("RAIL_ATTEMPT", []):
+            variant_attempts[(attempt.get("src"), attempt.get("dst"))].append(attempt)
+        for attempt in refs[(seed, repeat)]["events"].get("RAIL_ATTEMPT", []):
+            pair = (attempt.get("src"), attempt.get("dst"))
+            reference_attempts[pair].append(attempt)
+            if attempt.get("reason") == "ABND":
+                reference_abnd_events += 1
+                reference_abnd_pairs.add((seed, repeat, *pair))
+                counterpart = Counter(a.get("reason", "MISSING") for a in variant_attempts.get(pair, []))
+                reference_details.append({
+                    "seed": seed, "repeat": repeat, "date": attempt.get("date"),
+                    "src": pair[0], "dst": pair[1],
+                    "variant_reasons_same_pair": dict(sorted(counterpart.items())),
+                })
+
+        events = variants[(seed, repeat)]["events"]
+        stream = ([(site["_log_line"], "site", site) for site in events.get("V307R_SITE", [])]
+                  + [(attempt["_log_line"], "attempt", attempt)
+                     for attempt in events.get("RAIL_ATTEMPT", [])])
+        stream.sort(key=lambda item: item[0])
+        preceding_site = {}
+        attempts_after_site = Counter()
+        for _, tag, event in stream:
+            pair = (event.get("src"), event.get("dst"))
+            if tag == "site":
+                if None not in pair:
+                    preceding_site[pair] = event
+                    attempts_after_site[pair] = 0
+                continue
+
+            site = preceding_site.get(pair) if None not in pair else None
+            if event.get("reason") == "ABND":
+                before = integer(site, "before") if site is not None else None
+                after = integer(site, "after") if site is not None else None
+                fallback = integer(site, "fallback") if site is not None else None
+                if site is None:
+                    category = "no_site"
+                elif fallback == 0 and before is not None and after is not None and after < before:
+                    category = "filtered"
+                elif fallback == 1 or (before is not None and after == before):
+                    category = "unfiltered"
+                else:
+                    # Format anormal ou champ manque : aucune cause imputee.
+                    category = "invalid_site"
+
+                same_reference = reference_attempts.get(pair, [])
+                reasons = Counter(a.get("reason", "MISSING") for a in same_reference)
+                detail = {
+                    "seed": seed, "repeat": repeat, "date": event.get("date"),
+                    "src": pair[0], "dst": pair[1], "attempt_log_line": event["_log_line"],
+                    "kind": event.get("kind"), "shared_dest": integer(event, "shared_dest"),
+                    "join_end": event.get("join_end"), "iters": integer(event, "iters"),
+                    "classification": category,
+                    "site_date": site.get("date") if site is not None else None,
+                    "site_log_line": site["_log_line"] if site is not None else None,
+                    "before": before, "after": after, "fallback": fallback,
+                    "bit": integer(site, "bit") if site is not None else None,
+                    "intervening_same_pair_attempts": attempts_after_site[pair] if site is not None else None,
+                    "reference_attempts_same_pair": len(same_reference),
+                    "reference_reasons_same_pair": dict(sorted(reasons.items())),
+                    "reference_abnd_same_pair": reasons["ABND"],
+                }
+                details.append(detail)
+                variant_abnd_pairs.add((seed, repeat, *pair))
+                by_seed[(seed, repeat)][category] += 1
+            if site is not None:
+                attempts_after_site[pair] += 1
+
+    classification = Counter(d["classification"] for d in details)
+    types = Counter((d["classification"], d["kind"], d["shared_dest"]) for d in details)
+    shared_abnd_pairs = reference_abnd_pairs & variant_abnd_pairs
+    return {
+        "scope": "paired_seed_repeat_only",
+        "reference_abnd_events": reference_abnd_events,
+        "reference_distinct_abnd_pairs": len(reference_abnd_pairs),
+        "variant_abnd_events": len(details),
+        "variant_distinct_abnd_pairs": len(variant_abnd_pairs),
+        "classification": {k: classification[k] for k in ("filtered", "unfiltered", "no_site", "invalid_site")},
+        "class_by_kind_shared": [{"classification": category, "kind": kind,
+                                  "shared_dest": shared, "count": count}
+                                 for (category, kind, shared), count in sorted(
+                                     types.items(), key=lambda item: tuple(str(x) for x in item[0]))],
+        "per_seed": [{"seed": seed, "repeat": repeat, "counts": dict(counts)}
+                     for (seed, repeat), counts in sorted(by_seed.items())],
+        "reference_abnd_same_pairs": len(shared_abnd_pairs),
+        "reference_abnd_events_on_variant_pairs": sum(
+            1 for seed, repeat in sorted(refs.keys() & variants.keys())
+            for a in refs[(seed, repeat)]["events"].get("RAIL_ATTEMPT", [])
+            if a.get("reason") == "ABND" and (seed, repeat, a.get("src"), a.get("dst")) in variant_abnd_pairs),
+        "variant_events_with_reference_abnd": sum(d["reference_abnd_same_pair"] > 0 for d in details),
+        "variant_events_with_reference_attempt": sum(d["reference_attempts_same_pair"] > 0 for d in details),
+        "variant_events_reusing_site": sum((d["intervening_same_pair_attempts"] or 0) > 0 for d in details),
+        "shared_abnd_pair_keys": [{"seed": seed, "repeat": repeat, "src": src, "dst": dst}
+                                  for seed, repeat, src, dst in sorted(
+                                      shared_abnd_pairs, key=lambda key: tuple(str(x) for x in key))],
+        "conclusion": "indeterminate" if details else "not_applicable_no_abnd",
+        "causal_limit": ("'filtered' rend (a) possible sans exclure (b); 'unfiltered' "
+                         "ecarte (a) direct pour ce candidat; 'no_site' ne documente "
+                         "aucune intervention V307R directe (notamment pax et shared_dest=1). "
+                         "Une variation de trajectoire peut aussi expliquer les ecarts "
+                         "et aucun site ne prouve a lui seul un blocage A*."),
+        "reference_details": reference_details,
+        "details": details,
+    }
+
+
+def analyze_campaign(directory, campaign, *, results_dir=None, abnd=False):
     results_dir = results_dir or directory.parent
     paths = log_files(directory)
     files = {p: parse_log(p) for p in paths}
@@ -266,12 +393,14 @@ def analyze_campaign(directory, campaign, *, results_dir=None):
     games_complete = bool(games) and len(games) == expected * 2 and all(
         g.get("game_ok") and g.get("game_status") == "complete" for g in games)
     protocol = (report or {}).get("policy_comparison", {})
+    # Le 3x10 est une porte *structurelle* autonome : le protocole economique
+    # de 40 paires doit rester diagnostic_only sans rendre ce 3x10 incomplet.
     comparison_complete = all(protocol.get(k, True)
-                              for k in ("comparison_complete", "adoption_sample_complete", "metric_coverage_complete"))
+                              for k in ("comparison_complete", "metric_coverage_complete"))
     diffs = (manifest or {}).get("comparison", {}).get("effective_differences")
     config_valid = (diffs is None or (set(diffs) == {"v307_sink_room"}
                     and diffs["v307_sink_room"].get("reference") == 0
-                    and diffs["v307_sink_room"].get("candidate") in (1, 2, 3)))
+                    and diffs["v307_sink_room"].get("candidate") in range(1, 16)))
     bundle_matches = not (report and manifest) or (
         report.get("source_bundle_sha256") == manifest.get("source_bundle", {}).get("sha256"))
     years = (report or {}).get("years") or (manifest or {}).get("configuration", {}).get("years", 0)
@@ -311,6 +440,8 @@ def analyze_campaign(directory, campaign, *, results_dir=None):
         result["economics"][metric + "_bootstrap_95pct_ci"] = published.get("mean_bootstrap_95pct_ci")
         result["economics"][metric + "_wilcoxon_p"] = published.get("wilcoxon_p")
     result["evaluation"] = evaluate(reference, variant, expected, actual, complete, years >= 10)
+    if abnd:
+        result["abnd"] = abnd_autopsy(refs, variants)
     return result
 
 
@@ -322,17 +453,18 @@ def discover(root, campaign=None):
     return [(p.name[:-7], p) for p in dirs]
 
 
-def display(row):
+def display(row, *, show_abnd=False):
     r, v, e = row["reference"], row["variant"], row["evaluation"]
     print(f"\n# {row['campaign']} ({row['years']} an(s), {row['actual_pairs']}/{row['expected_pairs']} "
           f"paires, complete={row['complete']}, git={row['git_sha']}, bundle={row['source_bundle_sha256']})")
     print("Comptages sur les graines/repetitions avec deux logs apparis seulement; "
           "les journaux d'une graine encore en cours sont exclus des deltas.")
-    print("| Bras | Logs appariees | V307R_SITE | before/after | reduced/fallback | ops med/p90 | "
+    print("| Bras | Logs appariees | V307R_SITE | V307R_DROP | before/after | reduced/fallback | ops med/p90 | "
           "RAIL_ATTEMPT | OK | SITEAB | ABND | join B OK/essais | RAIL_BUILD | neuves | jonctions B |")
-    print("|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|")
+    print("|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|")
     for name, a in (("reference", r), ("variant", v)):
-        print(f"| {name} | {a['logs']} | {a['site_calls']} | {a['site_before_sum']}/{a['site_after_sum']} "
+        print(f"| {name} | {a['logs']} | {a['site_calls']} | {a['room_drops']} | "
+              f"{a['site_before_sum']}/{a['site_after_sum']} "
               f"| {a['site_reduced']}/{a['site_fallback']} | {a['site_ops_median']}/{a['site_ops_p90']} "
               f"| {a['attempts']} | {a['attempts_ok']} | {a['reasons'].get('SITEAB', 0)} "
               f"| {a['reasons'].get('ABND', 0)} | {a['attempts_join_B_ok']}/{a['attempts_join_B']} "
@@ -359,12 +491,39 @@ def display(row):
           f"company_value delta moyenne={eco['company_value_delta_mean']}; "
           f"bootstrap IC95={eco['company_value_bootstrap_95pct_ci']}; "
           f"banc_economique={eco['policy_verdict']}")
+    if show_abnd:
+        a = row["abnd"]
+        print(f"  ABND: temoin={a['reference_abnd_events']} sur {a['reference_distinct_abnd_pairs']} "
+              f"paires, variante={a['variant_abnd_events']} sur {a['variant_distinct_abnd_pairs']} "
+              f"paires ; classes={a['classification']}")
+        print(f"  Meme paire ABND dans les deux bras: {a['reference_abnd_same_pairs']} paires; "
+              f"ABND variante avec ABND temoin={a['variant_events_with_reference_abnd']}, "
+              f"avec une tentative temoin quelconque={a['variant_events_with_reference_attempt']}; "
+              f"V307R_SITE reutilise apres une autre tentative={a['variant_events_reusing_site']}")
+        print(f"  ABND par classe, type, destination partagee: {a['class_by_kind_shared']}")
+        print("  ABND du temoin par paire (et autres essais de la variante sur cette paire):")
+        for d in a["reference_details"]:
+            print(f"    seed={d['seed']} date={d['date']} src={d['src']} dst={d['dst']} "
+                  f"variante={d['variant_reasons_same_pair'] or 'aucune tentative'}")
+        print("| Graine | Date ABND | src/dst | classe | V307R_SITE precedent | before -> after | "
+              "fallback | essais intermediaires | raisons temoin (meme paire) |")
+        print("|---:|---|---|---|---|---|---:|---:|---|")
+        for d in a["details"]:
+            before_after = f"{d['before']} -> {d['after']}" if d["before"] is not None else "-"
+            reason = ", ".join(f"{k}:{n}" for k, n in d["reference_reasons_same_pair"].items()) or "aucune"
+            print(f"| {d['seed']} | {d['date']} | {d['src']}/{d['dst']} | {d['classification']} "
+                  f"| {d['site_date'] or '-'} | {before_after} | "
+                  f"{d['fallback'] if d['fallback'] is not None else '-'} | "
+                  f"{d['intervening_same_pair_attempts'] if d['site_date'] else '-'} | {reason} |")
+        print(f"  Conclusion causale: {a['conclusion']}. {a['causal_limit']}")
 
 
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--root", type=Path, default=ROOT, help="Dossier results/ des campagnes V307R")
     p.add_argument("--campaign", help="ID d'une seule campagne (avec _engine)")
+    p.add_argument("--abnd", action="store_true",
+                   help="Autopsie ABND des variantes : dernier V307R_SITE precedent et appariement temoin")
     p.add_argument("--json", type=Path, help="Sauver l'analyse complete en JSON")
     args = p.parse_args()
     campaigns = discover(args.root, args.campaign)
@@ -373,8 +532,8 @@ def main():
         return 2
     output = []
     for campaign, folder in campaigns:
-        row = analyze_campaign(folder, campaign, results_dir=args.root)
-        display(row)
+        row = analyze_campaign(folder, campaign, results_dir=args.root, abnd=args.abnd)
+        display(row, show_abnd=args.abnd)
         output.append(row)
     if args.json:
         args.json.write_text(json.dumps(output, indent=2, ensure_ascii=False), encoding="utf-8")
