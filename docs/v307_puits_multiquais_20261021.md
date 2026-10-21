@@ -142,3 +142,68 @@ rend cette limite explicite. Ne pas lancer le bit 2 avec l'hypothèse d'une
 augmentation des jonctions avant de régler ce point. Le côté opposé à la
 source est par ailleurs un substitut de l'approche réelle de la voie : les
 premiers segments A* devront confirmer qu'ils n'empiètent pas sur la bande.
+
+## Étape 1 codée — V307R expérimental, en attente de smoke
+
+Le code garde `v307_sink_room = 0` aux quatre profils, lecture unique dans
+`settings.nut` et globale initialisée à zéro. Modes expérimentaux **1**
+(emprise réservée, un seul quai construit), **2** (construction immédiate de
+deux quais à la destination) et **3** (combinaison avec repli sur une bande
+seulement réservable). L'éligibilité exige une **première ligne fret vers
+une industrie**, sans `joinPlatform`/destination déjà partagée, avec au
+moins deux producteurs du même cargo dans `catalog.producers`.
+
+Seuls les plans B sont filtrés. Pour chacun, une bande de même longueur et
+sa tuile d'entrée sont vérifiées du côté transversal opposé à la source,
+à une ou deux tuiles, avec vérification native sous `AITestMode`.
+Distance 1 : la simulation vérifie une gare de deux quais ; distance 2 :
+elle vérifie la constructibilité de la bande éloignée. Aucun site satisfaisant
+⇒ liste des plans B originelle conservée. Pour une longueur retenue,
+`OpexCreateRailPathfinder` et `OpexCreateSegmentedSearch` protègent
+les tuiles et le lead réservés ; le chemin effectivement choisi est ensuite
+revérifié avant tout devis. Journal `V307R_SITE` : `before`, `after`,
+`side`, `bit`, `ops`, `fallback` (seulement sous `decision_log`).
+
+Pour le **bit 2**, le devis `AIAccounting` appelle `BuildRailStation`
+avec `num_platforms=2` et l'ancre physique appropriée ; les deux exécuteurs
+rail font strictement la même pose et `OpexRollback` retire également
+le second quai. Les attributs du quai libre sont enregistrés dans
+`platformB` de la ligne, y compris après Save/Load. Lors d'une future
+jonction V178, `OpexJoinPlatformPlans` vérifie que ce quai appartient à
+la gare et que son entrée est libre, le réutilise sans reposer ni démolir
+la gare et ne le détruit **jamais** au rollback de cette seconde ligne.
+Ce cas était le blocage identifié à la préparation de l'étape 1.
+
+**Coût et entretien.** Le capital total de la pose à deux quais est le
+devis natif réel avant financement et sert à recalculer amortissement,
+profit et ROI. Sous `economy.infrastructure_maintenance=1`, le
+supplément annuel d'entretien des **L tuiles de gare supplémentaires**
+est estimé à partir de `AIInfrastructure.GetInfrastructurePieceCount`
+et `GetMonthlyInfrastructureCosts`, par la croissance du coût entre
+`N + 2L` et `N + 3L` (loi de maintenance d'OpenTTD proportionnelle à
+`N × (1 + √N)`). La charge n'est ajoutée qu'une fois à `runningAnnual`.
+L'incertitude résiduelle est annoncée par `V307R_MAINT unknown=1` si
+la société n'a pas encore d'infrastructure de gare permettant de calibrer
+le coefficient du moteur : aucune charge inventée n'est alors ajoutée.
+Ces estimations et la limite de coût d'opcodes ×1,3 devront être confirmées
+en partie ; les tests hors partie ne peuvent pas les mesurer.
+
+Vérification hors Docker :
+
+```powershell
+python -X utf8 -m unittest discover -s sweeps -p 'test_v307*.py' -q
+# 34 tests OK
+$env:PYTHONPATH='sweeps'
+python -X utf8 -m unittest sweeps.test_v131_rail_repair sweeps.test_v131_town_clearance sweeps.test_v153_rail_end_jump sweeps.test_v296b_astar_native -q
+# 48 tests OK
+```
+
+**Bancs à faire par le prime, sans chevauchement Docker :** smoke 1×1
+avec `decision_log=1` et `--script-debug`, d'abord bit 1 puis bit 2 ;
+ensuite expositions **3×10** séparées, mêmes graines **42, 7, 100**,
+chaque bit contre `v307_sink_room=0`. Vérifier l'absence d'erreur
+Squirrel, `V307R_SITE` / `V307R_MAINT`, la réutilisation réelle d'un
+quai prébâti, l'évolution `RAIL_BUILD` / `SITEAB` / `ABND`,
+le capital et l'entretien et les opcodes des sites. Critères enregistrés :
++50 % de réussite relative des jonctions et −40 % de `SITEAB+ABND`,
+sans perte du nombre de lignes neuves. Aucune porte lancée.

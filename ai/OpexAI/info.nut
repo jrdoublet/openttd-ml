@@ -388,6 +388,14 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "v307_sink_room",
+      description = "V307 1.9b experimental first freight industry sink: 1 = reserve opposite parallel platform strip, 2 = construct 2-platform destination station (includes reserve), 3 = both. 0 = historical (default)",
+      min_value = 0, max_value = 3,
+      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
+      step_size = 1, flags = 0
+    });
+
+    AddSetting({
       name = "v294_rail_weight_adapt",
       description = "V294c: 0 = historic A* weights; N = initial weight 100..400%, lower to historic then 100% only after a stalled rail segment",
       min_value = 0, max_value = 400,

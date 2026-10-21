@@ -187,6 +187,251 @@ function OpexV190FindParallelPlatformPlans(platform)
   return plans;
 }
 
+/* V307R : seulement la PREMIERE ligne fret vers une industrie partageable.
+ * V178/V179 conservent leurs sites et leur jointure sans aucun filtrage. */
+function OpexV307SinkRoomEligible(catalog, candidate)
+{
+  if (V307_SINK_ROOM == 0 || candidate.kind != "freight") return false;
+  if (!("cargo" in candidate) || !(candidate.cargo in catalog.producers)
+      || catalog.producers[candidate.cargo].len() < 2) return false;
+  if (AIIndustry.GetIndustryID(candidate.dst) < 0) return false;
+  if (("joinPlatform" in candidate) && candidate.joinPlatform != null) return false;
+  if (("shared_dest" in candidate) && candidate.shared_dest) return false;
+  if (("convergent_dest" in candidate) && candidate.convergent_dest) return false;
+  return true;
+}
+
+/* Emprise du quai de la prochaine ligne, du cote oppose a la source amont.
+ * Tester les deux directions est incorrect : le cote de la premiere voie
+ * resterait occupe. Chaque proposition implique longueur + lead libres et
+ * validation native de la commande de gare en AITestMode. */
+function OpexV307SinkRoomParallel(platform, source, bit)
+{
+  local available = [];
+  local horizontal = platform.direction == AIRail.RAILTRACK_NE_SW;
+  local srcCoord = horizontal ? AIMap.GetTileY(source) : AIMap.GetTileX(source);
+  local baseCoord = horizontal ? AIMap.GetTileY(platform.anchor) : AIMap.GetTileX(platform.anchor);
+  if (srcCoord == baseCoord) return available;
+  local flip = srcCoord > baseCoord ? -1 : 1;
+  local sideways = horizontal ? AIMap.GetTileIndex(0, 1) : AIMap.GetTileIndex(1, 0);
+  local endFar = platform.station_exit != platform.anchor;
+  local length = platform.length;
+  for (local dist = 1; dist <= 2; dist++) {
+    local widthTwo = (bit & 2) != 0 && dist == 1;
+    if (!widthTwo && (bit & 1) == 0) continue;
+    local anchor = platform.anchor + sideways * (dist * flip);
+    if (!AIMap.IsValidTile(anchor)) continue;
+    if (horizontal && (AIMap.GetTileX(anchor) != AIMap.GetTileX(platform.anchor)
+        || abs(AIMap.GetTileY(anchor) - baseCoord) != dist)) continue;
+    if (!horizontal && (AIMap.GetTileY(anchor) != AIMap.GetTileY(platform.anchor)
+        || abs(AIMap.GetTileX(anchor) - baseCoord) != dist)) continue;
+    local station_exit = endFar ? anchor + platform.step * (length - 1) : anchor;
+    local lead = endFar ? station_exit + platform.step : station_exit - platform.step;
+    local usable = AIMap.IsValidTile(lead) && AITile.IsBuildable(lead)
+        && AITile.GetSlope(lead) == AITile.SLOPE_FLAT;
+    for (local i = 0; i < length && usable; i++) {
+      local tile = anchor + platform.step * i;
+      usable = AIMap.IsValidTile(tile) && AITile.IsBuildable(tile)
+          && AITile.GetSlope(tile) == AITile.SLOPE_FLAT;
+    }
+    if (!usable) continue;
+    local stationAnchor = dist == 1 && flip < 0 ? anchor : platform.anchor;
+    local joins = false;
+    {
+      local probe = AITestMode();
+      /* Dist=1 : construction native 2 quais (meme pour bit1 en reserve).
+       * Dist=2 : bande vierge, puis V178 revalidera la jointure. */
+      joins = AIRail.BuildRailStation(dist == 1 ? stationAnchor : anchor, platform.direction,
+                                     dist == 1 ? 2 : 1, length, AIStation.STATION_NEW);
+    }
+    if (joins) available.push({ anchor = anchor, stationAnchor = stationAnchor,
+                                lead = lead, side = flip, distance = dist,
+                                platforms = widthTwo ? 2 : 1 });
+  }
+  return available;
+}
+
+function OpexV307SinkRoomFilterPlans(plans, candidate)
+{
+  local mark = DECISION_LOG ? OpexOpsClock() : 0;
+  local filtered = [];
+  local firstSide = 0;
+  foreach (p in plans) {
+    local rooms = OpexV307SinkRoomParallel(p, candidate.src, V307_SINK_ROOM);
+    if (rooms.len() == 0) continue;
+    local room = rooms[0];
+    p.v307RoomPlatforms <- room.platforms;
+    p.v307RoomAnchor <- room.stationAnchor;
+    p.v307RoomStripAnchor <- room.anchor;
+    p.v307RoomLead <- room.lead;
+    p.v307RoomSide <- room.side;
+    p.v307RoomDistance <- room.distance;
+    if (firstSide == 0) firstSide = room.side;
+    filtered.push(p);
+  }
+  if (DECISION_LOG) OpexDecide("V307R_SITE", "src=" + candidate.src + " dst=" + candidate.dst
+      + " before=" + plans.len() + " after=" + (filtered.len() > 0 ? filtered.len() : plans.len())
+      + " side=" + firstSide + " bit=" + V307_SINK_ROOM
+      + " ops=" + (OpexOpsClock() - mark) + " fallback=" + (filtered.len() == 0 ? 1 : 0));
+  if (filtered.len() == 0) return plans;
+  return filtered;
+}
+
+/* Les voies A* ne doivent pas consommer la future entree ou le futur quai B.
+ * Meme fonction pour le chemin bloquant, reprenable et segmente ; ne touche
+ * aucune recherche sans plans B etiquetes V307R. */
+function OpexV307SinkRoomIgnoredTiles(plansA, plansB, ignoredTiles)
+{
+  if (V307_SINK_ROOM == 0) return ignoredTiles;
+  local protected = {};
+  local anyRoom = false;
+  foreach (p in plansB) {
+    if (!("v307RoomStripAnchor" in p)) continue;
+    anyRoom = true;
+    for (local i = 0; i < p.length; i++) {
+      local tile = p.v307RoomStripAnchor + p.step * i;
+      if (AIMap.IsValidTile(tile)) protected[tile] <- true;
+    }
+    if (AIMap.IsValidTile(p.v307RoomLead)) protected[p.v307RoomLead] <- true;
+  }
+  if (!anyRoom) return ignoredTiles;
+  local merged = {};
+  if (ignoredTiles != null) foreach (tile in ignoredTiles) merged[tile] <- true;
+  foreach (tile, _ in protected) merged[tile] <- true;
+  /* Aucun but ni depart virtuel ne doit etre interdit par un AUTRE plan. */
+  foreach (p in plansA) {
+    if (p.lead in merged) delete merged[p.lead];
+    if (p.station_exit in merged) delete merged[p.station_exit];
+  }
+  foreach (p in plansB) {
+    if (p.lead in merged) delete merged[p.lead];
+    if (p.station_exit in merged) delete merged[p.station_exit];
+  }
+  local out = [];
+  foreach (tile, _ in merged) out.push(tile);
+  return out;
+}
+
+/* Un autre but du multi-A* peut rendre traversable une tuile reservee ; on
+ * revalide donc le chemin retenu a B avant devis et terrassement. */
+function OpexV307SinkRoomPathClear(platform, tiles)
+{
+  if (!("v307RoomStripAnchor" in platform)) return true;
+  local forbidden = {};
+  for (local i = 0; i < platform.length; i++) {
+    forbidden[platform.v307RoomStripAnchor + platform.step * i] <- true;
+  }
+  forbidden[platform.v307RoomLead] <- true;
+  foreach (tile in tiles) {
+    if (tile in forbidden) return false;
+  }
+  return true;
+}
+
+function OpexV307SinkRoomPlatforms(plan)
+{
+  return plan != null && ("v307RoomPlatforms" in plan) && plan.v307RoomPlatforms == 2 ? 2 : 1;
+}
+
+function OpexV307SinkRoomStationAnchor(plan)
+{
+  return OpexV307SinkRoomPlatforms(plan) == 2 ? plan.v307RoomAnchor : plan.anchor;
+}
+
+function OpexV307SinkRoomDemolishExtra(plan)
+{
+  if (OpexV307SinkRoomPlatforms(plan) != 2) return;
+  for (local i = 0; i < plan.length; i++) {
+    AITile.DemolishTile(plan.v307RoomStripAnchor + plan.step * i);
+  }
+}
+
+/* Entretien marginal du quai supplementaire (pas de seconde STATION).
+ * OpenTTD facture aux entreprises les tuiles de station en N*(1+IntSqrt(N)).
+ * On calibre le prix du monde sur AIInfrastructure ; entre N+2L (deux
+ * quais historiques A/B) et N+3L (le quai en plus a B), seule cette
+ * difference est imputee a V307R. Aucune hypothese de prix universel. */
+function OpexV307SinkRoomAnnualMaintenance(plan)
+{
+  if (OpexV307SinkRoomPlatforms(plan) != 2) return 0;
+  if (!AIGameSettings.IsValid("economy.infrastructure_maintenance")
+      || AIGameSettings.GetValue("economy.infrastructure_maintenance") == 0) return 0;
+  local company = AICompany.COMPANY_SELF;
+  local kind = AIInfrastructure.INFRASTRUCTURE_STATION;
+  local n = AIInfrastructure.GetInfrastructurePieceCount(company, kind);
+  local monthly = AIInfrastructure.GetMonthlyInfrastructureCosts(company, kind);
+  if (n <= 0 || monthly <= 0) {
+    /* Premiere gare de la societe : impossible d'inferer le prix d'entretien
+     * natif sans une infrastructure existante, a mesurer apres le smoke. */
+    if (DECISION_LOG) OpexDecide("V307R_MAINT", "monthly_est=0 unknown=1 n=" + n);
+    return 0;
+  }
+  local n0 = n.tofloat();
+  local n1 = (n + 2 * plan.length).tofloat();
+  local n2 = (n + 3 * plan.length).tofloat();
+  local scale0 = n0 * (1 + sqrt(n0).tointeger());
+  local scale1 = n1 * (1 + sqrt(n1).tointeger());
+  local scale2 = n2 * (1 + sqrt(n2).tointeger());
+  local extraMonthly = ((monthly.tofloat() * (scale2 - scale1) / scale0) + 0.5).tointeger();
+  if (extraMonthly < 0) extraMonthly = 0;
+  if (DECISION_LOG) OpexDecide("V307R_MAINT", "monthly_est=" + extraMonthly
+      + " unknown=0 n=" + n + " tiles=" + plan.length);
+  return extraMonthly * 12;
+}
+
+function OpexV307SinkRoomApplyMaintenance(candidate, planB)
+{
+  if (OpexV307SinkRoomPlatforms(planB) != 2) return;
+  /* Le devis est parfois rejoue apres un replan : ne pas doubler la charge. */
+  local old = ("v307RoomAnnual" in candidate) ? candidate.v307RoomAnnual : 0;
+  local annual = OpexV307SinkRoomAnnualMaintenance(planB);
+  candidate.runningAnnual = candidate.runningAnnual - old + annual;
+  if ("v307RoomAnnual" in candidate) candidate.v307RoomAnnual = annual;
+  else candidate.v307RoomAnnual <- annual;
+  candidate.profitAnnual = candidate.revenueAnnual - candidate.runningAnnual - candidate.amortAnnual;
+  local immobilise = ("immobilise" in candidate) ? candidate.immobilise : 0;
+  candidate.roi = candidate.profitAnnual > 0 && candidate.capital + immobilise > 0
+      ? (candidate.profitAnnual * 1000) / (candidate.capital + immobilise) : 0;
+}
+
+/* V307R bit2 : la gare a deja deux quais. Pour la future ligne V178, le
+ * quai inutilise EST une gare : IsBuildable serait faux. Il faut le verifier
+ * par son StationID, puis simplement poser sa nouvelle entree de voie. */
+function OpexV307SinkRoomPrebuiltPlan(platform, stationId)
+{
+  local plans = [];
+  if ((V307_SINK_ROOM & 2) == 0 || !("v307RoomPlatforms" in platform)
+      || platform.v307RoomPlatforms != 2 || !("v307RoomStripAnchor" in platform)) return plans;
+  local anchor = platform.v307RoomStripAnchor;
+  for (local i = 0; i < platform.length; i++) {
+    local tile = anchor + platform.step * i;
+    if (!AIMap.IsValidTile(tile) || !AIRail.IsRailStationTile(tile)
+        || AIStation.GetStationID(tile) != stationId) return plans;
+  }
+  for (local farExit = 0; farExit <= 1; farExit++) {
+    local stationExit = farExit != 0 ? anchor + platform.step * (platform.length - 1) : anchor;
+    local lead = farExit != 0 ? stationExit + platform.step : stationExit - platform.step;
+    if (!AIMap.IsValidTile(lead) || !AITile.IsBuildable(lead)
+        || AITile.GetSlope(lead) != AITile.SLOPE_FLAT) continue;
+    plans.push({ anchor = anchor, station_exit = stationExit, lead = lead,
+                 direction = platform.direction, step = platform.step,
+                 length = platform.length, v307Prebuilt = 1 });
+  }
+  return plans;
+}
+
+function OpexV307SinkRoomPrebuiltReady(plan)
+{
+  if (!("v307Prebuilt" in plan) || plan.v307Prebuilt != 1) return false;
+  if (!("stationId" in plan) || !AIStation.IsValidStation(plan.stationId)) return false;
+  for (local i = 0; i < plan.length; i++) {
+    local tile = plan.anchor + plan.step * i;
+    if (!AIMap.IsValidTile(tile) || !AIRail.IsRailStationTile(tile)
+        || AIStation.GetStationID(tile) != plan.stationId) return false;
+  }
+  return true;
+}
+
 /* V190 : Collecte les tuiles de quai et de sortie (lead) reservees pour la seconde voie. */
 function OpexV190CollectParallelTiles(plansA, plansB)
 {
@@ -561,6 +806,13 @@ function OpexJoinPlatformPlans(platform, stationId, stats = null)
   local plans = [];
   local sideways = platform.direction == AIRail.RAILTRACK_NE_SW
       ? AIMap.GetTileIndex(0, 1) : AIMap.GetTileIndex(1, 0);
+  if ((V307_SINK_ROOM & 2) != 0) {
+    local prebuilt = OpexV307SinkRoomPrebuiltPlan(platform, stationId);
+    if (prebuilt.len() > 0) {
+      if (stats != null) { stats.nClear += prebuilt.len(); stats.nCargo += prebuilt.len(); stats.nCmd += prebuilt.len(); }
+      return prebuilt;
+    }
+  }
   for (local dist = 1; dist <= JOIN_PARALLEL_MAX_SIDE; dist++) {
     for (local flip = -1; flip <= 1; flip += 2) {
       local anchor = platform.anchor + sideways * (dist * flip);
@@ -840,6 +1092,9 @@ function OpexRailTryPlatformLength(catalog, candidate, length, statsA, statsB)
   if (plansB.len() == 0) {
     return { ok = false, nA = plansA.len(), nB = 0, plansA = plansA, plansB = plansB };
   }
+  if (V307_SINK_ROOM > 0 && OpexV307SinkRoomEligible(catalog, candidate)) {
+    plansB = OpexV307SinkRoomFilterPlans(plansB, candidate);
+  }
   return { ok = true, nA = plansA.len(), nB = plansB.len(), plansA = plansA, plansB = plansB };
 }
 
@@ -1082,6 +1337,7 @@ function OpexV294ApplyRailCosts(pathfinder, engine)
  * FindPath(PATH_CHUNK) reprend exactement ou il s'etait arrete. Ne pas recreer a chaque tranche. */
 function OpexCreateRailPathfinder(plansA, plansB, ignoredTiles = null, weight = null, outwardSide = null, guideTiles = null, engine = null)
 {
+  if (V307_SINK_ROOM > 0) ignoredTiles = OpexV307SinkRoomIgnoredTiles(plansA, plansB, ignoredTiles);
   local sources = [];
   local goals = [];
   /* Convention [lead, station_exit] aux deux bouts : node[0] est le vrai depart, node[1] le
@@ -1531,6 +1787,7 @@ function OpexTrySegmentedBacktrack(state)
  * premier segment : le closed set ne survit jamais d'un segment a l'autre. */
 function OpexCreateSegmentedSearch(plansA, plansB, iterationBudget, ignoredTiles = null, weight = null, outwardSide = null, guideTiles = null, engine = null)
 {
+  if (V307_SINK_ROOM > 0) ignoredTiles = OpexV307SinkRoomIgnoredTiles(plansA, plansB, ignoredTiles);
   local sources = [];
   local goals = [];
   foreach (plan in plansA) sources.push([plan.lead, plan.station_exit]);
@@ -3272,12 +3529,19 @@ function OpexRollback(tiles, planA, planB, depot, vehicles)
       else AITile.DemolishTile(planA.anchor + planA.step * i);
     }
   }
-  if (planB != null) {
+  if (planB != null && !(("v307Prebuilt" in planB) && planB.v307Prebuilt == 1)) {
     for (local i = 0; i < planB.length; i++) {
       local t = planB.anchor + planB.step * i;
       if (v233Protected != null && t in v233Protected) continue;
       if (AIRail.IsRailStationTile(t)) AIRail.RemoveRailStationTileRectangle(t, t, false);
       else AITile.DemolishTile(planB.anchor + planB.step * i);
+    }
+    if ((V307_SINK_ROOM & 2) != 0 && OpexV307SinkRoomPlatforms(planB) == 2) {
+      for (local i = 0; i < planB.length; i++) {
+        local t = planB.v307RoomStripAnchor + planB.step * i;
+        if (AIRail.IsRailStationTile(t)) AIRail.RemoveRailStationTileRectangle(t, t, false);
+        else AITile.DemolishTile(t);
+      }
     }
   }
   OpexAir0310InvalidateSiteValidity();
@@ -3655,6 +3919,11 @@ function OpexCompleteRailRouteAfterSearch(catalog, candidate, plan, search)
       ? OpexMatchPlanExact(plan.plansB, tiles[last], tiles[last - 1])
       : OpexMatchPlan(plan.plansB, tiles[last]);
   if (planA == null || planB == null) { plan.reason = "NOMATCH"; return plan; }
+  if (V307_SINK_ROOM > 0 && !OpexV307SinkRoomPathClear(planB, tiles)) {
+    plan.reason = "TRKFAIL";
+    plan.geometryReason <- "sink_room";
+    return plan;
+  }
 
   if (RAIL_GEOMETRY_GUARD && RAIL_GEOMETRY_PREFILTER) {
     local geometryIssue = OpexRailPathGeometryIssue(tiles, planA, planB);
@@ -3886,16 +4155,22 @@ function OpexSimulateRailInfraCost(plan, failure = null)
       local tile = planA.anchor + planA.step * i;
       if (!AITile.DemolishTile(tile)) return OpexRailQuoteFailure(failure, "STNFAIL", tile, AIError.GetLastError());
     }
-    for (local i = 0; i < planB.length; i++) {
-      local tile = planB.anchor + planB.step * i;
-      if (!AITile.DemolishTile(tile)) return OpexRailQuoteFailure(failure, "STNFAIL", tile, AIError.GetLastError());
+    if (!("v307Prebuilt" in planB)) {
+      for (local i = 0; i < planB.length; i++) {
+        local tile = planB.anchor + planB.step * i;
+        if (!AITile.DemolishTile(tile)) return OpexRailQuoteFailure(failure, "STNFAIL", tile, AIError.GetLastError());
+      }
+      OpexV307SinkRoomDemolishExtra(planB);
     }
     local stIdA = ("stationId" in planA) ? planA.stationId : AIStation.STATION_NEW;
     local stIdB = ("stationId" in planB) ? planB.stationId : AIStation.STATION_NEW;
     if (!AIRail.BuildRailStation(planA.anchor, planA.direction, 1, planA.length, stIdA)) {
       return OpexRailQuoteFailure(failure, "STNFAIL", planA.anchor, AIError.GetLastError());
     }
-    if (!AIRail.BuildRailStation(planB.anchor, planB.direction, 1, planB.length, stIdB)) {
+    local okB = ("v307Prebuilt" in planB) ? OpexV307SinkRoomPrebuiltReady(planB)
+        : AIRail.BuildRailStation(OpexV307SinkRoomStationAnchor(planB), planB.direction,
+                                  OpexV307SinkRoomPlatforms(planB), planB.length, stIdB);
+    if (!okB) {
       return OpexRailQuoteFailure(failure, "STNFAIL", planB.anchor, AIError.GetLastError());
     }
 
@@ -4151,6 +4426,7 @@ function OpexExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
       result.capital = realCapital;
       /* G3 : le devis est une information economique, pas uniquement un garde de cash. */
       OpexApplyRailActualCapital(candidate, realCapital);
+      if ((V307_SINK_ROOM & 2) != 0) OpexV307SinkRoomApplyMaintenance(candidate, planB);
       plan.capital = candidate.capital;
     }
   }
@@ -4185,13 +4461,18 @@ function OpexExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
   for (local i = 0; i < planA.length; i++) {
     AITile.DemolishTile(planA.anchor + planA.step * i);
   }
-  for (local i = 0; i < planB.length; i++) {
-    AITile.DemolishTile(planB.anchor + planB.step * i);
+  if (!("v307Prebuilt" in planB)) {
+    for (local i = 0; i < planB.length; i++) {
+      AITile.DemolishTile(planB.anchor + planB.step * i);
+    }
+    OpexV307SinkRoomDemolishExtra(planB);
   }
   local stIdA = ("stationId" in planA) ? planA.stationId : AIStation.STATION_NEW;
   local stIdB = ("stationId" in planB) ? planB.stationId : AIStation.STATION_NEW;
   local okA = AIRail.BuildRailStation(planA.anchor, planA.direction, 1, planA.length, stIdA);
-  local okB = AIRail.BuildRailStation(planB.anchor, planB.direction, 1, planB.length, stIdB);
+  local okB = ("v307Prebuilt" in planB) ? OpexV307SinkRoomPrebuiltReady(planB)
+      : AIRail.BuildRailStation(OpexV307SinkRoomStationAnchor(planB), planB.direction,
+                                OpexV307SinkRoomPlatforms(planB), planB.length, stIdB);
   if (!okA || !okB) {
     /* Avant rollback : DemolishTile ecraserait GetLastError. decision_log=0 n'entre pas. */
     if (DECISION_LOG) {
@@ -4417,6 +4698,11 @@ function OpexExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
                        length = planA.length, station_exit = planA.station_exit, lead = planA.lead };
   result.platformB = { anchor = planB.anchor, direction = planB.direction, step = planB.step,
                        length = planB.length, station_exit = planB.station_exit, lead = planB.lead };
+  if (OpexV307SinkRoomPlatforms(planB) == 2) {
+    result.platformB.v307RoomPlatforms <- 2;
+    result.platformB.v307RoomStripAnchor <- planB.v307RoomStripAnchor;
+    result.platformB.v307RoomSide <- planB.v307RoomSide;
+  }
   result.doubleTrack <- (okD ? 1 : 0);
   if (okD && depot2 != null) {
     result.depot2 <- depot2;
@@ -4732,6 +5018,7 @@ function OpexV190ExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
     if (realCapital > 0) {
       result.capital = realCapital;
       OpexApplyRailActualCapital(candidate, realCapital);
+      if ((V307_SINK_ROOM & 2) != 0) OpexV307SinkRoomApplyMaintenance(candidate, planB);
       plan.capital = candidate.capital;
     }
   }
@@ -4766,13 +5053,18 @@ function OpexV190ExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
   for (local i = 0; i < planA.length; i++) {
     AITile.DemolishTile(planA.anchor + planA.step * i);
   }
-  for (local i = 0; i < planB.length; i++) {
-    AITile.DemolishTile(planB.anchor + planB.step * i);
+  if (!("v307Prebuilt" in planB)) {
+    for (local i = 0; i < planB.length; i++) {
+      AITile.DemolishTile(planB.anchor + planB.step * i);
+    }
+    OpexV307SinkRoomDemolishExtra(planB);
   }
   local stIdA = ("stationId" in planA) ? planA.stationId : AIStation.STATION_NEW;
   local stIdB = ("stationId" in planB) ? planB.stationId : AIStation.STATION_NEW;
   local okA = AIRail.BuildRailStation(planA.anchor, planA.direction, 1, planA.length, stIdA);
-  local okB = AIRail.BuildRailStation(planB.anchor, planB.direction, 1, planB.length, stIdB);
+  local okB = ("v307Prebuilt" in planB) ? OpexV307SinkRoomPrebuiltReady(planB)
+      : AIRail.BuildRailStation(OpexV307SinkRoomStationAnchor(planB), planB.direction,
+                                OpexV307SinkRoomPlatforms(planB), planB.length, stIdB);
   if (!okA || !okB) {
     if (DECISION_LOG) {
       local err = AIError.GetLastError();
@@ -5083,6 +5375,11 @@ function OpexV190ExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
                        length = planA.length, station_exit = planA.station_exit, lead = planA.lead };
   result.platformB = { anchor = planB.anchor, direction = planB.direction, step = planB.step,
                        length = planB.length, station_exit = planB.station_exit, lead = planB.lead };
+  if (OpexV307SinkRoomPlatforms(planB) == 2) {
+    result.platformB.v307RoomPlatforms <- 2;
+    result.platformB.v307RoomStripAnchor <- planB.v307RoomStripAnchor;
+    result.platformB.v307RoomSide <- planB.v307RoomSide;
+  }
   result.doubleTrack = (okD ? 1 : 0);
   if (okD) {
     result.v181Loop <- true;

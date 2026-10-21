@@ -186,13 +186,18 @@ class TestSquirrelIntegrationContract(unittest.TestCase):
         eligible = squirrel_function(self.rail, 'OpexV307SinkRoomEligible')
         self.assertTrue(eligible, 'Garde explicite du bitmask et du premier fret attendue')
         self.assertTrue('V307_SINK_ROOM' in eligible, 'Garde du bitmask absente')
-        self.assertTrue(re.search(r'candidate\.kind\s*==\s*"freight"', eligible), 'Fret seul')
+        self.assertTrue(re.search(r'candidate\.kind\s*(?:==|!=)\s*"freight"', eligible), 'Fret seul')
         self.assertTrue('catalog.producers' in eligible, 'Sources dans le catalogue')
         self.assertTrue('candidate.cargo' in eligible, 'Filtre par cargo')
-        self.assertTrue(re.search(r'\.len\(\)\s*[>=!]=?\s*2', eligible), 'Deux sources au moins')
+        self.assertTrue(re.search(r'\.len\(\)\s*(?:<|>=)\s*2', eligible), 'Deux sources au moins')
         self.assertTrue(re.search(r'shared_dest|joinPlatform|joinEnd', eligible), 'Pas de jointure existante')
-        # Il ne faut ni modifier le genereur de joints V178 ni leur plan B.
-        self.assertNotIn('V307_SINK_ROOM', squirrel_function(self.rail, 'OpexJoinPlatformPlans'))
+        self.assertIn('AIIndustry.GetIndustryID(candidate.dst)', eligible,
+                      'Seulement la premiere gare de destination INDUSTRIELLE')
+        # V178 garde son choix de quai historique ; sa SEULE extension est
+        # de reutiliser le quai deja construit par le bit 2.
+        join = squirrel_function(self.rail, 'OpexJoinPlatformPlans')
+        self.assertNotIn('OpexV307SinkRoomFilterPlans', join)
+        self.assertIn('V307_SINK_ROOM & 2', join)
 
     def test_only_free_destination_plans_filtered_with_historical_fallback(self):
         site = squirrel_function(self.rail, 'OpexRailTryPlatformLength')
@@ -228,6 +233,9 @@ class TestSquirrelIntegrationContract(unittest.TestCase):
                 self.assertTrue(section)
                 self.assertTrue('OpexV307SinkRoomIgnoredTiles' in section,
                                 'Emprise B reservee a injecter parmi les ignoredTiles de A*')
+        complete = squirrel_function(self.rail, 'OpexCompleteRailRouteAfterSearch')
+        self.assertIn('OpexV307SinkRoomPathClear', complete,
+                      'La voie choisie ne doit pas finalement traverser son quai reserve')
 
     def test_built_spare_platform_must_be_reusable_on_later_v178_join(self):
         # Critique pour bit 2 : IsBuildable est FAUX pour une tuile deja gare.
@@ -238,8 +246,13 @@ class TestSquirrelIntegrationContract(unittest.TestCase):
         join = squirrel_function(self.rail, 'OpexJoinPlatformPlans')
         self.assertTrue('OpexV307SinkRoom' in join or 'v307RoomPlatforms' in join,
                         'Reuse du 2e quai deja construit manquant')
-        self.assertTrue('AIRail.IsRailStationTile' in join,
-                        'Reconnaitre le quai deja pose appartenant a la gare')
+        reused = squirrel_function(self.rail, 'OpexV307SinkRoomPrebuiltPlan')
+        self.assertIn('OpexV307SinkRoomPrebuiltPlan', join)
+        self.assertIn('AIRail.IsRailStationTile', reused,
+                      'Reconnaitre le quai deja pose appartenant a la gare')
+        self.assertIn('AIStation.GetStationID(tile)', reused)
+        self.assertIn('AITile.IsBuildable(lead)', reused,
+                      'Un quai prebati ne peut accueillir 2 lignes si sa sortie est occupee')
 
     def test_second_platform_quoted_and_built_in_both_executor_paths(self):
         for fn in ('OpexSimulateRailInfraCost', 'OpexExecuteRailPlan',
@@ -257,6 +270,26 @@ class TestSquirrelIntegrationContract(unittest.TestCase):
         self.assertTrue(re.search(r'v307RoomPlatforms|OpexV307SinkRoom', rollback),
                         'Rollback des deux quais de B obligatoire')
         self.assertIn('AIRail.RemoveRailStationTileRectangle', rollback)
+        self.assertIn('v307Prebuilt', rollback,
+                      'Une tentative V178 echouee ne doit jamais detruire une gare B reutilisee')
+        self.assertIn('OpexV307SinkRoomDemolishExtra', self.rail)
+        self.assertIn('OpexV307SinkRoomStationAnchor', self.rail)
+
+    def test_second_platform_marginal_maintenance_repriced_once(self):
+        estimate = squirrel_function(self.rail, 'OpexV307SinkRoomAnnualMaintenance')
+        self.assertIn('AIInfrastructure.INFRASTRUCTURE_STATION', estimate)
+        self.assertIn('AIInfrastructure.GetInfrastructurePieceCount', estimate)
+        self.assertIn('AIInfrastructure.GetMonthlyInfrastructureCosts', estimate)
+        self.assertIn('economy.infrastructure_maintenance', estimate)
+        self.assertIn('n + 2 * plan.length', estimate)
+        self.assertIn('n + 3 * plan.length', estimate)
+        self.assertIn('V307R_MAINT', estimate)
+        apply = squirrel_function(self.rail, 'OpexV307SinkRoomApplyMaintenance')
+        self.assertIn('candidate.runningAnnual - old + annual', apply)
+        self.assertIn('candidate.profitAnnual', apply)
+        for fn in ('OpexExecuteRailPlan', 'OpexV190ExecuteRailPlan'):
+            self.assertIn('OpexV307SinkRoomApplyMaintenance(candidate, planB)',
+                          squirrel_function(self.rail, fn))
 
     def test_decision_log_site_before_after_side_bits_and_opcodes(self):
         self.assertTrue('V307R_SITE' in self.rail, 'Log V307R_SITE absent')
