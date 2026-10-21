@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Portes B non_erosion 20 graines x 10 ans de la nuit du 21/10, sur le PC (accord de l'utilisateur).
 # A lancer depuis la racine d'un checkout de openttd-ml contenant ai/AAAHogEx-115 :
-#   bash sweeps/run_porteB_nuit_20261021_pc.sh [adapt400|v297|v296a|finpartie|all]   (defaut : all, dans cet ordre)
+#   bash sweeps/run_porteB_nuit_20261021_pc.sh [finpartie|v296clean|v301|adapt400|v297|v296a|all]
+#   (defaut : all = finpartie v296clean v301, dans cet ordre ; adapt400 et v297 sont faits, 21/10)
 # Chaque candidat tourne dans un worktree detache de sa branche (origin), cree a cote du checkout
 # (../porteB-<candidat>) ; AAAHogEx y est copie. NE PAS retirer ces worktrees avant d'avoir copie
 # results/ : `git worktree remove` efface les fichiers ignores.
@@ -11,7 +12,12 @@
 #   v296a    : partie complete, branche v296a, pose groupee 0 contre 1 (portes A neutres, regle des
 #              optimisations d'opcodes) ;
 #   finpartie : partie complete, branche finpartie, V249s mode 2 + V292b contre master (40x10 gain_short
-#              GitHub 39531909017 : +286,5 k, p = 0,0005, valeur -3,4 %).
+#              GitHub 39531909017 : +286,5 k, p = 0,0005, valeur -3,4 %) ;
+#   v296clean : partie complete, branche v296clean, A* natif + pose groupee 0 contre 1 (portes A neutres :
+#              V296b +38,8 k, v296all +22,7 k ; regle des optimisations d'opcodes ; remplace v296a) ;
+#   v301     : multimodal sous adapt400, branche notrain, correctifs NOTRAIN/TRKFAIL 0 contre 15
+#              (40x10 GitHub 39535936206 neutre +40,4 k ; correctif de bogue).
+# Campagnes nommees <candidat>_porteB_20x10_pc_<date du jour>.
 # Toutes les branches contiennent le correctif du renfort aerien (IsValidVehicle(null), graine 123456).
 # Graines : les 20 premieres de SEEDS_40 (la 73 remplacee par 373684). Sans decision_log.
 # PROFILE remplace le profil Docker ; EXTRA_VAR ajoute des reglages a la variante adapt400
@@ -43,12 +49,18 @@ run_one() {
     v296a)    branch=v296a; setting=v296_rail_batch_build
               ref="OpexAI"
               var="OpexAI[v296_rail_batch_build=1]" ;;
+    v296clean) branch=v296clean; setting=v296_astar_native
+              ref="OpexAI"
+              var="OpexAI[v296_rail_batch_build=1,v296_astar_native=1]" ;;
+    v301)     branch=notrain; setting=v301_notrain_fix
+              ref="OpexAI[v294_rail_weight_adapt=400]"
+              var="OpexAI[v294_rail_weight_adapt=400,v301_notrain_fix=15]" ;;
     finpartie) branch=finpartie; setting=v292_hq_hub
               ref="OpexAI"
               var="OpexAI[v249_statue=2,v292_hq_hub=1]" ;;
     *) echo "candidat inconnu : $cand" >&2; return 2 ;;
   esac
-  camp="${cand}_porteB_20x10_pc_20261021"
+  camp="${cand}_porteB_20x10_pc_$(date +%Y%m%d)"
   local wt="$ROOT/../porteB-${cand}"
   if [ ! -d "$wt" ]; then
     git worktree add -q --detach "$wt" "origin/${branch}"
@@ -74,5 +86,5 @@ run_one() {
 }
 
 CANDS=("${1:-all}")
-[ "${CANDS[0]}" = all ] && CANDS=(adapt400 v297 v296a)
+[ "${CANDS[0]}" = all ] && CANDS=(finpartie v296clean v301)
 for c in "${CANDS[@]}"; do run_one "$c"; done
