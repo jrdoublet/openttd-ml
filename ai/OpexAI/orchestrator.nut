@@ -609,7 +609,10 @@ function OpexAI::_dispatchReactiveIntention(intention)
       local year = AIDate.GetYear(date);
       local modes = (this._projects != null) ? this._c80ModeRegenModes() : null;
       if (modes == null) {
-        this._c76DoFullRegen("reactive", year);
+        /* PO01C : seule la reconstruction COMPLETE est decoupee ; une regen par mode reste
+         * synchrone comme au defaut (elle est courte). Demande coalescee, jamais empilee. */
+        if (PO01C_REGEN_SPLIT && this._projects != null) this._po01cPending = true;
+        else this._c76DoFullRegen("reactive", year);
       } else if (modes.len() > 0) {
         this._c80DoModeRegen(modes, "reactive", year);
       }
@@ -945,6 +948,9 @@ function OpexAI::_c77InjectSubsidy(subId)
  */
 function OpexAI::_runOrchestratorTick()
 {
+  /* Shared by normal and profiled loops; once per tick, before other workers
+   * consume the remaining opcodes. No queue entry and no work while idle. */
+  if (PO01C_REGEN_SPLIT && (this._po01cPending || this._po01cJob != null)) OpexPO01CStep(this);
   this._railWorkerSteppedThisTick = false;
 
   /* V257 : une seule garde au defaut. Une ligne de la file de revision par
@@ -1132,6 +1138,7 @@ function OpexAI::_c76AnyLayerChanged()
 
 function OpexAI::_c76AcknowledgeAllLayers()
 {
+  if (PO01C_REGEN_SPLIT) this._po01cLineState = OpexPO01CLineState(this._lines);
   if (this._c76Revisions == null) return;
   if (this._c76AckRevisions == null) {
     this._c76AckRevisions = {
@@ -1227,6 +1234,8 @@ function OpexAC06AcknowledgeSnapshot(owner, snapshot)
 
 function OpexAI::_c76DoFullRegen(reason, year)
 {
+  local po01cMark = DECISION_LOG ? OpexOpsMeasureBegin() : null;
+  local po01cDate = DECISION_LOG ? AIDate.GetCurrentDate() : 0;
   local date = AIDate.GetCurrentDate();
   local ym = year * 12 + AIDate.GetMonth(date);
   /* Meme unite que _dispatchCatalog : filet annuel, la variable porte l'annee. */
@@ -1295,6 +1304,10 @@ function OpexAI::_c76DoFullRegen(reason, year)
            + "|" + this._budget.nested + "|" + (this._projects.stats.selectionOpcodes / 1000));
   OpexSign(anchor, "IB|" + yy + "|" + this._projects.capitalBudget + "|"
            + this._projects.stats.selectedCapital + "|B0");
+  if (DECISION_LOG) OpexDecide("PO01C_SYNC", "reason=" + reason
+      + " ops=" + OpexOpsMeasureEnd(po01cMark)
+      + " ticks=" + (AIController.GetTick() - po01cMark.tick)
+      + " days=" + (AIDate.GetCurrentDate() - po01cDate));
 }
 
 /* C80 tranche 4 : modes a regenerer quand seules des couches locales ont change.

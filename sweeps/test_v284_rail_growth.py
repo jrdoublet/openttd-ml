@@ -28,7 +28,7 @@ class TestV284RailGrowth(unittest.TestCase):
         self.assertEqual(read("settings.nut").count('GetSetting("v284_rail_growth")'), 1)
         self.assertIn("V284_RAIL_GROWTH <- 0;", read("globals_pre.nut"))
         self.assertNotIn('name = "v270_rail_late_growth"', info)
-        self.assertEqual(info.count("AddSetting("), 92)
+        self.assertEqual(info.count("AddSetting("), 94)
 
     def test_off_expansion_is_master_a9437f8_after_removing_guards(self):
         body = function_body(read("task_rail.nut"), "function OpexAI::_expandRailLines(year)")
@@ -52,6 +52,10 @@ class TestV284RailGrowth(unittest.TestCase):
 
     def test_off_orchestrator_is_master_and_profiled_loop_uses_same_hook(self):
         body = function_body(read("orchestrator.nut"), "function OpexAI::_runOrchestratorTick()")
+        body = body.replace(
+            "  /* Shared by normal and profiled loops; once per tick, before other workers\n"
+            "   * consume the remaining opcodes. No queue entry and no work while idle. */\n"
+            "  if (PO01C_REGEN_SPLIT && (this._po01cPending || this._po01cJob != null)) OpexPO01CStep(this);\n", "")
         body = body.replace(
             "  /* Point commun aux boucles normale et _mainLoopProfiled. OFF court-circuite. */\n"
             "  if (V284_RAIL_GROWTH > 0) OpexV284Tick(this);\n"

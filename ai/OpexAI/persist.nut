@@ -601,6 +601,8 @@ function OpexAI::_refreshSaveProjection()
 
 function OpexAI::Save()
 {
+  if (PO01C_REGEN_SPLIT && DECISION_LOG && this._po01cJob != null)
+    OpexPO01CLog(this, this._po01cJob, "save_pending");
   local startOps = null;
   if (DECISION_LOG) startOps = AIController.GetOpsTillSuspend();
 
@@ -760,6 +762,10 @@ function OpexAI::Save()
 }
 function OpexAI::Load(version, data)
 {
+  this._po01cJob = null;
+  this._po01cPending = false;
+  this._po01cLineState = null;
+  this._po01cLastTick = -1;
   V276_CATALOG_TASK = null;
   if (this._taskQueue != null) foreach (task in this._taskQueue) {
     if ("v276" in task) delete task.v276;

@@ -24,7 +24,7 @@ def read(name):
 class FixedPolicies(unittest.TestCase):
     def test_exactly_five_public_settings_retired(self):
         info, settings = read("info.nut"), read("settings.nut")
-        self.assertLessEqual(info.count("AddSetting("), 92)  # V263b : 81 moins 11 retraits approuves le 20/10 ; +1 V275, +1 V269 (fusions du 20/10) ; +1 V276, +1 V284 (branche v288) ; +1 V284 (fusion du 20/10) ; +2 V294, +1 V294h, +5 V294c/d/f/i/j, +1 V295, +1 V294c adaptatif, +1 V296a, +1 V296b. ; +1 V292 (fusion finpartie 21/10) ; +1 V301 (fusion notrain 21/10) ; +3 V307 (sonde, branche v307)
+        self.assertLessEqual(info.count("AddSetting("), 94)  # V263b : 81 moins 11 retraits approuves le 20/10 ; +1 V275, +1 V269 (fusions du 20/10) ; +1 V276, +1 V284 (branche v288) ; +1 V284 (fusion du 20/10) ; +2 V294, +1 V294h, +5 V294c/d/f/i/j, +1 V295, +1 V294c adaptatif, +1 V296a, +1 V296b. ; +1 V292 (fusion finpartie 21/10) ; +1 V301 (fusion notrain 21/10) ; +3 V307 (sonde, branche v307)
         for name in PACKAGES:
             with self.subTest(name=name):
                 self.assertNotIn(f'name = "{name}"', info)

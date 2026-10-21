@@ -57,6 +57,8 @@ class V234Simplification(unittest.TestCase):
         declared.update(re.findall(r"\b(?:const|local)\s+([A-Z][A-Z0-9_]*)", code))
         # These two names are supplied by the NoAI settings API.
         declared.update(("AICONFIG_BOOLEAN", "CONFIG_BOOLEAN"))
+        # Bare table keys are declarations, including cargo-label lookup tables.
+        declared.update(re.findall(r"\b([A-Z][A-Z0-9_]*)\s*=", code))
         reads = set(re.findall(r"(?<![.\w])([A-Z][A-Z0-9_]{1,})\b", code))
         self.assertEqual(sorted(reads - declared), [])
 
