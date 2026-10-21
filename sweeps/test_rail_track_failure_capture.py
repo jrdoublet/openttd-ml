@@ -192,6 +192,24 @@ class TestRailTrackFailureCapture(unittest.TestCase):
             "  local trnOps = budget.end(\"build_trains\");\n  result.opcodes += trnOps;\n  if (result.phaseOps.trains < 0) result.phaseOps.trains = 0;\n  result.phaseOps.trains += trnOps;",
             "  result.opcodes += budget.end(\"build_trains\");"
         )
+        # V307R (defaut 0) : quai B anticipe ou a deux voies ; restaurer le chemin historique.
+        v307r = (
+            ("      if ((V307_SINK_ROOM & 2) != 0) OpexV307SinkRoomApplyMaintenance(candidate, planB);\n", ""),
+            ("  if (!(\"v307Prebuilt\" in planB)) {\n    for (local i = 0; i < planB.length; i++) {\n"
+             "      AITile.DemolishTile(planB.anchor + planB.step * i);\n    }\n"
+             "    OpexV307SinkRoomDemolishExtra(planB);\n  }\n",
+             "  for (local i = 0; i < planB.length; i++) {\n    AITile.DemolishTile(planB.anchor + planB.step * i);\n  }\n"),
+            ("  local okB = (\"v307Prebuilt\" in planB) ? OpexV307SinkRoomPrebuiltReady(planB)\n"
+             "      : AIRail.BuildRailStation(OpexV307SinkRoomStationAnchor(planB), planB.direction,\n"
+             "                                OpexV307SinkRoomPlatforms(planB), planB.length, stIdB);\n",
+             "  local okB = AIRail.BuildRailStation(planB.anchor, planB.direction, 1, planB.length, stIdB);\n"),
+            ("  if (OpexV307SinkRoomPlatforms(planB) == 2) {\n    result.platformB.v307RoomPlatforms <- 2;\n"
+             "    result.platformB.v307RoomStripAnchor <- planB.v307RoomStripAnchor;\n"
+             "    result.platformB.v307RoomSide <- planB.v307RoomSide;\n  }\n", ""),
+        )
+        for addition, original in v307r:
+            self.assertEqual(current.count(addition), 1, addition)
+            current = current.replace(addition, original)
         self.assertEqual(digest(without_v199_v163_plan(without_freight_memory(current))),
                          PRE_EXTRACTION_HASHES["OpexExecuteRailPlan"])
 

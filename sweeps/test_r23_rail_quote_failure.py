@@ -17,8 +17,12 @@ class TestRailQuoteFailure(unittest.TestCase):
         self.assertIn("local testMode = AITestMode();", self.simulate)
         self.assertIn("local accounting = AIAccounting();", self.simulate)
         self.assertEqual(self.simulate.count("if (!AITile.DemolishTile(tile)) return OpexRailQuoteFailure("), 2)
+        self.assertIn("if (!AIRail.BuildRailStation(planA.anchor", self.simulate)
+        # V307R : le quai B peut etre anticipe ou a deux voies, toujours ferme sur echec.
+        self.assertIn("local okB = (\"v307Prebuilt\" in planB) ? OpexV307SinkRoomPrebuiltReady(planB)", self.simulate)
+        self.assertIn("AIRail.BuildRailStation(OpexV307SinkRoomStationAnchor(planB)", self.simulate)
+        self.assertIn("if (!okB) {", self.simulate)
         for side in ("A", "B"):
-            self.assertIn(f"if (!AIRail.BuildRailStation(plan{side}.anchor", self.simulate)
             self.assertIn(f'failure, "STNFAIL", plan{side}.anchor, AIError.GetLastError()', self.simulate)
 
     def test_all_track_command_results_and_empty_bridge_list_are_checked(self):

@@ -156,6 +156,7 @@ class TestV158BestReadersAudit(unittest.TestCase):
         "ledgers.nut:OpexC69OnProjectsPass": "Sonde passive appelée en toute fin de _tryBuildProjects (déjà matérialisé)",
         # Probes passives appelées dans _tryBuildProjects ou après rebuild
         "probes.nut:OpexC78FundedRank": "Appelé dans _c78SlotOnProjectsPass depuis _tryBuildProjects (déjà matérialisé)",
+        "probes.nut:OpexV309IdleProjects": "V309 sonde passive : lit la derniere selection sans la rematerialiser, pour ne pas deplacer son cout",
         "probes.nut:OpexC39ProjectSignature": "Appelé dans events.nut (protégé) et orchestrator.nut:1292 (post-rebuild)",
         # Fichier projects_rank_log.nut : loggers de classement (appelés post-rebuild ou en fin de passe)
         "projects_rank_log.nut": "Loggers du classement de tête appelés post-rebuild ou post-construction",
