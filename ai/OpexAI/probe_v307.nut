@@ -1,8 +1,9 @@
 /* V307 : banc de mesure des longs traces rail (21/10). Mesure seule, defaut 0.
  *
- * Au demarrage d'une partie neuve, sous v307_long_probe = N > 0, on tire N paires de villes par
- * tranche de distance Manhattan (120-179, 180-249, 250-349) et, pour chacune, sur la meme carte
- * figee (rien n'est construit pendant la sonde) :
+ * Sous v307_long_probe = N > 0, au 1er janvier de l'annee de depart + v307_probe_year, partie
+ * neuve seulement, on tire N paires de villes et N paires fret (industrie productrice vers
+ * acceptante) par tranche de distance Manhattan (120-179, 180-249, 250-349) et, pour chacune,
+ * sur la meme carte figee (rien n'est construit pendant la sonde) :
  *   base    : la recherche segmentee de production, budget V307_ITERS au lieu du plafond de 5 000 ;
  *             reussir en <= HARD_ITERATION_CAP iterations = reussir au plafond actuel ;
  *   coarse  : un A* grossier sur des blocs de V307_SIDE tuiles echantillonnes (hauteur, eau,
@@ -11,11 +12,12 @@
  *             par le couloir grossier dilate de V307_CORRIDOR blocs.
  * Chaque bras journalise iterations, opcodes, ticks, segments, longueur et cout du trace repricé
  * par la fonction de cout commune sans guide (comparable entre bras).
- * La sonde est bloquante : en partie de mesure seulement (solo AAAHogEx sans vehicule). */
+ * La sonde est bloquante : en partie de mesure seulement. A annee > 0, la carte porte le reseau
+ * construit jusque-la (le notre, celui d'AAAHogEx en duel, la croissance des villes). */
 
 const V307_SIDE = 8;
 const V307_CORRIDOR = 1;
-const V307_ITERS = 30000;
+const V307_ITERS = 20000;
 const V307_TOWNS = 40;
 const V307_PLATFORM = 5;
 
@@ -60,7 +62,55 @@ function OpexV307Pairs(perBin)
     used[a] <- ua + 1;
     used[b] <- ub + 1;
     taken[bin]++;
-    pairs.push({ a = a, b = b, dist = d, bin = bin });
+    pairs.push({ kind = "pax", a = a, b = b, ta = AITown.GetLocation(a), tb = AITown.GetLocation(b),
+                 cargo = OpexAirDemandPaxCargo(), dist = d, bin = bin });
+  }
+  return pairs;
+}
+
+/* Paires fret deterministes : pour chaque cargo hors passagers/courrier, les 15 industries qui
+ * produisent le plus le mois dernier vers toute industrie acceptante ; triees par production,
+ * au plus 2 paires par source, N par tranche. */
+function OpexV307FreightPairs(perBin)
+{
+  local scored = AIList();
+  local meta = {};
+  local key = 0;
+  local cargos = AICargoList();
+  for (local c = cargos.Begin(); !cargos.IsEnd(); c = cargos.Next()) {
+    if (AICargo.HasCargoClass(c, AICargo.CC_PASSENGERS) || AICargo.HasCargoClass(c, AICargo.CC_MAIL)) continue;
+    local prod = AIIndustryList_CargoProducing(c);
+    prod.Valuate(AIIndustry.GetLastMonthProduction, c);
+    prod.KeepAboveValue(0);
+    prod.Sort(AIList.SORT_BY_VALUE, AIList.SORT_DESCENDING);
+    prod.KeepTop(15);
+    local acc = AIIndustryList_CargoAccepting(c);
+    for (local i = prod.Begin(); !prod.IsEnd(); i = prod.Next()) {
+      local ti = AIIndustry.GetLocation(i);
+      for (local j = acc.Begin(); !acc.IsEnd(); j = acc.Next()) {
+        if (i == j) continue;
+        local tj = AIIndustry.GetLocation(j);
+        local d = AIMap.DistanceManhattan(ti, tj);
+        local bin = OpexV307Bin(d);
+        if (bin < 0) continue;
+        meta[key] <- { kind = "freight", a = i, b = j, ta = ti, tb = tj, cargo = c, dist = d, bin = bin };
+        scored.AddItem(key, prod.GetValue(i));
+        key++;
+      }
+    }
+  }
+  scored.Sort(AIList.SORT_BY_VALUE, AIList.SORT_DESCENDING);
+  local used = {};
+  local taken = [0, 0, 0];
+  local pairs = [];
+  for (local k = scored.Begin(); !scored.IsEnd(); k = scored.Next()) {
+    local m = meta[k];
+    if (taken[m.bin] >= perBin) continue;
+    local ua = (m.a in used) ? used[m.a] : 0;
+    if (ua >= 2) continue;
+    used[m.a] <- ua + 1;
+    taken[m.bin]++;
+    pairs.push(m);
   }
   return pairs;
 }
@@ -213,6 +263,12 @@ function OpexV307Search(plansA, plansB, dist, guide)
            structures = (res.stop == "OK" && res.structures != null) ? res.structures.len() : 0 };
 }
 
+function OpexV307PairFields(pair)
+{
+  return "kind=" + pair.kind + " cargo=" + pair.cargo + " a=" + pair.a + " b=" + pair.b
+      + " ta=" + pair.ta + " tb=" + pair.tb + " dist=" + pair.dist + " bin=" + pair.bin;
+}
+
 function OpexV307Log(arm, pair, r)
 {
   local len = -1, cost = -1, jumps = 0;
@@ -225,8 +281,7 @@ function OpexV307Log(arm, pair, r)
     }
     cost = OpexV307PathCost(r.tiles);
   }
-  OpexDecide("V307_ARM", "arm=" + arm + " a=" + pair.a + " b=" + pair.b + " dist=" + pair.dist
-      + " bin=" + pair.bin + " outcome=" + r.stop + " iters=" + r.iters + " ops=" + r.ops
+  OpexDecide("V307_ARM", "arm=" + arm + " " + OpexV307PairFields(pair) + " outcome=" + r.stop + " iters=" + r.iters + " ops=" + r.ops
       + " ticks=" + r.ticks + " days=" + r.days + " segments=" + r.segments
       + " backtracks=" + r.backtracks + " len=" + len + " jumps=" + jumps + " cost=" + cost
       + " cap_ok=" + ((r.stop == "OK" && r.iters <= HARD_ITERATION_CAP) ? 1 : 0));
@@ -243,22 +298,31 @@ function OpexV307RailType()
   return chosen;
 }
 
+/* Appele a chaque tour de boucle sous V307_LONG_PROBE > 0 : une seule fois, au 1er janvier de
+ * l'annee de depart + V307_PROBE_YEAR, jamais apres un chargement. */
+function OpexV307MaybeRun(loadedFromSave)
+{
+  if (V307_DONE || loadedFromSave) return;
+  if (AIDate.GetYear(AIDate.GetCurrentDate()) < OPEX_START_YEAR + V307_PROBE_YEAR) return;
+  V307_DONE = true;
+  OpexV307LongProbe(V307_LONG_PROBE);
+}
+
 function OpexV307LongProbe(perBin)
 {
   local railType = OpexV307RailType();
-  local pax = OpexAirDemandPaxCargo();
   local cov = AIStation.GetCoverageRadius(AIStation.STATION_TRAIN);
   local pairs = OpexV307Pairs(perBin);
+  pairs.extend(OpexV307FreightPairs(perBin));
   OpexDecide("V307_START", "pairs=" + pairs.len() + " per_bin=" + perBin + " rail=" + railType
       + " side=" + V307_SIDE + " corridor=" + V307_CORRIDOR + " iters=" + V307_ITERS
-      + " cap=" + HARD_ITERATION_CAP + " map=" + AIMap.GetMapSizeX() + "x" + AIMap.GetMapSizeY());
+      + " cap=" + HARD_ITERATION_CAP + " map=" + AIMap.GetMapSizeX() + "x" + AIMap.GetMapSizeY()
+      + " year_offset=" + V307_PROBE_YEAR);
   foreach (pair in pairs) {
-    local ta = AITown.GetLocation(pair.a), tb = AITown.GetLocation(pair.b);
-    local plansA = OpexStationPlans(ta, tb, STATION_SEARCH_RADIUS, V307_PLATFORM, MAX_STATION_PLANS, pax, cov, true);
-    local plansB = OpexStationPlans(tb, ta, STATION_SEARCH_RADIUS, V307_PLATFORM, MAX_STATION_PLANS, pax, cov, true);
+    local plansA = OpexStationPlans(pair.ta, pair.tb, STATION_SEARCH_RADIUS, V307_PLATFORM, MAX_STATION_PLANS, pair.cargo, cov, true);
+    local plansB = OpexStationPlans(pair.tb, pair.ta, STATION_SEARCH_RADIUS, V307_PLATFORM, MAX_STATION_PLANS, pair.cargo, cov, pair.kind == "pax");
     if (plansA.len() == 0 || plansB.len() == 0) {
-      OpexDecide("V307_ARM", "arm=plans a=" + pair.a + " b=" + pair.b + " dist=" + pair.dist
-          + " bin=" + pair.bin + " outcome=NOPLAN na=" + plansA.len() + " nb=" + plansB.len());
+      OpexDecide("V307_ARM", "arm=plans " + OpexV307PairFields(pair) + " outcome=NOPLAN na=" + plansA.len() + " nb=" + plansB.len());
       continue;
     }
     OpexV307Log("base", pair, OpexV307Search(plansA, plansB, pair.dist, null));
@@ -266,8 +330,8 @@ function OpexV307LongProbe(perBin)
     local mark = OpexOpsMeasureBegin();
     local coarse = OpexV307Coarse(plansA[0].lead, plansB[0].lead);
     local coarseOps = OpexOpsMeasureEnd(mark);
-    OpexDecide("V307_ARM", "arm=coarse a=" + pair.a + " b=" + pair.b + " dist=" + pair.dist
-        + " bin=" + pair.bin + " outcome=" + (coarse.ok ? "OK" : "NOPA") + " ops=" + coarseOps
+    OpexDecide("V307_ARM", "arm=coarse " + OpexV307PairFields(pair)
+        + " outcome=" + (coarse.ok ? "OK" : "NOPA") + " ops=" + coarseOps
         + " expanded=" + coarse.expanded + " sampled=" + coarse.sampled
         + " blocks=" + coarse.blocks.len() + " cost=" + coarse.cost
         + " water_blocks=" + (coarse.ok ? coarse.waterBlocks : -1)

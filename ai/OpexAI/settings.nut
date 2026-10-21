@@ -121,6 +121,8 @@ function OpexLoadSettings()
   V301_NOTRAIN_FIX = (v301Fix != null && v301Fix > 0 && v301Fix <= 15) ? v301Fix : 0;
   local v307Probe = AIController.GetSetting("v307_long_probe");
   V307_LONG_PROBE = (v307Probe != null && v307Probe > 0 && v307Probe <= 9) ? v307Probe : 0;
+  local v307Year = AIController.GetSetting("v307_probe_year");
+  V307_PROBE_YEAR = (v307Year != null && v307Year > 0 && v307Year <= 9) ? v307Year : 0;
   local weightAdapt = AIController.GetSetting("v294_rail_weight_adapt");
   V294C_RAIL_WEIGHT_ADAPT = (weightAdapt != null && weightAdapt >= 100 && weightAdapt <= 400) ? weightAdapt : 0;
   V269_RAIL_LATE_RELAX = (lateRelax != null && lateRelax > 0 && lateRelax <= 9) ? lateRelax : 0;

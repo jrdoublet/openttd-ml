@@ -80,6 +80,8 @@ V214_RAIL_TIGHT_TURN_COST <- 1500;
  * meme tuile, meme erreur : la garde V100 ne couvre que ERR_AREA_NOT_CLEAR). 0 = historique. */
 V301_NOTRAIN_FIX <- 15;  // defaut depuis le 21/10 (decision utilisateur, porte B PC)
 V307_LONG_PROBE <- 0;  // V307 : sonde de mesure des longs traces, bloquante, defaut 0
+V307_PROBE_YEAR <- 0;
+V307_DONE <- false;
 function OpexV207Active()
 {
   return V207_RAIL_MAIL || V207_RAIL_PAX_SHARE_PCT > 0 || V207_RAIL_PAX_JOINED_STOPS > 0;

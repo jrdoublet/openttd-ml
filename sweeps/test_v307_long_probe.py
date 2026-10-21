@@ -2,7 +2,8 @@
 
 Verifie :
 - reglage v307_long_probe a defaut 0 aux 4 niveaux, lu une seule fois, globale declaree ;
-- appel dans Start() garde par V307_LONG_PROBE > 0 et partie neuve, avant la boucle principale ;
+- crochet dans les deux boucles, une seule execution, a l'annee de depart + v307_probe_year, jamais apres chargement ;
+- paires villes et fret ;
 - module charge, sans closure, .find() ni mot reserve comme identifiant ;
 - les trois bras (base, coarse, guided) journalisent sous V307_ARM ; le cout est repricé sans guide ;
 - tranches de distance et heuristique octile admissible (transcriptions Python).
@@ -57,11 +58,33 @@ class TestV307LongProbe(unittest.TestCase):
         self.assertEqual(read("settings.nut").count('GetSetting("v307_long_probe")'), 1)
         self.assertIn("V307_LONG_PROBE <- 0;", read("globals_pre.nut"))
 
-    def test_start_hook_guarded(self):
+    def test_loop_hooks_guarded(self):
         self.assertIn('require("probe_v307.nut");', self.main)
-        hook = "if (V307_LONG_PROBE > 0 && !this._loadedFromSave) OpexV307LongProbe(V307_LONG_PROBE);"
+        hook = "if (V307_LONG_PROBE > 0) OpexV307MaybeRun(this._loadedFromSave);"
+        # Les deux boucles (normale et profilee sous probes) portent le crochet.
         self.assertEqual(self.main.count(hook), 1)
-        self.assertLess(self.main.index(hook), self.main.index("if (PROBE_LOOP_OPS) this._mainLoopProfiled();"))
+        self.assertEqual(read("probes.nut").count(hook), 1)
+        body = self.probe[self.probe.index("function OpexV307MaybeRun("):self.probe.index("function OpexV307LongProbe(")]
+        self.assertIn("if (V307_DONE || loadedFromSave) return;", body)
+        self.assertIn("OPEX_START_YEAR + V307_PROBE_YEAR", body)
+        self.assertLess(body.index("V307_DONE = true;"), body.index("OpexV307LongProbe("))
+
+    def test_probe_year_setting(self):
+        block = re.search(r'name = "v307_probe_year",(.*?)\}\);', self.info, re.S)
+        self.assertIsNotNone(block)
+        for level in ("easy", "medium", "hard", "custom"):
+            self.assertRegex(block.group(1), rf"{level}_value\s*=\s*0\b")
+        self.assertEqual(read("settings.nut").count('GetSetting("v307_probe_year")'), 1)
+        g = read("globals_pre.nut")
+        self.assertIn("V307_PROBE_YEAR <- 0;", g)
+        self.assertIn("V307_DONE <- false;", g)
+
+    def test_freight_pairs(self):
+        self.assertIn("pairs.extend(OpexV307FreightPairs(perBin));", self.probe)
+        body = self.probe[self.probe.index("function OpexV307FreightPairs("):self.probe.index("function OpexV307Block(")]
+        self.assertIn("CC_PASSENGERS", body)
+        self.assertIn("CC_MAIL", body)
+        self.assertIn('kind = "freight"', body)
 
     def test_module_squirrel_traps(self):
         self.assertNotIn("function(", self.probe)

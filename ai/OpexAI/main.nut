@@ -807,9 +807,6 @@ function OpexAI::Start()
   }
   if (spSelf != null) OpexSpanEnd(spSelf);
 
-  /* V307 : mesure bloquante des longs traces, partie neuve seulement. */
-  if (V307_LONG_PROBE > 0 && !this._loadedFromSave) OpexV307LongProbe(V307_LONG_PROBE);
-
   if (PROBE_LOOP_OPS) this._mainLoopProfiled();
   while (true) {
     if (PROBE_SPAN_TRACE) {
@@ -825,6 +822,7 @@ function OpexAI::Start()
     }
     local spEvents = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.events") : null;
     this._processEvents();
+    if (V307_LONG_PROBE > 0) OpexV307MaybeRun(this._loadedFromSave);
     if (spEvents != null) OpexSpanEnd(spEvents);
     if (this._lines != null && this._lines.len() >= SAVE_PROJECTION_MIN_LINES) {
       local spSave = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.save_projection") : null;
