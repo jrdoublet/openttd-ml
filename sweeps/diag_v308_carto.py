@@ -17,6 +17,8 @@ from pathlib import Path
 ARM_NAMES = ("v307", "full6", "short6", "parity6", "flatdry6")
 CLASSES = ("sea", "lake", "river", "coast", "house", "town", "city", "obst", "mountain", "river_cross")
 PATTERN = re.compile(r"\bV308_BLOCK\s+(.*)$")
+TRUTH_FIELDS = ("n", "sea", "lake", "river", "river_cross", "coast", "house", "town", "build", "road", "obst", "relief")
+ARM_FIELDS = ("n", "sea", "lake", "river", "coast", "house", "town", "obst", "relief", "ops")
 
 
 def parse_fields(payload):
@@ -42,6 +44,27 @@ def logs(paths):
             yield path
 
 
+def complete_record(fields):
+    """Ne pas assimiler un champ manquant ou tronque a une absence de classe."""
+    required = ("i", "bx", "by") + tuple("t_" + key for key in TRUTH_FIELDS)
+    required += tuple(name + "_" + key for name in ARM_NAMES for key in ARM_FIELDS)
+    if any(not isinstance(fields.get(key), int) for key in required):
+        return False
+    if fields["t_n"] != 64 or fields["t_river_cross"] not in (0, 1):
+        return False
+    if any(fields[name + "_n"] != expected for name, expected in
+           (("v307", 5), ("full6", 6), ("parity6", 6))):
+        return False
+    if any(fields[name + "_n"] not in (4, 6) for name in ("short6", "flatdry6")):
+        return False
+    if any(fields["t_" + key] < 0 or fields["t_" + key] > 64
+           for key in TRUTH_FIELDS if key not in ("relief", "river_cross")):
+        return False
+    if any(fields[name + "_ops"] < 0 for name in ARM_NAMES):
+        return False
+    return True
+
+
 def read_blocks(paths):
     for path in logs(paths):
         opener = gzip.open if path.suffix == ".gz" else open
@@ -50,7 +73,7 @@ def read_blocks(paths):
                 match = PATTERN.search(line)
                 if match:
                     fields = parse_fields(match.group(1))
-                    if all(k + "_ops" in fields for k in ARM_NAMES) and "t_sea" in fields:
+                    if complete_record(fields):
                         fields["source"] = str(path)
                         yield fields
 
@@ -95,7 +118,10 @@ def summarize(blocks):
             }
         rows.append({
             "motif": name, "n": len(blocks), "ops_median": statistics.median(ops) if ops else None,
-            "ops_p90": percentile(ops, 90), "classes": classes,
+            "ops_p90": percentile(ops, 90), "ops_total": sum(ops),
+            "ops_mean": round(statistics.mean(ops), 1) if ops else None,
+            "four_point_blocks": sum(b[name + "_n"] == 4 for b in blocks),
+            "classes": classes,
         })
     return rows
 

@@ -5,13 +5,14 @@ doivent rester rouges jusqu'a l'integration de probe_v308.nut (file B, etape 3).
 Aucun moteur OpenTTD ni banc n'est necessaire.
 """
 
+import gzip
 import re
 import tempfile
 import unittest
 from collections import deque
 from pathlib import Path
 
-from sweeps.diag_v308_carto import read_blocks, summarize
+from sweeps.diag_v308_carto import ARM_FIELDS, ARM_NAMES as DIAG_ARMS, TRUTH_FIELDS, read_blocks, summarize
 
 
 AI = Path(__file__).resolve().parents[1] / "ai" / "OpexAI"
@@ -262,19 +263,56 @@ class TestV308SourceContracts(unittest.TestCase):
 
 
 class TestV308Diagnostics(unittest.TestCase):
+    def test_truncated_and_corrupted_block_lines_are_rejected_in_plain_and_gzip_logs(self):
+        record = {"i": 0, "bx": 3, "by": 4}
+        record.update({"t_" + field: 0 for field in TRUTH_FIELDS})
+        record["t_n"] = 64
+        for name in DIAG_ARMS:
+            record.update({name + "_" + field: 0 for field in ARM_FIELDS})
+            record[name + "_n"] = 5 if name == "v307" else 4 if name in ("short6", "flatdry6") else 6
+            record[name + "_ops"] = 900
+        good = "[0] [I] V308_BLOCK " + " ".join(f"{key}={value}" for key, value in record.items()) + "\n"
+        incomplete = good.replace(" t_river_cross=0", "")
+        wrong_size = good.replace(" t_n=64", " t_n=63")
+        invalid_ops = good.replace(" full6_ops=900", " full6_ops=-1")
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "valid.log.gz"
+            with gzip.open(path, "wt", encoding="utf-8") as f:
+                f.write(incomplete + wrong_size + invalid_ops + good)
+            parsed = list(read_blocks([Path(folder)]))
+        self.assertEqual(len(parsed), 1)
+        self.assertEqual(parsed[0]["full6_ops"], 900)
+        self.assertEqual(summarize(parsed)[1]["ops_total"], 900)
+
+    def test_existing_engine_smoke_has_400_complete_blocks_and_stable_classes(self):
+        path = Path(__file__).resolve().parents[1] / "results/v308_bench_clean_20261021/results/v308_carto_smoke_1x1_20261021_engine/v308_on_seed42_r0.log"
+        if not path.is_file():
+            self.skipTest("Le smoke moteur ignore n'est pas present sur cet hote")
+        blocks = list(read_blocks([path]))
+        self.assertEqual(len(blocks), 400)
+        self.assertEqual({b["i"] for b in blocks}, set(range(400)))
+        self.assertEqual(sum(b["t_river_cross"] for b in blocks), 18)
+        rows = {row["motif"]: row for row in summarize(blocks)}
+        self.assertEqual({name: rows[name]["classes"]["river_cross"]["missed"] for name in ARM_NAMES},
+                         {"v307": 6, "full6": 3, "short6": 3, "parity6": 4, "flatdry6": 4})
+        self.assertEqual(rows["full6"]["ops_median"], 1154)
+        self.assertEqual(rows["short6"]["four_point_blocks"], 216)
+        self.assertEqual(rows["flatdry6"]["four_point_blocks"], 308)
+
     def test_river_seen_does_not_imply_a_crossing_and_logs_remain_parseable(self):
         arms = []
         for name in ARM_NAMES:
-            arms.extend((f"{name}_ops=320", f"{name}_relief=0",
-                         f"{name}_river={1 if name == 'full6' else 0}"))
+            arms.extend((f"{name}_ops=320", f"{name}_n={5 if name == 'v307' else 4 if name in ('short6', 'flatdry6') else 6}",
+                         f"{name}_relief=0", f"{name}_river={1 if name == 'full6' else 0}"))
+            arms.extend(f"{name}_{kind}=0" for kind in ("sea", "lake", "coast", "house", "town", "obst"))
         line = " ".join(arms)
         with tempfile.TemporaryDirectory() as folder:
             path = Path(folder) / "seed42.log"
             path.write_text(
                 "[0] [I] OPEX 1970-1-1 V308_BLOCK i=0 bx=3 by=2 "
-                "t_sea=0 t_river=8 t_river_cross=1 t_relief=0 " + line + "\n"
+                "t_n=64 t_sea=0 t_lake=0 t_river=8 t_river_cross=1 t_relief=0 t_coast=0 t_house=0 t_town=0 t_build=64 t_road=0 t_obst=0 " + line + "\n"
                 "[0] [I] OPEX 1970-1-1 V308_BLOCK i=1 bx=4 by=2 "
-                "t_sea=0 t_river=1 t_river_cross=0 t_relief=0 " + line + "\n",
+                "t_n=64 t_sea=0 t_lake=0 t_river=1 t_river_cross=0 t_relief=0 t_coast=0 t_house=0 t_town=0 t_build=64 t_road=0 t_obst=0 " + line + "\n",
                 encoding="utf-8")
             blocks = list(read_blocks([path]))
         self.assertEqual(len(blocks), 2)

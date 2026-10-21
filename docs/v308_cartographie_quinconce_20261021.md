@@ -1,6 +1,6 @@
 # V308 — cartographie par blocs : échantillonnage V307 et quinconce à 6 points
 
-21 octobre 2026. Proposition de l'utilisateur, analyse Claude. Aucun code IA modifié.
+21 octobre 2026. Proposition de l'utilisateur, analyse et sonde de mesure V308.
 
 ## 1. L'échantillonnage V307 actuel (sonde `v307_long_probe`, défaut 0)
 
@@ -124,7 +124,7 @@ On ne branche la carte dans une décision (devis 3.1, guidage 2.2) que si le qui
 nettement moins que les 5 points pour un coût comparable. Prompt :
 [`docs/prompts/v308_cartographie_quinconce_20261021.md`](prompts/v308_cartographie_quinconce_20261021.md).
 
-## 3. Résultats — préparation du 21 octobre (mesure moteur à effectuer)
+## 3. Résultats moteur — smoke et campagne indépendante 3×7
 
 La sonde `ai/OpexAI/probe_v308.nut` est branchée dans les deux boucles sous
 `v308_carto_probe=1`, **désactivée par défaut aux quatre difficultés**. Elle se déclenche une
@@ -142,19 +142,188 @@ est un **indice** pour `river_cross`, non une preuve qu'elle traverse tout le bl
 la vérité complète suit les composantes connexes des 64 tuiles. Les classes de ville
 incluent la règle de sélection : deux maisons vues ou autorité valide sur trois points.
 
-| Motif | Blocs analysés | Rivières traversantes manquées | Autres classes manquées | Opcodes médiane / p90 |
-|---|---:|---:|---:|---:|
-| `v307` (5 points) | À mesurer | À mesurer | À mesurer | À mesurer |
-| `full6` (6 points toujours) | À mesurer | À mesurer | À mesurer | À mesurer |
-| `short6` (saut après quatre points décisifs) | À mesurer | À mesurer | À mesurer | À mesurer |
-| `parity6` (décalage des blocs impairs) | À mesurer | À mesurer | À mesurer | À mesurer |
-| `flatdry6` (centres seulement si plat et sec) | À mesurer | À mesurer | À mesurer | À mesurer |
+**Méthode de lecture.** Les valeurs `t_*` proviennent des 64 tuiles. `river_cross`
+est une composante fluviale qui touche deux bords opposés du même bloc : les
+échantillonneurs ne connaissent pas la connexité de la rivière, et le diagnostic
+compte `motif_river>0` comme *signal de présence* (donc faux positifs possibles).
+`mountain` correspond à un relief `max−min >= 4` dans les points lus ; ce n'est
+pas une classification officielle des montagnes. `city` est une règle de seuil
+(≥2 maisons ou ≥3 points avec autorité de ville) ; une autorité administrative
+valide ne prouve pas la présence de bâti. Le motif V307 testé relit les mêmes
+champs `IsSeaTile` / `IsRiverTile` / etc. que les autres motifs, contrairement
+au noyau simplifié de `OpexV307Block` décrit en §1 : **les opcodes ne sont pas
+ceux de l'algorithme V307 de production**. Les 400 blocs sont tirés *avec remise* :
+les taux sont descriptifs, sans prétendre à 400 blocs distincts.
 
-Les 16 tests géométriques, de contrat et de lecture des journaux de
-`sweeps/test_v308_quinconce.py` passent ;
-les 19 tests ciblés V307/V309 passent également. Aucun runtime OpenTTD, smoke ni
-banc comparatif n'a été exécuté à cette étape. La comparaison réelle des motifs
-reste donc **non mesurée**, et il serait prématuré de retenir un motif pour une carte
-partagée. Après coordination des bancs : smoke 1×1 puis graines 42, 7 et 100 avec
-`v307_probe_year=0` et `=6`, et traitement des journaux avec
-`python sweeps/diag_v308_carto.py <dossier> --json <sortie.json>`.
+### Smoke 1×1 — 1970, graine 42, résultat complet
+
+Campagne `v308_smoke_fix1_1x1_20261021`, bundle du worktree propre
+`results/v308_bench_clean_20261021`. Le bras `reference` a la sonde OFF,
+aucun `V308_BLOCK` ; le bras `v308` possède exactement **400 `V308_BLOCK`**,
+400 indices `i` distincts (0..399), `t_n=64` sur chaque ligne, un `V308_START`
+et un `V308_END`, **aucune erreur Squirrel**. Toutes les valeurs suivantes
+proviennent donc du **bras variant sondé**, et comparent les cinq motifs *sur les
+mêmes 400 blocs*. Aucun écart économique entre parties ne peut être attribué à
+un motif : la sonde est bloquante et avance le générateur aléatoire.
+
+| Motif | Traversées fluviales manquées (sur 18) | Faux signaux de traversée (sur 382 négatifs) | Rivière présente manquée (sur 46) | Mer manquée (sur 93) | Ville (seuil) manquée (sur 248) | Relief ≥4 manqué (sur 24) | Opcode méd. / p90 |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| `v307` | 6 (33,3 %) | 18 (4,7 %) | 16 (34,8 %) | 15 (16,1 %) | 64 (25,8 %) | 20 (83,3 %) | 944 / 949 |
+| `full6` | **3 (16,7 %)** | 19 (5,0 %) | **12 (26,1 %)** | 16 (17,2 %) | 46 (18,5 %) | 19 (79,2 %) | 1 154 / 1 160 |
+| `short6` | **3 (16,7 %)** | 19 (5,0 %) | **12 (26,1 %)** | 16 (17,2 %) | 52 (21,0 %) | 20 (83,3 %) | 815 / 1 176 |
+| `parity6` | 4 (22,2 %) | 17 (4,5 %) | 15 (32,6 %) | **14 (15,1 %)** | **42 (16,9 %)** | 20 (83,3 %) | 1 161 / 1 166 |
+| `flatdry6` | 4 (22,2 %) | 17 (4,5 %) | 15 (32,6 %) | 16 (17,2 %) | 71 (28,6 %) | 21 (87,5 %) | **802 / 1 168** |
+
+Dans cette mesure, `full6` coûte +22,2 % d'opcodes médians par rapport aux cinq
+points V307 et divise par deux les omissions des traversées (6 → 3).
+`short6` conserve les trois traversées manquées et passe à 815 opcodes médians
+(−13,7 %), mais son p90 de 1 176 traduit le coût du test et du branchement
+quand les deux centres sont finalement lus. Les centres sont sautés dans
+216/400 blocs pour `short6`, 308/400 pour `flatdry6`.
+
+**Autres classes du smoke**, omissions exprimées en nombre de blocs réellement
+positifs : côte (68) : `v307/full6/short6/parity6/flatdry6` =
+33/33/38/33/38 ; maisons (60) = 37/26/30/30/29 ; autorité de ville (260) =
+30/32/32/30/32 ; obstacles (52) = 33/33/35/36/37.
+Le lac n'est présent dans **aucun** des 400 blocs ; un taux de manque pour le
+lac n'est donc **pas estimable**. Les autres classes ordinaires n'ont aucun faux
+positif dans ce smoke (chaque point lu appartient aux 64 tuiles du bloc).
+
+Lecture immédiate : le quinconce six points est un candidat pour une *détection
+rapide* des rivières et villes, surtout en version court-circuitée. **Il ne
+reconstruit pas les traversées fluviales**, conserve des angles morts importants
+sur la montagne, et le gain statistique du smoke repose sur seulement 18
+traversées vraies. Pas de promotion en carte partagée à ce stade.
+
+Commande :
+
+```powershell
+python -X utf8 sweeps/diag_v308_carto.py results/v308_bench_clean_20261021/results/v308_smoke_fix1_1x1_20261021_engine/v308_seed42_r0.log
+```
+
+### Campagne 3×7 — V308 année 0 contre année 6
+
+Campagne `v308_carto_3x7_20261021`, même worktree propre, graines 42/7/100,
+référence `OpexAI[v308_carto_probe=1]` (année 0), variante
+`OpexAI[v308_carto_probe=1,v307_probe_year=6]` (année 6), horizon 7 ans.
+Le JSON final atteste **6/6 parties terminées et saines**, 3/3 paires,
+`comparison_complete=true`, `adoption_sample_complete=true`,
+`metric_coverage_complete=true`. Les six journaux ont chacun un
+`V308_START`, 400 `V308_BLOCK` complets et uniques, un `V308_END`, et
+**zéro erreur Squirrel**. Le manifeste confirme le commit propre
+`ccd2e9311ced40b9929fbe5240355eb775d00721`, bundle
+`e30f3cb34aa54a5fc27d7aec29d9c3237ec96a68afd0fb29ceaa719d88acad5d`,
+et le seul paramètre différent `v307_probe_year: 0 → 6`.
+
+**Dates observées et censure temporelle :** les trois `reference` déclenchent
+la sonde le **1er janvier 1970** et la terminent le **11 février 1970**.
+À l'année 6, les démarrages/terminaisons sont **1er janvier → 10 février 1976**
+(graine 100), **5 janvier → 15 février** (42), et **2 février → 14 mars** (7).
+Une exécution de la sonde exhaustive 64 tuiles + cinq motifs occupe donc
+environ **40–41 jours de simulation**, pas un seul tour ni une mesure masquée.
+La condition d'année est un seuil minimal : l'IA peut atteindre ce seuil
+plusieurs semaines après le 1er janvier. Les cinq motifs sont évalués
+séquentiellement dans chaque bloc, mais les deux campagnes correspondent à
+des états du monde et périodes différentes : les taux restent séparés.
+Toutes les observations se déroulent en **hiver (janvier à mars)** ; aucune
+autre saison n'est mesurée ici.
+
+#### Bras `reference` : année 0, 3 × 400 = 1 200 blocs
+
+La vérité contient **66 blocs avec rivière traversante**, 145 avec rivière,
+241 avec mer, 753 selon le seuil de ville, 68 avec relief ≥4, et aucun lac.
+
+| Motif | Traversées manquées / 66 | Faux signaux / 1 134 négatifs | Rivière présente manquée / 145 | Mer manquée / 241 | Ville manquée / 753 | Montagne manquée / 68 | Opcodes méd. / p90 |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| `v307` | 15 (22,7 %) | 32 (2,8 %) | 62 (42,8 %) | 44 (18,3 %) | 210 (27,9 %) | 45 (66,2 %) | 944 / 949 |
+| `full6` | **8 (12,1 %)** | 37 (3,3 %) | **50 (34,5 %)** | 44 (18,3 %) | 173 (23,0 %) | 51 (75,0 %) | 1 154 / 1 160 |
+| `short6` | 10 (15,2 %) | 34 (3,0 %) | 55 (37,9 %) | 44 (18,3 %) | 183 (24,3 %) | 53 (77,9 %) | 818 / 1 176 |
+| `parity6` | 11 (16,7 %) | 35 (3,1 %) | 55 (37,9 %) | **40 (16,6 %)** | **164 (21,8 %)** | 48 (70,6 %) | 1 161 / 1 166 |
+| `flatdry6` | 11 (16,7 %) | 30 (2,6 %) | 60 (41,4 %) | 46 (19,1 %) | 235 (31,2 %) | 54 (79,4 %) | **802 / 1 168** |
+
+Autres classes, omissions par motif dans l'ordre `v307/full6/short6/parity6/flatdry6` :
+côte (200) **88/69/88/78/90** ; maisons (182) **111/95/110/105/105** ;
+autorité de ville (792) **91/95/95/102/96** ; obstacles (142)
+**91/85/88/89/94**. Aucun faux positif ordinaire ; aucun lac à comparer.
+
+#### Bras `y6` : année 6, 3 × 400 = 1 200 blocs
+
+La vérité contient **67 blocs avec rivière traversante**, 153 avec rivière,
+234 avec mer, 748 selon le seuil de ville, 66 avec relief ≥4, et aucun lac.
+
+| Motif | Traversées manquées / 67 | Faux signaux / 1 133 négatifs | Rivière présente manquée / 153 | Mer manquée / 234 | Ville manquée / 748 | Montagne manquée / 66 | Opcodes méd. / p90 |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| `v307` | 12 (17,9 %) | 34 (3,0 %) | 64 (41,8 %) | 43 (18,4 %) | 207 (27,7 %) | 38 (57,6 %) | 944 / 949 |
+| `full6` | **6 (9,0 %)** | 44 (3,9 %) | **48 (31,4 %)** | 44 (18,8 %) | 172 (23,0 %) | 47 (71,2 %) | 1 154 / 1 160 |
+| `short6` | 7 (10,4 %) | 39 (3,4 %) | 54 (35,3 %) | 44 (18,8 %) | 181 (24,2 %) | 49 (74,2 %) | 821,5 / 1 176 |
+| `parity6` | 11 (16,4 %) | 41 (3,6 %) | 56 (36,6 %) | 43 (18,4 %) | **162 (21,7 %)** | **42 (63,6 %)** | 1 161 / 1 166 |
+| `flatdry6` | 9 (13,4 %) | 35 (3,1 %) | 60 (39,2 %) | 45 (19,2 %) | 234 (31,3 %) | 51 (77,3 %) | **802 / 1 167** |
+
+Autres classes, omissions dans le même ordre : côte (196)
+**99/72/91/83/95** ; maisons (230) **149/130/153/131/144** ;
+autorité de ville (785) **93/96/96/104/97** ; obstacles (742)
+**222/163/189/168/213**. Aucun faux positif ordinaire ; aucun lac à comparer.
+Les différences du volume d'obstacles reflètent aussi l'évolution du monde
+entre 1970 et 1976 : ces deux bras ne mesurent pas une variation causale de la
+qualité du motif à géographie constante.
+
+#### Robustesse par graine et décision
+
+Les omis `river_cross` par graine 42/7/100 sont respectivement :
+
+| Motif | Année 0 (18 / 30 / 18 traversées) | Année 6 (18 / 31 / 18 traversées) |
+|---|---|---|
+| `v307` | 6 / 3 / 6 | 6 / 2 / 4 |
+| `full6` | **3 / 2 / 3** | **3 / 1 / 2** |
+| `short6` | 3 / 2 / 5 | 3 / 1 / 3 |
+| `parity6` | 4 / 3 / 4 | 4 / 4 / 3 |
+| `flatdry6` | 4 / 3 / 4 | 4 / 2 / 3 |
+
+Le motif **`full6`** atteint le plus faible nombre d'omissions de traversées
+à chaque époque, avec un coût médian de **1 154 opcodes** (+22,2 % contre
+les 944 du motif V307 relu avec les mêmes API). Il reste cependant 8/66
+et 6/67 traversées manquées, ainsi que des faux signaux. Le **`short6`** est
+le meilleur candidat *coût/couverture pour un futur cache partagé* :
+10/66 et 7/67 traversées manquées avec 818/821,5 opcodes médians
+(−13,3 %/−13,0 % contre V307), mais il manque davantage de côtes, maisons,
+obstacles et reliefs que `full6`, et son p90 remonte à 1 176.
+Sur la graine 7, le `short6` coûte 1 171 / 1 172 opcodes médians aux années
+0 / 6 : l'économie de court-circuit n'est pas uniforme entre les graines.
+**La médiane masque le coût réel du court-circuit** : sur les 1 200 blocs de
+l'année 0, `short6` totalise **1 184 714 opcodes** contre **1 131 594**
+pour `v307` (+4,7 %) ; à l'année 6, **1 188 402** contre **1 131 647**
+(+5,0 %). Les centres sont sautés sur 611/1 200 puis 601/1 200 blocs.
+Sur le smoke de 400 blocs, les cinq motifs représentent à eux seuls
+**2 055 027 opcodes mesurés** (dont 390 041 pour `short6` et 376 975
+pour `v307`), hors balayage exhaustif, connexité, logs et pilotage de la
+sonde. Les **40–41 jours** observés ne doivent donc pas être imputés à un
+seul motif. `short6` reste moins cher que `full6`, mais **ne constitue
+pas une économie moyenne d'opcodes face au V307 mesuré**.
+Le `parity6` n'améliore pas systématiquement les rivières et n'est pas retenu
+en priorité.
+Le `flatdry6` est économique à la médiane mais perd nettement en classification
+des villes et des montagnes. **Aucun motif n'est implanté dans une politique
+de routage à l'issue de cette simple mesure passive.**
+
+Le résultat économique du duel *année 6 − année 0* est Δ `profit_year`
+**+16 778,3 £/an** en moyenne, IC95 bootstrap **[−885 975 ; +722 245]**,
+2 victoires / 1 défaite, verdict `fail_primary` du harnais. Ce chiffre reflète
+le calendrier et les effets de la sonde (40–41 jours bloquants, tirages RNG,
+réseau et concurrence divergents), **et ne compare pas l'adoption des cinq
+motifs**. La valeur de compagnie est également sensible à ces trajectoires.
+L'effet d'un cache cartographique partagé sur le coût par projet, les délais
+d'A*, les ponts, la rentabilité et le résultat contre AAAHogEx reste à vérifier
+séparément avant tout changement de comportement ou de réglage par défaut.
+
+Reproduction sans nouveau banc :
+
+```powershell
+$engine = 'results/v308_bench_clean_20261021/results/v308_carto_3x7_20261021_engine'
+python -X utf8 sweeps/diag_v308_carto.py "$engine/reference_seed42_r0.log" "$engine/reference_seed7_r0.log" "$engine/reference_seed100_r0.log"
+python -X utf8 sweeps/diag_v308_carto.py "$engine/y6_seed42_r0.log" "$engine/y6_seed7_r0.log" "$engine/y6_seed100_r0.log"
+python -X utf8 -m unittest sweeps.test_v308_quinconce -q
+```
+
+Les **18 tests V308** passent et le diagnostic est fondé sur les journaux du
+bundle gelé, sans lancement supplémentaire de Docker. Le rapport est complet
+pour cette mesure V308 3×7 et prêt à être publié, avec les limites ci-dessus.
