@@ -140,7 +140,7 @@ class TestV294fRailReverseProbe(unittest.TestCase):
         builder = read("builder_rail.nut")
         probe = function_body(builder, "OpexV294fReverseProbe")
         self.assertIn("local revPf = OpexCreateRailPathfinder(plansB, plansA, clearanceTiles, searchWeight, null, null, engine);", probe)
-        self.assertIn('OpexDecide("V294F_PROBE", "ok=" + (ok ? 1 : 0) + " iters=" + iters + " manh=" + manh);', probe)
+        self.assertIn('OpexDecide("V294F_PROBE", "ok=" + (ok ? 1 : 0) + " iters=" + iters + " manh=" + manh', probe)
         self.assertIn("local revTiles = OpexPathTiles(revRes);", probe)
         self.assertIn("revTiles.reverse();", probe)
 

@@ -795,24 +795,29 @@ function OpexAI::_startRailSearch(candidate, alternativeRatio, hardCap, posPacke
   local outwardSide = (V197_GUIDED_DOUBLE && OpexV190Active() && candidate.kind == "freight") ? 1 : null;
   local searchWeight = OpexRailAstarWeight(candidate.distance);
   candidate.searchWeight <- searchWeight;
-  if (V294_RAIL_REVERSE_PROBE > 0) {
-    local revSlice = OpexV294fReverseProbe(plan.plansA, plan.plansB, clearanceTiles, searchWeight, candidate, V294_RAIL_REVERSE_PROBE);
-    if (revSlice != null) {
-      local planResult = OpexCompleteRailRouteAfterSearch(this._catalog, candidate, plan, revSlice);
-      if (DECISION_LOG && V131_TOWN_CLEARANCE && clearanceTiles != null) {
-        OpexV131LogClearance(candidate, planResult, clearanceTiles);
+  if (V303_REVERSE_MODE == 0) {
+    if (V294_RAIL_REVERSE_PROBE > 0) {
+      local revSlice = OpexV294fReverseProbe(plan.plansA, plan.plansB, clearanceTiles, searchWeight, candidate, V294_RAIL_REVERSE_PROBE);
+      if (revSlice != null) {
+        local planResult = OpexCompleteRailRouteAfterSearch(this._catalog, candidate, plan, revSlice);
+        if (DECISION_LOG && V131_TOWN_CLEARANCE && clearanceTiles != null) {
+          OpexV131LogClearance(candidate, planResult, clearanceTiles);
+        }
+        if (V233_GOODS_GRAFT && OpexV233IsGraft(candidate) && planResult.ok) {
+          this._v233StorePlan(candidate, planResult);
+        }
+        return { pending = false, plan = planResult };
       }
-      if (V233_GOODS_GRAFT && OpexV233IsGraft(candidate) && planResult.ok) {
-        this._v233StorePlan(candidate, planResult);
-      }
-      return { pending = false, plan = planResult };
     }
   }
   local candidateEngine = OpexRailEngineOf(candidate);
   local pathfinder = null;
   local segmented = null;
-  if (V294_RAIL_CONTINUOUS > 0) {
-    pathfinder = OpexCreateRailPathfinder(plan.plansA, plan.plansB, clearanceTiles, searchWeight, outwardSide, null, candidateEngine);
+  if (V294_RAIL_CONTINUOUS > 0 || V303_REVERSE_MODE == 2) {
+    /* Mode 2 garde le poids initial de l'aller courant, sans sa segmentation. */
+    local forwardWeight = (V303_REVERSE_MODE == 2 && V294_RAIL_CONTINUOUS == 0 && V294C_RAIL_WEIGHT_ADAPT > 0)
+        ? V294C_RAIL_WEIGHT_ADAPT : searchWeight;
+    pathfinder = OpexCreateRailPathfinder(plan.plansA, plan.plansB, clearanceTiles, forwardWeight, outwardSide, null, candidateEngine);
     if (pathfinder == null) {
       if (DECISION_LOG) {
         OpexDecide("RAIL_SEARCH", "type=resumable outcome=NOPA iters=0 budget=" + plan.iterationBudget);
@@ -861,6 +866,9 @@ function OpexAI::_startRailSearch(candidate, alternativeRatio, hardCap, posPacke
     startTick = curTick,
     slotIndex = 0,
   };
+  if (V303_REVERSE_MODE > 0) {
+    this._railSearch.v303 <- OpexV303CreateReverse(plan, clearanceTiles, searchWeight, candidate);
+  }
   if (C56_TASK_TRACE) {
     OpexC56TaskLog("RAIL_SEARCH_START", "primary", this._taskCycle,
                    "src=" + candidate.src + " dst=" + candidate.dst
@@ -910,7 +918,9 @@ function OpexAI::_continueRailSearch()
   }
   local slice;
   local spentBefore = state.spent;
-  if (("segmented" in state) && state.segmented != null) {
+  if (("v303" in state) && state.v303 != null) {
+    slice = OpexV303AdvanceReverse(state, deadlineTick);
+  } else if (("segmented" in state) && state.segmented != null) {
     slice = OpexAdvanceSegmentedSearch(state.segmented, RAIL_SEARCH_SLICE, deadlineTick);
   } else {
     slice = OpexAdvanceRailPathfinder(state.pathfinder, state.spent, state.iterationBudget,
@@ -1045,6 +1055,7 @@ function OpexAI::_continueRailSearch()
     }
     state.candidate.railPlan <- plan;
     state.pathfinder = null;
+    if ("v303" in state) state.v303 = null;
     state.phase = "build";
     if (V233_GOODS_GRAFT && OpexV233IsGraft(state.candidate) && plan.ok) {
       this._v233StorePlan(state.candidate, plan);

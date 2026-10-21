@@ -727,6 +727,13 @@ class OpexAIInfo extends AIInfo {
       custom_value = 300, flags = 0, step_size = 50
     });
     AddSetting({
+      name = "v303_reverse_mode",
+      description = "V303: reverse rail search; 0 historical synchronous probe, 1 sliced probe, 2 alternating forward/reverse A* with shared iteration cap",
+      min_value = 0, max_value = 2,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0, flags = 0, step_size = 1
+    });
+    AddSetting({
       name = "v294_rail_dist_decouple",
       description = "V294i: decouple candidate railMax from iteration cap (HARD_ITERATION_CAP*12/10); 0 = off (uses derived/V168 bound, default), >0 = max tile distance",
       min_value = 0, max_value = 500,

@@ -951,13 +951,18 @@ function OpexV294fReverseProbe(plansA, plansB, clearanceTiles, searchWeight, can
     }
     return null;
   }
+  local probeMark = DECISION_LOG ? OpexOpsMeasureBegin() : null;
   local revRes = revPf.FindPath(iterationCap);
+  local probeOps = DECISION_LOG ? OpexOpsMeasureEnd(probeMark) : 0;
+  local probeTicks = DECISION_LOG ? AIController.GetTick() - probeMark.tick : 0;
   local iters = revPf.LastConsumed();
   local ok = (revRes != null && revRes != false);
   if (DECISION_LOG) {
     local manh = (candidate != null && ("distance" in candidate)) ? candidate.distance :
                  (plansA.len() > 0 && plansB.len() > 0 ? AIMap.DistanceManhattan(plansA[0].lead, plansB[0].lead) : 0);
-    OpexDecide("V294F_PROBE", "ok=" + (ok ? 1 : 0) + " iters=" + iters + " manh=" + manh);
+    OpexDecide("V294F_PROBE", "ok=" + (ok ? 1 : 0) + " iters=" + iters + " manh=" + manh
+        + " mode=0 src=" + candidate.src + " dst=" + candidate.dst
+        + " ticks=" + probeTicks + " max_ticks=" + probeTicks + " ops=" + probeOps);
   }
   if (!ok) return null;
   local revTiles = OpexPathTiles(revRes);
@@ -973,6 +978,116 @@ function OpexV294fReverseProbe(plansA, plansB, clearanceTiles, searchWeight, can
     backtracks = 0,
     localChoices = 0,
   };
+}
+
+/* V303 : etat exclusivement possede par _railSearch, jamais serialise. Mode 1 ne
+ * change ni le poids ni le plafond de la sonde ; mode 2 partage le plafond total
+ * entre deux A* continus, sans memoire g ni transfert de closed set. */
+function OpexV303CreateReverse(plan, clearanceTiles, weight, candidate)
+{
+  local reversePf = null;
+  if (V294_RAIL_REVERSE_PROBE > 0) {
+    reversePf = OpexCreateRailPathfinder(plan.plansB, plan.plansA, clearanceTiles,
+        weight, null, null, OpexRailEngineOf(candidate));
+  }
+  return {
+    mode = V303_REVERSE_MODE, reversePf = reversePf,
+    reverseSpent = 0, forwardSpent = 0, reverseCap = V294_RAIL_REVERSE_PROBE,
+    totalCap = plan.iterationBudget + V294_RAIL_REVERSE_PROBE,
+    reverseDone = reversePf == null, forwardDone = false, reverseTurn = true,
+    probeLogged = false, ticks = 0, ops = 0, maxTicks = 0,
+    reverseTicks = 0, reverseOps = 0, reverseMaxTicks = 0,
+    startTick = AIController.GetTick(),
+  };
+}
+
+function OpexV303LogProbe(state, ok)
+{
+  local s = state.v303;
+  if (s.probeLogged) return;
+  s.probeLogged = true;
+  if (!DECISION_LOG) return;
+  OpexDecide("V294F_PROBE", "ok=" + (ok ? 1 : 0) + " iters=" + s.reverseSpent
+      + " manh=" + state.candidate.distance + " mode=" + s.mode
+      + " src=" + state.candidate.src + " dst=" + state.candidate.dst
+      + " ticks=" + s.reverseTicks + " max_ticks=" + s.reverseMaxTicks + " ops=" + s.reverseOps);
+}
+
+function OpexV303AdvanceReverse(state, deadlineTick)
+{
+  local s = state.v303;
+  local reverse = !s.reverseDone && (s.mode == 1 || s.reverseTurn || s.forwardDone);
+  local mark = DECISION_LOG ? OpexOpsMeasureBegin() : null;
+  local slice = null;
+  if (reverse || s.mode == 2) {
+    local remaining = s.totalCap - s.reverseSpent - s.forwardSpent;
+    if (s.mode == 1) remaining = s.reverseCap - s.reverseSpent;
+    local chunk = PATH_CHUNK;
+    if (chunk > RAIL_SEARCH_SLICE) chunk = RAIL_SEARCH_SLICE;
+    if (chunk > remaining) chunk = remaining;
+    local pf = reverse ? s.reversePf : state.pathfinder;
+    local path = false;
+    if (pf != null && chunk > 0 && AIController.GetTick() < deadlineTick) {
+      path = pf.FindPath(chunk);
+      local consumed = pf.LastConsumed();
+      if (reverse) s.reverseSpent += consumed;
+      else s.forwardSpent += consumed;
+    } else if (pf == null) {
+      path = null;
+    }
+    local found = path != null && path != false;
+    if (reverse && (path != false || (s.mode == 1 && s.reverseSpent >= s.reverseCap))) s.reverseDone = true;
+    if (!reverse && path == null) s.forwardDone = true;
+    local total = s.reverseSpent + s.forwardSpent;
+    local stop = "CONT";
+    if (found) stop = "OK";
+    else if (AIController.GetTick() >= deadlineTick) stop = "DEAD";
+    else if (total >= s.totalCap) stop = "ABND";
+    else if (s.mode == 2 && s.forwardDone && s.reverseDone) stop = "NOPA";
+    local tiles = null;
+    if (found) {
+      tiles = OpexPathTiles(path);
+      if (reverse) tiles.reverse();
+    }
+    slice = { path = path, tiles = tiles, structures = [], iterations = total,
+        stop = stop, done = stop != "CONT", segments = 1, backtracks = 0, localChoices = 0 };
+    s.reverseTurn = !reverse;
+  } else {
+    /* La sonde mode 1 est epuisee : reprendre exactement l'aller historique.
+     * Son compteur propre reste separe du cumul sonde+aller. */
+    if (state.segmented != null) {
+      slice = OpexAdvanceSegmentedSearch(state.segmented, RAIL_SEARCH_SLICE, deadlineTick);
+    } else {
+      slice = OpexAdvanceRailPathfinder(state.pathfinder, s.forwardSpent,
+          state.iterationBudget, deadlineTick, RAIL_SEARCH_SLICE);
+    }
+    s.forwardSpent = slice.iterations;
+    slice.iterations += s.reverseSpent;
+  }
+  if (DECISION_LOG) {
+    local ops = OpexOpsMeasureEnd(mark);
+    local ticks = AIController.GetTick() - mark.tick;
+    s.ops += ops;
+    s.ticks += ticks;
+    if (ticks > s.maxTicks) s.maxTicks = ticks;
+    if (reverse) {
+      s.reverseOps += ops;
+      s.reverseTicks += ticks;
+      if (ticks > s.reverseMaxTicks) s.reverseMaxTicks = ticks;
+    }
+  }
+  if (s.reverseDone || slice.done) OpexV303LogProbe(state, reverse && slice.stop == "OK");
+  if (s.reverseDone) s.reversePf = null;
+  if (slice.done && DECISION_LOG) {
+    OpexDecide("V303_SEARCH", "mode=" + s.mode + " src=" + state.candidate.src
+        + " dst=" + state.candidate.dst + " manh=" + state.candidate.distance
+        + " winner=" + (slice.stop == "OK" ? (reverse ? "reverse" : "forward") : "none")
+        + " stop=" + slice.stop + " iters=" + slice.iterations
+        + " reverse_iters=" + s.reverseSpent + " forward_iters=" + s.forwardSpent
+        + " cap=" + s.totalCap + " ticks=" + s.ticks + " max_ticks=" + s.maxTicks
+        + " elapsed=" + (AIController.GetTick() - s.startTick) + " ops=" + s.ops);
+  }
+  return slice;
 }
 
 /* Une tranche d'A*. `spent` est le cumul DEJA consomme (denominateur du classement : mesurer,

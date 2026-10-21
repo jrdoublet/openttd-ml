@@ -760,6 +760,8 @@ function OpexAI::Save()
 }
 function OpexAI::Load(version, data)
 {
+  /* V303 : aucun A* vivant (aller/retour) ne traverse Load, meme sans marqueur ancien. */
+  this._railSearch = null;
   V276_CATALOG_TASK = null;
   if (this._taskQueue != null) foreach (task in this._taskQueue) {
     if ("v276" in task) delete task.v276;
