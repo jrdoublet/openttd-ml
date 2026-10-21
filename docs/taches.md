@@ -1,11 +1,96 @@
 # Tâches — travail restant
 
-**Mise à jour : 20 octobre 2026. Seule liste autoritaire des actions ouvertes.**
+**Mise à jour : 21 octobre 2026. Seule liste autoritaire des actions ouvertes.**
 Les décisions et résultats terminés sont dans la [synthèse historique](journaux/synthese_decisions_2026-09-30.md)
 et les [journaux](journaux/README.md). Les anciennes mentions « à faire » des fiches
 ne créent pas une tâche. Protocole et pilotage des bancs : [AGENTS.md](../AGENTS.md), §4/§4.1.
 
 ## État courant
+
+### 21/10 — frontières voyageurs et calibration RAIL à coût d'opcodes quasi nul : travaux **ouverts**
+
+**Travail déjà réalisé, à ne pas recommencer :** audit en lecture seule des 40×10
+SOLO/DUEL et démonstrations hors ligne des [frontières et temps](demo_frontieres_temps_20261021.md),
+du [recentrage du score RAIL](demo_recentrage_rail_20261021.md), des
+[bornes/coûts](etude_roi_bornes_distance_neutralite_20261021.md) et des
+[variables prédictives](variables_predictives_roi_calibration_20261021.md).
+Scripts, tests et JSON dans `sweeps/demo_*_20261021.py` et
+`evidence/review/roi_calibration_predictors_20261021/` ; branche
+`review/roi-calibration-predictors-20261021`. Aucune modification du code
+`ai/OpexAI`, aucun nouveau banc économique, **aucun modèle adopté**.
+
+- [ ] **FRONT-PAX-1 — expliquer les bornes réellement calculées, sans changer les filtres.**
+  - Instrumenter **une fois par rafraîchissement des bornes** et non par candidat :
+    vitesse effective RAIL voyageurs, vitesse AIR API/diviseur, aéroport/type,
+    temps de manœuvre et conversion jours/tuile, frontière brute rail/air,
+    `railMax` et motif du rabattement à 200 ; pour route/rail : `deltaM`,
+    numérateur, dénominateur et raison du retour à `roadMin=7`. Sonde
+    strictement passive et désactivable, coût d'opcodes mesuré.
+  - Contexte constaté : sur 2 109 `EPOCH_BOUNDS` des 80 parties, `roadMax=7`,
+    `railAir=railMax=200`. Le recalage rail/air concerne **uniquement `PASS`** :
+    dans 40 DUEL, **54 RAIL PASS** matures, dont **25** à 64–199 et **11**
+    à 78–199 tuiles, contre 958 RAIL tous cargos. **Ne pas utiliser les
+    827/773 lignes fret + PASS** des premières simulations comme exposition.
+  - Livrable : tableau des raisons du clamp par époque/graine, avec
+    vérification de `OpexRailPaxPairInBand` contre `OpexFreightCandidates`.
+
+- [ ] **FRONT-PAX-2 — comparer des temps de parcours homogènes et simplifier la frontière RAIL/AIR PASS uniquement, en shadow.**
+  - Ne **pas** considérer `airportDelayDays=3` du chemin legacy comme un
+    temps de manœuvre physique ; rapprocher `OpexAirManeuverDays` (~26,19 j
+    pour le scénario 6×6), le **proxy physique** C100.1 (~15,13 j), le modèle
+    C121 de retard de hub, et le chargement mécanique AIR déjà calculable dans
+    `sweeps/analyse_c121_air_economics_shadow.py` ; éviter tout double compte.
+    Côté rail, **réutiliser** `OpexRailStationDwellDays` (V216f, par défaut
+    100 %), la cadence/attente fret ne concernant pas la frontière PASS.
+  - Essayer hors ligne une seule base de conversion jours/tuile et la forme
+    `D* = (T_sol_AIR + T_charge_AIR − T_arret_RAIL) / (tau_RAIL − tau_AIR)`,
+    avec garde si le dénominateur est non positif et clamp de recherche RAIL
+    **distinct** de la frontière économique. Valeurs illustratives : croisement
+    ~63 (conversion frontière) ou ~78 tuiles (conversion économique) pour
+    RAIL 115 / avion API 570, **pas** des seuils approuvés.
+  - **Condition impérative avant toute activation** : chiffrer le nombre
+    de paires AIR nouvellement admissibles, le coût en appels/opcodes de leur
+    évaluation et le profit/ROI de leurs alternatives par comparaison sur
+    mêmes graines. Réutiliser les caches/vitesses et `catalog.bounds`, aucun
+    scan géométrique, aucun A* supplémentaire par candidat. Préserver le
+    modèle AIR C121 gagnant et ne pas étendre la frontière au fret sans refit.
+
+- [ ] **RAIL-ROI-1 — essayer le recentrage affine du score RAIL à moyenne 1, sans toucher AIR/ROAD.**
+  - Démo hors ligne : `F_RAIL(d)=1+0,002101391934×(132,749776809−d)` ;
+    appliquer **seulement au score de classement RAIL**, après le score
+    financier existant, avant insertion C77, sans changer profit, devis,
+    financement, `K_dec`, C70, bonus défensifs, AIR, flotte AIR ou ROAD.
+    Distance déjà disponible : **quelques opcodes arithmétiques seulement**,
+    aucune géométrie ; vérifier le domaine de validité et les facteurs
+    éventuellement non positifs hors du 256² historique.
+  - Recentrage calculé **hors ligne**, aucune boucle de moyenne en jeu :
+    masse de score pondérée SOLO = 1,000000 ; contrôle DUEL par cinq plis
+    de graines disjoints = **0,994605** (AIR/flotte/ROAD = 1,000000).
+    Dans DUEL, 13 695 entrées top-5 RAIL ; **le recentrage ne garantit pas
+    une moyenne exactement égale à 1 sur des cartes et époques nouvelles**.
+  - À faire : test d'opcodes réel, contrôles des priorités C77, des seuils
+    et des classements/fins de parties ; ablation score-only avec réglage
+    défaut **0**, puis banc économique A/B à graines identiques et indépendantes
+    (profit annuel, valeur, capital, nombre de constructions par mode,
+    opportunités évincées). Ne pas interpréter les inversions numériques
+    du top-5 historique comme des constructions contrefactuelles.
+
+- [ ] **RAIL-CAPEX-1 — étudier séparément une correction du coût physique RAIL par distance, avant tout usage financier.**
+  - Prédiction hors ligne SOLO → DUEL : `coût_physique_estimé = devis ×
+    (1,051980876882+0,003065879861×distance)` ; sur 958 RAIL matures DUEL,
+    MAE coût **26 948 £** brute, **12 786 £** au facteur global, **11 008 £**
+    avec quatre sous-bandes, **10 342 £** avec la droite. Tester par cargo,
+    époque, carte et capital, en distinguant **devis théorique** des coûts
+    **déjà physiques après A*** (ne pas les corriger deux fois).
+  - Ne **pas** injecter immédiatement ce montant dans le budget : modifier
+    `OpexProjectFinanceCapital` et `max(financeCapital,K_dec)` change
+    l'admissibilité, donc la concurrence intermodale, indépendamment du score.
+    Préqualifier les effets sur lignes rejetées et l'impact moyen AIR/RAIL/ROAD
+    à budget inchangé avant d'autoriser une seconde expérience économique.
+    **Interdit : pénalisation relative isolée de l'AIR.** Toute expérimentation
+    d'une baisse générale de 20 % doit traiter **AIR, flotte, RAIL, ROAD**
+    par le même multiplicateur de score, et mesurer les effets des seuils.
+
 
 - [ ] **21/10 — PAQUET du 21/10 (adapt400 + V294all + FIN-PARTIE + V296 + V301) contre son absence, GitHub** (référence `OpexAI` = master, variante = les 13 réglages à leur ancien défaut ; delta négatif = gain du paquet).
   - **3 ans, 40 graines historiques, run 39576092386 : paquet +185,3 k£/an (médiane +168,6 k), 27 V / 13 D, p = 0,003, IC95 [+77 k ; +295 k] ; valeur +4,0 %.** Opex/AAA à 3 ans : **113,3 %** avec le paquet (2,25 M£ contre 1,99 M£), 100,4 % sans.
@@ -25,6 +110,8 @@ ne créent pas une tâche. Protocole et pilotage des bancs : [AGENTS.md](../AGEN
     - Hypothèse utilisateur à vérifier : table hors ligne apprise en solo, puis C70 corrige en partie. `sweeps/analyse_calibration_projets.py` mesure : coût réel/prédit (rail, route) ; revenu, exploitation et profit réels/prédits par mode × cargo × distance × époque (lignes d'âge ≥ 2, réalisé ramené à la flotte initiale) ; validation croisée à deux plis (brut / facteur par mode / table) ; table solo testée en duel ; part de l'erreur résiduelle **entre parties** (corrigeable en partie) contre **dans une partie**.
     - Smoke VPS 1×1 solo : AAAHogEx 0 véhicule, OpexAI sain ; le harnais signale `inactive_company` (attendu, toléré par le script).
     - **Avant-goût sur `v302_mech_3x10` (6 duels)** : coût rail réel = **×1,36** le prédit (×1,19 sous 80 tuiles, ×1,53 entre 160 et 250) ; revenu aérien réel = 0,23-0,46 × prédit ; rail fret brut 0,68-1,05, et **1,31 au-delà de 160 tuiles** (le long serait sous-estimé) ; erreur médiane |log| 1,02-1,22 brute, 0,36 avec un facteur par mode, 0,35 avec la table ; part entre parties ≈ 0,1 % sur 6 parties (à confirmer sur 80).
+  - **21/10 — les deux 40×10 SOLO/DUEL sont désormais analysés hors ligne** : rapports [quartiles coût/profit](calibration_cout_profit_quartiles_20261021.md), [variables ROI](variables_predictives_roi_calibration_20261021.md), [bandes modales](etude_roi_bornes_distance_neutralite_20261021.md) et [recentrage RAIL](demo_recentrage_rail_20261021.md). Le **cargo** améliore la prédiction du ROI RAIL, la **distance** améliore nettement celle du **coût physique RAIL** ; les seules frontières modales n'améliorent pas clairement le profit une fois contrôlés cargo, ROI, capital et distance. Les ratios AIR d'exploitation ne justifient **aucune réduction isolée de sa priorité**. Résultats des lignes matures `age >= 2` uniquement : **l'échantillon de candidats non construits ne possède pas de rendement réalisé**.
+  - **V306 reste ouverte, aucune table adoptée** : désormais privilégier une ablation par variables disponibles **au choix** et une validation sur graines nouvelles plutôt qu'une table brute de profit multipliant tous les modes. Le recentrage `RAIL-ROI-1` et la correction physique `RAIL-CAPEX-1` sont des tâches **distinctes** ci-dessus, à ne pas fusionner avec la table V306.
 - [ ] **V303 — sonde inverse V294f découpable ou alternée (demande utilisateur du 21/10).** Aujourd'hui `OpexV294fReverseProbe` (`builder_rail.nut:942`, appelée `task_rail.nut:799`) fait un `FindPath(300)` synchrone (~45 ticks d'un bloc) avant la recherche aller. Deux options derrière un réglage à 0 : (a) **découpable** — la sonde avance par tranches `PATH_CHUNK` dans le créneau de recherche, comme la recherche aller (`OpexAdvanceRailPathfinder`) ; (b) **alternée** — deux A* vivants (A→B et B→A), tranches alternées, arrêt dès que l'un aboutit (chemin inverse retourné). Mesurer : taux de réussite, itérations et ticks jusqu'au tracé, ABND, par tranche de distance.
 - [ ] **V304 — segmentation qui récupère le travail fait (idée utilisateur du 21/10).** La recherche segmentée (`OpexCreateSegmentedSearch`, `builder_rail.nut`) jette son closed set à chaque segment de 2 000 itérations (RAIL-ECH H2) ; V294b (recherche continue, +32 k, neutre) supprime la segmentation au lieu de la garder. Piste : garder la segmentation (retours en arrière sur la frontière) mais reporter d'un segment à l'autre le coût g connu des tuiles déjà explorées (table tuile → meilleur g) pour ne pas réexplorer ; de même, V294h devrait reprendre une recherche en fond depuis son état sauvegardé au lieu de repartir de zéro. Réglage à 0, mesure : itérations totales et réexplorations par tracé réussi.
 - [ ] **V305 — borne de distance rail qui croît avec la partie (question utilisateur du 21/10).** Aujourd'hui : borne fixe 200 tuiles (`v294_rail_dist_decouple`, `candidates.nut:373` et `:449`), relevée d'un coup à 250 (`V269_RAIL_MAX_DIST`, `candidates.nut:645`) à partir de 1975 si la caisse oisive dépasse 1 M£ (`V269_IDLE_CASH_MIN`, `orchestrator.nut:815`). Pas de rampe continue. Piste : borne fonction de l'année, de la caisse et du nombre de lignes (ex. 200 → 350 entre 1972 et 1978), en tenant compte de V280 (lignes longues 350 : échoué) et de V302 (goulot des liaisons > 160 tuiles, codex).

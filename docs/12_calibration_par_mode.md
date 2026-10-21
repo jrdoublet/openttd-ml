@@ -148,3 +148,42 @@ toutes les lignes mûres.
 d'environ 1,5 au moment où elle est construite. C69 n'est pas exposé à ce biais tant que ses
 divergences restent aériennes (97 %, C69 §13.3), et les deux premières années sont en régime ROI
 (K_dec < C).
+
+## Addendum — calibration hors ligne et score RAIL à moyenne 1, 21 octobre 2026
+
+Cet addendum **ne modifie pas C70** et n'annule pas les conclusions historiques
+du présent chapitre. Il renvoie aux deux études sur les 40×10 SOLO/DUEL :
+[profit et coût par cargo/quartile](calibration_cout_profit_quartiles_20261021.md),
+[variables prédictives](variables_predictives_roi_calibration_20261021.md),
+[bandes de distance et neutralité intermodale](etude_roi_bornes_distance_neutralite_20261021.md)
+et [recentrage RAIL à 1](demo_recentrage_rail_20261021.md).
+Les [scripts](../sweeps/demo_recentrage_rail_20261021.py) et
+[preuves JSON](../evidence/review/roi_calibration_predictors_20261021/demo_recentrage_rail_20261021.json)
+sont reproductibles ; aucune partie supplémentaire n'a été lancée.
+
+Sur les **958 lignes RAIL DUEL matures** avec devis et coût physique positifs,
+l'erreur absolue moyenne du coût prévu est **26 948 £** brute, **12 786 £**
+avec un facteur global, **11 008 £** avec quatre sous-bandes de distance et
+**10 342 £** avec une correction linéaire de la distance déjà disponible.
+Le facteur issu des 954 lignes SOLO est :
+
+```text
+coût physique prédit = devis RAIL × (1,051980876882 + 0,003065879861 × distance)
+```
+
+**Autre expérience, sans correction du capital ni du profit :**
+`score_RAIL_shadow = score_RAIL × [1 + 0,002101391934 × (132,749776809 − distance)]`.
+Ce pivot affine, fixé hors ligne, recentre la **masse de score RAIL pondérée
+à 1,0000 sur SOLO** et donne **0,994605 sur DUEL** en validation par graines
+disjointes ; AIR, flotte AIR et ROAD demeurent à **1,0000**. Le calcul envisagé
+se limite à quelques opérations arithmétiques, **sans aucune géométrie ni
+requête API supplémentaire**, mais son vrai coût en opcodes n'a pas été mesuré.
+
+Ces deux corrections sont **distinctes** : l'utilisation du coût prédit dans
+`OpexProjectFinanceCapital` changerait budget, admissibilité et dénominateur
+`max(financeCapital,K_dec)` ; la correction de **score-only** ne doit toucher
+ni budget, ni C70, ni priorités C77 ou exceptions AIR. Les inversions de
+classement calculées dans le top-5 historique ne sont **pas des constructions
+ou gains économiques contrefactuels**. Aucun coefficient n'a été activé.
+Les essais et leurs critères d'acceptation restants sont dans
+[les tâches ouvertes](taches.md).

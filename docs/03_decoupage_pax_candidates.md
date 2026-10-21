@@ -723,3 +723,43 @@ enum GenerationStage {
 1. Vous exécutez la tranche courante jusqu'à épuisement de son sous-ensemble.
 2. Les projets retenus intègrent le vivier global sans écraser les segments antérieurs.
 3. Dès qu'un chantier est validé et mis en chantier, le compteur passe à l'étape suivante, étalant ainsi l'empreinte CPU sur l'ensemble de la première année de jeu.
+
+## Addendum — audit expérimental des frontières voyageurs, 21 octobre 2026
+
+**Ce chapitre décrit le découpage imaginé à l'origine, pas nécessairement les seuils actifs.**
+Les démonstrations hors ligne sur les **40 parties SOLO + 40 parties DUEL × 10 ans**
+sont dans [l'audit des frontières et des temps](demo_frontieres_temps_20261021.md),
+avec [script reproductible](../sweeps/demo_frontieres_temps_20261021.py) et
+[résultats JSON](../evidence/review/roi_calibration_predictors_20261021/demo_frontieres_temps_20261021.json).
+
+- Sur 2 109 journaux `EPOCH_BOUNDS`, `roadMin=roadMax=railMin=7`, `railAir=railMax=airMin=200`,
+  `roadGen=200`, `airMax=512`. La borne rail/air théorique est **rabattue à 200**
+  par le plafond de recherche RAIL `v294_rail_dist_decouple`. Le calcul économique
+  route/rail peut renvoyer `roadMin` sans diagnostic de la branche responsable.
+- **La frontière rail/air s'applique exclusivement aux candidats `PASS`**
+  (`OpexRailPaxPairInBand`), et non au fret (`OpexFreightCandidates`). Aucun
+  refit AIR fret ne la rend pertinente pour les marchandises. Dans les 40 DUEL,
+  54 lignes RAIL voyageurs matures seulement : 29 sous 64 tuiles, 14 entre
+  64 et 77, 11 entre 78 et 199. Les 827 lignes de tous cargos annoncées lors
+  d'une première lecture étaient **un mauvais dénominateur, retiré**.
+- Les formules ne partagent pas une même échelle de temps : la frontière emploie
+  `4096/(74×1,6×v)` alors que les estimateurs de trajet utilisent `1/(0,036×v)`.
+  Pour un scénario explicite RAIL 115 / avion API 570, le croisement physique
+  indicatif C100.1 vaut environ **63 tuiles** avec le convertisseur frontière,
+  **78** avec le convertisseur économique ; ce n'est **pas** une frontière de ROI.
+- Les **3 jours** du chemin économique AIR historique constituent un forfait
+  de l'estimateur, **pas** une durée physique crédible des manœuvres. Les proxys
+  au sol existants donnent ~15,13 jours (C100.1) ou ~26,19 jours (ancien helper)
+  dans l'exemple de deux aéroports 6×6. La production C121, les délais de hubs
+  et le chargement ne doivent pas être double-comptés.
+- Le chargement/déchargement mécanique RAIL **existe déjà** dans
+  `OpexRailStationDwellDays` (`v216f_dwell_pct=100` par défaut) ; l'attente
+  fret joue en plus sur la note de gare. La mécanique AIR de chargement peut
+  être calculée dans `sweeps/analyse_c121_air_economics_shadow.py`, mais elle
+  n'est pas un terme distinct du trajet historique.
+
+**Aucun changement des frontières, d'AIR ou du code moteur n'a été effectué.**
+Le coût arithmétique d'une nouvelle frontière serait faible, mais **le nombre
+de candidats AIR supplémentaires à évaluer pourrait être élevé** et n'est pas
+mesurable à partir des seules lignes construites. Les diagnostics et gardes
+d'opcodes à effectuer figurent dans [la liste des tâches](taches.md).
