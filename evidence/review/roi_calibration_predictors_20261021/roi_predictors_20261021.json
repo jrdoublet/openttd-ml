@@ -1,0 +1,883 @@
+{
+  "stats": {
+    "solo": {
+      "games": 40,
+      "built_air": 2492,
+      "matched_air": 2492,
+      "built_rail": 1070,
+      "unmatched_choice_rail": 85,
+      "built_road": 59,
+      "matched_road": 32,
+      "matched_rail": 985,
+      "mature_air": 2448,
+      "mature_road": 32,
+      "mature_rail": 954,
+      "no_mature": 75,
+      "invalid_physical_cost": 27
+    },
+    "duel": {
+      "games": 40,
+      "built_air": 1932,
+      "matched_air": 1930,
+      "built_rail": 1088,
+      "unmatched_choice_rail": 74,
+      "matched_rail": 1014,
+      "built_road": 59,
+      "matched_road": 49,
+      "mature_air": 1892,
+      "mature_rail": 958,
+      "mature_road": 48,
+      "no_mature": 95,
+      "invalid_physical_cost": 10,
+      "invalid_prediction": 2
+    }
+  },
+  "by_mode": {
+    "air": {
+      "lines": 1892,
+      "seeds": 40,
+      "cv": {
+        "raw": {
+          "mae_roi_points": 119.34,
+          "median_abs_roi_points": 121.39,
+          "median_bias_points": 121.39,
+          "median_within_seed_rank_rho": 0.706
+        },
+        "factor": {
+          "mae_roi_points": 15.5,
+          "median_abs_roi_points": 12.73,
+          "median_bias_points": 0.02,
+          "median_within_seed_rank_rho": 0.706
+        },
+        "affine_roi": {
+          "mae_roi_points": 14.93,
+          "median_abs_roi_points": 12.4,
+          "median_bias_points": 3.22,
+          "median_within_seed_rank_rho": 0.706
+        },
+        "roi_quadratic": {
+          "mae_roi_points": 14.47,
+          "median_abs_roi_points": 11.75,
+          "median_bias_points": 3.28,
+          "median_within_seed_rank_rho": 0.706
+        },
+        "plus_distance": {
+          "mae_roi_points": 14.52,
+          "median_abs_roi_points": 11.76,
+          "median_bias_points": 3.02,
+          "median_within_seed_rank_rho": 0.709
+        },
+        "plus_cargo": {
+          "mae_roi_points": 14.47,
+          "median_abs_roi_points": 11.75,
+          "median_bias_points": 3.28,
+          "median_within_seed_rank_rho": 0.706
+        },
+        "plus_capital": {
+          "mae_roi_points": 14.1,
+          "median_abs_roi_points": 11.11,
+          "median_bias_points": 3.19,
+          "median_within_seed_rank_rho": 0.75
+        },
+        "plus_year": {
+          "mae_roi_points": 14.41,
+          "median_abs_roi_points": 11.51,
+          "median_bias_points": 3.33,
+          "median_within_seed_rank_rho": 0.711
+        },
+        "plus_rank": {
+          "mae_roi_points": 14.48,
+          "median_abs_roi_points": 11.72,
+          "median_bias_points": 3.24,
+          "median_within_seed_rank_rho": 0.723
+        },
+        "plus_subtype": {
+          "mae_roi_points": 13.78,
+          "median_abs_roi_points": 10.74,
+          "median_bias_points": 3.3,
+          "median_within_seed_rank_rho": 0.74
+        },
+        "all_available": {
+          "mae_roi_points": 13.88,
+          "median_abs_roi_points": 10.81,
+          "median_bias_points": 3.01,
+          "median_within_seed_rank_rho": 0.735
+        }
+      },
+      "gains_vs_roi_quadratic": {
+        "raw": {
+          "mean_gain_roi_points_per_seed": -104.79,
+          "ci95": [
+            -110.92,
+            -98.25
+          ],
+          "positive_seeds": 0,
+          "seeds": 40
+        },
+        "factor": {
+          "mean_gain_roi_points_per_seed": -1.08,
+          "ci95": [
+            -1.51,
+            -0.64
+          ],
+          "positive_seeds": 7,
+          "seeds": 40
+        },
+        "affine_roi": {
+          "mean_gain_roi_points_per_seed": -0.47,
+          "ci95": [
+            -0.59,
+            -0.34
+          ],
+          "positive_seeds": 4,
+          "seeds": 40
+        },
+        "plus_distance": {
+          "mean_gain_roi_points_per_seed": -0.05,
+          "ci95": [
+            -0.1,
+            0.0
+          ],
+          "positive_seeds": 16,
+          "seeds": 40
+        },
+        "plus_cargo": {
+          "mean_gain_roi_points_per_seed": 0.0,
+          "ci95": [
+            0.0,
+            0.0
+          ],
+          "positive_seeds": 0,
+          "seeds": 40
+        },
+        "plus_capital": {
+          "mean_gain_roi_points_per_seed": 0.4,
+          "ci95": [
+            0.21,
+            0.6
+          ],
+          "positive_seeds": 33,
+          "seeds": 40
+        },
+        "plus_year": {
+          "mean_gain_roi_points_per_seed": 0.07,
+          "ci95": [
+            -0.01,
+            0.14
+          ],
+          "positive_seeds": 21,
+          "seeds": 40
+        },
+        "plus_rank": {
+          "mean_gain_roi_points_per_seed": -0.01,
+          "ci95": [
+            -0.05,
+            0.02
+          ],
+          "positive_seeds": 23,
+          "seeds": 40
+        },
+        "plus_subtype": {
+          "mean_gain_roi_points_per_seed": 0.72,
+          "ci95": [
+            0.51,
+            0.94
+          ],
+          "positive_seeds": 33,
+          "seeds": 40
+        },
+        "all_available": {
+          "mean_gain_roi_points_per_seed": 0.61,
+          "ci95": [
+            0.36,
+            0.84
+          ],
+          "positive_seeds": 31,
+          "seeds": 40
+        }
+      },
+      "by_predicted_roi_quartile": [
+        {
+          "quartile": 1,
+          "n": 473,
+          "roi_pred_pct": 37.3,
+          "roi_real_pct": 20.19,
+          "profit_real_over_pred": 0.56,
+          "distance": 184.0
+        },
+        {
+          "quartile": 2,
+          "n": 473,
+          "roi_pred_pct": 116.79,
+          "roi_real_pct": 26.66,
+          "profit_real_over_pred": 0.226,
+          "distance": 184.0
+        },
+        {
+          "quartile": 3,
+          "n": 473,
+          "roi_pred_pct": 191.03,
+          "roi_real_pct": 38.28,
+          "profit_real_over_pred": 0.195,
+          "distance": 191.0
+        },
+        {
+          "quartile": 4,
+          "n": 473,
+          "roi_pred_pct": 276.8,
+          "roi_real_pct": 64.52,
+          "profit_real_over_pred": 0.231,
+          "distance": 207.0
+        }
+      ],
+      "by_realized_roi_quartile": [
+        {
+          "quartile": 1,
+          "n": 473,
+          "roi_pred_pct": 64.01,
+          "roi_real_pct": 14.47,
+          "profit_real_over_pred": 0.175,
+          "distance": 186.0
+        },
+        {
+          "quartile": 2,
+          "n": 473,
+          "roi_pred_pct": 132.82,
+          "roi_real_pct": 27.56,
+          "profit_real_over_pred": 0.204,
+          "distance": 186.0
+        },
+        {
+          "quartile": 3,
+          "n": 473,
+          "roi_pred_pct": 183.97,
+          "roi_real_pct": 42.54,
+          "profit_real_over_pred": 0.233,
+          "distance": 190.0
+        },
+        {
+          "quartile": 4,
+          "n": 473,
+          "roi_pred_pct": 264.71,
+          "roi_real_pct": 70.73,
+          "profit_real_over_pred": 0.296,
+          "distance": 204.0
+        }
+      ],
+      "by_type": {
+        "cargo": {
+          "PASS": {
+            "n": 1892,
+            "roi_pred_pct": 157.3,
+            "roi_real_pct": 34.5,
+            "profit_ratio": 0.243
+          }
+        },
+        "subtype": {
+          "newpair": {
+            "n": 220,
+            "roi_pred_pct": 223.4,
+            "roi_real_pct": 44.7,
+            "profit_ratio": 0.195
+          },
+          "hubsite": {
+            "n": 972,
+            "roi_pred_pct": 168.8,
+            "roi_real_pct": 31.5,
+            "profit_ratio": 0.214
+          },
+          "hubhub": {
+            "n": 700,
+            "roi_pred_pct": 114.3,
+            "roi_real_pct": 36.8,
+            "profit_ratio": 0.326
+          }
+        },
+        "reuse": {
+          "0": {
+            "n": 1892,
+            "roi_pred_pct": 157.3,
+            "roi_real_pct": 34.5,
+            "profit_ratio": 0.243
+          }
+        }
+      }
+    },
+    "rail": {
+      "lines": 958,
+      "seeds": 40,
+      "cv": {
+        "raw": {
+          "mae_roi_points": 25.12,
+          "median_abs_roi_points": 18.57,
+          "median_bias_points": 18.14,
+          "median_within_seed_rank_rho": 0.711
+        },
+        "factor": {
+          "mae_roi_points": 14.02,
+          "median_abs_roi_points": 9.58,
+          "median_bias_points": 0.04,
+          "median_within_seed_rank_rho": 0.711
+        },
+        "affine_roi": {
+          "mae_roi_points": 14.16,
+          "median_abs_roi_points": 10.65,
+          "median_bias_points": 1.71,
+          "median_within_seed_rank_rho": 0.711
+        },
+        "roi_quadratic": {
+          "mae_roi_points": 13.4,
+          "median_abs_roi_points": 10.07,
+          "median_bias_points": 1.59,
+          "median_within_seed_rank_rho": 0.711
+        },
+        "plus_distance": {
+          "mae_roi_points": 13.32,
+          "median_abs_roi_points": 9.64,
+          "median_bias_points": 1.38,
+          "median_within_seed_rank_rho": 0.711
+        },
+        "plus_cargo": {
+          "mae_roi_points": 12.55,
+          "median_abs_roi_points": 9.13,
+          "median_bias_points": 1.1,
+          "median_within_seed_rank_rho": 0.747
+        },
+        "plus_capital": {
+          "mae_roi_points": 13.24,
+          "median_abs_roi_points": 9.71,
+          "median_bias_points": 1.29,
+          "median_within_seed_rank_rho": 0.721
+        },
+        "plus_year": {
+          "mae_roi_points": 13.39,
+          "median_abs_roi_points": 9.79,
+          "median_bias_points": 1.74,
+          "median_within_seed_rank_rho": 0.701
+        },
+        "plus_rank": {
+          "mae_roi_points": 13.49,
+          "median_abs_roi_points": 10.59,
+          "median_bias_points": 1.42,
+          "median_within_seed_rank_rho": 0.706
+        },
+        "plus_subtype": {
+          "mae_roi_points": 13.47,
+          "median_abs_roi_points": 10.0,
+          "median_bias_points": 1.61,
+          "median_within_seed_rank_rho": 0.713
+        },
+        "all_available": {
+          "mae_roi_points": 12.48,
+          "median_abs_roi_points": 8.88,
+          "median_bias_points": 0.93,
+          "median_within_seed_rank_rho": 0.744
+        }
+      },
+      "gains_vs_roi_quadratic": {
+        "raw": {
+          "mean_gain_roi_points_per_seed": -11.74,
+          "ci95": [
+            -13.28,
+            -10.07
+          ],
+          "positive_seeds": 1,
+          "seeds": 40
+        },
+        "factor": {
+          "mean_gain_roi_points_per_seed": -0.57,
+          "ci95": [
+            -1.17,
+            0.01
+          ],
+          "positive_seeds": 14,
+          "seeds": 40
+        },
+        "affine_roi": {
+          "mean_gain_roi_points_per_seed": -0.7,
+          "ci95": [
+            -0.97,
+            -0.44
+          ],
+          "positive_seeds": 11,
+          "seeds": 40
+        },
+        "plus_distance": {
+          "mean_gain_roi_points_per_seed": 0.07,
+          "ci95": [
+            -0.11,
+            0.25
+          ],
+          "positive_seeds": 23,
+          "seeds": 40
+        },
+        "plus_cargo": {
+          "mean_gain_roi_points_per_seed": 0.79,
+          "ci95": [
+            0.35,
+            1.21
+          ],
+          "positive_seeds": 32,
+          "seeds": 40
+        },
+        "plus_capital": {
+          "mean_gain_roi_points_per_seed": 0.14,
+          "ci95": [
+            0.03,
+            0.25
+          ],
+          "positive_seeds": 30,
+          "seeds": 40
+        },
+        "plus_year": {
+          "mean_gain_roi_points_per_seed": -0.01,
+          "ci95": [
+            -0.23,
+            0.19
+          ],
+          "positive_seeds": 20,
+          "seeds": 40
+        },
+        "plus_rank": {
+          "mean_gain_roi_points_per_seed": -0.08,
+          "ci95": [
+            -0.19,
+            0.02
+          ],
+          "positive_seeds": 15,
+          "seeds": 40
+        },
+        "plus_subtype": {
+          "mean_gain_roi_points_per_seed": -0.06,
+          "ci95": [
+            -0.12,
+            -0.0
+          ],
+          "positive_seeds": 15,
+          "seeds": 40
+        },
+        "all_available": {
+          "mean_gain_roi_points_per_seed": 0.86,
+          "ci95": [
+            0.35,
+            1.37
+          ],
+          "positive_seeds": 30,
+          "seeds": 40
+        }
+      },
+      "by_predicted_roi_quartile": [
+        {
+          "quartile": 1,
+          "n": 239,
+          "roi_pred_pct": 28.44,
+          "roi_real_pct": 15.34,
+          "profit_real_over_pred": 1.031,
+          "distance": 93.0
+        },
+        {
+          "quartile": 2,
+          "n": 240,
+          "roi_pred_pct": 48.49,
+          "roi_real_pct": 31.58,
+          "profit_real_over_pred": 1.049,
+          "distance": 148.0
+        },
+        {
+          "quartile": 3,
+          "n": 239,
+          "roi_pred_pct": 64.46,
+          "roi_real_pct": 42.62,
+          "profit_real_over_pred": 0.996,
+          "distance": 142.0
+        },
+        {
+          "quartile": 4,
+          "n": 240,
+          "roi_pred_pct": 93.38,
+          "roi_real_pct": 58.08,
+          "profit_real_over_pred": 0.836,
+          "distance": 130.5
+        }
+      ],
+      "by_realized_roi_quartile": [
+        {
+          "quartile": 1,
+          "n": 239,
+          "roi_pred_pct": 31.05,
+          "roi_real_pct": 12.89,
+          "profit_real_over_pred": 0.671,
+          "distance": 98.0
+        },
+        {
+          "quartile": 2,
+          "n": 240,
+          "roi_pred_pct": 49.42,
+          "roi_real_pct": 28.61,
+          "profit_real_over_pred": 0.905,
+          "distance": 136.5
+        },
+        {
+          "quartile": 3,
+          "n": 239,
+          "roi_pred_pct": 61.12,
+          "roi_real_pct": 42.88,
+          "profit_real_over_pred": 1.077,
+          "distance": 140.0
+        },
+        {
+          "quartile": 4,
+          "n": 240,
+          "roi_pred_pct": 82.44,
+          "roi_real_pct": 64.78,
+          "profit_real_over_pred": 1.109,
+          "distance": 149.0
+        }
+      ],
+      "by_type": {
+        "cargo": {
+          "COAL": {
+            "n": 187,
+            "roi_pred_pct": 89.2,
+            "roi_real_pct": 55.5,
+            "profit_ratio": 0.921
+          },
+          "WOOD": {
+            "n": 146,
+            "roi_pred_pct": 65.2,
+            "roi_real_pct": 48.5,
+            "profit_ratio": 1.101
+          },
+          "GOOD": {
+            "n": 37,
+            "roi_pred_pct": 160.0,
+            "roi_real_pct": 34.4,
+            "profit_ratio": 0.36
+          },
+          "IORE": {
+            "n": 167,
+            "roi_pred_pct": 54.2,
+            "roi_real_pct": 36.3,
+            "profit_ratio": 1.07
+          },
+          "PASS": {
+            "n": 54,
+            "roi_pred_pct": 7.3,
+            "roi_real_pct": 7.9,
+            "profit_ratio": 1.423
+          },
+          "GRAI": {
+            "n": 176,
+            "roi_pred_pct": 50.1,
+            "roi_real_pct": 26.8,
+            "profit_ratio": 0.878
+          },
+          "OIL_": {
+            "n": 128,
+            "roi_pred_pct": 45.8,
+            "roi_real_pct": 30.3,
+            "profit_ratio": 0.946
+          },
+          "LVST": {
+            "n": 57,
+            "roi_pred_pct": 41.2,
+            "roi_real_pct": 23.2,
+            "profit_ratio": 0.896
+          }
+        },
+        "subtype": {
+          "freight": {
+            "n": 904,
+            "roi_pred_pct": 57.2,
+            "roi_real_pct": 36.4,
+            "profit_ratio": 0.971
+          },
+          "pax": {
+            "n": 54,
+            "roi_pred_pct": 7.3,
+            "roi_real_pct": 7.9,
+            "profit_ratio": 1.423
+          }
+        },
+        "reuse": {
+          "1": {
+            "n": 377,
+            "roi_pred_pct": 51.7,
+            "roi_real_pct": 34.9,
+            "profit_ratio": 1.012
+          },
+          "0": {
+            "n": 581,
+            "roi_pred_pct": 59.2,
+            "roi_real_pct": 35.3,
+            "profit_ratio": 0.933
+          }
+        }
+      }
+    },
+    "road": {
+      "lines": 48,
+      "seeds": 29,
+      "cv": {
+        "raw": {
+          "mae_roi_points": 62.4,
+          "median_abs_roi_points": 46.4,
+          "median_bias_points": 2.64,
+          "median_within_seed_rank_rho": -0.6
+        },
+        "factor": {
+          "mae_roi_points": 61.42,
+          "median_abs_roi_points": 50.43,
+          "median_bias_points": 0.63,
+          "median_within_seed_rank_rho": -0.6
+        },
+        "affine_roi": {
+          "mae_roi_points": 44.83,
+          "median_abs_roi_points": 31.76,
+          "median_bias_points": 21.92,
+          "median_within_seed_rank_rho": 0.6
+        },
+        "roi_quadratic": {
+          "mae_roi_points": 43.14,
+          "median_abs_roi_points": 28.93,
+          "median_bias_points": 19.64,
+          "median_within_seed_rank_rho": 0.6
+        },
+        "plus_distance": {
+          "mae_roi_points": 43.92,
+          "median_abs_roi_points": 30.49,
+          "median_bias_points": 21.81,
+          "median_within_seed_rank_rho": 0.2
+        },
+        "plus_cargo": {
+          "mae_roi_points": 42.77,
+          "median_abs_roi_points": 32.68,
+          "median_bias_points": 18.2,
+          "median_within_seed_rank_rho": 1.0
+        },
+        "plus_capital": {
+          "mae_roi_points": 42.76,
+          "median_abs_roi_points": 32.99,
+          "median_bias_points": 19.97,
+          "median_within_seed_rank_rho": 0.3
+        },
+        "plus_year": {
+          "mae_roi_points": 46.81,
+          "median_abs_roi_points": 31.4,
+          "median_bias_points": 22.37,
+          "median_within_seed_rank_rho": 0.7
+        },
+        "plus_rank": {
+          "mae_roi_points": 44.87,
+          "median_abs_roi_points": 31.8,
+          "median_bias_points": 22.11,
+          "median_within_seed_rank_rho": 0.2
+        },
+        "plus_subtype": {
+          "mae_roi_points": 42.77,
+          "median_abs_roi_points": 32.68,
+          "median_bias_points": 18.2,
+          "median_within_seed_rank_rho": 1.0
+        },
+        "all_available": {
+          "mae_roi_points": 52.93,
+          "median_abs_roi_points": 43.43,
+          "median_bias_points": 21.45,
+          "median_within_seed_rank_rho": 0.3
+        }
+      },
+      "gains_vs_roi_quadratic": {
+        "raw": {
+          "mean_gain_roi_points_per_seed": -17.46,
+          "ci95": [
+            -30.72,
+            -5.13
+          ],
+          "positive_seeds": 10,
+          "seeds": 29
+        },
+        "factor": {
+          "mean_gain_roi_points_per_seed": -16.0,
+          "ci95": [
+            -28.44,
+            -5.64
+          ],
+          "positive_seeds": 8,
+          "seeds": 29
+        },
+        "affine_roi": {
+          "mean_gain_roi_points_per_seed": -1.63,
+          "ci95": [
+            -3.07,
+            -0.47
+          ],
+          "positive_seeds": 10,
+          "seeds": 29
+        },
+        "plus_distance": {
+          "mean_gain_roi_points_per_seed": -0.34,
+          "ci95": [
+            -5.63,
+            4.81
+          ],
+          "positive_seeds": 14,
+          "seeds": 29
+        },
+        "plus_cargo": {
+          "mean_gain_roi_points_per_seed": 2.24,
+          "ci95": [
+            -1.55,
+            6.26
+          ],
+          "positive_seeds": 13,
+          "seeds": 29
+        },
+        "plus_capital": {
+          "mean_gain_roi_points_per_seed": 1.3,
+          "ci95": [
+            -3.16,
+            5.91
+          ],
+          "positive_seeds": 12,
+          "seeds": 29
+        },
+        "plus_year": {
+          "mean_gain_roi_points_per_seed": -5.24,
+          "ci95": [
+            -10.61,
+            -0.82
+          ],
+          "positive_seeds": 11,
+          "seeds": 29
+        },
+        "plus_rank": {
+          "mean_gain_roi_points_per_seed": -1.65,
+          "ci95": [
+            -3.84,
+            0.14
+          ],
+          "positive_seeds": 10,
+          "seeds": 29
+        },
+        "plus_subtype": {
+          "mean_gain_roi_points_per_seed": 2.24,
+          "ci95": [
+            -1.59,
+            6.3
+          ],
+          "positive_seeds": 13,
+          "seeds": 29
+        },
+        "all_available": {
+          "mean_gain_roi_points_per_seed": -10.82,
+          "ci95": [
+            -20.38,
+            -3.03
+          ],
+          "positive_seeds": 11,
+          "seeds": 29
+        }
+      },
+      "by_predicted_roi_quartile": [
+        {
+          "quartile": 1,
+          "n": 12,
+          "roi_pred_pct": 19.92,
+          "roi_real_pct": 31.33,
+          "profit_real_over_pred": 1.786,
+          "distance": 37.0
+        },
+        {
+          "quartile": 2,
+          "n": 12,
+          "roi_pred_pct": 27.03,
+          "roi_real_pct": 36.0,
+          "profit_real_over_pred": 1.388,
+          "distance": 37.0
+        },
+        {
+          "quartile": 3,
+          "n": 12,
+          "roi_pred_pct": 39.45,
+          "roi_real_pct": 23.31,
+          "profit_real_over_pred": 0.449,
+          "distance": 27.5
+        },
+        {
+          "quartile": 4,
+          "n": 12,
+          "roi_pred_pct": 127.86,
+          "roi_real_pct": 14.54,
+          "profit_real_over_pred": 0.111,
+          "distance": 34.5
+        }
+      ],
+      "by_realized_roi_quartile": [
+        {
+          "quartile": 1,
+          "n": 12,
+          "roi_pred_pct": 80.28,
+          "roi_real_pct": 5.35,
+          "profit_real_over_pred": 0.087,
+          "distance": 25.0
+        },
+        {
+          "quartile": 2,
+          "n": 12,
+          "roi_pred_pct": 36.25,
+          "roi_real_pct": 20.05,
+          "profit_real_over_pred": 1.091,
+          "distance": 36.5
+        },
+        {
+          "quartile": 3,
+          "n": 12,
+          "roi_pred_pct": 32.48,
+          "roi_real_pct": 33.73,
+          "profit_real_over_pred": 1.21,
+          "distance": 35.0
+        },
+        {
+          "quartile": 4,
+          "n": 12,
+          "roi_pred_pct": 25.23,
+          "roi_real_pct": 106.57,
+          "profit_real_over_pred": 1.483,
+          "distance": 36.0
+        }
+      ],
+      "by_type": {
+        "cargo": {
+          "PASS": {
+            "n": 18,
+            "roi_pred_pct": 89.0,
+            "roi_real_pct": 12.7,
+            "profit_ratio": 0.111
+          }
+        },
+        "subtype": {
+          "freight": {
+            "n": 30,
+            "roi_pred_pct": 24.8,
+            "roi_real_pct": 35.5,
+            "profit_ratio": 1.35
+          },
+          "pax": {
+            "n": 18,
+            "roi_pred_pct": 89.0,
+            "roi_real_pct": 12.7,
+            "profit_ratio": 0.111
+          }
+        },
+        "reuse": {
+          "0": {
+            "n": 48,
+            "roi_pred_pct": 36.0,
+            "roi_real_pct": 29.0,
+            "profit_ratio": 0.921
+          }
+        }
+      }
+    }
+  }
+}

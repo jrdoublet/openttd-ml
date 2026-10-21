@@ -1,0 +1,802 @@
+{
+  "train": "solo",
+  "test": "duel",
+  "stats": {
+    "solo": {
+      "games": 40,
+      "built_air": 2492,
+      "matched_air": 2492,
+      "built_rail": 1070,
+      "unmatched_choice_rail": 85,
+      "built_road": 59,
+      "matched_road": 32,
+      "matched_rail": 985,
+      "mature_air": 2448,
+      "mature_road": 32,
+      "mature_rail": 954,
+      "no_mature": 75,
+      "invalid_physical_cost": 27
+    },
+    "duel": {
+      "games": 40,
+      "built_air": 1932,
+      "matched_air": 1930,
+      "built_rail": 1088,
+      "unmatched_choice_rail": 74,
+      "matched_rail": 1014,
+      "built_road": 59,
+      "matched_road": 49,
+      "mature_air": 1892,
+      "mature_rail": 958,
+      "mature_road": 48,
+      "no_mature": 95,
+      "invalid_physical_cost": 10,
+      "invalid_prediction": 2
+    }
+  },
+  "join_stats": {
+    "solo": {
+      "build_events": 3621,
+      "no_prechoice_snapshot": 85,
+      "games": 40,
+      "joined_mature": 3434,
+      "unjoined_mature": 0
+    },
+    "duel": {
+      "build_events": 3079,
+      "no_prechoice_snapshot": 74,
+      "games": 40,
+      "joined_mature": 2898,
+      "unjoined_mature": 0
+    }
+  },
+  "scores": {
+    "air": {
+      "roi_quadratic": {
+        "n": 1892,
+        "mae_roi_points": 20.862,
+        "median_abs_roi_points": 19.889,
+        "median_rank_rho": 0.706,
+        "gain_mae_per_seed_vs_baseline": -1.384,
+        "gain_ci95": [
+          -1.934,
+          -0.803
+        ],
+        "seed_wins": 8,
+        "seeds": 40
+      },
+      "base_existing": {
+        "n": 1892,
+        "mae_roi_points": 19.503,
+        "median_abs_roi_points": 17.658,
+        "median_rank_rho": 0.709,
+        "gain_mae_per_seed_vs_baseline": 0.0,
+        "gain_ci95": [
+          0.0,
+          0.0
+        ],
+        "seed_wins": 0,
+        "seeds": 40
+      },
+      "plus_log_profit": {
+        "n": 1892,
+        "mae_roi_points": 19.154,
+        "median_abs_roi_points": 16.93,
+        "median_rank_rho": 0.719,
+        "gain_mae_per_seed_vs_baseline": 0.368,
+        "gain_ci95": [
+          0.074,
+          0.707
+        ],
+        "seed_wins": 24,
+        "seeds": 40
+      },
+      "plus_year_month": {
+        "n": 1892,
+        "mae_roi_points": 19.539,
+        "median_abs_roi_points": 17.635,
+        "median_rank_rho": 0.707,
+        "gain_mae_per_seed_vs_baseline": -0.04,
+        "gain_ci95": [
+          -0.085,
+          0.001
+        ],
+        "seed_wins": 16,
+        "seeds": 40
+      },
+      "plus_stage": {
+        "n": 1892,
+        "mae_roi_points": 19.52,
+        "median_abs_roi_points": 17.653,
+        "median_rank_rho": 0.709,
+        "gain_mae_per_seed_vs_baseline": -0.023,
+        "gain_ci95": [
+          -0.055,
+          0.003
+        ],
+        "seed_wins": 22,
+        "seeds": 40
+      },
+      "plus_src_degree": {
+        "n": 1892,
+        "mae_roi_points": 19.266,
+        "median_abs_roi_points": 17.198,
+        "median_rank_rho": 0.712,
+        "gain_mae_per_seed_vs_baseline": 0.23,
+        "gain_ci95": [
+          0.158,
+          0.301
+        ],
+        "seed_wins": 32,
+        "seeds": 40
+      },
+      "plus_dst_degree": {
+        "n": 1892,
+        "mae_roi_points": 18.575,
+        "median_abs_roi_points": 16.531,
+        "median_rank_rho": 0.73,
+        "gain_mae_per_seed_vs_baseline": 0.927,
+        "gain_ci95": [
+          0.651,
+          1.218
+        ],
+        "seed_wins": 31,
+        "seeds": 40
+      },
+      "plus_endpoint_degree": {
+        "n": 1892,
+        "mae_roi_points": 18.608,
+        "median_abs_roi_points": 16.388,
+        "median_rank_rho": 0.728,
+        "gain_mae_per_seed_vs_baseline": 0.892,
+        "gain_ci95": [
+          0.677,
+          1.132
+        ],
+        "seed_wins": 36,
+        "seeds": 40
+      },
+      "plus_prior_endpoint_novelty": {
+        "n": 1892,
+        "mae_roi_points": 18.886,
+        "median_abs_roi_points": 16.676,
+        "median_rank_rho": 0.729,
+        "gain_mae_per_seed_vs_baseline": 0.617,
+        "gain_ci95": [
+          0.443,
+          0.8
+        ],
+        "seed_wins": 34,
+        "seeds": 40
+      },
+      "plus_past_pair": {
+        "n": 1892,
+        "mae_roi_points": 19.465,
+        "median_abs_roi_points": 17.643,
+        "median_rank_rho": 0.708,
+        "gain_mae_per_seed_vs_baseline": 0.038,
+        "gain_ci95": [
+          -0.017,
+          0.105
+        ],
+        "seed_wins": 21,
+        "seeds": 40
+      },
+      "plus_network": {
+        "n": 1892,
+        "mae_roi_points": 18.519,
+        "median_abs_roi_points": 15.956,
+        "median_rank_rho": 0.739,
+        "gain_mae_per_seed_vs_baseline": 0.949,
+        "gain_ci95": [
+          0.679,
+          1.256
+        ],
+        "seed_wins": 36,
+        "seeds": 40
+      },
+      "plus_plan_joining": {
+        "n": 1892,
+        "mae_roi_points": 19.503,
+        "median_abs_roi_points": 17.658,
+        "median_rank_rho": 0.709,
+        "gain_mae_per_seed_vs_baseline": 0.0,
+        "gain_ci95": [
+          0.0,
+          0.0
+        ],
+        "seed_wins": 0,
+        "seeds": 40
+      },
+      "plus_engine_POST": {
+        "n": 1892,
+        "mae_roi_points": 19.43,
+        "median_abs_roi_points": 17.508,
+        "median_rank_rho": 0.711,
+        "gain_mae_per_seed_vs_baseline": 0.103,
+        "gain_ci95": [
+          -0.312,
+          0.656
+        ],
+        "seed_wins": 6,
+        "seeds": 40
+      },
+      "plus_fleet_POST": {
+        "n": 1892,
+        "mae_roi_points": 19.325,
+        "median_abs_roi_points": 17.373,
+        "median_rank_rho": 0.704,
+        "gain_mae_per_seed_vs_baseline": 0.234,
+        "gain_ci95": [
+          -0.122,
+          0.641
+        ],
+        "seed_wins": 20,
+        "seeds": 40
+      },
+      "plus_route_len_POST": {
+        "n": 1892,
+        "mae_roi_points": 19.504,
+        "median_abs_roi_points": 17.671,
+        "median_rank_rho": 0.709,
+        "gain_mae_per_seed_vs_baseline": -0.001,
+        "gain_ci95": [
+          -0.002,
+          -0.0
+        ],
+        "seed_wins": 18,
+        "seeds": 40
+      },
+      "plus_route_model_POST": {
+        "n": 1892,
+        "mae_roi_points": 19.503,
+        "median_abs_roi_points": 17.658,
+        "median_rank_rho": 0.709,
+        "gain_mae_per_seed_vs_baseline": 0.0,
+        "gain_ci95": [
+          0.0,
+          0.0
+        ],
+        "seed_wins": 0,
+        "seeds": 40
+      },
+      "plus_geometry_POST": {
+        "n": 1892,
+        "mae_roi_points": 19.504,
+        "median_abs_roi_points": 17.671,
+        "median_rank_rho": 0.709,
+        "gain_mae_per_seed_vs_baseline": -0.001,
+        "gain_ci95": [
+          -0.002,
+          -0.0
+        ],
+        "seed_wins": 18,
+        "seeds": 40
+      },
+      "all_prechoice": {
+        "n": 1892,
+        "mae_roi_points": 18.489,
+        "median_abs_roi_points": 16.204,
+        "median_rank_rho": 0.734,
+        "gain_mae_per_seed_vs_baseline": 0.976,
+        "gain_ci95": [
+          0.676,
+          1.3
+        ],
+        "seed_wins": 34,
+        "seeds": 40
+      },
+      "all_postdiagnostic": {
+        "n": 1892,
+        "mae_roi_points": 19.377,
+        "median_abs_roi_points": 17.459,
+        "median_rank_rho": 0.706,
+        "gain_mae_per_seed_vs_baseline": 0.19,
+        "gain_ci95": [
+          -0.315,
+          0.786
+        ],
+        "seed_wins": 14,
+        "seeds": 40
+      }
+    },
+    "rail": {
+      "roi_quadratic": {
+        "n": 958,
+        "mae_roi_points": 18.078,
+        "median_abs_roi_points": 12.403,
+        "median_rank_rho": 0.711,
+        "gain_mae_per_seed_vs_baseline": -0.318,
+        "gain_ci95": [
+          -0.742,
+          0.058
+        ],
+        "seed_wins": 17,
+        "seeds": 40
+      },
+      "base_existing": {
+        "n": 958,
+        "mae_roi_points": 17.711,
+        "median_abs_roi_points": 12.244,
+        "median_rank_rho": 0.703,
+        "gain_mae_per_seed_vs_baseline": 0.0,
+        "gain_ci95": [
+          0.0,
+          0.0
+        ],
+        "seed_wins": 0,
+        "seeds": 40
+      },
+      "plus_log_profit": {
+        "n": 958,
+        "mae_roi_points": 17.733,
+        "median_abs_roi_points": 12.341,
+        "median_rank_rho": 0.704,
+        "gain_mae_per_seed_vs_baseline": -0.02,
+        "gain_ci95": [
+          -0.045,
+          0.004
+        ],
+        "seed_wins": 16,
+        "seeds": 40
+      },
+      "plus_year_month": {
+        "n": 958,
+        "mae_roi_points": 17.649,
+        "median_abs_roi_points": 12.192,
+        "median_rank_rho": 0.703,
+        "gain_mae_per_seed_vs_baseline": 0.066,
+        "gain_ci95": [
+          0.029,
+          0.105
+        ],
+        "seed_wins": 25,
+        "seeds": 40
+      },
+      "plus_stage": {
+        "n": 958,
+        "mae_roi_points": 17.737,
+        "median_abs_roi_points": 12.407,
+        "median_rank_rho": 0.702,
+        "gain_mae_per_seed_vs_baseline": -0.031,
+        "gain_ci95": [
+          -0.1,
+          0.035
+        ],
+        "seed_wins": 17,
+        "seeds": 40
+      },
+      "plus_src_degree": {
+        "n": 958,
+        "mae_roi_points": 17.712,
+        "median_abs_roi_points": 12.242,
+        "median_rank_rho": 0.703,
+        "gain_mae_per_seed_vs_baseline": -0.001,
+        "gain_ci95": [
+          -0.006,
+          0.006
+        ],
+        "seed_wins": 10,
+        "seeds": 40
+      },
+      "plus_dst_degree": {
+        "n": 958,
+        "mae_roi_points": 17.705,
+        "median_abs_roi_points": 12.24,
+        "median_rank_rho": 0.705,
+        "gain_mae_per_seed_vs_baseline": 0.007,
+        "gain_ci95": [
+          -0.002,
+          0.018
+        ],
+        "seed_wins": 18,
+        "seeds": 40
+      },
+      "plus_endpoint_degree": {
+        "n": 958,
+        "mae_roi_points": 17.71,
+        "median_abs_roi_points": 12.25,
+        "median_rank_rho": 0.707,
+        "gain_mae_per_seed_vs_baseline": 0.001,
+        "gain_ci95": [
+          -0.007,
+          0.01
+        ],
+        "seed_wins": 18,
+        "seeds": 40
+      },
+      "plus_prior_endpoint_novelty": {
+        "n": 958,
+        "mae_roi_points": 17.722,
+        "median_abs_roi_points": 12.27,
+        "median_rank_rho": 0.7,
+        "gain_mae_per_seed_vs_baseline": -0.014,
+        "gain_ci95": [
+          -0.036,
+          0.009
+        ],
+        "seed_wins": 19,
+        "seeds": 40
+      },
+      "plus_past_pair": {
+        "n": 958,
+        "mae_roi_points": 17.696,
+        "median_abs_roi_points": 12.255,
+        "median_rank_rho": 0.704,
+        "gain_mae_per_seed_vs_baseline": 0.014,
+        "gain_ci95": [
+          0.006,
+          0.023
+        ],
+        "seed_wins": 22,
+        "seeds": 40
+      },
+      "plus_network": {
+        "n": 958,
+        "mae_roi_points": 17.719,
+        "median_abs_roi_points": 12.268,
+        "median_rank_rho": 0.705,
+        "gain_mae_per_seed_vs_baseline": -0.017,
+        "gain_ci95": [
+          -0.09,
+          0.056
+        ],
+        "seed_wins": 18,
+        "seeds": 40
+      },
+      "plus_plan_joining": {
+        "n": 958,
+        "mae_roi_points": 17.712,
+        "median_abs_roi_points": 12.247,
+        "median_rank_rho": 0.703,
+        "gain_mae_per_seed_vs_baseline": -0.001,
+        "gain_ci95": [
+          -0.001,
+          0.0
+        ],
+        "seed_wins": 19,
+        "seeds": 40
+      },
+      "plus_engine_POST": {
+        "n": 958,
+        "mae_roi_points": 17.711,
+        "median_abs_roi_points": 12.244,
+        "median_rank_rho": 0.703,
+        "gain_mae_per_seed_vs_baseline": 0.0,
+        "gain_ci95": [
+          0.0,
+          0.0
+        ],
+        "seed_wins": 0,
+        "seeds": 40
+      },
+      "plus_fleet_POST": {
+        "n": 958,
+        "mae_roi_points": 17.753,
+        "median_abs_roi_points": 12.224,
+        "median_rank_rho": 0.723,
+        "gain_mae_per_seed_vs_baseline": -0.06,
+        "gain_ci95": [
+          -0.409,
+          0.32
+        ],
+        "seed_wins": 19,
+        "seeds": 40
+      },
+      "plus_route_len_POST": {
+        "n": 958,
+        "mae_roi_points": 17.343,
+        "median_abs_roi_points": 11.751,
+        "median_rank_rho": 0.731,
+        "gain_mae_per_seed_vs_baseline": 0.385,
+        "gain_ci95": [
+          0.253,
+          0.518
+        ],
+        "seed_wins": 31,
+        "seeds": 40
+      },
+      "plus_route_model_POST": {
+        "n": 958,
+        "mae_roi_points": 17.526,
+        "median_abs_roi_points": 11.926,
+        "median_rank_rho": 0.713,
+        "gain_mae_per_seed_vs_baseline": 0.18,
+        "gain_ci95": [
+          0.064,
+          0.3
+        ],
+        "seed_wins": 29,
+        "seeds": 40
+      },
+      "plus_geometry_POST": {
+        "n": 958,
+        "mae_roi_points": 17.093,
+        "median_abs_roi_points": 11.341,
+        "median_rank_rho": 0.72,
+        "gain_mae_per_seed_vs_baseline": 0.651,
+        "gain_ci95": [
+          0.432,
+          0.867
+        ],
+        "seed_wins": 32,
+        "seeds": 40
+      },
+      "all_prechoice": {
+        "n": 958,
+        "mae_roi_points": 17.719,
+        "median_abs_roi_points": 12.224,
+        "median_rank_rho": 0.706,
+        "gain_mae_per_seed_vs_baseline": -0.019,
+        "gain_ci95": [
+          -0.107,
+          0.069
+        ],
+        "seed_wins": 19,
+        "seeds": 40
+      },
+      "all_postdiagnostic": {
+        "n": 958,
+        "mae_roi_points": 17.184,
+        "median_abs_roi_points": 11.647,
+        "median_rank_rho": 0.755,
+        "gain_mae_per_seed_vs_baseline": 0.519,
+        "gain_ci95": [
+          0.15,
+          0.927
+        ],
+        "seed_wins": 27,
+        "seeds": 40
+      }
+    },
+    "road": {
+      "roi_quadratic": {
+        "n": 48,
+        "mae_roi_points": 39.637,
+        "median_abs_roi_points": 23.389,
+        "median_rank_rho": 0.0,
+        "gain_mae_per_seed_vs_baseline": 1.893,
+        "gain_ci95": [
+          -3.052,
+          6.898
+        ],
+        "seed_wins": 16,
+        "seeds": 29
+      },
+      "base_existing": {
+        "n": 48,
+        "mae_roi_points": 39.958,
+        "median_abs_roi_points": 22.172,
+        "median_rank_rho": 0.3,
+        "gain_mae_per_seed_vs_baseline": 0.0,
+        "gain_ci95": [
+          0.0,
+          0.0
+        ],
+        "seed_wins": 0,
+        "seeds": 29
+      },
+      "plus_log_profit": {
+        "n": 48,
+        "mae_roi_points": 40.146,
+        "median_abs_roi_points": 22.344,
+        "median_rank_rho": 0.3,
+        "gain_mae_per_seed_vs_baseline": -0.197,
+        "gain_ci95": [
+          -0.603,
+          0.241
+        ],
+        "seed_wins": 12,
+        "seeds": 29
+      },
+      "plus_year_month": {
+        "n": 48,
+        "mae_roi_points": 39.472,
+        "median_abs_roi_points": 18.606,
+        "median_rank_rho": 0.6,
+        "gain_mae_per_seed_vs_baseline": 0.123,
+        "gain_ci95": [
+          -2.543,
+          2.643
+        ],
+        "seed_wins": 16,
+        "seeds": 29
+      },
+      "plus_stage": {
+        "n": 48,
+        "mae_roi_points": 43.801,
+        "median_abs_roi_points": 30.337,
+        "median_rank_rho": 0.8,
+        "gain_mae_per_seed_vs_baseline": -2.952,
+        "gain_ci95": [
+          -6.599,
+          0.552
+        ],
+        "seed_wins": 11,
+        "seeds": 29
+      },
+      "plus_src_degree": {
+        "n": 48,
+        "mae_roi_points": 40.157,
+        "median_abs_roi_points": 22.119,
+        "median_rank_rho": 0.3,
+        "gain_mae_per_seed_vs_baseline": -0.395,
+        "gain_ci95": [
+          -1.3,
+          0.126
+        ],
+        "seed_wins": 10,
+        "seeds": 29
+      },
+      "plus_dst_degree": {
+        "n": 48,
+        "mae_roi_points": 39.958,
+        "median_abs_roi_points": 22.172,
+        "median_rank_rho": 0.3,
+        "gain_mae_per_seed_vs_baseline": 0.0,
+        "gain_ci95": [
+          0.0,
+          0.0
+        ],
+        "seed_wins": 0,
+        "seeds": 29
+      },
+      "plus_endpoint_degree": {
+        "n": 48,
+        "mae_roi_points": 40.163,
+        "median_abs_roi_points": 22.117,
+        "median_rank_rho": 0.3,
+        "gain_mae_per_seed_vs_baseline": -0.406,
+        "gain_ci95": [
+          -1.338,
+          0.13
+        ],
+        "seed_wins": 10,
+        "seeds": 29
+      },
+      "plus_prior_endpoint_novelty": {
+        "n": 48,
+        "mae_roi_points": 40.157,
+        "median_abs_roi_points": 22.119,
+        "median_rank_rho": 0.3,
+        "gain_mae_per_seed_vs_baseline": -0.395,
+        "gain_ci95": [
+          -1.3,
+          0.126
+        ],
+        "seed_wins": 10,
+        "seeds": 29
+      },
+      "plus_past_pair": {
+        "n": 48,
+        "mae_roi_points": 39.958,
+        "median_abs_roi_points": 22.172,
+        "median_rank_rho": 0.3,
+        "gain_mae_per_seed_vs_baseline": 0.0,
+        "gain_ci95": [
+          0.0,
+          0.0
+        ],
+        "seed_wins": 0,
+        "seeds": 29
+      },
+      "plus_network": {
+        "n": 48,
+        "mae_roi_points": 43.637,
+        "median_abs_roi_points": 30.217,
+        "median_rank_rho": 0.8,
+        "gain_mae_per_seed_vs_baseline": -2.701,
+        "gain_ci95": [
+          -6.504,
+          0.942
+        ],
+        "seed_wins": 12,
+        "seeds": 29
+      },
+      "plus_plan_joining": {
+        "n": 48,
+        "mae_roi_points": 39.958,
+        "median_abs_roi_points": 22.172,
+        "median_rank_rho": 0.3,
+        "gain_mae_per_seed_vs_baseline": 0.0,
+        "gain_ci95": [
+          0.0,
+          0.0
+        ],
+        "seed_wins": 0,
+        "seeds": 29
+      },
+      "plus_engine_POST": {
+        "n": 48,
+        "mae_roi_points": 39.958,
+        "median_abs_roi_points": 22.172,
+        "median_rank_rho": 0.3,
+        "gain_mae_per_seed_vs_baseline": 0.0,
+        "gain_ci95": [
+          0.0,
+          0.0
+        ],
+        "seed_wins": 0,
+        "seeds": 29
+      },
+      "plus_fleet_POST": {
+        "n": 48,
+        "mae_roi_points": 39.667,
+        "median_abs_roi_points": 22.083,
+        "median_rank_rho": 0.3,
+        "gain_mae_per_seed_vs_baseline": 0.27,
+        "gain_ci95": [
+          -0.581,
+          1.069
+        ],
+        "seed_wins": 21,
+        "seeds": 29
+      },
+      "plus_route_len_POST": {
+        "n": 48,
+        "mae_roi_points": 39.97,
+        "median_abs_roi_points": 22.161,
+        "median_rank_rho": 0.3,
+        "gain_mae_per_seed_vs_baseline": 0.001,
+        "gain_ci95": [
+          -0.086,
+          0.088
+        ],
+        "seed_wins": 14,
+        "seeds": 29
+      },
+      "plus_route_model_POST": {
+        "n": 48,
+        "mae_roi_points": 39.958,
+        "median_abs_roi_points": 22.172,
+        "median_rank_rho": 0.3,
+        "gain_mae_per_seed_vs_baseline": 0.0,
+        "gain_ci95": [
+          0.0,
+          0.0
+        ],
+        "seed_wins": 0,
+        "seeds": 29
+      },
+      "plus_geometry_POST": {
+        "n": 48,
+        "mae_roi_points": 39.97,
+        "median_abs_roi_points": 22.161,
+        "median_rank_rho": 0.3,
+        "gain_mae_per_seed_vs_baseline": 0.001,
+        "gain_ci95": [
+          -0.086,
+          0.088
+        ],
+        "seed_wins": 14,
+        "seeds": 29
+      },
+      "all_prechoice": {
+        "n": 48,
+        "mae_roi_points": 41.986,
+        "median_abs_roi_points": 25.446,
+        "median_rank_rho": 0.8,
+        "gain_mae_per_seed_vs_baseline": -1.523,
+        "gain_ci95": [
+          -5.203,
+          2.179
+        ],
+        "seed_wins": 14,
+        "seeds": 29
+      },
+      "all_postdiagnostic": {
+        "n": 48,
+        "mae_roi_points": 39.675,
+        "median_abs_roi_points": 22.093,
+        "median_rank_rho": 0.3,
+        "gain_mae_per_seed_vs_baseline": 0.262,
+        "gain_ci95": [
+          -0.622,
+          1.106
+        ],
+        "seed_wins": 21,
+        "seeds": 29
+      }
+    }
+  }
+}
