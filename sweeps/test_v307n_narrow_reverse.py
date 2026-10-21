@@ -23,7 +23,12 @@ def narrow(mode, na, nb, kind):
         return False
     if nb < na:
         return True
-    return mode == 4 and kind == "freight"
+    return mode in (4, 6) and kind == "freight"
+
+
+def reverse_slice(tiles, structures):
+    """Transcription de OpexV307ReverseSlice."""
+    return list(reversed(tiles)), [dict(s, **{"from": s["to"], "to": s["from"]}) for s in structures]
 
 
 class TestV307NarrowReverse(unittest.TestCase):
@@ -33,18 +38,37 @@ class TestV307NarrowReverse(unittest.TestCase):
 
     def test_setting_bounds(self):
         block = re.search(r'name = "v303_reverse_mode",(.*?)\}\);', read("info.nut"), re.S)[1]
-        self.assertIn("max_value = 4", block)
+        self.assertIn("max_value = 6", block)
         for level in ("easy", "medium", "hard", "custom"):
             self.assertRegex(block, rf"{level}_value\s*=\s*0\b")
-        self.assertIn("reverseMode >= 0 && reverseMode <= 4)", read("settings.nut"))
+        self.assertIn("reverseMode >= 0 && reverseMode <= 6)", read("settings.nut"))
 
     def test_narrow_rule(self):
         body = self.rail[self.rail.index("function OpexV307NarrowReverse("):self.rail.index("function OpexV303CreateReverse(")]
         self.assertIn("plan.plansB.len() < plan.plansA.len()", body)
-        self.assertIn('mode == 4 && candidate.kind == "freight"', body)
+        self.assertIn('(mode == 4 || mode == 6) && candidate.kind == "freight"', body)
         self.assertEqual([narrow(m, 12, 1, "pax") for m in (0, 1, 2, 3, 4)], [False, False, False, True, True])
         self.assertEqual([narrow(m, 12, 12, "freight") for m in (3, 4)], [False, True])
         self.assertFalse(narrow(4, 12, 12, "pax"))
+        self.assertEqual([narrow(m, 12, 12, "freight") for m in (5, 6)], [False, True])
+        self.assertTrue(narrow(5, 12, 3, "pax"))
+
+    def test_swap_segmented(self):
+        start = self.task[self.task.index("function OpexAI::_startRailSearch("):self.task.index("function OpexAI::_continueRailSearch(")]
+        self.assertIn("local v307Swap = v303Mode >= 5;", start)
+        self.assertIn("OpexCreateSegmentedSearch(fromPlans, toPlans, searchBudget", start)
+        self.assertIn("v307Swap = v307Swap,", start)
+        self.assertIn("if (v303Mode > 0 && !v307Swap) {", start)
+        stock = self.task[self.task.index("function OpexAI::_startRailStockSearch("):]
+        self.assertIn("OpexCreateSegmentedSearch(fromPlans, toPlans, plan.iterationBudget", stock)
+        self.assertIn("V303_REVERSE_MODE >= 3 && V303_REVERSE_MODE <= 4 && OpexV307NarrowReverse", stock)
+        cont = self.task[self.task.index("function OpexAI::_continueRailSearch("):]
+        i = cont.index('if (("v307Swap" in state) && state.v307Swap && slice.stop == "OK") OpexV307ReverseSlice(slice);')
+        self.assertLess(i, cont.index("state.spent = slice.iterations;"))
+        tiles, structs = reverse_slice([1, 2, 3, 4], [{"from": 2, "to": 3, "kind": "bridge", "length": 2}])
+        self.assertEqual(tiles, [4, 3, 2, 1])
+        self.assertEqual(structs[0]["from"], 3)
+        self.assertEqual(structs[0]["to"], 2)
 
     def test_historic_path_outside_narrow(self):
         i = self.task.index("local v303Mode = V303_REVERSE_MODE;")
@@ -57,7 +81,7 @@ class TestV307NarrowReverse(unittest.TestCase):
     def test_stock_search_hooked(self):
         body = self.task[self.task.index("function OpexAI::_startRailStockSearch("):]
         body = body[:body.index("this._activeWorker = {")]
-        self.assertIn("if (V303_REVERSE_MODE >= 3 && OpexV307NarrowReverse(V303_REVERSE_MODE, plan, candidate)) {", body)
+        self.assertIn("if (V303_REVERSE_MODE >= 3 && V303_REVERSE_MODE <= 4 && OpexV307NarrowReverse(V303_REVERSE_MODE, plan, candidate)) {", body)
         self.assertIn("this._railSearch.v303 <- OpexV303CreateReverse(plan, clearanceTiles, searchWeight, candidate, V303_REVERSE_MODE);", body)
 
     def test_whole_cap_and_nopa(self):

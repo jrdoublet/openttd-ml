@@ -13,7 +13,7 @@ class ReverseContracts(unittest.TestCase):
         block = re.search(r'name = "v303_reverse_mode",(.*?)\}\);', read("info.nut"), re.S)[1]
         for level in ("easy", "medium", "hard", "custom"):
             self.assertIn(f"{level}_value = 0", block)
-        self.assertIn("min_value = 0, max_value = 4", block)
+        self.assertIn("min_value = 0, max_value = 6", block)
         self.assertIn("V303_REVERSE_MODE <- 0;", read("globals_pre.nut"))
         self.assertEqual(read("settings.nut").count('GetSetting("v303_reverse_mode")'), 1)
 

@@ -798,6 +798,10 @@ function OpexAI::_startRailSearch(candidate, alternativeRatio, hardCap, posPacke
   /* V307 : hors cote etroit, les modes 3 et 4 gardent le chemin historique (sonde comprise). */
   local v303Mode = V303_REVERSE_MODE;
   if (v303Mode >= 3 && !OpexV307NarrowReverse(v303Mode, plan, candidate)) v303Mode = 0;
+  /* Modes 5 et 6 : meme recherche segmentee, quais echanges, sans sonde inverse. */
+  local v307Swap = v303Mode >= 5;
+  local fromPlans = v307Swap ? plan.plansB : plan.plansA;
+  local toPlans = v307Swap ? plan.plansA : plan.plansB;
   if (v303Mode == 0) {
     if (V294_RAIL_REVERSE_PROBE > 0) {
       local revSlice = OpexV294fReverseProbe(plan.plansA, plan.plansB, clearanceTiles, searchWeight, candidate, V294_RAIL_REVERSE_PROBE);
@@ -820,7 +824,7 @@ function OpexAI::_startRailSearch(candidate, alternativeRatio, hardCap, posPacke
     /* Mode 2 garde le poids initial de l'aller courant, sans sa segmentation. */
     local forwardWeight = (v303Mode == 2 && V294_RAIL_CONTINUOUS == 0 && V294C_RAIL_WEIGHT_ADAPT > 0)
         ? V294C_RAIL_WEIGHT_ADAPT : searchWeight;
-    pathfinder = OpexCreateRailPathfinder(plan.plansA, plan.plansB, clearanceTiles, forwardWeight, outwardSide, null, candidateEngine);
+    pathfinder = OpexCreateRailPathfinder(fromPlans, toPlans, clearanceTiles, forwardWeight, outwardSide, null, candidateEngine);
     if (pathfinder == null) {
       if (DECISION_LOG) {
         OpexDecide("RAIL_SEARCH", "type=resumable outcome=NOPA iters=0 budget=" + plan.iterationBudget);
@@ -831,7 +835,7 @@ function OpexAI::_startRailSearch(candidate, alternativeRatio, hardCap, posPacke
   } else {
     /* V294h : le creneau ne tente que le trace rapide ; le reste se joue en fond. */
     local searchBudget = (V294H_RAIL_DEFER > 0) ? OpexV294hQuickBudget(plan.iterationBudget) : plan.iterationBudget;
-    segmented = OpexCreateSegmentedSearch(plan.plansA, plan.plansB, searchBudget, clearanceTiles, searchWeight, outwardSide, null, candidateEngine);
+    segmented = OpexCreateSegmentedSearch(fromPlans, toPlans, searchBudget, clearanceTiles, searchWeight, outwardSide, null, candidateEngine);
     if (segmented == null) {
       if (DECISION_LOG) {
         OpexDecide("RAIL_SEARCH", "type=resumable outcome=NOPA iters=0 budget=" + plan.iterationBudget);
@@ -868,8 +872,9 @@ function OpexAI::_startRailSearch(candidate, alternativeRatio, hardCap, posPacke
     startDate = curDate,
     startTick = curTick,
     slotIndex = 0,
+    v307Swap = v307Swap,
   };
-  if (v303Mode > 0) {
+  if (v303Mode > 0 && !v307Swap) {
     this._railSearch.v303 <- OpexV303CreateReverse(plan, clearanceTiles, searchWeight, candidate, v303Mode);
   }
   if (C56_TASK_TRACE) {
@@ -929,6 +934,7 @@ function OpexAI::_continueRailSearch()
     slice = OpexAdvanceRailPathfinder(state.pathfinder, state.spent, state.iterationBudget,
                                       deadlineTick, RAIL_SEARCH_SLICE);
   }
+  if (("v307Swap" in state) && state.v307Swap && slice.stop == "OK") OpexV307ReverseSlice(slice);
   /* spent est le CUMUL de toutes les tranches : c'est le denominateur du classement. */
   state.spent = slice.iterations;
   local sliceIters = state.spent - spentBefore;
@@ -1012,6 +1018,10 @@ function OpexAI::_continueRailSearch()
   if (DECISION_LOG) {
 
     OpexDecide("RAIL_SEARCH", "type=resumable outcome=" + slice.stop + " iters=" + state.spent + " budget=" + state.iterationBudget);
+    if (("v307Swap" in state) && state.v307Swap) {
+      OpexDecide("V307_SWAP", "src=" + state.candidate.src + " dst=" + state.candidate.dst + " kind=" + state.candidate.kind
+          + " na=" + state.plan.plansA.len() + " nb=" + state.plan.plansB.len() + " outcome=" + slice.stop + " iters=" + state.spent);
+    }
     if (slice.stop == "OK") {
       local v214Tiles = OpexResolveSearchTiles(slice);
       if (v214Tiles.len() >= 2) {
@@ -1552,8 +1562,11 @@ function OpexAI::_startRailStockSearch(candidate, isRepair = false, repairReason
   local candidateEngine = OpexRailEngineOf(candidate);
   local pathfinder = null;
   local segmented = null;
+  local v307Swap = V303_REVERSE_MODE >= 5 && OpexV307NarrowReverse(V303_REVERSE_MODE, plan, candidate);
+  local fromPlans = v307Swap ? plan.plansB : plan.plansA;
+  local toPlans = v307Swap ? plan.plansA : plan.plansB;
   if (V294_RAIL_CONTINUOUS > 0) {
-    pathfinder = OpexCreateRailPathfinder(plan.plansA, plan.plansB, clearanceTiles, searchWeight, outwardSide, null, candidateEngine);
+    pathfinder = OpexCreateRailPathfinder(fromPlans, toPlans, clearanceTiles, searchWeight, outwardSide, null, candidateEngine);
     if (pathfinder == null) {
       local pairKey = OpexProjectPairKey(candidate.kind, candidate.cargo, candidate.src, candidate.dst);
       this._railStockCooldown[pairKey] <- AIDate.GetCurrentDate() + 365;
@@ -1565,7 +1578,7 @@ function OpexAI::_startRailStockSearch(candidate, isRepair = false, repairReason
       return false;
     }
   } else {
-    segmented = OpexCreateSegmentedSearch(plan.plansA, plan.plansB, plan.iterationBudget, clearanceTiles, searchWeight, outwardSide, null, candidateEngine);
+    segmented = OpexCreateSegmentedSearch(fromPlans, toPlans, plan.iterationBudget, clearanceTiles, searchWeight, outwardSide, null, candidateEngine);
     if (segmented == null) {
       local pairKey = OpexProjectPairKey(candidate.kind, candidate.cargo, candidate.src, candidate.dst);
       this._railStockCooldown[pairKey] <- AIDate.GetCurrentDate() + 365;
@@ -1600,10 +1613,11 @@ function OpexAI::_startRailStockSearch(candidate, isRepair = false, repairReason
     isStockSearch = true,
     isRepair = isRepair,
     repairReason = repairReason,
-    coarseScore = coarseScore
+    coarseScore = coarseScore,
+    v307Swap = v307Swap
   };
   /* V307 : le vivier stock porte la plupart des recherches primaires ; meme cote etroit. */
-  if (V303_REVERSE_MODE >= 3 && OpexV307NarrowReverse(V303_REVERSE_MODE, plan, candidate)) {
+  if (V303_REVERSE_MODE >= 3 && V303_REVERSE_MODE <= 4 && OpexV307NarrowReverse(V303_REVERSE_MODE, plan, candidate)) {
     this._railSearch.v303 <- OpexV303CreateReverse(plan, clearanceTiles, searchWeight, candidate, V303_REVERSE_MODE);
   }
 

@@ -990,7 +990,25 @@ function OpexV307NarrowReverse(mode, plan, candidate)
 {
   if (mode < 3) return false;
   if (plan.plansB.len() < plan.plansA.len()) return true;
-  return mode == 4 && candidate.kind == "freight";
+  return (mode == 4 || mode == 6) && candidate.kind == "freight";
+}
+
+/* V307 modes 5 et 6 : la recherche segmentee de production a tourne de B vers A. La pose attend
+ * un trace de A vers B : on retourne les tuiles et chaque ouvrage (from/to echanges). */
+function OpexV307ReverseSlice(slice)
+{
+  local tiles = OpexResolveSearchTiles(slice);
+  local reversed = [];
+  for (local i = tiles.len() - 1; i >= 0; i--) reversed.push(tiles[i]);
+  slice.tiles <- reversed;
+  if (("structures" in slice) && slice.structures != null) {
+    local swapped = [];
+    foreach (structure in slice.structures) {
+      swapped.push({ from = structure.to, to = structure.from, kind = structure.kind,
+          length = structure.length });
+    }
+    slice.structures = swapped;
+  }
 }
 
 function OpexV303CreateReverse(plan, clearanceTiles, weight, candidate, mode)
