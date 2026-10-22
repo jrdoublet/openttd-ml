@@ -14,9 +14,9 @@ class OpexAIInfo extends AIInfo {
   function GetSettings()
   {
     AddSetting({ name = "po01c_regen_split",
-      description = "PO01C: resumable reactive regeneration (experimental)",
+      description = "PO01C: resumable reactive regeneration (default 1 since 23/10, user decision after neutral porte A)",
       min_value = 0, max_value = 1,
-      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
+      easy_value = 1, medium_value = 1, hard_value = 1, custom_value = 1,
       flags = AICONFIG_BOOLEAN });
     AddSetting({ name = "v278_air_lazy_sites",
       description = "V278: population ordered lazy AIR sites and scan preparation cache; 0 = off, 1 = on, 2 = auto: on when the map has at least 1024x1024 tiles (default since 20/10, qualified at 1024x1024 only)",

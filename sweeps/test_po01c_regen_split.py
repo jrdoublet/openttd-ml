@@ -245,7 +245,7 @@ class PO01CContracts(unittest.TestCase):
         expected = {
             'probe_v216.nut': '8971a9dcf90ec29fce9baaca9f4959bbcc3c7db5d3e648963f1481c768ab5166',
             'economy.nut': 'c89b774e6465708574567ad591372917c13fc6fe51b82921def346fbc623978b',
-            'builder_rail.nut': 'a727ae86b36bf52099e4cc0ad9f418f54cdeffa53511a44821d3d480fe2aab5e',
+            'builder_rail.nut': 'e9c8b8b15e4f852168752851e0261efebedb8098df21d7d1f61073c95826188f',
         }
         for name, digest in expected.items():
             self.assertEqual(hashlib.sha256((AI / name).read_bytes()).hexdigest(), digest)
@@ -410,15 +410,16 @@ class PO01CContracts(unittest.TestCase):
     def test_default_and_single_read(self):
         setting = re.search(r'AddSetting\(\{ name = "po01c_regen_split".*?\}\);', source('info.nut'), re.S)[0]
         for level in ('easy', 'medium', 'hard', 'custom'):
-            self.assertIn(level + '_value = 0', setting)
+            self.assertIn(level + '_value = 1', setting)
         self.assertEqual(source('settings.nut').count('GetSetting("po01c_regen_split")'), 1)
-        self.assertIn('PO01C_REGEN_SPLIT <- false;', source('globals_pre.nut'))
+        self.assertIn('PO01C_REGEN_SPLIT <- true;', source('globals_pre.nut'))
 
     def test_generators_track_current_producers(self):
         self.assertEqual(source('po01c_generators.nut'), generated())
 
     def test_po01d_synchronous_path_bytes_unchanged(self):
-        # Baseline origin/master 190b4ba1. Intentional later synchronous edits
+        # Baseline origin/master 190b4ba1, rebased 23/10 onto c1b23cbb (V307S v3,
+        # PO-02 precheck, PO-01c default 1; copied functions unaffected). Intentional later synchronous edits
         # must explicitly rebase this PO01D isolation contract, never regenerate it.
         expected = {
             'builder_water.nut': '92c50153b6712f238943f75e2c9498a602695132a7850c5f663f91344499162e',
@@ -429,8 +430,8 @@ class PO01CContracts(unittest.TestCase):
             'orchestrator.nut': 'bc9aa564c5f84aff5d638086094048548f6f5a9a8eb61d44c047030bfcc71743',
             'main.nut': '81f077c68e094a0a9a8d4a63e1600af0fce0cdd9b9b835077e3da386d3b36ece',
             'probes.nut': 'ef0a1228e758e648736c89b9252dc9568f6b6a834065343e805570aed47788dd',
-            'settings.nut': '57c95f154fdb84e9aff9e63ab10d7fef1731b764997b5279cb2d33bba6b353db',
-            'info.nut': '9071e91f6a569689275228804d8438c390ed5692ee026f02fe5d172999815c97',
+            'settings.nut': 'd343f6c304a23155358a9267bc1efddf43843a0a2cb6fd11ee1853f0762bd18a',
+            'info.nut': 'fa64c09cb07b06cd60643cf6e8f5dba0a4afbeb56f14acde3fa066dd926ab921',
         }
         for name, digest in expected.items():
             with self.subTest(name=name):
