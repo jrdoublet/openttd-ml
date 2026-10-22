@@ -56,6 +56,7 @@ function OpexResolveDifficulty()
  * restent dans Start(), juste apres l'appel. */
 function OpexLoadSettings()
 {
+  AIR_FLOTTE1_SHADOW = AIController.GetSetting("air_flotte1_shadow") != 0;
   PO01C_REGEN_SPLIT = AIController.GetSetting("po01c_regen_split") != 0;
   /* V276/V278 (defaut auto depuis le 20/10, decision utilisateur) : qualifies ensemble a 1024x1024
    * seulement (portes A +631 k et B +1,11 M), sans gain mesure a 256x256 ; actifs des 1024x1024 tuiles. */

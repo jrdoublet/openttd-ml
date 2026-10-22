@@ -223,6 +223,7 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
        * recherche occupe le slot. */
       local searchBlocked = (this._railSearch != null);
       if (searchBlocked && !c121PrepPlan && !v233Ready && !v294Ready) {
+        if (AIR_FLOTTE1_SHADOW) OpexAirF1RailPath(project, i, "rejected", "search_in_progress");
         if (RAIL_FAILURE_AUDIT) OpexRailFailureAudit("early", candidate, "search_in_progress", 0, 0, 0, i);
         if (RAIL_FAILURE_AUDIT) OpexRailSearchBlockerAudit(candidate, this._railSearch, project, i);
         if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "search_in_progress", extra = "" });
@@ -255,6 +256,7 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
       }
       local abandonedKey = OpexAbandonedPairKey(candidate);
       if ((abandonedKey in this._abandonedPairs)) {
+        if (AIR_FLOTTE1_SHADOW) OpexAirF1RailPath(project, i, "rejected", "abandoned_pair");
         if (RAIL_FAILURE_AUDIT) OpexRailFailureAudit("early", candidate, "abandoned_pair", 0, 0, 0, i);
         if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "abandoned_pair", extra = "" });
         return { outcome = "rejected", discards = passDiscards };
@@ -263,6 +265,7 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
        * aucun train. OpexExecuteRailPlan refait la meme garde juste avant la premiere depense pour
        * couvrir la course avec une recherche reprenable. */
       if (!OpexRailVehicleSlotAvailable()) {
+        if (AIR_FLOTTE1_SHADOW) OpexAirF1RailPath(project, i, "rejected", "vehicle_limit");
         if (RAIL_FAILURE_AUDIT) OpexRailFailureAudit("early", candidate, "vehicle_limit", 0, 0, 0, i);
         if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "vehicle_limit", extra = "" });
         return { outcome = "rejected", discards = passDiscards };
@@ -281,12 +284,14 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
 
       local close = this._tooClose(candidate);
       if (close.hard >= 0) {
+        if (AIR_FLOTTE1_SHADOW) OpexAirF1RailPath(project, i, "rejected", "too_close_hard");
         if (RAIL_FAILURE_AUDIT) OpexRailFailureAudit("precheck", candidate, "too_close_hard", 0, 0, 0);
         if (DECISION_LOG || C49_SCARCITY_LEDGER || C63_INVEST_PROBE
             || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "too_close_hard", extra = "" });
         return { outcome = "rejected", discards = passDiscards };
       }
       if (close.blocking >= 0) {
+        if (AIR_FLOTTE1_SHADOW) OpexAirF1RailPath(project, i, "rejected", "too_close_no_join");
         if (RAIL_FAILURE_AUDIT) OpexRailFailureAudit("precheck", candidate, "too_close_no_join", 0, 0, 0);
         if (DECISION_LOG || C49_SCARCITY_LEDGER || C63_INVEST_PROBE
             || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "too_close_no_join", extra = "" });
@@ -302,6 +307,7 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
        * la fin. */
       local willStartSearch = !(("railPlan" in candidate) && candidate.railPlan != null);
       if (lowCash && !willStartSearch) {
+        if (AIR_FLOTTE1_SHADOW) OpexAirF1RailPath(project, i, "rejected", "insufficient_cash");
         if (RAIL_FAILURE_AUDIT) OpexRailFailureAudit("early", candidate, "insufficient_cash", 0, 0, 0, i);
         if (C50_CHRONOLOGY_PROBE) this._logC50CashRefusal("rail", i, candidate.capital, candidate.profitAnnual, candidate.roi, candidate.src, candidate.dst, need, money);
         if (DECISION_LOG || C63_INVEST_PROBE
@@ -342,6 +348,7 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
         return { outcome = "rejected", discards = passDiscards };
       }
       if (result.reason == "CASH") {
+        if (AIR_FLOTTE1_SHADOW) OpexAirF1RailPath(project, i, "rejected", "cash_at_build");
         if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "cash_at_build", extra = "" });
         return { outcome = "rejected", discards = passDiscards };
       }

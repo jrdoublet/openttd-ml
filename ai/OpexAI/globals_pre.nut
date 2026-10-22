@@ -559,6 +559,12 @@ C50_NON_EXPANSION_LEDGER <- null;
  * n'grandit pas, la cause est invisible. FR| donne le premier refus rencontre, une fois par ligne
  * et par an. */
 AIR_FLEET_PROBE <- false;
+/* AIR-FLOTTE-1 : seule la sonde dediee permet le scan du vivier aux achats AIR. */
+AIR_FLOTTE1_SHADOW <- false;
+AIR_FLOTTE1_KDEC <- -1;
+AIR_FLOTTE1_KDEC_TICK <- -1;
+/* Memoire ephemere de la derniere passe : ne modifie aucune decision. */
+AIR_FLOTTE1_RAIL_PATH <- null;
 /* Sonde de tension : aucun calcul ni journal supplementaire sur le chemin par defaut. */
 TENSION_PROBE <- false;
 /* Garde unique du logger de portefeuille : evite un OR supplementaire dans le chemin chaud. */

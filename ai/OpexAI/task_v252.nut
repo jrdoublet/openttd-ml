@@ -118,20 +118,29 @@ function OpexAI::_dispatchV252AirEngineRefresh(task, year)
   }
 
   local cargo = ("cargo" in bestLine) ? bestLine.cargo : this._catalog.paxCargo;
+  /* AIR-FLOTTE-1 : pas de ROI marginal du remplacement dans V252. Le profit
+   * de l'ancien appareil est historique, jamais une prediction de delta. */
+  local airF1Event = AIR_FLOTTE1_SHADOW
+      ? OpexAirF1Before(this, "renewal", bestLine.lineId, price,
+                        null, -1, curEngine, bestNewEngine, null, threshold, bestProfit) : null;
+  if (airF1Event != null) OpexAirF1Ready(airF1Event);
   local newPlane = AIVehicle.BuildVehicleWithRefit(hangar, bestNewEngine, cargo);
   if (!AIVehicle.IsValidVehicle(newPlane)) {
+    if (airF1Event != null) OpexAirF1After(airF1Event, "build_failed");
     if (DECISION_LOG) OpexDecide("V252_SKIP", "reason=build_failed line=" + bestLine.lineId + " engine=" + bestNewEngine);
     return true;
   }
 
   if (!AIOrder.ShareOrders(newPlane, bestVeh) && !AIOrder.CopyOrders(newPlane, bestVeh)) {
     if (AIVehicle.IsStoppedInDepot(newPlane)) AIVehicle.SellVehicle(newPlane);
+    if (airF1Event != null) OpexAirF1After(airF1Event, "order_failed");
     if (DECISION_LOG) OpexDecide("V252_SKIP", "reason=order_failed line=" + bestLine.lineId);
     return true;
   }
 
   if (!AIVehicle.StartStopVehicle(newPlane)) {
     if (AIVehicle.IsStoppedInDepot(newPlane)) AIVehicle.SellVehicle(newPlane);
+    if (airF1Event != null) OpexAirF1After(airF1Event, "start_failed");
     if (DECISION_LOG) OpexDecide("V252_SKIP", "reason=start_failed line=" + bestLine.lineId);
     return true;
   }
@@ -147,6 +156,7 @@ function OpexAI::_dispatchV252AirEngineRefresh(task, year)
     bestLine.vehicle = newPlane;
   }
   bestLine.refleetEngine = bestNewEngine;
+  if (airF1Event != null) OpexAirF1After(airF1Event, "built", 0, 1);
 
   /* Retraite et mise a la casse de l'ancien appareil via le mecanisme existant */
   if (this._vehiclesToRetire == null) this._vehiclesToRetire = {};

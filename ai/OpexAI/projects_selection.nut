@@ -782,6 +782,12 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSel
   {
     kDecData = OpexC69ComputeKDec();
     kDec = kDecData.K_dec;
+    /* AIR-FLOTTE-1 : le K_dec exact n'est normalement pas conserve hors
+     * sonde C69. En shadow seulement, retenir la derniere vraie selection. */
+    if (AIR_FLOTTE1_SHADOW && realSelection) {
+      ::AIR_FLOTTE1_KDEC = kDec;
+      ::AIR_FLOTTE1_KDEC_TICK = AIController.GetTick();
+    }
     if (V216_PROBE && realSelection) V216_LAST_KDEC = kDec;
     if (C69_BOTTLENECK_PROBE) c69Affordable = [];
   }
