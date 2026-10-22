@@ -90,6 +90,7 @@ V308_DONE <- false;
 V307_ABND_AUTOPSY <- false;
 V307_SITES <- 0;  // V307 1.8 : sites rail repartis par octant, defaut 0
 V307S3_REACH <- {};  // V307S=3 : portee du captage par tuile d'industrie et cote (cache, non sauvegarde)
+STATION_PLAN_PRECHECK <- true; // PO-02 : rejet anticipe exact, defaut 1 (adopte 23/10)
 V307_SINK_ROOM <- 0; // V307 1.9b : 1 bande reservee, 2 gare fret a deux quais, defaut 0
 /* RAIL-CAL-1 : 1 = score RAIL experimental cout + profit seulement (defaut 0). */
 RAIL_CAL <- 0;

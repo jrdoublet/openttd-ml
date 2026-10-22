@@ -130,6 +130,7 @@ function OpexLoadSettings()
   V307_ABND_AUTOPSY = AIController.GetSetting("v307_abnd_autopsy") == 1;
   local v307Sites = AIController.GetSetting("v307_sites");
   V307_SITES = (v307Sites == 1 || v307Sites == 2 || v307Sites == 3) ? v307Sites : 0;
+  STATION_PLAN_PRECHECK = AIController.GetSetting("station_plan_precheck") == 1;
   local v307Room = AIController.GetSetting("v307_sink_room");
   V307_SINK_ROOM = (v307Room != null && v307Room >= 0 && v307Room <= 15) ? v307Room : 0;
   /* RAIL-CAL-1 : lecture unique, ne modifie ni budget ni financement. */
