@@ -2,6 +2,11 @@
 /* Opcodes per call, across ticks if needed (about 4 ticks, < 1 day). The hook runs once
  * per main-loop pass (~44 ticks measured), so 4000 left a batch at ~26 k ops/day. */
 const PO01C_SLICE_OPS = 40000;
+/* One resume gets 30k before propagation. Step can start a second unit near
+ * 40k: target <70k plus one indivisible operation, not a hard API-call bound.
+ * Only Step writes the mark, immediately before resume; never persisted. */
+const PO01C_WORK_OPS = 30000;
+PO01C_WORK_MARK <- null;
 /* Transient diagnostic only, never part of Save/Load. Allocated only on logging. */
 PO01C_WHERE <- null;
 function OpexPO01CWhere(gen, site, idx)
@@ -12,6 +17,14 @@ function OpexPO01CWhere(gen, site, idx)
     PO01C_WHERE.site = site;
     PO01C_WHERE.idx = idx;
   }
+}
+
+function OpexPO01CUnitEnd(mark, phase, unit, gen, site)
+{
+  if (!DECISION_LOG) return;
+  local ops = OpexOpsMeasureEnd(mark);
+  if (ops > PO01C_SLICE_OPS) OpexDecide("PO01C_UNIT", "phase=" + phase
+      + " mode=" + unit + " gen=" + gen + " site=" + site + " idx=-1 ops=" + ops);
 }
 
 /* Expressions keep historical evaluation order inside table literals. Only the
@@ -337,7 +350,9 @@ function OpexPO01CPublish(owner, s)
   foreach (mode in s.modes) {
     if (mode == "fleet") {
       local fleet = [];
+      local fleetMark = DECISION_LOG ? OpexOpsMeasureBegin() : null;
       owner._resizeAirFleets(AIDate.GetYear(AIDate.GetCurrentDate()), fleet);
+      if (DECISION_LOG) OpexPO01CUnitEnd(fleetMark, "publish", "fleet", "OpexPO01CPublish", "resizeAirFleets");
       local generated = { projects = [] };
       foreach (entry in fleet) {
         local project = OpexProjectFromFleet(entry);
@@ -348,7 +363,9 @@ function OpexPO01CPublish(owner, s)
       OpexPO01CMerge(projects, s.outputs[mode], mode);
     }
   }
+  local selectionMark = DECISION_LOG ? OpexOpsMeasureBegin() : null;
   owner._projects = OpexReselectProjects(projects, OpexAvailableCapital(), owner._abandonedPairs, owner._lines);
+  if (DECISION_LOG) OpexPO01CUnitEnd(selectionMark, "publish", "all", "OpexPO01CPublish", "OpexReselectProjects");
   owner._ranked = owner._projects.rail;
   foreach (layer in s.layers) {
     if (layer == "engines.air" && OpexPO01CAirPending(owner)) continue;
@@ -433,6 +450,7 @@ function OpexPO01CStep(owner)
   local phase = "layer";
   local unit = s.modeCursor < s.modes.len() ? s.modes[s.modeCursor] : "none";
   if (s.layerCursor < s.layers.len()) {
+    unit = s.layers[s.layerCursor];
     if (s.iterator == null) s.iterator = OpexPO01CLayerIterator(s.catalog, s.layers[s.layerCursor]);
   } else if (s.modeCursor < s.modes.len()) {
     phase = "mode";
@@ -456,29 +474,34 @@ function OpexPO01CStep(owner)
     phase = "publish";
     if (owner._activeWorker != null && owner._activeWorker.kind == "regen_candidates") return false;
     OpexPO01CPublish(owner, s);
+    if (DECISION_LOG) OpexPO01CUnitEnd(mark, phase, "all", "OpexPO01CPublish", "whole_publish");
     owner._po01cJob = null;
     if (owner._c76AnyLayerChanged()) owner._po01cPending = true;
   }
   if (s.iterator != null) {
-    if (DECISION_LOG && phase == "mode") {
+    if (DECISION_LOG) {
       local largest = null;
       while (s.iterator.getstatus() != "dead" && OpexOpsMeasureEnd(mark) < PO01C_SLICE_OPS) {
         /* Seed each unit: no stale rail site when another mode starts. Nested
          * generators overwrite this only after entering their own work. */
-        OpexPO01CWhere(unit == "air" ? "OpexPO01CGenerateAir" : "OpexPO01CGenerateMode", "before_first_yield", -1);
+        OpexPO01CWhere(phase == "layer" ? "OpexPO01CLayerIterator"
+            : (unit == "air" ? "OpexPO01CGenerateAir" : "OpexPO01CGenerateMode"), "before_first_yield", -1);
         local unitMark = OpexOpsMeasureBegin();
+        PO01C_WORK_MARK = unitMark;
         resume s.iterator;
         local unitOps = OpexOpsMeasureEnd(unitMark);
         if (unitOps > PO01C_SLICE_OPS && (largest == null || unitOps > largest.ops))
           largest = { gen = PO01C_WHERE.gen, site = PO01C_WHERE.site,
               idx = PO01C_WHERE.idx, ops = unitOps };
       }
-      if (largest != null) OpexDecide("PO01C_UNIT", "mode=" + unit
+      if (largest != null) OpexDecide("PO01C_UNIT", "phase=" + phase + " mode=" + unit
           + " gen=" + largest.gen + " site=" + largest.site + " idx=" + largest.idx
           + " ops=" + largest.ops);
     } else {
-      while (s.iterator.getstatus() != "dead" && OpexOpsMeasureEnd(mark) < PO01C_SLICE_OPS)
+      while (s.iterator.getstatus() != "dead" && OpexOpsMeasureEnd(mark) < PO01C_SLICE_OPS) {
+        PO01C_WORK_MARK = OpexOpsMeasureBegin();
         resume s.iterator;
+      }
     }
     if (s.iterator.getstatus() == "dead") {
       s.iterator = null;

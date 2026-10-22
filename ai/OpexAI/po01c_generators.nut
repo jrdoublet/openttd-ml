@@ -30,8 +30,10 @@ function OpexPO01CPaxCandidates(catalog, lines, out, stats, abandonedPairs = nul
   if (V275_RAIL_PAX_MM & 1) {
     airTowns = {};
     foreach (po01eLineIndex, line in lines) {
-    yield null; // PO01C_CHECKPOINT
+    if (OpexOpsMeasureEnd(PO01C_WORK_MARK) >= PO01C_WORK_OPS) {
+      yield null; // PO01C_CHECKPOINT
     if (DECISION_LOG) OpexPO01CWhere("OpexPO01CPaxCandidates", "rail_pax:air_lines", po01eLineIndex);
+    }
       if (!("mode" in line) || line.mode != "air") continue;
       if (("scrapping" in line) && line.scrapping) continue;
       airTowns.rawset(line.originA, true);
@@ -40,8 +42,10 @@ function OpexPO01CPaxCandidates(catalog, lines, out, stats, abandonedPairs = nul
   }
   local preparationMark = profile != null ? OpexOpsMeasureBegin() : null;
   for (local i = 0; i < n; i++) {
-    yield null; // PO01C_CHECKPOINT
+    if (OpexOpsMeasureEnd(PO01C_WORK_MARK) >= PO01C_WORK_OPS) {
+      yield null; // PO01C_CHECKPOINT
     if (DECISION_LOG) OpexPO01CWhere("OpexPO01CPaxCandidates", "rail_pax:production", i);
+    }
     local p = AITown.GetLastMonthProduction(towns[i].id, cargo);
     if (p <= 0 && towns[i].pop > 0) p = (towns[i].pop * 22) / 100;
     produced.append(p);
@@ -54,8 +58,10 @@ function OpexPO01CPaxCandidates(catalog, lines, out, stats, abandonedPairs = nul
   if (hasMail) {
     mailProduced = [];
     for (local i = 0; i < n; i++) {
-    yield null; // PO01C_CHECKPOINT
+    if (OpexOpsMeasureEnd(PO01C_WORK_MARK) >= PO01C_WORK_OPS) {
+      yield null; // PO01C_CHECKPOINT
     if (DECISION_LOG) OpexPO01CWhere("OpexPO01CPaxCandidates", "rail_pax:mail", i);
+    }
       local mp = AITown.GetLastMonthProduction(towns[i].id, catalog.mailCargo);
       if (mp < 0) mp = 0;
       mailProduced.append(mp);
@@ -71,13 +77,17 @@ function OpexPO01CPaxCandidates(catalog, lines, out, stats, abandonedPairs = nul
   if (DECISION_LOG) OpexPO01CWhere("OpexPO01CPaxCandidates", "rail_pax:grid.Build", PO01C_WHERE.idx);
   grid.Build(towns, cellSize);
   for (local a = 0; a < n; a++) {
-    yield null; // PO01C_CHECKPOINT
+    if (OpexOpsMeasureEnd(PO01C_WORK_MARK) >= PO01C_WORK_OPS) {
+      yield null; // PO01C_CHECKPOINT
     if (DECISION_LOG) OpexPO01CWhere("OpexPO01CPaxCandidates", "rail_pax:neighbors", a);
+    }
     if (DECISION_LOG) OpexPO01CWhere("OpexPO01CPaxCandidates", "rail_pax:grid.GetCandidatesFor", PO01C_WHERE.idx);
     local neighbors = grid.GetCandidatesFor(a);
     foreach (b in neighbors) {
-    yield null; // PO01C_CHECKPOINT
+    if (OpexOpsMeasureEnd(PO01C_WORK_MARK) >= PO01C_WORK_OPS) {
+      yield null; // PO01C_CHECKPOINT
     if (DECISION_LOG) OpexPO01CWhere("OpexPO01CPaxCandidates", "rail_pax:pair", b);
+    }
       if (targetKind == "town" && targetId >= 0
           && towns[a].id != targetId && towns[b].id != targetId) continue;
       local pairDistance = AIMap.DistanceManhattan(towns[a].tile, towns[b].tile);
@@ -127,7 +137,7 @@ function OpexPO01CPaxCandidates(catalog, lines, out, stats, abandonedPairs = nul
     local po01dChild = OpexPO01CMakePaxCandidate(po01dBox, po01fSitableCache, po01fContext, catalog, "pax", cargo, towns[a].tile, towns[b].tile, monthly, false, stats, false, candidateProfile, cruiseCache, secondary);
     while (po01dChild.getstatus() != "dead") {
       resume po01dChild;
-      yield null; // PO01C_CHECKPOINT
+      if (po01dChild.getstatus() != "dead") yield null; // PO01C_CHECKPOINT
     }
     local candidate = po01dBox.value;
       if (profile != null) {
@@ -2325,7 +2335,7 @@ function OpexPO01CMakePaxCandidate(po01dResult, po01fSitableCache, po01fContext,
     local po01dChild = OpexPO01CRailOriginSitable(po01dBox, srcTile, cargo, catalog.railCoverage, true);
     while (po01dChild.getstatus() != "dead") {
       resume po01dChild;
-      yield null; // PO01C_CHECKPOINT
+      if (po01dChild.getstatus() != "dead") yield null; // PO01C_CHECKPOINT
     }
     sitable = po01dBox.value;
       if (profile != null) {
@@ -2348,7 +2358,7 @@ function OpexPO01CMakePaxCandidate(po01dResult, po01fSitableCache, po01fContext,
     local po01dChild = OpexPO01CV216aScaleDemand(po01dBox, po01fContext, srcTile, dstTile, cargo, monthly);
     while (po01dChild.getstatus() != "dead") {
       resume po01dChild;
-      yield null; // PO01C_CHECKPOINT
+      if (po01dChild.getstatus() != "dead") yield null; // PO01C_CHECKPOINT
     }
     monthly = po01dBox.value;
     if (secondary != null) {
@@ -2356,7 +2366,7 @@ function OpexPO01CMakePaxCandidate(po01dResult, po01fSitableCache, po01fContext,
     local po01dChild = OpexPO01CV216aScaleDemand(po01dBox, po01fContext, srcTile, dstTile, secondary.cargo, secondary.monthly);
     while (po01dChild.getstatus() != "dead") {
       resume po01dChild;
-      yield null; // PO01C_CHECKPOINT
+      if (po01dChild.getstatus() != "dead") yield null; // PO01C_CHECKPOINT
     }
     local po01fMail = po01dBox.value;
       secondary = { cargo = secondary.cargo, monthly = po01fMail };
@@ -2490,17 +2500,23 @@ function OpexPO01CRailOriginSitable(po01dResult, tile, cargo, coverage, wantProd
   local po01gWork = 0;
   local radius = coverage + 3;
   for (local r = 0; r <= radius; r++) {
-    yield null; // PO01C_CHECKPOINT
+    if (OpexOpsMeasureEnd(PO01C_WORK_MARK) >= PO01C_WORK_OPS) {
+      yield null; // PO01C_CHECKPOINT
     if (DECISION_LOG) OpexPO01CWhere("OpexPO01CRailOriginSitable", "pax:RailOriginSitable", -1);
+    }
 
     for (local dx = -r; dx <= r; dx++) {
-    yield null; // PO01C_CHECKPOINT
+    if (OpexOpsMeasureEnd(PO01C_WORK_MARK) >= PO01C_WORK_OPS) {
+      yield null; // PO01C_CHECKPOINT
     if (DECISION_LOG) OpexPO01CWhere("OpexPO01CRailOriginSitable", "pax:RailOriginSitable", -1);
+    }
 
       for (local dy = -r; dy <= r; dy++) {
     if (++po01gWork % 32 == 0) {
-    yield null; // PO01C_CHECKPOINT
+    if (OpexOpsMeasureEnd(PO01C_WORK_MARK) >= PO01C_WORK_OPS) {
+      yield null; // PO01C_CHECKPOINT
     if (DECISION_LOG) OpexPO01CWhere("OpexPO01CRailOriginSitable", "pax:RailOriginSitable", -1);
+    }
     }
 
         if (abs(dx) != r && abs(dy) != r) continue;
@@ -2528,13 +2544,17 @@ function OpexPO01CV216MarkRect(po01dResult, po01fContext, table, x0, y0, x1, y1,
   if (x1 > AIMap.GetMapSizeX() - 2) x1 = AIMap.GetMapSizeX() - 2;
   if (y1 > AIMap.GetMapSizeY() - 2) y1 = AIMap.GetMapSizeY() - 2;
   for (local x = x0; x <= x1; x++) {
-    yield null; // PO01C_CHECKPOINT
+    if (OpexOpsMeasureEnd(PO01C_WORK_MARK) >= PO01C_WORK_OPS) {
+      yield null; // PO01C_CHECKPOINT
     if (DECISION_LOG) OpexPO01CWhere("OpexPO01CV216MarkRect", "pax:V216MarkRect", -1);
+    }
 
     for (local y = y0; y <= y1; y++) {
     if (++po01gWork % 32 == 0) {
-    yield null; // PO01C_CHECKPOINT
+    if (OpexOpsMeasureEnd(PO01C_WORK_MARK) >= PO01C_WORK_OPS) {
+      yield null; // PO01C_CHECKPOINT
     if (DECISION_LOG) OpexPO01CWhere("OpexPO01CV216MarkRect", "pax:V216MarkRect", -1);
+    }
     }
 
       local key = AIMap.GetTileIndex(x, y);
@@ -2569,21 +2589,27 @@ function OpexPO01CV216RefreshCover(po01dResult, po01fContext)
   local pax = OpexV216Cargo(AICargo.CC_PASSENGERS);
   local mail = OpexV216Cargo(AICargo.CC_MAIL);
   foreach (st, sv in AIStationList(AIStation.STATION_ANY)) {
-    yield null; // PO01C_CHECKPOINT
+    if (OpexOpsMeasureEnd(PO01C_WORK_MARK) >= PO01C_WORK_OPS) {
+      yield null; // PO01C_CHECKPOINT
     if (DECISION_LOG) OpexPO01CWhere("OpexPO01CV216RefreshCover", "pax:V216RefreshCover", -1);
+    }
 
     local ratings = [0, 0];
     if (pax != null && AIStation.HasCargoRating(st, pax)) ratings[0] = AIStation.GetCargoRating(st, pax);
     if (mail != null && AIStation.HasCargoRating(st, mail)) ratings[1] = AIStation.GetCargoRating(st, mail);
     foreach (type in [AIStation.STATION_TRAIN, AIStation.STATION_AIRPORT, AIStation.STATION_BUS_STOP,
                       AIStation.STATION_TRUCK_STOP, AIStation.STATION_DOCK]) {
-    yield null; // PO01C_CHECKPOINT
+    if (OpexOpsMeasureEnd(PO01C_WORK_MARK) >= PO01C_WORK_OPS) {
+      yield null; // PO01C_CHECKPOINT
     if (DECISION_LOG) OpexPO01CWhere("OpexPO01CV216RefreshCover", "pax:V216RefreshCover", -1);
+    }
       if (!AIStation.HasStationType(st, type)) continue;
       local x0 = 99999, y0 = 99999, x1 = -1, y1 = -1, r = 0;
       foreach (tile, tv in AITileList_StationType(st, type)) {
-    yield null; // PO01C_CHECKPOINT
+    if (OpexOpsMeasureEnd(PO01C_WORK_MARK) >= PO01C_WORK_OPS) {
+      yield null; // PO01C_CHECKPOINT
     if (DECISION_LOG) OpexPO01CWhere("OpexPO01CV216RefreshCover", "pax:V216RefreshCover", -1);
+    }
 
         local x = AIMap.GetTileX(tile), y = AIMap.GetTileY(tile);
         if (x < x0) x0 = x;
@@ -2597,7 +2623,7 @@ function OpexPO01CV216RefreshCover(po01dResult, po01fContext)
     local po01dChild = OpexPO01CV216MarkRect(po01dBox, po01fContext, cover.own, x0 - r, y0 - r, x1 + r, y1 + r, ratings);
     while (po01dChild.getstatus() != "dead") {
       resume po01dChild;
-      yield null; // PO01C_CHECKPOINT
+      if (po01dChild.getstatus() != "dead") yield null; // PO01C_CHECKPOINT
     }
     }
     }
@@ -2619,8 +2645,10 @@ function OpexPO01CV216AdvAround(po01dResult, po01fContext, cover, center, radius
   tiles.Valuate(AITile.IsStationTile);
   tiles.KeepValue(1);
   foreach (tile, tv in tiles) {
-    yield null; // PO01C_CHECKPOINT
+    if (OpexOpsMeasureEnd(PO01C_WORK_MARK) >= PO01C_WORK_OPS) {
+      yield null; // PO01C_CHECKPOINT
     if (DECISION_LOG) OpexPO01CWhere("OpexPO01CV216AdvAround", "pax:V216AdvAround", -1);
+    }
 
     if (AITile.GetOwner(tile) == me) continue;
     if (!AIRail.IsRailStationTile(tile) && !AIAirport.IsAirportTile(tile)
@@ -2635,7 +2663,7 @@ function OpexPO01CV216AdvAround(po01dResult, po01fContext, cover, center, radius
         y + r < cy + radius ? y + r : cy + radius, null);
     while (po01dChild.getstatus() != "dead") {
       resume po01dChild;
-      yield null; // PO01C_CHECKPOINT
+      if (po01dChild.getstatus() != "dead") yield null; // PO01C_CHECKPOINT
     }
     }
   }
@@ -2650,7 +2678,7 @@ function OpexPO01CV216Coverage(po01dResult, po01fContext, center, cargo, radius)
     local po01dChild = OpexPO01CV216RefreshCover(po01dBox, po01fContext);
     while (po01dChild.getstatus() != "dead") {
       resume po01dChild;
-      yield null; // PO01C_CHECKPOINT
+      if (po01dChild.getstatus() != "dead") yield null; // PO01C_CHECKPOINT
     }
     local cover = po01dBox.value;
   local key = center + "|" + cargo + "|" + radius;
@@ -2660,7 +2688,7 @@ function OpexPO01CV216Coverage(po01dResult, po01fContext, center, cargo, radius)
     local po01dChild = OpexPO01CV216AdvAround(po01dBox, po01fContext, cover, center, radius);
     while (po01dChild.getstatus() != "dead") {
       resume po01dChild;
-      yield null; // PO01C_CHECKPOINT
+      if (po01dChild.getstatus() != "dead") yield null; // PO01C_CHECKPOINT
     }
     adv = po01dBox.value; }
   local ci = AICargo.HasCargoClass(cargo, AICargo.CC_MAIL) ? 1 : 0;
@@ -2668,13 +2696,17 @@ function OpexPO01CV216Coverage(po01dResult, po01fContext, center, cargo, radius)
   local cy = AIMap.GetTileY(center);
   local res = { prod = 0, own = 0, adv = 0, ownRating = 0 };
   for (local x = cx - radius; x <= cx + radius; x++) {
-    yield null; // PO01C_CHECKPOINT
+    if (OpexOpsMeasureEnd(PO01C_WORK_MARK) >= PO01C_WORK_OPS) {
+      yield null; // PO01C_CHECKPOINT
     if (DECISION_LOG) OpexPO01CWhere("OpexPO01CV216Coverage", "pax:V216Coverage", -1);
+    }
 
     for (local y = cy - radius; y <= cy + radius; y++) {
     if (++po01gWork % 32 == 0) {
-    yield null; // PO01C_CHECKPOINT
+    if (OpexOpsMeasureEnd(PO01C_WORK_MARK) >= PO01C_WORK_OPS) {
+      yield null; // PO01C_CHECKPOINT
     if (DECISION_LOG) OpexPO01CWhere("OpexPO01CV216Coverage", "pax:V216Coverage", -1);
+    }
     }
 
       if (x < 1 || y < 1 || x >= AIMap.GetMapSizeX() - 1 || y >= AIMap.GetMapSizeY() - 1) continue;
@@ -2701,7 +2733,7 @@ function OpexPO01CV216GainPct(po01dResult, po01fContext, center, cargo, radius, 
     local po01dChild = OpexPO01CV216Coverage(po01dBox, po01fContext, center, cargo, radius);
     while (po01dChild.getstatus() != "dead") {
       resume po01dChild;
-      yield null; // PO01C_CHECKPOINT
+      if (po01dChild.getstatus() != "dead") yield null; // PO01C_CHECKPOINT
     }
     local c = po01dBox.value;
   if (c.prod <= 0) { po01dResult.value = 100; return; }
@@ -2718,7 +2750,7 @@ function OpexPO01CV216aEndPct(po01dResult, po01fContext, center, cargo, radius)
     local po01dChild = OpexPO01CV216GainPct(po01dBox, po01fContext, center, cargo, radius, V216A_RN);
     while (po01dChild.getstatus() != "dead") {
       resume po01dChild;
-      yield null; // PO01C_CHECKPOINT
+      if (po01dChild.getstatus() != "dead") yield null; // PO01C_CHECKPOINT
     }
     po01dResult.value = po01dBox.value; return; }
   if (center == null || center < 0) { po01dResult.value = 100; return; }
@@ -2726,7 +2758,7 @@ function OpexPO01CV216aEndPct(po01dResult, po01fContext, center, cargo, radius)
     local po01dChild = OpexPO01CV216Coverage(po01dBox, po01fContext, center, cargo, radius);
     while (po01dChild.getstatus() != "dead") {
       resume po01dChild;
-      yield null; // PO01C_CHECKPOINT
+      if (po01dChild.getstatus() != "dead") yield null; // PO01C_CHECKPOINT
     }
     local c = po01dBox.value;
   if (c.prod <= 0) { po01dResult.value = 100; return; }
@@ -2746,14 +2778,14 @@ function OpexPO01CV216aScaleDemand(po01dResult, po01fContext, srcTile, dstTile, 
     local po01dChild = OpexPO01CV216aEndPct(po01dBox, po01fContext, srcTile, cargo, radius);
     while (po01dChild.getstatus() != "dead") {
       resume po01dChild;
-      yield null; // PO01C_CHECKPOINT
+      if (po01dChild.getstatus() != "dead") yield null; // PO01C_CHECKPOINT
     }
     po01fSrc = po01dBox.value; }
   { local po01dBox = { value = null };
     local po01dChild = OpexPO01CV216aEndPct(po01dBox, po01fContext, dstTile, cargo, radius);
     while (po01dChild.getstatus() != "dead") {
       resume po01dChild;
-      yield null; // PO01C_CHECKPOINT
+      if (po01dChild.getstatus() != "dead") yield null; // PO01C_CHECKPOINT
     }
     po01fDst = po01dBox.value; }
   local pct = (po01fSrc + po01fDst) / 2;
