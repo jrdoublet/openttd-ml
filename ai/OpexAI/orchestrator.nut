@@ -638,6 +638,18 @@ function OpexAI::_dispatchReactiveIntention(intention)
     local deferPayload = intention.payload != null ? clone intention.payload : {};
     local deferDate = AIDate.GetCurrentDate();
     local blocked = this._projects == null || this._activeWorker != null;
+    /* C77 defer 2 : conserver l'offre pendant l'annee AIR, sans prolonger sa vie.
+     * AISubsidy.GetExpireDate est le dernier jour valide de l'offre non attribuee.
+     * Ne plus reenfiler des ce jour : aucun chantier ne peut alors finir a temps.
+     * Verifier aussi c77_build si l'offre expire apres son injection. */
+    if (C77_INTENT_DEFER_SUBSIDY && ("subsidyId" in deferPayload) && deferPayload.subsidyId >= 0) {
+      local deferSubId = deferPayload.subsidyId;
+      if (!AISubsidy.IsValidSubsidy(deferSubId) || AISubsidy.IsAwarded(deferSubId)
+          || deferDate >= AISubsidy.GetExpireDate(deferSubId)) return false;
+      if (intention.kind == "c77_subsidy" && MODE_AIR && C121_CATALOG_FIRST_YEAR_ACTIVE)
+        blocked = true;
+    }
+    /* Fin C77 defer 2. */
     if (blocked && !("c77DeferDate" in deferPayload)) deferPayload.c77DeferDate <- deferDate;
     if (("c77DeferDate" in deferPayload)
         && deferDate - deferPayload.c77DeferDate >= C77_INTENT_DEFER_DAYS) {
