@@ -75,6 +75,37 @@ function OpexPO01CGenerateMode(owner, s, mode)
   if (mode == "rail") s.seed.freightCargo = generated.freightCargo;
 }
 
+/* AIR keeps its existing cursor protocol; nested generators only split the
+ * atomic site/hub scans within each call. Null results use a separate box. */
+function OpexPO01CGenerateAir(s)
+{
+  local best = null;
+  while (!("done" in s.airCursor) || !s.airCursor.done) {
+    local result = { value = null };
+    local iterator = OpexPO01CAirPlans(result, s.catalog, s.lines, 0, s.airPlans,
+        s.abandoned, PAX_BAND_ALL, -1, s.airCursor, PO01C_SLICE_OPS,
+        AIController.GetTick() + 5);
+    while (iterator.getstatus() != "dead") {
+      /* Other AIR planners can run between checkpoints. Restore the same
+       * cursor-owned C121 state that Prepare binds on synchronous entry. */
+      if ("c121PlanPerf" in s.airCursor) C121_AIR_PLAN_PERF = s.airCursor.c121PlanPerf;
+      if ("c121EndpointCache" in s.airCursor) C121_AIR_ENDPOINT_CACHE = s.airCursor.c121EndpointCache;
+      resume iterator;
+      yield null; // PO01C_CHECKPOINT
+    }
+    best = result.value;
+  }
+  local generated = OpexPO01CEmptyGenerated(s.seed);
+  generated.airPlans = s.airPlans;
+  generated.airPlan = best;
+  foreach (plan in s.airPlans) {
+    yield null; // PO01C_CHECKPOINT
+    local project = OpexProjectFromAir(s.catalog, plan, 0);
+    if (project != null) generated.projects.append(project);
+  }
+  s.outputs.rawset("air", generated);
+}
+
 function OpexPO01CCopyLines(lines)
 {
   local copied = [];
@@ -374,6 +405,7 @@ function OpexPO01CStep(owner)
       if (OpexPO01CAirPending(owner)) {
         /* C78 may have started after our snapshot. Release the non-AIR lot;
          * do not let its last unit hold all completed modes indefinitely. */
+        s.iterator = null;
         s.modes.remove(s.modeCursor);
         for (local i = s.coveredModes.len() - 1; i >= 0; i--)
           if (s.coveredModes[i] == "air") s.coveredModes.remove(i);
@@ -381,17 +413,7 @@ function OpexPO01CStep(owner)
           if (s.layers[i] == "engines.air") s.layers.remove(i);
         return true;
       }
-      local best = OpexAirPlans(s.catalog, s.lines, 0, s.airPlans, s.abandoned,
-          PAX_BAND_ALL, -1, s.airCursor, PO01C_SLICE_OPS, tick + 5);
-      if (("done" in s.airCursor) && s.airCursor.done) {
-        local generated = OpexPO01CEmptyGenerated(s.seed);
-        generated.airPlans = s.airPlans; generated.airPlan = best;
-        foreach (plan in s.airPlans) {
-          local project = OpexProjectFromAir(s.catalog, plan, 0);
-          if (project != null) generated.projects.append(project);
-        }
-        s.outputs.rawset("air", generated); s.modeCursor++;
-      }
+      if (s.iterator == null) s.iterator = OpexPO01CGenerateAir(s);
     } else if (s.iterator == null) s.iterator = OpexPO01CGenerateMode(owner, s, mode);
   } else {
     phase = "publish";
