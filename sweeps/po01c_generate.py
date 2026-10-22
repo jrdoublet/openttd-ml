@@ -160,7 +160,36 @@ def generated():
         pieces.append(code)
     pieces.extend(deep_copy(file, name) for file, name in DEEP_SOURCES)
     pieces.extend(pax_copies())
+    # PO01H: a completed child has no suspended work to propagate. Keep the
+    # terminal checkpoint in the source (so these remain generators), but only
+    # unwind a live child. Apply the budget gate to PAX's actual work sites,
+    # never to a propagation checkpoint: a live child's yield must reach Step.
+    for i, code in enumerate(pieces):
+        if code.startswith('function OpexPO01CPaxCandidates(') or any(
+                code.startswith('function OpexPO01C' + n + '(') for n in
+                ['MakePaxCandidate'] + [name[4:] for _, name in PAX_SOURCES[1:]]):
+            pieces[i] = budgeted_pax(code)
     return '\n\n'.join(pieces) + '\n'
+
+
+def budgeted_pax(code):
+    """No business edits: gate work checkpoints, propagate only live children.
+
+    The shared mark is reset by Step immediately before each root resume, so
+    time/opcodes spent by other planners between slices are never charged here.
+    Inner tile loops still test once per 32 visits, including rejected visits.
+    """
+    forwarding = 'resume po01dChild;\n      yield null; // PO01C_CHECKPOINT'
+    code = code.replace(forwarding, 'resume po01dChild;\n      PO01H_FORWARD;')
+    # Move the optional work-site diagnostic inside the gate as well; otherwise
+    # logging would still execute at every row even when it does not suspend.
+    code = re.sub(r'yield null; // PO01C_CHECKPOINT'
+                  r'(\s*if \(DECISION_LOG\) OpexPO01CWhere\([^;]*\);)?',
+                  lambda m: 'if (OpexOpsMeasureEnd(PO01C_WORK_MARK) >= PO01C_WORK_OPS) {\n'
+                  '      yield null; // PO01C_CHECKPOINT'
+                  + (m[1] or '') + '\n    }', code)
+    return code.replace('PO01H_FORWARD;',
+                        'if (po01dChild.getstatus() != "dead") yield null; // PO01C_CHECKPOINT')
 
 
 # PO01F: coverage, not station planning, is reachable from candidate admission.

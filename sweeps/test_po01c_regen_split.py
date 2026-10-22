@@ -2,12 +2,119 @@
 import re
 import unittest
 import hashlib
-from po01c_generate import AI, DEEP_SOURCES, generated, function, unit_sites, bridge
+from po01c_generate import AI, DEEP_SOURCES, generated, function, unit_sites, bridge, budgeted_pax
 from test_v261_forum_behaviours import source, body, uncomment
 from po01c_diagnostics import pending_save_dates, summarize
 
 
+def unbudgeted_pax(code):
+    # Strip only PO01H scheduling, retaining PO01G checkpoints/site diagnostics.
+    code = re.sub(r'if \(OpexOpsMeasureEnd\(PO01C_WORK_MARK\) >= PO01C_WORK_OPS\) \{\s*'
+                  r'(yield null;(?: // PO01C_CHECKPOINT)?'
+                  r'(?:\s*if \(DECISION_LOG\) OpexPO01CWhere\([^;]*\);)?)\s*\}',
+                  r'\1', code)
+    return code.replace('if (po01dChild.getstatus() != "dead") yield null;', 'yield null;')
+
+
 class PO01CContracts(unittest.TestCase):
+    def test_po01h_budget_gate_and_live_propagation(self):
+        for name in ('PaxCandidates', 'MakePaxCandidate', 'RailOriginSitable',
+                     'V216MarkRect', 'V216RefreshCover', 'V216AdvAround',
+                     'V216Coverage', 'V216GainPct', 'V216aEndPct', 'V216aScaleDemand'):
+            code = function(source('po01c_generators.nut'), 'OpexPO01C' + name)
+            restored = unbudgeted_pax(code)
+            # Inverse scheduling transform restores every business token and
+            # every original site; no silently removed return/continue/loop.
+            self.assertEqual(re.sub(r'\s+', '', budgeted_pax(restored)),
+                             re.sub(r'\s+', '', code))
+            for match in re.finditer(r'resume po01dChild;', code):
+                self.assertTrue(code[match.end():].lstrip().startswith(
+                    'if (po01dChild.getstatus() != "dead") yield null;'))
+        step = body('po01c_regen.nut', 'OpexPO01CStep')
+        self.assertEqual(step.count('PO01C_WORK_MARK ='), 2)
+        self.assertIn('const PO01C_WORK_OPS = 30000;', source('po01c_regen.nut'))
+        self.assertNotIn('PO01C_WORK_MARK', source('persist.nut'))
+
+    def test_po01h_yield_count_budget_and_order_model(self):
+        # Scheduling model, not VM measurements. Polling and propagation costs
+        # are explicit illustrative inputs. Epoch/API data remain fixed.
+        def run(width, height, depth, gated):
+            ops = unit_ops = yields = polls = 0
+            visits, admitted = [], []
+
+            def checkpoint():
+                nonlocal ops, unit_ops, yields, polls
+                polls += 1
+                ops += 40
+                unit_ops += 40
+                if not gated or unit_ops >= 30000:
+                    yields += 1
+                    ops += 80 + 20 * depth
+                    unit_ops = 0  # Step refreshes mark; other tasks excluded.
+
+            for x in range(width):
+                checkpoint()
+                for y in range(height):
+                    if (x * height + y + 1) % 32 == 0:
+                        checkpoint()
+                    visits.append((x, y))
+                    # Include cheap rejected tiles and heavier accepted tiles.
+                    cost = 20 if (x + y) % 3 == 0 else 100
+                    ops += cost
+                    unit_ops += cost
+                    self.assertLessEqual(unit_ops, 30000 + 32 * 140)
+                    if (x + y) % 3 == 0:
+                        continue
+                    admitted.append((x, y))
+            return visits, admitted, yields, polls, ops
+
+        for depth in (1, 4, 8):
+            for width, height in ((1, 1), (15, 15), (200, 15), (200, 225)):
+                old, new = run(width, height, depth, False), run(width, height, depth, True)
+                self.assertEqual(new[:2], old[:2])
+                self.assertEqual(new[3], old[3])
+                self.assertLessEqual(new[2], old[2])
+                self.assertLessEqual(new[4], old[4])
+                if width == 200:
+                    self.assertLess(new[2], old[2] / 4)
+        # Cached children can return without a single suspension. Dead children
+        # must not cause eight gratuitous yields on the return path.
+        def nested(depth, checkpoints, gated, box):
+            if depth == 0:
+                for visit in range(checkpoints):
+                    yield visit
+                box.append(None)  # A legitimate null result, not a suspension.
+                return
+            child = nested(depth - 1, checkpoints, gated, box)
+            while True:
+                try:
+                    value = next(child)
+                except StopIteration:
+                    if not gated:
+                        yield None  # PO01G also propagated dead-child resumes.
+                    return
+                yield value
+
+        for suspended in (0, 1, 10):
+            before, after = [], []
+            old = list(nested(8, suspended, False, before))
+            new = list(nested(8, suspended, True, after))
+            self.assertEqual(before, after)
+            self.assertEqual(after, [None])
+            self.assertEqual(new, list(range(suspended)))
+            self.assertEqual(len(old) - len(new), 8)
+
+    def test_po01h_unit_covers_layer_publish_and_mode(self):
+        step = body('po01c_regen.nut', 'OpexPO01CStep')
+        self.assertNotIn('DECISION_LOG && phase == "mode"', step)
+        self.assertIn('unit = s.layers[s.layerCursor];', step)
+        self.assertIn('"phase=" + phase + " mode=" + unit', step)
+        self.assertIn('"whole_publish"', step)
+        publish = body('po01c_regen.nut', 'OpexPO01CPublish')
+        for site in ('resizeAirFleets', 'OpexReselectProjects'):
+            self.assertRegex(publish, r'if \(DECISION_LOG\) OpexPO01CUnitEnd\([^;]*"' + site + r'"\);')
+        self.assertIn('if (!DECISION_LOG) return;', body('po01c_regen.nut', 'OpexPO01CUnitEnd'))
+
     def test_po01g_epoch_and_diagnostics_scope(self):
         producer = body('po01c_generators.nut', 'OpexPO01CPaxCandidates')
         candidate = body('po01c_generators.nut', 'OpexPO01CMakePaxCandidate')
@@ -108,7 +215,7 @@ class PO01CContracts(unittest.TestCase):
                                       if (x + y) % 3 != 0])
 
     def test_po01f_candidate_business_tokens_preserved(self):
-        copied = function(source('po01c_generators.nut'), 'OpexPO01CMakePaxCandidate')
+        copied = unbudgeted_pax(function(source('po01c_generators.nut'), 'OpexPO01CMakePaxCandidate'))
         copied = re.sub(r'if \(DECISION_LOG\) OpexPO01CWhere\([^;]*\);', '', copied)
         for callee, args, result, original in (
             ('OpexRailOriginSitable', 'srcTile, cargo, catalog.railCoverage, true', 'sitable',
@@ -147,7 +254,7 @@ class PO01CContracts(unittest.TestCase):
         for file, name in [('probe_v216.nut', 'V216MarkRect'),
                            ('candidates.nut', 'RailOriginSitable')]:
             original = function(source(file), 'Opex' + name)
-            copied = function(source('po01c_generators.nut'), 'OpexPO01C' + name)
+            copied = unbudgeted_pax(function(source('po01c_generators.nut'), 'OpexPO01C' + name))
             copied = copied.replace('OpexPO01C' + name + '(po01dResult, ', 'Opex' + name + '(')
             copied = copied.replace('po01fContext, ', '')
             copied = copied.replace('local po01gWork = 0;', '')
@@ -164,7 +271,7 @@ class PO01CContracts(unittest.TestCase):
                    'V216Coverage': 'for (local y = cy - radius; y <= cy + radius; y++)',
                    'RailOriginSitable': 'for (local dy = -r; dy <= r; dy++)'}
         for name, loop in targets.items():
-            code = body('po01c_generators.nut', 'OpexPO01C' + name)
+            code = unbudgeted_pax(body('po01c_generators.nut', 'OpexPO01C' + name))
             self.assertRegex(code, re.escape(loop) + r'\s*\{\s*'
                              r'(?:if \(\+\+po01gWork % 32 == 0\) \{\s*)?yield null;')
             for line in code.splitlines():
@@ -181,7 +288,7 @@ class PO01CContracts(unittest.TestCase):
                  'V216RefreshCover': ['V216MarkRect'],
                  'V216AdvAround': ['V216MarkRect']}
         for caller, callees in edges.items():
-            code = body('po01c_generators.nut', 'OpexPO01C' + caller)
+            code = unbudgeted_pax(body('po01c_generators.nut', 'OpexPO01C' + caller))
             for callee in callees:
                 self.assertIn('OpexPO01C' + callee + '(po01dBox, ', code)
                 self.assertNotIn('Opex' + callee + '(', code)
@@ -272,14 +379,14 @@ class PO01CContracts(unittest.TestCase):
 
     def test_po01e_step_logged_branch_and_transient_state(self):
         code = body('po01c_regen.nut', 'OpexPO01CStep')
-        self.assertIn('if (DECISION_LOG && phase == "mode") {', code)
-        logged = code[code.index('if (DECISION_LOG && phase == "mode") {'):code.index('\n    } else {', code.index('local largest'))]
+        self.assertIn('if (DECISION_LOG) {', code)
+        logged = code[code.index('if (DECISION_LOG) {'):code.index('\n    } else {', code.index('local largest'))]
         self.assertIn('local largest = null;', logged)
-        self.assertRegex(logged, r'local unitMark = OpexOpsMeasureBegin\(\);\s*resume s.iterator;\s*local unitOps = OpexOpsMeasureEnd\(unitMark\);')
+        self.assertRegex(logged, r'local unitMark = OpexOpsMeasureBegin\(\);\s*PO01C_WORK_MARK = unitMark;\s*resume s.iterator;\s*local unitOps = OpexOpsMeasureEnd\(unitMark\);')
         self.assertIn('unitOps > PO01C_SLICE_OPS && (largest == null || unitOps > largest.ops)', logged)
         self.assertIn('idx = PO01C_WHERE.idx, ops = unitOps', logged)
         self.assertEqual(logged.count('OpexDecide("PO01C_UNIT"'), 1)
-        self.assertIn('} else {\n      while (s.iterator.getstatus() != "dead" && OpexOpsMeasureEnd(mark) < PO01C_SLICE_OPS)\n        resume s.iterator;', code)
+        self.assertIn('PO01C_WORK_MARK = OpexOpsMeasureBegin();\n        resume s.iterator;', code)
         self.assertNotIn('PO01C_WHERE', source('persist.nut'))
         self.assertIn('if (DECISION_LOG) {', body('po01c_regen.nut', 'OpexPO01CWhere'))
         mode = body('po01c_regen.nut', 'OpexPO01CGenerateMode')
@@ -341,7 +448,7 @@ class PO01CContracts(unittest.TestCase):
                                      'foreach (town in towns)'],
         }
         for name, loops in targets.items():
-            code = body('po01c_generators.nut', 'OpexPO01C' + name)
+            code = unbudgeted_pax(body('po01c_generators.nut', 'OpexPO01C' + name))
             for loop in loops:
                 with self.subTest(name=name, loop=loop):
                     self.assertRegex(code, re.escape(loop) + r'\s*\{\s*yield null;')
@@ -358,7 +465,7 @@ class PO01CContracts(unittest.TestCase):
             'AirFindSiteCatchmentListed': 'AirFindSiteListed',
         }
         for caller, callee in edges.items():
-            code = body('po01c_generators.nut', 'OpexPO01C' + caller)
+            code = unbudgeted_pax(body('po01c_generators.nut', 'OpexPO01C' + caller))
             self.assertIn('OpexPO01C' + callee + '(po01dBox, ', code)
             self.assertNotIn('Opex' + callee + '(', code)
             self.assertRegex(code, r'while \(po01dChild.getstatus\(\) != "dead"\)\s*'
