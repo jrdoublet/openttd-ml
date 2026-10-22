@@ -427,11 +427,11 @@ class PO01CContracts(unittest.TestCase):
             'air_sites.nut': '679b2912e9c71f708e6ad308ce187277f477f1751987405c74fb774998698fc4',
             'candidates.nut': '1f56d53670182f66b2c3d54360927e4be912ba65f4cdbffe1a04dff6dadd54ad',
             'catalog.nut': '4882c4c3de58c97882b2739432e62045a2e567b1ee980e5a2a56dedd34a17ba9',
-            'orchestrator.nut': 'bc9aa564c5f84aff5d638086094048548f6f5a9a8eb61d44c047030bfcc71743',
+            'orchestrator.nut': '1600953e477a5db49827d2f277ed965f4442a56ca32710f3c15a209a1b563ace',
             'main.nut': '81f077c68e094a0a9a8d4a63e1600af0fce0cdd9b9b835077e3da386d3b36ece',
             'probes.nut': 'ef0a1228e758e648736c89b9252dc9568f6b6a834065343e805570aed47788dd',
-            'settings.nut': 'd343f6c304a23155358a9267bc1efddf43843a0a2cb6fd11ee1853f0762bd18a',
-            'info.nut': 'fa64c09cb07b06cd60643cf6e8f5dba0a4afbeb56f14acde3fa066dd926ab921',
+            'settings.nut': '580b8d9fd4997e6ec84a6c08ad51e02d6227c1de0d6b2411580cfb6c4306076d',
+            'info.nut': '2b73568392c824c3d2f6653eddeb132cf98e613987c6f4db1ee149c9d097462e',
         }
         for name, digest in expected.items():
             with self.subTest(name=name):
