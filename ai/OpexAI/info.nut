@@ -14,10 +14,10 @@ class OpexAIInfo extends AIInfo {
   function GetSettings()
   {
     AddSetting({ name = "c77_intent_defer",
-      description = "C77: defer build/subsidy until portfolio and worker are ready (experimental)",
-      min_value = 0, max_value = 1,
+      description = "C77: defer intents (1=portfolio/worker, 2=also AIR year/subsidy expiry)",
+      min_value = 0, max_value = 2,
       easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
-      flags = AICONFIG_BOOLEAN });
+      flags = 0 });
     AddSetting({ name = "po01c_regen_split",
       description = "PO01C: resumable reactive regeneration (experimental)",
       min_value = 0, max_value = 1,
