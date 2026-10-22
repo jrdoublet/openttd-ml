@@ -70,6 +70,14 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "air_flotte1_shadow",
+      description = "AIR-FLOTTE-1: log read-only AIR purchase and RAIL shortlist snapshots; diagnostic only, 0 = off (default), 1 = on",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
       name = "save_full_state",
       description = "Persist the full decision state in savegames: 1 = save built lines and scheduler state (default), 0 = minimal payload",
       easy_value = 1, medium_value = 1, hard_value = 1,

@@ -43,7 +43,7 @@ class TestV251Inventory(unittest.TestCase):
 
     def test_no_new_public_setting(self):
         info = self.sources["info.nut"]
-        self.assertLessEqual(info.count("AddSetting("), 98)  # V263b : 81 moins 11 retraits approuves le 20/10 ; +1 V275, +1 V269 (fusions du 20/10) ; +1 V276, +1 V284 (branche v288) ; +1 V284 (fusion du 20/10) ; +2 V294, +1 V294h, +5 V294c/d/f/i/j, +1 V295, +1 V294c adaptatif, +1 V296a, +1 V296b. ; +1 V292 (fusion finpartie 21/10) ; +1 V301 (fusion notrain 21/10) ; +3 V307 (sonde, branche v307) ; +4 lot du 21/10 soir (V307S, V307R, V308, V309) ; +1 PO-01c (fusion 22/10)
+        self.assertLessEqual(info.count("AddSetting("), 99)  # V263b : 81 moins 11 retraits approuves le 20/10 ; +1 V275, +1 V269 (fusions du 20/10) ; +1 V276, +1 V284 (branche v288) ; +1 V284 (fusion du 20/10) ; +2 V294, +1 V294h, +5 V294c/d/f/i/j, +1 V295, +1 V294c adaptatif, +1 V296a, +1 V296b. ; +1 V292 (fusion finpartie 21/10) ; +1 V301 (fusion notrain 21/10) ; +3 V307 (sonde, branche v307) ; +4 lot du 21/10 soir (V307S, V307R, V308, V309) ; +1 PO-01c (fusion 22/10)
         self.assertNotIn('name = "v251', info)
         settings = self.sources["settings.nut"]
         self.assertNotIn('GetSetting("v251', settings)

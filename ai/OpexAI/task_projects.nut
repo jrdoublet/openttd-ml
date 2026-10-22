@@ -1,4 +1,5 @@
 /* C65 : deplace depuis main.nut (passe 1, deplacement pur, aucun corps retouche). */
+require("air_flotte1_shadow.nut");
 /* Tous les appels ci-dessous sont sous R1_R3_TEST_ONLY, declare dans le module
  * de selection deja charge. Aucun nouveau membre de classe ni reglage commun. */
 function OpexR1R3FleetTrace(ai, project, rank, phase, reason, added = "unknown", replaced = "unknown")
@@ -199,7 +200,7 @@ function OpexAI::_purgeSubsidyFromProjects(subId)
   return removed;
 }
 /* C38 etape 2 : une croissance de flotte est une tentative synchrone de portefeuille. */
-function OpexAI::_tryBuildFleetProject(year, project, rank, passDiscards)
+function OpexAI::_tryBuildFleetProject(year, project, rank, passDiscards, builtKeys = null)
 {
   if (project == null) return { outcome = "no_candidate", discards = passDiscards };
   local i = rank;
@@ -256,6 +257,12 @@ function OpexAI::_tryBuildFleetProject(year, project, rank, passDiscards)
   /* Un REPLACE consomme un achat mais ne fait pas croitre la flotte :
    * compte separe, aligne sur task_air.nut (pas de added). */
   local replaced = 0;
+  /* Sonde passive uniquement si air_flotte1_shadow=1, apres les gardes de caisse
+   * et juste avant l'achat (pas de selection/revalidation supplementaire). */
+  local airF1Event = AIR_FLOTTE1_SHADOW
+      ? OpexAirF1Before(this, "reinforce", line.lineId, entry.planePrice,
+                        project, i, -1, -1, builtKeys) : null;
+  if (airF1Event != null) OpexAirF1Ready(airF1Event);
   for (local k = 0; k < entry.want; k++) {
     local grown = OpexAirAddPlane(line, this._catalog, this._lines);
     if (R1_R3_TEST_ONLY) OpexR1R3Log("mechanism=R1 phase=api_result id="
@@ -282,12 +289,14 @@ function OpexAI::_tryBuildFleetProject(year, project, rank, passDiscards)
   if (R1_R3_TEST_ONLY) OpexR1R3FleetTrace(this, project, i, "result",
       added + replaced > 0 ? "built" : "fleet_grow_failed", added, replaced);
   if (added + replaced <= 0) {
+    if (airF1Event != null) OpexAirF1After(airF1Event, "failed", added, replaced);
     if (C63_INVEST_PROBE) OpexC63RecordSpend("fleet", plannedFull, actual, false);
     if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) {
       passDiscards.append({ rank = i, mode = "fleet", src = project.src, dst = project.dst, reason = "fleet_grow_failed", extra = "" });
     }
     return { outcome = "rejected", discards = passDiscards };
   }
+  if (airF1Event != null) OpexAirF1After(airF1Event, "built", added, replaced);
   if (C63_INVEST_PROBE) {
     local plannedAdded = entry.planePrice * (added + replaced);
     if (plannedAdded > plannedFull) plannedAdded = plannedFull;
@@ -1372,6 +1381,7 @@ function OpexAI::_tryBuildProjects(year)
   local anchor = AIMap.GetTileIndex(1, 1);
   local yy = year % 100;
   local builtCount = 0;
+  if (AIR_FLOTTE1_SHADOW) AIR_FLOTTE1_RAIL_PATH = {};
   local funnelAttempted = 0;
   local passDiscards = [];
   local c69BuiltProjects = [];
@@ -1464,9 +1474,17 @@ function OpexAI::_tryBuildProjects(year)
     local project = this._projects.best[i];
     if (project == null) continue;
     local c121LiveOpp = null;
-    if ((OpexC69AttemptKey(project) in c75BuiltKeys)) continue;
+    if ((OpexC69AttemptKey(project) in c75BuiltKeys)) {
+      if (AIR_FLOTTE1_SHADOW && project.mode == "rail")
+        OpexAirF1RailPath(project, i, "skipped", "already_built_in_pass");
+      continue;
+    }
     // V261 point 6 : pas de chantier dont les vehicules ne tiendraient pas sous le plafond.
-    if (!OpexModeVehicleRoom(project.mode, OpexTensionProjectVehicleCount(project))) continue;
+    if (!OpexModeVehicleRoom(project.mode, OpexTensionProjectVehicleCount(project))) {
+      if (AIR_FLOTTE1_SHADOW && project.mode == "rail")
+        OpexAirF1RailPath(project, i, "skipped", "mode_vehicle_limit");
+      continue;
+    }
     /* Reject an unavailable rail slot BEFORE K_pass: it cannot consume a bypass
      * or stop the pass ahead of a fundable AIR project. Ready grafts remain ordinary. */
     if (V233_PENDING_CONTINUE && project.mode == "rail" && this._railSearch != null) {
@@ -1475,10 +1493,16 @@ function OpexAI::_tryBuildProjects(year)
         && ("railPlan" in payload) && payload.railPlan != null;
       local graftReady = V233_GOODS_GRAFT && OpexV233IsGraft(payload)
         && ("railPlan" in payload) && payload.railPlan != null;
-      if (!prepared && !graftReady) continue;
+      if (!prepared && !graftReady) {
+        if (AIR_FLOTTE1_SHADOW) OpexAirF1RailPath(project, i, "skipped", "search_slot_busy");
+        continue;
+      }
     }
     if (V233_GOODS_GRAFT && project.mode == "rail" && OpexV233IsGraft(project.payload)
-        && OpexProjectFinanceCapital(project) > OpexAvailableCapital()) continue;
+        && OpexProjectFinanceCapital(project) > OpexAvailableCapital()) {
+      if (AIR_FLOTTE1_SHADOW) OpexAirF1RailPath(project, i, "skipped", "graft_cash");
+      continue;
+    }
 
     local r1r3BypassBefore = false;
     local r1r3Threshold = 0;
@@ -1607,7 +1631,7 @@ function OpexAI::_tryBuildProjects(year)
     if (mode == "fleet") {
       if (C49_SCARCITY_LEDGER) c49AttemptedRanks.rawset(i, true);
       local c78DiscardsLen = (C69_BOTTLENECK_PROBE && passDiscards != null) ? passDiscards.len() : 0;
-      local attempt = this._tryBuildFleetProject(year, project, i, passDiscards);
+      local attempt = this._tryBuildFleetProject(year, project, i, passDiscards, c75BuiltKeys);
       passDiscards = attempt.discards;
       if (C69_BOTTLENECK_PROBE) OpexC78LogBuild(year, i, mode, project, attempt, passDiscards, c78DiscardsLen);
       if (C49_SCARCITY_LEDGER && attempt.outcome == "built") c49BuiltRanks.rawset(i, true);
@@ -1769,11 +1793,27 @@ function OpexAI::_tryBuildProjects(year)
 
       }
     } else if (mode == "rail") {
+      if (AIR_FLOTTE1_SHADOW) OpexAirF1RailPath(project, i, "attempt", "entered_executor");
       if (C49_SCARCITY_LEDGER) c49AttemptedRanks.rawset(i, true);
       local c78DiscardsLen = (C69_BOTTLENECK_PROBE && passDiscards != null) ? passDiscards.len() : 0;
       local attempt = this._tryBuildRailProject(year, project, i, liveBuiltCount, passDiscards,
                                                  anchor, yy);
       passDiscards = attempt.discards;
+      if (AIR_FLOTTE1_SHADOW) {
+        local airF1Reason = attempt.outcome;
+        if (attempt.outcome == "rejected" && passDiscards != null && passDiscards.len() > 0) {
+          local d = passDiscards[passDiscards.len() - 1];
+          if (d != null && d.mode == "rail" && d.src == project.src && d.dst == project.dst)
+            airF1Reason = d.reason;
+        }
+        local airF1Key = OpexProjectAttemptKey(project);
+        local airF1ExplicitRejection = attempt.outcome == "rejected"
+            && AIR_FLOTTE1_RAIL_PATH != null
+            && airF1Key in AIR_FLOTTE1_RAIL_PATH
+            && AIR_FLOTTE1_RAIL_PATH[airF1Key].stage == "rejected";
+        if (!airF1ExplicitRejection)
+          OpexAirF1RailPath(project, i, "outcome", airF1Reason);
+      }
       if (RAIL_FAILURE_AUDIT) {
         local outcomeReason = attempt.outcome;
         if (attempt.outcome == "rejected" && passDiscards != null && passDiscards.len() > 0) {
