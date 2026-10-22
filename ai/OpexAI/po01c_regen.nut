@@ -2,6 +2,31 @@
 /* Opcodes per call, across ticks if needed (about 4 ticks, < 1 day). The hook runs once
  * per main-loop pass (~44 ticks measured), so 4000 left a batch at ~26 k ops/day. */
 const PO01C_SLICE_OPS = 40000;
+/* Transient diagnostic only, never part of Save/Load. Allocated only on logging. */
+PO01C_WHERE <- null;
+function OpexPO01CWhere(gen, site, idx)
+{
+  if (DECISION_LOG) {
+    if (PO01C_WHERE == null) PO01C_WHERE = { gen = "", site = "", idx = -1 };
+    PO01C_WHERE.gen = gen;
+    PO01C_WHERE.site = site;
+    PO01C_WHERE.idx = idx;
+  }
+}
+
+/* Expressions keep historical evaluation order inside table literals. Only the
+ * logged branch calls these wrappers; no extra yield or historical computation. */
+function OpexPO01CLoggedTopK(all, count, mode)
+{
+  if (DECISION_LOG) OpexPO01CWhere("OpexPO01CGenerateMode", mode + ":OpexTopK", -1);
+  return OpexTopK(all, count);
+}
+
+function OpexPO01CLoggedBands(all)
+{
+  if (DECISION_LOG) OpexPO01CWhere("OpexPO01CGenerateMode", "rail:OpexBands", -1);
+  return OpexBands(all);
+}
 function OpexPO01CModeEnabled(mode)
 {
   if (mode == "air") return MODE_AIR;
@@ -19,6 +44,7 @@ function OpexPO01CEmptyGenerated(projects)
 
 function OpexPO01CGenerateMode(owner, s, mode)
 {
+  if (DECISION_LOG) OpexPO01CWhere("OpexPO01CGenerateMode", "before_first_yield", -1);
   local generated = OpexPO01CEmptyGenerated(s.seed);
   local all = [];
   local stats = null;
@@ -28,12 +54,14 @@ function OpexPO01CGenerateMode(owner, s, mode)
     stats = OpexRailCandidateStats();
     iterator = OpexPO01CPaxCandidates(s.catalog, s.lines, all, stats, s.abandoned);
     while (iterator.getstatus() != "dead") { resume iterator; yield null; }
+    if (DECISION_LOG) OpexPO01CWhere("OpexPO01CGenerateMode", "rail:OpexFreightCargoOrder", -1);
     local cargoOrder = OpexFreightCargoOrder(s.catalog);
     local start = -1;
     for (local i = 0; i < cargoOrder.len(); i++) {
       if (cargoOrder[i] == generated.freightCargo) start = i;
     }
     for (local offset = 0; offset < cargoOrder.len(); offset++) {
+      if (DECISION_LOG) OpexPO01CWhere("OpexPO01CGenerateMode", "rail:freight_generator", offset);
       local cargo = cargoOrder[start >= 0 ? (start + offset) % cargoOrder.len() : offset];
       local previousCount = all.len();
       iterator = OpexPO01CFreightCandidates(s.catalog, s.lines, all, stats, s.abandoned,
@@ -41,8 +69,9 @@ function OpexPO01CGenerateMode(owner, s, mode)
       while (iterator.getstatus() != "dead") { resume iterator; yield null; }
       if (all.len() > previousCount) { generated.freightCargo = cargo; break; }
     }
-    generated.rail = { all = all.len(), candidates = all, best = OpexTopK(all, TOP_K),
-        bands = OpexBands(all), stats = stats, opcodes = 0, profile = null };
+    generated.rail = { all = all.len(), candidates = all,
+        best = DECISION_LOG ? OpexPO01CLoggedTopK(all, TOP_K, mode) : OpexTopK(all, TOP_K),
+        bands = DECISION_LOG ? OpexPO01CLoggedBands(all) : OpexBands(all), stats = stats, opcodes = 0, profile = null };
   } else if (mode == "road") {
     stats = { pairsInBand = 0, noMonthly = 0, noEngine = 0, townRejected = 0,
         townAcceptancePrefiltered = 0, economicsUnavailable = 0, profitTooLow = 0,
@@ -53,7 +82,8 @@ function OpexPO01CGenerateMode(owner, s, mode)
           null, generated.freightCargo);
       while (iterator.getstatus() != "dead") { resume iterator; yield null; }
     }
-    generated.road = { all = all.len(), candidates = all, best = OpexTopK(all, ROAD_TOP_K),
+    generated.road = { all = all.len(), candidates = all,
+        best = DECISION_LOG ? OpexPO01CLoggedTopK(all, ROAD_TOP_K, mode) : OpexTopK(all, ROAD_TOP_K),
         stats = stats, opcodes = 0, profile = null };
   } else if (mode == "water") {
     iterator = OpexPO01CWaterPlans(s.catalog, s.lines, generated.waterPlans);
@@ -65,14 +95,17 @@ function OpexPO01CGenerateMode(owner, s, mode)
       if (project != null) generated.projects.append(project);
     }
   }
-  foreach (candidate in all) {
+  foreach (candidateIndex, candidate in all) {
     yield null;
+    if (DECISION_LOG) OpexPO01CWhere("OpexPO01CGenerateMode", mode + ":project_filter", candidateIndex);
     if (OpexAbandonedPairKey(candidate) in s.abandoned) continue;
+    if (DECISION_LOG) OpexPO01CWhere("OpexPO01CGenerateMode", mode + ":OpexProjectFromCandidate", candidateIndex);
     local project = OpexProjectFromCandidate(candidate);
     if (project != null) generated.projects.append(project);
   }
   s.outputs.rawset(mode, generated);
   if (mode == "rail") s.seed.freightCargo = generated.freightCargo;
+  if (DECISION_LOG) OpexPO01CWhere("OpexPO01CGenerateMode", "after_last_yield", -1);
 }
 
 /* AIR keeps its existing cursor protocol; nested generators only split the
@@ -423,8 +456,26 @@ function OpexPO01CStep(owner)
     if (owner._c76AnyLayerChanged()) owner._po01cPending = true;
   }
   if (s.iterator != null) {
-    while (s.iterator.getstatus() != "dead" && OpexOpsMeasureEnd(mark) < PO01C_SLICE_OPS)
-      resume s.iterator;
+    if (DECISION_LOG && phase == "mode") {
+      local largest = null;
+      while (s.iterator.getstatus() != "dead" && OpexOpsMeasureEnd(mark) < PO01C_SLICE_OPS) {
+        /* Seed each unit: no stale rail site when another mode starts. Nested
+         * generators overwrite this only after entering their own work. */
+        OpexPO01CWhere(unit == "air" ? "OpexPO01CGenerateAir" : "OpexPO01CGenerateMode", "before_first_yield", -1);
+        local unitMark = OpexOpsMeasureBegin();
+        resume s.iterator;
+        local unitOps = OpexOpsMeasureEnd(unitMark);
+        if (unitOps > PO01C_SLICE_OPS && (largest == null || unitOps > largest.ops))
+          largest = { gen = PO01C_WHERE.gen, site = PO01C_WHERE.site,
+              idx = PO01C_WHERE.idx, ops = unitOps };
+      }
+      if (largest != null) OpexDecide("PO01C_UNIT", "mode=" + unit
+          + " gen=" + largest.gen + " site=" + largest.site + " idx=" + largest.idx
+          + " ops=" + largest.ops);
+    } else {
+      while (s.iterator.getstatus() != "dead" && OpexOpsMeasureEnd(mark) < PO01C_SLICE_OPS)
+        resume s.iterator;
+    }
     if (s.iterator.getstatus() == "dead") {
       s.iterator = null;
       if (phase == "layer") s.layerCursor++; else s.modeCursor++;

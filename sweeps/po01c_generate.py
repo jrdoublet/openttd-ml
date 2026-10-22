@@ -135,9 +135,58 @@ def generated():
             code = bridge(code,
                           'navigableDistance = OpexWaterFindConnection(sites[a], sites[b]);',
                           'OpexWaterFindConnection', 'sites[a], sites[b]', 'navigableDistance')
+        if name in ('OpexPaxCandidates', 'OpexFreightCandidates', 'OpexRoadFreightCandidates'):
+            code = unit_sites(code, name)
         pieces.append(code)
     pieces.extend(deep_copy(file, name) for file, name in DEEP_SOURCES)
     return '\n\n'.join(pieces) + '\n'
+
+
+def unit_sites(code, name):
+    """Telemetry only: mark AFTER a yield, never attribute work to the next pair.
+
+    idx is the existing loop index/key (source/town index or cargo ID). -1 means
+    outside a loop. The single unindexed line loop gets its array index explicitly.
+    No added checkpoint, changed filter, or changed historical call.
+    """
+    gen = 'OpexPO01C' + name[4:]
+    prefix = {'OpexPaxCandidates': 'rail_pax', 'OpexFreightCandidates': 'rail_freight',
+              'OpexRoadFreightCandidates': 'road_freight'}[name]
+    def mark(site, idx='-1'):
+        return f'if (DECISION_LOG) OpexPO01CWhere("{gen}", "{site}", {idx});'
+    code = code.replace('\n{\n', '\n{\n  ' + mark('before_first_yield') + '\n', 1)
+    code = code.replace('foreach (line in lines)', 'foreach (po01eLineIndex, line in lines)')
+    loop_sites = {
+        'OpexPaxCandidates': [('air_lines', 'po01eLineIndex'), ('production', 'i'),
+                             ('mail', 'i'), ('neighbors', 'a'), ('pair', 'b')],
+        'OpexFreightCandidates': [('service', 'i'), ('cargo', 'cargo'), ('source', 'si'),
+                                 ('industry_pair', 'k'), ('town_pair', 'k')],
+        'OpexRoadFreightCandidates': [('industry_service', 'i'), ('town_service', 'i'),
+                                     ('cargo', 'cargo'), ('source', 'si'),
+                                     ('rejected_industry', 'di'), ('rejected_town', 'ti'),
+                                     ('industry_pair', 'k'), ('town_probe', 'ti'), ('town_pair', 'k')],
+    }[name]
+    checkpoints = iter(loop_sites)
+    def checkpoint(m):
+        site, idx = next(checkpoints)
+        return m[0] + '\n    ' + mark(prefix + ':' + site, idx)
+    code = re.sub(r'yield null; // PO01C_CHECKPOINT', checkpoint, code)
+    assert next(checkpoints, None) is None
+    # Last historical call reached within the unit. Keep its index from the loop.
+    calls = ('OpexMakeCandidate', 'OpexMakeRoadCandidate', 'OpexRoadFreightAcceptedTowns',
+             'OpexRoadFreightServedIndex', 'OpexV264EmitConvergent', 'OpexCatalogBounds')
+    for call in calls:
+        site = 'pair_candidate' if call in ('OpexMakeCandidate', 'OpexMakeRoadCandidate') else call
+        pattern = r'(?m)^(\s*)(local \w+ = ' + call + r'\()'
+        code = re.sub(pattern, lambda m: m[1] + mark(prefix + ':' + site, 'PO01C_WHERE.idx')
+                      + '\n' + m[1] + m[2], code)
+    for call in ('grid.Build', 'grid.GetCandidatesFor'):
+        pattern = r'(?m)^(\s*)((?:local \w+ = )?' + re.escape(call) + r'\()'
+        code = re.sub(pattern, lambda m: m[1] + mark(prefix + ':' + call, 'PO01C_WHERE.idx')
+                      + '\n' + m[1] + m[2], code)
+    # Even early exits identify the terminal checkpoint; never retain another generator.
+    code = code.replace('return;', '{ ' + mark('after_last_yield', 'PO01C_WHERE.idx') + ' return; }')
+    return code[:-1] + '  ' + mark('after_last_yield', 'PO01C_WHERE.idx') + '\n}'
 
 
 if __name__ == '__main__':
