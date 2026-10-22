@@ -480,7 +480,8 @@ class TestCampaignFreeze(unittest.TestCase):
             subprocess.run(["git", "init", "-q"], cwd=root, check=True)
             (root / "file.txt").write_text("x", encoding="utf-8")
             subprocess.run(["git", "add", "file.txt"], cwd=root, check=True)
-            subprocess.run(["git", "commit", "-qm", "fixture"], cwd=root, check=True)
+            subprocess.run(["git", "-c", "user.email=test@example.invalid",
+                            "-c", "user.name=Test", "commit", "-qm", "fixture"], cwd=root, check=True)
             clean = git_state(root)
             self.assertFalse(clean["dirty"])
             self.assertEqual(len(clean["sha"]), 40)

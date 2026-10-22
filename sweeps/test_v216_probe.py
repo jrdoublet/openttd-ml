@@ -7,6 +7,7 @@ Ce n'est pas un test de VM NoAI ; le smoke 1x1 sur 3 ans complete ces contrats.
 from pathlib import Path
 import re
 import unittest
+from po01c_generate import PAX_SOURCES, function
 
 
 AI = Path(__file__).resolve().parents[1] / "ai" / "OpexAI"
@@ -40,12 +41,21 @@ class TestV216Probe(unittest.TestCase):
     def test_every_call_site_is_guarded(self):
         hooks = 0
         for name, text in self.sources.items():
+            if name == "po01c_generators.nut":
+                # PO01f copies the behavioral V216a coverage helpers, not probe
+                # hooks. Their resumable call graph is checked in test_po01c.
+                for _, helper in PAX_SOURCES:
+                    if helper.startswith("OpexV216"):
+                        text = text.replace(function(text, "OpexPO01C" + helper[4:]), "")
+                publication = "  if (po01fContext.used) V216_COVER = po01fContext.cover;"
+                self.assertEqual(text.count(publication), 1)
+                text = text.replace(publication, "")
             for line in text.splitlines():
                 if re.search(r"\bOpexV216(?!a)\w*\(|\bV216_(?!PROBE\b)\w+\s*=", line):
                     hooks += 1
                     self.assertRegex(line, r"if \(V216_PROBE\b", name + ": " + line.strip())
         # selection x3, K_dec, rejets x3, RAIL_BUILD, tick mensuel
-        self.assertEqual(hooks, 9)
+        self.assertEqual(hooks, 11)  # +2 guarded rejection hooks in the PO01f copy
 
     def test_probe_never_commands_the_game(self):
         code = re.sub(r"/\*.*?\*/", "", self.probe, flags=re.S)

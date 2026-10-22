@@ -137,9 +137,112 @@ def generated():
                           'OpexWaterFindConnection', 'sites[a], sites[b]', 'navigableDistance')
         if name in ('OpexPaxCandidates', 'OpexFreightCandidates', 'OpexRoadFreightCandidates'):
             code = unit_sites(code, name)
+        if name == 'OpexPaxCandidates':
+            opening = ('\n{\n  local po01fSitableCache = clone ::OpexSitableCache;\n'
+                       '  local po01fOriginal = V216_COVER;\n'
+                       '  // Private for the entire producer: intervening consumers cannot seed later pairs.\n'
+                       '  local po01fContext = { used = false, now = AIDate.GetCurrentDate(), cover = {\n'
+                       '    ownMonth = po01fOriginal.ownMonth, advQuarter = po01fOriginal.advQuarter,\n'
+                       '    own = po01fOriginal.own, adv = clone po01fOriginal.adv,\n'
+                       '    cache = clone po01fOriginal.cache } };\n')
+            code = code.replace('\n{\n', opening, 1)
+            statement = ('local candidate = OpexMakeCandidate(catalog, "pax", cargo, towns[a].tile, towns[b].tile,\n'
+                         '                                          monthly, false, stats, false, candidateProfile, cruiseCache,\n'
+                         '                                          secondary);')
+            code = bridge(code, statement, 'OpexMakePaxCandidate',
+                          'po01fSitableCache, po01fContext, catalog, "pax", cargo, towns[a].tile, towns[b].tile, monthly, false, stats, '
+                          'false, candidateProfile, cruiseCache, secondary', 'local candidate')
+            code = code[:-1] + ('  ::OpexSitableCache = po01fSitableCache;\n'
+                                '  if (po01fContext.used) V216_COVER = po01fContext.cover;\n}')
         pieces.append(code)
     pieces.extend(deep_copy(file, name) for file, name in DEEP_SOURCES)
+    pieces.extend(pax_copies())
     return '\n\n'.join(pieces) + '\n'
+
+
+# PO01F: coverage, not station planning, is reachable from candidate admission.
+PAX_SOURCES = [('candidates.nut', 'OpexMakeCandidate'),
+               ('candidates.nut', 'OpexRailOriginSitable')]
+PAX_SOURCES += [('probe_v216.nut', 'OpexV216' + suffix) for suffix in
+                ('MarkRect', 'RefreshCover', 'AdvAround', 'Coverage', 'GainPct',
+                 'aEndPct', 'aScaleDemand')]
+
+
+def pax_copies():
+    for file, name in PAX_SOURCES:
+        code = deep_copy(file, name)
+        if name.startswith('OpexV216'):
+            code = code.replace('(po01dResult, ', '(po01dResult, po01fContext, ', 1)
+            # Empty historical signature.
+            code = code.replace('po01fContext, )', 'po01fContext)')
+        if name == 'OpexMakeCandidate':
+            code = code.replace('OpexPO01CMakeCandidate(', 'OpexPO01CMakePaxCandidate(', 1)
+            code = code.replace('(po01dResult, catalog,', '(po01dResult, po01fSitableCache, po01fContext, catalog,', 1)
+            code = code.replace('::OpexSitableCache', 'po01fSitableCache')
+            # One date for both endpoints and PASS/MAIL, even across a month boundary.
+            code = code.replace('\n{\n', '\n{\n  po01fContext.now = AIDate.GetCurrentDate();\n', 1)
+            code = code.replace('if (V216A_GHOST_DEMAND > 0 && kind == "pax") {',
+                                'if (V216A_GHOST_DEMAND > 0 && kind == "pax") {\n    po01fContext.used = true;')
+            code = bridge(code, 'sitable = OpexRailOriginSitable(srcTile, cargo, catalog.railCoverage, true);',
+                          'OpexRailOriginSitable', 'srcTile, cargo, catalog.railCoverage, true', 'sitable')
+            code = bridge(code, 'monthly = OpexV216aScaleDemand(srcTile, dstTile, cargo, monthly);',
+                          'OpexV216aScaleDemand', 'po01fContext, srcTile, dstTile, cargo, monthly', 'monthly')
+            statement = ('if (secondary != null)\n      secondary = { cargo = secondary.cargo,\n'
+                         '                    monthly = OpexV216aScaleDemand(srcTile, dstTile, secondary.cargo, secondary.monthly) };')
+            replacement = 'if (secondary != null) {\n      CHILD\n      secondary = { cargo = secondary.cargo, monthly = po01fMail };\n    }'
+            replacement = bridge(replacement, 'CHILD', 'OpexV216aScaleDemand',
+                                 'po01fContext, srcTile, dstTile, secondary.cargo, secondary.monthly', 'local po01fMail')
+            assert statement in code
+            code = code.replace(statement, replacement)
+        elif name == 'OpexV216RefreshCover':
+            code = code.replace('local now = AIDate.GetCurrentDate();', 'local now = po01fContext.now;')
+            code = code.replace('local cover = V216_COVER;', 'local cover = po01fContext.cover;')
+            code = code.replace('AIStation.STATION_TRUCK_STOP, AIStation.STATION_DOCK]) {',
+                                'AIStation.STATION_TRUCK_STOP, AIStation.STATION_DOCK]) {\n    yield null; // PO01C_CHECKPOINT')
+            statement = 'if (x1 >= 0) OpexV216MarkRect(cover.own, x0 - r, y0 - r, x1 + r, y1 + r, ratings);'
+            replacement = bridge('CHILD', 'CHILD', 'OpexV216MarkRect',
+                                 'po01fContext, cover.own, x0 - r, y0 - r, x1 + r, y1 + r, ratings')
+            code = code.replace(statement, 'if (x1 >= 0) ' + replacement)
+        elif name == 'OpexV216AdvAround':
+            statement = ('OpexV216MarkRect(table, x - r > cx - radius ? x - r : cx - radius,\n'
+                         '        y - r > cy - radius ? y - r : cy - radius,\n'
+                         '        x + r < cx + radius ? x + r : cx + radius,\n'
+                         '        y + r < cy + radius ? y + r : cy + radius, null);')
+            code = bridge(code, statement, 'OpexV216MarkRect',
+                          'po01fContext, ' + statement[len('OpexV216MarkRect('):-2])
+        elif name == 'OpexV216Coverage':
+            code = bridge(code, 'local cover = OpexV216RefreshCover();',
+                          'OpexV216RefreshCover', 'po01fContext', 'local cover')
+            # Separate scopes avoid duplicate child/box local declarations.
+            code = code.replace('local adv = OpexV216AdvAround(cover, center, radius);',
+                                'local adv;\n  { CHILD }')
+            code = bridge(code, 'CHILD', 'OpexV216AdvAround',
+                          'po01fContext, cover, center, radius', 'adv')
+        elif name in ('OpexV216GainPct', 'OpexV216aEndPct'):
+            code = bridge(code, 'local c = OpexV216Coverage(center, cargo, radius);',
+                          'OpexV216Coverage', 'po01fContext, center, cargo, radius', 'local c')
+            if name == 'OpexV216aEndPct':
+                statement = '{ po01dResult.value = OpexV216GainPct(center, cargo, radius, V216A_RN); return; }'
+                replacement = bridge('CHILD', 'CHILD', 'OpexV216GainPct',
+                                     'po01fContext, center, cargo, radius, V216A_RN', 'po01dResult.value')
+                code = code.replace(statement, '{ ' + replacement + ' return; }')
+        elif name == 'OpexV216aScaleDemand':
+            statement = 'local pct = (OpexV216aEndPct(srcTile, cargo, radius) + OpexV216aEndPct(dstTile, cargo, radius)) / 2;'
+            replacement = 'local po01fSrc, po01fDst;\n  { SRC }\n  { DST }\n  local pct = (po01fSrc + po01fDst) / 2;'
+            replacement = bridge(replacement, 'SRC', 'OpexV216aEndPct',
+                                 'po01fContext, srcTile, cargo, radius', 'po01fSrc')
+            replacement = bridge(replacement, 'DST', 'OpexV216aEndPct',
+                                 'po01fContext, dstTile, cargo, radius', 'po01fDst')
+            code = code.replace(statement, replacement)
+        # Forwarders retain the deepest site; only actual loop bodies set a new site.
+        gen = 'OpexPO01CMakePaxCandidate' if name == 'OpexMakeCandidate' else 'OpexPO01C' + name[4:]
+        code = re.sub(r'((?:for|foreach)\s*\([\s\S]*?\)\s*\{\s*yield null; // PO01C_CHECKPOINT)',
+                      lambda m: m[0] + '\n    if (DECISION_LOG) OpexPO01CWhere("' + gen + '", "pax:' + name[4:] + '", -1);', code)
+        if name == 'OpexMakeCandidate':
+            for call in ('OpexLineEconomics', 'OpexM3ProbeRailEquipment'):
+                code = re.sub(r'(?m)^(\s*)((?:local economics = )?' + call + r'\()',
+                              lambda m: m[1] + 'if (DECISION_LOG) OpexPO01CWhere("' + gen + '", "pax:' + call[4:] + '", -1);\n' + m[1] + m[2], code)
+        yield code
 
 
 def unit_sites(code, name):

@@ -268,6 +268,8 @@ class ForumBehaviours(unittest.TestCase):
         # Inventaire exhaustif des premiers arguments. Liste blanche Squirrel vide :
         # aucun petit AIList évalué par closure dans l'arbre actuel.
         native = {
+            # PO01F copies V216AdvAround's native AITile.IsStationTile valuation;
+            # its additional call site is recorded in v262_valuate_inventory.json.
             "AIAirport.GetNearestTown", "AIBridge.GetMaxSpeed", "AIEngine.CanRefitCargo",
             "AIEngine.GetMaxSpeed", "AIEngine.HasPowerOnRail", "AIEngine.IsArticulated",
             "AIEngine.IsBuildable", "AIEngine.IsWagon", "AIMap.GetTileX", "AIMap.DistanceManhattan", "AIMap.DistanceMax",
