@@ -1,12 +1,14 @@
 /* Mechanical copies: python3 sweeps/po01c_generate.py.
  * Checkpoints retain VM locals; no captured closures. Never saved. */
 
-function OpexPO01CPaxCandidates(catalog, lines, out, stats, abandonedPairs = null, profile = null, candidateProfile = null, cruiseCache = null, paxBand = PAX_BAND_ALL, targetKind = null, targetId = -1)
+function OpexPO01CPaxCandidates(catalog, lines, out, stats, abandonedPairs = null, profile = null, candidateProfile = null, cruiseCache = null, paxBand = PAX_BAND_ALL, targetKind = null, targetId = -1, po01gDiagnostics = null)
 {
   local po01fSitableCache = clone ::OpexSitableCache;
   local po01fOriginal = V216_COVER;
   // Private for the entire producer: intervening consumers cannot seed later pairs.
-  local po01fContext = { used = false, now = AIDate.GetCurrentDate(), cover = {
+  // One cache epoch per producer, not per pair: suspension must not invalidate it.
+  local po01fContext = { used = false, now = AIDate.GetCurrentDate(),
+    diagnostics = po01gDiagnostics, cover = {
     ownMonth = po01fOriginal.ownMonth, advQuarter = po01fOriginal.advQuarter,
     own = po01fOriginal.own, adv = clone po01fOriginal.adv,
     cache = clone po01fOriginal.cache } };
@@ -2257,7 +2259,6 @@ function OpexPO01CAirPlansDiscoverHubs(po01dResult, ctx, combo, airport, plane)
 
 function OpexPO01CMakePaxCandidate(po01dResult, po01fSitableCache, po01fContext, catalog, kind, cargo, srcTile, dstTile, monthly, originServed, stats, isTransformer = false, profile = null, cruiseCache = null, secondary = null, joinContext = null)
 {
-  po01fContext.now = AIDate.GetCurrentDate();
   if (monthly <= 0) {
     stats.noMonthly++;
     { po01dResult.value = null; return; }
@@ -2332,6 +2333,8 @@ function OpexPO01CMakePaxCandidate(po01dResult, po01fSitableCache, po01fContext,
         profile.paxSitableCalls++;
       }
       po01fSitableCache[sitableKey] <- sitable;
+      if (DECISION_LOG && po01fContext.diagnostics != null)
+        po01fContext.diagnostics.sitableFills++;
     }
   }
   if (!sitable) {
@@ -2484,6 +2487,7 @@ function OpexPO01CMakePaxCandidate(po01dResult, po01fSitableCache, po01fContext,
 
 function OpexPO01CRailOriginSitable(po01dResult, tile, cargo, coverage, wantProduction)
 {
+  local po01gWork = 0;
   local radius = coverage + 3;
   for (local r = 0; r <= radius; r++) {
     yield null; // PO01C_CHECKPOINT
@@ -2494,8 +2498,10 @@ function OpexPO01CRailOriginSitable(po01dResult, tile, cargo, coverage, wantProd
     if (DECISION_LOG) OpexPO01CWhere("OpexPO01CRailOriginSitable", "pax:RailOriginSitable", -1);
 
       for (local dy = -r; dy <= r; dy++) {
+    if (++po01gWork % 32 == 0) {
     yield null; // PO01C_CHECKPOINT
     if (DECISION_LOG) OpexPO01CWhere("OpexPO01CRailOriginSitable", "pax:RailOriginSitable", -1);
+    }
 
         if (abs(dx) != r && abs(dy) != r) continue;
         local t = tile + AIMap.GetTileIndex(dx, dy);
@@ -2516,6 +2522,7 @@ function OpexPO01CRailOriginSitable(po01dResult, tile, cargo, coverage, wantProd
 
 function OpexPO01CV216MarkRect(po01dResult, po01fContext, table, x0, y0, x1, y1, ratings)
 {
+  local po01gWork = 0;
   if (x0 < 1) x0 = 1;
   if (y0 < 1) y0 = 1;
   if (x1 > AIMap.GetMapSizeX() - 2) x1 = AIMap.GetMapSizeX() - 2;
@@ -2525,8 +2532,10 @@ function OpexPO01CV216MarkRect(po01dResult, po01fContext, table, x0, y0, x1, y1,
     if (DECISION_LOG) OpexPO01CWhere("OpexPO01CV216MarkRect", "pax:V216MarkRect", -1);
 
     for (local y = y0; y <= y1; y++) {
+    if (++po01gWork % 32 == 0) {
     yield null; // PO01C_CHECKPOINT
     if (DECISION_LOG) OpexPO01CWhere("OpexPO01CV216MarkRect", "pax:V216MarkRect", -1);
+    }
 
       local key = AIMap.GetTileIndex(x, y);
       if (ratings == null) {
@@ -2549,6 +2558,8 @@ function OpexPO01CV216RefreshCover(po01dResult, po01fContext)
   local cover = po01fContext.cover;
   if (cover.ownMonth == ym) { po01dResult.value = cover; return; }
   cover.ownMonth = ym;
+  if (DECISION_LOG && po01fContext.diagnostics != null)
+    po01fContext.diagnostics.coverRebuilds++;
   cover.cache = {};
   cover.own = {};
   if (cover.advQuarter != ym / 3) {
@@ -2634,6 +2645,7 @@ function OpexPO01CV216AdvAround(po01dResult, po01fContext, cover, center, radius
 
 function OpexPO01CV216Coverage(po01dResult, po01fContext, center, cargo, radius)
 {
+  local po01gWork = 0;
   local po01dBox = { value = null };
     local po01dChild = OpexPO01CV216RefreshCover(po01dBox, po01fContext);
     while (po01dChild.getstatus() != "dead") {
@@ -2660,8 +2672,10 @@ function OpexPO01CV216Coverage(po01dResult, po01fContext, center, cargo, radius)
     if (DECISION_LOG) OpexPO01CWhere("OpexPO01CV216Coverage", "pax:V216Coverage", -1);
 
     for (local y = cy - radius; y <= cy + radius; y++) {
+    if (++po01gWork % 32 == 0) {
     yield null; // PO01C_CHECKPOINT
     if (DECISION_LOG) OpexPO01CWhere("OpexPO01CV216Coverage", "pax:V216Coverage", -1);
+    }
 
       if (x < 1 || y < 1 || x >= AIMap.GetMapSizeX() - 1 || y >= AIMap.GetMapSizeY() - 1) continue;
       local tile = AIMap.GetTileIndex(x, y);

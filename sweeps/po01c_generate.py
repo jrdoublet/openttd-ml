@@ -138,10 +138,13 @@ def generated():
         if name in ('OpexPaxCandidates', 'OpexFreightCandidates', 'OpexRoadFreightCandidates'):
             code = unit_sites(code, name)
         if name == 'OpexPaxCandidates':
+            code = code.replace('targetId = -1)', 'targetId = -1, po01gDiagnostics = null)', 1)
             opening = ('\n{\n  local po01fSitableCache = clone ::OpexSitableCache;\n'
                        '  local po01fOriginal = V216_COVER;\n'
                        '  // Private for the entire producer: intervening consumers cannot seed later pairs.\n'
-                       '  local po01fContext = { used = false, now = AIDate.GetCurrentDate(), cover = {\n'
+                       '  // One cache epoch per producer, not per pair: suspension must not invalidate it.\n'
+                       '  local po01fContext = { used = false, now = AIDate.GetCurrentDate(),\n'
+                       '    diagnostics = po01gDiagnostics, cover = {\n'
                        '    ownMonth = po01fOriginal.ownMonth, advQuarter = po01fOriginal.advQuarter,\n'
                        '    own = po01fOriginal.own, adv = clone po01fOriginal.adv,\n'
                        '    cache = clone po01fOriginal.cache } };\n')
@@ -179,8 +182,11 @@ def pax_copies():
             code = code.replace('OpexPO01CMakeCandidate(', 'OpexPO01CMakePaxCandidate(', 1)
             code = code.replace('(po01dResult, catalog,', '(po01dResult, po01fSitableCache, po01fContext, catalog,', 1)
             code = code.replace('::OpexSitableCache', 'po01fSitableCache')
-            # One date for both endpoints and PASS/MAIL, even across a month boundary.
-            code = code.replace('\n{\n', '\n{\n  po01fContext.now = AIDate.GetCurrentDate();\n', 1)
+            # The producer owns the epoch, including all pairs and PASS/MAIL.
+            code = code.replace('po01fSitableCache[sitableKey] <- sitable;',
+                                'po01fSitableCache[sitableKey] <- sitable;\n'
+                                '      if (DECISION_LOG && po01fContext.diagnostics != null)\n'
+                                '        po01fContext.diagnostics.sitableFills++;')
             code = code.replace('if (V216A_GHOST_DEMAND > 0 && kind == "pax") {',
                                 'if (V216A_GHOST_DEMAND > 0 && kind == "pax") {\n    po01fContext.used = true;')
             code = bridge(code, 'sitable = OpexRailOriginSitable(srcTile, cargo, catalog.railCoverage, true);',
@@ -197,6 +203,10 @@ def pax_copies():
         elif name == 'OpexV216RefreshCover':
             code = code.replace('local now = AIDate.GetCurrentDate();', 'local now = po01fContext.now;')
             code = code.replace('local cover = V216_COVER;', 'local cover = po01fContext.cover;')
+            code = code.replace('cover.ownMonth = ym;',
+                                'cover.ownMonth = ym;\n'
+                                '  if (DECISION_LOG && po01fContext.diagnostics != null)\n'
+                                '    po01fContext.diagnostics.coverRebuilds++;')
             code = code.replace('AIStation.STATION_TRUCK_STOP, AIStation.STATION_DOCK]) {',
                                 'AIStation.STATION_TRUCK_STOP, AIStation.STATION_DOCK]) {\n    yield null; // PO01C_CHECKPOINT')
             statement = 'if (x1 >= 0) OpexV216MarkRect(cover.own, x0 - r, y0 - r, x1 + r, y1 + r, ratings);'
@@ -238,6 +248,22 @@ def pax_copies():
         gen = 'OpexPO01CMakePaxCandidate' if name == 'OpexMakeCandidate' else 'OpexPO01C' + name[4:]
         code = re.sub(r'((?:for|foreach)\s*\([\s\S]*?\)\s*\{\s*yield null; // PO01C_CHECKPOINT)',
                       lambda m: m[0] + '\n    if (DECISION_LOG) OpexPO01CWhere("' + gen + '", "pax:' + name[4:] + '", -1);', code)
+        # A tile used to unwind up to eight generators plus the measured root
+        # loop. Amortize that cost; keep outer checkpoints and check BEFORE any
+        # continue. At most 32 innermost iterations between checkpoints.
+        inner = {
+            'OpexV216MarkRect': 'for (local y = y0; y <= y1; y++)',
+            'OpexV216Coverage': 'for (local y = cy - radius; y <= cy + radius; y++)',
+            'OpexRailOriginSitable': 'for (local dy = -r; dy <= r; dy++)',
+        }.get(name)
+        if inner is not None:
+            code = code.replace('\n{\n', '\n{\n  local po01gWork = 0;\n', 1)
+            checkpoint = ('yield null; // PO01C_CHECKPOINT\n'
+                          '    if (DECISION_LOG) OpexPO01CWhere("' + gen + '", "pax:' + name[4:] + '", -1);')
+            old = inner + ' {\n    ' + checkpoint
+            assert code.count(old) == 1
+            code = code.replace(old, inner + ' {\n    if (++po01gWork % 32 == 0) {\n    '
+                                + checkpoint + '\n    }')
         if name == 'OpexMakeCandidate':
             for call in ('OpexLineEconomics', 'OpexM3ProbeRailEquipment'):
                 code = re.sub(r'(?m)^(\s*)((?:local economics = )?' + call + r'\()',

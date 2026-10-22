@@ -8,6 +8,105 @@ from po01c_diagnostics import pending_save_dates, summarize
 
 
 class PO01CContracts(unittest.TestCase):
+    def test_po01g_epoch_and_diagnostics_scope(self):
+        producer = body('po01c_generators.nut', 'OpexPO01CPaxCandidates')
+        candidate = body('po01c_generators.nut', 'OpexPO01CMakePaxCandidate')
+        refresh = body('po01c_generators.nut', 'OpexPO01CV216RefreshCover')
+        self.assertEqual(producer.count('now = AIDate.GetCurrentDate()'), 1)
+        self.assertNotIn('po01fContext.now =', source('po01c_generators.nut'))
+        self.assertLess(refresh.index('if (cover.ownMonth == ym)'),
+                        refresh.index('po01fContext.diagnostics.coverRebuilds++'))
+        for code, counter in ((refresh, 'coverRebuilds'), (candidate, 'sitableFills')):
+            self.assertRegex(code, r'if \(DECISION_LOG && po01fContext.diagnostics != null\)\s*'
+                             + 'po01fContext.diagnostics.' + counter + r'\+\+;')
+        self.assertLess(candidate.index('po01fSitableCache[sitableKey] <- sitable;'),
+                        candidate.index('po01fContext.diagnostics.sitableFills++'))
+        start = body('po01c_regen.nut', 'OpexPO01CStart')
+        self.assertIn('paxDiagnostics = DECISION_LOG ? { coverRebuilds = 0, sitableFills = 0 } : null', start)
+        step = body('po01c_regen.nut', 'OpexPO01CStep')
+        self.assertIn('else if (DECISION_LOG && s.slices % 200 == 0)', step)
+        self.assertIn('OpexPO01CLog(owner, s, "progress");', step)
+        log = body('po01c_regen.nut', 'OpexPO01CLog')
+        self.assertLess(log.index('if (!DECISION_LOG) return;'), log.index('cover_rebuilds='))
+        self.assertIn('sitable_fills=', log)
+        self.assertNotIn('paxDiagnostics', source('persist.nut'))
+
+    def test_po01g_bounded_rebuilds_and_identical_frozen_reads_model(self):
+        # Executable cache-lifetime model, NOT a Squirrel/opcode simulator.
+        # Advancing scheduling time must not invalidate a producer's epoch.
+        def run(months, frozen, warm=False):
+            epoch = months[0]
+            own_month = epoch if warm else -1
+            rebuilds = fills = coverage_fills = 0
+            sitable, coverage = {}, {}
+            emitted, counters = [], dict(unsitable=0, noMonthly=0, admitted=0)
+            for i, clock in enumerate(months):
+                src, dst = i // 8, (i * 7 + 3) % 31
+                # Includes cached false and cached zero, two endpoints and mail.
+                if src not in sitable:
+                    sitable[src] = src % 5 != 0
+                    fills += 1
+                if not sitable[src]:
+                    counters['unsitable'] += 1
+                    continue
+                values = []
+                for cargo in (0, 1):
+                    for center in (src, dst):
+                        ym = epoch if frozen else clock
+                        if own_month != ym:
+                            own_month = ym
+                            coverage = {}
+                            rebuilds += 1
+                        key = center, cargo
+                        if key not in coverage:
+                            # Frozen API fixture, independent of scheduling time.
+                            coverage[key] = (center * 11 + cargo * 3) % 17
+                            coverage_fills += 1
+                        values.append(coverage[key])
+                if sum(values[:2]) == 0:
+                    counters['noMonthly'] += 1
+                else:
+                    emitted.append((src, dst, tuple(values)))
+                    counters['admitted'] += 1
+            return emitted, counters, rebuilds, fills, coverage_fills
+
+        for month_count in (1, 12, 24, 120):
+            # Every month contains 64 pairs, including rejecting origins.
+            months = [100 + i // 64 for i in range(month_count * 64)]
+            for warm in (False, True):
+                reference = run([months[0]] * len(months), False, warm)
+                before = run(months, False, warm)
+                after = run(months, True, warm)
+                self.assertEqual(after, reference)
+                self.assertEqual(before[:2], reference[:2])
+                self.assertEqual(after[2], 0 if warm else 1)
+                self.assertEqual(before[2], month_count - int(warm))
+                self.assertEqual(after[3], len(months) // 8)
+                self.assertLessEqual(after[4], 2 * (len(months) // 8 + 31))
+
+    def test_po01g_checkpoint_packets_preserve_rejections_and_order(self):
+        # Model the emitted inner checkpoints (outer row checkpoints remain).
+        for width in (1, 15, 31, 32, 33, 1024):
+            work, gap, max_gap, checkpoints = 0, 0, 0, 0
+            actual = []
+            for x in range(7):
+                max_gap = max(max_gap, gap)
+                gap = 0  # Existing unconditional outer checkpoint.
+                for y in range(width):
+                    work += 1
+                    if work % 32 == 0:
+                        max_gap = max(max_gap, gap)
+                        gap = 0
+                        checkpoints += 1
+                    gap += 1
+                    if (x + y) % 3 == 0:
+                        continue
+                    actual.append((x, y))
+            self.assertLessEqual(max(max_gap, gap), 32)
+            self.assertEqual(checkpoints, 7 * width // 32)
+            self.assertEqual(actual, [(x, y) for x in range(7) for y in range(width)
+                                      if (x + y) % 3 != 0])
+
     def test_po01f_candidate_business_tokens_preserved(self):
         copied = function(source('po01c_generators.nut'), 'OpexPO01CMakePaxCandidate')
         copied = re.sub(r'if \(DECISION_LOG\) OpexPO01CWhere\([^;]*\);', '', copied)
@@ -28,7 +127,8 @@ class PO01CContracts(unittest.TestCase):
         copied = copied.replace('OpexPO01CMakePaxCandidate(po01dResult, po01fSitableCache, po01fContext,',
                                 'OpexMakeCandidate(')
         copied = copied.replace('po01fSitableCache', '::OpexSitableCache')
-        copied = copied.replace('po01fContext.now = AIDate.GetCurrentDate();', '')
+        copied = re.sub(r'if \(DECISION_LOG && po01fContext.diagnostics != null\)\s*'
+                        r'po01fContext.diagnostics.sitableFills\+\+;', '', copied)
         copied = copied.replace('po01fContext.used = true;', '')
         copied = re.sub(r'\{ po01dResult.value = ([^;]*); return; \}', r'return \1;', copied)
         self.assertEqual(re.sub(r'\s+', '', copied),
@@ -50,6 +150,10 @@ class PO01CContracts(unittest.TestCase):
             copied = function(source('po01c_generators.nut'), 'OpexPO01C' + name)
             copied = copied.replace('OpexPO01C' + name + '(po01dResult, ', 'Opex' + name + '(')
             copied = copied.replace('po01fContext, ', '')
+            copied = copied.replace('local po01gWork = 0;', '')
+            copied = re.sub(r'if \(\+\+po01gWork % 32 == 0\) \{\s*'
+                            r'yield null; // PO01C_CHECKPOINT\s*'
+                            r'if \(DECISION_LOG\) OpexPO01CWhere\([^;]*\);\s*\}', '', copied)
             copied = re.sub(r'yield null; // PO01C_CHECKPOINT', '', copied)
             copied = re.sub(r'if \(DECISION_LOG\) OpexPO01CWhere\([^;]*\);', '', copied)
             copied = re.sub(r'\{ po01dResult.value = ([^;]*); return; \}', r'return \1;', copied)
@@ -61,7 +165,8 @@ class PO01CContracts(unittest.TestCase):
                    'RailOriginSitable': 'for (local dy = -r; dy <= r; dy++)'}
         for name, loop in targets.items():
             code = body('po01c_generators.nut', 'OpexPO01C' + name)
-            self.assertRegex(code, re.escape(loop) + r'\s*\{\s*yield null;')
+            self.assertRegex(code, re.escape(loop) + r'\s*\{\s*'
+                             r'(?:if \(\+\+po01gWork % 32 == 0\) \{\s*)?yield null;')
             for line in code.splitlines():
                 if 'OpexPO01CWhere(' in line:
                     self.assertIn('if (DECISION_LOG)', line)
@@ -94,7 +199,8 @@ class PO01CContracts(unittest.TestCase):
                           body('po01c_generators.nut', 'OpexPO01CPaxCandidates'))
         producer = body('po01c_generators.nut', 'OpexPO01CPaxCandidates')
         self.assertNotIn('V216_COVER', candidate)
-        self.assertIn('po01fContext.now = AIDate.GetCurrentDate();', candidate)
+        self.assertNotIn('po01fContext.now =', candidate)
+        self.assertIn('now = AIDate.GetCurrentDate()', producer)
         self.assertIn('po01fSitableCache, po01fContext, catalog, "pax"', producer)
         self.assertGreater(producer.index('V216_COVER = po01fContext.cover;'),
                            producer.index('out.append(candidate);'))
