@@ -120,6 +120,11 @@
     "AIMap.DistanceManhattan,center"
   ],
   [
+    "builder_rail.nut",
+    "tiles",
+    "AIMap.DistanceMax,center"
+  ],
+  [
     "candidates.nut",
     "list",
     "AIEngine.IsBuildable"

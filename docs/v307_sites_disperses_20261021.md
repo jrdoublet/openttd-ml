@@ -242,3 +242,131 @@ ce commit avec un arbre Git sale : le **bundle** précité est l'autorité
 de reproductibilité, et contient des modifications simultanées de la
 file B, dont les interrupteurs restent par défaut à zéro. Le commit
 sélectif de la file A n'embarque aucune modification de V307R.
+
+## Valeur 3 : prolongation ciblée de la spirale (22/10, Claude VPS)
+
+### Pourquoi la valeur 2 coûte ×2,15
+
+Lecture du code de `OpexV307HybridStationPlans` (`dec590bd`) : après la spirale,
+la recherche native de la valeur 1 est relancée **entière** (huit octants, trois
+quais par octant, douze plans), alors que l'hybride n'en garde **qu'un quai par
+octant absent**. Deux gaspillages, démontrables sans partie :
+
+1. **Spirale épuisée** (moins de 12 plans dans le rayon 30) : toutes les tuiles du
+   carré ont déjà été testées, avec les quatre mêmes orientations et les mêmes
+   filtres que `OpexV307SiteTry`, sur un état de carte inchangé (`AITestMode`).
+   Les sites natifs (captage de l'industrie, à moins de 30 tuiles) sont un
+   sous-ensemble de ces tuiles : le complément **ne peut rien trouver**, mais la
+   valeur 2 le paie quand même.
+2. **Spirale arrêtée à sa limite** à l'anneau *s* : les anneaux < *s* sont
+   entièrement testés et ont échoué dans les octants absents. Seuls les anneaux
+   ≥ *s* peuvent apporter un quai, et un seul par octant absent est utile.
+
+### Variante `v307_sites=3`
+
+- la spirale historique d'abord (même copie que la valeur 2), qui rend aussi son
+  anneau d'arrêt ;
+- spirale épuisée : aucun complément ;
+- sinon, prolongation de la spirale à partir de l'anneau *s*, **dans les seuls
+  octants absents, un quai chacun** ; un bord d'anneau qui ne touche aucun octant
+  absent n'est pas parcouru ; fret borné par le captage natif de l'industrie
+  (`AIMap.DistanceMax` maximal + longueur de quai − 1), ville par le rayon ;
+- complément plafonné à **60 % des opcodes de la spirale du même appel**
+  (`V307S3_BUDGET_PCT`), vérifié avant chaque tuile, avec une réserve égale à
+  l'essai le plus cher déjà vu dans l'appel (estimation, pas une borne stricte :
+  le premier essai, ou un essai plus cher que les précédents, peut déborder) ;
+  coût de spirale nul ou négatif : aucun complément ; au plafond de 12 plans,
+  même remplacement que la valeur 2 (octant le plus fourni, jamais son dernier
+  quai) ;
+- trois économies **exactes** (mêmes plans) : chaque bord d'anneau est coupé
+  d'avance en trois segments d'octant, seuls les segments voulus **et leurs deux
+  voisins** sont parcourus (l'octant qui compte est celui de l'**ancre** du quai,
+  comme dans le décompte ; une orientation négative recule l'ancre de longueur − 1
+  tuiles et peut changer d'octant : revue Codex du 22/10, corrigée avant le smoke
+  `v307s3e`) ; toutes les orientations admises d'une tuile sont essayées, la
+  première dont l'ancre tombe dans un octant encore ouvert est gardée ;
+  une tuile de base non constructible ou en pente est écartée avant les quatre
+  orientations (elle est tuile de quai dans les quatre), dans la prolongation
+  **et dans la copie de spirale de la valeur 3** ; la portée du captage est mise
+  en cache par tuile d'industrie et côté (`V307S3_REACH`, non sauvegardé),
+  recalculée si le type d'industrie ou le rayon de captage diffère ;
+- `V307S_PLANS ... v=3 spiral= native_added= spiral_ops= extra_ops= stop_ring=
+  max_ring= wanted=` sous `decision_log` ; valeurs 0, 1 et 2 inchangées
+  (la copie de spirale prend un argument optionnel `scan`, nul pour 2).
+- Limites connues : la prolongation n'alimente pas les compteurs `stats` de
+  l'autopsie (ses compteurs propres sont dans la ligne `V307S_PLANS`) ; avec le classement V207 (`v207_rail_pax_site_rank_pct > 0`,
+  défaut 0), les plans écartés par le classement dans les anneaux < *s* ne sont
+  pas repris.
+
+Contrats : `sweeps/test_v307_sites.py` vérifie que les bords couvrent chaque
+tuile d'anneau une fois avec les octants déclarés, et, sur 400 grilles
+aléatoires, que repartir de *s* retrouve exactement les mêmes octants, au même
+anneau, qu'un parcours complet, et rien quand la spirale est épuisée.
+
+### Calibrage sur smokes 1×1 (graine 42, un an, avant l'exposition)
+
+Quatre smokes successifs, 0 erreur Squirrel chacun, six appels `V307S_PLANS`
+par bras, mêmes centres et mêmes dates dans les deux bras (comparaison appariée
+appel par appel). Le coût logué de la référence inclut son propre comptage
+d'octants sous `decision_log`.
+
+| Smoke | Version | Ratio apparié ops v3 / ops réf. (min–max) | Quais ajoutés / 6 appels | Octants (somme) réf. → v3 |
+|---|---|---:|---:|---:|
+| `v307s3_smoke_1x1` | budget 40 %, sans pré-test | 1,30–1,36 | 2 | 23 → 25 |
+| `v307s3b_smoke_1x1` | + pré-test prolongation, réserve | 1,26–1,33 | 3 | 23 → 26 |
+| `v307s3c_smoke_1x1` | + pré-test spirale, segments | 0,98–1,19 | 1 | 23 → 24 |
+| `v307s3d_smoke_1x1` | budget **60 %** | 1,20–1,34 | **6** | 23 → **29** |
+
+Compteurs du dernier : 4 à 8 tuiles balayées, 1 à 5 essais par appel, toujours
+arrêté par le budget ; un essai sur tuile constructible coûte ~700 à 1 500
+opcodes, le premier calcul de portée de captage ~1 500. La spirale du smoke
+s'arrête aux anneaux 1-2 : ses 12 plans viennent de trois tuiles de base au plus.
+**60 % est retenu avant l'exposition** ; le texte du pré-enregistrement ci-dessous
+est mis à jour en conséquence.
+
+### Pré-enregistrement (avant tout banc)
+
+Dépôt `openttd-ml`, branche locale `v307s3` sur `dec590bd` (non poussée), arbre
+modifié consigné dans le manifeste. Bras : `OpexAI[decision_log=1]` contre
+`OpexAI[decision_log=1,v307_sites=3]`, mêmes autres réglages. Hôte VPS
+(`--cpus 3 --memory 2g --max-workers 3 --network host`).
+
+1. Smoke 1×1 (graine 42, un an) : 2/2 parties, zéro erreur Squirrel.
+2. Exposition **3×5** (graines 42, 7, 100 ; cinq ans car le VPS ne fait pas
+   de 10 ans de jour), `--script-debug --line-telemetry`. Mêmes cinq critères
+   que la valeur 2, sommes sur les trois graines :
+   (1) `ABND+SITEB` ≤ 0,7 × référence ; (2) `SITEA` ≤ référence + 2 ;
+   (3) `RAIL_BUILD` ≥ référence ; (4) octants médians côté B ≥ référence + 1 ;
+   (5) opcodes médians par appel ≤ 1,5 × référence. Descriptif seulement :
+   médiane iso-état `extra_ops / spiral_ops` dans la variante, profit 3×5.
+3. Si les cinq tiennent : porte A V102 40×3 `gain_short` (Wilcoxon p < 0,05,
+   borne basse IC95 bootstrap > 0, delta ≥ 4 %, garde de valeur 5 %), sur le VPS
+   puisque la branche n'est pas publiée ; sinon arrêt, défaut 0, cause en une
+   phrase. Porte B 20×10 seulement avec l'accord de l'utilisateur. Aucun
+   changement de défaut.
+
+### Exposition 3×5 (22/10, VPS) : arrêt, défaut 0
+
+`v307s3_expo_3x5_20261022`, code `dec590bd` + arbre modifié (correctifs de la
+revue Codex inclus : octant d'ancre, garde budgétaire par tuile, cache vérifié),
+6/6 parties complètes, 0 erreur Squirrel. Smoke préalable `v307s3e_smoke_1x1` :
+2/2, ratio apparié des opcodes par appel 1,12–1,40, octants 23 → 26.
+
+| Critère (sommes 3 graines) | Référence | Valeur 3 | Seuil | Verdict |
+|---|---:|---:|---|---|
+| (1) `ABND+SITEB` | 3 | 6 | ≤ 2,1 | échec |
+| (2) `SITEA` | 0 | 0 | ≤ 2 | tenu |
+| (3) `RAIL_BUILD` | 68 | 66 | ≥ 68 | échec |
+| (4) octants médians côté B | 4 | 4 | ≥ 5 | échec |
+| (5) opcodes médians par appel A / B | 8 134 / 8 992 | 9 351 / 12 145 | ≤ ×1,5 | tenu (×1,15 / ×1,35) |
+
+Descriptif : 180 appels v=3, 41 spirales épuisées (aucun complément), 139
+compléments, 63 quais ajoutés ; médiane iso-état ops/spirale 1,57 (p90 1,71,
+max 1,84 : le premier essai déborde la réserve de 60 %). `SITEAB` 17 → 10.
+Profit 5 ans −54,5 k£/an (médiane −65,5 k, 1 V / 2 D, IC95 bootstrap
+[−281 ; +183] k£), valeur +1,6 %.
+
+**Cause :** sur ces graines le défaut visé est déjà rare dans la référence
+(3 `ABND+SITEB` en 93 tentatives), et les quais ajoutés, un par octant absent
+sur l'anneau suivant, ne déplacent pas la médiane d'octants ni la construction.
+Pas de porte A ; `v307_sites=3` reste à 0, branche locale non publiée.

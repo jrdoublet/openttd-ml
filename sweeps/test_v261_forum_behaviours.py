@@ -270,7 +270,7 @@ class ForumBehaviours(unittest.TestCase):
         native = {
             "AIAirport.GetNearestTown", "AIBridge.GetMaxSpeed", "AIEngine.CanRefitCargo",
             "AIEngine.GetMaxSpeed", "AIEngine.HasPowerOnRail", "AIEngine.IsArticulated",
-            "AIEngine.IsBuildable", "AIEngine.IsWagon", "AIMap.GetTileX", "AIMap.DistanceManhattan",
+            "AIEngine.IsBuildable", "AIEngine.IsWagon", "AIMap.GetTileX", "AIMap.DistanceManhattan", "AIMap.DistanceMax",
             "AIRail.IsRailTypeAvailable", "AIRoad.IsRoadDepotTile", "AIRoad.IsRoadStationTile",
             "AIRoad.IsRoadTile", "AIStation.GetNearestTown", "AITile.GetCargoProduction",
             "AITile.GetClosestTown", "AITile.GetMaxHeight", "AITile.GetMinHeight",

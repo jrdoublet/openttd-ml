@@ -23,6 +23,9 @@ const STATION_SEARCH_RADIUS = 30;
 const MAX_STATION_PLANS = 12;
 /* V207 : facteur d'echantillonnage des sites passagers avant classement par production. */
 const V207_SITE_SAMPLE_FACTOR = 3;
+/* V307S=3 : complement d'octants plafonne a ce pourcentage des opcodes de la spirale du
+ * meme appel (critere pre-enregistre du 22/10 : ops medianes <= 1,5 x la spirale). */
+const V307S3_BUDGET_PCT = 60;
 /* v1 reste un parallele dedie, pas l'enveloppe spread. Offset 1 est le colle d'origine ;
  * 2-4 sautent la sortie/voie qui occupe le voisin. 4 x 2 x 2 = 16 sondes, rien a cote d'A*.
  * Mesure 2026-08-30 : 658/692 SITE a nClear=0, 100 % du pax. */
@@ -728,7 +731,8 @@ function OpexV307StationPlans(center, radius, length, maxPlans, cargo, coverage,
  * respecte la limite V207 (3x lorsqu'il faut classer), le preflight cargo,
  * la validation moteur et les quais doubles, sans changer le chemin 0/1. */
 function OpexV307SpiralPlanCandidates(center, radius, length, maxPlans, cargo,
-                                       coverage, wantProduction, stats, requireDouble, rankPct)
+                                       coverage, wantProduction, stats, requireDouble, rankPct,
+                                       scan = null)
 {
   local plans = [];
   local axes = [
@@ -736,12 +740,18 @@ function OpexV307SpiralPlanCandidates(center, radius, length, maxPlans, cargo,
     [AIRail.RAILTRACK_NW_SE, AIMap.GetTileIndex(0, 1)],
   ];
   local limit = (rankPct > 0) ? maxPlans * V207_SITE_SAMPLE_FACTOR : maxPlans;
+  local lastRing = radius + 1;
   for (local r = 0; r <= radius && plans.len() < limit; r++) {
+    lastRing = r;
     for (local dx = -r; dx <= r && plans.len() < limit; dx++) {
       for (local dy = -r; dy <= r && plans.len() < limit; dy++) {
         if (abs(dx) != r && abs(dy) != r) continue;
         local tile = center + AIMap.GetTileIndex(dx, dy);
         if (!AIMap.IsValidTile(tile)) continue;
+        /* V307S=3 seulement (scan non nul) : la tuile de base porte un quai dans les
+         * quatre orientations ; non constructible ou en pente, aucune ne passe. Meme
+         * resultat, sans les quatre essais. */
+        if (scan != null && (!AITile.IsBuildable(tile) || AITile.GetSlope(tile) != AITile.SLOPE_FLAT)) continue;
         foreach (axis in axes) {
           for (local sign = -1; sign <= 1; sign += 2) {
             local step = axis[1];
@@ -800,6 +810,9 @@ function OpexV307SpiralPlanCandidates(center, radius, length, maxPlans, cargo,
       }
     }
   }
+  /* V307S=3 : les anneaux < stopRing ont ete testes en entier. Spirale epuisee
+   * (limite non atteinte) => tout le carre du rayon l'a ete : stopRing = radius + 1. */
+  if (scan != null) scan.stopRing <- (plans.len() >= limit) ? lastRing : radius + 1;
   if (rankPct > 0) return OpexV207RankStationPlans(plans, maxPlans, cargo, coverage, rankPct, center);
   return plans;
 }
@@ -875,6 +888,188 @@ function OpexV307HybridStationPlans(center, otherCenter, radius, length, maxPlan
   return plans;
 }
 
+/* V307S=3 : prolonge la spirale au-dela de l'anneau ou elle s'est arretee, pour les
+ * seuls octants encore voulus, un quai par octant. Les anneaux interieurs ont deja
+ * ete testes a l'identique (memes tuiles de base, memes quatre orientations, meme
+ * etat de carte, OpexV307SiteTry reprenant les filtres de la spirale) : les reprendre
+ * ne trouverait rien. Chaque bord d'anneau se coupe en trois segments d'octant
+ * (bas, milieu, haut) calcules d'avance. L'octant qui compte est celui de l'ANCRE du
+ * quai (comme dans OpexV307TargetedStationPlans), pas celui de la tuile de base : une
+ * orientation negative recule l'ancre de length - 1 tuiles. On parcourt donc les
+ * segments voulus et leurs deux voisins, on garde toutes les orientations admises
+ * d'une tuile (au plus trois, quota de OpexV307SiteTry) et on retient la premiere
+ * dont l'ancre tombe dans un octant encore ouvert. */
+function OpexV307SpiralContinue(center, startRing, maxRing, wanted, length, cargo,
+                                coverage, wantProduction, requireDouble, budget, out)
+{
+  local mark = OpexOpsClock();
+  local found = [];
+  local open = [false, false, false, false, false, false, false, false];
+  local nOpen = 0;
+  for (local k = 0; k < 8; k++) {
+    if (wanted[k]) { open[k] = true; nOpen++; }
+  }
+  local ctx = { plans = [], counts = [0, 0, 0, 0, 0, 0, 0, 0], maxPlans = 4,
+                length = length, cargo = cargo, coverage = coverage,
+                wantProduction = wantProduction, stats = null,
+                requireDouble = requireDouble, audit = null };
+  local cx = AIMap.GetTileX(center), cy = AIMap.GetTileY(center);
+  local mapX = AIMap.GetMapSizeX(), mapY = AIMap.GetMapSizeY();
+  /* Bords E (dx=r, t=dy), S (dy=r, t=dx), O (dx=-r, t=dy), N (dy=-r, t=dx) ; octants
+   * [t bas, milieu, t haut]. Milieu : r > 2|t| (OpexV307SiteOctant). E et O portent
+   * les coins ; S et N s'arretent avant. */
+  local edges = [[7, 0, 1], [3, 2, 1], [5, 4, 3], [5, 6, 7]];
+  /* Reserve estimee (pas une borne) : l'essai le plus cher deja vu dans l'appel. */
+  local worstTry = 0;
+  for (local r = startRing; r <= maxRing && nOpen > 0; r++) {
+    if (r <= 0) continue;
+    out.ring = r;
+    local half = (r - 1) / 2;
+    for (local e = 0; e < 4 && nOpen > 0; e++) {
+      local corner = (e == 0 || e == 2) ? r : r - 1;
+      for (local seg = 0; seg < 3 && nOpen > 0; seg++) {
+        local oct = edges[e][seg];
+        if (!open[oct] && !open[(oct + 1) % 8] && !open[(oct + 7) % 8]) continue;
+        local t0 = seg == 0 ? -corner : (seg == 1 ? -half : half + 1);
+        local t1 = seg == 0 ? -half - 1 : (seg == 1 ? half : corner);
+        for (local t = t0; t <= t1 && nOpen > 0; t++) {
+          if (OpexOpsClock() - mark + worstTry > budget) { out.budgetStop = 1; return found; }
+          local x = cx + (e == 0 ? r : (e == 2 ? -r : t));
+          local y = cy + (e == 1 ? r : (e == 3 ? -r : t));
+          if (x <= 0 || y <= 0 || x >= mapX - 1 || y >= mapY - 1) continue;
+          local tile = AIMap.GetTileIndex(x, y);
+          out.scanned++;
+          /* La tuile de base est la premiere (ou la derniere) tuile de quai des quatre
+           * orientations : non constructible ou en pente, toutes echouent. */
+          if (!AITile.IsBuildable(tile) || AITile.GetSlope(tile) != AITile.SLOPE_FLAT) continue;
+          local before = OpexOpsClock();
+          out.tries++;
+          ctx.plans = [];
+          ctx.counts[0] = 0;
+          OpexV307SiteTry(tile, 0, ctx);
+          local spent = OpexOpsClock() - before;
+          if (spent > worstTry) worstTry = spent;
+          foreach (plan in ctx.plans) {
+            local aoct = OpexV307SiteOctant(AIMap.GetTileX(plan.anchor) - cx,
+                                            AIMap.GetTileY(plan.anchor) - cy);
+            if (aoct < 0 || !open[aoct]) continue;
+            open[aoct] = false;
+            nOpen--;
+            found.push(plan);
+            break;
+          }
+        }
+      }
+    }
+  }
+  return found;
+}
+
+/* V307S=3 : meme garantie que la valeur 2 (la spirale historique d'abord, jamais
+ * moins de plans qu'elle), sans le double parcours :
+ * - spirale epuisee sans atteindre sa limite => tout le rayon a ete teste, aucun
+ *   site nouveau n'est possible : aucun complement ;
+ * - sinon, prolongation de la spirale a partir de son anneau d'arret, octants absents
+ *   seulement, un quai chacun ; en fret, borne par le captage natif de l'industrie
+ *   (+ longueur de quai), en ville par le rayon ;
+ * - complement plafonne a V307S3_BUDGET_PCT % des opcodes de la spirale du meme appel.
+ * Au plafond de plans, meme remplacement que la valeur 2 (octant le plus fourni,
+ * jamais son dernier quai). */
+function OpexV307TargetedStationPlans(center, radius, length, maxPlans, cargo,
+                                      coverage, wantProduction, stats, requireDouble, rankPct)
+{
+  local mark = OpexOpsClock();
+  local scan = {};
+  local spiral = OpexV307SpiralPlanCandidates(center, radius, length, maxPlans,
+      cargo, coverage, wantProduction, stats, requireDouble, rankPct, scan);
+  local spiralOps = OpexOpsClock() - mark;
+  local plans = spiral.slice(0);
+  local counts = [0, 0, 0, 0, 0, 0, 0, 0];
+  local cx = AIMap.GetTileX(center), cy = AIMap.GetTileY(center);
+  foreach (p in plans) {
+    local oct = OpexV307SiteOctant(AIMap.GetTileX(p.anchor) - cx,
+                                   AIMap.GetTileY(p.anchor) - cy);
+    if (oct >= 0) counts[oct]++;
+  }
+  local wanted = [false, false, false, false, false, false, false, false];
+  local nWanted = 0;
+  for (local k = 0; k < 8; k++) {
+    if (counts[k] == 0) { wanted[k] = true; nWanted++; }
+  }
+  local added = 0;
+  local maxRing = -1;
+  local cont = { scanned = 0, tries = 0, budgetStop = 0, ring = -1 };
+  if (nWanted > 0 && scan.stopRing <= radius) {
+    maxRing = radius;
+    local indId = AIIndustry.GetIndustryID(center);
+    if (indId >= 0) {
+      /* Portee du captage, mise en cache par tuile d'industrie et cote, verifiee par
+       * type d'industrie et rayon (une industrie recreee au meme endroit est recalculee).
+       * La borne ne fait que limiter la prolongation. Cache non sauvegarde. */
+      local key = center * 2 + (wantProduction ? 1 : 0);
+      local indType = AIIndustry.GetIndustryType(indId);
+      local reach = -1;
+      if ((key in V307S3_REACH) && V307S3_REACH[key][0] == indType && V307S3_REACH[key][1] == coverage) {
+        reach = V307S3_REACH[key][2];
+      } else {
+        local tiles = wantProduction ? AITileList_IndustryProducing(indId, coverage)
+                                    : AITileList_IndustryAccepting(indId, coverage);
+        tiles.Valuate(AIMap.DistanceMax, center);
+        tiles.Sort(AIList.SORT_BY_VALUE, AIList.SORT_DESCENDING);
+        reach = tiles.Count() > 0 ? tiles.GetValue(tiles.Begin()) : -1;
+        V307S3_REACH[key] <- [indType, coverage, reach];
+      }
+      if (reach >= 0) reach += length - 1;
+      if (reach < maxRing) maxRing = reach;
+    }
+  }
+  /* Horloge non monotone ou appel sans cout mesure : pas de complement. */
+  if (spiralOps <= 0) maxRing = -1;
+  if (maxRing >= scan.stopRing) {
+    local budget = spiralOps * V307S3_BUDGET_PCT / 100 - (OpexOpsClock() - mark - spiralOps);
+    local extra = budget > 0 ? OpexV307SpiralContinue(center, scan.stopRing, maxRing, wanted,
+        length, cargo, coverage, wantProduction, requireDouble, budget, cont) : [];
+    foreach (candidate in extra) {
+      local oct = OpexV307SiteOctant(AIMap.GetTileX(candidate.anchor) - cx,
+                                     AIMap.GetTileY(candidate.anchor) - cy);
+      if (oct < 0 || counts[oct] > 0) continue;
+      if (plans.len() < maxPlans) {
+        plans.push(candidate);
+        counts[oct]++;
+        added++;
+        continue;
+      }
+      local richest = -1, richestCount = 1;
+      for (local k = 0; k < 8; k++) {
+        if (counts[k] > richestCount) { richest = k; richestCount = counts[k]; }
+      }
+      if (richest < 0) continue;
+      for (local i = plans.len() - 1; i >= 0; i--) {
+        local p = plans[i];
+        if (OpexV307SiteOctant(AIMap.GetTileX(p.anchor) - cx,
+                               AIMap.GetTileY(p.anchor) - cy) != richest) continue;
+        plans[i] = candidate;
+        counts[richest]--;
+        counts[oct]++;
+        added++;
+        break;
+      }
+    }
+  }
+  if (DECISION_LOG) {
+    local totalOps = OpexOpsClock() - mark;
+    OpexDecide("V307S_PLANS", "mode=" + (AIIndustry.GetIndustryID(center) >= 0 ? "freight" : "pax")
+      + " side=" + (wantProduction ? "A" : "B") + " center=" + center
+      + " oct_n=" + OpexV307SiteOctantCount(counts) + " plans=" + plans.len()
+      + " ops=" + totalOps + " v=3 spiral=" + spiral.len()
+      + " native_added=" + added + " spiral_ops=" + spiralOps
+      + " extra_ops=" + (totalOps - spiralOps) + " stop_ring=" + scan.stopRing
+      + " max_ring=" + maxRing + " wanted=" + nWanted + " scanned=" + cont.scanned
+      + " tries=" + cont.tries + " last_ring=" + cont.ring + " budget_stop=" + cont.budgetStop);
+  }
+  return plans;
+}
+
 function OpexStationPlans(center, otherCenter, radius, length, maxPlans, cargo, coverage,
                           wantProduction, stats = null, requireDouble = false, rankPct = 0)
 {
@@ -882,6 +1077,8 @@ function OpexStationPlans(center, otherCenter, radius, length, maxPlans, cargo, 
     local indId = AIIndustry.GetIndustryID(center);
     if (indId >= 0 && OpexIndustryPrimaryRivalServed(indId, center, coverage)) return [];
   }
+  if (V307_SITES == 3) return OpexV307TargetedStationPlans(center, radius, length,
+      maxPlans, cargo, coverage, wantProduction, stats, requireDouble, rankPct);
   if (V307_SITES == 2) return OpexV307HybridStationPlans(center,
       otherCenter, radius, length, maxPlans, cargo, coverage, wantProduction,
       stats, requireDouble, rankPct);

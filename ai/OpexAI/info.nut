@@ -402,8 +402,8 @@ class OpexAIInfo extends AIInfo {
 
     AddSetting({
       name = "v307_sites",
-      description = "V307 1.8 experimental rail station sites: 0 = historical spiral (default), 1 = native dispersed, 2 = spiral first with native octant supplementation",
-      min_value = 0, max_value = 2,
+      description = "V307 1.8 experimental rail station sites: 0 = historical spiral (default), 1 = native dispersed, 2 = spiral first with native octant supplementation, 3 = spiral continued past its stop ring in missing octants only, budgeted",
+      min_value = 0, max_value = 3,
       easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
       step_size = 1, flags = 0
     });
