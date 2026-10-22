@@ -77,6 +77,8 @@ function OpexCopyBoolTable(source)
 
 function OpexSaveReactiveQueue(queue)
 {
+  /* Payload integral : inclut c77DeferDate (date entiere du premier report), sans whitelist.
+   * Le format court n'enregistre ni file ni date ; il ne restaure donc aucune attente C77. */
   if (queue == null) return [];
   local rawList = (typeof queue == "instance" && ("toArray" in queue)) ? queue.toArray() : queue;
   if (rawList == null || typeof rawList != "array") return [];

@@ -769,3 +769,5 @@ V296A_MISMATCH <- false;
 /* V296b : file native AIList et noeuds en tableaux ; 2 = comparaison V129. */
 V296_ASTAR_NATIVE <- 1;  // defaut v296clean depuis le 21/10 (decision utilisateur)
 PO01C_REGEN_SPLIT <- true; // PO-01c : defaut 1 (decision utilisateur 23/10)
+C77_INTENT_DEFER <- false;
+const C77_INTENT_DEFER_DAYS = 365;

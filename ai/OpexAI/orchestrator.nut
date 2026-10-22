@@ -40,6 +40,12 @@ class OpexReactiveQueue
     if (key in this._items) {
       local existing = this._items[key];
       existing.count++;
+      /* Une nouvelle notification coalescee ne repousse pas l'echeance du premier report. */
+      if (C77_INTENT_DEFER && (existing.kind == "c77_build" || existing.kind == "c77_subsidy")
+          && existing.payload != null && ("c77DeferDate" in existing.payload) && payload != null) {
+        payload = clone payload;
+        payload.c77DeferDate <- existing.payload.c77DeferDate;
+      }
       if (payload != null) existing.payload = payload;
       return existing;
     }
@@ -618,6 +624,32 @@ function OpexAI::_dispatchReactiveIntention(intention)
       }
       if (sp != null) OpexSpanEnd(sp);
       return true;
+    }
+  }
+  /* C77 defer ON : intercepter avant la garde historique regen_candidates et les retries.
+   * scheduler_tasks : scan AIR <= 150000 ops/pas, publication au passage suivant,
+   * ou apply apres scan/fallback ; bootstrap arme au cycle courant, mais aucun delai
+   * calendaire maximal garanti (taille du catalogue et budget disponible variables).
+   * 365 jours est une borne de securite, pas une mesure du rebuild : elle laisse aussi une
+   * marge au timeout nominal du stock rail (180 jours, hors preparation C121).
+   * Une seule date entiere, conservee au Save/Load et quand la raison du blocage change.
+   * false rend la main au worker/fond dans CE tour ; aucun Sleep ni boucle de depilage. */
+  if (C77_INTENT_DEFER && (intention.kind == "c77_build" || intention.kind == "c77_subsidy")) {
+    local deferPayload = intention.payload != null ? clone intention.payload : {};
+    local deferDate = AIDate.GetCurrentDate();
+    local blocked = this._projects == null || this._activeWorker != null;
+    if (blocked && !("c77DeferDate" in deferPayload)) deferPayload.c77DeferDate <- deferDate;
+    if (("c77DeferDate" in deferPayload)
+        && deferDate - deferPayload.c77DeferDate >= C77_INTENT_DEFER_DAYS) {
+      if (DECISION_LOG) OpexDecide("C77_INTENT_EXPIRE", "kind=" + intention.kind
+          + " key=" + intention.key + " first=" + deferPayload.c77DeferDate + " date=" + deferDate
+          + " projects_null=" + (this._projects == null ? 1 : 0)
+          + " worker=" + (this._activeWorker != null ? this._activeWorker.kind : "none"));
+      return false;
+    }
+    if (blocked) {
+      this._enqueueReactive(intention.key, intention.kind, deferPayload);
+      return false;
     }
   }
   /* C77 : un travailleur regen_candidates detient le droit d'ecriture sur le vivier jusqu'a la

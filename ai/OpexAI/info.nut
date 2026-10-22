@@ -13,6 +13,11 @@ class OpexAIInfo extends AIInfo {
    * Entre IA, la regle est de jouer a armes egales, sans auto-handicap. */
   function GetSettings()
   {
+    AddSetting({ name = "c77_intent_defer",
+      description = "C77: defer build/subsidy until portfolio and worker are ready (experimental)",
+      min_value = 0, max_value = 1,
+      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
+      flags = AICONFIG_BOOLEAN });
     AddSetting({ name = "po01c_regen_split",
       description = "PO01C: resumable reactive regeneration (default 1 since 23/10, user decision after neutral porte A)",
       min_value = 0, max_value = 1,
