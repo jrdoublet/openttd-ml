@@ -52,7 +52,8 @@ function OpexPO01CGenerateMode(owner, s, mode)
   if (mode == "rail") {
     ::OpexSitableCache = {};
     stats = OpexRailCandidateStats();
-    iterator = OpexPO01CPaxCandidates(s.catalog, s.lines, all, stats, s.abandoned);
+    iterator = OpexPO01CPaxCandidates(s.catalog, s.lines, all, stats, s.abandoned,
+        null, null, null, PAX_BAND_ALL, null, -1, s.paxDiagnostics);
     while (iterator.getstatus() != "dead") { resume iterator; yield null; }
     if (DECISION_LOG) OpexPO01CWhere("OpexPO01CGenerateMode", "rail:OpexFreightCargoOrder", -1);
     local cargoOrder = OpexFreightCargoOrder(s.catalog);
@@ -269,6 +270,7 @@ function OpexPO01CStart(owner)
       seed = { freightCargo = owner._projects.freightCargo },
       lines = OpexPO01CCopyLines(owner._lines), abandoned = clone owner._abandonedPairs,
       airCursor = {}, airPlans = [], modeOps = {}, totalOps = 0, slices = 0, maxDays = 0,
+      paxDiagnostics = DECISION_LOG ? { coverRebuilds = 0, sitableFills = 0 } : null,
       startTick = AIController.GetTick(), startDate = AIDate.GetCurrentDate() };
 }
 
@@ -391,6 +393,8 @@ function OpexPO01CLog(owner, s, phase)
   OpexDecide("PO01C_BATCH", "phase=" + phase + " modes=" + modes + " layers=" + layers
       + " ops=" + s.totalOps + " slices=" + s.slices + " ticks=" + (AIController.GetTick() - s.startTick)
       + " days=" + (AIDate.GetCurrentDate() - s.startDate) + " max_slice_days=" + s.maxDays
+      + " cover_rebuilds=" + (s.paxDiagnostics != null ? s.paxDiagnostics.coverRebuilds : 0)
+      + " sitable_fills=" + (s.paxDiagnostics != null ? s.paxDiagnostics.sitableFills : 0)
       + " ack_towns=" + a.towns + " ack_industries=" + a.industries + " ack_lines=" + a.lines
       + " ack_air=" + a.engines.air + " ack_rail=" + a.engines.rail
       + " ack_road=" + a.engines.road + " ack_water=" + a.engines.water);
@@ -502,6 +506,8 @@ function OpexPO01CStep(owner)
     OpexPO01CLog(owner, s, "publish");
     if (C39_INVALIDATION_PROBE) owner._c76RecordRegen("split", s.totalOps, s.maxDays,
         AIDate.GetYear(AIDate.GetCurrentDate()), "reactive");
+  } else if (DECISION_LOG && s.slices % 200 == 0) {
+    OpexPO01CLog(owner, s, "progress");
   }
   return true;
 }
