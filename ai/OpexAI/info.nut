@@ -401,6 +401,14 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "station_plan_precheck",
+      description = "PO-02: skip non-buildable or non-flat base tiles before rail station orientations; 0 = historical (default), 1 = precheck",
+      min_value = 0, max_value = 1,
+      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
+      step_size = 1, flags = 0
+    });
+
+    AddSetting({
       name = "v307_sites",
       description = "V307 1.8 experimental rail station sites: 0 = historical spiral (default), 1 = native dispersed, 2 = spiral first with native octant supplementation",
       min_value = 0, max_value = 2,

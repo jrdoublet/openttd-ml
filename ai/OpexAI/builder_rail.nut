@@ -902,6 +902,11 @@ function OpexStationPlans(center, otherCenter, radius, length, maxPlans, cargo, 
         if (abs(dx) != r && abs(dy) != r) continue;
         local base = center + AIMap.GetTileIndex(dx, dy);
         if (!AIMap.IsValidTile(base)) continue;
+        /* PO-02 : base est le premier/dernier quai selon sign, sur les deux axes.
+         * Le filtre historique rejette avant stats/cargo/commande/paralleles.
+         * Conserver le chemin historique pour une longueur non positive. */
+        if (STATION_PLAN_PRECHECK && length > 0 &&
+            (!AITile.IsBuildable(base) || AITile.GetSlope(base) != AITile.SLOPE_FLAT)) continue;
         foreach (axis in axes) {
           for (local sign = -1; sign <= 1; sign += 2) {
             local step = axis[1];
