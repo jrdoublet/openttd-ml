@@ -3,13 +3,14 @@
 
 function OpexPO01CPaxCandidates(catalog, lines, out, stats, abandonedPairs = null, profile = null, candidateProfile = null, cruiseCache = null, paxBand = PAX_BAND_ALL, targetKind = null, targetId = -1)
 {
+  if (DECISION_LOG) OpexPO01CWhere("OpexPO01CPaxCandidates", "before_first_yield", -1);
   local cargo = catalog.paxCargo;
-  if (cargo < 0) return;
-  if (catalog.locoByCargoWagons != null && !(cargo in catalog.locoByCargoWagons)) return;
+  if (cargo < 0) { if (DECISION_LOG) OpexPO01CWhere("OpexPO01CPaxCandidates", "after_last_yield", PO01C_WHERE.idx); return; }
+  if (catalog.locoByCargoWagons != null && !(cargo in catalog.locoByCargoWagons)) { if (DECISION_LOG) OpexPO01CWhere("OpexPO01CPaxCandidates", "after_last_yield", PO01C_WHERE.idx); return; }
   /* V275 bit 4 : l'aerien d'abord. Les premieres annees, la caisse borne et un avion rend
    * plus par livre ; le rail voyageurs attend la 3e annee. Inerte en rail seul. */
   if ((V275_RAIL_PAX_MM & 4) && MODE_AIR
-      && OPEX_START_YEAR >= 0 && AIDate.GetYear(AIDate.GetCurrentDate()) < OPEX_START_YEAR + 2) return;
+      && OPEX_START_YEAR >= 0 && AIDate.GetYear(AIDate.GetCurrentDate()) < OPEX_START_YEAR + 2) { if (DECISION_LOG) OpexPO01CWhere("OpexPO01CPaxCandidates", "after_last_yield", PO01C_WHERE.idx); return; }
   local towns = catalog.towns;
   local n = towns.len();
   local produced = [];
@@ -19,8 +20,9 @@ function OpexPO01CPaxCandidates(catalog, lines, out, stats, abandonedPairs = nul
   local airTowns = null;
   if (V275_RAIL_PAX_MM & 1) {
     airTowns = {};
-    foreach (line in lines) {
+    foreach (po01eLineIndex, line in lines) {
     yield null; // PO01C_CHECKPOINT
+    if (DECISION_LOG) OpexPO01CWhere("OpexPO01CPaxCandidates", "rail_pax:air_lines", po01eLineIndex);
       if (!("mode" in line) || line.mode != "air") continue;
       if (("scrapping" in line) && line.scrapping) continue;
       airTowns.rawset(line.originA, true);
@@ -30,6 +32,7 @@ function OpexPO01CPaxCandidates(catalog, lines, out, stats, abandonedPairs = nul
   local preparationMark = profile != null ? OpexOpsMeasureBegin() : null;
   for (local i = 0; i < n; i++) {
     yield null; // PO01C_CHECKPOINT
+    if (DECISION_LOG) OpexPO01CWhere("OpexPO01CPaxCandidates", "rail_pax:production", i);
     local p = AITown.GetLastMonthProduction(towns[i].id, cargo);
     if (p <= 0 && towns[i].pop > 0) p = (towns[i].pop * 22) / 100;
     produced.append(p);
@@ -43,6 +46,7 @@ function OpexPO01CPaxCandidates(catalog, lines, out, stats, abandonedPairs = nul
     mailProduced = [];
     for (local i = 0; i < n; i++) {
     yield null; // PO01C_CHECKPOINT
+    if (DECISION_LOG) OpexPO01CWhere("OpexPO01CPaxCandidates", "rail_pax:mail", i);
       local mp = AITown.GetLastMonthProduction(towns[i].id, catalog.mailCargo);
       if (mp < 0) mp = 0;
       mailProduced.append(mp);
@@ -50,16 +54,21 @@ function OpexPO01CPaxCandidates(catalog, lines, out, stats, abandonedPairs = nul
   }
   if (profile != null) profile.paxPreparationOps += OpexOpsMeasureEnd(preparationMark);
   local pairTotalMark = profile != null ? OpexOpsMeasureBegin() : null;
+  if (DECISION_LOG) OpexPO01CWhere("OpexPO01CPaxCandidates", "rail_pax:OpexCatalogBounds", PO01C_WHERE.idx);
   local bounds = OpexCatalogBounds(catalog);
   local cellSize = bounds.railMax;
   if (cellSize < 1) cellSize = 1;
   local grid = OpexSpatialGrid();
+  if (DECISION_LOG) OpexPO01CWhere("OpexPO01CPaxCandidates", "rail_pax:grid.Build", PO01C_WHERE.idx);
   grid.Build(towns, cellSize);
   for (local a = 0; a < n; a++) {
     yield null; // PO01C_CHECKPOINT
+    if (DECISION_LOG) OpexPO01CWhere("OpexPO01CPaxCandidates", "rail_pax:neighbors", a);
+    if (DECISION_LOG) OpexPO01CWhere("OpexPO01CPaxCandidates", "rail_pax:grid.GetCandidatesFor", PO01C_WHERE.idx);
     local neighbors = grid.GetCandidatesFor(a);
     foreach (b in neighbors) {
     yield null; // PO01C_CHECKPOINT
+    if (DECISION_LOG) OpexPO01CWhere("OpexPO01CPaxCandidates", "rail_pax:pair", b);
       if (targetKind == "town" && targetId >= 0
           && towns[a].id != targetId && towns[b].id != targetId) continue;
       local pairDistance = AIMap.DistanceManhattan(towns[a].tile, towns[b].tile);
@@ -104,6 +113,7 @@ function OpexPO01CPaxCandidates(catalog, lines, out, stats, abandonedPairs = nul
         secondary = { cargo = catalog.mailCargo, monthly = mailMonthly };
       }
       local candidateMark = profile != null ? OpexOpsMeasureBegin() : null;
+      if (DECISION_LOG) OpexPO01CWhere("OpexPO01CPaxCandidates", "rail_pax:pair_candidate", PO01C_WHERE.idx);
       local candidate = OpexMakeCandidate(catalog, "pax", cargo, towns[a].tile, towns[b].tile,
                                           monthly, false, stats, false, candidateProfile, cruiseCache,
                                           secondary);
@@ -119,10 +129,12 @@ function OpexPO01CPaxCandidates(catalog, lines, out, stats, abandonedPairs = nul
     }
   }
   if (profile != null) profile.paxPairTotalOps += OpexOpsMeasureEnd(pairTotalMark);
+  if (DECISION_LOG) OpexPO01CWhere("OpexPO01CPaxCandidates", "after_last_yield", PO01C_WHERE.idx);
 }
 
 function OpexPO01CFreightCandidates(catalog, lines, out, stats, abandonedPairs = null, profile = null, cruiseCache = null, freightCargo = null, targetKind = null, targetId = -1)
 {
+  if (DECISION_LOG) OpexPO01CWhere("OpexPO01CFreightCandidates", "before_first_yield", -1);
   /* C41.44 : les lignes sont immuables pendant une generation ; une ville peut donc reutiliser
    * exactement son resultat OpexOriginService, y compris null et l'etat blocked. */
   local townServiceCache = {};
@@ -131,6 +143,7 @@ function OpexPO01CFreightCandidates(catalog, lines, out, stats, abandonedPairs =
   local served = [];
   for (local i = 0; i < industries.len(); i++) {
     yield null; // PO01C_CHECKPOINT
+    if (DECISION_LOG) OpexPO01CWhere("OpexPO01CFreightCandidates", "rail_freight:service", i);
     local service = OpexOriginService(lines, industries[i].tile);
     served.append(service);
     if (service != null) stats.industriesServed++; else stats.industriesUnserved++;
@@ -138,6 +151,7 @@ function OpexPO01CFreightCandidates(catalog, lines, out, stats, abandonedPairs =
   if (profile != null) profile.freightPreparationOps += OpexOpsMeasureEnd(preparationMark);
   foreach (cargo, sources in catalog.producers) {
     yield null; // PO01C_CHECKPOINT
+    if (DECISION_LOG) OpexPO01CWhere("OpexPO01CFreightCandidates", "rail_freight:cargo", cargo);
     if (freightCargo != null && cargo != freightCargo) continue;
     if (catalog.locoByCargoWagons != null && !(cargo in catalog.locoByCargoWagons)) continue;
     local hasIndustrySinks = (cargo in catalog.acceptors);
@@ -147,6 +161,7 @@ function OpexPO01CFreightCandidates(catalog, lines, out, stats, abandonedPairs =
 
     foreach (si in sources) {
     yield null; // PO01C_CHECKPOINT
+    if (DECISION_LOG) OpexPO01CWhere("OpexPO01CFreightCandidates", "rail_freight:source", si);
       local source = industries[si];
       if (OPEX_LEVEL_LIMITS && OpexIndustryPrimaryRivalServed(source.id, source.tile)) continue;
       local monthly = AIIndustry.GetLastMonthProduction(source.id, cargo);
@@ -155,6 +170,7 @@ function OpexPO01CFreightCandidates(catalog, lines, out, stats, abandonedPairs =
       local industryMark = profile != null ? OpexOpsMeasureBegin() : null;
       for (local k = 0; k < sinks.len(); k++) {
     yield null; // PO01C_CHECKPOINT
+    if (DECISION_LOG) OpexPO01CWhere("OpexPO01CFreightCandidates", "rail_freight:industry_pair", k);
         local di = sinks[k];
         if (di == si) continue;
         if (targetKind == "town") continue;
@@ -179,6 +195,7 @@ function OpexPO01CFreightCandidates(catalog, lines, out, stats, abandonedPairs =
             stats.pairsOriginServed++;
             continue;
           }
+          if (DECISION_LOG) OpexPO01CWhere("OpexPO01CFreightCandidates", "rail_freight:OpexV264EmitConvergent", PO01C_WHERE.idx);
           local kept = OpexV264EmitConvergent(catalog, stats, profile, cruiseCache, cargo,
                                               source, industries[di], monthly, others2, attached);
           if (kept != null) out.append(kept);
@@ -187,6 +204,7 @@ function OpexPO01CFreightCandidates(catalog, lines, out, stats, abandonedPairs =
         local isTransformer = ("isTransformer" in industries[di]) && industries[di].isTransformer;
         local candidateMark = profile != null ? OpexOpsMeasureBegin() : null;
         local secondary = null;
+        if (DECISION_LOG) OpexPO01CWhere("OpexPO01CFreightCandidates", "rail_freight:pair_candidate", PO01C_WHERE.idx);
         local candidate = OpexMakeCandidate(catalog, "freight", cargo, source.tile,
                                             industries[di].tile, monthly, false, stats, isTransformer, profile, cruiseCache,
                                             secondary);
@@ -207,6 +225,7 @@ function OpexPO01CFreightCandidates(catalog, lines, out, stats, abandonedPairs =
         local townSinks = catalog.townAcceptors[cargo];
         for (local k = 0; k < townSinks.len(); k++) {
     yield null; // PO01C_CHECKPOINT
+    if (DECISION_LOG) OpexPO01CWhere("OpexPO01CFreightCandidates", "rail_freight:town_pair", k);
           local town = townSinks[k];
           if (targetKind == "industry" && targetId >= 0 && source.id != targetId) continue;
           if (targetKind == "town" && targetId >= 0 && town.id != targetId) continue;
@@ -245,6 +264,7 @@ function OpexPO01CFreightCandidates(catalog, lines, out, stats, abandonedPairs =
           }
           if (OPEX_ECONOMY_OPCODE_COMPAT_FALSE) {}
           local candidateMark = profile != null ? OpexOpsMeasureBegin() : null;
+          if (DECISION_LOG) OpexPO01CWhere("OpexPO01CFreightCandidates", "rail_freight:pair_candidate", PO01C_WHERE.idx);
           local candidate = OpexMakeCandidate(catalog, "freight", cargo, source.tile,
                                               town.tile, townMonthly, false, stats, false, profile, cruiseCache);
           if (profile != null) {
@@ -261,23 +281,28 @@ function OpexPO01CFreightCandidates(catalog, lines, out, stats, abandonedPairs =
       }
     }
   }
+  if (DECISION_LOG) OpexPO01CWhere("OpexPO01CFreightCandidates", "after_last_yield", PO01C_WHERE.idx);
 }
 
 function OpexPO01CRoadFreightCandidates(catalog, lines, out, stats, abandonedPairs = null, profile = null, freightCargo = null, targetKind = null, targetId = -1)
 {
+  if (DECISION_LOG) OpexPO01CWhere("OpexPO01CRoadFreightCandidates", "before_first_yield", -1);
   local preparationMark = profile != null ? OpexOpsMeasureBegin() : null;
   local industries = catalog.industries;
   local towns = catalog.towns;
+  if (DECISION_LOG) OpexPO01CWhere("OpexPO01CRoadFreightCandidates", "road_freight:OpexRoadFreightServedIndex", PO01C_WHERE.idx);
   local servedIndex = OpexRoadFreightServedIndex(lines);
   local servedIndustry = [];
   for (local i = 0; i < industries.len(); i++) {
     yield null; // PO01C_CHECKPOINT
+    if (DECISION_LOG) OpexPO01CWhere("OpexPO01CRoadFreightCandidates", "road_freight:industry_service", i);
     servedIndustry.append(servedIndex != null
         ? (industries[i].tile in servedIndex) : OpexOriginServed(lines, industries[i].tile, true));
   }
   local servedTown = [];
   for (local i = 0; i < towns.len(); i++) {
     yield null; // PO01C_CHECKPOINT
+    if (DECISION_LOG) OpexPO01CWhere("OpexPO01CRoadFreightCandidates", "road_freight:town_service", i);
     servedTown.append(servedIndex != null
         ? (towns[i].tile in servedIndex) : OpexOriginServed(lines, towns[i].tile, true));
   }
@@ -293,6 +318,7 @@ function OpexPO01CRoadFreightCandidates(catalog, lines, out, stats, abandonedPai
 
   foreach (cargo, sources in catalog.producers) {
     yield null; // PO01C_CHECKPOINT
+    if (DECISION_LOG) OpexPO01CWhere("OpexPO01CRoadFreightCandidates", "road_freight:cargo", cargo);
     if (freightCargo != null && cargo != freightCargo) continue;
     if (!(cargo in catalog.roadEngineByCargo)) { stats.noEngine++; continue; }
     /* Les passagers sont traites par la famille 1 : les inclure ici apparierait une industrie a
@@ -301,11 +327,13 @@ function OpexPO01CRoadFreightCandidates(catalog, lines, out, stats, abandonedPai
     local sinks = (cargo in catalog.acceptors) ? catalog.acceptors[cargo] : [];
     /* C41.20 : la liste est locale au cargo et a cette generation. Les appels API anticipes sont
      * purs ; ils ne changent ni l'industrie, ni le filtre de distance, ni l'ordre des candidats. */
+    if (DECISION_LOG) OpexPO01CWhere("OpexPO01CRoadFreightCandidates", "road_freight:OpexRoadFreightAcceptedTowns", PO01C_WHERE.idx);
     local townTargets = OpexRoadFreightAcceptedTowns(towns, servedTown, cargo, truckCoverage);
     if (townTargets != null) stats.townAcceptancePrefiltered += towns.len() - townTargets.len();
 
     foreach (si in sources) {
     yield null; // PO01C_CHECKPOINT
+    if (DECISION_LOG) OpexPO01CWhere("OpexPO01CRoadFreightCandidates", "road_freight:source", si);
       if (servedIndustry[si]) {
         /* Le code livre saute toute la source. Sous sonde, enumerer seulement les paires
          * qu'il aurait sautees permet de compter ce filtre sans changer son continue. */
@@ -313,11 +341,13 @@ function OpexPO01CRoadFreightCandidates(catalog, lines, out, stats, abandonedPai
           local source = industries[si];
           foreach (di in sinks) {
     yield null; // PO01C_CHECKPOINT
+    if (DECISION_LOG) OpexPO01CWhere("OpexPO01CRoadFreightCandidates", "road_freight:rejected_industry", di);
             if (di != si) OpexC55OriginRelaxObserve("freight", lines, source.tile,
                 industries[di].tile, true, servedIndustry[di]);
           }
           for (local ti = 0; ti < towns.len(); ti++) {
     yield null; // PO01C_CHECKPOINT
+    if (DECISION_LOG) OpexPO01CWhere("OpexPO01CRoadFreightCandidates", "road_freight:rejected_town", ti);
             OpexC55OriginRelaxObserve("freight", lines, source.tile, towns[ti].tile,
                 true, servedTown[ti]);
           }
@@ -332,6 +362,7 @@ function OpexPO01CRoadFreightCandidates(catalog, lines, out, stats, abandonedPai
       local industryMark = profile != null ? OpexOpsMeasureBegin() : null;
       for (local k = 0; k < sinks.len(); k++) {
     yield null; // PO01C_CHECKPOINT
+    if (DECISION_LOG) OpexPO01CWhere("OpexPO01CRoadFreightCandidates", "road_freight:industry_pair", k);
         local di = sinks[k];
         if (di == si) continue;
         if (targetKind == "town") continue;
@@ -352,6 +383,7 @@ function OpexPO01CRoadFreightCandidates(catalog, lines, out, stats, abandonedPai
         }
         stats.pairsInBand++;
         local isTransformer = ("isTransformer" in industries[di]) && industries[di].isTransformer;
+        if (DECISION_LOG) OpexPO01CWhere("OpexPO01CRoadFreightCandidates", "road_freight:pair_candidate", PO01C_WHERE.idx);
         local candidate = OpexMakeRoadCandidate(catalog, "freight", cargo, source.tile,
                                                 industries[di].tile, -1, -1, distance, monthly,
                                                 stats, isTransformer);
@@ -368,6 +400,7 @@ function OpexPO01CRoadFreightCandidates(catalog, lines, out, stats, abandonedPai
       if (C55_ORIGIN_RELAX_PROBE && townTargets != null) {
         for (local ti = 0; ti < towns.len(); ti++) {
     yield null; // PO01C_CHECKPOINT
+    if (DECISION_LOG) OpexPO01CWhere("OpexPO01CRoadFreightCandidates", "road_freight:town_probe", ti);
           OpexC55OriginRelaxObserve("freight", lines, source.tile, towns[ti].tile,
               false, servedTown[ti]);
         }
@@ -375,6 +408,7 @@ function OpexPO01CRoadFreightCandidates(catalog, lines, out, stats, abandonedPai
       local townPool = (townTargets != null) ? townTargets : towns;
       for (local k = 0; k < townPool.len(); k++) {
     yield null; // PO01C_CHECKPOINT
+    if (DECISION_LOG) OpexPO01CWhere("OpexPO01CRoadFreightCandidates", "road_freight:town_pair", k);
         local ti = k;
         local t = (townTargets != null) ? townTargets[ti] : ti;
         if (targetKind == "industry" && targetId >= 0 && source.id != targetId) continue;
@@ -423,6 +457,7 @@ function OpexPO01CRoadFreightCandidates(catalog, lines, out, stats, abandonedPai
         if (OPEX_ECONOMY_OPCODE_COMPAT_FALSE) {}
         local candidateMark = (profile != null && C41_ROAD_FREIGHT_TOWN_PROFILE)
             ? OpexOpsMeasureBegin() : null;
+        if (DECISION_LOG) OpexPO01CWhere("OpexPO01CRoadFreightCandidates", "road_freight:pair_candidate", PO01C_WHERE.idx);
         local candidate = OpexMakeRoadCandidate(catalog, "freight", cargo, source.tile,
                                                 towns[t].tile, -1, towns[t].id, distance, monthly,
                                                 stats);
@@ -436,6 +471,7 @@ function OpexPO01CRoadFreightCandidates(catalog, lines, out, stats, abandonedPai
 
     }
   }
+  if (DECISION_LOG) OpexPO01CWhere("OpexPO01CRoadFreightCandidates", "after_last_yield", PO01C_WHERE.idx);
 }
 
 function OpexPO01CWaterPlans(catalog, lines = null, projects = null, profile = null, siteCatalog = null)

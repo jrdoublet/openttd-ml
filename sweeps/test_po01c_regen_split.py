@@ -2,12 +2,70 @@
 import re
 import unittest
 import hashlib
-from po01c_generate import AI, DEEP_SOURCES, generated
+from po01c_generate import AI, DEEP_SOURCES, generated, function, unit_sites
 from test_v261_forum_behaviours import source, body, uncomment
 from po01c_diagnostics import pending_save_dates, summarize
 
 
 class PO01CContracts(unittest.TestCase):
+    def test_po01e_units_group_only_logged_maxima(self):
+        prefix = '[0] [I] OPEX 1973-11-4 PO01C_UNIT '
+        log = ''.join(prefix + f'mode=rail gen=OpexPO01CPaxCandidates '
+                      f'site=rail_pax:pair_candidate idx={i} ops={ops}\n'
+                      for i, ops in enumerate((1000000, 500000, 600000)))
+        log += prefix + 'mode=road gen=OpexPO01CRoadFreightCandidates site=before_first_yield idx=-1 ops=41000\n'
+        log += log.replace('[0]', '[1]')  # Opponent must not enter the aggregates.
+        log += '[0] [I] OPEX 1973-11-4 PO01C_SLICE phase=mode ops=9999999 days=5\n'
+        rows = summarize(log)['units']
+        self.assertEqual(len(rows), 2)
+        self.assertEqual(rows[0], dict(mode='rail', gen='OpexPO01CPaxCandidates',
+                         site='rail_pax:pair_candidate', count=3,
+                         ops_max=1000000, ops_median=600000))
+        self.assertEqual(rows[1]['ops_median'], 41000)
+        self.assertEqual(summarize('')['units'], [])
+        even = prefix + 'mode=road gen=g site=s idx=0 ops=40001\n'
+        even += prefix + 'mode=road gen=g site=s idx=1 ops=40002\n'
+        self.assertEqual(summarize(even)['units'][0]['ops_median'], 40001.5)
+
+    def test_po01e_sites_guarded_and_business_code_preserved(self):
+        for name in ('PaxCandidates', 'FreightCandidates', 'RoadFreightCandidates'):
+            original = function(source('candidates.nut'), 'Opex' + name)
+            original = original.replace('Opex' + name, 'OpexPO01C' + name, 1)
+            original = re.sub(r'((?:for|foreach|while)\s*\([^\n]*\)\s*\{)',
+                              r'\1\n    yield null; // PO01C_CHECKPOINT', original)
+            instrumented = unit_sites(original, 'Opex' + name)
+            for line in instrumented.splitlines():
+                if 'OpexPO01CWhere(' in line:
+                    self.assertIn('if (DECISION_LOG) OpexPO01CWhere(', line)
+            self.assertIn('"before_first_yield"', instrumented)
+            self.assertIn('"after_last_yield"', instrumented)
+            self.assertIn(':pair_candidate"', instrumented)
+            self.assertEqual(original.count('yield null;'), instrumented.count('yield null;'))
+            stripped = re.sub(r'if \(DECISION_LOG\) OpexPO01CWhere\([^;]*\);', '', instrumented)
+            stripped = stripped.replace('{  return; }', 'return;')
+            stripped = stripped.replace('foreach (po01eLineIndex, line in lines)', 'foreach (line in lines)')
+            # After deleting diagnostics, all business tokens, order and counters match.
+            self.assertEqual(re.sub(r'\s+', '', original), re.sub(r'\s+', '', stripped))
+
+    def test_po01e_step_logged_branch_and_transient_state(self):
+        code = body('po01c_regen.nut', 'OpexPO01CStep')
+        self.assertIn('if (DECISION_LOG && phase == "mode") {', code)
+        logged = code[code.index('if (DECISION_LOG && phase == "mode") {'):code.index('\n    } else {', code.index('local largest'))]
+        self.assertIn('local largest = null;', logged)
+        self.assertRegex(logged, r'local unitMark = OpexOpsMeasureBegin\(\);\s*resume s.iterator;\s*local unitOps = OpexOpsMeasureEnd\(unitMark\);')
+        self.assertIn('unitOps > PO01C_SLICE_OPS && (largest == null || unitOps > largest.ops)', logged)
+        self.assertIn('idx = PO01C_WHERE.idx, ops = unitOps', logged)
+        self.assertEqual(logged.count('OpexDecide("PO01C_UNIT"'), 1)
+        self.assertIn('} else {\n      while (s.iterator.getstatus() != "dead" && OpexOpsMeasureEnd(mark) < PO01C_SLICE_OPS)\n        resume s.iterator;', code)
+        self.assertNotIn('PO01C_WHERE', source('persist.nut'))
+        self.assertIn('if (DECISION_LOG) {', body('po01c_regen.nut', 'OpexPO01CWhere'))
+        mode = body('po01c_regen.nut', 'OpexPO01CGenerateMode')
+        for site in ('before_first_yield', 'after_last_yield', 'OpexFreightCargoOrder', 'OpexProjectFromCandidate'):
+            self.assertIn(site, mode)
+        for helper, site in (('OpexPO01CLoggedTopK', 'OpexTopK'), ('OpexPO01CLoggedBands', 'OpexBands')):
+            self.assertIn('DECISION_LOG ? ' + helper, mode)
+            self.assertIn(site, body('po01c_regen.nut', helper))
+
     def test_log_days_not_elapsed_batch_are_freezes(self):
         log = ('[0] [I] OPEX 1972-1-31 PO01C_BATCH phase=save_pending days=30\n'
                '[0] [I] OPEX 1972-2-3 PO01C_BATCH phase=publish days=33 ops=100\n'
