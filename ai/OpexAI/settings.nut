@@ -57,6 +57,7 @@ function OpexResolveDifficulty()
 function OpexLoadSettings()
 {
   PO01C_REGEN_SPLIT = AIController.GetSetting("po01c_regen_split") != 0;
+  C77_INTENT_DEFER = AIController.GetSetting("c77_intent_defer") != 0;
   /* V276/V278 (defaut auto depuis le 20/10, decision utilisateur) : qualifies ensemble a 1024x1024
    * seulement (portes A +631 k et B +1,11 M), sans gain mesure a 256x256 ; actifs des 1024x1024 tuiles. */
   local bigMap = AIMap.GetMapSizeX() * AIMap.GetMapSizeY() >= 1024 * 1024;
