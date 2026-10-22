@@ -353,5 +353,10 @@
     "po01c_generators.nut",
     "engines",
     "AIEngine.IsArticulated"
+  ],
+  [
+    "po01c_generators.nut",
+    "tiles",
+    "AITile.IsStationTile"
   ]
 ]

@@ -2,12 +2,129 @@
 import re
 import unittest
 import hashlib
-from po01c_generate import AI, DEEP_SOURCES, generated, function, unit_sites
+from po01c_generate import AI, DEEP_SOURCES, generated, function, unit_sites, bridge
 from test_v261_forum_behaviours import source, body, uncomment
 from po01c_diagnostics import pending_save_dates, summarize
 
 
 class PO01CContracts(unittest.TestCase):
+    def test_po01f_candidate_business_tokens_preserved(self):
+        copied = function(source('po01c_generators.nut'), 'OpexPO01CMakePaxCandidate')
+        copied = re.sub(r'if \(DECISION_LOG\) OpexPO01CWhere\([^;]*\);', '', copied)
+        for callee, args, result, original in (
+            ('OpexRailOriginSitable', 'srcTile, cargo, catalog.railCoverage, true', 'sitable',
+             'sitable = OpexRailOriginSitable(srcTile, cargo, catalog.railCoverage, true);'),
+            ('OpexV216aScaleDemand', 'po01fContext, srcTile, dstTile, cargo, monthly', 'monthly',
+             'monthly = OpexV216aScaleDemand(srcTile, dstTile, cargo, monthly);'),
+            ('OpexV216aScaleDemand', 'po01fContext, srcTile, dstTile, secondary.cargo, secondary.monthly',
+             'local po01fMail', 'SECONDARY')):
+            segment = bridge('CHILD', 'CHILD', callee, args, result)
+            self.assertIn(segment, copied)
+            copied = copied.replace(segment, original)
+        copied = re.sub(r'if \(secondary != null\) \{\s*SECONDARY\s*secondary = '
+                        r'\{ cargo = secondary.cargo, monthly = po01fMail \};\s*\}',
+                        'if (secondary != null) secondary = { cargo = secondary.cargo, '
+                        'monthly = OpexV216aScaleDemand(srcTile, dstTile, secondary.cargo, secondary.monthly) };', copied)
+        copied = copied.replace('OpexPO01CMakePaxCandidate(po01dResult, po01fSitableCache, po01fContext,',
+                                'OpexMakeCandidate(')
+        copied = copied.replace('po01fSitableCache', '::OpexSitableCache')
+        copied = copied.replace('po01fContext.now = AIDate.GetCurrentDate();', '')
+        copied = copied.replace('po01fContext.used = true;', '')
+        copied = re.sub(r'\{ po01dResult.value = ([^;]*); return; \}', r'return \1;', copied)
+        self.assertEqual(re.sub(r'\s+', '', copied),
+                         re.sub(r'\s+', '', function(source('candidates.nut'), 'OpexMakeCandidate')))
+
+    def test_po01f_historical_dependencies_unchanged(self):
+        expected = {
+            'probe_v216.nut': '8971a9dcf90ec29fce9baaca9f4959bbcc3c7db5d3e648963f1481c768ab5166',
+            'economy.nut': 'c89b774e6465708574567ad591372917c13fc6fe51b82921def346fbc623978b',
+            'builder_rail.nut': 'a727ae86b36bf52099e4cc0ad9f418f54cdeffa53511a44821d3d480fe2aab5e',
+        }
+        for name, digest in expected.items():
+            self.assertEqual(hashlib.sha256((AI / name).read_bytes()).hexdigest(), digest)
+
+    def test_po01f_heavy_loop_tokens_and_checkpoints(self):
+        for file, name in [('probe_v216.nut', 'V216MarkRect'),
+                           ('candidates.nut', 'RailOriginSitable')]:
+            original = function(source(file), 'Opex' + name)
+            copied = function(source('po01c_generators.nut'), 'OpexPO01C' + name)
+            copied = copied.replace('OpexPO01C' + name + '(po01dResult, ', 'Opex' + name + '(')
+            copied = copied.replace('po01fContext, ', '')
+            copied = re.sub(r'yield null; // PO01C_CHECKPOINT', '', copied)
+            copied = re.sub(r'if \(DECISION_LOG\) OpexPO01CWhere\([^;]*\);', '', copied)
+            copied = re.sub(r'\{ po01dResult.value = ([^;]*); return; \}', r'return \1;', copied)
+            self.assertEqual(re.sub(r'\s+', '', original), re.sub(r'\s+', '', copied))
+        targets = {'V216MarkRect': 'for (local y = y0; y <= y1; y++)',
+                   'V216RefreshCover': 'foreach (tile, tv in AITileList_StationType(st, type))',
+                   'V216AdvAround': 'foreach (tile, tv in tiles)',
+                   'V216Coverage': 'for (local y = cy - radius; y <= cy + radius; y++)',
+                   'RailOriginSitable': 'for (local dy = -r; dy <= r; dy++)'}
+        for name, loop in targets.items():
+            code = body('po01c_generators.nut', 'OpexPO01C' + name)
+            self.assertRegex(code, re.escape(loop) + r'\s*\{\s*yield null;')
+            for line in code.splitlines():
+                if 'OpexPO01CWhere(' in line:
+                    self.assertIn('if (DECISION_LOG)', line)
+
+    def test_po01f_entire_coverage_chain_is_resumed(self):
+        edges = {'PaxCandidates': ['MakePaxCandidate'],
+                 'MakePaxCandidate': ['RailOriginSitable', 'V216aScaleDemand'],
+                 'V216aScaleDemand': ['V216aEndPct'],
+                 'V216aEndPct': ['V216GainPct', 'V216Coverage'],
+                 'V216GainPct': ['V216Coverage'],
+                 'V216Coverage': ['V216RefreshCover', 'V216AdvAround'],
+                 'V216RefreshCover': ['V216MarkRect'],
+                 'V216AdvAround': ['V216MarkRect']}
+        for caller, callees in edges.items():
+            code = body('po01c_generators.nut', 'OpexPO01C' + caller)
+            for callee in callees:
+                self.assertIn('OpexPO01C' + callee + '(po01dBox, ', code)
+                self.assertNotIn('Opex' + callee + '(', code)
+            self.assertRegex(code, r'resume po01dChild;\s*yield null;')
+        candidate = body('po01c_generators.nut', 'OpexPO01CMakePaxCandidate')
+        self.assertNotIn('OpexStationPlans', candidate)
+        self.assertIn('OpexLineEconomics(catalog, cargo, distance, monthly, kind, 0, null, profile, cruiseCache,', candidate)
+        self.assertNotIn('::OpexSitableCache', candidate)
+        self.assertIn('po01fSitableCache[sitableKey] <- sitable;', candidate)
+        refresh = body('po01c_generators.nut', 'OpexPO01CV216RefreshCover')
+        self.assertIn('local now = po01fContext.now;', refresh)
+        self.assertNotIn('V216_COVER', refresh)
+        for field in ('adv', 'cache'):
+            self.assertIn(field + ' = clone po01fOriginal.' + field,
+                          body('po01c_generators.nut', 'OpexPO01CPaxCandidates'))
+        producer = body('po01c_generators.nut', 'OpexPO01CPaxCandidates')
+        self.assertNotIn('V216_COVER', candidate)
+        self.assertIn('po01fContext.now = AIDate.GetCurrentDate();', candidate)
+        self.assertIn('po01fSitableCache, po01fContext, catalog, "pax"', producer)
+        self.assertGreater(producer.index('V216_COVER = po01fContext.cover;'),
+                           producer.index('out.append(candidate);'))
+
+    def test_po01f_cache_interleaving_model(self):
+        # Copy-on-write invariant: entries are immutable once published. A refresh
+        # replaces own, never edits the previous map or its rating arrays.
+        published = dict(ownMonth=1, advQuarter=0, own={1: [20, 10]},
+                         adv={5: {9: True}}, cache={'old': {'prod': 2}})
+        private = dict(published, adv=dict(published['adv']), cache=dict(published['cache']))
+        private.update(ownMonth=2, own={}, cache={})
+        for tile in range(5):
+            private['own'][tile] = [30, 15]
+            # A synchronous consumer between resumes can see only complete old data.
+            self.assertEqual(published['own'], {1: [20, 10]})
+            published['cache']['external'] = {'prod': 3}
+        private['cache']['pair'] = {'prod': 5}
+        self.assertNotIn('pair', published['cache'])
+        # Another consumer completes a cache entry AFTER the first pair, before
+        # the second. Both pairs must keep using the producer's private context.
+        published['cache']['second'] = {'prod': 99}
+        following = private
+        self.assertEqual(following['cache']['pair'], {'prod': 5})
+        self.assertEqual(following['own'], {i: [30, 15] for i in range(5)})
+        # The next pair uses the completed first pair's cache, never its partial map.
+        self.assertNotIn('external', following['cache'])
+        self.assertNotIn('second', following['cache'])
+        published = private  # Only the producer's completion publishes its maps.
+        self.assertEqual(published['cache'], {'pair': {'prod': 5}})
+
     def test_po01e_units_group_only_logged_maxima(self):
         prefix = '[0] [I] OPEX 1973-11-4 PO01C_UNIT '
         log = ''.join(prefix + f'mode=rail gen=OpexPO01CPaxCandidates '
