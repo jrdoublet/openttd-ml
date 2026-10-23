@@ -65,3 +65,12 @@ Publication AIR : premier lot et apply final passent par rebuild (`scheduler_tas
 Limite réelle AU DÉFAUT : un candidat ordinaire d'entité non régénéré disparaît lors du remplacement complet/de son mode ; la rotation fret (`task_projects.nut:2048–2066`, :2088–2092) suffit à l'expliquer. Ni disparition définitive de l'opportunité, ni perte économique démontrée ; ne pas confondre ce reliquat avec les subventions protégées.
 Conclusion : réfutation de l'atténuation « C77 désactivé au défaut » et de l'extension aux subventions ; le reliquat d'entité subsiste au défaut. L'arrêt demandé si l'audit est caduc prime ici sur l'étape conditionnelle de codage ; code, réglage 0/1/2 et tests inchangés.
 Validation : commande complète demandée, 2393 tests, zéro échec/erreur, 7 skips, 2 expected failures, identiques à `results/c77_theme4/final.log` sur 8d8e277e ; log `results/c77_theme1/suite.log`. Aucun Docker, partie ni push ; aucune qualification moteur/économique.
+
+## Porte B pré-enregistrée (23/10 nuit, VPS, accord utilisateur explicite)
+- Code : `po03b_on_master` `45e46aa1` = master `4d2488d9` (PO-01c et PO-02 à 1) + PO-03 rebasé.
+- Bras : `OpexAI[c77_intent_defer=0]` vs `OpexAI[c77_intent_defer=2]` (valeur de la porte A).
+- Smoke 1×1 sur ce code d'abord ; puis V102 `non_erosion` 20×10, graines canoniques, IC95 bootstrap haute ≥ 0, garde de valeur 5 %.
+- Aucune attente de gain économique ni d'opcodes (utilisateur) : adoption possible sur simple non-érosion.
+
+## Porte B — résultat (23/10)
+Smoke 1×1 `po03b_smoke_1x1_20261023` sain. `po03_c77defer2_porteB_20x10_20261023`, 20/20 paires : profit_year +54,2 k£/an (médiane −43,9 k), 9V/11D, p=0,84, IC95 [−139 k ; +266 k], valeur +0,87 % → **pass** (non-érosion). Défaut inchangé en attente de décision utilisateur.
