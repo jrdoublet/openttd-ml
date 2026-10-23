@@ -4,8 +4,29 @@ import json
 from pathlib import Path
 import sys
 from tempfile import TemporaryDirectory
+import types
 import unittest
 from unittest.mock import patch
+
+# ``recover`` imports the real benchmark comparison/health code, whose bench_v2
+# module imports openttdlab at collection time. The standalone pytest venv has
+# no OpenTTDLab, although offline comparisons do not call its engine APIs.
+# Follow the project's test-only adapter convention: preserve real imports
+# whenever present; otherwise make engine access fail loudly rather than
+# substituting MagicMock results that could silently validate a broken run.
+try:
+    import openttdlab  # noqa: F401
+except ModuleNotFoundError as error:
+    if error.name != "openttdlab":
+        raise
+
+    def _no_engine(*_args, **_kwargs):
+        raise RuntimeError("OpenTTDLab is required for engine execution")
+
+    stub = types.ModuleType("openttdlab")
+    for name in ("bananas_ai", "bananas_ai_library", "local_folder", "run_experiments"):
+        setattr(stub, name, _no_engine)
+    sys.modules["openttdlab"] = stub
 
 import recover_air_roi_renfort1_itt_campaign2_20261022 as recover
 import report_air_roi_renfort1_itt_20261022 as report
