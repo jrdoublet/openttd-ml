@@ -61,8 +61,8 @@ def _output(args):
 
 def inject_probes(spec: str | None, probes: int) -> str:
     """V167 : ajoute probes=N a une politique OpexAI[...] (ou a la politique par defaut)."""
-    if not 0 <= probes <= 511:
-        raise ValueError("--probes doit etre entre 0 et 511")
+    if not 0 <= probes <= 2147483647:
+        raise ValueError("--probes doit etre entre 0 et 2147483647")
     if not probes & 3:
         raise ValueError("--probes doit garder les panneaux (bit 2, ou bit 1 = tout)")
     if spec is None:
