@@ -241,7 +241,8 @@ class TestC121AirEconomics(unittest.TestCase):
             "budgetScore = OpexProjectScore(decisionEconomics.revenueAnnual, decisionBudgetCapital)",
         ):
             self.assertIn(token, project)
-        self.assertIn("project.fundScore <- OpexRailCalFundScore", self.projects)
+        self.assertIn("project.fundScore <- OpexProjectScore(OpexProjectFundProfit(project),", self.projects)
+        self.assertNotIn("OpexRailCalFundScore", self.projects)
         self.assertIn("function OpexProjectFundProfit", self.projects)
         self.assertIn("OpexProjectFundProfit(project)", self.projects)
         self.assertIn("scoreDecisionFinanceCapital", self.projects)
@@ -364,7 +365,7 @@ class TestC121AirEconomics(unittest.TestCase):
         self.assertIn("decisionFinanceCapital = decisionBudgetCapital", project)
         self.assertIn("profitAnnual = decisionEconomics.profitAnnual", project)
         self.assertIn("revenueAnnual = decisionEconomics.revenueAnnual, roi = decisionEconomics.roi", project)
-        self.assertIn("project.fundScore <- OpexRailCalFundScore", self.projects)
+        self.assertIn("project.fundScore <- OpexProjectScore(OpexProjectFundProfit(project),", self.projects)
 
         reconcile = body(self.air, "function OpexAirReconcileActualBuild", "function OpexAirReserveJoinedStops")
         self.assertNotIn('C121_AIR_ECONOMICS', reconcile)

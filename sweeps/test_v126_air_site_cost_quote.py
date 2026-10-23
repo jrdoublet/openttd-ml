@@ -118,12 +118,11 @@ class TestV126Settings(unittest.TestCase):
                 self.assertIsNone(pattern.search(text), (symbol, label))
 
     def test_probe_quote_cache_remains_unpersisted_shape(self):
-        for line in (
-            "V126_JOINED_STOP_COST <- 300;",
-            "AIR_SITE_COST_QUOTES <- {};",
-        ):
-            self.assertEqual(self.globals.count(line), 1, line)
-        self.assertNotIn("AIR_SITE_COST_QUOTES_DATE", self.globals)
+        # With V126 quote-cache probes retired, no unused global cache survives.
+        self.assertNotIn("AIR_SITE_COST_QUOTES", self.globals)
+        self.assertNotIn("AIR_SITE_COST_QUOTES", self.settings)
+        self.assertNotIn("AIR_SITE_COST_QUOTES", self.persist)
+        self.assertNotIn("V126_JOINED_STOP_COST", self.globals)
         loader = body(self.settings, "function OpexLoadSettings(")
         self.assertLess(len(re.findall(r"\blocal\s+\w+", code_only(loader))), 200)
 

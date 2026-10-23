@@ -56,11 +56,12 @@ class SettingRemoved(unittest.TestCase):
 
     def test_fund_score_uses_capital_denom(self):
         body = _function_body(_read("projects_selection.nut"), "OpexProjectSelectAffordable")
-        self.assertIn("project.fundScore <- OpexRailCalFundScore(project, kDec,", body)
+        self.assertIn("project.fundScore <- OpexProjectScore(OpexProjectFundProfit(project),", body)
         self.assertIn(
             "(kDec > scoreDecisionFinanceCapital && !fleetExemptDecision)",
-            _function_body(_read("projects_selection.nut"), "OpexRailCalFundScore"),
+            body,
         )
+        self.assertNotIn("OpexRailCalFundScore", _read("projects_selection.nut"))
         self.assertNotIn("OpexV192RailDenom", body)
 
 

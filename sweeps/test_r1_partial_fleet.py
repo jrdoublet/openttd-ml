@@ -122,7 +122,8 @@ class TestPartialFleet(unittest.TestCase):
         self.assertIn("&& !OpexC121ProjectHasRealization(project);", self.select)
         # 9e29951 : profit et capital de classement passent par le split C121
         # (defaut 0), qui retombe sur l'expression historique hors split.
-        self.assertIn("OpexRailCalFundScore(project, kDec,", self.select)
+        self.assertIn("OpexProjectScore(OpexProjectFundProfit(project),", self.select)
+        self.assertNotIn("OpexRailCalFundScore", self.select)
         flat = " ".join((self.select + read_projects_source()).split())
         self.assertIn("!fleetExemptDecision) ? kDec : scoreDecisionFinanceCapital", flat)
         self.assertIn("local scoreDecisionFinanceCapital = decisionFinanceCapital;", self.select)

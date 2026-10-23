@@ -140,7 +140,8 @@ class AC05HubHubTests(unittest.TestCase):
         self.assertLess(HUB_HUB.index('ctx.resumeState.hubHubJ <- j;'),
                         HUB_HUB.index('local hub1 = hubs[i];'))
         self.assertLess(HUB_HUB.index('progressed = true;'),
-                        HUB_HUB.index('if (V133_AIR_BUILD_RETRY)'))
+                        HUB_HUB.index('OpexAir0310SkipRestoredPair(ctx'))
+        self.assertNotIn('V133_AIR_BUILD_RETRY', HUB_HUB)
         self.assertLess(HUB_HUB.index('OpexAir0310SkipRestoredPair(ctx'),
                         HUB_HUB.index('CATALOG_COST_ACTIVE.airHubHubPairs++'))
         closing = body('function OpexAirPlansCompleteCombo(')

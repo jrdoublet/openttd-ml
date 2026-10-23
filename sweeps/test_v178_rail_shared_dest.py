@@ -57,7 +57,8 @@ class TestV178RailSharedDest(unittest.TestCase):
 
     def test_task_rail_precheck_invokes_attachment(self):
         task_rail = _read("task_rail.nut")
-        self.assertIn("if (!v233Graft && !(\"joinPlatform\" in candidate))", task_rail)
+        self.assertIn("if (!(\"joinPlatform\" in candidate))", task_rail)
+        self.assertNotIn("v233Graft", task_rail)
         attach_idx = task_rail.index("this._tryAttachSharedDest(candidate);")
         too_close_idx = task_rail.index("local close = this._tooClose(candidate);", attach_idx)
         self.assertLess(attach_idx, too_close_idx)

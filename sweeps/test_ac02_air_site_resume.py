@@ -165,8 +165,9 @@ class AC02AirSiteResumeTests(unittest.TestCase):
         self.assertIn('local foundBefore = scanSites.len();', FIND)
         self.assertIn('perfSitesFound += scanSites.len() - foundBefore;', FIND)
         self.assertIn('OpexAirSiteStillBuildable(site, airport, plane, false, stationLimitedTowns)', FIND)
-        self.assertIn('scanEnd = c83Scan + 1;', FIND)
-        self.assertIn('if (C83_FIXES && targetTownId >= 0)', FIND)
+        # The C83_FIXES targeted scan was retired; cursor/probe reuse is unchanged.
+        self.assertNotIn('scanEnd = c83Scan + 1;', FIND)
+        self.assertNotIn('C83_FIXES', FIND)
 
     def test_frozen_normal_small_large_v93_dirty_and_c83_targeted(self):
         towns = [

@@ -41,11 +41,11 @@ class V93AirportNoPopFloorTests(unittest.TestCase):
         sites = function_body(BUILDER, "function OpexAirPlansFindSites(")
         self.assertNotIn("town_pop_small", sites)
         self.assertLess(sites.index("towns[i].pop < V93_AIRPORT_MIN_POP"), sites.index("OpexAirFindSite("))
-        for name in ("OpexAirPlansDiscoverHubs", "OpexC83RepairFindSites"):
-            text = BUILDER if name == "OpexAirPlansDiscoverHubs" else (ROOT / "ai/OpexAI/air_c83_repair.nut").read_text()
-            part = function_body(text, "function " + name + "(")
-            self.assertNotIn("combo.kind == \"large\" && towns[i].pop < 600", part)
-            self.assertIn("V93_AIRPORT_MIN_POP", part)
+        # C83 repair module was retired; both surviving scans remain covered.
+        part = function_body(BUILDER, "function OpexAirPlansDiscoverHubs(")
+        self.assertNotIn("combo.kind == \"large\" && towns[i].pop < 600", part)
+        self.assertIn("V93_AIRPORT_MIN_POP", part)
+        self.assertFalse((ROOT / "ai/OpexAI/air_c83_repair.nut").exists())
 
     def test_town_pool_ranking_is_unchanged(self):
         pool = function_body(BUILDER, "function OpexAirTownPoolLimit(")

@@ -159,6 +159,10 @@ class V248MechanismFixturesStatic(unittest.TestCase):
                 self.assertEqual(missing, [])
 
     def test_opex_calls_exist(self):
+        # Historical fixture only: retired C83 repair helpers are not loaded
+        # into OpexAI. Keep failing for every other unresolved Opex call.
+        retired = {"OpexC83RepairFindSites", "OpexC83RepairSnapshot"}
+        self.assertFalse((AI / "air_c83_repair.nut").exists())
         for path in fixture_paths():
             with self.subTest(path=path.relative_to(MECHANISMS).as_posix()):
                 closure = require_closure(path)
@@ -166,5 +170,5 @@ class V248MechanismFixturesStatic(unittest.TestCase):
                 defined = set(self.ai_opex)
                 for item in closure:
                     defined.update(opex_defs(strip_code(item.read_text(encoding="utf-8"))))
-                missing = sorted(set(OPEX_CALL.findall(code)) - defined)
+                missing = sorted(set(OPEX_CALL.findall(code)) - defined - retired)
                 self.assertEqual(missing, [])

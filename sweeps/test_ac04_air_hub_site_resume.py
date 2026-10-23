@@ -136,7 +136,8 @@ class AC04AirHubSiteResume(unittest.TestCase):
         self.assertLess(HUBSITE.index('ctx.resumeState.hubSiteJ <- sj;'),
                         HUBSITE.index('progressed = true;'))
         self.assertLess(HUBSITE.index('progressed = true;'),
-                        HUBSITE.index('if (V133_AIR_BUILD_RETRY)'))
+                        HUBSITE.index('OpexAir0310SkipRestoredPair('))
+        self.assertNotIn('V133_AIR_BUILD_RETRY', HUBSITE)
         self.assertLess(HUBSITE.index('progressed = true;'),
                         HUBSITE.index('OpexAir0310SkipRestoredPair('))
         self.assertIn('OpexAirPlansHubToSitePhase(ctx, combo, airport, plane)', PLANS)
@@ -222,9 +223,10 @@ class AC04AirHubSiteResume(unittest.TestCase):
         self.assertFalse(4 < 4)  # construction batch checks true route count
 
     def test_extra_sites_can_duplicate_known_destination(self):
-        for needle in ('if (!ctx.c83RepairCombo && sites.len() < AIR_HUB_NEW_SITE_POOL)',
+        for needle in ('if (sites.len() < AIR_HUB_NEW_SITE_POOL)',
                        'local extraSite = OpexAirFindSite(', 'sites.append(extraSite);'):
             self.assertIn(needle, DISCOVER)
+        self.assertNotIn('ctx.c83RepairCombo', DISCOVER)
         self.assertNotIn('if (extraSite.town.id in ', DISCOVER)
         # The same physical site is returned from the cache on both visits.
         got = extra_sites_model([("townA", 41)], ["townA","townB"], 3,

@@ -334,11 +334,12 @@ class TestSchedIdleSourceContract(unittest.TestCase):
     def test_probe_default_off_and_wired_to_probe_scheduler(self):
         self.assertIn("V95_SCHED_IDLE_LEDGER <- false;", self.globals)
         self.assertIn("V95_SCHED_IDLE_LEDGER = probeScheduler;", self.settings)
-        self.assertIn('name = "probe_scheduler"', self.info)
-        self.assertIn("Enable scheduler opcode, latency and idle-tour diagnostic ledgers (C41, C39, V95)", self.info)
-        block = self.info[self.info.index('name = "probe_scheduler"'):]
+        self.assertIn('name = "probes"', self.info)
+        self.assertIn("local probeScheduler = OpexProbeEnabled(1024, 8);", self.settings)
+        block = self.info[self.info.index('name = "probes"'):]
         block = block[:block.index("});")]
-        self.assertIn("custom_value = 0", block)
+        self.assertIn("custom_value = 2", block)  # signs only, neither scheduler bit/group
+        self.assertNotIn('name = "probe_scheduler"', self.info)
 
     def test_queue_order_and_due_cycle_untouched(self):
         self.assertEqual(extract_main_task_queue(self.main), EXPECTED_TASKS)

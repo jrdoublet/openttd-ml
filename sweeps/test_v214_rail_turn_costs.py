@@ -77,7 +77,7 @@ class TestV214Pathfinder(unittest.TestCase):
     def test_settings_read_before_first_cost(self):
         read = self.init.index("this._v214Turn = V214_RAIL_TURN_COST;")
         self.assertLess(self.init.index("this._v214Tight = V214_RAIL_TIGHT_TURN_COST;"),
-                        self.init.index("foreach (node in sources) {\n\t\t\tlocal p0"))
+                        self.init.index("foreach (node in sources) {"))
         self.assertLess(read, self.init.index("local c1 = this._Cost(p0, node[0], 0xFF, this);"))
 
     def test_short_route_tight_cost_is_100(self):

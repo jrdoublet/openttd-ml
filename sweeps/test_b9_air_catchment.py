@@ -34,8 +34,9 @@ class TestB9AirCatchment(unittest.TestCase):
 
     def test_probe_is_default_off_and_loaded_once(self):
         defaults = parse_ai_settings(INFO)
-        self.assertEqual(defaults["probe_events"], 0)
-        # V243 : anciens reglages B9 supprimes, sonde pilotee par probe_events.
+        self.assertEqual(defaults["probes"], 2)
+        self.assertEqual(defaults["probes"] & (1048576 | 128), 0)
+        # Probe events are now bit 20 or legacy group 128 of the shared mask.
         self.assertNotIn("b9_air_catchment_probe", defaults)
         self.assertNotIn("b9_air_demand_shadow", defaults)
         self.assertIn("AIR_CATCHMENT_PROBE <- false;", GLOBALS.read_text(encoding="utf-8"))
@@ -43,6 +44,7 @@ class TestB9AirCatchment(unittest.TestCase):
             "AIR_CATCHMENT_PROBE = probeEvents;",
             SETTINGS.read_text(encoding="utf-8"),
         )
+        self.assertIn("local probeEvents = OpexProbeEnabled(1048576, 128);", SETTINGS.read_text(encoding="utf-8"))
 
     def test_demand_shadow_is_post_decision_and_probed_only_when_enabled(self):
         coverage = COVERAGE.read_text(encoding="utf-8")

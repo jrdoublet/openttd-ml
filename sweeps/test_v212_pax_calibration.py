@@ -47,8 +47,9 @@ class TestV212Settings(unittest.TestCase):
             self.assertNotIn(f'name = "{name}"', info)
     def test_globals_and_reading(self):
         globals_pre = read_file("globals_pre.nut")
-        self.assertIn("V212_RAIL_PAX_REVENUE_PCT <- 100;", globals_pre)
-        self.assertIn("V212_RAIL_PAX_CAPITAL_PCT <- 100;", globals_pre)
+        # Both no-op 100% V212 constants were retired, not merely fixed.
+        self.assertNotIn("V212_RAIL_PAX_REVENUE_PCT", globals_pre)
+        self.assertNotIn("V212_RAIL_PAX_CAPITAL_PCT", globals_pre)
         settings = read_file("settings.nut")
         self.assertNotIn("v212_rail_pax", settings)
         self.assertNotIn("V212_RAIL_PAX_REVENUE_PCT =", settings)
