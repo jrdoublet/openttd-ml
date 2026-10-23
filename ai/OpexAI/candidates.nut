@@ -425,6 +425,15 @@ function OpexRefreshEpochBounds(catalog)
     year = catalog.year,
   };
 
+  /* DIST-BORNES-1 : surcharge experimentale, sans changer railMax.
+   * Une seule lecture de globale ; a 0, les bornes calculees restent intactes. */
+  local distAirMin = DIST_AIR_MIN;
+  if (distAirMin > 0) {
+    railAir = (distAirMin < railMax) ? distAirMin : railMax;
+    catalog.bounds.airMin = railAir;
+    catalog.bounds.railAirOverlapMin = railAir;
+  }
+
   if (DECISION_LOG) {
     OpexDecide("EPOCH_BOUNDS", "roadMin=" + roadMin + " roadMax=" + roadMax
                + " roadGen=" + roadGenMax + " railMin=" + roadMax + " railAir=" + railAir
@@ -447,9 +456,12 @@ function OpexCatalogBounds(catalog)
   local railMax = OpexRailDistanceForIterations((HARD_ITERATION_CAP * 12) / 10);
   if (V168_RAIL_MAX_DIST > 0) railMax = V168_RAIL_MAX_DIST;
   if (V294_RAIL_DIST_DECOUPLE > 0) railMax = V294_RAIL_DIST_DECOUPLE;
+  local airMin = railMax;
+  local distAirMin = DIST_AIR_MIN;
+  if (distAirMin > 0) airMin = (distAirMin < railMax) ? distAirMin : railMax;
   return {
     roadMin = roadMin, roadMax = roadMin, roadGenMax = railMax, railMin = roadMin,
-    railAirOverlapMin = railMax, railMax = railMax, airMax = 0, airMin = railMax,
+    railAirOverlapMin = airMin, railMax = railMax, airMax = 0, airMin = airMin,
     ticksPerDay = 74.0, vRail = 0, vAirEff = 0.0, tFixeAir = 0.0, year = 0,
   };
 }

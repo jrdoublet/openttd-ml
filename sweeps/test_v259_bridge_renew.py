@@ -60,10 +60,10 @@ class TestV259BridgeRenew(unittest.TestCase):
         self.assertIn('AIController.GetSetting("v259_bridge_renew")', self.settings)
 
     def test_ceiling_after_v263b(self):
-        # Inventaire c1bae7ec (PO03 inclus) : 101 ; V259 reste present.
-        self.assertEqual(self.info.count("AddSetting("), 101)
+        # Inventaire c1bae7ec (PO03 inclus) : 101 + dist_air_min ; V259 reste present.
+        self.assertEqual(self.info.count("AddSetting("), 102)
         test_v246 = (Path(__file__).resolve().parent / "test_v246_fixed_policies.py").read_text(encoding="utf-8")
-        self.assertIn('self.assertLessEqual(info.count("AddSetting("), 101)', test_v246)
+        self.assertIn('self.assertLessEqual(info.count("AddSetting("), 102)', test_v246)
 
     def test_zero_opcode_guard_at_default(self):
         # 1. Garde dans scheduler.nut

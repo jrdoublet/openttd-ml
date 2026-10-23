@@ -421,17 +421,18 @@ class PO01CContracts(unittest.TestCase):
         # Baseline origin/master 190b4ba1, rebased 23/10 onto c1b23cbb (V307S v3,
         # PO-02 precheck, PO-01c default 1; copied functions unaffected). Intentional later synchronous edits
         # must explicitly rebase this PO01D isolation contract, never regenerate it.
+        # DIST-BORNES-1 : seules les empreintes candidates/settings/info sont actualisees.
         expected = {
             'builder_water.nut': '92c50153b6712f238943f75e2c9498a602695132a7850c5f663f91344499162e',
             'air_planning.nut': 'c182f3f8fe82d0e39c11426d596a83ccad79a14ec486a1ebe148287790440e32',
             'air_sites.nut': '679b2912e9c71f708e6ad308ce187277f477f1751987405c74fb774998698fc4',
-            'candidates.nut': '1f56d53670182f66b2c3d54360927e4be912ba65f4cdbffe1a04dff6dadd54ad',
+            'candidates.nut': '3744db72515531e36ca24d3cd600e73a539c265dae4246289499056e7b0d0fb5',
             'catalog.nut': '4882c4c3de58c97882b2739432e62045a2e567b1ee980e5a2a56dedd34a17ba9',
             'orchestrator.nut': '1600953e477a5db49827d2f277ed965f4442a56ca32710f3c15a209a1b563ace',
             'main.nut': '81f077c68e094a0a9a8d4a63e1600af0fce0cdd9b9b835077e3da386d3b36ece',
             'probes.nut': 'ef0a1228e758e648736c89b9252dc9568f6b6a834065343e805570aed47788dd',
-            'settings.nut': '580b8d9fd4997e6ec84a6c08ad51e02d6227c1de0d6b2411580cfb6c4306076d',
-            'info.nut': '6eca938a429a092661801d8312d8738874bc6899a3beb3b74ebebc3fc94d205c',
+            'settings.nut': 'f81982dc5330faf4c9b5a0024c4d816c5a18c15b3445acdad47a901c85454993',
+            'info.nut': '44d2b26004ea971f9c808c4d243957ba2e30a9404455019575af7cbba940a0e9',
         }
         for name, digest in expected.items():
             with self.subTest(name=name):

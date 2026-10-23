@@ -157,6 +157,7 @@ V294_RAIL_AAA_COSTS <- 1;  // defaut V294all depuis le 21/10 (decision utilisate
 V294_RAIL_REVERSE_PROBE <- 300;  // defaut V294all depuis le 21/10 (decision utilisateur)
 /* V294i : découplage distance railMax des candidats du plafond d'itérations (défaut 0 = inerte). */
 V294_RAIL_DIST_DECOUPLE <- 200;  // defaut V294all depuis le 21/10 (decision utilisateur)
+DIST_AIR_MIN <- 0;  // experimental : 0 conserve les frontieres d'epoque
 /* V294j : adaptation des coûts A* rail selon la force de la locomotive (défaut 0 = inerte). AAA : pente 1500, virage 100 si faible. */
 V294_RAIL_SLOPE_ENGINE <- 1;  // defaut V294all depuis le 21/10 (decision utilisateur)
 V172_RAIL_LONG_WEIGHT_DIST <- 100;
