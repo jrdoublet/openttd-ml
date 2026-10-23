@@ -1,0 +1,131 @@
+{
+  "valid": true,
+  "scope": "two separately frozen C66.3 mono-policy runs, NOT C66.4",
+  "n": 3,
+  "seeds": [
+    42,
+    100,
+    999
+  ],
+  "years": 3,
+  "source_sha256": {
+    "reference": "b4893df1dc13c84d86f3a1012f5fe78e783351a291306d8eec89ea3aa732fd81",
+    "variant": "0958cecbcb6906efe97976e5f79ef11e067f7074be86839f441c6de7aa4caeef",
+    "adversary": "eaec19151d118daad80eddab437180402764e1c919f48904cc22cbf71cb80bc7"
+  },
+  "economic": {
+    "profit_year": {
+      "mean_delta": 20750.333333333332,
+      "median_delta": -61887,
+      "wins": 1,
+      "losses": 2,
+      "ties": 0,
+      "mean_reference": 1997541.6666666667,
+      "ratio_of_means": 0.010387935170313509,
+      "bootstrap_95_ci": [
+        -127729.0,
+        251867.0
+      ],
+      "by_seed_delta": {
+        "42": -61887,
+        "100": -127729,
+        "999": 251867
+      }
+    },
+    "company_value": {
+      "mean_delta": -38563,
+      "median_delta": -155731,
+      "wins": 1,
+      "losses": 2,
+      "ties": 0,
+      "mean_reference": 3773574.6666666665,
+      "ratio_of_means": -0.01021922272815767,
+      "bootstrap_95_ci": [
+        -257295.0,
+        297337.0
+      ],
+      "by_seed_delta": {
+        "42": -257295,
+        "100": -155731,
+        "999": 297337
+      }
+    },
+    "primary_vehicles": {
+      "mean_delta": -0.3333333333333333,
+      "median_delta": -2,
+      "wins": 1,
+      "losses": 2,
+      "ties": 0,
+      "mean_reference": 70.66666666666667,
+      "ratio_of_means": -0.0047169811320754715,
+      "bootstrap_95_ci": [
+        -3.0,
+        4.0
+      ],
+      "by_seed_delta": {
+        "42": -2,
+        "100": -3,
+        "999": 4
+      }
+    },
+    "n_stations": {
+      "mean_delta": 0.3333333333333333,
+      "median_delta": 0,
+      "wins": 1,
+      "losses": 0,
+      "ties": 2,
+      "mean_reference": 52.666666666666664,
+      "ratio_of_means": 0.006329113924050633,
+      "bootstrap_95_ci": [
+        0.0,
+        1.0
+      ],
+      "by_seed_delta": {
+        "42": 0,
+        "100": 1,
+        "999": 0
+      }
+    }
+  },
+  "opcode": {
+    "complete_years": [
+      "1970",
+      "1971"
+    ],
+    "1970-1971": {
+      "mean_delta": 1007387,
+      "mean_reference": 115675678,
+      "ratio_of_means": 0.00870871921753508,
+      "bootstrap_95_ci": [
+        -227101.0,
+        1731246.0
+      ],
+      "increases": 2,
+      "decreases": 1,
+      "by_seed_delta": {
+        "42": -227101,
+        "100": 1518016,
+        "999": 1731246
+      }
+    }
+  },
+  "expected_removed": {
+    "c122_air_threat_retry": 0,
+    "c83_fixes": 0,
+    "c83_local_repair": 0,
+    "c83_preempt_open": 0,
+    "rail_cal": 0,
+    "v133_air_build_retry": 0,
+    "v134_air_p2p_saturated_hub": 0,
+    "v177_rail_pax_min_dist": 0,
+    "v182_rail_freight_min_dist": 0,
+    "v195_v182_years": 0,
+    "v233_goods_graft": 0,
+    "v233_pending_continue": 0,
+    "v264_convergent_freight": 1,
+    "v294_rail_defer": 0,
+    "v295_astar_fast": 1,
+    "v296_astar_native": 1,
+    "v296_rail_batch_build": 1
+  }
+}
