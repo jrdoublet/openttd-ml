@@ -21,7 +21,6 @@ def read(name):
 
 
 AIR = read("air_planning.nut")
-C83 = read("air_c83_repair.nut")
 SCHED = read("scheduler_tasks.nut")
 UPDATE = read("projects_update.nut")
 ORCH = read("orchestrator.nut")
@@ -217,9 +216,11 @@ class CD00SourceContracts(unittest.TestCase):
                     "sites = OpexAir0310CopySiteList(ctx.sites)",
                     "orphan = orphanCopy"):
             self.assertIn(key, store)
-        self.assertIn("OpexC83RepairFindSites(ctx, comboIndex", AIR)
-        self.assertIn("scan.index++;", C83)
-        self.assertIn("scan.fallback = scan.partners == 0;", C83)
+        # Retired C83 local-repair experiment is no longer a required module.
+        # Keep the adopted hub snapshot/resume checks above and ensure that
+        # the deleted repair worker cannot be dispatched by the AIR planner.
+        self.assertNotIn("OpexC83RepairFindSites(", AIR)
+        self.assertNotIn('require("air_c83_repair.nut")', MAIN)
 
     def test_c78_transaction_and_opcode_boundaries(self):
         start = function(SCHED, "OpexC78StartCatalogAirRebuild")

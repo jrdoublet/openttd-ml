@@ -245,7 +245,8 @@ class PO01CContracts(unittest.TestCase):
         expected = {
             'probe_v216.nut': '8971a9dcf90ec29fce9baaca9f4959bbcc3c7db5d3e648963f1481c768ab5166',
             'economy.nut': 'c89b774e6465708574567ad591372917c13fc6fe51b82921def346fbc623978b',
-            'builder_rail.nut': 'e9c8b8b15e4f852168752851e0261efebedb8098df21d7d1f61073c95826188f',
+            # eb6f26fc: retired rail switches; keep byte-level pin on the new source.
+            'builder_rail.nut': '1b1189a786093ab6b3da4d62d959adaa9b66b621ba65a82a2df74f1257fd3f99',
         }
         for name, digest in expected.items():
             self.assertEqual(hashlib.sha256((AI / name).read_bytes()).hexdigest(), digest)
@@ -418,19 +419,19 @@ class PO01CContracts(unittest.TestCase):
         self.assertEqual(source('po01c_generators.nut'), generated())
 
     def test_po01d_synchronous_path_bytes_unchanged(self):
-        # Baseline origin/master 190b4ba1, rebased 23/10 onto c1b23cbb (V307S v3,
-        # PO-02 precheck, PO-01c default 1; copied functions unaffected). Intentional later synchronous edits
-        # must explicitly rebase this PO01D isolation contract, never regenerate it.
+        # Rebased to eb6f26fc after 43 intentional parameter retirements.
+        # Preserve strong full-file hashes: future source changes must
+        # explicitly rebaseline this isolation contract, never silence it.
         expected = {
             'builder_water.nut': '92c50153b6712f238943f75e2c9498a602695132a7850c5f663f91344499162e',
-            'air_planning.nut': 'c182f3f8fe82d0e39c11426d596a83ccad79a14ec486a1ebe148287790440e32',
-            'air_sites.nut': '679b2912e9c71f708e6ad308ce187277f477f1751987405c74fb774998698fc4',
-            'candidates.nut': '1f56d53670182f66b2c3d54360927e4be912ba65f4cdbffe1a04dff6dadd54ad',
+            'air_planning.nut': 'd97dd1d56b049c8ea98c85a1202239da3d30193028e8526ba44240181460a5c2',
+            'air_sites.nut': '19691bb0bc03b81b27793c1b8ec99a68e11455b2d74aa12e85b17e7d0c1e279f',
+            'candidates.nut': '83670f686d3564a63e21fd307736a32a106ebbf25ccb7463800b8cefb815c771',
             'catalog.nut': '4882c4c3de58c97882b2739432e62045a2e567b1ee980e5a2a56dedd34a17ba9',
-            'main.nut': '81f077c68e094a0a9a8d4a63e1600af0fce0cdd9b9b835077e3da386d3b36ece',
-            'probes.nut': 'ef0a1228e758e648736c89b9252dc9568f6b6a834065343e805570aed47788dd',
-            'settings.nut': '580b8d9fd4997e6ec84a6c08ad51e02d6227c1de0d6b2411580cfb6c4306076d',
-            'info.nut': '6eca938a429a092661801d8312d8738874bc6899a3beb3b74ebebc3fc94d205c',
+            'main.nut': '774acab715924ca97cb0e14ed1a9573400a84963ee7698effeebdcd372ed9adc',
+            'probes.nut': '2be7e1d6c099949de72b9abf8e285df6db6fc5c0001c9445c3707c3c8c1edf5e',
+            'settings.nut': 'edb0e3e7457f4ace74b9f216185259b433cda5cbf65bfe7df4e952659f4ae017',
+            'info.nut': '0447a0adc89f91dd48b37fb46ac0084b67443eccf9fd3fe9a9bd53374ee81f9a',
         }
         for name, digest in expected.items():
             with self.subTest(name=name):

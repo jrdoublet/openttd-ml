@@ -25,26 +25,17 @@ class TestV296Native(unittest.TestCase):
         cls.hot = function_body(cls.src, "function OpexRailPathFinderV296::_FindPathV296(iterations)")
 
     def test_setting_and_load_order(self):
-        block = re.search(r'AddSetting\(\{\s*name = "v296_astar_native",(.*?)\}\);', read("info.nut"), re.S)
-        self.assertIsNotNone(block)
-        for level in ("easy", "medium", "hard", "custom"):
-            self.assertRegex(block[1], rf"{level}_value\s*=\s*1\b")
-        self.assertIn("min_value = 0, max_value = 2", block[1])
-        self.assertIn("V296_ASTAR_NATIVE <- 1;", read("globals_pre.nut"))
+        self.assertNotIn('name = "v296_astar_native"', read("info.nut"))
+        self.assertIn("const V296_ASTAR_NATIVE = 1;", read("globals_pre.nut"))
         settings = read("settings.nut")
-        self.assertEqual(settings.count('GetSetting("v296_astar_native")'), 1)
-        self.assertIn("v296Astar >= 0 && v296Astar <= 2", settings)
+        self.assertNotIn('GetSetting("v296_astar_native")', settings)
         main = read("main.nut")
         self.assertLess(main.index('require("pathfinder_v90/v129.nut")'), main.index('require("pathfinder_v90/v296.nut")'))
         self.assertLess(main.index('require("pathfinder_v90/v296.nut")'), main.index('require("builder_rail.nut")'))
 
     def test_factory_default_is_still_v129(self):
         body = function_body(self.old, "function OpexNewRailPathfinderV129()")
-        self.assertEqual(normalized(body), normalized('''
-            if (V296_ASTAR_NATIVE == 2) return OpexRailPathfinderCheckerV296();
-            if (V296_ASTAR_NATIVE == 1) return OpexRailPathFinderV296();
-            return OpexRailPathFinderV129();
-        '''))
+        self.assertEqual(normalized(body), normalized('return OpexRailPathFinderV296();'))
 
     def test_native_queue_and_fifo_ids(self):
         self.assertIn("this._pathfinder._open = AIList();", self.src)
@@ -166,18 +157,14 @@ class TestV296Native(unittest.TestCase):
             self.assertIn(f"this._{name}V296(", self.src)
 
     def test_checker_independent_completion_and_measurements(self):
-        checker = self.src.split("class OpexRailPathfinderCheckerV296", 1)[1]
-        for key in ("iters_v129", "iters_v296", "cost_v129", "cost_v296", "ops_v129", "ops_v296",
-                    "found_v129", "found_v296", "complete_v129", "complete_v296", "cost_equal"):
-            self.assertIn(key + "=", checker)
-        for fragment in ("if (DECISION_LOG)", "OpexOpsMeasureBegin()", "OpexOpsMeasureEnd(mark)",
-                         "AITestMode()", "this._referenceResult != false", "return result;",
-                         "this._reference._v214RouteDist = this._v214RouteDist;"):
-            self.assertIn(fragment, checker)
-        # Every inherited Cost parameter must be copied to the reference.
-        keys = set(re.findall(r'case "([a-z_0-9]+)":', read("pathfinder_v90/rail.nut")))
-        for key in keys:
-            self.assertIn('"' + key + '"', checker)
+        # Native V296 is the sole adopted factory; checker mode 2 and its
+        # reference replay were removed. A stale call would fail compilation.
+        self.assertNotIn("class OpexRailPathfinderCheckerV296", self.src)
+        self.assertNotIn("OpexRailPathfinderCheckerV296(", self.old)
+        self.assertNotIn("_referenceResult", self.src)
+        factory = function_body(self.old, "function OpexNewRailPathfinderV129()")
+        self.assertIn("return OpexRailPathFinderV296();", factory)
+        # The full native cost-equivalence contract is retained separately.
 
     def test_no_persistence_of_native_state(self):
         persist = read("persist.nut")

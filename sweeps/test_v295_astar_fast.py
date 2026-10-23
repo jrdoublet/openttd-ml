@@ -1,13 +1,13 @@
 """Contrats V295 : deux optimisations d'opcodes exactes de l'A* rail V129.
 
 Verifie :
-- reglage v295_astar_fast a defaut 0 aux 4 niveaux, lu une seule fois ;
+- optimisation adoptee figée a 1, ancien interrupteur supprime ;
 - globale V295_ASTAR_FAST declaree dans globals_pre.nut ;
 - scan de collision toujours present (chemin du defaut inchange) ;
-- filtre de Bloom garde par V295_ASTAR_FAST avec modulo 61 ;
+- filtre de Bloom toujours actif avec modulo 61 ;
 - champ _bloom sur Path et initialisation des sources ;
 - garde ("_bloom" in node) a l'insertion des sources ;
-- dedoublonnage des buts pour l'estimation garde par V295_ASTAR_FAST ;
+- dedoublonnage des buts toujours actif ;
 - absence de closure et absence de .find() ;
 - equivalence mathematique exacte du filtre de Bloom et du dedoublonnage.
 """
@@ -32,25 +32,13 @@ class TestV295AstarFast(unittest.TestCase):
         self.v129 = read("pathfinder_v90/v129.nut")
 
     def test_setting_default_zero_and_loaded_once(self):
-        block = re.search(r'AddSetting\(\{\s*name = "v295_astar_fast",(.*?)\}\);',
-                          self.info, re.S)
-        self.assertIsNotNone(block, "v295_astar_fast doit etre declare dans info.nut")
-        body = block.group(1)
-        for level in ("easy", "medium", "hard", "custom"):
-            self.assertRegex(body, rf"{level}_value\s*=\s*1\b",
-                             f"defaut {level} doit etre 1")
-        self.assertIn("min_value = 0, max_value = 1", body)
-        self.assertEqual(self.settings.count('GetSetting("v295_astar_fast")'), 1,
-                         "v295_astar_fast doit etre lu exactement une fois dans settings.nut")
-        self.assertIn("V295_ASTAR_FAST <- 1;", self.globals_pre,
-                      "V295_ASTAR_FAST doit etre declaree a 1 dans globals_pre.nut")
+        self.assertNotIn('name = "v295_astar_fast"', self.info)
+        self.assertNotIn('GetSetting("v295_astar_fast")', self.settings)
+        self.assertIn("const V295_ASTAR_FAST = 1;", self.globals_pre)
 
     def test_findpath_scan_present_and_filter_guarded_by_fast_astar(self):
         body = function_body(self.v129, "function OpexAyStarV129::FindPath(iterations)")
         self.assertIsNotNone(body, "OpexAyStarV129::FindPath doit exister")
-
-        # Lecture du booleen local hors boucle
-        self.assertIn("local fastAstar = V295_ASTAR_FAST;", body)
 
         # Le scan de collision historique est toujours present
         self.assertIn("local scan_path = path._prev;", body)
@@ -58,8 +46,8 @@ class TestV295AstarFast(unittest.TestCase):
         self.assertIn("scan_path._tile == cur_tile", body)
         self.assertIn("scan_path = scan_path._prev;", body)
 
-        # Le filtre de Bloom est garde par fastAstar et utilise % 61
-        self.assertIn("fastAstar", body)
+        # Le filtre est desormais inconditionnel sur ce chemin adopte.
+        self.assertNotIn("fastAstar", body)
         self.assertIn("cur_tile % 61", body)
         self.assertIn("path._prev._bloom", body)
         self.assertRegex(body, r'path\._prev\._bloom\s*&\s*\(\s*1\s*<<\s*\(\s*cur_tile\s*%\s*61\s*\)\s*\)\s*\)\s*==\s*0')
@@ -74,8 +62,8 @@ class TestV295AstarFast(unittest.TestCase):
         body = function_body(self.v129, "function OpexAyStarV129::FindPath(iterations)")
         self.assertIn("path._bloom | (1 << (ntile % 61))", body)
 
-        # Chemin par defaut inchange (sans calcul de bloom)
-        self.assertIn("this.Path(path, ntile, ndir, c)", body)
+        # La propagation de bloom est obligatoire sur tous les descendants.
+        self.assertIn("this.Path(path, ntile, ndir, c, path._bloom | (1 << (ntile % 61)))", body)
 
     def test_sources_bloom_initialization_and_type_protection(self):
         # OpexAyStarV129::InitializePath initialise le bloom pour les sources array
@@ -91,7 +79,7 @@ class TestV295AstarFast(unittest.TestCase):
 
     def test_goal_coords_deduplication_guarded_by_fast_setting(self):
         rpf_block = re.search(r'class OpexRailPathFinderV129.*?\{(.*?)\nclass', self.v129, re.S).group(1)
-        self.assertIn("if (V295_ASTAR_FAST)", rpf_block)
+        self.assertNotIn("if (V295_ASTAR_FAST)", rpf_block)
         self.assertIn("seen", rpf_block)
         self.assertIn("seen[tile] <- true;", rpf_block)
         # Ne modifie pas rail.nut (V90)
