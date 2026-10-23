@@ -7,6 +7,16 @@ ne créent pas une tâche. Protocole et pilotage des bancs : [AGENTS.md](../AGEN
 
 ## État courant
 
+### 23/10 — garde de remplissage AIR opt-in (demande utilisateur)
+
+`air_load_min_pct` ajouté sur `air-load-guard`, défaut **0**, seuil 0..100 par
+pas de 5 : renfort refusé sous le seuil après six trajets observés, fenêtre de
+douze trajets C117 ; revalidation portefeuille, crash et V252 préservés.
+[Méthode, contrats et limites](air_load_guard_20261023.md). Aucun changement
+de `air_flotte1_shadow.nut`, de V161/C121 ou des scores. **Non qualifié en moteur
+ni économiquement** : parties/Docker interdits pour cette livraison ; aucune
+adoption du seuil 50 par défaut. Les travaux AIR-FLOTTE-1 restent ouverts.
+
 ### 21/10 — frontières voyageurs et calibration RAIL à coût d'opcodes quasi nul : travaux **ouverts**
 
 **Travail déjà réalisé, à ne pas recommencer :** audit en lecture seule des 40×10
