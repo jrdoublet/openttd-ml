@@ -239,6 +239,34 @@ class DeferModelTests(unittest.TestCase):
 
 
 class DeferSourceContracts(unittest.TestCase):
+    def test_po01c_stale_portfolio_blocks_mode_2_c77_build(self):
+        code = source('orchestrator.nut')
+        guard = code.split('  /* C77 defer ON :', 1)[1].split('  /* C77 : un travailleur', 1)[0]
+        self.assertIn('intention.kind == "c77_build"', guard)
+        # A live but stale portfolio and no C80 worker make the original blocked false.
+        self.assertIn('local blocked = this._projects == null || this._activeWorker != null;', guard)
+        mode2 = guard.split('    /* C77 defer 2 :', 1)[1].split('    /* Fin C77 defer 2. */', 1)[0]
+        match = re.search(r'if \((C77_INTENT_DEFER_SUBSIDY && PO01C_REGEN_SPLIT[^\n]+)\)\s*blocked = true;', mode2)
+        self.assertIsNotNone(match, 'PO01C pending/job must defer C77 on a non-null stale portfolio')
+        condition = match.group(1)
+        for mode2_enabled, split, job, pending, expected in (
+            (True, True, True, False, True),   # PO01C generator is still running
+            (True, True, False, True, True),   # PO01C publication has not started
+            (True, True, False, False, False), # fully published, dispatch resumes
+            (True, False, True, True, False),  # PO01C disabled
+            (False, True, True, True, False),  # modes 0/1 unchanged
+        ):
+            with self.subTest(mode2=mode2_enabled, split=split, job=job, pending=pending):
+                expr = (condition.replace('this._po01cJob != null', str(job))
+                        .replace('this._po01cPending', str(pending))
+                        .replace('C77_INTENT_DEFER_SUBSIDY', str(mode2_enabled))
+                        .replace('PO01C_REGEN_SPLIT', str(split))
+                        .replace('&&', ' and ').replace('||', ' or '))
+                self.assertRegex(expr, r'^[() A-Za-z]+$')
+                self.assertEqual(eval(expr, {'__builtins__': {}}, {}), expected)
+        self.assertLess(guard.index('if (C77_INTENT_DEFER_SUBSIDY && PO01C_REGEN_SPLIT'),
+                        guard.index('if (blocked &&'))
+
     def test_setting(self):
         setting = re.search(r'AddSetting\(\{ name = "c77_intent_defer".*?\}\);', source('info.nut'), re.S)[0]
         for level in ('easy', 'medium', 'hard', 'custom'):

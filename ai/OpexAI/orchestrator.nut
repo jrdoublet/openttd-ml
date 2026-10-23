@@ -642,6 +642,8 @@ function OpexAI::_dispatchReactiveIntention(intention)
      * AISubsidy.GetExpireDate est le dernier jour valide de l'offre non attribuee.
      * Ne plus reenfiler des ce jour : aucun chantier ne peut alors finir a temps.
      * Verifier aussi c77_build si l'offre expire apres son injection. */
+    if (C77_INTENT_DEFER_SUBSIDY && PO01C_REGEN_SPLIT && (this._po01cJob != null || this._po01cPending))
+      blocked = true;
     if (C77_INTENT_DEFER_SUBSIDY && ("subsidyId" in deferPayload) && deferPayload.subsidyId >= 0) {
       local deferSubId = deferPayload.subsidyId;
       if (!AISubsidy.IsValidSubsidy(deferSubId) || AISubsidy.IsAwarded(deferSubId)
