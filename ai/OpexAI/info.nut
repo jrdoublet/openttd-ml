@@ -8,8 +8,8 @@ class OpexAIInfo extends AIInfo {
   function GetShortName()   { return "OPEX"; }
   function GetAPIVersion()  { return "15"; }
 
-  /* Le reglage debug_signs existe pour NE PAS POLLUER une partie
-   * partagee avec des joueurs humains.
+  /* Le bit 2 de probes commande les panneaux : le joueur peut le couper
+   * dans une partie partagee avec des humains.
    * Entre IA, la regle est de jouer a armes egales, sans auto-handicap. */
   function GetSettings()
   {
@@ -33,55 +33,20 @@ class OpexAIInfo extends AIInfo {
       min_value = 0, max_value = 3,
       easy_value = 3, medium_value = 3, hard_value = 3, custom_value = 3,
       flags = 0 });
-    AddSetting({ name = "v233_goods_graft",
-      description = "V233: measured goods to town graft (requires v233_pending_continue)",
-      min_value = 0, max_value = 1,
-      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
-      flags = AICONFIG_BOOLEAN });
-    AddSetting({ name = "v233_pending_continue",
-      description = "V233: continue portfolio pass after pending rail/fleet search",
-      min_value = 0, max_value = 1,
-      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
-      flags = AICONFIG_BOOLEAN });
     /* --- 1. Systeme et instrumentation --- */
 
     /* V167 : un seul entier pilote panneaux, journal et sondes (somme de bits, voir settings.nut).
      * Defaut 2 = panneaux seuls, le comportement historique. */
     AddSetting({
       name = "probes",
-      description = "Diagnostics bitmask: 0 none, 1 everything except 256 (signs, log, groups 8-128), 2 signs (default), 4 decision log, 8 opcodes/scheduler, 16 air, 32 rail, 64 road/water/costs, 128 events/portfolio (256 reserved, checks removed in V239); any probe group also enables the log; never changes decisions",
-      min_value = 0, max_value = 511,
+      description = "Diagnostics bitmask (signed 31 bits): 0 none, 1 all, 2 signs (default), 4 legacy log, 8/16/32/64/128 legacy groups, 256 decision log only, 512..1073741824 individual channels (see docs/audit_sondes_20261022.md); groups also enable decision log",
+      min_value = 0, max_value = 2147483647,
       easy_value = 2, medium_value = 2, hard_value = 2,
       custom_value = 2,
       flags = 0
     });
 
-    /* Panneaux de diagnostic. Defaut ACTIF (requis par les sweeps pour collecter les metriques).
-     * V167 : n'agit plus que comme veto (0) du bit 2 de probes. */
-    AddSetting({
-      name = "debug_signs",
-      description = "Diagnostic signs on the map: 1 = current behaviour (required by sweeps/), 0 = none (use when playing with humans)",
-      easy_value = 1, medium_value = 1, hard_value = 1,
-      custom_value = 1,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "decision_log",
-      description = "Emit structured decision log lines via AILog: 1 = enabled, 0 = disabled (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "air_flotte1_shadow",
-      description = "AIR-FLOTTE-1: log read-only AIR purchase and RAIL shortlist snapshots; diagnostic only, 0 = off (default), 1 = on",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
+    /* Les panneaux requis par les sweeps restent actifs avec probes=2. */
     AddSetting({
       name = "save_full_state",
       description = "Persist the full decision state in savegames: 1 = save built lines and scheduler state (default), 0 = minimal payload",
@@ -110,144 +75,7 @@ class OpexAIInfo extends AIInfo {
       _3 = "custom"
     });
 
-    /* --- 2. Sondes de diagnostic unifiees (9 groupes) --- */
-
-    AddSetting({
-      name = "probe_cost",
-      description = "Enable construction cost probes (rail, air, road) comparing modelled vs real expense; 1 = on, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "probe_scheduler",
-      description = "Enable scheduler opcode, latency and idle-tour diagnostic ledgers (C41, C39, V95); 1 = on, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "probe_loop_ops",
-      description = "Log yearly opcode aggregates of the main loop (events, C117 sampler, orchestrator, Sleep leftover); 1 = on, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "probe_span_trace",
-      description = "Log dated nested spans of OpexAI micro-tasks (ticks and opcodes); 1 = on, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "probe_event_backlog",
-      description = "Monthly probe of _processEvents burst sizes and opcode consumption; 1 = on, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "probe_select_reject",
-      description = "Probe: log SELECT_REJECT for candidate air projects dropped by cash, floor, dedupe or top-k truncation; 1 = on, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "probe_candidates_road",
-      description = "Enable road candidate generation opcode profiling (pax, freight, town); 1 = on, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "probe_candidates_rail",
-      description = "Enable rail candidate generation profiling (pax, freight, speed, cruise, economics); 1 = on, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "probe_catalogue",
-      description = "Enable catalogue invalidation and engine availability probes (C39, C41); 1 = on, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "probe_rail_search",
-      description = "Enable rail A* search state probes (domination, fallthrough, cadence); 1 = on, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "probe_vehicle_lost",
-      description = "Enable vehicle lost and topology diagnostic probes (C41); 1 = on, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "probe_portfolio",
-      description = "Enable portfolio, tension, scarcity and treasury chronological probes; 1 = on, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "c83_local_repair",
-      description = "Experimental C83: repair only the threatened town airport site, reuse known partner sites; fall back to targeted regeneration if no valid partner is known",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "c83_fixes",
-      description = "C83 review fixes (contestable watch towns, slot-town identity, rearmable race, skip dead air pairs, targeted site scan): 1 = on, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "c83_preempt_open",
-      description = "C83: keep one empty large town (both airport slots free) as a defensive new-airport target ahead of hub-to-hub, still subject to the profit test: 1 = on, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "v134_air_p2p_saturated_hub",
-      description = "V134: allow a second airport in point-to-point (newpair) to a free town when existing airport reached air_hub_max_routes and town opens a 2nd slot; 1 = on, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "v133_air_build_retry",
-      description = "V133: quarantine an AIR town for 730 days after a local-authority refusal, a non-flat or invalid footprint, an unbuildable site or a town station cap, and keep lot pairs that do not use the failed site; 1 = on, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
+    /* Les canaux de mesure sont commandes par probes (bits dedies ou groupes). */
     AddSetting({
       name = "c121_air_project_realization_adaptive",
       description = "C121 adaptive AIR strategy: use the learned reused-hub realization correction in observe, race and efficiency; 1 = on (default), 0 = off",
@@ -256,37 +84,8 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
-    AddSetting({
-      name = "c122_air_regime_shadow",
-      description = "C122 passive shadow: run the same pressure lock, unserved-town annotation and AIR-vs-AIR comparison as C122, but never reorder projects; logs only would-be economic inversions; 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
 
-    AddSetting({
-      name = "c122_air_threat_probe",
-      description = "C122.4 passive territorial-threat probe: when C83 sees one slot remaining in an unserved watched town, record the exact live/fundable AIR project, rank and blocker, then follow the same TownID until Opex claims it or the competitor closes it; no decision change; 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
 
-    AddSetting({
-      name = "c122_air_threat_retry",
-      description = "C122.4 experimental local retry: if an exact C83 threatened AIR project reaches build but its threatened endpoint site became unbuildable, enqueue one targeted C77 regeneration for that TownID; implies the passive threat probe; no scoring/economics/engine/finance change; 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "probe_events",
-      description = "Enable AI event, crash, fleet depth and equipment selection probes; 1 = on, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
 
     /* --- 3. Interrupteurs de mode et options rail --- */
     AddSetting({
@@ -322,24 +121,6 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
-      name = "v182_rail_freight_min_dist",
-      description = "V182: minimum distance in tiles for rail freight candidates (generation filter); 0 = inert (default)",
-      min_value = 0, max_value = 512,
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = 0
-    });
-
-    AddSetting({
-      name = "v177_rail_pax_min_dist",
-      description = "V177: minimum distance in tiles for rail passenger candidates (generation filter); 0 = inert (default)",
-      min_value = 0, max_value = 512,
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = 0
-    });
-
-    AddSetting({
       name = "v269_rail_late_relax",
       description = "V269: N years after game start, when the rail pool is empty and cash idle, regenerate rail freight up to 250 tiles; 0 = inert, 5 = default (20/10, 40x10 +83.1 k/yr, 24/16)",
       min_value = 0, max_value = 9,
@@ -358,14 +139,6 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
-      name = "v294_rail_defer",
-      description = "V294h: 0 = off; N = rail A* first tries N iterations in the search slot, then an aborted search continues in the background on leftover tick opcodes (20000 iterations, 365 days) and its path is reused when the pair is selected again",
-      min_value = 0, max_value = 5000,
-      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
-      step_size = 100, flags = 0
-    });
-
-    AddSetting({
       name = "v301_notrain_fix",
       description = "V301: NOTRAIN fixes, bit mask. 1 = NOTRAIN/ORDFAIL abandons the pair; 2 = freight trains capped by vehicle.max_train_length; 4 = trim wagons that would not fit instead of failing; 8 = any TRKFAIL abandons the pair. 0 = historic; 15 = all (default since 21/10)",
       min_value = 0, max_value = 15,
@@ -381,13 +154,6 @@ class OpexAIInfo extends AIInfo {
       step_size = 1, flags = 0
     });
 
-    AddSetting({
-      name = "v309_idle_probe",
-      description = "V309: passive monthly idle-loop, opcode and financial wait instrumentation; requires decision_log=1. 0 = off (default)",
-      min_value = 0, max_value = 1,
-      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
-      step_size = 1, flags = AICONFIG_BOOLEAN
-    });
 
     AddSetting({
       name = "v307_probe_year",
@@ -397,18 +163,12 @@ class OpexAIInfo extends AIInfo {
       step_size = 1, flags = 0
     });
 
-    AddSetting({
-      name = "v308_carto_probe",
-      description = "V308: passive one-shot survey of 400 random 8x8 blocks; 64-tile ground truth vs V307 and four six-point patterns; uses v307_probe_year. Blocking measurement only, 0 = off (default)",
-      min_value = 0, max_value = 1,
-      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
-      step_size = 1, flags = 0
-    });
+
 
     AddSetting({
-      name = "v307_abnd_autopsy",
-      description = "V307: measurement only, needs decision_log. After each production rail search abandoned at its budget, rerun it blocking as fresh unsegmented forward and reverse A* (20k iterations) to tell an enclosed goal from a budget shortfall. 0 = inert (default)",
-      min_value = 0, max_value = 1,
+      name = "v307_sites",
+      description = "V307 1.8 experimental rail station sites: 0 = historical spiral (default), 1 = native dispersed, 2 = spiral first with native octant supplementation, 3 = spiral continued past its stop ring in missing octants only, budgeted",
+      min_value = 0, max_value = 3,
       easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
       step_size = 1, flags = 0
     });
@@ -418,14 +178,6 @@ class OpexAIInfo extends AIInfo {
       description = "PO-02: skip non-buildable or non-flat base tiles before rail station orientations; 0 = historical, 1 = precheck (default since 23/10, porte B pass)",
       min_value = 0, max_value = 1,
       easy_value = 1, medium_value = 1, hard_value = 1, custom_value = 1,
-      step_size = 1, flags = 0
-    });
-
-    AddSetting({
-      name = "v307_sites",
-      description = "V307 1.8 experimental rail station sites: 0 = historical spiral (default), 1 = native dispersed, 2 = spiral first with native octant supplementation, 3 = spiral continued past its stop ring in missing octants only, budgeted",
-      min_value = 0, max_value = 3,
-      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
       step_size = 1, flags = 0
     });
 
@@ -445,23 +197,7 @@ class OpexAIInfo extends AIInfo {
       step_size = 1, flags = 0
     });
 
-    AddSetting({
-      name = "v216_probe",
-      description = "V216: passive estimator probe (SCORE_DECOMP, TOWN_FLOW, generation rejects) until end of year 3. 0 = inert",
-      min_value = 0, max_value = 1,
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = CONFIG_BOOLEAN
-    });
 
-    AddSetting({
-      name = "v211_rivals_log",
-      description = "V211: quarterly log of every company (value, performance, profit, bank, infrastructure) and our rank. Observation only, 0 = inert",
-      min_value = 0, max_value = 1,
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = CONFIG_BOOLEAN
-    });
 
     AddSetting({
       name = "v216a_ghost_demand",
@@ -531,14 +267,6 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
-    AddSetting({
-      name = "rail_failure_audit",
-      description = "Diagnostic-only rail attempts and proximity refusals by kind; 0 = off (default)",
-      min_value = 0, max_value = 1,
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0, step_size = 1,
-      flags = AICONFIG_BOOLEAN
-    });
 
     AddSetting({
       name = "rail_geometry_live_replan",
@@ -558,13 +286,6 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
-    AddSetting({
-      name = "c67_water_exposure_probe",
-      description = "C67.6: passive probe, re-checks water pairs rejected by the bounded BFS with the block oracle in tick slack: 1 = enabled, 0 = disabled (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
 
     AddSetting({
       name = "c67_terrain_map",
@@ -572,16 +293,6 @@ class OpexAIInfo extends AIInfo {
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
       flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "v195_v182_years",
-      description = "V195: apply v182 rail freight min distance only during the first N years (0 = always, default)",
-      min_value = 0, max_value = 10,
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      step_size = 1,
-      flags = 0
     });
 
     AddSetting({
@@ -736,15 +447,6 @@ class OpexAIInfo extends AIInfo {
       flags = 0
     });
     AddSetting({
-      name = "v264_convergent_freight",
-      description = "V264: a fresh rail-freight source may deliver to an industry we already serve, by joining one platform on that station (parallel, or any anchor whose union fits station.station_spread). 0 = inert, 1 = on (default since 19/10: 40x10 PC +111.8 k/yr on 39 pairs, accepted by user waiver). Does not exempt the freight distance floor and does not change the score.",
-      min_value = 0, max_value = 1,
-      easy_value = 1, medium_value = 1, hard_value = 1,
-      custom_value = 1,
-      step_size = 1,
-      flags = AICONFIG_BOOLEAN
-    });
-    AddSetting({
       name = "v276_cand_slices",
       description = "V276: resumable rail and road candidate units, 0 = legacy, 1 = freight ordered by unit income at 80 tiles, 2 = same income times total monthly cargo production (annual cache), 3 = auto: 2 when the map has at least 1024x1024 tiles, else 0 (default since 20/10)",
       min_value = 0, max_value = 3,
@@ -802,13 +504,6 @@ class OpexAIInfo extends AIInfo {
       custom_value = 1, flags = 0, step_size = 1
     });
     AddSetting({
-      name = "v294_rail_reverse_probe",
-      description = "V294f: reverse A* probe before rail search (sources = B, goals = A) bounded by N iterations (e.g. 300, like AAA); 0 = off (default), >0 = iteration cap",
-      min_value = 0, max_value = 5000,
-      easy_value = 300, medium_value = 300, hard_value = 300,
-      custom_value = 300, flags = 0, step_size = 50
-    });
-    AddSetting({
       name = "v294_rail_dist_decouple",
       description = "V294i: decouple candidate railMax from iteration cap (HARD_ITERATION_CAP*12/10); 0 = off (uses derived/V168 bound, default), >0 = max tile distance",
       min_value = 0, max_value = 500,
@@ -823,40 +518,11 @@ class OpexAIInfo extends AIInfo {
       custom_value = 1, flags = 0, step_size = 1
     });
     AddSetting({
-      name = "v295_astar_fast",
-      description = "V295: exact opcode optimizations for rail A* V129 (parent chain bloom filter and deduplicated goal coords); 0 = off (default), 1 = on",
-      min_value = 0, max_value = 1,
-      easy_value = 1, medium_value = 1, hard_value = 1,
-      custom_value = 1, flags = 0, step_size = 1
-    });
-    AddSetting({
       name = "v292_hq_hub",
       description = "V292b: build company HQ once near passenger station with highest waiting cargo; 0 = off, 1 = on (default since 21/10)",
       min_value = 0, max_value = 1,
       easy_value = 1, medium_value = 1, hard_value = 1,
       custom_value = 1, flags = 0, step_size = 1
-    });
-    AddSetting({
-      name = "v296_rail_batch_build",
-      description = "V296a: lay each straight or diagonal run of rail track with one BuildRail command instead of one per tile (fewer suspended ticks); 0 = off, 1 = on (default since 21/10)",
-      min_value = 0, max_value = 1,
-      easy_value = 1, medium_value = 1, hard_value = 1,
-      custom_value = 1, flags = 0, step_size = 1
-    });
-    AddSetting({
-      name = "v296_astar_native",
-      description = "V296b: native AIList rail A*; 0 = V129, 1 = native (default since 21/10), 2 = compare with V129",
-      min_value = 0, max_value = 2,
-      easy_value = 1, medium_value = 1, hard_value = 1,
-      custom_value = 1, flags = 0, step_size = 1
-    });
-    AddSetting({
-      name = "rail_cal",
-      description = "RAIL-CAL-1 experimental: correct only the ranking score of unbuilt RAIL candidates for predicted cost and profit; 0 = legacy (default), 1 = test",
-      min_value = 0, max_value = 1,
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0, default_value = 0,
-      flags = 0, step_size = 1
     });
   }
 }
