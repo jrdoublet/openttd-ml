@@ -170,4 +170,3 @@ def test_airr1_incomplete_invalid_source_or_inconsistent_ticks_disqualified(tmp_
     assert row["values"]["planeCapacity"] is None
     assert row["provenance"]["planeCapacity"] == "invalid"
     assert row["values"]["actualCost"] is None
-
