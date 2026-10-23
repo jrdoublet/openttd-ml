@@ -26,7 +26,8 @@ class FixedPolicies(unittest.TestCase):
         info, settings = read("info.nut"), read("settings.nut")
         # 101 options initiales, 43 retraits intentionnels ; PO03/C77 et
         # PO02 restent declares et actifs malgre leur absence du vieux WIP.
-        self.assertLessEqual(info.count("AddSetting("), 58)
+        # air_load_min_pct: un reglage opt-in supplementaire, defaut 0.
+        self.assertLessEqual(info.count("AddSetting("), 59)
         for name in PACKAGES:
             with self.subTest(name=name):
                 self.assertNotIn(f'name = "{name}"', info)

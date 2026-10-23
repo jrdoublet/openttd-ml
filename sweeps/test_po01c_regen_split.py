@@ -420,6 +420,7 @@ class PO01CContracts(unittest.TestCase):
 
     def test_po01d_synchronous_path_bytes_unchanged(self):
         # Rebased to eb6f26fc after 43 intentional parameter retirements.
+        # AIR load opt-in: rebaseline probes/settings/info only; no PO01D change.
         # Preserve strong full-file hashes: future source changes must
         # explicitly rebaseline this isolation contract, never silence it.
         expected = {
@@ -429,10 +430,10 @@ class PO01CContracts(unittest.TestCase):
             'candidates.nut': '83670f686d3564a63e21fd307736a32a106ebbf25ccb7463800b8cefb815c771',
             'catalog.nut': '4882c4c3de58c97882b2739432e62045a2e567b1ee980e5a2a56dedd34a17ba9',
             'main.nut': '774acab715924ca97cb0e14ed1a9573400a84963ee7698effeebdcd372ed9adc',
-            'probes.nut': '2be7e1d6c099949de72b9abf8e285df6db6fc5c0001c9445c3707c3c8c1edf5e',
-            'settings.nut': 'b2b1debb5d362bf89c0099cef9acc4478e25c1fce066b63707acea178a6d27fd',
-            # Publication 2026-10-24: v8/date and probes=0; other hashes unchanged.
-            'info.nut': 'b4b16e3bcb4c6227d7ec4fb8e44e4e69e05353c12f1a73cd596605ec4088a8ab',
+            'probes.nut': '9f61da3b9adbe806a2e03ad4d76e62d5a14db0e979b865204cba86ceb003dbf5',
+            'settings.nut': '0d79fa96b798d113b292ac97c65c539f2b932c9971b2010c331132f1b523076b',
+            # Publication 2026-10-24 + AIR-LOAD-1 guard (air_load_min_pct, default 0).
+            'info.nut': 'ebe7d931fa3637eb9126f76f977a5f801c8a0f0de4cb4565385946a4a13e92aa',
         }
         for name, digest in expected.items():
             with self.subTest(name=name):

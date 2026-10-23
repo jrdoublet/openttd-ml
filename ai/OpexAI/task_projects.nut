@@ -235,6 +235,15 @@ function OpexAI::_tryBuildFleetProject(year, project, rank, passDiscards, builtK
                             reason = "fleet_stale", extra = "" });
     return { outcome = "rejected", discards = passDiscards };
   }
+  /* A listed fleet project can outlive its load observation: revalidate at purchase. */
+  if (AIR_LOAD_MIN_PCT > 0 && OpexAirLoadBlocksGrowth(line)) {
+    OpexAirFleetRefusal(line, year, "F");
+    if (C69_BOTTLENECK_PROBE) OpexC73RecordRejection("fleet", "low_load_factor", 1);
+    if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL)
+      passDiscards.append({ rank = i, mode = "fleet", src = project.src, dst = project.dst,
+                            reason = "low_load_factor", extra = "" });
+    return { outcome = "rejected", discards = passDiscards };
+  }
   local need = entry.planePrice + OpexCashReserve();
   local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
   if (money < need) {
