@@ -15,7 +15,7 @@ class IntegrationProbeTests(unittest.TestCase):
     def test_c41_logging_prerequisite_is_enabled(self):
         # Counters alone are insufficient: OpexC39Log returns early unless
         # C39_INVALIDATION_PROBE (probe_catalogue) is enabled too.
-        self.assertIn("probe_catalogue", integration.PROBES)
+        self.assertEqual(integration.PROBES["probe_catalogue"], 32768)
         source = (cadence.ROOT / "ai/OpexAI/probes.nut").read_text(encoding="utf-8")
         body = source.split("function OpexC39Log(kind, fields)", 1)[1].split("}", 1)[0]
         self.assertIn("if (!C39_INVALIDATION_PROBE) return;", body)
@@ -24,11 +24,12 @@ class IntegrationProbeTests(unittest.TestCase):
         resolved = bench_v2.resolved_arm_settings(list(integration.ARMS.values()))
         reference = resolved[integration.ARMS["reference"]]["settings"]["effective"]
         profile = resolved[integration.ARMS["profile"]]["settings"]["effective"]
-        self.assertEqual({k for k in reference if reference[k] != profile[k]},
-                         set(integration.PROBES))
-        for key in integration.PROBES:
-            self.assertEqual(reference[key], 0)
-            self.assertEqual(profile[key], 1)
+        self.assertEqual({k for k in reference if reference[k] != profile[k]}, {"probes"})
+        self.assertEqual(reference["probes"], 2)
+        self.assertEqual(profile["probes"], integration.PROFILE_MASK)
+        self.assertEqual(integration.PROFILE_MASK & 2, 2)
+        for bit in integration.PROBES.values():
+            self.assertEqual(profile["probes"] & bit, bit)
 
     def test_delegation_keeps_original_cadence_arms(self):
         original = dict(cadence.ARMS)

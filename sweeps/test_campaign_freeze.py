@@ -241,8 +241,10 @@ class TestCampaignFreeze(unittest.TestCase):
         )
         for name in ("c121_air_project_realization_adaptive",):
             self.assertEqual(defaults[name], 1, name)
-        for name in ("rail_depot_cost", "c83_fixes", "c83_preempt_open", "c67_terrain_map", "c67_water_exposure_probe"):
+        for name in ("rail_depot_cost", "c67_terrain_map"):
             self.assertEqual(defaults[name], 0, name)
+        for name in ("c83_fixes", "c83_preempt_open", "c67_water_exposure_probe"):
+            self.assertNotIn(name, defaults)
         for name in ("v90_pathfinder_check", "v95_air_post73_probe", "v94_air_site_check", "c97_air_c69_engine_probe", "c98_air_realized_probe"):
             self.assertNotIn(name, defaults)  # V239 : sondes retirees
         self.assertNotIn("v93_airport_no_pop_floor", defaults)
@@ -284,17 +286,18 @@ class TestCampaignFreeze(unittest.TestCase):
         self.assertNotIn("air_site_cost_quote", defaults)
         self.assertNotIn("air_site_cost_margin_pct", defaults)
         self.assertNotIn("air_site_quote_keep_legacy_margin", defaults)
-        self.assertEqual(defaults["probe_events"], 0)
-        self.assertEqual(defaults["probe_cost"], 0)
+        self.assertEqual(defaults["probes"], 2)
+        self.assertNotIn("probe_events", defaults)
+        self.assertNotIn("probe_cost", defaults)
         self.assertNotIn("probe_air_engine_depth", defaults)  # V239
         self.assertNotIn("probe_air_finance_margin", defaults)  # V239
-        self.assertEqual(defaults["probe_event_backlog"], 0)
+        self.assertNotIn("probe_event_backlog", defaults)
         for name in ("policy_rail", "policy_road", "policy_air", "policy_abandon", "policy_portfolio"):
             self.assertNotIn(name, defaults)
         self.assertNotIn("policy_caches", defaults)
         self.assertNotIn("air_route_plane_selection", defaults)
         self.assertEqual(set(defaults), set(specs))
-        self.assertEqual(defaults["debug_signs"], 1)
+        self.assertNotIn("debug_signs", defaults)
         for name in ("road_pax_build", "road_pax_catchment_pct", "road_stop_catchment_houses",
                      "c76_lean_invalidation", "exp_scheduler_skip_not_due",
                      "v88_goods_chain", "v88_chain_force", "v88_step2_plan_immediate", "v88_all_inputs",
@@ -319,7 +322,7 @@ class TestCampaignFreeze(unittest.TestCase):
 
     def test_generic_specs_reject_invalid_boolean_and_range(self):
         with self.assertRaises(ValueError):
-            parse_opex_variant("OpexAI[probe_portfolio=2]")
+            parse_opex_variant("OpexAI[rail_geometry_guard=2]")
         spec = parse_ai_setting_specs(INFO)["v216f_dwell_pct"]
         self.assertIsNotNone(spec["max_value"])
         with self.assertRaises(ValueError):
@@ -330,11 +333,11 @@ class TestCampaignFreeze(unittest.TestCase):
     def test_effective_settings_merge_and_unknown_rejection(self):
         resolved = effective_ai_settings(
             INFO,
-            (("c83_local_repair", 1), ("probe_cost", 1)),
+            (("rail_geometry_guard", 1), ("probes", 514)),
         )
-        self.assertEqual(resolved["defaults"]["c83_local_repair"], 0)
-        self.assertEqual(resolved["effective"]["c83_local_repair"], 1)
-        self.assertEqual(resolved["effective"]["probe_cost"], 1)
+        self.assertEqual(resolved["defaults"]["rail_geometry_guard"], 0)
+        self.assertEqual(resolved["effective"]["rail_geometry_guard"], 1)
+        self.assertEqual(resolved["effective"]["probes"], 514)
         with self.assertRaises(ValueError):
             effective_ai_settings(INFO, (("does_not_exist", 1),))
 
@@ -441,17 +444,17 @@ class TestCampaignFreeze(unittest.TestCase):
     def test_bench_audit_detects_identical_and_shared_nondefault_arms(self):
         identical = comparison_setting_audit(resolved_arm_settings([
             "OpexAI",
-            "OpexAI[probe_cost=0]",
+            "OpexAI[probes=2]",
         ]))
         self.assertEqual(len(identical["identical_effective_arms"]), 1)
 
         shared = comparison_setting_audit(resolved_arm_settings([
-            "OpexAI[c83_local_repair=1]",
-            "OpexAI[c83_local_repair=1,probe_cost=1]",
+            "OpexAI[rail_geometry_guard=1]",
+            "OpexAI[rail_geometry_guard=1,probes=514]",
         ]))
         self.assertEqual(
             [item["setting"] for item in shared["shared_nondefault_explicit"]],
-            ["c83_local_repair"],
+            ["rail_geometry_guard"],
         )
         self.assertFalse(shared["transportable_to_shipped_defaults"])
 

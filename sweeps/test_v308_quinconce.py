@@ -207,13 +207,10 @@ class TestV308SourceContracts(unittest.TestCase):
 
     def test_flag_defaults_to_zero_and_is_loaded_once(self):
         info = read("info.nut")
-        block = re.search(r'name\s*=\s*"v308_carto_probe",(.*?)\}\);', info, re.S)
-        self.assertIsNotNone(block, "Declaration AddSetting v308_carto_probe manquante")
-        for level in ("easy", "medium", "hard", "custom"):
-            self.assertRegex(block.group(1), rf"{level}_value\s*=\s*0\b")
-        self.assertRegex(block.group(1), r"min_value\s*=\s*0\b")
-        self.assertRegex(block.group(1), r"max_value\s*=\s*1\b")
-        self.assertEqual(read("settings.nut").count('GetSetting("v308_carto_probe")'), 1)
+        self.assertNotIn('name = "v308_carto_probe"', info)
+        self.assertIn('max_value = 2147483647', info)
+        self.assertEqual(read("settings.nut").count('GetSetting("v308_carto_probe")'), 0)
+        self.assertIn('V308_CARTO_PROBE = OpexProbeEnabled(134217728) ? 1 : 0;', read("settings.nut"))
         self.assertIn("V308_CARTO_PROBE <- 0;", read("globals_pre.nut"))
         self.assertIn("V308_DONE <- false;", read("globals_pre.nut"))
 

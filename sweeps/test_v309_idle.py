@@ -97,11 +97,10 @@ class TestV309Idle(unittest.TestCase):
 
     def test_setting_off_in_all_difficulties_and_read_once(self):
         info = source("info.nut")
-        m = re.search(r'name\s*=\s*"v309_idle_probe",(.*?)\}\);', info, re.S)
-        self.assertIsNotNone(m, "missing v309_idle_probe")
-        for difficulty in ("easy", "medium", "hard", "custom"):
-            self.assertRegex(m.group(1), rf'{difficulty}_value\s*=\s*0\b')
-        self.assertEqual(source("settings.nut").count('GetSetting("v309_idle_probe")'), 1)
+        self.assertNotIn('name = "v309_idle_probe"', info)
+        self.assertIn('max_value = 2147483647', info)
+        self.assertEqual(source("settings.nut").count('GetSetting("v309_idle_probe")'), 0)
+        self.assertIn('V309_IDLE_PROBE = OpexProbeEnabled(67108864);', source("settings.nut"))
         self.assertIn("V309_IDLE_PROBE <- false", source("globals_pre.nut"))
 
     def test_tick_hook_in_both_loops_with_no_default_side_effects(self):

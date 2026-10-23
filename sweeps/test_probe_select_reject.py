@@ -9,20 +9,17 @@ SELECTION = (ROOT / "ai" / "OpexAI" / "projects_selection.nut").read_text(encodi
 
 
 class ProbeSelectRejectTests(unittest.TestCase):
-    def test_setting_declared_in_info_nut_with_all_zero_values(self):
-        self.assertEqual(INFO.count('name = "probe_select_reject"'), 1)
-        start = INFO.index('name = "probe_select_reject"')
-        block = INFO[start:INFO.index("});", start)]
-        for token in ("easy_value = 0", "medium_value = 0", "hard_value = 0", "custom_value = 0"):
-            self.assertIn(token, block)
-        self.assertIn("flags = AICONFIG_BOOLEAN", block)
+    def test_setting_retired_in_favor_of_mask(self):
+        self.assertEqual(INFO.count('name = "probe_select_reject"'), 0)
+        self.assertEqual(INFO.count('name = "probes"'), 1)
+        self.assertIn('max_value = 2147483647', INFO)
 
     def test_global_declared_in_globals_pre(self):
         self.assertIn("PROBE_SELECT_REJECT <- false;", GLOBALS)
 
-    def test_setting_loaded_once_in_settings_nut(self):
-        self.assertEqual(SETTINGS.count('OpexProbeSetting("probe_select_reject")'), 1)
-        self.assertIn('PROBE_SELECT_REJECT = OpexProbeSetting("probe_select_reject") != 0;', SETTINGS)
+    def test_probe_loaded_from_isolated_mask_bit(self):
+        self.assertNotIn('GetSetting("probe_select_reject")', SETTINGS)
+        self.assertIn('PROBE_SELECT_REJECT = OpexProbeEnabled(8192, 16);', SETTINGS)
 
     def test_helpers_present_in_projects_selection(self):
         self.assertIn("function OpexSelectRejectScore(project, kDec)", SELECTION)

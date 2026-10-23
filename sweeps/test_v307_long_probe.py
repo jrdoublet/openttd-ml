@@ -90,12 +90,9 @@ class TestV307LongProbe(unittest.TestCase):
         self.assertIn('kind = "freight"', body)
 
     def test_autopsy_guarded(self):
-        block = re.search(r'name = "v307_abnd_autopsy",(.*?)\}\);', self.info, re.S)
-        self.assertIsNotNone(block)
-        for level in ("easy", "medium", "hard", "custom"):
-            self.assertRegex(block.group(1), rf"{level}_value\s*=\s*0\b")
+        self.assertNotIn('name = "v307_abnd_autopsy"', self.info)
         self.assertIn("V307_ABND_AUTOPSY <- false;", read("globals_pre.nut"))
-        self.assertEqual(read("settings.nut").count('GetSetting("v307_abnd_autopsy")'), 1)
+        self.assertIn('V307_ABND_AUTOPSY = OpexProbeEnabled(268435456);', read("settings.nut"))
         rail = read("task_rail.nut")
         hook = 'if (V307_ABND_AUTOPSY && slice.stop == "ABND" && state.kind == "primary") OpexV307Autopsy(state);'
         self.assertEqual(rail.count(hook), 1)
@@ -143,7 +140,7 @@ class TestV307LongProbe(unittest.TestCase):
         self.assertIn('OpexV307EndpointPair("event=autopsy arm=autopsy " + head', self.probe)
         self.assertIn('OpexV307EndpointPair(head, pair.ta, pair.tb, plansA, plansB)', body)
         self.assertEqual(self.probe.count('"V307_ENDPOINT"'), 1)
-        self.assertEqual(read("info.nut").count('name = "v307_abnd_autopsy"'), 1)
+        self.assertEqual(read("info.nut").count('name = "v307_abnd_autopsy"'), 0)
         self.assertEqual(self.probe.count(".Valuate("), 3)  # Sonde historique seulement.
 
     def test_endpoint_geometry_and_exclusive_classes(self):

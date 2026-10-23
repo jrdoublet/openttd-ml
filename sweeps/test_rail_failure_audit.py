@@ -10,11 +10,10 @@ ROOT = Path(__file__).resolve().parents[1] / "ai" / "OpexAI"
 class RailFailureAuditTest(unittest.TestCase):
     def test_required_setting_and_log_sites(self):
         info = (ROOT / "info.nut").read_text(encoding="utf-8")
-        block = info.split('name = "rail_failure_audit",', 1)[1].split("});", 1)[0]
-        for level in ("easy", "medium", "hard", "custom"):
-            self.assertRegex(block, rf"\b{level}_value\s*=\s*0\b")
+        self.assertNotIn('name = "rail_failure_audit"', info)
+        self.assertIn('max_value = 2147483647', info)
         self.assertIn('RAIL_FAILURE_AUDIT <- false;', (ROOT / "globals_pre.nut").read_text(encoding="utf-8"))
-        self.assertIn('RAIL_FAILURE_AUDIT = OpexProbeSetting("rail_failure_audit") != 0;',
+        self.assertIn('RAIL_FAILURE_AUDIT = OpexProbeEnabled(2097152, 32);',
                       (ROOT / "settings.nut").read_text(encoding="utf-8"))
         rail = (ROOT / "task_rail.nut").read_text(encoding="utf-8")
         self.assertEqual(rail.count('OpexRailFailureAudit("precheck",'), 2)

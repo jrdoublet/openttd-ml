@@ -23,16 +23,14 @@ class TestV216Probe(unittest.TestCase):
         cls.sources = {p.name: p.read_text(encoding="utf-8")
                        for p in AI.glob("*.nut") if p.name != PROBE.name}
 
-    def test_setting_declared_inert(self):
-        block = re.search(r'name = "v216_probe",(.*?)\}\);', self.info, re.S)
-        self.assertIsNotNone(block)
-        for level in ("easy_value", "medium_value", "hard_value", "custom_value"):
-            self.assertRegex(block.group(1), level + r" = 0\b")
-        self.assertIn("CONFIG_BOOLEAN", block.group(1))
+    def test_setting_retired_into_mask(self):
+        self.assertNotIn('name = "v216_probe"', self.info)
+        self.assertIn('max_value = 2147483647', self.info)
 
     def test_setting_read_once(self):
-        self.assertEqual(self.settings.count('GetSetting("v216_probe")'), 1)
-        self.assertEqual(sum(s.count('GetSetting("v216_probe")') for s in self.sources.values()), 1)
+        self.assertEqual(self.settings.count('GetSetting("v216_probe")'), 0)
+        self.assertEqual(sum(s.count('GetSetting("v216_probe")') for s in self.sources.values()), 0)
+        self.assertIn('V216_PROBE = OpexProbeEnabled(536870912);', self.settings)
         self.assertIn("V216_PROBE <- false;", self.sources["globals_pre.nut"])
 
     def test_probe_is_required(self):
