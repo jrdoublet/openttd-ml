@@ -279,7 +279,7 @@ function OpexAI::_logStalenessRefresh(reason)
     candidates = { rail = -1, road = -1, air = -1, water = -1 }, portfolio = -1, selection = -1,
   };
 }
-/* probe_event_backlog (F-EVENT-BACKLOG-01) : date YYYY-MM-DD avec zero padding */
+/* EVENT_BACKLOG (F-EVENT-BACKLOG-01) : date YYYY-MM-DD avec zero padding */
 function OpexEventBacklogDateText(date)
 {
   local month = AIDate.GetMonth(date);
@@ -309,7 +309,7 @@ function OpexEventBacklogFlush(curDate)
 /* Event moteur exact : CRASH_TRAIN est emis dans train_cmd.cpp au moment ou deux trains
  * entrent en collision. XC garde la ligne, le vehicule, la tuile et les victimes ; RX reste le
  * filet annuel pour toute disparition sans evenement reconnu.
- * probe_event_backlog : une seule boucle. Flag eteint, le dispatch est celui d'origine ;
+ * EVENT_BACKLOG : une seule boucle. Flag eteint, le dispatch est celui d'origine ;
  * la sonde ne fait que tester `backlog` (avant, dans, et apres la boucle). */
 function OpexAI::_processEvents()
 {

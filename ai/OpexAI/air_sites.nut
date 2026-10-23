@@ -659,8 +659,6 @@ function OpexAirFindSite(town, airport, probes, requiredSlotTownId = -1)
  * avant le classement, puis par le portefeuille avant sa propre selection. */
 function OpexAirSiteStillBuildable(site, airport, plane, reuse, stationLimitedTowns = null)
 {
-  /* V133 : a 0, seul ce booleen. Le code n'est lu que si le reglage est actif. */
-  if (V133_AIR_BUILD_RETRY) V133_AIR_LAST_SITE_ERROR = 0;
   if (site == null || airport == null || plane == null || !AIMap.IsValidTile(site.anchor)) return false;
   if (OpexAirRecoveryOwnsAirport(site.anchor)) return false;
   if (reuse) {
@@ -670,12 +668,6 @@ function OpexAirSiteStillBuildable(site, airport, plane, reuse, stationLimitedTo
   if (!("town" in site) || site.town == null || !("id" in site.town)) return false;
   if (stationLimitedTowns != null && (site.town.id in stationLimitedTowns)) return false;
   if (AIAirport.GetNearestTown(site.anchor, airport.type) != site.town.id) return false;
-  /* C83 : l'identite physique du creneau (ClosestTown de l'ancre) ne contraint que les sites
-   * issus d'une course vers un creneau precis (c83SlotTown). Un site AIR ordinaire garde le seul
-   * critere historique GetNearestTown : l'appliquer partout freinait l'expansion aerienne
-   * (20x10 du 2026-09-24 : -2,1 creneaux, -13 % de vehicules, fail_primary). */
-  if (C83_FIXES && ("c83SlotTown" in site) && site.c83SlotTown >= 0
-      && OpexAirSlotTownId(site.anchor) != site.c83SlotTown) return false;
   if (!OpexAirFootprintCheapOk(site.anchor, airport)) return false;
 
   local ok = false;
@@ -689,13 +681,11 @@ function OpexAirSiteStillBuildable(site, airport, plane, reuse, stationLimitedTo
 
   if (error == AIStation.ERR_STATION_TOO_MANY_STATIONS_IN_TOWN) {
     if (stationLimitedTowns != null) stationLimitedTowns.rawset(site.town.id, true);
-    if (V133_AIR_BUILD_RETRY) V133_AIR_LAST_SITE_ERROR = error;
     return false;
   }
   if (error == AIError.ERR_LOCAL_AUTHORITY_REFUSES
       && OpexAirFootprintIsFlat(site.anchor, airport)) return true;
   if ((error == AIError.ERR_LOCAL_AUTHORITY_REFUSES || error == AIError.ERR_FLAT_LAND_REQUIRED)
       && OpexAirCanLevelFootprint(site.anchor, airport, site.town.id)) return true;
-  if (V133_AIR_BUILD_RETRY) V133_AIR_LAST_SITE_ERROR = error;
   return false;
 }

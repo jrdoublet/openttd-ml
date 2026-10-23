@@ -395,21 +395,6 @@ function OpexAI::_rearmPersistedRailRepairTasks()
   }
 }
 
-/* Cles ajoutees seulement quand c83_preempt_open est arme : a 0 le format
- * historique de Save() ne gagne aucun champ. */
-function OpexSaveC83Preempt(saveObj, ai)
-{
-  if (!C83_PREEMPT_OPEN || saveObj == null || ai == null) return;
-  saveObj.c83PreemptTown <- C83_PREEMPT_TOWN;
-  saveObj.c83PreemptStopped <- C83_PREEMPT_STOPPED ? 1 : 0;
-  saveObj.c83PreemptQueued <- ai._c83PreemptQueued;
-  local race = {};
-  if (ai._c83PreemptRace != null) {
-    foreach (townId, when in ai._c83PreemptRace) race.rawset(townId, when);
-  }
-  saveObj.c83PreemptRace <- race;
-}
-
 /* Cles ajoutees seulement quand v250_rights est arme. A 0, Save() ne gagne
  * aucun champ. L'echeance reste dans le monde (GetExclusiveRightsDuration) :
  * on ne sauve que les villes suivies et celles dont le creneau a deja ete note. */
@@ -515,7 +500,6 @@ function OpexRestoreC121Strategy(data)
   C121_AIR_PROJECT_REALIZATION_YEARS_OBSERVED = 0;
   C121_AIR_PRESSURE_ACCUM = null;
   C121_AIR_PRESSURE_PREV = null;
-  C121_AIR_PRESSURE_SNAPSHOT = null;
   if (!OpexC121StrategyStateEnabled()) return;
   if (data == null) {
     AILog.Info("C121_STRATEGY_RELOAD observation_restart: missing_or_invalid_state");
@@ -632,13 +616,9 @@ function OpexAI::Save()
     {
       shortSave.c76Revisions <- this._c76SaveRevisions();
     }
-    if (C83_PREEMPT_OPEN) OpexSaveC83Preempt(shortSave, this);
     if (V250_RIGHTS != 0) OpexSaveV250(shortSave, this);
     if (OpexC121StrategyStateEnabled()) OpexSaveC121Strategy(shortSave);
     if (OPEX_AIR_ROLLBACKS.len() > 0) shortSave.airRollbacks <- OPEX_AIR_ROLLBACKS;
-    if (V133_AIR_BUILD_RETRY) OpexV133SaveQuarantine(shortSave);
-    if (V233_GOODS_GRAFT && this._v233GoodsObservations != null)
-      shortSave.v233GoodsObservations <- OpexV233SaveObservations(this._v233GoodsObservations);
     if (V259_BRIDGE_RENEW != 0) {
       shortSave.v259KnownBridgesCount <- this._v259KnownBridgesCount;
       shortSave.v259Cursor <- this._v259Cursor;
@@ -730,7 +710,6 @@ function OpexAI::Save()
   {
     saveObj.c76Revisions <- this._c76SaveRevisions();
   }
-  if (C83_PREEMPT_OPEN) OpexSaveC83Preempt(saveObj, this);
   if (V250_RIGHTS != 0) OpexSaveV250(saveObj, this);
 
   /* Hors projection mensuelle : la transaction et le curseur doivent etre exacts. */
@@ -741,9 +720,6 @@ function OpexAI::Save()
 
   if (OpexC121StrategyStateEnabled()) OpexSaveC121Strategy(saveObj);
   if (OPEX_AIR_ROLLBACKS.len() > 0) saveObj.airRollbacks <- OPEX_AIR_ROLLBACKS;
-  if (V133_AIR_BUILD_RETRY) OpexV133SaveQuarantine(saveObj);
-  if (V233_GOODS_GRAFT && this._v233GoodsObservations != null)
-    saveObj.v233GoodsObservations <- OpexV233SaveObservations(this._v233GoodsObservations);
   if (V259_BRIDGE_RENEW != 0) {
     saveObj.v259KnownBridgesCount <- this._v259KnownBridgesCount;
     saveObj.v259Cursor <- this._v259Cursor;
@@ -776,22 +752,11 @@ function OpexAI::Load(version, data)
     if ("v276Road" in task) delete task.v276Road;
     if ("v276Batches" in task) delete task.v276Batches;
   }
-  this._v233Plans = null;
-  this._v233Offers = null;
-  this._v233Generation = null;
-  this._v233PublishedProjects = null;
-  this._v233PublishedGroups = null;
-  this._v233NeedsPublish = false;
-  this._v233GoodsObservations = null;
-  this._v233GoodsWork = null;
   this._loadedFromSave = true;
   OPEX_RELOAD_C121_STRATEGY = null;
   OPEX_AIR_ROLLBACKS = [];
   if (V279_RESELECT_MEMO != 0) OPEX_AIR_ROLLBACK_REVISION++;
   if (data == null) return;
-  if ("v233GoodsObservations" in data)
-    this._v233GoodsObservations = OpexV233LoadObservations(data.v233GoodsObservations);
-  OpexV133LoadQuarantine(data);
   /* Legacy v139UnjoinedStops is deliberately ignored: feeder construction was removed. */
   if ("airRollbacks" in data) OPEX_AIR_ROLLBACKS = OpexLoadAirRollbacks(data.airRollbacks);
   if ("airRollbacks" in data && V279_RESELECT_MEMO != 0) OPEX_AIR_ROLLBACK_REVISION++;
@@ -865,10 +830,6 @@ function OpexAI::Load(version, data)
   if ("c76Revisions" in data && data.c76Revisions != null) {
     this._c76LoadRevisions(data.c76Revisions);
   }
-  if ("c83PreemptTown" in data) this._reloadC83PreemptTown = data.c83PreemptTown;
-  if ("c83PreemptStopped" in data) this._reloadC83PreemptStopped = data.c83PreemptStopped;
-  if ("c83PreemptQueued" in data) this._reloadC83PreemptQueued = data.c83PreemptQueued;
-  if ("c83PreemptRace" in data) this._reloadC83PreemptRace = data.c83PreemptRace;
   if ("v250Targets" in data) this._reloadV250Targets = data.v250Targets;
   if ("v250Freed" in data) this._reloadV250Freed = data.v250Freed;
   if ("v259KnownBridgesCount" in data) this._reloadV259KnownBridgesCount = data.v259KnownBridgesCount;
@@ -894,19 +855,6 @@ function OpexAI::_reconcileAfterLoad()
   if (this._reloadC75PassDates != null && typeof this._reloadC75PassDates == "array") {
     C75_PASS_DATES = this._reloadC75PassDates;
   }
-  if (C83_PREEMPT_OPEN) {
-    if (this._reloadC83PreemptTown != null) ::C83_PREEMPT_TOWN = this._reloadC83PreemptTown;
-    if (this._reloadC83PreemptStopped != null) ::C83_PREEMPT_STOPPED = this._reloadC83PreemptStopped != 0;
-    if (this._reloadC83PreemptQueued != null) this._c83PreemptQueued = this._reloadC83PreemptQueued;
-    if (this._reloadC83PreemptRace != null && typeof this._reloadC83PreemptRace == "table") {
-      this._c83PreemptRace = {};
-      foreach (townId, when in this._reloadC83PreemptRace) this._c83PreemptRace.rawset(townId, when);
-    }
-  }
-  this._reloadC83PreemptTown = null;
-  this._reloadC83PreemptStopped = null;
-  this._reloadC83PreemptQueued = null;
-  this._reloadC83PreemptRace = null;
   if (V250_RIGHTS != 0) {
     if (this._reloadV250Targets != null && typeof this._reloadV250Targets == "table") {
       this._v250Targets = {};
@@ -986,16 +934,6 @@ function OpexAI::_reconcileAfterLoad()
   if (V279_RESELECT_MEMO != 0) OPEX_LINES_REVISION++;
   OpexV257Reconcile(this);
   if (V284_RAIL_GROWTH > 0) OpexV284Reconcile(this);
-  /* World validation is rebuilt in bounded steps from these restored lines.
-   * Short saves without support cannot revive observations. OFF never generates work. */
-  this._v233GoodsWork = null;
-  if (!V233_GOODS_GRAFT || this._lines.len() == 0) this._v233GoodsObservations = null;
-  this._v233Plans = null;
-  this._v233Offers = null;
-  this._v233Generation = null;
-  this._v233PublishedProjects = null;
-  this._v233PublishedGroups = null;
-  this._v233NeedsPublish = false;
   this._pendingLines = null;
   /* C70 : recalcul des facteurs APRES la reconstitution de this._lines. Appele plus haut, il
    * tournait sur la liste encore vide et remettait tous les facteurs a 1 (mesure 2026-09-22). */
@@ -1066,9 +1004,6 @@ function OpexAI::_reconcileAfterLoad()
   this._railReadyStock = {};
   /* C80 étape 2 : la table de retrait temporaire des paires est reconstructible. */
   this._railStockCooldown = {};
-  /* V294h : recherches differees et traces prets ne sont pas sauves. */
-  this._v294Deferred = [];
-  this._v294Ready = {};
   /* C121 : la liste de preparation et l'A* en cours ne sont pas sauves. On recalcule. */
   this._c121RailPrepCandidates = null;
   this._c121RailPrepMonth = -1;
