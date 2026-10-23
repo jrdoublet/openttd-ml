@@ -813,7 +813,7 @@ class OpexAIInfo extends AIInfo {
       description = "V294i: decouple candidate railMax from iteration cap (HARD_ITERATION_CAP*12/10); 0 = off (uses derived/V168 bound, default), >0 = max tile distance",
       min_value = 0, max_value = 500,
       easy_value = 200, medium_value = 200, hard_value = 200,
-      custom_value = 200, flags = 0, step_size = 10
+      custom_value = 200, flags = 0, step_size = 1
     });
     AddSetting({
       name = "dist_air_min",
