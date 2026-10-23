@@ -104,8 +104,7 @@ function OpexV278InvalidateSites()
 
 function OpexV278SiteKey(site, airport)
 {
-  return airport.type + "|" + site.anchor + "|" + site.town.id + "|"
-      + (("c83SlotTown" in site) ? site.c83SlotTown : -1);
+  return airport.type + "|" + site.anchor + "|" + site.town.id + "|-1";
 }
 
 function OpexV278SiteMemo()
@@ -135,8 +134,6 @@ function OpexV278SiteOk(site, airport, plane, limited)
 function OpexV278RememberFoundSite(site, airport, started)
 {
   if (AIController.GetTick() != started || OpexAirRecoveryOwnsAirport(site.anchor)) return;
-  if (C83_FIXES && ("c83SlotTown" in site) && site.c83SlotTown >= 0
-      && OpexAirSlotTownId(site.anchor) != site.c83SlotTown) return;
   local memo = OpexV278SiteMemo();
   if (AIController.GetTick() == started)
     memo.entries.rawset(OpexV278SiteKey(site, airport), true);

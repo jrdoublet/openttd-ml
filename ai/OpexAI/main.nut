@@ -146,14 +146,6 @@ class OpexAI extends AIController {
    * patron que _railExpansion : l'etat vit ici, il est repris en TETE de _runNextTask, et on
    * termine en remettant _railSearch = null. Le pathfinder lui-meme est dans state.pathfinder. */
   _railSearch = null;
-  _v233GoodsObservations = null;
-  _v233GoodsWork = null;
-  _v233Offers = null;
-  _v233Plans = null;
-  _v233PublishedProjects = null;
-  _v233PublishedGroups = null;
-  _v233NeedsPublish = false;
-  _v233Generation = null;
   /* V184 : etat des slots reinitialise au demarrage et au rechargement (une recherche). */
   _v184RailSlots = null;
   _v184SlotCursor = 0;
@@ -171,9 +163,6 @@ class OpexAI extends AIController {
   /* C80 étape 2 : table des paires en retrait temporaire (cooldown), indexée par pairKey.
    * Transitoire / reconstructible : initialisée à {}, jamais persistée dans Save(). */
   _railStockCooldown = null;
-  /* V294h : recherches rail differees au reliquat et traces prets par paire. Transitoires. */
-  _v294Deferred = null;
-  _v294Ready = null;
   /* C121 preparation rail de l'annee AIR : liste de candidats et mois de generation.
    * Non sauvegardes. Reconstructibles au prochain passage projects si le reglage est arme.
    * MinAirCap : -1 = aucun plan AIR vivant au dernier scan (fin de passe). */
@@ -297,7 +286,6 @@ class OpexAI extends AIController {
   _schedIdlePreProjects = null;
   _schedIdlePreBestLen = 0;
   _schedIdlePreHadAbandons = false;
-  _schedIdlePreC83Preempt = 0;
   _schedIdlePreC78Rebuild = null;
   _schedIdlePreDate = -1;
   _schedIdlePreTick = -1;
@@ -342,11 +330,6 @@ class OpexAI extends AIController {
   /* Dates C69/C75 lues dans la sauvegarde, restaurees par _reconcileAfterLoad(). */
   _reloadC69BuildDates = null;
   _reloadC75PassDates = null;
-  /* C83 preempt : lus dans la sauvegarde, appliques apres les reglages. */
-  _reloadC83PreemptTown = null;
-  _reloadC83PreemptStopped = null;
-  _reloadC83PreemptQueued = null;
-  _reloadC83PreemptRace = null;
   /* V250 : appliques par _reconcileAfterLoad seulement si le reglage est arme. */
   _reloadV250Targets = null;
   _reloadV250Freed = null;
@@ -377,16 +360,9 @@ class OpexAI extends AIController {
   _c76ModeConsumedRevision = null;
   _c76LastRegenQuarter = -1;
   _c76ForceReloadRegen = false;
-  /* C83.1 : cache reconstructible townId -> etat slot/possession Opex. Non
-   * serialise : apres Load, une ville deja menacee est simplement resondee.
-   * _c83SlotRace : date du dernier enqueue reussi (c83_fixes). Meme regime. */
+  /* C83.1 : cache reconstructible townId -> etat slot/possession Opex.
+   * Non serialise : apres Load, les villes sont resondees. */
   _c83SlotWatch = null;
-  _c83SlotRace = null;
-  /* c83_preempt_open : date de rearm par ville, ville deja demandee, et
-   * nombre d'enqueues de la passe. Non lus quand le reglage est a 0. */
-  _c83PreemptRace = null;
-  _c83PreemptQueued = -1;
-  _c83PreemptEnqueued = 0;
 
   constructor()
   {
@@ -409,10 +385,6 @@ class OpexAI extends AIController {
     this._c76LastRegenQuarter = -1;
     this._c76ForceReloadRegen = false;
     this._c83SlotWatch = {};
-    this._c83SlotRace = {};
-    this._c83PreemptRace = {};
-    this._c83PreemptQueued = -1;
-    this._c83PreemptEnqueued = 0;
     this._budget = OpexBudget();
     this._catalog = OpexCatalog();
     this._lines = [];
@@ -429,8 +401,6 @@ class OpexAI extends AIController {
     this._activeSubsidies = {};
     this._railReadyStock = {};
     this._railStockCooldown = {};
-    this._v294Deferred = [];
-    this._v294Ready = {};
     this._railStockLastFundedScore = 0.0;
     this._railStockLastFundedDate = -1;
     this._c121RailPrepCandidates = null;
@@ -506,14 +476,6 @@ class OpexAI extends AIController {
 
   function Start();
   function _tooClose(candidate);
-  function _v233GoodsStep();
-  function _v233WorldRevision();
-  function _v233GraftStep();
-  function _v233CandidateLive(candidate);
-  function _v233Publish();
-  function _v233StorePlan(candidate, plan);
-  function _v233PlanStep();
-  function _v233ForgetPlan(candidate, reason);
   function _tryAttachSharedDest(candidate);
   function _tryBuildProjects(year);
   function _ensureSelection();
@@ -684,7 +646,6 @@ require("events.nut");
 require("event_handlers.nut");
 require("ledgers.nut");
 require("lines.nut");
-require("goods_v233.nut");
 require("orchestrator.nut");
 require("po01c_generators.nut");
 require("po01c_regen.nut");
@@ -708,7 +669,6 @@ require("task_v249.nut");
 require("task_v252.nut");
 require("task_v257.nut");
 require("task_v284.nut");
-require("task_v294h.nut");
 require("task_v250.nut");
 require("task_v259.nut");
 require("probe_v307.nut");
@@ -883,7 +843,6 @@ function OpexAI::Start()
     }
     local spAstar = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.astar_v89") : null;
     this._advanceRailSearchThroughput();
-    if (V294H_RAIL_DEFER > 0) OpexV294hAdvance(this);
     if (spAstar != null) OpexSpanEnd(spAstar);
     if (C67_SLACK_HOOK) {
       local spC67 = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.c67") : null;

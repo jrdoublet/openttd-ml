@@ -2,7 +2,7 @@
  * conservent le pipeline historique. Aucun etat n'est ajoute a Save(). */
 function OpexV278LazyEnabled(ctx)
 {
-  return ctx.sliced && ctx.targetTownId < 0 && !("c83Repair" in ctx.resumeState);
+  return ctx.sliced && ctx.targetTownId < 0;
 }
 
 /* Copie superficielle explicite : pas de closure capturant des locales. */
@@ -183,7 +183,6 @@ function OpexV278ExtendSites(ctx, comboIndex, combo, airport, plane, lazy)
       ? OpexSpanBegin("air.sites") : null;
   local ok = OpexAirPlansFindSites(work, comboIndex, combo, airport, plane, false);
   if (mark != null) OpexSpanEnd(mark);
-  if ("v133Skip" in work) ctx.v133Skip <- work.v133Skip;
   ctx.bestPlan = work.bestPlan;
   ctx.stationLimitedTowns = work.stationLimitedTowns;
   ctx.perfOpsSites = work.perfOpsSites;
@@ -271,7 +270,6 @@ function OpexV278LazyPairs(ctx, comboIndex, combo, airport, plane, minDist)
     /* Une seule paire atomique, comme la garantie de progres historique.
      * Pas de copie de l'economie C121 ni de ses filtres d'admission. */
     OpexAirPlansNewPairs(work, comboIndex, combo, airport, plane, minDist, false);
-    if ("v133Skip" in work) ctx.v133Skip <- work.v133Skip;
     ctx.bestPlan = work.bestPlan;
     ctx.perfOpsSites = work.perfOpsSites;
     ctx.perfOpsEval = work.perfOpsEval;

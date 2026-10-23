@@ -213,7 +213,7 @@ function OpexPO01CFreightCandidates(catalog, lines, out, stats, abandonedPairs =
         if (!v179Keep && (ss != null || sd != null)) {
           /* Paires deja rejetees. A 0 le drapeau est faux : aucun appel, pairsOriginServed. */
           local attached = null;
-          if (V264_CONVERGENT_FREIGHT && ss == null && sd != null) {
+          if (ss == null && sd != null) {
             attached = OpexV264ConvergentService(lines, sd, cargo, source.tile);
           }
           if (attached == null) {
@@ -1664,7 +1664,6 @@ function OpexPO01CAirPlans(po01dResult, catalog, lines = null, maxCapital = 0, p
     perfSitesFound = 0,
     sites = [],
     hubs = [],
-    c83RepairCombo = false,
     air0310HubRestored = false,
     air0310HubSkip = null,
   };
@@ -1778,10 +1777,6 @@ function OpexPO01CAirPlansStepFindSites(po01dResult, ctx, comboIndex, combo, air
 
 function OpexPO01CAirPlansFindSites(po01dResult, ctx, comboIndex, combo, airport, plane, resumingCombo)
 {
-  if (ctx.sliced && ("c83Repair" in ctx.resumeState)) {
-    local repaired = OpexC83RepairFindSites(ctx, comboIndex, combo, airport, plane);
-    if (repaired.handled) { po01dResult.value = repaired.done; return; }
-  }
   local sliced = ctx.sliced;
   local resumeState = ctx.resumeState;
   local opsBudget = ctx.opsBudget;
@@ -1817,17 +1812,6 @@ function OpexPO01CAirPlansFindSites(po01dResult, ctx, comboIndex, combo, airport
     local scanStart = sliced ? resumeState.scanIndex : 0;
     local scanEnd = limit;
     if (V278_AIR_LAZY_SITES && ("v278ScanEnd" in ctx)) scanEnd = ctx.v278ScanEnd;
-    if (C83_FIXES && targetTownId >= 0) {
-      scanEnd = scanStart;
-      for (local c83Scan = scanStart; c83Scan < limit; c83Scan++) {
-    yield null; // PO01C_CHECKPOINT
-
-        if (towns[c83Scan].id == targetTownId) {
-          scanEnd = c83Scan + 1;
-          break;
-        }
-      }
-    }
     local testedBefore = probes.tested;
     local cheapBefore = ("cheapSkip" in probes) ? probes.cheapSkip : 0;
     local foundBefore = scanSites.len();
@@ -1837,11 +1821,8 @@ function OpexPO01CAirPlansFindSites(po01dResult, ctx, comboIndex, combo, airport
     yield null; // PO01C_CHECKPOINT
 
       probes.townsLeft = limit - i;
-      if (C83_FIXES && targetTownId >= 0) probes.townsLeft = scanEnd - i;
       if (C69_BOTTLENECK_PROBE) OpexC73RecordExamined("air", 1);
-      if (V133_AIR_BUILD_RETRY && OpexV133AirTownSkip(ctx, towns[i].id)) {
-        /* V133 : ville en quarantaine, aucun site newpair/hubsite. Le curseur de tranche suit. */
-      } else if (OPEX_LEVEL_LIMITS && !OpexTownAirportAllowedByLevel(towns[i], null, -1, ctx.catalog)) {
+      if (OPEX_LEVEL_LIMITS && !OpexTownAirportAllowedByLevel(towns[i], null, -1, ctx.catalog)) {
         /* Levier A : bridage de difficulte (niveaux 0 et 1). Niveaux 2 et 3 : zero opcode. */
       } else if (towns[i].id in stationLimitedTowns) {
         if (C69_BOTTLENECK_PROBE) OpexC73RecordRejection("air", "town_station_limit", 1);
@@ -1853,12 +1834,7 @@ function OpexPO01CAirPlansFindSites(po01dResult, ctx, comboIndex, combo, airport
         local isServed = OpexAirTownServed(towns[i], lines, servedDiag);
         local c83OwnSecondSlot = isServed && (towns[i].id in c83TopTownIds)
             && OpexAirC83SecondSlotOpen(towns[i]);
-        local v134State = (V134_AIR_P2P_SATURATED_HUB && isServed)
-            ? OpexAirV134SaturatedHubState(towns[i], lines, ctx.hubIndex)
-            : { eligible = false, hubRoutes = 0 };
-        local v134Eligible = v134State.eligible;
-        local skipServed = false;
-        if (isServed && !c83OwnSecondSlot) skipServed = !v134Eligible;
+        local skipServed = isServed && !c83OwnSecondSlot;
         if (skipServed) {
           if (C69_BOTTLENECK_PROBE) OpexC73RecordRejection("air", "origin_served", 1);
           if (c78Gen) OpexC78Log("C78_AIRTOWN", "year=" + c78Year + " combo=" + airport.type + ":" + plane.id + " town=" + towns[i].id + " rank=" + i + " outcome=origin_served");
@@ -1869,12 +1845,6 @@ function OpexPO01CAirPlansFindSites(po01dResult, ctx, comboIndex, combo, airport
         } else {
           local c83RequiredSlotTown = (targetTownId >= 0 && towns[i].id == targetTownId)
               ? targetTownId : -1;
-          if (C83_FIXES && c83RequiredSlotTown < 0 && c83OwnSecondSlot) {
-            c83RequiredSlotTown = towns[i].id;
-          }
-          if (c83RequiredSlotTown < 0 && v134Eligible) {
-            c83RequiredSlotTown = towns[i].id;
-          }
           if (c78Gen && ("c78NoSite" in probes)) probes.c78NoSite = null;
           local v278Started = V278_AIR_LAZY_SITES ? AIController.GetTick() : -1;
           local po01dBox = { value = null };
@@ -1886,11 +1856,6 @@ function OpexPO01CAirPlansFindSites(po01dResult, ctx, comboIndex, combo, airport
     local site = po01dBox.value;
           if (site != null) {
             if (c83OwnSecondSlot) site.c83OwnSecondSlot <- true;
-            if (v134Eligible) {
-              site.v134SecondSlot <- true;
-              site.v134HubRoutes <- v134State.hubRoutes;
-            }
-            if (C83_FIXES && c83RequiredSlotTown >= 0) site.c83SlotTown <- c83RequiredSlotTown;
             if (V278_AIR_LAZY_SITES) OpexV278RememberFoundSite(site, airport, v278Started);
             scanSites.append(site);
             if (c78Gen) {
@@ -2069,7 +2034,7 @@ function OpexPO01CAirPlansDiscoverHubs(po01dResult, ctx, combo, airport, plane)
   local _calcDeltaOps = OpexAirCalcDeltaOps;
 
   if (lines != null) {
-    if (!ctx.c83RepairCombo && sites.len() < AIR_HUB_NEW_SITE_POOL) {
+    if (sites.len() < AIR_HUB_NEW_SITE_POOL) {
       local hubProbes = {
         left = AIR_MAX_SITE_PROBES, townsLeft = limit, tested = 0, cheapSkip = 0,
         stationLimitedTowns = stationLimitedTowns
@@ -2077,23 +2042,10 @@ function OpexPO01CAirPlansDiscoverHubs(po01dResult, ctx, combo, airport, plane)
       local tHubSites0 = AIController.GetTick();
       local lHubSites0 = AIController.GetOpsTillSuspend();
       local hubScanEnd = limit;
-      if (C83_FIXES && targetTownId >= 0) {
-        hubScanEnd = 0;
-        for (local c83Scan = 0; c83Scan < limit; c83Scan++) {
-    yield null; // PO01C_CHECKPOINT
-
-          if (towns[c83Scan].id == targetTownId) {
-            hubScanEnd = c83Scan + 1;
-            break;
-          }
-        }
-      }
       for (local i = 0; i < hubScanEnd && sites.len() < AIR_HUB_NEW_SITE_POOL; i++) {
     yield null; // PO01C_CHECKPOINT
 
         hubProbes.townsLeft = limit - i;
-        if (C83_FIXES && targetTownId >= 0) hubProbes.townsLeft = hubScanEnd - i;
-        if (V133_AIR_BUILD_RETRY && OpexV133AirTownSkip(ctx, towns[i].id)) continue;
         if (OPEX_LEVEL_LIMITS && !OpexTownAirportAllowedByLevel(towns[i], null, -1, ctx.catalog)) continue;
         if (towns[i].id in stationLimitedTowns) {
           continue;
@@ -2107,9 +2059,6 @@ function OpexPO01CAirPlansDiscoverHubs(po01dResult, ctx, combo, airport, plane)
         if (combo.kind == "small" && towns[i].pop >= 2500) continue;
         local c83RequiredSlotTown = (targetTownId >= 0 && towns[i].id == targetTownId)
             ? targetTownId : -1;
-        if (C83_FIXES && c83RequiredSlotTown < 0 && c83OwnSecondSlot) {
-          c83RequiredSlotTown = towns[i].id;
-        }
         local po01dBox = { value = null };
     local po01dChild = OpexPO01CAirFindSite(po01dBox, towns[i], airport, hubProbes, c83RequiredSlotTown);
     while (po01dChild.getstatus() != "dead") {
@@ -2121,7 +2070,6 @@ function OpexPO01CAirPlansDiscoverHubs(po01dResult, ctx, combo, airport, plane)
           if (OpexAC04ExtraSiteAlreadyKnown(sites, extraSite))
             continue;
           if (c83OwnSecondSlot) extraSite.c83OwnSecondSlot <- true;
-          if (C83_FIXES && c83RequiredSlotTown >= 0) extraSite.c83SlotTown <- c83RequiredSlotTown;
           /* v93=1 seulement si le scan principal n'a pas deja retenu cette ville. */
           if (towns[i].pop < 600 && ("c78Gen" in ctx) && ctx.c78Gen) {
             local v93Already = false;
@@ -2267,7 +2215,7 @@ function OpexPO01CAirPlansDiscoverHubs(po01dResult, ctx, combo, airport, plane)
   ctx.hubs = hubs;
 }
 
-function OpexPO01CMakePaxCandidate(po01dResult, po01fSitableCache, po01fContext, catalog, kind, cargo, srcTile, dstTile, monthly, originServed, stats, isTransformer = false, profile = null, cruiseCache = null, secondary = null, joinContext = null)
+function OpexPO01CMakePaxCandidate(po01dResult, po01fSitableCache, po01fContext, catalog, kind, cargo, srcTile, dstTile, monthly, originServed, stats, isTransformer = false, profile = null, cruiseCache = null, secondary = null)
 {
   if (monthly <= 0) {
     stats.noMonthly++;
@@ -2280,23 +2228,12 @@ function OpexPO01CMakePaxCandidate(po01dResult, po01fSitableCache, po01fContext,
       stats.distanceShort++;
       { po01dResult.value = null; return; }
     }
-    /* V177 : en rail seul, les lignes pax courtes rendent 0,19 du capital contre 0,69 pour le
-     * fret long (banc railseul_origin_reuse_10x3_20261014) ; 0 = inerte. */
-    if (V177_RAIL_PAX_MIN_DIST > 0 && distance < V177_RAIL_PAX_MIN_DIST) {
-      stats.distanceShort++;
-      { po01dResult.value = null; return; }
-    }
     if (distance > bounds.railMax) {
       stats.distanceLong++;
       { po01dResult.value = null; return; }
     }
   } else if (distance > ((V269_RAIL_LATE_RELAX > 0 && V269_RELAXED && V269_RAIL_MAX_DIST > bounds.railMax) ? V269_RAIL_MAX_DIST : bounds.railMax)) {
     stats.distanceLong++;
-    { po01dResult.value = null; return; }
-  } else if (V182_RAIL_FREIGHT_MIN_DIST > 0 && distance < V182_RAIL_FREIGHT_MIN_DIST
-             && !(V195_V182_YEARS > 0 && AIDate.GetYear(AIDate.GetCurrentDate()) >= OPEX_START_YEAR + V195_V182_YEARS)) {
-    /* V182 : fret long 47 k/an par ligne contre 30 k pour le court (v181_railseul, 1972). */
-    stats.distanceShort++;
     { po01dResult.value = null; return; }
   }
   local iterations = OpexRailIterations(distance);
@@ -2323,29 +2260,25 @@ function OpexPO01CMakePaxCandidate(po01dResult, po01fSitableCache, po01fContext,
    * ~5 sur 256x256 et croit avec la taille de carte, donc le gain est le plus grand la ou il
    * sert le plus (C46, cartes 1024x1024). */
   local sitable = true;
-  if (V233_GOODS_GRAFT && joinContext != null) {
-    sitable = OpexV233JoinContextValid(joinContext, cargo, srcTile, catalog.railCoverage);
+  local sitableKey = srcTile * 64 + cargo;
+  if (sitableKey in po01fSitableCache) {
+    sitable = po01fSitableCache[sitableKey];
   } else {
-    local sitableKey = srcTile * 64 + cargo;
-    if (sitableKey in po01fSitableCache) {
-      sitable = po01fSitableCache[sitableKey];
-    } else {
-      local sitableMark = profile != null ? OpexOpsMeasureBegin() : null;
-      local po01dBox = { value = null };
+    local sitableMark = profile != null ? OpexOpsMeasureBegin() : null;
+    local po01dBox = { value = null };
     local po01dChild = OpexPO01CRailOriginSitable(po01dBox, srcTile, cargo, catalog.railCoverage, true);
     while (po01dChild.getstatus() != "dead") {
       resume po01dChild;
       if (po01dChild.getstatus() != "dead") yield null; // PO01C_CHECKPOINT
     }
     sitable = po01dBox.value;
-      if (profile != null) {
-        profile.paxSitableOps += OpexOpsMeasureEnd(sitableMark);
-        profile.paxSitableCalls++;
-      }
-      po01fSitableCache[sitableKey] <- sitable;
+    if (profile != null) {
+      profile.paxSitableOps += OpexOpsMeasureEnd(sitableMark);
+      profile.paxSitableCalls++;
+    }
+    po01fSitableCache[sitableKey] <- sitable;
       if (DECISION_LOG && po01fContext.diagnostics != null)
         po01fContext.diagnostics.sitableFills++;
-    }
   }
   if (!sitable) {
     stats.unsitable++;
