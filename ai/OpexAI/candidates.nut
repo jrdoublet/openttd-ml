@@ -346,6 +346,59 @@ function OpexComputeAirMaxDistance(bestPlane, ticksPerDay, airportType, paxCargo
   return rentable;
 }
 
+/* DIST-BORNES-1 : diagnostic seulement, jamais une frontiere de selection.
+ * Demande synthetique commune : formule population AIR, villes 2000 + 1000.
+ * ROI signe en permille sur capital physique (sans immobilisation de transit).
+ * AIR utilise le modele historique sans sites, pas le modele de hubs C121. */
+function OpexLogEpochBoundsCost(catalog)
+{
+  if (!DECISION_LOG) return;
+  if (catalog == null || catalog.paxCargo < 0 || catalog.airport == null || catalog.plane == null) {
+    OpexDecide("EPOCH_BOUNDS_COST", "status=unavailable crossover=-1 points=0");
+    return;
+  }
+  local monthly = ((2000 + 1000) * TOWN_CATCHMENT_SHARE_PCT) / 100;
+  if (monthly < 10) monthly = 10;
+  local maintenance = AIGameSettings.GetValue("economy.infrastructure_maintenance") != 0;
+  local trackCost = (catalog.costTrackPerTile * RAIL_TERRAIN_FACTOR) / 100;
+  local cruiseCache = {}; // Prive a cette sonde : aucun cache decisionnel modifie.
+  local crossover = -1;
+  local points = 0;
+  for (local d = 20; d <= 400; d += 20) {
+    local rail = OpexLineEconomics(catalog, catalog.paxCargo, d, monthly, "pax",
+        0, null, null, cruiseCache);
+    local air = OpexAirEconomics(catalog, catalog.airport, catalog.plane, d, monthly,
+        maintenance, 0, 2, 0, 1);
+    if (rail == null || air == null) {
+      OpexDecide("EPOCH_BOUNDS_COST", "d=" + d + " status=unavailable roi_rail=NA roi_air=NA");
+      continue;
+    }
+    /* Reconstituer le capital physique pour inclure toujours le depot, meme
+     * si RAIL_DEPOT_COST=0, et eviter le recalage de capital V275. Le profit
+     * reste celui de l'estimateur, avec ses reglages/amortissements courants. */
+    local capitalRail = d * trackCost + 2 * rail.platformLength * catalog.costStation
+        + catalog.costRailDepot + rail.vehicleCost;
+    local capitalAir = air.capital;
+    if (capitalRail <= 0 || capitalAir <= 0) {
+      OpexDecide("EPOCH_BOUNDS_COST", "d=" + d + " status=invalid_capital roi_rail=NA roi_air=NA");
+      continue;
+    }
+    local roiRail = 1000.0 * rail.profitAnnual / capitalRail;
+    local roiAir = 1000.0 * air.profitAnnual / capitalAir;
+    if (crossover < 0 && roiAir >= roiRail) crossover = d;
+    points++;
+    OpexDecide("EPOCH_BOUNDS_COST", "d=" + d + " roi_rail=" + roiRail + " roi_air=" + roiAir
+        + " capital_rail=" + capitalRail + " capital_air=" + capitalAir
+        + " revenue_rail=" + rail.revenueAnnual + " revenue_air=" + air.revenueAnnual
+        + " profit_rail=" + rail.profitAnnual + " profit_air=" + air.profitAnnual
+        + " trains=" + rail.trains + " wagons=" + rail.wagons + " loco=" + rail.loco.id);
+  }
+  OpexDecide("EPOCH_BOUNDS_COST", "model=rail_pax_air_legacy pop_a=2000 pop_b=1000 monthly=" + monthly
+      + " airport=" + catalog.airport.type + " plane=" + catalog.plane.id
+      + " terrain_pct=" + RAIL_TERRAIN_FACTOR + " roi_unit=permille"
+      + " points=" + points + " crossover=" + crossover);
+}
+
 function OpexRefreshEpochBounds(catalog)
 {
   if (catalog == null) return;
@@ -441,6 +494,7 @@ function OpexRefreshEpochBounds(catalog)
                + " airMin=" + catalog.bounds.airMin
                + " vRail=" + vRail + " vAir=" + vAirEff.tointeger()
                + " tFixe=" + tFixe.tointeger() + " tpd=" + tpd.tointeger());
+    OpexLogEpochBoundsCost(catalog);
   }
 }
 
