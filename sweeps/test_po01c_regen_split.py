@@ -427,7 +427,6 @@ class PO01CContracts(unittest.TestCase):
             'air_sites.nut': '679b2912e9c71f708e6ad308ce187277f477f1751987405c74fb774998698fc4',
             'candidates.nut': '1f56d53670182f66b2c3d54360927e4be912ba65f4cdbffe1a04dff6dadd54ad',
             'catalog.nut': '4882c4c3de58c97882b2739432e62045a2e567b1ee980e5a2a56dedd34a17ba9',
-            'orchestrator.nut': '1600953e477a5db49827d2f277ed965f4442a56ca32710f3c15a209a1b563ace',
             'main.nut': '81f077c68e094a0a9a8d4a63e1600af0fce0cdd9b9b835077e3da386d3b36ece',
             'probes.nut': 'ef0a1228e758e648736c89b9252dc9568f6b6a834065343e805570aed47788dd',
             'settings.nut': '580b8d9fd4997e6ec84a6c08ad51e02d6227c1de0d6b2411580cfb6c4306076d',
@@ -436,6 +435,27 @@ class PO01CContracts(unittest.TestCase):
         for name, digest in expected.items():
             with self.subTest(name=name):
                 self.assertEqual(hashlib.sha256((AI / name).read_bytes()).hexdigest(), digest)
+
+        # PO03 ajoute exactement deux lignes dans _dispatchReactiveIntention.
+        # Conserver la preuve byte-a-byte de tout le reste de orchestrator.nut :
+        # seul ce fragment autorise est neutralise pour la comparaison SHA.
+        # Cela refuse les changements secondaires de ce fichier, contrairement
+        # a une rebaseline globale sur le nouveau SHA.
+        guard = (
+            b'    if (C77_INTENT_DEFER_SUBSIDY && PO01C_REGEN_SPLIT && '
+            b'(this._po01cJob != null || this._po01cPending))\n'
+            b'      blocked = true;\n'
+        )
+        orchestrator = (AI / 'orchestrator.nut').read_bytes()
+        self.assertEqual(orchestrator.count(guard), 1, 'garde PO03 exactement une fois')
+        dispatch = function(source('orchestrator.nut'), 'OpexAI::_dispatchReactiveIntention')
+        self.assertIn(guard.decode('ascii'), dispatch)
+        self.assertLess(dispatch.index(guard.decode('ascii')),
+                        dispatch.index('if (C77_INTENT_DEFER_SUBSIDY && ("subsidyId" in deferPayload)'))
+        self.assertEqual(
+            hashlib.sha256(orchestrator.replace(guard, b'', 1)).hexdigest(),
+            '1600953e477a5db49827d2f277ed965f4442a56ca32710f3c15a209a1b563ace'
+        )
 
     def test_po01d_inner_loops_checkpoint_before_rejections(self):
         targets = {
