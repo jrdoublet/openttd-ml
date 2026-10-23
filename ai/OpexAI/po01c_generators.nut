@@ -1,15 +1,25 @@
 /* Mechanical copies: python3 sweeps/po01c_generate.py.
  * Checkpoints retain VM locals; no captured closures. Never saved. */
 
-function OpexPO01CPaxCandidates(catalog, lines, out, stats, abandonedPairs = null, profile = null, candidateProfile = null, cruiseCache = null, paxBand = PAX_BAND_ALL, targetKind = null, targetId = -1)
+function OpexPO01CPaxCandidates(catalog, lines, out, stats, abandonedPairs = null, profile = null, candidateProfile = null, cruiseCache = null, paxBand = PAX_BAND_ALL, targetKind = null, targetId = -1, po01gDiagnostics = null)
 {
+  local po01fSitableCache = clone ::OpexSitableCache;
+  local po01fOriginal = V216_COVER;
+  // Private for the entire producer: intervening consumers cannot seed later pairs.
+  // One cache epoch per producer, not per pair: suspension must not invalidate it.
+  local po01fContext = { used = false, now = AIDate.GetCurrentDate(),
+    diagnostics = po01gDiagnostics, cover = {
+    ownMonth = po01fOriginal.ownMonth, advQuarter = po01fOriginal.advQuarter,
+    own = po01fOriginal.own, adv = clone po01fOriginal.adv,
+    cache = clone po01fOriginal.cache } };
+  if (DECISION_LOG) OpexPO01CWhere("OpexPO01CPaxCandidates", "before_first_yield", -1);
   local cargo = catalog.paxCargo;
-  if (cargo < 0) return;
-  if (catalog.locoByCargoWagons != null && !(cargo in catalog.locoByCargoWagons)) return;
+  if (cargo < 0) { if (DECISION_LOG) OpexPO01CWhere("OpexPO01CPaxCandidates", "after_last_yield", PO01C_WHERE.idx); return; }
+  if (catalog.locoByCargoWagons != null && !(cargo in catalog.locoByCargoWagons)) { if (DECISION_LOG) OpexPO01CWhere("OpexPO01CPaxCandidates", "after_last_yield", PO01C_WHERE.idx); return; }
   /* V275 bit 4 : l'aerien d'abord. Les premieres annees, la caisse borne et un avion rend
    * plus par livre ; le rail voyageurs attend la 3e annee. Inerte en rail seul. */
   if ((V275_RAIL_PAX_MM & 4) && MODE_AIR
-      && OPEX_START_YEAR >= 0 && AIDate.GetYear(AIDate.GetCurrentDate()) < OPEX_START_YEAR + 2) return;
+      && OPEX_START_YEAR >= 0 && AIDate.GetYear(AIDate.GetCurrentDate()) < OPEX_START_YEAR + 2) { if (DECISION_LOG) OpexPO01CWhere("OpexPO01CPaxCandidates", "after_last_yield", PO01C_WHERE.idx); return; }
   local towns = catalog.towns;
   local n = towns.len();
   local produced = [];
@@ -19,8 +29,11 @@ function OpexPO01CPaxCandidates(catalog, lines, out, stats, abandonedPairs = nul
   local airTowns = null;
   if (V275_RAIL_PAX_MM & 1) {
     airTowns = {};
-    foreach (line in lines) {
-    yield null; // PO01C_CHECKPOINT
+    foreach (po01eLineIndex, line in lines) {
+    if (OpexOpsMeasureEnd(PO01C_WORK_MARK) >= PO01C_WORK_OPS) {
+      yield null; // PO01C_CHECKPOINT
+    if (DECISION_LOG) OpexPO01CWhere("OpexPO01CPaxCandidates", "rail_pax:air_lines", po01eLineIndex);
+    }
       if (!("mode" in line) || line.mode != "air") continue;
       if (("scrapping" in line) && line.scrapping) continue;
       airTowns.rawset(line.originA, true);
@@ -29,7 +42,10 @@ function OpexPO01CPaxCandidates(catalog, lines, out, stats, abandonedPairs = nul
   }
   local preparationMark = profile != null ? OpexOpsMeasureBegin() : null;
   for (local i = 0; i < n; i++) {
-    yield null; // PO01C_CHECKPOINT
+    if (OpexOpsMeasureEnd(PO01C_WORK_MARK) >= PO01C_WORK_OPS) {
+      yield null; // PO01C_CHECKPOINT
+    if (DECISION_LOG) OpexPO01CWhere("OpexPO01CPaxCandidates", "rail_pax:production", i);
+    }
     local p = AITown.GetLastMonthProduction(towns[i].id, cargo);
     if (p <= 0 && towns[i].pop > 0) p = (towns[i].pop * 22) / 100;
     produced.append(p);
@@ -42,7 +58,10 @@ function OpexPO01CPaxCandidates(catalog, lines, out, stats, abandonedPairs = nul
   if (hasMail) {
     mailProduced = [];
     for (local i = 0; i < n; i++) {
-    yield null; // PO01C_CHECKPOINT
+    if (OpexOpsMeasureEnd(PO01C_WORK_MARK) >= PO01C_WORK_OPS) {
+      yield null; // PO01C_CHECKPOINT
+    if (DECISION_LOG) OpexPO01CWhere("OpexPO01CPaxCandidates", "rail_pax:mail", i);
+    }
       local mp = AITown.GetLastMonthProduction(towns[i].id, catalog.mailCargo);
       if (mp < 0) mp = 0;
       mailProduced.append(mp);
@@ -50,16 +69,25 @@ function OpexPO01CPaxCandidates(catalog, lines, out, stats, abandonedPairs = nul
   }
   if (profile != null) profile.paxPreparationOps += OpexOpsMeasureEnd(preparationMark);
   local pairTotalMark = profile != null ? OpexOpsMeasureBegin() : null;
+  if (DECISION_LOG) OpexPO01CWhere("OpexPO01CPaxCandidates", "rail_pax:OpexCatalogBounds", PO01C_WHERE.idx);
   local bounds = OpexCatalogBounds(catalog);
   local cellSize = bounds.railMax;
   if (cellSize < 1) cellSize = 1;
   local grid = OpexSpatialGrid();
+  if (DECISION_LOG) OpexPO01CWhere("OpexPO01CPaxCandidates", "rail_pax:grid.Build", PO01C_WHERE.idx);
   grid.Build(towns, cellSize);
   for (local a = 0; a < n; a++) {
-    yield null; // PO01C_CHECKPOINT
+    if (OpexOpsMeasureEnd(PO01C_WORK_MARK) >= PO01C_WORK_OPS) {
+      yield null; // PO01C_CHECKPOINT
+    if (DECISION_LOG) OpexPO01CWhere("OpexPO01CPaxCandidates", "rail_pax:neighbors", a);
+    }
+    if (DECISION_LOG) OpexPO01CWhere("OpexPO01CPaxCandidates", "rail_pax:grid.GetCandidatesFor", PO01C_WHERE.idx);
     local neighbors = grid.GetCandidatesFor(a);
     foreach (b in neighbors) {
-    yield null; // PO01C_CHECKPOINT
+    if (OpexOpsMeasureEnd(PO01C_WORK_MARK) >= PO01C_WORK_OPS) {
+      yield null; // PO01C_CHECKPOINT
+    if (DECISION_LOG) OpexPO01CWhere("OpexPO01CPaxCandidates", "rail_pax:pair", b);
+    }
       if (targetKind == "town" && targetId >= 0
           && towns[a].id != targetId && towns[b].id != targetId) continue;
       local pairDistance = AIMap.DistanceManhattan(towns[a].tile, towns[b].tile);
@@ -104,9 +132,14 @@ function OpexPO01CPaxCandidates(catalog, lines, out, stats, abandonedPairs = nul
         secondary = { cargo = catalog.mailCargo, monthly = mailMonthly };
       }
       local candidateMark = profile != null ? OpexOpsMeasureBegin() : null;
-      local candidate = OpexMakeCandidate(catalog, "pax", cargo, towns[a].tile, towns[b].tile,
-                                          monthly, false, stats, false, candidateProfile, cruiseCache,
-                                          secondary);
+      if (DECISION_LOG) OpexPO01CWhere("OpexPO01CPaxCandidates", "rail_pax:pair_candidate", PO01C_WHERE.idx);
+      local po01dBox = { value = null };
+    local po01dChild = OpexPO01CMakePaxCandidate(po01dBox, po01fSitableCache, po01fContext, catalog, "pax", cargo, towns[a].tile, towns[b].tile, monthly, false, stats, false, candidateProfile, cruiseCache, secondary);
+    while (po01dChild.getstatus() != "dead") {
+      resume po01dChild;
+      if (po01dChild.getstatus() != "dead") yield null; // PO01C_CHECKPOINT
+    }
+    local candidate = po01dBox.value;
       if (profile != null) {
         profile.paxCandidateOps += OpexOpsMeasureEnd(candidateMark);
         profile.paxCandidateCalls++;
@@ -119,10 +152,14 @@ function OpexPO01CPaxCandidates(catalog, lines, out, stats, abandonedPairs = nul
     }
   }
   if (profile != null) profile.paxPairTotalOps += OpexOpsMeasureEnd(pairTotalMark);
+  if (DECISION_LOG) OpexPO01CWhere("OpexPO01CPaxCandidates", "after_last_yield", PO01C_WHERE.idx);
+  ::OpexSitableCache = po01fSitableCache;
+  if (po01fContext.used) V216_COVER = po01fContext.cover;
 }
 
 function OpexPO01CFreightCandidates(catalog, lines, out, stats, abandonedPairs = null, profile = null, cruiseCache = null, freightCargo = null, targetKind = null, targetId = -1)
 {
+  if (DECISION_LOG) OpexPO01CWhere("OpexPO01CFreightCandidates", "before_first_yield", -1);
   /* C41.44 : les lignes sont immuables pendant une generation ; une ville peut donc reutiliser
    * exactement son resultat OpexOriginService, y compris null et l'etat blocked. */
   local townServiceCache = {};
@@ -131,6 +168,7 @@ function OpexPO01CFreightCandidates(catalog, lines, out, stats, abandonedPairs =
   local served = [];
   for (local i = 0; i < industries.len(); i++) {
     yield null; // PO01C_CHECKPOINT
+    if (DECISION_LOG) OpexPO01CWhere("OpexPO01CFreightCandidates", "rail_freight:service", i);
     local service = OpexOriginService(lines, industries[i].tile);
     served.append(service);
     if (service != null) stats.industriesServed++; else stats.industriesUnserved++;
@@ -138,6 +176,7 @@ function OpexPO01CFreightCandidates(catalog, lines, out, stats, abandonedPairs =
   if (profile != null) profile.freightPreparationOps += OpexOpsMeasureEnd(preparationMark);
   foreach (cargo, sources in catalog.producers) {
     yield null; // PO01C_CHECKPOINT
+    if (DECISION_LOG) OpexPO01CWhere("OpexPO01CFreightCandidates", "rail_freight:cargo", cargo);
     if (freightCargo != null && cargo != freightCargo) continue;
     if (catalog.locoByCargoWagons != null && !(cargo in catalog.locoByCargoWagons)) continue;
     local hasIndustrySinks = (cargo in catalog.acceptors);
@@ -147,6 +186,7 @@ function OpexPO01CFreightCandidates(catalog, lines, out, stats, abandonedPairs =
 
     foreach (si in sources) {
     yield null; // PO01C_CHECKPOINT
+    if (DECISION_LOG) OpexPO01CWhere("OpexPO01CFreightCandidates", "rail_freight:source", si);
       local source = industries[si];
       if (OPEX_LEVEL_LIMITS && OpexIndustryPrimaryRivalServed(source.id, source.tile)) continue;
       local monthly = AIIndustry.GetLastMonthProduction(source.id, cargo);
@@ -155,6 +195,7 @@ function OpexPO01CFreightCandidates(catalog, lines, out, stats, abandonedPairs =
       local industryMark = profile != null ? OpexOpsMeasureBegin() : null;
       for (local k = 0; k < sinks.len(); k++) {
     yield null; // PO01C_CHECKPOINT
+    if (DECISION_LOG) OpexPO01CWhere("OpexPO01CFreightCandidates", "rail_freight:industry_pair", k);
         local di = sinks[k];
         if (di == si) continue;
         if (targetKind == "town") continue;
@@ -179,6 +220,7 @@ function OpexPO01CFreightCandidates(catalog, lines, out, stats, abandonedPairs =
             stats.pairsOriginServed++;
             continue;
           }
+          if (DECISION_LOG) OpexPO01CWhere("OpexPO01CFreightCandidates", "rail_freight:OpexV264EmitConvergent", PO01C_WHERE.idx);
           local kept = OpexV264EmitConvergent(catalog, stats, profile, cruiseCache, cargo,
                                               source, industries[di], monthly, others2, attached);
           if (kept != null) out.append(kept);
@@ -187,6 +229,7 @@ function OpexPO01CFreightCandidates(catalog, lines, out, stats, abandonedPairs =
         local isTransformer = ("isTransformer" in industries[di]) && industries[di].isTransformer;
         local candidateMark = profile != null ? OpexOpsMeasureBegin() : null;
         local secondary = null;
+        if (DECISION_LOG) OpexPO01CWhere("OpexPO01CFreightCandidates", "rail_freight:pair_candidate", PO01C_WHERE.idx);
         local candidate = OpexMakeCandidate(catalog, "freight", cargo, source.tile,
                                             industries[di].tile, monthly, false, stats, isTransformer, profile, cruiseCache,
                                             secondary);
@@ -207,6 +250,7 @@ function OpexPO01CFreightCandidates(catalog, lines, out, stats, abandonedPairs =
         local townSinks = catalog.townAcceptors[cargo];
         for (local k = 0; k < townSinks.len(); k++) {
     yield null; // PO01C_CHECKPOINT
+    if (DECISION_LOG) OpexPO01CWhere("OpexPO01CFreightCandidates", "rail_freight:town_pair", k);
           local town = townSinks[k];
           if (targetKind == "industry" && targetId >= 0 && source.id != targetId) continue;
           if (targetKind == "town" && targetId >= 0 && town.id != targetId) continue;
@@ -245,6 +289,7 @@ function OpexPO01CFreightCandidates(catalog, lines, out, stats, abandonedPairs =
           }
           if (OPEX_ECONOMY_OPCODE_COMPAT_FALSE) {}
           local candidateMark = profile != null ? OpexOpsMeasureBegin() : null;
+          if (DECISION_LOG) OpexPO01CWhere("OpexPO01CFreightCandidates", "rail_freight:pair_candidate", PO01C_WHERE.idx);
           local candidate = OpexMakeCandidate(catalog, "freight", cargo, source.tile,
                                               town.tile, townMonthly, false, stats, false, profile, cruiseCache);
           if (profile != null) {
@@ -261,23 +306,28 @@ function OpexPO01CFreightCandidates(catalog, lines, out, stats, abandonedPairs =
       }
     }
   }
+  if (DECISION_LOG) OpexPO01CWhere("OpexPO01CFreightCandidates", "after_last_yield", PO01C_WHERE.idx);
 }
 
 function OpexPO01CRoadFreightCandidates(catalog, lines, out, stats, abandonedPairs = null, profile = null, freightCargo = null, targetKind = null, targetId = -1)
 {
+  if (DECISION_LOG) OpexPO01CWhere("OpexPO01CRoadFreightCandidates", "before_first_yield", -1);
   local preparationMark = profile != null ? OpexOpsMeasureBegin() : null;
   local industries = catalog.industries;
   local towns = catalog.towns;
+  if (DECISION_LOG) OpexPO01CWhere("OpexPO01CRoadFreightCandidates", "road_freight:OpexRoadFreightServedIndex", PO01C_WHERE.idx);
   local servedIndex = OpexRoadFreightServedIndex(lines);
   local servedIndustry = [];
   for (local i = 0; i < industries.len(); i++) {
     yield null; // PO01C_CHECKPOINT
+    if (DECISION_LOG) OpexPO01CWhere("OpexPO01CRoadFreightCandidates", "road_freight:industry_service", i);
     servedIndustry.append(servedIndex != null
         ? (industries[i].tile in servedIndex) : OpexOriginServed(lines, industries[i].tile, true));
   }
   local servedTown = [];
   for (local i = 0; i < towns.len(); i++) {
     yield null; // PO01C_CHECKPOINT
+    if (DECISION_LOG) OpexPO01CWhere("OpexPO01CRoadFreightCandidates", "road_freight:town_service", i);
     servedTown.append(servedIndex != null
         ? (towns[i].tile in servedIndex) : OpexOriginServed(lines, towns[i].tile, true));
   }
@@ -293,6 +343,7 @@ function OpexPO01CRoadFreightCandidates(catalog, lines, out, stats, abandonedPai
 
   foreach (cargo, sources in catalog.producers) {
     yield null; // PO01C_CHECKPOINT
+    if (DECISION_LOG) OpexPO01CWhere("OpexPO01CRoadFreightCandidates", "road_freight:cargo", cargo);
     if (freightCargo != null && cargo != freightCargo) continue;
     if (!(cargo in catalog.roadEngineByCargo)) { stats.noEngine++; continue; }
     /* Les passagers sont traites par la famille 1 : les inclure ici apparierait une industrie a
@@ -301,11 +352,13 @@ function OpexPO01CRoadFreightCandidates(catalog, lines, out, stats, abandonedPai
     local sinks = (cargo in catalog.acceptors) ? catalog.acceptors[cargo] : [];
     /* C41.20 : la liste est locale au cargo et a cette generation. Les appels API anticipes sont
      * purs ; ils ne changent ni l'industrie, ni le filtre de distance, ni l'ordre des candidats. */
+    if (DECISION_LOG) OpexPO01CWhere("OpexPO01CRoadFreightCandidates", "road_freight:OpexRoadFreightAcceptedTowns", PO01C_WHERE.idx);
     local townTargets = OpexRoadFreightAcceptedTowns(towns, servedTown, cargo, truckCoverage);
     if (townTargets != null) stats.townAcceptancePrefiltered += towns.len() - townTargets.len();
 
     foreach (si in sources) {
     yield null; // PO01C_CHECKPOINT
+    if (DECISION_LOG) OpexPO01CWhere("OpexPO01CRoadFreightCandidates", "road_freight:source", si);
       if (servedIndustry[si]) {
         /* Le code livre saute toute la source. Sous sonde, enumerer seulement les paires
          * qu'il aurait sautees permet de compter ce filtre sans changer son continue. */
@@ -313,11 +366,13 @@ function OpexPO01CRoadFreightCandidates(catalog, lines, out, stats, abandonedPai
           local source = industries[si];
           foreach (di in sinks) {
     yield null; // PO01C_CHECKPOINT
+    if (DECISION_LOG) OpexPO01CWhere("OpexPO01CRoadFreightCandidates", "road_freight:rejected_industry", di);
             if (di != si) OpexC55OriginRelaxObserve("freight", lines, source.tile,
                 industries[di].tile, true, servedIndustry[di]);
           }
           for (local ti = 0; ti < towns.len(); ti++) {
     yield null; // PO01C_CHECKPOINT
+    if (DECISION_LOG) OpexPO01CWhere("OpexPO01CRoadFreightCandidates", "road_freight:rejected_town", ti);
             OpexC55OriginRelaxObserve("freight", lines, source.tile, towns[ti].tile,
                 true, servedTown[ti]);
           }
@@ -332,6 +387,7 @@ function OpexPO01CRoadFreightCandidates(catalog, lines, out, stats, abandonedPai
       local industryMark = profile != null ? OpexOpsMeasureBegin() : null;
       for (local k = 0; k < sinks.len(); k++) {
     yield null; // PO01C_CHECKPOINT
+    if (DECISION_LOG) OpexPO01CWhere("OpexPO01CRoadFreightCandidates", "road_freight:industry_pair", k);
         local di = sinks[k];
         if (di == si) continue;
         if (targetKind == "town") continue;
@@ -352,6 +408,7 @@ function OpexPO01CRoadFreightCandidates(catalog, lines, out, stats, abandonedPai
         }
         stats.pairsInBand++;
         local isTransformer = ("isTransformer" in industries[di]) && industries[di].isTransformer;
+        if (DECISION_LOG) OpexPO01CWhere("OpexPO01CRoadFreightCandidates", "road_freight:pair_candidate", PO01C_WHERE.idx);
         local candidate = OpexMakeRoadCandidate(catalog, "freight", cargo, source.tile,
                                                 industries[di].tile, -1, -1, distance, monthly,
                                                 stats, isTransformer);
@@ -368,6 +425,7 @@ function OpexPO01CRoadFreightCandidates(catalog, lines, out, stats, abandonedPai
       if (C55_ORIGIN_RELAX_PROBE && townTargets != null) {
         for (local ti = 0; ti < towns.len(); ti++) {
     yield null; // PO01C_CHECKPOINT
+    if (DECISION_LOG) OpexPO01CWhere("OpexPO01CRoadFreightCandidates", "road_freight:town_probe", ti);
           OpexC55OriginRelaxObserve("freight", lines, source.tile, towns[ti].tile,
               false, servedTown[ti]);
         }
@@ -375,6 +433,7 @@ function OpexPO01CRoadFreightCandidates(catalog, lines, out, stats, abandonedPai
       local townPool = (townTargets != null) ? townTargets : towns;
       for (local k = 0; k < townPool.len(); k++) {
     yield null; // PO01C_CHECKPOINT
+    if (DECISION_LOG) OpexPO01CWhere("OpexPO01CRoadFreightCandidates", "road_freight:town_pair", k);
         local ti = k;
         local t = (townTargets != null) ? townTargets[ti] : ti;
         if (targetKind == "industry" && targetId >= 0 && source.id != targetId) continue;
@@ -423,6 +482,7 @@ function OpexPO01CRoadFreightCandidates(catalog, lines, out, stats, abandonedPai
         if (OPEX_ECONOMY_OPCODE_COMPAT_FALSE) {}
         local candidateMark = (profile != null && C41_ROAD_FREIGHT_TOWN_PROFILE)
             ? OpexOpsMeasureBegin() : null;
+        if (DECISION_LOG) OpexPO01CWhere("OpexPO01CRoadFreightCandidates", "road_freight:pair_candidate", PO01C_WHERE.idx);
         local candidate = OpexMakeRoadCandidate(catalog, "freight", cargo, source.tile,
                                                 towns[t].tile, -1, towns[t].id, distance, monthly,
                                                 stats);
@@ -436,6 +496,7 @@ function OpexPO01CRoadFreightCandidates(catalog, lines, out, stats, abandonedPai
 
     }
   }
+  if (DECISION_LOG) OpexPO01CWhere("OpexPO01CRoadFreightCandidates", "after_last_yield", PO01C_WHERE.idx);
 }
 
 function OpexPO01CWaterPlans(catalog, lines = null, projects = null, profile = null, siteCatalog = null)
@@ -542,7 +603,13 @@ function OpexPO01CWaterPlans(catalog, lines = null, projects = null, profile = n
          * bornees par WATER_BFS_MARGIN. */
         local bfsMark = profile != null ? OpexOpsMeasureBegin() : null;
         if (C56_TASK_TRACE) { c56BfsIn++; OpexC56TaskLog("PAIR", "bfs_enter", "- pair=" + c56PairsExamined); }
-        navigableDistance = OpexWaterFindConnection(sites[a], sites[b]);
+        local po01dBox = { value = null };
+    local po01dChild = OpexPO01CWaterFindConnection(po01dBox, sites[a], sites[b]);
+    while (po01dChild.getstatus() != "dead") {
+      resume po01dChild;
+      yield null; // PO01C_CHECKPOINT
+    }
+    navigableDistance = po01dBox.value;
         if (C67_WATER_EXPOSURE) OpexC67WaterExposureNote(sites[a], sites[b], navigableDistance,
                                                          tariffDistance, orderDistance, monthlyPax);
         if (C56_TASK_TRACE) { c56BfsOut++; OpexC56TaskLog("PAIR", "bfs_exit", "- pair=" + c56PairsExamined); }
@@ -1130,4 +1197,1598 @@ function OpexPO01CRoad(catalog)
     if (EQUIPMENT_ROI_PROBE) catalog.roadEngineChoicesByCargo.rawset(cargo, probeChoices);
     if (best.price > catalog.maxRoadVehiclePrice) catalog.maxRoadVehiclePrice = best.price;
   }
+}
+
+function OpexPO01CWaterFindConnection(po01dResult, siteA, siteB)
+{
+  local ax = AIMap.GetTileX(siteA.dock);
+  local ay = AIMap.GetTileY(siteA.dock);
+  local bx = AIMap.GetTileX(siteB.dock);
+  local by = AIMap.GetTileY(siteB.dock);
+  local minX = max(0, min(ax, bx) - WATER_BFS_MARGIN);
+  local minY = max(0, min(ay, by) - WATER_BFS_MARGIN);
+  local maxX = min(AIMap.GetMapSizeX() - 1, max(ax, bx) + WATER_BFS_MARGIN);
+  local maxY = min(AIMap.GetMapSizeY() - 1, max(ay, by) + WATER_BFS_MARGIN);
+  local queue = [];
+  local seen = {};
+  foreach (water in siteA.waterTiles) {
+    yield null; // PO01C_CHECKPOINT
+ queue.append(water); seen.rawset(water, 0); }
+  local head = 0;
+  local offsets = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+  while (head < queue.len() && head < WATER_BFS_MAX_NODES) {
+    yield null; // PO01C_CHECKPOINT
+
+    local current = queue[head++];
+    local distance = seen[current];
+    if (OpexWaterContains(siteB.waterTiles, current)) { po01dResult.value = distance; return; }
+    local x = AIMap.GetTileX(current);
+    local y = AIMap.GetTileY(current);
+    foreach (offset in offsets) {
+    yield null; // PO01C_CHECKPOINT
+
+      local nx = x + offset[0];
+      local ny = y + offset[1];
+      if (nx < minX || nx > maxX || ny < minY || ny > maxY) continue;
+      local next = AIMap.GetTileIndex(nx, ny);
+      if (!AITile.IsWaterTile(next)) continue;
+      if (!AIMarine.AreWaterTilesConnected(current, next)) continue;
+      if (!(next in seen)) { seen.rawset(next, distance + 1); queue.append(next); }
+    }
+  }
+  { po01dResult.value = -1; return; }
+}
+
+function OpexPO01CAirFindSite(po01dResult, town, airport, probes, requiredSlotTownId = -1)
+{
+  if (OPEX_LEVEL_LIMITS && !OpexTownAirportAllowedByLevel(town)) { po01dResult.value = null; return; }
+  if (C60_TOWN_RATING_PROBE) {
+    OpexC60ObserveTownRating("air", "find_site", town.id);
+  }
+  if (OPEX_ECONOMY_OPCODE_COMPAT_FALSE) {}
+  if (probes != null && ("stationLimitedTowns" in probes)
+      && (town.id in probes.stationLimitedTowns)) { po01dResult.value = null; return; }
+  local key = town.id + "_" + airport.type;
+  /* C83 cible : le cache historique est indexe par ville commerciale/type.
+   * Une course au slot exige en plus ClosestTown(anchor)==ville cible ; ne pas
+   * reutiliser ni ecrire ce cache dans ce chemin rare. */
+  local useSiteCache = AIR_SITE_CACHE_ENABLED && requiredSlotTownId < 0;
+  if (useSiteCache && (key in AIR_SITE_CACHE)) {
+    local cachedAnchor = AIR_SITE_CACHE[key];
+    if (cachedAnchor == null) {
+      { po01dResult.value = null; return; }
+    }
+    local offX = airport.width - 1;
+    local offY = airport.height - 1;
+    local mapX = AIMap.GetMapSizeX();
+    local mapY = AIMap.GetMapSizeY();
+    local ax = AIMap.GetTileX(cachedAnchor);
+    local ay = AIMap.GetTileY(cachedAnchor);
+    if (ax + offX < mapX && ay + offY < mapY) {
+      local c4 = cachedAnchor + AIMap.GetTileIndex(offX, offY);
+      if (!AITile.IsWaterTile(cachedAnchor) && !AITile.IsCoastTile(cachedAnchor) && !AITile.IsWaterTile(c4)
+          && !AITile.IsCoastTile(c4) && AIAirport.GetNearestTown(cachedAnchor, airport.type) == town.id && (OpexAirFootprintCheapOk(cachedAnchor, airport))
+          && (OpexAirSiteHasCatchment(cachedAnchor, airport, OpexAirDemandPaxCargo()))) {
+        local ok = false;
+        {
+          {
+            local probe = AITestMode();
+            ok = AIAirport.BuildAirport(cachedAnchor, airport.type, AIStation.STATION_NEW);
+          }
+          if (!ok) {
+            local err = AIError.GetLastError();
+            if (OpexAirRememberTownStationLimit(probes, town, err)) {
+              AIR_SITE_CACHE[key] <- null;
+              { po01dResult.value = null; return; }
+            } else if (err == AIError.ERR_LOCAL_AUTHORITY_REFUSES &&
+                OpexAirFootprintIsFlat(cachedAnchor, airport)) {
+              ok = true;
+            } else if ((err == AIError.ERR_LOCAL_AUTHORITY_REFUSES ||
+                        err == AIError.ERR_FLAT_LAND_REQUIRED) &&
+                       OpexAirCanLevelFootprint(cachedAnchor, airport, town.id)) {
+              /* G7Ãƒâ€šÃ‚Â§2 : test-mode seulement ; le terrassement reel est fait par le constructeur. */
+              ok = true;
+            }
+          }
+        }
+        if ("tested" in probes) probes.tested++;
+        if (ok) { po01dResult.value = { town = town, anchor = cachedAnchor }; return; }
+      }
+    }
+    delete AIR_SITE_CACHE[key];
+  }
+
+  /* C96 reste prioritaire. Le chemin historique V94 est conserve (V237) ; au
+   * defaut il etait deja court-circuite par C96. Son comparateur est retire (V239). */
+  {
+    local po01dBox = { value = null };
+    local po01dChild = OpexPO01CAirFindSiteCatchmentListed(po01dBox, town, airport, probes, requiredSlotTownId, key, useSiteCache);
+    while (po01dChild.getstatus() != "dead") {
+      resume po01dChild;
+      yield null; // PO01C_CHECKPOINT
+    }
+    po01dResult.value = po01dBox.value.site; return;
+  }
+
+  /* Le budget global reste borne, mais il est partage entre les villes encore
+   * a sonder. Elargir le vivier ne peut donc pas multiplier sans borne les
+   * AITestMode : davantage de villes donne moins de sondes par ville. */
+  local townsLeft = probes.townsLeft > 0 ? probes.townsLeft : 1;
+  local allowance = (probes.left + townsLeft - 1) / townsLeft;
+  probes.townsLeft--;
+  local used = 0;
+  local execLevels = 0;
+  local w = airport.width;
+  local h = airport.height;
+  local offX = w - 1;
+  local offY = h - 1;
+  local mapX = AIMap.GetMapSizeX();
+  local mapY = AIMap.GetMapSizeY();
+
+  for (local r = 4; r <= AIR_SITE_RADIUS; r++) {
+    yield null; // PO01C_CHECKPOINT
+
+    for (local dx = -r; dx <= r; dx++) {
+    yield null; // PO01C_CHECKPOINT
+
+      for (local dy = -r; dy <= r; dy++) {
+    yield null; // PO01C_CHECKPOINT
+
+        if (abs(dx) != r && abs(dy) != r) continue;
+        local anchor = town.tile + AIMap.GetTileIndex(dx, dy);
+        if (!AIMap.IsValidTile(anchor)) continue;
+        local ax = AIMap.GetTileX(anchor);
+        local ay = AIMap.GetTileY(anchor);
+        if (ax + offX >= mapX || ay + offY >= mapY) continue;
+        if (OpexAirDistanceToRect(town.tile, anchor, w, h) > 25) continue;
+        if (AITile.IsWaterTile(anchor) || AITile.IsCoastTile(anchor)) continue;
+        local c4 = anchor + AIMap.GetTileIndex(offX, offY);
+        if (AITile.IsWaterTile(c4) || AITile.IsCoastTile(c4)) continue;
+        if (requiredSlotTownId >= 0 && AITile.GetClosestTown(anchor) != requiredSlotTownId) continue;
+        if (AIAirport.GetNearestTown(anchor, airport.type) != town.id) continue;
+
+        {
+          /* Eau/riviere/cote sur toute l'emprise, C4, et IsBuildableRectangle : sans AITestMode.
+           * La sonde ci-dessous ne tourne plus que sur un hit cheap. */
+          if (!OpexAirFootprintCheapOk(anchor, airport)) {
+            if ("cheapSkip" in probes) probes.cheapSkip++;
+            continue;
+          }
+        }
+
+        if (used >= allowance) {
+          OpexAirC78NoteNoSite(probes, "no_site_budget");
+          if (useSiteCache) AIR_SITE_CACHE[key] <- null;
+          { po01dResult.value = null; return; }
+        }
+        if (probes.left <= 0) {
+          OpexAirC78NoteNoSite(probes, "no_site_budget");
+          { po01dResult.value = null; return; }
+        }
+
+        local ok = false;
+        {
+          {
+            local probe = AITestMode();
+            ok = AIAirport.BuildAirport(anchor, airport.type, AIStation.STATION_NEW);
+          }
+          if (!ok) {
+            local err = AIError.GetLastError();
+            if (OpexAirRememberTownStationLimit(probes, town, err)) {
+              if (useSiteCache) AIR_SITE_CACHE[key] <- null;
+              { po01dResult.value = null; return; }
+            } else if (err == AIError.ERR_LOCAL_AUTHORITY_REFUSES &&
+                OpexAirFootprintIsFlat(anchor, airport)) {
+              ok = true;
+            } else if ((err == AIError.ERR_LOCAL_AUTHORITY_REFUSES ||
+                        err == AIError.ERR_FLAT_LAND_REQUIRED) &&
+                       execLevels < 3) {
+              execLevels++;
+              /* G7Ãƒâ€šÃ‚Â§2 : test-mode seulement ; le terrassement reel est fait par le constructeur. */
+              if (OpexAirCanLevelFootprint(anchor, airport, town.id)) {
+                ok = true;
+              }
+            }
+          }
+        }
+        used++;
+        probes.left--;
+        if ("tested" in probes) probes.tested++;
+        if (ok) {
+          if (useSiteCache) AIR_SITE_CACHE[key] <- anchor;
+          local found = { town = town, anchor = anchor };
+          { po01dResult.value = found; return; }
+        }
+      }
+    }
+  }
+  if (useSiteCache && (used >= allowance || probes.left > 0)) {
+    AIR_SITE_CACHE[key] <- null;
+  }
+  { po01dResult.value = null; return; }
+}
+
+function OpexPO01CAirFindSiteListed(po01dResult, town, airport, probes, requiredSlotTownId, key, useSiteCache)
+{
+  local townsLeft = probes.townsLeft > 0 ? probes.townsLeft : 1;
+  local allowance = (probes.left + townsLeft - 1) / townsLeft;
+  probes.townsLeft--;
+  local used = 0;
+  local execLevels = 0;
+  local w = airport.width;
+  local h = airport.height;
+  local offX = w - 1;
+  local offY = h - 1;
+  local mapX = AIMap.GetMapSizeX();
+  local mapY = AIMap.GetMapSizeY();
+  local townX = AIMap.GetTileX(town.tile);
+  local townY = AIMap.GetTileY(town.tile);
+
+  for (local r = 4; r <= AIR_SITE_RADIUS; r++) {
+    yield null; // PO01C_CHECKPOINT
+
+    local ring = OpexAirFindSiteRing(town, airport, requiredSlotTownId, townX, townY, r, offX, offY, mapX, mapY);
+    if (ring == null) continue;
+    foreach (anchor, anchorX in ring) {
+    yield null; // PO01C_CHECKPOINT
+
+      if (OpexAirDistanceToRect(town.tile, anchor, w, h) > 25) continue;
+      local c4 = anchor + AIMap.GetTileIndex(offX, offY);
+      if (AITile.IsWaterTile(c4) || AITile.IsCoastTile(c4)) continue;
+
+      {
+        if (!OpexAirFootprintCheapOk(anchor, airport)) {
+          if ("cheapSkip" in probes) probes.cheapSkip++;
+          continue;
+        }
+      }
+
+      if (used >= allowance) {
+        OpexAirC78NoteNoSite(probes, "no_site_budget");
+        if (useSiteCache) AIR_SITE_CACHE[key] <- null;
+        { po01dResult.value = { site = null, used = used, execLevels = execLevels, allowance = allowance }; return; }
+      }
+      if (probes.left <= 0) {
+        OpexAirC78NoteNoSite(probes, "no_site_budget");
+        { po01dResult.value = { site = null, used = used, execLevels = execLevels, allowance = allowance }; return; }
+      }
+
+      local ok = false;
+      {
+        {
+          local probe = AITestMode();
+          ok = AIAirport.BuildAirport(anchor, airport.type, AIStation.STATION_NEW);
+        }
+        if (!ok) {
+          local err = AIError.GetLastError();
+          if (OpexAirRememberTownStationLimit(probes, town, err)) {
+            if (useSiteCache) AIR_SITE_CACHE[key] <- null;
+            { po01dResult.value = { site = null, used = used, execLevels = execLevels, allowance = allowance }; return; }
+          } else if (err == AIError.ERR_LOCAL_AUTHORITY_REFUSES &&
+              OpexAirFootprintIsFlat(anchor, airport)) {
+            ok = true;
+          } else if ((err == AIError.ERR_LOCAL_AUTHORITY_REFUSES ||
+                      err == AIError.ERR_FLAT_LAND_REQUIRED) &&
+                     execLevels < 3) {
+            execLevels++;
+            if (OpexAirCanLevelFootprint(anchor, airport, town.id)) {
+              ok = true;
+            }
+          }
+        }
+      }
+      used++;
+      probes.left--;
+      if ("tested" in probes) probes.tested++;
+      if (ok) {
+        if (useSiteCache) AIR_SITE_CACHE[key] <- anchor;
+        { po01dResult.value = {
+          site = { town = town, anchor = anchor },
+          used = used, execLevels = execLevels, allowance = allowance
+        }; return; }
+      }
+    }
+  }
+  if (useSiteCache && (used >= allowance || probes.left > 0)) {
+    AIR_SITE_CACHE[key] <- null;
+  }
+  { po01dResult.value = { site = null, used = used, execLevels = execLevels, allowance = allowance }; return; }
+}
+
+function OpexPO01CAirFindSiteCatchmentListed(po01dResult, town, airport, probes, requiredSlotTownId, key, useSiteCache)
+{
+  local paxCargo = OpexAirDemandPaxCargo();
+  if (paxCargo < 0) {
+    local po01dBox = { value = null };
+    local po01dChild = OpexPO01CAirFindSiteListed(po01dBox, town, airport, probes, requiredSlotTownId, key, useSiteCache);
+    while (po01dChild.getstatus() != "dead") {
+      resume po01dChild;
+      yield null; // PO01C_CHECKPOINT
+    }
+    po01dResult.value = po01dBox.value; return;
+  }
+
+  local townsLeft = probes.townsLeft > 0 ? probes.townsLeft : 1;
+  local allowance = (probes.left + townsLeft - 1) / townsLeft;
+  probes.townsLeft--;
+  local used = 0;
+  local execLevels = 0;
+  local w = airport.width;
+  local h = airport.height;
+  local offX = w - 1;
+  local offY = h - 1;
+  local mapX = AIMap.GetMapSizeX();
+  local mapY = AIMap.GetMapSizeY();
+  local townX = AIMap.GetTileX(town.tile);
+  local townY = AIMap.GetTileY(town.tile);
+  local best = null;
+  local bestScore = -1;
+  local firstAnchor = -1;
+  local firstScore = -1;
+  local valid = 0;
+  local firstValidRing = -1;
+  local bestRing = -1;
+
+  for (local r = 4; r <= AIR_SITE_RADIUS; r++) {
+    yield null; // PO01C_CHECKPOINT
+
+    if (firstValidRing >= 0 && r > firstValidRing + C96_AIR_SITE_EXTRA_RINGS) break;
+    local ring = OpexAirFindSiteRing(town, airport, requiredSlotTownId, townX, townY, r, offX, offY, mapX, mapY);
+    if (ring == null) continue;
+    foreach (anchor, anchorX in ring) {
+    yield null; // PO01C_CHECKPOINT
+
+      if (OpexAirDistanceToRect(town.tile, anchor, w, h) > 25) continue;
+      local c4 = anchor + AIMap.GetTileIndex(offX, offY);
+      if (AITile.IsWaterTile(c4) || AITile.IsCoastTile(c4)) continue;
+
+      {
+        if (!OpexAirFootprintCheapOk(anchor, airport)) {
+          if ("cheapSkip" in probes) probes.cheapSkip++;
+          continue;
+        }
+      }
+
+      if (used >= allowance || probes.left <= 0) {
+        if (best != null) {
+          OpexAirC96LogChoice(town, airport, firstAnchor, firstScore, best, bestScore,
+              valid, firstValidRing, bestRing, used);
+          if (useSiteCache) AIR_SITE_CACHE[key] <- best.anchor;
+          { po01dResult.value = { site = best, used = used, execLevels = execLevels, allowance = allowance }; return; }
+        }
+        OpexAirC78NoteNoSite(probes, "no_site_budget");
+        if (useSiteCache && used >= allowance) AIR_SITE_CACHE[key] <- null;
+        { po01dResult.value = { site = null, used = used, execLevels = execLevels, allowance = allowance }; return; }
+      }
+
+      local ok = false;
+      {
+        {
+          local probe = AITestMode();
+          ok = AIAirport.BuildAirport(anchor, airport.type, AIStation.STATION_NEW);
+        }
+        if (!ok) {
+          local err = AIError.GetLastError();
+          if (OpexAirRememberTownStationLimit(probes, town, err)) {
+            if (useSiteCache) AIR_SITE_CACHE[key] <- null;
+            { po01dResult.value = { site = null, used = used, execLevels = execLevels, allowance = allowance }; return; }
+          } else if (err == AIError.ERR_LOCAL_AUTHORITY_REFUSES &&
+              OpexAirFootprintIsFlat(anchor, airport)) {
+            ok = true;
+          } else if ((err == AIError.ERR_LOCAL_AUTHORITY_REFUSES ||
+                      err == AIError.ERR_FLAT_LAND_REQUIRED) &&
+                     execLevels < 3) {
+            execLevels++;
+            if (OpexAirCanLevelFootprint(anchor, airport, town.id)) ok = true;
+          }
+        }
+      }
+
+      used++;
+      probes.left--;
+      if ("tested" in probes) probes.tested++;
+      if (!ok) continue;
+
+      if (!OpexAirSiteHasCatchment(anchor, airport, paxCargo)) {
+        if ("deadCatchment" in probes) probes.deadCatchment++;
+        continue;
+      }
+      if (firstValidRing < 0) firstValidRing = r;
+      local score = OpexAirC96SiteCatchmentScore(anchor, airport, paxCargo);
+      valid++;
+      if (firstAnchor < 0) {
+        firstAnchor = anchor;
+        firstScore = score;
+      }
+      if (best == null || score > bestScore) {
+        best = { town = town, anchor = anchor };
+        bestScore = score;
+        bestRing = r;
+      }
+      if (valid >= C96_AIR_SITE_MAX_VALID) {
+        OpexAirC96LogChoice(town, airport, firstAnchor, firstScore, best, bestScore,
+            valid, firstValidRing, bestRing, used);
+        if (useSiteCache) AIR_SITE_CACHE[key] <- best.anchor;
+        { po01dResult.value = { site = best, used = used, execLevels = execLevels, allowance = allowance }; return; }
+      }
+    }
+  }
+
+  if (best != null) {
+    OpexAirC96LogChoice(town, airport, firstAnchor, firstScore, best, bestScore,
+        valid, firstValidRing, bestRing, used);
+    if (useSiteCache) AIR_SITE_CACHE[key] <- best.anchor;
+    { po01dResult.value = { site = best, used = used, execLevels = execLevels, allowance = allowance }; return; }
+  }
+  if (useSiteCache && (used >= allowance || probes.left > 0)) AIR_SITE_CACHE[key] <- null;
+  { po01dResult.value = { site = null, used = used, execLevels = execLevels, allowance = allowance }; return; }
+}
+
+function OpexPO01CAirPlans(po01dResult, catalog, lines = null, maxCapital = 0, projects = null, abandoned = null,
+                      paxBand = PAX_BAND_ALL, targetTownId = -1,
+                      resumeState = null, opsBudget = 0, deadlineTick = 0)
+{
+  local t0_all = AIController.GetTick();
+  local l0_all = AIController.GetOpsTillSuspend();
+  local _calcDeltaOps = OpexAirCalcDeltaOps;
+  local ctx = {
+    catalog = catalog,
+    lines = lines,
+    maxCapital = maxCapital,
+    projects = projects,
+    abandoned = abandoned,
+    paxBand = paxBand,
+    targetTownId = targetTownId,
+    resumeState = resumeState,
+    opsBudget = opsBudget,
+    deadlineTick = deadlineTick,
+    t0_all = t0_all,
+    l0_all = l0_all,
+    sliced = resumeState != null,
+    combos = null,
+    servedDiag = null,
+    hubIndex = null,
+    c83TopTownIds = null,
+    towns = null,
+    limit = 0,
+    c78Year = -1,
+    c78Gen = false,
+    stationLimitedTowns = null,
+    bestPlan = null,
+    infrastructureMaintenance = false,
+    comboStart = 0,
+    perfOpsSites = 0,
+    perfOpsEval = 0,
+    perfProbesCount = 0,
+    perfCheapSkip = 0,
+    perfSitesFound = 0,
+    sites = [],
+    hubs = [],
+    c83RepairCombo = false,
+    air0310HubRestored = false,
+    air0310HubSkip = null,
+  };
+
+  local spPlans = PROBE_SPAN_TRACE ? OpexSpanBegin("air.plans") : null;
+  local prepared = OpexAirPlansStepPrepare(ctx);
+  if (!prepared) {
+    if (spPlans != null) OpexSpanEnd(spPlans);
+    { po01dResult.value = ctx.bestPlan; return; }
+  }
+
+  for (local comboIndex = ctx.comboStart; comboIndex < ctx.combos.len(); comboIndex++) {
+    yield null; // PO01C_CHECKPOINT
+
+    local combo = ctx.combos[comboIndex];
+    local airport = combo.airport;
+    local plane = combo.plane;
+    local minDist = (plane.speed >= 400) ? 32 : 30;
+    local resumingCombo = ctx.sliced && ctx.resumeState.combo == comboIndex && ctx.resumeState.sites != null;
+
+    local po01dBox = { value = null };
+    local po01dChild = OpexPO01CAirPlansStepFindSites(po01dBox, ctx, comboIndex, combo, airport, plane, resumingCombo);
+    while (po01dChild.getstatus() != "dead") {
+      resume po01dChild;
+      yield null; // PO01C_CHECKPOINT
+    }
+    local sitesOk = po01dBox.value;
+    if (!sitesOk) {
+      if (spPlans != null) OpexSpanEnd(spPlans);
+      { po01dResult.value = ctx.bestPlan; return; }
+    }
+
+    local pairsOk = OpexAirPlansStepNewPairs(ctx, comboIndex, combo, airport, plane,
+        minDist, resumingCombo);
+    if (!pairsOk) {
+      if (spPlans != null) OpexSpanEnd(spPlans);
+      { po01dResult.value = ctx.bestPlan; return; }
+    }
+
+    {
+    local po01dBox = { value = null };
+    local po01dChild = OpexPO01CAirPlansHubDiscoveryPhase(po01dBox, ctx, comboIndex, combo, airport, plane);
+    while (po01dChild.getstatus() != "dead") {
+      resume po01dChild;
+      yield null; // PO01C_CHECKPOINT
+    }
+    }
+
+    local c56PlansBefore = (ctx.projects != null) ? ctx.projects.len() : 0;
+    if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_ENTER", "air_hub_to_site", "-");
+    local tHubEval0 = AIController.GetTick();
+    local lHubEval0 = AIController.GetOpsTillSuspend();
+    local spHubSite = PROBE_SPAN_TRACE ? OpexSpanBegin("air.hub_site") : null;
+    if (!OpexAirPlansHubToSitePhase(ctx, combo, airport, plane)) {
+      if (spHubSite != null) OpexSpanEnd(spHubSite);
+      if (spPlans != null) OpexSpanEnd(spPlans);
+      { po01dResult.value = ctx.bestPlan; return; }
+    }
+    if (spHubSite != null) OpexSpanEnd(spHubSite);
+    local c56PlansMid = (ctx.projects != null) ? ctx.projects.len() : 0;
+    if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_EXIT", "air_hub_to_site", "-",
+        "hubs=" + ctx.hubs.len() + " sites=" + ctx.sites.len() + " admitted=" + (c56PlansMid - c56PlansBefore));
+    if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_ENTER", "air_hub_to_hub", "-");
+    local spHubHub = PROBE_SPAN_TRACE ? OpexSpanBegin("air.hub_hub") : null;
+    local hubsOk = OpexAirPlansHubToHub(ctx, combo, airport, plane);
+    if (spHubHub != null) OpexSpanEnd(spHubHub);
+    if (!hubsOk) {
+      if (spPlans != null) OpexSpanEnd(spPlans);
+      { po01dResult.value = ctx.bestPlan; return; }
+    }
+    if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_EXIT", "air_hub_to_hub", "-",
+        "hubs=" + ctx.hubs.len() + " admitted=" + (((ctx.projects != null) ? ctx.projects.len() : 0) - c56PlansMid));
+    ctx.perfOpsEval += _calcDeltaOps(tHubEval0, lHubEval0);
+    if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_EXIT", "air_hubs", "-", "hubs=" + ctx.hubs.len());
+
+    local nextCombo = OpexAirPlansCompleteCombo(ctx, comboIndex, combo);
+    if (nextCombo < 0) break;
+    comboIndex = nextCombo - 1;
+  }
+
+  if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_ENTER", "air_finalize", "-");
+  local spFinal = PROBE_SPAN_TRACE ? OpexSpanBegin("air.finalize") : null;
+  local finalPlan = OpexAirPlansFinalize(ctx);
+  if (spFinal != null) OpexSpanEnd(spFinal);
+  if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_EXIT", "air_finalize", "-");
+  if (spPlans != null) OpexSpanEnd(spPlans);
+  { po01dResult.value = finalPlan; return; }
+}
+
+function OpexPO01CAirPlansStepFindSites(po01dResult, ctx, comboIndex, combo, airport, plane, resumingCombo)
+{
+  if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_ENTER", "air_find_sites", "-");
+  local spSites = PROBE_SPAN_TRACE ? OpexSpanBegin("air.sites") : null;
+  local sitesOk;
+  if (V278_AIR_LAZY_SITES && OpexV278LazyEnabled(ctx)) {
+    sitesOk = OpexV278LazySites(ctx, comboIndex, combo, airport, plane);
+  } else {
+    local po01dBox = { value = null };
+    local po01dChild = OpexPO01CAirPlansFindSites(po01dBox, ctx, comboIndex, combo, airport, plane, resumingCombo);
+    while (po01dChild.getstatus() != "dead") {
+      resume po01dChild;
+      yield null; // PO01C_CHECKPOINT
+    }
+    sitesOk = po01dBox.value;
+  }
+  if (spSites != null) OpexSpanEnd(spSites);
+  if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_EXIT", "air_find_sites", "-",
+      "combo=" + comboIndex + " sites=" + ctx.sites.len() + " probes=" + ctx.perfProbesCount);
+  { po01dResult.value = sitesOk; return; }
+}
+
+function OpexPO01CAirPlansFindSites(po01dResult, ctx, comboIndex, combo, airport, plane, resumingCombo)
+{
+  if (ctx.sliced && ("c83Repair" in ctx.resumeState)) {
+    local repaired = OpexC83RepairFindSites(ctx, comboIndex, combo, airport, plane);
+    if (repaired.handled) { po01dResult.value = repaired.done; return; }
+  }
+  local sliced = ctx.sliced;
+  local resumeState = ctx.resumeState;
+  local opsBudget = ctx.opsBudget;
+  local deadlineTick = ctx.deadlineTick;
+  local limit = ctx.limit;
+  local stationLimitedTowns = ctx.stationLimitedTowns;
+  local towns = ctx.towns;
+  local lines = ctx.lines;
+  local targetTownId = ctx.targetTownId;
+  local servedDiag = ctx.servedDiag;
+  local c83TopTownIds = ctx.c83TopTownIds;
+  local c78Gen = ctx.c78Gen;
+  local c78Year = ctx.c78Year;
+  local t0_all = ctx.t0_all;
+  local l0_all = ctx.l0_all;
+  local perfOpsSites = ctx.perfOpsSites;
+  local perfOpsEval = ctx.perfOpsEval;
+  local perfProbesCount = ctx.perfProbesCount;
+  local perfCheapSkip = ctx.perfCheapSkip;
+  local perfSitesFound = ctx.perfSitesFound;
+  local bestPlan = ctx.bestPlan;
+  local _calcDeltaOps = OpexAirCalcDeltaOps;
+
+  local sites = resumingCombo ? resumeState.sites : [];
+  if (!resumingCombo) {
+    local scanSites = sliced ? resumeState.scanSites : [];
+    local probes = sliced && resumeState.scanProbes != null
+        ? resumeState.scanProbes
+        : {
+            left = AIR_MAX_SITE_PROBES, townsLeft = limit, tested = 0, cheapSkip = 0,
+            stationLimitedTowns = stationLimitedTowns
+          };
+    local scanStart = sliced ? resumeState.scanIndex : 0;
+    local scanEnd = limit;
+    if (V278_AIR_LAZY_SITES && ("v278ScanEnd" in ctx)) scanEnd = ctx.v278ScanEnd;
+    if (C83_FIXES && targetTownId >= 0) {
+      scanEnd = scanStart;
+      for (local c83Scan = scanStart; c83Scan < limit; c83Scan++) {
+    yield null; // PO01C_CHECKPOINT
+
+        if (towns[c83Scan].id == targetTownId) {
+          scanEnd = c83Scan + 1;
+          break;
+        }
+      }
+    }
+    local testedBefore = probes.tested;
+    local cheapBefore = ("cheapSkip" in probes) ? probes.cheapSkip : 0;
+    local foundBefore = scanSites.len();
+    local tSites0 = AIController.GetTick();
+    local lSites0 = AIController.GetOpsTillSuspend();
+    for (local i = scanStart; i < scanEnd; i++) {
+    yield null; // PO01C_CHECKPOINT
+
+      probes.townsLeft = limit - i;
+      if (C83_FIXES && targetTownId >= 0) probes.townsLeft = scanEnd - i;
+      if (C69_BOTTLENECK_PROBE) OpexC73RecordExamined("air", 1);
+      if (V133_AIR_BUILD_RETRY && OpexV133AirTownSkip(ctx, towns[i].id)) {
+        /* V133 : ville en quarantaine, aucun site newpair/hubsite. Le curseur de tranche suit. */
+      } else if (OPEX_LEVEL_LIMITS && !OpexTownAirportAllowedByLevel(towns[i], null, -1, ctx.catalog)) {
+        /* Levier A : bridage de difficulte (niveaux 0 et 1). Niveaux 2 et 3 : zero opcode. */
+      } else if (towns[i].id in stationLimitedTowns) {
+        if (C69_BOTTLENECK_PROBE) OpexC73RecordRejection("air", "town_station_limit", 1);
+        if (c78Gen) OpexC78Log("C78_AIRTOWN", "year=" + c78Year + " combo=" + airport.type + ":" + plane.id + " town=" + towns[i].id + " rank=" + i + " outcome=town_station_limit");
+      } else {
+        /* Ne filtrer que les lignes aeriennes existantes : un aeroport ne concurrence pas une
+         * gare ferroviaire, et exclure les villes deja servies en rail empechait toute
+         * construction aerienne sur une carte partiellement couverte. */
+        local isServed = OpexAirTownServed(towns[i], lines, servedDiag);
+        local c83OwnSecondSlot = isServed && (towns[i].id in c83TopTownIds)
+            && OpexAirC83SecondSlotOpen(towns[i]);
+        local v134State = (V134_AIR_P2P_SATURATED_HUB && isServed)
+            ? OpexAirV134SaturatedHubState(towns[i], lines, ctx.hubIndex)
+            : { eligible = false, hubRoutes = 0 };
+        local v134Eligible = v134State.eligible;
+        local skipServed = false;
+        if (isServed && !c83OwnSecondSlot) skipServed = !v134Eligible;
+        if (skipServed) {
+          if (C69_BOTTLENECK_PROBE) OpexC73RecordRejection("air", "origin_served", 1);
+          if (c78Gen) OpexC78Log("C78_AIRTOWN", "year=" + c78Year + " combo=" + airport.type + ":" + plane.id + " town=" + towns[i].id + " rank=" + i + " outcome=origin_served");
+        } else if (towns[i].pop < V93_AIRPORT_MIN_POP) {
+          /* V93 fige : plancher minimal, grand ou petit. */
+          if (C69_BOTTLENECK_PROBE) OpexC73RecordRejection("air", "town_pop_v93", 1);
+          if (c78Gen) OpexC78Log("C78_AIRTOWN", "year=" + c78Year + " combo=" + airport.type + ":" + plane.id + " town=" + towns[i].id + " rank=" + i + " outcome=town_pop_v93");
+        } else {
+          local c83RequiredSlotTown = (targetTownId >= 0 && towns[i].id == targetTownId)
+              ? targetTownId : -1;
+          if (C83_FIXES && c83RequiredSlotTown < 0 && c83OwnSecondSlot) {
+            c83RequiredSlotTown = towns[i].id;
+          }
+          if (c83RequiredSlotTown < 0 && v134Eligible) {
+            c83RequiredSlotTown = towns[i].id;
+          }
+          if (c78Gen && ("c78NoSite" in probes)) probes.c78NoSite = null;
+          local v278Started = V278_AIR_LAZY_SITES ? AIController.GetTick() : -1;
+          local po01dBox = { value = null };
+    local po01dChild = OpexPO01CAirFindSite(po01dBox, towns[i], airport, probes, c83RequiredSlotTown);
+    while (po01dChild.getstatus() != "dead") {
+      resume po01dChild;
+      yield null; // PO01C_CHECKPOINT
+    }
+    local site = po01dBox.value;
+          if (site != null) {
+            if (c83OwnSecondSlot) site.c83OwnSecondSlot <- true;
+            if (v134Eligible) {
+              site.v134SecondSlot <- true;
+              site.v134HubRoutes <- v134State.hubRoutes;
+            }
+            if (C83_FIXES && c83RequiredSlotTown >= 0) site.c83SlotTown <- c83RequiredSlotTown;
+            if (V278_AIR_LAZY_SITES) OpexV278RememberFoundSite(site, airport, v278Started);
+            scanSites.append(site);
+            if (c78Gen) {
+              if (towns[i].pop < 600) {
+                OpexC78Log("C78_AIRTOWN", "year=" + c78Year + " combo=" + airport.type + ":" + plane.id + " town=" + towns[i].id + " rank=" + i + " outcome=site v93=1 pop=" + towns[i].pop);
+              } else {
+                OpexC78Log("C78_AIRTOWN", "year=" + c78Year + " combo=" + airport.type + ":" + plane.id + " town=" + towns[i].id + " rank=" + i + " outcome=site");
+              }
+            }
+          }
+          else {
+            if (C69_BOTTLENECK_PROBE) OpexC73RecordRejection("air", "no_site", 1);
+            if (c78Gen) {
+              local c78Outcome = "no_site_terrain";
+              if (("c78NoSite" in probes) && probes.c78NoSite != null) c78Outcome = probes.c78NoSite;
+              if (c78Outcome != "no_site_slot" && OpexAirC83SlotSignalEnabled()
+                  && AITown.GetAllowedNoise(towns[i].id) < 1) {
+                c78Outcome = "no_site_slot";
+              }
+              OpexC78Log("C78_AIRTOWN", "year=" + c78Year + " combo=" + airport.type + ":" + plane.id + " town=" + towns[i].id + " rank=" + i + " outcome=" + c78Outcome);
+            }
+          }
+        }
+      }
+      if (sliced) {
+        resumeState.combo = comboIndex;
+        resumeState.scanIndex = i + 1;
+        resumeState.scanSites = scanSites;
+        resumeState.scanProbes = probes;
+        local scanSliceOps = _calcDeltaOps(t0_all, l0_all);
+        if ((opsBudget > 0 && scanSliceOps >= opsBudget)
+            || (deadlineTick > 0 && AIController.GetTick() >= deadlineTick)) {
+          perfOpsSites += _calcDeltaOps(tSites0, lSites0);
+          perfProbesCount += probes.tested - testedBefore;
+          perfCheapSkip += (("cheapSkip" in probes) ? probes.cheapSkip : 0) - cheapBefore;
+          perfSitesFound += scanSites.len() - foundBefore;
+          resumeState.bestPlan = bestPlan;
+          resumeState.stationLimitedTowns = stationLimitedTowns;
+          resumeState.perfOpsSites = perfOpsSites;
+          resumeState.perfOpsEval = perfOpsEval;
+          resumeState.perfProbesCount = perfProbesCount;
+          resumeState.perfCheapSkip = perfCheapSkip;
+          resumeState.perfSitesFound = perfSitesFound;
+          resumeState.totalOps += scanSliceOps;
+          ctx.perfOpsSites = perfOpsSites;
+          ctx.perfOpsEval = perfOpsEval;
+          ctx.perfProbesCount = perfProbesCount;
+          ctx.perfCheapSkip = perfCheapSkip;
+          ctx.perfSitesFound = perfSitesFound;
+          { po01dResult.value = false; return; }
+        }
+      }
+    }
+    perfOpsSites += _calcDeltaOps(tSites0, lSites0);
+    if (sliced) {
+      perfProbesCount += probes.tested - testedBefore;
+      perfCheapSkip += (("cheapSkip" in probes) ? probes.cheapSkip : 0) - cheapBefore;
+      perfSitesFound += scanSites.len() - foundBefore;
+    } else {
+      perfProbesCount += probes.tested;
+      if ("cheapSkip" in probes) perfCheapSkip += probes.cheapSkip;
+      perfSitesFound += scanSites.len();
+    }
+
+    /* C78.4 : la revalidation peut elle aussi consommer plusieurs ticks. Elle
+     * reprend par index de site ; aucun site valide n'est sonde deux fois juste
+     * parce qu'une tranche a rendu la main. */
+    local rankableSites = sliced ? resumeState.rankSites : [];
+    local rankStart = sliced ? resumeState.rankIndex : 0;
+    for (local rankIndex = rankStart; rankIndex < scanSites.len(); rankIndex++) {
+    yield null; // PO01C_CHECKPOINT
+
+      local site = scanSites[rankIndex];
+      if (V278_AIR_LAZY_SITES
+          ? OpexV278SiteOk(site, airport, plane, stationLimitedTowns)
+          : OpexAirSiteStillBuildable(site, airport, plane, false, stationLimitedTowns)) {
+        rankableSites.append(site);
+      } else if (C69_BOTTLENECK_PROBE) {
+        OpexC73RecordRejection("air", "site_stale_before_rank", 1);
+      }
+      if (sliced) {
+        resumeState.combo = comboIndex;
+        resumeState.rankIndex = rankIndex + 1;
+        resumeState.rankSites = rankableSites;
+        local rankSliceOps = _calcDeltaOps(t0_all, l0_all);
+        if ((opsBudget > 0 && rankSliceOps >= opsBudget)
+            || (deadlineTick > 0 && AIController.GetTick() >= deadlineTick)) {
+          resumeState.bestPlan = bestPlan;
+          resumeState.stationLimitedTowns = stationLimitedTowns;
+          resumeState.perfOpsSites = perfOpsSites;
+          resumeState.perfOpsEval = perfOpsEval;
+          resumeState.perfProbesCount = perfProbesCount;
+          resumeState.perfCheapSkip = perfCheapSkip;
+          resumeState.perfSitesFound = perfSitesFound;
+          resumeState.totalOps += rankSliceOps;
+          ctx.perfOpsSites = perfOpsSites;
+          ctx.perfOpsEval = perfOpsEval;
+          ctx.perfProbesCount = perfProbesCount;
+          ctx.perfCheapSkip = perfCheapSkip;
+          ctx.perfSitesFound = perfSitesFound;
+          { po01dResult.value = false; return; }
+        }
+      }
+    }
+    sites = rankableSites;
+    if (sliced) {
+      resumeState.combo = comboIndex;
+      resumeState.a = 0;
+      resumeState.b = 1;
+      resumeState.sites = sites;
+      resumeState.scanIndex = 0;
+      resumeState.scanSites = [];
+      resumeState.scanProbes = null;
+      resumeState.rankIndex = 0;
+      resumeState.rankSites = [];
+    }
+  }
+  /* En mode reprenable, ne pas reconstruire le meme panneau a chaque
+   * tranche de paires. Outre la pollution de SIGN, AISign.BuildSign consomme
+   * des opcodes et faisait de la reprise elle-meme une part majeure du cout. */
+  if (!sliced || !resumingCombo) {
+    OpexSign(AIMap.GetTileIndex(1, 3), "AS|S=" + sites.len() + "|A=" + airport.name);
+  }
+
+  ctx.sites = sites;
+  ctx.perfOpsSites = perfOpsSites;
+  ctx.perfOpsEval = perfOpsEval;
+  ctx.perfProbesCount = perfProbesCount;
+  ctx.perfCheapSkip = perfCheapSkip;
+  ctx.perfSitesFound = perfSitesFound;
+  { po01dResult.value = true; return; }
+}
+
+function OpexPO01CAirPlansHubDiscoveryPhase(po01dResult, ctx, comboIndex, combo, airport, plane)
+{
+    if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_ENTER", "air_hubs", "-");
+    if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_ENTER", "air_hub_discover", "-");
+    local reuseHubs = false;
+    if (ctx.sliced) {
+      local hubSnapAction = OpexAir0310HubSnapshotPrepare(ctx, comboIndex, airport, plane);
+      OpexAir0310HubSnapshotCount(ctx, hubSnapAction);
+      reuseHubs = hubSnapAction == "reuse";
+    }
+    if (!reuseHubs) {
+      ctx.air0310HubOrphan <- [];
+      local spDisc = PROBE_SPAN_TRACE ? OpexSpanBegin("air.hub_discover") : null;
+      {
+    local po01dBox = { value = null };
+    local po01dChild = OpexPO01CAirPlansDiscoverHubs(po01dBox, ctx, combo, airport, plane);
+    while (po01dChild.getstatus() != "dead") {
+      resume po01dChild;
+      yield null; // PO01C_CHECKPOINT
+    }
+    }
+      if (spDisc != null) OpexSpanEnd(spDisc);
+      if (ctx.sliced) OpexAir0310HubSnapshotStore(ctx, comboIndex);
+    }
+    if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_EXIT", "air_hub_discover", "-",
+        "hubs=" + ctx.hubs.len() + " sites=" + ctx.sites.len());
+    OpexAC04ValidateHubsAtUsage(ctx);
+}
+
+function OpexPO01CAirPlansDiscoverHubs(po01dResult, ctx, combo, airport, plane)
+{
+  /* Bras hub : un aeroport existant, rentable et non sature (max 8 routes), plus UNE destination. */
+  local hubs = [];
+  local sites = ctx.sites;
+  local lines = ctx.lines;
+  local limit = ctx.limit;
+  local stationLimitedTowns = ctx.stationLimitedTowns;
+  local towns = ctx.towns;
+  local targetTownId = ctx.targetTownId;
+  local servedDiag = ctx.servedDiag;
+  local c83TopTownIds = ctx.c83TopTownIds;
+  local hubIndex = ctx.hubIndex;
+  local _calcDeltaOps = OpexAirCalcDeltaOps;
+
+  if (lines != null) {
+    if (!ctx.c83RepairCombo && sites.len() < AIR_HUB_NEW_SITE_POOL) {
+      local hubProbes = {
+        left = AIR_MAX_SITE_PROBES, townsLeft = limit, tested = 0, cheapSkip = 0,
+        stationLimitedTowns = stationLimitedTowns
+      };
+      local tHubSites0 = AIController.GetTick();
+      local lHubSites0 = AIController.GetOpsTillSuspend();
+      local hubScanEnd = limit;
+      if (C83_FIXES && targetTownId >= 0) {
+        hubScanEnd = 0;
+        for (local c83Scan = 0; c83Scan < limit; c83Scan++) {
+    yield null; // PO01C_CHECKPOINT
+
+          if (towns[c83Scan].id == targetTownId) {
+            hubScanEnd = c83Scan + 1;
+            break;
+          }
+        }
+      }
+      for (local i = 0; i < hubScanEnd && sites.len() < AIR_HUB_NEW_SITE_POOL; i++) {
+    yield null; // PO01C_CHECKPOINT
+
+        hubProbes.townsLeft = limit - i;
+        if (C83_FIXES && targetTownId >= 0) hubProbes.townsLeft = hubScanEnd - i;
+        if (V133_AIR_BUILD_RETRY && OpexV133AirTownSkip(ctx, towns[i].id)) continue;
+        if (OPEX_LEVEL_LIMITS && !OpexTownAirportAllowedByLevel(towns[i], null, -1, ctx.catalog)) continue;
+        if (towns[i].id in stationLimitedTowns) {
+          continue;
+        }
+        local isServed = OpexAirTownServed(towns[i], lines, servedDiag);
+        local c83OwnSecondSlot = isServed && (towns[i].id in c83TopTownIds)
+            && OpexAirC83SecondSlotOpen(towns[i]);
+        if (isServed && !c83OwnSecondSlot) continue;
+        /* V93 fige : plancher sanitaire commun aux types d'aeroport. */
+        if (towns[i].pop < V93_AIRPORT_MIN_POP) continue;
+        if (combo.kind == "small" && towns[i].pop >= 2500) continue;
+        local c83RequiredSlotTown = (targetTownId >= 0 && towns[i].id == targetTownId)
+            ? targetTownId : -1;
+        if (C83_FIXES && c83RequiredSlotTown < 0 && c83OwnSecondSlot) {
+          c83RequiredSlotTown = towns[i].id;
+        }
+        local po01dBox = { value = null };
+    local po01dChild = OpexPO01CAirFindSite(po01dBox, towns[i], airport, hubProbes, c83RequiredSlotTown);
+    while (po01dChild.getstatus() != "dead") {
+      resume po01dChild;
+      yield null; // PO01C_CHECKPOINT
+    }
+    local extraSite = po01dBox.value;
+        if (extraSite != null) {
+          if (OpexAC04ExtraSiteAlreadyKnown(sites, extraSite))
+            continue;
+          if (c83OwnSecondSlot) extraSite.c83OwnSecondSlot <- true;
+          if (C83_FIXES && c83RequiredSlotTown >= 0) extraSite.c83SlotTown <- c83RequiredSlotTown;
+          /* v93=1 seulement si le scan principal n'a pas deja retenu cette ville. */
+          if (towns[i].pop < 600 && ("c78Gen" in ctx) && ctx.c78Gen) {
+            local v93Already = false;
+            foreach (prev in sites) {
+    yield null; // PO01C_CHECKPOINT
+
+              if (("town" in prev) && prev.town != null && ("id" in prev.town) && prev.town.id == towns[i].id) {
+                v93Already = true;
+                break;
+              }
+            }
+            if (!v93Already) {
+              OpexC78Log("C78_AIRTOWN", "year=" + ctx.c78Year + " combo=" + airport.type + ":" + plane.id + " town=" + towns[i].id + " rank=" + i + " outcome=site v93=1 pop=" + towns[i].pop);
+            }
+          }
+          sites.append(extraSite);
+          ctx.perfSitesFound++;
+        }
+      }
+      ctx.perfOpsSites += _calcDeltaOps(tHubSites0, lHubSites0);
+      ctx.perfProbesCount += hubProbes.tested;
+      if ("cheapSkip" in hubProbes) ctx.perfCheapSkip += hubProbes.cheapSkip;
+    }
+    local seenStations = {};
+    foreach (line in lines) {
+    yield null; // PO01C_CHECKPOINT
+
+      if (!("mode" in line) || line.mode != "air") continue;
+      if (("deadStreak" in line) && line.deadStreak >= 2) continue;
+      /* L'ancre d'un hub est la tuile d'aeroport (line.stationA/B). */
+      local ends = [
+        { anchor = line.stationA, origin = line.originA, stationId = line.stationA },
+        { anchor = line.stationB, origin = line.originB, stationId = line.stationB },
+      ];
+      foreach (end in ends) {
+    yield null; // PO01C_CHECKPOINT
+
+        if (!AIMap.IsValidTile(end.anchor) || !AIAirport.IsAirportTile(end.anchor)) continue;
+        local existingType = AIAirport.GetAirportType(end.anchor);
+        if (!OpexAirAirportAcceptsPlane(existingType, plane.planeType)) continue;
+        /* Resolution non ambigue : `end.stationId` est une tuile, et `IsValidStation(tuile)`
+         * peut etre vrai par pure collision d'indices. On resout toujours depuis l'ancre. */
+        local station = AIStation.GetStationID(end.anchor);
+        if (!AIStation.IsValidStation(station) || (station in seenStations)) continue;
+
+        local routeCount = 0;
+        if (hubIndex != null) {
+          if (station in hubIndex.routes) routeCount = hubIndex.routes[station];
+        } else {
+          foreach (other in lines) {
+    yield null; // PO01C_CHECKPOINT
+
+            if (!("mode" in other) || other.mode != "air") continue;
+            local otherA = OpexAirLineStationId(other, 0);
+            local otherB = OpexAirLineStationId(other, 1);
+            if (otherA == station || otherB == station) routeCount++;
+          }
+        }
+        local maxRoutes = OpexAirAirportMaxRoutes(existingType);
+        if (routeCount >= maxRoutes) continue;
+        local townId = AITile.GetClosestTown(end.origin);
+        if (townId < 0) continue;
+        local hubTown = null;
+        foreach (town in towns) {
+    yield null; // PO01C_CHECKPOINT
+
+          if (town.id == townId) { hubTown = town; break; }
+        }
+        if (hubTown == null) {
+          hubTown = { id = townId, tile = end.origin, pop = AITown.GetPopulation(townId) };
+        }
+        seenStations.rawset(station, true);
+        hubs.append({ town = hubTown, anchor = end.anchor, stationId = station, routes = routeCount });
+        OpexAir0310NoteHubOrigin(ctx, 0);
+      }
+    }
+    /* AÃƒÆ’Ã‚Â©roports orphelins : aÃƒÆ’Ã‚Â©roports bÃƒÆ’Ã‚Â¢tis sans ligne active (ex: issu d'un BFAIL conservÃƒÆ’Ã‚Â©). */
+    local orphanList = AIStationList(AIStation.STATION_AIRPORT);
+    for (local st = orphanList.Begin(); !orphanList.IsEnd(); st = orphanList.Next()) {
+    yield null; // PO01C_CHECKPOINT
+
+      if (st in seenStations) continue;
+      local loc = AIStation.GetLocation(st);
+      if (!AIMap.IsValidTile(loc) || !AIAirport.IsAirportTile(loc)) continue;
+      local existingType = AIAirport.GetAirportType(loc);
+      if (!OpexAirAirportAcceptsPlane(existingType, plane.planeType)) continue;
+      local townId = AITile.GetClosestTown(loc);
+      if (townId < 0) continue;
+      local hubTown = null;
+      foreach (town in towns) {
+    yield null; // PO01C_CHECKPOINT
+
+        if (town.id == townId) { hubTown = town; break; }
+      }
+      if (hubTown == null) {
+        hubTown = { id = townId, tile = loc, pop = AITown.GetPopulation(townId) };
+      }
+      seenStations.rawset(st, true);
+      hubs.append({ town = hubTown, anchor = loc, stationId = st, routes = 0 });
+      OpexAir0310NoteHubOrigin(ctx, 1);
+    }
+  }
+
+  /* La decouverte des hubs et des sites supplementaires peut elle aussi
+   * suspendre. Revalider les destinations neuves au dernier moment avant
+   * le classement hub-site. */
+  if (sites.len() > 0) {
+    local liveHubSites = [];
+    foreach (site in sites) {
+    yield null; // PO01C_CHECKPOINT
+
+      if (OpexAirSiteStillBuildable(site, airport, plane, false, stationLimitedTowns)) {
+        liveHubSites.append(site);
+      } else if (C69_BOTTLENECK_PROBE) {
+        OpexC73RecordRejection("air", "site_stale_before_rank", 1);
+      }
+    }
+    sites = liveHubSites;
+  }
+
+  if (DECISION_LOG) {
+    local siteFields = sites.len() == 0 ? "none" : "";
+    foreach (site in sites) {
+    yield null; // PO01C_CHECKPOINT
+
+      if (siteFields != "") siteFields += ",";
+      siteFields += site.town.id + ":" + site.town.tile;
+    }
+    local hubFields = hubs.len() == 0 ? "none" : "";
+    foreach (hub in hubs) {
+    yield null; // PO01C_CHECKPOINT
+
+      if (hubFields != "") hubFields += ",";
+      hubFields += hub.town.id + ":" + hub.town.tile;
+    }
+    OpexDecide("AIR_PLAN_SETS", "scan=" + servedDiag.scan + " combo=" + combo.kind
+               + " airport_type=" + airport.type + " plane=" + plane.id
+               + " sites_count=" + sites.len() + " sites=" + siteFields
+               + " hubs_count=" + hubs.len() + " hubs=" + hubFields);
+  }
+
+  ctx.sites = sites;
+  ctx.hubs = hubs;
+}
+
+function OpexPO01CMakePaxCandidate(po01dResult, po01fSitableCache, po01fContext, catalog, kind, cargo, srcTile, dstTile, monthly, originServed, stats, isTransformer = false, profile = null, cruiseCache = null, secondary = null, joinContext = null)
+{
+  if (monthly <= 0) {
+    stats.noMonthly++;
+    { po01dResult.value = null; return; }
+  }
+  local distance = AIMap.DistanceManhattan(srcTile, dstTile);
+  local bounds = OpexCatalogBounds(catalog);
+  if (kind == "pax") {
+    if (distance < bounds.railMin) {
+      stats.distanceShort++;
+      { po01dResult.value = null; return; }
+    }
+    /* V177 : en rail seul, les lignes pax courtes rendent 0,19 du capital contre 0,69 pour le
+     * fret long (banc railseul_origin_reuse_10x3_20261014) ; 0 = inerte. */
+    if (V177_RAIL_PAX_MIN_DIST > 0 && distance < V177_RAIL_PAX_MIN_DIST) {
+      stats.distanceShort++;
+      { po01dResult.value = null; return; }
+    }
+    if (distance > bounds.railMax) {
+      stats.distanceLong++;
+      { po01dResult.value = null; return; }
+    }
+  } else if (distance > ((V269_RAIL_LATE_RELAX > 0 && V269_RELAXED && V269_RAIL_MAX_DIST > bounds.railMax) ? V269_RAIL_MAX_DIST : bounds.railMax)) {
+    stats.distanceLong++;
+    { po01dResult.value = null; return; }
+  } else if (V182_RAIL_FREIGHT_MIN_DIST > 0 && distance < V182_RAIL_FREIGHT_MIN_DIST
+             && !(V195_V182_YEARS > 0 && AIDate.GetYear(AIDate.GetCurrentDate()) >= OPEX_START_YEAR + V195_V182_YEARS)) {
+    /* V182 : fret long 47 k/an par ligne contre 30 k pour le court (v181_railseul, 1972). */
+    stats.distanceShort++;
+    { po01dResult.value = null; return; }
+  }
+  local iterations = OpexRailIterations(distance);
+  /* Source seulement, et seulement si origin_sitable = 1. Les 7 a 15 SITEA mesures etaient
+   * tous du fret a nCargo=0 cote A. Filtrer aussi le puits enlevait des paires urbaines encore
+   * constructibles. A 0, le classement est celui d'avant le filtre (SITEA reste possible).
+   *
+   * MEMO (2026-09-09) : le predicat ne depend que de (srcTile, cargo), jamais de dstTile. Dans
+   * la boucle de paires, srcTile est invariant sur toute la liste de voisins d'une meme ville
+   * source : sans memo, le balayage en anneaux (jusqu'a ~225 tuiles, un appel natif chacune)
+   * etait refait une fois PAR PAIRE au lieu d'une fois par source. Table videe a chaque
+   * OpexBuildCandidates -- aucune donnee stale possible : une gare ou un rail bati pres de la
+   * source change le resultat, et la generation suivante le recalcule.
+   * Cle entiere plutot que chaine : NUM_CARGO <= 64 dans OpenTTD, donc srcTile * 64 + cargo est
+   * injectif, et evite de construire une chaine a chaque paire (ce qui aurait coute presque
+   * aussi cher que le cas ou le predicat repond des le premier anneau).
+   * âš ï¸ profile.paxSitableCalls compte desormais les CALCULS reels, pas les invocations : c'est
+   * ce qu'on veut mesurer, mais ce n'est plus comparable aux releves anterieurs au memo.
+   *
+   * MESURE (2026-09-09, 3 graines x 2 ans, 256x256, c41_rail_pax_candidate_profile=1) :
+   * graine 42 865 calculs pour 4 298 appels (5,0x), graine 100 920 pour 4 398 (4,8x),
+   * graine 7 1 148 pour 6 197 (5,4x) -- ~100 opcodes par calcul reel. Le facteur de
+   * reutilisation est borne par le nombre de voisins a portee d'une ville source : il vaut
+   * ~5 sur 256x256 et croit avec la taille de carte, donc le gain est le plus grand la ou il
+   * sert le plus (C46, cartes 1024x1024). */
+  local sitable = true;
+  if (V233_GOODS_GRAFT && joinContext != null) {
+    sitable = OpexV233JoinContextValid(joinContext, cargo, srcTile, catalog.railCoverage);
+  } else {
+    local sitableKey = srcTile * 64 + cargo;
+    if (sitableKey in po01fSitableCache) {
+      sitable = po01fSitableCache[sitableKey];
+    } else {
+      local sitableMark = profile != null ? OpexOpsMeasureBegin() : null;
+      local po01dBox = { value = null };
+    local po01dChild = OpexPO01CRailOriginSitable(po01dBox, srcTile, cargo, catalog.railCoverage, true);
+    while (po01dChild.getstatus() != "dead") {
+      resume po01dChild;
+      if (po01dChild.getstatus() != "dead") yield null; // PO01C_CHECKPOINT
+    }
+    sitable = po01dBox.value;
+      if (profile != null) {
+        profile.paxSitableOps += OpexOpsMeasureEnd(sitableMark);
+        profile.paxSitableCalls++;
+      }
+      po01fSitableCache[sitableKey] <- sitable;
+      if (DECISION_LOG && po01fContext.diagnostics != null)
+        po01fContext.diagnostics.sitableFills++;
+    }
+  }
+  if (!sitable) {
+    stats.unsitable++;
+    { po01dResult.value = null; return; }
+  }
+
+  if (V216A_GHOST_DEMAND > 0 && kind == "pax") {
+    po01fContext.used = true;
+    local po01dBox = { value = null };
+    local po01dChild = OpexPO01CV216aScaleDemand(po01dBox, po01fContext, srcTile, dstTile, cargo, monthly);
+    while (po01dChild.getstatus() != "dead") {
+      resume po01dChild;
+      if (po01dChild.getstatus() != "dead") yield null; // PO01C_CHECKPOINT
+    }
+    monthly = po01dBox.value;
+    if (secondary != null) {
+      local po01dBox = { value = null };
+    local po01dChild = OpexPO01CV216aScaleDemand(po01dBox, po01fContext, srcTile, dstTile, secondary.cargo, secondary.monthly);
+    while (po01dChild.getstatus() != "dead") {
+      resume po01dChild;
+      if (po01dChild.getstatus() != "dead") yield null; // PO01C_CHECKPOINT
+    }
+    local po01fMail = po01dBox.value;
+      secondary = { cargo = secondary.cargo, monthly = po01fMail };
+    }
+    if (monthly <= 0) {
+      stats.noMonthly++;
+      { po01dResult.value = null; return; }
+    }
+  }
+  local economicsMark = profile != null ? OpexOpsMeasureBegin() : null;
+  /* C41.33 donne le total ; C41.34 le republie avec ses sous-phases afin que les sorties
+   * prÃ©coces de OpexLineEconomics restent visibles comme reliquat de prÃ©paration. */
+  local freightEconomicsMark = (profile != null && kind == "freight" && (C41_RAIL_FREIGHT_ECONOMICS_PROFILE || C41_RAIL_FREIGHT_ECONOMICS_DETAIL_PROFILE || C41_RAIL_FREIGHT_ECONOMICS_SETUP_PROFILE || C41_RAIL_FREIGHT_ECONOMICS_CONSIST_PROFILE)) ? OpexOpsMeasureBegin() : null;
+  if (DECISION_LOG) OpexPO01CWhere("OpexPO01CMakePaxCandidate", "pax:LineEconomics", -1);
+  local economics = OpexLineEconomics(catalog, cargo, distance, monthly, kind, 0, null, profile, cruiseCache,
+                                      null, null, secondary);
+  if (profile != null) {
+    profile.paxEconomicsOps += OpexOpsMeasureEnd(economicsMark);
+    profile.paxEconomicsCalls++;
+  }
+  if (freightEconomicsMark != null) {
+    profile.freightEconomicsOps += OpexOpsMeasureEnd(freightEconomicsMark);
+    profile.freightEconomicsCalls++;
+  }
+  if (EQUIPMENT_ROI_PROBE) {
+    local m3Candidate = { cargo = cargo, distance = distance, monthly = monthly, kind = kind };
+    if (DECISION_LOG) OpexPO01CWhere("OpexPO01CMakePaxCandidate", "pax:M3ProbeRailEquipment", -1);
+    OpexM3ProbeRailEquipment(catalog, m3Candidate, 0, null, economics, "pre_admission");
+  }
+  if (economics == null) {
+    stats.economicsUnavailable++;
+    { po01dResult.value = null; return; }
+  }
+  /* Un candidat dont le profit annuel attendu est negatif ne merite aucun opcode.
+   * L'ancienne famille pax_near (PAX_NEAR fige a false) n'admet plus rien. */
+  if (economics.profitAnnual <= 0) {
+    stats.profitNonPositive++;
+    if (V216_PROBE) OpexV216NoteReject("profit", kind, srcTile, dstTile, monthly, economics);
+    if (OPEX_ECONOMY_OPCODE_COMPAT_FALSE) {}
+    { po01dResult.value = null; return; }
+  }
+
+  local opcodeRatio = (economics.profitAnnual * 1000) / iterations;
+  /* MIN_RATIO reste une mesure et le cout d'opportunite terminal du pathfinder, mais il ne peut
+   * plus eliminer un mode AVANT l'arbitrage par couple O/D. La contrainte d'opcodes est appliquee
+   * apres la contrainte de capital dans projects.nut. */
+  local minRatio = (kind == "freight") ? 200 : MIN_RATIO;
+  local isLowRatio = (opcodeRatio < minRatio);
+  if (isLowRatio) {
+    stats.ratioTooLow++;
+    if (V216_PROBE) OpexV216NoteReject("ratio", kind, srcTile, dstTile, monthly, economics);
+    { po01dResult.value = null; return; }
+  }
+
+  /* Score composite : priorise le fort ROI et le retour sur investissement rapide (cash turnover).
+   * Une rotation rapide (oneWayDays court) reinjecte du cash rapidement pour financer les lignes suivantes. */
+  local turnoverBonus = 100;
+  if (economics.oneWayDays <= 12) turnoverBonus = 130;
+  else if (economics.oneWayDays <= 25) turnoverBonus = 115;
+  else if (economics.oneWayDays <= 45) turnoverBonus = 100;
+  else turnoverBonus = 60;
+  /* C32 : un forfait n'est pas une estimation. Le monopole (+40 %) et la chaine (+35 %) deplacaient
+   * le classement sans rien predire, et C27 avait deja du les sortir du numerateur de densite parce
+   * qu'ils faussaient un diagnostic entier. Tous les modes concourent desormais
+   * sur leur ROI estime. */
+  local freightBonus = 100;
+  if (OPEX_ECONOMY_OPCODE_COMPAT_FALSE && kind == "freight") {}
+  local adjustedRoi = (((economics.roi * turnoverBonus) / 100) * freightBonus) / 100;
+  local ratio = opcodeRatio + (adjustedRoi * 15);
+  local effectiveRoi = (economics.roi * freightBonus) / 100;
+
+  stats.accepted++;
+  local candidate = {
+    mode = "rail",
+    kind = kind,            // "pax" ou "freight"
+    cargo = cargo,
+    /* Vrai quand UNE des deux extremites reutilise une origine deja desservie ; le champ
+     * alimente le cout de tension fonciere (une seule origine libre consommee). */
+    originServed = originServed,
+    src = srcTile,
+    dst = dstTile,
+    distance = distance,
+    monthly = monthly,
+    trains = economics.trains,
+    wagons = economics.wagons,
+    perTrain = economics.perTrain,
+    platformLength = economics.platformLength,
+    loco = economics.loco,
+    effectiveSpeed = economics.effectiveSpeed,
+    tripsPerMonth = economics.tripsPerMonth,
+    headwayDays = economics.headwayDays,
+    stationRating = economics.stationRating,
+    offered = economics.offered,
+    monthlyCapacity = economics.monthlyCapacity,
+    trainsForHeadway = economics.trainsForHeadway,
+    trainsForVolume = economics.trainsForVolume,
+    carried = economics.carried,
+    capital = economics.capital,
+    vehicleCost = economics.vehicleCost,
+    immobilise = ("immobilise" in economics) ? economics.immobilise : 0,
+    roi = effectiveRoi,
+    /* B6 diagnostic : le bonus de rotation agit sur ratio/TopK en amont, pas sur ce roi. */
+    turnoverBonus = turnoverBonus,
+    freightBonus = freightBonus,
+    isTransformer = isTransformer,
+    profitAnnual = economics.profitAnnual,
+    /* Detail du calcul, garde pour l'instrumentation predit-vs-reel (cf. main.nut). */
+    revenueAnnual = economics.revenueAnnual,
+    runningAnnual = economics.runningAnnual,
+    amortAnnual = economics.amortAnnual,
+    oneWayDays = economics.oneWayDays,
+    iterations = iterations,
+    ratio = ratio,
+    opcodeRatio = opcodeRatio,
+    isLowRatio = isLowRatio,
+  };
+  /* V163 : le second cargo n'est garde que s'il a trouve place dans la rame. */
+  if (("wagons2" in economics) && economics.wagons2 > 0) {
+    candidate.cargo2 <- economics.cargo2;
+    candidate.monthly2 <- economics.monthly2;
+    candidate.wagons2 <- economics.wagons2;
+    candidate.perTrain2 <- economics.perTrain2;
+    candidate.carried2 <- economics.carried2;
+    candidate.revenue2 <- economics.revenue2;
+  }
+  { po01dResult.value = candidate; return; }
+}
+
+function OpexPO01CRailOriginSitable(po01dResult, tile, cargo, coverage, wantProduction)
+{
+  local po01gWork = 0;
+  local radius = coverage + 3;
+  for (local r = 0; r <= radius; r++) {
+    if (OpexOpsMeasureEnd(PO01C_WORK_MARK) >= PO01C_WORK_OPS) {
+      yield null; // PO01C_CHECKPOINT
+    if (DECISION_LOG) OpexPO01CWhere("OpexPO01CRailOriginSitable", "pax:RailOriginSitable", -1);
+    }
+
+    for (local dx = -r; dx <= r; dx++) {
+    if (OpexOpsMeasureEnd(PO01C_WORK_MARK) >= PO01C_WORK_OPS) {
+      yield null; // PO01C_CHECKPOINT
+    if (DECISION_LOG) OpexPO01CWhere("OpexPO01CRailOriginSitable", "pax:RailOriginSitable", -1);
+    }
+
+      for (local dy = -r; dy <= r; dy++) {
+    if (++po01gWork % 32 == 0) {
+    if (OpexOpsMeasureEnd(PO01C_WORK_MARK) >= PO01C_WORK_OPS) {
+      yield null; // PO01C_CHECKPOINT
+    if (DECISION_LOG) OpexPO01CWhere("OpexPO01CRailOriginSitable", "pax:RailOriginSitable", -1);
+    }
+    }
+
+        if (abs(dx) != r && abs(dy) != r) continue;
+        local t = tile + AIMap.GetTileIndex(dx, dy);
+        if (!AIMap.IsValidTile(t)) continue;
+        if (AITile.IsWaterTile(t)) continue;
+        if (AITile.IsStationTile(t) || AIRail.IsRailTile(t)) continue;
+        local industry = AIIndustry.GetIndustryID(t);
+        if (AIIndustry.IsValidIndustry(industry)) continue;
+        local value = wantProduction
+            ? AITile.GetCargoProduction(t, cargo, 1, 1, coverage)
+            : AITile.GetCargoAcceptance(t, cargo, 1, 1, coverage);
+        if (wantProduction ? (value > 0) : (value >= 8)) { po01dResult.value = true; return; }
+      }
+    }
+  }
+  { po01dResult.value = false; return; }
+}
+
+function OpexPO01CV216MarkRect(po01dResult, po01fContext, table, x0, y0, x1, y1, ratings)
+{
+  local po01gWork = 0;
+  if (x0 < 1) x0 = 1;
+  if (y0 < 1) y0 = 1;
+  if (x1 > AIMap.GetMapSizeX() - 2) x1 = AIMap.GetMapSizeX() - 2;
+  if (y1 > AIMap.GetMapSizeY() - 2) y1 = AIMap.GetMapSizeY() - 2;
+  for (local x = x0; x <= x1; x++) {
+    if (OpexOpsMeasureEnd(PO01C_WORK_MARK) >= PO01C_WORK_OPS) {
+      yield null; // PO01C_CHECKPOINT
+    if (DECISION_LOG) OpexPO01CWhere("OpexPO01CV216MarkRect", "pax:V216MarkRect", -1);
+    }
+
+    for (local y = y0; y <= y1; y++) {
+    if (++po01gWork % 32 == 0) {
+    if (OpexOpsMeasureEnd(PO01C_WORK_MARK) >= PO01C_WORK_OPS) {
+      yield null; // PO01C_CHECKPOINT
+    if (DECISION_LOG) OpexPO01CWhere("OpexPO01CV216MarkRect", "pax:V216MarkRect", -1);
+    }
+    }
+
+      local key = AIMap.GetTileIndex(x, y);
+      if (ratings == null) {
+        table.rawset(key, true);
+      } else if (key in table) {
+        local cur = table[key];
+        if (ratings[0] > cur[0]) cur[0] = ratings[0];
+        if (ratings[1] > cur[1]) cur[1] = ratings[1];
+      } else {
+        table.rawset(key, [ratings[0], ratings[1]]);
+      }
+    }
+  }
+}
+
+function OpexPO01CV216RefreshCover(po01dResult, po01fContext)
+{
+  local now = po01fContext.now;
+  local ym = AIDate.GetYear(now) * 12 + AIDate.GetMonth(now) - 1;
+  local cover = po01fContext.cover;
+  if (cover.ownMonth == ym) { po01dResult.value = cover; return; }
+  cover.ownMonth = ym;
+  if (DECISION_LOG && po01fContext.diagnostics != null)
+    po01fContext.diagnostics.coverRebuilds++;
+  cover.cache = {};
+  cover.own = {};
+  if (cover.advQuarter != ym / 3) {
+    cover.advQuarter = ym / 3;
+    cover.adv = {};
+  }
+  local pax = OpexV216Cargo(AICargo.CC_PASSENGERS);
+  local mail = OpexV216Cargo(AICargo.CC_MAIL);
+  foreach (st, sv in AIStationList(AIStation.STATION_ANY)) {
+    if (OpexOpsMeasureEnd(PO01C_WORK_MARK) >= PO01C_WORK_OPS) {
+      yield null; // PO01C_CHECKPOINT
+    if (DECISION_LOG) OpexPO01CWhere("OpexPO01CV216RefreshCover", "pax:V216RefreshCover", -1);
+    }
+
+    local ratings = [0, 0];
+    if (pax != null && AIStation.HasCargoRating(st, pax)) ratings[0] = AIStation.GetCargoRating(st, pax);
+    if (mail != null && AIStation.HasCargoRating(st, mail)) ratings[1] = AIStation.GetCargoRating(st, mail);
+    foreach (type in [AIStation.STATION_TRAIN, AIStation.STATION_AIRPORT, AIStation.STATION_BUS_STOP,
+                      AIStation.STATION_TRUCK_STOP, AIStation.STATION_DOCK]) {
+    if (OpexOpsMeasureEnd(PO01C_WORK_MARK) >= PO01C_WORK_OPS) {
+      yield null; // PO01C_CHECKPOINT
+    if (DECISION_LOG) OpexPO01CWhere("OpexPO01CV216RefreshCover", "pax:V216RefreshCover", -1);
+    }
+      if (!AIStation.HasStationType(st, type)) continue;
+      local x0 = 99999, y0 = 99999, x1 = -1, y1 = -1, r = 0;
+      foreach (tile, tv in AITileList_StationType(st, type)) {
+    if (OpexOpsMeasureEnd(PO01C_WORK_MARK) >= PO01C_WORK_OPS) {
+      yield null; // PO01C_CHECKPOINT
+    if (DECISION_LOG) OpexPO01CWhere("OpexPO01CV216RefreshCover", "pax:V216RefreshCover", -1);
+    }
+
+        local x = AIMap.GetTileX(tile), y = AIMap.GetTileY(tile);
+        if (x < x0) x0 = x;
+        if (y < y0) y0 = y;
+        if (x > x1) x1 = x;
+        if (y > y1) y1 = y;
+        if (r == 0) r = OpexV216StationRadius(tile);
+      }
+      if (x1 >= 0) {
+    local po01dBox = { value = null };
+    local po01dChild = OpexPO01CV216MarkRect(po01dBox, po01fContext, cover.own, x0 - r, y0 - r, x1 + r, y1 + r, ratings);
+    while (po01dChild.getstatus() != "dead") {
+      resume po01dChild;
+      if (po01dChild.getstatus() != "dead") yield null; // PO01C_CHECKPOINT
+    }
+    }
+    }
+  }
+  { po01dResult.value = cover; return; }
+}
+
+function OpexPO01CV216AdvAround(po01dResult, po01fContext, cover, center, radius)
+{
+  if (center in cover.adv) { po01dResult.value = cover.adv[center]; return; }
+  local table = {};
+  local me = AICompany.ResolveCompanyID(AICompany.COMPANY_SELF);
+  local cx = AIMap.GetTileX(center), cy = AIMap.GetTileY(center);
+  local w = radius + V216_ADV_MAX_RADIUS;
+  local tiles = AITileList();
+  local mx = AIMap.GetMapSizeX() - 2, my = AIMap.GetMapSizeY() - 2;
+  tiles.AddRectangle(AIMap.GetTileIndex(cx - w < 1 ? 1 : cx - w, cy - w < 1 ? 1 : cy - w),
+      AIMap.GetTileIndex(cx + w > mx ? mx : cx + w, cy + w > my ? my : cy + w));
+  tiles.Valuate(AITile.IsStationTile);
+  tiles.KeepValue(1);
+  foreach (tile, tv in tiles) {
+    if (OpexOpsMeasureEnd(PO01C_WORK_MARK) >= PO01C_WORK_OPS) {
+      yield null; // PO01C_CHECKPOINT
+    if (DECISION_LOG) OpexPO01CWhere("OpexPO01CV216AdvAround", "pax:V216AdvAround", -1);
+    }
+
+    if (AITile.GetOwner(tile) == me) continue;
+    if (!AIRail.IsRailStationTile(tile) && !AIAirport.IsAirportTile(tile)
+        && !AIRoad.IsRoadStationTile(tile) && !AIMarine.IsDockTile(tile)) continue;
+    local r = OpexV216StationRadius(tile);
+    local x = AIMap.GetTileX(tile), y = AIMap.GetTileY(tile);
+    {
+    local po01dBox = { value = null };
+    local po01dChild = OpexPO01CV216MarkRect(po01dBox, po01fContext, table, x - r > cx - radius ? x - r : cx - radius,
+        y - r > cy - radius ? y - r : cy - radius,
+        x + r < cx + radius ? x + r : cx + radius,
+        y + r < cy + radius ? y + r : cy + radius, null);
+    while (po01dChild.getstatus() != "dead") {
+      resume po01dChild;
+      if (po01dChild.getstatus() != "dead") yield null; // PO01C_CHECKPOINT
+    }
+    }
+  }
+  cover.adv.rawset(center, table);
+  { po01dResult.value = table; return; }
+}
+
+function OpexPO01CV216Coverage(po01dResult, po01fContext, center, cargo, radius)
+{
+  local po01gWork = 0;
+  local po01dBox = { value = null };
+    local po01dChild = OpexPO01CV216RefreshCover(po01dBox, po01fContext);
+    while (po01dChild.getstatus() != "dead") {
+      resume po01dChild;
+      if (po01dChild.getstatus() != "dead") yield null; // PO01C_CHECKPOINT
+    }
+    local cover = po01dBox.value;
+  local key = center + "|" + cargo + "|" + radius;
+  if (key in cover.cache) { po01dResult.value = cover.cache[key]; return; }
+  local adv;
+  { local po01dBox = { value = null };
+    local po01dChild = OpexPO01CV216AdvAround(po01dBox, po01fContext, cover, center, radius);
+    while (po01dChild.getstatus() != "dead") {
+      resume po01dChild;
+      if (po01dChild.getstatus() != "dead") yield null; // PO01C_CHECKPOINT
+    }
+    adv = po01dBox.value; }
+  local ci = AICargo.HasCargoClass(cargo, AICargo.CC_MAIL) ? 1 : 0;
+  local cx = AIMap.GetTileX(center);
+  local cy = AIMap.GetTileY(center);
+  local res = { prod = 0, own = 0, adv = 0, ownRating = 0 };
+  for (local x = cx - radius; x <= cx + radius; x++) {
+    if (OpexOpsMeasureEnd(PO01C_WORK_MARK) >= PO01C_WORK_OPS) {
+      yield null; // PO01C_CHECKPOINT
+    if (DECISION_LOG) OpexPO01CWhere("OpexPO01CV216Coverage", "pax:V216Coverage", -1);
+    }
+
+    for (local y = cy - radius; y <= cy + radius; y++) {
+    if (++po01gWork % 32 == 0) {
+    if (OpexOpsMeasureEnd(PO01C_WORK_MARK) >= PO01C_WORK_OPS) {
+      yield null; // PO01C_CHECKPOINT
+    if (DECISION_LOG) OpexPO01CWhere("OpexPO01CV216Coverage", "pax:V216Coverage", -1);
+    }
+    }
+
+      if (x < 1 || y < 1 || x >= AIMap.GetMapSizeX() - 1 || y >= AIMap.GetMapSizeY() - 1) continue;
+      local tile = AIMap.GetTileIndex(x, y);
+      if (AITile.GetCargoProduction(tile, cargo, 1, 1, 0) <= 0) continue;
+      res.prod++;
+      if (tile in cover.own) {
+        res.own++;
+        local r = cover.own[tile][ci];
+        if (r > res.ownRating) res.ownRating = r;
+      } else if (tile in adv) {
+        res.adv++;
+      }
+    }
+  }
+  cover.cache.rawset(key, res);
+  { po01dResult.value = res; return; }
+}
+
+function OpexPO01CV216GainPct(po01dResult, po01fContext, center, cargo, radius, rn)
+{
+  if (center == null || center < 0 || rn <= 0) { po01dResult.value = 100; return; }
+  local po01dBox = { value = null };
+    local po01dChild = OpexPO01CV216Coverage(po01dBox, po01fContext, center, cargo, radius);
+    while (po01dChild.getstatus() != "dead") {
+      resume po01dChild;
+      if (po01dChild.getstatus() != "dead") yield null; // PO01C_CHECKPOINT
+    }
+    local c = po01dBox.value;
+  if (c.prod <= 0) { po01dResult.value = 100; return; }
+  local rnf = rn.tofloat();
+  local ro = c.ownRating.tofloat();
+  local best = rnf > ro ? rnf : ro;
+  local free = (c.prod - c.own - c.adv).tofloat();
+  { po01dResult.value = (100.0 * (free * rnf + c.own * (best - ro) + c.adv * rnf * 0.5) / (c.prod * rnf)).tointeger(); return; }
+}
+
+function OpexPO01CV216aEndPct(po01dResult, po01fContext, center, cargo, radius)
+{
+  if (V216A_GHOST_DEMAND == 1) { local po01dBox = { value = null };
+    local po01dChild = OpexPO01CV216GainPct(po01dBox, po01fContext, center, cargo, radius, V216A_RN);
+    while (po01dChild.getstatus() != "dead") {
+      resume po01dChild;
+      if (po01dChild.getstatus() != "dead") yield null; // PO01C_CHECKPOINT
+    }
+    po01dResult.value = po01dBox.value; return; }
+  if (center == null || center < 0) { po01dResult.value = 100; return; }
+  local po01dBox = { value = null };
+    local po01dChild = OpexPO01CV216Coverage(po01dBox, po01fContext, center, cargo, radius);
+    while (po01dChild.getstatus() != "dead") {
+      resume po01dChild;
+      if (po01dChild.getstatus() != "dead") yield null; // PO01C_CHECKPOINT
+    }
+    local c = po01dBox.value;
+  if (c.prod <= 0) { po01dResult.value = 100; return; }
+  local rnf = V216A_RN.tofloat();
+  local ro = c.ownRating.tofloat();
+  local best = rnf > ro ? rnf : ro;
+  local free = (c.prod - c.own - c.adv).tofloat();
+  local line = free * rnf + c.own * best * rnf / (rnf + ro) + c.adv * rnf * 0.5;
+  { po01dResult.value = (100.0 * line / (c.prod * rnf)).tointeger(); return; }
+}
+
+function OpexPO01CV216aScaleDemand(po01dResult, po01fContext, srcTile, dstTile, cargo, monthly)
+{
+  local radius = AIStation.GetCoverageRadius(AIStation.STATION_TRAIN);
+  local po01fSrc, po01fDst;
+  { local po01dBox = { value = null };
+    local po01dChild = OpexPO01CV216aEndPct(po01dBox, po01fContext, srcTile, cargo, radius);
+    while (po01dChild.getstatus() != "dead") {
+      resume po01dChild;
+      if (po01dChild.getstatus() != "dead") yield null; // PO01C_CHECKPOINT
+    }
+    po01fSrc = po01dBox.value; }
+  { local po01dBox = { value = null };
+    local po01dChild = OpexPO01CV216aEndPct(po01dBox, po01fContext, dstTile, cargo, radius);
+    while (po01dChild.getstatus() != "dead") {
+      resume po01dChild;
+      if (po01dChild.getstatus() != "dead") yield null; // PO01C_CHECKPOINT
+    }
+    po01fDst = po01dBox.value; }
+  local pct = (po01fSrc + po01fDst) / 2;
+  if (pct >= 100) { po01dResult.value = monthly; return; }
+  { po01dResult.value = (monthly * pct) / 100; return; }
 }

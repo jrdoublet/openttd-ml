@@ -5,6 +5,7 @@ import hashlib
 import json
 from datetime import date
 from pathlib import Path
+from statistics import median
 
 
 def events(text, tag):
@@ -26,7 +27,8 @@ def summarize(text):
     batches = [r for r in events(text, 'PO01C_BATCH') if r.get('phase') == 'publish']
     slices = events(text, 'PO01C_SLICE')
     sync = [r for r in events(text, 'PO01C_SYNC') if r.get('reason') == 'reactive']
-    return {'published': batches, 'published_count': len(batches),
+    return {'units': summarize_units(text),
+            'published': batches, 'published_count': len(batches),
             'slice_count': len(slices),
             'slice_ops': sum(int(r['ops']) for r in slices),
             'max_slice_ops': max((int(r['ops']) for r in slices), default=None),
@@ -34,6 +36,17 @@ def summarize(text):
             'freezes_over_5_days': sum(int(r['days']) > 5 for r in slices + sync),
             'synchronous_reactive': sync,
             'script_errors': text.count('[0] [S] Your script made an error')}
+
+
+def summarize_units(text):
+    """Only logged maxima above the slice budget, NOT all resumes/population."""
+    groups = {}
+    for row in events(text, 'PO01C_UNIT'):
+        key = (row['mode'], row['gen'], row['site'])
+        groups.setdefault(key, []).append(int(row['ops']))
+    return [dict(mode=key[0], gen=key[1], site=key[2], count=len(values),
+                 ops_max=max(values), ops_median=median(values))
+            for key, values in sorted(groups.items())]
 
 
 def main():

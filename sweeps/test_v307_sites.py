@@ -11,7 +11,7 @@ from pathlib import Path
 import re
 import unittest
 
-from sweeps.diag_v307_sites import autopsy, parse_logs, summarise
+from sweeps.diag_v307_sites import autopsy, iso_state, parse_logs, summarise
 
 
 AI = Path(__file__).resolve().parents[1] / "ai" / "OpexAI"
@@ -88,6 +88,61 @@ def hybrid_octants(spiral, native, maximum=12):
     return plans
 
 
+def ring_tiles(r):
+    """Ordre de la spirale historique : dx croissant, puis dy croissant, perimetre seul."""
+    return [(dx, dy) for dx in range(-r, r + 1) for dy in range(-r, r + 1)
+            if abs(dx) == r or abs(dy) == r]
+
+
+SEGMENTS = [(7, 0, 1), (3, 2, 1), (5, 4, 3), (5, 6, 7)]
+
+
+def edge_tiles(r):
+    """Transcription des segments de OpexV307SpiralContinue : (octant annonce, dx, dy)."""
+    out = []
+    half = (r - 1) // 2
+    for e in range(4):
+        corner = r if e in (0, 2) else r - 1
+        for seg in range(3):
+            t0 = -corner if seg == 0 else (-half if seg == 1 else half + 1)
+            t1 = -half - 1 if seg == 0 else (half if seg == 1 else corner)
+            for t in range(t0, t1 + 1):
+                dx = r if e == 0 else (-r if e == 2 else t)
+                dy = r if e == 1 else (-r if e == 3 else t)
+                out.append((SEGMENTS[e][seg], dx, dy))
+    return out
+
+
+def spiral(admissible, radius, limit):
+    """Plans (un par orientation admise) et anneau d'arret, comme la copie V307S."""
+    plans, last = [], radius + 1
+    for r in range(radius + 1):
+        if len(plans) >= limit:
+            break
+        last = r
+        for tile in ring_tiles(r):
+            for orientation in admissible.get(tile, ()):
+                plans.append((tile, orientation))
+                if len(plans) >= limit:
+                    break
+            if len(plans) >= limit:
+                break
+    stop = last if len(plans) >= limit else radius + 1
+    return plans, stop
+
+
+def continue_spiral(admissible, start, max_ring, wanted):
+    found = {}
+    for r in range(max(start, 1), max_ring + 1):
+        for _, dx, dy in edge_tiles(r):
+            side = octant(dx, dy)
+            if side in wanted and side not in found and admissible.get((dx, dy)):
+                found[side] = (dx, dy)
+        if len(found) == len(wanted):
+            break
+    return found
+
+
 class TestV307Sites(unittest.TestCase):
     def test_octant_axes_and_diagonals(self):
         self.assertEqual([octant(*xy) for xy in
@@ -116,7 +171,7 @@ class TestV307Sites(unittest.TestCase):
         self.assertIsNotNone(setting)
         for level in ("easy", "medium", "hard", "custom"):
             self.assertRegex(setting.group(1), rf'{level}_value\s*=\s*0\b')
-        self.assertRegex(setting.group(1), r'max_value\s*=\s*2\b')
+        self.assertRegex(setting.group(1), r'max_value\s*=\s*3\b')
         self.assertEqual(source("settings.nut").count('GetSetting("v307_sites")'), 1)
         self.assertIn("V307_SITES <- 0;", source("globals_pre.nut"))
 
@@ -176,6 +231,81 @@ class TestV307Sites(unittest.TestCase):
             detail = autopsy(parse_logs([file]))
         self.assertIn("| v307s | 1973 | B | freight | 1 | 1 | 100.0% |", detail)
         self.assertIn("étape inconnue (anciens logs sans compteurs)", detail)
+
+    def test_three_edges_cover_each_ring_tile_once_with_declared_octants(self):
+        for r in range(1, 31):
+            tiles = edge_tiles(r)
+            self.assertEqual(sorted((dx, dy) for _, dx, dy in tiles), sorted(ring_tiles(r)))
+            for announced, dx, dy in tiles:
+                self.assertEqual(octant(dx, dy), announced)
+
+    def test_three_skipping_inner_rings_loses_no_site(self):
+        """Exactitude : sous la limite atteinte a l'anneau s, tout site admissible d'un
+        octant absent est a un anneau >= s ; repartir de s retrouve le premier."""
+        import random
+        rng = random.Random(307)
+        for _ in range(400):
+            radius = rng.randint(3, 12)
+            density = rng.choice((0.05, 0.15, 0.4))
+            admissible = {}
+            for r in range(radius + 1):
+                for tile in ring_tiles(r):
+                    if rng.random() < density:
+                        admissible[tile] = tuple(range(rng.randint(1, 4)))
+            plans, stop = spiral(admissible, radius, 12)
+            covered = {octant(*tile) for tile, _ in plans}
+            wanted = set(range(8)) - covered
+            fast = continue_spiral(admissible, stop, radius, wanted)
+            full = continue_spiral(admissible, 1, radius, wanted)
+            self.assertEqual(set(fast), set(full))
+            for side, tile in fast.items():
+                self.assertEqual(max(abs(tile[0]), abs(tile[1])),
+                                 max(abs(full[side][0]), abs(full[side][1])))
+            if len(plans) < 12:
+                self.assertEqual(stop, radius + 1)
+                self.assertEqual(fast, {})
+
+    def test_three_reader_reports_iso_state_ratio(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            file = Path(tmp) / "v307s3_seed42_r0.log"
+            file.write_text(
+                "[0] [I] OPEX 1972-1-2 V307S_PLANS mode=freight side=B center=17 oct_n=2 "
+                "plans=12 ops=1300 v=3 spiral=12 native_added=1 spiral_ops=1000 "
+                "extra_ops=300 stop_ring=3 max_ring=9 wanted=6\n"
+                "[0] [I] OPEX 1972-2-2 V307S_PLANS mode=freight side=A center=18 oct_n=3 "
+                "plans=5 ops=2000 v=3 spiral=5 native_added=0 spiral_ops=2000 "
+                "extra_ops=0 stop_ring=31 max_ring=-1 wanted=5\n", encoding="utf-8")
+            table = iso_state(parse_logs([file]))
+        self.assertIn("| v307s3 | 2 | 1 | 1 | 1 | 1.150 | 1.300 | 1.300 |", table)
+
+    def test_three_code_contracts(self):
+        rail = source("builder_rail.nut")
+        self.assertIn("const V307S3_BUDGET_PCT = 60;", rail)
+        self.assertIn("function OpexV307TargetedStationPlans", rail)
+        self.assertIn("function OpexV307SpiralContinue", rail)
+        dispatch = rail[rail.index("function OpexStationPlans("):]
+        self.assertLess(dispatch.index("if (V307_SITES == 3)"), dispatch.index("if (V307_SITES == 2)"))
+        self.assertLess(dispatch.index("if (V307_SITES == 2)"), dispatch.index("if (V307_SITES > 0)"))
+        self.assertIn("requireDouble, rankPct,\n                                       scan = null)", rail)
+        self.assertIn("if (scan != null) scan.stopRing <-", rail)
+        self.assertIn("if (nWanted > 0 && scan.stopRing <= radius)", rail)
+        self.assertIn("tiles.Valuate(AIMap.DistanceMax, center);", rail)
+        for field in ('" v=3 spiral="', '" spiral_ops="', '" extra_ops="', '" stop_ring="',
+                      '" max_ring="', '" wanted="'):
+            self.assertIn(field, rail)
+        body = rail[rail.index("function OpexV307SpiralContinue"):
+                    rail.index("function OpexV307TargetedStationPlans")]
+        self.assertIn("local edges = [[7, 0, 1], [3, 2, 1], [5, 4, 3], [5, 6, 7]];", body)
+        self.assertIn("if (scan != null && (!AITile.IsBuildable(tile)", rail)
+        self.assertIn("if (OpexOpsClock() - mark + worstTry > budget) { out.budgetStop = 1; return found; }", body)
+        self.assertIn("if (aoct < 0 || !open[aoct]) continue;", body)
+        self.assertIn("!open[(oct + 1) % 8] && !open[(oct + 7) % 8]", body)
+        self.assertIn("if (spiralOps <= 0) maxRing = -1;", rail)
+        self.assertIn("V307S3_REACH[key] <- [indType, coverage, reach];", rail)
+        self.assertNotIn("function(", body)
+        settings = source("settings.nut")
+        self.assertIn("v307Sites == 3", settings)
 
 
 if __name__ == "__main__":

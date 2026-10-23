@@ -125,6 +125,39 @@ def format_report(report):
     return "\n".join(lines)
 
 
+def iso_state(observations):
+    """V307S=3 : cout du complement rapporte a la spirale du MEME appel (iso-etat)."""
+    lines = ["| Bras | Appels v=3 | Epuisees | Complement tente | Quais ajoutes | "
+             "Ratio ops/spirale med. | p90 | max |",
+             "|---|---:|---:|---:|---:|---:|---:|---:|"]
+    by_arm = defaultdict(list)
+    for record in observations["sites"]:
+        if "spiral_ops" in record:
+            by_arm[record["arm"]].append(record)
+    for arm, calls in sorted(by_arm.items()):
+        ratios = []
+        for rec in calls:
+            spiral_ops = int(rec["spiral_ops"])
+            if spiral_ops > 0:
+                ratios.append(int(rec["ops"]) / spiral_ops)
+        exhausted = sum(1 for rec in calls if rec.get("max_ring") == "-1")
+        tried = sum(1 for rec in calls if int(rec.get("extra_ops", "0")) > 0
+                    and rec.get("max_ring") != "-1")
+        added = sum(int(rec.get("native_added", "0")) for rec in calls)
+        seq = sorted(ratios)
+        lines.append(f"| {arm} | {len(calls)} | {exhausted} | {tried} | {added} | "
+                     f"{median(seq):.3f} | {percentile_float(seq, 90):.3f} | {seq[-1]:.3f} |"
+                     if seq else f"| {arm} | {len(calls)} | {exhausted} | {tried} | {added} | - | - | - |")
+    return "\n".join(lines)
+
+
+def percentile_float(values, percent):
+    if not values:
+        return float("nan")
+    seq = sorted(values)
+    return seq[(percent * (len(seq) - 1) + 99) // 100]
+
+
 def autopsy(observations):
     """Pre-existing logs: annual empty-plan rates; newer logs: first empty stage.
 
@@ -183,6 +216,8 @@ def main():
     if not observations["files"]:
         parser.error("aucun journal moteur attendu (arm_seedN_rN.log) dans --logs")
     print(format_report(summarise(observations)))
+    if any("spiral_ops" in record for record in observations["sites"]):
+        print("\n" + iso_state(observations))
     if args.autopsy:
         print("\n" + autopsy(observations))
 

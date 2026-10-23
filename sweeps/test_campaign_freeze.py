@@ -468,14 +468,20 @@ class TestCampaignFreeze(unittest.TestCase):
         if shutil.which("git") is None:
             self.skipTest("git absent de ce runtime (ex: image openttd-lab, sans git installe)")
 
-        with tempfile.TemporaryDirectory() as tmp:
+        # Isolate the fixture from inherited worktree selectors, without writing
+        # Git configuration (even in the temporary repository).
+        git_env = {key: value for key, value in os.environ.items()
+                   if not key.startswith("GIT_")}
+        git_env.update(GIT_AUTHOR_NAME="Test", GIT_COMMITTER_NAME="Test",
+                       GIT_AUTHOR_EMAIL="test@example.invalid",
+                       GIT_COMMITTER_EMAIL="test@example.invalid")
+        with tempfile.TemporaryDirectory() as tmp, mock.patch.dict(os.environ, git_env, clear=True):
             root = Path(tmp)
             subprocess.run(["git", "init", "-q"], cwd=root, check=True)
-            subprocess.run(["git", "config", "user.email", "test@example.invalid"], cwd=root, check=True)
-            subprocess.run(["git", "config", "user.name", "Test"], cwd=root, check=True)
             (root / "file.txt").write_text("x", encoding="utf-8")
             subprocess.run(["git", "add", "file.txt"], cwd=root, check=True)
-            subprocess.run(["git", "commit", "-qm", "fixture"], cwd=root, check=True)
+            subprocess.run(["git", "-c", "user.email=test@example.invalid",
+                            "-c", "user.name=Test", "commit", "-qm", "fixture"], cwd=root, check=True)
             clean = git_state(root)
             self.assertFalse(clean["dirty"])
             self.assertEqual(len(clean["sha"]), 40)

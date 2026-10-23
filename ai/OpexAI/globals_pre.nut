@@ -89,6 +89,8 @@ V308_CARTO_PROBE <- 0;  // V308 : mesure passive de cinq motifs sur des blocs 8x
 V308_DONE <- false;
 V307_ABND_AUTOPSY <- false;
 V307_SITES <- 0;  // V307 1.8 : sites rail repartis par octant, defaut 0
+V307S3_REACH <- {};  // V307S=3 : portee du captage par tuile d'industrie et cote (cache, non sauvegarde)
+STATION_PLAN_PRECHECK <- true; // PO-02 : rejet anticipe exact, defaut 1 (adopte 23/10)
 V307_SINK_ROOM <- 0; // V307 1.9b : 1 bande reservee, 2 gare fret a deux quais, defaut 0
 /* RAIL-CAL-1 : 1 = score RAIL experimental cout + profit seulement (defaut 0). */
 RAIL_CAL <- 0;
@@ -766,4 +768,4 @@ V296A_MISMATCH <- false;
 
 /* V296b : file native AIList et noeuds en tableaux ; 2 = comparaison V129. */
 V296_ASTAR_NATIVE <- 1;  // defaut v296clean depuis le 21/10 (decision utilisateur)
-PO01C_REGEN_SPLIT <- false;
+PO01C_REGEN_SPLIT <- true; // PO-01c : defaut 1 (decision utilisateur 23/10)

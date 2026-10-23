@@ -14,9 +14,9 @@ class OpexAIInfo extends AIInfo {
   function GetSettings()
   {
     AddSetting({ name = "po01c_regen_split",
-      description = "PO01C: resumable reactive regeneration (experimental)",
+      description = "PO01C: resumable reactive regeneration (default 1 since 23/10, user decision after neutral porte A)",
       min_value = 0, max_value = 1,
-      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
+      easy_value = 1, medium_value = 1, hard_value = 1, custom_value = 1,
       flags = AICONFIG_BOOLEAN });
     AddSetting({ name = "v278_air_lazy_sites",
       description = "V278: population ordered lazy AIR sites and scan preparation cache; 0 = off, 1 = on, 2 = auto: on when the map has at least 1024x1024 tiles (default since 20/10, qualified at 1024x1024 only)",
@@ -409,9 +409,17 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "station_plan_precheck",
+      description = "PO-02: skip non-buildable or non-flat base tiles before rail station orientations; 0 = historical, 1 = precheck (default since 23/10, porte B pass)",
+      min_value = 0, max_value = 1,
+      easy_value = 1, medium_value = 1, hard_value = 1, custom_value = 1,
+      step_size = 1, flags = 0
+    });
+
+    AddSetting({
       name = "v307_sites",
-      description = "V307 1.8 experimental rail station sites: 0 = historical spiral (default), 1 = native dispersed, 2 = spiral first with native octant supplementation",
-      min_value = 0, max_value = 2,
+      description = "V307 1.8 experimental rail station sites: 0 = historical spiral (default), 1 = native dispersed, 2 = spiral first with native octant supplementation, 3 = spiral continued past its stop ring in missing octants only, budgeted",
+      min_value = 0, max_value = 3,
       easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
       step_size = 1, flags = 0
     });
