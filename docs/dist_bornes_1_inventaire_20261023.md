@@ -54,3 +54,25 @@ V233 `goods_v233.nut:304`, V276 `candidates_v276.nut:137`, subventions `candidat
 3. Revoir le modèle de bascule route/rail (production transportée, ROI cible) et ne plus
    plafonner la bascule rail/avion à `railMax` ; aligner les `minDist` AIR.
 4. Comportement changé ⇒ protocole V102 (porte A 40×3) ; défaut inchangé sans qualification.
+
+## Mesure 8 graines × 3 ans (23/10, VPS, `dist_bornes_mesure_8x3_20261023`)
+
+Défauts de master `6ccab033`, `decision_log=1`, graines 42 100 7 999 2026 1 17 1234 ; analyse
+`sweeps/diag_dist_bornes.py` (codex, `79fa6a8e`) ; chemins AIR : `dist_bornes_1_chemins_air.md`.
+
+- **Bornes identiques sur les 8 graines et les 35 recalculs** (1970-1972) : roadMin=roadMax=7,
+  roadGen=200, railMin=7, railMax=railAir=airMin=200, airMax=512. Elles ne suivent donc ni la carte
+  ni les moteurs en pratique.
+- Distances des projets choisis (journal = distance de vol entre aéroports pour l'AIR, le filtre
+  `airMin` porte sur les centres-villes) :
+
+| Mode | n | min | q25 | médiane | q75 | max |
+|---|---:|---:|---:|---:|---:|---:|
+| air | 320 | 139 | 173 | 194,5 | 218 | 298 |
+| rail (choisis) | 141 | 21 | 94 | 134 | 167 | 198 |
+| rail (construits) | 120 | 20 | 78 | 115 | 157 | 196 |
+| route | 11 | 22 | 33,5 | 38 | 44,5 | 48 |
+
+- Lecture : l'avion n'a accès qu'aux paires de villes ≥ 200 tuiles (≈ 40 % de l'étendue
+  maximale de la carte) ; le rail prend tout entre 7 et 200 ; la route ne survit qu'à 22-48 tuiles,
+  toutes « au-dessus de roadMax ».
