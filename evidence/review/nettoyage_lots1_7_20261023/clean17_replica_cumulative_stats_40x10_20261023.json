@@ -1,0 +1,654 @@
+{
+  "initial": {
+    "n": 20,
+    "profit_mean_before": 4428998.65,
+    "profit_mean_after": 4266422.7,
+    "mean_delta_profit_year": -162575.95,
+    "median_delta_profit_year": -157553.0,
+    "sample_stdev_delta": 494544.3160715545,
+    "student_tcrit": 2.093024054408263,
+    "student95": [
+      -394029.8145345687,
+      68877.91453456864
+    ],
+    "wins": 8,
+    "losses": 12,
+    "ties": 0,
+    "two_sided_sign_p": 0.5034446716308594,
+    "company_value_mean_before": 21238438.35,
+    "company_value_mean_after": 20180679.9,
+    "company_value_ratio": 0.9501960345403643,
+    "criteria": {
+      "student_upper_ge_zero": true,
+      "sign_p_ge_005_or_majority_wins": true,
+      "value_ratio_ge_095": true
+    },
+    "non_erosion_pass": true
+  },
+  "replication": {
+    "n": 20,
+    "profit_mean_before": 4570695.15,
+    "profit_mean_after": 4532970.5,
+    "mean_delta_profit_year": -37724.65,
+    "median_delta_profit_year": 4396.5,
+    "sample_stdev_delta": 433743.3828621026,
+    "student_tcrit": 2.093024054408263,
+    "student95": [
+      -240722.80186877048,
+      165273.5018687705
+    ],
+    "wins": 10,
+    "losses": 10,
+    "ties": 0,
+    "two_sided_sign_p": 1.0,
+    "company_value_mean_before": 21106971.05,
+    "company_value_mean_after": 21227102.35,
+    "company_value_ratio": 1.0056915461586329,
+    "criteria": {
+      "student_upper_ge_zero": true,
+      "sign_p_ge_005_or_majority_wins": true,
+      "value_ratio_ge_095": true
+    },
+    "non_erosion_pass": true
+  },
+  "cumulative_40": {
+    "n": 40,
+    "profit_mean_before": 4499846.9,
+    "profit_mean_after": 4399696.6,
+    "mean_delta_profit_year": -100150.3,
+    "median_delta_profit_year": -47830.5,
+    "sample_stdev_delta": 463468.5042569388,
+    "student_tcrit": 2.0226909200367604,
+    "student95": [
+      -248374.71860364865,
+      48074.11860364863
+    ],
+    "wins": 18,
+    "losses": 22,
+    "ties": 0,
+    "two_sided_sign_p": 0.6358280026288412,
+    "company_value_mean_before": 21172704.7,
+    "company_value_mean_after": 20703891.125,
+    "company_value_ratio": 0.9778576435253452,
+    "criteria": {
+      "student_upper_ge_zero": true,
+      "sign_p_ge_005_or_majority_wins": true,
+      "value_ratio_ge_095": true
+    },
+    "non_erosion_pass": true
+  },
+  "similarity": {
+    "preregistered_definition": "mean negative and absolute magnitude 0.5-2x initial, OR value ratio in [0.94,0.96]",
+    "is_similar": false,
+    "verdict": "non similaire"
+  },
+  "replication_seeds_preregistered_order": [
+    423960,
+    613553,
+    515222,
+    781335,
+    375172,
+    999533,
+    442018,
+    746035,
+    455216,
+    230185,
+    706990,
+    983759,
+    802204,
+    232037,
+    723002,
+    313707,
+    701256,
+    292001,
+    841478,
+    59527
+  ],
+  "replication_comparator": "results/clean17_replica_econ_cross_20x10_20261023.json",
+  "rows": {
+    "replication": [
+      {
+        "seed": 59527,
+        "repeat": 0,
+        "profit_before": 5512835,
+        "profit_after": 5544161,
+        "delta_profit_year": 31326,
+        "value_before": 24843544,
+        "value_after": 25246779
+      },
+      {
+        "seed": 230185,
+        "repeat": 0,
+        "profit_before": 4136096,
+        "profit_after": 3536231,
+        "delta_profit_year": -599865,
+        "value_before": 17567943,
+        "value_after": 15177378
+      },
+      {
+        "seed": 232037,
+        "repeat": 0,
+        "profit_before": 3115401,
+        "profit_after": 3542409,
+        "delta_profit_year": 427008,
+        "value_before": 13834394,
+        "value_after": 14640736
+      },
+      {
+        "seed": 292001,
+        "repeat": 0,
+        "profit_before": 3818534,
+        "profit_after": 4430534,
+        "delta_profit_year": 612000,
+        "value_before": 21074157,
+        "value_after": 22857815
+      },
+      {
+        "seed": 313707,
+        "repeat": 0,
+        "profit_before": 5270698,
+        "profit_after": 5198642,
+        "delta_profit_year": -72056,
+        "value_before": 23102329,
+        "value_after": 24176344
+      },
+      {
+        "seed": 375172,
+        "repeat": 0,
+        "profit_before": 5610145,
+        "profit_after": 5385219,
+        "delta_profit_year": -224926,
+        "value_before": 26705605,
+        "value_after": 25985457
+      },
+      {
+        "seed": 423960,
+        "repeat": 0,
+        "profit_before": 4893968,
+        "profit_after": 4979275,
+        "delta_profit_year": 85307,
+        "value_before": 25299509,
+        "value_after": 25603258
+      },
+      {
+        "seed": 442018,
+        "repeat": 0,
+        "profit_before": 4629394,
+        "profit_after": 4858718,
+        "delta_profit_year": 229324,
+        "value_before": 19736883,
+        "value_after": 20034441
+      },
+      {
+        "seed": 455216,
+        "repeat": 0,
+        "profit_before": 3332503,
+        "profit_after": 3083523,
+        "delta_profit_year": -248980,
+        "value_before": 14645964,
+        "value_after": 14401575
+      },
+      {
+        "seed": 515222,
+        "repeat": 0,
+        "profit_before": 4889704,
+        "profit_after": 4114216,
+        "delta_profit_year": -775488,
+        "value_before": 24741501,
+        "value_after": 22270474
+      },
+      {
+        "seed": 613553,
+        "repeat": 0,
+        "profit_before": 4600315,
+        "profit_after": 4282365,
+        "delta_profit_year": -317950,
+        "value_before": 21219186,
+        "value_after": 20292469
+      },
+      {
+        "seed": 701256,
+        "repeat": 0,
+        "profit_before": 5547945,
+        "profit_after": 5525412,
+        "delta_profit_year": -22533,
+        "value_before": 27821335,
+        "value_after": 26524098
+      },
+      {
+        "seed": 706990,
+        "repeat": 0,
+        "profit_before": 3406228,
+        "profit_after": 3651710,
+        "delta_profit_year": 245482,
+        "value_before": 15055710,
+        "value_after": 16231681
+      },
+      {
+        "seed": 723002,
+        "repeat": 0,
+        "profit_before": 4909316,
+        "profit_after": 5279043,
+        "delta_profit_year": 369727,
+        "value_before": 23849056,
+        "value_after": 25074201
+      },
+      {
+        "seed": 746035,
+        "repeat": 0,
+        "profit_before": 4938492,
+        "profit_after": 5222030,
+        "delta_profit_year": 283538,
+        "value_before": 23858458,
+        "value_after": 26094674
+      },
+      {
+        "seed": 781335,
+        "repeat": 0,
+        "profit_before": 3692895,
+        "profit_after": 3845430,
+        "delta_profit_year": 152535,
+        "value_before": 14547797,
+        "value_after": 17346496
+      },
+      {
+        "seed": 802204,
+        "repeat": 0,
+        "profit_before": 5965152,
+        "profit_after": 5585825,
+        "delta_profit_year": -379327,
+        "value_before": 27410939,
+        "value_after": 28246994
+      },
+      {
+        "seed": 841478,
+        "repeat": 0,
+        "profit_before": 5040743,
+        "profit_after": 4268078,
+        "delta_profit_year": -772665,
+        "value_before": 19701960,
+        "value_after": 17204399
+      },
+      {
+        "seed": 983759,
+        "repeat": 0,
+        "profit_before": 3988722,
+        "profit_after": 3492679,
+        "delta_profit_year": -496043,
+        "value_before": 16157037,
+        "value_after": 13942444
+      },
+      {
+        "seed": 999533,
+        "repeat": 0,
+        "profit_before": 4114817,
+        "profit_after": 4833910,
+        "delta_profit_year": 719093,
+        "value_before": 20966114,
+        "value_after": 23190334
+      }
+    ],
+    "cumulative_40": [
+      {
+        "seed": 1,
+        "repeat": 0,
+        "profit_before": 4285302,
+        "profit_after": 4847875,
+        "delta_profit_year": 562573,
+        "value_before": 22628833,
+        "value_after": 23220703
+      },
+      {
+        "seed": 7,
+        "repeat": 0,
+        "profit_before": 6660017,
+        "profit_after": 5325240,
+        "delta_profit_year": -1334777,
+        "value_before": 33686319,
+        "value_after": 27229444
+      },
+      {
+        "seed": 17,
+        "repeat": 0,
+        "profit_before": 3597541,
+        "profit_after": 3792203,
+        "delta_profit_year": 194662,
+        "value_before": 19587936,
+        "value_after": 19645512
+      },
+      {
+        "seed": 42,
+        "repeat": 0,
+        "profit_before": 4266531,
+        "profit_after": 4046486,
+        "delta_profit_year": -220045,
+        "value_before": 20330359,
+        "value_after": 19659034
+      },
+      {
+        "seed": 73,
+        "repeat": 0,
+        "profit_before": 5370614,
+        "profit_after": 5869062,
+        "delta_profit_year": 498448,
+        "value_before": 26491841,
+        "value_after": 28414946
+      },
+      {
+        "seed": 100,
+        "repeat": 0,
+        "profit_before": 2628390,
+        "profit_after": 2604785,
+        "delta_profit_year": -23605,
+        "value_before": 11688749,
+        "value_after": 10423095
+      },
+      {
+        "seed": 314,
+        "repeat": 0,
+        "profit_before": 5419898,
+        "profit_after": 5225853,
+        "delta_profit_year": -194045,
+        "value_before": 24752566,
+        "value_after": 27666415
+      },
+      {
+        "seed": 512,
+        "repeat": 0,
+        "profit_before": 2051679,
+        "profit_after": 1634987,
+        "delta_profit_year": -416692,
+        "value_before": 8110961,
+        "value_after": 4661732
+      },
+      {
+        "seed": 999,
+        "repeat": 0,
+        "profit_before": 5858805,
+        "profit_after": 5171462,
+        "delta_profit_year": -687343,
+        "value_before": 27980213,
+        "value_after": 24684711
+      },
+      {
+        "seed": 1024,
+        "repeat": 0,
+        "profit_before": 3545431,
+        "profit_after": 3579178,
+        "delta_profit_year": 33747,
+        "value_before": 15585609,
+        "value_after": 15493716
+      },
+      {
+        "seed": 1337,
+        "repeat": 0,
+        "profit_before": 4057646,
+        "profit_after": 3726432,
+        "delta_profit_year": -331214,
+        "value_before": 19874291,
+        "value_after": 18863644
+      },
+      {
+        "seed": 2026,
+        "repeat": 0,
+        "profit_before": 4112733,
+        "profit_after": 4689442,
+        "delta_profit_year": 576709,
+        "value_before": 21085785,
+        "value_after": 21597233
+      },
+      {
+        "seed": 4096,
+        "repeat": 0,
+        "profit_before": 4979123,
+        "profit_after": 4752841,
+        "delta_profit_year": -226282,
+        "value_before": 24014169,
+        "value_after": 23534729
+      },
+      {
+        "seed": 8191,
+        "repeat": 0,
+        "profit_before": 4501400,
+        "profit_after": 4586918,
+        "delta_profit_year": 85518,
+        "value_before": 22737736,
+        "value_after": 24079258
+      },
+      {
+        "seed": 12345,
+        "repeat": 0,
+        "profit_before": 3696371,
+        "profit_after": 3762049,
+        "delta_profit_year": 65678,
+        "value_before": 18956990,
+        "value_after": 17697882
+      },
+      {
+        "seed": 54321,
+        "repeat": 0,
+        "profit_before": 4663147,
+        "profit_after": 4387397,
+        "delta_profit_year": -275750,
+        "value_before": 21114891,
+        "value_after": 21526855
+      },
+      {
+        "seed": 65537,
+        "repeat": 0,
+        "profit_before": 4551470,
+        "profit_after": 3507815,
+        "delta_profit_year": -1043655,
+        "value_before": 20052544,
+        "value_after": 14854550
+      },
+      {
+        "seed": 123456,
+        "repeat": 0,
+        "profit_before": 4507520,
+        "profit_after": 3926650,
+        "delta_profit_year": -580870,
+        "value_before": 18126278,
+        "value_after": 15164037
+      },
+      {
+        "seed": 424242,
+        "repeat": 0,
+        "profit_before": 5126288,
+        "profit_after": 5312773,
+        "delta_profit_year": 186485,
+        "value_before": 27569665,
+        "value_after": 26975460
+      },
+      {
+        "seed": 8675309,
+        "repeat": 0,
+        "profit_before": 4700067,
+        "profit_after": 4579006,
+        "delta_profit_year": -121061,
+        "value_before": 20393032,
+        "value_after": 18220642
+      },
+      {
+        "seed": 59527,
+        "repeat": 0,
+        "profit_before": 5512835,
+        "profit_after": 5544161,
+        "delta_profit_year": 31326,
+        "value_before": 24843544,
+        "value_after": 25246779
+      },
+      {
+        "seed": 230185,
+        "repeat": 0,
+        "profit_before": 4136096,
+        "profit_after": 3536231,
+        "delta_profit_year": -599865,
+        "value_before": 17567943,
+        "value_after": 15177378
+      },
+      {
+        "seed": 232037,
+        "repeat": 0,
+        "profit_before": 3115401,
+        "profit_after": 3542409,
+        "delta_profit_year": 427008,
+        "value_before": 13834394,
+        "value_after": 14640736
+      },
+      {
+        "seed": 292001,
+        "repeat": 0,
+        "profit_before": 3818534,
+        "profit_after": 4430534,
+        "delta_profit_year": 612000,
+        "value_before": 21074157,
+        "value_after": 22857815
+      },
+      {
+        "seed": 313707,
+        "repeat": 0,
+        "profit_before": 5270698,
+        "profit_after": 5198642,
+        "delta_profit_year": -72056,
+        "value_before": 23102329,
+        "value_after": 24176344
+      },
+      {
+        "seed": 375172,
+        "repeat": 0,
+        "profit_before": 5610145,
+        "profit_after": 5385219,
+        "delta_profit_year": -224926,
+        "value_before": 26705605,
+        "value_after": 25985457
+      },
+      {
+        "seed": 423960,
+        "repeat": 0,
+        "profit_before": 4893968,
+        "profit_after": 4979275,
+        "delta_profit_year": 85307,
+        "value_before": 25299509,
+        "value_after": 25603258
+      },
+      {
+        "seed": 442018,
+        "repeat": 0,
+        "profit_before": 4629394,
+        "profit_after": 4858718,
+        "delta_profit_year": 229324,
+        "value_before": 19736883,
+        "value_after": 20034441
+      },
+      {
+        "seed": 455216,
+        "repeat": 0,
+        "profit_before": 3332503,
+        "profit_after": 3083523,
+        "delta_profit_year": -248980,
+        "value_before": 14645964,
+        "value_after": 14401575
+      },
+      {
+        "seed": 515222,
+        "repeat": 0,
+        "profit_before": 4889704,
+        "profit_after": 4114216,
+        "delta_profit_year": -775488,
+        "value_before": 24741501,
+        "value_after": 22270474
+      },
+      {
+        "seed": 613553,
+        "repeat": 0,
+        "profit_before": 4600315,
+        "profit_after": 4282365,
+        "delta_profit_year": -317950,
+        "value_before": 21219186,
+        "value_after": 20292469
+      },
+      {
+        "seed": 701256,
+        "repeat": 0,
+        "profit_before": 5547945,
+        "profit_after": 5525412,
+        "delta_profit_year": -22533,
+        "value_before": 27821335,
+        "value_after": 26524098
+      },
+      {
+        "seed": 706990,
+        "repeat": 0,
+        "profit_before": 3406228,
+        "profit_after": 3651710,
+        "delta_profit_year": 245482,
+        "value_before": 15055710,
+        "value_after": 16231681
+      },
+      {
+        "seed": 723002,
+        "repeat": 0,
+        "profit_before": 4909316,
+        "profit_after": 5279043,
+        "delta_profit_year": 369727,
+        "value_before": 23849056,
+        "value_after": 25074201
+      },
+      {
+        "seed": 746035,
+        "repeat": 0,
+        "profit_before": 4938492,
+        "profit_after": 5222030,
+        "delta_profit_year": 283538,
+        "value_before": 23858458,
+        "value_after": 26094674
+      },
+      {
+        "seed": 781335,
+        "repeat": 0,
+        "profit_before": 3692895,
+        "profit_after": 3845430,
+        "delta_profit_year": 152535,
+        "value_before": 14547797,
+        "value_after": 17346496
+      },
+      {
+        "seed": 802204,
+        "repeat": 0,
+        "profit_before": 5965152,
+        "profit_after": 5585825,
+        "delta_profit_year": -379327,
+        "value_before": 27410939,
+        "value_after": 28246994
+      },
+      {
+        "seed": 841478,
+        "repeat": 0,
+        "profit_before": 5040743,
+        "profit_after": 4268078,
+        "delta_profit_year": -772665,
+        "value_before": 19701960,
+        "value_after": 17204399
+      },
+      {
+        "seed": 983759,
+        "repeat": 0,
+        "profit_before": 3988722,
+        "profit_after": 3492679,
+        "delta_profit_year": -496043,
+        "value_before": 16157037,
+        "value_after": 13942444
+      },
+      {
+        "seed": 999533,
+        "repeat": 0,
+        "profit_before": 4114817,
+        "profit_after": 4833910,
+        "delta_profit_year": 719093,
+        "value_before": 20966114,
+        "value_after": 23190334
+      }
+    ]
+  }
+}
