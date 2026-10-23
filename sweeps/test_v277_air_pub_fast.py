@@ -106,23 +106,20 @@ class TestV277AirPubFast(unittest.TestCase):
         self.assertIn("spPubInsert", self.publish_body)
         self.assertIn("OpexProjectsRecountGroups(projects);", self.publish_body)
 
-        # En mode 0, filtre : utilise le predicat historique sans construire ctx
-        self.assertIn(
-            "C83_FIXES && lines != null && !OpexAirBatchPlanStillLive(plan, lines)",
-            self.filter_body,
-        )
-        self.assertIn(
-            "local ctx = (V277_AIR_PUB_FAST == 2 && C83_FIXES && lines != null) ? OpexIncrRevalidateIndexContext(lines) : null;",
-            self.filter_body,
-        )
+        # C83 switched recheck and V277 filter checker retired; revalidation
+        # remains unconditional on both sites and abandoned status.
+        self.assertIn("OpexCandidateIsAbandoned(project, abandonedPairs)", self.filter_body)
+        self.assertIn("OpexAir0310SiteValidityOk(validity, keyA,", self.filter_body)
+        self.assertIn("OpexAir0310SiteValidityOk(validity, keyB,", self.filter_body)
+        self.assertNotIn("C83_FIXES", self.filter_body)
 
     def test_filter_builds_context_once_outside_loop(self):
-        ctx_decl = "local ctx = (V277_AIR_PUB_FAST == 2 && C83_FIXES && lines != null) ? OpexIncrRevalidateIndexContext(lines) : null;"
-        self.assertEqual(self.filter_body.count("OpexIncrRevalidateIndexContext(lines)"), 1)
-        self.assertIn(ctx_decl, self.filter_body)
+        ctx_decl = "local validity = OpexAir0310SiteValidityBegin(stationLimitedTowns);"
+        self.assertEqual(self.filter_body.count("OpexIncrRevalidateIndexContext(lines)"), 0)
+        self.assertEqual(self.filter_body.count(ctx_decl), 1)
         loop_start = self.filter_body.index("foreach (project in alternatives)")
         ctx_pos = self.filter_body.index(ctx_decl)
-        self.assertLess(ctx_pos, loop_start, "ctx doit etre construit avant la boucle foreach")
+        self.assertLess(ctx_pos, loop_start, "la validite doit etre initialisee avant la boucle foreach")
 
     def test_filter_preserves_monthly_site_validity_cache(self):
         # Cache mensuel conserve
@@ -139,12 +136,12 @@ class TestV277AirPubFast(unittest.TestCase):
         self.assertIn('if (!DECISION_LOG) AILog.Warning("V277_CHECK " + checkMsg);', self.publish_body)
         self.assertIn("projects.candidateGroups = rebuilt;", self.publish_body)
 
-        # Verification filtre en mode 2
-        self.assertIn("if (V277_AIR_PUB_FAST == 2 && C83_FIXES && lines != null)", self.filter_body)
-        self.assertNotIn("V277_AIR_PUB_FAST == 1 && C83_FIXES", self.filter_body)
-        self.assertIn('OpexDecide("V277_CHECK", msg);', self.filter_body)
-        self.assertIn('if (!DECISION_LOG) AILog.Warning("V277_CHECK " + msg);', self.filter_body)
-        self.assertIn("if (!histVerdict) continue;", self.filter_body)
+        # Mode 2 continues to check publication; retired filter checker cannot
+        # choose a different path or bypass either live-site validation.
+        self.assertNotIn("V277_AIR_PUB_FAST", self.filter_body)
+        self.assertNotIn("C83_FIXES", self.filter_body)
+        self.assertIn("OpexAir0310SiteValidityOk(validity, keyA,", self.filter_body)
+        self.assertIn("OpexAir0310SiteValidityOk(validity, keyB,", self.filter_body)
 
     def test_insert_helper_logic_simulation(self):
         # Simulation Python du comportement de OpexV277AirPubFastInsert

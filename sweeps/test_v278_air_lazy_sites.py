@@ -132,7 +132,7 @@ class TestV278Source(unittest.TestCase):
             wrapper = function(lazy, caller)
             for key in outputs - {"sites"}:
                 self.assertIn(f"ctx.{key} = work.{key};", wrapper)
-            self.assertIn('if ("v133Skip" in work) ctx.v133Skip <- work.v133Skip;', wrapper)
+            self.assertNotIn('"v133Skip" in work', wrapper)
         extension = function(lazy, "OpexV278ExtendSites")
         self.assertLess(extension.index("ctx.bestPlan = work.bestPlan"),
                         extension.index("if (!ok) return false"))
@@ -239,7 +239,7 @@ class TestV278Source(unittest.TestCase):
     def test_targeted_repair_and_synchronous_paths_preserved(self):
         body = function(read("air_lazy_sites.nut"), "OpexV278LazyEnabled")
         self.assertIn("ctx.sliced && ctx.targetTownId < 0", body)
-        self.assertIn('!("c83Repair" in ctx.resumeState)', body)
+        self.assertNotIn('"c83Repair" in ctx.resumeState', body)
 
     def test_tick_proof_and_invalidation(self):
         source = read("air_coverage.nut")
@@ -252,8 +252,9 @@ class TestV278Source(unittest.TestCase):
         for name in ("OpexAirResetSiteCache", "OpexAir0310InvalidateSiteValidity", "OpexAirInvalidateCachedSite"):
             self.assertIn("if (V278_AIR_LAZY_SITES) OpexV278InvalidateSites();", function(source, name))
         found = function(source, "OpexV278RememberFoundSite")
-        for guard in ("GetTick() != started", "OpexAirRecoveryOwnsAirport", "c83SlotTown"):
+        for guard in ("GetTick() != started", "OpexAirRecoveryOwnsAirport"):
             self.assertIn(guard, found)
+        self.assertNotIn("c83SlotTown", found)
 
     def test_prepare_dynamic_inputs_and_monthly_memos(self):
         prepare = function(read("air_planning.nut"), "OpexAirPlansPrepare")
@@ -328,8 +329,8 @@ class TestV278Frontier(unittest.TestCase):
         self.assertEqual(-frontier.visited[0][0], 9999900000)
 
 
-PAIRS_HASH = "13fc6cfea57750b91c9a927f944c90eb192460214df5f530a9b851caceb94058"  # v287 : NewPairs de master apres V263b (C80_AIR_EVAL_FAST retire)
-DRIVER_HASH = "839151bc21f858e455f8021e54e8913dfe7f278421ec3ef1d086ec7ed9795b56"
+PAIRS_HASH = "bb2d4cab20680ad35b7695595e7359d25f8359ea514a24d6454f1ff3a994ed06"  # eb6f26fc : C83/V133 dormant paths retired
+DRIVER_HASH = "3b80026624856dcaf7ef9beb51f14bc5afe7ada2512511368165eecbf4925fba"  # strict post-retirement driver fingerprint
 
 if __name__ == "__main__":
     unittest.main()

@@ -192,8 +192,8 @@ class TestV279ReselectMemo(unittest.TestCase):
         memo_filt = _function_body(self.selection, "function OpexFilterAirAlternativesV279Memo(")
         self.assertIn("c83OwnSecondSlotA", memo_filt)
         self.assertIn("c83OwnSecondSlotB", memo_filt)
-        self.assertIn("v134SecondSlotA", memo_filt)
-        self.assertIn("v134SecondSlotB", memo_filt)
+        self.assertNotIn("v134SecondSlotA", memo_filt)
+        self.assertNotIn("v134SecondSlotB", memo_filt)
         self.assertIn("isSecondSlot", memo_filt)
         # Ne mémorise jamais si isSecondSlot
         self.assertIn("!isSecondSlot", memo_filt)

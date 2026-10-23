@@ -130,7 +130,7 @@ class TestV131RailRepair(unittest.TestCase):
         self.assertRegex(self.globals, r"V131_REPAIR_MAX_ITERS <- 2500;")
 
     def test_duplicate_guard_threshold_at_least_40_percent(self):
-        gate = self.reval.index("if (!V131_RAIL_REPAIR || (V233_GOODS_GRAFT && OpexV233IsGraft(candidate)))")
+        gate = self.reval.index("if (!V131_RAIL_REPAIR) {")
         dup = self.reval.index("this._v131DropDuplicateOwnRail(")
         station = self.reval.index("AIRail.BuildRailStation")
         self.assertLess(gate, dup)
@@ -141,8 +141,9 @@ class TestV131RailRepair(unittest.TestCase):
         self.assertIn('OpexV131RepairLog(candidate, "duplicate"', self.dup)
 
     def test_clean_unmodified_path_when_setting_zero(self):
-        self.assertIn("if (!V131_RAIL_REPAIR || (V233_GOODS_GRAFT && OpexV233IsGraft(candidate)))", self.reval)
-        zero_branch = self.reval[self.reval.index("if (!V131_RAIL_REPAIR || (V233_GOODS_GRAFT && OpexV233IsGraft(candidate)))") : self.reval.index("/* V131_RAIL_REPAIR actif")]
+        self.assertIn("if (!V131_RAIL_REPAIR) {", self.reval)
+        self.assertNotIn("V233_GOODS_GRAFT", self.reval)
+        zero_branch = self.reval[self.reval.index("if (!V131_RAIL_REPAIR) {") : self.reval.index("/* V131_RAIL_REPAIR actif")]
         self.assertIn('return { ok = false, reason = "station_blocked" };', zero_branch)
         self.assertIn('reason = "track_blocked"', zero_branch)
         self.assertIn('return { ok = false, reason = "depot_blocked" };', zero_branch)
