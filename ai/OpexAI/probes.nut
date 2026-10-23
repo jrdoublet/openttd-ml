@@ -607,6 +607,7 @@ function OpexC117AirThroughputStep(lines, catalog)
         vehicleState.lastDate = now;
 
         if (curOrder == AIOrder.ORDER_INVALID || curOrder < 0 || curOrder > 1) {
+          if (AIR_LOAD_MIN_PCT > 0) vehicleState.airLoadInvalid <- true;
           if (!skipUnused) {
             state.invalidOrderSamples++;
           }
@@ -646,6 +647,12 @@ function OpexC117AirThroughputStep(lines, catalog)
           continue;
         }
 
+        if (AIR_LOAD_MIN_PCT > 0) {
+          if (vehicleState.seenTransition && vehicleState.legMoving
+              && !("airLoadInvalid" in vehicleState))
+            OpexAirLoadRecord(line, vehicleState.legPaxMax, vehicleState.legCap, now);
+          if ("airLoadInvalid" in vehicleState) delete vehicleState.airLoadInvalid;
+        }
         if (vehicleState.legMoving) {
           state.pax += vehicleState.legPaxMax;
           state.seatLegs += vehicleState.legCap;

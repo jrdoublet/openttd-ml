@@ -33,6 +33,11 @@ class OpexAIInfo extends AIInfo {
       min_value = 0, max_value = 3,
       easy_value = 3, medium_value = 3, hard_value = 3, custom_value = 3,
       flags = 0 });
+    AddSetting({ name = "air_load_min_pct",
+      description = "Minimum AIR load for fleet growth (0=off; 6 completed legs required, last 12 legs)",
+      min_value = 0, max_value = 100, step_size = 5,
+      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
+      flags = 0 });
     /* --- 1. Systeme et instrumentation --- */
 
     /* V167 : un seul entier pilote panneaux, journal et sondes (somme de bits, voir settings.nut).

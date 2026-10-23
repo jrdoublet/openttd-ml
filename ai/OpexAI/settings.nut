@@ -32,6 +32,9 @@ function OpexResolveDifficulty()
  * restent dans Start(), juste apres l'appel. */
 function OpexLoadSettings()
 {
+  AIR_LOAD_MIN_PCT = AIController.GetSetting("air_load_min_pct");
+  if (AIR_LOAD_MIN_PCT == null || AIR_LOAD_MIN_PCT < 0) AIR_LOAD_MIN_PCT = 0;
+  if (AIR_LOAD_MIN_PCT > 100) AIR_LOAD_MIN_PCT = 100;
   /* Le masque doit etre initialise avant la toute premiere sonde AIR. */
   local probes = AIController.GetSetting("probes");
   if (probes < 0) probes = 2;

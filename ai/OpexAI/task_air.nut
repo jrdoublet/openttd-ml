@@ -369,10 +369,55 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
  * par an si (1) les appareils existants gagnent de l'argent et (2) au moins une charge utile
  * complete attend dans les deux aeroports. Un echec de cash est reporte a l'annee suivante : la
  * file ne le resonde pas a chaque cycle et ne gaspille donc pas d'opcodes. */
+/* Load per completed leg, not per polling tick. C117 already observes the
+ * maximum load while RUNNING (never the unloading/loading phase), capacity
+ * and order transitions. Its first partial leg after construction/Load is
+ * excluded. Only the line cargo is measured; mail is not added to passengers.
+ * airLoad is a bounded integer-only table, preserved by OpexSaveProjectLine;
+ * per-vehicle C117 observations are reconstructed after Load. */
+function OpexAirLoadRecord(line, load, capacity, now)
+{
+  if (capacity <= 0 || load < 0 || load > capacity) return;
+  if (!("airLoad" in line) || now - line.airLoad.date > 180) {
+    line.airLoad <- { legs = [], cursor = 0, load = 0, capacity = 0, date = now };
+  }
+  local window = line.airLoad;
+  if (window.legs.len() == 12) {
+    local old = window.legs[window.cursor];
+    window.load -= old[0];
+    window.capacity -= old[1];
+    window.legs[window.cursor] = [load, capacity];
+  } else {
+    window.legs.append([load, capacity]);
+  }
+  window.cursor = (window.cursor + 1) % 12;
+  window.load += load;
+  window.capacity += capacity;
+  window.date = now;
+  if (DECISION_LOG) OpexDecide("AIR_LOAD", "line=" + line.lineId
+      + " samples=" + window.legs.len() + " load_pct=" + OpexAirLoadPct(line));
+}
+
+function OpexAirLoadPct(line)
+{
+  if (!("airLoad" in line) || line.airLoad.capacity <= 0) return -1;
+  return (100.0 * line.airLoad.load / line.airLoad.capacity).tointeger();
+}
+
+function OpexAirLoadBlocksGrowth(line)
+{
+  if (AIR_LOAD_MIN_PCT <= 0 || !("mode" in line) || line.mode != "air") return false;
+  if (("needsRefleet" in line) && line.needsRefleet) return false;
+  if (!("airLoad" in line) || line.airLoad.legs.len() < 6) return false;
+  if (AIDate.GetCurrentDate() - line.airLoad.date > 180) return false;
+  return OpexAirLoadPct(line) < AIR_LOAD_MIN_PCT;
+}
+
 /* Cause du refus de croissance d'une flotte aerienne, une seule fois par ligne et par an.
  * Codes : Y deja grandie cette annee, V aucun avion vivant, D ligne morte, L profit negatif,
  * C plafond physique de l'aeroport atteint, S un an de mauvaise sante,
- * K ligne en cours de rebut, M tresorerie, X l'achat a echoue. */
+ * K ligne en cours de rebut, M tresorerie, X l'achat a echoue,
+ * F remplissage mesure insuffisant (croissance seulement). */
 function OpexAirFleetRefusal(line, year, code)
 {
   if (C50_CHRONOLOGY_PROBE) {
@@ -419,7 +464,9 @@ function OpexAirFleetRefusal(line, year, code)
     else if (code == "K") reasonStr = "scrapping";
     else if (code == "M") reasonStr = "insufficient_cash";
     else if (code == "X") reasonStr = "purchase_failed";
-    OpexDecide("AIR_FLEET", "action=refuse line=" + line.lineId + " reason=" + reasonStr + " planes=" + have + " yield=" + yieldVal);
+    else if (code == "F") reasonStr = "low_load_factor";
+    OpexDecide("AIR_FLEET", "action=refuse line=" + line.lineId + " reason=" + reasonStr + " planes=" + have + " yield=" + yieldVal
+        + (code == "F" ? " load_pct=" + OpexAirLoadPct(line) : ""));
   }
 }
 /* Rendement marginal d'une ligne aerienne : profit PAR APPAREIL deja en service. C'est le
@@ -536,6 +583,11 @@ function OpexAI::_resizeAirFleets(year, plan = null)
       OpexAirFleetRefusal(line, year, "V");
       if (spRef != null) OpexSpanAgg("fleet.refusal", spRef);
       if (plan != null && C69_BOTTLENECK_PROBE) OpexC73RecordRejection("fleet", "no_live_aircraft", 1);
+      continue;
+    }
+    if (AIR_LOAD_MIN_PCT > 0 && OpexAirLoadBlocksGrowth(line)) {
+      OpexAirFleetRefusal(line, year, "F");
+      if (plan != null && C69_BOTTLENECK_PROBE) OpexC73RecordRejection("fleet", "low_load_factor", 1);
       continue;
     }
     local c121BelowTarget = ("targetAirPlanes" in line)
