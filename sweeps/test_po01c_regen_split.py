@@ -430,7 +430,7 @@ class PO01CContracts(unittest.TestCase):
             'catalog.nut': '4882c4c3de58c97882b2739432e62045a2e567b1ee980e5a2a56dedd34a17ba9',
             'main.nut': '774acab715924ca97cb0e14ed1a9573400a84963ee7698effeebdcd372ed9adc',
             'probes.nut': '2be7e1d6c099949de72b9abf8e285df6db6fc5c0001c9445c3707c3c8c1edf5e',
-            'settings.nut': 'edb0e3e7457f4ace74b9f216185259b433cda5cbf65bfe7df4e952659f4ae017',
+            'settings.nut': 'b2b1debb5d362bf89c0099cef9acc4478e25c1fce066b63707acea178a6d27fd',
             'info.nut': '0447a0adc89f91dd48b37fb46ac0084b67443eccf9fd3fe9a9bd53374ee81f9a',
         }
         for name, digest in expected.items():

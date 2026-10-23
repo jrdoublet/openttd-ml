@@ -113,11 +113,12 @@ class TestV294dRailAaaCosts(unittest.TestCase):
 
 
 class TestV294fRailReverseProbe(unittest.TestCase):
-    def test_setting_declared_default_zero(self):
+    def test_setting_retired_preserves_adopted_reverse_probe(self):
         info = read("info.nut")
         self.assertNotIn('name = "v294_rail_reverse_probe"', info)
         self.assertNotIn('name = "rail_reverse_astar_iters"', info)
-        self.assertIn("RAIL_REVERSE_ASTAR_ITERS <- 300;", read("globals_pre.nut"))
+        self.assertIn("V294_RAIL_REVERSE_PROBE <- 300;", read("globals_pre.nut"))
+        self.assertNotIn("RAIL_REVERSE_ASTAR_ITERS <-", read("globals_pre.nut"))
 
     def test_global_declared_and_loaded_once(self):
         globals_pre = read("globals_pre.nut")
