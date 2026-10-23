@@ -158,6 +158,11 @@ class TestV158BestReadersAudit(unittest.TestCase):
         "probes.nut:OpexC78FundedRank": "Appelé dans _c78SlotOnProjectsPass depuis _tryBuildProjects (déjà matérialisé)",
         "probes.nut:OpexV309IdleProjects": "V309 sonde passive : lit la derniere selection sans la rematerialiser, pour ne pas deplacer son cout",
         "probes.nut:OpexC39ProjectSignature": "Appelé dans events.nut (protégé) et orchestrator.nut:1292 (post-rebuild)",
+        "air_flotte1_shadow.nut:OpexAirF1Before": (
+            "Sonde passive : renfort depuis _tryBuildProjects apres _ensureSelection ; "
+            "renouvellement V252 photographie la liste sans garantir sa fraicheur "
+            "(selection_is_live=unverified), sans reclasser ni choisir un achat"
+        ),
         # Fichier projects_rank_log.nut : loggers de classement (appelés post-rebuild ou en fin de passe)
         "projects_rank_log.nut": "Loggers du classement de tête appelés post-rebuild ou post-construction",
         # Sous-fonctions de task_rail.nut appelées exclusivement depuis _tryBuildProjects
@@ -176,6 +181,33 @@ class TestV158BestReadersAudit(unittest.TestCase):
         if matches:
             return matches[-1].group(1)
         return "<global>"
+
+    def test_shadow_best_reader_call_sites_and_passive_snapshot(self):
+        projects = _read("task_projects.nut")
+        pass_body = _body(projects, "function OpexAI::_tryBuildProjects(year)")
+        fleet_body = _body(projects, "function OpexAI::_tryBuildFleetProject(")
+        renewal = _body(_read("task_v252.nut"),
+                        "function OpexAI::_dispatchV252AirEngineRefresh(")
+        shadow = _body(_read("air_flotte1_shadow.nut"), "function OpexAirF1Before(")
+
+        # Renfort : selection materialisee avant invocation unique de flotte.
+        self.assertLess(pass_body.index("this._ensureSelection();"),
+                        pass_body.index("this._tryBuildFleetProject("))
+        self.assertIn('OpexAirF1Before(this, "reinforce"', fleet_body)
+        self.assertEqual(projects.count("this._tryBuildFleetProject("), 1)
+
+        # V252 ne reselecte pas avant le diagnostic ; seuil de caisse preexistant.
+        self.assertLess(renewal.index("OpexV249MaxListedCapital(this._projects)"),
+                        renewal.index('OpexAirF1Before(this, "renewal"'))
+        self.assertIn("selection_is_live=unverified", shadow)
+        self.assertIn('OpexAirF1Queue(logs, "AIRF1_LIST"', shadow)
+        self.assertNotIn("OpexReselectProjects(", shadow)
+        self.assertIn("return { id = id, tick = tick, cash = cash, logs = logs };", shadow)
+
+        # Toute invocation supplementaire exige une revue de sa provenance.
+        calls = sum(p.read_text(encoding="utf-8").count("OpexAirF1Before(")
+                    for p in AI.glob("*.nut"))
+        self.assertEqual(calls, 3)  # declaration + renfort + V252
 
     def test_audit_all_best_readers(self):
         nut_files = list(AI.glob("*.nut"))

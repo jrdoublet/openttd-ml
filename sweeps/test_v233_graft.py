@@ -96,7 +96,16 @@ class GraftContracts(unittest.TestCase):
         self.assertNotIn('OpexBuildLine(', validate)
         task = body('task_projects.nut', 'function OpexAI::_tryBuildProjects(year)')
         slot = task.index('if (V233_PENDING_CONTINUE && project.mode == "rail"')
-        cash = task.index('&& OpexProjectFinanceCapital(project) > OpexAvailableCapital()) continue;')
+        # Le journal passif avant `continue` ne doit pas affaiblir le rejet
+        # de tresorerie ni le deplacer apres le K_pass.
+        cash_guard = re.search(
+            r'if \(V233_GOODS_GRAFT && project.mode == "rail"'
+            r'\s*&& OpexV233IsGraft\(project.payload\)'
+            r'\s*&& OpexProjectFinanceCapital\(project\) > OpexAvailableCapital\(\)\)'
+            r'\s*\{([^{}]*)\}', task)
+        self.assertIsNotNone(cash_guard)
+        self.assertIn('continue;', cash_guard.group(1))
+        cash = cash_guard.start()
         kpass = task.index('local c121ChainAttempt = false;')
         self.assertLess(slot, kpass)
         self.assertLess(cash, kpass)

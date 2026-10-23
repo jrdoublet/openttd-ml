@@ -28,8 +28,8 @@ class TestV284RailGrowth(unittest.TestCase):
         self.assertEqual(read("settings.nut").count('GetSetting("v284_rail_growth")'), 1)
         self.assertIn("V284_RAIL_GROWTH <- 0;", read("globals_pre.nut"))
         self.assertNotIn('name = "v270_rail_late_growth"', info)
-        # 98 reglages au socle PO01C, +1 C77 intent defer (defaut 0).
-        self.assertEqual(info.count("AddSetting("), 99)
+        # Inventaire reel de origin/master=c1bae7ec, PO03 compris.
+        self.assertEqual(info.count("AddSetting("), 101)
 
     def test_off_expansion_is_master_a9437f8_after_removing_guards(self):
         body = function_body(read("task_rail.nut"), "function OpexAI::_expandRailLines(year)")

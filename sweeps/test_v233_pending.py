@@ -36,9 +36,14 @@ class PendingContracts(unittest.TestCase):
 
     def test_busy_slot_is_rejected_before_kpass(self):
         text = (AI / "task_projects.nut").read_text()
-        self.assertLess(text.index('if (V233_PENDING_CONTINUE && project.mode == "rail"'),
-                        text.index('local c121ChainAttempt = false;'))
-        self.assertIn('if (!prepared && !graftReady) continue;', text)
+        slot = text.index('if (V233_PENDING_CONTINUE && project.mode == "rail"')
+        kpass = text.index('local c121ChainAttempt = false;')
+        self.assertLess(slot, kpass)
+        reject = re.search(r'if \(!prepared && !graftReady\)\s*\{([^{}]*)\}', text)
+        self.assertIsNotNone(reject)
+        self.assertIn('continue;', reject.group(1))
+        self.assertLess(slot, reject.start())
+        self.assertLess(reject.end(), kpass)
 
     def test_dates_and_attempts(self):
         text = (AI / "task_projects.nut").read_text()

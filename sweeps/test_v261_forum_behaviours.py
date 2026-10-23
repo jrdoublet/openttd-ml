@@ -214,8 +214,15 @@ class ForumBehaviours(unittest.TestCase):
                 self.assertIn("if (MODE_%s && !OpexModeAllowedByGame(" % mode, settings)
         self.assertLess(settings.index('MODE_WATER = AIController.GetSetting("mode_water")'),
                         settings.index("ROAD_BUILD_ENABLED = MODE_ROAD"))
-        self.assertIn("if (!OpexModeVehicleRoom(project.mode, OpexTensionProjectVehicleCount(project))) continue;",
-                      source("task_projects.nut"))
+        projects = source("task_projects.nut")
+        # Le refus doit preceder K_pass meme avec une sonde entre garde et continue.
+        room_guard = re.search(
+            r'if \(!OpexModeVehicleRoom\(project.mode,'
+            r'\s*OpexTensionProjectVehicleCount\(project\)\)\)\s*\{([^{}]*)\}',
+            projects)
+        self.assertIsNotNone(room_guard)
+        self.assertIn("continue;", room_guard.group(1))
+        self.assertLess(room_guard.end(), projects.index("local c121ChainAttempt = false;"))
 
     def test_2_2_no_numeric_cargo_or_transport_type_ids(self):
         # Sentinelles -1 autorisées ; aucune exception pour un identifiant réel.

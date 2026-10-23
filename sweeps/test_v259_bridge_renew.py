@@ -2,7 +2,7 @@
 
 Verifications statiques et de contrat du mecanisme :
 1. Reglage v259_bridge_renew (0/1, defaut 0), zero opcode au defaut hors garde O(1).
-2. Plafond AddSetting dans test_v246_fixed_policies releve a 77 avec commentaire.
+2. Inventaire de 101 AddSetting et borne <= 101 dans test_v246_fixed_policies.
 3. Inventaire des ponts au fil des constructions (line.bridges), sans balayage de carte.
 4. Decision economique sans nombre arbitraire :
    - v_pont < v_veh ET modele plus rapide disponible
@@ -60,10 +60,10 @@ class TestV259BridgeRenew(unittest.TestCase):
         self.assertIn('AIController.GetSetting("v259_bridge_renew")', self.settings)
 
     def test_ceiling_after_v263b(self):
-        # Plafond V263b actualise : 98 au socle PO01C, +1 C77 intent defer.
+        # Inventaire c1bae7ec (PO03 inclus) : 101 ; V259 reste present.
+        self.assertEqual(self.info.count("AddSetting("), 101)
         test_v246 = (Path(__file__).resolve().parent / "test_v246_fixed_policies.py").read_text(encoding="utf-8")
-        self.assertIn('count("AddSetting("), 99)', test_v246)
-        self.assertIn("V263b", test_v246)
+        self.assertIn('self.assertLessEqual(info.count("AddSetting("), 101)', test_v246)
 
     def test_zero_opcode_guard_at_default(self):
         # 1. Garde dans scheduler.nut
