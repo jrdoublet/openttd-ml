@@ -14,9 +14,9 @@ class OpexAIInfo extends AIInfo {
   function GetSettings()
   {
     AddSetting({ name = "c77_intent_defer",
-      description = "C77: defer intents (1=portfolio/worker, 2=also AIR year/subsidy expiry)",
+      description = "C77: defer intents (1=portfolio/worker, 2=also AIR year/subsidy expiry; default 2 since 23/10, porte B pass)",
       min_value = 0, max_value = 2,
-      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
+      easy_value = 2, medium_value = 2, hard_value = 2, custom_value = 2,
       flags = 0 });
     AddSetting({ name = "po01c_regen_split",
       description = "PO01C: resumable reactive regeneration (default 1 since 23/10, user decision after neutral porte A)",

@@ -242,14 +242,14 @@ class DeferSourceContracts(unittest.TestCase):
     def test_setting(self):
         setting = re.search(r'AddSetting\(\{ name = "c77_intent_defer".*?\}\);', source('info.nut'), re.S)[0]
         for level in ('easy', 'medium', 'hard', 'custom'):
-            self.assertIn(level + '_value = 0', setting)
+            self.assertIn(level + '_value = 2', setting)
         self.assertIn('min_value = 0, max_value = 2', setting)
         self.assertIn('flags = 0', setting)
         self.assertIn('C77_INTENT_DEFER = c77IntentDefer != 0;', source('settings.nut'))
         self.assertIn('C77_INTENT_DEFER_SUBSIDY = c77IntentDefer == 2;', source('settings.nut'))
-        self.assertIn('C77_INTENT_DEFER_SUBSIDY <- false;', source('globals_pre.nut'))
+        self.assertIn('C77_INTENT_DEFER_SUBSIDY <- true;', source('globals_pre.nut'))
         self.assertEqual(source('settings.nut').count('GetSetting("c77_intent_defer")'), 1)
-        self.assertIn('C77_INTENT_DEFER <- false;', source('globals_pre.nut'))
+        self.assertIn('C77_INTENT_DEFER <- true;', source('globals_pre.nut'))
         self.assertIn('const C77_INTENT_DEFER_DAYS = 365;', source('globals_pre.nut'))
 
     def test_guard_and_single_pop_yield(self):

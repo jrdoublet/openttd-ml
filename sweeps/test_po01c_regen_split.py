@@ -431,7 +431,7 @@ class PO01CContracts(unittest.TestCase):
             'main.nut': '81f077c68e094a0a9a8d4a63e1600af0fce0cdd9b9b835077e3da386d3b36ece',
             'probes.nut': 'ef0a1228e758e648736c89b9252dc9568f6b6a834065343e805570aed47788dd',
             'settings.nut': '580b8d9fd4997e6ec84a6c08ad51e02d6227c1de0d6b2411580cfb6c4306076d',
-            'info.nut': '2b73568392c824c3d2f6653eddeb132cf98e613987c6f4db1ee149c9d097462e',
+            'info.nut': '6eca938a429a092661801d8312d8738874bc6899a3beb3b74ebebc3fc94d205c',
         }
         for name, digest in expected.items():
             with self.subTest(name=name):
