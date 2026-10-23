@@ -136,9 +136,7 @@ V277_AIR_PUB_FAST <- 0;
 V294_RAIL_WEIGHT_PCT <- 200;  // defaut V294all depuis le 21/10 (decision utilisateur)
 /* V294d : table de coûts A* rail alignée sur AAAHogEx (défaut 0 = inerte). */
 V294_RAIL_AAA_COSTS <- 1;  // defaut V294all depuis le 21/10 (decision utilisateur)
-/* V294f : plafond de la recherche A* inverse, dont le trace reussi est utilise pour construire. AAA : 300 iters. */
-RAIL_REVERSE_ASTAR_ITERS <- 300;  // defaut V294all depuis le 21/10 (decision utilisateur)
-/* Alias de transition tant que task_rail.nut de la branche de base lit encore l'ancien nom. */
+/* V294f : sonde A* inverse existante, valeur par defaut adoptee figee a 300 iterations. */
 V294_RAIL_REVERSE_PROBE <- 300;
 /* V294i : découplage distance railMax des candidats du plafond d'itérations (défaut 0 = inerte). */
 V294_RAIL_DIST_DECOUPLE <- 200;  // defaut V294all depuis le 21/10 (decision utilisateur)
@@ -496,19 +494,6 @@ C50_NON_EXPANSION_LEDGER <- null;
 AIR_FLEET_PROBE <- false;
 /* AIR-FLOTTE-1 : seule la sonde dediee permet le scan du vivier aux achats AIR. */
 AIR_FLOTTE1_SHADOW <- false;
-/* AIR-ROI-RENFORT-1 : snapshot passif du renfort, au plus une fois
- * par ligne / 30 jours, sans sonde ni comptabilite au defaut 0. */
-AIR_ROI_RENFORT1_SHADOW <- false;
-AIR_ROI_RENFORT1_LAST <- {};
-/* AIR-LOAD-7 : sonde ephemere, aucune persistance ou travail au defaut OFF.
- * Un seul avion (ou lot borne) et quelques voisins inspectes par tour de boucle. */
-AIR_LOAD7_SHADOW <- false;
-AIR_LOAD7_LAST_START <- -1;
-AIR_LOAD7_CURSOR <- 0;
-AIR_LOAD7_CURRENT <- null;
-AIR_LOAD7_INDEX <- {};
-AIR_LOAD7_INDEX_CURSOR <- 0;
-AIR_LOAD7_ACTIVE <- false;
 AIR_FLOTTE1_KDEC <- -1;
 AIR_FLOTTE1_KDEC_TICK <- -1;
 /* Memoire ephemere de la derniere passe : ne modifie aucune decision. */
