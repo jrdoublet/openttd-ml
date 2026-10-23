@@ -24,9 +24,9 @@ def read(name):
 class FixedPolicies(unittest.TestCase):
     def test_exactly_five_public_settings_retired(self):
         info, settings = read("info.nut"), read("settings.nut")
-        # Inventaire de origin/master=c1bae7ec : 101 AddSetting, dont PO03
-        # (C77 intent defer). Aucun reglage n'est ajoute par l'alignement tests.
-        self.assertLessEqual(info.count("AddSetting("), 101)
+        # 101 options initiales, 43 retraits intentionnels ; PO03/C77 et
+        # PO02 restent declares et actifs malgre leur absence du vieux WIP.
+        self.assertLessEqual(info.count("AddSetting("), 58)
         for name in PACKAGES:
             with self.subTest(name=name):
                 self.assertNotIn(f'name = "{name}"', info)
