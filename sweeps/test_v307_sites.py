@@ -305,7 +305,8 @@ class TestV307Sites(unittest.TestCase):
         self.assertIn("V307S3_REACH[key] <- [indType, coverage, reach];", rail)
         self.assertNotIn("function(", body)
         settings = source("settings.nut")
-        self.assertIn("v307Sites == 3", settings)
+        self.assertIn("v307Sites >= 1 && v307Sites <= 3", settings)
+        self.assertIn("V307S3_REACH <- {};", source("globals_pre.nut"))
 
 
 if __name__ == "__main__":
