@@ -8,7 +8,12 @@ import json
 from pathlib import Path
 import sys
 
-import pytest
+# rebasé le 24/10 : skip si pytest est absent sur l'hôte (AGENTS.md §3)
+try:
+    import pytest
+except ImportError:
+    import unittest
+    raise unittest.SkipTest("pytest n'est pas installé sur l'hôte (AGENTS.md §3)")
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
