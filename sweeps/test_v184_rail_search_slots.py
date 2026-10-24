@@ -6,7 +6,8 @@ import sys
 import unittest
 from pathlib import Path
 
-ROOT = Path.cwd()
+# rebasé le 24/10 : de8e1abe (résolution ROOT relative à __file__ pour portabilité lors de l'exécution depuis sweeps)
+ROOT = Path(__file__).resolve().parents[1]
 AI = ROOT / "ai" / "OpexAI"
 sys.path.insert(0, str(ROOT / "sweeps"))
 
