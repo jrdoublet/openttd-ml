@@ -383,7 +383,7 @@ def main():
         "seeds": args.seeds,
         "workers": min(args.workers, len(args.seeds)),
         "arm": ARM,
-        "explicit_settings": {"decision_log": 1},
+        "explicit_settings": {"probes": 258},
         "scrap_timeout_years": SCRAP_TIMEOUT_YEARS,
         "by_seed": by_seed,
         "aggregate_counts": dict(aggregate_counts),

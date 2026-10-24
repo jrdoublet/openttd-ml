@@ -381,7 +381,7 @@ def run_smoke(directory):
         raise ValueError("Protected defaults changed; refuse runtime")
     if any(key in effective for key in removed):
         raise ValueError("Removed setting still exposed")
-    if set(resolved["explicit_nondefault"]) - {"decision_log"}:
+    if set(resolved["explicit_nondefault"]) - {"probes"}:
         raise ValueError("Unexpected intervention")
     target = stage_ai(directory)
     plan.update({"resolved_arm": resolved, "configuration": bench_v2.make_cfg(1970),
