@@ -10,12 +10,17 @@ historique du filtre est le seul execute. Aucune partie n'est lancee.
 from __future__ import annotations
 
 import re
+import sys
 import unittest
 from pathlib import Path
 
-from sweeps.campaign_freeze import parse_ai_setting_specs
-
 ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+if str(ROOT / "sweeps") not in sys.path:
+    sys.path.insert(0, str(ROOT / "sweeps"))
+
+from sweeps.campaign_freeze import parse_ai_setting_specs
 
 SETTING = "air0310_site_validity_cache"
 GLOBAL = "AIR0310_SITE_VALIDITY_CACHE"
@@ -323,7 +328,8 @@ class TestAir0310SiteValidityCache(unittest.TestCase):
         self.assertLess(road_back.index("if (!allSold) return;"), road_back.index(INVALIDATE))
         water_build = _brace_body(self.water, "function OpexBuildWaterRoute(")
         water_back = _brace_body(self.water, "function OpexWaterRollback(")
-        self.assertLess(water_build.index("WATER_OPCODE_COMPAT_FALSE"),
+        # rebasé le 24/10 : eec5db81 (revue R09, suppression WATER_OPCODE_COMPAT_FALSE, garde NOSLOT avant invalidation)
+        self.assertLess(water_build.index('result.reason = "NOSLOT"'),
                         water_build.index(INVALIDATE))
         self.assertLess(water_build.index(INVALIDATE),
                         water_build.index("AIMarine.BuildDock(plan.siteA.dock"))
