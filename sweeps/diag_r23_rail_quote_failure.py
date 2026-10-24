@@ -12,6 +12,10 @@ hashed before/after and are not edited by the fixture.
 """
 from __future__ import annotations
 
+try:
+    from sweeps.campaign_freeze import benchmark_opex_settings
+except ImportError:
+    from campaign_freeze import benchmark_opex_settings
 import argparse
 import hashlib
 import json
@@ -177,7 +181,7 @@ def main():
     openttdlab.subprocess.check_output = with_script_debug
 
     try:
-        ai = local_folder(str(staged), "OpexAI", (("decision_log", 1),))
+        ai = local_folder(str(staged), "OpexAI", benchmark_opex_settings((("decision_log", 1),)))
         experiments = [{"seed": args.seed, "days": 365 * args.years,
                         "openttd_config": CFG, "ais": (ai,)}]
         rows = list(run_experiments(

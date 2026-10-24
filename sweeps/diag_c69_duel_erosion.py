@@ -5,6 +5,10 @@ identiques a celles du banc, qui est deterministe). A chaque decembre, lit passi
 sauvegarde les lignes des deux compagnies (mode, villes desservies, vehicules, profit de l'annee
 ecoulee). Aucun journal de script : rien ne change dans la partie.
 """
+try:
+    from sweeps.campaign_freeze import benchmark_opex_settings
+except ImportError:
+    from campaign_freeze import benchmark_opex_settings
 import argparse
 import json
 import re
@@ -50,7 +54,7 @@ def main():
     for arm, settings in ARMS:
         if arm not in KEEP_ARMS:
             continue
-        opex = local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI", settings)
+        opex = local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI", benchmark_opex_settings(settings))
         for seed in args.seeds:
             experiments.append({"bench_context": "duel", "bench_arm": arm, "seed": seed,
                                 "days": 365 * args.years, "openttd_config": cfg, "ais": (opex, aaahogex)})

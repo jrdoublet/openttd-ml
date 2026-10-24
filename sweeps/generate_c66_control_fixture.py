@@ -5,6 +5,10 @@ l'inventaire API indépendant (AIVehicleList, IsPrimaryVehicle, AIStationList) �
 exact de l'autosave 1971-01-01, et produit la fixture complète vérifiée :
 `sweeps/fixtures/c66_control_fixture_15_3.json`.
 """
+try:
+    from sweeps.campaign_freeze import benchmark_opex_settings
+except ImportError:
+    from campaign_freeze import benchmark_opex_settings
 import json
 from pathlib import Path
 import re
@@ -85,7 +89,7 @@ def generate_fixture():
         main_nut = main_nut.replace("  while (true) {", "  while (true) {\n" + injection, 1)
         (temp_ai / "main.nut").write_text(main_nut)
 
-        opex = local_folder(str(temp_ai), "OpexAI", ())
+        opex = local_folder(str(temp_ai), "OpexAI", benchmark_opex_settings(()))
         cfg = "[game_creation]\nstarting_year = 1970\nmap_x = 8\nmap_y = 8\n"
 
         def keep_raw(row):

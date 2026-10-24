@@ -5,6 +5,10 @@ se disputent le terrain et `decision_log=1` consomme des opcodes chez Opex. Il r
 construit quoi pendant que l'autre travaille ? », complete par les chunks mensuels et les traces
 de construction d'AAAHogEx.
 """
+try:
+    from sweeps.campaign_freeze import benchmark_opex_settings
+except ImportError:
+    from campaign_freeze import benchmark_opex_settings
 import argparse
 import json
 from pathlib import Path
@@ -103,7 +107,7 @@ def main():
     args = parser.parse_args()
     args.out.parent.mkdir(parents=True, exist_ok=True)
     opex = local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI",
-                        (("decision_log", 1), ("probe_scheduler", 1), ("probe_cost", 1)))
+                        benchmark_opex_settings((("decision_log", 1), ("probe_scheduler", 1), ("probe_cost", 1))))
     hogex = local_folder(str(ROOT / "ai" / AAAHOGEX_DIR), "AAAHogEx", ())
     rows = list(run_experiments(
         openttd_version=OPENTTD_VERSION, opengfx_version=OPENGFX_VERSION,

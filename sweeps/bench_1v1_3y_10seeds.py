@@ -9,6 +9,10 @@ Compare les chiffres principaux annee par annee (Annees 1 a 3, 1970 a 1972) :
 - Tresorerie (money) et emprunt (current_loan)
 - Note de gare mediane
 """
+try:
+    from sweeps.campaign_freeze import benchmark_opex_settings
+except ImportError:
+    from campaign_freeze import benchmark_opex_settings
 import argparse
 from collections import defaultdict
 import json
@@ -148,7 +152,7 @@ def main():
     enable_savegame_cleanup()
 
     arms = {
-        "OpexAI":   local_folder(str(ROOT / "ai" / "OpexAI"),       "OpexAI",   ()),
+        "OpexAI":   local_folder(str(ROOT / "ai" / "OpexAI"),       "OpexAI",   benchmark_opex_settings(())),
         "AAAHogEx": local_folder(str(ROOT / "ai" / AAAHOGEX_DIR),   "AAAHogEx", ()),
     }
 

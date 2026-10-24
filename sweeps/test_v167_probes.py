@@ -2,7 +2,7 @@
 """Tests pour V167 — un seul reglage entier `probes` pilote panneaux, journal et sondes.
 
 Contrats statiques :
-1. `probes` est un entier signe sur bits 0..30, defaut 2 (panneaux seuls).
+1. `probes` est un entier signe sur bits 0..30, defaut publication 0 (bancs : 2).
 2. Les anciennes sondes booleennes ont disparu des AddSetting / GetSetting ; chacune
    utilise un bit dedie et, si necessaire, son ancien groupe pour compatibilite.
 3. Le bit 1 active toutes les sondes ; les bits dedies ne forcent jamais le journal.
@@ -105,12 +105,12 @@ def _effective(probes: int):
 class Declaration(unittest.TestCase):
     def test_probes_setting(self):
         spec = parse_ai_setting_specs(AI / "info.nut")
-        self.assertEqual(spec["probes"]["default"], 2)
+        self.assertEqual(spec["probes"]["default"], 0)
         self.assertFalse(spec["probes"]["boolean"])
         self.assertEqual((spec["probes"]["min_value"], spec["probes"]["max_value"]), (0, ALL_BITS))
         block = _read("info.nut").split('name = "probes"', 1)[1].split("});", 1)[0]
         for key in ("easy_value", "medium_value", "hard_value", "custom_value"):
-            self.assertRegex(block, key + r" = 2\b")
+            self.assertRegex(block, key + r" = 0\b")
         self.assertNotIn("debug_signs", spec)
         self.assertNotIn("decision_log", spec)
         self.assertIn("OPEX_PROBE_MASK <- 2;", _read("globals_pre.nut"))
@@ -215,8 +215,7 @@ class Launcher(unittest.TestCase):
         self.assertEqual(inject_probes(None, 6), "OpexAI[probes=6]")
         self.assertEqual(inject_probes(None, 2147483647), "OpexAI[probes=2147483647]")
         self.assertEqual(inject_probes("OpexAI[mode_rail=0]", 18), "OpexAI[mode_rail=0,probes=18]")
-        with self.assertRaises(ValueError):
-            inject_probes("OpexAI[probes=2]", 6)
+        self.assertEqual(inject_probes("OpexAI[probes=2]", 6), "OpexAI[probes=2]")
         with self.assertRaises(ValueError):
             inject_probes("AAAHogEx", 6)
         for bad in (0, 4, 512, 2147483648, -1):

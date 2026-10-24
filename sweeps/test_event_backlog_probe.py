@@ -31,7 +31,7 @@ class TestEventBacklogProbe(unittest.TestCase):
         specs = parse_ai_setting_specs(INFO)
         self.assertNotIn("probe_event_backlog", defaults)
         self.assertNotIn("probe_event_backlog", specs)
-        self.assertEqual(defaults["probes"], 2)
+        self.assertEqual(defaults["probes"], 0)
         self.assertEqual(specs["probes"]["max_value"], 2147483647)
 
     def test_globals_declaration(self):

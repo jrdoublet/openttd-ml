@@ -15,6 +15,10 @@ AAAHogEx n'a pas ce tunnel : on lit ses evenements de construction deja emis.
 
 Sortie : un JSON avec une ligne par (IA, graine, mois), et des tableaux mensuels.
 """
+try:
+    from sweeps.campaign_freeze import benchmark_opex_settings
+except ImportError:
+    from campaign_freeze import benchmark_opex_settings
 import argparse
 from collections import Counter, defaultdict
 import json
@@ -356,7 +360,7 @@ def build_arms(seeds, years, shared=False, funnel=False):
     hogex = local_folder(str(ROOT / "ai" / AAAHOGEX_DIR), "AAAHogEx", ())
     if shared:
         opex_params = (("probe_portfolio", 1),) if funnel else ()
-        opex = local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI", opex_params)
+        opex = local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI", benchmark_opex_settings(opex_params))
         return [
             {
                 "seed": seed,
@@ -368,7 +372,7 @@ def build_arms(seeds, years, shared=False, funnel=False):
             }
             for seed in seeds
         ]
-    opex = local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI", (("probe_events", 1),))
+    opex = local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI", benchmark_opex_settings((("probe_events", 1),)))
     return [
         {
             "seed": seed,

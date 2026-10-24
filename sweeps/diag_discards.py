@@ -11,6 +11,10 @@ Trois etages, du plus large au plus etroit :
   3. PROJECT_DISCARD: pourquoi un projet classe n'est pas elu -- l'etage decisif, celui ou le
      ratio 30:1 se joue.
 """
+try:
+    from sweeps.campaign_freeze import benchmark_opex_settings
+except ImportError:
+    from campaign_freeze import benchmark_opex_settings
 import argparse, json, re, sys
 from collections import Counter, defaultdict
 from pathlib import Path
@@ -92,7 +96,7 @@ def main():
     args = parser.parse_args()
 
     enable_savegame_cleanup()
-    ai = local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI", (("decision_log", 1),))
+    ai = local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI", benchmark_opex_settings((("decision_log", 1),)))
     rows = list(run_experiments(
         openttd_version="15.3", opengfx_version="7.1", max_workers=args.workers,
         result_processor=keep,

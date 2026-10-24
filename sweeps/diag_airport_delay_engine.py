@@ -17,6 +17,10 @@ Le mapping de vitesse n'est utilise que dans ce diagnostic. Il reproduit les
 215..255. La correction de production continue d'utiliser AIEngine.GetMaxSpeed.
 """
 
+try:
+    from sweeps.campaign_freeze import benchmark_opex_settings
+except ImportError:
+    from campaign_freeze import benchmark_opex_settings
 import argparse
 from collections import defaultdict
 import json
@@ -281,7 +285,7 @@ def main():
     # de cette sonde forçaient trois politiques AIR historiques, ce qui rendait
     # leur distribution de congestion non représentative du défaut moderne.
     settings = (("decision_log", 0),)
-    ai = local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI", settings)
+    ai = local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI", benchmark_opex_settings(settings))
     cfg = CFG.replace("starting_year = 1970", f"starting_year = {args.start_year}")
     experiments = [
         {"seed": seed, "days": 365 * args.years, "openttd_config": cfg, "ais": (ai,)}

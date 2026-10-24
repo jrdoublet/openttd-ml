@@ -11,6 +11,10 @@ This is mechanism evidence only, not an economic benchmark.
 """
 from __future__ import annotations
 
+try:
+    from sweeps.campaign_freeze import benchmark_opex_settings
+except ImportError:
+    from campaign_freeze import benchmark_opex_settings
 import argparse
 import hashlib
 import json
@@ -192,7 +196,7 @@ def main():
     staged_before = tree_hashes(staged)
     openttdlab.subprocess.check_output = _debug
     try:
-        ai = local_folder(str(staged), "OpexAI", (("decision_log", 1),))
+        ai = local_folder(str(staged), "OpexAI", benchmark_opex_settings((("decision_log", 1),)))
         rows = list(run_experiments(
             openttd_version="15.3", opengfx_version="7.1", max_workers=1,
             experiments=[{"seed": args.seed, "days": 365 * args.years,

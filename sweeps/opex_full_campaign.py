@@ -15,6 +15,10 @@ emprunt / tresorerie" dans la meme execution -- necessaire pour repondre a la qu
 Meme config gelee que sweeps/bench.py et opex_predict_vs_actual*.py : OpenTTD 15.3, OpenGFX 7.1,
 carte 256x256, depart 1970. YEARS et les graines sont des parametres CLI (defauts 10 et 42).
 """
+try:
+    from sweeps.campaign_freeze import benchmark_opex_settings
+except ImportError:
+    from campaign_freeze import benchmark_opex_settings
 import argparse
 import json
 import re
@@ -1534,7 +1538,7 @@ def main():
     result_path = result_path_for(args)
     experiments = [{
         "seed": seed, "days": 365 * args.years, "openttd_config": CFG,
-        "ais": (local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI", args.ai_settings),),
+        "ais": (local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI", benchmark_opex_settings(args.ai_settings)),),
         "opex_seed": seed,
     } for seed in args.seeds]
     rows = list(run_experiments(

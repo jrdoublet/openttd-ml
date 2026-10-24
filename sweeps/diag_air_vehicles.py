@@ -20,6 +20,10 @@ PARTIEL de N (vehicules construits en cours d'annee). Pour comparer les avions a
 faut une annee CIVILE COMPLETE pour chacun : on tourne donc 3 ans et on lit le rapport de l'annee
 1972 (couvre 1971 en entier pour tous les avions construits en 1970).
 """
+try:
+    from sweeps.campaign_freeze import benchmark_opex_settings
+except ImportError:
+    from campaign_freeze import benchmark_opex_settings
 import argparse
 import json
 import re
@@ -141,7 +145,7 @@ def main():
     args = parser.parse_args()
 
     ai = local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI",
-                       (("probe_events", 1), ("decision_log", 1)))
+                       benchmark_opex_settings((("probe_events", 1), ("decision_log", 1))))
     experiments = [
         {"seed": seed, "days": 365 * args.years, "openttd_config": CFG,
          "ais": (ai,), "diag_arm": "OpexAI"}

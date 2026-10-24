@@ -6,6 +6,10 @@ helpers. Existing outputs are refused. No game runs on import.
 """
 from __future__ import annotations
 
+try:
+    from sweeps.campaign_freeze import benchmark_opex_settings
+except ImportError:
+    from campaign_freeze import benchmark_opex_settings
 import argparse
 from datetime import date, timedelta
 import hashlib
@@ -215,7 +219,7 @@ def main(argv=None):
         return original(command, *rest, **kwargs)
 
     reload._REAL_CHECK_OUTPUT = with_gs
-    arm = openttdlab.local_folder(str(target), "OpexAI", (("decision_log", 1),))
+    arm = openttdlab.local_folder(str(target), "OpexAI", benchmark_opex_settings((("decision_log", 1),)))
     cfg = reload.bench_v2.make_cfg(1970) + '\n[game_scripts]\nFixtureBank = \n'
     write(folder / "plan.json", {"kind": "engineered_world_not_economic", "seed": 42,
           "scenario": args.scenario, "phase_years": [2, 1, 1] if args.scenario == "r1" else [2], "workers": 1, "source_hashes": before,

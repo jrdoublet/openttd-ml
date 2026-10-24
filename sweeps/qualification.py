@@ -266,11 +266,21 @@ def validate_protocol(spec, stage, report, manifest, expected_sha, campaign, pre
         settings = policy["settings"]
         require(policy["role"] == role and policy["ai"] == "OpexAI" and policy["company_slot"] == 0,
                 "Politique/slot incorrect")
-        require(settings["explicit"] == arm_settings(spec[role]), "Bras différent du plan")
+        planned = arm_settings(spec[role])
+        # The host launcher may have materialized the common signs baseline.
+        actual = dict(settings["explicit"])
+        if "probes" not in planned and actual.get("probes") == 2:
+            actual.pop("probes")
+        require(actual == planned, "Bras différent du plan")
         expected = dict(settings["defaults"], **settings["explicit"])
+        if "probes" in settings["defaults"] and "probes" not in settings["explicit"]:
+            expected["probes"] = 2
         require(settings["effective"] == expected, "Réglages effectifs incohérents")
         if role == "reference":
-            require(settings["effective"] == settings["defaults"], "Référence hors défaut")
+            baseline = dict(settings["defaults"])
+            if "probes" in baseline:
+                baseline["probes"] = 2
+            require(settings["effective"] == baseline, "Référence hors défaut")
     comparison = manifest["comparison"]
     differences = {k: {"reference": v, "candidate": arm_settings(spec["variant"])[k]}
                    for k, v in arm_settings(spec["reference"]).items()}

@@ -111,6 +111,24 @@ def evaluate(report, manifest, stage="non_erosion", category="behavior", **kwarg
 
 
 class GateTests(unittest.TestCase):
+    def test_publication_signs_baseline_is_not_an_intervention(self):
+        for materialized in (False, True):
+            with self.subTest(materialized=materialized):
+                report, manifest = fixture("gain_short", delta=4000)
+                for policy in manifest["policies"]:
+                    settings = policy["settings"]
+                    settings["defaults"]["probes"] = 0
+                    settings["effective"]["probes"] = 2
+                    if materialized:
+                        settings["explicit"]["probes"] = 2
+                    else:
+                        settings["benchmark_injected"] = {"probes": 2}
+                self.assertEqual(evaluate(report, manifest, "gain_short")["status"], q.CONTINUE)
+                for policy in manifest["policies"]:
+                    policy["settings"]["explicit"]["probes"] = 514
+                    policy["settings"]["effective"]["probes"] = 514
+                self.assertEqual(evaluate(report, manifest, "gain_short")["status"], q.INVALID)
+
     def test_a_requires_positive_bootstrap_lower_bound_despite_mean_and_wilcoxon(self):
         report, manifest = fixture("gain_short", delta=20000)
         candidates = [r for r in report["summary"] if r["duel_policy_id"] == "variant" and r["arm"] == "OpexAI"]

@@ -18,6 +18,10 @@ mediane STNN.goods.rating des cargos qui ont une note (status & 2 = Rating, rama
 company_value = 0 : ne pas l'utiliser. max_loan est parse en -9223372036854775808 a cette
 version : champ ininterpretable.
 """
+try:
+    from sweeps.campaign_freeze import benchmark_opex_settings
+except ImportError:
+    from campaign_freeze import benchmark_opex_settings
 import argparse
 import functools
 import inspect
@@ -193,7 +197,7 @@ def resolved_arm_settings(names):
             "settings": settings,
             "explicit_nondefault": {
                 key: value for key, value in explicit.items()
-                if defaults.get(key) != value
+                if defaults.get(key) != value and not (key == "probes" and value == 2)
             },
         }
     return resolved
@@ -272,7 +276,7 @@ def build_arms(names):
                 (key, value) for key, value in opex_settings["effective"].items()
                 if defaults.get(key) != value
             )
-            arms[name] = local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI", params)
+            arms[name] = local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI", benchmark_opex_settings(params))
         elif name == "trAIns":
             arms[name] = bananas_ai("54524149", "trAIns", ai_params=(), md5=TRAINS_MD5)
         elif name == "AdmiralAI":

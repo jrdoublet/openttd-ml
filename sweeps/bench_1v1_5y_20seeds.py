@@ -7,6 +7,10 @@ Post-09/09 Reference Benchmark :
   n_vehicles, n_stations, median_station_rating) et produit la comparaison appariée.
 - Sortie : results/bench_1v1_5y_20seeds_reference.json (+ checkpoint .jsonl)
 """
+try:
+    from sweeps.campaign_freeze import benchmark_opex_settings
+except ImportError:
+    from campaign_freeze import benchmark_opex_settings
 import argparse
 from collections import defaultdict
 import inspect
@@ -1303,7 +1307,7 @@ def make_experiments_plan(seeds, years, repeats=1, campaign=None, policy_id="ref
             for policy in policies:
                 current_policy_id = policy["id"]
                 opex = local_folder(
-                    str(opex_dir), "OpexAI", tuple(policy.get("explicit_settings", ()))
+                    str(opex_dir), "OpexAI", benchmark_opex_settings(tuple(policy.get("explicit_settings", ())))
                 )
                 campaign_id = campaign.campaign_id if campaign is not None else None
                 game_id = (
@@ -2314,8 +2318,8 @@ def main():
             parser.error("--value-guard-max-loss-pct doit etre fixe avant un banc C66.4")
         if args.value_guard_max_loss_pct < 0:
             parser.error("--value-guard-max-loss-pct doit etre >= 0")
-        ref_explicit = dict(reference_settings)
-        var_explicit = dict(variant_settings)
+        ref_explicit = dict(benchmark_opex_settings(reference_settings))
+        var_explicit = dict(benchmark_opex_settings(variant_settings))
         intervention_settings = tuple(
             sorted(
                 key for key in (set(ref_explicit) | set(var_explicit))
@@ -3125,7 +3129,7 @@ def selftest():
 
     # 5. C66.3 : defaults effectifs, garde de comparaison et immutabilite du snapshot.
     defaults = parse_ai_settings(ROOT / "ai" / "OpexAI" / "info.nut")
-    assert defaults["probes"] == 2  # panneaux maintenus par le bit 2
+    assert defaults["probes"] == 0  # publication ; les bancs injectent le bit 2
     assert "debug_signs" not in defaults  # interrupteur redondant retire
     assert "air_fleet_cadence_days" not in defaults  # V236 : constante 7
 

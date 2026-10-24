@@ -27,6 +27,10 @@ chiffres de valeur ne sont donc PAS comparables a ceux des bancs.
 Parties ISOLEES, comme sweeps/bench.py et diag_1v1_monthly.py : chaque IA joue seule sur la meme
 graine. Un duel en partie partagee est une autre experience, plus spectaculaire mais confondue.
 """
+try:
+    from sweeps.campaign_freeze import benchmark_opex_settings
+except ImportError:
+    from campaign_freeze import benchmark_opex_settings
 import argparse
 import json
 import re
@@ -173,14 +177,14 @@ def keep(row):
 def build_experiments(seeds, years, decision_log, only=None, clean_arm=False):
     arms = {
         "OpexAI": local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI",
-                               (("probe_events", 1), ("decision_log", 1 if decision_log else 0))),
+                               benchmark_opex_settings((("probe_events", 1), ("decision_log", 1 if decision_log else 0)))),
         "AAAHogEx": local_folder(str(ROOT / "ai" / AAAHOGEX_DIR), "AAAHogEx", ()),
     }
     if clean_arm:
         # Bras de VALEUR : aucun reglage d'instrumentation, donc le seul dont le chiffre soit
         # comparable aux bancs. Les parties etant ISOLEES, AAAHogEx est indifferent a nos reglages :
         # son journal reste exploitable pendant que ce bras donne un 1v1 honnete.
-        arms["OpexAI_clean"] = local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI", ())
+        arms["OpexAI_clean"] = local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI", benchmark_opex_settings(()))
     if only:
         arms = {name: ai for name, ai in arms.items() if name == only}
     return [

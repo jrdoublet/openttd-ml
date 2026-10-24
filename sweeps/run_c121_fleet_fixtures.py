@@ -4,6 +4,10 @@ The C121 visible-target default was removed with that mechanism.
 """
 from __future__ import annotations
 
+try:
+    from sweeps.campaign_freeze import benchmark_opex_settings
+except ImportError:
+    from campaign_freeze import benchmark_opex_settings
 import argparse
 import inspect
 import json
@@ -55,7 +59,7 @@ def main(argv=None, *, settings=None, fixture=None, marker="C121_TARGET", stage_
     reload.SCRIPT_DEBUG_LEVEL = "4"
     if settings is None:
         settings = (("decision_log", 1),)
-    arm = openttdlab.local_folder(str(target), "OpexAI", settings)
+    arm = openttdlab.local_folder(str(target), "OpexAI", benchmark_opex_settings(settings))
     cfg = reload.bench_v2.make_cfg(1970)
     write_new(folder / "plan.json", {
         "kind": "correctness_not_economic", "seed": 42, "years_per_phase": 1,

@@ -6,6 +6,10 @@ Capture ``C96_SITE`` via ``-d script=4`` avec le placement catchment permanent.
 
 from __future__ import annotations
 
+try:
+    from sweeps.campaign_freeze import benchmark_opex_settings
+except ImportError:
+    from campaign_freeze import benchmark_opex_settings
 import argparse
 import json
 from pathlib import Path
@@ -129,7 +133,7 @@ def main():
 
     enable_savegame_cleanup()
     opex = local_folder(
-        str(ROOT / "ai" / "OpexAI"), "OpexAI", ()
+        str(ROOT / "ai" / "OpexAI"), "OpexAI", benchmark_opex_settings(())
     )
     cfg = make_cfg(1970)
     experiments = [

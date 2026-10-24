@@ -8,6 +8,10 @@ destination-acceptance check (or an invalid destination station), because
 """
 from __future__ import annotations
 
+try:
+    from sweeps.campaign_freeze import benchmark_opex_settings
+except ImportError:
+    from campaign_freeze import benchmark_opex_settings
 import argparse
 import json
 from pathlib import Path
@@ -122,7 +126,7 @@ def main():
         raise FileExistsError(out)
     out.parent.mkdir(parents=True, exist_ok=True)
 
-    ai = local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI")
+    ai = local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI", benchmark_opex_settings())
     experiments = [{"seed": seed, "days": 365 * args.years, "openttd_config": CFG, "ais": (ai,)}
                    for seed in args.seeds]
     rows = list(run_experiments(

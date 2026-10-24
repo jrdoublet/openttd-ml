@@ -8,6 +8,10 @@ Usage :
     python sweeps/diag_c60_town_rating_exposure.py --selftest
     python sweeps/diag_c60_town_rating_exposure.py --file results/diag_air_afail_rect_end_6y_5seeds.json
 """
+try:
+    from sweeps.campaign_freeze import benchmark_opex_settings
+except ImportError:
+    from campaign_freeze import benchmark_opex_settings
 import argparse
 from collections import Counter, defaultdict
 import json
@@ -250,7 +254,7 @@ def _filter_variant_descriptor(temp_root):
     return local_folder(
         str(temp_ai),
         "OpexAI",
-        tuple(settings["effective"].items()),
+        benchmark_opex_settings(tuple(settings["effective"].items())),
     )
 
 

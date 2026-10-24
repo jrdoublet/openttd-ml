@@ -1,6 +1,10 @@
 """Mesure passive du temps aeroportuaire reel par EngineID."""
 from __future__ import annotations
 
+try:
+    from sweeps.campaign_freeze import benchmark_opex_settings
+except ImportError:
+    from campaign_freeze import benchmark_opex_settings
 import argparse
 from collections import Counter, defaultdict
 import json
@@ -250,7 +254,7 @@ def main():
     args = parser.parse_args()
 
     settings = ()
-    ai = local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI", settings)
+    ai = local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI", benchmark_opex_settings(settings))
     experiments = [
         {
             "seed": seed,

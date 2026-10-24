@@ -11,6 +11,10 @@ double comptage des jours d'occasion, caisse >= 300 k£ => CPU, perdants sans te
 """
 from __future__ import annotations
 
+try:
+    from sweeps.campaign_freeze import benchmark_opex_settings
+except ImportError:
+    from campaign_freeze import benchmark_opex_settings
 import argparse
 import json
 import re
@@ -967,7 +971,7 @@ def run_campaign(args):
     out = Path(out)
     out.parent.mkdir(parents=True, exist_ok=True)
     enable_savegame_cleanup()
-    opex = local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI", (("probe_portfolio", 1),))
+    opex = local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI", benchmark_opex_settings((("probe_portfolio", 1),)))
     hogex = local_folder(str(ROOT / "ai" / "AAAHogEx-115"), "AAAHogEx", ())
     rows = list(run_experiments(
         openttd_version=OPENTTD_VERSION,

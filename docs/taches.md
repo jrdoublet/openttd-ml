@@ -7,6 +7,11 @@ ne créent pas une tâche. Protocole et pilotage des bancs : [AGENTS.md](../AGEN
 
 ## État courant
 
+**24/10 — préparation publication v8 (demande utilisateur, branche `publication-1`) :**
+`probes=0` aux quatre difficultés ; les harnais actifs injectent `probes=2` si absent,
+sans intervention comparative supplémentaire. [Inventaire et validation](publication_probes_20261024.md).
+Aucun moteur lancé ; suite Python avec seuls échecs préexistants, aucune qualification économique.
+
 ### 21/10 — frontières voyageurs et calibration RAIL à coût d'opcodes quasi nul : travaux **ouverts**
 
 **Travail déjà réalisé, à ne pas recommencer :** audit en lecture seule des 40×10

@@ -111,7 +111,7 @@ class TestCampaignFreeze(unittest.TestCase):
                 {"id": "ref", "explicit_settings": (("sample", 1),)},
             ])
         self.assertEqual(plan[0]["openttd_config"], campaign.manifest["configuration"]["raw"])
-        self.assertEqual(plan[0]["ais"][0], (str(campaign.opex_dir), "OpexAI", (("sample", 1),)))
+        self.assertEqual(plan[0]["ais"][0], (str(campaign.opex_dir), "OpexAI", (("sample", 1), ("probes", 2))))
         self.assertEqual(plan[0]["ais"][1][0], str(campaign.aaahogex_dir))
         self.assertEqual(plan[0]["game_id"], "fixture:policy=ref:s42:r0")
 
@@ -286,7 +286,7 @@ class TestCampaignFreeze(unittest.TestCase):
         self.assertNotIn("air_site_cost_quote", defaults)
         self.assertNotIn("air_site_cost_margin_pct", defaults)
         self.assertNotIn("air_site_quote_keep_legacy_margin", defaults)
-        self.assertEqual(defaults["probes"], 2)
+        self.assertEqual(defaults["probes"], 0)
         self.assertNotIn("probe_events", defaults)
         self.assertNotIn("probe_cost", defaults)
         self.assertNotIn("probe_air_engine_depth", defaults)  # V239
@@ -312,6 +312,12 @@ class TestCampaignFreeze(unittest.TestCase):
         defaults = parse_ai_settings(INFO)
         failures = []
         for name, value in defaults.items():
+            if name == "probes":
+                # Publication default is deliberately unsuitable for sign-based benches.
+                self.assertEqual(value, 0)
+                with self.assertRaises(ValueError):
+                    parse_opex_variant("OpexAI[probes=0]")
+                value = 2
             try:
                 parsed = parse_opex_variant(f"OpexAI[{name}={value}]")
             except ValueError as error:

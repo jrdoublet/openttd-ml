@@ -15,6 +15,10 @@ Métriques primaires et secondaires :
 """
 from __future__ import annotations
 
+try:
+    from sweeps.campaign_freeze import benchmark_opex_settings
+except ImportError:
+    from campaign_freeze import benchmark_opex_settings
 import argparse
 from collections import defaultdict
 import json
@@ -606,7 +610,7 @@ def main():
     days = 365 * args.years
     experiments = []
     for arm, settings in active_arms.items():
-        opex = local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI", settings)
+        opex = local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI", benchmark_opex_settings(settings))
         for seed in args.seeds:
             experiments.append({
                 "bench_context": "solo",

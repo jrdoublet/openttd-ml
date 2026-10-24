@@ -8,6 +8,10 @@ dans leur ordre de creation, distance, raison et code d'erreur d'une meme tentat
 OpenTTDLab ne sait capturer qu'a la fin de chaque partie et exige un rendu OpenGL disponible;
 ``--screenshots repertoire`` active ces cartes finales comme complement visuel des mesures.
 """
+try:
+    from sweeps.campaign_freeze import benchmark_opex_settings
+except ImportError:
+    from campaign_freeze import benchmark_opex_settings
 import argparse
 from collections import Counter, defaultdict
 import json
@@ -105,7 +109,7 @@ def main():
         args.screenshots.mkdir(parents=True, exist_ok=True)
 
     ai = local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI",
-                      (("probe_cost", 1),))
+                      benchmark_opex_settings((("probe_cost", 1),)))
     experiments = [{"seed": seed, "days": 365 * args.years, "openttd_config": CFG,
                     "ais": (ai,)} for seed in args.seeds]
     rows = list(run_experiments(

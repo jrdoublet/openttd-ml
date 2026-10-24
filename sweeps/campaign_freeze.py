@@ -242,6 +242,12 @@ def parse_aaahogex_settings(raw_settings, info_path: Path | None = None) -> tupl
     return tuple(sorted((k, v) for k, v in parsed.items() if v != defaults[k]))
 
 
+def benchmark_opex_settings(explicit=()) -> tuple:
+    """Keep benchmark signs when the publication default is off; preserve explicit masks."""
+    items = tuple(explicit.items()) if isinstance(explicit, dict) else tuple(explicit or ())
+    return items if "probes" in dict(items) else items + (("probes", 2),)
+
+
 def effective_ai_settings(info_path: Path, explicit=()) -> dict:
     defaults = parse_ai_settings(info_path)
     explicit_dict = dict(explicit or ())
@@ -249,11 +255,18 @@ def effective_ai_settings(info_path: Path, explicit=()) -> dict:
     if unknown:
         raise ValueError(f"reglages explicites absents de info.nut: {unknown}")
     effective = dict(defaults)
+    # Instrumentation is a common benchmark baseline, not a policy intervention.
+    # Keep shipped defaults and user assignments intact in the manifest.
+    injected = {}
+    if Path(info_path).parent.name == "OpexAI" and "probes" in defaults and "probes" not in explicit_dict:
+        injected = {"probes": 2}
+        effective.update(injected)
     effective.update(explicit_dict)
     return {
         "defaults": defaults,
         "explicit": dict(sorted(explicit_dict.items())),
         "effective": dict(sorted(effective.items())),
+        **({"benchmark_injected": injected} if injected else {}),
     }
 
 

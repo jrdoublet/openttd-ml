@@ -3,6 +3,10 @@
 
 from __future__ import annotations
 
+try:
+    from sweeps.campaign_freeze import benchmark_opex_settings
+except ImportError:
+    from campaign_freeze import benchmark_opex_settings
 import argparse
 from collections import Counter, defaultdict
 import json
@@ -254,7 +258,7 @@ def main():
         parser.error("--max-workers doit etre entre 1 et 10")
 
     enable_savegame_cleanup()
-    opex = local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI", ())
+    opex = local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI", benchmark_opex_settings(()))
     aaa = local_folder(str(ROOT / "ai" / "AAAHogEx-115"), "AAAHogEx", ())
     cfg = make_cfg(1970)
     experiments = [{

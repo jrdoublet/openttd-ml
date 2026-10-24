@@ -5,6 +5,10 @@ No production source is edited. This is correctness evidence, not economics.
 """
 from __future__ import annotations
 
+try:
+    from sweeps.campaign_freeze import benchmark_opex_settings
+except ImportError:
+    from campaign_freeze import benchmark_opex_settings
 import argparse
 import inspect
 import json
@@ -71,7 +75,7 @@ def main():
     reload.CACHE_DIR = Path(inspect.signature(openttdlab.run_experiments).parameters["get_cache_dir"].default())
     reload.SCRIPT_DEBUG_LEVEL = "4"
     settings = ()
-    arm = openttdlab.local_folder(str(target), "OpexAI", settings)
+    arm = openttdlab.local_folder(str(target), "OpexAI", benchmark_opex_settings(settings))
     cfg = reload.bench_v2.make_cfg(1970)
     write_new(folder / "plan.json", {"kind": "correctness_not_economic", "seed": 42,
               "years": 1, "workers": 1, "legacy_git_sha": "c68d50a09a9e8fd3ffa8dae063fe4b281e10c408",

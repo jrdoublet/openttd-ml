@@ -19,6 +19,10 @@ deja derriere le reglage rail_cost_probe (main.nut:1332) :
 Verdict attendu si la revue a raison : result.trains == 1 et doubleTrack == 0 partout, et la
 proportion de candidate.trains == 2 dit si l'enjeu est marginal ou majeur.
 """
+try:
+    from sweeps.campaign_freeze import benchmark_opex_settings
+except ImportError:
+    from campaign_freeze import benchmark_opex_settings
 import json
 import re
 from collections import Counter
@@ -61,7 +65,7 @@ def main():
     experiments = [{
         "seed": seed, "days": 365 * YEARS, "openttd_config": CFG,
         "ais": (local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI",
-                             (("probe_cost", 1),)),),
+                             benchmark_opex_settings((("probe_cost", 1),))),),
     } for seed in SEEDS]
     rows = list(run_experiments(
         openttd_version=OPENTTD_VERSION, opengfx_version=OPENGFX_VERSION, max_workers=3,

@@ -1,6 +1,10 @@
 """Diagnostic passif de la caisse OpexAI pendant 1970-1972."""
 from __future__ import annotations
 
+try:
+    from sweeps.campaign_freeze import benchmark_opex_settings
+except ImportError:
+    from campaign_freeze import benchmark_opex_settings
 import argparse
 import json
 import statistics
@@ -98,7 +102,7 @@ def main():
         parser.error("years >= 2, seeds non vide, max-workers 1..3")
 
     params = (("probe_portfolio", 1), ("debug_signs", 1))
-    arms = {ARM: openttdlab.local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI", params)}
+    arms = {ARM: openttdlab.local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI", benchmark_opex_settings(params))}
     rows = list(run_experiments(
         openttd_version=OPENTTD_VERSION, opengfx_version=OPENGFX_VERSION,
         max_workers=args.max_workers, result_processor=keep_cash,

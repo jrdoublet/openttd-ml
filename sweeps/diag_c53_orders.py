@@ -8,6 +8,10 @@ dans les sauvegardes OpenTTD 15.3, et analyse les distributions de :
 4. Ordres de maintenance depot : SERVICE_IF_NEEDED, STOP_IN_DEPOT
 5. Longueur et composition des boucles d'ordres par mode de transport (train, road, aircraft, ship).
 """
+try:
+    from sweeps.campaign_freeze import benchmark_opex_settings
+except ImportError:
+    from campaign_freeze import benchmark_opex_settings
 import argparse
 from collections import Counter, defaultdict
 import json
@@ -518,7 +522,7 @@ def main():
         if arm == "AAAHogEx":
             ai_instances[arm] = local_folder(str(ROOT / "ai" / "AAAHogEx-115"), "AAAHogEx", ())
         elif arm == "OpexAI":
-            ai_instances[arm] = local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI", ())
+            ai_instances[arm] = local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI", benchmark_opex_settings(()))
         elif arm.startswith("OpexAI[") and arm.endswith("]"):
             # Parser les reglages comme key=value
             inside = arm[len("OpexAI["):-1]
@@ -526,7 +530,7 @@ def main():
             for pair in inside.split(","):
                 k, v = pair.split("=")
                 kvs.append((k.strip(), int(v.strip())))
-            ai_instances[arm] = local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI", tuple(kvs))
+            ai_instances[arm] = local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI", benchmark_opex_settings(tuple(kvs)))
         else:
             raise ValueError(f"Arm non reconnu : {arm}")
 

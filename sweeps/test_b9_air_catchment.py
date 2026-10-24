@@ -34,7 +34,7 @@ class TestB9AirCatchment(unittest.TestCase):
 
     def test_probe_is_default_off_and_loaded_once(self):
         defaults = parse_ai_settings(INFO)
-        self.assertEqual(defaults["probes"], 2)
+        self.assertEqual(defaults["probes"], 0)
         self.assertEqual(defaults["probes"] & (1048576 | 128), 0)
         # Probe events are now bit 20 or legacy group 128 of the shared mask.
         self.assertNotIn("b9_air_catchment_probe", defaults)

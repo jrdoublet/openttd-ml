@@ -11,6 +11,10 @@ Ce script ne depend pas de stdout ``script=4`` : il lit le chunk SIGN du
 dernier save, les panneaux s'accumulant sur la carte.
 """
 
+try:
+    from sweeps.campaign_freeze import benchmark_opex_settings
+except ImportError:
+    from campaign_freeze import benchmark_opex_settings
 import argparse
 import json
 import re
@@ -170,7 +174,7 @@ def main():
     args.out.parent.mkdir(parents=True, exist_ok=True)
 
     opex = local_folder(
-        str(ROOT / "ai" / "OpexAI"), "OpexAI", (("probe_portfolio", 1),)
+        str(ROOT / "ai" / "OpexAI"), "OpexAI", benchmark_opex_settings((("probe_portfolio", 1),))
     )
     experiments = [
         {

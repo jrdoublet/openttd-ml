@@ -3,6 +3,10 @@
 Le diagnostic conserve la politique early_slot adoptee et active seulement decision_log
 pour observer les intervalles de rebut. Il ne constitue pas un banc d'adoption.
 """
+try:
+    from sweeps.campaign_freeze import benchmark_opex_settings
+except ImportError:
+    from campaign_freeze import benchmark_opex_settings
 import argparse
 from collections import Counter, defaultdict
 import json
@@ -266,7 +270,7 @@ def main():
     arm = local_folder(
         str(ROOT / "ai" / "OpexAI"),
         "OpexAI",
-        (("decision_log", 1),),
+        benchmark_opex_settings((("decision_log", 1),)),
     )
     cfg = make_cfg(STARTING_YEAR)
     experiments = [

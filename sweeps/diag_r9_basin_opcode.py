@@ -12,6 +12,10 @@ non-erosion gate.
 """
 from __future__ import annotations
 
+try:
+    from sweeps.campaign_freeze import benchmark_opex_settings
+except ImportError:
+    from campaign_freeze import benchmark_opex_settings
 import argparse
 from collections import defaultdict
 from datetime import date
@@ -128,7 +132,7 @@ def main(argv=None):
         staged[name] = stage_copy(target, variant)
         copies[name] = target
         arms[name] = openttdlab.local_folder(
-            str(target), "OpexAI", (("probe_candidates_rail", 1), ("probe_catalogue", 1)))
+            str(target), "OpexAI", benchmark_opex_settings((("probe_candidates_rail", 1), ("probe_catalogue", 1))))
 
     opponent = folder / "copies" / "AAAHogEx-115"
     shutil.copytree(ROOT / "ai" / "AAAHogEx-115", opponent)

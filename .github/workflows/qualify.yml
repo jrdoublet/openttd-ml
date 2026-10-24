@@ -1,3 +1,4 @@
+# OpexAI benchmark baseline: probes=2 when omitted; explicit masks preserved by github_qualification -> github_bench -> run_c66_reference.
 name: Qualification de défaut OpenTTD
 run-name: "Qualification — ${{ inputs.plan }} — ${{ github.ref_name }}"
 

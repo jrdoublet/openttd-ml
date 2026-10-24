@@ -6,6 +6,10 @@ This is a mechanism diagnostic, never an adoption benchmark.
 """
 from __future__ import annotations
 
+try:
+    from sweeps.campaign_freeze import benchmark_opex_settings
+except ImportError:
+    from campaign_freeze import benchmark_opex_settings
 import argparse
 from collections import Counter, defaultdict
 from datetime import date
@@ -176,7 +180,7 @@ def main(argv=None):
         if name.endswith("_trace"):
             instrument(target)
         copies[name] = target
-        arms[name] = openttdlab.local_folder(str(target), "OpexAI", SETTINGS)
+        arms[name] = openttdlab.local_folder(str(target), "OpexAI", benchmark_opex_settings(SETTINGS))
     opponent = folder / "copies/AAAHogEx-115"
     shutil.copytree(ROOT / "ai/AAAHogEx-115", opponent)
     aaa = openttdlab.local_folder(str(opponent), "AAAHogEx")

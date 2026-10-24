@@ -1,3 +1,4 @@
+# OpexAI benchmark baseline: probes=2 when omitted; explicit masks preserved by github_bench -> run_c66_reference (paired) / bench_v2 (solo).
 name: Bancs OpenTTD
 run-name: "Banc ${{ inputs.mode }} / ${{ inputs.profile }}${{ (inputs.start_year != '1970' || inputs.map_size != '8') && format(' ({0}, 2^{1})', inputs.start_year, inputs.map_size) || '' }} — ${{ github.ref_name }}"
 

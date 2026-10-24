@@ -4,6 +4,10 @@ Duel OpexAI[probe_portfolio=1] contre AAAHogEx avec capture passive des candidat
 et releve des lignes exploitees (mode, villes, vehicules, profit_last_year, aeroports) a
 chaque sauvegarde de decembre pour les compagnies 0 et 1.
 """
+try:
+    from sweeps.campaign_freeze import benchmark_opex_settings
+except ImportError:
+    from campaign_freeze import benchmark_opex_settings
 import argparse
 import json
 import re
@@ -273,7 +277,7 @@ def main():
 
     enable_savegame_cleanup()
     # local_folder avec les SEULS reglages explicites (la ligne ai_players est lue sur ~1024 caracteres)
-    opex = local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI", (("probe_portfolio", 1),))
+    opex = local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI", benchmark_opex_settings((("probe_portfolio", 1),)))
     aaahogex = local_folder(str(ROOT / "ai" / "AAAHogEx-115"), "AAAHogEx", ())
     cfg = make_cfg(1970)
 

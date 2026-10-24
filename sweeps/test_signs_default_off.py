@@ -2,7 +2,7 @@
 
 La garde existante (V167) est DEBUG_SIGNS = (probes bit 2) ET debug_signs != 0.
 Elle peut etre coupee (probes sans bit 2, ou debug_signs=0) sans changer les
-defauts historiques (probes=2, debug_signs=1) exiges par les bancs.
+socle de banc probes=2 ; le defaut de publication vaut 0.
 
 Le test echoue si une pose resterait atteignable une fois cette garde a faux.
 Les appels dans les commentaires sont ignores. Une pose qui servirait une
@@ -122,7 +122,7 @@ class TestSignsDefaultOff(unittest.TestCase):
         probes = info.split('name = "probes"', 1)[1].split("});", 1)[0]
         self.assertNotIn('name = "debug_signs"', info)
         for key in ("easy_value", "medium_value", "hard_value", "custom_value"):
-            self.assertRegex(probes, key + r" = 2\b")
+            self.assertRegex(probes, key + r" = 0\b")
 
     def test_opexsign_is_the_wrapper(self):
         probes = (AI / "probes.nut").read_text(encoding="utf-8")

@@ -36,7 +36,7 @@ class TestC122AirRegimePriority(unittest.TestCase):
         for name in ("c122_air_regime_shadow", "c122_air_threat_probe", "c122_air_threat_retry"):
             self.assertNotIn(f'name = "{name}"', INFO)
         probe_pos = INFO.index('name = "probes"')
-        self.assertIn("easy_value = 2", INFO[probe_pos:probe_pos + 950])
+        self.assertIn("easy_value = 0", INFO[probe_pos:probe_pos + 950])
 
     def test_c122_reuses_locked_pressure_classifier_without_new_scan(self):
         pressure = body(

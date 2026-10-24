@@ -7,6 +7,10 @@ integration hooks specified in docs/r1_r3_mechanisms_20261001.md.
 """
 from __future__ import annotations
 
+try:
+    from sweeps.campaign_freeze import benchmark_opex_settings
+except ImportError:
+    from campaign_freeze import benchmark_opex_settings
 import argparse
 from collections import defaultdict
 from datetime import date
@@ -390,7 +394,7 @@ def run_smoke(directory):
                  "experiment_kind": "natural_exposure_not_targeted_fixture"})
     write_new(directory / "plan.json", plan)
     params = tuple(resolved["explicit_nondefault"].items())
-    ai = openttdlab.local_folder(str(target), "OpexAI", params)
+    ai = openttdlab.local_folder(str(target), "OpexAI", benchmark_opex_settings(params))
     opponent = bench_v2.build_arms(["AAAHogEx"])["AAAHogEx"]
     original_check = openttdlab.subprocess.check_output
     try:

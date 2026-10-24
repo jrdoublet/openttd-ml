@@ -1,4 +1,8 @@
 """Face-a-face OpexAI / AAAHogEx dans une seule partie OpenTTD partagee."""
+try:
+    from sweeps.campaign_freeze import benchmark_opex_settings
+except ImportError:
+    from campaign_freeze import benchmark_opex_settings
 import argparse
 import json
 import math
@@ -181,7 +185,7 @@ def main():
     opex = local_folder(
         str(ROOT / "ai" / "OpexAI"),
         "OpexAI",
-        settings_tuple,
+        benchmark_opex_settings(settings_tuple),
     )
     aaahogex = local_folder(str(ROOT / "ai" / "AAAHogEx-115"), "AAAHogEx", ())
     cfg = make_cfg(args.starting_year)

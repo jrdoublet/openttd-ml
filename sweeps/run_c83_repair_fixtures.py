@@ -1,5 +1,9 @@
 """Copy-only directed NoAI helper checks through the existing engine driver."""
 from __future__ import annotations
+try:
+    from sweeps.campaign_freeze import benchmark_opex_settings
+except ImportError:
+    from campaign_freeze import benchmark_opex_settings
 import argparse
 import inspect
 import json
@@ -33,7 +37,7 @@ def main():
     write(folder / "plan.json", {"kind": "directed_vm_not_economic", "seed": 42, "years": 1,
                                 "source_hashes": before, "copied_ai_hashes": tree_hashes(target),
                                 "fixture_sha256": digest(fixture)})
-    arm = openttdlab.local_folder(str(target), "OpexAI", ())
+    arm = openttdlab.local_folder(str(target), "OpexAI", benchmark_opex_settings(()))
     _, log, _ = driver.run_phase_a(42, 1, arm, driver.bench_v2.make_cfg(1970),
                                  folder / "rows.jsonl", folder / "saves")
     (folder / "engine.log").write_text(log or "", encoding="utf-8")

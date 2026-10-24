@@ -9,6 +9,10 @@ No trace work runs before that successful build.
 
 from __future__ import annotations
 
+try:
+    from sweeps.campaign_freeze import benchmark_opex_settings
+except ImportError:
+    from campaign_freeze import benchmark_opex_settings
 import argparse
 import contextlib
 import functools
@@ -177,7 +181,7 @@ def main() -> None:
     experiments = []
     for policy in policies:
         settings = tuple((str(k), int(v)) for k, v in policy.get("explicit_settings", []))
-        opex = local_folder(str(source_dir), "OpexAI", settings)
+        opex = local_folder(str(source_dir), "OpexAI", benchmark_opex_settings(settings))
         hogex = local_folder(str(bundle / "ai" / "AAAHogEx-115"), "AAAHogEx", ())
         for seed in args.seeds:
             experiments.append({

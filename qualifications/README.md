@@ -33,6 +33,11 @@ Ce modèle contient des placeholders et n'autorise aucune campagne :
 }
 ```
 
+Depuis la publication v8 (24/10), les lanceurs ajoutent `probes=2` aux deux
+bras si ce masque est absent du plan. Ce socle de collecte ne fait pas partie
+des clés d’intervention ; un masque explicite est conservé. Le validateur
+accepte uniquement cette normalisation à 2, sans masquer les autres écarts.
+
 Les bras explicitent les mêmes clés d'intervention, avec des valeurs différentes.
 La référence conserve les défauts publiés ; déclaration, bornes et pas sont
 vérifiés. Les autres réglages restent aux défauts, C115 protégé compris.

@@ -4,6 +4,10 @@ No production writes, no game on import, no economic adoption verdict.
 """
 from __future__ import annotations
 
+try:
+    from sweeps.campaign_freeze import benchmark_opex_settings
+except ImportError:
+    from campaign_freeze import benchmark_opex_settings
 import argparse
 from collections import Counter, defaultdict
 from datetime import date
@@ -266,7 +270,7 @@ def main(argv=None):
             instrument(target)
         copies[name] = target
         model = name.split("_")[0]
-        arms[name] = openttdlab.local_folder(str(target), "OpexAI", BASE_SETTINGS[model])
+        arms[name] = openttdlab.local_folder(str(target), "OpexAI", benchmark_opex_settings(BASE_SETTINGS[model]))
         resolved[name] = duel.bench_v2.resolve_opex_arm_settings(SPECS[model])
     opponent = folder / "copies/AAAHogEx-115"
     shutil.copytree(ROOT / "ai/AAAHogEx-115", opponent)

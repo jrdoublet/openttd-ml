@@ -59,20 +59,24 @@ def _output(args):
     return subprocess.check_output(args, cwd=ROOT, text=True).strip()
 
 
-def inject_probes(spec: str | None, probes: int) -> str:
+def inject_probes(spec: str | None, probes: int = 2) -> str:
     """V167 : ajoute probes=N a une politique OpexAI[...] (ou a la politique par defaut)."""
     if not 0 <= probes <= 2147483647:
         raise ValueError("--probes doit etre entre 0 et 2147483647")
     if not probes & 3:
         raise ValueError("--probes doit garder les panneaux (bit 2, ou bit 1 = tout)")
-    if spec is None:
+    if spec is None or spec == "OpexAI":
         return f"OpexAI[probes={probes}]"
     if not (spec.startswith("OpexAI[") and spec.endswith("]")):
         raise ValueError(f"--probes exige une politique OpexAI[cle=valeur], pas {spec}")
     body = spec[len("OpexAI["):-1]
     keys = [item.split("=", 1)[0] for item in body.split(",") if item]
     if "probes" in keys:
-        raise ValueError(f"--probes et probes= dans {spec} : un seul des deux")
+        # The policy owns an explicit mask; the launcher only supplies omissions.
+        value = int(next(item.split("=", 1)[1] for item in body.split(",")
+                         if item.split("=", 1)[0] == "probes"))
+        inject_probes(None, value)  # Retain the signs/range validation.
+        return spec
     return f"OpexAI[{body},probes={probes}]" if body else f"OpexAI[probes={probes}]"
 
 
@@ -118,8 +122,8 @@ def main():
     parser.add_argument("--retain-savegames", help="Diagnostic: dossier de copie des sauvegardes dans le conteneur")
     parser.add_argument("--line-telemetry-monthly", action="store_true")
     parser.add_argument("--script-debug", action="store_true")
-    parser.add_argument("--probes", type=int,
-                        help="V167 : injecte probes=N dans les deux bras OpexAI (somme de bits, "
+    parser.add_argument("--probes", type=int, default=2,
+                        help="V167 : injecte probes=N si absent dans chaque bras OpexAI (défaut 2 ; somme de bits, "
                              "voir ai/OpexAI/settings.nut) ; tout bit hors panneaux active "
                              "--script-debug, sans quoi le journal moteur reste vide.")
     parser.add_argument("--cpus", type=int, default=3)
@@ -180,7 +184,11 @@ def main():
                 args.variant = inject_probes(args.variant, args.probes)
         except ValueError as exc:
             parser.error(str(exc))
-        if probes_need_script_debug(args.probes):
+        effective_masks = [int(item.split("=", 1)[1])
+                           for spec in (args.reference, args.variant) if spec
+                           for item in spec[len("OpexAI["):-1].split(",")
+                           if item.startswith("probes=")]
+        if any(probes_need_script_debug(mask) for mask in effective_masks):
             args.script_debug = True
 
     # V102 : echouer AVANT de demarrer Docker. On ne peut pas importer

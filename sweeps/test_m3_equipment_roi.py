@@ -29,7 +29,7 @@ class TestM3EquipmentRoi(unittest.TestCase):
 
     def test_probe_default_off_and_c68_default_on(self):
         defaults = parse_ai_settings(INFO)
-        self.assertEqual(defaults["probes"], 2)
+        self.assertEqual(defaults["probes"], 0)
         self.assertEqual(defaults["probes"] & (1048576 | 128), 0)
         self.assertNotIn("air_route_plane_selection", defaults)
         self.assertIn("EQUIPMENT_ROI_PROBE <- false;", GLOBALS.read_text(encoding="utf-8"))

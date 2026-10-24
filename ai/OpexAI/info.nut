@@ -2,8 +2,8 @@ class OpexAIInfo extends AIInfo {
   function GetAuthor()      { return "openttd-ml"; }
   function GetName()        { return "OpexAI"; }
   function GetDescription() { return "IA multimodale : meilleur ROI par origine/destination, puis revenu maximise sous contraintes de capital et d'opcodes."; }
-  function GetVersion()     { return 7; }
-  function GetDate()        { return "2026-09-09"; }
+  function GetVersion()     { return 8; }
+  function GetDate()        { return "2026-10-24"; }
   function CreateInstance() { return "OpexAI"; }
   function GetShortName()   { return "OPEX"; }
   function GetAPIVersion()  { return "15"; }
@@ -36,13 +36,13 @@ class OpexAIInfo extends AIInfo {
     /* --- 1. Systeme et instrumentation --- */
 
     /* V167 : un seul entier pilote panneaux, journal et sondes (somme de bits, voir settings.nut).
-     * Defaut 2 = panneaux seuls, le comportement historique. */
+     * Defaut publication 0 = carte vierge ; les harnais injectent probes=2. */
     AddSetting({
       name = "probes",
-      description = "Diagnostics bitmask (signed 31 bits): 0 none, 1 all, 2 signs (default), 4 legacy log, 8/16/32/64/128 legacy groups, 256 decision log only, 512..1073741824 individual channels (see docs/audit_sondes_20261022.md); groups also enable decision log; 67108864 V309 idle needs +256 for logs (67109120)",
+      description = "Diagnostics bitmask (signed 31 bits): 0 none (default), 1 all, 2 signs, 4 legacy log, 8/16/32/64/128 legacy groups, 256 decision log only, 512..1073741824 individual channels (see docs/audit_sondes_20261022.md); groups also enable decision log; 67108864 V309 idle needs +256 for logs (67109120)",
       min_value = 0, max_value = 2147483647,
-      easy_value = 2, medium_value = 2, hard_value = 2,
-      custom_value = 2,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
       flags = 0
     });
 

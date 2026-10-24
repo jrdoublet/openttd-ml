@@ -8,6 +8,10 @@ couches sont coalesces, et quel rebuild mensuel les absorbe.
 OpenTTDLab ne capture AILog que si OpenTTD est lance avec `-d script=4`. Son API n'expose pas cette
 option ; sous Linux, le Pool herite du patch de `subprocess.check_output` pose avant l'experience.
 """
+try:
+    from sweeps.campaign_freeze import benchmark_opex_settings
+except ImportError:
+    from campaign_freeze import benchmark_opex_settings
 import argparse
 from collections import Counter
 import json
@@ -177,7 +181,7 @@ def main():
             or args.c41_rail_pax_economics_profile or args.c41_rail_pax_speed_profile
             or args.c41_rail_pax_speed_detail_profile or args.c41_rail_pax_cruise_profile):
         settings.append(("probe_candidates_rail", 1))
-    ai = local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI", tuple(settings))
+    ai = local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI", benchmark_opex_settings(tuple(settings)))
     experiments = [
         {"seed": seed, "days": 365 * args.years, "openttd_config": make_cfg(1970), "ais": (ai,)}
         for seed in args.seeds
