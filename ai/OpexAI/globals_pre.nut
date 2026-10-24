@@ -364,6 +364,11 @@ C117_AIR_SAMPLE_DAYS <- 2;
 C117_AIR_LAST_DATE <- -1;
 C117_AIR_LINE_STATE <- {};
 C117_AIR_VEHICLE_STATE <- {};
+/* AIR-PELOTON-1 (24/10) : journal des departs AIR par ligne, sous DECISION_LOG
+ * seulement. Etat de telemetrie transitoire, jamais lu par une decision, non
+ * sauvegarde : remis a vide au chargement (settings.nut) et reconstruit seul. */
+AIR_PELOTON_LINE_STATE <- {};
+AIR_PELOTON_YEAR <- -1;
 /* Etat transitoire « avion de la partie » par type d'aeroport. Non
  * sauvegarde : apres chargement, l'etat se reconstruit tout seul.
  * Une cle de mode (capital, profit par vehicule) pourra s'y ajouter plus tard. */

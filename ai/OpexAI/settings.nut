@@ -320,6 +320,8 @@ function OpexLoadSettings()
   C117_AIR_LAST_DATE = -1;
   C117_AIR_LINE_STATE = {};
   C117_AIR_VEHICLE_STATE = {};
+  AIR_PELOTON_LINE_STATE = {};
+  AIR_PELOTON_YEAR = -1;
   {
     C69_BUILD_DATES = [];
     C69_PENDING_FOLLOWUPS = [];

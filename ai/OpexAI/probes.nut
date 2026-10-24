@@ -507,6 +507,132 @@ function OpexC117FlushLine(line, state)
   if (flushMark != null) OpexSpanAgg("loop.c117.flush", flushMark);
 }
 
+/* AIR-PELOTON-1 (24/10) : journal seul, appele uniquement sous DECISION_LOG
+ * depuis l'echantillonnage C117 (aucun appel API par avion supplementaire hors
+ * GetStationID au depart). Un depart est la transition d'ordre deja detectee par
+ * C117 : l'index d'ordre avance quand l'avion quitte la gare de l'ordre
+ * precedent (ordre 0 = stationA, 1 = stationB). La charge est celle lue par C117
+ * au premier echantillon apres le depart (cadence C117_AIR_SAMPLE_DAYS).
+ * Etat AIR_PELOTON_* : telemetrie transitoire, jamais lue par une decision. */
+function OpexAirPelotonLog(kind, fields)
+{
+  local date = AIDate.GetCurrentDate();
+  AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
+             + AIDate.GetDayOfMonth(date) + " " + kind + " " + fields);
+}
+
+function OpexAirPelotonOnDepart(line, v, stop, now, load, cap, running)
+{
+  if (stop < 0 || stop > 1) return;
+  /* Taille de flotte lue dans la ligne (longueur de tableau, sans appel API) : le
+   * compteur C117 lastLive repart a 0 a chaque fenetre mensuelle. */
+  local planes = (("vehicles" in line) && line.vehicles != null) ? line.vehicles.len() : 0;
+  local key = line.lineId;
+  local ls = (key in AIR_PELOTON_LINE_STATE) ? AIR_PELOTON_LINE_STATE[key] : null;
+  if (ls == null) {
+    ls = {
+      lastDate = [-1, -1], lastVeh = [-1, -1], prevOther = [-1, -1],
+      gaps = [], loads = [], departs = 0, planesMax = 0, planesLast = 0
+    };
+    AIR_PELOTON_LINE_STATE.rawset(key, ls);
+  }
+  /* Intervalle depuis le depart precedent d'un AUTRE avion depuis la meme gare. */
+  local gap = -1;
+  local lastVeh = ls.lastVeh[stop];
+  if (lastVeh >= 0) {
+    if (lastVeh != v) gap = now - ls.lastDate[stop];
+    else if (ls.prevOther[stop] >= 0) gap = now - ls.prevOther[stop];
+  }
+  if (lastVeh != v) {
+    ls.prevOther[stop] = ls.lastDate[stop];
+    ls.lastVeh[stop] = v;
+  }
+  ls.lastDate[stop] = now;
+  local loadPm = cap > 0 ? (load * 1000) / cap : -1;
+  ls.departs++;
+  ls.gaps.append(gap);
+  ls.loads.append(loadPm);
+  ls.planesLast = planes;
+  if (planes > ls.planesMax) ls.planesMax = planes;
+  OpexAirPelotonLog("AIR_PELOTON_DEP", "line=" + key + " stop=" + (stop == 0 ? "A" : "B")
+      + " station=" + OpexAirLineStationId(line, stop) + " veh=" + v
+      + " load=" + load + " cap=" + cap + " load_pm=" + loadPm
+      + " gap=" + gap + " planes=" + planes + " run=" + (running ? 1 : 0));
+}
+
+function OpexAirPelotonMedian(values)
+{
+  local n = values.len();
+  if (n <= 0) return -1;
+  local sorted = [];
+  foreach (x in values) sorted.append(x);
+  sorted.sort();
+  if ((n % 2) == 1) return sorted[n / 2];
+  return (sorted[n / 2 - 1] + sorted[n / 2]) / 2;
+}
+
+/* Synthese annuelle : gap_* en jours sur les departs a intervalle defini ;
+ * load_* en pour mille de la capacite ; load_first = intervalle >= mediane,
+ * load_second = intervalle < mediane / 4. -1 = non defini. */
+function OpexAirPelotonFlushYear(nowYear)
+{
+  local year = AIR_PELOTON_YEAR;
+  AIR_PELOTON_YEAR = nowYear;
+  if (year < 0) return;
+  local stale = [];
+  foreach (key, ls in AIR_PELOTON_LINE_STATE) {
+    if (ls.departs <= 0) {
+      stale.append(key);
+      continue;
+    }
+    local gaps = [];
+    local gapSum = 0.0;
+    local gapSq = 0.0;
+    local gapMin = -1;
+    for (local i = 0; i < ls.gaps.len(); i++) {
+      local g = ls.gaps[i];
+      if (g < 0) continue;
+      gaps.append(g);
+      gapSum += g;
+      gapSq += g * g;
+      if (gapMin < 0 || g < gapMin) gapMin = g;
+    }
+    local gapMed = OpexAirPelotonMedian(gaps);
+    local gapCv = -1.0;
+    if (gaps.len() > 0 && gapSum > 0.0) {
+      local mean = gapSum / gaps.len();
+      local variance = gapSq / gaps.len() - mean * mean;
+      if (variance < 0.0) variance = 0.0;
+      gapCv = sqrt(variance) / mean;
+    }
+    local firstLoads = [];
+    local secondLoads = [];
+    local allLoads = [];
+    for (local i = 0; i < ls.loads.len(); i++) {
+      local l = ls.loads[i];
+      if (l < 0) continue;
+      allLoads.append(l);
+      local g = ls.gaps[i];
+      if (g < 0 || gapMed < 0) continue;
+      if (g >= gapMed) firstLoads.append(l);
+      else if (g * 4 < gapMed) secondLoads.append(l);
+    }
+    OpexAirPelotonLog("AIR_PELOTON", "line=" + key + " year=" + year
+        + " planes=" + ls.planesMax + " planes_last=" + ls.planesLast
+        + " departs=" + ls.departs + " gaps=" + gaps.len()
+        + " gap_med=" + gapMed + " gap_min=" + gapMin + " gap_cv=" + gapCv
+        + " load_med=" + OpexAirPelotonMedian(allLoads)
+        + " load_first=" + OpexAirPelotonMedian(firstLoads)
+        + " load_second=" + OpexAirPelotonMedian(secondLoads)
+        + " n_first=" + firstLoads.len() + " n_second=" + secondLoads.len());
+    ls.gaps = [];
+    ls.loads = [];
+    ls.departs = 0;
+    ls.planesMax = ls.planesLast;
+  }
+  foreach (key in stale) delete AIR_PELOTON_LINE_STATE[key];
+}
+
 function OpexC117AirThroughputStep(lines, catalog)
 {
   if (lines == null || catalog == null) return;
@@ -514,6 +640,7 @@ function OpexC117AirThroughputStep(lines, catalog)
   if (C117_AIR_LAST_DATE >= 0 && now - C117_AIR_LAST_DATE < C117_AIR_SAMPLE_DAYS) return;
   C117_AIR_LAST_DATE = now;
   local nowYear = AIDate.GetYear(now);
+  if (DECISION_LOG && nowYear != AIR_PELOTON_YEAR) OpexAirPelotonFlushYear(nowYear);
   /* Sans sonde, omettre les champs sans lecteur C121. */
   local skipUnused = true;
 
@@ -703,6 +830,10 @@ function OpexC117AirThroughputStep(lines, catalog)
           if (!skipUnused) {
             state.unobservedTransitions++;
           }
+        }
+        if (DECISION_LOG) {
+          OpexAirPelotonOnDepart(line, v, vehicleState.order, now, load, cap,
+              vehicleRunning);
         }
         vehicleState.order = curOrder;
         vehicleState.legPaxMax = vehicleRunning ? load : 0;
