@@ -1,12 +1,17 @@
 """Source contracts and synthetic-event regression for AIR-FLOTTE-1 shadow."""
 
 from pathlib import Path
+import sys
 import unittest
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+if str(ROOT / "sweeps") not in sys.path:
+    sys.path.insert(0, str(ROOT / "sweeps"))
 
 from sweeps.analyze_air_flotte1_shadow import assess, parse_records
 
-
-ROOT = Path(__file__).resolve().parents[1]
 AI = ROOT / "ai" / "OpexAI"
 
 
