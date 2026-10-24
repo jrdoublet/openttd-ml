@@ -65,11 +65,10 @@ class StationPlanPrecheck(unittest.TestCase):
     def test_only_guard_added_to_historical_rail_source(self):
         source = (AI / "builder_rail.nut").read_text(encoding="utf-8")
         self.assertEqual(source.count(INSERTION), 1)
-        # Rebased on f99d4559's retired V233/V296 source. All other rail
-        # builder tokens, including every OpexV307* body, remain hash-locked.
+        # rebasé le 24/10 : eec5db81 (revue R11 OpexBridgeSortBySpeed et eb6f26fc retrait V233)
         historical = source.replace(INSERTION, "")
         self.assertEqual(hashlib.sha256(historical.encode()).hexdigest(),
-                         "8eccf7c9c2d5b27120cae90541eabdec4d0cae5273576cb9fde1de88c2bbbec7")
+                         "a68b8620a773b28c830ea8df3d905da1233576023c9837575a12f9ac24af4560")
         body = source[source.index("function OpexStationPlans("):]
         self.assertLess(body.index(INSERTION), body.index("foreach (axis in axes)"))
         self.assertLess(body.index("if (!AIMap.IsValidTile(base)) continue;"), body.index(INSERTION))
