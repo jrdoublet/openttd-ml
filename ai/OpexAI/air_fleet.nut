@@ -374,7 +374,13 @@ function OpexAirGrowMarginalEstimate(line, catalog, lines, forcedEngine = null)
     local caps = C121_AIR_ENGINE_CAPACITY_OBS[engine];
     if (caps == null || !("pax" in caps) || !("mail" in caps)) { r.fallback = "engine_capacity"; return r; }
     paxCap = caps.pax; mailCap = caps.mail;
-  } else { r.fallback = "engine_capacity"; return r; }
+  } else {
+    /* Unobserved engine: pax from the API, mail scaled on the line's own plane. */
+    paxCap = AIEngine.GetCapacity(engine);
+    local oldPax = AIVehicle.GetCapacity(template, line.cargo);
+    if (paxCap <= 0 || oldPax <= 0) { r.fallback = "engine_capacity"; return r; }
+    mailCap = AIVehicle.GetCapacity(template, catalog.mailCargo) * paxCap / oldPax;
+  }
   if (paxCap <= 0 || mailCap < 0) { r.fallback = "engine_capacity"; return r; }
   local distance = AIMap.DistanceManhattan(line.stationA, line.stationB);
   local plan = { distance = distance, airport = { type = AIAirport.GetAirportType(line.stationA) },
