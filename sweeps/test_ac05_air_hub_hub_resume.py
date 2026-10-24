@@ -7,12 +7,17 @@ restent fictifs et ne prouvent ni Squirrel/NoAI ni une neutralité économique.
 from collections import Counter
 from dataclasses import dataclass, field
 from pathlib import Path
+import sys
 import tempfile
 import unittest
 
-from sweeps.analyse_ac05_hubhub_cost import analyse
-
 ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+if str(ROOT / "sweeps") not in sys.path:
+    sys.path.insert(0, str(ROOT / "sweeps"))
+
+from sweeps.analyse_ac05_hubhub_cost import analyse
 SOURCE = (ROOT / "ai/OpexAI/air_planning.nut").read_text(encoding="utf-8")
 
 
