@@ -17,6 +17,46 @@ de `air_flotte1_shadow.nut`, de V161/C121 ou des scores. **Non qualifié en mote
 ni économiquement** : parties/Docker interdits pour cette livraison ; aucune
 adoption du seuil 50 par défaut. Les travaux AIR-FLOTTE-1 restent ouverts.
 
+**Qualification AIR 30 %, tentative du 24/10 (demande utilisateur explicite,
+distincte de la livraison initiale du 23/10) :** worktree `../wt_airload30`,
+`origin/air-load-guard` à `9b3bd86d32e0b3b014505d90ff396d6488e7f0a5`.
+Référence `OpexAI[air_load_min_pct=0]` contre variante
+`OpexAI[air_load_min_pct=30]`, `AAAHogEx-115` copié depuis le dépôt principal,
+`profit_year` terminal, règle V102 `non_erosion`, seuil relatif 4 % enregistré
+(non décisif sous B), garde `company_value` −5 %, une répétition et vingt graines
+canoniques de `bench_v2.py` sur dix ans, carte 256×256, début 1970,
+`--cpus 10 --memory 8g --max-workers 10`.
+
+- **Smoke** `results/airload30_smoke_1x1_20261024.json` : graine 42, un an,
+  2/2 parties complètes et aucune erreur de script ; delta `profit_year` −3 722 £/an,
+  valeur −5,34 %, verdict technique `diagnostic_only` (échantillon/horizon
+  non admissibles pour la porte B, donc ni succès ni échec économique).
+- **Porte B non validée / verdict économique indisponible au 24/10** : deux
+  lancements `airload30_porteB_20x10_20261024` et
+  `airload30_porteB_20x10_20261024_exclusive` interrompus intentionnellement
+  (code de sortie 137) lorsque des conteneurs CARTO-1 1024×1024 ont été lancés
+  en parallèle. Aucun JSON final, aucun échantillon 20×10 qualifié : ne pas inférer
+  moyenne, médiane, V/D/E, p, IC95 ni garde de valeur du smoke. Les bundles
+  intermédiaires sont conservés séparément comme traces, sans verdict.
+- **Suite nécessaire** : réserver une fenêtre Docker réellement exclusive,
+  relancer une campagne neuve avec les mêmes critères préenregistrés et vérifier
+  les 40/40 parties, l'intégrité du comparateur et la santé avant verdict.
+  Aucun code IA modifié, aucun défaut changé, aucun commit ni push.
+
+**Mise à jour du 24/10 — porte B AIR 30 % définitivement terminée :**
+`results/airload30_porteB_20x10_20261024_final.json` (source Git
+`9b3bd86d`, bundle `705bc1f8a41314234e229d3994c04b01199d68ec0f72fab93caa682056af98fa`).
+**40/40 parties et 20/20 paires complètes, zéro échec, verdict `pass` de
+`non_erosion`** pour le seuil 30 % contre 0 : delta `profit_year` moyen
+**−78 410 £/an**, médiane **+483 £/an**, **10 V / 10 D / 0 E**,
+Wilcoxon **p=0,648**, IC95 bootstrap **[−263 561 ; +101 678] £/an** ;
+`company_value` ratio des moyennes **−0,123 %** (garde −5 % passée).
+La borne haute de l'IC95 étant positive, aucune perte statistiquement établie
+selon la règle B ; le gain n'est pas établi non plus, et le simple `pass`
+ne qualifie pas une adoption par défaut sans la porte A pertinente.
+Les deux tentatives interrompues ci-dessus restent des traces historiques,
+mais ne sont plus le statut final du chantier. **Défaut maintenu à 0.**
+
 ### 21/10 — frontières voyageurs et calibration RAIL à coût d'opcodes quasi nul : travaux **ouverts**
 
 **Travail déjà réalisé, à ne pas recommencer :** audit en lecture seule des 40×10
