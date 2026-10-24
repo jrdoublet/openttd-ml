@@ -242,11 +242,12 @@ class PO01CContracts(unittest.TestCase):
                          re.sub(r'\s+', '', function(source('candidates.nut'), 'OpexMakeCandidate')))
 
     def test_po01f_historical_dependencies_unchanged(self):
+        # R07/R11 (24-10-2026): byte pins explicitly rebaselined after
+        # contracts and complete cumulative 20x10 neutrality passed.
         expected = {
             'probe_v216.nut': '8971a9dcf90ec29fce9baaca9f4959bbcc3c7db5d3e648963f1481c768ab5166',
-            'economy.nut': 'c89b774e6465708574567ad591372917c13fc6fe51b82921def346fbc623978b',
-            # eb6f26fc: retired rail switches; keep byte-level pin on the new source.
-            'builder_rail.nut': '1b1189a786093ab6b3da4d62d959adaa9b66b621ba65a82a2df74f1257fd3f99',
+            'economy.nut': '288a69d242f7b8b473984350a5d539da927576972b42a3f2269928173ac05fbc',
+            'builder_rail.nut': '80ee1d02e1a4fd7234329b8a762a9b1a7f44f06cba2696022bf7a63376d9c56d',
         }
         for name, digest in expected.items():
             self.assertEqual(hashlib.sha256((AI / name).read_bytes()).hexdigest(), digest)
@@ -419,20 +420,19 @@ class PO01CContracts(unittest.TestCase):
         self.assertEqual(source('po01c_generators.nut'), generated())
 
     def test_po01d_synchronous_path_bytes_unchanged(self):
-        # Rebased to eb6f26fc after 43 intentional parameter retirements.
-        # Preserve strong full-file hashes: future source changes must
-        # explicitly rebaseline this isolation contract, never silence it.
+        # Rebased to 2026-10-24 R01–R12 (source hashes frozen for the complete
+        # paired 20x10); future source edits must explicitly rebaseline this
+        # isolation contract only after review and in-game validation.
         expected = {
-            'builder_water.nut': '92c50153b6712f238943f75e2c9498a602695132a7850c5f663f91344499162e',
+            'builder_water.nut': '36c0c646c3a92201bbcb4afedc7b324fa19931f8665720bc5ca99f8d76098bb5',
             'air_planning.nut': 'd97dd1d56b049c8ea98c85a1202239da3d30193028e8526ba44240181460a5c2',
-            'air_sites.nut': '19691bb0bc03b81b27793c1b8ec99a68e11455b2d74aa12e85b17e7d0c1e279f',
-            'candidates.nut': '83670f686d3564a63e21fd307736a32a106ebbf25ccb7463800b8cefb815c771',
-            'catalog.nut': '4882c4c3de58c97882b2739432e62045a2e567b1ee980e5a2a56dedd34a17ba9',
-            'main.nut': '774acab715924ca97cb0e14ed1a9573400a84963ee7698effeebdcd372ed9adc',
-            'probes.nut': '2be7e1d6c099949de72b9abf8e285df6db6fc5c0001c9445c3707c3c8c1edf5e',
-            'settings.nut': 'b2b1debb5d362bf89c0099cef9acc4478e25c1fce066b63707acea178a6d27fd',
-            # Publication 2026-10-24: v8/date and probes=0; other hashes unchanged.
-            'info.nut': 'b4b16e3bcb4c6227d7ec4fb8e44e4e69e05353c12f1a73cd596605ec4088a8ab',
+            'air_sites.nut': '1ef05fc3b922e34d5ed800a52d9b5816e2d958492e434075bd0fe1e4e5a546f7',
+            'candidates.nut': '8ab9ef4b42b0b9ddd00ae47ee6333bded0428341ddcd90b11612f86be315d5e0',
+            'catalog.nut': '8e228cf9a0e4ec83c50bcf3e0aa405814e82ac95c9191494fd4d9e357edfc348',
+            'main.nut': 'b716838631daba2621fd9b7d992b72accd042c0ba0a2c4d8d89527709358ad68',
+            'probes.nut': '005a79a7647c1ddd98754b3854497f5328c6eb4bea62ae3a9192e0a03dfab84e',
+            'settings.nut': '6946a9ed7d3864e22714167b4fbb4fe74d8e6b95b39c0fac0054cfde80bc214b',
+            'info.nut': '1bc76539590e9272aa59849baa54d0248a74ac5f993e0d0e77d679906c7ad2c3',
         }
         for name, digest in expected.items():
             with self.subTest(name=name):

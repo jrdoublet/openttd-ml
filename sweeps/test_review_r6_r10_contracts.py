@@ -73,12 +73,12 @@ class ReviewR6R10ContractsTest(unittest.TestCase):
         self.assertIn("C122_AIR_THREAT_PROBE = OpexProbeEnabled(524288, 16);", settings)
         self.assertNotIn("C122_AIR_THREAT_RETRY", settings)
 
-    def test_r9_opcode_compat_slots_remain(self):
+    def test_r9_opcode_compat_slots_retired_by_20261024_r07(self):
         settings = _read("ai/OpexAI/settings.nut")
         pre = _read("ai/OpexAI/globals_pre.nut")
         self.assertNotIn('GetSetting("basin_share")', settings)
-        self.assertIn("OPEX_ECONOMY_OPCODE_COMPAT_FALSE", pre)
-        self.assertIn("WATER_OPCODE_COMPAT_FALSE", pre)
+        self.assertNotIn("OPEX_ECONOMY_OPCODE_COMPAT_FALSE", pre)
+        self.assertNotIn("WATER_OPCODE_COMPAT_FALSE", pre)
         cands = _read("ai/OpexAI/candidates.nut")
         projects = _read("ai/OpexAI/projects.nut")
         self.assertNotIn("function OpexShareBasin(", cands)

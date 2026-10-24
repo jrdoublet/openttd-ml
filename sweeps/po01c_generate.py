@@ -116,15 +116,52 @@ def generated():
     sources = [('candidates.nut', n) for n in
                ('OpexPaxCandidates', 'OpexFreightCandidates', 'OpexRoadFreightCandidates')]
     sources += [('builder_water.nut', 'OpexWaterPlans')]
+    # R08: the unused PO01CCargos copy was deleted; the live catalogue owns cargos.
     sources += [('catalog.nut', 'OpexCatalog::_refresh' + n) for n in
-                ('Cargos', 'Rail', 'Towns', 'Industries', 'Air', 'Water', 'Road')]
+                ('Rail', 'Towns', 'Industries', 'Air', 'Water', 'Road')]
     for file, name in sources:
-        code = function((AI / file).read_text(), name)
+        code = function((AI / file).read_text(encoding='utf-8'), name)
         if name.startswith('OpexCatalog::'):
             code = code.replace(name + '()', 'OpexPO01C' + name.split('_refresh')[1] + '(catalog)', 1)
             code = code.replace('this.', 'catalog.')
             # Only the live catalogue may update C78's global town revisions.
             code = code.replace('  OpexC121CatalogSeedTownPopulations(catalog.towns);', '')
+            if name == 'OpexCatalog::_refreshRail':
+                # L3 native sort is synchronous; PO01C must keep a yield per type.
+                old = ('  /* OPCODE-AILIST L3 : la cle de tri native est l\'ID, pas la valeur disponible=1.\n'
+                       '   * Ainsi Begin() rend exactement le maximum numerique choisi historiquement. */\n'
+                       '  types.Sort(AIList.SORT_BY_ITEM, AIList.SORT_DESCENDING);\n'
+                       '  local chosen = types.IsEmpty() ? -1 : types.Begin();')
+                new = ('  local chosen = -1;\n'
+                       '  for (local t = types.Begin(); !types.IsEnd(); t = types.Next()) {\n'
+                       '    if (OpexRailTypePreferred(t, chosen)) chosen = t;\n'
+                       '  }')
+                if code.count(old) != 1:
+                    raise ValueError('PO01C Rail L3 source diverged')
+                code = code.replace(old, new)
+            if name == 'OpexCatalog::_refreshIndustries':
+                # R02 invalidation belongs to the live full catalogue refresh.
+                # PO01C is a private incremental snapshot, never used for V276.
+                old = ('  /* Les producteurs et les volumes qui ordonnent V276 viennent de ce catalogue. */\n'
+                       '  V276_CARGO_ORDER = null;\n')
+                if code.count(old) != 1:
+                    raise ValueError('PO01C Industries R02 source diverged')
+                code = code.replace(old, '')
+            if name == 'OpexCatalog::_refreshAir':
+                # L5 prefilters the synchronous list once. PO01C retains its
+                # historical per-airport, per-engine rejection and checkpoints.
+                old = ('  /* OPCODE-AILIST L5 : refit passagers evalue une seule fois en natif sur la\n'
+                       '   * liste deja construite, avant les parcours repetes par type d\'aeroport. */\n'
+                       '  engines.Valuate(AIEngine.CanRefitCargo, catalog.paxCargo);\n'
+                       '  engines.KeepValue(1);\n')
+                if code.count(old) != 1:
+                    raise ValueError('PO01C Air L5 source diverged')
+                code = code.replace(old, '')
+                old = '      local planeType = AIEngine.GetPlaneType(e);'
+                if code.count(old) != 2:
+                    raise ValueError('PO01C Air L5 loops diverged')
+                code = code.replace(old, ('      if (!AIEngine.CanRefitCargo(e, catalog.paxCargo)) continue;\n'
+                                          + old))
         else:
             code = code.replace(name, 'OpexPO01C' + name[4:], 1)
         if name == 'OpexWaterPlans':
