@@ -315,6 +315,26 @@
     "AIEngine.IsBuildable"
   ],
   [
+    "task_v257.nut",
+    "engines",
+    "AIEngine.IsBuildable"
+  ],
+  [
+    "task_v257.nut",
+    "engines",
+    "AIEngine.CanRunOnRail,railType"
+  ],
+  [
+    "catalog.nut",
+    "engines",
+    "AIEngine.CanRefitCargo,this.paxCargo"
+  ],
+  [
+    "task_v284.nut",
+    "engines",
+    "AIEngine.IsWagon"
+  ],
+  [
     "probe_v307.nut",
     "towns",
     "AITown.GetPopulation"

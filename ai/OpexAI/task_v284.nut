@@ -34,9 +34,11 @@ function OpexV284Equipment(line, vehicle, wagon, number)
   local railType = AIRail.GetRailType(line.depot);
   local best = null;
   local engines = AIEngineList(AIVehicle.VT_RAIL);
+  /* OPCODE-AILIST L6 : eliminer les wagons en natif avant les gardes metier. */
+  engines.Valuate(AIEngine.IsWagon);
+  engines.KeepValue(0);
   for (local engine = engines.Begin(); !engines.IsEnd(); engine = engines.Next()) {
-    if (!AIEngine.IsBuildable(engine) || AIEngine.IsWagon(engine)
-        || AIEngine.GetCapacity(engine) > 0 || AIEngine.GetPower(engine) <= 0
+    if (!AIEngine.IsBuildable(engine) || AIEngine.GetCapacity(engine) > 0 || AIEngine.GetPower(engine) <= 0
         || AIEngine.GetMaxSpeed(engine) <= 0 || AIEngine.GetMaxTractiveEffort(engine) <= 0
         || !AIEngine.CanRunOnRail(engine, railType) || !AIEngine.HasPowerOnRail(engine, railType)) continue;
     local loco = OpexV257Engine(engine, line.cargo, false);

@@ -239,6 +239,19 @@ class ForumBehaviours(unittest.TestCase):
         self.assertIn("AICargo.CC_PASSENGERS", source("catalog.nut"))
         self.assertIn("AIRailTypeList()", source("catalog.nut"))
 
+    def test_opcode_ailist_rail_type_max_uses_item_id_order(self):
+        # Les valeurs issues d'IsRailTypeAvailable valent toutes 1. Le maximum
+        # historique portait sur l'ID de type, et non sur la valeur AIList.
+        rail = source("catalog.nut")
+        start = rail.index("local types = AIRailTypeList();")
+        end = rail.index("this.railType = chosen;", start)
+        selection = rail[start:end]
+        self.assertIn("types.Valuate(AIRail.IsRailTypeAvailable);", selection)
+        self.assertIn("types.KeepValue(1);", selection)
+        self.assertIn("types.Sort(AIList.SORT_BY_ITEM, AIList.SORT_DESCENDING);", selection)
+        self.assertIn("local chosen = types.IsEmpty() ? -1 : types.Begin();", selection)
+        self.assertIn("if (chosen < 0) return;", selection)
+
     def test_2_2_road_reuse_checks_each_edge_and_vehicle_power(self):
         code = body("builder_road.nut", "OpexRoadBfsPath")
         self.assertIn("AIRoad.IsRoadTile(nxt)", code)
@@ -278,7 +291,7 @@ class ForumBehaviours(unittest.TestCase):
             # its additional call site is recorded in v262_valuate_inventory.json.
             "AIAirport.GetNearestTown", "AIBridge.GetMaxSpeed", "AIEngine.CanRefitCargo",
             "AIEngine.GetMaxSpeed", "AIEngine.HasPowerOnRail", "AIEngine.IsArticulated",
-            "AIEngine.IsBuildable", "AIEngine.IsWagon", "AIMap.GetTileX", "AIMap.DistanceManhattan", "AIMap.DistanceMax",
+            "AIEngine.IsBuildable", "AIEngine.IsWagon", "AIEngine.CanRunOnRail", "AIMap.GetTileX", "AIMap.DistanceManhattan", "AIMap.DistanceMax",
             "AIRail.IsRailTypeAvailable", "AIRoad.IsRoadDepotTile", "AIRoad.IsRoadStationTile",
             "AIRoad.IsRoadTile", "AIStation.GetNearestTown", "AITile.GetCargoProduction",
             "AITile.GetClosestTown", "AITile.GetMaxHeight", "AITile.GetMinHeight",

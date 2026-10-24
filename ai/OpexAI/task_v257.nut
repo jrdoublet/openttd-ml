@@ -199,8 +199,14 @@ function OpexV257BestPlan(owner, line, monthly, rating, serviceSpeed, railType, 
   local locos = [];
   local wagons = [];
   local engines = AIEngineList(AIVehicle.VT_RAIL);
+  /* OPCODE-AILIST L4 : predicats API natifs sur la liste deja construite.
+   * Le departage metier est inchange ; la parite d'ordre a ete observee sur
+   * les moteurs de 36 appels, suivie du banc economique neutre 20x10. */
+  engines.Valuate(AIEngine.IsBuildable);
+  engines.KeepValue(1);
+  engines.Valuate(AIEngine.CanRunOnRail, railType);
+  engines.KeepValue(1);
   for (local engine = engines.Begin(); !engines.IsEnd(); engine = engines.Next()) {
-    if (!AIEngine.IsBuildable(engine) || !AIEngine.CanRunOnRail(engine, railType)) continue;
     /* GetCapacity vaut -1, jamais 0, si aucune partie ne porte de cargo
      * (OpenTTD 15.3 ScriptEngine::GetCapacity). == 0 excluait toute locomotive. */
     if (AIEngine.IsWagon(engine)) {

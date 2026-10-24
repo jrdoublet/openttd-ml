@@ -110,7 +110,7 @@ class AC08AirMaterialTests(unittest.TestCase):
             "this.airPlaneChoicesByAirport = {};",
             "if (this.paxCargo < 0) return;",
             "AIEngineList(AIVehicle.VT_AIR)", "engines.Valuate(AIEngine.IsBuildable);",
-            "engines.KeepValue(1);", "AIEngine.CanRefitCargo(e, this.paxCargo)",
+            "engines.KeepValue(1);", "engines.Valuate(AIEngine.CanRefitCargo, this.paxCargo);",
             "if (capacity <= 0) continue;", "AIEngine.GetPrice(e)",
             "AIEngine.GetRunningCost(e)", "AIEngine.GetMaximumOrderDistance(e)",
             "AIEngine.GetMaxAge(e) / 365",

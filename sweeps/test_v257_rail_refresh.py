@@ -122,12 +122,23 @@ class RailRefresh(unittest.TestCase):
 
     def test_line_rail_type_and_platform_not_future_catalogue_type(self):
         self.assertIn("AIRail.GetRailType(line.depot)", self.review)
-        self.assertIn("AIEngine.CanRunOnRail(engine, railType)", self.choice)
+        self.assertIn("engines.Valuate(AIEngine.CanRunOnRail, railType)", self.choice)
         self.assertIn("AIEngine.HasPowerOnRail(engine, railType)", self.choice)
         self.assertNotIn("this._catalog.railType", self.review)
         self.assertNotIn("this._catalog.railType", self.choice)
         self.assertIn("OpexRailNominalMaxWagons(length)", self.choice)
         self.assertIn('AIGameSettings.GetValue("vehicle.max_train_length")', self.choice)
+
+    def test_opcode_ailist_v257_native_filter_preserves_composition_loop(self):
+        self.assertIn("local engines = AIEngineList(AIVehicle.VT_RAIL);", self.choice)
+        self.assertIn("engines.Valuate(AIEngine.IsBuildable);", self.choice)
+        self.assertIn("engines.KeepValue(1);", self.choice)
+        self.assertIn("engines.Valuate(AIEngine.CanRunOnRail, railType);", self.choice)
+        self.assertEqual(self.choice.count("engines.KeepValue(1);"), 2)
+        self.assertNotIn("nativeFilter", self.choice)
+        self.assertNotIn("!AIEngine.IsBuildable(engine)", self.choice)
+        self.assertIn("if (AIEngine.IsWagon(engine))", self.choice)
+        self.assertIn("AIEngine.HasPowerOnRail(engine, railType)", self.choice)
 
     def _loco_gate(self, **values):
         """Predicat livre : une locomotive sans cargo entre dans la boucle de plans."""

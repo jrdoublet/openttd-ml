@@ -90,6 +90,24 @@ class TestV284RailGrowth(unittest.TestCase):
             self.assertIn(contract, body)
         self.assertNotIn("0.85", body)
 
+    def test_opcode_ailist_l6_native_wagon_filter_keeps_best_cost_contract(self):
+        body = function_body(self.code, "function OpexV284Equipment(")
+        self.assertIn("local engines = AIEngineList(AIVehicle.VT_RAIL);", body)
+        self.assertIn("engines.Valuate(AIEngine.IsWagon);", body)
+        self.assertIn("engines.KeepValue(0);", body)
+        self.assertLess(body.index("engines.KeepValue(0);"), body.index("for (local engine = engines.Begin()"))
+        self.assertNotIn('opcode_ailist_v284_wagon', self.code)
+        self.assertNotIn('opcode_ailist_v284_wagon', read("info.nut"))
+        for guard in ("AIEngine.IsBuildable(engine)", "AIEngine.GetCapacity(engine) > 0",
+                      "AIEngine.GetPower(engine) <= 0", "AIEngine.GetMaxSpeed(engine) <= 0",
+                      "AIEngine.GetMaxTractiveEffort(engine) <= 0",
+                      "AIEngine.CanRunOnRail(engine, railType)",
+                      "AIEngine.HasPowerOnRail(engine, railType)",
+                      "nextSpeed < speed", "loco.speed < current.speed"):
+            self.assertIn(guard, body)
+        self.assertIn("if (best == null || cost < best.cost)", body)
+        self.assertNotIn("AIEngine.IsWagon(engine)", body)
+
     def test_both_lengths_and_actual_builder_measurements_are_used(self):
         body = function_body(self.code, "function OpexV284Limit(")
         self.assertIn('AIGameSettings.GetValue("vehicle.max_train_length")', body)
