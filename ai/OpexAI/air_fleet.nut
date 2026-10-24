@@ -313,7 +313,7 @@ function OpexAirGrowMarginalEstimate(line, catalog, lines, forcedEngine = null)
 {
   local r = { fallback = "obs_days", n = 0, d = "unknown", kn = "unknown",
     kn1 = "unknown", drev = 0.0, cost = 0.0, amort = 0.0, dp = 0.0, price = 0,
-    winDays = 0, wins = 0 };
+    winDays = 0, wins = 0, shared = "unknown", wshare = "unknown" };
   if (line != null && ("vehCount" in line)) r.n = line.vehCount;
   if (line == null || catalog == null || !("lineId" in line)
       || !(line.lineId in C117_AIR_LINE_STATE)) return r;
@@ -359,13 +359,6 @@ function OpexAirGrowMarginalEstimate(line, catalog, lines, forcedEngine = null)
   local stationB = OpexAirLineStationId(line, 1);
   if (!AIStation.IsValidStation(stationA) || !AIStation.IsValidStation(stationB) || stationA == stationB
       || lines == null) { r.fallback = "station"; return r; }
-  foreach (other in lines) {
-    if (other == null || other == line || !("stationA" in other) || !("stationB" in other)) continue;
-    if (OpexAirLineStationId(other, 0) == stationA || OpexAirLineStationId(other, 0) == stationB
-        || OpexAirLineStationId(other, 1) == stationA || OpexAirLineStationId(other, 1) == stationB) {
-      r.fallback = "shared_station"; return r;
-    }
-  }
   local engine = forcedEngine;
   if (engine == null) engine = OpexAirBestEngineForLine(line, catalog);
   if (engine == null) engine = AIVehicle.GetEngineType(template);
@@ -401,17 +394,62 @@ function OpexAirGrowMarginalEstimate(line, catalog, lines, forcedEngine = null)
   local lifeDays = AIEngine.GetMaxAge(engine);
   if (r.price <= 0 || r.cost < 0 || lifeDays <= 0) { r.fallback = "cost"; return r; }
   r.amort = r.price.tofloat() * 365.25 / lifeDays;
-  r.d = ""; r.kn = ""; r.kn1 = "";
+  r.d = ""; r.kn = ""; r.kn1 = ""; r.shared = ""; r.wshare = "";
   for (local direction = 0; direction < 2; direction++) {
     local station = direction == 0 ? stationA : stationB;
+    local otherStation = direction == 0 ? stationB : stationA;
     for (local cargoIndex = 0; cargoIndex < 2; cargoIndex++) {
       local cargo = cargoIndex == 0 ? line.cargo : catalog.mailCargo;
       local cap = cargoIndex == 0 ? paxCap : mailCap;
       local picked = cargoIndex == 0 ? (direction == 0 ? s.paxB : s.paxA)
                                     : (direction == 0 ? s.mailB : s.mailA);
-      local waiting = AIStation.GetCargoWaiting(station, cargo);
+      local sharedCount = 1;
+      local rateLine = (days > 0 && picked > 0) ? (picked.tofloat() / days.tofloat()) : 0.0;
+      local totalRate = rateLine;
+      foreach (other in lines) {
+        if (other == null || other == line || !("stationA" in other) || !("stationB" in other)) continue;
+        local oA = OpexAirLineStationId(other, 0);
+        local oB = OpexAirLineStationId(other, 1);
+        if (oA == station || oB == station) {
+          local carriesCargo = false;
+          if (("mode" in other) && other.mode == "air") carriesCargo = true;
+          else if (("cargo" in other) && other.cargo == cargo) carriesCargo = true;
+          if (carriesCargo) {
+            sharedCount++;
+            local otherRate = 0.0;
+            if (("lineId" in other) && (other.lineId in C117_AIR_LINE_STATE)) {
+              local ostate = C117_AIR_LINE_STATE[other.lineId];
+              if (ostate != null) {
+                local owin = OpexAirGrowMarginalWindow(ostate);
+                if (owin.days > 0) {
+                  local opick = 0;
+                  if (oA == station) {
+                    opick = cargo == line.cargo ? owin.paxB : owin.mailB;
+                  } else {
+                    opick = cargo == line.cargo ? owin.paxA : owin.mailA;
+                  }
+                  if (opick > 0) otherRate = opick.tofloat() / owin.days.tofloat();
+                }
+              }
+            }
+            totalRate += otherRate;
+          }
+        }
+      }
+      local rawWaiting = AIStation.GetCargoWaiting(station, cargo);
       local fare = AICargo.GetCargoIncome(cargo, distance, incomeDays);
-      if (waiting < 0 || fare < 0) { r.fallback = "flow_or_fare"; return r; }
+      if (rawWaiting < 0 || fare < 0) { r.fallback = "flow_or_fare"; return r; }
+      local waiting = 0.0;
+      if (sharedCount == 1) {
+        waiting = rawWaiting.tofloat();
+      } else if (AICargo.GetDistributionType(cargo) != AICargo.DT_MANUAL) {
+        waiting = AIStation.GetCargoWaitingVia(station, otherStation, cargo).tofloat();
+        if (waiting < 0.0) waiting = 0.0;
+      } else if (totalRate > 0.0 && rateLine > 0.0) {
+        waiting = rawWaiting.tofloat() * (rateLine / totalRate);
+      } else {
+        waiting = rawWaiting.tofloat() / sharedCount.tofloat();
+      }
       local demand = (picked.tofloat() + waiting) * 365.25 / days;
       local kn = r.n * cap * rotations;
       local kn1 = (r.n + 1) * cap * rotations;
@@ -419,6 +457,8 @@ function OpexAirGrowMarginalEstimate(line, catalog, lines, forcedEngine = null)
       if (DECISION_LOG) {
         local sep = direction == 0 && cargoIndex == 0 ? "" : ",";
         r.d += sep + demand; r.kn += sep + kn; r.kn1 += sep + kn1;
+        r.shared += sep + sharedCount;
+        r.wshare += sep + waiting;
       }
     }
   }
@@ -447,5 +487,6 @@ function OpexAirGrowMarginalLog(line, r, prior, phase)
       + " dp=" + (r.fallback == "none" ? r.dp.tostring() : "unknown") + " prior=" + prior
       + " decision=" + (AIR_GROW_MARGINAL == 1 ? "shadow" :
           (r.fallback != "none" ? "legacy" : (r.dp > 0 ? "accept" : "reject")))
-      + " fallback=" + r.fallback + " phase=" + phase);
+      + " fallback=" + r.fallback + " phase=" + phase
+      + " shared=" + r.shared + " wshare=" + r.wshare);
 }

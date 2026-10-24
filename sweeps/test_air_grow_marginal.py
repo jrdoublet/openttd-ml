@@ -81,7 +81,7 @@ class AirGrowMarginal(unittest.TestCase):
         for name in ("air_fleet.nut", "projects_builders.nut"):
             self.assertIn("if (DECISION_LOG) OpexAirGrowMarginalLog(", read(name))
         body = _function_body(source, "OpexAirGrowMarginalLog")
-        for field in ("line", "n", "d", "kn", "kn1", "drev", "cost", "amort", "dp", "prior", "decision", "fallback", "win_days", "wins"):
+        for field in ("line", "n", "d", "kn", "kn1", "drev", "cost", "amort", "dp", "prior", "decision", "fallback", "win_days", "wins", "shared", "wshare"):
             self.assertIn(field + "=", body)
 
     def test_shadow_and_unknown_do_not_apply_decision(self):
@@ -108,10 +108,12 @@ class AirGrowMarginal(unittest.TestCase):
         self.assertIn("s.legDaysN >= 2", body)
         self.assertNotIn("GetCargoRating", body)
         for reason in ("obs_days", "obs_stale", "obs_trips", "obs_invalid_order", "obs_unobserved",
-                       "obs_engine_change", "obs_mixed_engine", "fleet_changed", "shared_station",
+                       "obs_engine_change", "obs_mixed_engine", "fleet_changed",
                        "engine_capacity", "cargo", "station", "rotation", "cost", "flow_or_fare"):
             self.assertIn('"' + reason + '"', body)
         self.assertNotIn('"observation"', body)
+        self.assertNotIn('"shared_station"', body)
+        self.assertIn("GetCargoWaitingVia", body)
 
     def test_closed_window_is_bounded_transient_and_opt_in(self):
         source = read("probes.nut")
