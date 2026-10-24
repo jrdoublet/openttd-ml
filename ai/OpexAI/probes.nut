@@ -539,9 +539,15 @@ function OpexC117AirThroughputStep(lines, catalog)
       state = OpexC117NewLineState(bucket, now);
       C117_AIR_LINE_STATE.rawset(lineKey, state);
     } else if (state.bucket != bucket) {
+      local prevPax = state.pax;
+      local prevSeatLegs = state.seatLegs;
       local bridgeStart = state.lastDate;
       OpexC117FlushLine(line, state);
       state = OpexC117NewLineState(bucket, bridgeStart);
+      if (DECISION_LOG || V275_AIR_TOWN_FREE > 0) {
+        state.prevPax <- prevPax;
+        state.prevSeatLegs <- prevSeatLegs;
+      }
       C117_AIR_LINE_STATE.rawset(lineKey, state);
     }
 
@@ -753,6 +759,273 @@ function OpexC117AirThroughputStep(lines, catalog)
         if (ratingB >= 0) { state.ratingBSum += ratingB; state.ratingBN++; }
       }
     }
+  }
+  if (DECISION_LOG) OpexV275AirTownQuarterlyTick(lines, catalog, now);
+}
+
+/* V275 : verifie si le rayon de captage d'un quai rail [minX..maxX]x[minY..maxY]
+ * chevauche le captage (AITileList_StationCoverage) d'un de nos aeroports.
+ * Deux gares partagent les memes maisons ssi leurs zones de captage s'intersectent. */
+function OpexV275RectInOurAirportCatchment(minX, minY, maxX, maxY, railCoverage)
+{
+  local cov = railCoverage > 0 ? railCoverage : AIStation.GetCoverageRadius(AIStation.STATION_TRAIN);
+  local mapMaxX = AIMap.GetMapSizeX() - 2;
+  local mapMaxY = AIMap.GetMapSizeY() - 2;
+  local rMinX = minX - cov; if (rMinX < 1) rMinX = 1;
+  local rMinY = minY - cov; if (rMinY < 1) rMinY = 1;
+  local rMaxX = maxX + cov; if (rMaxX > mapMaxX) rMaxX = mapMaxX;
+  local rMaxY = maxY + cov; if (rMaxY > mapMaxY) rMaxY = mapMaxY;
+  local centerTile = AIMap.GetTileIndex((minX + maxX) / 2, (minY + maxY) / 2);
+  local airStations = AIStationList(AIStation.STATION_AIRPORT);
+  foreach (st, _ in airStations) {
+    if (!AIStation.IsValidStation(st)) continue;
+    local stLoc = AIStation.GetLocation(st);
+    if (!AIMap.IsValidTile(stLoc)) continue;
+    if (AIMap.DistanceMax(centerTile, stLoc) > 64) continue;
+    local railCatch = AITileList();
+    railCatch.AddRectangle(AIMap.GetTileIndex(rMinX, rMinY), AIMap.GetTileIndex(rMaxX, rMaxY));
+    railCatch.KeepList(AITileList_StationCoverage(st));
+    if (!railCatch.IsEmpty()) return true;
+  }
+  return false;
+}
+
+function OpexV275TileInOurAirportCatchment(tile, railCoverage)
+{
+  if (!AIMap.IsValidTile(tile)) return false;
+  local x = AIMap.GetTileX(tile);
+  local y = AIMap.GetTileY(tile);
+  return OpexV275RectInOurAirportCatchment(x, y, x, y, railCoverage);
+}
+
+/* V275 : mesure par ville aeroportuaire (AITown / AIStation / AITileList_StationCoverage / C117). */
+function OpexV275AirTownMetrics(townId, townTile, lines, paxCargo)
+{
+  if (!AITown.IsValidTown(townId)) return null;
+  if (!AIMap.IsValidTile(townTile)) townTile = AITown.GetLocation(townId);
+  local pop = AITown.GetPopulation(townId);
+  if (pop < 0) pop = 0;
+  local validPax = paxCargo >= 0 && AICargo.IsValidCargo(paxCargo);
+  local paxProd = validPax ? AITown.GetLastMonthProduction(townId, paxCargo) : 0;
+  if (paxProd < 0) paxProd = 0;
+  local townSupplied = validPax ? AITown.GetLastMonthSupplied(townId, paxCargo) : 0;
+  if (townSupplied < 0) townSupplied = 0;
+
+  local seenSt = {};
+  local ourStations = 0;
+  local coverageUnion = AITileList();
+  local bestRating = 0;
+  local hasRated = false;
+  local ourCapProd = 0;
+
+  local stList = AIStationList(AIStation.STATION_ANY);
+  foreach (st, _ in stList) {
+    if (!AIStation.IsValidStation(st)) continue;
+    local stLoc = AIStation.GetLocation(st);
+    local nearTown = AIStation.GetNearestTown(st);
+    local closeTown = AIMap.IsValidTile(stLoc) ? AITile.GetClosestTown(stLoc) : -1;
+    if (nearTown != townId && closeTown != townId) continue;
+    seenSt.rawset(st, true);
+  }
+  if (lines != null) {
+    foreach (line in lines) {
+      if (line == null || !("mode" in line) || line.mode != "air") continue;
+      if (("scrapping" in line) && line.scrapping) continue;
+      local matchA = ("originA" in line) && (line.originA == townTile
+          || (AIMap.IsValidTile(line.originA) && AITile.GetClosestTown(line.originA) == townId));
+      local matchB = ("originB" in line) && (line.originB == townTile
+          || (AIMap.IsValidTile(line.originB) && AITile.GetClosestTown(line.originB) == townId));
+      if (matchA) {
+        local stA = OpexAirLineStationId(line, 0);
+        if (AIStation.IsValidStation(stA)) seenSt.rawset(stA, true);
+      }
+      if (matchB) {
+        local stB = OpexAirLineStationId(line, 1);
+        if (AIStation.IsValidStation(stB)) seenSt.rawset(stB, true);
+      }
+    }
+  }
+
+  foreach (st, _ in seenSt) {
+    ourStations++;
+    local stCov = AITileList_StationCoverage(st);
+    coverageUnion.AddList(stCov);
+    if (validPax && AIStation.HasCargoRating(st, paxCargo)) {
+      hasRated = true;
+      local r = AIStation.GetCargoRating(st, paxCargo);
+      if (r > bestRating) bestRating = r;
+      local stLoc = AIStation.GetLocation(st);
+      if (AIMap.IsValidTile(stLoc)) {
+        local rad = AIStation.GetCoverageRadius(AIStation.STATION_TRAIN);
+        local w = 1;
+        local h = 1;
+        if (AIStation.HasStationType(st, AIStation.STATION_AIRPORT) && AIAirport.IsAirportTile(stLoc)) {
+          local aType = AIAirport.GetAirportType(stLoc);
+          rad = AIAirport.GetAirportCoverageRadius(aType);
+          w = AIAirport.GetAirportWidth(aType);
+          h = AIAirport.GetAirportHeight(aType);
+        }
+        local cp = AITile.GetCargoProduction(stLoc, paxCargo, w, h, rad);
+        if (cp > 0) ourCapProd += (cp * r) / 100;
+      }
+    }
+  }
+  local catchmentTiles = coverageUnion.Count();
+
+  local paxAirTransported = 0;
+  if (ourStations > 0 && hasRated && paxProd > 0 && townSupplied > 0) {
+    local selfId = AICompany.ResolveCompanyID(AICompany.COMPANY_SELF);
+    local rivalInTown = false;
+    for (local c = AICompany.COMPANY_FIRST; c <= AICompany.COMPANY_LAST; c++) {
+      if (c == selfId) continue;
+      if (AICompany.ResolveCompanyID(c) == AICompany.COMPANY_INVALID) continue;
+      local tr = AITown.GetRating(townId, c);
+      if (tr != AITown.TOWN_RATING_NONE && tr != AITown.TOWN_RATING_INVALID) {
+        rivalInTown = true;
+        break;
+      }
+    }
+    if (!rivalInTown) {
+      paxAirTransported = townSupplied;
+    } else {
+      local townProxy = AIMap.IsValidTile(townTile)
+          ? AITile.GetCargoProduction(townTile, paxCargo, 1, 1, 16) : 0;
+      if (townProxy > 0 && ourCapProd > 0) {
+        local est = (paxProd * ourCapProd) / townProxy;
+        paxAirTransported = est < townSupplied ? est : townSupplied;
+      } else {
+        paxAirTransported = (townSupplied * bestRating) / 100;
+      }
+    }
+    if (paxAirTransported > townSupplied) paxAirTransported = townSupplied;
+    if (paxAirTransported > paxProd) paxAirTransported = paxProd;
+    if (paxAirTransported < 0) paxAirTransported = 0;
+  }
+  local shareAir = paxProd > 0 ? (paxAirTransported * 100) / paxProd : 0;
+
+  local totalPax = 0;
+  local totalSeats = 0;
+  if (lines != null && C117_AIR_LINE_STATE != null) {
+    foreach (line in lines) {
+      if (line == null || !("mode" in line) || line.mode != "air" || !("lineId" in line)) continue;
+      if (("scrapping" in line) && line.scrapping) continue;
+      local matchA = ("originA" in line) && (line.originA == townTile
+          || (AIMap.IsValidTile(line.originA) && AITile.GetClosestTown(line.originA) == townId));
+      local matchB = ("originB" in line) && (line.originB == townTile
+          || (AIMap.IsValidTile(line.originB) && AITile.GetClosestTown(line.originB) == townId));
+      if (!matchA && !matchB) continue;
+      if (!(line.lineId in C117_AIR_LINE_STATE)) continue;
+      local stState = C117_AIR_LINE_STATE[line.lineId];
+      if (stState == null) continue;
+      local linePax = stState.pax;
+      local lineSeats = stState.seatLegs;
+      if (("prevPax" in stState) && ("prevSeatLegs" in stState)) {
+        linePax += stState.prevPax;
+        lineSeats += stState.prevSeatLegs;
+      }
+      if (lineSeats > 0) {
+        totalPax += linePax;
+        totalSeats += lineSeats;
+      }
+    }
+  }
+  local airLoadPct = totalSeats > 0 ? (totalPax * 100) / totalSeats : -1;
+
+  return {
+    town = townId,
+    pop = pop,
+    paxProd = paxProd,
+    paxAirTransported = paxAirTransported,
+    shareAir = shareAir,
+    airLoadPct = airLoadPct,
+    ourStations = ourStations,
+    catchmentTiles = catchmentTiles
+  };
+}
+
+function OpexV275TownHasFreeRailSite(townTile, paxCargo, railCoverage)
+{
+  if (!AIMap.IsValidTile(townTile)) return false;
+  local cov = railCoverage > 0 ? railCoverage : AIStation.GetCoverageRadius(AIStation.STATION_TRAIN);
+  local radius = cov + 3;
+  for (local r = 0; r <= radius; r++) {
+    for (local dx = -r; dx <= r; dx++) {
+      for (local dy = -r; dy <= r; dy++) {
+        if (abs(dx) != r && abs(dy) != r) continue;
+        local t = townTile + AIMap.GetTileIndex(dx, dy);
+        if (!AIMap.IsValidTile(t)) continue;
+        if (AITile.IsWaterTile(t)) continue;
+        if (AITile.IsStationTile(t) || AIRail.IsRailTile(t)) continue;
+        local industry = AIIndustry.GetIndustryID(t);
+        if (AIIndustry.IsValidIndustry(industry)) continue;
+        if (OpexV275TileInOurAirportCatchment(t, cov)) continue;
+        if (paxCargo >= 0 && AICargo.IsValidCargo(paxCargo)) {
+          if (AITile.GetCargoProduction(t, paxCargo, 1, 1, cov) <= 0) continue;
+        }
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+function OpexV275AirTownFreeOrigin(originTile, lines, paxCargo, railCoverage)
+{
+  if (V275_AIR_TOWN_FREE <= 0) return false;
+  if (!AIMap.IsValidTile(originTile)) return false;
+  local townId = AITile.GetClosestTown(originTile);
+  if (!AITown.IsValidTown(townId)) return false;
+  local townTile = AITown.GetLocation(townId);
+  local m = OpexV275AirTownMetrics(townId, townTile, lines, paxCargo);
+  if (m == null) return false;
+  if (m.shareAir >= V275_AIR_TOWN_FREE) return false;
+  if (m.airLoadPct < 0 || m.airLoadPct >= V275_AIR_TOWN_FREE) return false;
+  if (!OpexV275TownHasFreeRailSite(townTile, paxCargo, railCoverage)) return false;
+  return true;
+}
+
+function OpexV275AirTownQuarterlyTick(lines, catalog, now)
+{
+  if (!DECISION_LOG) return;
+  local quarter = AIDate.GetYear(now) * 4 + (AIDate.GetMonth(now) - 1) / 3;
+  if (quarter == V275_AIRTOWN_LAST_QUARTER) return;
+  V275_AIRTOWN_LAST_QUARTER = quarter;
+  local paxCargo = (catalog != null && ("paxCargo" in catalog)) ? catalog.paxCargo : -1;
+  local airTownIds = {};
+  if (lines != null) {
+    foreach (line in lines) {
+      if (line == null || !("mode" in line) || line.mode != "air") continue;
+      if (("scrapping" in line) && line.scrapping) continue;
+      if (("originA" in line) && AIMap.IsValidTile(line.originA)) {
+        local tA = AITile.GetClosestTown(line.originA);
+        if (AITown.IsValidTown(tA)) airTownIds.rawset(tA, AITown.GetLocation(tA));
+      }
+      if (("originB" in line) && AIMap.IsValidTile(line.originB)) {
+        local tB = AITile.GetClosestTown(line.originB);
+        if (AITown.IsValidTown(tB)) airTownIds.rawset(tB, AITown.GetLocation(tB));
+      }
+    }
+  }
+  local airStList = AIStationList(AIStation.STATION_AIRPORT);
+  foreach (st, _ in airStList) {
+    if (!AIStation.IsValidStation(st)) continue;
+    local tId = AIStation.GetNearestTown(st);
+    if (AITown.IsValidTown(tId)) airTownIds.rawset(tId, AITown.GetLocation(tId));
+  }
+  local sortedIds = [];
+  foreach (tId, _ in airTownIds) sortedIds.append(tId);
+  sortedIds.sort();
+  foreach (tId in sortedIds) {
+    local m = OpexV275AirTownMetrics(tId, airTownIds[tId], lines, paxCargo);
+    if (m == null) continue;
+    OpexDecide("V275_AIRTOWN", "town=" + m.town
+        + " pop=" + m.pop
+        + " pax_prod=" + m.paxProd
+        + " pax_air_transported=" + m.paxAirTransported
+        + " share_air=" + m.shareAir
+        + " air_load_pct=" + m.airLoadPct
+        + " our_stations=" + m.ourStations
+        + " catchment_tiles=" + m.catchmentTiles);
   }
 }
 /* C39.0 : le journal de la sonde est indépendant de DECISION_LOG. Ce dernier instrumente toute

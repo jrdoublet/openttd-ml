@@ -511,6 +511,7 @@ function OpexRailOriginSitable(tile, cargo, coverage, wantProduction)
         if (AITile.IsStationTile(t) || AIRail.IsRailTile(t)) continue;
         local industry = AIIndustry.GetIndustryID(t);
         if (AIIndustry.IsValidIndustry(industry)) continue;
+        if (V275_AIR_TOWN_FREE > 0 && OpexV275TileInOurAirportCatchment(t, coverage)) continue;
         local value = wantProduction
             ? AITile.GetCargoProduction(t, cargo, 1, 1, coverage)
             : AITile.GetCargoAcceptance(t, cargo, 1, 1, coverage);
@@ -963,8 +964,14 @@ function OpexPaxCandidates(catalog, lines, out, stats, abandonedPairs = null, pr
     foreach (line in lines) {
       if (!("mode" in line) || line.mode != "air") continue;
       if (("scrapping" in line) && line.scrapping) continue;
-      airTowns.rawset(line.originA, true);
-      airTowns.rawset(line.originB, true);
+      if (V275_AIR_TOWN_FREE <= 0
+          || !OpexV275AirTownFreeOrigin(line.originA, lines, cargo, catalog.railCoverage)) {
+        airTowns.rawset(line.originA, true);
+      }
+      if (V275_AIR_TOWN_FREE <= 0
+          || !OpexV275AirTownFreeOrigin(line.originB, lines, cargo, catalog.railCoverage)) {
+        airTowns.rawset(line.originB, true);
+      }
     }
   }
   local preparationMark = profile != null ? OpexOpsMeasureBegin() : null;

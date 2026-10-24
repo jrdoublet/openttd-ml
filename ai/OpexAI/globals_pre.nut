@@ -53,6 +53,10 @@ V207_RAIL_PAX_JOINED_STOPS <- 0;
 V207_RAIL_PAX_SITE_RANK_PCT <- 0;
 /* V275 : masque rail voyageurs en multimodal (voir info.nut). */
 V275_RAIL_PAX_MM <- 15;
+/* V275 : seuil (0..100, defaut 0 = inerte) libérant une ville aeroportuaire pour le rail
+ * voyageurs si la part captee par nos gares et le remplissage avion sont < N %. */
+V275_AIR_TOWN_FREE <- 0;
+V275_AIRTOWN_LAST_QUARTER <- -1;
 /* V214 : couts de virage du A* rail a la AAAHogEx (pathfinder.nut, InitializeParameters/__Cost).
  * Defaut 300/1500 adopte sur decision utilisateur le 16/10 apres B 20x10 positif,
  * avec portes A 40x3 et 40x5 non qualifiees. 0 = historique (50 a chaque changement de direction,

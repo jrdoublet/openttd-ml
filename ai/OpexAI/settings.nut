@@ -133,6 +133,9 @@ function OpexLoadSettings()
       V207_RAIL_PAX_JOINED_STOPS = 2;
     }
   }
+  local v275AirFree = AIController.GetSetting("v275_air_town_free");
+  V275_AIR_TOWN_FREE = (v275AirFree != null && v275AirFree >= 0 && v275AirFree <= 100) ? v275AirFree : 0;
+  V275_AIRTOWN_LAST_QUARTER = -1;
   local v190Delay = AIController.GetSetting("v190_rail_double_delay");
   if (v190Delay == null || v190Delay < 0) v190Delay = 0;
   V190_FROM_YEAR = AIDate.GetYear(AIDate.GetCurrentDate()) + v190Delay;

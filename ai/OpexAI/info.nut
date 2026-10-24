@@ -427,6 +427,15 @@ class OpexAIInfo extends AIInfo {
       flags = 0
     });
     AddSetting({
+      name = "v275_air_town_free",
+      description = "V275: allow passenger rail in airport towns when both our stations' captured share of town passenger production and our planes' average load factor are < N % (and rail station catchment does not overlap our airport catchment); 0 = off (default), 5..100 = threshold %",
+      min_value = 0, max_value = 100,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      step_size = 5,
+      flags = 0
+    });
+    AddSetting({
       name = "v249_statue",
       description = "V249 town statues when rich. 0 = off. 1 = mode 1: build at most one statue per month in served town with highest line profit, requiring cash to cover reserve and most expensive listed project. 2 = mode 2 (V249a+b+c, default since 21/10): buy statue whenever predicted annual marginal gain over horizon covers measured cost, without cash reserve, preserving admissible financeable projects and pending fleet renewal (V252).",
       min_value = 0, max_value = 2,

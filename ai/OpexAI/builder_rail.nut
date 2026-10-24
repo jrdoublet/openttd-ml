@@ -580,6 +580,18 @@ function OpexV307SiteOctantCount(counts)
   return n;
 }
 
+/* V275 : rejette tout quai rail dont le rayon de captage chevauche celui d'un de nos aeroports
+ * (AITileList_StationCoverage sur AIStationList(AIStation.STATION_AIRPORT)). */
+function OpexV275PlatformInOurAirportCatchment(anchor, step, length, coverage)
+{
+  local endTile = anchor + step * (length - 1);
+  local x1 = AIMap.GetTileX(anchor), y1 = AIMap.GetTileY(anchor);
+  local x2 = AIMap.GetTileX(endTile), y2 = AIMap.GetTileY(endTile);
+  local minX = x1 < x2 ? x1 : x2, maxX = x1 > x2 ? x1 : x2;
+  local minY = y1 < y2 ? y1 : y2, maxY = y1 > y2 ? y1 : y2;
+  return OpexV275RectInOurAirportCatchment(minX, minY, maxX, maxY, coverage);
+}
+
 /* V307S : meme validation que la spirale historique, mais sur UN site deja filtre
  * et dans un octant qui n'a pas atteint ses trois quais. Le chemin 0 ne l'appelle
  * jamais. Aucun site ne devient admissible sans AITestMode(BuildRailStation). */
@@ -620,6 +632,7 @@ function OpexV307SiteTry(site, oct, ctx)
         local minY = y1 < y2 ? y1 : y2, maxY = y1 > y2 ? y1 : y2;
         if (OpexStationEncroachesRival(minX, minY, maxX, maxY, ctx.coverage)) continue;
       }
+      if (V275_AIR_TOWN_FREE > 0 && OpexV275PlatformInOurAirportCatchment(anchor, step, ctx.length, ctx.coverage)) continue;
       local stationOk = false;
       {
         local probe = AITestMode();
@@ -786,6 +799,7 @@ function OpexV307SpiralPlanCandidates(center, radius, length, maxPlans, cargo,
                 local minY = y1 < y2 ? y1 : y2, maxY = y1 > y2 ? y1 : y2;
                 if (OpexStationEncroachesRival(minX, minY, maxX, maxY, coverage)) continue;
               }
+              if (V275_AIR_TOWN_FREE > 0 && OpexV275PlatformInOurAirportCatchment(anchor, step, length, coverage)) continue;
               local stationOk = false;
               {
                 local probe = AITestMode();
@@ -1139,6 +1153,7 @@ function OpexStationPlans(center, otherCenter, radius, length, maxPlans, cargo, 
                 local minY = y1 < y2 ? y1 : y2, maxY = y1 > y2 ? y1 : y2;
                 if (OpexStationEncroachesRival(minX, minY, maxX, maxY, coverage)) continue;
               }
+              if (V275_AIR_TOWN_FREE > 0 && OpexV275PlatformInOurAirportCatchment(anchor, step, length, coverage)) continue;
               /* Le rectangle plat ne prouve pas que la commande respecte le station_spread ou les
                * regles de gare. Ce test est au plus MAX_STATION_PLANS * 2 commandes par tentative
                * (24 avec le plafond deja mesure), tres petit devant les milliers d'iterations A* ;

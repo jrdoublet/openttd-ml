@@ -186,8 +186,18 @@ function OpexPO01CLineState(lines)
         if (field in line[key]) record += key + "." + field + "=" + line[key][field] + ";";
     }
     state[mode] += record;
-    if (mode == "air") state.airRail += "|" + line.originA + "," + line.originB
-        + "," + (("scrapping" in line) && line.scrapping ? 1 : 0);
+    if (mode == "air") {
+      state.airRail += "|" + line.originA + "," + line.originB
+          + "," + (("scrapping" in line) && line.scrapping ? 1 : 0);
+      if (V275_AIR_TOWN_FREE > 0 && !(("scrapping" in line) && line.scrapping)) {
+        local paxCargo = (owner._catalog != null && ("paxCargo" in owner._catalog)) ? owner._catalog.paxCargo : -1;
+        local railCov = (owner._catalog != null && ("railCoverage" in owner._catalog))
+            ? owner._catalog.railCoverage : AIStation.GetCoverageRadius(AIStation.STATION_TRAIN);
+        local freeA = OpexV275AirTownFreeOrigin(line.originA, owner._lines, paxCargo, railCov) ? 1 : 0;
+        local freeB = OpexV275AirTownFreeOrigin(line.originB, owner._lines, paxCargo, railCov) ? 1 : 0;
+        state.airRail += "," + freeA + "," + freeB;
+      }
+    }
   }
   return state;
 }

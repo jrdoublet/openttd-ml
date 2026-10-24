@@ -245,8 +245,8 @@ class PO01CContracts(unittest.TestCase):
         expected = {
             'probe_v216.nut': '8971a9dcf90ec29fce9baaca9f4959bbcc3c7db5d3e648963f1481c768ab5166',
             'economy.nut': 'c89b774e6465708574567ad591372917c13fc6fe51b82921def346fbc623978b',
-            # eb6f26fc: retired rail switches; keep byte-level pin on the new source.
-            'builder_rail.nut': '1b1189a786093ab6b3da4d62d959adaa9b66b621ba65a82a2df74f1257fd3f99',
+            # Rebased for V275 v275_air_town_free airport catchment guard.
+            'builder_rail.nut': 'ea09eb9339120354a19a6d57fbafbba6e8d267e169707dd4ae0aef24eb943a68',
         }
         for name, digest in expected.items():
             self.assertEqual(hashlib.sha256((AI / name).read_bytes()).hexdigest(), digest)
@@ -426,12 +426,12 @@ class PO01CContracts(unittest.TestCase):
             'builder_water.nut': '92c50153b6712f238943f75e2c9498a602695132a7850c5f663f91344499162e',
             'air_planning.nut': 'd97dd1d56b049c8ea98c85a1202239da3d30193028e8526ba44240181460a5c2',
             'air_sites.nut': '19691bb0bc03b81b27793c1b8ec99a68e11455b2d74aa12e85b17e7d0c1e279f',
-            'candidates.nut': '83670f686d3564a63e21fd307736a32a106ebbf25ccb7463800b8cefb815c771',
+            'candidates.nut': 'dec1b19b2d40d93f0a04aa4e79b27f6a7ab101fc03a01b6de38029dd191877e3',
             'catalog.nut': '4882c4c3de58c97882b2739432e62045a2e567b1ee980e5a2a56dedd34a17ba9',
             'main.nut': '774acab715924ca97cb0e14ed1a9573400a84963ee7698effeebdcd372ed9adc',
-            'probes.nut': '2be7e1d6c099949de72b9abf8e285df6db6fc5c0001c9445c3707c3c8c1edf5e',
-            'settings.nut': 'b2b1debb5d362bf89c0099cef9acc4478e25c1fce066b63707acea178a6d27fd',
-            'info.nut': '0447a0adc89f91dd48b37fb46ac0084b67443eccf9fd3fe9a9bd53374ee81f9a',
+            'probes.nut': '8f31a41e49855bbe8c82f2c5b011f58022944678cafdaa0097e316e490770abd',
+            'settings.nut': 'f58f1958680dfda956e6bb288c45f807366b345d249a8d089e98e2419b82e943',
+            'info.nut': '41d1b4e47c329155129b3f5b44d01f01067d1da7bbd50c5db4737a2833b9489a',
         }
         for name, digest in expected.items():
             with self.subTest(name=name):
