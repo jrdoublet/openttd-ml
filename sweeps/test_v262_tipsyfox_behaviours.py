@@ -172,11 +172,10 @@ class TipsyfoxBehaviours(unittest.TestCase):
         for name, code in all_code().items():
             self.assertNotRegex(code, r'AIMarine\.(?:BuildBuoy|BuildCanal|BuildLock)\s*\(', name)
 
-    def test_adjacent_join_attempt_has_rollback_on_failure(self):
-        code = body('builder_road.nut', 'OpexRoadTryJoinStop')
-        self.assertIn('stationId', code)
+    def test_road_rollback_removes_added_road_edges(self):
+        code = body('builder_road.nut', 'OpexRoadRollback')
         self.assertIn('AIRoad.RemoveRoad(added[i].from, added[i].to)', code)
-        self.assertIn('return null;', code)
+        self.assertIn('if (!allSold) return;', code)
 
     def test_terrain_is_tested_by_commands_not_a_marshland_enum(self):
         code = body('builder_road.nut', 'OpexRoadTraceBuildable')

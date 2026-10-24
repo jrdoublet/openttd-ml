@@ -76,36 +76,6 @@
   ],
   [
     "builder_rail.nut",
-    "bridges",
-    "AIBridge.GetMaxSpeed"
-  ],
-  [
-    "builder_rail.nut",
-    "bridges",
-    "AIBridge.GetMaxSpeed"
-  ],
-  [
-    "builder_rail.nut",
-    "bridges",
-    "AIBridge.GetMaxSpeed"
-  ],
-  [
-    "builder_rail.nut",
-    "bridges",
-    "AIBridge.GetMaxSpeed"
-  ],
-  [
-    "builder_rail.nut",
-    "bridges",
-    "AIBridge.GetMaxSpeed"
-  ],
-  [
-    "builder_rail.nut",
-    "bridges",
-    "AIBridge.GetMaxSpeed"
-  ],
-  [
-    "builder_rail.nut",
     "tiles",
     "AITile.GetSlope"
   ],
@@ -235,11 +205,6 @@
     "AIStation.GetNearestTown"
   ],
   [
-    "task_rail.nut",
-    "bridges",
-    "AIBridge.GetMaxSpeed"
-  ],
-  [
     "tension.nut",
     "vehicles",
     "AIVehicle.GetRunningCost"
@@ -303,11 +268,6 @@
     "terrain_valuate.nut",
     "work",
     "AITile.GetMaxHeight"
-  ],
-  [
-    "task_v259.nut",
-    "bridges",
-    "AIBridge.GetMaxSpeed"
   ],
   [
     "task_projects.nut",

@@ -72,11 +72,9 @@ function OpexWaterAdjacentTiles(dock)
 
 /* Acces reel : land et waterPart sont des tuiles de station. Les fronts sont toutes les cases eau
  * cardinales autour de waterPart, sauf land ; aucun test de connectivite ne relie station et eau. */
-/* Compatibilite opcodes : l'ancien front dispatcher etait toujours sur sa branche false. */
 function OpexWaterHistoricalFronts(dock)
 {
-  if (!WATER_OPCODE_COMPAT_FALSE) return OpexWaterAdjacentTiles(dock);
-  return null;
+  return OpexWaterAdjacentTiles(dock);
 }
 
 function OpexWaterFindDockAccess(land)
@@ -123,10 +121,8 @@ function OpexWaterFindDockAccess(land)
   return null;
 }
 
-/* Compatibilite opcodes : ancien dispatcher Lakes, toujours sur le chemin historique. */
 function OpexWaterDockAccess(land)
 {
-  if (WATER_OPCODE_COMPAT_FALSE) return null;
   return OpexWaterFindDockAccess(land);
 }
 
@@ -367,7 +363,7 @@ function OpexWaterPlans(catalog, lines = null, projects = null, profile = null, 
     }
     local wasKnownComplete = !historical && siteCatalog != null;
     local townSites = OpexWaterHistoricalSites(towns[i], siteCatalog, probes,
-                                                  WATER_OPCODE_COMPAT_FALSE ? profile : null);
+                                                  null);
     if (townSites.len() == 0 && C69_BOTTLENECK_PROBE) OpexC73RecordRejection("water", "no_site", 1);
     if (historical || !wasKnownComplete) foreach (site in townSites) sites.append(site);
   }
@@ -429,10 +425,7 @@ function OpexWaterPlans(catalog, lines = null, projects = null, profile = null, 
       local tariffDistance = AIMap.DistanceManhattan(sites[a].dock, sites[b].dock);
       local navigableDistance = -1;
 
-      /* Slot neutre : l'ancienne bascule etait forcee false. La branche vide conserve
-       * sa structure d'execution sans restaurer le flag ni le code Lakes. */
-      if (WATER_OPCODE_COMPAT_FALSE) {
-      } else {
+      {
         /* Comportement historique : un seul BFS fait connectivite ET distance, les deux
          * bornees par WATER_BFS_MARGIN. */
         local bfsMark = profile != null ? OpexOpsMeasureBegin() : null;
@@ -532,10 +525,6 @@ function OpexBuildWaterRoute(catalog, budget, plan)
   local depot = null;
   local ship = null;
 
-  if (WATER_OPCODE_COMPAT_FALSE) {
-    return OpexWaterStampCost(result, costs);
-  }
-
   /* V262 T12 : revérifier le plafond navires juste avant la premiere depense. Une ligne eau
    * n'achete qu'un navire (OpexBuildWaterRoute / OpexTensionProjectVehicleCount). */
   if (!OpexVehicleSlotAvailable(AIVehicle.VT_WATER, 1)) {
@@ -583,7 +572,7 @@ function OpexBuildWaterRoute(catalog, budget, plan)
   local realA = { dock = dockA, waterTiles = accessA.fronts };
   local realB = { dock = dockB, waterTiles = accessB.fronts };
   /* Verification historique de connectivite apres construction des quais. */
-  if (!WATER_OPCODE_COMPAT_FALSE && OpexWaterFindConnection(realA, realB) < 0) {
+  if (OpexWaterFindConnection(realA, realB) < 0) {
     result.opcodes += budget.end("build_water_depot");
     OpexWaterRollback(dockA, dockB, null, null); result.reason = "NOWATER"; return OpexWaterStampCost(result, costs);
   }

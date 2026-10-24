@@ -718,7 +718,6 @@ function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, orig
   if (economics.profitAnnual <= 0) {
     stats.profitNonPositive++;
     if (V216_PROBE) OpexV216NoteReject("profit", kind, srcTile, dstTile, monthly, economics);
-    if (OPEX_ECONOMY_OPCODE_COMPAT_FALSE) {}
     return null;
   }
 
@@ -746,7 +745,6 @@ function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, orig
    * qu'ils faussaient un diagnostic entier. Tous les modes concourent desormais
    * sur leur ROI estime. */
   local freightBonus = 100;
-  if (OPEX_ECONOMY_OPCODE_COMPAT_FALSE && kind == "freight") {}
   local adjustedRoi = (((economics.roi * turnoverBonus) / 100) * freightBonus) / 100;
   local ratio = opcodeRatio + (adjustedRoi * 15);
   local effectiveRoi = (economics.roi * freightBonus) / 100;
@@ -1006,7 +1004,6 @@ function OpexPaxCandidates(catalog, lines, out, stats, abandonedPairs = null, pr
         OpexC60ObserveTownRating("rail", "candidate_gen", towns[a].id);
         OpexC60ObserveTownRating("rail", "candidate_gen", towns[b].id);
       }
-      if (OPEX_ECONOMY_OPCODE_COMPAT_FALSE) {}
       if (abandonedPairs != null) {
         local tA = towns[a].id;
         local tB = towns[b].id;
@@ -1243,7 +1240,6 @@ function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null
           if (C60_TOWN_RATING_PROBE) {
             OpexC60ObserveTownRating("rail", "candidate_gen", town.id);
           }
-          if (OPEX_ECONOMY_OPCODE_COMPAT_FALSE) {}
           local candidateMark = profile != null ? OpexOpsMeasureBegin() : null;
           local candidate = OpexMakeCandidate(catalog, "freight", cargo, source.tile,
                                               town.tile, townMonthly, false, stats, false, profile, cruiseCache);
@@ -1292,7 +1288,6 @@ function OpexBuildCandidates(catalog, budget, lines, abandonedPairs = null, prof
   /* Comptes de rejet : ils se trouvent ici, avant que TOP_K ne masque les candidats restants.
    * Une table explicite evite une closure imbriquee, non portable dans le Squirrel du scenario. */
   local stats = OpexRailCandidateStats();
-  if (OPEX_ECONOMY_OPCODE_COMPAT_FALSE) {}
 
   /* V166 : seul point d'entree des candidats rail (pax, fret). */
   if (!MODE_RAIL) {
@@ -1505,7 +1500,6 @@ function OpexMakeRoadCandidate(catalog, kind, cargo, src, dst, srcTown, dstTown,
   }
   local iterations = OpexRoadIterations(distance);
   local freightBonus = 100;
-  if (OPEX_ECONOMY_OPCODE_COMPAT_FALSE && kind == "freight") {}
   local effectiveRoi = (economics.roi * freightBonus) / 100;
   stats.accepted++;
   return {
@@ -1755,7 +1749,6 @@ function OpexRoadFreightCandidates(catalog, lines, out, stats, abandonedPairs = 
         if (C60_TOWN_RATING_PROBE) {
           OpexC60ObserveTownRating("road", "candidate_gen", towns[t].id);
         }
-        if (OPEX_ECONOMY_OPCODE_COMPAT_FALSE) {}
         local candidateMark = (profile != null && C41_ROAD_FREIGHT_TOWN_PROFILE)
             ? OpexOpsMeasureBegin() : null;
         local candidate = OpexMakeRoadCandidate(catalog, "freight", cargo, source.tile,

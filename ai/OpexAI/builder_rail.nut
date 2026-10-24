@@ -19,6 +19,13 @@
 /* La longueur n'est PAS une constante : catalog.nut lit `station.station_spread` chaque annee,
  * puis OpexStationPlans appelle le vrai BuildRailStation sous AITestMode avant de proposer un
  * plan. Le jeu, et non une valeur supposee, reste donc l'autorite sur le maximum utilisable. */
+/* Classement natif partage des ponts : priorite vitesse, meme departage AIList. */
+function OpexBridgeSortBySpeed(bridges)
+{
+  bridges.Valuate(AIBridge.GetMaxSpeed);
+  bridges.Sort(AIList.SORT_BY_VALUE, false);
+}
+
 const STATION_SEARCH_RADIUS = 30;
 const MAX_STATION_PLANS = 12;
 /* V207 : facteur d'echantillonnage des sites passagers avant classement par production. */
@@ -2030,8 +2037,7 @@ function OpexLocalStructureChoices(front, previous, destinationCenter, state)
     }
     local bridges = AIBridgeList_Length(length);
     if (bridges.IsEmpty()) continue;
-    bridges.Valuate(AIBridge.GetMaxSpeed);
-    bridges.Sort(AIList.SORT_BY_VALUE, false);
+    OpexBridgeSortBySpeed(bridges);
     local usable = false;
     {
       local testMode = AITestMode();
@@ -2886,8 +2892,7 @@ function OpexV190TraceParallelTrack(tiles1, planA, planB, planA2, planB2, side, 
           structKind = "tunnel";
         } else {
           local bridges = AIBridgeList_Length(AIMap.DistanceManhattan(start2, end2) + 1);
-          bridges.Valuate(AIBridge.GetMaxSpeed);
-          bridges.Sort(AIList.SORT_BY_VALUE, false);
+          OpexBridgeSortBySpeed(bridges);
           if (bridges.IsEmpty() || !AIBridge.BuildBridge(AIVehicle.VT_RAIL, bridges.Begin(), start2, end2)) return null;
           structKind = "bridge";
         }
@@ -3614,8 +3619,7 @@ function OpexBuildTrack(tiles, structures = null, failure = null, options = null
         ok = AITunnel.BuildTunnel(AIVehicle.VT_RAIL, cur);
       } else {
         local bridges = AIBridgeList_Length(AIMap.DistanceManhattan(cur, next) + 1);
-        bridges.Valuate(AIBridge.GetMaxSpeed);
-        bridges.Sort(AIList.SORT_BY_VALUE, false);
+        OpexBridgeSortBySpeed(bridges);
         ok = !bridges.IsEmpty() && AIBridge.BuildBridge(AIVehicle.VT_RAIL, bridges.Begin(), cur, next);
       }
     } else {
@@ -3656,8 +3660,7 @@ function OpexBuildTrack(tiles, structures = null, failure = null, options = null
         }
         if (demAny) {
           local bridges = AIBridgeList_Length(dist + 1);
-          bridges.Valuate(AIBridge.GetMaxSpeed);
-          bridges.Sort(AIList.SORT_BY_VALUE, false);
+          OpexBridgeSortBySpeed(bridges);
           ok = !bridges.IsEmpty() && AIBridge.BuildBridge(AIVehicle.VT_RAIL, bridges.Begin(), cur, next);
           local demCost = preCash - AICompany.GetBankBalance(AICompany.COMPANY_SELF);
           if (demCost < 0) demCost = 0;
@@ -3809,8 +3812,7 @@ function OpexTestRailTrack(tiles, structures = null)
         ok = AITunnel.BuildTunnel(AIVehicle.VT_RAIL, cur);
       } else {
         local bridges = AIBridgeList_Length(AIMap.DistanceManhattan(cur, next) + 1);
-        bridges.Valuate(AIBridge.GetMaxSpeed);
-        bridges.Sort(AIList.SORT_BY_VALUE, false);
+        OpexBridgeSortBySpeed(bridges);
         ok = !bridges.IsEmpty() && AIBridge.BuildBridge(AIVehicle.VT_RAIL, bridges.Begin(), cur, next);
       }
     } else {
@@ -4576,8 +4578,7 @@ function OpexSimulateRailInfraCost(plan, failure = null)
           ok = AITunnel.BuildTunnel(AIVehicle.VT_RAIL, cur);
         } else {
           local bridges = AIBridgeList_Length(AIMap.DistanceManhattan(cur, next) + 1);
-          bridges.Valuate(AIBridge.GetMaxSpeed);
-          bridges.Sort(AIList.SORT_BY_VALUE, false);
+          OpexBridgeSortBySpeed(bridges);
           if (bridges.IsEmpty()) {
             return OpexRailQuoteFailure(failure, "TRKFAIL", cur, AIError.ERR_PRECONDITION_FAILED);
           }
@@ -4628,8 +4629,7 @@ function OpexSimulateRailInfraCost(plan, failure = null)
             AITunnel.BuildTunnel(AIVehicle.VT_RAIL, cur);
           } else {
             local bridges = AIBridgeList_Length(AIMap.DistanceManhattan(cur, next) + 1);
-            bridges.Valuate(AIBridge.GetMaxSpeed);
-            bridges.Sort(AIList.SORT_BY_VALUE, false);
+            OpexBridgeSortBySpeed(bridges);
             if (!bridges.IsEmpty()) {
               AIBridge.BuildBridge(AIVehicle.VT_RAIL, bridges.Begin(), cur, next);
             }

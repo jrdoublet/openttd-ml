@@ -96,7 +96,6 @@ function OpexPO01CPaxCandidates(catalog, lines, out, stats, abandonedPairs = nul
         OpexC60ObserveTownRating("rail", "candidate_gen", towns[a].id);
         OpexC60ObserveTownRating("rail", "candidate_gen", towns[b].id);
       }
-      if (OPEX_ECONOMY_OPCODE_COMPAT_FALSE) {}
       if (abandonedPairs != null) {
         local tA = towns[a].id;
         local tB = towns[b].id;
@@ -287,7 +286,6 @@ function OpexPO01CFreightCandidates(catalog, lines, out, stats, abandonedPairs =
           if (C60_TOWN_RATING_PROBE) {
             OpexC60ObserveTownRating("rail", "candidate_gen", town.id);
           }
-          if (OPEX_ECONOMY_OPCODE_COMPAT_FALSE) {}
           local candidateMark = profile != null ? OpexOpsMeasureBegin() : null;
           if (DECISION_LOG) OpexPO01CWhere("OpexPO01CFreightCandidates", "rail_freight:pair_candidate", PO01C_WHERE.idx);
           local candidate = OpexMakeCandidate(catalog, "freight", cargo, source.tile,
@@ -479,7 +477,6 @@ function OpexPO01CRoadFreightCandidates(catalog, lines, out, stats, abandonedPai
         if (C60_TOWN_RATING_PROBE) {
           OpexC60ObserveTownRating("road", "candidate_gen", towns[t].id);
         }
-        if (OPEX_ECONOMY_OPCODE_COMPAT_FALSE) {}
         local candidateMark = (profile != null && C41_ROAD_FREIGHT_TOWN_PROFILE)
             ? OpexOpsMeasureBegin() : null;
         if (DECISION_LOG) OpexPO01CWhere("OpexPO01CRoadFreightCandidates", "road_freight:pair_candidate", PO01C_WHERE.idx);
@@ -531,7 +528,7 @@ function OpexPO01CWaterPlans(catalog, lines = null, projects = null, profile = n
     }
     local wasKnownComplete = !historical && siteCatalog != null;
     local townSites = OpexWaterHistoricalSites(towns[i], siteCatalog, probes,
-                                                  WATER_OPCODE_COMPAT_FALSE ? profile : null);
+                                                  null);
     if (townSites.len() == 0 && C69_BOTTLENECK_PROBE) OpexC73RecordRejection("water", "no_site", 1);
     if (historical || !wasKnownComplete) foreach (site in townSites) sites.append(site);
   }
@@ -595,10 +592,7 @@ function OpexPO01CWaterPlans(catalog, lines = null, projects = null, profile = n
       local tariffDistance = AIMap.DistanceManhattan(sites[a].dock, sites[b].dock);
       local navigableDistance = -1;
 
-      /* Slot neutre : l'ancienne bascule etait forcee false. La branche vide conserve
-       * sa structure d'execution sans restaurer le flag ni le code Lakes. */
-      if (WATER_OPCODE_COMPAT_FALSE) {
-      } else {
+      {
         /* Comportement historique : un seul BFS fait connectivite ET distance, les deux
          * bornees par WATER_BFS_MARGIN. */
         local bfsMark = profile != null ? OpexOpsMeasureBegin() : null;
@@ -668,20 +662,6 @@ function OpexPO01CWaterPlans(catalog, lines = null, projects = null, profile = n
   return;
 }
 
-function OpexPO01CCargos(catalog)
-{
-  catalog.cargos = [];
-  catalog.paxCargo = -1;
-  catalog.mailCargo = -1;
-  local list = AICargoList();
-  for (local c = list.Begin(); !list.IsEnd(); c = list.Next()) {
-    yield null; // PO01C_CHECKPOINT
-    catalog.cargos.append(c);
-    if (catalog.paxCargo < 0 && AICargo.HasCargoClass(c, AICargo.CC_PASSENGERS)) catalog.paxCargo = c;
-    if (catalog.mailCargo < 0 && AICargo.HasCargoClass(c, AICargo.CC_MAIL)) catalog.mailCargo = c;
-  }
-}
-
 function OpexPO01CRail(catalog)
 {
   catalog.loco = null;
@@ -714,7 +694,7 @@ function OpexPO01CRail(catalog)
   local chosen = -1;
   for (local t = types.Begin(); !types.IsEnd(); t = types.Next()) {
     yield null; // PO01C_CHECKPOINT
-    if (t > chosen) chosen = t;
+    if (OpexRailTypePreferred(t, chosen)) chosen = t;
   }
   if (chosen < 0) return;
   catalog.railType = chosen;
@@ -1245,7 +1225,6 @@ function OpexPO01CAirFindSite(po01dResult, town, airport, probes, requiredSlotTo
   if (C60_TOWN_RATING_PROBE) {
     OpexC60ObserveTownRating("air", "find_site", town.id);
   }
-  if (OPEX_ECONOMY_OPCODE_COMPAT_FALSE) {}
   if (probes != null && ("stationLimitedTowns" in probes)
       && (town.id in probes.stationLimitedTowns)) { po01dResult.value = null; return; }
   local key = town.id + "_" + airport.type;
@@ -2338,7 +2317,6 @@ function OpexPO01CMakePaxCandidate(po01dResult, po01fSitableCache, po01fContext,
   if (economics.profitAnnual <= 0) {
     stats.profitNonPositive++;
     if (V216_PROBE) OpexV216NoteReject("profit", kind, srcTile, dstTile, monthly, economics);
-    if (OPEX_ECONOMY_OPCODE_COMPAT_FALSE) {}
     { po01dResult.value = null; return; }
   }
 
@@ -2366,7 +2344,6 @@ function OpexPO01CMakePaxCandidate(po01dResult, po01fSitableCache, po01fContext,
    * qu'ils faussaient un diagnostic entier. Tous les modes concourent desormais
    * sur leur ROI estime. */
   local freightBonus = 100;
-  if (OPEX_ECONOMY_OPCODE_COMPAT_FALSE && kind == "freight") {}
   local adjustedRoi = (((economics.roi * turnoverBonus) / 100) * freightBonus) / 100;
   local ratio = opcodeRatio + (adjustedRoi * 15);
   local effectiveRoi = (economics.roi * freightBonus) / 100;

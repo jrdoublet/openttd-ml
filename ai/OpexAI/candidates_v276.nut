@@ -6,6 +6,7 @@
 V276_CAND_SLICES <- 0;
 V276_CATALOG_TASK <- null;
 V276_CARGO_YEAR <- -1;
+V276_CARGO_MONTH <- -1;
 V276_CARGO_ORDER <- null;
 const V276_PUBLISH_EVERY = 50;
 const V276_EVAL_CAP = 500;
@@ -23,7 +24,9 @@ function OpexV276Tick(owner)
 function OpexV276CargoOrder(catalog)
 {
   local year = AIDate.GetYear(AIDate.GetCurrentDate());
-  if (V276_CARGO_ORDER != null && V276_CARGO_YEAR == year) return V276_CARGO_ORDER;
+  local month = AIDate.GetMonth(AIDate.GetCurrentDate());
+  if (V276_CARGO_ORDER != null && V276_CARGO_YEAR == year
+      && (V276_CAND_SLICES != 2 || V276_CARGO_MONTH == month)) return V276_CARGO_ORDER;
   local ranked = AIList();
   local bounds = OpexCatalogBounds(catalog);
   local days = (80.0 * OpexDaysPerTile(bounds.vRail > 0 ? bounds.vRail : 1,
@@ -44,6 +47,7 @@ function OpexV276CargoOrder(catalog)
   local result = [];
   for (local cargo = ranked.Begin(); !ranked.IsEnd(); cargo = ranked.Next()) result.append(cargo);
   V276_CARGO_YEAR = year;
+  V276_CARGO_MONTH = month;
   V276_CARGO_ORDER = result;
   return result;
 }
@@ -248,6 +252,7 @@ function OpexV276Enumerate(s, u, mark, opsBudget, startTick, deadlineTick)
     if (s.a >= outer || n == 0) {
       s.lastAtom = "native_sort";
       s.pairs.Sort(AIList.SORT_BY_VALUE, false); // natif, pas de comparateur Squirrel
+      if (s.pairs.Count() > V276_EVAL_CAP) s.pairs.KeepTop(V276_EVAL_CAP);
       s.phase = "evaluate";
       return;
     }
@@ -274,6 +279,13 @@ function OpexV276Enumerate(s, u, mark, opsBudget, startTick, deadlineTick)
     if (u.mode == "rail" && !OpexRailPaxPairInBand(s.catalog.bounds, distance, u.band)) continue;
     if (u.mode == "road" && !OpexRoadDistanceAllowed(s.catalog, distance, c.roadStats)) continue;
     local score = u.pax ? (src.pop.tofloat() * dst.pop * sqrt(distance.tofloat())).tointeger() : distance;
+    /* Prune par la meme priorite native avant que la liste depasse 1000 paires.
+     * Les ex aequo au rang 500 peuvent dependre du moment du prune : verifier
+     * la neutralite des trajectoires sur le banc apparie. */
+    if (s.pairs.Count() >= V276_EVAL_CAP * 2) {
+      s.pairs.Sort(AIList.SORT_BY_VALUE, false);
+      s.pairs.KeepTop(V276_EVAL_CAP);
+    }
     s.pairs.AddItem(a * n + b, score);
   }
 }

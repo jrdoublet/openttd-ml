@@ -62,7 +62,6 @@ REPAIR_HEADERS = (
     "function OpexV131SpliceSpan(",
     "function OpexV131ApplySplice(",
     "function OpexV131RebuildStructures(",
-    "function OpexV131KeepStructures(",
     "function OpexV131StationsBuild(",
     "function OpexV131WriteRepairedPlan(",
     "function OpexAI::_v131RepairIsPending(",

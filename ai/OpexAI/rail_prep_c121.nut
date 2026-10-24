@@ -50,7 +50,7 @@ function OpexAI::_c121RailPrepAirFundableCheap()
   if (cap < 0) return false;
   /* Emprunt desactive : disponible <= caisse. Une caisse sous le minimum
    * dispense de la reserve (liste de vehicules). */
-  if (!OPEX_ECONOMY_OPCODE_COMPAT_FALSE && cap > 0) {
+  if (cap > 0) {
     local cash = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
     if (cash < cap) return false;
   }
@@ -63,7 +63,7 @@ function OpexAI::_c121RailPrepCashBelowAir()
 {
   local cap = this._c121RailPrepMinAirCap;
   if (cap < 0) return true;
-  if (OPEX_ECONOMY_OPCODE_COMPAT_FALSE || cap <= 0) return false;
+  if (cap <= 0) return false;
   return AICompany.GetBankBalance(AICompany.COMPANY_SELF) < cap;
 }
 

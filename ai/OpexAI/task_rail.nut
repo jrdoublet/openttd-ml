@@ -243,7 +243,6 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
         if (towns.dstTown >= 0) OpexC60ObserveTownRating("rail", "build_precheck", towns.dstTown);
       }
 
-      if (OPEX_ECONOMY_OPCODE_COMPAT_FALSE) {}
 
       if (!("joinPlatform" in candidate)) {
         this._tryAttachSharedDest(candidate);
@@ -1700,8 +1699,7 @@ function OpexV131SegmentBuilds(prev, cur, next, structures)
       return AITunnel.BuildTunnel(AIVehicle.VT_RAIL, cur);
     }
     local bridges = AIBridgeList_Length(AIMap.DistanceManhattan(cur, next) + 1);
-    bridges.Valuate(AIBridge.GetMaxSpeed);
-    bridges.Sort(AIList.SORT_BY_VALUE, false);
+    OpexBridgeSortBySpeed(bridges);
     return !bridges.IsEmpty() && AIBridge.BuildBridge(AIVehicle.VT_RAIL, bridges.Begin(), cur, next);
   }
   return AIRail.BuildRail(prev, cur, next);
@@ -2306,11 +2304,6 @@ function OpexV131RebuildStructures(tiles, oldStructures)
     }
   }
   return kept;
-}
-
-function OpexV131KeepStructures(tiles, structures)
-{
-  return OpexV131RebuildStructures(tiles, structures);
 }
 
 function OpexV131StationsBuild(planA, planB)

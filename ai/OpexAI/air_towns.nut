@@ -145,19 +145,6 @@ function OpexAirOwnSlotTownCounts()
   return counts;
 }
 
-/* V95 causal : le second slot doit etre encore libre et le premier doit etre
- * detenu par un tiers. Avec station_noise_level=0, slots=1 et zero aeroport
- * Opex sur la ville physique impliquent exactement un aeroport concurrent. */
-function OpexAirV95CompetitorSecondSlotOpen(town, anchor = null)
-{
-  if (!OpexAirC83SlotSignalEnabled() || town == null || !("id" in town)
-      || !AITown.IsValidTown(town.id)) return false;
-  if (anchor != null && OpexAirSlotTownId(anchor) != town.id) return false;
-  if (AITown.GetAllowedNoise(town.id) != 1) return false;
-  local ownCounts = OpexAirOwnSlotTownCounts();
-  return !(town.id in ownCounts) || ownCounts[town.id] == 0;
-}
-
 function OpexAirC78NoteNoSite(probes, reason)
 {
   if (!C69_BOTTLENECK_PROBE || probes == null) return;

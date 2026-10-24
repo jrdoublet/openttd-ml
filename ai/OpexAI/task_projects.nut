@@ -611,6 +611,7 @@ function OpexAI::_c83WatchAirSlotTransitions()
 
   local enqueued = 0;
   local watched = OpexAirC83WatchTowns(this._catalog.towns);
+  local watchedIds = {};
   /* C83.1 : "present" doit signifier qu'Opex occupe physiquement un slot de
    * CETTE ville, pas seulement qu'une origine commerciale de ligne est proche.
    * OpexAirTownServed() est volontairement plus large (<15 Manhattan autour des
@@ -625,6 +626,7 @@ function OpexAI::_c83WatchAirSlotTransitions()
     if (ownTownId >= 0 && AITown.IsValidTown(ownTownId)) ownAirportTowns.rawset(ownTownId, true);
   }
   foreach (town in watched) {
+    watchedIds.rawset(town.id, true);
     local remaining = AITown.GetAllowedNoise(town.id);
     local ownPresent = town.id in ownAirportTowns;
     local state = remaining + (ownPresent ? 10 : 0);
@@ -698,6 +700,15 @@ function OpexAI::_c83WatchAirSlotTransitions()
             + " previous=" + previous + " remaining=1 action=enqueue_failed");
       }
     }
+  }
+  /* Une ville sortie du top K ne doit pas conserver une transition ancienne. */
+  local departed = [];
+  foreach (townId, state in this._c83SlotWatch) {
+    if (!(townId in watchedIds)) departed.append(townId);
+  }
+  foreach (townId in departed) {
+    OpexC122ThreatCancel(townId, "left_top_k");
+    delete this._c83SlotWatch[townId];
   }
   return enqueued;
 }

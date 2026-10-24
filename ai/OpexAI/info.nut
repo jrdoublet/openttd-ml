@@ -39,7 +39,7 @@ class OpexAIInfo extends AIInfo {
      * Defaut 2 = panneaux seuls, le comportement historique. */
     AddSetting({
       name = "probes",
-      description = "Diagnostics bitmask (signed 31 bits): 0 none, 1 all, 2 signs (default), 4 legacy log, 8/16/32/64/128 legacy groups, 256 decision log only, 512..1073741824 individual channels (see docs/audit_sondes_20261022.md); groups also enable decision log",
+      description = "Diagnostics bitmask (signed 31 bits): 0 none, 1 all, 2 signs (default), 4 legacy log, 8/16/32/64/128 legacy groups, 256 decision log only, 512..1073741824 individual channels (see docs/audit_sondes_20261022.md); groups also enable decision log; 67108864 V309 idle needs +256 for logs (67109120)",
       min_value = 0, max_value = 2147483647,
       easy_value = 2, medium_value = 2, hard_value = 2,
       custom_value = 2,

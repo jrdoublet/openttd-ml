@@ -205,7 +205,7 @@ class ReviewResidualContractsTest(unittest.TestCase):
         src = _read("ai/OpexAI/builder_road.nut")
         # OpexRoadRollback
         rb_start = src.index("function OpexRoadRollback(")
-        rb_end = src.index("function OpexRoadTryJoinStop(", rb_start)
+        rb_end = src.index("function OpexRoadBuildTrace(", rb_start)
         rb_body = src[rb_start:rb_end]
         self.assertIn("local allSold = true;", rb_body)
         self.assertIn("if (!AIVehicle.SellVehicle(v)) allSold = false;", rb_body)

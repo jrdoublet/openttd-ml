@@ -59,7 +59,7 @@ class TestB3RoadFleetTargets(unittest.TestCase):
         self.assertIn("local vehiclesForVolume = OpexCeilDiv", body)
         self.assertIn("local vehicles = vehiclesForVolume", body)
         self.assertIn("local roadBerthCapacity = OpexRoadPhysicalVehicleCap(1, 1)", body)
-        self.assertIn("local roadVehicleCap = OPEX_ECONOMY_OPCODE_COMPAT_FALSE ? 1 : roadBerthCapacity", body)
+        self.assertIn("local roadVehicleCap = roadBerthCapacity", body)
         self.assertNotIn("ROAD_TIME_SCALED_CAP", body)
         self.assertNotIn("OpexRoadFleetVehicleCap", body)
         self.assertIn("if (vehicles > roadVehicleCap) vehicles = roadVehicleCap", body)
@@ -162,7 +162,7 @@ class TestB3RoadFleetTargets(unittest.TestCase):
         self.assertIn("projectedLines.append(cache[line]);", save)
         refresh = function_body(self.persist, "function OpexAI::_refreshSaveProjection(")
         self.assertIn("this._lines.len() < SAVE_PROJECTION_MIN_LINES", refresh)
-        self.assertIn("if (month == this._saveProjectionMonth) return;", refresh)
+        self.assertIn("if (month == this._saveProjectionMonth && this._saveProjection != null) return;", refresh)
 
 
 if __name__ == "__main__":
