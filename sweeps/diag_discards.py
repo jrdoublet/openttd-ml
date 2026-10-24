@@ -96,7 +96,7 @@ def main():
     args = parser.parse_args()
 
     enable_savegame_cleanup()
-    ai = local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI", benchmark_opex_settings((("decision_log", 1),)))
+    ai = local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI", benchmark_opex_settings((("probes", 258),)))
     rows = list(run_experiments(
         openttd_version="15.3", opengfx_version="7.1", max_workers=args.workers,
         result_processor=keep,

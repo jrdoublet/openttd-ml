@@ -181,7 +181,7 @@ def main():
     openttdlab.subprocess.check_output = with_script_debug
 
     try:
-        ai = local_folder(str(staged), "OpexAI", benchmark_opex_settings((("decision_log", 1),)))
+        ai = local_folder(str(staged), "OpexAI", benchmark_opex_settings((("probes", 258),)))
         experiments = [{"seed": args.seed, "days": 365 * args.years,
                         "openttd_config": CFG, "ais": (ai,)}]
         rows = list(run_experiments(

@@ -18,7 +18,7 @@ from diag_m4_conformity import analyse_logs, scenario_summary
 
 DEFAULT_SEEDS = [42, 100, 999, 1234, 5678]
 SETTINGS = (
-    ("decision_log", 1),
+    ("probes", 258),
     ("probe_portfolio", 1),
 )
 

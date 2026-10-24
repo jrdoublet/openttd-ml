@@ -34,7 +34,7 @@ from game_health import assess_game, annotate_summary
 STARTING_YEAR = 1970
 SCRAP_TIMEOUT_YEARS = 2
 DEFAULT_SEEDS = [42, 100, 999, 1234, 5678]
-ARM = "OpexAI[decision_log=1]"
+ARM = "OpexAI[probes=258]"
 OPEX_RE = re.compile(r"OPEX (\d+)-(\d+)-(\d+) ([A-Z0-9_]+)\s*(.*)$")
 
 _real_check_output = openttdlab.subprocess.check_output
@@ -270,7 +270,7 @@ def main():
     arm = local_folder(
         str(ROOT / "ai" / "OpexAI"),
         "OpexAI",
-        benchmark_opex_settings((("decision_log", 1),)),
+        benchmark_opex_settings((("probes", 258),)),
     )
     cfg = make_cfg(STARTING_YEAR)
     experiments = [

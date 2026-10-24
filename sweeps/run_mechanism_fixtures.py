@@ -219,7 +219,7 @@ def main(argv=None):
         return original(command, *rest, **kwargs)
 
     reload._REAL_CHECK_OUTPUT = with_gs
-    arm = openttdlab.local_folder(str(target), "OpexAI", benchmark_opex_settings((("decision_log", 1),)))
+    arm = openttdlab.local_folder(str(target), "OpexAI", benchmark_opex_settings((("probes", 258),)))
     cfg = reload.bench_v2.make_cfg(1970) + '\n[game_scripts]\nFixtureBank = \n'
     write(folder / "plan.json", {"kind": "engineered_world_not_economic", "seed": 42,
           "scenario": args.scenario, "phase_years": [2, 1, 1] if args.scenario == "r1" else [2], "workers": 1, "source_hashes": before,

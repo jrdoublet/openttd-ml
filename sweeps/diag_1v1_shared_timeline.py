@@ -107,7 +107,7 @@ def main():
     args = parser.parse_args()
     args.out.parent.mkdir(parents=True, exist_ok=True)
     opex = local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI",
-                        benchmark_opex_settings((("decision_log", 1), ("probe_scheduler", 1), ("probe_cost", 1))))
+                        benchmark_opex_settings((("probes", 258), ("probe_scheduler", 1), ("probe_cost", 1))))
     hogex = local_folder(str(ROOT / "ai" / AAAHOGEX_DIR), "AAAHogEx", ())
     rows = list(run_experiments(
         openttd_version=OPENTTD_VERSION, opengfx_version=OPENGFX_VERSION,
