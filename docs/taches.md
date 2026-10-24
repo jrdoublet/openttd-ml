@@ -44,7 +44,7 @@ canoniques de `bench_v2.py` sur dix ans, carte 256×256, début 1970,
   Aucun code IA modifié, aucun défaut changé, aucun commit ni push.
 
 **Mise à jour du 24/10 — porte B AIR 30 % définitivement terminée :**
-`results/airload30_porteB_20x10_20261024_final.json` (source Git
+[JSON de porte B](../evidence/review/airload30_20261024/airload30_porteB_20x10_20261024_final.json) ([manifeste](../evidence/review/airload30_20261024/airload30_porteB_20x10_20261024_final.manifest.json)) (source Git
 `9b3bd86d`, bundle `705bc1f8a41314234e229d3994c04b01199d68ec0f72fab93caa682056af98fa`).
 **40/40 parties et 20/20 paires complètes, zéro échec, verdict `pass` de
 `non_erosion`** pour le seuil 30 % contre 0 : delta `profit_year` moyen
