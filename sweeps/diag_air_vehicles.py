@@ -141,7 +141,7 @@ def main():
     args = parser.parse_args()
 
     ai = local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI",
-                       (("probe_events", 1), ("decision_log", 1)))
+                       (("probe_events", 1), ("probes", 258)))
     experiments = [
         {"seed": seed, "days": 365 * args.years, "openttd_config": CFG,
          "ais": (ai,), "diag_arm": "OpexAI"}

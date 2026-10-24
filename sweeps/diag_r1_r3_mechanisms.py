@@ -27,7 +27,7 @@ except ImportError:
 ROOT = Path(__file__).resolve().parents[1]
 OUTPUT_ROOT = ROOT / "results/r1_r3_mechanisms"
 GATE = "const R1_R3_TEST_ONLY = 0;"
-ARM = "OpexAI[decision_log=1]"
+ARM = "OpexAI[probes=258]"
 SCENARIOS = {
     "r1_exact": "Besoin 4, budget reel apres reserve = prix + 1000, achat reel 1.",
     "r1_below": "Meme besoin, budget reel = prix + 999, aucune admission/commande.",

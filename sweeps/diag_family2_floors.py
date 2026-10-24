@@ -58,7 +58,7 @@ def main():
         bench_v2.CHECKPOINT_PATH.unlink()
     enable_savegame_cleanup()
 
-    arm_name = "OpexAI[decision_log=1]"
+    arm_name = "OpexAI[probes=258]"
     arms = build_arms([arm_name])
     cfg = make_cfg(1970)
 

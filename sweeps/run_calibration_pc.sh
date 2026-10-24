@@ -18,7 +18,7 @@ set -euo pipefail
 read -r -a PC <<< "${PROFILE:---cpus 10 --memory 8g --max-workers 10 --network host}"
 [ -d ai/AAAHogEx-115 ] || { echo "ai/AAAHogEx-115 absent de $(pwd)" >&2; exit 2; }
 DATE="${DATE:-$(date +%Y%m%d)}"
-ARM="OpexAI[decision_log=1]"
+ARM="OpexAI[probes=258]"
 AAA_OFF=(--aaahogex-setting disable_veh_train=1 --aaahogex-setting disable_veh_roadveh=1
          --aaahogex-setting disable_veh_tram=1 --aaahogex-setting disable_veh_ship=1
          --aaahogex-setting disable_veh_aircraft=1)

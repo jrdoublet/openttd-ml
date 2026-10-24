@@ -173,8 +173,8 @@ def main(*, arm_specs=None, purpose="diagnostic_only_not_adoption", force_debug=
     specs = {a: available_arms[a] for a in args.arms}
     if args.probe:
         for a, spec in specs.items():
-            specs[a] = ("OpexAI[decision_log=1,probe_portfolio=1]" if spec == "OpexAI"
-                        else spec[:-1] + ",decision_log=1,probe_portfolio=1]")
+            specs[a] = ("OpexAI[probes=258,probe_portfolio=1]" if spec == "OpexAI"
+                        else spec[:-1] + ",probes=258,probe_portfolio=1]")
     built = bench_v2.build_arms(list(specs.values()) + ["AAAHogEx"])
     resolved = bench_v2.resolved_arm_settings(list(specs.values()))
     artifacts.mkdir(parents=True)

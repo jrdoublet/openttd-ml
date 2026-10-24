@@ -280,7 +280,7 @@ def main():
     # Diagnostic passif sur les vrais defaults courants. Les anciennes versions
     # de cette sonde forçaient trois politiques AIR historiques, ce qui rendait
     # leur distribution de congestion non représentative du défaut moderne.
-    settings = (("decision_log", 0),)
+    settings = (("probes", 2),)
     ai = local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI", settings)
     cfg = CFG.replace("starting_year = 1970", f"starting_year = {args.start_year}")
     experiments = [

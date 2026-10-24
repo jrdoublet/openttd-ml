@@ -192,7 +192,7 @@ def main():
     staged_before = tree_hashes(staged)
     openttdlab.subprocess.check_output = _debug
     try:
-        ai = local_folder(str(staged), "OpexAI", (("decision_log", 1),))
+        ai = local_folder(str(staged), "OpexAI", (("probes", 258),))
         rows = list(run_experiments(
             openttd_version="15.3", opengfx_version="7.1", max_workers=1,
             experiments=[{"seed": args.seed, "days": 365 * args.years,

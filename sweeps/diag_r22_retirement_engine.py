@@ -371,7 +371,7 @@ def main():
     if args.scenario == "maintenance":
         cfg += "\n[vehicle]\nservint_trains = 1\n"
     arm = openttdlab.local_folder(str(staged), "OpexAI",
-                                  (("decision_log", 1), ("save_full_state", 1)))
+                                  (("probes", 258), ("save_full_state", 1)))
     phase_a = folder / "phase_a"
     phase_a.mkdir()
     rows_a, log_a, saves_a = reload.run_phase_a(

@@ -161,7 +161,7 @@ def main():
     # regroupement ; probe_catalogue (qui les contient) est donc toujours actif ici, et
     # --c39-air-reason-probe / --c41-revision-probe / --c41-water-candidate-probe / etc. n'ajoutent
     # plus rien au-dela de ce qui est deja actif par ce fait.
-    settings = [("probe_catalogue", 1), ("decision_log", 0)]
+    settings = [("probe_catalogue", 1), ("probes", 2)]
     if (args.c41_vehicle_lost_probe or args.c41_rail_lost_probe or args.c41_rail_lost_topology_probe
             or args.c41_rail_lost_physical_probe or args.c41_rail_lost_signal_repair
             or args.c41_rail_lost_connectivity_probe):
