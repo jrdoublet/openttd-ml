@@ -443,6 +443,16 @@ function OpexC121FirstLiveBalanced90(line)
 function OpexC117FlushLine(line, state)
 {
   if (state == null || state.samples <= 0) return;
+  if (AIR_GROW_MARGINAL > 0 && state.lastDate - state.startDate >= 14) {
+    /* One closed bucket only: copy scalars, never chain old states. Transient,
+     * reset with C117 on Load; the live sampler supplies freshness separately. */
+    local complete = {};
+    foreach (field in ["bucket", "startDate", "lastDate", "samples", "liveSum",
+        "lastLive", "lastEngine", "tripsA", "tripsB", "paxA", "paxB", "mailA", "mailB",
+        "legDays", "legDaysN", "invalidOrderSamples", "unobservedTransitions",
+        "engineChanges", "mixedEngineSamples"]) complete.rawset(field, state[field]);
+    state.rawset("marginalComplete", complete);
+  }
   local flushMark = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
   OpexC121HubDelayFlushLine(line, state);
   local skipChain = true;
@@ -542,6 +552,13 @@ function OpexC117AirThroughputStep(lines, catalog)
       local bridgeStart = state.lastDate;
       OpexC117FlushLine(line, state);
       state = OpexC117NewLineState(bucket, bridgeStart);
+      if (AIR_GROW_MARGINAL > 0) {
+        local previous = C117_AIR_LINE_STATE[lineKey];
+        local complete = ("marginalComplete" in previous) ? previous.marginalComplete : null;
+        /* Never reuse a window across skipped buckets or an incomplete flush. */
+        if (complete != null && complete.bucket == bucket - 1)
+          state.rawset("marginalComplete", complete);
+      }
       C117_AIR_LINE_STATE.rawset(lineKey, state);
     }
 

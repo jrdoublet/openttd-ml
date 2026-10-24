@@ -107,8 +107,36 @@ class AirGrowMarginal(unittest.TestCase):
         self.assertIn("OpexC121AirTripModel", body)
         self.assertIn("s.legDaysN >= 2", body)
         self.assertNotIn("GetCargoRating", body)
-        for reason in ("observation", "fleet_changed", "shared_station", "engine_capacity", "cargo", "station", "rotation", "cost", "flow_or_fare"):
+        for reason in ("obs_days", "obs_stale", "obs_trips", "obs_invalid_order", "obs_unobserved",
+                       "obs_engine_change", "obs_mixed_engine", "fleet_changed", "shared_station",
+                       "engine_capacity", "cargo", "station", "rotation", "cost", "flow_or_fare"):
             self.assertIn('"' + reason + '"', body)
+        self.assertNotIn('"observation"', body)
+
+    def test_closed_window_is_bounded_transient_and_opt_in(self):
+        source = read("probes.nut")
+        flush = _function_body(source, "OpexC117FlushLine")
+        step = _function_body(source, "OpexC117AirThroughputStep")
+        self.assertIn("AIR_GROW_MARGINAL > 0 && state.lastDate - state.startDate >= 14", flush)
+        self.assertIn('state.rawset("marginalComplete", complete)', flush)
+        self.assertLess(flush.index('state.rawset("marginalComplete", complete)'), flush.index("if (skipChain)"))
+        self.assertIn("complete.bucket == bucket - 1", step)
+        estimate = _function_body(read("air_fleet.nut"), "OpexAirGrowMarginalEstimate")
+        fields = set(re.findall(r"\bs\.([A-Za-z]+)", estimate)) - {"marginalComplete"}
+        for field in fields:
+            self.assertIn('"' + field + '"', flush)
+        self.assertNotIn("marginalComplete", read("persist.nut"))
+
+    def test_observation_bounds_and_current_fleet_guards(self):
+        body = _function_body(read("air_fleet.nut"), "OpexAirGrowMarginalEstimate")
+        self.assertIn('s.lastDate - s.startDate < 14 && ("marginalComplete" in s)', body)
+        self.assertIn("AIDate.GetCurrentDate() - current.lastDate > C117_AIR_SAMPLE_DAYS + 2", body)
+        self.assertIn("s.invalidOrderSamples * 4 > s.samples", body)
+        self.assertIn("s.unobservedTransitions * 4 > s.tripsA + s.tripsB", body)
+        self.assertIn("s.engineChanges > 0 || current.engineChanges > 0", body)
+        self.assertIn("s.mixedEngineSamples > 0 || current.mixedEngineSamples > 0", body)
+        self.assertIn("current.liveSum != current.samples * r.n", body)
+        self.assertIn("AIVehicle.GetEngineType(v) != current.lastEngine", body)
 
     def test_no_new_saved_state_or_valuate(self):
         helper = read("air_fleet.nut").split("function OpexAirGrowMarginalEstimate", 1)[1]

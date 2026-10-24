@@ -30,6 +30,11 @@
       "file": "projects_models.nut",
       "function": "OpexC70Profit",
       "sha256": "76cd889957076bd7c3c8896aac19c121d7a77611a7cadc9c9a77f4abb7b550ca"
+    },
+    {
+      "file": "probes.nut",
+      "function": "OpexC117FlushLine",
+      "sha256": "f6e025597a7078eeaf83bded3ad55d8428baa0d68597fba1e889e936b2bf7044"
     }
   ]
 }

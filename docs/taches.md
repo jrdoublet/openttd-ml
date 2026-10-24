@@ -16,6 +16,11 @@ Replis explicites dont gares partagées ; aucun nouvel état sauvegardé.
 9 contrats ajoutés ; suite 2403→2412 tests, mêmes 14 échecs et 5 erreurs
 préexistants. Aucune partie/Docker autorisé, aucun changement de défaut ni
 qualification économique. [Formule, unités, replis et empreintes](air_grow_marginal_20261024.md).
+Correction bornée après lecture du smoke VPS `marginal_smoke_1x3_20261024` :
+2 294 replis opaques confirmés, sous-causes inconnues ; sept motifs distincts,
+dernière fenêtre C117 clôturée réutilisée au début du bucket suivant, tolérances
+de collecte 25 %, fraîcheur cadence +2 jours. Défaut 0 conservé ; aucune partie
+de validation après correction (interdite), activation effective encore non mesurée.
 
 ### 21/10 — frontières voyageurs et calibration RAIL à coût d'opcodes quasi nul : travaux **ouverts**
 

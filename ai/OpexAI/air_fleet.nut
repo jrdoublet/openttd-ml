@@ -268,7 +268,7 @@ function OpexV161PerPlaneProfit(line, entry, modelPerPlane)
   return { profit = prior, source = "prior" };
 }
 
-/* AIR-GROW: no persistent state. C117 current window, quantities/year (365.25 d).
+/* AIR-GROW: no persistent state. C117 current/closed window, quantities/year (365.25 d).
  * A C117 leg labelled A has destination A, hence its pickup belongs to B.
  * D = (observed pickups + current backlog) * 365.25 / windowDays, fixed for
  * both fleet sizes. This deliberately drains the backlog over one window;
@@ -277,7 +277,7 @@ function OpexV161PerPlaneProfit(line, entry, modelPerPlane)
  */
 function OpexAirGrowMarginalEstimate(line, catalog, lines, forcedEngine = null)
 {
-  local r = { fallback = "observation", n = 0, d = "unknown", kn = "unknown",
+  local r = { fallback = "obs_days", n = 0, d = "unknown", kn = "unknown",
     kn1 = "unknown", drev = 0.0, cost = 0.0, amort = 0.0, dp = 0.0, price = 0 };
   if (line != null && ("vehCount" in line)) r.n = line.vehCount;
   if (line == null || catalog == null || !("lineId" in line)
@@ -290,21 +290,33 @@ function OpexAirGrowMarginalEstimate(line, catalog, lines, forcedEngine = null)
     r.fallback = "station"; return r;
   }
   if (!("cargo" in line) || !("paxCargo" in catalog)) { r.fallback = "cargo"; return r; }
-  local s = C117_AIR_LINE_STATE[line.lineId];
+  local current = C117_AIR_LINE_STATE[line.lineId];
+  local s = current;
+  if (s.lastDate - s.startDate < 14 && ("marginalComplete" in s)) s = s.marginalComplete;
   local days = s.lastDate - s.startDate;
-  if (days < 14 || AIDate.GetCurrentDate() - s.lastDate > 3
-      || s.tripsA < 1 || s.tripsB < 1 || s.invalidOrderSamples > 0
-      || s.unobservedTransitions > 0 || s.engineChanges > 0
-      || s.mixedEngineSamples > 0) return r;
+  if (days < 14) return r;
+  /* A closed window is historical by design; freshness belongs to the sampler. */
+  if (AIDate.GetCurrentDate() - current.lastDate > C117_AIR_SAMPLE_DAYS + 2) {
+    r.fallback = "obs_stale"; return r;
+  }
+  if (s.tripsA < 1 || s.tripsB < 1) { r.fallback = "obs_trips"; return r; }
+  /* Bound sampling noise without accepting an arbitrarily censored flow. */
+  if (s.invalidOrderSamples * 4 > s.samples) { r.fallback = "obs_invalid_order"; return r; }
+  if (s.unobservedTransitions * 4 > s.tripsA + s.tripsB) { r.fallback = "obs_unobserved"; return r; }
+  if (s.engineChanges > 0 || current.engineChanges > 0) { r.fallback = "obs_engine_change"; return r; }
+  if (s.mixedEngineSamples > 0 || current.mixedEngineSamples > 0) { r.fallback = "obs_mixed_engine"; return r; }
   local template = null;
   r.n = 0;
   foreach (v in line.vehicles) {
     if (!AIVehicle.IsValidVehicle(v) || AIVehicle.GetVehicleType(v) != AIVehicle.VT_AIR) continue;
     r.n++;
-    if (AIVehicle.GetEngineType(v) != s.lastEngine) { r.fallback = "fleet_changed"; return r; }
+    if (AIVehicle.GetEngineType(v) != s.lastEngine || AIVehicle.GetEngineType(v) != current.lastEngine) {
+      r.fallback = "fleet_changed"; return r;
+    }
     if (template == null) template = v;
   }
-  if (r.n <= 0 || s.lastLive != r.n || s.liveSum != s.samples * r.n) {
+  if (r.n <= 0 || s.lastLive != r.n || s.liveSum != s.samples * r.n
+      || current.lastLive != r.n || current.liveSum != current.samples * r.n) {
     r.fallback = "fleet_changed"; return r;
   }
   local stationA = OpexAirLineStationId(line, 0);
