@@ -1,8 +1,15 @@
 """Unit tests for full-loop (as far as instrumentable) AC opcode report."""
 import json
 from pathlib import Path
+import sys
 import tempfile
 import unittest
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+if str(ROOT / "sweeps") not in sys.path:
+    sys.path.insert(0, str(ROOT / "sweeps"))
 
 from sweeps.analyse_ac_loop_opcode import analyse, logfile_stats
 
