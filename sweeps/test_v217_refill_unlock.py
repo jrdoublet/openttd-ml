@@ -79,9 +79,9 @@ class TestV217RefillUnlock(unittest.TestCase):
         """Les etats V217 doivent etre persistances et reconcilies sans dependre du reset de Start()."""
         # Save dans shortSave et saveObj
         for target in ("shortSave", "saveObj"):
-            self.assertIn(f"if (V217_LAST_MONTH >= 0) {target}.v217LastMonth <- V217_LAST_MONTH;", self.persist)
-            self.assertIn(f"if (V217_LAST_TRY_DATE >= 0) {target}.v217LastTryDate <- V217_LAST_TRY_DATE;", self.persist)
-            self.assertIn(f"if (V217_SKIPPED_MONTH >= 0) {target}.v217SkippedMonth <- V217_SKIPPED_MONTH;", self.persist)
+            self.assertIn(f"if (V217_REFILL_UNLOCK > 0 && V217_LAST_MONTH >= 0) {target}.v217LastMonth <- V217_LAST_MONTH;", self.persist)
+            self.assertIn(f"if (V217_REFILL_UNLOCK > 0 && V217_LAST_TRY_DATE >= 0) {target}.v217LastTryDate <- V217_LAST_TRY_DATE;", self.persist)
+            self.assertIn(f"if (V217_REFILL_UNLOCK > 0 && V217_SKIPPED_MONTH >= 0) {target}.v217SkippedMonth <- V217_SKIPPED_MONTH;", self.persist)
         # Load dans OpexAI::Load
         self.assertIn('this._reloadV217LastMonth = ("v217LastMonth" in data) ? data.v217LastMonth : -1;', self.persist)
         self.assertIn('this._reloadV217LastTryDate = ("v217LastTryDate" in data) ? data.v217LastTryDate : -1;', self.persist)

@@ -625,9 +625,9 @@ function OpexAI::Save()
       shortSave.v259Queue <- OpexV259SaveQueue(this._v259Queue);
     }
     if (this._v292LastHqTryYear >= 0) shortSave.v292LastHqTryYear <- this._v292LastHqTryYear;
-    if (V217_LAST_MONTH >= 0) shortSave.v217LastMonth <- V217_LAST_MONTH;
-    if (V217_LAST_TRY_DATE >= 0) shortSave.v217LastTryDate <- V217_LAST_TRY_DATE;
-    if (V217_SKIPPED_MONTH >= 0) shortSave.v217SkippedMonth <- V217_SKIPPED_MONTH;
+    if (V217_REFILL_UNLOCK > 0 && V217_LAST_MONTH >= 0) shortSave.v217LastMonth <- V217_LAST_MONTH;
+    if (V217_REFILL_UNLOCK > 0 && V217_LAST_TRY_DATE >= 0) shortSave.v217LastTryDate <- V217_LAST_TRY_DATE;
+    if (V217_REFILL_UNLOCK > 0 && V217_SKIPPED_MONTH >= 0) shortSave.v217SkippedMonth <- V217_SKIPPED_MONTH;
     if (DECISION_LOG && startOps != null) {
       local endOps = AIController.GetOpsTillSuspend();
       local opsSpent = startOps - endOps;
@@ -729,9 +729,9 @@ function OpexAI::Save()
     saveObj.v259Queue <- OpexV259SaveQueue(this._v259Queue);
   }
   if (this._v292LastHqTryYear >= 0) saveObj.v292LastHqTryYear <- this._v292LastHqTryYear;
-  if (V217_LAST_MONTH >= 0) saveObj.v217LastMonth <- V217_LAST_MONTH;
-  if (V217_LAST_TRY_DATE >= 0) saveObj.v217LastTryDate <- V217_LAST_TRY_DATE;
-  if (V217_SKIPPED_MONTH >= 0) saveObj.v217SkippedMonth <- V217_SKIPPED_MONTH;
+  if (V217_REFILL_UNLOCK > 0 && V217_LAST_MONTH >= 0) saveObj.v217LastMonth <- V217_LAST_MONTH;
+  if (V217_REFILL_UNLOCK > 0 && V217_LAST_TRY_DATE >= 0) saveObj.v217LastTryDate <- V217_LAST_TRY_DATE;
+  if (V217_REFILL_UNLOCK > 0 && V217_SKIPPED_MONTH >= 0) saveObj.v217SkippedMonth <- V217_SKIPPED_MONTH;
   if (DECISION_LOG && startOps != null) {
     local endOps = AIController.GetOpsTillSuspend();
     local opsSpent = startOps - endOps;
