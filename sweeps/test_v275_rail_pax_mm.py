@@ -70,10 +70,9 @@ class TestV275Candidates(unittest.TestCase):
     def setUp(self):
         self.body = function_body(read_file("candidates.nut"), "OpexPaxCandidates")
 
-    def test_air_first_gate_needs_air_and_persisted_start(self):
-        self.assertIn("(V275_RAIL_PAX_MM & 4) && MODE_AIR", self.body)
-        self.assertIn("AIDate.GetYear(AIDate.GetCurrentDate()) < OPEX_START_YEAR + 2) return;", self.body)
-        self.assertLess(self.body.index("V275_RAIL_PAX_MM & 4"), self.body.index("local towns = catalog.towns;"))
+    def test_air_first_gate_retired(self):
+        self.assertNotIn("V275_RAIL_PAX_MM & 4", self.body)  # bit 4 retire le 24/10
+        self.assertNotIn("< OPEX_START_YEAR + 2) return;", self.body)
 
     def test_air_towns_from_live_air_lines(self):
         self.assertIn("if (V275_RAIL_PAX_MM & 1) {", self.body)

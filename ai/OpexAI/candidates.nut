@@ -947,10 +947,7 @@ function OpexPaxCandidates(catalog, lines, out, stats, abandonedPairs = null, pr
   local cargo = catalog.paxCargo;
   if (cargo < 0) return;
   if (catalog.locoByCargoWagons != null && !(cargo in catalog.locoByCargoWagons)) return;
-  /* V275 bit 4 : l'aerien d'abord. Les premieres annees, la caisse borne et un avion rend
-   * plus par livre ; le rail voyageurs attend la 3e annee. Inerte en rail seul. */
-  if ((V275_RAIL_PAX_MM & 4) && MODE_AIR
-      && OPEX_START_YEAR >= 0 && AIDate.GetYear(AIDate.GetCurrentDate()) < OPEX_START_YEAR + 2) return;
+  /* V275 bit 4 retire le 24/10 (decision utilisateur) : plus d'attente du rail voyageurs ; les priorites passent par la calibration. */
   local towns = catalog.towns;
   local n = towns.len();
   local produced = [];
