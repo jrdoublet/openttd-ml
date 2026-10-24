@@ -81,7 +81,7 @@ class AirGrowMarginal(unittest.TestCase):
         for name in ("air_fleet.nut", "projects_builders.nut"):
             self.assertIn("if (DECISION_LOG) OpexAirGrowMarginalLog(", read(name))
         body = _function_body(source, "OpexAirGrowMarginalLog")
-        for field in ("line", "n", "d", "kn", "kn1", "drev", "cost", "amort", "dp", "prior", "decision", "fallback"):
+        for field in ("line", "n", "d", "kn", "kn1", "drev", "cost", "amort", "dp", "prior", "decision", "fallback", "win_days", "wins"):
             self.assertIn(field + "=", body)
 
     def test_shadow_and_unknown_do_not_apply_decision(self):
@@ -117,19 +117,21 @@ class AirGrowMarginal(unittest.TestCase):
         source = read("probes.nut")
         flush = _function_body(source, "OpexC117FlushLine")
         step = _function_body(source, "OpexC117AirThroughputStep")
-        self.assertIn("AIR_GROW_MARGINAL > 0 && state.lastDate - state.startDate >= 14", flush)
-        self.assertIn('state.rawset("marginalComplete", complete)', flush)
-        self.assertLess(flush.index('state.rawset("marginalComplete", complete)'), flush.index("if (skipChain)"))
-        self.assertIn("complete.bucket == bucket - 1", step)
+        self.assertIn("AIR_GROW_MARGINAL > 0 && state.lastDate > state.startDate", flush)
+        self.assertIn('state.rawset("marginalHistory", history)', flush)
+        self.assertIn("while (history.len() > 3) history.remove(0)", flush)
+        self.assertLess(flush.index('state.rawset("marginalHistory", history)'), flush.index("if (skipChain)"))
+        self.assertIn("history[history.len() - 1].bucket == bucket - 1", step)
         estimate = _function_body(read("air_fleet.nut"), "OpexAirGrowMarginalEstimate")
-        fields = set(re.findall(r"\bs\.([A-Za-z]+)", estimate)) - {"marginalComplete"}
+        fields = set(re.findall(r"\bs\.([A-Za-z]+)", estimate)) - {"wins"}
         for field in fields:
             self.assertIn('"' + field + '"', flush)
-        self.assertNotIn("marginalComplete", read("persist.nut"))
+        self.assertNotIn("marginalHistory", read("persist.nut"))
 
     def test_observation_bounds_and_current_fleet_guards(self):
         body = _function_body(read("air_fleet.nut"), "OpexAirGrowMarginalEstimate")
-        self.assertIn('s.lastDate - s.startDate < 14 && ("marginalComplete" in s)', body)
+        self.assertIn("local s = OpexAirGrowMarginalWindow(current)", body)
+        self.assertIn("local days = s.days", body)
         self.assertIn("AIDate.GetCurrentDate() - current.lastDate > C117_AIR_SAMPLE_DAYS + 2", body)
         self.assertIn("s.invalidOrderSamples * 4 > s.samples", body)
         self.assertIn("s.unobservedTransitions * 4 > s.tripsA + s.tripsB", body)
@@ -138,8 +140,24 @@ class AirGrowMarginal(unittest.TestCase):
         self.assertIn("current.liveSum != current.samples * r.n", body)
         self.assertIn("AIVehicle.GetEngineType(v) != current.lastEngine", body)
 
+    def test_shortest_window_stops_at_fleet_break_or_gap(self):
+        body = _function_body(read("air_fleet.nut"), "OpexAirGrowMarginalWindow")
+        self.assertIn("for (local i = history.len() - 1; i >= 0; i--)", body)
+        self.assertLess(body.index("s.days >= 14 && s.tripsA >= 1 && s.tripsB >= 1"),
+                        body.index("local w = history[i]"))
+        for guard in ("w.bucket != nextBucket - 1", "w.lastDate != nextDate",
+                      "w.lastLive != s.lastLive", "w.lastEngine != s.lastEngine",
+                      "w.engineChanges > 0", "w.mixedEngineSamples > 0",
+                      "w.liveSum != w.samples * w.lastLive",
+                      "s.liveSum != s.samples * s.lastLive"):
+            self.assertIn(guard, body)
+        self.assertIn("foreach (field in sums) s[field] += w[field]", body)
+        self.assertIn("s.days += w.days", body)
+        self.assertIn("s.wins++", body)
+        self.assertNotIn(".rawset(\"marginalHistory\"", body)
+
     def test_no_new_saved_state_or_valuate(self):
-        helper = read("air_fleet.nut").split("function OpexAirGrowMarginalEstimate", 1)[1]
+        helper = read("air_fleet.nut").split("function OpexAirGrowMarginalWindow", 1)[1]
         self.assertNotIn(".Valuate(", helper)
         self.assertNotIn("function(", helper)
         self.assertNotIn(".find(", helper)

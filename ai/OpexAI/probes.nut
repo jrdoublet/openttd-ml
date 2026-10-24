@@ -443,15 +443,18 @@ function OpexC121FirstLiveBalanced90(line)
 function OpexC117FlushLine(line, state)
 {
   if (state == null || state.samples <= 0) return;
-  if (AIR_GROW_MARGINAL > 0 && state.lastDate - state.startDate >= 14) {
-    /* One closed bucket only: copy scalars, never chain old states. Transient,
-     * reset with C117 on Load; the live sampler supplies freshness separately. */
+  if (AIR_GROW_MARGINAL > 0 && state.lastDate > state.startDate) {
+    /* Three closed buckets, scalar snapshots only. Transient with C117 on Load. */
     local complete = {};
     foreach (field in ["bucket", "startDate", "lastDate", "samples", "liveSum",
         "lastLive", "lastEngine", "tripsA", "tripsB", "paxA", "paxB", "mailA", "mailB",
         "legDays", "legDaysN", "invalidOrderSamples", "unobservedTransitions",
         "engineChanges", "mixedEngineSamples"]) complete.rawset(field, state[field]);
-    state.rawset("marginalComplete", complete);
+    complete.rawset("days", state.lastDate - state.startDate);
+    local history = ("marginalHistory" in state) ? state.marginalHistory : [];
+    history.append(complete);
+    while (history.len() > 3) history.remove(0);
+    state.rawset("marginalHistory", history);
   }
   local flushMark = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
   OpexC121HubDelayFlushLine(line, state);
@@ -554,10 +557,11 @@ function OpexC117AirThroughputStep(lines, catalog)
       state = OpexC117NewLineState(bucket, bridgeStart);
       if (AIR_GROW_MARGINAL > 0) {
         local previous = C117_AIR_LINE_STATE[lineKey];
-        local complete = ("marginalComplete" in previous) ? previous.marginalComplete : null;
+        local history = ("marginalHistory" in previous) ? previous.marginalHistory : null;
         /* Never reuse a window across skipped buckets or an incomplete flush. */
-        if (complete != null && complete.bucket == bucket - 1)
-          state.rawset("marginalComplete", complete);
+        if (history != null && history.len() > 0
+            && history[history.len() - 1].bucket == bucket - 1)
+          state.rawset("marginalHistory", history);
       }
       C117_AIR_LINE_STATE.rawset(lineKey, state);
     }

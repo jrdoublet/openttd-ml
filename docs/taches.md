@@ -21,6 +21,13 @@ Correction bornée après lecture du smoke VPS `marginal_smoke_1x3_20261024` :
 dernière fenêtre C117 clôturée réutilisée au début du bucket suivant, tolérances
 de collecte 25 %, fraîcheur cadence +2 jours. Défaut 0 conservé ; aucune partie
 de validation après correction (interdite), activation effective encore non mesurée.
+Deuxième correction bornée après le smoke fourni `marginal_smoke_1x3_20261024b`
+(0 erreur, 0 activation, 2 306 `obs_trips`) : conservation transitoire des trois
+dernières fenêtres closes ; sélection du plus court agrégat courante + 0 à 3 closes
+couvrant ≥14 jours et les deux sens, sans franchir une rupture de flotte/moteur.
+Journal enrichi de `win_days`/`wins`. Défaut 0 inchangé ; contrats OFF conservés,
+12 contrats ciblés OK, suite 2414→2415 tests avec les mêmes 14 échecs et 5 erreurs.
+Aucune partie autorisée pour cette correction, activation toujours à mesurer.
 
 ### 21/10 — frontières voyageurs et calibration RAIL à coût d'opcodes quasi nul : travaux **ouverts**
 

@@ -268,7 +268,41 @@ function OpexV161PerPlaneProfit(line, entry, modelPerPlane)
   return { profit = prior, source = "prior" };
 }
 
-/* AIR-GROW: no persistent state. C117 current/closed window, quantities/year (365.25 d).
+/* Shortest current + 0..3 closed windows with both directions observed.
+ * Never cross a gap or a fleet/engine break, including inside a bucket. */
+function OpexAirGrowMarginalWindow(current)
+{
+  local s = {};
+  local sums = ["tripsA", "tripsB", "paxA", "paxB", "mailA", "mailB",
+    "legDays", "legDaysN", "samples", "invalidOrderSamples", "unobservedTransitions",
+    "engineChanges", "mixedEngineSamples", "liveSum"];
+  foreach (field in sums) s.rawset(field, current[field]);
+  s.rawset("lastLive", current.lastLive);
+  s.rawset("lastEngine", current.lastEngine);
+  s.rawset("days", current.lastDate - current.startDate);
+  s.rawset("wins", s.days > 0 ? 1 : 0);
+  local history = ("marginalHistory" in current) ? current.marginalHistory : [];
+  local nextBucket = current.bucket;
+  local nextDate = current.startDate;
+  for (local i = history.len() - 1; i >= 0; i--) {
+    if (s.days >= 14 && s.tripsA >= 1 && s.tripsB >= 1) break;
+    if (s.engineChanges > 0 || s.mixedEngineSamples > 0
+        || s.liveSum != s.samples * s.lastLive) break;
+    local w = history[i];
+    if (w.bucket != nextBucket - 1 || w.lastDate != nextDate
+        || w.lastLive != s.lastLive || w.lastEngine != s.lastEngine
+        || w.engineChanges > 0 || w.mixedEngineSamples > 0
+        || w.liveSum != w.samples * w.lastLive) break;
+    foreach (field in sums) s[field] += w[field];
+    s.days += w.days;
+    s.wins++;
+    nextBucket = w.bucket;
+    nextDate = w.startDate;
+  }
+  return s;
+}
+
+/* AIR-GROW: no persistent state. C117 current/closed windows, quantities/year (365.25 d).
  * A C117 leg labelled A has destination A, hence its pickup belongs to B.
  * D = (observed pickups + current backlog) * 365.25 / windowDays, fixed for
  * both fleet sizes. This deliberately drains the backlog over one window;
@@ -278,7 +312,8 @@ function OpexV161PerPlaneProfit(line, entry, modelPerPlane)
 function OpexAirGrowMarginalEstimate(line, catalog, lines, forcedEngine = null)
 {
   local r = { fallback = "obs_days", n = 0, d = "unknown", kn = "unknown",
-    kn1 = "unknown", drev = 0.0, cost = 0.0, amort = 0.0, dp = 0.0, price = 0 };
+    kn1 = "unknown", drev = 0.0, cost = 0.0, amort = 0.0, dp = 0.0, price = 0,
+    winDays = 0, wins = 0 };
   if (line != null && ("vehCount" in line)) r.n = line.vehCount;
   if (line == null || catalog == null || !("lineId" in line)
       || !(line.lineId in C117_AIR_LINE_STATE)) return r;
@@ -291,9 +326,10 @@ function OpexAirGrowMarginalEstimate(line, catalog, lines, forcedEngine = null)
   }
   if (!("cargo" in line) || !("paxCargo" in catalog)) { r.fallback = "cargo"; return r; }
   local current = C117_AIR_LINE_STATE[line.lineId];
-  local s = current;
-  if (s.lastDate - s.startDate < 14 && ("marginalComplete" in s)) s = s.marginalComplete;
-  local days = s.lastDate - s.startDate;
+  local s = OpexAirGrowMarginalWindow(current);
+  local days = s.days;
+  r.winDays = days;
+  r.wins = s.wins;
   if (days < 14) return r;
   /* A closed window is historical by design; freshness belongs to the sampler. */
   if (AIDate.GetCurrentDate() - current.lastDate > C117_AIR_SAMPLE_DAYS + 2) {
@@ -406,6 +442,7 @@ function OpexAirGrowMarginalLog(line, r, prior, phase)
 {
   if (DECISION_LOG) OpexDecide("AIR_GROW_MARGINAL", "line=" + line.lineId
       + " n=" + r.n + " d=" + r.d + " kn=" + r.kn + " kn1=" + r.kn1
+      + " win_days=" + r.winDays + " wins=" + r.wins
       + " drev=" + r.drev + " cost=" + r.cost + " amort=" + r.amort
       + " dp=" + (r.fallback == "none" ? r.dp.tostring() : "unknown") + " prior=" + prior
       + " decision=" + (AIR_GROW_MARGINAL == 1 ? "shadow" :

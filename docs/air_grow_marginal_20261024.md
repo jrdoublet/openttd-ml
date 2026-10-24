@@ -22,7 +22,7 @@ pour ne pas multiplier le même incrément par un lot.
 Pour chacun de `A_PASS,A_MAIL,B_PASS,B_MAIL`, séparément :
 
 ```
-W = jours réellement couverts par la fenêtre C117 retenue (courante ou dernière clôturée)
+W = jours réellement couverts par l'agrégat C117 retenu (courante + 0 à 3 closes)
 D = (enlèvements observés sur W + stock courant de la gare) × 365,25 / W
 R = 365,25 / durée d'une rotation en jours
 K_N = N × capacité du moteur acheté × R
@@ -58,7 +58,7 @@ La collecte C117 par cargo/sens est réactivée uniquement à 1/2.
 
 Repli **de décision** = comportement historique intact, avec motif :
 
-- `obs_days` : fenêtre absente ou <14 jours sans dernière fenêtre complète ;
+- `obs_days` : agrégat disponible absent ou <14 jours ;
 - `obs_stale` : dernier échantillon du collecteur > `C117_AIR_SAMPLE_DAYS + 2` jours ;
 - `obs_trips` : un des deux sens sans trajet observé ;
 - `obs_invalid_order` : `invalidOrderSamples > samples / 4` ;
@@ -81,11 +81,40 @@ additionnel `phase` distingue `pending_v161`, `rank`, `direct`, `execute`,
 des traces successives d'une même décision comme des décisions indépendantes.
 Tous les appels au logger et son émission sont sous `DECISION_LOG`.
 
+## Correction bornée — trois fenêtres closes
+
+Le smoke VPS fourni `marginal_smoke_1x3_20261024b` (42, trois ans,
+`air_grow_marginal=2`, `probes=258`) est annoncé sans erreur mais sans activation :
+2 306 `obs_trips`, 94 `obs_stale`, 52 `shared_station`, 24 `obs_invalid_order`.
+Source fournie : `results/marginal_smoke_1x3_20261024b_engine/marginal2_seed42_r0.log`.
+Un aller-retour de 40–60 jours ne tient pas dans un bucket C117 de 30 jours.
+
+Les trois dernières fenêtres closes sont désormais conservées par ligne sous forme
+de snapshots scalaires, sans chaînage ni sauvegarde, même si une fenêtre fait moins
+de 14 jours. L'estimateur teste la courante, puis ajoute successivement la dernière,
+les deux dernières et les trois dernières closes jusqu'à obtenir ≥14 jours et
+au moins un trajet par sens. Il s'arrête au premier agrégat suffisant. Les jours,
+flux, durées de legs et compteurs de qualité sont sommés ; D utilise ces jours.
+Un trou de buckets/dates, un effectif ou moteur différent, une fenêtre mélangée
+ou modifiée interrompt l'extension avant cette fenêtre et toutes les antérieures.
+Les gardes existantes s'appliquent ensuite à l'agrégat et à la flotte courante.
+`win_days` et `wins` indiquent les jours et le nombre de fenêtres retenues,
+courante comprise si elle couvre des jours. Le réglage 0 conserve ses empreintes.
+Aucune partie ni validation Squirrel par le moteur dans cette intervention.
+Validation locale : 12 contrats ciblés OK ; suite complète 2414→2415 tests,
+14 échecs et 5 erreurs identiques par nom avant/après, 7 ignorés et 2 échecs
+attendus. Sorties locales : `/tmp/marginal_before_tests.log` et
+`/tmp/marginal_after_tests.log`. Parmi les erreurs préexistantes :
+`test_airr1_offline_postprocess_20261023` requiert `openttdlab` absent ;
+`test_analyze_air_load_shadow`, `test_audit_air_roi_renfort1` et
+`test_audit_air_roi_renfort1_itt` requièrent `pytest` absent.
+
 ## Contrats, empreintes et validation
 
-`sweeps/test_air_grow_marginal.py` : 9 contrats, défauts/bornes/lecture unique,
+`sweeps/test_air_grow_marginal.py` : 12 contrats, défauts/bornes/lecture unique,
 gardes OFF, log, provenance du profit, replis/persistance et miroir dimensionnel
-(demande satisfaite, incrément partiel, sens/cargos indépendants).
+(demande satisfaite, incrément partiel, sens/cargos indépendants), historique borné
+et sélection du plus court agrégat sans rupture de flotte.
 
 Empreintes OFF explicitement recalées sur le HEAD local indiqué plus haut dans
 `sweeps/fixtures/air_grow_marginal_off.json` (indentation 2), corps entiers après
