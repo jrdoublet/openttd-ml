@@ -168,7 +168,7 @@ function OpexPO01CCopyLines(lines)
 
 /* Conservative topology records, not a lossy hash. Unknown baseline rebuilds.
  * AIR vehicle counts are retained for its hub/capacity guards. */
-function OpexPO01CLineState(lines)
+function OpexPO01CLineState(lines, catalog = null)
 {
   local state = { rail = "", road = "", air = "", water = "", airRail = "" };
   foreach (line in lines) {
@@ -190,11 +190,11 @@ function OpexPO01CLineState(lines)
       state.airRail += "|" + line.originA + "," + line.originB
           + "," + (("scrapping" in line) && line.scrapping ? 1 : 0);
       if (V275_AIR_TOWN_FREE > 0 && !(("scrapping" in line) && line.scrapping)) {
-        local paxCargo = (owner._catalog != null && ("paxCargo" in owner._catalog)) ? owner._catalog.paxCargo : -1;
-        local railCov = (owner._catalog != null && ("railCoverage" in owner._catalog))
-            ? owner._catalog.railCoverage : AIStation.GetCoverageRadius(AIStation.STATION_TRAIN);
-        local freeA = OpexV275AirTownFreeOrigin(line.originA, owner._lines, paxCargo, railCov) ? 1 : 0;
-        local freeB = OpexV275AirTownFreeOrigin(line.originB, owner._lines, paxCargo, railCov) ? 1 : 0;
+        local paxCargo = (catalog != null && ("paxCargo" in catalog)) ? catalog.paxCargo : -1;
+        local railCov = (catalog != null && ("railCoverage" in catalog))
+            ? catalog.railCoverage : AIStation.GetCoverageRadius(AIStation.STATION_TRAIN);
+        local freeA = OpexV275AirTownFreeOrigin(line.originA, lines, paxCargo, railCov) ? 1 : 0;
+        local freeB = OpexV275AirTownFreeOrigin(line.originB, lines, paxCargo, railCov) ? 1 : 0;
         state.airRail += "," + freeA + "," + freeB;
       }
     }
@@ -260,7 +260,7 @@ function OpexPO01CConsumed(owner, mode, layer)
 function OpexPO01CStart(owner)
 {
   local snapshot = OpexAC06CaptureRevisionNumbers(owner);
-  local state = OpexPO01CLineState(owner._lines);
+  local state = OpexPO01CLineState(owner._lines, owner._catalog);
   local modes = [], coveredModes = [], layers = [], dirty = {};
   local airPending = OpexPO01CAirPending(owner);
   foreach (mode in ["rail", "road", "water", "fleet", "air"]) {

@@ -1184,7 +1184,7 @@ function OpexAI::_c76AnyLayerChanged()
 
 function OpexAI::_c76AcknowledgeAllLayers()
 {
-  if (PO01C_REGEN_SPLIT) this._po01cLineState = OpexPO01CLineState(this._lines);
+  if (PO01C_REGEN_SPLIT) this._po01cLineState = OpexPO01CLineState(this._lines, this._catalog);
   if (this._c76Revisions == null) return;
   if (this._c76AckRevisions == null) {
     this._c76AckRevisions = {

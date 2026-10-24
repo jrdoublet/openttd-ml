@@ -668,20 +668,6 @@ function OpexPO01CWaterPlans(catalog, lines = null, projects = null, profile = n
   return;
 }
 
-function OpexPO01CCargos(catalog)
-{
-  catalog.cargos = [];
-  catalog.paxCargo = -1;
-  catalog.mailCargo = -1;
-  local list = AICargoList();
-  for (local c = list.Begin(); !list.IsEnd(); c = list.Next()) {
-    yield null; // PO01C_CHECKPOINT
-    catalog.cargos.append(c);
-    if (catalog.paxCargo < 0 && AICargo.HasCargoClass(c, AICargo.CC_PASSENGERS)) catalog.paxCargo = c;
-    if (catalog.mailCargo < 0 && AICargo.HasCargoClass(c, AICargo.CC_MAIL)) catalog.mailCargo = c;
-  }
-}
-
 function OpexPO01CRail(catalog)
 {
   catalog.loco = null;
@@ -711,10 +697,11 @@ function OpexPO01CRail(catalog)
    * ordre. L'ancien "le dernier gagne" rendait le type de rail dependant du tri -- invisible a
    * 3 ans de partie ou un seul type est disponible, et instable des qu'il y en a plusieurs.
    * Voir docs/mecanique_jeu.md S15.1. */
-  /* OPCODE-AILIST L3 : la cle de tri native est l'ID, pas la valeur disponible=1.
-   * Ainsi Begin() rend exactement le maximum numerique choisi historiquement. */
-  types.Sort(AIList.SORT_BY_ITEM, AIList.SORT_DESCENDING);
-  local chosen = types.IsEmpty() ? -1 : types.Begin();
+  local chosen = -1;
+  for (local t = types.Begin(); !types.IsEnd(); t = types.Next()) {
+    yield null; // PO01C_CHECKPOINT
+    if (OpexRailTypePreferred(t, chosen)) chosen = t;
+  }
   if (chosen < 0) return;
   catalog.railType = chosen;
   AIRail.SetCurrentRailType(chosen);
@@ -932,8 +919,6 @@ function OpexPO01CTowns(catalog)
 
 function OpexPO01CIndustries(catalog)
 {
-  /* Les producteurs et les volumes qui ordonnent V276 viennent de ce catalogue. */
-  V276_CARGO_ORDER = null;
   catalog.industries = [];
   catalog.producers = {};
   catalog.acceptors = {};
@@ -1001,10 +986,6 @@ function OpexPO01CAir(catalog)
   local engines = AIEngineList(AIVehicle.VT_AIR);
   engines.Valuate(AIEngine.IsBuildable);
   engines.KeepValue(1);
-  /* OPCODE-AILIST L5 : refit passagers evalue une seule fois en natif sur la
-   * liste deja construite, avant les parcours repetes par type d'aeroport. */
-  engines.Valuate(AIEngine.CanRefitCargo, catalog.paxCargo);
-  engines.KeepValue(1);
   local keepPlaneChoices = true;
 
   // 1. Combo Grand Aeroport + Avion compatible
@@ -1015,6 +996,7 @@ function OpexPO01CAir(catalog)
     local probeChoices = [];
     for (local e = engines.Begin(); !engines.IsEnd(); e = engines.Next()) {
     yield null; // PO01C_CHECKPOINT
+      if (!AIEngine.CanRefitCargo(e, catalog.paxCargo)) continue;
       local planeType = AIEngine.GetPlaneType(e);
       if (planeType != AIAirport.PT_SMALL_PLANE && planeType != AIAirport.PT_BIG_PLANE) continue;
       local capacity = AIEngine.GetCapacity(e);
@@ -1065,6 +1047,7 @@ function OpexPO01CAir(catalog)
     local probeChoices = [];
     for (local e = engines.Begin(); !engines.IsEnd(); e = engines.Next()) {
     yield null; // PO01C_CHECKPOINT
+      if (!AIEngine.CanRefitCargo(e, catalog.paxCargo)) continue;
       local planeType = AIEngine.GetPlaneType(e);
       // Règle d'or : les gros avions ne vont JAMAIS dans les petits aeroports
       if (planeType != AIAirport.PT_SMALL_PLANE) continue;
