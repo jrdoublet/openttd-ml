@@ -815,12 +815,20 @@ function OpexAI::_v217RailRefill()
   local year = AIDate.GetYear(date);
   local ym = year * 12 + AIDate.GetMonth(date);
   if (V217_LAST_MONTH == ym) return;
-  V217_LAST_MONTH = ym;
+  if (V217_REFILL_UNLOCK == 0) {
+    V217_LAST_MONTH = ym;
+  } else {
+    if (V217_LAST_TRY_DATE >= 0 && (date - V217_LAST_TRY_DATE) < 7) return;
+  }
   if (year < OPEX_START_YEAR + 2) return;
   if (STAGED_BOOTSTRAP && this._generationStage < OPEX_STAGE_COMPLETE) return;
   if (!("candidateGroups" in this._projects) || this._projects.candidateGroups == null) return;
   local cash = OpexAvailableCapital();
   if (cash <= V217_IDLE_CASH_MIN) {
+    if (V217_REFILL_UNLOCK > 0) {
+      V217_LAST_TRY_DATE = date;
+      V217_SKIPPED_MONTH = ym;
+    }
     if (DECISION_LOG) OpexDecide("V217_RAIL_SKIP", "month=" + ym + " reason=cash cash=" + cash);
     return;
   }
@@ -834,13 +842,20 @@ function OpexAI::_v217RailRefill()
       if (close.hard >= 0 || close.blocking >= 0) continue;
       startable++;
       if (startable >= V217_POOL_MIN) {
+        if (V217_REFILL_UNLOCK > 0) {
+          V217_LAST_TRY_DATE = date;
+          V217_SKIPPED_MONTH = ym;
+        }
         if (DECISION_LOG) OpexDecide("V217_RAIL_SKIP", "month=" + ym + " reason=pool cash=" + cash);
         return;
       }
     }
   }
   local freightCargos = OpexFreightCargoOrder(this._catalog);
-  if (freightCargos.len() == 0) return;
+  if (freightCargos.len() == 0) {
+    if (V217_REFILL_UNLOCK > 0) V217_LAST_TRY_DATE = date;
+    return;
+  }
   local nextCargo = 0;
   if (this._lastFreightCargo >= 0) {
     for (local i = 0; i < freightCargos.len(); i++) {
@@ -850,43 +865,108 @@ function OpexAI::_v217RailRefill()
       }
     }
   }
+  if (V217_REFILL_UNLOCK > 0) {
+    V217_LAST_MONTH = ym;
+    V217_LAST_TRY_DATE = date;
+  }
   local mark = DECISION_LOG ? OpexOpsMeasureBegin() : null;
   /* La reconstruction AIR du catalogue est presque toujours en cours (smoke du 16/10) : elle
    * travaille sur son propre etat et ne lit que le catalogue, les lignes et les abandons. Ne pas
    * rafraichir le catalogue ici (son curseur parcourt les villes) ; le catalogue du jour suffit,
    * comme pour la regeneration V149. */
   this._pruneAbandonedPairs(date);
-  this._projects.rawset("freightCargo", freightCargos[nextCargo]);
-  V217_REGEN_NO_PAX = (V217_RAIL_REFILL == 1);
-  local v269Relaxed = false;
-  if (V269_RAIL_LATE_RELAX > 0) {
-    /* V269 : vivier vide et caisse oisive, N ans apres le depart. */
-    V269_RELAXED = year >= OPEX_START_YEAR + V269_RAIL_LATE_RELAX && cash >= V269_IDLE_CASH_MIN;
-    if (V269_RELAXED && !V269_ON) {
-      V269_ON = true;
-      /* V178/V179 sont figes a 1 depuis V263b : plus rien a activer ici. */
-      if (DECISION_LOG) OpexDecide("V269", "action=on month=" + ym + " cash=" + cash);
+
+  local cargoIndices = [nextCargo];
+  local evalPass = 0;
+  local firstRailProjects = [];
+  local firstRail = null;
+  local anyV269Relaxed = false;
+  while (evalPass < cargoIndices.len()) {
+    local curCargoIdx = cargoIndices[evalPass];
+    this._projects.rawset("freightCargo", freightCargos[curCargoIdx]);
+    V217_REGEN_NO_PAX = (V217_RAIL_REFILL == 1);
+    local v269Relaxed = false;
+    if (V269_RAIL_LATE_RELAX > 0) {
+      /* V269 : vivier vide et caisse oisive, N ans apres le depart. */
+      V269_RELAXED = year >= OPEX_START_YEAR + V269_RAIL_LATE_RELAX && cash >= V269_IDLE_CASH_MIN;
+      if (V269_RELAXED && !V269_ON) {
+        V269_ON = true;
+        /* V178/V179 sont figes a 1 depuis V263b : plus rien a activer ici. */
+        if (DECISION_LOG) OpexDecide("V269", "action=on month=" + ym + " cash=" + cash);
+      }
+      v269Relaxed = V269_RELAXED;
+      if (v269Relaxed) anyV269Relaxed = true;
     }
-    v269Relaxed = V269_RELAXED;
+    this._projects = OpexRegenerateModeProjects(this._projects, this._catalog, this._budget,
+        this._lines, this._abandonedPairs, "rail", null, null, -1);
+    V217_REGEN_NO_PAX = false;
+    if (V269_RAIL_LATE_RELAX > 0) V269_RELAXED = false;
+    if (("freightCargo" in this._projects) && this._projects.freightCargo != null) {
+      this._lastFreightCargo = this._projects.freightCargo;
+    }
+    evalPass++;
+    if (evalPass == 1 && V217_REFILL_UNLOCK == 2 && freightCargos.len() > 1) {
+      local startablePass1 = 0;
+      foreach (key, list in this._projects.candidateGroups) {
+        local l = (typeof list == "array") ? list : [list];
+        foreach (project in l) {
+          if (project == null || project.mode != "rail" || !("payload" in project) || project.payload == null) continue;
+          local c = project.payload;
+          if (this._abandonedPairs != null && (OpexAbandonedPairKey(c) in this._abandonedPairs)) continue;
+          local close = this._tooClose(c);
+          if (close.hard >= 0 || close.blocking >= 0) continue;
+          startablePass1++;
+        }
+      }
+      if (startablePass1 < V217_POOL_MIN) {
+        foreach (key, list in this._projects.candidateGroups) {
+          local l = (typeof list == "array") ? list : [list];
+          foreach (p in l) {
+            if (p != null && p.mode == "rail") firstRailProjects.append(p);
+          }
+        }
+        firstRail = this._projects.rail;
+        cargoIndices.append((nextCargo + 1) % freightCargos.len());
+      }
+    }
   }
-  this._projects = OpexRegenerateModeProjects(this._projects, this._catalog, this._budget,
-      this._lines, this._abandonedPairs, "rail", null, null, -1);
-  V217_REGEN_NO_PAX = false;
-  if (V269_RAIL_LATE_RELAX > 0) V269_RELAXED = false;
-  if (("freightCargo" in this._projects) && this._projects.freightCargo != null) {
-    this._lastFreightCargo = this._projects.freightCargo;
+
+  if (firstRailProjects.len() > 0) {
+    local scratch = { modeCandidates = 0, modeAlternatives = 0 };
+    foreach (p in firstRailProjects) {
+      OpexProjectRememberAll(this._projects.candidateGroups, p, scratch);
+    }
+    if (firstRail != null) {
+      this._projects.rail = OpexMergeRailCandidateSet(firstRail, this._projects.rail);
+    }
+    OpexProjectsRecountGroups(this._projects);
+    this._projects = OpexReselectProjects(this._projects, OpexAvailableCapital(), this._abandonedPairs, this._lines);
   }
+
   this._ranked = this._projects.rail;
+  local n = (this._projects.rail != null && ("candidates" in this._projects.rail)
+      && this._projects.rail.candidates != null) ? this._projects.rail.candidates.len() : -1;
   if (mark != null) {
     local ops = OpexOpsMeasureEnd(mark);
-    local n = (this._projects.rail != null && ("candidates" in this._projects.rail)
-        && this._projects.rail.candidates != null) ? this._projects.rail.candidates.len() : -1;
     local cargo = (("freightCargo" in this._projects) && this._projects.freightCargo != null)
         ? AICargo.GetCargoLabel(this._projects.freightCargo) : "all";
-    local v269Suffix = (V269_RAIL_LATE_RELAX > 0) ? (" v269=" + (v269Relaxed ? 1 : 0)) : "";
+    local v269Suffix = (V269_RAIL_LATE_RELAX > 0) ? (" v269=" + (anyV269Relaxed ? 1 : 0)) : "";
     OpexDecide("V217_RAIL_REFILL", "month=" + ym + " cash=" + cash + " startable=" + startable
         + " cargo=" + cargo + " candidates=" + n + " ops=" + ops + v269Suffix);
   }
+  if (V217_REFILL_UNLOCK > 0 && DECISION_LOG) {
+    local unlockReason = (cargoIndices.len() > 1) ? "chain" : ((V217_SKIPPED_MONTH == ym) ? "retry" : "refill");
+    local unlockCargos = "";
+    for (local ci = 0; ci < cargoIndices.len(); ci++) {
+      local cl = AICargo.GetCargoLabel(freightCargos[cargoIndices[ci]]);
+      unlockCargos += (ci > 0 ? "," : "") + cl;
+    }
+    OpexDecide("V217_UNLOCK", "date=" + date + " mode=" + V217_REFILL_UNLOCK
+        + " reason=" + unlockReason + " raison=" + unlockReason
+        + " cargo=" + unlockCargos + " cargos=" + unlockCargos
+        + " candidates=" + n + " kept=" + n + " candidats=" + n);
+  }
+  if (V217_SKIPPED_MONTH == ym) V217_SKIPPED_MONTH = -1;
 }
 
 function OpexAI::_c77RefreshModeCatalog(mode)

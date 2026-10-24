@@ -225,6 +225,15 @@ class OpexAIInfo extends AIInfo {
       custom_value = 1,
       flags = 0
     });
+
+    AddSetting({
+      name = "v217_refill_unlock",
+      description = "V217: unlock rail refill pool and multi-cargo rotation on idle cash. 0 = monthly lock set immediately (default), 1 = lock only on effective refill and retry every 7 days on SKIP, 2 = 1 + chain to next freight cargo if candidates < pool min (at most 2 cargos)",
+      min_value = 0, max_value = 2,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = 0
+    });
     /* --- 4. Calibrations physiques et options reelles --- */
 
     AddSetting({

@@ -334,6 +334,10 @@ class OpexAI extends AIController {
   _reloadV259KnownBridgesCount = null;
   _reloadV259Cursor = null;
   _reloadV259Queue = null;
+  /* V217 : verrous et cadences recharges */
+  _reloadV217LastMonth = -1;
+  _reloadV217LastTryDate = -1;
+  _reloadV217SkippedMonth = -1;
   /* Retraites C52 unitaires, consommees par la tache de rebut dediee. */
   _vehiclesToRetire = null;
   /* C52 #4 : suivi des annees consecutives de deficit par vehicule */

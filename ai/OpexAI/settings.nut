@@ -440,6 +440,10 @@ function OpexLoadSettings()
   local railRefill = AIController.GetSetting("v217_rail_refill");
   V217_RAIL_REFILL = (railRefill != null && railRefill >= 0 && railRefill <= 2) ? railRefill : 0;
   V217_LAST_MONTH = -1;
+  local refillUnlock = AIController.GetSetting("v217_refill_unlock");
+  V217_REFILL_UNLOCK = (refillUnlock != null && refillUnlock >= 0 && refillUnlock <= 2) ? refillUnlock : 0;
+  V217_LAST_TRY_DATE = -1;
+  V217_SKIPPED_MONTH = -1;
   local v276 = AIController.GetSetting("v276_cand_slices");
   V276_CAND_SLICES = (v276 == 3) ? (bigMap ? 2 : 0) : v276;
   V276_CATALOG_TASK = null;

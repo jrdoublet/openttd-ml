@@ -456,7 +456,7 @@ class PO01CContracts(unittest.TestCase):
                         dispatch.index('if (C77_INTENT_DEFER_SUBSIDY && ("subsidyId" in deferPayload)'))
         self.assertEqual(
             hashlib.sha256(orchestrator.replace(guard, b'', 1)).hexdigest(),
-            '1600953e477a5db49827d2f277ed965f4442a56ca32710f3c15a209a1b563ace'
+            'd9c23642d8b5ffdc2227fc0465e45dca825c1ccc44168dcf637641839edc9efa'
         )
 
     def test_po01d_inner_loops_checkpoint_before_rejections(self):

@@ -546,6 +546,11 @@ V217_IDLE_CASH_MIN <- 100000;
 V217_POOL_MIN <- 2;
 V217_LAST_MONTH <- -1;
 V217_REGEN_NO_PAX <- false;
+/* V217 refill unlock : 0 = verrou mensuel immediat (defaut), 1 = verrou seulement apres refill
+ * effectif + essai tous les 7 jours sur SKIP, 2 = 1 + rotation cargo fret si < V217_POOL_MIN. */
+V217_REFILL_UNLOCK <- 0;
+V217_LAST_TRY_DATE <- -1;
+V217_SKIPPED_MONTH <- -1;
 AIR0310_SITE_VALIDITY_STATE <- null;
 /* E10 : Correctif du doublement de flotte routiere au cycle de construction */
 /* C26a : Pricer l'avion de la ligne lors du refleet au lieu du meilleur avion du catalogue */

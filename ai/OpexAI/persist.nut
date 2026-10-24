@@ -625,6 +625,9 @@ function OpexAI::Save()
       shortSave.v259Queue <- OpexV259SaveQueue(this._v259Queue);
     }
     if (this._v292LastHqTryYear >= 0) shortSave.v292LastHqTryYear <- this._v292LastHqTryYear;
+    if (V217_LAST_MONTH >= 0) shortSave.v217LastMonth <- V217_LAST_MONTH;
+    if (V217_LAST_TRY_DATE >= 0) shortSave.v217LastTryDate <- V217_LAST_TRY_DATE;
+    if (V217_SKIPPED_MONTH >= 0) shortSave.v217SkippedMonth <- V217_SKIPPED_MONTH;
     if (DECISION_LOG && startOps != null) {
       local endOps = AIController.GetOpsTillSuspend();
       local opsSpent = startOps - endOps;
@@ -726,6 +729,9 @@ function OpexAI::Save()
     saveObj.v259Queue <- OpexV259SaveQueue(this._v259Queue);
   }
   if (this._v292LastHqTryYear >= 0) saveObj.v292LastHqTryYear <- this._v292LastHqTryYear;
+  if (V217_LAST_MONTH >= 0) saveObj.v217LastMonth <- V217_LAST_MONTH;
+  if (V217_LAST_TRY_DATE >= 0) saveObj.v217LastTryDate <- V217_LAST_TRY_DATE;
+  if (V217_SKIPPED_MONTH >= 0) saveObj.v217SkippedMonth <- V217_SKIPPED_MONTH;
   if (DECISION_LOG && startOps != null) {
     local endOps = AIController.GetOpsTillSuspend();
     local opsSpent = startOps - endOps;
@@ -836,6 +842,9 @@ function OpexAI::Load(version, data)
   if ("v259Cursor" in data) this._reloadV259Cursor = data.v259Cursor;
   if ("v259Queue" in data) this._reloadV259Queue = data.v259Queue;
   this._v292LastHqTryYear = ("v292LastHqTryYear" in data) ? data.v292LastHqTryYear : -1;
+  this._reloadV217LastMonth = ("v217LastMonth" in data) ? data.v217LastMonth : -1;
+  this._reloadV217LastTryDate = ("v217LastTryDate" in data) ? data.v217LastTryDate : -1;
+  this._reloadV217SkippedMonth = ("v217SkippedMonth" in data) ? data.v217SkippedMonth : -1;
   /* C80 étape 2 : mémoire transitoire du seuil de sélection du stock rail, remise à 0 au rechargement. */
   this._railStockLastFundedScore = 0.0;
   this._railStockLastFundedDate = -1;
@@ -869,6 +878,12 @@ function OpexAI::_reconcileAfterLoad()
   this._reloadV250Freed = null;
   this._reloadC69BuildDates = null;
   this._reloadC75PassDates = null;
+  if (this._reloadV217LastMonth >= 0) V217_LAST_MONTH = this._reloadV217LastMonth;
+  if (this._reloadV217LastTryDate >= 0) V217_LAST_TRY_DATE = this._reloadV217LastTryDate;
+  if (this._reloadV217SkippedMonth >= 0) V217_SKIPPED_MONTH = this._reloadV217SkippedMonth;
+  this._reloadV217LastMonth = -1;
+  this._reloadV217LastTryDate = -1;
+  this._reloadV217SkippedMonth = -1;
 
   local saved = 0;
   local kept = 0;
