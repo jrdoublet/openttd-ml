@@ -1,11 +1,18 @@
 """Fixture manuelle du choix d'avion : âge, signature, Manhattan, test apparié."""
 
 import json
+import sys
 import tempfile
 import unittest
 from contextlib import redirect_stdout
 from io import StringIO
 from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+if str(ROOT / "sweeps") not in sys.path:
+    sys.path.insert(0, str(ROOT / "sweeps"))
 
 from sweeps.analyse_air_engine_choice import (
     aaa_formula_counterfactual,
