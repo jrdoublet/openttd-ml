@@ -716,6 +716,14 @@ function OpexAI::_resizeAirFleets(year, plan = null)
           if (v161B != v161A && (v161B in routesIndex)) v161Nb += routesIndex[v161B] - 1;
           fleetEntry.v161Neighbours <- v161Nb > 0 ? v161Nb : 0;
         }
+        if (AIR_GROW_MARGINAL > 0) {
+          fleetEntry.airGrowMarginal <- OpexAirGrowMarginal(line, this._catalog, this._lines, "pending_v161");
+          if (AIR_GROW_MARGINAL == 2 && fleetEntry.airGrowMarginal.fallback == "none") {
+            if (fleetEntry.airGrowMarginal.dp <= 0) continue;
+            fleetEntry.want = 1;
+            fleetEntry.planePrice = fleetEntry.airGrowMarginal.price;
+          }
+        }
         plan.append(fleetEntry);
         if (C50_CHRONOLOGY_PROBE && C50_NON_EXPANSION_LEDGER != null) {
           local ym = year * 12 + AIDate.GetMonth(AIDate.GetCurrentDate());
@@ -736,6 +744,11 @@ function OpexAI::_resizeAirFleets(year, plan = null)
         OpexAirFleetRefusal(line, year, "M");
         if (spRef != null) OpexSpanAgg("fleet.refusal", spRef);
         break;
+      }
+      if (AIR_GROW_MARGINAL > 0) {
+        local marginal = OpexAirGrowMarginal(line, this._catalog, this._lines, "direct");
+        if (AIR_GROW_MARGINAL == 2 && marginal.fallback == "none" && marginal.dp <= 0) break;
+        if (AIR_GROW_MARGINAL == 2 && marginal.fallback == "none") maxAddedPerPass = 1;
       }
       local spAdd = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
       local grown = OpexAirAddPlane(line, this._catalog, this._lines);

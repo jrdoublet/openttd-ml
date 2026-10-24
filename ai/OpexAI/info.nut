@@ -524,6 +524,13 @@ class OpexAIInfo extends AIInfo {
       easy_value = 1, medium_value = 1, hard_value = 1,
       custom_value = 1, flags = 0, step_size = 1
     });
+    AddSetting({
+      name = "air_grow_marginal",
+      description = "AIR reinforcement flow marginal: 0 off, 1 shadow, 2 decision",
+      min_value = 0, max_value = 2,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0, flags = 0, step_size = 1
+    });
   }
 }
 

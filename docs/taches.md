@@ -7,6 +7,16 @@ ne créent pas une tâche. Protocole et pilotage des bancs : [AGENTS.md](../AGEN
 
 ## État courant
 
+### 24/10 — AIR-GROW marginal : code opt-in, défaut 0, sans qualification moteur
+
+Demande utilisateur sur `air-grow-marginal` : `air_grow_marginal=0/1/2`,
+demande commune aux deux tailles de flotte, flux C117 + stock, coût/amortissement
+du moteur acheté ; shadow et décision sur les seuls renforts existants.
+Replis explicites dont gares partagées ; aucun nouvel état sauvegardé.
+9 contrats ajoutés ; suite 2403→2412 tests, mêmes 14 échecs et 5 erreurs
+préexistants. Aucune partie/Docker autorisé, aucun changement de défaut ni
+qualification économique. [Formule, unités, replis et empreintes](air_grow_marginal_20261024.md).
+
 ### 21/10 — frontières voyageurs et calibration RAIL à coût d'opcodes quasi nul : travaux **ouverts**
 
 **Travail déjà réalisé, à ne pas recommencer :** audit en lecture seule des 40×10

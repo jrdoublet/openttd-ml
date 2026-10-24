@@ -221,6 +221,18 @@ function OpexProjectFromFleet(entry)
     profitIsObserved = v161Source != "model";
   }
 
+  if (AIR_GROW_MARGINAL > 0 && ("airGrowMarginal" in entry)) {
+    local marginal = entry.airGrowMarginal;
+    if (DECISION_LOG) OpexAirGrowMarginalLog(line, marginal, profit / entry.want, "rank");
+    if (AIR_GROW_MARGINAL == 2 && marginal.fallback == "none") {
+      if (marginal.dp <= 0) return null;
+      profit = marginal.dp * entry.want;
+      revenue = marginal.drev * entry.want;
+      /* Already a net flow marginal: no V161 cap or second C70 multiplier. */
+      v161Source = null;
+      profitIsObserved = false;
+    }
+  }
   local capital = entry.planePrice * entry.want;
   /* Un achat d'avion ne coute aucune planification : ni pathfinder, ni sondage de site. Seules
    * les commandes transactionnelles restent, d'ou un opcodeScore structurellement tres favorable
@@ -244,6 +256,8 @@ function OpexProjectFromFleet(entry)
     /* B6/06.11 diagnostic-only: horodate l'economie mise en cache. */
     economicsDate = AIDate.GetCurrentDate(),
   };
+  if (AIR_GROW_MARGINAL == 2 && ("airGrowMarginal" in entry)
+      && entry.airGrowMarginal.fallback == "none") project.airGrowMarginalProfit <- true;
   if (v161Source != null) {
     project.v161Source <- v161Source;
     project.v161ModelPerPlane <- v161Model;

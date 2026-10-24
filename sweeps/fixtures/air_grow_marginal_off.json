@@ -1,0 +1,35 @@
+{
+  "baseline_commit": "eec5db814734b99c03ed005bfc476c7ff20006c7",
+  "functions": [
+    {
+      "file": "air_fleet.nut",
+      "function": "OpexAirAddPlane",
+      "sha256": "ad8b420f46d182f311db8e259e561a6a3bdac2b648f9285a4f6343924ca63c2f"
+    },
+    {
+      "file": "projects_builders.nut",
+      "function": "OpexProjectFromFleet",
+      "sha256": "ead7382f97705bd3a5823ce68d5c6db05a9f50cd8195a1916c583b997b09089a"
+    },
+    {
+      "file": "task_air.nut",
+      "function": "OpexAI::_resizeAirFleets",
+      "sha256": "95ce9e4fa4cdabef0b2ca65062c234dee954023ef1ff6a0a72f7f7467926dd47"
+    },
+    {
+      "file": "task_projects.nut",
+      "function": "OpexAI::_tryBuildFleetProject",
+      "sha256": "bbf5fd5db8bbc3afc5c791f5610c38ae9ef3a3f1d7a1446470410b18fc5a525e"
+    },
+    {
+      "file": "probes.nut",
+      "function": "OpexC117AirThroughputStep",
+      "sha256": "f761ee7c66b97e555917f4adbee560735b2e37266f1dee51c8040cbe94ad6561"
+    },
+    {
+      "file": "projects_models.nut",
+      "function": "OpexC70Profit",
+      "sha256": "76cd889957076bd7c3c8896aac19c121d7a77611a7cadc9c9a77f4abb7b550ca"
+    }
+  ]
+}

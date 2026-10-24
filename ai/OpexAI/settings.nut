@@ -32,6 +32,7 @@ function OpexResolveDifficulty()
  * restent dans Start(), juste apres l'appel. */
 function OpexLoadSettings()
 {
+  AIR_GROW_MARGINAL = AIController.GetSetting("air_grow_marginal");
   /* Le masque doit etre initialise avant la toute premiere sonde AIR. */
   local probes = AIController.GetSetting("probes");
   if (probes < 0) probes = 2;

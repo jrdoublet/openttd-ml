@@ -515,7 +515,7 @@ function OpexC117AirThroughputStep(lines, catalog)
   C117_AIR_LAST_DATE = now;
   local nowYear = AIDate.GetYear(now);
   /* Sans sonde, omettre les champs sans lecteur C121. */
-  local skipUnused = true;
+  local skipUnused = AIR_GROW_MARGINAL == 0;
 
   local mailActive = false;
   local mailCargoId = -1;

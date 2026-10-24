@@ -159,6 +159,9 @@ function OpexC70Factor(project)
  * line.predicted : le facteur mesure le modele, jamais sa propre correction. */
 function OpexC70Profit(project)
 {
+  /* Flow marginal is already net of the purchased engine's costs. */
+  if (AIR_GROW_MARGINAL == 2 && project != null && ("airGrowMarginalProfit" in project)
+      && project.airGrowMarginalProfit) return project.profitAnnual;
   /* R2 : une observation n'est pas une prediction a recalibrer. Le marqueur
    * vient de la branche qui a fourni profitAnnual, pas de l'etat actuel de la ligne. */
   if (project != null && ("profitIsObserved" in project) && project.profitIsObserved)

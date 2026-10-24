@@ -264,6 +264,12 @@ function OpexAI::_tryBuildFleetProject(year, project, rank, passDiscards, builtK
                         project, i, -1, -1, builtKeys) : null;
   if (airF1Event != null) OpexAirF1Ready(airF1Event);
   for (local k = 0; k < entry.want; k++) {
+    if (AIR_GROW_MARGINAL > 0) {
+      local marginal = OpexAirGrowMarginal(line, this._catalog, this._lines, project.profitAnnual / entry.want);
+      if (AIR_GROW_MARGINAL == 2 && marginal.fallback == "none" && marginal.dp <= 0) break;
+      /* Do not spend the same observed flow twice in a batch that was unknown at ranking. */
+      if (AIR_GROW_MARGINAL == 2 && marginal.fallback == "none") entry.want = k + 1;
+    }
     local grown = OpexAirAddPlane(line, this._catalog, this._lines);
     if (R1_R3_TEST_ONLY) OpexR1R3Log("mechanism=R1 phase=api_result id="
         + (("r1r3Id" in project) ? project.r1r3Id : "unknown")
