@@ -1,11 +1,15 @@
 # Tâches — travail restant
 
-**Mise à jour : 21 octobre 2026. Seule liste autoritaire des actions ouvertes.**
+**Mise à jour : 24 octobre 2026. Seule liste autoritaire des actions ouvertes.**
 Les décisions et résultats terminés sont dans la [synthèse historique](journaux/synthese_decisions_2026-09-30.md)
 et les [journaux](journaux/README.md). Les anciennes mentions « à faire » des fiches
 ne créent pas une tâche. Protocole et pilotage des bancs : [AGENTS.md](../AGENTS.md), §4/§4.1.
 
 ## État courant
+
+### 24/10 — AIR-PELOTON-1 : diagnostic des départs AIR (terminé, défaut inchangé)
+
+**[Rapport et méthode](air_peloton_diag_20261024.md)** ; branche `origin/air-peloton-1`, worktree `../wt_peloton`, SHA `34f3eff8`, référence `OpexAI[probes=258]`, cinq graines × cinq ans (1970–1974), 5/5 duels complets et 0 erreur Squirrel. **10 497 départs, 6 791 écarts connus.** Lignes à 2 avions : écart médian 37 j, CV annuel médian 0,558, charge médiane 12,2 %, après écart court 5,0 % contre 16,6 % après écart long. Lignes à 3 avions : 24 j, CV 0,695, charge médiane 10,9 %, après court/long 4,8 %/13,6 %. Sous 10 % de charge : 39,1 % des départs de rang 1 contre 71,0 % de rang 2 et 75,0 % de rang 3+ (n=20). **Verdict : surcapacité dominante, avec vrai effet peloton secondaire ; pas de meneur normalement plein.** Diagnostic descriptif, aucune adoption proposée, aucun code/défaut modifié, aucun commit ni push sur master.
 
 ### 21/10 — frontières voyageurs et calibration RAIL à coût d'opcodes quasi nul : travaux **ouverts**
 
