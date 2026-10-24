@@ -1,0 +1,137 @@
+{
+  "reference": "results\\revue_code_baseline_20261024\\results\\revue_code_R02R03_base_20x10_20261024.jsonl",
+  "candidate": "results\\revue_code_R02R03_candidate_20261024\\results\\revue_code_R02R03_candidate_20x10_20261024.jsonl",
+  "terminal_year": 1979,
+  "pairs": 20,
+  "keys": [
+    [
+      1,
+      0
+    ],
+    [
+      7,
+      0
+    ],
+    [
+      17,
+      0
+    ],
+    [
+      42,
+      0
+    ],
+    [
+      73,
+      0
+    ],
+    [
+      100,
+      0
+    ],
+    [
+      314,
+      0
+    ],
+    [
+      512,
+      0
+    ],
+    [
+      999,
+      0
+    ],
+    [
+      1024,
+      0
+    ],
+    [
+      1337,
+      0
+    ],
+    [
+      2026,
+      0
+    ],
+    [
+      4096,
+      0
+    ],
+    [
+      8191,
+      0
+    ],
+    [
+      12345,
+      0
+    ],
+    [
+      54321,
+      0
+    ],
+    [
+      65537,
+      0
+    ],
+    [
+      123456,
+      0
+    ],
+    [
+      424242,
+      0
+    ],
+    [
+      8675309,
+      0
+    ]
+  ],
+  "delta_profit_year": {
+    "mean": 62398.9,
+    "median": 0.0,
+    "student_ic95": [
+      -155605.5259635999,
+      280403.3259635999
+    ],
+    "bootstrap_ic95_20000_seed0": [
+      -129049.20375000002,
+      270523.8387499998
+    ],
+    "wins": 8,
+    "losses": 6,
+    "ties": 6,
+    "sign_p_two_sided": 0.79052734375
+  },
+  "value_ratio_of_means": 1.025629938573725,
+  "reference_profit_year_mean": 2424061.95,
+  "candidate_profit_year_mean": 2486460.85,
+  "reference_value_mean": 17351239.4,
+  "candidate_value_mean": 17795950.6,
+  "paired_differences": {
+    "1": -852389,
+    "7": -467482,
+    "17": 0,
+    "42": 0,
+    "73": 24690,
+    "100": 290238,
+    "314": 32794,
+    "512": 748394,
+    "999": 0,
+    "1024": 0,
+    "1337": 522299,
+    "2026": -601082,
+    "4096": 0,
+    "8191": -942,
+    "12345": 72955,
+    "54321": 298252,
+    "65537": -52102,
+    "123456": -131775,
+    "424242": 1364128,
+    "8675309": 0
+  },
+  "gate": {
+    "student_upper_nonnegative": true,
+    "not_significant_defeat": true,
+    "company_value_guard_minus5pct": true,
+    "passes": true
+  }
+}
