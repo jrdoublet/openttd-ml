@@ -135,7 +135,7 @@ class AirGrowMarginal(unittest.TestCase):
         self.assertIn("local s = OpexAirGrowMarginalWindow(current)", body)
         self.assertIn("local days = s.days", body)
         self.assertIn("AIDate.GetCurrentDate() - current.lastDate > C117_AIR_SAMPLE_DAYS + 2", body)
-        self.assertIn("s.invalidOrderSamples * 4 > s.samples", body)
+        self.assertIn("s.invalidOrderSamples * 4 > s.liveSum", body)
         self.assertIn("s.unobservedTransitions * 4 > s.tripsA + s.tripsB", body)
         self.assertIn("s.engineChanges > 0 || current.engineChanges > 0", body)
         self.assertIn("s.mixedEngineSamples > 0 || current.mixedEngineSamples > 0", body)

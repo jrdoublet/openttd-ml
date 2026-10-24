@@ -337,7 +337,7 @@ function OpexAirGrowMarginalEstimate(line, catalog, lines, forcedEngine = null)
   }
   if (s.tripsA < 1 || s.tripsB < 1) { r.fallback = "obs_trips"; return r; }
   /* Bound sampling noise without accepting an arbitrarily censored flow. */
-  if (s.invalidOrderSamples * 4 > s.samples) { r.fallback = "obs_invalid_order"; return r; }
+  if (s.invalidOrderSamples * 4 > s.liveSum) { r.fallback = "obs_invalid_order"; return r; }
   if (s.unobservedTransitions * 4 > s.tripsA + s.tripsB) { r.fallback = "obs_unobserved"; return r; }
   if (s.engineChanges > 0 || current.engineChanges > 0) { r.fallback = "obs_engine_change"; return r; }
   if (s.mixedEngineSamples > 0 || current.mixedEngineSamples > 0) { r.fallback = "obs_mixed_engine"; return r; }
