@@ -219,7 +219,7 @@ function OpexAI::_tryBuildFleetProject(year, project, rank, passDiscards, builtK
                             reason = "line_scrapping", extra = "" });
     }
     if (DECISION_LOG) {
-      OpexDecide("FLEET_PROJECT", "action=refuse line="
+      OpexDecide("FLEET_PROJECT", "action=refuse cal=" + AIR_PROFIT_CAL_PCT + " line="
                  + ((line != null && ("lineId" in line)) ? line.lineId : -1)
                  + " reason=scrapping");
     }
@@ -322,7 +322,7 @@ function OpexAI::_tryBuildFleetProject(year, project, rank, passDiscards, builtK
         + " cash_after=" + AICompany.GetBankBalance(AICompany.COMPANY_SELF));
   }
   if (DECISION_LOG) {
-    OpexDecide("FLEET_PROJECT", "action=grow line=" + line.lineId + " added=" + added
+    OpexDecide("FLEET_PROJECT", "action=grow cal=" + AIR_PROFIT_CAL_PCT + " line=" + line.lineId + " added=" + added
                + " want=" + entry.want + " price=" + entry.planePrice
                + " profit=" + project.profitAnnual + " roi=" + project.roi
                + (("v161Source" in project) ? " v161_src=" + project.v161Source

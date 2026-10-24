@@ -13,6 +13,11 @@ class OpexAIInfo extends AIInfo {
    * Entre IA, la regle est de jouer a armes egales, sans auto-handicap. */
   function GetSettings()
   {
+    AddSetting({ name = "air_profit_cal_pct",
+      description = "AIR investment profit calibration percent (100 unchanged; 80 experimental)",
+      min_value = 10, max_value = 200, step_size = 5,
+      easy_value = 100, medium_value = 100, hard_value = 100, custom_value = 100,
+      flags = 0 });
     AddSetting({ name = "c77_intent_defer",
       description = "C77: defer intents (1=portfolio/worker, 2=also AIR year/subsidy expiry; default 2 since 23/10, porte B pass)",
       min_value = 0, max_value = 2,

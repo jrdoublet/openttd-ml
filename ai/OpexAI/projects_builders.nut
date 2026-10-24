@@ -249,6 +249,7 @@ function OpexProjectFromFleet(entry)
     project.v161ModelPerPlane <- v161Model;
     project.v161Calibrate <- true;
   }
+  OpexAirCalibrateInvestment(project);
   return project;
 }
 
@@ -296,6 +297,7 @@ function OpexProjectFromAir(catalog, plan, planningOps)
     planningOpcodes = planningOps,
     economicsDate = AIDate.GetCurrentDate(),
   };
+  OpexAirCalibrateInvestment(project);
   return project;
 }
 

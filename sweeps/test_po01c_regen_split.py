@@ -422,6 +422,8 @@ class PO01CContracts(unittest.TestCase):
         # Rebased to eb6f26fc after 43 intentional parameter retirements.
         # Preserve strong full-file hashes: future source changes must
         # explicitly rebaseline this isolation contract, never silence it.
+        # AIR-ROI-LIGNE-1 (24/10): rebase ONLY info/settings for the new
+        # neutral-100 calibration setting; other pins intentionally preserved.
         expected = {
             'builder_water.nut': '92c50153b6712f238943f75e2c9498a602695132a7850c5f663f91344499162e',
             'air_planning.nut': 'd97dd1d56b049c8ea98c85a1202239da3d30193028e8526ba44240181460a5c2',
@@ -430,8 +432,8 @@ class PO01CContracts(unittest.TestCase):
             'catalog.nut': '4882c4c3de58c97882b2739432e62045a2e567b1ee980e5a2a56dedd34a17ba9',
             'main.nut': '774acab715924ca97cb0e14ed1a9573400a84963ee7698effeebdcd372ed9adc',
             'probes.nut': '2be7e1d6c099949de72b9abf8e285df6db6fc5c0001c9445c3707c3c8c1edf5e',
-            'settings.nut': 'b2b1debb5d362bf89c0099cef9acc4478e25c1fce066b63707acea178a6d27fd',
-            'info.nut': '0447a0adc89f91dd48b37fb46ac0084b67443eccf9fd3fe9a9bd53374ee81f9a',
+            'settings.nut': '8c2781c5f2c213d4d3e8d3766ea3188d6a23031ee9b2ca721761ed69f47573b8',
+            'info.nut': 'f96b2c403f974e3a4e4959d153e382f8620da98883c02172c9511e06f35751f6',
         }
         for name, digest in expected.items():
             with self.subTest(name=name):

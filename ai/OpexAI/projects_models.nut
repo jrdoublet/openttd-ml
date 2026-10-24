@@ -155,8 +155,8 @@ function OpexC70Factor(project)
   return (mode in C70_MODE_FACTOR) ? C70_MODE_FACTOR[mode] : 1.0;
 }
 
-/* C70 : profit servant au classement. Le brut reste dans profitAnnual, et donc dans
- * line.predicted : le facteur mesure le modele, jamais sa propre correction. */
+/* C70 : profit servant au classement, apres calibration d'investissement AIR.
+ * line.predicted reste brut : le learner mesure le modele, jamais sa correction. */
 function OpexC70Profit(project)
 {
   /* R2 : une observation n'est pas une prediction a recalibrer. Le marqueur
@@ -180,7 +180,23 @@ function OpexC70Profit(project)
   return project.profitAnnual * OpexC70Factor(project);
 }
 
-/* Profit calibre des scores : OpexC70Profit. */
+/* AIR-ROI-LIGNE-1 : frontiere modele brut -> investissement multimodal.
+ * Appele UNE fois par constructeur AIR/flotte, apres le plafond V161.
+ * Ne jamais l'appeler sur les economics/lines : C70 doit apprendre sur le brut,
+ * et les observations realisees doivent rester intactes. Les comparaisons entre
+ * moteurs/plans AIR en amont sont invariantes sous ce facteur commun positif.
+ * Les copies, fits, reselections et C70 consomment ensuite le profit calibre.
+ * Float hors defaut : ni overflow de profit*200, ni petit profit arrondi a zero. */
+function OpexAirCalibrateInvestment(project)
+{
+  if (AIR_PROFIT_CAL_PCT == 100) return;
+  if (project.mode != "air" && project.mode != "fleet") return;
+  local factor = AIR_PROFIT_CAL_PCT / 100.0;
+  project.profitAnnual *= factor;
+  project.roi *= factor;
+}
+
+/* Profit calibre des scores : OpexC70Profit (AIR deja calibre a la creation). */
 OpexCalibratedProfit <- OpexC70Profit;
 
 function OpexProjectScore(value, cost)

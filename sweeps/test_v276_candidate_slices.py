@@ -291,7 +291,8 @@ class Contracts(unittest.TestCase):
         for difficulty in ("easy", "medium", "hard", "custom"):
             self.assertIn(difficulty + "_value = 3", block)
         self.assertIn("min_value = 0, max_value = 3", block)
-        self.assertLessEqual(info.count("AddSetting("), 58)
+        # AIR-ROI-LIGNE-1: +1 setting, neutral default 100 (24/10).
+        self.assertLessEqual(info.count("AddSetting("), 59)
         settings = read("settings.nut")
         self.assertIn('local v276 = AIController.GetSetting("v276_cand_slices");', settings)
         self.assertIn("V276_CAND_SLICES = (v276 == 3) ? (bigMap ? 2 : 0) : v276;", settings)

@@ -66,6 +66,9 @@ function OpexLoadSettings()
 
   // V166 : interrupteurs de mode conserves pour les bancs monomodes.
   MODE_AIR = AIController.GetSetting("mode_air") != 0;
+  AIR_PROFIT_CAL_PCT = AIController.GetSetting("air_profit_cal_pct");
+  if (AIR_PROFIT_CAL_PCT == null || AIR_PROFIT_CAL_PCT < 10 || AIR_PROFIT_CAL_PCT > 200)
+    AIR_PROFIT_CAL_PCT = 100;
   MODE_RAIL = AIController.GetSetting("mode_rail") != 0;
   MODE_ROAD = AIController.GetSetting("mode_road") != 0;
   MODE_WATER = AIController.GetSetting("mode_water") != 0;
