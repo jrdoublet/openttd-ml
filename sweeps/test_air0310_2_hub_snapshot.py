@@ -9,12 +9,17 @@ Aucune partie n'est lancee.
 from __future__ import annotations
 
 import re
+import sys
 import unittest
 from pathlib import Path
 
-from sweeps.campaign_freeze import parse_ai_setting_specs
-
 ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+if str(ROOT / "sweeps") not in sys.path:
+    sys.path.insert(0, str(ROOT / "sweeps"))
+
+from sweeps.campaign_freeze import parse_ai_setting_specs
 
 SETTING = "air0310_hub_snapshot"
 GLOBAL = "AIR0310_HUB_SNAPSHOT"
