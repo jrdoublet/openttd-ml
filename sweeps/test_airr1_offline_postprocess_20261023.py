@@ -3,9 +3,29 @@
 import json
 from pathlib import Path
 import sys
+import types
 from tempfile import TemporaryDirectory
 import unittest
 from unittest.mock import patch
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+if str(ROOT / "sweeps") not in sys.path:
+    sys.path.insert(0, str(ROOT / "sweeps"))
+
+# rebasé le 24/10 : a274cb7e (shim openttdlab hors Docker, conforme à AGENTS.md §3)
+try:
+    import openttdlab
+except ImportError:
+    import subprocess
+    fake_lab = types.ModuleType("openttdlab")
+    fake_lab.bananas_ai = None
+    fake_lab.bananas_ai_library = None
+    fake_lab.local_folder = None
+    fake_lab.run_experiments = None
+    fake_lab.subprocess = subprocess
+    sys.modules["openttdlab"] = fake_lab
 
 import recover_air_roi_renfort1_itt_campaign2_20261022 as recover
 import report_air_roi_renfort1_itt_20261022 as report
