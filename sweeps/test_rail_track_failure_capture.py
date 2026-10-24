@@ -12,9 +12,10 @@ import unittest
 
 
 AI = Path(__file__).resolve().parents[1] / "ai" / "OpexAI"
+# rebasé le 24/10 : eec5db81 (revue R11, helper partagé OpexBridgeSortBySpeed)
 PRE_EXTRACTION_HASHES = {
-    "OpexBuildTrack": "aa1b869d523c371e42e8667b24b297dd47dbd49061e474e13340d7c73cf7c081",
-    "OpexTestRailTrack": "e58b4b7173e096515417348b7b2211d42e3c2efe3c23226502dd8fd262e1cf61",
+    "OpexBuildTrack": "f41b05fb24607dfc781ac3f740e90773e4016329ca1643ba2ef12a7eecf3815a",
+    "OpexTestRailTrack": "ee1f11817b57d8d37dbcaefafb536e31e2fe7f91d2fd4f50177bddecd0477e25",
     "OpexExecuteRailPlan": "f165d26650fea5c6926f2bb53c4d92da6f2f85517e03567b3d4d61993c2ba037",
 }
 
