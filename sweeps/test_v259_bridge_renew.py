@@ -61,12 +61,12 @@ class TestV259BridgeRenew(unittest.TestCase):
 
     def test_ceiling_after_parameter_cleanup(self):
         # 43 vrais retraits ; PO03/C77 et PO02 adoptes sont conserves.
-        # air_load_min_pct: un reglage opt-in supplementaire, defaut 0.
-        self.assertEqual(self.info.count("AddSetting("), 59)
+        # air_load_min_pct + air_hub_cursor_keep: deux reglages opt-in supplementaires, defaut 0.
+        self.assertEqual(self.info.count("AddSetting("), 60)
         self.assertIn('name = "v259_bridge_renew"', self.info)
         test_v246 = (Path(__file__).resolve().parent / "test_v246_fixed_policies.py").read_text(encoding="utf-8")
-        # air_load_min_pct: un reglage opt-in supplementaire, defaut 0.
-        self.assertIn('self.assertLessEqual(info.count("AddSetting("), 59)', test_v246)
+        # air_load_min_pct + air_hub_cursor_keep: deux reglages opt-in supplementaires, defaut 0.
+        self.assertIn('self.assertLessEqual(info.count("AddSetting("), 60)', test_v246)
 
     def test_zero_opcode_guard_at_default(self):
         # 1. Garde dans scheduler.nut

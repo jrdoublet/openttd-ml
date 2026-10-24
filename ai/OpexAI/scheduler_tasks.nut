@@ -934,6 +934,34 @@ function OpexAI::_dispatchAir(task, year)
   if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);
   return false;
 }
+function OpexAI::_maybeReselectIdleAirFleet(year)
+{
+  if ((AIR_HUB_CURSOR_KEEP & 2) == 0 || this._projects == null) return;
+  local ym = year * 12 + AIDate.GetMonth(AIDate.GetCurrentDate());
+  if (AIR_FLEET_RESELECT_LAST_MONTH == ym) return;
+  local stats = ("stats" in this._projects) ? this._projects.stats : null;
+  local selectedCount = (stats != null && ("budgetSelected" in stats))
+      ? stats.budgetSelected : 0;
+  local nextCap = (stats != null && ("nextProjectCapital" in stats))
+      ? stats.nextProjectCapital : -1;
+  local budgetNow = OpexAvailableCapital();
+  local reason = null;
+  if (selectedCount == 0) {
+    reason = "no_selected";
+  } else if (nextCap > 0 && budgetNow > nextCap) {
+    reason = "cash_above_next";
+  }
+  if (reason == null) return;
+  AIR_FLEET_RESELECT_LAST_MONTH = ym;
+  if (DECISION_LOG) {
+    OpexDecide("FLEET_RESELECT", "reason=" + reason
+        + " cash=" + budgetNow
+        + " next_capital=" + nextCap);
+  }
+  this._projects = OpexReselectProjects(
+      this._projects, budgetNow, this._abandonedPairs, this._lines);
+  this._ranked = this._projects.rail;
+}
 function OpexAI::_dispatchAirFleet(task, year)
 {
   /* C34.2 / C36.2 : sous fleet_portfolio, la croissance de flotte est arbitree par le portefeuille.
@@ -951,6 +979,9 @@ function OpexAI::_dispatchAirFleet(task, year)
         this._projects = OpexInjectFleetProjects(this._projects, fleetPlan, this._abandonedPairs, budgetNow, this._lines);
         if (spInject != null) OpexSpanEnd(spInject);
         this._ranked = this._projects.rail;
+      }
+      if ((AIR_HUB_CURSOR_KEEP & 2) != 0 && airCount == 0) {
+        this._maybeReselectIdleAirFleet(year);
       }
     }
     if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);

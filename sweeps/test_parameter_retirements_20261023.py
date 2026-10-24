@@ -84,8 +84,8 @@ class TestParameterRetirement(unittest.TestCase):
 
     def test_exact_size_after_retirement(self):
         self.assertEqual(len(RETIRED), 43)
-        # air_load_min_pct: un reglage opt-in supplementaire, defaut 0.
-        self.assertEqual(len(self.config), 59)
+        # air_load_min_pct + air_hub_cursor_keep: deux reglages opt-in supplementaires, defaut 0.
+        self.assertEqual(len(self.config), 60)
 
     def test_retired_settings_have_no_declarations_or_direct_reads(self):
         for name in sorted(RETIRED):

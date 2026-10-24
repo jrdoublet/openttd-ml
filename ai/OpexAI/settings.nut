@@ -35,6 +35,10 @@ function OpexLoadSettings()
   AIR_LOAD_MIN_PCT = AIController.GetSetting("air_load_min_pct");
   if (AIR_LOAD_MIN_PCT == null || AIR_LOAD_MIN_PCT < 0) AIR_LOAD_MIN_PCT = 0;
   if (AIR_LOAD_MIN_PCT > 100) AIR_LOAD_MIN_PCT = 100;
+  AIR_HUB_CURSOR_KEEP = AIController.GetSetting("air_hub_cursor_keep");
+  if (AIR_HUB_CURSOR_KEEP == null || AIR_HUB_CURSOR_KEEP < 0) AIR_HUB_CURSOR_KEEP = 0;
+  if (AIR_HUB_CURSOR_KEEP > 3) AIR_HUB_CURSOR_KEEP = 3;
+  AIR_FLEET_RESELECT_LAST_MONTH = -1;
   /* Le masque doit etre initialise avant la toute premiere sonde AIR. */
   local probes = AIController.GetSetting("probes");
   if (probes < 0) probes = 2;

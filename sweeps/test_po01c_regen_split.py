@@ -421,18 +421,19 @@ class PO01CContracts(unittest.TestCase):
     def test_po01d_synchronous_path_bytes_unchanged(self):
         # Rebased to eb6f26fc after 43 intentional parameter retirements.
         # AIR load opt-in: rebaseline probes/settings/info only; no PO01D change.
+        # AIR hub cursor opt-in: rebaseline air_planning/settings/info only; no PO01D change.
         # Preserve strong full-file hashes: future source changes must
         # explicitly rebaseline this isolation contract, never silence it.
         expected = {
             'builder_water.nut': '92c50153b6712f238943f75e2c9498a602695132a7850c5f663f91344499162e',
-            'air_planning.nut': 'd97dd1d56b049c8ea98c85a1202239da3d30193028e8526ba44240181460a5c2',
+            'air_planning.nut': '73c038dec79dbda93e0c512d389cf611253fd527209be28b19caf3c926d97cd8',
             'air_sites.nut': '19691bb0bc03b81b27793c1b8ec99a68e11455b2d74aa12e85b17e7d0c1e279f',
             'candidates.nut': '83670f686d3564a63e21fd307736a32a106ebbf25ccb7463800b8cefb815c771',
             'catalog.nut': '4882c4c3de58c97882b2739432e62045a2e567b1ee980e5a2a56dedd34a17ba9',
             'main.nut': '774acab715924ca97cb0e14ed1a9573400a84963ee7698effeebdcd372ed9adc',
             'probes.nut': '9d0c7a5fc5735c1c88118ba47c971a707a4a5b94d968d6cb86c091de35c86565',
-            'settings.nut': '9fed2df96d0819f7e1bed54a0a90712ad98e8fc455f1ffc7f7bf65f3967e47f3',
-            'info.nut': 'f2975c4d7cb1e8dbe2f6f24559d7350417e751fe8bfed8b57f7769db5a242710',
+            'settings.nut': '28849d398ea0f7a7ec0580b413ee5bf58b86cc0ceceb278e9d4a89300b3b0de4',
+            'info.nut': 'ee8449bb7f748c407a9b09d660c18f10449229e692f66251f17533579fc16b93',
         }
         for name, digest in expected.items():
             with self.subTest(name=name):

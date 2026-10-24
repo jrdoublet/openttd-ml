@@ -38,6 +38,11 @@ class OpexAIInfo extends AIInfo {
       min_value = 0, max_value = 100, step_size = 5,
       easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
       flags = 0 });
+    AddSetting({ name = "air_hub_cursor_keep",
+      description = "Bitmask (0..3, default 0): bit 1 keeps AIR hub scan cursors across topology invalidations with refreshed hubs/sites and bounded traversal; bit 2 reselects portfolio at most once per month in _dispatchAirFleet when airCount==0 and cash exceeds next_capital or selection is empty",
+      min_value = 0, max_value = 3, step_size = 1,
+      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
+      flags = 0 });
     /* --- 1. Systeme et instrumentation --- */
 
     /* V167 : un seul entier pilote panneaux, journal et sondes (somme de bits, voir settings.nut).

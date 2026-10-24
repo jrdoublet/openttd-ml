@@ -905,6 +905,129 @@ function OpexAir0310SkipRestoredPair(ctx, airport, arm, hubA, hubB, site, plane)
   return false;
 }
 
+const AIR_HUB_CURSOR_MAX_HUBS = 64;
+const AIR_HUB_CURSOR_MAX_STEPS = 3552;
+
+function OpexAirHubCursorInvalidate(ctx, comboIndex, airport)
+{
+  local resumeState = ctx.resumeState;
+  delete resumeState.air0310HubSnap;
+  if ((AIR_HUB_CURSOR_KEEP & 1) != 0) {
+    if (!("hubPhase" in resumeState)) resumeState.hubPhase <- 0;
+    if (!("hubSiteI" in resumeState)) resumeState.hubSiteI <- 0;
+    if (!("hubSiteJ" in resumeState)) resumeState.hubSiteJ <- 0;
+    if (!("hubHubI" in resumeState)) resumeState.hubHubI <- 0;
+    if (!("hubHubJ" in resumeState)) resumeState.hubHubJ <- 1;
+    if (!("hubCursorSteps" in resumeState)) resumeState.hubCursorSteps <- 0;
+    ctx.airHubCursorAction <- "keep";
+  } else {
+    resumeState.hubPhase <- 0;
+    resumeState.hubSiteI <- 0;
+    resumeState.hubSiteJ <- 0;
+    resumeState.hubHubI <- 0;
+    resumeState.hubHubJ <- 1;
+    ctx.airHubCursorAction <- "reset";
+  }
+  OpexAir0310RememberPublishedHubPairs(ctx, airport);
+  return "invalidate";
+}
+
+function OpexAirHubCursorBeforeStore(ctx, comboIndex)
+{
+  local resumeState = ctx.resumeState;
+  local action = ("airHubCursorAction" in ctx) ? ctx.airHubCursorAction : null;
+  if ((AIR_HUB_CURSOR_KEEP & 1) != 0) {
+    if (ctx.sites != null && ctx.sites.len() > AIR_HUB_NEW_SITE_POOL) {
+      ctx.sites.resize(AIR_HUB_NEW_SITE_POOL);
+    }
+    if (ctx.hubs != null && ctx.hubs.len() > AIR_HUB_CURSOR_MAX_HUBS) {
+      ctx.hubs.resize(AIR_HUB_CURSOR_MAX_HUBS);
+      if (("air0310HubOrphan" in ctx) && ctx.air0310HubOrphan != null
+          && ctx.air0310HubOrphan.len() > AIR_HUB_CURSOR_MAX_HUBS) {
+        ctx.air0310HubOrphan.resize(AIR_HUB_CURSOR_MAX_HUBS);
+      }
+    }
+    if (action == null) {
+      resumeState.hubCursorSteps <- 0;
+    } else if (action == "keep") {
+      local numSites = ctx.sites != null ? ctx.sites.len() : 0;
+      local numHubs = ctx.hubs != null ? ctx.hubs.len() : 0;
+      local steps = (("hubCursorSteps" in resumeState) ? resumeState.hubCursorSteps : 0) + 1;
+      resumeState.hubCursorSteps <- steps;
+      local phase = ("hubPhase" in resumeState) ? resumeState.hubPhase : 0;
+      local siteI = ("hubSiteI" in resumeState) ? resumeState.hubSiteI : 0;
+      local siteJ = ("hubSiteJ" in resumeState) ? resumeState.hubSiteJ : 0;
+      local hubI = ("hubHubI" in resumeState) ? resumeState.hubHubI : 0;
+      local hubJ = ("hubHubJ" in resumeState) ? resumeState.hubHubJ : 1;
+      if (phase < 0) phase = 0;
+      if (siteI < 0) siteI = 0;
+      if (siteJ < 0) siteJ = 0;
+      if (hubI < 0) hubI = 0;
+      if (hubJ < 1) hubJ = 1;
+      if (steps >= AIR_HUB_CURSOR_MAX_STEPS) {
+        phase = 1;
+        siteI = numHubs;
+        siteJ = 0;
+        hubI = numHubs;
+        hubJ = 0;
+      } else {
+        if (phase < 1) {
+          if (numSites <= 0 || numHubs <= 0) {
+            siteI = numHubs;
+            siteJ = 0;
+            phase = 1;
+          } else {
+            if (siteJ >= numSites) {
+              siteI = siteI + 1;
+              siteJ = 0;
+            }
+            if (siteI >= numHubs) {
+              siteI = numHubs;
+              siteJ = 0;
+              phase = 1;
+            }
+          }
+        }
+        if (phase >= 1) {
+          if (hubJ <= hubI) hubJ = hubI + 1;
+          if (numHubs < 2) {
+            hubI = numHubs;
+            hubJ = 0;
+          } else {
+            if (hubJ >= numHubs) {
+              hubI = hubI + 1;
+              hubJ = hubI + 1;
+            }
+            if (hubI >= numHubs - 1) {
+              hubI = numHubs;
+              hubJ = 0;
+            }
+          }
+        }
+      }
+      resumeState.hubPhase <- phase;
+      resumeState.hubSiteI <- siteI;
+      resumeState.hubSiteJ <- siteJ;
+      resumeState.hubHubI <- hubI;
+      resumeState.hubHubJ <- hubJ;
+    }
+  }
+  if (DECISION_LOG && action != null) {
+    local logPhase = ("hubPhase" in resumeState) ? resumeState.hubPhase : 0;
+    local logSiteI = ("hubSiteI" in resumeState) ? resumeState.hubSiteI : 0;
+    local logHubI = ("hubHubI" in resumeState) ? resumeState.hubHubI : 0;
+    local logSites = ctx.sites != null ? ctx.sites.len() : 0;
+    local logHubs = ctx.hubs != null ? ctx.hubs.len() : 0;
+    OpexDecide("AIR_HUB_CURSOR", "action=" + action
+        + " combo=" + comboIndex
+        + " phase=" + logPhase
+        + " siteI=" + logSiteI
+        + " hubI=" + logHubI
+        + " sites=" + logSites
+        + " hubs=" + logHubs);
+  }
+}
+
 /* "reuse" : meme combo, meme signature. "invalidate" : meme combo, signature
  * differente, curseurs remis au depart. "discover" : pas de snapshot
  * utilisable. Les compteurs vivent dans le curseur du scan. */
@@ -926,6 +1049,9 @@ function OpexAir0310HubSnapshotPrepare(ctx, comboIndex, airport, plane)
     return "reuse";
   }
   if (snap != null && snap.combo == comboIndex) {
+    if ((AIR_HUB_CURSOR_KEEP & 1) != 0 || DECISION_LOG) {
+      return OpexAirHubCursorInvalidate(ctx, comboIndex, airport);
+    }
     delete resumeState.air0310HubSnap;
     resumeState.hubPhase <- 0;
     resumeState.hubSiteI <- 0;
@@ -940,6 +1066,9 @@ function OpexAir0310HubSnapshotPrepare(ctx, comboIndex, airport, plane)
 
 function OpexAir0310HubSnapshotStore(ctx, comboIndex)
 {
+  if ((AIR_HUB_CURSOR_KEEP & 1) != 0 || DECISION_LOG) {
+    OpexAirHubCursorBeforeStore(ctx, comboIndex);
+  }
   local orphan = ("air0310HubOrphan" in ctx) ? ctx.air0310HubOrphan : [];
   local orphanCopy = [];
   foreach (flag in orphan) orphanCopy.append(flag ? 1 : 0);
