@@ -454,8 +454,18 @@ class PO01CContracts(unittest.TestCase):
         self.assertIn(guard.decode('ascii'), dispatch)
         self.assertLess(dispatch.index(guard.decode('ascii')),
                         dispatch.index('if (C77_INTENT_DEFER_SUBSIDY && ("subsidyId" in deferPayload)'))
+        # V294g rebase: remove only its guarded V217 place-memory hook.
+        # This preserves the historical PO01D baseline hash and fails on
+        # any other unexpected change in orchestrator.nut.
+        v294g_guard = (
+            b'      if (V294_RAIL_FAIL_MEMORY > 0 && this._abandonedPlaces != null) {\n'
+            b'        if (OpexRailCandidateBannedPlace(c, this._abandonedPlaces) != null) continue;\n'
+            b'      }\n'
+        )
+        self.assertEqual(orchestrator.count(v294g_guard), 1)
+        historical = orchestrator.replace(guard, b'', 1).replace(v294g_guard, b'', 1)
         self.assertEqual(
-            hashlib.sha256(orchestrator.replace(guard, b'', 1)).hexdigest(),
+            hashlib.sha256(historical).hexdigest(),
             '1600953e477a5db49827d2f277ed965f4442a56ca32710f3c15a209a1b563ace'
         )
 

@@ -326,8 +326,18 @@ class DeferSourceContracts(unittest.TestCase):
         code = source('orchestrator.nut')
         start = code.index('    /* C77 defer 2 :')
         end = code.index('    /* Fin C77 defer 2. */\n', start) + len('    /* Fin C77 defer 2. */\n')
-        # Whole file at 8c9c9e1a, after removing only the mode-2 block.
-        self.assertEqual(hashlib.sha256((code[:start] + code[end:]).encode()).hexdigest(),
+        # Rebase V294g: neutralize the additional opt-in V217 pool filter
+        # before hashing. The remaining source must equal origin/master eec5db81
+        # with just the historical C77 mode-2 block removed.
+        historic = code[:start] + code[end:]
+        v294g_pool_guard = (
+            '      if (V294_RAIL_FAIL_MEMORY > 0 && this._abandonedPlaces != null) {\n'
+            '        if (OpexRailCandidateBannedPlace(c, this._abandonedPlaces) != null) continue;\n'
+            '      }\n'
+        )
+        self.assertEqual(historic.count(v294g_pool_guard), 1)
+        historic = historic.replace(v294g_pool_guard, '', 1)
+        self.assertEqual(hashlib.sha256(historic.encode()).hexdigest(),
                          'e93eef4d3c504b36e738d370b3d41007228377a4a3b3af3ef67c70fce12ccdd4')
         block = code[start:end]
         self.assertIn('if (C77_INTENT_DEFER_SUBSIDY && ("subsidyId" in deferPayload) && deferPayload.subsidyId >= 0)', block)

@@ -23,11 +23,11 @@ def body(name, signature):
 
 class AirLoadGuard(unittest.TestCase):
     def test_off_paths_match_origin_master_after_removing_only_opt_in_hooks(self):
-        # origin/master 1df4bdb7. Exact old bodies after neutralising the new
+        # origin/master eec5db81. Exact old bodies after neutralising the new
         # short-circuited hooks; this is not a claim of identical opcode timing.
         for name, signature, digest in (
             ("task_air.nut", "OpexAI::_resizeAirFleets(",
-             "e5ed465ab364d2a19c3c4327c64b8ca79ee76ed0eea9db5d60dec0243eaba696"),
+             "19797f4999777ff45fd358e4a6f93bf2354e2a8a2a36fb5180620918bc27abda"),
             ("task_projects.nut", "OpexAI::_tryBuildFleetProject(",
              "a107491c46fe7ee575913b00f8a478c79619f9f0bb2d653766368dbed0b0353c"),
             ("probes.nut", "OpexC117AirThroughputStep(",

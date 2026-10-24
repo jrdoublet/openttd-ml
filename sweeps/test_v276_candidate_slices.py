@@ -292,7 +292,7 @@ class Contracts(unittest.TestCase):
             self.assertIn(difficulty + "_value = 3", block)
         self.assertIn("min_value = 0, max_value = 3", block)
         # air_load_min_pct: un reglage opt-in supplementaire, defaut 0.
-        self.assertLessEqual(info.count("AddSetting("), 59)
+        self.assertLessEqual(info.count("AddSetting("), 60)
         settings = read("settings.nut")
         self.assertIn('local v276 = AIController.GetSetting("v276_cand_slices");', settings)
         self.assertIn("V276_CAND_SLICES = (v276 == 3) ? (bigMap ? 2 : 0) : v276;", settings)
