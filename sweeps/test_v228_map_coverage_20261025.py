@@ -5,11 +5,13 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from sweeps.diag_v228_map_coverage_20261025 import CANONICAL_SEEDS, compare
+from sweeps.diag_v228_map_coverage_20261025 import CANONICAL_SEEDS, compare, read_reference
 
 
-def _reference(map_size):
-    campaign = f"fixture-map{map_size}"
+def _reference(map_size, start_year=1970):
+    campaign = f"fixture-{start_year}-map{map_size}"
+    last_year = start_year + 9
+    checkpoint = f"{last_year}-12-01"
     seeds = list(CANONICAL_SEEDS)
     summary = []
     games = []
@@ -18,7 +20,7 @@ def _reference(map_size):
         games.append({
             "seed": seed, "repeat": 0, "source_bundle_sha256": "fixture-bundle",
             "campaign_id": campaign, "policy_id": "reference", "game_id": game_id,
-            "expected_last_checkpoint": "1979-12-01",
+            "expected_last_checkpoint": checkpoint,
             "game_ok": True, "game_status": "complete", "unattributed_errors": [],
             "companies": {
                 arm: {"run_ok": True, "horizon_complete": True, "status": "complete"}
@@ -32,8 +34,9 @@ def _reference(map_size):
                 "duel_policy_id": "reference",
                 "policy_id": "reference" if arm == "OpexAI" else "AAAHogEx",
                 "company_slot": 0 if arm == "OpexAI" else 1,
-                "last_year": 1979, "profit_year_quarters_valid": 4,
-                "last_date": "1979-12-01", "expected_last_checkpoint": "1979-12-01",
+                "last_year": last_year, "expected_last_year": last_year,
+                "profit_year_quarters_valid": 4,
+                "last_date": checkpoint, "expected_last_checkpoint": checkpoint,
                 "profit_year_coverage": "complete", "status": "complete",
                 "horizon_complete": True, "game_ok": True,
                 "include_in_economic_stats": True, "script_errors": [],
@@ -43,15 +46,15 @@ def _reference(map_size):
                 "n_vehicles": 5 if arm == "OpexAI" else 12,
             })
     return {
-        "campaign_id": campaign, "expected_last_checkpoint": "1979-12-01",
+        "campaign_id": campaign, "expected_last_checkpoint": checkpoint,
         "manifest_sha256": "1" * 64,
-        "start_year": 1970, "map_size": map_size, "years": 10, "repeats": 1,
+        "start_year": start_year, "map_size": map_size, "years": 10, "repeats": 1,
         "policy_id": "reference", "source_bundle_sha256": "fixture-bundle",
         "policies": [{"id": "reference", "role": "reference", "explicit_settings": []}],
         "arms": ["OpexAI", "AAAHogEx"], "design": "Duel partage",
         "openttd_version": "15.3", "opengfx_version": "7.1",
         "aaahogex_settings": {}, "seeds": seeds, "failed_runs": [],
-        "expected_last_year": 1979, "summary": summary, "games": games,
+        "expected_last_year": last_year, "summary": summary, "games": games,
     }
 
 
@@ -75,6 +78,43 @@ class MapReferenceContracts(unittest.TestCase):
         self.assertEqual(result["map1024"]["opex_company_value_floor_1_count"], 1)
         self.assertAlmostEqual(result["map256"]["opex_to_aaa_ratio_of_means_pct"], 66.667, places=3)
         self.assertIn("descriptive", result["interpretation"])
+
+    def test_dynamic_1950_and_1990_ten_year_horizons(self):
+        for start in (1950, 1990):
+            with self.subTest(start=start):
+                data = _reference(8, start)
+                self.small.write_text(json.dumps(data), encoding="utf-8")
+                read, games = read_reference(self.small, expected_start_year=start)
+                self.assertEqual(read["expected_last_year"], start + 9)
+                self.assertEqual(len(games), 40)
+                with self.assertRaisesRegex(ValueError, "horizon"):
+                    read_reference(self.small)  # Still defaults to 1970.
+
+    def test_dynamic_horizon_rejects_wrong_game_and_company_dates(self):
+        for start in (1950, 1990):
+            with self.subTest(start=start):
+                correct = _reference(8, start)
+                for container, field, wrong in (
+                    ("games", "expected_last_checkpoint", "1979-12-01"),
+                    ("summary", "last_year", 1979),
+                    ("summary", "expected_last_year", 1979),
+                    ("summary", "last_date", "1979-12-01"),
+                    ("summary", "expected_last_checkpoint", "1979-12-01"),
+                ):
+                    variant = json.loads(json.dumps(correct))
+                    variant[container][0][field] = wrong
+                    self.small.write_text(json.dumps(variant), encoding="utf-8")
+                    with self.assertRaisesRegex(ValueError, "malsain"):
+                        read_reference(self.small, expected_start_year=start)
+
+    def test_1970_original_scenario_remains_valid_and_exact_date_required(self):
+        self._write()
+        data, games = read_reference(self.small)
+        self.assertEqual(data["start_year"], 1970)
+        self.assertEqual(len(games), 40)
+        original = compare(self.small, self.large)
+        self.assertEqual(original["map256"]["pairs"], 20)
+        self.assertEqual(original["map1024"]["pairs"], 20)
 
     def test_refuse_different_bundle_or_seed_set(self):
         self.large_data["source_bundle_sha256"] = "other"

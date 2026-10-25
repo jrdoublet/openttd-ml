@@ -18,8 +18,14 @@ CANONICAL_SEEDS = (
 )
 
 
-def read_reference(path):
+def read_reference(path, expected_start_year=1970):
+    """Require a healthy complete 20x10 campaign at the expected start year.
+
+    The historical 256²/1024² comparison continues to default to 1970.
+    """
     data = json.loads(Path(path).read_text(encoding="utf-8"))
+    last_year = expected_start_year + 9
+    checkpoint = f"{last_year}-12-01"
     if not data.get("source_bundle_sha256"):
         raise ValueError(f"empreinte du bundle manquante : {path}")
     if data.get("failed_runs") != []:
@@ -28,13 +34,13 @@ def read_reference(path):
     if (len(seeds) != 20 or sorted(seeds) != sorted(CANONICAL_SEEDS)
             or data.get("years") != 10 or data.get("repeats") != 1):
         raise ValueError(f"V228 requiert 20 graines canoniques × 10 ans × 1 repetition : {path}")
-    if data.get("start_year") != 1970 or data.get("expected_last_year") != 1979:
-        raise ValueError(f"horizon 1970-1979 different : {path}")
+    if data.get("start_year") != expected_start_year or data.get("expected_last_year") != last_year:
+        raise ValueError(f"horizon {expected_start_year}-{last_year} different : {path}")
     campaign = data.get("campaign_id")
     policy = data.get("policy_id")
     if (not isinstance(campaign, str) or not campaign
             or policy != "reference"
-            or data.get("expected_last_checkpoint") != "1979-12-01"
+            or data.get("expected_last_checkpoint") != checkpoint
             or not re.fullmatch(r"[0-9a-f]{64}", data.get("manifest_sha256") or "")):
         raise ValueError(f"identite ou manifeste C66.3 invalide : {path}")
     if (data.get("arms") != ["OpexAI", "AAAHogEx"]
@@ -55,7 +61,7 @@ def read_reference(path):
                 or game.get("policy_id") != policy
                 or game.get("source_bundle_sha256") != data["source_bundle_sha256"]
                 or not game.get("game_ok") or game.get("game_status") != "complete"
-                or game.get("expected_last_checkpoint") != "1979-12-01"
+                or game.get("expected_last_checkpoint") != checkpoint
                 or game.get("unattributed_errors")
                 or set(companies) != {"OpexAI", "AAAHogEx"}
                 or any(not company.get("run_ok") or not company.get("horizon_complete")
@@ -71,9 +77,10 @@ def read_reference(path):
         if key[0] not in seeds or key[1] not in ("OpexAI", "AAAHogEx") or key in games:
             raise ValueError(f"jeu inattendu, duplique ou absent : {key}")
         if (entry.get("repeat") != 0 or not entry.get("run_ok")
-                or (entry.get("last_year") or 0) < 1979
-                or entry.get("last_date") != "1979-12-01"
-                or entry.get("expected_last_checkpoint") != "1979-12-01"
+                or entry.get("last_year") != last_year
+                or entry.get("expected_last_year") != last_year
+                or entry.get("last_date") != checkpoint
+                or entry.get("expected_last_checkpoint") != checkpoint
                 or entry.get("profit_year_quarters_valid") != 4
                 or entry.get("profit_year_coverage") != "complete"
                 or entry.get("status") != "complete"
