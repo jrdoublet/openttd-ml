@@ -10,13 +10,14 @@ Lit <engine_dir>/<policy>_seed*_r0.log (journaux moteur, --script-debug) et ecri
 - D : test d'invariance entre cellules (critere principal gele [0.7, 1.4] et max/min <= 1.5) ;
 - E : combien de fois K_dec l'emporte sur le capital de financement, par mode ;
 - V216a : synthese des facteurs et couvertures du fantome ;
-- Rejeu (§6) : rejeu hors ligne avec l'estimateur fantome rescalant le profit rail PASS ;
+- Sensibilite du rang : choc de revenu rail PASS a couts fixes, hors rejeu des achats ;
 - G : arrivee de la concurrence sur les industries fret rail ;
 - Coûts de la sonde (opcodes) et volumes de lignes.
 """
 import collections
 import datetime
 import glob
+import math
 import os
 import re
 import statistics
@@ -310,9 +311,12 @@ def invariance_test_d(cells):
     - Ghost (gain): sum(realised) / sum(predicted * mean(g.a_gain_pct, g.b_gain_pct)/100)
     - Ghost (line): sum(realised) / sum(predicted * mean(g.a_line_pct, g.b_line_pct)/100)
 
-    Criterion: each ratio in [0.7, 1.4] and max/min <= 1.5 across cells with data.
+    Numeric criterion only: four supplied cells, each ratio in [0.7, 1.4],
+    max/min <= 1.5. Caller must verify the A/B/C/D experimental mapping.
+    This does not validate line revenue as a measure of net company gain.
     """
     cell_results = {}
+    missing_ghost = 0
 
     for label, games in cells.items():
         lines_pass = []
@@ -352,6 +356,9 @@ def invariance_test_d(cells):
                 annual_real_rev = real_rev * k
 
                 decomp = j.get('decomp') or {}
+                if any(not finite_number(decomp.get(key)) or not 0 <= decomp[key] <= 100
+                       for key in ('g.a_gain_pct', 'g.b_gain_pct')):
+                    missing_ghost += 1
                 # Ghost gain pct
                 g_ends = [decomp[k] for k in ('g.a_gain_pct', 'g.b_gain_pct')
                           if k in decomp and isinstance(decomp[k], (int, float))]
@@ -389,7 +396,8 @@ def invariance_test_d(cells):
         }
 
     valid_ratios = [c['ratio_ghost_gain'] for c in cell_results.values()
-                    if c['n'] > 0 and c['ratio_ghost_gain'] is not None]
+                    if c['n'] > 0 and finite_number(c['ratio_ghost_gain'])]
+    coverage_complete = len(cells) == 4 and len(valid_ratios) == 4 and missing_ghost == 0
     if not valid_ratios:
         verdict = 'INCOMPLETE (aucun rail PASS 1971)'
         min_r, max_r, spread = None, None, None
@@ -401,17 +409,127 @@ def invariance_test_d(cells):
         spread_ok = (spread <= 1.5)
         verdict = 'PASS' if (range_ok and spread_ok) else 'FAIL'
 
+    numeric_verdict = verdict
+    if not coverage_complete:
+        verdict = 'INCOMPLETE (quatre cellules exploitables et fantomes complets requis)'
+
     return {
         'cells': cell_results,
         'min_ratio': min_r,
         'max_ratio': max_r,
         'spread': spread,
         'verdict': verdict,
+        'numeric_verdict': numeric_verdict,
+        'coverage_complete': coverage_complete,
+        'missing_ghost_rows': missing_ghost,
     }
 
 
+def finite_number(value):
+    return isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value)
+
+
+def rail_pax_fixed_cost_shadow(row):
+    """Conditional revenue shock, NOT a replay of V216a demand/sizing.
+
+    Hold implicit costs, calibration and score denominator fixed. Require both
+    endpoints; unknown fields are never replaced by zero or a neutral factor.
+    Multi-cargo rows need a separate model and are deliberately unsupported.
+    """
+    keys = ('p.revenueAnnual', 'p.profitAnnual', 'fund_profit', 'select_score',
+            'g.a_gain_pct', 'g.b_gain_pct')
+    if any(not finite_number(row.get(k)) for k in keys):
+        return None
+    revenue, profit, funded, score, ga, gb = (row[k] for k in keys)
+    if (not is_rail_pax(row) or revenue < profit or profit <= 0 or funded <= 0
+            or score <= 0 or not (0 <= ga <= 100 and 0 <= gb <= 100)
+            or row.get('c.revenue2', 0) != 0 or row.get('c.carried2', 0) != 0):
+        return None
+    factor = (ga + gb) / 200.0
+    costs = revenue - profit
+    new_profit = revenue * factor - costs
+    new_funded = new_profit * funded / profit
+    return {'revenue': revenue * factor, 'costs': costs, 'raw_profit': new_profit,
+            'fund_profit': new_funded, 'score': max(0.0, score * new_funded / funded)}
+
+
+def fixed_cost_rank_sensitivity(games):
+    """Sensitivity within a fully logged *ranked* list, no new admission.
+
+    Exclude unranked affordable candidates: their opcode/admission gates were
+    not recorded. Unknown or truncated selections are reported, never counted
+    as unchanged. Even a complete logged ranked list is not the whole vivier.
+    """
+    prepared = []
+    unknown = []
+    original_scores = {}
+    total = 0
+    for idx, game in enumerate(games):
+        name = game.get('name', f'game_{idx}')
+        copy = {'name': name, 'select': {}, 'decomp': {}}
+        for seq, sel in game.get('select', {}).items():
+            total += 1
+            rows = [r for r in game.get('decomp', {}).get(seq, []) if r.get('role') == 'ranked']
+            count = sel.get('ranked')
+            reason = None
+            if (not isinstance(count, int) or isinstance(count, bool) or count <= 0
+                    or len(rows) != count
+                    or any(not isinstance(r.get('rank'), int) for r in rows)
+                    or {r.get('rank') for r in rows} != set(range(count))):
+                reason = 'missing_or_truncated_ranked_list'
+            elif (any(not r.get('key') for r in rows)
+                  or len({r['key'] for r in rows}) != len(rows)):
+                reason = 'ambiguous_candidate_keys'
+            converted = []
+            if reason is None:
+                for row in sorted(rows, key=lambda r: r['rank']):
+                    if (row.get('affordable') != 1
+                            or any(not finite_number(row.get(k)) for k in ('fund_profit', 'select_score', 'tier'))
+                            or row['fund_profit'] <= 0 or row['select_score'] <= 0):
+                        reason = 'missing_or_invalid_ranked_fields'
+                        break
+                    new_row = dict(row)
+                    if is_rail_pax(row):
+                        shadow = rail_pax_fixed_cost_shadow(row)
+                        if shadow is None:
+                            reason = 'missing_or_unsupported_economics'
+                            break
+                        new_row.update(fund_profit=shadow['fund_profit'], select_score=shadow['score'])
+                        # Legacy aggregator now receives the already-adjusted economics.
+                        new_row.update({'g.a_gain_pct': 100, 'g.b_gain_pct': 100})
+                    converted.append(new_row)
+            if reason is None:
+                # A neutral shock must reproduce the observed ordering before
+                # attributing any change to economics. V88/tie policies may not
+                # be fully logged; do not invent their counterfactual result.
+                baseline = sorted(rows, key=lambda r: r['rank'])
+                ordered = sorted(baseline, key=lambda r: (r['tier'], r['select_score']), reverse=True)
+                if [r['key'] for r in baseline] != [r['key'] for r in ordered]:
+                    reason = 'baseline_order_not_reproduced'
+                viable = sorted((r for r in converted if r['fund_profit'] > 0),
+                                key=lambda r: (r['tier'], r['select_score']), reverse=True)
+                if (len(viable) > 1 and viable[0]['tier'] == viable[1]['tier']
+                        and viable[0]['select_score'] == viable[1]['select_score']):
+                    reason = 'ambiguous_top_tie'
+            if reason:
+                unknown.append({'game': name, 'seq': seq, 'reason': reason})
+                continue
+            original_scores[(name, seq)] = next(r['select_score'] for r in rows if r['rank'] == 0)
+            copy['select'][seq] = sel
+            copy['decomp'][seq] = converted
+        prepared.append(copy)
+    result = replay_selections_6(prepared)
+    for change in result['detailed_changes']:
+        change['orig_score'] = original_scores[(change['game'], change['seq'])]
+    result.update(observed_selections=total, unknown_selections=unknown,
+                  model='fixed_cost_rank_sensitivity_v1', purchase_replay_complete=False)
+    return result
+
+
 def replay_selections_6(games):
-    """Replay logged selections with ghost gain rescaled rail PASS profit.
+    """Historical v1 calculation, retained to reproduce archived reports.
+
+    Not an economic replay: it scales profit instead of revenue less costs.
 
     For each selection (seq):
     - rail PASS fund_profit *= mean(g.a_gain_pct, g.b_gain_pct)/100
@@ -746,10 +864,16 @@ def main(argv):
             out.append('')
 
             # Replay §6
-            rep = replay_selections_6(game_objs)
-            out += ['### Rejeu des décisions (§6)', '',
-                    f"- sélections rejouées : {rep['total_selections']}",
+            rep = fixed_cost_rank_sensitivity(game_objs)
+            out += ['### Sensibilité du rang à coûts fixes (v1, hors rejeu des achats)', '',
+                    'Choc sur le revenu, coûts/calibration/dénominateur constants ; seuls les projets déjà classés sont considérés.',
+                    'Dimensionnement, seuils opcodes, nouveaux entrants et achats ne sont pas rejoués.',
+                    f"- sélections observées : {rep['observed_selections']}",
+                    f"- sélections calculables : {rep['total_selections']}",
+                    f"- sélections indéterminées : {len(rep['unknown_selections'])}",
                     f"- sélections avec changement du rang 0 : {rep['changed_selections']} (dont {rep['changed_1971_1972']} en 1971-72)", '']
+            for reason, count in sorted(collections.Counter(r['reason'] for r in rep['unknown_selections']).items()):
+                out.append(f'- indéterminées ({reason}) : {count}')
             if rep['replacements']:
                 out += ['| choix initial | remplaçant | occurrences |', '|---|---|---|']
                 for (orig_mk, new_mk), count in sorted(rep['replacements'].items(), key=lambda x: -x[1]):
@@ -783,7 +907,8 @@ def main(argv):
     # D. Invariance test across all cells
     if all_cells:
         d_res = invariance_test_d(all_cells)
-        out += ['## D. Test d\'invariance (critère principal gelé)', '',
+        out += ['## D. Test numérique d\'invariance (hors qualification économique)', '',
+                'Vérifier la correspondance des quatre cellules à A/B/C/D ; revenu de ligne et gain net compagnie ne sont pas interchangeables.',
                 '| cellule / politique | lignes PASS 1971 | somme réalisé | somme prévu actuel | ratio actuel | somme prévu fantôme (gain) | ratio fantôme (gain) | somme prévu fantôme (ligne) | ratio fantôme (ligne) |',
                 '|---|---|---|---|---|---|---|---|---|']
         for cell, c in sorted(d_res['cells'].items()):

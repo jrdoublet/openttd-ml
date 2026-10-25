@@ -202,7 +202,8 @@ class TestAnalyzeV216(unittest.TestCase):
         c2 = make_game(100, 110, 100, 100)
         c1['rail_joins'] = a.join_rail_lines(c1)
         c2['rail_joins'] = a.join_rail_lines(c2)
-        res_pass = a.invariance_test_d({'cellA': [c1], 'cellB': [c2]})
+        cells = {'cellA': [c1], 'cellB': [c2], 'cellC': [c1], 'cellD': [c2]}
+        res_pass = a.invariance_test_d(cells)
         self.assertEqual(res_pass['verdict'], 'PASS')
         self.assertAlmostEqual(res_pass['min_ratio'], 1.0, places=2)
         self.assertAlmostEqual(res_pass['max_ratio'], 1.1, places=2)
@@ -210,8 +211,17 @@ class TestAnalyzeV216(unittest.TestCase):
         # Failing case: ratio outside [0.7, 1.4]
         c_fail = make_game(100, 50, 100, 100)  # ratio = 0.5 < 0.7
         c_fail['rail_joins'] = a.join_rail_lines(c_fail)
-        res_fail = a.invariance_test_d({'cellA': [c_fail]})
+        res_fail = a.invariance_test_d(dict(cells, cellA=[c_fail]))
         self.assertEqual(res_fail['verdict'], 'FAIL')
+
+        for incomplete in ({}, {'cellA': [c1]}, dict(cells, cellD=[])):
+            res = a.invariance_test_d(incomplete)
+            self.assertFalse(res['coverage_complete'])
+            self.assertTrue(res['verdict'].startswith('INCOMPLETE'))
+        del c1['built'][0]['g.b_gain_pct']
+        res = a.invariance_test_d(cells)
+        self.assertFalse(res['coverage_complete'])
+        self.assertTrue(res['verdict'].startswith('INCOMPLETE'))
 
     def test_replay_selections_6(self):
         import sys
