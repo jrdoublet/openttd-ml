@@ -84,7 +84,8 @@ class TestParameterRetirement(unittest.TestCase):
 
     def test_exact_size_after_retirement(self):
         self.assertEqual(len(RETIRED), 43)
-        self.assertEqual(len(self.config), 58)
+        # Le 59e parametre GOOD source n'annule aucun des 43 retraits.
+        self.assertEqual(len(self.config), 59)
 
     def test_retired_settings_have_no_declarations_or_direct_reads(self):
         for name in sorted(RETIRED):

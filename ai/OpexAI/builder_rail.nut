@@ -144,6 +144,28 @@ function OpexRailPlatformCargoValue(anchor, step, length, cargo, coverage, wantP
   return best;
 }
 
+/* Controle de derniere minute : ni le cache C80 ni le recalcul de devis ne
+ * peuvent convertir le quai A GOOD en gare neuve ou sortir du bassin producteur. */
+function OpexGoodSourcePlanSafe(candidate, planA, coverage)
+{
+  if (!("goodSourceJoin" in candidate) || candidate.goodSourceJoin != 1) return true;
+  return OpexGoodSourceStationLive(candidate) && planA != null
+      && ("stationId" in planA) && planA.stationId == candidate.joinStationId
+      && ("anchor" in planA) && ("step" in planA) && ("length" in planA)
+      && OpexRailPlatformCargoValue(planA.anchor, planA.step, planA.length,
+                                    candidate.cargo, coverage, true) > 0;
+}
+
+/* BuildRailStation doit produire exactement le StationID voulu, jamais une gare
+ * autonome qui aurait par hasard pu etre posee a la meme ancre. */
+function OpexGoodSourceBuiltStation(candidate, planA)
+{
+  if (!("goodSourceJoin" in candidate) || candidate.goodSourceJoin != 1) return true;
+  return planA != null && AIMap.IsValidTile(planA.anchor)
+      && AIStation.GetStationID(planA.anchor) == candidate.joinStationId
+      && AICompany.IsMine(AITile.GetOwner(planA.anchor));
+}
+
 /* V190 : Recherche les quais paralleles candidats pour un plan de quai avant construction de la gare. */
 function OpexV190FindParallelPlatformPlans(platform)
 {
@@ -1528,6 +1550,13 @@ function OpexRailPlatformPlans(catalog, candidate)
   if (wanted > catalog.platformLength) wanted = catalog.platformLength;
   local sawA = false;
   local sawB = false;
+  /* Un candidat GOOD sans son identite de jonction est invalide : aucune gare A neuve. */
+  if (("goodSourceJoin" in candidate) && candidate.goodSourceJoin == 1
+      && (!("joinPlatform" in candidate) || candidate.joinPlatform == null
+          || !("joinStationId" in candidate) || candidate.joinStationId < 0)) {
+    return { plansA = null, plansB = null, length = 0, slopeRelaxed = 0,
+             reason = "SITEA", statsA = statsA, statsB = statsB };
+  }
 
   /* V88 / V178 : si le candidat dispose d'un quai joint a une gare existante.
    * Historiquement V88 joint toujours A. `joinEnd=B` (V178, destination partagee) joint B
@@ -1538,14 +1567,30 @@ function OpexRailPlatformPlans(catalog, candidate)
     local jointLength = candidate.joinPlatform.length;
     local joinHasA = false;
     local joinHasB = false;
+    local sourceGood = ("goodSourceJoin" in candidate) && candidate.goodSourceJoin == 1;
+    if (sourceGood && (joinB || !OpexGoodSourceStationLive(candidate))) {
+      return { plansA = null, plansB = null, length = jointLength,
+               slopeRelaxed = 0, reason = "SITEA", statsA = statsA, statsB = statsB };
+    }
     /* V178 : un rattachement a une destination partagee n'est PAS un simple indice de placement,
      * c'est le contrat physique du candidat. Sans ce garde, tomber dans la recherche libre plus
      * bas tout en gardant joinLineId fait ignorer la ligne existante dans _tooClose et permet de
      * contourner ORIGIN_SEPARATION avec une seconde gare. V88 conserve son fallback historique. */
     local strictOriginReuseJoin = (("shared_dest" in candidate) && candidate.shared_dest)
-        || (("convergent_dest" in candidate) && candidate.convergent_dest);
+        || (("convergent_dest" in candidate) && candidate.convergent_dest)
+        || sourceGood;
     if (!joinB) {
       local jointPlansA = OpexJoinPlatformPlans(candidate.joinPlatform, candidate.joinStationId, statsA);
+      if (sourceGood) {
+        /* La jonction physique seule ne prouve pas que le nouveau quai capte GOOD. */
+        local producing = [];
+        foreach (p in jointPlansA) {
+          if (OpexRailPlatformCargoValue(p.anchor, p.step, p.length,
+                  candidate.cargo, catalog.railCoverage, true) > 0) producing.append(p);
+        }
+        jointPlansA = producing;
+        statsA.nCargo = jointPlansA.len();
+      }
       joinHasA = jointPlansA.len() > 0;
       if (jointPlansA.len() > 0) {
         foreach (p in jointPlansA) {
@@ -4736,6 +4781,9 @@ function OpexExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
 
   local planA = plan.planA;
   local planB = plan.planB;
+  if (!OpexGoodSourcePlanSafe(candidate, planA, catalog.railCoverage)) {
+    result.reason = "STNFAIL"; return result;
+  }
   local tiles = plan.tiles;
   /* V100bis : si le devis prouve que l'interface A* memorisee n'existe plus dans le
    * vivier de quais courant, ce n'est pas une impossibilite durable de la paire. Le caller
@@ -4816,6 +4864,9 @@ function OpexExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
     }
   }
 
+  if (!OpexGoodSourcePlanSafe(candidate, planA, catalog.railCoverage)) {
+    result.reason = "STNFAIL"; return result;
+  }
   result.money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
   local need = result.capital + cashReserve;
   if (result.money < need) {
@@ -4847,6 +4898,7 @@ function OpexExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
   local okB = ("v307Prebuilt" in planB) ? OpexV307SinkRoomPrebuiltReady(planB)
       : AIRail.BuildRailStation(OpexV307SinkRoomStationAnchor(planB), planB.direction,
                                 OpexV307SinkRoomPlatforms(planB), planB.length, stIdB);
+  if (okA && !OpexGoodSourceBuiltStation(candidate, planA)) okA = false;
   if (!okA || !okB) {
     /* Avant rollback : DemolishTile ecraserait GetLastError. decision_log=0 n'entre pas. */
     if (DECISION_LOG) {
@@ -5132,7 +5184,8 @@ function OpexBuildLine(catalog, budget, candidate, alternativeRatio, cashReserve
    * (environ deux fois le devis simple) avec une marge ; sinon voie unique historique. */
   local v200Double = OpexV200WantDouble(candidate, cashReserve);
   /* V198 replaces both station sites with independent templates. */
-  if (v200Double && OpexV198Active() && candidate.kind == "freight") {
+  if (v200Double && OpexV198Active() && candidate.kind == "freight"
+      && !("goodSourceJoin" in candidate)) {
     return OpexV198ExecuteRailPlan(catalog, budget, candidate, plan, cashReserve);
   }
   if (v200Double && OpexV190Active() && candidate.kind == "freight") {
@@ -5320,6 +5373,9 @@ function OpexV190ExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
 
   local planA = plan.planA;
   local planB = plan.planB;
+  if (!OpexGoodSourcePlanSafe(candidate, planA, catalog.railCoverage)) {
+    result.reason = "STNFAIL"; return result;
+  }
   local tiles = plan.tiles;
   local replanGeometry = false;
   if (DECISION_LOG) {
@@ -5392,6 +5448,9 @@ function OpexV190ExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
     }
   }
 
+  if (!OpexGoodSourcePlanSafe(candidate, planA, catalog.railCoverage)) {
+    result.reason = "STNFAIL"; return result;
+  }
   result.money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
   local need = result.capital + cashReserve;
   if (result.money < need) {
@@ -5423,6 +5482,7 @@ function OpexV190ExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
   local okB = ("v307Prebuilt" in planB) ? OpexV307SinkRoomPrebuiltReady(planB)
       : AIRail.BuildRailStation(OpexV307SinkRoomStationAnchor(planB), planB.direction,
                                 OpexV307SinkRoomPlatforms(planB), planB.length, stIdB);
+  if (okA && !OpexGoodSourceBuiltStation(candidate, planA)) okA = false;
   if (!okA || !okB) {
     if (DECISION_LOG) {
       local err = AIError.GetLastError();

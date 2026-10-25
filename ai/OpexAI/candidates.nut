@@ -619,7 +619,7 @@ function OpexC60ObserveTownRating(mode, phase, townId)
   return allowed;
 }
 
-function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, originServed, stats, isTransformer = false, profile = null, cruiseCache = null, secondary = null)
+function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, originServed, stats, isTransformer = false, profile = null, cruiseCache = null, secondary = null, sourceJoin = false)
 {
   if (monthly <= 0) {
     stats.noMonthly++;
@@ -665,7 +665,11 @@ function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, orig
    * sert le plus (C46, cartes 1024x1024). */
   local sitable = true;
   local sitableKey = srcTile * 64 + cargo;
-  if (sitableKey in ::OpexSitableCache) {
+  if (sourceJoin) {
+    /* Le site A sera un quai physiquement joint : seule la recherche de quai neuf
+     * est sans objet. La production et BuildRailStation sont testes au builder. */
+    sitable = true;
+  } else if (sitableKey in ::OpexSitableCache) {
     sitable = ::OpexSitableCache[sitableKey];
   } else {
     local sitableMark = profile != null ? OpexOpsMeasureBegin() : null;
@@ -1118,6 +1122,102 @@ function OpexV264EmitConvergent(catalog, stats, profile, cruiseCache, cargo, sou
   return candidate;
 }
 
+/* Nouvelle politique GOOD, distincte de V233 et de V264 : l'usine produit GOOD
+ * parce qu'une ligne rail NON-GOOD de notre compagnie l'alimente deja en B.
+ * Seule cette gare B peut devenir l'origine A de la nouvelle ligne. */
+function OpexGoodSourceService(service, source, cargo)
+{
+  if (!GOOD_SOURCE_RAIL_JOIN || service == null || service.blocked
+      || !AICargo.IsValidCargo(cargo) || AICargo.GetCargoLabel(cargo) != "GOOD") return null;
+  if (service.line == null || service.lineEnd != "B") return null;
+  local line = service.line;
+  if (("scrapping" in line) && line.scrapping) return null;
+  if (!("lineId" in line) || !("dstIndustry" in line) || line.dstIndustry != source.id
+      || !("cargo" in line) || !AICargo.IsValidCargo(line.cargo)
+      || line.cargo == cargo || (("cargo2" in line) && line.cargo2 == cargo)) return null;
+  if (!AIIndustry.IsValidIndustry(source.id) || !AIIndustry.IsCargoAccepted(source.id, line.cargo)) return null;
+  if (!("vehicles" in line) || line.vehicles == null || line.vehicles.len() == 0) return null;
+  local hasTrain = false;
+  foreach (v in line.vehicles) if (AIVehicle.IsValidVehicle(v)) { hasTrain = true; break; }
+  if (!hasTrain) return null;
+  local stationId = service.stationId;
+  if (stationId < 0 || !AIStation.IsValidStation(stationId)
+      || !AIStation.HasStationType(stationId, AIStation.STATION_TRAIN)
+      || !("stationB" in line) || !AIMap.IsValidTile(line.stationB)
+      || AIStation.GetStationID(line.stationB) != stationId
+      || !AICompany.IsMine(AITile.GetOwner(line.stationB))) return null;
+  if (!("platformB" in line) || line.platformB == null) return null;
+  local platform = line.platformB;
+  if (!("anchor" in platform) || !("step" in platform)
+      || !("direction" in platform) || !("length" in platform)
+      || platform.length < 1) return null;
+  return { platform = platform, stationId = stationId,
+           stationTile = line.stationB, lineId = line.lineId };
+}
+
+/* Controle egalement juste avant les phases de devis/construction : un StationID
+ * peut avoir disparu ou etre recycle pendant la recherche A* reprenable. */
+function OpexGoodSourceStationLive(candidate)
+{
+  if (!("goodSourceJoin" in candidate) || candidate.goodSourceJoin != 1) return true;
+  if (!("joinEnd" in candidate) || candidate.joinEnd != "A"
+      || !("joinStationId" in candidate) || !("goodSourceStationTile" in candidate)) return false;
+  local tile = candidate.goodSourceStationTile;
+  local stationId = candidate.joinStationId;
+  return AIMap.IsValidTile(tile) && stationId >= 0
+      && AIStation.IsValidStation(stationId) && AIStation.GetStationID(tile) == stationId
+      && AIStation.HasStationType(stationId, AIStation.STATION_TRAIN)
+      && AICompany.IsMine(AITile.GetOwner(tile));
+}
+
+/* La gare peut survivre au retrait de la ligne qui alimentait l'usine.
+ * Revalider cet approvisionnement lors du choix et apres l'A* reprenable. */
+function OpexGoodSourceSupplyLive(lines, candidate)
+{
+  if (!("goodSourceJoin" in candidate) || candidate.goodSourceJoin != 1) return true;
+  if (!OpexGoodSourceStationLive(candidate) || !("goodSourceLineId" in candidate)) return false;
+  local sourceIndustry = AIIndustry.GetIndustryID(candidate.src);
+  if (!AIIndustry.IsValidIndustry(sourceIndustry)) return false;
+  foreach (line in lines) {
+    if (!("lineId" in line) || line.lineId != candidate.goodSourceLineId) continue;
+    if (("mode" in line) && line.mode != "rail") return false;
+    if (("scrapping" in line) && line.scrapping) return false;
+    if (!("dstIndustry" in line) || line.dstIndustry != sourceIndustry
+        || !("cargo" in line) || !AICargo.IsValidCargo(line.cargo)
+        || line.cargo == candidate.cargo || !AIIndustry.IsCargoAccepted(sourceIndustry, line.cargo)) return false;
+    if (!("stationB" in line) || !AIMap.IsValidTile(line.stationB)
+        || AIStation.GetStationID(line.stationB) != candidate.joinStationId) return false;
+    if (!("vehicles" in line) || line.vehicles == null) return false;
+    foreach (v in line.vehicles) if (AIVehicle.IsValidVehicle(v)) return true;
+    return false;
+  }
+  return false;
+}
+
+function OpexGoodSourceEmit(catalog, stats, profile, cruiseCache, cargo, source,
+                            dstTile, dstTown, monthly, isTransformer, attached)
+{
+  local mark = profile != null ? OpexOpsMeasureBegin() : null;
+  local candidate = OpexMakeCandidate(catalog, "freight", cargo, source.tile,
+      dstTile, monthly, true, stats, isTransformer, profile, cruiseCache, null, true);
+  if (profile != null) {
+    if (dstTown >= 0) { profile.freightTownCandidateOps += OpexOpsMeasureEnd(mark); profile.freightTownCandidateCalls++; }
+    else { profile.freightIndustryCandidateOps += OpexOpsMeasureEnd(mark); profile.freightIndustryCandidateCalls++; }
+  }
+  if (candidate == null) return null;
+  candidate.goodSourceJoin <- 1;
+  candidate.goodSourceLineId <- attached.lineId;
+  candidate.joinPlatform <- attached.platform;
+  candidate.joinStationId <- attached.stationId;
+  candidate.goodSourceStationTile <- attached.stationTile;
+  candidate.joinEnd <- "A";
+  if (dstTown >= 0) candidate.dstTown <- dstTown;
+  if (DECISION_LOG) OpexDecide("GOOD_SOURCE_KEEP", "src=" + source.tile
+      + " dst=" + dstTile + " cargo=GOOD station=" + attached.stationId
+      + " supply_line=" + attached.lineId + " predicted=" + candidate.profitAnnual);
+  return candidate;
+}
+
 /* Industries : on n'apparie que des couples producteur/accepteur du MEME cargo, ce qui garde
  * l'etage 1 lineaire en nombre d'industries plutot que quadratique sur tout le catalogue. */
 function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null, profile = null, cruiseCache = null, freightCargo = null, targetKind = null, targetId = -1)
@@ -1147,6 +1247,8 @@ function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null
       if (OPEX_LEVEL_LIMITS && OpexIndustryPrimaryRivalServed(source.id, source.tile)) continue;
       local monthly = AIIndustry.GetLastMonthProduction(source.id, cargo);
       local ss = served[si];
+      /* Une seule evaluation par usine et cargo, jamais par destination. */
+      local goodSource = OpexGoodSourceService(ss, source, cargo);
       local others2 = null;
       local industryMark = profile != null ? OpexOpsMeasureBegin() : null;
       for (local k = 0; k < sinks.len(); k++) {
@@ -1223,6 +1325,13 @@ function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null
             if (townServiceCache != null) townServiceCache[town.id] <- st;
           }
           if (townServiceMark != null) { profile.freightTownServiceOps += OpexOpsMeasureEnd(townServiceMark); profile.freightTownServiceCalls++; }
+          if (goodSource != null && st == null) {
+            local goodCandidate = OpexGoodSourceEmit(catalog, stats, profile, cruiseCache,
+                cargo, source, town.tile, town.id, monthly, false, goodSource);
+            if (goodCandidate != null) out.append(goodCandidate);
+            if (townGuardMark != null) { profile.freightTownGuardsOps += OpexOpsMeasureEnd(townGuardMark); profile.freightTownGuardsCalls++; }
+            continue;
+          }
           if (ss != null || st != null) {
             stats.pairsOriginServed++;
             if (townGuardMark != null) { profile.freightTownGuardsOps += OpexOpsMeasureEnd(townGuardMark); profile.freightTownGuardsCalls++; }

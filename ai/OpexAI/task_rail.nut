@@ -248,6 +248,11 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
         this._tryAttachSharedDest(candidate);
       }
 
+      if (!OpexGoodSourceSupplyLive(this._lines, candidate)) {
+        if (DECISION_LOG) OpexDecide("GOOD_SOURCE_REJECT", "phase=precheck reason=supply_lost src="
+            + candidate.src + " dst=" + candidate.dst);
+        return { outcome = "rejected", discards = passDiscards };
+      }
       local close = this._tooClose(candidate);
       if (close.hard >= 0) {
         if (AIR_FLOTTE1_SHADOW) OpexAirF1RailPath(project, i, "rejected", "too_close_hard");
@@ -1008,6 +1013,12 @@ function OpexAI::_consumeRailSearch(year)
 {
   local state = this._railSearch;
   local candidate = state.candidate;
+  if (!OpexGoodSourceSupplyLive(this._lines, candidate)) {
+    this._railSearch = null;
+    if (DECISION_LOG) OpexDecide("GOOD_SOURCE_REJECT", "phase=consume reason=supply_lost src="
+        + candidate.src + " dst=" + candidate.dst);
+    return { outcome = "rejected", reason = "supply_lost", error = 0 };
+  }
   /* G3§1 : Un plan en echec (ABND/NOPA/DEAD) n'a besoin d'aucune tresorerie : OpexBuildLine
    * retourne immediatement sans construction. Le test de cash ne doit pas bloquer un plan
    * invalide en phase build indefiniment, sinon _railSearch ne se libere jamais et le
@@ -1105,6 +1116,15 @@ function OpexAI::_recordRailAttempt(candidate, result, posPacked, year, railPlan
                 + (("trains" in p) ? p.trains : -1);
     }
     /* C67.6 rail : une ligne par tentative, reussie ou non, pour l'exposition du cout terrain. */
+    if (("goodSourceJoin" in candidate) && candidate.goodSourceJoin == 1) {
+      local actualStation = result.ok && AIMap.IsValidTile(result.stationA)
+          ? AIStation.GetStationID(result.stationA) : -1;
+      OpexDecide("GOOD_SOURCE_RESULT", "src=" + candidate.src + " dst=" + candidate.dst
+          + " supplier=" + candidate.goodSourceLineId + " join=" + candidate.joinStationId
+          + " actual=" + actualStation + " ok=" + (result.ok ? 1 : 0)
+          + " reason=" + result.reason + " profit=" + candidate.profitAnnual
+          + " cost=" + (("actualCost" in result) ? result.actualCost : 0));
+    }
     OpexDecide("RAIL_ATTEMPT", "src=" + candidate.src + " dst=" + candidate.dst
                + " kind=" + candidate.kind + " manh=" + candidate.distance
                + " reuse=" + ((("originServed" in candidate) && candidate.originServed) ? 1 : 0)
@@ -2662,7 +2682,11 @@ function OpexAI::_revalidateRailStockPlan(candidate, plan)
 
   if (!OpexRailVehicleSlotAvailable()) return { ok = false, reason = "no_vehicle_slot" };
 
-  if (candidate.kind != "pax") {
+  if (("goodSourceJoin" in candidate) && candidate.goodSourceJoin == 1) {
+    if (!OpexGoodSourceSupplyLive(this._lines, candidate)
+        || !("dstTown" in candidate) || !AITown.IsValidTown(candidate.dstTown))
+      return { ok = false, reason = "good_source_invalid" };
+  } else if (candidate.kind != "pax") {
     /* src/dst sont des tuiles (OpexMakeCandidate), pas des IndustryID. */
     if (!AIIndustry.IsValidIndustry(AIIndustry.GetIndustryID(candidate.src)) || !AIIndustry.IsValidIndustry(AIIndustry.GetIndustryID(candidate.dst))) {
       return { ok = false, reason = "industry_closed" };
