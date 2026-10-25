@@ -345,6 +345,14 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "v269_rail_long_max",
+      description = "RAIL-LONG-EARLY-1: 0 = historic V269 freight cap 250; 250..512 = experimental freight-only secondary cap during V217 idle-cash/empty-pool regeneration; requires v269_rail_late_relax > 0; does not extend passenger or AIR bands",
+      min_value = 0, max_value = 512,
+      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
+      step_size = 1, flags = 0
+    });
+
+    AddSetting({
       name = "v284_rail_growth",
       description = "V284: 0 = off; N = grow saturated existing freight trains after N years with 1M cash, preserve speed, then passing loop and second train at platform limit (default 3 since 20/10, user decision after 40x10 +136 k)",
       min_value = 0, max_value = 10,

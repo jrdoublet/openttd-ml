@@ -25,6 +25,10 @@ V264_CONVERGENT_FREIGHT <- true;
  * la regeneration V217 accepte le fret jusqu'a V269_RAIL_MAX_DIST tuiles. */
 V269_RAIL_LATE_RELAX <- 5;
 V269_RAIL_MAX_DIST <- 250;
+/* RAIL-LONG-EARLY-1 : 0 conserve V269 a 250 ; >= 250 autorise une seconde
+ * borne fret sur la recharge V217 seulement (jamais les bandes voyageurs/AIR). */
+V269_RAIL_LONG_MAX <- 0;
+V269_RAIL_LONG_CARGO <- null; // transitoire V217 -> demande asynchrone V276
 V269_IDLE_CASH_MIN <- 1000000;
 V294H_RAIL_DEFER <- 0; // 0 : master ; N : trace rapide de N iterations, puis recherche de fond au reliquat (V294h).
 /* V309 : sondage passif des tours en attente, sans changer l'ordonnanceur. */

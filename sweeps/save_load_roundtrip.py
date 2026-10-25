@@ -109,7 +109,9 @@ def make_patched_check_output(load_savegame=None, strip_start_ai=False, persist_
         # 2) Phase B : charger une sauvegarde existante au lieu de generer une nouvelle carte.
         if load_savegame is not None:
             g_index = args.index("-g")
-            args.insert(g_index + 1, str(load_savegame))
+            # OpenTTD runs from the transient openttdlab cwd, not the runner
+            # cwd. A relative save path therefore silently fails to load.
+            args.insert(g_index + 1, str(Path(load_savegame).resolve()))
 
         cwd = kwargs.get("cwd")
 
