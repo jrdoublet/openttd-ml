@@ -503,7 +503,6 @@ function OpexAirFindSite(town, airport, probes, requiredSlotTownId = -1)
   if (C60_TOWN_RATING_PROBE) {
     OpexC60ObserveTownRating("air", "find_site", town.id);
   }
-  if (OPEX_ECONOMY_OPCODE_COMPAT_FALSE) {}
   if (probes != null && ("stationLimitedTowns" in probes)
       && (town.id in probes.stationLimitedTowns)) return null;
   local key = town.id + "_" + airport.type;

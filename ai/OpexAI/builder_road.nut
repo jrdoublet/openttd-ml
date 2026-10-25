@@ -577,81 +577,6 @@ function OpexRoadRollback(stopA, stopB, depot, vehicles, added)
  * STATION_JOIN_ADJACENT est le piege AAAHogEx (deux gares voisines -> gare neuve) : on passe
  * l'identifiant du primaire et on verifie GetStationID apres pose. Une extra qui n'a pas joint
  * est retiree sur place, la ligne ne meurt pas. */
-function OpexRoadTryJoinStop(stop, stationId, vehType, noTile, added)
-{
-  local tx = AIMap.GetTileX(stop.tile);
-  local ty = AIMap.GetTileY(stop.tile);
-  local fx = AIMap.GetTileX(stop.front);
-  local fy = AIMap.GetTileY(stop.front);
-  local dx = fx - tx;
-  local dy = fy - ty;
-  local perps = [[-dy, dx], [dy, -dx]];
-  foreach (p in perps) {
-    local x2 = tx + p[0];
-    local y2 = ty + p[1];
-    local fx2 = fx + p[0];
-    local fy2 = fy + p[1];
-    if (!OpexRoadInMap(x2, y2) || !OpexRoadInMap(fx2, fy2)) continue;
-    local tile = AIMap.GetTileIndex(x2, y2);
-    local front = AIMap.GetTileIndex(fx2, fy2);
-    if (tile in noTile) continue;
-    if (front == stop.tile) continue;
-    if (!OpexRoadIsFlat(tile) || !AITile.IsBuildable(tile)) continue;
-    if (!OpexRoadIsFlat(front)) continue;
-    if (!AIRoad.IsRoadTile(front) && !AITile.IsBuildable(front)) continue;
-    local ok = false;
-    {
-      local test = AITestMode();
-      ok = (AIRoad.AreRoadTilesConnected(stop.front, front) || AIRoad.BuildRoad(stop.front, front)) &&
-           (AIRoad.AreRoadTilesConnected(front, tile) || AIRoad.BuildRoad(front, tile)) &&
-           AIRoad.BuildRoadStation(tile, front, vehType, stationId);
-    }
-    if (!ok) continue;
-    /* Cette tentative peut poser deux aretes avant d'echouer a poser/join l'arret. Ne pas
-     * reporter ces aretes sur le candidat perpendiculaire suivant ni les laisser au caller si
-     * aucun arret n'est finalement retourne. */
-    local addedStart = added.len();
-    if (!AIRoad.AreRoadTilesConnected(stop.front, front)) {
-      local builtFront = AIRoad.BuildRoad(stop.front, front);
-      if (AIRoad.AreRoadTilesConnected(stop.front, front) && builtFront) {
-        added.append({ from = stop.front, to = front });
-      }
-    }
-    if (!AIRoad.AreRoadTilesConnected(stop.front, front)) {
-      for (local i = added.len() - 1; i >= addedStart; i--) AIRoad.RemoveRoad(added[i].from, added[i].to);
-      added.resize(addedStart);
-      continue;
-    }
-    if (!AIRoad.AreRoadTilesConnected(front, tile)) {
-      local builtStub = AIRoad.BuildRoad(front, tile);
-      if (AIRoad.AreRoadTilesConnected(front, tile) && builtStub) {
-        added.append({ from = front, to = tile });
-      }
-    }
-    if (!AIRoad.AreRoadTilesConnected(front, tile)) {
-      for (local i = added.len() - 1; i >= addedStart; i--) AIRoad.RemoveRoad(added[i].from, added[i].to);
-      added.resize(addedStart);
-      continue;
-    }
-    if (!AIRoad.BuildRoadStation(tile, front, vehType, stationId)) {
-      for (local i = added.len() - 1; i >= addedStart; i--) AIRoad.RemoveRoad(added[i].from, added[i].to);
-      added.resize(addedStart);
-      continue;
-    }
-    if (!AIRoad.IsRoadStationTile(tile) ||
-        AIStation.GetStationID(tile) != stationId ||
-        AIRoad.GetRoadStationFrontTile(tile) != front ||
-        !AIRoad.AreRoadTilesConnected(tile, front)) {
-      if (AIRoad.IsRoadStationTile(tile)) AIRoad.RemoveRoadStation(tile);
-      for (local i = added.len() - 1; i >= addedStart; i--) AIRoad.RemoveRoad(added[i].from, added[i].to);
-      added.resize(addedStart);
-      continue;
-    }
-    return { tile = tile, front = front };
-  }
-  return null;
-}
-
 function OpexRoadBuildTrace(trace, added)
 {
   foreach (edge in trace) {
@@ -866,7 +791,6 @@ function OpexBuildRoadRoute(catalog, budget, plan, candidate)
    * au-dela ils font la queue sur la route et se bloquent (docs/mecanique_jeu.md S11). C'est
    * OpexRoadPhysicalVehicleCap dans economy.nut qui borne candidate.trains. */
   local want = candidate.trains;
-  if (OPEX_ECONOMY_OPCODE_COMPAT_FALSE) {}
   for (local i = 1; i < want; i++) {
     /* `clone` est un MOT RESERVE de Squirrel (l'operateur de copie) : le nommer ainsi fait echouer
      * la compilation du fichier entier, et l'echec est presque muet -- une seule ligne dans la

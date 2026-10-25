@@ -195,7 +195,6 @@ AIR_C83_TARGET_TOWNS <- 6;
 /* Refaire le sac a dos contre la caisse vivante, sans repayer la generation des candidats. */
 /* C36.1 : Caching incremental du vivier post-chantier. */
 /* Compatibilite de cadence VM apres suppression des flags economy morts. Constante interne, jamais configurable ni vraie. */
-OPEX_ECONOMY_OPCODE_COMPAT_FALSE <- false;
 /* C39.0 : sonde passive du bus d'invalidation. A 1, les evenements marquent les
  * dependances qui SERAIENT rafraichies et journalisent la passe mensuelle actuelle ;
  * ils ne changent ni sa cadence, ni les candidats, ni les decisions. */
@@ -208,7 +207,6 @@ C39_AIR_REASON_PROBE <- false;
 C41_REVISION_PROBE <- false;
 /* Compatibilite d'opcodes des anciens flags WATER tous forces false. Ce slot ne pilote
  * aucune fonctionnalite et ne possede aucun reglage utilisateur. */
-WATER_OPCODE_COMPAT_FALSE <- false;
 /* C41.11 : ledger passif du scheduler. Il n'admet ni ne reporte aucune tache. */
 C41_SLACK_LEDGER <- false;
 /* C41 : attribution mensuelle du temps du controleur, uniquement pour diagnostic. */

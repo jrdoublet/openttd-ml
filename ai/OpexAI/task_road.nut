@@ -38,7 +38,6 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
         if (towns.srcTown >= 0) OpexC60ObserveTownRating("road", "build_precheck", towns.srcTown);
         if (towns.dstTown >= 0) OpexC60ObserveTownRating("road", "build_precheck", towns.dstTown);
       }
-      if (OPEX_ECONOMY_OPCODE_COMPAT_FALSE) {}
       if (candidate.kind == "pax") {
         /* Dernier verrou contre un candidat cache : des qu'une des communes a recu une ligne bus,
          * sa croissance passe exclusivement par une extension de cette ligne. */
@@ -332,8 +331,7 @@ function OpexAI::_refleetRoadLines(year)
     foreach (v in vehicles) {
       if (!AIVehicle.IsValidVehicle(v)) continue;
       if (AIVehicle.GetCurrentSpeed(v) == 0) {
-        if (!OPEX_ECONOMY_OPCODE_COMPAT_FALSE || AIVehicle.GetState(v) != AIVehicle.VS_AT_STATION) isAnyWaiting = true;
-        else movingCount++;
+        isAnyWaiting = true;
       } else movingCount++;
     }
 
@@ -351,7 +349,6 @@ function OpexAI::_refleetRoadLines(year)
       continue;
     }
 
-    if (OPEX_ECONOMY_OPCODE_COMPAT_FALSE) {}
     local capacity = ("capacity" in line && line.capacity > 0) ? line.capacity : 25;
     local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
     local extraNeeded = 0;

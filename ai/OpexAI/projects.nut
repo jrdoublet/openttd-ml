@@ -405,7 +405,7 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
   if (doWater && catalog.ships.len() > 0 && catalog.paxCargo >= 0) {
     budget.begin();
     local spWater = PROBE_SPAN_TRACE ? OpexSpanBegin("build.water") : null;
-    waterPlan = OpexWaterPlans(catalog, lines, waterPlans, null, WATER_OPCODE_COMPAT_FALSE ? null : null);
+    waterPlan = OpexWaterPlans(catalog, lines, waterPlans, null, null);
     if (spWater != null) OpexSpanEnd(spWater);
     waterOps = budget.end("project_water");
   } else if (!doWater && priorProjects != null) {

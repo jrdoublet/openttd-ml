@@ -238,8 +238,7 @@ function OpexAI::_v259EvaluateAndRenew(item)
       + " new_type=-1 new_speed=-1 cost=0 gain=0 decision=skip_speed");
     return;
   }
-  bridges.Valuate(AIBridge.GetMaxSpeed);
-  bridges.Sort(AIList.SORT_BY_VALUE, false);
+  OpexBridgeSortBySpeed(bridges);
   local bestBridgeType = bridges.Begin();
   local bestSpeed = AIBridge.GetMaxSpeed(bestBridgeType);
 

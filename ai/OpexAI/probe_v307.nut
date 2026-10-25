@@ -405,7 +405,7 @@ function OpexV307RailType()
   types.Valuate(AIRail.IsRailTypeAvailable);
   types.KeepValue(1);
   local chosen = -1;
-  for (local t = types.Begin(); !types.IsEnd(); t = types.Next()) if (t > chosen) chosen = t;
+  for (local t = types.Begin(); !types.IsEnd(); t = types.Next()) if (OpexRailTypePreferred(t, chosen)) chosen = t;
   if (chosen >= 0) AIRail.SetCurrentRailType(chosen);
   return chosen;
 }
