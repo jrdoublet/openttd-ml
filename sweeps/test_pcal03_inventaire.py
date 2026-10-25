@@ -8,12 +8,15 @@ Vérifie que les spans imbriqués (par=) calculent correctement :
 - L'option --inclusive pour préserver l'ancien comportement si demandé
 """
 
+import gzip
 import json
 import tempfile
 import unittest
 from pathlib import Path
 
-from sweeps.pcal03_inventaire import EngineLogParser, compile_pcal03_inventory, format_table
+from sweeps.pcal03_inventaire import (
+    EngineLogParser, compile_pcal03_inventory, deduplicate_log_files, format_table,
+)
 
 
 class TestPcal03Deduplication(unittest.TestCase):
@@ -25,6 +28,52 @@ class TestPcal03Deduplication(unittest.TestCase):
         self.assertNotIn('OpexAI[probe_span_trace=', doc)
         self.assertEqual(39170, 2 | 256 | 2048 | 4096 | 32768)
         self.assertEqual(39170 & 1, 0)
+
+    def test_guide_uses_only_current_probe_mask(self):
+        guide = (Path(__file__).resolve().parent.parent / "docs" / "pcal03_inventaire_20261021.md").read_text(encoding="utf-8")
+        commands = guide.split("### Protocole et commande", 1)[1].split("## 2.", 1)[0]
+        self.assertIn('OpexAI[probes=39170]', commands)
+        self.assertIn('--script-debug', commands)
+        self.assertNotIn('OpexAI[probes=13]', commands)
+        self.assertNotIn('OpexAI[probe_span_trace=', commands)
+
+    def test_identical_plain_and_gzip_count_once(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            log = root / "reference_seed42_r0.log"
+            content = b"OPEX 1970-01-01 SPAN id=1 par=0 dep=0 n=air.plans op=100\n"
+            log.write_bytes(content)
+            with gzip.open(root / (log.name + ".gz"), "wb") as stream:
+                stream.write(content)
+            chosen = deduplicate_log_files([log.with_suffix('.log.gz'), log, log])
+            self.assertEqual(chosen, [log.resolve()])
+            parser = EngineLogParser()
+            for path in chosen:
+                parser.parse_file(path)
+            self.assertEqual(parser.spans["air.plans"]["calls"], 1)
+            self.assertEqual(parser.spans["air.plans"]["exclusive_ops"], 100)
+
+    def test_conflicting_plain_and_gzip_refused_even_if_totals_equal(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            log = root / "reference_seed42_r0.log"
+            log.write_bytes(b"OPEX 1970-01-01 SPAN id=1 par=0 dep=0 n=air.plans op=100\n")
+            with gzip.open(root / (log.name + ".gz"), "wb") as stream:
+                stream.write(b"OPEX 1970-01-02 SPAN id=1 par=0 dep=0 n=air.plans op=100\n")
+            with self.assertRaisesRegex(ValueError, "copies de partie contradictoires"):
+                deduplicate_log_files([log, root / (log.name + ".gz")])
+
+    def test_same_game_name_in_two_campaigns_kept_separate(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            files = []
+            for name in ("reference", "variant"):
+                directory = root / name
+                directory.mkdir()
+                log = directory / "reference_seed42_r0.log"
+                log.write_text(f"OPEX 1970-01-01 SPAN id=1 par=0 dep=0 n={name} op=100\n", encoding="utf-8")
+                files.append(log)
+            self.assertEqual(deduplicate_log_files(files), [path.resolve() for path in files])
 
     def test_synthetic_tree_deduplication(self):
         """Vérifie sur un arbre synthétique (parent + 2 enfants + petit-enfant)

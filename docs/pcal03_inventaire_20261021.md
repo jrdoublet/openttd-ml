@@ -14,13 +14,13 @@ OpexAI dispose de plusieurs niveaux d'instrumentation passive :
 | Sonde / Mécanisme | Réglage NoAI (`info.nut` / `settings.nut`) | Étiquette de journal exacte | Format et grandeurs relevées | Fichier source |
 |---|---|---|---|---|
 | **Chronométrage de bloc** | N/A (fonction helper universelle) | N/A (utilisé en mémoire) | `OpexOpsMeasureBegin()` / `OpexOpsMeasureEnd(mark)` : calcule `elapsedTicks * 10000 + delta_opcodes` | [`ai/OpexAI/budget.nut:19-31`](file:///home/deploy/projects/wt-pcal03/ai/OpexAI/budget.nut#L19-L31) |
-| **Comptabilité budgétaire** | `debug_signs=1` (ou `probes & 2 != 0`) | Panneaux `OC\|`, `OP\|`, `OS\|`, `OW\|`, `BT\|`, `BC\|` | Cumul par catégorie (`cat_*`, `cand_*`, `build_*`) dans `OpexBudget` ; `BC\|<cat>\|<ops>k\|...` | [`ai/OpexAI/budget.nut:33-97`](file:///home/deploy/projects/wt-pcal03/ai/OpexAI/budget.nut#L33-L97), [`ai/OpexAI/task_report.nut:904-946`](file:///home/deploy/projects/wt-pcal03/ai/OpexAI/task_report.nut#L904-L946) |
-| **Trace hiérarchique de spans** | `probe_span_trace=1` (ou `probes & 8 != 0`) | `OPEX <date> SPAN` et `OPEX <date> SPAN_AGG` | `SPAN id=<id> par=<par> dep=<dep> n=<name> t0=<tick> tk=<ticks> op=<opcodes>`<br>`SPAN_AGG par=<id> n=<name> cnt=<n> op=<opcodes>` | [`ai/OpexAI/probes.nut:2631-2740`](file:///home/deploy/projects/wt-pcal03/ai/OpexAI/probes.nut#L2631-L2740) |
-| **Profil boucle principale** | `probe_loop_ops=1` (détourne vers `_mainLoopProfiled`) | `LOOP_OPS` | `LOOP_OPS y=<year> post=<name> n=<n> ops=<ops> tk=<ticks> max=<max>` | [`ai/OpexAI/probes.nut:2485-2588`](file:///home/deploy/projects/wt-pcal03/ai/OpexAI/probes.nut#L2485-L2588) |
-| **Phases de construction rail** | `decision_log=1` (ou `probes & 4 != 0`) | `RAIL_ATTEMPT` | `... iters=<iters> ops=<ops> search_ops=<sops> phases=<plans>/<search>/<stations>/<track>/<trains>` | [`ai/OpexAI/task_rail.nut:1171-1201`](file:///home/deploy/projects/wt-pcal03/ai/OpexAI/task_rail.nut#L1171-L1201) |
-| **Régénérations de catalogue** | `probe_catalogue=1` (ou `probes & 8 != 0`) | `C76_REGEN` | `OPEX <date> C76_REGEN phase=regen kind=<kind> reason=<reason> year=<y> ops=<ops>` | [`ai/OpexAI/probes.nut:2321-2327`](file:///home/deploy/projects/wt-pcal03/ai/OpexAI/probes.nut#L2321-L2327), [`ai/OpexAI/task_report.nut:1342-1372`](file:///home/deploy/projects/wt-pcal03/ai/OpexAI/task_report.nut#L1342-L1372) |
+| **Comptabilité budgétaire** | `probes & 2 != 0` (panneaux `DEBUG_SIGNS`) | Panneaux `OC\|`, `OP\|`, `OS\|`, `OW\|`, `BT\|`, `BC\|` | Cumul par catégorie (`cat_*`, `cand_*`, `build_*`) dans `OpexBudget` ; `BC\|<cat>\|<ops>k\|...` | [`ai/OpexAI/budget.nut:33-97`](file:///home/deploy/projects/wt-pcal03/ai/OpexAI/budget.nut#L33-L97), [`ai/OpexAI/task_report.nut:904-946`](file:///home/deploy/projects/wt-pcal03/ai/OpexAI/task_report.nut#L904-L946) |
+| **Trace hiérarchique de spans** | `probes & 4096 != 0` | `OPEX <date> SPAN` et `OPEX <date> SPAN_AGG` | `SPAN id=<id> par=<par> dep=<dep> n=<name> t0=<tick> tk=<ticks> op=<opcodes>`<br>`SPAN_AGG par=<id> n=<name> cnt=<n> op=<opcodes>` | [`ai/OpexAI/probes.nut:2631-2740`](file:///home/deploy/projects/wt-pcal03/ai/OpexAI/probes.nut#L2631-L2740) |
+| **Profil boucle principale** | `probes & 2048 != 0` (détourne vers `_mainLoopProfiled`) | `LOOP_OPS` | `LOOP_OPS y=<year> post=<name> n=<n> ops=<ops> tk=<ticks> max=<max>` | [`ai/OpexAI/probes.nut:2485-2588`](file:///home/deploy/projects/wt-pcal03/ai/OpexAI/probes.nut#L2485-L2588) |
+| **Phases de construction rail** | `probes & 256 != 0` (`DECISION_LOG`) | `RAIL_ATTEMPT` | `... iters=<iters> ops=<ops> search_ops=<sops> phases=<plans>/<search>/<stations>/<track>/<trains>` | [`ai/OpexAI/task_rail.nut:1171-1201`](file:///home/deploy/projects/wt-pcal03/ai/OpexAI/task_rail.nut#L1171-L1201) |
+| **Régénérations de catalogue** | `probes & 32768 != 0` | `C76_REGEN` | `OPEX <date> C76_REGEN phase=regen kind=<kind> reason=<reason> year=<y> ops=<ops>` | [`ai/OpexAI/probes.nut:2321-2327`](file:///home/deploy/projects/wt-pcal03/ai/OpexAI/probes.nut#L2321-L2327), [`ai/OpexAI/task_report.nut:1342-1372`](file:///home/deploy/projects/wt-pcal03/ai/OpexAI/task_report.nut#L1342-L1372) |
 | **Coût détaillé catalogue** | `catalog_cost_probe=1` *(retiré en V239)* | `CATALOG_COST` | `OPEX <date> CATALOG_COST reason=<r> total_ops=<total> mode_regen_ops=... air_ops=...` | [`ai/OpexAI/probes.nut:767-815`](file:///home/deploy/projects/wt-pcal03/ai/OpexAI/probes.nut#L767-L815) *(inactif au master)* |
-| **Révisions moteurs rail V257** | `decision_log=1` | `V257_OPS` | `OPEX <date> V257_OPS ops=<ops> cursor=<cur>` | [`ai/OpexAI/task_v257.nut:183`](file:///home/deploy/projects/wt-pcal03/ai/OpexAI/task_v257.nut#L183) |
+| **Révisions moteurs rail V257** | `probes & 256 != 0` (`DECISION_LOG`) | `V257_OPS` | `OPEX <date> V257_OPS ops=<ops> cursor=<cur>` | [`ai/OpexAI/task_v257.nut:183`](file:///home/deploy/projects/wt-pcal03/ai/OpexAI/task_v257.nut#L183) |
 
 > [!NOTE]
 > La compagnie `[0]` dans les journaux NoAI est toujours OpexAI ; la compagnie `[1]` est l'adversaire (AAAHogEx).
@@ -28,11 +28,11 @@ OpexAI dispose de plusieurs niveaux d'instrumentation passive :
 ### Protocole et commande pour une campagne profilée
 
 Pour mesurer ces postes sur une nouvelle campagne profilée sans modifier le code :
-- **Réglages OpexAI :** `probe_span_trace=1,probe_loop_ops=1,probe_catalogue=1,decision_log=1` (ou masque agrégé `probes=13`).
+- **Réglage OpexAI :** `probes=39170` (panneaux 2 + `DECISION_LOG` 256 + boucle 2048 + spans 4096 + catalogue 32768). Les réglages individuels ont été retirés ; `probes=13` activerait notamment le bit 1 de **toutes** les sondes. Ce profil influe sur le rythme d'exécution : il sert au diagnostic, pas à une comparaison économique avec une partie non profilée.
 - **Commande hôte (profil PC local 10 CPU / 10 workers) :**
   ```bash
   python3 sweeps/run_c66_reference.py --campaign pcal03_profil_3x3 \
-    --reference "OpexAI[probe_span_trace=1,probe_loop_ops=1,probe_catalogue=1,decision_log=1]" \
+    --reference "OpexAI[probes=39170]" --script-debug \
     --years 3 --seeds 42 7 100 --cpus 10 --memory 8g --max-workers 10
   ```
 - **Extraction automatique des chiffres :**

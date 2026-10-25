@@ -41,6 +41,7 @@ from __future__ import annotations
 
 import argparse
 import gzip
+import hashlib
 import json
 import os
 import re
@@ -524,6 +525,35 @@ def format_table(data: Dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
+def deduplicate_log_files(paths: List[Path]) -> List[Path]:
+    """Read each game once; reject conflicting plain/compressed copies.
+
+    The parent directory is part of the identity: different campaigns may
+    legitimately contain the same seed and arm with different observations.
+    """
+    games: Dict[Path, Tuple[Path, str]] = {}
+    for path in paths:
+        path = path.resolve()
+        logical = path.with_suffix("") if path.suffix == ".gz" else path
+        if logical in games and games[logical][0] == path:
+            continue
+        digest = hashlib.sha256()
+        open_fn = gzip.open if path.suffix == ".gz" else open
+        with open_fn(path, "rb") as stream:
+            for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+                digest.update(chunk)
+        if logical in games:
+            first, first_hash = games[logical]
+            if digest.hexdigest() != first_hash:
+                raise ValueError(f"copies de partie contradictoires : {first} et {path}")
+            # Prefer the uncompressed file if both representations are present.
+            if path.suffix != ".gz":
+                games[logical] = (path, first_hash)
+        else:
+            games[logical] = (path, digest.hexdigest())
+    return [entry[0] for entry in games.values()]
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Inventaire chiffré des postes d'opcodes précalculables (PCAL-03)."
@@ -562,8 +592,13 @@ def main():
         print("Erreur: aucun fichier .log ou .log.gz trouvé.", file=sys.stderr)
         sys.exit(1)
 
+    try:
+        unique_logs = deduplicate_log_files(log_files)
+    except (OSError, EOFError, ValueError) as error:
+        parser.error(str(error))
+
     engine_parser = EngineLogParser()
-    for f in log_files:
+    for f in unique_logs:
         engine_parser.parse_file(f)
 
     data = compile_pcal03_inventory(engine_parser, inclusive=args.inclusive)
