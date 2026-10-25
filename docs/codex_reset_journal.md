@@ -363,3 +363,50 @@ graines nouvelles avant toute proposition de table. Les fixtures ne démontrent
 aucun gain économique et ne requalifient aucun résultat historique. Aucun
 Docker ni partie lancé, aucun push, merge, changement de configuration Git
 ou accès à un autre worktree ou au dépôt principal.
+
+## 25 octobre 2026 — V306 : contrats du repli des tables peu peuplées
+
+Branche locale : `codex-reset-20261025_0620`. Arbre initial propre, départ
+`7f41f00c`. Commit de la tâche : `5fb39118`
+(`test(v306): cover sparse calibration table fallbacks`).
+
+**Tâche choisie :** compléter les contrats manquants de la validation croisée
+hors ligne du chantier ouvert V306, avant son ablation et sa validation sur
+graines nouvelles. Les passes précédentes ont déjà traité ingestion, doublons,
+valeurs non finies et couverture des graines ; elles n'ont pas été recommencées.
+
+**Fichiers :**
+
+- `sweeps/test_analyse_calibration_projets.py` : trois nouveaux tests numériques.
+  Ils vérifient le seuil de cinq ratios valides par cellule, sans compter les
+  valeurs absentes, nulles, négatives ou les ratios débordants ; le repli vers
+  le mode après exclusion de tous les bras/répétitions de la graine testée ;
+  le repli vers le modèle brut quand le mode manque ou qu'aucun apprentissage
+  n'est utilisable. Toutes les observations de test restent comptées, un pli
+  vide conserve ses erreurs à `None`, et les rapports passent le JSON strict.
+- `docs/taches.md` : avancement des contrats V306, chantier laissé ouvert.
+- `docs/codex_reset_journal.md` : cette entrée ajoutée après le commit de la tâche.
+
+Aucun outil d'analyse, code IA, défaut ou hash de contrat modifié.
+RAIL-LONG-EARLY-1, AIR-FLOTTE-1 et C115 non modifiés.
+
+**Tests exécutés :**
+
+| Commande | Résultat |
+|---|---|
+| `python3 -m unittest discover -s sweeps -p 'test_analyse_calibration_projets.py' -v` avant édition | 10 tests OK |
+| Même commande après ajout | 13 tests OK |
+| `python3 -m unittest discover -s sweeps -p 'test_*.py'` avant édition | 2 450 tests, OK avec 9 ignorés et 2 échecs attendus |
+| Même suite complète après ajout | 2 453 tests, OK avec les mêmes 9 ignorés et 2 échecs attendus |
+| `git diff --check` et `git diff --cached --check` | OK |
+
+Commandes lancées via `rtk` / `rtk proxy`. Journaux temporaires :
+`/tmp/codex_reset_v306_fallback_20261025_before.log` et
+`/tmp/codex_reset_v306_fallback_20261025_after.log`.
+
+**Reste à valider en banc :** aucune partie nécessaire pour cet ajout de tests.
+V306 conserve son besoin d'ablation par variables disponibles au choix et de
+validation sur de vraies graines nouvelles avant toute proposition de table.
+Les fixtures ne prouvent aucun gain économique et ne requalifient aucun rapport
+historique. Aucun Docker ni partie lancé, aucun push, merge, changement de
+configuration Git ou accès à un autre worktree ou au dépôt principal.
