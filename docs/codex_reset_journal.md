@@ -309,3 +309,57 @@ Les fixtures ne démontrent aucun gain économique. Aucun rapport historique
 recalculé ou requalifié, aucun Docker ni partie lancé, aucun push, merge,
 changement de configuration Git ou accès à un autre worktree ou au dépôt
 principal.
+
+## 25 octobre 2026 — V306 : valeurs et ratios non finis exclus de la calibration
+
+Branche locale : `codex-reset-20261025_0620`. Arbre initial propre, départ
+`f6a9462d`. Commit de la tâche : `d0bae8c1`
+(`fix(v306): reject nonfinite calibration values and ratios`).
+
+**Tâche choisie :** fiabiliser les entrées de l'outil d'analyse hors ligne
+du chantier ouvert V306, dans `docs/taches.md`. Défauts reproduits sur
+fixtures avant correction : `inf` et `1e999` pouvaient devenir des facteurs
+infinis ; une année non finie faisait échouer le chargement ; des opérandes
+finis pouvaient aussi produire un ratio infini lors du calcul.
+
+**Fichiers :**
+
+- `sweeps/analyse_calibration_projets.py` : les nombres non finis reviennent
+  à la valeur inconnue ou au défaut demandé par l'appelant ; validation des
+  opérandes et du résultat des ratios, également réutilisée pour les coûts.
+  Ces ratios invalides ne contribuent pas aux facteurs ni aux résumés.
+- `sweeps/test_analyse_calibration_projets.py` : quatre régressions couvrant
+  conversion, opérandes et débordements, puis ingestion texte/gzip jusqu'au
+  rapport. Les observations valides restent comptées, un coût d'exploitation
+  nul reste zéro, et les rapports des fixtures passent la sérialisation JSON
+  stricte (`allow_nan=False`).
+- `docs/taches.md` : suivi du correctif, ablation et validation sur graines
+  nouvelles laissées ouvertes.
+- `docs/codex_reset_journal.md` : cette entrée dans un second commit.
+
+Aucun code IA, défaut, schéma collecté ou hash de contrat modifié.
+RAIL-LONG-EARLY-1, AIR-FLOTTE-1 et C115 non modifiés.
+
+**Tests exécutés :**
+
+| Commande | Résultat |
+|---|---|
+| `python3 -m unittest discover -s sweeps -p 'test_analyse_calibration_projets.py' -v` avant correction | 10 tests, défauts reproduits : 12 échecs et 8 erreurs de tests/sous-tests |
+| Même commande après correction | 10 tests OK |
+| `python3 sweeps/analyse_calibration_projets.py --selftest` | OK |
+| `python3 -m unittest discover -s sweeps -p 'test_*.py'` avant édition | 2 446 tests, OK avec 9 ignorés et 2 échecs attendus |
+| Même suite complète après correction | 2 450 tests, OK avec les mêmes 9 ignorés et 2 échecs attendus |
+| `git diff --check` et `git diff --cached --check` | OK |
+
+Commandes lancées via `rtk` / `rtk proxy`. Journaux temporaires :
+`/tmp/codex_reset_v306_ablation_20261025_before.log`,
+`/tmp/codex_reset_v306_nonfinite_20261025_red.log` et
+`/tmp/codex_reset_v306_nonfinite_20261025_after.log`.
+
+**Reste à valider en banc :** aucune partie nécessaire pour ce filtre Python ;
+ni intégration moteur ni schéma collecté ne changent. V306 conserve son besoin
+d'ablation par variables disponibles au choix et de validation sur de vraies
+graines nouvelles avant toute proposition de table. Les fixtures ne démontrent
+aucun gain économique et ne requalifient aucun résultat historique. Aucun
+Docker ni partie lancé, aucun push, merge, changement de configuration Git
+ou accès à un autre worktree ou au dépôt principal.
