@@ -238,8 +238,11 @@ class Launcher(unittest.TestCase):
     def test_launcher_wiring(self):
         source = (ROOT / "sweeps" / "run_c66_reference.py").read_text(encoding="utf-8")
         main = source[source.index("def main("):]
-        inject = main.index("args.reference = inject_probes(args.reference, args.probes)")
-        self.assertIn("args.variant = inject_probes(args.variant, args.probes)", main)
+        inject = main.index("args.reference = inject_probes(args.reference, args.probes, allow_panel_free=args.allow_panel_free)")
+        self.assertIn("args.variant = inject_probes(args.variant, args.probes, allow_panel_free=args.allow_panel_free)", main)
+        self.assertIn('parser.add_argument("--allow-panel-free"', source)
+        self.assertIn('args.allow_panel_free and args.probes != 0', main)
+        self.assertIn('"C66_ALLOW_PANEL_FREE=1"', main)
         self.assertLess(main.index("args.script_debug = True"), main.index("if args.script_debug:"))
         # injection avant toute construction de la commande du banc
         self.assertLess(inject, main.index('benchmark += ["--reference", args.reference]'))

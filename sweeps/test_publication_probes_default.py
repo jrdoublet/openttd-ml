@@ -25,6 +25,8 @@ class PublicationProbesDefault(unittest.TestCase):
         self.assertEqual(inject_probes("OpexAI"), "OpexAI[probes=2]")
         self.assertEqual(inject_probes("OpexAI[mode_air=0]"), "OpexAI[mode_air=0,probes=2]")
         self.assertEqual(inject_probes("OpexAI[probes=514]"), "OpexAI[probes=514]")
+        self.assertEqual(inject_probes("OpexAI", 0, allow_panel_free=True), "OpexAI[probes=0]")
+        self.assertEqual(inject_probes("OpexAI[probes=0]", 0, allow_panel_free=True), "OpexAI[probes=0]")
         for value in (0, 4, 256, 512, -1, 2147483648):
             with self.subTest(value=value), self.assertRaises(ValueError):
                 inject_probes(None, value)
@@ -59,8 +61,11 @@ class PublicationProbesDefault(unittest.TestCase):
         self.assertEqual(effective_ai_settings(info, (("probes", 514),))["effective"]["probes"], 514)
 
     def test_active_direct_opex_constructors_keep_signs(self):
-        # Inventory invariant: every direct OpexAI descriptor uses the same fallback.
+        # Inventory invariant: economic/direct benchmarks keep the same fallback.
+        # Sole exception: dedicated normal-play smoke MUST compare published
+        # defaults (no injected panels) against exactly probes=2 as control.
         found = 0
+        normal_smoke_masks = []
         for path in (ROOT / "sweeps").glob("*.py"):
             if path.name.startswith("test"):
                 continue
@@ -76,9 +81,18 @@ class PublicationProbesDefault(unittest.TestCase):
                 found += 1
                 with self.subTest(path=path.name, line=node.lineno):
                     self.assertGreaterEqual(len(node.args), 3)
+                    if path.name == "smoke_normal_play_signs.py":
+                        self.assertEqual(len(node.args), 3)
+                        self.assertIsInstance(node.args[2], ast.Tuple)
+                        mask = ast.literal_eval(node.args[2])
+                        self.assertIn(mask, ((), (("probes", 2),)))
+                        normal_smoke_masks.append(mask)
+                        continue
                     self.assertIsInstance(node.args[2], ast.Call)
                     self.assertEqual(node.args[2].func.id, "benchmark_opex_settings")
         self.assertGreater(found, 0)
+        self.assertEqual(set(normal_smoke_masks), {(), (("probes", 2),)})
+        self.assertEqual(len(normal_smoke_masks), 2)
 
 
 if __name__ == "__main__":

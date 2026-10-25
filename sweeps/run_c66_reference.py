@@ -59,11 +59,11 @@ def _output(args):
     return subprocess.check_output(args, cwd=ROOT, text=True).strip()
 
 
-def inject_probes(spec: str | None, probes: int = 2) -> str:
+def inject_probes(spec: str | None, probes: int = 2, *, allow_panel_free: bool = False) -> str:
     """V167 : ajoute probes=N a une politique OpexAI[...] (ou a la politique par defaut)."""
     if not 0 <= probes <= 2147483647:
         raise ValueError("--probes doit etre entre 0 et 2147483647")
-    if not probes & 3:
+    if not probes & 3 and not (allow_panel_free and probes == 0):
         raise ValueError("--probes doit garder les panneaux (bit 2, ou bit 1 = tout)")
     if spec is None or spec == "OpexAI":
         return f"OpexAI[probes={probes}]"
@@ -75,7 +75,7 @@ def inject_probes(spec: str | None, probes: int = 2) -> str:
         # The policy owns an explicit mask; the launcher only supplies omissions.
         value = int(next(item.split("=", 1)[1] for item in body.split(",")
                          if item.split("=", 1)[0] == "probes"))
-        inject_probes(None, value)  # Retain the signs/range validation.
+        inject_probes(None, value, allow_panel_free=allow_panel_free)  # Retain signs/range validation.
         return spec
     return f"OpexAI[{body},probes={probes}]" if body else f"OpexAI[probes={probes}]"
 
@@ -126,6 +126,8 @@ def main():
                         help="V167 : injecte probes=N si absent dans chaque bras OpexAI (défaut 2 ; somme de bits, "
                              "voir ai/OpexAI/settings.nut) ; tout bit hors panneaux active "
                              "--script-debug, sans quoi le journal moteur reste vide.")
+    parser.add_argument("--allow-panel-free", action="store_true",
+                        help="Autoriser explicitement --probes 0 pour un banc de gardes de diagnostics; sinon refus par securite")
     parser.add_argument("--cpus", type=int, default=3)
     parser.add_argument("--network",
                         help="Mode reseau Docker (ex. 'host'). Non precise = pont Docker par "
@@ -178,10 +180,12 @@ def main():
             parser.error(str(exc))
 
     if args.probes is not None:
+        if args.allow_panel_free and args.probes != 0:
+            parser.error("--allow-panel-free requiert --probes 0 explicite")
         try:
-            args.reference = inject_probes(args.reference, args.probes)
+            args.reference = inject_probes(args.reference, args.probes, allow_panel_free=args.allow_panel_free)
             if args.variant is not None:
-                args.variant = inject_probes(args.variant, args.probes)
+                args.variant = inject_probes(args.variant, args.probes, allow_panel_free=args.allow_panel_free)
         except ValueError as exc:
             parser.error(str(exc))
         effective_masks = [int(item.split("=", 1)[1])
@@ -289,6 +293,7 @@ def main():
         "-e", f"C66_GIT_SHA={git_sha}",
         "-e", f"C66_GIT_DIRTY={git_dirty}",
         "-e", f"C66_GIT_STATUS_B64={git_status_b64}",
+        *(["-e", "C66_ALLOW_PANEL_FREE=1"] if args.allow_panel_free else []),
         "-v", "openttd-lab-home:/home/lab",
         "-v", f"{mount_root}:/work",
         "-w", container_workdir,

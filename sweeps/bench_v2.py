@@ -149,7 +149,7 @@ def parse_opex_variant(name):
             # panneaux (bit 2) doivent rester actifs pour la meme raison que debug_signs.
             if not 0 <= value <= 2147483647:
                 raise ValueError("probes doit etre entre 0 et 2147483647")
-            if not value & 3:
+            if not value & 3 and not (value == 0 and os.environ.get("C66_ALLOW_PANEL_FREE") == "1"):
                 raise ValueError("probes doit garder les panneaux (bit 2, ou bit 1 = tout)")
         else:
             spec = setting_specs.get(key)
