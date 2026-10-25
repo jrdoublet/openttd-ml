@@ -254,3 +254,58 @@ L'entretien concerne toute l'infrastructure de la compagnie ; aucune part
 historiques ne découlent des fixtures. Aucun Docker ni partie lancé ; aucun
 push, merge, changement de configuration Git ou accès à un autre worktree
 ou au dépôt principal.
+
+## 25 octobre 2026 — V306 : journaux texte/gzip comptés une seule fois
+
+Branche locale : `codex-reset-20261025_0620`. Arbre initial propre, départ
+`0cc5b2c0`. Commit de la tâche : `066ec3f4`
+(`fix(v306): deduplicate text and gzip calibration logs`).
+
+**Tâche choisie :** fiabiliser l'ingestion des journaux du chantier ouvert V306,
+dans `docs/taches.md`. Défaut reproduit sur fixtures avant correction : la
+présence d'un même journal en `.log` et `.log.gz` créait deux parties, avec
+double comptage des lignes-années, coûts, non-appariés et observations des plis.
+Cette intervention est distincte du correctif précédent sur les graines nouvelles.
+
+**Fichiers :**
+
+- `sweeps/analyse_calibration_projets.py` : identité du journal indépendante
+  du suffixe gzip, avec conservation du bras, de la graine et de la répétition.
+  Les copies aux données extraites identiques comptent une seule fois ; les
+  copies contradictoires interrompent l'analyse en nommant les deux chemins.
+  Ce contrat est documenté dans le module et le lecteur.
+- `sweeps/test_analyse_calibration_projets.py` : trois régressions sur journaux
+  synthétiques. Elles couvrent la parité texte/gzip/mixte et les comptages du
+  rapport ; l'isolation des bras, graines et répétitions malgré les mêmes IDs
+  de ligne ; les conflits sur revenu, coût, flotte initiale et appariement.
+- `docs/taches.md` : avancement du lecteur V306, ablation et validation
+  économique laissées ouvertes.
+- `docs/codex_reset_journal.md` : cette entrée dans un second commit.
+
+Aucun code IA, défaut, schéma collecté ou hash de contrat modifié.
+RAIL-LONG-EARLY-1, AIR-FLOTTE-1 et C115 non modifiés.
+
+**Tests exécutés :**
+
+| Commande | Résultat |
+|---|---|
+| `python3 -m unittest discover -s sweeps -p 'test_analyse_calibration_projets.py' -v` avant correction | 6 tests, 6 échecs de tests/sous-tests reproduisant doublons et conflits ignorés |
+| Même commande après correction | 6 tests OK |
+| `python3 sweeps/analyse_calibration_projets.py --selftest` | OK |
+| `python3 -m unittest discover -s sweeps -p 'test_*.py'` avant édition | 2 443 tests, OK avec 9 ignorés et 2 échecs attendus |
+| Même suite complète après correction | 2 446 tests, OK avec les mêmes 9 ignorés et 2 échecs attendus |
+| `git diff --check` et `git diff --cached --check` | OK |
+
+Commandes lancées via `rtk` / `rtk proxy`. Journaux temporaires :
+`/tmp/codex_reset_v306_duplicates_20261025_before.log`,
+`/tmp/codex_reset_v306_duplicates_20261025_red.log` et
+`/tmp/codex_reset_v306_duplicates_20261025_after.log`.
+
+**Reste à valider en banc :** aucune partie nécessaire pour ce correctif du
+lecteur Python ; ni intégration moteur ni schéma collecté ne changent. V306
+conserve son besoin d'ablation par variables disponibles au choix et de
+validation sur de vraies graines nouvelles avant toute proposition de table.
+Les fixtures ne démontrent aucun gain économique. Aucun rapport historique
+recalculé ou requalifié, aucun Docker ni partie lancé, aucun push, merge,
+changement de configuration Git ou accès à un autre worktree ou au dépôt
+principal.
