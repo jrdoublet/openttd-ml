@@ -753,6 +753,18 @@ function OpexC75KPassBypassIsNewLine(project)
       || project.mode == "road" || project.mode == "water";
 }
 
+/* N75 : la restitution et sa preuve d'exposition sont propres a UNE passe de
+ * projets. Aucune sauvegarde : _tryBuildProjects ne reprend pas cette boucle
+ * apres Load. Aucun appel a cette sonde en mode 0. */
+function OpexN75C75RefundLog(phase, year, project, rank, financeCapital, reason)
+{
+  AILog.Info("C75_REFUND setting=" + N75_C75_REFUND + " " + phase
+      + " year=" + year + " key=" + OpexProjectAttemptKey(project)
+      + " mode=" + project.mode + " rank=" + rank
+      + " profit=" + project.profitAnnual + " finance=" + financeCapital
+      + " available=" + OpexAvailableCapital() + " reason=" + reason);
+}
+
 /* R12 : helpers extraits de _tryBuildProjects, sans changement de comportement.
  * Les etats de passe restent des locaux de l'orchestrateur, passes explicitement. */
 
@@ -1013,6 +1025,7 @@ function OpexAI::_tryBuildProjects(year)
   local c75StopReason = null;
   local c75BuiltKeys = {};
   local c75BypassConsumed = false;
+  local n75RefundUsed = false;
   local c121FirstYearAirBatch = MODE_AIR
       && this._generationStageMonth >= 0
       && year == (this._generationStageMonth - 1) / 12;
@@ -1200,7 +1213,9 @@ function OpexAI::_tryBuildProjects(year)
     }
 
     local c121ChainAttempt = false;
+    local n75PostRefundBypass = false;
     if (builtCount > 0) {
+      local n75BypassConsumedHere = false;
       local projCap = OpexProjectFinanceCapital(project);
       local c75KPass = (c75KPassData != null) ? c75KPassData.K_pass : 0;
       local availCap = -1;
@@ -1220,9 +1235,17 @@ function OpexAI::_tryBuildProjects(year)
             if (!c75BypassConsumed) {
               c75BypassThisProject = true;
               c75BypassConsumed = true;
+              if (N75_C75_REFUND != 0
+                  && (year == OPEX_START_YEAR + 1 || year == OPEX_START_YEAR + 2)) {
+                if (!n75RefundUsed) n75BypassConsumedHere = true;
+                else if (N75_C75_REFUND == 2) n75PostRefundBypass = true;
+              }
               if (R1_R3_TEST_ONLY && project.mode == "air") OpexR1R3AirTrace(this, project, i,
                 "consume", "eligible", false, c75BypassConsumed, builtCount, c75KPass, projCap, availCap);
               OpexC75BypassRecordConsumed(year, project, projCap, availCap, c75KPass, builtCount);
+            } else if (N75_C75_REFUND == 1 && n75RefundUsed) {
+              OpexN75C75RefundLog("postrefund=shadow_candidate", year, project, i,
+                                  projCap, "original_bypass_still_consumed");
             }
           }
         }
@@ -1257,12 +1280,24 @@ function OpexAI::_tryBuildProjects(year)
       {
         if (OpexC80ProjectBelowMarginalFloor(this._lines, project)) {
           c80DiscardsThisPass++;
+          if (n75BypassConsumedHere && !n75RefundUsed) {
+            n75RefundUsed = true;
+            OpexN75C75RefundLog("phase=refund", year, project, i, projCap,
+                                "c80_marginal_before_constructor");
+            if (N75_C75_REFUND == 2) c75BypassConsumed = false;
+          } else if (n75PostRefundBypass) {
+            OpexN75C75RefundLog("postrefund=rejected", year, project, i,
+                                projCap, "c80_marginal");
+          }
           if (C69_BOTTLENECK_PROBE) {
             OpexC80RecordMarginalDiscard(year, i, project);
           }
           continue;
         }
       }
+      if (n75PostRefundBypass)
+        OpexN75C75RefundLog("postrefund=attempt", year, project, i, projCap,
+                            "restored_bypass_c80_pass");
     }
 
     local mode = project.mode;
@@ -1502,6 +1537,10 @@ function OpexAI::_tryBuildProjects(year)
 
       }
     }
+    if (builtCount > 0 && n75PostRefundBypass
+        && (OpexC69AttemptKey(project) in c75BuiltKeys))
+      OpexN75C75RefundLog("postrefund=built", year, project, i,
+                          OpexProjectFinanceCapital(project), "constructor_built");
     this._advanceRailSearchThroughput();
   }
   this._advanceRailSearchThroughput();

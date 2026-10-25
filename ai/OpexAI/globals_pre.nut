@@ -467,6 +467,8 @@ AIR_DEMAND_PAX_CARGO <- -1;
 /* C75 bis : autorise une seule nouvelle ligne finançable a franchir K_pass par passe. Defaut 0. */
 C75_KPASS_BYPASS_LEDGER <- null;
 C75_KPASS_BYPASS_LEDGER_YEAR <- -1;
+/* N75 : restitution ponctuelle du premier bypass C75 rejete par C80, 1971-72. */
+N75_C75_REFUND <- 0;
 /* Facteur de financement rail applique dans OpexProjectFinanceCapital.
  * Reglage experimental, defaut historique 170. */
 RAIL_FINANCE_BIAS_PCT <- 100;

@@ -60,11 +60,12 @@ class TestV259BridgeRenew(unittest.TestCase):
         self.assertIn('AIController.GetSetting("v259_bridge_renew")', self.settings)
 
     def test_ceiling_after_parameter_cleanup(self):
-        # 43 vrais retraits ; PO03/C77 et PO02 adoptes sont conserves.
-        self.assertEqual(self.info.count("AddSetting("), 58)
+        # 43 vrais retraits ; 58 reglages historiques + 1 opt-in N75 hors inventaire.
+        self.assertEqual(self.info.count('name = "n75_c75_refund"'), 1)
+        self.assertEqual(self.info.count("AddSetting(") - 1, 58)
         self.assertIn('name = "v259_bridge_renew"', self.info)
         test_v246 = (Path(__file__).resolve().parent / "test_v246_fixed_policies.py").read_text(encoding="utf-8")
-        self.assertIn('self.assertLessEqual(info.count("AddSetting("), 58)', test_v246)
+        self.assertIn('self.assertLessEqual(info.count("AddSetting(") - 1, 58)', test_v246)
 
     def test_zero_opcode_guard_at_default(self):
         # 1. Garde dans scheduler.nut

@@ -13,6 +13,11 @@ class OpexAIInfo extends AIInfo {
    * Entre IA, la regle est de jouer a armes egales, sans auto-handicap. */
   function GetSettings()
   {
+    AddSetting({ name = "n75_c75_refund",
+      description = "N75: refund first C75 Kpass bypass vetoed by C80 in start years +1/+2 (0 off, 1 shadow, 2 on)",
+      min_value = 0, max_value = 2,
+      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
+      flags = 0 });
     AddSetting({ name = "c77_intent_defer",
       description = "C77: defer intents (1=portfolio/worker, 2=also AIR year/subsidy expiry; default 2 since 23/10, porte B pass)",
       min_value = 0, max_value = 2,

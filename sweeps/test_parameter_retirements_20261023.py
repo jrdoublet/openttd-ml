@@ -84,7 +84,8 @@ class TestParameterRetirement(unittest.TestCase):
 
     def test_exact_size_after_retirement(self):
         self.assertEqual(len(RETIRED), 43)
-        self.assertEqual(len(self.config), 58)
+        self.assertIn("n75_c75_refund", self.config)
+        self.assertEqual(len(self.config) - 1, 58)  # inventaire historique hors opt-in N75
 
     def test_retired_settings_have_no_declarations_or_direct_reads(self):
         for name in sorted(RETIRED):

@@ -434,9 +434,26 @@ class PO01CContracts(unittest.TestCase):
             'settings.nut': '6946a9ed7d3864e22714167b4fbb4fe74d8e6b95b39c0fac0054cfde80bc214b',
             'info.nut': '1bc76539590e9272aa59849baa54d0248a74ac5f993e0d0e77d679906c7ad2c3',
         }
+        # Neutraliser exactement le nouvel opt-in N75 avant SHA : les empreintes
+        # PO01C de la reference restent intactes et tout autre edit est detecte.
+        n75_only = {
+            'info.nut': (
+                b'    AddSetting({ name = "n75_c75_refund",\n'
+                b'      description = "N75: refund first C75 Kpass bypass vetoed by C80 in start years +1/+2 (0 off, 1 shadow, 2 on)",\n'
+                b'      min_value = 0, max_value = 2,\n'
+                b'      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,\n'
+                b'      flags = 0 });\n'
+            ),
+            'settings.nut': b'  N75_C75_REFUND = AIController.GetSetting("n75_c75_refund");\n',
+        }
         for name, digest in expected.items():
             with self.subTest(name=name):
-                self.assertEqual(hashlib.sha256((AI / name).read_bytes()).hexdigest(), digest)
+                data = (AI / name).read_bytes()
+                if name in n75_only:
+                    self.assertEqual(data.count(n75_only[name]), 1,
+                                     f'opt-in N75 doit apparaitre exactement une fois dans {name}')
+                    data = data.replace(n75_only[name], b'', 1)
+                self.assertEqual(hashlib.sha256(data).hexdigest(), digest)
 
         # PO03 ajoute exactement deux lignes dans _dispatchReactiveIntention.
         # Conserver la preuve byte-a-byte de tout le reste de orchestrator.nut :
