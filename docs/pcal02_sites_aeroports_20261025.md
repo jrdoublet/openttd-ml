@@ -5,10 +5,13 @@ Conception préalable et suivi du smoke, 25 octobre 2026. Branche locale `pcal02
 `pcal02_air_sites=0` aux quatre difficultés. Aucun moteur, Docker, banc,
 push ou fusion autorisé par cette tâche. Commit local demandé.
 
-**État courant :** la [suite du smoke b](#suite-du-smoke-vps-pcal02_smoke_1x3_20261025b)
-remplace les règles initiales de demande réactive, d'invalidation globale et de
-publication en fin de scan décrites plus bas. Les sections précédentes restent
-l'historique des livraisons `2e8351f7` et `1b8b3afc`, pas leur qualification.
+**État courant :** l'[autopsie du smoke c](#autopsie-du-smoke-vps-pcal02_smoke_1x3_20261025c)
+confirme que le catalogue a déjà trouvé les sites avant PCAL-02. **Aucune rustine
+de consommation ajoutée ; défaut 0 conservé.** Le levier à étudier est le coût ou
+l'ordonnancement du balayage existant, sans deuxième recherche géométrique.
+La [suite du smoke b](#suite-du-smoke-vps-pcal02_smoke_1x3_20261025b) décrit le
+code livré en `09993db9` ; les sections antérieures restent l'historique des
+livraisons `2e8351f7` et `1b8b3afc`, pas leur qualification.
 
 ## Gisement observé et limites de la mesure
 
@@ -587,3 +590,238 @@ Restent à vérifier au moteur : compilation de cette version, suspension/coût
 de chaque nouvelle micro-étape, `calc ready → hit → built` et ses délais,
 Save/Load, puis économie nette et effet de calendrier/profit. **Aucun gain
 qualifié ni adoption ; le smoke b concerne seulement le code précédent.**
+
+## Autopsie du smoke VPS `pcal02_smoke_1x3_20261025c`
+
+Reprise du 25/10, branche `pcal02`, HEAD propre
+`09993db9ab8eae0582802367c312c8a56497ea9e`, après `2e8351f7` et `1b8b3afc`.
+Lecture des artefacts fournis, sans les modifier ni relancer de partie : JSON,
+JSONL, manifeste, bundle et journaux sous `results/pcal02_smoke_1x3_20261025c*`.
+Le manifeste identifie ce même HEAD propre et le bundle SHA-256
+`286548338928daf866bd4f4c92613c886bb058932cd73c95ec16c50155a8a01b`.
+Les **85 fichiers OpexAI du bundle sont identiques octet pour octet** aux
+sources locales. Les lignes de code ci-dessous désignent donc aussi le code
+exécuté. Les numéros de journal désignent
+`results/pcal02_smoke_1x3_20261025c_engine/pcal02_seed42_r0.log`, sauf mention
+explicite du bras `reference`.
+
+**Conclusion : PCAL-02 refait ici une recherche de sites déjà payée par le
+catalogue C78/C121. Le chantier reçoit un plan muni de ses sites ; il n'a pas
+à les rechercher une seconde fois.** L'absence de hit ne démontre pas un hook
+oublié dans le finder : il est consulté, mais avant que le stock soit prêt.
+Conformément à la demande, aucune modification Squirrel ni branchement tardif
+sur le chantier. Remplacer une ancre à ce stade changerait la couverture et
+l'économie C121 d'un projet déjà évalué.
+
+### Les trois premières poses et l'origine des sites
+
+| Ville | Choix normal C96, avant PCAL prêt | Premier `ready=1` PCAL | Première pose `AIR_BUILD` | Dernière consultation du finder attestée avant la pose |
+|---|---|---|---|---|
+| 23 | 03/01/1970, ancre **45637**, `valid=4`, 4 sondes ; journal :154 | 27/02/1970, id 5 ; :1712 | **09/02/1971**, ligne 19, **11→23**, `hubsite`, station B 45 ; :9110–9111 | Miss le 21/02/1970, :1513, **six jours avant** le premier ready ; le site normal existe déjà depuis janvier |
+| 24 | 04/01/1970, ancre **55663**, `valid=4`, 4 sondes ; :179 | 11/10/1970, id 18 ; :6430 | **18/11/1970**, ligne 11, **15→24**, `hubsite`, station B 29 ; :7279–7280 | Recherche initiale le 04/01 ; contrôle de desserte dans le scan réactif le 21/02, :1523 ; aucun hit avant/après |
+| 38 | 04/01/1970, ancre **55072**, `valid=3`, 4 sondes ; :169 | 24/03/1970, id 7 ; :2202 | **09/08/1970**, ligne 6, **36→38**, `hubsite`, station B 18 ; :5150–5151 | Miss le 21/02/1970, :1515, **31 jours avant** le premier ready ; le site normal existe déjà depuis janvier |
+
+Les ancres sont les champs `best` de `C96_SITE`. **`AIR_BUILD src/dst` sont
+les tuiles des villes**, ici 44107/54641/54044 pour 23/24/38, pas les ancres
+des aéroports (`task_air.nut:296`). `AIR_BUILD` ne réémet pas l'ancre ni l'ID
+du scan producteur : le lien à l'ancre est reconstitué par les choix C96 et
+le transport sans remplacement du site décrit ci-dessous, pas par une trace
+de pose contenant ces champs.
+
+Chemin du choix à la construction (fichiers relatifs à `ai/OpexAI/`) :
+
+1. `_dispatchAirCatalogPhase` (`scheduler_tasks.nut:133`) appelle
+   `_dispatchCatalog` (:317), puis `OpexC78ContinueCatalogAirRebuild` (:242).
+   Son appel à **`OpexAirPlans` (:275)** utilise le curseur privé C78 et
+   `targetTownId=-1`. Le scan principal est identifié **scan 1** dans le
+   journal. Sur cette carte **256²**, `v278_air_lazy_sites=2` signifie OFF
+   (`settings.nut:49`) : ce n'est pas le parcours paresseux 1024².
+2. `OpexAirPlans` (`air_planning.nut:1717`) appelle
+   `OpexAirPlansStepFindSites` (:1594), puis **`OpexAirPlansFindSites`
+   (:296)**. Ce dernier appelle **`OpexAirFindSite` (:366)**. Le finder
+   (`air_sites.nut:503`) essaie PCAL-02 **:511–513, avant le cache :520**,
+   puis le retour positif du cache ou `OpexAirFindSiteCatchmentListed`
+   (:378, appel :569). C96 choisit et journalise le gagnant, écrit
+   `AIR_SITE_CACHE` et appelle seulement **`OpexPCAL02SeedSite`** aux
+   retours :427/:483/:493. Cette notification fait revalider/rechercher le
+   même site au worker ; elle ne transforme pas le gagnant C96 en hit.
+   Pour 24, la demande initiale peut rester sans `miss` : huit entrées de
+   villes plus peuplées existent déjà (:118–172 du journal), et
+   `OpexPCAL02Request` refuse la neuvième position
+   (`pcal02_air_sites.nut:85–86`) ; le finder continue normalement.
+3. Le site rejoint `scanSites` (`air_planning.nut:370`), est revalidé puis
+   conservé dans **`resumeState.sites` (:476)**. Les reprises de hubs gardent
+   aussi `air0310HubSnap.sites` (`OpexAir0310HubSnapshotStore`, :941) et les
+   recopient sans nouvelle recherche (`OpexAir0310HubSnapshotPrepare`, :911).
+   **`AIR_PLAN_SETS scan=1` contient les trois villes dès le 24/06/1970**
+   (journal :4309), puis 38 passe des sites aux hubs après sa pose (:5162),
+   24 après la sienne (:7289), et 23 après la sienne (:9118).
+   Un changement de topologie réactualise ce stock et les hubs ; il ne
+   redemande pas les sites déjà conservés au finder.
+4. **`OpexAirPlansHubToSite` (:1157)** prend `site = sites[sj]` (:1194),
+   crée **`siteB=site`, `reuseA=true`, `reuseB=false` (:1238–1241)**,
+   puis `OpexC121CatalogChoice` (:1245) chiffre ce plan. Le choix C121
+   utilise les sites dans sa clé (`air_catalog_c121.nut:109–115`) ; il ne
+   recherche pas une autre ancre. `OpexAirStoreRoutePlan`
+   (`air_engine_choice.nut:18`) conserve le plan. Publication partielle
+   par `OpexC78PublishPartialAir` (`scheduler_tasks.nut:152`), conversion
+   `OpexProjectFromAir` (`projects_builders.nut:262`, **`payload=plan` :287**).
+5. **`_tryBuildAirProject` (`task_air.nut:142`)** reprend `project.payload`
+   (:146), revalide les deux sites (:154/:160), garde **`buildPlan=plan`
+   (:193)** et appelle **`OpexBuildAirRoute` (:238)**. Ce constructeur
+   (`air_construction.nut:177`) pose les ancres du plan, dont le bout B
+   (:309), sans appeler `FindSite`. `OpexPCAL02BuildSiteOk`
+   (`pcal02_air_sites.nut:501`) retourne aussitôt vrai **:503 si le site
+   n'a pas de champ `pcal02`** ; `OpexPCAL02Built` (:531) est muet dans
+   le même cas (:533). Seul un hit du finder aurait attaché cette preuve
+   (:239). Le `AIR_BUILD` est émis après succès (:296 de `task_air.nut`).
+
+Le scan réactif **scan 2**, déclenché par `C83_REACTION town=18` le 19/02
+(journal :1485), revoit notamment 23/24/38 avant qu'elles soient prêtes.
+La restriction de slot est réservée à **la ville cible 18**
+(`air_planning.nut:362–366`) : `requiredSlotTownId >= 0` n'explique pas
+l'absence de hit des trois autres villes. Les miss de 23 et 38 confirment
+le passage dans le hook. Ses plans `hubsite` doivent avoir un bout 18
+(:1198–1199) : ils ne sont pas les trois paires construites ci-dessus.
+PO-01c n'exécute ses premières tranches journalisées que le 02/01/1972
+(:20555), après ces poses ; sa copie générée n'est pas leur producteur.
+
+Les **huit** `AIR_BUILD` touchant ces villes comprennent seulement les
+trois premières poses ci-dessus. Les cinq suivants réemploient un aéroport :
+38→41 le 15/12/1970 (ligne 13, `hubsite`, 38 côté hub), 24→17 le 26/04/1971
+(25, `hubsite`, 24 côté hub), 11→38 le 04/07/1971 (30, `hubhub`), 6→24 le
+02/09/1971 (37, `hubhub`), 41→23 le 10/10/1971 (40, `hubhub`). Ils ne
+constituent pas cinq autres occasions de consommer un site neuf PCAL-02.
+
+### Coûts comparés : duplication, sans gain net démontré
+
+Recomptage du bras ON : **1 917 calc**, dont 1 594 `deny=none`,
+289 `stock_ready`, 34 `entry_expired` ; **15 miss, 40 stale, 0 hit, 0 built**.
+Les six villes ayant eu un ready sont bien 18/19/23/24/34/38 (13 entrées).
+La somme des **`calc op_spent` vaut 4 164 735**, avant leurs propres
+émissions. Ce n'est pas le total PCAL-02 : le dernier calc, le 17/12/1972
+(:29157), porte **`total_ops_before=5 563 841`**, donc **au moins 5,564 M**
+déjà comptabilisés avant ce dernier appel. Ce compteur inclut aussi les
+émissions précédentes et les appels sans entrée journalisable
+(`pcal02_air_sites.nut:479–491`). Il n'y a pas de bilan final permettant
+d'en faire un total exact à la fin du journal. Aucun `budget_overrun`,
+aucun changement de tick dans les calc émis ; maximum `op_spent=2 485`
+avant émission. Ces observations ne mesurent pas tout le coût ON/OFF.
+
+Le journal existant expose les bilans suivants, **un seul des deux messages
+`AIR_PLAN_PERF` compté par scan**, car la version avec et sans `OPEX` est
+le même compteur émis deux fois :
+
+| Bras / scan terminé | Date du bilan | `total_ops` catalogue AIR | `ops_sites` inclus dans ce total | Sites trouvés / sondes | Journal |
+|---|---|---:|---:|---|---|
+| ON, scan 2 réactif | 02/03/1970 | 650 869 | 298 428 | 40 / 66 | `pcal02_seed42_r0.log:1813` |
+| OFF, scan 2 réactif | 01/03/1970 | 617 092 | 266 465 | 40 / 63 | `reference_seed42_r0.log:1685` |
+| OFF, scan 1 principal | 15/10/1971 | 6 699 095 | **1 428 610** | 41 / 318 | `reference_seed42_r0.log:16381` |
+| OFF, somme des deux scans terminés | — | **7 316 187** | **1 695 075** | Compteurs de scans, pas sites physiques distincts | Deux lignes précédentes |
+
+Ainsi, les **4,165 M** des seuls calc PCAL-02 représentent **2,46 fois**
+les **1,695 M** de recherche de sites publiés par les scans terminés de
+référence ; le compteur PCAL plus large dépasse déjà **3,28 fois** ce
+montant. Les périmètres diffèrent : PCAL comprend admission/anticipation et
+émissions selon le compteur, `ops_sites` couvre la recherche normale, et
+`total_ops` comprend aussi les paires et leur économie. **Aucun de ces
+ratios n'est une économie causale d'opcodes.** Ne pas additionner les
+sous-compteurs C121 ou les deux émissions de chaque bilan à ces totaux.
+
+**Limite précise du bras ON :** son scan 1 ne publie aucun `AIR_PLAN_PERF`
+dans ce journal, alors que `air_cat_scan` tourne encore au 30/12/1972
+(:29435). La recherche déjà prouvée en janvier ne vaut donc pas zéro opcode,
+mais son coût cumulé complet n'est pas récupérable dans ces seuls bilans.
+Le coût ON connu de 298 428 est celui du scan réactif seulement. Ne pas
+substituer le total OFF au total ON manquant. Les panneaux `OA|`/compteurs
+JSON donnent un coût de planification **réparti par projet tenté**
+(`projects.nut:445`, `task_air.nut:235–247`), pas un compteur complet de
+balayage ; leurs 4 579 799 ON / 7 837 965 OFF ne comblent pas ce manque.
+
+Le levier pertinent est donc **avancer ou rendre moins cher le balayage
+existant**, en réutilisant son résultat et ses reprises, plutôt que maintenir
+une seconde géométrie privée qui arrive après lui. Pour ces trois villes,
+les sites sont déjà trouvés les 3–4 janvier : avancer leur géométrie ne peut
+à lui seul expliquer les poses d'août, novembre et février suivant. Le canal
+à mesurer ensuite serait l'évaluation/publication des paires et leur
+financement ; cette autopsie n'attribue pas toute l'attente à un seul canal.
+Aucune modification de ces mécanismes ni nouveau banc dans cette reprise.
+
+### Pourquoi encore 34 `worker_expired` ?
+
+**Les 34 portent `cause=ttl`, zéro `epoch`, `year`, `engine` ou `reset`.**
+Les six autres stale sont `ahead_not_next cause=none`. Le correctif de b
+sur les invalidations globales fonctionne sur cette observation ; ce n'est
+plus la cause des pertes de stock.
+
+Le TTL reste **90 jours depuis la demande**, y compris attente en file et
+affinage après le premier ready (`pcal02_air_sites.nut:52–56`, :90–94).
+Le worker prend la première entrée non terminée par population, après le
+curseur d'anticipation (:448–459), et enlève au plus une entrée expirée par
+appel. L'expiration peut être constatée tard si une entrée moins prioritaire
+n'est pas inspectée : **24 à 90 jours, 2 à 91, 5 à 92, 2 à 95 et 1 à 137**.
+Exemple : ville 34, id 10, évincée le 10/07/1970 à 137 jours (:4556),
+9 406 opcodes de géométrie perdus ; dernière progression le 06/04. Ce retard
+de nettoyage ne prolonge pas sa validité pour le consommateur.
+
+| État observé avant éviction TTL | Entrées | Somme `prepared_ops` évincée |
+|---|---:|---:|
+| Site prêt, recherche terminée | 12 | 744 632 |
+| Site prêt, recherche encore en cours | 1 | 75 140 |
+| Recherche terminée sans site | 13 | 948 610 |
+| Recherche commencée mais sans site prêt | 4 | 138 145 |
+| Géométrie jamais commencée | 4 | 0 |
+| **Total** | **34** | **1 906 527** |
+
+La classification utilise le dernier calc antérieur à chaque stale, par
+**ID**, avec `ready/done/valid`, et `prepared_ops` du stale ; les quatre
+entrées à zéro n'ont aucun calc de progression. Ce proxy géométrique n'est
+pas à ajouter aux 4,165/5,564 M ci-dessus. Répartition des évictions :
+18 **9**, 34 **8**, 23 **5**, 19 **4**, 22 **4**, 38 **2**, 24 **1**, 10 **1**.
+
+Deux causes structurelles expliquent la répétition : aucune nouvelle
+consultation du finder après ready dans le scan déjà muni de ses sites,
+et l'anticipation qui redemande les mêmes villes non desservies après une
+expiration, sans savoir que leurs sites existent dans le lot C78. Les
+recherches terminées vides sont également redemandées après le TTL. Les
+villes plus petites attendent derrière la première recherche par population ;
+quatre demandes expirent même sans géométrie. Allonger le TTL ne crée pas
+le consommateur absent de ce cycle et ne résout pas cette duplication.
+
+En outre, « prêt un jour, construit plus tard » ne garantit pas une entrée
+fraîche à la pose : pour **38**, id 7 prêt le 24/03 expire le 04/04, bien
+avant le 09/08 ; pour **23**, le dernier stock prêt avant la pose (id 20,
+06/12/1970) expire le **01/02/1971**, huit jours avant sa pose. Pour **24**,
+id 18 est bien prêt le 11/10, terminé le 01/11 et non expiré à la pose du
+18/11 : le plan conservé l'ignore néanmoins. Les **38 jours** entre ce
+premier ready et `AIR_BUILD` sont une avance de disponibilité observée,
+**pas un `lead_days` d'ancre consommée**, puisqu'il n'y a eu aucun hit.
+
+### Décision et validation de cette reprise
+
+Le JSON confirme deux duels complets et sains, quatre trimestres valides
+terminaux, **`diagnostic_only`**, pas d'échantillon d'adoption : Opex passe
+de **2 492 048 à 2 432 110 £/an**, delta **−59 938 £/an** ; valeur de
+4 860 385 à 4 406 390 £ (**−9,34 %**, tension avec la garde −5 %).
+Une seule graine avec journal et coût ON supplémentaire ne qualifie ni un
+gain ni un rejet économique général. **Aucune porte ni adoption.**
+
+Modification documentaire uniquement : ce rapport et l'entrée PCAL-02 de
+`docs/taches.md`. **Aucun hash rebasé dans cette reprise** : sources et
+contrats inchangés ; les rebases historiques restent explicites plus haut.
+SHA-256 conservés : `pcal02_air_sites.nut`
+`fa61665352fdfceb3ce124f9b618162a594561c7a035a5f225d4430326f9d839` ;
+`po01c_generators.nut`
+`4457ef28548d3c14854e260d146a776df100e1900a95ccebee1ad90af966c422`.
+Le générateur `sweeps/po01c_generate.py` produit exactement la copie livrée,
+vérifié sans réécriture ; les dix projections OFF restent exactes et le
+défaut reste 0 aux quatre difficultés.
+
+Validation demandée : depuis `sweeps/`,
+`python3 -m unittest discover -p 'test_*.py'`, `TMPDIR` sous le worktree :
+**2 459 tests en 27,164 s, OK**, 9 ignorés (mêmes dépendances/fixtures que
+précédemment), 2 échecs attendus. Sortie locale ignorée :
+`results/pcal02_trace_c_unittest_20261025.log`. `git diff --check` sans
+diagnostic. Aucun moteur, Docker, partie, écriture hors worktree,
+configuration Git, push ou merge ; aucun changement de RAIL-LONG-EARLY-1,
+AIR-FLOTTE-1, C115 ou IDLE-1. Commit local demandé, sans publication.
