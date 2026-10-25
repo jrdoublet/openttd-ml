@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # V277 + V279 ensemble (opcodes AIR : publication rapide et re-selection memorisee), contre master.
+# Reprise 25/10 : master actualise (4c64ca2a), n75_multi_cargo=2 par defaut dans les deux bras.
 # Chacun a passe seul un 20x10 non_erosion (V277 -2,78 %, V279 +3,26 %) ; jamais testes ensemble.
 # Regle des optimisations d'opcodes (AGENTS.md, feedback du 24/09) : gain d'opcodes + 20x10 neutre
 # => adoption. A lancer depuis la racine d'un checkout de master, sur le PC.
@@ -10,7 +11,7 @@ set -euo pipefail
 read -r -a PC <<< "${PROFILE:---cpus 10 --memory 8g --max-workers 10 --network host}"
 REF="OpexAI[v277_air_pub_fast=0,v279_reselect_memo=0]"
 VAR="OpexAI[v277_air_pub_fast=1,v279_reselect_memo=1]"
-CAMP="${CAMPAIGN:-v277v279_porteB_20x10_pc_20261020}"
+CAMP="${CAMPAIGN:-v277v279_porteB_20x10_multicargo_20261025}"
 RULE=(--variant-policy-id v277v279 --decision-rule non_erosion
       --primary-metric profit_year --min-useful-primary-delta-pct 4 --value-guard-max-loss-pct 5)
 
