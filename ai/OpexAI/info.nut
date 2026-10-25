@@ -23,6 +23,11 @@ class OpexAIInfo extends AIInfo {
       min_value = 0, max_value = 1,
       easy_value = 1, medium_value = 1, hard_value = 1, custom_value = 1,
       flags = AICONFIG_BOOLEAN });
+    AddSetting({ name = "pcal02_air_sites",
+      description = "PCAL-02: prepare two flat AIR sites per candidate town/type in unused tick opcodes (prototype, default off)",
+      min_value = 0, max_value = 1,
+      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
+      flags = AICONFIG_BOOLEAN });
     AddSetting({ name = "v278_air_lazy_sites",
       description = "V278: population ordered lazy AIR sites and scan preparation cache; 0 = off, 1 = on, 2 = auto: on when the map has at least 1024x1024 tiles (default since 20/10, qualified at 1024x1024 only)",
       min_value = 0, max_value = 2,

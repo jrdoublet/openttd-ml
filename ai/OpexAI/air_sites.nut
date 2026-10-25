@@ -505,6 +505,10 @@ function OpexAirFindSite(town, airport, probes, requiredSlotTownId = -1)
   }
   if (probes != null && ("stationLimitedTowns" in probes)
       && (town.id in probes.stationLimitedTowns)) return null;
+  if (PCAL02_AIR_SITES && requiredSlotTownId < 0) {
+    local prepared = OpexPCAL02FindSite(town, airport, probes);
+    if (prepared != null) return prepared;
+  }
   local key = town.id + "_" + airport.type;
   /* C83 cible : le cache historique est indexe par ville commerciale/type.
    * Une course au slot exige en plus ClosestTown(anchor)==ville cible ; ne pas

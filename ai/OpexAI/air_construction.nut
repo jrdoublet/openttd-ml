@@ -211,6 +211,11 @@ function OpexBuildAirRoute(catalog, budget, plan)
   local planeChoice = ("plane" in plan) ? plan.plane : catalog.plane;
   local reuseA = ("reuseA" in plan) && plan.reuseA;
   local reuseB = ("reuseB" in plan) && plan.reuseB;
+  if (PCAL02_AIR_SITES && ((!reuseA && !OpexPCAL02BuildSiteOk(plan.siteA, airport, planeChoice, catalog))
+      || (!reuseB && !OpexPCAL02BuildSiteOk(plan.siteB, airport, planeChoice, catalog)))) {
+    result.reason = "PCALSTALE";
+    return result;
+  }
 
   /* Shadow uniquement sur newpair. Le shadow ne peut jamais
    * retourner PREB ni invalider le cache : la route est TOUJOURS construite. */
@@ -260,6 +265,7 @@ function OpexBuildAirRoute(catalog, budget, plan)
       }
     }
     if (okA && AIAirport.IsAirportTile(plan.siteA.anchor)) airportA = plan.siteA.anchor;
+    if (PCAL02_AIR_SITES && airportA != null) OpexPCAL02Built(plan.siteA, airport);
     if (brk != null) OpexAirCostBreakdownMark(costs, brk, "airportA");
     if (spBuild != null) OpexSpanEnd(spBuild);
   }
@@ -319,6 +325,7 @@ function OpexBuildAirRoute(catalog, budget, plan)
       }
     }
     if (okB && AIAirport.IsAirportTile(plan.siteB.anchor)) airportB = plan.siteB.anchor;
+    if (PCAL02_AIR_SITES && airportB != null) OpexPCAL02Built(plan.siteB, airport);
     /* Diagnostic du maillon reel : distinguer echec de LevelTiles/verification
      * physique et refus de BuildAirport APRES nivellement reussi. Aucun effet
      * hors sonde ni sur l'issue du chantier. */

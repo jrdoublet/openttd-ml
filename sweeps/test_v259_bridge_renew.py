@@ -2,7 +2,7 @@
 
 Verifications statiques et de contrat du mecanisme :
 1. Reglage v259_bridge_renew (0/1, defaut 0), zero opcode au defaut hors garde O(1).
-2. Inventaire nettoye de 58 AddSetting et borne <= 58 dans test_v246_fixed_policies.
+2. Inventaire nettoye + prototype PCAL-02 OFF : 59 AddSetting, borne <= 59.
 3. Inventaire des ponts au fil des constructions (line.bridges), sans balayage de carte.
 4. Decision economique sans nombre arbitraire :
    - v_pont < v_veh ET modele plus rapide disponible
@@ -61,10 +61,10 @@ class TestV259BridgeRenew(unittest.TestCase):
 
     def test_ceiling_after_parameter_cleanup(self):
         # 43 vrais retraits ; PO03/C77 et PO02 adoptes sont conserves.
-        self.assertEqual(self.info.count("AddSetting("), 58)
+        self.assertEqual(self.info.count("AddSetting("), 59)  # PCAL-02 OFF
         self.assertIn('name = "v259_bridge_renew"', self.info)
         test_v246 = (Path(__file__).resolve().parent / "test_v246_fixed_policies.py").read_text(encoding="utf-8")
-        self.assertIn('self.assertLessEqual(info.count("AddSetting("), 58)', test_v246)
+        self.assertIn('self.assertLessEqual(info.count("AddSetting("), 59)', test_v246)
 
     def test_zero_opcode_guard_at_default(self):
         # 1. Garde dans scheduler.nut

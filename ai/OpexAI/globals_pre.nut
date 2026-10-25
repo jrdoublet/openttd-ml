@@ -356,6 +356,7 @@ C73_VIVIER_LEDGER <- null;
  * Le plancher minimal n'est pas un reglage : il evite seulement les hameaux. */
 V93_AIRPORT_MIN_POP <- 100;
 V278_AIR_LAZY_SITES <- false;
+PCAL02_AIR_SITES <- false;
 V278_AIR_VALIDITY <- null;
 V278_AIR_EPOCH <- 0;
 C96_AIR_SITE_MAX_VALID <- 4;

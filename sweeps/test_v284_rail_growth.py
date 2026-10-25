@@ -29,7 +29,7 @@ class TestV284RailGrowth(unittest.TestCase):
         self.assertIn("V284_RAIL_GROWTH <- 0;", read("globals_pre.nut"))
         self.assertNotIn('name = "v270_rail_late_growth"', info)
         # 43 retraits reels, PO03/C77 et PO02 adoptes maintenus.
-        self.assertEqual(info.count("AddSetting("), 58)
+        self.assertEqual(info.count("AddSetting("), 59)  # PCAL-02 OFF
 
     def test_off_expansion_is_master_a9437f8_after_removing_guards(self):
         body = function_body(read("task_rail.nut"), "function OpexAI::_expandRailLines(year)")

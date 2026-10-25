@@ -423,16 +423,20 @@ class PO01CContracts(unittest.TestCase):
         # Rebased to 2026-10-24 R01–R12 (source hashes frozen for the complete
         # paired 20x10); future source edits must explicitly rebaseline this
         # isolation contract only after review and in-game validation.
+        # PCAL-02 (25/10): rebase ONLY its five guarded insertion sources.
+        # No engine authorized here; test_pcal02_air_sites additionally pins
+        # the exact OFF projection to the original hashes, including generated
+        # copies. This rebase conveys no runtime/economic qualification.
         expected = {
             'builder_water.nut': '36c0c646c3a92201bbcb4afedc7b324fa19931f8665720bc5ca99f8d76098bb5',
             'air_planning.nut': 'd97dd1d56b049c8ea98c85a1202239da3d30193028e8526ba44240181460a5c2',
-            'air_sites.nut': '1ef05fc3b922e34d5ed800a52d9b5816e2d958492e434075bd0fe1e4e5a546f7',
+            'air_sites.nut': '66e81b5515110d902885b17222fde74b7308d93335c176beea4afd05fd19e562',
             'candidates.nut': '8ab9ef4b42b0b9ddd00ae47ee6333bded0428341ddcd90b11612f86be315d5e0',
             'catalog.nut': '8e228cf9a0e4ec83c50bcf3e0aa405814e82ac95c9191494fd4d9e357edfc348',
-            'main.nut': 'b716838631daba2621fd9b7d992b72accd042c0ba0a2c4d8d89527709358ad68',
-            'probes.nut': '005a79a7647c1ddd98754b3854497f5328c6eb4bea62ae3a9192e0a03dfab84e',
-            'settings.nut': '6946a9ed7d3864e22714167b4fbb4fe74d8e6b95b39c0fac0054cfde80bc214b',
-            'info.nut': '1bc76539590e9272aa59849baa54d0248a74ac5f993e0d0e77d679906c7ad2c3',
+            'main.nut': '57cbf1725f83093e7d1fa3460285b41401cc29864d92dd580142345ba9f05f79',
+            'probes.nut': 'fd75648b490c2614149438d9a91e0be58ca209f35c7233f19a743f43ae3efb8d',
+            'settings.nut': '94519b3fbd4d3ae781eb59b2006d360a47380c47fd9659aed79a1a5347a126a7',
+            'info.nut': 'a3c86c3cf3c980d1bae9aeecd56d0d079b600a944a1c4fdf67516c6b1d2258b4',
         }
         for name, digest in expected.items():
             with self.subTest(name=name):

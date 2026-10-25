@@ -842,6 +842,7 @@ function OpexAI::Start()
       if (spC67 != null) OpexSpanEnd(spC67);
     }
     if (V309_IDLE_PROBE) OpexV309IdleTick(this);
+    if (PCAL02_AIR_SITES) OpexPCAL02Tick(this);
     local spSleep = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.sleep") : null;
     AIController.Sleep(1);
     if (spSleep != null) OpexSpanEnd(spSleep);

@@ -11,6 +11,7 @@ function OpexC121InvalidateEndpointGeometry()
 
 function OpexAirResetSiteCache(invalidateGeometry = true)
 {
+  if (PCAL02_AIR_SITES) OpexPCAL02Reset();
   if (V278_AIR_LAZY_SITES) OpexV278InvalidateSites();
   AIR_SITE_CACHE.clear();
   AIR_STATION_COVERAGE_TOWN_CACHE.clear();
@@ -48,6 +49,7 @@ function OpexAir0310SiteValidityMonth()
 
 function OpexAir0310InvalidateSiteValidity()
 {
+  if (PCAL02_AIR_SITES) PCAL02_STATE.epoch++;
   if (V278_AIR_LAZY_SITES) OpexV278InvalidateSites();
   AIR0310_SITE_VALIDITY_STATE = null;
   if (V279_RESELECT_MEMO != 0) OPEX_AIR_SITE_EPOCH++;
@@ -83,6 +85,7 @@ function OpexAir0310SiteValidityOk(state, key, site, airport, plane, reuse, stat
  * forcer la recherche d'une alternative dans cette meme ville et pour ce meme type d'aeroport. */
 function OpexAirInvalidateCachedSite(site, airport)
 {
+  if (PCAL02_AIR_SITES) PCAL02_STATE.epoch++;
   if (V278_AIR_LAZY_SITES) OpexV278InvalidateSites();
   if (site == null) return;
   local key = site.town.id + "_" + airport.type;
