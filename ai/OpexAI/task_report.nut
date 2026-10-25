@@ -268,7 +268,10 @@ function OpexAI::_reportLines(year)
        * autres, qui rendraient "en marche, vitesse 0" sans etre eux-memes la cause). L'ordre
        * courant (0 = source, 1 = puits), l'etat, la vitesse et le chargement du cargo de la
        * ligne. Limite a 3 convois (MAX_TRAINS le permet toujours ici en pratique). */
-      if (isFreight && diagSlot < 3) {
+      /* VS/VL sont des panneaux purs : ne pas interroger l'etat et les ordres
+       * des convois en partie normale (probes=0). Les gains et le suivi de
+       * sante des lignes, calcules ci-dessus, restent inchanges. */
+      if (DEBUG_SIGNS && isFreight && diagSlot < 3) {
         local state = AIVehicle.GetState(v);
         local order = AIOrder.ResolveOrderPosition(v, AIOrder.ORDER_CURRENT);
         local speed = AIVehicle.GetCurrentSpeed(v);
@@ -313,7 +316,7 @@ function OpexAI::_reportLines(year)
     /* Rendement de vitesse (taches S4.3). Instantane annuel des convois EN MARCHE
      * (vitesse > 0, donc pas a quai). med / cat = rendement vs catalogue ; med / pred
      * vs la traction. "RV|99|999|8|999|999|999" = 22 caracteres. Rail seulement. */
-    if (vehicleType == AIVehicle.VT_RAIL) {
+    if (DEBUG_SIGNS && vehicleType == AIVehicle.VT_RAIL) {
       local moving = [];
       local catalogs = [];
       foreach (v in vehicles) {
@@ -873,6 +876,9 @@ function OpexAI::_purgeUnprofitableStreaks()
 }
 function OpexAI::_reportYear(year, ranked)
 {
+  /* Les tableaux annuels ne pilotent aucune decision. Conserver cependant
+   * la sonde C69/C78 meme lorsque les panneaux sont desactives. */
+  if (!DEBUG_SIGNS && !C69_BOTTLENECK_PROBE) return;
   local anchor = AIMap.GetTileIndex(1, 1);
   local best = ranked.best.len() > 0 ? ranked.best[0] : null;
   local stats = ranked.stats;
