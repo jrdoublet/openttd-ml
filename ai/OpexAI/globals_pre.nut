@@ -73,6 +73,9 @@ V307_PROBE_YEAR <- 0;
 V307_DONE <- false;
 V308_CARTO_PROBE <- 0;  // V308 : mesure passive de cinq motifs sur des blocs 8x8
 V308_DONE <- false;
+CARTO1_SHADOW <- false;  // CARTO-1, probes bit25, cache couloir rail en shadow
+CARTO2_SHADOW <- false;  // CARTO-2: combinaison bits24+25+26, tous OFF par defaut
+CARTO2_IDLE_READY <- false;
 V307_ABND_AUTOPSY <- false;
 V307_SITES <- 0;  // V307 1.8 : sites rail repartis par octant, defaut 0
 V307S3_REACH <- {};  // V307S=3 : cache de portee requis par builder_rail, non persiste.
@@ -163,6 +166,8 @@ AIR_PAX_REVENUE_CALIBRATION_PCT <- 104;
 DEBUG_SIGNS <- true;
 /* V167 : masque du reglage `probes` apres expansion du bit 1 (voir settings.nut). */
 OPEX_PROBE_MASK <- 2;
+/* RLW-04b : enumeration passive du fret long, probes bit 24, desarmee. */
+RLW04B_SHADOW <- false;
 /* Mesure ponctuelle : un panneau par ligne reussie, donc desactivee par defaut pour ne pas
  * changer le profil d'opcodes de la baseline. */
 RAIL_COST_PROBE <- false;

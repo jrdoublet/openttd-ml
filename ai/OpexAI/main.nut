@@ -160,6 +160,8 @@ class OpexAI extends AIController {
   /* C80 étape 2 : table des paires en retrait temporaire (cooldown), indexée par pairKey.
    * Transitoire / reconstructible : initialisée à {}, jamais persistée dans Save(). */
   _railStockCooldown = null;
+  /* RLW-04b : enumeration et echantillon transitoires, exclus de Save/Load. */
+  _rlw04bState = null;
   /* C121 preparation rail de l'annee AIR : liste de candidats et mois de generation.
    * Non sauvegardes. Reconstructibles au prochain passage projects si le reglage est arme.
    * MinAirCap : -1 = aucun plan AIR vivant au dernier scan (fin de passe). */
@@ -669,6 +671,10 @@ require("task_v250.nut");
 require("task_v259.nut");
 require("probe_v307.nut");
 require("probe_v308.nut");
+require("probe_carto1.nut");
+require("probe_carto1_long.nut");
+require("probe_carto2.nut");
+require("rail_long_window_enumerator.nut");
 require("selftests.nut");
 
 function OpexAI::Start()
@@ -677,6 +683,10 @@ function OpexAI::Start()
   this._startTick = AIController.GetTick();
 
   OpexLoadSettings();
+  if (CARTO1_SHADOW) CARTO1_STATE = null;
+  if (CARTO1_SHADOW) CARTO1_LONG_STATE = null;
+  if (CARTO2_SHADOW) CARTO2_STATE = null;
+  this._rlw04bState = null;
   OpexV147ExtendQueue(this);
   if (V309_IDLE_PROBE) V309_IDLE_STATE = null;
   if (V276_CAND_SLICES > 0) V276_CATALOG_TASK = this._taskQueue[0];
@@ -769,7 +779,17 @@ function OpexAI::Start()
 
   if (PROBE_LOOP_OPS) this._mainLoopProfiled();
   while (true) {
+    /* CARTO-2b: un tour reserve APRES confirmation V309 au tour precedent.
+     * Les vraies recherches et le financement sont reverifies au debut;
+     * une fois sur quatre au minimum, la boucle normale tourne. */
+    if (CARTO2_SHADOW && OpexCarto2FullTurn(this)) {
+      AIController.Sleep(1);
+      continue;
+    }
+    if (CARTO2_SHADOW && CARTO2_STATE != null) CARTO2_STATE.consecutive = 0;
     if (V309_IDLE_PROBE) OpexV309IdleBegin();
+    /* Le banc long a besoin de la reserve pleine du debut de tour. */
+    if (CARTO1_SHADOW && RLW04B_SHADOW && !CARTO2_SHADOW) OpexCarto1LongStep(this);
     if (PO01C_REGEN_SPLIT && (this._po01cPending || this._po01cJob != null)) OpexPO01CStep(this);
     if (PROBE_SPAN_TRACE) {
       OpexSpanRescueOrphans();
@@ -836,12 +856,14 @@ function OpexAI::Start()
     local spAstar = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.astar_v89") : null;
     this._advanceRailSearchThroughput();
     if (spAstar != null) OpexSpanEnd(spAstar);
+    if (RLW04B_SHADOW) this._rlw04bStep();
     if (C67_SLACK_HOOK) {
       local spC67 = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.c67") : null;
       this._c67SlackHook();
       if (spC67 != null) OpexSpanEnd(spC67);
     }
     if (V309_IDLE_PROBE) OpexV309IdleTick(this);
+    if (CARTO1_SHADOW && !CARTO2_SHADOW) OpexCarto1Step(this);
     local spSleep = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.sleep") : null;
     AIController.Sleep(1);
     if (spSleep != null) OpexSpanEnd(spSleep);

@@ -1,0 +1,65 @@
+{
+  "status": "prepared_only",
+  "executed": false,
+  "prepared_on": "2026-10-24",
+  "repository_worktree": ".worktrees/carto1",
+  "launcher": "sweeps/run_c66_reference.py",
+  "image": "openttd-lab:latest",
+  "engine": "OpenTTD 15.3 / OpenGFX 7.1",
+  "simulation": {
+    "start_year": 1970,
+    "map_size_exponent": 10,
+    "map_dimensions": "1024x1024",
+    "repeats": 1,
+    "opponent": "AAAHogEx-115",
+    "reference": "OpexAI[probes=50331650]",
+    "script_debug": true,
+    "cpu_limit": 10,
+    "memory": "8g",
+    "max_simultaneous_containers": 1
+  },
+  "sampling": {
+    "source": "RLW-04b original admission",
+    "min_distance_manhattan": 224,
+    "max_distance_manhattan": 288,
+    "samples_per_seed": 30,
+    "reservoir_seeded_per_map": true,
+    "predictor": "route / route_blocks",
+    "positive_labels": [
+      "ABND",
+      "DEAD",
+      "NOPA"
+    ],
+    "required_real_astar_failures": 20,
+    "holdout": "train on two seeds, evaluate on the third",
+    "safety": "no tick crossing; stop remaining shadow work if first crossing is observed",
+    "no_build": true,
+    "off_by_default": true
+  },
+  "stages": [
+    {
+      "campaign": "carto1_long_user_smoke1024_s42_1x1_20261024",
+      "seeds": [42],
+      "years": 1,
+      "max_workers": 1,
+      "purpose": "engine compile and early tick safety diagnostic",
+      "gate_to_next": "healthy game, original RLW admission, no CARTO1_LONG_SAFETY"
+    },
+    {
+      "campaign": "carto1_long_user_diag1024_3x3_20261024",
+      "seeds": [42, 100, 999],
+      "years": 3,
+      "max_workers": 3,
+      "purpose": "diagnostic 30 pairs per seed before true A*",
+      "gate_to_next": "all 3 games healthy and 0 shadow tick crossings"
+    },
+    {
+      "campaign": "carto1_long_user_extended1024_3x10_20261024",
+      "seeds": [42, 100, 999],
+      "years": 10,
+      "max_workers": 3,
+      "purpose": "conditional 10-year extension; not a promise of 20 A* failures",
+      "gate_to_next": "none; analyze completeness, failures, AUC and opcodes"
+    }
+  ]
+}

@@ -728,7 +728,10 @@ function OpexAI::_continueRailExpansion()
  * Fonction de classe, pas une closure : Squirrel ne capture jamais les locales englobantes. */
 function OpexAI::_startRailSearch(candidate, alternativeRatio, hardCap, posPacked)
 {
+  if (CARTO2_SHADOW) OpexCarto2YieldToLive();
+  if (CARTO1_SHADOW && !CARTO2_SHADOW) OpexCarto1Request(candidate, "astar");
   local plan = OpexPrepareRailRoute(this._catalog, this._budget, candidate, alternativeRatio, hardCap);
+  if (CARTO2_SHADOW && plan.plansA != null) OpexCarto2CaptureLivePlans(candidate, plan);
   if (plan.plansA == null) return { pending = false, plan = plan };
   local clearanceTiles = V131_TOWN_CLEARANCE ? OpexV131BuildTownClearance(candidate, plan.plansA, plan.plansB) : null;
   if (OpexV190Active() && candidate.kind == "freight") {
@@ -753,6 +756,7 @@ function OpexAI::_startRailSearch(candidate, alternativeRatio, hardCap, posPacke
   if (V294_RAIL_CONTINUOUS > 0) {
     pathfinder = OpexCreateRailPathfinder(plan.plansA, plan.plansB, clearanceTiles, searchWeight, outwardSide, null, candidateEngine);
     if (pathfinder == null) {
+      if (CARTO1_SHADOW) OpexCarto1Astar(candidate, "end", "NOPA", 0);
       if (DECISION_LOG) {
         OpexDecide("RAIL_SEARCH", "type=resumable outcome=NOPA iters=0 budget=" + plan.iterationBudget);
       }
@@ -762,6 +766,7 @@ function OpexAI::_startRailSearch(candidate, alternativeRatio, hardCap, posPacke
   } else {
     segmented = OpexCreateSegmentedSearch(plan.plansA, plan.plansB, plan.iterationBudget, clearanceTiles, searchWeight, outwardSide, null, candidateEngine);
     if (segmented == null) {
+      if (CARTO1_SHADOW) OpexCarto1Astar(candidate, "end", "NOPA", 0);
       if (DECISION_LOG) {
         OpexDecide("RAIL_SEARCH", "type=resumable outcome=NOPA iters=0 budget=" + plan.iterationBudget);
       }
@@ -804,6 +809,7 @@ function OpexAI::_startRailSearch(candidate, alternativeRatio, hardCap, posPacke
                    + " budget=" + plan.iterationBudget + " hard_cap=" + hardCap);
   }
   if (spAstar != null) OpexSpanEnd(spAstar);
+  if (CARTO1_SHADOW) OpexCarto1Astar(candidate, "start", "SEARCH", 0);
   local astarSlice = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
   this._continueRailSearch();
   if (astarSlice != null) OpexSpanAgg("astar.slice", astarSlice);
@@ -928,6 +934,10 @@ function OpexAI::_continueRailSearch()
           + " best_cost=" + bestCost);
     }
     return;
+  }
+
+  if (CARTO1_SHADOW && state.kind == "primary") {
+    OpexCarto1Astar(state.candidate, "end", slice.stop, state.spent);
   }
 
   if (DECISION_LOG) {
@@ -1428,6 +1438,9 @@ function OpexAI::_consumeRailUpgrade()
 /* Initialise la recherche A* d'un candidat pour le stock de tracés (C121 prep). */
 function OpexAI::_startRailStockSearch(candidate, isRepair = false, repairReason = null, coarseScore = null)
 {
+  if (CARTO1_SHADOW && AIController.GetOpsTillSuspend() >= 3000) {
+    OpexCarto1Request(candidate, "astar");
+  }
   if (coarseScore == null) {
     local paperProject = OpexProjectFromCandidate(candidate);
     if (paperProject != null) {

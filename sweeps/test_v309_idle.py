@@ -108,10 +108,19 @@ class TestV309Idle(unittest.TestCase):
         profiled_loop = source("probes.nut").split(
             "function OpexAI::_mainLoopProfiled()", 1)[1].split("/* probe_span_trace", 1)[0]
         for loop in (main_loop, profiled_loop):
+            self.assertEqual(loop.count("OpexCarto2FullTurn(this)"), 1)
+            self.assertLess(loop.index("OpexCarto2FullTurn(this)"),
+                            loop.index("if (V309_IDLE_PROBE) OpexV309IdleBegin();"),
+                            "A dedicated shadow turn uses prior normal-turn V309 state")
             self.assertEqual(loop.count("if (V309_IDLE_PROBE) OpexV309IdleBegin();"), 1)
             self.assertEqual(loop.count("if (V309_IDLE_PROBE) OpexV309IdleTick(this);"), 1)
             self.assertLess(loop.index("OpexV309IdleBegin()"), loop.index("OpexV309IdleTick(this)"))
-            self.assertLess(loop.index("OpexV309IdleTick(this)"), loop.index("AIController.Sleep(1)"))
+            # The shadow turn may short-circuit with its own Sleep; normal
+            # V309 observation belongs to the distinct live branch. Compare
+            # against the live Sleep, not the earlier shadow dispatcher.
+            normal = loop[loop.index("if (V309_IDLE_PROBE) OpexV309IdleBegin();"):]
+            self.assertLess(normal.index("OpexV309IdleTick(this)"),
+                            normal.index("AIController.Sleep(1)"))
 
     def test_probe_log_and_no_score_changes(self):
         probe = source("probes.nut")

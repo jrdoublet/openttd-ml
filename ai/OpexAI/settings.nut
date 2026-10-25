@@ -37,6 +37,7 @@ function OpexLoadSettings()
   if (probes < 0) probes = 2;
   if ((probes & 1) != 0) probes = 2147483647;
   OPEX_PROBE_MASK = probes;
+  RLW04B_SHADOW = OpexProbeEnabled(16777216);
   AIR_FLOTTE1_SHADOW = OpexProbeEnabled(8388608);
   PO01C_REGEN_SPLIT = AIController.GetSetting("po01c_regen_split") != 0;
   /* PO03/C77 : conserver les deux modes adoptes, dont la garde subvention. */
@@ -93,6 +94,10 @@ function OpexLoadSettings()
   local v307Year = AIController.GetSetting("v307_probe_year");
   V307_PROBE_YEAR = (v307Year != null && v307Year > 0 && v307Year <= 9) ? v307Year : 0;
   V308_CARTO_PROBE = OpexProbeEnabled(134217728) ? 1 : 0;
+  CARTO1_SHADOW = OpexProbeEnabled(33554432);
+  /* Tous les 31 bits probes sont deja utilises : combinaison explicite des
+   * trois canaux necessaires, sans nouveau AddSetting ni defaut. */
+  CARTO2_SHADOW = CARTO1_SHADOW && RLW04B_SHADOW && V309_IDLE_PROBE;
   V307_ABND_AUTOPSY = OpexProbeEnabled(268435456);
   local v307Sites = AIController.GetSetting("v307_sites");
   V307_SITES = (v307Sites >= 1 && v307Sites <= 3) ? v307Sites : 0;

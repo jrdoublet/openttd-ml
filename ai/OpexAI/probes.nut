@@ -2602,6 +2602,13 @@ function OpexV309IdleTick(ai)
     state.stableUnfundedLoops++;
     state.stableUnfundedOps += usedOps;
   }
+  /* Snapshot en fin de tour pour CARTO-2 : un projet AIR financable
+   * interdit toujours la consommation du budget d'attente. */
+  if (CARTO2_SHADOW) CARTO2_IDLE_READY = projects.source == "unfunded_snapshot"
+      && projects.cost != null && state.priorSource == "unfunded_snapshot"
+      && projects.cost == state.priorCost && revision != null
+      && revision == state.priorRevision && OpexAvailableCapital() < projects.cost
+      && ai._railSearch == null;
   if (below) {
     state.cashBelow++;
     local date = AIDate.GetCurrentDate();
@@ -2697,7 +2704,13 @@ function OpexLoopProfFlushIfNewYear()
 function OpexAI::_mainLoopProfiled()
 {
   while (true) {
+    if (CARTO2_SHADOW && OpexCarto2FullTurn(this)) {
+      AIController.Sleep(1);
+      continue;
+    }
+    if (CARTO2_SHADOW && CARTO2_STATE != null) CARTO2_STATE.consecutive = 0;
     if (V309_IDLE_PROBE) OpexV309IdleBegin();
+    if (CARTO1_SHADOW && RLW04B_SHADOW && !CARTO2_SHADOW) OpexCarto1LongStep(this);
     if (PO01C_REGEN_SPLIT && (this._po01cPending || this._po01cJob != null)) OpexPO01CStep(this);
     if (PROBE_SPAN_TRACE) {
       OpexSpanRescueOrphans();
@@ -2780,6 +2793,7 @@ function OpexAI::_mainLoopProfiled()
     this._advanceRailSearchThroughput();
     if (spAstar != null) OpexSpanEnd(spAstar);
     OpexLoopProfAdd("rail_throughput", mark);
+    if (RLW04B_SHADOW) this._rlw04bStep();
     if (C67_SLACK_HOOK) {
       mark = OpexOpsMeasureBegin();
       local spC67 = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.c67") : null;
@@ -2789,6 +2803,7 @@ function OpexAI::_mainLoopProfiled()
     }
     OpexLoopProfAddRaw("sleep_left", AIController.GetOpsTillSuspend(), 0);
     if (V309_IDLE_PROBE) OpexV309IdleTick(this);
+    if (CARTO1_SHADOW && !CARTO2_SHADOW) OpexCarto1Step(this);
     local spSleep = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.sleep") : null;
     AIController.Sleep(1);
     if (spSleep != null) OpexSpanEnd(spSleep);
