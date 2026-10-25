@@ -117,6 +117,82 @@ class CalibrationCrossValidationTest(unittest.TestCase):
                 self.assertEqual(fold["cell"], 0.0)
 
 
+class CalibrationSparseTableTest(unittest.TestCase):
+    @staticmethod
+    def cell_game(revenue_ratio, count=6, mode="rail", cargo="SECONDARY"):
+        game = calibration_game(revenue_ratio, count)
+        for row in game["rows"]:
+            row.update(mode=mode, cell=f"{mode}|{cargo}|80-160|1974-1976")
+        return game
+
+    def test_cell_factor_requires_five_valid_training_observations(self):
+        for count in (4, 5):
+            with self.subTest(valid_training_rows=count):
+                cell = self.cell_game(8.0, count)
+                # Missing, zero, negative and overflowing ratios must not make
+                # a four-observation cell eligible for its own factor.
+                for real, pred in ((None, 100.0), (0.0, 100.0), (-100.0, 100.0),
+                                   (1e308, 1e-308)):
+                    row = dict(cell["rows"][0], real_rev=real, pred_rev=pred)
+                    cell["rows"].append(row)
+                train = {
+                    ("reference_seed10_r0.log", 10): self.cell_game(2.0, cargo="RAW"),
+                    ("reference_seed20_r0.log", 20): cell,
+                }
+                test = {("variant_seed30_r0.log", 30): self.cell_game(8.0, count=2)}
+
+                report = analyse({"solo": train, "duel": test}, train="solo", test="duel")
+                folds = report["cv_train_solo_test_duel"]
+                self.assertEqual([fold["n"] for fold in folds], [2, 0])
+                self.assertEqual(folds[0]["raw"], round(math.log(8.0), 4))
+                self.assertEqual(folds[0]["mode"], round(math.log(4.0), 4))
+                expected = math.log(4.0) if count == 4 else 0.0
+                self.assertEqual(folds[0]["cell"], round(expected, 4))
+                json.dumps(report, allow_nan=False)
+
+    def test_held_out_seed_cannot_supply_the_fifth_cell_observation(self):
+        train = {
+            ("reference_seed10_r0.log", 10): self.cell_game(2.0, cargo="RAW"),
+            ("reference_seed20_r0.log", 20): self.cell_game(8.0, count=4),
+            ("reference_seed42_r0.log", 42): self.cell_game(8.0, count=1),
+            ("variant_seed42_r1.log", 42): self.cell_game(8.0, count=1),
+        }
+        test = {("variant_seed42_r0.log", 42): self.cell_game(8.0, count=2)}
+
+        folds = cross_validate(train, test)
+
+        self.assertEqual([fold["n"] for fold in folds], [2, 0])
+        # After excluding both copies of seed 42, only four cell samples
+        # remain: use the mode factor 2, rather than the cell factor 8.
+        self.assertEqual(folds[0]["raw"], round(math.log(8.0), 4))
+        self.assertEqual(folds[0]["mode"], round(math.log(4.0), 4))
+        self.assertEqual(folds[0]["cell"], round(math.log(4.0), 4))
+
+    def test_missing_cell_or_mode_and_empty_training_preserve_test_coverage(self):
+        invalid = self.cell_game(0.0)
+        invalid["rows"][0]["real_rev"] = None
+        cases = {
+            "unseen_cell": (self.cell_game(2.0, cargo="RAW"), math.log(2.0)),
+            "unseen_mode": (self.cell_game(2.0, mode="road"), math.log(4.0)),
+            "no_valid_ratios": (invalid, math.log(4.0)),
+            "no_training_games": (None, math.log(4.0)),
+        }
+        for name, (game, expected) in cases.items():
+            with self.subTest(training=name):
+                train = {("reference_seed10_r0.log", 10): game} if game else {}
+                test = {("variant_seed42_r0.log", 42): self.cell_game(4.0, count=2)}
+
+                folds = cross_validate(train, test)
+
+                self.assertEqual([fold["n"] for fold in folds], [2, 0])
+                self.assertEqual(folds[0]["raw"], round(math.log(4.0), 4))
+                self.assertEqual(folds[0]["mode"], round(expected, 4))
+                self.assertEqual(folds[0]["cell"], round(expected, 4))
+                for metric in ("raw", "mode", "cell"):
+                    self.assertIsNone(folds[1][metric])
+                json.dumps(folds, allow_nan=False)
+
+
 class CalibrationCampaignLoadingTest(unittest.TestCase):
     @staticmethod
     def game_log(real_revenue=1200):
