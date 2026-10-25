@@ -78,6 +78,18 @@ def keep(row):
     },)
 
 
+def arm_probe_bit(settings, bit):
+    """Arme un bit du masque existant, ou du defaut 2, sans entree en double."""
+    positions = [i for i, (name, _) in enumerate(settings) if name == "probes"]
+    if len(positions) > 1:
+        raise ValueError("plusieurs reglages probes dans le diagnostic")
+    if positions:
+        i = positions[0]
+        settings[i] = ("probes", settings[i][1] | bit)
+    else:
+        settings.append(("probes", 2 | bit))
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--years", type=int, default=6)
@@ -153,30 +165,24 @@ def main():
         parser.error("--years et --workers doivent etre strictement positifs")
 
     enable_savegame_cleanup()
-    # 2026-09-17 : les 70 sondes individuelles ont ete regroupees en 9 macro-reglages probe_*
-    # (docs/walkthrough_regroupement_probes.md). Les drapeaux --c41-*/--c39-* ci-dessus restent
-    # un par un pour ne pas casser les invocations existantes, mais ils ne peuvent plus activer
-    # leur sonde individuellement : chacun allume desormais le groupe entier auquel elle appartient.
-    # c39_invalidation_probe et c39_decision_delta_probe etaient deja inconditionnels avant le
-    # regroupement ; probe_catalogue (qui les contient) est donc toujours actif ici, et
-    # --c39-air-reason-probe / --c41-revision-probe / --c41-water-candidate-probe / etc. n'ajoutent
-    # plus rien au-dela de ce qui est deja actif par ce fait.
-    settings = [("probe_catalogue", 1), ("decision_log", 0)]
+    # Canaux dedies : le catalogue est toujours actif ici (C39), puis chaque option
+    # active son canal historique exact sans allumer les autres groupes.
+    settings = [("probes", 2 | 32768)]
     if (args.c41_vehicle_lost_probe or args.c41_rail_lost_probe or args.c41_rail_lost_topology_probe
             or args.c41_rail_lost_physical_probe or args.c41_rail_lost_signal_repair
             or args.c41_rail_lost_connectivity_probe):
-        settings.append(("probe_vehicle_lost", 1))
+        arm_probe_bit(settings, 65536)
     if (args.c41_slack_ledger or args.c41_staleness_ledger or args.c41_opportunity_ledger
             or args.c41_admission_ledger):
-        settings.append(("probe_scheduler", 1))
+        arm_probe_bit(settings, 1024)
     if (args.c41_road_candidate_profile or args.c41_road_freight_profile
             or args.c41_road_freight_town_profile or args.c41_road_feeder_profile):
-        settings.append(("probe_candidates_road", 1))
+        arm_probe_bit(settings, 8)
     if (args.c41_rail_portfolio_profile or args.c41_rail_candidate_profile
             or args.c41_rail_pax_profile or args.c41_rail_pax_candidate_profile
             or args.c41_rail_pax_economics_profile or args.c41_rail_pax_speed_profile
             or args.c41_rail_pax_speed_detail_profile or args.c41_rail_pax_cruise_profile):
-        settings.append(("probe_candidates_rail", 1))
+        arm_probe_bit(settings, 16384)
     ai = local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI", tuple(settings))
     experiments = [
         {"seed": seed, "days": 365 * args.years, "openttd_config": make_cfg(1970), "ais": (ai,)}

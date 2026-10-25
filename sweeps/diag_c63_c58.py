@@ -95,6 +95,7 @@ def inventory_from_source():
     ledgers = _ai("ledgers.nut")
     capital = _ai("capital.nut")
     info = _ai("info.nut")
+    settings = _ai("settings.nut")
     projects = _ai("task_projects.nut")
 
     rc_ok = 'OpexSign(anchor, "RC|"' in road
@@ -120,7 +121,7 @@ def inventory_from_source():
         and "GetMaxLoanAmount" in capital
         and "OpexCashReserve" in capital
     )
-    probe_setting = 'name = "probe_portfolio"' in info
+    probe_setting = 'name = "probes"' in info and 'OpexProbeEnabled(131072, 128)' in settings
     helpers = (
         "OpexC63RecordSpend" in probes and "C63_INVEST" in probes
         and "OpexC63FlushLedger" in probes and "OpexC63NotePass" in probes
@@ -946,11 +947,11 @@ def keep_c63(row):
 
 
 def run_campaign(args):
-    """Diagnostic 5x6 partage contre AAAHogEx : probe_portfolio=1 et -d script=4."""
+    """Diagnostic 5x6 partage contre AAAHogEx : probes bit 131072 et -d script=4."""
     import openttdlab
     from openttdlab import bananas_ai_library, local_folder, run_experiments
     sys.path.insert(0, str(ROOT / "sweeps"))
-    from bench_v2 import OPENGFX_VERSION, OPENTTD_VERSION, enable_savegame_cleanup, write_json_atomically
+    from bench_v2 import OPENGFX_VERSION, OPENTTD_VERSION, enable_savegame_cleanup, write_json_atomically, parse_opex_variant
 
     real_check = openttdlab.subprocess.check_output
 
@@ -961,13 +962,13 @@ def run_campaign(args):
         return real_check(cmd, *rest, **kwargs)
 
     openttdlab.subprocess.check_output = check_output_with_script_debug
-    if "probe_portfolio=1" not in args.arm:
-        raise SystemExit("--arm doit contenir probe_portfolio=1")
+    if not (dict(parse_opex_variant(args.arm) or ()).get("probes", 0) & 131072):
+        raise SystemExit("--arm doit contenir le bit 131072 de probes")
     out = args.out or (ROOT / "results" / f"diag_c63_c58_{args.years}y_{len(args.seeds)}seeds.json")
     out = Path(out)
     out.parent.mkdir(parents=True, exist_ok=True)
     enable_savegame_cleanup()
-    opex = local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI", (("probe_portfolio", 1),))
+    opex = local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI", (("probes", 2 | 131072),))
     hogex = local_folder(str(ROOT / "ai" / "AAAHogEx-115"), "AAAHogEx", ())
     rows = list(run_experiments(
         openttd_version=OPENTTD_VERSION,
@@ -1079,7 +1080,7 @@ def main():
     parser.add_argument("--inventory", action="store_true")
     parser.add_argument("--seeds", nargs="+", type=int, default=[42, 100, 999, 1234, 5678])
     parser.add_argument("--years", type=int, default=6)
-    parser.add_argument("--arm", default="OpexAI[probe_portfolio=1]")
+    parser.add_argument("--arm", default="OpexAI[probes=131074]")
     parser.add_argument("--out", type=Path, default=None)
     parser.add_argument("--workers", type=int, default=2)
     args = parser.parse_args()

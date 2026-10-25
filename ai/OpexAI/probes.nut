@@ -841,7 +841,7 @@ function OpexC49ScarcityLog(fields)
   AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
              + AIDate.GetDayOfMonth(date) + " C49_SCARCITY " + fields);
 }
-/* C69 : gate dedie sous probe_portfolio. */
+/* C69 : gate dedie sous probes bit 17 ou groupe 128. */
 function OpexC69Log(fields)
 {
   if (!C69_BOTTLENECK_PROBE) return;
@@ -849,7 +849,7 @@ function OpexC69Log(fields)
   AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
              + AIDate.GetDayOfMonth(date) + " C69_BOTTLENECK " + fields);
 }
-/* C78 etape 2 : journalisation passive sous probe_portfolio. */
+/* C78 etape 2 : journalisation passive sous probes bit 17 ou groupe 128. */
 function OpexC78Log(tag, fields)
 {
   if (!C69_BOTTLENECK_PROBE) return;
@@ -1621,7 +1621,7 @@ function OpexC39PassClockLog(fields)
   AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
              + AIDate.GetDayOfMonth(date) + " C39_PASS_CLOCK " + fields);
 }
-/* V95 item 1 : gate propre sous probe_scheduler. Ne pas reutiliser OpexC41SchedulerLog :
+/* V95 item 1 : gate propre sous probes bit 10 ou groupe 8. Ne pas reutiliser OpexC41SchedulerLog :
  * ce dernier reste silencieux si seuls certains flags C41 sont actifs. */
 function OpexSchedIdleLog(kind, fields)
 {
@@ -2133,7 +2133,7 @@ function OpexC75RecordPassOutcome(year, builtCount, c75KPassData, stopReason)
   }
 }
 
-/* C80 tâche 5 : sonde passive sous probe_portfolio comptant les projets rejetés par le filtre marginal */
+/* C80 tâche 5 : sonde passive sous probes bit 17 ou groupe 128 comptant les projets rejetés par le filtre marginal */
 function OpexC80RecordMarginalDiscard(year, rank, project)
 {
   if (!C69_BOTTLENECK_PROBE) return;
@@ -2296,7 +2296,7 @@ function OpexC73FlushLedger(year)
   C73_VIVIER_LEDGER.flushedYear = year;
 }
 
-/* C80 : sonde incrementale air sous probe_portfolio */
+/* C80 : sonde incrementale air sous probes bit 17 ou groupe 128 */
 function OpexC80RecordAirIncremental(kind)
 {
   if (!C69_BOTTLENECK_PROBE) return;
@@ -2317,7 +2317,7 @@ function OpexC80FlushAirIncremental(year)
   C80_AIR_INC_COUNTS.none = 0;
 }
 
-/* C76 : sonde passive sous C39_INVALIDATION_PROBE (probe_catalogue). */
+/* C76 : sonde passive sous C39_INVALIDATION_PROBE (probes bit 15 ou groupe 8). */
 function OpexC76Log(fields)
 {
   if (!C39_INVALIDATION_PROBE) return;
@@ -2450,7 +2450,7 @@ function OpexC76FlushYear(year)
 }
 
 /* V309 : observation passive des tours et de leur budget d'opcodes. La mesure
- * n'est allouee qu'avec v309_idle_probe=1 ; sans decision_log, aucun journal.
+ * n'est allouee qu'avec probes bit 26 ; sans journal general (bit 256 ou groupe), aucun journal.
  * L'identite du projet est stable entre regenerations, jamais celle du payload. */
 function OpexV309IdleRevisionKey(ai)
 {
@@ -2646,7 +2646,7 @@ function OpexV309IdleTick(ai)
   state.sleepOps += AIController.GetOpsTillSuspend();
 }
 
-/* Sonde probe_loop_ops (diagnostic, defaut 0) : agregats annuels de la boucle principale.
+/* Sonde opcodes boucle (probes bit 11 ou groupe 8, defaut 0) : agregats annuels.
  * ops = formule OpexOpsMeasureEnd : un tick traverse compte 10 000 opcodes, y compris un tick
  * passe a attendre une commande de construction. tk = ticks traverses, pour le distinguer.
  * sleep_left = opcodes restants du tick au moment du Sleep(1), donc perdus. */
@@ -2693,7 +2693,7 @@ function OpexLoopProfFlushIfNewYear()
 }
 
 /* Copie instrumentee de la boucle de main.nut, appelee
- * uniquement sous probe_loop_ops=1 : le chemin par defaut reste celui de main.nut. */
+ * uniquement avec probes bit 11 ou groupe 8 : le chemin par defaut reste celui de main.nut. */
 function OpexAI::_mainLoopProfiled()
 {
   while (true) {
@@ -2713,6 +2713,8 @@ function OpexAI::_mainLoopProfiled()
     local mark = OpexOpsMeasureBegin();
     local spEvents = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.events") : null;
     this._processEvents();
+    if (AIR_ROI_RENFORT1_ITT != 0) OpexAirR1ITTObserve(this);
+    if (AIR_LOAD7_SHADOW) OpexAirLoad7Step(this);
     if (V307_LONG_PROBE > 0) OpexV307MaybeRun(this._loadedFromSave);
     if (V308_CARTO_PROBE > 0) OpexV308MaybeRun(this._loadedFromSave);
     if (spEvents != null) OpexSpanEnd(spEvents);
@@ -2771,7 +2773,6 @@ function OpexAI::_mainLoopProfiled()
     mark = OpexOpsMeasureBegin();
     local spAstar = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.astar_v89") : null;
     this._advanceRailSearchThroughput();
-    if (V294H_RAIL_DEFER > 0) OpexV294hAdvance(this);
     if (spAstar != null) OpexSpanEnd(spAstar);
     OpexLoopProfAdd("rail_throughput", mark);
     if (C67_SLACK_HOOK) {
@@ -2789,7 +2790,7 @@ function OpexAI::_mainLoopProfiled()
   }
 }
 
-/* probe_span_trace (defaut 0). Jeton = entier >= 1, jamais un objet : pas de
+/* Trace des spans (probes bit 12 ou groupe 8, defaut 0). Jeton = entier >= 1, jamais un objet : pas de
  * destructeur Squirrel. Le parent inclut les opcodes des enfants, y compris
  * les ticks passes a attendre une commande. Eteint : les sites lisent seulement
  * le global. Les tables ne sont pas sauvees sur l'instance. */

@@ -1,7 +1,7 @@
 """Calibration des couts et revenus des projets : predit (modele) contre realise.
 
 Lit les journaux moteur d'une ou plusieurs campagnes `run_c66_reference.py` jouees avec
-`decision_log=1` et `--script-debug` (fichiers `<bras>_seed<N>_r<k>.log`, .gz accepte), et
+`probes=6` et `--script-debug` (fichiers `<bras>_seed<N>_r<k>.log`, .gz accepte), et
 apparie pour OpexAI (compagnie 0) :
 - PROJECT_CHOSEN (cout et profit predits au choix) ;
 - RAIL_BUILD / AIR_BUILD / ROAD_BUILD / WATER_BUILD (ligne, distance, cout reel, flotte initiale) ;

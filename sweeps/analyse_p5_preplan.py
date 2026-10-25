@@ -715,7 +715,7 @@ def format_p5_report(summary: dict, seeds: list[int], max_year: int = 1975) -> s
     if summary["perturbation"]:
         lines.extend([
             f"",
-            f"## 6. Perturbation sous sonde (probe_scheduler=1 vs référence probe_scheduler=0)",
+            f"## 6. Perturbation sous sonde (probes=1026 vs référence probes=2)",
             f"| Graine | Valeur ref | Valeur sonde | Delta val (%) | Profit ref | Profit sonde | Delta prof (%) | Véh ref | Véh sonde (delta) | Gares ref | Gares sonde (delta) |",
             f"|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
         ])

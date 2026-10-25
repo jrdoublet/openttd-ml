@@ -2,12 +2,11 @@
 """Contrats statiques de V212 : recalage du revenu et du capital predits des lignes rail passagers.
 
 Verifie :
-1. Reglages v212_rail_pax_revenue_pct (50..300) et v212_rail_pax_capital_pct (50..200), defaut 100
-   (inerte), declares dans info.nut, globals_pre.nut et settings.nut.
-2. OpexLineEconomics : recalage applique apres la boucle du nombre de trains, uniquement pour
-   kind == "pax", et seulement si l'un des deux reglages differe de 100.
-3. Le profit est recalcule depuis le revenu recale (meme formule que OpexApplyRailActualCapital),
-   et le ROI depuis le capital recale + immobilise.
+1. Les anciens reglages V212 et leurs globales mortes sont absents.
+2. OpexLineEconomics : le recalage conserve par le bit 2 de V275 s'applique apres
+   le choix du nombre de trains, uniquement pour kind == "pax".
+3. Le profit est recalcule depuis le revenu recale, et le ROI depuis le capital
+   recale + immobilise.
 """
 from __future__ import annotations
 
@@ -47,12 +46,11 @@ class TestV212Settings(unittest.TestCase):
             self.assertNotIn(f'name = "{name}"', info)
     def test_globals_and_reading(self):
         globals_pre = read_file("globals_pre.nut")
-        self.assertIn("V212_RAIL_PAX_REVENUE_PCT <- 100;", globals_pre)
-        self.assertIn("V212_RAIL_PAX_CAPITAL_PCT <- 100;", globals_pre)
         settings = read_file("settings.nut")
         self.assertNotIn("v212_rail_pax", settings)
-        self.assertNotIn("V212_RAIL_PAX_REVENUE_PCT =", settings)
-        self.assertNotIn("V212_RAIL_PAX_CAPITAL_PCT =", settings)
+        for symbol in ("V212_RAIL_PAX_REVENUE_PCT", "V212_RAIL_PAX_CAPITAL_PCT"):
+            self.assertNotIn(symbol, globals_pre)
+            self.assertNotIn(symbol, settings)
 
 
 class TestV212Economics(unittest.TestCase):

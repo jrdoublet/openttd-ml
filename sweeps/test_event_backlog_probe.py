@@ -1,4 +1,4 @@
-"""Contrat statique de la sonde probe_event_backlog (F-EVENT-BACKLOG-01)."""
+"""Contrat statique de la sonde F-EVENT-BACKLOG-01, activee par probes bit 8."""
 import re
 import unittest
 from pathlib import Path
@@ -26,20 +26,15 @@ class TestEventBacklogProbe(unittest.TestCase):
         cls.events_src = EVENTS.read_text(encoding="utf-8")
         cls.persist_src = PERSIST.read_text(encoding="utf-8")
 
-    def test_setting_declaration_and_defaults(self):
+    def test_direct_bit_declaration_and_defaults(self):
         defaults = parse_ai_settings(INFO)
         specs = parse_ai_setting_specs(INFO)
-        self.assertIn("probe_event_backlog", defaults)
-        self.assertEqual(defaults["probe_event_backlog"], 0)
-        self.assertTrue(specs["probe_event_backlog"]["boolean"])
-
-        start = self.info_src.index('name = "probe_event_backlog"')
-        block = self.info_src[start:self.info_src.index("});", start)]
-        self.assertIn("0 = off (default)", block)
-        self.assertIn("flags = AICONFIG_BOOLEAN", block)
-        for key in ("easy_value", "medium_value", "hard_value", "custom_value"):
-            self.assertIn(f"{key} = 0", block)
-        self.assertEqual(self.info_src.count('name = "probe_event_backlog"'), 1)
+        retired = "probe_" + "event_backlog"
+        self.assertNotIn(retired, defaults)
+        self.assertNotIn(retired, specs)
+        self.assertNotIn(f'name = "{retired}"', self.info_src)
+        self.assertEqual(defaults["probes"], 2)
+        self.assertEqual((specs["probes"]["min_value"], specs["probes"]["max_value"]), (0, 2147483647))
 
     def test_globals_declaration(self):
         self.assertIn("PROBE_EVENT_BACKLOG <- false;", self.globals_src)
@@ -52,15 +47,17 @@ class TestEventBacklogProbe(unittest.TestCase):
         self.assertEqual(self.globals_src.count("PROBE_EVENT_BACKLOG <-"), 1)
 
     def test_settings_loading(self):
-        needle = 'PROBE_EVENT_BACKLOG = OpexProbeSetting("probe_event_backlog") != 0;'
+        needle = 'PROBE_EVENT_BACKLOG = (OPEX_PROBE_MASK & 8) != 0;'
         self.assertIn(needle, self.settings_src)
         self.assertEqual(self.settings_src.count(needle), 1)
+        retired = "probe_" + "event_backlog"
+        self.assertNotIn(f'OpexProbeSetting("{retired}")', self.settings_src)
+        self.assertNotIn(f'GetSetting("{retired}")', self.settings_src)
         self.assertNotIn("PROBE_EVENT_BACKLOG <-", self.settings_src)
         self.assertIn("if (PROBE_EVENT_BACKLOG) {", self.settings_src)
 
     def test_not_in_persistence(self):
         for token in (
-            "probe_event_backlog",
             "PROBE_EVENT_BACKLOG",
             "EVENT_BACKLOG_CALLS",
             "EVENT_BACKLOG_EVENTS",

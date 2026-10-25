@@ -1198,7 +1198,7 @@ def build_arms(seeds, years, shared=False, funnel=False,
     if shared:
         opex_params = []
         if funnel or air_slot_intercept:
-            opex_params.append(("probe_portfolio", 1))
+            opex_params.append(("probes", 2 | 131072))
         opex_params = tuple(opex_params)
         opex = local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI", opex_params)
         return [
@@ -1213,7 +1213,7 @@ def build_arms(seeds, years, shared=False, funnel=False,
             }
             for seed in seeds
         ]
-    opex = local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI", (("probe_events", 1),))
+    opex = local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI", (("probes", 2 | 1048576),))
     return [
         {
             "seed": seed,

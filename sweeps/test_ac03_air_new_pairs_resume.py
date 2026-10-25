@@ -133,7 +133,7 @@ class AC03AirNewPairsResumeTests(unittest.TestCase):
         self.assertLess(NEW_PAIRS.index("resumeState.a = nextA;"),
                         NEW_PAIRS.index("if (resumingCombo)"))
         self.assertLess(NEW_PAIRS.index("resumeState.b = nextB;"),
-                        NEW_PAIRS.index("if (V133_AIR_BUILD_RETRY)"))
+                        NEW_PAIRS.index("CATALOG_COST_ACTIVE.airPairs++"))
         self.assertLess(NEW_PAIRS.index("resumeState.a = nextA;"),
                         NEW_PAIRS.index("OpexAirStoreRoutePlan("))
         self.assertIn("resumeState.a <- 0;", PREPARE)
@@ -148,10 +148,8 @@ class AC03AirNewPairsResumeTests(unittest.TestCase):
 
     def test_filters_and_admission_are_inside_pair_loop(self):
         ordered = (
-            "if (V133_AIR_BUILD_RETRY)",
             "CATALOG_COST_ACTIVE.airPairs++",
             "if (targetTownId >= 0\n          && sites[a].town.id != targetTownId",
-            "OpexAirTownCentersLinked(",
             "AIMap.DistanceManhattan(sites[a].town.tile, sites[b].town.tile)",
             "OpexAirPairInBand(",
             "OpexAirPairIsAbandoned(",

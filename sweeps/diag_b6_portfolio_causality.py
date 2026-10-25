@@ -217,7 +217,7 @@ def main():
     if a.selftest: selftest(); return
     a.out.parent.mkdir(parents=True,exist_ok=True); bench_v2.CHECKPOINT_PATH=a.out.with_suffix(".jsonl")
     if bench_v2.CHECKPOINT_PATH.exists(): bench_v2.CHECKPOINT_PATH.unlink()
-    arms={REFERENCE:local_folder(str(ROOT/"ai"/"OpexAI"),"OpexAI",(("decision_log",0),)),PROBE:local_folder(str(ROOT/"ai"/"OpexAI"),"OpexAI",(("decision_log",1),))}
+    arms={REFERENCE:local_folder(str(ROOT/"ai"/"OpexAI"),"OpexAI",(("probes",2),)),PROBE:local_folder(str(ROOT/"ai"/"OpexAI"),"OpexAI",(("probes",6),))}
     ex=[{"seed":s,"days":365*a.years,"openttd_config":make_cfg(STARTING_YEAR),"ais":(arms[arm],),"bench_run":[arm,s,0]} for arm in (REFERENCE,PROBE) for s in a.seeds]
     enable_savegame_cleanup(); rows=list(run_experiments(openttd_version=OPENTTD_VERSION,opengfx_version=OPENGFX_VERSION,experiments=ex,max_workers=min(a.workers,6,len(ex)),result_processor=bench_keep,ai_libraries=(bananas_ai_library("51554648","Queue.FibonacciHeap"),bananas_ai_library("5046524c","Pathfinder.Rail"))))
     grouped=defaultdict(list)

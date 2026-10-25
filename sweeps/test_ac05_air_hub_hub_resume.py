@@ -52,8 +52,6 @@ class State:
 
 def decision(i, j, hubs, target, mask, connected, published):
     """Choix de rejet figés, dans l'ordre du .nut ; pas d'API économique."""
-    if mask & 1 and (i + 2 * j) % 7 == 0:
-        return "v133"
     if (i, j) in published:
         return "snapshot"
     if target is not None and target not in (hubs[i], hubs[j]):
@@ -140,7 +138,7 @@ class AC05HubHubTests(unittest.TestCase):
         self.assertLess(HUB_HUB.index('ctx.resumeState.hubHubJ <- j;'),
                         HUB_HUB.index('local hub1 = hubs[i];'))
         self.assertLess(HUB_HUB.index('progressed = true;'),
-                        HUB_HUB.index('if (V133_AIR_BUILD_RETRY)'))
+                        HUB_HUB.index('OpexAir0310SkipRestoredPair(ctx'))
         self.assertLess(HUB_HUB.index('OpexAir0310SkipRestoredPair(ctx'),
                         HUB_HUB.index('CATALOG_COST_ACTIVE.airHubHubPairs++'))
         closing = body('function OpexAirPlansCompleteCombo(')

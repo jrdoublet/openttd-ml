@@ -170,7 +170,7 @@ function OpexAI::_logC39PassClockLedger(year)
 }
 
 /* V95 item 1 — tours de file selectionnes vs no-op. Piggyback sur
- * _runNextTaskWithSlackLedger (actif uniquement sous probe_scheduler) : opcodes/jours/ticks
+ * _runNextTaskWithSlackLedger (probes bit 10 ou groupe 8) : opcodes/jours/ticks
  * sont ceux deja mesures par C39.6, sans begin/end supplementaire.
  *
  * Definition de did_work par dispatcher (Issues 2-4) :
@@ -267,7 +267,6 @@ function OpexAI::_schedIdlePreDispatch()
   this._schedIdlePreProjects = this._projects;
   this._schedIdlePreBestLen = (this._projects != null && ("best" in this._projects) && this._projects.best != null) ? this._projects.best.len() : 0;
   this._schedIdlePreHadAbandons = this._hadAbandonsThisPass;
-  this._schedIdlePreC83Preempt = (C83_PREEMPT_OPEN && ("_c83PreemptEnqueued" in this)) ? this._c83PreemptEnqueued : 0;
   this._schedIdlePreC78Rebuild = (("c78AirRebuild" in task) && task.c78AirRebuild != null) ? task.c78AirRebuild : null;
   this._p2PreCapital = OpexAvailableCapital();
   this._p2PreCandidateGroupsLen = (this._projects != null && ("candidateGroups" in this._projects) && this._projects.candidateGroups != null) ? this._projects.candidateGroups.len() : 0;
@@ -356,7 +355,7 @@ function OpexAI::_schedIdlePreDispatch()
   }
 }
 
-/* P5 : observatoire de scan du vivier de candidats (sous probe_scheduler). */
+/* P5 : observatoire de scan du vivier de candidats (probes bit 10 ou groupe 8). */
 function OpexAI::_p5ScanCandidatePool(projects, availableCapital)
 {
   local res = {
@@ -616,17 +615,15 @@ function OpexAI::_schedIdlePostDispatch(taskName, ran, ops, days, ticks)
     } else {
       local railSearchStarted = this._railSearch != null && this._schedIdlePreRailSearch == null;
       local railSearchConsumed = this._schedIdlePreRailSearch != null && (this._railSearch == null || this._railSearch != this._schedIdlePreRailSearch);
-      local c83Reactive = C83_PREEMPT_OPEN && ("_c83PreemptEnqueued" in this) && this._c83PreemptEnqueued > this._schedIdlePreC83Preempt;
       local abandonHandled = this._hadAbandonsThisPass != this._schedIdlePreHadAbandons || (this._hadAbandonsThisPass == true);
 
-      if (builtLine || builtVeh || railSearchStarted || railSearchConsumed || c83Reactive || abandonHandled) {
+      if (builtLine || builtVeh || railSearchStarted || railSearchConsumed || abandonHandled) {
         didWork = true;
         reason = "projects_useful";
         skipClass = "work";
         if (builtLine || builtVeh) subField = "built";
         else if (railSearchStarted) subField = "rail_search_started";
         else if (railSearchConsumed) subField = "rail_search_consumed";
-        else if (c83Reactive) subField = "c83_reactive";
         else if (abandonHandled) subField = "abandon_handled";
         else subField = "useful_other";
       } else {

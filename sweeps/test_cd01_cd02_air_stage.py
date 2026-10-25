@@ -36,11 +36,10 @@ def function(name):
 class StageMachine:
     """Frozen substep boundaries; quotas count visits, never VM opcodes."""
 
-    def __init__(self, towns, target=None, v93=True, c83=False):
+    def __init__(self, towns, target=None, v93=True):
         self.towns = sorted_towns(towns, target=target, dirty_order=False)
         self.target = target
         self.v93 = v93
-        self.c83 = c83
         self.site_cursor = SiteState()
         self.pair_cursor = Cursor()
         self.phase = "sites"
@@ -50,7 +49,7 @@ class StageMachine:
         if self.phase == "sites":
             finished = site_step(self.site_cursor, self.towns, len(self.towns),
                                  site_budget, target=self.target,
-                                 c83_fixes=self.c83, kind="large", v93=self.v93)
+                                 kind="large", v93=self.v93)
             self.trace.append("sites_done" if finished else "sites_yield")
             if not finished:
                 return False
@@ -82,14 +81,14 @@ class CD01CD02StageContracts(unittest.TestCase):
             {"id": 1, "pop": 580, "found": True, "valid": True},
             {"id": 9, "pop": 2300, "found": True, "valid": True},
         ]
-        for target, c83 in ((None, False), (4, True), (8, True), (999, True)):
+        for target in (None, 4, 8, 999):
             for v93 in (True, False):
-                reference = StageMachine(towns, target, v93, c83).run(100, 100)
+                reference = StageMachine(towns, target, v93).run(100, 100)
                 for budget_sites in (1, 2, 3, 4, 9):
                     for budget_pairs in (1, 2, 3, 4, 9):
                         with self.subTest(target=target, v93=v93, site=budget_sites,
                                           pair=budget_pairs):
-                            actual = StageMachine(towns, target, v93, c83).run(
+                            actual = StageMachine(towns, target, v93).run(
                                 budget_sites, budget_pairs)
                             self.assertEqual(actual.phase, "hubs")
                             self.assertEqual(actual.site_cursor.sites, reference.site_cursor.sites)

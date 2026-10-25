@@ -6,15 +6,10 @@
  * coexistent, une categorie jointe conserve l'incertitude plutot que de fabriquer une attribution. */
 function OpexAI::_runNextTaskWithSlackLedger()
 {
-  if (V233_GOODS_GRAFT && this._catalog != null) {
-    this._v233GoodsStep();
-    if (this._v233GoodsWork != null && this._v233GoodsWork.phase == "done") {
-      if (!this._v233PlanStep()) this._v233GraftStep();
-    }
-  }
   if (V216_PROBE) OpexV216MonthlyTick();
   if (V211_RIVALS) OpexV211QuarterlyTick();
   if (DECISION_LOG) OpexV262OrphanSurvey(this._lines);
+  if (RLW03_SHADOW) this._rlw03MonthlyObserve();
   if (V217_RAIL_REFILL > 0) this._v217RailRefill();
   if (V259_BRIDGE_RENEW > 0) this._v259CheckNewBridges();
   if ((!C41_SLACK_LEDGER && !C41_MONTHLY_BUSY_LEDGER && !C41_OPPORTUNITY_LEDGER && !C41_ADMISSION_LEDGER
@@ -407,7 +402,7 @@ function OpexAI::_v89TrackSearchDays(now)
   }
 }
 
-/* V89 : journalise le bilan annuel A* rail sous probe_events (C56_TASK_TRACE). */
+/* V89 : journalise le bilan annuel A* rail sous probes bit 20 ou groupe 128 (C56_TASK_TRACE). */
 function OpexAI::_logC89AnnualRail(year)
 {
   if (!C56_TASK_TRACE) return;

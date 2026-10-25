@@ -61,7 +61,7 @@ from bench_v2 import (
 from paired_statistics import (wilcoxon_signed_rank_statistic, exact_wilcoxon_signed_rank_p, bootstrap_mean_ci)
 from physical_counters import decode_vehicles, decode_stations
 from rail_budget_signs import rail_budget_sign_metrics
-from c83_reaction import parse_c83_reactions, parse_c83_repairs
+from c83_reaction import parse_c83_reactions
 from game_health import (
     DEFAULT_ENGINE_TIMEOUT_SEC,
     assess_game,
@@ -2192,8 +2192,8 @@ def main():
     parser.add_argument("--max-workers", type=int, default=3)
     parser.add_argument("--campaign", help="Identifiant C66.3 nouveau ; derive de --out ou horodate si omis")
     parser.add_argument("--policy-id", default="reference", help="Identifiant de la politique OpexAI testee")
-    parser.add_argument("--reference", help="C66.4 : politique de reference explicite, ex. OpexAI[c83_local_repair=0]")
-    parser.add_argument("--variant", help="C66.4 : ex. OpexAI[c83_local_repair=1]")
+    parser.add_argument("--reference", help="C66.4 : politique de reference explicite, ex. OpexAI[probes=2]")
+    parser.add_argument("--variant", help="C66.4 : ex. OpexAI[probes=1026]")
     parser.add_argument("--variant-policy-id", help="C66.4 : identifiant stable de la variante")
     parser.add_argument("--primary-metric", choices=list(SUCCESS_METRICS), default=PRIMARY_METRIC)
     parser.add_argument("--min-useful-primary-delta", type=float)
@@ -2581,8 +2581,6 @@ def execute_frozen_campaign(campaign):
         for record in part_annotated:
             if record["arm"] == "OpexAI":
                 record["c83_reaction"] = c83_reaction
-                record["c83_local_repair"] = parse_c83_repairs(
-                    Path(log_path).read_text(encoding="utf-8") if log_path is not None else None)
             if record.get("status") == "bankrupt":
                 for metric in SUCCESS_METRICS:
                     if record.get(metric) is None:
@@ -3125,20 +3123,20 @@ def selftest():
 
     # 5. C66.3 : defaults effectifs, garde de comparaison et immutabilite du snapshot.
     defaults = parse_ai_settings(ROOT / "ai" / "OpexAI" / "info.nut")
-    assert defaults["debug_signs"] == 1
+    assert defaults["probes"] == 2
     assert "air_fleet_cadence_days" not in defaults  # V236 : constante 7
 
     diff = validate_policy_settings(
-        {"c83_local_repair": 0, "mode_road": 0},
-        {"c83_local_repair": 1, "mode_road": 0},
-        intervention_settings=("c83_local_repair",),
+        {"probes": 2, "mode_road": 0},
+        {"probes": 1026, "mode_road": 0},
+        intervention_settings=("probes",),
     )
-    assert set(diff) == {"c83_local_repair"}
+    assert set(diff) == {"probes"}
     try:
         validate_policy_settings(
-            {"c83_local_repair": 0, "mode_road": 0},
-            {"c83_local_repair": 1, "mode_road": 1},
-            intervention_settings=("c83_local_repair",),
+            {"probes": 2, "mode_road": 0},
+            {"probes": 1026, "mode_road": 1},
+            intervention_settings=("probes",),
         )
     except ValueError:
         pass
@@ -3158,7 +3156,7 @@ def selftest():
         assert fingerprint_tree(snap)["sha256"] == frozen_hash
 
     # 6. C66.4 : comparaison de politiques appariée, ratios, signes et fail-closed.
-    assert parse_opex_variant("OpexAI[c83_local_repair=1]") == (("c83_local_repair", 1),)
+    assert parse_opex_variant("OpexAI[probes=1026]") == (("probes", 1026),)
     try:
         parse_opex_variant("OpexAI[reglage_inconnu_c66=1]")
     except ValueError:

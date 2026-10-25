@@ -1,8 +1,8 @@
 """Chaque AISign.BuildSign d'OpexAI doit etre sous la garde des panneaux.
 
-La garde existante (V167) est DEBUG_SIGNS = (probes bit 2) ET debug_signs != 0.
-Elle peut etre coupee (probes sans bit 2, ou debug_signs=0) sans changer les
-defauts historiques (probes=2, debug_signs=1) exiges par les bancs.
+La garde existante (V167) est DEBUG_SIGNS = (probes bit 2).
+Elle peut etre coupee (probes sans bit 2) sans changer les
+defauts historiques (probes=2) exiges par les bancs.
 
 Le test echoue si une pose resterait atteignable une fois cette garde a faux.
 Les appels dans les commentaires sont ignores. Une pose qui servirait une
@@ -114,18 +114,17 @@ def _is_guarded(source: str, pos: int) -> tuple[bool, str]:
 
 
 class TestSignsDefaultOff(unittest.TestCase):
-    def test_panel_guard_is_probes_bit2_and_debug_signs_veto(self):
+    def test_panel_guard_is_probes_bit2(self):
         settings = (AI / "settings.nut").read_text(encoding="utf-8")
         self.assertIn(
-            'DEBUG_SIGNS = (probes & 2) != 0\n      && AIController.GetSetting("debug_signs") != 0;',
+            'DEBUG_SIGNS = (probes & 2) != 0;',
             settings,
         )
         info = (AI / "info.nut").read_text(encoding="utf-8")
         probes = info.split('name = "probes"', 1)[1].split("});", 1)[0]
-        signs = info.split('name = "debug_signs"', 1)[1].split("});", 1)[0]
         for key in ("easy_value", "medium_value", "hard_value", "custom_value"):
             self.assertRegex(probes, key + r" = 2\b")
-            self.assertRegex(signs, key + r" = 1\b")
+        self.assertNotIn('name = "debug_signs"', info)
 
     def test_opexsign_is_the_wrapper(self):
         probes = (AI / "probes.nut").read_text(encoding="utf-8")

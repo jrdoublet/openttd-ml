@@ -14,7 +14,7 @@ ROOT = Path("/work") if Path("/work").exists() else Path(__file__).resolve().par
 sys.path.insert(0, str(ROOT / "sweeps"))
 from bench_v2 import OPENGFX_VERSION, OPENTTD_VERSION, experiments, write_json_atomically
 
-ARM = "OpexAI[probe_portfolio=1]"
+ARM = "OpexAI[probes=131074]"
 
 
 def keep_cash(row):
@@ -97,7 +97,7 @@ def main():
     if args.years < 2 or not args.seeds or not 1 <= args.max_workers <= 3:
         parser.error("years >= 2, seeds non vide, max-workers 1..3")
 
-    params = (("probe_portfolio", 1), ("debug_signs", 1))
+    params = (("probes", 2 | 131072),)
     arms = {ARM: openttdlab.local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI", params)}
     rows = list(run_experiments(
         openttd_version=OPENTTD_VERSION, opengfx_version=OPENGFX_VERSION,

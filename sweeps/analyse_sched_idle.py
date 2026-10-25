@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Analyseur V95 item 1 : tours de file selectionnes vs no-op.
 
-Lit les lignes `SCHED_IDLE` emises sous probe_scheduler=1.
+Lit les lignes `SCHED_IDLE` emises sous probes=1026.
 Les jours de jeu et les ticks viennent des horodatages de chaque evenement.
 
 `--selftest` exerce l'accumulateur Python et les invariants statistiques.
@@ -797,7 +797,7 @@ def format_report(summary):
     lines.append("")
 
     if summary.get("perturbation"):
-        lines.append("## Perturbation probe_scheduler=1 vs reference probe_scheduler=0")
+        lines.append("## Perturbation probes=1026 vs reference probes=2")
         lines.append("| graine | val ref | val sonde | delta val (%) | profit ref | profit sonde | delta prof (%) | veh ref | veh sonde | st ref | st sonde |")
         lines.append("|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|")
         for p in summary["perturbation"]:

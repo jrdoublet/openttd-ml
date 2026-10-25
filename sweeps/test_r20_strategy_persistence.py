@@ -77,7 +77,7 @@ class TestStrategyPersistence(unittest.TestCase):
             "C121_AIR_PRESSURE_PREV = data.previous;",
         ):
             self.assertIn(assignment, self.restore)
-        self.assertIn("C121_AIR_PRESSURE_SNAPSHOT = null;", self.restore)
+        self.assertNotIn("C121_AIR_PRESSURE_SNAPSHOT", self.restore)
 
     def test_classifier_keeps_lock_and_closes_each_accumulator_year_once(self):
         projects = read_projects_source()

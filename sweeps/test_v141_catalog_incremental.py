@@ -6,7 +6,7 @@ difficultes. A 1, et seulement si C121_CATALOG_INCREMENTAL est actif et C111
 eteint, OpexAir0310PublishIncremental rafraichit planningOpcodes / date / cargo
 sur les projets air deja publies au lieu d'appeler OpexProjectFromAir.
 Les plans neufs restent convertis par FromAir. La reelection est inchangee.
-Le mode controle, sous probe_events (C56_TASK_TRACE), recalcule aussi FromAir
+Le mode controle, sous probes bit 1048576 (C56_TASK_TRACE), recalcule aussi FromAir
 et journalise V141_CHECK. Aucune partie n'est lancee.
 """
 from __future__ import annotations

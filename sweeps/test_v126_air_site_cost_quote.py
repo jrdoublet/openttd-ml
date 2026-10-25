@@ -108,7 +108,7 @@ class TestV126Settings(unittest.TestCase):
             "AIR_SITE_COST_MARGIN_PCT",
             "AIR_SITE_QUOTE_KEEP_LEGACY_MARGIN",
         ):
-            # \b : AIR_SITE_COST_QUOTES (cache de la sonde) n'est pas le drapeau retire.
+            # \b : evite la collision des noms partageant ce prefixe.
             pattern = re.compile(r"\b%s\b" % symbol)
             for label, text in (
                 ("globals", self.globals),
@@ -117,12 +117,9 @@ class TestV126Settings(unittest.TestCase):
             ):
                 self.assertIsNone(pattern.search(text), (symbol, label))
 
-    def test_probe_quote_cache_remains_unpersisted_shape(self):
-        for line in (
-            "V126_JOINED_STOP_COST <- 300;",
-            "AIR_SITE_COST_QUOTES <- {};",
-        ):
-            self.assertEqual(self.globals.count(line), 1, line)
+    def test_unused_quote_cache_globals_are_removed(self):
+        for symbol in ("V126_JOINED_STOP_COST", "AIR_SITE_COST_QUOTES"):
+            self.assertIsNone(re.search(r"\b" + symbol + r"\b", code_only(self.globals)), symbol)
         self.assertNotIn("AIR_SITE_COST_QUOTES_DATE", self.globals)
         loader = body(self.settings, "function OpexLoadSettings(")
         self.assertLess(len(re.findall(r"\blocal\s+\w+", code_only(loader))), 200)
@@ -169,8 +166,6 @@ class TestV126ReservedWordsAndLoadChain(unittest.TestCase):
         prepare = body(economics, "function OpexC121PrepareEngineStatic(")
         route = body(self.sources["ai/OpexAI/air_construction.nut"], "function OpexBuildAirRoute(")
         settings = body(self.sources["ai/OpexAI/settings.nut"], "function OpexLoadSettings(")
-        globals_pre = self.sources["ai/OpexAI/globals_pre.nut"]
-        info = self.sources["ai/OpexAI/info.nut"]
         return {
             "quote": body(economics, "function OpexAirSiteLevelQuote("),
             "prepare_block": prepare[
@@ -193,11 +188,6 @@ class TestV126ReservedWordsAndLoadChain(unittest.TestCase):
             ),
             "cost_fields": body(
                 self.sources["ai/OpexAI/task_air.nut"], "function OpexAirV126CostFields("
-            ),
-            "globals_lines": "\n".join(
-                line
-                for line in globals_pre.splitlines()
-                if "AIR_SITE_COST" in line or "V126_JOINED_STOP_COST" in line
             ),
         }
 

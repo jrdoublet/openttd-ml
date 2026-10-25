@@ -1,9 +1,9 @@
 """Contrats V296a : pose de voie groupee (une commande BuildRail par alignement).
 
 Verifie :
-- reglage v296_rail_batch_build a defaut 0 aux 4 niveaux, lu une seule fois ;
-- globales V296_RAIL_BATCH_BUILD et V296A_MISMATCH declarees dans globals_pre.nut ;
-- au defaut, OpexBuildTrack ne groupe rien (garde sur la globale) et la pose unitaire reste en place ;
+- reglage v296_rail_batch_build retire, constante active 1 ;
+- V296A_MISMATCH reste declaree dans globals_pre.nut ;
+- OpexBuildTrack groupe les alignements mais la pose unitaire de secours demeure ;
 - pas de groupement sous la signalisation V199 de double voie ;
 - trace groupe verifie tuile par tuile, defait par la meme commande en cas d'ecart ;
 - echec du groupement : repli unitaire et saut de l'alignement (pas de re-essai quadratique) ;
@@ -65,18 +65,16 @@ class TestV296aBatchBuild(unittest.TestCase):
         self.builder = read("builder_rail.nut")
         self.track = function_body(self.builder, "function OpexBuildTrack(")
 
-    def test_setting_default_one_and_loaded_once(self):
-        block = re.search(r'AddSetting\(\{\s*name = "v296_rail_batch_build",(.*?)\}\);', self.info, re.S)
-        self.assertIsNotNone(block)
-        for level in ("easy", "medium", "hard", "custom"):
-            self.assertRegex(block.group(1), rf"{level}_value\s*=\s*1\b")
-        self.assertEqual(self.settings.count('GetSetting("v296_rail_batch_build")'), 1)
-        self.assertIn("V296_RAIL_BATCH_BUILD <- 1;", self.globals_pre)
+    def test_batch_build_is_permanent_and_mismatch_fallback_remains(self):
+        self.assertNotIn('name = "v296_rail_batch_build"', self.info)
+        self.assertNotIn('GetSetting("v296_rail_batch_build")', self.settings)
+        self.assertIn("const V296_RAIL_BATCH_BUILD = 1;", self.globals_pre)
         self.assertIn("V296A_MISMATCH <- false;", self.globals_pre)
 
-    def test_default_path_unchanged(self):
-        self.assertRegex(self.track, r"local batch = \(V296_RAIL_BATCH_BUILD && !V296A_MISMATCH && "
+    def test_active_batch_and_unit_fallback_unchanged(self):
+        self.assertRegex(self.track, r"local batch = \(!V296A_MISMATCH && "
                                      r"!\(V199_ROBUST_BUILD && isDouble\)\)")
+        self.assertNotIn("V296_RAIL_BATCH_BUILD &&", self.track)
         self.assertIn("if (batch != null && i > batch.skipUntil)", self.track)
         self.assertIn("ok = AIRail.BuildRail(prev, cur, next);", self.track)
 

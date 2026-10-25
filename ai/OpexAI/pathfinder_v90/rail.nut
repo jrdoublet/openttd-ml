@@ -661,7 +661,7 @@ function OpexRailPathFinderV90::_IsSlopedRail(start, middle, end)
  * V90 test-mode checker:
  * Runs BaNaNaS RailPathFinder and OpexRailPathFinderV90 in lockstep,
  * compares current node at each step and end path/iterations,
- * logs V90_CHECK under probe_events.
+ * logs V90_CHECK under probes bit 20 or group 128.
  */
 class OpexRailPathfinderCheckerV90
 {

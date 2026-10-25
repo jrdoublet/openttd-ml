@@ -4,7 +4,7 @@ Extracts:
 - C50_CHRONO phase=project_built (mode, rank in portfolio, line, cost, profit, roi)
 - C50_CHRONO phase=fleet_built (mode, line, added, total)
 - C78_BUILD (mode, rank, outcome, reason, P, C)
-Under probe_portfolio=1 and probe_events=1.
+Under probes=1179650 (portfolio and events dedicated bits, with signs).
 Aggregates physical lines built by mode, vehicles by mode, and economic performance.
 Documents existing probe limitations (absence of modal top-K rank, candidate fundScore, and overlap).
 """

@@ -115,8 +115,8 @@ class TestV294dRailAaaCosts(unittest.TestCase):
 class TestV294fRailReverseProbe(unittest.TestCase):
     def test_setting_declared_default_zero(self):
         info = read("info.nut")
-        match = re.search(r'AddSetting\(\{\s*name\s*=\s*"v294_rail_reverse_probe"(.*?)\}\);', info, re.S)
-        self.assertIsNotNone(match, "v294_rail_reverse_probe non déclaré dans info.nut")
+        match = re.search(r'AddSetting\(\{\s*name\s*=\s*"rail_reverse_astar_iters"(.*?)\}\);', info, re.S)
+        self.assertIsNotNone(match, "rail_reverse_astar_iters non déclaré dans info.nut")
         block = match.group(1)
         for level in ("easy", "medium", "hard", "custom"):
             self.assertRegex(block, rf"{level}_value\s*=\s*300\b")
@@ -125,20 +125,20 @@ class TestV294fRailReverseProbe(unittest.TestCase):
 
     def test_global_declared_and_loaded_once(self):
         globals_pre = read("globals_pre.nut")
-        self.assertIn("V294_RAIL_REVERSE_PROBE <- 300;", globals_pre)
+        self.assertIn("RAIL_REVERSE_ASTAR_ITERS <- 300;", globals_pre)
         settings = read("settings.nut")
-        self.assertEqual(settings.count('GetSetting("v294_rail_reverse_probe")'), 1)
-        self.assertIn("V294_RAIL_REVERSE_PROBE = revProbe;", settings)
+        self.assertEqual(settings.count('GetSetting("rail_reverse_astar_iters")'), 1)
+        self.assertIn("RAIL_REVERSE_ASTAR_ITERS = reverseAstarIters;", settings)
 
     def test_guarded_in_start_rail_search(self):
         task_rail = read("task_rail.nut")
         start = function_body(task_rail, "OpexAI::_startRailSearch")
-        self.assertIn("if (V294_RAIL_REVERSE_PROBE > 0)", start)
-        self.assertIn("local revSlice = OpexV294fReverseProbe(plan.plansA, plan.plansB, clearanceTiles, searchWeight, candidate, V294_RAIL_REVERSE_PROBE);", start)
+        self.assertIn("if (RAIL_REVERSE_ASTAR_ITERS > 0)", start)
+        self.assertIn("local revSlice = OpexRailReverseAstarSearch(plan.plansA, plan.plansB, clearanceTiles, searchWeight, candidate, RAIL_REVERSE_ASTAR_ITERS);", start)
 
     def test_probe_helper_in_builder_rail(self):
         builder = read("builder_rail.nut")
-        probe = function_body(builder, "OpexV294fReverseProbe")
+        probe = function_body(builder, "OpexRailReverseAstarSearch")
         self.assertIn("local revPf = OpexCreateRailPathfinder(plansB, plansA, clearanceTiles, searchWeight, null, null, engine);", probe)
         self.assertIn('OpexDecide("V294F_PROBE", "ok=" + (ok ? 1 : 0) + " iters=" + iters + " manh=" + manh);', probe)
         self.assertIn("local revTiles = OpexPathTiles(revRes);", probe)

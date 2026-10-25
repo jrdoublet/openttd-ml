@@ -44,7 +44,6 @@ function OpexBuildFailureIsAbandonable(result)
   if (("reason" in result) && result.reason == "CASH") return false;
   /* Plafond de vehicules : transitoire, des slots peuvent se liberer. */
   if (("reason" in result) && result.reason == "NOSLOT") return false;
-  if (("reason" in result) && (result.reason == "V233_STALE" || result.reason == "V233_REPRICE")) return false;
   if (("error" in result) && result.error == AIError.ERR_NOT_ENOUGH_CASH) return false;
   return true;
 }
@@ -317,7 +316,6 @@ function OpexAI::_pruneAbandonedPairs(now)
 /* Verifie les separations d'origine et de gare pour une nouvelle ligne rail. */
 function OpexAI::_tooClose(candidate)
 {
-  local v233Join = V233_GOODS_GRAFT && ("v233Graft" in candidate) && candidate.v233Graft;
   /* V178 : la ligne rattachee partage volontairement la gare de la ligne existante. */
   local joinLineId = ("joinLineId" in candidate) ? candidate.joinLineId : -1;
   local joinStationId = ("joinStationId" in candidate) ? candidate.joinStationId : -1;
@@ -326,18 +324,17 @@ function OpexAI::_tooClose(candidate)
    * sans jointure et _tooClose la rejetait too_close_no_join (MIN_SEPARATION, main.nut).
    * On n'exempte B que si le candidat porte deja le quai a joindre. A reste controlee. */
   local shareEndB = isSharedDest
-      || (V264_CONVERGENT_FREIGHT && ("convergent_dest" in candidate) && candidate.convergent_dest == 1);
+      || (("convergent_dest" in candidate) && candidate.convergent_dest == 1);
   local entries = [["A", candidate.src], ["B", candidate.dst]];
 
   local originA = -1;
   local originB = -1;
   foreach (line in this._lines) {
     if (("mode" in line) && line.mode != "rail") continue;
-    if (!v233Join && joinLineId >= 0 && ("lineId" in line) && line.lineId == joinLineId) continue;
+    if (joinLineId >= 0 && ("lineId" in line) && line.lineId == joinLineId) continue;
     foreach (lineEnd in ["A", "B"]) {
       local originTile = lineEnd == "A" ? line.originA : line.originB;
       foreach (entry in entries) {
-        if (v233Join && entry[0] == "A" && OpexLineStationId(line, lineEnd) == joinStationId) continue;
         if (isSharedDest && entry[0] == "B") continue;
         if (shareEndB && entry[0] == "B") continue;
         local d = AIMap.DistanceManhattan(entry[1], originTile);
@@ -354,14 +351,13 @@ function OpexAI::_tooClose(candidate)
 
   foreach (line in this._lines) {
     if (("mode" in line) && line.mode != "rail") continue;
-    if (!v233Join && joinLineId >= 0 && ("lineId" in line) && line.lineId == joinLineId) continue;
+    if (joinLineId >= 0 && ("lineId" in line) && line.lineId == joinLineId) continue;
     foreach (lineEnd in ["A", "B"]) {
       local stationId = OpexLineStationId(line, lineEnd);
       if (stationId < 0) continue;
       if (isSharedDest && stationId == joinStationId) continue;
       local stationTile = lineEnd == "A" ? line.stationA : line.stationB;
       foreach (entry in entries) {
-        if (v233Join && entry[0] == "A" && stationId == joinStationId) continue;
         if (isSharedDest && entry[0] == "B") continue;
         if (shareEndB && entry[0] == "B") continue;
         local d = AIMap.DistanceManhattan(entry[1], stationTile);

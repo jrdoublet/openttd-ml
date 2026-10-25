@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Analyseur P2 : cycle de vie du portefeuille post-build sous probe_scheduler=1.
+"""Analyseur P2 : cycle de vie du portefeuille post-build sous probes=1026.
 
 Lit les enregistrements `P2_BUILD` et `P2_RESOLVE` émis par OpexAI.
 Établit :
@@ -387,7 +387,7 @@ def format_p2_report(summary: dict) -> str:
     if summary.get("perturbation"):
         lines.extend([
             "",
-            "## 8. Perturbation sous sonde (probe_scheduler=1 vs référence probe_scheduler=0)",
+            "## 8. Perturbation sous sonde (probes=1026 vs référence probes=2)",
             "| Graine | Valeur ref | Valeur sonde | Delta val (%) | Profit ref | Profit sonde | Delta prof (%) | Véh ref | Véh sonde (delta) | Gares ref | Gares sonde (delta) |",
             "|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
         ])

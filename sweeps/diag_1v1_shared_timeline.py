@@ -1,7 +1,7 @@
 """Duel partage OpexAI vs AAAHogEx, chronologie mensuelle et decisions detaillees.
 
 Le duel partage est volontairement un diagnostic narratif, pas un banc de valeur : les deux IA
-se disputent le terrain et `decision_log=1` consomme des opcodes chez Opex. Il repond a « qui
+se disputent le terrain et `probes=6` consomme des opcodes chez Opex. Il repond a « qui
 construit quoi pendant que l'autre travaille ? », complete par les chunks mensuels et les traces
 de construction d'AAAHogEx.
 """
@@ -103,7 +103,7 @@ def main():
     args = parser.parse_args()
     args.out.parent.mkdir(parents=True, exist_ok=True)
     opex = local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI",
-                        (("decision_log", 1), ("probe_scheduler", 1), ("probe_cost", 1)))
+                        (("probes", 2 | 4 | 1024 | 512),))
     hogex = local_folder(str(ROOT / "ai" / AAAHOGEX_DIR), "AAAHogEx", ())
     rows = list(run_experiments(
         openttd_version=OPENTTD_VERSION, opengfx_version=OPENGFX_VERSION,

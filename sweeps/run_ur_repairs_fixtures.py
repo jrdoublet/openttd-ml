@@ -39,7 +39,7 @@ def transform(target):
 if __name__ == "__main__":
     original = tree_hashes(ROOT / "ai/OpexAI")
     try:
-        run_fixture(settings=(("decision_log", 1),), fixture=FIXTURE,
+        run_fixture(settings=(("probes", 6),), fixture=FIXTURE,
                     marker="UR_REPAIRS", stage_transform=transform)
     finally:
         if original != tree_hashes(ROOT / "ai/OpexAI"):

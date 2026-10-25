@@ -355,7 +355,7 @@ def build_arms(seeds, years, shared=False, funnel=False):
     from openttdlab import local_folder
     hogex = local_folder(str(ROOT / "ai" / AAAHOGEX_DIR), "AAAHogEx", ())
     if shared:
-        opex_params = (("probe_portfolio", 1),) if funnel else ()
+        opex_params = (("probes", 2 | 131072),) if funnel else ()
         opex = local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI", opex_params)
         return [
             {
@@ -368,7 +368,7 @@ def build_arms(seeds, years, shared=False, funnel=False):
             }
             for seed in seeds
         ]
-    opex = local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI", (("probe_events", 1),))
+    opex = local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI", (("probes", 2 | 1048576),))
     return [
         {
             "seed": seed,

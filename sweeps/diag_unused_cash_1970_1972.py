@@ -1,6 +1,6 @@
 """Diagnostic solo de la tresorerie OpexAI au demarrage (1970-1972).
 
-Le jeu publie sous ``probe_portfolio=1`` quatre panneaux annuels passifs :
+Le jeu publie sous ``probes=131074`` quatre panneaux annuels passifs :
 
 * ``UC`` : cash, emprunt, reserve ;
 * ``UP`` : capital disponible, besoin du projet en tete, mode ;
@@ -170,7 +170,7 @@ def main():
     args.out.parent.mkdir(parents=True, exist_ok=True)
 
     opex = local_folder(
-        str(ROOT / "ai" / "OpexAI"), "OpexAI", (("probe_portfolio", 1),)
+        str(ROOT / "ai" / "OpexAI"), "OpexAI", (("probes", 2 | 131072),)
     )
     experiments = [
         {
@@ -210,7 +210,7 @@ def main():
     payload = {
         "years_run": args.years,
         "seeds": args.seeds,
-        "arm": "OpexAI[probe_portfolio=1] solo",
+        "arm": "OpexAI[probes=131074] solo",
         "per_seed": per_seed,
         "annual_mean": aggregate(per_seed),
     }

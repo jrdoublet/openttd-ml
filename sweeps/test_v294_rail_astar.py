@@ -90,13 +90,30 @@ class TestV294RailAstar(unittest.TestCase):
 
     def test_no_undeclared_v294_globals(self):
         allowed = {"V294_RAIL_BRIDGE_LEN", "V294_RAIL_CONTINUOUS",  # v294 ; integration v294all :
-                   "V294_RAIL_WEIGHT_PCT", "V294_RAIL_AAA_COSTS", "V294_RAIL_REVERSE_PROBE",
+                   "V294_RAIL_WEIGHT_PCT", "V294_RAIL_AAA_COSTS",
                    "V294_RAIL_DIST_DECOUPLE", "V294_RAIL_SLOPE_ENGINE"}
         found = set()
         for fn, text in self.sources.items():
             for m in re.finditer(r"\b(V294_[A-Z0-9_]+)\b", text):
                 found.add(m.group(1))
         self.assertEqual(found, allowed, f"Symboles V294 non autorises trouves: {found - allowed}")
+
+    def test_reverse_astar_uses_iteration_setting_as_search_cap(self):
+        self.assertIn("RAIL_REVERSE_ASTAR_ITERS <- 300;", self.globals_pre)
+        setting = re.search(r'name = "rail_reverse_astar_iters",(.*?)\}\);', self.info, re.S)
+        self.assertIsNotNone(setting)
+        body = setting.group(1)
+        self.assertIn("min_value = 0", body)
+        self.assertIn("max_value = 5000", body)
+        self.assertIn("step_size = 50", body)
+        for level in ("easy", "medium", "hard", "custom"):
+            self.assertRegex(body, rf"{level}_value\s*=\s*300\b")
+        self.assertEqual(self.settings.count('GetSetting("rail_reverse_astar_iters")'), 1)
+        start = _function_body(self.task_rail, "function OpexAI::_startRailSearch(")
+        self.assertIn("if (RAIL_REVERSE_ASTAR_ITERS > 0)", start)
+        self.assertIn("OpexRailReverseAstarSearch(plan.plansA, plan.plansB, clearanceTiles, searchWeight, candidate, RAIL_REVERSE_ASTAR_ITERS)", start)
+        self.assertIn("if (revSlice != null)", start)
+        self.assertIn("OpexCompleteRailRouteAfterSearch(this._catalog, candidate, plan, revSlice)", start)
 
     def test_guards_around_all_v294_bridge_len_paths(self):
         # Options regroupees dans OpexV294ApplyRailCosts, appelee a la creation et a chaque segment.
@@ -119,7 +136,7 @@ class TestV294RailAstar(unittest.TestCase):
         body_start = _function_body(self.task_rail, "function OpexAI::_startRailSearch(")
         self.assertIn("if (V294_RAIL_CONTINUOUS > 0) {", body_start)
         self.assertIn("pathfinder = OpexCreateRailPathfinder(plan.plansA, plan.plansB, clearanceTiles, searchWeight, outwardSide, null, candidateEngine);", body_start)
-        self.assertIn("segmented = OpexCreateSegmentedSearch(plan.plansA, plan.plansB, searchBudget, clearanceTiles, searchWeight, outwardSide, null, candidateEngine);", body_start)
+        self.assertIn("segmented = OpexCreateSegmentedSearch(plan.plansA, plan.plansB, plan.iterationBudget, clearanceTiles, searchWeight, outwardSide, null, candidateEngine);", body_start)
 
         # 3. Dans task_rail.nut : _startRailUpgradeSearch
         body_upg = _function_body(self.task_rail, "function OpexAI::_startRailUpgradeSearch(")

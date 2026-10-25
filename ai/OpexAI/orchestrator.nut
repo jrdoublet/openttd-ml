@@ -486,8 +486,7 @@ function OpexWorkerRegenCandidatesStep(worker, opsBudget, deadlineTick)
       }
       local airSlice = OpexRegenerateAirProjectsSlice(owner._projects, owner._catalog, owner._budget,
           owner._lines, owner._abandonedPairs, s.airState, opsBudget, deadlineTick,
-          entityKind, entityId,
-          targeted && entityKind == "town" && ("reason" in s) && s.reason == "c83_slot_race");
+          entityKind, entityId);
       if (spRegen != null && !airSlice.done) OpexSpanEnd(spRegen);
       if (!airSlice.done) return "running";
       owner._projects = airSlice.projects;
@@ -819,12 +818,16 @@ function OpexAI::_v217RailRefill()
     if (V269_RELAXED && !V269_ON) {
       V269_ON = true;
       /* V178/V179 sont figes a 1 depuis V263b : plus rien a activer ici. */
-      if (DECISION_LOG) OpexDecide("V269", "action=on month=" + ym + " cash=" + cash);
+      if (DECISION_LOG) OpexDecide("V269", "action=on month=" + ym + " cash=" + cash
+          + " freight_cap=" + ((V269_RAIL_LONG_MAX > V269_RAIL_MAX_DIST) ? V269_RAIL_LONG_MAX : V269_RAIL_MAX_DIST));
     }
     v269Relaxed = V269_RELAXED;
   }
+  if (V269_RAIL_LONG_MAX > 0 && V269_RELAXED)
+    V269_RAIL_LONG_CARGO = freightCargos[nextCargo];
   this._projects = OpexRegenerateModeProjects(this._projects, this._catalog, this._budget,
       this._lines, this._abandonedPairs, "rail", null, null, -1);
+  V269_RAIL_LONG_CARGO = null;
   V217_REGEN_NO_PAX = false;
   if (V269_RAIL_LATE_RELAX > 0) V269_RELAXED = false;
   if (("freightCargo" in this._projects) && this._projects.freightCargo != null) {
@@ -837,7 +840,11 @@ function OpexAI::_v217RailRefill()
         && this._projects.rail.candidates != null) ? this._projects.rail.candidates.len() : -1;
     local cargo = (("freightCargo" in this._projects) && this._projects.freightCargo != null)
         ? AICargo.GetCargoLabel(this._projects.freightCargo) : "all";
-    local v269Suffix = (V269_RAIL_LATE_RELAX > 0) ? (" v269=" + (v269Relaxed ? 1 : 0)) : "";
+    local v269Cap = OpexCatalogBounds(this._catalog).railMax;
+    if (v269Relaxed && V269_RAIL_MAX_DIST > v269Cap) v269Cap = V269_RAIL_MAX_DIST;
+    if (v269Relaxed && V269_RAIL_LONG_MAX > v269Cap) v269Cap = V269_RAIL_LONG_MAX;
+    local v269Suffix = (V269_RAIL_LATE_RELAX > 0) ? (" v269=" + (v269Relaxed ? 1 : 0)
+        + " freight_cap=" + v269Cap) : "";
     OpexDecide("V217_RAIL_REFILL", "month=" + ym + " cash=" + cash + " startable=" + startable
         + " cargo=" + cargo + " candidates=" + n + " ops=" + ops + v269Suffix);
   }

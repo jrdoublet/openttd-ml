@@ -54,12 +54,22 @@ function OpexV276Request(catalog, kind = null, id = -1)
   if (task == null) return;
   /* Ne jamais remplacer un curseur en vol : les evenements tardifs restent
    * non acquittes par le snapshot et provoqueront la passe suivante. */
-  if (("v276" in task) && task.v276 != null) return;
+  local longFreight = V269_RAIL_LONG_MAX > 0 && V269_RAIL_LATE_RELAX > 0 && V269_RELAXED;
+  local freightCap = longFreight
+      ? OpexRailFreightMaxDistance(catalog, OpexCatalogBounds(catalog), V269_RAIL_LONG_CARGO) : 0;
+  if (("v276" in task) && task.v276 != null && !longFreight) return;
   if (!("v276Request" in task) || task.v276Request == null)
-    task.v276Request <- { catalog = catalog, kind = kind, id = id };
+    task.v276Request <- { catalog = catalog, kind = kind, id = id,
+                          v269FreightCap = freightCap,
+                          v269FreightCargo = longFreight ? V269_RAIL_LONG_CARGO : null };
   else if (task.v276Request.kind != kind || task.v276Request.id != id) {
     task.v276Request.kind = null;
     task.v276Request.id = -1;
+  }
+  if (longFreight && (!("v269FreightCap" in task.v276Request)
+      || freightCap > task.v276Request.v269FreightCap)) {
+    task.v276Request.v269FreightCap = freightCap;
+    task.v276Request.v269FreightCargo = V269_RAIL_LONG_CARGO;
   }
 }
 
@@ -93,6 +103,12 @@ function OpexV276Start(owner, task)
   catalog.acceptors = clone catalog.acceptors;
   catalog.townAcceptors = clone catalog.townAcceptors;
   catalog.bounds = clone OpexCatalogBounds(catalog);
+  if (V269_RAIL_LONG_MAX > 0 && ("v269FreightCap" in request) && request.v269FreightCap > 0) {
+    /* Le catalogue est une INSTANCE Squirrel : ajouter des slots avec `<-`
+     * leve une erreur. La table de bornes clonee peut accueillir le snapshot. */
+    catalog.bounds.v269FreightCap <- request.v269FreightCap;
+    catalog.bounds.v269FreightCargo <- request.v269FreightCargo;
+  }
   local units = [];
   if (MODE_RAIL) {
     OpexV276AddUnits(units, catalog, !MODE_AIR);
@@ -135,6 +151,8 @@ function OpexV276PrepareUnit(s, u)
   local bounds = s.catalog.bounds;
   local maxDistance = u.mode == "road"
       ? (("roadGenMax" in bounds) ? bounds.roadGenMax : bounds.roadMax) : bounds.railMax;
+  if (u.mode == "rail" && !u.pax && V269_RAIL_LONG_MAX > 0)
+    maxDistance = OpexRailFreightMaxDistance(s.catalog, bounds, u.cargo);
   if (u.pax && u.band == PAX_BAND_RAIL_ONLY) maxDistance = bounds.railAirOverlapMin - 1;
   local grid = OpexSpatialGrid();
   grid.Build(destinations, maxDistance);
@@ -271,7 +289,12 @@ function OpexV276Enumerate(s, u, mark, opsBudget, startTick, deadlineTick)
       if (!touches) continue;
     }
     local distance = AIMap.DistanceManhattan(src.tile, dst.tile);
-    if (u.mode == "rail" && !OpexRailPaxPairInBand(s.catalog.bounds, distance, u.band)) continue;
+    if (u.mode == "rail") {
+      if (!u.pax && V269_RAIL_LONG_MAX > 0) {
+        if (distance < s.catalog.bounds.railMin
+            || distance > OpexRailFreightMaxDistance(s.catalog, s.catalog.bounds, u.cargo)) continue;
+      } else if (!OpexRailPaxPairInBand(s.catalog.bounds, distance, u.band)) continue;
+    }
     if (u.mode == "road" && !OpexRoadDistanceAllowed(s.catalog, distance, c.roadStats)) continue;
     local score = u.pax ? (src.pop.tofloat() * dst.pop * sqrt(distance.tofloat())).tointeger() : distance;
     s.pairs.AddItem(a * n + b, score);

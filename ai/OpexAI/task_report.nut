@@ -615,7 +615,7 @@ function OpexAI::_reportLines(year)
     }
   }
   /* C75 bis : la telemetrie du bras causal doit rester disponible sans
-   * probe_portfolio/C69, sinon activer la sonde changerait le protocole mesure. */
+   * probes bit 17 ou groupe 128 / C69, sinon activer la sonde changerait le protocole mesure. */
   {
     local c75BypassYear = year - 1;
     if (c75BypassYear >= 1970 && C75_KPASS_BYPASS_LEDGER_YEAR == c75BypassYear) {

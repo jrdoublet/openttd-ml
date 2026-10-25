@@ -243,9 +243,19 @@ function OpexAI::_tryBuildFleetProject(year, project, rank, passDiscards, builtK
     if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "fleet", src = project.src, dst = project.dst, reason = "insufficient_cash", extra = "" });
     return { outcome = "rejected", discards = passDiscards };
   }
+  /* Une entree deja selectionnee peut etre stale apres l'assignation d'un
+   * autre projet pour la meme ligne : appliquer egalement le verrou a l'execution. */
+  if (AIR_ROI_RENFORT1_ITT != 0 && OpexAirR1ITTBlocked(line)) {
+    if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) {
+      passDiscards.append({ rank = i, mode = "fleet", src = project.src, dst = project.dst,
+                            reason = "airr1_itt_deferred", extra = "" });
+    }
+    return { outcome = "rejected", discards = passDiscards };
+  }
   local plannedFull = ("capital" in project && project.capital > 0)
       ? project.capital : (entry.planePrice * entry.want);
-  local costs = C63_INVEST_PROBE ? AIAccounting() : null;
+  local costs = (C63_INVEST_PROBE || AIR_ROI_RENFORT1_SHADOW || AIR_ROI_RENFORT1_ITT != 0)
+      ? AIAccounting() : null;
   local c121HaveBefore = ("vehCount" in line) ? line.vehCount
       : (("vehicles" in line) ? line.vehicles.len() : 0);
   local c121TrackMarginal = ("targetAirPlanes" in line)
@@ -257,14 +267,30 @@ function OpexAI::_tryBuildFleetProject(year, project, rank, passDiscards, builtK
   /* Un REPLACE consomme un achat mais ne fait pas croitre la flotte :
    * compte separe, aligne sur task_air.nut (pas de added). */
   local replaced = 0;
-  /* Sonde passive uniquement si air_flotte1_shadow=1, apres les gardes de caisse
+  /* Sonde passive uniquement si probes bit 23, apres les gardes de caisse
    * et juste avant l'achat (pas de selection/revalidation supplementaire). */
   local airF1Event = AIR_FLOTTE1_SHADOW
       ? OpexAirF1Before(this, "reinforce", line.lineId, entry.planePrice,
                         project, i, -1, -1, builtKeys) : null;
+  local airR1Event = AIR_ROI_RENFORT1_SHADOW
+      ? OpexAirR1Before(this, project, i) : null;
   if (airF1Event != null) OpexAirF1Ready(airF1Event);
+  local airR1ITT = AIR_ROI_RENFORT1_ITT != 0
+      ? OpexAirR1ITTAssign(this, project, i) : null;
+  if (airR1ITT != null && airR1ITT.deferred) {
+    OpexAirR1ITTOutcome(airR1ITT, 0, 0, "ASSIGNED_DEFER", 0);
+    if (airR1Event != null) OpexAirR1After(airR1Event, 0, 0, 0, "ASSIGNED_DEFER");
+    if (airF1Event != null) OpexAirF1After(airF1Event, "deferred", 0, 0);
+    if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) {
+      passDiscards.append({ rank = i, mode = "fleet", src = project.src, dst = project.dst,
+                            reason = "airr1_itt_deferred", extra = "" });
+    }
+    return { outcome = "rejected", discards = passDiscards };
+  }
+  local airR1LastReason = "none";
   for (local k = 0; k < entry.want; k++) {
     local grown = OpexAirAddPlane(line, this._catalog, this._lines);
+    if (airR1Event != null) airR1LastReason = ("reason" in grown) ? grown.reason : "unknown";
     if (R1_R3_TEST_ONLY) OpexR1R3Log("mechanism=R1 phase=api_result id="
         + (("r1r3Id" in project) ? project.r1r3Id : "unknown")
         + " pass=" + R1_R3_TEST_PASS + " cycle=" + this._taskCycle + " rank=" + i
@@ -286,6 +312,8 @@ function OpexAI::_tryBuildFleetProject(year, project, rank, passDiscards, builtK
     if (AICompany.GetBankBalance(AICompany.COMPANY_SELF) < need) break;
   }
   local actual = (costs != null) ? costs.GetCosts() : 0;
+  if (airR1ITT != null) OpexAirR1ITTOutcome(airR1ITT, added, replaced, airR1LastReason, actual);
+  if (airR1Event != null) OpexAirR1After(airR1Event, actual, added, replaced, airR1LastReason);
   if (R1_R3_TEST_ONLY) OpexR1R3FleetTrace(this, project, i, "result",
       added + replaced > 0 ? "built" : "fleet_grow_failed", added, replaced);
   if (added + replaced <= 0) {
@@ -384,30 +412,7 @@ function OpexAI::_c39StampFinanceable(capital = null, isProjectsTurn = false)
   return stamped.len();
 }
 
-/* Projet finance, non-reuse, dont l'ancre est imputee a la ville surveillee
- * et qui passe encore OpexAirBatchPlanStillLive. */
-function OpexAirC83FundedRaceCoversTown(projects, lines, townId)
-{
-  if (projects == null || !("best" in projects) || projects.best == null || lines == null) return false;
-  local limit = projects.best.len() < PROJECT_TOP_K ? projects.best.len() : PROJECT_TOP_K;
-  for (local i = 0; i < limit; i++) {
-    local project = projects.best[i];
-    if (project == null || !("mode" in project) || project.mode != "air") continue;
-    if (!("profitAnnual" in project) || project.profitAnnual <= 0) continue;
-    if (OpexProjectFinanceCapital(project) > OpexAvailableCapital()) continue;
-    if (!("payload" in project) || project.payload == null) continue;
-    local plan = project.payload;
-    if (!("siteA" in plan) || plan.siteA == null || !("siteB" in plan) || plan.siteB == null) continue;
-    if (!OpexAirBatchPlanStillLive(plan, lines)) continue;
-    local reuseA = ("reuseA" in plan) && plan.reuseA;
-    local reuseB = ("reuseB" in plan) && plan.reuseB;
-    if (!reuseA && ("anchor" in plan.siteA) && OpexAirSlotTownId(plan.siteA.anchor) == townId) return true;
-    if (!reuseB && ("anchor" in plan.siteB) && OpexAirSlotTownId(plan.siteB.anchor) == townId) return true;
-  }
-  return false;
-}
-
-/* C122.4 shadow : meme filtre que OpexAirC83FundedRaceCoversTown, mais uniquement
+/* C122.4 shadow : projet encore finance et constructible, mais uniquement
  * sous la sonde et en retournant le projet/rang pour expliquer la decision locale.
  * Aucun scan carte : au plus PROJECT_TOP_K projets deja finances et leurs ancres
  * physiques deja calculees. */
@@ -471,7 +476,6 @@ function OpexC122ThreatRegister(ai, townId, previous)
     blockerMode = blockerMode,
     funded = match != null,
     attempts = 0,
-    retries = 0,
   });
   OpexC122ThreatLog("phase=detected seq=" + C122_AIR_THREAT_SEQ
       + " town=" + townId + " previous=" + previous + " remaining=1"
@@ -523,7 +527,7 @@ function OpexC122ThreatClose(townId, previous, ownPresent, ownCount)
       + " previous=" + previous + " remaining=0 own=" + (ownPresent ? 1 : 0)
       + " days=" + (today - watch.detected) + " funded=" + (watch.funded ? 1 : 0)
       + " rank=" + watch.rank + " project=" + watch.projectKey
-      + " attempts=" + watch.attempts + " retries=" + watch.retries
+      + " attempts=" + watch.attempts + " retries=0"
       + " blocker_mode=" + watch.blockerMode + " blocker=" + watch.blockerKey);
   delete C122_AIR_THREAT_WATCH[townId];
 }
@@ -536,7 +540,7 @@ function OpexC122ThreatCancel(townId, reason)
   OpexC122ThreatLog("phase=closed seq=" + watch.seq + " town=" + townId
       + " result=" + reason + " days=" + (today - watch.detected)
       + " funded=" + (watch.funded ? 1 : 0) + " rank=" + watch.rank
-      + " attempts=" + watch.attempts + " retries=" + watch.retries + " project=" + watch.projectKey
+      + " attempts=" + watch.attempts + " retries=0 project=" + watch.projectKey
       + " blocker_mode=" + watch.blockerMode + " blocker=" + watch.blockerKey);
   delete C122_AIR_THREAT_WATCH[townId];
 }
@@ -609,101 +613,6 @@ function OpexC122ThreatNoteOutcome(project, rank, attempt)
   }
 }
 
-/* C122.4 actif : le seul trou causal observe est un projet menace deja rang 0
- * dont un endpoint devient physiquement non constructible entre selection et
- * tentative. Ne pas changer le score : relancer une fois le C77 cible sur le
- * TownID exact de l'endpoint invalide afin de chercher un nouveau site. */
-function OpexC122ThreatRetryUnbuildable(ai, project, rank, attempt)
-{
-  if (!C122_AIR_THREAT_RETRY || ai == null || project == null || attempt == null
-      || !("outcome" in attempt) || attempt.outcome != "rejected"
-      || !("discards" in attempt) || attempt.discards == null
-      || !("payload" in project) || project.payload == null) return false;
-
-  local reason = null;
-  for (local i = attempt.discards.len() - 1; i >= 0; i--) {
-    local discard = attempt.discards[i];
-    if (discard == null || !("mode" in discard) || discard.mode != "air"
-        || !("rank" in discard) || discard.rank != rank || !("reason" in discard)) continue;
-    if (discard.reason == "siteA_unbuildable" || discard.reason == "siteB_unbuildable") {
-      reason = discard.reason;
-    }
-    break;
-  }
-  if (reason == null) return false;
-
-  local plan = project.payload;
-  local site = reason == "siteA_unbuildable" ? plan.siteA : plan.siteB;
-  local reuse = reason == "siteA_unbuildable"
-      ? (("reuseA" in plan) && plan.reuseA)
-      : (("reuseB" in plan) && plan.reuseB);
-  if (reuse || site == null || !("anchor" in site)) return false;
-  local townId = OpexAirSlotTownId(site.anchor);
-  if (!(townId in C122_AIR_THREAT_WATCH)) return false;
-  local watch = C122_AIR_THREAT_WATCH[townId];
-  if (watch.retries >= 1) return false;
-
-  local key = "c77|town|" + townId + "|air";
-  local alreadyQueued = ai._reactiveQueue != null && ai._reactiveQueue.has(key);
-  local queued = false;
-  if (!alreadyQueued) {
-    queued = ai._c77EnqueueEntity(["air"], "town", townId, true, "c122_threat_retry");
-  }
-  if (queued) {
-    watch.retries++;
-    C122_AIR_THREAT_RETRY_COUNT++;
-    ai._c83SlotRace.rawset(townId, AIDate.GetCurrentDate());
-  }
-  OpexC122ThreatLog("phase=retry seq=" + watch.seq + " town=" + townId
-      + " reason=" + reason + " queued=" + (queued ? 1 : 0)
-      + " coalesced=" + (alreadyQueued ? 1 : 0)
-      + " count=" + C122_AIR_THREAT_RETRY_COUNT
-      + " project=" + OpexProjectAttemptKey(project));
-  return queued;
-}
-
-function OpexC83LogSlotClosure(townId, previous, remaining, ownPresent, ownCount)
-{
-  if (remaining != 0) return;
-  if (previous != 1 && previous != 11 && previous != 2) return;
-  local claimed = (previous == 11) ? (ownCount >= 2) : ownPresent;
-  OpexC122ThreatClose(townId, previous, ownPresent, ownCount);
-  if (!C78_SLOT_INTERCEPT_PROBE) return;
-  local fields = "phase=" + (claimed ? "c83_slot_claimed" : "c83_slot_lost")
-      + " town=" + townId + " previous=" + previous + " remaining=0 own=" + (ownPresent ? 1 : 0);
-  if (previous == 2) fields += " jump=1";
-  OpexC78SlotLog(fields);
-}
-
-/* Une ville sortie du top contestable : journaliser la fermeture, garder
- * l'observation d'un slot 11, sinon oublier l'entree. */
-function OpexC83WatchDroppedTown(ai, townId, ownCounts)
-{
-  if (!AITown.IsValidTown(townId)) {
-    delete ai._c83SlotWatch[townId];
-    if (townId in ai._c83SlotRace) delete ai._c83SlotRace[townId];
-    return;
-  }
-  local remaining = AITown.GetAllowedNoise(townId);
-  local ownCount = (townId in ownCounts) ? ownCounts[townId] : 0;
-  local ownPresent = ownCount > 0;
-  local state = remaining + (ownPresent ? 10 : 0);
-  local previous = (townId in ai._c83SlotWatch) ? ai._c83SlotWatch[townId] : 2;
-  OpexC83LogSlotClosure(townId, previous, remaining, ownPresent, ownCount);
-  if (previous == 1 && remaining > 1) OpexC122ThreatCancel(townId, "threat_cleared");
-  else if (previous == 1 && ownPresent && remaining > 0) OpexC122ThreatCancel(townId, "opex_served");
-  if (remaining == 0) {
-    delete ai._c83SlotWatch[townId];
-    if (townId in ai._c83SlotRace) delete ai._c83SlotRace[townId];
-  } else if (state == 1 || state == 11) {
-    ai._c83SlotWatch.rawset(townId, state);
-    if (state == 11 && (townId in ai._c83SlotRace)) delete ai._c83SlotRace[townId];
-  } else {
-    delete ai._c83SlotWatch[townId];
-    if (townId in ai._c83SlotRace) delete ai._c83SlotRace[townId];
-  }
-}
-
 /* Trace rare, commune aux deux bras, independante des sondes portefeuille
  * couteuses. --script-debug permet au banc de collecter les intentions et les
  * suppressions ; aucune nouvelle horloge, file ou donnee de Save/Load. */
@@ -715,190 +624,6 @@ function OpexC83ReactionLog(townId, action)
       + " town=" + townId + " action=" + action);
 }
 
-function OpexC83WatchOneTown(ai, townId, ownCounts, today, rearmDays)
-{
-  local remaining = AITown.GetAllowedNoise(townId);
-  local ownCount = (townId in ownCounts) ? ownCounts[townId] : 0;
-  local ownPresent = ownCount > 0;
-  local state = remaining + (ownPresent ? 10 : 0);
-  local previous = (townId in ai._c83SlotWatch) ? ai._c83SlotWatch[townId] : 2;
-  OpexC83LogSlotClosure(townId, previous, remaining, ownPresent, ownCount);
-  if (previous == 1 && remaining > 1) OpexC122ThreatCancel(townId, "threat_cleared");
-  else if (previous == 1 && ownPresent && remaining > 0) OpexC122ThreatCancel(townId, "opex_served");
-
-  if (ownPresent || remaining != 1) {
-    ai._c83SlotWatch.rawset(townId, state);
-    /* La course n'est plus l'etat 1 : le plafond de rearm ne doit pas
-     * bloquer une prochaine ouverture de ce slot. */
-    if (townId in ai._c83SlotRace) delete ai._c83SlotRace[townId];
-    return 0;
-  }
-
-  OpexC122ThreatRegister(ai, townId, previous);
-  OpexC122ThreatRefreshFunded(ai, townId);
-
-  /* Etat 1 sans aeroport Opex : la course reste armee. Le recu d'enqueue
-   * (_c83SlotRace) n'est ecrit qu'apres un enqueue reussi. */
-  if (OpexAirC83FundedRaceCoversTown(ai._projects, ai._lines, townId)) {
-    if (C78_SLOT_INTERCEPT_PROBE) {
-      OpexC78SlotLog("phase=c83_slot_watch town=" + townId
-          + " previous=" + previous + " remaining=1 action=already_funded");
-    }
-    ai._c83SlotWatch.rawset(townId, state);
-    return 0;
-  }
-
-  local raceKey = "c77|town|" + townId + "|air";
-  if (ai._reactiveQueue != null && ai._reactiveQueue.has(raceKey)) {
-    if (C78_SLOT_INTERCEPT_PROBE) {
-      OpexC78SlotLog("phase=c83_slot_watch town=" + townId
-          + " previous=" + previous + " remaining=1 action=coalesced");
-    }
-    ai._c83SlotWatch.rawset(townId, state);
-    return 0;
-  }
-
-  local lastEnqueue = (townId in ai._c83SlotRace) ? ai._c83SlotRace[townId] : -1;
-  if (lastEnqueue >= 0 && today - lastEnqueue < rearmDays) {
-    if (C78_SLOT_INTERCEPT_PROBE) {
-      OpexC78SlotLog("phase=c83_slot_watch town=" + townId
-          + " previous=" + previous + " remaining=1 action=rearm_capped");
-    }
-    ai._c83SlotWatch.rawset(townId, state);
-    return 0;
-  }
-
-  if (ai._c77EnqueueEntity(["air"], "town", townId, true, "c83_slot_race")) {
-    OpexC83ReactionLog(townId, "enqueued");
-    ai._c83SlotRace.rawset(townId, today);
-    ai._c83SlotWatch.rawset(townId, state);
-    if (C78_SLOT_INTERCEPT_PROBE) {
-      OpexC78SlotLog("phase=c83_slot_watch town=" + townId
-          + " previous=" + previous + " remaining=1 action=targeted_regen");
-    }
-    return 1;
-  }
-  OpexC83ReactionLog(townId, "enqueue_failed");
-  if (C78_SLOT_INTERCEPT_PROBE) {
-    OpexC78SlotLog("phase=c83_slot_watch town=" + townId
-        + " previous=" + previous + " remaining=1 action=enqueue_failed");
-  }
-  return 0;
-}
-
-function OpexC83WatchAirSlots(ai)
-{
-  if (ai._c83SlotWatch == null || typeof ai._c83SlotWatch != "table") {
-    ai._c83SlotWatch = {};
-  }
-  if (ai._c83SlotRace == null || typeof ai._c83SlotRace != "table") {
-    ai._c83SlotRace = {};
-  }
-
-  local enqueued = 0;
-  local watched = OpexAirC83WatchTowns(ai._catalog.towns);
-  local ownCounts = OpexAirOwnSlotTownCounts();
-  local seen = {};
-  local today = AIDate.GetCurrentDate();
-  local rearmDays = 365;
-  foreach (town in watched) {
-    seen.rawset(town.id, true);
-    enqueued += OpexC83WatchOneTown(ai, town.id, ownCounts, today, rearmDays);
-  }
-
-  local stale = [];
-  foreach (townId, prevState in ai._c83SlotWatch) {
-    if (!(townId in seen)) stale.append(townId);
-  }
-  foreach (townId in stale) OpexC83WatchDroppedTown(ai, townId, ownCounts);
-  return enqueued;
-}
-
-/* Une seule grande ville encore vide. On s'arrete quand elle est servie ou
- * verrouillee. La regeneration reutilise la file C83 : coalescence toujours,
- * plafond de rearm seulement quand c83_fixes est arme. */
-function OpexC83PreemptWatch(ai)
-{
-  if (!C83_PREEMPT_OPEN || C83_PREEMPT_STOPPED || !OpexAirC83SlotSignalEnabled()) return 0;
-  if (ai == null || ai._catalog == null || ai._catalog.towns == null) return 0;
-  if (ai._c83PreemptRace == null || typeof ai._c83PreemptRace != "table") ai._c83PreemptRace = {};
-
-  local ownCounts = OpexAirOwnSlotTownCounts();
-  local prev = C83_PREEMPT_TOWN;
-  if (prev >= 0) {
-    local own = (prev in ownCounts);
-    local valid = AITown.IsValidTown(prev);
-    local noise = valid ? AITown.GetAllowedNoise(prev) : 0;
-    local pop = valid ? AITown.GetPopulation(prev) : 0;
-    if (own) {
-      if (C78_SLOT_INTERCEPT_PROBE) OpexC78SlotLog("phase=c83_preempt_built town=" + prev);
-      ::C83_PREEMPT_TOWN = -1;
-      ::C83_PREEMPT_STOPPED = true;
-      return 0;
-    }
-    if (!valid || noise != 2 || pop < OpexAirPreemptMinPop()) {
-      if (C78_SLOT_INTERCEPT_PROBE) {
-        OpexC78SlotLog("phase=c83_preempt_lost town=" + prev + " noise=" + noise);
-      }
-      ::C83_PREEMPT_TOWN = -1;
-      ::C83_PREEMPT_STOPPED = true;
-      return 0;
-    }
-  }
-
-  local newly = false;
-  local townId = C83_PREEMPT_TOWN;
-  if (townId < 0) {
-    local picked = OpexAirPreemptPickTown(ai._catalog.towns, ownCounts);
-    if (picked == null) return 0;
-    townId = picked.id;
-    ::C83_PREEMPT_TOWN = townId;
-    newly = true;
-  }
-
-  local action = "watch";
-  local enqueued = 0;
-  if (OpexAirC83FundedRaceCoversTown(ai._projects, ai._lines, townId)) {
-    action = "already_funded";
-  } else {
-    local raceKey = "c77|town|" + townId + "|air";
-    local blocked = false;
-    local today = AIDate.GetCurrentDate();
-    if (ai._reactiveQueue != null && ai._reactiveQueue.has(raceKey)) {
-      action = "coalesced";
-      blocked = true;
-    } else if (C83_FIXES) {
-      local lastEnqueue = (townId in ai._c83PreemptRace) ? ai._c83PreemptRace[townId] : -1;
-      if (lastEnqueue >= 0 && today - lastEnqueue < 365) {
-        action = "rearm_capped";
-        blocked = true;
-      }
-    } else if (ai._c83PreemptQueued == townId) {
-      action = "already_queued";
-      blocked = true;
-    }
-    if (!blocked) {
-      if (ai._c77EnqueueEntity(["air"], "town", townId, true, "c83_preempt")) {
-        if (C83_FIXES) {
-          ai._c83PreemptRace.rawset(townId, today);
-        } else {
-          ai._c83PreemptQueued = townId;
-        }
-        action = "targeted_regen";
-        enqueued = 1;
-      } else {
-        action = "enqueue_failed";
-      }
-    }
-  }
-  if (newly && C78_SLOT_INTERCEPT_PROBE) {
-    local popNow = AITown.IsValidTown(townId) ? AITown.GetPopulation(townId) : -1;
-    OpexC78SlotLog("phase=c83_preempt_target town=" + townId + " pop=" + popNow
-        + " action=" + action);
-  }
-  return enqueued;
-}
-
 /* C83.1 : equivalent d'un evenement "un concurrent vient de prendre le premier
  * slot", absent de NoAI. On ne surveille que les K grandes villes early-slot et
  * GetAllowedNoise est O(1). Le cache encode (slots restants + 10 si Opex y est
@@ -908,8 +633,6 @@ function OpexC83PreemptWatch(ai)
 function OpexAI::_c83WatchAirSlotTransitions()
 {
   if (this._catalog == null || !OpexAirC83SlotSignalEnabled()) return 0;
-  if (C83_PREEMPT_OPEN) this._c83PreemptEnqueued = OpexC83PreemptWatch(this);
-  if (C83_FIXES) return OpexC83WatchAirSlots(this);
   if (this._c83SlotWatch == null || typeof this._c83SlotWatch != "table") {
     this._c83SlotWatch = {};
   }
@@ -1123,7 +846,6 @@ function OpexAI::_recordPortfolioProjectBuilt(project, rank, c75BuiltKeys, c69Bu
         + " cash_after=" + AICompany.GetBankBalance(AICompany.COMPANY_SELF)
         + " available=" + OpexAvailableCapital());
   }
-  if (DECISION_LOG) OpexDecide("V233_BUILD", "mode=" + project.mode + " rank=" + rank + " key=" + OpexProjectAttemptKey(project));
   c75BuiltKeys[OpexC69AttemptKey(project)] <- true;
   c69BuiltProjects.append(project);
 }
@@ -1153,12 +875,6 @@ function OpexAI::_c78LogAirSlotLine(phase, project, rank, tail)
 function OpexAI::_consumeResumableRailAtPassStart(year, passDiscards, c49Best, c49BuiltRanks,
                                                   c75BuiltKeys, c69BuiltProjects)
 {
-  if (V233_GOODS_GRAFT && OpexV233IsGraft(this._railSearch.candidate)
-      && this._railSearch.candidate.railPlan != null && this._railSearch.candidate.railPlan.ok) {
-    this._v233StorePlan(this._railSearch.candidate, this._railSearch.candidate.railPlan);
-    this._railSearch = null;
-    return false;
-  }
   /* Un A* de preparation depose son trace dans le stock. Le consommer ici
    * construirait le rail, y compris pendant l'annee reservee a l'AIR. */
   if ((MODE_AIR && MODE_RAIL) && this._railSearch != null
@@ -1307,20 +1023,13 @@ function OpexAI::_ensureSelection()
 
 function OpexAI::_tryBuildProjects(year)
 {
-  /* V133 : a 0, seul ce booleen. Les tables ne sont pas touchees. */
-  if (V133_AIR_BUILD_RETRY) {
-    V133_AIR_BATCH_FAILED = {};
-    V133_AIR_SKIP_LOGGED = {};
-  }
   local spPass = PROBE_SPAN_TRACE ? OpexSpanBegin("projects.pass") : null;
   this._ensureSelection();
-  if (V233_GOODS_GRAFT) this._v233Publish();
   if (R1_R3_TEST_ONLY) R1_R3_TEST_PASS++;
   local c75KPassData = null;
   local c75StopReason = null;
   local c75BuiltKeys = {};
   local c75BypassConsumed = false;
-  local v233Attempts = V233_PENDING_CONTINUE ? {} : null;
   local c121FirstYearAirBatch = MODE_AIR
       && this._generationStageMonth >= 0
       && year == (this._generationStageMonth - 1) / 12;
@@ -1330,7 +1039,7 @@ function OpexAI::_tryBuildProjects(year)
   OpexC75BypassEnsureYear(year);
   {
     local now = AIDate.GetCurrentDate();
-    if (!V233_PENDING_CONTINUE) OpexC75RecordPassDate(now);
+    OpexC75RecordPassDate(now);
     c75KPassData = OpexC75ComputeKPass(now);
     if (C75_YEAR_LEDGER != null) C75_YEAR_LEDGER.passes++;
   }
@@ -1346,12 +1055,8 @@ function OpexAI::_tryBuildProjects(year)
   /* C83.1 : detecter d'abord une transition de slot qui exige un candidat absent,
    * puis reevaluer le petit portefeuille deja finance avant toute depense. */
   if (this._projects != null) {
-    if (C83_PREEMPT_OPEN) this._c83PreemptEnqueued = 0;
     local c83TargetedRegens = 0;
     c83TargetedRegens = this._c83WatchAirSlotTransitions();
-    if (C83_PREEMPT_OPEN && this._c83PreemptEnqueued > 0) {
-      c83TargetedRegens += this._c83PreemptEnqueued;
-    }
     if (spPass != null && c83TargetedRegens > 0) {
       OpexSpanEvent("projects_stop", "reason=c83_preempt");
       OpexSpanEnd(spPass);
@@ -1485,25 +1190,6 @@ function OpexAI::_tryBuildProjects(year)
         OpexAirF1RailPath(project, i, "skipped", "mode_vehicle_limit");
       continue;
     }
-    /* Reject an unavailable rail slot BEFORE K_pass: it cannot consume a bypass
-     * or stop the pass ahead of a fundable AIR project. Ready grafts remain ordinary. */
-    if (V233_PENDING_CONTINUE && project.mode == "rail" && this._railSearch != null) {
-      local payload = project.payload;
-      local prepared = ("c121PrepStock" in payload) && payload.c121PrepStock
-        && ("railPlan" in payload) && payload.railPlan != null;
-      local graftReady = V233_GOODS_GRAFT && OpexV233IsGraft(payload)
-        && ("railPlan" in payload) && payload.railPlan != null;
-      if (!prepared && !graftReady) {
-        if (AIR_FLOTTE1_SHADOW) OpexAirF1RailPath(project, i, "skipped", "search_slot_busy");
-        continue;
-      }
-    }
-    if (V233_GOODS_GRAFT && project.mode == "rail" && OpexV233IsGraft(project.payload)
-        && OpexProjectFinanceCapital(project) > OpexAvailableCapital()) {
-      if (AIR_FLOTTE1_SHADOW) OpexAirF1RailPath(project, i, "skipped", "graft_cash");
-      continue;
-    }
-
     local r1r3BypassBefore = false;
     local r1r3Threshold = 0;
     if (R1_R3_TEST_ONLY && project.mode == "air") {
@@ -1513,26 +1199,11 @@ function OpexAI::_tryBuildProjects(year)
           r1r3BypassBefore, builtCount, r1r3Threshold);
     }
 
-    /* V133 : a 0, seul ce booleen. Une ville en quarantaine ou fautive dans
-     * cette passe ne relance pas le chantier ; les autres paires suivent. */
-    if (V133_AIR_BUILD_RETRY && project.mode == "air"
-        && OpexV133AirPlanBlocked(project.payload)) {
-      OpexV133LogBlockedTowns(project.payload);
-      if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL || C78_SLOT_INTERCEPT_PROBE
-          || C122_AIR_THREAT_PROBE) {
-        local v133Plan = project.payload;
-        passDiscards.append({ rank = i, mode = "air", src = v133Plan.siteA.town.tile,
-                              dst = v133Plan.siteB.town.tile, reason = "batch_plan_dead", extra = "" });
-      }
-      continue;
-    }
-
     /* Un site pris par un chantier precedent rend les autres plans de ce
      * portefeuille caducs. R3 : les ecarter avant K_pass et son bypass aussi
      * au defaut, pas uniquement dans le batch C121 de premiere annee. */
     if (project.mode == "air"
         && !OpexAirBatchPlanStillLive(project.payload, this._lines)) {
-      if (V133_AIR_BUILD_RETRY) OpexV133SalvageDeadPlan(this._projects.best, i, project.payload, this._lines);
       if (R1_R3_TEST_ONLY) OpexR1R3AirTrace(this, project, i, "reject", "batch_plan_dead",
           r1r3BypassBefore, r1r3BypassBefore, builtCount, r1r3Threshold);
       if (c121FirstYearAirBatch) c121DeadSkipped++;
@@ -1546,7 +1217,6 @@ function OpexAI::_tryBuildProjects(year)
     }
 
     local c121ChainAttempt = false;
-    local v233Bypass = null;
     if (builtCount > 0) {
       local projCap = OpexProjectFinanceCapital(project);
       local c75KPass = (c75KPassData != null) ? c75KPassData.K_pass : 0;
@@ -1566,15 +1236,10 @@ function OpexAI::_tryBuildProjects(year)
                                         builtCount, c75BypassConsumed);
             if (!c75BypassConsumed) {
               c75BypassThisProject = true;
-              if (V233_PENDING_CONTINUE) {
-                v233Bypass = { cap = projCap, avail = availCap, threshold = c75KPass,
-                               built = builtCount };
-              } else {
               c75BypassConsumed = true;
-                if (R1_R3_TEST_ONLY && project.mode == "air") OpexR1R3AirTrace(this, project, i,
-                  "consume", "eligible", false, c75BypassConsumed, builtCount, c75KPass, projCap, availCap);
+              if (R1_R3_TEST_ONLY && project.mode == "air") OpexR1R3AirTrace(this, project, i,
+                "consume", "eligible", false, c75BypassConsumed, builtCount, c75KPass, projCap, availCap);
               OpexC75BypassRecordConsumed(year, project, projCap, availCap, c75KPass, builtCount);
-              }
             }
           }
         }
@@ -1622,12 +1287,6 @@ function OpexAI::_tryBuildProjects(year)
     local liveBuiltCount = builtCount;
     if (MONTHLY_FUNNEL) funnelAttempted++;
 
-    if (V233_PENDING_CONTINUE && (mode == "rail" || mode == "fleet")) {
-      local attemptKey = OpexProjectAttemptKey(project);
-      if (attemptKey in v233Attempts) continue;
-      v233Attempts[attemptKey] <- true;
-    }
-
     if (mode == "fleet") {
       if (C49_SCARCITY_LEDGER) c49AttemptedRanks.rawset(i, true);
       local c78DiscardsLen = (C69_BOTTLENECK_PROBE && passDiscards != null) ? passDiscards.len() : 0;
@@ -1640,11 +1299,6 @@ function OpexAI::_tryBuildProjects(year)
         if (attempt.outcome == "built") fallthroughBuilt++;
       }
       if (attempt.outcome == "pending") {
-        if (V233_PENDING_CONTINUE) {
-          if (DECISION_LOG) OpexDecide("V233_SEARCH", "state=continue mode=" + mode + " rank=" + i + " built=" + builtCount);
-          continue;
-        }
-        if (DECISION_LOG) OpexDecide("V233_SEARCH", "state=pending mode=" + mode + " rank=" + i + " built=" + builtCount);
         if (C49_SCARCITY_LEDGER && this._c49ScarcityLedger != null) {
           this._c49ScarcityLedger.stop_rail_search++;
         }
@@ -1675,11 +1329,6 @@ function OpexAI::_tryBuildProjects(year)
         return  true;
       }
       if (attempt.outcome == "built") {
-        if (V233_PENDING_CONTINUE && v233Bypass != null) {
-          c75BypassConsumed = true;
-          OpexC75BypassRecordConsumed(year, project, v233Bypass.cap, v233Bypass.avail,
-                                      v233Bypass.threshold, v233Bypass.built);
-        }
         this._recordPortfolioProjectBuilt(project, i, c75BuiltKeys, c69BuiltProjects);
         builtCount++;
 
@@ -1720,7 +1369,6 @@ function OpexAI::_tryBuildProjects(year)
             + " lines_before=" + r1r3LinesBefore + " lines_after=" + this._lines.len());
       }
       OpexC122ThreatNoteOutcome(project, i, attempt);
-      OpexC122ThreatRetryUnbuildable(this, project, i, attempt);
       passDiscards = attempt.discards;
       if (C69_BOTTLENECK_PROBE) OpexC78LogBuild(year, i, mode, project, attempt, passDiscards, c78DiscardsLen);
       if (C78_SLOT_INTERCEPT_PROBE) {
@@ -1748,11 +1396,6 @@ function OpexAI::_tryBuildProjects(year)
         if (c121FirstYearAirBatch) {
           c121AirBuilt++;
           if (c121ChainAttempt) c121AirChained++;
-        }
-        if (V233_PENDING_CONTINUE && v233Bypass != null) {
-          c75BypassConsumed = true;
-          OpexC75BypassRecordConsumed(year, project, v233Bypass.cap, v233Bypass.avail,
-                                      v233Bypass.threshold, v233Bypass.built);
         }
         this._recordPortfolioProjectBuilt(project, i, c75BuiltKeys, c69BuiltProjects);
         builtCount++;
@@ -1783,11 +1426,6 @@ function OpexAI::_tryBuildProjects(year)
       }
       if (attempt.outcome == "built") {
         if (PROBE_SPAN_TRACE) OpexSpanEvent("line_built", "mode=road built=1");
-        if (V233_PENDING_CONTINUE && v233Bypass != null) {
-          c75BypassConsumed = true;
-          OpexC75BypassRecordConsumed(year, project, v233Bypass.cap, v233Bypass.avail,
-                                      v233Bypass.threshold, v233Bypass.built);
-        }
         this._recordPortfolioProjectBuilt(project, i, c75BuiltKeys, c69BuiltProjects);
         builtCount++;
 
@@ -1830,11 +1468,6 @@ function OpexAI::_tryBuildProjects(year)
       if (C69_BOTTLENECK_PROBE) OpexC78LogBuild(year, i, mode, project, attempt, passDiscards, c78DiscardsLen);
       if (C49_SCARCITY_LEDGER && attempt.outcome == "built") c49BuiltRanks.rawset(i, true);
       if (attempt.outcome == "pending") {
-        if (V233_PENDING_CONTINUE) {
-          if (DECISION_LOG) OpexDecide("V233_SEARCH", "state=continue mode=" + mode + " rank=" + i + " built=" + builtCount);
-          continue;
-        }
-        if (DECISION_LOG) OpexDecide("V233_SEARCH", "state=pending mode=" + mode + " rank=" + i + " built=" + builtCount);
         if (C49_SCARCITY_LEDGER && this._c49ScarcityLedger != null) {
           this._c49ScarcityLedger.stop_rail_search++;
         }
@@ -1865,11 +1498,6 @@ function OpexAI::_tryBuildProjects(year)
       }
       if (attempt.outcome == "built") {
         if (PROBE_SPAN_TRACE) OpexSpanEvent("line_built", "mode=rail built=1");
-        if (V233_PENDING_CONTINUE && v233Bypass != null) {
-          c75BypassConsumed = true;
-          OpexC75BypassRecordConsumed(year, project, v233Bypass.cap, v233Bypass.avail,
-                                      v233Bypass.threshold, v233Bypass.built);
-        }
         this._recordPortfolioProjectBuilt(project, i, c75BuiltKeys, c69BuiltProjects);
         builtCount++;
 
@@ -1886,11 +1514,6 @@ function OpexAI::_tryBuildProjects(year)
       }
       if (attempt.outcome == "built") {
         if (PROBE_SPAN_TRACE) OpexSpanEvent("line_built", "mode=water built=1");
-        if (V233_PENDING_CONTINUE && v233Bypass != null) {
-          c75BypassConsumed = true;
-          OpexC75BypassRecordConsumed(year, project, v233Bypass.cap, v233Bypass.avail,
-                                      v233Bypass.threshold, v233Bypass.built);
-        }
         this._recordPortfolioProjectBuilt(project, i, c75BuiltKeys, c69BuiltProjects);
         builtCount++;
 
@@ -1917,7 +1540,6 @@ function OpexAI::_tryBuildProjects(year)
       c49AttemptedRanks, passDiscards, c73Cash, c73Avail, funnelAttempted, true,
       c75StopReason);
   if (builtCount > 0) {
-    if (V233_PENDING_CONTINUE) OpexC75RecordPassDate(AIDate.GetCurrentDate());
     this._recordC69BuildingPass(year, c69PassProjects != null ? c69PassProjects : this._projects, c69BuiltProjects);
   }
   {

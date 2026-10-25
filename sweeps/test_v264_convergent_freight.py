@@ -1,17 +1,12 @@
 #!/usr/bin/env python3
-"""V264 : fret convergent vers une industrie deja desservie (defaut 0)."""
+"""V264 : fret convergent adopte en permanence vers une industrie deja desservie."""
 from __future__ import annotations
 
-import sys
 import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 AI = ROOT / "ai" / "OpexAI"
-sys.path.insert(0, str(ROOT / "sweeps"))
-
-from campaign_freeze import parse_ai_setting_specs  # noqa: E402
-
 PROTECTED = (
     "c67_terrain_map",
     "v180_",
@@ -84,28 +79,16 @@ def _chebyshev(ax, ay, x0, y0, x1, y1):
 
 
 class TestV264ConvergentFreight(unittest.TestCase):
-    def test_setting_default_on_all_levels(self):
-        # 19/10 : defaut 1 (40x10 PC +111,8 k/an sur 39 paires, accepte par derogation utilisateur).
+    def test_adopted_policy_is_constant_and_not_a_setting(self):
+        # Politique adoptee au defaut 1 puis figee au lot 7.
         info = _read("info.nut")
-        spec = parse_ai_setting_specs(AI / "info.nut")["v264_convergent_freight"]
-        self.assertEqual(spec["default"], 1)
-        self.assertEqual((spec["min_value"], spec["max_value"]), (0, 1))
-        self.assertEqual(spec["step_size"], 1)
-        self.assertTrue(spec["boolean"])
-        block = info[info.index('name = "v264_convergent_freight"'):]
-        block = block[:block.index("});")]
-        for level in ("easy_value", "medium_value", "hard_value", "custom_value"):
-            self.assertIn(level + " = 1", block)
-        self.assertEqual(info.count('name = "v264_convergent_freight"'), 1)
+        self.assertNotIn('name = "v264_convergent_freight"', info)
+        self.assertIn("const V264_CONVERGENT_FREIGHT = 1;", _read("globals_pre.nut"))
 
-    def test_loaded_once(self):
-        self.assertIn("V264_CONVERGENT_FREIGHT <- true;", _read("globals_pre.nut"))
+    def test_removed_setting_is_not_read(self):
         settings = _read("settings.nut")
-        self.assertEqual(settings.count('GetSetting("v264_convergent_freight")'), 1)
-        self.assertIn(
-            'V264_CONVERGENT_FREIGHT = AIController.GetSetting("v264_convergent_freight") != 0;',
-            settings,
-        )
+        self.assertNotIn('GetSetting("v264_convergent_freight")', settings)
+        self.assertNotIn("V264_CONVERGENT_FREIGHT =", settings)
 
     def test_generation_only_inside_existing_exclusion(self):
         candidates = _read("candidates.nut")
@@ -114,7 +97,7 @@ class TestV264ConvergentFreight(unittest.TestCase):
         call = freight.index("OpexV264ConvergentService(")
         self.assertLess(gate, call)
         self.assertIn(
-            "if (V264_CONVERGENT_FREIGHT && ss == null && sd != null)",
+            "if (ss == null && sd != null)",
             freight[gate:call],
         )
         town = freight.index("if (hasTownSinks)")
@@ -123,14 +106,14 @@ class TestV264ConvergentFreight(unittest.TestCase):
         self.assertNotIn("V264", pax)
         self.assertNotIn("convergent_dest", pax)
 
-    def test_service_and_emit_are_inert_at_default(self):
+    def test_service_and_emit_are_active_without_old_off_guard(self):
         candidates = _read("candidates.nut")
         service = _function_body(candidates, "OpexV264ConvergentService")
         emit = _function_body(candidates, "OpexV264EmitConvergent")
-        self.assertTrue(service.split("{", 1)[1].lstrip().startswith(
-            "if (!V264_CONVERGENT_FREIGHT) return null;"))
-        self.assertTrue(emit.split("{", 1)[1].lstrip().startswith(
-            "if (!V264_CONVERGENT_FREIGHT) return null;"))
+        self.assertNotIn("V264_CONVERGENT_FREIGHT", service)
+        self.assertNotIn("V264_CONVERGENT_FREIGHT", emit)
+        self.assertIn("if (service == null || service.blocked) return null;", service)
+        self.assertIn("if (candidate == null) return null;", emit)
         self.assertIn("AICargoList_StationAccepting(stationId)", service)
         self.assertIn("MIN_SEPARATION", service)
         self.assertNotIn("isTransformer", service)
@@ -152,7 +135,7 @@ class TestV264ConvergentFreight(unittest.TestCase):
         tc = _function_body(lines, "OpexAI::_tooClose")
         self.assertIn("local shareEndB = isSharedDest", tc)
         self.assertIn(
-            '(V264_CONVERGENT_FREIGHT && ("convergent_dest" in candidate) && candidate.convergent_dest == 1)',
+            '(("convergent_dest" in candidate) && candidate.convergent_dest == 1)',
             tc,
         )
         self.assertEqual(tc.count('if (isSharedDest && entry[0] == "B") continue;'), 2)
@@ -169,7 +152,7 @@ class TestV264ConvergentFreight(unittest.TestCase):
         self.assertIn("JOIN_PARALLEL_MAX_SIDE", parallel)
         plans = _function_body(builder, "OpexRailPlatformPlans")
         self.assertIn(
-            '|| (V264_CONVERGENT_FREIGHT && ("convergent_dest" in candidate) && candidate.convergent_dest)',
+            '|| (("convergent_dest" in candidate) && candidate.convergent_dest)',
             plans,
         )
         join_call = plans.index("OpexJoinPlatformPlans(candidate.joinPlatform, candidate.joinStationId, statsB)")
@@ -214,7 +197,8 @@ class TestV264ConvergentFreight(unittest.TestCase):
         self.assertNotIn("80", blob)
         spread = _function_body(builder, "OpexV264SpreadJoinPlans")
         self.assertTrue(spread.split("{", 1)[1].lstrip().startswith(
-            "if (!V264_CONVERGENT_FREIGHT) return [];"))
+            "if (platform == null) return [];"))
+        self.assertNotIn("V264_CONVERGENT_FREIGHT", spread)
         self.assertIn("if (spread == null || spread < 4) return [];", spread)
         self.assertNotIn("spread = 12", spread)
         for name in names:
@@ -222,12 +206,10 @@ class TestV264ConvergentFreight(unittest.TestCase):
             for family in PROTECTED:
                 self.assertNotIn(family, body, (name, family))
 
-    def test_v182_floor_unchanged(self):
+    def test_retired_v182_floor_does_not_restrict_v264(self):
         make = _function_body(_read("candidates.nut"), "OpexMakeCandidate")
-        self.assertIn(
-            "V182_RAIL_FREIGHT_MIN_DIST > 0 && distance < V182_RAIL_FREIGHT_MIN_DIST",
-            make,
-        )
+        self.assertNotIn("V182_RAIL_FREIGHT_MIN_DIST", make)
+        self.assertIn("V269_RAIL_LATE_RELAX", make)
         for name in ("OpexV264ConvergentService", "OpexV264EmitConvergent"):
             self.assertNotIn("V182", _function_body(_read("candidates.nut"), name))
 

@@ -170,7 +170,6 @@ class TestDifficultyLevels(unittest.TestCase):
 
         # Sites d'appel Levier A
         self.assertIn("OpexTownAirportAllowedByLevel(towns[i]", self.sources["air_planning.nut"])
-        self.assertIn("OpexTownAirportAllowedByLevel(town)", self.sources["air_c83_repair.nut"])
         self.assertIn("OpexTownAirportAllowedByLevel(town)", self.sources["air_sites.nut"])
 
         # Helpers Levier B dans spatial.nut

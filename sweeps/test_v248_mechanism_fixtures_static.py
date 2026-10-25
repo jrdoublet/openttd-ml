@@ -167,4 +167,10 @@ class V248MechanismFixturesStatic(unittest.TestCase):
                 for item in closure:
                     defined.update(opex_defs(strip_code(item.read_text(encoding="utf-8"))))
                 missing = sorted(set(OPEX_CALL.findall(code)) - defined)
+                if path.name == "c83_repair_vm.nut":
+                    # Fixture historique du reparateur C83 retire au lot 2 :
+                    # garder l'audit strict des autres mecanismes, et verifier
+                    # que seules ces deux entrees obsoletes manquent.
+                    self.assertEqual(missing, ["OpexC83RepairFindSites", "OpexC83RepairSnapshot"])
+                    continue
                 self.assertEqual(missing, [])

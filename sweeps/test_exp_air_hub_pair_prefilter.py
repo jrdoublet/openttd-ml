@@ -78,10 +78,9 @@ class HubPairSourceTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.planning = read("air_planning.nut")
-        cls.linked = body(read("air_towns.nut"), "OpexAirTownCentersLinked")
         cls.final = body(read("task_air.nut"), "OpexAirBatchPlanStillLive")
 
-    def test_existing_final_pair_contract_matches_helper(self):
+    def test_existing_final_pair_contract_remains(self):
         loop = self.final[self.final.index("foreach (line in lines)"):]
         normalized = loop.replace("plan.siteA.town.tile", "tileA").replace(
             "plan.siteB.town.tile", "tileB")
@@ -91,12 +90,10 @@ class HubPairSourceTests(unittest.TestCase):
             "line.originA == tileB && line.originB == tileA",
         ):
             self.assertIn(predicate, normalized)
-            self.assertIn(predicate, self.linked)
         self.assertIn(")) return false;", normalized)
-        self.assertIn(")) return true;", self.linked)
+        self.assertNotIn("function OpexAirTownCentersLinked(", read("air_towns.nut"))
         for excluded in ("cargo", "deadStreak", "scrapping", "stationA", "anchor"):
             self.assertNotIn(excluded, normalized)
-            self.assertNotIn(excluded, self.linked)
 
     def test_index_is_exact_direct_pair_set_not_candidate_reservation(self):
         self.assertNotIn("function OpexAirHubPairPrefilterLinked", self.planning)
@@ -120,7 +117,7 @@ class HubPairSourceTests(unittest.TestCase):
     def test_off_keeps_c83_station_topology_and_second_slot_paths(self):
         hs = body(self.planning, "OpexAirPlansHubToSite")
         hh = body(self.planning, "OpexAirPlansHubToHub")
-        self.assertIn("if (C83_FIXES && OpexAirTownCentersLinked(hub.town.tile, site.town.tile, lines))", hs)
+        self.assertNotIn("C83_FIXES", hs)
         self.assertIn('c83OwnSecondSlotB = ("c83OwnSecondSlot" in site) && site.c83OwnSecondSlot', hs)
         self.assertIn("alreadyConnected = (st1 + \"|\" + st2) in hubIndex.pairs;", hh)
         self.assertIn("(oA == st1 && oB == st2) || (oA == st2 && oB == st1)", hh)

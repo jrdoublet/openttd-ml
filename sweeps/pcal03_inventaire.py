@@ -4,28 +4,27 @@
 Ce script analyse un dossier `results/<campagne>_engine` (ou des fichiers journaux .log / .log.gz)
 issus d'une exécution OpenTTD-ML / OpexAI, filtre la compagnie [0] (OpexAI), et extrait les opcodes
 consommés par poste d'après les différentes étiquettes de mesure :
-  - SPAN / SPAN_AGG : instrumentations hiérarchiques sous `probe_span_trace=1` (ou `probes & 8 != 0`)
-  - LOOP_OPS        : ventilation annuelle de la boucle principale sous `probe_loop_ops=1`
-  - RAIL_ATTEMPT    : décomposition des phases rail (phases=plans/search/stations/track/trains) sous `decision_log=1`
-  - C76_REGEN       : coûts des régénérations (full/reactive/incremental) sous `probe_catalogue=1`
+  - SPAN / SPAN_AGG : instrumentations hiérarchiques sous `probes & 4096 != 0`
+  - LOOP_OPS        : ventilation annuelle de la boucle principale sous `probes & 2048 != 0`
+  - RAIL_ATTEMPT    : décomposition des phases rail (phases=plans/search/stations/track/trains) sous `probes & 4 != 0`
+  - C76_REGEN       : coûts des régénérations (full/reactive/incremental) sous `probes & 32768 != 0`
   - CATALOG_COST    : rapport détaillé du catalogue sous `catalog_cost_probe=1`
-  - V257_OPS        : révisions périodiques des moteurs rail sous `decision_log=1`
+  - V257_OPS        : révisions périodiques des moteurs rail sous `probes & 4 != 0`
 
 Configuration recommandée pour une campagne profilée complète (profilage sans biais économique) :
   Réglages OpexAI :
-    `probe_span_trace=1,probe_loop_ops=1,probe_catalogue=1,decision_log=1`
-    (ou de façon équivalente via le masque probes : `probes=13` -> bits 1+4+8 = signs, decision_log, probes group 8)
+    `probes=38918` (bits dedies 4096+2048+32768, panneaux 2, journal 4)
 
 Exemples de commandes de lancement de campagne profilée :
   1. Banc solo / diagnostic 1 an sur graine 42 (profil VPS) :
      docker run --rm --cpus=3 --memory=2g --memory-swap=2g -v openttd-lab-home:/home/lab -v "$PWD":/work -w /work \\
        openttd-lab python3 sweeps/bench_v2.py \\
-       --arms "OpexAI[probe_span_trace=1,probe_loop_ops=1,probe_catalogue=1,decision_log=1]" \\
+       --arms "OpexAI[probes=38918]" \\
        --seeds 42 --years 1 --max-workers 3 --out results/pcal03_profil_seed42.json
 
   2. Duel contre AAAHogEx 3 ans via le harnais hôte :
      python3 sweeps/run_c66_reference.py --campaign pcal03_profil_3x3 \\
-       --reference "OpexAI[probe_span_trace=1,probe_loop_ops=1,probe_catalogue=1,decision_log=1]" \\
+       --reference "OpexAI[probes=38918]" \\
        --years 3 --seeds 42 7 100 --cpus 10 --memory 8g --max-workers 10
 
 Utilisation de cet extracteur :

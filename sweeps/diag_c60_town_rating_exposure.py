@@ -48,7 +48,7 @@ def _check_output_with_script_debug(args, *rest, **kwargs):
 
 openttdlab.subprocess.check_output = _check_output_with_script_debug
 
-LIVE_ARM = "OpexAI[probe_portfolio=1]"
+LIVE_ARM = "OpexAI[probes=131074]"
 CONTROL_ARM = "C60_CONTROL"
 FILTER_ARM = "C60_FILTER"
 
@@ -322,7 +322,7 @@ def run_filter_comparison(years, seeds, out, max_workers):
         clean_summary.append(clean)
     payload = {
         "design": (
-            "A/B temporaire: meme source et memes reglages probe_portfolio=1; "
+            "A/B temporaire: meme source et memes reglages probes=131074; "
             "le bras C60_FILTER ne differe que par "
             "C60_TOWN_RATING_FILTER=false -> true dans une copie /tmp."
         ),

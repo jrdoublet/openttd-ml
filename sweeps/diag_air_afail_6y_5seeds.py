@@ -105,7 +105,7 @@ def main():
         args.screenshots.mkdir(parents=True, exist_ok=True)
 
     ai = local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI",
-                      (("probe_cost", 1),))
+                      (("probes", 2 | 512),))
     experiments = [{"seed": seed, "days": 365 * args.years, "openttd_config": CFG,
                     "ais": (ai,)} for seed in args.seeds]
     rows = list(run_experiments(

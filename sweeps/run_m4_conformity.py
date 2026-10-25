@@ -17,10 +17,7 @@ from bench_v2 import enable_savegame_cleanup, summarise, write_json_atomically
 from diag_m4_conformity import analyse_logs, scenario_summary
 
 DEFAULT_SEEDS = [42, 100, 999, 1234, 5678]
-SETTINGS = (
-    ("decision_log", 1),
-    ("probe_portfolio", 1),
-)
+SETTINGS = (("probes", 2 | 4 | 131072),)
 
 _real_check_output = openttdlab.subprocess.check_output
 def _check_output_with_script_debug(args, *rest, **kwargs):

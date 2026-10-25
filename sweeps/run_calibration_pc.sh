@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Banc de calibration des couts et revenus des projets (demande utilisateur du 21/10), sur le PC.
-# Master aux defauts actuels, un seul bras OpexAI[decision_log=1], 40 graines V267 x 10 ans, 1970, 256².
+# Master aux defauts actuels, un seul bras OpexAI[probes=6], 40 graines V267 x 10 ans, 1970, 256².
 # Hypothese a verifier : calibrer d'abord SANS AAAHogEx (table hors ligne), puis laisser C70 corriger
 # en cours de partie. Deux campagnes sur les memes graines :
 #   solo : AAAHogEx present mais sans aucun vehicule (5 disable_veh_*), carte identique ;
@@ -18,7 +18,7 @@ set -euo pipefail
 read -r -a PC <<< "${PROFILE:---cpus 10 --memory 8g --max-workers 10 --network host}"
 [ -d ai/AAAHogEx-115 ] || { echo "ai/AAAHogEx-115 absent de $(pwd)" >&2; exit 2; }
 DATE="${DATE:-$(date +%Y%m%d)}"
-ARM="OpexAI[decision_log=1]"
+ARM="OpexAI[probes=6]"
 AAA_OFF=(--aaahogex-setting disable_veh_train=1 --aaahogex-setting disable_veh_roadveh=1
          --aaahogex-setting disable_veh_tram=1 --aaahogex-setting disable_veh_ship=1
          --aaahogex-setting disable_veh_aircraft=1)

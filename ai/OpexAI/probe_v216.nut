@@ -1,6 +1,6 @@
 /* V216 (docs/plan_v216_scores_avant_premier_rail_20261016.md, etape 1) : sonde passive des
  * estimateurs. Rien ici ne modifie un tri, une admission, un financement ou un dimensionnement :
- * on journalise des champs deja calcules, sans recalcul d'economie. Inerte sous v216_probe=0.
+ * on journalise des champs deja calcules, sans recalcul d'economie. Inerte sans probes bit 29.
  * Etat transitoire, non persiste (un rechargement remet les compteurs a zero). */
 
 V216_SELECT_SEQ <- 0;

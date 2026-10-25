@@ -13,12 +13,12 @@ import sys
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from diag_cadence_duel import main as run_diagnostic
 
-PROBES = ("decision_log", "probe_portfolio", "probe_scheduler",
-          "probe_candidates_rail", "probe_events",
-          "probe_catalogue")  # OpexC39Log gates the C41 profile emissions.
+PROBE_BITS = (4, 131072, 1024, 16384, 1048576, 32768)
+# OpexC39Log requires catalogue. Keep its bit together with the decision log.
+PROBES = 2 | sum(PROBE_BITS)
 ARMS = {
     "reference": "OpexAI",
-    "profile": "OpexAI[" + ",".join(f"{key}=1" for key in PROBES) + "]",
+    "profile": f"OpexAI[probes={PROBES}]",
 }
 PURPOSE = "instrumentation_exposure_and_perturbation_only_not_policy_qualification"
 

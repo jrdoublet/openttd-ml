@@ -34,7 +34,7 @@ class TestB9AirCatchment(unittest.TestCase):
 
     def test_probe_is_default_off_and_loaded_once(self):
         defaults = parse_ai_settings(INFO)
-        self.assertEqual(defaults["probe_events"], 0)
+        self.assertNotIn("probe_events", defaults)
         # V243 : anciens reglages B9 supprimes, sonde pilotee par probe_events.
         self.assertNotIn("b9_air_catchment_probe", defaults)
         self.assertNotIn("b9_air_demand_shadow", defaults)

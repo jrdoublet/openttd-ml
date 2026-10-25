@@ -2,19 +2,16 @@
 """Tests pour V167 — un seul reglage entier `probes` pilote panneaux, journal et sondes.
 
 Contrats statiques :
-1. `probes` declare (entier 0..511, defaut 2 = panneaux seuls, le comportement historique) ;
-   `debug_signs` garde son defaut 1 et ne sert plus que de veto.
-2. Table `OPEX_PROBE_GROUPS` : chaque sonde groupee existe dans info.nut avec un defaut nul, est
-   lue une seule fois et uniquement par `OpexProbeSetting` ; tout appel a `OpexProbeSetting` vise
-   une cle de la table (sinon erreur Squirrel a l'execution). Les reglages qui changent des
-   decisions n'y entrent pas.
-3. Le masque est lu et etendu (bit 1 = tout sauf 256) avant la premiere sonde ; tout groupe
-   active le journal.
+1. `probes` est un entier signe sur bits 0..30, defaut 2 (panneaux seuls).
+2. Les anciennes sondes booleennes ont disparu des AddSetting / GetSetting ; chacune
+   utilise un bit dedie et, si necessaire, son ancien groupe pour compatibilite.
+3. Le bit 1 active toutes les sondes ; les bits dedies ne forcent jamais le journal.
 4. Lanceur : `--probes N` injecte le reglage dans les deux bras, garde les panneaux et active
    `--script-debug` des qu'un bit hors panneaux est demande.
 """
 from __future__ import annotations
 
+import ast
 import re
 import sys
 import types
@@ -40,9 +37,33 @@ from bench_v2 import parse_opex_variant  # noqa: E402
 from campaign_freeze import parse_ai_setting_specs  # noqa: E402
 from run_c66_reference import inject_probes, probes_need_script_debug  # noqa: E402
 
-GROUP_BITS = {8, 16, 32, 64, 128}  # 256 vide depuis V239
-ALL_EXCEPT_CHECKS = 254   # 2 | 4 | 8 | 16 | 32 | 64 | 128
-LOG_BITS = 508            # 4 | 8 | 16 | 32 | 64 | 128 | 256
+GROUP_BITS = {8, 16, 32, 64, 128}
+ALL_BITS = 2147483647
+LOG_BITS = 508
+DEDICATED_BITS = {
+    "probe_cost": (512, 64),
+    "probe_scheduler": (1024, 8),
+    "probe_loop_ops": (2048, 8),
+    "probe_span_trace": (4096, 8),
+    "probe_select_reject": (8192, 16),
+    "probe_candidates_rail": (16384, 8),
+    "probe_catalogue": (32768, 8),
+    "probe_vehicle_lost": (65536, 128),
+    "probe_portfolio": (131072, 128),
+    "c122_air_regime_shadow": (262144, 16),
+    "c122_air_threat_probe": (524288, 16),
+    "probe_events": (1048576, 128),
+    "rail_failure_audit": (2097152, 32),
+    "c67_water_exposure_probe": (4194304, 64),
+    "air_flotte1_shadow": (8388608, 0),
+    "air_roi_renfort1_shadow": (16777216, 0),
+    "air_load7_shadow": (33554432, 0),
+    "v309_idle_probe": (67108864, 0),
+    "v308_carto_probe": (134217728, 0),
+    "v307_abnd_autopsy": (268435456, 0),
+    "v216_probe": (536870912, 0),
+    "v211_rivals_log": (1073741824, 0),
+}
 # reglages nommes « shadow »/« diagnostic » mais qui changent des decisions : jamais groupes
 DECISION_CHANGING = (
 )
@@ -73,19 +94,12 @@ def _function_body(source: str, name: str) -> str:
     raise AssertionError("unterminated " + name)
 
 
-def _groups() -> dict[str, int]:
-    settings = _read("settings.nut")
-    table = settings.split("OPEX_PROBE_GROUPS <- {", 1)[1].split("};", 1)[0]
-    pairs = re.findall(r"^\s+(\w+) = (\d+),$", table, re.M)
-    return {name: int(bit) for name, bit in pairs}
-
-
-def _effective(probes: int, debug_signs: int = 1, decision_log: int = 0):
+def _effective(probes: int):
     """Modele Python de OpexLoadSettings (les constantes sont verifiees dans le source)."""
     if probes & 1:
-        probes |= ALL_EXCEPT_CHECKS
-    signs = bool(probes & 2) and debug_signs != 0
-    log = bool(probes & LOG_BITS) or decision_log != 0
+        probes = ALL_BITS
+    signs = bool(probes & 2)
+    log = bool(probes & LOG_BITS)
     groups = {bit for bit in GROUP_BITS if probes & bit}
     return signs, log, groups
 
@@ -95,59 +109,69 @@ class Declaration(unittest.TestCase):
         spec = parse_ai_setting_specs(AI / "info.nut")
         self.assertEqual(spec["probes"]["default"], 2)
         self.assertFalse(spec["probes"]["boolean"])
-        self.assertEqual((spec["probes"]["min_value"], spec["probes"]["max_value"]), (0, 511))
+        self.assertEqual((spec["probes"]["min_value"], spec["probes"]["max_value"]), (0, ALL_BITS))
         block = _read("info.nut").split('name = "probes"', 1)[1].split("});", 1)[0]
         for key in ("easy_value", "medium_value", "hard_value", "custom_value"):
             self.assertRegex(block, key + r" = 2\b")
-        # le harnais exige toujours debug_signs = 1 par defaut
-        self.assertEqual(spec["debug_signs"]["default"], 1)
+        self.assertNotIn("debug_signs", spec)
+        self.assertNotIn("decision_log", spec)
         self.assertIn("OPEX_PROBE_MASK <- 2;", _read("globals_pre.nut"))
 
 
 class Groups(unittest.TestCase):
-    def test_table_shape(self):
-        groups = _groups()
-        self.assertGreaterEqual(len(groups), 17)
-        self.assertLessEqual(set(groups.values()), GROUP_BITS)
-        self.assertEqual(set(groups.values()), GROUP_BITS, "chaque groupe a au moins une sonde")
+    def test_dedicated_bits_are_unique(self):
+        bits = [bit for bit, _ in DEDICATED_BITS.values()]
+        self.assertEqual(len(bits), 22)
+        self.assertEqual(bits, [1 << i for i in range(9, 31)])
 
-    def test_grouped_probes_default_off_and_read_once_by_helper(self):
-        specs = parse_ai_setting_specs(AI / "info.nut")
+    def test_direct_bits_and_retired_settings(self):
+        info = _read("info.nut")
         settings = _read("settings.nut")
-        sources = {path.name: path.read_text(encoding="utf-8") for path in AI.glob("*.nut")}
-        for name in _groups():
-            self.assertIn(name, specs, name)
-            self.assertEqual(specs[name]["default"], 0, name)
-            self.assertEqual(settings.count('OpexProbeSetting("' + name + '")'), 1, name)
-            for file_name, src in sources.items():
-                self.assertNotIn('AIController.GetSetting("' + name + '")', src, (file_name, name))
+        specs = parse_ai_setting_specs(AI / "info.nut")
+        sources = {p.name: p.read_text(encoding="utf-8") for p in AI.rglob("*.nut")}
+        for name, (bit, group) in DEDICATED_BITS.items():
+            with self.subTest(name=name):
+                self.assertNotIn(name, specs)
+                self.assertNotIn(f'name = "{name}"', info)
+                for file_name, source in sources.items():
+                    self.assertNotIn(f'GetSetting("{name}")', source, (file_name, name))
+                expected = f'OpexProbeEnabled({bit}' + (f', {group}' if group else '') + ')'
+                self.assertIn(expected, settings, name)
+        self.assertNotIn('OpexProbeSetting(', settings)
+        self.assertNotIn('OPEX_PROBE_GROUPS', settings)
 
-    def test_every_helper_call_has_a_group(self):
-        groups = _groups()
-        for path in AI.glob("*.nut"):
-            for name in re.findall(r'OpexProbeSetting\("(\w+)"\)', path.read_text(encoding="utf-8")):
-                self.assertIn(name, groups, (path.name, name))
+        for bit, variable, flags in (
+            (8, "probeCandRoad", ("C41_ROAD_CANDIDATE_PROFILE", "C41_ROAD_FREIGHT_PROFILE",
+                                     "C41_ROAD_FREIGHT_TOWN_PROFILE")),
+            (8, "PROBE_EVENT_BACKLOG", ()),
+            (32, "probeRailSearch", ("C41_RAIL_DOMINATION_PROBE", "C41_PROJECTS_FALLTHROUGH_PROBE",
+                                      "C39_PROJECTS_CADENCE_PROBE")),
+        ):
+            with self.subTest(variable=variable):
+                self.assertIn(f'{variable} = (OPEX_PROBE_MASK & {bit}) != 0;', settings)
+                for flag in flags:
+                    self.assertIn(f'{flag} = {variable};', settings)
 
-    def test_decision_changing_settings_not_grouped(self):
-        groups = _groups()
+        self.assertEqual(_effective(10), (True, True, {8}))
+        self.assertEqual(_effective(34), (True, True, {32}))
+        self.assertEqual(_effective(42), (True, True, {8, 32}))
+
+    def test_individual_bits_do_not_activate_neighbouring_channels_or_log(self):
+        settings = _read("settings.nut")
+        self.assertIn("return (OPEX_PROBE_MASK & (bit | legacyGroup)) != 0;", settings)
+        for name, (bit, group) in DEDICATED_BITS.items():
+            with self.subTest(name=name):
+                self.assertEqual(_effective(2 | bit), (True, False, set()))
+                enabled = {other for other, (other_bit, other_group) in DEDICATED_BITS.items()
+                           if (2 | bit) & (other_bit | other_group)}
+                self.assertEqual(enabled, {name})
+
+    def test_retired_decision_settings_remain_absent(self):
         specs = parse_ai_setting_specs(AI / "info.nut")
         for name in DECISION_CHANGING:
             self.assertIn(name, specs, name)
-            self.assertNotIn(name, groups, name)
         for name in REMOVED_DECISION_SETTINGS:
             self.assertNotIn(name, specs, name)
-            self.assertNotIn(name, groups, name)
-        # les experiences qui accompagnent une verification ne sont pas groupees
-        for name in ("exp_opcode_exact", "v90_fast_pathfinder", "v129_rail_astar_exact_opt",
-                     "v94_air_site_list", "v141_catalog_incremental", "c122_air_threat_retry"):
-            self.assertNotIn(name, groups, name)
-
-    def test_helper(self):
-        helper = _function_body(_read("settings.nut"), "OpexProbeSetting")
-        self.assertIn("local value = AIController.GetSetting(name);", helper)
-        self.assertIn("if (value <= 0 && (OPEX_PROBE_MASK & OPEX_PROBE_GROUPS[name]) != 0) return 1;",
-                      helper)
-        self.assertIn("return value;", helper)
 
 
 class LatentProbeCrashes(unittest.TestCase):
@@ -162,55 +186,79 @@ class Loading(unittest.TestCase):
     def test_mask_read_before_first_probe(self):
         body = _function_body(_read("settings.nut"), "OpexLoadSettings")
         read = body.index('local probes = AIController.GetSetting("probes");')
-        expand = body.index("if ((probes & 1) != 0) probes = probes | %d;" % ALL_EXCEPT_CHECKS)
+        expand = body.index("if ((probes & 1) != 0) probes = 2147483647;")
         store = body.index("OPEX_PROBE_MASK = probes;")
         self.assertLess(read, expand)
         self.assertLess(expand, store)
-        self.assertLess(store, body.index("OpexProbeSetting("))
+        self.assertLess(store, body.index("OpexProbeEnabled("))
+        for probe in ("AIR_FLOTTE1_SHADOW", "AIR_ROI_RENFORT1_SHADOW", "AIR_LOAD7_SHADOW"):
+            self.assertLess(store, body.index(probe + " = OpexProbeEnabled("), probe)
         self.assertIn("if (probes < 0) probes = 2;", body[read:expand])
         self.assertEqual(body.count("OPEX_PROBE_MASK ="), 1)
 
     def test_signs_and_log(self):
         body = _function_body(_read("settings.nut"), "OpexLoadSettings")
-        self.assertIn('DEBUG_SIGNS = (probes & 2) != 0\n      && AIController.GetSetting("debug_signs") != 0;',
-                      body)
-        self.assertIn('DECISION_LOG = (probes & %d) != 0\n      || AIController.GetSetting("decision_log") != 0;'
-                      % LOG_BITS, body)
+        self.assertIn('DEBUG_SIGNS = (probes & 2) != 0;', body)
+        self.assertIn('DECISION_LOG = (probes & %d) != 0;' % LOG_BITS, body)
         self.assertEqual(body.count("DEBUG_SIGNS ="), 1)
         self.assertEqual(body.count("DECISION_LOG ="), 1)
 
     def test_semantics(self):
         self.assertEqual(_effective(2), (True, False, set()))            # defaut historique
         self.assertEqual(_effective(0), (False, False, set()))           # tout coupe
-        self.assertEqual(_effective(1), (True, True, GROUP_BITS))  # tout sauf verifications
-        self.assertEqual(_effective(2, debug_signs=0), (False, False, set()))  # veto humain
+        self.assertEqual(_effective(1), (True, True, GROUP_BITS))  # toutes sondes
         self.assertEqual(_effective(6), (True, True, set()))             # panneaux + journal
         self.assertEqual(_effective(18), (True, True, {16}))             # AIR implique le journal
-        self.assertEqual(_effective(258), (True, True, set()))  # 256 vide depuis V239
-        self.assertEqual(_effective(2, decision_log=1), (True, True, set()))  # ancien reglage lu
+        self.assertEqual(_effective(258), (True, True, set()))  # journal seul
 
 
 class Launcher(unittest.TestCase):
+    def test_c39_diagnostic_merges_probe_bit_without_duplicates(self):
+        path = ROOT / "sweeps" / "diag_c39_events.py"
+        source = path.read_text(encoding="utf-8")
+        # Extraire uniquement la fonction pure : ce diagnostic importe OpenTTDLab au chargement.
+        tree = ast.parse(source)
+        function = next(node for node in tree.body
+                        if isinstance(node, ast.FunctionDef) and node.name == "arm_probe_bit")
+        namespace = {}
+        exec(compile(ast.Module(body=[function], type_ignores=[]), str(path), "exec"), namespace)
+        arm = namespace["arm_probe_bit"]
+
+        defaults = [("probes", 2 | 32768)]
+        arm(defaults, 8)
+        self.assertEqual(defaults, [("probes", 2 | 32768 | 8)])
+        arm(defaults, 8)
+        self.assertEqual(defaults.count(("probes", 2 | 32768 | 8)), 1)
+
+        configured = [("probes", 34)]
+        arm(configured, 8)
+        self.assertEqual(configured, [("probes", 42)])
+        with self.assertRaises(ValueError):
+            arm([("probes", 2), ("probes", 34)], 8)
+        self.assertIn("arm_probe_bit(settings, 8)", source)
+
     def test_inject(self):
         self.assertEqual(inject_probes(None, 6), "OpexAI[probes=6]")
+        self.assertEqual(inject_probes(None, 2147483647), "OpexAI[probes=2147483647]")
         self.assertEqual(inject_probes("OpexAI[mode_rail=0]", 18), "OpexAI[mode_rail=0,probes=18]")
         with self.assertRaises(ValueError):
             inject_probes("OpexAI[probes=2]", 6)
         with self.assertRaises(ValueError):
             inject_probes("AAAHogEx", 6)
-        for bad in (0, 4, 512, -1):
+        for bad in (0, 4, 512, 2147483648, -1):
             with self.assertRaises(ValueError):
                 inject_probes(None, bad)
 
     def test_script_debug(self):
         self.assertFalse(probes_need_script_debug(2))
-        for probes in (1, 3, 6, 18, 258):
+        for probes in (1, 3, 6, 18, 258, 514, 2147483646):
             self.assertTrue(probes_need_script_debug(probes), probes)
 
     def test_bench_validation(self):
         self.assertEqual(parse_opex_variant("OpexAI[probes=6]"), (("probes", 6),))
         self.assertEqual(parse_opex_variant("OpexAI[probes=1]"), (("probes", 1),))
-        for bad in ("OpexAI[probes=0]", "OpexAI[probes=4]", "OpexAI[probes=512]"):
+        self.assertEqual(parse_opex_variant("OpexAI[probes=1073741826]"), (("probes", 1073741826),))
+        for bad in ("OpexAI[probes=0]", "OpexAI[probes=4]", "OpexAI[probes=512]", "OpexAI[probes=2147483648]"):
             with self.assertRaises(ValueError):
                 parse_opex_variant(bad)
 

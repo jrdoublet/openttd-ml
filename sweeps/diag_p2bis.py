@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Diagnostic P2 bis : reconciliation des passages projects sous probe_scheduler=1.
+"""Diagnostic P2 bis : reconciliation des passages projects sous probes=1026.
 
 Capture stdout OpenTTD (`-d script=4`) et produit le rapport complet de reconciliation
 entre passages de construction, etats du vivier et passages a vide.
@@ -39,9 +39,9 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--seeds", type=int, nargs="+", default=[42, 100, 999])
     parser.add_argument("--years", type=int, default=4)
-    parser.add_argument("--arm", default="OpexAI[probe_scheduler=1]")
+    parser.add_argument("--arm", default="OpexAI[probes=1026]")
     parser.add_argument("--reference", default="results/diag_v95b_probe0_4y_s42_100_999.json",
-                        help="Fichier JSON de référence (probe_scheduler=0) pour perturbation")
+                        help="Fichier JSON de référence (sonde scheduler inactive) pour perturbation")
     parser.add_argument("--out", required=True)
     parser.add_argument("--max-workers", type=int, default=3)
     args = parser.parse_args(argv)

@@ -12,7 +12,7 @@ Vérifications statiques :
 8. Incrémentation de OPEX_AIR_ROLLBACK_REVISION à chaque mutation repérée de OPEX_AIR_ROLLBACKS.
 9. Incrémentation de OPEX_LINES_REVISION à chaque mutation repérée de _lines.
 10. Incrémentation de OPEX_AIR_SITE_EPOCH à chaque invalidation de cache de sites.
-11. Exclusion des plans à second créneau (c83OwnSecondSlotA/B, v134SecondSlotA/B) de la mémoïsation.
+11. Exclusion des plans à second créneau C83 (c83OwnSecondSlotA/B) de la mémoïsation.
 12. Mode contrôle 2 dans le filtre : calcul historique, comparaison memo/hist, alerte V279_CHECK et retour historique.
 13. Journalisation mensuelle des statistiques de hits/misses sous V279_STATS.
 """
@@ -192,8 +192,7 @@ class TestV279ReselectMemo(unittest.TestCase):
         memo_filt = _function_body(self.selection, "function OpexFilterAirAlternativesV279Memo(")
         self.assertIn("c83OwnSecondSlotA", memo_filt)
         self.assertIn("c83OwnSecondSlotB", memo_filt)
-        self.assertIn("v134SecondSlotA", memo_filt)
-        self.assertIn("v134SecondSlotB", memo_filt)
+        self.assertNotIn("v134SecondSlot", memo_filt)
         self.assertIn("isSecondSlot", memo_filt)
         # Ne mémorise jamais si isSecondSlot
         self.assertIn("!isSecondSlot", memo_filt)

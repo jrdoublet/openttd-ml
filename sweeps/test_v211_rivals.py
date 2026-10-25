@@ -20,15 +20,12 @@ class TestV211Rivals(unittest.TestCase):
         cls.sources = {p.name: p.read_text(encoding="utf-8")
                        for p in AI.glob("*.nut") if p.name != MODULE.name}
 
-    def test_setting_declared_inert(self):
-        block = re.search(r'name = "v211_rivals_log",(.*?)\}\);', self.info, re.S)
-        self.assertIsNotNone(block)
-        for level in ("easy_value", "medium_value", "hard_value", "custom_value"):
-            self.assertRegex(block.group(1), level + r" = 0\b")
-        self.assertIn("CONFIG_BOOLEAN", block.group(1))
+    def test_setting_retired_and_dedicated_bit(self):
+        self.assertNotIn('name = "v211_rivals_log"', self.info)
+        self.assertIn('V211_RIVALS = OpexProbeEnabled(1073741824);', self.sources["settings.nut"])
 
     def test_setting_read_once(self):
-        self.assertEqual(sum(s.count('GetSetting("v211_rivals_log")') for s in self.sources.values()), 1)
+        self.assertEqual(sum(s.count('GetSetting("v211_rivals_log")') for s in self.sources.values()), 0)
         self.assertIn("V211_RIVALS <- false;", self.sources["globals_pre.nut"])
         self.assertIn('require("rivals_v211.nut");', self.sources["main.nut"])
 

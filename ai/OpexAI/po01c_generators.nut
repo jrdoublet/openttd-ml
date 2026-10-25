@@ -213,7 +213,7 @@ function OpexPO01CFreightCandidates(catalog, lines, out, stats, abandonedPairs =
         if (!v179Keep && (ss != null || sd != null)) {
           /* Paires deja rejetees. A 0 le drapeau est faux : aucun appel, pairsOriginServed. */
           local attached = null;
-          if (V264_CONVERGENT_FREIGHT && ss == null && sd != null) {
+          if (ss == null && sd != null) {
             attached = OpexV264ConvergentService(lines, sd, cargo, source.tile);
           }
           if (attached == null) {

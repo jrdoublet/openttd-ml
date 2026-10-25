@@ -3,7 +3,7 @@
 Bras :
 * ``base`` : OpexAI au défaut.
 
-Option --probe : ajoute probe_portfolio=1 à tous les bras.
+Option --probe : ajoute le canal portefeuille `probes` bit 131072 à tous les bras.
 Paires : chaque bras contre base (fl1-base, fl2-base, c82-base).
 Métriques primaires et secondaires :
 * profit annuel OpexAI (profit_year, PLYR) ;
@@ -583,7 +583,7 @@ def main():
     parser.add_argument("--workers", type=int, default=DEFAULT_WORKERS)
     parser.add_argument("--out", type=Path, default=ROOT / "results" / "diag_nuit_air_solo.json")
     parser.add_argument("--arms", nargs="+", choices=list(ARM_SPECS.keys()), default=list(DEFAULT_ARMS))
-    parser.add_argument("--probe", action="store_true", help="Active probe_portfolio sur tous les bras")
+    parser.add_argument("--probe", action="store_true", help="Active probes bit 131072 sur tous les bras")
     parser.add_argument("--selftest", action="store_true", help="Execute le test unitaire interne pur Python")
     args = parser.parse_args()
 
@@ -598,7 +598,7 @@ def main():
     for arm in args.arms:
         base_settings = list(ARM_SPECS[arm])
         if args.probe:
-            base_settings.append(("probe_portfolio", 1))
+            base_settings.append(("probes", 2 | 131072))
         active_arms[arm] = tuple(base_settings)
 
     enable_savegame_cleanup()

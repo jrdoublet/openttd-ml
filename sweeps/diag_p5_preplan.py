@@ -44,9 +44,9 @@ def main(argv=None):
     parser.add_argument("--years", type=int, default=6)
     parser.add_argument("--max-year", type=int, default=None,
                         help="Dernière année pour l'analyse des épisodes (défaut: 1970 + years - 1)")
-    parser.add_argument("--arm", default="OpexAI[probe_scheduler=1]")
+    parser.add_argument("--arm", default="OpexAI[probes=1026]")
     parser.add_argument("--reference", default="results/diag_v95b_probe0_4y_s42_100_999.json",
-                        help="Fichier JSON de référence (probe_scheduler=0) pour perturbation")
+                        help="Fichier JSON de référence (probes=2) pour perturbation")
     parser.add_argument("--out", required=True)
     parser.add_argument("--max-workers", type=int, default=3)
     args = parser.parse_args(argv)

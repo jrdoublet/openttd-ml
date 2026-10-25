@@ -186,7 +186,7 @@ function OpexRegenerateModeProjects(projects, catalog, budget, lines, abandonedP
  * opsBudget/deadlineTick et reprend exactement au curseur combo/a/b. */
 function OpexRegenerateAirProjectsSlice(projects, catalog, budget, lines, abandonedPairs,
                                         sliceState, opsBudget, deadlineTick,
-                                        entityKind = null, entityId = -1, c83Race = false)
+                                        entityKind = null, entityId = -1)
 {
   if (projects == null || !(("candidateGroups" in projects)) || projects.candidateGroups == null) {
     return { done = true, projects = projects };
@@ -200,12 +200,6 @@ function OpexRegenerateAirProjectsSlice(projects, catalog, budget, lines, abando
   if (!("ops" in sliceState)) sliceState.ops <- 0;
 
   local mark = OpexOpsMeasureBegin();
-  if (c83Race && !("c83StartTick" in sliceState)) {
-    sliceState.c83StartTick <- AIController.GetTick();
-    if (C83_LOCAL_REPAIR) {
-      sliceState.airCursor.c83Repair <- OpexC83RepairSnapshot(projects);
-    }
-  }
 
   local best = OpexAirPlans(catalog, lines, 0, sliceState.plans, abandonedPairs, PAX_BAND_ALL,
                             entityKind == "town" ? entityId : -1,
@@ -229,16 +223,6 @@ function OpexRegenerateAirProjectsSlice(projects, catalog, budget, lines, abando
   foreach (plan in sliceState.plans) {
     local p = OpexProjectFromAir(catalog, plan, perPlan);
     if (p != null) generated.projects.append(p);
-  }
-  if (c83Race) {
-    local repair = ("c83Repair" in sliceState.airCursor) ? sliceState.airCursor.c83Repair : null;
-    AILog.Info("C83_LOCAL_REPAIR enabled=" + (C83_LOCAL_REPAIR ? 1 : 0)
-        + " town=" + entityId + " local=" + (repair != null ? repair.localCombos : 0)
-        + " fallback=" + (repair != null ? repair.fallbackCombos : 0)
-        + " kept=" + (repair != null ? repair.targetKept : 0)
-        + " searched=" + (repair != null ? repair.targetSearched : 0)
-        + " partners=" + (repair != null ? repair.partners : 0)
-        + " ops=" + sliceState.ops + " ticks=" + (AIController.GetTick() - sliceState.c83StartTick));
   }
   local appliedAir = OpexApplyGeneratedModeProjects(projects, generated, abandonedPairs, "air",
                                               entityKind, entityId, lines);
@@ -656,9 +640,6 @@ function OpexAir0310FilterAirAlternativesStillValid(alternatives, abandonedPairs
   local live = [];
   local stationLimitedTowns = {};
   local validity = OpexAir0310SiteValidityBegin(stationLimitedTowns);
-  /* V277 : le predicat indexe n'est calcule qu'en mode controle. Mesure du 20/10 (1 an, carte 256x256) :
-   * 0 ecart, mais 26,8 k par filtre contre 23,0 k, le contexte V156 coute plus qu'il n'economise. */
-  local ctx = (V277_AIR_PUB_FAST == 2 && C83_FIXES && lines != null) ? OpexIncrRevalidateIndexContext(lines) : null;
   foreach (project in alternatives) {
     if (project != null && ("mode" in project) && project.mode == "air") {
       if (!("payload" in project) || project.payload == null
@@ -669,23 +650,6 @@ function OpexAir0310FilterAirAlternativesStillValid(alternatives, abandonedPairs
       if (!("siteA" in plan) || !("siteB" in plan) || !("airport" in plan) || !("plane" in plan)) {
         continue;
       }
-      if (V277_AIR_PUB_FAST == 2 && C83_FIXES && lines != null) {
-        local histVerdict = OpexAirBatchPlanStillLive(plan, lines);
-        local fastVerdict = (ctx != null) ? OpexAirBatchPlanStillLiveIndexed(plan, lines, ctx) : histVerdict;
-        if (fastVerdict != histVerdict) {
-          local townAId = ("siteA" in plan && plan.siteA != null && ("town" in plan.siteA) && plan.siteA.town != null) ? plan.siteA.town.id : -1;
-          local townBId = ("siteB" in plan && plan.siteB != null && ("town" in plan.siteB) && plan.siteB.town != null) ? plan.siteB.town.id : -1;
-          local msg = "filter townA=" + townAId + " townB=" + townBId + " hist=" + histVerdict + " fast=" + fastVerdict;
-          OpexDecide("V277_CHECK", msg);
-          if (!DECISION_LOG) AILog.Warning("V277_CHECK " + msg);
-        }
-        if (!histVerdict) continue;
-      } else {
-        if (C83_FIXES && lines != null && !OpexAirBatchPlanStillLive(plan, lines)) {
-          continue;
-        }
-      }
-
       local reuseA = ("reuseA" in plan) && plan.reuseA;
       local reuseB = ("reuseB" in plan) && plan.reuseB;
       local keyA = (reuseA ? "R|" : "N|") + plan.airport.type + "|" + plan.plane.planeType + "|" + plan.siteA.anchor;

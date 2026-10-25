@@ -8,6 +8,7 @@ from pathlib import Path
 import random
 import re
 import unittest
+from po01c_generate import function
 
 AI = Path(__file__).resolve().parents[1] / "ai" / "OpexAI"
 INSERTION = """        /* PO-02 : base est le premier/dernier quai selon sign, sur les deux axes.
@@ -65,10 +66,14 @@ class StationPlanPrecheck(unittest.TestCase):
     def test_only_guard_added_to_historical_rail_source(self):
         source = (AI / "builder_rail.nut").read_text(encoding="utf-8")
         self.assertEqual(source.count(INSERTION), 1)
-        # Entire origin/master f8212754 file: also protects every OpexV307* body.
+        # Protect PO-02's planner and all 21 V307 functions from origin/master.
+        # Other rail builders can evolve independently of station geometry.
         historical = source.replace(INSERTION, "")
-        self.assertEqual(hashlib.sha256(historical.encode()).hexdigest(),
-                         "d4af62592c57a3353c00684e943862e16488e242be20dcda4c1de03ff105d716")
+        v307 = sorted(set(re.findall(r'^function (OpexV307\w+)\(', historical, re.M)))
+        self.assertEqual(len(v307), 21)
+        protected = "\n\n".join(function(historical, name) for name in ["OpexStationPlans"] + v307)
+        self.assertEqual(hashlib.sha256(protected.encode()).hexdigest(),
+                         "457b0b04ed13e026bcb9972ee5c1af1e50dbef46358a28f1d030e303f53a81c5")
         body = source[source.index("function OpexStationPlans("):]
         self.assertLess(body.index(INSERTION), body.index("foreach (axis in axes)"))
         self.assertLess(body.index("if (!AIMap.IsValidTile(base)) continue;"), body.index(INSERTION))

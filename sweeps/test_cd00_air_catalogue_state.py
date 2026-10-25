@@ -21,7 +21,7 @@ def read(name):
 
 
 AIR = read("air_planning.nut")
-C83 = read("air_c83_repair.nut")
+TOWNS = read("air_towns.nut")
 SCHED = read("scheduler_tasks.nut")
 UPDATE = read("projects_update.nut")
 ORCH = read("orchestrator.nut")
@@ -217,9 +217,20 @@ class CD00SourceContracts(unittest.TestCase):
                     "sites = OpexAir0310CopySiteList(ctx.sites)",
                     "orphan = orphanCopy"):
             self.assertIn(key, store)
-        self.assertIn("OpexC83RepairFindSites(ctx, comboIndex", AIR)
-        self.assertIn("scan.index++;", C83)
-        self.assertIn("scan.fallback = scan.partners == 0;", C83)
+        # Le reparateur experimental C83 a ete retire ; le signal de second
+        # slot et la surveillance des grandes villes restent actifs.
+        self.assertNotIn("OpexC83RepairFindSites(", AIR)
+        self.assertIn("OpexAirC83SecondSlotOpen(towns[i]);", AIR)
+        signal = function(TOWNS, "OpexAirC83SlotSignalEnabled")
+        self.assertIn('AIGameSettings.GetValue("economy.station_noise_level") == 0', signal)
+        self.assertIn('AIGameSettings.GetValue("difficulty.town_council_tolerance") != 3', signal)
+        second_slot = function(TOWNS, "OpexAirC83SecondSlotOpen")
+        self.assertIn("!OpexAirC83SlotSignalEnabled()", second_slot)
+        self.assertIn("AITown.GetAllowedNoise(town.id) == 1", second_slot)
+        watcher = function(TOWNS, "OpexAirC83WatchTowns")
+        self.assertIn("!OpexAirC83SlotSignalEnabled()", watcher)
+        self.assertIn("AIR_C83_TARGET_TOWNS <= 0", watcher)
+        self.assertIn("if (best.len() > AIR_C83_TARGET_TOWNS) best.pop();", watcher)
 
     def test_c78_transaction_and_opcode_boundaries(self):
         start = function(SCHED, "OpexC78StartCatalogAirRebuild")

@@ -26,25 +26,15 @@ class TestC122AirRegimePriority(unittest.TestCase):
     def test_remaining_diagnostics_are_default_off_and_loaded(self):
         self.assertIn("C122_AIR_REGIME_SHADOW <- false;", GLOBALS)
         self.assertIn("C122_AIR_THREAT_PROBE <- false;", GLOBALS)
-        self.assertIn("C122_AIR_THREAT_RETRY <- false;", GLOBALS)
         self.assertIn(
-            'C122_AIR_REGIME_SHADOW = OpexProbeSetting("c122_air_regime_shadow") != 0;',
+            'C122_AIR_REGIME_SHADOW = OpexProbeEnabled(262144, 16);',
             SETTINGS,
         )
-        self.assertIn('C122_AIR_THREAT_RETRY = AIController.GetSetting("c122_air_threat_retry") != 0;', SETTINGS)
-        self.assertIn('C122_AIR_THREAT_PROBE = OpexProbeSetting("c122_air_threat_probe") != 0 || C122_AIR_THREAT_RETRY;', SETTINGS)
-        shadow_pos = INFO.index('name = "c122_air_regime_shadow"')
-        shadow_block = INFO[shadow_pos:shadow_pos + 700]
-        for field in ("easy_value = 0", "medium_value = 0", "hard_value = 0", "custom_value = 0"):
-            self.assertIn(field, shadow_block)
-        threat_pos = INFO.index('name = "c122_air_threat_probe"')
-        threat_block = INFO[threat_pos:threat_pos + 850]
-        for field in ("easy_value = 0", "medium_value = 0", "hard_value = 0", "custom_value = 0"):
-            self.assertIn(field, threat_block)
-        retry_pos = INFO.index('name = "c122_air_threat_retry"')
-        retry_block = INFO[retry_pos:retry_pos + 900]
-        for field in ("easy_value = 0", "medium_value = 0", "hard_value = 0", "custom_value = 0"):
-            self.assertIn(field, retry_block)
+        self.assertIn('C122_AIR_THREAT_PROBE = OpexProbeEnabled(524288, 16);', SETTINGS)
+        self.assertNotIn('name = "c122_air_regime_shadow"', INFO)
+        self.assertNotIn('name = "c122_air_threat_probe"', INFO)
+        self.assertNotIn('name = "c122_air_threat_retry"', INFO)
+        self.assertNotIn('GetSetting("c122_air_threat_retry")', SETTINGS)
 
     def test_c122_reuses_locked_pressure_classifier_without_new_scan(self):
         pressure = body(
@@ -143,50 +133,27 @@ class TestC122AirRegimePriority(unittest.TestCase):
         close = body(
             TASK_PROJECTS,
             "function OpexC122ThreatClose",
-            "function OpexC83LogSlotClosure",
+            "function OpexAI::_c83WatchAirSlotTransitions",
         )
         self.assertIn('competitor_monopoly', close)
         self.assertIn('opex_claimed', close)
         self.assertIn("today - watch.detected", close)
         self.assertIn("delete C122_AIR_THREAT_WATCH[townId]", close)
 
-        c83_one = body(
-            TASK_PROJECTS,
-            "function OpexC83WatchOneTown",
-            "function OpexC83WatchAirSlots",
-        )
-        self.assertIn("OpexC122ThreatRegister(ai, townId, previous);", c83_one)
-        self.assertIn("OpexC122ThreatRefreshFunded(ai, townId);", c83_one)
-        self.assertLess(
-            c83_one.index("OpexC122ThreatRegister(ai, townId, previous);"),
-            c83_one.index("OpexAirC83FundedRaceCoversTown"),
-        )
+        c83_one = TASK_PROJECTS[TASK_PROJECTS.index("function OpexAI::_c83WatchAirSlotTransitions"):]
+        self.assertIn("OpexC122ThreatRegister(this, town.id, previous);", c83_one)
+        self.assertIn("OpexC122ThreatRefreshFunded(this, town.id);", c83_one)
 
-        closure = body(
-            TASK_PROJECTS,
-            "function OpexC83LogSlotClosure",
-            "function OpexC83WatchDroppedTown",
-        )
-        self.assertIn("OpexC122ThreatClose(townId, previous, ownPresent, ownCount);", closure)
-        self.assertIn("if (!C78_SLOT_INTERCEPT_PROBE) return;", closure)
+        closure = c83_one
+        self.assertIn("OpexC122ThreatClose(town.id, previous, ownPresent, ownCountForThreat);", closure)
+        self.assertIn("C78_SLOT_INTERCEPT_PROBE", closure)
 
-        retry = body(
-            TASK_PROJECTS,
-            "function OpexC122ThreatRetryUnbuildable",
-            "function OpexC83LogSlotClosure",
-        )
-        self.assertIn('discard.reason == "siteA_unbuildable"', retry)
-        self.assertIn('discard.reason == "siteB_unbuildable"', retry)
-        self.assertIn('ai._c77EnqueueEntity(["air"], "town", townId, true, "c122_threat_retry")', retry)
-        self.assertIn("watch.retries >= 1", retry)
-        self.assertIn("C122_AIR_THREAT_RETRY_COUNT++", retry)
-        for forbidden in ("AITownList", "AIStationList", "AITileList", "AIEngineList", "OpexAirFindSite"):
-            self.assertNotIn(forbidden, retry)
+        self.assertNotIn("function OpexC122ThreatRetryUnbuildable", TASK_PROJECTS)
 
         attempts = body(
             TASK_PROJECTS,
             "function OpexC122ThreatNoteAttempt",
-            "function OpexC83LogSlotClosure",
+            "function OpexAI::_c83WatchAirSlotTransitions",
         )
         self.assertIn('phase=attempt', attempts)
         self.assertIn('phase=outcome', attempts)

@@ -114,7 +114,7 @@ function OpexAI::_c67TerrainSlackStep()
   this._c67Terrain.Step(left - C67_SLACK_RESERVE, AIController.GetTick() + 1);
 }
 
-/* ---- C67.6 : sonde passive d'exposition eau (c67_water_exposure_probe, defaut 0). ----
+/* ---- C67.6 : sonde passive d'exposition eau (probes bit 22 ou groupe 64, defaut 0). ----
  * Chaque paire de quais que le BFS borne d'OpexWaterPlans rejette (no_connection) est mise en
  * file ; l'oracle C67.5 la reevalue ensuite UNIQUEMENT dans le reliquat de tick. Aucune decision
  * n'est modifiee. Etat non sauvegarde : apres chargement, la sonde repart vide. */

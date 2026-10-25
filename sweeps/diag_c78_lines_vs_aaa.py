@@ -1,6 +1,6 @@
 """C78 : Diagnostic ligne par ligne OpexAI contre AAAHogEx.
 
-Duel OpexAI[probe_portfolio=1] contre AAAHogEx avec capture passive des candidats C78_CAND
+Duel OpexAI[probes=131074] contre AAAHogEx avec capture passive des candidats C78_CAND
 et releve des lignes exploitees (mode, villes, vehicules, profit_last_year, aeroports) a
 chaque sauvegarde de decembre pour les compagnies 0 et 1.
 """
@@ -273,7 +273,7 @@ def main():
 
     enable_savegame_cleanup()
     # local_folder avec les SEULS reglages explicites (la ligne ai_players est lue sur ~1024 caracteres)
-    opex = local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI", (("probe_portfolio", 1),))
+    opex = local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI", (("probes", 2 | 131072),))
     aaahogex = local_folder(str(ROOT / "ai" / "AAAHogEx-115"), "AAAHogEx", ())
     cfg = make_cfg(1970)
 
@@ -281,7 +281,7 @@ def main():
     for seed in args.seeds:
         experiments.append({
             "bench_context": "duel",
-            "bench_arm": "OpexAI[probe_portfolio=1]",
+            "bench_arm": "OpexAI[probes=131074]",
             "seed": seed,
             "days": 365 * args.years,
             "openttd_config": cfg,

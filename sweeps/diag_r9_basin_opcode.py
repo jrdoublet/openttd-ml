@@ -128,7 +128,7 @@ def main(argv=None):
         staged[name] = stage_copy(target, variant)
         copies[name] = target
         arms[name] = openttdlab.local_folder(
-            str(target), "OpexAI", (("probe_candidates_rail", 1), ("probe_catalogue", 1)))
+            str(target), "OpexAI", (("probes", 2 | 16384 | 32768),))
 
     opponent = folder / "copies" / "AAAHogEx-115"
     shutil.copytree(ROOT / "ai" / "AAAHogEx-115", opponent)
@@ -140,7 +140,7 @@ def main(argv=None):
         "kind": "R9_BASIN_SHARE_opcode_diagnostic_not_adoption",
         "intervention": "remove three forced-false BASIN_SHARE guards from candidates.nut only",
         "seeds": args.seeds, "years": args.years, "workers": args.workers,
-        "settings": {"probe_candidates_rail": 1, "probe_catalogue": 1}, "configuration": cfg,
+        "settings": {"probes": 2 | 16384 | 32768}, "configuration": cfg,
         "source_loading": "separate_run_experiments_per_arm",
         "production_hashes": before, "staged": staged,
         "decision_rule": "require positive rail-generation opcode saving and exact semantic profile signatures before any 20x10 adoption gate",

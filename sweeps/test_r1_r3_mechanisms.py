@@ -282,7 +282,7 @@ class SquirrelSourceContracts(unittest.TestCase):
         fleet = self.task.split("function OpexAI::_tryBuildFleetProject(", 1)[1].split("\nfunction ", 1)[0]
         self.assertEqual(fleet.count("local grown = OpexAirAddPlane("), 1)
         self.assertLess(fleet.index("local grown = OpexAirAddPlane("), fleet.index("phase=api_result"))
-        self.assertEqual(self.task.count("c75BypassConsumed = true;"), 6)  # legacy + five guarded V233 success sites
+        self.assertEqual(self.task.count("c75BypassConsumed = true;"), 1)
 
     def test_gate_only_emits_not_policy_or_fault_injection(self):
         helper = self.selection.split("function OpexR1R3FitTrace(", 1)[1].split("\nfunction ", 1)[0]

@@ -4,8 +4,9 @@
 Verifie :
 1. Reglages v214_rail_turn_cost (0..2000) et v214_rail_tight_turn_cost (0..5000),
    defauts adoptes 300/1500, declares dans info.nut, globals_pre.nut et settings.nut.
-2. OpexRailPathFinderV129 lit les reglages une fois par recherche, avant le premier _Cost, et
-   ramene le coude serre a 100 sous 40 tuiles de trajet (regle AAA).
+2. OpexRailPathFinderV129, ainsi que V296 natif actif depuis le lot 7, lisent les
+   constantes une fois par recherche avant le premier _Cost ; sous 40 tuiles,
+   le coude serre est ramene a 100 (regle AAA).
 3. _Cost : a 0, le cout historique `_cost_turn` est inchange ; sinon seule la sortie de diagonale
    paie (regle AAA `dirs[1] != dirs[2]`), et le coude serre exige 4 pas unitaires.
 4. La recherche segmentee fixe la distance du trajet complet ; V214_PATH journalise la geometrie
@@ -75,10 +76,24 @@ class TestV214Pathfinder(unittest.TestCase):
             self.assertIn(member, self.cls)
 
     def test_settings_read_before_first_cost(self):
-        read = self.init.index("this._v214Turn = V214_RAIL_TURN_COST;")
-        self.assertLess(self.init.index("this._v214Tight = V214_RAIL_TIGHT_TURN_COST;"),
-                        self.init.index("foreach (node in sources) {\n\t\t\tlocal p0"))
-        self.assertLess(read, self.init.index("local c1 = this._Cost(p0, node[0], 0xFF, this);"))
+        # Le lot 7 a fige V295=1 (creation du Path avec Bloom), et V296=1
+        # (moteur natif). L'ancien marqueur textuel "local p0" sans Bloom
+        # n'est plus un contrat de comportement : verifier l'ordre reel des
+        # initialisations V214 et du premier cout dans les DEUX moteurs.
+        native = function_body(read_file("pathfinder_v90/v296.nut"), "_InitializePathV296")
+        for init, cost_call in (
+            (self.init, "local c1 = this._Cost(p0, node[0], 0xFF, this);"),
+            (native, "this._Cost(seed, node[0], 0xFF, this)"),
+        ):
+            read_turn = init.index("this._v214Turn = V214_RAIL_TURN_COST;")
+            read_tight = init.index("this._v214Tight = V214_RAIL_TIGHT_TURN_COST;")
+            first_cost = init.index(cost_call)
+            self.assertLess(read_turn, read_tight)
+            self.assertLess(read_tight, first_cost)
+            self.assertIn(
+                "if (this._v214RouteDist >= 0 && this._v214RouteDist < 40 && this._v214Tight > 100) this._v214Tight = 100;",
+                init,
+            )
 
     def test_short_route_tight_cost_is_100(self):
         self.assertIn("if (this._v214RouteDist >= 0 && this._v214RouteDist < 40 && this._v214Tight > 100) this._v214Tight = 100;",

@@ -36,11 +36,9 @@ function OpexAirBatchPlanStillLive(plan, lines)
   local reuseB = ("reuseB" in plan) && plan.reuseB;
   local c83OwnSecondA = ("c83OwnSecondSlotA" in plan) && plan.c83OwnSecondSlotA;
   local c83OwnSecondB = ("c83OwnSecondSlotB" in plan) && plan.c83OwnSecondSlotB;
-  local v134SecondA = V134_AIR_P2P_SATURATED_HUB && ("v134SecondSlotA" in plan) && plan.v134SecondSlotA;
-  local v134SecondB = V134_AIR_P2P_SATURATED_HUB && ("v134SecondSlotB" in plan) && plan.v134SecondSlotB;
   if (!reuseA) {
     local servedA = OpexAirTownServed(plan.siteA.town, lines);
-    if (c83OwnSecondA || v134SecondA) {
+    if (c83OwnSecondA) {
       if (!servedA || !OpexAirC83SecondSlotOpen(plan.siteA.town)) return false;
     } else if (servedA) {
       return false;
@@ -48,7 +46,7 @@ function OpexAirBatchPlanStillLive(plan, lines)
   }
   if (!reuseB) {
     local servedB = OpexAirTownServed(plan.siteB.town, lines);
-    if (c83OwnSecondB || v134SecondB) {
+    if (c83OwnSecondB) {
       if (!servedB || !OpexAirC83SecondSlotOpen(plan.siteB.town)) return false;
     } else if (servedB) {
       return false;
@@ -117,11 +115,9 @@ function OpexAirBatchPlanStillLiveIndexed(plan, lines, ctx)
   local reuseB = ("reuseB" in plan) && plan.reuseB;
   local c83OwnSecondA = ("c83OwnSecondSlotA" in plan) && plan.c83OwnSecondSlotA;
   local c83OwnSecondB = ("c83OwnSecondSlotB" in plan) && plan.c83OwnSecondSlotB;
-  local v134SecondA = V134_AIR_P2P_SATURATED_HUB && ("v134SecondSlotA" in plan) && plan.v134SecondSlotA;
-  local v134SecondB = V134_AIR_P2P_SATURATED_HUB && ("v134SecondSlotB" in plan) && plan.v134SecondSlotB;
   if (!reuseA) {
     local servedA = OpexAirTownServedIndexed(plan.siteA.town, lines, ctx);
-    if (c83OwnSecondA || v134SecondA) {
+    if (c83OwnSecondA) {
       if (!servedA || !OpexAirC83SecondSlotOpen(plan.siteA.town)) return false;
     } else if (servedA) {
       return false;
@@ -129,7 +125,7 @@ function OpexAirBatchPlanStillLiveIndexed(plan, lines, ctx)
   }
   if (!reuseB) {
     local servedB = OpexAirTownServedIndexed(plan.siteB.town, lines, ctx);
-    if (c83OwnSecondB || v134SecondB) {
+    if (c83OwnSecondB) {
       if (!servedB || !OpexAirC83SecondSlotOpen(plan.siteB.town)) return false;
     } else if (servedB) {
       return false;
@@ -154,20 +150,12 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
       }
       if (!OpexAirBatchSiteStillBuildable(plan.siteA, plan.airport, plan.plane,
                                              ("reuseA" in plan) && plan.reuseA)) {
-          if (V133_AIR_BUILD_RETRY) {
-            local v133BestA = (this._projects != null) ? this._projects.best : null;
-            OpexV133NoteUnbuildableEndpoint(v133BestA, i, plan.siteA, ("reuseA" in plan) && plan.reuseA);
-          }
           if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL || C78_SLOT_INTERCEPT_PROBE
               || C122_AIR_THREAT_PROBE) passDiscards.append({ rank = i, mode = "air", src = plan.siteA.town.tile, dst = plan.siteB.town.tile, reason = "siteA_unbuildable", extra = "" });
           return { outcome = "rejected", discards = passDiscards };
         }
       if (!OpexAirBatchSiteStillBuildable(plan.siteB, plan.airport, plan.plane,
                                              ("reuseB" in plan) && plan.reuseB)) {
-          if (V133_AIR_BUILD_RETRY) {
-            local v133BestB = (this._projects != null) ? this._projects.best : null;
-            OpexV133NoteUnbuildableEndpoint(v133BestB, i, plan.siteB, ("reuseB" in plan) && plan.reuseB);
-          }
           if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL || C78_SLOT_INTERCEPT_PROBE
               || C122_AIR_THREAT_PROBE) passDiscards.append({ rank = i, mode = "air", src = plan.siteA.town.tile, dst = plan.siteB.town.tile, reason = "siteB_unbuildable", extra = "" });
           return { outcome = "rejected", discards = passDiscards };
@@ -266,10 +254,6 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
                                + (result.ok ? result.vehicles.len() : 0));
       }
       if (!result.ok) {
-        if (V133_AIR_BUILD_RETRY) {
-          local v133BestFail = (this._projects != null) ? this._projects.best : null;
-          OpexV133NoteBuildFailure(v133BestFail, i, plan, result);
-        }
         local errorAnchor = null;
         if ((result.reason == "PREA" || result.reason == "AFAIL") && plan.siteA != null) {
           errorAnchor = plan.siteA.anchor;
@@ -501,6 +485,12 @@ function OpexAI::_resizeAirFleets(year, plan = null)
 
   foreach (line in airLines) {
     if (plan != null && C69_BOTTLENECK_PROBE) OpexC73RecordExamined("fleet", 1);
+    /* Assignation ITT reportee : la ligne ne doit pas revenir par la
+     * generation de projets ni par l'ancienne voie directe. La reparation
+     * d'un crash reste traitee par son chemin specifique ci-dessous. */
+    if (AIR_ROI_RENFORT1_ITT != 0 && OpexAirR1ITTBlocked(line)) {
+      if (!("needsRefleet" in line) || !line.needsRefleet) continue;
+    }
     /* B8 / G10 : une ligne en liquidation ne peut recevoir aucun appareil neuf, y compris une
      * reconstitution de crash. Ce garde doit preceder needsRefleet : pendant la fenetre de vente,
      * les avions encore vivants peuvent redevenir profitables et remettre deadStreak a zero. */
@@ -722,6 +712,8 @@ function OpexAI::_resizeAirFleets(year, plan = null)
       local want = (room < maxAddedPerPass) ? room : maxAddedPerPass;
       if (want > 0) {
         local fleetEntry = { line = line, want = want, planePrice = planePrice, baseVehicles = have };
+        /* Copie de la borne deja evaluee, sans nouveau calcul physique. */
+        if (AIR_ROI_RENFORT1_SHADOW) fleetEntry.airR1PhysicalMax <- maxPlanesForAirport;
         if (c121FirstLiveEntry) fleetEntry.c121FirstLive <- true;
         {
           /* V161 : voisines AIR vivantes partageant une gare, pour l'a priori. Index
@@ -756,7 +748,23 @@ function OpexAI::_resizeAirFleets(year, plan = null)
         break;
       }
       local spAdd = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
+      /* Voie historique plan=null : meme tirage et meme verrou que le
+       * portefeuille, pour ne pas laisser une porte de rattrapage en ITT. */
+      local airR1LegacyITT = null;
+      if (AIR_ROI_RENFORT1_ITT != 0) {
+        airR1LegacyITT = OpexAirR1ITTAssign(this,
+            { payload = { line = line, want = 1, planePrice = planePrice } }, -1);
+        if (airR1LegacyITT != null && airR1LegacyITT.deferred) {
+          OpexAirR1ITTOutcome(airR1LegacyITT, 0, 0, "ASSIGNED_DEFER", 0);
+          break;
+        }
+      }
+      local airR1LegacyCosts = airR1LegacyITT != null ? AIAccounting() : null;
       local grown = OpexAirAddPlane(line, this._catalog, this._lines);
+      if (airR1LegacyITT != null) OpexAirR1ITTOutcome(airR1LegacyITT,
+          grown.added, ("reason" in grown) && grown.reason == "REPLACE" ? 1 : 0,
+          ("reason" in grown) ? grown.reason : "unknown",
+          airR1LegacyCosts != null ? airR1LegacyCosts.GetCosts() : 0);
       if (spAdd != null) OpexSpanAgg("fleet.add_plane", spAdd);
       routesIndex = null;
       if (("reason" in grown) && (grown.reason == "REEEQUIP_WAIT" || grown.reason == "REPLACE" || grown.reason == "REEEQUIP_FAIL" || grown.reason == "REEEQUIP_ABORT")) {

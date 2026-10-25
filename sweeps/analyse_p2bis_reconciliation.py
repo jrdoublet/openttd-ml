@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Analyseur P2 bis : reconciliation des passages projects sous probe_scheduler=1.
+"""Analyseur P2 bis : reconciliation des passages projects sous probes=1026.
 
 Lit les enregistrements `P2_PASS`, `P2_BUILD`, `P2_RESOLVE`, et `SCHED_IDLE`.
 Explique et quantifie l'incoherence apparente entre P1 (312 passages vides)
@@ -384,7 +384,7 @@ def format_reconciliation_report(summary: dict, seeds: list[int]) -> str:
 
     if summary.get("perturbation"):
         lines.extend([
-            "## 5. Perturbation sous sonde (probe_scheduler=1 vs référence probe_scheduler=0)",
+            "## 5. Perturbation sous sonde (probes=1026 vs référence probes=2)",
             "| Graine | Valeur ref | Valeur sonde | Delta val (%) | Profit ref | Profit sonde | Delta prof (%) | Véh ref | Véh sonde (delta) | Gares ref | Gares sonde (delta) |",
             "|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
         ])

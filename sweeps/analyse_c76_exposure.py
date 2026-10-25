@@ -2,7 +2,7 @@
 """Exposition C76 : régénérations, rotation du cargo fret, coût par étape et chronologie.
 
 Lit le jsonl brut de `diag_c69_bottleneck_probe.py --extra-tags C76_REGEN --grep " C56_TASK "`
-(bras avec `probe_catalogue=1,probe_events=1`) et produit, par bras :
+(bras avec `probes=1081346`, bits catalogue et events) et produit, par bras :
 
 1. régénérations par an (complètes / incrémentales / évitées, par motif) et cargos fret vus ;
 2. coût de chaque étape tracée (TASK, STAGE, INTENT, WORKER) : nombre, ticks, opcodes ;

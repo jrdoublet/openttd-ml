@@ -57,7 +57,7 @@ def sorted_towns(towns, target=None, dirty_order=False):
     return ranked
 
 
-def step(state, towns, limit, budget, *, target=None, c83_fixes=False, kind="large",
+def step(state, towns, limit, budget, *, target=None, kind="large",
          v93=False, min_pop=100, max_probes=99):
     """Modèle des deux boucles de FindSites (1 coût-unité par itération).
 
@@ -68,12 +68,6 @@ def step(state, towns, limit, budget, *, target=None, c83_fixes=False, kind="lar
         return True
     used = 0
     scan_end = limit
-    if c83_fixes and target is not None:
-        scan_end = state.scan_index
-        for i in range(state.scan_index, limit):
-            if towns[i]["id"] == target:
-                scan_end = i + 1
-                break
     for i in range(state.scan_index, scan_end):
         town = towns[i]
         state.scan_seen.append(town["id"])
@@ -107,13 +101,13 @@ def step(state, towns, limit, budget, *, target=None, c83_fixes=False, kind="lar
     return True
 
 
-def run(towns, *, budget, target=None, c83_fixes=False, kind="large", v93=False,
+def run(towns, *, budget, target=None, kind="large", v93=False,
         max_probes=99, dirty_order=False):
     ordered = sorted_towns(towns, target=target, dirty_order=dirty_order)
     state = SiteState()
     for calls in range(1, 500):
         if step(state, ordered, len(ordered), budget, target=target,
-                c83_fixes=c83_fixes, kind=kind, v93=v93, max_probes=max_probes):
+                kind=kind, v93=v93, max_probes=max_probes):
             return state, calls, ordered
     raise AssertionError("FindSites model did not finish")
 
@@ -165,10 +159,9 @@ class AC02AirSiteResumeTests(unittest.TestCase):
         self.assertIn('local foundBefore = scanSites.len();', FIND)
         self.assertIn('perfSitesFound += scanSites.len() - foundBefore;', FIND)
         self.assertIn('OpexAirSiteStillBuildable(site, airport, plane, false, stationLimitedTowns)', FIND)
-        self.assertIn('scanEnd = c83Scan + 1;', FIND)
-        self.assertIn('if (C83_FIXES && targetTownId >= 0)', FIND)
+        self.assertIn('local scanEnd = limit;', FIND)
 
-    def test_frozen_normal_small_large_v93_dirty_and_c83_targeted(self):
+    def test_frozen_normal_small_large_v93_dirty_and_targeted(self):
         towns = [
             {"id": 8, "pop": 2400, "found": True, "dirty": False},
             {"id": 3, "pop": 1200, "found": False, "dirty": True},
@@ -183,16 +176,16 @@ class AC02AirSiteResumeTests(unittest.TestCase):
             for v93 in (False, True):
                 for dirty in (False, True):
                     for max_probes in (0, 1, 3, 99):
-                        for target, c83 in ((None, False), (12, True), (999, True)):
+                        for target in (None, 12, 999):
                             with self.subTest(kind=kind, v93=v93, dirty=dirty, target=target,
                                               probes=max_probes):
                                 expected, _, _ = run(towns, budget=999, kind=kind, v93=v93,
                                                      dirty_order=dirty, target=target,
-                                                     c83_fixes=c83, max_probes=max_probes)
+                                                     max_probes=max_probes)
                                 for budget in (1, 2, 3, 5, 9):
                                     actual, slices, _ = run(towns, budget=budget, kind=kind,
                                                            v93=v93, dirty_order=dirty,
-                                                           target=target, c83_fixes=c83,
+                                                           target=target,
                                                            max_probes=max_probes)
                                     self.assertEqual(actual.sites, expected.sites)
                                     self.assertEqual(actual.scan_seen, expected.scan_seen)

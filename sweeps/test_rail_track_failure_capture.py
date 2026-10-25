@@ -146,21 +146,6 @@ class TestRailTrackFailureCapture(unittest.TestCase):
 
     def test_failure_logs_and_rollback_order_are_unchanged(self):
         current = function_body(self.source, "OpexExecuteRailPlan")
-        # E3 adds one guarded fail-before-spend block, independently tested by V233.
-        # Remove exactly that block to keep the historical hash checking every other token.
-        guard = '''  if (V233_GOODS_GRAFT && OpexV233IsGraft(candidate)) {
-    if (!("v233RankCapital" in plan) || candidate.capital != plan.v233RankCapital) {
-      result.reason = "V233_REPRICE";
-      return result;
-    }
-    if (!OpexV233SpendAllowed(catalog, candidate, plan)) {
-      result.reason = "V233_STALE";
-      return result;
-    }
-  }
-'''
-        self.assertEqual(current.count(guard), 1)
-        current = current.replace(guard, "")
         # V237 makes the existing site-cache invalidation unconditional.
         call = "OpexAir0310InvalidateSiteValidity();"
         self.assertEqual(current.count(call), 1)

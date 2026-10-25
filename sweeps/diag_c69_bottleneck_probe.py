@@ -34,7 +34,7 @@ def _check_output_with_script_debug(args, *rest, **kwargs):
 
 openttdlab.subprocess.check_output = _check_output_with_script_debug
 
-ARM = "OpexAI[probe_portfolio=1]"
+ARM = "OpexAI[probes=131074]"
 EVENT_RE = re.compile(r"OPEX (\d+)-\d+-\d+ C69_BOTTLENECK\s*(.*)")
 C49_RE = re.compile(r"OPEX \d+-\d+-\d+ C49_SCARCITY\s*(.*)")
 # Fenetre C2-C4 : annees 2 a 6 (la premiere annee est celle de l'amorcage, F = 0).
@@ -178,7 +178,7 @@ def main():
     parser.add_argument("--max-workers", type=int, default=3)
     parser.add_argument("--starting-year", type=int, default=1970)
     parser.add_argument("--out", type=Path, default=None)
-    parser.add_argument("--arm", default=ARM, help="bras OpexAI[...] ; doit activer probe_portfolio")
+    parser.add_argument("--arm", default=ARM, help="bras OpexAI[...] ; doit activer le bit 131072 de probes")
     parser.add_argument("--extra-tags", nargs="*", default=[],
                         help="autres canaux OPEX a recopier dans --raw (ex. C39_PASS_CLOCK)")
     parser.add_argument("--grep", default=None, help="recopie dans --raw les lignes du journal contenant ce texte")

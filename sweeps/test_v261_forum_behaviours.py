@@ -92,18 +92,6 @@ class ForumBehaviours(unittest.TestCase):
         code = body("task_v250.nut", "OpexAI::_dispatchV250Rights")
         self.assertIn('if (!OpexLevelAllows("v250_rights")) return false;', code)
 
-    def test_1_6_secondary_graft_requires_courtesy_gate(self):
-        guard = body("goods_v233.nut", "OpexV233SecondaryRivalServed")
-        self.assertIn('if (OpexLevelAllows("secondary_graft_rival_served")) return false;', guard)
-        for api in ('AITileList_IndustryAccepting(factory, radius)', 'AIStation.GetCoverageRadius(stationType)',
-                    'AITile.GetOwner(tile)', 'AICompany.IsMine(owner)', 'AICompany.COMPANY_INVALID',
-                    'AIRail.IsRailStationTile(tile)', 'AITile.TRANSPORT_ROAD', 'AIMarine.IsDockTile(tile)'):
-            self.assertIn(api, guard)
-        context = body("goods_v233.nut", "OpexV233JoinContextValid")
-        self.assertIn('if (OpexV233SecondaryRivalServed(context.v233FactoryId)) return false;', context)
-        for function in ('OpexAI::_v233CandidateLive', 'OpexV233SpendAllowed'):
-            self.assertIn('OpexV233JoinContextValid(', body('goods_v233.nut', function))
-
     def test_1_7_demolition_protects_rival_rail_and_rail_stations(self):
         code = body("builder_rail.nut", "OpexV199CanDemolishTile")
         self.assertIn("AIRail.IsRailStationTile", code)
@@ -123,9 +111,11 @@ class ForumBehaviours(unittest.TestCase):
 
     def test_1_9_diagnostics_are_user_configurable(self):
         code = uncomment(source("settings.nut"))
-        for setting in ("debug_signs", "probes", "decision_log"):
-            self.assertIn(f'AIController.GetSetting("{setting}")', code)
-            self.assertIn(f'name = "{setting}"', source("info.nut"))
+        self.assertIn('AIController.GetSetting("probes")', code)
+        self.assertIn('name = "probes"', source("info.nut"))
+        for retired in ("debug_signs", "decision_log"):
+            self.assertNotIn(f'AIController.GetSetting("{retired}")', code)
+            self.assertNotIn(f'name = "{retired}"', source("info.nut"))
         self.assertIn("if (!DEBUG_SIGNS) return;", body("probes.nut", "OpexSign"))
 
     def test_1_9_budget_signs_honor_debug_signs(self):
@@ -214,8 +204,10 @@ class ForumBehaviours(unittest.TestCase):
                 self.assertIn("if (MODE_%s && !OpexModeAllowedByGame(" % mode, settings)
         self.assertLess(settings.index('MODE_WATER = AIController.GetSetting("mode_water")'),
                         settings.index("ROAD_BUILD_ENABLED = MODE_ROAD"))
-        self.assertIn("if (!OpexModeVehicleRoom(project.mode, OpexTensionProjectVehicleCount(project))) continue;",
-                      source("task_projects.nut"))
+        projects = source("task_projects.nut")
+        guard = "if (!OpexModeVehicleRoom(project.mode, OpexTensionProjectVehicleCount(project))) {"
+        self.assertIn(guard, projects)
+        self.assertIn("continue;", projects.split(guard, 1)[1].split("}", 1)[0])
 
     def test_2_2_no_numeric_cargo_or_transport_type_ids(self):
         # Sentinelles -1 autorisées ; aucune exception pour un identifiant réel.

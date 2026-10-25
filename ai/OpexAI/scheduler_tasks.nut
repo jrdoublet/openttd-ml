@@ -812,7 +812,7 @@ function OpexAI::_dispatchReport(task, year)
   }
   OpexSign(AIMap.GetTileIndex(1, 1), "LB|" + (year % 100) + "|"
            + AICompany.GetBankBalance(AICompany.COMPANY_SELF));
-  /* Diagnostic passif de tresorerie sous probe_portfolio. Les quatre panneaux
+  /* Diagnostic passif de tresorerie sous probes bit 17 ou groupe 128. Les quatre panneaux
    * sont volontairement compacts (< 31 caracteres) pour etre relus depuis le
    * chunk SIGN sans dependre du journal stdout d'OpenTTD. Ils sont publies
    * avant _logC49ScarcityLedger(), qui remet le registre annuel a zero. */

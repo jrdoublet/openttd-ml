@@ -8,7 +8,7 @@ Vérifie les contrats statiques du code Squirrel (.nut) :
 4. Déclaration des champs et méthodes sur OpexAI dans main.nut
 5. Garde à 0 garantissant la préservation intégrale du chemin historique
 6. Échéance locale par tranche (RAIL_MICRO_DEADLINE / BUILD_TICK_MARGIN, pas d'échéance globale réfutée)
-7. Instrumentation passive sous probe_events (RAIL_SLICE, RAIL_SEARCH_START, RAIL_SEARCH_END, RAIL_COMMISSION, RAIL_ANNUAL)
+7. Instrumentation passive sous probes bit 1048576 (RAIL_SLICE, RAIL_SEARCH_START, RAIL_SEARCH_END, RAIL_COMMISSION, RAIL_ANNUAL)
 8. Intégration dans le gel de campagne (campaign_freeze).
 """
 

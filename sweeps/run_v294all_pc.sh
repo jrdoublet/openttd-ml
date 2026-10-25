@@ -31,7 +31,7 @@ fi
 ADAPT="${ADAPT:-0}"
 if [ "$ADAPT" = 0 ]; then SEARCH="v294_rail_continuous=1"; else SEARCH="v294_rail_continuous=0,v294_rail_weight_adapt=${ADAPT}"; TAG="${TAG}_adapt${ADAPT}"; fi
 COMBO="v294_rail_bridge_len=20,${SEARCH},v294_rail_weight_pct=200,v294_rail_aaa_costs=1"
-COMBO="${COMBO},v294_rail_reverse_probe=300,v294_rail_dist_decouple=200,v294_rail_slope_engine=1,v295_astar_fast=1"
+COMBO="${COMBO},rail_reverse_astar_iters=300,v294_rail_dist_decouple=200,v294_rail_slope_engine=1"
 REF="OpexAI[v294_rail_continuous=0${MODES}]"
 VAR="OpexAI[${COMBO}${MODES}]"
 COMMON=(--variant-policy-id v294all --primary-metric profit_year --min-useful-primary-delta-pct 4

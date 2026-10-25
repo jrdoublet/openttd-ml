@@ -53,11 +53,14 @@ supprimé, pas de branche morte à unifier).
 ## Conventions du code
 - **Réglages** : déclarés dans `info.nut` (`AddSetting`, les quatre `*_value` toujours égaux — pas
   de niveau de difficulté), lus **une seule fois** dans `settings.nut::OpexLoadSettings()` via
-  `AIController.GetSetting` vers des globales en MAJUSCULES, appelé depuis `Start()`. Un drapeau
+  `AIController.GetSetting` vers des globales en MAJUSCULES, appelé depuis `Start()`. Les
+  **22 sondes booléennes** disposent de bits dédiés dans le seul réglage `probes` (2^9 à 2^30,
+  maximum entier signé 2 147 483 647) ; les bits 8/16/32/64/128 restent des raccourcis
+  de groupes, le bit 256 commande uniquement le journal et le bit 2 les panneaux. Un drapeau
   `cNN_*` renvoie à la fiche C-NN de `docs/taches.md`.
 - **Mesure** : les panneaux `OpexSign(...)` (préfixes `AC|`, `RC|`, etc.) sont le canal de mesure
   des bancs ; `OpexDecide(kind, fields)` (`probes.nut`) est le journal de décision structuré, gardé
-  par `decision_log` ou une sonde dédiée — coût nul au défaut.
+  par le masque `probes` (bit 256 ou groupes historiques) — coût nul au défaut.
 - **Validation** : appliquer `AGENTS.md` §4, source unique du protocole. Après une modification
   `.nut`, smoke de compilation/exécution **1 graine × 1 an**, puis, pour le comportement,
   porte A **40×3 `gain_short`** (Wilcoxon, IC95 bootstrap, seuil relatif 4 %) et
@@ -121,9 +124,9 @@ supprimé, pas de branche morte à unifier).
   depuis la décision du 26 septembre ; la route conserve 121. Ne pas confondre ce facteur de
   financement avec `RAIL_TERRAIN_FACTOR=170`, déjà inclus dans l'estimation du capital rail.
   Restaurer 170 en financement réintroduirait une majoration supprimée ; consulter C67.
-- `debug_signs=1` par défaut n'est pas un oubli de debug : c'est la seule source de mesure pour
-  tous les bancs `sweeps/*.py`. Il ne doit être mis à 0 que pour une partie réelle avec des
-  humains.
+- `probes=2` par défaut conserve les panneaux : ils alimentent encore les mesures des
+  bancs `sweeps/*.py`. Pour une partie humaine, `probes=0` désactive les panneaux. La
+  décommission du bit 2 attend la migration des décodeurs vers `AILog` (voir `docs/taches.md`).
 - Philosophie "armes égales" : ne jamais proposer de bridage ou de simplification qui
   handicaperait OpexAI par rapport à AAAHogEx (qui, lui, ne se bride jamais) — un déséquilibre
   involontaire invaliderait tout le banc.

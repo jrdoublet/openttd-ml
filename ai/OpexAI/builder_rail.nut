@@ -1438,7 +1438,6 @@ function OpexV264SpreadScan(plans, platform, stationId, stats, box, spread, leng
  * Un spread < 4 est refuse : c'est le minimum moteur, sans repli a 12. */
 function OpexV264SpreadJoinPlans(platform, stationId, stats = null)
 {
-  if (!V264_CONVERGENT_FREIGHT) return [];
   if (platform == null) return [];
   if (!("length" in platform) || !("anchor" in platform)
       || !("direction" in platform) || !("step" in platform)) return [];
@@ -1517,11 +1516,6 @@ function OpexRailPlatformPlans(catalog, candidate)
   local statsA = { nClear = 0, nCargo = 0, nCmd = 0 };
   local statsB = { nClear = 0, nCargo = 0, nCmd = 0 };
 
-  if (V233_GOODS_GRAFT && ("strictJoin" in candidate) && candidate.strictJoin
-      && !OpexV233JoinContextValid(candidate, candidate.cargo, candidate.src, catalog.railCoverage))
-    return { plansA = [], plansB = [], length = candidate.platformLength,
-             slopeRelaxed = 0, reason = "SITEA", statsA = statsA, statsB = statsB };
-
   local floor = OpexRailMinimumPlatformLength();
   local wanted = candidate.platformLength;
   if (wanted > catalog.platformLength) wanted = catalog.platformLength;
@@ -1542,16 +1536,9 @@ function OpexRailPlatformPlans(catalog, candidate)
      * bas tout en gardant joinLineId fait ignorer la ligne existante dans _tooClose et permet de
      * contourner ORIGIN_SEPARATION avec une seconde gare. V88 conserve son fallback historique. */
     local strictOriginReuseJoin = (("shared_dest" in candidate) && candidate.shared_dest)
-        || (V233_GOODS_GRAFT && ("strictJoin" in candidate) && candidate.strictJoin)
-        || (V264_CONVERGENT_FREIGHT && ("convergent_dest" in candidate) && candidate.convergent_dest);
+        || (("convergent_dest" in candidate) && candidate.convergent_dest);
     if (!joinB) {
       local jointPlansA = OpexJoinPlatformPlans(candidate.joinPlatform, candidate.joinStationId, statsA);
-      if (V233_GOODS_GRAFT && ("strictJoin" in candidate) && candidate.strictJoin) {
-        local capturing = [];
-        foreach (p in jointPlansA)
-          if (OpexV233FactoryCovered(p, candidate.v233FactoryId, candidate.cargo, catalog.railCoverage)) capturing.append(p);
-        jointPlansA = capturing;
-      }
       joinHasA = jointPlansA.len() > 0;
       if (jointPlansA.len() > 0) {
         foreach (p in jointPlansA) {
@@ -1569,7 +1556,7 @@ function OpexRailPlatformPlans(catalog, candidate)
       }
     } else {
       local jointPlansB = OpexJoinPlatformPlans(candidate.joinPlatform, candidate.joinStationId, statsB);
-      if (V264_CONVERGENT_FREIGHT && ("convergent_dest" in candidate) && candidate.convergent_dest == 1) {
+      if (("convergent_dest" in candidate) && candidate.convergent_dest == 1) {
         local joinMode = "parallel";
         if (jointPlansB.len() == 0) {
           jointPlansB = OpexV264SpreadJoinPlans(candidate.joinPlatform, candidate.joinStationId, statsB);
@@ -1763,9 +1750,9 @@ function OpexCreateRailPathfinder(plansA, plansB, ignoredTiles = null, weight = 
   return pathfinder;
 }
 
-/* V294f : sonde inverse bornée à iterationCap iterations (sources = plansB, buts = plansA).
- * Si un chemin est trouvé, il est retourné inversé au format attendu par la pose. */
-function OpexV294fReverseProbe(plansA, plansB, clearanceTiles, searchWeight, candidate, iterationCap)
+/* V294f : recherche A* inverse bornee a iterationCap iterations (sources = plansB, buts = plansA).
+ * Si un chemin est trouve, son trace inverse est utilise directement pour la pose. */
+function OpexRailReverseAstarSearch(plansA, plansB, clearanceTiles, searchWeight, candidate, iterationCap)
 {
   local engine = OpexRailEngineOf(candidate);
   local revPf = OpexCreateRailPathfinder(plansB, plansA, clearanceTiles, searchWeight, null, null, engine);
@@ -3579,7 +3566,7 @@ function OpexBuildTrack(tiles, structures = null, failure = null, options = null
   local signalsBuiltCount = 0;
   local retriesCount = 0;
   /* V296a : la signalisation V199 de la double voie se pose tuile par tuile, on ne groupe pas. */
-  local batch = (V296_RAIL_BATCH_BUILD && !V296A_MISMATCH && !(V199_ROBUST_BUILD && isDouble))
+  local batch = (!V296A_MISMATCH && !(V199_ROBUST_BUILD && isDouble))
       ? { runs = 0, tiles = 0, single = 0, fallbacks = 0, mismatch = 0, skipUntil = 0 } : null;
 
   for (local i = 1; i < tiles.len() - 1; i++) {
@@ -3907,7 +3894,6 @@ function OpexBuildDepot(tiles, forbidden = null)
  * ruines degradent activement la capacite a construire dans ces villes. */
 function OpexRollback(tiles, planA, planB, depot, vehicles)
 {
-  local v233Protected = planA != null && ("v233Protected" in planA) ? planA.v233Protected : null;
   /* OpexBuildTrains ne demarre les convois qu'apres que TOUS leurs ordres sont poses. Si un
    * ordre echoue, ils sont donc encore vendables dans le depot et le rollback reste vraiment
    * atomique, y compris pour un nouveau quai joint. */
@@ -3922,7 +3908,6 @@ function OpexRollback(tiles, planA, planB, depot, vehicles)
   if (planA != null) {
     for (local i = 0; i < planA.length; i++) {
       local t = planA.anchor + planA.step * i;
-      if (v233Protected != null && t in v233Protected) continue;
       if (AIRail.IsRailStationTile(t)) AIRail.RemoveRailStationTileRectangle(t, t, false);
       else AITile.DemolishTile(planA.anchor + planA.step * i);
     }
@@ -3930,7 +3915,6 @@ function OpexRollback(tiles, planA, planB, depot, vehicles)
   if (planB != null && !(("v307Prebuilt" in planB) && planB.v307Prebuilt == 1)) {
     for (local i = 0; i < planB.length; i++) {
       local t = planB.anchor + planB.step * i;
-      if (v233Protected != null && t in v233Protected) continue;
       if (AIRail.IsRailStationTile(t)) AIRail.RemoveRailStationTileRectangle(t, t, false);
       else AITile.DemolishTile(planB.anchor + planB.step * i);
     }
@@ -3945,7 +3929,6 @@ function OpexRollback(tiles, planA, planB, depot, vehicles)
   OpexAir0310InvalidateSiteValidity();
   if (tiles == null) return;
   for (local i = 1; i < tiles.len() - 1; i++) {
-    if (v233Protected != null && tiles[i] in v233Protected) continue;
     AITile.DemolishTile(tiles[i]);
   }
 }
@@ -4845,17 +4828,6 @@ function OpexExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
     return result;
   }
 
-  if (V233_GOODS_GRAFT && OpexV233IsGraft(candidate)) {
-    if (!("v233RankCapital" in plan) || candidate.capital != plan.v233RankCapital) {
-      result.reason = "V233_REPRICE";
-      return result;
-    }
-    if (!OpexV233SpendAllowed(catalog, candidate, plan)) {
-      result.reason = "V233_STALE";
-      return result;
-    }
-  }
-
   local costs = AIAccounting();
 
   budget.begin();
@@ -5159,10 +5131,8 @@ function OpexBuildLine(catalog, budget, candidate, alternativeRatio, cashReserve
   /* V200 : comme l'estimateur d'AAAHogEx, ne doubler que si la caisse paie la ligne double
    * (environ deux fois le devis simple) avec une marge ; sinon voie unique historique. */
   local v200Double = OpexV200WantDouble(candidate, cashReserve);
-  /* V198 replaces both station sites with independent templates. Strict joins use
-   * the ordinary V190/single builders, which preserve the selected StationID. */
-  if (v200Double && OpexV198Active() && candidate.kind == "freight"
-      && !(V233_GOODS_GRAFT && OpexV233IsGraft(candidate))) {
+  /* V198 replaces both station sites with independent templates. */
+  if (v200Double && OpexV198Active() && candidate.kind == "freight") {
     return OpexV198ExecuteRailPlan(catalog, budget, candidate, plan, cashReserve);
   }
   if (v200Double && OpexV190Active() && candidate.kind == "freight") {
@@ -5256,9 +5226,6 @@ function OpexV190RollbackDoubleTrack(tiles1, planA1, planB1, depot1, tiles2, pla
     for (local i = 0; i < planB1.length; i++) protectedPrimary[planB1.anchor + planB1.step * i] <- true;
     if ("station_exit" in planB1) protectedPrimary[planB1.station_exit] <- true;
     if ("lead" in planB1) protectedPrimary[planB1.lead] <- true;
-  }
-  if (planA1 != null && ("v233Protected" in planA1)) {
-    foreach (tile, present in planA1.v233Protected) protectedPrimary[tile] <- present;
   }
   if (depot1 != null) {
     protectedPrimary[depot1] <- true;
@@ -5435,17 +5402,6 @@ function OpexV190ExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
   if (!OpexRailVehicleSlotAvailable()) {
     result.reason = "NOTRAIN";
     return result;
-  }
-
-  if (V233_GOODS_GRAFT && OpexV233IsGraft(candidate)) {
-    if (!("v233RankCapital" in plan) || candidate.capital != plan.v233RankCapital) {
-      result.reason = "V233_REPRICE";
-      return result;
-    }
-    if (!OpexV233SpendAllowed(catalog, candidate, plan)) {
-      result.reason = "V233_STALE";
-      return result;
-    }
   }
 
   local costs = AIAccounting();

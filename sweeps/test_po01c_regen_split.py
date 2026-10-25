@@ -417,6 +417,35 @@ class PO01CContracts(unittest.TestCase):
     def test_generators_track_current_producers(self):
         self.assertEqual(source('po01c_generators.nut'), generated())
 
+    def test_po01d_live_air_copy_has_no_retired_policy_calls(self):
+        # PO01C is on by default: stale copied calls can execute even though
+        # their definitions, settings and synchronous branches were deleted.
+        retired = ('OpexC83RepairFindSites', 'C83_FIXES', 'V133_AIR_BUILD_RETRY',
+                   'V134_AIR_P2P_SATURATED_HUB')
+        for suffix in ('AirPlansFindSites', 'AirPlansDiscoverHubs'):
+            synchronous = function(source('air_planning.nut'), 'Opex' + suffix)
+            copied = function(source('po01c_generators.nut'), 'OpexPO01C' + suffix)
+            for token in retired:
+                if re.search(r'\b' + token + r'\b', synchronous):
+                    continue
+                with self.subTest(function=suffix, retired=token):
+                    self.assertFalse(re.search(r'\b' + token + r'\b', copied), token)
+
+    def test_po01f_distance_and_sitability_guards_follow_live_candidate(self):
+        # Changes to admission must propagate to the active resumable caller,
+        # independently of historical whole-file SHA values.
+        synchronous = function(source('candidates.nut'), 'OpexMakeCandidate')
+        copied = function(source('po01c_generators.nut'), 'OpexPO01CMakePaxCandidate')
+        for token in ('V269_RAIL_LONG_MAX', 'OpexRailFreightMaxDistance'):
+            with self.subTest(current_guard=token):
+                self.assertTrue(token in synchronous, token)
+                self.assertTrue(token in copied, token)
+        for token in ('V177_RAIL_PAX_MIN_DIST', 'V182_RAIL_FREIGHT_MIN_DIST',
+                      'V195_V182_YEARS', 'V233_GOODS_GRAFT', 'joinContext'):
+            with self.subTest(retired_guard=token):
+                self.assertFalse(token in synchronous, token)
+                self.assertFalse(token in copied, token)
+
     def test_po01d_synchronous_path_bytes_unchanged(self):
         # Baseline origin/master 190b4ba1, rebased 23/10 onto c1b23cbb (V307S v3,
         # PO-02 precheck, PO-01c default 1; copied functions unaffected). Intentional later synchronous edits

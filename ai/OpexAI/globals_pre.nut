@@ -14,33 +14,29 @@ MODE_WATER <- true;
  * du plafond d'A* par la table de noeuds (94 tuiles a 10k) ; N = N tuiles, sans le filtre
  * d'iterations predites. */
 V168_RAIL_MAX_DIST <- 160;
-V177_RAIL_PAX_MIN_DIST <- 0;
-V182_RAIL_FREIGHT_MIN_DIST <- 0;
 /* V264 : fret convergent vers une industrie deja desservie. Defaut vrai depuis le 19/10 (40x10 PC
  * +111,8 k/an sur 39 paires, accepte par derogation utilisateur). 0 = aucun calcul du mecanisme. */
-V264_CONVERGENT_FREIGHT <- true;
+const V264_CONVERGENT_FREIGHT = 1; // Lot 7 : politique adoptee figee a 1 (scalaire Squirrel).
 /* V269 : relachement tardif du vivier rail (orchestrator.nut, _v217RailRefill). 0 = inerte,
  * N = annees apres le depart (defaut 5 depuis le 20/10, decision utilisateur apres le 40x10
  * GitHub +83,1 k, 24/16, IC95 [-8 k ; +174 k]). Quand le vivier est vide et la caisse oisive,
  * la regeneration V217 accepte le fret jusqu'a V269_RAIL_MAX_DIST tuiles. */
 V269_RAIL_LATE_RELAX <- 5;
 V269_RAIL_MAX_DIST <- 250;
+/* RAIL-LONG-EARLY-1 : 0 conserve V269 a 250 ; >= 250 autorise une seconde
+ * borne fret sur la recharge V217 seulement (jamais les bandes voyageurs/AIR). */
+V269_RAIL_LONG_MAX <- 0;
+V269_RAIL_LONG_CARGO <- null; // transitoire V217 -> demande asynchrone V276
 V269_IDLE_CASH_MIN <- 1000000;
-V294H_RAIL_DEFER <- 0; // 0 : master ; N : trace rapide de N iterations, puis recherche de fond au reliquat (V294h).
 /* V309 : sondage passif des tours en attente, sans changer l'ordonnanceur. */
 V309_IDLE_PROBE <- false;
 V309_IDLE_STATE <- null;
-V294H_OPS_PER_ITER <- 200; // V294h : cout mesure d'une iteration A* (moyenne glissante, transitoire).
 V284_RAIL_GROWTH <- 0; // 0 : master ; N : croissance fret apres N ans et 1 M£ disponible.
 /* V294 : ponts/tunnels longs et recherche A* continue (defauts 0 = master inchange). */
 V294_RAIL_BRIDGE_LEN <- 20;  // defaut V294all depuis le 21/10 (decision utilisateur)
 V294_RAIL_CONTINUOUS <- 0;
 V269_RELAXED <- false;
 V269_ON <- false;
-/* V195 : V182 limite aux N premieres annees (0 = toujours). */
-V195_V182_YEARS <- 0;
-/* V186 : tranches A* rail avancees par passage de file (1..16, defaut 1 = historique). */
-const V186_RAIL_SEARCH_SLICES = 1;
 /* V190 : lignes rail fret posees en double voie a sens unique des la construction. */
 V190_RAIL_DOUBLE_BUILD <- false;
 /* V197 : double voie guidee (outwardSide pour voie 1, guideTiles pour voie 2). */
@@ -59,12 +55,6 @@ V207_RAIL_MAIL <- false;
 V207_RAIL_PAX_JOINED_STOPS <- 0;
 /* V207 : sites de gare passagers classes par production captee (0 = premiers sites trouves). */
 V207_RAIL_PAX_SITE_RANK_PCT <- 0;
-/* V212 : calibration du revenu et du capital predits des lignes rail passagers (100 = inerte).
- * Porte A V207 (40x3) : profit realise/predit 1,23-1,58 en pax contre 0,86 en fret, capital
- * reel/modele 0,84 en pax contre 1,28 en fret. Qualifie en rail seul (150/85 avec V207, 15/10) mais
- * perdant en partie complete (16/10 : -244 k/an, p=0,027, l'aerien recule de 20 %) : defaut 100. */
-V212_RAIL_PAX_REVENUE_PCT <- 100;
-V212_RAIL_PAX_CAPITAL_PCT <- 100;
 /* V275 : masque rail voyageurs en multimodal (voir info.nut). */
 V275_RAIL_PAX_MM <- 15;
 /* V214 : couts de virage du A* rail a la AAAHogEx (pathfinder.nut, InitializeParameters/__Cost).
@@ -92,8 +82,6 @@ V307_SITES <- 0;  // V307 1.8 : sites rail repartis par octant, defaut 0
 V307S3_REACH <- {};  // V307S=3 : portee du captage par tuile d'industrie et cote (cache, non sauvegarde)
 STATION_PLAN_PRECHECK <- true; // PO-02 : rejet anticipe exact, defaut 1 (adopte 23/10)
 V307_SINK_ROOM <- 0; // V307 1.9b : 1 bande reservee, 2 gare fret a deux quais, defaut 0
-/* RAIL-CAL-1 : 1 = score RAIL experimental cout + profit seulement (defaut 0). */
-RAIL_CAL <- 0;
 function OpexV207Active()
 {
   return V207_RAIL_MAIL || V207_RAIL_PAX_SHARE_PCT > 0 || V207_RAIL_PAX_JOINED_STOPS > 0;
@@ -153,8 +141,8 @@ V277_AIR_PUB_FAST <- 0;
 V294_RAIL_WEIGHT_PCT <- 200;  // defaut V294all depuis le 21/10 (decision utilisateur)
 /* V294d : table de coûts A* rail alignée sur AAAHogEx (défaut 0 = inerte). */
 V294_RAIL_AAA_COSTS <- 1;  // defaut V294all depuis le 21/10 (decision utilisateur)
-/* V294f : sonde A* inverse avant recherche ferroviaire (défaut 0 = inerte). AAA : 300 iters. */
-V294_RAIL_REVERSE_PROBE <- 300;  // defaut V294all depuis le 21/10 (decision utilisateur)
+/* V294f : plafond de la recherche A* inverse, dont le trace reussi est utilise pour construire. AAA : 300 iters. */
+RAIL_REVERSE_ASTAR_ITERS <- 300;  // defaut V294all depuis le 21/10 (decision utilisateur)
 /* V294i : découplage distance railMax des candidats du plafond d'itérations (défaut 0 = inerte). */
 V294_RAIL_DIST_DECOUPLE <- 200;  // defaut V294all depuis le 21/10 (decision utilisateur)
 /* V294j : adaptation des coûts A* rail selon la force de la locomotive (défaut 0 = inerte). AAA : pente 1500, virage 100 si faible. */
@@ -208,18 +196,6 @@ AIR_EARLY_SLOT_BONUS_PCT <- 50;
  * conserver le coeur des 6 plus grandes villes tant qu'un elargissement n'est
  * pas requalifie. */
 AIR_C83_TARGET_TOWNS <- 6;
-/* C83 : revalider les sites connus ; chercher seulement dans la ville cible.
- * Intervention comportementale experimentale, ancien parcours conserve a 0. */
-C83_LOCAL_REPAIR <- false;
-/* C83 revue : paquet mesurable. 0 laisse le chemin de decision courant ; seul le test
- * du drapeau s'ajoute. Les sondes restent gatees par leurs flags existants. */
-C83_FIXES <- false;
-/* C83 : une seule grande ville encore vide (deux slots libres), avant que le
- * maillage ne se fige. 0 = aucun effet. La cible et l'arret sont des globales
- * restaurees apres Load quand le reglage est arme. */
-C83_PREEMPT_OPEN <- false;
-C83_PREEMPT_TOWN <- -1;
-C83_PREEMPT_STOPPED <- false;
 /* Refaire le sac a dos contre la caisse vivante, sans repayer la generation des candidats. */
 /* C36.1 : Caching incremental du vivier post-chantier. */
 /* Compatibilite de cadence VM apres suppression des flags economy morts. Constante interne, jamais configurable ni vraie. */
@@ -250,7 +226,7 @@ C41_OPPORTUNITY_LEDGER <- false;
  * refresh water ; ajouter route/rail/air exige d'abord leur point d'entree cible et son cout. */
 C41_ADMISSION_LEDGER <- false;
 /* V95 item 1 : tours de file selectionnes vs no-op, strictement observatoire.
- * Meme gate que les ledgers C41/C39 : probe_scheduler, defaut 0. Aucune admission. */
+ * Meme gate que les ledgers C41/C39 : probes bit 10 ou groupe 8, defaut 0. Aucune admission. */
 V95_SCHED_IDLE_LEDGER <- false;
 /* C41.16 : ventilation passive de la generation de candidats route historique. */
 C41_ROAD_CANDIDATE_PROFILE <- false;
@@ -385,41 +361,15 @@ C73_VIVIER_LEDGER <- null;
 /* V93 fige : pas de plancher a 600 habitants pour poser un aeroport.
  * Le plancher minimal n'est pas un reglage : il evite seulement les hameaux. */
 V93_AIRPORT_MIN_POP <- 100;
-V95_AIR_POST73_YEAR <- -1;
-/* V134 : second aeroport point-a-point (newpair) vers une ville libre pour une
- * ville dont l'aeroport existant a atteint AIR_HUB_MAX_ROUTES et qui ouvre un
- * second slot. Defaut 0 : filtre origin_served historique intact. */
-V134_AIR_P2P_SATURATED_HUB <- false;
-/* V133 : quarantaine de ville apres echec physique d'aeroport, et salvage
- * des paires du lot qui ne dependent pas du site fautif. Defaut 0 : aucun
- * ecart, aucune ecriture de table, aucun journal. La duree est 730 jours
- * de jeu, ecrite au moment du marquage. V133_AIR_QUARANTINE : townId -> date
- * de fin (entier). V133_AIR_BATCH_FAILED : villes fautives de la passe
- * courante. V133_AIR_SKIP_LOGGED : anti-doublon du journal V133_SKIP en
- * construction. V133_AIR_LAST_SITE_ERROR : dernier code du test de site,
- * lu seulement si le reglage est actif. */
-V133_AIR_BUILD_RETRY <- false;
 V278_AIR_LAZY_SITES <- false;
 V278_AIR_VALIDITY <- null;
 V278_AIR_EPOCH <- 0;
-V133_AIR_QUARANTINE <- {};
-V133_AIR_BATCH_FAILED <- {};
-V133_AIR_SKIP_LOGGED <- {};
-V133_AIR_LAST_SITE_ERROR <- 0;
-/* Devis de terrassement pour la sonde probe_air_finance_margin seulement.
- * N'entre ni dans le capital C121 ni dans la marge de caisse.
- * V126_JOINED_STOP_COST : cout modelise d'UN arret joint, journalise par la sonde.
- * AIR_SITE_COST_QUOTES : cache reconstructible par ancre et type, jamais sauvegarde. */
-V126_JOINED_STOP_COST <- 300;
-AIR_SITE_COST_QUOTES <- {};
 C96_AIR_SITE_MAX_VALID <- 4;
 C96_AIR_SITE_EXTRA_RINGS <- 1;
 C117_AIR_SAMPLE_DAYS <- 2;
 C117_AIR_LAST_DATE <- -1;
 C117_AIR_LINE_STATE <- {};
 C117_AIR_VEHICLE_STATE <- {};
-C121_STATION_FLUX_LAST_DATE <- -1;
-C121_STATION_FLUX_STATE <- {};
 /* Etat transitoire « avion de la partie » par type d'aeroport. Non
  * sauvegarde : apres chargement, l'etat se reconstruit tout seul.
  * Une cle de mode (capital, profit par vehicule) pourra s'y ajouter plus tard. */
@@ -434,7 +384,6 @@ C121_AIR_PROJECT_REALIZATION_YEARS_OBSERVED <- 0;
  * le regime reste stable pour eviter qu'une politique modifie son propre
  * signal de classification. */
 C121_AIR_PROJECT_REALIZATION_REGIME <- -1;
-C121_AIR_PRESSURE_SNAPSHOT <- null;
 C121_AIR_PRESSURE_ACCUM <- null;
 C121_AIR_PRESSURE_PREV <- null;
 C122_AIR_REGIME_SHADOW <- false;
@@ -444,8 +393,6 @@ C122_AIR_REGIME_SHADOW <- false;
 C122_AIR_THREAT_PROBE <- false;
 C122_AIR_THREAT_WATCH <- {};
 C122_AIR_THREAT_SEQ <- 0;
-C122_AIR_THREAT_RETRY <- false;
-C122_AIR_THREAT_RETRY_COUNT <- 0;
 C121_AIR_ENGINE_CAPACITY_OBS <- {};
 /* C121 : calibration recente du revenu des NOUVELLES lignes, par bras. Le
  * cold-start reste 1.0. Le rapport annuel remplace ensuite cette valeur par une
@@ -459,9 +406,9 @@ C121_AIR_P0_DIRECT_FACTOR <- { hubsite = 1.0, hubhub = 1.0 };
  * La table est recreee a chaque planification (ou conservee dans resumeState
  * pour une passe slicee) et ne participe a aucune decision. */
 C121_AIR_PLAN_PERF <- null;
-/* Sonde probe_loop_ops : agregats annuels d'opcodes de la boucle principale (diagnostic). */
+/* Sondage opcodes boucle (probes bit 11 ou groupe 8) : agregats annuels. */
 PROBE_LOOP_OPS <- false;
-/* Sonde probe_span_trace : intervalles dates des micro-taches. Defaut 0, aucun effet. */
+/* Intervalles dates des micro-taches (probes bit 12 ou groupe 8). Defaut 0. */
 PROBE_SPAN_TRACE <- false;
 /* F-EVENT-BACKLOG-01 : sonde passive de la file d'evenements. Defaut 0. */
 PROBE_EVENT_BACKLOG <- false;
@@ -483,20 +430,13 @@ SPAN_ROOT_AGG <- null;
 OPEX_LOOP_PROF <- null;
 OPEX_LOOP_PROF_YEAR <- -1;
 OPEX_LOOP_PROF_TICK0 <- 0;
-/* Chemins opcode exacts : defaut historique. Le mode check compare et garde l'ancien resultat. */
-OPCODE_EXACT_STATS <- null;
-OPCODE_EXACT_BREAK <- null;
-OPCODE_EXACT_MISMATCHES <- null;
-OPCODE_EXACT_CAL_YEAR <- -1;
-OPCODE_EXACT_LATE_DATE <- -1;
+/* Contexte actif du diagnostic d'opcodes exacts. */
 OPCODE_EXACT_SITE_NAME <- null;
-OPCODE_EXACT_PLAN_ONCE <- null;
 CATALOG_COST_ACTIVE <- null;
 C121_AIR_FIRST_LIVE_GROWTH_PHASE_YEARS <- 0;
 C121_AIR_FIRST_LIVE_STATE <- {};
 C121_AIR_FIRST_LIVE_OPS <- 0;
 C121_AIR_FIRST_LIVE_SAMPLES <- 0;
-C121_AIR_FIRST_LIVE_PRIORITY_STATE <- {};
 C121_CATALOG_FIRST_YEAR_ACTIVE <- false;
 /* Derive du monde, volontairement absent de Save(). */
 C121_CATALOG_CACHE <- {};
@@ -527,10 +467,6 @@ C121_AIR_HUB_DELAY_WINDOW_DAYS <- 91;
 C121_AIR_HUB_DELAY_MIN_OBS <- 2;
 C121_AIR_HUB_DELAY_UPDATE_OPS <- 0;
 C121_AIR_HUB_DELAY_UPDATE_SAMPLES <- 0;
-/* C116.2 : snapshot tres bon marche du portefeuille AIR deja classe. Il est
- * rempli uniquement pour la sonde C116 a partir de la
- * liste `affordable` deja triee : aucune recherche de route supplementaire. */
-C116_AIR_PROJECT_SNAPSHOT <- null;
 /* Cargo passagers retenu pour le catchment de site. -1 tant qu'il n'est pas connu. */
 AIR_DEMAND_PAX_CARGO <- -1;
 /* C75 : plusieurs chantiers par passe en phase riche tant que Capital < K_pass et Capital <= Disponible. */
@@ -563,6 +499,27 @@ C50_NON_EXPANSION_LEDGER <- null;
 AIR_FLEET_PROBE <- false;
 /* AIR-FLOTTE-1 : seule la sonde dediee permet le scan du vivier aux achats AIR. */
 AIR_FLOTTE1_SHADOW <- false;
+/* AIR-ROI-RENFORT-1 : snapshot passif du renfort, au plus une fois
+ * par ligne / 30 jours, sans sonde ni comptabilite au defaut 0. */
+AIR_ROI_RENFORT1_SHADOW <- false;
+AIR_ROI_RENFORT1_LAST <- {};
+/* AIR-ROI-RENFORT-1 ITT : 0=off, 1=controle instrumente p=0,
+ * 2=assignation p=50. Aucun effet ni tirage au defaut 0. */
+AIR_ROI_RENFORT1_ITT <- 0;
+AIR_ROI_RENFORT1_ITT_SEED <- -1;
+AIR_ROI_RENFORT1_ITT_SEED_SOURCE <- "unset";
+AIR_ROI_RENFORT1_ITT_LINES <- {};
+/* Cache quotidien transitoire ; la table de suivi est sauvegardee separement. */
+AIR_ROI_RENFORT1_ITT_LAST_SAMPLE_DATE <- -1;
+/* AIR-LOAD-7 : sonde ephemere, aucune persistance ou travail au defaut OFF.
+ * Un seul avion (ou lot borne) et quelques voisins inspectes par tour de boucle. */
+AIR_LOAD7_SHADOW <- false;
+AIR_LOAD7_LAST_START <- -1;
+AIR_LOAD7_CURSOR <- 0;
+AIR_LOAD7_CURRENT <- null;
+AIR_LOAD7_INDEX <- {};
+AIR_LOAD7_INDEX_CURSOR <- 0;
+AIR_LOAD7_ACTIVE <- false;
 AIR_FLOTTE1_KDEC <- -1;
 AIR_FLOTTE1_KDEC_TICK <- -1;
 /* Memoire ephemere de la derniere passe : ne modifie aucune decision. */
@@ -620,8 +577,7 @@ AIR0310_SITE_VALIDITY_STATE <- null;
 /* E10 : Correctif du doublement de flotte routiere au cycle de construction */
 /* C26a : Pricer l'avion de la ligne lors du refleet au lieu du meilleur avion du catalogue */
 /* C16 : Plafond physique de flotte aerienne derive de la cadence d'absorption de la piste */
-/* C52 : compatibilite ; le remappage ET_VEHICLE_AUTOREPLACED est inconditionnel. */
-EVENT_VEHICLE_AUTOREPLACED <- true;
+/* C52 : le remappage ET_VEHICLE_AUTOREPLACED est inconditionnel. */
 /* C52 : sonde annuelle des remappages; le ledger reste nul hors sonde. */
 C52_AUTOREPLACE_LOG <- false;
 C52_AUTOREPLACE_LEDGER <- null;
@@ -685,7 +641,7 @@ C67_WATER_EXPO <- null;
 
 C80_MARGINAL_FLOOR_LEDGER <- null;
 
-/* Sonde incrementale air sous probe_portfolio */
+/* Sonde incrementale air sous probes bit 17 ou groupe 128 */
 C80_AIR_INC_COUNTS <- { full = 0, targeted = 0, none = 0 };
 
 /* C78 etape 2 : annee de la derniere generation aerienne journalisee par la sonde C78 etape 2. */
@@ -732,13 +688,6 @@ V147_TASK_BASE <- -1;
 /* V154 : insertion par dichotomie dans OpexProjectInsertDefensive (optimisation opcodes).
  * 0 = insertion lineaire historique (defaut) ; 1 = dichotomie sur cles mises en cache. */
 SELECT_BISECT_STAMP <- 0;
-V233_PENDING_CONTINUE <- false;
-V233_GOODS_GRAFT <- false;
-const V233_PLAN_LIMIT = 4;
-const V233_PLAN_TTL_DAYS = 90;
-
-const V233_GOODS_MIN_MONTHLY = 64;
-
 /* V279 : re-selection incrementale exacte (0=historique, 1=memoise, 2=controle). */
 V279_RESELECT_MEMO <- 0;
 OPEX_LINES_REVISION <- 0;
@@ -757,15 +706,15 @@ V279_MISSES <- 0;
 V279_LAST_STATS_MONTH <- -1;
 
 /* V295 : optimisations exactes A* rail V129 (filtre de Bloom ancetres et dedoublonnage buts). */
-V295_ASTAR_FAST <- 1;  // defaut V294all depuis le 21/10 (decision utilisateur)
+const V295_ASTAR_FAST = 1;  // Lot 7 : optimisation adoptee figee a 1.
 
 /* V292b : pose du QG pres de la gare voyageurs la plus chargee (0/1, defaut 0). */
 V292_HQ_HUB <- 1;  // defaut finpartie depuis le 21/10 (decision utilisateur)
 /* V296a : pose de voie groupee, une commande BuildRail par alignement droit ou diagonal. */
-V296_RAIL_BATCH_BUILD <- 1;  // defaut v296clean depuis le 21/10 (decision utilisateur)
+const V296_RAIL_BATCH_BUILD = 1;  // Lot 7 : pose groupee adoptee figee a 1.
 /* V296a : vrai apres un trace groupe different du trace prevu ; la pose groupee s'arrete pour la partie. */
 V296A_MISMATCH <- false;
 
 /* V296b : file native AIList et noeuds en tableaux ; 2 = comparaison V129. */
-V296_ASTAR_NATIVE <- 1;  // defaut v296clean depuis le 21/10 (decision utilisateur)
+const V296_ASTAR_NATIVE = 1;  // Lot 7 : A* natif adopte fige au mode 1.
 PO01C_REGEN_SPLIT <- true; // PO-01c : defaut 1 (decision utilisateur 23/10)
