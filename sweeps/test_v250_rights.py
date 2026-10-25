@@ -1,7 +1,7 @@
 """V250 : contrats statiques des droits exclusifs.
 
 Defaut 0 aux quatre niveaux et dans default_value. A 0 la tache ne touche
-aucune API. Le mode 1 reste coupe en facile et moyen. Le mode 2 ne l'est pas.
+aucune API. Les modes 1-4 restent coupes hors niveau custom (3).
 Le journal est garde par DECISION_LOG sur la meme ligne qu'OpexDecide.
 Aucune cle de sauvegarde n'est ecrite quand le reglage est a 0.
 """
@@ -42,8 +42,10 @@ class TestV250Rights(unittest.TestCase):
         self.assertNotIn("AICONFIG_BOOLEAN", body)
         for level in ("easy_value", "medium_value", "hard_value", "custom_value", "default_value"):
             self.assertRegex(body, level + r" = 0\b")
-        self.assertIn("Easy and medium keep mode 1 off", body)
-        self.assertIn("not filtered by difficulty", body)
+        # This historical text is misleading for modes 1 and 2; the binding
+        # guards below are authoritative. Do not rewrite info.nut metadata
+        # without updating the separate immutable PO01c source contract.
+        self.assertIn("only when difficulty is custom (3)", body)
         self.assertIn("fair_play", body)
         self.assertNotIn('name = "fair_play"', self.sources["info.nut"])
         self.assertIn("V250_RIGHTS <- 0;", self.sources["globals_pre.nut"])
@@ -54,6 +56,9 @@ class TestV250Rights(unittest.TestCase):
                  for name, text in self.sources.items()]
         self.assertEqual(sum(count for _, count in reads), 1)
         self.assertIn('GetSetting("v250_rights")', self.sources["settings.nut"])
+        self.assertIn('v250_rights = 3,', self.sources["difficulty.nut"])
+        self.assertIn('if (!OpexLevelAllows("v250_rights")) rights = 0;',
+                      self.sources["settings.nut"])
 
     def test_zero_cost_guard_and_queue(self):
         self.assertTrue(self.dispatch)

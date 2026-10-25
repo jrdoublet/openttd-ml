@@ -17,6 +17,15 @@ from sweeps.pcal03_inventaire import EngineLogParser, compile_pcal03_inventory, 
 
 
 class TestPcal03Deduplication(unittest.TestCase):
+    def test_profile_examples_use_current_single_mask(self):
+        source = (Path(__file__).resolve().parent / "pcal03_inventaire.py").read_text(encoding="utf-8")
+        doc = source.split('"""', 2)[1]
+        self.assertIn('OpexAI[probes=39170]', doc)
+        self.assertIn('--script-debug', doc)
+        self.assertNotIn('OpexAI[probe_span_trace=', doc)
+        self.assertEqual(39170, 2 | 256 | 2048 | 4096 | 32768)
+        self.assertEqual(39170 & 1, 0)
+
     def test_synthetic_tree_deduplication(self):
         """Vérifie sur un arbre synthétique (parent + 2 enfants + petit-enfant)
 

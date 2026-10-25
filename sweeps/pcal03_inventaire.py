@@ -4,28 +4,32 @@
 Ce script analyse un dossier `results/<campagne>_engine` (ou des fichiers journaux .log / .log.gz)
 issus d'une exécution OpenTTD-ML / OpexAI, filtre la compagnie [0] (OpexAI), et extrait les opcodes
 consommés par poste d'après les différentes étiquettes de mesure :
-  - SPAN / SPAN_AGG : instrumentations hiérarchiques sous `probe_span_trace=1` (ou `probes & 8 != 0`)
-  - LOOP_OPS        : ventilation annuelle de la boucle principale sous `probe_loop_ops=1`
-  - RAIL_ATTEMPT    : décomposition des phases rail (phases=plans/search/stations/track/trains) sous `decision_log=1`
-  - C76_REGEN       : coûts des régénérations (full/reactive/incremental) sous `probe_catalogue=1`
-  - CATALOG_COST    : rapport détaillé du catalogue sous `catalog_cost_probe=1`
-  - V257_OPS        : révisions périodiques des moteurs rail sous `decision_log=1`
+  - SPAN / SPAN_AGG : spans sous le masque `probes & 4096` (ou groupe historique 8)
+  - LOOP_OPS        : ventilation annuelle de la boucle sous `probes & 2048` (ou groupe 8)
+  - RAIL_ATTEMPT    : decomposition des phases rail sous `probes & 256` (DECISION_LOG)
+  - C76_REGEN       : regenerations sous `probes & 32768` (ou groupe 8)
+  - CATALOG_COST    : ancien detail du catalogue, SI le producteur existe dans le journal
+  - V257_OPS        : revisions periodiques sous `probes & 256` (DECISION_LOG)
 
-Configuration recommandée pour une campagne profilée complète (profilage sans biais économique) :
-  Réglages OpexAI :
-    `probe_span_trace=1,probe_loop_ops=1,probe_catalogue=1,decision_log=1`
-    (ou de façon équivalente via le masque probes : `probes=13` -> bits 1+4+8 = signs, decision_log, probes group 8)
+Configuration d'une campagne DIAGNOSTIQUE profilée, non comparable économiquement
+à un bras sans profilage (observer effect) :
+  Réglage unique `probes=39170` = panneaux 2 + journal 256 + boucle 2048 +
+    spans 4096 + catalogue 32768. Les anciens réglages individuels
+    probe_span_trace, probe_loop_ops, probe_catalogue, decision_log n'existent
+    plus dans info.nut v8 ; surtout, probes=13 inclut le bit 1 qui ALLUME TOUTES
+    les sondes et ne doit pas être utilisé comme équivalent de ce masque ciblé.
+  Exiger `--script-debug` pour conserver les événements dans les logs moteur.
 
 Exemples de commandes de lancement de campagne profilée :
   1. Banc solo / diagnostic 1 an sur graine 42 (profil VPS) :
      docker run --rm --cpus=3 --memory=2g --memory-swap=2g -v openttd-lab-home:/home/lab -v "$PWD":/work -w /work \\
        openttd-lab python3 sweeps/bench_v2.py \\
-       --arms "OpexAI[probe_span_trace=1,probe_loop_ops=1,probe_catalogue=1,decision_log=1]" \\
+       --arms "OpexAI[probes=39170]" \\
        --seeds 42 --years 1 --max-workers 3 --out results/pcal03_profil_seed42.json
 
   2. Duel contre AAAHogEx 3 ans via le harnais hôte :
      python3 sweeps/run_c66_reference.py --campaign pcal03_profil_3x3 \\
-       --reference "OpexAI[probe_span_trace=1,probe_loop_ops=1,probe_catalogue=1,decision_log=1]" \\
+       --reference "OpexAI[probes=39170]" --script-debug \\
        --years 3 --seeds 42 7 100 --cpus 10 --memory 8g --max-workers 10
 
 Utilisation de cet extracteur :
