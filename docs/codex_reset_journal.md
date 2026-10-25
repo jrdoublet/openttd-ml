@@ -91,3 +91,56 @@ carte et exposition adaptée. Ces fixtures ne démontrent ni des tours entièrem
 récupérables ni la neutralité économique de la sonde. Aucun Docker ni partie
 lancé ; aucun push, merge, changement de configuration Git ou accès à un autre
 worktree ou au dépôt principal.
+
+## 25 octobre 2026 — V308 : rejet des compteurs de sondage impossibles
+
+Branche locale : `codex-reset-20261025_0620`. Arbre initial propre, départ
+`b6962e68`. Commit de la tâche : `236bbfa8`
+(`fix(v308): reject impossible cartography probe counts`).
+
+**Tâche choisie :** fiabiliser le lecteur de diagnostic du chantier ouvert V308
+dans `docs/taches.md`. Défaut reproduit sur fixtures avant correction : une ligne
+annonçant sept tuiles fluviales pour six points lus, un compteur négatif ou un
+relief négatif était acceptée et pouvait contribuer aux taux et aux coûts.
+La mesure des motifs achevée le 21/10 n'a pas été recommencée.
+
+**Fichiers :**
+
+- `sweeps/diag_v308_carto.py` : validation des compteurs de chaque motif entre
+  zéro et son nombre réel de points (4, 5 ou 6), et rejet des reliefs négatifs
+  pour la vérité exhaustive comme pour les motifs.
+- `sweeps/test_diag_v308_carto.py` : quatre tests de régression. Ils couvrent
+  les compteurs hors bornes dans chaque motif, les reliefs négatifs, l'exclusion
+  des lignes invalides avant agrégation en texte et gzip, ainsi que la conservation
+  des zéros, des bornes valides et de deux tirages du même bloc avec des indices
+  distincts (échantillonnage avec remise).
+- `docs/taches.md` : suivi du correctif, consommateur de carte et invalidation
+  laissés ouverts.
+- `docs/codex_reset_journal.md` : ajout de cette entrée après le commit de la tâche.
+
+Aucun code IA, défaut ou hash de contrat modifié. RAIL-LONG-EARLY-1,
+AIR-FLOTTE-1 et C115 non modifiés.
+
+**Tests exécutés :**
+
+| Commande | Résultat |
+|---|---|
+| `python3 -m unittest discover -s sweeps -p 'test_diag_v308_carto.py' -v` avant correction du lecteur | Défaut reproduit : 4 tests, 78 échecs de sous-tests/assertions |
+| `python3 -m unittest discover -s sweeps -p 'test_*v308*.py' -v` après correction | 22 tests, OK avec 1 ignoré |
+| `python3 -m unittest discover -s sweeps -p 'test_*.py'` avant édition | 2 433 tests, OK avec 9 ignorés et 2 échecs attendus |
+| `python3 -m unittest discover -s sweeps -p 'test_*.py'` après édition | 2 437 tests, OK avec les mêmes 9 ignorés et 2 échecs attendus |
+| `git diff --check` et `git diff --cached --check` | OK |
+
+Commandes lancées via `rtk` / `rtk proxy`. Journaux temporaires de la suite :
+`/tmp/codex_reset_v308_20261025_before.log`,
+`/tmp/codex_reset_v308_20261025_red.log` et
+`/tmp/codex_reset_v308_20261025_after.log`.
+
+**Reste à valider en banc :** aucune partie nécessaire pour ce filtre Python ;
+ni intégration moteur ni schéma collecté ne changent. Le test de non-régression
+sur le smoke historique est ignoré, car son journal moteur n'est pas présent
+sur cet hôte. Les fixtures ne requalifient donc pas les mesures historiques.
+V308 conserve son attente d'un consommateur de carte et d'une invalidation avant
+toute utilisation dans les décisions ; aucun gain économique n'est démontré ici.
+Aucun Docker ni partie lancé ; aucun push, merge, changement de configuration
+Git ou accès à un autre worktree ou au dépôt principal.
