@@ -5,7 +5,7 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from sweeps.diag_v309_idle import read_idle_logs
+from sweeps.diag_v309_idle import read_idle_logs, read_regen_logs
 
 
 def idle_line(date="1970-1-1", **overrides):
@@ -20,6 +20,42 @@ def idle_line(date="1970-1-1", **overrides):
     payload = " ".join(f"{key}={value}" for key, value in fields.items()
                        if value is not None)
     return f"OPEX {date} V309_IDLE {payload}\n"
+
+
+def regen_line(ops=100, top1=1):
+    keys = " ".join(f"cand_{mode}_same_keys_pct=100" for mode in
+                    ("rail", "road", "air", "water", "fleet"))
+    return (f"OPEX 1970-1-1 C76_REGEN phase=regen ops={ops} "
+            f"{keys} best_same_top1={top1}\n")
+
+
+class TestV309RegenReader(unittest.TestCase):
+    def test_text_gzip_copy_counts_one_game_but_real_repeated_regens_survive(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            directory = Path(tmp)
+            text = regen_line() + regen_line(ops=40)
+            log = directory / "reference_seed42_r0.log"
+            log.write_text(text, encoding="utf-8")
+            with gzip.open(str(log) + ".gz", "wt", encoding="utf-8") as stream:
+                stream.write(text)
+            (directory / "reference_seed7_r0.log").write_text(
+                regen_line(ops=50, top1=0), encoding="utf-8")
+            n_logs, years = read_regen_logs(directory)
+        self.assertEqual(n_logs, 2)
+        self.assertEqual(years[1970]["regens"], 3)
+        self.assertEqual(years[1970]["regen_ops"], 190)
+        self.assertEqual(years[1970]["fully_same_keys_and_top1"], 2)
+        self.assertEqual(years[1970]["fully_same_ops"], 140)
+        self.assertEqual(years[1970]["measured_keys"], 3)
+
+    def test_contradictory_text_gzip_copy_fails(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            log = Path(tmp) / "reference_seed42_r0.log"
+            log.write_text(regen_line(), encoding="utf-8")
+            with gzip.open(str(log) + ".gz", "wt", encoding="utf-8") as stream:
+                stream.write(regen_line(ops=101))
+            with self.assertRaisesRegex(ValueError, "copies de partie contradictoires"):
+                read_regen_logs(tmp)
 
 
 class TestV309IdleReader(unittest.TestCase):

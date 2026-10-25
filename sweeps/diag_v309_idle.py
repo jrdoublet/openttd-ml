@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 from collections import Counter, defaultdict
 import gzip
+import hashlib
 import json
 from pathlib import Path
 import re
@@ -57,11 +58,17 @@ def opcode_years(source, arm='reference'):
 def read_regen_logs(directory):
     """Only count proven 100%-same candidate keys; keep missing keys unknown."""
     stats = defaultdict(lambda: Counter())
-    logs = sorted(Path(directory).glob('reference_seed*_r0.log*'))
+    logs = sorted(p for p in Path(directory).glob('reference_seed*_r0.log*')
+                  if re.fullmatch(r'reference_seed\d+_r0\.log(?:\.gz)?', p.name))
+    source_hashes = {}
     for log in logs:
+        base = log.name[:-3] if log.name.endswith('.gz') else log.name
+        local_stats = defaultdict(Counter)
+        digest = hashlib.sha256()
         opener = gzip.open if log.suffix == '.gz' else open
         with opener(log, 'rt', encoding='utf-8', errors='replace') as stream:
             for line in stream:
+                digest.update(line.encode('utf-8'))
                 m = REGEN.search(line)
                 if not m:
                     continue
@@ -69,7 +76,7 @@ def read_regen_logs(directory):
                 if f.get('phase') != 'regen':
                     continue
                 year = int(m.group(1))
-                rec = stats[year]
+                rec = local_stats[year]
                 rec['regens'] += 1
                 try:
                     ops = int(f['ops'])
@@ -85,7 +92,15 @@ def read_regen_logs(directory):
                         rec['fully_same_ops'] += ops
                 else:
                     rec['missing_comparability'] += 1
-    return len(logs), {y: dict(row) for y, row in sorted(stats.items())}
+        fingerprint = digest.digest()
+        if base in source_hashes:
+            if source_hashes[base] != fingerprint:
+                raise ValueError(f'copies de partie contradictoires : {base}')
+            continue
+        source_hashes[base] = fingerprint
+        for year, rec in local_stats.items():
+            stats[year].update(rec)
+    return len(source_hashes), {y: dict(row) for y, row in sorted(stats.items())}
 
 
 def read_idle_logs(directory):
