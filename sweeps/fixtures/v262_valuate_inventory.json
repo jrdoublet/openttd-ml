@@ -343,5 +343,10 @@
     "po01c_generators.nut",
     "tiles",
     "AITile.IsStationTile"
+  ],
+  [
+    "rail_long_window_enumerator.nut",
+    "sinks",
+    "AIIndustry.GetDistanceManhattanToTile,tile"
   ]
 ]

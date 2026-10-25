@@ -160,6 +160,13 @@ class OpexAI extends AIController {
   /* C80 étape 2 : table des paires en retrait temporaire (cooldown), indexée par pairKey.
    * Transitoire / reconstructible : initialisée à {}, jamais persistée dans Save(). */
   _railStockCooldown = null;
+  /* RLW-04b : stock d'observation transitoire, sans publication ni Save/Load. */
+  _rlw04bState = null;
+  _rlw06Job = null;
+  _rlw06Ready = null;
+  _rlw06Seen = null;
+  _rlw06Cursor = 0;
+  _rlw06Stats = null;
   /* C121 preparation rail de l'annee AIR : liste de candidats et mois de generation.
    * Non sauvegardes. Reconstructibles au prochain passage projects si le reglage est arme.
    * MinAirCap : -1 = aucun plan AIR vivant au dernier scan (fin de passe). */
@@ -397,6 +404,8 @@ class OpexAI extends AIController {
     OpexAirResetSiteCache(false);
     this._activeSubsidies = {};
     this._railReadyStock = {};
+    this._rlw06Ready = {};
+    this._rlw06Seen = {};
     this._railStockCooldown = {};
     this._railStockLastFundedScore = 0.0;
     this._railStockLastFundedDate = -1;
@@ -634,6 +643,8 @@ class OpexAI extends AIController {
   function _c121RailPrepAfterProjectsPass();
   function _c121RailPrepMaybeCatalog();
   function _tryStartC121RailPrepSearch();
+  function _rlw06Step();
+  function _rlw04bAnd06Step();
 }
 
 /* C65 : modules extraits de main.nut, requis APRES la classe OpexAI. */
@@ -669,6 +680,8 @@ require("task_v250.nut");
 require("task_v259.nut");
 require("probe_v307.nut");
 require("probe_v308.nut");
+require("rail_long_window_enumerator.nut");
+require("rail_long_window_astar.nut");
 require("selftests.nut");
 
 function OpexAI::Start()
@@ -836,6 +849,7 @@ function OpexAI::Start()
     local spAstar = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.astar_v89") : null;
     this._advanceRailSearchThroughput();
     if (spAstar != null) OpexSpanEnd(spAstar);
+    if (RLW04B_SHADOW) this._rlw04bAnd06Step();
     if (C67_SLACK_HOOK) {
       local spC67 = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.c67") : null;
       this._c67SlackHook();

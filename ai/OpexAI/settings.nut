@@ -37,6 +37,8 @@ function OpexLoadSettings()
   if (probes < 0) probes = 2;
   if ((probes & 1) != 0) probes = 2147483647;
   OPEX_PROBE_MASK = probes;
+  RLW06_SHADOW = OpexProbeEnabled(33554432);
+  RLW04B_SHADOW = OpexProbeEnabled(16777216) || RLW06_SHADOW;
   AIR_FLOTTE1_SHADOW = OpexProbeEnabled(8388608);
   PO01C_REGEN_SPLIT = AIController.GetSetting("po01c_regen_split") != 0;
   /* PO03/C77 : conserver les deux modes adoptes, dont la garde subvention. */
