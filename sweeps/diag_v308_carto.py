@@ -45,7 +45,7 @@ def logs(paths):
 
 
 def complete_record(fields):
-    """Ne pas assimiler un champ manquant ou tronque a une absence de classe."""
+    """Ne pas assimiler une mesure manquante ou impossible a une classe observee."""
     required = ("i", "bx", "by") + tuple("t_" + key for key in TRUTH_FIELDS)
     required += tuple(name + "_" + key for name in ARM_NAMES for key in ARM_FIELDS)
     if any(not isinstance(fields.get(key), int) for key in required):
@@ -59,6 +59,13 @@ def complete_record(fields):
         return False
     if any(fields["t_" + key] < 0 or fields["t_" + key] > 64
            for key in TRUTH_FIELDS if key not in ("relief", "river_cross")):
+        return False
+    for name in ARM_NAMES:
+        if any(fields[name + "_" + key] < 0
+               or fields[name + "_" + key] > fields[name + "_n"]
+               for key in ARM_FIELDS if key not in ("n", "relief", "ops")):
+            return False
+    if any(fields[name + "_relief"] < 0 for name in ("t",) + ARM_NAMES):
         return False
     if any(fields[name + "_ops"] < 0 for name in ARM_NAMES):
         return False
