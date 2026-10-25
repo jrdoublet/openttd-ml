@@ -81,6 +81,7 @@ function OpexLoadSettings()
   local lateRelax = AIController.GetSetting("v269_rail_late_relax");
   local railGrowth = AIController.GetSetting("v284_rail_growth");
   if (railGrowth != null && railGrowth >= 0 && railGrowth <= 10) V284_RAIL_GROWTH = railGrowth;
+  N75_FREIGHT_CAPACITY = AIController.GetSetting("n75_freight_capacity") == 1 ? 1 : 0;
   local v294BridgeLen = AIController.GetSetting("v294_rail_bridge_len");
   V294_RAIL_BRIDGE_LEN = (v294BridgeLen != null && v294BridgeLen >= 0 && v294BridgeLen <= 30) ? v294BridgeLen : 0;
   local v294Continuous = AIController.GetSetting("v294_rail_continuous");

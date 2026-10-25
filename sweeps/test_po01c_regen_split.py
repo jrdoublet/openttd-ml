@@ -436,7 +436,25 @@ class PO01CContracts(unittest.TestCase):
         }
         for name, digest in expected.items():
             with self.subTest(name=name):
-                self.assertEqual(hashlib.sha256((AI / name).read_bytes()).hexdigest(), digest)
+                snapshot = (AI / name).read_bytes()
+                # N75-CAP est independant de PO01C : enlever uniquement ses
+                # ajouts connus pour conserver le checksum historique PO01D.
+                if name == 'main.nut':
+                    for addition in (
+                        b'  _n75Freight = null; // echantillons de saturation N75, recharges avant Start.\n',
+                        b'require("task_n75_freight.nut");\n',
+                    ):
+                        self.assertEqual(snapshot.count(addition), 1)
+                        snapshot = snapshot.replace(addition, b'', 1)
+                elif name == 'settings.nut':
+                    addition = b'  N75_FREIGHT_CAPACITY = AIController.GetSetting("n75_freight_capacity") == 1 ? 1 : 0;\n'
+                    self.assertEqual(snapshot.count(addition), 1)
+                    snapshot = snapshot.replace(addition, b'', 1)
+                elif name == 'info.nut':
+                    start = snapshot.index(b'\n    AddSetting({\n      name = "n75_freight_capacity"')
+                    end = snapshot.index(b'    });\n', start) + len(b'    });\n')
+                    snapshot = snapshot[:start] + snapshot[end:]
+                self.assertEqual(hashlib.sha256(snapshot).hexdigest(), digest)
 
         # PO03 ajoute exactement deux lignes dans _dispatchReactiveIntention.
         # Conserver la preuve byte-a-byte de tout le reste de orchestrator.nut :
@@ -449,6 +467,16 @@ class PO01CContracts(unittest.TestCase):
             b'      blocked = true;\n'
         )
         orchestrator = (AI / 'orchestrator.nut').read_bytes()
+        new_hook = (
+            b'  if (V284_RAIL_GROWTH > 0 || N75_FREIGHT_CAPACITY > 0 || OpexV284Busy(this)) OpexV284Tick(this);\n'
+            b'  if (!OpexV284Busy(this)) this._v257ReactiveStep();'
+        )
+        old_hook = (
+            b'  if (V284_RAIL_GROWTH > 0) OpexV284Tick(this);\n'
+            b'  if (V284_RAIL_GROWTH <= 0 || !OpexV284Busy(this)) this._v257ReactiveStep();'
+        )
+        self.assertEqual(orchestrator.count(new_hook), 1)
+        orchestrator = orchestrator.replace(new_hook, old_hook, 1)
         self.assertEqual(orchestrator.count(guard), 1, 'garde PO03 exactement une fois')
         dispatch = function(source('orchestrator.nut'), 'OpexAI::_dispatchReactiveIntention')
         self.assertIn(guard.decode('ascii'), dispatch)

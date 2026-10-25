@@ -342,7 +342,7 @@ function OpexAI::_expandRailLines(year)
    * L'expansion de wagons (rail_expand) a ete figee a 0 et retiree. */
   if (this._railExpansion != null) return;
   /* Port du declencheur V270 c71b707 : avant la garde A*, sans prendre son creneau. */
-  if (V284_RAIL_GROWTH > 0 && OpexV284Select(this, year)) return;
+  if ((V284_RAIL_GROWTH > 0 || N75_FREIGHT_CAPACITY > 0) && OpexV284Select(this, year)) return;
   /* Une recherche A* en cours (ligne neuve ou upgrade) : ne pas en empiler une seconde. */
   if (this._railSearch != null && !OpexV190Active()) return;
   this._budget.begin();
@@ -350,7 +350,10 @@ function OpexAI::_expandRailLines(year)
   OpexSign(AIMap.GetTileIndex(1, 1), "EU|" + (year % 100) + "|0|0|0|0|" + decisionOps);
   {
     foreach (line in this._lines) {
-        if (V284_RAIL_GROWTH > 0 && this._v284State != null && (("kind" in line) && line.kind == "freight")) continue;
+        /* Le suivi N75 peut exister des 1972, sans desarmer le fret
+         * historique avant l'annee d'activation normale de V284. */
+        if (V284_RAIL_GROWTH > 0 && year >= OPEX_START_YEAR + V284_RAIL_GROWTH
+            && this._v284State != null && (("kind" in line) && line.kind == "freight")) continue;
         if ((("mode" in line) && line.mode != "rail") || !("wagons" in line) || !("loco" in line) || !("kind" in line)) continue;
         /* V181 retire (defaut 0) : plafond historique de 2 trains, sauf fret V190. */
         if (!OpexV190Active() || line.kind != "freight") {

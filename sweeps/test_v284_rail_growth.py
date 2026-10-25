@@ -29,15 +29,19 @@ class TestV284RailGrowth(unittest.TestCase):
         self.assertIn("V284_RAIL_GROWTH <- 0;", read("globals_pre.nut"))
         self.assertNotIn('name = "v270_rail_late_growth"', info)
         # 43 retraits reels, PO03/C77 et PO02 adoptes maintenus.
-        self.assertEqual(info.count("AddSetting("), 58)
+        # N75-CAP ajoute une seule option publique a defaut 0.
+        self.assertEqual(info.count("AddSetting("), 59)
 
     def test_off_expansion_is_master_a9437f8_after_removing_guards(self):
         body = function_body(read("task_rail.nut"), "function OpexAI::_expandRailLines(year)")
         body = body.replace(
             "  /* Port du declencheur V270 c71b707 : avant la garde A*, sans prendre son creneau. */\n"
-            "  if (V284_RAIL_GROWTH > 0 && OpexV284Select(this, year)) return;\n", "")
+            "  if ((V284_RAIL_GROWTH > 0 || N75_FREIGHT_CAPACITY > 0) && OpexV284Select(this, year)) return;\n", "")
         body = body.replace(
-            '        if (V284_RAIL_GROWTH > 0 && this._v284State != null && (("kind" in line) && line.kind == "freight")) continue;\n', "")
+            '        /* Le suivi N75 peut exister des 1972, sans desarmer le fret\n'
+            '         * historique avant l\'annee d\'activation normale de V284. */\n'
+            '        if (V284_RAIL_GROWTH > 0 && year >= OPEX_START_YEAR + V284_RAIL_GROWTH\n'
+            '            && this._v284State != null && (("kind" in line) && line.kind == "freight")) continue;\n', "")
         self.assertEqual(hashlib.sha256(body.encode()).hexdigest(),
                          "c98e8035f3dd2511d94dedff7660b3c726c84bfb43c18bc62f81fc50ac0982f3")
 
@@ -59,8 +63,8 @@ class TestV284RailGrowth(unittest.TestCase):
             "  if (PO01C_REGEN_SPLIT && (this._po01cPending || this._po01cJob != null)) OpexPO01CStep(this);\n", "")
         body = body.replace(
             "  /* Point commun aux boucles normale et _mainLoopProfiled. OFF court-circuite. */\n"
-            "  if (V284_RAIL_GROWTH > 0) OpexV284Tick(this);\n"
-            "  if (V284_RAIL_GROWTH <= 0 || !OpexV284Busy(this)) this._v257ReactiveStep();",
+            "  if (V284_RAIL_GROWTH > 0 || N75_FREIGHT_CAPACITY > 0 || OpexV284Busy(this)) OpexV284Tick(this);\n"
+            "  if (!OpexV284Busy(this)) this._v257ReactiveStep();",
             "  this._v257ReactiveStep();")
         self.assertEqual(hashlib.sha256(body.encode()).hexdigest(),
                          "8fad3902e5b21792e795d6ae453bfb9112be0d708daf5466fbc6cd65aa3668c8")

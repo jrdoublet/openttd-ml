@@ -59,13 +59,19 @@ function OpexV284Select(owner, year)
   if (!SAVE_FULL_STATE || owner._v257Pending != null || owner._railExpansion != null
       || owner._catalog == null || owner._lines == null) return false;
   if (owner._railSearch != null && owner._railSearch.kind == "upgrade") return false;
-  if (year < OPEX_START_YEAR + V284_RAIL_GROWTH || OpexAvailableCapital() < 1000000) return false;
+  /* V284 garde son annee de depart configuree ; N75 a sa propre maturite
+   * de deux ans afin de pouvoir etre expose en 1972 dans la porte A 40x3. */
+  if (year < OPEX_START_YEAR + V284_RAIL_GROWTH
+      && (N75_FREIGHT_CAPACITY == 0 || year < OPEX_START_YEAR + 2)) return false;
+  if (V284_RAIL_GROWTH <= 0 && (N75_FREIGHT_CAPACITY == 0 || year < OPEX_START_YEAR + 2)) return false;
+  if (OpexAvailableCapital() < 1000000) return false;
   if (owner._v284State == null) owner._v284State = { nextDate = 0, dates = {}, loops = {}, pending = null };
   local state = owner._v284State;
   local date = AIDate.GetCurrentDate();
   if (date < state.nextDate) return false;
   state.nextDate = date + 30; // au plus un choix/mois, pas une recherche de fenetre par tick.
   local best = null;
+  local persistent = null;
   foreach (line in owner._lines) {
     if (!("mode" in line) || line.mode != "rail" || !("kind" in line) || line.kind != "freight"
         || !("platformLength" in line) || !("depot" in line) || !("distance" in line)) continue;
@@ -91,7 +97,10 @@ function OpexV284Select(owner, year)
     local waiting = AIStation.GetCargoWaiting(station, line.cargo);
     local capacity = AIVehicle.GetCapacity(vehicle, line.cargo);
     local wagon = OpexV257Engine(wagonId, line.cargo, true);
-    if (capacity <= 0 || wagon.capacity <= 0 || waiting < wagon.capacity) continue;
+    if (capacity <= 0 || wagon.capacity <= 0) continue;
+    if (N75_FREIGHT_CAPACITY > 0 && waiting < 2 * capacity)
+      OpexN75FreightObserve(owner, line, vehicle, number, waiting, 2 * capacity, date);
+    if (waiting < wagon.capacity) continue;
     local length = OpexV284Limit(line);
     local maxWagons = OpexRailNominalMaxWagons(length);
     /* La longueur mesuree protege aussi les compositions NewGRF plus longues. */
@@ -99,27 +108,66 @@ function OpexV284Select(owner, year)
     if (atLimit && (waiting < capacity || !OpexRailVehicleSlotAvailable())) continue;
     if (atLimit && (line.lineId in state.loops)) continue;
     local score = line.distance.tofloat() * waiting / capacity;
-    if (best == null || score > best.score) best = {
+    local candidate = {
       line = line, vehicle = vehicle, wagon = wagon, number = number,
       waiting = waiting, capacity = capacity, add = atLimit, score = score
     };
+    if (V284_RAIL_GROWTH > 0 && year >= OPEX_START_YEAR + V284_RAIL_GROWTH
+        && (best == null || score > best.score)) best = candidate;
+    /* Deux rames de stock recurrent alors que le quai a encore de la marge :
+     * N75 propose une deuxieme rame avant le plafond V284, sans changer
+     * la construction de la boucle, ni la transaction. */
+    if (N75_FREIGHT_CAPACITY > 0 && !atLimit
+        && OpexN75FreightObserve(owner, line, vehicle, number, waiting, 2 * capacity, date)
+        && ("lastRevenue" in line) && line.lastRevenue > 0
+        && (persistent == null || line.lastRevenue > persistent.line.lastRevenue))
+      persistent = candidate;
+  }
+  local equipment = null;
+  local n75Margin = null;
+  local preparedLoop = null;
+  if (persistent != null) {
+    local proposal = OpexV284Equipment(persistent.line, persistent.vehicle,
+        persistent.wagon, persistent.number);
+    if (proposal != null)
+      n75Margin = OpexN75FreightMargin(persistent.line, persistent.vehicle,
+          persistent.wagon, persistent.number, persistent.capacity, proposal);
+    if (n75Margin != null && OpexRailVehicleSlotAvailable()) {
+      local previousTypeN75 = AIRail.GetCurrentRailType();
+      AIRail.SetCurrentRailType(AIRail.GetRailType(persistent.line.depot));
+      preparedLoop = OpexV284LoopPlan(persistent.line, AIVehicle.GetLength(persistent.vehicle));
+      AIRail.SetCurrentRailType(previousTypeN75);
+    }
+    if (DECISION_LOG)
+      OpexDecide("N75CAP", "action=screen line=" + persistent.line.lineId
+          + " wait=" + persistent.waiting + " required=" + (2 * persistent.capacity)
+          + " traction=" + (proposal != null ? 1 : 0)
+          + " margin=" + (n75Margin != null ? n75Margin.annual : 0)
+          + " loop=" + (preparedLoop != null ? 1 : 0));
+    if (n75Margin != null && preparedLoop != null) {
+      best = persistent;
+      best.add = true;
+      equipment = proposal;
+    } else n75Margin = null;
   }
   if (best == null) return false;
   local line = best.line;
   state.dates.rawset(line.lineId, date + 90); // quota de croissance par ligne.
   local number = best.number + (best.add ? 0 : 1);
-  local equipment = OpexV284Equipment(line, best.vehicle, best.wagon, number);
+  if (equipment == null) equipment = OpexV284Equipment(line, best.vehicle, best.wagon, number);
   if (equipment == null) {
     state.dates.rawset(line.lineId, date + 365);
     OpexV284Log("skip", "line=" + line.lineId + " reason=traction");
     return false;
   }
-  local loopPlan = null;
+  local loopPlan = preparedLoop;
   if (best.add) {
-    local previousType = AIRail.GetCurrentRailType();
-    AIRail.SetCurrentRailType(AIRail.GetRailType(line.depot));
-    loopPlan = OpexV284LoopPlan(line, AIVehicle.GetLength(best.vehicle));
-    AIRail.SetCurrentRailType(previousType);
+    if (loopPlan == null) {
+      local previousType = AIRail.GetCurrentRailType();
+      AIRail.SetCurrentRailType(AIRail.GetRailType(line.depot));
+      loopPlan = OpexV284LoopPlan(line, AIVehicle.GetLength(best.vehicle));
+      AIRail.SetCurrentRailType(previousType);
+    }
     if (loopPlan == null) {
       state.dates.rawset(line.lineId, date + 365);
       OpexV284Log("skip", "line=" + line.lineId + " reason=geometry waiting=" + best.waiting);
@@ -137,8 +185,14 @@ function OpexV284Select(owner, year)
     speedMilli = (equipment.speed * 1000).tointeger(),
     oldSpeedMilli = (equipment.oldSpeed * 1000).tointeger(),
     phase = "approach", deadline = date + waitDays, before = null,
-    depot = line.depot, waiting = best.waiting, cashBefore = 0
+    depot = line.depot, waiting = best.waiting, cashBefore = 0,
+    n75 = n75Margin != null, n75Annual = n75Margin != null ? n75Margin.annual : 0,
+    n75Gross = n75Margin != null ? n75Margin.gross : 0
   };
+  if (n75Margin != null && DECISION_LOG)
+    OpexDecide("N75CAP", "action=pick kind=train line=" + line.lineId + " samples=3 span_min_days=120"
+        + " wait=" + best.waiting + " margin_year=" + n75Margin.annual
+        + " purchase=" + n75Margin.gross + " wagons=" + best.number + "->" + number);
   OpexV284Log("pick", "line=" + line.lineId + " kind=" + (best.add ? "train" : "wagon")
       + " waiting=" + best.waiting + " capacity=" + best.capacity + " distance=" + line.distance
       + " old_wagons=" + best.number + " new_wagons=" + number + " engine=" + equipment.engine
@@ -423,7 +477,16 @@ function OpexV284Tick(owner)
   local station = AIStation.GetStationID(line.stationA);
   local waitingNow = AIStation.IsValidStation(station) ? AIStation.GetCargoWaiting(station, line.cargo) : -1;
   local requiredWaiting = pending.add ? AIVehicle.GetCapacity(oldVehicle, line.cargo) : wagon.capacity;
+  if (("n75" in pending) && pending.n75)
+    requiredWaiting = 2 * AIVehicle.GetCapacity(oldVehicle, line.cargo);
+  local n75Recheck = true;
+  if (("n75" in pending) && pending.n75) {
+    local cap = AIVehicle.GetCapacity(oldVehicle, line.cargo);
+    n75Recheck = OpexN75FreightMargin(line, oldVehicle, wagon,
+        pending.oldWagons, cap, { engine = pending.engine }) != null;
+  }
   if (waitingNow < requiredWaiting || !AIEngine.IsBuildable(pending.engine) || !AIEngine.IsBuildable(pending.wagon)
+      || !n75Recheck
       || !AIRail.IsRailDepotTile(pending.depot)
       || !AIEngine.HasPowerOnRail(pending.engine, AIRail.GetRailType(pending.depot))
       || pending.wagons > OpexRailNominalMaxWagons(limit)
@@ -470,6 +533,10 @@ function OpexV284Tick(owner)
       + " speed=" + pending.oldSpeedMilli / 1000 + " new_speed=" + pending.speedMilli / 1000
       + " engine_speed=" + AIEngine.GetMaxSpeed(pending.engine)
       + " gross_cost=" + (pending.cashBefore - AICompany.GetBankBalance(AICompany.COMPANY_SELF)));
+  if (("n75" in pending) && pending.n75 && DECISION_LOG)
+    OpexDecide("N75CAP", "action=done line=" + line.lineId
+        + " new_capacity=" + AIVehicle.GetCapacity(pending.newVehicle, line.cargo)
+        + " margin_year=" + pending.n75Annual + " gross=" + pending.n75Gross);
 }
 
 function OpexV284Reconcile(owner)

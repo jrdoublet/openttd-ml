@@ -324,6 +324,13 @@ class DeferSourceContracts(unittest.TestCase):
 
     def test_modes_0_1_orchestrator_bytes_and_api_contract(self):
         code = source('orchestrator.nut')
+        # Isoler les deux hooks N75/V284 lors du controle historique C77.
+        code = code.replace(
+            '  if (V284_RAIL_GROWTH > 0 || N75_FREIGHT_CAPACITY > 0 || OpexV284Busy(this)) OpexV284Tick(this);\n'
+            '  if (!OpexV284Busy(this)) this._v257ReactiveStep();',
+            '  if (V284_RAIL_GROWTH > 0) OpexV284Tick(this);\n'
+            '  if (V284_RAIL_GROWTH <= 0 || !OpexV284Busy(this)) this._v257ReactiveStep();'
+        )
         start = code.index('    /* C77 defer 2 :')
         end = code.index('    /* Fin C77 defer 2. */\n', start) + len('    /* Fin C77 defer 2. */\n')
         # Whole file at 8c9c9e1a, after removing only the mode-2 block.

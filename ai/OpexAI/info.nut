@@ -139,6 +139,14 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "n75_freight_capacity",
+      description = "N75-CAP: second train before full platform only on recurring backlog >=2 existing train loads (3 samples over 120d), estimated 3-year gross payback and V284 safe passing loop. 0 = off (default), 1 = on",
+      min_value = 0, max_value = 1,
+      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
       name = "v301_notrain_fix",
       description = "V301: NOTRAIN fixes, bit mask. 1 = NOTRAIN/ORDFAIL abandons the pair; 2 = freight trains capped by vehicle.max_train_length; 4 = trim wagons that would not fit instead of failing; 8 = any TRKFAIL abandons the pair. 0 = historic; 15 = all (default since 21/10)",
       min_value = 0, max_value = 15,

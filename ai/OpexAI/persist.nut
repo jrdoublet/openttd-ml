@@ -716,7 +716,9 @@ function OpexAI::Save()
   saveObj.v257RailRefresh <- { cursor = this._v257Cursor, state = this._v257State,
     pending = this._v257Pending, engineRevision = this._v257EngineRevision,
     priorityRemaining = this._v257PriorityRemaining };
-  if (V284_RAIL_GROWTH > 0) saveObj.v284Growth <- this._v284State;
+  if (V284_RAIL_GROWTH > 0 || N75_FREIGHT_CAPACITY > 0 || OpexV284Busy(this))
+    saveObj.v284Growth <- this._v284State;
+  if (N75_FREIGHT_CAPACITY > 0) saveObj.n75Freight <- this._n75Freight;
 
   if (OpexC121StrategyStateEnabled()) OpexSaveC121Strategy(saveObj);
   if (OPEX_AIR_ROLLBACKS.len() > 0) saveObj.airRollbacks <- OPEX_AIR_ROLLBACKS;
@@ -801,6 +803,9 @@ function OpexAI::Load(version, data)
   /* Load precede OpexLoadSettings : ne pas tester la globale encore a 0 ici. */
   if (("v284Growth" in data) && typeof data.v284Growth == "table")
     this._v284State = data.v284Growth;
+  if (("n75Freight" in data) && typeof data.n75Freight == "table"
+      && ("samples" in data.n75Freight) && typeof data.n75Freight.samples == "table")
+    this._n75Freight = data.n75Freight;
   this._reloadDroppedRailSearch = ("railSearchPending" in data) && data.railSearchPending;
   if (("dynamicBatchPending" in data) && data.dynamicBatchPending) {
     this._projects = null;
@@ -933,7 +938,7 @@ function OpexAI::_reconcileAfterLoad()
   this._lines = liveLines;
   if (V279_RESELECT_MEMO != 0) OPEX_LINES_REVISION++;
   OpexV257Reconcile(this);
-  if (V284_RAIL_GROWTH > 0) OpexV284Reconcile(this);
+  if (V284_RAIL_GROWTH > 0 || N75_FREIGHT_CAPACITY > 0 || OpexV284Busy(this)) OpexV284Reconcile(this);
   this._pendingLines = null;
   /* C70 : recalcul des facteurs APRES la reconstitution de this._lines. Appele plus haut, il
    * tournait sur la liste encore vide et remettait tous les facteurs a 1 (mesure 2026-09-22). */
