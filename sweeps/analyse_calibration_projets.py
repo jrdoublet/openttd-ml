@@ -10,6 +10,8 @@ apparie pour OpexAI (compagnie 0) :
 Une copie .log/.log.gz d'une meme partie ne compte qu'une fois si ses donnees de calibration
 sont identiques ; des copies contradictoires interrompent l'analyse avec leurs deux chemins.
 Le bras et la repetition restent distincts, meme a graine identique.
+Les nombres non finis sont inconnus ; les ratios non finis, y compris apres debordement,
+ne contribuent ni aux facteurs appris ni aux statistiques de cout et de revenu.
 
 Le predit de LINE_REVENUE est le modele BRUT (`line.predicted` = profitAnnual avant C70).
 Seules les lignes d'age >= 2 comptent (piege V298 : annee partielle). Le realise est ramene a la
@@ -62,7 +64,8 @@ def open_text(path):
 
 def num(value, default=None):
     try:
-        return float(value)
+        result = float(value)
+        return result if math.isfinite(result) else default
     except (TypeError, ValueError):
         return default
 
@@ -171,10 +174,10 @@ def load_campaign(path):
 
 
 def ratio(real, pred, scale=1.0):
-    if pred is None or real is None or pred <= 0:
+    if any(v is None or not math.isfinite(v) for v in (real, pred, scale)) or pred <= 0:
         return None
     value = real * scale / pred
-    return value if value > 0 else None
+    return value if math.isfinite(value) and value > 0 else None
 
 
 def summarize(values):
@@ -266,9 +269,10 @@ def cost_summary(games):
     by = defaultdict(list)
     for g in games.values():
         for c in g["costs"]:
-            by[c["mode"]].append(c["real"] / c["pred"])
+            value = ratio(c["real"], c["pred"])
+            by[c["mode"]].append(value)
             if c["mode"] == "rail":
-                by["rail|" + dist_bin(c["dist"])].append(c["real"] / c["pred"])
+                by["rail|" + dist_bin(c["dist"])].append(value)
     return {k: summarize(v) for k, v in sorted(by.items())}
 
 

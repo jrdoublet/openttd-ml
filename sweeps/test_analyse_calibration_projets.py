@@ -1,11 +1,12 @@
 """V306: campaign ingestion and calibration on held-out seeds, without games."""
 import gzip
+import json
 import math
 from pathlib import Path
 import tempfile
 import unittest
 
-from analyse_calibration_projets import analyse, cross_validate, load_campaign
+from analyse_calibration_projets import analyse, cross_validate, load_campaign, num, ratio
 
 
 def calibration_game(revenue_ratio, count=6):
@@ -27,6 +28,28 @@ def calibration_game(revenue_ratio, count=6):
         "costs": [],
         "unmatched": 0,
     }
+
+
+class CalibrationNumericValidityTest(unittest.TestCase):
+    def test_nonfinite_numbers_are_unknown_and_use_the_requested_default(self):
+        for value in ("nan", "NaN", "inf", "+Infinity", "-inf", "1e999", "-1e999"):
+            with self.subTest(value=value):
+                self.assertIsNone(num(value))
+                self.assertEqual(num(value, -1), -1)
+        self.assertEqual(num("0"), 0.0)
+        self.assertEqual(num("-120.5"), -120.5)
+        self.assertEqual(num("1e3"), 1000.0)
+
+    def test_nonfinite_ratio_inputs_and_overflow_do_not_become_factors(self):
+        for value in (float("nan"), float("inf"), float("-inf")):
+            for index in range(3):
+                args = [100.0, 100.0, 1.0]
+                args[index] = value
+                with self.subTest(value=value, argument=index):
+                    self.assertIsNone(ratio(*args))
+        self.assertIsNone(ratio(1e308, 1.0, 2.0))
+        self.assertIsNone(ratio(1e308, 1e-308))
+        self.assertAlmostEqual(ratio(1200.0, 800.0, 0.5), 0.75)
 
 
 class CalibrationCrossValidationTest(unittest.TestCase):
@@ -183,6 +206,59 @@ class CalibrationCampaignLoadingTest(unittest.TestCase):
                     load_campaign(directory)
                 self.assertIn(str(path), str(caught.exception))
                 self.assertIn(str(zipped), str(caught.exception))
+
+    def test_nonfinite_log_values_stay_unknown_in_text_and_gzip_reports(self):
+        for token in ("nan", "inf", "-Infinity", "1e999"):
+            for suffix in (".log", ".log.gz"):
+                with self.subTest(token=token, suffix=suffix), tempfile.TemporaryDirectory() as directory:
+                    content = self.game_log().replace("cost=1500", f"cost={token}")
+                    content = content.replace("year=1974", f"year={token}")
+                    content = content.replace("real_rev=1200", f"real_rev={token}")
+                    content = content.replace("pred_prof=500", f"pred_prof={token}")
+                    content = content.replace("real_run=500", f"real_run={token}")
+                    path = Path(directory) / ("reference_seed42_r0" + suffix)
+                    self.write_log(path, content)
+                    games = load_campaign(directory)
+
+                    row = next(iter(games.values()))["rows"][0]
+                    for field in ("year", "real_rev", "pred_prof", "real_run"):
+                        self.assertIsNone(row[field], field)
+                    self.assertEqual(row["cell"], "rail|RAW|80-160|?")
+                    report = analyse({"duel": games})
+                    summary = report["campaigns"]["duel"]
+                    self.assertEqual(summary["line_years"], 2)
+                    self.assertEqual(summary["unmatched"], 1)
+                    self.assertEqual(summary["cost"], {})
+                    self.assertEqual(summary["revenue_cells"][row["cell"]], {"n": 0})
+                    self.assertEqual(summary["profit_cells"][row["cell"]], {"n": 0})
+                    self.assertEqual(summary["running_cells"][row["cell"]], {"n": 0})
+                    # The following finite year still contributes exactly once.
+                    self.assertEqual(summary["revenue_cells"]["rail|RAW|80-160|1974-1976"]["n"], 1)
+                    self.assertEqual(sum(fold["n"] for fold in summary["cv_same_campaign"]), 1)
+                    json.dumps(report, allow_nan=False)
+
+    def test_overflowed_ratios_are_excluded_without_losing_observed_zero_cost(self):
+        for suffix in (".log", ".log.gz"):
+            with self.subTest(suffix=suffix), tempfile.TemporaryDirectory() as directory:
+                content = self.game_log().replace("cost=1000", "cost=1e-308")
+                content = content.replace("cost=1500", "cost=1e308")
+                content = content.replace("pred_rev=800", "pred_rev=1e-308")
+                content = content.replace("real_rev=1200", "real_rev=1e308")
+                # A zero operating cost is a known value, even though the log-error
+                # metric deliberately requires a strictly positive ratio.
+                content = content.replace("real_run=500", "real_run=0")
+                path = Path(directory) / ("reference_seed42_r0" + suffix)
+                self.write_log(path, content)
+                games = load_campaign(directory)
+
+                self.assertEqual(next(iter(games.values()))["rows"][0]["real_run"], 0.0)
+                report = analyse({"duel": games})
+                summary = report["campaigns"]["duel"]
+                self.assertEqual(summary["cost"]["rail"], {"n": 0})
+                self.assertEqual(summary["cost"]["rail|80-160"], {"n": 0})
+                self.assertEqual(summary["revenue_cells"]["rail|RAW|80-160|1974-1976"], {"n": 0})
+                self.assertEqual(sum(fold["n"] for fold in summary["cv_same_campaign"]), 0)
+                json.dumps(report, allow_nan=False)
 
 
 if __name__ == "__main__":
