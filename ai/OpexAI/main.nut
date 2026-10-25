@@ -163,6 +163,8 @@ class OpexAI extends AIController {
   /* C80 étape 2 : table des paires en retrait temporaire (cooldown), indexée par pairKey.
    * Transitoire / reconstructible : initialisée à {}, jamais persistée dans Save(). */
   _railStockCooldown = null;
+  /* RLW-04b : stock d'observation transitoire, sans publication ni Save/Load. */
+  _rlw04bState = null;
   /* C121 preparation rail de l'annee AIR : liste de candidats et mois de generation.
    * Non sauvegardes. Reconstructibles au prochain passage projects si le reglage est arme.
    * MinAirCap : -1 = aucun plan AIR vivant au dernier scan (fin de passe). */
@@ -673,6 +675,7 @@ require("task_v250.nut");
 require("task_v259.nut");
 require("probe_v307.nut");
 require("probe_v308.nut");
+require("rail_long_window_enumerator.nut");
 require("selftests.nut");
 
 function OpexAI::Start()
@@ -844,6 +847,7 @@ function OpexAI::Start()
     local spAstar = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.astar_v89") : null;
     this._advanceRailSearchThroughput();
     if (spAstar != null) OpexSpanEnd(spAstar);
+    if (RLW04B_SHADOW) this._rlw04bStep();
     if (C67_SLACK_HOOK) {
       local spC67 = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.c67") : null;
       this._c67SlackHook();

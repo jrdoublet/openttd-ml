@@ -298,6 +298,7 @@ class ForumBehaviours(unittest.TestCase):
             "AITile.GetSlope", "AITile.IsBuildable", "AITile.IsCoastTile",
             "AITile.IsStationTile", "AITile.IsWaterTile", "AIVehicle.GetRunningCost",
             "AITown.GetPopulation", "AIIndustry.GetLastMonthProduction",
+            "AIIndustry.GetDistanceManhattanToTile",
         }
         api = set()
         for line in (ROOT / "docs/noai_api_15.3.tsv").read_text().splitlines():

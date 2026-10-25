@@ -2773,6 +2773,7 @@ function OpexAI::_mainLoopProfiled()
     this._advanceRailSearchThroughput();
     if (spAstar != null) OpexSpanEnd(spAstar);
     OpexLoopProfAdd("rail_throughput", mark);
+    if (RLW04B_SHADOW) this._rlw04bStep();
     if (C67_SLACK_HOOK) {
       mark = OpexOpsMeasureBegin();
       local spC67 = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.c67") : null;
