@@ -325,6 +325,9 @@ function OpexAI::_tooClose(candidate)
    * On n'exempte B que si le candidat porte deja le quai a joindre. A reste controlee. */
   local shareEndB = isSharedDest
       || (("convergent_dest" in candidate) && candidate.convergent_dest == 1);
+  /* GOOD : exempter A seulement aux extremites du StationID physiquement joint. */
+  local shareGoodA = ("goodSourceJoin" in candidate) && candidate.goodSourceJoin == 1
+      && ("joinEnd" in candidate) && candidate.joinEnd == "A" && joinStationId >= 0;
   local entries = [["A", candidate.src], ["B", candidate.dst]];
 
   local originA = -1;
@@ -333,8 +336,10 @@ function OpexAI::_tooClose(candidate)
     if (("mode" in line) && line.mode != "rail") continue;
     if (joinLineId >= 0 && ("lineId" in line) && line.lineId == joinLineId) continue;
     foreach (lineEnd in ["A", "B"]) {
+      local sameGoodStation = shareGoodA && OpexLineStationId(line, lineEnd) == joinStationId;
       local originTile = lineEnd == "A" ? line.originA : line.originB;
       foreach (entry in entries) {
+        if (sameGoodStation && entry[0] == "A") continue;
         if (isSharedDest && entry[0] == "B") continue;
         if (shareEndB && entry[0] == "B") continue;
         local d = AIMap.DistanceManhattan(entry[1], originTile);
@@ -358,6 +363,7 @@ function OpexAI::_tooClose(candidate)
       if (isSharedDest && stationId == joinStationId) continue;
       local stationTile = lineEnd == "A" ? line.stationA : line.stationB;
       foreach (entry in entries) {
+        if (shareGoodA && entry[0] == "A" && stationId == joinStationId) continue;
         if (isSharedDest && entry[0] == "B") continue;
         if (shareEndB && entry[0] == "B") continue;
         local d = AIMap.DistanceManhattan(entry[1], stationTile);

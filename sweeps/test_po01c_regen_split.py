@@ -244,13 +244,16 @@ class PO01CContracts(unittest.TestCase):
     def test_po01f_historical_dependencies_unchanged(self):
         # R07/R11 (24-10-2026): byte pins explicitly rebaselined after
         # contracts and complete cumulative 20x10 neutrality passed.
+        # 25-10: seul builder_rail est rebasele pour la jonction GOOD opt-in.
+        # V198, V190 et le chemin mono gardent leur comportement quand le drapeau est OFF.
         expected = {
             'probe_v216.nut': '8971a9dcf90ec29fce9baaca9f4959bbcc3c7db5d3e648963f1481c768ab5166',
             'economy.nut': '288a69d242f7b8b473984350a5d539da927576972b42a3f2269928173ac05fbc',
-            'builder_rail.nut': '80ee1d02e1a4fd7234329b8a762a9b1a7f44f06cba2696022bf7a63376d9c56d',
+            'builder_rail.nut': 'faf32608a0c7cc52e920f6c82e41409378297808fcdaf6fa03cf5f2db97e3d6c',
         }
+        from n75_good_spread_legacy import historical_bytes
         for name, digest in expected.items():
-            self.assertEqual(hashlib.sha256((AI / name).read_bytes()).hexdigest(), digest)
+            self.assertEqual(hashlib.sha256(historical_bytes(name, (AI / name).read_bytes())).hexdigest(), digest)
 
     def test_po01f_heavy_loop_tokens_and_checkpoints(self):
         for file, name in [('probe_v216.nut', 'V216MarkRect'),
@@ -421,22 +424,24 @@ class PO01CContracts(unittest.TestCase):
 
     def test_po01d_synchronous_path_bytes_unchanged(self):
         # Rebased to 2026-10-24 R01–R12 (source hashes frozen for the complete
-        # paired 20x10); future source edits must explicitly rebaseline this
-        # isolation contract only after review and in-game validation.
+        # paired 20x10). 25-10 : les trois empreintes de sources modifiees
+        # pour GOOD source ont ete rebased a drapeau OFF, PO01C regenere ;
+        # validation de partie et portes restent a effectuer par le prime.
         expected = {
             'builder_water.nut': '36c0c646c3a92201bbcb4afedc7b324fa19931f8665720bc5ca99f8d76098bb5',
             'air_planning.nut': 'd97dd1d56b049c8ea98c85a1202239da3d30193028e8526ba44240181460a5c2',
             'air_sites.nut': '1ef05fc3b922e34d5ed800a52d9b5816e2d958492e434075bd0fe1e4e5a546f7',
-            'candidates.nut': '8ab9ef4b42b0b9ddd00ae47ee6333bded0428341ddcd90b11612f86be315d5e0',
+            'candidates.nut': '3ab127d6b9b84fa9373691543a1ca5ab9c671f727a164853c8f3341b30aaa49f',
             'catalog.nut': '8e228cf9a0e4ec83c50bcf3e0aa405814e82ac95c9191494fd4d9e357edfc348',
             'main.nut': 'b716838631daba2621fd9b7d992b72accd042c0ba0a2c4d8d89527709358ad68',
             'probes.nut': '005a79a7647c1ddd98754b3854497f5328c6eb4bea62ae3a9192e0a03dfab84e',
-            'settings.nut': '6946a9ed7d3864e22714167b4fbb4fe74d8e6b95b39c0fac0054cfde80bc214b',
-            'info.nut': '1bc76539590e9272aa59849baa54d0248a74ac5f993e0d0e77d679906c7ad2c3',
+            'settings.nut': '259532f2b0e4c59947c30988dd919031fa78c3210eefc8be4a19ebf7fd64cf40',
+            'info.nut': '8850c1379f2cd2dac0c15ca632d24065d64eb016f936b1bffd27a81fcb7f7cba',
         }
+        from n75_good_spread_legacy import historical_bytes
         for name, digest in expected.items():
             with self.subTest(name=name):
-                self.assertEqual(hashlib.sha256((AI / name).read_bytes()).hexdigest(), digest)
+                self.assertEqual(hashlib.sha256(historical_bytes(name, (AI / name).read_bytes())).hexdigest(), digest)
 
         # PO03 ajoute exactement deux lignes dans _dispatchReactiveIntention.
         # Conserver la preuve byte-a-byte de tout le reste de orchestrator.nut :

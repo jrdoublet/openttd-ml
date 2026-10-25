@@ -691,6 +691,8 @@ V296A_MISMATCH <- false;
 /* V296b : file native AIList et noeuds en tableaux ; 2 = comparaison V129. */
 const V296_ASTAR_NATIVE = 1;  // Lot 7 : A* natif adopte fige au mode 1.
 PO01C_REGEN_SPLIT <- true; // PO-01c : defaut adopte le 23/10
+GOOD_SOURCE_RAIL_JOIN <- false; // GOOD depuis une usine deja alimentee par notre rail : opt-in
+N75_GOOD_SOURCE_SPREAD <- false; // opt-in good_source_rail_join=2, plus de sites A de meme gare
 C77_INTENT_DEFER <- true; // PO-03 : mode 2 adopte le 23/10
 C77_INTENT_DEFER_SUBSIDY <- true;
 const C77_INTENT_DEFER_DAYS = 365;

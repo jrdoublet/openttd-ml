@@ -187,6 +187,8 @@ function OpexPO01CFreightCandidates(catalog, lines, out, stats, abandonedPairs =
       if (OPEX_LEVEL_LIMITS && OpexIndustryPrimaryRivalServed(source.id, source.tile)) continue;
       local monthly = AIIndustry.GetLastMonthProduction(source.id, cargo);
       local ss = served[si];
+      /* Une seule evaluation par usine et cargo, jamais par destination. */
+      local goodSource = OpexGoodSourceService(ss, source, cargo);
       local others2 = null;
       local industryMark = profile != null ? OpexOpsMeasureBegin() : null;
       for (local k = 0; k < sinks.len(); k++) {
@@ -269,6 +271,13 @@ function OpexPO01CFreightCandidates(catalog, lines, out, stats, abandonedPairs =
             if (townServiceCache != null) townServiceCache[town.id] <- st;
           }
           if (townServiceMark != null) { profile.freightTownServiceOps += OpexOpsMeasureEnd(townServiceMark); profile.freightTownServiceCalls++; }
+          if (goodSource != null && st == null) {
+            local goodCandidate = OpexGoodSourceEmit(catalog, stats, profile, cruiseCache,
+                cargo, source, town.tile, town.id, monthly, false, goodSource);
+            if (goodCandidate != null) out.append(goodCandidate);
+            if (townGuardMark != null) { profile.freightTownGuardsOps += OpexOpsMeasureEnd(townGuardMark); profile.freightTownGuardsCalls++; }
+            continue;
+          }
           if (ss != null || st != null) {
             stats.pairsOriginServed++;
             if (townGuardMark != null) { profile.freightTownGuardsOps += OpexOpsMeasureEnd(townGuardMark); profile.freightTownGuardsCalls++; }
@@ -2191,7 +2200,7 @@ function OpexPO01CAirPlansDiscoverHubs(po01dResult, ctx, combo, airport, plane)
   ctx.hubs = hubs;
 }
 
-function OpexPO01CMakePaxCandidate(po01dResult, po01fSitableCache, po01fContext, catalog, kind, cargo, srcTile, dstTile, monthly, originServed, stats, isTransformer = false, profile = null, cruiseCache = null, secondary = null)
+function OpexPO01CMakePaxCandidate(po01dResult, po01fSitableCache, po01fContext, catalog, kind, cargo, srcTile, dstTile, monthly, originServed, stats, isTransformer = false, profile = null, cruiseCache = null, secondary = null, sourceJoin = false)
 {
   if (monthly <= 0) {
     stats.noMonthly++;
@@ -2237,7 +2246,11 @@ function OpexPO01CMakePaxCandidate(po01dResult, po01fSitableCache, po01fContext,
    * sert le plus (C46, cartes 1024x1024). */
   local sitable = true;
   local sitableKey = srcTile * 64 + cargo;
-  if (sitableKey in po01fSitableCache) {
+  if (sourceJoin) {
+    /* Le site A sera un quai physiquement joint : seule la recherche de quai neuf
+     * est sans objet. La production et BuildRailStation sont testes au builder. */
+    sitable = true;
+  } else if (sitableKey in po01fSitableCache) {
     sitable = po01fSitableCache[sitableKey];
   } else {
     local sitableMark = profile != null ? OpexOpsMeasureBegin() : null;

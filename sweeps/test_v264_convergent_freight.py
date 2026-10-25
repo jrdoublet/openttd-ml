@@ -157,7 +157,9 @@ class TestV264ConvergentFreight(unittest.TestCase):
             plans,
         )
         join_call = plans.index("OpexJoinPlatformPlans(candidate.joinPlatform, candidate.joinStationId, statsB)")
-        spread_call = plans.index("OpexV264SpreadJoinPlans(")
+        # Mode N75-GSP adds a separate guarded spread for GOOD source A;
+        # this historical V264 test must inspect the *B-specific* fallback.
+        spread_call = plans.index("OpexV264SpreadJoinPlans(", join_call)
         self.assertLess(join_call, spread_call)
         self.assertIn("if (jointPlansB.len() == 0)", plans[join_call:spread_call])
         decide = plans.index('OpexDecide("V264_JOIN"')
