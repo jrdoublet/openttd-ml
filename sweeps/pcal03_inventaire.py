@@ -73,32 +73,73 @@ CATALOG_COST_RE = re.compile(r"\bCATALOG_COST\b.*?\btotal_ops=(\d+)")
 
 
 class PostInventory:
-    def __init__(self, name: str, description: str):
+    def __init__(self, name: str, description: str, inclusive_mode: bool = False):
         self.name = name
         self.description = description
+        self.inclusive_mode = inclusive_mode
         self.items: Dict[str, Dict[str, Any]] = defaultdict(
-            lambda: {"calls": 0, "total_ops": 0, "source": set()}
+            lambda: {
+                "calls": 0,
+                "inclusive_ops": 0,
+                "exclusive_ops": 0,
+                "total_ops": 0,
+                "source": set(),
+            }
         )
 
-    def add(self, item_name: str, calls: int, ops: int, source_tag: str):
+    def add(
+        self,
+        item_name: str,
+        calls: int,
+        inclusive_ops: int,
+        source_tag: str,
+        exclusive_ops: Optional[int] = None,
+    ):
         entry = self.items[item_name]
         entry["calls"] += calls
-        entry["total_ops"] += ops
+        entry["inclusive_ops"] += inclusive_ops
+        if exclusive_ops is None:
+            # Pour un élément sans décomposition d'enfants : coût propre = inclusif
+            # Pour SPAN_AGG, c'est une sous-mesure interne d'un span déjà compté : coût propre = 0
+            if source_tag == "SPAN_AGG":
+                exclusive_ops = 0
+            else:
+                exclusive_ops = inclusive_ops
+        entry["exclusive_ops"] += exclusive_ops
+        if self.inclusive_mode:
+            entry["total_ops"] += inclusive_ops
+        else:
+            entry["total_ops"] += exclusive_ops
         entry["source"].add(source_tag)
 
     @property
     def total_ops(self) -> int:
-        return sum(v["total_ops"] for v in self.items.values())
+        if self.inclusive_mode:
+            return sum(v["inclusive_ops"] for v in self.items.values())
+        return sum(v["exclusive_ops"] for v in self.items.values())
+
+    @property
+    def total_exclusive_ops(self) -> int:
+        return sum(v["exclusive_ops"] for v in self.items.values())
+
+    @property
+    def total_inclusive_ops(self) -> int:
+        return sum(v["inclusive_ops"] for v in self.items.values())
 
 
 class EngineLogParser:
     def __init__(self):
+        self.files_parsed: set = set()
         self.years_by_file: Dict[str, set] = defaultdict(set)
         self.min_year = 9999
         self.max_year = 0
 
         # Raw metrics
-        self.spans: Dict[str, Dict[str, int]] = defaultdict(lambda: {"calls": 0, "ops": 0})
+        self.spans: Dict[str, Dict[str, int]] = defaultdict(
+            lambda: {"calls": 0, "ops": 0, "inclusive_ops": 0, "exclusive_ops": 0}
+        )
+        self.raw_spans_by_file: Dict[str, Dict[int, Dict[str, Any]]] = defaultdict(dict)
+        self.children_by_file: Dict[str, Dict[int, List[int]]] = defaultdict(lambda: defaultdict(list))
         self.span_aggs: Dict[str, Dict[str, int]] = defaultdict(lambda: {"calls": 0, "ops": 0})
         self.loop_ops: Dict[str, Dict[str, int]] = defaultdict(lambda: {"calls": 0, "ops": 0})
         self.c76_regens: List[Dict[str, Any]] = []
@@ -119,14 +160,42 @@ class EngineLogParser:
 
     def parse_file(self, filepath: Path) -> None:
         filename = filepath.name
+        self.files_parsed.add(filename)
         is_gz = filepath.suffix == ".gz"
         open_fn = gzip.open if is_gz else open
         try:
             with open_fn(filepath, "rt", encoding="utf-8", errors="ignore") as f:
                 for line in f:
                     self._parse_line(filename, line)
+            self._resolve_spans(filename)
         except Exception as e:
             print(f"Erreur de lecture de {filepath}: {e}", file=sys.stderr)
+
+    def parse_line(self, filename: str, line: str) -> None:
+        self._parse_line(filename, line)
+
+    def _resolve_spans(self, filename: Optional[str] = None) -> None:
+        files = [filename] if filename is not None else list(self.raw_spans_by_file.keys())
+        for fn in files:
+            file_spans = self.raw_spans_by_file.get(fn, {})
+            children_map = self.children_by_file.get(fn, {})
+            for sid, span in file_spans.items():
+                child_ids = children_map.get(sid, [])
+                child_ops = sum(file_spans[cid]["ops"] for cid in child_ids if cid in file_spans)
+                exclusive_ops = max(0, span["ops"] - child_ops)
+                name = span["name"]
+                ops = span["ops"]
+                self.spans[name]["calls"] += 1
+                self.spans[name]["ops"] += ops
+                self.spans[name]["inclusive_ops"] += ops
+                self.spans[name]["exclusive_ops"] += exclusive_ops
+            if fn in self.raw_spans_by_file:
+                del self.raw_spans_by_file[fn]
+            if fn in self.children_by_file:
+                del self.children_by_file[fn]
+
+    def finalize(self) -> None:
+        self._resolve_spans()
 
     def _parse_line(self, filename: str, line: str) -> None:
         script_match = SCRIPT_LINE_RE.search(line)
@@ -153,10 +222,22 @@ class EngineLogParser:
         # 1. SPAN
         m = SPAN_RE.search(body)
         if m:
+            sid = int(m.group(1))
+            par = int(m.group(2))
+            dep = int(m.group(3))
             name = m.group(4)
             ops = int(m.group(5))
-            self.spans[name]["calls"] += 1
-            self.spans[name]["ops"] += ops
+            if sid in self.raw_spans_by_file[filename]:
+                self._resolve_spans(filename)
+            self.raw_spans_by_file[filename][sid] = {
+                "id": sid,
+                "par": par,
+                "dep": dep,
+                "name": name,
+                "ops": ops,
+            }
+            if par != 0:
+                self.children_by_file[filename][par].append(sid)
             return
 
         # 2. SPAN_AGG
@@ -232,15 +313,16 @@ class EngineLogParser:
         return max(1.0, float(total_file_years))
 
 
-def compile_pcal03_inventory(parser: EngineLogParser) -> Dict[str, Any]:
+def compile_pcal03_inventory(parser: EngineLogParser, inclusive: bool = False) -> Dict[str, Any]:
+    parser.finalize()
     years_simulated = parser.get_total_years()
-    num_files = len(parser.years_by_file)
+    num_files = len(parser.files_parsed) if parser.files_parsed else len(parser.years_by_file)
 
-    p1 = PostInventory("Poste 1", "AIR plans, hubs et demande")
-    p2 = PostInventory("Poste 2", "Régénérations, filtrage et sélection")
-    p3 = PostInventory("Poste 3", "Constructibilité rail avant A*")
-    p4 = PostInventory("Poste 4", "Route et flotte")
-    p5 = PostInventory("Poste 5", "Cartographie / eau C67")
+    p1 = PostInventory("Poste 1", "AIR plans, hubs et demande", inclusive_mode=inclusive)
+    p2 = PostInventory("Poste 2", "Régénérations, filtrage et sélection", inclusive_mode=inclusive)
+    p3 = PostInventory("Poste 3", "Constructibilité rail avant A*", inclusive_mode=inclusive)
+    p4 = PostInventory("Poste 4", "Route et flotte", inclusive_mode=inclusive)
+    p5 = PostInventory("Poste 5", "Cartographie / eau C67", inclusive_mode=inclusive)
 
     # --- Poste 1: AIR ---
     air_spans = [
@@ -250,7 +332,13 @@ def compile_pcal03_inventory(parser: EngineLogParser) -> Dict[str, Any]:
     ]
     for s in air_spans:
         if s in parser.spans:
-            p1.add(s, parser.spans[s]["calls"], parser.spans[s]["ops"], "SPAN")
+            p1.add(
+                s,
+                parser.spans[s]["calls"],
+                parser.spans[s]["ops"],
+                "SPAN",
+                exclusive_ops=parser.spans[s].get("exclusive_ops", parser.spans[s]["ops"]),
+            )
     for s in ["air.c121.demand", "air.c121.winner", "air.c121.cache", "air.pair", "air.hub_site_pair"]:
         if s in parser.span_aggs:
             p1.add(f"agg:{s}", parser.span_aggs[s]["calls"], parser.span_aggs[s]["ops"], "SPAN_AGG")
@@ -265,7 +353,13 @@ def compile_pcal03_inventory(parser: EngineLogParser) -> Dict[str, Any]:
     ]
     for s in regen_spans:
         if s in parser.spans:
-            p2.add(s, parser.spans[s]["calls"], parser.spans[s]["ops"], "SPAN")
+            p2.add(
+                s,
+                parser.spans[s]["calls"],
+                parser.spans[s]["ops"],
+                "SPAN",
+                exclusive_ops=parser.spans[s].get("exclusive_ops", parser.spans[s]["ops"]),
+            )
     if parser.c76_regens:
         for r in parser.c76_regens:
             p2.add(f"c76_regen_{r['kind']}_{r['reason']}", 1, r["ops"], "C76_REGEN")
@@ -277,9 +371,15 @@ def compile_pcal03_inventory(parser: EngineLogParser) -> Dict[str, Any]:
                parser.rail_phases["plans"]["calls"],
                parser.rail_phases["plans"]["ops"], "RAIL_ATTEMPT:phases")
     if "railprep.after_pass" in parser.spans:
-        p3.add("railprep.after_pass",
-               parser.spans["railprep.after_pass"]["calls"],
-               parser.spans["railprep.after_pass"]["ops"], "SPAN")
+        p3.add(
+            "railprep.after_pass",
+            parser.spans["railprep.after_pass"]["calls"],
+            parser.spans["railprep.after_pass"]["ops"],
+            "SPAN",
+            exclusive_ops=parser.spans["railprep.after_pass"].get(
+                "exclusive_ops", parser.spans["railprep.after_pass"]["ops"]
+            ),
+        )
 
     # Rail comparison context
     if parser.rail_phases["search"]["calls"] > 0:
@@ -303,7 +403,13 @@ def compile_pcal03_inventory(parser: EngineLogParser) -> Dict[str, Any]:
     ]
     for s in road_fleet_spans:
         if s in parser.spans:
-            p4.add(s, parser.spans[s]["calls"], parser.spans[s]["ops"], "SPAN")
+            p4.add(
+                s,
+                parser.spans[s]["calls"],
+                parser.spans[s]["ops"],
+                "SPAN",
+                exclusive_ops=parser.spans[s].get("exclusive_ops", parser.spans[s]["ops"]),
+            )
     for s in ["fleet.sort", "fleet.cadence_cap", "fleet.refusal", "fleet.first_live"]:
         if s in parser.span_aggs:
             p4.add(f"agg:{s}", parser.span_aggs[s]["calls"], parser.span_aggs[s]["ops"], "SPAN_AGG")
@@ -316,7 +422,13 @@ def compile_pcal03_inventory(parser: EngineLogParser) -> Dict[str, Any]:
     ]
     for s in c67_water_spans:
         if s in parser.spans:
-            p5.add(s, parser.spans[s]["calls"], parser.spans[s]["ops"], "SPAN")
+            p5.add(
+                s,
+                parser.spans[s]["calls"],
+                parser.spans[s]["ops"],
+                "SPAN",
+                exclusive_ops=parser.spans[s].get("exclusive_ops", parser.spans[s]["ops"]),
+            )
 
     posts = [p1, p2, p3, p4, p5]
 
@@ -327,6 +439,7 @@ def compile_pcal03_inventory(parser: EngineLogParser) -> Dict[str, Any]:
             "min_year": parser.min_year if parser.min_year <= parser.max_year else None,
             "max_year": parser.max_year if parser.min_year <= parser.max_year else None,
         },
+        "mode": "inclusif" if inclusive else "exclusif",
         "posts": {}
     }
 
@@ -334,17 +447,29 @@ def compile_pcal03_inventory(parser: EngineLogParser) -> Dict[str, Any]:
         post_data = {
             "name": p.name,
             "description": p.description,
+            "mode": "inclusif" if inclusive else "exclusif",
             "total_ops": p.total_ops,
             "ops_per_year": round(p.total_ops / years_simulated, 1),
+            "total_exclusive_ops": p.total_exclusive_ops,
+            "total_inclusive_ops": p.total_inclusive_ops,
             "items": {}
         }
-        for iname, iv in sorted(p.items.items(), key=lambda x: x[1]["total_ops"], reverse=True):
+        for iname, iv in sorted(
+            p.items.items(),
+            key=lambda x: (x[1]["total_ops"], x[1]["inclusive_ops"]),
+            reverse=True,
+        ):
             post_data["items"][iname] = {
                 "calls": iv["calls"],
                 "calls_per_year": round(iv["calls"] / years_simulated, 1),
                 "total_ops": iv["total_ops"],
                 "ops_per_year": round(iv["total_ops"] / years_simulated, 1),
-                "mean_ops_per_call": round(iv["total_ops"] / max(1, iv["calls"]), 1),
+                "inclusive_ops": iv["inclusive_ops"],
+                "inclusive_ops_per_year": round(iv["inclusive_ops"] / years_simulated, 1),
+                "exclusive_ops": iv["exclusive_ops"],
+                "exclusive_ops_per_year": round(iv["exclusive_ops"] / years_simulated, 1),
+                "mean_ops_per_call": round(iv["inclusive_ops"] / max(1, iv["calls"]), 1),
+                "mean_exclusive_ops_per_call": round(iv["exclusive_ops"] / max(1, iv["calls"]), 1),
                 "sources": list(iv["source"]),
             }
         data["posts"][p.name] = post_data
@@ -355,8 +480,10 @@ def compile_pcal03_inventory(parser: EngineLogParser) -> Dict[str, Any]:
 def format_table(data: Dict[str, Any]) -> str:
     lines = []
     s = data["summary"]
+    mode = data.get("mode", "exclusif")
+    mode_str = f" [mode: {mode}]"
     lines.append(f"Campagne analysée : {s['num_files']} fichiers, {s['years_simulated']:.1f} années cumulées "
-                 f"(millésimes {s['min_year']} à {s['max_year']})")
+                 f"(millésimes {s['min_year']} à {s['max_year']}){mode_str}")
     lines.append("-" * 92)
     lines.append(f"{'Poste':<9} | {'Description':<38} | {'Opcodes/an':<14} | {'Mesure':<22}")
     lines.append("-" * 92)
@@ -375,18 +502,20 @@ def format_table(data: Dict[str, Any]) -> str:
     lines.append("-" * 92)
     lines.append("")
     lines.append("Détail par poste et sous-éléments :")
+    mode_label = "inclusif" if mode == "inclusif" else "propre"
     for pname, pdata in data["posts"].items():
-        lines.append(f"\n### {pname} : {pdata['description']} (Total : {int(pdata['ops_per_year']):,d} ops/an)".replace(",", " "))
+        lines.append(f"\n### {pname} : {pdata['description']} (Total {mode_label} : {int(pdata['ops_per_year']):,d} ops/an)".replace(",", " "))
         if not pdata["items"]:
             lines.append("  (Aucune ligne enregistrée dans les journaux analysés)")
             continue
-        lines.append(f"  {'Élément / Balise':<38} | {'Appels/an':<10} | {'Opcodes/an':<14} | {'Ops/appel':<10} | {'Source'}")
-        lines.append("  " + "-" * 88)
+        lines.append(f"  {'Élément / Balise':<34} | {'Appels/an':<9} | {'Propre/an':<14} | {'Inclusif/an':<14} | {'Ops/appel':<10} | {'Source'}")
+        lines.append("  " + "-" * 98)
         for iname, idata in pdata["items"].items():
-            ops_yr_str = f"{int(idata['ops_per_year']):,d}".replace(",", " ")
+            excl_yr_str = f"{int(idata['exclusive_ops_per_year']):,d}".replace(",", " ")
+            incl_yr_str = f"{int(idata['inclusive_ops_per_year']):,d}".replace(",", " ")
             mean_str = f"{int(idata['mean_ops_per_call']):,d}".replace(",", " ")
             src_str = ",".join(idata["sources"])
-            lines.append(f"  {iname:<38} | {idata['calls_per_year']:<10.1f} | {ops_yr_str:<14} | {mean_str:<10} | {src_str}")
+            lines.append(f"  {iname:<34} | {idata['calls_per_year']:<9.1f} | {excl_yr_str:<14} | {incl_yr_str:<14} | {mean_str:<10} | {src_str}")
 
     return "\n".join(lines)
 
@@ -404,6 +533,11 @@ def main():
         "--json",
         action="store_true",
         help="Sortie au format JSON pour exploitation automatisée",
+    )
+    parser.add_argument(
+        "--inclusive",
+        action="store_true",
+        help="Sommer les coûts inclusifs des spans au lieu des coûts propres (ancien comportement)",
     )
     args = parser.parse_args()
 
@@ -428,7 +562,7 @@ def main():
     for f in log_files:
         engine_parser.parse_file(f)
 
-    data = compile_pcal03_inventory(engine_parser)
+    data = compile_pcal03_inventory(engine_parser, inclusive=args.inclusive)
 
     if args.json:
         print(json.dumps(data, indent=2, ensure_ascii=False))
