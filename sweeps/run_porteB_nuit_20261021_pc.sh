@@ -39,7 +39,7 @@ run_one() {
               ref="OpexAI[${RAIL_ONLY}]"
               var="OpexAI[${RAIL_ONLY},v297_rail_roi_floor=400]" ;;
     v296a)    branch=v296a; setting=v296_rail_batch_build
-              ref="OpexAI"
+              ref="OpexAI[v296_rail_batch_build=0]"
               var="OpexAI[v296_rail_batch_build=1]" ;;
     *) echo "candidat inconnu : $cand" >&2; return 2 ;;
   esac
