@@ -119,6 +119,57 @@ class OrphanReportContracts(unittest.TestCase):
         self.assertIn("| 1972 | 1 | 0 | 0 | 0 | 0 | 1 | None | — |", report)
         self.assertIn("| 1973 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |", report)
 
+    def test_missing_cost_keeps_maintenance_unknown_without_losing_orphans(self):
+        for suffix in (".log", ".log.gz"):
+            for cost in analyzer.COSTS:
+                with self.subTest(suffix=suffix, missing=cost):
+                    # A partial SUM is still useful for the orphan count, but
+                    # its five known costs cannot stand in for the total.
+                    partial = " ".join(token for token in SUMMARY.split()
+                                       if not token.startswith(cost + "=")) + "\n"
+                    path = self.write_log("reference_seed42_r0" + suffix,
+                                          TRAIN + partial + ZERO_SUMMARY)
+                    bucket = analyzer.parse_log(str(path))[1972]
+                    self.assertEqual(bucket["sum"]["orphan_n"], 1)
+                    self.assertEqual(analyzer.orphans_by_type(bucket)["train"], 1)
+                    self.assertIsNone(analyzer.total_maintenance(bucket["sum"]))
+                    self.assertIn("| 1972 | 1 | 0 | 0 | 0 | 0 | 1 | None | 1 |",
+                                  self.report())
+                    self.assertIn("| 1973 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |",
+                                  self.report())
+
+    def test_non_integer_cost_tokens_are_not_read_as_integer_prefixes(self):
+        for cost in analyzer.COSTS:
+            for value in ("11.5", "11oops", "1e3", "unknown"):
+                with self.subTest(cost=cost, value=value):
+                    tokens = [cost + "=" + value if token.startswith(cost + "=")
+                              else token for token in SUMMARY.split()]
+                    path = self.write_log("reference_seed42_r0.log",
+                                          TRAIN + " ".join(tokens) + "\n")
+                    bucket = analyzer.parse_log(str(path))[1972]
+                    self.assertNotIn(cost, bucket["sum"])
+                    self.assertIsNone(analyzer.total_maintenance(bucket["sum"]))
+
+    def test_partial_reload_replaces_old_total_and_complete_reload_restores_it(self):
+        partial = SUMMARY.replace(" cost_airport=6", "")
+        for suffix in (".log", ".log.gz"):
+            with self.subTest(suffix=suffix):
+                name = "reference_seed7_r0" + suffix
+                path = self.write_log(name, TRAIN + SUMMARY + partial)
+                bucket = analyzer.parse_log(str(path))[1972]
+                self.assertIsNone(analyzer.total_maintenance(bucket["sum"]))
+                self.assertIn("| 1972 | 1 | 0 | 0 | 0 | 0 | 1 | None | 1 |",
+                              self.report())
+
+                zero_costs = " ".join(
+                    token.split("=", 1)[0] + "=0" if token.startswith("cost_")
+                    else token for token in SUMMARY.split()) + "\n"
+                self.write_log(name, TRAIN + SUMMARY + partial + zero_costs)
+                bucket = analyzer.parse_log(str(path))[1972]
+                self.assertEqual(analyzer.total_maintenance(bucket["sum"]), 0)
+                self.assertIn("| 1972 | 1 | 0 | 0 | 0 | 0 | 1 | 0 | 1 |",
+                              self.report())
+
 
 if __name__ == "__main__":
     unittest.main()

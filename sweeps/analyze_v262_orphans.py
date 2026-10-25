@@ -9,7 +9,9 @@ annee de jeu (date de la ligne OPEX, 1er decembre) :
   AIInfrastructure.GetMonthlyInfrastructureCosts.
 
 Ces couts sont ceux de toute l'infrastructure de la compagnie. L'API ne separe
-pas une part orpheline : ce lecteur n'en calcule pas. Un rechargement un 1er
+pas une part orpheline : ce lecteur n'en calcule pas. L'entretien reste inconnu
+si le resume ou l'un des six couts entiers manque ; aucun total partiel ni
+prefixe numerique d'un champ illisible n'est utilise. Un rechargement un 1er
 decembre peut dupliquer le releve ; la derniere ligne d'une meme gare, et la
 derniere ligne V262_ORPHAN_SUM, l'emportent.
 """
@@ -20,7 +22,8 @@ import os
 import re
 import sys
 
-KV = re.compile(r'(\w+)=(-?\d+)')
+# Match complete whitespace-delimited fields, never the integer prefix of 11.5.
+KV = re.compile(r'(?<!\S)(\w+)=(-?\d+)(?!\S)')
 SEED = re.compile(r'seed(\d+)')
 TYPES = ('train', 'truck', 'bus', 'airport', 'dock')
 COSTS = ('cost_rail', 'cost_signals', 'cost_road', 'cost_canal', 'cost_station', 'cost_airport')
@@ -70,8 +73,8 @@ def orphans_by_type(bucket):
 
 
 def total_maintenance(sum_row):
-    """Sum of the six infrastructure category costs. None if the sum line is absent."""
-    if sum_row is None:
+    """Total of all six parsed costs, or None if any cost is unknown."""
+    if sum_row is None or any(k not in sum_row for k in COSTS):
         return None
     return sum(int(sum_row[k]) for k in COSTS)
 
