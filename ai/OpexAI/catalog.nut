@@ -15,6 +15,13 @@
  * OpexBuildTrains, pas une marge cachee. NoAI 15.3 ne donne pas la longueur avant construction :
  * le constructeur relit donc chaque vehicule reel et rejette un NewGRF plus long plutot que de
  * croire cette deduction vanilla. */
+/* Le dernier type disponible est le plus grand RailTypeID numerique. La voie
+ * native trie par ID decroissant ; PO01C conserve sa boucle avec checkpoints. */
+function OpexRailTypePreferred(candidate, chosen)
+{
+  return candidate > chosen;
+}
+
 function OpexRailNominalMaxWagons(platformLength)
 {
   local wagons = 2 * platformLength - 1;
@@ -938,6 +945,8 @@ function OpexC121CatalogTownProductionBatch(catalog)
 
 function OpexCatalog::_refreshIndustries()
 {
+  /* Les producteurs et les volumes qui ordonnent V276 viennent de ce catalogue. */
+  V276_CARGO_ORDER = null;
   this.industries = [];
   this.producers = {};
   this.acceptors = {};

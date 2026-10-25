@@ -166,7 +166,6 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
         if (townAId >= 0) OpexC60ObserveTownRating("air", "build_precheck", townAId);
         if (townBId >= 0) OpexC60ObserveTownRating("air", "build_precheck", townBId);
       }
-      if (OPEX_ECONOMY_OPCODE_COMPAT_FALSE) {}
       local maxPerYear = 30;
       local maxTotal = 250;
       local airLinesThisYear = 0;
@@ -601,7 +600,6 @@ function OpexAI::_resizeAirFleets(year, plan = null)
       continue;
     }
 
-    if (OPEX_ECONOMY_OPCODE_COMPAT_FALSE && AIR_FLEET_BUFFER < 0) {}
     local isSmallAirport = false;
     if ((AIAirport.IsAirportTile(line.stationA) && AIAirport.GetAirportType(line.stationA) == AIAirport.AT_SMALL) ||
         (AIAirport.IsAirportTile(line.stationB) && AIAirport.GetAirportType(line.stationB) == AIAirport.AT_SMALL)) {
@@ -653,7 +651,7 @@ function OpexAI::_resizeAirFleets(year, plan = null)
      * sur 3 parties x 2 ans (results/diag_1v1_decisions.json). */
     local need = planePrice + OpexCashReserve() + 2000;
     local addedThisPass = 0;
-    local maxAddedPerPass = OPEX_ECONOMY_OPCODE_COMPAT_FALSE ? 1 : 4;
+    local maxAddedPerPass = 4;
     /* C14 : Dimensionnement dynamique de flotte par le stock au sol (AAAHogEx route.nut:2896-2921).
      * Si AIR_FLEET_BUFFER >= 0 : calcule buildNum = (maxWait - bottom) / capacity.
      * Si buildNum < 1 : refus W (pas assez de cargo au sol).

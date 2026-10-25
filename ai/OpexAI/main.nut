@@ -30,15 +30,12 @@ import("pathfinder.rail", "RailPathFinder", 1);
 require("globals_pre.nut");
 require("difficulty.nut");
 
-const RAIL_EXPAND_STREAK = 2;
-const RAIL_EXPAND_UTIL_PERMILLE = 850;
 const RAIL_EXPAND_TIMEOUT_DAYS = 120;
 /* Meme enveloppe locale que les signaux d'approche rail
  * (builder_rail.nut::OpexPlacePathApproachSignal, maxDistance=8). L'expansion ne deroute donc
  * une rame vers le depot qu'une fois entree dans cette zone locale. */
 const RAIL_EXPAND_APPROACH_TILES = 8;
 
-const CASH_RESERVE_STATIC = 25000;
 const CASH_RESERVE_MIN = 5000;
 const CASH_RESERVE_MAX = 25000;
 
@@ -500,7 +497,6 @@ class OpexAI extends AIController {
   function _recordC49ScarcityPass(best, builtRanks, attemptedRanks, passDiscards);
   function _logC49ScarcityLedger(year);
   function _logC54VehicleOrders(year);
-  function _logC48IncrementalLedger(year);
   function _recordC69BuildingPass(year, projects, builtProjects);
   function _reportYear(year, ranked);
   function _reportLines(year);
@@ -694,7 +690,6 @@ function OpexAI::Start()
 
   if (!STAGED_BOOTSTRAP) this._generationStage = OPEX_STAGE_COMPLETE;
 
-  if (OPEX_ECONOMY_OPCODE_COMPAT_FALSE) {}
   if (TENSION_PROBE) OpexTensionEnable(this._budget);
   if (C49_SCARCITY_LEDGER) {
     this._c49ScarcityLedger = { passes = 0, cash = 0, vehicles = 0, site = 0,
@@ -721,9 +716,6 @@ function OpexAI::Start()
   {
     C75_PASS_DATES = [];
     OpexC75ResetYearLedger();
-  }
-  if (WATER_OPCODE_COMPAT_FALSE && this._taskQueue != null) {
-    /* Branche de compatibilite volontairement vide : l'ancien flag etait force false. */
   }
   if (this._loadedFromSave) this._reconcileAfterLoad();
   if (DECISION_LOG) {

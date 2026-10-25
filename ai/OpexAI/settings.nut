@@ -250,9 +250,6 @@ function OpexLoadSettings()
   C39_DECISION_DELTA_PROBE = probeCat;
   C39_AIR_REASON_PROBE = probeCat;
   C41_REVISION_PROBE = probeCat;
-  WATER_OPCODE_COMPAT_FALSE = false;
-  WATER_OPCODE_COMPAT_FALSE = false;
-  WATER_OPCODE_COMPAT_FALSE = false;
   if (C39_INVALIDATION_PROBE) OpexC76Reset();
 
   // 6. Recherche rail (bit 32) : domination, fallthrough, projects cadence
@@ -447,13 +444,12 @@ function OpexLoadSettings()
   V276_CAND_SLICES = (v276 == 3) ? (bigMap ? 2 : 0) : v276;
   V276_CATALOG_TASK = null;
   V276_CARGO_YEAR = -1;
+  V276_CARGO_MONTH = -1;
   V276_CARGO_ORDER = null;
   AIR0310_SITE_VALIDITY_STATE = null;
   RAIL_DEPOT_COST = AIController.GetSetting("rail_depot_cost") != 0;
   V131_RAIL_REPAIR = AIController.GetSetting("v131_rail_repair") != 0;
   V131_TOWN_CLEARANCE = AIController.GetSetting("v131_town_clearance") != 0;
-  WATER_OPCODE_COMPAT_FALSE = false;
-  WATER_OPCODE_COMPAT_FALSE = false;
   AIR_MAX_DISTANCE = 0;
   TRANSIT_COST_PERMILLE = 0;
   INFRA_AMORT_PCT = 0;

@@ -576,7 +576,7 @@ function OpexAI::_refreshSaveProjection()
   }
   local today = AIDate.GetCurrentDate();
   local month = AIDate.GetYear(today) * 12 + AIDate.GetMonth(today);
-  if (month == this._saveProjectionMonth) return;
+  if (month == this._saveProjectionMonth && this._saveProjection != null) return;
   this._saveProjectionMonth = month;
   local cache = {};
   foreach (line in this._lines) {

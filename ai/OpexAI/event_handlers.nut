@@ -452,10 +452,8 @@ function OpexAI::_onEngineAvailable(event)
     else if (vehicleType == AIVehicle.VT_AIR) mode = "air";
     else if (vehicleType == AIVehicle.VT_WATER) mode = "water";
     if (mode != null) {
-      local targetedRelevant = !(WATER_OPCODE_COMPAT_FALSE && WATER_OPCODE_COMPAT_FALSE
-          && mode == "water");
       this._markDirty("engine_available", [mode], [mode], true, true, "engine", engine,
-                      mode, targetedRelevant);
+                      mode, true);
     }
   }
   return;

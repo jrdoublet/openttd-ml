@@ -19,7 +19,6 @@ function OpexCashReserve()
     reserve = CASH_RESERVE_MAX;
     if (CASH_RESERVE_PROBE) CASH_RESERVE_PROBE_MAX_BINDS++;
   } else reserve = quarterlyBuffer;
-  if (OPEX_ECONOMY_OPCODE_COMPAT_FALSE) {}
   if (cashMark != null) OpexSpanAgg("pub.cash", cashMark);
   return reserve;
 }
@@ -30,8 +29,7 @@ function OpexCashReserve()
 function OpexAvailableCapital()
 {
   local cash = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
-  local borrowable = OPEX_ECONOMY_OPCODE_COMPAT_FALSE
-      ? AICompany.GetMaxLoanAmount() - AICompany.GetLoanAmount() : 0;
+  local borrowable = 0;
   if (borrowable < 0) borrowable = 0;
   local available = cash + borrowable - OpexCashReserve();
   return available > 0 ? available : 0;
