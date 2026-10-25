@@ -7,6 +7,10 @@ apparie pour OpexAI (compagnie 0) :
 - RAIL_BUILD / AIR_BUILD / ROAD_BUILD / WATER_BUILD (ligne, distance, cout reel, flotte initiale) ;
 - LINE_REVENUE (rapport annuel : revenu, profit et exploitation predits et realises, age, flotte).
 
+Une copie .log/.log.gz d'une meme partie ne compte qu'une fois si ses donnees de calibration
+sont identiques ; des copies contradictoires interrompent l'analyse avec leurs deux chemins.
+Le bras et la repetition restent distincts, meme a graine identique.
+
 Le predit de LINE_REVENUE est le modele BRUT (`line.predicted` = profitAnnual avant C70).
 Seules les lignes d'age >= 2 comptent (piege V298 : annee partielle). Le realise est ramene a la
 flotte initiale (x n0 / vehs) : sinon le ratio mesure la croissance de la flotte, pas le modele.
@@ -129,10 +133,15 @@ def parse_game(lines):
 
 
 def load_campaign(path):
+    """Charge une fois chaque journal logique ; refuse les copies de donnees contradictoires."""
     games = {}
+    sources = {}
     files = sorted(glob.glob(os.path.join(path, "*.log")) + glob.glob(os.path.join(path, "*.log.gz")))
     for f in files:
-        m = SEED_RE.search(os.path.basename(f).replace(".gz", ""))
+        name = os.path.basename(f)
+        if name.endswith(".gz"):
+            name = name[:-3]
+        m = SEED_RE.search(name)
         if not m:
             continue
         with open_text(f) as fh:
@@ -150,8 +159,14 @@ def load_campaign(path):
                         "cell": "%s|%s|%s|%s" % (r["mode"], cargo_class(r["cargo"]), dist_bin(b["dist"]),
                                                  era(int(r["year"] or 0)))})
             rows.append(row)
-        games[(os.path.basename(f), int(m.group(1)))] = {"rows": rows, "costs": costs,
-                                                          "unmatched": unmatched}
+        key = (name, int(m.group(1)))
+        game = {"rows": rows, "costs": costs, "unmatched": unmatched}
+        if key in games:
+            if games[key] != game:
+                raise ValueError("Journaux de calibration contradictoires : %s et %s" % (sources[key], f))
+            continue
+        games[key] = game
+        sources[key] = f
     return games
 
 
