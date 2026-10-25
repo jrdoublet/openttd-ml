@@ -307,7 +307,8 @@ function OpexAirGrowMarginalWindow(current)
  * D = (observed pickups + current backlog) * 365.25 / windowDays, fixed for
  * both fleet sizes. This deliberately drains the backlog over one window;
  * it predicts no rating improvement. Shared stations are explicitly unknown.
- * K = N * purchased-engine capacity * rotations/year, independently per cargo.
+ * K_N = current fleet's observed capacity * its rotation rate; K_N1 adds
+ * one purchased engine with its own capacity and rotation, per cargo.
  */
 function OpexAirGrowMarginalEstimate(line, catalog, lines, forcedEngine = null)
 {
@@ -341,7 +342,11 @@ function OpexAirGrowMarginalEstimate(line, catalog, lines, forcedEngine = null)
   if (s.unobservedTransitions * 4 > s.tripsA + s.tripsB) { r.fallback = "obs_unobserved"; return r; }
   if (s.engineChanges > 0 || current.engineChanges > 0) { r.fallback = "obs_engine_change"; return r; }
   if (s.mixedEngineSamples > 0 || current.mixedEngineSamples > 0) { r.fallback = "obs_mixed_engine"; return r; }
+  if (!("mailCargo" in catalog) || !AICargo.IsValidCargo(catalog.mailCargo)
+      || line.cargo != catalog.paxCargo) { r.fallback = "cargo"; return r; }
   local template = null;
+  local existingPaxCap = 0;
+  local existingMailCap = 0;
   r.n = 0;
   foreach (v in line.vehicles) {
     if (!AIVehicle.IsValidVehicle(v) || AIVehicle.GetVehicleType(v) != AIVehicle.VT_AIR) continue;
@@ -349,6 +354,11 @@ function OpexAirGrowMarginalEstimate(line, catalog, lines, forcedEngine = null)
     if (AIVehicle.GetEngineType(v) != s.lastEngine || AIVehicle.GetEngineType(v) != current.lastEngine) {
       r.fallback = "fleet_changed"; return r;
     }
+    local livePaxCap = AIVehicle.GetCapacity(v, line.cargo);
+    local liveMailCap = AIVehicle.GetCapacity(v, catalog.mailCargo);
+    if (livePaxCap < 0 || liveMailCap < 0) { r.fallback = "engine_capacity"; return r; }
+    existingPaxCap += livePaxCap;
+    existingMailCap += liveMailCap;
     if (template == null) template = v;
   }
   if (r.n <= 0 || s.lastLive != r.n || s.liveSum != s.samples * r.n
@@ -363,10 +373,14 @@ function OpexAirGrowMarginalEstimate(line, catalog, lines, forcedEngine = null)
   if (engine == null) engine = OpexAirBestEngineForLine(line, catalog);
   if (engine == null) engine = AIVehicle.GetEngineType(template);
   local oldEngine = AIVehicle.GetEngineType(template);
+  /* Diagnostic only: these IDs are already needed by the estimator. */
+  if (DECISION_LOG) {
+    r.rawset("oldEngine", oldEngine);
+    r.rawset("buyEngine", engine);
+  }
   local paxCap = 0;
   local mailCap = 0;
-  if (!("mailCargo" in catalog) || !AICargo.IsValidCargo(catalog.mailCargo)
-      || line.cargo != catalog.paxCargo) { r.fallback = "cargo"; return r; }
+  if (existingPaxCap <= 0) { r.fallback = "engine_capacity"; return r; }
   if (engine == oldEngine) {
     paxCap = AIVehicle.GetCapacity(template, line.cargo);
     mailCap = AIVehicle.GetCapacity(template, catalog.mailCargo);
@@ -388,12 +402,25 @@ function OpexAirGrowMarginalEstimate(line, catalog, lines, forcedEngine = null)
     siteB = { anchor = line.stationB, stationId = stationB }, reuseA = true, reuseB = true };
   local trip = OpexC121AirTripModel(plan, { id = engine });
   if (trip == null || trip.roundTripDays <= 0) { r.fallback = "rotation"; return r; }
-  local roundDays = trip.roundTripDays;
-  /* Observed full rotation = twice the mean completed leg, with loading time.
-   * Different purchased engine: C121 instead of reusing the old engine speed. */
-  if (engine == oldEngine && s.legDaysN >= 2 && s.legDays > 0)
-    roundDays = 2.0 * s.legDays / s.legDaysN;
-  local rotations = 365.25 / roundDays;
+  /* Existing aircraft keep their own engine. The new engine's C121 rotation
+   * must not be applied retroactively to the N already in service. */
+  local oldRoundDays = trip.roundTripDays;
+  /* Completed C117 legs include the loading delay of the existing fleet. */
+  if (s.legDaysN >= 2 && s.legDays > 0) {
+    oldRoundDays = 2.0 * s.legDays / s.legDaysN;
+  } else if (engine != oldEngine) {
+    local oldTrip = OpexC121AirTripModel(plan, { id = oldEngine });
+    if (oldTrip == null || oldTrip.roundTripDays <= 0) { r.fallback = "rotation"; return r; }
+    oldRoundDays = oldTrip.roundTripDays;
+  }
+  local rotationsExisting = 365.25 / oldRoundDays;
+  local addedRoundDays = engine == oldEngine ? oldRoundDays : trip.roundTripDays;
+  local rotationsAdded = 365.25 / addedRoundDays;
+  if (DECISION_LOG) {
+    local rotationOld = (s.legDaysN >= 2 && s.legDays > 0) ? "c117" : "c121";
+    r.rawset("rotationOld", rotationOld);
+    r.rawset("rotationBuy", engine == oldEngine ? rotationOld : "c121");
+  }
   local incomeDays = OpexC121PhysicalPaymentDays(trip);
   r.price = AIEngine.GetPrice(engine);
   r.cost = AIEngine.GetRunningCost(engine).tofloat();
@@ -457,8 +484,9 @@ function OpexAirGrowMarginalEstimate(line, catalog, lines, forcedEngine = null)
         waiting = rawWaiting.tofloat() / sharedCount.tofloat();
       }
       local demand = (picked.tofloat() + waiting) * 365.25 / days;
-      local kn = r.n * cap * rotations;
-      local kn1 = (r.n + 1) * cap * rotations;
+      local existingCap = cargoIndex == 0 ? existingPaxCap : existingMailCap;
+      local kn = existingCap * rotationsExisting;
+      local kn1 = kn + cap * rotationsAdded;
       r.drev += fare * ((demand < kn1 ? demand : kn1) - (demand < kn ? demand : kn));
       if (DECISION_LOG) {
         local sep = direction == 0 && cargoIndex == 0 ? "" : ",";
@@ -494,5 +522,9 @@ function OpexAirGrowMarginalLog(line, r, prior, phase)
       + " decision=" + (AIR_GROW_MARGINAL == 1 ? "shadow" :
           (r.fallback != "none" ? "legacy" : (r.dp > 0 ? "accept" : "reject")))
       + " fallback=" + r.fallback + " phase=" + phase
+      + " old_engine=" + (("oldEngine" in r) ? r.oldEngine : -1)
+      + " buy_engine=" + (("buyEngine" in r) ? r.buyEngine : -1)
+      + " rot_old=" + (("rotationOld" in r) ? r.rotationOld : "unknown")
+      + " rot_buy=" + (("rotationBuy" in r) ? r.rotationBuy : "unknown")
       + " shared=" + r.shared + " wshare=" + r.wshare);
 }

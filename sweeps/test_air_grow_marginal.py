@@ -49,10 +49,14 @@ def without_guards(body):
 
 
 def marginal(components, annual_cost, price, life_days):
-    """(annual D, N, units/aircraft, rotations/year, £/unit) for each sense/cargo."""
-    revenue = sum(fare * (min(demand, (n + 1) * cap * rotations)
-                          - min(demand, n * cap * rotations))
-                  for demand, n, cap, rotations, fare in components)
+    """(D, existing total seats, old rotations, new seats, new rotations, fare).
+
+    Existing aircraft are not upgraded when a different engine is bought.
+    Each sense and cargo has its own demand and capacity.
+    """
+    revenue = sum(fare * (min(demand, old_cap * old_rot + new_cap * new_rot)
+                          - min(demand, old_cap * old_rot))
+                  for demand, old_cap, old_rot, new_cap, new_rot, fare in components)
     return revenue, revenue - annual_cost - price * 365.25 / life_days
 
 
@@ -81,8 +85,28 @@ class AirGrowMarginal(unittest.TestCase):
         for name in ("air_fleet.nut", "projects_builders.nut"):
             self.assertIn("if (DECISION_LOG) OpexAirGrowMarginalLog(", read(name))
         body = _function_body(source, "OpexAirGrowMarginalLog")
-        for field in ("line", "n", "d", "kn", "kn1", "drev", "cost", "amort", "dp", "prior", "decision", "fallback", "win_days", "wins", "shared", "wshare"):
+        for field in ("line", "n", "d", "kn", "kn1", "drev", "cost", "amort", "dp", "prior", "decision", "fallback", "win_days", "wins", "shared", "wshare", "old_engine", "buy_engine", "rot_old", "rot_buy"):
             self.assertIn(field + "=", body)
+
+    def test_engine_choice_and_rotation_provenance_are_log_only(self):
+        estimate = _function_body(read("air_fleet.nut"), "OpexAirGrowMarginalEstimate")
+        log = _function_body(read("air_fleet.nut"), "OpexAirGrowMarginalLog")
+        # The choice is made by the unchanged selector. No further API lookup
+        # or trip model is introduced merely to print the engine identifiers.
+        self.assertIn("if (engine == null) engine = OpexAirBestEngineForLine(line, catalog);", estimate)
+        self.assertIn('if (DECISION_LOG) {\n    r.rawset("oldEngine", oldEngine);\n    r.rawset("buyEngine", engine);\n  }', estimate)
+        self.assertIn('local rotationOld = (s.legDaysN >= 2 && s.legDays > 0) ? "c117" : "c121";', estimate)
+        self.assertIn('r.rawset("rotationOld", rotationOld);', estimate)
+        self.assertIn('r.rawset("rotationBuy", engine == oldEngine ? rotationOld : "c121");', estimate)
+        self.assertRegex(estimate, r'if \(DECISION_LOG\) \{\s+local rotationOld = .*?\s+r\.rawset\("rotationOld", rotationOld\);\s+r\.rawset\("rotationBuy", .*?\);\s+\}')
+        self.assertIn('" old_engine=" + (("oldEngine" in r) ? r.oldEngine : -1)', log)
+        self.assertIn('" buy_engine=" + (("buyEngine" in r) ? r.buyEngine : -1)', log)
+        self.assertIn('" rot_old=" + (("rotationOld" in r) ? r.rotationOld : "unknown")', log)
+        self.assertIn('" rot_buy=" + (("rotationBuy" in r) ? r.rotationBuy : "unknown")', log)
+        self.assertEqual(estimate.count('r.rawset("oldEngine"'), 1)
+        self.assertEqual(estimate.count('r.rawset("buyEngine"'), 1)
+        self.assertNotIn('"oldEngine"', read("persist.nut"))
+        self.assertNotIn('"buyEngine"', read("persist.nut"))
 
     def test_shadow_and_unknown_do_not_apply_decision(self):
         fleet = _function_body(read("projects_builders.nut"), "OpexProjectFromFleet")
@@ -101,11 +125,17 @@ class AirGrowMarginal(unittest.TestCase):
         self.assertIn("(direction == 0 ? s.paxB : s.paxA)", body)
         self.assertIn("(direction == 0 ? s.mailB : s.mailA)", body)
         self.assertIn("(picked.tofloat() + waiting) * 365.25 / days", body)
-        self.assertIn("r.n * cap * rotations", body)
-        self.assertIn("(r.n + 1) * cap * rotations", body)
+        self.assertIn("existingPaxCap += livePaxCap;", body)
+        self.assertIn("existingMailCap += liveMailCap;", body)
+        self.assertIn("local existingCap = cargoIndex == 0 ? existingPaxCap : existingMailCap;", body)
+        self.assertIn("local kn = existingCap * rotationsExisting;", body)
+        self.assertIn("local kn1 = kn + cap * rotationsAdded;", body)
+        self.assertNotIn("r.n * cap * rotations", body)
         self.assertIn("(demand < kn1 ? demand : kn1) - (demand < kn ? demand : kn)", body)
         self.assertIn("OpexC121AirTripModel", body)
         self.assertIn("s.legDaysN >= 2", body)
+        self.assertIn("OpexC121AirTripModel(plan, { id = oldEngine })", body)
+        self.assertIn("local addedRoundDays = engine == oldEngine ? oldRoundDays : trip.roundTripDays;", body)
         self.assertNotIn("GetCargoRating", body)
         for reason in ("obs_days", "obs_stale", "obs_trips", "obs_invalid_order", "obs_unobserved",
                        "obs_engine_change", "obs_mixed_engine", "fleet_changed",
@@ -169,21 +199,45 @@ class AirGrowMarginal(unittest.TestCase):
 
     def test_satisfied_demand_has_zero_extra_revenue(self):
         for demand in (0, 500, 1000):
-            revenue, profit = marginal([(demand, 2, 50, 10, 70)], 5000, 40000, 20 * 365.25)
+            revenue, profit = marginal([(demand, 100, 10, 50, 10, 70)], 5000, 40000, 20 * 365.25)
             self.assertEqual(revenue, 0)
             self.assertEqual(profit, -7000)
 
     def test_common_demand_caps_partial_increment(self):
-        revenue, profit = marginal([(1200, 2, 50, 10, 70)], 5000, 40000, 20 * 365.25)
+        revenue, profit = marginal([(1200, 100, 10, 50, 10, 70)], 5000, 40000, 20 * 365.25)
         self.assertEqual(revenue, 200 * 70)
         self.assertEqual(profit, 7000)
 
     def test_senses_and_cargos_are_not_pooled(self):
-        components = [(3000, 2, 50, 10, 70), (100, 2, 50, 10, 70),
-                      (250, 2, 10, 10, 20), (0, 2, 10, 10, 20)]
+        components = [(3000, 100, 10, 50, 10, 70), (100, 100, 10, 50, 10, 70),
+                      (250, 20, 10, 10, 10, 20), (0, 20, 10, 10, 10, 20)]
         revenue, profit = marginal(components, 5000, 40000, 20 * 365.25)
         self.assertEqual(revenue, 500 * 70 + 50 * 20)
         self.assertEqual(profit, 29000)
+
+    def test_faster_larger_new_engine_does_not_upgrade_existing_fleet(self):
+        # Two old aircraft, 50 seats x 4 trips/year; one new, 100 seats x 10.
+        # A wrong baseline using the new engine on old aircraft would be 2000.
+        revenue, profit = marginal([(1000, 2 * 50, 4, 100, 10, 70)],
+                                   5000, 40000, 20 * 365.25)
+        self.assertEqual(revenue, 600 * 70)
+        self.assertEqual(profit, 35000)
+
+    def test_slower_smaller_new_engine_preserves_old_fleet_capacity(self):
+        # Existing fast planes already cover most of the demand; the new slow
+        # engine contributes only the remaining 20 units before saturation.
+        revenue, _ = marginal([(1220, 3 * 40, 10, 20, 4, 70)],
+                              5000, 40000, 20 * 365.25)
+        self.assertEqual(revenue, 20 * 70)
+
+    def test_sum_of_live_capacities_and_distinct_cargo_compartments(self):
+        # Same-engine aircraft may have different observed refit capacities.
+        # Existing PASS = (50+40) x 6; newly purchased = 30 x 12.
+        # Existing MAIL = (8+12) x 6; newly purchased = 5 x 12.
+        components = [(700, 90, 6, 30, 12, 70),
+                      (150, 20, 6, 5, 12, 20)]
+        revenue, _ = marginal(components, 5000, 40000, 20 * 365.25)
+        self.assertEqual(revenue, 160 * 70 + 30 * 20)
 
 
 if __name__ == "__main__":
