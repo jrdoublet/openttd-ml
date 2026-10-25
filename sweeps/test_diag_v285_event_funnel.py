@@ -80,6 +80,68 @@ class EventFunnelTests(unittest.TestCase):
         self.assertEqual(row["counts"]["intent_events_without_move_signature_match"], 1)
         self.assertEqual(row["distinct_line_counts"]["intention_without_observed_move"], 1)
 
+    def test_unmatched_intention_retains_date_and_log_observation_window(self):
+        source = intent("1972-12-5", line="10", old="3", new="4") + (
+            "[0] [I] OPEX 1972-12-30 TASK name=report\n"
+        )
+        row = analyze([self.write("v285m6_seed7_r0.log", source)])["runs"][0]
+        self.assertEqual(row["last_logged_opex_day"], "1972-12-30")
+        unmatched = row["unmatched_intention_signatures"]
+        self.assertEqual(len(unmatched), 1)
+        self.assertEqual(
+            (unmatched[0]["line"], unmatched[0]["old_wagons"],
+             unmatched[0]["new_wagons"], unmatched[0]["intention_days"]),
+            (10, 3, 4, ["1972-12-5"]),
+        )
+        self.assertEqual(unmatched[0]["classification"], "pending_or_unobserved")
+        self.assertEqual(unmatched[0]["days_from_latest_intention_to_last_opex_log"], 25)
+
+    def test_repeated_same_signature_only_count_overlap_no_failed_date_inference(self):
+        source = (intent("1971-1-1") + intent("1971-7-1") +
+                  result("moved", "1971-8-10") + result("completed", "1971-8-10"))
+        row = analyze([self.write("v285m6_seed42_r0.log", source)])["runs"][0]
+        detail = row["unmatched_intention_signatures"][0]
+        self.assertEqual(detail["intention_count"], 2)
+        self.assertEqual(detail["confirmed_move_count_same_signature"], 1)
+        self.assertEqual(detail["unmatched_signature_count"], 1)
+        self.assertEqual(detail["intention_days"], ["1971-1-1", "1971-7-1"])
+        self.assertEqual(row["counts"]["intent_events_without_move_signature_match"], 1)
+
+    def test_matching_late_move_not_mislabeled_unmatched(self):
+        source = (intent("1971-1-1") +
+                  result("moved", "1971-3-12") + result("completed", "1971-3-12"))
+        row = analyze([self.write("v285m6_seed42_r0.log", source)])["runs"][0]
+        self.assertEqual(row["unmatched_intention_signatures"], [])
+        self.assertEqual(row["counts"]["confirmed_move_operations"], 1)
+
+    def test_non_move_result_is_reported_but_not_called_physical_move(self):
+        source = intent() + result("failed", reason="depot_send_failed")
+        row = analyze([self.write("v285m6_seed42_r0.log", source)])["runs"][0]
+        detail = row["unmatched_intention_signatures"][0]
+        self.assertEqual(detail["classification"], "non_move_result_logged")
+        self.assertEqual(detail["other_result_events_same_signature"][0]["reason"],
+                         "depot_send_failed")
+        self.assertEqual(row["counts"]["confirmed_move_operations"], 0)
+
+    def test_gzip_and_plain_copy_keep_one_unmatched_detail(self):
+        source = intent("1972-12-5") + "[0] [I] OPEX 1972-12-30 TASK name=report\n"
+        self.write("v285m6_seed42_r0.log.gz", source)
+        self.write("v285m6_seed42_r0.log", source)
+        output = analyze([self.directory])
+        self.assertEqual(output["logical_games"], 1)
+        self.assertEqual(output["log_gzip_copies_collapsed"], 1)
+        self.assertEqual(output["runs"][0]["unmatched_intention_signatures"][0]
+                         ["days_from_latest_intention_to_last_opex_log"], 25)
+
+    def test_duplicate_gzip_with_same_v285_but_different_last_day_is_rejected(self):
+        source = intent("1972-12-5")
+        self.write("v285m6_seed42_r0.log.gz", source +
+                   "[0] [I] OPEX 1972-12-30 TASK name=report\n")
+        self.write("v285m6_seed42_r0.log", source +
+                   "[0] [I] OPEX 1972-12-15 TASK name=report\n")
+        with self.assertRaisesRegex(ValueError, "copies log/gzip contradictoires"):
+            analyze([self.directory])
+
     def test_completion_alone_is_not_a_confirmed_move(self):
         row = analyze([self.write("v285m6_seed42_r0.log", result("completed"))])["runs"][0]
         self.assertEqual(row["counts"]["completed_operation_notifications"], 1)

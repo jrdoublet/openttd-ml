@@ -11,6 +11,7 @@ Neither this diagnostic nor an event count estimates causal revenue/ROI.
 
 import argparse
 from collections import Counter, defaultdict
+from datetime import date
 import gzip
 import json
 from pathlib import Path
@@ -22,6 +23,7 @@ EVENT = re.compile(
     r"\bOPEX\s+(?P<day>\d{4}-\d{1,2}-\d{1,2})\s+"
     r"(?P<tag>V285_GATE|V285_RESULT|V285)\b(?P<rest>[^\r\n]*)"
 )
+OPEX_DAY = re.compile(r"\[0\]\s+\[I\]\s+OPEX\s+(\d{4}-\d{1,2}-\d{1,2})\b")
 KEY_VALUES = re.compile(r"\b([A-Za-z_][A-Za-z_0-9]*)=(\S+)")
 FIELDS = {
     "gate": ("line", "reason", "trains", "wagons", "platform"),
@@ -40,8 +42,14 @@ def read_one(path):
     unique = {}
     raw_events = 0
     unparsed_markers = 0
+    last_opex_day = None
     with opener(path, "rt", encoding="utf-8", errors="replace") as handle:
         for raw in handle:
+            observed_day = OPEX_DAY.search(raw)
+            if observed_day:
+                candidate_day = tuple(int(part) for part in observed_day[1].split("-"))
+                if last_opex_day is None or candidate_day > last_opex_day:
+                    last_opex_day = candidate_day
             # Other V285 actions are out of scope, but a malformed selected
             # marker must not disappear without an explicit coverage warning.
             selected = ("V285_GATE" in raw or "V285_RESULT" in raw
@@ -83,10 +91,14 @@ def read_one(path):
         "raw_events": raw_events,
         "identical_event_lines_ignored": raw_events - len(unique),
         "unparsed_marker_lines": unparsed_markers,
+        "last_opex_day": (
+            f"{last_opex_day[0]:04d}-{last_opex_day[1]:02d}-{last_opex_day[2]:02d}"
+            if last_opex_day is not None else None
+        ),
     }
 
 
-def summarize(events):
+def summarize(events, last_opex_day=None):
     """A moved+completed pair identifies ONE result operation, never two."""
     counters = Counter()
     gates = Counter()
@@ -100,6 +112,8 @@ def summarize(events):
     operations = defaultdict(set)
     intention_lines, moved_lines, completed_lines = set(), set(), set()
     intent_signatures = Counter()
+    intent_dates = defaultdict(list)
+    result_details = defaultdict(list)
     for event in events:
         kind, line = event["event_type"], event["line"]
         counters[kind + "_events"] += 1
@@ -120,10 +134,16 @@ def summarize(events):
             signature = (line, event["old_wagons"], event["new_wagons"])
             if all(value is not None for value in signature):
                 intent_signatures[signature] += 1
+                intent_dates[signature].append(event["day"])
             else:
                 counters["intent_events_missing_pair_identity"] += 1
         else:
             action = event["action"]
+            pair_signature = (line, event["old_wagons"], event["new_wagons"])
+            if all(part is not None for part in pair_signature):
+                result_details[pair_signature].append({
+                    "day": event["day"], "action": action, "reason": event["reason"],
+                })
             if action == "moved":
                 counters["moved_result_events"] += 1
                 if line is not None:
@@ -162,6 +182,41 @@ def summarize(events):
         sum(intent_signatures.values()) - signature_overlap)
     counters["moves_without_intent_signature_match"] = (
         len(confirmed) - signature_overlap)
+    unmatched_intentions = []
+    for signature, total in sorted(intent_signatures.items()):
+        moved_count = moved_signatures[signature]
+        unmatched = max(0, total - moved_count)
+        if unmatched == 0:
+            continue
+        dates = sorted(intent_dates[signature],
+                       key=lambda value: tuple(int(part) for part in value.split("-")))
+        outcomes = sorted(result_details[signature], key=lambda row: (
+            tuple(int(part) for part in row["day"].split("-")), row["action"] or "",
+        ))
+        non_move = [row for row in outcomes if row["action"] not in ("moved", "completed")]
+        completion_only = (
+            any(row["action"] == "completed" for row in outcomes) and moved_count == 0
+        )
+        latest = date(*map(int, dates[-1].split("-")))
+        last = date(*map(int, last_opex_day.split("-"))) if last_opex_day else None
+        unmatched_intentions.append({
+            "line": signature[0],
+            "old_wagons": signature[1],
+            "new_wagons": signature[2],
+            "intention_count": total,
+            "confirmed_move_count_same_signature": moved_count,
+            "unmatched_signature_count": unmatched,
+            "intention_days": dates,
+            "other_result_events_same_signature": non_move,
+            "classification": (
+                "non_move_result_logged" if non_move else
+                "completion_without_confirmed_move" if completion_only else
+                "pending_or_unobserved"
+            ),
+            "days_from_latest_intention_to_last_opex_log": (
+                (last - latest).days if last is not None else None
+            ),
+        })
     for line, _, _, _ in confirmed:
         per_line[line]["confirmed_move_operations"] += 1
     counters["confirmed_move_operations"] = len(confirmed)
@@ -203,6 +258,7 @@ def summarize(events):
             kind: {name: missing[kind][name] for name in fields}
             for kind, fields in FIELDS.items()},
         "per_line": {str(k): detail_dict(v) for k, v in sorted(per_line.items())},
+        "unmatched_intention_signatures": unmatched_intentions,
     }
 
 
@@ -237,10 +293,11 @@ def analyze(inputs):
         first_file, first = parsed[0]
         for file, alternative in parsed[1:]:
             if (first["signatures"] != alternative["signatures"]
-                    or first["unparsed_marker_lines"] != alternative["unparsed_marker_lines"]):
+                    or first["unparsed_marker_lines"] != alternative["unparsed_marker_lines"]
+                    or first["last_opex_day"] != alternative["last_opex_day"]):
                 raise ValueError(f"copies log/gzip contradictoires : {first_file} / {file}")
         duplicates_collapsed += len(files) - 1
-        summary = summarize(first["events"])
+        summary = summarize(first["events"], last_opex_day=first["last_opex_day"])
         runs.append({
             "arm": identity["arm"], "seed": int(identity["seed"]),
             "repeat": int(identity["repeat"]),
@@ -249,6 +306,7 @@ def analyze(inputs):
             "raw_event_lines": first["raw_events"],
             "identical_event_lines_ignored": first["identical_event_lines_ignored"],
             "unparsed_marker_lines": first["unparsed_marker_lines"],
+            "last_logged_opex_day": first["last_opex_day"],
             **summary,
         })
     by_arm = defaultdict(lambda: Counter())
@@ -271,6 +329,8 @@ def analyze(inputs):
             "Only V285_RESULT action=moved with complete operation identity counts as a confirmed move.",
             "V285_RESULT action=completed is a notification, not a second move.",
             "Intent/move signature overlap uses line+old/new counts only; no causal or chronological matching is asserted.",
+            "Unmatched signatures do not identify a failed attempt: delayed moves or end-of-log censoring remain possible.",
+            "Days since latest intention end at the last logged Opex date, not a verified completion horizon.",
             "Events may be absent when the diagnostic is disabled or logs are truncated.",
             "No causal profit, counterfactual build, or station-platform cost estimate.",
         ],
