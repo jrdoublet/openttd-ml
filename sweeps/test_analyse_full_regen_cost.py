@@ -20,6 +20,36 @@ from sweeps.analyse_full_regen_cost import (
 
 
 class TestAnalyseFullRegenCost(unittest.TestCase):
+    def test_phase_regen_after_other_fields(self) -> None:
+        line = ("[2026-10-12 14:26:20] dbg: [script:4] [0] [I] "
+                "OPEX 1972-1-3 C76_REGEN kind=full reason=reactive "
+                "year=1972 ops=180000 phase=regen days=25")
+        self.assertEqual(parse_log_line(line), {
+            "kind": "full", "reason": "reactive", "ops": 180000,
+            "days": 25, "modes": None, "year": 1972,
+        })
+
+    def test_reordered_log_is_included_in_total_300k(self) -> None:
+        logs = (
+            "[0] [I] OPEX 1972-1-2 C76_REGEN phase=regen kind=full "
+            "reason=reactive year=1972 days=20 ops=120000\n"
+            "[0] [I] OPEX 1972-1-3 C76_REGEN kind=full reason=reactive "
+            "year=1972 ops=180000 phase=regen days=25\n"
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "reference_seed42_r0.log"
+            path.write_text(logs, encoding="utf-8")
+            events = parse_log_files([path], kind_filter="full")
+        summary = aggregate_events(events)
+        self.assertEqual(summary["total_events"], 2)
+        self.assertEqual(summary["total_ops"], 300000)
+        self.assertEqual(summary["by_reason"]["reactive"]["total_ops"], 300000)
+
+    def test_publish_phase_is_still_rejected_with_reordered_kvs(self) -> None:
+        line = ("[0] [I] OPEX 1972-1-4 C76_REGEN kind=full "
+                "reason=reactive ops=999999 year=1972 phase=publish days=12")
+        self.assertIsNone(parse_log_line(line))
+
     def test_parse_log_line_formats(self) -> None:
         # Ligne 1 : Reconstruction périodique annuelle C78 découpée terminée à l'application
         line1 = "[2026-10-12 14:26:20] dbg: [script:4] [0] [I] OPEX 1951-1-3 C76_REGEN phase=regen kind=full reason=periodic year=1951 days=28 days_since_prev=0 ops=254120 towns_n=40"

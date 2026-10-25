@@ -25,7 +25,8 @@ from typing import Any, Dict, List, Optional
 #   ... OPEX <Y>-<M>-<D> C76_REGEN phase=regen kind=<kind> reason=<reason> year=<year>
 #       days=<days> days_since_prev=<n> ops=<ops> towns_n=... (champs clé=valeur)
 # L'ordre des champs n'est pas garanti stable : on lit les paires clé=valeur.
-RE_C76_REGEN = re.compile(r"C76_REGEN\s+(phase=regen\s.*)$")
+# Capture all KV fields regardless of their order; parse_log_line checks phase.
+RE_C76_REGEN = re.compile(r"\bC76_REGEN\s+(.*)$")
 RE_FIELD = re.compile(r"(\w+)=(\S*)")
 
 
