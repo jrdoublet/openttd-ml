@@ -59,6 +59,30 @@ class TestV309RegenReader(unittest.TestCase):
 
 
 class TestV309IdleReader(unittest.TestCase):
+    def test_one_copy_can_contain_additional_consistent_monthly_flushes(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            log = Path(tmp) / "reference_seed42_r0.log"
+            jan = idle_line("1970-1-1")
+            feb = idle_line("1970-2-1", loops=20, useless=4)
+            log.write_text(jan, encoding="utf-8")
+            with gzip.open(str(log) + ".gz", "wt", encoding="utf-8") as stream:
+                stream.write(jan + feb)
+            actual = read_idle_logs(tmp)["reference"][1970]
+            self.assertEqual(actual["months"], 2)
+            self.assertEqual(actual["loops"], 30)
+            self.assertEqual(actual["useless"], 6)
+
+    def test_contradictory_copies_cannot_create_a_hybrid_monthly_series(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            log = Path(tmp) / "reference_seed42_r0.log"
+            log.write_text(idle_line("1970-1-1"), encoding="utf-8")
+            for changed in (idle_line("1970-1-1", loops=20), idle_line("1970-2-1")):
+                with self.subTest(changed=changed):
+                    with gzip.open(str(log) + ".gz", "wt", encoding="utf-8") as stream:
+                        stream.write(changed)
+                    with self.assertRaisesRegex(ValueError, "copies de partie contradictoires"):
+                        read_idle_logs(tmp)
+
     def test_each_game_month_counts_once_and_loop_percentage_is_weighted(self):
         with tempfile.TemporaryDirectory() as tmp:
             directory = Path(tmp)

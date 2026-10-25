@@ -27,6 +27,19 @@ FIELDS = re.compile(r'([\w]+)=([^\s]+)')
 MODES = ('rail', 'road', 'air', 'water', 'fleet')
 
 
+def _idle_monthly_rows(path):
+    """Compare unique observed months, tolerating repeated flushes in one log."""
+    months = {}
+    opener = gzip.open if path.suffix == '.gz' else open
+    with opener(path, 'rt', encoding='utf-8', errors='replace') as stream:
+        for line in stream:
+            event = IDLE.search(line)
+            if event is not None:
+                key = (int(event.group(1)), int(event.group(2)))
+                months.setdefault(key, dict(FIELDS.findall(event.group(3))))
+    return months
+
+
 def opcode_years(source, arm='reference'):
     data = json.loads(Path(source).read_text(encoding='utf-8'))
     if not data.get('valid') or not data.get('source_frozen'):
@@ -121,9 +134,20 @@ def read_idle_logs(directory):
         'stable_unfunded_observations': 0,
     }))
     seen_months = set()
+    first_copy_by_game = {}
     logs = sorted(p for p in Path(directory).glob('*.log*')
                   if re.search(r'_seed\d+_r\d+\.log(?:\.gz)?$', p.name))
     for log in logs:
+        base = log.name[:-3] if log.name.endswith('.gz') else log.name
+        if base in first_copy_by_game:
+            original = _idle_monthly_rows(first_copy_by_game[base])
+            duplicate = _idle_monthly_rows(log)
+            if (not (original.keys() <= duplicate.keys() or duplicate.keys() <= original.keys())
+                    or any(original[month] != duplicate[month]
+                           for month in original.keys() & duplicate.keys())):
+                raise ValueError(f'copies de partie contradictoires : {base}')
+        else:
+            first_copy_by_game[base] = log
         arm = re.sub(r'_seed\d+_r\d+\.log(?:\.gz)?$', '', log.name)
         match = re.search(r'_seed(\d+)_r(\d+)', log.name)
         stream_id = (arm, match.group(1), match.group(2)) if match else (arm, log.name)
