@@ -436,7 +436,30 @@ class PO01CContracts(unittest.TestCase):
         }
         for name, digest in expected.items():
             with self.subTest(name=name):
-                self.assertEqual(hashlib.sha256((AI / name).read_bytes()).hexdigest(), digest)
+                payload = (AI / name).read_bytes()
+                # L'opt-in N75 et son unique chargement sont les seuls octets
+                # permis hors des sources historiques PO01D. Leurs fragments
+                # exacts sont retires AVANT le SHA historique, jamais rebases.
+                if name == 'info.nut':
+                    fragment = (
+                        b'    AddSetting({ name = "n75_air_true_quote",\n'
+                        b'      description = "N75 experimental early AIR 1-to-2 fleet quote: 0=off, 1=shadow, 2=use V252 actual engine price in portfolio (1970-72 only)",\n'
+                        b'      min_value = 0, max_value = 2,\n'
+                        b'      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,\n'
+                        b'      flags = 0 });\n'
+                    )
+                    self.assertEqual(payload.count(fragment), 1)
+                    payload = payload.replace(fragment, b'', 1)
+                elif name == 'settings.nut':
+                    fragment = (
+                        b'  local n75QuoteMode = AIController.GetSetting("n75_air_true_quote");\n'
+                        b'  N75_AIR_TRUE_QUOTE = (n75QuoteMode >= 1 && n75QuoteMode <= 2) ? n75QuoteMode : 0;\n'
+                        b'  N75_AIR_TRUE_QUOTE_CACHE = {};\n'
+                        b'  N75_AIR_TRUE_QUOTE_CACHE_MONTH = -1;\n'
+                    )
+                    self.assertEqual(payload.count(fragment), 1)
+                    payload = payload.replace(fragment, b'', 1)
+                self.assertEqual(hashlib.sha256(payload).hexdigest(), digest)
 
         # PO03 ajoute exactement deux lignes dans _dispatchReactiveIntention.
         # Conserver la preuve byte-a-byte de tout le reste de orchestrator.nut :

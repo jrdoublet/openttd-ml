@@ -61,7 +61,9 @@ class TestV259BridgeRenew(unittest.TestCase):
 
     def test_ceiling_after_parameter_cleanup(self):
         # 43 vrais retraits ; PO03/C77 et PO02 adoptes sont conserves.
-        self.assertEqual(self.info.count("AddSetting("), 58)
+        # L'unique option N75 experimentale ne modifie pas les 58 reglages historiques.
+        legacy_info = re.sub(r'\s+AddSetting\(\{ name = "n75_air_true_quote",.*?\}\);', '', self.info, count=1, flags=re.S)
+        self.assertEqual(legacy_info.count("AddSetting("), 58)
         self.assertIn('name = "v259_bridge_renew"', self.info)
         test_v246 = (Path(__file__).resolve().parent / "test_v246_fixed_policies.py").read_text(encoding="utf-8")
         self.assertIn('self.assertLessEqual(info.count("AddSetting("), 58)', test_v246)

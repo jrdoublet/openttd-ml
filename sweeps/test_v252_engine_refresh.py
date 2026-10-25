@@ -23,7 +23,9 @@ class TestV252EngineRefresh(unittest.TestCase):
         cls.task = cls.sources["task_v252.nut"]
         cls.dispatch = _body(cls.task, "function OpexAI::_dispatchV252AirEngineRefresh(task, year)")
         cls.fleet = cls.sources["air_fleet.nut"]
-        cls.add_plane = _body(cls.fleet, "function OpexAirAddPlane(line, catalog = null, lines = null)")
+        # N75 ajoute uniquement un garde optionnel, faux par defaut ;
+        # la transaction V252 historique et son interface 3 args persistent.
+        cls.add_plane = _body(cls.fleet, "function OpexAirAddPlane(line, catalog = null, lines = null, n75PriceGuard = false)")
         cls.refleet = _body(cls.fleet, "function OpexAirRefleetCrashedPlane(line, catalog = null)")
 
     def test_setting_frozen_at_two(self):

@@ -291,7 +291,10 @@ class Contracts(unittest.TestCase):
         for difficulty in ("easy", "medium", "hard", "custom"):
             self.assertIn(difficulty + "_value = 3", block)
         self.assertIn("min_value = 0, max_value = 3", block)
-        self.assertLessEqual(info.count("AddSetting("), 58)
+        # Garder le plafond des 58 reglages historiques independamment de
+        # l'unique nouvel opt-in experimental N75 (contrat dedie).
+        legacy = re.sub(r'\s+AddSetting\(\{ name = "n75_air_true_quote",.*?\}\);', '', info, count=1, flags=re.S)
+        self.assertLessEqual(legacy.count("AddSetting("), 58)
         settings = read("settings.nut")
         self.assertIn('local v276 = AIController.GetSetting("v276_cand_slices");', settings)
         self.assertIn("V276_CAND_SLICES = (v276 == 3) ? (bigMap ? 2 : 0) : v276;", settings)

@@ -638,12 +638,51 @@ function OpexAI::_resizeAirFleets(year, plan = null)
     }
 
     local planePrice = (this._catalog.plane != null) ? this._catalog.plane.price : 30000;
+    local n75OldEngine = -1;
     if (("vehicles" in line)) {
       foreach (v in line.vehicles) {
         if (!AIVehicle.IsValidVehicle(v) || AIVehicle.GetVehicleType(v) != AIVehicle.VT_AIR) continue;
-        local ownPrice = AIEngine.GetPrice(AIVehicle.GetEngineType(v));
+        n75OldEngine = AIVehicle.GetEngineType(v);
+        local ownPrice = AIEngine.GetPrice(n75OldEngine);
         if (ownPrice > 0) planePrice = ownPrice;
         break;
+      }
+    }
+    /* N75: only an already-profitable/eligible 1->2 target fleet request.
+     * Existing quote uses old engine, while OpexAirAddPlane can buy a
+     * different V252 engine. Compute the same target without changing any
+     * demand/cadence/airport decision. SHADOW keeps legacy price verbatim.
+     * The 1->2 project remains subject to normal C77/C80/C75/available cash. */
+    local n75OldQuote = planePrice;
+    local n75NewQuote = planePrice;
+    local n75TargetEngine = -1;
+    if (N75_AIR_TRUE_QUOTE > 0 && plan != null && c121BelowTarget
+        && have == 1 && n75OldEngine >= 0
+        && year >= OPEX_START_YEAR && year <= OPEX_START_YEAR + 2) {
+      /* One quote per line/old engine/month. Re-selecting the same portfolio
+       * does not re-run the entire V252 engine economics on every pass. */
+      local monthKey = year * 12 + AIDate.GetMonth(AIDate.GetCurrentDate());
+      if (N75_AIR_TRUE_QUOTE_CACHE_MONTH != monthKey) {
+        N75_AIR_TRUE_QUOTE_CACHE = {};
+        N75_AIR_TRUE_QUOTE_CACHE_MONTH = monthKey;
+      }
+      local cacheKey = "" + line.lineId + ":" + n75OldEngine;
+      local cachedQuote = null;
+      if (cacheKey in N75_AIR_TRUE_QUOTE_CACHE) {
+        cachedQuote = N75_AIR_TRUE_QUOTE_CACHE[cacheKey];
+      } else {
+        local targetEngine = OpexAirBestEngineForLine(line, this._catalog);
+        local targetPrice = 0;
+        if (targetEngine != null && AIEngine.IsValidEngine(targetEngine)
+            && AIEngine.IsBuildable(targetEngine)) targetPrice = AIEngine.GetPrice(targetEngine);
+        cachedQuote = { engine = targetEngine, price = targetPrice };
+        N75_AIR_TRUE_QUOTE_CACHE.rawset(cacheKey, cachedQuote);
+      }
+      if (cachedQuote.engine != null && cachedQuote.price > 0
+          && cachedQuote.price != planePrice) {
+        n75NewQuote = cachedQuote.price;
+        n75TargetEngine = cachedQuote.engine;
+        if (N75_AIR_TRUE_QUOTE == 2) planePrice = n75NewQuote;
       }
     }
     /* Croissance d'une ligne aerienne EXISTANTE : aucun aeroport a batir, donc rien que
@@ -704,6 +743,16 @@ function OpexAI::_resizeAirFleets(year, plan = null)
       local want = (room < maxAddedPerPass) ? room : maxAddedPerPass;
       if (want > 0) {
         local fleetEntry = { line = line, want = want, planePrice = planePrice, baseVehicles = have };
+        if (n75TargetEngine >= 0) {
+          fleetEntry.n75QuoteOld <- n75OldQuote;
+          fleetEntry.n75QuoteNew <- n75NewQuote;
+          fleetEntry.n75QuoteEngine <- n75TargetEngine;
+          if (DECISION_LOG) OpexDecide("N75_QUOTE", "phase=plan mode=" + N75_AIR_TRUE_QUOTE
+              + " year=" + year + " line=" + line.lineId + " have=" + have
+              + " want=" + want + " old=" + n75OldQuote + " new=" + n75NewQuote
+              + " engine=" + n75TargetEngine + " cash="
+              + AICompany.GetBankBalance(AICompany.COMPANY_SELF));
+        }
         if (c121FirstLiveEntry) fleetEntry.c121FirstLive <- true;
         {
           /* V161 : voisines AIR vivantes partageant une gare, pour l'a priori. Index

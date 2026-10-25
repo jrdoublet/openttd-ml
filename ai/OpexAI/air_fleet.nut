@@ -67,7 +67,7 @@ function OpexAirBestEngineForLine(line, catalog)
   return bestPlaneId;
 }
 
-function OpexAirAddPlane(line, catalog = null, lines = null)
+function OpexAirAddPlane(line, catalog = null, lines = null, n75PriceGuard = false)
 {
   local result = { added = 0, reason = "" };
   if (!("vehicles" in line) || line.vehicles.len() == 0) {
@@ -136,6 +136,16 @@ function OpexAirAddPlane(line, catalog = null, lines = null)
       }
     }
     if (extra == null || !AIVehicle.IsValidVehicle(extra)) {
+      /* Under N75 the portfolio can budget a CHEAPER V252 engine. Never
+       * clone the more expensive old engine by fallback below the reserve. */
+      if (n75PriceGuard) {
+        local fallbackPrice = AIEngine.GetPrice(oldEngine);
+        if (fallbackPrice <= 0 || AICompany.GetBankBalance(AICompany.COMPANY_SELF)
+            < fallbackPrice + OpexCashReserve() + 1000) {
+          result.reason = "N75_FALLBACK_CASH";
+          return result;
+        }
+      }
       targetEngine = oldEngine;
       price = AIEngine.GetPrice(oldEngine);
       extra = AIVehicle.CloneVehicle(hangar, template, true);
@@ -159,6 +169,10 @@ function OpexAirAddPlane(line, catalog = null, lines = null)
   }
   result.added = 1;
   result.reason = "OK";
+  if (n75PriceGuard) {
+    result.builtEngine <- AIVehicle.GetEngineType(extra);
+    result.builtEnginePrice <- AIEngine.GetPrice(result.builtEngine);
+  }
   return result;
 }
 

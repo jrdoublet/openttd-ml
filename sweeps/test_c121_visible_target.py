@@ -22,7 +22,10 @@ class TestVisibleFleetTarget(unittest.TestCase):
         task = (AI / "task_air.nut").read_text(encoding="utf-8")
         projects = (AI / "task_projects.nut").read_text(encoding="utf-8")
         self.assertEqual(task.count('OpexAirAddPlane(line, this._catalog, this._lines)'), 1)
-        self.assertEqual(projects.count('OpexAirAddPlane(line, this._catalog, this._lines)'), 1)
+        # Le constructeur de flotte utilise toujours les trois memes
+        # informations AIR et passe en quatrieme un garde N75 opt-in.
+        self.assertEqual(projects.count('OpexAirAddPlane(line, this._catalog, this._lines,'), 1)
+        self.assertIn('N75_AIR_TRUE_QUOTE == 2 && ("n75QuoteEngine" in entry)', projects)
 
 
 if __name__ == "__main__":

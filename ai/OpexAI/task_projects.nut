@@ -208,6 +208,13 @@ function OpexAI::_tryBuildFleetProject(year, project, rank, passDiscards, builtK
    * test de tresorerie du portefeuille, sans droit de tirage anticipe. */
   local entry = project.payload;
   local line = entry.line;
+  if (N75_AIR_TRUE_QUOTE > 0 && ("n75QuoteEngine" in entry) && DECISION_LOG) {
+    OpexDecide("N75_QUOTE", "phase=execute mode=" + N75_AIR_TRUE_QUOTE
+        + " year=" + year + " line=" + ((line != null && ("lineId" in line)) ? line.lineId : -1)
+        + " old=" + entry.n75QuoteOld + " new=" + entry.n75QuoteNew
+        + " quote=" + entry.planePrice + " profit=" + project.profitAnnual
+        + " capital=" + project.budgetCapital + " rank=" + rank);
+  }
   if (R1_R3_TEST_ONLY) OpexR1R3FleetTrace(this, project, i, "execute", "entry");
   /* B8 / G10 : un projet flotte peut devenir stale entre son calcul (ou un cache portefeuille)
    * et son execution. Revalider ici, au dernier site avant OpexAirAddPlane, garantit qu'aucun
@@ -234,6 +241,20 @@ function OpexAI::_tryBuildFleetProject(year, project, rank, passDiscards, builtK
       passDiscards.append({ rank = i, mode = "fleet", src = project.src, dst = project.dst,
                             reason = "fleet_stale", extra = "" });
     return { outcome = "rejected", discards = passDiscards };
+  }
+  /* A quote cached at portfolio generation can become stale if a model
+   * disappears or a better V252 engine appears. Refuse the stale ON project;
+   * never spend on a different actual price than the one that won selection. */
+  if (N75_AIR_TRUE_QUOTE == 2 && ("n75QuoteEngine" in entry)) {
+    local liveEngine = OpexAirBestEngineForLine(line, this._catalog);
+    local livePrice = (liveEngine != null && AIEngine.IsValidEngine(liveEngine)
+        && AIEngine.IsBuildable(liveEngine)) ? AIEngine.GetPrice(liveEngine) : -1;
+    if (liveEngine != entry.n75QuoteEngine || livePrice != entry.n75QuoteNew) {
+      if (DECISION_LOG) OpexDecide("N75_QUOTE", "phase=stale line=" + line.lineId
+          + " year=" + year + " planned=" + entry.n75QuoteNew
+          + " live=" + livePrice);
+      return { outcome = "rejected", discards = passDiscards };
+    }
   }
   local need = entry.planePrice + OpexCashReserve();
   local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
@@ -264,7 +285,8 @@ function OpexAI::_tryBuildFleetProject(year, project, rank, passDiscards, builtK
                         project, i, -1, -1, builtKeys) : null;
   if (airF1Event != null) OpexAirF1Ready(airF1Event);
   for (local k = 0; k < entry.want; k++) {
-    local grown = OpexAirAddPlane(line, this._catalog, this._lines);
+    local grown = OpexAirAddPlane(line, this._catalog, this._lines,
+        N75_AIR_TRUE_QUOTE == 2 && ("n75QuoteEngine" in entry));
     if (R1_R3_TEST_ONLY) OpexR1R3Log("mechanism=R1 phase=api_result id="
         + (("r1r3Id" in project) ? project.r1r3Id : "unknown")
         + " pass=" + R1_R3_TEST_PASS + " cycle=" + this._taskCycle + " rank=" + i
@@ -279,6 +301,12 @@ function OpexAI::_tryBuildFleetProject(year, project, rank, passDiscards, builtK
       break;
     }
     if (grown.added <= 0) break;
+    if (N75_AIR_TRUE_QUOTE > 0 && ("n75QuoteEngine" in entry) && DECISION_LOG) {
+      OpexDecide("N75_QUOTE", "phase=built line=" + line.lineId + " year=" + year
+          + " old_quote=" + entry.n75QuoteOld + " plan_quote=" + entry.planePrice
+          + " engine=" + (("builtEngine" in grown) ? grown.builtEngine : -1)
+          + " engine_price=" + (("builtEnginePrice" in grown) ? grown.builtEnginePrice : -1));
+    }
     added += grown.added;
     local haveNow = (("vehCount" in line) ? line.vehCount : 0) + grown.added;
     line.vehCount <- haveNow;

@@ -13,6 +13,11 @@ class OpexAIInfo extends AIInfo {
    * Entre IA, la regle est de jouer a armes egales, sans auto-handicap. */
   function GetSettings()
   {
+    AddSetting({ name = "n75_air_true_quote",
+      description = "N75 experimental early AIR 1-to-2 fleet quote: 0=off, 1=shadow, 2=use V252 actual engine price in portfolio (1970-72 only)",
+      min_value = 0, max_value = 2,
+      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
+      flags = 0 });
     AddSetting({ name = "c77_intent_defer",
       description = "C77: defer intents (1=portfolio/worker, 2=also AIR year/subsidy expiry; default 2 since 23/10, porte B pass)",
       min_value = 0, max_value = 2,

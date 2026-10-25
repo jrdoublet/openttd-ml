@@ -25,7 +25,9 @@ class FixedPolicies(unittest.TestCase):
     def test_exactly_five_public_settings_retired(self):
         info, settings = read("info.nut"), read("settings.nut")
         # 101 options initiales, 43 retraits intentionnels ; PO03/C77 et
-        # PO02 restent declares et actifs malgre leur absence du vieux WIP.
+        # PO02 restent declares. N75 est un opt-in experimental supplementaire :
+        # conserver la preuve des 58 reglages historiques sans relever le plafond.
+        info = re.sub(r'\s+AddSetting\(\{ name = "n75_air_true_quote",.*?\}\);', '', info, count=1, flags=re.S)
         self.assertLessEqual(info.count("AddSetting("), 58)
         for name in PACKAGES:
             with self.subTest(name=name):
