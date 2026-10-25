@@ -262,10 +262,21 @@ function OpexMapManhattanSpan()
   return span > 1 ? span : 1;
 }
 
-function OpexComputeRoadToRailDistance(catalog, bestBus, bestTrain, ticksPerDay)
+function OpexComputeRoadToRailDistance(catalog, bestBus, bestTrain, ticksPerDay, diag = null)
 {
   local roadMin = (AIStation.GetCoverageRadius(AIStation.STATION_BUS_STOP) * 2) + 1;
-  if (bestBus == null || bestTrain == null || catalog.paxCargo < 0) return roadMin;
+  if (diag != null) {
+    diag.reason <- "ok";
+    diag.deltaM <- 0;
+    diag.num <- 0;
+    diag.denom <- 0;
+    diag.raw <- -1; // aucun seuil brut si l'equation retourne par une garde
+    diag.m <- 0;
+  }
+  if (bestBus == null || bestTrain == null || catalog.paxCargo < 0) {
+    if (diag != null) diag.reason = "missing_mode";
+    return roadMin;
+  }
 
   local kStop = catalog.costRoadBusStop;
   local kGare = catalog.costStation;
@@ -287,6 +298,10 @@ function OpexComputeRoadToRailDistance(catalog, bestBus, bestTrain, ticksPerDay)
   }
   local M = (nProd > 0) ? (meanM / nProd) : 0;
   if (M < 1) M = 1;
+  if (diag != null) {
+    diag.num = num;
+    diag.m = M;
+  }
 
   local vBus = AIEngine.GetMaxSpeed(bestBus).tofloat() * 0.8;
   local vRail = bestTrain.speed.tofloat();
@@ -298,16 +313,31 @@ function OpexComputeRoadToRailDistance(catalog, bestBus, bestTrain, ticksPerDay)
   local incRail = AICargo.GetCargoIncome(catalog.paxCargo, refD, transitRail.tointeger());
   local incBus = AICargo.GetCargoIncome(catalog.paxCargo, refD, transitBus.tointeger());
   local deltaM = incRail - incBus;
-  if (deltaM <= 0) return roadMin;
+  if (diag != null) diag.deltaM = deltaM;
+  if (deltaM <= 0) {
+    if (diag != null) diag.reason = "delta_nonpositive";
+    return roadMin;
+  }
   /* GetCargoIncome livre ici le gain TOTAL a refD, pas un gain par tuile.
    * L'equation qui isole d doit soustraire deux coefficients par tuile. */
   local deltaPerTile = deltaM.tofloat() / refD.tofloat();
 
   /* r_cible = 0,40 : ROI annuel vise pour amortir le capital fixe ferroviaire. */
   local denom = ((12.0 * M * deltaPerTile * 100.0) / 40.0) - cTile;
-  if (denom <= 0) return roadMin;
-  if (num <= 0) return roadMin;
+  if (diag != null) diag.denom = denom;
+  if (denom <= 0) {
+    if (diag != null) diag.reason = "denom_nonpositive";
+    return roadMin;
+  }
+  if (num <= 0) {
+    if (diag != null) diag.reason = "num_nonpositive";
+    return roadMin;
+  }
   local d = num / denom;
+  if (diag != null) {
+    diag.raw = d.tointeger();
+    if (d < roadMin) diag.reason = "minimum";
+  }
   if (d < roadMin) d = roadMin;
   return d.tointeger();
 }
@@ -359,10 +389,14 @@ function OpexRefreshEpochBounds(catalog)
   local bestTrain = (pax >= 0) ? OpexGetEpochRailProfile(catalog, pax, 20) : null;
   local bestPlane = (pax >= 0) ? OpexGetEpochVehicle(AIVehicle.VT_AIR, pax) : null;
 
-  local roadMax = OpexComputeRoadToRailDistance(catalog, bestBus, bestTrain, tpd);
+  local roadDiag = DECISION_LOG ? {} : null;
+  local roadMax = OpexComputeRoadToRailDistance(catalog, bestBus, bestTrain, tpd, roadDiag);
   if (roadMax < roadMin) roadMax = roadMin;
   local mapSpan = OpexMapManhattanSpan();
-  if (roadMax > mapSpan) roadMax = mapSpan;
+  if (roadMax > mapSpan) {
+    if (roadDiag != null) roadDiag.reason += "+map_span";
+    roadMax = mapSpan;
+  }
 
   local iterCap = (HARD_ITERATION_CAP * 12) / 10;
   local railMax = OpexRailDistanceForIterations(iterCap);
@@ -371,7 +405,9 @@ function OpexRefreshEpochBounds(catalog)
    * AAAHogEx pose ses lignes a 117 tuiles medianes. Le reglage remplace la borne derivee. */
   if (V168_RAIL_MAX_DIST > 0) railMax = V168_RAIL_MAX_DIST;
   if (V294_RAIL_DIST_DECOUPLE > 0) railMax = V294_RAIL_DIST_DECOUPLE;
+  local railMaxSource = DECISION_LOG ? railMax : 0;
   if (railMax < roadMax) railMax = roadMax;
+  local railRoadFloor = DECISION_LOG && railMax != railMaxSource;
 
   /* Si le rail s'amortit des le bassin, la bande exclusive route est vide. On
    * laisse quand meme les camions concourir jusqu'a l'horizon de transit du bus
@@ -404,10 +440,24 @@ function OpexRefreshEpochBounds(catalog)
 
   local airMax = bestPlane ? OpexComputeAirMaxDistance(bestPlane, tpd, airportType, pax) : 0;
   if (airMax > mapSpan) airMax = mapSpan;
-  if (railAir > mapSpan) railAir = mapSpan;
+  local railAirRaw = DECISION_LOG ? railAir : 0;
+  local railMaxPreMap = DECISION_LOG ? railMax : 0;
+  local railClamp = "none";
+  if (railAir > mapSpan) {
+    if (DECISION_LOG) railClamp = "map_span";
+    railAir = mapSpan;
+  }
   if (railMax > mapSpan) railMax = mapSpan;
-  if (railAir < roadMax) railAir = roadMax;
-  if (railAir > railMax) railAir = railMax;
+  if (railAir < roadMax) {
+    if (DECISION_LOG) railClamp = (railClamp == "none")
+      ? "road_max" : (railClamp + "+road_max");
+    railAir = roadMax;
+  }
+  if (railAir > railMax) {
+    if (DECISION_LOG) railClamp = (railClamp == "none")
+      ? "rail_max" : (railClamp + "+rail_max");
+    railAir = railMax;
+  }
 
   catalog.bounds = {
     roadMin = roadMin,
@@ -432,6 +482,35 @@ function OpexRefreshEpochBounds(catalog)
                + " airMin=" + catalog.bounds.airMin
                + " vRail=" + vRail + " vAir=" + vAirEff.tointeger()
                + " tFixe=" + tFixe.tointeger() + " tpd=" + tpd.tointeger());
+    /* FRONT-PAX-1: une fois par recalcul des bornes, jamais par candidat.
+     * Le modele de decision reste celui de EPOCH_BOUNDS (aucun filtre change). */
+    local planeDiv = OpexPlaneSpeedDivisor();
+    local tauRail = (bestTrain != null) ? OpexDaysPerTile(bestTrain.speed.tofloat(), tpd) : 0.0;
+    local tauAir = (bestPlane != null)
+      ? OpexDaysPerTile(AIEngine.GetMaxSpeed(bestPlane).tofloat() / planeDiv, tpd) : 0.0;
+    local railWagon = (pax >= 0 && pax in catalog.wagonByCargo) ? catalog.wagonByCargo[pax] : null;
+    local railDwell = (railWagon != null) ? OpexRailStationDwellDays(railWagon) : 0.0;
+    local railBound = (V294_RAIL_DIST_DECOUPLE > 0) ? "v294"
+      : ((V168_RAIL_MAX_DIST > 0) ? "v168" : "iterations");
+    local railModel = (bestTrain == null || bestPlane == null) ? "missing_mode"
+      : ((tauRail <= tauAir) ? "rail_faster" : "crossing");
+    OpexDecide("FRONT_PAX_BOUNDS", "road_reason=" + roadDiag.reason
+               + " road_raw=" + roadDiag.raw + " road_delta=" + roadDiag.deltaM
+               + " road_num=" + roadDiag.num.tointeger()
+               + " road_denom=" + roadDiag.denom.tointeger() + " road_M=" + roadDiag.m
+               + " rail_raw=" + railAirRaw + " rail_clamp=" + railClamp
+               + " rail_model=" + railModel
+               + " rail_bound=" + railBound + " rail_source=" + railMaxSource
+               + " rail_road_floor=" + (railRoadFloor ? 1 : 0)
+               + " rail_map_cap=" + (railMaxPreMap > mapSpan ? 1 : 0)
+               + " rail_max=" + railMax
+               + " train=" + (bestTrain != null ? bestTrain.id : -1)
+               + " plane=" + (bestPlane != null ? bestPlane : -1)
+               + " airport=" + (airportType != null ? airportType : -1)
+               + " air_div=" + planeDiv + " rail_tau100=" + (tauRail * 100.0).tointeger()
+               + " air_tau100=" + (tauAir * 100.0).tointeger()
+               + " rail_dwell100=" + (railDwell * 100.0).tointeger()
+               + " air_fixed100=" + (tFixe * 100.0).tointeger());
   }
 }
 
