@@ -2,6 +2,22 @@
 
 ## Clôture de la nuit et décision du 25 octobre (mise à jour)
 
+**Vérification finale après adoption (20×10, 1970–1979) :** la campagne
+`nuit75_multicargo_default_20x10_seedsfix_20261025` est complète et
+saine (20/20 paires, 40 duels, 80 compagnies, manifeste SHA conforme),
+ancien défaut OFF contre multicargo ON sur le même bundle figé. La règle
+`non_erosion` rend **`pass`** : Δ moyen privé Opex **+76 417,10 £/an**,
+médiane +43 630,50, 11V/9D, Wilcoxon p=0,621513,
+IC95 bootstrap [−158 453,90 ; +318 370,15] £/an,
+valeur compagnie **+5,63979 %** (garde −5 % satisfaite). Ratios
+Opex/AAA de décembre 1979, ratio des moyennes / médiane appariée :
+OFF **58,9786 % / 59,7217 %**, ON **58,4889 % / 61,1192 %**.
+Gain privé moyen Opex descriptif, sans significativité ; objectif
+75 % **non atteint**. Il s'agit du comparatif explicitement commandé
+après adoption, aucune porte A historique n'est requalifiée. Analyse
+reproductible : `sweeps/analyse_nuit75_multicargo_default_20x10.py`,
+preuve `results/nuit75_multicargo_default_20x10_seedsfix_20261025_analysis.json`.
+
 La baseline 1970–1979 sur `master 83e436cc` reste **56,5519 %** de ratio des
 profits moyens Opex/AAAHogEx et **58,9112 %** de médiane des vingt ratios par
 graine. Les six variantes ont ensuite été revérifiées en portes **A40×5

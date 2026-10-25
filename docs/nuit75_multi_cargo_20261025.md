@@ -1,5 +1,22 @@
 # N75-MC — recharge ferroviaire d'un cargo supplémentaire (25/10/2026)
 
+> **État actualisé après le diagnostic décrit ci-dessous :** l'utilisateur a
+> explicitement décidé le 25/10 d'adopter `n75_multi_cargo=2` comme défaut
+> easy/medium/hard/custom, même si la nouvelle porte A40×5 multimodale
+> `nuit75_multicargo_porteA_40x5_20261025` est `fail_primary` :
+> +91 191,925 £/an, 24V/16D, Wilcoxon p=0,13868,
+> IC95 [−16 568,375 ; +197 955,75] £/an, seuil +112 369,415 £/an,
+> valeur +2,646 %. L'intégration a été publiée sur `master` au commit
+> `f3c1b1b1`. Son 20×10 indépendant est terminé, 20/20 paires saines,
+> **`non_erosion=pass`** : Δ moyen Opex +76 417,10 £/an, 11V/9D,
+> p=0,621513, IC95 bootstrap [−158 453,90 ; +318 370,15] £/an,
+> valeur +5,63979 %. Ratios Opex/AAA de 1979 OFF 58,9786 % / 59,7217 %,
+> ON 58,4889 % / 61,1192 % (ratio des moyennes / médiane par graine).
+> **Gain non significatif et objectif 75 % non atteint.** Rapport
+> `results/nuit75_multicargo_default_20x10_seedsfix_20261025_analysis.json`.
+> Les mentions « défaut OFF » et « aucune publication » ci-dessous sont
+> **historiques**, relatives à la phase expérimentale antérieure.
+
 ## But et état
 
 Objectif utilisateur : +4 % de profit OpexAI **dès fin 1972** en porte A V102

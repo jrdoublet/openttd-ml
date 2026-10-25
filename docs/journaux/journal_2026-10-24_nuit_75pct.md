@@ -1,5 +1,55 @@
 # Nuit du 24 au 25 octobre 2026 — objectif 75 % AAAHogEx
 
+### 25/10 — Résultat final du 20×10 multicargo (après adoption)
+
+**Campagne saine et complète :**
+`nuit75_multicargo_default_20x10_seedsfix_20261025`, source Git
+`f3c1b1b1a3930ca0a1b0e02d0f5b6d5e628c506b`, SHA256 du bundle
+`0bde1bde0de7a437c4365432d5c45be6d2becae0318b84dbb57e17376dae1c7d`,
+manifeste SHA conforme, 1970–1979, 256², multimodal, 20 graines
+identiques à la baseline 20×10 (dont **373684**, substitution à 73),
+40/40 duels et 80/80 bilans de compagnies complets, 20/20 paires,
+zéro partie invalide, zéro `failed_runs`, zéro erreur script dans les
+bilans structurés. Les 40 fichiers de logs moteur sont présents et vides :
+ils ne fournissent aucune preuve textuelle indépendante d'absence d'erreur.
+Un seul Docker utilisé avec 10 CPU, 8 GiB et **9 workers max**.
+Même code/bundle et `probes=2` pour les deux bras ; seul réglage effectif
+différent : `n75_multi_cargo=0` ancien défaut contre `=2` nouveau défaut.
+Le commit de base avant cette adoption est `02a48e95` ; l'option OFF
+sur le nouveau code fige le comportement témoin pour un A/B isolé.
+
+| Indicateur à fin 1979 | OFF (`0`) | ON (`2`) |
+|---|---:|---:|
+| Profit annuel moyen OpexAI | 4 139 142,55 £ | 4 215 559,65 £ |
+| Profit annuel moyen AAAHogEx | 7 018 046,05 £ | 7 207 457,70 £ |
+| Ratio Opex/AAA des profits moyens | **58,9786 %** | **58,4889 %** |
+| Médiane des 20 ratios Opex/AAA par graine | **59,7217 %** | **61,1192 %** |
+
+**Verdict officiel du harnais `non_erosion` : `pass`**, 20 paires :
+Δ moyen privé Opex ON−OFF **+76 417,10 £/an**, soit **+1,85 %** de
+4 139 142,55 £/an témoin ; médiane des différences **+43 630,50 £/an**,
+**11V/9D/0E**, Wilcoxon exact bilatéral **p=0,62151337**,
+IC95 bootstrap 20 000 rééchantillonnages graine 0
+**[−158 453,90 ; +318 370,15] £/an**. Valeur Opex ON/OFF
+(ratio des moyennes) **1,056398**, soit **+5,63979 %**, au-dessus de
+la garde de perte maximale −5 %. La borne haute de l'IC95 est positive :
+le critère `non_erosion` passe, sans prouver une hausse statistiquement
+significative. Le ratio de profits moyens Opex/AAA **baisse de 0,4897
+point** malgré le gain privé Opex, car le profit AAA varie lui aussi dans
+chaque bras ; la médiane des ratios monte **de 1,3974 point**.
+**La cible externe 75 % à dix ans n'est atteinte sur aucun des deux
+agrégats.** Ce test est une vérification postérieure à la décision
+utilisateur, pas la B conditionnelle de l'A40×5 antérieure `fail_primary`.
+
+Contrôle reproductible : `python -X utf8
+sweeps/analyse_nuit75_multicargo_default_20x10.py
+results/nuit75_multicargo_default_20x10_seedsfix_20261025.json
+--output results/nuit75_multicargo_default_20x10_seedsfix_20261025_analysis.json`.
+Rapports à publier : `.json` de synthèse, `.manifest.json`,
+`_analysis.json` ; exclusion des JSONL exhaustifs (~80 Mo) et `_engine/`.
+Le premier essai interrompu pour corriger 73→373684, documenté dans
+la section chronologique ci-dessous, n'a aucun verdict économique.
+
 ### 25/10, après clôture — adoption explicite de MULTICARGO et vérification 20×10
 
 L'utilisateur a demandé : « Accept multicargo as a new default and run a 20x10
@@ -23,6 +73,18 @@ et garde −5 %, ratios Opex/AAAHogEx moyen et médian par bras. La baseline
 historique 20×10 (56,5519 % / 58,9112 %) et les audits des six A sont
 conservés sans requalification. Les gros JSONL de moteurs et répertoires
 `*_engine/` restent dans les worktrees ; seules les synthèses sont publiées.
+
+**Correction avant résultat :** le premier lancement portant l'identifiant
+`nuit75_multicargo_default_20x10_20261025` utilisait par erreur la graine
+73 des cohortes courtes. Il a été interrompu sans rapport économique final,
+avec arrêt contrôlé de son unique conteneur. La baseline 20×10 de référence
+emploie à cette position **373684**, substitution documentée pour le long
+horizon. Le lancement définitif est
+`nuit75_multicargo_default_20x10_seedsfix_20261025`, 20 graines
+identiques à la baseline historique, source commit `f3c1b1b1`, bundle
+`0bde1bde0de7a437c4365432d5c45be6d2becae0318b84dbb57e17376dae1c7d`,
+OFF `n75_multi_cargo=0` contre ON `n75_multi_cargo=2`, `probes=2`
+symétriques ; aucun verdict n'est imputé au lancement interrompu.
 
 ### 25/10, 09:10 — CLÔTURE de la file A40×5 multimodale (six verdicts officiels)
 

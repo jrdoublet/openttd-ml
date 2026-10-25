@@ -7,6 +7,26 @@ ne créent pas une tâche. Protocole et pilotage des bancs : [AGENTS.md](../AGEN
 
 ## État courant
 
+**25/10 — BILAN PUBLIABLE DU COMPARATIF MULTICARGO APRÈS ADOPTION :**
+`nuit75_multicargo_default_20x10_seedsfix_20261025`, commit source
+`f3c1b1b1`, bundle `0bde1bde0de7a437c4365432d5c45be6d2becae0318b84dbb57e17376dae1c7d`.
+20/20 graines appariées, 40/40 duels, 80/80 bilans sains, aucun échec ou
+erreur script structurée, manifeste SHA vérifié ; deux bras sur **le même
+code figé**, ancien défaut explicite `n75_multi_cargo=0` contre nouveau
+défaut `n75_multi_cargo=2`. **Verdict `non_erosion=pass`** : Δ profit Opex
+**+76 417,10 £/an** en 1979 (**+1,85 %** du témoin), médiane
+**+43 630,50 £/an**, 11V/9D, Wilcoxon bilatéral **p=0,62151**, IC95
+bootstrap **[−158 453,90 ; +318 370,15] £/an**, valeur de compagnie
+**+5,63979 %** (garde −5 % tenue). Le gain reste **non significatif**,
+avec IC95 couvrant zéro. Ratios Opex/AAAHogEx à fin 1979 par bras
+(ratio des profits moyens / médiane des ratios appariés) : **OFF
+58,9786 % / 59,7217 %**, **ON 58,4889 % / 61,1192 %**. Le ratio
+des moyennes recule malgré la hausse du profit privé Opex car AAAHogEx
+gagne aussi davantage sur les mondes ON ; aucun des deux agrégats ON
+n'atteint **75 %**. Ceci valide uniquement la **non-érosion définie**
+par le protocole, sans requalifier la porte A40×5 `fail_primary`.
+Rapport et audit : `results/nuit75_multicargo_default_20x10_seedsfix_20261025_analysis.json`.
+
 **25/10 — DÉCISION EXPLICITE UTILISATEUR : multicargo nouveau défaut.**
 L'utilisateur ordonne « Accept multicargo as a new default and run a 20x10 on it »
 et la publication du code et des résultats nocturnes. Le paramètre

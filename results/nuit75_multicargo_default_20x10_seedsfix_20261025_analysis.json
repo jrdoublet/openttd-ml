@@ -1,0 +1,82 @@
+{
+  "campaign": "nuit75_multicargo_default_20x10_seedsfix_20261025",
+  "source_commit": "f3c1b1b1a3930ca0a1b0e02d0f5b6d5e628c506b",
+  "bundle": "0bde1bde0de7a437c4365432d5c45be6d2becae0318b84dbb57e17376dae1c7d",
+  "year": 1979,
+  "baseline_seeds": [
+    42,
+    100,
+    7,
+    999,
+    2026,
+    1,
+    17,
+    373684,
+    314,
+    512,
+    1024,
+    1337,
+    4096,
+    8191,
+    12345,
+    54321,
+    65537,
+    123456,
+    424242,
+    8675309
+  ],
+  "economic_verdict": {
+    "verdict": "pass",
+    "complete_pairs": 20,
+    "mean_delta": 76417.1,
+    "median_delta": 43630.5,
+    "wins": 11,
+    "losses": 9,
+    "ties": 0,
+    "wilcoxon_p": 0.6215133666992188,
+    "ci95": [
+      -158453.9,
+      318370.15
+    ],
+    "required_delta": 165565.702,
+    "company_value_percent_change": 5.63979,
+    "bundle": "0bde1bde0de7a437c4365432d5c45be6d2becae0318b84dbb57e17376dae1c7d",
+    "last_year": 1979,
+    "year_count": 10
+  },
+  "integrity": {
+    "campaign": "nuit75_multicargo_default_20x10_seedsfix_20261025",
+    "bundle": "0bde1bde0de7a437c4365432d5c45be6d2becae0318b84dbb57e17376dae1c7d",
+    "years": 10,
+    "seeds": 20,
+    "games": 40,
+    "company_rows": 80,
+    "complete_pairs": 20,
+    "script_error_count": 0,
+    "unhealthy_games": 0,
+    "unhealthy_summaries": 0,
+    "engine_log_count": 40,
+    "nonempty_engine_logs": 0,
+    "fatal_engine_messages": [],
+    "manifest_sha_ok": true,
+    "verdict": "pass",
+    "ok": true,
+    "issues": []
+  },
+  "ratios_opex_aaahogex": {
+    "reference": {
+      "n": 20,
+      "opex_mean": 4139142.55,
+      "aaa_mean": 7018046.05,
+      "ratio_of_means_pct": 58.97856070636641,
+      "median_paired_ratios_pct": 59.72172298942024
+    },
+    "n75multicargo_default": {
+      "n": 20,
+      "opex_mean": 4215559.65,
+      "aaa_mean": 7207457.7,
+      "ratio_of_means_pct": 58.48885731233636,
+      "median_paired_ratios_pct": 61.11915013369571
+    }
+  }
+}
