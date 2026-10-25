@@ -104,6 +104,10 @@ def read_idle_logs(directory):
         'cost_source_observations': 0, 'capped_wait_months': 0,
         'stable_unfunded_loops': 0, 'stable_unfunded_ops': 0,
         'stable_unfunded_observations': 0,
+        'cash_short_loops': 0, 'reserve_short_loops': 0,
+        'reserve_uncertain_loops': 0, 'sufficient_loops': 0,
+        'stable_sufficient_loops': 0, 'stable_sufficient_ops': 0,
+        'reserve_band_observations': 0,
     }))
     seen_months = set()
     logs = sorted(p for p in Path(directory).glob('*.log*')
@@ -163,6 +167,24 @@ def read_idle_logs(directory):
                     row['stable_unfunded_observations'] += 1
                 except (KeyError, ValueError):
                     pass
+                try:
+                    band_keys = ('cash_short_loops', 'reserve_short_loops',
+                                 'reserve_uncertain_loops', 'sufficient_loops')
+                    band = {key: int(fields[key]) for key in band_keys}
+                    stable_sufficient = int(fields['stable_sufficient_loops'])
+                    stable_sufficient_ops = int(fields['stable_sufficient_ops'])
+                    if (any(n < 0 for n in band.values()) or stable_sufficient < 0
+                            or stable_sufficient_ops < 0
+                            or sum(band.values()) > values['loops']
+                            or stable_sufficient > band['sufficient_loops']):
+                        raise ValueError('invalid reserve band counters')
+                    for key, n in band.items():
+                        row[key] += n
+                    row['stable_sufficient_loops'] += stable_sufficient
+                    row['stable_sufficient_ops'] += stable_sufficient_ops
+                    row['reserve_band_observations'] += 1
+                except (KeyError, ValueError):
+                    pass  # Anciens logs : la reserve n'etait pas observable.
                 if fields.get('wait_capped') == '1':
                     row['capped_wait_months'] += 1
                 try:
@@ -195,6 +217,11 @@ def read_idle_logs(directory):
         'stable_unfunded_ops': (row['stable_unfunded_ops']
                                 if row['stable_unfunded_observations'] == len(row['months'])
                                 else None),
+        **{key: (row[key] if row['reserve_band_observations'] == len(row['months'])
+                 else None)
+           for key in ('cash_short_loops', 'reserve_short_loops',
+                       'reserve_uncertain_loops', 'sufficient_loops',
+                       'stable_sufficient_loops', 'stable_sufficient_ops')},
         'capped_wait_months': row['capped_wait_months'],
         'wait_days_mean': round(mean(row['waits']), 2) if row['waits'] else None,
         'unavailable_waits': row['unavailable_waits'],
@@ -252,6 +279,18 @@ def render_idle(annual):
                   f"{row['useless_ops']} | {row['sleep_ops']} | {below_days} | {unknown} | "
                   f"{unfunded} | {stable} | {stable_ops} | {row['capped_wait_months']} | {days} | "
                   f"{row['blocks']}/1024 |")
+    if any(row['cash_short_loops'] is not None
+           for years in annual.values() for row in years.values()):
+        print('\nV309 classification des budgets (devis publies, parfois perimes) :')
+        print('| Bras | Annee | Caisse < devis | Reserve certainement bloquante | Reserve incertaine | Budget suffisant | Stable et budget suffisant | Ops stables et budget suffisant |')
+        print('|---|---:|---:|---:|---:|---:|---:|---:|')
+        for arm, years in annual.items():
+            for year, row in years.items():
+                names = ('cash_short_loops', 'reserve_short_loops',
+                         'reserve_uncertain_loops', 'sufficient_loops',
+                         'stable_sufficient_loops', 'stable_sufficient_ops')
+                values = ['-' if row[name] is None else str(row[name]) for name in names]
+                print(f'| {arm} | {year} | ' + ' | '.join(values) + ' |')
 
 
 def selftest():

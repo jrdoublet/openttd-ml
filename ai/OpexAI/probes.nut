@@ -2516,6 +2516,20 @@ function OpexV309IdleProjects(ai, state)
   return result;
 }
 
+/* Bornes de financabilite connues SANS relancer OpexCashReserve() a chaque tour.
+ * reserve reelle = clamp(running_cost/4, CASH_RESERVE_MIN, CASH_RESERVE_MAX).
+ * Dans la bande intermediaire la cause reste volontairement INCONNUE ; une
+ * nouvelle lecture AIVehicleList par tour fausserait cette sonde passive. */
+function OpexV309IdleFundingBand(cash, cost)
+{
+  if (cost == null || cost <= 0) return "unknown";
+  local margin = cash.tofloat() - cost.tofloat();
+  if (margin < 0.0) return "cash_short";
+  if (margin < CASH_RESERVE_MIN) return "reserve_short";
+  if (margin < CASH_RESERVE_MAX) return "reserve_uncertain";
+  return "sufficient";
+}
+
 /* Dernier rapport comptable clos (trimestre 1), ramene a 30 jours par mois.
  * Avant le premier trimestre complet, la vitesse de financement est inconnue.
  * Les depenses trimestrielles de NoAI sont signees negativement. */
@@ -2545,7 +2559,14 @@ function OpexV309IdleFlush(state)
       + " unfunded_cost_loops=" + state.unfundedCostLoops
       + " stable_unfunded_loops=" + state.stableUnfundedLoops
       + " stable_unfunded_ops=" + state.stableUnfundedOps
+      + " cash_short_loops=" + state.cashShortLoops
+      + " reserve_short_loops=" + state.reserveShortLoops
+      + " reserve_uncertain_loops=" + state.reserveUncertainLoops
+      + " sufficient_loops=" + state.sufficientLoops
+      + " stable_sufficient_loops=" + state.stableSufficientLoops
+      + " stable_sufficient_ops=" + state.stableSufficientOps
       + " cost_source=" + state.costSource + " wait_capped=" + state.waitCapped
+      + " wait_basis=reserve_minimum_bound"
       + " money=" + state.cash + " min_cost=" + state.minCost
       + " net_month=" + state.netMonth);
 }
@@ -2562,6 +2583,9 @@ function OpexV309IdleBegin()
         cashBelowDays = 0, lastCashDate = -1, unknownCostLoops = 0,
         unfundedCostLoops = 0, costSource = "unknown", waitCapped = 0,
         stableUnfundedLoops = 0, stableUnfundedOps = 0,
+        cashShortLoops = 0, reserveShortLoops = 0,
+        reserveUncertainLoops = 0, sufficientLoops = 0,
+        stableSufficientLoops = 0, stableSufficientOps = 0,
         cash = -1, minCost = -1, netMonth = -1, netMeasured = false,
         priorRevision = state != null ? state.priorRevision : null,
         priorBest = state != null ? state.priorBest : null, mark = null,
@@ -2585,7 +2609,14 @@ function OpexV309IdleTick(ai)
   local revision = OpexV309IdleRevisionKey(ai);
   local projects = OpexV309IdleProjects(ai, state);
   local cash = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
-  local below = projects.cost != null && cash < projects.cost;
+  local fundingBand = OpexV309IdleFundingBand(cash, projects.cost);
+  /* Seules les deux premieres classes prouvent une insuffisance ACTUELLE.
+   * Les stats du selecteur restent des instantanes possiblement perimes. */
+  local below = fundingBand == "cash_short" || fundingBand == "reserve_short";
+  if (fundingBand == "cash_short") state.cashShortLoops++;
+  else if (fundingBand == "reserve_short") state.reserveShortLoops++;
+  else if (fundingBand == "reserve_uncertain") state.reserveUncertainLoops++;
+  else if (fundingBand == "sufficient") state.sufficientLoops++;
   local idle = below && revision != null && state.priorRevision != null
       && revision == state.priorRevision && projects.key != null
       && projects.key == state.priorBest;
@@ -2601,6 +2632,12 @@ function OpexV309IdleTick(ai)
       && revision != null && revision == state.priorRevision) {
     state.stableUnfundedLoops++;
     state.stableUnfundedOps += usedOps;
+    /* Le devis d'une selection vide est desormais couvert par la borne haute
+     * de reserve. Ni validite du projet ni site AIR n'en sont deduits. */
+    if (fundingBand == "sufficient") {
+      state.stableSufficientLoops++;
+      state.stableSufficientOps += usedOps;
+    }
   }
   if (below) {
     state.cashBelow++;
@@ -2627,12 +2664,14 @@ function OpexV309IdleTick(ai)
   }
   state.waitDays = -1;
   state.waitCapped = 0;
-  if (projects.cost != null) {
-    if (!below) state.waitDays = 0;
-    else if (state.netMonth > 0) {
-      /* Convertir avant la soustraction : un gros solde/cout peut saturer
-       * l'entier signe 32 bits alors que la difference reste representable. */
-      local days = ((projects.cost.tofloat() - cash.tofloat()) * 30.0) / state.netMonth;
+  if (projects.cost != null && fundingBand != "unknown") {
+    if (fundingBand == "sufficient") state.waitDays = 0;
+    else if (fundingBand != "reserve_uncertain" && state.netMonth > 0) {
+      /* Borne INFERIEURE du delai : la reserve reelle peut etre plus haute,
+       * et la classe reserve_uncertain n'autorise aucune prevision ponctuelle.
+       * Convertir avant la soustraction pour eviter le debordement 32 bits. */
+      local days = ((projects.cost.tofloat() - cash.tofloat()
+          + CASH_RESERVE_MIN) * 30.0) / state.netMonth;
       if (days > 36500.0) {
         state.waitDays = 36500;
         state.waitCapped = 1;

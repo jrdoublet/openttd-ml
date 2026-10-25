@@ -11,7 +11,9 @@ import re
 import tempfile
 import unittest
 
-from sweeps.diag_v309_idle import read_idle_logs
+from sweeps.diag_v309_idle import read_idle_logs, render_idle
+from contextlib import redirect_stdout
+import io
 
 
 AI = Path(__file__).resolve().parents[1] / "ai" / "OpexAI"
@@ -35,6 +37,57 @@ def cartography_blocks(idle_ops: int):
 
 
 class TestV309Idle(unittest.TestCase):
+    def test_reserve_band_contract_and_probe_only_path(self):
+        probe = source("probes.nut")
+        helper = probe.split("function OpexV309IdleFundingBand(", 1)[1].split(
+            "function OpexV309IdleMonthlyNet()", 1)[0]
+        self.assertIn("CASH_RESERVE_MIN", helper)
+        self.assertIn("CASH_RESERVE_MAX", helper)
+        self.assertIn("cash.tofloat() - cost.tofloat()", helper)
+        self.assertNotIn("OpexCashReserve(", helper)
+        self.assertNotIn("OpexAvailableCapital(", helper)
+        self.assertNotIn("AICompany.", helper)
+        self.assertIn('"cash_short"', helper)
+        self.assertIn('"reserve_short"', helper)
+        self.assertIn('"reserve_uncertain"', helper)
+        self.assertIn('"sufficient"', helper)
+        tick = probe.split("function OpexV309IdleTick(ai)", 1)[1].split(
+            "/* Sonde probe_loop_ops", 1)[0]
+        self.assertIn("OpexV309IdleFundingBand(cash, projects.cost)", tick)
+        self.assertIn("state.stableSufficientLoops++", tick)
+        self.assertIn("state.stableSufficientOps += usedOps", tick)
+        # L'état global n'est pas sérialisé : il doit repartir vierge après Load.
+        self.assertIn("if (V309_IDLE_PROBE) V309_IDLE_STATE = null;", source("main.nut"))
+        self.assertNotIn("V309_IDLE_STATE", source("persist.nut"))
+
+    def test_reserve_band_log_reader_preserves_missing_fields(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp)
+            (path / "v309_idle_seed42_r0.log").write_text(
+                "OPEX 1970-1-1 V309_IDLE loops=8 useless=0 useless_ops=0 "
+                "sleep_ops=100 blocks=0 wait_days=-1 unknown_cost_loops=1 "
+                "cash_short_loops=2 reserve_short_loops=1 "
+                "reserve_uncertain_loops=3 sufficient_loops=1 "
+                "stable_sufficient_loops=1 stable_sufficient_ops=500\n",
+                encoding="utf-8")
+            (path / "v309_idle_seed100_r0.log").write_text(
+                "OPEX 1971-1-1 V309_IDLE loops=3 useless=0 useless_ops=0 "
+                "sleep_ops=80 blocks=0 wait_days=-1\n", encoding="utf-8")
+            rows = read_idle_logs(path)["v309_idle"]
+        self.assertEqual(rows[1970]["cash_short_loops"], 2)
+        self.assertEqual(rows[1970]["reserve_short_loops"], 1)
+        self.assertEqual(rows[1970]["reserve_uncertain_loops"], 3)
+        self.assertEqual(rows[1970]["sufficient_loops"], 1)
+        self.assertEqual(rows[1970]["stable_sufficient_loops"], 1)
+        self.assertEqual(rows[1970]["stable_sufficient_ops"], 500)
+        self.assertIsNone(rows[1971]["cash_short_loops"])
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            render_idle({"v309_idle": rows})
+        self.assertIn("Reserve certainement bloquante", buf.getvalue())
+        self.assertIn("| v309_idle | 1970 | 2 | 1 | 3 | 1 | 1 | 500 |", buf.getvalue())
+        self.assertIn("| v309_idle | 1971 | - | - | - | - | - | - |", buf.getvalue())
+
     def test_reader_keeps_arms_seeds_and_missing_wait_separate(self):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp)
