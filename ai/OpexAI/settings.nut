@@ -39,6 +39,9 @@ function OpexLoadSettings()
   OPEX_PROBE_MASK = probes;
   AIR_FLOTTE1_SHADOW = OpexProbeEnabled(8388608);
   PO01C_REGEN_SPLIT = AIController.GetSetting("po01c_regen_split") != 0;
+  local n75EarlyC75 = AIController.GetSetting("n75_second_newline_bypass");
+  N75_SECOND_NEWLINE_BYPASS = (n75EarlyC75 != null && n75EarlyC75 >= 0 && n75EarlyC75 <= 2)
+      ? n75EarlyC75 : 0;
   /* PO03/C77 : conserver les deux modes adoptes, dont la garde subvention. */
   local c77IntentDefer = AIController.GetSetting("c77_intent_defer");
   C77_INTENT_DEFER = c77IntentDefer != 0;

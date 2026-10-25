@@ -135,7 +135,8 @@ function OpexC41RepairJunction(center, exclude)
  * seulement quoi faire ensuite ; cette fonction decide si le candidat a ete construit,
  * refuse, ou suspendu par A*. `passDiscards` reste une reference partagee pour
  * conserver le journal dans le meme ordre que le passage historique. */
-function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDiscards, anchor, yy)
+function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDiscards, anchor, yy,
+                                      n75NoNewSearch = false)
 {
   if (project == null) return { outcome = "no_candidate", discards = passDiscards };
   local i = rank;
@@ -287,6 +288,9 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
       local hardCap = HARD_ITERATION_CAP;
       local posPacked = i * TOP_K + this._projects.best.len();
       if (!(("railPlan" in candidate) && candidate.railPlan != null)) {
+        /* N75 ne doit jamais convertir un plan de preparation devenu caduc
+         * en nouvelle recherche A* lors de son second bypass exceptionnel. */
+        if (n75NoNewSearch) return { outcome = "rejected", discards = passDiscards };
         if (DECISION_LOG) {
           foreach (d in passDiscards) {
             OpexDecide("PROJECT_DISCARD", "rank=" + d.rank + " mode=" + d.mode + " src=" + d.src + " dst=" + d.dst + " reason=" + d.reason + (d.extra != "" ? " " + d.extra : ""));

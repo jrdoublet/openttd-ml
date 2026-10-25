@@ -135,6 +135,7 @@ class TestV158BestReadersAudit(unittest.TestCase):
         "task_projects.nut:OpexC121KPassShadow": "Appelé exclusivement dans la boucle de passage de _tryBuildProjects",
         "task_projects.nut:OpexAirC83FundedRaceCoversTown": "Appelé exclusivement dans _c83WatchAirSlotTransitions via _tryBuildProjects",
         "task_projects.nut:OpexC122ThreatFundedMatch": "Appelé exclusivement dans _c83WatchAirSlotTransitions via _tryBuildProjects",
+        "task_projects.nut:OpexN75EarlyC75Reason": "Appelé sous N75 opt-in exclusivement depuis _tryBuildProjects après _ensureSelection ; teste aussi ai._projects.best non-null",
         "task_projects.nut:OpexC122ThreatRegister": "Appelé exclusivement dans _c83WatchAirSlotTransitions via _tryBuildProjects",
         "task_projects.nut:OpexC122ThreatRefreshFunded": "Appelé exclusivement dans _c83WatchAirSlotTransitions via _tryBuildProjects",
         "task_projects.nut:OpexAI::_projectsRankOfAttemptKey": "Appelé exclusivement dans _consumeResumableRailAtPassStart via _tryBuildProjects",

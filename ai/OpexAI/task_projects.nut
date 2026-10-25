@@ -753,6 +753,75 @@ function OpexC75KPassBypassIsNewLine(project)
       || project.mode == "road" || project.mode == "water";
 }
 
+/* N75 EARLY : verifier un second bypass sans toucher au premier C75.
+ * Cette sonde ne visite que les candidats deja classes, sous opt-in, et ne
+ * declenche jamais de recherche A*. Le rail n'est eligible qu'avec un plan
+ * de preparation C121 deja pret, revalide dans l'executeur. */
+function OpexN75EarlyC75Reason(ai, project, rank, year, available)
+{
+  if (ai == null || ai._projects == null || !("best" in ai._projects)
+      || ai._projects.best == null) return "unavailable";
+  if (year < OPEX_START_YEAR + 1 || year > OPEX_START_YEAR + 2) return "year";
+  if (!OpexC75KPassBypassIsNewLine(project)) return "not_newline";
+  if (OpexProjectFinanceCapital(project) > available) return "cash";
+  if (OpexC80ProjectBelowMarginalFloor(ai._lines, project)) return "c80";
+  if (project.mode == "rail") {
+    local rail = project.payload;
+    if (rail == null || !("c121PrepStock" in rail) || !rail.c121PrepStock
+        || !("railPlan" in rail) || rail.railPlan == null) return "rail_no_ready_plan";
+    if (("ok" in rail.railPlan) && !rail.railPlan.ok) return "rail_plan_failed";
+  }
+  if (project.mode == "air") {
+    local plan = project.payload;
+    if (plan == null || !OpexAirBatchPlanStillLive(plan, ai._lines)) return "air_stale";
+    local reuseA = ("reuseA" in plan) && plan.reuseA;
+    local reuseB = ("reuseB" in plan) && plan.reuseB;
+    if (!OpexAirBatchSiteStillBuildable(plan.siteA, plan.airport, plan.plane, reuseA)
+        || !OpexAirBatchSiteStillBuildable(plan.siteB, plan.airport, plan.plane, reuseB))
+      return "air_site";
+  }
+  /* C77 : l'ordre du portefeuille est deja defensif. Si un AIR defensif plus
+   * prioritaire est encore live en aval, ne pas lui prendre son capital. */
+  local tier = OpexProjectDefensiveAirPriority(project);
+  for (local j = rank + 1; j < ai._projects.best.len(); j++) {
+    local other = ai._projects.best[j];
+    if (OpexProjectDefensiveAirPriority(other) <= tier) continue;
+    if (OpexProjectFinanceCapital(other) > available) continue;
+    if (OpexC80ProjectBelowMarginalFloor(ai._lines, other)) continue;
+    if (OpexAirBatchPlanStillLive(other.payload, ai._lines)) return "c77";
+  }
+  return "eligible";
+}
+
+/* Evenement complet sous opt-in, y compris lorsque probes=2 et DECISION_LOG=0.
+ * Les signes N5 portent un identifiant de passe + rang et distinguent E/T/B/X/P.
+ * Seul B prouve une construction physique; E et T sont des opportunites/essais. */
+function OpexN75EarlyC75Log(phase, project, rank, passTick, kPass, reason, lineId = -1)
+{
+  if (N75_SECOND_NEWLINE_BYPASS <= 0) return;
+  local now = AIDate.GetCurrentDate();
+  local finance = OpexProjectFinanceCapital(project);
+  local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+  local available = OpexAvailableCapital();
+  local mode = project.mode;
+  local code = mode == "air" ? "A" : (mode == "rail" ? "T" : (mode == "road" ? "R" : (mode == "water" ? "W" : "F")));
+  local phaseCode = phase == "eligible" ? "E" : (phase == "attempt" ? "T"
+      : (phase == "built" ? "B" : (phase == "pending" ? "P" : "X")));
+  AILog.Info("N75_EARLY_C75 phase=" + phase + " mode=" + mode
+      + " date=" + now + " year=" + AIDate.GetYear(now)
+      + " pass_tick=" + passTick + " rank=" + rank
+      + " key=" + OpexProjectAttemptKey(project)
+      + " profit=" + project.profitAnnual + " finance=" + finance
+      + " cash=" + money + " available=" + available + " k_pass=" + kPass
+      + " reason=" + reason + " line=" + lineId
+      + " policy=" + N75_SECOND_NEWLINE_BYPASS);
+  if (phase == "eligible" || phase == "attempt" || phase == "built"
+      || phase == "pending" || phase == "rejected") {
+    OpexSign(AIMap.GetTileIndex(1, 1), "N5|" + passTick + "|" + rank
+        + "|" + code + "|" + phaseCode + "|" + lineId);
+  }
+}
+
 /* R12 : helpers extraits de _tryBuildProjects, sans changement de comportement.
  * Les etats de passe restent des locaux de l'orchestrateur, passes explicitement. */
 
@@ -1013,6 +1082,10 @@ function OpexAI::_tryBuildProjects(year)
   local c75StopReason = null;
   local c75BuiltKeys = {};
   local c75BypassConsumed = false;
+  /* Le second bypass et son identite vivent uniquement pendant cette passe. */
+  local n75SecondConsumed = false;
+  local n75SecondRank = -1;
+  local n75SecondPassTick = N75_SECOND_NEWLINE_BYPASS > 0 ? AIController.GetTick() : -1;
   local c121FirstYearAirBatch = MODE_AIR
       && this._generationStageMonth >= 0
       && year == (this._generationStageMonth - 1) / 12;
@@ -1204,6 +1277,7 @@ function OpexAI::_tryBuildProjects(year)
       local projCap = OpexProjectFinanceCapital(project);
       local c75KPass = (c75KPassData != null) ? c75KPassData.K_pass : 0;
       local availCap = -1;
+      local n75SecondReady = false;
       if (projCap >= c75KPass) {
         local c75BypassThisProject = false;
         if (c121FirstYearAirBatch && project.mode == "air") {
@@ -1224,6 +1298,23 @@ function OpexAI::_tryBuildProjects(year)
                 "consume", "eligible", false, c75BypassConsumed, builtCount, c75KPass, projCap, availCap);
               OpexC75BypassRecordConsumed(year, project, projCap, availCap, c75KPass, builtCount);
             }
+          }
+        }
+        if (!c75BypassThisProject && N75_SECOND_NEWLINE_BYPASS > 0
+            && c75BypassConsumed && !n75SecondConsumed
+            && year >= OPEX_START_YEAR + 1 && year <= OPEX_START_YEAR + 2) {
+          if (availCap < 0) availCap = OpexAvailableCapital();
+          local n75Reason = OpexN75EarlyC75Reason(this, project, i, year, availCap);
+          if (n75Reason == "eligible") {
+            OpexN75EarlyC75Log("eligible", project, i, n75SecondPassTick, c75KPass,
+                N75_SECOND_NEWLINE_BYPASS == 1 ? "shadow_only" : "second_candidate");
+            if (N75_SECOND_NEWLINE_BYPASS == 2) {
+              n75SecondReady = true;
+              c75BypassThisProject = true;
+            }
+          } else {
+            OpexN75EarlyC75Log("rejected", project, i, n75SecondPassTick, c75KPass,
+                n75Reason);
           }
         }
           if (!c75BypassThisProject) {
@@ -1262,6 +1353,12 @@ function OpexAI::_tryBuildProjects(year)
           }
           continue;
         }
+      }
+      if (n75SecondReady) {
+        n75SecondConsumed = true;
+        n75SecondRank = i;
+        OpexN75EarlyC75Log("attempt", project, i, n75SecondPassTick, c75KPass,
+            "passed_c80");
       }
     }
 
@@ -1335,6 +1432,10 @@ function OpexAI::_tryBuildProjects(year)
           c75BypassConsumed, c75BypassConsumed, liveBuiltCount, r1r3Threshold);
       local attempt = this._tryBuildAirProject(year, project, i, liveBuiltCount, passDiscards,
                                                 anchor, yy);
+      if (n75SecondRank == i) OpexN75EarlyC75Log(attempt.outcome == "built" ? "built" : "rejected",
+          project, i, n75SecondPassTick, c75KPassData != null ? c75KPassData.K_pass : 0,
+          attempt.outcome == "built" ? "built_after_second_bypass" : attempt.outcome,
+          attempt.outcome == "built" ? this._nextLineId - 1 : -1);
       if (R1_R3_TEST_ONLY) {
         local reason = attempt.outcome;
         local error = "unknown";
@@ -1400,6 +1501,10 @@ function OpexAI::_tryBuildProjects(year)
       if (C49_SCARCITY_LEDGER) c49AttemptedRanks.rawset(i, true);
       local c78DiscardsLen = (C69_BOTTLENECK_PROBE && passDiscards != null) ? passDiscards.len() : 0;
       local attempt = this._tryBuildRoadProject(year, project, i, passDiscards, anchor, yy);
+      if (n75SecondRank == i) OpexN75EarlyC75Log(attempt.outcome == "built" ? "built" : "rejected",
+          project, i, n75SecondPassTick, c75KPassData != null ? c75KPassData.K_pass : 0,
+          attempt.outcome == "built" ? "built_after_second_bypass" : attempt.outcome,
+          attempt.outcome == "built" ? this._nextLineId - 1 : -1);
       passDiscards = attempt.discards;
       if (C69_BOTTLENECK_PROBE) OpexC78LogBuild(year, i, mode, project, attempt, passDiscards, c78DiscardsLen);
       if (C49_SCARCITY_LEDGER && attempt.outcome == "built") c49BuiltRanks.rawset(i, true);
@@ -1418,7 +1523,12 @@ function OpexAI::_tryBuildProjects(year)
       if (C49_SCARCITY_LEDGER) c49AttemptedRanks.rawset(i, true);
       local c78DiscardsLen = (C69_BOTTLENECK_PROBE && passDiscards != null) ? passDiscards.len() : 0;
       local attempt = this._tryBuildRailProject(year, project, i, liveBuiltCount, passDiscards,
-                                                 anchor, yy);
+                                                 anchor, yy, n75SecondRank == i);
+      if (n75SecondRank == i) OpexN75EarlyC75Log(
+          attempt.outcome == "built" ? "built" : (attempt.outcome == "pending" ? "pending" : "rejected"),
+          project, i, n75SecondPassTick, c75KPassData != null ? c75KPassData.K_pass : 0,
+          attempt.outcome == "built" ? "built_after_second_bypass" : attempt.outcome,
+          attempt.outcome == "built" ? this._nextLineId - 1 : -1);
       passDiscards = attempt.discards;
       if (AIR_FLOTTE1_SHADOW) {
         local airF1Reason = attempt.outcome;
@@ -1489,6 +1599,10 @@ function OpexAI::_tryBuildProjects(year)
       if (C49_SCARCITY_LEDGER) c49AttemptedRanks.rawset(i, true);
       local attempt = this._tryBuildWaterProject(year, project, i, liveBuiltCount, passDiscards,
                                                   anchor, yy);
+      if (n75SecondRank == i) OpexN75EarlyC75Log(attempt.outcome == "built" ? "built" : "rejected",
+          project, i, n75SecondPassTick, c75KPassData != null ? c75KPassData.K_pass : 0,
+          attempt.outcome == "built" ? "built_after_second_bypass" : attempt.outcome,
+          attempt.outcome == "built" ? this._nextLineId - 1 : -1);
       passDiscards = attempt.discards;
       if (C49_SCARCITY_LEDGER && attempt.outcome == "built") c49BuiltRanks.rawset(i, true);
       if (fallthroughProbeActive) {

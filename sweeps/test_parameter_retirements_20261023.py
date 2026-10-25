@@ -84,7 +84,7 @@ class TestParameterRetirement(unittest.TestCase):
 
     def test_exact_size_after_retirement(self):
         self.assertEqual(len(RETIRED), 43)
-        self.assertEqual(len(self.config), 58)
+        self.assertEqual(len(self.config), 59)  # N75 second bypass opt-in OFF
 
     def test_retired_settings_have_no_declarations_or_direct_reads(self):
         for name in sorted(RETIRED):

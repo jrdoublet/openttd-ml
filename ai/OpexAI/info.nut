@@ -18,6 +18,11 @@ class OpexAIInfo extends AIInfo {
       min_value = 0, max_value = 2,
       easy_value = 2, medium_value = 2, hard_value = 2, custom_value = 2,
       flags = 0 });
+    AddSetting({ name = "n75_second_newline_bypass",
+      description = "N75 EARLY C75: 0 off (default), 1 shadow diagnostics only, 2 allow one additional funded new-line K_pass bypass per pass in years 2-3 only; never fleet or fresh rail A*",
+      min_value = 0, max_value = 2,
+      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
+      flags = 0 });
     AddSetting({ name = "po01c_regen_split",
       description = "PO01C: resumable reactive regeneration (default 1 since 23/10, user decision after neutral porte A)",
       min_value = 0, max_value = 1,
