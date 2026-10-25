@@ -341,6 +341,7 @@ function OpexAI::_expandRailLines(year)
   /* G6§1 : le bloc RAIL_REFLEET (second train, double voie) vit ici.
    * L'expansion de wagons (rail_expand) a ete figee a 0 et retiree. */
   if (this._railExpansion != null) return;
+  if (V233_LONG_GOOD > 0 && OpexV233LSelectGrowth(this, year)) return;
   /* Port du declencheur V270 c71b707 : avant la garde A*, sans prendre son creneau. */
   if (V284_RAIL_GROWTH > 0 && OpexV284Select(this, year)) return;
   /* Une recherche A* en cours (ligne neuve ou upgrade) : ne pas en empiler une seconde. */
@@ -1059,6 +1060,8 @@ function OpexAI::_consumeRailSearch(year)
  * panneaux OR/OB restent identiques. */
 function OpexAI::_recordRailAttempt(candidate, result, posPacked, year, railPlan = null)
 {
+  if (OpexV233LIs(candidate) && !result.ok && DECISION_LOG)
+    OpexV233LLog("REJECT", "src=" + candidate.src + " dst=" + candidate.dst + " reason=" + result.reason);
   if (RAIL_FAILURE_AUDIT) OpexRailFailureAudit("attempt", candidate,
       (result.ok ? "OK" : (("reason" in result) && result.reason != "" ? result.reason : "UNKNOWN")),
       (result.ok ? 1 : 0), (("actualCost" in result) ? result.actualCost : 0),
@@ -1276,6 +1279,18 @@ function OpexAI::_recordRailAttempt(candidate, result, posPacked, year, railPlan
       built.predRevenue2 <- candidate.revenue2;
     }
     this._nextLineId++;
+    if (OpexV233LIs(candidate)) {
+      this._lines[this._lines.len() - 1].v233LongGood <- true;
+      this._lines[this._lines.len() - 1].routeDistance <- candidate.v233RouteDistance;
+      local factory = AIIndustry.GetIndustryID(candidate.src);
+      if (V233L_STATE != null && factory in V233L_STATE.rows) {
+        V233L_STATE.rows[factory].exportLine = idx;
+        V233L_STATE.rows[factory].exportMonth = OpexV233LMonth();
+      }
+      if (DECISION_LOG) OpexV233LLog("BUILD", "line=" + idx + " src=" + candidate.src + " dst=" + candidate.dst
+          + " trains=" + result.trains + " distance=" + candidate.distance + " wagons=" + candidate.wagons
+          + " station=" + AIStation.GetStationID(result.stationA) + " shared_with_input=" + candidate.v233InputStation);
+    }
     if (DECISION_LOG && OpexV190Active() && candidate.kind == "freight") {
       if (("v181Loop" in result) && result.v181Loop) {
         OpexDecide("V190", "action=build_double line=" + idx + " trains=" + result.trains + " reason=OK");

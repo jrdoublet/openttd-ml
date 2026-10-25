@@ -187,11 +187,13 @@ function OpexPO01CFreightCandidates(catalog, lines, out, stats, abandonedPairs =
       if (OPEX_LEVEL_LIMITS && OpexIndustryPrimaryRivalServed(source.id, source.tile)) continue;
       local monthly = AIIndustry.GetLastMonthProduction(source.id, cargo);
       local ss = served[si];
+      local longGood = V233_LONG_GOOD > 0 ? OpexV233LSource(source, cargo, lines) : null;
       local others2 = null;
       local industryMark = profile != null ? OpexOpsMeasureBegin() : null;
       for (local k = 0; k < sinks.len(); k++) {
     yield null; // PO01C_CHECKPOINT
     if (DECISION_LOG) OpexPO01CWhere("OpexPO01CFreightCandidates", "rail_freight:industry_pair", k);
+        if (longGood != null) continue;
         local di = sinks[k];
         if (di == si) continue;
         if (targetKind == "town") continue;
@@ -247,7 +249,9 @@ function OpexPO01CFreightCandidates(catalog, lines, out, stats, abandonedPairs =
         for (local k = 0; k < townSinks.len(); k++) {
     yield null; // PO01C_CHECKPOINT
     if (DECISION_LOG) OpexPO01CWhere("OpexPO01CFreightCandidates", "rail_freight:town_pair", k);
-          local town = townSinks[k];
+          if (longGood != null && (k >= V233L_TOWNS || longGood.ops >= V233L_SLICE_OPS)) break;
+          local town = townSinks[longGood != null ? (k + longGood.townStart) % townSinks.len() : k];
+          if (longGood != null && !OpexV233LAdmit(longGood, source, town)) continue;
           if (targetKind == "industry" && targetId >= 0 && source.id != targetId) continue;
           if (targetKind == "town" && targetId >= 0 && town.id != targetId) continue;
           local townGuardMark = (profile != null && C41_RAIL_FREIGHT_TOWN_GUARDS_PROFILE) ? OpexOpsMeasureBegin() : null;
@@ -269,12 +273,13 @@ function OpexPO01CFreightCandidates(catalog, lines, out, stats, abandonedPairs =
             if (townServiceCache != null) townServiceCache[town.id] <- st;
           }
           if (townServiceMark != null) { profile.freightTownServiceOps += OpexOpsMeasureEnd(townServiceMark); profile.freightTownServiceCalls++; }
-          if (ss != null || st != null) {
+          if ((ss != null && longGood == null) || st != null) {
+            if (longGood != null && DECISION_LOG) OpexV233LLog("REJECT", "industry=" + source.id + " town=" + town.id + " reason=destination_served");
             stats.pairsOriginServed++;
             if (townGuardMark != null) { profile.freightTownGuardsOps += OpexOpsMeasureEnd(townGuardMark); profile.freightTownGuardsCalls++; }
             continue;
           }
-          local townMonthly = monthly;
+          local townMonthly = longGood != null ? longGood.monthly : monthly;
           if (townMonthly <= 0) {
             if (townGuardMark != null) { profile.freightTownGuardsOps += OpexOpsMeasureEnd(townGuardMark); profile.freightTownGuardsCalls++; }
             continue;
@@ -284,19 +289,33 @@ function OpexPO01CFreightCandidates(catalog, lines, out, stats, abandonedPairs =
             OpexC60ObserveTownRating("rail", "candidate_gen", town.id);
           }
           local candidateMark = profile != null ? OpexOpsMeasureBegin() : null;
+          local v233Mark = longGood != null ? OpexOpsMeasureBegin() : null;
           if (DECISION_LOG) OpexPO01CWhere("OpexPO01CFreightCandidates", "rail_freight:pair_candidate", PO01C_WHERE.idx);
           local candidate = OpexMakeCandidate(catalog, "freight", cargo, source.tile,
-                                              town.tile, townMonthly, false, stats, false, profile, cruiseCache);
+                                              town.tile, townMonthly, longGood != null, stats, false, profile, cruiseCache, null, longGood != null);
+          if (longGood != null) longGood.ops += OpexOpsMeasureEnd(v233Mark);
           if (profile != null) {
             profile.freightTownCandidateOps += OpexOpsMeasureEnd(candidateMark);
             profile.freightTownCandidateCalls++;
           }
           if (candidate != null) {
             candidate.dstTown <- town.id;
+            if (longGood != null) {
+              candidate.v233LongGood <- true;
+              candidate.v233InputStation <- longGood.row.station;
+              if (DECISION_LOG) OpexV233LLog("CANDIDATE", "industry=" + source.id + " town=" + town.id
+                  + " distance=" + candidate.distance + " monthly=" + townMonthly + " trains=" + candidate.trains
+                  + " wagons=" + candidate.wagons + " profit=" + candidate.profitAnnual + " capital=" + candidate.capital);
+            }
             out.append(candidate);
+          } else if (longGood != null && DECISION_LOG) {
+            OpexV233LLog("REJECT", "industry=" + source.id + " town=" + town.id
+                + " reason=economics_or_site no_model=" + stats.economicsUnavailable
+                + " profit=" + stats.profitNonPositive + " ratio=" + stats.ratioTooLow + " sitable=" + stats.unsitable);
           }
         }
         if (profile != null) profile.freightTownOps += OpexOpsMeasureEnd(townMark);
+        if (longGood != null) OpexV233LSourceEnd(longGood, source);
 
       }
     }
@@ -2191,7 +2210,7 @@ function OpexPO01CAirPlansDiscoverHubs(po01dResult, ctx, combo, airport, plane)
   ctx.hubs = hubs;
 }
 
-function OpexPO01CMakePaxCandidate(po01dResult, po01fSitableCache, po01fContext, catalog, kind, cargo, srcTile, dstTile, monthly, originServed, stats, isTransformer = false, profile = null, cruiseCache = null, secondary = null)
+function OpexPO01CMakePaxCandidate(po01dResult, po01fSitableCache, po01fContext, catalog, kind, cargo, srcTile, dstTile, monthly, originServed, stats, isTransformer = false, profile = null, cruiseCache = null, secondary = null, longGood = false)
 {
   if (monthly <= 0) {
     stats.noMonthly++;
@@ -2199,7 +2218,9 @@ function OpexPO01CMakePaxCandidate(po01dResult, po01fSitableCache, po01fContext,
   }
   local distance = AIMap.DistanceManhattan(srcTile, dstTile);
   local bounds = OpexCatalogBounds(catalog);
-  if (kind == "pax") {
+  if (V233_LONG_GOOD > 0 && longGood) {
+    if (distance < 150 || distance > 300) { stats.distanceLong++; { po01dResult.value = null; return; } }
+  } else if (kind == "pax") {
     if (distance < bounds.railMin) {
       stats.distanceShort++;
       { po01dResult.value = null; return; }
@@ -2291,7 +2312,7 @@ function OpexPO01CMakePaxCandidate(po01dResult, po01fSitableCache, po01fContext,
   local freightEconomicsMark = (profile != null && kind == "freight" && (C41_RAIL_FREIGHT_ECONOMICS_PROFILE || C41_RAIL_FREIGHT_ECONOMICS_DETAIL_PROFILE || C41_RAIL_FREIGHT_ECONOMICS_SETUP_PROFILE || C41_RAIL_FREIGHT_ECONOMICS_CONSIST_PROFILE)) ? OpexOpsMeasureBegin() : null;
   if (DECISION_LOG) OpexPO01CWhere("OpexPO01CMakePaxCandidate", "pax:LineEconomics", -1);
   local economics = OpexLineEconomics(catalog, cargo, distance, monthly, kind, 0, null, profile, cruiseCache,
-                                      null, null, secondary);
+                                      null, null, secondary, longGood);
   if (profile != null) {
     profile.paxEconomicsOps += OpexOpsMeasureEnd(economicsMark);
     profile.paxEconomicsCalls++;

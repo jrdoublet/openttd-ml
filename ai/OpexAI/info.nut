@@ -136,6 +136,14 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "v233_long_good",
+      description = "V233L: observed fed-factory GOOD exports, 150-300 tiles, two trains and backlog growth; 0=off (default), 1=experiment",
+      min_value = 0, max_value = 1,
+      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
+      step_size = 1, flags = 0
+    });
+
+    AddSetting({
       name = "v284_rail_growth",
       description = "V284: 0 = off; N = grow saturated existing freight trains after N years with 1M cash, preserve speed, then passing loop and second train at platform limit (default 3 since 20/10, user decision after 40x10 +136 k)",
       min_value = 0, max_value = 10,

@@ -5,6 +5,7 @@ import hashlib
 from po01c_generate import AI, DEEP_SOURCES, generated, function, unit_sites, bridge, budgeted_pax
 from test_v261_forum_behaviours import source, body, uncomment
 from po01c_diagnostics import pending_save_dates, summarize
+from v233_long_good_legacy import off_bytes
 
 
 def unbudgeted_pax(code):
@@ -250,7 +251,7 @@ class PO01CContracts(unittest.TestCase):
             'builder_rail.nut': '80ee1d02e1a4fd7234329b8a762a9b1a7f44f06cba2696022bf7a63376d9c56d',
         }
         for name, digest in expected.items():
-            self.assertEqual(hashlib.sha256((AI / name).read_bytes()).hexdigest(), digest)
+            self.assertEqual(hashlib.sha256(off_bytes(name, (AI / name).read_bytes())).hexdigest(), digest)
 
     def test_po01f_heavy_loop_tokens_and_checkpoints(self):
         for file, name in [('probe_v216.nut', 'V216MarkRect'),
@@ -437,7 +438,7 @@ class PO01CContracts(unittest.TestCase):
         from n75_mc_legacy import historical_bytes
         for name, digest in expected.items():
             with self.subTest(name=name):
-                legacy = historical_bytes(name, (AI / name).read_bytes())
+                legacy = historical_bytes(name, off_bytes(name, (AI / name).read_bytes()))
                 self.assertEqual(hashlib.sha256(legacy).hexdigest(), digest)
 
         # PO03 ajoute exactement deux lignes dans _dispatchReactiveIntention.
@@ -450,7 +451,7 @@ class PO01CContracts(unittest.TestCase):
             b'(this._po01cJob != null || this._po01cPending))\n'
             b'      blocked = true;\n'
         )
-        orchestrator = (AI / 'orchestrator.nut').read_bytes()
+        orchestrator = off_bytes('orchestrator.nut', (AI / 'orchestrator.nut').read_bytes())
         self.assertEqual(orchestrator.count(guard), 1, 'garde PO03 exactement une fois')
         dispatch = function(source('orchestrator.nut'), 'OpexAI::_dispatchReactiveIntention')
         self.assertIn(guard.decode('ascii'), dispatch)

@@ -28,6 +28,8 @@ V269_IDLE_CASH_MIN <- 1000000;
 V309_IDLE_PROBE <- false;
 V309_IDLE_STATE <- null;
 V284_RAIL_GROWTH <- 0; // 0 : master ; N : croissance fret apres N ans et 1 M£ disponible.
+V233_LONG_GOOD <- 0; // Variante autonome, aucun mode V233 historique reactive.
+V233L_STATE <- null; // Fenetres mensuelles entieres, sauvegardees seulement sous l'option.
 /* V294 : ponts/tunnels longs et recherche A* continue (defauts 0 = master inchange). */
 V294_RAIL_BRIDGE_LEN <- 20;  // defaut V294all depuis le 21/10 (decision utilisateur)
 V294_RAIL_CONTINUOUS <- 0;

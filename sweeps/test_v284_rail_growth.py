@@ -2,6 +2,7 @@
 import hashlib
 import re
 import unittest
+from v233_long_good_legacy import off_source  # explicit OFF projection, original hashes retained
 from n75_mc_legacy import historical_info
 from pathlib import Path
 
@@ -11,7 +12,7 @@ AI = Path(__file__).resolve().parents[1] / "ai" / "OpexAI"
 
 
 def read(name):
-    return (AI / name).read_text(encoding="utf-8")
+    return off_source(name, (AI / name).read_text(encoding="utf-8"))
 
 
 class TestV284RailGrowth(unittest.TestCase):

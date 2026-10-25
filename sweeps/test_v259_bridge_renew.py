@@ -62,10 +62,11 @@ class TestV259BridgeRenew(unittest.TestCase):
 
     def test_ceiling_after_parameter_cleanup(self):
         # 43 vrais retraits ; PO03/C77 et PO02 adoptes sont conserves.
-        self.assertEqual(historical_info(self.info).count("AddSetting("), 58)
+        # +1 V233L (defaut 0), demande explicite du 25/10 ; N75 exclu par le helper.
+        self.assertEqual(historical_info(self.info).count("AddSetting("), 59)
         self.assertIn('name = "v259_bridge_renew"', self.info)
         test_v246 = (Path(__file__).resolve().parent / "test_v246_fixed_policies.py").read_text(encoding="utf-8")
-        self.assertIn('self.assertLessEqual(info.count("AddSetting("), 58)', test_v246)
+        self.assertIn('self.assertLessEqual(info.count("AddSetting("), 59)', test_v246)
 
     def test_zero_opcode_guard_at_default(self):
         # 1. Garde dans scheduler.nut

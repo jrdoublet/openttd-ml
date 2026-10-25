@@ -335,6 +335,7 @@ function OpexAI::_tooClose(candidate)
     foreach (lineEnd in ["A", "B"]) {
       local originTile = lineEnd == "A" ? line.originA : line.originB;
       foreach (entry in entries) {
+        if (V233_LONG_GOOD > 0 && OpexV233LSourceNeighbour(candidate, line, entry[0])) continue;
         if (isSharedDest && entry[0] == "B") continue;
         if (shareEndB && entry[0] == "B") continue;
         local d = AIMap.DistanceManhattan(entry[1], originTile);
@@ -358,6 +359,7 @@ function OpexAI::_tooClose(candidate)
       if (isSharedDest && stationId == joinStationId) continue;
       local stationTile = lineEnd == "A" ? line.stationA : line.stationB;
       foreach (entry in entries) {
+        if (V233_LONG_GOOD > 0 && OpexV233LSourceNeighbour(candidate, line, entry[0])) continue;
         if (isSharedDest && entry[0] == "B") continue;
         if (shareEndB && entry[0] == "B") continue;
         local d = AIMap.DistanceManhattan(entry[1], stationTile);

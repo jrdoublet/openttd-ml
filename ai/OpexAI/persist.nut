@@ -544,6 +544,10 @@ function OpexSaveProjectLine(line)
 {
   local serializableLine = clone line;
   foreach (key, val in line) {
+    if (key == "v233LongGood" && V233_LONG_GOOD <= 0) {
+      delete serializableLine[key];
+      continue;
+    }
     if (key in OPEX_SAVE_LINE_SKIP) {
       delete serializableLine[key];
       continue;
@@ -718,7 +722,8 @@ function OpexAI::Save()
   saveObj.v257RailRefresh <- { cursor = this._v257Cursor, state = this._v257State,
     pending = this._v257Pending, engineRevision = this._v257EngineRevision,
     priorityRemaining = this._v257PriorityRemaining };
-  if (V284_RAIL_GROWTH > 0) saveObj.v284Growth <- this._v284State;
+  if (V284_RAIL_GROWTH > 0 || V233_LONG_GOOD > 0) saveObj.v284Growth <- this._v284State;
+  if (V233_LONG_GOOD > 0) saveObj.v233LongGood <- V233L_STATE;
 
   if (OpexC121StrategyStateEnabled()) OpexSaveC121Strategy(saveObj);
   if (OPEX_AIR_ROLLBACKS.len() > 0) saveObj.airRollbacks <- OPEX_AIR_ROLLBACKS;
@@ -742,6 +747,8 @@ function OpexAI::Save()
 }
 function OpexAI::Load(version, data)
 {
+  V233L_STATE = null;
+  this._v233LReload = null;
   this._po01cJob = null;
   this._po01cPending = false;
   this._po01cLineState = null;
@@ -760,6 +767,8 @@ function OpexAI::Load(version, data)
   OPEX_AIR_ROLLBACKS = [];
   if (V279_RESELECT_MEMO != 0) OPEX_AIR_ROLLBACK_REVISION++;
   if (data == null) return;
+  if (("v233LongGood" in data) && typeof data.v233LongGood == "table")
+    this._v233LReload = data.v233LongGood;
   if (("n75McLastMonth" in data) && typeof data.n75McLastMonth == "integer")
     N75_MC_SAVED_MONTH = data.n75McLastMonth;
   /* Legacy v139UnjoinedStops is deliberately ignored: feeder construction was removed. */
@@ -938,7 +947,8 @@ function OpexAI::_reconcileAfterLoad()
   this._lines = liveLines;
   if (V279_RESELECT_MEMO != 0) OPEX_LINES_REVISION++;
   OpexV257Reconcile(this);
-  if (V284_RAIL_GROWTH > 0) OpexV284Reconcile(this);
+  if (V284_RAIL_GROWTH > 0 || V233_LONG_GOOD > 0) OpexV284Reconcile(this);
+  if (V233_LONG_GOOD > 0) OpexV233LReconcile(this);
   this._pendingLines = null;
   /* C70 : recalcul des facteurs APRES la reconstitution de this._lines. Appele plus haut, il
    * tournait sur la liste encore vide et remettait tous les facteurs a 1 (mesure 2026-09-22). */

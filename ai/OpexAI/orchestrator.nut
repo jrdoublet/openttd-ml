@@ -994,6 +994,7 @@ function OpexAI::_c77InjectSubsidy(subId)
  */
 function OpexAI::_runOrchestratorTick()
 {
+  if (V233_LONG_GOOD > 0) OpexV233LTick(this);
   /* Shared by normal and profiled loops; once per tick, before other workers
    * consume the remaining opcodes. No queue entry and no work while idle. */
   if (PO01C_REGEN_SPLIT && (this._po01cPending || this._po01cJob != null)) OpexPO01CStep(this);
@@ -1002,8 +1003,8 @@ function OpexAI::_runOrchestratorTick()
   /* V257 : une seule garde au defaut. Une ligne de la file de revision par
    * passage reactif ; ne bloque ni la FIFO existante ni le worker rail. */
   /* Point commun aux boucles normale et _mainLoopProfiled. OFF court-circuite. */
-  if (V284_RAIL_GROWTH > 0) OpexV284Tick(this);
-  if (V284_RAIL_GROWTH <= 0 || !OpexV284Busy(this)) this._v257ReactiveStep();
+  if (V284_RAIL_GROWTH > 0 || V233_LONG_GOOD > 0) OpexV284Tick(this);
+  if ((V284_RAIL_GROWTH <= 0 && V233_LONG_GOOD <= 0) || !OpexV284Busy(this)) this._v257ReactiveStep();
 
   // (b) Intention réactive
   if (this._hasReactiveIntentions()) {

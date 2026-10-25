@@ -7,6 +7,16 @@ ne créent pas une tâche. Protocole et pilotage des bancs : [AGENTS.md](../AGEN
 
 ## État courant
 
+**25/10 — V233L, nouvelle variante autorisée par l'utilisateur :** `v233_long_good=0/1`,
+défaut **0**, branche locale `v233-long`. Sorties GOOD de secondaires alimentées,
+150–300 tuiles, deux trains dimensionnés sur six mois observés, portefeuille normal ;
+renforts GOOD et intrants après stock persistant et marge physique positive.
+Livraison et limites : [v233_long_good_20261025.md](v233_long_good_20261025.md).
+Contrats OFF/hash et PO01C ; **aucune partie, aucun Docker, aucune qualification
+économique ni mesure VM dans cette livraison**, selon l'interdiction explicite.
+Les échecs V218, V233 antérieurs et `good_source_rail_join` restent clos ; ce
+nouveau mécanisme n'adopte aucun défaut ni résultat historique.
+
 ### Priorités ouvertes après les deux références monomodales du 25/10 (sans adoption)
 
 - [ ] **P1 — `rail_long_value_rank` : qualifier et classer le fret long constructible (opt-in, défaut 0 ; coût 4/5).** Ne plus relever globalement les bornes : vérifier site, A*, capital et ROI marginal pour une paire fret ≥160 tuiles, puis la comparer aux projets courts et AIR réellement finançables ; [analyse §4](analyse_rail_vs_air_seul_20261025.md#4-pistes-expérimentales-par-potentiel-de-gain-relatif-au-coût).

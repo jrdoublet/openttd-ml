@@ -8,6 +8,7 @@ from pathlib import Path
 import random
 import re
 import unittest
+from v233_long_good_legacy import off_source
 
 AI = Path(__file__).resolve().parents[1] / "ai" / "OpexAI"
 INSERTION = """        /* PO-02 : base est le premier/dernier quai selon sign, sur les deux axes.
@@ -66,7 +67,7 @@ class StationPlanPrecheck(unittest.TestCase):
         source = (AI / "builder_rail.nut").read_text(encoding="utf-8")
         self.assertEqual(source.count(INSERTION), 1)
         # rebasé le 24/10 : eec5db81 (revue R11 OpexBridgeSortBySpeed et eb6f26fc retrait V233)
-        historical = source.replace(INSERTION, "")
+        historical = off_source("builder_rail.nut", source).replace(INSERTION, "")
         self.assertEqual(hashlib.sha256(historical.encode()).hexdigest(),
                          "a68b8620a773b28c830ea8df3d905da1233576023c9837575a12f9ac24af4560")
         body = source[source.index("function OpexStationPlans("):]

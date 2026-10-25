@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import re
 import unittest
+from v233_long_good_legacy import off_source  # explicit OFF projection, original hashes retained
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -21,7 +22,7 @@ AI_DIR = ROOT / "ai" / "OpexAI"
 
 
 def read_file(rel_path: str) -> str:
-    return (AI_DIR / rel_path).read_text(encoding="utf-8")
+    return off_source(rel_path, (AI_DIR / rel_path).read_text(encoding="utf-8"))
 
 
 def function_body(source: str, name: str) -> str:

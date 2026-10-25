@@ -1078,7 +1078,7 @@ function OpexV307TargetedStationPlans(center, radius, length, maxPlans, cargo,
 }
 
 function OpexStationPlans(center, otherCenter, radius, length, maxPlans, cargo, coverage,
-                          wantProduction, stats = null, requireDouble = false, rankPct = 0)
+                          wantProduction, stats = null, requireDouble = false, rankPct = 0, exactCargo = false, workMark = null)
 {
   if (OPEX_LEVEL_LIMITS && wantProduction) {
     local indId = AIIndustry.GetIndustryID(center);
@@ -1103,6 +1103,7 @@ function OpexStationPlans(center, otherCenter, radius, length, maxPlans, cargo, 
   for (local r = 0; r <= radius && plans.len() < limit; r++) {
     for (local dx = -r; dx <= r && plans.len() < limit; dx++) {
       for (local dy = -r; dy <= r && plans.len() < limit; dy++) {
+        if (exactCargo && workMark != null && OpexOpsMeasureEnd(workMark) >= V233L_SLICE_OPS) return plans;
         if (abs(dx) != r && abs(dy) != r) continue;
         local base = center + AIMap.GetTileIndex(dx, dy);
         if (!AIMap.IsValidTile(base)) continue;
@@ -1126,8 +1127,9 @@ function OpexStationPlans(center, otherCenter, radius, length, maxPlans, cargo, 
             }
             if (usable) {
               if (stats != null) stats.nClear++;
-              local cargoValue = OpexRailPlatformCargoValue(anchor, step, length, cargo, coverage,
-                                                             wantProduction);
+              local cargoValue = exactCargo
+                  ? OpexV233LCargoValue(anchor, step, length, cargo, coverage, wantProduction)
+                  : OpexRailPlatformCargoValue(anchor, step, length, cargo, coverage, wantProduction);
               if (wantProduction ? (cargoValue <= 0) : (cargoValue < 8)) continue;
               if (stats != null) stats.nCargo++;
               /* Levier B, Niveau 0 : rejet si le rayon de captage chevauche celui d'une gare rivale */
@@ -1520,6 +1522,7 @@ function OpexRailSiteReason(sawA, sawB)
  */
 function OpexRailPlatformPlans(catalog, candidate)
 {
+  if (OpexV233LIs(candidate)) return OpexV233LPlatformPlans(catalog, candidate);
   local statsA = { nClear = 0, nCargo = 0, nCmd = 0 };
   local statsB = { nClear = 0, nCargo = 0, nCmd = 0 };
 
@@ -4241,6 +4244,7 @@ function OpexPrepareRailRoute(catalog, budget, candidate, alternativeRatio, hard
                  structures = null, structures2 = null,
                  segmentedSegments = 0, segmentedBacktracks = 0, segmentedLocalChoices = 0,
                  budgetInfo = null, iterationBudget = 0, capital = candidate.capital };
+  if (OpexV233LIs(candidate)) plan.v233LongGood <- true;
 
   plan.budgetInfo = OpexIterationBudget(candidate.profitAnnual, alternativeRatio, hardCap);
   plan.iterationBudget = plan.budgetInfo.budget;
@@ -4266,8 +4270,9 @@ function OpexPrepareRailRoute(catalog, budget, candidate, alternativeRatio, hard
 
   local economics = OpexLineEconomics(catalog, candidate.cargo, candidate.distance,
                                       candidate.monthly, candidate.kind, plan.length,
-                                      null, null, null, null, null, OpexV163CandidateSecondary(candidate));
+                                      null, null, null, null, null, OpexV163CandidateSecondary(candidate), OpexV233LIs(candidate));
   if (economics == null) { plan.reason = "ECON"; return plan; }
+  if (OpexV233LIs(candidate) && economics.profitAnnual <= 0) { plan.reason = "ECON"; return plan; }
   plan.capital = economics.capital;
   OpexApplyRailEconomics(candidate, economics);
   plan.budgetInfo = OpexIterationBudget(candidate.profitAnnual, alternativeRatio, hardCap);
@@ -4332,6 +4337,12 @@ function OpexCompleteRailRouteAfterSearch(catalog, candidate, plan, search)
   plan.structures = OpexResolveSearchStructures(search);
   plan.planA = planA;
   plan.planB = planB;
+  if (OpexV233LIs(candidate)) {
+    local sourceTile = ("stationId" in planA) ? AIStation.GetLocation(planA.stationId) : planA.anchor;
+    local tariffDistance = AIMap.DistanceManhattan(sourceTile, planB.anchor);
+    if (tariffDistance < 150 || tariffDistance > 300) { plan.reason = "DISTANCE"; return plan; }
+    candidate.distance = tariffDistance;
+  }
 
   /* Recalibrer avec la longueur effectivement trouvee AVANT de decider si une
    * seconde voie est necessaire. Sinon un detour peut faire passer le besoin de
@@ -4341,6 +4352,7 @@ function OpexCompleteRailRouteAfterSearch(catalog, candidate, plan, search)
   for (local i = 1; i < tiles.len(); i++) {
     routeDistance += AIMap.DistanceManhattan(tiles[i - 1], tiles[i]);
   }
+  if (OpexV233LIs(candidate)) candidate.v233RouteDistance <- routeDistance;
   /* Journal seulement : longueur du trace pour RAIL_ATTEMPT (detour du poids A*). */
   if (DECISION_LOG) {
     if (!("routeLen" in candidate)) candidate.routeLen <- routeDistance;
@@ -4350,17 +4362,18 @@ function OpexCompleteRailRouteAfterSearch(catalog, candidate, plan, search)
     local economics = OpexLineEconomics(catalog, candidate.cargo, candidate.distance,
                                         candidate.monthly, candidate.kind, plan.length,
                                         routeDistance, null, null, null, null,
-                                        OpexV163CandidateSecondary(candidate));
+                                        OpexV163CandidateSecondary(candidate), OpexV233LIs(candidate));
     if (EQUIPMENT_ROI_PROBE) {
       OpexM3ProbeRailEquipment(catalog, candidate, plan.length, routeDistance, economics);
     }
     if (economics != null) {
+      if (OpexV233LIs(candidate) && economics.profitAnnual <= 0) { plan.reason = "ECON"; return plan; }
       plan.capital = economics.capital;
       OpexApplyRailEconomics(candidate, economics);
     }
   }
 
-  if (!OpexV198Active() && (candidate.trains > 1 || (OpexV190Active() && candidate.kind == "freight"))) {
+  if ((OpexV233LIs(candidate) || !OpexV198Active()) && (candidate.trains > 1 || (OpexV190Active() && candidate.kind == "freight"))) {
     local remain = plan.iterationBudget - plan.iterations;
     if (remain < ATTEMPT_FLOOR) remain = ATTEMPT_FLOOR;
     /* Sous rail_search_resumable, la borne tick historique tuerait cette seconde recherche
@@ -4369,7 +4382,7 @@ function OpexCompleteRailRouteAfterSearch(catalog, candidate, plan, search)
      * n'a donc d'effet que si ce chemin redevient vivant. */
     local dualDeadline = AIController.GetTick() + RAIL_SEARCH_SAFETY_TICKS;
     local dual = null;
-    if (OpexV190Active() && candidate.kind == "freight") {
+    if (OpexV233LIs(candidate) || (OpexV190Active() && candidate.kind == "freight")) {
       dual = OpexV190PlanDoubleTrack(catalog, planA, planB, tiles, remain, dualDeadline, plan.structures);
     } else {
       dual = OpexTryDoubleTrack(catalog, planA, planB, tiles, null, 0,
@@ -4392,6 +4405,11 @@ function OpexCompleteRailRouteAfterSearch(catalog, candidate, plan, search)
     }
   }
 
+  if (OpexV233LIs(candidate) && plan.doubleTrack != 1) {
+    plan.reason = "NOPLAN2";
+    if (DECISION_LOG) OpexV233LLog("REJECT", "src=" + candidate.src + " dst=" + candidate.dst + " reason=second_track");
+    return plan;
+  }
   plan.ok = true;
   plan.reason = "OK";
   return plan;
@@ -4599,7 +4617,7 @@ function OpexSimulateRailInfraCost(plan, failure = null)
         return OpexRailQuoteFailure(failure, "TRKFAIL", cur, error);
       }
     }
-    if (OpexV190Active() && ("doubleTrack" in plan) && plan.doubleTrack == 1
+    if ((OpexV190Active() || OpexV233LIs(plan)) && ("doubleTrack" in plan) && plan.doubleTrack == 1
         && ("tiles2" in plan) && plan.tiles2 != null
         && ("planA2" in plan) && plan.planA2 != null
         && ("planB2" in plan) && plan.planB2 != null) {
@@ -4613,6 +4631,12 @@ function OpexSimulateRailInfraCost(plan, failure = null)
       }
       local testIdA = AIStation.GetStationID(planA.anchor);
       local testIdB = AIStation.GetStationID(planB.anchor);
+      /* AITestMode ne pose pas la premiere gare : le devis V233L doit
+       * quand meme payer les quais secondaires, jamais passer l'ID invalide. */
+      if (OpexV233LIs(plan)) {
+        if (!AIStation.IsValidStation(testIdA)) testIdA = AIStation.STATION_NEW;
+        if (!AIStation.IsValidStation(testIdB)) testIdB = AIStation.STATION_NEW;
+      }
       AIRail.BuildRailStation(pA2.anchor, pA2.direction, 1, pA2.length, testIdA);
       AIRail.BuildRailStation(pB2.anchor, pB2.direction, 1, pB2.length, testIdB);
 
@@ -4651,7 +4675,7 @@ function OpexQuoteRailCapital(catalog, candidate, plan, failure = null)
   if (realInfra == null) return null;
   if (realInfra <= 0) return 0;
   local depotCost = catalog.costRailDepot + 2 * catalog.costTrackPerTile;
-  if (OpexV190Active() && ("doubleTrack" in plan) && plan.doubleTrack == 1) {
+  if ((OpexV190Active() || OpexV233LIs(candidate)) && ("doubleTrack" in plan) && plan.doubleTrack == 1) {
     depotCost = 2 * depotCost;
   }
   local vehicleCost = ("vehicleCost" in candidate) ? candidate.vehicleCost : 0;
@@ -5131,6 +5155,7 @@ function OpexBuildLine(catalog, budget, candidate, alternativeRatio, cashReserve
   /* V200 : comme l'estimateur d'AAAHogEx, ne doubler que si la caisse paie la ligne double
    * (environ deux fois le devis simple) avec une marge ; sinon voie unique historique. */
   local v200Double = OpexV200WantDouble(candidate, cashReserve);
+  if (OpexV233LIs(candidate)) return OpexV190ExecuteRailPlan(catalog, budget, candidate, plan, cashReserve);
   /* V198 replaces both station sites with independent templates. */
   if (v200Double && OpexV198Active() && candidate.kind == "freight") {
     return OpexV198ExecuteRailPlan(catalog, budget, candidate, plan, cashReserve);
@@ -5321,6 +5346,14 @@ function OpexV190ExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
   local planA = plan.planA;
   local planB = plan.planB;
   local tiles = plan.tiles;
+  if (OpexV233LIs(candidate) && !OpexV233LRecheck(candidate, plan)) {
+    result.reason = "STALE";
+    return result;
+  }
+  if (OpexV233LIs(candidate) && !OpexVehicleSlotAvailable(AIVehicle.VT_RAIL, 2)) {
+    result.reason = "NOSLOT";
+    return result;
+  }
   local replanGeometry = false;
   if (DECISION_LOG) {
     local crossStart = -1;
@@ -5683,6 +5716,13 @@ function OpexV190ExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
     }
   }
 
+  if (OpexV233LIs(candidate) && !okD) {
+    OpexRollback(tiles, planA, planB, depot, trains.rollbackVehicles);
+    result.actualCost = primaryCost + (postPathCosts != null ? postPathCosts.GetCosts() : 0);
+    result.reason = "DOUBLEFAIL";
+    if (DECISION_LOG) OpexV233LLog("REJECT", "src=" + candidate.src + " dst=" + candidate.dst + " reason=double_rollback");
+    return result;
+  }
   local started = [];
   local startFailed = false;
   foreach (train in trains.vehicles) {
