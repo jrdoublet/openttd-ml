@@ -18,7 +18,8 @@ Sorties (JSON + resume texte) :
 3. validation croisee a deux plis sur les graines : erreur de prediction du revenu
    (|log reel/predit|, mediane) sans correction, avec un facteur par mode (type C70) et avec
    la table par cellule apprise sur l'autre pli, eventuellement sur une autre campagne
-   (`--train` / `--test` : apprendre en solo, tester en duel) ;
+   (`--train` / `--test` : apprendre en solo, tester en duel). Les plis couvrent toutes les
+   graines de test ; les memes graines sont exclues de l'apprentissage, tous bras et repetitions ;
 4. part de la variance residuelle entre parties (ce qu'un apprentissage en cours de partie peut
    corriger) et dans une partie (ce qu'il ne peut pas corriger).
 
@@ -228,7 +229,12 @@ def predict_error(games, mf, cf):
 
 
 def cross_validate(train, test):
-    seeds = sorted({s for (_, s) in train})
+    """Score chaque graine de test une fois, sans apprendre sur cette graine.
+
+    Les graines presentes seulement dans train restent disponibles dans les deux plis.
+    A graines identiques, le decoupage historique est conserve.
+    """
+    seeds = sorted({s for (_, s) in test})
     folds = [set(seeds[0::2]), set(seeds[1::2])]
     res = []
     for k, fold in enumerate(folds):
