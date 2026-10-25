@@ -439,6 +439,10 @@ function OpexLoadSettings()
   C41_RAIL_LOST_JUNCTION_REPAIR = false;
   local railRefill = AIController.GetSetting("v217_rail_refill");
   V217_RAIL_REFILL = (railRefill != null && railRefill >= 0 && railRefill <= 2) ? railRefill : 0;
+  local n75MultiCargo = AIController.GetSetting("n75_multi_cargo");
+  N75_MULTI_CARGO = (n75MultiCargo >= 1 && n75MultiCargo <= 2) ? n75MultiCargo : 0;
+  N75_MC_LAST_MONTH = (N75_MULTI_CARGO > 0) ? N75_MC_SAVED_MONTH : -1;
+  N75_MC_SAVED_MONTH = -1;
   V217_LAST_MONTH = -1;
   local v276 = AIController.GetSetting("v276_cand_slices");
   V276_CAND_SLICES = (v276 == 3) ? (bigMap ? 2 : 0) : v276;

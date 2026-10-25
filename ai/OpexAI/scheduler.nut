@@ -1,4 +1,100 @@
 /* C65 : deplace depuis main.nut (passe 1, deplacement pur, aucun corps retouche). */
+/* N75: preliminary budget+proximity screen; construction is proven only by RAIL_BUILD. */
+function OpexN75BudgetEligibleProject(ai, project, cash)
+{
+  if (project == null || project.mode != "rail" || !("payload" in project)
+      || project.payload == null || !("profitAnnual" in project)
+      || project.profitAnnual <= 0 || OpexProjectFinanceCapital(project) > cash) return false;
+  local c = project.payload;
+  if (ai._abandonedPairs != null && (OpexAbandonedPairKey(c) in ai._abandonedPairs)) return false;
+  local close = ai._tooClose(c);
+  return close.hard < 0 && close.blocking < 0;
+}
+
+function OpexN75FundedRail(ai, cash)
+{
+  if (ai._projects == null || !("candidateGroups" in ai._projects)
+      || ai._projects.candidateGroups == null) return 0;
+  foreach (key, list in ai._projects.candidateGroups) {
+    foreach (project in list) {
+      if (OpexN75BudgetEligibleProject(ai, project, cash)) return 1;
+    }
+  }
+  return 0;
+}
+
+/* N75 works after the usual V217 refill, NEVER overriding that option.
+ * It attempts one additional cargo when V217 is active (two attempts when
+ * V217 is OFF); candidate generation can itself fallback to other cargos.
+ * Publish generated candidates only if budget-eligible; a failed scan never
+ * modifies the live portfolio, its stats or existing C77 project metadata.
+ * SHADOW tests the old pool but performs no candidate regeneration. */
+function OpexN75MultiCargoRefill(ai)
+{
+  if (N75_MULTI_CARGO <= 0 || V276_CAND_SLICES > 0
+      || ai._projects == null || ai._catalog == null) return;
+  local date = AIDate.GetCurrentDate();
+  local year = AIDate.GetYear(date);
+  if (year < OPEX_START_YEAR + 2) return;
+  local month = year * 12 + AIDate.GetMonth(date);
+  if (V217_RAIL_REFILL > 0 && V217_LAST_MONTH != month) return;
+  if (N75_MC_LAST_MONTH == month) return;
+  if (STAGED_BOOTSTRAP && ai._generationStage < OPEX_STAGE_COMPLETE) return;
+  if (ai._railSearch != null || ai._activeWorker != null) return;
+  N75_MC_LAST_MONTH = month;
+  local cash = OpexAvailableCapital();
+  if (cash <= V217_IDLE_CASH_MIN || OpexN75FundedRail(ai, cash) > 0) return;
+  if (N75_MULTI_CARGO == 1) {
+    if (DECISION_LOG) OpexDecide("N75_MC", "phase=shadow_budget_empty month=" + month + " cash=" + cash);
+    return;
+  }
+  local cargos = OpexFreightCargoOrder(ai._catalog);
+  if (cargos.len() < 2) return;
+  local start = 0;
+  if (ai._lastFreightCargo >= 0) {
+    for (local i = 0; i < cargos.len(); i++) {
+      if (cargos[i] == ai._lastFreightCargo) { start = (i + 1) % cargos.len(); break; }
+    }
+  }
+  local previousNoPax = V217_REGEN_NO_PAX;
+  local found = false;
+  ai._pruneAbandonedPairs(date);
+  V217_REGEN_NO_PAX = true;
+  local attempts = V217_RAIL_REFILL > 0 ? 1 : 2;
+  for (local j = 0; j < attempts; j++) {
+    local cargo = cargos[(start + j) % cargos.len()];
+    local mark = DECISION_LOG ? OpexOpsMeasureBegin() : null;
+    local scratch = clone ai._projects;
+    scratch.rawset("freightCargo", cargo);
+    local generated = OpexGenerateModeProjects(scratch, ai._catalog, ai._budget,
+        ai._lines, ai._abandonedPairs, "rail", null, null, -1);
+    local funded = 0;
+    foreach (project in generated.projects) {
+      if (OpexN75BudgetEligibleProject(ai, project, cash)) { funded = 1; break; }
+    }
+    local ops = mark != null ? OpexOpsMeasureEnd(mark) : -1;
+    if (DECISION_LOG) {
+      local candidates = (generated.rail != null && ("candidates" in generated.rail)
+          && generated.rail.candidates != null) ? generated.rail.candidates.len() : 0;
+      OpexDecide("N75_MC", "phase=refill month=" + month + " step=" + j
+          + " cargo=" + AICargo.GetCargoLabel(cargo) + " budget_eligible=" + funded
+          + " candidates=" + candidates + " cash=" + cash + " ops=" + ops);
+    }
+    if (funded > 0) {
+      ai._projects = OpexApplyGeneratedModeProjects(ai._projects, generated,
+          ai._abandonedPairs, "rail", null, -1, ai._lines);
+      if (("freightCargo" in ai._projects) && ai._projects.freightCargo != null)
+        ai._lastFreightCargo = ai._projects.freightCargo;
+      ai._ranked = ai._projects.rail;
+      found = true;
+      break;
+    }
+  }
+  V217_REGEN_NO_PAX = previousNoPax;
+  if (!found) {
+    if (DECISION_LOG) OpexDecide("N75_MC", "phase=unapplied month=" + month + " reason=no_budget_eligible");
+  }
+}
 /* C41.11 : enveloppe strictement observatoire. `slack_ops_used` est borne au reliquat disponible
  * au debut du passage : un calcul qui franchit un tick ne transforme pas les ticks suivants en
  * slack retroactif. Les continuations rail precedant la selection sont rangees explicitement par
@@ -10,6 +106,7 @@ function OpexAI::_runNextTaskWithSlackLedger()
   if (V211_RIVALS) OpexV211QuarterlyTick();
   if (DECISION_LOG) OpexV262OrphanSurvey(this._lines);
   if (V217_RAIL_REFILL > 0) this._v217RailRefill();
+  if (N75_MULTI_CARGO > 0) OpexN75MultiCargoRefill(this);
   if (V259_BRIDGE_RENEW > 0) this._v259CheckNewBridges();
   if ((!C41_SLACK_LEDGER && !C41_MONTHLY_BUSY_LEDGER && !C41_OPPORTUNITY_LEDGER && !C41_ADMISSION_LEDGER
        && !C41_RAIL_SLICE_LEDGER && !C39_PASS_CLOCK_LEDGER)

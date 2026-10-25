@@ -546,6 +546,11 @@ V217_IDLE_CASH_MIN <- 100000;
 V217_POOL_MIN <- 2;
 V217_LAST_MONTH <- -1;
 V217_REGEN_NO_PAX <- false;
+/* N75-MC: additional 1972+ freight cargo after V217 if RAIL pool is budget-empty.
+ * 0 OFF, 1 SHADOW (only existing pool scan), 2 ON (one additional cargo). */
+N75_MULTI_CARGO <- 0;
+N75_MC_LAST_MONTH <- -1;
+N75_MC_SAVED_MONTH <- -1;
 AIR0310_SITE_VALIDITY_STATE <- null;
 /* E10 : Correctif du doublement de flotte routiere au cycle de construction */
 /* C26a : Pricer l'avion de la ligne lors du refleet au lieu du meilleur avion du catalogue */

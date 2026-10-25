@@ -2,6 +2,7 @@
 from pathlib import Path
 import re
 import unittest
+from n75_mc_legacy import historical_info
 
 AI = Path(__file__).resolve().parents[1] / "ai" / "OpexAI"
 PACKAGES = ("policy_rail", "policy_road", "policy_air", "policy_abandon", "policy_portfolio")
@@ -23,7 +24,7 @@ def read(name):
 
 class FixedPolicies(unittest.TestCase):
     def test_exactly_five_public_settings_retired(self):
-        info, settings = read("info.nut"), read("settings.nut")
+        info, settings = historical_info(read("info.nut")), read("settings.nut")
         # 101 options initiales, 43 retraits intentionnels ; PO03/C77 et
         # PO02 restent declares et actifs malgre leur absence du vieux WIP.
         self.assertLessEqual(info.count("AddSetting("), 58)
