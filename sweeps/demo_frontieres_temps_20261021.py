@@ -50,6 +50,68 @@ def crossover(speed_rail, speed_air, fixed_days, time_per_tile):
     return fixed_days / difference
 
 
+def passenger_crossover_with_stops(rail_speed, air_speed, air_ground_days,
+                                   air_loading_days, rail_stop_days, time_per_tile):
+    """Croisement RAIL PASS -> AIR par distance, sans clamp ni decision de jeu.
+
+    T_rail = rail_stop_days + D * tau_rail ;
+    T_air = air_ground_days + air_loading_days + D * tau_air.
+    None signifie qu'aucun basculement RAIL -> AIR a longue distance n'est
+    defini lorsque tau_rail <= tau_air. Si AIR est deja plus rapide a D=0,
+    la premiere distance non negative favorable a AIR est 0.
+    Les temps fixes concernent un aller ; ne pas inclure le delai hub C121.
+    """
+    delta_tau = time_per_tile(rail_speed) - time_per_tile(air_speed)
+    if delta_tau <= 0.0:
+        return None
+    net_fixed = air_ground_days + air_loading_days - rail_stop_days
+    return max(0.0, net_fixed / delta_tau)
+
+
+def illustrative_pass_stop_sensitivity(rail_speed=115.0, air_speed=570.0):
+    """Hypotheses mecaniques explicites, PAS des observations de campagnes.
+
+    AIR : 100 PASS/mois a chaque extremite, 5 ou 2 departs/mois,
+    aucun MAIL ; _source_air_loading_dwell_days donne 41/74 ou 121/74
+    jours par visite (une visite imputee par aller). Le scenario zero est
+    le temoin sans ajout de chargement. RAIL : wagon de 40 PASS,
+    2 operations de 40 ticks par tranche de 5, soit 640/74 jours par
+    trajet charge (OpexRailStationDwellDays avec V216f=100).
+    On confronte les DEUX conversions de jours/tuile a la meme physique
+    AIR C100.1 (API directe + roulage); aucune frontiere n'est appliquee.
+    """
+    air_ground_days = maneuver_c100(air_speed)
+    rail_stop_cases = (("rail_stop_zero", 0.0),
+                       ("rail_wagon40_v216f100", 2.0 * 40.0 * 8.0 / TICKS_PER_DAY))
+    air_load_cases = (("air_load_zero", 0.0),
+                      ("air_pass100_5_departures", 41.0 / TICKS_PER_DAY),
+                      ("air_pass100_2_departures", 121.0 / TICKS_PER_DAY))
+    cases = []
+    for rail_label, rail_stop in rail_stop_cases:
+        for air_label, air_load in air_load_cases:
+            cases.append({
+                "scenario": rail_label + "__" + air_label,
+                "air_loading_days_per_visit": air_load,
+                "rail_stop_days_per_loaded_trip": rail_stop,
+                "net_fixed_air_minus_rail_days": air_ground_days + air_load - rail_stop,
+                "boundary_c100_pass_tiles": passenger_crossover_with_stops(
+                    rail_speed, air_speed, air_ground_days, air_load, rail_stop,
+                    days_per_tile_boundary),
+                "economy_c121_pass_tiles": passenger_crossover_with_stops(
+                    rail_speed, air_speed, air_ground_days, air_load, rail_stop,
+                    days_per_tile_economy),
+            })
+    return {
+        "rail_speed_scenario": rail_speed,
+        "air_api_speed_scenario": air_speed,
+        "air_c100_ground_days_per_one_way": air_ground_days,
+        "air_loading_assumption": "100 PASS/month at each end, no MAIL; 0/5/2 departures scenarios",
+        "rail_stop_assumption": "0 or 40-PASS wagon, V216f=100%, two operations per loaded trip",
+        "distance_definition": "unclamped Manhattan city-centre tiles; PASS only",
+        "cases": cases,
+    }
+
+
 def modal_scenario(rail, aircraft):
     """Separations explicites de la vitesse et de la conversion de jours."""
     historical = aircraft / PLANE_DIVISOR
@@ -137,6 +199,7 @@ def demo(source):
         "observed": {"bounds": b, "games": published["seen_games"],
                      "epoch_events": published["logged_bounds_events"]},
         "models_hypothetical": models,
+        "physical_pass_stop_sensitivity_hypothetical": illustrative_pass_stop_sensitivity(),
         "passenger_reclassification": {
             "requires_cargo_level_raw_logs": True,
             "reason": "published distance histograms pool RAIL freight and PASS; freight is not subject to the PASS modal boundary",
@@ -149,6 +212,8 @@ def demo(source):
             "Rail-air passenger boundary applies only to RAIL cargo PASS, NOT to RAIL freight.",
             "Rail mechanical station dwell is already included in economy.nut at v216f_dwell_pct=100.",
             "AIR loading dwell can be computed offline from engine loading slices but is not in trip model.",
+            "PASS stop-time sensitivities are one-way physical scenarios, not observed vehicle speeds, network delays, new eligible pairs, or approved thresholds.",
+            "Do not add C121 hub delays to C100 ground time without checking overlap; freight and AIR fleet ranking are outside this comparison.",
         ],
     }
 
@@ -173,6 +238,16 @@ def main():
         for name, v in r["models_hypothetical"].items():
             print("  ", name, {k: (round(x, 2) if x is not None else None)
                                   for k, x in v.items() if "boundary" in k or "economy" in k})
+        print("PASS physique, sensibilite au chargement AIR et a l'arret RAIL (scenarios, sans clamp) :")
+        for case in r["physical_pass_stop_sensitivity_hypothetical"]["cases"]:
+            print("  ", case["scenario"],
+                  "AIR charge=%.2f j, RAIL arret=%.2f j, seuil frontiere=%s, economie=%s" % (
+                      case["air_loading_days_per_visit"],
+                      case["rail_stop_days_per_loaded_trip"],
+                      "indefini" if case["boundary_c100_pass_tiles"] is None
+                      else "%.2f" % case["boundary_c100_pass_tiles"],
+                      "indefini" if case["economy_c121_pass_tiles"] is None
+                      else "%.2f" % case["economy_c121_pass_tiles"]))
         print("Reclassement PASS: impossible à chiffrer avec les seules bandes agrégées (mélangent fret et voyageurs).")
         print("ROUTE->RAIL, differentiel tarif £/pax au trajet de 20 tuiles:",
               r["hypothetical_road_to_rail_fare_sensitivity"])
