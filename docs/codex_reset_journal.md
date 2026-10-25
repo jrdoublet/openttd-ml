@@ -144,3 +144,59 @@ V308 conserve son attente d'un consommateur de carte et d'une invalidation avant
 toute utilisation dans les décisions ; aucun gain économique n'est démontré ici.
 Aucun Docker ni partie lancé ; aucun push, merge, changement de configuration
 Git ou accès à un autre worktree ou au dépôt principal.
+
+## 25 octobre 2026 — V306 : évaluer aussi les graines nouvelles
+
+Branche locale : `codex-reset-20261025_0620`. Arbre initial propre, départ
+`20328514`. Commit de la tâche : `9c14a016`
+(`fix(v306): evaluate calibration on unseen test seeds`).
+
+**Tâche choisie :** fiabiliser la validation croisée hors ligne du chantier ouvert
+V306 dans `docs/taches.md`, en préparation de son évaluation sur graines nouvelles.
+Défaut reproduit avant correction : les plis étant définis sur les graines
+d'apprentissage, les graines présentes seulement en test étaient omises. Les
+fixtures observaient 0 ligne-année évaluée sur 6 pour deux jeux disjoints, et
+3 sur 6 pour un chevauchement partiel.
+
+**Fichiers :**
+
+- `sweeps/analyse_calibration_projets.py` : plis définis sur les graines de test,
+  chacune évaluée une fois ; exclusion des mêmes graines de l'apprentissage,
+  tous bras et répétitions confondus. Les graines propres à l'apprentissage
+  restent utilisables dans les deux plis. À jeux de graines identiques, découpage
+  historique conservé. Contrat documenté dans le module et la fonction.
+- `sweeps/test_analyse_calibration_projets.py` : trois contrats sur données
+  synthétiques, sans dépendance optionnelle : couverture de toutes les graines
+  nouvelles jusque dans le rapport `analyse`, chevauchement partiel et absence
+  de fuite entre bras/répétitions d'une même graine. Les facteurs par mode et
+  par cellule sont vérifiés, avec suffisamment de lignes d'apprentissage.
+- `docs/taches.md` : avancement V306, validation réelle et ablation laissées ouvertes.
+- `docs/codex_reset_journal.md` : cette entrée dans un second commit.
+
+Aucun code IA, défaut, hash de contrat ou rapport historique modifié.
+RAIL-LONG-EARLY-1, AIR-FLOTTE-1 et C115 non modifiés.
+
+**Tests exécutés :**
+
+| Commande | Résultat |
+|---|---|
+| `python3 -m unittest discover -s sweeps -p 'test_analyse_calibration_projets.py' -v` avant correction | 3 tests, 2 échecs reproduisant les observations omises |
+| Même commande après correction | 3 tests OK |
+| `python3 sweeps/analyse_calibration_projets.py --selftest` | OK |
+| `python3 -m unittest discover -s sweeps -p 'test_*.py'` avant édition | 2 437 tests, OK avec 9 ignorés et 2 échecs attendus |
+| Même suite complète après correction | 2 440 tests, OK avec les mêmes 9 ignorés et 2 échecs attendus |
+| `git diff --check` et `git diff --cached --check` | OK |
+
+Commandes lancées via `rtk` / `rtk proxy`. Journaux temporaires :
+`/tmp/codex_reset_v306_20261025_before.log`,
+`/tmp/codex_reset_v306_20261025_red.log` et
+`/tmp/codex_reset_v306_20261025_after.log`.
+
+**Reste à valider en banc :** aucune partie nécessaire pour ce correctif de
+découpage Python ; ni intégration moteur ni schéma collecté ne changent. V306
+reste ouverte : ablation par variables disponibles au choix et évaluation sur
+de vraies graines nouvelles avant toute proposition de table. Les fixtures
+ne valident aucun gain économique ; aucune table adoptée et aucune preuve
+historique recalculée ou requalifiée. Aucun Docker ni partie lancé ; aucun
+push, merge, changement de configuration Git ou accès à un autre worktree
+ou au dépôt principal.
