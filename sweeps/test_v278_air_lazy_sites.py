@@ -198,12 +198,35 @@ class TestV278Source(unittest.TestCase):
         # Empreintes de master au depart de V278, corps entier du driver et
         # de NewPairs. Seuls les panneaux de premiere paire sont desarmes
         # pour les appels atomiques V278, sans retoucher aucun filtre C121.
+        # FRONT-PAX-2 ajoute seulement une sonde passive sous DECISION_LOG :
+        # retirer STRICTEMENT ses lignes connues, avec garde de cardinalite,
+        # plutot que rebaser le SHA et affaiblir l'invariant economique V278.
         source = read("air_planning.nut")
         pairs = function(source, "OpexAirPlansNewPairs").replace(
             'a == 0 && b == 1 && !(V278_AIR_LAZY_SITES && ("v278SinglePair" in ctx))',
             "a == 0 && b == 1")
+        pairs_probe = (
+            "      if (ctx.fp2 != null) OpexFrontPax2Observe(ctx.fp2, 0, distance, flightDistance,\n"
+            "          minDist, paxBand, plane.maxOrderDistance);\n"
+        )
+        self.assertEqual(pairs.count(pairs_probe), 1)
+        pairs = pairs.replace(pairs_probe, "")
         self.assertEqual(hashlib.sha256(pairs.encode()).hexdigest(), PAIRS_HASH)
         driver = function(source, "OpexAirPlans")
+        driver_field = "    fp2 = null,\n"
+        driver_init = (
+            "\n  if (DECISION_LOG) {\n"
+            "    if (resumeState != null && (\"frontPax2\" in resumeState)) {\n"
+            "      ctx.fp2 = resumeState.frontPax2;\n"
+            "    } else {\n"
+            "      ctx.fp2 = OpexFrontPax2Init(OpexCatalogBounds(catalog));\n"
+            "      if (resumeState != null) resumeState.frontPax2 <- ctx.fp2;\n"
+            "    }\n"
+            "  }\n"
+        )
+        self.assertEqual(driver.count(driver_field), 1)
+        self.assertEqual(driver.count(driver_init), 1)
+        driver = driver.replace(driver_field, "").replace(driver_init, "")
         self.assertEqual(hashlib.sha256(driver.encode()).hexdigest(), DRIVER_HASH)
 
     def test_population_potential_and_bounded_frontier(self):

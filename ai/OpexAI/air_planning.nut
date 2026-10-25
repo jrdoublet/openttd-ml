@@ -46,6 +46,99 @@ function OpexAirCalcDeltaOps(t0, l0)
     : l0 + (elapsed - 1) * OPS_PER_TICK + (OPS_PER_TICK - left);
 }
 
+/* FRONT-PAX-2 : histogramme passif des paires effectivement visitees par les
+ * trois boucles AIR. Une case par intervalle Manhattan, sans cle par paire.
+ * Le resultat de la bande est seulement une condition de recherche : aucune
+ * constructibilite, ROI ou selection C77 n'est inferee ici. */
+function OpexFrontPax2Counters()
+{
+  return {
+    under20 = 0,
+    seen = [0, 0, 0, 0], short = [0, 0, 0, 0],
+    belowMin = [0, 0, 0, 0], minBlocked = [0, 0, 0, 0],
+    belowAirMax = [0, 0, 0, 0], belowPlaneMax = [0, 0, 0, 0],
+    belowConfigMax = [0, 0, 0, 0], belowWithinLimits = [0, 0, 0, 0],
+    otherBand = [0, 0, 0, 0], airMax = [0, 0, 0, 0],
+    bandPass = [0, 0, 0, 0],
+  };
+}
+
+function OpexFrontPax2Init(bounds)
+{
+  return { year = bounds.year, bounds = bounds,
+      arms = [OpexFrontPax2Counters(), OpexFrontPax2Counters(), OpexFrontPax2Counters()] };
+}
+
+/* Appel uniquement sous DECISION_LOG, et seulement avec les distances deja
+ * calculees par l'appelant. flightDistance=-1 pour les paires trop courtes qui
+ * sont ecartees avant le calcul de distance de vol dans les boucles hub. */
+function OpexFrontPax2Observe(probe, arm, distance, flightDistance, minDist, paxBand, planeMax)
+{
+  local counts = probe.arms[arm];
+  if (distance < 20) { counts.under20++; return; }
+  local bin = distance < 64 ? 0 : (distance < 78 ? 1 : (distance < 200 ? 2 : 3));
+  counts.seen[bin]++;
+  if (distance < minDist) { counts.short[bin]++; return; }
+
+  local b = probe.bounds;
+  local rejectedByMin = paxBand == PAX_BAND_ALL && distance < b.airMin;
+  local rejectedByOtherBand =
+      (paxBand == PAX_BAND_AIR_ONLY && distance <= b.railMax)
+      || (paxBand == PAX_BAND_AIR_RAIL
+          && (distance < b.railAirOverlapMin || distance > b.railMax));
+  local pastAirMax = b.airMax > 0 && flightDistance > b.airMax;
+  /* Masse <airMin contre-factuelle meme en phase AIR_ONLY/AIR_RAIL : dans ces
+   * phases c'est la regle split (otherBand), non airMin, qui rejette. */
+  if (distance < b.airMin) {
+    counts.belowMin[bin]++;
+    if (pastAirMax) counts.belowAirMax[bin]++;
+    if (planeMax > 0 && flightDistance > planeMax) counts.belowPlaneMax[bin]++;
+    if (AIR_MAX_DISTANCE > 0 && flightDistance > AIR_MAX_DISTANCE) counts.belowConfigMax[bin]++;
+    if (!pastAirMax && !(planeMax > 0 && flightDistance > planeMax)
+        && !(AIR_MAX_DISTANCE > 0 && flightDistance > AIR_MAX_DISTANCE)) {
+      counts.belowWithinLimits[bin]++;
+    }
+  }
+  if (rejectedByMin) {
+    counts.minBlocked[bin]++;
+  } else if (rejectedByOtherBand) {
+    counts.otherBand[bin]++;
+  } else if (pastAirMax) {
+    counts.airMax[bin]++;
+  } else {
+    counts.bandPass[bin]++;
+  }
+}
+
+/* Quatre comptes par champ : [20..63,64..77,78..199,200+]. Trois lignes
+ * bornees en fin de planification, jamais une ligne par candidat. */
+function OpexFrontPax2Bins(values)
+{
+  return values[0] + "," + values[1] + "," + values[2] + "," + values[3];
+}
+
+function OpexFrontPax2Emit(probe, scan, paxBand)
+{
+  local names = ["newpair", "hubsite", "hubhub"];
+  for (local i = 0; i < 3; i++) {
+    local c = probe.arms[i];
+    OpexDecide("FRONT_PAX2", "scan=" + scan + " year=" + probe.year
+        + " arm=" + names[i] + " pax_band=" + paxBand
+        + " air_min=" + probe.bounds.airMin + " air_max=" + probe.bounds.airMax
+        + " under20=" + c.under20 + " seen=" + OpexFrontPax2Bins(c.seen)
+        + " short=" + OpexFrontPax2Bins(c.short)
+        + " below_min=" + OpexFrontPax2Bins(c.belowMin)
+        + " blocked_min=" + OpexFrontPax2Bins(c.minBlocked)
+        + " below_airmax=" + OpexFrontPax2Bins(c.belowAirMax)
+        + " below_plane=" + OpexFrontPax2Bins(c.belowPlaneMax)
+        + " below_config=" + OpexFrontPax2Bins(c.belowConfigMax)
+        + " below_within=" + OpexFrontPax2Bins(c.belowWithinLimits)
+        + " other_band=" + OpexFrontPax2Bins(c.otherBand)
+        + " airmax=" + OpexFrontPax2Bins(c.airMax)
+        + " band_pass=" + OpexFrontPax2Bins(c.bandPass));
+  }
+}
+
 /* 1. Preparation : combos, villes, OpexAirTownPoolLimit, indices et reprise. */
 function OpexAirPlansPrepare(ctx)
 {
@@ -152,6 +245,7 @@ function OpexAirPlansPrepare(ctx)
       OpexDecide("AIR_SERVED_SUMMARY", "scan=" + servedDiag.scan
                  + " null_calls=0 empty_calls=0 nonempty_calls=0 true_calls=0 false_calls=0"
                  + " false_towns_logged=0");
+      if (ctx.fp2 != null) OpexFrontPax2Emit(ctx.fp2, servedDiag.scan, ctx.paxBand);
     }
     if (sliced) {
       resumeState.bestPlan = null;
@@ -610,6 +704,8 @@ function OpexAirPlansNewPairs(ctx, comboIndex, combo, airport, plane, minDist, r
       local orderDistance = AIOrder.GetOrderDistance(AIVehicle.VT_AIR,
                                                       sites[a].anchor, sites[b].anchor);
       local flightDistance = OpexFlightDistance(sites[a].anchor, sites[b].anchor);
+      if (ctx.fp2 != null) OpexFrontPax2Observe(ctx.fp2, 0, distance, flightDistance,
+          minDist, paxBand, plane.maxOrderDistance);
       if (distance < minDist) {
         if (C69_BOTTLENECK_PROBE) OpexC73RecordRejection("air", "distance_short", 1);
         if (c78Gen) OpexC78Log("C78_AIRPAIR", "year=" + c78Year + " arm=newpair combo=" + airport.type + ":" + plane.id + " townA=" + sites[a].town.id + " townB=" + sites[b].town.id + " dist=" + distance + " outcome=distance_short P=-1 C=-1");
@@ -1200,6 +1296,8 @@ function OpexAirPlansHubToSite(ctx, combo, airport, plane)
       if (C69_BOTTLENECK_PROBE) OpexC73RecordExamined("air", 1);
       local distance = AIMap.DistanceManhattan(hub.town.tile, site.town.tile);
       if (distance < 20) {
+        if (ctx.fp2 != null) OpexFrontPax2Observe(ctx.fp2, 1, distance, -1,
+            20, paxBand, plane.maxOrderDistance);
         if (C69_BOTTLENECK_PROBE) OpexC73RecordRejection("air", "distance_short", 1);
         if (c78Gen) OpexC78Log("C78_AIRPAIR", "year=" + c78Year + " arm=hubsite combo=" + airport.type + ":" + plane.id + " townA=" + OpexC78HubTownId(hub) + " townB=" + site.town.id + " dist=" + distance + " outcome=distance_short P=-1 C=-1");
         continue;
@@ -1207,6 +1305,8 @@ function OpexAirPlansHubToSite(ctx, combo, airport, plane)
       local orderDistance = AIOrder.GetOrderDistance(AIVehicle.VT_AIR,
                                                       hub.anchor, site.anchor);
       local flightDistance = OpexFlightDistance(hub.anchor, site.anchor);
+      if (ctx.fp2 != null) OpexFrontPax2Observe(ctx.fp2, 1, distance, flightDistance,
+          20, paxBand, plane.maxOrderDistance);
       if (!OpexAirPairInBand(catalog, distance, flightDistance, paxBand)) {
         if (C69_BOTTLENECK_PROBE) OpexC73RecordRejection("air", "pax_band", 1);
         if (c78Gen) OpexC78Log("C78_AIRPAIR", "year=" + c78Year + " arm=hubsite combo=" + airport.type + ":" + plane.id + " townA=" + OpexC78HubTownId(hub) + " townB=" + site.town.id + " dist=" + distance + " outcome=pax_band P=-1 C=-1");
@@ -1371,12 +1471,16 @@ function OpexAirPlansHubToHub(ctx, combo, airport, plane)
       }
       local distance = AIMap.DistanceManhattan(hub1.town.tile, hub2.town.tile);
       if (distance < 20) {
+        if (ctx.fp2 != null) OpexFrontPax2Observe(ctx.fp2, 2, distance, -1,
+            20, paxBand, plane.maxOrderDistance);
         if (C69_BOTTLENECK_PROBE) OpexC73RecordRejection("air", "distance_short", 1);
         if (c78Gen) OpexC78Log("C78_AIRPAIR", "year=" + c78Year + " arm=hub combo=" + airport.type + ":" + plane.id + " townA=" + OpexC78HubTownId(hub1) + " townB=" + OpexC78HubTownId(hub2) + " dist=" + distance + " outcome=distance_short P=-1 C=-1");
         continue;
       }
       local orderDistance = AIOrder.GetOrderDistance(AIVehicle.VT_AIR, hub1.anchor, hub2.anchor);
       local flightDistance = OpexFlightDistance(hub1.anchor, hub2.anchor);
+      if (ctx.fp2 != null) OpexFrontPax2Observe(ctx.fp2, 2, distance, flightDistance,
+          20, paxBand, plane.maxOrderDistance);
       if (!OpexAirPairInBand(catalog, distance, flightDistance, paxBand)) {
         if (C69_BOTTLENECK_PROBE) OpexC73RecordRejection("air", "pax_band", 1);
         if (c78Gen) OpexC78Log("C78_AIRPAIR", "year=" + c78Year + " arm=hub combo=" + airport.type + ":" + plane.id + " townA=" + OpexC78HubTownId(hub1) + " townB=" + OpexC78HubTownId(hub2) + " dist=" + distance + " outcome=pax_band P=-1 C=-1");
@@ -1492,6 +1596,7 @@ function OpexAirPlansFinalize(ctx)
                + " false_calls=" + servedDiag.falseCalls
                + " false_towns_logged=" + servedDiag.loggedFalseCount);
   }
+  if (ctx.fp2 != null) OpexFrontPax2Emit(ctx.fp2, servedDiag.scan, ctx.paxBand);
   local totalOps = _calcDeltaOps(t0_all, l0_all);
   if (CATALOG_COST_ACTIVE != null) {
     local cost = CATALOG_COST_ACTIVE;
@@ -1756,7 +1861,17 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
     hubs = [],
     air0310HubRestored = false,
     air0310HubSkip = null,
+    fp2 = null,
   };
+
+  if (DECISION_LOG) {
+    if (resumeState != null && ("frontPax2" in resumeState)) {
+      ctx.fp2 = resumeState.frontPax2;
+    } else {
+      ctx.fp2 = OpexFrontPax2Init(OpexCatalogBounds(catalog));
+      if (resumeState != null) resumeState.frontPax2 <- ctx.fp2;
+    }
+  }
 
   local spPlans = PROBE_SPAN_TRACE ? OpexSpanBegin("air.plans") : null;
   local prepared = OpexAirPlansStepPrepare(ctx);
