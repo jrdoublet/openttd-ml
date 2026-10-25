@@ -17,6 +17,7 @@ et protocole V102 multimodal avant activation.
 | `candidates.nut:628-642` | RAIL fret : distance **Manhattan** jusqu'à `V269_RAIL_MAX_DIST` si `V269_RELAXED` et cette borne dépasse `railMax` | Exception fret tardive, non applicable au rail voyageurs |
 | `candidates.nut:2061-2064` | Subventions C42 ROUTE : `roadMin…roadGenMax` | La subvention suit la fenêtre du générateur, pas `roadMax` |
 | `candidates_v276.nut:126-148` | Grille spatiale V276 : max `roadGenMax` en ROUTE ; `railMax` en RAIL | Préfiltre placé **avant** la vérification finale de la paire |
+| `candidates_v276.nut:78-86,259-280` | V276 donne au fret `PAX_BAND_ALL`, puis applique **aussi** `OpexRailPaxPairInBand` à tout mode `rail` après la grille | Second plafond `railMax` indépendant de la grille : élargir uniquement la grille ne suffirait pas pour le fret V269 tardif |
 
 ## Données économiques déjà publiées et limites
 
@@ -29,12 +30,18 @@ ajouter les sous-bandes au modèle ne réduit pratiquement pas la MAE du ROI AIR
 (13,891 → 13,889 points) ou RAIL (12,614 → 12,687) : cela ne motive **aucun
 changement de score ou de frontière**.
 
-**Risque conditionnel identifié, non corrigé :** sur 1024², V276 est activé
+**Deux écrans conditionnels identifiés, non corrigés :** sur 1024², V276 est activé
 automatiquement ; `OpexV276PrepareUnit` indexe la grille fret RAIL jusqu'à
 `catalog.bounds.railMax` (200 dans les traces 256²). Lorsqu'en aval
 `V269_RELAXED` permet `V269_RAIL_MAX_DIST` supérieur (250), la génération
 directe `OpexRailCandidate` tolérerait 201–250, mais les paires hors de la
 grille ne sont pas soumises à ce filtre : elles risquent d'être invisibles.
+**Même si la grille s'étendait à 250,** `OpexV276Enumerate` applique ensuite
+`OpexRailPaxPairInBand(..., PAX_BAND_ALL)` à toutes les paires `rail`,
+y compris fret, et cette garde retient seulement `railMin…railMax`.
+Les **deux** plafonds doivent donc être distingués dans une éventuelle
+correction opt-in. Deux contrats hôte ajoutés le 25/10 valident ce parcours
+source et le cas synthétique 201/249/250 : ils ne sont pas une exposition moteur.
 Le seuil 200 sur 1024² **doit être relevé dans un log `EPOCH_BOUNDS` du même
 monde**, et l'exposition de V269 tardif vérifiée, avant de conclure à un effet
 réel ou de coder un élargissement. Un déblocage ferait apparaître de nouvelles
