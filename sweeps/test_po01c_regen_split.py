@@ -427,13 +427,16 @@ class PO01CContracts(unittest.TestCase):
         # No engine authorized here; test_pcal02_air_sites additionally pins
         # the exact OFF projection to the original hashes, including generated
         # copies. This rebase conveys no runtime/economic qualification.
+        # PCAL-02 smoke b follow-up: rebase air_sites (four guarded seed
+        # notifications) and main (transient reset moved to Start). OFF SHA
+        # remain the initial 269ec7bc bytes; no game authorized on this task.
         expected = {
             'builder_water.nut': '36c0c646c3a92201bbcb4afedc7b324fa19931f8665720bc5ca99f8d76098bb5',
             'air_planning.nut': 'd97dd1d56b049c8ea98c85a1202239da3d30193028e8526ba44240181460a5c2',
-            'air_sites.nut': '66e81b5515110d902885b17222fde74b7308d93335c176beea4afd05fd19e562',
+            'air_sites.nut': '9e1cac01481c02f13b1aa41ed6a8c42f87dce40af5c01b0ec812155d279e6050',
             'candidates.nut': '8ab9ef4b42b0b9ddd00ae47ee6333bded0428341ddcd90b11612f86be315d5e0',
             'catalog.nut': '8e228cf9a0e4ec83c50bcf3e0aa405814e82ac95c9191494fd4d9e357edfc348',
-            'main.nut': '57cbf1725f83093e7d1fa3460285b41401cc29864d92dd580142345ba9f05f79',
+            'main.nut': 'cec4b3778884dc55f1718ab4bf6485b3867c11255c1d137a8a06aec2c45e243f',
             'probes.nut': 'fd75648b490c2614149438d9a91e0be58ca209f35c7233f19a743f43ae3efb8d',
             'settings.nut': '94519b3fbd4d3ae781eb59b2006d360a47380c47fd9659aed79a1a5347a126a7',
             'info.nut': 'a3c86c3cf3c980d1bae9aeecd56d0d079b600a944a1c4fdf67516c6b1d2258b4',

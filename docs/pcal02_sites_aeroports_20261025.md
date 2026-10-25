@@ -5,6 +5,11 @@ Conception préalable et suivi du smoke, 25 octobre 2026. Branche locale `pcal02
 `pcal02_air_sites=0` aux quatre difficultés. Aucun moteur, Docker, banc,
 push ou fusion autorisé par cette tâche. Commit local demandé.
 
+**État courant :** la [suite du smoke b](#suite-du-smoke-vps-pcal02_smoke_1x3_20261025b)
+remplace les règles initiales de demande réactive, d'invalidation globale et de
+publication en fin de scan décrites plus bas. Les sections précédentes restent
+l'historique des livraisons `2e8351f7` et `1b8b3afc`, pas leur qualification.
+
 ## Gisement observé et limites de la mesure
 
 Lecture statique : les deux boucles (`Start`, `_mainLoopProfiled`) exécutent
@@ -380,3 +385,205 @@ une consommation en partie. **Compilation/exposition moteur du correctif,
 progression jusqu'à ready/hit/built et Save/Load moteur restent non validés**,
 conformément à l'interdiction de parties de cette reprise. Aucun gain d'opcodes,
 de calendrier AIR ou de profit n'est attribué au correctif par ces tests.
+
+## Suite du smoke VPS `pcal02_smoke_1x3_20261025b`
+
+Reprise demandée le 25/10 sur `pcal02`, HEAD initial **`1b8b3afc`**, arbre
+propre, après `2e8351f7`. Autorisation : correctif local, contrats, document et
+commit. **Aucun Docker, moteur, partie, push, merge ni configuration Git** ;
+temporaires et sortie de tests dirigés dans le worktree.
+
+### Constats recomptés sur les artefacts fournis
+
+Sources inchangées : `results/pcal02_smoke_1x3_20261025b.json`, son manifeste
+et `results/pcal02_smoke_1x3_20261025b_engine/pcal02_seed42_r0.log` ; graine 42,
+trois ans, `pcal02_air_sites=1`, `probes=258`, bundle SHA-256
+`66cc48c05724fcde5f3b7937a895626a8b69e3309943a21cf4e4d48b63a0c38d`.
+**337 calc** : 237 `deny=none`, 80 `stock_ready`, 19 `entry_expired`,
+1 `best_air` ; **42 miss, 21 stale, 0 hit, 0 built**. Les stale comprennent
+19 `worker_expired cause=epoch` et deux `lookup_expired cause=ttl`.
+Admission corrigée, consommation toujours non exposée.
+
+Les JSON donnent dans les deux smokes a/b les mêmes métriques terminales
+Opex : référence **2 492 048 £/an**, variante **2 470 777 £/an**, delta
+**−21 271 £/an** ; valeurs respectives 4 860 385 et 4 623 840 £.
+Cela confirme l'identité de ces métriques, sans prouver une identité complète
+des trajectoires. Le smoke reste hors échantillon d'adoption.
+
+Ville 18, entrée 1 : demande le 02/01/1970, **12 calc, 111 micro-étapes**,
+jamais prête ; éviction le 15/01 à 13 jours. `prepared_ops=23 966` correspond
+au travail géométrique ; la somme des `calc op_spent` vaut **27 872**, avant
+leurs propres émissions. Ni l'un ni l'autre n'est le prix de deux sites finis.
+
+| Ville / entrée | Première terminaison `ready=1` du code précédent | Calc admis jusqu'à cette date | Micro-étapes | Somme `calc op_spent`, hors émissions propres |
+|---|---|---:|---:|---:|
+| 2 / 9 | 26/02/1970 | 41 | 468 | 92 645 |
+| 30 / 4 | 23/03/1970 | 65 | 614 | 151 832 |
+| 27 / 11 | 16/04/1970 | 24 | 265 | 54 470 |
+
+L'ancien `ready` signifiait fin du scan, y compris résultat vide/plafond de
+gares. Les logs n'exposaient ni le nombre d'ancres ni celui des sites valides :
+ne pas déduire deux sites plats de ces terminaisons. Les entrées 4 et 11
+expirent au TTL avant demande ; l'entrée 9 expire à l'époque au 10/04.
+
+### Invalidation et consommation corrigées
+
+- Les invalidations géométriques générales ne modifient plus PCAL-02.
+  Un reset ordinaire du catalogue/site-cache ne vide plus ce stock.
+  L'époque PCAL-02 devient une **génération de démarrage**, avancée seulement
+  par `OpexPCAL02Reset`, appelé explicitement dans `Start` après les réglages.
+  Travail en cours et top prêts survivent aux constructions éloignées.
+- Le refus d'une ancre appelle `OpexPCAL02InvalidateSite` : seule l'entrée
+  ville/type qui contient cette ancre (top ou étape en cours) est retirée.
+  Une autre ancre du même type/ville et tous les travaux éloignés survivent.
+  Cela évite de resservir sans fin un devis refusé au chantier.
+- Le TTL **90 jours depuis la demande** reste non glissant. Type, dimensions,
+  ville et avion compatible réellement changé restent des causes d'expiration.
+  Le passage au 1er janvier seul ne l'est plus. Remplacer une table catalogue
+  avec les mêmes caractéristiques ne détruit pas la géométrie.
+- `OpexAirSiteStillBuildable` et le catchment sont rejoués à chaque lookup ;
+  au chantier, type/dimensions/avion, génération de démarrage, TTL, politique
+  municipale, constructibilité/couverture et devis maximal restent contrôlés.
+  Aucune ancre de plan ni économie C121 n'est déplacée après sélection.
+
+### Anticipation et réemploi du travail déjà fait
+
+Le hook n'exige plus une demande existante. Son curseur privé lit uniquement
+`owner._catalog.towns`, `airCombos` publiés et `owner._lines` : **aucune lecture
+ni écriture des lots C78/C121/PO-01c**, aucun appel de génération de plans, de
+catalogue ou de flotte. Le choix retenu est le vivier de population, plutôt
+qu'une inspection des lots pour prédire leurs curseurs.
+
+Une passe conserve les **K=4 prochaines villes non desservies en AIR**, par
+population décroissante et ordre catalogue à égalité. Le test de desserte
+reprend `OpexAirTownServed` (origines AIR à moins de 15 tuiles Manhattan),
+**une ligne par micro-étape**, avec le plancher V93. Elle demande les types
+d'aéroport des combos publiés, au plus deux actuellement, donc **huit entrées**.
+Le catalogue n'est ni trié ni modifié. La politique de niveau/slots reste au
+consommateur normal et au chantier : son implémentation aux niveaux bas peut
+scanner des gares, elle n'est pas rappelée dans une micro-étape de reliquat.
+Le stock peut donc anticiper un candidat que ces gardes refuseront ensuite.
+
+La passe complète précède l'éviction des villes sorties des quatre suivantes,
+une entrée par étape ; une passe partielle ne purge rien. Elle recommence à
+changement de liste des villes/lignes ou de nombre de lignes, sinon après
+sept jours. Ce redémarrage du **curseur d'anticipation** ne vide pas les sites
+ni leur progression. Le veto du dispatch AIR sélectionné et finançable demeure
+prioritaire, avant toute anticipation.
+
+Au plus **quatre étapes d'anticipation par tick** avec un stock existant,
+seize pour amorcer un stock vide ; anticipation et recherche partagent le
+**même plafond total de seize étapes et 4 000 opcodes**, les mêmes provisions
+et le même arrêt sur dépassement. Le coût du curseur est inclus dans
+`totalOps`/`calc op_spent`, pas dans le proxy géométrique `preparedOps` d'une
+entrée. Pendant un amorçage encore sans entrée, les coûts sont comptés dans
+`totalOps` mais aucun `calc` ville n'est émis ; le prochain `total_ops_before`
+les inclut. Il n'y a pas de budget supplémentaire créé par l'anticipation.
+
+Deux réemplois rendent le résultat disponible plus tôt :
+
+1. Le gagnant du **finder normal** (trois retours C96 et retour du cache positif,
+   hors course C83 ciblée) fournit son ancre à `OpexPCAL02SeedSite`. Le worker
+   l'essaie avant sa spirale, une fois, puis reprend son curseur sans décalage
+   et sans retester cette ancre. Aucun coût/platitude n'est supposé acquis :
+   emprise tuile par tuile, devis en `AITestMode` + bouclier `AIAccounting`,
+   couverture et scores sont encore validés. Aucun résultat n'est publié
+   directement par la notification du finder.
+2. **`ready` distingue maintenant disponibilité et fin de recherche (`done`).**
+   Dès le premier site réellement validé, il est consommable. Le worker peut
+   affiner le top 2 jusqu'aux quatre candidats C96 ou à ses autres limites.
+   Un résultat vide terminé a `done=1 ready=0`. Consommer avant la fin peut
+   choisir un autre site qu'attendre le top final : changement ON explicite,
+   sans qualification économique transférée.
+
+### Coût : ce qui est expliqué, ce qui reste à mesurer
+
+~24 k opcodes n'est **pas un coût qualifié « normal » pour deux sites**.
+Une emprise 6×6 prend au moins **40 étapes** : ancre, 36 tuiles, commande
+simulée, PASS, MAIL. Quatre candidats demandent au moins 160 étapes, avant
+ancres refusées, admission, comptabilité, garde par étape et journaux. Le
+stock n'en garde que deux. Les 265–614 étapes observées ci-dessus montrent
+que la conservation de deux sorties ne borne pas le travail à deux emprises.
+
+Le réemploi de l'ancre gagnante évite une redécouverte aveugle ; publication
+précoce réduit l'attente jusqu'au premier usage. L'appel synchrone complet à
+`OpexAirFindSite`, `OpexAirFootprintCheapOk` ou aux anneaux AIList n'est pas
+réutilisé dans une micro-étape : leurs boucles peuvent suspendre et dépasser
+ce reliquat. Le contrôle natif vivant est réservé au consommateur normal.
+Pas de gain net chiffré prétendu : les nouvelles phases et l'anticipation
+doivent être mesurées dans un futur smoke autorisé.
+
+### Journal et preuve de consommation attendue
+
+Chaque candidat conservé porte sa propre `readyDate`. Les événements
+**`hit phase=lookup`**, **`hit phase=build`** et **`built`** ajoutent
+`lead_days=` (date d'événement moins date de disponibilité de **l'ancre
+choisie**). Les deux hit portent aussi `ready_date=`. Si le classement
+s'améliore, la date du nouveau gagnant remplace celle de l'ancien dans sa
+preuve, sans rajeunir le TTL de la demande.
+
+Les `calc` ajoutent `ahead_steps`, `done`, `ready_date` du premier résultat
+utilisable, `anchors`, `valid`, `phase`, `tile`, `prepared_ops`. Ils permettent
+de séparer exploration, emprises, fin vide et attente de consommation.
+`stale reason=ahead_not_next` distingue la sortie du vivier anticipé ;
+`site_failed` identifie le refus ciblé. Plus de `cause=epoch` ou `cause=year`
+pour un chantier ordinaire. La garde de journal `DECISION_LOG` reste unique.
+
+La projection des **corps réellement livrés** produit désormais
+`hit lookup lead_days=7 → hit build lead_days=12 → built lead_days=12` avec
+des API factices, et vérifie qu'un gagnant plus récent donne son propre délai.
+**Ce n'est pas un hit moteur observé.** Le prochain smoke doit exposer ce
+parcours réel et ses coûts ; 0 hit resterait une exposition non validée.
+Aucune partie ni dépense économique n'a été exécutée dans cette reprise.
+
+### Validation, Save/Load et empreintes
+
+Commande demandée, depuis `sweeps/`, avec `TMPDIR` dans
+`results/pcal02_revision_test_tmp` :
+`python3 -m unittest discover -p 'test_*.py'`.
+**2 459 tests, 27,889 s, OK**, 9 ignorés et 2 échecs attendus, dont
+**32 contrats PCAL-02**. Sortie ignorée par Git :
+`results/pcal02_followup_b_unittest_20261025.log`.
+Les dépendances manquantes restent celles du bilan précédent.
+
+Les projections couvrent notamment anticipation sans miss, ordre/égalité de
+population, deux types/huit entrées, ville déjà desservie, changement de lignes
+sans perte du travail survivant, ancre réutilisée sans avancer la spirale,
+publication avant fin, hit/built et délai, refus ciblé, terrain changé,
+surcoût de devis, moteur/dimensions et reset après chargement. Elles ne
+compilent pas Squirrel et ne mesurent ni commandes natives ni opcodes réels.
+
+**Save/Load :** cache, curseurs d'anticipation et de géométrie, dates, top,
+comptabilité et défaut de budget restent transitoires, absents de `persist.nut`.
+`Load` invalide déjà `_projects` ; `Start` vide explicitement le stock et le
+curseur avant l'une ou l'autre boucle. Le test exécute le reset et rejette une
+ancienne preuve de la génération précédente. Le roundtrip moteur reste
+**non exécuté**, comme demandé. **Défaut 0 aux quatre difficultés.**
+
+Deux empreintes du contrat PO-01c sont **explicitement rebasées**, uniquement
+pour les ajouts gardés OFF (commentaire justificatif dans le test) :
+
+| Source | SHA-256 avant (`1b8b3afc`) | SHA-256 livré |
+|---|---|---|
+| `air_sites.nut` | `66e81b5515110d902885b17222fde74b7308d93335c176beea4afd05fd19e562` | `9e1cac01481c02f13b1aa41ed6a8c42f87dce40af5c01b0ec812155d279e6050` |
+| `main.nut` | `57cbf1725f83093e7d1fa3460285b41401cc29864d92dd580142345ba9f05f79` | `cec4b3778884dc55f1718ab4bf6485b3867c11255c1d137a8a06aec2c45e243f` |
+
+Les **dix SHA de projection OFF restent ceux de `269ec7bc`**, sans rebase :
+retrait exact des seuls ajouts gardés, y compris les quatre notifications
+dans la copie générée. `po01c_generators.nut` a été régénéré avec
+`sweeps/po01c_generate.py` inchangé et son égalité au générateur est testée.
+Autres empreintes de production pour la revue :
+
+| Source | Avant | Après |
+|---|---|---|
+| `pcal02_air_sites.nut` | `75f6296dbcaeb6183e33fe01574a12670261babd92e994a5487bc43b6f33061f` | `fa61665352fdfceb3ce124f9b618162a594561c7a035a5f225d4430326f9d839` |
+| `air_coverage.nut` | `f1824d342112f4881f0da36e52d1a77697882c45b721191c1e0500df72396e66` | `675a4245a73bf47f5a52712c552abf38eaa1b8f5e2e315c126b2da104f49d50a` |
+| `po01c_generators.nut` | `dd3098151ff5c6bf6a45a7ae14d2833d8731d0ddb7b7cd9a8162a6f17e1476d4` | `4457ef28548d3c14854e260d146a776df100e1900a95ccebee1ad90af966c422` |
+
+`git diff --check` sans diagnostic. Aucun nouvel appel `Valuate`, fermeture
+anonyme, identifiant réservé ou `const` ; inventaires Valuate inchangés.
+Aucune modification de RAIL-LONG-EARLY-1, AIR-FLOTTE-1, C115 ou IDLE-1.
+Restent à vérifier au moteur : compilation de cette version, suspension/coût
+de chaque nouvelle micro-étape, `calc ready → hit → built` et ses délais,
+Save/Load, puis économie nette et effet de calendrier/profit. **Aucun gain
+qualifié ni adoption ; le smoke b concerne seulement le code précédent.**

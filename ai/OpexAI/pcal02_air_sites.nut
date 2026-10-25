@@ -10,13 +10,17 @@ PCAL02_MAX_ENTRIES <- 8;
 PCAL02_TOP_K <- 2;
 PCAL02_TTL_DAYS <- 90;
 PCAL02_MAX_ANCHORS <- 512;
+PCAL02_AHEAD_TOWNS <- 4;
+PCAL02_AHEAD_STEPS <- 4;
 PCAL02_STATE <- { entries = [], epoch = 0, sequence = 0, catalog = null,
-    lastTick = -1, fault = false, totalOps = 0, maxOps = 0 };
+    ahead = null, lastTick = -1, fault = false, totalOps = 0, maxOps = 0 };
 
 function OpexPCAL02Reset()
 {
   PCAL02_STATE.entries = [];
   PCAL02_STATE.catalog = null;
+  PCAL02_STATE.ahead = null;
+  /* Lifetime only, never advanced by a catalogue refresh or a map command. */
   PCAL02_STATE.epoch++;
   PCAL02_STATE.lastTick = -1;
   PCAL02_STATE.fault = false;
@@ -56,8 +60,7 @@ function OpexPCAL02Expiry(entry, airport)
   /* A queued demand has no geometry or engine to invalidate. In particular,
    * another line's build must not erase all still-unstarted demands. */
   if (entry.plane == null) return "none";
-  if (entry.epoch != PCAL02_STATE.epoch) return "epoch";
-  if (AIDate.GetYear(date) != entry.year) return "year";
+  if (entry.epoch != PCAL02_STATE.epoch) return "reset";
   local combo = OpexPCAL02Combo(airport);
   /* Catalogue/airCombos tables are replaced during ordinary publication.
    * Only a changed compatible engine matters to this flat geometric search. */
@@ -70,8 +73,8 @@ function OpexPCAL02Fresh(entry, airport)
   return OpexPCAL02Expiry(entry, airport) == "none";
 }
 
-/* Demand comes ONLY from the existing C78/V278 site consumer. Priority by
- * population, stable ties; bounded stock, no writes to its batch or towns. */
+/* Also fed BEFORE a miss by the private lookahead below. Population priority,
+ * stable ties; neither requests nor lookahead mutate producer lots/catalogue. */
 function OpexPCAL02Request(town, airport)
 {
   local stock = PCAL02_STATE.entries;
@@ -88,12 +91,103 @@ function OpexPCAL02Request(town, airport)
       town = { id = town.id, tile = town.tile, pop = town.pop },
       airport = { type = airport.type, width = airport.width, height = airport.height },
       plane = null, date = date,
-      year = AIDate.GetYear(date), epoch = PCAL02_STATE.epoch, ready = false,
+      year = AIDate.GetYear(date), epoch = PCAL02_STATE.epoch, ready = false, done = false,
+      readyDate = -1, seedAnchor = -1, seedPending = false, fromSeed = false,
       top = [], credited = false, ops = 0, r = 4, dx = -4, dy = -4,
       phase = 0, anchor = -1, tileIndex = 0, z = 0, tested = 0,
       firstRing = -1, valid = 0, cost = 0, pax = 0, mail = 0 };
   stock.insert(pos, entry);
   return entry;
+}
+
+/* The normal finder already paid for a winning anchor. Try it first instead
+ * of rediscovering it by spiral. Its slope/cost are NOT assumed: the worker
+ * still checks every tile and quotes in test mode. Never publish from here. */
+function OpexPCAL02SeedSite(site, airport)
+{
+  local entry = OpexPCAL02Request(site.town, airport);
+  if (entry == null || entry.done || entry.seedAnchor >= 0) return;
+  entry.seedAnchor = site.anchor;
+  entry.seedPending = true;
+}
+
+function OpexPCAL02AheadKeep(ahead, town)
+{
+  local pos = 0;
+  while (pos < ahead.top.len() && ahead.top[pos].pop >= town.pop) pos++;
+  if (pos >= PCAL02_AHEAD_TOWNS) return;
+  ahead.top.insert(pos, town);
+  if (ahead.top.len() > PCAL02_AHEAD_TOWNS) ahead.top.pop();
+}
+
+function OpexPCAL02AheadContains(ahead, townId)
+{
+  foreach (town in ahead.top) {
+    if (town.id == townId) return true;
+  }
+  return false;
+}
+
+/* One town, one line, one eviction or one request per step. Same unserved
+ * predicate as OpexAirTownServed, without a fleet scan hidden in an atom.
+ * Only published catalogue and live lines: NO C78/C121/PO01c batch access.
+ * Four next unserved towns by population, up to two catalogue airport types.
+ * A full pass precedes pruning; partial passes never discard prepared work. */
+function OpexPCAL02AheadStep(owner)
+{
+  local catalog = owner._catalog;
+  if (catalog == null || catalog.towns == null || catalog.airCombos == null) return false;
+  local count = owner._lines == null ? 0 : owner._lines.len();
+  local ahead = PCAL02_STATE.ahead;
+  if (ahead == null || ahead.towns != catalog.towns || ahead.lines != owner._lines
+      || ahead.lineCount != count) {
+    ahead = { towns = catalog.towns, lines = owner._lines, lineCount = count,
+        index = 0, town = null, line = 0, top = [], phase = 0, prune = 0,
+        target = 0, combo = 0, nextDate = -1 };
+    PCAL02_STATE.ahead = ahead;
+  }
+  if (ahead.phase == 3) {
+    if (AIDate.GetCurrentDate() < ahead.nextDate) return false;
+    ahead.index = 0; ahead.town = null; ahead.top = []; ahead.phase = 0;
+    ahead.prune = 0; ahead.target = 0; ahead.combo = 0;
+  }
+  if (ahead.phase == 0) {
+    if (ahead.town == null) {
+      if (ahead.index >= ahead.towns.len()) { ahead.phase = 1; return true; }
+      local town = ahead.towns[ahead.index++];
+      if (town.pop < V93_AIRPORT_MIN_POP || !AITown.IsValidTown(town.id)) return true;
+      if (ahead.top.len() >= PCAL02_AHEAD_TOWNS
+          && town.pop <= ahead.top[ahead.top.len() - 1].pop) return true;
+      /* Level/slot policy is checked by the normal consumer and builder.
+       * Its low-level implementation scans stations: never run it in an atom. */
+      ahead.town = town; ahead.line = 0;
+      return true;
+    }
+    if (ahead.line < count) {
+      local line = owner._lines[ahead.line++];
+      if (("mode" in line) && line.mode == "air"
+          && (AIMap.DistanceManhattan(ahead.town.tile, line.originA) < 15
+              || AIMap.DistanceManhattan(ahead.town.tile, line.originB) < 15)) ahead.town = null;
+      return true;
+    }
+    OpexPCAL02AheadKeep(ahead, ahead.town);
+    ahead.town = null;
+  } else if (ahead.phase == 1) {
+    if (ahead.prune >= PCAL02_STATE.entries.len()) { ahead.phase = 2; return true; }
+    local entry = PCAL02_STATE.entries[ahead.prune];
+    if (!OpexPCAL02AheadContains(ahead, entry.town.id)) OpexPCAL02Drop(ahead.prune, "ahead_not_next");
+    else ahead.prune++;
+  } else {
+    if (ahead.target >= ahead.top.len() || catalog.airCombos.len() == 0) {
+      ahead.phase = 3; ahead.nextDate = AIDate.GetCurrentDate() + 7;
+      return false;
+    }
+    local combo = catalog.airCombos[ahead.combo];
+    OpexPCAL02Request(ahead.top[ahead.target], combo.airport);
+    ahead.combo++;
+    if (ahead.combo >= catalog.airCombos.len()) { ahead.combo = 0; ahead.target++; }
+  }
+  return true;
 }
 
 function OpexPCAL02Drop(index, reason)
@@ -103,6 +197,21 @@ function OpexPCAL02Drop(index, reason)
       + " cause=" + OpexPCAL02Expiry(entry, entry.airport)
       + " age_days=" + (AIDate.GetCurrentDate() - entry.date) + " prepared_ops=" + entry.ops);
   PCAL02_STATE.entries.remove(index);
+}
+
+/* A real refusal must not keep serving its old quote/anchor. Touch only
+ * the exact town/type entry containing it; distant/unfinished work survives. */
+function OpexPCAL02InvalidateSite(site, airport)
+{
+  if (site == null) return;
+  for (local i = 0; i < PCAL02_STATE.entries.len(); i++) {
+    local entry = PCAL02_STATE.entries[i];
+    if (entry.town.id != site.town.id || entry.airport.type != airport.type) continue;
+    if (!entry.done && entry.anchor == site.anchor) { OpexPCAL02Drop(i, "site_failed"); return; }
+    foreach (item in entry.top) {
+      if (item.anchor == site.anchor) { OpexPCAL02Drop(i, "site_failed"); return; }
+    }
+  }
 }
 
 /* Lookup is not a build. Provenance travels with the immutable chosen anchor
@@ -127,15 +236,17 @@ function OpexPCAL02FindSite(town, airport, probes)
       if (!OpexAirSiteStillBuildable(site, airport, entry.plane, false, limited)
           || !OpexAirSiteHasCatchment(site.anchor, airport, OpexAirDemandPaxCargo())) continue;
       if (!OpexPCAL02Fresh(entry, airport)) break;
-      site.pcal02 <- { id = entry.id, date = entry.date, year = entry.year,
+      site.pcal02 <- { id = entry.id, date = entry.date, year = entry.year, readyDate = item.readyDate,
           epoch = entry.epoch, engine = entry.plane.id, type = airport.type,
+          width = airport.width, height = airport.height,
           cost = item.cost, preparedOps = entry.ops };
       AIR_SITE_CACHE.rawset(town.id + "_" + airport.type, site.anchor);
       local spent = OpexOpsMeasureEnd(mark);
       local saved = entry.credited ? 0 : entry.ops - spent;
       entry.credited = true;
       OpexPCAL02Log("hit", entry, spent, saved,
-          "phase=lookup anchor=" + site.anchor + " saved_kind=prepared_proxy");
+          "phase=lookup anchor=" + site.anchor + " ready_date=" + item.readyDate
+          + " lead_days=" + (AIDate.GetCurrentDate() - item.readyDate) + " saved_kind=prepared_proxy");
       return site;
     }
     OpexPCAL02Drop(i, "lookup_unbuildable");
@@ -214,6 +325,7 @@ function OpexPCAL02Admit(owner, mark)
 /* Advance exactly one perimeter anchor, X then Y like FindSiteListed. */
 function OpexPCAL02Next(entry)
 {
+  if (entry.fromSeed) { entry.fromSeed = false; entry.phase = 0; return; }
   if (abs(entry.dx) == entry.r) entry.dy++;
   else entry.dy = entry.dy < entry.r ? entry.r : entry.r + 1;
   if (entry.dy > entry.r) { entry.dx++; entry.dy = -entry.r; }
@@ -223,7 +335,8 @@ function OpexPCAL02Next(entry)
 
 function OpexPCAL02Keep(entry)
 {
-  local item = { anchor = entry.anchor, pax = entry.pax, mail = entry.mail, cost = entry.cost };
+  local item = { anchor = entry.anchor, pax = entry.pax, mail = entry.mail, cost = entry.cost,
+      readyDate = AIDate.GetCurrentDate() };
   local at = 0;
   while (at < entry.top.len()) {
     local other = entry.top[at];
@@ -236,6 +349,8 @@ function OpexPCAL02Keep(entry)
     if (entry.top.len() > PCAL02_TOP_K) entry.top.pop();
   }
   entry.valid++;
+  /* First usable site can be consumed while the remaining top K is refined. */
+  if (!entry.ready) { entry.ready = true; entry.readyDate = item.readyDate; }
   if (entry.firstRing < 0) entry.firstRing = entry.r;
 }
 
@@ -247,17 +362,22 @@ function OpexPCAL02Step(entry, catalog)
     if (entry.r > AIR_SITE_RADIUS || entry.tested >= PCAL02_MAX_ANCHORS
         || entry.valid >= C96_AIR_SITE_MAX_VALID
         || (entry.firstRing >= 0 && entry.r > entry.firstRing + C96_AIR_SITE_EXTRA_RINGS)) {
-      entry.ready = true;
+      entry.done = true;
       return;
     }
     entry.tested++;
     local x = AIMap.GetTileX(entry.town.tile) + entry.dx;
     local y = AIMap.GetTileY(entry.town.tile) + entry.dy;
     local ap = entry.airport;
+    if (entry.seedPending) {
+      entry.seedPending = false; entry.fromSeed = true;
+      x = AIMap.GetTileX(entry.seedAnchor); y = AIMap.GetTileY(entry.seedAnchor);
+    }
     /* Include the LevelTiles terminal boundary, even though this worker is flat-only. */
     if (x < 1 || y < 1 || x + ap.width >= AIMap.GetMapSizeX() - 1
         || y + ap.height >= AIMap.GetMapSizeY() - 1) { OpexPCAL02Next(entry); return; }
     entry.anchor = AIMap.GetTileIndex(x, y);
+    if (!entry.fromSeed && entry.anchor == entry.seedAnchor) { OpexPCAL02Next(entry); return; }
     if (OpexAirDistanceToRect(entry.town.tile, entry.anchor, ap.width, ap.height) > 25
         || AIAirport.GetNearestTown(entry.anchor, ap.type) != entry.town.id
         || !AITile.IsBuildableRectangle(entry.anchor, ap.width, ap.height)) {
@@ -286,7 +406,7 @@ function OpexPCAL02Step(entry, catalog)
       if (ok) entry.cost = shield.GetCosts();
       else error = AIError.GetLastError();
     }
-    if (error == AIStation.ERR_STATION_TOO_MANY_STATIONS_IN_TOWN) entry.ready = true;
+    if (error == AIStation.ERR_STATION_TOO_MANY_STATIONS_IN_TOWN) entry.done = true;
     else if (!ok) OpexPCAL02Next(entry);
     else entry.phase = 3;
   } else if (entry.phase == 3) {
@@ -305,7 +425,7 @@ function OpexPCAL02Step(entry, catalog)
 
 function OpexPCAL02Tick(owner)
 {
-  if (PCAL02_STATE.fault || PCAL02_STATE.entries.len() == 0
+  if (PCAL02_STATE.fault || !MODE_AIR
       || AIController.GetOpsTillSuspend() < PCAL02_TICK_BUDGET + PCAL02_SLEEP_RESERVE) return;
   local mark = OpexOpsMeasureBegin();
   /* The precheck may finish on a new tick. Compare the measured interval
@@ -314,10 +434,18 @@ function OpexPCAL02Tick(owner)
   if (PCAL02_STATE.lastTick == tick) return;
   PCAL02_STATE.lastTick = tick;
   PCAL02_STATE.catalog = owner._catalog;
+  local deny = OpexPCAL02Admit(owner, mark);
+  local admitted = deny == "none";
+  local aheadSteps = 0;
+  local aheadLimit = PCAL02_STATE.entries.len() == 0 ? PCAL02_MAX_STEPS : PCAL02_AHEAD_STEPS;
+  while (admitted && OpexPCAL02Room(mark) && aheadSteps < aheadLimit) {
+    if (!OpexPCAL02AheadStep(owner)) break;
+    aheadSteps++;
+  }
   local entry = null;
   local observed = null;
-  local deny = "stock_ready";
-  for (local i = 0; i < PCAL02_STATE.entries.len(); i++) {
+  if (admitted) deny = "stock_ready";
+  for (local i = 0; admitted && i < PCAL02_STATE.entries.len(); i++) {
     if (!OpexPCAL02Room(mark)) { deny = "room"; break; }
     local candidate = PCAL02_STATE.entries[i];
     observed = candidate;
@@ -326,14 +454,13 @@ function OpexPCAL02Tick(owner)
       deny = "entry_expired";
       break;
     }
-    if (!candidate.ready) { entry = candidate; break; }
+    if (!candidate.done) { entry = candidate; deny = "none"; break; }
   }
-  if (entry != null) deny = OpexPCAL02Admit(owner, mark);
-  local admitted = deny == "none";
+  admitted = entry != null && deny == "none";
   local workMark = OpexOpsMeasureBegin();
   if (admitted && entry.plane == null) {
     local combo = OpexPCAL02Combo(entry.airport);
-    if (combo == null) entry.ready = true;
+    if (combo == null) entry.done = true;
     else {
       entry.plane = combo.plane;
       entry.epoch = PCAL02_STATE.epoch;
@@ -341,7 +468,7 @@ function OpexPCAL02Tick(owner)
     }
   }
   local steps = 0;
-  while (admitted && !entry.ready && OpexPCAL02Room(mark) && steps < PCAL02_MAX_STEPS) {
+  while (admitted && !entry.done && OpexPCAL02Room(mark) && steps + aheadSteps < PCAL02_MAX_STEPS) {
     OpexPCAL02Step(entry, owner._catalog);
     steps++;
   }
@@ -351,6 +478,9 @@ function OpexPCAL02Tick(owner)
   if (logEntry != null) {
     OpexPCAL02Log("calc", logEntry, spent, 0, "steps=" + steps + " ready=" + (logEntry.ready ? 1 : 0)
         + " admitted=" + (admitted ? 1 : 0) + " deny=" + deny
+        + " ahead_steps=" + aheadSteps + " done=" + (logEntry.done ? 1 : 0)
+        + " ready_date=" + logEntry.readyDate + " anchors=" + logEntry.tested + " valid=" + logEntry.valid
+        + " phase=" + logEntry.phase + " tile=" + logEntry.tileIndex + " prepared_ops=" + logEntry.ops
         + " tick0=" + tick + " tick1=" + AIController.GetTick()
         + " left0=" + mark.left + " left1=" + AIController.GetOpsTillSuspend()
         + " total_ops_before=" + PCAL02_STATE.totalOps);
@@ -375,8 +505,9 @@ function OpexPCAL02BuildSiteOk(site, airport, plane, catalog)
   local proof = site.pcal02;
   local date = AIDate.GetCurrentDate();
   local ok = proof.epoch == PCAL02_STATE.epoch && date >= proof.date
-      && date - proof.date < PCAL02_TTL_DAYS && AIDate.GetYear(date) == proof.year
+      && date - proof.date < PCAL02_TTL_DAYS
       && proof.type == airport.type && proof.engine == plane.id && AIEngine.IsBuildable(plane.id)
+      && proof.width == airport.width && proof.height == airport.height
       && OpexAirAirportAcceptsPlane(airport.type, plane.planeType)
       && (!OPEX_LEVEL_LIMITS || OpexTownAirportAllowedByLevel(site.town, null, -1, catalog))
       && OpexAirSiteStillBuildable(site, airport, plane, false)
@@ -392,7 +523,8 @@ function OpexPCAL02BuildSiteOk(site, airport, plane, catalog)
   if (!ok) {
     OpexPCAL02Log("stale", entry, OpexOpsMeasureEnd(mark), 0, "reason=build_revalidation anchor=" + site.anchor);
     OpexAirInvalidateCachedSite(site, airport);
-  } else OpexPCAL02Log("hit", entry, OpexOpsMeasureEnd(mark), 0, "phase=build anchor=" + site.anchor);
+  } else OpexPCAL02Log("hit", entry, OpexOpsMeasureEnd(mark), 0, "phase=build anchor=" + site.anchor
+      + " ready_date=" + proof.readyDate + " lead_days=" + (date - proof.readyDate));
   return ok;
 }
 
@@ -403,5 +535,6 @@ function OpexPCAL02Built(site, airport)
       || AIAirport.GetAirportType(site.anchor) != airport.type) return;
   local entry = { town = site.town, airport = airport, id = site.pcal02.id };
   OpexPCAL02Log("built", entry, 0, 0, "anchor=" + site.anchor
+      + " lead_days=" + (AIDate.GetCurrentDate() - site.pcal02.readyDate)
       + " prepared_ops=" + site.pcal02.preparedOps);
 }

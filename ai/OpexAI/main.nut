@@ -724,6 +724,7 @@ function OpexAI::Start()
   }
   OpexV251LogIndustryTypes();
   OpexAirResetSiteCache();
+  if (PCAL02_AIR_SITES) OpexPCAL02Reset();
 
   /* 🔴 RENOUVELLEMENT AUTOMATIQUE (2026-08-29). Mesure : campagne 20 ans, graine 42 -- trois des
    * quatre lignes ROUTIERES finissent la partie avec vehCount = 0 et un profit de zero, alors que

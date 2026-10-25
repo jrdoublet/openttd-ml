@@ -1272,6 +1272,7 @@ function OpexPO01CAirFindSite(po01dResult, town, airport, probes, requiredSlotTo
           }
         }
         if ("tested" in probes) probes.tested++;
+        if (PCAL02_AIR_SITES && ok) OpexPCAL02SeedSite({ town = town, anchor = cachedAnchor }, airport);
         if (ok) { po01dResult.value = { town = town, anchor = cachedAnchor }; return; }
       }
     }
@@ -1534,6 +1535,7 @@ function OpexPO01CAirFindSiteCatchmentListed(po01dResult, town, airport, probes,
           OpexAirC96LogChoice(town, airport, firstAnchor, firstScore, best, bestScore,
               valid, firstValidRing, bestRing, used);
           if (useSiteCache) AIR_SITE_CACHE[key] <- best.anchor;
+          if (PCAL02_AIR_SITES && requiredSlotTownId < 0) OpexPCAL02SeedSite(best, airport);
           { po01dResult.value = { site = best, used = used, execLevels = execLevels, allowance = allowance }; return; }
         }
         OpexAirC78NoteNoSite(probes, "no_site_budget");
@@ -1589,6 +1591,7 @@ function OpexPO01CAirFindSiteCatchmentListed(po01dResult, town, airport, probes,
         OpexAirC96LogChoice(town, airport, firstAnchor, firstScore, best, bestScore,
             valid, firstValidRing, bestRing, used);
         if (useSiteCache) AIR_SITE_CACHE[key] <- best.anchor;
+        if (PCAL02_AIR_SITES && requiredSlotTownId < 0) OpexPCAL02SeedSite(best, airport);
         { po01dResult.value = { site = best, used = used, execLevels = execLevels, allowance = allowance }; return; }
       }
     }
@@ -1598,6 +1601,7 @@ function OpexPO01CAirFindSiteCatchmentListed(po01dResult, town, airport, probes,
     OpexAirC96LogChoice(town, airport, firstAnchor, firstScore, best, bestScore,
         valid, firstValidRing, bestRing, used);
     if (useSiteCache) AIR_SITE_CACHE[key] <- best.anchor;
+    if (PCAL02_AIR_SITES && requiredSlotTownId < 0) OpexPCAL02SeedSite(best, airport);
     { po01dResult.value = { site = best, used = used, execLevels = execLevels, allowance = allowance }; return; }
   }
   if (useSiteCache && (used >= allowance || probes.left > 0)) AIR_SITE_CACHE[key] <- null;

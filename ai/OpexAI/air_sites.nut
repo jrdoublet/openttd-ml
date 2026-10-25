@@ -424,6 +424,7 @@ function OpexAirFindSiteCatchmentListed(town, airport, probes, requiredSlotTownI
           OpexAirC96LogChoice(town, airport, firstAnchor, firstScore, best, bestScore,
               valid, firstValidRing, bestRing, used);
           if (useSiteCache) AIR_SITE_CACHE[key] <- best.anchor;
+          if (PCAL02_AIR_SITES && requiredSlotTownId < 0) OpexPCAL02SeedSite(best, airport);
           return { site = best, used = used, execLevels = execLevels, allowance = allowance };
         }
         OpexAirC78NoteNoSite(probes, "no_site_budget");
@@ -479,6 +480,7 @@ function OpexAirFindSiteCatchmentListed(town, airport, probes, requiredSlotTownI
         OpexAirC96LogChoice(town, airport, firstAnchor, firstScore, best, bestScore,
             valid, firstValidRing, bestRing, used);
         if (useSiteCache) AIR_SITE_CACHE[key] <- best.anchor;
+        if (PCAL02_AIR_SITES && requiredSlotTownId < 0) OpexPCAL02SeedSite(best, airport);
         return { site = best, used = used, execLevels = execLevels, allowance = allowance };
       }
     }
@@ -488,6 +490,7 @@ function OpexAirFindSiteCatchmentListed(town, airport, probes, requiredSlotTownI
     OpexAirC96LogChoice(town, airport, firstAnchor, firstScore, best, bestScore,
         valid, firstValidRing, bestRing, used);
     if (useSiteCache) AIR_SITE_CACHE[key] <- best.anchor;
+    if (PCAL02_AIR_SITES && requiredSlotTownId < 0) OpexPCAL02SeedSite(best, airport);
     return { site = best, used = used, execLevels = execLevels, allowance = allowance };
   }
   if (useSiteCache && (used >= allowance || probes.left > 0)) AIR_SITE_CACHE[key] <- null;
@@ -553,6 +556,7 @@ function OpexAirFindSite(town, airport, probes, requiredSlotTownId = -1)
           }
         }
         if ("tested" in probes) probes.tested++;
+        if (PCAL02_AIR_SITES && ok) OpexPCAL02SeedSite({ town = town, anchor = cachedAnchor }, airport);
         if (ok) return { town = town, anchor = cachedAnchor };
       }
     }

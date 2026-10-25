@@ -5,6 +5,7 @@ projections exercise real predicates/advancement expressions, not NoAI opcode
 costs, command semantics, compilation or economic equivalence.
 """
 import copy
+from collections import Counter
 import hashlib
 from pathlib import Path
 import random
@@ -33,6 +34,10 @@ FIND_GUARD = '''  if (PCAL02_AIR_SITES && requiredSlotTownId < 0) {
     if (prepared != null) return prepared;
   }
 '''
+SEED_GUARDS = [
+    indent + 'if (PCAL02_AIR_SITES && requiredSlotTownId < 0) OpexPCAL02SeedSite(best, airport);\n'
+    for indent in ('          ', '        ', '    ')] + [
+    '        if (PCAL02_AIR_SITES && ok) OpexPCAL02SeedSite({ town = town, anchor = cachedAnchor }, airport);\n']
 BUILD_GUARD = '''  if (PCAL02_AIR_SITES && ((!reuseA && !OpexPCAL02BuildSiteOk(plan.siteA, airport, planeChoice, catalog))
       || (!reuseB && !OpexPCAL02BuildSiteOk(plan.siteB, airport, planeChoice, catalog)))) {
     result.reason = "PCALSTALE";
@@ -40,15 +45,13 @@ BUILD_GUARD = '''  if (PCAL02_AIR_SITES && ((!reuseA && !OpexPCAL02BuildSiteOk(p
   }
 '''
 OFF_REMOVALS = {
-    'air_sites.nut': [FIND_GUARD],
+    'air_sites.nut': [FIND_GUARD] + SEED_GUARDS,
     'po01c_generators.nut': [FIND_GUARD.replace(
-        'return prepared;', '{ po01dResult.value = prepared; return; }')],
+        'return prepared;', '{ po01dResult.value = prepared; return; }')] + SEED_GUARDS,
     'air_construction.nut': [BUILD_GUARD] + [
         f'    if (PCAL02_AIR_SITES && airport{s} != null) OpexPCAL02Built(plan.site{s}, airport);\n'
         for s in 'AB'],
-    'air_coverage.nut': [
-        '  if (PCAL02_AIR_SITES) OpexPCAL02Reset();\n',
-        '  if (PCAL02_AIR_SITES) PCAL02_STATE.epoch++;\n'],
+    'air_coverage.nut': ['  if (PCAL02_AIR_SITES) OpexPCAL02InvalidateSite(site, airport);\n'],
     'builder_air.nut': ['require("pcal02_air_sites.nut");\n'],
     'globals_pre.nut': ['PCAL02_AIR_SITES <- false;\n'],
     'settings.nut': ['  PCAL02_AIR_SITES = AIController.GetSetting("pcal02_air_sites") == 1;\n'],
@@ -58,7 +61,8 @@ OFF_REMOVALS = {
       easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
       flags = AICONFIG_BOOLEAN });
 '''],
-    'main.nut': ['    if (PCAL02_AIR_SITES) OpexPCAL02Tick(this);\n'],
+    'main.nut': ['    if (PCAL02_AIR_SITES) OpexPCAL02Tick(this);\n',
+                 '  if (PCAL02_AIR_SITES) OpexPCAL02Reset();\n'],
     'probes.nut': ['    if (PCAL02_AIR_SITES) OpexPCAL02Tick(this);\n'],
 }
 # Initial 269ec7bc tree: only the exact guarded insertions above may disappear.
@@ -81,6 +85,8 @@ def expr(code):
     code = code.replace('&&', ' and ').replace('||', ' or ')
     code = re.sub(r'!(?!=)', ' not ', code)
     code = re.sub(r'\bnull\b', 'None', code)
+    code = re.sub(r'\btrue\b', 'True', code)
+    code = re.sub(r'\bfalse\b', 'False', code)
     return ' '.join(code.split())
 
 
@@ -93,16 +99,49 @@ class Array(list):
     def len(self):
         return len(self)
 
+    def remove(self, index):
+        return self.pop(index)
+
+
+class Table(NS):
+    def __contains__(self, key):
+        return hasattr(self, key)
+
+    def rawset(self, key, value):
+        setattr(self, str(key), value)
+
+
+class String(str):
+    """Squirrel's diagnostic string + integer coercion, only for projections."""
+    def __add__(self, other):
+        return String(str(self) + str(other))
+
+    def __radd__(self, other):
+        return String(str(other) + str(self))
+
+
+def postinc(table, key):
+    value = getattr(table, key)
+    setattr(table, key, value + 1)
+    return value
+
 
 def compile_predicate(name, namespace):
     """Translate the delivered scalar/queue predicate, not a rewritten policy.
 
-    Restricted to assignments, if/return and the two bounded loop forms below.
+    Restricted to the table/scalar/loop subset used by these source projections.
     This is an offline projection; it cannot validate Squirrel or NoAI costs.
     """
     source = uncomment(body(name)).split('{', 1)[1].rsplit('}', 1)[0]
-    tokens, start, depth = [], 0, 0
+    tokens, start, depth, literal = [], 0, 0, 0
     for i, char in enumerate(source):
+        if char == '{' and (literal or re.search(r'(?:=|<-)\s*$', source[start:i])):
+            literal += 1
+        elif literal and char == '}':
+            literal -= 1
+            continue
+        if literal:
+            continue
         if char == '(':
             depth += 1
         elif char == ')':
@@ -118,51 +157,70 @@ def compile_predicate(name, namespace):
 
     def value(text):
         text = expr(text)
+        text = re.sub(r'"(?:\\.|[^"\\])*"', lambda m: 'String(' + m[0] + ')', text)
+        text = re.sub(r'(\w+)\.(\w+)\+\+', r'postinc(\1, "\2")', text)
+        text = text.replace('[]', 'Array()')
+        # Literal tables only; expressions do not contain block statements.
+        text = re.sub(r'\{', 'Table(', text).replace('}', ')')
         if '?' in text:
             condition, yes, no = re.fullmatch(r'(.*?)\?(.*?):(.*)', text).groups()
             text = f'({yes} if {condition} else {no})'
         return text
 
+    def statement(token):
+        if token.startswith('return'):
+            return 'return ' + value(token[6:].strip())
+        if token in ('break', 'continue'):
+            return token
+        token = token.removeprefix('local ').replace(' <- ', ' = ')
+        if token.endswith('++'):
+            return token[:-2] + ' += 1'
+        if ' = ' in token:
+            lhs, rhs = token.split(' = ', 1)
+            return lhs + ' = ' + value(rhs)
+        if ' += ' in token:
+            lhs, rhs = token.split(' += ', 1)
+            return lhs + ' += ' + value(rhs)
+        assert re.match(r'\w+(?:\.\w+)*\(', token), token
+        return value(token)
+
     lines, indent = [], 1
     for token in tokens:
         if token == '{':
+            # A plain Squirrel scope, used for the test-mode quote shield.
+            if not lines[-1].rstrip().endswith(':'):
+                lines.append('    ' * indent + 'if True:')
             indent += 1
             continue
         if token == '}':
             indent -= 1
             continue
-        if token.startswith('if ('):
+        prefix = next((p for p in ('else if (', 'if (', 'while (', 'foreach (') if token.startswith(p)), None)
+        if prefix:
             level = 1
-            end = 4
+            end = len(prefix)
             while level:
                 level += (token[end] == '(') - (token[end] == ')')
                 end += 1
-            condition = value(token[4:end-1])
+            condition = value(token[len(prefix):end-1])
             tail = token[end:].strip()
-            if tail:
-                assert tail.startswith('return '), tail
-                token = f'if {condition}: return {value(tail[7:])}'
-            else:
-                token = f'if {condition}:'
-        elif token.startswith('foreach ('):
-            token = f'for {token[9:-1]}:'
+            keyword = {'if (': 'if', 'else if (': 'elif', 'while (': 'while', 'foreach (': 'for'}[prefix]
+            token = f'{keyword} {condition}:' + (' ' + statement(tail) if tail else '')
+        elif token.startswith('else'):
+            tail = token[4:].strip()
+            token = 'else:' + (' ' + statement(tail) if tail else '')
         elif token.startswith('for ('):
             match = re.fullmatch(r'for \(local (\w+) = (.*?); \1 < (.*?); \1\+\+\)', token)
             assert match, token
             var, begin, end = match.groups()
             token = f'for {var} in range({begin}, {end}):'
-        elif token.startswith('return '):
-            token = 'return ' + value(token[7:])
-        elif token.startswith('local '):
-            lhs, rhs = token[6:].split(' = ', 1)
-            token = lhs + ' = ' + value(rhs)
         else:
-            raise AssertionError(token)
+            token = statement(token)
         lines.append('    ' * indent + token)
     assert indent == 1
     signature = re.search(r'function \w+\((.*?)\)', body(name))[1]
     script = f'def projected({signature}):\n' + '\n'.join(lines)
-    env = dict(namespace, range=range)
+    env = dict(namespace, range=range, Table=Table, Array=Array, String=String, postinc=postinc)
     exec(script, env)
     return env['projected']
 
@@ -220,6 +278,8 @@ def next_anchor(entry):
     # Interpret the actual three ifs and assignments. There is no independently
     # rewritten geometric cursor here; the independent oracle is a square ring.
     code = body('Next').split('{', 1)[1].rsplit('}', 1)[0].strip()
+    # The seed preamble is exercised as a whole by the producer projections.
+    code = code.split('return; }', 1)[1].strip()
     first = re.match(r'if \(([^\n]+)\) ([^;]+);\s*else ([^;]+);', code)
     branch = first[2] if evaluate(first[1], entry=entry, abs=abs) else first[3]
     scalar_statement(branch, entry)
@@ -230,6 +290,98 @@ def next_anchor(entry):
                 if statement.strip():
                     scalar_statement(statement, entry)
     scalar_statement(rest.rsplit('}', 1)[1].strip().removesuffix(';'), entry)
+
+
+class SiteProjection:
+    """Execute delivered producer/consumer bodies with tiny native API stubs.
+
+    This covers control/data flow and diagnostic reachability, never Squirrel
+    compilation, actual tile/command semantics, opcode costs or a game hit.
+    """
+    def __init__(self):
+        self.date = 100
+        self.buildable = True
+        self.catchment = True
+        self.flat = True
+        self.cost = 100
+        self.events = []
+        self.api_calls = Counter()
+        self.airport = Table(type=1, width=2, height=2)
+        self.plane = Table(id=223, planeType=1)
+        self.catalog = Table(towns=Array(), airCombos=Array([
+            Table(airport=self.airport, plane=self.plane)]), paxCargo=0, mailCargo=1)
+        self.state = Table(entries=Array(), epoch=1, sequence=0, catalog=self.catalog,
+                           ahead=None, lastTick=-1, fault=False, totalOps=0, maxOps=0)
+        self.owner = Table(_catalog=self.catalog, _lines=Array())
+        self.cache = Table()
+
+        def quote(*_):
+            self.api_calls['quote'] += 1
+            return self.buildable
+
+        def footprint(*_):
+            self.api_calls['footprint'] += 1
+            return self.buildable
+
+        def revalidate(*_):
+            self.api_calls['revalidate'] += 1
+            return self.buildable
+
+        def seed_request(*args):
+            self.api_calls['request'] += 1
+            return self.functions['Request'](*args)
+
+        env = dict(constants(), PCAL02_STATE=self.state, C96_AIR_SITE_MAX_VALID=4,
+            C96_AIR_SITE_EXTRA_RINGS=1, AIR_SITE_RADIUS=25, V93_AIRPORT_MIN_POP=300,
+            OPEX_LEVEL_LIMITS=False, AIR_SITE_CACHE=self.cache,
+            OpexOpsMeasureBegin=lambda: 0, OpexOpsMeasureEnd=lambda _: 10,
+            OpexPCAL02Log=lambda *args: self.events.append(args),
+            AIDate=Table(GetCurrentDate=lambda: self.date, GetYear=lambda _: 1970),
+            AITown=Table(IsValidTown=lambda _: True),
+            AIEngine=Table(IsBuildable=lambda _: True),
+            OpexAirAirportAcceptsPlane=lambda *_: True,
+            OpexAirDistanceToRect=lambda *_: 4,
+            OpexAirSiteStillBuildable=revalidate,
+            OpexAirSiteHasCatchment=lambda *_: self.catchment,
+            OpexAirDemandPaxCargo=lambda: 0,
+            OpexAirC96SiteCatchmentScore=lambda *_: 10,
+            OpexAirAirportCatchmentProduction=lambda *_: 5,
+            OpexTownAirportAllowedByLevel=lambda *_: True,
+            OpexAirInvalidateCachedSite=lambda *args: self.functions['InvalidateSite'](*args),
+            AIMap=Table(GetTileX=lambda t: t % 100, GetTileY=lambda t: t // 100,
+                GetTileIndex=lambda x, y: y * 100 + x, GetMapSizeX=lambda: 100,
+                GetMapSizeY=lambda: 100, DistanceManhattan=lambda a, b:
+                abs(a % 100 - b % 100) + abs(a // 100 - b // 100)),
+            AITile=Table(IsBuildableRectangle=footprint, IsWaterTile=lambda _: False,
+                IsCoastTile=lambda _: False, IsRiverTile=lambda _: False,
+                GetMaxHeight=lambda _: 1,
+                GetMinHeight=lambda _: 1 if self.flat else -1, GetOwner=lambda _: 0),
+            AIAirport=Table(BuildAirport=quote, GetNearestTown=lambda *_: self.nearest,
+                IsAirportTile=lambda _: True, GetAirportType=lambda _: self.airport.type),
+            AIStation=Table(STATION_NEW=-1, ERR_STATION_TOO_MANY_STATIONS_IN_TOWN=99),
+            AICompany=Table(IsMine=lambda _: True), AIError=Table(GetLastError=lambda: 1),
+            AIAccounting=lambda: Table(GetCosts=lambda: self.cost), AITestMode=lambda: Table(), abs=abs)
+        self.functions = {}
+        for name in ('Combo', 'Expiry', 'Fresh', 'Request', 'Drop', 'InvalidateSite',
+                     'SeedSite', 'AheadKeep', 'AheadContains', 'AheadStep', 'Next',
+                     'Keep', 'Step', 'FindSite', 'BuildSiteOk', 'Built', 'Reset'):
+            projected = compile_predicate(name, env)
+            self.functions[name] = projected
+            env['OpexPCAL02' + name] = seed_request if name == 'Request' else projected
+
+    def request(self, town_id=7):
+        self.nearest = town_id
+        town = Table(id=town_id, tile=5050, pop=2000)
+        entry = self.functions['Request'](town, self.airport)
+        entry.plane = self.plane
+        return entry
+
+    def finish_seed(self, entry):
+        site = Table(town=entry.town, anchor=4444)
+        self.functions['SeedSite'](site, self.airport)
+        for _ in range(1 + self.airport.width * self.airport.height + 3):
+            self.functions['Step'](entry, self.catalog)
+        return site
 
 
 class Contracts(unittest.TestCase):
@@ -247,9 +399,11 @@ class Contracts(unittest.TestCase):
         for name, pieces in OFF_REMOVALS.items():
             text = read(name)
             for piece in pieces:
-                expected_count = 2 if 'PCAL02_STATE.epoch++' in piece else 1
-                self.assertEqual(text.count(piece), expected_count, (name, piece))
-                text = text.replace(piece, '')
+                # Match whole lines: the shorter seed indent is also a suffix
+                # of the longer two, and must never erase an unlisted insertion.
+                matches = list(re.finditer('^' + re.escape(piece), text, re.M))
+                self.assertEqual(len(matches), 1, (name, piece))
+                text = re.sub('^' + re.escape(piece), '', text, flags=re.M)
             self.assertEqual(hashlib.sha256(text.encode()).hexdigest(), OFF_SHA[name], name)
 
     def test_generated_copy_tracks_source(self):
@@ -375,7 +529,7 @@ class Contracts(unittest.TestCase):
         self.assertEqual(conf['PCAL02_MAX_STEPS'], 16)
         tick = body('Tick')
         for text in ('PCAL02_STATE.lastTick == tick', 'PCAL02_STATE.fault',
-                     'OpexPCAL02Room(mark) && steps < PCAL02_MAX_STEPS',
+                     'steps + aheadSteps < PCAL02_MAX_STEPS',
                      'total > PCAL02_TICK_BUDGET', 'PCAL02_STATE.fault = true',
                      'reason=budget_overrun'):
             self.assertIn(text, tick)
@@ -422,16 +576,20 @@ class Contracts(unittest.TestCase):
         self.assertIn('OpexAirSiteHasCatchment', step)
         self.assertIn('OpexAirC96SiteCatchmentScore', step)
 
-    def test_invalidation_ttl_epoch_year_engine_catalogue_and_dimensions(self):
+    def test_invalidation_ttl_lifetime_engine_catalogue_and_dimensions(self):
         fresh = body('Expiry')
         for predicate in ('entry.epoch != PCAL02_STATE.epoch', 'date < entry.date',
-                          'date - entry.date >= PCAL02_TTL_DAYS', 'entry.year',
+                          'date - entry.date >= PCAL02_TTL_DAYS',
                           'entry.airport.width != airport.width', 'entry.airport.height != airport.height',
                           'combo.plane.id != entry.plane.id', 'AITown.IsValidTown'):
             self.assertIn(predicate, fresh)
         coverage = read('air_coverage.nut')
-        for name in ('OpexAir0310InvalidateSiteValidity', 'OpexAirInvalidateCachedSite'):
-            self.assertIn('if (PCAL02_AIR_SITES) PCAL02_STATE.epoch++;', function(coverage, name))
+        for name in ('OpexAir0310InvalidateSiteValidity',):
+            self.assertNotIn('PCAL02', function(coverage, name))
+        self.assertIn('OpexPCAL02InvalidateSite(site, airport)',
+                      function(coverage, 'OpexAirInvalidateCachedSite'))
+        self.assertNotIn('PCAL02', function(coverage, 'OpexAirResetSiteCache'))
+        self.assertNotIn('GetYear', fresh)
         entry = NS(epoch=2, date=100, year=1970, plane=NS(id=223),
                    airport=NS(type=1, width=6, height=6), town=NS(id=1))
         state = NS(epoch=2)
@@ -445,9 +603,9 @@ class Contracts(unittest.TestCase):
         self.assertEqual(expiry(190), 'ttl')
         self.assertEqual(expiry(99), 'date_reversed')
         state.epoch = 3
-        self.assertEqual(expiry(), 'epoch')
+        self.assertEqual(expiry(), 'reset')
         state.epoch = 2
-        self.assertEqual(expiry(year=1971), 'year')
+        self.assertEqual(expiry(year=1971), 'none')  # same engine at New Year
         combo = NS(plane=NS(id=223))  # replacement tables, same compatible engine
         self.assertEqual(expiry(), 'none')
         combo.plane.id = 224
@@ -493,7 +651,7 @@ class Contracts(unittest.TestCase):
         self.assertEqual([x.anchor for x in top], [x.anchor for x in expected])
 
     def test_source_cursor_resume_matches_ring_oracle_without_duplicates(self):
-        entry = NS(r=4, dx=-4, dy=-4, phase=4)
+        entry = NS(r=4, dx=-4, dy=-4, phase=4, fromSeed=False)
         anchors = []
         while entry.r <= 25:
             anchors.append((entry.r, entry.dx, entry.dy))
@@ -554,8 +712,152 @@ class Contracts(unittest.TestCase):
         start = function(read('main.nut'), 'OpexAI::Start')
         self.assertLess(start.index('OpexLoadSettings();'), start.index('OpexAirResetSiteCache();'))
         self.assertLess(start.index('OpexAirResetSiteCache();'), start.index('while (true)'))
-        self.assertIn('if (PCAL02_AIR_SITES) OpexPCAL02Reset();',
-                      function(read('air_coverage.nut'), 'OpexAirResetSiteCache'))
+        self.assertLess(start.index('OpexAirResetSiteCache();'), start.index('OpexPCAL02Reset();'))
+        self.assertLess(start.index('OpexPCAL02Reset();'), start.index('while (true)'))
+        self.assertIn('if (PCAL02_AIR_SITES) OpexPCAL02Reset();', start)
+        self.assertIn('PCAL02_STATE.ahead = null;', reset)
+
+    def test_ahead_requests_population_top_k_without_any_miss_or_batch(self):
+        vm = SiteProjection()
+        # Most populated town already served, two ties retain catalogue order.
+        vm.catalog.towns.extend(Table(id=i, tile=(i + 1) * 1000 + 10, pop=pop)
+                                for i, pop in enumerate((9000, 500, 3000, 2000, 3000, 1000, 100)))
+        vm.owner._lines.append(Table(mode='air', originA=1010, originB=9999))
+        original = copy.deepcopy(vm.catalog.towns)
+        for _ in range(100):
+            if not vm.functions['AheadStep'](vm.owner):
+                break
+        else:
+            self.fail('lookahead did not complete its bounded private pass')
+        self.assertEqual([e.town.id for e in vm.state.entries], [2, 4, 3, 5])
+        self.assertEqual(vm.api_calls['request'], 4)
+        self.assertEqual(vm.api_calls['quote'], 0)
+        self.assertEqual(vm.catalog.towns, original)
+        self.assertEqual(vm.events, [])  # no normal finder / miss needed
+        self.assertFalse(vm.functions['AheadStep'](vm.owner))  # weekly cooldown
+        ahead = uncomment(body('AheadStep'))
+        for forbidden in ('_projects', '_taskQueue', '_activeWorker', '_po01c',
+                          'resumeState', '.sort(', 'OpexTownAirportAllowedByLevel('):
+            self.assertNotIn(forbidden, ahead)
+        self.assertNotRegex(ahead, r'\b(?:for|foreach|while)\s*\(')
+        tick = body('Tick')
+        self.assertNotIn('PCAL02_STATE.entries.len() == 0\n', tick.split('local mark', 1)[0])
+        self.assertLess(tick.index('OpexPCAL02Admit'), tick.index('OpexPCAL02AheadStep'))
+        self.assertIn('aheadSteps < aheadLimit', tick)
+
+    def test_ahead_two_types_and_changed_lines_refill_without_resetting_geometry(self):
+        vm = SiteProjection()
+        vm.catalog.airCombos.append(Table(airport=Table(type=2, width=2, height=2), plane=vm.plane))
+        vm.catalog.towns.extend(Table(id=i, tile=(i + 1) * 1500 + 10, pop=5000 - i * 500)
+                                for i in range(6))
+        for _ in range(120):
+            if not vm.functions['AheadStep'](vm.owner):
+                break
+        self.assertEqual(len(vm.state.entries), 8)
+        self.assertEqual({e.airport.type for e in vm.state.entries}, {1, 2})
+        surviving = next(e for e in vm.state.entries if e.town.id == 1)
+        surviving.ops = 12345
+        vm.owner._lines.append(Table(mode='air', originA=1510, originB=9999))
+        for _ in range(150):
+            if not vm.functions['AheadStep'](vm.owner):
+                break
+        self.assertEqual({e.town.id for e in vm.state.entries}, {1, 2, 3, 4})
+        self.assertIn(surviving, vm.state.entries)
+        self.assertEqual(surviving.ops, 12345)
+        self.assertEqual(vm.state.epoch, 1)
+
+    def test_seed_publishes_first_flat_site_before_spiral_finishes_and_hits(self):
+        vm = SiteProjection()
+        entry = vm.request()
+        cursor = (entry.r, entry.dx, entry.dy)
+        vm.finish_seed(entry)
+        self.assertEqual((entry.r, entry.dx, entry.dy), cursor)
+        self.assertEqual(vm.api_calls['footprint'], 1)
+        self.assertEqual(vm.api_calls['quote'], 1)
+        self.assertTrue(entry.ready)
+        self.assertFalse(entry.done)
+        self.assertEqual((entry.valid, entry.readyDate, entry.top[0].readyDate), (1, 100, 100))
+        vm.date = 107
+        site = vm.functions['FindSite'](entry.town, vm.airport, None)
+        self.assertIsNotNone(site)
+        self.assertEqual(site.anchor, 4444)
+        self.assertEqual(vm.events[-1][0], 'hit')
+        self.assertIn('phase=lookup', vm.events[-1][-1])
+        self.assertIn('lead_days=7', vm.events[-1][-1])
+        vm.date = 112
+        self.assertTrue(vm.functions['BuildSiteOk'](site, vm.airport, vm.plane, vm.catalog))
+        self.assertIn('phase=build', vm.events[-1][-1])
+        self.assertIn('lead_days=12', vm.events[-1][-1])
+        vm.functions['Built'](site, vm.airport)
+        self.assertEqual(vm.events[-1][0], 'built')
+        self.assertIn('lead_days=12', vm.events[-1][-1])
+
+    def test_local_refusal_preserves_unrelated_work_but_revalidation_rejects_changed_site(self):
+        vm = SiteProjection()
+        first = vm.request()
+        first_site = vm.finish_seed(first)
+        other = vm.request(8)
+        other.ops = 23966
+        vm.functions['InvalidateSite'](first_site, Table(type=9))
+        self.assertEqual(len(vm.state.entries), 2)
+        vm.functions['InvalidateSite'](Table(town=first.town, anchor=4545), vm.airport)
+        self.assertEqual(len(vm.state.entries), 2)  # unrelated anchor in same town
+        vm.functions['InvalidateSite'](first_site, vm.airport)
+        self.assertEqual(vm.state.entries, [other])
+        self.assertEqual(other.ops, 23966)
+        vm.nearest = 8
+        vm.finish_seed(other)
+        vm.buildable = False
+        self.assertIsNone(vm.functions['FindSite'](other.town, vm.airport, None))
+        self.assertFalse(any(event[0] == 'hit' for event in vm.events))
+        self.assertGreater(vm.api_calls['revalidate'], 0)
+
+    def test_lead_uses_selected_anchor_ready_date_when_ranking_improves(self):
+        vm = SiteProjection()
+        entry = vm.request()
+        vm.finish_seed(entry)
+        vm.date = 107
+        entry.anchor = 4545
+        entry.pax = 100
+        vm.functions['Keep'](entry)
+        self.assertEqual(entry.readyDate, 100)  # first usable stock
+        vm.date = 110
+        site = vm.functions['FindSite'](entry.town, vm.airport, None)
+        self.assertEqual(site.anchor, 4545)
+        self.assertEqual(site.pcal02.readyDate, 107)
+        self.assertIn('lead_days=3', vm.events[-1][-1])
+
+    def test_live_quote_dimensions_and_engine_still_protect_build_and_load_resets_stock(self):
+        vm = SiteProjection()
+        entry = vm.request()
+        vm.finish_seed(entry)
+        site = vm.functions['FindSite'](entry.town, vm.airport, None)
+        vm.cost = 101
+        self.assertFalse(vm.functions['BuildSiteOk'](site, vm.airport, vm.plane, vm.catalog))
+        vm.cost = 100
+        self.assertFalse(vm.functions['BuildSiteOk'](site, Table(type=1, width=3, height=2), vm.plane, vm.catalog))
+        self.assertFalse(vm.functions['BuildSiteOk'](site, vm.airport, Table(id=224), vm.catalog))
+        vm.state.ahead = Table(index=123)
+        vm.state.fault = True
+        vm.functions['Reset']()
+        self.assertEqual(vm.state.entries, [])
+        self.assertIsNone(vm.state.ahead)
+        self.assertIsNone(vm.state.catalog)
+        self.assertFalse(vm.state.fault)
+        self.assertFalse(vm.functions['BuildSiteOk'](site, vm.airport, vm.plane, vm.catalog))
+
+    def test_seed_never_assumes_flatness_or_stores_unvalidated_provenance(self):
+        vm = SiteProjection()
+        entry = vm.request()
+        vm.flat = False
+        vm.finish_seed(entry)
+        self.assertFalse(entry.ready)
+        self.assertEqual(entry.top, [])
+        self.assertEqual(vm.api_calls['quote'], 0)
+        source = function(read('air_sites.nut'), 'OpexAirFindSiteCatchmentListed')
+        self.assertEqual(source.count('OpexPCAL02SeedSite(best, airport);'), 3)
+        self.assertEqual(source.count('if (PCAL02_AIR_SITES && requiredSlotTownId < 0)'), 3)
+        self.assertNotIn('entry.ready = true', body('SeedSite'))
 
     def test_no_new_squirrel_traps(self):
         code = uncomment(read('pcal02_air_sites.nut'))
