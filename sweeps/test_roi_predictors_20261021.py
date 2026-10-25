@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Small read-only ROI-calibration parser checks, no simulation required."""
 import os
+import gzip
 import tempfile
 import unittest
 import importlib.util
@@ -12,6 +13,40 @@ from analyse_roi_predictors_20261021 import parse, quartiles, predict
 
 
 class RoiPredictorsTest(unittest.TestCase):
+    @staticmethod
+    def _one_rail_game():
+        return "\n".join([
+            "[0] [I] OPEX 1970-1-1 PROJECT_CHOSEN rank=1 mode=rail kind=freight cargo=COAL src=12 dst=22 cost=1000 profit=500",
+            "[0] [I] OPEX 1970-1-2 RAIL_BUILD line=1 src=12 dst=22 cargo=COAL dist=100 cost=1500 trains=1",
+            "[0] [I] OPEX 1972-1-1 LINE_REVENUE line=1 mode=rail cargo=COAL year=1972 age=2 real_prof=200 vehs=1",
+        ]) + "\n"
+
+    def test_compressed_log_only(self):
+        with tempfile.TemporaryDirectory() as folder:
+            with gzip.open(os.path.join(folder, "reference_seed42_r0.log.gz"), "wt", encoding="utf-8") as fh:
+                fh.write(self._one_rail_game())
+            rows, counts = parse(folder, "duel")
+            self.assertEqual((len(rows), counts["games"], counts["matched_rail"]), (1, 1, 1))
+
+    def test_plain_and_compressed_identical_are_one_game(self):
+        with tempfile.TemporaryDirectory() as folder:
+            data = self._one_rail_game()
+            with open(os.path.join(folder, "reference_seed42_r0.log"), "w", encoding="utf-8") as fh:
+                fh.write(data)
+            with gzip.open(os.path.join(folder, "reference_seed42_r0.log.gz"), "wt", encoding="utf-8") as fh:
+                fh.write(data)
+            rows, counts = parse(folder, "duel")
+            self.assertEqual((len(rows), counts["games"], counts["matched_rail"]), (1, 1, 1))
+
+    def test_conflicting_copy_fails_even_when_count_same(self):
+        with tempfile.TemporaryDirectory() as folder:
+            with open(os.path.join(folder, "reference_seed42_r0.log"), "w", encoding="utf-8") as fh:
+                fh.write(self._one_rail_game())
+            with gzip.open(os.path.join(folder, "reference_seed42_r0.log.gz"), "wt", encoding="utf-8") as fh:
+                fh.write(self._one_rail_game().replace("real_prof=200", "real_prof=205"))
+            with self.assertRaisesRegex(ValueError, "copies de journal ROI contradictoires"):
+                parse(folder, "duel")
+
     def test_roi_from_chosen_to_mature_build(self):
         with tempfile.TemporaryDirectory() as directory:
             path = os.path.join(directory, "reference_seed42_r0.log")

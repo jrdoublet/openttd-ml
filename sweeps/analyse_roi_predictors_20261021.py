@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Predictors of mature line ROI, using only historical calibration engine logs."""
 import argparse
+import hashlib
 import json
 import math
 import os
@@ -24,10 +25,44 @@ def med(a):
     return statistics.median(a) if a else None
 
 
+_ROI_EVENTS = {"PROJECT_CHOSEN", "AIR_BUILD", "RAIL_BUILD", "ROAD_BUILD", "LINE_REVENUE"}
+
+
+def _relevant_digest(path):
+    """Digest only ROI source events; reject divergent .log/.log.gz copies."""
+    checksum = hashlib.sha256()
+    with open_text(path) as stream:
+        for raw in stream:
+            matched = LINE_RE.search(raw)
+            if matched is not None and matched.group(4) in _ROI_EVENTS:
+                checksum.update(matched.group(0).encode("utf-8"))
+                checksum.update(b"\n")
+    return checksum.digest()
+
+
+def _unique_game_logs(folder):
+    """Keep one representation per seed/repetition, per campaign directory."""
+    selected = {}
+    for path in sorted(glob(os.path.join(folder, "*.log")) + glob(os.path.join(folder, "*.log.gz"))):
+        basename = os.path.basename(path)
+        stem = basename[:-3] if basename.endswith(".gz") else basename
+        if SEED_RE.search(stem) is None:
+            continue
+        if stem in selected:
+            current = selected[stem]
+            if _relevant_digest(current) != _relevant_digest(path):
+                raise ValueError(f"copies de journal ROI contradictoires : {current} et {path}")
+            if path.endswith(".log"):
+                selected[stem] = path
+        else:
+            selected[stem] = path
+    return [selected[key] for key in sorted(selected)]
+
+
 def parse(folder, arm):
     items = []
     ct = Counter()
-    for file in sorted(glob(os.path.join(folder, "*.log")) + glob(os.path.join(folder, "*.log.gz"))):
+    for file in _unique_game_logs(folder):
         match = SEED_RE.search(os.path.basename(file).replace(".gz", ""))
         if match is None:
             continue
