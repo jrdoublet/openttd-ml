@@ -200,3 +200,57 @@ ne valident aucun gain économique ; aucune table adoptée et aucune preuve
 historique recalculée ou requalifiée. Aucun Docker ni partie lancé ; aucun
 push, merge, changement de configuration Git ou accès à un autre worktree
 ou au dépôt principal.
+
+## 25 octobre 2026 — V262 T10/T15 : entretien partiel conservé inconnu
+
+Branche locale : `codex-reset-20261025_0620`. Arbre initial propre, départ
+`fdb22dd2`. Commit de la tâche : `68edcdd3`
+(`fix(v262): preserve unknown totals for incomplete orphan costs`).
+
+**Tâche choisie :** fiabiliser le lecteur du chantier ouvert de mesure des
+infrastructures orphelines V262 T10/T15, dans `docs/taches.md`. Défauts
+reproduits sur journaux synthétiques avant correction : un résumé auquel
+manque un coût provoquait un `KeyError` ; des valeurs comme `11.5`, `11oops`
+ou `1e3` étaient réduites à leur préfixe entier et entraient dans le total.
+La mesure T04 des sauvegardes, déjà réalisée, n'a pas été recommencée.
+
+**Fichiers :**
+
+- `sweeps/analyze_v262_orphans.py` : lecture des champs entiers complets,
+  délimités par des espaces ; entretien `None` si le résumé ou un de ses
+  six coûts manque, sans addition partielle. Le comptage des orphelins reste
+  disponible et un coût observé à zéro reste zéro.
+- `sweeps/test_analyze_v262_orphans.py` : trois régressions couvrant chaque
+  catégorie de coût absente ou illisible, les journaux texte/gzip, le
+  remplacement d'un ancien total par un relevé partiel après rechargement,
+  puis la restauration d'un total complet, y compris nul.
+- `docs/taches.md` : avancement du lecteur, mesure moteur laissée ouverte.
+- `docs/codex_reset_journal.md` : cette entrée dans un second commit.
+
+Aucun code IA, défaut, schéma de sonde ou hash de contrat modifié.
+RAIL-LONG-EARLY-1, AIR-FLOTTE-1 et C115 non modifiés.
+
+**Tests exécutés :**
+
+| Commande | Résultat |
+|---|---|
+| `python3 -m unittest discover -s sweeps -p 'test_analyze_v262_orphans.py' -v` avant correction du lecteur | 6 tests, défauts reproduits : 18 échecs et 20 erreurs de sous-tests |
+| `python3 -m unittest discover -s sweeps -p 'test_*v262_orphans.py' -v` après correction | 12 tests OK |
+| `python3 -m unittest discover -s sweeps -p 'test_*.py'` avant édition | 2 440 tests, OK avec 9 ignorés et 2 échecs attendus |
+| Même suite complète après correction | 2 443 tests, OK avec les mêmes 9 ignorés et 2 échecs attendus |
+| `git diff --check` et `git diff --cached --check` | OK |
+
+Commandes lancées via `rtk` / `rtk proxy`. Journaux temporaires :
+`/tmp/codex_reset_v262_costs_20261025_before.log`,
+`/tmp/codex_reset_v262_costs_20261025_red.log` et
+`/tmp/codex_reset_v262_costs_20261025_after.log`.
+
+**Reste à valider en banc :** aucune partie nécessaire pour ce correctif de
+lecture Python ; ni intégration moteur ni schéma collecté ne changent.
+T10/T15 conserve son besoin d'exposition réelle sous `decision_log=1`,
+avec capture des journaux, contrôle de santé et couverture annuelle complète.
+L'entretien concerne toute l'infrastructure de la compagnie ; aucune part
+« orpheline », aucun gain économique et aucune requalification de résultats
+historiques ne découlent des fixtures. Aucun Docker ni partie lancé ; aucun
+push, merge, changement de configuration Git ou accès à un autre worktree
+ou au dépôt principal.
