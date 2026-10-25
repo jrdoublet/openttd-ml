@@ -938,6 +938,8 @@ function OpexC121CatalogTownProductionBatch(catalog)
 
 function OpexCatalog::_refreshIndustries()
 {
+  /* Les producteurs et les volumes qui ordonnent V276 viennent de ce catalogue. */
+  V276_CARGO_ORDER = null;
   this.industries = [];
   this.producers = {};
   this.acceptors = {};

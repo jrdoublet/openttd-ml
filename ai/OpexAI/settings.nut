@@ -447,6 +447,7 @@ function OpexLoadSettings()
   V276_CAND_SLICES = (v276 == 3) ? (bigMap ? 2 : 0) : v276;
   V276_CATALOG_TASK = null;
   V276_CARGO_YEAR = -1;
+  V276_CARGO_MONTH = -1;
   V276_CARGO_ORDER = null;
   AIR0310_SITE_VALIDITY_STATE = null;
   RAIL_DEPOT_COST = AIController.GetSetting("rail_depot_cost") != 0;

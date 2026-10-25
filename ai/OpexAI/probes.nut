@@ -2717,6 +2717,13 @@ function OpexAI::_mainLoopProfiled()
     if (V308_CARTO_PROBE > 0) OpexV308MaybeRun(this._loadedFromSave);
     if (spEvents != null) OpexSpanEnd(spEvents);
     OpexLoopProfAdd("events", mark);
+    mark = OpexOpsMeasureBegin();
+    if (this._lines != null && this._lines.len() >= SAVE_PROJECTION_MIN_LINES) {
+      local spSave = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.save_projection") : null;
+      this._refreshSaveProjection();
+      if (spSave != null) OpexSpanEnd(spSave);
+    } else if (this._saveProjection != null) this._saveProjection = null;
+    OpexLoopProfAdd("save_projection", mark);
     local before = C117_AIR_LAST_DATE;
     mark = OpexOpsMeasureBegin();
     local spC117 = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.c117") : null;

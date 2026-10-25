@@ -6,6 +6,7 @@
 V276_CAND_SLICES <- 0;
 V276_CATALOG_TASK <- null;
 V276_CARGO_YEAR <- -1;
+V276_CARGO_MONTH <- -1;
 V276_CARGO_ORDER <- null;
 const V276_PUBLISH_EVERY = 50;
 const V276_EVAL_CAP = 500;
@@ -23,7 +24,9 @@ function OpexV276Tick(owner)
 function OpexV276CargoOrder(catalog)
 {
   local year = AIDate.GetYear(AIDate.GetCurrentDate());
-  if (V276_CARGO_ORDER != null && V276_CARGO_YEAR == year) return V276_CARGO_ORDER;
+  local month = AIDate.GetMonth(AIDate.GetCurrentDate());
+  if (V276_CARGO_ORDER != null && V276_CARGO_YEAR == year
+      && (V276_CAND_SLICES != 2 || V276_CARGO_MONTH == month)) return V276_CARGO_ORDER;
   local ranked = AIList();
   local bounds = OpexCatalogBounds(catalog);
   local days = (80.0 * OpexDaysPerTile(bounds.vRail > 0 ? bounds.vRail : 1,
@@ -44,6 +47,7 @@ function OpexV276CargoOrder(catalog)
   local result = [];
   for (local cargo = ranked.Begin(); !ranked.IsEnd(); cargo = ranked.Next()) result.append(cargo);
   V276_CARGO_YEAR = year;
+  V276_CARGO_MONTH = month;
   V276_CARGO_ORDER = result;
   return result;
 }
