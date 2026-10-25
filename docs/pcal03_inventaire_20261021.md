@@ -13,14 +13,14 @@ OpexAI dispose de plusieurs niveaux d'instrumentation passive :
 
 | Sonde / Mécanisme | Réglage NoAI (`info.nut` / `settings.nut`) | Étiquette de journal exacte | Format et grandeurs relevées | Fichier source |
 |---|---|---|---|---|
-| **Chronométrage de bloc** | N/A (fonction helper universelle) | N/A (utilisé en mémoire) | `OpexOpsMeasureBegin()` / `OpexOpsMeasureEnd(mark)` : calcule `elapsedTicks * 10000 + delta_opcodes` | [`ai/OpexAI/budget.nut:19-31`](file:///home/deploy/projects/wt-pcal03/ai/OpexAI/budget.nut#L19-L31) |
-| **Comptabilité budgétaire** | `probes & 2 != 0` (panneaux `DEBUG_SIGNS`) | Panneaux `OC\|`, `OP\|`, `OS\|`, `OW\|`, `BT\|`, `BC\|` | Cumul par catégorie (`cat_*`, `cand_*`, `build_*`) dans `OpexBudget` ; `BC\|<cat>\|<ops>k\|...` | [`ai/OpexAI/budget.nut:33-97`](file:///home/deploy/projects/wt-pcal03/ai/OpexAI/budget.nut#L33-L97), [`ai/OpexAI/task_report.nut:904-946`](file:///home/deploy/projects/wt-pcal03/ai/OpexAI/task_report.nut#L904-L946) |
-| **Trace hiérarchique de spans** | `probes & 4096 != 0` | `OPEX <date> SPAN` et `OPEX <date> SPAN_AGG` | `SPAN id=<id> par=<par> dep=<dep> n=<name> t0=<tick> tk=<ticks> op=<opcodes>`<br>`SPAN_AGG par=<id> n=<name> cnt=<n> op=<opcodes>` | [`ai/OpexAI/probes.nut:2631-2740`](file:///home/deploy/projects/wt-pcal03/ai/OpexAI/probes.nut#L2631-L2740) |
-| **Profil boucle principale** | `probes & 2048 != 0` (détourne vers `_mainLoopProfiled`) | `LOOP_OPS` | `LOOP_OPS y=<year> post=<name> n=<n> ops=<ops> tk=<ticks> max=<max>` | [`ai/OpexAI/probes.nut:2485-2588`](file:///home/deploy/projects/wt-pcal03/ai/OpexAI/probes.nut#L2485-L2588) |
-| **Phases de construction rail** | `probes & 256 != 0` (`DECISION_LOG`) | `RAIL_ATTEMPT` | `... iters=<iters> ops=<ops> search_ops=<sops> phases=<plans>/<search>/<stations>/<track>/<trains>` | [`ai/OpexAI/task_rail.nut:1171-1201`](file:///home/deploy/projects/wt-pcal03/ai/OpexAI/task_rail.nut#L1171-L1201) |
-| **Régénérations de catalogue** | `probes & 32768 != 0` | `C76_REGEN` | `OPEX <date> C76_REGEN phase=regen kind=<kind> reason=<reason> year=<y> ops=<ops>` | [`ai/OpexAI/probes.nut:2321-2327`](file:///home/deploy/projects/wt-pcal03/ai/OpexAI/probes.nut#L2321-L2327), [`ai/OpexAI/task_report.nut:1342-1372`](file:///home/deploy/projects/wt-pcal03/ai/OpexAI/task_report.nut#L1342-L1372) |
-| **Coût détaillé catalogue** | `catalog_cost_probe=1` *(retiré en V239)* | `CATALOG_COST` | `OPEX <date> CATALOG_COST reason=<r> total_ops=<total> mode_regen_ops=... air_ops=...` | [`ai/OpexAI/probes.nut:767-815`](file:///home/deploy/projects/wt-pcal03/ai/OpexAI/probes.nut#L767-L815) *(inactif au master)* |
-| **Révisions moteurs rail V257** | `probes & 256 != 0` (`DECISION_LOG`) | `V257_OPS` | `OPEX <date> V257_OPS ops=<ops> cursor=<cur>` | [`ai/OpexAI/task_v257.nut:183`](file:///home/deploy/projects/wt-pcal03/ai/OpexAI/task_v257.nut#L183) |
+| **Chronométrage de bloc** | N/A (fonction helper universelle) | N/A (utilisé en mémoire) | `OpexOpsMeasureBegin()` / `OpexOpsMeasureEnd(mark)` : calcule `elapsedTicks * 10000 + delta_opcodes` | [`ai/OpexAI/budget.nut:19-31`](../ai/OpexAI/budget.nut#L19-L31) |
+| **Comptabilité budgétaire** | `probes & 2 != 0` (panneaux `DEBUG_SIGNS`) | Panneaux `OC\|`, `OP\|`, `OS\|`, `OW\|`, `BT\|`, `BC\|` | Cumul par catégorie (`cat_*`, `cand_*`, `build_*`) dans `OpexBudget` ; `BC\|<cat>\|<ops>k\|...` | [`ai/OpexAI/budget.nut:33-97`](../ai/OpexAI/budget.nut#L33-L97), [`ai/OpexAI/task_report.nut:904-946`](../ai/OpexAI/task_report.nut#L904-L946) |
+| **Trace hiérarchique de spans** | `probes & 4096 != 0` | `OPEX <date> SPAN` et `OPEX <date> SPAN_AGG` | `SPAN id=<id> par=<par> dep=<dep> n=<name> t0=<tick> tk=<ticks> op=<opcodes>`<br>`SPAN_AGG par=<id> n=<name> cnt=<n> op=<opcodes>` | [`ai/OpexAI/probes.nut:2631-2740`](../ai/OpexAI/probes.nut#L2631-L2740) |
+| **Profil boucle principale** | `probes & 2048 != 0` (détourne vers `_mainLoopProfiled`) | `LOOP_OPS` | `LOOP_OPS y=<year> post=<name> n=<n> ops=<ops> tk=<ticks> max=<max>` | [`ai/OpexAI/probes.nut:2485-2588`](../ai/OpexAI/probes.nut#L2485-L2588) |
+| **Phases de construction rail** | `probes & 256 != 0` (`DECISION_LOG`) | `RAIL_ATTEMPT` | `... iters=<iters> ops=<ops> search_ops=<sops> phases=<plans>/<search>/<stations>/<track>/<trains>` | [`ai/OpexAI/task_rail.nut:1171-1201`](../ai/OpexAI/task_rail.nut#L1171-L1201) |
+| **Régénérations de catalogue** | `probes & 32768 != 0` | `C76_REGEN` | `OPEX <date> C76_REGEN phase=regen kind=<kind> reason=<reason> year=<y> ops=<ops>` | [`ai/OpexAI/probes.nut:2321-2327`](../ai/OpexAI/probes.nut#L2321-L2327), [`ai/OpexAI/task_report.nut:1342-1372`](../ai/OpexAI/task_report.nut#L1342-L1372) |
+| **Coût détaillé catalogue** | `catalog_cost_probe=1` *(retiré en V239)* | `CATALOG_COST` | `OPEX <date> CATALOG_COST reason=<r> total_ops=<total> mode_regen_ops=... air_ops=...` | [`ai/OpexAI/probes.nut:767-815`](../ai/OpexAI/probes.nut#L767-L815) *(inactif au master)* |
+| **Révisions moteurs rail V257** | `probes & 256 != 0` (`DECISION_LOG`) | `V257_OPS` | `OPEX <date> V257_OPS ops=<ops> cursor=<cur>` | [`ai/OpexAI/task_v257.nut:183`](../ai/OpexAI/task_v257.nut#L183) |
 
 > [!NOTE]
 > La compagnie `[0]` dans les journaux NoAI est toujours OpexAI ; la compagnie `[1]` est l'adversaire (AAAHogEx).
@@ -65,14 +65,14 @@ Les chiffres ci-dessous proviennent de l'extraction sur les campagnes disponible
 
 ### Poste 1 : AIR plans, hubs et demande
 - **Fonctions vérifiées :**
-  - [`OpexAirPlans`](file:///home/deploy/projects/wt-pcal03/ai/OpexAI/air_planning.nut#L1813) : coordination du scan du catalogue aérien (span `air.plans` [L1858](file:///home/deploy/projects/wt-pcal03/ai/OpexAI/air_planning.nut#L1858)).
-  - [`OpexAirPlansNewPairs`](file:///home/deploy/projects/wt-pcal03/ai/OpexAI/air_planning.nut#L534) : génération des paires directes ville–ville (span `air.new_pairs` [L1708](file:///home/deploy/projects/wt-pcal03/ai/OpexAI/air_planning.nut#L1708)).
-  - [`OpexAirPlansHubToSite`](file:///home/deploy/projects/wt-pcal03/ai/OpexAI/air_planning.nut#L1235) : paires étoile depuis un aéroport existant vers une ville (span `air.hub_site` [L1891](file:///home/deploy/projects/wt-pcal03/ai/OpexAI/air_planning.nut#L1891)).
-  - [`OpexAirPlansDiscoverHubs`](file:///home/deploy/projects/wt-pcal03/ai/OpexAI/air_planning.nut#L1050) : identification des aéroports carrefours (span `air.hub_discover` [L1787](file:///home/deploy/projects/wt-pcal03/ai/OpexAI/air_planning.nut#L1787)).
-  - [`OpexAirPlansHubToHub`](file:///home/deploy/projects/wt-pcal03/ai/OpexAI/air_planning.nut#L1393) : paires inter-hubs (span `air.hub_hub` [L1902](file:///home/deploy/projects/wt-pcal03/ai/OpexAI/air_planning.nut#L1902)).
-  - [`OpexAirPlansFindSites`](file:///home/deploy/projects/wt-pcal03/ai/OpexAI/air_planning.nut#L297) : balayage des sites d'aéroports par ville (span `air.sites` [L1693](file:///home/deploy/projects/wt-pcal03/ai/OpexAI/air_planning.nut#L1693)).
-  - [`OpexAirStationCatchmentProduction`](file:///home/deploy/projects/wt-pcal03/ai/OpexAI/air_coverage.nut#L212) : sommation tuile par tuile du cargo capté ([`opcode_exact.nut:541`](file:///home/deploy/projects/wt-pcal03/ai/OpexAI/opcode_exact.nut#L541)).
-  - [`OpexC121CatalogChoice`](file:///home/deploy/projects/wt-pcal03/ai/OpexAI/air_catalog_c121.nut#L109) : évaluation économique C121 et sélection d'avion.
+  - [`OpexAirPlans`](../ai/OpexAI/air_planning.nut#L1813) : coordination du scan du catalogue aérien (span `air.plans` [L1858](../ai/OpexAI/air_planning.nut#L1858)).
+  - [`OpexAirPlansNewPairs`](../ai/OpexAI/air_planning.nut#L534) : génération des paires directes ville–ville (span `air.new_pairs` [L1708](../ai/OpexAI/air_planning.nut#L1708)).
+  - [`OpexAirPlansHubToSite`](../ai/OpexAI/air_planning.nut#L1235) : paires étoile depuis un aéroport existant vers une ville (span `air.hub_site` [L1891](../ai/OpexAI/air_planning.nut#L1891)).
+  - [`OpexAirPlansDiscoverHubs`](../ai/OpexAI/air_planning.nut#L1050) : identification des aéroports carrefours (span `air.hub_discover` [L1787](../ai/OpexAI/air_planning.nut#L1787)).
+  - [`OpexAirPlansHubToHub`](../ai/OpexAI/air_planning.nut#L1393) : paires inter-hubs (span `air.hub_hub` [L1902](../ai/OpexAI/air_planning.nut#L1902)).
+  - [`OpexAirPlansFindSites`](../ai/OpexAI/air_planning.nut#L297) : balayage des sites d'aéroports par ville (span `air.sites` [L1693](../ai/OpexAI/air_planning.nut#L1693)).
+  - [`OpexAirStationCatchmentProduction`](../ai/OpexAI/air_coverage.nut#L212) : sommation tuile par tuile du cargo capté ([`opcode_exact.nut:541`](../ai/OpexAI/opcode_exact.nut#L541)).
+  - [`OpexC121CatalogChoice`](../ai/OpexAI/air_catalog_c121.nut#L109) : évaluation économique C121 et sélection d'avion.
 - **Entrées et dépendances :**
   Positions des villes, populations, constructibilité du terrain dans le rayon municipal, liste des avions disponibles, dates d'introduction, aéroports déjà construits.
 - **Invalidation :**
@@ -89,12 +89,12 @@ Les chiffres ci-dessous proviennent de l'extraction sur les campagnes disponible
 
 ### Poste 2 : Régénérations, filtrage et sélection
 - **Fonctions vérifiées :**
-  - [`_c76DoFullRegen`](file:///home/deploy/projects/wt-pcal03/ai/OpexAI/orchestrator.nut#L1228) : reconstruction complète réactive synchrone (déclenchée à [orchestrator.nut:612](file:///home/deploy/projects/wt-pcal03/ai/OpexAI/orchestrator.nut#L612)).
-  - [`_dispatchCatalog`](file:///home/deploy/projects/wt-pcal03/ai/OpexAI/scheduler_tasks.nut#L313) : dispatch de catalogue en file (span `catalog.rebuild` [L459](file:///home/deploy/projects/wt-pcal03/ai/OpexAI/scheduler_tasks.nut#L459)).
-  - [`OpexReselectProjects`](file:///home/deploy/projects/wt-pcal03/ai/OpexAI/projects_selection.nut#L1360) : re-sélection du vivier existant (span `select.reselect` [L1363](file:///home/deploy/projects/wt-pcal03/ai/OpexAI/projects_selection.nut#L1363)).
-  - Filtrage de sélection : span `pub.select.filter` ([projects_selection.nut:1383](file:///home/deploy/projects/wt-pcal03/ai/OpexAI/projects_selection.nut#L1383)).
-  - Filtrage de publication incrémentale : span `pub.filter` ([projects_update.nut:485](file:///home/deploy/projects/wt-pcal03/ai/OpexAI/projects_update.nut#L485)).
-  - Mise à jour incrémentale post-construction : [`OpexIncrementalUpdateProjects`](file:///home/deploy/projects/wt-pcal03/ai/OpexAI/projects_update.nut#L469) (span `select.incremental` [L472](file:///home/deploy/projects/wt-pcal03/ai/OpexAI/projects_update.nut#L472)).
+  - [`_c76DoFullRegen`](../ai/OpexAI/orchestrator.nut#L1228) : reconstruction complète réactive synchrone (déclenchée à [orchestrator.nut:612](../ai/OpexAI/orchestrator.nut#L612)).
+  - [`_dispatchCatalog`](../ai/OpexAI/scheduler_tasks.nut#L313) : dispatch de catalogue en file (span `catalog.rebuild` [L459](../ai/OpexAI/scheduler_tasks.nut#L459)).
+  - [`OpexReselectProjects`](../ai/OpexAI/projects_selection.nut#L1360) : re-sélection du vivier existant (span `select.reselect` [L1363](../ai/OpexAI/projects_selection.nut#L1363)).
+  - Filtrage de sélection : span `pub.select.filter` ([projects_selection.nut:1383](../ai/OpexAI/projects_selection.nut#L1383)).
+  - Filtrage de publication incrémentale : span `pub.filter` ([projects_update.nut:485](../ai/OpexAI/projects_update.nut#L485)).
+  - Mise à jour incrémentale post-construction : [`OpexIncrementalUpdateProjects`](../ai/OpexAI/projects_update.nut#L469) (span `select.incremental` [L472](../ai/OpexAI/projects_update.nut#L472)).
 - **Entrées et dépendances :**
   Trésorerie disponible, catalogue complet de tous les modes, lignes construites, révisions de couches C76.
 - **Invalidation :**
@@ -110,18 +110,18 @@ Les chiffres ci-dessous proviennent de l'extraction sur les campagnes disponible
 
 ### Poste 3 : Constructibilité rail avant A*
 - **Fonctions vérifiées :**
-  - [`OpexRailPlatformPlans`](file:///home/deploy/projects/wt-pcal03/ai/OpexAI/builder_rail.nut#L690) : sélection des plans de plateformes pour une paire rail candidate.
-  - [`OpexStationPlans`](file:///home/deploy/projects/wt-pcal03/ai/OpexAI/builder_rail.nut#L283) : recherche des emplacements de quais autour d'un centre (ville/industrie).
-  - [`OpexJoinPlatformPlans`](file:///home/deploy/projects/wt-pcal03/ai/OpexAI/builder_rail.nut#L386) : recherche de quai parallèle sur une gare existante de la compagnie.
-  - [`OpexV131BuildTownClearance`](file:///home/deploy/projects/wt-pcal03/ai/OpexAI/builder_rail.nut#L3486) et pipeline de réparation V131 ([`task_rail.nut:1719+`](file:///home/deploy/projects/wt-pcal03/ai/OpexAI/task_rail.nut#L1719)).
-  - Mesure des phases de pose : [`task_rail.nut:1171-1201`](file:///home/deploy/projects/wt-pcal03/ai/OpexAI/task_rail.nut#L1171-L1201) (`phases=plans/search/stations/track/trains`).
+  - [`OpexRailPlatformPlans`](../ai/OpexAI/builder_rail.nut#L690) : sélection des plans de plateformes pour une paire rail candidate.
+  - [`OpexStationPlans`](../ai/OpexAI/builder_rail.nut#L283) : recherche des emplacements de quais autour d'un centre (ville/industrie).
+  - [`OpexJoinPlatformPlans`](../ai/OpexAI/builder_rail.nut#L386) : recherche de quai parallèle sur une gare existante de la compagnie.
+  - [`OpexV131BuildTownClearance`](../ai/OpexAI/builder_rail.nut#L3486) et pipeline de réparation V131 ([`task_rail.nut:1719+`](../ai/OpexAI/task_rail.nut#L1719)).
+  - Mesure des phases de pose : [`task_rail.nut:1171-1201`](../ai/OpexAI/task_rail.nut#L1171-L1201) (`phases=plans/search/stations/track/trains`).
 - **Entrées et dépendances :**
   Extrémités `src`/`dst`, cargo, longueur de rame `platformLength`, pente du terrain, eau, rayon de recherche de gare (30 tuiles), orientation et dégagement d'approche.
 - **Invalidation :**
   Toute modification des tuiles de la plateforme (bâtiment municipal, route, nivellement, voies posées par l'adversaire).
 - **Caches existants :**
   - **Aucun cache persistant** entre tentatives successives.
-  - Tentative V296c : précalcul d'un ensemble de tuiles plates et constructibles (`AITileList` natif) au lieu de boucles Squirrel. **Résultat : ÉCHEC** — le coût est passé de 48,7 k à 488,5 k opcodes par appel (×10), car la boucle Squirrel historique sort dès `limit` quais trouvés, alors que le précalcul parcourait l'ensemble du rectangle (cf. [docs/taches.md](file:///home/deploy/projects/wt-pcal03/docs/taches.md#L18)).
+  - Tentative V296c : précalcul d'un ensemble de tuiles plates et constructibles (`AITileList` natif) au lieu de boucles Squirrel. **Résultat : ÉCHEC** — le coût est passé de 48,7 k à 488,5 k opcodes par appel (×10), car la boucle Squirrel historique sort dès `limit` quais trouvés, alors que le précalcul parcourait l'ensemble du rectangle (cf. [docs/taches.md](taches.md#L18)).
 - **Consommateur réel :**
   `task_rail.nut` (`_advanceRailSearchThroughput` et `_tryBuildRailProject`).
 
@@ -129,10 +129,10 @@ Les chiffres ci-dessous proviennent de l'extraction sur les campagnes disponible
 
 ### Poste 4 : Route et flotte
 - **Fonctions vérifiées :**
-  - Sites routiers : [`OpexRoadSites`](file:///home/deploy/projects/wt-pcal03/ai/OpexAI/builder_road.nut#L150), [`OpexRoadPlanFor`](file:///home/deploy/projects/wt-pcal03/ai/OpexAI/builder_road.nut#L542), [`_tryBuildRoadProject`](file:///home/deploy/projects/wt-pcal03/ai/OpexAI/task_road.nut#L3).
-  - Tâche `town_growth` : [`main.nut:495`](file:///home/deploy/projects/wt-pcal03/ai/OpexAI/main.nut#L495) (`enabled = false`, `dueCycle = 2147483647`).
-  - Gestion flotte air : [`_resizeAirFleets`](file:///home/deploy/projects/wt-pcal03/ai/OpexAI/task_air.nut#L716) (span `fleet.resize` [L718](file:///home/deploy/projects/wt-pcal03/ai/OpexAI/task_air.nut#L718)), [`_c121InjectAirFleetPlans`](file:///home/deploy/projects/wt-pcal03/ai/OpexAI/scheduler_tasks.nut#L104) (span `fleet.inject` [L106](file:///home/deploy/projects/wt-pcal03/ai/OpexAI/scheduler_tasks.nut#L106)).
-  - Révisions moteurs : V257 rail ([`task_v257.nut:142`](file:///home/deploy/projects/wt-pcal03/ai/OpexAI/task_v257.nut#L142)), V252 air ([`task_v252.nut:28`](file:///home/deploy/projects/wt-pcal03/ai/OpexAI/task_v252.nut#L28)).
+  - Sites routiers : [`OpexRoadSites`](../ai/OpexAI/builder_road.nut#L150), [`OpexRoadPlanFor`](../ai/OpexAI/builder_road.nut#L542), [`_tryBuildRoadProject`](../ai/OpexAI/task_road.nut#L3).
+  - Tâche `town_growth` : [`main.nut:495`](../ai/OpexAI/main.nut#L495) (`enabled = false`, `dueCycle = 2147483647`).
+  - Gestion flotte air : [`_resizeAirFleets`](../ai/OpexAI/task_air.nut#L716) (span `fleet.resize` [L718](../ai/OpexAI/task_air.nut#L718)), [`_c121InjectAirFleetPlans`](../ai/OpexAI/scheduler_tasks.nut#L104) (span `fleet.inject` [L106](../ai/OpexAI/scheduler_tasks.nut#L106)).
+  - Révisions moteurs : V257 rail ([`task_v257.nut:142`](../ai/OpexAI/task_v257.nut#L142)), V252 air ([`task_v252.nut:28`](../ai/OpexAI/task_v252.nut#L28)).
 - **Analyse du consommateur actif :**
   - **La route n'a aucun consommateur actif.** La tâche `town_growth` a été désactivée en V234 ; les projets routiers ne franchissent quasiment jamais le knapsack v2 face au rail et à l'air. Consommation réelle mesurée : **0 opcode/an**.
   - **La flotte est déjà fortement optimisée.** V159/V160 ont optimisé `air_fleet`, V252 et V257 ont découpé les révisions moteurs en micro-tâches de fond (quelques dizaines d'opcodes par passage).
@@ -141,7 +141,7 @@ Les chiffres ci-dessous proviennent de l'extraction sur les campagnes disponible
 
 ### Poste 5 : Cartographie et eau C67
 - **Fonctions vérifiées :**
-  - [`_c67SlackHook`](file:///home/deploy/projects/wt-pcal03/ai/OpexAI/main.nut#L869), [`OpexTerrainMap`](file:///home/deploy/projects/wt-pcal03/ai/OpexAI/terrain_map.nut#L14), [`OpexWaterGraph`](file:///home/deploy/projects/wt-pcal03/ai/OpexAI/water_graph.nut#L23), [`_dispatchTerrain`](file:///home/deploy/projects/wt-pcal03/ai/OpexAI/task_terrain.nut#L42).
+  - [`_c67SlackHook`](../ai/OpexAI/main.nut#L869), [`OpexTerrainMap`](../ai/OpexAI/terrain_map.nut#L14), [`OpexWaterGraph`](../ai/OpexAI/water_graph.nut#L23), [`_dispatchTerrain`](../ai/OpexAI/task_terrain.nut#L42).
 - **Analyse du consommateur actif :**
   - Tous les réglages C67 sont à **0 par défaut** (`c67_terrain_map=0`, `c67_water_exposure_probe=0`, `C67_SLACK_HOOK=false`).
   - Le recensement V290 du 20/10/2026 sur 40 graines × 3 ans a établi qu'il y a **zéro plate-forme pétrolière** et **zéro liaison maritime de vrac** sur les cartes de banc.
