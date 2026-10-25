@@ -45,17 +45,29 @@ function OpexPCAL02Combo(airport)
   return null;
 }
 
-function OpexPCAL02Fresh(entry, airport)
+function OpexPCAL02Expiry(entry, airport)
 {
   local date = AIDate.GetCurrentDate();
-  if (entry.epoch != PCAL02_STATE.epoch || date < entry.date
-      || date - entry.date >= PCAL02_TTL_DAYS || AIDate.GetYear(date) != entry.year
-      || entry.airport.width != airport.width || entry.airport.height != airport.height
-      || !AITown.IsValidTown(entry.town.id)) return false;
-  if (entry.plane == null) return true;
+  if (date < entry.date) return "date_reversed";
+  if (date - entry.date >= PCAL02_TTL_DAYS) return "ttl";
+  if (entry.airport.type != airport.type || entry.airport.width != airport.width
+      || entry.airport.height != airport.height) return "dimensions";
+  if (!AITown.IsValidTown(entry.town.id)) return "town";
+  /* A queued demand has no geometry or engine to invalidate. In particular,
+   * another line's build must not erase all still-unstarted demands. */
+  if (entry.plane == null) return "none";
+  if (entry.epoch != PCAL02_STATE.epoch) return "epoch";
+  if (AIDate.GetYear(date) != entry.year) return "year";
   local combo = OpexPCAL02Combo(airport);
-  return entry.catalog == PCAL02_STATE.catalog && combo != null
-      && combo.plane.id == entry.plane.id && entry.combos == entry.catalog.airCombos;
+  /* Catalogue/airCombos tables are replaced during ordinary publication.
+   * Only a changed compatible engine matters to this flat geometric search. */
+  if (combo == null || combo.plane.id != entry.plane.id) return "engine";
+  return "none";
+}
+
+function OpexPCAL02Fresh(entry, airport)
+{
+  return OpexPCAL02Expiry(entry, airport) == "none";
 }
 
 /* Demand comes ONLY from the existing C78/V278 site consumer. Priority by
@@ -75,7 +87,7 @@ function OpexPCAL02Request(town, airport)
   local entry = { id = PCAL02_STATE.sequence,
       town = { id = town.id, tile = town.tile, pop = town.pop },
       airport = { type = airport.type, width = airport.width, height = airport.height },
-      plane = null, catalog = null, combos = null, date = date,
+      plane = null, date = date,
       year = AIDate.GetYear(date), epoch = PCAL02_STATE.epoch, ready = false,
       top = [], credited = false, ops = 0, r = 4, dx = -4, dy = -4,
       phase = 0, anchor = -1, tileIndex = 0, z = 0, tested = 0,
@@ -87,7 +99,9 @@ function OpexPCAL02Request(town, airport)
 function OpexPCAL02Drop(index, reason)
 {
   local entry = PCAL02_STATE.entries[index];
-  OpexPCAL02Log("stale", entry, 0, 0, "reason=" + reason + " prepared_ops=" + entry.ops);
+  OpexPCAL02Log("stale", entry, 0, 0, "reason=" + reason
+      + " cause=" + OpexPCAL02Expiry(entry, entry.airport)
+      + " age_days=" + (AIDate.GetCurrentDate() - entry.date) + " prepared_ops=" + entry.ops);
   PCAL02_STATE.entries.remove(index);
 }
 
@@ -140,32 +154,61 @@ function OpexPCAL02Room(mark)
       && mark.left - left + PCAL02_ATOM_RESERVE + PCAL02_TAIL_RESERVE <= PCAL02_TICK_BUDGET;
 }
 
-/* Fail closed if checking the existing work/portfolio cannot finish this tick.
- * No project selection, revalidation or catalogue refresh occurs here. */
+/* Observe the next dispatch without moving either queue. Non-rail workers
+ * return before the background queue; rail workers deliberately fall through.
+ * A raw airPlan is never an executable project. C78 and PO01c may coexist
+ * with a published selection, so their mere presence says nothing either. */
+function OpexPCAL02BuildTurn(owner, mark)
+{
+  if (owner._activeWorker != null && owner._activeWorker.kind != "rail_search"
+      && owner._activeWorker.kind != "rail_stock") return "worker_wait";
+  if (owner._projects == null || owner._portfolioInvalidated) return "portfolio_wait";
+  local queue = owner._reactiveQueue;
+  if (queue != null && !queue.isEmpty()) {
+    local intention = queue.get(queue._order[queue._head]);
+    if (intention != null && intention.kind == "c77_build"
+        && !(C77_INTENT_DEFER && (owner._activeWorker != null
+            || (C77_INTENT_DEFER_SUBSIDY && PO01C_REGEN_SPLIT
+                && (owner._po01cPending || owner._po01cJob != null))))) return "reactive";
+  }
+  /* Same suffix / next-cycle search as _runNextTask. Inspect only; neither
+   * dueCycle nor the cursor is changed, and every iteration is budgeted. */
+  for (local index = owner._taskCursor; index < owner._taskQueue.len(); index++) {
+    if (!OpexPCAL02Room(mark)) return "room";
+    local task = owner._taskQueue[index];
+    if (task.enabled && task.dueCycle <= owner._taskCycle)
+      return task.name == "projects" ? "projects" : "queue_wait";
+  }
+  foreach (task in owner._taskQueue) {
+    if (!OpexPCAL02Room(mark)) return "room";
+    if (task.enabled && task.dueCycle <= owner._taskCycle + 1)
+      return task.name == "projects" ? "projects" : "queue_wait";
+  }
+  return "queue_wait";
+}
+
+/* Fail closed if the readiness check cannot finish. Only the selected AIR
+ * projects with an available dispatch path veto background geometry; waiting
+ * workers/lots and merely fundable airPlans must leave the spare tick usable.
+ * This is a conservative veto, not a second selection or builder preflight. */
 function OpexPCAL02Admit(owner, mark)
 {
-  if (owner._activeWorker != null || owner._po01cPending || owner._po01cJob != null
-      || owner._projects == null || !MODE_AIR) return false;
-  foreach (task in owner._taskQueue) {
-    if (!OpexPCAL02Room(mark)) return false;
-    if (("c78AirRebuild" in task) && task.c78AirRebuild != null) return false;
-  }
+  if (!MODE_AIR) return "mode_off";
+  if (owner._catalog == null) return "catalog_missing";
+  if (!OpexPCAL02Room(mark)) return "room";
+  local turn = OpexPCAL02BuildTurn(owner, mark);
+  if (turn == "room") return "room";
+  if (turn != "projects" && turn != "reactive") return "none";
   /* OpexCashReserve scans the entire fleet. MIN is a lower bound on the
    * live reserve: overestimate available cash to reject MORE background work,
    * never miss an AIR project merely because a snapshot reserve is stale. */
   local cash = AICompany.GetBankBalance(AICompany.COMPANY_SELF) - CASH_RESERVE_MIN;
   foreach (project in owner._projects.best) {
-    if (!OpexPCAL02Room(mark)) return false;
-    if (project.mode == "air" && OpexProjectFinanceCapital(project) <= cash) return false;
+    if (!OpexPCAL02Room(mark)) return "room";
+    if (project != null && project.mode == "air"
+        && OpexProjectFinanceCapital(project) <= cash) return "best_air";
   }
-  foreach (plan in owner._projects.airPlans) {
-    if (!OpexPCAL02Room(mark)) return false;
-    local count = (("reuseA" in plan) && plan.reuseA ? 0 : 1)
-        + (("reuseB" in plan) && plan.reuseB ? 0 : 1);
-    local minimum = count * plan.airport.price + plan.plane.price;
-    if (minimum + OpexAirRequiredMargin(count, plan) <= cash) return false;
-  }
-  return OpexPCAL02Room(mark);
+  return OpexPCAL02Room(mark) ? "none" : "room";
 }
 
 /* Advance exactly one perimeter anchor, X then Y like FindSiteListed. */
@@ -262,33 +305,39 @@ function OpexPCAL02Step(entry, catalog)
 
 function OpexPCAL02Tick(owner)
 {
-  local tick = AIController.GetTick();
-  if (PCAL02_STATE.fault || PCAL02_STATE.lastTick == tick || PCAL02_STATE.entries.len() == 0
+  if (PCAL02_STATE.fault || PCAL02_STATE.entries.len() == 0
       || AIController.GetOpsTillSuspend() < PCAL02_TICK_BUDGET + PCAL02_SLEEP_RESERVE) return;
-  PCAL02_STATE.lastTick = tick;
   local mark = OpexOpsMeasureBegin();
+  /* The precheck may finish on a new tick. Compare the measured interval
+   * with its own mark, never with a tick sampled before that precheck. */
+  local tick = mark.tick;
+  if (PCAL02_STATE.lastTick == tick) return;
+  PCAL02_STATE.lastTick = tick;
   PCAL02_STATE.catalog = owner._catalog;
   local entry = null;
   local observed = null;
+  local deny = "stock_ready";
   for (local i = 0; i < PCAL02_STATE.entries.len(); i++) {
-    if (!OpexPCAL02Room(mark)) break;
+    if (!OpexPCAL02Room(mark)) { deny = "room"; break; }
     local candidate = PCAL02_STATE.entries[i];
     observed = candidate;
     if (!OpexPCAL02Fresh(candidate, candidate.airport)) {
       OpexPCAL02Drop(i, "worker_expired");
+      deny = "entry_expired";
       break;
     }
     if (!candidate.ready) { entry = candidate; break; }
   }
-  local admitted = entry != null && OpexPCAL02Admit(owner, mark);
+  if (entry != null) deny = OpexPCAL02Admit(owner, mark);
+  local admitted = deny == "none";
   local workMark = OpexOpsMeasureBegin();
   if (admitted && entry.plane == null) {
     local combo = OpexPCAL02Combo(entry.airport);
     if (combo == null) entry.ready = true;
     else {
       entry.plane = combo.plane;
-      entry.catalog = owner._catalog;
-      entry.combos = owner._catalog.airCombos;
+      entry.epoch = PCAL02_STATE.epoch;
+      entry.year = AIDate.GetYear(AIDate.GetCurrentDate());
     }
   }
   local steps = 0;
@@ -301,7 +350,8 @@ function OpexPCAL02Tick(owner)
   local logEntry = entry != null ? entry : observed;
   if (logEntry != null) {
     OpexPCAL02Log("calc", logEntry, spent, 0, "steps=" + steps + " ready=" + (logEntry.ready ? 1 : 0)
-        + " admitted=" + (admitted ? 1 : 0) + " tick0=" + tick + " tick1=" + AIController.GetTick()
+        + " admitted=" + (admitted ? 1 : 0) + " deny=" + deny
+        + " tick0=" + tick + " tick1=" + AIController.GetTick()
         + " left0=" + mark.left + " left1=" + AIController.GetOpsTillSuspend()
         + " total_ops_before=" + PCAL02_STATE.totalOps);
   }

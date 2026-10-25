@@ -88,6 +88,105 @@ def evaluate(code, **context):
     return eval(expr(code), {'__builtins__': {}}, context)
 
 
+class Array(list):
+    """Only the Squirrel array API used by the admission predicates."""
+    def len(self):
+        return len(self)
+
+
+def compile_predicate(name, namespace):
+    """Translate the delivered scalar/queue predicate, not a rewritten policy.
+
+    Restricted to assignments, if/return and the two bounded loop forms below.
+    This is an offline projection; it cannot validate Squirrel or NoAI costs.
+    """
+    source = uncomment(body(name)).split('{', 1)[1].rsplit('}', 1)[0]
+    tokens, start, depth = [], 0, 0
+    for i, char in enumerate(source):
+        if char == '(':
+            depth += 1
+        elif char == ')':
+            depth -= 1
+        elif char in '{};' and depth == 0:
+            if source[start:i].strip():
+                tokens.append(source[start:i].strip())
+            if char != ';':
+                tokens.append(char)
+            start = i + 1
+    if source[start:].strip():
+        tokens.append(source[start:].strip())
+
+    def value(text):
+        text = expr(text)
+        if '?' in text:
+            condition, yes, no = re.fullmatch(r'(.*?)\?(.*?):(.*)', text).groups()
+            text = f'({yes} if {condition} else {no})'
+        return text
+
+    lines, indent = [], 1
+    for token in tokens:
+        if token == '{':
+            indent += 1
+            continue
+        if token == '}':
+            indent -= 1
+            continue
+        if token.startswith('if ('):
+            level = 1
+            end = 4
+            while level:
+                level += (token[end] == '(') - (token[end] == ')')
+                end += 1
+            condition = value(token[4:end-1])
+            tail = token[end:].strip()
+            if tail:
+                assert tail.startswith('return '), tail
+                token = f'if {condition}: return {value(tail[7:])}'
+            else:
+                token = f'if {condition}:'
+        elif token.startswith('foreach ('):
+            token = f'for {token[9:-1]}:'
+        elif token.startswith('for ('):
+            match = re.fullmatch(r'for \(local (\w+) = (.*?); \1 < (.*?); \1\+\+\)', token)
+            assert match, token
+            var, begin, end = match.groups()
+            token = f'for {var} in range({begin}, {end}):'
+        elif token.startswith('return '):
+            token = 'return ' + value(token[7:])
+        elif token.startswith('local '):
+            lhs, rhs = token[6:].split(' = ', 1)
+            token = lhs + ' = ' + value(rhs)
+        else:
+            raise AssertionError(token)
+        lines.append('    ' * indent + token)
+    assert indent == 1
+    signature = re.search(r'function \w+\((.*?)\)', body(name))[1]
+    script = f'def projected({signature}):\n' + '\n'.join(lines)
+    env = dict(namespace, range=range)
+    exec(script, env)
+    return env['projected']
+
+
+def admission_owner():
+    return NS(_activeWorker=None, _po01cPending=False, _po01cJob=None,
+              _portfolioInvalidated=False, _catalog=NS(), _reactiveQueue=None,
+              _projects=NS(best=Array([NS(mode='air', capital=100)]),
+                           airPlans=Array([NS(capital=1)])),
+              _taskQueue=Array([NS(name='projects', enabled=True, dueCycle=0)]),
+              _taskCursor=0, _taskCycle=0)
+
+
+def admission(owner, room_check=lambda _: True, **settings):
+    env = dict(MODE_AIR=True, CASH_RESERVE_MIN=5, C77_INTENT_DEFER=True,
+               C77_INTENT_DEFER_SUBSIDY=True, PO01C_REGEN_SPLIT=True,
+               AICompany=NS(COMPANY_SELF=0, GetBankBalance=lambda _: 1000),
+               OpexProjectFinanceCapital=lambda p: p.capital,
+               OpexPCAL02Room=room_check)
+    env.update(settings)
+    env['OpexPCAL02BuildTurn'] = compile_predicate('BuildTurn', env)
+    return compile_predicate('Admit', env)(owner, NS())
+
+
 def constants():
     return {key: int(value) for key, value in re.findall(
         r'^(PCAL02_\w+) <- (\d+);', read('pcal02_air_sites.nut'), re.M)}
@@ -175,25 +274,99 @@ class Contracts(unittest.TestCase):
         self.assertEqual(508 & 256, 256)
         self.assertNotIn('DECISION_LOG =', read('pcal02_air_sites.nut'))
 
-    def test_existing_catalogue_only_and_busy_or_fundable_air_yields(self):
+    def test_existing_catalogue_only_and_executable_air_yields(self):
         code = uncomment(read('pcal02_air_sites.nut'))
         for forbidden in ('AITownList(', 'AIEngineList(', '.Valuate(', 'OpexCatalog(',
                           'OpexAirPlans(', '_ensureSelection(', 'OpexReselectProjects(',
                           'OpexCashReserve(', 'LevelTiles(', 'OpexBoostTownRating('):
             self.assertNotIn(forbidden, code)
         admit = body('Admit')
-        for guard in ('owner._activeWorker != null', 'owner._po01cPending',
-                      'owner._po01cJob != null', 'task.c78AirRebuild != null',
-                      'owner._projects.best', 'owner._projects.airPlans',
-                      'CASH_RESERVE_MIN', 'OpexProjectFinanceCapital',
-                      'OpexAirRequiredMargin', 'plan.plane.price'):
+        for guard in ('OpexPCAL02BuildTurn', 'owner._projects.best',
+                      'CASH_RESERVE_MIN', 'OpexProjectFinanceCapital'):
             self.assertIn(guard, admit)
-        for loop in admit.split('foreach (')[1:]:
-            self.assertIn('if (!OpexPCAL02Room(mark)) return false;', loop)
+        self.assertNotIn('owner._projects.airPlans', admit)
+        self.assertNotIn('c78AirRebuild', uncomment(body('BuildTurn')))
+        for code in (admit, body('BuildTurn')):
+            for loop in re.split(r'\b(?:for|foreach) \(', code)[1:]:
+                self.assertIn('if (!OpexPCAL02Room(mark)) return "room";', loop)
         self.assertIn('catalog.airCombos', body('Combo'))
         self.assertIn('AIEngine.IsBuildable', body('Combo'))
         self.assertIn('OpexAirAirportAcceptsPlane', body('Combo'))
         self.assertNotIn('AT_LARGE', code)
+
+    def test_waiting_worker_or_queue_allows_fundable_air(self):
+        owner = admission_owner()
+        self.assertEqual(admission(owner), 'best_air')
+        owner._activeWorker = NS(kind='regen_candidates')
+        self.assertEqual(admission(owner), 'none')
+        owner._activeWorker = None
+        owner._taskQueue.insert(0, NS(name='air_cat_scan', enabled=True, dueCycle=0,
+                                     c78AirRebuild=NS()))
+        self.assertEqual(admission(owner), 'none')
+        owner._taskCursor = 1
+        self.assertEqual(admission(owner), 'best_air')
+
+    def test_raw_air_plan_and_unpublished_portfolio_are_not_executable(self):
+        owner = admission_owner()
+        owner._projects.best.clear()
+        self.assertEqual(admission(owner), 'none')  # cheap raw plan is still present
+        owner._projects = None
+        self.assertEqual(admission(owner), 'none')
+        owner = admission_owner()
+        owner._portfolioInvalidated = True
+        self.assertEqual(admission(owner), 'none')
+
+    def test_partial_lots_and_rail_workers_do_not_hide_ready_air(self):
+        owner = admission_owner()
+        owner._po01cPending = True
+        owner._po01cJob = NS()
+        owner._taskQueue[0].c78AirRebuild = NS(published=True)
+        self.assertEqual(admission(owner), 'best_air')
+        for kind in ('rail_search', 'rail_stock'):
+            owner._activeWorker = NS(kind=kind)
+            self.assertEqual(admission(owner), 'best_air')
+        owner._projects.best[0].capital = 996
+        self.assertEqual(admission(owner), 'none')
+
+    def test_queue_suffix_wrap_and_reactive_build_priority(self):
+        owner = admission_owner()
+        owner._taskQueue = Array([NS(name='catalog', enabled=True, dueCycle=1),
+                                  NS(name='projects', enabled=True, dueCycle=0)])
+        self.assertEqual(admission(owner), 'best_air')  # current suffix before next cycle
+        owner._taskQueue[1].dueCycle = 1
+        self.assertEqual(admission(owner), 'none')  # next cycle starts with catalog
+        owner._taskQueue[0].enabled = False
+        self.assertEqual(admission(owner), 'best_air')
+        owner._taskQueue[0].enabled = True
+        owner._taskQueue[0].dueCycle = 0
+        owner._reactiveQueue = NS(isEmpty=lambda: False, _order=['build'], _head=0,
+                                 get=lambda _: NS(kind='c77_build'))
+        self.assertEqual(admission(owner), 'best_air')
+        owner._po01cPending = True
+        self.assertEqual(admission(owner), 'none')  # C77 defer 2; catalog is next
+
+    def test_denial_reasons_and_budgeted_readiness(self):
+        owner = admission_owner()
+        self.assertEqual(admission(owner, MODE_AIR=False), 'mode_off')
+        owner._catalog = None
+        self.assertEqual(admission(owner), 'catalog_missing')
+        owner._catalog = NS()
+        for successful_checks in range(3):
+            calls = iter([True] * successful_checks + [False] * 10)
+            self.assertEqual(admission(owner, room_check=lambda _: next(calls)), 'room')
+        tick = body('Tick')
+        self.assertIn('" deny=" + deny', tick)
+        for reason in ('stock_ready', 'entry_expired', 'room'):
+            self.assertIn('"' + reason + '"', tick)
+        self.assertIn('local admitted = deny == "none";', tick)
+
+    def test_tick_guard_uses_its_measurement_mark_after_precheck(self):
+        tick = body('Tick')
+        self.assertIn('local tick = mark.tick;', tick)
+        self.assertLess(tick.index('GetOpsTillSuspend() <'), tick.index('OpexOpsMeasureBegin()'))
+        self.assertLess(tick.index('OpexOpsMeasureBegin()'), tick.index('local tick = mark.tick;'))
+        self.assertLess(tick.index('local tick = mark.tick;'), tick.index('PCAL02_STATE.lastTick = tick;'))
+        self.assertNotIn('local tick = AIController.GetTick();', tick)
 
     def test_bounded_tick_and_fixed_size_steps(self):
         conf = constants()
@@ -250,31 +423,54 @@ class Contracts(unittest.TestCase):
         self.assertIn('OpexAirC96SiteCatchmentScore', step)
 
     def test_invalidation_ttl_epoch_year_engine_catalogue_and_dimensions(self):
-        fresh = body('Fresh')
+        fresh = body('Expiry')
         for predicate in ('entry.epoch != PCAL02_STATE.epoch', 'date < entry.date',
                           'date - entry.date >= PCAL02_TTL_DAYS', 'entry.year',
                           'entry.airport.width != airport.width', 'entry.airport.height != airport.height',
-                          'combo.plane.id == entry.plane.id', 'entry.combos == entry.catalog.airCombos',
-                          'entry.catalog == PCAL02_STATE.catalog', 'AITown.IsValidTown'):
+                          'combo.plane.id != entry.plane.id', 'AITown.IsValidTown'):
             self.assertIn(predicate, fresh)
         coverage = read('air_coverage.nut')
         for name in ('OpexAir0310InvalidateSiteValidity', 'OpexAirInvalidateCachedSite'):
             self.assertIn('if (PCAL02_AIR_SITES) PCAL02_STATE.epoch++;', function(coverage, name))
-        condition = re.search(r'if \((.*?)\) return false;', fresh, re.S)[1]
-        entry = NS(epoch=2, date=100, year=1970, airport=NS(width=6, height=6), town=NS(id=1))
+        entry = NS(epoch=2, date=100, year=1970, plane=NS(id=223),
+                   airport=NS(type=1, width=6, height=6), town=NS(id=1))
         state = NS(epoch=2)
-        def invalid(date=120):
-            return evaluate(condition, entry=entry, airport=NS(width=6, height=6),
-                            date=date, PCAL02_STATE=state, **constants(),
-                            AIDate=NS(GetYear=lambda _: 1970), AITown=NS(IsValidTown=lambda _: True))
-        self.assertFalse(invalid(189))
-        self.assertTrue(invalid(190))
-        self.assertTrue(invalid(99))
+        combo = NS(plane=NS(id=223))
+        def expiry(date=120, year=1970):
+            project = compile_predicate('Expiry', dict(constants(), PCAL02_STATE=state,
+                OpexPCAL02Combo=lambda _: combo, AIDate=NS(GetCurrentDate=lambda: date,
+                GetYear=lambda _: year), AITown=NS(IsValidTown=lambda _: True)))
+            return project(entry, NS(type=1, width=6, height=6))
+        self.assertEqual(expiry(189), 'none')
+        self.assertEqual(expiry(190), 'ttl')
+        self.assertEqual(expiry(99), 'date_reversed')
         state.epoch = 3
-        self.assertTrue(invalid())
+        self.assertEqual(expiry(), 'epoch')
         state.epoch = 2
+        self.assertEqual(expiry(year=1971), 'year')
+        combo = NS(plane=NS(id=223))  # replacement tables, same compatible engine
+        self.assertEqual(expiry(), 'none')
+        combo.plane.id = 224
+        self.assertEqual(expiry(), 'engine')
         entry.airport.width = 7
-        self.assertTrue(invalid())
+        self.assertEqual(expiry(), 'dimensions')
+
+    def test_unstarted_demand_survives_epoch_and_year_but_not_ttl(self):
+        entry = NS(epoch=2, date=100, year=1970, plane=None,
+                   airport=NS(type=1, width=6, height=6), town=NS(id=1))
+        api = NS(GetCurrentDate=lambda: 114, GetYear=lambda _: 1971)
+        expiry = compile_predicate('Expiry', dict(constants(), PCAL02_STATE=NS(epoch=9),
+            AIDate=api, AITown=NS(IsValidTown=lambda _: True)))
+        self.assertEqual(expiry(entry, entry.airport), 'none')
+        api.GetCurrentDate = lambda: 190
+        self.assertEqual(expiry(entry, entry.airport), 'ttl')
+        tick = body('Tick')
+        self.assertIn('entry.epoch = PCAL02_STATE.epoch;', tick)
+        self.assertIn('entry.year = AIDate.GetYear(AIDate.GetCurrentDate());', tick)
+        self.assertNotIn('entry.date =', tick)  # no sliding TTL on preparation
+        drop = body('Drop')
+        self.assertIn('" cause=" + OpexPCAL02Expiry', drop)
+        self.assertIn('" age_days="', drop)
 
     def test_stock_top_k_and_request_limit(self):
         self.assertEqual(constants()['PCAL02_TOP_K'], 2)

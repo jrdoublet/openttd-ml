@@ -159,8 +159,9 @@ class TestV158BestReadersAudit(unittest.TestCase):
         "probes.nut:OpexV309IdleProjects": "V309 sonde passive : lit la derniere selection sans la rematerialiser, pour ne pas deplacer son cout",
         "pcal02_air_sites.nut:OpexPCAL02Admit": (
             "PCAL-02 lit la selection publiee uniquement pour refuser du travail de fond ; "
-            "controle aussi tous les airPlans avec cout minimal un avion et reserve MIN, "
-            "sans reselection ni execution d'un projet depuis ce snapshot"
+            "veto conservateur sur AIR selectionne finançable seulement si un dispatch "
+            "projects/reactif est disponible ; aucun veto des airPlans bruts ou workers "
+            "en attente, aucune reselection ni execution depuis ce snapshot"
         ),
         "probes.nut:OpexC39ProjectSignature": "Appelé dans events.nut (protégé) et orchestrator.nut:1292 (post-rebuild)",
         "air_flotte1_shadow.nut:OpexAirF1Before": (

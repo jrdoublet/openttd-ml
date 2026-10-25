@@ -1,6 +1,6 @@
 # PCAL-02 — sites d'aéroports préparés dans le reliquat du tick
 
-Conception préalable, 25 octobre 2026. Branche locale `pcal02`, départ propre
+Conception préalable et suivi du smoke, 25 octobre 2026. Branche locale `pcal02`, départ propre
 `269ec7bcfe13b9960716eb59b3ea6f3c97a7b7de`. Prototype **OFF**, réglage
 `pcal02_air_sites=0` aux quatre difficultés. Aucun moteur, Docker, banc,
 push ou fusion autorisé par cette tâche. Commit local demandé.
@@ -41,19 +41,21 @@ C78/V278/PO-01c. Le worker choisit l'avion compatible dans `catalog.airCombos`
 déjà calculé ; ni moteur ni type d'aéroport codé en dur. Une demande ne lance
 jamais une seconde génération de paires ou d'économie C121.
 
-Le premier appel reste synchrone sur miss. Après publication du lot courant et
-en l'absence de projet AIR immédiatement finançable, les appels suivants au
-hook peuvent préparer les **prochaines** générations. Conséquence assumée :
+Le premier appel reste synchrone sur miss. En l'absence de projet AIR sélectionné
+finançable disposant d'un chemin de dispatch, les appels suivants au hook peuvent
+préparer les **prochaines** générations. Conséquence assumée :
 aucune accélération promise du tout premier scan ni des villes jamais demandées.
-Le prototype refuse aussi de travailler pendant un worker actif, un lot C78,
-ou une reconstruction PO-01c en cours/en attente. Le contrôle de financement
-lit les plans AIR publiés et la sélection, avec borne de réserve et marge AIR ; s'il
-ne finit pas dans le reliquat, il cède le tick sans commencer de géométrie.
+**Correction après le smoke inerte de `2e8351f7` :** un worker de régénération,
+un lot C78 ou PO-01c ne sont plus des vetos globaux. Le worker de précalcul
+ne modifie ni ces lots ni leur catalogue ; il peut préparer sa géométrie privée
+dans le reste du tick après leurs tranches normales. Le contrôle de financement
+lit seulement la sélection, après observation des files et des blocages du
+dispatch ; s'il ne finit pas dans le reliquat, il cède le tick sans géométrie.
 La lecture de `OpexCashReserve` parcourt toute la flotte : elle est exclue du
 worker. Celui-ci soustrait `CASH_RESERVE_MIN`, borne inférieure de la réserve
-réelle, et utilise le coût minimal d'un avion, même si le plan en propose plus.
-Il surestime donc les projets immédiatement finançables et peut refuser du
-précalcul utile ; il ne libère pas le worker sur une réserve périmée trop haute.
+réelle, et compare `OpexProjectFinanceCapital` au disponible ainsi majoré.
+Ce veto reste conservateur sur le financement ; il n'utilise pas une réserve
+périmée trop haute pour déclarer un chantier indisponible.
 
 Recherche reprenable par ancre puis par tuile, même ordre de couronnes que
 `OpexAirFindSite` (r=4..25, X puis Y), et mêmes prédicats natifs de territoire,
@@ -67,15 +69,19 @@ comptes de production physique, pas une nouvelle estimation de demande C121.
 Le coût de nivellement préparé est nul ; les sites en pente restent au chemin
 normal. La concurrence et les droits locaux sont retestés par le moteur.
 
-Une entrée est identifiée par ville/type, avion et année, dimensions, époque
-d'invalidation et date ; TTL 90 jours depuis la demande, y compris calcul
+Une entrée préparée est identifiée par ville/type, avion et année, dimensions,
+époque d'invalidation et date ; TTL 90 jours depuis la demande, y compris calcul
 inachevé et résultat vide. Les invalidations géométriques existantes de tous
-les modes et l'échec d'un site invalident le stock par son époque. Les deux
+les modes et l'échec d'un site invalident la géométrie préparée par son époque.
+Une demande vierge (`plane=null`) n'a aucune géométrie : elle survit à ces
+invalidations et au changement d'année, puis prend l'époque et l'année courantes
+au début du calcul, **sans repousser sa date/son TTL**. Les deux
 appels actuels à `OpexAirResetSiteCache` sont dans le constructeur et `Start` :
 ils vident aussi PCAL-02, donc notamment après Load. Les reprises C78/V278
 n'appellent pas ce reset et peuvent lire le stock préparé entre générations.
-Les changements de catalogue, d'avion, d'année ou de dimensions interdisent
-le réemploi ; les changements externes passent par la revalidation vivante.
+Les changements effectifs d'avion compatible, d'année ou de dimensions interdisent
+le réemploi préparé ; remplacer une table catalogue/`airCombos` à avion identique
+ne l'interdit plus. Les changements externes passent par la revalidation vivante.
 
 ## Consommation et chemin OFF
 
@@ -123,6 +129,11 @@ causale du scan OFF évité ; publication de stock et pose restent distinctes.
 consommation au chantier. Le proxy est crédité une seule fois par entrée,
 même si plusieurs plans la lisent. `built` décrit une pose physique, qui peut
 encore être démolie par un rollback ultérieur si l'autre bout ou l'avion échoue.
+Chaque `calc` porte désormais `deny=none|mode_off|catalog_missing|room|best_air|stock_ready|entry_expired`.
+`none` signifie admission ; `best_air` signifie veto de priorité du dispatch AIR.
+Les évictions portent en plus `cause=date_reversed|ttl|dimensions|town|epoch|year|engine|none`
+et `age_days`. `none` comme cause peut notamment accompagner un site devenu
+inconstructible, indépendamment de sa fraîcheur.
 
 `calc op_spent` s'arrête avant sa propre émission ; `total_ops_before` au
 message suivant inclut l'émission précédente, les refus d'admission et
@@ -156,7 +167,8 @@ ou de profit n'est qualifié par les seuls contrats.
 
 ## Rapport de livraison
 
-Fichiers et points d'entrée (numéros de lignes de cette livraison) :
+Fichiers et points d'entrée **de la livraison initiale `2e8351f7`** (numéros
+historiques ; la correction du smoke est détaillée plus bas) :
 
 | Fichier:ligne | Rôle |
 |---|---|
@@ -208,8 +220,9 @@ qualification moteur/économique transférée. Le contrat PCAL-02 conserve les
 Aucun nouvel appel `Valuate` : inventaires V261/V262 inchangés.
 
 Limites restantes : mémoire de demandes et sous-ensemble plat volontairement
-petits ; un plan finançable mais devenu non constructible peut bloquer le
-worker ; une longue liste de vetos peut épuiser l'admission sans progression ;
+petits ; un AIR sélectionné finançable mais devenu non constructible peut encore
+opposer un veto conservateur lorsque son dispatch est disponible ; une longue
+file peut épuiser le budget du contrôle d'admission sans progression ;
 invalidations globales conservatrices pouvant rejeter un site encore sain ;
 préparation des seuls futurs scans, pas d'accélération promise du premier ;
 scans doubles possibles entre stock préparé et cache historique ; profit,
@@ -217,7 +230,7 @@ scans doubles possibles entre stock préparé et cache historique ; profit,
 La compilation Squirrel, les suspensions réelles et le roundtrip Save/Load
 restent à valider au smoke/harnais autorisés ultérieurement. Aucune partie lancée.
 
-Validation finale effective : **2 445 tests en 26,493 s, OK**,
+Validation finale **de la livraison initiale** : **2 445 tests en 26,493 s, OK**,
 9 ignorés et 2 échecs attendus ; **18 contrats/projections PCAL-02** compris.
 Sortie locale : `results/pcal02_unittest_final.log` (ignorée par Git).
 `git diff --check` sans diagnostic ; génération PO-01c identique au générateur.
@@ -229,3 +242,141 @@ Les ignorés restent distincts des tests réussis : pytest manque pour
 `test_b9_air_catchment` et `test_c98_vs_aaa_engines`, ainsi que la fixture
 historique `test_ac04_causal_existing`, sont conditionnels à leurs dépendances.
 Pas de compilation Squirrel, de smoke ni de roundtrip moteur exécutés.
+
+## Suite du smoke VPS `pcal02_smoke_1x3_20261025`
+
+Reprise demandée sur `pcal02`, HEAD initial `2e8351f7`, arbre propre. Les
+résultats fournis sont lus sans être modifiés :
+`results/pcal02_smoke_1x3_20261025_engine/pcal02_seed42_r0.log`, bras `pcal02`,
+graine 42, trois ans, `pcal02_air_sites=1`, `probes=258`. Ce smoke antérieur
+est exécuté par l'utilisateur ; **aucun moteur, Docker ou banc relancé ici**.
+
+### Diagnostic à partir du journal et du code initial
+
+Recomptage local : **125 calc**, tous `admitted=0 ready=0 steps=0` ;
+**19 miss, 11 stale, 0 hit, 0 built**, et **43 AIR_BUILD** dans la partie.
+`left0` va de **5 980 à 9 967** (la mesure commence après le précontrôle
+à 6 000). Le reliquat n'explique donc pas à lui seul le refus systématique.
+
+| Signature `op_spent` des calc | Nombre | Attribution par rapprochement avec le code et les événements |
+|---|---:|---|
+| 154 | 76 (60,8 %) | Retour de tête, signature du veto `_activeWorker != null` ; commence après `C83_REACTION town=18 action=enqueued` du 19/02 et le démarrage du scan réactif du 20/02 ; dernière occurrence le 17/03 |
+| 167 | 9 | Début du scan initial, avant publication du premier portefeuille : veto `_projects == null` ; du 03/01 au 12/01 |
+| 212 | 32 | Signature compatible avec le refus du lot `c78AirRebuild` dans la première tâche de file, avant tout parcours de `best` ou `airPlans` ; trois occurrences après première publication, puis 29 après le scan réactif |
+| 197 / 252 | 1 / 7 | Éviction `worker_expired`, donc aucun appel à `Admit` dans ces huit calc |
+
+**Le veto worker est l'explication dominante la mieux étayée, puis le lot
+C78 ; un plan brut « finançable » n'est pas démontré comme cause dominante.**
+Les 76 événements à 154 opcodes ne forment pas une période de worker
+ininterrompue : des tâches normales s'intercalent. Aucun `PO01C_SLICE` n'est
+émis avant l'arrêt du précalcul. Cela ne prouve pas à lui seul l'absence d'un
+pending PO-01c. Les états de ces gardes n'étaient pas journalisés : ces
+attributions sont une **inférence**, pas des compteurs `deny` rétrospectifs.
+Le faible coût constant et la position des retours excluent comme explication
+plausible un parcours complet de la file puis des deux listes AIR à chaque refus.
+Les futurs calc nomment directement le refus effectif avec `deny`.
+
+Les huit expirations ne sont **pas le TTL** : ids 1..8 âgés respectivement de
+**13, 12, 12, 12, 14, 14, 14, 14 jours**, tous `prepared_ops=0`. Le code initial
+testait l'époque globale **avant** `entry.plane == null`. Le 14/01,
+`PROJECT_DISCARD reason=build_failed detail=AFAIL error=263` est suivi des
+invalidations du chantier ; les demandes sont supprimées du 15 au 18/01.
+Avec des entrées jamais admises, aucun moteur choisi, aucune géométrie et
+aucun changement d'année/dimensions, le changement d'époque explique ces
+rejets précoces. Il effaçait une demande, pas un site devenu caduc.
+
+Enfin, à la ligne **2370** du log, le dernier calc du 30/03 porte
+`tick0=1642 tick1=1643 left0=9967 left1=9698 op_spent=212`, puis la ligne
+2371 émet `budget_overrun op_spent=411`. L'ancienne variable `tick` était
+prise **avant** les précontrôles, alors que `mark` était pris après. Avec la
+formule de `OpexOpsMeasureEnd`, un franchissement depuis le tick du mark
+aurait coûté plus de 10 000 opcodes, pas 212/411 : le mark se situe déjà
+au tick suivant. Le garde comparait deux origines différentes, puis armait
+`fault=true` définitivement. Aucun calc ne suit le 30/03, même si des miss
+et AIR_BUILD continuent. Ce faux positif aurait masqué toute correction
+du seul critère d'admission.
+
+### Choix du correctif
+
+`OpexPCAL02BuildTurn` observe les voies d'exécution existantes, sans avancer
+les files ni appeler le constructeur :
+
+- Un worker autre que `rail_search`/`rail_stock` rend la main avant la file
+  de fond ; un portefeuille absent ou invalidé attend une publication.
+  Ces attentes autorisent la préparation, même avec des plans bruts finançables.
+  Les deux workers rail laissent au contraire passer la file de fond : ils
+  ne masquent donc pas un AIR prêt à être dispatché.
+- La tête de la FIFO réactive `c77_build` disponible garde la priorité AIR,
+  en respectant le report C77 existant, notamment PO-01c pending/job en mode 2.
+  Le code ne copie pas toute la FIFO : lecture bornée de la tête et `get`.
+- La file de fond est observée dans le même ordre suffixe puis cycle suivant
+  que `_runNextTask`, avec `enabled`/`dueCycle` et contrôle `Room` à chaque
+  itération. Si une autre tâche passe avant `projects`, un AIR attend la file.
+- Seulement avec une voie `projects`/réactive disponible, un AIR de `best`
+  financé par la caisse minorée de `CASH_RESERVE_MIN` oppose `deny=best_air`.
+  **`airPlans` n'est plus parcouru** : posséder un devis finançable ne lui
+  donne ni sélection ni créneau. La présence de C78/PO-01c n'est pas un veto
+  global ; si un AIR déjà publié peut partir malgré ces lots, il garde son veto.
+
+Le hook reste après orchestrateur, reprises AIR, A* et C67, juste avant Sleep
+dans les **deux boucles**. Il ne déclenche aucun chantier ni réordonnancement,
+et conserve plafond/provisions/arrêt sur dépassement mesuré. La priorité est
+conservatrice lorsque le dispatch est disponible : le contrôle ne rejoue pas
+les tests vivants de site, la sélection différée, les plafonds de lignes ou
+le ciblage exact d'une intention C77. Il peut donc encore céder inutilement
+devant un AIR sélectionné qui échouerait plus loin. Ce compromis évite un
+second préflight non borné et ne retarde pas un AIR exécutable.
+
+`OpexPCAL02Expiry` conserve TTL 90 jours depuis la **demande**, contrôle ville
+et type/dimensions, puis distingue demande vierge et géométrie préparée.
+Seule la première survit aux changements d'époque/année ; au premier calcul
+son année/époque sont actualisées sans renouveler le TTL. Une géométrie
+préparée reste invalidée à l'époque suivante. Le changement d'identité de
+table catalogue/combos à moteur compatible identique n'est plus une expiration ;
+un changement effectif de moteur l'est. Les tests physiques au lookup/chantier
+et le devis maximal préparé sont conservés.
+
+Le tick d'admission, `lastTick`, `tick0` et le garde final dérivent maintenant
+tous de **`mark.tick`**, après précontrôle. Un franchissement **dans**
+l'intervalle mesuré ou un dépassement effectif conserve l'arrêt de sécurité.
+
+Points d'entrée corrigés : `pcal02_air_sites.nut:48` (motifs d'expiration),
+`:99` (âge/cause au stale), `:161` (disponibilité du dispatch), `:194`
+(admission), `:306` (tick et `deny`). Aucun autre module de comportement
+modifié ; aucune intervention sur RAIL-LONG-EARLY-1, AIR-FLOTTE-1, C115 ou IDLE-1.
+
+### Contrats, empreintes et limites de validation
+
+**2 452 tests, 26,980 s, OK** (9 ignorés, 2 échecs attendus), commande demandée
+`cd sweeps && python3 -m unittest discover -p 'test_*.py'` ; sortie locale
+`results/pcal02_followup_unittest_worktree_20261025.log` (temporaires de cette
+dernière passe dirigés vers `results/pcal02_test_tmp`). **25 contrats PCAL-02**, dont
+projections des prédicats Squirrel réellement livrés : worker/file/portefeuille
+en attente, lot partiellement publié, workers rail, AIR sélectionné prioritaire,
+devis brut sans sélection, report C77/PO-01c, cycle de file, épuisement de budget,
+TTL non glissant, époque et remplacement de catalogue. Les suites PO-01c
+(27) et V158 (12) passent également ; le lecteur `best` V158 est redocumenté.
+Les dépendances manquantes et exclusions sont celles du bilan initial ci-dessus.
+
+**Défaut 0 aux quatre difficultés ; projection OFF des dix sources inchangée
+octet pour octet**, anciens SHA conservés. Pas de nouveau réglage, `Valuate`,
+état comportemental ou champ Save/Load. Le cache et les défauts de budget sont
+toujours reconstruits/effacés à Start après Load. Le générateur PO-01c n'a pas
+changé ; sa sortie reste exactement égale à `po01c_generators.nut`.
+
+Rebase des hashes : **aucune des empreintes d'isolation existantes n'a besoin
+d'être rebasée pour cette suite**, car leurs sources n'ont pas changé. Les cinq
+rebases de la livraison initiale restent celles du tableau précédent et les
+SHA de projection OFF ne sont pas relâchés. Pour tracer le seul module de
+production corrigé, SHA-256 initial → corrigé :
+
+- `pcal02_air_sites.nut` : `e6cca1199d3859e455ca1edb5ae3b02622fec90dc3368ad748006c996e1e1e5b`
+  → `75f6296dbcaeb6183e33fe01574a12670261babd92e994a5487bc43b6f33061f`.
+- `po01c_generators.nut` : **inchangé**,
+  `dd3098151ff5c6bf6a45a7ae14d2833d8731d0ddb7b7cd9a8162a6f17e1476d4`.
+
+Les contrats démontrent des voies d'admission atteignables et les gardes, pas
+une consommation en partie. **Compilation/exposition moteur du correctif,
+progression jusqu'à ready/hit/built et Save/Load moteur restent non validés**,
+conformément à l'interdiction de parties de cette reprise. Aucun gain d'opcodes,
+de calendrier AIR ou de profit n'est attribué au correctif par ces tests.
