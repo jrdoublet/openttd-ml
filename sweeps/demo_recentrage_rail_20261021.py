@@ -9,13 +9,12 @@ import argparse
 import json
 import os
 from collections import Counter, defaultdict
-from glob import glob
 
 import numpy as np
 
 from analyse_calibration_projets import KV_RE, LINE_RE, SEED_RE, open_text
 from analyse_roi_predictors_20261021 import med, parse
-from evaluer_bandes_roi_20261021 import assign, epoch_bounds, groups_for_distance
+from evaluer_bandes_roi_20261021 import assign, epoch_bounds, groups_for_distance, reference_r0_logs
 
 
 def clamp(value, lower, upper):
@@ -25,7 +24,7 @@ def clamp(value, lower, upper):
 def load_snapshots(directory):
     """Full *published* top-5 with rank_score already including the AIR bonus."""
     snapshots = []
-    for path in sorted(glob(os.path.join(directory, "reference_seed*_r0.log"))):
+    for path in reference_r0_logs(directory, "PORTFOLIO_RANK"):
         match = SEED_RE.search(os.path.basename(path))
         if match is None:
             continue

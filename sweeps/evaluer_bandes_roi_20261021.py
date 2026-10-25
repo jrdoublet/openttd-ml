@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Test de bandes de distance, cout rail, et score intermodal, sans OpenTTD."""
 import argparse
+import hashlib
 import json
 import math
 import os
@@ -16,10 +17,46 @@ from analyse_roi_predictors_20261021 import parse, med
 import analyse_roi_extra_predictors_20261021 as extra
 
 
+def _event_digest(path, event):
+    digest = hashlib.sha256()
+    with open_text(path) as lines:
+        for line in lines:
+            found = LINE_RE.search(line)
+            if found is not None and found.group(4) == event:
+                digest.update(found.group(0).encode("utf-8"))
+                digest.update(b"\n")
+    return digest.digest()
+
+
+def reference_r0_logs(folder, event):
+    """Select one seed log, including gzip-only archives, for a given event.
+
+    A plain/compressed pair is accepted only if its relevant event stream
+    matches exactly; a conflicting checkpoint copy cannot silently win.
+    """
+    files = glob(os.path.join(folder, "reference_seed*_r0.log"))
+    files += glob(os.path.join(folder, "reference_seed*_r0.log.gz"))
+    selected = {}
+    for path in sorted(files):
+        name = os.path.basename(path)
+        stem = name[:-3] if name.endswith(".gz") else name
+        if SEED_RE.search(stem) is None:
+            continue
+        if stem in selected:
+            prior = selected[stem]
+            if _event_digest(prior, event) != _event_digest(path, event):
+                raise ValueError(f"copies {event} contradictoires : {prior} et {path}")
+            if path.endswith(".log"):
+                selected[stem] = path
+        else:
+            selected[stem] = path
+    return [selected[name] for name in sorted(selected)]
+
+
 def epoch_bounds(folder):
     allsets = Counter()
     per_seed = {}
-    for path in sorted(glob(os.path.join(folder, "reference_seed*_r0.log"))):
+    for path in reference_r0_logs(folder, "EPOCH_BOUNDS"):
         m = SEED_RE.search(os.path.basename(path))
         if not m:
             continue
@@ -242,7 +279,7 @@ def top5_counterfactual(folder, b, factors, linear_cost=None):
     per_mode = defaultdict(list)
     snapshots = []
     count = Counter()
-    for path in sorted(glob(os.path.join(folder, "reference_seed*_r0.log"))):
+    for path in reference_r0_logs(folder, "PORTFOLIO_RANK"):
         entries = []
         with open_text(path) as fh:
             for line in fh:

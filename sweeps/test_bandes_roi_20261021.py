@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Tests des seuils existants, des kilometres AIR et de la neutralite intermodale."""
 import os
+import gzip
 import tempfile
 import unittest
 import importlib.util
@@ -9,15 +10,55 @@ if importlib.util.find_spec("numpy") is None:
     raise unittest.SkipTest("optional numpy dependency is unavailable")
 
 from evaluer_bandes_roi_20261021 import (
-    assign, factor_table, groups_for_distance, linear_cost_params,
+    assign, epoch_bounds, factor_table, groups_for_distance, linear_cost_params,
     top5_counterfactual,
 )
+from demo_recentrage_rail_20261021 import load_snapshots
 
 
 BOUNDS = (7, 7, 200, 7, 200, 200, 200, 512)
 
 
 class BandsTests(unittest.TestCase):
+    @staticmethod
+    def _historical_events():
+        return "\n".join([
+            "[0] [I] OPEX 1970-1-1 EPOCH_BOUNDS roadMin=7 roadMax=7 roadGen=200 railMin=7 railAir=200 railMax=200 airMin=200 airMax=512",
+            "[0] [I] OPEX 1972-1-1 PORTFOLIO_RANK rank=0 mode=rail dist=100 rank_score=500 finance_capital=1000 cost=1000 profit=500",
+            "[0] [I] OPEX 1972-1-1 PORTFOLIO_RANK rank=1 mode=air dist=180 rank_score=300 finance_capital=1000 cost=1000 profit=250",
+        ]) + "\n"
+
+    def test_gzip_only_and_identical_copy_deduplicated_across_two_readers(self):
+        with tempfile.TemporaryDirectory() as folder:
+            plain = os.path.join(folder, "reference_seed42_r0.log")
+            zipped = plain + ".gz"
+            with gzip.open(zipped, "wt", encoding="utf-8") as file:
+                file.write(self._historical_events())
+            for stage in ("gzip_only", "duplicate"):
+                with self.subTest(stage=stage):
+                    counts, seeds = epoch_bounds(folder)
+                    snapshots = load_snapshots(folder)
+                    self.assertEqual((sum(counts.values()), list(seeds), len(snapshots)), (1, [42], 1))
+                    self.assertEqual(len(snapshots[0]["items"]), 2)
+                    shadow = top5_counterfactual(folder, BOUNDS, {})
+                    self.assertEqual((shadow["snapshots"], shadow["multi_family_snapshots"]), (1, 1))
+                with open(plain, "w", encoding="utf-8") as file:
+                    file.write(self._historical_events())
+
+    def test_conflicting_compressed_event_stream_is_refused(self):
+        with tempfile.TemporaryDirectory() as folder:
+            plain = os.path.join(folder, "reference_seed42_r0.log")
+            with open(plain, "w", encoding="utf-8") as file:
+                file.write(self._historical_events())
+            with gzip.open(plain + ".gz", "wt", encoding="utf-8") as file:
+                file.write(self._historical_events().replace("railMax=200", "railMax=199"))
+            with self.assertRaisesRegex(ValueError, "copies EPOCH_BOUNDS contradictoires"):
+                epoch_bounds(folder)
+            with gzip.open(plain + ".gz", "wt", encoding="utf-8") as file:
+                file.write(self._historical_events().replace("rank_score=500", "rank_score=450"))
+            with self.assertRaisesRegex(ValueError, "copies PORTFOLIO_RANK contradictoires"):
+                load_snapshots(folder)
+
     def test_stage_boundaries_and_subdivision(self):
         self.assertEqual(groups_for_distance(7, BOUNDS)[0], "road")
         self.assertEqual(groups_for_distance(8, BOUNDS)[0], "rail")
