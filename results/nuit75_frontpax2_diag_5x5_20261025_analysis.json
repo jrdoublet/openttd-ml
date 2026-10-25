@@ -1,0 +1,2241 @@
+{
+  "bins": [
+    "20-63",
+    "64-77",
+    "78-199",
+    "200+"
+  ],
+  "log_files": [
+    "results\\nuit75_frontpax2_diag_5x5_20261025_engine\\reference_seed100_r0.log",
+    "results\\nuit75_frontpax2_diag_5x5_20261025_engine\\reference_seed2026_r0.log",
+    "results\\nuit75_frontpax2_diag_5x5_20261025_engine\\reference_seed42_r0.log",
+    "results\\nuit75_frontpax2_diag_5x5_20261025_engine\\reference_seed7_r0.log",
+    "results\\nuit75_frontpax2_diag_5x5_20261025_engine\\reference_seed999_r0.log"
+  ],
+  "records": 69,
+  "complete_scans": 23,
+  "started_scans": 28,
+  "censored_scans": 5,
+  "coverage_by_file_year": [
+    {
+      "file": "results\\nuit75_frontpax2_diag_5x5_20261025_engine\\reference_seed100_r0.log",
+      "year": 1970,
+      "started": 4,
+      "completed": 4,
+      "censored": 0,
+      "completed_without_start": 0
+    },
+    {
+      "file": "results\\nuit75_frontpax2_diag_5x5_20261025_engine\\reference_seed100_r0.log",
+      "year": 1971,
+      "started": 2,
+      "completed": 2,
+      "censored": 0,
+      "completed_without_start": 0
+    },
+    {
+      "file": "results\\nuit75_frontpax2_diag_5x5_20261025_engine\\reference_seed100_r0.log",
+      "year": 1972,
+      "started": 4,
+      "completed": 4,
+      "censored": 0,
+      "completed_without_start": 0
+    },
+    {
+      "file": "results\\nuit75_frontpax2_diag_5x5_20261025_engine\\reference_seed100_r0.log",
+      "year": 1973,
+      "started": 2,
+      "completed": 1,
+      "censored": 1,
+      "completed_without_start": 0
+    },
+    {
+      "file": "results\\nuit75_frontpax2_diag_5x5_20261025_engine\\reference_seed100_r0.log",
+      "year": 1974,
+      "started": 1,
+      "completed": 1,
+      "censored": 0,
+      "completed_without_start": 0
+    },
+    {
+      "file": "results\\nuit75_frontpax2_diag_5x5_20261025_engine\\reference_seed2026_r0.log",
+      "year": 1970,
+      "started": 3,
+      "completed": 2,
+      "censored": 1,
+      "completed_without_start": 0
+    },
+    {
+      "file": "results\\nuit75_frontpax2_diag_5x5_20261025_engine\\reference_seed42_r0.log",
+      "year": 1970,
+      "started": 2,
+      "completed": 2,
+      "censored": 0,
+      "completed_without_start": 0
+    },
+    {
+      "file": "results\\nuit75_frontpax2_diag_5x5_20261025_engine\\reference_seed42_r0.log",
+      "year": 1971,
+      "started": 1,
+      "completed": 0,
+      "censored": 1,
+      "completed_without_start": 0
+    },
+    {
+      "file": "results\\nuit75_frontpax2_diag_5x5_20261025_engine\\reference_seed7_r0.log",
+      "year": 1970,
+      "started": 2,
+      "completed": 1,
+      "censored": 1,
+      "completed_without_start": 0
+    },
+    {
+      "file": "results\\nuit75_frontpax2_diag_5x5_20261025_engine\\reference_seed999_r0.log",
+      "year": 1970,
+      "started": 6,
+      "completed": 6,
+      "censored": 0,
+      "completed_without_start": 0
+    },
+    {
+      "file": "results\\nuit75_frontpax2_diag_5x5_20261025_engine\\reference_seed999_r0.log",
+      "year": 1972,
+      "started": 1,
+      "completed": 0,
+      "censored": 1,
+      "completed_without_start": 0
+    }
+  ],
+  "scans_with_fp2": 23,
+  "problems": [],
+  "all": {
+    "arm_records": 69,
+    "under20": 4,
+    "seen": [
+      1635,
+      757,
+      7499,
+      1435
+    ],
+    "short": [
+      81,
+      0,
+      0,
+      0
+    ],
+    "below_min": [
+      1554,
+      757,
+      7499,
+      0
+    ],
+    "blocked_min": [
+      1554,
+      757,
+      7499,
+      0
+    ],
+    "below_airmax": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "below_plane": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "below_config": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "below_within": [
+      1554,
+      757,
+      7499,
+      0
+    ],
+    "other_band": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "airmax": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "band_pass": [
+      0,
+      0,
+      0,
+      1435
+    ]
+  },
+  "by_arm": {
+    "newpair": {
+      "arm_records": 23,
+      "under20": 0,
+      "seen": [
+        410,
+        158,
+        1783,
+        779
+      ],
+      "short": [
+        81,
+        0,
+        0,
+        0
+      ],
+      "below_min": [
+        329,
+        158,
+        1783,
+        0
+      ],
+      "blocked_min": [
+        329,
+        158,
+        1783,
+        0
+      ],
+      "below_airmax": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "below_plane": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "below_config": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "below_within": [
+        329,
+        158,
+        1783,
+        0
+      ],
+      "other_band": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "airmax": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "band_pass": [
+        0,
+        0,
+        0,
+        779
+      ]
+    },
+    "hubsite": {
+      "arm_records": 23,
+      "under20": 2,
+      "seen": [
+        1058,
+        522,
+        4930,
+        537
+      ],
+      "short": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "below_min": [
+        1058,
+        522,
+        4930,
+        0
+      ],
+      "blocked_min": [
+        1058,
+        522,
+        4930,
+        0
+      ],
+      "below_airmax": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "below_plane": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "below_config": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "below_within": [
+        1058,
+        522,
+        4930,
+        0
+      ],
+      "other_band": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "airmax": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "band_pass": [
+        0,
+        0,
+        0,
+        537
+      ]
+    },
+    "hubhub": {
+      "arm_records": 23,
+      "under20": 2,
+      "seen": [
+        167,
+        77,
+        786,
+        119
+      ],
+      "short": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "below_min": [
+        167,
+        77,
+        786,
+        0
+      ],
+      "blocked_min": [
+        167,
+        77,
+        786,
+        0
+      ],
+      "below_airmax": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "below_plane": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "below_config": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "below_within": [
+        167,
+        77,
+        786,
+        0
+      ],
+      "other_band": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "airmax": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "band_pass": [
+        0,
+        0,
+        0,
+        119
+      ]
+    }
+  },
+  "by_scan_year": {
+    "1970": {
+      "arm_records": 45,
+      "under20": 2,
+      "seen": [
+        1136,
+        623,
+        5929,
+        1213
+      ],
+      "short": [
+        58,
+        0,
+        0,
+        0
+      ],
+      "below_min": [
+        1078,
+        623,
+        5929,
+        0
+      ],
+      "blocked_min": [
+        1078,
+        623,
+        5929,
+        0
+      ],
+      "below_airmax": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "below_plane": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "below_config": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "below_within": [
+        1078,
+        623,
+        5929,
+        0
+      ],
+      "other_band": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "airmax": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "band_pass": [
+        0,
+        0,
+        0,
+        1213
+      ]
+    },
+    "1971": {
+      "arm_records": 6,
+      "under20": 0,
+      "seen": [
+        143,
+        49,
+        570,
+        145
+      ],
+      "short": [
+        11,
+        0,
+        0,
+        0
+      ],
+      "below_min": [
+        132,
+        49,
+        570,
+        0
+      ],
+      "blocked_min": [
+        132,
+        49,
+        570,
+        0
+      ],
+      "below_airmax": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "below_plane": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "below_config": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "below_within": [
+        132,
+        49,
+        570,
+        0
+      ],
+      "other_band": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "airmax": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "band_pass": [
+        0,
+        0,
+        0,
+        145
+      ]
+    },
+    "1972": {
+      "arm_records": 12,
+      "under20": 0,
+      "seen": [
+        287,
+        65,
+        800,
+        68
+      ],
+      "short": [
+        12,
+        0,
+        0,
+        0
+      ],
+      "below_min": [
+        275,
+        65,
+        800,
+        0
+      ],
+      "blocked_min": [
+        275,
+        65,
+        800,
+        0
+      ],
+      "below_airmax": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "below_plane": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "below_config": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "below_within": [
+        275,
+        65,
+        800,
+        0
+      ],
+      "other_band": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "airmax": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "band_pass": [
+        0,
+        0,
+        0,
+        68
+      ]
+    },
+    "1973": {
+      "arm_records": 3,
+      "under20": 1,
+      "seen": [
+        35,
+        10,
+        98,
+        5
+      ],
+      "short": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "below_min": [
+        35,
+        10,
+        98,
+        0
+      ],
+      "blocked_min": [
+        35,
+        10,
+        98,
+        0
+      ],
+      "below_airmax": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "below_plane": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "below_config": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "below_within": [
+        35,
+        10,
+        98,
+        0
+      ],
+      "other_band": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "airmax": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "band_pass": [
+        0,
+        0,
+        0,
+        5
+      ]
+    },
+    "1974": {
+      "arm_records": 3,
+      "under20": 1,
+      "seen": [
+        34,
+        10,
+        102,
+        4
+      ],
+      "short": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "below_min": [
+        34,
+        10,
+        102,
+        0
+      ],
+      "blocked_min": [
+        34,
+        10,
+        102,
+        0
+      ],
+      "below_airmax": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "below_plane": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "below_config": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "below_within": [
+        34,
+        10,
+        102,
+        0
+      ],
+      "other_band": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "airmax": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "band_pass": [
+        0,
+        0,
+        0,
+        4
+      ]
+    }
+  },
+  "by_emitted_year": {
+    "1970": {
+      "arm_records": 36,
+      "under20": 0,
+      "seen": [
+        137,
+        49,
+        605,
+        272
+      ],
+      "short": [
+        20,
+        0,
+        0,
+        0
+      ],
+      "below_min": [
+        117,
+        49,
+        605,
+        0
+      ],
+      "blocked_min": [
+        117,
+        49,
+        605,
+        0
+      ],
+      "below_airmax": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "below_plane": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "below_config": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "below_within": [
+        117,
+        49,
+        605,
+        0
+      ],
+      "other_band": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "airmax": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "band_pass": [
+        0,
+        0,
+        0,
+        272
+      ]
+    },
+    "1971": {
+      "arm_records": 12,
+      "under20": 2,
+      "seen": [
+        772,
+        465,
+        4016,
+        698
+      ],
+      "short": [
+        34,
+        0,
+        0,
+        0
+      ],
+      "below_min": [
+        738,
+        465,
+        4016,
+        0
+      ],
+      "blocked_min": [
+        738,
+        465,
+        4016,
+        0
+      ],
+      "below_airmax": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "below_plane": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "below_config": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "below_within": [
+        738,
+        465,
+        4016,
+        0
+      ],
+      "other_band": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "airmax": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "band_pass": [
+        0,
+        0,
+        0,
+        698
+      ]
+    },
+    "1972": {
+      "arm_records": 12,
+      "under20": 0,
+      "seen": [
+        470,
+        187,
+        2211,
+        427
+      ],
+      "short": [
+        22,
+        0,
+        0,
+        0
+      ],
+      "below_min": [
+        448,
+        187,
+        2211,
+        0
+      ],
+      "blocked_min": [
+        448,
+        187,
+        2211,
+        0
+      ],
+      "below_airmax": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "below_plane": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "below_config": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "below_within": [
+        448,
+        187,
+        2211,
+        0
+      ],
+      "other_band": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "airmax": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "band_pass": [
+        0,
+        0,
+        0,
+        427
+      ]
+    },
+    "1973": {
+      "arm_records": 3,
+      "under20": 0,
+      "seen": [
+        187,
+        36,
+        467,
+        29
+      ],
+      "short": [
+        5,
+        0,
+        0,
+        0
+      ],
+      "below_min": [
+        182,
+        36,
+        467,
+        0
+      ],
+      "blocked_min": [
+        182,
+        36,
+        467,
+        0
+      ],
+      "below_airmax": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "below_plane": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "below_config": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "below_within": [
+        182,
+        36,
+        467,
+        0
+      ],
+      "other_band": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "airmax": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "band_pass": [
+        0,
+        0,
+        0,
+        29
+      ]
+    },
+    "1974": {
+      "arm_records": 6,
+      "under20": 2,
+      "seen": [
+        69,
+        20,
+        200,
+        9
+      ],
+      "short": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "below_min": [
+        69,
+        20,
+        200,
+        0
+      ],
+      "blocked_min": [
+        69,
+        20,
+        200,
+        0
+      ],
+      "below_airmax": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "below_plane": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "below_config": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "below_within": [
+        69,
+        20,
+        200,
+        0
+      ],
+      "other_band": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "airmax": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "band_pass": [
+        0,
+        0,
+        0,
+        9
+      ]
+    }
+  },
+  "by_band": {
+    "0": {
+      "arm_records": 69,
+      "under20": 4,
+      "seen": [
+        1635,
+        757,
+        7499,
+        1435
+      ],
+      "short": [
+        81,
+        0,
+        0,
+        0
+      ],
+      "below_min": [
+        1554,
+        757,
+        7499,
+        0
+      ],
+      "blocked_min": [
+        1554,
+        757,
+        7499,
+        0
+      ],
+      "below_airmax": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "below_plane": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "below_config": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "below_within": [
+        1554,
+        757,
+        7499,
+        0
+      ],
+      "other_band": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "airmax": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "band_pass": [
+        0,
+        0,
+        0,
+        1435
+      ]
+    }
+  },
+  "by_scan_year_arm_band": {
+    "1970": {
+      "0": {
+        "newpair": {
+          "arm_records": 15,
+          "under20": 0,
+          "seen": [
+            294,
+            125,
+            1358,
+            678
+          ],
+          "short": [
+            58,
+            0,
+            0,
+            0
+          ],
+          "below_min": [
+            236,
+            125,
+            1358,
+            0
+          ],
+          "blocked_min": [
+            236,
+            125,
+            1358,
+            0
+          ],
+          "below_airmax": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "below_plane": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "below_config": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "below_within": [
+            236,
+            125,
+            1358,
+            0
+          ],
+          "other_band": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "airmax": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "band_pass": [
+            0,
+            0,
+            0,
+            678
+          ]
+        },
+        "hubsite": {
+          "arm_records": 15,
+          "under20": 2,
+          "seen": [
+            751,
+            454,
+            4083,
+            436
+          ],
+          "short": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "below_min": [
+            751,
+            454,
+            4083,
+            0
+          ],
+          "blocked_min": [
+            751,
+            454,
+            4083,
+            0
+          ],
+          "below_airmax": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "below_plane": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "below_config": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "below_within": [
+            751,
+            454,
+            4083,
+            0
+          ],
+          "other_band": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "airmax": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "band_pass": [
+            0,
+            0,
+            0,
+            436
+          ]
+        },
+        "hubhub": {
+          "arm_records": 15,
+          "under20": 0,
+          "seen": [
+            91,
+            44,
+            488,
+            99
+          ],
+          "short": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "below_min": [
+            91,
+            44,
+            488,
+            0
+          ],
+          "blocked_min": [
+            91,
+            44,
+            488,
+            0
+          ],
+          "below_airmax": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "below_plane": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "below_config": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "below_within": [
+            91,
+            44,
+            488,
+            0
+          ],
+          "other_band": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "airmax": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "band_pass": [
+            0,
+            0,
+            0,
+            99
+          ]
+        }
+      }
+    },
+    "1971": {
+      "0": {
+        "newpair": {
+          "arm_records": 2,
+          "under20": 0,
+          "seen": [
+            61,
+            17,
+            240,
+            71
+          ],
+          "short": [
+            11,
+            0,
+            0,
+            0
+          ],
+          "below_min": [
+            50,
+            17,
+            240,
+            0
+          ],
+          "blocked_min": [
+            50,
+            17,
+            240,
+            0
+          ],
+          "below_airmax": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "below_plane": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "below_config": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "below_within": [
+            50,
+            17,
+            240,
+            0
+          ],
+          "other_band": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "airmax": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "band_pass": [
+            0,
+            0,
+            0,
+            71
+          ]
+        },
+        "hubsite": {
+          "arm_records": 2,
+          "under20": 0,
+          "seen": [
+            70,
+            23,
+            292,
+            61
+          ],
+          "short": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "below_min": [
+            70,
+            23,
+            292,
+            0
+          ],
+          "blocked_min": [
+            70,
+            23,
+            292,
+            0
+          ],
+          "below_airmax": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "below_plane": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "below_config": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "below_within": [
+            70,
+            23,
+            292,
+            0
+          ],
+          "other_band": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "airmax": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "band_pass": [
+            0,
+            0,
+            0,
+            61
+          ]
+        },
+        "hubhub": {
+          "arm_records": 2,
+          "under20": 0,
+          "seen": [
+            12,
+            9,
+            38,
+            13
+          ],
+          "short": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "below_min": [
+            12,
+            9,
+            38,
+            0
+          ],
+          "blocked_min": [
+            12,
+            9,
+            38,
+            0
+          ],
+          "below_airmax": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "below_plane": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "below_config": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "below_within": [
+            12,
+            9,
+            38,
+            0
+          ],
+          "other_band": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "airmax": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "band_pass": [
+            0,
+            0,
+            0,
+            13
+          ]
+        }
+      }
+    },
+    "1972": {
+      "0": {
+        "newpair": {
+          "arm_records": 4,
+          "under20": 0,
+          "seen": [
+            48,
+            12,
+            164,
+            29
+          ],
+          "short": [
+            12,
+            0,
+            0,
+            0
+          ],
+          "below_min": [
+            36,
+            12,
+            164,
+            0
+          ],
+          "blocked_min": [
+            36,
+            12,
+            164,
+            0
+          ],
+          "below_airmax": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "below_plane": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "below_config": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "below_within": [
+            36,
+            12,
+            164,
+            0
+          ],
+          "other_band": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "airmax": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "band_pass": [
+            0,
+            0,
+            0,
+            29
+          ]
+        },
+        "hubsite": {
+          "arm_records": 4,
+          "under20": 0,
+          "seen": [
+            199,
+            37,
+            470,
+            32
+          ],
+          "short": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "below_min": [
+            199,
+            37,
+            470,
+            0
+          ],
+          "blocked_min": [
+            199,
+            37,
+            470,
+            0
+          ],
+          "below_airmax": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "below_plane": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "below_config": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "below_within": [
+            199,
+            37,
+            470,
+            0
+          ],
+          "other_band": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "airmax": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "band_pass": [
+            0,
+            0,
+            0,
+            32
+          ]
+        },
+        "hubhub": {
+          "arm_records": 4,
+          "under20": 0,
+          "seen": [
+            40,
+            16,
+            166,
+            7
+          ],
+          "short": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "below_min": [
+            40,
+            16,
+            166,
+            0
+          ],
+          "blocked_min": [
+            40,
+            16,
+            166,
+            0
+          ],
+          "below_airmax": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "below_plane": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "below_config": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "below_within": [
+            40,
+            16,
+            166,
+            0
+          ],
+          "other_band": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "airmax": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "band_pass": [
+            0,
+            0,
+            0,
+            7
+          ]
+        }
+      }
+    },
+    "1973": {
+      "0": {
+        "newpair": {
+          "arm_records": 1,
+          "under20": 0,
+          "seen": [
+            4,
+            2,
+            11,
+            1
+          ],
+          "short": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "below_min": [
+            4,
+            2,
+            11,
+            0
+          ],
+          "blocked_min": [
+            4,
+            2,
+            11,
+            0
+          ],
+          "below_airmax": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "below_plane": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "below_config": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "below_within": [
+            4,
+            2,
+            11,
+            0
+          ],
+          "other_band": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "airmax": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "band_pass": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        "hubsite": {
+          "arm_records": 1,
+          "under20": 0,
+          "seen": [
+            19,
+            4,
+            40,
+            4
+          ],
+          "short": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "below_min": [
+            19,
+            4,
+            40,
+            0
+          ],
+          "blocked_min": [
+            19,
+            4,
+            40,
+            0
+          ],
+          "below_airmax": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "below_plane": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "below_config": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "below_within": [
+            19,
+            4,
+            40,
+            0
+          ],
+          "other_band": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "airmax": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "band_pass": [
+            0,
+            0,
+            0,
+            4
+          ]
+        },
+        "hubhub": {
+          "arm_records": 1,
+          "under20": 1,
+          "seen": [
+            12,
+            4,
+            47,
+            0
+          ],
+          "short": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "below_min": [
+            12,
+            4,
+            47,
+            0
+          ],
+          "blocked_min": [
+            12,
+            4,
+            47,
+            0
+          ],
+          "below_airmax": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "below_plane": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "below_config": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "below_within": [
+            12,
+            4,
+            47,
+            0
+          ],
+          "other_band": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "airmax": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "band_pass": [
+            0,
+            0,
+            0,
+            0
+          ]
+        }
+      }
+    },
+    "1974": {
+      "0": {
+        "newpair": {
+          "arm_records": 1,
+          "under20": 0,
+          "seen": [
+            3,
+            2,
+            10,
+            0
+          ],
+          "short": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "below_min": [
+            3,
+            2,
+            10,
+            0
+          ],
+          "blocked_min": [
+            3,
+            2,
+            10,
+            0
+          ],
+          "below_airmax": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "below_plane": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "below_config": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "below_within": [
+            3,
+            2,
+            10,
+            0
+          ],
+          "other_band": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "airmax": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "band_pass": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "hubsite": {
+          "arm_records": 1,
+          "under20": 0,
+          "seen": [
+            19,
+            4,
+            45,
+            4
+          ],
+          "short": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "below_min": [
+            19,
+            4,
+            45,
+            0
+          ],
+          "blocked_min": [
+            19,
+            4,
+            45,
+            0
+          ],
+          "below_airmax": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "below_plane": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "below_config": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "below_within": [
+            19,
+            4,
+            45,
+            0
+          ],
+          "other_band": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "airmax": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "band_pass": [
+            0,
+            0,
+            0,
+            4
+          ]
+        },
+        "hubhub": {
+          "arm_records": 1,
+          "under20": 1,
+          "seen": [
+            12,
+            4,
+            47,
+            0
+          ],
+          "short": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "below_min": [
+            12,
+            4,
+            47,
+            0
+          ],
+          "blocked_min": [
+            12,
+            4,
+            47,
+            0
+          ],
+          "below_airmax": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "below_plane": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "below_config": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "below_within": [
+            12,
+            4,
+            47,
+            0
+          ],
+          "other_band": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "airmax": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "band_pass": [
+            0,
+            0,
+            0,
+            0
+          ]
+        }
+      }
+    }
+  }
+}

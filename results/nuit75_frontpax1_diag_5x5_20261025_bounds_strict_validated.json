@@ -1,0 +1,3976 @@
+{
+  "schema": "front_pax_bounds_v2",
+  "interpretation": "diagnostic_only; counts are refresh events, not built routes",
+  "coverage_note": "year presence does not prove full year, seed, or game coverage",
+  "files": 5,
+  "events": 45,
+  "unique_events": 40,
+  "duplicates": 5,
+  "parse_errors": 0,
+  "unidentified_seed_files": 0,
+  "expected_years": [
+    1970,
+    1971,
+    1972,
+    1973,
+    1974
+  ],
+  "file_coverage": [
+    {
+      "file": "C:\\Users\\jr\\vscode\\openttd-ml\\openttd-ml\\.worktrees\\nuit75-front-pax1\\results\\nuit75_frontpax1_diag_5x5_20261025_engine\\reference_seed100_r0.log",
+      "seed": 100,
+      "run": "reference:r0",
+      "markers": 22,
+      "parsed_before_duplicates": 22,
+      "parse_errors": 0,
+      "duplicates": 1,
+      "unique_events": 21,
+      "observed_years": [
+        1970,
+        1971,
+        1972,
+        1973,
+        1974
+      ]
+    },
+    {
+      "file": "C:\\Users\\jr\\vscode\\openttd-ml\\openttd-ml\\.worktrees\\nuit75-front-pax1\\results\\nuit75_frontpax1_diag_5x5_20261025_engine\\reference_seed2026_r0.log",
+      "seed": 2026,
+      "run": "reference:r0",
+      "markers": 7,
+      "parsed_before_duplicates": 7,
+      "parse_errors": 0,
+      "duplicates": 2,
+      "unique_events": 5,
+      "observed_years": [
+        1970,
+        1972,
+        1973,
+        1974
+      ]
+    },
+    {
+      "file": "C:\\Users\\jr\\vscode\\openttd-ml\\openttd-ml\\.worktrees\\nuit75-front-pax1\\results\\nuit75_frontpax1_diag_5x5_20261025_engine\\reference_seed42_r0.log",
+      "seed": 42,
+      "run": "reference:r0",
+      "markers": 6,
+      "parsed_before_duplicates": 6,
+      "parse_errors": 0,
+      "duplicates": 0,
+      "unique_events": 6,
+      "observed_years": [
+        1970,
+        1971,
+        1972,
+        1973,
+        1974
+      ]
+    },
+    {
+      "file": "C:\\Users\\jr\\vscode\\openttd-ml\\openttd-ml\\.worktrees\\nuit75-front-pax1\\results\\nuit75_frontpax1_diag_5x5_20261025_engine\\reference_seed7_r0.log",
+      "seed": 7,
+      "run": "reference:r0",
+      "markers": 5,
+      "parsed_before_duplicates": 5,
+      "parse_errors": 0,
+      "duplicates": 1,
+      "unique_events": 4,
+      "observed_years": [
+        1970,
+        1972,
+        1973,
+        1974
+      ]
+    },
+    {
+      "file": "C:\\Users\\jr\\vscode\\openttd-ml\\openttd-ml\\.worktrees\\nuit75-front-pax1\\results\\nuit75_frontpax1_diag_5x5_20261025_engine\\reference_seed999_r0.log",
+      "seed": 999,
+      "run": "reference:r0",
+      "markers": 5,
+      "parsed_before_duplicates": 5,
+      "parse_errors": 0,
+      "duplicates": 1,
+      "unique_events": 4,
+      "observed_years": [
+        1970,
+        1972,
+        1973
+      ]
+    }
+  ],
+  "seed_coverage": [
+    {
+      "run": "reference:r0",
+      "seed": 7,
+      "observed_years": [
+        1970,
+        1972,
+        1973,
+        1974
+      ],
+      "missing_expected_years": [
+        1971
+      ],
+      "gaps_between_observed_years": [
+        1971
+      ],
+      "full_year_coverage_proven": false
+    },
+    {
+      "run": "reference:r0",
+      "seed": 42,
+      "observed_years": [
+        1970,
+        1971,
+        1972,
+        1973,
+        1974
+      ],
+      "missing_expected_years": [],
+      "gaps_between_observed_years": [],
+      "full_year_coverage_proven": false
+    },
+    {
+      "run": "reference:r0",
+      "seed": 100,
+      "observed_years": [
+        1970,
+        1971,
+        1972,
+        1973,
+        1974
+      ],
+      "missing_expected_years": [],
+      "gaps_between_observed_years": [],
+      "full_year_coverage_proven": false
+    },
+    {
+      "run": "reference:r0",
+      "seed": 999,
+      "observed_years": [
+        1970,
+        1972,
+        1973
+      ],
+      "missing_expected_years": [
+        1971,
+        1974
+      ],
+      "gaps_between_observed_years": [
+        1971
+      ],
+      "full_year_coverage_proven": false
+    },
+    {
+      "run": "reference:r0",
+      "seed": 2026,
+      "observed_years": [
+        1970,
+        1972,
+        1973,
+        1974
+      ],
+      "missing_expected_years": [
+        1971
+      ],
+      "gaps_between_observed_years": [
+        1971
+      ],
+      "full_year_coverage_proven": false
+    }
+  ],
+  "by_seed_year": [
+    {
+      "run": "reference:r0",
+      "seed": 7,
+      "year": 1970,
+      "n": 1,
+      "distinct_dates": 1,
+      "first_date": "1970-01-02",
+      "last_date": "1970-01-02",
+      "motives": {
+        "road_reason": {
+          "delta_nonpositive": 1
+        },
+        "rail_clamp": {
+          "rail_max": 1
+        },
+        "rail_model": {
+          "crossing": 1
+        },
+        "rail_bound": {
+          "v294": 1
+        }
+      },
+      "causes": {
+        "road_reason": {
+          "delta_nonpositive": 1
+        },
+        "rail_clamp": {
+          "rail_max": 1
+        }
+      },
+      "road_raw_unavailable": 1,
+      "rail_road_floor_applied": 0,
+      "rail_map_cap_applied": 0,
+      "rail_raw_above_max": 1,
+      "rail_raw_equal_max": 0,
+      "road_raw_known": {
+        "n": 0
+      },
+      "values": {
+        "road_raw": {
+          "n": 1,
+          "min": -1,
+          "max": -1,
+          "mean": -1,
+          "median": -1
+        },
+        "road_delta": {
+          "n": 1,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0
+        },
+        "road_num": {
+          "n": 1,
+          "min": 28418,
+          "max": 28418,
+          "mean": 28418,
+          "median": 28418
+        },
+        "road_denom": {
+          "n": 1,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0
+        },
+        "road_M": {
+          "n": 1,
+          "min": 123,
+          "max": 123,
+          "mean": 123,
+          "median": 123
+        },
+        "rail_raw": {
+          "n": 1,
+          "min": 439,
+          "max": 439,
+          "mean": 439,
+          "median": 439
+        },
+        "rail_source": {
+          "n": 1,
+          "min": 200,
+          "max": 200,
+          "mean": 200,
+          "median": 200
+        },
+        "rail_road_floor": {
+          "n": 1,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0
+        },
+        "rail_map_cap": {
+          "n": 1,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0
+        },
+        "rail_max": {
+          "n": 1,
+          "min": 200,
+          "max": 200,
+          "mean": 200,
+          "median": 200
+        },
+        "rail_raw_minus_max": {
+          "n": 1,
+          "min": 239,
+          "max": 239,
+          "mean": 239,
+          "median": 239
+        },
+        "rail_source_minus_max": {
+          "n": 1,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0
+        },
+        "air_div": {
+          "n": 1,
+          "min": 4.0,
+          "max": 4.0,
+          "mean": 4.0,
+          "median": 4.0
+        },
+        "rail_tau100": {
+          "n": 1,
+          "min": 29,
+          "max": 29,
+          "mean": 29,
+          "median": 29
+        },
+        "air_tau100": {
+          "n": 1,
+          "min": 23,
+          "max": 23,
+          "mean": 23,
+          "median": 23
+        },
+        "rail_tau_gap100": {
+          "n": 1,
+          "min": 6,
+          "max": 6,
+          "mean": 6,
+          "median": 6
+        },
+        "rail_dwell100": {
+          "n": 1,
+          "min": 864,
+          "max": 864,
+          "mean": 864,
+          "median": 864
+        },
+        "air_fixed100": {
+          "n": 1,
+          "min": 2619,
+          "max": 2619,
+          "mean": 2619,
+          "median": 2619
+        }
+      }
+    },
+    {
+      "run": "reference:r0",
+      "seed": 7,
+      "year": 1972,
+      "n": 1,
+      "distinct_dates": 1,
+      "first_date": "1972-01-01",
+      "last_date": "1972-01-01",
+      "motives": {
+        "road_reason": {
+          "delta_nonpositive": 1
+        },
+        "rail_clamp": {
+          "rail_max": 1
+        },
+        "rail_model": {
+          "crossing": 1
+        },
+        "rail_bound": {
+          "v294": 1
+        }
+      },
+      "causes": {
+        "road_reason": {
+          "delta_nonpositive": 1
+        },
+        "rail_clamp": {
+          "rail_max": 1
+        }
+      },
+      "road_raw_unavailable": 1,
+      "rail_road_floor_applied": 0,
+      "rail_map_cap_applied": 0,
+      "rail_raw_above_max": 1,
+      "rail_raw_equal_max": 0,
+      "road_raw_known": {
+        "n": 0
+      },
+      "values": {
+        "road_raw": {
+          "n": 1,
+          "min": -1,
+          "max": -1,
+          "mean": -1,
+          "median": -1
+        },
+        "road_delta": {
+          "n": 1,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0
+        },
+        "road_num": {
+          "n": 1,
+          "min": 28418,
+          "max": 28418,
+          "mean": 28418,
+          "median": 28418
+        },
+        "road_denom": {
+          "n": 1,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0
+        },
+        "road_M": {
+          "n": 1,
+          "min": 148,
+          "max": 148,
+          "mean": 148,
+          "median": 148
+        },
+        "rail_raw": {
+          "n": 1,
+          "min": 439,
+          "max": 439,
+          "mean": 439,
+          "median": 439
+        },
+        "rail_source": {
+          "n": 1,
+          "min": 200,
+          "max": 200,
+          "mean": 200,
+          "median": 200
+        },
+        "rail_road_floor": {
+          "n": 1,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0
+        },
+        "rail_map_cap": {
+          "n": 1,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0
+        },
+        "rail_max": {
+          "n": 1,
+          "min": 200,
+          "max": 200,
+          "mean": 200,
+          "median": 200
+        },
+        "rail_raw_minus_max": {
+          "n": 1,
+          "min": 239,
+          "max": 239,
+          "mean": 239,
+          "median": 239
+        },
+        "rail_source_minus_max": {
+          "n": 1,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0
+        },
+        "air_div": {
+          "n": 1,
+          "min": 4.0,
+          "max": 4.0,
+          "mean": 4.0,
+          "median": 4.0
+        },
+        "rail_tau100": {
+          "n": 1,
+          "min": 29,
+          "max": 29,
+          "mean": 29,
+          "median": 29
+        },
+        "air_tau100": {
+          "n": 1,
+          "min": 23,
+          "max": 23,
+          "mean": 23,
+          "median": 23
+        },
+        "rail_tau_gap100": {
+          "n": 1,
+          "min": 6,
+          "max": 6,
+          "mean": 6,
+          "median": 6
+        },
+        "rail_dwell100": {
+          "n": 1,
+          "min": 864,
+          "max": 864,
+          "mean": 864,
+          "median": 864
+        },
+        "air_fixed100": {
+          "n": 1,
+          "min": 2619,
+          "max": 2619,
+          "mean": 2619,
+          "median": 2619
+        }
+      }
+    },
+    {
+      "run": "reference:r0",
+      "seed": 7,
+      "year": 1973,
+      "n": 1,
+      "distinct_dates": 1,
+      "first_date": "1973-01-01",
+      "last_date": "1973-01-01",
+      "motives": {
+        "road_reason": {
+          "delta_nonpositive": 1
+        },
+        "rail_clamp": {
+          "rail_max": 1
+        },
+        "rail_model": {
+          "crossing": 1
+        },
+        "rail_bound": {
+          "v294": 1
+        }
+      },
+      "causes": {
+        "road_reason": {
+          "delta_nonpositive": 1
+        },
+        "rail_clamp": {
+          "rail_max": 1
+        }
+      },
+      "road_raw_unavailable": 1,
+      "rail_road_floor_applied": 0,
+      "rail_map_cap_applied": 0,
+      "rail_raw_above_max": 1,
+      "rail_raw_equal_max": 0,
+      "road_raw_known": {
+        "n": 0
+      },
+      "values": {
+        "road_raw": {
+          "n": 1,
+          "min": -1,
+          "max": -1,
+          "mean": -1,
+          "median": -1
+        },
+        "road_delta": {
+          "n": 1,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0
+        },
+        "road_num": {
+          "n": 1,
+          "min": 28418,
+          "max": 28418,
+          "mean": 28418,
+          "median": 28418
+        },
+        "road_denom": {
+          "n": 1,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0
+        },
+        "road_M": {
+          "n": 1,
+          "min": 141,
+          "max": 141,
+          "mean": 141,
+          "median": 141
+        },
+        "rail_raw": {
+          "n": 1,
+          "min": 439,
+          "max": 439,
+          "mean": 439,
+          "median": 439
+        },
+        "rail_source": {
+          "n": 1,
+          "min": 200,
+          "max": 200,
+          "mean": 200,
+          "median": 200
+        },
+        "rail_road_floor": {
+          "n": 1,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0
+        },
+        "rail_map_cap": {
+          "n": 1,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0
+        },
+        "rail_max": {
+          "n": 1,
+          "min": 200,
+          "max": 200,
+          "mean": 200,
+          "median": 200
+        },
+        "rail_raw_minus_max": {
+          "n": 1,
+          "min": 239,
+          "max": 239,
+          "mean": 239,
+          "median": 239
+        },
+        "rail_source_minus_max": {
+          "n": 1,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0
+        },
+        "air_div": {
+          "n": 1,
+          "min": 4.0,
+          "max": 4.0,
+          "mean": 4.0,
+          "median": 4.0
+        },
+        "rail_tau100": {
+          "n": 1,
+          "min": 29,
+          "max": 29,
+          "mean": 29,
+          "median": 29
+        },
+        "air_tau100": {
+          "n": 1,
+          "min": 23,
+          "max": 23,
+          "mean": 23,
+          "median": 23
+        },
+        "rail_tau_gap100": {
+          "n": 1,
+          "min": 6,
+          "max": 6,
+          "mean": 6,
+          "median": 6
+        },
+        "rail_dwell100": {
+          "n": 1,
+          "min": 864,
+          "max": 864,
+          "mean": 864,
+          "median": 864
+        },
+        "air_fixed100": {
+          "n": 1,
+          "min": 2619,
+          "max": 2619,
+          "mean": 2619,
+          "median": 2619
+        }
+      }
+    },
+    {
+      "run": "reference:r0",
+      "seed": 7,
+      "year": 1974,
+      "n": 1,
+      "distinct_dates": 1,
+      "first_date": "1974-06-05",
+      "last_date": "1974-06-05",
+      "motives": {
+        "road_reason": {
+          "delta_nonpositive": 1
+        },
+        "rail_clamp": {
+          "rail_max": 1
+        },
+        "rail_model": {
+          "crossing": 1
+        },
+        "rail_bound": {
+          "v294": 1
+        }
+      },
+      "causes": {
+        "road_reason": {
+          "delta_nonpositive": 1
+        },
+        "rail_clamp": {
+          "rail_max": 1
+        }
+      },
+      "road_raw_unavailable": 1,
+      "rail_road_floor_applied": 0,
+      "rail_map_cap_applied": 0,
+      "rail_raw_above_max": 1,
+      "rail_raw_equal_max": 0,
+      "road_raw_known": {
+        "n": 0
+      },
+      "values": {
+        "road_raw": {
+          "n": 1,
+          "min": -1,
+          "max": -1,
+          "mean": -1,
+          "median": -1
+        },
+        "road_delta": {
+          "n": 1,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0
+        },
+        "road_num": {
+          "n": 1,
+          "min": 28418,
+          "max": 28418,
+          "mean": 28418,
+          "median": 28418
+        },
+        "road_denom": {
+          "n": 1,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0
+        },
+        "road_M": {
+          "n": 1,
+          "min": 159,
+          "max": 159,
+          "mean": 159,
+          "median": 159
+        },
+        "rail_raw": {
+          "n": 1,
+          "min": 439,
+          "max": 439,
+          "mean": 439,
+          "median": 439
+        },
+        "rail_source": {
+          "n": 1,
+          "min": 200,
+          "max": 200,
+          "mean": 200,
+          "median": 200
+        },
+        "rail_road_floor": {
+          "n": 1,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0
+        },
+        "rail_map_cap": {
+          "n": 1,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0
+        },
+        "rail_max": {
+          "n": 1,
+          "min": 200,
+          "max": 200,
+          "mean": 200,
+          "median": 200
+        },
+        "rail_raw_minus_max": {
+          "n": 1,
+          "min": 239,
+          "max": 239,
+          "mean": 239,
+          "median": 239
+        },
+        "rail_source_minus_max": {
+          "n": 1,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0
+        },
+        "air_div": {
+          "n": 1,
+          "min": 4.0,
+          "max": 4.0,
+          "mean": 4.0,
+          "median": 4.0
+        },
+        "rail_tau100": {
+          "n": 1,
+          "min": 29,
+          "max": 29,
+          "mean": 29,
+          "median": 29
+        },
+        "air_tau100": {
+          "n": 1,
+          "min": 23,
+          "max": 23,
+          "mean": 23,
+          "median": 23
+        },
+        "rail_tau_gap100": {
+          "n": 1,
+          "min": 6,
+          "max": 6,
+          "mean": 6,
+          "median": 6
+        },
+        "rail_dwell100": {
+          "n": 1,
+          "min": 864,
+          "max": 864,
+          "mean": 864,
+          "median": 864
+        },
+        "air_fixed100": {
+          "n": 1,
+          "min": 2619,
+          "max": 2619,
+          "mean": 2619,
+          "median": 2619
+        }
+      }
+    },
+    {
+      "run": "reference:r0",
+      "seed": 42,
+      "year": 1970,
+      "n": 1,
+      "distinct_dates": 1,
+      "first_date": "1970-01-02",
+      "last_date": "1970-01-02",
+      "motives": {
+        "road_reason": {
+          "delta_nonpositive": 1
+        },
+        "rail_clamp": {
+          "rail_max": 1
+        },
+        "rail_model": {
+          "crossing": 1
+        },
+        "rail_bound": {
+          "v294": 1
+        }
+      },
+      "causes": {
+        "road_reason": {
+          "delta_nonpositive": 1
+        },
+        "rail_clamp": {
+          "rail_max": 1
+        }
+      },
+      "road_raw_unavailable": 1,
+      "rail_road_floor_applied": 0,
+      "rail_map_cap_applied": 0,
+      "rail_raw_above_max": 1,
+      "rail_raw_equal_max": 0,
+      "road_raw_known": {
+        "n": 0
+      },
+      "values": {
+        "road_raw": {
+          "n": 1,
+          "min": -1,
+          "max": -1,
+          "mean": -1,
+          "median": -1
+        },
+        "road_delta": {
+          "n": 1,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0
+        },
+        "road_num": {
+          "n": 1,
+          "min": 28418,
+          "max": 28418,
+          "mean": 28418,
+          "median": 28418
+        },
+        "road_denom": {
+          "n": 1,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0
+        },
+        "road_M": {
+          "n": 1,
+          "min": 103,
+          "max": 103,
+          "mean": 103,
+          "median": 103
+        },
+        "rail_raw": {
+          "n": 1,
+          "min": 439,
+          "max": 439,
+          "mean": 439,
+          "median": 439
+        },
+        "rail_source": {
+          "n": 1,
+          "min": 200,
+          "max": 200,
+          "mean": 200,
+          "median": 200
+        },
+        "rail_road_floor": {
+          "n": 1,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0
+        },
+        "rail_map_cap": {
+          "n": 1,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0
+        },
+        "rail_max": {
+          "n": 1,
+          "min": 200,
+          "max": 200,
+          "mean": 200,
+          "median": 200
+        },
+        "rail_raw_minus_max": {
+          "n": 1,
+          "min": 239,
+          "max": 239,
+          "mean": 239,
+          "median": 239
+        },
+        "rail_source_minus_max": {
+          "n": 1,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0
+        },
+        "air_div": {
+          "n": 1,
+          "min": 4.0,
+          "max": 4.0,
+          "mean": 4.0,
+          "median": 4.0
+        },
+        "rail_tau100": {
+          "n": 1,
+          "min": 29,
+          "max": 29,
+          "mean": 29,
+          "median": 29
+        },
+        "air_tau100": {
+          "n": 1,
+          "min": 23,
+          "max": 23,
+          "mean": 23,
+          "median": 23
+        },
+        "rail_tau_gap100": {
+          "n": 1,
+          "min": 6,
+          "max": 6,
+          "mean": 6,
+          "median": 6
+        },
+        "rail_dwell100": {
+          "n": 1,
+          "min": 864,
+          "max": 864,
+          "mean": 864,
+          "median": 864
+        },
+        "air_fixed100": {
+          "n": 1,
+          "min": 2619,
+          "max": 2619,
+          "mean": 2619,
+          "median": 2619
+        }
+      }
+    },
+    {
+      "run": "reference:r0",
+      "seed": 42,
+      "year": 1971,
+      "n": 1,
+      "distinct_dates": 1,
+      "first_date": "1971-10-30",
+      "last_date": "1971-10-30",
+      "motives": {
+        "road_reason": {
+          "delta_nonpositive": 1
+        },
+        "rail_clamp": {
+          "rail_max": 1
+        },
+        "rail_model": {
+          "crossing": 1
+        },
+        "rail_bound": {
+          "v294": 1
+        }
+      },
+      "causes": {
+        "road_reason": {
+          "delta_nonpositive": 1
+        },
+        "rail_clamp": {
+          "rail_max": 1
+        }
+      },
+      "road_raw_unavailable": 1,
+      "rail_road_floor_applied": 0,
+      "rail_map_cap_applied": 0,
+      "rail_raw_above_max": 1,
+      "rail_raw_equal_max": 0,
+      "road_raw_known": {
+        "n": 0
+      },
+      "values": {
+        "road_raw": {
+          "n": 1,
+          "min": -1,
+          "max": -1,
+          "mean": -1,
+          "median": -1
+        },
+        "road_delta": {
+          "n": 1,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0
+        },
+        "road_num": {
+          "n": 1,
+          "min": 28418,
+          "max": 28418,
+          "mean": 28418,
+          "median": 28418
+        },
+        "road_denom": {
+          "n": 1,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0
+        },
+        "road_M": {
+          "n": 1,
+          "min": 126,
+          "max": 126,
+          "mean": 126,
+          "median": 126
+        },
+        "rail_raw": {
+          "n": 1,
+          "min": 439,
+          "max": 439,
+          "mean": 439,
+          "median": 439
+        },
+        "rail_source": {
+          "n": 1,
+          "min": 200,
+          "max": 200,
+          "mean": 200,
+          "median": 200
+        },
+        "rail_road_floor": {
+          "n": 1,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0
+        },
+        "rail_map_cap": {
+          "n": 1,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0
+        },
+        "rail_max": {
+          "n": 1,
+          "min": 200,
+          "max": 200,
+          "mean": 200,
+          "median": 200
+        },
+        "rail_raw_minus_max": {
+          "n": 1,
+          "min": 239,
+          "max": 239,
+          "mean": 239,
+          "median": 239
+        },
+        "rail_source_minus_max": {
+          "n": 1,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0
+        },
+        "air_div": {
+          "n": 1,
+          "min": 4.0,
+          "max": 4.0,
+          "mean": 4.0,
+          "median": 4.0
+        },
+        "rail_tau100": {
+          "n": 1,
+          "min": 29,
+          "max": 29,
+          "mean": 29,
+          "median": 29
+        },
+        "air_tau100": {
+          "n": 1,
+          "min": 23,
+          "max": 23,
+          "mean": 23,
+          "median": 23
+        },
+        "rail_tau_gap100": {
+          "n": 1,
+          "min": 6,
+          "max": 6,
+          "mean": 6,
+          "median": 6
+        },
+        "rail_dwell100": {
+          "n": 1,
+          "min": 864,
+          "max": 864,
+          "mean": 864,
+          "median": 864
+        },
+        "air_fixed100": {
+          "n": 1,
+          "min": 2619,
+          "max": 2619,
+          "mean": 2619,
+          "median": 2619
+        }
+      }
+    },
+    {
+      "run": "reference:r0",
+      "seed": 42,
+      "year": 1972,
+      "n": 2,
+      "distinct_dates": 2,
+      "first_date": "1972-01-11",
+      "last_date": "1972-01-12",
+      "motives": {
+        "road_reason": {
+          "delta_nonpositive": 2
+        },
+        "rail_clamp": {
+          "rail_max": 2
+        },
+        "rail_model": {
+          "crossing": 2
+        },
+        "rail_bound": {
+          "v294": 2
+        }
+      },
+      "causes": {
+        "road_reason": {
+          "delta_nonpositive": 2
+        },
+        "rail_clamp": {
+          "rail_max": 2
+        }
+      },
+      "road_raw_unavailable": 2,
+      "rail_road_floor_applied": 0,
+      "rail_map_cap_applied": 0,
+      "rail_raw_above_max": 2,
+      "rail_raw_equal_max": 0,
+      "road_raw_known": {
+        "n": 0
+      },
+      "values": {
+        "road_raw": {
+          "n": 2,
+          "min": -1,
+          "max": -1,
+          "mean": -1,
+          "median": -1.0
+        },
+        "road_delta": {
+          "n": 2,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0.0
+        },
+        "road_num": {
+          "n": 2,
+          "min": 28418,
+          "max": 28418,
+          "mean": 28418,
+          "median": 28418.0
+        },
+        "road_denom": {
+          "n": 2,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0.0
+        },
+        "road_M": {
+          "n": 2,
+          "min": 131,
+          "max": 131,
+          "mean": 131,
+          "median": 131.0
+        },
+        "rail_raw": {
+          "n": 2,
+          "min": 439,
+          "max": 439,
+          "mean": 439,
+          "median": 439.0
+        },
+        "rail_source": {
+          "n": 2,
+          "min": 200,
+          "max": 200,
+          "mean": 200,
+          "median": 200.0
+        },
+        "rail_road_floor": {
+          "n": 2,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0.0
+        },
+        "rail_map_cap": {
+          "n": 2,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0.0
+        },
+        "rail_max": {
+          "n": 2,
+          "min": 200,
+          "max": 200,
+          "mean": 200,
+          "median": 200.0
+        },
+        "rail_raw_minus_max": {
+          "n": 2,
+          "min": 239,
+          "max": 239,
+          "mean": 239,
+          "median": 239.0
+        },
+        "rail_source_minus_max": {
+          "n": 2,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0.0
+        },
+        "air_div": {
+          "n": 2,
+          "min": 4.0,
+          "max": 4.0,
+          "mean": 4.0,
+          "median": 4.0
+        },
+        "rail_tau100": {
+          "n": 2,
+          "min": 29,
+          "max": 29,
+          "mean": 29,
+          "median": 29.0
+        },
+        "air_tau100": {
+          "n": 2,
+          "min": 23,
+          "max": 23,
+          "mean": 23,
+          "median": 23.0
+        },
+        "rail_tau_gap100": {
+          "n": 2,
+          "min": 6,
+          "max": 6,
+          "mean": 6,
+          "median": 6.0
+        },
+        "rail_dwell100": {
+          "n": 2,
+          "min": 864,
+          "max": 864,
+          "mean": 864,
+          "median": 864.0
+        },
+        "air_fixed100": {
+          "n": 2,
+          "min": 2619,
+          "max": 2619,
+          "mean": 2619,
+          "median": 2619.0
+        }
+      }
+    },
+    {
+      "run": "reference:r0",
+      "seed": 42,
+      "year": 1973,
+      "n": 1,
+      "distinct_dates": 1,
+      "first_date": "1973-01-01",
+      "last_date": "1973-01-01",
+      "motives": {
+        "road_reason": {
+          "delta_nonpositive": 1
+        },
+        "rail_clamp": {
+          "rail_max": 1
+        },
+        "rail_model": {
+          "crossing": 1
+        },
+        "rail_bound": {
+          "v294": 1
+        }
+      },
+      "causes": {
+        "road_reason": {
+          "delta_nonpositive": 1
+        },
+        "rail_clamp": {
+          "rail_max": 1
+        }
+      },
+      "road_raw_unavailable": 1,
+      "rail_road_floor_applied": 0,
+      "rail_map_cap_applied": 0,
+      "rail_raw_above_max": 1,
+      "rail_raw_equal_max": 0,
+      "road_raw_known": {
+        "n": 0
+      },
+      "values": {
+        "road_raw": {
+          "n": 1,
+          "min": -1,
+          "max": -1,
+          "mean": -1,
+          "median": -1
+        },
+        "road_delta": {
+          "n": 1,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0
+        },
+        "road_num": {
+          "n": 1,
+          "min": 28418,
+          "max": 28418,
+          "mean": 28418,
+          "median": 28418
+        },
+        "road_denom": {
+          "n": 1,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0
+        },
+        "road_M": {
+          "n": 1,
+          "min": 126,
+          "max": 126,
+          "mean": 126,
+          "median": 126
+        },
+        "rail_raw": {
+          "n": 1,
+          "min": 439,
+          "max": 439,
+          "mean": 439,
+          "median": 439
+        },
+        "rail_source": {
+          "n": 1,
+          "min": 200,
+          "max": 200,
+          "mean": 200,
+          "median": 200
+        },
+        "rail_road_floor": {
+          "n": 1,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0
+        },
+        "rail_map_cap": {
+          "n": 1,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0
+        },
+        "rail_max": {
+          "n": 1,
+          "min": 200,
+          "max": 200,
+          "mean": 200,
+          "median": 200
+        },
+        "rail_raw_minus_max": {
+          "n": 1,
+          "min": 239,
+          "max": 239,
+          "mean": 239,
+          "median": 239
+        },
+        "rail_source_minus_max": {
+          "n": 1,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0
+        },
+        "air_div": {
+          "n": 1,
+          "min": 4.0,
+          "max": 4.0,
+          "mean": 4.0,
+          "median": 4.0
+        },
+        "rail_tau100": {
+          "n": 1,
+          "min": 29,
+          "max": 29,
+          "mean": 29,
+          "median": 29
+        },
+        "air_tau100": {
+          "n": 1,
+          "min": 23,
+          "max": 23,
+          "mean": 23,
+          "median": 23
+        },
+        "rail_tau_gap100": {
+          "n": 1,
+          "min": 6,
+          "max": 6,
+          "mean": 6,
+          "median": 6
+        },
+        "rail_dwell100": {
+          "n": 1,
+          "min": 864,
+          "max": 864,
+          "mean": 864,
+          "median": 864
+        },
+        "air_fixed100": {
+          "n": 1,
+          "min": 2619,
+          "max": 2619,
+          "mean": 2619,
+          "median": 2619
+        }
+      }
+    },
+    {
+      "run": "reference:r0",
+      "seed": 42,
+      "year": 1974,
+      "n": 1,
+      "distinct_dates": 1,
+      "first_date": "1974-02-10",
+      "last_date": "1974-02-10",
+      "motives": {
+        "road_reason": {
+          "delta_nonpositive": 1
+        },
+        "rail_clamp": {
+          "rail_max": 1
+        },
+        "rail_model": {
+          "crossing": 1
+        },
+        "rail_bound": {
+          "v294": 1
+        }
+      },
+      "causes": {
+        "road_reason": {
+          "delta_nonpositive": 1
+        },
+        "rail_clamp": {
+          "rail_max": 1
+        }
+      },
+      "road_raw_unavailable": 1,
+      "rail_road_floor_applied": 0,
+      "rail_map_cap_applied": 0,
+      "rail_raw_above_max": 1,
+      "rail_raw_equal_max": 0,
+      "road_raw_known": {
+        "n": 0
+      },
+      "values": {
+        "road_raw": {
+          "n": 1,
+          "min": -1,
+          "max": -1,
+          "mean": -1,
+          "median": -1
+        },
+        "road_delta": {
+          "n": 1,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0
+        },
+        "road_num": {
+          "n": 1,
+          "min": 28418,
+          "max": 28418,
+          "mean": 28418,
+          "median": 28418
+        },
+        "road_denom": {
+          "n": 1,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0
+        },
+        "road_M": {
+          "n": 1,
+          "min": 133,
+          "max": 133,
+          "mean": 133,
+          "median": 133
+        },
+        "rail_raw": {
+          "n": 1,
+          "min": 439,
+          "max": 439,
+          "mean": 439,
+          "median": 439
+        },
+        "rail_source": {
+          "n": 1,
+          "min": 200,
+          "max": 200,
+          "mean": 200,
+          "median": 200
+        },
+        "rail_road_floor": {
+          "n": 1,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0
+        },
+        "rail_map_cap": {
+          "n": 1,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0
+        },
+        "rail_max": {
+          "n": 1,
+          "min": 200,
+          "max": 200,
+          "mean": 200,
+          "median": 200
+        },
+        "rail_raw_minus_max": {
+          "n": 1,
+          "min": 239,
+          "max": 239,
+          "mean": 239,
+          "median": 239
+        },
+        "rail_source_minus_max": {
+          "n": 1,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0
+        },
+        "air_div": {
+          "n": 1,
+          "min": 4.0,
+          "max": 4.0,
+          "mean": 4.0,
+          "median": 4.0
+        },
+        "rail_tau100": {
+          "n": 1,
+          "min": 29,
+          "max": 29,
+          "mean": 29,
+          "median": 29
+        },
+        "air_tau100": {
+          "n": 1,
+          "min": 23,
+          "max": 23,
+          "mean": 23,
+          "median": 23
+        },
+        "rail_tau_gap100": {
+          "n": 1,
+          "min": 6,
+          "max": 6,
+          "mean": 6,
+          "median": 6
+        },
+        "rail_dwell100": {
+          "n": 1,
+          "min": 864,
+          "max": 864,
+          "mean": 864,
+          "median": 864
+        },
+        "air_fixed100": {
+          "n": 1,
+          "min": 2619,
+          "max": 2619,
+          "mean": 2619,
+          "median": 2619
+        }
+      }
+    },
+    {
+      "run": "reference:r0",
+      "seed": 100,
+      "year": 1970,
+      "n": 3,
+      "distinct_dates": 3,
+      "first_date": "1970-01-02",
+      "last_date": "1970-06-23",
+      "motives": {
+        "road_reason": {
+          "delta_nonpositive": 3
+        },
+        "rail_clamp": {
+          "rail_max": 3
+        },
+        "rail_model": {
+          "crossing": 3
+        },
+        "rail_bound": {
+          "v294": 3
+        }
+      },
+      "causes": {
+        "road_reason": {
+          "delta_nonpositive": 3
+        },
+        "rail_clamp": {
+          "rail_max": 3
+        }
+      },
+      "road_raw_unavailable": 3,
+      "rail_road_floor_applied": 0,
+      "rail_map_cap_applied": 0,
+      "rail_raw_above_max": 3,
+      "rail_raw_equal_max": 0,
+      "road_raw_known": {
+        "n": 0
+      },
+      "values": {
+        "road_raw": {
+          "n": 3,
+          "min": -1,
+          "max": -1,
+          "mean": -1,
+          "median": -1
+        },
+        "road_delta": {
+          "n": 3,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0
+        },
+        "road_num": {
+          "n": 3,
+          "min": 28418,
+          "max": 28418,
+          "mean": 28418,
+          "median": 28418
+        },
+        "road_denom": {
+          "n": 3,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0
+        },
+        "road_M": {
+          "n": 3,
+          "min": 80,
+          "max": 106,
+          "mean": 97.333,
+          "median": 106
+        },
+        "rail_raw": {
+          "n": 3,
+          "min": 439,
+          "max": 439,
+          "mean": 439,
+          "median": 439
+        },
+        "rail_source": {
+          "n": 3,
+          "min": 200,
+          "max": 200,
+          "mean": 200,
+          "median": 200
+        },
+        "rail_road_floor": {
+          "n": 3,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0
+        },
+        "rail_map_cap": {
+          "n": 3,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0
+        },
+        "rail_max": {
+          "n": 3,
+          "min": 200,
+          "max": 200,
+          "mean": 200,
+          "median": 200
+        },
+        "rail_raw_minus_max": {
+          "n": 3,
+          "min": 239,
+          "max": 239,
+          "mean": 239,
+          "median": 239
+        },
+        "rail_source_minus_max": {
+          "n": 3,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0
+        },
+        "air_div": {
+          "n": 3,
+          "min": 4.0,
+          "max": 4.0,
+          "mean": 4.0,
+          "median": 4.0
+        },
+        "rail_tau100": {
+          "n": 3,
+          "min": 29,
+          "max": 29,
+          "mean": 29,
+          "median": 29
+        },
+        "air_tau100": {
+          "n": 3,
+          "min": 23,
+          "max": 23,
+          "mean": 23,
+          "median": 23
+        },
+        "rail_tau_gap100": {
+          "n": 3,
+          "min": 6,
+          "max": 6,
+          "mean": 6,
+          "median": 6
+        },
+        "rail_dwell100": {
+          "n": 3,
+          "min": 864,
+          "max": 864,
+          "mean": 864,
+          "median": 864
+        },
+        "air_fixed100": {
+          "n": 3,
+          "min": 2619,
+          "max": 2619,
+          "mean": 2619,
+          "median": 2619
+        }
+      }
+    },
+    {
+      "run": "reference:r0",
+      "seed": 100,
+      "year": 1971,
+      "n": 3,
+      "distinct_dates": 3,
+      "first_date": "1971-02-23",
+      "last_date": "1971-11-10",
+      "motives": {
+        "road_reason": {
+          "delta_nonpositive": 3
+        },
+        "rail_clamp": {
+          "rail_max": 3
+        },
+        "rail_model": {
+          "crossing": 3
+        },
+        "rail_bound": {
+          "v294": 3
+        }
+      },
+      "causes": {
+        "road_reason": {
+          "delta_nonpositive": 3
+        },
+        "rail_clamp": {
+          "rail_max": 3
+        }
+      },
+      "road_raw_unavailable": 3,
+      "rail_road_floor_applied": 0,
+      "rail_map_cap_applied": 0,
+      "rail_raw_above_max": 3,
+      "rail_raw_equal_max": 0,
+      "road_raw_known": {
+        "n": 0
+      },
+      "values": {
+        "road_raw": {
+          "n": 3,
+          "min": -1,
+          "max": -1,
+          "mean": -1,
+          "median": -1
+        },
+        "road_delta": {
+          "n": 3,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0
+        },
+        "road_num": {
+          "n": 3,
+          "min": 28418,
+          "max": 28418,
+          "mean": 28418,
+          "median": 28418
+        },
+        "road_denom": {
+          "n": 3,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0
+        },
+        "road_M": {
+          "n": 3,
+          "min": 102,
+          "max": 105,
+          "mean": 103.667,
+          "median": 104
+        },
+        "rail_raw": {
+          "n": 3,
+          "min": 439,
+          "max": 439,
+          "mean": 439,
+          "median": 439
+        },
+        "rail_source": {
+          "n": 3,
+          "min": 200,
+          "max": 200,
+          "mean": 200,
+          "median": 200
+        },
+        "rail_road_floor": {
+          "n": 3,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0
+        },
+        "rail_map_cap": {
+          "n": 3,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0
+        },
+        "rail_max": {
+          "n": 3,
+          "min": 200,
+          "max": 200,
+          "mean": 200,
+          "median": 200
+        },
+        "rail_raw_minus_max": {
+          "n": 3,
+          "min": 239,
+          "max": 239,
+          "mean": 239,
+          "median": 239
+        },
+        "rail_source_minus_max": {
+          "n": 3,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0
+        },
+        "air_div": {
+          "n": 3,
+          "min": 4.0,
+          "max": 4.0,
+          "mean": 4.0,
+          "median": 4.0
+        },
+        "rail_tau100": {
+          "n": 3,
+          "min": 29,
+          "max": 29,
+          "mean": 29,
+          "median": 29
+        },
+        "air_tau100": {
+          "n": 3,
+          "min": 23,
+          "max": 23,
+          "mean": 23,
+          "median": 23
+        },
+        "rail_tau_gap100": {
+          "n": 3,
+          "min": 6,
+          "max": 6,
+          "mean": 6,
+          "median": 6
+        },
+        "rail_dwell100": {
+          "n": 3,
+          "min": 864,
+          "max": 864,
+          "mean": 864,
+          "median": 864
+        },
+        "air_fixed100": {
+          "n": 3,
+          "min": 2619,
+          "max": 2619,
+          "mean": 2619,
+          "median": 2619
+        }
+      }
+    },
+    {
+      "run": "reference:r0",
+      "seed": 100,
+      "year": 1972,
+      "n": 5,
+      "distinct_dates": 5,
+      "first_date": "1972-01-03",
+      "last_date": "1972-12-03",
+      "motives": {
+        "road_reason": {
+          "delta_nonpositive": 5
+        },
+        "rail_clamp": {
+          "rail_max": 5
+        },
+        "rail_model": {
+          "crossing": 5
+        },
+        "rail_bound": {
+          "v294": 5
+        }
+      },
+      "causes": {
+        "road_reason": {
+          "delta_nonpositive": 5
+        },
+        "rail_clamp": {
+          "rail_max": 5
+        }
+      },
+      "road_raw_unavailable": 5,
+      "rail_road_floor_applied": 0,
+      "rail_map_cap_applied": 0,
+      "rail_raw_above_max": 5,
+      "rail_raw_equal_max": 0,
+      "road_raw_known": {
+        "n": 0
+      },
+      "values": {
+        "road_raw": {
+          "n": 5,
+          "min": -1,
+          "max": -1,
+          "mean": -1,
+          "median": -1
+        },
+        "road_delta": {
+          "n": 5,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0
+        },
+        "road_num": {
+          "n": 5,
+          "min": 28418,
+          "max": 28418,
+          "mean": 28418,
+          "median": 28418
+        },
+        "road_denom": {
+          "n": 5,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0
+        },
+        "road_M": {
+          "n": 5,
+          "min": 99,
+          "max": 102,
+          "mean": 101,
+          "median": 102
+        },
+        "rail_raw": {
+          "n": 5,
+          "min": 439,
+          "max": 439,
+          "mean": 439,
+          "median": 439
+        },
+        "rail_source": {
+          "n": 5,
+          "min": 200,
+          "max": 200,
+          "mean": 200,
+          "median": 200
+        },
+        "rail_road_floor": {
+          "n": 5,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0
+        },
+        "rail_map_cap": {
+          "n": 5,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0
+        },
+        "rail_max": {
+          "n": 5,
+          "min": 200,
+          "max": 200,
+          "mean": 200,
+          "median": 200
+        },
+        "rail_raw_minus_max": {
+          "n": 5,
+          "min": 239,
+          "max": 239,
+          "mean": 239,
+          "median": 239
+        },
+        "rail_source_minus_max": {
+          "n": 5,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0
+        },
+        "air_div": {
+          "n": 5,
+          "min": 4.0,
+          "max": 4.0,
+          "mean": 4.0,
+          "median": 4.0
+        },
+        "rail_tau100": {
+          "n": 5,
+          "min": 29,
+          "max": 29,
+          "mean": 29,
+          "median": 29
+        },
+        "air_tau100": {
+          "n": 5,
+          "min": 23,
+          "max": 23,
+          "mean": 23,
+          "median": 23
+        },
+        "rail_tau_gap100": {
+          "n": 5,
+          "min": 6,
+          "max": 6,
+          "mean": 6,
+          "median": 6
+        },
+        "rail_dwell100": {
+          "n": 5,
+          "min": 864,
+          "max": 864,
+          "mean": 864,
+          "median": 864
+        },
+        "air_fixed100": {
+          "n": 5,
+          "min": 2619,
+          "max": 2619,
+          "mean": 2619,
+          "median": 2619
+        }
+      }
+    },
+    {
+      "run": "reference:r0",
+      "seed": 100,
+      "year": 1973,
+      "n": 2,
+      "distinct_dates": 2,
+      "first_date": "1973-01-01",
+      "last_date": "1973-01-13",
+      "motives": {
+        "road_reason": {
+          "delta_nonpositive": 2
+        },
+        "rail_clamp": {
+          "rail_max": 2
+        },
+        "rail_model": {
+          "crossing": 2
+        },
+        "rail_bound": {
+          "v294": 2
+        }
+      },
+      "causes": {
+        "road_reason": {
+          "delta_nonpositive": 2
+        },
+        "rail_clamp": {
+          "rail_max": 2
+        }
+      },
+      "road_raw_unavailable": 2,
+      "rail_road_floor_applied": 0,
+      "rail_map_cap_applied": 0,
+      "rail_raw_above_max": 2,
+      "rail_raw_equal_max": 0,
+      "road_raw_known": {
+        "n": 0
+      },
+      "values": {
+        "road_raw": {
+          "n": 2,
+          "min": -1,
+          "max": -1,
+          "mean": -1,
+          "median": -1.0
+        },
+        "road_delta": {
+          "n": 2,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0.0
+        },
+        "road_num": {
+          "n": 2,
+          "min": 28418,
+          "max": 28418,
+          "mean": 28418,
+          "median": 28418.0
+        },
+        "road_denom": {
+          "n": 2,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0.0
+        },
+        "road_M": {
+          "n": 2,
+          "min": 102,
+          "max": 102,
+          "mean": 102,
+          "median": 102.0
+        },
+        "rail_raw": {
+          "n": 2,
+          "min": 439,
+          "max": 439,
+          "mean": 439,
+          "median": 439.0
+        },
+        "rail_source": {
+          "n": 2,
+          "min": 200,
+          "max": 200,
+          "mean": 200,
+          "median": 200.0
+        },
+        "rail_road_floor": {
+          "n": 2,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0.0
+        },
+        "rail_map_cap": {
+          "n": 2,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0.0
+        },
+        "rail_max": {
+          "n": 2,
+          "min": 200,
+          "max": 200,
+          "mean": 200,
+          "median": 200.0
+        },
+        "rail_raw_minus_max": {
+          "n": 2,
+          "min": 239,
+          "max": 239,
+          "mean": 239,
+          "median": 239.0
+        },
+        "rail_source_minus_max": {
+          "n": 2,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0.0
+        },
+        "air_div": {
+          "n": 2,
+          "min": 4.0,
+          "max": 4.0,
+          "mean": 4.0,
+          "median": 4.0
+        },
+        "rail_tau100": {
+          "n": 2,
+          "min": 29,
+          "max": 29,
+          "mean": 29,
+          "median": 29.0
+        },
+        "air_tau100": {
+          "n": 2,
+          "min": 23,
+          "max": 23,
+          "mean": 23,
+          "median": 23.0
+        },
+        "rail_tau_gap100": {
+          "n": 2,
+          "min": 6,
+          "max": 6,
+          "mean": 6,
+          "median": 6.0
+        },
+        "rail_dwell100": {
+          "n": 2,
+          "min": 864,
+          "max": 864,
+          "mean": 864,
+          "median": 864.0
+        },
+        "air_fixed100": {
+          "n": 2,
+          "min": 2619,
+          "max": 2619,
+          "mean": 2619,
+          "median": 2619.0
+        }
+      }
+    },
+    {
+      "run": "reference:r0",
+      "seed": 100,
+      "year": 1974,
+      "n": 8,
+      "distinct_dates": 8,
+      "first_date": "1974-03-09",
+      "last_date": "1974-12-08",
+      "motives": {
+        "road_reason": {
+          "delta_nonpositive": 8
+        },
+        "rail_clamp": {
+          "rail_max": 8
+        },
+        "rail_model": {
+          "crossing": 8
+        },
+        "rail_bound": {
+          "v294": 8
+        }
+      },
+      "causes": {
+        "road_reason": {
+          "delta_nonpositive": 8
+        },
+        "rail_clamp": {
+          "rail_max": 8
+        }
+      },
+      "road_raw_unavailable": 8,
+      "rail_road_floor_applied": 0,
+      "rail_map_cap_applied": 0,
+      "rail_raw_above_max": 8,
+      "rail_raw_equal_max": 0,
+      "road_raw_known": {
+        "n": 0
+      },
+      "values": {
+        "road_raw": {
+          "n": 8,
+          "min": -1,
+          "max": -1,
+          "mean": -1,
+          "median": -1.0
+        },
+        "road_delta": {
+          "n": 8,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0.0
+        },
+        "road_num": {
+          "n": 8,
+          "min": 28418,
+          "max": 28418,
+          "mean": 28418,
+          "median": 28418.0
+        },
+        "road_denom": {
+          "n": 8,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0.0
+        },
+        "road_M": {
+          "n": 8,
+          "min": 97,
+          "max": 113,
+          "mean": 107.75,
+          "median": 109.0
+        },
+        "rail_raw": {
+          "n": 8,
+          "min": 439,
+          "max": 439,
+          "mean": 439,
+          "median": 439.0
+        },
+        "rail_source": {
+          "n": 8,
+          "min": 200,
+          "max": 200,
+          "mean": 200,
+          "median": 200.0
+        },
+        "rail_road_floor": {
+          "n": 8,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0.0
+        },
+        "rail_map_cap": {
+          "n": 8,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0.0
+        },
+        "rail_max": {
+          "n": 8,
+          "min": 200,
+          "max": 200,
+          "mean": 200,
+          "median": 200.0
+        },
+        "rail_raw_minus_max": {
+          "n": 8,
+          "min": 239,
+          "max": 239,
+          "mean": 239,
+          "median": 239.0
+        },
+        "rail_source_minus_max": {
+          "n": 8,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0.0
+        },
+        "air_div": {
+          "n": 8,
+          "min": 4.0,
+          "max": 4.0,
+          "mean": 4.0,
+          "median": 4.0
+        },
+        "rail_tau100": {
+          "n": 8,
+          "min": 29,
+          "max": 29,
+          "mean": 29,
+          "median": 29.0
+        },
+        "air_tau100": {
+          "n": 8,
+          "min": 23,
+          "max": 23,
+          "mean": 23,
+          "median": 23.0
+        },
+        "rail_tau_gap100": {
+          "n": 8,
+          "min": 6,
+          "max": 6,
+          "mean": 6,
+          "median": 6.0
+        },
+        "rail_dwell100": {
+          "n": 8,
+          "min": 864,
+          "max": 864,
+          "mean": 864,
+          "median": 864.0
+        },
+        "air_fixed100": {
+          "n": 8,
+          "min": 2619,
+          "max": 2619,
+          "mean": 2619,
+          "median": 2619.0
+        }
+      }
+    },
+    {
+      "run": "reference:r0",
+      "seed": 999,
+      "year": 1970,
+      "n": 1,
+      "distinct_dates": 1,
+      "first_date": "1970-01-02",
+      "last_date": "1970-01-02",
+      "motives": {
+        "road_reason": {
+          "delta_nonpositive": 1
+        },
+        "rail_clamp": {
+          "rail_max": 1
+        },
+        "rail_model": {
+          "crossing": 1
+        },
+        "rail_bound": {
+          "v294": 1
+        }
+      },
+      "causes": {
+        "road_reason": {
+          "delta_nonpositive": 1
+        },
+        "rail_clamp": {
+          "rail_max": 1
+        }
+      },
+      "road_raw_unavailable": 1,
+      "rail_road_floor_applied": 0,
+      "rail_map_cap_applied": 0,
+      "rail_raw_above_max": 1,
+      "rail_raw_equal_max": 0,
+      "road_raw_known": {
+        "n": 0
+      },
+      "values": {
+        "road_raw": {
+          "n": 1,
+          "min": -1,
+          "max": -1,
+          "mean": -1,
+          "median": -1
+        },
+        "road_delta": {
+          "n": 1,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0
+        },
+        "road_num": {
+          "n": 1,
+          "min": 28418,
+          "max": 28418,
+          "mean": 28418,
+          "median": 28418
+        },
+        "road_denom": {
+          "n": 1,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0
+        },
+        "road_M": {
+          "n": 1,
+          "min": 119,
+          "max": 119,
+          "mean": 119,
+          "median": 119
+        },
+        "rail_raw": {
+          "n": 1,
+          "min": 439,
+          "max": 439,
+          "mean": 439,
+          "median": 439
+        },
+        "rail_source": {
+          "n": 1,
+          "min": 200,
+          "max": 200,
+          "mean": 200,
+          "median": 200
+        },
+        "rail_road_floor": {
+          "n": 1,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0
+        },
+        "rail_map_cap": {
+          "n": 1,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0
+        },
+        "rail_max": {
+          "n": 1,
+          "min": 200,
+          "max": 200,
+          "mean": 200,
+          "median": 200
+        },
+        "rail_raw_minus_max": {
+          "n": 1,
+          "min": 239,
+          "max": 239,
+          "mean": 239,
+          "median": 239
+        },
+        "rail_source_minus_max": {
+          "n": 1,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0
+        },
+        "air_div": {
+          "n": 1,
+          "min": 4.0,
+          "max": 4.0,
+          "mean": 4.0,
+          "median": 4.0
+        },
+        "rail_tau100": {
+          "n": 1,
+          "min": 29,
+          "max": 29,
+          "mean": 29,
+          "median": 29
+        },
+        "air_tau100": {
+          "n": 1,
+          "min": 23,
+          "max": 23,
+          "mean": 23,
+          "median": 23
+        },
+        "rail_tau_gap100": {
+          "n": 1,
+          "min": 6,
+          "max": 6,
+          "mean": 6,
+          "median": 6
+        },
+        "rail_dwell100": {
+          "n": 1,
+          "min": 864,
+          "max": 864,
+          "mean": 864,
+          "median": 864
+        },
+        "air_fixed100": {
+          "n": 1,
+          "min": 2619,
+          "max": 2619,
+          "mean": 2619,
+          "median": 2619
+        }
+      }
+    },
+    {
+      "run": "reference:r0",
+      "seed": 999,
+      "year": 1972,
+      "n": 1,
+      "distinct_dates": 1,
+      "first_date": "1972-01-01",
+      "last_date": "1972-01-01",
+      "motives": {
+        "road_reason": {
+          "delta_nonpositive": 1
+        },
+        "rail_clamp": {
+          "rail_max": 1
+        },
+        "rail_model": {
+          "crossing": 1
+        },
+        "rail_bound": {
+          "v294": 1
+        }
+      },
+      "causes": {
+        "road_reason": {
+          "delta_nonpositive": 1
+        },
+        "rail_clamp": {
+          "rail_max": 1
+        }
+      },
+      "road_raw_unavailable": 1,
+      "rail_road_floor_applied": 0,
+      "rail_map_cap_applied": 0,
+      "rail_raw_above_max": 1,
+      "rail_raw_equal_max": 0,
+      "road_raw_known": {
+        "n": 0
+      },
+      "values": {
+        "road_raw": {
+          "n": 1,
+          "min": -1,
+          "max": -1,
+          "mean": -1,
+          "median": -1
+        },
+        "road_delta": {
+          "n": 1,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0
+        },
+        "road_num": {
+          "n": 1,
+          "min": 28418,
+          "max": 28418,
+          "mean": 28418,
+          "median": 28418
+        },
+        "road_denom": {
+          "n": 1,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0
+        },
+        "road_M": {
+          "n": 1,
+          "min": 139,
+          "max": 139,
+          "mean": 139,
+          "median": 139
+        },
+        "rail_raw": {
+          "n": 1,
+          "min": 439,
+          "max": 439,
+          "mean": 439,
+          "median": 439
+        },
+        "rail_source": {
+          "n": 1,
+          "min": 200,
+          "max": 200,
+          "mean": 200,
+          "median": 200
+        },
+        "rail_road_floor": {
+          "n": 1,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0
+        },
+        "rail_map_cap": {
+          "n": 1,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0
+        },
+        "rail_max": {
+          "n": 1,
+          "min": 200,
+          "max": 200,
+          "mean": 200,
+          "median": 200
+        },
+        "rail_raw_minus_max": {
+          "n": 1,
+          "min": 239,
+          "max": 239,
+          "mean": 239,
+          "median": 239
+        },
+        "rail_source_minus_max": {
+          "n": 1,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0
+        },
+        "air_div": {
+          "n": 1,
+          "min": 4.0,
+          "max": 4.0,
+          "mean": 4.0,
+          "median": 4.0
+        },
+        "rail_tau100": {
+          "n": 1,
+          "min": 29,
+          "max": 29,
+          "mean": 29,
+          "median": 29
+        },
+        "air_tau100": {
+          "n": 1,
+          "min": 23,
+          "max": 23,
+          "mean": 23,
+          "median": 23
+        },
+        "rail_tau_gap100": {
+          "n": 1,
+          "min": 6,
+          "max": 6,
+          "mean": 6,
+          "median": 6
+        },
+        "rail_dwell100": {
+          "n": 1,
+          "min": 864,
+          "max": 864,
+          "mean": 864,
+          "median": 864
+        },
+        "air_fixed100": {
+          "n": 1,
+          "min": 2619,
+          "max": 2619,
+          "mean": 2619,
+          "median": 2619
+        }
+      }
+    },
+    {
+      "run": "reference:r0",
+      "seed": 999,
+      "year": 1973,
+      "n": 2,
+      "distinct_dates": 2,
+      "first_date": "1973-02-05",
+      "last_date": "1973-02-22",
+      "motives": {
+        "road_reason": {
+          "delta_nonpositive": 2
+        },
+        "rail_clamp": {
+          "rail_max": 2
+        },
+        "rail_model": {
+          "crossing": 2
+        },
+        "rail_bound": {
+          "v294": 2
+        }
+      },
+      "causes": {
+        "road_reason": {
+          "delta_nonpositive": 2
+        },
+        "rail_clamp": {
+          "rail_max": 2
+        }
+      },
+      "road_raw_unavailable": 2,
+      "rail_road_floor_applied": 0,
+      "rail_map_cap_applied": 0,
+      "rail_raw_above_max": 2,
+      "rail_raw_equal_max": 0,
+      "road_raw_known": {
+        "n": 0
+      },
+      "values": {
+        "road_raw": {
+          "n": 2,
+          "min": -1,
+          "max": -1,
+          "mean": -1,
+          "median": -1.0
+        },
+        "road_delta": {
+          "n": 2,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0.0
+        },
+        "road_num": {
+          "n": 2,
+          "min": 28418,
+          "max": 28418,
+          "mean": 28418,
+          "median": 28418.0
+        },
+        "road_denom": {
+          "n": 2,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0.0
+        },
+        "road_M": {
+          "n": 2,
+          "min": 131,
+          "max": 131,
+          "mean": 131,
+          "median": 131.0
+        },
+        "rail_raw": {
+          "n": 2,
+          "min": 439,
+          "max": 439,
+          "mean": 439,
+          "median": 439.0
+        },
+        "rail_source": {
+          "n": 2,
+          "min": 200,
+          "max": 200,
+          "mean": 200,
+          "median": 200.0
+        },
+        "rail_road_floor": {
+          "n": 2,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0.0
+        },
+        "rail_map_cap": {
+          "n": 2,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0.0
+        },
+        "rail_max": {
+          "n": 2,
+          "min": 200,
+          "max": 200,
+          "mean": 200,
+          "median": 200.0
+        },
+        "rail_raw_minus_max": {
+          "n": 2,
+          "min": 239,
+          "max": 239,
+          "mean": 239,
+          "median": 239.0
+        },
+        "rail_source_minus_max": {
+          "n": 2,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0.0
+        },
+        "air_div": {
+          "n": 2,
+          "min": 4.0,
+          "max": 4.0,
+          "mean": 4.0,
+          "median": 4.0
+        },
+        "rail_tau100": {
+          "n": 2,
+          "min": 29,
+          "max": 29,
+          "mean": 29,
+          "median": 29.0
+        },
+        "air_tau100": {
+          "n": 2,
+          "min": 23,
+          "max": 23,
+          "mean": 23,
+          "median": 23.0
+        },
+        "rail_tau_gap100": {
+          "n": 2,
+          "min": 6,
+          "max": 6,
+          "mean": 6,
+          "median": 6.0
+        },
+        "rail_dwell100": {
+          "n": 2,
+          "min": 864,
+          "max": 864,
+          "mean": 864,
+          "median": 864.0
+        },
+        "air_fixed100": {
+          "n": 2,
+          "min": 2619,
+          "max": 2619,
+          "mean": 2619,
+          "median": 2619.0
+        }
+      }
+    },
+    {
+      "run": "reference:r0",
+      "seed": 2026,
+      "year": 1970,
+      "n": 1,
+      "distinct_dates": 1,
+      "first_date": "1970-01-02",
+      "last_date": "1970-01-02",
+      "motives": {
+        "road_reason": {
+          "delta_nonpositive": 1
+        },
+        "rail_clamp": {
+          "rail_max": 1
+        },
+        "rail_model": {
+          "crossing": 1
+        },
+        "rail_bound": {
+          "v294": 1
+        }
+      },
+      "causes": {
+        "road_reason": {
+          "delta_nonpositive": 1
+        },
+        "rail_clamp": {
+          "rail_max": 1
+        }
+      },
+      "road_raw_unavailable": 1,
+      "rail_road_floor_applied": 0,
+      "rail_map_cap_applied": 0,
+      "rail_raw_above_max": 1,
+      "rail_raw_equal_max": 0,
+      "road_raw_known": {
+        "n": 0
+      },
+      "values": {
+        "road_raw": {
+          "n": 1,
+          "min": -1,
+          "max": -1,
+          "mean": -1,
+          "median": -1
+        },
+        "road_delta": {
+          "n": 1,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0
+        },
+        "road_num": {
+          "n": 1,
+          "min": 28418,
+          "max": 28418,
+          "mean": 28418,
+          "median": 28418
+        },
+        "road_denom": {
+          "n": 1,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0
+        },
+        "road_M": {
+          "n": 1,
+          "min": 110,
+          "max": 110,
+          "mean": 110,
+          "median": 110
+        },
+        "rail_raw": {
+          "n": 1,
+          "min": 439,
+          "max": 439,
+          "mean": 439,
+          "median": 439
+        },
+        "rail_source": {
+          "n": 1,
+          "min": 200,
+          "max": 200,
+          "mean": 200,
+          "median": 200
+        },
+        "rail_road_floor": {
+          "n": 1,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0
+        },
+        "rail_map_cap": {
+          "n": 1,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0
+        },
+        "rail_max": {
+          "n": 1,
+          "min": 200,
+          "max": 200,
+          "mean": 200,
+          "median": 200
+        },
+        "rail_raw_minus_max": {
+          "n": 1,
+          "min": 239,
+          "max": 239,
+          "mean": 239,
+          "median": 239
+        },
+        "rail_source_minus_max": {
+          "n": 1,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0
+        },
+        "air_div": {
+          "n": 1,
+          "min": 4.0,
+          "max": 4.0,
+          "mean": 4.0,
+          "median": 4.0
+        },
+        "rail_tau100": {
+          "n": 1,
+          "min": 29,
+          "max": 29,
+          "mean": 29,
+          "median": 29
+        },
+        "air_tau100": {
+          "n": 1,
+          "min": 23,
+          "max": 23,
+          "mean": 23,
+          "median": 23
+        },
+        "rail_tau_gap100": {
+          "n": 1,
+          "min": 6,
+          "max": 6,
+          "mean": 6,
+          "median": 6
+        },
+        "rail_dwell100": {
+          "n": 1,
+          "min": 864,
+          "max": 864,
+          "mean": 864,
+          "median": 864
+        },
+        "air_fixed100": {
+          "n": 1,
+          "min": 2619,
+          "max": 2619,
+          "mean": 2619,
+          "median": 2619
+        }
+      }
+    },
+    {
+      "run": "reference:r0",
+      "seed": 2026,
+      "year": 1972,
+      "n": 1,
+      "distinct_dates": 1,
+      "first_date": "1972-01-13",
+      "last_date": "1972-01-13",
+      "motives": {
+        "road_reason": {
+          "delta_nonpositive": 1
+        },
+        "rail_clamp": {
+          "rail_max": 1
+        },
+        "rail_model": {
+          "crossing": 1
+        },
+        "rail_bound": {
+          "v294": 1
+        }
+      },
+      "causes": {
+        "road_reason": {
+          "delta_nonpositive": 1
+        },
+        "rail_clamp": {
+          "rail_max": 1
+        }
+      },
+      "road_raw_unavailable": 1,
+      "rail_road_floor_applied": 0,
+      "rail_map_cap_applied": 0,
+      "rail_raw_above_max": 1,
+      "rail_raw_equal_max": 0,
+      "road_raw_known": {
+        "n": 0
+      },
+      "values": {
+        "road_raw": {
+          "n": 1,
+          "min": -1,
+          "max": -1,
+          "mean": -1,
+          "median": -1
+        },
+        "road_delta": {
+          "n": 1,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0
+        },
+        "road_num": {
+          "n": 1,
+          "min": 28418,
+          "max": 28418,
+          "mean": 28418,
+          "median": 28418
+        },
+        "road_denom": {
+          "n": 1,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0
+        },
+        "road_M": {
+          "n": 1,
+          "min": 134,
+          "max": 134,
+          "mean": 134,
+          "median": 134
+        },
+        "rail_raw": {
+          "n": 1,
+          "min": 439,
+          "max": 439,
+          "mean": 439,
+          "median": 439
+        },
+        "rail_source": {
+          "n": 1,
+          "min": 200,
+          "max": 200,
+          "mean": 200,
+          "median": 200
+        },
+        "rail_road_floor": {
+          "n": 1,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0
+        },
+        "rail_map_cap": {
+          "n": 1,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0
+        },
+        "rail_max": {
+          "n": 1,
+          "min": 200,
+          "max": 200,
+          "mean": 200,
+          "median": 200
+        },
+        "rail_raw_minus_max": {
+          "n": 1,
+          "min": 239,
+          "max": 239,
+          "mean": 239,
+          "median": 239
+        },
+        "rail_source_minus_max": {
+          "n": 1,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0
+        },
+        "air_div": {
+          "n": 1,
+          "min": 4.0,
+          "max": 4.0,
+          "mean": 4.0,
+          "median": 4.0
+        },
+        "rail_tau100": {
+          "n": 1,
+          "min": 29,
+          "max": 29,
+          "mean": 29,
+          "median": 29
+        },
+        "air_tau100": {
+          "n": 1,
+          "min": 23,
+          "max": 23,
+          "mean": 23,
+          "median": 23
+        },
+        "rail_tau_gap100": {
+          "n": 1,
+          "min": 6,
+          "max": 6,
+          "mean": 6,
+          "median": 6
+        },
+        "rail_dwell100": {
+          "n": 1,
+          "min": 864,
+          "max": 864,
+          "mean": 864,
+          "median": 864
+        },
+        "air_fixed100": {
+          "n": 1,
+          "min": 2619,
+          "max": 2619,
+          "mean": 2619,
+          "median": 2619
+        }
+      }
+    },
+    {
+      "run": "reference:r0",
+      "seed": 2026,
+      "year": 1973,
+      "n": 2,
+      "distinct_dates": 2,
+      "first_date": "1973-01-31",
+      "last_date": "1973-03-30",
+      "motives": {
+        "road_reason": {
+          "delta_nonpositive": 2
+        },
+        "rail_clamp": {
+          "rail_max": 2
+        },
+        "rail_model": {
+          "crossing": 2
+        },
+        "rail_bound": {
+          "v294": 2
+        }
+      },
+      "causes": {
+        "road_reason": {
+          "delta_nonpositive": 2
+        },
+        "rail_clamp": {
+          "rail_max": 2
+        }
+      },
+      "road_raw_unavailable": 2,
+      "rail_road_floor_applied": 0,
+      "rail_map_cap_applied": 0,
+      "rail_raw_above_max": 2,
+      "rail_raw_equal_max": 0,
+      "road_raw_known": {
+        "n": 0
+      },
+      "values": {
+        "road_raw": {
+          "n": 2,
+          "min": -1,
+          "max": -1,
+          "mean": -1,
+          "median": -1.0
+        },
+        "road_delta": {
+          "n": 2,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0.0
+        },
+        "road_num": {
+          "n": 2,
+          "min": 28418,
+          "max": 28418,
+          "mean": 28418,
+          "median": 28418.0
+        },
+        "road_denom": {
+          "n": 2,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0.0
+        },
+        "road_M": {
+          "n": 2,
+          "min": 120,
+          "max": 133,
+          "mean": 126.5,
+          "median": 126.5
+        },
+        "rail_raw": {
+          "n": 2,
+          "min": 439,
+          "max": 439,
+          "mean": 439,
+          "median": 439.0
+        },
+        "rail_source": {
+          "n": 2,
+          "min": 200,
+          "max": 200,
+          "mean": 200,
+          "median": 200.0
+        },
+        "rail_road_floor": {
+          "n": 2,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0.0
+        },
+        "rail_map_cap": {
+          "n": 2,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0.0
+        },
+        "rail_max": {
+          "n": 2,
+          "min": 200,
+          "max": 200,
+          "mean": 200,
+          "median": 200.0
+        },
+        "rail_raw_minus_max": {
+          "n": 2,
+          "min": 239,
+          "max": 239,
+          "mean": 239,
+          "median": 239.0
+        },
+        "rail_source_minus_max": {
+          "n": 2,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0.0
+        },
+        "air_div": {
+          "n": 2,
+          "min": 4.0,
+          "max": 4.0,
+          "mean": 4.0,
+          "median": 4.0
+        },
+        "rail_tau100": {
+          "n": 2,
+          "min": 29,
+          "max": 29,
+          "mean": 29,
+          "median": 29.0
+        },
+        "air_tau100": {
+          "n": 2,
+          "min": 23,
+          "max": 23,
+          "mean": 23,
+          "median": 23.0
+        },
+        "rail_tau_gap100": {
+          "n": 2,
+          "min": 6,
+          "max": 6,
+          "mean": 6,
+          "median": 6.0
+        },
+        "rail_dwell100": {
+          "n": 2,
+          "min": 864,
+          "max": 864,
+          "mean": 864,
+          "median": 864.0
+        },
+        "air_fixed100": {
+          "n": 2,
+          "min": 2619,
+          "max": 2619,
+          "mean": 2619,
+          "median": 2619.0
+        }
+      }
+    },
+    {
+      "run": "reference:r0",
+      "seed": 2026,
+      "year": 1974,
+      "n": 1,
+      "distinct_dates": 1,
+      "first_date": "1974-09-01",
+      "last_date": "1974-09-01",
+      "motives": {
+        "road_reason": {
+          "delta_nonpositive": 1
+        },
+        "rail_clamp": {
+          "rail_max": 1
+        },
+        "rail_model": {
+          "crossing": 1
+        },
+        "rail_bound": {
+          "v294": 1
+        }
+      },
+      "causes": {
+        "road_reason": {
+          "delta_nonpositive": 1
+        },
+        "rail_clamp": {
+          "rail_max": 1
+        }
+      },
+      "road_raw_unavailable": 1,
+      "rail_road_floor_applied": 0,
+      "rail_map_cap_applied": 0,
+      "rail_raw_above_max": 1,
+      "rail_raw_equal_max": 0,
+      "road_raw_known": {
+        "n": 0
+      },
+      "values": {
+        "road_raw": {
+          "n": 1,
+          "min": -1,
+          "max": -1,
+          "mean": -1,
+          "median": -1
+        },
+        "road_delta": {
+          "n": 1,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0
+        },
+        "road_num": {
+          "n": 1,
+          "min": 28418,
+          "max": 28418,
+          "mean": 28418,
+          "median": 28418
+        },
+        "road_denom": {
+          "n": 1,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0
+        },
+        "road_M": {
+          "n": 1,
+          "min": 149,
+          "max": 149,
+          "mean": 149,
+          "median": 149
+        },
+        "rail_raw": {
+          "n": 1,
+          "min": 439,
+          "max": 439,
+          "mean": 439,
+          "median": 439
+        },
+        "rail_source": {
+          "n": 1,
+          "min": 200,
+          "max": 200,
+          "mean": 200,
+          "median": 200
+        },
+        "rail_road_floor": {
+          "n": 1,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0
+        },
+        "rail_map_cap": {
+          "n": 1,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0
+        },
+        "rail_max": {
+          "n": 1,
+          "min": 200,
+          "max": 200,
+          "mean": 200,
+          "median": 200
+        },
+        "rail_raw_minus_max": {
+          "n": 1,
+          "min": 239,
+          "max": 239,
+          "mean": 239,
+          "median": 239
+        },
+        "rail_source_minus_max": {
+          "n": 1,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "median": 0
+        },
+        "air_div": {
+          "n": 1,
+          "min": 4.0,
+          "max": 4.0,
+          "mean": 4.0,
+          "median": 4.0
+        },
+        "rail_tau100": {
+          "n": 1,
+          "min": 29,
+          "max": 29,
+          "mean": 29,
+          "median": 29
+        },
+        "air_tau100": {
+          "n": 1,
+          "min": 23,
+          "max": 23,
+          "mean": 23,
+          "median": 23
+        },
+        "rail_tau_gap100": {
+          "n": 1,
+          "min": 6,
+          "max": 6,
+          "mean": 6,
+          "median": 6
+        },
+        "rail_dwell100": {
+          "n": 1,
+          "min": 864,
+          "max": 864,
+          "mean": 864,
+          "median": 864
+        },
+        "air_fixed100": {
+          "n": 1,
+          "min": 2619,
+          "max": 2619,
+          "mean": 2619,
+          "median": 2619
+        }
+      }
+    }
+  ],
+  "overall": {
+    "n": 40,
+    "distinct_dates": 33,
+    "first_date": "1970-01-02",
+    "last_date": "1974-12-08",
+    "motives": {
+      "road_reason": {
+        "delta_nonpositive": 40
+      },
+      "rail_clamp": {
+        "rail_max": 40
+      },
+      "rail_model": {
+        "crossing": 40
+      },
+      "rail_bound": {
+        "v294": 40
+      }
+    },
+    "causes": {
+      "road_reason": {
+        "delta_nonpositive": 40
+      },
+      "rail_clamp": {
+        "rail_max": 40
+      }
+    },
+    "road_raw_unavailable": 40,
+    "rail_road_floor_applied": 0,
+    "rail_map_cap_applied": 0,
+    "rail_raw_above_max": 40,
+    "rail_raw_equal_max": 0,
+    "road_raw_known": {
+      "n": 0
+    },
+    "values": {
+      "road_raw": {
+        "n": 40,
+        "min": -1,
+        "max": -1,
+        "mean": -1,
+        "median": -1.0
+      },
+      "road_delta": {
+        "n": 40,
+        "min": 0,
+        "max": 0,
+        "mean": 0,
+        "median": 0.0
+      },
+      "road_num": {
+        "n": 40,
+        "min": 28418,
+        "max": 28418,
+        "mean": 28418,
+        "median": 28418.0
+      },
+      "road_denom": {
+        "n": 40,
+        "min": 0,
+        "max": 0,
+        "mean": 0,
+        "median": 0.0
+      },
+      "road_M": {
+        "n": 40,
+        "min": 80,
+        "max": 159,
+        "mean": 116.525,
+        "median": 109.0
+      },
+      "rail_raw": {
+        "n": 40,
+        "min": 439,
+        "max": 439,
+        "mean": 439,
+        "median": 439.0
+      },
+      "rail_source": {
+        "n": 40,
+        "min": 200,
+        "max": 200,
+        "mean": 200,
+        "median": 200.0
+      },
+      "rail_road_floor": {
+        "n": 40,
+        "min": 0,
+        "max": 0,
+        "mean": 0,
+        "median": 0.0
+      },
+      "rail_map_cap": {
+        "n": 40,
+        "min": 0,
+        "max": 0,
+        "mean": 0,
+        "median": 0.0
+      },
+      "rail_max": {
+        "n": 40,
+        "min": 200,
+        "max": 200,
+        "mean": 200,
+        "median": 200.0
+      },
+      "rail_raw_minus_max": {
+        "n": 40,
+        "min": 239,
+        "max": 239,
+        "mean": 239,
+        "median": 239.0
+      },
+      "rail_source_minus_max": {
+        "n": 40,
+        "min": 0,
+        "max": 0,
+        "mean": 0,
+        "median": 0.0
+      },
+      "air_div": {
+        "n": 40,
+        "min": 4.0,
+        "max": 4.0,
+        "mean": 4.0,
+        "median": 4.0
+      },
+      "rail_tau100": {
+        "n": 40,
+        "min": 29,
+        "max": 29,
+        "mean": 29,
+        "median": 29.0
+      },
+      "air_tau100": {
+        "n": 40,
+        "min": 23,
+        "max": 23,
+        "mean": 23,
+        "median": 23.0
+      },
+      "rail_tau_gap100": {
+        "n": 40,
+        "min": 6,
+        "max": 6,
+        "mean": 6,
+        "median": 6.0
+      },
+      "rail_dwell100": {
+        "n": 40,
+        "min": 864,
+        "max": 864,
+        "mean": 864,
+        "median": 864.0
+      },
+      "air_fixed100": {
+        "n": 40,
+        "min": 2619,
+        "max": 2619,
+        "mean": 2619,
+        "median": 2619.0
+      }
+    }
+  },
+  "issues": [
+    {
+      "file": "C:\\Users\\jr\\vscode\\openttd-ml\\openttd-ml\\.worktrees\\nuit75-front-pax1\\results\\nuit75_frontpax1_diag_5x5_20261025_engine\\reference_seed100_r0.log",
+      "line": 24308,
+      "code": "duplicate_event",
+      "detail": "exact repeated run/seed/date/payload"
+    },
+    {
+      "file": "C:\\Users\\jr\\vscode\\openttd-ml\\openttd-ml\\.worktrees\\nuit75-front-pax1\\results\\nuit75_frontpax1_diag_5x5_20261025_engine\\reference_seed2026_r0.log",
+      "line": 15310,
+      "code": "duplicate_event",
+      "detail": "exact repeated run/seed/date/payload"
+    },
+    {
+      "file": "C:\\Users\\jr\\vscode\\openttd-ml\\openttd-ml\\.worktrees\\nuit75-front-pax1\\results\\nuit75_frontpax1_diag_5x5_20261025_engine\\reference_seed2026_r0.log",
+      "line": 32623,
+      "code": "duplicate_event",
+      "detail": "exact repeated run/seed/date/payload"
+    },
+    {
+      "file": "C:\\Users\\jr\\vscode\\openttd-ml\\openttd-ml\\.worktrees\\nuit75-front-pax1\\results\\nuit75_frontpax1_diag_5x5_20261025_engine\\reference_seed7_r0.log",
+      "line": 30535,
+      "code": "duplicate_event",
+      "detail": "exact repeated run/seed/date/payload"
+    },
+    {
+      "file": "C:\\Users\\jr\\vscode\\openttd-ml\\openttd-ml\\.worktrees\\nuit75-front-pax1\\results\\nuit75_frontpax1_diag_5x5_20261025_engine\\reference_seed999_r0.log",
+      "line": 26355,
+      "code": "duplicate_event",
+      "detail": "exact repeated run/seed/date/payload"
+    }
+  ],
+  "issues_truncated": 0,
+  "campaign_health": {
+    "source": "nuit75_frontpax1_diag_5x5_20261025.json",
+    "games": 5,
+    "games_complete": 5,
+    "company_summaries": 10,
+    "run_ok": 10,
+    "script_errors": 0,
+    "unattributed_errors": 0,
+    "failed_runs": 0,
+    "opex_opcodes_observed_total": 239435971,
+    "opex_opcodes_observed_mean_per_game": 47887194,
+    "opex_opcodes_observed_samples": 1152,
+    "opex_opcode_complete_cpu": false,
+    "opex_observed_components": {
+      "selection": {
+        "observed_opcodes": 13883000,
+        "observed_samples": 615,
+        "share_of_observed_pct": 5.798
+      },
+      "rail_attempt": {
+        "observed_opcodes": 167318286,
+        "observed_samples": 163,
+        "share_of_observed_pct": 69.88
+      },
+      "road_planning": {
+        "observed_opcodes": 25725060,
+        "observed_samples": 71,
+        "share_of_observed_pct": 10.744
+      },
+      "road_build": {
+        "observed_opcodes": 2649451,
+        "observed_samples": 71,
+        "share_of_observed_pct": 1.107
+      },
+      "air_planning": {
+        "observed_opcodes": 29860174,
+        "observed_samples": 232,
+        "share_of_observed_pct": 12.471
+      },
+      "water_planning": {
+        "observed_opcodes": 0,
+        "observed_samples": 0,
+        "share_of_observed_pct": 0.0
+      }
+    },
+    "opex_by_seed": [
+      {
+        "seed": 7,
+        "observed_opcodes": 46340233,
+        "opcode_samples": 213,
+        "complete_cpu": false
+      },
+      {
+        "seed": 42,
+        "observed_opcodes": 33767754,
+        "opcode_samples": 225,
+        "complete_cpu": false
+      },
+      {
+        "seed": 100,
+        "observed_opcodes": 51131923,
+        "opcode_samples": 268,
+        "complete_cpu": false
+      },
+      {
+        "seed": 999,
+        "observed_opcodes": 49670581,
+        "opcode_samples": 222,
+        "complete_cpu": false
+      },
+      {
+        "seed": 2026,
+        "observed_opcodes": 58525480,
+        "opcode_samples": 224,
+        "complete_cpu": false
+      }
+    ],
+    "opex_mean_profit_year": 2948112,
+    "aaa_mean_profit_year": 2907548,
+    "note": "Observed opcode components only (h5.observed-v1); not full CPU or probe overhead."
+  },
+  "strict_validation": {
+    "command_exit_code": 0,
+    "result": "pass_with_nonfatal_exact_duplicate_refreshes",
+    "duplicate_count": 5,
+    "parse_error_count": 0,
+    "duplicate_inference_limit": "identical same-day payloads may be separate refreshes; no tick/refresh id"
+  }
+}

@@ -8,6 +8,7 @@ cargos). Aucun achat, aucun nouveau reglage public, aucun GetSetting nouveau.
 from pathlib import Path
 import re
 import unittest
+from n75_mc_legacy import historical_info
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -42,7 +43,7 @@ class TestV251Inventory(unittest.TestCase):
         cls.labels = _function_body(cls.probes, "OpexV251CargoLabels")
 
     def test_no_new_public_setting(self):
-        info = self.sources["info.nut"]
+        info = historical_info(self.sources["info.nut"])
         # Migration controlee de 43 options historiques ; conserver
         # PO01C=1, PO03/C77=2 et PO02=1. Pas d'ajout WIP experimental.
         self.assertLessEqual(info.count("AddSetting("), 58)

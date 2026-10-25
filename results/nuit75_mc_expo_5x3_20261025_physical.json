@@ -1,0 +1,1179 @@
+﻿{
+  "campaign": "nuit75_mc_expo_5x3_20261025",
+  "year": 1972,
+  "seeds": [
+    7,
+    42,
+    100,
+    999,
+    2026
+  ],
+  "per_seed": [
+    {
+      "seed": 7,
+      "off_rail": 14,
+      "on_rail": 21,
+      "added_rail": [
+        {
+          "line": "47",
+          "pred_profit": 48885,
+          "cost": 76357,
+          "src": "25689",
+          "dst": "30662",
+          "cargo": "COAL"
+        },
+        {
+          "line": "46",
+          "pred_profit": 30810,
+          "cost": 62338,
+          "src": "3858",
+          "dst": "8079",
+          "cargo": "COAL"
+        },
+        {
+          "line": "45",
+          "pred_profit": 55921,
+          "cost": 67802,
+          "src": "46222",
+          "dst": "18249",
+          "cargo": "COAL"
+        },
+        {
+          "line": "65",
+          "pred_profit": 17018,
+          "cost": 103602,
+          "src": "14158",
+          "dst": "2263",
+          "cargo": "GRAI"
+        },
+        {
+          "line": "62",
+          "pred_profit": 9903,
+          "cost": 127173,
+          "src": "20356",
+          "dst": "58497",
+          "cargo": "GRAI"
+        },
+        {
+          "line": "63",
+          "pred_profit": 16166,
+          "cost": 89775,
+          "src": "45490",
+          "dst": "16270",
+          "cargo": "GRAI"
+        },
+        {
+          "line": "58",
+          "pred_profit": 34888,
+          "cost": 56690,
+          "src": "10277",
+          "dst": "37146",
+          "cargo": "IORE"
+        },
+        {
+          "line": "57",
+          "pred_profit": 37939,
+          "cost": 73711,
+          "src": "8278",
+          "dst": "37146",
+          "cargo": "IORE"
+        },
+        {
+          "line": "68",
+          "pred_profit": 21315,
+          "cost": 57944,
+          "src": "19603",
+          "dst": "7289",
+          "cargo": "OIL_"
+        },
+        {
+          "line": "67",
+          "pred_profit": 33810,
+          "cost": 75835,
+          "src": "27808",
+          "dst": "46570",
+          "cargo": "OIL_"
+        },
+        {
+          "line": "66",
+          "pred_profit": 36108,
+          "cost": 90707,
+          "src": "33495",
+          "dst": "7289",
+          "cargo": "OIL_"
+        },
+        {
+          "line": "49",
+          "pred_profit": 51425,
+          "cost": 60984,
+          "src": "44048",
+          "dst": "25661",
+          "cargo": "STEL"
+        },
+        {
+          "line": "54",
+          "pred_profit": 26296,
+          "cost": 80671,
+          "src": "20284",
+          "dst": "15789",
+          "cargo": "WOOD"
+        },
+        {
+          "line": "56",
+          "pred_profit": 29607,
+          "cost": 58137,
+          "src": "63122",
+          "dst": "58909",
+          "cargo": "WOOD"
+        }
+      ],
+      "lost_rail": [
+        {
+          "line": "47",
+          "pred_profit": 43293,
+          "cost": 73891,
+          "src": "25689",
+          "dst": "2655",
+          "cargo": "COAL"
+        },
+        {
+          "line": "50",
+          "pred_profit": 21111,
+          "cost": 52183,
+          "src": "3858",
+          "dst": "2655",
+          "cargo": "COAL"
+        },
+        {
+          "line": "46",
+          "pred_profit": 68911,
+          "cost": 105032,
+          "src": "46222",
+          "dst": "8079",
+          "cargo": "COAL"
+        },
+        {
+          "line": "57",
+          "pred_profit": 3582,
+          "cost": 42323,
+          "src": "39317",
+          "dst": "48244",
+          "cargo": "PASS"
+        },
+        {
+          "line": "52",
+          "pred_profit": 53576,
+          "cost": 93169,
+          "src": "44048",
+          "dst": "54684",
+          "cargo": "STEL"
+        },
+        {
+          "line": "54",
+          "pred_profit": 35403,
+          "cost": 50231,
+          "src": "20284",
+          "dst": "36176",
+          "cargo": "WOOD"
+        },
+        {
+          "line": "56",
+          "pred_profit": 18517,
+          "cost": 77751,
+          "src": "63122",
+          "dst": "36176",
+          "cargo": "WOOD"
+        }
+      ],
+      "off_air": 3,
+      "on_air": 2,
+      "added_air": [
+        {
+          "line": "64",
+          "pred_profit": 41972,
+          "cost": 38964,
+          "src": "54419",
+          "dst": "32783",
+          "cargo": "PASS"
+        },
+        {
+          "line": "50",
+          "pred_profit": 54176,
+          "cost": 38964,
+          "src": "34612",
+          "dst": "50883",
+          "cargo": "PASS"
+        }
+      ],
+      "lost_air": [
+        {
+          "line": "45",
+          "pred_profit": 54692,
+          "cost": 38964,
+          "src": "48525",
+          "dst": "11500",
+          "cargo": "PASS"
+        },
+        {
+          "line": "60",
+          "pred_profit": 106256,
+          "cost": 78387,
+          "src": "59728",
+          "dst": "28080",
+          "cargo": "PASS"
+        },
+        {
+          "line": "44",
+          "pred_profit": 50144,
+          "cost": 38964,
+          "src": "56934",
+          "dst": "7125",
+          "cargo": "PASS"
+        }
+      ],
+      "on_n75_phases": {
+        "refill": 2,
+        "unapplied": 1
+      },
+      "off_n75_phases": {},
+      "refill": 2,
+      "unapplied": 1,
+      "budget_eligible_events": 1,
+      "n75_logged_ops": 762811
+    },
+    {
+      "seed": 42,
+      "off_rail": 13,
+      "on_rail": 17,
+      "added_rail": [
+        {
+          "line": "47",
+          "pred_profit": 20055,
+          "cost": 63966,
+          "src": "37944",
+          "dst": "51600",
+          "cargo": "COAL"
+        },
+        {
+          "line": "48",
+          "pred_profit": 21008,
+          "cost": 56788,
+          "src": "55598",
+          "dst": "22586",
+          "cargo": "GOOD"
+        },
+        {
+          "line": "58",
+          "pred_profit": 10979,
+          "cost": 64687,
+          "src": "39745",
+          "dst": "30336",
+          "cargo": "IORE"
+        },
+        {
+          "line": "63",
+          "pred_profit": 23208,
+          "cost": 85345,
+          "src": "36238",
+          "dst": "61600",
+          "cargo": "OIL_"
+        },
+        {
+          "line": "62",
+          "pred_profit": 13791,
+          "cost": 82952,
+          "src": "51783",
+          "dst": "20255",
+          "cargo": "OIL_"
+        },
+        {
+          "line": "49",
+          "pred_profit": 34312,
+          "cost": 85003,
+          "src": "40752",
+          "dst": "59522",
+          "cargo": "WOOD"
+        },
+        {
+          "line": "50",
+          "pred_profit": 21951,
+          "cost": 94860,
+          "src": "5520",
+          "dst": "37550",
+          "cargo": "WOOD"
+        },
+        {
+          "line": "51",
+          "pred_profit": 21433,
+          "cost": 49183,
+          "src": "63361",
+          "dst": "56143",
+          "cargo": "WOOD"
+        }
+      ],
+      "lost_rail": [
+        {
+          "line": "46",
+          "pred_profit": 31575,
+          "cost": 49855,
+          "src": "37944",
+          "dst": "26996",
+          "cargo": "COAL"
+        },
+        {
+          "line": "55",
+          "pred_profit": 7331,
+          "cost": 42661,
+          "src": "39745",
+          "dst": "40990",
+          "cargo": "IORE"
+        },
+        {
+          "line": "52",
+          "pred_profit": 36763,
+          "cost": 84884,
+          "src": "57983",
+          "dst": "40990",
+          "cargo": "IORE"
+        },
+        {
+          "line": "50",
+          "pred_profit": 3306,
+          "cost": 41253,
+          "src": "33405",
+          "dst": "33442",
+          "cargo": "PASS"
+        }
+      ],
+      "off_air": 2,
+      "on_air": 4,
+      "added_air": [
+        {
+          "line": "52",
+          "pred_profit": 35480,
+          "cost": 38964,
+          "src": "56708",
+          "dst": "20041",
+          "cargo": "PASS"
+        },
+        {
+          "line": "59",
+          "pred_profit": 15090,
+          "cost": 64406,
+          "src": "32963",
+          "dst": "5200",
+          "cargo": "PASS"
+        },
+        {
+          "line": "53",
+          "pred_profit": 64832,
+          "cost": 75559,
+          "src": "44107",
+          "dst": "8348",
+          "cargo": "PASS"
+        },
+        {
+          "line": "65",
+          "pred_profit": 19300,
+          "cost": 73082,
+          "src": "8348",
+          "dst": "54860",
+          "cargo": "PASS"
+        }
+      ],
+      "lost_air": [
+        {
+          "line": "51",
+          "pred_profit": 23612,
+          "cost": 38964,
+          "src": "7810",
+          "dst": "40461",
+          "cargo": "PASS"
+        },
+        {
+          "line": "60",
+          "pred_profit": 105284,
+          "cost": 85528,
+          "src": "52319",
+          "dst": "8348",
+          "cargo": "PASS"
+        }
+      ],
+      "on_n75_phases": {
+        "refill": 3,
+        "unapplied": 1
+      },
+      "off_n75_phases": {},
+      "refill": 3,
+      "unapplied": 1,
+      "budget_eligible_events": 2,
+      "n75_logged_ops": 561620
+    },
+    {
+      "seed": 100,
+      "off_rail": 6,
+      "on_rail": 7,
+      "added_rail": [
+        {
+          "line": "38",
+          "pred_profit": 37937,
+          "cost": 80097,
+          "src": "11388",
+          "dst": "48037",
+          "cargo": "GRAI"
+        },
+        {
+          "line": "41",
+          "pred_profit": 22167,
+          "cost": 73793,
+          "src": "15063",
+          "dst": "31179",
+          "cargo": "GRAI"
+        },
+        {
+          "line": "37",
+          "pred_profit": 37586,
+          "cost": 120686,
+          "src": "56243",
+          "dst": "7600",
+          "cargo": "IORE"
+        },
+        {
+          "line": "43",
+          "pred_profit": 30885,
+          "cost": 74123,
+          "src": "37007",
+          "dst": "59616",
+          "cargo": "OIL_"
+        },
+        {
+          "line": "34",
+          "pred_profit": 56710,
+          "cost": 124675,
+          "src": "40918",
+          "dst": "11399",
+          "cargo": "WOOD"
+        },
+        {
+          "line": "36",
+          "pred_profit": 15649,
+          "cost": 64896,
+          "src": "43817",
+          "dst": "58979",
+          "cargo": "WOOD"
+        },
+        {
+          "line": "35",
+          "pred_profit": 19813,
+          "cost": 46559,
+          "src": "50491",
+          "dst": "58979",
+          "cargo": "WOOD"
+        }
+      ],
+      "lost_rail": [
+        {
+          "line": "29",
+          "pred_profit": 31695,
+          "cost": 55011,
+          "src": "24712",
+          "dst": "29140",
+          "cargo": "COAL"
+        },
+        {
+          "line": "30",
+          "pred_profit": 43441,
+          "cost": 73304,
+          "src": "46958",
+          "dst": "29140",
+          "cargo": "COAL"
+        },
+        {
+          "line": "27",
+          "pred_profit": 28014,
+          "cost": 57871,
+          "src": "11388",
+          "dst": "29583",
+          "cargo": "LVST"
+        },
+        {
+          "line": "28",
+          "pred_profit": 21270,
+          "cost": 59900,
+          "src": "15063",
+          "dst": "31179",
+          "cargo": "LVST"
+        },
+        {
+          "line": "26",
+          "pred_profit": 31229,
+          "cost": 65075,
+          "src": "25132",
+          "dst": "29583",
+          "cargo": "LVST"
+        },
+        {
+          "line": "35",
+          "pred_profit": 62266,
+          "cost": 84916,
+          "src": "40918",
+          "dst": "58979",
+          "cargo": "WOOD"
+        }
+      ],
+      "off_air": 7,
+      "on_air": 8,
+      "added_air": [
+        {
+          "line": "30",
+          "pred_profit": 31329,
+          "cost": 65240,
+          "src": "61075",
+          "dst": "10389",
+          "cargo": "PASS"
+        },
+        {
+          "line": "29",
+          "pred_profit": 62072,
+          "cost": 38964,
+          "src": "12595",
+          "dst": "31179",
+          "cargo": "PASS"
+        },
+        {
+          "line": "40",
+          "pred_profit": 28132,
+          "cost": 57172,
+          "src": "57278",
+          "dst": "15478",
+          "cargo": "PASS"
+        },
+        {
+          "line": "42",
+          "pred_profit": 24149,
+          "cost": 38964,
+          "src": "20546",
+          "dst": "43447",
+          "cargo": "PASS"
+        },
+        {
+          "line": "31",
+          "pred_profit": 28253,
+          "cost": 56229,
+          "src": "20546",
+          "dst": "57278",
+          "cargo": "PASS"
+        },
+        {
+          "line": "33",
+          "pred_profit": 76052,
+          "cost": 114146,
+          "src": "43447",
+          "dst": "9822",
+          "cargo": "PASS"
+        },
+        {
+          "line": "39",
+          "pred_profit": 31291,
+          "cost": 38964,
+          "src": "61075",
+          "dst": "9822",
+          "cargo": "PASS"
+        }
+      ],
+      "lost_air": [
+        {
+          "line": "32",
+          "pred_profit": 50608,
+          "cost": 56349,
+          "src": "38199",
+          "dst": "10389",
+          "cargo": "PASS"
+        },
+        {
+          "line": "33",
+          "pred_profit": 46577,
+          "cost": 56730,
+          "src": "10389",
+          "dst": "53485",
+          "cargo": "PASS"
+        },
+        {
+          "line": "36",
+          "pred_profit": 53996,
+          "cost": 96528,
+          "src": "26430",
+          "dst": "15598",
+          "cargo": "PASS"
+        },
+        {
+          "line": "37",
+          "pred_profit": 55594,
+          "cost": 58829,
+          "src": "53485",
+          "dst": "20546",
+          "cargo": "PASS"
+        },
+        {
+          "line": "31",
+          "pred_profit": 42795,
+          "cost": 56879,
+          "src": "21717",
+          "dst": "61075",
+          "cargo": "PASS"
+        },
+        {
+          "line": "25",
+          "pred_profit": 37839,
+          "cost": 56979,
+          "src": "46572",
+          "dst": "38199",
+          "cargo": "PASS"
+        }
+      ],
+      "on_n75_phases": {},
+      "off_n75_phases": {},
+      "refill": 0,
+      "unapplied": 0,
+      "budget_eligible_events": 0,
+      "n75_logged_ops": 0
+    },
+    {
+      "seed": 999,
+      "off_rail": 12,
+      "on_rail": 17,
+      "added_rail": [
+        {
+          "line": "48",
+          "pred_profit": 44514,
+          "cost": 64665,
+          "src": "21995",
+          "dst": "12239",
+          "cargo": "COAL"
+        },
+        {
+          "line": "46",
+          "pred_profit": 52665,
+          "cost": 62923,
+          "src": "28521",
+          "dst": "26314",
+          "cargo": "COAL"
+        },
+        {
+          "line": "47",
+          "pred_profit": 40561,
+          "cost": 85514,
+          "src": "35547",
+          "dst": "50533",
+          "cargo": "COAL"
+        },
+        {
+          "line": "45",
+          "pred_profit": 53853,
+          "cost": 79093,
+          "src": "5260",
+          "dst": "12239",
+          "cargo": "COAL"
+        },
+        {
+          "line": "44",
+          "pred_profit": 56229,
+          "cost": 52368,
+          "src": "57415",
+          "dst": "60817",
+          "cargo": "COAL"
+        },
+        {
+          "line": "53",
+          "pred_profit": 116382,
+          "cost": 55792,
+          "src": "45452",
+          "dst": "33716",
+          "cargo": "GOOD"
+        },
+        {
+          "line": "65",
+          "pred_profit": 23128,
+          "cost": 84870,
+          "src": "26957",
+          "dst": "58383",
+          "cargo": "IORE"
+        },
+        {
+          "line": "64",
+          "pred_profit": 37773,
+          "cost": 89903,
+          "src": "37357",
+          "dst": "42575",
+          "cargo": "IORE"
+        },
+        {
+          "line": "56",
+          "pred_profit": 25047,
+          "cost": 93214,
+          "src": "15967",
+          "dst": "53889",
+          "cargo": "WOOD"
+        },
+        {
+          "line": "60",
+          "pred_profit": 20907,
+          "cost": 69185,
+          "src": "26982",
+          "dst": "30434",
+          "cargo": "WOOD"
+        },
+        {
+          "line": "54",
+          "pred_profit": 48260,
+          "cost": 82615,
+          "src": "31930",
+          "dst": "55122",
+          "cargo": "WOOD"
+        },
+        {
+          "line": "59",
+          "pred_profit": 21447,
+          "cost": 86221,
+          "src": "35675",
+          "dst": "63256",
+          "cargo": "WOOD"
+        }
+      ],
+      "lost_rail": [
+        {
+          "line": "45",
+          "pred_profit": 69763,
+          "cost": 86838,
+          "src": "21995",
+          "dst": "43953",
+          "cargo": "COAL"
+        },
+        {
+          "line": "47",
+          "pred_profit": 47421,
+          "cost": 52083,
+          "src": "28521",
+          "dst": "50533",
+          "cargo": "COAL"
+        },
+        {
+          "line": "46",
+          "pred_profit": 54657,
+          "cost": 68950,
+          "src": "35547",
+          "dst": "12239",
+          "cargo": "COAL"
+        },
+        {
+          "line": "48",
+          "pred_profit": 48037,
+          "cost": 136637,
+          "src": "5260",
+          "dst": "26314",
+          "cargo": "COAL"
+        },
+        {
+          "line": "49",
+          "pred_profit": 45649,
+          "cost": 80729,
+          "src": "57415",
+          "dst": "43953",
+          "cargo": "COAL"
+        },
+        {
+          "line": "53",
+          "pred_profit": 72412,
+          "cost": 67811,
+          "src": "45452",
+          "dst": "48855",
+          "cargo": "GOOD"
+        },
+        {
+          "line": "55",
+          "pred_profit": 36750,
+          "cost": 80172,
+          "src": "31930",
+          "dst": "59097",
+          "cargo": "WOOD"
+        }
+      ],
+      "off_air": 2,
+      "on_air": 7,
+      "added_air": [
+        {
+          "line": "52",
+          "pred_profit": 37292,
+          "cost": 38964,
+          "src": "14456",
+          "dst": "48418",
+          "cargo": "PASS"
+        },
+        {
+          "line": "42",
+          "pred_profit": 54728,
+          "cost": 38964,
+          "src": "55578",
+          "dst": "14456",
+          "cargo": "PASS"
+        },
+        {
+          "line": "50",
+          "pred_profit": 41228,
+          "cost": 38964,
+          "src": "55578",
+          "dst": "14735",
+          "cargo": "PASS"
+        },
+        {
+          "line": "62",
+          "pred_profit": 62204,
+          "cost": 38964,
+          "src": "15901",
+          "dst": "46198",
+          "cargo": "PASS"
+        },
+        {
+          "line": "61",
+          "pred_profit": 41588,
+          "cost": 38964,
+          "src": "15901",
+          "dst": "60761",
+          "cargo": "PASS"
+        },
+        {
+          "line": "58",
+          "pred_profit": 125912,
+          "cost": 38964,
+          "src": "17981",
+          "dst": "36811",
+          "cargo": "PASS"
+        },
+        {
+          "line": "63",
+          "pred_profit": 39596,
+          "cost": 38964,
+          "src": "58684",
+          "dst": "22204",
+          "cargo": "PASS"
+        }
+      ],
+      "lost_air": [
+        {
+          "line": "50",
+          "pred_profit": 68804,
+          "cost": 38964,
+          "src": "12078",
+          "dst": "46198",
+          "cargo": "PASS"
+        },
+        {
+          "line": "56",
+          "pred_profit": 61880,
+          "cost": 38964,
+          "src": "51371",
+          "dst": "17981",
+          "cargo": "PASS"
+        }
+      ],
+      "on_n75_phases": {
+        "refill": 1
+      },
+      "off_n75_phases": {},
+      "refill": 1,
+      "unapplied": 0,
+      "budget_eligible_events": 1,
+      "n75_logged_ops": 156779
+    },
+    {
+      "seed": 2026,
+      "off_rail": 9,
+      "on_rail": 13,
+      "added_rail": [
+        {
+          "line": "37",
+          "pred_profit": 31338,
+          "cost": 85757,
+          "src": "8778",
+          "dst": "44062",
+          "cargo": "COAL"
+        },
+        {
+          "line": "38",
+          "pred_profit": 110765,
+          "cost": 71997,
+          "src": "61115",
+          "dst": "29653",
+          "cargo": "GOOD"
+        },
+        {
+          "line": "56",
+          "pred_profit": 28022,
+          "cost": 67437,
+          "src": "30054",
+          "dst": "12124",
+          "cargo": "GRAI"
+        },
+        {
+          "line": "55",
+          "pred_profit": 30903,
+          "cost": 80170,
+          "src": "32431",
+          "dst": "12124",
+          "cargo": "GRAI"
+        },
+        {
+          "line": "54",
+          "pred_profit": 21974,
+          "cost": 54688,
+          "src": "14487",
+          "dst": "15180",
+          "cargo": "IORE"
+        },
+        {
+          "line": "53",
+          "pred_profit": 22838,
+          "cost": 61558,
+          "src": "29306",
+          "dst": "15180",
+          "cargo": "IORE"
+        },
+        {
+          "line": "52",
+          "pred_profit": 25915,
+          "cost": 98388,
+          "src": "50232",
+          "dst": "15180",
+          "cargo": "IORE"
+        },
+        {
+          "line": "43",
+          "pred_profit": 31707,
+          "cost": 95871,
+          "src": "30371",
+          "dst": "24111",
+          "cargo": "WOOD"
+        },
+        {
+          "line": "40",
+          "pred_profit": 41610,
+          "cost": 97330,
+          "src": "6810",
+          "dst": "34638",
+          "cargo": "WOOD"
+        },
+        {
+          "line": "44",
+          "pred_profit": 29415,
+          "cost": 68985,
+          "src": "8000",
+          "dst": "24111",
+          "cargo": "WOOD"
+        }
+      ],
+      "lost_rail": [
+        {
+          "line": "42",
+          "pred_profit": 37482,
+          "cost": 71164,
+          "src": "29985",
+          "dst": "4420",
+          "cargo": "COAL"
+        },
+        {
+          "line": "40",
+          "pred_profit": 55567,
+          "cost": 107897,
+          "src": "39110",
+          "dst": "44062",
+          "cargo": "COAL"
+        },
+        {
+          "line": "39",
+          "pred_profit": 52125,
+          "cost": 67141,
+          "src": "56120",
+          "dst": "44062",
+          "cargo": "COAL"
+        },
+        {
+          "line": "43",
+          "pred_profit": 23703,
+          "cost": 57548,
+          "src": "8778",
+          "dst": "2824",
+          "cargo": "COAL"
+        },
+        {
+          "line": "51",
+          "pred_profit": 125020,
+          "cost": 77767,
+          "src": "61115",
+          "dst": "33229",
+          "cargo": "GOOD"
+        },
+        {
+          "line": "52",
+          "pred_profit": 48860,
+          "cost": 75659,
+          "src": "6810",
+          "dst": "26597",
+          "cargo": "WOOD"
+        }
+      ],
+      "off_air": 9,
+      "on_air": 11,
+      "added_air": [
+        {
+          "line": "39",
+          "pred_profit": 99428,
+          "cost": 38964,
+          "src": "46385",
+          "dst": "13546",
+          "cargo": "PASS"
+        },
+        {
+          "line": "48",
+          "pred_profit": 47612,
+          "cost": 38964,
+          "src": "15921",
+          "dst": "49907",
+          "cargo": "PASS"
+        },
+        {
+          "line": "42",
+          "pred_profit": 68648,
+          "cost": 38964,
+          "src": "5583",
+          "dst": "20000",
+          "cargo": "PASS"
+        },
+        {
+          "line": "50",
+          "pred_profit": 46592,
+          "cost": 38964,
+          "src": "30904",
+          "dst": "62042",
+          "cargo": "PASS"
+        },
+        {
+          "line": "49",
+          "pred_profit": 43520,
+          "cost": 38964,
+          "src": "35123",
+          "dst": "5291",
+          "cargo": "PASS"
+        },
+        {
+          "line": "46",
+          "pred_profit": 50492,
+          "cost": 38964,
+          "src": "36001",
+          "dst": "53008",
+          "cargo": "PASS"
+        },
+        {
+          "line": "33",
+          "pred_profit": 17701,
+          "cost": 66384,
+          "src": "7871",
+          "dst": "40222",
+          "cargo": "PASS"
+        },
+        {
+          "line": "51",
+          "pred_profit": 50132,
+          "cost": 38964,
+          "src": "46964",
+          "dst": "7871",
+          "cargo": "PASS"
+        },
+        {
+          "line": "45",
+          "pred_profit": 56672,
+          "cost": 38964,
+          "src": "51422",
+          "dst": "9315",
+          "cargo": "PASS"
+        }
+      ],
+      "lost_air": [
+        {
+          "line": "48",
+          "pred_profit": 24848,
+          "cost": 38964,
+          "src": "17539",
+          "dst": "62042",
+          "cargo": "PASS"
+        },
+        {
+          "line": "50",
+          "pred_profit": 15728,
+          "cost": 38964,
+          "src": "22466",
+          "dst": "40222",
+          "cargo": "PASS"
+        },
+        {
+          "line": "49",
+          "pred_profit": 22028,
+          "cost": 38964,
+          "src": "42515",
+          "dst": "22466",
+          "cargo": "PASS"
+        },
+        {
+          "line": "46",
+          "pred_profit": 32732,
+          "cost": 38964,
+          "src": "37440",
+          "dst": "5291",
+          "cargo": "PASS"
+        },
+        {
+          "line": "38",
+          "pred_profit": 53744,
+          "cost": 38964,
+          "src": "39019",
+          "dst": "7871",
+          "cargo": "PASS"
+        },
+        {
+          "line": "35",
+          "pred_profit": 17074,
+          "cost": 66384,
+          "src": "5291",
+          "dst": "40222",
+          "cargo": "PASS"
+        },
+        {
+          "line": "45",
+          "pred_profit": 37868,
+          "cost": 38964,
+          "src": "9315",
+          "dst": "57684",
+          "cargo": "PASS"
+        }
+      ],
+      "on_n75_phases": {
+        "refill": 1
+      },
+      "off_n75_phases": {},
+      "refill": 1,
+      "unapplied": 0,
+      "budget_eligible_events": 1,
+      "n75_logged_ops": 173197
+    }
+  ],
+  "total": {
+    "paired_seeds": 5,
+    "on_refill": 7,
+    "on_unapplied": 2,
+    "on_budget_eligible": 5,
+    "added_rail": 51,
+    "lost_rail": 30,
+    "added_air": 29,
+    "lost_air": 20,
+    "n75_logged_ops": 1654407
+  }
+}

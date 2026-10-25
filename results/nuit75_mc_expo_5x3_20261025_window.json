@@ -1,0 +1,195 @@
+﻿{
+  "campaign": "nuit75_mc_expo_5x3_20261025",
+  "year": 1972,
+  "window_days": 45,
+  "method": "ON same cargo physical rail builds within N days after each N75 eligible refill; subtract any same cargo+source reference builds in 1972 even at other dates; predictive accounting proxy only",
+  "rows": [
+    {
+      "seed": 7,
+      "event_date": "1972-11-07",
+      "cargo": "OIL_",
+      "on_build_count": 2,
+      "on_builds": [
+        {
+          "day": "1972-11-20",
+          "src": "33495",
+          "dst": "7289",
+          "pred_profit": 36108,
+          "cost": 90707
+        },
+        {
+          "day": "1972-12-11",
+          "src": "27808",
+          "dst": "46570",
+          "pred_profit": 33810,
+          "cost": 75835
+        }
+      ],
+      "reference_same_source_count": 0,
+      "reference_builds": [],
+      "on_predicted_profit_sum": 69918,
+      "reference_same_source_predicted_sum": 0,
+      "nominal_predicted_difference": 69918
+    },
+    {
+      "seed": 42,
+      "event_date": "1972-03-11",
+      "cargo": "GOOD",
+      "on_build_count": 1,
+      "on_builds": [
+        {
+          "day": "1972-03-20",
+          "src": "55598",
+          "dst": "22586",
+          "pred_profit": 21008,
+          "cost": 56788
+        }
+      ],
+      "reference_same_source_count": 0,
+      "reference_builds": [],
+      "on_predicted_profit_sum": 21008,
+      "reference_same_source_predicted_sum": 0,
+      "nominal_predicted_difference": 21008
+    },
+    {
+      "seed": 42,
+      "event_date": "1972-10-02",
+      "cargo": "GRAI",
+      "on_build_count": 2,
+      "on_builds": [
+        {
+          "day": "1972-10-18",
+          "src": "52310",
+          "dst": "58083",
+          "pred_profit": 33041,
+          "cost": 119837
+        },
+        {
+          "day": "1972-11-02",
+          "src": "17494",
+          "dst": "44972",
+          "pred_profit": 21686,
+          "cost": 83406
+        }
+      ],
+      "reference_same_source_count": 2,
+      "reference_builds": [
+        {
+          "day": "1972-11-07",
+          "src": "52310",
+          "dst": "58083",
+          "pred_profit": 39593,
+          "cost": 92417
+        },
+        {
+          "day": "1972-11-21",
+          "src": "17494",
+          "dst": "44972",
+          "pred_profit": 28059,
+          "cost": 93334
+        }
+      ],
+      "on_predicted_profit_sum": 54727,
+      "reference_same_source_predicted_sum": 67652,
+      "nominal_predicted_difference": -12925
+    },
+    {
+      "seed": 999,
+      "event_date": "1972-08-23",
+      "cargo": "WOOD",
+      "on_build_count": 4,
+      "on_builds": [
+        {
+          "day": "1972-09-04",
+          "src": "31930",
+          "dst": "55122",
+          "pred_profit": 48260,
+          "cost": 82615
+        },
+        {
+          "day": "1972-09-11",
+          "src": "55024",
+          "dst": "53889",
+          "pred_profit": 15097,
+          "cost": 65886
+        },
+        {
+          "day": "1972-09-22",
+          "src": "15967",
+          "dst": "53889",
+          "pred_profit": 25047,
+          "cost": 93214
+        },
+        {
+          "day": "1972-09-29",
+          "src": "58991",
+          "dst": "59097",
+          "pred_profit": 22119,
+          "cost": 64485
+        }
+      ],
+      "reference_same_source_count": 3,
+      "reference_builds": [
+        {
+          "day": "1972-11-06",
+          "src": "58991",
+          "dst": "59097",
+          "pred_profit": 42040,
+          "cost": 66070
+        },
+        {
+          "day": "1972-12-05",
+          "src": "31930",
+          "dst": "59097",
+          "pred_profit": 36750,
+          "cost": 80172
+        },
+        {
+          "day": "1972-12-21",
+          "src": "55024",
+          "dst": "53889",
+          "pred_profit": 25815,
+          "cost": 79827
+        }
+      ],
+      "on_predicted_profit_sum": 110523,
+      "reference_same_source_predicted_sum": 104605,
+      "nominal_predicted_difference": 5918
+    },
+    {
+      "seed": 2026,
+      "event_date": "1972-05-07",
+      "cargo": "GOOD",
+      "on_build_count": 1,
+      "on_builds": [
+        {
+          "day": "1972-05-28",
+          "src": "61115",
+          "dst": "29653",
+          "pred_profit": 110765,
+          "cost": 71997
+        }
+      ],
+      "reference_same_source_count": 1,
+      "reference_builds": [
+        {
+          "day": "1972-11-11",
+          "src": "61115",
+          "dst": "33229",
+          "pred_profit": 125020,
+          "cost": 77767
+        }
+      ],
+      "on_predicted_profit_sum": 110765,
+      "reference_same_source_predicted_sum": 125020,
+      "nominal_predicted_difference": -14255
+    }
+  ],
+  "summary": {
+    "event_count": 5,
+    "window_on_builds": 10,
+    "reference_same_source_builds": 6,
+    "nominal_predicted_difference_total": 69664,
+    "nominal_predicted_difference_mean_over_5_seeds": 13932.8
+  }
+}

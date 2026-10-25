@@ -1,0 +1,1453 @@
+{
+  "adversary": {
+    "ai": "AAAHogEx",
+    "company_slot": 1,
+    "id": "AAAHogEx",
+    "settings": {
+      "defaults": {
+        "Avoid removing water": 1,
+        "IsAvoidExtendCoverageAreaInTowns": 0,
+        "IsAvoidSecondaryIndustryStealing": 0,
+        "IsDebug": 0,
+        "IsForceToHandleFright": 0,
+        "IsPreferReusingExistingRoads": 0,
+        "disable_prefixed_station_name": 0,
+        "disable_veh_aircraft": 0,
+        "disable_veh_roadveh": 0,
+        "disable_veh_ship": 0,
+        "disable_veh_train": 0,
+        "disable_veh_tram": 0,
+        "usable_cargos": 3
+      },
+      "effective": {
+        "Avoid removing water": 1,
+        "IsAvoidExtendCoverageAreaInTowns": 0,
+        "IsAvoidSecondaryIndustryStealing": 0,
+        "IsDebug": 0,
+        "IsForceToHandleFright": 0,
+        "IsPreferReusingExistingRoads": 0,
+        "disable_prefixed_station_name": 0,
+        "disable_veh_aircraft": 0,
+        "disable_veh_roadveh": 0,
+        "disable_veh_ship": 0,
+        "disable_veh_train": 0,
+        "disable_veh_tram": 0,
+        "usable_cargos": 3
+      },
+      "explicit": {}
+    }
+  },
+  "artifacts": {
+    "bundle": "/work/results/nuit75_mc_expo_5x3_20261025_bundle",
+    "checkpoints": "/work/results/nuit75_mc_expo_5x3_20261025.jsonl",
+    "engine_logs": "/work/results/nuit75_mc_expo_5x3_20261025_engine",
+    "manifest": "/work/results/nuit75_mc_expo_5x3_20261025.manifest.json",
+    "result": "/work/results/nuit75_mc_expo_5x3_20261025.json"
+  },
+  "campaign_id": "nuit75_mc_expo_5x3_20261025",
+  "company_slots": {
+    "0": {
+      "ai": "OpexAI",
+      "policy_id": "per-game"
+    },
+    "1": {
+      "ai": "AAAHogEx",
+      "policy_id": "AAAHogEx"
+    }
+  },
+  "comparison": {
+    "decision_rule": {
+      "all_planned_pairs_required_for_verdict": true,
+      "min_useful_primary_delta": null,
+      "min_useful_primary_delta_pct": 4.0,
+      "primary_metric": "profit_year",
+      "required_seeds": 40,
+      "required_years": 3,
+      "rule": "gain_short",
+      "value_guard_max_loss_pct": 5.0,
+      "value_guard_metric": "company_value"
+    },
+    "effective_differences": {
+      "n75_multi_cargo": {
+        "candidate": 2,
+        "reference": 0
+      }
+    },
+    "intervention_settings": [
+      "n75_multi_cargo"
+    ],
+    "reference_policy_id": "reference",
+    "variant_policy_id": "n75_mc"
+  },
+  "configuration": {
+    "map_size": 8,
+    "parsed": {
+      "difficulty": {
+        "industry_density": "4",
+        "number_towns": "3"
+      },
+      "economy": {
+        "inflation": "false",
+        "town_growth_rate": "2"
+      },
+      "game_creation": {
+        "map_x": "8",
+        "map_y": "8",
+        "starting_year": "1970"
+      }
+    },
+    "raw": "[difficulty]\nnumber_towns = 3\nindustry_density = 4\n[economy]\ninflation = false\ntown_growth_rate = 2\n[game_creation]\nstarting_year = 1970\nmap_x = 8\nmap_y = 8\n",
+    "repeats": 1,
+    "seeds": [
+      42,
+      100,
+      7,
+      999,
+      2026
+    ],
+    "sha256": "538aa46852b7c02eca91562a6a04ff778f2a5eff5c73a76cf05ee57fb8981d56",
+    "starting_year": 1970,
+    "years": 3
+  },
+  "created_at_utc": "2026-10-25T04:52:22.533961+00:00",
+  "execution": {
+    "mode": "frozen-subprocess",
+    "options": {
+      "aaahogex_settings": [],
+      "campaign": "nuit75_mc_expo_5x3_20261025",
+      "decision_rule": "gain_short",
+      "docker_image": "openttd-lab:latest",
+      "docker_image_id": "sha256:f4b2b9b3b7399cbfecacfe03b3b8dda49bff2921de36a61fed4e9441e5d44659",
+      "engine_timeout": 1800,
+      "line_telemetry": false,
+      "line_telemetry_monthly": false,
+      "map_size": 8,
+      "max_workers": 9,
+      "min_useful_primary_delta": null,
+      "min_useful_primary_delta_pct": 4.0,
+      "out": null,
+      "policy_id": "reference",
+      "primary_metric": "profit_year",
+      "reference": "OpexAI[n75_multi_cargo=0,probes=258]",
+      "repeats": 1,
+      "required_seeds": 40,
+      "required_years": 3,
+      "retain_savegames": null,
+      "script_debug": true,
+      "seeds": [
+        42,
+        100,
+        7,
+        999,
+        2026
+      ],
+      "selftest": false,
+      "start_year": 1970,
+      "station_supply_telemetry": false,
+      "value_guard_max_loss_pct": 5.0,
+      "variant": "OpexAI[n75_multi_cargo=2,probes=258]",
+      "variant_policy_id": "n75_mc",
+      "years": 3
+    }
+  },
+  "games": [
+    {
+      "company_slots": {
+        "0": {
+          "ai": "OpexAI",
+          "policy_id": "reference"
+        },
+        "1": {
+          "ai": "AAAHogEx",
+          "policy_id": "AAAHogEx"
+        }
+      },
+      "game_id": "nuit75_mc_expo_5x3_20261025:policy=reference:s42:r0",
+      "policy_id": "reference",
+      "repeat": 0,
+      "seed": 42
+    },
+    {
+      "company_slots": {
+        "0": {
+          "ai": "OpexAI",
+          "policy_id": "n75_mc"
+        },
+        "1": {
+          "ai": "AAAHogEx",
+          "policy_id": "AAAHogEx"
+        }
+      },
+      "game_id": "nuit75_mc_expo_5x3_20261025:policy=n75_mc:s42:r0",
+      "policy_id": "n75_mc",
+      "repeat": 0,
+      "seed": 42
+    },
+    {
+      "company_slots": {
+        "0": {
+          "ai": "OpexAI",
+          "policy_id": "reference"
+        },
+        "1": {
+          "ai": "AAAHogEx",
+          "policy_id": "AAAHogEx"
+        }
+      },
+      "game_id": "nuit75_mc_expo_5x3_20261025:policy=reference:s100:r0",
+      "policy_id": "reference",
+      "repeat": 0,
+      "seed": 100
+    },
+    {
+      "company_slots": {
+        "0": {
+          "ai": "OpexAI",
+          "policy_id": "n75_mc"
+        },
+        "1": {
+          "ai": "AAAHogEx",
+          "policy_id": "AAAHogEx"
+        }
+      },
+      "game_id": "nuit75_mc_expo_5x3_20261025:policy=n75_mc:s100:r0",
+      "policy_id": "n75_mc",
+      "repeat": 0,
+      "seed": 100
+    },
+    {
+      "company_slots": {
+        "0": {
+          "ai": "OpexAI",
+          "policy_id": "reference"
+        },
+        "1": {
+          "ai": "AAAHogEx",
+          "policy_id": "AAAHogEx"
+        }
+      },
+      "game_id": "nuit75_mc_expo_5x3_20261025:policy=reference:s7:r0",
+      "policy_id": "reference",
+      "repeat": 0,
+      "seed": 7
+    },
+    {
+      "company_slots": {
+        "0": {
+          "ai": "OpexAI",
+          "policy_id": "n75_mc"
+        },
+        "1": {
+          "ai": "AAAHogEx",
+          "policy_id": "AAAHogEx"
+        }
+      },
+      "game_id": "nuit75_mc_expo_5x3_20261025:policy=n75_mc:s7:r0",
+      "policy_id": "n75_mc",
+      "repeat": 0,
+      "seed": 7
+    },
+    {
+      "company_slots": {
+        "0": {
+          "ai": "OpexAI",
+          "policy_id": "reference"
+        },
+        "1": {
+          "ai": "AAAHogEx",
+          "policy_id": "AAAHogEx"
+        }
+      },
+      "game_id": "nuit75_mc_expo_5x3_20261025:policy=reference:s999:r0",
+      "policy_id": "reference",
+      "repeat": 0,
+      "seed": 999
+    },
+    {
+      "company_slots": {
+        "0": {
+          "ai": "OpexAI",
+          "policy_id": "n75_mc"
+        },
+        "1": {
+          "ai": "AAAHogEx",
+          "policy_id": "AAAHogEx"
+        }
+      },
+      "game_id": "nuit75_mc_expo_5x3_20261025:policy=n75_mc:s999:r0",
+      "policy_id": "n75_mc",
+      "repeat": 0,
+      "seed": 999
+    },
+    {
+      "company_slots": {
+        "0": {
+          "ai": "OpexAI",
+          "policy_id": "reference"
+        },
+        "1": {
+          "ai": "AAAHogEx",
+          "policy_id": "AAAHogEx"
+        }
+      },
+      "game_id": "nuit75_mc_expo_5x3_20261025:policy=reference:s2026:r0",
+      "policy_id": "reference",
+      "repeat": 0,
+      "seed": 2026
+    },
+    {
+      "company_slots": {
+        "0": {
+          "ai": "OpexAI",
+          "policy_id": "n75_mc"
+        },
+        "1": {
+          "ai": "AAAHogEx",
+          "policy_id": "AAAHogEx"
+        }
+      },
+      "game_id": "nuit75_mc_expo_5x3_20261025:policy=n75_mc:s2026:r0",
+      "policy_id": "n75_mc",
+      "repeat": 0,
+      "seed": 2026
+    }
+  ],
+  "git": {
+    "dirty": true,
+    "sha": "83e436cc3db35ff18efb685ace4f97eb569f77b1",
+    "source": "host_environment",
+    "status_porcelain": [
+      "M ai/OpexAI/globals_pre.nut",
+      " M ai/OpexAI/info.nut",
+      " M ai/OpexAI/persist.nut",
+      " M ai/OpexAI/scheduler.nut",
+      " M ai/OpexAI/settings.nut",
+      " M sweeps/test_po01c_regen_split.py",
+      " M sweeps/test_v217_rail_refill.py",
+      " M sweeps/test_v246_fixed_policies.py",
+      " M sweeps/test_v251_inventory.py",
+      " M sweeps/test_v259_bridge_renew.py",
+      " M sweeps/test_v276_candidate_slices.py",
+      " M sweeps/test_v284_rail_growth.py",
+      "?? docs/nuit75_multi_cargo_20261025.md",
+      "?? sweeps/n75_mc_legacy.py",
+      "?? sweeps/test_n75_multi_cargo.py"
+    ]
+  },
+  "libraries": [
+    {
+      "requested_md5": null,
+      "requested_name": "Queue.FibonacciHeap",
+      "requested_unique_id": "51554648",
+      "resolved": [
+        {
+          "content_id": "ai-library/51554648",
+          "filename": "51554648-Queue.FibonacciHeap-3.tar",
+          "license": "GPL v2",
+          "public_md5": "b234d8bd69d74bb86b6ec7fcef9c8d60",
+          "sha256": "c3c80ad59a0cf43b67a7d769484ba10f316b7a0b4a83a28efe5ce82e96066c9b",
+          "size": 30720,
+          "version": "3"
+        }
+      ]
+    },
+    {
+      "requested_md5": null,
+      "requested_name": "Pathfinder.Rail",
+      "requested_unique_id": "5046524c",
+      "resolved": [
+        {
+          "content_id": "ai-library/5046524c",
+          "filename": "5046524c-Pathfinder.Rail-1.tar",
+          "license": "GPL v2",
+          "public_md5": "e6b1d198257d580e65a97ca584adb2b5",
+          "sha256": "e3ab05b1811c1a57abb4219480f0fffa885efff6be42691c836ec144ab7f8b13",
+          "size": 40960,
+          "version": "1"
+        },
+        {
+          "content_id": "ai-library/4752412a",
+          "filename": "4752412a-Graph.AyStar-4.tar",
+          "license": "GPL v2",
+          "public_md5": "4afad59243616532a64e8da4565a7aa7",
+          "sha256": "cfc09cdd5877800d57e490832b65cf028db16aef4f1906eb1d625f908ebc49f1",
+          "size": 40960,
+          "version": "4"
+        },
+        {
+          "content_id": "ai-library/51554248",
+          "filename": "51554248-Queue.BinaryHeap-1.tar",
+          "license": "GPL v2",
+          "public_md5": "8ce55e1397e9c51f8032c3a8a29e9cf5",
+          "sha256": "a83eb5002b1246330dfc467dbd1076687d227156a697cc140f6d04515cf3bb67",
+          "size": 30720,
+          "version": "1"
+        }
+      ]
+    }
+  ],
+  "policies": [
+    {
+      "ai": "OpexAI",
+      "company_slot": 0,
+      "id": "reference",
+      "role": "reference",
+      "settings": {
+        "defaults": {
+          "c121_air_project_realization_adaptive": 1,
+          "c67_terrain_map": 0,
+          "c77_intent_defer": 2,
+          "mode_air": 1,
+          "mode_rail": 1,
+          "mode_road": 1,
+          "mode_water": 1,
+          "n75_multi_cargo": 0,
+          "opex_difficulty": 2,
+          "po01c_regen_split": 1,
+          "probes": 0,
+          "rail_depot_cost": 0,
+          "rail_geometry_exact_identity": 1,
+          "rail_geometry_guard": 0,
+          "rail_geometry_live_replan": 0,
+          "rail_geometry_pair_memory": 1,
+          "rail_geometry_prefilter": 1,
+          "save_full_state": 1,
+          "station_plan_precheck": 1,
+          "v131_rail_repair": 0,
+          "v131_town_clearance": 0,
+          "v190_rail_double_build": 0,
+          "v190_rail_double_delay": 0,
+          "v190_rail_max_trains": 4,
+          "v197_guided_double": 0,
+          "v198_template_double": 0,
+          "v199_level_budget_k": 20,
+          "v199_robust_build": 0,
+          "v200_double_cash_k": 0,
+          "v207_rail_mail": 0,
+          "v207_rail_pax_joined_stops": 0,
+          "v207_rail_pax_share_pct": 0,
+          "v207_rail_pax_site_rank_pct": 0,
+          "v216a_ghost_demand": 1,
+          "v216f_dwell_pct": 100,
+          "v217_rail_refill": 1,
+          "v249_statue": 2,
+          "v250_rights": 0,
+          "v259_bridge_renew": 0,
+          "v269_rail_late_relax": 5,
+          "v275_rail_pax_mm": 15,
+          "v276_cand_slices": 3,
+          "v277_air_pub_fast": 3,
+          "v278_air_lazy_sites": 2,
+          "v279_reselect_memo": 3,
+          "v284_rail_growth": 3,
+          "v292_hq_hub": 1,
+          "v294_rail_aaa_costs": 1,
+          "v294_rail_bridge_len": 20,
+          "v294_rail_continuous": 0,
+          "v294_rail_dist_decouple": 200,
+          "v294_rail_slope_engine": 1,
+          "v294_rail_weight_adapt": 400,
+          "v294_rail_weight_pct": 200,
+          "v301_notrain_fix": 15,
+          "v307_long_probe": 0,
+          "v307_probe_year": 0,
+          "v307_sink_room": 0,
+          "v307_sites": 0
+        },
+        "effective": {
+          "c121_air_project_realization_adaptive": 1,
+          "c67_terrain_map": 0,
+          "c77_intent_defer": 2,
+          "mode_air": 1,
+          "mode_rail": 1,
+          "mode_road": 1,
+          "mode_water": 1,
+          "n75_multi_cargo": 0,
+          "opex_difficulty": 2,
+          "po01c_regen_split": 1,
+          "probes": 258,
+          "rail_depot_cost": 0,
+          "rail_geometry_exact_identity": 1,
+          "rail_geometry_guard": 0,
+          "rail_geometry_live_replan": 0,
+          "rail_geometry_pair_memory": 1,
+          "rail_geometry_prefilter": 1,
+          "save_full_state": 1,
+          "station_plan_precheck": 1,
+          "v131_rail_repair": 0,
+          "v131_town_clearance": 0,
+          "v190_rail_double_build": 0,
+          "v190_rail_double_delay": 0,
+          "v190_rail_max_trains": 4,
+          "v197_guided_double": 0,
+          "v198_template_double": 0,
+          "v199_level_budget_k": 20,
+          "v199_robust_build": 0,
+          "v200_double_cash_k": 0,
+          "v207_rail_mail": 0,
+          "v207_rail_pax_joined_stops": 0,
+          "v207_rail_pax_share_pct": 0,
+          "v207_rail_pax_site_rank_pct": 0,
+          "v216a_ghost_demand": 1,
+          "v216f_dwell_pct": 100,
+          "v217_rail_refill": 1,
+          "v249_statue": 2,
+          "v250_rights": 0,
+          "v259_bridge_renew": 0,
+          "v269_rail_late_relax": 5,
+          "v275_rail_pax_mm": 15,
+          "v276_cand_slices": 3,
+          "v277_air_pub_fast": 3,
+          "v278_air_lazy_sites": 2,
+          "v279_reselect_memo": 3,
+          "v284_rail_growth": 3,
+          "v292_hq_hub": 1,
+          "v294_rail_aaa_costs": 1,
+          "v294_rail_bridge_len": 20,
+          "v294_rail_continuous": 0,
+          "v294_rail_dist_decouple": 200,
+          "v294_rail_slope_engine": 1,
+          "v294_rail_weight_adapt": 400,
+          "v294_rail_weight_pct": 200,
+          "v301_notrain_fix": 15,
+          "v307_long_probe": 0,
+          "v307_probe_year": 0,
+          "v307_sink_room": 0,
+          "v307_sites": 0
+        },
+        "explicit": {
+          "n75_multi_cargo": 0,
+          "probes": 258
+        }
+      }
+    },
+    {
+      "ai": "OpexAI",
+      "company_slot": 0,
+      "id": "n75_mc",
+      "role": "variant",
+      "settings": {
+        "defaults": {
+          "c121_air_project_realization_adaptive": 1,
+          "c67_terrain_map": 0,
+          "c77_intent_defer": 2,
+          "mode_air": 1,
+          "mode_rail": 1,
+          "mode_road": 1,
+          "mode_water": 1,
+          "n75_multi_cargo": 0,
+          "opex_difficulty": 2,
+          "po01c_regen_split": 1,
+          "probes": 0,
+          "rail_depot_cost": 0,
+          "rail_geometry_exact_identity": 1,
+          "rail_geometry_guard": 0,
+          "rail_geometry_live_replan": 0,
+          "rail_geometry_pair_memory": 1,
+          "rail_geometry_prefilter": 1,
+          "save_full_state": 1,
+          "station_plan_precheck": 1,
+          "v131_rail_repair": 0,
+          "v131_town_clearance": 0,
+          "v190_rail_double_build": 0,
+          "v190_rail_double_delay": 0,
+          "v190_rail_max_trains": 4,
+          "v197_guided_double": 0,
+          "v198_template_double": 0,
+          "v199_level_budget_k": 20,
+          "v199_robust_build": 0,
+          "v200_double_cash_k": 0,
+          "v207_rail_mail": 0,
+          "v207_rail_pax_joined_stops": 0,
+          "v207_rail_pax_share_pct": 0,
+          "v207_rail_pax_site_rank_pct": 0,
+          "v216a_ghost_demand": 1,
+          "v216f_dwell_pct": 100,
+          "v217_rail_refill": 1,
+          "v249_statue": 2,
+          "v250_rights": 0,
+          "v259_bridge_renew": 0,
+          "v269_rail_late_relax": 5,
+          "v275_rail_pax_mm": 15,
+          "v276_cand_slices": 3,
+          "v277_air_pub_fast": 3,
+          "v278_air_lazy_sites": 2,
+          "v279_reselect_memo": 3,
+          "v284_rail_growth": 3,
+          "v292_hq_hub": 1,
+          "v294_rail_aaa_costs": 1,
+          "v294_rail_bridge_len": 20,
+          "v294_rail_continuous": 0,
+          "v294_rail_dist_decouple": 200,
+          "v294_rail_slope_engine": 1,
+          "v294_rail_weight_adapt": 400,
+          "v294_rail_weight_pct": 200,
+          "v301_notrain_fix": 15,
+          "v307_long_probe": 0,
+          "v307_probe_year": 0,
+          "v307_sink_room": 0,
+          "v307_sites": 0
+        },
+        "effective": {
+          "c121_air_project_realization_adaptive": 1,
+          "c67_terrain_map": 0,
+          "c77_intent_defer": 2,
+          "mode_air": 1,
+          "mode_rail": 1,
+          "mode_road": 1,
+          "mode_water": 1,
+          "n75_multi_cargo": 2,
+          "opex_difficulty": 2,
+          "po01c_regen_split": 1,
+          "probes": 258,
+          "rail_depot_cost": 0,
+          "rail_geometry_exact_identity": 1,
+          "rail_geometry_guard": 0,
+          "rail_geometry_live_replan": 0,
+          "rail_geometry_pair_memory": 1,
+          "rail_geometry_prefilter": 1,
+          "save_full_state": 1,
+          "station_plan_precheck": 1,
+          "v131_rail_repair": 0,
+          "v131_town_clearance": 0,
+          "v190_rail_double_build": 0,
+          "v190_rail_double_delay": 0,
+          "v190_rail_max_trains": 4,
+          "v197_guided_double": 0,
+          "v198_template_double": 0,
+          "v199_level_budget_k": 20,
+          "v199_robust_build": 0,
+          "v200_double_cash_k": 0,
+          "v207_rail_mail": 0,
+          "v207_rail_pax_joined_stops": 0,
+          "v207_rail_pax_share_pct": 0,
+          "v207_rail_pax_site_rank_pct": 0,
+          "v216a_ghost_demand": 1,
+          "v216f_dwell_pct": 100,
+          "v217_rail_refill": 1,
+          "v249_statue": 2,
+          "v250_rights": 0,
+          "v259_bridge_renew": 0,
+          "v269_rail_late_relax": 5,
+          "v275_rail_pax_mm": 15,
+          "v276_cand_slices": 3,
+          "v277_air_pub_fast": 3,
+          "v278_air_lazy_sites": 2,
+          "v279_reselect_memo": 3,
+          "v284_rail_growth": 3,
+          "v292_hq_hub": 1,
+          "v294_rail_aaa_costs": 1,
+          "v294_rail_bridge_len": 20,
+          "v294_rail_continuous": 0,
+          "v294_rail_dist_decouple": 200,
+          "v294_rail_slope_engine": 1,
+          "v294_rail_weight_adapt": 400,
+          "v294_rail_weight_pct": 200,
+          "v301_notrain_fix": 15,
+          "v307_long_probe": 0,
+          "v307_probe_year": 0,
+          "v307_sink_room": 0,
+          "v307_sites": 0
+        },
+        "explicit": {
+          "n75_multi_cargo": 2,
+          "probes": 258
+        }
+      }
+    }
+  ],
+  "policy": {
+    "ai": "OpexAI",
+    "company_slot": 0,
+    "id": "reference",
+    "settings": {
+      "defaults": {
+        "c121_air_project_realization_adaptive": 1,
+        "c67_terrain_map": 0,
+        "c77_intent_defer": 2,
+        "mode_air": 1,
+        "mode_rail": 1,
+        "mode_road": 1,
+        "mode_water": 1,
+        "n75_multi_cargo": 0,
+        "opex_difficulty": 2,
+        "po01c_regen_split": 1,
+        "probes": 0,
+        "rail_depot_cost": 0,
+        "rail_geometry_exact_identity": 1,
+        "rail_geometry_guard": 0,
+        "rail_geometry_live_replan": 0,
+        "rail_geometry_pair_memory": 1,
+        "rail_geometry_prefilter": 1,
+        "save_full_state": 1,
+        "station_plan_precheck": 1,
+        "v131_rail_repair": 0,
+        "v131_town_clearance": 0,
+        "v190_rail_double_build": 0,
+        "v190_rail_double_delay": 0,
+        "v190_rail_max_trains": 4,
+        "v197_guided_double": 0,
+        "v198_template_double": 0,
+        "v199_level_budget_k": 20,
+        "v199_robust_build": 0,
+        "v200_double_cash_k": 0,
+        "v207_rail_mail": 0,
+        "v207_rail_pax_joined_stops": 0,
+        "v207_rail_pax_share_pct": 0,
+        "v207_rail_pax_site_rank_pct": 0,
+        "v216a_ghost_demand": 1,
+        "v216f_dwell_pct": 100,
+        "v217_rail_refill": 1,
+        "v249_statue": 2,
+        "v250_rights": 0,
+        "v259_bridge_renew": 0,
+        "v269_rail_late_relax": 5,
+        "v275_rail_pax_mm": 15,
+        "v276_cand_slices": 3,
+        "v277_air_pub_fast": 3,
+        "v278_air_lazy_sites": 2,
+        "v279_reselect_memo": 3,
+        "v284_rail_growth": 3,
+        "v292_hq_hub": 1,
+        "v294_rail_aaa_costs": 1,
+        "v294_rail_bridge_len": 20,
+        "v294_rail_continuous": 0,
+        "v294_rail_dist_decouple": 200,
+        "v294_rail_slope_engine": 1,
+        "v294_rail_weight_adapt": 400,
+        "v294_rail_weight_pct": 200,
+        "v301_notrain_fix": 15,
+        "v307_long_probe": 0,
+        "v307_probe_year": 0,
+        "v307_sink_room": 0,
+        "v307_sites": 0
+      },
+      "effective": {
+        "c121_air_project_realization_adaptive": 1,
+        "c67_terrain_map": 0,
+        "c77_intent_defer": 2,
+        "mode_air": 1,
+        "mode_rail": 1,
+        "mode_road": 1,
+        "mode_water": 1,
+        "n75_multi_cargo": 0,
+        "opex_difficulty": 2,
+        "po01c_regen_split": 1,
+        "probes": 258,
+        "rail_depot_cost": 0,
+        "rail_geometry_exact_identity": 1,
+        "rail_geometry_guard": 0,
+        "rail_geometry_live_replan": 0,
+        "rail_geometry_pair_memory": 1,
+        "rail_geometry_prefilter": 1,
+        "save_full_state": 1,
+        "station_plan_precheck": 1,
+        "v131_rail_repair": 0,
+        "v131_town_clearance": 0,
+        "v190_rail_double_build": 0,
+        "v190_rail_double_delay": 0,
+        "v190_rail_max_trains": 4,
+        "v197_guided_double": 0,
+        "v198_template_double": 0,
+        "v199_level_budget_k": 20,
+        "v199_robust_build": 0,
+        "v200_double_cash_k": 0,
+        "v207_rail_mail": 0,
+        "v207_rail_pax_joined_stops": 0,
+        "v207_rail_pax_share_pct": 0,
+        "v207_rail_pax_site_rank_pct": 0,
+        "v216a_ghost_demand": 1,
+        "v216f_dwell_pct": 100,
+        "v217_rail_refill": 1,
+        "v249_statue": 2,
+        "v250_rights": 0,
+        "v259_bridge_renew": 0,
+        "v269_rail_late_relax": 5,
+        "v275_rail_pax_mm": 15,
+        "v276_cand_slices": 3,
+        "v277_air_pub_fast": 3,
+        "v278_air_lazy_sites": 2,
+        "v279_reselect_memo": 3,
+        "v284_rail_growth": 3,
+        "v292_hq_hub": 1,
+        "v294_rail_aaa_costs": 1,
+        "v294_rail_bridge_len": 20,
+        "v294_rail_continuous": 0,
+        "v294_rail_dist_decouple": 200,
+        "v294_rail_slope_engine": 1,
+        "v294_rail_weight_adapt": 400,
+        "v294_rail_weight_pct": 200,
+        "v301_notrain_fix": 15,
+        "v307_long_probe": 0,
+        "v307_probe_year": 0,
+        "v307_sink_room": 0,
+        "v307_sites": 0
+      },
+      "explicit": {
+        "n75_multi_cargo": 0,
+        "probes": 258
+      }
+    }
+  },
+  "runtime": {
+    "build_context_files": {
+      "Dockerfile": "fb070ce0f8b67195e6f339e7417261abcfdbffb3c18d966c9a8d95450eaf8c29",
+      "requirements-ml.txt": "69817d92254613af3da65b94975cbd8d2d28a2d99864fca5ec1ebf8c9c7c5f23",
+      "requirements.txt": "acc00b759a95a40f47f5f4e20e2781b01c313cc276561d1fecbad99fea9ef9b6"
+    },
+    "container_detected": true,
+    "docker_cpus": 10,
+    "docker_image": "openttd-lab:latest",
+    "docker_image_id": "sha256:f4b2b9b3b7399cbfecacfe03b3b8dda49bff2921de36a61fed4e9441e5d44659",
+    "docker_image_id_verified": true,
+    "docker_memory": "8g",
+    "docker_memory_swap": "8g",
+    "openttdlab": "0.0.75",
+    "platform": "Linux-7.0.14-linuxkit-x86_64-with-glibc2.41",
+    "python": "3.12.14",
+    "python_executable": "/usr/local/bin/python3",
+    "runtime_fingerprint_sha256": "c4007c64ec918ef9c06856015c19fbe3494405e29a837ae73a0148cc70d0f3f5"
+  },
+  "schema_version": "1.2.0",
+  "source_bundle": {
+    "file_count": 121,
+    "path": "/work/results/nuit75_mc_expo_5x3_20261025_bundle",
+    "sha256": "ae6b948c9b14e394055e6a4befded72346697fdda5c7737a462f262200450fe2"
+  },
+  "sources": {
+    "AAAHogEx": {
+      "file_count": 17,
+      "files": [
+        {
+          "path": "air.nut",
+          "sha256": "3adddad5e8abbc89df95082d4216818c53b021680ceb3ce6c49c8a090003f317",
+          "size": 20035
+        },
+        {
+          "path": "aystar.nut",
+          "sha256": "fb9ad9b2c65e9884953eddc3f3ed7942f8ca1de8e35aa74ef0f3cb38250fb148",
+          "size": 12742
+        },
+        {
+          "path": "estimator.nut",
+          "sha256": "f4fda5d182f5017b4504e0b75c0b871de28be67b6dcbf1a7ab845aa209bfb2a2",
+          "size": 89438
+        },
+        {
+          "path": "info.nut",
+          "sha256": "c41f35b3f2770694f656ac1ca690d3b2ce013b4a9d60279dec7126e158d1bd76",
+          "size": 4756
+        },
+        {
+          "path": "license.txt",
+          "sha256": "8ceb4b9ee5adedde47b31e975c1d90c73ad27b6b165a1dcd80c7c545eb65b903",
+          "size": 35147
+        },
+        {
+          "path": "main.nut",
+          "sha256": "a2cc339da071451005d93a8150e21691c93f008e43795be9f802607b34fcb119",
+          "size": 162556
+        },
+        {
+          "path": "pathfinder.nut",
+          "sha256": "7b100fa4470b7ba58f7368bf27147c76b484a79542d84cdcb1d9477b035dde3e",
+          "size": 53972
+        },
+        {
+          "path": "place.nut",
+          "sha256": "55d1ffc01f002c576ceea9ef8098d1b784a01be1290b740284ca0f7bf572e805",
+          "size": 102186
+        },
+        {
+          "path": "railbuilder.nut",
+          "sha256": "6fedc74e82159d8f214e4600509baadba93a3b18fffcc90093f704baa792aea4",
+          "size": 97036
+        },
+        {
+          "path": "road.nut",
+          "sha256": "5b8ed3bef2b76f1a61c4ab326b9b657cf340c551ff188be5c15a14372626db57",
+          "size": 61570
+        },
+        {
+          "path": "roadpathfinder.nut",
+          "sha256": "77e80f0643336bc176333a0d4b909cf2a5fd3030ea45ee550704485334ad18b9",
+          "size": 20117
+        },
+        {
+          "path": "route.nut",
+          "sha256": "48d7276f5422a6091259e57f2cdf4130a56c09e0e49d302ccc8776f5901ab82f",
+          "size": 139804
+        },
+        {
+          "path": "station.nut",
+          "sha256": "893047f94313c3adcb6950cfd24b2ebe3396e63331940e14dc28148e7d2aa307",
+          "size": 156721
+        },
+        {
+          "path": "tile.nut",
+          "sha256": "ed914021bcbab6c2ebc51455f41b366f1595be015b3bd65ae2540092bfd85be8",
+          "size": 44235
+        },
+        {
+          "path": "trainroute.nut",
+          "sha256": "2c008b70ed2812997d35e7482521d3e1e60b555c0920a2466fd02f6e5a4120b2",
+          "size": 127144
+        },
+        {
+          "path": "utils.nut",
+          "sha256": "95150ad1454f8afae44057298c839f65ec0f12a44265d8d61796cdee8e218732",
+          "size": 34375
+        },
+        {
+          "path": "water.nut",
+          "sha256": "7ed187c6b3f3024925f1ed63feb24ae9ecb6f18a8ee0b7b37b2eabf45abd8165",
+          "size": 59944
+        }
+      ],
+      "sha256": "eaec19151d118daad80eddab437180402764e1c919f48904cc22cbf71cb80bc7"
+    },
+    "OpexAI": {
+      "file_count": 84,
+      "files": [
+        {
+          "path": "CLAUDE.md",
+          "sha256": "6953513af16cbef68a437d33705ed265b6bd646433469d8cc3729842829235cb",
+          "size": 13072
+        },
+        {
+          "path": "air_catalog_c121.nut",
+          "sha256": "e121dcd336d814526348dbad901bdacad81619a0fe2014a83a3c600b2fe1ed28",
+          "size": 26318
+        },
+        {
+          "path": "air_construction.nut",
+          "sha256": "b22b7ee81ff807165bda421f07be0bd9dcd3d2918f37b1d1c8c18839468e9c74",
+          "size": 24832
+        },
+        {
+          "path": "air_coverage.nut",
+          "sha256": "bc706713c0041f1c0009c18a38074b4a07700dfb11e9e30260753e40252a227e",
+          "size": 42031
+        },
+        {
+          "path": "air_economics_c121.nut",
+          "sha256": "1064d7670510c77f4bda08bac28d92a70a9bb81d17e7f1c5abfd0a85817d3aed",
+          "size": 111947
+        },
+        {
+          "path": "air_engine_choice.nut",
+          "sha256": "115859eb69102fd059a76acfd94ff84577fd04080513501680f4c160358055d7",
+          "size": 8633
+        },
+        {
+          "path": "air_fleet.nut",
+          "sha256": "487e037801834ce050ea67349e076c8b9878340babff6ce1579b379b23672d39",
+          "size": 11922
+        },
+        {
+          "path": "air_flotte1_shadow.nut",
+          "sha256": "3440e9554e22f1267a55cb5e2af5453e076c3bc0434772a104a8a1b4cfee6077",
+          "size": 11023
+        },
+        {
+          "path": "air_lazy_sites.nut",
+          "sha256": "cec8e14cec39960591549b2b1f352771e94455d0f9de2976a92a590d15527452",
+          "size": 11008
+        },
+        {
+          "path": "air_planning.nut",
+          "sha256": "d97dd1d56b049c8ea98c85a1202239da3d30193028e8526ba44240181460a5c2",
+          "size": 87670
+        },
+        {
+          "path": "air_recovery.nut",
+          "sha256": "e14d91a8633c9f4224d805c7983751f53f3b975b64843c1cddf97aca1c5a23ba",
+          "size": 6332
+        },
+        {
+          "path": "air_route_economics.nut",
+          "sha256": "a814d123ebc737c450fded043bf15dfac89624f93fb347327f0f28e9588b772d",
+          "size": 8401
+        },
+        {
+          "path": "air_sites.nut",
+          "sha256": "1ef05fc3b922e34d5ed800a52d9b5816e2d958492e434075bd0fe1e4e5a546f7",
+          "size": 29020
+        },
+        {
+          "path": "air_town_demand.nut",
+          "sha256": "4ed17ebffa12a245d17deb53c58ffe2bc56b4babf77d5d96dfa98c2ac907bd94",
+          "size": 479
+        },
+        {
+          "path": "air_towns.nut",
+          "sha256": "f4d2d73a5d22f1e868aeda42407c50cb6070ad0bc8a2596175485f427f09b74d",
+          "size": 12844
+        },
+        {
+          "path": "air_trip.nut",
+          "sha256": "2e00788ea2e327fdb9b598cc08bd58a6bc1103492776ce75ef2ddf6e5a53cb66",
+          "size": 10838
+        },
+        {
+          "path": "budget.nut",
+          "sha256": "3cbff4de55170b6a21e54407300460bfcc70061b46aa0960c725c577f016b547",
+          "size": 3362
+        },
+        {
+          "path": "builder_air.nut",
+          "sha256": "5d1655b6075054be79696a2fc4c71d376b2183cd68dc9aa410d48d111dcbf4f4",
+          "size": 2429
+        },
+        {
+          "path": "builder_rail.nut",
+          "sha256": "80ee1d02e1a4fd7234329b8a762a9b1a7f44f06cba2696022bf7a63376d9c56d",
+          "size": 289314
+        },
+        {
+          "path": "builder_road.nut",
+          "sha256": "da46ce7aaf5c64db0a37d86ee3f9b7d2fdf42e000b249636e3d47235d7cb4b88",
+          "size": 45585
+        },
+        {
+          "path": "builder_water.nut",
+          "sha256": "36c0c646c3a92201bbcb4afedc7b324fa19931f8665720bc5ca99f8d76098bb5",
+          "size": 32241
+        },
+        {
+          "path": "candidates.nut",
+          "sha256": "8ab9ef4b42b0b9ddd00ae47ee6333bded0428341ddcd90b11612f86be315d5e0",
+          "size": 102938
+        },
+        {
+          "path": "candidates_v276.nut",
+          "sha256": "01bcb20862b8d3de338f6e23956c0497c5f0277915b1a4a1d50dd66ff87c52bb",
+          "size": 18971
+        },
+        {
+          "path": "capital.nut",
+          "sha256": "6af845f2600a5e3433346f3046a5f77a25e71279aaf5482ac9dc5764b6470d10",
+          "size": 3374
+        },
+        {
+          "path": "catalog.nut",
+          "sha256": "8e228cf9a0e4ec83c50bcf3e0aa405814e82ac95c9191494fd4d9e357edfc348",
+          "size": 51027
+        },
+        {
+          "path": "difficulty.nut",
+          "sha256": "c3b3ec48ce471ddb22d8033c5fc6c9ce554b8634d10596e5b60fae9f5d2b74bf",
+          "size": 2083
+        },
+        {
+          "path": "economy.nut",
+          "sha256": "288a69d242f7b8b473984350a5d539da927576972b42a3f2269928173ac05fbc",
+          "size": 48780
+        },
+        {
+          "path": "event_handlers.nut",
+          "sha256": "3f686b46113b7c803e8648a284ce3268c69b0708f14773a4b66951334a4f9f87",
+          "size": 25753
+        },
+        {
+          "path": "events.nut",
+          "sha256": "a62ca7c1e45cc52929c99b0464e3c45a69da8b342a0711eb5246f3717d059ef3",
+          "size": 18890
+        },
+        {
+          "path": "globals_post.nut",
+          "sha256": "6c04ffc83b02c1f7bc8d898129ece153c73622844e121285fa6a673f9b803bf8",
+          "size": 9413
+        },
+        {
+          "path": "globals_pre.nut",
+          "sha256": "b84df76f63f75104a3f1830968658921817107a7d120f4561e116954bbb80fd8",
+          "size": 39856
+        },
+        {
+          "path": "info.nut",
+          "sha256": "b04df9797ec2f464a1fb8e8b9428e336a0b66957b7d4791a82d66f0c129f48e0",
+          "size": 26244
+        },
+        {
+          "path": "ledgers.nut",
+          "sha256": "acf02b2ad015b3576bb1211d1788743e82540c65e786f4a4b40f18c9ce693139",
+          "size": 67424
+        },
+        {
+          "path": "lines.nut",
+          "sha256": "490cfb8fdd5c707dc8709a31a64d659843f5fb4e6a64600b889434d0b926fc71",
+          "size": 20759
+        },
+        {
+          "path": "main.nut",
+          "sha256": "b716838631daba2621fd9b7d992b72accd042c0ba0a2c4d8d89527709358ad68",
+          "size": 38770
+        },
+        {
+          "path": "opcode_exact.nut",
+          "sha256": "f228d4ef24eccece4206616c7352934322387f065386f0f6e8b610590d99ff84",
+          "size": 24888
+        },
+        {
+          "path": "orchestrator.nut",
+          "sha256": "798d599f0b7308bb5f4bf57357cbd4cd9bd7071fb340d96c097de5e40eb60704",
+          "size": 62305
+        },
+        {
+          "path": "pathfinder_v90/aystar.nut",
+          "sha256": "90d917d78575d84715c91d032c6e2a6059fe6f921706c3d401fa21fbfa1e23de",
+          "size": 9750
+        },
+        {
+          "path": "pathfinder_v90/binary_heap.nut",
+          "sha256": "ed028fd2af50a8ef906e1716a23c88babc1aeb86b2aba45f7754702d82c4d5c2",
+          "size": 3194
+        },
+        {
+          "path": "pathfinder_v90/rail.nut",
+          "sha256": "a0425632b671589489708ac4dca67b02a9407c863f821199177288ffaca85aa7",
+          "size": 32201
+        },
+        {
+          "path": "pathfinder_v90/v129.nut",
+          "sha256": "8d5c869eb2e3a6c8f297fc2379f1c0a48ac68b74e2ae20b442518f3ee59c6e05",
+          "size": 28533
+        },
+        {
+          "path": "pathfinder_v90/v296.nut",
+          "sha256": "a442ba084ac26ab3db96bf386a720da9e5a2a50bf5e2f261aac704a59a517af0",
+          "size": 23738
+        },
+        {
+          "path": "persist.nut",
+          "sha256": "0428c4ce49e9e5dbeec3f9e082a623e15620b416d5416bb3fd8964c2c330cf0a",
+          "size": 46945
+        },
+        {
+          "path": "po01c_generators.nut",
+          "sha256": "2a294f62cb19c9c20584b731df53e8a7b94ddab9389322c405b4ab4d2cfe55d2",
+          "size": 126478
+        },
+        {
+          "path": "po01c_regen.nut",
+          "sha256": "f626d64f445eb55eccd78abc582e0ef6d470b9ed2a9e85f32f0f410d0df6bfa3",
+          "size": 24964
+        },
+        {
+          "path": "probe_v216.nut",
+          "sha256": "8971a9dcf90ec29fce9baaca9f4959bbcc3c7db5d3e648963f1481c768ab5166",
+          "size": 24479
+        },
+        {
+          "path": "probe_v262_orphans.nut",
+          "sha256": "92023ea10f12a02ef31e8ebc8fa78d561816df760466329b1ac55c945114d35a",
+          "size": 6906
+        },
+        {
+          "path": "probe_v307.nut",
+          "sha256": "dd92702a8c5e778ffce0ecd520fa5124dce8832b5eb2ff1dabb54712cdfa1a68",
+          "size": 21795
+        },
+        {
+          "path": "probe_v308.nut",
+          "sha256": "dc32f9a025f0c376985ff7f3b6e75812db05e791e3701ff6bae5f8c3571882c4",
+          "size": 6553
+        },
+        {
+          "path": "probes.nut",
+          "sha256": "005a79a7647c1ddd98754b3854497f5328c6eb4bea62ae3a9192e0a03dfab84e",
+          "size": 121542
+        },
+        {
+          "path": "projects.nut",
+          "sha256": "81d82baf34abff22c04a93bd3ba8f54c1512e37cd1530ac2eb30cfce65c9cafa",
+          "size": 29682
+        },
+        {
+          "path": "projects_builders.nut",
+          "sha256": "5a442fc990a74d46b857967d7afa64673adab4ea7262f54a9e0ef8facc369d2b",
+          "size": 16542
+        },
+        {
+          "path": "projects_diagnostics.nut",
+          "sha256": "b7fcc5b3acd860dda33a06a26421d4fb1743bb032eaa7ec4a5876d380750a924",
+          "size": 18254
+        },
+        {
+          "path": "projects_finance.nut",
+          "sha256": "1e14d298f4c1eb9072a05a7b48f0261edf13951f7b326ce69e618d95a0984802",
+          "size": 1698
+        },
+        {
+          "path": "projects_generation.nut",
+          "sha256": "0c0535d34228f3032ae8af09f57bbfdc63231c7652f592fd5596bb6a73dd2567",
+          "size": 31313
+        },
+        {
+          "path": "projects_models.nut",
+          "sha256": "0bd99878c035fa0466f2305a9b4a8c5376e4f12dd5918748a2331e24d1fb5f1c",
+          "size": 8304
+        },
+        {
+          "path": "projects_rank_log.nut",
+          "sha256": "210a184c85553c92e1544d8e4e7a2e93f945c3dd06afab5675ac037b2c90195d",
+          "size": 6142
+        },
+        {
+          "path": "projects_selection.nut",
+          "sha256": "b5e3858cc6ad93ea38eb9413c742bb6b8979e5431d836e20531f14891e8d1a3d",
+          "size": 69292
+        },
+        {
+          "path": "projects_update.nut",
+          "sha256": "f8ad32d1da55e8a0031bc357c258dfc30fdc788d74a13bd3f62fdedcbb0230d5",
+          "size": 27639
+        },
+        {
+          "path": "rail_prep_c121.nut",
+          "sha256": "27c703eff0e64e8a804509e36d204c11ddce6b0be47d7f1a7698d6100b002ce8",
+          "size": 10508
+        },
+        {
+          "path": "rail_templates.nut",
+          "sha256": "4abf1ce6ca554a954c95e2dc6416f6dcf4345da922ddb6c71dcb2f0babf35e2d",
+          "size": 36701
+        },
+        {
+          "path": "rivals_v211.nut",
+          "sha256": "71efd7fb791632dd4d57490a2d96e6d5b5d7d1e073696e9479c7578852eae79c",
+          "size": 6571
+        },
+        {
+          "path": "scheduler.nut",
+          "sha256": "e7d38352325978d0b011a03be41da2fc9a51cd7f78467ee5bdd54a0bcf0e4536",
+          "size": 25436
+        },
+        {
+          "path": "scheduler_tasks.nut",
+          "sha256": "261f2611661ac903b7bd87951283526f4b3e6e76d8fb9ae113d906963285fc5e",
+          "size": 52700
+        },
+        {
+          "path": "selftests.nut",
+          "sha256": "94a36183dca787c17d42bf2856bc37cebed66beda94aba2e375945a331bf28dd",
+          "size": 20616
+        },
+        {
+          "path": "settings.nut",
+          "sha256": "07f4b94b34b687ceabd0117c1a23a0cbe68d996a0a967745303697a3d6d480e0",
+          "size": 22410
+        },
+        {
+          "path": "spatial.nut",
+          "sha256": "ca43765845ef7b2293fc3c85a28e65e5bbeace3d283a40add1c2aae163e91c9f",
+          "size": 5413
+        },
+        {
+          "path": "task_air.nut",
+          "sha256": "50fb5eb1385ec873dd1a71a1171b2f06c5d4337070da62c8c9389a3d0ebf4105",
+          "size": 43935
+        },
+        {
+          "path": "task_projects.nut",
+          "sha256": "647a55ba2c65b6bf5363b238bfd3e850b25a4437e4c8431b88c509c9d9dcf44e",
+          "size": 87958
+        },
+        {
+          "path": "task_rail.nut",
+          "sha256": "c23d77b9ccce67fd3ce303dcb00cb6c028a64fc8f270d97f4eb546c6680430e2",
+          "size": 128696
+        },
+        {
+          "path": "task_report.nut",
+          "sha256": "f98d20f9525b80a7bc43d67ae59e7d9271d9276abf61fe6e000f3e41583afaec",
+          "size": 76616
+        },
+        {
+          "path": "task_road.nut",
+          "sha256": "ad3341f84f7f9438307d7c851492294624539390c4dbf55ab1c4f3a0c24333ea",
+          "size": 25288
+        },
+        {
+          "path": "task_terrain.nut",
+          "sha256": "5a3adcc0c915ba82191413feb829130b293fcd816512a14294fe8c2480884839",
+          "size": 12557
+        },
+        {
+          "path": "task_v249.nut",
+          "sha256": "916c551d82b8ea790ada7ec336ca1cf3d6f3b10fbf2375b94e06b91731e01e47",
+          "size": 17816
+        },
+        {
+          "path": "task_v250.nut",
+          "sha256": "906921943a053bbf73f1f7db539d856f1631209724325d49dc1b08ec92a5efad",
+          "size": 12314
+        },
+        {
+          "path": "task_v252.nut",
+          "sha256": "851f3762ddbc296066c49cbe56eb82a686b31f25eaa6c40484c9ddd1bedc3ea6",
+          "size": 6869
+        },
+        {
+          "path": "task_v257.nut",
+          "sha256": "803ddf201846957b820d198ccf17fa1daa85e00f1ce6ec4858f71e4b95c90cc6",
+          "size": 33322
+        },
+        {
+          "path": "task_v259.nut",
+          "sha256": "1899190a53f431ddbfd0438c7137fa246e022854e3643640c393eea020bc72a5",
+          "size": 11442
+        },
+        {
+          "path": "task_v284.nut",
+          "sha256": "4c22d905fde0077cee44596022f16b0d225727a9c4b75f6de2df453899b6839a",
+          "size": 24206
+        },
+        {
+          "path": "task_water.nut",
+          "sha256": "fcf9f770f91fccfa835cfbd8d7f180f360d49a915acac8eb9923224d7a65a8ac",
+          "size": 7051
+        },
+        {
+          "path": "tension.nut",
+          "sha256": "74e287a08a285ce86e1edee59cf48ee1db5f65674e1f50ffe6efc94108797169",
+          "size": 15444
+        },
+        {
+          "path": "terrain_map.nut",
+          "sha256": "971b0a8df8ca5b85394a16da371d32c17c44adca5646669f4e3c2081384ca87b",
+          "size": 13025
+        },
+        {
+          "path": "terrain_valuate.nut",
+          "sha256": "fd559f3cb989a7eed98cca5b857bed2328215cfea9bdb4f5c9e575dd01b7f98b",
+          "size": 17658
+        },
+        {
+          "path": "water_graph.nut",
+          "sha256": "5a05161e2b900944c63841b0f870c897e12cfc9f31f664ee2ef202cbdab08569",
+          "size": 17710
+        }
+      ],
+      "sha256": "6b200c6a06b3827660801237ab11cb890a1989cfc5b07a3e33ea143f3e3add93"
+    },
+    "ai_libraries": {
+      "file_count": 4,
+      "files": [
+        {
+          "path": "4752412a-Graph.AyStar-4.tar",
+          "sha256": "cfc09cdd5877800d57e490832b65cf028db16aef4f1906eb1d625f908ebc49f1",
+          "size": 40960
+        },
+        {
+          "path": "5046524c-Pathfinder.Rail-1.tar",
+          "sha256": "e3ab05b1811c1a57abb4219480f0fffa885efff6be42691c836ec144ab7f8b13",
+          "size": 40960
+        },
+        {
+          "path": "51554248-Queue.BinaryHeap-1.tar",
+          "sha256": "a83eb5002b1246330dfc467dbd1076687d227156a697cc140f6d04515cf3bb67",
+          "size": 30720
+        },
+        {
+          "path": "51554648-Queue.FibonacciHeap-3.tar",
+          "sha256": "c3c80ad59a0cf43b67a7d769484ba10f316b7a0b4a83a28efe5ce82e96066c9b",
+          "size": 30720
+        }
+      ],
+      "sha256": "c6be0dd91e4543c7f26a7c4a832c754931a2f338db9d7c2021ccbb85db244f41"
+    },
+    "harness": {
+      "file_count": 16,
+      "files": [
+        {
+          "path": "Dockerfile",
+          "sha256": "fb070ce0f8b67195e6f339e7417261abcfdbffb3c18d966c9a8d95450eaf8c29",
+          "size": 1249
+        },
+        {
+          "path": "requirements-ml.txt",
+          "sha256": "69817d92254613af3da65b94975cbd8d2d28a2d99864fca5ec1ebf8c9c7c5f23",
+          "size": 34
+        },
+        {
+          "path": "requirements.txt",
+          "sha256": "acc00b759a95a40f47f5f4e20e2781b01c313cc276561d1fecbad99fea9ef9b6",
+          "size": 64
+        },
+        {
+          "path": "sweeps/bench_1v1_5y_20seeds.py",
+          "sha256": "59997345ffcc32dab1c10f8974aa194a1028ba485ef9f601cb3133a5553e27a5",
+          "size": 150518
+        },
+        {
+          "path": "sweeps/bench_v2.py",
+          "sha256": "85459fd05b68cf5f3769a5f80fe03e8f14e81bc16e2d500bcfcd7d5fc758b162",
+          "size": 51050
+        },
+        {
+          "path": "sweeps/c83_reaction.py",
+          "sha256": "62f3e7f41668af482435a9c1847a9d5d7d9a9fa14d1097eb72397bf9e7e0f920",
+          "size": 2794
+        },
+        {
+          "path": "sweeps/campaign_freeze.py",
+          "sha256": "129baad38c1eaeb1e78c4c4007b992936600e6e87872dcd541f4867e9ccf98f4",
+          "size": 25678
+        },
+        {
+          "path": "sweeps/fixtures/c66_control_fixture_15_3.json",
+          "sha256": "418c4a330dad5db6785e391c15353e615b6f3c3e6018664c7e2dc3f01ff5407f",
+          "size": 831460
+        },
+        {
+          "path": "sweeps/frozen_harness.py",
+          "sha256": "b60d9b5a30a5b80cf7c8b7f9e80b5c449827bace8586e74d2132b8b805bfaaf9",
+          "size": 5808
+        },
+        {
+          "path": "sweeps/game_health.py",
+          "sha256": "531106dc7d0b45755d55ad5b973d3d2461139e1d1077b8533c8f0a586dc68efe",
+          "size": 28980
+        },
+        {
+          "path": "sweeps/paired_statistics.py",
+          "sha256": "39170f978774b1ff99b764a1767499091767a36a7d85364c8b299e98d6fbd73c",
+          "size": 4116
+        },
+        {
+          "path": "sweeps/physical_counters.py",
+          "sha256": "be14511b3b06bca86790e623fd683323d055d145b08fb68a3fc49d5b018c4f50",
+          "size": 20661
+        },
+        {
+          "path": "sweeps/rail_budget_signs.py",
+          "sha256": "fa853c6d963b4e96141539236bff41720d891ba75ba77f02d16a12660d3e6eaf",
+          "size": 2726
+        },
+        {
+          "path": "sweeps/run_c66_reference.py",
+          "sha256": "3bc4741091ac3c53721e9c209fa356b138d534f296ae89c40d4cf2bed2af339e",
+          "size": 14802
+        },
+        {
+          "path": "sweeps/savegame_archive.py",
+          "sha256": "19ee3c3e85cfc0d678ddd7e73da91358514681c25de63bb1202371e79389664a",
+          "size": 1013
+        },
+        {
+          "path": "sweeps/station_supply.py",
+          "sha256": "486491eb9d22a53365e3fa9a67ae666a5b84e97d2418a7966e27dabd5652b515",
+          "size": 6645
+        }
+      ],
+      "sha256": "1b055a58c01db89238f5b74f4e629bef60e8ba98187958828874b413e8459cd5"
+    }
+  },
+  "versions": {
+    "opengfx": "7.1",
+    "openttd": "15.3",
+    "openttdlab": "0.0.75"
+  }
+}

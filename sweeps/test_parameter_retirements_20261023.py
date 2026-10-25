@@ -8,6 +8,7 @@ checks the published interface, not the number in that old local tree.
 from pathlib import Path
 import re
 import unittest
+from n75_mc_legacy import historical_info
 
 
 ROOT = Path(__file__).resolve().parents[1] / "ai" / "OpexAI"
@@ -84,7 +85,9 @@ class TestParameterRetirement(unittest.TestCase):
 
     def test_exact_size_after_retirement(self):
         self.assertEqual(len(RETIRED), 43)
-        self.assertEqual(len(self.config), 58)
+        self.assertEqual(len(self.config), 59)
+        self.assertIn("n75_multi_cargo", self.config)
+        self.assertEqual(len(declared(historical_info(self.info))), 58)
 
     def test_retired_settings_have_no_declarations_or_direct_reads(self):
         for name in sorted(RETIRED):

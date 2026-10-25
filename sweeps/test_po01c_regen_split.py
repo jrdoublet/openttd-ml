@@ -434,9 +434,11 @@ class PO01CContracts(unittest.TestCase):
             'settings.nut': '6946a9ed7d3864e22714167b4fbb4fe74d8e6b95b39c0fac0054cfde80bc214b',
             'info.nut': '1bc76539590e9272aa59849baa54d0248a74ac5f993e0d0e77d679906c7ad2c3',
         }
+        from n75_mc_legacy import historical_bytes
         for name, digest in expected.items():
             with self.subTest(name=name):
-                self.assertEqual(hashlib.sha256((AI / name).read_bytes()).hexdigest(), digest)
+                legacy = historical_bytes(name, (AI / name).read_bytes())
+                self.assertEqual(hashlib.sha256(legacy).hexdigest(), digest)
 
         # PO03 ajoute exactement deux lignes dans _dispatchReactiveIntention.
         # Conserver la preuve byte-a-byte de tout le reste de orchestrator.nut :

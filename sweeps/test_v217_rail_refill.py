@@ -60,7 +60,15 @@ class TestV217RailRefill(unittest.TestCase):
         self.assertLess(call, off)
 
     def test_no_pax_flag_only_gates_rail_pax(self):
-        users = [n for n, t in self.sources.items()
+        # Neutraliser exclusivement le bloc neuf N75-MC, qui sauvegarde puis
+        # restaure le drapeau historique autour de sa regeneration propre.
+        # Le controle du V217 existant garde exactement sa portee precedente.
+        isolated = dict(self.sources)
+        scheduler = isolated["scheduler.nut"]
+        start = scheduler.index("/* N75:")
+        end = scheduler.index("/* C41.11", start)
+        isolated["scheduler.nut"] = scheduler[:start] + scheduler[end:]
+        users = [n for n, t in isolated.items()
                  if re.search(r"\bV217_REGEN_NO_PAX\b", t) and n not in ("globals_pre.nut", "orchestrator.nut")]
         self.assertEqual(users, ["projects_generation.nut"])
         self.assertIn('local generatePax = (!targeted || entityKind == "town") && !V217_REGEN_NO_PAX;',

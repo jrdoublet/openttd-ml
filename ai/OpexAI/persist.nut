@@ -617,6 +617,7 @@ function OpexAI::Save()
       shortSave.c76Revisions <- this._c76SaveRevisions();
     }
     if (V250_RIGHTS != 0) OpexSaveV250(shortSave, this);
+    if (N75_MULTI_CARGO > 0) shortSave.n75McLastMonth <- N75_MC_LAST_MONTH;
     if (OpexC121StrategyStateEnabled()) OpexSaveC121Strategy(shortSave);
     if (OPEX_AIR_ROLLBACKS.len() > 0) shortSave.airRollbacks <- OPEX_AIR_ROLLBACKS;
     if (V259_BRIDGE_RENEW != 0) {
@@ -711,6 +712,7 @@ function OpexAI::Save()
     saveObj.c76Revisions <- this._c76SaveRevisions();
   }
   if (V250_RIGHTS != 0) OpexSaveV250(saveObj, this);
+  if (N75_MULTI_CARGO > 0) saveObj.n75McLastMonth <- N75_MC_LAST_MONTH;
 
   /* Hors projection mensuelle : la transaction et le curseur doivent etre exacts. */
   saveObj.v257RailRefresh <- { cursor = this._v257Cursor, state = this._v257State,
@@ -753,10 +755,13 @@ function OpexAI::Load(version, data)
     if ("v276Batches" in task) delete task.v276Batches;
   }
   this._loadedFromSave = true;
+  N75_MC_SAVED_MONTH = -1;
   OPEX_RELOAD_C121_STRATEGY = null;
   OPEX_AIR_ROLLBACKS = [];
   if (V279_RESELECT_MEMO != 0) OPEX_AIR_ROLLBACK_REVISION++;
   if (data == null) return;
+  if (("n75McLastMonth" in data) && typeof data.n75McLastMonth == "integer")
+    N75_MC_SAVED_MONTH = data.n75McLastMonth;
   /* Legacy v139UnjoinedStops is deliberately ignored: feeder construction was removed. */
   if ("airRollbacks" in data) OPEX_AIR_ROLLBACKS = OpexLoadAirRollbacks(data.airRollbacks);
   if ("airRollbacks" in data && V279_RESELECT_MEMO != 0) OPEX_AIR_ROLLBACK_REVISION++;

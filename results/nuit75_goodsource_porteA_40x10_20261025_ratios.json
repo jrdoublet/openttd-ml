@@ -1,0 +1,591 @@
+{
+  "campaign": "nuit75_goodsource_porteA_40x10_20261025",
+  "terminal_year": 1979,
+  "bundle_sha256": "4da09e927f64bc110ee2da6752131226a2ab9fdd792e0670f2b80bcc1790b808",
+  "policies": {
+    "reference": {
+      "n_candidate_pairs": 40,
+      "n_complete_positive_aaa_pairs": 40,
+      "excluded_keys": [],
+      "opex_mean": 4273227.5,
+      "aaahogex_mean": 7565478.05,
+      "ratio_of_mean_profits_pct": 56.48324496824097,
+      "median_of_paired_ratios_pct": 55.326688042999606,
+      "mean_of_paired_ratios_pct": 57.403308468799985,
+      "per_seed": [
+        {
+          "seed": 100,
+          "repeat": 0,
+          "opex": 2237258,
+          "aaahogex": 4576659,
+          "ratio_pct": 48.884087715514745
+        },
+        {
+          "seed": 1024,
+          "repeat": 0,
+          "opex": 3262530,
+          "aaahogex": 5897333,
+          "ratio_pct": 55.322126120400526
+        },
+        {
+          "seed": 123456,
+          "repeat": 0,
+          "opex": 4326514,
+          "aaahogex": 9056276,
+          "ratio_pct": 47.77365442484306
+        },
+        {
+          "seed": 12345,
+          "repeat": 0,
+          "opex": 3251260,
+          "aaahogex": 6868386,
+          "ratio_pct": 47.336594070280846
+        },
+        {
+          "seed": 1337,
+          "repeat": 0,
+          "opex": 4141915,
+          "aaahogex": 8013294,
+          "ratio_pct": 51.68804489140172
+        },
+        {
+          "seed": 17,
+          "repeat": 0,
+          "opex": 3719438,
+          "aaahogex": 6722129,
+          "ratio_pct": 55.331249965598694
+        },
+        {
+          "seed": 1,
+          "repeat": 0,
+          "opex": 5229176,
+          "aaahogex": 8046729,
+          "ratio_pct": 64.98511382699728
+        },
+        {
+          "seed": 2026,
+          "repeat": 0,
+          "opex": 3975556,
+          "aaahogex": 9395576,
+          "ratio_pct": 42.3130630841579
+        },
+        {
+          "seed": 230185,
+          "repeat": 0,
+          "opex": 3574425,
+          "aaahogex": 6050196,
+          "ratio_pct": 59.079490978474084
+        },
+        {
+          "seed": 232037,
+          "repeat": 0,
+          "opex": 3204578,
+          "aaahogex": 6061822,
+          "ratio_pct": 52.86493070895186
+        },
+        {
+          "seed": 292001,
+          "repeat": 0,
+          "opex": 4818161,
+          "aaahogex": 6687885,
+          "ratio_pct": 72.043119760582
+        },
+        {
+          "seed": 313707,
+          "repeat": 0,
+          "opex": 4461006,
+          "aaahogex": 8287390,
+          "ratio_pct": 53.82884116712258
+        },
+        {
+          "seed": 314,
+          "repeat": 0,
+          "opex": 4711462,
+          "aaahogex": 9651172,
+          "ratio_pct": 48.81751148979627
+        },
+        {
+          "seed": 375172,
+          "repeat": 0,
+          "opex": 5608137,
+          "aaahogex": 8390596,
+          "ratio_pct": 66.83836285288912
+        },
+        {
+          "seed": 4096,
+          "repeat": 0,
+          "opex": 5260875,
+          "aaahogex": 9624058,
+          "ratio_pct": 54.66379151081592
+        },
+        {
+          "seed": 423960,
+          "repeat": 0,
+          "opex": 4554100,
+          "aaahogex": 7868209,
+          "ratio_pct": 57.87975382961993
+        },
+        {
+          "seed": 424242,
+          "repeat": 0,
+          "opex": 5250955,
+          "aaahogex": 6306204,
+          "ratio_pct": 83.26649439187187
+        },
+        {
+          "seed": 42,
+          "repeat": 0,
+          "opex": 4064397,
+          "aaahogex": 5132996,
+          "ratio_pct": 79.18176830841092
+        },
+        {
+          "seed": 442018,
+          "repeat": 0,
+          "opex": 4293739,
+          "aaahogex": 8363656,
+          "ratio_pct": 51.338063162808226
+        },
+        {
+          "seed": 455216,
+          "repeat": 0,
+          "opex": 3209479,
+          "aaahogex": 6909569,
+          "ratio_pct": 46.449771324376385
+        },
+        {
+          "seed": 512,
+          "repeat": 0,
+          "opex": 2258537,
+          "aaahogex": 9299740,
+          "ratio_pct": 24.286023050106778
+        },
+        {
+          "seed": 515222,
+          "repeat": 0,
+          "opex": 4516813,
+          "aaahogex": 6366848,
+          "ratio_pct": 70.94268623972175
+        },
+        {
+          "seed": 54321,
+          "repeat": 0,
+          "opex": 4474935,
+          "aaahogex": 6079981,
+          "ratio_pct": 73.6011346088088
+        },
+        {
+          "seed": 59527,
+          "repeat": 0,
+          "opex": 4629355,
+          "aaahogex": 7067820,
+          "ratio_pct": 65.49905062664301
+        },
+        {
+          "seed": 613553,
+          "repeat": 0,
+          "opex": 4896062,
+          "aaahogex": 9441517,
+          "ratio_pct": 51.856730226720984
+        },
+        {
+          "seed": 65537,
+          "repeat": 0,
+          "opex": 3972935,
+          "aaahogex": 5626398,
+          "ratio_pct": 70.61240601891299
+        },
+        {
+          "seed": 701256,
+          "repeat": 0,
+          "opex": 5778647,
+          "aaahogex": 9538621,
+          "ratio_pct": 60.581576728963235
+        },
+        {
+          "seed": 706990,
+          "repeat": 0,
+          "opex": 3593875,
+          "aaahogex": 6149644,
+          "ratio_pct": 58.4403747599048
+        },
+        {
+          "seed": 723002,
+          "repeat": 0,
+          "opex": 4404101,
+          "aaahogex": 9998950,
+          "ratio_pct": 44.04563479165312
+        },
+        {
+          "seed": 73,
+          "repeat": 0,
+          "opex": 4787891,
+          "aaahogex": 7527627,
+          "ratio_pct": 63.60425403649782
+        },
+        {
+          "seed": 746035,
+          "repeat": 0,
+          "opex": 4937837,
+          "aaahogex": 8567474,
+          "ratio_pct": 57.63468905770826
+        },
+        {
+          "seed": 781335,
+          "repeat": 0,
+          "opex": 3967554,
+          "aaahogex": 7222537,
+          "ratio_pct": 54.93296884460405
+        },
+        {
+          "seed": 7,
+          "repeat": 0,
+          "opex": 5080755,
+          "aaahogex": 7083470,
+          "ratio_pct": 71.7269219746819
+        },
+        {
+          "seed": 802204,
+          "repeat": 0,
+          "opex": 6038676,
+          "aaahogex": 8719613,
+          "ratio_pct": 69.25394510054517
+        },
+        {
+          "seed": 8191,
+          "repeat": 0,
+          "opex": 3581750,
+          "aaahogex": 7167752,
+          "ratio_pct": 49.97033937558108
+        },
+        {
+          "seed": 841478,
+          "repeat": 0,
+          "opex": 4658697,
+          "aaahogex": 7158114,
+          "ratio_pct": 65.08274386241963
+        },
+        {
+          "seed": 8675309,
+          "repeat": 0,
+          "opex": 4353046,
+          "aaahogex": 7934220,
+          "ratio_pct": 54.864195850379744
+        },
+        {
+          "seed": 983759,
+          "repeat": 0,
+          "opex": 3472279,
+          "aaahogex": 7407193,
+          "ratio_pct": 46.87712335833561
+        },
+        {
+          "seed": 999533,
+          "repeat": 0,
+          "opex": 3818904,
+          "aaahogex": 8221006,
+          "ratio_pct": 46.45300100741929
+        },
+        {
+          "seed": 999,
+          "repeat": 0,
+          "opex": 4551490,
+          "aaahogex": 8130462,
+          "ratio_pct": 55.98070564747735
+        }
+      ]
+    },
+    "n75goodsource": {
+      "n_candidate_pairs": 40,
+      "n_complete_positive_aaa_pairs": 40,
+      "excluded_keys": [],
+      "opex_mean": 4401046.95,
+      "aaahogex_mean": 7445675.875,
+      "ratio_of_mean_profits_pct": 59.108763581519725,
+      "median_of_paired_ratios_pct": 60.03308537989267,
+      "mean_of_paired_ratios_pct": 60.11006182943973,
+      "per_seed": [
+        {
+          "seed": 100,
+          "repeat": 0,
+          "opex": 2448878,
+          "aaahogex": 5206577,
+          "ratio_pct": 47.03431832468818
+        },
+        {
+          "seed": 1024,
+          "repeat": 0,
+          "opex": 2941012,
+          "aaahogex": 6750576,
+          "ratio_pct": 43.566830445283486
+        },
+        {
+          "seed": 123456,
+          "repeat": 0,
+          "opex": 4480287,
+          "aaahogex": 7645826,
+          "ratio_pct": 58.59781533087465
+        },
+        {
+          "seed": 12345,
+          "repeat": 0,
+          "opex": 3589408,
+          "aaahogex": 6471439,
+          "ratio_pct": 55.465376402373565
+        },
+        {
+          "seed": 1337,
+          "repeat": 0,
+          "opex": 4380719,
+          "aaahogex": 8357010,
+          "ratio_pct": 52.419693167771726
+        },
+        {
+          "seed": 17,
+          "repeat": 0,
+          "opex": 3873170,
+          "aaahogex": 6241960,
+          "ratio_pct": 62.05054181699338
+        },
+        {
+          "seed": 1,
+          "repeat": 0,
+          "opex": 5093392,
+          "aaahogex": 9402531,
+          "ratio_pct": 54.17043559867019
+        },
+        {
+          "seed": 2026,
+          "repeat": 0,
+          "opex": 4016080,
+          "aaahogex": 8963861,
+          "ratio_pct": 44.803015129306445
+        },
+        {
+          "seed": 230185,
+          "repeat": 0,
+          "opex": 3925618,
+          "aaahogex": 6672035,
+          "ratio_pct": 58.8368915930447
+        },
+        {
+          "seed": 232037,
+          "repeat": 0,
+          "opex": 3728153,
+          "aaahogex": 6030739,
+          "ratio_pct": 61.819173404785055
+        },
+        {
+          "seed": 292001,
+          "repeat": 0,
+          "opex": 4982414,
+          "aaahogex": 6074143,
+          "ratio_pct": 82.02661675894032
+        },
+        {
+          "seed": 313707,
+          "repeat": 0,
+          "opex": 4753084,
+          "aaahogex": 9574606,
+          "ratio_pct": 49.64260670360744
+        },
+        {
+          "seed": 314,
+          "repeat": 0,
+          "opex": 5922534,
+          "aaahogex": 7405488,
+          "ratio_pct": 79.97493210440689
+        },
+        {
+          "seed": 375172,
+          "repeat": 0,
+          "opex": 5723367,
+          "aaahogex": 9430799,
+          "ratio_pct": 60.688039263693355
+        },
+        {
+          "seed": 4096,
+          "repeat": 0,
+          "opex": 5464298,
+          "aaahogex": 7861646,
+          "ratio_pct": 69.50577525368097
+        },
+        {
+          "seed": 423960,
+          "repeat": 0,
+          "opex": 4834432,
+          "aaahogex": 7999884,
+          "ratio_pct": 60.43127625350568
+        },
+        {
+          "seed": 424242,
+          "repeat": 0,
+          "opex": 5341582,
+          "aaahogex": 8309845,
+          "ratio_pct": 64.28016407044896
+        },
+        {
+          "seed": 42,
+          "repeat": 0,
+          "opex": 4314711,
+          "aaahogex": 6088456,
+          "ratio_pct": 70.8670802581147
+        },
+        {
+          "seed": 442018,
+          "repeat": 0,
+          "opex": 4347834,
+          "aaahogex": 9523724,
+          "ratio_pct": 45.65266696094931
+        },
+        {
+          "seed": 455216,
+          "repeat": 0,
+          "opex": 2846096,
+          "aaahogex": 4882162,
+          "ratio_pct": 58.29581238803628
+        },
+        {
+          "seed": 512,
+          "repeat": 0,
+          "opex": 1896892,
+          "aaahogex": 8699994,
+          "ratio_pct": 21.803371358646913
+        },
+        {
+          "seed": 515222,
+          "repeat": 0,
+          "opex": 4473000,
+          "aaahogex": 5444602,
+          "ratio_pct": 82.15476539882988
+        },
+        {
+          "seed": 54321,
+          "repeat": 0,
+          "opex": 4245738,
+          "aaahogex": 4667148,
+          "ratio_pct": 90.97071702033018
+        },
+        {
+          "seed": 59527,
+          "repeat": 0,
+          "opex": 4983832,
+          "aaahogex": 7583052,
+          "ratio_pct": 65.72329980066074
+        },
+        {
+          "seed": 613553,
+          "repeat": 0,
+          "opex": 5051888,
+          "aaahogex": 7004201,
+          "ratio_pct": 72.12654234223147
+        },
+        {
+          "seed": 65537,
+          "repeat": 0,
+          "opex": 3601223,
+          "aaahogex": 5963340,
+          "ratio_pct": 60.38936233721371
+        },
+        {
+          "seed": 701256,
+          "repeat": 0,
+          "opex": 5194779,
+          "aaahogex": 8784122,
+          "ratio_pct": 59.13828382620369
+        },
+        {
+          "seed": 706990,
+          "repeat": 0,
+          "opex": 3814118,
+          "aaahogex": 5912052,
+          "ratio_pct": 64.51428370386458
+        },
+        {
+          "seed": 723002,
+          "repeat": 0,
+          "opex": 5249884,
+          "aaahogex": 8557074,
+          "ratio_pct": 61.35139184258544
+        },
+        {
+          "seed": 73,
+          "repeat": 0,
+          "opex": 5463442,
+          "aaahogex": 7582178,
+          "ratio_pct": 72.05636691726309
+        },
+        {
+          "seed": 746035,
+          "repeat": 0,
+          "opex": 4676924,
+          "aaahogex": 7811637,
+          "ratio_pct": 59.87124081674558
+        },
+        {
+          "seed": 781335,
+          "repeat": 0,
+          "opex": 3517123,
+          "aaahogex": 8490998,
+          "ratio_pct": 41.42178575474873
+        },
+        {
+          "seed": 7,
+          "repeat": 0,
+          "opex": 5345131,
+          "aaahogex": 8879703,
+          "ratio_pct": 60.19492994303976
+        },
+        {
+          "seed": 802204,
+          "repeat": 0,
+          "opex": 5742795,
+          "aaahogex": 9740753,
+          "ratio_pct": 58.956376370492094
+        },
+        {
+          "seed": 8191,
+          "repeat": 0,
+          "opex": 3677186,
+          "aaahogex": 6364004,
+          "ratio_pct": 57.78101333688665
+        },
+        {
+          "seed": 841478,
+          "repeat": 0,
+          "opex": 5133067,
+          "aaahogex": 8509800,
+          "ratio_pct": 60.31947871865379
+        },
+        {
+          "seed": 8675309,
+          "repeat": 0,
+          "opex": 4239303,
+          "aaahogex": 7755751,
+          "ratio_pct": 54.6601225335883
+        },
+        {
+          "seed": 983759,
+          "repeat": 0,
+          "opex": 3881615,
+          "aaahogex": 6167856,
+          "ratio_pct": 62.932970549247585
+        },
+        {
+          "seed": 999533,
+          "repeat": 0,
+          "opex": 3975399,
+          "aaahogex": 6705824,
+          "ratio_pct": 59.28278165367895
+        },
+        {
+          "seed": 999,
+          "repeat": 0,
+          "opex": 4871470,
+          "aaahogex": 8309639,
+          "ratio_pct": 58.62432772350279
+        }
+      ]
+    }
+  }
+}

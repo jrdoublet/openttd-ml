@@ -1,0 +1,4532 @@
+{
+ "campaign_id": "nuit75_goodsource_exposure_seed100_1x10_20261025",
+ "policy_id": "reference",
+ "source_bundle_sha256": "4da09e927f64bc110ee2da6752131226a2ab9fdd792e0670f2b80bcc1790b808",
+ "manifest_path": "/work/results/nuit75_goodsource_exposure_seed100_1x10_20261025.manifest.json",
+ "manifest_sha256": "1a434d78d1817d6b3a2c9e96d454a19646c212814a929d42c01baf8ff2c9439b",
+ "openttd_version": "15.3",
+ "opengfx_version": "7.1",
+ "years": 10,
+ "seeds": [
+  100
+ ],
+ "repeats": 1,
+ "start_year": 1970,
+ "map_size": 8,
+ "policies": [
+  {
+   "id": "reference",
+   "role": "reference",
+   "explicit_settings": [
+    [
+     "good_source_rail_join",
+     0
+    ],
+    [
+     "probes",
+     258
+    ]
+   ]
+  },
+  {
+   "id": "n75goodsource",
+   "role": "variant",
+   "explicit_settings": [
+    [
+     "good_source_rail_join",
+     1
+    ],
+    [
+     "probes",
+     258
+    ]
+   ]
+  }
+ ],
+ "aaahogex_settings": [],
+ "arms": [
+  "OpexAI",
+  "AAAHogEx"
+ ],
+ "design": "Deux duels partag\u00e9s s\u00e9par\u00e9s, r\u00e9f\u00e9rence puis variante, chacun OpexAI slot 0 vs AAAHogEx slot 1",
+ "success_metrics": [
+  "company_value",
+  "performance_history",
+  "profit",
+  "profit_year",
+  "median_station_rating",
+  "primary_vehicles"
+ ],
+ "expected_last_year": 1979,
+ "expected_last_checkpoint": "1979-12-01",
+ "engine_log_dir": "/work/results/nuit75_goodsource_exposure_seed100_1x10_20261025_engine",
+ "games": [
+  {
+   "campaign_id": "nuit75_goodsource_exposure_seed100_1x10_20261025",
+   "policy_id": "n75goodsource",
+   "game_id": "nuit75_goodsource_exposure_seed100_1x10_20261025:policy=n75goodsource:s100:r0",
+   "source_bundle_sha256": "4da09e927f64bc110ee2da6752131226a2ab9fdd792e0670f2b80bcc1790b808",
+   "seed": 100,
+   "repeat": 0,
+   "game_ok": true,
+   "game_status": "complete",
+   "engine_log_path": "/work/results/nuit75_goodsource_exposure_seed100_1x10_20261025_engine/n75goodsource_seed100_r0.log",
+   "expected_last_checkpoint": "1979-12-01",
+   "unattributed_errors": [],
+   "companies": {
+    "OpexAI": {
+     "status": "complete",
+     "run_ok": true,
+     "failure_reason": null,
+     "horizon_complete": true,
+     "activity": "active"
+    },
+    "AAAHogEx": {
+     "status": "complete",
+     "run_ok": true,
+     "failure_reason": null,
+     "horizon_complete": true,
+     "activity": "active"
+    }
+   }
+  },
+  {
+   "campaign_id": "nuit75_goodsource_exposure_seed100_1x10_20261025",
+   "policy_id": "reference",
+   "game_id": "nuit75_goodsource_exposure_seed100_1x10_20261025:policy=reference:s100:r0",
+   "source_bundle_sha256": "4da09e927f64bc110ee2da6752131226a2ab9fdd792e0670f2b80bcc1790b808",
+   "seed": 100,
+   "repeat": 0,
+   "game_ok": true,
+   "game_status": "complete",
+   "engine_log_path": "/work/results/nuit75_goodsource_exposure_seed100_1x10_20261025_engine/reference_seed100_r0.log",
+   "expected_last_checkpoint": "1979-12-01",
+   "unattributed_errors": [],
+   "companies": {
+    "OpexAI": {
+     "status": "complete",
+     "run_ok": true,
+     "failure_reason": null,
+     "horizon_complete": true,
+     "activity": "active"
+    },
+    "AAAHogEx": {
+     "status": "complete",
+     "run_ok": true,
+     "failure_reason": null,
+     "horizon_complete": true,
+     "activity": "active"
+    }
+   }
+  }
+ ],
+ "summary": [
+  {
+   "arm": "AAAHogEx",
+   "seed": 100,
+   "repeat": 0,
+   "last_date": "1979-12-01",
+   "last_year": 1979,
+   "expected_last_year": 1979,
+   "company_value": 23742175,
+   "performance_history": 900,
+   "income_last_year": 1852813,
+   "expenses_last_year": -127909,
+   "profit": 1724904,
+   "profit_year": 7063500,
+   "profit_year_quarters_available": 4,
+   "profit_year_quarters_valid": 4,
+   "profit_year_coverage": "complete",
+   "median_station_rating": 189,
+   "n_station_ratings": 187,
+   "money": 17663582,
+   "current_loan": 0,
+   "n_vehicles": 252,
+   "n_stations": 167,
+   "months_of_bankruptcy": 0,
+   "n_savegames": 120,
+   "selection_kopcodes_samples": null,
+   "selection_kopcodes_total": null,
+   "selection_kopcodes_mean": null,
+   "selection_kopcodes_max": null,
+   "observed_opcode_schema": null,
+   "observed_opcodes_total": null,
+   "observed_opcode_samples": null,
+   "observed_opcode_components": null,
+   "observed_opcode_complete_cpu": null,
+   "rail_budget_sign_schema": null,
+   "rail_budget_sign_coverage": null,
+   "rail_budget_sign_by_year": null,
+   "rail_budget_sign_invalid": null,
+   "rail_budget_sign_conflicts": null,
+   "run_ok": true,
+   "failure_reason": null,
+   "physical_counters_version": "1.2.0",
+   "qualified_modes": {
+    "rail": true,
+    "road": true,
+    "air": true,
+    "water": false
+   },
+   "physical_ok": true,
+   "vehs_chunk_valid": true,
+   "vehs_chunk_error": null,
+   "stnn_chunk_valid": true,
+   "stnn_chunk_error": null,
+   "vehicle_pool_entries": 808,
+   "total_vehicle_pool_entries": 1294,
+   "primary_vehicles": 252,
+   "qualified_primary_vehicles": null,
+   "unqualified_primary_vehicles": null,
+   "primary_vehicles_by_mode": {
+    "rail": 57,
+    "road": 149,
+    "air": 46,
+    "water": 0
+   },
+   "capacities_by_cargo": {
+    "0": 10105,
+    "2": 3840,
+    "1": 3255,
+    "4": 525,
+    "6": 540,
+    "5": 3560,
+    "7": 1024,
+    "8": 2160,
+    "9": 1560
+   },
+   "fleet_status": {
+    "stopped": 2,
+    "not_stopped": 250,
+    "running": 247,
+    "hidden": 5,
+    "broken": 0,
+    "crashed": 0
+   },
+   "unclassified_vehicles": 0,
+   "n_multimodal_stations": 47,
+   "stations_by_facility": {
+    "rail": 44,
+    "truck": 52,
+    "bus": 94,
+    "airport": 36,
+    "dock": 0
+   },
+   "unresolved_stations": 0,
+   "final_profit_year_per_observed_mopcode": null,
+   "company_value_per_observed_mopcode": null,
+   "airport_slots_opex": 25,
+   "airport_slots_aaahogex": 36,
+   "airport_towns_opex_present": 25,
+   "airport_towns_aaahogex_present": 30,
+   "airport_towns_aaahogex_2_opex_0": 6,
+   "airport_towns_opex_2_aaahogex_0": 0,
+   "airport_towns_shared_1_1": 20,
+   "air_error_771_signs": 0,
+   "early_slot_select_signs": 5,
+   "early_slot_build_signs": 4,
+   "early_slot_build_claims": 7,
+   "c75_bypass_events": [
+    {
+     "year": 1971,
+     "mode": "R",
+     "kind": "F",
+     "capital_k": 19,
+     "available_k": 36,
+     "k_pass_k": 4
+    },
+    {
+     "year": 1972,
+     "mode": "T",
+     "kind": "F",
+     "capital_k": 71,
+     "available_k": 134,
+     "k_pass_k": 10
+    },
+    {
+     "year": 1972,
+     "mode": "T",
+     "kind": "F",
+     "capital_k": 71,
+     "available_k": 145,
+     "k_pass_k": 11
+    },
+    {
+     "year": 1973,
+     "mode": "T",
+     "kind": "F",
+     "capital_k": 52,
+     "available_k": 279,
+     "k_pass_k": 35
+    },
+    {
+     "year": 1973,
+     "mode": "T",
+     "kind": "F",
+     "capital_k": 59,
+     "available_k": 93,
+     "k_pass_k": 41
+    },
+    {
+     "year": 1973,
+     "mode": "A",
+     "kind": "P",
+     "capital_k": 67,
+     "available_k": 78,
+     "k_pass_k": 56
+    },
+    {
+     "year": 1973,
+     "mode": "T",
+     "kind": "F",
+     "capital_k": 62,
+     "available_k": 146,
+     "k_pass_k": 33
+    },
+    {
+     "year": 1974,
+     "mode": "T",
+     "kind": "F",
+     "capital_k": 56,
+     "available_k": 108,
+     "k_pass_k": 35
+    },
+    {
+     "year": 1974,
+     "mode": "T",
+     "kind": "F",
+     "capital_k": 61,
+     "available_k": 121,
+     "k_pass_k": 35
+    },
+    {
+     "year": 1976,
+     "mode": "T",
+     "kind": "F",
+     "capital_k": 60,
+     "available_k": 2226,
+     "k_pass_k": 36
+    },
+    {
+     "year": 1977,
+     "mode": "T",
+     "kind": "F",
+     "capital_k": 66,
+     "available_k": 4014,
+     "k_pass_k": 21
+    },
+    {
+     "year": 1977,
+     "mode": "T",
+     "kind": "F",
+     "capital_k": 55,
+     "available_k": 3977,
+     "k_pass_k": 21
+    },
+    {
+     "year": 1978,
+     "mode": "T",
+     "kind": "F",
+     "capital_k": 39,
+     "available_k": 5415,
+     "k_pass_k": 34
+    },
+    {
+     "year": 1978,
+     "mode": "T",
+     "kind": "F",
+     "capital_k": 39,
+     "available_k": 5272,
+     "k_pass_k": 34
+    },
+    {
+     "year": 1978,
+     "mode": "T",
+     "kind": "F",
+     "capital_k": 39,
+     "available_k": 5259,
+     "k_pass_k": 33
+    },
+    {
+     "year": 1979,
+     "mode": "T",
+     "kind": "F",
+     "capital_k": 60,
+     "available_k": 9713,
+     "k_pass_k": 32
+    },
+    {
+     "year": 1979,
+     "mode": "T",
+     "kind": "F",
+     "capital_k": 56,
+     "available_k": 9830,
+     "k_pass_k": 37
+    }
+   ],
+   "c75_bypass_consumed_signs": 17,
+   "c75_bypass_consumed_by_mode": {
+    "R": 1,
+    "T": 15,
+    "A": 1
+   },
+   "c75_bypass_consumed_by_kind": {
+    "F": 16,
+    "P": 1
+   },
+   "c75_bypass_consumed_by_year": {
+    "1971": 1,
+    "1972": 2,
+    "1973": 4,
+    "1974": 2,
+    "1976": 1,
+    "1977": 2,
+    "1978": 3,
+    "1979": 2
+   },
+   "c75_bypass_years": {
+    "1970": {
+     "eligible": 0,
+     "consumed": 0,
+     "fleet_consumed": 0,
+     "stop_k_pass": 1,
+     "stop_cash": 4,
+     "stop_rail_search": 0,
+     "stop_list_end": 7,
+     "stop_other": 0
+    },
+    "1971": {
+     "eligible": 2,
+     "consumed": 1,
+     "fleet_consumed": 0,
+     "stop_k_pass": 2,
+     "stop_cash": 17,
+     "stop_rail_search": 0,
+     "stop_list_end": 2,
+     "stop_other": 0
+    },
+    "1972": {
+     "eligible": 3,
+     "consumed": 2,
+     "fleet_consumed": 0,
+     "stop_k_pass": 8,
+     "stop_cash": 7,
+     "stop_rail_search": 1,
+     "stop_list_end": 0,
+     "stop_other": 0
+    },
+    "1973": {
+     "eligible": 7,
+     "consumed": 4,
+     "fleet_consumed": 0,
+     "stop_k_pass": 10,
+     "stop_cash": 1,
+     "stop_rail_search": 0,
+     "stop_list_end": 3,
+     "stop_other": 7
+    },
+    "1974": {
+     "eligible": 4,
+     "consumed": 2,
+     "fleet_consumed": 0,
+     "stop_k_pass": 7,
+     "stop_cash": 2,
+     "stop_rail_search": 0,
+     "stop_list_end": 1,
+     "stop_other": 0
+    },
+    "1975": {
+     "eligible": 0,
+     "consumed": 0,
+     "fleet_consumed": 0,
+     "stop_k_pass": 6,
+     "stop_cash": 0,
+     "stop_rail_search": 0,
+     "stop_list_end": 3,
+     "stop_other": 1
+    },
+    "1976": {
+     "eligible": 2,
+     "consumed": 1,
+     "fleet_consumed": 0,
+     "stop_k_pass": 6,
+     "stop_cash": 0,
+     "stop_rail_search": 0,
+     "stop_list_end": 1,
+     "stop_other": 3
+    },
+    "1977": {
+     "eligible": 3,
+     "consumed": 2,
+     "fleet_consumed": 0,
+     "stop_k_pass": 9,
+     "stop_cash": 0,
+     "stop_rail_search": 1,
+     "stop_list_end": 1,
+     "stop_other": 0
+    },
+    "1978": {
+     "eligible": 6,
+     "consumed": 3,
+     "fleet_consumed": 0,
+     "stop_k_pass": 6,
+     "stop_cash": 0,
+     "stop_rail_search": 0,
+     "stop_list_end": 2,
+     "stop_other": 0
+    }
+   },
+   "town_growth_builds_sign_total": 0,
+   "town_growth_builds_sign_by_year": {},
+   "town_growth_signs_invalid": 0,
+   "status": "complete",
+   "horizon_complete": true,
+   "expected_last_checkpoint": "1979-12-01",
+   "activity": {
+    "signal": "active",
+    "n_checkpoints": 120,
+    "fleet_changes": 94,
+    "network_changes": 62,
+    "value_changes": 39,
+    "value_increases": 38,
+    "value_decreases": 1,
+    "first_company_value": 0,
+    "final_company_value": 23742175,
+    "net_company_value_change": 23742175,
+    "months_since_fleet_or_network_change": 0,
+    "months_since_value_change": 1,
+    "months_since_value_increase": 1
+   },
+   "engine_log_path": "/work/results/nuit75_goodsource_exposure_seed100_1x10_20261025_engine/n75goodsource_seed100_r0.log",
+   "script_errors": [],
+   "unattributed_errors": [],
+   "include_in_economic_stats": true,
+   "game_ok": true,
+   "game_status": "complete",
+   "campaign_id": "nuit75_goodsource_exposure_seed100_1x10_20261025",
+   "policy_id": "AAAHogEx",
+   "duel_policy_id": "n75goodsource",
+   "game_id": "nuit75_goodsource_exposure_seed100_1x10_20261025:policy=n75goodsource:s100:r0",
+   "company_slot": 1,
+   "source_bundle_sha256": "4da09e927f64bc110ee2da6752131226a2ab9fdd792e0670f2b80bcc1790b808"
+  },
+  {
+   "arm": "OpexAI",
+   "seed": 100,
+   "repeat": 0,
+   "last_date": "1979-12-01",
+   "last_year": 1979,
+   "expected_last_year": 1979,
+   "company_value": 13217560,
+   "performance_history": 885,
+   "income_last_year": 992089,
+   "expenses_last_year": -114661,
+   "profit": 877428,
+   "profit_year": 3303298,
+   "profit_year_quarters_available": 4,
+   "profit_year_quarters_valid": 4,
+   "profit_year_coverage": "complete",
+   "median_station_rating": 163,
+   "n_station_ratings": 83,
+   "money": 10015727,
+   "current_loan": 0,
+   "n_vehicles": 120,
+   "n_stations": 76,
+   "months_of_bankruptcy": 0,
+   "n_savegames": 120,
+   "selection_kopcodes_samples": null,
+   "selection_kopcodes_total": null,
+   "selection_kopcodes_mean": null,
+   "selection_kopcodes_max": null,
+   "observed_opcode_schema": "h5.observed-v1",
+   "observed_opcodes_total": 123212688,
+   "observed_opcode_samples": 409,
+   "observed_opcode_components": {
+    "selection": {
+     "samples": 200,
+     "opcodes": 3644000,
+     "coverage": "IG| field 8; current builds"
+    },
+    "rail_attempt": {
+     "samples": 84,
+     "opcodes": 96288475,
+     "coverage": "OB|A plan+build attempts"
+    },
+    "road_planning": {
+     "samples": 41,
+     "opcodes": 12438778,
+     "coverage": "RB| planning on emitted attempts"
+    },
+    "road_build": {
+     "samples": 41,
+     "opcodes": 562322,
+     "coverage": "RB| build on emitted attempts"
+    },
+    "air_planning": {
+     "samples": 43,
+     "opcodes": 10279113,
+     "coverage": "OA| planning only"
+    },
+    "water_planning": {
+     "samples": 0,
+     "opcodes": 0,
+     "coverage": "OM|W planning; successful builds only"
+    }
+   },
+   "observed_opcode_complete_cpu": false,
+   "rail_budget_sign_schema": "op-os-annual-v1",
+   "rail_budget_sign_coverage": "retained_annual_signs",
+   "rail_budget_sign_by_year": {
+    "1970": {
+     "cand_pax": 0,
+     "cand_freight": 0,
+     "cand_rank": 0,
+     "budget_util_per_mille": 107,
+     "complete": true
+    },
+    "1971": {
+     "cand_pax": 3835446,
+     "cand_freight": 559036,
+     "cand_rank": 19746,
+     "budget_util_per_mille": 98,
+     "complete": true
+    },
+    "1972": {
+     "cand_pax": 9336424,
+     "cand_freight": 719762,
+     "cand_rank": 23689,
+     "budget_util_per_mille": 192,
+     "complete": true
+    },
+    "1973": {
+     "cand_pax": 14518352,
+     "cand_freight": 1249461,
+     "cand_rank": 41695,
+     "budget_util_per_mille": 295,
+     "complete": true
+    },
+    "1974": {
+     "cand_pax": 14518512,
+     "cand_freight": 2571003,
+     "cand_rank": 64044,
+     "budget_util_per_mille": 287,
+     "complete": true
+    },
+    "1975": {
+     "cand_pax": 17706094,
+     "cand_freight": 7194570,
+     "cand_rank": 119231,
+     "budget_util_per_mille": 309,
+     "complete": true
+    },
+    "1976": {
+     "cand_pax": 17706734,
+     "cand_freight": 11175811,
+     "cand_rank": 166341,
+     "budget_util_per_mille": 300,
+     "complete": true
+    },
+    "1977": {
+     "cand_pax": 26784585,
+     "cand_freight": 18469130,
+     "cand_rank": 235944,
+     "budget_util_per_mille": 308,
+     "complete": true
+    },
+    "1978": {
+     "cand_pax": 32335037,
+     "cand_freight": 25502820,
+     "cand_rank": 309304,
+     "budget_util_per_mille": 312,
+     "complete": true
+    },
+    "1979": {
+     "cand_pax": 36718871,
+     "cand_freight": 31418456,
+     "cand_rank": 367593,
+     "budget_util_per_mille": 317,
+     "complete": true
+    }
+   },
+   "rail_budget_sign_invalid": 0,
+   "rail_budget_sign_conflicts": 0,
+   "run_ok": true,
+   "failure_reason": null,
+   "physical_counters_version": "1.2.0",
+   "qualified_modes": {
+    "rail": true,
+    "road": true,
+    "air": true,
+    "water": false
+   },
+   "physical_ok": true,
+   "vehs_chunk_valid": true,
+   "vehs_chunk_error": null,
+   "stnn_chunk_valid": true,
+   "stnn_chunk_error": null,
+   "vehicle_pool_entries": 340,
+   "total_vehicle_pool_entries": 1294,
+   "primary_vehicles": 120,
+   "qualified_primary_vehicles": null,
+   "unqualified_primary_vehicles": null,
+   "primary_vehicles_by_mode": {
+    "rail": 37,
+    "road": 2,
+    "air": 81,
+    "water": 0
+   },
+   "capacities_by_cargo": {
+    "0": 10350,
+    "2": 1531,
+    "3": 762,
+    "1": 900,
+    "8": 840,
+    "4": 300,
+    "5": 750,
+    "7": 330
+   },
+   "fleet_status": {
+    "stopped": 0,
+    "not_stopped": 120,
+    "running": 105,
+    "hidden": 4,
+    "broken": 11,
+    "crashed": 0
+   },
+   "unclassified_vehicles": 0,
+   "n_multimodal_stations": 21,
+   "stations_by_facility": {
+    "rail": 49,
+    "truck": 2,
+    "bus": 21,
+    "airport": 25,
+    "dock": 0
+   },
+   "unresolved_stations": 0,
+   "final_profit_year_per_observed_mopcode": 26809.722713,
+   "company_value_per_observed_mopcode": 107274.341746,
+   "airport_slots_opex": 25,
+   "airport_slots_aaahogex": 36,
+   "airport_towns_opex_present": 25,
+   "airport_towns_aaahogex_present": 30,
+   "airport_towns_aaahogex_2_opex_0": 6,
+   "airport_towns_opex_2_aaahogex_0": 0,
+   "airport_towns_shared_1_1": 20,
+   "air_error_771_signs": 0,
+   "early_slot_select_signs": 5,
+   "early_slot_build_signs": 4,
+   "early_slot_build_claims": 7,
+   "c75_bypass_events": [
+    {
+     "year": 1971,
+     "mode": "R",
+     "kind": "F",
+     "capital_k": 19,
+     "available_k": 36,
+     "k_pass_k": 4
+    },
+    {
+     "year": 1972,
+     "mode": "T",
+     "kind": "F",
+     "capital_k": 71,
+     "available_k": 134,
+     "k_pass_k": 10
+    },
+    {
+     "year": 1972,
+     "mode": "T",
+     "kind": "F",
+     "capital_k": 71,
+     "available_k": 145,
+     "k_pass_k": 11
+    },
+    {
+     "year": 1973,
+     "mode": "T",
+     "kind": "F",
+     "capital_k": 52,
+     "available_k": 279,
+     "k_pass_k": 35
+    },
+    {
+     "year": 1973,
+     "mode": "T",
+     "kind": "F",
+     "capital_k": 59,
+     "available_k": 93,
+     "k_pass_k": 41
+    },
+    {
+     "year": 1973,
+     "mode": "A",
+     "kind": "P",
+     "capital_k": 67,
+     "available_k": 78,
+     "k_pass_k": 56
+    },
+    {
+     "year": 1973,
+     "mode": "T",
+     "kind": "F",
+     "capital_k": 62,
+     "available_k": 146,
+     "k_pass_k": 33
+    },
+    {
+     "year": 1974,
+     "mode": "T",
+     "kind": "F",
+     "capital_k": 56,
+     "available_k": 108,
+     "k_pass_k": 35
+    },
+    {
+     "year": 1974,
+     "mode": "T",
+     "kind": "F",
+     "capital_k": 61,
+     "available_k": 121,
+     "k_pass_k": 35
+    },
+    {
+     "year": 1976,
+     "mode": "T",
+     "kind": "F",
+     "capital_k": 60,
+     "available_k": 2226,
+     "k_pass_k": 36
+    },
+    {
+     "year": 1977,
+     "mode": "T",
+     "kind": "F",
+     "capital_k": 66,
+     "available_k": 4014,
+     "k_pass_k": 21
+    },
+    {
+     "year": 1977,
+     "mode": "T",
+     "kind": "F",
+     "capital_k": 55,
+     "available_k": 3977,
+     "k_pass_k": 21
+    },
+    {
+     "year": 1978,
+     "mode": "T",
+     "kind": "F",
+     "capital_k": 39,
+     "available_k": 5415,
+     "k_pass_k": 34
+    },
+    {
+     "year": 1978,
+     "mode": "T",
+     "kind": "F",
+     "capital_k": 39,
+     "available_k": 5272,
+     "k_pass_k": 34
+    },
+    {
+     "year": 1978,
+     "mode": "T",
+     "kind": "F",
+     "capital_k": 39,
+     "available_k": 5259,
+     "k_pass_k": 33
+    },
+    {
+     "year": 1979,
+     "mode": "T",
+     "kind": "F",
+     "capital_k": 60,
+     "available_k": 9713,
+     "k_pass_k": 32
+    },
+    {
+     "year": 1979,
+     "mode": "T",
+     "kind": "F",
+     "capital_k": 56,
+     "available_k": 9830,
+     "k_pass_k": 37
+    }
+   ],
+   "c75_bypass_consumed_signs": 17,
+   "c75_bypass_consumed_by_mode": {
+    "R": 1,
+    "T": 15,
+    "A": 1
+   },
+   "c75_bypass_consumed_by_kind": {
+    "F": 16,
+    "P": 1
+   },
+   "c75_bypass_consumed_by_year": {
+    "1971": 1,
+    "1972": 2,
+    "1973": 4,
+    "1974": 2,
+    "1976": 1,
+    "1977": 2,
+    "1978": 3,
+    "1979": 2
+   },
+   "c75_bypass_years": {
+    "1970": {
+     "eligible": 0,
+     "consumed": 0,
+     "fleet_consumed": 0,
+     "stop_k_pass": 1,
+     "stop_cash": 4,
+     "stop_rail_search": 0,
+     "stop_list_end": 7,
+     "stop_other": 0
+    },
+    "1971": {
+     "eligible": 2,
+     "consumed": 1,
+     "fleet_consumed": 0,
+     "stop_k_pass": 2,
+     "stop_cash": 17,
+     "stop_rail_search": 0,
+     "stop_list_end": 2,
+     "stop_other": 0
+    },
+    "1972": {
+     "eligible": 3,
+     "consumed": 2,
+     "fleet_consumed": 0,
+     "stop_k_pass": 8,
+     "stop_cash": 7,
+     "stop_rail_search": 1,
+     "stop_list_end": 0,
+     "stop_other": 0
+    },
+    "1973": {
+     "eligible": 7,
+     "consumed": 4,
+     "fleet_consumed": 0,
+     "stop_k_pass": 10,
+     "stop_cash": 1,
+     "stop_rail_search": 0,
+     "stop_list_end": 3,
+     "stop_other": 7
+    },
+    "1974": {
+     "eligible": 4,
+     "consumed": 2,
+     "fleet_consumed": 0,
+     "stop_k_pass": 7,
+     "stop_cash": 2,
+     "stop_rail_search": 0,
+     "stop_list_end": 1,
+     "stop_other": 0
+    },
+    "1975": {
+     "eligible": 0,
+     "consumed": 0,
+     "fleet_consumed": 0,
+     "stop_k_pass": 6,
+     "stop_cash": 0,
+     "stop_rail_search": 0,
+     "stop_list_end": 3,
+     "stop_other": 1
+    },
+    "1976": {
+     "eligible": 2,
+     "consumed": 1,
+     "fleet_consumed": 0,
+     "stop_k_pass": 6,
+     "stop_cash": 0,
+     "stop_rail_search": 0,
+     "stop_list_end": 1,
+     "stop_other": 3
+    },
+    "1977": {
+     "eligible": 3,
+     "consumed": 2,
+     "fleet_consumed": 0,
+     "stop_k_pass": 9,
+     "stop_cash": 0,
+     "stop_rail_search": 1,
+     "stop_list_end": 1,
+     "stop_other": 0
+    },
+    "1978": {
+     "eligible": 6,
+     "consumed": 3,
+     "fleet_consumed": 0,
+     "stop_k_pass": 6,
+     "stop_cash": 0,
+     "stop_rail_search": 0,
+     "stop_list_end": 2,
+     "stop_other": 0
+    }
+   },
+   "town_growth_builds_sign_total": 0,
+   "town_growth_builds_sign_by_year": {},
+   "town_growth_signs_invalid": 0,
+   "status": "complete",
+   "horizon_complete": true,
+   "expected_last_checkpoint": "1979-12-01",
+   "activity": {
+    "signal": "active",
+    "n_checkpoints": 120,
+    "fleet_changes": 74,
+    "network_changes": 43,
+    "value_changes": 39,
+    "value_increases": 39,
+    "value_decreases": 0,
+    "first_company_value": 0,
+    "final_company_value": 13217560,
+    "net_company_value_change": 13217560,
+    "months_since_fleet_or_network_change": 0,
+    "months_since_value_change": 1,
+    "months_since_value_increase": 1
+   },
+   "engine_log_path": "/work/results/nuit75_goodsource_exposure_seed100_1x10_20261025_engine/n75goodsource_seed100_r0.log",
+   "script_errors": [],
+   "unattributed_errors": [],
+   "include_in_economic_stats": true,
+   "game_ok": true,
+   "game_status": "complete",
+   "c83_reaction": {
+    "enabled": 1,
+    "opportunities": 2,
+    "suppressed": 0,
+    "enqueued": 2,
+    "enqueue_failed": 0,
+    "events": [
+     {
+      "date": "1970-02-26",
+      "enabled": 1,
+      "town": 37,
+      "action": "enqueued"
+     },
+     {
+      "date": "1970-03-08",
+      "enabled": 1,
+      "town": 13,
+      "action": "enqueued"
+     }
+    ]
+   },
+   "c83_local_repair": null,
+   "campaign_id": "nuit75_goodsource_exposure_seed100_1x10_20261025",
+   "policy_id": "n75goodsource",
+   "duel_policy_id": "n75goodsource",
+   "game_id": "nuit75_goodsource_exposure_seed100_1x10_20261025:policy=n75goodsource:s100:r0",
+   "company_slot": 0,
+   "source_bundle_sha256": "4da09e927f64bc110ee2da6752131226a2ab9fdd792e0670f2b80bcc1790b808"
+  },
+  {
+   "arm": "AAAHogEx",
+   "seed": 100,
+   "repeat": 0,
+   "last_date": "1979-12-01",
+   "last_year": 1979,
+   "expected_last_year": 1979,
+   "company_value": 21720709,
+   "performance_history": 900,
+   "income_last_year": 1802033,
+   "expenses_last_year": -126190,
+   "profit": 1675843,
+   "profit_year": 6714980,
+   "profit_year_quarters_available": 4,
+   "profit_year_quarters_valid": 4,
+   "profit_year_coverage": "complete",
+   "median_station_rating": 179.0,
+   "n_station_ratings": 196,
+   "money": 16090938,
+   "current_loan": 0,
+   "n_vehicles": 253,
+   "n_stations": 175,
+   "months_of_bankruptcy": 0,
+   "n_savegames": 120,
+   "selection_kopcodes_samples": null,
+   "selection_kopcodes_total": null,
+   "selection_kopcodes_mean": null,
+   "selection_kopcodes_max": null,
+   "observed_opcode_schema": null,
+   "observed_opcodes_total": null,
+   "observed_opcode_samples": null,
+   "observed_opcode_components": null,
+   "observed_opcode_complete_cpu": null,
+   "rail_budget_sign_schema": null,
+   "rail_budget_sign_coverage": null,
+   "rail_budget_sign_by_year": null,
+   "rail_budget_sign_invalid": null,
+   "rail_budget_sign_conflicts": null,
+   "run_ok": true,
+   "failure_reason": null,
+   "physical_counters_version": "1.2.0",
+   "qualified_modes": {
+    "rail": true,
+    "road": true,
+    "air": true,
+    "water": false
+   },
+   "physical_ok": true,
+   "vehs_chunk_valid": true,
+   "vehs_chunk_error": null,
+   "stnn_chunk_valid": true,
+   "stnn_chunk_error": null,
+   "vehicle_pool_entries": 973,
+   "total_vehicle_pool_entries": 1373,
+   "primary_vehicles": 253,
+   "qualified_primary_vehicles": null,
+   "unqualified_primary_vehicles": null,
+   "primary_vehicles_by_mode": {
+    "rail": 75,
+    "road": 130,
+    "air": 47,
+    "water": 1
+   },
+   "capacities_by_cargo": {
+    "2": 4654,
+    "0": 11251,
+    "5": 5131,
+    "4": 475,
+    "6": 600,
+    "8": 3060,
+    "1": 4500,
+    "9": 1560,
+    "3": 184
+   },
+   "fleet_status": {
+    "stopped": 1,
+    "not_stopped": 252,
+    "running": 247,
+    "hidden": 6,
+    "broken": 0,
+    "crashed": 0
+   },
+   "unclassified_vehicles": 0,
+   "n_multimodal_stations": 50,
+   "stations_by_facility": {
+    "rail": 52,
+    "truck": 57,
+    "bus": 98,
+    "airport": 38,
+    "dock": 2
+   },
+   "unresolved_stations": 0,
+   "final_profit_year_per_observed_mopcode": null,
+   "company_value_per_observed_mopcode": null,
+   "airport_slots_opex": 28,
+   "airport_slots_aaahogex": 38,
+   "airport_towns_opex_present": 28,
+   "airport_towns_aaahogex_present": 31,
+   "airport_towns_aaahogex_2_opex_0": 7,
+   "airport_towns_opex_2_aaahogex_0": 0,
+   "airport_towns_shared_1_1": 22,
+   "air_error_771_signs": 0,
+   "early_slot_select_signs": 5,
+   "early_slot_build_signs": 4,
+   "early_slot_build_claims": 7,
+   "c75_bypass_events": [
+    {
+     "year": 1971,
+     "mode": "R",
+     "kind": "F",
+     "capital_k": 19,
+     "available_k": 36,
+     "k_pass_k": 4
+    },
+    {
+     "year": 1972,
+     "mode": "T",
+     "kind": "F",
+     "capital_k": 60,
+     "available_k": 210,
+     "k_pass_k": 16
+    },
+    {
+     "year": 1972,
+     "mode": "A",
+     "kind": "P",
+     "capital_k": 101,
+     "available_k": 161,
+     "k_pass_k": 17
+    },
+    {
+     "year": 1972,
+     "mode": "T",
+     "kind": "F",
+     "capital_k": 45,
+     "available_k": 164,
+     "k_pass_k": 17
+    },
+    {
+     "year": 1973,
+     "mode": "T",
+     "kind": "F",
+     "capital_k": 45,
+     "available_k": 193,
+     "k_pass_k": 24
+    },
+    {
+     "year": 1979,
+     "mode": "T",
+     "kind": "F",
+     "capital_k": 85,
+     "available_k": 6894,
+     "k_pass_k": 13
+    }
+   ],
+   "c75_bypass_consumed_signs": 6,
+   "c75_bypass_consumed_by_mode": {
+    "R": 1,
+    "T": 4,
+    "A": 1
+   },
+   "c75_bypass_consumed_by_kind": {
+    "F": 5,
+    "P": 1
+   },
+   "c75_bypass_consumed_by_year": {
+    "1971": 1,
+    "1972": 3,
+    "1973": 1,
+    "1979": 1
+   },
+   "c75_bypass_years": {
+    "1970": {
+     "eligible": 0,
+     "consumed": 0,
+     "fleet_consumed": 0,
+     "stop_k_pass": 1,
+     "stop_cash": 4,
+     "stop_rail_search": 0,
+     "stop_list_end": 7,
+     "stop_other": 0
+    },
+    "1971": {
+     "eligible": 2,
+     "consumed": 1,
+     "fleet_consumed": 0,
+     "stop_k_pass": 2,
+     "stop_cash": 17,
+     "stop_rail_search": 0,
+     "stop_list_end": 2,
+     "stop_other": 0
+    },
+    "1972": {
+     "eligible": 5,
+     "consumed": 3,
+     "fleet_consumed": 0,
+     "stop_k_pass": 11,
+     "stop_cash": 7,
+     "stop_rail_search": 0,
+     "stop_list_end": 0,
+     "stop_other": 0
+    },
+    "1973": {
+     "eligible": 2,
+     "consumed": 1,
+     "fleet_consumed": 0,
+     "stop_k_pass": 15,
+     "stop_cash": 1,
+     "stop_rail_search": 0,
+     "stop_list_end": 6,
+     "stop_other": 0
+    },
+    "1974": {
+     "eligible": 0,
+     "consumed": 0,
+     "fleet_consumed": 0,
+     "stop_k_pass": 5,
+     "stop_cash": 0,
+     "stop_rail_search": 0,
+     "stop_list_end": 2,
+     "stop_other": 0
+    },
+    "1975": {
+     "eligible": 0,
+     "consumed": 0,
+     "fleet_consumed": 0,
+     "stop_k_pass": 9,
+     "stop_cash": 0,
+     "stop_rail_search": 0,
+     "stop_list_end": 2,
+     "stop_other": 0
+    },
+    "1976": {
+     "eligible": 0,
+     "consumed": 0,
+     "fleet_consumed": 0,
+     "stop_k_pass": 2,
+     "stop_cash": 0,
+     "stop_rail_search": 0,
+     "stop_list_end": 1,
+     "stop_other": 0
+    },
+    "1977": {
+     "eligible": 0,
+     "consumed": 0,
+     "fleet_consumed": 0,
+     "stop_k_pass": 4,
+     "stop_cash": 0,
+     "stop_rail_search": 0,
+     "stop_list_end": 1,
+     "stop_other": 0
+    },
+    "1978": {
+     "eligible": 0,
+     "consumed": 0,
+     "fleet_consumed": 0,
+     "stop_k_pass": 1,
+     "stop_cash": 0,
+     "stop_rail_search": 0,
+     "stop_list_end": 1,
+     "stop_other": 0
+    }
+   },
+   "town_growth_builds_sign_total": 0,
+   "town_growth_builds_sign_by_year": {},
+   "town_growth_signs_invalid": 0,
+   "status": "complete",
+   "horizon_complete": true,
+   "expected_last_checkpoint": "1979-12-01",
+   "activity": {
+    "signal": "active",
+    "n_checkpoints": 120,
+    "fleet_changes": 100,
+    "network_changes": 60,
+    "value_changes": 39,
+    "value_increases": 37,
+    "value_decreases": 2,
+    "first_company_value": 0,
+    "final_company_value": 21720709,
+    "net_company_value_change": 21720709,
+    "months_since_fleet_or_network_change": 1,
+    "months_since_value_change": 1,
+    "months_since_value_increase": 1
+   },
+   "engine_log_path": "/work/results/nuit75_goodsource_exposure_seed100_1x10_20261025_engine/reference_seed100_r0.log",
+   "script_errors": [],
+   "unattributed_errors": [],
+   "include_in_economic_stats": true,
+   "game_ok": true,
+   "game_status": "complete",
+   "campaign_id": "nuit75_goodsource_exposure_seed100_1x10_20261025",
+   "policy_id": "AAAHogEx",
+   "duel_policy_id": "reference",
+   "game_id": "nuit75_goodsource_exposure_seed100_1x10_20261025:policy=reference:s100:r0",
+   "company_slot": 1,
+   "source_bundle_sha256": "4da09e927f64bc110ee2da6752131226a2ab9fdd792e0670f2b80bcc1790b808"
+  },
+  {
+   "arm": "OpexAI",
+   "seed": 100,
+   "repeat": 0,
+   "last_date": "1979-12-01",
+   "last_year": 1979,
+   "expected_last_year": 1979,
+   "company_value": 11298803,
+   "performance_history": 790,
+   "income_last_year": 753146,
+   "expenses_last_year": -106993,
+   "profit": 646153,
+   "profit_year": 2464872,
+   "profit_year_quarters_available": 4,
+   "profit_year_quarters_valid": 4,
+   "profit_year_coverage": "complete",
+   "median_station_rating": 162,
+   "n_station_ratings": 75,
+   "money": 8293828,
+   "current_loan": 0,
+   "n_vehicles": 104,
+   "n_stations": 65,
+   "months_of_bankruptcy": 0,
+   "n_savegames": 120,
+   "selection_kopcodes_samples": null,
+   "selection_kopcodes_total": null,
+   "selection_kopcodes_mean": null,
+   "selection_kopcodes_max": null,
+   "observed_opcode_schema": "h5.observed-v1",
+   "observed_opcodes_total": 84251307,
+   "observed_opcode_samples": 371,
+   "observed_opcode_components": {
+    "selection": {
+     "samples": 193,
+     "opcodes": 2802000,
+     "coverage": "IG| field 8; current builds"
+    },
+    "rail_attempt": {
+     "samples": 56,
+     "opcodes": 59847674,
+     "coverage": "OB|A plan+build attempts"
+    },
+    "road_planning": {
+     "samples": 39,
+     "opcodes": 10692454,
+     "coverage": "RB| planning on emitted attempts"
+    },
+    "road_build": {
+     "samples": 39,
+     "opcodes": 562322,
+     "coverage": "RB| build on emitted attempts"
+    },
+    "air_planning": {
+     "samples": 43,
+     "opcodes": 10118471,
+     "coverage": "OA| planning only"
+    },
+    "water_planning": {
+     "samples": 1,
+     "opcodes": 228386,
+     "coverage": "OM|W planning; successful builds only"
+    }
+   },
+   "observed_opcode_complete_cpu": false,
+   "rail_budget_sign_schema": "op-os-annual-v1",
+   "rail_budget_sign_coverage": "retained_annual_signs",
+   "rail_budget_sign_by_year": {
+    "1970": {
+     "cand_pax": 0,
+     "cand_freight": 0,
+     "cand_rank": 0,
+     "budget_util_per_mille": 107,
+     "complete": true
+    },
+    "1971": {
+     "cand_pax": 3835446,
+     "cand_freight": 558644,
+     "cand_rank": 19746,
+     "budget_util_per_mille": 98,
+     "complete": true
+    },
+    "1972": {
+     "cand_pax": 9336424,
+     "cand_freight": 719222,
+     "cand_rank": 23689,
+     "budget_util_per_mille": 192,
+     "complete": true
+    },
+    "1973": {
+     "cand_pax": 14518432,
+     "cand_freight": 1414585,
+     "cand_rank": 35431,
+     "budget_util_per_mille": 299,
+     "complete": true
+    },
+    "1974": {
+     "cand_pax": 18037937,
+     "cand_freight": 3686048,
+     "cand_rank": 53194,
+     "budget_util_per_mille": 263,
+     "complete": true
+    },
+    "1975": {
+     "cand_pax": 21961132,
+     "cand_freight": 8681333,
+     "cand_rank": 95857,
+     "budget_util_per_mille": 268,
+     "complete": true
+    },
+    "1976": {
+     "cand_pax": 26433462,
+     "cand_freight": 12222771,
+     "cand_rank": 127120,
+     "budget_util_per_mille": 249,
+     "complete": true
+    },
+    "1977": {
+     "cand_pax": 28419754,
+     "cand_freight": 16432625,
+     "cand_rank": 144394,
+     "budget_util_per_mille": 231,
+     "complete": true
+    },
+    "1978": {
+     "cand_pax": 32723572,
+     "cand_freight": 20990874,
+     "cand_rank": 180126,
+     "budget_util_per_mille": 246,
+     "complete": true
+    },
+    "1979": {
+     "cand_pax": 40206657,
+     "cand_freight": 25217636,
+     "cand_rank": 208023,
+     "budget_util_per_mille": 241,
+     "complete": true
+    }
+   },
+   "rail_budget_sign_invalid": 0,
+   "rail_budget_sign_conflicts": 0,
+   "run_ok": true,
+   "failure_reason": null,
+   "physical_counters_version": "1.2.0",
+   "qualified_modes": {
+    "rail": true,
+    "road": true,
+    "air": true,
+    "water": false
+   },
+   "physical_ok": true,
+   "vehs_chunk_valid": true,
+   "vehs_chunk_error": null,
+   "stnn_chunk_valid": true,
+   "stnn_chunk_error": null,
+   "vehicle_pool_entries": 263,
+   "total_vehicle_pool_entries": 1373,
+   "primary_vehicles": 104,
+   "qualified_primary_vehicles": null,
+   "unqualified_primary_vehicles": null,
+   "primary_vehicles_by_mode": {
+    "rail": 24,
+    "road": 2,
+    "air": 77,
+    "water": 1
+   },
+   "capacities_by_cargo": {
+    "0": 10490,
+    "2": 1613,
+    "3": 762,
+    "8": 600,
+    "7": 330,
+    "4": 425,
+    "1": 240
+   },
+   "fleet_status": {
+    "stopped": 0,
+    "not_stopped": 104,
+    "running": 93,
+    "hidden": 3,
+    "broken": 8,
+    "crashed": 0
+   },
+   "unclassified_vehicles": 0,
+   "n_multimodal_stations": 25,
+   "stations_by_facility": {
+    "rail": 32,
+    "truck": 2,
+    "bus": 25,
+    "airport": 28,
+    "dock": 2
+   },
+   "unresolved_stations": 0,
+   "final_profit_year_per_observed_mopcode": 29256.187088,
+   "company_value_per_observed_mopcode": 134108.340895,
+   "airport_slots_opex": 28,
+   "airport_slots_aaahogex": 38,
+   "airport_towns_opex_present": 28,
+   "airport_towns_aaahogex_present": 31,
+   "airport_towns_aaahogex_2_opex_0": 7,
+   "airport_towns_opex_2_aaahogex_0": 0,
+   "airport_towns_shared_1_1": 22,
+   "air_error_771_signs": 0,
+   "early_slot_select_signs": 5,
+   "early_slot_build_signs": 4,
+   "early_slot_build_claims": 7,
+   "c75_bypass_events": [
+    {
+     "year": 1971,
+     "mode": "R",
+     "kind": "F",
+     "capital_k": 19,
+     "available_k": 36,
+     "k_pass_k": 4
+    },
+    {
+     "year": 1972,
+     "mode": "T",
+     "kind": "F",
+     "capital_k": 60,
+     "available_k": 210,
+     "k_pass_k": 16
+    },
+    {
+     "year": 1972,
+     "mode": "A",
+     "kind": "P",
+     "capital_k": 101,
+     "available_k": 161,
+     "k_pass_k": 17
+    },
+    {
+     "year": 1972,
+     "mode": "T",
+     "kind": "F",
+     "capital_k": 45,
+     "available_k": 164,
+     "k_pass_k": 17
+    },
+    {
+     "year": 1973,
+     "mode": "T",
+     "kind": "F",
+     "capital_k": 45,
+     "available_k": 193,
+     "k_pass_k": 24
+    },
+    {
+     "year": 1979,
+     "mode": "T",
+     "kind": "F",
+     "capital_k": 85,
+     "available_k": 6894,
+     "k_pass_k": 13
+    }
+   ],
+   "c75_bypass_consumed_signs": 6,
+   "c75_bypass_consumed_by_mode": {
+    "R": 1,
+    "T": 4,
+    "A": 1
+   },
+   "c75_bypass_consumed_by_kind": {
+    "F": 5,
+    "P": 1
+   },
+   "c75_bypass_consumed_by_year": {
+    "1971": 1,
+    "1972": 3,
+    "1973": 1,
+    "1979": 1
+   },
+   "c75_bypass_years": {
+    "1970": {
+     "eligible": 0,
+     "consumed": 0,
+     "fleet_consumed": 0,
+     "stop_k_pass": 1,
+     "stop_cash": 4,
+     "stop_rail_search": 0,
+     "stop_list_end": 7,
+     "stop_other": 0
+    },
+    "1971": {
+     "eligible": 2,
+     "consumed": 1,
+     "fleet_consumed": 0,
+     "stop_k_pass": 2,
+     "stop_cash": 17,
+     "stop_rail_search": 0,
+     "stop_list_end": 2,
+     "stop_other": 0
+    },
+    "1972": {
+     "eligible": 5,
+     "consumed": 3,
+     "fleet_consumed": 0,
+     "stop_k_pass": 11,
+     "stop_cash": 7,
+     "stop_rail_search": 0,
+     "stop_list_end": 0,
+     "stop_other": 0
+    },
+    "1973": {
+     "eligible": 2,
+     "consumed": 1,
+     "fleet_consumed": 0,
+     "stop_k_pass": 15,
+     "stop_cash": 1,
+     "stop_rail_search": 0,
+     "stop_list_end": 6,
+     "stop_other": 0
+    },
+    "1974": {
+     "eligible": 0,
+     "consumed": 0,
+     "fleet_consumed": 0,
+     "stop_k_pass": 5,
+     "stop_cash": 0,
+     "stop_rail_search": 0,
+     "stop_list_end": 2,
+     "stop_other": 0
+    },
+    "1975": {
+     "eligible": 0,
+     "consumed": 0,
+     "fleet_consumed": 0,
+     "stop_k_pass": 9,
+     "stop_cash": 0,
+     "stop_rail_search": 0,
+     "stop_list_end": 2,
+     "stop_other": 0
+    },
+    "1976": {
+     "eligible": 0,
+     "consumed": 0,
+     "fleet_consumed": 0,
+     "stop_k_pass": 2,
+     "stop_cash": 0,
+     "stop_rail_search": 0,
+     "stop_list_end": 1,
+     "stop_other": 0
+    },
+    "1977": {
+     "eligible": 0,
+     "consumed": 0,
+     "fleet_consumed": 0,
+     "stop_k_pass": 4,
+     "stop_cash": 0,
+     "stop_rail_search": 0,
+     "stop_list_end": 1,
+     "stop_other": 0
+    },
+    "1978": {
+     "eligible": 0,
+     "consumed": 0,
+     "fleet_consumed": 0,
+     "stop_k_pass": 1,
+     "stop_cash": 0,
+     "stop_rail_search": 0,
+     "stop_list_end": 1,
+     "stop_other": 0
+    }
+   },
+   "town_growth_builds_sign_total": 0,
+   "town_growth_builds_sign_by_year": {},
+   "town_growth_signs_invalid": 0,
+   "status": "complete",
+   "horizon_complete": true,
+   "expected_last_checkpoint": "1979-12-01",
+   "activity": {
+    "signal": "active",
+    "n_checkpoints": 120,
+    "fleet_changes": 65,
+    "network_changes": 33,
+    "value_changes": 39,
+    "value_increases": 38,
+    "value_decreases": 1,
+    "first_company_value": 0,
+    "final_company_value": 11298803,
+    "net_company_value_change": 11298803,
+    "months_since_fleet_or_network_change": 0,
+    "months_since_value_change": 1,
+    "months_since_value_increase": 1
+   },
+   "engine_log_path": "/work/results/nuit75_goodsource_exposure_seed100_1x10_20261025_engine/reference_seed100_r0.log",
+   "script_errors": [],
+   "unattributed_errors": [],
+   "include_in_economic_stats": true,
+   "game_ok": true,
+   "game_status": "complete",
+   "c83_reaction": {
+    "enabled": 1,
+    "opportunities": 2,
+    "suppressed": 0,
+    "enqueued": 2,
+    "enqueue_failed": 0,
+    "events": [
+     {
+      "date": "1970-02-26",
+      "enabled": 1,
+      "town": 37,
+      "action": "enqueued"
+     },
+     {
+      "date": "1970-03-08",
+      "enabled": 1,
+      "town": 13,
+      "action": "enqueued"
+     }
+    ]
+   },
+   "c83_local_repair": null,
+   "campaign_id": "nuit75_goodsource_exposure_seed100_1x10_20261025",
+   "policy_id": "reference",
+   "duel_policy_id": "reference",
+   "game_id": "nuit75_goodsource_exposure_seed100_1x10_20261025:policy=reference:s100:r0",
+   "company_slot": 0,
+   "source_bundle_sha256": "4da09e927f64bc110ee2da6752131226a2ab9fdd792e0670f2b80bcc1790b808"
+  }
+ ],
+ "failed_runs": [],
+ "statistics": {
+  "OpexAI": {
+   "company_value": {
+    "n": 1,
+    "mean": 11298803,
+    "median": 11298803,
+    "standard_deviation": null,
+    "standard_error": null,
+    "standard_error_percent": null,
+    "coefficient_of_variation_percent": null
+   },
+   "performance_history": {
+    "n": 1,
+    "mean": 790,
+    "median": 790,
+    "standard_deviation": null,
+    "standard_error": null,
+    "standard_error_percent": null,
+    "coefficient_of_variation_percent": null
+   },
+   "profit": {
+    "n": 1,
+    "mean": 646153,
+    "median": 646153,
+    "standard_deviation": null,
+    "standard_error": null,
+    "standard_error_percent": null,
+    "coefficient_of_variation_percent": null
+   },
+   "profit_year": {
+    "n": 1,
+    "mean": 2464872,
+    "median": 2464872,
+    "standard_deviation": null,
+    "standard_error": null,
+    "standard_error_percent": null,
+    "coefficient_of_variation_percent": null
+   },
+   "median_station_rating": {
+    "n": 1,
+    "mean": 162,
+    "median": 162,
+    "standard_deviation": null,
+    "standard_error": null,
+    "standard_error_percent": null,
+    "coefficient_of_variation_percent": null
+   },
+   "primary_vehicles": {
+    "n": 1,
+    "mean": 104,
+    "median": 104,
+    "standard_deviation": null,
+    "standard_error": null,
+    "standard_error_percent": null,
+    "coefficient_of_variation_percent": null
+   }
+  },
+  "AAAHogEx": {
+   "company_value": {
+    "n": 1,
+    "mean": 21720709,
+    "median": 21720709,
+    "standard_deviation": null,
+    "standard_error": null,
+    "standard_error_percent": null,
+    "coefficient_of_variation_percent": null
+   },
+   "performance_history": {
+    "n": 1,
+    "mean": 900,
+    "median": 900,
+    "standard_deviation": null,
+    "standard_error": null,
+    "standard_error_percent": null,
+    "coefficient_of_variation_percent": null
+   },
+   "profit": {
+    "n": 1,
+    "mean": 1675843,
+    "median": 1675843,
+    "standard_deviation": null,
+    "standard_error": null,
+    "standard_error_percent": null,
+    "coefficient_of_variation_percent": null
+   },
+   "profit_year": {
+    "n": 1,
+    "mean": 6714980,
+    "median": 6714980,
+    "standard_deviation": null,
+    "standard_error": null,
+    "standard_error_percent": null,
+    "coefficient_of_variation_percent": null
+   },
+   "median_station_rating": {
+    "n": 1,
+    "mean": 179.0,
+    "median": 179.0,
+    "standard_deviation": null,
+    "standard_error": null,
+    "standard_error_percent": null,
+    "coefficient_of_variation_percent": null
+   },
+   "primary_vehicles": {
+    "n": 1,
+    "mean": 253,
+    "median": 253,
+    "standard_deviation": null,
+    "standard_error": null,
+    "standard_error_percent": null,
+    "coefficient_of_variation_percent": null
+   }
+  }
+ },
+ "paired_comparisons": [
+  {
+   "arm_a": "OpexAI",
+   "arm_b": "AAAHogEx",
+   "shared_seeds": [
+    100
+   ],
+   "metrics": {
+    "company_value": {
+     "n": 1,
+     "paired_differences": [
+      {
+       "seed": 100,
+       "difference": -10421906
+      }
+     ],
+     "mean_difference": -10421906,
+     "mean_difference_percent": -47.981426,
+     "standard_deviation": null,
+     "standard_error": null,
+     "arm_a_beats_arm_b": 0,
+     "arm_a_loses_to_arm_b": 1,
+     "ties": 0,
+     "sign_test_n_excluding_ties": 1,
+     "sign_test_p": 1.0,
+     "protocol_15_of_20_pass": null,
+     "wilcoxon_p": 1.0
+    },
+    "performance_history": {
+     "n": 1,
+     "paired_differences": [
+      {
+       "seed": 100,
+       "difference": -110
+      }
+     ],
+     "mean_difference": -110,
+     "mean_difference_percent": -12.222222,
+     "standard_deviation": null,
+     "standard_error": null,
+     "arm_a_beats_arm_b": 0,
+     "arm_a_loses_to_arm_b": 1,
+     "ties": 0,
+     "sign_test_n_excluding_ties": 1,
+     "sign_test_p": 1.0,
+     "protocol_15_of_20_pass": null,
+     "wilcoxon_p": 1.0
+    },
+    "profit": {
+     "n": 1,
+     "paired_differences": [
+      {
+       "seed": 100,
+       "difference": -1029690
+      }
+     ],
+     "mean_difference": -1029690,
+     "mean_difference_percent": -61.443107,
+     "standard_deviation": null,
+     "standard_error": null,
+     "arm_a_beats_arm_b": 0,
+     "arm_a_loses_to_arm_b": 1,
+     "ties": 0,
+     "sign_test_n_excluding_ties": 1,
+     "sign_test_p": 1.0,
+     "protocol_15_of_20_pass": null,
+     "wilcoxon_p": 1.0
+    },
+    "profit_year": {
+     "n": 1,
+     "paired_differences": [
+      {
+       "seed": 100,
+       "difference": -4250108
+      }
+     ],
+     "mean_difference": -4250108,
+     "mean_difference_percent": -63.292936,
+     "standard_deviation": null,
+     "standard_error": null,
+     "arm_a_beats_arm_b": 0,
+     "arm_a_loses_to_arm_b": 1,
+     "ties": 0,
+     "sign_test_n_excluding_ties": 1,
+     "sign_test_p": 1.0,
+     "protocol_15_of_20_pass": null,
+     "wilcoxon_p": 1.0
+    },
+    "median_station_rating": {
+     "n": 1,
+     "paired_differences": [
+      {
+       "seed": 100,
+       "difference": -17.0
+      }
+     ],
+     "mean_difference": -17.0,
+     "mean_difference_percent": -9.497207,
+     "standard_deviation": null,
+     "standard_error": null,
+     "arm_a_beats_arm_b": 0,
+     "arm_a_loses_to_arm_b": 1,
+     "ties": 0,
+     "sign_test_n_excluding_ties": 1,
+     "sign_test_p": 1.0,
+     "protocol_15_of_20_pass": null,
+     "wilcoxon_p": 1.0
+    },
+    "primary_vehicles": {
+     "n": 1,
+     "paired_differences": [
+      {
+       "seed": 100,
+       "difference": -149
+      }
+     ],
+     "mean_difference": -149,
+     "mean_difference_percent": -58.893281,
+     "standard_deviation": null,
+     "standard_error": null,
+     "arm_a_beats_arm_b": 0,
+     "arm_a_loses_to_arm_b": 1,
+     "ties": 0,
+     "sign_test_n_excluding_ties": 1,
+     "sign_test_p": 1.0,
+     "protocol_15_of_20_pass": null,
+     "wilcoxon_p": 1.0
+    }
+   }
+  }
+ ],
+ "policy_reports": {
+  "reference": {
+   "statistics": {
+    "OpexAI": {
+     "company_value": {
+      "n": 1,
+      "mean": 11298803,
+      "median": 11298803,
+      "standard_deviation": null,
+      "standard_error": null,
+      "standard_error_percent": null,
+      "coefficient_of_variation_percent": null
+     },
+     "performance_history": {
+      "n": 1,
+      "mean": 790,
+      "median": 790,
+      "standard_deviation": null,
+      "standard_error": null,
+      "standard_error_percent": null,
+      "coefficient_of_variation_percent": null
+     },
+     "profit": {
+      "n": 1,
+      "mean": 646153,
+      "median": 646153,
+      "standard_deviation": null,
+      "standard_error": null,
+      "standard_error_percent": null,
+      "coefficient_of_variation_percent": null
+     },
+     "profit_year": {
+      "n": 1,
+      "mean": 2464872,
+      "median": 2464872,
+      "standard_deviation": null,
+      "standard_error": null,
+      "standard_error_percent": null,
+      "coefficient_of_variation_percent": null
+     },
+     "median_station_rating": {
+      "n": 1,
+      "mean": 162,
+      "median": 162,
+      "standard_deviation": null,
+      "standard_error": null,
+      "standard_error_percent": null,
+      "coefficient_of_variation_percent": null
+     },
+     "primary_vehicles": {
+      "n": 1,
+      "mean": 104,
+      "median": 104,
+      "standard_deviation": null,
+      "standard_error": null,
+      "standard_error_percent": null,
+      "coefficient_of_variation_percent": null
+     }
+    },
+    "AAAHogEx": {
+     "company_value": {
+      "n": 1,
+      "mean": 21720709,
+      "median": 21720709,
+      "standard_deviation": null,
+      "standard_error": null,
+      "standard_error_percent": null,
+      "coefficient_of_variation_percent": null
+     },
+     "performance_history": {
+      "n": 1,
+      "mean": 900,
+      "median": 900,
+      "standard_deviation": null,
+      "standard_error": null,
+      "standard_error_percent": null,
+      "coefficient_of_variation_percent": null
+     },
+     "profit": {
+      "n": 1,
+      "mean": 1675843,
+      "median": 1675843,
+      "standard_deviation": null,
+      "standard_error": null,
+      "standard_error_percent": null,
+      "coefficient_of_variation_percent": null
+     },
+     "profit_year": {
+      "n": 1,
+      "mean": 6714980,
+      "median": 6714980,
+      "standard_deviation": null,
+      "standard_error": null,
+      "standard_error_percent": null,
+      "coefficient_of_variation_percent": null
+     },
+     "median_station_rating": {
+      "n": 1,
+      "mean": 179.0,
+      "median": 179.0,
+      "standard_deviation": null,
+      "standard_error": null,
+      "standard_error_percent": null,
+      "coefficient_of_variation_percent": null
+     },
+     "primary_vehicles": {
+      "n": 1,
+      "mean": 253,
+      "median": 253,
+      "standard_deviation": null,
+      "standard_error": null,
+      "standard_error_percent": null,
+      "coefficient_of_variation_percent": null
+     }
+    }
+   },
+   "paired_comparisons": [
+    {
+     "arm_a": "OpexAI",
+     "arm_b": "AAAHogEx",
+     "shared_seeds": [
+      100
+     ],
+     "metrics": {
+      "company_value": {
+       "n": 1,
+       "paired_differences": [
+        {
+         "seed": 100,
+         "difference": -10421906
+        }
+       ],
+       "mean_difference": -10421906,
+       "mean_difference_percent": -47.981426,
+       "standard_deviation": null,
+       "standard_error": null,
+       "arm_a_beats_arm_b": 0,
+       "arm_a_loses_to_arm_b": 1,
+       "ties": 0,
+       "sign_test_n_excluding_ties": 1,
+       "sign_test_p": 1.0,
+       "protocol_15_of_20_pass": null,
+       "wilcoxon_p": 1.0
+      },
+      "performance_history": {
+       "n": 1,
+       "paired_differences": [
+        {
+         "seed": 100,
+         "difference": -110
+        }
+       ],
+       "mean_difference": -110,
+       "mean_difference_percent": -12.222222,
+       "standard_deviation": null,
+       "standard_error": null,
+       "arm_a_beats_arm_b": 0,
+       "arm_a_loses_to_arm_b": 1,
+       "ties": 0,
+       "sign_test_n_excluding_ties": 1,
+       "sign_test_p": 1.0,
+       "protocol_15_of_20_pass": null,
+       "wilcoxon_p": 1.0
+      },
+      "profit": {
+       "n": 1,
+       "paired_differences": [
+        {
+         "seed": 100,
+         "difference": -1029690
+        }
+       ],
+       "mean_difference": -1029690,
+       "mean_difference_percent": -61.443107,
+       "standard_deviation": null,
+       "standard_error": null,
+       "arm_a_beats_arm_b": 0,
+       "arm_a_loses_to_arm_b": 1,
+       "ties": 0,
+       "sign_test_n_excluding_ties": 1,
+       "sign_test_p": 1.0,
+       "protocol_15_of_20_pass": null,
+       "wilcoxon_p": 1.0
+      },
+      "profit_year": {
+       "n": 1,
+       "paired_differences": [
+        {
+         "seed": 100,
+         "difference": -4250108
+        }
+       ],
+       "mean_difference": -4250108,
+       "mean_difference_percent": -63.292936,
+       "standard_deviation": null,
+       "standard_error": null,
+       "arm_a_beats_arm_b": 0,
+       "arm_a_loses_to_arm_b": 1,
+       "ties": 0,
+       "sign_test_n_excluding_ties": 1,
+       "sign_test_p": 1.0,
+       "protocol_15_of_20_pass": null,
+       "wilcoxon_p": 1.0
+      },
+      "median_station_rating": {
+       "n": 1,
+       "paired_differences": [
+        {
+         "seed": 100,
+         "difference": -17.0
+        }
+       ],
+       "mean_difference": -17.0,
+       "mean_difference_percent": -9.497207,
+       "standard_deviation": null,
+       "standard_error": null,
+       "arm_a_beats_arm_b": 0,
+       "arm_a_loses_to_arm_b": 1,
+       "ties": 0,
+       "sign_test_n_excluding_ties": 1,
+       "sign_test_p": 1.0,
+       "protocol_15_of_20_pass": null,
+       "wilcoxon_p": 1.0
+      },
+      "primary_vehicles": {
+       "n": 1,
+       "paired_differences": [
+        {
+         "seed": 100,
+         "difference": -149
+        }
+       ],
+       "mean_difference": -149,
+       "mean_difference_percent": -58.893281,
+       "standard_deviation": null,
+       "standard_error": null,
+       "arm_a_beats_arm_b": 0,
+       "arm_a_loses_to_arm_b": 1,
+       "ties": 0,
+       "sign_test_n_excluding_ties": 1,
+       "sign_test_p": 1.0,
+       "protocol_15_of_20_pass": null,
+       "wilcoxon_p": 1.0
+      }
+     }
+    }
+   ]
+  },
+  "n75goodsource": {
+   "statistics": {
+    "OpexAI": {
+     "company_value": {
+      "n": 1,
+      "mean": 13217560,
+      "median": 13217560,
+      "standard_deviation": null,
+      "standard_error": null,
+      "standard_error_percent": null,
+      "coefficient_of_variation_percent": null
+     },
+     "performance_history": {
+      "n": 1,
+      "mean": 885,
+      "median": 885,
+      "standard_deviation": null,
+      "standard_error": null,
+      "standard_error_percent": null,
+      "coefficient_of_variation_percent": null
+     },
+     "profit": {
+      "n": 1,
+      "mean": 877428,
+      "median": 877428,
+      "standard_deviation": null,
+      "standard_error": null,
+      "standard_error_percent": null,
+      "coefficient_of_variation_percent": null
+     },
+     "profit_year": {
+      "n": 1,
+      "mean": 3303298,
+      "median": 3303298,
+      "standard_deviation": null,
+      "standard_error": null,
+      "standard_error_percent": null,
+      "coefficient_of_variation_percent": null
+     },
+     "median_station_rating": {
+      "n": 1,
+      "mean": 163,
+      "median": 163,
+      "standard_deviation": null,
+      "standard_error": null,
+      "standard_error_percent": null,
+      "coefficient_of_variation_percent": null
+     },
+     "primary_vehicles": {
+      "n": 1,
+      "mean": 120,
+      "median": 120,
+      "standard_deviation": null,
+      "standard_error": null,
+      "standard_error_percent": null,
+      "coefficient_of_variation_percent": null
+     }
+    },
+    "AAAHogEx": {
+     "company_value": {
+      "n": 1,
+      "mean": 23742175,
+      "median": 23742175,
+      "standard_deviation": null,
+      "standard_error": null,
+      "standard_error_percent": null,
+      "coefficient_of_variation_percent": null
+     },
+     "performance_history": {
+      "n": 1,
+      "mean": 900,
+      "median": 900,
+      "standard_deviation": null,
+      "standard_error": null,
+      "standard_error_percent": null,
+      "coefficient_of_variation_percent": null
+     },
+     "profit": {
+      "n": 1,
+      "mean": 1724904,
+      "median": 1724904,
+      "standard_deviation": null,
+      "standard_error": null,
+      "standard_error_percent": null,
+      "coefficient_of_variation_percent": null
+     },
+     "profit_year": {
+      "n": 1,
+      "mean": 7063500,
+      "median": 7063500,
+      "standard_deviation": null,
+      "standard_error": null,
+      "standard_error_percent": null,
+      "coefficient_of_variation_percent": null
+     },
+     "median_station_rating": {
+      "n": 1,
+      "mean": 189,
+      "median": 189,
+      "standard_deviation": null,
+      "standard_error": null,
+      "standard_error_percent": null,
+      "coefficient_of_variation_percent": null
+     },
+     "primary_vehicles": {
+      "n": 1,
+      "mean": 252,
+      "median": 252,
+      "standard_deviation": null,
+      "standard_error": null,
+      "standard_error_percent": null,
+      "coefficient_of_variation_percent": null
+     }
+    }
+   },
+   "paired_comparisons": [
+    {
+     "arm_a": "OpexAI",
+     "arm_b": "AAAHogEx",
+     "shared_seeds": [
+      100
+     ],
+     "metrics": {
+      "company_value": {
+       "n": 1,
+       "paired_differences": [
+        {
+         "seed": 100,
+         "difference": -10524615
+        }
+       ],
+       "mean_difference": -10524615,
+       "mean_difference_percent": -44.328774,
+       "standard_deviation": null,
+       "standard_error": null,
+       "arm_a_beats_arm_b": 0,
+       "arm_a_loses_to_arm_b": 1,
+       "ties": 0,
+       "sign_test_n_excluding_ties": 1,
+       "sign_test_p": 1.0,
+       "protocol_15_of_20_pass": null,
+       "wilcoxon_p": 1.0
+      },
+      "performance_history": {
+       "n": 1,
+       "paired_differences": [
+        {
+         "seed": 100,
+         "difference": -15
+        }
+       ],
+       "mean_difference": -15,
+       "mean_difference_percent": -1.666667,
+       "standard_deviation": null,
+       "standard_error": null,
+       "arm_a_beats_arm_b": 0,
+       "arm_a_loses_to_arm_b": 1,
+       "ties": 0,
+       "sign_test_n_excluding_ties": 1,
+       "sign_test_p": 1.0,
+       "protocol_15_of_20_pass": null,
+       "wilcoxon_p": 1.0
+      },
+      "profit": {
+       "n": 1,
+       "paired_differences": [
+        {
+         "seed": 100,
+         "difference": -847476
+        }
+       ],
+       "mean_difference": -847476,
+       "mean_difference_percent": -49.131778,
+       "standard_deviation": null,
+       "standard_error": null,
+       "arm_a_beats_arm_b": 0,
+       "arm_a_loses_to_arm_b": 1,
+       "ties": 0,
+       "sign_test_n_excluding_ties": 1,
+       "sign_test_p": 1.0,
+       "protocol_15_of_20_pass": null,
+       "wilcoxon_p": 1.0
+      },
+      "profit_year": {
+       "n": 1,
+       "paired_differences": [
+        {
+         "seed": 100,
+         "difference": -3760202
+        }
+       ],
+       "mean_difference": -3760202,
+       "mean_difference_percent": -53.234261,
+       "standard_deviation": null,
+       "standard_error": null,
+       "arm_a_beats_arm_b": 0,
+       "arm_a_loses_to_arm_b": 1,
+       "ties": 0,
+       "sign_test_n_excluding_ties": 1,
+       "sign_test_p": 1.0,
+       "protocol_15_of_20_pass": null,
+       "wilcoxon_p": 1.0
+      },
+      "median_station_rating": {
+       "n": 1,
+       "paired_differences": [
+        {
+         "seed": 100,
+         "difference": -26
+        }
+       ],
+       "mean_difference": -26,
+       "mean_difference_percent": -13.756614,
+       "standard_deviation": null,
+       "standard_error": null,
+       "arm_a_beats_arm_b": 0,
+       "arm_a_loses_to_arm_b": 1,
+       "ties": 0,
+       "sign_test_n_excluding_ties": 1,
+       "sign_test_p": 1.0,
+       "protocol_15_of_20_pass": null,
+       "wilcoxon_p": 1.0
+      },
+      "primary_vehicles": {
+       "n": 1,
+       "paired_differences": [
+        {
+         "seed": 100,
+         "difference": -132
+        }
+       ],
+       "mean_difference": -132,
+       "mean_difference_percent": -52.380952,
+       "standard_deviation": null,
+       "standard_error": null,
+       "arm_a_beats_arm_b": 0,
+       "arm_a_loses_to_arm_b": 1,
+       "ties": 0,
+       "sign_test_n_excluding_ties": 1,
+       "sign_test_p": 1.0,
+       "protocol_15_of_20_pass": null,
+       "wilcoxon_p": 1.0
+      }
+     }
+    }
+   ]
+  }
+ },
+ "policy_comparison": {
+  "protocol": "C66.4 paired policies, separate shared-map duels versus same frozen AAAHogEx",
+  "reference_policy_id": "reference",
+  "variant_policy_id": "n75goodsource",
+  "primary_metric": "profit_year",
+  "value_guard_metric": "company_value",
+  "decision_rule": {
+   "rule": "gain_short",
+   "required_pairs": 40,
+   "required_years": 3,
+   "confidence_level": 0.95,
+   "max_wilcoxon_p_exclusive": 0.05,
+   "min_useful_primary_delta": 98594.88,
+   "min_useful_primary_delta_pct": 4.0,
+   "reference_terminal_year": 1979,
+   "reference_terminal_profit_mean": 2464872.0,
+   "value_guard_max_loss_pct": 5.0,
+   "bootstrap_resamples": 20000,
+   "bootstrap_seed": 0,
+   "primary_rule": "all planned pairs required (40) over 3 years; exact two-sided Wilcoxon signed-rank p<0.05; bootstrap percentile 95% CI lower bound > 0; then mean(variant-reference) >= min_useful_primary_delta (absolute, or pct/100 * mean terminal-year reference profit)",
+   "value_guard_rule": "all 40 reference denominators must be positive; then ratio_of_means(company_value) percent change >= -value_guard_max_loss_pct",
+   "all_planned_pairs_required_for_verdict": true
+  },
+  "planned_pairs": 1,
+  "complete_pairs": 1,
+  "comparison_complete": true,
+  "adoption_sample_complete": false,
+  "adoption_protocol": {
+   "eligible": false,
+   "reasons": [
+    "distinct_seed_count",
+    "horizon_not_required_years"
+   ],
+   "required_distinct_seeds": 40,
+   "distinct_seeds": 1,
+   "required_years": 3,
+   "years": 10,
+   "required_repeats": 1,
+   "repeats": 1,
+   "independent_seed_sample": true
+  },
+  "metric_coverage_complete": true,
+  "incomplete_pairs": [],
+  "statistical_incompleteness": {
+   "primary_metric_n": 1,
+   "value_guard_positive_denominators": 1,
+   "value_guard_excluded": 0
+  },
+  "per_pair": [
+   {
+    "seed": 100,
+    "repeat": 0,
+    "complete": true,
+    "statuses": {
+     "reference_opex": {
+      "present": true,
+      "run_ok": true,
+      "game_ok": true,
+      "status": "complete",
+      "failure_reason": null,
+      "game_id": "nuit75_goodsource_exposure_seed100_1x10_20261025:policy=reference:s100:r0"
+     },
+     "reference_aaahogex": {
+      "present": true,
+      "run_ok": true,
+      "game_ok": true,
+      "status": "complete",
+      "failure_reason": null,
+      "game_id": "nuit75_goodsource_exposure_seed100_1x10_20261025:policy=reference:s100:r0"
+     },
+     "variant_opex": {
+      "present": true,
+      "run_ok": true,
+      "game_ok": true,
+      "status": "complete",
+      "failure_reason": null,
+      "game_id": "nuit75_goodsource_exposure_seed100_1x10_20261025:policy=n75goodsource:s100:r0"
+     },
+     "variant_aaahogex": {
+      "present": true,
+      "run_ok": true,
+      "game_ok": true,
+      "status": "complete",
+      "failure_reason": null,
+      "game_id": "nuit75_goodsource_exposure_seed100_1x10_20261025:policy=n75goodsource:s100:r0"
+     }
+    },
+    "metrics": {
+     "company_value": {
+      "reference_opex": 11298803,
+      "variant_opex": 13217560,
+      "policy_delta": 1918757,
+      "reference_aaahogex": 21720709,
+      "variant_aaahogex": 23742175,
+      "reference_duel_gap": -10421906,
+      "variant_duel_gap": -10524615,
+      "duel_gap_evolution": -102709
+     },
+     "performance_history": {
+      "reference_opex": 790,
+      "variant_opex": 885,
+      "policy_delta": 95,
+      "reference_aaahogex": 900,
+      "variant_aaahogex": 900,
+      "reference_duel_gap": -110,
+      "variant_duel_gap": -15,
+      "duel_gap_evolution": 95
+     },
+     "profit": {
+      "reference_opex": 646153,
+      "variant_opex": 877428,
+      "policy_delta": 231275,
+      "reference_aaahogex": 1675843,
+      "variant_aaahogex": 1724904,
+      "reference_duel_gap": -1029690,
+      "variant_duel_gap": -847476,
+      "duel_gap_evolution": 182214
+     },
+     "profit_year": {
+      "reference_opex": 2464872,
+      "variant_opex": 3303298,
+      "policy_delta": 838426,
+      "reference_aaahogex": 6714980,
+      "variant_aaahogex": 7063500,
+      "reference_duel_gap": -4250108,
+      "variant_duel_gap": -3760202,
+      "duel_gap_evolution": 489906
+     },
+     "median_station_rating": {
+      "reference_opex": 162,
+      "variant_opex": 163,
+      "policy_delta": 1,
+      "reference_aaahogex": 179.0,
+      "variant_aaahogex": 189,
+      "reference_duel_gap": -17.0,
+      "variant_duel_gap": -26,
+      "duel_gap_evolution": -9.0
+     },
+     "primary_vehicles": {
+      "reference_opex": 104,
+      "variant_opex": 120,
+      "policy_delta": 16,
+      "reference_aaahogex": 253,
+      "variant_aaahogex": 252,
+      "reference_duel_gap": -149,
+      "variant_duel_gap": -132,
+      "duel_gap_evolution": 17
+     }
+    },
+    "air_structural_metrics": {
+     "airport_slots_opex": {
+      "reference": 28,
+      "variant": 25,
+      "policy_delta": -3
+     },
+     "airport_slots_aaahogex": {
+      "reference": 38,
+      "variant": 36,
+      "policy_delta": -2
+     },
+     "airport_towns_opex_present": {
+      "reference": 28,
+      "variant": 25,
+      "policy_delta": -3
+     },
+     "airport_towns_aaahogex_present": {
+      "reference": 31,
+      "variant": 30,
+      "policy_delta": -1
+     },
+     "airport_towns_aaahogex_2_opex_0": {
+      "reference": 7,
+      "variant": 6,
+      "policy_delta": -1
+     },
+     "airport_towns_opex_2_aaahogex_0": {
+      "reference": 0,
+      "variant": 0,
+      "policy_delta": 0
+     },
+     "airport_towns_shared_1_1": {
+      "reference": 22,
+      "variant": 20,
+      "policy_delta": -2
+     },
+     "air_error_771_signs": {
+      "reference": 0,
+      "variant": 0,
+      "policy_delta": 0
+     },
+     "early_slot_select_signs": {
+      "reference": 5,
+      "variant": 5,
+      "policy_delta": 0
+     },
+     "early_slot_build_signs": {
+      "reference": 4,
+      "variant": 4,
+      "policy_delta": 0
+     },
+     "early_slot_build_claims": {
+      "reference": 7,
+      "variant": 7,
+      "policy_delta": 0
+     }
+    },
+    "town_growth_metrics": {
+     "builds_total": {
+      "reference": 0,
+      "variant": 0,
+      "policy_delta": 0
+     },
+     "invalid_signs": {
+      "reference": 0,
+      "variant": 0,
+      "policy_delta": 0
+     },
+     "builds_by_year": {
+      "1970": {
+       "reference": 0,
+       "variant": 0,
+       "policy_delta": 0
+      },
+      "1971": {
+       "reference": 0,
+       "variant": 0,
+       "policy_delta": 0
+      },
+      "1972": {
+       "reference": 0,
+       "variant": 0,
+       "policy_delta": 0
+      },
+      "1973": {
+       "reference": 0,
+       "variant": 0,
+       "policy_delta": 0
+      },
+      "1974": {
+       "reference": 0,
+       "variant": 0,
+       "policy_delta": 0
+      },
+      "1975": {
+       "reference": 0,
+       "variant": 0,
+       "policy_delta": 0
+      },
+      "1976": {
+       "reference": 0,
+       "variant": 0,
+       "policy_delta": 0
+      },
+      "1977": {
+       "reference": 0,
+       "variant": 0,
+       "policy_delta": 0
+      },
+      "1978": {
+       "reference": 0,
+       "variant": 0,
+       "policy_delta": 0
+      },
+      "1979": {
+       "reference": 0,
+       "variant": 0,
+       "policy_delta": 0
+      }
+     }
+    },
+    "annual_trajectory": [
+     {
+      "year": 1970,
+      "primary_metric": "profit_year",
+      "reference_opex": 309834,
+      "variant_opex": 309834,
+      "policy_delta": 0,
+      "reference_aaahogex": 187934,
+      "variant_aaahogex": 187934,
+      "reference_duel_gap": 121900,
+      "variant_duel_gap": 121900,
+      "air_structural_metrics": {
+       "airport_slots_opex": {
+        "reference": 12,
+        "variant": 12,
+        "policy_delta": 0
+       },
+       "airport_slots_aaahogex": {
+        "reference": 10,
+        "variant": 10,
+        "policy_delta": 0
+       },
+       "airport_towns_opex_present": {
+        "reference": 12,
+        "variant": 12,
+        "policy_delta": 0
+       },
+       "airport_towns_aaahogex_present": {
+        "reference": 10,
+        "variant": 10,
+        "policy_delta": 0
+       },
+       "airport_towns_aaahogex_2_opex_0": {
+        "reference": 0,
+        "variant": 0,
+        "policy_delta": 0
+       },
+       "airport_towns_opex_2_aaahogex_0": {
+        "reference": 0,
+        "variant": 0,
+        "policy_delta": 0
+       },
+       "airport_towns_shared_1_1": {
+        "reference": 8,
+        "variant": 8,
+        "policy_delta": 0
+       },
+       "air_error_771_signs": {
+        "reference": 0,
+        "variant": 0,
+        "policy_delta": 0
+       },
+       "early_slot_select_signs": {
+        "reference": 5,
+        "variant": 5,
+        "policy_delta": 0
+       },
+       "early_slot_build_signs": {
+        "reference": 4,
+        "variant": 4,
+        "policy_delta": 0
+       },
+       "early_slot_build_claims": {
+        "reference": 7,
+        "variant": 7,
+        "policy_delta": 0
+       }
+      },
+      "town_growth_builds": {
+       "reference": 0,
+       "variant": 0,
+       "policy_delta": 0
+      }
+     },
+     {
+      "year": 1971,
+      "primary_metric": "profit_year",
+      "reference_opex": 956717,
+      "variant_opex": 956717,
+      "policy_delta": 0,
+      "reference_aaahogex": 828813,
+      "variant_aaahogex": 828813,
+      "reference_duel_gap": 127904,
+      "variant_duel_gap": 127904,
+      "air_structural_metrics": {
+       "airport_slots_opex": {
+        "reference": 14,
+        "variant": 14,
+        "policy_delta": 0
+       },
+       "airport_slots_aaahogex": {
+        "reference": 21,
+        "variant": 21,
+        "policy_delta": 0
+       },
+       "airport_towns_opex_present": {
+        "reference": 14,
+        "variant": 14,
+        "policy_delta": 0
+       },
+       "airport_towns_aaahogex_present": {
+        "reference": 19,
+        "variant": 19,
+        "policy_delta": 0
+       },
+       "airport_towns_aaahogex_2_opex_0": {
+        "reference": 2,
+        "variant": 2,
+        "policy_delta": 0
+       },
+       "airport_towns_opex_2_aaahogex_0": {
+        "reference": 0,
+        "variant": 0,
+        "policy_delta": 0
+       },
+       "airport_towns_shared_1_1": {
+        "reference": 12,
+        "variant": 12,
+        "policy_delta": 0
+       },
+       "air_error_771_signs": {
+        "reference": 0,
+        "variant": 0,
+        "policy_delta": 0
+       },
+       "early_slot_select_signs": {
+        "reference": 5,
+        "variant": 5,
+        "policy_delta": 0
+       },
+       "early_slot_build_signs": {
+        "reference": 4,
+        "variant": 4,
+        "policy_delta": 0
+       },
+       "early_slot_build_claims": {
+        "reference": 7,
+        "variant": 7,
+        "policy_delta": 0
+       }
+      },
+      "town_growth_builds": {
+       "reference": 0,
+       "variant": 0,
+       "policy_delta": 0
+      }
+     },
+     {
+      "year": 1972,
+      "primary_metric": "profit_year",
+      "reference_opex": 1430115,
+      "variant_opex": 1430115,
+      "policy_delta": 0,
+      "reference_aaahogex": 1407583,
+      "variant_aaahogex": 1407583,
+      "reference_duel_gap": 22532,
+      "variant_duel_gap": 22532,
+      "air_structural_metrics": {
+       "airport_slots_opex": {
+        "reference": 18,
+        "variant": 18,
+        "policy_delta": 0
+       },
+       "airport_slots_aaahogex": {
+        "reference": 32,
+        "variant": 32,
+        "policy_delta": 0
+       },
+       "airport_towns_opex_present": {
+        "reference": 18,
+        "variant": 18,
+        "policy_delta": 0
+       },
+       "airport_towns_aaahogex_present": {
+        "reference": 28,
+        "variant": 28,
+        "policy_delta": 0
+       },
+       "airport_towns_aaahogex_2_opex_0": {
+        "reference": 4,
+        "variant": 4,
+        "policy_delta": 0
+       },
+       "airport_towns_opex_2_aaahogex_0": {
+        "reference": 0,
+        "variant": 0,
+        "policy_delta": 0
+       },
+       "airport_towns_shared_1_1": {
+        "reference": 14,
+        "variant": 14,
+        "policy_delta": 0
+       },
+       "air_error_771_signs": {
+        "reference": 0,
+        "variant": 0,
+        "policy_delta": 0
+       },
+       "early_slot_select_signs": {
+        "reference": 5,
+        "variant": 5,
+        "policy_delta": 0
+       },
+       "early_slot_build_signs": {
+        "reference": 4,
+        "variant": 4,
+        "policy_delta": 0
+       },
+       "early_slot_build_claims": {
+        "reference": 7,
+        "variant": 7,
+        "policy_delta": 0
+       }
+      },
+      "town_growth_builds": {
+       "reference": 0,
+       "variant": 0,
+       "policy_delta": 0
+      }
+     },
+     {
+      "year": 1973,
+      "primary_metric": "profit_year",
+      "reference_opex": 1767627,
+      "variant_opex": 1731215,
+      "policy_delta": -36412,
+      "reference_aaahogex": 1840580,
+      "variant_aaahogex": 1964457,
+      "reference_duel_gap": -72953,
+      "variant_duel_gap": -233242,
+      "air_structural_metrics": {
+       "airport_slots_opex": {
+        "reference": 26,
+        "variant": 21,
+        "policy_delta": -5
+       },
+       "airport_slots_aaahogex": {
+        "reference": 34,
+        "variant": 32,
+        "policy_delta": -2
+       },
+       "airport_towns_opex_present": {
+        "reference": 26,
+        "variant": 21,
+        "policy_delta": -5
+       },
+       "airport_towns_aaahogex_present": {
+        "reference": 29,
+        "variant": 28,
+        "policy_delta": -1
+       },
+       "airport_towns_aaahogex_2_opex_0": {
+        "reference": 5,
+        "variant": 4,
+        "policy_delta": -1
+       },
+       "airport_towns_opex_2_aaahogex_0": {
+        "reference": 0,
+        "variant": 0,
+        "policy_delta": 0
+       },
+       "airport_towns_shared_1_1": {
+        "reference": 21,
+        "variant": 16,
+        "policy_delta": -5
+       },
+       "air_error_771_signs": {
+        "reference": 0,
+        "variant": 0,
+        "policy_delta": 0
+       },
+       "early_slot_select_signs": {
+        "reference": 5,
+        "variant": 5,
+        "policy_delta": 0
+       },
+       "early_slot_build_signs": {
+        "reference": 4,
+        "variant": 4,
+        "policy_delta": 0
+       },
+       "early_slot_build_claims": {
+        "reference": 7,
+        "variant": 7,
+        "policy_delta": 0
+       }
+      },
+      "town_growth_builds": {
+       "reference": 0,
+       "variant": 0,
+       "policy_delta": 0
+      }
+     },
+     {
+      "year": 1974,
+      "primary_metric": "profit_year",
+      "reference_opex": 1870090,
+      "variant_opex": 1883225,
+      "policy_delta": 13135,
+      "reference_aaahogex": 2403785,
+      "variant_aaahogex": 2422582,
+      "reference_duel_gap": -533695,
+      "variant_duel_gap": -539357,
+      "air_structural_metrics": {
+       "airport_slots_opex": {
+        "reference": 26,
+        "variant": 23,
+        "policy_delta": -3
+       },
+       "airport_slots_aaahogex": {
+        "reference": 36,
+        "variant": 34,
+        "policy_delta": -2
+       },
+       "airport_towns_opex_present": {
+        "reference": 26,
+        "variant": 23,
+        "policy_delta": -3
+       },
+       "airport_towns_aaahogex_present": {
+        "reference": 30,
+        "variant": 29,
+        "policy_delta": -1
+       },
+       "airport_towns_aaahogex_2_opex_0": {
+        "reference": 6,
+        "variant": 5,
+        "policy_delta": -1
+       },
+       "airport_towns_opex_2_aaahogex_0": {
+        "reference": 0,
+        "variant": 0,
+        "policy_delta": 0
+       },
+       "airport_towns_shared_1_1": {
+        "reference": 21,
+        "variant": 18,
+        "policy_delta": -3
+       },
+       "air_error_771_signs": {
+        "reference": 0,
+        "variant": 0,
+        "policy_delta": 0
+       },
+       "early_slot_select_signs": {
+        "reference": 5,
+        "variant": 5,
+        "policy_delta": 0
+       },
+       "early_slot_build_signs": {
+        "reference": 4,
+        "variant": 4,
+        "policy_delta": 0
+       },
+       "early_slot_build_claims": {
+        "reference": 7,
+        "variant": 7,
+        "policy_delta": 0
+       }
+      },
+      "town_growth_builds": {
+       "reference": 0,
+       "variant": 0,
+       "policy_delta": 0
+      }
+     },
+     {
+      "year": 1975,
+      "primary_metric": "profit_year",
+      "reference_opex": 1619533,
+      "variant_opex": 2057123,
+      "policy_delta": 437590,
+      "reference_aaahogex": 2973498,
+      "variant_aaahogex": 3337377,
+      "reference_duel_gap": -1353965,
+      "variant_duel_gap": -1280254,
+      "air_structural_metrics": {
+       "airport_slots_opex": {
+        "reference": 26,
+        "variant": 23,
+        "policy_delta": -3
+       },
+       "airport_slots_aaahogex": {
+        "reference": 36,
+        "variant": 34,
+        "policy_delta": -2
+       },
+       "airport_towns_opex_present": {
+        "reference": 26,
+        "variant": 23,
+        "policy_delta": -3
+       },
+       "airport_towns_aaahogex_present": {
+        "reference": 30,
+        "variant": 29,
+        "policy_delta": -1
+       },
+       "airport_towns_aaahogex_2_opex_0": {
+        "reference": 6,
+        "variant": 5,
+        "policy_delta": -1
+       },
+       "airport_towns_opex_2_aaahogex_0": {
+        "reference": 0,
+        "variant": 0,
+        "policy_delta": 0
+       },
+       "airport_towns_shared_1_1": {
+        "reference": 21,
+        "variant": 18,
+        "policy_delta": -3
+       },
+       "air_error_771_signs": {
+        "reference": 0,
+        "variant": 0,
+        "policy_delta": 0
+       },
+       "early_slot_select_signs": {
+        "reference": 5,
+        "variant": 5,
+        "policy_delta": 0
+       },
+       "early_slot_build_signs": {
+        "reference": 4,
+        "variant": 4,
+        "policy_delta": 0
+       },
+       "early_slot_build_claims": {
+        "reference": 7,
+        "variant": 7,
+        "policy_delta": 0
+       }
+      },
+      "town_growth_builds": {
+       "reference": 0,
+       "variant": 0,
+       "policy_delta": 0
+      }
+     },
+     {
+      "year": 1976,
+      "primary_metric": "profit_year",
+      "reference_opex": 1991930,
+      "variant_opex": 2403731,
+      "policy_delta": 411801,
+      "reference_aaahogex": 3697671,
+      "variant_aaahogex": 4039158,
+      "reference_duel_gap": -1705741,
+      "variant_duel_gap": -1635427,
+      "air_structural_metrics": {
+       "airport_slots_opex": {
+        "reference": 26,
+        "variant": 25,
+        "policy_delta": -1
+       },
+       "airport_slots_aaahogex": {
+        "reference": 36,
+        "variant": 34,
+        "policy_delta": -2
+       },
+       "airport_towns_opex_present": {
+        "reference": 26,
+        "variant": 25,
+        "policy_delta": -1
+       },
+       "airport_towns_aaahogex_present": {
+        "reference": 30,
+        "variant": 29,
+        "policy_delta": -1
+       },
+       "airport_towns_aaahogex_2_opex_0": {
+        "reference": 6,
+        "variant": 5,
+        "policy_delta": -1
+       },
+       "airport_towns_opex_2_aaahogex_0": {
+        "reference": 0,
+        "variant": 0,
+        "policy_delta": 0
+       },
+       "airport_towns_shared_1_1": {
+        "reference": 21,
+        "variant": 19,
+        "policy_delta": -2
+       },
+       "air_error_771_signs": {
+        "reference": 0,
+        "variant": 0,
+        "policy_delta": 0
+       },
+       "early_slot_select_signs": {
+        "reference": 5,
+        "variant": 5,
+        "policy_delta": 0
+       },
+       "early_slot_build_signs": {
+        "reference": 4,
+        "variant": 4,
+        "policy_delta": 0
+       },
+       "early_slot_build_claims": {
+        "reference": 7,
+        "variant": 7,
+        "policy_delta": 0
+       }
+      },
+      "town_growth_builds": {
+       "reference": 0,
+       "variant": 0,
+       "policy_delta": 0
+      }
+     },
+     {
+      "year": 1977,
+      "primary_metric": "profit_year",
+      "reference_opex": 2122577,
+      "variant_opex": 2759822,
+      "policy_delta": 637245,
+      "reference_aaahogex": 4659711,
+      "variant_aaahogex": 4982602,
+      "reference_duel_gap": -2537134,
+      "variant_duel_gap": -2222780,
+      "air_structural_metrics": {
+       "airport_slots_opex": {
+        "reference": 26,
+        "variant": 25,
+        "policy_delta": -1
+       },
+       "airport_slots_aaahogex": {
+        "reference": 36,
+        "variant": 34,
+        "policy_delta": -2
+       },
+       "airport_towns_opex_present": {
+        "reference": 26,
+        "variant": 25,
+        "policy_delta": -1
+       },
+       "airport_towns_aaahogex_present": {
+        "reference": 30,
+        "variant": 29,
+        "policy_delta": -1
+       },
+       "airport_towns_aaahogex_2_opex_0": {
+        "reference": 6,
+        "variant": 5,
+        "policy_delta": -1
+       },
+       "airport_towns_opex_2_aaahogex_0": {
+        "reference": 0,
+        "variant": 0,
+        "policy_delta": 0
+       },
+       "airport_towns_shared_1_1": {
+        "reference": 21,
+        "variant": 19,
+        "policy_delta": -2
+       },
+       "air_error_771_signs": {
+        "reference": 0,
+        "variant": 0,
+        "policy_delta": 0
+       },
+       "early_slot_select_signs": {
+        "reference": 5,
+        "variant": 5,
+        "policy_delta": 0
+       },
+       "early_slot_build_signs": {
+        "reference": 4,
+        "variant": 4,
+        "policy_delta": 0
+       },
+       "early_slot_build_claims": {
+        "reference": 7,
+        "variant": 7,
+        "policy_delta": 0
+       }
+      },
+      "town_growth_builds": {
+       "reference": 0,
+       "variant": 0,
+       "policy_delta": 0
+      }
+     },
+     {
+      "year": 1978,
+      "primary_metric": "profit_year",
+      "reference_opex": 2279521,
+      "variant_opex": 2794265,
+      "policy_delta": 514744,
+      "reference_aaahogex": 6246757,
+      "variant_aaahogex": 5836456,
+      "reference_duel_gap": -3967236,
+      "variant_duel_gap": -3042191,
+      "air_structural_metrics": {
+       "airport_slots_opex": {
+        "reference": 26,
+        "variant": 25,
+        "policy_delta": -1
+       },
+       "airport_slots_aaahogex": {
+        "reference": 36,
+        "variant": 36,
+        "policy_delta": 0
+       },
+       "airport_towns_opex_present": {
+        "reference": 26,
+        "variant": 25,
+        "policy_delta": -1
+       },
+       "airport_towns_aaahogex_present": {
+        "reference": 30,
+        "variant": 30,
+        "policy_delta": 0
+       },
+       "airport_towns_aaahogex_2_opex_0": {
+        "reference": 6,
+        "variant": 6,
+        "policy_delta": 0
+       },
+       "airport_towns_opex_2_aaahogex_0": {
+        "reference": 0,
+        "variant": 0,
+        "policy_delta": 0
+       },
+       "airport_towns_shared_1_1": {
+        "reference": 21,
+        "variant": 20,
+        "policy_delta": -1
+       },
+       "air_error_771_signs": {
+        "reference": 0,
+        "variant": 0,
+        "policy_delta": 0
+       },
+       "early_slot_select_signs": {
+        "reference": 5,
+        "variant": 5,
+        "policy_delta": 0
+       },
+       "early_slot_build_signs": {
+        "reference": 4,
+        "variant": 4,
+        "policy_delta": 0
+       },
+       "early_slot_build_claims": {
+        "reference": 7,
+        "variant": 7,
+        "policy_delta": 0
+       }
+      },
+      "town_growth_builds": {
+       "reference": 0,
+       "variant": 0,
+       "policy_delta": 0
+      }
+     },
+     {
+      "year": 1979,
+      "primary_metric": "profit_year",
+      "reference_opex": 2464872,
+      "variant_opex": 3303298,
+      "policy_delta": 838426,
+      "reference_aaahogex": 6714980,
+      "variant_aaahogex": 7063500,
+      "reference_duel_gap": -4250108,
+      "variant_duel_gap": -3760202,
+      "air_structural_metrics": {
+       "airport_slots_opex": {
+        "reference": 28,
+        "variant": 25,
+        "policy_delta": -3
+       },
+       "airport_slots_aaahogex": {
+        "reference": 38,
+        "variant": 36,
+        "policy_delta": -2
+       },
+       "airport_towns_opex_present": {
+        "reference": 28,
+        "variant": 25,
+        "policy_delta": -3
+       },
+       "airport_towns_aaahogex_present": {
+        "reference": 31,
+        "variant": 30,
+        "policy_delta": -1
+       },
+       "airport_towns_aaahogex_2_opex_0": {
+        "reference": 7,
+        "variant": 6,
+        "policy_delta": -1
+       },
+       "airport_towns_opex_2_aaahogex_0": {
+        "reference": 0,
+        "variant": 0,
+        "policy_delta": 0
+       },
+       "airport_towns_shared_1_1": {
+        "reference": 22,
+        "variant": 20,
+        "policy_delta": -2
+       },
+       "air_error_771_signs": {
+        "reference": 0,
+        "variant": 0,
+        "policy_delta": 0
+       },
+       "early_slot_select_signs": {
+        "reference": 5,
+        "variant": 5,
+        "policy_delta": 0
+       },
+       "early_slot_build_signs": {
+        "reference": 4,
+        "variant": 4,
+        "policy_delta": 0
+       },
+       "early_slot_build_claims": {
+        "reference": 7,
+        "variant": 7,
+        "policy_delta": 0
+       }
+      },
+      "town_growth_builds": {
+       "reference": 0,
+       "variant": 0,
+       "policy_delta": 0
+      }
+     }
+    ]
+   }
+  ],
+  "aggregates": {
+   "company_value": {
+    "policy_delta": {
+     "n": 1,
+     "mean": 1918757.0,
+     "median": 1918757.0,
+     "standard_deviation": null,
+     "standard_error": null,
+     "mean_normal_95pct_ci": null,
+     "mean_student_t_95pct_ci": null,
+     "wins": 1,
+     "losses": 0,
+     "ties": 0,
+     "sign_test_n_excluding_ties": 1,
+     "sign_test_p": 1.0,
+     "wilcoxon_p": 1.0,
+     "mean_bootstrap_95pct_ci": [
+      1918757.0,
+      1918757.0
+     ],
+     "bootstrap_resamples": 20000,
+     "bootstrap_seed": 0
+    },
+    "policy_ratio": {
+     "n_positive_denominator": 1,
+     "excluded_nonpositive_or_missing_denominator": 0,
+     "ratio_of_means": 1.169819,
+     "ratio_of_means_percent_change": 16.981949,
+     "mean_of_ratios": 1.169819,
+     "mean_of_ratios_percent_change": 16.981949
+    },
+    "reference_opex_minus_aaahogex": {
+     "n": 1,
+     "mean": -10421906.0,
+     "median": -10421906.0,
+     "standard_deviation": null,
+     "standard_error": null,
+     "mean_normal_95pct_ci": null,
+     "mean_student_t_95pct_ci": null,
+     "wins": 0,
+     "losses": 1,
+     "ties": 0,
+     "sign_test_n_excluding_ties": 1,
+     "sign_test_p": 1.0,
+     "wilcoxon_p": 1.0,
+     "mean_bootstrap_95pct_ci": [
+      -10421906.0,
+      -10421906.0
+     ],
+     "bootstrap_resamples": 20000,
+     "bootstrap_seed": 0
+    },
+    "variant_opex_minus_aaahogex": {
+     "n": 1,
+     "mean": -10524615.0,
+     "median": -10524615.0,
+     "standard_deviation": null,
+     "standard_error": null,
+     "mean_normal_95pct_ci": null,
+     "mean_student_t_95pct_ci": null,
+     "wins": 0,
+     "losses": 1,
+     "ties": 0,
+     "sign_test_n_excluding_ties": 1,
+     "sign_test_p": 1.0,
+     "wilcoxon_p": 1.0,
+     "mean_bootstrap_95pct_ci": [
+      -10524615.0,
+      -10524615.0
+     ],
+     "bootstrap_resamples": 20000,
+     "bootstrap_seed": 0
+    },
+    "duel_gap_evolution": {
+     "n": 1,
+     "mean": -102709.0,
+     "median": -102709.0,
+     "standard_deviation": null,
+     "standard_error": null,
+     "mean_normal_95pct_ci": null,
+     "mean_student_t_95pct_ci": null,
+     "wins": 0,
+     "losses": 1,
+     "ties": 0,
+     "sign_test_n_excluding_ties": 1,
+     "sign_test_p": 1.0,
+     "wilcoxon_p": 1.0,
+     "mean_bootstrap_95pct_ci": [
+      -102709.0,
+      -102709.0
+     ],
+     "bootstrap_resamples": 20000,
+     "bootstrap_seed": 0
+    }
+   },
+   "performance_history": {
+    "policy_delta": {
+     "n": 1,
+     "mean": 95.0,
+     "median": 95.0,
+     "standard_deviation": null,
+     "standard_error": null,
+     "mean_normal_95pct_ci": null,
+     "mean_student_t_95pct_ci": null,
+     "wins": 1,
+     "losses": 0,
+     "ties": 0,
+     "sign_test_n_excluding_ties": 1,
+     "sign_test_p": 1.0,
+     "wilcoxon_p": 1.0,
+     "mean_bootstrap_95pct_ci": [
+      95.0,
+      95.0
+     ],
+     "bootstrap_resamples": 20000,
+     "bootstrap_seed": 0
+    },
+    "policy_ratio": {
+     "n_positive_denominator": 1,
+     "excluded_nonpositive_or_missing_denominator": 0,
+     "ratio_of_means": 1.120253,
+     "ratio_of_means_percent_change": 12.025316,
+     "mean_of_ratios": 1.120253,
+     "mean_of_ratios_percent_change": 12.025316
+    },
+    "reference_opex_minus_aaahogex": {
+     "n": 1,
+     "mean": -110.0,
+     "median": -110.0,
+     "standard_deviation": null,
+     "standard_error": null,
+     "mean_normal_95pct_ci": null,
+     "mean_student_t_95pct_ci": null,
+     "wins": 0,
+     "losses": 1,
+     "ties": 0,
+     "sign_test_n_excluding_ties": 1,
+     "sign_test_p": 1.0,
+     "wilcoxon_p": 1.0,
+     "mean_bootstrap_95pct_ci": [
+      -110.0,
+      -110.0
+     ],
+     "bootstrap_resamples": 20000,
+     "bootstrap_seed": 0
+    },
+    "variant_opex_minus_aaahogex": {
+     "n": 1,
+     "mean": -15.0,
+     "median": -15.0,
+     "standard_deviation": null,
+     "standard_error": null,
+     "mean_normal_95pct_ci": null,
+     "mean_student_t_95pct_ci": null,
+     "wins": 0,
+     "losses": 1,
+     "ties": 0,
+     "sign_test_n_excluding_ties": 1,
+     "sign_test_p": 1.0,
+     "wilcoxon_p": 1.0,
+     "mean_bootstrap_95pct_ci": [
+      -15.0,
+      -15.0
+     ],
+     "bootstrap_resamples": 20000,
+     "bootstrap_seed": 0
+    },
+    "duel_gap_evolution": {
+     "n": 1,
+     "mean": 95.0,
+     "median": 95.0,
+     "standard_deviation": null,
+     "standard_error": null,
+     "mean_normal_95pct_ci": null,
+     "mean_student_t_95pct_ci": null,
+     "wins": 1,
+     "losses": 0,
+     "ties": 0,
+     "sign_test_n_excluding_ties": 1,
+     "sign_test_p": 1.0,
+     "wilcoxon_p": 1.0,
+     "mean_bootstrap_95pct_ci": [
+      95.0,
+      95.0
+     ],
+     "bootstrap_resamples": 20000,
+     "bootstrap_seed": 0
+    }
+   },
+   "profit": {
+    "policy_delta": {
+     "n": 1,
+     "mean": 231275.0,
+     "median": 231275.0,
+     "standard_deviation": null,
+     "standard_error": null,
+     "mean_normal_95pct_ci": null,
+     "mean_student_t_95pct_ci": null,
+     "wins": 1,
+     "losses": 0,
+     "ties": 0,
+     "sign_test_n_excluding_ties": 1,
+     "sign_test_p": 1.0,
+     "wilcoxon_p": 1.0,
+     "mean_bootstrap_95pct_ci": [
+      231275.0,
+      231275.0
+     ],
+     "bootstrap_resamples": 20000,
+     "bootstrap_seed": 0
+    },
+    "policy_ratio": {
+     "n_positive_denominator": 1,
+     "excluded_nonpositive_or_missing_denominator": 0,
+     "ratio_of_means": 1.357926,
+     "ratio_of_means_percent_change": 35.792606,
+     "mean_of_ratios": 1.357926,
+     "mean_of_ratios_percent_change": 35.792606
+    },
+    "reference_opex_minus_aaahogex": {
+     "n": 1,
+     "mean": -1029690.0,
+     "median": -1029690.0,
+     "standard_deviation": null,
+     "standard_error": null,
+     "mean_normal_95pct_ci": null,
+     "mean_student_t_95pct_ci": null,
+     "wins": 0,
+     "losses": 1,
+     "ties": 0,
+     "sign_test_n_excluding_ties": 1,
+     "sign_test_p": 1.0,
+     "wilcoxon_p": 1.0,
+     "mean_bootstrap_95pct_ci": [
+      -1029690.0,
+      -1029690.0
+     ],
+     "bootstrap_resamples": 20000,
+     "bootstrap_seed": 0
+    },
+    "variant_opex_minus_aaahogex": {
+     "n": 1,
+     "mean": -847476.0,
+     "median": -847476.0,
+     "standard_deviation": null,
+     "standard_error": null,
+     "mean_normal_95pct_ci": null,
+     "mean_student_t_95pct_ci": null,
+     "wins": 0,
+     "losses": 1,
+     "ties": 0,
+     "sign_test_n_excluding_ties": 1,
+     "sign_test_p": 1.0,
+     "wilcoxon_p": 1.0,
+     "mean_bootstrap_95pct_ci": [
+      -847476.0,
+      -847476.0
+     ],
+     "bootstrap_resamples": 20000,
+     "bootstrap_seed": 0
+    },
+    "duel_gap_evolution": {
+     "n": 1,
+     "mean": 182214.0,
+     "median": 182214.0,
+     "standard_deviation": null,
+     "standard_error": null,
+     "mean_normal_95pct_ci": null,
+     "mean_student_t_95pct_ci": null,
+     "wins": 1,
+     "losses": 0,
+     "ties": 0,
+     "sign_test_n_excluding_ties": 1,
+     "sign_test_p": 1.0,
+     "wilcoxon_p": 1.0,
+     "mean_bootstrap_95pct_ci": [
+      182214.0,
+      182214.0
+     ],
+     "bootstrap_resamples": 20000,
+     "bootstrap_seed": 0
+    }
+   },
+   "profit_year": {
+    "policy_delta": {
+     "n": 1,
+     "mean": 838426.0,
+     "median": 838426.0,
+     "standard_deviation": null,
+     "standard_error": null,
+     "mean_normal_95pct_ci": null,
+     "mean_student_t_95pct_ci": null,
+     "wins": 1,
+     "losses": 0,
+     "ties": 0,
+     "sign_test_n_excluding_ties": 1,
+     "sign_test_p": 1.0,
+     "wilcoxon_p": 1.0,
+     "mean_bootstrap_95pct_ci": [
+      838426.0,
+      838426.0
+     ],
+     "bootstrap_resamples": 20000,
+     "bootstrap_seed": 0
+    },
+    "policy_ratio": {
+     "n_positive_denominator": 1,
+     "excluded_nonpositive_or_missing_denominator": 0,
+     "ratio_of_means": 1.34015,
+     "ratio_of_means_percent_change": 34.014991,
+     "mean_of_ratios": 1.34015,
+     "mean_of_ratios_percent_change": 34.014991
+    },
+    "reference_opex_minus_aaahogex": {
+     "n": 1,
+     "mean": -4250108.0,
+     "median": -4250108.0,
+     "standard_deviation": null,
+     "standard_error": null,
+     "mean_normal_95pct_ci": null,
+     "mean_student_t_95pct_ci": null,
+     "wins": 0,
+     "losses": 1,
+     "ties": 0,
+     "sign_test_n_excluding_ties": 1,
+     "sign_test_p": 1.0,
+     "wilcoxon_p": 1.0,
+     "mean_bootstrap_95pct_ci": [
+      -4250108.0,
+      -4250108.0
+     ],
+     "bootstrap_resamples": 20000,
+     "bootstrap_seed": 0
+    },
+    "variant_opex_minus_aaahogex": {
+     "n": 1,
+     "mean": -3760202.0,
+     "median": -3760202.0,
+     "standard_deviation": null,
+     "standard_error": null,
+     "mean_normal_95pct_ci": null,
+     "mean_student_t_95pct_ci": null,
+     "wins": 0,
+     "losses": 1,
+     "ties": 0,
+     "sign_test_n_excluding_ties": 1,
+     "sign_test_p": 1.0,
+     "wilcoxon_p": 1.0,
+     "mean_bootstrap_95pct_ci": [
+      -3760202.0,
+      -3760202.0
+     ],
+     "bootstrap_resamples": 20000,
+     "bootstrap_seed": 0
+    },
+    "duel_gap_evolution": {
+     "n": 1,
+     "mean": 489906.0,
+     "median": 489906.0,
+     "standard_deviation": null,
+     "standard_error": null,
+     "mean_normal_95pct_ci": null,
+     "mean_student_t_95pct_ci": null,
+     "wins": 1,
+     "losses": 0,
+     "ties": 0,
+     "sign_test_n_excluding_ties": 1,
+     "sign_test_p": 1.0,
+     "wilcoxon_p": 1.0,
+     "mean_bootstrap_95pct_ci": [
+      489906.0,
+      489906.0
+     ],
+     "bootstrap_resamples": 20000,
+     "bootstrap_seed": 0
+    }
+   },
+   "median_station_rating": {
+    "policy_delta": {
+     "n": 1,
+     "mean": 1.0,
+     "median": 1.0,
+     "standard_deviation": null,
+     "standard_error": null,
+     "mean_normal_95pct_ci": null,
+     "mean_student_t_95pct_ci": null,
+     "wins": 1,
+     "losses": 0,
+     "ties": 0,
+     "sign_test_n_excluding_ties": 1,
+     "sign_test_p": 1.0,
+     "wilcoxon_p": 1.0,
+     "mean_bootstrap_95pct_ci": [
+      1.0,
+      1.0
+     ],
+     "bootstrap_resamples": 20000,
+     "bootstrap_seed": 0
+    },
+    "policy_ratio": {
+     "n_positive_denominator": 1,
+     "excluded_nonpositive_or_missing_denominator": 0,
+     "ratio_of_means": 1.006173,
+     "ratio_of_means_percent_change": 0.617284,
+     "mean_of_ratios": 1.006173,
+     "mean_of_ratios_percent_change": 0.617284
+    },
+    "reference_opex_minus_aaahogex": {
+     "n": 1,
+     "mean": -17.0,
+     "median": -17.0,
+     "standard_deviation": null,
+     "standard_error": null,
+     "mean_normal_95pct_ci": null,
+     "mean_student_t_95pct_ci": null,
+     "wins": 0,
+     "losses": 1,
+     "ties": 0,
+     "sign_test_n_excluding_ties": 1,
+     "sign_test_p": 1.0,
+     "wilcoxon_p": 1.0,
+     "mean_bootstrap_95pct_ci": [
+      -17.0,
+      -17.0
+     ],
+     "bootstrap_resamples": 20000,
+     "bootstrap_seed": 0
+    },
+    "variant_opex_minus_aaahogex": {
+     "n": 1,
+     "mean": -26.0,
+     "median": -26.0,
+     "standard_deviation": null,
+     "standard_error": null,
+     "mean_normal_95pct_ci": null,
+     "mean_student_t_95pct_ci": null,
+     "wins": 0,
+     "losses": 1,
+     "ties": 0,
+     "sign_test_n_excluding_ties": 1,
+     "sign_test_p": 1.0,
+     "wilcoxon_p": 1.0,
+     "mean_bootstrap_95pct_ci": [
+      -26.0,
+      -26.0
+     ],
+     "bootstrap_resamples": 20000,
+     "bootstrap_seed": 0
+    },
+    "duel_gap_evolution": {
+     "n": 1,
+     "mean": -9.0,
+     "median": -9.0,
+     "standard_deviation": null,
+     "standard_error": null,
+     "mean_normal_95pct_ci": null,
+     "mean_student_t_95pct_ci": null,
+     "wins": 0,
+     "losses": 1,
+     "ties": 0,
+     "sign_test_n_excluding_ties": 1,
+     "sign_test_p": 1.0,
+     "wilcoxon_p": 1.0,
+     "mean_bootstrap_95pct_ci": [
+      -9.0,
+      -9.0
+     ],
+     "bootstrap_resamples": 20000,
+     "bootstrap_seed": 0
+    }
+   },
+   "primary_vehicles": {
+    "policy_delta": {
+     "n": 1,
+     "mean": 16.0,
+     "median": 16.0,
+     "standard_deviation": null,
+     "standard_error": null,
+     "mean_normal_95pct_ci": null,
+     "mean_student_t_95pct_ci": null,
+     "wins": 1,
+     "losses": 0,
+     "ties": 0,
+     "sign_test_n_excluding_ties": 1,
+     "sign_test_p": 1.0,
+     "wilcoxon_p": 1.0,
+     "mean_bootstrap_95pct_ci": [
+      16.0,
+      16.0
+     ],
+     "bootstrap_resamples": 20000,
+     "bootstrap_seed": 0
+    },
+    "policy_ratio": {
+     "n_positive_denominator": 1,
+     "excluded_nonpositive_or_missing_denominator": 0,
+     "ratio_of_means": 1.153846,
+     "ratio_of_means_percent_change": 15.384615,
+     "mean_of_ratios": 1.153846,
+     "mean_of_ratios_percent_change": 15.384615
+    },
+    "reference_opex_minus_aaahogex": {
+     "n": 1,
+     "mean": -149.0,
+     "median": -149.0,
+     "standard_deviation": null,
+     "standard_error": null,
+     "mean_normal_95pct_ci": null,
+     "mean_student_t_95pct_ci": null,
+     "wins": 0,
+     "losses": 1,
+     "ties": 0,
+     "sign_test_n_excluding_ties": 1,
+     "sign_test_p": 1.0,
+     "wilcoxon_p": 1.0,
+     "mean_bootstrap_95pct_ci": [
+      -149.0,
+      -149.0
+     ],
+     "bootstrap_resamples": 20000,
+     "bootstrap_seed": 0
+    },
+    "variant_opex_minus_aaahogex": {
+     "n": 1,
+     "mean": -132.0,
+     "median": -132.0,
+     "standard_deviation": null,
+     "standard_error": null,
+     "mean_normal_95pct_ci": null,
+     "mean_student_t_95pct_ci": null,
+     "wins": 0,
+     "losses": 1,
+     "ties": 0,
+     "sign_test_n_excluding_ties": 1,
+     "sign_test_p": 1.0,
+     "wilcoxon_p": 1.0,
+     "mean_bootstrap_95pct_ci": [
+      -132.0,
+      -132.0
+     ],
+     "bootstrap_resamples": 20000,
+     "bootstrap_seed": 0
+    },
+    "duel_gap_evolution": {
+     "n": 1,
+     "mean": 17.0,
+     "median": 17.0,
+     "standard_deviation": null,
+     "standard_error": null,
+     "mean_normal_95pct_ci": null,
+     "mean_student_t_95pct_ci": null,
+     "wins": 1,
+     "losses": 0,
+     "ties": 0,
+     "sign_test_n_excluding_ties": 1,
+     "sign_test_p": 1.0,
+     "wilcoxon_p": 1.0,
+     "mean_bootstrap_95pct_ci": [
+      17.0,
+      17.0
+     ],
+     "bootstrap_resamples": 20000,
+     "bootstrap_seed": 0
+    }
+   }
+  },
+  "air_structural_aggregates": {
+   "airport_slots_opex": {
+    "n": 1,
+    "mean": -3.0,
+    "median": -3.0,
+    "standard_deviation": null,
+    "standard_error": null,
+    "mean_normal_95pct_ci": null,
+    "mean_student_t_95pct_ci": null,
+    "wins": 0,
+    "losses": 1,
+    "ties": 0,
+    "sign_test_n_excluding_ties": 1,
+    "sign_test_p": 1.0,
+    "wilcoxon_p": 1.0,
+    "mean_bootstrap_95pct_ci": [
+     -3.0,
+     -3.0
+    ],
+    "bootstrap_resamples": 20000,
+    "bootstrap_seed": 0
+   },
+   "airport_slots_aaahogex": {
+    "n": 1,
+    "mean": -2.0,
+    "median": -2.0,
+    "standard_deviation": null,
+    "standard_error": null,
+    "mean_normal_95pct_ci": null,
+    "mean_student_t_95pct_ci": null,
+    "wins": 0,
+    "losses": 1,
+    "ties": 0,
+    "sign_test_n_excluding_ties": 1,
+    "sign_test_p": 1.0,
+    "wilcoxon_p": 1.0,
+    "mean_bootstrap_95pct_ci": [
+     -2.0,
+     -2.0
+    ],
+    "bootstrap_resamples": 20000,
+    "bootstrap_seed": 0
+   },
+   "airport_towns_opex_present": {
+    "n": 1,
+    "mean": -3.0,
+    "median": -3.0,
+    "standard_deviation": null,
+    "standard_error": null,
+    "mean_normal_95pct_ci": null,
+    "mean_student_t_95pct_ci": null,
+    "wins": 0,
+    "losses": 1,
+    "ties": 0,
+    "sign_test_n_excluding_ties": 1,
+    "sign_test_p": 1.0,
+    "wilcoxon_p": 1.0,
+    "mean_bootstrap_95pct_ci": [
+     -3.0,
+     -3.0
+    ],
+    "bootstrap_resamples": 20000,
+    "bootstrap_seed": 0
+   },
+   "airport_towns_aaahogex_present": {
+    "n": 1,
+    "mean": -1.0,
+    "median": -1.0,
+    "standard_deviation": null,
+    "standard_error": null,
+    "mean_normal_95pct_ci": null,
+    "mean_student_t_95pct_ci": null,
+    "wins": 0,
+    "losses": 1,
+    "ties": 0,
+    "sign_test_n_excluding_ties": 1,
+    "sign_test_p": 1.0,
+    "wilcoxon_p": 1.0,
+    "mean_bootstrap_95pct_ci": [
+     -1.0,
+     -1.0
+    ],
+    "bootstrap_resamples": 20000,
+    "bootstrap_seed": 0
+   },
+   "airport_towns_aaahogex_2_opex_0": {
+    "n": 1,
+    "mean": -1.0,
+    "median": -1.0,
+    "standard_deviation": null,
+    "standard_error": null,
+    "mean_normal_95pct_ci": null,
+    "mean_student_t_95pct_ci": null,
+    "wins": 0,
+    "losses": 1,
+    "ties": 0,
+    "sign_test_n_excluding_ties": 1,
+    "sign_test_p": 1.0,
+    "wilcoxon_p": 1.0,
+    "mean_bootstrap_95pct_ci": [
+     -1.0,
+     -1.0
+    ],
+    "bootstrap_resamples": 20000,
+    "bootstrap_seed": 0
+   },
+   "airport_towns_opex_2_aaahogex_0": {
+    "n": 1,
+    "mean": 0.0,
+    "median": 0.0,
+    "standard_deviation": null,
+    "standard_error": null,
+    "mean_normal_95pct_ci": null,
+    "mean_student_t_95pct_ci": null,
+    "wins": 0,
+    "losses": 0,
+    "ties": 1,
+    "sign_test_n_excluding_ties": 0,
+    "sign_test_p": null,
+    "wilcoxon_p": null,
+    "mean_bootstrap_95pct_ci": [
+     0.0,
+     0.0
+    ],
+    "bootstrap_resamples": 20000,
+    "bootstrap_seed": 0
+   },
+   "airport_towns_shared_1_1": {
+    "n": 1,
+    "mean": -2.0,
+    "median": -2.0,
+    "standard_deviation": null,
+    "standard_error": null,
+    "mean_normal_95pct_ci": null,
+    "mean_student_t_95pct_ci": null,
+    "wins": 0,
+    "losses": 1,
+    "ties": 0,
+    "sign_test_n_excluding_ties": 1,
+    "sign_test_p": 1.0,
+    "wilcoxon_p": 1.0,
+    "mean_bootstrap_95pct_ci": [
+     -2.0,
+     -2.0
+    ],
+    "bootstrap_resamples": 20000,
+    "bootstrap_seed": 0
+   },
+   "air_error_771_signs": {
+    "n": 1,
+    "mean": 0.0,
+    "median": 0.0,
+    "standard_deviation": null,
+    "standard_error": null,
+    "mean_normal_95pct_ci": null,
+    "mean_student_t_95pct_ci": null,
+    "wins": 0,
+    "losses": 0,
+    "ties": 1,
+    "sign_test_n_excluding_ties": 0,
+    "sign_test_p": null,
+    "wilcoxon_p": null,
+    "mean_bootstrap_95pct_ci": [
+     0.0,
+     0.0
+    ],
+    "bootstrap_resamples": 20000,
+    "bootstrap_seed": 0
+   },
+   "early_slot_select_signs": {
+    "n": 1,
+    "mean": 0.0,
+    "median": 0.0,
+    "standard_deviation": null,
+    "standard_error": null,
+    "mean_normal_95pct_ci": null,
+    "mean_student_t_95pct_ci": null,
+    "wins": 0,
+    "losses": 0,
+    "ties": 1,
+    "sign_test_n_excluding_ties": 0,
+    "sign_test_p": null,
+    "wilcoxon_p": null,
+    "mean_bootstrap_95pct_ci": [
+     0.0,
+     0.0
+    ],
+    "bootstrap_resamples": 20000,
+    "bootstrap_seed": 0
+   },
+   "early_slot_build_signs": {
+    "n": 1,
+    "mean": 0.0,
+    "median": 0.0,
+    "standard_deviation": null,
+    "standard_error": null,
+    "mean_normal_95pct_ci": null,
+    "mean_student_t_95pct_ci": null,
+    "wins": 0,
+    "losses": 0,
+    "ties": 1,
+    "sign_test_n_excluding_ties": 0,
+    "sign_test_p": null,
+    "wilcoxon_p": null,
+    "mean_bootstrap_95pct_ci": [
+     0.0,
+     0.0
+    ],
+    "bootstrap_resamples": 20000,
+    "bootstrap_seed": 0
+   },
+   "early_slot_build_claims": {
+    "n": 1,
+    "mean": 0.0,
+    "median": 0.0,
+    "standard_deviation": null,
+    "standard_error": null,
+    "mean_normal_95pct_ci": null,
+    "mean_student_t_95pct_ci": null,
+    "wins": 0,
+    "losses": 0,
+    "ties": 1,
+    "sign_test_n_excluding_ties": 0,
+    "sign_test_p": null,
+    "wilcoxon_p": null,
+    "mean_bootstrap_95pct_ci": [
+     0.0,
+     0.0
+    ],
+    "bootstrap_resamples": 20000,
+    "bootstrap_seed": 0
+   }
+  },
+  "town_growth_aggregates": {
+   "builds_total": {
+    "n": 1,
+    "mean": 0.0,
+    "median": 0.0,
+    "standard_deviation": null,
+    "standard_error": null,
+    "mean_normal_95pct_ci": null,
+    "mean_student_t_95pct_ci": null,
+    "wins": 0,
+    "losses": 0,
+    "ties": 1,
+    "sign_test_n_excluding_ties": 0,
+    "sign_test_p": null,
+    "wilcoxon_p": null,
+    "mean_bootstrap_95pct_ci": [
+     0.0,
+     0.0
+    ],
+    "bootstrap_resamples": 20000,
+    "bootstrap_seed": 0
+   },
+   "builds_by_year": {
+    "1970": {
+     "n": 1,
+     "mean": 0.0,
+     "median": 0.0,
+     "standard_deviation": null,
+     "standard_error": null,
+     "mean_normal_95pct_ci": null,
+     "mean_student_t_95pct_ci": null,
+     "wins": 0,
+     "losses": 0,
+     "ties": 1,
+     "sign_test_n_excluding_ties": 0,
+     "sign_test_p": null,
+     "wilcoxon_p": null,
+     "mean_bootstrap_95pct_ci": [
+      0.0,
+      0.0
+     ],
+     "bootstrap_resamples": 20000,
+     "bootstrap_seed": 0
+    },
+    "1971": {
+     "n": 1,
+     "mean": 0.0,
+     "median": 0.0,
+     "standard_deviation": null,
+     "standard_error": null,
+     "mean_normal_95pct_ci": null,
+     "mean_student_t_95pct_ci": null,
+     "wins": 0,
+     "losses": 0,
+     "ties": 1,
+     "sign_test_n_excluding_ties": 0,
+     "sign_test_p": null,
+     "wilcoxon_p": null,
+     "mean_bootstrap_95pct_ci": [
+      0.0,
+      0.0
+     ],
+     "bootstrap_resamples": 20000,
+     "bootstrap_seed": 0
+    },
+    "1972": {
+     "n": 1,
+     "mean": 0.0,
+     "median": 0.0,
+     "standard_deviation": null,
+     "standard_error": null,
+     "mean_normal_95pct_ci": null,
+     "mean_student_t_95pct_ci": null,
+     "wins": 0,
+     "losses": 0,
+     "ties": 1,
+     "sign_test_n_excluding_ties": 0,
+     "sign_test_p": null,
+     "wilcoxon_p": null,
+     "mean_bootstrap_95pct_ci": [
+      0.0,
+      0.0
+     ],
+     "bootstrap_resamples": 20000,
+     "bootstrap_seed": 0
+    },
+    "1973": {
+     "n": 1,
+     "mean": 0.0,
+     "median": 0.0,
+     "standard_deviation": null,
+     "standard_error": null,
+     "mean_normal_95pct_ci": null,
+     "mean_student_t_95pct_ci": null,
+     "wins": 0,
+     "losses": 0,
+     "ties": 1,
+     "sign_test_n_excluding_ties": 0,
+     "sign_test_p": null,
+     "wilcoxon_p": null,
+     "mean_bootstrap_95pct_ci": [
+      0.0,
+      0.0
+     ],
+     "bootstrap_resamples": 20000,
+     "bootstrap_seed": 0
+    },
+    "1974": {
+     "n": 1,
+     "mean": 0.0,
+     "median": 0.0,
+     "standard_deviation": null,
+     "standard_error": null,
+     "mean_normal_95pct_ci": null,
+     "mean_student_t_95pct_ci": null,
+     "wins": 0,
+     "losses": 0,
+     "ties": 1,
+     "sign_test_n_excluding_ties": 0,
+     "sign_test_p": null,
+     "wilcoxon_p": null,
+     "mean_bootstrap_95pct_ci": [
+      0.0,
+      0.0
+     ],
+     "bootstrap_resamples": 20000,
+     "bootstrap_seed": 0
+    },
+    "1975": {
+     "n": 1,
+     "mean": 0.0,
+     "median": 0.0,
+     "standard_deviation": null,
+     "standard_error": null,
+     "mean_normal_95pct_ci": null,
+     "mean_student_t_95pct_ci": null,
+     "wins": 0,
+     "losses": 0,
+     "ties": 1,
+     "sign_test_n_excluding_ties": 0,
+     "sign_test_p": null,
+     "wilcoxon_p": null,
+     "mean_bootstrap_95pct_ci": [
+      0.0,
+      0.0
+     ],
+     "bootstrap_resamples": 20000,
+     "bootstrap_seed": 0
+    },
+    "1976": {
+     "n": 1,
+     "mean": 0.0,
+     "median": 0.0,
+     "standard_deviation": null,
+     "standard_error": null,
+     "mean_normal_95pct_ci": null,
+     "mean_student_t_95pct_ci": null,
+     "wins": 0,
+     "losses": 0,
+     "ties": 1,
+     "sign_test_n_excluding_ties": 0,
+     "sign_test_p": null,
+     "wilcoxon_p": null,
+     "mean_bootstrap_95pct_ci": [
+      0.0,
+      0.0
+     ],
+     "bootstrap_resamples": 20000,
+     "bootstrap_seed": 0
+    },
+    "1977": {
+     "n": 1,
+     "mean": 0.0,
+     "median": 0.0,
+     "standard_deviation": null,
+     "standard_error": null,
+     "mean_normal_95pct_ci": null,
+     "mean_student_t_95pct_ci": null,
+     "wins": 0,
+     "losses": 0,
+     "ties": 1,
+     "sign_test_n_excluding_ties": 0,
+     "sign_test_p": null,
+     "wilcoxon_p": null,
+     "mean_bootstrap_95pct_ci": [
+      0.0,
+      0.0
+     ],
+     "bootstrap_resamples": 20000,
+     "bootstrap_seed": 0
+    },
+    "1978": {
+     "n": 1,
+     "mean": 0.0,
+     "median": 0.0,
+     "standard_deviation": null,
+     "standard_error": null,
+     "mean_normal_95pct_ci": null,
+     "mean_student_t_95pct_ci": null,
+     "wins": 0,
+     "losses": 0,
+     "ties": 1,
+     "sign_test_n_excluding_ties": 0,
+     "sign_test_p": null,
+     "wilcoxon_p": null,
+     "mean_bootstrap_95pct_ci": [
+      0.0,
+      0.0
+     ],
+     "bootstrap_resamples": 20000,
+     "bootstrap_seed": 0
+    },
+    "1979": {
+     "n": 1,
+     "mean": 0.0,
+     "median": 0.0,
+     "standard_deviation": null,
+     "standard_error": null,
+     "mean_normal_95pct_ci": null,
+     "mean_student_t_95pct_ci": null,
+     "wins": 0,
+     "losses": 0,
+     "ties": 1,
+     "sign_test_n_excluding_ties": 0,
+     "sign_test_p": null,
+     "wilcoxon_p": null,
+     "mean_bootstrap_95pct_ci": [
+      0.0,
+      0.0
+     ],
+     "bootstrap_resamples": 20000,
+     "bootstrap_seed": 0
+    }
+   }
+  },
+  "sign_pass": null,
+  "ci_pass": null,
+  "primary_mean_pass": true,
+  "primary_pass": null,
+  "value_guard_pass": true,
+  "verdict": "diagnostic_only"
+ },
+ "line_telemetry": null,
+ "station_supply_telemetry": false,
+ "retained_savegames": null
+}

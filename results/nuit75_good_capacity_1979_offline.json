@@ -1,0 +1,145 @@
+{
+  "year": 1979,
+  "coverage": "only LINE_REVENUE GOOD reports for mature lines",
+  "overview": {
+    "mature_lines": 9,
+    "positive_profit": 7,
+    "real_profit_sum": 624815,
+    "wait_ge_capacity": 4,
+    "wait_ge_3_capacity": 3,
+    "wait_ge_5_capacity": 1,
+    "profit_positive_wait_ge_capacity": 3,
+    "v284_skip_geometry": 12,
+    "v284_skip_traction": 9,
+    "v284_pick_wagon": 3,
+    "v284_done_wagon": 3
+  },
+  "by_seed": [
+    {
+      "file": "reference_seed100_r0.log",
+      "lines": 3,
+      "profit_sum": 154535,
+      "wait_ge_capacity": 2
+    },
+    {
+      "file": "reference_seed2026_r0.log",
+      "lines": 2,
+      "profit_sum": 147224,
+      "wait_ge_capacity": 2
+    },
+    {
+      "file": "reference_seed42_r0.log",
+      "lines": 1,
+      "profit_sum": -2531,
+      "wait_ge_capacity": 0
+    },
+    {
+      "file": "reference_seed999_r0.log",
+      "lines": 3,
+      "profit_sum": 325587,
+      "wait_ge_capacity": 0
+    }
+  ],
+  "lines": [
+    {
+      "file": "reference_seed100_r0.log",
+      "line": 34,
+      "year": 1979,
+      "age": 7,
+      "wait_a": 83,
+      "cap": 100,
+      "real_prof": 64401,
+      "vehs": 1,
+      "src_prod": 14
+    },
+    {
+      "file": "reference_seed100_r0.log",
+      "line": 35,
+      "year": 1979,
+      "age": 7,
+      "wait_a": 1247,
+      "cap": 325,
+      "real_prof": 71622,
+      "vehs": 1,
+      "src_prod": 0
+    },
+    {
+      "file": "reference_seed100_r0.log",
+      "line": 54,
+      "year": 1979,
+      "age": 3,
+      "wait_a": 418,
+      "cap": 25,
+      "real_prof": 18512,
+      "vehs": 1,
+      "src_prod": 300
+    },
+    {
+      "file": "reference_seed2026_r0.log",
+      "line": 54,
+      "year": 1979,
+      "age": 6,
+      "wait_a": 371,
+      "cap": 100,
+      "real_prof": -2882,
+      "vehs": 1,
+      "src_prod": 795
+    },
+    {
+      "file": "reference_seed2026_r0.log",
+      "line": 72,
+      "year": 1979,
+      "age": 3,
+      "wait_a": 384,
+      "cap": 325,
+      "real_prof": 150106,
+      "vehs": 1,
+      "src_prod": 514
+    },
+    {
+      "file": "reference_seed42_r0.log",
+      "line": 67,
+      "year": 1979,
+      "age": 5,
+      "wait_a": 0,
+      "cap": 325,
+      "real_prof": -2531,
+      "vehs": 1,
+      "src_prod": 0
+    },
+    {
+      "file": "reference_seed999_r0.log",
+      "line": 53,
+      "year": 1979,
+      "age": 7,
+      "wait_a": 12,
+      "cap": 550,
+      "real_prof": 229498,
+      "vehs": 2,
+      "src_prod": 361
+    },
+    {
+      "file": "reference_seed999_r0.log",
+      "line": 54,
+      "year": 1979,
+      "age": 6,
+      "wait_a": 15,
+      "cap": 25,
+      "real_prof": 7494,
+      "vehs": 1,
+      "src_prod": 45
+    },
+    {
+      "file": "reference_seed999_r0.log",
+      "line": 59,
+      "year": 1979,
+      "age": 6,
+      "wait_a": 174,
+      "cap": 225,
+      "real_prof": 88595,
+      "vehs": 1,
+      "src_prod": 60
+    }
+  ],
+  "note": "V284 events can repeat across years; waiting snapshot is not annual cargo flow"
+}
