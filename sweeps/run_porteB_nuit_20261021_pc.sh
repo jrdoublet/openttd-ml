@@ -50,13 +50,13 @@ run_one() {
               ref="OpexAI"
               var="OpexAI[v296_rail_batch_build=1]" ;;
     v296clean) branch=v296clean; setting=v296_astar_native
-              ref="OpexAI"
+              ref="OpexAI[v296_rail_batch_build=0,v296_astar_native=0]"
               var="OpexAI[v296_rail_batch_build=1,v296_astar_native=1]" ;;
     v301)     branch=notrain; setting=v301_notrain_fix
               ref="OpexAI[v294_rail_weight_adapt=400]"
               var="OpexAI[v294_rail_weight_adapt=400,v301_notrain_fix=15]" ;;
     finpartie) branch=finpartie; setting=v292_hq_hub
-              ref="OpexAI"
+              ref="OpexAI[v249_statue=0,v292_hq_hub=0]"
               var="OpexAI[v249_statue=2,v292_hq_hub=1]" ;;
     *) echo "candidat inconnu : $cand" >&2; return 2 ;;
   esac
@@ -73,16 +73,17 @@ run_one() {
   echo "=== ${cand} : $(git -C "$wt" rev-parse --short HEAD) (${branch}) -> results/${camp} ==="
   (cd "$wt" && python3 sweeps/run_c66_reference.py --campaign "${camp}_smoke" \
      --reference "$ref" --variant "$var" --variant-policy-id "$cand" "${RULE[@]}" \
-     --years 1 --seeds 42 --script-debug "${aaa[@]}" "${PC[@]}") || true
+     --years 1 --seeds 42 --script-debug "${aaa[@]}" "${PC[@]}") \
+     || { echo "=== ${cand} : echec smoke, porte B non lancee ===" >&2; return 1; }
   # Seules les erreurs d'OpexAI (compagnie 0) arretent : AAAHogEx plante parfois seul (IsBiDirectional).
   if zcat -f "$wt/results/${camp}_smoke_engine/"* | grep -q "\[0\] \[S\] Your script made an error"; then
     zcat -f "$wt/results/${camp}_smoke_engine/"* | grep -A6 "\[0\] \[S\] Your script made an error" | head -20
     echo "=== ${cand} : ARRET, erreur Squirrel d'OpexAI au smoke, porte B non lancee ===" >&2
-    return 0
+    return 1
   fi
   (cd "$wt" && python3 sweeps/run_c66_reference.py --campaign "$camp" \
      --reference "$ref" --variant "$var" --variant-policy-id "$cand" "${RULE[@]}" \
-     --years 10 --seeds "${SEEDS[@]}" --script-debug "${aaa[@]}" "${PC[@]}") || echo "=== ${cand} : echec $? ==="
+     --years 10 --seeds "${SEEDS[@]}" --script-debug "${aaa[@]}" "${PC[@]}")
 }
 
 CANDS=("${1:-all}")
