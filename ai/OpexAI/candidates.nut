@@ -1118,10 +1118,139 @@ function OpexV264EmitConvergent(catalog, stats, profile, cruiseCache, cargo, sou
   return candidate;
 }
 
+/* FREIGHT-ATTRITION : instrumentation locale d'une invocation du generateur.
+ * Compteurs uniquement, sans etat persiste ni aucune API par paire. Les 36 cases
+ * croisent distance (<=78, 79..160, >160), terminaison rail desservie
+ * (source, destination, deux) et correspondance cargo (meme, autre, mixte,
+ * indeterminee). "Meme" se refere aux lignes representatives retournees par
+ * OpexOriginService ; plusieurs lignes sous une meme gare ne sont pas scannees.
+ * Ce sont des refus de GENERATION et non des sites ou ROI recuperables. */
+function OpexFreightAttritionBegin(targetKind, targetId)
+{
+  if (!DECISION_LOG || V276_CAND_SLICES > 0 || targetKind != null || targetId >= 0
+      || AIMap.GetMapSizeX() != 256 || AIMap.GetMapSizeY() != 256) return null;
+  local bins = [];
+  for (local i = 0; i < 36; i++) bins.append(0);
+  return { townTotal = 0, cargoVisited = 0, goodVisited = 0,
+    good = 0, goodQpos = 0, goodZero = 0, goodServed = 0,
+    goodKept = 0, goodOther = 0, truncated = 0, bins = bins,
+    sourceSamples = {}, sourceSampleOrder = [], truncatedSources = 0 };
+}
+
+function OpexFreightAttritionPair(attrition, isGood, monthly)
+{
+  attrition.townTotal++;
+  if (!isGood) return false;
+  /* Ne pas instrumenter un balayage enorme/non prevu avec des milliers
+   * d'appels de diagnostic : la somme est marquee incomplete. */
+  if (attrition.good >= 16384) { attrition.truncated = 1; return false; }
+  attrition.good++;
+  if (monthly <= 0) attrition.goodZero++;
+  else attrition.goodQpos++;
+  return true;
+}
+
+function OpexFreightAttritionMatches(service, cargo)
+{
+  if (service == null || service.blocked || service.line == null) return -1;
+  local line = service.line;
+  if (("cargo" in line) && line.cargo == cargo) return 1;
+  if (("cargo2" in line) && ("wagons2" in line) && line.wagons2 > 0
+      && line.cargo2 == cargo) return 1;
+  return 0;
+}
+
+function OpexFreightAttritionTown(attrition, cargo, src, dst, sourceTile, townTile)
+{
+  attrition.goodServed++;
+  local side = src != null ? (dst != null ? 2 : 0) : 1;
+  local left = src != null ? OpexFreightAttritionMatches(src, cargo) : -2;
+  local right = dst != null ? OpexFreightAttritionMatches(dst, cargo) : -2;
+  local relation = 3;
+  if (left >= 0 && right >= 0) {
+    relation = left == right ? (left == 1 ? 0 : 1) : 2;
+  } else if (left >= 0 || right >= 0) {
+    relation = (left >= 0 ? left : right) == 1 ? 0 : 1;
+  }
+  /* Sur 256^2, un index tuile encode y*256+x. Aucune API de distance par paire. */
+  local dx = abs((sourceTile % 256) - (townTile % 256));
+  local dy = abs((sourceTile / 256).tointeger() - (townTile / 256).tointeger());
+  local distance = dx + dy;
+  local band = distance <= 78 ? 0 : (distance <= 160 ? 1 : 2);
+  attrition.bins[band * 12 + side * 4 + relation]++;
+  /* Le rejet de SOURCE pour un AUTRE cargo est la seule porte du nouvel
+   * echantillon. Le filtre <=200 concerne la distance de cette paire deja vue.
+   * Aucun lookup de station ou distance supplementaire. */
+  return left == 0 && distance <= 200 ? distance : -1;
+}
+
+function OpexFreightAttritionSource(attrition, sourceId, sourceTile, sourceService,
+                                     monthly, townId, townTile, distance)
+{
+  local row = null;
+  if (sourceId in attrition.sourceSamples) {
+    row = attrition.sourceSamples[sourceId];
+  } else {
+    if (attrition.sourceSampleOrder.len() >= 8) {
+      attrition.truncatedSources = 1;
+      return;
+    }
+    row = { source = sourceId, tile = sourceTile,
+      station = ("stationId" in sourceService) ? sourceService.stationId : -1,
+      monthly = monthly, pairs = 0,
+      minTown = townId, minTile = townTile, minDist = distance,
+      maxTown = townId, maxTile = townTile, maxDist = distance };
+    attrition.sourceSamples.rawset(sourceId, row);
+    attrition.sourceSampleOrder.append(row);
+  }
+  row.pairs++;
+  if (distance < row.minDist || (distance == row.minDist && townId < row.minTown)) {
+    row.minDist = distance;
+    row.minTown = townId;
+    row.minTile = townTile;
+  }
+  if (distance > row.maxDist || (distance == row.maxDist && townId < row.maxTown)) {
+    row.maxDist = distance;
+    row.maxTown = townId;
+    row.maxTile = townTile;
+  }
+}
+
+function OpexFreightAttritionFlush(attrition, path)
+{
+  if (attrition == null) return;
+  /* Emission seulement a la FIN de l'invocation, avant le break eventuel du
+   * cargo PO01C. Une ligne par usine echantillonnee, jamais une par paire. */
+  foreach (row in attrition.sourceSampleOrder) {
+    OpexDecide("FREIGHT_ATTRITION_SOURCE", "schema=1 path=" + path
+        + " source=" + row.source + " src_tile=" + row.tile
+        + " station=" + row.station + " monthly=" + row.monthly
+        + " pairs=" + row.pairs
+        + " min_town=" + row.minTown + " min_tile=" + row.minTile
+        + " min_dist=" + row.minDist
+        + " max_town=" + row.maxTown + " max_tile=" + row.maxTile
+        + " max_dist=" + row.maxDist);
+  }
+  local values = "";
+  foreach (v in attrition.bins) values += (values == "" ? "" : ",") + v;
+  OpexDecide("FREIGHT_ATTRITION", "schema=1 path=" + path + " scope=invocation"
+      + " cargo=" + (attrition.goodVisited > 0 ? "GOOD" : "OTHER")
+      + " visited_cargos=" + attrition.cargoVisited
+      + " visited_good=" + attrition.goodVisited
+      + " total=" + attrition.townTotal + " good=" + attrition.good
+      + " good_qpos=" + attrition.goodQpos + " good_served=" + attrition.goodServed
+      + " good_zero=" + attrition.goodZero + " good_kept=" + attrition.goodKept
+      + " good_other=" + attrition.goodOther + " truncated=" + attrition.truncated
+      + " source_samples=" + attrition.sourceSampleOrder.len()
+      + " truncated_sources=" + attrition.truncatedSources
+      + " bins=" + values);
+}
+
 /* Industries : on n'apparie que des couples producteur/accepteur du MEME cargo, ce qui garde
  * l'etage 1 lineaire en nombre d'industries plutot que quadratique sur tout le catalogue. */
 function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null, profile = null, cruiseCache = null, freightCargo = null, targetKind = null, targetId = -1)
 {
+  local attrition = DECISION_LOG ? OpexFreightAttritionBegin(targetKind, targetId) : null;
   /* C41.44 : les lignes sont immuables pendant une generation ; une ville peut donc reutiliser
    * exactement son resultat OpexOriginService, y compris null et l'etat blocked. */
   local townServiceCache = {};
@@ -1136,6 +1265,12 @@ function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null
   if (profile != null) profile.freightPreparationOps += OpexOpsMeasureEnd(preparationMark);
   foreach (cargo, sources in catalog.producers) {
     if (freightCargo != null && cargo != freightCargo) continue;
+    local attritionGood = false;
+    if (attrition != null) {
+      attrition.cargoVisited++;
+      attritionGood = AICargo.GetCargoLabel(cargo) == "GOOD";
+      if (attritionGood) attrition.goodVisited++;
+    }
     if (catalog.locoByCargoWagons != null && !(cargo in catalog.locoByCargoWagons)) continue;
     local hasIndustrySinks = (cargo in catalog.acceptors);
     local hasTownSinks = (cargo in catalog.townAcceptors);
@@ -1215,6 +1350,8 @@ function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null
             }
           }
           stats.pairsTotal++;
+          local attritionTrack = attrition != null
+              ? OpexFreightAttritionPair(attrition, attritionGood, monthly) : false;
           local townServiceMark = (profile != null && C41_RAIL_FREIGHT_TOWN_GUARDS_PROFILE) ? OpexOpsMeasureBegin() : null;
           local st = null;
           if (townServiceCache != null && town.id in townServiceCache) st = townServiceCache[town.id];
@@ -1224,6 +1361,13 @@ function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null
           }
           if (townServiceMark != null) { profile.freightTownServiceOps += OpexOpsMeasureEnd(townServiceMark); profile.freightTownServiceCalls++; }
           if (ss != null || st != null) {
+            if (attritionTrack && monthly > 0) {
+              local sourceDistance = OpexFreightAttritionTown(attrition, cargo, ss, st,
+                                                               source.tile, town.tile);
+              if (sourceDistance >= 0)
+                OpexFreightAttritionSource(attrition, source.id, source.tile, ss,
+                                           monthly, town.id, town.tile, sourceDistance);
+            }
             stats.pairsOriginServed++;
             if (townGuardMark != null) { profile.freightTownGuardsOps += OpexOpsMeasureEnd(townGuardMark); profile.freightTownGuardsCalls++; }
             continue;
@@ -1245,15 +1389,17 @@ function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null
             profile.freightTownCandidateCalls++;
           }
           if (candidate != null) {
+            if (attritionTrack) attrition.goodKept++;
             candidate.dstTown <- town.id;
             out.append(candidate);
-          }
+          } else if (attritionTrack) attrition.goodOther++;
         }
         if (profile != null) profile.freightTownOps += OpexOpsMeasureEnd(townMark);
 
       }
     }
   }
+  if (attrition != null) OpexFreightAttritionFlush(attrition, "legacy");
 }
 
 /* Construit et classe tous les candidats. Rend la liste triee par rapport decroissant.

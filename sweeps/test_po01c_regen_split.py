@@ -427,7 +427,9 @@ class PO01CContracts(unittest.TestCase):
             'builder_water.nut': '36c0c646c3a92201bbcb4afedc7b324fa19931f8665720bc5ca99f8d76098bb5',
             'air_planning.nut': 'd97dd1d56b049c8ea98c85a1202239da3d30193028e8526ba44240181460a5c2',
             'air_sites.nut': '1ef05fc3b922e34d5ed800a52d9b5816e2d958492e434075bd0fe1e4e5a546f7',
-            'candidates.nut': '8ab9ef4b42b0b9ddd00ae47ee6333bded0428341ddcd90b11612f86be315d5e0',
+            # FREIGHT_ATTRITION : sonde passive ajoutee dans la source synchrone;
+            # la copie PO01C demeure exclusivement issue de po01c_generate.py.
+            'candidates.nut': '96cb751eae8e9becb740a9c0e1929d13fb3b7fbd05cd1d72c18ec5f9e094245b',
             'catalog.nut': '8e228cf9a0e4ec83c50bcf3e0aa405814e82ac95c9191494fd4d9e357edfc348',
             'main.nut': 'b716838631daba2621fd9b7d992b72accd042c0ba0a2c4d8d89527709358ad68',
             'probes.nut': '005a79a7647c1ddd98754b3854497f5328c6eb4bea62ae3a9192e0a03dfab84e',

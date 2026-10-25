@@ -156,6 +156,7 @@ function OpexPO01CPaxCandidates(catalog, lines, out, stats, abandonedPairs = nul
 function OpexPO01CFreightCandidates(catalog, lines, out, stats, abandonedPairs = null, profile = null, cruiseCache = null, freightCargo = null, targetKind = null, targetId = -1)
 {
   if (DECISION_LOG) OpexPO01CWhere("OpexPO01CFreightCandidates", "before_first_yield", -1);
+  local attrition = DECISION_LOG ? OpexFreightAttritionBegin(targetKind, targetId) : null;
   /* C41.44 : les lignes sont immuables pendant une generation ; une ville peut donc reutiliser
    * exactement son resultat OpexOriginService, y compris null et l'etat blocked. */
   local townServiceCache = {};
@@ -174,6 +175,12 @@ function OpexPO01CFreightCandidates(catalog, lines, out, stats, abandonedPairs =
     yield null; // PO01C_CHECKPOINT
     if (DECISION_LOG) OpexPO01CWhere("OpexPO01CFreightCandidates", "rail_freight:cargo", cargo);
     if (freightCargo != null && cargo != freightCargo) continue;
+    local attritionGood = false;
+    if (attrition != null) {
+      attrition.cargoVisited++;
+      attritionGood = AICargo.GetCargoLabel(cargo) == "GOOD";
+      if (attritionGood) attrition.goodVisited++;
+    }
     if (catalog.locoByCargoWagons != null && !(cargo in catalog.locoByCargoWagons)) continue;
     local hasIndustrySinks = (cargo in catalog.acceptors);
     local hasTownSinks = (cargo in catalog.townAcceptors);
@@ -261,6 +268,8 @@ function OpexPO01CFreightCandidates(catalog, lines, out, stats, abandonedPairs =
             }
           }
           stats.pairsTotal++;
+          local attritionTrack = attrition != null
+              ? OpexFreightAttritionPair(attrition, attritionGood, monthly) : false;
           local townServiceMark = (profile != null && C41_RAIL_FREIGHT_TOWN_GUARDS_PROFILE) ? OpexOpsMeasureBegin() : null;
           local st = null;
           if (townServiceCache != null && town.id in townServiceCache) st = townServiceCache[town.id];
@@ -270,6 +279,13 @@ function OpexPO01CFreightCandidates(catalog, lines, out, stats, abandonedPairs =
           }
           if (townServiceMark != null) { profile.freightTownServiceOps += OpexOpsMeasureEnd(townServiceMark); profile.freightTownServiceCalls++; }
           if (ss != null || st != null) {
+            if (attritionTrack && monthly > 0) {
+              local sourceDistance = OpexFreightAttritionTown(attrition, cargo, ss, st,
+                                                               source.tile, town.tile);
+              if (sourceDistance >= 0)
+                OpexFreightAttritionSource(attrition, source.id, source.tile, ss,
+                                           monthly, town.id, town.tile, sourceDistance);
+            }
             stats.pairsOriginServed++;
             if (townGuardMark != null) { profile.freightTownGuardsOps += OpexOpsMeasureEnd(townGuardMark); profile.freightTownGuardsCalls++; }
             continue;
@@ -292,15 +308,17 @@ function OpexPO01CFreightCandidates(catalog, lines, out, stats, abandonedPairs =
             profile.freightTownCandidateCalls++;
           }
           if (candidate != null) {
+            if (attritionTrack) attrition.goodKept++;
             candidate.dstTown <- town.id;
             out.append(candidate);
-          }
+          } else if (attritionTrack) attrition.goodOther++;
         }
         if (profile != null) profile.freightTownOps += OpexOpsMeasureEnd(townMark);
 
       }
     }
   }
+  if (attrition != null) OpexFreightAttritionFlush(attrition, "po01c");
   if (DECISION_LOG) OpexPO01CWhere("OpexPO01CFreightCandidates", "after_last_yield", PO01C_WHERE.idx);
 }
 

@@ -1,0 +1,2 @@
+[engine] OPEX 1973-4-9 FREIGHT_ATTRITION schema=1 path=po01c scope=invocation cargo=OTHER visited_cargos=1 visited_good=0 total=9 good=0 good_qpos=0 good_served=0 good_zero=0 good_kept=0 good_other=0 truncated=0 bins=0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+[engine] OPEX 1973-4-10 FREIGHT_ATTRITION schema=1 path=po01c scope=invocation cargo=GOOD visited_cargos=1 visited_good=1 total=9 good=5 good_qpos=4 good_served=2 good_zero=1 good_kept=1 good_other=1 truncated=0 bins=1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0

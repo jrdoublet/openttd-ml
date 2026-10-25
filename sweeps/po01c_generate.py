@@ -164,6 +164,14 @@ def generated():
                                           + old))
         else:
             code = code.replace(name, 'OpexPO01C' + name[4:], 1)
+            if name == 'OpexFreightCandidates':
+                # The call is made after ALL pairs of one visited cargo and before
+                # the parent PO01C early-breaks on the first producing cargo.
+                # The synchronous source stays the single authority for counters.
+                old = 'OpexFreightAttritionFlush(attrition, "legacy")'
+                if code.count(old) != 1:
+                    raise ValueError('freight attrition flush absent from source')
+                code = code.replace(old, 'OpexFreightAttritionFlush(attrition, "po01c")')
         if name == 'OpexWaterPlans':
             code = code.replace('return null;', 'return;').replace('return best;', 'return;')
         code = re.sub(r'((?:for|foreach|while)\s*\([^\n]*\)\s*\{)',
