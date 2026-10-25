@@ -149,6 +149,16 @@ function OpexC121CatalogChoice(catalog, plan, lines)
         || (V93_AIR_DEMAND_PRODUCTION && entry.monthlyPax != plan.monthlyPax)
         || entry.airportPrice != plan.airport.price
         || entry.airportMaintenance != plan.airport.maintenance) reason = "input";
+    /* Un cache C121 peut survivre 365 jours et contient aussi l'economie
+     * calculee avec le devis V126. Relire les seuls sites neufs (devis deja
+     * memoise par site/jour) ; ne recalculer les moteurs que si le devis
+     * a reellement change. Sans V126, conserver le hit historique intact. */
+    else if (AIR_SITE_COST_QUOTE && entry.choice != null &&
+        (entry.engineStatic == null || !("v126Quoted" in entry.engineStatic)
+          || (!plan.reuseA && OpexAirSiteLevelQuote(plan.siteA, plan.airport)
+              != entry.engineStatic.v126LevelA)
+          || (!plan.reuseB && OpexAirSiteLevelQuote(plan.siteB, plan.airport)
+              != entry.engineStatic.v126LevelB))) reason = "site_cost";
     else {
       if (CATALOG_COST_ACTIVE != null) CATALOG_COST_ACTIVE.c121CacheHits++;
       OpexC121CatalogClearPlanSnapshot(plan);
@@ -181,7 +191,8 @@ function OpexC121CatalogChoice(catalog, plan, lines)
   /* Les revisions locales suffisent pour ville/station. Pour un changement
    * d'entrees ou l'expiration, ne pas laisser le cache enfant annuler le miss.
    * Le flag reste local au calcul, jamais dans le snapshot publie. */
-  plan.c121CatalogRefreshEndpoints <- reason == "input" || reason == "age";
+  plan.c121CatalogRefreshEndpoints <- reason == "input" || reason == "age"
+      || reason == "site_cost";
   if (plan.c121CatalogRefreshEndpoints) OpexC121InvalidateEndpointGeometry();
   local choice = null;
   try {
@@ -312,14 +323,28 @@ function OpexC121MeasureBuiltEconomics(catalog, plan, result)
   /* Le shadow est descriptif : scanner toute la flotte optimale ne change aucune
    * decision et peut suspendre le script. Garder ce cout uniquement pour le futur
    * chemin causal C121 ; le shadow mesure la flotte effectivement construite. */
+  /* La profondeur N+1/N+2 passe DEJA dans le scan de cible C121 : les
+   * capturer evite une seconde evaluation couteuse / un nouveau yield.
+   * OFF reste null, sans allocation ni scan supplementaire. */
+  local secondCapture = (AIR_P0_MARGIN_PROBE || AIR_P0_SECOND_STEP_MARGINAL)
+      ? { have = actualN + 1, values = {} } : null;
   local target = C121_AIR_ECONOMICS
-      ? OpexC121EngineEconomics(catalog, plan, plan.plane, 0)
+      ? OpexC121EngineEconomics(catalog, plan, plan.plane, 0, false, null, null, null, secondCapture)
       : null;
   local actual = OpexC121AirEconomics(catalog, plan, plan.plane, paxCapacity, mailCapacity, actualN);
   local next = null;
   if (C121_AIR_ECONOMICS && target != null && actual != null && actualN < target.planes) {
     next = OpexC121AirEconomics(
         catalog, plan, plan.plane, paxCapacity, mailCapacity, actualN + 1);
+  }
+  local secondBefore = null;
+  local secondAfter = null;
+  if (secondCapture != null && target != null && next != null
+      && actualN + 1 < target.planes
+      && ((actualN + 1) in secondCapture.values)
+      && ((actualN + 2) in secondCapture.values)) {
+    secondBefore = secondCapture.values[actualN + 1];
+    secondAfter = secondCapture.values[actualN + 2];
   }
   local engineReplay = OpexC121ReplayEngineChoice(catalog, plan, result, newlyObserved);
   local tick1 = AIController.GetTick();
@@ -332,6 +357,12 @@ function OpexC121MeasureBuiltEconomics(catalog, plan, result)
       ? next.profitAnnual - actual.profitAnnual : 0;
   result.c121MarginalRevenue <- (next != null && actual != null)
       ? next.revenueAnnual - actual.revenueAnnual : 0;
+  if (secondBefore != null && secondAfter != null) {
+    /* Scalaires uniquement : pas de tables/floats imbriques dans Save(). */
+    result.c121SecondStepHave <- actualN + 1;
+    result.c121SecondStepProfit <- secondAfter.profitAnnual - secondBefore.profitAnnual;
+    result.c121SecondStepRevenue <- secondAfter.revenueAnnual - secondBefore.revenueAnnual;
+  }
   result.c121EngineReplay <- engineReplay;
   result.c121EvalTicks <- tick1 - tick0;
   result.c121EvalOps <- OpexAirCalcDeltaOps(tick0, ops0);
@@ -363,6 +394,12 @@ function OpexC121AttachLineShadow(line, lineId, plan, result)
      * disponible dans c121Marginal*, mais la premiere observation complete le
      * remplace ; seules les observations reelles suivantes sont moyennees. */
     line.c121MarginalSamples <- 0;
+    if ((AIR_P0_MARGIN_PROBE || AIR_P0_SECOND_STEP_MARGINAL)
+        && ("c121SecondStepHave" in result)) {
+      line.c121SecondStepHave <- result.c121SecondStepHave;
+      line.c121SecondStepProfit <- result.c121SecondStepProfit;
+      line.c121SecondStepRevenue <- result.c121SecondStepRevenue;
+    }
     if (actual != null) {
       line.c121RawRevenueAnnual <- ("rawRevenueAnnual" in actual) ? actual.rawRevenueAnnual : actual.revenueAnnual;
       local realization = ("realizationFactor" in actual) ? actual.realizationFactor : 1.0;

@@ -113,12 +113,19 @@ function OpexAirSiteLevelQuote(site, airport)
 {
   /* Cle par site et non par paire : un meme emplacement sert plusieurs paires.
    * Valeur rendue : 0 emprise plate, > 0 devis, -1 nivellement de test impossible.
-   * L'entree est rejouee pendant 365 jours puis recalculee sur le terrain courant. */
+   * Une valeur de la veille peut etre fausse apres terrassement/construction
+   * par un concurrent : reutiliser seulement pendant la journee courante. */
   local key = site.anchor + "|" + airport.type;
   local today = AIDate.GetCurrentDate();
+  /* Repartir d'une table vide chaque jour : ne pas accumuler pendant 10 ans
+   * les centaines d'ancres anciennes des differents scans. */
+  if (AIR_SITE_COST_QUOTES_DATE != today) {
+    AIR_SITE_COST_QUOTES = {};
+    AIR_SITE_COST_QUOTES_DATE = today;
+  }
   if (key in AIR_SITE_COST_QUOTES) {
     local entry = AIR_SITE_COST_QUOTES[key];
-    if (today - entry.date < 365) return entry.level;
+    if (entry.date == today) return entry.level;
   }
   local level = OpexAirV95LevelCost(site, airport);
   AIR_SITE_COST_QUOTES[key] <- { level = level, date = today };
@@ -226,7 +233,8 @@ function OpexC121PrepareEngineStatic(catalog, plan)
    * reglage ou la sonde de marge est actif ; sinon aucun appel n'est ajoute et le
    * capital garde l'expression ci-dessus (prix catalogue seul). Une extremite
    * reutilisee n'est pas devisee : champ a -2, 0 livre compte. Un devis a -1
-   * (nivellement de test impossible) compte pour 0 livre et dans quote_fail. */
+   * (nivellement de test impossible) compte pour 0 livre dans le cout connu,
+   * mais interdit de remplacer la marge historique par la marge residuelle. */
   if (C121_AIR_ECONOMICS && (AIR_SITE_COST_QUOTE || PROBE_AIR_FINANCE_MARGIN)) {
     local levelA = reuseA ? 0 : OpexAirSiteLevelQuote(plan.siteA, plan.airport);
     local levelB = reuseB ? 0 : OpexAirSiteLevelQuote(plan.siteB, plan.airport);
@@ -243,7 +251,12 @@ function OpexC121PrepareEngineStatic(catalog, plan)
     state.v126SiteCost <- siteCost;
     state.v126Extra <- extra;
     state.v126Quoted <- true;
-    if (AIR_SITE_COST_QUOTE) state.airportCapital = newAirportCount * plan.airport.price + extra;
+    if (AIR_SITE_COST_QUOTE) {
+      state.airportCapital = newAirportCount * plan.airport.price + extra;
+      /* Une depense ajoutee au capital doit aussi suivre le meme taux
+       * d'amortissement que l'infrastructure historique (0 au defaut). */
+      state.airportAmortAnnual += (extra * INFRA_AMORT_PCT / 100) / 30;
+    }
   }
   plan.c121EngineStatic <- state;
   return state;
@@ -1071,7 +1084,8 @@ function OpexC121OpeningEconomics(best, scoreBest, decisionKDec)
  * construction/refit PASS, le couple PASS/MAIL exact observe remplace ce cold
  * start. Aucun catalogue OpenGFX externe ni pourcentage MAIL n'intervient. */
 function OpexC121EngineEconomics(catalog, plan, plane, fixedPlanes = 0, decisionOnly = false,
-                                 decisionScoreFloor = null, openingOut = null, engineContext = null)
+                                 decisionScoreFloor = null, openingOut = null, engineContext = null,
+                                 marginalOut = null)
 {
   if (openingOut != null) openingOut.initial = null;
   if (plane == null) return null;
@@ -1087,7 +1101,8 @@ function OpexC121EngineEconomics(catalog, plan, plane, fixedPlanes = 0, decision
     }
   }
   local economics = OpexC121AirEconomics(
-      catalog, plan, plane, paxCapacity, mailCapacity, fixedPlanes, decisionOnly, decisionScoreFloor, openingOut, engineContext);
+      catalog, plan, plane, paxCapacity, mailCapacity, fixedPlanes, decisionOnly, decisionScoreFloor,
+      openingOut, engineContext, marginalOut);
   if (economics != null && decisionOnly && C121_AIR_ENGINE_REALIZATION) {
     local factor = OpexC121EngineDecisionRealizationFactor(plan);
     if (factor != 1.0) {

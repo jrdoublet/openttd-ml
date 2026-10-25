@@ -365,7 +365,7 @@ AIR_SITE_QUOTE_KEEP_LEGACY_MARGIN <- false;
 AIR_SITE_STALE_SHADOW <- false;
 /* B9 : 450..2250 GBP/stop observes, devis prudent au maximum constate.
  * Candidate V126 OFF par defaut ; ne vaut pas garantie sur de nouveaux sites. */
-V126_JOINED_STOP_COST <- 300;
+V126_JOINED_STOP_COST <- 2250;
 AIR_SITE_COST_QUOTES <- {};
 AIR_SITE_COST_QUOTES_DATE <- -1;
 C96_AIR_SITE_MAX_VALID <- 4;

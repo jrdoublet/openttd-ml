@@ -181,6 +181,20 @@ function OpexProjectFromFleet(entry)
     local perPlaneProfit = line.c121MarginalProfit;
     local perPlaneRevenue = line.c121MarginalRevenue;
     local samples = ("c121MarginalSamples" in line) ? line.c121MarginalSamples : 0;
+    /* P0 : une ligne construite a N=1 ne doit pas employer son ancien
+     * P(2)-P(1) pour elire un renfort N=2->3 avant toute observation.
+     * Sans devis exact conserve, garder le temoin historique. */
+    local secondStepAvailable = (AIR_P0_MARGIN_PROBE || AIR_P0_SECOND_STEP_MARGINAL)
+        && !C121_AIR_VISIBLE_COMPETITION && samples <= 0
+        && ("c121SecondStepHave" in line) && line.c121SecondStepHave == have
+        && ("c121SecondStepProfit" in line) && ("c121SecondStepRevenue" in line);
+    /* Le mode diagnostic P0 capture et examine EXACTEMENT les memes scalaires
+     * des deux cotes avant l'eventuel changement du score : seuls les achats
+     * 2->3 effectivement eligibles doivent creer une divergence de decision. */
+    if (secondStepAvailable && AIR_P0_SECOND_STEP_MARGINAL) {
+      perPlaneProfit = line.c121SecondStepProfit;
+      perPlaneRevenue = line.c121SecondStepRevenue;
+    }
     /* Une moyenne historique positive ne peut pas financer un nouveau palier
      * si le dernier renfort mesure a detruit du profit. Le cold-start (0 sample)
      * conserve exactement le comportement C121 existant. */
@@ -308,13 +322,15 @@ function OpexC111ProjectFromAir(catalog, plan, planningOps)
  * branche morte airMarginPadding (toujours false) dupliquee en cinq endroits. */
 function OpexAirRequiredMargin(newAirports, plan = null)
 {
-  /* V126 : avec le devis actif, la marge suit le risque residuel (plancher 2000
-   * plus un pourcentage du cout du site) a condition que le plan porte son devis
-   * C121 ; sinon, ou au defaut, la marge historique par aeroport neuf. */
-  if (AIR_SITE_COST_QUOTE && C121_AIR_ECONOMICS && plan != null
+  /* V126 : un devis impossible (-1) ne vaut pas un cout de terrassement nul.
+   * Ne reduire la marge historique que si tous les sites neufs sont devises.
+   * Le pourcentage residuel reste experimental et a 0 par defaut. */
+  if (AIR_SITE_COST_QUOTE && !AIR_SITE_QUOTE_KEEP_LEGACY_MARGIN
+      && C121_AIR_ECONOMICS && plan != null
       && ("c121EngineStatic" in plan) && plan.c121EngineStatic != null) {
     local st = plan.c121EngineStatic;
-    if (("v126Quoted" in st) && st.v126Quoted == true) {
+    if (("v126Quoted" in st) && st.v126Quoted == true
+        && ("v126QuoteFail" in st) && st.v126QuoteFail == 0) {
       return 2000 + (st.v126SiteCost * AIR_SITE_COST_MARGIN_PCT) / 100;
     }
   }

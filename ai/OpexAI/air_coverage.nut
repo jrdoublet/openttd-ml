@@ -89,6 +89,14 @@ function OpexAir0310SiteValidityOk(state, key, site, airport, plane, reuse, stat
  * forcer la recherche d'une alternative dans cette meme ville et pour ce meme type d'aeroport. */
 function OpexAirInvalidateCachedSite(site, airport)
 {
+  /* Le terrain vient de contredire le site retenu : un devis V126 calcule
+   * plus tot dans la meme journee n'est plus une estimation fiable. Cette
+   * invalidation est independante de l'activation du cache de sites. */
+  if ((AIR_SITE_COST_QUOTE || PROBE_AIR_FINANCE_MARGIN)
+      && site != null && airport != null) {
+    local quoteKey = site.anchor + "|" + airport.type;
+    if (quoteKey in AIR_SITE_COST_QUOTES) delete AIR_SITE_COST_QUOTES[quoteKey];
+  }
   if (!AIR_SITE_CACHE_ENABLED || site == null) return;
   local key = site.town.id + "_" + airport.type;
   if (key in AIR_SITE_CACHE && AIR_SITE_CACHE[key] == site.anchor) {

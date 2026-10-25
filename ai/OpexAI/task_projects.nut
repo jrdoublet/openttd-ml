@@ -287,6 +287,50 @@ function OpexAI::_tryBuildFleetProject(year, project, rank, passDiscards)
     local missed = plannedFull - plannedAdded;
     if (missed > 0) OpexC63RecordSpend("fleet", missed, 0, false);
   }
+  if (AIR_P0_MARGIN_PROBE) {
+    local date = AIDate.GetCurrentDate();
+    local target = ("targetAirPlanes" in line) ? line.targetAirPlanes : -1;
+    local marginalSamples = ("c121MarginalSamples" in line) ? line.c121MarginalSamples : 0;
+    local stA = AIAirport.IsAirportTile(line.stationA) ? AIStation.GetStationID(line.stationA) : -1;
+    local stB = AIAirport.IsAirportTile(line.stationB) ? AIStation.GetStationID(line.stationB) : -1;
+    local waitingA = AIStation.IsValidStation(stA) ? AIStation.GetCargoWaiting(stA, line.cargo) : -1;
+    local waitingB = AIStation.IsValidStation(stB) ? AIStation.GetCargoWaiting(stB, line.cargo) : -1;
+    local nextAir = null;
+    local nextAirRank = -1;
+    if (this._projects != null && ("best" in this._projects) && this._projects.best != null) {
+      for (local j = i + 1; j < this._projects.best.len(); j++) {
+        if (this._projects.best[j] != null && this._projects.best[j].mode == "air") {
+          nextAir = this._projects.best[j];
+          nextAirRank = j;
+          break;
+        }
+      }
+    }
+    AILog.Info("AIR_P0_BUY date=" + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date)
+        + "-" + AIDate.GetDayOfMonth(date) + " line=" + line.lineId
+        + " station_a=" + line.stationA + " station_b=" + line.stationB
+        + " before=" + c121HaveBefore + " after=" + line.vehCount
+        + " added=" + added + " replaced=" + replaced + " target=" + target
+        + " regime=" + (target > c121HaveBefore ? "c121_below" : "legacy_at_or_above")
+        + " cost_cash=" + (money - AICompany.GetBankBalance(AICompany.COMPANY_SELF))
+        + " cost_quote=" + project.capital + " fleet_rank=" + i
+        + " waiting_a=" + waitingA + " waiting_b=" + waitingB
+        + " plane_capacity=" + (("planeCapacity" in line) ? line.planeCapacity : -1)
+        + " pred_profit=" + project.profitAnnual + " pred_revenue=" + project.revenueAnnual
+        + " fund_score=" + (("fundScore" in project) ? project.fundScore : -1)
+        + " budget_score=" + project.budgetScore + " opcode_score=" + project.opcodeScore
+        + " roi=" + project.roi
+        + " observed_line_profit=" + (("lastProfit" in line) ? line.lastProfit : -1)
+        + " observed_line_revenue=" + (("lastRevenue" in line) ? line.lastRevenue : -1)
+        + " marginal_pred_cached=" + (("c121MarginalProfit" in line) ? line.c121MarginalProfit : -1)
+        + " marginal_last_observed=" + (("c121LastMarginalProfit" in line) ? line.c121LastMarginalProfit : -1)
+        + " marginal_samples=" + marginalSamples
+        + " next_air_rank=" + nextAirRank
+        + " next_air_key=" + (nextAir != null ? OpexProjectKeyFor(nextAir) : "none")
+        + " next_air_capital=" + (nextAir != null ? OpexProjectFinanceCapital(nextAir) : -1)
+        + " next_air_profit=" + (nextAir != null ? nextAir.profitAnnual : -1)
+        + " next_air_score=" + (nextAir != null && ("fundScore" in nextAir) ? nextAir.fundScore : -1));
+  }
 
   line.lastAirFleetYear <- year;
   line.lastAirFleetDate <- AIDate.GetCurrentDate();
@@ -1178,6 +1222,20 @@ function OpexAI::_c39LogProjectBuilt(key, mode, rank, railSearchFlag)
  * boucle appelante (break/continue non deplaces). Appele une fois par construction. */
 function OpexAI::_recordPortfolioProjectBuilt(project, rank, c75BuiltKeys, c69BuiltProjects)
 {
+  if (AIR_P0_MARGIN_PROBE && project != null && project.mode == "air") {
+    local d = AIDate.GetCurrentDate();
+    local p = project.payload;
+    local newAirports = (p != null && ("reuseA" in p) && p.reuseA ? 0 : 1)
+        + (p != null && ("reuseB" in p) && p.reuseB ? 0 : 1);
+    AILog.Info("AIR_P0_ROUTE date=" + AIDate.GetYear(d) + "-" + AIDate.GetMonth(d)
+        + "-" + AIDate.GetDayOfMonth(d) + " line=" + (this._nextLineId - 1)
+        + " key=" + OpexProjectKeyFor(project) + " new_airports=" + newAirports
+        + " rank=" + rank + " cap_quote=" + project.capital
+        + " pred_profit=" + project.profitAnnual
+        + " pred_revenue=" + project.revenueAnnual
+        + " fund_score=" + (("fundScore" in project) ? project.fundScore : -1)
+        + " budget_score=" + project.budgetScore + " opcode_score=" + project.opcodeScore);
+  }
   /* Autopsie C115/C121 : tracer UNE premiere construction de nouvelle ligne AIR,
    * uniquement APRES son succes physique. Ainsi aucune allocation, boucle ou chaine de
    * diagnostic ne peut modifier la decision que ce snapshot cherche a expliquer. Les
