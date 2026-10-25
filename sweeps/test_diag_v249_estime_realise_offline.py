@@ -1,10 +1,11 @@
 """Host-only fixtures for descriptive V249 audit; no simulated causal gain."""
 
 from pathlib import Path
+import gzip
 import tempfile
 import unittest
 
-from diag_v249_estime_realise_offline import parse_log, summarize
+from diag_v249_estime_realise_offline import parse_log, reference_logs, summarize
 
 
 def event(when, tag, details, company=0):
@@ -13,6 +14,33 @@ def event(when, tag, details, company=0):
 
 
 class V249OfflineAuditTests(unittest.TestCase):
+    def test_gzip_only_and_duplicate_text_maintain_one_game(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            plain = root / "reference_seed42_r0.log"
+            compressed = root / (plain.name + ".gz")
+            content = event("1974-9-7", "V249_STATUE", "town=41 gain=40 cost=120")
+            with gzip.open(compressed, "wt", encoding="utf-8") as stream:
+                stream.write(content)
+            self.assertEqual(reference_logs(root), [compressed])
+            gzip_read = parse_log(compressed)
+            self.assertEqual(gzip_read["run"], "seed42_r0")
+            self.assertEqual(len(gzip_read["purchases"]), 1)
+            plain.write_text(content, encoding="utf-8")
+            self.assertEqual(reference_logs(root), [plain])
+            self.assertEqual(sum(len(parse_log(log)["purchases"]) for log in reference_logs(root)), 1)
+
+    def test_conflicting_gzip_copy_is_rejected_without_silent_counter_agreement(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            plain = root / "reference_seed42_r0.log"
+            compressed = root / (plain.name + ".gz")
+            plain.write_text(event("1974-9-7", "V249_STATUE", "town=41 gain=40 cost=120"), encoding="utf-8")
+            with gzip.open(compressed, "wt", encoding="utf-8") as stream:
+                stream.write(event("1974-9-7", "V249_STATUE", "town=41 gain=41 cost=120"))
+            with self.assertRaisesRegex(ValueError, "copies V249 contradictoires"):
+                reference_logs(root)
+
     def parse(self, lines):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "reference_seed42_r0.log"

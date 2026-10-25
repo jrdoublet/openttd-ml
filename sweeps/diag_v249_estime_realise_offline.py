@@ -16,6 +16,8 @@ Only OPEX company-0 entries are considered, and no input files are modified.
 import argparse
 from collections import Counter, defaultdict
 from datetime import date
+import gzip
+import hashlib
 import json
 from pathlib import Path
 import re
@@ -44,7 +46,8 @@ def integer(fields, key):
 def parse_log(path):
     """Read a log once, keeping only build, annual AIR profit and statue facts."""
     path = Path(path)
-    match = SEED.search(path.name)
+    stem = path.name[:-3] if path.name.endswith(".gz") else path.name
+    match = SEED.search(stem)
     run_id = f"seed{match[1]}_r{match[2]}" if match else path.stem
     buildings = {}
     profits = defaultdict(dict)
@@ -52,7 +55,8 @@ def parse_log(path):
     skipped = Counter()
     tags = Counter()
 
-    with path.open(encoding="utf-8", errors="replace") as stream:
+    opener = gzip.open if path.suffix == ".gz" else Path.open
+    with opener(path, "rt", encoding="utf-8", errors="replace") as stream:
         for line in stream:
             event = EVENT.search(line)
             if event is None:
@@ -176,15 +180,48 @@ def summarize(log_results):
     }
 
 
+def _event_signature(path):
+    """Compare the exact Opex company-0 V249 inputs between duplicate copies."""
+    digest = hashlib.sha256()
+    opener = gzip.open if path.suffix == ".gz" else Path.open
+    with opener(path, "rt", encoding="utf-8", errors="replace") as stream:
+        for line in stream:
+            event = EVENT.search(line)
+            if event:
+                digest.update(event.group(0).encode("utf-8"))
+                digest.update(b"\n")
+    return digest.digest()
+
+
+def reference_logs(directory):
+    """Return unique reference games; conflicting gzip/text copies are invalid."""
+    files = list(directory.glob("reference_seed*_r*.log"))
+    files += list(directory.glob("reference_seed*_r*.log.gz"))
+    chosen = {}
+    for path in sorted(files):
+        stem = path.name[:-3] if path.suffix == ".gz" else path.name
+        if SEED.search(stem) is None:
+            continue
+        if stem in chosen:
+            prior = chosen[stem]
+            if _event_signature(prior) != _event_signature(path):
+                raise ValueError(f"copies V249 contradictoires : {prior} et {path}")
+            if path.suffix == ".log":
+                chosen[stem] = path
+        else:
+            chosen[stem] = path
+    return [chosen[name] for name in sorted(chosen)]
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--log-dir", type=Path, required=True,
                         help="Directory of existing engine logs (no recursion)")
     parser.add_argument("--out", type=Path, help="Optional JSON audit output")
     args = parser.parse_args(argv)
-    logs = sorted(args.log_dir.glob("reference_seed*_r*.log"))
+    logs = reference_logs(args.log_dir)
     if not logs:
-        parser.error("no reference_seed*_r*.log found in --log-dir")
+        parser.error("no reference_seed*_r*.log or .log.gz found in --log-dir")
     details = [parse_log(path) for path in logs]
     payload = {"summary": summarize(details), "logs": details}
     if args.out:
