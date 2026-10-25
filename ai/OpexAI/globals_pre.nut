@@ -7,6 +7,8 @@ ROAD_BUILD_ENABLED <- true;
 /* V166 : interrupteurs de mode (bancs mono-mode, rail contre rail, air contre air). Un mode a faux
  * ne genere ni candidat ni balayage de catalogue et ne construit rien ; les quatre a vrai = defaut. */
 MODE_AIR <- true;
+/* AIR-PELOTON-1 : deux terminus en chargement complet, opt-in seulement. */
+AIR_PELOTON_FULL_LOAD <- false;
 MODE_RAIL <- true;
 MODE_ROAD <- true;
 MODE_WATER <- true;

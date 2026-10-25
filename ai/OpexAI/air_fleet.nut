@@ -1,5 +1,23 @@
 /* Module AIR extrait de builder_air.nut (R11) : flottes et ajout d'avions. */
-/* Ajoute un seul avion a une liaison deja mesuree. Le clonage partage les ordres et ne refait ni
+/* AIR-PELOTON-1 : appliquer les deux flags sur un NOUVEL avion, apres Clone
+ * avec share_orders=false ou CopyOrders, jamais sur des ordres partages.
+ * Si une commande de flags ou le demarrage echoue, la flotte et les ordres
+ * des avions preexistants restent intacts (la vente ne concerne que le neuf).
+ * Refuser un depot/escale/cycle different de deux gares. */
+function OpexAirPelotonEnsureFullLoadOrders(vehicle)
+{
+  if (!AIR_PELOTON_FULL_LOAD) return true;
+  if (!AIVehicle.IsValidVehicle(vehicle) || AIOrder.GetOrderCount(vehicle) != 2 ||
+      !AIOrder.IsGotoStationOrder(vehicle, 0) || !AIOrder.IsGotoStationOrder(vehicle, 1)) {
+    return false;
+  }
+  for (local pos = 0; pos < 2; pos++) {
+    if (AIOrder.GetOrderFlags(vehicle, pos) == AIOrder.OF_FULL_LOAD_ANY) continue;
+    if (!AIOrder.SetOrderFlags(vehicle, pos, AIOrder.OF_FULL_LOAD_ANY)) return false;
+  }
+  return true;
+}
+/* Ajoute un seul avion a une liaison deja mesuree. Hors option, le clonage partage les ordres et ne refait ni
  * recherche de sites ni construction d'infrastructure : c'est le chemin marginal au meilleur
  * profit/opcode. Toute decision de l'appeler reste dans main.nut, apres une annee de donnees. */
 /* V252 Mode 1 : determine le meilleur modele d'avion actuellement constructible
@@ -113,13 +131,15 @@ function OpexAirAddPlane(line, catalog = null, lines = null)
   /* AIVehicle.IsValidVehicle attend un VehicleID entier, jamais null. */
   local extra = -1;
   if (targetEngine == oldEngine) {
-    extra = AIVehicle.CloneVehicle(hangar, template, true);
+    extra = AIVehicle.CloneVehicle(hangar, template, !AIR_PELOTON_FULL_LOAD);
     if (extra == null || !AIVehicle.IsValidVehicle(extra)) {
       local engine = AIVehicle.GetEngineType(template);
       local cargo = ("cargo" in line) ? line.cargo : 0;
       extra = AIVehicle.BuildVehicleWithRefit(hangar, engine, cargo);
       if (extra != null && AIVehicle.IsValidVehicle(extra)) {
-        if (!AIOrder.ShareOrders(extra, template)) {
+        local assigned = AIR_PELOTON_FULL_LOAD
+            ? AIOrder.CopyOrders(extra, template) : AIOrder.ShareOrders(extra, template);
+        if (!assigned) {
           if (AIVehicle.IsStoppedInDepot(extra)) AIVehicle.SellVehicle(extra);
           result.reason = "ORDER"; return result;
         }
@@ -129,7 +149,10 @@ function OpexAirAddPlane(line, catalog = null, lines = null)
     local cargo = ("cargo" in line) ? line.cargo : 0;
     extra = AIVehicle.BuildVehicleWithRefit(hangar, targetEngine, cargo);
     if (extra != null && AIVehicle.IsValidVehicle(extra)) {
-      if (!AIOrder.ShareOrders(extra, template) && !AIOrder.CopyOrders(extra, template)) {
+      local assigned = AIR_PELOTON_FULL_LOAD
+          ? AIOrder.CopyOrders(extra, template)
+          : (AIOrder.ShareOrders(extra, template) || AIOrder.CopyOrders(extra, template));
+      if (!assigned) {
         if (AIVehicle.IsStoppedInDepot(extra)) AIVehicle.SellVehicle(extra);
         /* L'avion a ete revendu : repli sur le clonage de l'ancien modele. */
         extra = -1;
@@ -138,13 +161,17 @@ function OpexAirAddPlane(line, catalog = null, lines = null)
     if (extra == null || !AIVehicle.IsValidVehicle(extra)) {
       targetEngine = oldEngine;
       price = AIEngine.GetPrice(oldEngine);
-      extra = AIVehicle.CloneVehicle(hangar, template, true);
+      extra = AIVehicle.CloneVehicle(hangar, template, !AIR_PELOTON_FULL_LOAD);
     }
   }
 
   if (extra == null || !AIVehicle.IsValidVehicle(extra)) {
     result.reason = "CLONE|" + AIError.GetLastError();
     return result;
+  }
+  if (AIR_PELOTON_FULL_LOAD && !OpexAirPelotonEnsureFullLoadOrders(extra)) {
+    if (AIVehicle.IsStoppedInDepot(extra)) AIVehicle.SellVehicle(extra);
+    result.reason = "ORDER"; return result;
   }
   if (!AIVehicle.StartStopVehicle(extra)) {
     if (AIVehicle.IsStoppedInDepot(extra)) AIVehicle.SellVehicle(extra);
@@ -208,8 +235,8 @@ function OpexAirRefleetCrashedPlane(line, catalog = null)
     }
   }
   if (!AIVehicle.IsValidVehicle(plane)) { result.reason = "BUILD"; return result; }
-  local flagsA = AIOrder.OF_NONE;
-  local flagsB = AIOrder.OF_NONE;
+  local flagsA = AIR_PELOTON_FULL_LOAD ? AIOrder.OF_FULL_LOAD_ANY : AIOrder.OF_NONE;
+  local flagsB = AIR_PELOTON_FULL_LOAD ? AIOrder.OF_FULL_LOAD_ANY : AIOrder.OF_NONE;
   if (!AIOrder.AppendOrder(plane, line.stationA, flagsA) ||
       !AIOrder.AppendOrder(plane, line.stationB, flagsB) || AIOrder.GetOrderCount(plane) != 2) {
     AIVehicle.SellVehicle(plane); result.reason = "ORDER"; return result;

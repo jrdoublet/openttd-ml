@@ -431,8 +431,10 @@ class PO01CContracts(unittest.TestCase):
             'catalog.nut': '8e228cf9a0e4ec83c50bcf3e0aa405814e82ac95c9191494fd4d9e357edfc348',
             'main.nut': 'b716838631daba2621fd9b7d992b72accd042c0ba0a2c4d8d89527709358ad68',
             'probes.nut': '005a79a7647c1ddd98754b3854497f5328c6eb4bea62ae3a9192e0a03dfab84e',
-            'settings.nut': '6946a9ed7d3864e22714167b4fbb4fe74d8e6b95b39c0fac0054cfde80bc214b',
-            'info.nut': '1bc76539590e9272aa59849baa54d0248a74ac5f993e0d0e77d679906c7ad2c3',
+            # AIR-PELOTON-1 (25/10) : seul l'opt-in a defaut 0 et sa
+            # lecture sont ajoutes a ces deux fichiers. Rebase explicite.
+            'settings.nut': '5698cafffe84110bee0be1b302ae82d3f154854f54eff91db2b0133acc2f4d4a',
+            'info.nut': '47195e78e2cd2fd3fa9723277a4e15500e6470afa23ae6df659dd2bd6b7f68a4',
         }
         for name, digest in expected.items():
             with self.subTest(name=name):

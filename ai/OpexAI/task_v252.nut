@@ -131,10 +131,19 @@ function OpexAI::_dispatchV252AirEngineRefresh(task, year)
     return true;
   }
 
-  if (!AIOrder.ShareOrders(newPlane, bestVeh) && !AIOrder.CopyOrders(newPlane, bestVeh)) {
+  local assigned = AIR_PELOTON_FULL_LOAD
+      ? AIOrder.CopyOrders(newPlane, bestVeh)
+      : (AIOrder.ShareOrders(newPlane, bestVeh) || AIOrder.CopyOrders(newPlane, bestVeh));
+  if (!assigned) {
     if (AIVehicle.IsStoppedInDepot(newPlane)) AIVehicle.SellVehicle(newPlane);
     if (airF1Event != null) OpexAirF1After(airF1Event, "order_failed");
     if (DECISION_LOG) OpexDecide("V252_SKIP", "reason=order_failed line=" + bestLine.lineId);
+    return true;
+  }
+  if (AIR_PELOTON_FULL_LOAD && !OpexAirPelotonEnsureFullLoadOrders(newPlane)) {
+    if (AIVehicle.IsStoppedInDepot(newPlane)) AIVehicle.SellVehicle(newPlane);
+    if (airF1Event != null) OpexAirF1After(airF1Event, "full_load_order_failed");
+    if (DECISION_LOG) OpexDecide("V252_SKIP", "reason=full_load_order_failed line=" + bestLine.lineId);
     return true;
   }
 

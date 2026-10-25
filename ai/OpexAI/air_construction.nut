@@ -380,9 +380,9 @@ function OpexBuildAirRoute(catalog, budget, plan)
   }
   if (spBuild != null) OpexSpanEnd(spBuild);
 
-  local airFlagsA = AIOrder.OF_NONE;
+  local airFlagsA = AIR_PELOTON_FULL_LOAD ? AIOrder.OF_FULL_LOAD_ANY : AIOrder.OF_NONE;
   spBuild = PROBE_SPAN_TRACE ? OpexSpanBegin("build.air.orders") : null;
-  local airFlagsB = AIOrder.OF_NONE;
+  local airFlagsB = AIR_PELOTON_FULL_LOAD ? AIOrder.OF_FULL_LOAD_ANY : AIOrder.OF_NONE;
   local okOrderA = AIOrder.AppendOrder(plane, airportA, airFlagsA);
   local errorA = okOrderA ? 0 : AIError.GetLastError();
   local okOrderB = AIOrder.AppendOrder(plane, airportB, airFlagsB);
@@ -410,12 +410,15 @@ function OpexBuildAirRoute(catalog, budget, plan)
   for (local i = 1; i < wanted; i++) {
     local fromB = (i % 2 == 1) && hangarB != null && AIMap.IsValidTile(hangarB)
         && AIAirport.IsHangarTile(hangarB);
-    local extra = AIVehicle.CloneVehicle(fromB ? hangarB : hangar, plane, true);
+    local extra = AIVehicle.CloneVehicle(fromB ? hangarB : hangar, plane, !AIR_PELOTON_FULL_LOAD);
     if (fromB && AIVehicle.IsValidVehicle(extra)) AIOrder.SkipToOrder(extra, 1);
     if (!AIVehicle.IsValidVehicle(extra)) {
       local engine = AIVehicle.GetEngineType(plane);
       extra = AIVehicle.BuildVehicleWithRefit(hangar, engine, catalog.paxCargo);
-      if (AIVehicle.IsValidVehicle(extra) && !AIOrder.ShareOrders(extra, plane)) {
+      local assigned = AIVehicle.IsValidVehicle(extra) &&
+          (AIR_PELOTON_FULL_LOAD ? AIOrder.CopyOrders(extra, plane)
+                                 : AIOrder.ShareOrders(extra, plane));
+      if (AIVehicle.IsValidVehicle(extra) && !assigned) {
         if (spBuild != null) OpexSpanEnd(spBuild);
         result.error = AIError.GetLastError();
         result.errorText = AIError.GetLastErrorString();
@@ -431,6 +434,19 @@ function OpexBuildAirRoute(catalog, budget, plan)
     }
     if (!AIVehicle.IsValidVehicle(extra)) {
       break;
+    }
+    if (AIR_PELOTON_FULL_LOAD && !OpexAirPelotonEnsureFullLoadOrders(extra)) {
+      if (spBuild != null) OpexSpanEnd(spBuild);
+      result.error = AIError.GetLastError();
+      result.errorText = AIError.GetLastErrorString();
+      built.append(extra);
+      result.opcodes += budget.end("build_aircraft");
+      result.recoveryTraceId = OpexAirRollback(reuseA ? null : airportA, reuseB ? null : airportB, built,
+        OpexAirPairKey(plan.siteA, plan.siteB));
+      result.actualCost = costs != null ? costs.GetCosts() : 0;
+      if (brk != null) OpexAirCostBreakdownMark(costs, brk, "planes");
+      result.reason = "ORDFAIL";
+      return result;
     }
     built.append(extra);
   }
