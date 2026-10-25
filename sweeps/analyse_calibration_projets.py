@@ -27,7 +27,10 @@ Sorties (JSON + resume texte) :
    (`--train` / `--test` : apprendre en solo, tester en duel). Les plis couvrent toutes les
    graines de test ; les memes graines sont exclues de l'apprentissage, tous bras et repetitions ;
 4. part de la variance residuelle entre parties (ce qu'un apprentissage en cours de partie peut
-   corriger) et dans une partie (ce qu'il ne peut pas corriger).
+   corriger) et dans une partie (ce qu'il ne peut pas corriger) ;
+5. diagnostic de support des cellules (lignes-annees valides, graines distinctes, part de la
+   graine dominante), separement pour apprentissage et test de chaque pli, sans influencer
+   les facteurs ni le seuil MIN_CELL.
 
 Usage :
   python3 sweeps/analyse_calibration_projets.py --campaign solo=results/calib_solo_40x10_pc_engine \
@@ -218,6 +221,31 @@ def factor_tables(games):
     return mf, cf
 
 
+def cell_seed_support(games):
+    """Support descriptif des facteurs de revenu, sans changer leur apprentissage.
+
+    Les ratios admissibles sont exactement ceux de factor_tables ; plusieurs bras,
+    repetitions ou annees de la meme graine ne forment pas des graines independantes.
+    Une cellule presente mais sans ratio valide a une part dominante indeterminee.
+    """
+    by_cell = defaultdict(lambda: defaultdict(int))
+    for (_, seed), game in games.items():
+        for row in game["rows"]:
+            counts = by_cell[row["cell"]]
+            x = ratio(row["real_rev"], row["pred_rev"], row["scale"])
+            if x is not None:
+                counts[seed] += 1
+    result = {}
+    for cell, counts in sorted(by_cell.items()):
+        total = sum(counts.values())
+        result[cell] = {
+            "n_valid_rows": total,
+            "n_distinct_seeds": len(counts),
+            "max_seed_share": round(max(counts.values()) / total, 4) if total else None,
+        }
+    return result
+
+
 def predict_error(games, mf, cf):
     """Mediane de |log(reel/predit corrige)| sans correction, facteur mode, table par cellule."""
     errs = {"raw": [], "mode": [], "cell": []}
@@ -261,6 +289,7 @@ def cross_validate(train, test):
         mf, cf = factor_tables(tr)
         e = predict_error(te, mf, cf)
         e["fold"] = k
+        e["cell_seed_support"] = {"train": cell_seed_support(tr), "test": cell_seed_support(te)}
         res.append(e)
     return res
 
@@ -287,6 +316,7 @@ def analyse(campaigns, train=None, test=None):
             "revenue_cells": cells_table(games, "rev"),
             "running_cells": cells_table(games, "run"),
             "profit_cells": cells_table(games, "prof"),
+            "cell_seed_support": cell_seed_support(games),
             "cv_same_campaign": cross_validate(games, games),
         }
     if train and test and train in campaigns and test in campaigns:
@@ -295,6 +325,13 @@ def analyse(campaigns, train=None, test=None):
 
 
 def print_report(out):
+    def show_support(label, cells):
+        print("  %s : n_valid_rows / n_distinct_seeds / max_seed_share" % label)
+        for cell, stats in cells.items():
+            print("    %s : %d / %d / %s" % (
+                cell, stats["n_valid_rows"], stats["n_distinct_seeds"],
+                stats["max_seed_share"]))
+
     for name, c in out["campaigns"].items():
         print("== %s : %d parties, %d lignes-annees (age >= 2), %d non appariees"
               % (name, c["games"], c["line_years"], c["unmatched"]))
@@ -303,14 +340,19 @@ def print_report(out):
         for k, v in c["revenue_cells"].items():
             if v.get("n", 0) >= MIN_CELL:
                 print("    %-36s n=%4d med=%.3f q1=%s q3=%s" % (k, v["n"], v["median"], v.get("q1"), v.get("q3")))
+        show_support("support par cellule (campagne)", c["cell_seed_support"])
         for e in c["cv_same_campaign"]:
             print("  pli %d : |log| med brut=%s mode=%s cellule=%s ; part entre parties=%s"
                   % (e["fold"], e["raw"], e["mode"], e["cell"], e.get("between_game_share")))
+            for arm in ("train", "test"):
+                show_support("pli %d %s" % (e["fold"], arm), e["cell_seed_support"][arm])
     for k, v in out.items():
         if k.startswith("cv_train_"):
             for e in v:
                 print("%s pli %d : brut=%s mode=%s cellule=%s ; part entre parties=%s"
                       % (k, e["fold"], e["raw"], e["mode"], e["cell"], e.get("between_game_share")))
+                for arm in ("train", "test"):
+                    show_support("%s pli %d %s" % (k, e["fold"], arm), e["cell_seed_support"][arm])
 
 
 def selftest():

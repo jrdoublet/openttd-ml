@@ -1,12 +1,17 @@
 """V306: campaign ingestion and calibration on held-out seeds, without games."""
 import gzip
+import io
 import json
 import math
 from pathlib import Path
 import tempfile
 import unittest
+from contextlib import redirect_stdout
 
-from analyse_calibration_projets import analyse, cross_validate, load_campaign, num, ratio
+from analyse_calibration_projets import (
+    analyse, cell_seed_support, cross_validate, factor_tables, load_campaign,
+    num, print_report, ratio,
+)
 
 
 def calibration_game(revenue_ratio, count=6):
@@ -115,6 +120,90 @@ class CalibrationCrossValidationTest(unittest.TestCase):
                 self.assertEqual(fold["raw"], round(math.log(raw_ratio), 4))
                 self.assertEqual(fold["mode"], 0.0)
                 self.assertEqual(fold["cell"], 0.0)
+
+
+class CalibrationSeedSupportReportTest(unittest.TestCase):
+    CELL = "rail|RAW|80-160|1974-1976"
+
+    def test_identical_factors_can_have_one_or_three_independent_seeds(self):
+        mono = {("reference_seed42_r0.log", 42): calibration_game(4.0, count=6)}
+        multi = {
+            (f"reference_seed{seed}_r0.log", seed): calibration_game(4.0, count=2)
+            for seed in (42, 100, 200)
+        }
+        self.assertEqual(factor_tables(mono), factor_tables(multi))
+        self.assertEqual(cell_seed_support(mono)[self.CELL], {
+            "n_valid_rows": 6, "n_distinct_seeds": 1, "max_seed_share": 1.0,
+        })
+        self.assertEqual(cell_seed_support(multi)[self.CELL], {
+            "n_valid_rows": 6, "n_distinct_seeds": 3, "max_seed_share": 0.3333,
+        })
+
+        test = {("variant_seed999_r0.log", 999): calibration_game(4.0, count=2)}
+        for train in (mono, multi):
+            fold = cross_validate(train, test)[0]
+            self.assertEqual((fold["raw"], fold["mode"], fold["cell"]),
+                             (round(math.log(4.0), 4), 0.0, 0.0))
+            self.assertEqual(fold["cell_seed_support"]["test"][self.CELL]["n_distinct_seeds"], 1)
+
+    def test_train_test_support_is_separate_after_seed_holdout(self):
+        train = {
+            ("reference_seed42_r0.log", 42): calibration_game(4.0, count=6),
+            ("reference_seed100_r0.log", 100): calibration_game(4.0, count=2),
+            ("reference_seed200_r0.log", 200): calibration_game(4.0, count=2),
+        }
+        test = {
+            ("variant_seed42_r0.log", 42): calibration_game(4.0, count=2),
+            ("reference_seed300_r0.log", 300): calibration_game(4.0, count=3),
+            ("variant_seed300_r1.log", 300): calibration_game(4.0, count=1),
+        }
+        report = analyse({"solo": train, "duel": test}, train="solo", test="duel")
+        folds = report["cv_train_solo_test_duel"]
+        self.assertEqual(folds[0]["cell_seed_support"], {
+            "train": {self.CELL: {"n_valid_rows": 4, "n_distinct_seeds": 2,
+                                  "max_seed_share": 0.5}},
+            "test": {self.CELL: {"n_valid_rows": 2, "n_distinct_seeds": 1,
+                                 "max_seed_share": 1.0}},
+        })
+        self.assertEqual(folds[1]["cell_seed_support"], {
+            "train": {self.CELL: {"n_valid_rows": 10, "n_distinct_seeds": 3,
+                                  "max_seed_share": 0.6}},
+            "test": {self.CELL: {"n_valid_rows": 4, "n_distinct_seeds": 1,
+                                 "max_seed_share": 1.0}},
+        })
+        # Arms/repetitions of seed 300 count as four rows, but only one seed.
+        self.assertEqual(report["campaigns"]["duel"]["cell_seed_support"][self.CELL], {
+            "n_valid_rows": 6, "n_distinct_seeds": 2, "max_seed_share": 0.6667,
+        })
+        self.assertEqual([f["n"] for f in folds], [2, 4])
+        self.assertTrue(all(f["cell"] == 0.0 for f in folds))
+        json.dumps(report, allow_nan=False)
+
+        output = io.StringIO()
+        with redirect_stdout(output):
+            print_report(report)
+        self.assertIn("cv_train_solo_test_duel pli 0 train", output.getvalue())
+        self.assertIn("cv_train_solo_test_duel pli 1 test", output.getvalue())
+        self.assertIn(self.CELL, output.getvalue())
+
+    def test_invalid_revenue_ratios_do_not_supply_support(self):
+        game = calibration_game(2.0, count=1)
+        row = game["rows"][0]
+        for real, pred in ((None, 100.0), (float("nan"), 100.0),
+                           (0.0, 100.0), (1e308, 1e-308)):
+            game["rows"].append(dict(row, cell="rail|MAIL|80-160|1974-1976",
+                                     real_rev=real, pred_rev=pred))
+        games = {("reference_seed42_r0.log", 42): game}
+        support = cell_seed_support(games)
+        self.assertEqual(support[self.CELL], {
+            "n_valid_rows": 1, "n_distinct_seeds": 1, "max_seed_share": 1.0,
+        })
+        self.assertEqual(support["rail|MAIL|80-160|1974-1976"], {
+            "n_valid_rows": 0, "n_distinct_seeds": 0, "max_seed_share": None,
+        })
+        self.assertNotIn("rail|MAIL|80-160|1974-1976", factor_tables(games)[1])
+        json.dumps(analyse({"solo": games}), allow_nan=False)
+        self.assertEqual(cell_seed_support({}), {})
 
 
 class CalibrationSparseTableTest(unittest.TestCase):
