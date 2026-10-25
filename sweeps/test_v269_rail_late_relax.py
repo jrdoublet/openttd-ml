@@ -50,7 +50,10 @@ class TestV269RailLateRelax(unittest.TestCase):
         self.assertIn("V269_IDLE_CASH_MIN", block)
 
     def test_candidates_freight_bound_relaxed_only_when_active(self):
-        self.assertIn("distance > ((V269_RAIL_LATE_RELAX > 0 && V269_RELAXED && V269_RAIL_MAX_DIST > bounds.railMax) ? V269_RAIL_MAX_DIST : bounds.railMax)", self.candidates)
+        self.assertIn("distance > ((V269_RAIL_LATE_RELAX > 0 && V269_RELAXED", self.candidates)
+        self.assertIn("distance <= OpexRailFreightMaxDistance(catalog, bounds, cargo)", self.candidates)
+        self.assertIn("if (V269_RAIL_LATE_RELAX > 0 && V269_RELAXED)", self.candidates)
+        self.assertIn("V269_RAIL_LONG_MAX > cap", self.candidates)
 
     def test_no_v178_v179_toggle_after_v263b(self):
         # V263b a fige V178/V179 a 1 et retire leurs globales.

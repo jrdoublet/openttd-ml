@@ -33,7 +33,7 @@ class V177(unittest.TestCase):
         pax = body.index('if (kind == "pax") {')
         guard = body.index("if (V177_RAIL_PAX_MIN_DIST > 0 && distance < V177_RAIL_PAX_MIN_DIST) {")
         # 19/10 : la branche fret porte aussi la borne tardive V269.
-        other = body.index("} else if (distance > ((V269_RAIL_LATE_RELAX > 0 && V269_RELAXED && V269_RAIL_MAX_DIST > bounds.railMax)")
+        other = body.index("} else if (distance > ((V269_RAIL_LATE_RELAX > 0 && V269_RELAXED")
         self.assertLess(pax, guard)
         self.assertLess(guard, other)
 

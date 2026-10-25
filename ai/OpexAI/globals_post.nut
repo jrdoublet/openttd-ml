@@ -29,6 +29,12 @@ LOAN_REPAY_FLOOR <- 300000;
  * valeur neutre (docs/taches.md A5). */
 /* Journalisation structuree des decisions (decision_log) : repli FAUX. */
 DECISION_LOG <- false;
+/* RLW-03 : opt-in par bundle source uniquement (100 settings OpenTTD utilises).
+ * Aucun scan, projet ni opcode supplementaire hormis la garde si false. */
+RLW03_SHADOW <- false;
+/* RLW-04 : enumerateur de paires longues sans publication, ni A*, ni pose.
+ * Opt-in SOURCE seulement ; les bancs economiques le laissent OFF avec RLW03. */
+RLW04_SHADOW <- false;
 _lastAirRefuseMonth <- -1;
 _lastProjectScanMonth <- -1;
 /* La memoire est l'autre correctif, independamment des 40 000 iterations. Elle reste un repli

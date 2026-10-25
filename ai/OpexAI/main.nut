@@ -171,6 +171,10 @@ class OpexAI extends AIController {
   /* C80 étape 2 : table des paires en retrait temporaire (cooldown), indexée par pairKey.
    * Transitoire / reconstructible : initialisée à {}, jamais persistée dans Save(). */
   _railStockCooldown = null;
+  /* RLW-03 : sonde de declencheurs, sans aucun changement de portefeuille. */
+  _rlw03State = null;
+  /* RLW-04 : curseurs et echantillons purement transitoires, hors portefeuille. */
+  _rlw04State = null;
   /* V294h : recherches rail differees au reliquat et traces prets par paire. Transitoires. */
   _v294Deferred = null;
   _v294Ready = null;
@@ -641,6 +645,8 @@ class OpexAI extends AIController {
   function _c77EnqueueEntity(modes, entityKind = null, entityId = -1, buildAfter = false,
                              reason = "event");
   function _v217RailRefill();
+  function _rlw03MonthlyObserve();
+  function _rlw04Step();
   function _c77RefreshModeCatalog(mode);
   function _c77InjectSubsidy(subId);
   function _c77RemoveSubsidy(subId);
@@ -686,6 +692,8 @@ require("ledgers.nut");
 require("lines.nut");
 require("goods_v233.nut");
 require("orchestrator.nut");
+require("rail_long_window_probe.nut");
+require("rail_long_window_enumerator.nut");
 require("po01c_generators.nut");
 require("po01c_regen.nut");
 require("persist.nut");
@@ -885,6 +893,7 @@ function OpexAI::Start()
     this._advanceRailSearchThroughput();
     if (V294H_RAIL_DEFER > 0) OpexV294hAdvance(this);
     if (spAstar != null) OpexSpanEnd(spAstar);
+    if (RLW04_SHADOW) this._rlw04Step();
     if (C67_SLACK_HOOK) {
       local spC67 = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.c67") : null;
       this._c67SlackHook();

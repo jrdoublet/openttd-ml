@@ -76,6 +76,13 @@ class OpexAIInfo extends AIInfo {
       custom_value = 0,
       flags = AICONFIG_BOOLEAN
     });
+    AddSetting({
+      name = "air_roi_renfort1_shadow",
+      description = "AIR-ROI-RENFORT-1: passive pre-purchase fleet snapshot, max one per line per 30 days (0=off)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
 
     AddSetting({
       name = "save_full_state",
@@ -342,6 +349,14 @@ class OpexAIInfo extends AIInfo {
       custom_value = 5,
       step_size = 1,
       flags = 0
+    });
+
+    AddSetting({
+      name = "v269_rail_long_max",
+      description = "RAIL-LONG-EARLY-1: 0 = historic V269 freight cap 250; 250..512 = experimental freight-only secondary cap during V217 idle-cash/empty-pool regeneration; requires v269_rail_late_relax > 0; does not extend passenger or AIR bands",
+      min_value = 0, max_value = 512,
+      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
+      step_size = 1, flags = 0
     });
 
     AddSetting({

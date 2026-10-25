@@ -57,6 +57,7 @@ function OpexResolveDifficulty()
 function OpexLoadSettings()
 {
   AIR_FLOTTE1_SHADOW = AIController.GetSetting("air_flotte1_shadow") != 0;
+  AIR_ROI_RENFORT1_SHADOW = AIController.GetSetting("air_roi_renfort1_shadow") != 0;
   PO01C_REGEN_SPLIT = AIController.GetSetting("po01c_regen_split") != 0;
   /* V276/V278 (defaut auto depuis le 20/10, decision utilisateur) : qualifies ensemble a 1024x1024
    * seulement (portes A +631 k et B +1,11 M), sans gain mesure a 256x256 ; actifs des 1024x1024 tuiles. */
@@ -111,6 +112,8 @@ function OpexLoadSettings()
   V216F_DWELL_PCT = AIController.GetSetting("v216f_dwell_pct");
   V264_CONVERGENT_FREIGHT = AIController.GetSetting("v264_convergent_freight") != 0;
   local lateRelax = AIController.GetSetting("v269_rail_late_relax");
+  local railLongMax = AIController.GetSetting("v269_rail_long_max");
+  V269_RAIL_LONG_MAX = (railLongMax != null && railLongMax >= 250 && railLongMax <= 512) ? railLongMax : 0;
   local railGrowth = AIController.GetSetting("v284_rail_growth");
   if (railGrowth != null && railGrowth >= 0 && railGrowth <= 10) V284_RAIL_GROWTH = railGrowth;
   local v294BridgeLen = AIController.GetSetting("v294_rail_bridge_len");

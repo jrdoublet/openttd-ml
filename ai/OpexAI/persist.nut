@@ -642,6 +642,8 @@ function OpexAI::Save()
       shortSave.v259Cursor <- this._v259Cursor;
       shortSave.v259Queue <- OpexV259SaveQueue(this._v259Queue);
     }
+    if (RLW03_SHADOW && this._rlw03State != null)
+      shortSave.rlw03State <- this._rlw03State;
     if (this._v292LastHqTryYear >= 0) shortSave.v292LastHqTryYear <- this._v292LastHqTryYear;
     if (DECISION_LOG && startOps != null) {
       local endOps = AIController.GetOpsTillSuspend();
@@ -747,6 +749,8 @@ function OpexAI::Save()
     saveObj.v259Cursor <- this._v259Cursor;
     saveObj.v259Queue <- OpexV259SaveQueue(this._v259Queue);
   }
+  if (RLW03_SHADOW && this._rlw03State != null)
+    saveObj.rlw03State <- this._rlw03State;
   if (this._v292LastHqTryYear >= 0) saveObj.v292LastHqTryYear <- this._v292LastHqTryYear;
   if (DECISION_LOG && startOps != null) {
     local endOps = AIController.GetOpsTillSuspend();
@@ -762,6 +766,7 @@ function OpexAI::Save()
 }
 function OpexAI::Load(version, data)
 {
+  this._rlw03State = null;
   this._po01cJob = null;
   this._po01cPending = false;
   this._po01cLineState = null;
@@ -787,6 +792,9 @@ function OpexAI::Load(version, data)
   OPEX_AIR_ROLLBACKS = [];
   if (V279_RESELECT_MEMO != 0) OPEX_AIR_ROLLBACK_REVISION++;
   if (data == null) return;
+  /* Le flag est teste au tick, pas ici : Load precede le chargement des settings. */
+  if (("rlw03State" in data) && typeof data.rlw03State == "table")
+    this._rlw03State = data.rlw03State;
   if ("v233GoodsObservations" in data)
     this._v233GoodsObservations = OpexV233LoadObservations(data.v233GoodsObservations);
   OpexV133LoadQuarantine(data);

@@ -494,6 +494,27 @@ function OpexRailPaxPairInBand(bounds, distance, paxBand)
   return distance >= bounds.railMin && distance <= bounds.railMax;
 }
 
+/* RAIL-LONG-EARLY-1 : seul le fret regenere par V217 peut franchir railMax.
+ * Une tranche V276 asynchrone capture la borne au moment de la demande V217,
+ * avant que V269_RELAXED ne soit remis a false par l'orchestrateur. */
+function OpexRailFreightMaxDistance(catalog, bounds, cargo = null)
+{
+  if (V269_RAIL_LONG_MAX > 0 && bounds != null && ("v269FreightCap" in bounds)) {
+    if (("v269FreightCargo" in bounds) && cargo != bounds.v269FreightCargo)
+      return bounds.railMax;
+    return bounds.v269FreightCap;
+  }
+  if (V269_RAIL_LATE_RELAX > 0 && V269_RELAXED) {
+    local cap = V269_RAIL_MAX_DIST;
+    /* Ne pas offrir le nouveau plafond a tous les cargos de repli V217.
+     * L'ancienne borne 250 reste disponible sur ces chemins. */
+    if (V269_RAIL_LONG_MAX > cap && (V269_RAIL_LONG_CARGO == null
+        || cargo == V269_RAIL_LONG_CARGO)) cap = V269_RAIL_LONG_MAX;
+    if (cap > bounds.railMax) return cap;
+  }
+  return bounds.railMax;
+}
+
 /* Une origine rail est constructible s'il existe, dans le bassin, une tuile de TERRE qui voit
  * le cargo et qui n'est pas le batiment d'industrie lui-meme. Sans ce test, des origines fret
  * dont tout le bassin est de l'eau (ou du batiment) entraient au TOP_K puis mouraient en SITEA
@@ -627,6 +648,9 @@ function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, orig
   }
   local distance = AIMap.DistanceManhattan(srcTile, dstTile);
   local bounds = OpexCatalogBounds(catalog);
+  /* Sonde exploratoire uniquement : log des rejets AVANT TOP_K, sans toucher
+   * au calcul de rentabilite, ni ajouter du cout en partie sans decision_log. */
+  local longTrace = DECISION_LOG && V269_RAIL_LONG_MAX > 0 && distance > 200;
   if (kind == "pax") {
     if (distance < bounds.railMin) {
       stats.distanceShort++;
@@ -640,10 +664,17 @@ function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, orig
     }
     if (distance > bounds.railMax) {
       stats.distanceLong++;
+      if (longTrace) OpexDecide("RAIL_LONG_SCREEN", "kind=pax cargo=" + AICargo.GetCargoLabel(cargo)
+          + " dist=" + distance + " reason=distance_long cap=" + bounds.railMax);
       return null;
     }
-  } else if (distance > ((V269_RAIL_LATE_RELAX > 0 && V269_RELAXED && V269_RAIL_MAX_DIST > bounds.railMax) ? V269_RAIL_MAX_DIST : bounds.railMax)) {
+  } else if (distance > ((V269_RAIL_LATE_RELAX > 0 && V269_RELAXED
+      && V269_RAIL_MAX_DIST > bounds.railMax) ? V269_RAIL_MAX_DIST : bounds.railMax)
+      && !(V269_RAIL_LONG_MAX > 0
+           && distance <= OpexRailFreightMaxDistance(catalog, bounds, cargo))) {
     stats.distanceLong++;
+    if (longTrace) OpexDecide("RAIL_LONG_SCREEN", "kind=freight cargo=" + AICargo.GetCargoLabel(cargo)
+        + " dist=" + distance + " reason=distance_long cap=" + OpexRailFreightMaxDistance(catalog, bounds, cargo));
     return null;
   } else if (V182_RAIL_FREIGHT_MIN_DIST > 0 && distance < V182_RAIL_FREIGHT_MIN_DIST
              && !(V195_V182_YEARS > 0 && AIDate.GetYear(AIDate.GetCurrentDate()) >= OPEX_START_YEAR + V195_V182_YEARS)) {
@@ -693,6 +724,8 @@ function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, orig
   }
   if (!sitable) {
     stats.unsitable++;
+    if (longTrace) OpexDecide("RAIL_LONG_SCREEN", "kind=" + kind + " cargo=" + AICargo.GetCargoLabel(cargo)
+        + " dist=" + distance + " reason=unsitable");
     return null;
   }
 
@@ -726,12 +759,16 @@ function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, orig
   }
   if (economics == null) {
     stats.economicsUnavailable++;
+    if (longTrace) OpexDecide("RAIL_LONG_SCREEN", "kind=" + kind + " cargo=" + AICargo.GetCargoLabel(cargo)
+        + " dist=" + distance + " reason=economics_unavailable");
     return null;
   }
   /* Un candidat dont le profit annuel attendu est negatif ne merite aucun opcode.
    * L'ancienne famille pax_near (PAX_NEAR fige a false) n'admet plus rien. */
   if (economics.profitAnnual <= 0) {
     stats.profitNonPositive++;
+    if (longTrace) OpexDecide("RAIL_LONG_SCREEN", "kind=" + kind + " cargo=" + AICargo.GetCargoLabel(cargo)
+        + " dist=" + distance + " reason=profit_nonpositive profit=" + economics.profitAnnual);
     if (V216_PROBE) OpexV216NoteReject("profit", kind, srcTile, dstTile, monthly, economics);
     if (OPEX_ECONOMY_OPCODE_COMPAT_FALSE) {}
     return null;
@@ -745,6 +782,9 @@ function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, orig
   local isLowRatio = (opcodeRatio < minRatio);
   if (isLowRatio) {
     stats.ratioTooLow++;
+    if (longTrace) OpexDecide("RAIL_LONG_SCREEN", "kind=" + kind + " cargo=" + AICargo.GetCargoLabel(cargo)
+        + " dist=" + distance + " reason=ratio_floor ratio=" + opcodeRatio
+        + " iter_pred=" + iterations + " profit=" + economics.profitAnnual);
     if (V216_PROBE) OpexV216NoteReject("ratio", kind, srcTile, dstTile, monthly, economics);
     return null;
   }
@@ -811,6 +851,15 @@ function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, orig
     opcodeRatio = opcodeRatio,
     isLowRatio = isLowRatio,
   };
+  if (longTrace) {
+    OpexDecide("RAIL_LONG_SCREEN", "kind=" + kind + " cargo=" + AICargo.GetCargoLabel(cargo)
+               + " dist=" + distance + " reason=accepted ratio=" + opcodeRatio
+               + " iter_pred=" + iterations + " profit=" + economics.profitAnnual);
+    OpexDecide("RAIL_LONG_CANDIDATE", "year=" + AIDate.GetYear(AIDate.GetCurrentDate())
+               + " cargo=" + AICargo.GetCargoLabel(cargo) + " kind=" + kind
+               + " dist=" + distance + " cap=" + OpexRailFreightMaxDistance(catalog, bounds, cargo)
+               + " roi=" + effectiveRoi + " profit=" + economics.profitAnnual);
+  }
   /* V163 : le second cargo n'est garde que s'il a trouve place dans la rame. */
   if (("wagons2" in economics) && economics.wagons2 > 0) {
     candidate.cargo2 <- economics.cargo2;

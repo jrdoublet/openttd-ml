@@ -2774,6 +2774,11 @@ function OpexAI::_mainLoopProfiled()
     if (V294H_RAIL_DEFER > 0) OpexV294hAdvance(this);
     if (spAstar != null) OpexSpanEnd(spAstar);
     OpexLoopProfAdd("rail_throughput", mark);
+    if (RLW04_SHADOW) {
+      mark = OpexOpsMeasureBegin();
+      this._rlw04Step();
+      OpexLoopProfAdd("rlw04_shadow", mark);
+    }
     if (C67_SLACK_HOOK) {
       mark = OpexOpsMeasureBegin();
       local spC67 = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.c67") : null;

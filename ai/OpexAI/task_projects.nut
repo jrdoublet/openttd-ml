@@ -245,7 +245,7 @@ function OpexAI::_tryBuildFleetProject(year, project, rank, passDiscards, builtK
   }
   local plannedFull = ("capital" in project && project.capital > 0)
       ? project.capital : (entry.planePrice * entry.want);
-  local costs = C63_INVEST_PROBE ? AIAccounting() : null;
+  local costs = (C63_INVEST_PROBE || AIR_ROI_RENFORT1_SHADOW) ? AIAccounting() : null;
   local c121HaveBefore = ("vehCount" in line) ? line.vehCount
       : (("vehicles" in line) ? line.vehicles.len() : 0);
   local c121TrackMarginal = ("targetAirPlanes" in line)
@@ -262,9 +262,13 @@ function OpexAI::_tryBuildFleetProject(year, project, rank, passDiscards, builtK
   local airF1Event = AIR_FLOTTE1_SHADOW
       ? OpexAirF1Before(this, "reinforce", line.lineId, entry.planePrice,
                         project, i, -1, -1, builtKeys) : null;
+  local airR1Event = AIR_ROI_RENFORT1_SHADOW
+      ? OpexAirR1Before(this, project, i) : null;
   if (airF1Event != null) OpexAirF1Ready(airF1Event);
+  local airR1LastReason = "none";
   for (local k = 0; k < entry.want; k++) {
     local grown = OpexAirAddPlane(line, this._catalog, this._lines);
+    if (airR1Event != null) airR1LastReason = ("reason" in grown) ? grown.reason : "unknown";
     if (R1_R3_TEST_ONLY) OpexR1R3Log("mechanism=R1 phase=api_result id="
         + (("r1r3Id" in project) ? project.r1r3Id : "unknown")
         + " pass=" + R1_R3_TEST_PASS + " cycle=" + this._taskCycle + " rank=" + i
@@ -286,6 +290,7 @@ function OpexAI::_tryBuildFleetProject(year, project, rank, passDiscards, builtK
     if (AICompany.GetBankBalance(AICompany.COMPANY_SELF) < need) break;
   }
   local actual = (costs != null) ? costs.GetCosts() : 0;
+  if (airR1Event != null) OpexAirR1After(airR1Event, actual, added, replaced, airR1LastReason);
   if (R1_R3_TEST_ONLY) OpexR1R3FleetTrace(this, project, i, "result",
       added + replaced > 0 ? "built" : "fleet_grow_failed", added, replaced);
   if (added + replaced <= 0) {
