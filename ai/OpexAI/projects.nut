@@ -519,7 +519,7 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
     alternatives = OpexRailPrepMergeAlternatives(alternatives, railReadyStock);
   }
   alternatives = OpexFilterAirAlternativesStillValid(alternatives, abandonedPairs, lines);
-  funded = OpexProjectSelectAffordable(alternatives, capitalBudget, PROJECT_TOP_K);
+  funded = OpexProjectSelectAffordable(alternatives, capitalBudget, PROJECT_TOP_K, true, abandonedPairs);
   if (RAIL_FAILURE_AUDIT) OpexRailPortfolioAudit("full", alternatives, funded, capitalBudget);
   stats.budgetConsidered = alternatives.len();
   stats.budgetSelected = funded.len();
