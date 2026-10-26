@@ -86,7 +86,7 @@ def _number(value, *, allow_negative=False):
 def parse_events(path):
     """Yield replacement or skip; missing fields remain None, never zero."""
     with _stream(path) as stream:
-        for raw in stream:
+        for log_line_index, raw in enumerate(stream):
             match = EVENT.search(raw)
             if not match:
                 continue
@@ -96,13 +96,14 @@ def parse_events(path):
             fields = dict(pairs)
             if match["tag"] == "V252_SKIP":
                 yield {"type": "skip", "year": int(match["year"]),
-                       "reason": fields.get("reason")}
+                       "reason": fields.get("reason"), "log_line_index": log_line_index}
                 continue
             # Historical line profit may be negative; unlike an invalid engine
             # ID or purchase price, it is a legitimate observed measurement.
             values = {name: _number(fields.get(name), allow_negative=(name == "profit"))
                       for name in REPLACEMENT_FIELDS}
-            yield {"type": "replace", "year": int(match["year"]), **values,
+            yield {"type": "replace", "year": int(match["year"]),
+                   "log_line_index": log_line_index, **values,
                    "fields_missing_or_invalid": [name for name, value in values.items()
                                                  if value is None]}
 
