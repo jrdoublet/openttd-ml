@@ -90,3 +90,39 @@ portefeuille et construction doivent être enregistrés **après** la shortlist.
 Toute mesure de shadow, toute construction ON en pilote et toute comparaison
 économique gardent leur provenance et leurs verdicts distincts. **Aucun
 changement de défaut ni adoption** sans décision explicite de l'utilisateur.
+
+## Validation mécanique (26/10/2026)
+
+Code fixé sur la branche `front_pax2_behavior_20261026` au commit `cbd998c1`,
+défaut `front_pax2_bounded_overlap=0` confirmé pour les quatre difficultés.
+La suite hôte complète a passé **2 887 tests** (six ignorés, deux échecs
+attendus). Les 13 tests FRONT-PAX-2 sont verts, de même que PO01C (27) et V278
+(19) ; les empreintes figées PO01D `air_planning.nut` et `candidates.nut`
+restent identiques après retrait contrôlé des ajouts FRONT-PAX-2. Le chemin
+PO01C généré a été actualisé mécaniquement ; `git diff --check` est conforme.
+
+Smoke moteur `frontpax2_bounded_smoke_42x1_20261026_r1` : bras OFF `0` et
+pilote ON `2`, graine 42, 1970, **1/1 paire complète et saine**, aucune
+exécution invalide, bundle SHA256
+`bc7ef57c3c7b7eb1ca635a054c6841808b27f103931f0cbcc7f284553ea3a367`,
+manifeste SHA256
+`d1ce23d06fc195aa6c9c22090ce6bf77cbeacd1ad8da9710111214bc3af666b7`
+vérifié. Le journal `FRONT_PAX2_BOUNDED` prouve que le mode `2` a examiné un
+hubsite viable cinématiquement et économiquement (`profit=351688`,
+`finance=106128`) puis l'a exclu faute de trésorerie (`result=cash`).
+Le bras ON présente `profit_year` −11 583 £ face à OFF sur ce seul monde,
+valeur **diagnostique**, sans conclusion économique ni preuve de construction
+supplémentaire.
+
+Save/Load réel du mode `2` sur la graine 42 :
+`results/frontpax2_bounded_saveload_short_42_20261026.json` avec
+`save_full_state=0`, et
+`results/frontpax2_bounded_saveload_full_42_20261026.json` avec
+`save_full_state=1`. Dans chaque test, 13 sauvegardes en phase A et 13 en
+phase B, rechargement de `000000005.sav` datée du 01/07/1970,
+`LOAD_RECONCILE` observé et aucune erreur script. Une compagnie fantôme du
+harnais apparaît à la reprise ; cette validation concerne la reprise du
+script, jamais une égalité de trajectoire ou de profit.
+
+Les conditions de GO économique définies ci-dessus ne sont pas encore
+remplies par ces essais mécaniques. Aucun réglage par défaut n'est modifié.
