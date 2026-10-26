@@ -50,6 +50,28 @@ class TestAnalyseFullRegenCost(unittest.TestCase):
                 "reason=reactive ops=999999 year=1972 phase=publish days=12")
         self.assertIsNone(parse_log_line(line))
 
+    def test_negative_opcode_cost_cannot_cancel_a_real_regeneration(self) -> None:
+        negative = ("[0] [I] OPEX 1972-1-1 C76_REGEN phase=regen kind=full "
+                    "reason=reactive year=1972 ops=-500 days=0")
+        valid = ("[0] [I] OPEX 1972-1-2 C76_REGEN phase=regen kind=full "
+                 "reason=periodic year=1972 ops=300 days=1")
+        self.assertIsNone(parse_log_line(negative))
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "reference_seed42_r0.log"
+            path.write_text(negative + "\n" + valid + "\n", encoding="utf-8")
+            summary = aggregate_events(parse_log_files([path]))
+        self.assertEqual(summary["total_events"], 1)
+        self.assertEqual(summary["total_ops"], 300)
+        self.assertEqual(summary["by_reason"]["periodic"]["total_ops"], 300)
+        self.assertNotIn("reactive", summary["by_reason"])
+
+    def test_zero_opcode_cost_is_observed_not_missing(self) -> None:
+        row = parse_log_line("[0] [I] OPEX 1972-1-2 C76_REGEN phase=regen "
+                             "kind=full reason=periodic year=1972 ops=0 days=0")
+        self.assertIsNotNone(row)
+        self.assertEqual(row["ops"], 0)
+        self.assertEqual(aggregate_events([row])["total_events"], 1)
+
     def test_parse_log_line_formats(self) -> None:
         # Ligne 1 : Reconstruction périodique annuelle C78 découpée terminée à l'application
         line1 = "[2026-10-12 14:26:20] dbg: [script:4] [0] [I] OPEX 1951-1-3 C76_REGEN phase=regen kind=full reason=periodic year=1951 days=28 days_since_prev=0 ops=254120 towns_n=40"

@@ -39,10 +39,13 @@ def parse_log_line(line: str) -> Optional[Dict[str, Any]]:
     if fields.get("phase") != "regen":
         return None
     try:
+        ops = int(fields["ops"])
+        if ops < 0:
+            return None  # invalid measurement, never a negative opcode saving
         return {
             "kind": fields["kind"],
             "reason": fields.get("reason", "unknown"),
-            "ops": int(fields["ops"]),
+            "ops": ops,
             "days": int(fields.get("days", 0)),
             "modes": fields.get("modes"),
             "year": int(fields["year"]),
