@@ -1,6 +1,7 @@
 """Host-only V253 AIR_BUILD / V252_REPLACE lifecycle fixtures."""
 
 import gzip
+from datetime import date
 from pathlib import Path
 import tempfile
 import unittest
@@ -44,6 +45,11 @@ class V253EngineLifecycleTests(unittest.TestCase):
         self.assertEqual(row["distinct_built_lines_with_replacement"], 1)
         self.assertEqual(row["first_replacement_initial_to_new"], {"223->217": 1})
         self.assertEqual(row["first_replacement_old_to_new"], {"223->217": 1})
+        expected = (date(1974, 5, 1) - date(1970, 2, 5)).days
+        self.assertEqual(row["first_replacement_delay_days_by_initial_engine"], {
+            "223": {"n": 1, "min": expected, "median": expected, "max": expected},
+        })
+        self.assertEqual(row["distinct_built_lines_without_observed_replacement"], 0)
 
     def test_unmatched_and_missing_line_are_separate(self):
         missing = replace().replace("line=3", "line=bad")
@@ -63,12 +69,35 @@ class V253EngineLifecycleTests(unittest.TestCase):
         self.assertEqual(row["replacements_without_prior_build"], 1)
         self.assertEqual(row["replacements_with_prior_build"], 0)
 
+    def test_timestamp_backward_same_year_fails_even_when_logs_are_in_order(self):
+        built_late = build(year=1974).replace("1974-2-5", "1974-10-5")
+        path = self.write("reference_seed42_r0.log", built_late + replace(year=1974))
+        row = analyze([path])["games"][0]
+        self.assertEqual(row["replacements_without_prior_build"], 1)
+        self.assertEqual(row["distinct_built_lines_without_observed_replacement"], 1)
+        self.assertEqual(row["first_replacement_delay_days_by_initial_engine"], {})
+
     def test_different_engine_at_replacement_is_not_silently_equated(self):
         path = self.write("reference_seed42_r0.log", build(engine=228) + replace(old=223))
         row = analyze([path])["games"][0]
         self.assertEqual(row["first_replacement_old_disagrees_initial"], 1)
         self.assertEqual(row["first_replacement_initial_to_new"], {"228->217": 1})
         self.assertEqual(row["first_replacement_old_to_new"], {"223->217": 1})
+        differences = analyze([path])["by_arm"]["reference"]["first_replacement_disagreements"]
+        self.assertEqual(len(differences), 1)
+        self.assertEqual((differences[0]["seed"], differences[0]["line"]), (42, 3))
+        self.assertEqual((differences[0]["initial_engine"], differences[0]["old_engine"]),
+                         (228, 223))
+        self.assertEqual((differences[0]["build_date"], differences[0]["replacement_date"]),
+                         ("1970-02-05", "1974-05-01"))
+
+    def test_unreplaced_built_lines_have_unknown_fate(self):
+        path = self.write("reference_seed42_r0.log", build(line=3) + build(line=4) +
+                          replace(line=3))
+        arm = analyze([path])["by_arm"]["reference"]
+        self.assertEqual(arm["distinct_built_lines_with_replacement"], 1)
+        self.assertEqual(arm["distinct_built_lines_without_observed_replacement"], 1)
+        self.assertEqual(arm["first_replacement_delay_days_by_initial_engine"]["223"]["n"], 1)
 
     def test_invalid_engine_retains_build_and_unknown_engine(self):
         path = self.write("reference_seed42_r0.log", build(engine="garbled") + replace())

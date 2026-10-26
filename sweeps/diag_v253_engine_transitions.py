@@ -19,7 +19,7 @@ from statistics import median
 
 NAME = re.compile(r"^(?P<arm>.+)_seed(?P<seed>\d+)_r(?P<repeat>\d+)\.log(?:\.gz)?$")
 EVENT = re.compile(
-    r"\[0\]\s+\[I\]\s+OPEX\s+(?P<year>\d{4})-\d{1,2}-\d{1,2}\s+"
+    r"\[0\]\s+\[I\]\s+OPEX\s+(?P<year>\d{4})-(?P<month>\d{1,2})-(?P<day>\d{1,2})\s+"
     r"(?P<tag>V252_REPLACE|V252_SKIP)\b(?P<fields>[^\r\n]*)"
 )
 KV = re.compile(r"\b([A-Za-z_]\w*)=(\S+)")
@@ -94,16 +94,19 @@ def parse_events(path):
             if len(pairs) != len({name for name, _ in pairs}):
                 raise ValueError(f"champ V252 duplique dans {path}: {match['fields']}")
             fields = dict(pairs)
+            event_date = (f"{int(match['year']):04d}-{int(match['month']):02d}-"
+                          f"{int(match['day']):02d}")
             if match["tag"] == "V252_SKIP":
                 yield {"type": "skip", "year": int(match["year"]),
-                       "reason": fields.get("reason"), "log_line_index": log_line_index}
+                       "date": event_date, "reason": fields.get("reason"),
+                       "log_line_index": log_line_index}
                 continue
             # Historical line profit may be negative; unlike an invalid engine
             # ID or purchase price, it is a legitimate observed measurement.
             values = {name: _number(fields.get(name), allow_negative=(name == "profit"))
                       for name in REPLACEMENT_FIELDS}
             yield {"type": "replace", "year": int(match["year"]),
-                   "log_line_index": log_line_index, **values,
+                   "date": event_date, "log_line_index": log_line_index, **values,
                    "fields_missing_or_invalid": [name for name, value in values.items()
                                                  if value is None]}
 
