@@ -8,7 +8,8 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from sweeps.diag_v306_heldout import analyze, evaluate, main
+from sweeps.diag_v306_heldout import ablate_variables, analyze, evaluate, main
+from sweeps.analyse_calibration_projets import factor_tables
 from sweeps.test_analyse_calibration_projets import calibration_game
 
 
@@ -22,7 +23,90 @@ def game_log(revenue_ratio):
     )
 
 
+def variation(ratio, count, cargo="RAW", distance="80-160", era="1974-1976"):
+    result = calibration_game(ratio, count)
+    for row in result["rows"]:
+        row["cell"] = f"rail|{cargo}|{distance}|{era}"
+    return result
+
+
 class HeldoutTransferContracts(unittest.TestCase):
+    def test_ablation_cargo_helpful_distance_and_era_add_nothing(self):
+        train = {
+            ("reference_seed10_r0.log", 10): variation(2.0, 6, cargo="RAW"),
+            ("reference_seed20_r0.log", 20): variation(8.0, 6, cargo="SECONDARY"),
+        }
+        heldout = {
+            ("reference_seed30_r0.log", 30): variation(2.0, 2, cargo="RAW"),
+            ("reference_seed40_r0.log", 40): variation(8.0, 2, cargo="SECONDARY"),
+        }
+        report = evaluate(train, heldout)
+        score = report["heldout_revenue_variable_ablation"]
+        self.assertEqual(score["n_valid_heldout_rows"], 4)
+        self.assertEqual(score["micro_median_abs_log_error"]["mode_cargo"], 0)
+        self.assertEqual(score["micro_median_abs_log_error"]["cell"], 0)
+        self.assertGreater(score["micro_median_abs_log_error"]["mode_distance"], 0)
+        self.assertEqual(score["micro_median_abs_log_error"]["mode"],
+                         score["micro_median_abs_log_error"]["mode_era"])
+        self.assertEqual(score["heldout_rows_using_group_factor"]["mode_cargo"], 4)
+        self.assertEqual(score["trained_variable_support"]["mode_cargo"]
+                         ["eligible_groups_with_at_least_5_seeds"], 0)
+
+    def test_ablation_distance_helps_when_cargo_is_constant(self):
+        train = {
+            ("reference_seed10_r0.log", 10): variation(2.0, 6, distance="0-80"),
+            ("reference_seed20_r0.log", 20): variation(8.0, 6, distance="160-250"),
+        }
+        heldout = {
+            ("reference_seed30_r0.log", 30): variation(2.0, 2, distance="0-80"),
+            ("reference_seed40_r0.log", 40): variation(8.0, 2, distance="160-250"),
+        }
+        score = evaluate(train, heldout)["heldout_revenue_variable_ablation"]
+        self.assertEqual(score["micro_median_abs_log_error"]["mode_distance"], 0)
+        self.assertGreater(score["micro_median_abs_log_error"]["mode_cargo"], 0)
+
+    def test_sparse_group_uses_mode_and_repeated_seed_counts_once(self):
+        train = {
+            ("reference_seed10_r0.log", 10): variation(2.0, 6),
+            ("reference_seed20_r0.log", 20): variation(8.0, 4, cargo="SECONDARY"),
+        }
+        heldout = {
+            ("reference_seed30_r0.log", 30): variation(8.0, 12, cargo="SECONDARY"),
+            ("variant_seed30_r1.log", 30): variation(8.0, 1, cargo="SECONDARY"),
+            ("reference_seed40_r0.log", 40): variation(2.0, 1),
+        }
+        mode, cell = factor_tables(train)
+        score = ablate_variables(train, heldout, mode, cell)
+        self.assertEqual(score["n_valid_heldout_rows"], 14)
+        self.assertEqual(score["n_distinct_heldout_seeds"], 2)
+        self.assertEqual(score["n_heldout_seeds_with_valid_rows"], 2)
+        self.assertEqual(score["heldout_rows_falling_back_to_mode"]["mode_cargo"], 13)
+        self.assertEqual(score["micro_median_abs_log_error"]["mode_cargo"],
+                         score["micro_median_abs_log_error"]["mode"])
+        self.assertNotEqual(score["micro_median_abs_log_error"]["raw"],
+                            score["seed_balanced_median_of_seed_medians"]["raw"])
+
+    def test_no_valid_heldout_seed_remains_explicit_unknown(self):
+        train = {("reference_seed10_r0.log", 10): variation(2.0, 6)}
+        invalid = variation(4.0, 2)
+        for row in invalid["rows"]:
+            row["pred_rev"] = 0
+        heldout = {
+            ("reference_seed20_r0.log", 20): variation(2.0, 1),
+            ("reference_seed30_r0.log", 30): invalid,
+        }
+        report = evaluate(train, heldout)
+        score = report["heldout_revenue_variable_ablation"]
+        self.assertEqual(score["n_distinct_heldout_seeds"], 2)
+        self.assertEqual(score["n_heldout_seeds_with_valid_rows"], 1)
+        self.assertEqual(score["by_seed"][1]["seed"], 30)
+        self.assertEqual(score["by_seed"][1]["n_valid_rows"], 0)
+        self.assertIsNone(score["by_seed"][1]["mode_distance"])
+        self.assertEqual(score["heldout_rows_falling_back_to_mode"], {
+            "mode_cargo": 0, "mode_distance": 0, "mode_era": 0, "cell": 0,
+        })
+        json.dumps(report, allow_nan=False)
+
     def test_disjoint_heldout_error_reconciles_with_mode_and_folds(self):
         train = {
             (f"reference_seed{seed}_r0.log", seed): calibration_game(4.0)

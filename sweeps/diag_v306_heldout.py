@@ -14,20 +14,21 @@ Usage:
 """
 
 import argparse
-from collections import defaultdict
+from collections import Counter, defaultdict
 import json
+import math
 from pathlib import Path
 from statistics import median
 
 try:
     from sweeps.analyse_calibration_projets import (
         MIN_CELL, cell_seed_support, cross_validate, factor_tables,
-        load_campaign, predict_error,
+        load_campaign, predict_error, ratio,
     )
 except ModuleNotFoundError:
     from analyse_calibration_projets import (
         MIN_CELL, cell_seed_support, cross_validate, factor_tables,
-        load_campaign, predict_error,
+        load_campaign, predict_error, ratio,
     )
 
 
@@ -60,6 +61,116 @@ def seed_balanced_error(heldout, modes, cells):
     }
 
 
+ABLATION = ("raw", "mode", "mode_cargo", "mode_distance", "mode_era", "cell")
+
+
+def _ablation_key(row, variable):
+    """Key for one marginal variable; keep the original cell's binning."""
+    parts = row["cell"].split("|")
+    if len(parts) != 4 or parts[0] != row["mode"]:
+        raise ValueError(f"V306 inconsistent calibration cell: {row['cell']!r}")
+    positions = {"mode_cargo": 1, "mode_distance": 2, "mode_era": 3, "cell": None}
+    return row["cell"] if variable == "cell" else f"{parts[0]}|{parts[positions[variable]]}"
+
+
+def ablate_variables(train, heldout, modes, cells):
+    """Disjoint-seed marginal ablation of revenue factors, without refitting on test.
+
+    Every extension uses the historical MIN_CELL line-year threshold and falls
+    straight back to the same mode factor when support is too small. Its seed
+    support is descriptive: MIN_CELL itself does not enforce independent seeds.
+    """
+    variables = ("mode_cargo", "mode_distance", "mode_era")
+    grouped = {name: defaultdict(list) for name in variables}
+    seed_support = {name: defaultdict(set) for name in variables}
+    for (_, seed), game in train.items():
+        for row in game["rows"]:
+            value = ratio(row["real_rev"], row["pred_rev"], row["scale"])
+            if value is None:
+                continue
+            for variable in variables:
+                key = _ablation_key(row, variable)
+                grouped[variable][key].append(value)
+                seed_support[variable][key].add(seed)
+    factors = {
+        name: {key: (median(values), len(values))
+               for key, values in groups.items()}
+        for name, groups in grouped.items()
+    }
+    training_support = {
+        name: {
+            "groups_with_valid_rows": len(groups),
+            "groups_eligible_by_line_years": sum(len(values) >= MIN_CELL
+                                                  for values in groups.values()),
+            "eligible_groups_with_at_least_5_seeds": sum(
+                len(values) >= MIN_CELL and len(seed_support[name][key]) >= 5
+                for key, values in groups.items()),
+        }
+        for name, groups in grouped.items()
+    }
+    losses = {name: [] for name in ABLATION}
+    per_mode = defaultdict(lambda: {name: [] for name in ABLATION})
+    per_seed = defaultdict(lambda: {name: [] for name in ABLATION})
+    for _, seed in heldout:
+        _ = per_seed[seed]  # Even a seed with no valid revenue rows is observed.
+    selected = Counter()
+    fallback = Counter()
+    for (_, seed), game in heldout.items():
+        for row in game["rows"]:
+            value = ratio(row["real_rev"], row["pred_rev"], row["scale"])
+            if value is None:
+                continue
+            fm = modes.get(row["mode"], 1.0)
+            selected_factors = {"raw": 1.0, "mode": fm}
+            for variable in variables + ("cell",):
+                key = row["cell"] if variable == "cell" else _ablation_key(row, variable)
+                candidate = (cells if variable == "cell" else factors[variable]).get(key)
+                if candidate and candidate[1] >= MIN_CELL:
+                    selected_factors[variable] = candidate[0]
+                    selected[variable] += 1
+                else:
+                    selected_factors[variable] = fm
+                    fallback[variable] += 1
+            for variable, factor in selected_factors.items():
+                error = abs(math.log(value / factor))
+                losses[variable].append(error)
+                per_mode[row["mode"]][variable].append(error)
+                per_seed[seed][variable].append(error)
+
+    def scores(groups):
+        return {name: round(median(groups[name]), 4) if groups[name] else None
+                for name in ABLATION}
+
+    per_seed_scores = {
+        seed: {"n_valid_rows": len(group["raw"]), **scores(group)}
+        for seed, group in sorted(per_seed.items())
+    }
+    valid_seed_scores = [group for group in per_seed_scores.values()
+                         if group["n_valid_rows"]]
+    seed_balanced = {
+        name: (round(median(group[name] for group in valid_seed_scores), 4)
+               if valid_seed_scores else None)
+        for name in ABLATION
+    }
+    return {
+        "n_valid_heldout_rows": len(losses["raw"]),
+        "micro_median_abs_log_error": scores(losses),
+        "seed_balanced_median_of_seed_medians": seed_balanced,
+        "n_distinct_heldout_seeds": len({seed for _, seed in heldout}),
+        "n_heldout_seeds_with_valid_rows": len(valid_seed_scores),
+        "by_mode": {mode: {"n_valid_rows": len(group["raw"]), **scores(group)}
+                    for mode, group in sorted(per_mode.items())},
+        "by_seed": [{"seed": seed, **data} for seed, data in per_seed_scores.items()],
+        "trained_variable_support": training_support,
+        "heldout_rows_using_group_factor": {
+            name: selected[name] for name in variables + ("cell",)
+        },
+        "heldout_rows_falling_back_to_mode": {
+            name: fallback[name] for name in variables + ("cell",)
+        },
+    }
+
+
 def evaluate(train, heldout):
     """Fit solely on training games, evaluate all held-out reference games."""
     if not train or not heldout:
@@ -75,6 +186,18 @@ def evaluate(train, heldout):
     support_test = cell_seed_support(heldout)
     prediction = predict_error(heldout, modes, cells)
     seed_balanced = seed_balanced_error(heldout, modes, cells)
+    ablation = ablate_variables(train, heldout, modes, cells)
+    if (ablation["n_valid_heldout_rows"] != prediction["n"]
+            or any(ablation["heldout_rows_using_group_factor"][name]
+                   + ablation["heldout_rows_falling_back_to_mode"][name]
+                   != prediction["n"] for name in ("mode_cargo", "mode_distance",
+                                                "mode_era", "cell"))
+            or any(ablation["micro_median_abs_log_error"][name] != prediction[name]
+                   for name in ("raw", "mode", "cell"))
+            or any(ablation["seed_balanced_median_of_seed_medians"][name]
+                   != seed_balanced["median_of_seed_medians"][name]
+                   for name in ("raw", "mode", "cell"))):
+        raise ValueError("V306 ablation does not reconcile with historical scores")
     valid_train = sum(s["n_valid_rows"] for s in support_train.values())
     valid_test = sum(s["n_valid_rows"] for s in support_test.values())
     if prediction["n"] != valid_test:
@@ -129,6 +252,7 @@ def evaluate(train, heldout):
         "eligible_training_cells": eligible_cells,
         "heldout_median_abs_log_error": prediction,
         "heldout_seed_balanced_error": seed_balanced,
+        "heldout_revenue_variable_ablation": ablation,
         "heldout_error_by_mode": mode_scores,
         "heldout_seed_folds": [
             {key: fold[key] for key in ("fold", "raw", "mode", "cell", "n")}
@@ -147,6 +271,8 @@ def evaluate(train, heldout):
             "regardless of its line-year count; it is not a causal gain estimate.",
             "Only already constructed lines have realized revenue. No failed "
             "project counterfactual, causality, door A/B or default adoption.",
+            "Marginal mode+one-variable revenue factors only; sparse groups "
+            "fall back to mode, and line-year support is not independent-seed support.",
         ],
     }
 
