@@ -33,6 +33,23 @@ def distance(line):
     return math.hypot(a % 256 - b % 256, a // 256 - b // 256)
 
 
+def cargo_class(capacity_by_cargo):
+    """Separate mixed PASS/MAIL + freight instead of crediting all profit to freight.
+
+    A cargo ID without positive carrying capacity is not an observed service.
+    The classification describes a whole line, not a cargo-specific profit.
+    """
+    cargos = {str(k) for k, v in (capacity_by_cargo or {}).items()
+              if isinstance(v, (int, float)) and math.isfinite(v) and v > 0}
+    pax_mail = bool(cargos & {'0', '2'})
+    freight = bool(cargos - {'0', '2'})
+    if pax_mail and freight:
+        return 'mixed_passenger_freight'
+    if freight:
+        return 'freight'
+    return 'passenger_mail' if pax_mail else 'unknown'
+
+
 def summarize(mode):
     prefix = f'modal_{mode}_defaults_master85c88_40x5_20261025'
     j = json.loads((ROOT / (prefix + '.json')).read_text(encoding='utf-8'))
@@ -117,12 +134,10 @@ def summarize(mode):
                         '>=160' if dist is not None else 'unknown')
                 if isinstance(pl, (int, float)):
                     segments[band].append(pl)
-                cargo_ids = set(str(k) for k in (line.get('capacity_by_cargo') or {}))
-                cargo_class = ('freight' if cargo_ids - {'0', '2'} else
-                               'passenger_mail' if cargo_ids else 'unknown')
+                line_cargo_class = cargo_class(line.get('capacity_by_cargo'))
                 if isinstance(pl, (int, float)):
-                    cargo_classes[cargo_class].append(pl)
-                    cargo_distance[f'{cargo_class}/{band}'].append(pl)
+                    cargo_classes[line_cargo_class].append(pl)
+                    cargo_distance[f'{line_cargo_class}/{band}'].append(pl)
                 for cargo, value in (line.get('capacity_by_cargo') or {}).items():
                     cargos[str(cargo)] += 1
                     capacity[str(cargo)] += value
