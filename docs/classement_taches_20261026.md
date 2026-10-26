@@ -25,6 +25,10 @@ sa tâche reste ouverte pour les livraisons et le coût observateur.
 LATE-GAME-1 est bloquée jusqu'à la parité de profit OpexAI/AAAHogEx
 sur les 48 combinaisons date × mode × carte à cinq ans. V240 reste close ;
 V251 et IDLE-1 sont liés à cette reprise tardive.
+**Lot documentaire suivant : V251 est close comme suivi fusionné dans
+LATE-GAME-1**, soit **20 cases ouvertes** (19 dossiers et V261 tiers).
+L'inventaire V251 acquis reste consultable ; aucune industrie ne peut être
+achetée au titre du late game avant réussite des 48 cellules.
 Les estimations restent des **ordres de
 grandeur relatifs**, pas une promesse de calendrier. Pour tout code
 comportemental, OFF par défaut, tests/smoke/exposition et portes
@@ -61,9 +65,8 @@ pré-enregistrées restent obligatoires.
 | 15 | V253 | Très élevé ; choix global d'avions, V252 et cycles de renouvellement | A/B AIR | Très élevé |
 | 16 | V233 | Très élevé ; marchandises transformées, sources/débouchés et rivalité | Exposition causale, A/B | Très élevé |
 | 17 | V226 | Très élevé ; réseau ferroviaire en araignée | Architecture, Save/Load, A/B | Très élevé |
-| 18 | V251 | Très élevé ; construction d'industries et contrat économique de l'API | Exposition puis A/B | Très élevé |
-| 19 | V291 | Très élevé ; terrassement/canaux uniquement au niveau permissif | Garde de sécurité, exposition, A/B | Très élevé |
-| 20 | LATE-GAME-1 | Très élevé ; V240 clos, V251 et IDLE-1 ; aucun code avant parité ≥100 % sur 1930/1950/1970/1990 × RAIL/AIR/ROAD/multimodal × 256²/512²/1024² | Matrice 48 cellules, cinq ans chacune, puis protocole du nouveau mécanisme | Très élevé |
+| 18 | V291 | Très élevé ; terrassement/canaux uniquement au niveau permissif | Garde de sécurité, exposition, A/B | Très élevé |
+| 19 | LATE-GAME-1 (inclut V251) | Très élevé ; V240 clos, volet industries V251 et IDLE-1 ; aucun code avant parité ≥100 % sur 1930/1950/1970/1990 × RAIL/AIR/ROAD/multimodal × 256²/512²/1024² | Matrice 48 cellules, cinq ans chacune, puis protocole du nouveau mécanisme | Très élevé |
 
 ## Bloquées : annoter et passer sans nouvelle expérience
 
