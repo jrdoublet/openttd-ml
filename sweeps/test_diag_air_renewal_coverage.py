@@ -111,6 +111,44 @@ class RenewalCoverageTests(unittest.TestCase):
         ]
         self.assertEqual(audit(rows)["events_with_later_mature_line_report"], 1)
 
+    def test_later_published_report_can_cover_only_pre_replacement_year(self):
+        rows = [
+            e("1979-1-10", "V252_REPLACE", "line=74 old_veh=4 new_veh=5 price=100"),
+            e("1979-2-4", "LINE_REVENUE", "mode=air line=74 year=1979 age=2 real_prof=100"),
+        ]
+        result = audit(rows)
+        self.assertEqual(result["events_with_later_mature_line_report"], 1)
+        self.assertEqual(result["events_with_published_later_only_pre_purchase_period"], 1)
+        self.assertEqual(result.get("events_with_any_profit_period_after_purchase", 0), 0)
+        self.assertEqual(result.get("events_with_full_calendar_year_after_purchase", 0), 0)
+
+    def test_followup_measuring_purchase_year_is_only_partially_post(self):
+        rows = [
+            e("1974-9-8", "V252_REPLACE", "line=3 old_veh=4 new_veh=5 price=100"),
+            e("1975-2-1", "LINE_REVENUE", "mode=air line=3 year=1975 age=2 real_prof=100"),
+        ]
+        result = audit(rows)
+        self.assertEqual(result["events_with_later_mature_line_report"], 1)
+        self.assertEqual(result["events_with_any_profit_period_after_purchase"], 1)
+        self.assertEqual(result["events_with_later_partial_post_period_only"], 1)
+        self.assertEqual(result.get("events_with_full_calendar_year_after_purchase", 0), 0)
+        self.assertEqual(result["events_without_full_calendar_year_after_purchase"], 1)
+
+    def test_intervening_replacement_before_first_full_post_year_is_distinct(self):
+        rows = [
+            e("1973-7-2", "V252_REPLACE", "line=3 old_veh=4 new_veh=5 price=100"),
+            e("1974-1-5", "LINE_REVENUE", "mode=air line=3 year=1974 age=2 real_prof=100"),
+            e("1974-6-3", "V252_REPLACE", "line=3 old_veh=5 new_veh=6 price=100"),
+            e("1975-1-5", "LINE_REVENUE", "mode=air line=3 year=1975 age=3 real_prof=120"),
+            e("1976-1-5", "LINE_REVENUE", "mode=air line=3 year=1976 age=4 real_prof=130"),
+        ]
+        result = audit(rows)
+        self.assertEqual(result["events_with_later_mature_line_report"], 2)
+        self.assertEqual(result.get("events_with_intervening_v252", 0), 0)
+        self.assertEqual(result["events_with_full_calendar_year_after_purchase"], 2)
+        self.assertEqual(result["events_with_intervening_v252_before_full_calendar_year"], 1)
+
+
     def test_copy_log_gzip_conflict_rejected(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

@@ -72,14 +72,35 @@ def audit(lines):
     for date, line in replacements:
         future = [(yr, d) for (lid, yr), d in annual.items()
                   if line is not None and lid == line and d > date]
+        # LINE_REVENUE year=Y is published in Y but describes earnings during
+        # Y-1. A report published after the purchase can therefore describe
+        # only the *previous* year's activity. Conservatively, the purchase
+        # year is partial and the first full post-purchase calendar year is Y+1
+        # (observed by a LINE_REVENUE record whose year is at least Y+2).
+        any_post_period = [(yr, d) for yr, d in future if yr > date[0]]
+        full_post_year = [(yr, d) for yr, d in future if yr >= date[0] + 2]
         if future:
             counts["events_with_later_mature_line_report"] += 1
             first_date = min(d for _, d in future)
             if any(other_line == line and date < other_date < first_date
                    for other_date, other_line in replacements):
                 counts["events_with_intervening_v252"] += 1
+            if not any_post_period:
+                counts["events_with_published_later_only_pre_purchase_period"] += 1
         else:
             counts["events_without_later_mature_line_report"] += 1
+        if any_post_period:
+            counts["events_with_any_profit_period_after_purchase"] += 1
+            if not full_post_year:
+                counts["events_with_later_partial_post_period_only"] += 1
+        if full_post_year:
+            counts["events_with_full_calendar_year_after_purchase"] += 1
+            first_full_date = min(d for _, d in full_post_year)
+            if any(other_line == line and date < other_date < first_full_date
+                   for other_date, other_line in replacements):
+                counts["events_with_intervening_v252_before_full_calendar_year"] += 1
+        else:
+            counts["events_without_full_calendar_year_after_purchase"] += 1
     counts["observed_net_purchase_minus_sale_cost"] = 0
     counts["observed_marginal_replacement_profit"] = 0
     return dict(counts)
@@ -124,6 +145,8 @@ def directory_report(folder: Path):
                 "V252_REPLACE.price is purchase price; sale proceeds not reported",
                 "V252_REPLACE.profit is prior vehicle historical profit, not marginal benefit",
                 "LINE_REVENUE contains whole-line performance, not causal replacement yield",
+                "LINE_REVENUE year Y describes accounting year Y-1; reports published after a replacement may measure only pre-purchase activity",
+                "Full post-replacement calendar years conservatively require report_year >= purchase_year + 2; this does not isolate replacement effects",
                 "Other fleet reinforcement, age, competition, and alternative investments remain confounders",
                 "No actual paired same-world replacement/no-replacement counterfactual",
             ]}
