@@ -98,6 +98,7 @@ def analyse(logdirs):
     games = set()
     seen_event_keys = set()
     copied_sources = {}
+    canonical_names = {}
     for folder in logdirs:
         folder = Path(folder)
         if not folder.is_dir():
@@ -108,7 +109,15 @@ def analyse(logdirs):
                 continue
             # A copied .log and .log.gz may coexist. In order not to mask
             # contradictions, compare their EPOCH_BOUNDS lines exactly.
-            stream_id = (str(folder.resolve()), *game.groups())
+            # Canonical numeric identities prevent seed01/seed1 and r00/r0
+            # from being counted as different independent games. Different
+            # arms and directories remain separate experiments.
+            stream_id = (str(folder.resolve()), game.group(1),
+                         int(game.group(2)), int(game.group(3)))
+            basename = path.name[:-3] if path.suffix == ".gz" else path.name
+            previous = canonical_names.setdefault(stream_id, basename)
+            if previous != basename:
+                raise ValueError(f"identite de partie FRONT-PAX ambigue : {previous} et {basename}")
             events = []
             opener = gzip.open if path.suffix == ".gz" else open
             with opener(path, "rt", encoding="utf-8", errors="replace") as handle:

@@ -13,6 +13,38 @@ BASE = dict(roadMin="7", roadMax="7", railAir="200", railMax="200",
 
 
 class FrontPaxBoundedAudit(unittest.TestCase):
+    def test_numeric_seed_spelling_cannot_inflate_independent_games(self):
+        line = "OPEX 1970-1-2 EPOCH_BOUNDS " + " ".join(
+            f"{key}={value}" for key, value in BASE.items()) + "\n"
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "reference_seed1_r0.log").write_text(line, encoding="utf-8")
+            (root / "reference_seed01_r0.log").write_text(line, encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "identite de partie FRONT-PAX ambigue"):
+                analyse([root])
+
+    def test_numeric_repeat_spelling_cannot_inflate_independent_games(self):
+        line = "OPEX 1970-1-2 EPOCH_BOUNDS " + " ".join(
+            f"{key}={value}" for key, value in BASE.items()) + "\n"
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "reference_seed42_r0.log").write_text(line, encoding="utf-8")
+            (root / "reference_seed42_r00.log").write_text(line, encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "identite de partie FRONT-PAX ambigue"):
+                analyse([root])
+
+    def test_distinct_arms_seeds_and_repeats_stay_distinct(self):
+        line = "OPEX 1970-1-2 EPOCH_BOUNDS " + " ".join(
+            f"{key}={value}" for key, value in BASE.items()) + "\n"
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            for name in ("reference_seed42_r0.log", "variant_seed42_r0.log",
+                         "reference_seed100_r0.log", "reference_seed42_r1.log"):
+                (root / name).write_text(line, encoding="utf-8")
+            report = analyse([root])
+            self.assertEqual(report["games"], 4)
+            self.assertEqual(report["events"], 4)
+
     def test_real_epoch_exposes_provable_upper_clamp(self):
         out = classify(BASE)
         self.assertEqual(out["reason"], "proven_upper_rail_clamp")
