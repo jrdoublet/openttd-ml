@@ -843,7 +843,8 @@ function OpexMulti1RoadPromote(affordable, capitalBudget, level)
 function OpexMulti1AirOverRail(affordable, capitalBudget, level)
 {
   if (affordable == null || affordable.len() < 2 || !MODE_AIR || !MODE_RAIL || !MODE_ROAD) return;
-  local year = AIDate.GetYear(AIDate.GetCurrentDate());
+  local date = AIDate.GetCurrentDate();
+  local year = AIDate.GetYear(date);
   if (year < 1971 || year > 1973) return;
   local head = affordable[0];
   if (head == null || head.mode != "rail" || head.profitAnnual <= 0
@@ -867,6 +868,7 @@ function OpexMulti1AirOverRail(affordable, capitalBudget, level)
         || !("tile" in air.payload.siteA.town)
         || !("tile" in air.payload.siteB.town)) continue;
     AILog.Info("MULTI1_AIR_OVER_RAIL year=" + year
+        + " date=" + year + "-" + AIDate.GetMonth(date) + "-" + AIDate.GetDayOfMonth(date)
         + " action=" + (level == 2 ? "promote" : "shadow") + " rank=" + i
         + " src=" + air.payload.siteA.town.tile + " dst=" + air.payload.siteB.town.tile
         + " air_score=" + air.fundScore + " air_profit=" + air.profitAnnual
