@@ -27,25 +27,33 @@ python -X utf8 -m unittest discover -s sweeps -p test_diag_air_roi_ligne_coverag
 | Lignes construites sans relevé mûr | 11 |
 | Lignes mûres dont la flotte diffère au moins une fois de la flotte initiale | **1 808 / 1 921 (94,1 %)** |
 | Relevés mûrs avec flotte différente | **10 225 / 12 509 (81,7 %)** |
-| Coûts `AIR_BUILD` renseignés mais uniquement devis de plan | 1 932 |
+| Capital `AIR_BUILD.cost` renseigné après construction, parfois réconcilié | 1 932 |
 | CAPEX d'infrastructure réellement payé isolable | **0** |
 | Profit marginal contrefactuel avec et sans construction | **0** |
 
 La jointure événementielle est disponible ; la **calibration d'un ROI réellement
 marginal** ne l'est pas. `LINE_REVENUE.real_prof` porte le profit de la ligne entière
-et peut inclure renforts, rénovations et churn. Une conversion en rendement du
-capital sur `AIR_BUILD.cost` utiliserait un *devis* pour dénominateur et un
-profit de flotte évolutive pour numérateur ; ce ne serait pas un ROI réalisé.
+et peut inclure renforts, rénovations et churn. `AIR_BUILD.cost` est journalisé
+**après** construction et `OpexAirReconcileActualBuild` : son capital peut
+reprendre `AIAccounting.actualCost` avec un plancher égal au prix des avions,
+ou rester issu du modèle si la réconciliation ne s'applique pas.
+Ce champ n'isole donc ni les dépenses d'infrastructure, ni le capital net
+marginal, et un profit de flotte évolutive au numérateur ne donne pas le ROI
+causal d'une nouvelle liaison.
 
 La correspondance `PROJECT_CHOSEN` est celle de la paire `src/dst` le même
-jour, pas une identité persistante du projet sous Save/Load, et ne peut pas
-garantir à elle seule les coûts/alternatives réellement exécutables.
+jour, pas une identité persistante du projet sous Save/Load. Dans
+`task_air.nut:288-297`, cet événement est émis **après** la construction
+et la réconciliation de `plan`, non comme photographie pré-décision des
+coûts, priorités et alternatives réellement envisagés.
 Le lecteur ignore les relevés immatures, refuse les doublons `.log/.gz`
 contradictoires (même si les seuls comptages coïncident), signale les IDs
 réutilisés et les doublons année/ligne. Quatre contrats host-only vérifiés.
 
-**À faire avant clôture de la tâche :** attribuer les dépenses réelles aux
-gares/aéroports, avions et terrassements du nouveau chantier ; distinguer
+**À faire avant clôture de la tâche :** distinguer le coût comptable total
+du chantier, son éventuel plancher de capital et les dépenses attribuables
+aux gares/aéroports, avions et terrassements ; capturer les prévisions
+**avant** mutation du plan ; distinguer
 renforts V161 et renouvellements V252, traiter la censure des vieux avions,
 ajouter un témoin comparable au moment de la décision et mesurer l'opportunité
 écartée. Ne pas calibrer un coefficient financier avec les seuls ratios de
@@ -71,9 +79,24 @@ Les **12 509** relevés mûrs portent tous un nombre d'avions renseigné, mais
 une même quantité à deux dates ne garantit ni les mêmes avions ni les mêmes
 modèles, et ne prouve pas l'absence de mouvements intermédiaires. Les trois
 bras sont des catégories de projets construits, pas des groupes randomisés.
-`AIR_BUILD.cost` reste un **devis**, aucun coût marginal physique ni profit
-contrefactuel n'a été reconstitué. Cette ventilation ne justifie donc aucun
+`AIR_BUILD.cost` est un **capital post-chantier potentiellement réconcilié**,
+mais aucun coût net marginal par infrastructure ni profit contrefactuel
+n'a été reconstitué. Cette ventilation ne justifie donc aucun
 recalibrage de ROI, changement de défaut ou adoption.
+
+## 26 octobre — correction de provenance du capital AIR
+
+Audit du code actuel, sans nouveau banc ni changement de l'IA :
+`air_construction.nut:218-222` ouvre un compteur `AIAccounting`, dont le
+`GetCosts()` alimente `result.actualCost` à `:483`.
+`OpexAirReconcileActualBuild` (`air_route_economics.nut:99-135`) peut ensuite
+remplacer `plan.capital` par `max(result.actualCost, prix des appareils)` ;
+`task_air.nut:191-193,288-301` réutilise la **même table** `plan` et publie
+`PROJECT_CHOSEN` puis `AIR_BUILD` après cet appel. Le qualificatif initial
+« uniquement devis » était donc inexact. Le dossier conserve **0 coût net
+marginal d'infrastructure isolé et 0 contrefactuel** : cette correction
+de provenance ne transforme pas les données en preuve économique et
+ne change aucun effectif historique.
 
 Reproduction en choisissant un nom de fichier neuf :
 
