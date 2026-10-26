@@ -20,12 +20,54 @@ SETTINGS_DELTA = (
 )
 
 
+# air_site_funnel stays opt-in at 0. Stripping these fragments restores the
+# frozen info/settings/air_sites bytes. Do not rebaseline the SHA table.
+AIR_FUNNEL_INFO_DELTA = (
+    b'    AddSetting({\n'
+    b'      name = "air_site_funnel",\n'
+    b'      description = "Airport site search: 0 = current ring spiral (default), 1 = native tile-list funnel stopping at the best score",\n'
+    b'      min_value = 0, max_value = 1,\n'
+    b'      easy_value = 0, medium_value = 0, hard_value = 0,\n'
+    b'      custom_value = 0, flags = 0, step_size = 1\n'
+    b'    });\n'
+)
+AIR_FUNNEL_SETTINGS_DELTA = (
+    b'  local airSiteFunnel = AIController.GetSetting("air_site_funnel");\n'
+    b'  AIR_SITE_FUNNEL = (airSiteFunnel == 1) ? 1 : 0;\n'
+    b'  if (AIR_SITE_FUNNEL > 0) OpexAirFunnelInstall();\n'
+)
+AIR_SITE_C96_HEAD_NEW = (
+    b"  if (best == null) return;\n"
+    b"  local ops = -1;\n"
+    b"  if (AIR_SITE_OPS_MARK != null) ops = OpexOpsMeasureEnd(AIR_SITE_OPS_MARK);\n"
+    b"  local firstDist = OpexAirDistanceToRect(town.tile, firstAnchor, airport.width, airport.height);\n"
+)
+AIR_SITE_C96_HEAD_OLD = (
+    b"  if (best == null) return;\n"
+    b"  local firstDist = OpexAirDistanceToRect(town.tile, firstAnchor, airport.width, airport.height);\n"
+)
+AIR_SITE_C96_TAIL_NEW = b'      + " best_ring=" + bestRing + " probes=" + used + " ops=" + ops);\n'
+AIR_SITE_C96_TAIL_OLD = b'      + " best_ring=" + bestRing + " probes=" + used);\n'
+
+
+def _strip_once(raw, name, delta, replacement=b""):
+    assert raw.count(delta) == 1, f"{name}: expected precisely one unchanged opt-in fragment"
+    return raw.replace(delta, replacement, 1)
+
+
 def historical_bytes(name, raw):
-    delta = {"info.nut": INFO_DELTA, "settings.nut": SETTINGS_DELTA}.get(name)
-    if delta is None:
+    if name == "air_sites.nut":
+        raw = _strip_once(raw, name, AIR_SITE_C96_HEAD_NEW, AIR_SITE_C96_HEAD_OLD)
+        return _strip_once(raw, name, AIR_SITE_C96_TAIL_NEW, AIR_SITE_C96_TAIL_OLD)
+    deltas = {
+        "info.nut": (INFO_DELTA, AIR_FUNNEL_INFO_DELTA),
+        "settings.nut": (SETTINGS_DELTA, AIR_FUNNEL_SETTINGS_DELTA),
+    }.get(name)
+    if deltas is None:
         return raw
-    assert raw.count(delta) == 1, f"N75-MC {name}: expected precisely one unchanged opt-in fragment"
-    return raw.replace(delta, b"", 1)
+    for delta in deltas:
+        raw = _strip_once(raw, name, delta)
+    return raw
 
 
 def historical_info(info):

@@ -443,6 +443,9 @@ function OpexLoadSettings()
   N75_MULTI_CARGO = (n75MultiCargo >= 1 && n75MultiCargo <= 2) ? n75MultiCargo : 0;
   N75_MC_LAST_MONTH = (N75_MULTI_CARGO > 0) ? N75_MC_SAVED_MONTH : -1;
   N75_MC_SAVED_MONTH = -1;
+  local airSiteFunnel = AIController.GetSetting("air_site_funnel");
+  AIR_SITE_FUNNEL = (airSiteFunnel == 1) ? 1 : 0;
+  if (AIR_SITE_FUNNEL > 0) OpexAirFunnelInstall();
   V217_LAST_MONTH = -1;
   local v276 = AIController.GetSetting("v276_cand_slices");
   V276_CAND_SLICES = (v276 == 3) ? (bigMap ? 2 : 0) : v276;

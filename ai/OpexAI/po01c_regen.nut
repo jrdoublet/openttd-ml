@@ -534,3 +534,11 @@ function OpexPO01CStep(owner)
   }
   return true;
 }
+
+/* air_site_funnel=1 seulement : le generateur fige reste en place au defaut.
+ * Un yield apres la recherche entiere. Pas de yield dans air_site_funnel.nut. */
+function OpexPO01CAirFindSiteFunnel(po01dResult, town, airport, probes, requiredSlotTownId = -1)
+{
+  po01dResult.value = OpexAirFindSite(town, airport, probes, requiredSlotTownId);
+  yield null;
+}

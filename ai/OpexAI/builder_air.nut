@@ -47,6 +47,8 @@ require("air_trip.nut");
 
 require("air_sites.nut");
 
+require("air_site_funnel.nut");
+
 require("air_economics_c121.nut");
 
 require("air_catalog_c121.nut");

@@ -65,6 +65,41 @@
     "AIMap.GetTileX"
   ],
   [
+    "air_site_funnel.nut",
+    "tiles",
+    "AITile.IsBuildableRectangle,w,h"
+  ],
+  [
+    "air_site_funnel.nut",
+    "tiles",
+    "AITile.IsWaterTile"
+  ],
+  [
+    "air_site_funnel.nut",
+    "tiles",
+    "AITile.IsCoastTile"
+  ],
+  [
+    "air_site_funnel.nut",
+    "tiles",
+    "AITile.GetClosestTown"
+  ],
+  [
+    "air_site_funnel.nut",
+    "tiles",
+    "AIAirport.GetNearestTown,airport.type"
+  ],
+  [
+    "air_site_funnel.nut",
+    "tiles",
+    "AITile.GetCargoAcceptance,paxCargo,w,h,radius"
+  ],
+  [
+    "air_site_funnel.nut",
+    "tiles",
+    "AITile.GetCargoProduction,paxCargo,w,h,radius"
+  ],
+  [
     "air_towns.nut",
     "tiles",
     "AITile.IsStationTile"

@@ -360,6 +360,10 @@ V278_AIR_VALIDITY <- null;
 V278_AIR_EPOCH <- 0;
 C96_AIR_SITE_MAX_VALID <- 4;
 C96_AIR_SITE_EXTRA_RINGS <- 1;
+/* air_site_funnel : 0 = spirale actuelle, 1 = entonnoir. Defaut inchange. */
+AIR_SITE_FUNNEL <- 0;
+AIR_SITE_FUNNEL_BATCH <- 5;
+AIR_SITE_OPS_MARK <- null;
 C117_AIR_SAMPLE_DAYS <- 2;
 C117_AIR_LAST_DATE <- -1;
 C117_AIR_LINE_STATE <- {};

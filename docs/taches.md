@@ -7,6 +7,8 @@ ne créent pas une tâche. Protocole et pilotage des bancs : [AGENTS.md](../AGEN
 
 ## État courant
 
+**27/10 — `air_site_funnel` (branche `air-site-funnel`, défaut 0, non qualifié).** Recherche d'aéroport opt-in : une `AITileList` sur la boîte, bord `MP_VOID` rentré, tri par production couverte, arrêt au premier site qui passe les mêmes contrôles que la spirale. Smoke graine 100 × 5 ans (`airfunnel_smoke3_seed100_5y_20261027`) : scores des villes communes ≥ spirale, `ops_sites` 3,34 M contre 3,66 M, aéroports Opex −4, profit −51 k£/an, valeur −15 %. Verdict `diagnostic_only` (une graine). Pas de porte A/B. Défaut inchangé.
+
 ### Priorités ouvertes après les deux références monomodales du 25/10 (sans adoption)
 
 - [ ] **P1 — `rail_long_value_rank` : qualifier et classer le fret long constructible (opt-in, défaut 0 ; coût 4/5).** Ne plus relever globalement les bornes : vérifier site, A*, capital et ROI marginal pour une paire fret ≥160 tuiles, puis la comparer aux projets courts et AIR réellement finançables ; [analyse §4](analyse_rail_vs_air_seul_20261025.md#4-pistes-expérimentales-par-potentiel-de-gain-relatif-au-coût).
