@@ -39,4 +39,6 @@ scratch/
 # Dossier de travail du test de rechargement (sweeps/save_load_roundtrip.py) : cache OpenTTD
 # et sauvegardes des deux phases, regenerables.
 .scratch_saveload/
+# Etat temporaire du Save/Load MULTI-1 (conserver, mais pas suivre).
+.scratch_multi1_roadcargo_shadow_roundtrip/
 .vscode/settings.json
