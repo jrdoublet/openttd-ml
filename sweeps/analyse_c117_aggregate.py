@@ -308,32 +308,50 @@ def grouped_summary(rows, key_fn):
 
 
 def network_weighted(events):
-    pax = 0.0
+    # Each ratio must use passenger counts from exactly the windows that
+    # contribute its denominator; missing support is not zero exposure.
+    base_pax = 0.0
+    shadow_pax = 0.0
+    pred_pax = 0.0
+    seated_pax = 0.0
     seats = 0.0
     base_exposure = 0.0
     shadow_exposure = 0.0
     pred_exposure = 0.0
+
+    def nonnegative_finite(value):
+        return (isinstance(value, (int, float)) and value >= 0
+                and math.isfinite(value))
+
     for e in events:
         days = e.get("period_days")
-        if not isinstance(days, (int, float)) or days <= 0:
+        pax = e.get("pax")
+        if (not nonnegative_finite(days) or days == 0
+                or not nonnegative_finite(pax)):
             continue
         days = float(days)
-        pax += float(e.get("pax", 0) or 0)
-        seats += float(e.get("seat_legs", 0) or 0)
+        pax = float(pax)
+        seat_legs = e.get("seat_legs")
+        if nonnegative_finite(seat_legs) and (seat_legs > 0 or pax == 0):
+            seated_pax += pax
+            seats += float(seat_legs)
         base = e.get("base_monthly")
         shadow = e.get("shadow_monthly")
         pred = e.get("pred_carried")
-        if isinstance(base, (int, float)) and base > 0:
+        if nonnegative_finite(base) and base > 0:
+            base_pax += pax
             base_exposure += float(base) * days / 30.4
-        if isinstance(shadow, (int, float)) and shadow > 0:
+        if nonnegative_finite(shadow) and shadow > 0:
+            shadow_pax += pax
             shadow_exposure += float(shadow) * days / 30.4
-        if isinstance(pred, (int, float)) and pred > 0:
+        if nonnegative_finite(pred) and pred > 0:
+            pred_pax += pax
             pred_exposure += float(pred) * days / 30.4
     return {
-        "realized_base_ratio": div(pax, base_exposure),
-        "realized_shadow_ratio": div(pax, shadow_exposure),
-        "realized_pred_carried_ratio": div(pax, pred_exposure),
-        "load_factor": div(pax, seats),
+        "realized_base_ratio": div(base_pax, base_exposure),
+        "realized_shadow_ratio": div(shadow_pax, shadow_exposure),
+        "realized_pred_carried_ratio": div(pred_pax, pred_exposure),
+        "load_factor": div(seated_pax, seats),
     }
 
 
