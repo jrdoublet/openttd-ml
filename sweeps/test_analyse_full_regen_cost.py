@@ -8,12 +8,14 @@ et l'agrégation statistique par motif et par année.
 
 from __future__ import annotations
 
+import gzip
 import tempfile
 import unittest
 from pathlib import Path
 
 from sweeps.analyse_full_regen_cost import (
     aggregate_events,
+    collect_log_paths,
     parse_log_files,
     parse_log_line,
 )
@@ -71,6 +73,44 @@ class TestAnalyseFullRegenCost(unittest.TestCase):
         self.assertIsNotNone(row)
         self.assertEqual(row["ops"], 0)
         self.assertEqual(aggregate_events([row])["total_events"], 1)
+
+    def test_gzip_only_directory_is_read_instead_of_missing(self) -> None:
+        event = ("[0] [I] OPEX 1972-1-2 C76_REGEN phase=regen kind=full "
+                 "reason=periodic year=1972 ops=123 days=1\n")
+        with tempfile.TemporaryDirectory() as directory:
+            compressed = Path(directory) / "reference_seed42_r0.log.gz"
+            with gzip.open(compressed, "wt", encoding="utf-8") as stream:
+                stream.write(event)
+            paths = collect_log_paths([directory])
+            self.assertEqual(paths, [compressed])
+            report = aggregate_events(parse_log_files(paths))
+        self.assertEqual(report["total_events"], 1)
+        self.assertEqual(report["total_ops"], 123)
+
+    def test_matching_plain_and_gzip_copies_are_counted_once(self) -> None:
+        event = ("[0] [I] OPEX 1972-1-2 C76_REGEN phase=regen kind=full "
+                 "reason=periodic year=1972 ops=123 days=1\n")
+        with tempfile.TemporaryDirectory() as directory:
+            plain = Path(directory) / "reference_seed42_r0.log"
+            compressed = Path(directory) / "reference_seed42_r0.log.gz"
+            plain.write_text(event, encoding="utf-8")
+            with gzip.open(compressed, "wt", encoding="utf-8") as stream:
+                stream.write(event)
+            paths = collect_log_paths([directory, str(compressed), str(plain)])
+            self.assertEqual(paths, [plain])
+            self.assertEqual(aggregate_events(parse_log_files(paths))["total_ops"], 123)
+
+    def test_conflicting_plain_and_gzip_copies_are_rejected(self) -> None:
+        event = ("[0] [I] OPEX 1972-1-2 C76_REGEN phase=regen kind=full "
+                 "reason=periodic year=1972 ops=123 days=1\n")
+        with tempfile.TemporaryDirectory() as directory:
+            plain = Path(directory) / "reference_seed42_r0.log"
+            compressed = Path(directory) / "reference_seed42_r0.log.gz"
+            plain.write_text(event, encoding="utf-8")
+            with gzip.open(compressed, "wt", encoding="utf-8") as stream:
+                stream.write(event.replace("ops=123", "ops=124"))
+            with self.assertRaisesRegex(ValueError, "copies de journal contradictoires"):
+                collect_log_paths([directory])
 
     def test_parse_log_line_formats(self) -> None:
         # Ligne 1 : Reconstruction périodique annuelle C78 découpée terminée à l'application

@@ -13,6 +13,8 @@ Ce script fonctionne avec la bibliothèque standard Python 3 uniquement.
 from __future__ import annotations
 
 import argparse
+import gzip
+import hashlib
 import json
 import os
 import re
@@ -61,7 +63,8 @@ def parse_log_files(paths: List[Path], kind_filter: Optional[str] = "full") -> L
         if not path.is_file():
             continue
         try:
-            with open(path, "r", encoding="utf-8", errors="replace") as f:
+            opener = gzip.open if path.suffix == ".gz" else open
+            with opener(path, "rt", encoding="utf-8", errors="replace") as f:
                 for line_no, line in enumerate(f, start=1):
                     rec = parse_log_line(line)
                     if rec is not None:
@@ -173,7 +176,7 @@ def format_text_summary(summary: Dict[str, Any], kind_filter: Optional[str] = "f
 
 
 def collect_log_paths(inputs: List[str]) -> List[Path]:
-    """Collecte tous les fichiers .log depuis les arguments fournis (fichiers ou répertoires)."""
+    """Collecte les journaux et réconcilie les copies .log/.log.gz exactes."""
     collected: List[Path] = []
     for inp in inputs:
         p = Path(inp)
@@ -182,11 +185,31 @@ def collect_log_paths(inputs: List[str]) -> List[Path]:
         elif p.is_dir():
             for root, _, files in os.walk(p):
                 for f in files:
-                    if f.endswith(".log") or "engine" in f:
+                    if f.endswith((".log", ".log.gz")) or "engine" in f:
                         collected.append(Path(root) / f)
         else:
             sys.stderr.write(f"Avertissement : chemin introuvable : {inp}\n")
-    return sorted(list(set(collected)))
+    def decompressed_digest(path: Path) -> str:
+        digest = hashlib.sha256()
+        opener = gzip.open if path.suffix == ".gz" else open
+        with opener(path, "rb") as stream:
+            for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+                digest.update(chunk)
+        return digest.hexdigest()
+
+    by_logical_file: Dict[Path, Path] = {}
+    for path in sorted({p.resolve() for p in collected}):
+        base_name = path.name[:-3] if path.suffix == ".gz" else path.name
+        key = path.with_name(base_name)
+        previous = by_logical_file.get(key)
+        if previous is None:
+            by_logical_file[key] = path
+        else:
+            if decompressed_digest(previous) != decompressed_digest(path):
+                raise ValueError(f"copies de journal contradictoires : {previous} / {path}")
+            if previous.suffix == ".gz" and path.suffix != ".gz":
+                by_logical_file[key] = path
+    return sorted(by_logical_file.values())
 
 
 def main() -> int:
