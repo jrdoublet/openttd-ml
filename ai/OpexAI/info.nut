@@ -38,6 +38,11 @@ class OpexAIInfo extends AIInfo {
       min_value = 0, max_value = 3,
       easy_value = 3, medium_value = 3, hard_value = 3, custom_value = 3,
       flags = 0 });
+    AddSetting({ name = "p6_air_firstline_window",
+      description = "P6 experimental first AIR line: 0=immediate historical build (default), 1=wait for at most one additional catalog publication (32 ticks / 160000 scan opcodes) when two affordable distinct AIR pairs are already selected",
+      min_value = 0, max_value = 1,
+      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
+      flags = AICONFIG_BOOLEAN });
     /* --- 1. Systeme et instrumentation --- */
 
     /* V167 : un seul entier pilote panneaux, journal et sondes (somme de bits, voir settings.nut).

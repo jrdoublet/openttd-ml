@@ -619,6 +619,8 @@ function OpexAI::Save()
     if (V250_RIGHTS != 0) OpexSaveV250(shortSave, this);
     if (N75_MULTI_CARGO > 0) shortSave.n75McLastMonth <- N75_MC_LAST_MONTH;
     if (OpexC121StrategyStateEnabled()) OpexSaveC121Strategy(shortSave);
+    if (P6_AIR_FIRSTLINE_WINDOW != 0 && this._p6FirstlineWindowConsumed)
+      shortSave.p6FirstlineWindowConsumed <- true;
     if (OPEX_AIR_ROLLBACKS.len() > 0) shortSave.airRollbacks <- OPEX_AIR_ROLLBACKS;
     if (V259_BRIDGE_RENEW != 0) {
       shortSave.v259KnownBridgesCount <- this._v259KnownBridgesCount;
@@ -721,6 +723,8 @@ function OpexAI::Save()
   if (V284_RAIL_GROWTH > 0) saveObj.v284Growth <- this._v284State;
 
   if (OpexC121StrategyStateEnabled()) OpexSaveC121Strategy(saveObj);
+  if (P6_AIR_FIRSTLINE_WINDOW != 0 && this._p6FirstlineWindowConsumed)
+    saveObj.p6FirstlineWindowConsumed <- true;
   if (OPEX_AIR_ROLLBACKS.len() > 0) saveObj.airRollbacks <- OPEX_AIR_ROLLBACKS;
   if (V259_BRIDGE_RENEW != 0) {
     saveObj.v259KnownBridgesCount <- this._v259KnownBridgesCount;
@@ -746,6 +750,12 @@ function OpexAI::Load(version, data)
   this._po01cPending = false;
   this._po01cLineState = null;
   this._po01cLastTick = -1;
+  /* C78 repart d'un scan neuf apres Load : ne jamais rouvrir une attente P6
+   * active lors du Save et ainsi depasser le budget de ticks initial. */
+  this._p6FirstlineWindow = null;
+  this._p6FirstlineWindowConsumed = data != null
+      && ("p6FirstlineWindowConsumed" in data)
+      && data.p6FirstlineWindowConsumed == true;
   V276_CATALOG_TASK = null;
   if (this._taskQueue != null) foreach (task in this._taskQueue) {
     if ("v276" in task) delete task.v276;

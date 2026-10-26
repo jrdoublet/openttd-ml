@@ -69,6 +69,7 @@ function OpexLoadSettings()
   MODE_RAIL = AIController.GetSetting("mode_rail") != 0;
   MODE_ROAD = AIController.GetSetting("mode_road") != 0;
   MODE_WATER = AIController.GetSetting("mode_water") != 0;
+  P6_AIR_FIRSTLINE_WINDOW = AIController.GetSetting("p6_air_firstline_window");
   // V261 point 6 : couper aussi les modes que la partie interdit aux IA ou dont le plafond vaut 0.
   if (MODE_AIR && !OpexModeAllowedByGame("air")) MODE_AIR = false;
   if (MODE_RAIL && !OpexModeAllowedByGame("rail")) MODE_RAIL = false;

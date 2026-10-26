@@ -480,6 +480,8 @@ C76_EVENTS_SINCE_PREV <- null;
  * Opex publie son vivier AIR a chaque passage projects ; le harnais shared fournit les build_date AAA. */
 C78_SLOT_INTERCEPT_PROBE <- false;
 C78_SLOT_PASS_COUNTER <- 0;
+/* P6 : attente bornee d'un lot AIR deja en cours avant la premiere construction. */
+P6_AIR_FIRSTLINE_WINDOW <- 0;
 
 /* Tunnel mensuel candidats/acceptes/finances/tentes/construits. Defaut 0 : un AILog
  * par passe projects, sans changer la selection. */

@@ -170,6 +170,10 @@ class TestV158BestReadersAudit(unittest.TestCase):
         # Post-rebuild / post-reselect directs
         "orchestrator.nut:OpexAI::_c76DoFullRegen": "Exécuté immédiatement après _rebuildProjects (resélection fraîche)",
         "scheduler_tasks.nut:OpexAI::_dispatchCatalog": "Exécuté immédiatement après _rebuildProjects ou OpexReselectProjects",
+        "scheduler_tasks.nut:OpexP6FirstlineWindowHold": (
+            "P6 opt-in : appele exclusivement dans _tryBuildProjects, "
+            "immediatement apres _ensureSelection, avant toute construction"
+        ),
         "task_v249.nut:OpexV249MaxListedCapital": "V249 : borne de garde (capital max listé) ; une liste périmée suffit, pas de resélection pour ne pas déplacer son coût",
         "task_v249.nut:OpexV249BestAdmissibleCapital": "V249 mode 2 : meilleur projet admissible et finançable dans projects.best sans resélection",
     }
@@ -208,6 +212,16 @@ class TestV158BestReadersAudit(unittest.TestCase):
         calls = sum(p.read_text(encoding="utf-8").count("OpexAirF1Before(")
                     for p in AI.glob("*.nut"))
         self.assertEqual(calls, 3)  # declaration + renfort + V252
+
+    def test_p6_best_reader_has_single_materialized_call_site(self):
+        source = _read("task_projects.nut")
+        executor = _body(source, "function OpexAI::_tryBuildProjects(year)")
+        self.assertLess(executor.index("this._ensureSelection();"),
+                        executor.index("OpexP6FirstlineWindowHold(this)"))
+        self.assertLess(executor.index("OpexP6FirstlineWindowHold(this)"),
+                        executor.index("OpexC75BypassEnsureYear(year);"))
+        self.assertEqual(sum(p.read_text(encoding="utf-8").count("OpexP6FirstlineWindowHold(")
+                             for p in AI.glob("*.nut")), 2)  # declaration + executor
 
     def test_audit_all_best_readers(self):
         nut_files = list(AI.glob("*.nut"))

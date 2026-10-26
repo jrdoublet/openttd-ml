@@ -1008,6 +1008,13 @@ function OpexAI::_tryBuildProjects(year)
 {
   local spPass = PROBE_SPAN_TRACE ? OpexSpanBegin("projects.pass") : null;
   this._ensureSelection();
+  /* P6 : point d'entree commun a projects ET aux constructions reactives
+   * C77 (orchestrator). Aucun de ces chemins ne peut depenser avant la fin
+   * de la fenetre ; le chemin OFF conserve son ordre et ses traces. */
+  if (P6_AIR_FIRSTLINE_WINDOW != 0 && OpexP6FirstlineWindowHold(this)) {
+    if (spPass != null) OpexSpanEnd(spPass);
+    return false;
+  }
   if (R1_R3_TEST_ONLY) R1_R3_TEST_PASS++;
   local c75KPassData = null;
   local c75StopReason = null;

@@ -115,6 +115,9 @@ class OpexAI extends AIController {
   _abandonedPairs = null;
   _abandonCounts = null;
   _airBuilt = false;
+  /* P6 : l'attente est consommee une fois, y compris apres Save/Load. */
+  _p6FirstlineWindowConsumed = false;
+  _p6FirstlineWindow = null;
   _waterBuilt = false;
   /* Ordonnanceur permanent : une tache utile et due par tour de file. dueCycle reporte le
    * travail inutile a un tour futur ; le calendrier du jeu ne reordonne jamais la file. */

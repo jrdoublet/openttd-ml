@@ -958,6 +958,85 @@ function OpexAI::_dispatchAirFleet(task, year)
   }
 
 }
+/* P6 : une seule courte fenetre sur le premier catalogue AIR. Les deux paires
+ * doivent etre DEJA publiees, selectionnees, vivantes et financables. Aucun
+ * appel a OpexAirPlans, OpexC121CatalogChoice ni recherche de site ici. La
+ * publication suivante ou l'une des deux bornes ferme l'attente pour toujours.
+ * Le curseur C78 et ses publications continuent dans leurs taches habituelles. */
+function OpexP6FirstlineWindowHold(owner)
+{
+  if (P6_AIR_FIRSTLINE_WINDOW == 0 || owner._airBuilt || !MODE_AIR
+      || !C121_CATALOG_FIRST_YEAR_ACTIVE || owner._projects == null
+      || owner._projects.best == null) return false;
+
+  local catalogTask = owner._taskQueue != null && owner._taskQueue.len() > 0
+      ? owner._taskQueue[0] : null;
+  local scan = catalogTask != null && ("c78AirRebuild" in catalogTask)
+      ? catalogTask.c78AirRebuild : null;
+  local selected = owner._projects.best;
+  local capital = OpexAvailableCapital();
+  local pairs = {};
+  local count = 0;
+  local head = null;
+  foreach (project in selected) {
+    if (project == null || !("mode" in project) || project.mode != "air"
+        || !("payload" in project) || project.payload == null) continue;
+    if (OpexProjectFinanceCapital(project) > capital
+        || !OpexModeVehicleRoom("air", OpexTensionProjectVehicleCount(project))
+        || !OpexAirBatchPlanStillLive(project.payload, owner._lines)) continue;
+    local key = OpexProjectKeyFor(project);
+    if (key in pairs) continue;
+    pairs.rawset(key, true);
+    count++;
+    if (head == null) head = project;
+    if (count >= 3) break;
+  }
+
+  local now = AIController.GetTick();
+  local state = owner._p6FirstlineWindow;
+  if (state == null) {
+    if (owner._p6FirstlineWindowConsumed || count != 2 || scan == null
+        || scan.phase == "apply" || ("done" in scan.cursor && scan.cursor.done))
+      return false;
+    owner._p6FirstlineWindowConsumed = true;
+    state = { startTick = now, startAirOps = scan.airOps,
+      startPublished = scan.lastPublishedCount,
+      initialSrc = head.src, initialDst = head.dst };
+    owner._p6FirstlineWindow = state;
+    if (DECISION_LOG) OpexDecide("P6_FIRSTLINE", "phase=wait tick=" + now
+        + " first=" + head.src + ":" + head.dst
+        + " profit=" + head.profitAnnual + " roi=" + head.roi
+        + " finance=" + OpexProjectFinanceCapital(head)
+        + " available=" + capital + " viable_pairs=" + count
+        + " published=" + scan.lastPublishedCount + " scan_ops=" + scan.airOps);
+    return true;
+  }
+
+  local ticks = now - state.startTick;
+  local scanOps = scan != null ? scan.airOps - state.startAirOps : 0;
+  local reason = null;
+  if (scan == null || scan.phase == "apply"
+      || ("done" in scan.cursor && scan.cursor.done)) reason = "scan_done";
+  else if (scan.lastPublishedCount > state.startPublished) reason = "published";
+  else if (ticks < 0 || ticks >= 32) reason = "tick_limit";
+  else if (scanOps < 0 || scanOps >= 160000) reason = "ops_limit";
+  else if (count < 2) reason = "viability_lost";
+  else if (count >= 3) reason = "third_pair";
+
+  if (reason == null) return true;
+  owner._p6FirstlineWindow = null;
+  if (DECISION_LOG) OpexDecide("P6_FIRSTLINE", "phase=release reason=" + reason
+      + " ticks=" + ticks + " scan_ops=" + scanOps
+      + " published_delta=" + (scan != null
+          ? scan.lastPublishedCount - state.startPublished : -1)
+      + " viable_pairs=" + count + " available=" + capital
+      + " initial=" + state.initialSrc + ":" + state.initialDst
+      + " selected=" + (head != null ? head.src + ":" + head.dst : "none")
+      + " profit=" + (head != null ? head.profitAnnual : -1)
+      + " roi=" + (head != null ? head.roi : -1));
+  return false;
+}
+
 function OpexAI::_dispatchProjects(task, year)
 {
   this._ensureSelection();
@@ -987,7 +1066,16 @@ function OpexAI::_dispatchProjects(task, year)
     this._c39CadenceLastTick = tick;
     this._c39CadenceLastCycle = this._taskCycle;
   }
-  if (this._portfolioInvalidated) { if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle); return false; }
+  if (this._portfolioInvalidated) {
+    /* Une invalidation ferme immediatement l'attente : sa reconstruction C78
+     * ne saurait profiter d'une nouvelle fenetre apres ce tour. */
+    if (P6_AIR_FIRSTLINE_WINDOW != 0 && this._p6FirstlineWindow != null) {
+      this._p6FirstlineWindow = null;
+      if (DECISION_LOG) OpexDecide("P6_FIRSTLINE", "phase=release reason=invalidated");
+    }
+    if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);
+    return false;
+  }
   if (C56_TASK_TRACE) {
     local builtProjects = this._tryBuildProjects(year);
     OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);
