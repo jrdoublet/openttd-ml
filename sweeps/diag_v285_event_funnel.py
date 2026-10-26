@@ -19,8 +19,9 @@ import re
 
 
 LOG_NAME = re.compile(r"^(?P<arm>.+)_seed(?P<seed>\d+)_r(?P<repeat>\d+)\.log(?:\.gz)?$")
+OPEX_COMPANY = re.compile(r"\[(?P<company>\d+)\]\s+\[[A-Z]\]\s+OPEX\b")
 EVENT = re.compile(
-    r"\bOPEX\s+(?P<day>\d{4}-\d{1,2}-\d{1,2})\s+"
+    r"\[0\]\s+\[I\]\s+OPEX\s+(?P<day>\d{4}-\d{1,2}-\d{1,2})\s+"
     r"(?P<tag>V285_GATE|V285_RESULT|V285)\b(?P<rest>[^\r\n]*)"
 )
 OPEX_DAY = re.compile(r"\[0\]\s+\[I\]\s+OPEX\s+(\d{4}-\d{1,2}-\d{1,2})\b")
@@ -50,6 +51,11 @@ def read_one(path):
                 candidate_day = tuple(int(part) for part in observed_day[1].split("-"))
                 if last_opex_day is None or candidate_day > last_opex_day:
                     last_opex_day = candidate_day
+            # The same engine log can include messages from the rival company.
+            # Only company [0] belongs to OpexAI in this campaign format.
+            emitter = OPEX_COMPANY.search(raw)
+            if emitter is not None and int(emitter["company"]) != 0:
+                continue
             # Other V285 actions are out of scope, but a malformed selected
             # marker must not disappear without an explicit coverage warning.
             selected = ("V285_GATE" in raw or "V285_RESULT" in raw
@@ -284,23 +290,37 @@ def analyze(inputs):
     groups = defaultdict(list)
     for path in _paths(inputs):
         name = path.name[:-3] if path.name.endswith(".gz") else path.name
-        groups[(str(path.parent), name)].append(path)
+        match = LOG_NAME.fullmatch(name)
+        logical_key = (str(path.parent), match["arm"],
+                       int(match["seed"]), int(match["repeat"]))
+        groups[logical_key].append(path)
     runs = []
-    duplicates_collapsed = 0
-    for (_, name), files in sorted(groups.items()):
-        identity = LOG_NAME.fullmatch(name)
+    gzip_copies_collapsed = 0
+    numeric_aliases_collapsed = 0
+    # Preserve the previous filename-lexicographic run order for consumers,
+    # while detecting aliases using numeric game identities.
+    ordered_groups = sorted(groups.items(), key=lambda item: (
+        item[0][0], min(path.name for path in item[1])))
+    for (_, arm, seed, repeat), files in ordered_groups:
         parsed = [(file, read_one(file)) for file in files]
         first_file, first = parsed[0]
         for file, alternative in parsed[1:]:
             if (first["signatures"] != alternative["signatures"]
                     or first["unparsed_marker_lines"] != alternative["unparsed_marker_lines"]
                     or first["last_opex_day"] != alternative["last_opex_day"]):
-                raise ValueError(f"copies log/gzip contradictoires : {first_file} / {file}")
-        duplicates_collapsed += len(files) - 1
+                first_base = (first_file.name[:-3] if first_file.name.endswith(".gz")
+                              else first_file.name)
+                other_base = (file.name[:-3] if file.name.endswith(".gz")
+                              else file.name)
+                kind = "log/gzip" if first_base == other_base else "alias numerique"
+                raise ValueError(f"copies {kind} contradictoires : {first_file} / {file}")
+        basenames = [file.name[:-3] if file.name.endswith(".gz") else file.name
+                     for file in files]
+        gzip_copies_collapsed += len(files) - len(set(basenames))
+        numeric_aliases_collapsed += len(set(basenames)) - 1
         summary = summarize(first["events"], last_opex_day=first["last_opex_day"])
         runs.append({
-            "arm": identity["arm"], "seed": int(identity["seed"]),
-            "repeat": int(identity["repeat"]),
+            "arm": arm, "seed": seed, "repeat": repeat,
             "source_files": [str(file) for file in files],
             "observed_unique_events": len(first["events"]),
             "raw_event_lines": first["raw_events"],
@@ -319,7 +339,8 @@ def analyze(inputs):
     return {
         "scope": "observed V285 log events only; no build inference from intention or causal ROI",
         "source_files": sum(len(group) for group in groups.values()),
-        "log_gzip_copies_collapsed": duplicates_collapsed,
+        "log_gzip_copies_collapsed": gzip_copies_collapsed,
+        "numeric_name_aliases_collapsed": numeric_aliases_collapsed,
         "logical_games": len(runs),
         "by_arm": {arm: dict(sorted(values.items())) for arm, values in sorted(by_arm.items())},
         "runs": runs,

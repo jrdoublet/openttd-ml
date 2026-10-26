@@ -184,6 +184,27 @@ class EventFunnelTests(unittest.TestCase):
         self.assertEqual(row["unparsed_marker_lines"], 1)
         self.assertEqual(row["counts"]["gate_events"], 1)
 
+    def test_foreign_company_markers_are_not_opex_events_or_parse_failures(self):
+        own = gate() + intent() + result("moved") + result("completed")
+        foreign = (gate(line="15").replace("[0] [I]", "[1] [I]") +
+                   intent(line="15").replace("[0] [I]", "[1] [I]") +
+                   result("moved", line="15").replace("[0] [I]", "[1] [I]") +
+                   result("completed", line="15").replace("[0] [I]", "[1] [W]"))
+        row = analyze([self.write("v285m6_seed42_r0.log", own + foreign)])["runs"][0]
+        self.assertEqual(row["counts"]["gate_events"], 1)
+        self.assertEqual(row["counts"]["wagon_intent_events"], 1)
+        self.assertEqual(row["counts"]["confirmed_move_operations"], 1)
+        self.assertEqual(row["unparsed_marker_lines"], 0)
+        self.assertEqual(row["last_logged_opex_day"], "1971-01-04")
+
+    def test_foreign_only_markers_do_not_count_as_local_moves(self):
+        foreign = (intent().replace("[0] [I]", "[1] [I]") +
+                   result().replace("[0] [I]", "[1] [I]"))
+        row = analyze([self.write("v285m6_seed42_r0.log", foreign)])["runs"][0]
+        self.assertEqual(row["observed_unique_events"], 0)
+        self.assertEqual(row["counts"]["confirmed_move_operations"], 0)
+        self.assertIsNone(row["last_logged_opex_day"])
+
     def test_gzip_only_and_matching_text_gzip_count_single_logical_game(self):
         src = gate() + intent() + result() + result("completed")
         compressed = self.write("v285m6_seed42_r0.log.gz", src)
@@ -213,6 +234,40 @@ class EventFunnelTests(unittest.TestCase):
         self.assertEqual(report["by_arm"]["v285m6"]["confirmed_move_operations"], 1)
         self.assertEqual([r["seed"] for r in report["runs"] if r["arm"] == "v285m6"],
                          [42, 42, 7])
+
+    def test_numeric_seed_aliases_collapse_when_events_match(self):
+        self.write("v285m6_seed1_r0.log", intent())
+        self.write("v285m6_seed01_r0.log", intent())
+        report = analyze([self.directory])
+        self.assertEqual(report["logical_games"], 1)
+        self.assertEqual(report["numeric_name_aliases_collapsed"], 1)
+        self.assertEqual(report["log_gzip_copies_collapsed"], 0)
+        self.assertEqual(report["by_arm"]["v285m6"]["wagon_intent_events"], 1)
+
+    def test_numeric_repetition_aliases_collapse_when_events_match(self):
+        self.write("v285m6_seed1_r0.log", intent())
+        self.write("v285m6_seed1_r00.log.gz", intent())
+        report = analyze([self.directory])
+        self.assertEqual(report["logical_games"], 1)
+        self.assertEqual(report["numeric_name_aliases_collapsed"], 1)
+        self.assertEqual(report["log_gzip_copies_collapsed"], 0)
+
+    def test_numeric_alias_with_contradictory_events_fails_closed(self):
+        self.write("v285m6_seed42_r0.log", gate(reason="eligible"))
+        self.write("v285m6_seed042_r00.log", gate(reason="profit"))
+        with self.assertRaisesRegex(ValueError, "copies alias numerique contradictoires"):
+            analyze([self.directory])
+
+    def test_numeric_alias_and_gzip_count_each_copy_category_once(self):
+        self.write("v285m6_seed42_r0.log", intent())
+        self.write("v285m6_seed42_r0.log.gz", intent())
+        self.write("v285m6_seed042_r00.log", intent())
+        report = analyze([self.directory])
+        self.assertEqual(report["source_files"], 3)
+        self.assertEqual(report["logical_games"], 1)
+        self.assertEqual(report["log_gzip_copies_collapsed"], 1)
+        self.assertEqual(report["numeric_name_aliases_collapsed"], 1)
+        self.assertEqual(report["by_arm"]["v285m6"]["wagon_intent_events"], 1)
 
     def test_distinct_directories_do_not_collapse_same_basename(self):
         left, right = self.directory / "one", self.directory / "two"
