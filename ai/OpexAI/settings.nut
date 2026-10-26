@@ -75,6 +75,9 @@ function OpexLoadSettings()
   P3_AIR_FLEET_WINDOWS = {};
   local fp2Overlap = AIController.GetSetting("front_pax2_bounded_overlap");
   FRONT_PAX2_BOUNDED_OVERLAP = (fp2Overlap == 1 || fp2Overlap == 2) ? fp2Overlap : 0;
+  local p2Opportunity = AIController.GetSetting("rail_cargo_opportunity_rank");
+  P2_RAIL_CARGO_OPPORTUNITY_RANK = (p2Opportunity == 1 || p2Opportunity == 2) ? p2Opportunity : 0;
+  P2_OPPORTUNITY_STAMP = 0;
   // V261 point 6 : couper aussi les modes que la partie interdit aux IA ou dont le plafond vaut 0.
   if (MODE_AIR && !OpexModeAllowedByGame("air")) MODE_AIR = false;
   if (MODE_RAIL && !OpexModeAllowedByGame("rail")) MODE_RAIL = false;

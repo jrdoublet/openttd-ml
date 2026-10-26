@@ -76,6 +76,22 @@ FP2_SETTINGS_DELTA = (
 )
 FP2_DELTAS = {"info.nut": FP2_INFO_DELTA, "settings.nut": FP2_SETTINGS_DELTA}
 
+# P2 is an opt-in, default-OFF rank experiment. Its exact settings bytes are
+# excluded from the frozen historic inventory; all prior digests stay fixed.
+P2_INFO_DELTA = (
+    b'    AddSetting({ name = "rail_cargo_opportunity_rank",\n'
+    b'      description = "P2 prepared RAIL freight opportunity: 0=historical (default), 1=passive top-K shadow, 2=one adjacent same-C77-tier promotion (8% score, 93% fund, 80% profit)",\n'
+    b'      min_value = 0, max_value = 2,\n'
+    b'      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,\n'
+    b'      flags = 0 });\n'
+)
+P2_SETTINGS_DELTA = (
+    b'  local p2Opportunity = AIController.GetSetting("rail_cargo_opportunity_rank");\n'
+    b'  P2_RAIL_CARGO_OPPORTUNITY_RANK = (p2Opportunity == 1 || p2Opportunity == 2) ? p2Opportunity : 0;\n'
+    b'  P2_OPPORTUNITY_STAMP = 0;\n'
+)
+P2_DELTAS = {"info.nut": P2_INFO_DELTA, "settings.nut": P2_SETTINGS_DELTA}
+
 # The two PO01D-frozen producer files gained FP2 helpers and guarded call
 # sites. Verify the precise independent helper contents and delete ONLY those
 # additions for historical byte-hash checks. Never change the frozen digests.
@@ -153,6 +169,10 @@ def historical_bytes(name, raw):
     if fp2_delta is not None:
         assert raw.count(fp2_delta) == 1, f"FP2 {name}: expected precisely one unchanged opt-in fragment"
         raw = raw.replace(fp2_delta, b"", 1)
+    p2_delta = P2_DELTAS.get(name)
+    if p2_delta is not None:
+        assert raw.count(p2_delta) == 1, f"P2 {name}: expected precisely one unchanged opt-in fragment"
+        raw = raw.replace(p2_delta, b"", 1)
     if name == "air_planning.nut":
         raw = _strip_fp2_block(
             raw, name, FP2_PLANNING_BLOCK_START, FP2_PLANNING_BLOCK_END,

@@ -652,7 +652,156 @@ function OpexSelectRejectLogTopK(dropped, best, limit)
   OpexDecide("SELECT_REJECT", "pair=" + pairStr + " type=" + typeStr + " reason=topk rank=" + limit + " score=" + score + " top=" + topScore);
 }
 
-function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSelection = true)
+/* P2 : quote economique du trace deja termine. Le devis de commandes exact
+ * (OpexQuoteRailCapital) n'est disponible qu'a l'execution : aucun test-mode
+ * ni commande de construction ne doit etre lance pendant le classement. */
+function OpexP2PreparedRailQuote(project, capitalBudget, abandonedPairs)
+{
+  if (project == null || !("mode" in project) || project.mode != "rail"
+      || !("payload" in project) || project.payload == null
+      || !("cargo" in project) || !AICargo.IsValidCargo(project.cargo)
+      || !("economicsDate" in project)
+      || project.economicsDate != AIDate.GetCurrentDate()
+      || !("profitAnnual" in project) || project.profitAnnual <= 0
+      || !("capital" in project) || project.capital <= 0
+      || OpexCandidateIsAbandoned(project, abandonedPairs)) return 0;
+  local payload = project.payload;
+  if (!("railPlan" in payload) || payload.railPlan == null) return 0;
+  local plan = payload.railPlan;
+  if (!("ok" in plan) || plan.ok != true
+      || !("planA" in plan) || plan.planA == null
+      || !("planB" in plan) || plan.planB == null
+      || !("tiles" in plan) || plan.tiles == null || plan.tiles.len() < 2
+      || !("capital" in plan) || plan.capital <= 0
+      || !("capital" in payload) || payload.capital != plan.capital
+      || project.capital != plan.capital) return 0;
+  local finance = OpexProjectFinanceCapital(project);
+  if (finance <= 0 || finance > capitalBudget) return 0;
+  return plan.capital;
+}
+
+/* L'adversaire est strictement une nouvelle ligne rail PASS/MAIL deja tracee,
+ * ou AIR avec devis economique de la date. Flottes/V252, ROAD et WATER exclus. */
+function OpexP2OpportunityRival(project, capitalBudget, abandonedPairs)
+{
+  if (project == null || !("mode" in project) || !("profitAnnual" in project)
+      || project.profitAnnual <= 0 || !("fundScore" in project)
+      || project.fundScore <= 0) return false;
+  local finance = OpexProjectFinanceCapital(project);
+  if (finance <= 0 || finance > capitalBudget) return false;
+  if (project.mode == "rail") {
+    if (!("cargo" in project) || !AICargo.IsValidCargo(project.cargo)
+        || !(AICargo.HasCargoClass(project.cargo, AICargo.CC_PASSENGERS)
+            || AICargo.HasCargoClass(project.cargo, AICargo.CC_MAIL)))
+      return false;
+    return OpexP2PreparedRailQuote(project, capitalBudget, abandonedPairs) > 0;
+  }
+  if (project.mode != "air" || !("payload" in project)
+      || project.payload == null || !("economicsDate" in project)
+      || project.economicsDate != AIDate.GetCurrentDate()
+      || OpexCandidateIsAbandoned(project, abandonedPairs)) return false;
+  local plan = project.payload;
+  if (!("economics" in plan) || plan.economics == null
+      || !("decisionEconomics" in plan) || plan.decisionEconomics == null
+      || !("capital" in plan.economics) || plan.economics.capital <= 0
+      || !("capital" in plan.decisionEconomics) || plan.decisionEconomics.capital <= 0
+      || !("profitAnnual" in plan.decisionEconomics)
+      || plan.decisionEconomics.profitAnnual != project.profitAnnual
+      || !("decisionConstructionCapital" in project)
+      || project.decisionConstructionCapital != plan.decisionEconomics.capital
+      || !("decisionFinanceCapital" in project)
+      || project.decisionFinanceCapital <= 0) return false;
+  return true;
+}
+
+/* Le top-K a DEJA ete finance individuellement et trie par C77, score, revenu.
+ * Une seule permutation adjacente, strictement gagnante apres +8 %; aucune
+ * mutation du score, du plan, de _bs* ou des alternatives en mode 1. */
+function OpexP2OpportunityTopK(affordable, capitalBudget, abandonedPairs, mode)
+{
+  local mark = OpexOpsMeasureBegin();
+  /* Seulement ON : chaque election rend les anciennes traces inexploitables.
+   * Ne rien annoter en SHADOW et ne rien sauvegarder au Load. */
+  if (mode == 2) P2_OPPORTUNITY_STAMP++;
+  local chosenIndex = -1;
+  local chosenQuote = 0;
+  local chosenScore = 0.0;
+  local chosenRivalScore = 0.0;
+  for (local i = 1; i < affordable.len(); i++) {
+    local freight = affordable[i];
+    if (freight == null || !("kind" in freight) || freight.kind != "freight"
+        || !("cargo" in freight) || !AICargo.IsValidCargo(freight.cargo)
+        || AICargo.HasCargoClass(freight.cargo, AICargo.CC_PASSENGERS)
+        || AICargo.HasCargoClass(freight.cargo, AICargo.CC_MAIL)
+        || !("fundScore" in freight) || freight.fundScore <= 0) continue;
+    local quote = OpexP2PreparedRailQuote(freight, capitalBudget, abandonedPairs);
+    if (quote <= 0) continue;
+    local rival = affordable[i - 1];
+    if (!OpexP2OpportunityRival(rival, capitalBudget, abandonedPairs)
+        || OpexProjectDefensiveAirPriority(rival) != OpexProjectDefensiveAirPriority(freight))
+      continue;
+    local freightScore = OpexProjectSelectionScore(freight, "fundScore");
+    local rivalScore = OpexProjectSelectionScore(rival, "fundScore");
+    if (freight.fundScore < rival.fundScore * 0.93
+        || freight.profitAnnual < rival.profitAnnual * 0.80
+        || freightScore > rivalScore || freightScore * 1.08 <= rivalScore)
+      continue;
+    if (chosenIndex < 0 || freightScore > chosenScore) {
+      chosenIndex = i;
+      chosenQuote = quote;
+      chosenScore = freightScore;
+      chosenRivalScore = rivalScore;
+    }
+  }
+  /* La mesure inclut le scan; retirer tout changement si le cout supplementaire
+   * depasse 50 000 opcodes. Aucun etat n'est conserve entre deux selections. */
+  local spent = OpexOpsMeasureEnd(mark);
+  local applied = false;
+  if (chosenIndex >= 0 && mode == 2 && spent < 50000) {
+    local prior = affordable[chosenIndex - 1];
+    affordable[chosenIndex - 1] = affordable[chosenIndex];
+    affordable[chosenIndex] = prior;
+    spent = OpexOpsMeasureEnd(mark);
+    if (spent <= 50000) {
+      applied = true;
+      local promoted = affordable[chosenIndex - 1];
+      if (("payload" in promoted) && promoted.payload != null) {
+        promoted.payload.rawset("p2OpportunityKey", OpexProjectAttemptKey(promoted) + "|" + chosenQuote);
+        promoted.payload.rawset("p2OpportunityStamp", P2_OPPORTUNITY_STAMP);
+      }
+    } else {
+      affordable[chosenIndex] = affordable[chosenIndex - 1];
+      affordable[chosenIndex - 1] = prior;
+    }
+  }
+  if (DECISION_LOG) {
+    if (chosenIndex < 0 || (mode == 2 && !applied && spent >= 50000)) {
+      OpexDecide("P2_OPPORTUNITY", "action=" + (chosenIndex >= 0 ? "ops_reject" : "none")
+          + " mode=" + mode + " topk=" + affordable.len() + " ops=" + spent
+          + " budget=" + capitalBudget);
+    } else {
+      local freight = affordable[applied ? chosenIndex - 1 : chosenIndex];
+      local rival = affordable[applied ? chosenIndex : chosenIndex - 1];
+      local key = OpexProjectAttemptKey(freight) + "|" + chosenQuote;
+      OpexDecide("P2_OPPORTUNITY", "action=" + (applied ? "promote" : "shadow")
+          + " mode=" + mode + " key=" + key
+          + " rank_before=" + chosenIndex + " rank_after=" + (applied ? chosenIndex - 1 : chosenIndex)
+          + " rival=" + OpexProjectAttemptKey(rival)
+          + " cargo=" + AICargo.GetCargoLabel(freight.cargo)
+          + " src=" + freight.src + " dst=" + freight.dst + " quote=" + chosenQuote
+          + " finance=" + OpexProjectFinanceCapital(freight)
+          + " rival_finance=" + OpexProjectFinanceCapital(rival)
+          + " budget=" + capitalBudget + " tier=" + OpexProjectDefensiveAirPriority(freight)
+          + " fund=" + freight.fundScore + " rival_fund=" + rival.fundScore
+          + " rank_score=" + chosenScore + " rival_rank_score=" + chosenRivalScore
+          + " boosted_score=" + chosenScore * 1.08
+          + " profit=" + freight.profitAnnual + " rival_profit=" + rival.profitAnnual
+          + " ops=" + spent);
+    }
+  }
+}
+
+function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSelection = true, abandonedPairs = null)
 {
   SELECT_BISECT_STAMP++;
   local spSelect = PROBE_SPAN_TRACE ? OpexSpanBegin("select.full") : null;
@@ -869,6 +1018,8 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSel
           + " budget=" + capitalBudget + " kdec=" + kDec);
     }
   }
+  if (realSelection && P2_RAIL_CARGO_OPPORTUNITY_RANK > 0)
+    OpexP2OpportunityTopK(affordable, capitalBudget, abandonedPairs, P2_RAIL_CARGO_OPPORTUNITY_RANK);
   if (spEpilogue != null) OpexSpanEnd(spEpilogue);
   if (spSelect != null) OpexSpanEnd(spSelect);
   return affordable;
@@ -1366,7 +1517,7 @@ function OpexReselectProjects(projects, capitalBudget, abandonedPairs = null, li
       : OpexFilterAirAlternativesStillValid(alternatives, abandonedPairs, lines);
   if (spPubFilt != null) OpexSpanEnd(spPubFilt);
   local spPubScore = PROBE_SPAN_TRACE ? OpexSpanBegin("pub.select.score") : null;
-  funded = OpexProjectSelectAffordable(alternatives, capitalBudget, PROJECT_TOP_K);
+  funded = OpexProjectSelectAffordable(alternatives, capitalBudget, PROJECT_TOP_K, true, abandonedPairs);
   if (RAIL_FAILURE_AUDIT) OpexRailPortfolioAudit("reselect", alternatives, funded,
       capitalBudget, 0, 0);
   if (spPubScore != null) OpexSpanEnd(spPubScore);

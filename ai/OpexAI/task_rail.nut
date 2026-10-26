@@ -302,6 +302,20 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
         /* Le candidat n'a pas encore cette cle dans le chemin qui termine sa
          * recherche dans le meme tour : creation de slot Squirrel avec `<-`. */
         candidate.railPlan <- start.plan;
+      } else if (DECISION_LOG && P2_RAIL_CARGO_OPPORTUNITY_RANK == 2) {
+        /* Les plans C121 prets sautent le journal PROJECT_CHOSEN historique :
+         * P2 doit prouver le choix AVANT l'appel de construction. */
+        local p2Trace = OpexP2RailTraceKey(candidate);
+        if (p2Trace != "") {
+          foreach (d in passDiscards) {
+            OpexDecide("PROJECT_DISCARD", "rank=" + d.rank + " mode=" + d.mode + " src=" + d.src + " dst=" + d.dst + " reason=" + d.reason + (d.extra != "" ? " " + d.extra : ""));
+          }
+          passDiscards = [];
+          OpexDecide("PROJECT_CHOSEN", "rank=" + i + " mode=rail kind=" + candidate.kind
+              + " cargo=" + AICargo.GetCargoLabel(candidate.cargo)
+              + " src=" + candidate.src + " dst=" + candidate.dst
+              + " cost=" + candidate.capital + " profit=" + candidate.profitAnnual + p2Trace);
+        }
       }
       local railPlanRef = ("railPlan" in candidate) ? candidate.railPlan : null;
       local result = OpexBuildLine(this._catalog, this._budget, candidate, alternativeRatio,
@@ -1057,6 +1071,16 @@ function OpexAI::_consumeRailSearch(year)
 /* Panneaux + enregistrement d'une tentative rail, reussie ou non. Facteur commun au chemin
  * bloquant et au chemin reprenable, pour que le denominateur (result.iterations) et les
  * panneaux OR/OB restent identiques. */
+/* Trace P2 d'un seul classement courant. Aucun projet/cooldown n'est persiste :
+ * le compteur est remis a zero par OpexLoadSettings lors du Load. */
+function OpexP2RailTraceKey(candidate)
+{
+  if (P2_RAIL_CARGO_OPPORTUNITY_RANK != 2 || candidate == null
+      || !("p2OpportunityKey" in candidate) || !("p2OpportunityStamp" in candidate)
+      || candidate.p2OpportunityStamp != P2_OPPORTUNITY_STAMP) return "";
+  return " p2_key=" + candidate.p2OpportunityKey + " p2_stamp=" + P2_OPPORTUNITY_STAMP;
+}
+
 function OpexAI::_recordRailAttempt(candidate, result, posPacked, year, railPlan = null)
 {
   if (RAIL_FAILURE_AUDIT) OpexRailFailureAudit("attempt", candidate,
@@ -1095,6 +1119,7 @@ function OpexAI::_recordRailAttempt(candidate, result, posPacked, year, railPlan
 
   if (V216_PROBE && result.ok) OpexV216OnRailBuild(candidate);
   if (DECISION_LOG) {
+    local p2Trace = OpexP2RailTraceKey(candidate);
     local phasesStr = "-1/-1/-1/-1/-1";
     if (("phaseOps" in result) && result.phaseOps != null) {
       local p = result.phaseOps;
@@ -1125,7 +1150,7 @@ function OpexAI::_recordRailAttempt(candidate, result, posPacked, year, railPlan
                + " weight=" + (("searchWeight" in candidate) ? candidate.searchWeight : (V91_ASTAR_WEIGHT_PCT))
                + " adapt=" + (("v294cAdapt" in candidate) ? candidate.v294cAdapt : "-")
                + " len=" + (("routeLen" in candidate) ? candidate.routeLen : -1)
-               + " phases=" + phasesStr);
+               + " phases=" + phasesStr + p2Trace);
     if (result.ok) {
       local cargoStr = AICargo.GetCargoLabel(candidate.cargo);
       OpexDecide("RAIL_BUILD", "line=" + this._nextLineId + " src=" + candidate.src + " dst=" + candidate.dst
@@ -1137,7 +1162,7 @@ function OpexAI::_recordRailAttempt(candidate, result, posPacked, year, railPlan
                  + " cost=" + result.actualCost + " trains=" + result.trains + " wagons=" + result.wagons
                  + ((("wagons2" in candidate) && candidate.wagons2 > 0)
                     ? " cargo2=" + AICargo.GetCargoLabel(candidate.cargo2) + " wagons2=" + candidate.wagons2
-                      + " pred_revenue2=" + candidate.revenue2 : ""));
+                      + " pred_revenue2=" + candidate.revenue2 : "") + p2Trace);
     } else {
       OpexDecide("RAIL_BUILD_FAIL", "line=" + this._nextLineId + " reason=" + result.reason + " error=" + result.error + " iters=" + result.iterations + " budget=" + iterationBudget);
     }

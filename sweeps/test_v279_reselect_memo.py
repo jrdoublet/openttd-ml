@@ -102,11 +102,20 @@ class TestV279ReselectMemo(unittest.TestCase):
         self.assertIn("alternatives = (V279_RESELECT_MEMO != 0)", reselect)
         self.assertIn("? OpexFilterAirAlternativesV279Memo(alternatives, abandonedPairs, lines)", reselect)
         self.assertIn(": OpexFilterAirAlternativesStillValid(alternatives, abandonedPairs, lines);", reselect)
-        self.assertIn("funded = OpexProjectSelectAffordable(alternatives, capitalBudget, PROJECT_TOP_K);", reselect)
+        # P2 passe abandonedPairs sans modifier le chemin V279 ou son memo.
+        p2_call = "funded = OpexProjectSelectAffordable(alternatives, capitalBudget, PROJECT_TOP_K, true, abandonedPairs);"
+        self.assertEqual(reselect.count(p2_call), 1)
+        self.assertLess(reselect.index(": OpexFilterAirAlternativesStillValid("), reselect.index(p2_call))
         # Vérifier que le corps d'OpexProjectSelectAffordable ne mentionne aucun symbole V279
         affordable = _function_body(self.selection, "function OpexProjectSelectAffordable(")
         self.assertNotIn("V279", affordable)
         self.assertNotIn("_v279", affordable)
+        # La nouvelle donnée de provenance P2 est optionnelle et son action
+        # n'est appelée que pour une vraie sélection avec le réglage actif.
+        self.assertIn("realSelection = true, abandonedPairs = null)", affordable)
+        self.assertIn("if (realSelection && P2_RAIL_CARGO_OPPORTUNITY_RANK > 0)", affordable)
+        self.assertIn("OpexP2OpportunityTopK(affordable, capitalBudget, abandonedPairs", affordable)
+        self.assertIn("P2_RAIL_CARGO_OPPORTUNITY_RANK <- 0;", self.globals_pre)
 
     def test_no_scoring_memoization(self):
         # Vérifier l'absence absolue de champs de mémoïsation de score dans tous les fichiers .nut

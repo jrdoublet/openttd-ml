@@ -156,7 +156,12 @@ class ReviewResidualContractsTest(unittest.TestCase):
         first_choice = src.index('OpexDecide("PROJECT_CHOSEN"', first_flush)
         self.assertIn("passDiscards = [];", src[first_flush:first_choice])
 
-        self.assertEqual(src.count('OpexDecide("PROJECT_CHOSEN"'), 1)
+        # Le chemin historique conserve son emission unique. P2 ajoute une
+        # deuxieme emission uniquement pour un plan rail deja pret et annote ON,
+        # qui sautait autrement PROJECT_CHOSEN avant la construction.
+        self.assertEqual(src.count('OpexDecide("PROJECT_CHOSEN"'), 2)
+        self.assertIn('} else if (DECISION_LOG && P2_RAIL_CARGO_OPPORTUNITY_RANK == 2)', src)
+        self.assertIn('if (p2Trace != "") {', src)
         self.assertNotIn("if (RAIL_REFLEET)", src)
         self.assertIn("if (this._railExpansion != null) return;", src)
         self.assertNotIn("RAIL_EXPAND || RAIL_REFLEET", src)

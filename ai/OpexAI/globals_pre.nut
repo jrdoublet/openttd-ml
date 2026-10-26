@@ -117,6 +117,10 @@ V216A_GHOST_DEMAND <- 0;
 V216F_DWELL_PCT <- 0;
 /* FRONT-PAX-2 : 0 historique, 1 shortlist shadow pure, 2 pilote AIR PASS borne. */
 FRONT_PAX2_BOUNDED_OVERLAP <- 0;
+/* P2 : fret rail physiquement pret, echange adjacent sur le seul top-K finance. */
+P2_RAIL_CARGO_OPPORTUNITY_RANK <- 0;
+/* Provenance P2 transitoire : invalide les annotations d'une election precedente. */
+P2_OPPORTUNITY_STAMP <- 0;
 /* V249 : statue quand on est riche, sans seuil en livres (task_v249.nut). */
 V249_STATUE <- 2;  // defaut finpartie depuis le 21/10 (decision utilisateur)
 /* Vrai si une passe projets s'est arretee faute de caisse depuis le dernier

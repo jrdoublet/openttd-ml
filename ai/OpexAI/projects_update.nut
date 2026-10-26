@@ -182,7 +182,7 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
   local extValidity = (INCR_REVALIDATE_INDEX == 1 && ctx != null) ? ctx.airSiteValidity : null;
   local extTownLim = (INCR_REVALIDATE_INDEX == 1 && ctx != null) ? ctx.stationLimitedTowns : null;
   alternatives = OpexFilterAirAlternativesStillValid(alternatives, abandonedPairs, lines, extValidity, extTownLim);
-  funded = OpexProjectSelectAffordable(alternatives, capitalBudget, PROJECT_TOP_K);
+  funded = OpexProjectSelectAffordable(alternatives, capitalBudget, PROJECT_TOP_K, true, abandonedPairs);
   if (RAIL_FAILURE_AUDIT) OpexRailPortfolioAudit("incremental", alternatives, funded,
       capitalBudget, 0, 0);
   stats.budgetConsidered = alternatives.len();
