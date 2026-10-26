@@ -30,6 +30,31 @@ def regen_line(ops=100, top1=1):
 
 
 class TestV309RegenReader(unittest.TestCase):
+    def test_invalid_ops_or_out_of_range_key_ratios_cannot_fake_savings(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            directory = Path(tmp)
+            valid = regen_line(ops=80)
+            malformed = [
+                regen_line(ops=-500),
+                regen_line(ops=70).replace('cand_air_same_keys_pct=100',
+                                            'cand_air_same_keys_pct=200'),
+                regen_line(ops=60).replace('cand_air_same_keys_pct=100',
+                                            'cand_air_same_keys_pct=nan'),
+                regen_line(ops=50).replace('best_same_top1=1', 'best_same_top1=2'),
+            ]
+            (directory / 'reference_seed42_r0.log').write_text(
+                valid + ''.join(malformed), encoding='utf-8')
+            n_games, years = read_regen_logs(directory)
+            self.assertEqual(n_games, 1)
+            result = years[1970]
+            self.assertEqual(result['regens'], 5)
+            self.assertEqual(result['missing_ops'], 1)
+            self.assertEqual(result['regen_ops'], 260)
+            self.assertEqual(result['measured_keys'], 1)
+            self.assertEqual(result['fully_same_keys_and_top1'], 1)
+            self.assertEqual(result['fully_same_ops'], 80)
+            self.assertEqual(result['missing_comparability'], 3)
+
     def test_numeric_seed_aliases_do_not_become_two_games(self):
         with tempfile.TemporaryDirectory() as tmp:
             directory = Path(tmp)

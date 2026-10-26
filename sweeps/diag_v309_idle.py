@@ -12,6 +12,7 @@ from collections import Counter, defaultdict
 import gzip
 import hashlib
 import json
+import math
 from pathlib import Path
 import re
 from statistics import mean
@@ -119,11 +120,21 @@ def read_regen_logs(directory):
                 except (KeyError, ValueError):
                     rec['missing_ops'] += 1
                     continue
+                if ops < 0:
+                    rec['missing_ops'] += 1
+                    continue
                 rec['regen_ops'] += ops
                 seen = [f.get('cand_' + mode + '_same_keys_pct') for mode in MODES]
-                if all(v is not None for v in seen) and f.get('best_same_top1') is not None:
+                try:
+                    percents = [float(value) for value in seen]
+                except (TypeError, ValueError):
+                    percents = []
+                if (len(percents) == len(MODES)
+                        and all(math.isfinite(value) and 0 <= value <= 100
+                                for value in percents)
+                        and f.get('best_same_top1') in ('0', '1')):
                     rec['measured_keys'] += 1
-                    if all(float(v) >= 100.0 for v in seen) and f['best_same_top1'] == '1':
+                    if all(value == 100.0 for value in percents) and f['best_same_top1'] == '1':
                         rec['fully_same_keys_and_top1'] += 1
                         rec['fully_same_ops'] += ops
                 else:
