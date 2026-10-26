@@ -107,6 +107,48 @@ class OrphanReportContracts(unittest.TestCase):
                 if line.startswith("| 1972 |")]
         self.assertEqual(rows, ["| 1972 | 0 | 0 | 0 | 1 | 1 | 1 | 41 | 1 |"])
 
+    def test_reload_with_no_orphans_removes_previous_station_rows(self):
+        zero = SUMMARY.replace("orphan_n=1", "orphan_n=0")
+        path = self.write_log("reference_seed42_r0.log", TRAIN + SUMMARY + zero)
+        bucket = analyzer.parse_log(str(path))[1972]
+        self.assertEqual(bucket["stations"], {})
+        self.assertEqual(bucket["sum"]["orphan_n"], 0)
+        self.assertIn("| 1972 | 0 | 0 | 0 | 0 | 0 | 0 | 31 | 1 |",
+                      self.report())
+
+    def test_reload_replaces_different_station_ids_instead_of_union(self):
+        next_station = BUS.replace("station=4", "station=9")
+        path = self.write_log("reference_seed42_r0.log.gz",
+                              TRAIN + SUMMARY + next_station + SUMMARY)
+        bucket = analyzer.parse_log(str(path))[1972]
+        self.assertEqual(set(bucket["stations"]), {9})
+        self.assertEqual(analyzer.orphans_by_type(bucket)["train"], 0)
+        self.assertEqual(analyzer.orphans_by_type(bucket)["bus"], 1)
+        self.assertIn("| 1972 | 0 | 0 | 1 | 0 | 0 | 1 | 31 | 1 |",
+                      self.report())
+
+    def test_trailing_incomplete_reload_does_not_replace_last_completed_survey(self):
+        partial = BUS.replace("station=4", "station=9")
+        path = self.write_log("reference_seed42_r0.log", TRAIN + SUMMARY + partial)
+        bucket = analyzer.parse_log(str(path))[1972]
+        self.assertEqual(set(bucket["stations"]), {4})
+        self.assertEqual(analyzer.orphans_by_type(bucket)["train"], 1)
+        self.assertEqual(bucket["sum"]["orphan_n"], 1)
+        # Without any completed survey, rows remain visible but totals stay
+        # unknown, rather than masquerading as a zero-orphan survey.
+        path = self.write_log("reference_seed42_r0.log", partial)
+        bucket = analyzer.parse_log(str(path))[1972]
+        self.assertEqual(set(bucket["stations"]), {9})
+        self.assertIsNone(bucket["sum"])
+        self.assertIsNone(analyzer.total_maintenance(bucket["sum"]))
+
+    def test_summary_with_missing_station_row_rejects_truncated_survey(self):
+        path = self.write_log("reference_seed42_r0.log", TRAIN + SUMMARY + SUMMARY)
+        with self.assertRaisesRegex(ValueError, "0 STATION rows, SUM orphan_n=1"):
+            # Two completed surveys were emitted, but the second one lost
+            # its station row; no old station may be silently inherited.
+            analyzer.parse_log(str(path))
+
     def test_report_distinguishes_missing_summary_from_measured_zero(self):
         self.write_log("reference_seed100_r0.log", TRAIN + ZERO_SUMMARY)
 
@@ -155,7 +197,9 @@ class OrphanReportContracts(unittest.TestCase):
         for suffix in (".log", ".log.gz"):
             with self.subTest(suffix=suffix):
                 name = "reference_seed7_r0" + suffix
-                path = self.write_log(name, TRAIN + SUMMARY + partial)
+                # A complete second probe re-emits every orphan station
+                # before its SUM, even if that SUM has an invalid cost.
+                path = self.write_log(name, TRAIN + SUMMARY + TRAIN + partial)
                 bucket = analyzer.parse_log(str(path))[1972]
                 self.assertIsNone(analyzer.total_maintenance(bucket["sum"]))
                 self.assertIn("| 1972 | 1 | 0 | 0 | 0 | 0 | 1 | None | 1 |",
@@ -164,7 +208,7 @@ class OrphanReportContracts(unittest.TestCase):
                 zero_costs = " ".join(
                     token.split("=", 1)[0] + "=0" if token.startswith("cost_")
                     else token for token in SUMMARY.split()) + "\n"
-                self.write_log(name, TRAIN + SUMMARY + partial + zero_costs)
+                self.write_log(name, TRAIN + SUMMARY + TRAIN + partial + TRAIN + zero_costs)
                 bucket = analyzer.parse_log(str(path))[1972]
                 self.assertEqual(analyzer.total_maintenance(bucket["sum"]), 0)
                 self.assertIn("| 1972 | 1 | 0 | 0 | 0 | 0 | 1 | 0 | 1 |",

@@ -12,8 +12,9 @@ Ces couts sont ceux de toute l'infrastructure de la compagnie. L'API ne separe
 pas une part orpheline : ce lecteur n'en calcule pas. L'entretien reste inconnu
 si le resume ou l'un des six couts entiers manque ; aucun total partiel ni
 prefixe numerique d'un champ illisible n'est utilise. Un rechargement un 1er
-decembre peut dupliquer le releve ; la derniere ligne d'une meme gare, et la
-derniere ligne V262_ORPHAN_SUM, l'emportent.
+decembre peut dupliquer le releve : chaque V262_ORPHAN_SUM clot une generation
+de lignes STATION. Seule la derniere generation complete de l'annee l'emporte,
+sans fusionner des gares disparues avec les suivantes.
 """
 import collections
 import glob
@@ -43,6 +44,9 @@ def _open(path):
 def parse_log(path):
     """Return {year: {'stations': {id: row}, 'sum': row or None}}."""
     years = {}
+    # Rows since the last SUM belong to the next survey generation, not to
+    # the previously completed survey for the same year (e.g. after reload).
+    pending = {}
     with _open(path) as fh:
         for line in fh:
             if ' V262_ORPHAN_STATION ' in line:
@@ -56,8 +60,21 @@ def parse_log(path):
             fields = {k: int(v) for k, v in KV.findall(rest[2])}
             bucket = years.setdefault(year, {'stations': {}, 'sum': None})
             if kind == 'station':
-                bucket['stations'][fields['station']] = fields
+                rows = pending.setdefault(year, {})
+                rows[fields['station']] = fields
+                if bucket['sum'] is None:
+                    # Preserve a partial first survey as an observation with
+                    # unknown totals; it must not become a measured zero.
+                    bucket['stations'] = rows
             else:
+                # A zero-orphan SUM has no STATION rows and must clear an
+                # earlier complete generation, rather than retain its rows.
+                rows = pending.pop(year, {})
+                if 'orphan_n' in fields and len(rows) != fields['orphan_n']:
+                    raise ValueError(
+                        f"incomplete V262_ORPHAN survey in {path} year {year}: "
+                        f"{len(rows)} STATION rows, SUM orphan_n={fields['orphan_n']}")
+                bucket['stations'] = rows
                 bucket['sum'] = fields
     return years
 
