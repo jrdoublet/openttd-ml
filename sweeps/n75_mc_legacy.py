@@ -92,6 +92,21 @@ P2_SETTINGS_DELTA = (
 )
 P2_DELTAS = {"info.nut": P2_INFO_DELTA, "settings.nut": P2_SETTINGS_DELTA}
 
+# MULTI-1 is an independent OFF-by-default selection experiment. Remove only
+# its precisely pinned setting bytes from the unchanged legacy inventory.
+MULTI1_INFO_DELTA = (
+    b'    AddSetting({ name = "multi1_road_priority",\n'
+    b'      description = "MULTI-1 early multimodal road priority: 0=historical (default), 1=shadow, 2=one bounded top-K road promotion in 1971-73",\n'
+    b'      min_value = 0, max_value = 2,\n'
+    b'      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,\n'
+    b'      flags = 0 });\n'
+)
+MULTI1_SETTINGS_DELTA = (
+    b'  local multi1RoadPriority = AIController.GetSetting("multi1_road_priority");\n'
+    b'  MULTI1_ROAD_PRIORITY = (multi1RoadPriority == 1 || multi1RoadPriority == 2) ? multi1RoadPriority : 0;\n'
+)
+MULTI1_DELTAS = {"info.nut": MULTI1_INFO_DELTA, "settings.nut": MULTI1_SETTINGS_DELTA}
+
 # P1 is an independent opt-in C121 rail experiment; retain the frozen
 # historical contract by subtracting ONLY its exact additions. In particular,
 # P1's auxiliary freight candidate must never rebaseline PO01D's rail scan.
@@ -583,6 +598,10 @@ P3_PROBES_CALLS = (
 
 
 def historical_bytes(name, raw):
+    multi1_delta = MULTI1_DELTAS.get(name)
+    if multi1_delta is not None:
+        assert raw.count(multi1_delta) == 1, f"MULTI-1 {name}: opt-in bytes changed"
+        raw = raw.replace(multi1_delta, b"", 1)
     bypass_delta = C75_BYPASS_DELTAS.get(name)
     if bypass_delta is not None:
         assert raw.count(bypass_delta) == 1, f"C75 bypass {name}: opt-in fragment changed"

@@ -804,6 +804,39 @@ function OpexP2OpportunityTopK(affordable, capitalBudget, abandonedPairs, mode)
   }
 }
 
+/* MULTI-1 : ne considerer que les ROUTES deja finançables dans le TOP-K final.
+ * Le classement initial et les tiers C77 sont calcules avant cet appel ;
+ * aucune generation, devis ou API concurrente. OFF ne l'appelle jamais. */
+function OpexMulti1RoadPromote(affordable, capitalBudget, level)
+{
+  if (affordable == null || affordable.len() < 2 || !MODE_AIR || !MODE_RAIL || !MODE_ROAD) return;
+  local year = AIDate.GetYear(AIDate.GetCurrentDate());
+  if (year < 1971 || year > 1973) return;
+  local head = affordable[0];
+  if (head == null || head.mode == "road" || head.profitAnnual <= 0
+      || !("fundScore" in head) || head.fundScore <= 0
+      || OpexProjectDefensiveAirPriority(head) != 0) return;
+  local limit = affordable.len() < 8 ? affordable.len() : 8;
+  for (local i = 1; i < limit; i++) {
+    local road = affordable[i];
+    if (road == null || road.mode != "road" || road.profitAnnual <= 0
+        || !("fundScore" in road) || road.fundScore < 0.85 * head.fundScore
+        || road.profitAnnual < 0.60 * head.profitAnnual
+        || OpexProjectFinanceCapital(road) > capitalBudget) continue;
+    AILog.Info("MULTI1_ROAD_PRIORITY year=" + year
+        + " action=" + (level == 2 ? "promote" : "shadow") + " rank=" + i
+        + " head_mode=" + head.mode + " head_score=" + head.fundScore
+        + " head_profit=" + head.profitAnnual + " head_capital=" + OpexProjectFinanceCapital(head)
+        + " road_score=" + road.fundScore + " road_profit=" + road.profitAnnual
+        + " road_capital=" + OpexProjectFinanceCapital(road));
+    if (level == 2) {
+      affordable.remove(i);
+      affordable.insert(0, road);
+    }
+    return;
+  }
+}
+
 function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSelection = true, abandonedPairs = null)
 {
   SELECT_BISECT_STAMP++;
@@ -1023,6 +1056,8 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSel
   }
   if (realSelection && P2_RAIL_CARGO_OPPORTUNITY_RANK > 0)
     OpexP2OpportunityTopK(affordable, capitalBudget, abandonedPairs, P2_RAIL_CARGO_OPPORTUNITY_RANK);
+  if (realSelection && MULTI1_ROAD_PRIORITY > 0)
+    OpexMulti1RoadPromote(affordable, capitalBudget, MULTI1_ROAD_PRIORITY);
   if (spEpilogue != null) OpexSpanEnd(spEpilogue);
   if (spSelect != null) OpexSpanEnd(spSelect);
   return affordable;

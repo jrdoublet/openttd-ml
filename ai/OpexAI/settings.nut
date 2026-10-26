@@ -69,6 +69,8 @@ function OpexLoadSettings()
   MODE_RAIL = AIController.GetSetting("mode_rail") != 0;
   MODE_ROAD = AIController.GetSetting("mode_road") != 0;
   MODE_WATER = AIController.GetSetting("mode_water") != 0;
+  local multi1RoadPriority = AIController.GetSetting("multi1_road_priority");
+  MULTI1_ROAD_PRIORITY = (multi1RoadPriority == 1 || multi1RoadPriority == 2) ? multi1RoadPriority : 0;
   P6_AIR_FIRSTLINE_WINDOW = AIController.GetSetting("p6_air_firstline_window");
   local p3AirFleetYield = AIController.GetSetting("air_fleet_yield_rightsize");
   P3_AIR_FLEET_YIELD = (p3AirFleetYield == 1 || p3AirFleetYield == 2) ? p3AirFleetYield : 0;
