@@ -520,6 +520,15 @@ class OpexAIInfo extends AIInfo {
       flags = 0
     });
     AddSetting({
+      name = "v303_reverse_probe_sliced",
+      description = "V303 rail reverse probe: 0 = original synchronous 300-iteration probe (default); 1 = passive historical probe; 2 = slice the same reverse probe over C80 task turns, 50 iterations each",
+      min_value = 0, max_value = 2,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0, default_value = 0,
+      step_size = 1,
+      flags = 0
+    });
+    AddSetting({
       name = "v294_rail_weight_pct",
       description = "V294c: unified rail A* heuristic weight percentage across all distances (AAA uses 200 everywhere); 0 = off (uses V91/V172 distance-based weight, default), 100..400 = weight pct",
       min_value = 0, max_value = 400,

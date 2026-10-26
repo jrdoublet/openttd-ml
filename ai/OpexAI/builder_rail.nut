@@ -1795,6 +1795,31 @@ function OpexV294fReverseProbe(plansA, plansB, clearanceTiles, searchWeight, can
   };
 }
 
+/* V303 : reprendre le MEME pathfinder inverse, sans rescanner les sites et sans
+ * jamais depasser la borne de 300 iterations. LastConsumed donne les vraies
+ * iterations de ce seul appel, contrairement au compteur de tranches C80. */
+function OpexV303ReverseSlice(pathfinder, spent, iterationCap)
+{
+  if (pathfinder == null || spent < 0 || iterationCap <= 0 || spent >= iterationCap)
+    return { done = true, stop = "ABND", iterations = spent, path = null, tiles = null };
+  local remaining = iterationCap - spent;
+  local limit = remaining < PATH_CHUNK ? remaining : PATH_CHUNK;
+  if (limit <= 0) return { done = true, stop = "ABND", iterations = spent, path = null, tiles = null };
+  local path = pathfinder.FindPath(limit);
+  local used = pathfinder.LastConsumed();
+  if (used < 0 || used > limit) return { done = true, stop = "ERROR", iterations = spent, path = null, tiles = null };
+  spent += used;
+  if (path != null && path != false) {
+    local tiles = OpexPathTiles(path);
+    tiles.reverse();
+    return { done = true, stop = "OK", iterations = spent, path = path, tiles = tiles };
+  }
+  if (path == null) return { done = true, stop = "NOPA", iterations = spent, path = null, tiles = null };
+  if (used == 0) return { done = true, stop = "ERROR", iterations = spent, path = null, tiles = null };
+  if (spent >= iterationCap) return { done = true, stop = "ABND", iterations = spent, path = null, tiles = null };
+  return { done = false, stop = "CONT", iterations = spent, path = null, tiles = null };
+}
+
 /* Une tranche d'A*. `spent` est le cumul DEJA consomme (denominateur du classement : mesurer,
  * pas estimer, et surtout pas remettre a zero d'une tranche a l'autre). `sliceIters` borne
  * CETTE tranche ; passer iterationBudget reconstitue la boucle bloquante historique.

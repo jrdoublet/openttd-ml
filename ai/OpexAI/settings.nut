@@ -94,6 +94,8 @@ function OpexLoadSettings()
   V294_RAIL_BRIDGE_LEN = (v294BridgeLen != null && v294BridgeLen >= 0 && v294BridgeLen <= 30) ? v294BridgeLen : 0;
   local v294Continuous = AIController.GetSetting("v294_rail_continuous");
   V294_RAIL_CONTINUOUS = (v294Continuous != null && v294Continuous > 0) ? 1 : 0;
+  local v303Sliced = AIController.GetSetting("v303_reverse_probe_sliced");
+  V303_REVERSE_PROBE_SLICED = (v303Sliced == 1 || v303Sliced == 2) ? v303Sliced : 0;
   local v301Fix = AIController.GetSetting("v301_notrain_fix");
   V301_NOTRAIN_FIX = (v301Fix != null && v301Fix > 0 && v301Fix <= 15) ? v301Fix : 0;
   local v307Probe = AIController.GetSetting("v307_long_probe");

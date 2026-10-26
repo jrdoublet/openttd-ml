@@ -31,6 +31,7 @@ V284_RAIL_GROWTH <- 0; // 0 : master ; N : croissance fret apres N ans et 1 M£ 
 /* V294 : ponts/tunnels longs et recherche A* continue (defauts 0 = master inchange). */
 V294_RAIL_BRIDGE_LEN <- 20;  // defaut V294all depuis le 21/10 (decision utilisateur)
 V294_RAIL_CONTINUOUS <- 0;
+V303_REVERSE_PROBE_SLICED <- 0;
 V269_RELAXED <- false;
 V269_ON <- false;
 /* V190 : lignes rail fret posees en double voie a sens unique des la construction. */

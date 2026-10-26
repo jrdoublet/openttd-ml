@@ -175,7 +175,8 @@ class TestV129SearchOps(unittest.TestCase):
         self.assertIn("if (DECISION_LOG && state.candidate != null) OpexAddRailSearchOps(state.candidate, searchSliceOps);", task)
         builder = _read("ai/OpexAI/builder_rail.nut")
         self.assertIn("if (DECISION_LOG) OpexAddRailSearchOps(candidate, searchOps);", builder)
-        self.assertEqual(len(re.findall(r"OpexAddRailSearchOps\(", builder + task)), 3)
+        # V303 ajoute l'imputation de chacune des tranches inverses en mode ON.
+        self.assertEqual(len(re.findall(r"OpexAddRailSearchOps\(", builder + task)), 4)
 
 
 if __name__ == "__main__":

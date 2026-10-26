@@ -773,6 +773,44 @@ function OpexAI::_startRailSearch(candidate, alternativeRatio, hardCap, posPacke
   local searchWeight = OpexRailAstarWeight(candidate.distance);
   candidate.searchWeight <- searchWeight;
   if (V294_RAIL_REVERSE_PROBE > 0) {
+    if (V303_REVERSE_PROBE_SLICED == 2) {
+      local reversePf = OpexCreateRailPathfinder(plan.plansB, plan.plansA,
+          clearanceTiles, searchWeight, null, null, OpexRailEngineOf(candidate));
+      if (reversePf != null) {
+        local curDate = AIDate.GetCurrentDate();
+        local curTick = AIController.GetTick();
+        if (C56_TASK_TRACE) {
+          if (!("v89SelectedDate" in candidate)) candidate.v89SelectedDate <- curDate;
+          else candidate.v89SelectedDate = curDate;
+          if (!("v89SelectedTick" in candidate)) candidate.v89SelectedTick <- curTick;
+          else candidate.v89SelectedTick = curTick;
+        }
+        this._railSearch = {
+          kind = "primary", phase = "reverse", pathfinder = reversePf, segmented = null,
+          spent = 0, reverseSpent = 0, reverseOps = 0, reverseSlices = 0,
+          reverseCap = V294_RAIL_REVERSE_PROBE,
+          iterationBudget = plan.iterationBudget,
+          safetyDeadline = curTick + RAIL_SEARCH_SAFETY_TICKS,
+          weight = searchWeight, outwardSide = outwardSide,
+          plan = plan, candidate = candidate, clearanceTiles = clearanceTiles,
+          alternativeRatio = alternativeRatio, hardCap = hardCap,
+          posPacked = posPacked, startDate = curDate, startTick = curTick,
+          slotIndex = 0,
+        };
+        if (C56_TASK_TRACE)
+          OpexC56TaskLog("V303_REVERSE_START", "primary", this._taskCycle,
+              "src=" + candidate.src + " dst=" + candidate.dst
+              + " budget=" + V294_RAIL_REVERSE_PROBE);
+        this._continueRailSearch();
+        if (this._railSearch != null && this._railSearch.phase == "build") {
+          local ready = candidate.railPlan;
+          this._railSearch = null;
+          return { pending = false, plan = ready };
+        }
+        return { pending = true, plan = null };
+      }
+      if (DECISION_LOG) OpexDecide("V294F_PROBE", "ok=0 iters=0 manh=" + candidate.distance);
+    } else {
     local revSlice = OpexV294fReverseProbe(plan.plansA, plan.plansB, clearanceTiles, searchWeight, candidate, V294_RAIL_REVERSE_PROBE);
     if (revSlice != null) {
       local planResult = OpexCompleteRailRouteAfterSearch(this._catalog, candidate, plan, revSlice);
@@ -780,6 +818,7 @@ function OpexAI::_startRailSearch(candidate, alternativeRatio, hardCap, posPacke
         OpexV131LogClearance(candidate, planResult, clearanceTiles);
       }
       return { pending = false, plan = planResult };
+    }
     }
   }
   local candidateEngine = OpexRailEngineOf(candidate);
@@ -858,6 +897,36 @@ function OpexAI::_startRailSearch(candidate, alternativeRatio, hardCap, posPacke
   }
   return { pending = true, plan = null };
 }
+/* V303 : la sonde inverse est liberee AVANT de creer le moteur de recherche
+ * avant. Les sites/devis et le budget sont ceux deja prepares en _startRailSearch. */
+function OpexAI::_v303BeginForwardAfterProbe(state)
+{
+  state.pathfinder = null;
+  state.segmented = null;
+  local engine = OpexRailEngineOf(state.candidate);
+  if (V294_RAIL_CONTINUOUS > 0) {
+    state.pathfinder = OpexCreateRailPathfinder(state.plan.plansA, state.plan.plansB,
+        state.clearanceTiles, state.weight, state.outwardSide, null, engine);
+  } else {
+    state.segmented = OpexCreateSegmentedSearch(state.plan.plansA, state.plan.plansB,
+        state.iterationBudget, state.clearanceTiles, state.weight, state.outwardSide,
+        null, engine);
+  }
+  if (state.pathfinder == null && state.segmented == null) {
+    state.plan.reason = "NOPA";
+    state.candidate.railPlan <- state.plan;
+    state.phase = "build";
+    return false;
+  }
+  state.spent = 0;
+  state.phase = "search";
+  if (C56_TASK_TRACE) {
+    OpexC56TaskLog("RAIL_SEARCH_START", "primary", this._taskCycle,
+        "src=" + state.candidate.src + " dst=" + state.candidate.dst
+        + " budget=" + state.iterationBudget + " hard_cap=" + state.hardCap);
+  }
+  return true;
+}
 /* Avance d'une tranche, ou consomme un plan/upgrade pret. Appele en TETE de _runNextTask. */
 function OpexAI::_continueRailSearch()
 {
@@ -865,6 +934,74 @@ function OpexAI::_continueRailSearch()
   local state = this._railSearch;
   if (state.phase == "build") {
     if (state.kind == "upgrade") this._consumeRailUpgrade();
+    return;
+  }
+  if (state.phase == "reverse" && state.kind == "primary") {
+    this._budget.begin();
+    local sliceStartTick = AIController.GetTick();
+    local spentBefore = state.reverseSpent;
+    local rev = OpexV303ReverseSlice(state.pathfinder, state.reverseSpent, state.reverseCap);
+    local sliceOps = this._budget.end("build_search");
+    state.reverseOps += sliceOps;
+    state.reverseSpent = rev.iterations;
+    state.reverseSlices++;
+    state.plan.opcodes += sliceOps;
+    if (state.plan.phaseOps.search < 0) state.plan.phaseOps.search = 0;
+    state.plan.phaseOps.search += sliceOps;
+    if (DECISION_LOG) OpexAddRailSearchOps(state.candidate, sliceOps);
+    local tooOld = (AIDate.GetCurrentDate() - state.startDate) > 180
+        || AIController.GetTick() >= state.safetyDeadline;
+    local outcome = tooOld && !rev.done ? "DEAD" : rev.stop;
+    if (DECISION_LOG) {
+      OpexDecide("V303_REVERSE", "src=" + state.candidate.src + " dst=" + state.candidate.dst
+          + " cargo=" + AICargo.GetCargoLabel(state.candidate.cargo)
+          + " stop=" + outcome + " slice=" + state.reverseSlices
+          + " slice_iters=" + (state.reverseSpent - spentBefore)
+          + " iters=" + state.reverseSpent + " slice_ops=" + sliceOps
+          + " ops=" + state.reverseOps
+          + " slice_ticks=" + (AIController.GetTick() - sliceStartTick)
+          + " ticks=" + (AIController.GetTick() - state.startTick));
+    }
+    if (!rev.done && !tooOld) return;
+    local reverseOk = rev.done && rev.stop == "OK";
+    if (C56_TASK_TRACE) {
+      this._v89YearIters += state.reverseSpent;
+      this._v89YearSlices += state.reverseSlices;
+      OpexC56TaskLog("V303_REVERSE_END", "primary", this._taskCycle,
+          "src=" + state.candidate.src + " dst=" + state.candidate.dst
+          + " stop=" + outcome + " iters=" + state.reverseSpent
+          + " slices=" + state.reverseSlices + " ops=" + state.reverseOps
+          + " ticks=" + (AIController.GetTick() - state.startTick));
+    }
+    if (DECISION_LOG) {
+      local manh = ("distance" in state.candidate) ? state.candidate.distance
+          : AIMap.DistanceManhattan(state.candidate.src, state.candidate.dst);
+      OpexDecide("V294F_PROBE", "ok=" + (reverseOk ? 1 : 0)
+          + " iters=" + state.reverseSpent + " manh=" + manh);
+    }
+    state.pathfinder = null;
+    if (reverseOk) {
+      local completedProbe = { path = rev.path, tiles = rev.tiles, structures = [],
+          iterations = state.reverseSpent, stop = "OK", done = true,
+          segments = 1, backtracks = 0, localChoices = 0 };
+      local completed = OpexCompleteRailRouteAfterSearch(this._catalog, state.candidate,
+          state.plan, completedProbe);
+      state.candidate.railPlan <- completed;
+      state.phase = "build";
+      if (C56_TASK_TRACE) {
+        OpexC56TaskLog("RAIL_SEARCH_END", "primary", this._taskCycle,
+            "src=" + state.candidate.src + " dst=" + state.candidate.dst
+            + " outcome=OK result=found iters=" + state.reverseSpent
+            + " len=" + rev.tiles.len() + " weight=" + state.weight
+            + " budget=" + state.reverseCap
+            + " days=" + (AIDate.GetCurrentDate() - state.startDate)
+            + " ticks=" + (AIController.GetTick() - state.startTick));
+      }
+      if (DECISION_LOG && V131_TOWN_CLEARANCE && state.clearanceTiles != null)
+        OpexV131LogClearance(state.candidate, completed, state.clearanceTiles);
+      return;
+    }
+    this._v303BeginForwardAfterProbe(state);
     return;
   }
   if (state.phase != "search") return;

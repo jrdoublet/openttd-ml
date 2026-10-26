@@ -426,14 +426,16 @@ function OpexAI::_advanceRailSearchSliceWithLedgers()
 
   if (this._railSearch == null) return;
   local spanSlice = null;
-  /* C41.46 : n'encadrer que les passes qui font REELLEMENT avancer l'A* -- phase == "search".
+  /* C41.46 : n'encadrer que les passes qui font REELLEMENT avancer l'A* -- phase search/reverse.
    * phase == "build" retourne immediatement pour kind == "primary" (le cout reel est ailleurs,
    * dans _consumeRailSearch via la tache "projects") ou execute _consumeRailUpgrade() pour
    * kind == "upgrade", qui n'est pas une tranche de recherche. Aucun des deux n'est comptabilise
    * dans ce ledger : le confondre fausserait "iterations cumulees" et "tranches non terminees". */
-  if ((C41_RAIL_SLICE_LEDGER || C39_PASS_CLOCK_LEDGER) && this._railSearch.phase == "search") {
+  if ((C41_RAIL_SLICE_LEDGER || C39_PASS_CLOCK_LEDGER)
+      && (this._railSearch.phase == "search" || this._railSearch.phase == "reverse")) {
     local sliceState = this._railSearch;
-    local spentBefore = sliceState.spent;
+    local wasReverse = sliceState.phase == "reverse";
+    local spentBefore = wasReverse ? sliceState.reverseSpent : sliceState.spent;
     /* C39.6 : date/tick AVANT l'appel, pour le delta de la SEULE tranche. sliceMark.tick sert
      * de tick de depart -- pas de second AIController.GetTick(). */
     local c39SliceDateBefore = C39_PASS_CLOCK_LEDGER ? AIDate.GetCurrentDate() : -1;
@@ -450,11 +452,13 @@ function OpexAI::_advanceRailSearchSliceWithLedgers()
     }
     if (C41_RAIL_SLICE_LEDGER) {
       this._c41RailSliceLastOps = sliceOps;
-      this._c41RailSliceLastIterDelta = sliceState.spent - spentBefore;
+      this._c41RailSliceLastIterDelta =
+          (wasReverse ? sliceState.reverseSpent : sliceState.spent) - spentBefore;
       /* sliceState reste la MEME table (mutee en place par _continueRailSearch) : phase !=
-       * "search" signifie que cette tranche a atteint slice.done et fait basculer la recherche
+       * sa phase precedente signifie que cette tranche a atteint slice.done et fait basculer la recherche
        * en "build". */
-      this._c41RailSliceLastDone = (sliceState.phase != "search");
+      this._c41RailSliceLastDone = wasReverse ? (sliceState.phase != "reverse")
+          : (sliceState.phase != "search");
     }
     if (C39_PASS_CLOCK_LEDGER) {
       this._c39PassClockSliceDays = AIDate.GetCurrentDate() - c39SliceDateBefore;
@@ -462,9 +466,9 @@ function OpexAI::_advanceRailSearchSliceWithLedgers()
       this._c39PassClockSliceOps = sliceOps;
     }
   } else {
-    local sliceMark = (this._railSearch.phase == "search")
+    local sliceMark = (this._railSearch.phase == "search" || this._railSearch.phase == "reverse")
         ? OpexOpsMeasureBegin() : null;
-    if (this._railSearch.phase == "search") spanSlice = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
+    if (sliceMark != null) spanSlice = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
     this._continueRailSearch();
     if (sliceMark != null) {
       local sliceOps = OpexOpsMeasureEnd(sliceMark);
@@ -491,7 +495,8 @@ function OpexAI::_v89TrackSearchDays(now)
   }
   if (now > this._v89LastDay) {
     local deltaDays = now - this._v89LastDay;
-    if (this._railSearch != null && this._railSearch.phase == "search") {
+    if (this._railSearch != null
+        && (this._railSearch.phase == "search" || this._railSearch.phase == "reverse")) {
       this._v89SearchDaysThisYear += deltaDays;
     }
     this._v89LastDay = now;
@@ -502,7 +507,8 @@ function OpexAI::_v89TrackSearchDays(now)
 function OpexAI::_logC89AnnualRail(year)
 {
   if (!C56_TASK_TRACE) return;
-  local activeSearch = (this._railSearch != null && this._railSearch.phase == "search") ? 1 : 0;
+  local activeSearch = (this._railSearch != null
+      && (this._railSearch.phase == "search" || this._railSearch.phase == "reverse")) ? 1 : 0;
   OpexC56TaskLog("RAIL_ANNUAL", "rail", this._taskCycle,
                  "year=" + year + " year_iters=" + this._v89YearIters
                  + " year_slices=" + this._v89YearSlices

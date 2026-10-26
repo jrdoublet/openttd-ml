@@ -232,7 +232,8 @@ function OpexWorkerRailSearchStep(worker, opsBudget, deadlineTick)
   }
   ai._advanceRailSearchSliceWithLedgers();
   ai._advanceRailSearchThroughput();
-  if (ai._railSearch == null || ai._railSearch.phase != "search") {
+  if (ai._railSearch == null || (ai._railSearch.phase != "search"
+      && ai._railSearch.phase != "reverse")) {
     return "done";
   }
   return "running";

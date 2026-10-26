@@ -463,7 +463,7 @@ class PO01CContracts(unittest.TestCase):
         self.assertLess(dispatch.index(guard.decode('ascii')),
                         dispatch.index('if (C77_INTENT_DEFER_SUBSIDY && ("subsidyId" in deferPayload)'))
         self.assertEqual(
-            hashlib.sha256(orchestrator.replace(guard, b'', 1)).hexdigest(),
+            hashlib.sha256(historical_bytes('orchestrator.nut', orchestrator).replace(guard, b'', 1)).hexdigest(),
             '1600953e477a5db49827d2f277ed965f4442a56ca32710f3c15a209a1b563ace'
         )
 

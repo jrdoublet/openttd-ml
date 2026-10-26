@@ -225,8 +225,59 @@ P3_PROBES_CALLS = (
     b'      OpexP3MatureSample(line, state, ageDays, live, mixedEngine);\n',
 )
 
+# V303 est un ajout indépendant opt-in, défini APRES les empreintes historiques
+# PO01D/N75/P1. Ces fragments sont retirés de la vue historique sans jamais
+# recalculer les SHA du témoin. L'extraction du helper est elle-même gelée.
+V303_INFO_BEGIN = b'    AddSetting({\n      name = "v303_reverse_probe_sliced",\n'
+V303_INFO_END = b'    AddSetting({\n      name = "v294_rail_weight_pct",\n'
+V303_SETTINGS = (
+    b'  local v303Sliced = AIController.GetSetting("v303_reverse_probe_sliced");\n'
+    b'  V303_REVERSE_PROBE_SLICED = (v303Sliced == 1 || v303Sliced == 2) ? v303Sliced : 0;\n'
+)
+V303_MAIN = b'  function _v303BeginForwardAfterProbe(state);\n'
+V303_ORCHESTRATOR_NEW = (
+    b'  if (ai._railSearch == null || (ai._railSearch.phase != "search"\n'
+    b'      && ai._railSearch.phase != "reverse")) {\n'
+)
+V303_ORCHESTRATOR_OLD = (
+    b'  if (ai._railSearch == null || ai._railSearch.phase != "search") {\n'
+)
+V303_BUILDER_BEGIN = b'/* V303 : reprendre le MEME pathfinder inverse'
+V303_BUILDER_END = b"/* Une tranche d'A*. `spent` est le cumul"
+V303_BUILDER_SHA256 = 'e5f65dbc01247dbd0bc1af93183380ce7f4aa224f5e6abd018f240a9eedfd8c1'
+
+
+def _strip_v303(name, raw):
+    if name == 'info.nut':
+        assert raw.count(V303_INFO_BEGIN) == 1 and raw.count(V303_INFO_END) == 1
+        start = raw.index(V303_INFO_BEGIN)
+        end = raw.index(V303_INFO_END, start)
+        block = raw[start:end]
+        assert block.count(b'AddSetting(') == 1 and block.endswith(b'    });\n')
+        assert b'easy_value = 0, medium_value = 0, hard_value = 0,' in block
+        assert b'custom_value = 0, default_value = 0,' in block
+        return raw[:start] + raw[end:]
+    if name == 'settings.nut':
+        assert raw.count(V303_SETTINGS) == 1
+        return raw.replace(V303_SETTINGS, b'', 1)
+    if name == 'main.nut':
+        assert raw.count(V303_MAIN) == 1
+        return raw.replace(V303_MAIN, b'', 1)
+    if name == 'orchestrator.nut':
+        assert raw.count(V303_ORCHESTRATOR_NEW) == 1
+        return raw.replace(V303_ORCHESTRATOR_NEW, V303_ORCHESTRATOR_OLD, 1)
+    if name == 'builder_rail.nut':
+        assert raw.count(V303_BUILDER_BEGIN) == 1 and raw.count(V303_BUILDER_END) == 1
+        start = raw.index(V303_BUILDER_BEGIN)
+        end = raw.index(V303_BUILDER_END, start)
+        block = raw[start:end]
+        assert hashlib.sha256(block).hexdigest() == V303_BUILDER_SHA256, 'V303 helper changed'
+        return raw[:start] + raw[end:]
+    return raw
+
 
 def historical_bytes(name, raw):
+    raw = _strip_v303(name, raw)
     delta = {"info.nut": INFO_DELTA, "settings.nut": SETTINGS_DELTA}.get(name)
     if delta is not None:
         assert raw.count(delta) == 1, f"N75-MC {name}: expected precisely one unchanged opt-in fragment"

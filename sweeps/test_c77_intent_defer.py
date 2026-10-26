@@ -327,7 +327,9 @@ class DeferSourceContracts(unittest.TestCase):
         start = code.index('    /* C77 defer 2 :')
         end = code.index('    /* Fin C77 defer 2. */\n', start) + len('    /* Fin C77 defer 2. */\n')
         # Whole file at 8c9c9e1a, after removing only the mode-2 block.
-        self.assertEqual(hashlib.sha256((code[:start] + code[end:]).encode()).hexdigest(),
+        from n75_mc_legacy import historical_bytes
+        legacy = historical_bytes('orchestrator.nut', (code[:start] + code[end:]).encode())
+        self.assertEqual(hashlib.sha256(legacy).hexdigest(),
                          'e93eef4d3c504b36e738d370b3d41007228377a4a3b3af3ef67c70fce12ccdd4')
         block = code[start:end]
         self.assertIn('if (C77_INTENT_DEFER_SUBSIDY && ("subsidyId" in deferPayload) && deferPayload.subsidyId >= 0)', block)

@@ -53,7 +53,9 @@ class TestV294cWeightAdapt(unittest.TestCase):
         self.assertIn("state.v294cLastDist = OpexV294cSourceDistance(state);", advance)
         self.assertIn("pathfinder.cost.astar_weight_pct = state.v294cWeight;", advance)
         self.assertIn("pathfinder.cost.astar_weight_pct = state.weight;", advance)
-        self.assertEqual(self.task.count("segmented = OpexCreateSegmentedSearch("), 3)
+        # Quatrième appel V303, repli aller après libération de l'A* inverse.
+        self.assertEqual(self.task.count("segmented = OpexCreateSegmentedSearch("), 4)
+        self.assertIn('function OpexAI::_v303BeginForwardAfterProbe(state)', self.task)
         for caller in ("_startRailSearch", "_startRailUpgradeSearch", "_startRailStockSearch"):
             self.assertIn(f"function OpexAI::{caller}(", self.task)
 

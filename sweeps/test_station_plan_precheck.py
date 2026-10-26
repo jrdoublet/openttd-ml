@@ -69,7 +69,8 @@ class StationPlanPrecheck(unittest.TestCase):
         self.assertEqual(source.count(INSERTION), 1)
         # rebasé le 24/10 : eec5db81 (revue R11 OpexBridgeSortBySpeed et eb6f26fc retrait V233)
         self.assertEqual(source.count(P1_BUILDER_RAIL_DELTA.decode("utf-8")), 1)
-        historical = source.replace(INSERTION, "").replace(P1_BUILDER_RAIL_DELTA.decode("utf-8"), "")
+        from n75_mc_legacy import historical_bytes
+        historical = historical_bytes("builder_rail.nut", source.replace(INSERTION, "").encode()).decode()
         self.assertEqual(hashlib.sha256(historical.encode()).hexdigest(),
                          "a68b8620a773b28c830ea8df3d905da1233576023c9837575a12f9ac24af4560")
         body = source[source.index("function OpexStationPlans("):]
