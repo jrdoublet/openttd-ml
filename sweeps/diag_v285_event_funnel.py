@@ -104,6 +104,12 @@ def read_one(path):
     }
 
 
+def valid_wagon_pair(line, old_wagons, new_wagons):
+    """Only plausible wagon-growth identities can support a move or match."""
+    return (all(isinstance(part, int) for part in (line, old_wagons, new_wagons))
+            and line >= 0 and old_wagons >= 1 and new_wagons > old_wagons)
+
+
 def summarize(events, last_opex_day=None):
     """A moved+completed pair identifies ONE result operation, never two."""
     counters = Counter()
@@ -138,7 +144,7 @@ def summarize(events, last_opex_day=None):
                 intention_lines.add(line)
                 detail["wagon_intentions"] += 1
             signature = (line, event["old_wagons"], event["new_wagons"])
-            if all(value is not None for value in signature):
+            if valid_wagon_pair(*signature):
                 intent_signatures[signature] += 1
                 intent_dates[signature].append(event["day"])
             else:
@@ -146,7 +152,7 @@ def summarize(events, last_opex_day=None):
         else:
             action = event["action"]
             pair_signature = (line, event["old_wagons"], event["new_wagons"])
-            if all(part is not None for part in pair_signature):
+            if valid_wagon_pair(*pair_signature):
                 result_details[pair_signature].append({
                     "day": event["day"], "action": action, "reason": event["reason"],
                 })
@@ -170,7 +176,9 @@ def summarize(events, last_opex_day=None):
             identity = (event["line"], event["date"],
                         event["old_wagons"], event["new_wagons"])
             if action in ("moved", "completed"):
-                if all(value is not None for value in identity):
+                if (valid_wagon_pair(event["line"], event["old_wagons"],
+                                     event["new_wagons"])
+                        and isinstance(event["date"], int) and event["date"] > 0):
                     operations[identity].add(action)
                 else:
                     counters["result_events_missing_operation_identity"] += 1

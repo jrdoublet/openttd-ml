@@ -63,6 +63,32 @@ class EventFunnelTests(unittest.TestCase):
         self.assertEqual(one["per_line"]["4"]["confirmed_move_operations"], 1)
         self.assertEqual(one["missing_fields_by_kind"]["result"]["line"], 0)
 
+    def test_negative_line_id_cannot_confirm_a_physical_move(self):
+        content = (result("moved", line="-1") +
+                   result("completed", line="-1"))
+        row = analyze([self.write("v285m6_seed42_r0.log", content)])["runs"][0]
+        self.assertEqual(row["counts"]["moved_result_events"], 1)
+        self.assertEqual(row["counts"]["confirmed_move_operations"], 0)
+        self.assertEqual(row["counts"]["result_events_missing_operation_identity"], 2)
+
+    def test_invalid_operation_date_keeps_event_but_not_move(self):
+        content = result("moved", op_date="-1") + result("completed", op_date="-1")
+        row = analyze([self.write("v285m6_seed42_r0.log", content)])["runs"][0]
+        self.assertEqual(row["counts"]["result_events"], 2)
+        self.assertEqual(row["counts"]["confirmed_move_operations"], 0)
+        self.assertEqual(row["counts"]["result_events_missing_operation_identity"], 2)
+
+    def test_non_growth_wagon_identity_cannot_match_or_confirm_move(self):
+        content = (intent(old="4", new="3") +
+                   result("moved", old="4", new="3") +
+                   result("completed", old="4", new="3"))
+        row = analyze([self.write("v285m6_seed42_r0.log", content)])["runs"][0]
+        self.assertEqual(row["counts"]["wagon_intent_events"], 1)
+        self.assertEqual(row["counts"]["intent_events_missing_pair_identity"], 1)
+        self.assertEqual(row["counts"]["intent_move_signature_overlap"], 0)
+        self.assertEqual(row["counts"]["confirmed_move_operations"], 0)
+        self.assertEqual(row["counts"]["result_events_missing_operation_identity"], 2)
+
     def test_repeated_gate_different_day_not_deduplicated_but_lines_unique(self):
         src = gate() + gate() + gate("1971-2-2") + gate(reason="cooldown")
         row = analyze([self.write("v285m6_seed42_r0.log", src)])["runs"][0]
