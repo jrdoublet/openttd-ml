@@ -21,7 +21,7 @@ for d in sys.argv[1:]:
       f=dict(t.split("=",1) for t in m.group(5).split() if "=" in t)
       k=(f.get("src"),f.get("dst"))
       if m.group(4)=="PROJECT_CHOSEN":
-        if f.get("mode")=="rail": chosen.setdefault(k,dt)
+        if f.get("mode")=="rail": chosen[k]=dt
       else:
         c=chosen.pop(k,None)
         rows.append(dict(f,camp=Path(d).name,file=p.name,date=dt,days=(dt-c).days if c else None))
