@@ -235,6 +235,19 @@ function OpexAI::_tryBuildFleetProject(year, project, rank, passDiscards, builtK
                             reason = "fleet_stale", extra = "" });
     return { outcome = "rejected", discards = passDiscards };
   }
+  /* Revalidation au dernier instant : projet cache, nouvelle fenetre C117,
+   * mutation moteur V252 ou disparition de la preuve ne doivent pas produire
+   * un veto base sur un ancien instantane. Inconnu = comportement historique. */
+  if (P3_AIR_FLEET_YIELD == 2 && liveCount >= 2) {
+    local p3Execute = OpexP3MatureEvidence(line, liveCount, entry.planePrice);
+    if (p3Execute != null && p3Execute.veto
+        && !OpexP3HasEngineUpgrade(line, this._catalog)) {
+      if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL)
+        passDiscards.append({ rank = i, mode = "fleet", src = project.src, dst = project.dst,
+                              reason = "p3_low_yield", extra = "" });
+      return { outcome = "rejected", discards = passDiscards };
+    }
+  }
   local need = entry.planePrice + OpexCashReserve();
   local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
   if (money < need) {

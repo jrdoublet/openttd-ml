@@ -85,10 +85,11 @@ class TestParameterRetirement(unittest.TestCase):
 
     def test_exact_size_after_retirement(self):
         self.assertEqual(len(RETIRED), 43)
-        # 58 historiques + N75 adopte + P6 opt-in distinct des 43 retraits.
-        self.assertEqual(len(self.config), 60)
+        # 58 historiques + N75 adopte + P6 et P3 opt-in, hors 43 retraits.
+        self.assertEqual(len(self.config), 61)
         self.assertIn("n75_multi_cargo", self.config)
         self.assertIn("p6_air_firstline_window", self.config)
+        self.assertIn("air_fleet_yield_rightsize", self.config)
         self.assertEqual(len(declared(historical_info(self.info))), 58)
 
     def test_retired_settings_have_no_declarations_or_direct_reads(self):

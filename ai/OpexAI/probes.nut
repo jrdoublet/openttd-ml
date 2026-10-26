@@ -440,6 +440,182 @@ function OpexC121FirstLiveBalanced90(line)
   return ("balanced90" in holder) && holder.balanced90;
 }
 
+/* P3 : cette signature n'est calculee que pour shadow/ON, sur les vehicules
+ * C117 deja connus. Changement d'ID, de moteur, de capacite, ou de nombre
+ * invalide la mesure ; aucun etat de sonde n'est serialise. */
+function OpexP3FleetSignature(line)
+{
+  if (line == null || !("vehicles" in line) || line.vehicles == null
+      || !("cargo" in line)) return null;
+  local signature = "";
+  local count = 0;
+  foreach (v in line.vehicles) {
+    if (!AIVehicle.IsValidVehicle(v) || AIVehicle.GetVehicleType(v) != AIVehicle.VT_AIR)
+      return null;
+    signature += v + ":" + AIVehicle.GetEngineType(v) + ":"
+        + AIVehicle.GetCapacity(v, line.cargo) + ";";
+    count++;
+  }
+  if (count < 2 || (("vehCount" in line) && count != line.vehCount)) return null;
+  return { signature = signature, count = count };
+}
+
+/* Trois fenetres age-bucket d'environ 30 jours ; l'absence d'un seul
+ * echantillon fiable efface le bloc, plutot que de qualifier 0 vol en 0 demande.
+ * Toujours appele AVANT la sortie lean de C117. */
+function OpexP3MatureFlush(line, state)
+{
+  if (P3_AIR_FLEET_YIELD == 0 || line == null || !("lineId" in line)) return;
+  local key = line.lineId;
+  local ageDays = ("buildDate" in line) ? state.lastDate - line.buildDate : -1;
+  local valid = ageDays >= 730 && state.samples >= 2
+      && ("p3Samples" in state) && state.p3Samples == state.samples
+      && ("p3Stable" in state) && state.p3Stable
+      && ("p3Signature" in state) && state.p3Signature != ""
+      && state.lastLive >= 2 && state.lastCap > 0
+      && state.lastDate > state.startDate
+      && !(("scrapping" in line) && line.scrapping)
+      && !(("needsRefleet" in line) && line.needsRefleet);
+  if (!valid) {
+    if (key in P3_AIR_FLEET_WINDOWS) delete P3_AIR_FLEET_WINDOWS[key];
+    return;
+  }
+  local holder = (key in P3_AIR_FLEET_WINDOWS)
+      ? P3_AIR_FLEET_WINDOWS[key] : null;
+  if (holder == null || holder.buildDate != line.buildDate
+      || holder.stationA != line.stationA || holder.stationB != line.stationB
+      || holder.cargo != line.cargo || holder.signature != state.p3Signature
+      || holder.history.len() == 0
+      || holder.history[holder.history.len() - 1].endDate != state.startDate) {
+    holder = {
+      buildDate = line.buildDate, stationA = line.stationA,
+      stationB = line.stationB, cargo = line.cargo,
+      signature = state.p3Signature, history = []
+    };
+  }
+  holder.history.append({
+    startDate = state.startDate, endDate = state.lastDate,
+    days = state.lastDate - state.startDate,
+    pax = state.pax, seats = state.seatLegs,
+    trips = state.trips, tripsA = state.tripsA, tripsB = state.tripsB,
+    profit = state.profit, waitASum = state.waitASum, waitAN = state.waitAN,
+    waitBSum = state.waitBSum, waitBN = state.waitBN,
+    live = state.lastLive, cap = state.lastCap
+  });
+  while (holder.history.len() > 3) holder.history.remove(0);
+  P3_AIR_FLEET_WINDOWS.rawset(key, holder);
+}
+
+/* Recueille la signature a chaque echantillon C117 sur les seules flottes
+ * mures. Elle suit le nombre d'echantillons, pas les vols, pour invalider toute
+ * observation partielle, tout remplacement V252 ou transition de flotte. */
+function OpexP3MatureSample(line, state, ageDays, live, mixedEngine)
+{
+  if (P3_AIR_FLEET_YIELD == 0 || ageDays < 730 || live < 2
+      || mixedEngine || (("needsRefleet" in line) && line.needsRefleet)
+      || (("scrapping" in line) && line.scrapping)) return;
+  local snapshot = OpexP3FleetSignature(line);
+  if (snapshot == null || snapshot.count != live) return;
+  if (!("p3Signature" in state)) {
+    state.p3Signature <- snapshot.signature;
+    state.p3Stable <- true;
+    state.p3Samples <- 0;
+  } else if (state.p3Signature != snapshot.signature) {
+    state.p3Stable = false;
+  }
+  state.p3Samples++;
+}
+
+/* P3 : verdict passif, NULL si une preuve quelconque manque. Seules des
+ * fenetres closes sont utilisables ; un changement depuis la derniere cloture
+ * (crash, V252, flotte, route) interdit le veto. La marge C121 reste un
+ * delta observe a posteriori de ligne, jamais un effet causal par avion. */
+function OpexP3MatureEvidence(line, have, planePrice)
+{
+  if (P3_AIR_FLEET_YIELD == 0 || line == null || have < 2
+      || planePrice <= 0 || !("lineId" in line) || !("buildDate" in line)
+      || !("year" in line) || !("stationB" in line)
+      || (("scrapping" in line) && line.scrapping)
+      || (("needsRefleet" in line) && line.needsRefleet)
+      || ("c121MarginalObserveYear" in line)
+      || !("c121MarginalSamples" in line) || line.c121MarginalSamples < 1
+      || !("c121LastMarginalProfit" in line)
+      || !("lastAirFleetYear" in line)) return null;
+  local today = AIDate.GetCurrentDate();
+  local ageYear = AIDate.GetYear(today) - line.year;
+  local sinceGrowth = AIDate.GetYear(today) - line.lastAirFleetYear;
+  if (today - line.buildDate < 730 || ageYear < 2
+      || sinceGrowth < 2 || sinceGrowth > 3
+      || !(line.lineId in P3_AIR_FLEET_WINDOWS)) return null;
+  local holder = P3_AIR_FLEET_WINDOWS[line.lineId];
+  if (holder == null || holder.buildDate != line.buildDate
+      || holder.stationA != line.stationA || holder.stationB != line.stationB
+      || holder.cargo != line.cargo || holder.history.len() != 3) return null;
+  local fleet = OpexP3FleetSignature(line);
+  if (fleet == null || fleet.count != have
+      || fleet.signature != holder.signature) return null;
+  local days = 0;
+  local trips = 0;
+  local tripsA = 0;
+  local tripsB = 0;
+  local pax = 0;
+  local seats = 0;
+  local profit = 0;
+  local waitASum = 0;
+  local waitAN = 0;
+  local waitBSum = 0;
+  local waitBN = 0;
+  local previousEnd = -1;
+  local cap = 0;
+  foreach (window in holder.history) {
+    if (window.days < 20 || window.days > 35 || window.trips < 1
+        || window.live != have || window.cap <= 0
+        || (previousEnd >= 0 && previousEnd != window.startDate)
+        || window.endDate - window.startDate != window.days
+        || window.waitAN < 1 || window.waitBN < 1) return null;
+    if (cap > 0 && cap != window.cap) return null;
+    cap = window.cap;
+    days += window.days;
+    trips += window.trips;
+    tripsA += window.tripsA;
+    tripsB += window.tripsB;
+    pax += window.pax;
+    seats += window.seats;
+    profit += window.profit;
+    waitASum += window.waitASum;
+    waitAN += window.waitAN;
+    waitBSum += window.waitBSum;
+    waitBN += window.waitBN;
+    previousEnd = window.endDate;
+  }
+  if (days < 65 || days > 105 || today - previousEnd > 35
+      || previousEnd > today || trips < 6 || tripsA < 2 || tripsB < 2
+      || seats <= 0 || pax < 0 || pax > seats || cap <= 0
+      || waitAN < 3 || waitBN < 3) return null;
+
+  /* Pre-enregistrement P3 : charge <=15 % des sieges effectivement partis,
+   * stock moyen de chaque gare <=25 % des sieges d'UN avion (pas la flotte),
+   * profit C117 recent annualise <=10 % du prix par avion,
+   * DERNIERE marge C121 positive mais <8 % du prix d'un renfort.
+   * Quatre preuves simultanees, aucune extrapolation a partir de -1/0 vol. */
+  local load = pax.tofloat() / seats.tofloat();
+  local waitingA = waitASum.tofloat() / waitAN.tofloat();
+  local waitingB = waitBSum.tofloat() / waitBN.tofloat();
+  local perPlaneCap = cap.tofloat() / have.tofloat();
+  local annualProfitPerPlane = profit.tofloat() * 365.25
+      / days.tofloat() / have.tofloat();
+  local lastMarginal = line.c121LastMarginalProfit;
+  local veto = load <= 0.15 && waitingA <= perPlaneCap * 0.25
+      && waitingB <= perPlaneCap * 0.25
+      && annualProfitPerPlane <= planePrice.tofloat() * 0.10
+      && lastMarginal > 0 && lastMarginal < planePrice.tofloat() * 0.08;
+  return {
+    veto = veto, days = days, trips = trips, tripsA = tripsA, tripsB = tripsB,
+    pax = pax, seats = seats, load = load, waitA = waitingA, waitB = waitingB,
+    profitPerPlane = annualProfitPerPlane, lastMarginal = lastMarginal
+  };
+}
+
 function OpexC117FlushLine(line, state)
 {
   if (state == null || state.samples <= 0) return;
@@ -449,6 +625,7 @@ function OpexC117FlushLine(line, state)
   if (skipChain) {
     local ageDaysLean = ("buildDate" in line) ? (state.lastDate - line.buildDate) : -1;
     OpexC121FirstLiveObserve(line, state, ageDaysLean);
+    if (P3_AIR_FLEET_YIELD > 0) OpexP3MatureFlush(line, state);
     if (flushMark != null) OpexSpanAgg("loop.c117.flush", flushMark);
     return;
   }
@@ -723,6 +900,8 @@ function OpexC117AirThroughputStep(lines, catalog)
       state.capSum += totalCap;
     }
     state.samples++;
+    if (P3_AIR_FLEET_YIELD > 0)
+      OpexP3MatureSample(line, state, ageDays, live, mixedEngine);
     state.lastLive = live;
     state.lastCap = totalCap;
     state.lastDate = now;

@@ -221,6 +221,27 @@ function OpexProjectFromFleet(entry)
     profitIsObserved = v161Source != "model";
   }
 
+  /* P3 : OFF n'effectue aucune lecture de monde ni de sonde. Shadow journalise
+   * le meme verdict que ON mais ne touche jamais les projets. Limiter aux
+   * renforts 2->3+ ; C121 1->2, refleet et V252 restent prioritaires. */
+  if (P3_AIR_FLEET_YIELD > 0 && have >= 2) {
+    local p3 = OpexP3MatureEvidence(line, have, entry.planePrice);
+    if (DECISION_LOG) {
+      OpexDecide("P3_FLEET_YIELD", "stage=score mode=" + P3_AIR_FLEET_YIELD
+          + " line=" + line.lineId + " have=" + have
+          + " want=" + entry.want
+          + " evidence=" + (p3 != null ? 1 : 0)
+          + " veto=" + (p3 != null && p3.veto ? 1 : 0)
+          + " v252_upgrade=" + (("p3EngineUpgrade" in entry) && entry.p3EngineUpgrade ? 1 : 0)
+          + " trips=" + (p3 != null ? p3.trips : -1)
+          + " seats=" + (p3 != null ? p3.seats : -1)
+          + " pax=" + (p3 != null ? p3.pax : -1)
+          + " margin=" + (p3 != null ? p3.lastMarginal : -1));
+    }
+    if (P3_AIR_FLEET_YIELD == 2 && p3 != null && p3.veto
+        && !(("p3EngineUpgrade" in entry) && entry.p3EngineUpgrade)) return null;
+  }
+
   local capital = entry.planePrice * entry.want;
   /* Un achat d'avion ne coute aucune planification : ni pathfinder, ni sondage de site. Seules
    * les commandes transactionnelles restent, d'ou un opcodeScore structurellement tres favorable
