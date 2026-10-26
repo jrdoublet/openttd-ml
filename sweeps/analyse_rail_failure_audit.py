@@ -44,13 +44,13 @@ def summarize(lines):
                 invalid_blocker += 1
                 continue
             key = f"{requested}/{owner}/{phase}"
+            try:
+                metrics = {field: int(fields[field]) for field in ("age_days", "spent", "budget")}
+            except (KeyError, ValueError):
+                invalid_blocker += 1
+                continue
             blockers[m.group(1)][key] += 1
-            for field in ("age_days", "spent", "budget"):
-                try:
-                    value = int(fields[field])
-                except (KeyError, ValueError):
-                    invalid_blocker += 1
-                    break
+            for field, value in metrics.items():
                 existing = blocker_maxima[m.group(1)][key].get(field)
                 if existing is None or value > existing:
                     blocker_maxima[m.group(1)][key][field] = value

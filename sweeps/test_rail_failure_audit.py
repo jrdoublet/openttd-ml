@@ -92,6 +92,35 @@ class RailFailureAuditTest(unittest.TestCase):
         self.assertEqual(out["blocker_annual"]["1975"]["maxima"]["freight/primary/search"]["age_days"], 200)
         self.assertEqual(out["invalid_blocker_events"], 0)
 
+    def test_blocker_missing_late_numeric_field_is_not_counted(self):
+        logs = [
+            "OPEX 1975-6-2 RAIL_BLOCKER requested_kind=pax blocker=upgrade phase=search age_days=2 spent=9400 budget=10000\n",
+            "OPEX 1975-6-3 RAIL_BLOCKER requested_kind=pax blocker=upgrade phase=search age_days=800 spent=9900\n",
+        ]
+        report = summarize(logs)
+        self.assertEqual(report["invalid_blocker_events"], 1)
+        self.assertEqual(report["blocker_annual"]["1975"]["counts"]["pax/upgrade/search"], 1)
+        self.assertEqual(report["blocker_annual"]["1975"]["maxima"]["pax/upgrade/search"],
+                         {"age_days": 2, "spent": 9400, "budget": 10000})
+
+    def test_blocker_invalid_middle_numeric_field_is_not_counted(self):
+        logs = [
+            "OPEX 1975-7-1 RAIL_BLOCKER requested_kind=freight blocker=primary phase=build age_days=9 spent=10 budget=20\n",
+            "OPEX 1975-7-2 RAIL_BLOCKER requested_kind=freight blocker=primary phase=build age_days=900 spent=oops budget=99999\n",
+        ]
+        report = summarize(logs)
+        self.assertEqual(report["invalid_blocker_events"], 1)
+        self.assertEqual(report["blocker_annual"]["1975"]["counts"]["freight/primary/build"], 1)
+        self.assertEqual(report["blocker_annual"]["1975"]["maxima"]["freight/primary/build"],
+                         {"age_days": 9, "spent": 10, "budget": 20})
+
+    def test_blocker_all_invalid_events_do_not_create_annual_category(self):
+        report = summarize([
+            "OPEX 1975-8-1 RAIL_BLOCKER requested_kind=pax blocker=primary phase=search age_days=22 spent=4 budget=NaN\n",
+        ])
+        self.assertEqual(report["invalid_blocker_events"], 1)
+        self.assertEqual(report["blocker_annual"], {})
+
 
 if __name__ == "__main__":
     unittest.main()
