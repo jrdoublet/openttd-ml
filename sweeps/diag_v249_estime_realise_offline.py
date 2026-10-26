@@ -84,7 +84,10 @@ def parse_log(path):
                 line_id = integer(values, "line")
                 report_year = integer(values, "year")
                 real_profit = integer(values, "real_prof")
-                if None not in (line_id, report_year, real_profit):
+                age = integer(values, "age")
+                # Age 1 is the partial first accounting year of a line; a
+                # partial baseline cannot be compared to a mature snapshot.
+                if None not in (line_id, report_year, real_profit, age) and age >= 2:
                     profits[line_id][report_year] = real_profit
             elif tag == "V249_STATUE":
                 town = integer(values, "town")

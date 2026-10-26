@@ -76,10 +76,10 @@ class V249OfflineAuditTests(unittest.TestCase):
     def test_quote_is_not_mislabelled_realized_gain(self):
         log = self.parse([
             event("1973-1-2", "AIR_BUILD", "line=8 src_town=41 dst_town=25"),
-            event("1974-1-2", "LINE_REVENUE", "line=8 mode=air year=1974 real_prof=100"),
+            event("1974-1-2", "LINE_REVENUE", "line=8 mode=air year=1974 age=2 real_prof=100"),
             event("1974-9-7", "V249_STATUE", "town=41 station=3 cargo=PASS rating=60 prod=100 gain=40 cost=120 horizon=5"),
-            event("1975-1-2", "LINE_REVENUE", "line=8 mode=air year=1975 real_prof=500"),
-            event("1976-1-2", "LINE_REVENUE", "line=8 mode=air year=1976 real_prof=170"),
+            event("1975-1-2", "LINE_REVENUE", "line=8 mode=air year=1975 age=3 real_prof=500"),
+            event("1976-1-2", "LINE_REVENUE", "line=8 mode=air year=1976 age=4 real_prof=170"),
             event("1976-1-2", "LINE_REVENUE", "line=9 mode=rail year=1976 real_prof=999"),
         ])
         purchase = log["purchases"][0]
@@ -113,6 +113,44 @@ class V249OfflineAuditTests(unittest.TestCase):
             event("1976-2-1", "LINE_REVENUE", "line=7 mode=air year=1976 real_prof=100"),
         ])
         self.assertEqual(log["purchases"][0]["air_lines_associated"], 0)
+
+    def test_immature_baseline_cannot_supply_descriptive_profit_delta(self):
+        log = self.parse([
+            event("1973-8-4", "AIR_BUILD", "line=57 src_town=37 dst_town=40"),
+            event("1974-1-24", "LINE_REVENUE", "line=57 mode=air year=1974 age=1 real_prof=100"),
+            event("1974-10-6", "V249_STATUE", "town=37 cargo=PASS gain=200 cost=1000"),
+            event("1976-1-28", "LINE_REVENUE", "line=57 mode=air year=1976 age=3 real_prof=150"),
+        ])
+        purchase = log["purchases"][0]
+        self.assertEqual(purchase["air_lines_associated"], 1)
+        self.assertEqual(purchase["air_lines_with_two_snapshots"], 0)
+        self.assertIsNone(purchase["associated_air_profit_delta_descriptive"])
+
+    def test_two_mature_annual_reports_keep_descriptive_difference(self):
+        log = self.parse([
+            event("1972-2-1", "AIR_BUILD", "line=7 src_town=37 dst_town=9"),
+            event("1974-1-3", "LINE_REVENUE", "line=7 mode=air year=1974 age=2 real_prof=100"),
+            event("1974-10-6", "V249_STATUE", "town=37 cargo=PASS gain=200 cost=1000"),
+            event("1976-1-3", "LINE_REVENUE", "line=7 mode=air year=1976 age=4 real_prof=150"),
+        ])
+        purchase = log["purchases"][0]
+        self.assertEqual(purchase["air_lines_with_two_snapshots"], 1)
+        self.assertEqual(purchase["associated_air_profit_delta_descriptive"], 50)
+
+    def test_only_mature_line_contributes_when_other_baseline_is_partial(self):
+        log = self.parse([
+            event("1973-8-4", "AIR_BUILD", "line=57 src_town=37 dst_town=40"),
+            event("1972-2-1", "AIR_BUILD", "line=7 src_town=37 dst_town=9"),
+            event("1974-1-24", "LINE_REVENUE", "line=57 mode=air year=1974 age=1 real_prof=100"),
+            event("1974-1-24", "LINE_REVENUE", "line=7 mode=air year=1974 age=2 real_prof=100"),
+            event("1974-10-6", "V249_STATUE", "town=37 cargo=PASS gain=200 cost=1000"),
+            event("1976-1-28", "LINE_REVENUE", "line=57 mode=air year=1976 age=3 real_prof=300"),
+            event("1976-1-28", "LINE_REVENUE", "line=7 mode=air year=1976 age=4 real_prof=160"),
+        ])
+        purchase = log["purchases"][0]
+        self.assertEqual(purchase["air_lines_associated"], 2)
+        self.assertEqual(purchase["air_lines_with_two_snapshots"], 1)
+        self.assertEqual(purchase["associated_air_profit_delta_descriptive"], 60)
 
 
 if __name__ == "__main__":
