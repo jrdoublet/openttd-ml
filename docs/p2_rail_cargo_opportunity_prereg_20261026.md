@@ -88,3 +88,76 @@ constructions différentes.
 Les verdicts historiques P1/RAIL-ROI/V294c/V297 et P3/P6/FRONT-PAX-2
 restent inchangés. Un défaut d'exposition est un résultat, pas une raison
 de multiplier les bancs ou de créer des candidats artificiels.
+
+## Implémentation et validation mécanique (26 octobre 2026)
+
+- Pré-enregistrement committé **avant banc** : `35b5a67b`; code opt-in
+  `ddb9afa0`, fusion `eab91e07` sur `origin/master`. Un correctif ultérieur
+  `f6455c4b` supprime les journaux des sélections `action=none` sans modifier
+  le seuil économique, la condition d'éligibilité ou le défaut du réglage.
+- `0` OFF (défaut sur quatre difficultés), `1` SHADOW sans permutation, `2` ON
+  avec au plus une permutation adjacente d'un fret préparé. C77, `fundScore`,
+  `K_dec`, N75, V252 et les recherches A* ne sont pas modifiés. Le score
+  +8 % est un test de rang, jamais une réécriture du rendement économique.
+- Suite complète `python -X utf8 -m unittest discover -s sweeps -p 'test_*.py'` :
+  **2 895 tests OK** (6 skipped, 2 expected failures), `git diff --check`
+  conforme ; huit contrats P2 ajoutés. Le test Python ne compile pas Squirrel.
+- Smoke moteur `p2_cargo_smoke_42x1_20261026_r2` : graine 42, un an,
+  OFF `0` contre ON `2`, **1/1 paire saine**, zéro `failed_runs`,
+  `comparison_complete=true`, `metric_coverage_complete=true`, verdict
+  `diagnostic_only`. Écart ON−OFF −48 588 £/an sur **une seule graine** :
+  aucune portée économique statistique. Bundle gelé
+  `68eb8fda36c3dcefe1a67b6142458bf93ea880ce56027cf474290a2edac80f1a`.
+- Save/Load moteur du mode ON, graine 42 :
+  `results/p2_cargo_saveload_short_42_20261026.json` et
+  `results/p2_cargo_saveload_full_42_20261026.json`. Pour chacun,
+  `save_full_state=0` ou `1`, **13 sauvegardes phase A + 13 phase B**,
+  rechargement du `000000005.sav` (01/07/1970), `LOAD_RECONCILE` positif,
+  aucun échec script. Le harnais engendre une compagnie fantôme connue :
+  ces essais prouvent la reprise technique, non l'identité des trajectoires.
+
+## Exposition shadow appariée et verdict (26 octobre 2026)
+
+Campagne `p2_cargo_shadow_5x5_20261026_r1` : **cinq graines**
+`42,100,7,999,2026`, années 1970–1974, OFF `0` contre SHADOW `1`,
+**10 parties / 5 paires complètes et saines**, aucun `failed_runs` ; les champs
+`comparison_complete` et `metric_coverage_complete` valent `true`. Bundle
+`68eb8fda36c3dcefe1a67b6142458bf93ea880ce56027cf474290a2edac80f1a` ;
+manifeste SHA256 **vérifié** :
+`0cfd31a10a451feded29610f6bce892dc08d00a31298bf55d894c0c345a78fb7`.
+
+Comptage direct des cinq journaux moteur **shadow** réellement joués :
+
+| Graine | `P2_OPPORTUNITY action=shadow` (conflit admissible) | `action=none` (sélections répétées) |
+|---|---:|---:|
+| 42 | 0 | 633 |
+| 100 | 0 | 924 |
+| 7 | 0 | 644 |
+| 999 | 0 | 672 |
+| 2026 | 0 | 798 |
+| **Total** | **0** | **3 671** |
+
+**Zéro des cinq graines** manifeste un conflit fret/RAIL PASS ou AIR
+simultanément préparé, finançable, de même tiers C77, avec marge/rang
+respectant 8 %/93 %/80 %. Les 3 671 journaux `none` étaient seulement des
+réévaluations, **pas** des projets construits. Les chantiers réellement
+substitués démontrés sont donc également **zéro**. La condition pré-enregistrée
+exigeait des conflits sur **au moins trois graines**, puis trois chantiers
+substitués en pilote ON : la première condition échoue sans ambiguïté.
+
+À titre **strictement descriptif**, shadow−OFF : delta annuel moyen
+`profit_year` **+50 355,2 £/an**, médiane **+42 219**, 3V/2D/0E,
+Wilcoxon bilatéral **p=0,625**, IC95 bootstrap **[−87 198,6 ; +192 910,2]**,
+ratio de valeur **1,018098**. Une fluctuation entre deux bras à instrumentation
+différente ne prouve pas d'effet causal de l'arbitrage, qui n'a jamais proposé
+de conflit dans ce banc. Ces cinq ans ne remplacent pas la cible 20×10
+face à AAAHogEx.
+
+**VERDICT : `NO-GO` d'exposition**. Aucun pilote ON 5×5, aucune porte A 40×5
+ou B 20×10, aucun changement de défaut ni adoption. Ne pas réviser après
+observation la borne +8 %, les ratios 93 %/80 %, les filtres de constructibilité
+ou les exigences de provenance. Le correctif ultérieur des journaux vides
+reste un changement d'observabilité, sans nouvelle preuve économique ; les
+résultats ci-dessus restent explicitement ceux du bundle gelé `ddb9afa0`.
+P1/P4/P5 pourront être étudiées selon leur propre protocole et sans prétendre
+que ce premier arbitrage P2 a déplacé une construction.
