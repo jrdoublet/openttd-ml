@@ -157,6 +157,32 @@ class TestV308RecordValidation(unittest.TestCase):
             with self.subTest(prefix=name):
                 self.assertFalse(complete_record(record))
 
+    def test_motif_cannot_detect_river_absent_from_exhaustive_block(self):
+        record = block_record()
+        record["full6_river"] = 1
+        self.assertFalse(complete_record(record))
+        self.assertEqual(summarize([record])[1]["classes"]["river"]["false_pos"], 1)
+
+    def test_motif_cannot_count_houses_above_exhaustive_truth(self):
+        record = block_record()
+        record["t_house"] = 1
+        record["v307_house"] = 2
+        self.assertFalse(complete_record(record))
+
+    def test_motif_relief_cannot_exceed_exhaustive_relief(self):
+        record = block_record()
+        record["t_relief"] = 5
+        record["parity6_relief"] = 6
+        self.assertFalse(complete_record(record))
+
+    def test_any_sampled_count_can_equal_exhaustive_truth(self):
+        for kind in ("sea", "lake", "river", "coast", "house", "town", "obst", "relief"):
+            record = block_record()
+            record["t_" + kind] = 2
+            record["full6_" + kind] = 2
+            with self.subTest(kind=kind):
+                self.assertTrue(complete_record(record))
+
     def test_invalid_counts_are_excluded_before_rates_and_costs_are_computed(self):
         good = block_record()
         bad_river = dict(good, full6_river=7, full6_ops=999999)

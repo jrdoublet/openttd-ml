@@ -104,7 +104,14 @@ def complete_record(fields):
                or fields[name + "_" + key] > fields[name + "_n"]
                for key in ARM_FIELDS if key not in ("n", "relief", "ops")):
             return False
+        # Every sampled tile is also part of the exhaustive 64-tile scan.
+        # River-crossing is a topology indicator, not a sampled tile count.
+        if any(fields[name + "_" + key] > fields["t_" + key]
+               for key in ("sea", "lake", "river", "coast", "house", "town", "obst")):
+            return False
     if any(fields[name + "_relief"] < 0 for name in ("t",) + ARM_NAMES):
+        return False
+    if any(fields[name + "_relief"] > fields["t_relief"] for name in ARM_NAMES):
         return False
     if any(fields[name + "_ops"] < 0 for name in ARM_NAMES):
         return False
