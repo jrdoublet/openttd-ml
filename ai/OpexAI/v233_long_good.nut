@@ -1,8 +1,10 @@
 /* V233L : sorties GOOD longues, independantes des anciennes greffes V233.
  * Toutes les entrees sont court-circuitees par V233_LONG_GOOD. Fenetres de
- * six mois CLOS consecutifs ; ni stock transforme en debit, ni croissance promise.
+ * six mois CLOS observes sur sept mois au plus ; aucun mois absent impute.
+ * Ni stock transforme en debit, ni croissance promise.
  * Budget cooperatif : une unite native/economique peut depasser le plafond. */
 const V233L_WINDOW = 6;
+const V233L_MAX_AGE = 3;
 const V233L_MAX_FACTORIES = 64;
 const V233L_SLICE_OPS = 20000;
 const V233L_TOWNS = 8;
@@ -99,25 +101,21 @@ function OpexV233LObserve(owner)
     if (!(industry in state.rows)) {
       if (state.rows.len() >= V233L_MAX_FACTORIES) continue;
       state.rows.rawset(industry, { month = -1, tile = line.originB,
-        production = [], residual = [], inputLine = line.lineId, station = -1, townCursor = 0,
+        months = [], production = [], residual = [], inputLine = line.lineId, station = -1, townCursor = 0,
         exportLine = -1, exportMonth = -1 });
     }
     local row = state.rows[industry];
-    if (row.tile != line.originB) { row.production = []; row.residual = []; row.month = -1; }
+    if (row.tile != line.originB) { row.months = []; row.production = []; row.residual = []; row.month = -1; }
     row.tile = line.originB;
     row.inputLine = line.lineId;
     row.station = OpexLineStationId(line, "B");
-    if (row.month == month - 1) continue; // plusieurs intrants : un seul mois observe.
-    if (row.month != month - 2) { row.production = []; row.residual = []; }
+    if (row.month >= month - 1) continue; // plusieurs intrants : un seul mois observe, jamais de recul.
     local production = AIIndustry.GetLastMonthProduction(industry, cargo);
     local transported = AIIndustry.GetLastMonthTransported(industry, cargo);
     if (OpexV233LMonth() != month) break; // ne pas etiqueter un mois nouveau avec l'ancien.
     local residual = production - transported;
     if (residual < 0) residual = 0;
-    row.production.append(production);
-    row.residual.append(residual);
-    if (row.production.len() > V233L_WINDOW) { row.production.remove(0); row.residual.remove(0); }
-    row.month = month - 1;
+    OpexV233LRecord(row, month - 1, production, residual);
     if (DECISION_LOG) OpexV233LLog("PRODUCTION", "industry=" + industry + " month=" + row.month
         + " produced=" + production + " transported=" + transported + " residual=" + residual
         + " samples=" + row.production.len() + " station=" + row.station
@@ -126,6 +124,26 @@ function OpexV233LObserve(owner)
   }
   if (DECISION_LOG) OpexV233LLog("OPS", "phase=observe units=" + count
       + " ops=" + OpexOpsMeasureEnd(mark) + " budget=" + V233L_SLICE_OPS);
+}
+
+/* Six valeurs reelles, au plus un mois absent dans les sept mois calendaires.
+ * Une interruption longue evince les points anciens, sans fabriquer de zeros. */
+function OpexV233LRecord(row, month, production, residual)
+{
+  if (month <= row.month) return;
+  row.months.append(month);
+  row.production.append(production);
+  row.residual.append(residual);
+  while (row.months.len() > V233L_WINDOW || row.months[0] < month - V233L_WINDOW) {
+    row.months.remove(0); row.production.remove(0); row.residual.remove(0);
+  }
+  row.month = month;
+}
+
+/* Age calendaire du dernier mois CLOS : 1..3 inclus, jamais le mois en cours/futur. */
+function OpexV233LFresh(month, now)
+{
+  return month >= 0 && month < now && now - month <= V233L_MAX_AGE;
 }
 
 function OpexV233LMin(values)
@@ -144,15 +162,16 @@ function OpexV233LMean(values)
 
 /* Une secondaire produit a la livraison : des mois nuls entre deux trains
  * sont normaux. Six mois observes, au moins deux livraisons productives et
- * une production dans la demi-fenetre recente, sans imputer les mois absents. */
-function OpexV233LDurable(values)
+ * une production dans les trois derniers mois calendaires de la fenetre. */
+function OpexV233LDurable(row)
 {
-  if (values.len() != V233L_WINDOW) return false;
+  if (row.production.len() != V233L_WINDOW || row.residual.len() != V233L_WINDOW
+      || row.months.len() != V233L_WINDOW || row.month - row.months[0] > V233L_WINDOW) return false;
   local positive = 0;
   local recent = 0;
-  for (local i = 0; i < values.len(); i++) {
-    if (values[i] > 0) positive++;
-    if (i >= 3) recent += values[i];
+  for (local i = 0; i < row.production.len(); i++) {
+    if (row.production[i] > 0) positive++;
+    if (row.months[i] >= row.month - 2) recent += row.production[i];
   }
   return positive >= 2 && recent > 0;
 }
@@ -165,18 +184,34 @@ function OpexV233LSource(source, cargo, lines)
       || !(source.id in V233L_STATE.rows)) return null;
   local row = V233L_STATE.rows[source.id];
   local mark = OpexOpsMeasureBegin();
-  local ready = row.tile == source.tile && row.month == OpexV233LMonth() - 1
-      && OpexV233LDurable(row.production);
+  local reasons = [];
+  if (row.tile != source.tile) reasons.append("source_changed");
+  if (!OpexV233LDurable(row)) reasons.append("window");
   local inputLive = false;
+  local exportExists = false;
+  local complete = true;
   foreach (line in lines) {
-    if (OpexOpsMeasureEnd(mark) >= V233L_SLICE_OPS) { ready = false; break; }
+    if (OpexOpsMeasureEnd(mark) >= V233L_SLICE_OPS) { complete = false; break; }
     if (("lineId" in line) && line.lineId == row.inputLine
         && OpexV233LInput(line, cargo) == source.id) inputLive = true;
     if (("cargo" in line) && line.cargo == cargo && ("originA" in line)
-        && line.originA == source.tile && (!("scrapping" in line) || !line.scrapping)) ready = false;
+        && line.originA == source.tile && (!("scrapping" in line) || !line.scrapping)) exportExists = true;
   }
-  ready = ready && inputLive && OpexV233LMean(row.residual) > 0;
-  return { ready = ready, row = row, monthly = OpexV233LMean(row.residual),
+  local now = OpexV233LMonth();
+  if (!OpexV233LFresh(row.month, now)) reasons.append("stale");
+  if (!complete) reasons.append("budget");
+  if (complete && !inputLive) reasons.append("input_not_live");
+  if (exportExists) reasons.append("export_exists");
+  local monthly = OpexV233LMean(row.residual);
+  if (monthly <= 0) reasons.append("no_residual");
+  /* Une ligne par condition/source, meme si la fenetre bloque deja. Ne pas
+   * confondre un inventaire interrompu avec la preuve d'un intrant absent. */
+  if (DECISION_LOG) foreach (reason in reasons) OpexV233LLog("REJECT",
+      "industry=" + source.id + " reason=" + reason + " sample_month=" + row.month
+      + " age=" + (now - row.month) + " samples=" + row.production.len()
+      + " input_live=" + (inputLive ? 1 : 0) + " export_exists=" + (exportExists ? 1 : 0)
+      + " residual=" + monthly);
+  return { ready = reasons.len() == 0, row = row, monthly = monthly, sampleMonth = row.month,
     ops = OpexOpsMeasureEnd(mark), townStart = row.townCursor, visits = 0 };
 }
 
@@ -184,8 +219,11 @@ function OpexV233LAdmit(context, source, town)
 {
   local mark = OpexOpsMeasureBegin();
   context.visits++;
+  if (!context.ready) { context.ops += OpexOpsMeasureEnd(mark); return false; }
   local distance = AIMap.DistanceManhattan(source.tile, town.tile);
-  local reason = !context.ready ? "production_or_export" :
+  /* PO01C peut suspendre entre Source et Admit : dater l'offre figee, pas
+   * une observation plus neuve arrivee entre-temps dans context.row. */
+  local reason = !OpexV233LFresh(context.sampleMonth, OpexV233LMonth()) ? "stale" :
       (distance < 150 || distance > 300 ? "distance" : "OK");
   if (reason != "OK" && DECISION_LOG) OpexV233LLog("REJECT",
       "industry=" + source.id + " town=" + town.id + " reason=" + reason + " distance=" + distance);
@@ -263,8 +301,8 @@ function OpexV233LRecheck(candidate, plan)
   if (V233L_STATE == null || !(industry in V233L_STATE.rows) || plan.doubleTrack != 1
       || plan.planA == null || plan.planB == null) return false;
   local row = V233L_STATE.rows[industry];
-  if (row.month != OpexV233LMonth() - 1 || row.residual.len() != V233L_WINDOW
-      || !OpexV233LDurable(row.production) || OpexV233LMean(row.residual) < candidate.monthly) return false;
+  if (!OpexV233LFresh(row.month, OpexV233LMonth())
+      || !OpexV233LDurable(row) || OpexV233LMean(row.residual) < candidate.monthly) return false;
   local coverage = AIStation.GetCoverageRadius(AIStation.STATION_TRAIN);
   if (!OpexV233LTouches(plan.planA, industry, true, coverage)
       || OpexV233LCargoValue(plan.planB.anchor, plan.planB.step, plan.planB.length,
@@ -281,7 +319,7 @@ function OpexV233LInputTarget(line)
   if (!(industry in V233L_STATE.rows)) return false;
   local row = V233L_STATE.rows[industry];
   if (row.exportLine < 0 || row.exportMonth < OpexV233LMonth() - 1) return false;
-  if (row.month != OpexV233LMonth() - 1 || !OpexV233LDurable(row.production)) return false;
+  if (!OpexV233LFresh(row.month, OpexV233LMonth()) || !OpexV233LDurable(row)) return false;
   return OpexV233LInput(line, OpexV233LGoodCargo()) == industry;
 }
 
@@ -350,7 +388,7 @@ function OpexV233LFleetMargin(line, vehicle, added, newLoco, newWagons, extraCos
     local factory = AIIndustry.GetIndustryID(line.originA);
     if (!(factory in V233L_STATE.rows)) return null;
     local row = V233L_STATE.rows[factory];
-    if (row.month != OpexV233LMonth() - 1 || !OpexV233LDurable(row.production)) return null;
+    if (!OpexV233LFresh(row.month, OpexV233LMonth()) || !OpexV233LDurable(row)) return null;
     offered = OpexV233LMean(row.production) * rating / 100.0;
   }
   local before = line.vehicles.len() * oldCapacity;
@@ -517,6 +555,16 @@ function OpexV233LLoad(data)
       foreach (value in row[key]) if (typeof value != "integer" || value < 0) return state;
     }
     if (row.production.len() != row.residual.len() || row.townCursor < 0) return state;
+    if ("months" in row) {
+      if (typeof row.months != "array" || row.months.len() != row.production.len()) return state;
+      local previous = -1;
+      foreach (month in row.months) {
+        if (typeof month != "integer" || month < 0 || month <= previous || month > row.month
+            || month < row.month - V233L_WINDOW) return state;
+        previous = month;
+      }
+      if (row.months.len() > 0 && previous != row.month) return state;
+    } else if (row.production.len() > 0 && row.month < row.production.len() - 1) return state;
   }
   foreach (id, row in data.growth) {
     if (typeof id != "integer" || typeof row != "table") return state;
@@ -536,6 +584,15 @@ function OpexV233LLoad(data)
     if (pending.phase != "prepare" && pending.phase != "building"
         && pending.phase != "starting" && pending.phase != "rollback") return state;
     if (pending.phase != "prepare" && pending.before == null) return state;
+  }
+  /* Ancien schema : ses tableaux etaient strictement consecutifs et dates
+   * par row.month. Restituer ces dates connues, sans inventer de production.
+   * Migrer seulement apres validation de TOUT l'etat, sans API monde. */
+  foreach (id, row in data.rows) {
+    if ("months" in row) continue;
+    row.months <- [];
+    for (local i = 0; i < row.production.len(); i++)
+      row.months.append(row.month - row.production.len() + 1 + i);
   }
   return data;
 }

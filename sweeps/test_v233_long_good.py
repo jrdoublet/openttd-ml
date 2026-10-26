@@ -16,20 +16,41 @@ AI = Path(__file__).resolve().parents[1] / "ai/OpexAI"
 
 
 def observe(samples):
-    """Independent expected window: missing months break continuity; zero stays."""
+    """Six real observations in seven calendar months; no missing value imputed."""
     window = []
     last = None
     for month, production, transported in samples:
-        if month == last:
+        if last is not None and month <= last:
             continue
-        if last is not None and month != last + 1:
-            window = []
-        window.append((production, max(0, production - transported)))
-        window = window[-6:]
+        window.append((month, production, max(0, production - transported)))
+        window = [sample for sample in window if sample[0] >= month - 6][-6:]
         last = month
-    durable = (len(window) == 6 and sum(p > 0 for p, _ in window) >= 2
-               and sum(p for p, _ in window[3:]) > 0)
-    return window, durable, sum(r for _, r in window) // len(window) if window else 0
+    durable = (len(window) == 6 and sum(p > 0 for _, p, _ in window) >= 2
+               and sum(p for m, p, _ in window if m >= last - 2) > 0)
+    return window, durable, sum(r for _, _, r in window) // len(window) if window else 0
+
+
+def fresh(month, now):
+    return 1 <= now - month <= 3 and month >= 0
+
+
+def reject_reasons(samples, now, *, input_live=True, export_exists=False, distance=200):
+    """Independent gate expectations, including simultaneous source failures."""
+    window, durable, monthly = observe(samples)
+    reasons = set()
+    if not durable:
+        reasons.add("window")
+    if not window or not fresh(window[-1][0], now):
+        reasons.add("stale")
+    if not input_live:
+        reasons.add("input_not_live")
+    if export_exists:
+        reasons.add("export_exists")
+    if monthly <= 0:
+        reasons.add("no_residual")
+    if not reasons and not 150 <= distance <= 300:
+        reasons.add("distance")
+    return reasons
 
 
 class V233LongGoodContracts(unittest.TestCase):
@@ -69,7 +90,8 @@ class V233LongGoodContracts(unittest.TestCase):
         source_code = body("v233_long_good.nut", "OpexV233LSource")
         self.assertIn('AICargo.GetCargoLabel(cargo) != "GOOD"', source_code)
         self.assertIn('line.originA == source.tile', source_code)
-        self.assertIn('ready = ready && inputLive', source_code)
+        self.assertIn('OpexV233LInput(line, cargo) == source.id', source_code)
+        self.assertIn('complete && !inputLive', source_code)
         self.assertNotIn('AIStation.GetOwner', source("v233_long_good.nut"))  # GameScript-only API.
 
     def test_alternating_deliveries_are_durable_zero_not_missing(self):
@@ -78,26 +100,100 @@ class V233LongGoodContracts(unittest.TestCase):
         self.assertEqual(len(window), 6)
         self.assertTrue(durable)
         self.assertEqual(monthly, 50)
-        self.assertEqual(window[0], (0, 0))
+        self.assertEqual(window[0], (0, 0, 0))
         code = body("v233_long_good.nut", "OpexV233LObserve")
-        self.assertIn('row.month != month - 2', code)
-        self.assertIn('row.month == month - 1', code)
-        self.assertIn('row.production.append(production)', code)
-        self.assertIn('row.residual.append(residual)', code)
+        self.assertIn('row.month >= month - 1', code)
+        self.assertIn('OpexV233LMonth() != month', code)
+        self.assertIn('OpexV233LRecord(row, month - 1, production, residual)', code)
+        record = body("v233_long_good.nut", "OpexV233LRecord")
+        self.assertIn('month <= row.month', record)
+        self.assertIn('row.months.append(month)', record)
+        self.assertIn('row.production.append(production)', record)
+        self.assertIn('row.residual.append(residual)', record)
+        self.assertIn('row.months[0] < month - V233L_WINDOW', record)
 
     def test_missing_duplicate_and_stopped_production_windows(self):
         cases = (
             ([[m, 100, 20] for m in range(5)], False, 80),
-            ([[m, 100, 20] for m in (0, 1, 2, 4, 5, 6)], False, 80),
+            ([[m, 100, 20] for m in (0, 1, 2, 4, 5, 6)], True, 80),
+            ([[m, 100, 20] for m in (0, 1, 3, 4, 6, 7)], False, 80),
+            ([[m, 100, 20] for m in range(6)] + [[9, 100, 20]], False, 80),
             ([[0, 600, 0]] + [[m, 0, 0] for m in range(1, 6)], False, 100),
             ([[m, 100, 200] for m in range(6)], True, 0),
             ([[m, 100, 20] for m in range(6)] + [[5, 999, 0]], True, 80),
+            ([[m, 100, 20] for m in range(6)] + [[3, 999, 0]], True, 80),
         )
         for samples, durable, monthly in cases:
             with self.subTest(samples=samples):
                 _, actual_durable, actual_monthly = observe(samples)
                 self.assertEqual((actual_durable, actual_monthly), (durable, monthly))
         self.assertIn('positive >= 2 && recent > 0', body("v233_long_good.nut", "OpexV233LDurable"))
+
+    def test_missing_month_is_neither_zero_nor_sample(self):
+        # At month 5, the absent month 3 cannot complete a six-sample window.
+        samples = [[m, 100, 10] for m in (0, 1, 2, 4, 5)]
+        window, durable, monthly = observe(samples)
+        self.assertEqual([m for m, _, _ in window], [0, 1, 2, 4, 5])
+        self.assertFalse(durable)
+        self.assertEqual(monthly, 90)
+        window, durable, monthly = observe(samples + [[6, 400, 40]])
+        self.assertTrue(durable)
+        self.assertEqual([m for m, _, _ in window], [0, 1, 2, 4, 5, 6])
+        self.assertEqual(monthly, 135)  # 810 / 6 observations, never / 7.
+
+    def test_recent_production_uses_calendar_months_with_gap(self):
+        samples = [[m, 100 if m in (2, 3) else 0, 0] for m in (0, 1, 2, 3, 4, 6)]
+        self.assertFalse(observe(samples)[1])  # last three calendar months 4..6 are idle.
+        samples[-1][1] = 100
+        self.assertTrue(observe(samples)[1])
+        self.assertIn('row.months[i] >= row.month - 2', body("v233_long_good.nut", "OpexV233LDurable"))
+
+    def test_sample_expiry_boundaries_and_all_consumers(self):
+        for now, expected in ((4, False), (5, False), (6, True), (7, True), (8, True), (9, False)):
+            with self.subTest(now=now):
+                self.assertEqual(fresh(5, now), expected)
+        self.assertFalse(fresh(-1, 1))
+        helper = body("v233_long_good.nut", "OpexV233LFresh")
+        self.assertIn('month >= 0 && month < now && now - month <= V233L_MAX_AGE', helper)
+        self.assertIn('const V233L_MAX_AGE = 3;', source("v233_long_good.nut"))
+        for name in ("Source", "Recheck", "InputTarget", "FleetMargin"):
+            with self.subTest(consumer=name):
+                self.assertIn('OpexV233LFresh(row.month,', body("v233_long_good.nut", "OpexV233L" + name))
+        admit = body("v233_long_good.nut", "OpexV233LAdmit")
+        self.assertIn('OpexV233LFresh(context.sampleMonth, OpexV233LMonth())', admit)
+        self.assertIn('sampleMonth = row.month', body("v233_long_good.nut", "OpexV233LSource"))
+
+    def test_distinct_reject_reasons_and_simultaneous_failures(self):
+        samples = [[m, 100, 20] for m in (0, 1, 2, 4, 5, 6)]
+        self.assertEqual(reject_reasons(samples, 9), set())  # age three, not only previous month.
+        self.assertEqual(reject_reasons(samples, 10), {"stale"})
+        self.assertEqual(reject_reasons(samples, 7, input_live=False), {"input_not_live"})
+        self.assertEqual(reject_reasons(samples, 7, export_exists=True), {"export_exists"})
+        self.assertEqual(reject_reasons([[m, 100, 100] for m in range(6)], 6), {"no_residual"})
+        self.assertEqual(reject_reasons([[0, 0, 0]], 4, input_live=False, export_exists=True),
+                         {"window", "stale", "input_not_live", "export_exists", "no_residual"})
+        for distance in (149, 150, 300, 301):
+            self.assertEqual(reject_reasons(samples, 7, distance=distance),
+                             set() if 150 <= distance <= 300 else {"distance"})
+        code = body("v233_long_good.nut", "OpexV233LSource")
+        for reason in ("window", "stale", "input_not_live", "export_exists", "no_residual", "budget", "source_changed"):
+            self.assertIn(f'reasons.append("{reason}")', code)
+        self.assertIn('foreach (reason in reasons) OpexV233LLog("REJECT"', code)
+        self.assertIn('if (complete && !inputLive)', code)
+        self.assertLess(code.index('foreach (line in lines)'), code.index('reasons.append("input_not_live")'))
+        self.assertIn('ready = reasons.len() == 0', code)
+        self.assertNotIn('production_or_export', source("v233_long_good.nut"))
+
+    def test_load_checks_observation_dates_and_migrates_consecutive_legacy_windows(self):
+        code = body("v233_long_good.nut", "OpexV233LLoad")
+        for token in ('row.months.len() != row.production.len()', 'month <= previous',
+                      'month > row.month', 'month < row.month - V233L_WINDOW',
+                      'previous != row.month', 'row.months <- []',
+                      'row.month - row.production.len() + 1 + i'):
+            self.assertIn(token, code)
+        self.assertNotIn('AIDate.', code)  # Load must work before world APIs/settings.
+        self.assertLess(code.index('pending.phase != "prepare" && pending.before == null'),
+                        code.index('row.months <- []'))  # no partial migration of invalid saves.
 
     def test_candidate_keeps_destination_guard_and_normal_portfolio(self):
         code = body("candidates.nut", "OpexFreightCandidates")

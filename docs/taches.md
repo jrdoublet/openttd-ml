@@ -17,6 +17,14 @@ Contrats OFF/hash et PO01C ; **aucune partie, aucun Docker, aucune qualification
 Les échecs V218, V233 antérieurs et `good_source_rail_join` restent clos ; ce
 nouveau mécanisme n'adopte aucun défaut ni résultat historique.
 
+**26/10 — V233L, correctif local de l'inertie du smoke fourni (graine 100, cinq ans) :**
+préparation de gare synchrone pendant juin–août 1974, observation bornée à huit
+lignes par passage ; pas de saturation de sa tranche 20 000 opcodes dans ce log.
+Six observations datées sur sept mois au plus (un mois absent non imputé),
+péremption 1–3 mois et motifs REJECT distincts, dates persistées avec migration.
+Défaut 0 et hashes OFF conservés ; aucun nouveau jeu/Docker, aucune qualification.
+Diagnostic, limites et validation : [journal V233L](v233_long_good_20261025.md#26-octobre--correction-de-linertie-observée).
+
 ### Priorités ouvertes après les deux références monomodales du 25/10 (sans adoption)
 
 - [ ] **P1 — `rail_long_value_rank` : qualifier et classer le fret long constructible (opt-in, défaut 0 ; coût 4/5).** Ne plus relever globalement les bornes : vérifier site, A*, capital et ROI marginal pour une paire fret ≥160 tuiles, puis la comparer aux projets courts et AIR réellement finançables ; [analyse §4](analyse_rail_vs_air_seul_20261025.md#4-pistes-expérimentales-par-potentiel-de-gain-relatif-au-coût).
