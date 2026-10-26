@@ -46,6 +46,16 @@ pré-enregistrées restent obligatoires.
 | 6 | DIST-BORNES-1 | Moyen à élevé ; filtres spatiaux V276/V269 et contexte tardif différé | Exposition 1024², puis porte si choix | Élevé |
 | 7 | V249a | Moyen à élevé ; demande supplémentaire captable par gare/cargo | Shadow puis expérience | Moyen à élevé |
 
+**Lot du 26/10 après `bca3c701` :** V286 instrumenté sur cinq graines
+et trois ans (294 instantanés gare/cargo, 314 véhicules), mais la livraison
+exacte par ligne et l'effet observateur restent inconnus : V286 conserve
+son rang et sa case ouverte. Les deux sous-études de ROI AIR **fondées
+uniquement sur les 40 journaux DUEL existants** sont closes en
+`NO-GO méthodologique / not_identifiable` ; les demandes de ROI marginal
+AIR-ROI-LIGNE-1 et AIR-ROI-RENOUVELLEMENT-1 demeurent ouvertes et
+nécessitent des contrefactuels même-save plus coût net.
+**Aucune nouvelle case racine fermée ; 20 cases ouvertes.**
+
 ## C3 — prototypes et validations dépendantes
 
 | Ordre | Case | Effort / dépendance principale | Besoin de banc | Risque |
