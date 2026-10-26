@@ -91,8 +91,9 @@ def opcode_years(source, arm='reference'):
 def read_regen_logs(directory):
     """Only count proven 100%-same candidate keys; keep missing keys unknown."""
     stats = defaultdict(lambda: Counter())
-    logs = sorted(p for p in Path(directory).glob('reference_seed*_r0.log*')
-                  if re.fullmatch(r'reference_seed\d+_r0\.log(?:\.gz)?', p.name))
+    logs = sorted(p for p in Path(directory).glob('reference_seed*_r*.log*')
+                  if (match := re.fullmatch(r'reference_seed\d+_r(\d+)\.log(?:\.gz)?',
+                                           p.name)) is not None and int(match.group(1)) == 0)
     source_hashes = {}
     name_by_identity = {}
     for log in logs:

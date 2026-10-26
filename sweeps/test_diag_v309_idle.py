@@ -30,6 +30,25 @@ def regen_line(ops=100, top1=1):
 
 
 class TestV309RegenReader(unittest.TestCase):
+    def test_zero_padded_repeat_zero_is_still_a_reference_game(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            directory = Path(tmp)
+            (directory / 'reference_seed42_r00.log').write_text(
+                regen_line(ops=75), encoding='utf-8')
+            (directory / 'reference_seed42_r1.log').write_text(
+                regen_line(ops=100000), encoding='utf-8')
+            n_games, years = read_regen_logs(directory)
+            self.assertEqual(n_games, 1)
+            self.assertEqual(years[1970]['regen_ops'], 75)
+
+    def test_zero_padded_repeat_alias_must_not_hide_second_file(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            directory = Path(tmp)
+            (directory / 'reference_seed42_r0.log').write_text(regen_line(), encoding='utf-8')
+            (directory / 'reference_seed42_r00.log').write_text(regen_line(), encoding='utf-8')
+            with self.assertRaisesRegex(ValueError, 'identite de partie ambigue'):
+                read_regen_logs(directory)
+
     def test_invalid_ops_or_out_of_range_key_ratios_cannot_fake_savings(self):
         with tempfile.TemporaryDirectory() as tmp:
             directory = Path(tmp)
