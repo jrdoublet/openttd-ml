@@ -8,6 +8,7 @@ leur connexite: seul le balayage des 64 tuiles etablit une riviere traversante.
 
 import argparse
 import gzip
+import hashlib
 import json
 import re
 import statistics
@@ -17,6 +18,7 @@ from pathlib import Path
 ARM_NAMES = ("v307", "full6", "short6", "parity6", "flatdry6")
 CLASSES = ("sea", "lake", "river", "coast", "house", "town", "city", "obst", "mountain", "river_cross")
 PATTERN = re.compile(r"\bV308_BLOCK\s+(.*)$")
+GAME_NAME = re.compile(r"^(?P<arm>.+)_seed(?P<seed>\d+)_r(?P<repeat>\d+)\.log$")
 TRUTH_FIELDS = ("n", "sea", "lake", "river", "river_cross", "coast", "house", "town", "build", "road", "obst", "relief")
 ARM_FIELDS = ("n", "sea", "lake", "river", "coast", "house", "town", "obst", "relief", "ops")
 
@@ -35,13 +37,48 @@ def parse_fields(payload):
 
 
 def logs(paths):
+    selected_physical = set()
+    selected_games = {}
     for path in paths:
         path = Path(path)
         if path.is_dir():
-            yield from sorted(path.rglob("*.log"))
-            yield from sorted(path.rglob("*.log.gz"))
+            candidates = sorted(path.rglob("*.log")) + sorted(path.rglob("*.log.gz"))
         elif path.is_file():
-            yield path
+            candidates = [path]
+        else:
+            continue
+        for file in candidates:
+            resolved = file.resolve()
+            if resolved in selected_physical:
+                continue
+            selected_physical.add(resolved)
+            basename = file.name[:-3] if file.name.endswith(".gz") else file.name
+            match = GAME_NAME.fullmatch(basename)
+            parent = str(file.parent.resolve())
+            if match:
+                identity = (parent, match["arm"], int(match["seed"]),
+                            int(match["repeat"]))
+            else:
+                identity = (parent, basename)
+            if identity in selected_games:
+                previous, previous_basename = selected_games[identity]
+                if basename != previous_basename:
+                    raise ValueError(f"identite V308 ambigue : {previous} / {file}")
+                if _digest_text(previous) != _digest_text(file):
+                    raise ValueError(f"copies V308 contradictoires : {previous} / {file}")
+                continue
+            selected_games[identity] = (file, basename)
+            yield file
+
+
+def _digest_text(path):
+    """Hash uncompressed bytes; never load a whole engine log in memory."""
+    digest = hashlib.sha256()
+    opener = gzip.open if path.suffix == ".gz" else open
+    with opener(path, "rb") as stream:
+        for data in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(data)
+    return digest.digest()
 
 
 def complete_record(fields):

@@ -38,6 +38,50 @@ def block_line(record):
 
 
 class TestV308RecordValidation(unittest.TestCase):
+    def test_same_source_given_as_directory_and_file_is_once(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            file = root / "reference_seed42_r0.log"
+            file.write_text(block_line(block_record()), encoding="utf-8")
+            for inputs in ([root, file, file], [file, file]):
+                blocks = list(read_blocks(inputs))
+                self.assertEqual(len(blocks), 1)
+                self.assertEqual(summarize(blocks)[0]["ops_total"], 900)
+
+    def test_matching_gzip_copy_is_one_source_and_conflict_is_rejected(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            body = block_line(block_record())
+            plain = root / "reference_seed42_r0.log"
+            zipped = root / "reference_seed42_r0.log.gz"
+            plain.write_text(body, encoding="utf-8")
+            with gzip.open(zipped, "wt", encoding="utf-8") as stream:
+                stream.write(body)
+            self.assertEqual(len(list(read_blocks([root]))), 1)
+            with gzip.open(zipped, "wt", encoding="utf-8") as stream:
+                stream.write(block_line(block_record(1)))
+            with self.assertRaisesRegex(ValueError, "copies V308 contradictoires"):
+                list(read_blocks([root]))
+
+    def test_numeric_aliases_are_not_independent_sources(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            body = block_line(block_record())
+            (root / "reference_seed42_r0.log").write_text(body, encoding="utf-8")
+            (root / "reference_seed042_r00.log").write_text(body, encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "identite V308 ambigue"):
+                list(read_blocks([root]))
+
+    def test_same_log_name_in_independent_directories_keeps_both(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            for dirname in ("campaign_a", "campaign_b"):
+                directory = root / dirname
+                directory.mkdir()
+                (directory / "reference_seed42_r0.log").write_text(
+                    block_line(block_record()), encoding="utf-8")
+            self.assertEqual(len(list(read_blocks([root]))), 2)
+
     def test_sampled_counts_must_fit_each_motifs_actual_sample_size(self):
         for name in ARM_NAMES:
             for field in ARM_FIELDS:
