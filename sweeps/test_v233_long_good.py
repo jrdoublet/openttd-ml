@@ -639,12 +639,11 @@ class V233LongGoodContracts(unittest.TestCase):
         self.assertIn('kind=" + OpexV233LOccupantKind(t)', probe)
         self.assertIn("water=", probe)
 
-    def test_track7_pocket_probe_drops_a_head_before_the_full_search(self):
-        """Smoke 10, 58979->20909: east head is open one tile, then 14656 iters.
+    def test_track10_pocket_probe_is_advisory_and_keeps_last_heads(self):
+        """Smoke 13: progress 11/7 does not prove an impasse without bridges.
 
-        A 64-step probe that cannot close 12 tiles toward the other lead
-        notes the head and returns SKIP_POCKET. The straight corridor names
-        the first blocker. An open corridor is not rejected.
+        A bounded probe must let the complete pathfinder decide. A local
+        NOPA must also preserve the only head, or all heads if all are suspect.
         """
         planner = body("builder_rail.nut", "OpexV190PlanDoubleTrack")
         self.assertLess(planner.index('OpexV233LSearchHeadLog(v233Context, p, "A", forbidden)'),
@@ -657,8 +656,8 @@ class V233LongGoodContracts(unittest.TestCase):
                         planner.index("OpexV233LProbeHeads("))
         pocket = body("v233_long_good.nut", "OpexV233LProbeHead")
         self.assertIn("OpexV233LWalkCorridor(candidate, p, side, forbidden)", pocket)
-        self.assertIn("OpexV233LNoteEnclosed(candidate, p.lead)", pocket)
-        self.assertIn("reason=POCKET", pocket)
+        self.assertNotIn("OpexV233LNoteEnclosed", pocket)
+        self.assertIn("reason=POCKET_UNKNOWN", pocket)
         self.assertIn("reason=POCKET_OPEN", pocket)
         self.assertIn("AIController.GetTick() >= deadline", pocket)
         self.assertIn("startDist + 3", pocket)
@@ -674,6 +673,10 @@ class V233LongGoodContracts(unittest.TestCase):
         self.assertGreaterEqual(start - 198, need)
         self.assertNotIn(".find(", pocket)
         self.assertNotIn("function(", pocket)
+        filtering = body("v233_long_good.nut", "OpexV233LWithoutEnclosed")
+        self.assertIn('alternatives == 0 || plans.len() <= 1', filtering)
+        self.assertLess(filtering.index('return plans;', filtering.index('alternatives == 0')),
+                        filtering.index('reason=DROP_ENCLOSED'))
 
     def test_track8_pose_failure_splices_around_a_local_obstacle(self):
         """Smoke 11, 6172->21717: track 2 plans (658 iters) then pose fails.
@@ -867,6 +870,31 @@ class V233LongGoodContracts(unittest.TestCase):
         self.assertEqual(manh(other1, other2), 1)
         self.assertNotEqual(station1, lead1)
         self.assertEqual(manh((218, 85), (218, 87)), 2)  # house 22490, one step past the south corridor.
+
+    def test_track10_opposite_ends_align_before_pairing_and_attach_to_real_track(self):
+        recover = body("v233_long_good.nut", "OpexV233LRecoverEnd")
+        self.assertIn('plan1.lead - plan1.station_exit != plan2.lead - plan2.station_exit', recover)
+        self.assertLess(recover.index('plan1 = OpexV233LOtherParallel(plan1)'),
+                        recover.index('local selected ='))
+        raw = body("v233_long_good.nut", "OpexV233LRawSwitch")
+        self.assertIn('route[routeIdx] != lead', raw)
+        self.assertIn('route[routeIdx + (atEnd ? -1 : 1)]', raw)
+        self.assertIn('local aPrev = exitFrom;', raw)
+        self.assertIn('local bNext = outside;', raw)
+        self.assertIn('aPrev = outside;', raw)
+        self.assertIn('bNext = exitTo;', raw)
+        self.assertNotIn('OpexV190MakeTile', raw)
+        self.assertLess(raw.index('route[routeIdx] != lead'), raw.index('OpexV181TryBuildSwitch'))
+        # Smoke 14: primary south / secondary north. Required crossovers
+        # connect each real route to the opposite quay at the SAME end.
+        # Include a bend immediately outside the north lead: extrapolating
+        # a straight neighbour would create a disconnected branch.
+        north_out = [(219, 83), (219, 82), (218, 82), (217, 82)]
+        south_in = [(219, 86), (219, 85), (218, 85), (218, 84)]
+        for points in (north_out, south_in):
+            for a, b in zip(points, points[1:]):
+                self.assertEqual(abs(a[0] - b[0]) + abs(a[1] - b[1]), 1)
+        self.assertNotEqual(north_out[-1], (218, 81))
 
     def test_setting_bounds_defaults_and_single_read(self):
         block = re.search(r'AddSetting\(\{\s*name = "v233_long_good",.*?\}\);', source("info.nut"), re.S)[0]

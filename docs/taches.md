@@ -190,6 +190,17 @@ de 6 est inchangée. Suite Python : **62 contrats V233L, puis
 **non validée** (Docker interdit).
 [Détails](v233_long_good_20261025.md#26-octobre--track9-sol-sous-tablier-et-aiguillage-opposé).
 
+**26/10 — V233L TRACK10, smoke 15 graine 100 × cinq ans réussi (local, défaut 0) :**
+ligne GOOD `6172→21717`, **247 tuiles, double voie, deux trains**, livrée le
+5 septembre 1974. Sonde de poche désormais consultative ; filtre local conservant
+la tête unique et toutes les têtes si toutes sont suspectes. Aiguillages aux
+bouts opposés : alignement des deux quais, raccord au voisin réel du tracé.
+Smoke 14 : pose puis `NO_SW_OUT_B` ; smoke 15 : raccords B nord/sud et boucle OK.
+La première tentative échoue encore à idx138 (260), puis rollback intégral ;
+la seconde réussit. Deux duels sains par smoke, verdict `diagnostic_only` ;
+aucune qualification économique. **2 586 tests OK** (9 ignorés, 2 échecs attendus),
+builder et hash OFF inchangés. [Diagnostic et preuves](v233_long_good_20261025.md#26-octobre--track10-poche-consultative-et-double-voie-livrée).
+
 ### Priorités ouvertes après les deux références monomodales du 25/10 (sans adoption)
 
 - [ ] **P1 — `rail_long_value_rank` : qualifier et classer le fret long constructible (opt-in, défaut 0 ; coût 4/5).** Ne plus relever globalement les bornes : vérifier site, A*, capital et ROI marginal pour une paire fret ≥160 tuiles, puis la comparer aux projets courts et AIR réellement finançables ; [analyse §4](analyse_rail_vs_air_seul_20261025.md#4-pistes-expérimentales-par-potentiel-de-gain-relatif-au-coût).

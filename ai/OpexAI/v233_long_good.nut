@@ -1396,9 +1396,9 @@ function OpexV233LWalkCorridor(candidate, p, side, forbidden)
       + " kind=" + kind + " error=" + error);
 }
 
-/* File bornee, seulement vers le but (au plus 3 tuiles de detour). Si elle
- * se vide ou s'epuise sans gagner 12 tuiles, la sortie est une poche : on
- * ne lance pas l'A* complet. Une echeance atteinte ne conclut rien. */
+/* Sonde indicative : ni ouvrages, ni etats directionnels complets, et une
+ * fenetre bornee. Meme une file vide ne prouve donc pas une poche. Le seuil
+ * de progression sert au diagnostic, jamais a interdire l'A* complet. */
 function OpexV233LProbeHead(candidate, p, side, goal, forbidden, deadline)
 {
   if (candidate == null || p == null || goal == null) return;
@@ -1464,9 +1464,8 @@ function OpexV233LProbeHead(candidate, p, side, goal, forbidden, deadline)
     return;
   }
   if (progress < need && (closed == 1 || expanded >= cap)) {
-    OpexV233LNoteEnclosed(candidate, p.lead);
     if (DECISION_LOG) OpexV233LLog("DOUBLE", "src=" + candidate.src + " dst=" + candidate.dst
-        + " phase=head reason=POCKET side=" + side + " lead=" + p.lead
+        + " phase=head reason=POCKET_UNKNOWN side=" + side + " lead=" + p.lead
         + " start=" + startDist + " best=" + best + " progress=" + progress
         + " need=" + need + " expanded=" + expanded + " closed=" + closed);
   }
@@ -1485,11 +1484,20 @@ function OpexV233LProbeHeads(candidate, plansA, plansB, forbidden, deadline)
   }
 }
 
-/* Retire les leads dont le detour local est NOPA a la tete. L'autre bout reste. */
+/* Un NOPA local peut declasser une tete, jamais supprimer le dernier choix.
+ * Si toutes sont suspectes, l'A* doit les essayer toutes. */
 function OpexV233LWithoutEnclosed(plans, candidate)
 {
   if (plans == null || candidate == null || !("v233Enclosed" in candidate)
       || candidate.v233Enclosed == null) return plans;
+  local alternatives = 0;
+  foreach (p in plans)
+    if (!("lead" in p) || !(p.lead in candidate.v233Enclosed)) alternatives++;
+  if (alternatives == 0 || plans.len() <= 1) {
+    if (DECISION_LOG) OpexV233LLog("DOUBLE", "src=" + candidate.src + " dst=" + candidate.dst
+        + " phase=search reason=KEEP_UNCERTAIN heads=" + plans.len());
+    return plans;
+  }
   local kept = [];
   foreach (p in plans) {
     if (("lead" in p) && (p.lead in candidate.v233Enclosed)) {
@@ -2850,24 +2858,24 @@ function OpexV233LEndRank(tiles, atEnd, lead)
   return best;
 }
 
-/* Aiguillage sur les leads paralleles, meme si un des deux n'est pas sur
- * le trace. La gare n'est que tPrev. L'entree est un pas plus loin, pour
- * ne pas reutiliser le milieu de la sortie. */
-function OpexV233LRawSwitch(exitFrom, leadFrom, exitTo, leadTo, outbound)
+/* Raccord quai/voie : le cote voie doit etre sur le trace reel et garder
+ * son voisin exterieur (qui peut tourner). L'autre cote rejoint directement
+ * le quai, y compris son bout inutilise, sans inventer un rail de liaison. */
+function OpexV233LRawSwitch(exitFrom, leadFrom, exitTo, leadTo, outbound, tilesFrom, tilesTo, atEnd)
 {
   if (exitFrom == null || leadFrom == null || exitTo == null || leadTo == null) return null;
-  local dx = AIMap.GetTileX(leadTo) - AIMap.GetTileX(exitTo);
-  local dy = AIMap.GetTileY(leadTo) - AIMap.GetTileY(exitTo);
-  if (dx * dx + dy * dy != 1) return null;
+  local route = outbound ? tilesTo : tilesFrom;
+  local lead = outbound ? leadTo : leadFrom;
+  local routeIdx = atEnd ? route.len() - 2 : 1;
+  if (routeIdx <= 0 || routeIdx >= route.len() - 1 || route[routeIdx] != lead) return null;
+  local outside = route[routeIdx + (atEnd ? -1 : 1)];
   local aPrev = exitFrom;
   local a = leadFrom;
   local b = leadTo;
-  local bNext = OpexV190MakeTile(leadTo, dx, dy);
+  local bNext = outside;
   if (!outbound) {
-    aPrev = OpexV190MakeTile(leadFrom, 2 * dx, 2 * dy);
-    a = OpexV190MakeTile(leadFrom, dx, dy);
-    b = OpexV190MakeTile(leadTo, dx, dy);
-    bNext = leadTo;
+    aPrev = outside;
+    bNext = exitTo;
   }
   if (aPrev == null || a == null || b == null || bNext == null) return null;
   local ok = false;
@@ -2890,6 +2898,12 @@ function OpexV233LRecoverEnd(line, tiles1, tiles2, atEnd)
       : (("platformA2" in line) ? line.platformA2 : null);
   if (plan1 == null || plan2 == null) return null;
   if (!("lead" in plan1) || !("lead" in plan2)) return null;
+  /* Les plans retenus peuvent sortir par des bouts opposes. Aligner la
+   * premiere tete sur la seconde AVANT de construire les deux couples. */
+  if (plan1.lead - plan1.station_exit != plan2.lead - plan2.station_exit) {
+    plan1 = OpexV233LOtherParallel(plan1);
+    if (plan1 == null || plan1.lead - plan1.station_exit != plan2.lead - plan2.station_exit) return null;
+  }
   local selected = { exit1 = plan1.station_exit, lead1 = plan1.lead,
     exit2 = plan2.station_exit, lead2 = plan2.lead };
   local specs = [];
@@ -2919,7 +2933,7 @@ function OpexV233LRecoverEnd(line, tiles1, tiles2, atEnd)
     local exitTo = atEnd ? spec.exit2 : spec.exit1;
     local leadTo = atEnd ? spec.lead2 : spec.lead1;
     if (bestOut == null) {
-      local sw = OpexV233LRawSwitch(exitFrom, leadFrom, exitTo, leadTo, true);
+      local sw = OpexV233LRawSwitch(exitFrom, leadFrom, exitTo, leadTo, true, tilesFrom, tilesTo, atEnd);
       if (sw != null) {
         sw.fromIdx = OpexV233LClampIndex(tilesFrom, atEnd, leadFrom);
         sw.toIdx = OpexV233LClampIndex(tilesTo, atEnd, leadTo);
@@ -2932,7 +2946,7 @@ function OpexV233LRecoverEnd(line, tiles1, tiles2, atEnd)
       }
     }
     if (bestIn == null) {
-      local swIn = OpexV233LRawSwitch(exitFrom, leadFrom, exitTo, leadTo, false);
+      local swIn = OpexV233LRawSwitch(exitFrom, leadFrom, exitTo, leadTo, false, tilesFrom, tilesTo, atEnd);
       if (swIn != null) {
         local fromIdx = OpexV233LClampIndex(tilesFrom, atEnd, leadFrom);
         local toIdx = OpexV233LClampIndex(tilesTo, atEnd, leadTo);
