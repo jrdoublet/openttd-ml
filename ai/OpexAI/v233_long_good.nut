@@ -15,6 +15,8 @@ V233L_JOIN_CURSOR <- {};
 const V233L_SITE_CACHE_MAX = 128;
 const V233L_SITE_TOTAL_OPS = 240000;
 const V233L_JOIN_TOTAL_OPS = 80000;
+const V233L_FUNNEL_BATCH = 5;
+const V233L_FUNNEL_ANCHORS = 256;
 
 function OpexV233LIs(candidate)
 {
@@ -283,8 +285,10 @@ function OpexV233LPlatformPlans(catalog, candidate, phase = "build")
     if (distance >= 150 && distance <= 300) compatible = true;
   }
   local scanB = joined;
-  if (joined.plans.len() == 0 || !compatible)
-    scanB = OpexV233LSiteSearch(candidate.dst, length, candidate.cargo, catalog.railCoverage, false, null, candidate);
+  if (joined.plans.len() == 0 || !compatible) {
+    if (V233_SITE_FUNNEL > 0) scanB = OpexV233LFunnelSearch(candidate, length, catalog.railCoverage);
+    else scanB = OpexV233LSiteSearch(candidate.dst, length, candidate.cargo, catalog.railCoverage, false, null, candidate);
+  }
   if (!compatible && joined.plans.len() > 0 && DECISION_LOG)
     OpexV233LLog("SITE_B_JOIN", "src=" + candidate.src + " dst=" + candidate.dst
         + " phase=" + phase + " ok=0 reason=distance");
@@ -2206,6 +2210,483 @@ function OpexV233LSiteSearch(center, length, cargo, coverage, producing, host = 
     ops = ops, length = length, cacheKey = key };
 }
 
+/* Rayon du carre urbain : 12 jusqu'a 3000 hab., puis +2 par millier au-dela,
+ * plafond 18. */
+function OpexV233LFunnelRadius(population)
+{
+  if (population <= 3000) return 12;
+  local band = (population - 1) / 1000;
+  local radius = 8 + 2 * band;
+  if (radius > 18) radius = 18;
+  return radius;
+}
+
+/* Deux quais seuls. Axe 0 : longueur en X et 2 en Y. L'ancre Valuate est
+ * le coin Nord-Ouest (coordonnees minimales) de ce rectangle. */
+function OpexV233LFunnelSpan(axis, length)
+{
+  return { w = axis == 0 ? length : 2, h = axis == 0 ? 2 : length };
+}
+
+function OpexV233LFunnelBox(center, radius, w, h)
+{
+  local cx = AIMap.GetTileX(center);
+  local cy = AIMap.GetTileY(center);
+  local mapX = AIMap.GetMapSizeX();
+  local mapY = AIMap.GetMapSizeY();
+  local minX = cx - radius;
+  if (minX < 0) minX = 0;
+  local minY = cy - radius;
+  if (minY < 0) minY = 0;
+  local maxX = cx + radius;
+  local fitX = mapX - w;
+  if (maxX > fitX) maxX = fitX;
+  if (maxX >= mapX) maxX = mapX - 1;
+  local maxY = cy + radius;
+  local fitY = mapY - h;
+  if (maxY > fitY) maxY = fitY;
+  if (maxY >= mapY) maxY = mapY - 1;
+  if (minX > maxX || minY > maxY) return null;
+  return { minX = minX, minY = minY, maxX = maxX, maxY = maxY };
+}
+
+/* Liste native, une par axe. Pas de KeepTop : l'index squirrel reprend
+ * apres reconstruction. L'acceptation retenue est strictement superieure a 7. */
+function OpexV233LFunnelTiles(center, radius, w, h, cargo, coverage, entry)
+{
+  local box = OpexV233LFunnelBox(center, radius, w, h);
+  if (box == null) return null;
+  local tiles = AITileList();
+  tiles.AddRectangle(AIMap.GetTileIndex(box.minX, box.minY), AIMap.GetTileIndex(box.maxX, box.maxY));
+  entry.tiles = tiles.Count();
+  tiles.Valuate(AITile.IsBuildableRectangle, w, h);
+  tiles.KeepValue(1);
+  entry.buildable = tiles.Count();
+  tiles.Valuate(AITile.GetCargoAcceptance, cargo, w, h, coverage);
+  tiles.KeepAboveValue(7);
+  entry.accepting = tiles.Count();
+  tiles.Sort(AIList.SORT_BY_VALUE, AIList.SORT_DESCENDING);
+  return tiles;
+}
+
+function OpexV233LFunnelHas(entry, anchor)
+{
+  foreach (tile in entry.anchors) if (tile == anchor) return true;
+  return false;
+}
+
+function OpexV233LFunnelQuayFlat(anchor, length, axis)
+{
+  local ux = axis == 0 ? 1 : 0;
+  local uy = axis == 0 ? 0 : 1;
+  local px = axis == 0 ? 0 : 1;
+  local py = axis == 0 ? 1 : 0;
+  for (local i = 0; i < length; i++) {
+    if (!OpexV233LFlat(OpexV233LOffset(anchor, ux * i, uy * i))) return false;
+    if (!OpexV233LFlat(OpexV233LOffset(anchor, ux * i + px, uy * i + py))) return false;
+  }
+  return true;
+}
+
+/* Le signe positif sort apres le quai. Le signe negatif place la tete
+ * avant l'ancre, donc en coordonnees negatives. */
+function OpexV233LFunnelSign(anchor, length, axis, source)
+{
+  local anchorCoord = axis == 0 ? AIMap.GetTileX(anchor) : AIMap.GetTileY(anchor);
+  local sourceCoord = axis == 0 ? AIMap.GetTileX(source) : AIMap.GetTileY(source);
+  local mid = anchorCoord + (length - 1) / 2;
+  return sourceCoord >= mid ? 1 : -1;
+}
+
+function OpexV233LFunnelThroat(anchor, length, axis, sign)
+{
+  local ux = axis == 0 ? 1 : 0;
+  local uy = axis == 0 ? 0 : 1;
+  local px = axis == 0 ? 0 : 1;
+  local py = axis == 0 ? 1 : 0;
+  local leadIndex = sign > 0 ? length : -1;
+  local lead = OpexV233LOffset(anchor, ux * leadIndex, uy * leadIndex);
+  local lead2 = OpexV233LOffset(lead, px, py);
+  if (!OpexV233LFlat(lead) || !OpexV233LFlat(lead2)) return false;
+  return OpexV233LFlat(OpexV233LOffset(lead, -px, -py));
+}
+
+/* AITestMode reste dans OpexV233LSiteProbe. Un quai qui n'est plus plat
+ * invalide l'ancre ; une tete refusee depend de la source et reste en cache. */
+function OpexV233LFunnelTry(anchor, length, axis, source, cargo, coverage, stats, verdict)
+{
+  verdict.plan = null;
+  verdict.drop = false;
+  if (!OpexV233LFunnelQuayFlat(anchor, length, axis)) { verdict.drop = true; return; }
+  local sign = OpexV233LFunnelSign(anchor, length, axis, source);
+  if (!OpexV233LFunnelThroat(anchor, length, axis, sign)) return;
+  verdict.plan = OpexV233LSiteProbe(anchor, length, axis, sign, 1, cargo, coverage, false, -1, stats, null);
+}
+
+function OpexV233LFunnelStop(entry, mark, charged)
+{
+  local spent = OpexOpsMeasureEnd(mark);
+  local ops = spent - charged;
+  if (entry.total + ops >= V233L_SITE_TOTAL_OPS) return "total_budget";
+  if (spent >= V233L_SLICE_OPS) return "budget";
+  return null;
+}
+
+/* Cle ville + axe, partagee entre les sources. Longueur, cargo et captage
+ * restent dans la cle pour ne pas melanger des rectangles differents. */
+function OpexV233LFunnelEnsure(town, axis, length, cargo, coverage)
+{
+  local now = AIDate.GetCurrentDate();
+  local key = "funnel:" + town + ":" + axis + ":" + length + ":" + cargo + ":" + coverage;
+  if (key in V233L_SITE_CACHE) {
+    local old = V233L_SITE_CACHE[key];
+    if (old.done && now - old.date > (old.limited ? 180 : 30)) delete V233L_SITE_CACHE[key];
+    else { old.used = now; return old; }
+  }
+  if (V233L_SITE_CACHE.len() >= V233L_SITE_CACHE_MAX) {
+    local oldest = null;
+    local date = now + 1;
+    foreach (k, item in V233L_SITE_CACHE)
+      if (item.done && item.used < date) { oldest = k; date = item.used; }
+    if (oldest != null) delete V233L_SITE_CACHE[oldest];
+    else return null;
+  }
+  local entry = {
+    funnel = true, town = town, axis = axis, length = length, cargo = cargo, coverage = coverage,
+    radius = 0, anchors = [], cursor = 0, done = false, limited = false,
+    date = now, used = now, total = 0, slices = 0, worked = -1,
+    tiles = 0, buildable = 0, accepting = 0, probes = {}
+  };
+  V233L_SITE_CACHE[key] <- entry;
+  return entry;
+}
+
+function OpexV233LFunnelRemove(entry, anchor)
+{
+  local kept = [];
+  local removedAt = -1;
+  for (local i = 0; i < entry.anchors.len(); i++) {
+    if (removedAt < 0 && entry.anchors[i] == anchor) { removedAt = i; continue; }
+    kept.append(entry.anchors[i]);
+  }
+  entry.anchors = kept;
+  if (removedAt < 0 || typeof entry.probes != "table") return;
+  foreach (src, probe in entry.probes) {
+    if (typeof probe != "table") continue;
+    if (probe.hint == anchor) probe.hint = -1;
+    if (probe.index > removedAt) probe.index--;
+  }
+}
+
+/* Remplit les ancres plates. Ne sonde pas : la tete depend de la source.
+ * Le budget se lit entre les lots, pas au milieu d'un lot de cinq. */
+function OpexV233LFunnelAdvance(entry, center, radius, mark, charged)
+{
+  local stop = OpexV233LFunnelStop(entry, mark, charged);
+  if (stop != null) return { checked = 0, reason = stop };
+  if (entry.radius != radius) {
+    entry.radius = radius;
+    entry.anchors = [];
+    entry.cursor = 0;
+    entry.done = false;
+    entry.limited = false;
+    entry.probes = {};
+  }
+  local span = OpexV233LFunnelSpan(entry.axis, entry.length);
+  local tiles = OpexV233LFunnelTiles(center, radius, span.w, span.h, entry.cargo, entry.coverage, entry);
+  if (tiles == null) {
+    entry.tiles = 0;
+    entry.buildable = 0;
+    entry.accepting = 0;
+    entry.done = true;
+    entry.limited = false;
+    entry.date = AIDate.GetCurrentDate();
+    return { checked = 0, reason = "exhausted" };
+  }
+  local checked = 0;
+  local batch = 0;
+  local index = 0;
+  for (local tile = tiles.Begin(); !tiles.IsEnd(); tile = tiles.Next()) {
+    if (index < entry.cursor) { index++; continue; }
+    if (batch == V233L_FUNNEL_BATCH) {
+      local halt = OpexV233LFunnelStop(entry, mark, charged);
+      if (halt != null) return { checked = checked, reason = halt };
+      batch = 0;
+    }
+    entry.cursor = index + 1;
+    checked++;
+    batch++;
+    index++;
+    if (OpexV233LFunnelQuayFlat(tile, entry.length, entry.axis)
+        && entry.anchors.len() < V233L_FUNNEL_ANCHORS
+        && !OpexV233LFunnelHas(entry, tile)) entry.anchors.append(tile);
+    if (entry.anchors.len() >= V233L_FUNNEL_ANCHORS) break;
+  }
+  entry.done = true;
+  entry.limited = false;
+  entry.date = AIDate.GetCurrentDate();
+  return { checked = checked, reason = "exhausted" };
+}
+
+function OpexV233LFunnelProbeRow(entry, source)
+{
+  if (!("probes" in entry) || typeof entry.probes != "table") entry.probes = {};
+  if (!(source in entry.probes))
+    entry.probes.rawset(source, { index = 0, hint = -1, done = false });
+  return entry.probes[source];
+}
+
+/* hint est l'index de tuile deja accepte, jamais le resultat AITestMode.
+ * Chaque source ne refait que la tete orientee et la sonde. */
+function OpexV233LFunnelProbe(entry, source, coverage, stats, plans, mark, charged)
+{
+  local stop = OpexV233LFunnelStop(entry, mark, charged);
+  if (stop != null) return { checked = 0, ok = 0, reason = stop };
+  local probe = OpexV233LFunnelProbeRow(entry, source);
+  local checked = 0;
+  local ok = 0;
+  local batch = 0;
+  local verdict = { plan = null, drop = false };
+  if (probe.hint >= 0) {
+    if (!OpexV233LFunnelHas(entry, probe.hint)) probe.hint = -1;
+    else {
+      OpexV233LFunnelTry(probe.hint, entry.length, entry.axis, source, entry.cargo, coverage, stats, verdict);
+      checked++;
+      batch++;
+      if (verdict.drop) {
+        OpexV233LFunnelRemove(entry, probe.hint);
+        probe.hint = -1;
+      } else if (verdict.plan != null) {
+        if (plans.len() < 4) plans.append(verdict.plan);
+        ok++;
+      } else probe.hint = -1;
+    }
+  }
+  while (plans.len() < 4 && probe.index < entry.anchors.len()) {
+    if (batch == V233L_FUNNEL_BATCH) {
+      local halt = OpexV233LFunnelStop(entry, mark, charged);
+      if (halt != null) return { checked = checked, ok = ok, reason = halt };
+      batch = 0;
+    }
+    local anchor = entry.anchors[probe.index];
+    if (anchor == probe.hint) { probe.index++; continue; }
+    verdict.plan = null;
+    verdict.drop = false;
+    OpexV233LFunnelTry(anchor, entry.length, entry.axis, source, entry.cargo, coverage, stats, verdict);
+    checked++;
+    batch++;
+    if (verdict.drop) {
+      OpexV233LFunnelRemove(entry, anchor);
+      continue;
+    }
+    probe.index++;
+    if (verdict.plan != null) {
+      plans.append(verdict.plan);
+      probe.hint = anchor;
+      ok++;
+    }
+  }
+  local reason = "exhausted";
+  if (ok > 0) reason = "OK";
+  else if (probe.index < entry.anchors.len() || !entry.done) reason = "budget";
+  else probe.done = true;
+  return { checked = checked, ok = ok, reason = reason };
+}
+
+function OpexV233LFunnelTrace(town, axis, radius, tiles, buildable, accepting, checked, ok, ops, reason)
+{
+  if (!DECISION_LOG) return;
+  OpexV233LLog("SITE_FUNNEL", "town=" + town + " axis=" + axis + " radius=" + radius
+      + " tiles=" + tiles + " buildable=" + buildable + " accepting=" + accepting
+      + " checked=" + checked + " ok=" + ok + " ops=" + ops + " reason=" + reason);
+}
+
+function OpexV233LFunnelSearch(candidate, length, coverage)
+{
+  local mark = OpexOpsMeasureBegin();
+  local plans = [];
+  local stats = OpexV233LSiteStats();
+  local town = ("dstTown" in candidate) ? candidate.dstTown : -1;
+  local ops = 0;
+  if (town < 0 || !AITown.IsValidTown(town)) {
+    ops = OpexOpsMeasureEnd(mark);
+    OpexV233LFunnelTrace(town, -1, 0, 0, 0, 0, 0, 0, ops, "exhausted");
+    return { plans = plans, stats = stats, reason = "exhausted", ring = 0, ops = ops, length = length };
+  }
+  local center = AITown.GetLocation(town);
+  local radius = OpexV233LFunnelRadius(AITown.GetPopulation(town));
+  local charged = 0;
+  local sawBudget = false;
+  local sawTotal = false;
+  local sawCapacity = false;
+  local lastRing = 0;
+  local cargo = candidate.cargo;
+  local source = candidate.src;
+  if (V233_SITE_FUNNEL > 0 && V233_FUNNEL_CENTER_TEST > 0) {
+    local cached0 = OpexV233LFunnelEnsure(town, 0, length, cargo, coverage);
+    if (cached0 != null && cached0.done && cached0.anchors.len() == 0) {
+      return { plans = plans, stats = stats, reason = "exhausted", ring = 0,
+        ops = OpexOpsMeasureEnd(mark), length = length };
+    }
+    if (cached0 != null && cached0.cursor == 0 && cached0.anchors.len() == 0 && !cached0.done) {
+      /* Pre-test d'emprise du quai (w x h = length x 2 puis 2 x length) centree sur la ville. */
+      local centerAcc = -1;
+      local bestW = length;
+      local bestH = 2;
+      local cx = AIMap.GetTileX(center);
+      local cy = AIMap.GetTileY(center);
+      local mapX = AIMap.GetMapSizeX();
+      local mapY = AIMap.GetMapSizeY();
+      for (local axis = 0; axis < 2; axis++) {
+        local w = axis == 0 ? length : 2;
+        local h = axis == 0 ? 2 : length;
+        local x0 = cx - (w / 2);
+        local y0 = cy - (h / 2);
+        if (x0 < 0) x0 = 0;
+        if (y0 < 0) y0 = 0;
+        if (x0 > mapX - w) x0 = mapX - w;
+        if (y0 > mapY - h) y0 = mapY - h;
+        local tile0 = AIMap.GetTileIndex(x0, y0);
+        if (AIMap.IsValidTile(tile0)) {
+          local acc = AITile.GetCargoAcceptance(tile0, cargo, w, h, coverage);
+          if (acc > centerAcc) {
+            centerAcc = acc;
+            bestW = w;
+            bestH = h;
+          }
+        }
+      }
+      if (centerAcc < 8) {
+        cached0.done = true;
+        cached0.limited = false;
+        cached0.date = AIDate.GetCurrentDate();
+        local cached1 = OpexV233LFunnelEnsure(town, 1, length, cargo, coverage);
+        if (cached1 != null) {
+          cached1.done = true;
+          cached1.limited = false;
+          cached1.date = cached0.date;
+        }
+        if (DECISION_LOG) OpexV233LLog("SITE_FUNNEL", "town=" + town + " reason=CENTER_REJECT center_acc=" + centerAcc + " w=" + bestW + " h=" + bestH);
+        return { plans = plans, stats = stats, reason = "exhausted", ring = 0,
+          ops = OpexOpsMeasureEnd(mark), length = length };
+      }
+    }
+  }
+  for (local axis = 0; axis < 2 && plans.len() < 4; axis++) {
+    local entry = OpexV233LFunnelEnsure(town, axis, length, cargo, coverage);
+    if (entry == null) {
+      sawCapacity = true;
+      OpexV233LFunnelTrace(town, axis, radius, 0, 0, 0, 0, 0, 0, "capacity");
+      break;
+    }
+    local checked = 0;
+    local ok = 0;
+    local axisReason = entry.done ? "exhausted" : "budget";
+    if (!entry.done) {
+      local step = OpexV233LFunnelAdvance(entry, center, radius, mark, charged);
+      checked = step.checked;
+      axisReason = step.reason;
+    }
+    if (plans.len() < 4 && axisReason != "budget" && axisReason != "total_budget") {
+      local probed = OpexV233LFunnelProbe(entry, source, coverage, stats, plans, mark, charged);
+      checked += probed.checked;
+      ok = probed.ok;
+      axisReason = probed.reason;
+    }
+    local nowOps = OpexOpsMeasureEnd(mark);
+    ops = nowOps - charged;
+    entry.total += ops;
+    charged = nowOps;
+    entry.slices++;
+    entry.used = AIDate.GetCurrentDate();
+    entry.worked = AIController.GetTick();
+    if (!entry.done && entry.total >= V233L_SITE_TOTAL_OPS) {
+      entry.done = true;
+      entry.limited = true;
+      entry.date = entry.used;
+      axisReason = "total_budget";
+    }
+    if (axisReason == "budget") sawBudget = true;
+    if (axisReason == "total_budget") sawTotal = true;
+    lastRing = entry.cursor;
+    OpexV233LFunnelTrace(town, axis, radius, entry.tiles, entry.buildable, entry.accepting,
+        checked, ok, ops, axisReason);
+  }
+  local verdict = plans.len() > 0 ? "OK" : (sawBudget ? "budget" : (sawTotal ? "total_budget"
+      : (sawCapacity ? "capacity" : "exhausted")));
+  return { plans = plans, stats = stats, reason = verdict, ring = lastRing,
+    ops = OpexOpsMeasureEnd(mark), length = length };
+}
+
+function OpexV233LFunnelBackground(entry)
+{
+  local mark = OpexOpsMeasureBegin();
+  local town = entry.town;
+  local reason = "exhausted";
+  local checked = 0;
+  if (!AITown.IsValidTown(town)) {
+    entry.done = true;
+    entry.date = AIDate.GetCurrentDate();
+  } else if (!entry.done) {
+    local center = AITown.GetLocation(town);
+    local radius = OpexV233LFunnelRadius(AITown.GetPopulation(town));
+    local step = OpexV233LFunnelAdvance(entry, center, radius, mark, 0);
+    checked = step.checked;
+    reason = step.reason;
+  }
+  local ops = OpexOpsMeasureEnd(mark);
+  entry.total += ops;
+  entry.slices++;
+  entry.used = AIDate.GetCurrentDate();
+  entry.worked = AIController.GetTick();
+  if (!entry.done && entry.total >= V233L_SITE_TOTAL_OPS) {
+    entry.done = true;
+    entry.limited = true;
+    entry.date = entry.used;
+    reason = "total_budget";
+  }
+  OpexV233LFunnelTrace(town, entry.axis, entry.radius, entry.tiles, entry.buildable,
+      entry.accepting, checked, 0, ops, reason);
+}
+
+function OpexV233LFunnelDrop(town, anchor)
+{
+  if (V233_SITE_FUNNEL <= 0 || town < 0 || anchor < 0) return;
+  foreach (key, entry in V233L_SITE_CACHE) {
+    if (!("funnel" in entry) || !entry.funnel || entry.town != town) continue;
+    OpexV233LFunnelRemove(entry, anchor);
+  }
+}
+
+function OpexV233LLoadFunnel(scan)
+{
+  foreach (field in ["town", "axis", "radius", "length", "cargo", "coverage", "cursor",
+      "date", "used", "total", "slices", "worked", "tiles", "buildable", "accepting"])
+    if (!(field in scan) || typeof scan[field] != "integer") return false;
+  foreach (field in ["done", "limited", "funnel"])
+    if (!(field in scan) || typeof scan[field] != "bool") return false;
+  if (scan.town < 0 || (scan.axis != 0 && scan.axis != 1) || scan.radius < 0 || scan.radius > 18
+      || scan.length < 1 || scan.length > 64 || scan.cargo < 0 || scan.coverage < 0
+      || scan.coverage > 64 || scan.cursor < 0 || scan.cursor > 4096 || scan.total < 0
+      || scan.slices < 0 || scan.tiles < 0 || scan.buildable < 0 || scan.accepting < 0
+      || (scan.limited && !scan.done)) return false;
+  if (!("anchors" in scan) || typeof scan.anchors != "array"
+      || scan.anchors.len() > V233L_FUNNEL_ANCHORS) return false;
+  foreach (anchor in scan.anchors)
+    if (typeof anchor != "integer" || anchor < 0) return false;
+  if (!("probes" in scan) || scan.probes == null) scan.probes = {};
+  else if (typeof scan.probes != "table") return false;
+  else {
+    foreach (src, probe in scan.probes) {
+      if (typeof src != "integer" || typeof probe != "table") return false;
+      if (!("index" in probe) || typeof probe.index != "integer" || probe.index < 0) return false;
+      if (!("hint" in probe) || typeof probe.hint != "integer" || probe.hint < -1) return false;
+      if (!("done" in probe) || typeof probe.done != "bool") return false;
+    }
+  }
+  return true;
+}
+
 /* Une seule tranche par tour, la recherche la moins recemment travaillee.
  * Ne depend plus du prochain rafraichissement (parfois annuel) du portefeuille.
  * Aucun candidat financier n'est conserve/publie par ce worker. */
@@ -2217,6 +2698,17 @@ function OpexV233LContinueSites()
     if (selected == null || scan.worked < selected.worked) { selected = scan; selectedKey = key; }
   }
   if (selected == null) return;
+  /* Entree d'entonnoir : ne jamais la relancer comme une spirale.
+   * Reglage a 0 : la clore, sinon elle resterait la plus ancienne. */
+  if (("funnel" in selected) && selected.funnel) {
+    if (V233_SITE_FUNNEL <= 0) {
+      selected.done = true;
+      selected.date = AIDate.GetCurrentDate();
+      return;
+    }
+    OpexV233LFunnelBackground(selected);
+    return;
+  }
   local host = null;
   if (selected.station >= 0) {
     host = OpexV233LJoinHost(selected.station, selected.dstTown, selected.cargo);
@@ -2664,6 +3156,12 @@ function OpexV233LLoadSites(data)
   if (typeof data != "table" || data.len() > V233L_SITE_CACHE_MAX) return restored;
   foreach (key, scan in data) {
     if (typeof key != "string" || typeof scan != "table") continue;
+    if (("funnel" in scan) && scan.funnel) {
+      if (!OpexV233LLoadFunnel(scan)) continue;
+      scan.worked = -1;
+      restored[key] <- scan;
+      continue;
+    }
     local valid = true;
     foreach (field in ["ring", "pos", "geometry", "date", "used", "total", "slices", "worked",
         "center", "length", "cargo", "coverage", "station", "railType", "src", "dst", "dstTown"])

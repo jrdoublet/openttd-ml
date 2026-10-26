@@ -903,7 +903,7 @@ class V233LongGoodContracts(unittest.TestCase):
             self.assertRegex(block, level + r"_value\s*=\s*0\b")
         self.assertEqual(source("settings.nut").count('GetSetting("v233_long_good")'), 1)
         self.assertIn("V233_LONG_GOOD <- 0;", source("globals_pre.nut"))
-        self.assertEqual(source("info.nut").count("AddSetting("), 60)
+        self.assertEqual(source("info.nut").count("AddSetting("), 62)
 
     def test_off_reviewed_edits_preserve_all_original_hashes(self):
         for name, entry in FIXTURE["files"].items():
@@ -1392,8 +1392,14 @@ class V233LongGoodContracts(unittest.TestCase):
         self.assertNotIn('longGood.mark', source("candidates.nut") + source("po01c_generators.nut"))
         self.assertIn('longGood.ops += OpexOpsMeasureEnd(v233Mark)', source("candidates.nut"))
         self.assertIn('workMark != null && OpexOpsMeasureEnd(workMark)', source("builder_rail.nut"))
-        for token in ('.Valuate(', '.find(', 'Sleep(', 'function('):
+        for token in ('.find(', 'Sleep(', 'function('):
             self.assertNotIn(token, uncomment(code))
+        # Deux Valuate natifs, uniquement dans l'entonnoir du quai. La spirale
+        # et la sonde restent sans liste native.
+        plain = uncomment(code)
+        self.assertEqual(plain.count('.Valuate('), 2)
+        for name in ("OpexV233LSiteSearch", "OpexV233LSiteProbe", "OpexV233LPlatformPlans"):
+            self.assertNotIn('.Valuate(', body("v233_long_good.nut", name))
         self.assertEqual(source("po01c_generators.nut"), generated())  # read-only, never regenerate.
 
     def test_new_module_balanced_and_no_reserved_identifiers(self):
@@ -1436,3 +1442,183 @@ class V233LongGoodContracts(unittest.TestCase):
         execute = body("v233_long_good.nut", "OpexV233LContinueGrowth")
         self.assertIn('OpexV233LGrowthStep(owner)', execute)
         self.assertIn('phase=growth_execute ops=', execute)
+
+    def test_site_funnel_setting_defaults_off_and_keeps_the_spiral(self):
+        block = re.search(r'AddSetting\(\{\s*name = "v233_site_funnel",.*?\}\);', source("info.nut"), re.S)[0]
+        self.assertIn("min_value = 0, max_value = 1", block)
+        for level in ("easy", "medium", "hard", "custom"):
+            self.assertRegex(block, level + r"_value\s*=\s*0\b")
+        self.assertEqual(source("settings.nut").count('GetSetting("v233_site_funnel")'), 1)
+        self.assertIn("V233_SITE_FUNNEL <- 0;", source("globals_pre.nut"))
+        plans = body("v233_long_good.nut", "OpexV233LPlatformPlans")
+        self.assertLess(plans.index("OpexV233LJoinSearch("), plans.index("OpexV233LFunnelSearch("))
+        self.assertLess(plans.index("if (V233_SITE_FUNNEL > 0)"), plans.index("OpexV233LSiteSearch(candidate.dst"))
+        self.assertIn("else scanB = OpexV233LSiteSearch(candidate.dst", plans)
+        scan = body("v233_long_good.nut", "OpexV233LSiteSearch")
+        self.assertNotIn("V233_SITE_FUNNEL", scan)
+        self.assertNotIn(".Valuate(", scan)
+        worker = body("v233_long_good.nut", "OpexV233LContinueSites")
+        self.assertEqual(worker.count("OpexV233LSiteSearch("), 1)
+        self.assertLess(worker.index("OpexV233LFunnelBackground("), worker.index("OpexV233LSiteSearch("))
+        self.assertIn("selected.done = true;", worker)
+
+    def test_funnel_anchor_is_northwest_quay_without_keeptop(self):
+        span = body("v233_long_good.nut", "OpexV233LFunnelSpan")
+        self.assertIn("w = axis == 0 ? length : 2", span)
+        self.assertIn("h = axis == 0 ? 2 : length", span)
+        tiles = body("v233_long_good.nut", "OpexV233LFunnelTiles")
+        self.assertIn("tiles.Valuate(AITile.IsBuildableRectangle, w, h);", tiles)
+        self.assertIn("tiles.KeepValue(1);", tiles)
+        self.assertIn("tiles.Valuate(AITile.GetCargoAcceptance, cargo, w, h, coverage);", tiles)
+        self.assertIn("tiles.KeepAboveValue(7);", tiles)
+        self.assertIn("tiles.Sort(AIList.SORT_BY_VALUE, AIList.SORT_DESCENDING);", tiles)
+        self.assertNotIn("KeepTop", tiles)
+        self.assertLess(tiles.index("IsBuildableRectangle"), tiles.index("GetCargoAcceptance"))
+        self.assertLess(tiles.index("GetCargoAcceptance"), tiles.index("SORT_DESCENDING"))
+        box = body("v233_long_good.nut", "OpexV233LFunnelBox")
+        self.assertIn("if (minX < 0) minX = 0;", box)
+        self.assertIn("local fitX = mapX - w;", box)
+        throat = body("v233_long_good.nut", "OpexV233LFunnelThroat")
+        self.assertIn("sign > 0 ? length : -1", throat)
+        self.assertIn("OpexV233LOffset(lead, -px, -py)", throat)
+        attempt = body("v233_long_good.nut", "OpexV233LFunnelTry")
+        self.assertIn("OpexV233LSiteProbe(anchor, length, axis, sign, 1,", attempt)
+        self.assertNotIn("AITestMode", attempt)
+        for name in ("OpexV233LFunnelTiles", "OpexV233LFunnelAdvance", "OpexV233LFunnelProbe",
+                     "OpexV233LFunnelSearch"):
+            self.assertNotIn("AITestMode", body("v233_long_good.nut", name))
+        self.assertIn("const V233L_FUNNEL_BATCH = 5;", source("v233_long_good.nut"))
+        advance = body("v233_long_good.nut", "OpexV233LFunnelAdvance")
+        self.assertLess(advance.index("OpexV233LFunnelQuayFlat"), advance.index("entry.anchors.append"))
+        self.assertNotIn("OpexV233LSiteProbe", advance)
+        self.assertIn("batch == V233L_FUNNEL_BATCH", advance)
+
+    def test_funnel_radius_bands_are_inclusive_up_to_each_thousand(self):
+        radius = body("v233_long_good.nut", "OpexV233LFunnelRadius")
+        self.assertIn("if (population <= 3000) return 12;", radius)
+        self.assertIn("local band = (population - 1) / 1000;", radius)
+        self.assertIn("local radius = 8 + 2 * band;", radius)
+        self.assertIn("if (radius > 18) radius = 18;", radius)
+
+        def funnel_radius(population):
+            if population <= 3000:
+                return 12
+            band = (population - 1) // 1000
+            value = 8 + 2 * band
+            return 18 if value > 18 else value
+
+        expected = {
+            0: 12, 999: 12, 1000: 12, 1999: 12, 2000: 12, 2001: 12,
+            2999: 12, 3000: 12, 3001: 14, 4000: 14, 4001: 16,
+            5000: 16, 5001: 18, 20000: 18,
+        }
+        for population, value in expected.items():
+            self.assertEqual(funnel_radius(population), value, population)
+
+    def test_funnel_cache_is_per_town_and_axis_and_pose_failure_drops_anchor(self):
+        ensure = body("v233_long_good.nut", "OpexV233LFunnelEnsure")
+        self.assertIn('"funnel:" + town + ":" + axis', ensure)
+        self.assertIn('now - old.date > (old.limited ? 180 : 30)', ensure)
+        self.assertNotIn("pair.src", ensure)
+        self.assertNotIn("candidate.src", ensure)
+        self.assertNotIn("AITestMode", ensure)
+        load = body("v233_long_good.nut", "OpexV233LLoadSites")
+        self.assertIn("OpexV233LLoadFunnel(scan)", load)
+        self.assertNotIn("scan.ring = 0", load)
+        self.assertNotIn("scan.total = 0", load)
+        probe = body("v233_long_good.nut", "OpexV233LFunnelProbe")
+        self.assertIn("probe.hint = anchor", probe)
+        self.assertIn("hint = -1", body("v233_long_good.nut", "OpexV233LFunnelProbeRow"))
+        self.assertNotIn("verdict.plan", body("v233_long_good.nut", "OpexV233LFunnelEnsure"))
+        execute = body("builder_rail.nut", "OpexV190ExecuteRailPlan")
+        self.assertEqual(execute.count("OpexV233LFunnelDrop(candidate.dstTown, planB.anchor)"), 2)
+        self.assertIn("V233_SITE_FUNNEL > 0 && OpexV233LIs(candidate)", execute)
+        self.assertNotIn("OpexV233LFunnelDrop", body("builder_rail.nut", "OpexExecuteRailPlan"))
+        trace = body("v233_long_good.nut", "OpexV233LFunnelTrace")
+        self.assertIn('OpexV233LLog("SITE_FUNNEL"', trace)
+        self.assertIn('"town=" + town + " axis=" + axis + " radius=" + radius', trace)
+        self.assertLess(trace.index("tiles="), trace.index("buildable="))
+        self.assertLess(trace.index("buildable="), trace.index("accepting="))
+        self.assertLess(trace.index("accepting="), trace.index("checked="))
+        self.assertLess(trace.index("checked="), trace.index("ok="))
+        self.assertLess(trace.index("ok="), trace.index("ops="))
+        self.assertLess(trace.index("ops="), trace.index("reason="))
+        self.assertIn("if (!DECISION_LOG) return;", trace)
+        self.assertIn("OpexOpsMeasureBegin()", body("v233_long_good.nut", "OpexV233LFunnelSearch"))
+
+    def test_funnel_valuate_inventory_lists_both_native_calls(self):
+        import json
+        inventory = json.loads((Path(__file__).resolve().parent / "fixtures/v262_valuate_inventory.json").read_text())
+        rows = [tuple(row) for row in inventory]
+        self.assertIn(("v233_long_good.nut", "tiles", "AITile.IsBuildableRectangle,w,h"), rows)
+        self.assertIn(("v233_long_good.nut", "tiles", "AITile.GetCargoAcceptance,cargo,w,h,coverage"), rows)
+        code = uncomment(source("v233_long_good.nut"))
+        self.assertEqual(code.count(".Valuate("), 2)
+        self.assertNotIn("KeepTop", body("v233_long_good.nut", "OpexV233LFunnelTiles"))
+
+    def test_funnel_center_test_setting_and_early_rejection(self):
+        block = re.search(r'AddSetting\(\{\s*name = "v233_funnel_center_test",.*?\}\);', source("info.nut"), re.S)[0]
+        self.assertIn("min_value = 0, max_value = 1", block)
+        for level in ("easy", "medium", "hard", "custom"):
+            self.assertRegex(block, level + r"_value\s*=\s*1\b")
+        self.assertEqual(source("settings.nut").count('GetSetting("v233_funnel_center_test")'), 1)
+        self.assertIn("V233_FUNNEL_CENTER_TEST <- 1;", source("globals_pre.nut"))
+
+        search = body("v233_long_good.nut", "OpexV233LFunnelSearch")
+        self.assertIn("V233_SITE_FUNNEL > 0 && V233_FUNNEL_CENTER_TEST > 0", search)
+        self.assertIn("AITile.GetCargoAcceptance(tile0, cargo, w, h, coverage)", search)
+        self.assertIn("axis == 0 ? length : 2", search)
+        self.assertIn("axis == 0 ? 2 : length", search)
+        self.assertIn("cx - (w / 2)", search)
+        self.assertIn("cy - (h / 2)", search)
+        self.assertIn("x0 > mapX - w", search)
+        self.assertIn("y0 > mapY - h", search)
+        self.assertIn("AIMap.IsValidTile(tile0)", search)
+        self.assertIn("centerAcc < 8", search)
+        self.assertIn('OpexV233LLog("SITE_FUNNEL", "town=" + town + " reason=CENTER_REJECT center_acc=" + centerAcc + " w=" + bestW + " h=" + bestH)', search)
+        self.assertIn("cached0.done = true;", search)
+        self.assertIn("cached0.limited = false;", search)
+        self.assertIn("cached1.done = true;", search)
+        self.assertIn("cached1.limited = false;", search)
+        self.assertLess(search.index("centerAcc < 8"), search.index("OpexV233LFunnelAdvance"))
+
+    def test_funnel_center_test_quay_footprint_geometry_and_bounds(self):
+        # Independent Python model verifying the quay footprint centering and boundary clamping.
+        def compute_tile0(cx, cy, w, h, map_x=256, map_y=256):
+            x0 = cx - (w // 2)
+            y0 = cy - (h // 2)
+            if x0 < 0:
+                x0 = 0
+            if y0 < 0:
+                y0 = 0
+            if x0 > map_x - w:
+                x0 = map_x - w
+            if y0 > map_y - h:
+                y0 = map_y - h
+            return x0, y0
+
+        # Normal center: Town 28 at (55, 149), length 2 (w=2, h=2)
+        self.assertEqual(compute_tile0(55, 149, 2, 2), (54, 148))
+        # Length 3: axis 0 (3x2) and axis 1 (2x3)
+        self.assertEqual(compute_tile0(55, 149, 3, 2), (54, 148))
+        self.assertEqual(compute_tile0(55, 149, 2, 3), (54, 148))
+
+        # Edge clamping at (0, 0)
+        self.assertEqual(compute_tile0(0, 0, 3, 2), (0, 0))
+        self.assertEqual(compute_tile0(0, 0, 2, 3), (0, 0))
+
+        # Edge clamping at (255, 255) on a 256x256 map
+        self.assertEqual(compute_tile0(255, 255, 3, 2), (253, 254))
+        self.assertEqual(compute_tile0(255, 255, 2, 3), (254, 253))
+
+        # Coverage extension over 1x1: a house at (50, 146) is out of 1x1 coverage (rad=4 from (55, 149) covers x in [51, 59]),
+        # but within footprint coverage (rad=4 from [54..55, 148..149] covers x in [50, 59]).
+        footprint_x0, footprint_y0 = compute_tile0(55, 149, 2, 2)
+        rad = 4
+        point_x, point_y = 50, 146
+        # Distance to center point (55, 149)
+        self.assertGreater(max(abs(55 - point_x), abs(149 - point_y)), rad)
+        # Distance to footprint rectangle [54..55, 148..149]
+        dist_x = max(0, footprint_x0 - point_x, point_x - (footprint_x0 + 1))
+        dist_y = max(0, footprint_y0 - point_y, point_y - (footprint_y0 + 1))
+        self.assertLessEqual(max(dist_x, dist_y), rad)

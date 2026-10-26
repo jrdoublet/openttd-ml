@@ -45,8 +45,9 @@ class TestV251Inventory(unittest.TestCase):
     def test_no_new_public_setting(self):
         info = historical_info(self.sources["info.nut"])
         # Migration controlee de 43 options historiques ; conserver
-        # PO01C=1, PO03/C77=2 et PO02=1 ; +1 V233L opt-in (0), demande du 25/10.
-        self.assertLessEqual(info.count("AddSetting("), 59)
+        # PO01C=1, PO03/C77=2 et PO02=1 ; +1 V233L, +1 v233_site_funnel et
+        # +1 v233_funnel_center_test. N75 est retire par historical_info.
+        self.assertLessEqual(info.count("AddSetting("), 61)
         self.assertNotIn('name = "v251', info)
         settings = self.sources["settings.nut"]
         self.assertNotIn('GetSetting("v251', settings)

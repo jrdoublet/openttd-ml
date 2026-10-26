@@ -343,5 +343,15 @@
     "po01c_generators.nut",
     "tiles",
     "AITile.IsStationTile"
+  ],
+  [
+    "v233_long_good.nut",
+    "tiles",
+    "AITile.IsBuildableRectangle,w,h"
+  ],
+  [
+    "v233_long_good.nut",
+    "tiles",
+    "AITile.GetCargoAcceptance,cargo,w,h,coverage"
   ]
 ]

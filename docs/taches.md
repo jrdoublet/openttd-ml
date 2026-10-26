@@ -201,6 +201,13 @@ la seconde réussit. Deux duels sains par smoke, verdict `diagnostic_only` ;
 aucune qualification économique. **2 586 tests OK** (9 ignorés, 2 échecs attendus),
 builder et hash OFF inchangés. [Diagnostic et preuves](v233_long_good_20261025.md#26-octobre--track10-poche-consultative-et-double-voie-livrée).
 
+**26/10 — V233L, entonnoir de site B (local, défaut 0) :** nouveau réglage
+`v233_site_funnel`. À 0 la spirale urbaine est inchangée. À 1, le quai GOOD de
+destination est cherché par liste native (rectangle constructible, acceptation,
+tri) puis contrôles squirrel par lots de 5, avec cache par ville et axe.
+Le repli aéroport reste devant ce scan. Aucune partie, aucun Docker, aucune
+compilation ni qualification. [Détail](v233_long_good_20261025.md#26-octobre--entonnoir-de-site-b).
+
 ### Priorités ouvertes après les deux références monomodales du 25/10 (sans adoption)
 
 - [ ] **P1 — `rail_long_value_rank` : qualifier et classer le fret long constructible (opt-in, défaut 0 ; coût 4/5).** Ne plus relever globalement les bornes : vérifier site, A*, capital et ROI marginal pour une paire fret ≥160 tuiles, puis la comparer aux projets courts et AIR réellement finançables ; [analyse §4](analyse_rail_vs_air_seul_20261025.md#4-pistes-expérimentales-par-potentiel-de-gain-relatif-au-coût).
