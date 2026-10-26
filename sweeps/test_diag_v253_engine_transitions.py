@@ -116,6 +116,21 @@ class V253EngineTransitionTests(unittest.TestCase):
         self.assertEqual(report["logical_games"], 4)
         self.assertEqual(report["by_arm"]["reference"]["replacements"], 3)
         self.assertEqual(report["by_arm"]["variant"]["replacements"], 1)
+        self.assertEqual(report["by_arm"]["reference"]["distinct_line_ids_with_replacements"], 1)
+        self.assertEqual(report["by_arm"]["reference"]["distinct_game_line_pairs_with_replacements"], 3)
+        self.assertEqual(report["by_arm"]["variant"]["distinct_game_line_pairs_with_replacements"], 1)
+
+    def test_pooled_local_line_ids_do_not_hide_distinct_game_line_pairs(self):
+        self.write("reference_seed42_r0.log", replace(line=3) + replace(line=3))
+        self.write("reference_seed100_r0.log", replace(line=3) + replace(line=4))
+        self.write("reference_seed7_r0.log", skip())
+        report = analyze([self.root])
+        arm = report["by_arm"]["reference"]
+        self.assertEqual(arm["replacements"], 4)
+        self.assertEqual(arm["distinct_line_ids_with_replacements"], 2)
+        self.assertEqual(arm["distinct_game_line_pairs_with_replacements"], 3)
+        self.assertEqual(sum(game["distinct_line_ids_with_replacements"]
+                             for game in report["games"]), 3)
 
     def test_other_company_and_other_tag_ignored(self):
         body = (replace(arm=1) + "[0] [I] OPEX 1975-3-1 V252_KEEP line=3\n"

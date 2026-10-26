@@ -147,17 +147,25 @@ def analyze(inputs):
     games = inputs_to_games(inputs)
     rows = []
     by_arm_events = defaultdict(list)
+    by_arm_distinct_game_lines = defaultdict(int)
     for (directory, arm, seed, repeat), path, source_files in games:
         events = list(parse_events(path))
         by_arm_events[arm].extend(events)
+        game_stats = aggregate(events)
+        by_arm_distinct_game_lines[arm] += game_stats["distinct_line_ids_with_replacements"]
         rows.append({"directory": directory, "arm": arm, "seed": seed,
                      "repeat": repeat, "source_files": source_files,
-                     **aggregate(events)})
+                     **game_stats})
     return {
         "scope": "observed V252 replacement events only; not a marginal profit or V102 estimate",
         "logical_games": len(games),
         "physical_files": sum(len(row["source_files"]) for row in rows),
-        "by_arm": {arm: aggregate(events) for arm, events in sorted(by_arm_events.items())},
+        "by_arm": {
+            arm: {**aggregate(events),
+                  "distinct_game_line_pairs_with_replacements":
+                      by_arm_distinct_game_lines[arm]}
+            for arm, events in sorted(by_arm_events.items())
+        },
         "games": rows,
         "limitations": [
             "Vehicle IDs old_veh/new_veh are not fleet counts.",
@@ -165,6 +173,8 @@ def analyze(inputs):
             "Recorded profit is historical line profit, not causal replacement gain.",
             "Skip events can repeat while a financial condition persists.",
             "Identical text/gzip copies count once; contradictory copies fail closed.",
+            "Arm-level distinct_line_ids_with_replacements omits game identity "
+            "and aliases repeated local IDs; use distinct_game_line_pairs_with_replacements.",
         ],
     }
 
