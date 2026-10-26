@@ -161,3 +161,34 @@ reste un changement d'observabilité, sans nouvelle preuve économique ; les
 résultats ci-dessus restent explicitement ceux du bundle gelé `ddb9afa0`.
 P1/P4/P5 pourront être étudiées selon leur propre protocole et sans prétendre
 que ce premier arbitrage P2 a déplacé une construction.
+
+## Contre-vérification après suppression des journaux vides (26 octobre 2026)
+
+Sur le code **`f6455c4b` propre**, le smoke OFF/ON
+`p2_opportunity_smoke_42x1_20261026_r2` est terminé sans erreur moteur sur
+la graine 42. L'écart ON−OFF **−15 633 £/an** et la valeur relative
+**0,964978** sur cette unique graine restent purement diagnostiques : aucune
+promotion P2 ne s'est produite. Le correctif a supprimé les 184 journaux
+`action=none` observés au premier smoke. Les Save/Load ON court et complet
+ont ensuite confirmé `LOAD_RECONCILE` après rechargement réel, avec 13+13
+sauvegardes chacun ; la compagnie fantôme connue du harnais est signalée.
+
+L'exposition indépendante **`p2_opportunity_shadow_5x5_20261026_r2`** fige
+les mêmes graines `42,100,7,999,2026`, de 1970 à 1974, sur le code corrigé :
+**10/10 parties terminées, 5/5 paires saines**, sans `P2_OPPORTUNITY
+action=shadow`, `action=promote`, `action=ops_reject` ni `action=none` sur
+les cinq journaux shadow. Le manifeste SHA256 est
+`ef9f7044dbebc876fe4643c81abcb4c661314e18d6324b89ad658146ff782127`
+et l'image Docker
+`sha256:f4b2b9b3b7399cbfecacfe03b3b8dda49bff2921de36a61fed4e9441e5d44659`.
+Le code a passé **2 895 tests** complets après correction (5 ignorés et
+2 échecs attendus) et `git diff --check`.
+
+Delta shadow−OFF strictement descriptif : **+134 075,2 £/an**,
+médiane **+196 236 £/an**, 4V/1D, Wilcoxon **p=0,4375**,
+IC95 bootstrap **[−127 665,4 ; +340 923,6]**, ratio des moyennes
+`company_value` **1,033616**. Aucune proposition n'ayant été observée, ces
+différences de trajectoire ne sont **pas un effet du levier**. La nouvelle
+campagne n'efface ni le bundle `ddb9afa0` ni ses 3 671 journaux historiques.
+**Verdict `NO-GO` confirmé à 0/5 graines exposées** (seuil 3/5) : aucun
+pilote ON, aucune porte A/B, aucune adoption, défaut 0 inchangé.
