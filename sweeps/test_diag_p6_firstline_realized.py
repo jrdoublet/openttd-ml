@@ -67,6 +67,66 @@ class FirstlineContracts(unittest.TestCase):
             encoding="utf-8",
         )
 
+    def write_manifest(self, **changes):
+        manifest = {
+            "campaign_id": CAMPAIGN,
+            "source_bundle": {"sha256": "a" * 64},
+            "policy": {"id": "air_defaults"},
+            "artifacts": {
+                "manifest": "/work/results/snapshots.manifest.json",
+                "engine_logs": "/work/results/engine",
+                "checkpoints": "/work/results/snapshots.jsonl",
+            },
+            "games": [{
+                "seed": 42, "repeat": 0, "policy_id": "air_defaults",
+                "game_id": f"{CAMPAIGN}:policy=air_defaults:s42:r0",
+                "company_slots": {"0": {"ai": "OpexAI", "policy_id": "air_defaults"}},
+            }],
+        }
+        manifest.update(changes)
+        path = self.snapshots.with_suffix(".manifest.json")
+        path.write_text(json.dumps(manifest), encoding="utf-8")
+        return path
+
+    def test_manifest_binds_real_campaign_paths_bundle_and_game(self):
+        self.log(42)
+        self.write_snapshots([snapshot(42, "1971-01-01", profit=200)])
+        source = self.write_manifest()
+        report = analyze(self.logs, self.snapshots, 1)
+        self.assertTrue(report["provenance_manifest_verified"])
+        self.assertEqual(report["provenance_manifest_path"], str(source))
+        self.assertEqual(report["years"]["1970"]["observed_games"], 1)
+
+    def test_manifest_rejects_crossed_campaign_bundle_paths_or_game_identity(self):
+        self.log(42)
+        self.write_snapshots([snapshot(42, "1971-01-01")])
+        original = json.loads(self.write_manifest().read_text(encoding="utf-8"))
+        cases = (
+            ("campaign", {**original, "campaign_id": "foreign_campaign"}),
+            ("bundle", {**original, "source_bundle": {"sha256": "b" * 64}}),
+            ("policy", {**original, "policy": {"id": "foreign_policy"}}),
+            ("engine", {**original, "artifacts": {
+                **original["artifacts"], "engine_logs": "/work/results/foreign_engine"}}),
+            ("snapshots", {**original, "artifacts": {
+                **original["artifacts"], "checkpoints": "/work/results/foreign.jsonl"}}),
+            ("game", {**original, "games": [
+                {**original["games"][0], "seed": 100}] }),
+        )
+        for label, manifest in cases:
+            with self.subTest(label=label):
+                self.write_manifest(**manifest)
+                with self.assertRaisesRegex(ValueError, "manifest"):
+                    analyze(self.logs, self.snapshots, 1)
+
+    def test_missing_manifest_remains_explicitly_unverified_not_falsely_verified(self):
+        self.log(42)
+        self.write_snapshots([snapshot(42, "1971-01-01")])
+        report = analyze(self.logs, self.snapshots, 1)
+        self.assertFalse(report["provenance_manifest_verified"])
+        self.assertIsNone(report["provenance_manifest_path"])
+        with self.assertRaisesRegex(ValueError, "manifest"):
+            analyze(self.logs, self.snapshots, 1, manifest=self.root / "missing.manifest.json")
+
     def test_inverted_station_pair_and_january_this_year_profit_only(self):
         self.log(42, build(stations=(1, 0), predicted=400, actual=800, target=1300))
         self.write_snapshots([

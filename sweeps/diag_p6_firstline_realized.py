@@ -18,7 +18,7 @@ import gzip
 import hashlib
 import json
 import math
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 import re
 from statistics import mean
 
@@ -224,6 +224,66 @@ def read_snapshots(path, games):
     return snapshots, initial, provenance
 
 
+def _check_manifest(logs, snapshots, games, provenance, manifest=None):
+    """Cross-check the campaign's declared artifacts and games when available.
+
+    Frozen manifests contain Linux /work paths. Resolve them relative to the
+    manifest's original parent rather than treating /work as a Windows path.
+    A manifest does not authenticate the bytes of individual engine logs.
+    """
+    snapshots = Path(snapshots)
+    selected = Path(manifest) if manifest is not None else snapshots.with_suffix(".manifest.json")
+    if not selected.is_file():
+        if manifest is not None:
+            raise ValueError(f"manifest explicitly requested but missing: {selected}")
+        return False, None
+    try:
+        source = json.loads(selected.read_text(encoding="utf-8"))
+        if not isinstance(source, dict):
+            raise ValueError("not an object")
+        artifacts = source["artifacts"]
+        declared_manifest = PurePosixPath(artifacts["manifest"])
+        if (not declared_manifest.is_absolute()
+                or declared_manifest.name != selected.name):
+            raise ValueError("manifest path/name mismatch")
+        root = declared_manifest.parent
+        for label, supplied in (("engine_logs", logs), ("checkpoints", snapshots)):
+            declared = PurePosixPath(artifacts[label])
+            relative = declared.relative_to(root)
+            if (not relative.parts or any(part == ".." for part in relative.parts)
+                    or (selected.parent.resolve() / Path(*relative.parts)).resolve()
+                    != Path(supplied).resolve()):
+                raise ValueError(f"manifest {label} does not match supplied source")
+        stamp = (source["campaign_id"], source["source_bundle"]["sha256"],
+                 source["policy"]["id"])
+        if (provenance is None or stamp != provenance
+                or not isinstance(stamp[1], str)
+                or re.fullmatch(r"[0-9a-f]{64}", stamp[1]) is None):
+            raise ValueError("manifest campaign, bundle or policy mismatch")
+        entries = source["games"]
+        if not isinstance(entries, list):
+            raise ValueError("manifest games must be a list")
+        identities = set()
+        for game in entries:
+            seed, repetition = game["seed"], game["repeat"]
+            if (type(seed) is not int or type(repetition) is not int
+                    or seed < 0 or repetition < 0):
+                raise ValueError("manifest invalid game seed or repetition")
+            identity = (seed, repetition)
+            expected_id = f"{stamp[0]}:policy={stamp[2]}:s{seed}:r{repetition}"
+            slot = game["company_slots"]["0"]
+            if (identity in identities or game["policy_id"] != stamp[2]
+                    or game["game_id"] != expected_id
+                    or slot["ai"] != "OpexAI" or slot["policy_id"] != stamp[2]):
+                raise ValueError(f"manifest invalid or duplicate OpexAI game: {identity}")
+            identities.add(identity)
+        if identities != set(games):
+            raise ValueError("manifest games disagree with engine-log identities")
+    except (KeyError, TypeError, AttributeError, ValueError, json.JSONDecodeError) as exc:
+        raise ValueError(f"invalid or conflicting manifest {selected}: {exc}") from exc
+    return True, str(selected)
+
+
 def _ranks(values):
     result = [0] * len(values)
     ordered = sorted(range(len(values)), key=lambda position: values[position])
@@ -292,11 +352,13 @@ def _fleet_id_cohorts(rows):
     }
 
 
-def analyze(logs, snapshots, expected_games=40):
+def analyze(logs, snapshots, expected_games=40, manifest=None):
     games = collect_builds(logs)
     if len(games) != expected_games:
         raise ValueError(f"expected {expected_games} independent games; found {len(games)}")
     measured, first, provenance = read_snapshots(snapshots, games)
+    manifest_verified, manifest_path = _check_manifest(
+        logs, snapshots, games, provenance, manifest)
     details, cohorts = [], defaultdict(list)
     for (seed, repetition), entry in sorted(games.items()):
         baseline = first.get((seed, repetition))
@@ -329,6 +391,8 @@ def analyze(logs, snapshots, expected_games=40):
             "source_bundle_sha256": provenance[1] if provenance else None,
             "duel_policy_id": provenance[2] if provenance else None,
         },
+        "provenance_manifest_verified": manifest_verified,
+        "provenance_manifest_path": manifest_path,
         "games": len(games),
         "years": {str(year): _statistics(cohorts[year], len(games)) for year in YEARS},
         "fleet_id_cohorts_by_year": {
@@ -347,6 +411,10 @@ def analyze(logs, snapshots, expected_games=40):
             "Fleet ID cohorts are selected outcomes, not matched causal arms; "
             "different aircraft IDs do not isolate the cause of profit drift.",
             "Only constructed lines are observed; no rejected-project counterfactual.",
+            "Manifest checks campaign, bundle, declared paths and game identities when "
+            "available, but does not hash individual engine logs; an in-place replacement "
+            "under the declared name cannot be detected from this manifest.",
+            "Without a manifest the campaign origin of engine logs is unverified.",
         ],
     }
 
@@ -355,12 +423,15 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--logs", required=True, type=Path)
     parser.add_argument("--snapshots", required=True, type=Path)
+    parser.add_argument("--manifest", type=Path,
+                        help="optional frozen campaign manifest; autodetected next to snapshots")
     parser.add_argument("--expected-games", type=int, default=40)
     args = parser.parse_args(argv)
     try:
         if args.expected_games < 1:
             raise ValueError("expected-games must be positive")
-        output = analyze(args.logs, args.snapshots, args.expected_games)
+        output = analyze(args.logs, args.snapshots, args.expected_games,
+                         manifest=args.manifest)
     except (OSError, ValueError, EOFError, json.JSONDecodeError) as exc:
         parser.error(str(exc))
     print(json.dumps(output, ensure_ascii=False, indent=2, allow_nan=False))
