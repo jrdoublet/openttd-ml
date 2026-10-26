@@ -697,6 +697,17 @@ function OpexAI::_resizeAirFleets(year, plan = null)
       local targetNeed = line.targetAirPlanes - have;
       if (targetNeed > 0 && maxAddedPerPass > targetNeed) maxAddedPerPass = targetNeed;
     }
+    /* Un renfort V252 qui change de moteur passe toujours ; P3 vise seulement
+     * l'addition d'une capacite deja en service. Cette recherche supplementaire
+     * est bornee aux preuves de veto P3 en shadow/ON, jamais en OFF. */
+    local p3Upgrade = false;
+    if (P3_AIR_FLEET_YIELD > 0 && have >= 2) {
+      local p3Direct = OpexP3MatureEvidence(line, have, planePrice);
+      if (p3Direct != null && p3Direct.veto)
+        p3Upgrade = OpexP3HasEngineUpgrade(line, this._catalog);
+      if (plan == null && P3_AIR_FLEET_YIELD == 2
+          && p3Direct != null && p3Direct.veto && !p3Upgrade) continue;
+    }
     if (plan != null) {
       /* Mode a blanc : on ne touche ni a la tresorerie ni a la ligne. Le test de capital est celui
        * du portefeuille, pas celui d'ici -- c'est tout l'objet de l'arbitrage. */
@@ -704,6 +715,7 @@ function OpexAI::_resizeAirFleets(year, plan = null)
       local want = (room < maxAddedPerPass) ? room : maxAddedPerPass;
       if (want > 0) {
         local fleetEntry = { line = line, want = want, planePrice = planePrice, baseVehicles = have };
+        if (p3Upgrade) fleetEntry.p3EngineUpgrade <- true;
         if (c121FirstLiveEntry) fleetEntry.c121FirstLive <- true;
         {
           /* V161 : voisines AIR vivantes partageant une gare, pour l'a priori. Index

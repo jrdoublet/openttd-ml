@@ -364,6 +364,9 @@ C117_AIR_SAMPLE_DAYS <- 2;
 C117_AIR_LAST_DATE <- -1;
 C117_AIR_LINE_STATE <- {};
 C117_AIR_VEHICLE_STATE <- {};
+/* P3 : trois fenetres C117 transitoires par ligne, sans Save/Load ni lecture en OFF. */
+P3_AIR_FLEET_YIELD <- 0;
+P3_AIR_FLEET_WINDOWS <- {};
 /* Etat transitoire « avion de la partie » par type d'aeroport. Non
  * sauvegarde : apres chargement, l'etat se reconstruit tout seul.
  * Une cle de mode (capital, profit par vehicule) pourra s'y ajouter plus tard. */

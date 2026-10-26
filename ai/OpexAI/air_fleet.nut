@@ -67,6 +67,24 @@ function OpexAirBestEngineForLine(line, catalog)
   return bestPlaneId;
 }
 
+/* P3 n'intercepte pas la voie V252 quand un renfort sert aussi de migration
+ * vers un nouveau moteur ; ne recalculer le choix qu'en cas de veto potentiel. */
+function OpexP3HasEngineUpgrade(line, catalog)
+{
+  if (line == null || !("vehicles" in line) || line.vehicles == null) return false;
+  local template = null;
+  foreach (v in line.vehicles) {
+    if (AIVehicle.IsValidVehicle(v) && AIVehicle.GetVehicleType(v) == AIVehicle.VT_AIR) {
+      template = v;
+      break;
+    }
+  }
+  if (template == null) return false;
+  local candidate = OpexAirBestEngineForLine(line, catalog);
+  return candidate != null && candidate != AIVehicle.GetEngineType(template)
+      && AIEngine.IsBuildable(candidate);
+}
+
 function OpexAirAddPlane(line, catalog = null, lines = null)
 {
   local result = { added = 0, reason = "" };
