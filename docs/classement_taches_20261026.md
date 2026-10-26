@@ -11,9 +11,15 @@ ces trois parcours sont exclus des lots à lancer.
 Au début du reclassement, **39 cases ouvertes** (dont quatre sous-cases
 indentées). Les lots successifs du 26/10 ont déjà clos V304, V309,
 V224, V290, V241, FRONT-PAX-1, V303, V308, PCAL-03, AIR-FLOTTE-1, RAIL-CAPEX-1, AIR-MONOPOLY-1, V250, PO-01 (suite PO-01c non qualifiée), programme historique de croissance RAIL (sous-lots clos) et V281 (portage obsolète), puis **PCAL-01 (V289 rejeté)**, **V294k (suivi fusionné dans V294)** et **V306 (table multiplicative non qualifiable, NO-GO)**, soit **dix-neuf cases**.
-Le reste comporte **22 cases** après les décisions utilisateur de
-réouverture **V286** et de création **ESTIM-1** le 26/10 après-midi :
-21 dossiers à instruire, un nécessitant une publication externe (V261).
+Le reste comportait **22 cases** après les décisions utilisateur de
+réouverture **V286** et de création **ESTIM-1** le 26/10 après-midi.
+**Deux clôtures documentaires de plus le 26/10, V240 et V294, abaissent
+le total à 20 cases ouvertes** : 19 dossiers à instruire et un nécessitant
+une publication externe (V261). V240 clôt sa tentative de croissance
+urbaine sans hypothèse ciblée étayée ; V294 clôt ses essais A* non
+qualifiés, tout en conservant leurs livraisons et rejets historiques.
+La première sonde V286 a été instrumentée et validée au smoke moteur ;
+sa tâche reste ouverte pour les livraisons et le coût observateur.
 Les estimations restent des **ordres de
 grandeur relatifs**, pas une promesse de calendrier. Pour tout code
 comportemental, OFF par défaut, tests/smoke/exposition et portes
@@ -41,19 +47,17 @@ pré-enregistrées restent obligatoires.
 
 | Ordre | Case | Effort / dépendance principale | Besoin de banc | Risque |
 |---:|---|---|---|---|
-| 9 | V294 | Élevé ; A*, paramètres physiques et itérations, y compris futur périmètre tunnel/eau de V294k | Porte RAIL, puis B | Élevé |
-| 10 | IDLE-1 | Élevé ; fusion V308/V309, réserve, carte invalidable et consommateur concret ; suite V303 par cartographie | 3×10 puis A/B si exposé | Élevé |
-| 11 | PO-02 | Élevé ; PO-01c livré, publication/expiration de viviers | Exposition, A/B | Élevé |
-| 12 | ESTIM-1 | Élevé ; coûts et profits marginaux, garde financière et témoins ; reprises RAIL-CAPEX, FRONT-PAX, AIR-MONOPOLY | Validation hors échantillon, même-save, puis A/B selon le correctif | Élevé |
-| 13 | V240 | Élevé ; croissance urbaine retirée, devis géométrique nouveau | Démontrer activité puis A/B | Élevé |
-| 14 | V242 | Élevé ; feeders et transport multimodal | Chaînes physiques, A/B | Élevé |
-| 15 | V249b | Élevé ; marges réelles V249a et achats marginaux | A/B finance | Très élevé |
-| 16 | V249c | Élevé ; surplus durable après V249b et choix intermodaux | A/B finance | Très élevé |
-| 17 | V253 | Très élevé ; choix global d'avions, V252 et cycles de renouvellement | A/B AIR | Très élevé |
-| 18 | V233 | Très élevé ; marchandises transformées, sources/débouchés et rivalité | Exposition causale, A/B | Très élevé |
-| 19 | V226 | Très élevé ; réseau ferroviaire en araignée | Architecture, Save/Load, A/B | Très élevé |
-| 20 | V251 | Très élevé ; construction d'industries et contrat économique de l'API | Exposition puis A/B | Très élevé |
-| 21 | V291 | Très élevé ; terrassement/canaux uniquement au niveau permissif | Garde de sécurité, exposition, A/B | Très élevé |
+| 9 | IDLE-1 | Élevé ; fusion V308/V309, réserve, carte invalidable et consommateur concret ; suite V303 par cartographie | 3×10 puis A/B si exposé | Élevé |
+| 10 | PO-02 | Élevé ; PO-01c livré, publication/expiration de viviers | Exposition, A/B | Élevé |
+| 11 | ESTIM-1 | Élevé ; coûts et profits marginaux, garde financière et témoins ; reprises RAIL-CAPEX, FRONT-PAX, AIR-MONOPOLY | Validation hors échantillon, même-save, puis A/B selon le correctif | Élevé |
+| 12 | V242 | Élevé ; feeders et transport multimodal | Chaînes physiques, A/B | Élevé |
+| 13 | V249b | Élevé ; marges réelles V249a et achats marginaux | A/B finance | Très élevé |
+| 14 | V249c | Élevé ; surplus durable après V249b et choix intermodaux | A/B finance | Très élevé |
+| 15 | V253 | Très élevé ; choix global d'avions, V252 et cycles de renouvellement | A/B AIR | Très élevé |
+| 16 | V233 | Très élevé ; marchandises transformées, sources/débouchés et rivalité | Exposition causale, A/B | Très élevé |
+| 17 | V226 | Très élevé ; réseau ferroviaire en araignée | Architecture, Save/Load, A/B | Très élevé |
+| 18 | V251 | Très élevé ; construction d'industries et contrat économique de l'API | Exposition puis A/B | Très élevé |
+| 19 | V291 | Très élevé ; terrassement/canaux uniquement au niveau permissif | Garde de sécurité, exposition, A/B | Très élevé |
 
 ## Bloquées : annoter et passer sans nouvelle expérience
 
