@@ -84,6 +84,23 @@ aucun second train sur voie unique.
 Pose moteur **non validée** (Docker interdit).
 [Détails](v233_long_good_20261025.md#26-octobre--track4-couloir-réel-et-adoption-du-détour).
 
+**26/10 — V233L, TRACK5 après le smoke8 fourni (local, défaut 0) :**
+le smoke8 (graine 100, cinq ans) a zéro erreur moteur et **plus de voie 1**.
+`58979→20909` : `LAUNCH_CLOSED` a publié l'autre bout du quai
+(`lead_a2` 58466→58469, `b2` 22701→22956). La sonde inverse passe de
+300 à 3 itérations et `RAIL_SEARCH` abandonne à 5 000, contre **813**
+itérations au smoke7. `6172→21717` garde les mêmes extrémités ; le test
+strict retire les tuiles 21977 et 21976, et la recherche abandonne à
+5 000 contre **834** (`RAIL_SEARCH`) au smoke7. Le grand-parent du
+pathfinder ne s'applique pas à la voie 1. La voie 1 reprend le premier
+plan compatible et le couloir lenient d'avant TRACK4. Un conflit avec
+son départ lâche `after`, puis l'axe. L'autre bout, A et B, n'est
+offert qu'à la voie 2 et n'entre pas dans l'interdit. Échec : rollback
+intégral, aucun second train sur voie unique. Suite Python :
+**2 579 tests, OK** (9 ignorés, 2 échecs attendus). Pose moteur
+**non validée** (Docker interdit).
+[Détails](v233_long_good_20261025.md#26-octobre--track5-la-voie-1-retrouve-ses-extrémités).
+
 ### Priorités ouvertes après les deux références monomodales du 25/10 (sans adoption)
 
 - [ ] **P1 — `rail_long_value_rank` : qualifier et classer le fret long constructible (opt-in, défaut 0 ; coût 4/5).** Ne plus relever globalement les bornes : vérifier site, A*, capital et ROI marginal pour une paire fret ≥160 tuiles, puis la comparer aux projets courts et AIR réellement finançables ; [analyse §4](analyse_rail_vs_air_seul_20261025.md#4-pistes-expérimentales-par-potentiel-de-gain-relatif-au-coût).

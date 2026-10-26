@@ -289,38 +289,20 @@ function OpexV233LPlatformPlans(catalog, candidate, phase = "build")
     OpexV233LLog("SITE_B_JOIN", "src=" + candidate.src + " dst=" + candidate.dst
         + " phase=" + phase + " ok=0 reason=distance");
   local plansB = scanB.plans;
-  /* Ne pas publier une paire hors de la fenetre tarifaire apres deplacement. */
+  /* Ne pas publier une paire hors de la fenetre tarifaire apres deplacement.
+   * Le premier A compatible reste celui de la voie 1 : un couloir de voie 2
+   * ferme ne deplace pas cette sortie. L'autre bout est un quai parallele. */
   local validA = [], validB = [];
-  local holdA = null, holdB = null;
   foreach (p in plansA) {
-    validB = [];
     foreach (q in plansB) {
       local origin = ("stationId" in p) ? AIStation.GetLocation(p.stationId) : p.anchor;
       local distance = AIMap.DistanceManhattan(origin, OpexV233LTariffTile(q));
       if (distance < 150 || distance > 300) continue;
       validB.append(q);
     }
-    /* Le trace parallele quitte le lead tout droit. Une sortie dont la tuile
-     * « after » n'accepte pas de rail (objet, erreur 260) enferme l'A* :
-     * essayer l'autre bout du quai. Le premier plan reste le repli. */
-    if (phase == "build" && validB.len() > 0 && !OpexV233LParallelLaunchOpen(p)) {
-      if (holdA == null) {
-        holdA = p;
-        holdB = [];
-        foreach (q in validB) holdB.append(q);
-      }
-      if (DECISION_LOG) OpexV233LLog("DOUBLE", "src=" + candidate.src + " dst=" + candidate.dst
-          + " phase=reserve reason=LAUNCH_CLOSED anchor=" + p.anchor
-          + " parallel=" + p.parallel.anchor + " lead=" + p.parallel.lead);
-      continue;
-    }
     /* Un seul A, tous ses B compatibles : le produit cartesien offert a A*
      * ne doit pas reintroduire de paire hors bornes. */
     if (validB.len() > 0) { validA.append(p); break; }
-  }
-  if (validA.len() == 0 && holdA != null) {
-    validA.append(holdA);
-    validB = holdB;
   }
   local ok = validA.len() > 0 && validB.len() > 0;
   local pending = !ok && (scanA.reason == "budget" || scanB.reason == "budget"
@@ -354,104 +336,244 @@ function OpexV233LPlatformPlans(catalog, candidate, phase = "build")
     statsA = scanA.stats, statsB = scanB.stats };
 }
 
-/* Le trace parallele part tout droit (lead - sortie). Un lateral libre ne
- * compte pas : le raccourci geometrique ne l'emprunte pas, et la file meurt
- * sur l'objet qui occupe la tuile droite. BuildRail(front, after, beyond)
- * prouve le rail SUR after, pas seulement sur front. */
-function OpexV233LParallelLaunchOpen(p)
+/* Bout marque pour la voie 2 seule. Le filtre historique ne reconnait qu'un
+ * seul sens de quai traversant ; a contexte nul il reste inchange. */
+function OpexV233LSameEnd(plan, original)
 {
-  if (!("parallel" in p) || p.parallel == null) return true;
-  local side = p.parallel;
-  local blocked = {};
-  if (!(p.lead in blocked)) blocked[p.lead] <- true;
-  for (local i = 0; i < p.length; i++) {
-    local tile = p.anchor + p.step * i;
-    local quay = side.anchor + side.step * i;
-    if (!(tile in blocked)) blocked[tile] <- true;
-    if (!(quay in blocked)) blocked[quay] <- true;
+  if (("v233OtherEnd" in plan) && plan.v233OtherEnd == 1) return true;
+  return OpexSameStationEnd(plan, original);
+}
+
+/* La voie 1 ne garde un couloir que s'il ne bouche pas son propre depart.
+ * front dans le depart : rien de cet axe. after seul : on lache after. */
+function OpexV233LKeepLaunch(front, after, departure)
+{
+  if (front == null || front in departure) return null;
+  local kept = [front];
+  if (after != null && !(after in departure)) kept.append(after);
+  return kept;
+}
+
+/* Lead, sortie, deux pas en avant, et les deux lateraux du lead primaire. */
+function OpexV233LMarkDeparture(plan, departure)
+{
+  if (!(plan.lead in departure)) departure[plan.lead] <- true;
+  if (!(plan.station_exit in departure)) departure[plan.station_exit] <- true;
+  local dx = AIMap.GetTileX(plan.lead) - AIMap.GetTileX(plan.station_exit);
+  local dy = AIMap.GetTileY(plan.lead) - AIMap.GetTileY(plan.station_exit);
+  if (dx == 0 && dy == 0) return;
+  local forward = OpexV190MakeTile(plan.lead, dx, dy);
+  local second = OpexV190MakeTile(plan.lead, 2 * dx, 2 * dy);
+  local left = OpexV190MakeTile(plan.lead, -dy, dx);
+  local right = OpexV190MakeTile(plan.lead, dy, -dx);
+  foreach (t in [forward, second, left, right]) {
+    if (t != null && !(t in departure)) departure[t] <- true;
   }
-  local dx = AIMap.GetTileX(side.lead) - AIMap.GetTileX(side.station_exit);
-  local dy = AIMap.GetTileY(side.lead) - AIMap.GetTileY(side.station_exit);
-  if (dx == 0 && dy == 0) return false;
-  local front = OpexV190MakeTile(side.lead, dx, dy);
-  local after = OpexV190MakeTile(side.lead, 2 * dx, 2 * dy);
-  if (front == null || after == null || front in blocked || after in blocked) return false;
-  local beyond = OpexV190MakeTile(side.lead, 3 * dx, 3 * dy);
-  if (beyond == null || beyond in blocked) beyond = OpexV190MakeTile(after, -dy, dx);
-  if (beyond == null || beyond in blocked) beyond = OpexV190MakeTile(after, dy, -dx);
-  if (beyond == null || beyond in blocked || beyond == front || beyond == after) return false;
-  local usable = false;
+}
+
+/* Un essai precedent a pu greffer l'autre bout dans parallels. Le retirer
+ * avant la fusion : ses tuiles ne doivent pas entrer dans l'interdit voie 1. */
+function OpexV233LDetachOtherEnd(plan)
+{
+  if (!("parallels" in plan) || plan.parallels == null) return;
+  local kept = [];
+  foreach (p in plan.parallels) {
+    if (("v233OtherEnd" in p) && p.v233OtherEnd == 1) continue;
+    kept.append(p);
+  }
+  plan.parallels = kept;
+}
+
+/* Meme ancre, pas, longueur et direction. Seuls la sortie et le lead changent.
+ * Le pas reste positif : BuildRailStation exige l'ancre nord ou ouest. */
+function OpexV233LOtherParallel(p)
+{
+  if (p == null) return null;
+  local dx = AIMap.GetTileX(p.lead) - AIMap.GetTileX(p.station_exit);
+  local dy = AIMap.GetTileY(p.lead) - AIMap.GetTileY(p.station_exit);
+  if (dx * dx + dy * dy != 1) return null;
+  local low = p.anchor;
+  local high = p.anchor + (p.length - 1) * p.step;
+  local otherExit = p.station_exit == low ? high : low;
+  if (otherExit == p.station_exit) return null;
+  local otherLead = OpexV190MakeTile(otherExit, -dx, -dy);
+  if (otherLead == null || otherLead == p.lead || otherLead == p.station_exit || otherLead == otherExit) return null;
+  return { anchor = p.anchor, step = p.step, length = p.length, direction = p.direction,
+    station_exit = otherExit, lead = otherLead, v233OtherEnd = 1 };
+}
+
+/* Lenient = rail sur lead et front. Strict = rail aussi sur after, via beyond.
+ * Les trois BuildRail restent dans le meme AITestMode. beyond n'est jamais
+ * une tuile reservee : il ne sert qu'a prouver after. */
+function OpexV233LCorridor(p, ux, uy, primary, platforms)
+{
+  if (ux == 0 && uy == 0) return null;
+  local front = OpexV190MakeTile(p.lead, ux, uy);
+  local after = OpexV190MakeTile(p.lead, 2 * ux, 2 * uy);
+  if (front == null || after == null || front in primary || after in primary
+      || front in platforms || after in platforms) return null;
+  local beyond = OpexV190MakeTile(p.lead, 3 * ux, 3 * uy);
+  if (beyond == null || beyond in primary || beyond in platforms)
+    beyond = OpexV190MakeTile(after, -uy, ux);
+  if (beyond == null || beyond in primary || beyond in platforms)
+    beyond = OpexV190MakeTile(after, uy, -ux);
+  if (beyond == front || beyond == after) beyond = null;
+  local lenient = false;
+  local strict = false;
   {
     local testMode = AITestMode();
-    usable = AIRail.BuildRail(side.station_exit, side.lead, front)
-        && AIRail.BuildRail(side.lead, front, after)
-        && AIRail.BuildRail(front, after, beyond);
+    lenient = AIRail.BuildRail(p.station_exit, p.lead, front)
+        && AIRail.BuildRail(p.lead, front, after);
+    if (lenient && beyond != null && !(beyond in primary) && !(beyond in platforms))
+      strict = AIRail.BuildRail(front, after, beyond);
   }
-  return usable;
+  if (!lenient) return null;
+  return { front = front, after = after, beyond = beyond, strict = strict, ux = ux, uy = uy };
+}
+
+/* <- cree le slot ; = le remplace. Le second essai ne doit pas tuer l'IA. */
+function OpexV233LSetPending(plan, extra)
+{
+  if ("v233PendingOther" in plan) plan.v233PendingOther = extra;
+  else plan.v233PendingOther <- extra;
+}
+
+/* L'autre bout est un candidat de voie 2. Aucune de ses tuiles n'est ajoutee
+ * a l'interdit de la voie 1. La greffe dans parallels attend la voie 2. */
+function OpexV233LOfferOtherEnd(candidate, host, parallel, side, primary, platforms)
+{
+  local other = OpexV233LOtherParallel(parallel);
+  if (other == null) return 0;
+  OpexV233LSetPending(host, other);
+  local dx = AIMap.GetTileX(other.lead) - AIMap.GetTileX(other.station_exit);
+  local dy = AIMap.GetTileY(other.lead) - AIMap.GetTileY(other.station_exit);
+  local corridor = OpexV233LCorridor(other, dx, dy, primary, platforms);
+  if (corridor != null && corridor.strict) {
+    if (DECISION_LOG) OpexV233LLog("DOUBLE", "src=" + candidate.src + " dst=" + candidate.dst
+        + " phase=reserve reason=LAUNCH_OTHER side=" + side + " lead=" + other.lead
+        + " front=" + corridor.front + " after=" + corridor.after
+        + " ux=" + corridor.ux + " uy=" + corridor.uy);
+    return 2;
+  }
+  return 1;
+}
+
+function OpexV233LInstallOtherEnd(plan)
+{
+  if (!("v233PendingOther" in plan) || plan.v233PendingOther == null) return;
+  local extra = plan.v233PendingOther;
+  if (!("parallels" in plan)) {
+    plan.parallels <- [extra];
+    return;
+  }
+  if (plan.parallels == null) {
+    plan.parallels = [extra];
+    return;
+  }
+  local present = false;
+  foreach (p in plan.parallels) {
+    if (p.lead == extra.lead && p.station_exit == extra.station_exit) present = true;
+  }
+  if (!present) plan.parallels.append(extra);
 }
 
 /* Une seule paire en construction : aucun quai/lead secondaire ne doit etre
  * consomme par la voie primaire. Meme reservation pour A* direct, reprenable
- * et preplanification, y compris la sonde inverse V294f. */
+ * et preplanification, y compris la sonde inverse V294f.
+ * Le supplement de voie 1 est le premier axe lenient (deux BuildRail), comme
+ * avant TRACK4. Un axe strict ferme n'ajoute pas de lateral ni l'autre bout
+ * a cet interdit. En conflit avec le depart primaire, on lache after puis
+ * l'axe entier, et la voie 2 essaie une autre geometrie. */
 function OpexV233LReserveDouble(candidate, plansA, plansB, clearance)
 {
+  OpexV233LDetachOtherEnd(plansA[0]);
+  OpexV233LDetachOtherEnd(plansB[0]);
   local ignored = OpexV190MergeIgnoredTiles(clearance, plansA, plansB);
   /* Un lead libre ne suffit pas : la voie 1 peut fermer ses trois sorties.
    * Reserver deux pas droits seulement si leur pose native est possible.
    * Ne jamais interdire une interface primaire ni un quai de l'autre bout. */
-  local primary = {}, platforms = {}, seen = {};
+  local primary = {}, platforms = {}, seen = {}, departure = {};
   foreach (t in ignored) seen[t] <- true;
   foreach (p in [plansA[0], plansB[0]]) {
     if (!(p.lead in primary)) primary[p.lead] <- true;
+    if (!(p.station_exit in primary)) primary[p.station_exit] <- true;
+    if (!(p.lead in departure)) departure[p.lead] <- true;
+    OpexV233LMarkDeparture(p, departure);
     for (local i = 0; i < p.length; i++) {
       local tile = p.anchor + p.step * i;
-      local side = p.parallel.anchor + p.parallel.step * i;
+      local sideTile = p.parallel.anchor + p.parallel.step * i;
       if (!(tile in primary)) primary[tile] <- true;
-      if (!(side in platforms)) platforms[side] <- true;
+      if (!(sideTile in platforms)) platforms[sideTile] <- true;
     }
+  }
+  if (DECISION_LOG) {
+    local pa = plansA[0];
+    local pb = plansB[0];
+    OpexV233LLog("DOUBLE", "src=" + candidate.src + " dst=" + candidate.dst
+        + " phase=reserve reason=ENDPOINTS"
+        + " exit_a=" + pa.station_exit + " lead_a=" + pa.lead
+        + " dx_a=" + (AIMap.GetTileX(pa.lead) - AIMap.GetTileX(pa.station_exit))
+        + " dy_a=" + (AIMap.GetTileY(pa.lead) - AIMap.GetTileY(pa.station_exit))
+        + " exit_b=" + pb.station_exit + " lead_b=" + pb.lead
+        + " dx_b=" + (AIMap.GetTileX(pb.lead) - AIMap.GetTileX(pb.station_exit))
+        + " dy_b=" + (AIMap.GetTileY(pb.lead) - AIMap.GetTileY(pb.station_exit)));
   }
   /* Droit d'abord, puis les deux lateraux. Le retour vers le quai n'est pas
    * une sortie. NOPA a 5 iterations = file vide des le lead : sans ce couloir
    * la voie 1 ferme les trois voisins et l'A* secondaire n'a rien a ouvrir. */
-  foreach (p in [plansA[0].parallel, plansB[0].parallel]) {
+  local labels = ["A", "B"];
+  local hosts = [plansA[0], plansB[0]];
+  for (local s = 0; s < 2; s++) {
+    local host = hosts[s];
+    local p = host.parallel;
+    local side = labels[s];
     local dx = AIMap.GetTileX(p.lead) - AIMap.GetTileX(p.station_exit);
     local dy = AIMap.GetTileY(p.lead) - AIMap.GetTileY(p.station_exit);
-    local launched = false;
+    local chosen = null;
+    local strictOpen = false;
     foreach (axis in [[dx, dy], [-dy, dx], [dy, -dx]]) {
-      local ux = axis[0];
-      local uy = axis[1];
-      if (ux == 0 && uy == 0) continue;
-      local front = OpexV190MakeTile(p.lead, ux, uy);
-      local after = OpexV190MakeTile(p.lead, 2 * ux, 2 * uy);
-      if (front == null || after == null || front in primary || after in primary
-          || front in platforms || after in platforms) continue;
-      /* BuildRail(lead, front, after) pose le rail sur front, pas sur after.
-       * Le troisieme appel a after au milieu : sinon une tuile occupee
-       * (erreur 260, pas la voie 1) est reservee et le trace y meurt. */
-      local beyond = OpexV190MakeTile(p.lead, 3 * ux, 3 * uy);
-      if (beyond == null || beyond in primary || beyond in platforms)
-        beyond = OpexV190MakeTile(after, -uy, ux);
-      if (beyond == null || beyond in primary || beyond in platforms)
-        beyond = OpexV190MakeTile(after, uy, -ux);
-      if (beyond == null || beyond in primary || beyond in platforms
-          || beyond == front || beyond == after) continue;
-      local usable = false;
-      {
-        local testMode = AITestMode();
-        usable = AIRail.BuildRail(p.station_exit, p.lead, front)
-            && AIRail.BuildRail(p.lead, front, after)
-            && AIRail.BuildRail(front, after, beyond);
+      local corridor = OpexV233LCorridor(p, axis[0], axis[1], primary, platforms);
+      if (corridor == null) continue;
+      if (chosen == null) chosen = corridor;
+      else if (corridor.strict && !(corridor.front in departure) && DECISION_LOG) {
+        OpexV233LLog("DOUBLE", "src=" + candidate.src + " dst=" + candidate.dst
+            + " phase=reserve reason=LAUNCH_OPEN side=" + side + " reserved=0 lead=" + p.lead
+            + " front=" + corridor.front + " after=" + corridor.after
+            + " ux=" + corridor.ux + " uy=" + corridor.uy);
       }
-      if (!usable) continue;
-      foreach (t in [front, after]) if (!(t in seen)) { ignored.append(t); seen[t] <- true; }
-      if (DECISION_LOG) OpexV233LLog("DOUBLE", "src=" + candidate.src + " dst=" + candidate.dst
-          + " phase=reserve reason=LAUNCH lead=" + p.lead + " front=" + front + " after=" + after
-          + " ux=" + ux + " uy=" + uy);
-      launched = true;
-      break;
+      if (corridor.strict && !(corridor.front in departure)) strictOpen = true;
     }
-    if (!launched && DECISION_LOG) OpexV233LLog("DOUBLE", "src=" + candidate.src + " dst=" + candidate.dst
-        + " phase=reserve reason=LAUNCH_NONE lead=" + p.lead);
+    OpexV233LSetPending(host, null);
+    local reservedTiles = false;
+    if (chosen != null) {
+      local kept = OpexV233LKeepLaunch(chosen.front, chosen.after, departure);
+      if (kept == null) {
+        if (DECISION_LOG) OpexV233LLog("DOUBLE", "src=" + candidate.src + " dst=" + candidate.dst
+            + " phase=reserve reason=RELEASE side=" + side + " tile=" + chosen.front + " kind=front");
+        if (DECISION_LOG && chosen.after != null) OpexV233LLog("DOUBLE", "src=" + candidate.src + " dst=" + candidate.dst
+            + " phase=reserve reason=RELEASE side=" + side + " tile=" + chosen.after + " kind=after");
+      } else {
+        foreach (t in kept) if (!(t in seen)) { ignored.append(t); seen[t] <- true; }
+        if (chosen.after != null && kept.len() < 2) {
+          if (DECISION_LOG) OpexV233LLog("DOUBLE", "src=" + candidate.src + " dst=" + candidate.dst
+              + " phase=reserve reason=RELEASE side=" + side + " tile=" + chosen.after + " kind=after");
+        }
+        if (DECISION_LOG) OpexV233LLog("DOUBLE", "src=" + candidate.src + " dst=" + candidate.dst
+            + " phase=reserve reason=LAUNCH side=" + side + " strict=" + (chosen.strict ? 1 : 0)
+            + " lead=" + p.lead + " front=" + chosen.front + " after=" + chosen.after
+            + " ux=" + chosen.ux + " uy=" + chosen.uy);
+        reservedTiles = true;
+      }
+    }
+    if (!strictOpen) {
+      local tried = OpexV233LOfferOtherEnd(candidate, host, p, side, primary, platforms);
+      if (!reservedTiles && DECISION_LOG) OpexV233LLog("DOUBLE", "src=" + candidate.src + " dst=" + candidate.dst
+          + " phase=reserve reason=LAUNCH_NONE side=" + side + " lead=" + p.lead
+          + " tried_other=" + (tried > 0 ? 1 : 0));
+      else if (reservedTiles && tried < 2 && DECISION_LOG) OpexV233LLog("DOUBLE", "src=" + candidate.src + " dst=" + candidate.dst
+          + " phase=reserve reason=OTHER_TRY side=" + side + " lead=" + p.lead
+          + " tried_other=" + (tried > 0 ? 1 : 0));
+    }
   }
   if (DECISION_LOG) OpexV233LLog("DOUBLE", "src=" + candidate.src + " dst=" + candidate.dst
       + " phase=reserve reason=RESERVED tiles=" + ignored.len()
@@ -467,7 +589,7 @@ function OpexV233LDoublePlatformLog(candidate, platform, side, forbidden)
 {
   foreach (p in platform.parallels) {
     local reason = "OK", tile = -1;
-    if (!OpexSameStationEnd(p, platform)) reason = "WRONG_END";
+    if (!OpexV233LSameEnd(p, platform)) reason = "WRONG_END";
     else if (p.lead in forbidden) { reason = "PRIMARY_HITS_LEAD"; tile = p.lead; }
     else {
       for (local i = 0; i < p.length; i++) {
@@ -475,6 +597,7 @@ function OpexV233LDoublePlatformLog(candidate, platform, side, forbidden)
         if (t in forbidden) { reason = "PRIMARY_HITS_PLATFORM"; tile = t; break; }
       }
     }
+    if (reason == "OK" && ("v233OtherEnd" in p) && p.v233OtherEnd == 1) reason = "OTHER_END";
     OpexV233LLog("DOUBLE", "src=" + candidate.src + " dst=" + candidate.dst
         + " phase=platform side=" + side + " reason=" + reason + " tile=" + tile
         + " anchor=" + platform.anchor + " parallel=" + p.anchor + " lead=" + p.lead);
@@ -490,6 +613,9 @@ function OpexV233LPlanDoubleTrack(catalog, candidate, planA, planB, tiles, itera
   if (DECISION_LOG) OpexV233LLog("DOUBLE", "src=" + candidate.src + " dst=" + candidate.dst
       + " phase=budget reason=ROUTE_LENGTH length=" + routeLength + " remaining_primary=" + supplied
       + " budget=" + iterations + " local_cap=" + (iterations / 2));
+  /* Apres toutes les fusions d'interdit voie 1. L'autre bout n'y est pas. */
+  OpexV233LInstallOtherEnd(planA);
+  OpexV233LInstallOtherEnd(planB);
   if (DECISION_LOG) {
     local forbidden = {};
     foreach (t in tiles) if (!(t in forbidden)) forbidden[t] <- true;

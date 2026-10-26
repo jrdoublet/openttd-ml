@@ -72,11 +72,14 @@ class V233LongGoodContracts(unittest.TestCase):
 
     def test_track3_launch_reservation_never_masks_primary_interfaces(self):
         reserve = body("v233_long_good.nut", "OpexV233LReserveDouble")
+        corridor = body("v233_long_good.nut", "OpexV233LCorridor")
         for token in ('front in primary', 'after in primary', 'front in platforms', 'after in platforms',
-                      'local testMode = AITestMode()', 'if (!usable) continue;',
+                      'local testMode = AITestMode()', 'if (!lenient) return null;',
                       'AIRail.BuildRail(p.station_exit, p.lead, front)',
-                      'AIRail.BuildRail(p.lead, front, after)', 'reason=LAUNCH'):
-            self.assertIn(token, reserve)
+                      'AIRail.BuildRail(p.lead, front, after)'):
+            self.assertIn(token, corridor)
+        self.assertIn('reason=LAUNCH', reserve)
+        self.assertIn('OpexV233LKeepLaunch(', reserve)
         # All four orientations, including negative map deltas: both steps
         # must extend away from the platform, never wrap to another map row.
         for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
@@ -225,12 +228,16 @@ class V233LongGoodContracts(unittest.TestCase):
         self.assertIn("if (!(t in forbidden)) forbidden[t] <- true", planner)
         self.assertIn("if (!(tile in forbidden)) forbidden[tile] <- true", planner)
 
-    def test_track4_after_tile_must_be_the_rail_and_closed_launch_is_skipped(self):
-        reserve = body("v233_long_good.nut", "OpexV233LReserveDouble")
-        self.assertIn("AIRail.BuildRail(front, after, beyond)", reserve)
-        self.assertLess(reserve.index("AIRail.BuildRail(p.lead, front, after)"),
-                        reserve.index("AIRail.BuildRail(front, after, beyond)"))
-        self.assertIn("beyond == front || beyond == after", reserve)
+    def test_track4_after_tile_is_proved_without_moving_the_primary_plan(self):
+        corridor = body("v233_long_good.nut", "OpexV233LCorridor")
+        self.assertIn("AIRail.BuildRail(front, after, beyond)", corridor)
+        self.assertLess(corridor.index("AIRail.BuildRail(p.lead, front, after)"),
+                        corridor.index("AIRail.BuildRail(front, after, beyond)"))
+        self.assertLess(corridor.index("local testMode = AITestMode()"),
+                        corridor.index("AIRail.BuildRail(front, after, beyond)"))
+        self.assertLess(corridor.index("AIRail.BuildRail(front, after, beyond)"),
+                        corridor.index("if (!lenient) return null;"))
+        self.assertIn("beyond == front || beyond == after", corridor)
         # Rail on `after` needs a third tile one step further, still off the platform.
         for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
             lead = (20 + dx, 20 + dy)
@@ -238,15 +245,12 @@ class V233LongGoodContracts(unittest.TestCase):
             beyond = (lead[0] + 3 * dx, lead[1] + 3 * dy)
             self.assertEqual(abs(beyond[0] - after[0]) + abs(beyond[1] - after[1]), 1)
             self.assertEqual(len({(20, 20), lead, after, beyond}), 4)
-        launch = body("v233_long_good.nut", "OpexV233LParallelLaunchOpen")
-        self.assertIn("AIRail.BuildRail(front, after, beyond)", launch)
-        self.assertIn("return false", launch)
         plans = body("v233_long_good.nut", "OpexV233LPlatformPlans")
-        self.assertLess(plans.index("OpexV233LParallelLaunchOpen(p)"),
-                        plans.index("if (validB.len() > 0) { validA.append(p); break; }"))
-        self.assertIn('phase == "build"', plans)
-        self.assertIn("reason=LAUNCH_CLOSED", plans)
-        self.assertIn("if (validA.len() == 0 && holdA != null)", plans)
+        self.assertIn('if (validB.len() > 0) { validA.append(p); break; }', plans)
+        self.assertNotIn("LAUNCH_CLOSED", plans)
+        self.assertNotIn("holdA", plans)
+        self.assertNotIn("OpexV233LParallelLaunchOpen", plans)
+        self.assertNotIn("approach", plans)
 
     def test_track4_first_local_ok_is_adopted_and_larger_radii_stop(self):
         repair = body("v233_long_good.nut", "OpexV233LRepairParallel")
@@ -355,6 +359,138 @@ class V233LongGoodContracts(unittest.TestCase):
             self.assertEqual(eval(expr, {"__builtins__": {}}, {'tiles': tiles, 'i': 3}), expected)
         self.assertIn('OpexV233LParallelGeometry(v233Context, candidateTiles)',
                       body("builder_rail.nut", "OpexV190PlanDoubleTrack"))
+
+    def test_track5_primary_forbidden_set_matches_pre_track4_launch(self):
+        """Track 1 launch tiles stay the pre-TRACK4 lenient pair, minus a departure conflict.
+
+        Quay and lead tiles still come only from OpexV190MergeIgnoredTiles. Beyond,
+        a later strict lateral, and the other quay end are not added to that set.
+        """
+        reserve = body("v233_long_good.nut", "OpexV233LReserveDouble")
+        self.assertLess(reserve.index("OpexV233LDetachOtherEnd"),
+                        reserve.index("OpexV190MergeIgnoredTiles"))
+        self.assertLess(reserve.index("OpexV190MergeIgnoredTiles"),
+                        reserve.index("foreach (t in kept)"))
+        self.assertLess(reserve.index("foreach (axis in [[dx, dy], [-dy, dx], [dy, -dx]])"),
+                        reserve.index("OpexV233LOfferOtherEnd("))
+        self.assertLess(reserve.index("OpexV233LOfferOtherEnd("),
+                        reserve.index("reason=RESERVED"))
+        self.assertEqual(reserve.count("ignored.append"), 1)
+        self.assertNotIn("beyond", reserve)
+        self.assertNotIn("OpexV233LInstallOtherEnd", reserve)
+        self.assertNotIn("approach", reserve)
+        self.assertIn('local labels = ["A", "B"];', reserve)
+        self.assertIn("tried_other=", reserve)
+        self.assertIn("reason=OTHER_TRY", reserve)
+        self.assertIn("reason=RELEASE", reserve)
+        self.assertIn("reason=ENDPOINTS", reserve)
+        offer = body("v233_long_good.nut", "OpexV233LOfferOtherEnd")
+        self.assertNotIn("ignored", offer)
+        self.assertIn("reason=LAUNCH_OTHER", offer)
+        self.assertIn("return 2;", offer)
+        install = body("v233_long_good.nut", "OpexV233LPlanDoubleTrack")
+        self.assertLess(install.index("OpexV233LInstallOtherEnd(planA)"),
+                        install.index("OpexV190PlanDoubleTrack("))
+        self.assertLess(install.index("OpexV233LInstallOtherEnd(planB)"),
+                        install.index("OpexV190PlanDoubleTrack("))
+        keep = body("v233_long_good.nut", "OpexV233LKeepLaunch")
+        self.assertIn("if (front == null || front in departure) return null;", keep)
+        self.assertIn("if (after != null && !(after in departure)) kept.append(after);", keep)
+        other = body("v233_long_good.nut", "OpexV233LOtherParallel")
+        self.assertIn("local otherExit = p.station_exit == low ? high : low;", other)
+        self.assertIn("local otherLead = OpexV190MakeTile(otherExit, -dx, -dy);", other)
+        self.assertIn("dx * dx + dy * dy != 1", other)
+        self.assertIn("anchor = p.anchor, step = p.step, length = p.length, direction = p.direction", other)
+        self.assertIn("v233OtherEnd = 1", other)
+        same = body("v233_long_good.nut", "OpexV233LSameEnd")
+        self.assertIn('plan.v233OtherEnd == 1) return true;', same)
+        self.assertIn("return OpexSameStationEnd(plan, original);", same)
+        planner = body("builder_rail.nut", "OpexV190PlanDoubleTrack")
+        self.assertIn("(v233Context != null ? OpexV233LSameEnd(p, planA) : OpexSameStationEnd(p, planA))", planner)
+        self.assertIn("(v233Context != null ? OpexV233LSameEnd(p, planB) : OpexSameStationEnd(p, planB))", planner)
+        self.assertNotIn("if (OpexSameStationEnd(p, planA)", planner)
+        self.assertNotIn("approach", body("v233_long_good.nut", "OpexV233LSiteProbe"))
+        for fn in ("OpexCreateRailPathfinder", "OpexCreateSegmentedSearch"):
+            code = body("builder_rail.nut", fn)
+            self.assertIn('("approach" in plan) && plan.approach != null', code)
+            self.assertIn("else sources.push([plan.lead, plan.station_exit]);", code)
+        self.assertEqual(source("v233_long_good.nut").count("approach = approach"), 1)
+        self.assertIn("approach = approach", body("v233_long_good.nut", "OpexV233LRepairParallel"))
+        finder = source("pathfinder_v90/v129.nut")
+        self.assertIn("V233_LONG_GOOD > 0 && node.len() >= 3 && node[2] != null", finder)
+
+        def xy(tile):
+            return tile % 256, tile // 256
+
+        def make(tile, px, py):
+            x, y = xy(tile)
+            x += px
+            y += py
+            if not (0 <= x < 256 and 0 <= y < 256):
+                return None
+            return y * 256 + x
+
+        def departure(exit_tile, lead):
+            dx = xy(lead)[0] - xy(exit_tile)[0]
+            dy = xy(lead)[1] - xy(exit_tile)[1]
+            out = {exit_tile, lead}
+            if dx == 0 and dy == 0:
+                return out
+            for step in ((dx, dy), (2 * dx, 2 * dy), (-dy, dx), (dy, -dx)):
+                nxt = make(lead, step[0], step[1])
+                if nxt is not None:
+                    out.add(nxt)
+            return out
+
+        def keep_launch(front, after, blocked):
+            if front is None or front in blocked:
+                return None
+            kept = [front]
+            if after is not None and after not in blocked:
+                kept.append(after)
+            return kept
+
+        def other_lead(anchor, step, length, exit_tile, lead):
+            dx = xy(lead)[0] - xy(exit_tile)[0]
+            dy = xy(lead)[1] - xy(exit_tile)[1]
+            self.assertEqual(dx * dx + dy * dy, 1)
+            low = anchor
+            high = anchor + (length - 1) * step
+            other_exit = high if exit_tile == low else low
+            self.assertNotEqual(other_exit, exit_tile)
+            return other_exit, make(other_exit, -dx, -dy)
+
+        # Smoke 7, seed 100. Straight lenient front/after were reserved; beyond was not.
+        # 58979->20909 found track 1 in 813 iterations from these ends.
+        # 6172->21717 found it in 834. The log's later RAIL_ATTEMPT count includes track 2.
+        cases = (
+            (58723, 58722, 58467, 1, 2, 58467, 58466, 58465, 58464, 58463, 58469),
+            (22956, 23212, 22701, 256, 2, 22957, 23213, 23469, 23725, 23981, 22445),
+            (5915, 5659, 5914, 256, 3, 5914, 5658, 5402, 5146, 4890, 6682),
+            (21723, 21979, 21210, 256, 3, 21722, 21978, 21977, 21976, 21975, 20954),
+        )
+        for primary_exit, primary_lead, anchor, step, length, exit_tile, lead, front, after, beyond, flipped in cases:
+            blocked = departure(primary_exit, primary_lead)
+            pre_track4 = [front, after]
+            kept = keep_launch(front, after, blocked)
+            self.assertEqual(kept, pre_track4)
+            self.assertNotIn(beyond, kept)
+            other_exit, flipped_lead = other_lead(anchor, step, length, exit_tile, lead)
+            self.assertEqual(flipped_lead, flipped)
+            self.assertNotIn(flipped, kept)
+            self.assertNotIn(other_exit, kept)
+            self.assertTrue(set(pre_track4).symmetric_difference(kept) <= blocked)
+
+        # Parallel front sits on the primary's forward tile: drop that axis, do not keep after.
+        exit_tile, lead = 20 + 20 * 256, 19 + 20 * 256
+        blocked = departure(exit_tile, lead)
+        forward = 18 + 20 * 256
+        self.assertIn(forward, blocked)
+        self.assertIsNone(keep_launch(forward, 17 + 20 * 256, blocked))
+        # Only `after` collides: reserve front and release after.
+        released = keep_launch(18 + 21 * 256, forward, blocked)
+        self.assertEqual(released, [18 + 21 * 256])
+        self.assertTrue(set([18 + 21 * 256, forward]).symmetric_difference(released) <= blocked)
 
     def test_double_logs_distinguish_platform_search_native_and_loop_failures(self):
         platform = body("v233_long_good.nut", "OpexV233LDoublePlatformLog")

@@ -3100,13 +3100,13 @@ function OpexV190PlanDoubleTrack(catalog, planA, planB, tiles, iterationBudget, 
   local candsA = (("parallels" in planA) && planA.parallels != null && planA.parallels.len() > 0)
       ? planA.parallels : OpexV190FindParallelPlatformPlans(planA);
   foreach (p in candsA) {
-    if (OpexSameStationEnd(p, planA) && !OpexPlanHitsSet(p, forbidden)) dualA.append(p);
+    if ((v233Context != null ? OpexV233LSameEnd(p, planA) : OpexSameStationEnd(p, planA)) && !OpexPlanHitsSet(p, forbidden)) dualA.append(p);
   }
   local dualB = [];
   local candsB = (("parallels" in planB) && planB.parallels != null && planB.parallels.len() > 0)
       ? planB.parallels : OpexV190FindParallelPlatformPlans(planB);
   foreach (p in candsB) {
-    if (OpexSameStationEnd(p, planB) && !OpexPlanHitsSet(p, forbidden)) dualB.append(p);
+    if ((v233Context != null ? OpexV233LSameEnd(p, planB) : OpexSameStationEnd(p, planB)) && !OpexPlanHitsSet(p, forbidden)) dualB.append(p);
   }
   if (dualA.len() == 0 || dualB.len() == 0) {
     acc.skip = 2;

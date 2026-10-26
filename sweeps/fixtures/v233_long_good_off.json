@@ -116,6 +116,10 @@
         {
           "off": "  local sources = [];\n  local goals = [];\n  foreach (plan in plansA) sources.push([plan.lead, plan.station_exit]);\n  foreach (plan in plansB) goals.push([plan.lead, plan.station_exit]);\n  if (sources.len() == 0 || goals.len() == 0) return null;\n\n  /* timeSafe = min(50 000, budget). Sous A3 le budget vaut 5k-10k, donc se confond\n",
           "guarded": "  local sources = [];\n  local goals = [];\n  foreach (plan in plansA) {\n    if ((\"approach\" in plan) && plan.approach != null)\n      sources.push([plan.lead, plan.station_exit, plan.approach]);\n    else sources.push([plan.lead, plan.station_exit]);\n  }\n  foreach (plan in plansB) goals.push([plan.lead, plan.station_exit]);\n  if (sources.len() == 0 || goals.len() == 0) return null;\n\n  /* timeSafe = min(50 000, budget). Sous A3 le budget vaut 5k-10k, donc se confond\n"
+        },
+        {
+          "off": "  foreach (p in candsA) {\n    if (OpexSameStationEnd(p, planA) && !OpexPlanHitsSet(p, forbidden)) dualA.append(p);\n  }\n  local dualB = [];\n  local candsB = ((\"parallels\" in planB) && planB.parallels != null && planB.parallels.len() > 0)\n      ? planB.parallels : OpexV190FindParallelPlatformPlans(planB);\n  foreach (p in candsB) {\n    if (OpexSameStationEnd(p, planB) && !OpexPlanHitsSet(p, forbidden)) dualB.append(p);\n  }\n",
+          "guarded": "  foreach (p in candsA) {\n    if ((v233Context != null ? OpexV233LSameEnd(p, planA) : OpexSameStationEnd(p, planA)) && !OpexPlanHitsSet(p, forbidden)) dualA.append(p);\n  }\n  local dualB = [];\n  local candsB = ((\"parallels\" in planB) && planB.parallels != null && planB.parallels.len() > 0)\n      ? planB.parallels : OpexV190FindParallelPlatformPlans(planB);\n  foreach (p in candsB) {\n    if ((v233Context != null ? OpexV233LSameEnd(p, planB) : OpexSameStationEnd(p, planB)) && !OpexPlanHitsSet(p, forbidden)) dualB.append(p);\n  }\n"
         }
       ]
     },
