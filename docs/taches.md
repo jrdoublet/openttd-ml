@@ -42,6 +42,18 @@ Traces de progression/censure distinctes. Suite Python : **2 557 tests, OK**
 (9 ignorés, 2 échecs attendus) ; **nouveau code non validé au moteur**, aucun Docker
 ni banc lancé. [Détails et contrôles restants](v233_long_good_20261025.md#26-octobre--siteb3-reprise-autonome-et-aéroport-en-premier).
 
+**26/10 — V233L, TRACK2 après le smoke4 fourni (local, défaut 0) :** quatre
+`NOPLAN2`, **zéro itération de voie 2**, aucune recherche A* secondaire atteinte.
+Le filtre des quais parallèles échoue après la voie 1 : V233L n'activait pas leur
+réservation, conditionnée à V190=1 alors que le banc est à 0. Réservation ajoutée
+aux trois entrées de recherche, paire A/B cohérente figée avant A*, corrections
+du raccourci parallèle limitées à V233L et raisons `V233L_DOUBLE` sous
+`DECISION_LOG`. Construction double toujours obligatoire, aucun repli à deux
+trains sur voie unique. **2 567 tests Python OK** (9 ignorés, 2 échecs attendus),
+hashes OFF historiques conservés ; nouveau smoke **non exécuté** (Docker interdit,
+runtime hôte absent). Pose effective et gain économique restent non validés.
+[Diagnostic, corrections et limites](v233_long_good_20261025.md#26-octobre--track2-réservation-de-la-seconde-voie).
+
 ### Priorités ouvertes après les deux références monomodales du 25/10 (sans adoption)
 
 - [ ] **P1 — `rail_long_value_rank` : qualifier et classer le fret long constructible (opt-in, défaut 0 ; coût 4/5).** Ne plus relever globalement les bornes : vérifier site, A*, capital et ROI marginal pour une paire fret ≥160 tuiles, puis la comparer aux projets courts et AIR réellement finançables ; [analyse §4](analyse_rail_vs_air_seul_20261025.md#4-pistes-expérimentales-par-potentiel-de-gain-relatif-au-coût).

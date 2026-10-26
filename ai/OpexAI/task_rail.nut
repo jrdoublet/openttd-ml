@@ -732,7 +732,9 @@ function OpexAI::_startRailSearch(candidate, alternativeRatio, hardCap, posPacke
   local plan = OpexPrepareRailRoute(this._catalog, this._budget, candidate, alternativeRatio, hardCap);
   if (plan.plansA == null) return { pending = false, plan = plan };
   local clearanceTiles = V131_TOWN_CLEARANCE ? OpexV131BuildTownClearance(candidate, plan.plansA, plan.plansB) : null;
-  if (OpexV190Active() && candidate.kind == "freight") {
+  if (OpexV233LIs(candidate)) {
+    clearanceTiles = OpexV233LReserveDouble(candidate, plan.plansA, plan.plansB, clearanceTiles);
+  } else if (OpexV190Active() && candidate.kind == "freight") {
     clearanceTiles = OpexV190MergeIgnoredTiles(clearanceTiles, plan.plansA, plan.plansB);
   }
   local outwardSide = (V197_GUIDED_DOUBLE && OpexV190Active() && candidate.kind == "freight") ? 1 : null;
@@ -1471,7 +1473,9 @@ function OpexAI::_startRailStockSearch(candidate, isRepair = false, repairReason
   }
 
   local clearanceTiles = V131_TOWN_CLEARANCE ? OpexV131BuildTownClearance(candidate, plan.plansA, plan.plansB) : null;
-  if (OpexV190Active() && candidate.kind == "freight") {
+  if (OpexV233LIs(candidate)) {
+    clearanceTiles = OpexV233LReserveDouble(candidate, plan.plansA, plan.plansB, clearanceTiles);
+  } else if (OpexV190Active() && candidate.kind == "freight") {
     clearanceTiles = OpexV190MergeIgnoredTiles(clearanceTiles, plan.plansA, plan.plansB);
   }
   local outwardSide = (V197_GUIDED_DOUBLE && OpexV190Active() && candidate.kind == "freight") ? 1 : null;

@@ -7,6 +7,7 @@ import hashlib
 from pathlib import Path
 import re
 import unittest
+from types import SimpleNamespace
 
 from po01c_generate import generated
 from test_v261_forum_behaviours import body, source, uncomment
@@ -54,6 +55,108 @@ def reject_reasons(samples, now, *, input_live=True, export_exists=False, distan
 
 
 class V233LongGoodContracts(unittest.TestCase):
+    def test_track2_reservation_precedes_every_primary_search_including_reverse_probe(self):
+        entries = (("builder_rail.nut", "OpexPlanRailRoute", "OpexSearchPath("),
+                   ("task_rail.nut", "OpexAI::_startRailSearch", "OpexV294fReverseProbe("),
+                   ("task_rail.nut", "OpexAI::_startRailStockSearch", "OpexCreateRailPathfinder("))
+        for filename, name, search in entries:
+            with self.subTest(entry=name):
+                code = body(filename, name)
+                reservation = code.index('if (OpexV233LIs(candidate)) {\n    clearanceTiles = OpexV233LReserveDouble(')
+                self.assertLess(reservation, code.index(search))
+                self.assertIn('} else if (OpexV190Active() && candidate.kind == "freight")', code)
+        helper = body("v233_long_good.nut", "OpexV233LReserveDouble")
+        self.assertIn('OpexV190MergeIgnoredTiles(clearance, plansA, plansB)', helper)
+        self.assertIn('if (DECISION_LOG)', helper)
+        # Alternative B platforms in smoke4 overlap one another. Reserving their
+        # union while exempting all primary exits leaves holes for track 1.
+        sites = body("v233_long_good.nut", "OpexV233LPlatformPlans")
+        self.assertIn('if (ok && phase == "build") {', sites)
+        self.assertIn('validB = [selectedB];', sites)
+        self.assertIn('OpexV233LParallelSide(validA[0], q, validA[0].parallel, q.parallel) != 0', sites)
+
+    def test_track2_is_mandatory_independently_of_economic_train_count(self):
+        complete = body("builder_rail.nut", "OpexCompleteRailRouteAfterSearch")
+        self.assertIn('if (OpexV233LIs(candidate) || (!OpexV198Active()', complete)
+        self.assertIn('dual = OpexV233LPlanDoubleTrack(catalog, candidate,', complete)
+        self.assertIn('if (OpexV233LIs(candidate) && plan.doubleTrack != 1)', complete)
+        self.assertIn('plan.reason = "NOPLAN2";', complete)
+        execute = body("builder_rail.nut", "OpexV190ExecuteRailPlan")
+        self.assertLess(execute.index('OpexV233LIs(candidate) && !okD'),
+                        execute.index('local started = []'))
+        self.assertIn('line.doubleTrack != 1', body("v233_long_good.nut", "OpexV233LSelectGrowth"))
+
+    def test_parallel_side_uses_real_source_expressions_for_all_head_orientations(self):
+        code = uncomment(body("v233_long_good.nut", "OpexV233LParallelSide"))
+        assignments = re.findall(r'local (\w+) = ([^;]+);', code)
+        predicate = code.rsplit('return ', 1)[1].split(' ? ', 1)[0].replace('&&', ' and ')
+        api = SimpleNamespace(GetTileX=lambda t: t % 256, GetTileY=lambda t: t // 256)
+        # Independent geometry: the same physical side of a directed A->B
+        # route is opposite to the outward direction of station B.
+        for ax, ay in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+            for bx, by in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                for side in (-1, 1):
+                    for correct in (True, False):
+                        a, b = 100 * 256 + 100, 140 * 256 + 140
+                        offset_a = -ay * side + 256 * ax * side
+                        offset_b = by * side - 256 * bx * side
+                        scope = dict(AIMap=api,
+                            planA=SimpleNamespace(station_exit=a, lead=a + ax + ay * 256),
+                            planB=SimpleNamespace(station_exit=b, lead=b + bx + by * 256),
+                            pA=SimpleNamespace(station_exit=a + offset_a),
+                            pB=SimpleNamespace(station_exit=b + (offset_b if correct else -offset_b)))
+                        for key, expr in assignments:
+                            scope[key] = eval(expr, {"__builtins__": {}}, scope)
+                        actual = scope['side'] if eval(predicate, {"__builtins__": {}}, scope) else 0
+                        self.assertEqual(actual, side if correct else 0)
+
+    def test_parallel_test_result_and_structure_schema_match_consumers(self):
+        planner = body("builder_rail.nut", "OpexV190PlanDoubleTrack")
+        self.assertIn('v233Context != null ? testFails.failed : testFails', planner)
+        self.assertIn('firstTile = firstTile', body("builder_rail.nut", "OpexTestRailTrack"))
+        self.assertIn('OpexRailPathGeometryIssue(candidateTiles, pA, pB)', planner)
+        self.assertIn('} else {\n        if (!OpexRailEndConnected(', planner)
+        trace = body("builder_rail.nut", "OpexV190TraceParallelTrack")
+        self.assertIn('if (v233Context != null) {\n        structures2.append({ from = start2, to = end2, kind = structKind,', trace)
+        self.assertIn('structure.from == fromTile && structure.to == toTile',
+                      body("builder_rail.nut", "OpexPlannedStructureKind"))
+        execute = body("builder_rail.nut", "OpexV190ExecuteRailPlan")
+        self.assertIn('conn2 = (tFail == 0 && connExitA2 && connExitB2);', execute)
+
+    def test_parallel_turn_guard_matches_pathfinder_and_rejects_self_intersection(self):
+        code = body("v233_long_good.nut", "OpexV233LParallelGeometry")
+        self.assertIn('if (tiles[i] in seen)', code)
+        self.assertIn('"SELF_INTERSECTION"', code)
+        expr = re.search(r'&& (tiles\[i\] - tiles\[i - 1\] == tiles\[i - 3\] - tiles\[i - 2\])', code)[1]
+        for tiles, expected in (([1000, 1001, 1257, 1256], True),
+                                ([1000, 1001, 1257, 1258], False),
+                                ([1000, 1256, 1257, 1001], True),
+                                ([1000, 1256, 1257, 1513], False)):
+            self.assertEqual(eval(expr, {"__builtins__": {}}, {'tiles': tiles, 'i': 3}), expected)
+        self.assertIn('OpexV233LParallelGeometry(v233Context, candidateTiles)',
+                      body("builder_rail.nut", "OpexV190PlanDoubleTrack"))
+
+    def test_double_logs_distinguish_platform_search_native_and_loop_failures(self):
+        platform = body("v233_long_good.nut", "OpexV233LDoublePlatformLog")
+        for reason in ('WRONG_END', 'PRIMARY_HITS_LEAD', 'PRIMARY_HITS_PLATFORM'):
+            self.assertIn(reason, platform)
+        wrapper = body("v233_long_good.nut", "OpexV233LPlanDoubleTrack")
+        self.assertIn('if (DECISION_LOG)', wrapper)
+        for token in ('phase=plan reason=', 'dual.reason', 'dual.step', 'dual.iterations', 'budget='):
+            self.assertIn(token, wrapper)
+        trace = body("builder_rail.nut", "OpexV190TraceParallelTrack")
+        for reason in ('NO_BRIDGE_TYPE', 'BRIDGE_NATIVE', 'TUNNEL_NATIVE'):
+            self.assertIn(reason, trace)
+        planner = body("builder_rail.nut", "OpexV190PlanDoubleTrack")
+        for reason in ('HEAD_ALIGNMENT', 'NATIVE_TRACK', 'SWITCH_AB', 'SWITCH_A', 'SWITCH_B', 'PRIMARY_COLLISION'):
+            self.assertIn(reason, planner)
+        self.assertIn('phase=search reason=BEGIN budget=', planner)
+        self.assertIn('ticks_left=', planner)
+        self.assertIn('candidate != null && DECISION_LOG', body("v233_long_good.nut", "OpexV233LDoubleTraceLog"))
+        execute = body("builder_rail.nut", "OpexV190ExecuteRailPlan")
+        self.assertIn('phase=build reason=" + result.doubleReason', execute)
+        self.assertIn('phase=build reason=OK ok=1 trains=', execute)
+
     def test_setting_bounds_defaults_and_single_read(self):
         block = re.search(r'AddSetting\(\{\s*name = "v233_long_good",.*?\}\);', source("info.nut"), re.S)[0]
         self.assertIn("min_value = 0, max_value = 1", block)

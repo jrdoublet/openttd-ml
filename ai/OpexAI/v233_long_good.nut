@@ -316,9 +316,118 @@ function OpexV233LPlatformPlans(catalog, candidate, phase = "build")
     if (!ok) OpexV233LLog(pending ? "SITE_WAIT" : "REJECT", "src=" + candidate.src + " dst=" + candidate.dst
         + " reason=" + reason + " phase=" + phase + " site_a=" + scanA.reason + " site_b=" + scanB.reason);
   }
+  /* Les geometries B alternatives peuvent se recouvrir (le quai primaire
+   * de l'une est le secondaire de l'autre). Reserver une paire coherente,
+   * avant A*, plutot que soustraire toutes les sorties de l'union reservee. */
+  if (ok && phase == "build") {
+    local selectedB = validB[0];
+    foreach (q in validB) {
+      if (OpexV233LParallelSide(validA[0], q, validA[0].parallel, q.parallel) != 0) {
+        selectedB = q;
+        break;
+      }
+    }
+    validB = [selectedB];
+  }
   return { plansA = ok ? validA : null, plansB = ok ? validB : null, length = length, slopeRelaxed = 0,
     reason = reason, pending = pending,
     statsA = scanA.stats, statsB = scanB.stats };
+}
+
+/* Une seule paire en construction : aucun quai/lead secondaire ne doit etre
+ * consomme par la voie primaire. Meme reservation pour A* direct, reprenable
+ * et preplanification, y compris la sonde inverse V294f. */
+function OpexV233LReserveDouble(candidate, plansA, plansB, clearance)
+{
+  local ignored = OpexV190MergeIgnoredTiles(clearance, plansA, plansB);
+  if (DECISION_LOG) OpexV233LLog("DOUBLE", "src=" + candidate.src + " dst=" + candidate.dst
+      + " phase=reserve reason=RESERVED tiles=" + ignored.len()
+      + " a=" + plansA[0].anchor + " a2=" + plansA[0].parallel.anchor
+      + " lead_a2=" + plansA[0].parallel.lead
+      + " b=" + plansB[0].anchor + " b2=" + plansB[0].parallel.anchor
+      + " lead_b2=" + plansB[0].parallel.lead);
+  return ignored;
+}
+
+/* Diagnostic exact du filtre V190, avant toute recherche de voie 2. */
+function OpexV233LDoublePlatformLog(candidate, platform, side, forbidden)
+{
+  foreach (p in platform.parallels) {
+    local reason = "OK", tile = -1;
+    if (!OpexSameStationEnd(p, platform)) reason = "WRONG_END";
+    else if (p.lead in forbidden) { reason = "PRIMARY_HITS_LEAD"; tile = p.lead; }
+    else {
+      for (local i = 0; i < p.length; i++) {
+        local t = p.anchor + p.step * i;
+        if (t in forbidden) { reason = "PRIMARY_HITS_PLATFORM"; tile = t; break; }
+      }
+    }
+    OpexV233LLog("DOUBLE", "src=" + candidate.src + " dst=" + candidate.dst
+        + " phase=platform side=" + side + " reason=" + reason + " tile=" + tile
+        + " anchor=" + platform.anchor + " parallel=" + p.anchor + " lead=" + p.lead);
+  }
+}
+
+function OpexV233LPlanDoubleTrack(catalog, candidate, planA, planB, tiles, iterations, deadline, structures)
+{
+  if (DECISION_LOG) {
+    local forbidden = {};
+    foreach (t in tiles) forbidden[t] <- true;
+    foreach (p in [planA, planB])
+      for (local i = 0; i < p.length; i++) forbidden[p.anchor + p.step * i] <- true;
+    OpexV233LDoublePlatformLog(candidate, planA, "A", forbidden);
+    OpexV233LDoublePlatformLog(candidate, planB, "B", forbidden);
+  }
+  local dual = OpexV190PlanDoubleTrack(catalog, planA, planB, tiles, iterations, deadline, structures, candidate);
+  if (DECISION_LOG) OpexV233LLog("DOUBLE", "src=" + candidate.src + " dst=" + candidate.dst
+      + " phase=plan reason=" + dual.reason + " step=" + dual.step + " ok=" + (dual.ok ? 1 : 0)
+      + " iters=" + dual.iterations + " budget=" + iterations + " skip=" + dual.skip);
+  return dual;
+}
+
+/* Vecteurs signes : une difference de TileIndex n'est PAS un TileIndex.
+ * En B le trace arrive, alors que lead - exit pointe vers l'exterieur. */
+function OpexV233LParallelSide(planA, planB, pA, pB)
+{
+  local dxA = AIMap.GetTileX(planA.lead) - AIMap.GetTileX(planA.station_exit);
+  local dyA = AIMap.GetTileY(planA.lead) - AIMap.GetTileY(planA.station_exit);
+  local oxA = AIMap.GetTileX(pA.station_exit) - AIMap.GetTileX(planA.station_exit);
+  local oyA = AIMap.GetTileY(pA.station_exit) - AIMap.GetTileY(planA.station_exit);
+  local side = dxA * oyA - dyA * oxA;
+  if (side != 1 && side != -1) return 0;
+  local dxB = AIMap.GetTileX(planB.lead) - AIMap.GetTileX(planB.station_exit);
+  local dyB = AIMap.GetTileY(planB.lead) - AIMap.GetTileY(planB.station_exit);
+  local oxB = AIMap.GetTileX(pB.station_exit) - AIMap.GetTileX(planB.station_exit);
+  local oyB = AIMap.GetTileY(pB.station_exit) - AIMap.GetTileY(planB.station_exit);
+  return oxB == side * dyB && oyB == -side * dxB ? side : 0;
+}
+
+function OpexV233LDoubleTraceLog(candidate, reason, tile = -1, error = -1)
+{
+  if (candidate != null && DECISION_LOG) OpexV233LLog("DOUBLE", "src=" + candidate.src + " dst=" + candidate.dst
+      + " phase=parallel reason=" + reason + " tile=" + tile + " error=" + error);
+}
+
+/* Meme contrainte de virage que _Neighbours du pathfinder, appliquee au
+ * raccourci parallele qui ne passe pas dans A*. Les sauts restent natifs. */
+function OpexV233LParallelGeometry(candidate, tiles)
+{
+  local seen = {};
+  for (local i = 0; i < tiles.len(); i++) {
+    if (tiles[i] in seen) {
+      OpexV233LDoubleTraceLog(candidate, "SELF_INTERSECTION", tiles[i]);
+      return false;
+    }
+    seen[tiles[i]] <- true;
+    if (i >= 3 && AIMap.DistanceManhattan(tiles[i], tiles[i - 1]) == 1
+        && AIMap.DistanceManhattan(tiles[i - 1], tiles[i - 2]) == 1
+        && AIMap.DistanceManhattan(tiles[i - 2], tiles[i - 3]) == 1
+        && tiles[i] - tiles[i - 1] == tiles[i - 3] - tiles[i - 2]) {
+      OpexV233LDoubleTraceLog(candidate, "FORBID_90", tiles[i - 1]);
+      return false;
+    }
+  }
+  return true;
 }
 
 function OpexV233LPreflight(catalog, candidate)
