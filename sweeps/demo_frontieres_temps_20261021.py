@@ -8,6 +8,7 @@ des SCENARIOS et ne sont pas attribuees aux vehicules reels des 80 parties.
 
 import argparse
 import json
+import math
 from pathlib import Path
 
 
@@ -159,7 +160,15 @@ def optional_raw_duel_counts(folder, threshold):
     air = [r for r in rows if r["mode"] == "air"]
 
     def air_manhattan(r):
-        src, dst = int(r["src_tile"]), int(r["dst_tile"])
+        # Ces archives historiques ont une carte 256x256. Un sentinel negatif,
+        # un index hors carte ou un nombre fractionnaire ne designe aucune
+        # ville : int() le transformerait silencieusement en fausse distance.
+        tiles = (r["src_tile"], r["dst_tile"])
+        if any(not isinstance(tile, (int, float)) or isinstance(tile, bool)
+               or not 0 <= tile < 256 * 256 or not math.isfinite(tile)
+               or int(tile) != tile for tile in tiles):
+            raise ValueError("AIR centre-Manhattan: identifiant de tuile invalide (carte 256x256)")
+        src, dst = (int(tile) for tile in tiles)
         return abs(src % 256 - dst % 256) + abs(src // 256 - dst // 256)
 
     if not air or any(r["src_tile"] is None or r["dst_tile"] is None for r in air):

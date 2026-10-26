@@ -7,6 +7,7 @@ import math
 import sys
 import unittest
 from unittest.mock import patch
+from pathlib import Path
 
 from demo_frontieres_temps_20261021 import (
     EVIDENCE,
@@ -17,6 +18,7 @@ from demo_frontieres_temps_20261021 import (
     illustrative_pass_stop_sensitivity,
     main,
     maneuver_c100,
+    optional_raw_duel_counts,
     passenger_crossover_with_stops,
 )
 
@@ -74,6 +76,29 @@ class PassengerPhysicalCrossoverTest(unittest.TestCase):
 
 
 class CliCompatibilityTest(unittest.TestCase):
+    def test_optional_raw_distance_refuses_invalid_tile_ids(self):
+        # Un sentinelle -1 se transformerait en colonne 255 et ligne -1,
+        # et int(200.5) inventerait une position sur la carte.
+        for bad in (-1.0, 65536.0, 200.5, float("nan"), float("inf"), 10 ** 500):
+            with self.subTest(tile=bad):
+                air = {"mode": "air", "src_tile": bad, "dst_tile": 200.0}
+                with patch("analyse_roi_predictors_20261021.parse",
+                           return_value=([air], {"games": 1})):
+                    with self.assertRaisesRegex(ValueError, "identifiant de tuile invalide"):
+                        optional_raw_duel_counts(Path("historical_duel"), 64)
+
+    def test_optional_raw_distance_keeps_valid_map_edges(self):
+        rows = [
+            {"mode": "air", "src_tile": 0.0, "dst_tile": 200.0},
+            {"mode": "air", "src_tile": 0.0, "dst_tile": 65535.0},
+        ]
+        with patch("analyse_roi_predictors_20261021.parse",
+                   return_value=(rows, {"games": 1})):
+            actual = optional_raw_duel_counts(Path("historical_duel"), 64)
+        self.assertEqual(actual["mature_air_passengers"], 2)
+        self.assertEqual(actual["air_center_manhattan_eq200"], 1)
+        self.assertEqual(actual["air_center_manhattan_gt200"], 1)
+
     def test_demo_retains_existing_outputs_and_adds_separate_sensitivity(self):
         data = demo(EVIDENCE)
         self.assertIn("observed", data)
