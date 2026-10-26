@@ -85,11 +85,12 @@ class TestParameterRetirement(unittest.TestCase):
 
     def test_exact_size_after_retirement(self):
         self.assertEqual(len(RETIRED), 43)
-        # +1 v233_long_good et +1 v233_site_funnel, opt-in a 0 (25/10, 26/10).
-        self.assertEqual(len(self.config), 61)
+        # +1 v233_long_good, +1 v233_site_funnel et +1 v233_funnel_center_test.
+        self.assertEqual(len(self.config), 62)
         self.assertIn("n75_multi_cargo", self.config)
         self.assertIn("v233_site_funnel", self.config)
-        self.assertEqual(len(declared(historical_info(self.info))), 60)
+        self.assertIn("v233_funnel_center_test", self.config)
+        self.assertEqual(len(declared(historical_info(self.info))), 61)
 
     def test_retired_settings_have_no_declarations_or_direct_reads(self):
         for name in sorted(RETIRED):

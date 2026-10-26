@@ -844,6 +844,31 @@ function OpexV233LFunnelSearch(candidate, length, coverage)
   local lastRing = 0;
   local cargo = candidate.cargo;
   local source = candidate.src;
+  if (V233_SITE_FUNNEL > 0 && V233_FUNNEL_CENTER_TEST > 0) {
+    local cached0 = OpexV233LFunnelEnsure(town, 0, length, cargo, coverage);
+    if (cached0 != null && cached0.done && cached0.anchors.len() == 0) {
+      return { plans = plans, stats = stats, reason = "exhausted", ring = 0,
+        ops = OpexOpsMeasureEnd(mark), length = length };
+    }
+    if (cached0 != null && cached0.cursor == 0 && cached0.anchors.len() == 0 && !cached0.done) {
+      /* Pre-test au centre de la ville : AITile.GetCargoAcceptance(AITown.GetLocation(town), cargo, 1, 1, coverage). */
+      local centerAcc = AITile.GetCargoAcceptance(center, cargo, 1, 1, coverage);
+      if (centerAcc < 8) {
+        cached0.done = true;
+        cached0.limited = false;
+        cached0.date = AIDate.GetCurrentDate();
+        local cached1 = OpexV233LFunnelEnsure(town, 1, length, cargo, coverage);
+        if (cached1 != null) {
+          cached1.done = true;
+          cached1.limited = false;
+          cached1.date = cached0.date;
+        }
+        if (DECISION_LOG) OpexV233LLog("SITE_FUNNEL", "town=" + town + " reason=CENTER_REJECT center_acc=" + centerAcc);
+        return { plans = plans, stats = stats, reason = "exhausted", ring = 0,
+          ops = OpexOpsMeasureEnd(mark), length = length };
+      }
+    }
+  }
   for (local axis = 0; axis < 2 && plans.len() < 4; axis++) {
     local entry = OpexV233LFunnelEnsure(town, axis, length, cargo, coverage);
     if (entry == null) {

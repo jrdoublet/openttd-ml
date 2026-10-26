@@ -152,6 +152,14 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "v233_funnel_center_test",
+      description = "V233L funnel center pre-test: 0 = off, 1 = skip town if center acceptance < 8 (default 1, active if v233_site_funnel=1)",
+      min_value = 0, max_value = 1,
+      easy_value = 1, medium_value = 1, hard_value = 1, custom_value = 1,
+      step_size = 1, flags = 0
+    });
+
+    AddSetting({
       name = "v284_rail_growth",
       description = "V284: 0 = off; N = grow saturated existing freight trains after N years with 1M cash, preserve speed, then passing loop and second train at platform limit (default 3 since 20/10, user decision after 40x10 +136 k)",
       min_value = 0, max_value = 10,

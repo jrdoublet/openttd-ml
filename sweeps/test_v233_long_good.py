@@ -61,7 +61,7 @@ class V233LongGoodContracts(unittest.TestCase):
             self.assertRegex(block, level + r"_value\s*=\s*0\b")
         self.assertEqual(source("settings.nut").count('GetSetting("v233_long_good")'), 1)
         self.assertIn("V233_LONG_GOOD <- 0;", source("globals_pre.nut"))
-        self.assertEqual(source("info.nut").count("AddSetting("), 61)
+        self.assertEqual(source("info.nut").count("AddSetting("), 62)
 
     def test_off_reviewed_edits_preserve_all_original_hashes(self):
         for name, entry in FIXTURE["files"].items():
@@ -713,3 +713,22 @@ class V233LongGoodContracts(unittest.TestCase):
         code = uncomment(source("v233_long_good.nut"))
         self.assertEqual(code.count(".Valuate("), 2)
         self.assertNotIn("KeepTop", body("v233_long_good.nut", "OpexV233LFunnelTiles"))
+
+    def test_funnel_center_test_setting_and_early_rejection(self):
+        block = re.search(r'AddSetting\(\{\s*name = "v233_funnel_center_test",.*?\}\);', source("info.nut"), re.S)[0]
+        self.assertIn("min_value = 0, max_value = 1", block)
+        for level in ("easy", "medium", "hard", "custom"):
+            self.assertRegex(block, level + r"_value\s*=\s*1\b")
+        self.assertEqual(source("settings.nut").count('GetSetting("v233_funnel_center_test")'), 1)
+        self.assertIn("V233_FUNNEL_CENTER_TEST <- 1;", source("globals_pre.nut"))
+
+        search = body("v233_long_good.nut", "OpexV233LFunnelSearch")
+        self.assertIn("V233_SITE_FUNNEL > 0 && V233_FUNNEL_CENTER_TEST > 0", search)
+        self.assertIn("AITile.GetCargoAcceptance(center, cargo, 1, 1, coverage)", search)
+        self.assertIn("centerAcc < 8", search)
+        self.assertIn('OpexV233LLog("SITE_FUNNEL", "town=" + town + " reason=CENTER_REJECT center_acc=" + centerAcc)', search)
+        self.assertIn("cached0.done = true;", search)
+        self.assertIn("cached0.limited = false;", search)
+        self.assertIn("cached1.done = true;", search)
+        self.assertIn("cached1.limited = false;", search)
+        self.assertLess(search.index("centerAcc < 8"), search.index("OpexV233LFunnelAdvance"))
