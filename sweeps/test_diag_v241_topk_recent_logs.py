@@ -67,6 +67,29 @@ class V241TopKContracts(unittest.TestCase):
         self.assertEqual(row["sel_ops_by_cap"]["not_cap"]["observed_calls"], 3)
         self.assertEqual(row["sel_ops_by_cap"]["not_cap"]["min"], 0)
 
+    def test_exact_fit_is_not_an_observed_candidate_surplus(self):
+        row = self.single(
+            vivier(selected="64", considered="64", not_selected="0") +
+            vivier(selected="64", considered="90", not_selected="26")
+        )
+        self.assertEqual(row["cap_reached_selected_ge_64"], 2)
+        self.assertEqual(row["cap_reached_exact_fit_no_unselected"], 1)
+        self.assertEqual(row["cap_reached_with_unselected"], 1)
+        self.assertEqual(row["cap_reached_insufficient_or_inconsistent"], 0)
+
+    def test_missing_or_inconsistent_surplus_cannot_be_claimed(self):
+        row = self.single(
+            vivier(selected="64", considered=None, not_selected=None) +
+            vivier(selected="64", considered="64", not_selected="1") +
+            vivier(selected="65", considered="100", not_selected="35") +
+            vivier(selected="63", considered="100", not_selected="37")
+        )
+        self.assertEqual(row["cap_reached_selected_ge_64"], 3)
+        self.assertEqual(row["cap_reached_exact_fit_no_unselected"], 0)
+        self.assertEqual(row["cap_reached_with_unselected"], 0)
+        self.assertEqual(row["cap_reached_insufficient_or_inconsistent"], 3)
+        self.assertEqual(row["not_cap_selected_lt_64"], 1)
+
     def test_missing_is_not_zero_and_cap_fraction_denominator_excludes_missing(self):
         row = self.single(
             vivier(selected=None, sel_ops=None, not_selected=None, considered="0") +

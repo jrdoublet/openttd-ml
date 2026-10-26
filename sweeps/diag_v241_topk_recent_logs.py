@@ -159,6 +159,18 @@ def summarize(events):
         else:
             category = "not_cap"
         counts[category] += 1
+        if category == "cap_reached":
+            considered = event["considered"]
+            not_selected = event["not_selected"]
+            if (selected == TOP_K and considered == selected
+                    and not_selected == 0):
+                counts["cap_exact_fit"] += 1
+            elif (selected == TOP_K and considered is not None
+                    and not_selected is not None and considered > selected
+                    and not_selected == considered - selected):
+                counts["cap_with_unselected"] += 1
+            else:
+                counts["cap_unresolved"] += 1
         if selected is not None:
             counts["selected_positive" if selected > 0 else "selected_zero"] += 1
         if event["sel_ops"] is not None:
@@ -167,6 +179,9 @@ def summarize(events):
     return {
         "calls": counts["calls"],
         "cap_reached_selected_ge_64": counts["cap_reached"],
+        "cap_reached_exact_fit_no_unselected": counts["cap_exact_fit"],
+        "cap_reached_with_unselected": counts["cap_with_unselected"],
+        "cap_reached_insufficient_or_inconsistent": counts["cap_unresolved"],
         "not_cap_selected_lt_64": counts["not_cap"],
         "unknown_cap_selected_missing_or_invalid": counts["unknown_cap"],
         "cap_fraction_known_selected": (
