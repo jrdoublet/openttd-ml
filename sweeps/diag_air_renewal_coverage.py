@@ -75,12 +75,20 @@ def directory_report(folder: Path):
         raise ValueError(f"dossier introuvable : {folder}")
     games = {}
     raw_inputs = {}
+    canonical_names = {}
     for file in sorted(folder.iterdir()):
         if not (file.name.endswith(".log") or file.name.endswith(".log.gz")):
             continue
         stem = file.name[:-3] if file.name.endswith(".gz") else file.name
-        if SEED_RE.search(stem) is None:
+        match = SEED_RE.search(stem)
+        if match is None:
             continue
+        # Numeric seed/repeat aliases identify the same game, even if the
+        # filename spells them differently. Keep separate experimental arms.
+        identity = (stem[:match.start()], int(match[1]), int(match[2]))
+        previous_name = canonical_names.setdefault(identity, stem)
+        if previous_name != stem:
+            raise ValueError(f"identite de partie V252 ambigue : {previous_name} et {stem}")
         with open_text(str(file)) as source:
             # Compare exact relevant content of duplicate log copies, not only counters.
             relevant = tuple(line for line in source if LINE_RE.search(line) and any(

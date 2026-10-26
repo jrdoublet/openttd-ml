@@ -13,6 +13,32 @@ def e(date, tag, data):
 
 
 class RenewalCoverageTests(unittest.TestCase):
+    def test_numeric_seed_aliases_are_rejected_even_when_identical(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            content = e("1974-9-8", "V252_REPLACE", "line=3 old_veh=40 new_veh=416 price=153808")
+            (root / "reference_seed1_r0.log").write_text(content, encoding="utf-8")
+            (root / "reference_seed01_r0.log").write_text(content, encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "identite de partie V252 ambigue"):
+                directory_report(root)
+
+    def test_numeric_repeat_aliases_are_rejected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "reference_seed42_r0.log").write_text("", encoding="utf-8")
+            (root / "reference_seed42_r00.log").write_text("", encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "identite de partie V252 ambigue"):
+                directory_report(root)
+
+    def test_distinct_arms_seeds_repeats_are_not_merged(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            names = ("reference_seed42_r0.log", "variant_seed42_r0.log",
+                     "reference_seed7_r0.log", "reference_seed42_r1.log")
+            for name in names:
+                (root / name).write_text("", encoding="utf-8")
+            self.assertEqual(directory_report(root)["games"], len(names))
+
     def test_follow_up_strictly_after_replacement_and_mature(self):
         rows = [
             e("1974-9-8", "V252_REPLACE", "line=3 old_veh=40 new_veh=416 price=153808 profit=37890"),
