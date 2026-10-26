@@ -101,6 +101,29 @@ intégral, aucun second train sur voie unique. Suite Python :
 **non validée** (Docker interdit).
 [Détails](v233_long_good_20261025.md#26-octobre--track5-la-voie-1-retrouve-ses-extrémités).
 
+**26/10 — V233L, TRACK6 après le smoke9 fourni (local, défaut 0) :**
+le smoke9 (graine 100, cinq ans) a zéro erreur moteur. `37055→55398`
+valide le plan de voie 2 (964 itérations) puis rate la pose du quai B
+(`STN2FAIL` / `STN_B2`) : le recheck avait accepté un
+`BuildRailStation` de deux quais, la pose les construisait séparément
+après la voie et le premier train. La paire adjacente est maintenant
+posée par cette même commande avant la voie. L'erreur native est
+journalisée (`phase=build step=stn_b2 reason=FAIL`). Le message V190
+`fallback_single trains=1` reste, puis le rollback vend ce train
+(`trains=0 rollback=1`). Pas de second train hors boucle double
+réussie. La croissance exige `doubleTrack == 1` : une ligne annulée
+n'est pas redoublée plus tard. `58979→20909` greffe bien l'autre bout
+(`lead=58469`) ; la sortie ouest, `NOPA` à 5 itérations au rayon 4,
+est retirée avant l'A* complet au lieu de partir `a=2` pour 14 656
+itérations. `6172→21717` a déjà les couloirs du smoke7 (`5402/5146`,
+`21977/21976`) et les mêmes extrémités (5915/21723). L'abandon à
+5 000 suit le blocage de novembre 1973–janvier 1974 et un quai de
+longueur 2 (`OpexRailPlatformLengthForWagons`), pas un couloir retiré.
+813 et 834 ne sont pas remesurés ; 21210 reste hors de l'interdit de
+la voie 1. Suite Python : **2 581 tests, OK** (9 ignorés, 2 échecs
+attendus). Pose moteur **non validée** (Docker interdit).
+[Détails](v233_long_good_20261025.md#26-octobre--track6-pose-du-quai-double-et-sortie-enfermée).
+
 ### Priorités ouvertes après les deux références monomodales du 25/10 (sans adoption)
 
 - [ ] **P1 — `rail_long_value_rank` : qualifier et classer le fret long constructible (opt-in, défaut 0 ; coût 4/5).** Ne plus relever globalement les bornes : vérifier site, A*, capital et ROI marginal pour une paire fret ≥160 tuiles, puis la comparer aux projets courts et AIR réellement finançables ; [analyse §4](analyse_rail_vs_air_seul_20261025.md#4-pistes-expérimentales-par-potentiel-de-gain-relatif-au-coût).

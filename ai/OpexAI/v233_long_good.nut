@@ -606,6 +606,7 @@ function OpexV233LDoublePlatformLog(candidate, platform, side, forbidden)
 
 function OpexV233LPlanDoubleTrack(catalog, candidate, planA, planB, tiles, iterations, deadline, structures)
 {
+  if ("v233Enclosed" in candidate) candidate.v233Enclosed = null;
   local routeLength = 0;
   for (local i = 1; i < tiles.len(); i++) routeLength += AIMap.DistanceManhattan(tiles[i - 1], tiles[i]);
   local supplied = iterations;
@@ -1005,9 +1006,126 @@ function OpexV233LFence(tiles, left, right, margin, ignored)
  * ne repartent pas, et l'A* complet ne demarre que si aucune greffe ne tient.
  * Six reparations, moitie du budget total au maximum ; l'autre moitie reste
  * disponible pour le repli complet. */
+/* L'autre bout partage l'ancre : ce n'est pas une paire laterale.
+ * Distance laterale exactement 1, meme pas, longueur et direction.
+ * La tuile retournee est le coin nord-ouest, celui du recheck. */
+function OpexV233LStationPair(primary, parallel)
+{
+  if (primary == null || parallel == null) return -1;
+  if (("v233OtherEnd" in parallel) && parallel.v233OtherEnd == 1) return -1;
+  if (primary.step != parallel.step || primary.length != parallel.length
+      || primary.direction != parallel.direction) return -1;
+  local sideways = primary.step == 1 ? AIMap.GetMapSizeX() : 1;
+  if (abs(primary.anchor - parallel.anchor) != sideways) return -1;
+  return primary.anchor < parallel.anchor ? primary.anchor : parallel.anchor;
+}
+
+function OpexV233LPlatformReady(platform, stationId)
+{
+  if (platform == null || !AIStation.IsValidStation(stationId)) return false;
+  for (local i = 0; i < platform.length; i++) {
+    local t = platform.anchor + i * platform.step;
+    if (!AIRail.IsRailStationTile(t) || AIStation.GetStationID(t) != stationId) return false;
+  }
+  return true;
+}
+
+/* err est capture par l'appelant avant tout autre appel API. */
+function OpexV233LPoseFailLog(candidate, step, anchor, err)
+{
+  if (!DECISION_LOG || candidate == null) return;
+  local rail = AIRail.IsRailTile(anchor) ? 1 : 0;
+  local station = AIRail.IsRailStationTile(anchor) ? 1 : 0;
+  local slope = AITile.GetSlope(anchor);
+  local owner = AITile.GetOwner(anchor);
+  local buildable = AITile.IsBuildable(anchor) ? 1 : 0;
+  OpexV233LLog("DOUBLE", "src=" + candidate.src + " dst=" + candidate.dst
+      + " phase=build step=" + step + " reason=FAIL error=" + err
+      + " anchor=" + anchor + " rail=" + rail + " station=" + station
+      + " slope=" + slope + " owner=" + owner + " buildable=" + buildable);
+}
+
+/* 1 = paire posee, 0 = pas adjacente, -1 = la commande a echoue.
+ * v233Pair n'est ecrit qu'apres succes, pour le rollback. */
+function OpexV233LPoseAdjacent(candidate, primary, parallel, stepName)
+{
+  local first = OpexV233LStationPair(primary, parallel);
+  if (first < 0) return 0;
+  local station = ("stationId" in primary) ? primary.stationId : AIStation.STATION_NEW;
+  local ok = AIRail.BuildRailStation(first, primary.direction, 2, primary.length, station);
+  if (!ok) {
+    local err = AIError.GetLastError();
+    OpexV233LPoseFailLog(candidate, stepName, first, err);
+    return -1;
+  }
+  if ("v233Pair" in primary) primary.v233Pair = parallel;
+  else primary.v233Pair <- parallel;
+  if (DECISION_LOG) OpexV233LLog("DOUBLE", "src=" + candidate.src + " dst=" + candidate.dst
+      + " phase=build step=" + stepName + " reason=PAIRED anchor=" + first
+      + " length=" + primary.length + " station=" + station);
+  return 1;
+}
+
+/* Quai deja joint : ne pas le demolir pour rejouer un num=1.
+ * Sinon la commande separee, avec l'erreur native immediate. */
+function OpexV233LPoseOne(candidate, platform, stationId, stepName)
+{
+  if (OpexV233LPlatformReady(platform, stationId)) {
+    if (DECISION_LOG) OpexV233LLog("DOUBLE", "src=" + candidate.src + " dst=" + candidate.dst
+        + " phase=build step=" + stepName + " reason=ALREADY anchor=" + platform.anchor);
+    return true;
+  }
+  for (local i = 0; i < platform.length; i++)
+    AITile.DemolishTile(platform.anchor + platform.step * i);
+  local ok = AIRail.BuildRailStation(platform.anchor, platform.direction, 1, platform.length, stationId);
+  if (!ok) {
+    local err = AIError.GetLastError();
+    OpexV233LPoseFailLog(candidate, stepName, platform.anchor, err);
+  }
+  return ok;
+}
+
+function OpexV233LRollbackPair(plan)
+{
+  if (plan == null || !("v233Pair" in plan) || plan.v233Pair == null) return;
+  local extra = plan.v233Pair;
+  for (local i = 0; i < extra.length; i++) {
+    local t = extra.anchor + extra.step * i;
+    if (AIRail.IsRailStationTile(t)) AIRail.RemoveRailStationTileRectangle(t, t, false);
+    else AITile.DemolishTile(t);
+  }
+}
+
+function OpexV233LNoteEnclosed(candidate, lead)
+{
+  if (candidate == null || lead == null) return;
+  if (!("v233Enclosed" in candidate) || candidate.v233Enclosed == null) {
+    if ("v233Enclosed" in candidate) candidate.v233Enclosed = {};
+    else candidate.v233Enclosed <- {};
+  }
+  if (!(lead in candidate.v233Enclosed)) candidate.v233Enclosed[lead] <- true;
+}
+
+/* Retire les leads dont le detour local est NOPA a la tete. L'autre bout reste. */
+function OpexV233LWithoutEnclosed(plans, candidate)
+{
+  if (plans == null || candidate == null || !("v233Enclosed" in candidate)
+      || candidate.v233Enclosed == null) return plans;
+  local kept = [];
+  foreach (p in plans) {
+    if (("lead" in p) && (p.lead in candidate.v233Enclosed)) {
+      if (DECISION_LOG) OpexV233LLog("DOUBLE", "src=" + candidate.src + " dst=" + candidate.dst
+          + " phase=search reason=DROP_ENCLOSED lead=" + p.lead);
+      continue;
+    }
+    kept.append(p);
+  }
+  return kept;
+}
+
 function OpexV233LRepairParallel(candidate, trace, forbidden, planA, planB, budget, deadline)
 {
-  local result = { trace = null, iterations = 0 };
+  local result = { trace = null, iterations = 0, enclosedLead = null };
   local blocked = {};
   foreach (t, unused in forbidden) blocked[t] <- true;
   foreach (p in [planA, planB]) {
@@ -1077,6 +1195,14 @@ function OpexV233LRepairParallel(candidate, trace, forbidden, planA, planB, budg
       if (DECISION_LOG) OpexV233LLog("DOUBLE", "src=" + candidate.src + " dst=" + candidate.dst
           + " phase=local reason=" + search.stop + " issue=" + tiles[issue] + " left=" + left + " right=" + right
           + " radius=" + radius + " iters=" + search.iterations + " budget=" + cap + " spent=" + result.iterations);
+      /* Fenetre collee a la tete et file vide en 5 iterations : la sortie
+       * est fermee. Ne pas elargir le rayon ni la redonner a l'A* complet. */
+      if (radius == 4 && left == 0 && (search.path == null || search.path == false)
+          && search.stop == "NOPA" && search.iterations <= 5) {
+        result.enclosedLead = planA.lead;
+        OpexV233LNoteEnclosed(candidate, planA.lead);
+        return result;
+      }
       if (search.path == null || search.path == false) continue;
       local tail = OpexResolveSearchTiles(search);
       if (approach != null && tail.len() > 0 && tail[0] == approach) {

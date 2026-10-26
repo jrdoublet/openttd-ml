@@ -513,6 +513,91 @@ class V233LongGoodContracts(unittest.TestCase):
         self.assertIn('phase=build reason=" + result.doubleReason', execute)
         self.assertIn('phase=build reason=OK ok=1 trains=', execute)
 
+    def test_track6_adjacent_pose_matches_recheck_and_rolls_back(self):
+        """Smoke 9, 37055->55398: the plan passed and the separate quay B failed at pose.
+
+        The recheck builds both platforms as one num=2 command before the track.
+        A failed command logs step=stn_b2 and AIError before any later tile read.
+        """
+        pair = body("v233_long_good.nut", "OpexV233LStationPair")
+        self.assertIn("parallel.v233OtherEnd == 1) return -1;", pair)
+        self.assertIn("primary.step == 1 ? AIMap.GetMapSizeX() : 1", pair)
+        self.assertIn("abs(primary.anchor - parallel.anchor) != sideways", pair)
+        # 37055 side B is one row south; side A is one row north. The other
+        # end keeps the anchor, so it is not a second rectangle.
+        def station_pair(primary, parallel, step, other=False, map_x=256):
+            if other or abs(primary - parallel) != (map_x if step == 1 else 1):
+                return -1
+            return min(primary, parallel)
+        self.assertEqual(station_pair(55646, 55902, 1), 55646)
+        self.assertEqual(station_pair(36799, 36543, 1), 36543)
+        self.assertEqual(station_pair(58467, 58467, 1, other=True), -1)
+
+        adjacent = body("v233_long_good.nut", "OpexV233LPoseAdjacent")
+        self.assertLess(adjacent.index("local err = AIError.GetLastError();"),
+                        adjacent.index("OpexV233LPoseFailLog"))
+        self.assertIn("BuildRailStation(first, primary.direction, 2, primary.length, station)", adjacent)
+        self.assertNotIn("DemolishTile", adjacent)
+        self.assertLess(adjacent.index("AIRail.BuildRailStation"), adjacent.index("primary.v233Pair <- parallel"))
+        fail = body("v233_long_good.nut", "OpexV233LPoseFailLog")
+        self.assertIn("phase=build step=", fail)
+        self.assertIn('reason=FAIL error=" + err', fail)
+        self.assertNotIn("GetLastError", fail)
+        one = body("v233_long_good.nut", "OpexV233LPoseOne")
+        self.assertLess(one.index("OpexV233LPlatformReady"), one.index("DemolishTile"))
+        self.assertLess(one.index("AIRail.BuildRailStation"), one.index("AIError.GetLastError()"))
+        self.assertIn("reason=ALREADY", one)
+        execute = body("builder_rail.nut", "OpexV190ExecuteRailPlan")
+        self.assertLess(execute.index("OpexV233LPoseAdjacent"), execute.index("OpexBuildTrack(tiles"))
+        self.assertLess(execute.index('OpexV233LPoseOne(candidate, planB2, stIdB_exist, "stn_b2")'),
+                        execute.index("if (okA2 && okB2)"))
+        self.assertIn('if (!OpexV233LIs(candidate)) dCosts = AIAccounting();', execute)
+        self.assertNotIn("local dCosts = AIAccounting();", execute)
+        second = execute.index("if (okA2 && okB2)")
+        self.assertLess(second, execute.index("OpexBuildTrains", second))
+        self.assertIn("trains=0 rollback=1", execute)
+        self.assertLess(execute.index("OpexV233LIs(candidate) && !okD"),
+                        execute.index("local started = []"))
+        self.assertIn("line.doubleTrack != 1", body("v233_long_good.nut", "OpexV233LSelectGrowth"))
+        rollback = body("builder_rail.nut", "OpexRollback")
+        self.assertEqual(rollback.count("OpexV233LRollbackPair"), 2)
+        self.assertNotIn("RemoveAirport", rollback)
+        self.assertIn("V233_LONG_GOOD > 0", rollback)
+
+    def test_track6_nopa_at_head_is_dropped_before_the_full_search(self):
+        """Smoke 9, 58979->20909: west NOPA at 5 must not seed the 14k search.
+
+        LAUNCH_OTHER lead 58469 stays. An empty side returns SEARCH_NOPA
+        without OpexSearchPath. Track 1 still excludes that other end.
+        """
+        repair = body("v233_long_good.nut", "OpexV233LRepairParallel")
+        marker = "if (search.path == null || search.path == false) continue;"
+        self.assertLess(repair.index("search.iterations <= 5"), repair.index(marker))
+        self.assertIn("radius == 4 && left == 0", repair)
+        self.assertIn('search.stop == "NOPA"', repair)
+        self.assertIn("result.enclosedLead = planA.lead", repair)
+        self.assertIn("OpexV233LNoteEnclosed(candidate, planA.lead)", repair)
+        self.assertIn("enclosedLead = null", repair)
+        kept = [lead for lead in (58466, 58469) if lead not in {58466}]
+        self.assertEqual(kept, [58469])
+        drop = body("v233_long_good.nut", "OpexV233LWithoutEnclosed")
+        self.assertIn("reason=DROP_ENCLOSED", drop)
+        self.assertNotIn(".find(", drop)
+        planner = body("builder_rail.nut", "OpexV190PlanDoubleTrack")
+        self.assertLess(planner.index("OpexV233LWithoutEnclosed"),
+                        planner.index("phase=search reason=BEGIN"))
+        self.assertLess(planner.index("reason=SKIP_ENCLOSED"),
+                        planner.index("local search = OpexSearchPath"))
+        self.assertIn('acc.step = "SEARCH_NOPA"', planner)
+        self.assertEqual(body("v233_long_good.nut", "OpexV233LReserveDouble").count("ignored.append"), 1)
+        self.assertNotIn("ignored", body("v233_long_good.nut", "OpexV233LOfferOtherEnd"))
+        # 6172 smoke 9 still uses the smoke 7 launch pair. Length 2 comes from
+        # the wagon formula; 21210 is the other-end lead and stays out.
+        plans = body("v233_long_good.nut", "OpexV233LPlatformPlans")
+        self.assertIn("OpexRailPlatformLengthForWagons(candidate.wagons)", plans)
+        self.assertNotIn("21210", body("v233_long_good.nut", "OpexV233LReserveDouble"))
+        self.assertNotIn("length = 3", plans)
+
     def test_setting_bounds_defaults_and_single_read(self):
         block = re.search(r'AddSetting\(\{\s*name = "v233_long_good",.*?\}\);', source("info.nut"), re.S)[0]
         self.assertIn("min_value = 0, max_value = 1", block)

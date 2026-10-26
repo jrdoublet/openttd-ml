@@ -3280,6 +3280,17 @@ function OpexV190PlanDoubleTrack(catalog, planA, planB, tiles, iterationBudget, 
   local guideTiles = V197_GUIDED_DOUBLE ? OpexV197BuildGuideTiles(tiles, 1, forbidden) : null;
   if (v233Context != null) {
     iterationBudget -= acc.iterations;
+    dualA = OpexV233LWithoutEnclosed(dualA, v233Context);
+    dualB = OpexV233LWithoutEnclosed(dualB, v233Context);
+    if (dualA.len() == 0 || dualB.len() == 0) {
+      acc.skip = 3;
+      acc.reason = "NOPATH2";
+      acc.step = "SEARCH_NOPA";
+      if (DECISION_LOG) OpexV233LLog("DOUBLE", "src=" + v233Context.src + " dst=" + v233Context.dst
+          + " phase=search reason=SKIP_ENCLOSED budget=" + iterationBudget
+          + " a=" + dualA.len() + " b=" + dualB.len());
+      return acc;
+    }
     foreach (p in dualA) OpexV233LSearchHeadLog(v233Context, p, "A", forbidden);
     foreach (p in dualB) OpexV233LSearchHeadLog(v233Context, p, "B", forbidden);
   }
@@ -4003,6 +4014,7 @@ function OpexRollback(tiles, planA, planB, depot, vehicles)
       if (AIRail.IsRailStationTile(t)) AIRail.RemoveRailStationTileRectangle(t, t, false);
       else AITile.DemolishTile(planA.anchor + planA.step * i);
     }
+    if (V233_LONG_GOOD > 0) OpexV233LRollbackPair(planA);
   }
   if (planB != null && !(("v307Prebuilt" in planB) && planB.v307Prebuilt == 1)) {
     for (local i = 0; i < planB.length; i++) {
@@ -4017,6 +4029,7 @@ function OpexRollback(tiles, planA, planB, depot, vehicles)
         else AITile.DemolishTile(t);
       }
     }
+    if (V233_LONG_GOOD > 0) OpexV233LRollbackPair(planB);
   }
   OpexAir0310InvalidateSiteValidity();
   if (tiles == null) return;
@@ -5543,10 +5556,19 @@ function OpexV190ExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
   }
   local stIdA = ("stationId" in planA) ? planA.stationId : AIStation.STATION_NEW;
   local stIdB = ("stationId" in planB) ? planB.stationId : AIStation.STATION_NEW;
-  local okA = AIRail.BuildRailStation(planA.anchor, planA.direction, 1, planA.length, stIdA);
-  local okB = ("v307Prebuilt" in planB) ? OpexV307SinkRoomPrebuiltReady(planB)
+  local pairedA = 0;
+  local pairedB = 0;
+  if (OpexV233LIs(candidate) && plan.doubleTrack == 1
+      && plan.planA2 != null && plan.planB2 != null) {
+    pairedA = OpexV233LPoseAdjacent(candidate, planA, plan.planA2, "stn_a2");
+    pairedB = OpexV233LPoseAdjacent(candidate, planB, plan.planB2, "stn_b2");
+  }
+  local okA = pairedA != 0 ? pairedA > 0
+      : AIRail.BuildRailStation(planA.anchor, planA.direction, 1, planA.length, stIdA);
+  local okB = pairedB != 0 ? pairedB > 0
+      : (("v307Prebuilt" in planB) ? OpexV307SinkRoomPrebuiltReady(planB)
       : AIRail.BuildRailStation(OpexV307SinkRoomStationAnchor(planB), planB.direction,
-                                OpexV307SinkRoomPlatforms(planB), planB.length, stIdB);
+                                OpexV307SinkRoomPlatforms(planB), planB.length, stIdB));
   if (!okA || !okB) {
     if (DECISION_LOG) {
       local err = AIError.GetLastError();
@@ -5674,13 +5696,23 @@ function OpexV190ExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
   }
 
   if (plan.doubleTrack == 1 && tiles2 != null && planA2 != null && planB2 != null) {
-    local dCosts = AIAccounting();
+    /* V233L : postPathCosts est encore ouvert. Un second AIAccounting
+     * en restaurerait l'instantane et perdrait le cout de la voie 2. */
+    local dCosts = null;
+    if (!OpexV233LIs(candidate)) dCosts = AIAccounting();
     local stIdA_exist = AIStation.GetStationID(planA.anchor);
     local stIdB_exist = AIStation.GetStationID(planB.anchor);
-    for (local i = 0; i < planA2.length; i++) AITile.DemolishTile(planA2.anchor + planA2.step * i);
-    for (local i = 0; i < planB2.length; i++) AITile.DemolishTile(planB2.anchor + planB2.step * i);
-    local okA2 = AIRail.BuildRailStation(planA2.anchor, planA2.direction, 1, planA2.length, stIdA_exist);
-    local okB2 = AIRail.BuildRailStation(planB2.anchor, planB2.direction, 1, planB2.length, stIdB_exist);
+    local okA2 = false;
+    local okB2 = false;
+    if (OpexV233LIs(candidate)) {
+      okA2 = OpexV233LPoseOne(candidate, planA2, stIdA_exist, "stn_a2");
+      okB2 = OpexV233LPoseOne(candidate, planB2, stIdB_exist, "stn_b2");
+    } else {
+      for (local i = 0; i < planA2.length; i++) AITile.DemolishTile(planA2.anchor + planA2.step * i);
+      for (local i = 0; i < planB2.length; i++) AITile.DemolishTile(planB2.anchor + planB2.step * i);
+      okA2 = AIRail.BuildRailStation(planA2.anchor, planA2.direction, 1, planA2.length, stIdA_exist);
+      okB2 = AIRail.BuildRailStation(planB2.anchor, planB2.direction, 1, planB2.length, stIdB_exist);
+    }
     local tFail = -1;
     local conn2 = false;
     local connExitA2 = false;
@@ -5742,7 +5774,7 @@ function OpexV190ExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
               foreach (vehicle in second.rollbackVehicles) trains.rollbackVehicles.append(vehicle);
               trains.built += second.built;
               okD = true;
-              doubleCost = dCosts.GetCosts();
+              if (dCosts != null) doubleCost = dCosts.GetCosts();
             }
           }
         }
@@ -5814,7 +5846,8 @@ function OpexV190ExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
     if (DECISION_LOG) {
       OpexV233LLog("DOUBLE", "src=" + candidate.src + " dst=" + candidate.dst
           + " phase=build reason=" + result.doubleReason
-          + " step=" + (("doubleStep" in result) ? result.doubleStep : "NONE") + " ok=0");
+          + " step=" + (("doubleStep" in result) ? result.doubleStep : "NONE") + " ok=0"
+          + " trains=0 rollback=1");
       OpexV233LLog("REJECT", "src=" + candidate.src + " dst=" + candidate.dst + " reason=double_rollback");
     }
     return result;
