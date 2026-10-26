@@ -92,6 +92,35 @@ class TestV309RegenReader(unittest.TestCase):
 
 
 class TestV309IdleReader(unittest.TestCase):
+    def test_two_valid_but_contradictory_flushes_in_one_log_fail_closed(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            log = Path(tmp) / "reference_seed42_r0.log"
+            first = idle_line("1970-3-1", loops=10, useless=2)
+            changed = idle_line("1970-3-2", loops=80, useless=70)
+            log.write_text(first + changed, encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "flushs V309_IDLE contradictoires"):
+                read_idle_logs(tmp)
+
+    def test_contradictory_monthly_flush_inside_gzip_copy_fails_closed(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            log = Path(tmp) / "reference_seed42_r0.log"
+            first = idle_line("1970-3-1", loops=10, useless=2)
+            changed = idle_line("1970-3-2", loops=80, useless=70)
+            log.write_text(first, encoding="utf-8")
+            with gzip.open(str(log) + ".gz", "wt", encoding="utf-8") as stream:
+                stream.write(first + changed)
+            with self.assertRaisesRegex(ValueError, "flushs V309_IDLE contradictoires"):
+                read_idle_logs(tmp)
+
+    def test_identical_repeated_valid_monthly_flush_is_not_a_conflict(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            log = Path(tmp) / "reference_seed42_r0.log"
+            log.write_text(idle_line("1970-3-1") * 2, encoding="utf-8")
+            row = read_idle_logs(tmp)["reference"][1970]
+            self.assertEqual(row["months"], 1)
+            self.assertEqual(row["loops"], 10)
+            self.assertEqual(row["useless"], 2)
+
     def test_numeric_seed_and_repeat_aliases_do_not_inflate_months(self):
         for alias in ("reference_seed01_r0.log", "reference_seed1_r00.log"):
             with self.subTest(alias=alias), tempfile.TemporaryDirectory() as tmp:

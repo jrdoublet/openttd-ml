@@ -43,7 +43,7 @@ def _valid_idle_core(fields):
 
 
 def _idle_monthly_rows(path):
-    """Compare unique observed months, tolerating repeated flushes in one log."""
+    """Return valid months; allow identical replays but reject contradictory flushes."""
     months = {}
     opener = gzip.open if path.suffix == '.gz' else open
     with opener(path, 'rt', encoding='utf-8', errors='replace') as stream:
@@ -54,7 +54,9 @@ def _idle_monthly_rows(path):
                 if _valid_idle_core(fields) is None:
                     continue
                 key = (int(event.group(1)), int(event.group(2)))
-                months.setdefault(key, fields)
+                previous = months.setdefault(key, fields)
+                if previous != fields:
+                    raise ValueError(f'flushs V309_IDLE contradictoires : {path} mois={key}')
     return months
 
 
@@ -178,18 +180,17 @@ def read_idle_logs(directory):
             continue
         arm = match.group(1)
         stream_id = (arm, int(match.group(2)), int(match.group(3)))
+        monthly = _idle_monthly_rows(log)
         if stream_id in first_copy_by_game:
-            previous_base, previous_log = first_copy_by_game[stream_id]
+            previous_base, previous_log, original = first_copy_by_game[stream_id]
             if previous_base != base:
                 raise ValueError(f'identite de partie ambigue : {previous_base} / {base}')
-            original = _idle_monthly_rows(previous_log)
-            duplicate = _idle_monthly_rows(log)
-            if (not (original.keys() <= duplicate.keys() or duplicate.keys() <= original.keys())
-                    or any(original[month] != duplicate[month]
-                           for month in original.keys() & duplicate.keys())):
+            if (not (original.keys() <= monthly.keys() or monthly.keys() <= original.keys())
+                    or any(original[month] != monthly[month]
+                           for month in original.keys() & monthly.keys())):
                 raise ValueError(f'copies de partie contradictoires : {base}')
         else:
-            first_copy_by_game[stream_id] = (base, log)
+            first_copy_by_game[stream_id] = (base, log, monthly)
         opener = gzip.open if log.suffix == '.gz' else open
         with opener(log, 'rt', encoding='utf-8', errors='replace') as stream:
             for line in stream:
