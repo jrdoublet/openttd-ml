@@ -52,6 +52,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 SCRIPT_LINE_RE = re.compile(r"\[script:\d+\]\s+\[(\d+)\]\s+\[\w\]\s+(.*)")
 OPEX_PREFIX_RE = re.compile(r"^OPEX\s+(\d{4})-(\d{1,2})-(\d{1,2})\s+(.*)$")
+GAME_LOG_RE = re.compile(r"^(?P<arm>.+)_seed(?P<seed>\d+)_r(?P<repeat>\d+)\.log$")
 
 SPAN_RE = re.compile(
     r"\bSPAN\s+id=(\d+)\s+par=(\d+)\s+dep=(\d+)\s+n=([A-Za-z0-9_.]+)(?:\s+ds=[\d-]+)?(?:\s+t0=\d+)?(?:\s+tk=\d+)?\s+op=(\d+)"
@@ -533,11 +534,22 @@ def deduplicate_log_files(paths: List[Path]) -> List[Path]:
 
     The parent directory is part of the identity: different campaigns may
     legitimately contain the same seed and arm with different observations.
+    Numeric spelling aliases within a campaign are ambiguous, even if their
+    payload happens to be byte-identical.
     """
     games: Dict[Path, Tuple[Path, str]] = {}
+    numeric_games: Dict[Tuple[Path, str, int, int], Path] = {}
     for path in paths:
         path = path.resolve()
         logical = path.with_suffix("") if path.suffix == ".gz" else path
+        match = GAME_LOG_RE.fullmatch(logical.name)
+        if match is not None:
+            game_key = (logical.parent, match["arm"],
+                        int(match["seed"]), int(match["repeat"]))
+            prior = numeric_games.get(game_key)
+            if prior is not None and prior != logical:
+                raise ValueError(f"identite de partie numerique ambigue : {prior} et {logical}")
+            numeric_games[game_key] = logical
         if logical in games and games[logical][0] == path:
             continue
         digest = hashlib.sha256()

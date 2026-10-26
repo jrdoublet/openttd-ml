@@ -20,6 +20,42 @@ from sweeps.pcal03_inventaire import (
 
 
 class TestPcal03Deduplication(unittest.TestCase):
+    def test_numeric_seed_aliases_cannot_double_opcode_totals(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            content = b"OPEX 1970-01-01 SPAN id=1 par=0 dep=0 n=air.plans op=100\n"
+            files = [root / name for name in
+                     ("reference_seed1_r0.log", "reference_seed01_r0.log")]
+            for file in files:
+                file.write_bytes(content)
+            with self.assertRaisesRegex(ValueError, "identite de partie numerique ambigue"):
+                deduplicate_log_files(files)
+
+    def test_numeric_repeat_aliases_rejected_even_with_different_payloads(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            first = root / "reference_seed42_r0.log"
+            second = root / "reference_seed42_r00.log.gz"
+            first.write_bytes(b"OPEX 1970-01-01 SPAN id=1 par=0 dep=0 n=air.plans op=100\n")
+            with gzip.open(second, "wb") as stream:
+                stream.write(b"OPEX 1970-01-01 SPAN id=1 par=0 dep=0 n=air.plans op=500\n")
+            with self.assertRaisesRegex(ValueError, "identite de partie numerique ambigue"):
+                deduplicate_log_files([first, second])
+
+    def test_numeric_aliases_across_independent_campaigns_do_not_conflict(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            files = []
+            for directory_name, filename in (("campaign_a", "reference_seed1_r0.log"),
+                                             ("campaign_b", "reference_seed01_r00.log")):
+                directory = root / directory_name
+                directory.mkdir()
+                file = directory / filename
+                file.write_text("OPEX 1970-01-01 SPAN id=1 par=0 dep=0 n=air.plans op=100\n",
+                                encoding="utf-8")
+                files.append(file)
+            self.assertEqual(deduplicate_log_files(files), [p.resolve() for p in files])
+
     def test_same_basename_across_campaigns_keeps_two_file_years(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
