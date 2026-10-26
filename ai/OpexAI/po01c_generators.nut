@@ -1642,6 +1642,7 @@ function OpexPO01CAirPlans(po01dResult, catalog, lines = null, maxCapital = 0, p
     hubs = [],
     air0310HubRestored = false,
     air0310HubSkip = null,
+    fp2 = null,
   };
 
   local spPlans = PROBE_SPAN_TRACE ? OpexSpanBegin("air.plans") : null;
@@ -1649,6 +1650,16 @@ function OpexPO01CAirPlans(po01dResult, catalog, lines = null, maxCapital = 0, p
   if (!prepared) {
     if (spPlans != null) OpexSpanEnd(spPlans);
     { po01dResult.value = ctx.bestPlan; return; }
+  }
+
+  if (FRONT_PAX2_BOUNDED_OVERLAP > 0 && paxBand == PAX_BAND_ALL
+      && catalog != null && catalog.bounds != null) {
+    if (resumeState != null && ("frontPax2Bounded" in resumeState)) {
+      ctx.fp2 = resumeState.frontPax2Bounded;
+    } else {
+      ctx.fp2 = OpexFP2NewShortlist(catalog.bounds);
+      if (resumeState != null) resumeState.frontPax2Bounded <- ctx.fp2;
+    }
   }
 
   for (local comboIndex = ctx.comboStart; comboIndex < ctx.combos.len(); comboIndex++) {

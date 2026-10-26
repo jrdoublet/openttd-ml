@@ -858,6 +858,17 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSel
           + " finance=" + OpexProjectFinanceCapital(project) + " budget=" + capitalBudget);
     }
   }
+  if (DECISION_LOG && realSelection && FRONT_PAX2_BOUNDED_OVERLAP == 2) {
+    for (local fp2Rank = 0; fp2Rank < affordable.len(); fp2Rank++) {
+      local fp2Project = affordable[fp2Rank];
+      if (fp2Project.mode != "air" || !("payload" in fp2Project)
+          || fp2Project.payload == null || !("frontPax2Id" in fp2Project.payload)) continue;
+      OpexDecide("FRONT_PAX2_TOPK", "id=" + fp2Project.payload.frontPax2Id
+          + " rank=" + fp2Rank + " profit=" + fp2Project.profitAnnual
+          + " finance=" + OpexProjectFinanceCapital(fp2Project)
+          + " budget=" + capitalBudget + " kdec=" + kDec);
+    }
+  }
   if (spEpilogue != null) OpexSpanEnd(spEpilogue);
   if (spSelect != null) OpexSpanEnd(spSelect);
   return affordable;

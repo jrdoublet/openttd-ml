@@ -327,6 +327,57 @@ function OpexComputeRailToAirDistance(bestTrain, bestPlane, ticksPerDay, airport
   return d.tointeger();
 }
 
+/* FRONT-PAX-2 : comparaison CINEMATIQUE avec les memes jours/tuile pour
+ * les deux modes et la vitesse avion API directe. Calcul pur par combinaison
+ * de moteur/type d'aeroport (jamais de C121, de sondage ou d'A* par paire).
+ * Le chargement AIR et le residu des hubs restent inconnus en amont de C121 :
+ * seul le tick initial minimum de chargement est inclus ici. C121 conserve
+ * ensuite la validation economique complete, jamais un ROI extrapole. */
+function OpexFP2PhysicalBoundary(bounds, planeSpeed, typeA, typeB, wagon)
+{
+  if (bounds == null || bounds.vRail <= 0 || planeSpeed <= 0 || wagon == null
+      || wagon.capacity <= 0 || typeA == null || typeB == null
+      || !AIAirport.IsValidAirportType(typeA)
+      || !AIAirport.IsValidAirportType(typeB)) return -1;
+  local tauRail = 1.0 / (0.036 * bounds.vRail.tofloat());
+  local tauAir = 1.0 / (0.036 * planeSpeed.tofloat());
+  if (tauRail <= tauAir) return -1;
+  local tpd = bounds.ticksPerDay > 0 ? bounds.ticksPerDay : 74.0;
+  local taxiSpeed = planeSpeed < 50 ? planeSpeed.tofloat() : 50.0;
+  local footprint = (AIAirport.GetAirportWidth(typeA)
+      + AIAirport.GetAirportHeight(typeA)
+      + AIAirport.GetAirportWidth(typeB)
+      + AIAirport.GetAirportHeight(typeB)).tofloat();
+  local groundTiles = footprint * 2.0 / 3.0;
+  local groundDays = groundTiles * OpexDaysPerTile(taxiSpeed, tpd) + 300.0 / tpd;
+  local railDwell = OpexRailStationDwellDays(wagon);
+  local numerator = groundDays + 1.0 / tpd - railDwell;
+  local crossing = numerator > 0.0 ? numerator / (tauRail - tauAir) : 0.0;
+  if (crossing >= bounds.airMin) return -1;
+  /* First integral distance where AIR is at least as fast. */
+  local first = crossing.tointeger();
+  if (first.tofloat() < crossing) first++;
+  if (first < bounds.railMin) first = bounds.railMin;
+  return first < bounds.airMin ? first : -1;
+}
+
+/* Le croisement sur Manhattan ne suffit pas quand les ancres aeroport sont
+ * eloignees. Verifier le vrai vol (deja mesure par le scan), sans nouvel appel
+ * de C121 ni geometrie; le meme forfait sol est celui de la frontiere. */
+function OpexFP2PhysicalPairWins(bounds, planeSpeed, wagon,
+                                 manhattan, flightDistance, groundDays)
+{
+  if (bounds == null || bounds.vRail <= 0 || planeSpeed <= 0 || wagon == null
+      || wagon.capacity <= 0 || flightDistance <= 0 || manhattan <= 0
+      || groundDays < 0.0) return false;
+  local tpd = bounds.ticksPerDay > 0 ? bounds.ticksPerDay : 74.0;
+  local airDays = flightDistance.tofloat() / (0.036 * planeSpeed.tofloat())
+      + groundDays + 1.0 / tpd;
+  local railDays = manhattan.tofloat() / (0.036 * bounds.vRail.tofloat())
+      + OpexRailStationDwellDays(wagon);
+  return airDays <= railDays;
+}
+
 function OpexComputeAirMaxDistance(bestPlane, ticksPerDay, airportType, paxCargo)
 {
   if (bestPlane == null) return 0;

@@ -61,6 +61,67 @@ P3_SETTINGS_DELTA = (
 )
 P3_DELTAS = {"info.nut": P3_INFO_DELTA, "settings.nut": P3_SETTINGS_DELTA}
 
+# FRONT-PAX-2 is an independent default-OFF option. Subtract its exact bytes
+# from frozen legacy inventories without altering any historical hash.
+FP2_INFO_DELTA = (
+    b'    AddSetting({ name = "front_pax2_bounded_overlap",\n'
+    b'      description = "FRONT-PAX-2 AIR PASS only: 0=historical (default), 1=passive bounded shortlist, 2=up to one additional C121 candidate per arm per completed ALL-band scan",\n'
+    b'      min_value = 0, max_value = 2,\n'
+    b'      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,\n'
+    b'      flags = 0 });\n'
+)
+FP2_SETTINGS_DELTA = (
+    b'  local fp2Overlap = AIController.GetSetting("front_pax2_bounded_overlap");\n'
+    b'  FRONT_PAX2_BOUNDED_OVERLAP = (fp2Overlap == 1 || fp2Overlap == 2) ? fp2Overlap : 0;\n'
+)
+FP2_DELTAS = {"info.nut": FP2_INFO_DELTA, "settings.nut": FP2_SETTINGS_DELTA}
+
+# The two PO01D-frozen producer files gained FP2 helpers and guarded call
+# sites. Verify the precise independent helper contents and delete ONLY those
+# additions for historical byte-hash checks. Never change the frozen digests.
+FP2_PLANNING_BLOCK_START = b"/* FRONT-PAX-2 : un seul dossier"
+FP2_PLANNING_BLOCK_END = b"/* 1. Preparation"
+FP2_PLANNING_BLOCK_SHA256 = "065bb2d87059671e152c71e2d62818e551eb14fd72990bedf69770bdd145396c"
+FP2_CANDIDATES_BLOCK_START = b"/* FRONT-PAX-2 : comparaison CINEMATIQUE"
+FP2_CANDIDATES_BLOCK_END = b"function OpexComputeAirMaxDistance"
+FP2_CANDIDATES_BLOCK_SHA256 = "cd0257813fb12f5982c074b27c0fcb21b6dd6340d902a63c824b08d75606e8ab"
+FP2_PLANNING_INSERTS = (
+    b'        if (ctx.fp2 != null) OpexFP2Shortlist(ctx, 0, sites[a], sites[b],\n'
+    b'            airport, plane, distance, flightDistance, orderDistance, minDist);\n',
+    b'        if (ctx.fp2 != null) OpexFP2Shortlist(ctx, 1, hub, site,\n'
+    b'            airport, plane, distance, flightDistance, orderDistance, 20);\n',
+    b'        if (ctx.fp2 != null) OpexFP2Shortlist(ctx, 2, hub1, hub2,\n'
+    b'            airport, plane, distance, flightDistance, orderDistance, 20);\n',
+    b'  /* Mutating evaluation is restricted to ON and to the completed scan.\n'
+    b'   * Shadow reports only the selected references and arithmetic shortlist. */\n'
+    b'  if (ctx.fp2 != null) OpexFP2Finalize(ctx);\n'
+    b'  if (ctx.fp2 != null && ctx.sliced\n'
+    b'      && ("frontPax2Bounded" in ctx.resumeState))\n'
+    b'    delete ctx.resumeState.frontPax2Bounded;\n',
+    b'    fp2 = null,\n',
+    b'  if (FRONT_PAX2_BOUNDED_OVERLAP > 0 && paxBand == PAX_BAND_ALL\n'
+    b'      && catalog != null && catalog.bounds != null) {\n'
+    b'    if (resumeState != null && ("frontPax2Bounded" in resumeState)) {\n'
+    b'      ctx.fp2 = resumeState.frontPax2Bounded;\n'
+    b'    } else {\n'
+    b'      ctx.fp2 = OpexFP2NewShortlist(catalog.bounds);\n'
+    b'      if (resumeState != null) resumeState.frontPax2Bounded <- ctx.fp2;\n'
+    b'    }\n'
+    b'  }\n\n',
+)
+
+
+def _strip_fp2_block(raw, name, begin, end, digest):
+    assert raw.count(begin) == 1, f"FP2 {name}: missing or repeated helper start"
+    assert raw.count(end) == 1, f"FP2 {name}: missing or repeated original next function"
+    start_at = raw.index(begin)
+    end_at = raw.index(end, start_at)
+    block = raw[start_at:end_at]
+    assert hashlib.sha256(block).hexdigest() == digest, (
+        f"FP2 {name}: helper changed; review and update its independent digest"
+    )
+    return raw[:start_at] + raw[end_at:]
+
 # P3 adds one standalone helper block and exactly two guarded call sites to
 # C117's existing lean path. Extract by unique function boundaries, verify the
 # independent P3 block hash, then subtract only these additions before checking
@@ -88,6 +149,23 @@ def historical_bytes(name, raw):
     if p3_delta is not None:
         assert raw.count(p3_delta) == 1, f"P3 {name}: expected precisely one unchanged opt-in fragment"
         raw = raw.replace(p3_delta, b"", 1)
+    fp2_delta = FP2_DELTAS.get(name)
+    if fp2_delta is not None:
+        assert raw.count(fp2_delta) == 1, f"FP2 {name}: expected precisely one unchanged opt-in fragment"
+        raw = raw.replace(fp2_delta, b"", 1)
+    if name == "air_planning.nut":
+        raw = _strip_fp2_block(
+            raw, name, FP2_PLANNING_BLOCK_START, FP2_PLANNING_BLOCK_END,
+            FP2_PLANNING_BLOCK_SHA256,
+        )
+        for insert in FP2_PLANNING_INSERTS:
+            assert raw.count(insert) == 1, f"FP2 {name}: guarded call changed or duplicated"
+            raw = raw.replace(insert, b"", 1)
+    if name == "candidates.nut":
+        raw = _strip_fp2_block(
+            raw, name, FP2_CANDIDATES_BLOCK_START, FP2_CANDIDATES_BLOCK_END,
+            FP2_CANDIDATES_BLOCK_SHA256,
+        )
     if name == "probes.nut":
         assert raw.count(P3_PROBES_BLOCK_PREFIX) == 1, "P3 probes helper begin must be unique"
         assert raw.count(P3_PROBES_BLOCK_END) == 1, "P3 probes helper end must be unique"
