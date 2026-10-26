@@ -5816,7 +5816,8 @@ function OpexV190ExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
               vehicles = [trains.vehicles[0], second.vehicles[0]],
               tiles1 = tiles,
               tiles2 = tiles2,
-              diag = loopDiag
+              diag = loopDiag,
+              v233 = OpexV233LIs(candidate) ? 1 : 0
             };
             if (OpexConvertDoubleTrackToLoop(loopLine, loopDiag)) {
               foreach (vehicle in second.vehicles) trains.vehicles.append(vehicle);
@@ -6492,6 +6493,19 @@ function OpexConvertDoubleTrackToLoop(line, diag = null)
     }
   }
 
+  /* V233L : les six dernieres tuiles ne se rejoignent pas quand la voie 2
+   * arrive par l'autre bout du quai. Fenetre 24, puis leads paralleles.
+   * Hors V233L, la fenetre historique de 6 reste seule. */
+  if (("v233" in line) && line.v233 == 1) {
+    local widened = OpexV233LRecoverSwitches(line, tiles1, tiles2, switchOutA, switchInA, switchOutB, switchInB);
+    if (widened != null) {
+      switchOutA = widened.outA;
+      switchInA = widened.inA;
+      switchOutB = widened.outB;
+      switchInB = widened.inB;
+    }
+  }
+
   if (switchOutA == null || !("fromIdx" in switchOutA) || !("toIdx" in switchOutA) ||
       switchInA == null || !("fromIdx" in switchInA) || !("toIdx" in switchInA) ||
       switchOutB == null || !("fromIdx" in switchOutB) || !("toIdx" in switchOutB) ||
@@ -6510,23 +6524,40 @@ function OpexConvertDoubleTrackToLoop(line, diag = null)
   local placedSignals = [];
   local buildOk = true;
 
-  if (!OpexV181TryBuildSwitch(tiles2[switchOutA.fromIdx - 1], tiles2[switchOutA.fromIdx],
+  if (("v233" in line) && line.v233 == 1) {
+    if (!OpexV233LPlaceSwitch(switchOutA, tiles2, tiles1, false, true, placedTracks)) {
+      buildOk = false;
+      if (loopDiag != null) loopDiag.step <- "BUILD_SW_OUT_A";
+    }
+    if (buildOk && !OpexV233LPlaceSwitch(switchInA, tiles2, tiles1, false, false, placedTracks)) {
+      buildOk = false;
+      if (loopDiag != null) loopDiag.step <- "BUILD_SW_IN_A";
+    }
+    if (buildOk && !OpexV233LPlaceSwitch(switchOutB, tiles1, tiles2, true, true, placedTracks)) {
+      buildOk = false;
+      if (loopDiag != null) loopDiag.step <- "BUILD_SW_OUT_B";
+    }
+    if (buildOk && !OpexV233LPlaceSwitch(switchInB, tiles1, tiles2, true, false, placedTracks)) {
+      buildOk = false;
+      if (loopDiag != null) loopDiag.step <- "BUILD_SW_IN_B";
+    }
+  } else if (!OpexV181TryBuildSwitch(tiles2[switchOutA.fromIdx - 1], tiles2[switchOutA.fromIdx],
                               tiles1[switchOutA.toIdx], tiles1[switchOutA.toIdx + 1], placedTracks, false)) {
     buildOk = false;
     if (loopDiag != null) loopDiag.step <- "BUILD_SW_OUT_A";
   }
-  if (buildOk &&
+  if (!(("v233" in line) && line.v233 == 1) && buildOk &&
       !OpexV181TryBuildSwitch(tiles2[switchInA.fromIdx + 1], tiles2[switchInA.fromIdx],
                               tiles1[switchInA.toIdx], tiles1[switchInA.toIdx - 1], placedTracks, false)) {
     buildOk = false;
     if (loopDiag != null) loopDiag.step <- "BUILD_SW_IN_A";
   }
-  if (buildOk && !OpexV181TryBuildSwitch(tiles1[switchOutB.fromIdx + 1], tiles1[switchOutB.fromIdx],
+  if (!(("v233" in line) && line.v233 == 1) && buildOk && !OpexV181TryBuildSwitch(tiles1[switchOutB.fromIdx + 1], tiles1[switchOutB.fromIdx],
                                         tiles2[switchOutB.toIdx], tiles2[switchOutB.toIdx - 1], placedTracks, false)) {
     buildOk = false;
     if (loopDiag != null) loopDiag.step <- "BUILD_SW_OUT_B";
   }
-  if (buildOk &&
+  if (!(("v233" in line) && line.v233 == 1) && buildOk &&
       !OpexV181TryBuildSwitch(tiles1[switchInB.fromIdx - 1], tiles1[switchInB.fromIdx],
                               tiles2[switchInB.toIdx], tiles2[switchInB.toIdx + 1], placedTracks, false)) {
     buildOk = false;

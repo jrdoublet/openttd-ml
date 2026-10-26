@@ -968,9 +968,44 @@ function OpexV233LSlideBridge(candidate, trace, index, forbidden)
   return null;
 }
 
+/* Milieu de pont : la tuile reste MP_CLEAR et IsBuildable, IsBridgeTile ne
+ * voit que les rampes. BuildRail repond alors MUST_DEMOLISH_BRIDGE_FIRST,
+ * classe 260, alors que l'occupant semble libre. Pas d'API IsBridgeAbove :
+ * une rampe a moins de 32 pas sur le meme axe, et l'autre tete de l'autre
+ * cote de la tuile, prouve le tablier. */
+function OpexV233LBridgeAbove(tile)
+{
+  if (!AIMap.IsValidTile(tile) || AIBridge.IsBridgeTile(tile)) return false;
+  local tx = AIMap.GetTileX(tile);
+  local ty = AIMap.GetTileY(tile);
+  local axes = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+  foreach (axis in axes) {
+    local head = null;
+    local ux = axis[0];
+    local uy = axis[1];
+    for (local step = 1; step <= 32; step++) {
+      local t = OpexV190MakeTile(tile, ux * step, uy * step);
+      if (t == null) break;
+      if (AIBridge.IsBridgeTile(t)) { head = t; break; }
+    }
+    if (head == null) continue;
+    local other = AIBridge.GetOtherBridgeEnd(head);
+    if (!AIMap.IsValidTile(other) || other == head) continue;
+    local hx = AIMap.GetTileX(head);
+    local hy = AIMap.GetTileY(head);
+    local ox = AIMap.GetTileX(other);
+    local oy = AIMap.GetTileY(other);
+    if (hy == ty && oy == ty && (hx - tx) * (ox - tx) < 0) return true;
+    if (hx == tx && ox == tx && (hy - ty) * (oy - ty) < 0) return true;
+  }
+  return false;
+}
+
 /* Voie au sol, tablier, rampe, route, eau, maison ou pente. Une rampe est
  * un pont : elle est comptee avant le rail au sol. `house` couvre aussi une
- * industrie ou un objet non constructible qui n'est ni eau ni transport. */
+ * industrie ou un objet non constructible qui n'est ni eau ni transport.
+ * Arbre, rocher, champ et friche sont un sol libre que la pose peut nettoyer.
+ * `above` est le sol sous un tablier : il a l'air libre et refuse 260. */
 function OpexV233LOccupantKind(tile)
 {
   if (tile == null || !AIMap.IsValidTile(tile)) return "off";
@@ -982,6 +1017,11 @@ function OpexV233LOccupantKind(tile)
   if (AITile.IsWaterTile(tile) || AITile.IsCoastTile(tile)) return "water";
   if (!AITile.IsBuildable(tile)) return "house";
   if (AITile.GetSlope(tile) != AITile.SLOPE_FLAT) return "slope";
+  if (AITile.HasTreeOnTile(tile)) return "tree";
+  if (AITile.IsRockTile(tile)) return "rock";
+  if (AITile.IsFarmTile(tile)) return "field";
+  if (AITile.IsRoughTile(tile)) return "rough";
+  if (OpexV233LBridgeAbove(tile)) return "above";
   return "clear";
 }
 
@@ -1629,8 +1669,35 @@ function OpexV233LPoseLocal(error, tile)
   return error > 0;
 }
 
+/* Sol que la pose peut encore nettoyer. Le tablier (`above`) n'en fait pas
+ * partie : il reste dans la zone ignoree. */
+function OpexV233LPoseOpen(kind)
+{
+  return kind == "clear" || kind == "slope" || kind == "tree"
+      || kind == "field" || kind == "rock" || kind == "rough";
+}
+
+/* La tuile a l'air libre, mais le triplet BuildRail est refuse. Deja pose
+ * et manque d'argent ne sont pas un obstacle a contourner. */
+function OpexV233LRailRefused(prev, cur, next)
+{
+  if (!AIMap.IsValidTile(prev) || !AIMap.IsValidTile(cur) || !AIMap.IsValidTile(next)) return false;
+  if (AIMap.DistanceManhattan(prev, cur) != 1 || AIMap.DistanceManhattan(cur, next) != 1) return false;
+  local refused = false;
+  {
+    local testMode = AITestMode();
+    if (!AIRail.BuildRail(prev, cur, next)) {
+      local err = AIError.GetLastError();
+      refused = err != AIError.ERR_ALREADY_BUILT && err != AIError.ERR_NOT_ENOUGH_CASH;
+    }
+  }
+  return refused;
+}
+
 /* Dernier index de la zone bloquee. Un saut natif compte ses deux tetes.
- * On s'arrete au premier sol libre ou en pente, et a 16 tuiles. */
+ * Un sol libre dont le triplet suivant est quand meme refuse (260 sur le
+ * voisin, ou tablier classe a tort) reste dans la zone. Plafond 24 : une
+ * portee de pont tient dans la fenetre, le but atterrit apres. */
 function OpexV233LPoseSpan(tiles, index)
 {
   local last = index;
@@ -1638,7 +1705,7 @@ function OpexV233LPoseSpan(tiles, index)
   if (index + 1 < n && AIMap.DistanceManhattan(tiles[index], tiles[index + 1]) > 1)
     last = index + 1;
   local guard = 0;
-  while (last + 1 < n - 1 && guard < 16) {
+  while (last + 1 < n - 1 && guard < 24) {
     local nxt = last + 1;
     if (AIMap.DistanceManhattan(tiles[last], tiles[nxt]) > 1) {
       last = nxt;
@@ -1646,7 +1713,10 @@ function OpexV233LPoseSpan(tiles, index)
       continue;
     }
     local kind = OpexV233LOccupantKind(tiles[nxt]);
-    if (kind == "clear" || kind == "slope") break;
+    if (OpexV233LPoseOpen(kind)) {
+      local after = nxt + 1;
+      if (after >= n || !OpexV233LRailRefused(tiles[last], tiles[nxt], tiles[after])) break;
+    }
     last = nxt;
     guard++;
   }
@@ -1699,12 +1769,47 @@ function OpexV233LDropBuilt(tiles, fromIdx, toIdx)
   }
 }
 
-function OpexV233LPoseLog(candidate, reason, index, kind, error)
+/* Tuile en echec, voisine precedente et suivante, leur occupant, ancre,
+ * but, iterations et budget. Les index hors fenetre restent a -1. */
+function OpexV233LPoseSuffix(tiles, index, left, right, zone, iters, budget)
+{
+  local cur = -1;
+  local prev = -1;
+  local nxt = -1;
+  local prevKind = "off";
+  local nextKind = "off";
+  local anchorTile = -1;
+  local goal = -1;
+  local goalIdx = -1;
+  if (tiles != null && index >= 0 && index < tiles.len()) cur = tiles[index];
+  if (tiles != null && index - 1 >= 0 && index - 1 < tiles.len()) {
+    prev = tiles[index - 1];
+    prevKind = OpexV233LOccupantKind(prev);
+  }
+  if (tiles != null && index + 1 >= 0 && index + 1 < tiles.len()) {
+    nxt = tiles[index + 1];
+    nextKind = OpexV233LOccupantKind(nxt);
+  }
+  if (tiles != null && left >= 0 && left < tiles.len()) anchorTile = tiles[left];
+  if (tiles != null && right - 1 >= 0 && right - 1 < tiles.len()) {
+    goalIdx = right - 1;
+    goal = tiles[goalIdx];
+  }
+  return " cur=" + cur
+      + " prev=" + prev + " prev_kind=" + prevKind
+      + " next=" + nxt + " next_kind=" + nextKind
+      + " anchor=" + left + " anchor_tile=" + anchorTile
+      + " goal=" + goal + " goal_idx=" + goalIdx
+      + " zone=" + zone + " iters=" + iters + " budget=" + budget;
+}
+
+function OpexV233LPoseLog(candidate, reason, index, kind, error, tiles, left, right, zone, iters, budget)
 {
   if (!DECISION_LOG || candidate == null) return;
   OpexV233LLog("DOUBLE", "src=" + candidate.src + " dst=" + candidate.dst
       + " phase=repair reason=" + reason
-      + " idx=" + index + " kind=" + kind + " error=" + error);
+      + " idx=" + index + " kind=" + kind + " error=" + error
+      + OpexV233LPoseSuffix(tiles, index, left, right, zone, iters, budget));
 }
 
 /* Voie 1, quais primaires et depot : meme interdit que la greffe du plan. */
@@ -1803,20 +1908,20 @@ function OpexV233LRepairPose(ctx, tiles, structures, index, failedTile, error)
   local kindTile = (index >= 0 && index < tiles.len()) ? tiles[index] : failedTile;
   local kind = OpexV233LOccupantKind(kindTile);
   if (!("repairs" in ctx) || ctx.repairs == null) ctx.repairs = 0;
-  if (ctx.repairs >= 3) {
-    OpexV233LPoseLog(candidate, "LIMIT", index, kind, error);
-    return { giveUp = true };
-  }
   local zone = OpexV233LPoseSpan(tiles, index);
   local left = OpexV233LPoseAnchor(tiles, index);
   local right = OpexV233LPoseFar(tiles, zone);
-  if (left < 0 || right < 0 || left + 1 >= right || zone >= right) {
-    OpexV233LPoseLog(candidate, "NOPA", index, kind, error);
-    return { giveUp = true };
-  }
   local span = zone - index + 1;
   if (span < 1) span = 1;
   local cap = min(8000, max(1000, span * span * 48));
+  if (ctx.repairs >= 3) {
+    OpexV233LPoseLog(candidate, "LIMIT", index, kind, error, tiles, left, right, zone, 0, cap);
+    return { giveUp = true };
+  }
+  if (left < 0 || right < 0 || left + 1 >= right || zone >= right) {
+    OpexV233LPoseLog(candidate, "NOPA", index, kind, error, tiles, left, right, zone, 0, -1);
+    return { giveUp = true };
+  }
   local deadline = AIController.GetTick() + cap / 3 + BUILD_TICK_MARGIN;
   /* Liberer le lead et le moignon deja pose, pas l'ancre ni l'obstacle. */
   OpexV233LDropBuilt(tiles, left + 1, index - 1);
@@ -1826,12 +1931,16 @@ function OpexV233LRepairPose(ctx, tiles, structures, index, failedTile, error)
   if (found != null && ("search" in found) && found.search != null)
     ctx.iterations = ctx.iterations + found.search.iterations;
   if (found == null || !("joined" in found) || found.joined == null) {
-    OpexV233LPoseLog(candidate, "NOPA", index, kind, error);
+    local iters = 0;
+    if (found != null && ("search" in found) && found.search != null)
+      iters = found.search.iterations;
+    OpexV233LPoseLog(candidate, "NOPA", index, kind, error, tiles, left, right, zone, iters, cap);
     return { giveUp = true };
   }
   ctx.repairs = ctx.repairs + 1;
   if (DECISION_LOG && candidate != null) OpexV233LLog("DOUBLE", "src=" + candidate.src + " dst=" + candidate.dst
       + " phase=repair reason=OK idx=" + index + " kind=" + kind + " error=" + error
+      + OpexV233LPoseSuffix(tiles, index, left, right, zone, found.search.iterations, cap)
       + " left=" + left + " right=" + right + " tiles=" + found.joined.tiles.len()
       + " iters=" + found.search.iterations + " repairs=" + ctx.repairs);
   return { tiles = found.joined.tiles, structures = found.joined.structures, restart = left + 1 };
@@ -2649,4 +2758,250 @@ function OpexV233LReconcile(owner)
   local pending = V233L_STATE.pending;
   if (pending.phase == "building") pending.phase = "rollback";
   /* starting est repris par identite : un train deja parti n'est pas recrée. */
+}
+
+/* Fenetre plus large que les 6 tuiles historiques. Un couple (3, 10)
+ * n'est pas couvert par deux boucles qui partent a 7 : les deux indices
+ * vont de 1 a `limit`. Rien n'est pose : chaque essai a son AITestMode. */
+function OpexV233LScanSwitch(tilesFrom, tilesTo, atEnd, outbound, limit, usedFrom, usedTo)
+{
+  if (tilesFrom == null || tilesTo == null) return null;
+  local lastFrom = tilesFrom.len() - 1;
+  local lastTo = tilesTo.len() - 1;
+  for (local dFrom = 1; dFrom <= limit; dFrom++) {
+    local iFrom = atEnd ? lastFrom - dFrom : dFrom;
+    if (atEnd) {
+      if (iFrom <= 1 || iFrom >= lastFrom) continue;
+    } else if (iFrom <= 0 || iFrom >= lastFrom - 2) continue;
+    if (iFrom == usedFrom) continue;
+    for (local dTo = 1; dTo <= limit; dTo++) {
+      local iTo = atEnd ? lastTo - dTo : dTo;
+      if (atEnd) {
+        if (iTo <= 1 || iTo >= lastTo) continue;
+      } else if (iTo <= 0 || iTo >= lastTo - 2) continue;
+      if (iTo == usedTo) continue;
+      local aPrev = tilesFrom[iFrom];
+      local a = tilesFrom[iFrom];
+      local b = tilesTo[iTo];
+      local bNext = tilesTo[iTo];
+      if (!atEnd && outbound) {
+        aPrev = tilesFrom[iFrom - 1];
+        bNext = tilesTo[iTo + 1];
+      } else if (!atEnd) {
+        aPrev = tilesFrom[iFrom + 1];
+        bNext = tilesTo[iTo - 1];
+      } else if (outbound) {
+        aPrev = tilesFrom[iFrom + 1];
+        bNext = tilesTo[iTo - 1];
+      } else {
+        aPrev = tilesFrom[iFrom - 1];
+        bNext = tilesTo[iTo + 1];
+      }
+      local ok = false;
+      {
+        local testMode = AITestMode();
+        ok = OpexV181TryBuildSwitch(aPrev, a, b, bNext, null, true);
+      }
+      if (ok) return { fromIdx = iFrom, toIdx = iTo };
+    }
+  }
+  return null;
+}
+
+/* Index de signal sur le trace reel. Le raccord brut peut etre hors trace :
+ * le signal reste sur la voie, juste avant le bout concerne. */
+function OpexV233LClampIndex(tiles, atEnd, tile)
+{
+  if (tiles == null || tiles.len() < 4) return -1;
+  local n = tiles.len();
+  local start = atEnd ? n - 12 : 1;
+  if (start < 1) start = 1;
+  local stop = atEnd ? n - 2 : 12;
+  if (stop > n - 2) stop = n - 2;
+  if (stop < start) stop = start;
+  local best = start;
+  local bestDist = 100000;
+  if (tile != null && AIMap.IsValidTile(tile)) {
+    for (local i = start; i <= stop; i++) {
+      local dist = AIMap.DistanceManhattan(tiles[i], tile);
+      if (dist < bestDist) { bestDist = dist; best = i; }
+    }
+  }
+  if (best <= 1) best = 2;
+  if (best >= n - 1) best = n - 2;
+  return best;
+}
+
+/* Distance du lead au bout du trace. Le but atteint par la voie 2 est le
+ * lead le plus proche, pas forcement la sortie choisie par la voie 1. */
+function OpexV233LEndRank(tiles, atEnd, lead)
+{
+  if (tiles == null || lead == null || !AIMap.IsValidTile(lead)) return 100000;
+  local n = tiles.len();
+  local start = atEnd ? n - 12 : 0;
+  if (start < 0) start = 0;
+  local stop = atEnd ? n - 1 : 11;
+  if (stop >= n) stop = n - 1;
+  local best = 100000;
+  for (local i = start; i <= stop; i++) {
+    local dist = AIMap.DistanceManhattan(tiles[i], lead);
+    if (dist < best) best = dist;
+  }
+  return best;
+}
+
+/* Aiguillage sur les leads paralleles, meme si un des deux n'est pas sur
+ * le trace. La gare n'est que tPrev. L'entree est un pas plus loin, pour
+ * ne pas reutiliser le milieu de la sortie. */
+function OpexV233LRawSwitch(exitFrom, leadFrom, exitTo, leadTo, outbound)
+{
+  if (exitFrom == null || leadFrom == null || exitTo == null || leadTo == null) return null;
+  local dx = AIMap.GetTileX(leadTo) - AIMap.GetTileX(exitTo);
+  local dy = AIMap.GetTileY(leadTo) - AIMap.GetTileY(exitTo);
+  if (dx * dx + dy * dy != 1) return null;
+  local aPrev = exitFrom;
+  local a = leadFrom;
+  local b = leadTo;
+  local bNext = OpexV190MakeTile(leadTo, dx, dy);
+  if (!outbound) {
+    aPrev = OpexV190MakeTile(leadFrom, 2 * dx, 2 * dy);
+    a = OpexV190MakeTile(leadFrom, dx, dy);
+    b = OpexV190MakeTile(leadTo, dx, dy);
+    bNext = leadTo;
+  }
+  if (aPrev == null || a == null || b == null || bNext == null) return null;
+  local ok = false;
+  {
+    local testMode = AITestMode();
+    ok = OpexV181TryBuildSwitch(aPrev, a, b, bNext, null, true);
+  }
+  if (!ok) return null;
+  return { raw = 1, aPrev = aPrev, a = a, b = b, bNext = bNext, fromIdx = 2, toIdx = 2 };
+}
+
+/* Les deux bouts d'un quai traversant. Le plus proche du trace de la voie 2
+ * est essaye d'abord : l'autre bout reserve depuis 27d4df81 peut etre le
+ * seul ou les voies se rejoignent. */
+function OpexV233LRecoverEnd(line, tiles1, tiles2, atEnd)
+{
+  local plan1 = atEnd ? (("platformB" in line) ? line.platformB : null)
+      : (("platformA" in line) ? line.platformA : null);
+  local plan2 = atEnd ? (("platformB2" in line) ? line.platformB2 : null)
+      : (("platformA2" in line) ? line.platformA2 : null);
+  if (plan1 == null || plan2 == null) return null;
+  if (!("lead" in plan1) || !("lead" in plan2)) return null;
+  local selected = { exit1 = plan1.station_exit, lead1 = plan1.lead,
+    exit2 = plan2.station_exit, lead2 = plan2.lead };
+  local specs = [];
+  local other1 = OpexV233LOtherParallel(plan1);
+  local other2 = OpexV233LOtherParallel(plan2);
+  local other = null;
+  if (other1 != null && other2 != null) {
+    other = { exit1 = other1.station_exit, lead1 = other1.lead,
+      exit2 = other2.station_exit, lead2 = other2.lead };
+  }
+  local rankSel = OpexV233LEndRank(tiles2, atEnd, selected.lead2);
+  local rankOther = other != null ? OpexV233LEndRank(tiles2, atEnd, other.lead2) : 100000;
+  if (other == null || rankSel <= rankOther) {
+    specs.append(selected);
+    if (other != null) specs.append(other);
+  } else {
+    specs.append(other);
+    specs.append(selected);
+  }
+  local tilesFrom = atEnd ? tiles1 : tiles2;
+  local tilesTo = atEnd ? tiles2 : tiles1;
+  local bestOut = null;
+  local bestIn = null;
+  foreach (spec in specs) {
+    local exitFrom = atEnd ? spec.exit1 : spec.exit2;
+    local leadFrom = atEnd ? spec.lead1 : spec.lead2;
+    local exitTo = atEnd ? spec.exit2 : spec.exit1;
+    local leadTo = atEnd ? spec.lead2 : spec.lead1;
+    if (bestOut == null) {
+      local sw = OpexV233LRawSwitch(exitFrom, leadFrom, exitTo, leadTo, true);
+      if (sw != null) {
+        sw.fromIdx = OpexV233LClampIndex(tilesFrom, atEnd, leadFrom);
+        sw.toIdx = OpexV233LClampIndex(tilesTo, atEnd, leadTo);
+        if (sw.fromIdx < 2) sw.fromIdx = 2;
+        if (sw.toIdx < 2) sw.toIdx = 2;
+        bestOut = sw;
+        if (DECISION_LOG) OpexV233LLog("SWITCH", "end=" + (atEnd ? "B" : "A")
+            + " dir=out raw=1 lead1=" + leadFrom + " lead2=" + leadTo
+            + " fromIdx=" + sw.fromIdx + " toIdx=" + sw.toIdx);
+      }
+    }
+    if (bestIn == null) {
+      local swIn = OpexV233LRawSwitch(exitFrom, leadFrom, exitTo, leadTo, false);
+      if (swIn != null) {
+        local fromIdx = OpexV233LClampIndex(tilesFrom, atEnd, leadFrom);
+        local toIdx = OpexV233LClampIndex(tilesTo, atEnd, leadTo);
+        if (fromIdx < 2) fromIdx = 2;
+        if (toIdx < 2) toIdx = 2;
+        if (bestOut != null && fromIdx == bestOut.fromIdx) fromIdx = fromIdx > 2 ? fromIdx - 1 : fromIdx + 1;
+        if (bestOut != null && toIdx == bestOut.toIdx) toIdx = toIdx > 2 ? toIdx - 1 : toIdx + 1;
+        swIn.fromIdx = fromIdx;
+        swIn.toIdx = toIdx;
+        bestIn = swIn;
+        if (DECISION_LOG) OpexV233LLog("SWITCH", "end=" + (atEnd ? "B" : "A")
+            + " dir=in raw=1 lead1=" + leadFrom + " lead2=" + leadTo
+            + " fromIdx=" + swIn.fromIdx + " toIdx=" + swIn.toIdx);
+      }
+    }
+  }
+  if (bestOut == null && bestIn == null) return null;
+  return { outbound = bestOut, inbound = bestIn };
+}
+
+/* Apres la fenetre de 6. D'abord 24 tuiles sur les traces, puis le lead
+ * parallele du bout effectivement atteint, y compris l'autre extremite. */
+function OpexV233LRecoverSwitches(line, tiles1, tiles2, outA, inA, outB, inB)
+{
+  if (outA == null) outA = OpexV233LScanSwitch(tiles2, tiles1, false, true, 24, -1, -1);
+  if (outA != null && inA == null) {
+    local skipFrom = ("fromIdx" in outA) ? outA.fromIdx : -1;
+    local skipTo = ("toIdx" in outA) ? outA.toIdx : -1;
+    inA = OpexV233LScanSwitch(tiles2, tiles1, false, false, 24, skipFrom, skipTo);
+  }
+  if (outB == null) outB = OpexV233LScanSwitch(tiles1, tiles2, true, true, 24, -1, -1);
+  if (outB != null && inB == null) {
+    local skipFrom = ("fromIdx" in outB) ? outB.fromIdx : -1;
+    local skipTo = ("toIdx" in outB) ? outB.toIdx : -1;
+    inB = OpexV233LScanSwitch(tiles1, tiles2, true, false, 24, skipFrom, skipTo);
+  }
+  if (outA == null || inA == null) {
+    local endA = OpexV233LRecoverEnd(line, tiles1, tiles2, false);
+    if (endA != null) {
+      if (outA == null) outA = endA.outbound;
+      if (inA == null) inA = endA.inbound;
+    }
+  }
+  if (outB == null || inB == null) {
+    local endB = OpexV233LRecoverEnd(line, tiles1, tiles2, true);
+    if (endB != null) {
+      if (outB == null) outB = endB.outbound;
+      if (inB == null) inB = endB.inbound;
+    }
+  }
+  return { outA = outA, inA = inA, outB = outB, inB = inB };
+}
+
+/* Pose reelle. Un raccord brut n'est pas indexe sur le trace : ses quatre
+ * tuiles ont ete choisies sur les leads. Sinon, memes arguments que V181. */
+function OpexV233LPlaceSwitch(sw, tilesFrom, tilesTo, atEnd, outbound, placed)
+{
+  if (sw == null || !("fromIdx" in sw) || !("toIdx" in sw)) return false;
+  if (("raw" in sw) && sw.raw == 1)
+    return OpexV181TryBuildSwitch(sw.aPrev, sw.a, sw.b, sw.bNext, placed, false);
+  local iFrom = sw.fromIdx;
+  local iTo = sw.toIdx;
+  if (tilesFrom == null || tilesTo == null) return false;
+  if (iFrom <= 0 || iTo <= 0 || iFrom >= tilesFrom.len() - 1 || iTo >= tilesTo.len() - 1) return false;
+  if (!atEnd && outbound)
+    return OpexV181TryBuildSwitch(tilesFrom[iFrom - 1], tilesFrom[iFrom], tilesTo[iTo], tilesTo[iTo + 1], placed, false);
+  if (!atEnd)
+    return OpexV181TryBuildSwitch(tilesFrom[iFrom + 1], tilesFrom[iFrom], tilesTo[iTo], tilesTo[iTo - 1], placed, false);
+  if (outbound)
+    return OpexV181TryBuildSwitch(tilesFrom[iFrom + 1], tilesFrom[iFrom], tilesTo[iTo], tilesTo[iTo - 1], placed, false);
+  return OpexV181TryBuildSwitch(tilesFrom[iFrom - 1], tilesFrom[iFrom], tilesTo[iTo], tilesTo[iTo + 1], placed, false);
 }

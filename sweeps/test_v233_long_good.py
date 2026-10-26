@@ -755,6 +755,119 @@ class V233LongGoodContracts(unittest.TestCase):
         self.assertEqual(min(8000, max(1000, 8 * 8 * 48)), 3072)
         self.assertLess(right, length)
 
+    def test_track9_false_clear_and_opposite_end_switches(self):
+        """Smoke 12, 6172->21717, map 256.
+
+        1974-09-07 NOPA idx=138 kind=clear error=260: the failed tile is
+        flat and buildable, so it was named clear, and the goal stayed on
+        that span (budget floor 1000, nine iterations). Ground under a
+        bridge is that tile. A refused or overhead successor extends the
+        zone; a truly open next tile still stops at 138.
+
+        1974-12 NO_SW_OUT_B: parallel quay B is present. Track 1 leaves
+        south at (219, 85). Track 2's south corridor dies on the house at
+        (218, 87); the reserved launch is only lenient, so the other end
+        (218, 82) stays a goal. The last six tiles of those opposite
+        arrivals are more than two tiles apart. The parallel leads are one
+        tile apart and the station is only the previous tile.
+        """
+        kind = body("v233_long_good.nut", "OpexV233LOccupantKind")
+        for label in ('"tree"', '"rock"', '"field"', '"rough"', '"above"'):
+            self.assertIn(label, kind)
+        self.assertLess(kind.index("IsBridgeTile"), kind.index("IsRailTile"))
+        self.assertLess(kind.index('return "slope"'), kind.index("OpexV233LBridgeAbove"))
+        self.assertLess(kind.index("OpexV233LBridgeAbove"), kind.index('return "clear"'))
+        above = body("v233_long_good.nut", "OpexV233LBridgeAbove")
+        self.assertIn("GetOtherBridgeEnd", above)
+        self.assertIn("step <= 32", above)
+        self.assertNotIn(".find(", above)
+        self.assertNotIn("function(", above)
+        opened = body("v233_long_good.nut", "OpexV233LPoseOpen")
+        for label in ('"clear"', '"slope"', '"tree"', '"field"', '"rock"', '"rough"'):
+            self.assertIn(label, opened)
+        self.assertNotIn('"above"', opened)
+        refused = body("v233_long_good.nut", "OpexV233LRailRefused")
+        self.assertIn("ERR_ALREADY_BUILT", refused)
+        self.assertIn("ERR_NOT_ENOUGH_CASH", refused)
+        self.assertIn("AIRail.BuildRail(prev, cur, next)", refused)
+        span = body("v233_long_good.nut", "OpexV233LPoseSpan")
+        self.assertIn("guard < 24", span)
+        self.assertIn("OpexV233LPoseOpen(kind)", span)
+        self.assertIn("OpexV233LRailRefused(tiles[last], tiles[nxt], tiles[after])", span)
+        self.assertIn("AIMap.DistanceManhattan(tiles[last], tiles[nxt])", span)
+        suffix = body("v233_long_good.nut", "OpexV233LPoseSuffix")
+        for token in (" cur=", " prev=", " prev_kind=", " next=", " next_kind=",
+                      " anchor=", " goal=", " iters=", " budget="):
+            self.assertIn(token, suffix)
+        self.assertIn("OpexV233LPoseSuffix", body("v233_long_good.nut", "OpexV233LPoseLog"))
+        repair = body("v233_long_good.nut", "OpexV233LRepairPose")
+        self.assertIn("phase=repair reason=OK", repair)
+        self.assertIn("OpexV233LPoseSuffix", repair)
+        self.assertLess(repair.index("return null"), repair.index("ctx.repairs >= 3"))
+        self.assertLess(repair.index("ctx.repairs >= 3"), repair.index("OpexV233LDropBuilt"))
+
+        open_kinds = {"clear", "slope", "tree", "field", "rock", "rough"}
+
+        def pose_span(kinds, blocked, index=138, length=301):
+            last = index
+            guard = 0
+            while last + 1 < length - 1 and guard < 24:
+                nxt = last + 1
+                if kinds[nxt] in open_kinds and not blocked.get(nxt, False):
+                    break
+                last = nxt
+                guard += 1
+            return last
+
+        clear = {i: "clear" for i in range(120, 160)}
+        self.assertEqual(pose_span(clear, {}), 138)
+        overhead = dict(clear)
+        for tile in range(139, 146):
+            overhead[tile] = "above"
+        self.assertEqual(pose_span(overhead, {}), 145)
+        # Goal is the first adjacent pair after the zone: 147, lead 146.
+        self.assertEqual(145 + 2, 147)
+        self.assertEqual(min(8000, max(1000, (145 - 138 + 1) * (145 - 138 + 1) * 48)), 3072)
+        refused_run = dict(clear)
+        blocked = {139: True, 140: True}
+        self.assertEqual(pose_span(refused_run, blocked), 140)
+
+        convert = body("builder_rail.nut", "OpexConvertDoubleTrackToLoop")
+        self.assertLess(convert.index("OpexV233LRecoverSwitches"), convert.index("NO_SW_OUT_B"))
+        self.assertLess(convert.index('("v233" in line) && line.v233 == 1'), convert.index("NO_SW_OUT_B"))
+        self.assertIn("OpexV233LPlaceSwitch", convert)
+        self.assertIn("OpexV181TryBuildSwitch(tiles1[switchOutB.fromIdx + 1]", convert)
+        self.assertIn('"fromIdx" in switchOutB', convert)
+        self.assertIn('"toIdx" in switchOutB', convert)
+        execute = body("builder_rail.nut", "OpexV190ExecuteRailPlan")
+        self.assertIn("v233 = OpexV233LIs(candidate) ? 1 : 0", execute)
+        recover = body("v233_long_good.nut", "OpexV233LRecoverEnd")
+        self.assertIn("OpexV233LOtherParallel", recover)
+        self.assertIn("OpexV233LRawSwitch", recover)
+        place = body("v233_long_good.nut", "OpexV233LPlaceSwitch")
+        self.assertIn("sw.raw == 1", place)
+        self.assertIn("sw.aPrev, sw.a, sw.b, sw.bNext", place)
+        for token in (".find(", "function("):
+            self.assertNotIn(token, recover)
+            self.assertNotIn(token, place)
+            self.assertNotIn(token, body("v233_long_good.nut", "OpexV233LScanSwitch"))
+
+        def manh(a, b):
+            return abs(a[0] - b[0]) + abs(a[1] - b[1])
+
+        # Map 256. South lead of track 1 and the north other-end of track 2.
+        track1_tail = [(219, y) for y in range(85, 91)]
+        track2_tail = [(218, y) for y in range(77, 83)]
+        closest = min(manh(a, b) for a in track1_tail for b in track2_tail)
+        self.assertGreaterEqual(closest, 3)
+        lead1, lead2 = (219, 85), (218, 85)
+        other1, other2 = (219, 82), (218, 82)
+        station1 = (219, 84)
+        self.assertEqual(manh(lead1, lead2), 1)
+        self.assertEqual(manh(other1, other2), 1)
+        self.assertNotEqual(station1, lead1)
+        self.assertEqual(manh((218, 85), (218, 87)), 2)  # house 22490, one step past the south corridor.
+
     def test_setting_bounds_defaults_and_single_read(self):
         block = re.search(r'AddSetting\(\{\s*name = "v233_long_good",.*?\}\);', source("info.nut"), re.S)[0]
         self.assertIn("min_value = 0, max_value = 1", block)

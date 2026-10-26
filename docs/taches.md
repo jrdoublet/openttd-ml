@@ -164,6 +164,32 @@ puis 2 584 tests, OK** (9 ignorés, 2 échecs attendus). Pose moteur
 **non validée** (Docker interdit).
 [Détails](v233_long_good_20261025.md#26-octobre--track8-réparation-de-la-pose).
 
+**26/10 — V233L, TRACK9 après le smoke 12 fourni (local, défaut 0) :**
+graine 100, cinq ans, même ligne `6172→21717`. Le 7 septembre 1974,
+`phase=repair reason=NOPA idx=138 kind=clear error=260` : la tuile
+est plate et constructible, donc nommée `clear`, mais `BuildRail`
+renvoie `ERR_AREA_NOT_CLEAR`. Le cas réel est le sol sous un tablier
+(`IsBridgeTile` ne voit que les rampes ; pas d'API `IsBridgeAbove`),
+ou le voisin du triplet, dont l'occupant n'était pas journalisé.
+Fenêtre d'une tuile, budget plancher 1 000, but encore sur la
+portée (`remaining=8`, file morte en 9 itérations) : le pathfinder
+ne pont pas une tuile plate constructible. `above`, arbre, rocher,
+champ et friche sont nommés ; une tuile libre dont le triplet est
+quand même refusé allonge la zone (plafond 24) et le but atterrit
+après. Trace `prev`/`next`, occupants, ancre, but, itérations et
+budget. Le 24 décembre, plan et quai `stn_a2` réussis, puis
+`LOOPFAIL` `NO_SW_OUT_B` : le quai B parallèle est là (21466) ; la
+voie 1 sort au sud (219, 85), le couloir sud de la voie 2 meurt sur
+la maison 22490, et le lancement ouest n'est que lenient, donc
+l'autre bout nord (21210) reste un but. Les six dernières tuiles de
+ces arrivées opposées sont à plus de deux tuiles. V233L élargit la
+fenêtre à 24 puis pose le raccord sur les leads parallèles du bout
+atteint, gare seulement en tuile précédente. Hors V233L, la fenêtre
+de 6 est inchangée. Suite Python : **62 contrats V233L, puis
+2 585 tests, OK** (9 ignorés, 2 échecs attendus). Pose moteur
+**non validée** (Docker interdit).
+[Détails](v233_long_good_20261025.md#26-octobre--track9-sol-sous-tablier-et-aiguillage-opposé).
+
 ### Priorités ouvertes après les deux références monomodales du 25/10 (sans adoption)
 
 - [ ] **P1 — `rail_long_value_rank` : qualifier et classer le fret long constructible (opt-in, défaut 0 ; coût 4/5).** Ne plus relever globalement les bornes : vérifier site, A*, capital et ROI marginal pour une paire fret ≥160 tuiles, puis la comparer aux projets courts et AIR réellement finançables ; [analyse §4](analyse_rail_vs_air_seul_20261025.md#4-pistes-expérimentales-par-potentiel-de-gain-relatif-au-coût).
