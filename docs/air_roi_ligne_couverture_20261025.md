@@ -51,3 +51,35 @@ ajouter un témoin comparable au moment de la décision et mesurer l'opportunit�
 écartée. Ne pas calibrer un coefficient financier avec les seuls ratios de
 revenu ligne entière / coût prévu, et ne pas lancer de qualification A/B sans
 nouvelle hypothèse et protocole figé.
+
+## 26 octobre — ventilation par bras de construction (sans nouveau banc)
+
+`sweeps/diag_air_roi_ligne_coverage.py` expose `by_build_arm` dans
+`results/air_roi_ligne_arms_40x10_20261026.json`, sur les mêmes 40 journaux
+`reference`. Les **14 anciens compteurs** du rapport du 25 octobre sont
+reproduits **à l'identique** ; seules la ventilation et la distinction
+« nombre d'avions absent » (inconnu) sont ajoutées.
+
+| Bras AIR_BUILD | Lignes bâties | Avec relevé mûr | Sans relevé mûr | Lignes avec changement du **nombre** d'avions | Lignes-années mûres | Lignes-années au nombre d'avions changé |
+|---|---:|---:|---:|---:|---:|---:|
+| `newpair` | 222 | 222 | 0 | 220 | 1 645 | 1 440 |
+| `hubsite` | 986 | 983 | 3 | 929 | 6 667 | 5 495 |
+| `hubhub` | 724 | 716 | 8 | 659 | 4 197 | 3 290 |
+| **Total** | **1 932** | **1 921** | **11** | **1 808** | **12 509** | **10 225** |
+
+Les **12 509** relevés mûrs portent tous un nombre d'avions renseigné, mais
+une même quantité à deux dates ne garantit ni les mêmes avions ni les mêmes
+modèles, et ne prouve pas l'absence de mouvements intermédiaires. Les trois
+bras sont des catégories de projets construits, pas des groupes randomisés.
+`AIR_BUILD.cost` reste un **devis**, aucun coût marginal physique ni profit
+contrefactuel n'a été reconstitué. Cette ventilation ne justifie donc aucun
+recalibrage de ROI, changement de défaut ou adoption.
+
+Reproduction en choisissant un nom de fichier neuf :
+
+```powershell
+python -X utf8 sweeps/diag_air_roi_ligne_coverage.py `
+  --logs results/calibration_pc_20261021/results/calib_duel_40x10_pc_20261021_engine `
+  --out results/air_roi_ligne_arms_40x10_REPRO_NOUVEAU.json
+python -X utf8 -m unittest discover -s sweeps -p test_diag_air_roi_ligne_coverage.py
+```

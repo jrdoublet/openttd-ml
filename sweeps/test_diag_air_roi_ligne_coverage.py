@@ -49,6 +49,44 @@ class AirLineCoverageTests(unittest.TestCase):
         self.assertEqual(got["duplicate_line_year"], 1)
         self.assertEqual(got["mature_line_years_joined"], 1)
 
+    def test_build_arms_keep_maturity_and_unknown_fleet_count_separate(self):
+        rows = [
+            row("1970-1-1", "AIR_BUILD", "arm=newpair line=0 src=1 dst=2 planes=1 cost=900"),
+            row("1970-2-1", "AIR_BUILD", "arm=hubsite line=1 src=2 dst=3 planes=2 cost=100"),
+            row("1970-3-1", "AIR_BUILD", "arm=hubhub line=2 src=2 dst=4 planes=3 cost=90"),
+            row("1972-1-1", "LINE_REVENUE", "mode=air line=0 age=2 year=1972 vehs=1 pred_prof=50 real_prof=10"),
+            row("1972-1-1", "LINE_REVENUE", "mode=air line=1 age=2 year=1972 vehs=3 pred_prof=50 real_prof=10"),
+            row("1972-1-1", "LINE_REVENUE", "mode=air line=2 age=2 year=1972 pred_prof=50 real_prof=10"),
+        ]
+        summary, by_arm = analyse_log(rows, with_arms=True)
+        self.assertEqual(summary["mature_line_years_joined"], 3)
+        self.assertEqual(summary["mature_line_years_fleet_drift"], 1)
+        self.assertEqual(summary["mature_line_years_fleet_unknown"], 1)
+        self.assertEqual(set(by_arm), {"newpair", "hubsite", "hubhub"})
+        self.assertEqual(by_arm["newpair"]["mature_line_years_same_fleet_count"], 1)
+        self.assertEqual(by_arm["hubsite"]["mature_line_years_fleet_count_drift"], 1)
+        self.assertEqual(by_arm["hubhub"]["mature_line_years_fleet_count_unknown"], 1)
+        for arm in by_arm.values():
+            self.assertEqual(arm["builds"], 1)
+            self.assertEqual(arm["cost_quotes_present"], 1)
+
+    def test_directory_build_arm_totals_do_not_double_count_gzip_copies(self):
+        import gzip
+        with tempfile.TemporaryDirectory() as tmp:
+            directory = Path(tmp)
+            text = (row("1970-1-1", "AIR_BUILD", "arm=hubsite line=1 planes=2 cost=100") +
+                    row("1972-1-1", "LINE_REVENUE", "mode=air line=1 age=2 year=1972 vehs=2 pred_prof=20 real_prof=10"))
+            (directory / "reference_seed42_r0.log").write_text(text, encoding="utf-8")
+            with gzip.open(directory / "reference_seed42_r0.log.gz", "wt", encoding="utf-8") as output:
+                output.write(text)
+            (directory / "reference_seed7_r0.log").write_text(
+                row("1970-1-2", "AIR_BUILD", "arm=newpair line=0 planes=1 cost=30"), encoding="utf-8")
+            report = analyse_directory(directory)
+        self.assertEqual(report["n_games"], 2)
+        self.assertEqual(report["counts"]["air_builds_distinct"], 2)
+        self.assertEqual(report["by_build_arm"]["hubsite"]["mature_line_years"], 1)
+        self.assertEqual(report["by_build_arm"]["newpair"]["builds_without_mature_report"], 1)
+
     def test_directory_rejects_contradictory_gz_copy(self):
         import gzip
         with tempfile.TemporaryDirectory() as tmp:
