@@ -20,6 +20,60 @@ from sweeps.pcal03_inventaire import (
 
 
 class TestPcal03Deduplication(unittest.TestCase):
+    def test_same_basename_across_campaigns_keeps_two_file_years(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            paths = []
+            for campaign in ("campaign_a", "campaign_b"):
+                directory = root / campaign
+                directory.mkdir()
+                path = directory / "reference_seed42_r0.log"
+                path.write_text("OPEX 1970-01-01 SPAN id=1 par=0 dep=0 n=air.plans op=100\n",
+                                encoding="utf-8")
+                paths.append(path)
+            parser = EngineLogParser()
+            for path in deduplicate_log_files(paths):
+                parser.parse_file(path)
+            report = compile_pcal03_inventory(parser)
+            self.assertEqual(report["summary"]["num_files"], 2)
+            self.assertEqual(report["summary"]["years_simulated"], 2.0)
+            self.assertEqual(report["posts"]["Poste 1"]["items"]["air.plans"]["total_ops"], 200)
+            self.assertEqual(report["posts"]["Poste 1"]["items"]["air.plans"]["ops_per_year"], 100)
+
+    def test_overlapping_years_from_same_named_logs_not_merged(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            parser = EngineLogParser()
+            for campaign, years in (("campaign_a", (1970, 1971)),
+                                    ("campaign_b", (1971, 1972))):
+                directory = root / campaign
+                directory.mkdir()
+                path = directory / "reference_seed42_r0.log"
+                path.write_text("".join(
+                    f"OPEX {year}-01-01 SPAN id={year} par=0 dep=0 n=air.plans op=100\n"
+                    for year in years), encoding="utf-8")
+                parser.parse_file(path)
+            report = compile_pcal03_inventory(parser)
+            self.assertEqual(report["summary"]["num_files"], 2)
+            self.assertEqual(report["summary"]["years_simulated"], 4.0)
+            self.assertEqual(report["summary"]["min_year"], 1970)
+            self.assertEqual(report["summary"]["max_year"], 1972)
+            self.assertEqual(report["posts"]["Poste 1"]["items"]["air.plans"]["ops_per_year"], 100)
+
+    def test_distinct_names_same_year_keep_distinct_source_id(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            parser = EngineLogParser()
+            for name in ("reference_seed42_r0.log", "variant_seed42_r0.log"):
+                path = root / name
+                path.write_text("OPEX 1970-01-01 SPAN id=1 par=0 dep=0 n=air.plans op=100\n",
+                                encoding="utf-8")
+                parser.parse_file(path)
+            report = compile_pcal03_inventory(parser)
+            self.assertEqual(report["summary"]["num_files"], 2)
+            self.assertEqual(report["summary"]["years_simulated"], 2.0)
+            self.assertEqual(report["posts"]["Poste 1"]["items"]["air.plans"]["ops_per_year"], 100)
+
     def test_profile_examples_use_current_single_mask(self):
         source = (Path(__file__).resolve().parent / "pcal03_inventaire.py").read_text(encoding="utf-8")
         doc = source.split('"""', 2)[1]

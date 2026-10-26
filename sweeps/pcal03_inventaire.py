@@ -164,15 +164,18 @@ class EngineLogParser:
         self.catalog_cost_ops = 0
 
     def parse_file(self, filepath: Path) -> None:
-        filename = filepath.name
-        self.files_parsed.add(filename)
+        # Different campaigns may legitimately reuse the same log basename.
+        # Keep the physical source identity through year and span accounting:
+        # otherwise per-file years collapse while opcode totals still sum.
+        source_id = str(filepath.resolve())
+        self.files_parsed.add(source_id)
         is_gz = filepath.suffix == ".gz"
         open_fn = gzip.open if is_gz else open
         try:
             with open_fn(filepath, "rt", encoding="utf-8", errors="ignore") as f:
                 for line in f:
-                    self._parse_line(filename, line)
-            self._resolve_spans(filename)
+                    self._parse_line(source_id, line)
+            self._resolve_spans(source_id)
         except Exception as e:
             print(f"Erreur de lecture de {filepath}: {e}", file=sys.stderr)
 
