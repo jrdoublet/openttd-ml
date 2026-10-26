@@ -20,6 +20,11 @@ urbaine sans hypothèse ciblée étayée ; V294 clôt ses essais A* non
 qualifiés, tout en conservant leurs livraisons et rejets historiques.
 La première sonde V286 a été instrumentée et validée au smoke moteur ;
 sa tâche reste ouverte pour les livraisons et le coût observateur.
+**La nouvelle tâche LATE-GAME-1 porte ensuite le total à 21 cases ouvertes** :
+20 dossiers à instruire et V261 en attente d'une publication tierce.
+LATE-GAME-1 est bloquée jusqu'à la parité de profit OpexAI/AAAHogEx
+sur les 48 combinaisons date × mode × carte à cinq ans. V240 reste close ;
+V251 et IDLE-1 sont liés à cette reprise tardive.
 Les estimations restent des **ordres de
 grandeur relatifs**, pas une promesse de calendrier. Pour tout code
 comportemental, OFF par défaut, tests/smoke/exposition et portes
@@ -58,6 +63,7 @@ pré-enregistrées restent obligatoires.
 | 17 | V226 | Très élevé ; réseau ferroviaire en araignée | Architecture, Save/Load, A/B | Très élevé |
 | 18 | V251 | Très élevé ; construction d'industries et contrat économique de l'API | Exposition puis A/B | Très élevé |
 | 19 | V291 | Très élevé ; terrassement/canaux uniquement au niveau permissif | Garde de sécurité, exposition, A/B | Très élevé |
+| 20 | LATE-GAME-1 | Très élevé ; V240 clos, V251 et IDLE-1 ; aucun code avant parité ≥100 % sur 1930/1950/1970/1990 × RAIL/AIR/ROAD/multimodal × 256²/512²/1024² | Matrice 48 cellules, cinq ans chacune, puis protocole du nouveau mécanisme | Très élevé |
 
 ## Bloquées : annoter et passer sans nouvelle expérience
 
