@@ -85,6 +85,38 @@ class FirstlineContracts(unittest.TestCase):
         self.assertEqual(result["years"]["1970"]["ratio_sum_observed_to_decision_pct"], 50)
         self.assertEqual(result["years"]["1970"]["bias_decision_minus_observed"], 200)
         self.assertEqual(result["rows"][2]["fleet_changed_since_first_observation"], True)
+        self.assertEqual(result["fleet_id_cohorts_by_year"]["1970"]["same_ids"]["cohort_games"], 1)
+        self.assertEqual(result["fleet_id_cohorts_by_year"]["1972"]["different_ids"]["cohort_games"], 1)
+
+    def test_fleet_id_cohorts_partition_each_year_without_causal_attribution(self):
+        self.log(42, build(predicted=400))
+        self.log(100, build(predicted=800))
+        self.log(7, build(predicted=1200))
+        unknown = snapshot(7, "1971-01-01", profit=200)
+        unknown["line_telemetry"]["lines"][0]["vehicle_ids"] = None
+        self.write_snapshots([
+            snapshot(42, "1970-3-01", ids=(8, 10)),
+            snapshot(100, "1970-3-01", ids=(11, 12)),
+            snapshot(42, "1971-01-01", profit=200, ids=(8, 10)),
+            snapshot(100, "1971-01-01", profit=100, ids=(11, 13)),
+            unknown,
+        ])
+        report = analyze(self.logs, self.snapshots, 3)
+        cohort = report["fleet_id_cohorts_by_year"]["1970"]
+        self.assertEqual([cohort[label]["cohort_games"] for label in
+                          ("same_ids", "different_ids", "unknown_ids")], [1, 1, 1])
+        self.assertEqual(sum(item["observed_games"] for item in cohort.values()), 3)
+        self.assertEqual(cohort["same_ids"]["ratio_sum_observed_to_decision_pct"], 50)
+        self.assertEqual(cohort["different_ids"]["ratio_sum_observed_to_decision_pct"], 12.5)
+        self.assertEqual(cohort["unknown_ids"]["observed_games"], 1)
+        self.assertEqual(cohort["unknown_ids"]["ratio_sum_observed_to_decision_pct"], 16.667)
+        self.assertEqual(report["years"]["1970"]["observed_games"], 3)
+        # The other two accounting years are not silently treated as zero.
+        for year in ("1971", "1972"):
+            missing = report["fleet_id_cohorts_by_year"][year]["unknown_ids"]
+            self.assertEqual(missing["cohort_games"], 3)
+            self.assertEqual(missing["observed_games"], 0)
+            self.assertIsNone(missing["mean_observed_profit"])
 
     def test_other_company_and_wrong_station_are_never_used(self):
         self.log(42)

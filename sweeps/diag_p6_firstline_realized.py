@@ -276,6 +276,22 @@ def _statistics(rows, expected):
     }
 
 
+def _fleet_id_cohorts(rows):
+    """Endpoint aircraft-ID agreement only, not proof of unchanged operations."""
+    labels = ("same_ids", "different_ids", "unknown_ids")
+    grouped = {label: [] for label in labels}
+    for row in rows:
+        changed = row["fleet_changed_since_first_observation"]
+        label = "unknown_ids" if changed is None else (
+            "different_ids" if changed else "same_ids")
+        grouped[label].append(row)
+    return {
+        label: {"cohort_games": len(grouped[label]),
+                **_statistics(grouped[label], len(grouped[label]))}
+        for label in labels
+    }
+
+
 def analyze(logs, snapshots, expected_games=40):
     games = collect_builds(logs)
     if len(games) != expected_games:
@@ -315,6 +331,9 @@ def analyze(logs, snapshots, expected_games=40):
         },
         "games": len(games),
         "years": {str(year): _statistics(cohorts[year], len(games)) for year in YEARS},
+        "fleet_id_cohorts_by_year": {
+            str(year): _fleet_id_cohorts(cohorts[year]) for year in YEARS
+        },
         "rows": details,
         "limitations": [
             "1970 first-line operation starts after January 1; year is partial.",
@@ -322,6 +341,11 @@ def analyze(logs, snapshots, expected_games=40):
             "decision_capital is a quote, not verified physical CAPEX.",
             "profit_this_year_gbp is grouped current-aircraft earnings, not infra-adjusted ROI.",
             "Fleet rotation can remove historical profits from later snapshots.",
+            "Fleet cohorts compare aircraft IDs only at the earliest 1970 sighting "
+            "and the January checkpoints; equal endpoints do not prove an "
+            "unchanged fleet throughout the accounting year.",
+            "Fleet ID cohorts are selected outcomes, not matched causal arms; "
+            "different aircraft IDs do not isolate the cause of profit drift.",
             "Only constructed lines are observed; no rejected-project counterfactual.",
         ],
     }
