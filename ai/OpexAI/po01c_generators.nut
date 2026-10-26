@@ -2218,7 +2218,17 @@ function OpexPO01CMakePaxCandidate(po01dResult, po01fSitableCache, po01fContext,
   }
   local distance = AIMap.DistanceManhattan(srcTile, dstTile);
   local bounds = OpexCatalogBounds(catalog);
-  if (kind == "pax") {
+  if (DIST_BORNES_UNIFIED) {
+    local w = OpexDistBornesWindow(bounds, "rail", kind == "pax");
+    if (distance < w.minDistance) {
+      stats.distanceShort++;
+      { po01dResult.value = null; return; }
+    }
+    if (distance > w.maxDistance) {
+      stats.distanceLong++;
+      { po01dResult.value = null; return; }
+    }
+  } else if (kind == "pax") {
     if (distance < bounds.railMin) {
       stats.distanceShort++;
       { po01dResult.value = null; return; }

@@ -50,6 +50,8 @@ V269_RELAXED <- false;
 V269_ON <- false;
 /* DIST-BORNES-1 : experiment V276 fret tardif, OFF sur tous les profils. */
 DIST_BORNES_V276_FREIGHT <- false;
+/* DIST-BORNES-1 : table unique des fenetres modales, opt-in strictement OFF. */
+DIST_BORNES_UNIFIED <- false;
 /* V190 : lignes rail fret posees en double voie a sens unique des la construction. */
 V190_RAIL_DOUBLE_BUILD <- false;
 /* V197 : double voie guidee (outwardSide pour voie 1, guideTiles pour voie 2). */

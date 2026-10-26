@@ -583,9 +583,66 @@ function OpexCatalogBounds(catalog)
   };
 }
 
+/* DIST-BORNES-1 ON : un seul contrat des distances de candidature par mode.
+ * Donnees uniquement derives de catalog.bounds, aucune API ni mutation.
+ * OFF utilise toujours les anciennes branches de chaque consommateur.
+ * maxDistance=-1 designe l'absence de plafond Manhattan (AIR). */
+function OpexDistBornesWindow(bounds, mode, pax = false, paxBand = PAX_BAND_ALL)
+{
+  if (mode == "road") {
+    return { minDistance = bounds.roadMin,
+      maxDistance = ("roadGenMax" in bounds) ? bounds.roadGenMax : bounds.roadMax,
+      flightMax = 0 };
+  }
+  if (mode == "rail") {
+    if (!pax) {
+      local cap = bounds.railMax;
+      local relaxed = V269_RAIL_LATE_RELAX > 0 && (V269_RELAXED
+          || (("distBornesV269Relaxed" in bounds) && bounds.distBornesV269Relaxed));
+      if (relaxed && V269_RAIL_MAX_DIST > cap) cap = V269_RAIL_MAX_DIST;
+      return { minDistance = 0, maxDistance = cap, flightMax = 0 };
+    }
+    if (paxBand == PAX_BAND_AIR_RAIL) {
+      return { minDistance = bounds.railAirOverlapMin,
+        maxDistance = bounds.railMax, flightMax = 0 };
+    }
+    if (paxBand == PAX_BAND_RAIL_ONLY) {
+      return { minDistance = bounds.railMin,
+        maxDistance = bounds.railAirOverlapMin - 1, flightMax = 0 };
+    }
+    return { minDistance = bounds.railMin, maxDistance = bounds.railMax, flightMax = 0 };
+  }
+  if (mode == "air") {
+    if (paxBand == PAX_BAND_AIR_ONLY) {
+      return { minDistance = bounds.railMax + 1,
+        maxDistance = -1, flightMax = bounds.airMax };
+    }
+    if (paxBand == PAX_BAND_AIR_RAIL) {
+      return { minDistance = bounds.railAirOverlapMin,
+        maxDistance = bounds.railMax, flightMax = bounds.airMax };
+    }
+    return { minDistance = bounds.airMin, maxDistance = -1, flightMax = bounds.airMax };
+  }
+  return null;
+}
+
+function OpexDistBornesAllows(window, manhattan, flightDistance = 0)
+{
+  if (window == null || manhattan < window.minDistance) return false;
+  if (window.maxDistance >= 0 && manhattan > window.maxDistance) return false;
+  if (window.flightMax > 0 && flightDistance > window.flightMax) return false;
+  return true;
+}
+
 function OpexRoadDistanceAllowed(catalog, distance, stats)
 {
   local b = OpexCatalogBounds(catalog);
+  if (DIST_BORNES_UNIFIED) {
+    local w = OpexDistBornesWindow(b, "road");
+    if (distance < w.minDistance) { stats.roadDistanceShort++; return false; }
+    if (distance > w.maxDistance) { stats.roadDistanceLong++; return false; }
+    return true;
+  }
   if (distance < b.roadMin) {
     stats.roadDistanceShort++;
     return false;
@@ -601,6 +658,9 @@ function OpexRoadDistanceAllowed(catalog, distance, stats)
 function OpexAirPairInBand(catalog, manhattan, flightDistance, paxBand = PAX_BAND_ALL)
 {
   local b = OpexCatalogBounds(catalog);
+  if (DIST_BORNES_UNIFIED)
+    return OpexDistBornesAllows(OpexDistBornesWindow(b, "air", true, paxBand),
+        manhattan, flightDistance);
   if (paxBand == PAX_BAND_AIR_ONLY) {
     if (manhattan <= b.railMax) return false;
   } else if (paxBand == PAX_BAND_AIR_RAIL) {
@@ -614,6 +674,8 @@ function OpexAirPairInBand(catalog, manhattan, flightDistance, paxBand = PAX_BAN
 
 function OpexRailPaxPairInBand(bounds, distance, paxBand)
 {
+  if (DIST_BORNES_UNIFIED)
+    return OpexDistBornesAllows(OpexDistBornesWindow(bounds, "rail", true, paxBand), distance);
   if (paxBand == PAX_BAND_AIR_RAIL) {
     return distance >= bounds.railAirOverlapMin && distance <= bounds.railMax;
   }
@@ -756,7 +818,17 @@ function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, orig
   }
   local distance = AIMap.DistanceManhattan(srcTile, dstTile);
   local bounds = OpexCatalogBounds(catalog);
-  if (kind == "pax") {
+  if (DIST_BORNES_UNIFIED) {
+    local w = OpexDistBornesWindow(bounds, "rail", kind == "pax");
+    if (distance < w.minDistance) {
+      stats.distanceShort++;
+      return null;
+    }
+    if (distance > w.maxDistance) {
+      stats.distanceLong++;
+      return null;
+    }
+  } else if (kind == "pax") {
     if (distance < bounds.railMin) {
       stats.distanceShort++;
       return null;
@@ -2496,7 +2568,9 @@ function OpexGenerateSubsidyCandidates(catalog, lines, activeSubsidies, stats, a
     // Garde 5 : Distance Manhattan dans les bornes routieres
     local distance = AIMap.DistanceManhattan(srcTile, dstTile);
     local maxDist = ("roadGenMax" in roadBounds) ? roadBounds.roadGenMax : roadBounds.roadMax;
-    if (distance < roadBounds.roadMin || distance > maxDist) continue;
+    if (DIST_BORNES_UNIFIED) {
+      if (!OpexDistBornesAllows(OpexDistBornesWindow(roadBounds, "road"), distance)) continue;
+    } else if (distance < roadBounds.roadMin || distance > maxDist) continue;
 
     // Garde 6 : Liaison deja desservie par le reseau ou abandonnee
     if (abandonedPairs != null) {

@@ -269,6 +269,18 @@ DIST_BORNES_INFO_DELTA = (
 DIST_BORNES_SETTINGS_DELTA = (
     b'  DIST_BORNES_V276_FREIGHT = AIController.GetSetting("dist_bornes_v276_freight") == 1;\n'
 )
+DIST_BORNES_UNIFIED_INFO_DELTA = (
+    b'    AddSetting({\n'
+    b'      name = "dist_bornes_unified",\n'
+    b'      description = "DIST-BORNES-1: 1 = one route, passenger rail, freight rail and air candidate distance window shared by all generators, PO01C, V276 and C42; 0 = historical filters (default)",\n'
+    b'      min_value = 0, max_value = 1,\n'
+    b'      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,\n'
+    b'      default_value = 0, step_size = 1, flags = 0\n'
+    b'    });\n'
+)
+DIST_BORNES_UNIFIED_SETTINGS_DELTA = (
+    b'  DIST_BORNES_UNIFIED = AIController.GetSetting("dist_bornes_unified") == 1;\n'
+)
 DIST_BORNES_DELTAS = {
     "info.nut": DIST_BORNES_INFO_DELTA,
     "settings.nut": DIST_BORNES_SETTINGS_DELTA,
@@ -659,6 +671,71 @@ P3_PROBES_CALLS = (
 )
 
 
+# DIST-BORNES unified ajoute uniquement des branches optionnelles dans les
+# consommateurs synchrones. Verifier les octets revus de chaque ajout puis
+# retrouver l'inventaire historique PO01D sans changer son hash attendu.
+DIST_BORNES_UNIFIED_CANDIDATES_HELPER_SHA256 = (
+    "1396934ce6b8a56bd6f6f122da128505cf3047f6702d70bb124d711ee2c1b2f4"
+)
+
+
+def _strip_dist_bornes_unified_candidates(raw):
+    begin = raw.index(b"/* DIST-BORNES-1 ON : un seul contrat")
+    end = raw.index(b"function OpexRoadDistanceAllowed(", begin)
+    helper = raw[begin:end]
+    assert hashlib.sha256(helper).hexdigest() == DIST_BORNES_UNIFIED_CANDIDATES_HELPER_SHA256, (
+        "DIST-BORNES unified: central function changed without review"
+    )
+    raw = raw[:begin] + raw[end:]
+    replacements = (
+        (
+            '  if (DIST_BORNES_UNIFIED) {\n'
+            '    local w = OpexDistBornesWindow(b, "road");\n'
+            '    if (distance < w.minDistance) { stats.roadDistanceShort++; return false; }\n'
+            '    if (distance > w.maxDistance) { stats.roadDistanceLong++; return false; }\n'
+            '    return true;\n'
+            '  }\n',
+            '',
+        ),
+        (
+            '  if (DIST_BORNES_UNIFIED)\n'
+            '    return OpexDistBornesAllows(OpexDistBornesWindow(b, "air", true, paxBand),\n'
+            '        manhattan, flightDistance);\n',
+            '',
+        ),
+        (
+            '  if (DIST_BORNES_UNIFIED)\n'
+            '    return OpexDistBornesAllows(OpexDistBornesWindow(bounds, "rail", true, paxBand), distance);\n',
+            '',
+        ),
+        (
+            '  if (DIST_BORNES_UNIFIED) {\n'
+            '    local w = OpexDistBornesWindow(bounds, "rail", kind == "pax");\n'
+            '    if (distance < w.minDistance) {\n'
+            '      stats.distanceShort++;\n'
+            '      return null;\n'
+            '    }\n'
+            '    if (distance > w.maxDistance) {\n'
+            '      stats.distanceLong++;\n'
+            '      return null;\n'
+            '    }\n'
+            '  } else if (kind == "pax") {\n',
+            '  if (kind == "pax") {\n',
+        ),
+        (
+            '    if (DIST_BORNES_UNIFIED) {\n'
+            '      if (!OpexDistBornesAllows(OpexDistBornesWindow(roadBounds, "road"), distance)) continue;\n'
+            '    } else if (distance < roadBounds.roadMin || distance > maxDist) continue;\n',
+            '    if (distance < roadBounds.roadMin || distance > maxDist) continue;\n',
+        ),
+    )
+    for new, old in replacements:
+        new_bytes, old_bytes = new.encode("utf-8"), old.encode("utf-8")
+        assert raw.count(new_bytes) == 1, "DIST-BORNES unified: reviewed synchronous branch changed"
+        raw = raw.replace(new_bytes, old_bytes, 1)
+    return raw
+
+
 def historical_bytes(name, raw):
     shadow_delta = MULTI1_ROAD_CARGO_DELTAS.get(name)
     if shadow_delta is not None:
@@ -696,7 +773,13 @@ def historical_bytes(name, raw):
     if dist_delta is not None:
         assert raw.count(dist_delta) == 1, f"DIST-BORNES {name}: opt-in fragment changed"
         raw = raw.replace(dist_delta, b"", 1)
+    unified_delta = {"info.nut": DIST_BORNES_UNIFIED_INFO_DELTA,
+                     "settings.nut": DIST_BORNES_UNIFIED_SETTINGS_DELTA}.get(name)
+    if unified_delta is not None:
+        assert raw.count(unified_delta) == 1, f"DIST-BORNES unified {name}: opt-in fragment changed"
+        raw = raw.replace(unified_delta, b"", 1)
     if name == "candidates.nut":
+        raw = _strip_dist_bornes_unified_candidates(raw)
         edited, previous = DIST_BORNES_CANDIDATE_EDIT
         assert raw.count(edited) == 1, "DIST-BORNES candidates: reviewed opt-in guard changed"
         raw = raw.replace(edited, previous, 1)

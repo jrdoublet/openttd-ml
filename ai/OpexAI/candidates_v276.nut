@@ -60,7 +60,8 @@ function OpexV276Request(catalog, kind = null, id = -1)
    * tardif demande une seconde passe, avec son contexte capture au tick
    * demandeur ; les requetes ordinaires suivent la logique historique. */
   if (("v276" in task) && task.v276 != null) {
-    if (DIST_BORNES_V276_FREIGHT && V269_RAIL_LATE_RELAX > 0 && V269_RELAXED) {
+    if ((DIST_BORNES_V276_FREIGHT || DIST_BORNES_UNIFIED)
+        && V269_RAIL_LATE_RELAX > 0 && V269_RELAXED) {
       if (!("v276Request" in task) || task.v276Request == null)
         task.v276Request <- { catalog = catalog, kind = kind, id = id, v269LateFreight = true };
       else {
@@ -75,13 +76,16 @@ function OpexV276Request(catalog, kind = null, id = -1)
   }
   if (!("v276Request" in task) || task.v276Request == null)
     task.v276Request <- { catalog = catalog, kind = kind, id = id,
-      v269LateFreight = DIST_BORNES_V276_FREIGHT && V269_RAIL_LATE_RELAX > 0 && V269_RELAXED };
+      v269LateFreight = DIST_BORNES_V276_FREIGHT
+          ? V269_RAIL_LATE_RELAX > 0 && V269_RELAXED
+          : (DIST_BORNES_UNIFIED && V269_RAIL_LATE_RELAX > 0 && V269_RELAXED) };
   else if (task.v276Request.kind != kind || task.v276Request.id != id) {
     task.v276Request.kind = null;
     task.v276Request.id = -1;
   }
   /* Plusieurs demandes peuvent etre coalescees avant l'execution V276. */
-  if (DIST_BORNES_V276_FREIGHT && V269_RAIL_LATE_RELAX > 0 && V269_RELAXED)
+  if ((DIST_BORNES_V276_FREIGHT || DIST_BORNES_UNIFIED)
+      && V269_RAIL_LATE_RELAX > 0 && V269_RELAXED)
     task.v276Request.v269LateFreight = true;
 }
 
@@ -116,7 +120,7 @@ function OpexV276Start(owner, task)
   catalog.townAcceptors = clone catalog.townAcceptors;
   catalog.bounds = clone OpexCatalogBounds(catalog);
   /* La demande V217 et son execution reprenable ne sont pas le meme tick. */
-  if (DIST_BORNES_V276_FREIGHT)
+  if (DIST_BORNES_V276_FREIGHT || DIST_BORNES_UNIFIED)
     catalog.bounds.distBornesV269Relaxed <- request.v269LateFreight;
   local units = [];
   if (MODE_RAIL) {
@@ -164,12 +168,18 @@ function OpexV276PrepareUnit(s, u)
       && ("distBornesV269Relaxed" in bounds) && bounds.distBornesV269Relaxed
       && V269_RAIL_MAX_DIST > maxDistance) maxDistance = V269_RAIL_MAX_DIST;
   if (u.pax && u.band == PAX_BAND_RAIL_ONLY) maxDistance = bounds.railAirOverlapMin - 1;
+  local unifiedWindow = null;
+  if (DIST_BORNES_UNIFIED) {
+    unifiedWindow = OpexDistBornesWindow(bounds, u.mode, u.pax, u.band);
+    maxDistance = unifiedWindow.maxDistance;
+  }
   local grid = OpexSpatialGrid();
   grid.Build(destinations, maxDistance);
   s.context = { towns = towns, sources = sources, sinks = sinks, townSinks = townSinks,
     destinations = destinations, n = destinations.len(), outer = u.pax ? towns.len() : sources.len(),
     grid = grid, neighbors = null,
     roadStats = { roadDistanceShort = 0, roadDistanceLong = 0 } };
+  if (DIST_BORNES_UNIFIED) s.context.distBornesWindow <- unifiedWindow;
   s.unitEvaluated = 0; s.lastPublished = -1;
   s.unitBest = []; s.pairs = AIList();
   s.phase = "prepare";
@@ -301,7 +311,9 @@ function OpexV276Enumerate(s, u, mark, opsBudget, startTick, deadlineTick)
     }
     local distance = AIMap.DistanceManhattan(src.tile, dst.tile);
     if (u.mode == "rail") {
-      if (!u.pax && DIST_BORNES_V276_FREIGHT
+      if (DIST_BORNES_UNIFIED) {
+        if (!OpexDistBornesAllows(c.distBornesWindow, distance)) continue;
+      } else if (!u.pax && DIST_BORNES_V276_FREIGHT
           && ("distBornesV269Relaxed" in s.catalog.bounds)
           && s.catalog.bounds.distBornesV269Relaxed
           && V269_RAIL_MAX_DIST > s.catalog.bounds.railMax) {
