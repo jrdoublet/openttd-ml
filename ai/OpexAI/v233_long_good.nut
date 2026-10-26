@@ -340,6 +340,52 @@ function OpexV233LPlatformPlans(catalog, candidate, phase = "build")
 function OpexV233LReserveDouble(candidate, plansA, plansB, clearance)
 {
   local ignored = OpexV190MergeIgnoredTiles(clearance, plansA, plansB);
+  /* Un lead libre ne suffit pas : la voie 1 peut fermer ses trois sorties.
+   * Reserver deux pas droits seulement si leur pose native est possible.
+   * Ne jamais interdire une interface primaire ni un quai de l'autre bout. */
+  local primary = {}, platforms = {}, seen = {};
+  foreach (t in ignored) seen[t] <- true;
+  foreach (p in [plansA[0], plansB[0]]) {
+    if (!(p.lead in primary)) primary[p.lead] <- true;
+    for (local i = 0; i < p.length; i++) {
+      local tile = p.anchor + p.step * i;
+      local side = p.parallel.anchor + p.parallel.step * i;
+      if (!(tile in primary)) primary[tile] <- true;
+      if (!(side in platforms)) platforms[side] <- true;
+    }
+  }
+  /* Droit d'abord, puis les deux lateraux. Le retour vers le quai n'est pas
+   * une sortie. NOPA a 5 iterations = file vide des le lead : sans ce couloir
+   * la voie 1 ferme les trois voisins et l'A* secondaire n'a rien a ouvrir. */
+  foreach (p in [plansA[0].parallel, plansB[0].parallel]) {
+    local dx = AIMap.GetTileX(p.lead) - AIMap.GetTileX(p.station_exit);
+    local dy = AIMap.GetTileY(p.lead) - AIMap.GetTileY(p.station_exit);
+    local launched = false;
+    foreach (axis in [[dx, dy], [-dy, dx], [dy, -dx]]) {
+      local ux = axis[0];
+      local uy = axis[1];
+      if (ux == 0 && uy == 0) continue;
+      local front = OpexV190MakeTile(p.lead, ux, uy);
+      local after = OpexV190MakeTile(p.lead, 2 * ux, 2 * uy);
+      if (front == null || after == null || front in primary || after in primary
+          || front in platforms || after in platforms) continue;
+      local usable = false;
+      {
+        local testMode = AITestMode();
+        usable = AIRail.BuildRail(p.station_exit, p.lead, front)
+            && AIRail.BuildRail(p.lead, front, after);
+      }
+      if (!usable) continue;
+      foreach (t in [front, after]) if (!(t in seen)) { ignored.append(t); seen[t] <- true; }
+      if (DECISION_LOG) OpexV233LLog("DOUBLE", "src=" + candidate.src + " dst=" + candidate.dst
+          + " phase=reserve reason=LAUNCH lead=" + p.lead + " front=" + front + " after=" + after
+          + " ux=" + ux + " uy=" + uy);
+      launched = true;
+      break;
+    }
+    if (!launched && DECISION_LOG) OpexV233LLog("DOUBLE", "src=" + candidate.src + " dst=" + candidate.dst
+        + " phase=reserve reason=LAUNCH_NONE lead=" + p.lead);
+  }
   if (DECISION_LOG) OpexV233LLog("DOUBLE", "src=" + candidate.src + " dst=" + candidate.dst
       + " phase=reserve reason=RESERVED tiles=" + ignored.len()
       + " a=" + plansA[0].anchor + " a2=" + plansA[0].parallel.anchor
@@ -370,11 +416,22 @@ function OpexV233LDoublePlatformLog(candidate, platform, side, forbidden)
 
 function OpexV233LPlanDoubleTrack(catalog, candidate, planA, planB, tiles, iterations, deadline, structures)
 {
+  local routeLength = 0;
+  for (local i = 1; i < tiles.len(); i++) routeLength += AIMap.DistanceManhattan(tiles[i - 1], tiles[i]);
+  local supplied = iterations;
+  iterations = OpexV233LDoubleBudget(routeLength);
+  if (DECISION_LOG) OpexV233LLog("DOUBLE", "src=" + candidate.src + " dst=" + candidate.dst
+      + " phase=budget reason=ROUTE_LENGTH length=" + routeLength + " remaining_primary=" + supplied
+      + " budget=" + iterations + " local_cap=" + (iterations / 2));
   if (DECISION_LOG) {
     local forbidden = {};
-    foreach (t in tiles) forbidden[t] <- true;
-    foreach (p in [planA, planB])
-      for (local i = 0; i < p.length; i++) forbidden[p.anchor + p.step * i] <- true;
+    foreach (t in tiles) if (!(t in forbidden)) forbidden[t] <- true;
+    foreach (p in [planA, planB]) {
+      for (local i = 0; i < p.length; i++) {
+        local tile = p.anchor + p.step * i;
+        if (!(tile in forbidden)) forbidden[tile] <- true;
+      }
+    }
     OpexV233LDoublePlatformLog(candidate, planA, "A", forbidden);
     OpexV233LDoublePlatformLog(candidate, planB, "B", forbidden);
   }
@@ -383,6 +440,453 @@ function OpexV233LPlanDoubleTrack(catalog, candidate, planA, planB, tiles, itera
       + " phase=plan reason=" + dual.reason + " step=" + dual.step + " ok=" + (dual.ok ? 1 : 0)
       + " iters=" + dual.iterations + " budget=" + iterations + " skip=" + dual.skip);
   return dual;
+}
+
+/* Budget de recherche de voie 2 independant du reliquat de voie 1. Bornes
+ * experimentales, pas une qualification economique ; deadline commune inchangee. */
+function OpexV233LDoubleBudget(routeLength)
+{
+  return min(24000, max(8000, routeLength * 64));
+}
+
+/* Diagnostic des sorties directionnelles, sans poser ni ouvrir forbidden.
+ * NOPA = file vide, contrairement a ABND ; le nombre de voisins libres
+ * distingue un lead enferme d'un echec plus loin, sans promettre un chemin. */
+function OpexV233LSearchHeadLog(candidate, p, side, forbidden)
+{
+  if (!DECISION_LOG) return;
+  foreach (delta in [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+    local next = OpexV190MakeTile(p.lead, delta[0], delta[1]);
+    if (next == null || next == p.station_exit) continue;
+    local ok = false, error = -1;
+    {
+      local testMode = AITestMode();
+      ok = AIRail.BuildRail(p.station_exit, p.lead, next);
+      if (!ok) error = AIError.GetLastError();
+    }
+    OpexV233LLog("DOUBLE", "src=" + candidate.src + " dst=" + candidate.dst
+        + " phase=head reason=EXIT side=" + side + " exit=" + p.station_exit + " lead=" + p.lead
+        + " next=" + next + " forbidden=" + ((next in forbidden) ? 1 : 0)
+        + " lead_forbidden=" + ((p.lead in forbidden) ? 1 : 0)
+        + " lead_rail=" + (AITile.HasTransportType(p.lead, AITile.TRANSPORT_RAIL) ? 1 : 0)
+        + " next_rail=" + (AITile.HasTransportType(next, AITile.TRANSPORT_RAIL) ? 1 : 0)
+        + " native=" + (ok ? 1 : 0) + " error=" + error);
+  }
+}
+
+/* Meme longueur et selection que OpexBuildTrack : le type le plus rapide de
+ * AIBridgeList_Length(manhattan + 1), celui que la pose utilisera. L'erreur
+ * 260 du smoke est AIError.ERR_AREA_NOT_CLEAR (pas 261, pas une longueur, une
+ * pente ou un type absent : la liste n'etait pas vide). Un autre type de la
+ * meme portee est journalise mais pas retenu : le constructeur partage ne
+ * consomme pas un type par ouvrage et rejoue Begin(). Capturer l'erreur AVANT
+ * tout diagnostic. Aucune demolition. Retour 0 si le type retenu passe. */
+function OpexV233LBridgeProbe(candidate, fromTile, toTile, forbidden)
+{
+  local length = AIMap.DistanceManhattan(fromTile, toTile) + 1;
+  local bridges = AIBridgeList_Length(length);
+  OpexBridgeSortBySpeed(bridges);
+  local bridgeType = bridges.IsEmpty() ? -1 : bridges.Begin();
+  local ok = false, error = -1;
+  if (bridgeType >= 0) {
+    local testMode = AITestMode();
+    ok = AIBridge.BuildBridge(AIVehicle.VT_RAIL, bridgeType, fromTile, toTile);
+    if (!ok) error = AIError.GetLastError();
+  }
+  if (DECISION_LOG) {
+    OpexV233LLog("DOUBLE", "src=" + candidate.src + " dst=" + candidate.dst
+        + " phase=parallel reason=" + (ok ? "BRIDGE_OK" : (bridgeType < 0 ? "NO_BRIDGE_TYPE" : "BRIDGE_NATIVE"))
+        + " tile=" + fromTile + " to=" + toTile + " length=" + length + " bridge_type=" + bridgeType
+        + " rail_type=" + AIRail.GetCurrentRailType() + " error=" + error
+        + " area_not_clear=" + (error == AIError.ERR_AREA_NOT_CLEAR ? 1 : 0)
+        + " dx=" + (AIMap.GetTileX(toTile) - AIMap.GetTileX(fromTile))
+        + " dy=" + (AIMap.GetTileY(toTile) - AIMap.GetTileY(fromTile)));
+    foreach (t in [fromTile, toTile]) {
+      OpexV233LLog("DOUBLE", "src=" + candidate.src + " dst=" + candidate.dst
+          + " phase=bridge_head reason=STATE tile=" + t + " forbidden=" + ((t in forbidden) ? 1 : 0)
+          + " slope=" + AITile.GetSlope(t) + " lo=" + AITile.GetMinHeight(t) + " hi=" + AITile.GetMaxHeight(t)
+          + " owner=" + AITile.GetOwner(t) + " buildable=" + (AITile.IsBuildable(t) ? 1 : 0)
+          + " rail=" + (AITile.HasTransportType(t, AITile.TRANSPORT_RAIL) ? 1 : 0)
+          + " road=" + (AITile.HasTransportType(t, AITile.TRANSPORT_ROAD) ? 1 : 0)
+          + " station=" + (AIRail.IsRailStationTile(t) ? 1 : 0)
+          + " bridge=" + (AIBridge.IsBridgeTile(t) ? 1 : 0)
+          + " tunnel=" + (AITunnel.IsTunnelTile(t) ? 1 : 0));
+    }
+    /* Une obstruction peut etre sous le tablier plutot que sur une tete.
+     * Etat descriptif borne, jamais assimile a la cause native certaine.
+     * Pas d'arithmetique de TileIndex : un pas Y n'est pas +1. */
+    local sameAxis = AIMap.GetTileX(fromTile) == AIMap.GetTileX(toTile)
+        || AIMap.GetTileY(fromTile) == AIMap.GetTileY(toTile);
+    if (!ok && length > 2 && sameAxis) {
+      local udx = AIMap.GetTileX(toTile) - AIMap.GetTileX(fromTile);
+      local udy = AIMap.GetTileY(toTile) - AIMap.GetTileY(fromTile);
+      udx = udx > 0 ? 1 : (udx < 0 ? -1 : 0);
+      udy = udy > 0 ? 1 : (udy < 0 ? -1 : 0);
+      local reported = 0;
+      for (local i = 1; i < length - 1 && reported < 8; i++) {
+        local t = OpexV190MakeTile(fromTile, udx * i, udy * i);
+        if (t == null || (AITile.IsBuildable(t) && !(t in forbidden))) continue;
+        reported++;
+        OpexV233LLog("DOUBLE", "src=" + candidate.src + " dst=" + candidate.dst
+            + " phase=bridge_span reason=STATE tile=" + t + " forbidden=" + ((t in forbidden) ? 1 : 0)
+            + " owner=" + AITile.GetOwner(t) + " hi=" + AITile.GetMaxHeight(t)
+            + " rail=" + (AITile.HasTransportType(t, AITile.TRANSPORT_RAIL) ? 1 : 0)
+            + " road=" + (AITile.HasTransportType(t, AITile.TRANSPORT_ROAD) ? 1 : 0));
+      }
+    }
+    if (!ok && bridgeType >= 0) {
+      for (local alt = bridges.Next(); !bridges.IsEnd(); alt = bridges.Next()) {
+        local altOk = false, altError = -1;
+        {
+          local testMode = AITestMode();
+          altOk = AIBridge.BuildBridge(AIVehicle.VT_RAIL, alt, fromTile, toTile);
+          if (!altOk) altError = AIError.GetLastError();
+        }
+        OpexV233LLog("DOUBLE", "src=" + candidate.src + " dst=" + candidate.dst
+            + " phase=parallel reason=BRIDGE_ALT tile=" + fromTile + " bridge_type=" + alt
+            + " ok=" + (altOk ? 1 : 0) + " error=" + altError
+            + " area_not_clear=" + (altError == AIError.ERR_AREA_NOT_CLEAR ? 1 : 0));
+        if (altOk) break;
+      }
+    }
+  }
+  return ok ? 0 : error;
+}
+
+/* Premiere portion invalide du parallele. Tous les appels sont des tests.
+ * Verifier aussi l'axe des rampes : un saut natif constructible ne prouve
+ * pas son raccordement au prefixe et au suffixe. */
+function OpexV233LParallelIssue(candidate, trace, forbidden)
+{
+  local tiles = trace.tiles;
+  local seen = {};
+  for (local i = 0; i < tiles.len(); i++) {
+    if (tiles[i] in seen) return max(1, i - 1);
+    seen[tiles[i]] <- true;
+    if (i == 0 || i == tiles.len() - 1) continue;
+    local prev = tiles[i - 1], cur = tiles[i], next = tiles[i + 1];
+    if (cur in forbidden) {
+      OpexV233LDoubleTraceLog(candidate, "PRIMARY_COLLISION", cur);
+      return i;
+    }
+    if (i >= 3 && AIMap.DistanceManhattan(prev, cur) == 1
+        && AIMap.DistanceManhattan(tiles[i - 2], prev) == 1
+        && AIMap.DistanceManhattan(tiles[i - 3], tiles[i - 2]) == 1
+        && cur - prev == tiles[i - 3] - tiles[i - 2]) return i - 1;
+    if (AIMap.DistanceManhattan(prev, cur) > 1) continue;
+    local ok = false, error = -1;
+    if (AIMap.DistanceManhattan(cur, next) > 1) {
+      local dist = AIMap.DistanceManhattan(cur, next);
+      local step = (next - cur) / dist;
+      if ((AIMap.GetTileX(cur) != AIMap.GetTileX(next) && AIMap.GetTileY(cur) != AIMap.GetTileY(next))
+          || cur - prev != step || i + 2 >= tiles.len() || tiles[i + 2] - next != step) {
+        OpexV233LDoubleTraceLog(candidate, "RAMP_AXIS", cur);
+        return i;
+      }
+      local kind = OpexPlannedStructureKind(trace.structures, cur, next);
+      if (kind == "tunnel" || (kind == null && AITunnel.GetOtherTunnelEnd(cur) == next)) {
+        local testMode = AITestMode();
+        ok = AITunnel.GetOtherTunnelEnd(cur) == next && AITunnel.BuildTunnel(AIVehicle.VT_RAIL, cur);
+        if (!ok) error = AIError.GetLastError();
+      } else {
+        /* 0 = type le plus rapide accepte. Une erreur native est positive. */
+        error = OpexV233LBridgeProbe(candidate, cur, next, forbidden);
+        ok = error == 0;
+      }
+    } else {
+      local testMode = AITestMode();
+      ok = AIRail.BuildRail(prev, cur, next);
+      if (!ok) error = AIError.GetLastError();
+    }
+    if (!ok) {
+      OpexV233LDoubleTraceLog(candidate, "LOCAL_OBSTACLE", cur, error);
+      return i;
+    }
+  }
+  return -1;
+}
+
+/* Une greffe de chemin conserve les deux interfaces directionnelles et
+ * rejette tout retour sur la voie 1 ou le reste du parallele. */
+function OpexV233LSpliceParallel(tiles, tail, left, right, forbidden)
+{
+  if (tail.len() < 4 || tail[0] != tiles[left] || tail[1] != tiles[left + 1]
+      || tail[tail.len() - 2] != tiles[right - 1] || tail.top() != tiles[right]) return null;
+  local joined = [], seen = {};
+  for (local i = 0; i < left; i++) joined.append(tiles[i]);
+  foreach (t in tail) joined.append(t);
+  for (local i = right + 1; i < tiles.len(); i++) joined.append(tiles[i]);
+  foreach (t in joined) {
+    if (t in seen || t in forbidden) return null;
+    seen[t] <- true;
+  }
+  return joined;
+}
+
+/* Tuiles d'un segment d'axe, offsets inclus. MakeTile evite le retour a la
+ * ligne d'une addition de TileIndex. null si le segment sort de la carte. */
+function OpexV233LCollectAxis(origin, udx, udy, fromOff, toOff)
+{
+  local seq = [];
+  local dir = toOff >= fromOff ? 1 : -1;
+  local guard = 0;
+  for (local off = fromOff; guard < 16; off += dir) {
+    guard++;
+    local t = OpexV190MakeTile(origin, udx * off, udy * off);
+    if (t == null) return null;
+    seq.append(t);
+    if (off == toOff) return seq;
+  }
+  return null;
+}
+
+/* Index du saut a reparer. L'obstacle peut etre la tete (BuildBridge) ou la
+ * tuile de rampe juste avant (BuildRail vers une tete non libre). */
+function OpexV233LBridgeAt(tiles, issue)
+{
+  if (issue < 1 || tiles == null) return -1;
+  if (issue + 2 < tiles.len() && AIMap.DistanceManhattan(tiles[issue], tiles[issue + 1]) > 1) return issue;
+  if (issue + 3 < tiles.len() && AIMap.DistanceManhattan(tiles[issue], tiles[issue + 1]) == 1
+      && AIMap.DistanceManhattan(tiles[issue + 1], tiles[issue + 2]) > 1) return issue + 1;
+  return -1;
+}
+
+/* Glisse le pont parallele le long de son axe, meme longueur d'abord, puis
+ * une portee voisine. Le type reste celui de OpexBuildTrack (le plus rapide
+ * de la nouvelle longueur). Les tetes qui tombent sur la voie 1 ou hors carte
+ * sont refusees. Le raccord est teste en bloc ; rien n'est pose. */
+function OpexV233LSlideBridge(candidate, trace, index, forbidden)
+{
+  local tiles = trace.tiles;
+  if (index < 1 || index + 2 >= tiles.len()) return null;
+  local prev = tiles[index - 1];
+  local cur = tiles[index];
+  local next = tiles[index + 1];
+  local after = tiles[index + 2];
+  local dist = AIMap.DistanceManhattan(cur, next);
+  if (dist < 2) return null;
+  if (AIMap.GetTileX(cur) != AIMap.GetTileX(next) && AIMap.GetTileY(cur) != AIMap.GetTileY(next)) return null;
+  local udx = AIMap.GetTileX(next) - AIMap.GetTileX(cur);
+  local udy = AIMap.GetTileY(next) - AIMap.GetTileY(cur);
+  udx = udx > 0 ? 1 : (udx < 0 ? -1 : 0);
+  udy = udy > 0 ? 1 : (udy < 0 ? -1 : 0);
+  if (cur - prev != (next - cur) / dist || after - next != (next - cur) / dist) return null;
+  local nudges = [
+    [1, 1], [-1, -1], [2, 2], [-2, -2], [3, 3], [-3, -3], [4, 4], [-4, -4],
+    [1, 0], [2, 0], [3, 0], [-1, 0], [-2, 0],
+    [0, 1], [0, 2], [0, 3], [0, -1], [0, -2],
+    [1, 2], [2, 1], [-1, -2], [-2, -1]
+  ];
+  local tries = 0, lastError = -1;
+  foreach (nudge in nudges) {
+    local startOff = nudge[0];
+    local endOff = dist + nudge[1];
+    if (endOff - startOff < 2) continue;
+    local approach = OpexV233LCollectAxis(cur, udx, udy, -1, startOff);
+    local landing = OpexV233LCollectAxis(cur, udx, udy, endOff, dist + 1);
+    if (approach == null || landing == null || approach.len() < 1 || landing.len() < 1) continue;
+    local seq = [];
+    foreach (t in approach) seq.append(t);
+    foreach (t in landing) seq.append(t);
+    local seen = {}, clash = false;
+    foreach (t in seq) {
+      if (t in seen || t in forbidden) { clash = true; break; }
+      seen[t] <- true;
+    }
+    if (clash) continue;
+    for (local k = 0; k < index - 1; k++) if (tiles[k] in seen) { clash = true; break; }
+    if (clash) continue;
+    for (local k = index + 3; k < tiles.len(); k++) if (tiles[k] in seen) { clash = true; break; }
+    if (clash) continue;
+    /* k part de 0 : un decalage negatif place le saut entre seq[0] et seq[1].
+     * Le saut et les rails de raccord sont testes ensemble ; rien n'est pose. */
+    local bridgeType = -1, error = -1, built = true, bridged = false;
+    {
+      local testMode = AITestMode();
+      for (local k = 0; k < seq.len() - 1; k++) {
+        local far = AIMap.DistanceManhattan(seq[k], seq[k + 1]) > 1;
+        if (far) {
+          local length = AIMap.DistanceManhattan(seq[k], seq[k + 1]) + 1;
+          local bridges = AIBridgeList_Length(length);
+          OpexBridgeSortBySpeed(bridges);
+          bridgeType = bridges.IsEmpty() ? -1 : bridges.Begin();
+          if (bridgeType < 0 || !AIBridge.BuildBridge(AIVehicle.VT_RAIL, bridgeType, seq[k], seq[k + 1])) {
+            built = false;
+            error = AIError.GetLastError();
+            break;
+          }
+          bridged = true;
+        } else if (k > 0 && AIMap.DistanceManhattan(seq[k - 1], seq[k]) == 1) {
+          if (!AIRail.BuildRail(seq[k - 1], seq[k], seq[k + 1])) {
+            built = false;
+            error = AIError.GetLastError();
+            break;
+          }
+        }
+      }
+    }
+    tries++;
+    if (!built || !bridged) { lastError = error; continue; }
+    local joined = [];
+    for (local k = 0; k < index - 1; k++) joined.append(tiles[k]);
+    foreach (t in seq) joined.append(t);
+    for (local k = index + 3; k < tiles.len(); k++) joined.append(tiles[k]);
+    local structures = [];
+    local start = approach[approach.len() - 1];
+    local endTile = landing[0];
+    foreach (s in trace.structures) {
+      if (!("from" in s) || !("to" in s)) continue;
+      if (s.from == cur && s.to == next) continue;
+      local kept = false;
+      for (local k = 0; k + 1 < joined.len(); k++) {
+        if (s.from == joined[k] && s.to == joined[k + 1]) { kept = true; break; }
+      }
+      if (kept) structures.append(s);
+    }
+    structures.append({ from = start, to = endTile, kind = "bridge",
+      length = AIMap.DistanceManhattan(start, endTile) });
+    if (DECISION_LOG) OpexV233LLog("DOUBLE", "src=" + candidate.src + " dst=" + candidate.dst
+        + " phase=bridge reason=SLIDE_CANDIDATE from=" + start + " to=" + endTile
+        + " shift=" + startOff + " length=" + (endOff - startOff)
+        + " bridge_type=" + bridgeType + " tries=" + tries);
+    return { tiles = joined, structures = structures };
+  }
+  if (DECISION_LOG) OpexV233LLog("DOUBLE", "src=" + candidate.src + " dst=" + candidate.dst
+      + " phase=bridge reason=SLIDE_NONE tile=" + cur + " tries=" + tries + " error=" + lastError
+      + " area_not_clear=" + (lastError == AIError.ERR_AREA_NOT_CLEAR ? 1 : 0));
+  return null;
+}
+
+/* Bande fermee autour de la fenetre. L'interieur elargi de `margin` reste libre
+ * pour le detour. L'epaisseur vaut la portee max du pathfinder : il n'ajoute
+ * que la tuile d'atterrissage, donc une ligne d'une tuile se saute. Les tuiles
+ * de la fenetre restent hors de la bande. */
+function OpexV233LFence(tiles, left, right, margin, ignored)
+{
+  local minX = 100000, maxX = -1, minY = 100000, maxY = -1, keep = {};
+  for (local i = left; i <= right; i++) {
+    local x = AIMap.GetTileX(tiles[i]);
+    local y = AIMap.GetTileY(tiles[i]);
+    if (x < minX) minX = x;
+    if (x > maxX) maxX = x;
+    if (y < minY) minY = y;
+    if (y > maxY) maxY = y;
+    if (!(tiles[i] in keep)) keep[tiles[i]] <- true;
+  }
+  local mapX = AIMap.GetMapSizeX() - 1;
+  local mapY = AIMap.GetMapSizeY() - 1;
+  local inMinX = minX - margin > 0 ? minX - margin : 0;
+  local inMinY = minY - margin > 0 ? minY - margin : 0;
+  local inMaxX = maxX + margin < mapX ? maxX + margin : mapX;
+  local inMaxY = maxY + margin < mapY ? maxY + margin : mapY;
+  /* i < max_bridge_length, donc un saut de cette epaisseur tombe encore dedans. */
+  local thick = V294_RAIL_BRIDGE_LEN > 1 ? V294_RAIL_BRIDGE_LEN : 6;
+  local outMinX = inMinX - thick > 0 ? inMinX - thick : 0;
+  local outMinY = inMinY - thick > 0 ? inMinY - thick : 0;
+  local outMaxX = inMaxX + thick < mapX ? inMaxX + thick : mapX;
+  local outMaxY = inMaxY + thick < mapY ? inMaxY + thick : mapY;
+  for (local y = outMinY; y <= outMaxY; y++) {
+    local insideY = y >= inMinY && y <= inMaxY;
+    for (local x = outMinX; x <= outMaxX; x++) {
+      if (insideY && x >= inMinX && x <= inMaxX) continue;
+      local t = AIMap.GetTileIndex(x, y);
+      if (!(t in keep)) ignored.append(t);
+    }
+  }
+}
+
+/* Reparer avant toute pose : conserver le parallele dans le PLAN evite
+ * des rails orphelins et laisse devis/rollback integral au constructeur.
+ * D'abord un pont parallele decale, puis trois fenetres (4/8/16 noeuds),
+ * six reparations, moitie du budget total au maximum ; l'autre moitie reste
+ * disponible pour le repli complet. */
+function OpexV233LRepairParallel(candidate, trace, forbidden, planA, planB, budget, deadline)
+{
+  local result = { trace = null, iterations = 0 };
+  local blocked = {};
+  foreach (t, unused in forbidden) blocked[t] <- true;
+  foreach (p in [planA, planB]) {
+    for (local i = 0; i < p.length; i++) {
+      local t = p.anchor + p.step * i;
+      if (t != p.station_exit && !(t in blocked)) blocked[t] <- true;
+    }
+  }
+  for (local repairs = 0; repairs <= 6; repairs++) {
+    if (AIController.GetTick() >= deadline) return result;
+    local issue = OpexV233LParallelIssue(candidate, trace, blocked);
+    if (issue < 0) { result.trace = trace; return result; }
+    local bridgeAt = OpexV233LBridgeAt(trace.tiles, issue);
+    if (bridgeAt >= 0) {
+      local slid = OpexV233LSlideBridge(candidate, trace, bridgeAt, blocked);
+      if (slid != null) {
+        local nextIssue = OpexV233LParallelIssue(candidate, slid, blocked);
+        /* L'index change avec la longueur du detour : comparer la tuile.
+         * Un pont enfin libre doit sortir tout de suite : la boucle se termine
+         * apres le dernier essai et result.trace resterait nul. */
+        local oldHead = trace.tiles[bridgeAt];
+        if (nextIssue < 0 || slid.tiles[nextIssue] != oldHead) {
+          trace = slid;
+          if (DECISION_LOG) OpexV233LLog("DOUBLE", "src=" + candidate.src + " dst=" + candidate.dst
+              + " phase=bridge reason=SLIDE_KEEP tiles=" + trace.tiles.len() + " repairs=" + (repairs + 1));
+          if (nextIssue < 0) {
+            result.trace = trace;
+            return result;
+          }
+          continue;
+        }
+      }
+    }
+    if (repairs == 6 || result.iterations >= budget) return result;
+    local fixed = false;
+    foreach (radius in [4, 8, 16]) {
+      local tiles = trace.tiles;
+      local left = max(0, issue - radius), right = min(tiles.len() - 1, issue + radius + 1);
+      /* Deux interfaces disjointes, jamais un acces hors du trace. */
+      if (left + 1 >= right) continue;
+      /* Interfaces ordinaires : ne jamais couper au milieu d'un ouvrage. */
+      if (AIMap.DistanceManhattan(tiles[left], tiles[left + 1]) != 1
+          || AIMap.DistanceManhattan(tiles[right - 1], tiles[right]) != 1) continue;
+      local ignored = [];
+      foreach (t, unused in blocked) ignored.append(t);
+      for (local i = 0; i < tiles.len(); i++)
+        if (i < left || i > right) ignored.append(tiles[i]);
+      /* Marge libre 20. L'epaisseur du cadre est V294_RAIL_BRIDGE_LEN. */
+      OpexV233LFence(tiles, left, right, 20, ignored);
+      local cap = min(budget - result.iterations, min(4000, max(1000, (right - left) * 64)));
+      if (cap <= 0 || AIController.GetTick() >= deadline) return result;
+      local a = { station_exit = tiles[left], lead = tiles[left + 1] };
+      local b = { station_exit = tiles[right], lead = tiles[right - 1] };
+      local search = OpexSearchPath([a], [b], cap, deadline, ignored);
+      result.iterations += search.iterations;
+      if (DECISION_LOG) OpexV233LLog("DOUBLE", "src=" + candidate.src + " dst=" + candidate.dst
+          + " phase=local reason=" + search.stop + " issue=" + tiles[issue] + " left=" + left + " right=" + right
+          + " radius=" + radius + " iters=" + search.iterations + " budget=" + cap + " spent=" + result.iterations);
+      if (search.path == null || search.path == false) continue;
+      local tail = OpexResolveSearchTiles(search);
+      local joined = OpexV233LSpliceParallel(tiles, tail, left, right, blocked);
+      if (joined == null || !OpexV233LParallelGeometry(candidate, joined) || !OpexJoinPathIsDedicated(joined)) continue;
+      /* Garder seulement les ouvrages encore presents apres remplacement.
+       * Les sauts A* sans metadata restent reconnus par le constructeur. */
+      local structures = [];
+      foreach (s in trace.structures) {
+        for (local i = 0; i + 1 < joined.len(); i++)
+          if (s.from == joined[i] && s.to == joined[i + 1]) { structures.append(s); break; }
+      }
+      foreach (s in OpexResolveSearchStructures(search)) structures.append(s);
+      local patched = { tiles = joined, structures = structures };
+      /* Le detour doit au moins eliminer l'obstacle courant. Le prochain
+       * tour validera tous les autres obstacles et les raccords complets. */
+      local nextIssue = OpexV233LParallelIssue(candidate, patched, blocked);
+      if (nextIssue >= 0 && nextIssue <= left + tail.len() - 2) continue;
+      trace = patched;
+      fixed = true;
+      if (DECISION_LOG) OpexV233LLog("DOUBLE", "src=" + candidate.src + " dst=" + candidate.dst
+          + " phase=local reason=SPLICED tiles=" + joined.len() + " repairs=" + (repairs + 1));
+      break;
+    }
+    if (!fixed) return result;
+  }
+  return result;
 }
 
 /* Vecteurs signes : une difference de TileIndex n'est PAS un TileIndex.

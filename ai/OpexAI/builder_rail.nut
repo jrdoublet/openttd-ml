@@ -2888,7 +2888,12 @@ function OpexV190TraceParallelTrack(tiles1, planA, planB, planA2, planB2, side, 
 
       local plannedKind = OpexPlannedStructureKind(structures1, cur1, next1);
       local structKind = plannedKind;
-      {
+      if (v233Context != null) {
+        /* Ne pas jeter le trace au premier ouvrage refuse : la verification
+         * V233L essaie le pont natif puis un detour local, sans pose partielle. */
+        structKind = plannedKind == "tunnel" || (plannedKind == null
+            && AITunnel.GetOtherTunnelEnd(start2) == end2) ? "tunnel" : "bridge";
+      } else {
         local testMode = AITestMode();
         if (plannedKind == "tunnel" || (plannedKind == null && AITunnel.GetOtherTunnelEnd(start2) == end2)) {
           if (!AITunnel.BuildTunnel(AIVehicle.VT_RAIL, start2)) {
@@ -3154,6 +3159,13 @@ function OpexV190PlanDoubleTrack(catalog, planA, planB, tiles, iterationBudget, 
         continue;
       }
 
+      if (v233Context != null) {
+        local repaired = OpexV233LRepairParallel(v233Context, trace, forbidden, pA, pB,
+            (iterationBudget / 2) - acc.iterations, deadlineTick);
+        acc.iterations += repaired.iterations;
+        trace = repaired.trace;
+        if (trace == null) continue;
+      }
       local candidateTiles = trace.tiles;
       local candidateStructures = trace.structures;
       if (candidateTiles.len() < 3) continue;
@@ -3258,11 +3270,17 @@ function OpexV190PlanDoubleTrack(catalog, planA, planB, tiles, iterationBudget, 
   foreach (tile, ignoredVal in forbidden) ignored.append(tile);
   local searchWeight = OpexRailAstarWeight(AIMap.DistanceManhattan(planA.station_exit, planB.station_exit));
   local guideTiles = V197_GUIDED_DOUBLE ? OpexV197BuildGuideTiles(tiles, 1, forbidden) : null;
+  if (v233Context != null) {
+    iterationBudget -= acc.iterations;
+    foreach (p in dualA) OpexV233LSearchHeadLog(v233Context, p, "A", forbidden);
+    foreach (p in dualB) OpexV233LSearchHeadLog(v233Context, p, "B", forbidden);
+  }
   if (v233Context != null && DECISION_LOG) OpexV233LLog("DOUBLE", "src=" + v233Context.src + " dst=" + v233Context.dst
       + " phase=search reason=BEGIN budget=" + iterationBudget + " ticks_left=" + (deadlineTick - AIController.GetTick())
       + " a=" + dualA.len() + " b=" + dualB.len());
   local search = OpexSearchPath(dualA, dualB, iterationBudget, deadlineTick, ignored, searchWeight, null, guideTiles);
-  acc.iterations = search.iterations;
+  if (v233Context != null) acc.iterations += search.iterations;
+  else acc.iterations = search.iterations;
   if (search.path == false || search.path == null) {
     acc.skip = 3;
     acc.reason = "NOPATH2";

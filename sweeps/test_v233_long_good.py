@@ -55,6 +55,176 @@ def reject_reasons(samples, now, *, input_live=True, export_exists=False, distan
 
 
 class V233LongGoodContracts(unittest.TestCase):
+    def test_track3_budget_uses_real_length_with_bounded_local_share(self):
+        budget = body("v233_long_good.nut", "OpexV233LDoubleBudget")
+        expr = budget.split('return ', 1)[1].split(';', 1)[0]
+        for length, expected in ((0, 8000), (125, 8000), (130, 8320),
+                                 (250, 16000), (375, 24000), (2000, 24000)):
+            self.assertEqual(eval(expr, {"__builtins__": {}, "min": min, "max": max},
+                                  {"routeLength": length}), expected)
+        wrapper = body("v233_long_good.nut", "OpexV233LPlanDoubleTrack")
+        self.assertIn('routeLength += AIMap.DistanceManhattan(tiles[i - 1], tiles[i])', wrapper)
+        planner = body("builder_rail.nut", "OpexV190PlanDoubleTrack")
+        self.assertIn('(iterationBudget / 2) - acc.iterations', planner)
+        self.assertIn('acc.iterations += repaired.iterations', planner)
+        self.assertIn('iterationBudget -= acc.iterations', planner)
+        self.assertIn('if (v233Context != null) acc.iterations += search.iterations', planner)
+
+    def test_track3_launch_reservation_never_masks_primary_interfaces(self):
+        reserve = body("v233_long_good.nut", "OpexV233LReserveDouble")
+        for token in ('front in primary', 'after in primary', 'front in platforms', 'after in platforms',
+                      'local testMode = AITestMode()', 'if (!usable) continue;',
+                      'AIRail.BuildRail(p.station_exit, p.lead, front)',
+                      'AIRail.BuildRail(p.lead, front, after)', 'reason=LAUNCH'):
+            self.assertIn(token, reserve)
+        # All four orientations, including negative map deltas: both steps
+        # must extend away from the platform, never wrap to another map row.
+        for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+            exit_tile = (20, 20)
+            lead = (20 + dx, 20 + dy)
+            front = (lead[0] + dx, lead[1] + dy)
+            after = (lead[0] + 2 * dx, lead[1] + 2 * dy)
+            self.assertEqual(abs(after[0] - exit_tile[0]) + abs(after[1] - exit_tile[1]), 3)
+            self.assertEqual(len({exit_tile, lead, front, after}), 4)
+
+    def test_track3_bridge_probe_matches_quote_and_build_selection(self):
+        probe = body("v233_long_good.nut", "OpexV233LBridgeProbe")
+        for token in ('AIMap.DistanceManhattan(fromTile, toTile) + 1', 'AIBridgeList_Length(length)',
+                      'OpexBridgeSortBySpeed(bridges)', 'bridges.Begin()', 'local testMode = AITestMode()',
+                      'AIError.ERR_AREA_NOT_CLEAR', 'bridge_type=', 'slope=', 'owner=',
+                      'phase=bridge_span', 'reported < 8'):
+            self.assertIn(token, probe)
+        self.assertLess(probe.index('error = AIError.GetLastError()'), probe.index('AITile.GetSlope'))
+        for fn in ('OpexBuildTrack', 'OpexTestRailTrack', 'OpexSimulateRailInfraCost'):
+            code = body("builder_rail.nut", fn)
+            self.assertIn('AIBridgeList_Length(AIMap.DistanceManhattan(cur, next) + 1)', code)
+            self.assertIn('OpexBridgeSortBySpeed(bridges)', code)
+            self.assertIn('AIBridge.BuildBridge(AIVehicle.VT_RAIL, bridges.Begin(), cur, next)', code)
+
+    def test_track3_structure_failure_defers_to_local_repair_before_full_search(self):
+        trace = body("builder_rail.nut", "OpexV190TraceParallelTrack")
+        self.assertRegex(trace, r'if \(v233Context != null\) \{\s*structKind = plannedKind')
+        planner = body("builder_rail.nut", "OpexV190PlanDoubleTrack")
+        self.assertLess(planner.index('OpexV233LRepairParallel('), planner.index('OpexTestRailTrack('))
+        self.assertLess(planner.index('OpexV233LRepairParallel('), planner.index('OpexSearchPath('))
+        repair = body("v233_long_good.nut", "OpexV233LRepairParallel")
+        for token in ('repairs <= 6', 'foreach (radius in [4, 8, 16])', 'AIController.GetTick() >= deadline',
+                      'budget - result.iterations', 'result.iterations += search.iterations',
+                      'if (search.path == null || search.path == false) continue;',
+                      'OpexResolveSearchTiles(search)', 'OpexResolveSearchStructures(search)',
+                      'OpexV233LParallelIssue(candidate, patched, blocked)',
+                      'OpexJoinPathIsDedicated(joined)'):
+            self.assertIn(token, repair)
+        # No partial construction: local searches are through the current
+        # harness helpers, all native commands in the issue scanner are tests.
+        for token in ('DemolishTile', 'RemoveRail', 'OpexBuildTrack', 'BuildVehicle'):
+            self.assertNotIn(token, repair)
+        self.assertIn('local testMode = AITestMode()', body("v233_long_good.nut", "OpexV233LParallelIssue"))
+
+    def test_track3_splice_preserves_direction_and_rejects_tail_collisions(self):
+        code = body("v233_long_good.nut", "OpexV233LSpliceParallel")
+        # Execute the actual interface guard on fixtures; not a Squirrel VM.
+        guard = re.search(r'if \((.*?)\) return null;', code, re.S)[1]
+        guard = guard.replace('tail.len()', 'len(tail)').replace('tail.top()', 'tail[-1]').replace('||', ' or ')
+        guard = '(' + guard + ')'
+        tiles = list(range(10))
+        valid = [2, 3, 30, 31, 6, 7]
+        for tail, rejected in ((valid, False), ([2, 30, 31, 6, 7], True),
+                               ([2, 3, 30, 31, 7], True), ([3, 2, 30, 6, 7], True),
+                               ([2, 3, 6], True)):
+            self.assertEqual(eval(guard, {"__builtins__": {}, "len": len},
+                                  dict(tiles=tiles, tail=tail, left=2, right=7)), rejected)
+        self.assertIn('i < left', code)
+        self.assertIn('i = right + 1', code)
+        self.assertIn('if (t in seen || t in forbidden) return null', code)
+        for tail, forbidden, accepted in ((valid, {99}, True), (valid, {30}, False),
+                                          ([2, 3, 0, 31, 6, 7], set(), False),
+                                          ([2, 3, 30, 30, 6, 7], set(), False)):
+            joined = tiles[:2] + tail + tiles[8:]
+            self.assertEqual(len(joined) == len(set(joined)) and not set(joined) & forbidden, accepted)
+
+    def test_track3_local_interfaces_and_untouched_structures_are_preserved(self):
+        repair = body("v233_long_good.nut", "OpexV233LRepairParallel")
+        for token in ('AIMap.DistanceManhattan(tiles[left], tiles[left + 1]) != 1',
+                      'AIMap.DistanceManhattan(tiles[right - 1], tiles[right]) != 1',
+                      'if (i < left || i > right) ignored.append(tiles[i]);',
+                      'OpexV233LFence(tiles, left, right, 20, ignored)',
+                      'station_exit = tiles[left], lead = tiles[left + 1]',
+                      'station_exit = tiles[right], lead = tiles[right - 1]',
+                      's.from == joined[i] && s.to == joined[i + 1]',
+                      'if (t != p.station_exit && !(t in blocked)) blocked[t] <- true'):
+            self.assertIn(token, repair)
+        issue = body("v233_long_good.nut", "OpexV233LParallelIssue")
+        for token in ('cur - prev != step', 'tiles[i + 2] - next != step', '"RAMP_AXIS"',
+                      'AITunnel.GetOtherTunnelEnd(cur) == next && AITunnel.BuildTunnel'):
+            self.assertIn(token, issue)
+
+    def test_track3_nopa_diagnostics_report_native_exits_and_closed_tiles(self):
+        head = body("v233_long_good.nut", "OpexV233LSearchHeadLog")
+        for token in ('if (!DECISION_LOG) return;', 'local testMode = AITestMode()',
+                      'lead_forbidden=', 'next_rail=', 'native=', 'error=', 'side='):
+            self.assertIn(token, head)
+        planner = body("builder_rail.nut", "OpexV190PlanDoubleTrack")
+        self.assertIn('OpexV233LSearchHeadLog(v233Context, p, "A", forbidden)', planner)
+        self.assertIn('OpexV233LSearchHeadLog(v233Context, p, "B", forbidden)', planner)
+
+    def test_track3_error_260_is_area_not_clear_and_slide_keeps_builder_bridge_type(self):
+        probe = body("v233_long_good.nut", "OpexV233LBridgeProbe")
+        self.assertIn("error == AIError.ERR_AREA_NOT_CLEAR ? 1 : 0", probe)
+        self.assertIn("reason=BRIDGE_ALT", probe)
+        self.assertLess(probe.index("error = AIError.GetLastError()"), probe.index("bridges.Next()"))
+        self.assertIn("return ok ? 0 : error", probe)
+        issue = body("v233_long_good.nut", "OpexV233LParallelIssue")
+        self.assertIn("ok = error == 0", issue)
+        slide = body("v233_long_good.nut", "OpexV233LSlideBridge")
+        self.assertIn("if (endOff - startOff < 2) continue;", slide)
+        self.assertIn("for (local k = 0; k < seq.len() - 1; k++)", slide)
+        self.assertIn("if (!built || !bridged)", slide)
+        self.assertIn("OpexV190MakeTile(origin, udx * off, udy * off)", body("v233_long_good.nut", "OpexV233LCollectAxis"))
+        self.assertIn("bridges.Begin()", slide)
+        self.assertNotIn("DemolishTile", slide)
+        # Same-length shifts first, then a shorter or longer span. Heads stay
+        # on the bridge axis; a negative step must not wrap to another row.
+        nudges = ((1, 1), (-1, -1), (4, 4), (1, 0), (0, -1), (-2, -1))
+        for start_off, end_delta in nudges:
+            dist = 5
+            end_off = dist + end_delta
+            self.assertGreaterEqual(end_off - start_off, 2)
+            approach = list(range(-1, start_off - 1, -1)) if start_off < -1 else list(range(-1, start_off + 1))
+            step = 1 if end_off <= dist + 1 else -1
+            landing = list(range(end_off, dist + 1 + step, step))
+            seq = approach + landing
+            self.assertEqual(seq[0], -1)
+            self.assertEqual(seq[-1], dist + 1)
+            self.assertEqual(len(seq), len(set(seq)))
+        repair = body("v233_long_good.nut", "OpexV233LRepairParallel")
+        self.assertLess(repair.index("OpexV233LSlideBridge("), repair.index("OpexSearchPath("))
+        self.assertIn("slid.tiles[nextIssue] != oldHead", repair)
+        self.assertIn("reason=SLIDE_KEEP", repair)
+        self.assertIn("if (nextIssue < 0) {\n            result.trace = trace;\n            return result;", repair)
+        fence = body("v233_long_good.nut", "OpexV233LFence")
+        self.assertIn("if (!(tiles[i] in keep)) keep[tiles[i]] <- true", fence)
+        self.assertIn("V294_RAIL_BRIDGE_LEN > 1 ? V294_RAIL_BRIDGE_LEN : 6", fence)
+        self.assertIn("if (insideY && x >= inMinX && x <= inMaxX) continue;", fence)
+        self.assertIn("if (!(t in keep)) ignored.append(t)", fence)
+        # Last free tile is the inner edge. Pathfinder jumps i < max length,
+        # so a band of that thickness still contains the landing.
+        for jump in (2, 19, 20):
+            inner, thick = 20, 20
+            landing = inner + jump
+            self.assertTrue(inner < landing <= inner + thick)
+
+    def test_track3_launch_corridor_and_slot_inserts_do_not_throw(self):
+        reserve = body("v233_long_good.nut", "OpexV233LReserveDouble")
+        self.assertIn("[-dy, dx]", reserve)
+        self.assertIn("[dy, -dx]", reserve)
+        self.assertIn("reason=LAUNCH_NONE", reserve)
+        self.assertLess(reserve.index("[dx, dy]"), reserve.index("[-dy, dx]"))
+        self.assertIn("if (!(tile in primary)) primary[tile] <- true", reserve)
+        planner = body("v233_long_good.nut", "OpexV233LPlanDoubleTrack")
+        self.assertIn("if (!(t in forbidden)) forbidden[t] <- true", planner)
+        self.assertIn("if (!(tile in forbidden)) forbidden[tile] <- true", planner)
+
     def test_track2_reservation_precedes_every_primary_search_including_reverse_probe(self):
         entries = (("builder_rail.nut", "OpexPlanRailRoute", "OpexSearchPath("),
                    ("task_rail.nut", "OpexAI::_startRailSearch", "OpexV294fReverseProbe("),

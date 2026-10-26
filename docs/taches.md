@@ -54,6 +54,19 @@ hashes OFF historiques conservés ; nouveau smoke **non exécuté** (Docker inte
 runtime hôte absent). Pose effective et gain économique restent non validés.
 [Diagnostic, corrections et limites](v233_long_good_20261025.md#26-octobre--track2-réservation-de-la-seconde-voie).
 
+**26/10 — V233L, TRACK3 après le smoke6 fourni (local, défaut 0) :** les trois
+tentatives de doublement du log graine 100 valident la réservation et les quais,
+puis jettent le raccourci au premier pont parallèle (`BRIDGE_NATIVE`, erreur 260
+= `AIError.ERR_AREA_NOT_CLEAR`). Le repli A* ne reçoit que le reliquat d'un
+budget 5 000 : `SEARCH_NOPA` à 5 itérations, puis deux `SEARCH_ABND` à 4 154 et
+4 793. Le plan conserve le pont refusé, le glisse sur son axe avec le type le
+plus rapide du constructeur, et ne relance l'A* que sur la portion en échec,
+dans une bande épaisse de `V294_RAIL_BRIDGE_LEN`. Budget de voie 2 borné par la
+longueur réelle, couloir de lancement de deux tuiles, traces `V233L_DOUBLE`,
+rollback intégral, aucun second train sur voie unique. Suite Python :
+**2 576 tests, OK** (9 ignorés, 2 échecs attendus). Pose moteur **non validée**
+(Docker interdit). [Détails](v233_long_good_20261025.md#26-octobre--track3-pont-parallèle-et-repli-local).
+
 ### Priorités ouvertes après les deux références monomodales du 25/10 (sans adoption)
 
 - [ ] **P1 — `rail_long_value_rank` : qualifier et classer le fret long constructible (opt-in, défaut 0 ; coût 4/5).** Ne plus relever globalement les bornes : vérifier site, A*, capital et ROI marginal pour une paire fret ≥160 tuiles, puis la comparer aux projets courts et AIR réellement finançables ; [analyse §4](analyse_rail_vs_air_seul_20261025.md#4-pistes-expérimentales-par-potentiel-de-gain-relatif-au-coût).
