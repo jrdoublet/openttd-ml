@@ -10,6 +10,7 @@ dernier recalcul de note, pas le stock instantane.
 
 import argparse
 from collections import defaultdict
+from datetime import date
 import json
 import math
 from pathlib import Path
@@ -124,9 +125,26 @@ def _quality(line):
 def _flatten(payload, policy_id, map_width):
     rows = []
     snapshots = (payload.get("line_telemetry") or {}).get("snapshots") or []
+    # Les anciens dumps ont un seul checkpoint annuel ; les campagnes recentes
+    # exposent aussi des checkpoints mensuels. Un marche ne peut apparaitre
+    # qu'une fois par partie/annee dans les statistiques annuelles et le matching.
+    last_by_game_year = {}
     for snap in snapshots:
         if snap.get("duel_policy_id") != policy_id:
             continue
+        try:
+            stamp = date.fromisoformat(snap["date"])
+        except (KeyError, TypeError, ValueError) as exc:
+            raise ValueError("checkpoint AIR sans date valide") from exc
+        if stamp.year != snap.get("year"):
+            raise ValueError(f"checkpoint AIR avec annee contradictoire : {snap['date']}")
+        identity = (snap.get("arm"), snap.get("seed"), snap.get("repeat", 0), snap.get("year"))
+        previous = last_by_game_year.get(identity)
+        if previous is None or stamp > previous[0]:
+            last_by_game_year[identity] = (stamp, snap)
+        elif stamp == previous[0] and snap != previous[1]:
+            raise ValueError(f"checkpoints AIR contradictoires : {identity} {stamp}")
+    for _, snap in last_by_game_year.values():
         for line in snap.get("lines") or []:
             if line.get("mode") != "air":
                 continue
