@@ -37,6 +37,8 @@ def count_log(lines):
         "events": Counter(), "ranked_top5": Counter(),
         "ranked_head": Counter(), "chosen": Counter(),
         "rail_attempts": Counter(), "rail_reject_reasons": Counter(),
+        "all_vivier_reject_reasons": Counter(),
+        "other_or_unassigned_reject_reasons": Counter(),
         "discarded": Counter(), "gen_kept": [],
         "gen_examined": [], "mixed_rail": [],
         "rail_candidate_pairs": defaultdict(set),
@@ -98,12 +100,19 @@ def count_log(lines):
         elif event == "VIVIER_REJECT":
             reason = values.get("reason", "?")
             if "n" in values:
-                row["rail_reject_reasons"][reason] += int(values["n"])
+                count = int(values["n"])
+                # VIVIER_REJECT itself has no mode. Only the most recent
+                # VIVIER_GEN can identify its generating mode. Keep the old
+                # all-mode totals separately; do not call ROAD rejects RAIL.
+                row["all_vivier_reject_reasons"][reason] += count
                 # Publishing the rejects of one rail generation may cross a
                 # calendar day. Its lifetime ends at the next VIVIER_GEN,
                 # including one for a different transport mode.
                 if current_generation is not None:
-                    current_generation["rejects"][reason] = int(values["n"])
+                    row["rail_reject_reasons"][reason] += count
+                    current_generation["rejects"][reason] = count
+                else:
+                    row["other_or_unassigned_reject_reasons"][reason] += count
         elif event == "PORTFOLIO_RANK":
             rank = int(values.get("rank", "-1"))
             if 0 <= rank < 5:
@@ -170,6 +179,9 @@ def count_log(lines):
             "chosen_occurrences": dict(row["chosen"]),
             "rail_attempt_occurrences": dict(row["rail_attempts"]),
             "rail_reject_occurrences": dict(row["rail_reject_reasons"]),
+            "all_vivier_reject_occurrences": dict(row["all_vivier_reject_reasons"]),
+            "other_or_unassigned_reject_occurrences": dict(
+                row["other_or_unassigned_reject_reasons"]),
             "discarded_occurrences": dict(row["discarded"]),
             "rail_generation_calls": len(row["gen_kept"]),
             "rail_generated_pairs_examined_sum": sum(row["gen_examined"]),

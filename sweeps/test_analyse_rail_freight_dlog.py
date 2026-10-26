@@ -132,7 +132,41 @@ class RailFreightLogTests(unittest.TestCase):
         first, second = year["rail_generation_details"]
         self.assertEqual(first["rejects"], {})
         self.assertEqual(second["rejects"], {"rail_site": 5})
-        self.assertEqual(year["rail_reject_occurrences"], {"road_site": 99, "rail_site": 5})
+        self.assertEqual(year["rail_reject_occurrences"], {"rail_site": 5})
+        self.assertEqual(year["other_or_unassigned_reject_occurrences"], {"road_site": 99})
+        self.assertEqual(year["all_vivier_reject_occurrences"], {"road_site": 99, "rail_site": 5})
+
+    def test_road_rejects_before_first_rail_generation_are_not_rail(self):
+        rows = [
+            "OPEX 1972-3-1 VIVIER_GEN mode=road produced=9 kept=1\n",
+            "OPEX 1972-3-1 VIVIER_REJECT reason=road_distance_long n=42\n",
+            "OPEX 1972-3-2 VIVIER_GEN mode=rail produced=10 kept=2\n",
+            "OPEX 1972-3-3 VIVIER_REJECT reason=distance_long n=7\n",
+        ]
+        year = count_log(rows)["1972"]
+        self.assertEqual(year["rail_reject_occurrences"], {"distance_long": 7})
+        self.assertEqual(year["other_or_unassigned_reject_occurrences"],
+                         {"road_distance_long": 42})
+
+    def test_rail_reject_after_calendar_year_boundary_remains_rail_only(self):
+        rows = [
+            "OPEX 1974-12-31 VIVIER_GEN mode=rail produced=40 kept=5\n",
+            "OPEX 1975-1-1 VIVIER_REJECT reason=rail_late n=7\n",
+            "OPEX 1975-1-2 VIVIER_GEN mode=road produced=20 kept=2\n",
+            "OPEX 1975-1-2 VIVIER_REJECT reason=road_late n=11\n",
+        ]
+        report = count_log(rows)
+        self.assertEqual(report["1975"]["rail_reject_occurrences"], {"rail_late": 7})
+        self.assertEqual(report["1975"]["other_or_unassigned_reject_occurrences"],
+                         {"road_late": 11})
+        self.assertEqual(report["1974"]["rail_generation_details"][0]["rejects"],
+                         {"rail_late": 7})
+
+    def test_reject_without_prior_generation_is_not_attributed_to_rail(self):
+        year = count_log(["OPEX 1972-3-1 VIVIER_REJECT reason=orphan n=3\n"])["1972"]
+        self.assertEqual(year["rail_reject_occurrences"], {})
+        self.assertEqual(year["other_or_unassigned_reject_occurrences"], {"orphan": 3})
+        self.assertEqual(year["all_vivier_reject_occurrences"], {"orphan": 3})
 
     def test_two_rail_generations_keep_separate_rejects_across_years(self):
         rows = [
