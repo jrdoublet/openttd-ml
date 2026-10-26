@@ -48,7 +48,7 @@ class RailDepotExposureAnalysisTests(unittest.TestCase):
             result = analyse(root, "rail_depot_off", "rail_depot_on")
             row = result["seeds"][0]["first_same_order_rail_economics_delta"]
             self.assertIsNotNone(row)
-            self.assertEqual("1971-1-1", row["date"])
+            self.assertEqual("1971-01-01", row["date"])
             self.assertEqual(2000.0, row["delta"]["cost"])
             self.assertEqual(2000.0, row["delta"]["finance_capital"])
             self.assertLess(row["delta"]["profit"], 0)
@@ -95,11 +95,63 @@ class RailDepotExposureAnalysisTests(unittest.TestCase):
             timing = seed["first_project_chosen_timing_delta"]
             identity = seed["first_project_chosen_identity_delta"]
             self.assertEqual(0, timing["index"])
-            self.assertEqual("1970-9-14", timing["reference_date"])
-            self.assertEqual("1970-9-7", timing["variant_date"])
+            self.assertEqual("1970-09-14", timing["reference_date"])
+            self.assertEqual("1970-09-07", timing["variant_date"])
             self.assertEqual(1, identity["index"])
             self.assertEqual(["air", "PASS", "1", "3"], identity["reference_candidate"])
             self.assertEqual(["air", "PASS", "4", "5"], identity["variant_candidate"])
+
+    def test_earliest_same_order_rail_delta_uses_calendar_not_string_sort(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            reference = (
+                _line("1970-2-24", 0, "rail", 3, 4, cost=400, finance=400, profit=100, roi=250, score=1)
+                + _line("1970-10-8", 0, "rail", 3, 4, cost=400, finance=400, profit=100, roi=250, score=1)
+            )
+            variant = (
+                _line("1970-2-24", 0, "rail", 3, 4, cost=420, finance=420, profit=98, roi=233, score=1)
+                + _line("1970-10-8", 0, "rail", 3, 4, cost=450, finance=450, profit=95, roi=200, score=1)
+            )
+            self._write_pair(root, reference, variant)
+            row = analyse(root, "rail_depot_off", "rail_depot_on")["seeds"][0]
+            self.assertEqual(row["first_same_order_rail_economics_delta"]["date"], "1970-02-24")
+
+    def test_earliest_order_and_vivier_changes_use_calendar_order(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            reference = (
+                _line("1970-2-24", 0, "rail", 3, 4, cost=400, finance=400, profit=100, roi=250, score=1)
+                + "OPEX 1970-2-24 VIVIER calls=1\n"
+                + _line("1970-10-8", 0, "rail", 3, 4, cost=400, finance=400, profit=100, roi=250, score=1)
+                + "OPEX 1970-10-8 VIVIER calls=3\n"
+            )
+            variant = (
+                _line("1970-2-24", 0, "rail", 8, 9, cost=400, finance=400, profit=100, roi=250, score=1)
+                + "OPEX 1970-2-24 VIVIER calls=2\n"
+                + _line("1970-10-8", 0, "rail", 8, 9, cost=400, finance=400, profit=100, roi=250, score=1)
+                + "OPEX 1970-10-8 VIVIER calls=4\n"
+            )
+            self._write_pair(root, reference, variant)
+            row = analyse(root, "rail_depot_off", "rail_depot_on")["seeds"][0]
+            self.assertEqual(row["first_portfolio_order_delta"]["date"], "1970-02-24")
+            self.assertEqual(row["first_vivier_delta"]["date"], "1970-02-24")
+
+    def test_same_day_padding_matches_and_invalid_calendar_is_rejected(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            self._write_pair(
+                root,
+                _line("1970-2-24", 0, "rail", 3, 4, cost=400, finance=400, profit=100, roi=250, score=1),
+                _line("1970-02-24", 0, "rail", 3, 4, cost=410, finance=410, profit=99, roi=240, score=1),
+            )
+            row = analyse(root, "rail_depot_off", "rail_depot_on")["seeds"][0]
+            self.assertEqual(row["first_same_rail_candidate_economics_delta"]["date"], "1970-02-24")
+            self._write_pair(root,
+                _line("1970-2-30", 0, "rail", 3, 4, cost=400, finance=400, profit=100, roi=250, score=1),
+                _line("1970-2-30", 0, "rail", 3, 4, cost=410, finance=410, profit=99, roi=240, score=1),
+            )
+            with self.assertRaisesRegex(ValueError, "invalid OPEX calendar date"):
+                analyse(root, "rail_depot_off", "rail_depot_on")
 
 
 if __name__ == "__main__":

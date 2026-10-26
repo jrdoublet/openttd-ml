@@ -11,6 +11,7 @@ delta; terminal economic metrics are deliberately outside this script.
 from __future__ import annotations
 
 import argparse
+from datetime import date as calendar_date
 import json
 import re
 from collections import defaultdict
@@ -43,7 +44,12 @@ def _parse(path: Path) -> dict[str, list[dict[str, object]]]:
         match = OPEX_RE.search(line)
         if not match:
             continue
-        date, event, tail = match.groups()
+        raw_date, event, tail = match.groups()
+        try:
+            year, month, day = (int(part) for part in raw_date.split("-"))
+            date = calendar_date(year, month, day).isoformat()
+        except ValueError as exc:
+            raise ValueError(f"{path}:{line_no}: invalid OPEX calendar date {raw_date}") from exc
         events[event].append(
             {
                 "date": date,
