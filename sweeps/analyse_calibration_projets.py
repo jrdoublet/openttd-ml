@@ -138,8 +138,13 @@ def parse_game(lines):
     return builds, revenue, costs
 
 
-def load_campaign(path):
-    """Charge une fois chaque journal logique ; refuse les copies de donnees contradictoires."""
+def load_campaign(path, arm=None):
+    """Charge chaque journal logique (bras optionnel), copie contradictoire fatale.
+
+    Le filtre s'applique avant la lecture des parties : une campagne multi-bras
+    peut servir de validation sur sa seule reference sans lire la variante.
+    Sans filtre, le comportement historique est identique.
+    """
     games = {}
     sources = {}
     files = sorted(glob.glob(os.path.join(path, "*.log")) + glob.glob(os.path.join(path, "*.log.gz")))
@@ -149,6 +154,8 @@ def load_campaign(path):
             name = name[:-3]
         m = SEED_RE.search(name)
         if not m:
+            continue
+        if arm is not None and name.split("_seed", 1)[0] != arm:
             continue
         with open_text(f) as fh:
             builds, revenue, costs = parse_game(fh)
