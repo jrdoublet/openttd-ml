@@ -43,7 +43,7 @@ pré-enregistrées restent obligatoires.
 | 3 | V286 | Moyen ; stocks, charges et quantité sortie d'industrie relevés, sans livraisons attribuées à la ligne | Microcoût 42×3 de 22 000 ops ; **événement physique par ligne/cargo**, cas mixtes et effet observateur manquants | Moyen |
 | 4 | AIR-ROI-LIGNE-1 | Moyen à élevé ; rétrospective 40 DUEL déjà close `not_identifiable`, coût net et témoin absents | Épisode pré-décision et coût d'infrastructure attribuable, puis AA/AA même-save | Moyen à élevé |
 | 5 | AIR-ROI-RENOUVELLEMENT-1 | Moyen à élevé ; rétrospective 40 DUEL déjà close `not_identifiable`, revente et témoin absents | Coût net V252 daté et fourche achat/sans achat après AA/AA même-save | Moyen à élevé |
-| 6 | DIST-BORNES-1 | Moyen à élevé ; **correctif expérimental opt-in OFF par défaut** des deux filtres fret 201–250 et du contexte V269 différé, sans clôture des bornes route/rail/AIR | Smoke 42×1 sain ; exposition tardive réelle 1024² absente, puis porte V102 si les choix changent | Élevé |
+| 6 | DIST-BORNES-1 | Moyen à élevé ; **correctif expérimental opt-in OFF par défaut** des deux filtres fret 201–250 et du contexte V269 différé, sans clôture des bornes route/rail/AIR | Smoke 42×1 sain ; exposition réelle 1024² **après 1975** absente (départ 1970 + V269=5, 5 ans insuffisants), puis porte V102 si les choix changent | Élevé |
 | 7 | V249a | Moyen à élevé ; V249s mode 2 évalue déjà gare/cargo mais captage concurrentiel non démontré | Observation au choix, témoin des gains captable et garde des doublons avant qualification | Moyen à élevé |
 
 **Lot du 26/10 après `bca3c701` :** V286 instrumenté sur cinq graines
@@ -71,6 +71,17 @@ contexte de régénération tardive V269 réparés sous
 L'exposition 1024² après activation de V269 manque toujours, ainsi
 que la comparaison causale des choix, les portes et le traitement des
 frontières route/AIR : tâche globale ouverte, **20 cases ouvertes**.
+
+**Exposition tardive 1024² du 26/10, graine 42 × 7 ans :**
+les deux bras 0/1 de `dist_bornes_v276_freight` terminent sans erreur,
+mais aucune activation `V269` ni construction RAIL après 1974
+n'apparaît ; **aucune paire fret 201–250 récupérée n'est démontrée**.
+Le delta `profit_year` +683 862 £ est `diagnostic_only` (une graine),
+non attribuable au mécanisme. De plus, la porte A **40×5** ne peut
+jamais observer le V269 à délai **départ+5 ans** : une autre durée de
+porte A exigerait une **décision et un pré-enregistrement distincts**.
+On passe aux tâches suivantes ; ne pas réinterpréter cette exposition
+comme un succès ou un échec économique.
 
 ## C3 — prototypes et validations dépendantes
 
@@ -116,6 +127,17 @@ une seule graine, `diagnostic_only`. La microéconomie d'opcodes et le
 contrôle 20×10 de non-érosion manquent avant une éventuelle adoption ;
 les logs C121 et `[FLEET_PROJECT]` restent à classer. **Toujours 20 cases
 ouvertes, sans fermeture globale prouvée.**
+
+**Classement des deux logs de flotte (lecture du 26/10) :**
+`C121_FLEET_MARGINAL` (`task_report.nut:61-64`) et
+`[FLEET_PROJECT]` (`task_projects.nut:344`) sont des émissions
+diagnostiques ; le premier est lu par deux analyseurs historiques de flotte.
+Les valeurs `c121MarginalProfit/Revenue` et `c121LastMarginalProfit`
+calculées juste avant **commandent les renforts AIR**
+(`projects_builders.nut:163-171`) et restent indispensables. Une
+éventuelle optimisation viserait uniquement les deux `AILog.Info`,
+avec conservation des traces en banc et qualification de non-érosion.
+Aucun chemin ni défaut n'a été changé et aucune économie n'est prétendue.
 
 ## C4 — chantiers lourds dépendants de constructions ou de séquences
 
