@@ -295,7 +295,8 @@ class ForumBehaviours(unittest.TestCase):
             "AIRail.IsRailTypeAvailable", "AIRoad.IsRoadDepotTile", "AIRoad.IsRoadStationTile",
             "AIRoad.IsRoadTile", "AIStation.GetNearestTown", "AITile.GetCargoProduction",
             "AITile.GetClosestTown", "AITile.GetMaxHeight", "AITile.GetMinHeight",
-            "AITile.GetSlope", "AITile.IsBuildable", "AITile.IsCoastTile",
+            "AITile.GetSlope", "AITile.IsBuildable", "AITile.IsBuildableRectangle",
+            "AITile.GetCargoAcceptance", "AITile.IsCoastTile",
             "AITile.IsStationTile", "AITile.IsWaterTile", "AIVehicle.GetRunningCost",
             "AITown.GetPopulation", "AIIndustry.GetLastMonthProduction",
         }

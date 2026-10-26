@@ -5467,6 +5467,8 @@ function OpexV190ExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
           + " len_b=" + planB.length
           + " err=" + err);
     }
+    if (!okB && V233_SITE_FUNNEL > 0 && OpexV233LIs(candidate) && ("dstTown" in candidate))
+      OpexV233LFunnelDrop(candidate.dstTown, planB.anchor);
     OpexRollback(null, planA, planB, null, null);
     result.actualCost = costs != null ? costs.GetCosts() : 0;
     local stnOps = budget.end("build_stations");
@@ -5661,6 +5663,8 @@ function OpexV190ExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
       local failDetail = "NONE";
       if (failReason == "STN2FAIL") {
         failDetail = (!okA2 ? "STN_A2" : "STN_B2");
+        if (!okB2 && V233_SITE_FUNNEL > 0 && OpexV233LIs(candidate) && ("dstTown" in candidate))
+          OpexV233LFunnelDrop(candidate.dstTown, planB.anchor);
       } else if (failReason == "TRK2FAIL") {
         if (tFail != 0) {
           local err = ("error" in trackFailure2) ? trackFailure2.error : 0;

@@ -72,6 +72,14 @@
         {
           "off": "    }\n  }\n\n  local started = [];\n  local startFailed = false;\n  foreach (train in trains.vehicles) {\n",
           "guarded": "    }\n  }\n\n  if (OpexV233LIs(candidate) && !okD) {\n    OpexRollback(tiles, planA, planB, depot, trains.rollbackVehicles);\n    result.actualCost = primaryCost + (postPathCosts != null ? postPathCosts.GetCosts() : 0);\n    result.reason = \"DOUBLEFAIL\";\n    if (DECISION_LOG) OpexV233LLog(\"REJECT\", \"src=\" + candidate.src + \" dst=\" + candidate.dst + \" reason=double_rollback\");\n    return result;\n  }\n  local started = [];\n  local startFailed = false;\n  foreach (train in trains.vehicles) {\n"
+        },
+        {
+          "guarded": "    if (!okB && V233_SITE_FUNNEL > 0 && OpexV233LIs(candidate) && (\"dstTown\" in candidate))\n      OpexV233LFunnelDrop(candidate.dstTown, planB.anchor);\n    OpexRollback(null, planA, planB, null, null);\n    result.actualCost = costs != null ? costs.GetCosts() : 0;\n    local stnOps = budget.end(\"build_stations\");\n    result.opcodes += stnOps;\n    if (result.phaseOps.stations < 0) result.phaseOps.stations = 0;\n    result.phaseOps.stations += stnOps;\n    result.reason = \"STNFAIL\"; return result;\n  }\n\n  local trackFailure = null;\n  if (DECISION_LOG || RAIL_GEOMETRY_GUARD) trackFailure = {};\n",
+          "off": "    OpexRollback(null, planA, planB, null, null);\n    result.actualCost = costs != null ? costs.GetCosts() : 0;\n    local stnOps = budget.end(\"build_stations\");\n    result.opcodes += stnOps;\n    if (result.phaseOps.stations < 0) result.phaseOps.stations = 0;\n    result.phaseOps.stations += stnOps;\n    result.reason = \"STNFAIL\"; return result;\n  }\n\n  local trackFailure = null;\n  if (DECISION_LOG || RAIL_GEOMETRY_GUARD) trackFailure = {};\n"
+        },
+        {
+          "guarded": "      if (failReason == \"STN2FAIL\") {\n        failDetail = (!okA2 ? \"STN_A2\" : \"STN_B2\");\n        if (!okB2 && V233_SITE_FUNNEL > 0 && OpexV233LIs(candidate) && (\"dstTown\" in candidate))\n          OpexV233LFunnelDrop(candidate.dstTown, planB.anchor);\n",
+          "off": "      if (failReason == \"STN2FAIL\") {\n        failDetail = (!okA2 ? \"STN_A2\" : \"STN_B2\");\n"
         }
       ]
     },
@@ -142,7 +150,7 @@
       "edits": [
         {
           "off": "V309_IDLE_PROBE <- false;\nV309_IDLE_STATE <- null;\nV284_RAIL_GROWTH <- 0; // 0 : master ; N : croissance fret apres N ans et 1 M£ disponible.\n/* V294 : ponts/tunnels longs et recherche A* continue (defauts 0 = master inchange). */\nV294_RAIL_BRIDGE_LEN <- 20;  // defaut V294all depuis le 21/10 (decision utilisateur)\nV294_RAIL_CONTINUOUS <- 0;\n",
-          "guarded": "V309_IDLE_PROBE <- false;\nV309_IDLE_STATE <- null;\nV284_RAIL_GROWTH <- 0; // 0 : master ; N : croissance fret apres N ans et 1 M£ disponible.\nV233_LONG_GOOD <- 0; // Variante autonome, aucun mode V233 historique reactive.\nV233L_STATE <- null; // Fenetres mensuelles entieres, sauvegardees seulement sous l'option.\n/* V294 : ponts/tunnels longs et recherche A* continue (defauts 0 = master inchange). */\nV294_RAIL_BRIDGE_LEN <- 20;  // defaut V294all depuis le 21/10 (decision utilisateur)\nV294_RAIL_CONTINUOUS <- 0;\n"
+          "guarded": "V309_IDLE_PROBE <- false;\nV309_IDLE_STATE <- null;\nV284_RAIL_GROWTH <- 0; // 0 : master ; N : croissance fret apres N ans et 1 M£ disponible.\nV233_LONG_GOOD <- 0; // Variante autonome, aucun mode V233 historique reactive.\nV233L_STATE <- null; // Fenetres mensuelles entieres, sauvegardees seulement sous l'option.\nV233_SITE_FUNNEL <- 0; // 0 = spirale B urbaine ; 1 = entonnoir natif du quai GOOD.\n/* V294 : ponts/tunnels longs et recherche A* continue (defauts 0 = master inchange). */\nV294_RAIL_BRIDGE_LEN <- 20;  // defaut V294all depuis le 21/10 (decision utilisateur)\nV294_RAIL_CONTINUOUS <- 0;\n"
         }
       ]
     },
@@ -151,7 +159,7 @@
       "edits": [
         {
           "off": "      custom_value = 5,\n      step_size = 1,\n      flags = 0\n    });\n\n    AddSetting({\n",
-          "guarded": "      custom_value = 5,\n      step_size = 1,\n      flags = 0\n    });\n\n    AddSetting({\n      name = \"v233_long_good\",\n      description = \"V233L: observed fed-factory GOOD exports, 150-300 tiles, two trains and backlog growth; 0=off (default), 1=experiment\",\n      min_value = 0, max_value = 1,\n      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,\n      step_size = 1, flags = 0\n    });\n\n    AddSetting({\n"
+          "guarded": "      custom_value = 5,\n      step_size = 1,\n      flags = 0\n    });\n\n    AddSetting({\n      name = \"v233_long_good\",\n      description = \"V233L: observed fed-factory GOOD exports, 150-300 tiles, two trains and backlog growth; 0=off (default), 1=experiment\",\n      min_value = 0, max_value = 1,\n      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,\n      step_size = 1, flags = 0\n    });\n\n    AddSetting({\n      name = \"v233_site_funnel\",\n      description = \"V233L urban site B: 0 = current spiral (default), 1 = native funnel (buildable rectangle, GOOD acceptance, then squirrel checks)\",\n      min_value = 0, max_value = 1,\n      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,\n      step_size = 1, flags = 0\n    });\n\n    AddSetting({\n"
         }
       ]
     },
@@ -261,7 +269,7 @@
       "edits": [
         {
           "off": "  V216F_DWELL_PCT = AIController.GetSetting(\"v216f_dwell_pct\");\n  local lateRelax = AIController.GetSetting(\"v269_rail_late_relax\");\n  local railGrowth = AIController.GetSetting(\"v284_rail_growth\");\n  if (railGrowth != null && railGrowth >= 0 && railGrowth <= 10) V284_RAIL_GROWTH = railGrowth;\n  local v294BridgeLen = AIController.GetSetting(\"v294_rail_bridge_len\");\n  V294_RAIL_BRIDGE_LEN = (v294BridgeLen != null && v294BridgeLen >= 0 && v294BridgeLen <= 30) ? v294BridgeLen : 0;\n",
-          "guarded": "  V216F_DWELL_PCT = AIController.GetSetting(\"v216f_dwell_pct\");\n  local lateRelax = AIController.GetSetting(\"v269_rail_late_relax\");\n  local railGrowth = AIController.GetSetting(\"v284_rail_growth\");\n  V233_LONG_GOOD = AIController.GetSetting(\"v233_long_good\") == 1 ? 1 : 0;\n  if (railGrowth != null && railGrowth >= 0 && railGrowth <= 10) V284_RAIL_GROWTH = railGrowth;\n  local v294BridgeLen = AIController.GetSetting(\"v294_rail_bridge_len\");\n  V294_RAIL_BRIDGE_LEN = (v294BridgeLen != null && v294BridgeLen >= 0 && v294BridgeLen <= 30) ? v294BridgeLen : 0;\n"
+          "guarded": "  V216F_DWELL_PCT = AIController.GetSetting(\"v216f_dwell_pct\");\n  local lateRelax = AIController.GetSetting(\"v269_rail_late_relax\");\n  local railGrowth = AIController.GetSetting(\"v284_rail_growth\");\n  V233_LONG_GOOD = AIController.GetSetting(\"v233_long_good\") == 1 ? 1 : 0;\n  V233_SITE_FUNNEL = AIController.GetSetting(\"v233_site_funnel\") == 1 ? 1 : 0;\n  if (railGrowth != null && railGrowth >= 0 && railGrowth <= 10) V284_RAIL_GROWTH = railGrowth;\n  local v294BridgeLen = AIController.GetSetting(\"v294_rail_bridge_len\");\n  V294_RAIL_BRIDGE_LEN = (v294BridgeLen != null && v294BridgeLen >= 0 && v294BridgeLen <= 30) ? v294BridgeLen : 0;\n"
         }
       ]
     },
