@@ -85,8 +85,10 @@ class TestV296aBatchBuild(unittest.TestCase):
         self.assertIn("batch.skipUntil = last;", self.track)
 
     def test_every_exit_logs(self):
+        # Deux sorties V199, la fin de pose, et l'abandon V233L si le detour
+        # local ne se raccorde pas. Chacune journalise le lot avant de sortir.
         returns = self.track.count("return failed;")
-        self.assertEqual(returns, 3)
+        self.assertEqual(returns, 4)
         self.assertEqual(len(re.findall(r"OpexV296aLog\(batch\);\s*return failed;", self.track)), returns)
 
     def test_no_closure_nor_find(self):

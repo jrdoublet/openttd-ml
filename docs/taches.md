@@ -146,6 +146,24 @@ Ce mode n'est pas ajouté : il changerait la voie 1. Suite Python :
 attendus). Pose moteur **non validée** (Docker interdit).
 [Détails](v233_long_good_20261025.md#26-octobre--track7-pont-de-lautre-côté-et-poche).
 
+**26/10 — V233L, TRACK8 après le smoke 11 fourni (local, défaut 0) :**
+graine 100, cinq ans. `6172→21717` (247 tuiles, tracé 301) planifie
+la voie 2 le 29 août 1974 (`iters=658`), pose le quai `stn_a2`, puis
+la pose échoue le 17 septembre : `TRACK_FAIL_idx138_err260`
+(`ERR_AREA_NOT_CLEAR`). Le 30 septembre, rollback et `DOUBLEFAIL`.
+Un obstacle local (260, 264, ou autre occupant, pas le manque
+d'argent) ne jette plus toute la ligne : l'occupant est nommé, le
+rail déjà posé sur le lead est retiré, et le même détour A* local
+que la greffe du plan raccorde un point sûr avant l'échec au premier
+couple adjacent après la zone. Budget `min(8000, max(1000, L²×48))`,
+trois réparations au plus, trace `V233L_DOUBLE phase=repair
+reason=OK|NOPA|LIMIT`. Si le détour ne se raccorde pas, le
+`fallback_single` puis le rollback `DOUBLEFAIL` restent ceux du
+smoke. V199 n'est pas repris. Suite Python : **61 contrats V233L,
+puis 2 584 tests, OK** (9 ignorés, 2 échecs attendus). Pose moteur
+**non validée** (Docker interdit).
+[Détails](v233_long_good_20261025.md#26-octobre--track8-réparation-de-la-pose).
+
 ### Priorités ouvertes après les deux références monomodales du 25/10 (sans adoption)
 
 - [ ] **P1 — `rail_long_value_rank` : qualifier et classer le fret long constructible (opt-in, défaut 0 ; coût 4/5).** Ne plus relever globalement les bornes : vérifier site, A*, capital et ROI marginal pour une paire fret ≥160 tuiles, puis la comparer aux projets courts et AIR réellement finançables ; [analyse §4](analyse_rail_vs_air_seul_20261025.md#4-pistes-expérimentales-par-potentiel-de-gain-relatif-au-coût).

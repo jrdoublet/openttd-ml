@@ -3849,9 +3849,36 @@ function OpexBuildTrack(tiles, structures = null, failure = null, options = null
     }
 
     if (!ok) {
+      /* V233L : un obstacle local sur la voie 2 ne jette pas la ligne.
+       * Le detour reprend la meme greffe que le plan ; trois fois au plus.
+       * V199 garde sa reprise. Sans contexte, le comptage historique. */
+      local v233GiveUp = false;
+      local errNow = 0;
+      local v233Try = !V199_ROBUST_BUILD && options != null
+          && ("v233Repair" in options) && options.v233Repair != null;
+      if (v233Try) {
+        errNow = AIError.GetLastError();
+        local repaired = OpexV233LRepairPose(options.v233Repair, tiles, structures, i, cur, errNow);
+        if (repaired != null && ("tiles" in repaired) && repaired.tiles != null) {
+          local nextTiles = repaired.tiles;
+          tiles.clear();
+          foreach (t in nextTiles) tiles.append(t);
+          if (structures != null && ("structures" in repaired) && repaired.structures != null) {
+            local nextStructs = repaired.structures;
+            structures.clear();
+            foreach (s in nextStructs) structures.append(s);
+          }
+          if (failure != null && ("index" in failure)) delete failure.index;
+          i = repaired.restart - 1;
+          if (batch != null) batch.skipUntil = i;
+          continue;
+        }
+        if (repaired != null && ("giveUp" in repaired) && repaired.giveUp) v233GiveUp = true;
+      }
       failed++;
       if (failure != null && !("index" in failure)) {
         local err = AIError.GetLastError();
+        if (v233GiveUp) err = errNow;
         local manhPrev = AIMap.DistanceManhattan(prev, cur);
         local manhNext = AIMap.DistanceManhattan(cur, next);
         /* Meme predicat que la branche de pose, apres la capture de l'erreur. */
@@ -3866,6 +3893,10 @@ function OpexBuildTrack(tiles, structures = null, failure = null, options = null
           }
         }
         OpexRailCaptureTrackFailure(failure, tiles, i, cur, segmentKind, err, manhPrev, manhNext);
+      }
+      if (v233GiveUp) {
+        OpexV296aLog(batch);
+        return failed;
       }
     } else if (V199_ROBUST_BUILD && isDouble) {
       if (AIRail.IsRailTile(cur) && !AIBridge.IsBridgeTile(cur) && !AITunnel.IsTunnelTile(cur) &&
@@ -5736,6 +5767,10 @@ function OpexV190ExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
     local secondRollbackVehicles = null;
     if (okA2 && okB2) {
       local trackOpt2 = { isDouble = true, trainLength = candidate.platformLength, initialBudget = plan.iterationBudget };
+      if (OpexV233LIs(candidate)) trackOpt2.v233Repair <- {
+        candidate = candidate, primary = tiles, planA = planA, planB = planB,
+        depot = depot, repairs = 0, iterations = 0
+      };
       tFail = OpexBuildTrack(tiles2, plan.structures2, trackFailure2, trackOpt2);
       local l2 = tiles2.len() - 1;
       connExitA2 = AIRail.AreTilesConnected(planA2.station_exit, tiles2[1], tiles2[2]);

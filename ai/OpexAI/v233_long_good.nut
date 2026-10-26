@@ -1618,6 +1618,225 @@ function OpexV233LRepairParallel(candidate, trace, forbidden, planA, planB, budg
   return result;
 }
 
+/* Erreur de pose locale : 260 (aire occupee), 264 (pente), ou un occupant
+ * qui n'est ni vide ni hors carte. L'argent ne se contourne pas. */
+function OpexV233LPoseLocal(error, tile)
+{
+  if (error == AIError.ERR_NOT_ENOUGH_CASH) return false;
+  if (error == AIError.ERR_AREA_NOT_CLEAR || error == AIError.ERR_LAND_SLOPED_WRONG) return true;
+  local kind = OpexV233LOccupantKind(tile);
+  if (kind != "clear" && kind != "off") return true;
+  return error > 0;
+}
+
+/* Dernier index de la zone bloquee. Un saut natif compte ses deux tetes.
+ * On s'arrete au premier sol libre ou en pente, et a 16 tuiles. */
+function OpexV233LPoseSpan(tiles, index)
+{
+  local last = index;
+  local n = tiles.len();
+  if (index + 1 < n && AIMap.DistanceManhattan(tiles[index], tiles[index + 1]) > 1)
+    last = index + 1;
+  local guard = 0;
+  while (last + 1 < n - 1 && guard < 16) {
+    local nxt = last + 1;
+    if (AIMap.DistanceManhattan(tiles[last], tiles[nxt]) > 1) {
+      last = nxt;
+      guard++;
+      continue;
+    }
+    local kind = OpexV233LOccupantKind(tiles[nxt]);
+    if (kind == "clear" || kind == "slope") break;
+    last = nxt;
+    guard++;
+  }
+  return last;
+}
+
+/* Interface adjacente avant l'echec, au moins 4 tuiles en arriere quand
+ * c'est possible, jamais au milieu d'un ouvrage. -1 si aucune. */
+function OpexV233LPoseAnchor(tiles, index)
+{
+  local left = -1;
+  local limit = index - 16;
+  if (limit < 0) limit = 0;
+  for (local anchor = index - 2; anchor >= limit; anchor--) {
+    if (anchor + 2 >= tiles.len()) continue;
+    if (AIMap.DistanceManhattan(tiles[anchor], tiles[anchor + 1]) != 1) continue;
+    if (anchor > 0 && AIMap.DistanceManhattan(tiles[anchor - 1], tiles[anchor]) > 1) continue;
+    if (AIMap.DistanceManhattan(tiles[anchor + 1], tiles[anchor + 2]) > 1) continue;
+    left = anchor;
+    if (index - left >= 4) break;
+  }
+  return left;
+}
+
+/* Premiere interface adjacente apres la zone, sur le plan restant. */
+function OpexV233LPoseFar(tiles, zone)
+{
+  local n = tiles.len();
+  for (local far = zone + 2; far < n; far++) {
+    if (AIMap.DistanceManhattan(tiles[far - 1], tiles[far]) != 1) continue;
+    if (far >= 2 && AIMap.DistanceManhattan(tiles[far - 2], tiles[far - 1]) > 1) continue;
+    return far;
+  }
+  return -1;
+}
+
+/* Retire seulement NOTRE rail deja pose dans la fenetre qu'on va remplacer.
+ * Le pathfinder refuse une tuile qui a deja du rail : le lead doit etre libre.
+ * La maison ou l'objet qui a fait echouer la pose n'est pas demoli. */
+function OpexV233LDropBuilt(tiles, fromIdx, toIdx)
+{
+  if (fromIdx < 1) fromIdx = 1;
+  for (local k = toIdx; k >= fromIdx; k--) {
+    local t = tiles[k];
+    if (!AIMap.IsValidTile(t)) continue;
+    if (!AICompany.IsMine(AITile.GetOwner(t))) continue;
+    if (AIRail.IsRailStationTile(t) || AIRail.IsRailDepotTile(t)) continue;
+    if (AIRail.IsRailTile(t) || AIBridge.IsBridgeTile(t) || AITunnel.IsTunnelTile(t))
+      AITile.DemolishTile(t);
+  }
+}
+
+function OpexV233LPoseLog(candidate, reason, index, kind, error)
+{
+  if (!DECISION_LOG || candidate == null) return;
+  OpexV233LLog("DOUBLE", "src=" + candidate.src + " dst=" + candidate.dst
+      + " phase=repair reason=" + reason
+      + " idx=" + index + " kind=" + kind + " error=" + error);
+}
+
+/* Voie 1, quais primaires et depot : meme interdit que la greffe du plan. */
+function OpexV233LPoseBlocked(ctx)
+{
+  local blocked = {};
+  if (("primary" in ctx) && ctx.primary != null) {
+    foreach (t in ctx.primary) blocked[t] <- true;
+  }
+  if (("planA" in ctx) && ctx.planA != null) {
+    local p = ctx.planA;
+    for (local i = 0; i < p.length; i++) {
+      local t = p.anchor + p.step * i;
+      if (t != p.station_exit && !(t in blocked)) blocked[t] <- true;
+    }
+  }
+  if (("planB" in ctx) && ctx.planB != null) {
+    local p = ctx.planB;
+    for (local i = 0; i < p.length; i++) {
+      local t = p.anchor + p.step * i;
+      if (t != p.station_exit && !(t in blocked)) blocked[t] <- true;
+    }
+  }
+  if (("depot" in ctx) && ctx.depot != null) {
+    blocked[ctx.depot] <- true;
+    local front = AIRail.GetRailDepotFrontTile(ctx.depot);
+    if (AIMap.IsValidTile(front)) blocked[front] <- true;
+  }
+  return blocked;
+}
+
+/* Une fenetre, le budget local span^2*48, la meme greffe que SPLICED.
+ * Rien n'est pose. null si le detour ne se raccorde pas. */
+function OpexV233LPoseSearch(candidate, tiles, structures, blocked, left, right, index, zone, cap, deadline)
+{
+  if (left < 0 || right <= left + 1 || right >= tiles.len()) return null;
+  if (AIMap.DistanceManhattan(tiles[left], tiles[left + 1]) != 1) return null;
+  if (AIMap.DistanceManhattan(tiles[right - 1], tiles[right]) != 1) return null;
+  local ignored = [];
+  foreach (t, unused in blocked) ignored.append(t);
+  for (local k = 0; k < tiles.len(); k++)
+    if (k < left || k > right) ignored.append(tiles[k]);
+  for (local z = index; z <= zone && z < tiles.len(); z++) ignored.append(tiles[z]);
+  OpexV233LFence(tiles, left, right, 20, ignored);
+  local approach = null;
+  if (left > 0 && AIMap.DistanceManhattan(tiles[left - 1], tiles[left]) == 1)
+    approach = tiles[left - 1];
+  else if (left == 0 && AIMap.DistanceManhattan(tiles[left], tiles[left + 1]) == 1) {
+    local behind = OpexV190MakeTile(tiles[left],
+        AIMap.GetTileX(tiles[left]) - AIMap.GetTileX(tiles[left + 1]),
+        AIMap.GetTileY(tiles[left]) - AIMap.GetTileY(tiles[left + 1]));
+    if (behind != null && AIMap.DistanceManhattan(behind, tiles[left]) == 1) approach = behind;
+  }
+  local a = { station_exit = tiles[left], lead = tiles[left + 1], approach = approach };
+  local b = { station_exit = tiles[right], lead = tiles[right - 1] };
+  local search = OpexSearchPath([a], [b], cap, deadline, ignored);
+  if (search.path == null || search.path == false) return { search = search, joined = null };
+  local tail = OpexResolveSearchTiles(search);
+  if (approach != null && tail.len() > 0 && tail[0] == approach) {
+    local trimmed = [];
+    for (local k = 1; k < tail.len(); k++) trimmed.append(tail[k]);
+    tail = trimmed;
+  }
+  local ban = {};
+  foreach (t, banFlag in blocked) ban[t] <- true;
+  foreach (t in tiles) if (t in ban) delete ban[t];
+  local joined = OpexV233LSpliceParallel(tiles, tail, left, right, ban);
+  if (joined == null) return { search = search, joined = null };
+  if (!OpexV233LParallelGeometry(candidate, joined)) return { search = search, joined = null };
+  if (!OpexJoinPathIsDedicated(joined) || !OpexJoinPathIsDedicated(tail))
+    return { search = search, joined = null };
+  local kept = [];
+  if (structures != null) {
+    foreach (s in structures) {
+      for (local i = 0; i + 1 < joined.len(); i++)
+        if (s.from == joined[i] && s.to == joined[i + 1]) { kept.append(s); break; }
+    }
+  }
+  foreach (s in OpexResolveSearchStructures(search)) kept.append(s);
+  local patched = { tiles = joined, structures = kept };
+  /* Le prefixe est deja notre rail : BuildRail y repond ALREADY_BUILT et
+   * masquerait l'obstacle. La fenetre seule, ancre en extremite. */
+  local window = { tiles = tail, structures = kept };
+  local nextIssue = OpexV233LParallelIssue(candidate, window, blocked);
+  if (nextIssue >= 0) return { search = search, joined = null };
+  return { search = search, joined = patched, tail = tail.len() };
+}
+
+/* Echec de pose a l'index i. Jusqu'a 3 greffes par ligne. giveUp : revenir
+ * au rollback actuel. tiles : reprendre la pose a restart. null : pas un
+ * obstacle local, le constructeur continue comme avant. */
+function OpexV233LRepairPose(ctx, tiles, structures, index, failedTile, error)
+{
+  if (ctx == null || tiles == null || !OpexV233LPoseLocal(error, failedTile)) return null;
+  local candidate = ("candidate" in ctx) ? ctx.candidate : null;
+  local kindTile = (index >= 0 && index < tiles.len()) ? tiles[index] : failedTile;
+  local kind = OpexV233LOccupantKind(kindTile);
+  if (!("repairs" in ctx) || ctx.repairs == null) ctx.repairs = 0;
+  if (ctx.repairs >= 3) {
+    OpexV233LPoseLog(candidate, "LIMIT", index, kind, error);
+    return { giveUp = true };
+  }
+  local zone = OpexV233LPoseSpan(tiles, index);
+  local left = OpexV233LPoseAnchor(tiles, index);
+  local right = OpexV233LPoseFar(tiles, zone);
+  if (left < 0 || right < 0 || left + 1 >= right || zone >= right) {
+    OpexV233LPoseLog(candidate, "NOPA", index, kind, error);
+    return { giveUp = true };
+  }
+  local span = zone - index + 1;
+  if (span < 1) span = 1;
+  local cap = min(8000, max(1000, span * span * 48));
+  local deadline = AIController.GetTick() + cap / 3 + BUILD_TICK_MARGIN;
+  /* Liberer le lead et le moignon deja pose, pas l'ancre ni l'obstacle. */
+  OpexV233LDropBuilt(tiles, left + 1, index - 1);
+  local blocked = OpexV233LPoseBlocked(ctx);
+  local found = OpexV233LPoseSearch(candidate, tiles, structures, blocked, left, right, index, zone, cap, deadline);
+  if (!("iterations" in ctx) || ctx.iterations == null) ctx.iterations = 0;
+  if (found != null && ("search" in found) && found.search != null)
+    ctx.iterations = ctx.iterations + found.search.iterations;
+  if (found == null || !("joined" in found) || found.joined == null) {
+    OpexV233LPoseLog(candidate, "NOPA", index, kind, error);
+    return { giveUp = true };
+  }
+  ctx.repairs = ctx.repairs + 1;
+  if (DECISION_LOG && candidate != null) OpexV233LLog("DOUBLE", "src=" + candidate.src + " dst=" + candidate.dst
+      + " phase=repair reason=OK idx=" + index + " kind=" + kind + " error=" + error
+      + " left=" + left + " right=" + right + " tiles=" + found.joined.tiles.len()
+      + " iters=" + found.search.iterations + " repairs=" + ctx.repairs);
+  return { tiles = found.joined.tiles, structures = found.joined.structures, restart = left + 1 };
+}
+
 /* Vecteurs signes : une difference de TileIndex n'est PAS un TileIndex.
  * En B le trace arrive, alors que lead - exit pointe vers l'exterieur. */
 function OpexV233LParallelSide(planA, planB, pA, pB)

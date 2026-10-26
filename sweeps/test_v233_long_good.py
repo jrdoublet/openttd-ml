@@ -414,8 +414,9 @@ class V233LongGoodContracts(unittest.TestCase):
             code = body("builder_rail.nut", fn)
             self.assertIn('("approach" in plan) && plan.approach != null', code)
             self.assertIn("else sources.push([plan.lead, plan.station_exit]);", code)
-        self.assertEqual(source("v233_long_good.nut").count("approach = approach"), 1)
+        self.assertEqual(source("v233_long_good.nut").count("approach = approach"), 2)
         self.assertIn("approach = approach", body("v233_long_good.nut", "OpexV233LRepairParallel"))
+        self.assertIn("approach = approach", body("v233_long_good.nut", "OpexV233LPoseSearch"))
         finder = source("pathfinder_v90/v129.nut")
         self.assertIn("V233_LONG_GOOD > 0 && node.len() >= 3 && node[2] != null", finder)
 
@@ -673,6 +674,86 @@ class V233LongGoodContracts(unittest.TestCase):
         self.assertGreaterEqual(start - 198, need)
         self.assertNotIn(".find(", pocket)
         self.assertNotIn("function(", pocket)
+
+    def test_track8_pose_failure_splices_around_a_local_obstacle(self):
+        """Smoke 11, 6172->21717: track 2 plans (658 iters) then pose fails.
+
+        1974-09-30 TRACK_FAIL_idx138_err260 (ERR_AREA_NOT_CLEAR) must not
+        roll the line back before a local splice. Three repairs at most.
+        Cash and a failed repair keep the existing DOUBLEFAIL rollback.
+        """
+        repair = body("v233_long_good.nut", "OpexV233LRepairPose")
+        for token in ("phase=repair reason=OK", "OpexV233LOccupantKind",
+                      "OpexV233LDropBuilt", "OpexV233LPoseSearch",
+                      "min(8000, max(1000, span * span * 48))",
+                      "ctx.repairs >= 3", '"LIMIT"', '"NOPA"',
+                      "restart = left + 1", "OpexV233LPoseLocal"):
+            self.assertIn(token, repair)
+        self.assertLess(repair.index("ctx.repairs >= 3"), repair.index("OpexV233LDropBuilt"))
+        self.assertLess(repair.index("OpexV233LDropBuilt"), repair.index("OpexV233LPoseSearch"))
+        self.assertLess(repair.index("return null"), repair.index("ctx.repairs >= 3"))
+        self.assertNotIn(".find(", repair)
+        self.assertNotIn("function(", repair)
+        pose = body("v233_long_good.nut", "OpexV233LPoseLocal")
+        self.assertLess(pose.index("ERR_NOT_ENOUGH_CASH"), pose.index("ERR_AREA_NOT_CLEAR"))
+        self.assertLess(pose.index("return false"), pose.index("return true"))
+        self.assertIn("ERR_LAND_SLOPED_WRONG", pose)
+        log = body("v233_long_good.nut", "OpexV233LPoseLog")
+        self.assertIn("phase=repair reason=", log)
+        self.assertIn("idx=", log)
+        self.assertIn("kind=", log)
+        self.assertIn("error=", log)
+        search = body("v233_long_good.nut", "OpexV233LPoseSearch")
+        for token in ("OpexSearchPath", "OpexV233LSpliceParallel", "OpexV233LFence",
+                      "OpexV233LParallelGeometry", "OpexJoinPathIsDedicated",
+                      "OpexResolveSearchStructures", "OpexV233LParallelIssue"):
+            self.assertIn(token, search)
+        self.assertIn("tiles = tail", search)
+        self.assertLess(search.index("OpexSearchPath"), search.index("OpexV233LSpliceParallel"))
+        self.assertLess(search.index("OpexV233LSpliceParallel"),
+                        search.index("OpexV233LParallelIssue(candidate, window, blocked)"))
+        drop = body("v233_long_good.nut", "OpexV233LDropBuilt")
+        self.assertLess(drop.index("AICompany.IsMine"), drop.index("AITile.DemolishTile"))
+        self.assertLess(drop.index("IsRailStationTile"), drop.index("AITile.DemolishTile"))
+        self.assertIn("fromIdx", drop)
+        span = body("v233_long_good.nut", "OpexV233LPoseSpan")
+        self.assertIn("AIMap.DistanceManhattan(tiles[last], tiles[nxt])", span)
+        build = body("builder_rail.nut", "OpexBuildTrack")
+        repair_at = build.index("OpexV233LRepairPose")
+        give_at = build.index("v233GiveUp", repair_at)
+        ret_at = build.index("return failed;", give_at)
+        self.assertLess(give_at, ret_at)
+        self.assertLess(build.index("!V199_ROBUST_BUILD"), repair_at)
+        self.assertIn("v233Repair", build)
+        self.assertIn("repaired.restart - 1", build)
+        self.assertLess(build.index('local err = AIError.GetLastError();', repair_at),
+                        build.index("if (v233GiveUp) err = errNow;", repair_at))
+        self.assertLess(build.index("OpexRailCaptureTrackFailure(failure, tiles, i, cur, segmentKind", repair_at),
+                        ret_at)
+        self.assertNotIn("v233Repair", body("builder_rail.nut", "OpexExecuteRailPlan"))
+        execute = body("builder_rail.nut", "OpexV190ExecuteRailPlan")
+        call = "tFail = OpexBuildTrack(tiles2, plan.structures2, trackFailure2, trackOpt2);"
+        self.assertLess(execute.index("if (OpexV233LIs(candidate)) trackOpt2.v233Repair"),
+                        execute.index(call))
+        self.assertLess(execute.index(call), execute.index('result.reason = "DOUBLEFAIL"'))
+        self.assertIn("OpexRollback(tiles, planA, planB, depot, trains.rollbackVehicles);", execute)
+        self.assertIn("trains=0 rollback=1", execute)
+        self.assertIn('result.reason = "DOUBLEFAIL"', execute)
+        # Index 138, one occupied tile, adjacent plan of 301 nodes.
+        # Anchor walks back to a 4-tile gap: 134. The goal is the first
+        # adjacent pair after the zone, 140. Pose resumes on the cleared lead.
+        left = -1
+        index, length = 138, 301
+        for anchor in range(index - 2, max(0, index - 16) - 1, -1):
+            left = anchor
+            if index - left >= 4:
+                break
+        zone = index
+        right = zone + 2
+        self.assertEqual((left, zone, right, left + 1), (134, 138, 140, 135))
+        self.assertEqual(min(8000, max(1000, 1 * 1 * 48)), 1000)
+        self.assertEqual(min(8000, max(1000, 8 * 8 * 48)), 3072)
+        self.assertLess(right, length)
 
     def test_setting_bounds_defaults_and_single_read(self):
         block = re.search(r'AddSetting\(\{\s*name = "v233_long_good",.*?\}\);', source("info.nut"), re.S)[0]

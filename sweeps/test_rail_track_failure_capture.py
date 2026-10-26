@@ -70,6 +70,20 @@ def without_freight_memory(body):
     return body
 
 
+def without_v233l_pose(body):
+    """Pose-time V233L repair is opt-in. Strip the exact fixture hunk so the
+    historical builder hash stays the pre-repair capture."""
+    from v233_long_good_legacy import FIXTURE
+    edits = [edit for edit in FIXTURE["files"]["builder_rail.nut"]["edits"]
+             if "OpexV233LRepairPose" in edit["guarded"]]
+    if len(edits) != 1:
+        raise AssertionError("V233L pose repair fixture missing or duplicated")
+    guarded = edits[0]["guarded"]
+    if body.count(guarded) != 1:
+        raise AssertionError("V233L pose repair hunk missing in OpexBuildTrack")
+    return body.replace(guarded, edits[0]["off"], 1)
+
+
 def without_v199(body):
     """Project the current builder onto the pre-V199 capture contract."""
     body = re.sub(r'local isDouble = .*?local retriesCount = 0;', '', body, flags=re.S)
@@ -132,14 +146,15 @@ class TestRailTrackFailureCapture(unittest.TestCase):
 
     def test_inlining_capture_restores_original_builder(self):
         helper = function_body(self.source, "OpexRailCaptureTrackFailure")
-        body = function_body(self.source, "OpexBuildTrack")
+        body = without_v233l_pose(function_body(self.source, "OpexBuildTrack"))
         for kind in ('"connect"', "segmentKind"):
             call = ("OpexRailCaptureTrackFailure(failure, tiles, i, cur, "
                     + kind + ", err, manhPrev, manhNext);")
             self.assertEqual(body.count(call), 1)
             body = body.replace(call, helper.replace("failure.kind <- kind;",
                                                     "failure.kind <- " + kind + ";"))
-        self.assertEqual(digest(without_v199(without_v296a(body))), PRE_EXTRACTION_HASHES["OpexBuildTrack"])
+        self.assertEqual(digest(without_v199(without_v296a(body))),
+                         PRE_EXTRACTION_HASHES["OpexBuildTrack"])
 
     def test_testmode_twin_is_unchanged(self):
         self.assertEqual(digest(function_body(self.source, "OpexTestRailTrack")),
