@@ -75,6 +75,34 @@ class RoiPredictorsTest(unittest.TestCase):
             self.assertEqual((len(rows), counts["games"], counts["matched_rail"]),
                              (4, 4, 4))
 
+    def test_revenue_with_wrong_mode_cannot_mature_another_line(self):
+        # Une ligne AIR homonyme ne doit pas fournir un revenu au build RAIL.
+        bad = self._one_rail_game().replace("mode=rail cargo=COAL year=1972",
+                                            "mode=air cargo=PASS year=1972")
+        with tempfile.TemporaryDirectory() as folder:
+            with open(os.path.join(folder, "reference_seed42_r0.log"), "w", encoding="utf-8") as fh:
+                fh.write(bad)
+            rows, counts = parse(folder, "duel")
+        self.assertEqual(rows, [])
+        self.assertEqual(counts["no_mature"], 1)
+        self.assertEqual(counts["mismatched_revenue_mode"], 1)
+
+    def test_revenue_with_unknown_mode_does_not_pollute_valid_rail(self):
+        # Le revenu AIR mal etiquete ne doit pas tirer la mediane RAIL.
+        valid = self._one_rail_game()
+        wrong = "[0] [I] OPEX 1973-1-1 LINE_REVENUE line=1 mode=air " \
+                "cargo=PASS year=1973 age=3 real_prof=90000 vehs=1\n"
+        absent = "[0] [I] OPEX 1974-1-1 LINE_REVENUE line=1 " \
+                 "cargo=PASS year=1974 age=4 real_prof=80000 vehs=1\n"
+        with tempfile.TemporaryDirectory() as folder:
+            with open(os.path.join(folder, "reference_seed42_r0.log"), "w", encoding="utf-8") as fh:
+                fh.write(valid + wrong + absent)
+            rows, counts = parse(folder, "duel")
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["n_years"], 1)
+        self.assertEqual(rows[0]["real_profit"], 200.)
+        self.assertEqual(counts["mismatched_revenue_mode"], 2)
+
     def test_roi_from_chosen_to_mature_build(self):
         with tempfile.TemporaryDirectory() as directory:
             path = os.path.join(directory, "reference_seed42_r0.log")

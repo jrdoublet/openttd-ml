@@ -125,6 +125,9 @@ def parse(folder, arm):
                     b = builds.get(kv.get("line"))
                     if b is None:
                         continue
+                    if kv.get("mode") != b["mode"]:
+                        ct["mismatched_revenue_mode"] += 1
+                        continue
                     rv, nv = num(kv.get("real_prof")), num(kv.get("vehs"))
                     if rv is not None and nv is not None and nv > 0:
                         observed[kv["line"]].append(rv * b["n0"] / nv)
