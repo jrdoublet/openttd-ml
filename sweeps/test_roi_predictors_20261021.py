@@ -47,6 +47,34 @@ class RoiPredictorsTest(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "copies de journal ROI contradictoires"):
                 parse(folder, "duel")
 
+    def test_numeric_seed_alias_is_not_an_independent_roi_game(self):
+        with tempfile.TemporaryDirectory() as folder:
+            for name in ("reference_seed1_r0.log", "reference_seed01_r0.log"):
+                with open(os.path.join(folder, name), "w", encoding="utf-8") as fh:
+                    fh.write(self._one_rail_game())
+            with self.assertRaisesRegex(ValueError, "identite de partie ROI ambigue"):
+                parse(folder, "duel")
+
+    def test_numeric_repeat_alias_is_not_hidden_by_compression(self):
+        with tempfile.TemporaryDirectory() as folder:
+            with open(os.path.join(folder, "reference_seed42_r0.log"), "w", encoding="utf-8") as fh:
+                fh.write(self._one_rail_game())
+            with gzip.open(os.path.join(folder, "reference_seed42_r00.log.gz"),
+                           "wt", encoding="utf-8") as fh:
+                fh.write(self._one_rail_game())
+            with self.assertRaisesRegex(ValueError, "identite de partie ROI ambigue"):
+                parse(folder, "duel")
+
+    def test_distinct_roi_arms_seeds_and_repeats_remain_separate(self):
+        with tempfile.TemporaryDirectory() as folder:
+            for name in ("reference_seed42_r0.log", "variant_seed42_r0.log",
+                         "reference_seed42_r1.log", "reference_seed100_r0.log"):
+                with open(os.path.join(folder, name), "w", encoding="utf-8") as fh:
+                    fh.write(self._one_rail_game())
+            rows, counts = parse(folder, "duel")
+            self.assertEqual((len(rows), counts["games"], counts["matched_rail"]),
+                             (4, 4, 4))
+
     def test_roi_from_chosen_to_mature_build(self):
         with tempfile.TemporaryDirectory() as directory:
             path = os.path.join(directory, "reference_seed42_r0.log")

@@ -43,11 +43,19 @@ def _relevant_digest(path):
 def _unique_game_logs(folder):
     """Keep one representation per seed/repetition, per campaign directory."""
     selected = {}
+    canonical_names = {}
     for path in sorted(glob(os.path.join(folder, "*.log")) + glob(os.path.join(folder, "*.log.gz"))):
         basename = os.path.basename(path)
         stem = basename[:-3] if basename.endswith(".gz") else basename
-        if SEED_RE.search(stem) is None:
+        match = SEED_RE.search(stem)
+        if match is None:
             continue
+        # Numeric spelling is not part of a game's identity. Without this
+        # guard, seed1/seed01 or r0/r00 become independent ROI observations.
+        identity = (stem[:match.start()], int(match.group(1)), int(match.group(2)))
+        previous = canonical_names.setdefault(identity, stem)
+        if previous != stem:
+            raise ValueError(f"identite de partie ROI ambigue : {previous} et {stem}")
         if stem in selected:
             current = selected[stem]
             if _relevant_digest(current) != _relevant_digest(path):
