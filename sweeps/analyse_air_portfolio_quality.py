@@ -6,6 +6,7 @@ n'est reconstruit : seuls les profits VEHS observes au checkpoint sont utilises.
 
 import argparse
 from collections import defaultdict
+from datetime import date
 import json
 from pathlib import Path
 import statistics
@@ -25,25 +26,40 @@ def _median(values):
 
 
 def analyse(payload, policy_id="early_slot"):
-    snapshots = [
-        snap for snap in ((payload.get("line_telemetry") or {}).get("snapshots") or [])
-        if snap.get("duel_policy_id") == policy_id
-    ]
-    by_key = {
-        (snap.get("arm"), snap.get("seed"), snap.get("year")): aggregate_markets(snap.get("lines"), "air")
-        for snap in snapshots
-    }
-    seeds_by_arm = defaultdict(set)
-    for arm, seed, year in by_key:
+    # Un relevé mensuel ne doit pas remplacer arbitrairement le dernier relevé
+    # annuel lorsque l'ordre physique des snapshots change. Les répétitions de
+    # graine sont des parties distinctes, même si leurs lignes locales coïncident.
+    latest = {}
+    for snap in ((payload.get("line_telemetry") or {}).get("snapshots") or []):
+        if snap.get("duel_policy_id") != policy_id:
+            continue
+        try:
+            stamp = date.fromisoformat(snap["date"])
+        except (KeyError, ValueError, TypeError) as exc:
+            raise ValueError("checkpoint AIR sans date valide") from exc
+        if stamp.year != snap.get("year"):
+            raise ValueError(f"checkpoint AIR avec annee contradictoire : {snap['date']}")
+        key = (snap.get("arm"), snap.get("seed"), snap.get("repeat", 0), snap.get("year"))
+        previous = latest.get(key)
+        if previous is None or stamp > previous[0]:
+            latest[key] = (stamp, snap)
+        elif stamp == previous[0] and snap != previous[1]:
+            raise ValueError(f"checkpoints AIR contradictoires : {key} {stamp}")
+    by_key = {key: aggregate_markets(snap.get("lines"), "air")
+              for key, (_, snap) in latest.items()}
+    games_by_arm = defaultdict(set)
+    for arm, seed, repeat, year in by_key:
         if year is not None:
-            seeds_by_arm[arm].add(seed)
+            games_by_arm[arm].add((seed, repeat))
 
     annual = []
-    for year in sorted({year for _, _, year in by_key if year is not None}):
+    for year in sorted({year for _, _, _, year in by_key if year is not None}):
         for arm in ("OpexAI", "AAAHogEx"):
             per_seed = []
-            for seed in sorted(seeds_by_arm[arm]):
-                markets = list(by_key.get((arm, seed, year), {}).values())
+            for seed, repeat in sorted(games_by_arm[arm]):
+                if (arm, seed, repeat, year) not in by_key:
+                    continue
+                markets = list(by_key[(arm, seed, repeat, year)].values())
                 profits = [m["profit_this_year_gbp"] for m in markets]
                 vehicles = sum(m["vehicles"] for m in markets)
                 capacity = sum(sum((m.get("capacity_by_cargo") or {}).values()) for m in markets)
@@ -67,7 +83,9 @@ def analyse(payload, policy_id="early_slot"):
             annual.append({
                 "year": year,
                 "arm": arm,
-                "seeds": len(per_seed),
+                "seeds": len({seed for seed, repeat in games_by_arm[arm]
+                              if (arm, seed, repeat, year) in by_key}),
+                "games": len(per_seed),
                 "mean": {
                     field: _mean([row[field] for row in per_seed if row[field] is not None])
                     for field in fields
@@ -78,20 +96,22 @@ def analyse(payload, policy_id="early_slot"):
                 },
             })
 
-    final_year = max((year for _, _, year in by_key if year is not None), default=None)
+    final_year = max((year for _, _, _, year in by_key if year is not None), default=None)
     cohorts = []
     if final_year is not None:
         for arm in ("OpexAI", "AAAHogEx"):
             rows = []
-            for seed in sorted(seeds_by_arm[arm]):
+            for seed, repeat in sorted(games_by_arm[arm]):
                 first_seen = {}
-                for year in sorted({year for a, s, year in by_key if a == arm and s == seed}):
-                    for market_key in by_key.get((arm, seed, year), {}):
+                for year in sorted({year for a, s, r, year in by_key
+                                    if a == arm and s == seed and r == repeat}):
+                    for market_key in by_key.get((arm, seed, repeat, year), {}):
                         first_seen.setdefault(market_key, year)
-                final = by_key.get((arm, seed, final_year), {})
+                final = by_key.get((arm, seed, repeat, final_year), {})
                 for market_key, market in final.items():
                     rows.append({
                         "seed": seed,
+                        "repeat": repeat,
                         "market_key": market_key,
                         "first_seen_year": first_seen[market_key],
                         "profit": market["profit_this_year_gbp"],
