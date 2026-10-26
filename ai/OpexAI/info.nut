@@ -48,6 +48,11 @@ class OpexAIInfo extends AIInfo {
       min_value = 0, max_value = 2,
       easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
       flags = 0 });
+    AddSetting({ name = "front_pax2_bounded_overlap",
+      description = "FRONT-PAX-2 AIR PASS only: 0=historical (default), 1=passive bounded shortlist, 2=up to one additional C121 candidate per arm per completed ALL-band scan",
+      min_value = 0, max_value = 2,
+      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
+      flags = 0 });
     /* --- 1. Systeme et instrumentation --- */
 
     /* V167 : un seul entier pilote panneaux, journal et sondes (somme de bits, voir settings.nut).

@@ -198,12 +198,35 @@ class TestV278Source(unittest.TestCase):
         # Empreintes de master au depart de V278, corps entier du driver et
         # de NewPairs. Seuls les panneaux de premiere paire sont desarmes
         # pour les appels atomiques V278, sans retoucher aucun filtre C121.
+        # FP2 ajoute une capture au rejet et un contexte opt-in; retirer leurs
+        # octets EXACTS preserve la preuve historique au lieu de rebaseliner.
         source = read("air_planning.nut")
         pairs = function(source, "OpexAirPlansNewPairs").replace(
             'a == 0 && b == 1 && !(V278_AIR_LAZY_SITES && ("v278SinglePair" in ctx))',
             "a == 0 && b == 1")
+        fp2_pair = (
+            "        if (ctx.fp2 != null) OpexFP2Shortlist(ctx, 0, sites[a], sites[b],\n"
+            "            airport, plane, distance, flightDistance, orderDistance, minDist);\n"
+        )
+        self.assertEqual(pairs.count(fp2_pair), 1)
+        pairs = pairs.replace(fp2_pair, "", 1)
         self.assertEqual(hashlib.sha256(pairs.encode()).hexdigest(), PAIRS_HASH)
         driver = function(source, "OpexAirPlans")
+        self.assertEqual(driver.count("    fp2 = null,\n"), 1)
+        driver = driver.replace("    fp2 = null,\n", "", 1)
+        fp2_init = (
+            "  if (FRONT_PAX2_BOUNDED_OVERLAP > 0 && paxBand == PAX_BAND_ALL\n"
+            "      && catalog != null && catalog.bounds != null) {\n"
+            "    if (resumeState != null && (\"frontPax2Bounded\" in resumeState)) {\n"
+            "      ctx.fp2 = resumeState.frontPax2Bounded;\n"
+            "    } else {\n"
+            "      ctx.fp2 = OpexFP2NewShortlist(catalog.bounds);\n"
+            "      if (resumeState != null) resumeState.frontPax2Bounded <- ctx.fp2;\n"
+            "    }\n"
+            "  }\n\n"
+        )
+        self.assertEqual(driver.count(fp2_init), 1)
+        driver = driver.replace(fp2_init, "", 1)
         self.assertEqual(hashlib.sha256(driver.encode()).hexdigest(), DRIVER_HASH)
 
     def test_population_potential_and_bounded_frontier(self):
