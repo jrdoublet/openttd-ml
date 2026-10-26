@@ -141,6 +141,41 @@ C75_INFO_DELTA = (
 )
 C75_SETTINGS_DELTA = b'  C75_YEAR_LEDGER_SKIP = AIController.GetSetting("c75_year_ledger_skip") == 1;\n'
 C75_DELTAS = {"info.nut": C75_INFO_DELTA, "settings.nut": C75_SETTINGS_DELTA}
+# C75 bis: opt-in to suppress ONLY the diagnostic ledger, with probes=0.
+# Strip the reviewed additions for PO01D's frozen historical source checksum;
+# reject any drift instead of recalculating the historical digest.
+C75_BYPASS_INFO_DELTA = (
+    b'    AddSetting({ name = "c75_bypass_ledger_skip",\n'
+    b'      description = "C75 bypass diagnostic experiment: 0=keep log/signs (default), 1=skip ledger when signs and decision log are off; K_pass bypass unchanged",\n'
+    b'      min_value = 0, max_value = 1,\n'
+    b'      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,\n'
+    b'      flags = AICONFIG_BOOLEAN });\n\n'
+)
+C75_BYPASS_SETTINGS_DELTA = (
+    b'  C75_BYPASS_LEDGER_SKIP = AIController.GetSetting("c75_bypass_ledger_skip") == 1;\n'
+)
+C75_BYPASS_GLOBALS_DELTA = (
+    b'/* Opt-in: eviter uniquement le diagnostic C75 bis hors panneaux/journal. */\n'
+    b'C75_BYPASS_LEDGER_SKIP <- false;\n'
+)
+C75_BYPASS_PROBES_RESET_DELTA = (
+    b'  /* Le registre n\'est lu que par ses emetteurs C75_BYPASS et panneaux C7*.\n'
+    b'   * Les decisions utilisent c75BypassConsumed local, pas ce registre.\n'
+    b'   * Ne jamais retirer les traces sous DEBUG_SIGNS/DECISION_LOG. */\n'
+    b'  if (C75_BYPASS_LEDGER_SKIP && !DEBUG_SIGNS && !DECISION_LOG) {\n'
+    b'    C75_KPASS_BYPASS_LEDGER = null;\n'
+    b'    C75_KPASS_BYPASS_LEDGER_YEAR = -1;\n'
+    b'    return;\n'
+    b'  }\n'
+)
+C75_BYPASS_PROBES_RETURN_DELTA = (
+    b'  if (C75_BYPASS_LEDGER_SKIP && !DEBUG_SIGNS && !DECISION_LOG) return;\n'
+)
+C75_BYPASS_DELTAS = {
+    "info.nut": C75_BYPASS_INFO_DELTA,
+    "settings.nut": C75_BYPASS_SETTINGS_DELTA,
+    "globals_pre.nut": C75_BYPASS_GLOBALS_DELTA,
+}
 # DIST-BORNES-1 is a separate default-OFF correction to the deferred V276
 # freight path. Remove the *exact* reviewed addition from the frozen PO01D
 # inventory, including restoration of the historic V269 expression. This
@@ -548,6 +583,15 @@ P3_PROBES_CALLS = (
 
 
 def historical_bytes(name, raw):
+    bypass_delta = C75_BYPASS_DELTAS.get(name)
+    if bypass_delta is not None:
+        assert raw.count(bypass_delta) == 1, f"C75 bypass {name}: opt-in fragment changed"
+        raw = raw.replace(bypass_delta, b"", 1)
+    if name == "probes.nut":
+        assert raw.count(C75_BYPASS_PROBES_RESET_DELTA) == 1, "C75 bypass: reset guard changed"
+        raw = raw.replace(C75_BYPASS_PROBES_RESET_DELTA, b"", 1)
+        assert raw.count(C75_BYPASS_PROBES_RETURN_DELTA) == 3, "C75 bypass: call guards changed"
+        raw = raw.replace(C75_BYPASS_PROBES_RETURN_DELTA, b"")
     dist_delta = DIST_BORNES_DELTAS.get(name)
     if dist_delta is not None:
         assert raw.count(dist_delta) == 1, f"DIST-BORNES {name}: opt-in fragment changed"

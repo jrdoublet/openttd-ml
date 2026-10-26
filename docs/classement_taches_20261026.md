@@ -105,6 +105,18 @@ par défaut n'a changé. L'audit du `fair_play` est livré
 et le réglage distinct restent absents. Le profil de difficulté existant
 ne vaut pas autorisation implicite de ce nouveau mode.
 
+**26/10, complément C75 bis :** le registre bypass a désormais un
+**second essai opt-in à défaut 0**, `c75_bypass_ledger_skip=1`. Sous
+`probes=0`, il supprime la tenue du registre, les lignes de journal et les
+panneaux associés, en laissant l'admission K_pass et le bypass local inchangés ;
+`probes=2` conserve les traces (smoke 42×2 sain, résultat identique sur
+les deux bras). Exposition 42×3 : 41 événements de référence contre zéro
+dans la variante, 2/2 parties saines, mais delta de profit −72 712 £ sur
+une seule graine, `diagnostic_only`. La microéconomie d'opcodes et le
+contrôle 20×10 de non-érosion manquent avant une éventuelle adoption ;
+les logs C121 et `[FLEET_PROJECT]` restent à classer. **Toujours 20 cases
+ouvertes, sans fermeture globale prouvée.**
+
 ## C4 — chantiers lourds dépendants de constructions ou de séquences
 
 | Ordre | Case | Effort / dépendance principale | Besoin de banc | Risque |

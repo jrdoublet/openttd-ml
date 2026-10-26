@@ -294,6 +294,7 @@ function OpexLoadSettings()
   ::OpexCalibratedProfit <- OpexC70Profit;
   C69_BOTTLENECK_PROBE = probePort;
   C75_YEAR_LEDGER_SKIP = AIController.GetSetting("c75_year_ledger_skip") == 1;
+  C75_BYPASS_LEDGER_SKIP = AIController.GetSetting("c75_bypass_ledger_skip") == 1;
   /* Amorcage plat : sans etapes, chaque regeneration apres chantier prend le
    * chemin incremental C121 au lieu d'un OpexBuildProjects complet synchrone. */
   STAGED_BOOTSTRAP = false;

@@ -485,6 +485,8 @@ AIR_DEMAND_PAX_CARGO <- -1;
 /* C75 bis : autorise une seule nouvelle ligne finançable a franchir K_pass par passe. Defaut 0. */
 C75_KPASS_BYPASS_LEDGER <- null;
 C75_KPASS_BYPASS_LEDGER_YEAR <- -1;
+/* Opt-in: eviter uniquement le diagnostic C75 bis hors panneaux/journal. */
+C75_BYPASS_LEDGER_SKIP <- false;
 /* Facteur de financement rail applique dans OpexProjectFinanceCapital.
  * Reglage experimental, defaut historique 170. */
 RAIL_FINANCE_BIAS_PCT <- 100;

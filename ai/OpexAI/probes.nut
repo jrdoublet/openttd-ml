@@ -2168,6 +2168,14 @@ function OpexC75ResetYearLedger()
  * aucun comptage supplementaire a chaque passe. */
 function OpexC75BypassResetYearLedger(year = -1)
 {
+  /* Le registre n'est lu que par ses emetteurs C75_BYPASS et panneaux C7*.
+   * Les decisions utilisent c75BypassConsumed local, pas ce registre.
+   * Ne jamais retirer les traces sous DEBUG_SIGNS/DECISION_LOG. */
+  if (C75_BYPASS_LEDGER_SKIP && !DEBUG_SIGNS && !DECISION_LOG) {
+    C75_KPASS_BYPASS_LEDGER = null;
+    C75_KPASS_BYPASS_LEDGER_YEAR = -1;
+    return;
+  }
   C75_KPASS_BYPASS_LEDGER = {
     eligible = 0,
     consumed = 0,
@@ -2183,6 +2191,7 @@ function OpexC75BypassResetYearLedger(year = -1)
 
 function OpexC75BypassEnsureYear(year)
 {
+  if (C75_BYPASS_LEDGER_SKIP && !DEBUG_SIGNS && !DECISION_LOG) return;
   if (C75_KPASS_BYPASS_LEDGER == null) {
     OpexC75BypassResetYearLedger(year);
     return;
@@ -2228,6 +2237,7 @@ function OpexC75BypassKindCode(project)
 
 function OpexC75BypassRecordEligible(year, project, financeCapital, availableCapital, kPass, builtBefore, alreadyConsumed)
 {
+  if (C75_BYPASS_LEDGER_SKIP && !DEBUG_SIGNS && !DECISION_LOG) return;
   if (C75_KPASS_BYPASS_LEDGER == null) OpexC75BypassResetYearLedger();
   local mode = (project != null && ("mode" in project)) ? project.mode : "unknown";
   local isFleet = mode == "fleet" ? 1 : 0;
@@ -2245,6 +2255,7 @@ function OpexC75BypassRecordEligible(year, project, financeCapital, availableCap
 
 function OpexC75BypassRecordConsumed(year, project, financeCapital, availableCapital, kPass, builtBefore)
 {
+  if (C75_BYPASS_LEDGER_SKIP && !DEBUG_SIGNS && !DECISION_LOG) return;
   if (C75_KPASS_BYPASS_LEDGER == null) OpexC75BypassResetYearLedger();
   local mode = (project != null && ("mode" in project)) ? project.mode : "unknown";
   local isFleet = mode == "fleet" ? 1 : 0;

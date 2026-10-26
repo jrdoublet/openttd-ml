@@ -46,7 +46,7 @@ class TestV251Inventory(unittest.TestCase):
         info = historical_info(self.sources["info.nut"])
         # Migration controlee des options historiques : conserver PO01C=1,
         # PO03/C77=2 et PO02=1. historical_info soustrait N75, P6, P3 et FP2
-        # P1, C75 et DIST-BORNES par blocs EXACTS : historique toujours 58.
+        # P1, C75 annuel/bypass et DIST-BORNES par blocs EXACTS : historique toujours 58.
         self.assertLessEqual(info.count("AddSetting("), 58)
         self.assertNotIn('name = "v251', info)
         settings = self.sources["settings.nut"]

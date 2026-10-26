@@ -1,4 +1,5 @@
 """Contrats C75 bis : bypass K_pass cible sur une nouvelle ligne finançable."""
+import re
 import unittest
 from pathlib import Path
 
@@ -41,6 +42,31 @@ class C75KPassBypassContractTests(unittest.TestCase):
         self.assertNotIn('GetSetting("c75_kpass_bypass")', read("ai/OpexAI/settings.nut"))
         self.assertNotIn("C75_KPASS_BYPASS <-", read("ai/OpexAI/globals_pre.nut"))
         self.assertIn("C75_KPASS_BYPASS_LEDGER_YEAR <- -1;", self.globals)
+
+    def test_opt_in_diagnostic_skip_preserves_default_and_bench_traces(self):
+        block = re.search(
+            r'AddSetting\(\{ name = "c75_bypass_ledger_skip",.*?\}\);',
+            self.info, re.S,
+        )
+        self.assertIsNotNone(block)
+        for level in ("easy", "medium", "hard", "custom"):
+            self.assertRegex(block.group(), rf"{level}_value\s*=\s*0\b")
+        self.assertIn('GetSetting("c75_bypass_ledger_skip")', self.settings)
+        self.assertIn("C75_BYPASS_LEDGER_SKIP <- false;", self.globals)
+        guard = "C75_BYPASS_LEDGER_SKIP && !DEBUG_SIGNS && !DECISION_LOG"
+        reset = body(self.probes, "function OpexC75BypassResetYearLedger(")
+        ensure = body(self.probes, "function OpexC75BypassEnsureYear(")
+        eligible = body(self.probes, "function OpexC75BypassRecordEligible(")
+        consumed = body(self.probes, "function OpexC75BypassRecordConsumed(")
+        self.assertIn(f"if ({guard}) {{", reset)
+        self.assertLess(reset.index("C75_KPASS_BYPASS_LEDGER = null;"),
+                        reset.index("C75_KPASS_BYPASS_LEDGER = {"))
+        self.assertIn("C75_KPASS_BYPASS_LEDGER_YEAR = -1;", reset)
+        for method in (ensure, eligible, consumed):
+            self.assertIn(f"if ({guard}) return;", method)
+        self.assertIn("C75_KPASS_BYPASS_LEDGER == null", body(self.probes, "function OpexC75BypassRecordStop("))
+        self.assertIn("C75_KPASS_BYPASS_LEDGER == null", body(self.probes, "function OpexC75BypassFlushYear("))
+        self.assertIn("C75_PASS_DATES = this._reloadC75PassDates;", read("ai/OpexAI/persist.nut"))
 
     def test_financeable_new_line_can_bypass_kpass(self):
         gate = body(self.projects, "function OpexC75KPassBypassIsNewLine(")

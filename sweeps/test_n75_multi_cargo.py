@@ -37,7 +37,7 @@ class N75MultiCargoContracts(unittest.TestCase):
             self.assertRegex(setting, rf'{d}_value\s*=\s*2\b')
         self.assertEqual(self.settings.count('AIController.GetSetting("n75_multi_cargo")'), 1)
         # 58 historiques + N75 adopte + P6/P3/FP2/P2/P1 et FP1/V286/C75/DIST opt-in.
-        self.assertEqual(self.info.count("AddSetting("), 68)
+        self.assertEqual(self.info.count("AddSetting("), 69)
         self.assertEqual(historical_info(self.info).count("AddSetting("), 58)
         self.assertIn('N75_MULTI_CARGO <- 0;', self.globals_pre)
         self.assertIn('N75_MULTI_CARGO = (n75MultiCargo >= 1 && n75MultiCargo <= 2)', self.settings)
