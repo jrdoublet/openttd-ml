@@ -105,6 +105,47 @@ class RailFreightLogTests(unittest.TestCase):
         self.assertIsNone(decode_line("OPEX yesterday RAIL_ATTEMPT kind=freight"))
         self.assertIsNone(decode_line("SOME_OTHER_LOG 1974-1-1 mode=rail"))
 
+    def test_rail_rejects_on_following_day_still_belong_to_same_generation(self):
+        rows = [
+            "OPEX 1970-2-5 VIVIER_GEN mode=rail produced=1295 kept=142\n",
+            "OPEX 1970-2-5 VIVIER_REJECT reason=no_monthly n=18\n",
+            "OPEX 1970-2-5 VIVIER_REJECT reason=distance_long n=41\n",
+            "OPEX 1970-2-6 VIVIER_REJECT reason=profit_non_positive n=392\n",
+            "OPEX 1970-2-6 VIVIER_REJECT reason=ratio_too_low n=247\n",
+        ]
+        year = count_log(rows)["1970"]
+        self.assertEqual(year["rail_generation_details"][0]["rejects"], {
+            "no_monthly": 18, "distance_long": 41,
+            "profit_non_positive": 392, "ratio_too_low": 247,
+        })
+        self.assertEqual(sum(year["rail_reject_occurrences"].values()), 698)
+
+    def test_other_mode_generation_ends_rail_reject_attribution(self):
+        rows = [
+            "OPEX 1972-3-1 VIVIER_GEN mode=rail produced=10 kept=2\n",
+            "OPEX 1972-3-2 VIVIER_GEN mode=road produced=9 kept=1\n",
+            "OPEX 1972-3-2 VIVIER_REJECT reason=road_site n=99\n",
+            "OPEX 1972-3-3 VIVIER_GEN mode=rail produced=8 kept=2\n",
+            "OPEX 1972-3-4 VIVIER_REJECT reason=rail_site n=5\n",
+        ]
+        year = count_log(rows)["1972"]
+        first, second = year["rail_generation_details"]
+        self.assertEqual(first["rejects"], {})
+        self.assertEqual(second["rejects"], {"rail_site": 5})
+        self.assertEqual(year["rail_reject_occurrences"], {"road_site": 99, "rail_site": 5})
+
+    def test_two_rail_generations_keep_separate_rejects_across_years(self):
+        rows = [
+            "OPEX 1974-12-31 VIVIER_GEN mode=rail produced=40 kept=5\n",
+            "OPEX 1975-1-1 VIVIER_REJECT reason=late n=7\n",
+            "OPEX 1975-1-1 VIVIER_GEN mode=rail produced=20 kept=2\n",
+            "OPEX 1975-1-2 VIVIER_REJECT reason=fresh n=3\n",
+        ]
+        report = count_log(rows)
+        self.assertEqual(report["1974"]["rail_generation_details"][0]["rejects"], {"late": 7})
+        self.assertEqual(report["1975"]["rail_generation_details"][0]["rejects"], {"fresh": 3})
+        self.assertEqual(report["1975"]["rail_reject_occurrences"], {"late": 7, "fresh": 3})
+
 
 if __name__ == "__main__":
     unittest.main()

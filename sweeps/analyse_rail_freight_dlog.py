@@ -99,7 +99,10 @@ def count_log(lines):
             reason = values.get("reason", "?")
             if "n" in values:
                 row["rail_reject_reasons"][reason] += int(values["n"])
-                if current_generation is not None and current_generation["date"] == f"{year}-{month}-{day}":
+                # Publishing the rejects of one rail generation may cross a
+                # calendar day. Its lifetime ends at the next VIVIER_GEN,
+                # including one for a different transport mode.
+                if current_generation is not None:
                     current_generation["rejects"][reason] = int(values["n"])
         elif event == "PORTFOLIO_RANK":
             rank = int(values.get("rank", "-1"))
