@@ -58,6 +58,11 @@ def freight(line):
                for c, n in line.get('capacity_by_cargo', {}).items())
 
 
+def carries_good(line):
+    return any(str(c) == '5' and n > 0
+               for c, n in line.get('capacity_by_cargo', {}).items())
+
+
 def distance(line, width):
     tiles = line.get('ordered_station_tiles', [])
     if len(tiles) != 2 or any(t is None for t in tiles):
@@ -97,7 +102,7 @@ def snapshot_metrics(snap, width):
     groups['freight_long_gt160'] = [l for l in rail if freight(l)
                                   and (distance(l, width) or 0) > 160]
     groups['freight_long_non_good'] = [l for l in groups['freight_long_gt160']
-                                     if cargo_key(l) != 'GOOD']
+                                     if not carries_good(l)]
     return {key: line_metrics(value, width) for key, value in groups.items()}
 
 
