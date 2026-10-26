@@ -23,3 +23,22 @@ Le chemin incrémental V276 reste exclu de ce premier essai (`V276_CAND_SLICES >
 Porte **A `gain_short` 40 graines × 5 ans**, fixée avant mesure : moyenne appariée de `profit_year` terminal Opex ON − OFF **>= +4 %** de la moyenne OFF, Wilcoxon exact bilatéral **p < 0,05**, borne basse IC95 bootstrap (20 000, graine 0) **> 0**, ratio des moyennes `company_value` **>= 0,95**, parties saines et complètes. Si et seulement si A passe : porte **B 20 graines × 10 ans** appariées, borne haute IC95 bootstrap delta `profit_year` **>= 0**, valeur **>= 0,95**, aucun jeu invalide. Conserver les mêmes graines, profils, adversaire AAAHogEx et options pour les deux bras. Le défaut reste **0** indépendamment du verdict ; toute adoption requiert décision du prime après exposition et deux portes.
 
 Les tests hôtes de contrat peuvent établir la garde et les limites, jamais la constructibilité réelle ou les gains économiques. Seul le prime conduit Docker, les campagnes, le commit et la publication.
+
+## Verdict de l'exposition, conservant intégralement les critères (26 octobre 2026)
+
+Code de référence `42c638741a522671374923524e64e84e8d4a03e3` (fusion du code opt-in `76a9c0ca`) ; image `openttd-lab:latest` SHA256 `f4b2b9b3b7399cbfecacfe03b3b8dda49bff2921de36a61fed4e9441e5d44659` ; arbre Git propre. Suite complète avant publication : **2 902 tests OK** (5 ignorés, 2 échecs attendus). Le smoke moteur `p1_long_value_smoke_42x1_20261026`, un an, 2/2 parties saines, a montré des `P1_LONG_SELECT` à 248 tuiles mais aucun `RAIL_BUILD` de cette paire ; ON−OFF −8 796 £/an, diagnostic sans conclusion économique. Save/Load avec `rail_long_value_rank=2`, graine 42, `save_full_state=0` et `1` : 13 sauvegardes phase A et 13 phase B pour chaque bras, sauvegarde `000000005.sav` rechargée, `LOAD_RECONCILE` positif, aucun motif d'erreur script requis trouvé. La compagnie fantôme connue du harnais rend ces essais impropres à une preuve de trajectoire économique identique.
+
+Exposition appariée **OFF 0 / ON 2**, `p1_long_value_exposure_5x5_20261026` (`.json`, `.jsonl`, `.manifest.json`, `_engine/`), 42/100/7/999/2026, 1970–1974, `probes=6`, **10/10 parties terminées**, 5/5 paires complètes et saines. Empreinte du manifeste vérifiée sur disque : `258e148b0851145f99fdfb8512dd198c7b285755db37cbf5d2513d839a7238f4` ; bundle `42d513ea9b979cd6a9e4929605447222f0b82c24fdbceeb21576a54e3bb84074`. Tous les comptes ci-dessous proviennent des cinq journaux `p1_on_seed*_r0.log` et ne comptent pas des projets répétés comme de nouvelles lignes.
+
+| Graine | `P1_LONG_SHADOW` | `P1_LONG_SELECT` | `P1_LONG_MARGIN` (plan `ok` à dépôt) | `RAIL_ATTEMPT` / `RAIL_BUILD` de la paire P1 |
+|---|---:|---:|---:|---:|
+| 42 | 3 | 3 | 0 | 0 / 0 |
+| 100 | 3 | 3 | 1 | 0 / 0 |
+| 7 | 3 | 3 | 0 | 0 / 0 |
+| 999 | 4 | 0 | 0 | 0 / 0 |
+| 2026 | 3 | 3 | 1 | 0 / 0 |
+| **Total** | **16** | **12** | **2** | **0 / 0** |
+
+Le P1 `P1_LONG_MARGIN` du monde 100 porte `src=4696 dst=62245`, distance 276, marge indicative +45 465 £/an **mais `affordable=0`** ; celui de 2026 porte `src=25801 dst=2824`, distance 282, marge +91 871 £/an, `affordable=1`. Aucune de ces identités ni les deux autres paires P1 sélectionnées ne figure dans un `RAIL_ATTEMPT` ou `RAIL_BUILD` du même monde. Les journaux `RAIL_STOCK_START/DEPOSIT` nécessitaient la sonde C56 distincte, non activée ici : leur absence n'est **pas** comptée comme zéro recherche ou dépôt. `P1_LONG_MARGIN` indique seulement une voie physiquement prête, pas son exécution.
+
+Economiquement, variante−témoin **+44 093 £/an en moyenne** (médiane +145 100 ; 4 V/1 D), Wilcoxon bilatéral p=0,625, IC95 bootstrap [−181 636 ; +178 292,4] £/an, ratio des moyennes `company_value=1,004821` : `diagnostic_only`, seuil minimal du gain moyen A **112 476,984 £/an** sur ce témoin. Ces variations ne constituent **aucun gain attribuable à P1**, puisqu'aucune liaison P1 nouvelle n'a été construite. La somme des marges positives des **seules lignes construites** est **0**, soit **0 %** des profits témoins, contre ≥4 % exigés ; **0 graine bâtie** contre au moins deux exigées. **Verdict `NO-GO` d'exposition** sans porte A 40×5 ni porte B 20×10, sans recalage post hoc du mécanisme ou des seuils. `rail_long_value_rank=0` reste par défaut sur les quatre profils. Les campagnes RLW/V280/V294c anciennes demeurent rejetées, sans rejeu.
