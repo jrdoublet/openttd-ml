@@ -67,6 +67,44 @@ class HeldoutTransferContracts(unittest.TestCase):
         self.assertEqual(report["heldout"]["invalid_or_missing_revenue_ratio_rows"], 2)
         self.assertEqual(report["heldout_error_by_mode"]["rail"]["n"], 1)
 
+    def test_seed_balanced_score_resists_one_prolific_seed(self):
+        train = {("reference_seed10_r0.log", 10): calibration_game(1.0)}
+        heldout = {
+            ("reference_seed20_r0.log", 20): calibration_game(1.0, count=10),
+            ("reference_seed30_r0.log", 30): calibration_game(4.0, count=1),
+            ("reference_seed40_r0.log", 40): calibration_game(4.0, count=1),
+        }
+        report = evaluate(train, heldout)
+        self.assertEqual(report["heldout_median_abs_log_error"]["raw"], 0)
+        macro = report["heldout_seed_balanced_error"]
+        self.assertEqual(macro["median_of_seed_medians"]["raw"],
+                         round(math.log(4), 4))
+        self.assertEqual(macro["median_of_seed_medians"]["mode"],
+                         round(math.log(4), 4))
+        self.assertEqual(macro["seeds_with_valid_rows"], 3)
+        self.assertEqual([row["n_valid_rows"] for row in macro["by_seed"]],
+                         [10, 1, 1])
+
+    def test_seed_balanced_zero_valid_and_repeated_seed_are_explicit(self):
+        train = {("reference_seed10_r0.log", 10): calibration_game(1.0)}
+        invalid = calibration_game(4.0, count=1)
+        invalid["rows"][0]["pred_rev"] = 0
+        heldout = {
+            ("reference_seed20_r0.log", 20): calibration_game(4.0, count=1),
+            ("reference_seed20_r1.log", 20): calibration_game(4.0, count=2),
+            ("reference_seed30_r0.log", 30): invalid,
+        }
+        report = evaluate(train, heldout)
+        macro = report["heldout_seed_balanced_error"]
+        self.assertEqual(macro["distinct_seeds"], 2)
+        self.assertEqual(macro["seeds_with_valid_rows"], 1)
+        self.assertEqual(macro["seeds_without_valid_rows"], [30])
+        self.assertEqual(macro["by_seed"][0]["n_valid_rows"], 3)
+        self.assertEqual(macro["by_seed"][1]["raw"], None)
+        self.assertEqual(macro["median_of_seed_medians"]["cell"],
+                         round(math.log(4), 4))
+        json.dumps(report, allow_nan=False)
+
     def test_empty_training_or_test_are_explicit_errors(self):
         one = {("reference_seed42_r0.log", 42): calibration_game(4)}
         with self.assertRaisesRegex(ValueError, "nonempty"):

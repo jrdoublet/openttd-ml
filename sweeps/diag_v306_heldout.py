@@ -14,8 +14,10 @@ Usage:
 """
 
 import argparse
+from collections import defaultdict
 import json
 from pathlib import Path
+from statistics import median
 
 try:
     from sweeps.analyse_calibration_projets import (
@@ -27,6 +29,35 @@ except ModuleNotFoundError:
         MIN_CELL, cell_seed_support, cross_validate, factor_tables,
         load_campaign, predict_error,
     )
+
+
+def seed_balanced_error(heldout, modes, cells):
+    """Median of each independent seed's median errors, not of line-years.
+
+    Multiple arms or repetitions of one seed remain a single unit. This is a
+    descriptive sensitivity check; factors and the original micro score stay
+    unchanged, and seeds with no valid ratios have explicitly missing scores.
+    """
+    by_seed = defaultdict(dict)
+    for key, game in heldout.items():
+        by_seed[key[1]][key] = game
+    rows = []
+    for seed, games in sorted(by_seed.items()):
+        scores = predict_error(games, modes, cells)
+        rows.append({"seed": seed, "n_valid_rows": scores["n"],
+                     **{metric: scores[metric] for metric in ("raw", "mode", "cell")}})
+    valid = [row for row in rows if row["n_valid_rows"] > 0]
+    return {
+        "distinct_seeds": len(rows),
+        "seeds_with_valid_rows": len(valid),
+        "seeds_without_valid_rows": [row["seed"] for row in rows
+                                     if row["n_valid_rows"] == 0],
+        "median_of_seed_medians": {
+            metric: round(median(row[metric] for row in valid), 4) if valid else None
+            for metric in ("raw", "mode", "cell")
+        },
+        "by_seed": rows,
+    }
 
 
 def evaluate(train, heldout):
@@ -43,10 +74,13 @@ def evaluate(train, heldout):
     support_train = cell_seed_support(train)
     support_test = cell_seed_support(heldout)
     prediction = predict_error(heldout, modes, cells)
+    seed_balanced = seed_balanced_error(heldout, modes, cells)
     valid_train = sum(s["n_valid_rows"] for s in support_train.values())
     valid_test = sum(s["n_valid_rows"] for s in support_test.values())
     if prediction["n"] != valid_test:
         raise ValueError("V306 valid test observation coverage contradiction")
+    if sum(row["n_valid_rows"] for row in seed_balanced["by_seed"]) != valid_test:
+        raise ValueError("V306 seed-balanced observation coverage contradiction")
     row_count = sum(len(game["rows"]) for game in heldout.values())
     mode_scores = {}
     for mode in sorted({row["mode"] for game in heldout.values() for row in game["rows"]}):
@@ -94,6 +128,7 @@ def evaluate(train, heldout):
         },
         "eligible_training_cells": eligible_cells,
         "heldout_median_abs_log_error": prediction,
+        "heldout_seed_balanced_error": seed_balanced,
         "heldout_error_by_mode": mode_scores,
         "heldout_seed_folds": [
             {key: fold[key] for key in ("fold", "raw", "mode", "cell", "n")}
@@ -108,6 +143,8 @@ def evaluate(train, heldout):
             "normalized to their initial fleets; not project profit, ROI or CAPEX.",
             "A single cell may have many line-years from one seed; "
             "MIN_CELL is a line-year count, not independent-seed support.",
+            "The seed-balanced check gives each held-out seed one median, "
+            "regardless of its line-year count; it is not a causal gain estimate.",
             "Only already constructed lines have realized revenue. No failed "
             "project counterfactual, causality, door A/B or default adoption.",
         ],
