@@ -13,9 +13,16 @@ import json
 from pathlib import Path
 from statistics import median
 
-from diag_v307_sink_joins import (
-    ATTEMPT_RE, BUILD_RE, CARGO_DEST, DEFAULT_LOGS, FIELDS_RE, open_log,
-)
+try:
+    from sweeps.diag_v307_sink_joins import (
+        ATTEMPT_RE, BUILD_RE, CARGO_DEST, DEFAULT_LOGS, FIELDS_RE, open_log,
+    )
+except ModuleNotFoundError as error:
+    if error.name != 'sweeps':
+        raise
+    from diag_v307_sink_joins import (
+        ATTEMPT_RE, BUILD_RE, CARGO_DEST, DEFAULT_LOGS, FIELDS_RE, open_log,
+    )
 
 
 def percentile(values, p):
@@ -51,6 +58,10 @@ def analyse(files):
     by_category = defaultdict(Counter)
     reasons = Counter()
     failure_by_previous = defaultdict(Counter)
+    # Preserve the historical breakdown while separating attempts for which
+    # the initial non-shared destination construction was never seen.
+    known_initial_failure_by_previous = defaultdict(Counter)
+    unknown_initial_reasons = Counter()
     abnd_iters = []
     sides_present = Counter()
     anomalies = Counter()
@@ -80,19 +91,26 @@ def analyse(files):
                 anomalies['attempt_without_dst'] += 1
                 continue
             attempts.add(dst)
-            if dst not in opened:
+            initial_observed = dst in opened
+            if not initial_observed:
                 anomalies['attempt_without_observed_initial'] += 1
             reason = f.get('reason', 'MISSING')
             reasons[reason] += 1
             local_reasons[reason] += 1
             totals['attempts'] += 1
+            if not initial_observed:
+                unknown_initial_reasons[reason] += 1
             if f.get('ok') == '1':
                 totals['ok'] += 1
                 joined[dst] += 1
             elif reason == 'SITEAB':
                 failure_by_previous[joined[dst]]['SITEAB'] += 1
+                if initial_observed:
+                    known_initial_failure_by_previous[joined[dst]]['SITEAB'] += 1
             elif reason == 'ABND':
                 failure_by_previous[joined[dst]]['ABND'] += 1
+                if initial_observed:
+                    known_initial_failure_by_previous[joined[dst]]['ABND'] += 1
             if reason == 'ABND':
                 try:
                     abnd_iters.append(int(f['iters']))
@@ -120,12 +138,18 @@ def analyse(files):
     totals['files'] = len(files)
     return {'totals': dict(totals), 'reasons': dict(sorted(reasons.items())),
             'failure_by_prior_joins': {str(k): dict(v) for k, v in sorted(failure_by_previous.items())},
+            'failure_by_prior_joins_known_initial': {
+                str(k): dict(v) for k, v in sorted(known_initial_failure_by_previous.items())
+            },
+            'attempt_reasons_without_observed_initial': dict(sorted(unknown_initial_reasons.items())),
             'abnd_iters': {'n': len(abnd_iters), 'median': median(abnd_iters) if abnd_iters else None,
                            'p90': percentile(abnd_iters, .90), 'max': max(abnd_iters) if abnd_iters else None},
             'categories': {k: dict(v) for k, v in sorted(by_category.items())},
             'side_fields': dict(sides_present), 'anomalies': dict(anomalies),
             'per_seed': per_seed,
-            'limitations': ['identifiant physique de gare absent',
+            'limitations': ['failure_by_prior_joins est le bilan historique, y compris les tentatives sans ouverture observee',
+                            'failure_by_prior_joins_known_initial exige une construction non partagee prealable dans le meme journal',
+                            'identifiant physique de gare absent',
                             'aucun cote de quai parallele ni geometrie de voie dans RAIL_ATTEMPT',
                             'absence de tentative ne prouve pas absence de demande potentielle',
                             'categorie inferree du cargo des lignes construites']}
@@ -139,8 +163,12 @@ def render(result):
     print('Puits vises', total['targeted_existing'], 'jamais joints', total['targeted_never_joined'],
           'orphan (puits sans ouverture observee)', total['targeted_without_initial'])
     print('ABND iters', result['abnd_iters'], 'cote du quai', result['side_fields'] or 'indisponible')
-    print('SITEAB apres n jonctions reussies', {n: c.get('SITEAB', 0)
-          for n, c in result['failure_by_prior_joins'].items()})
+    print('SITEAB historique (ouvertures initiales connues et inconnues)',
+          {n: c.get('SITEAB', 0) for n, c in result['failure_by_prior_joins'].items()})
+    print('SITEAB avec construction initiale observee',
+          {n: c.get('SITEAB', 0) for n, c in result['failure_by_prior_joins_known_initial'].items()})
+    print('Tentatives sans construction initiale observee, par motif',
+          result['attempt_reasons_without_observed_initial'])
     print('| Categorie | Puits ouverts | Vises (%) | Jamais joints | Multi realises (%) |')
     print('|---|---:|---:|---:|---:|')
     for cat, c in result['categories'].items():

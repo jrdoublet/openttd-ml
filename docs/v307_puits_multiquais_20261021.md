@@ -53,6 +53,34 @@ la même destination**, au moment de l'échec :
 | 4 | 58 |
 | 5 | 3 |
 
+**26/10 — correction d'interprétation, sans changer le tableau historique.**
+Le lecteur `sweeps/diag_v307_sink_censure.py` comptait ci-dessus les `SITEAB`
+sur des destinations dont aucune ligne initiale non partagée n'était observée.
+La relecture des mêmes 40 journaux de référence sépare désormais ces tentatives :
+
+| Jonctions réussies précédentes | `SITEAB` total historique | Initiale non partagée observée avant la tentative | Initiale non observée |
+|---:|---:|---:|---:|
+| 0 | 244 | 225 | 19 |
+| 1 | 110 | 101 | 9 |
+| 2 | 58 | 53 | 5 |
+| 3 | 18 | 18 | 0 |
+| 4 | 58 | 18 | 40 |
+| 5 | 3 | 3 | 0 |
+| **Total** | **491** | **418** | **73** |
+
+Sur 986 `RAIL_ATTEMPT`, **121** surviennent sans ouverture initiale observée
+(73 `SITEAB`, 6 `ABND`, 33 `OK`, 8 `SITEA`, 1 `STNFAIL`). Un `RAIL_BUILD`
+`shared_dest=1` vu après une tentative réussie ne remplace pas la preuve
+d'une construction initiale. La formulation « tentative de deuxième/troisième
+ligne » n'est donc pas justifiée pour les 73 `SITEAB` orphelins, notamment
+40 des 58 cas de la classe 4. Le nouveau champ
+`failure_by_prior_joins_known_initial` décrit la sous-population documentée ;
+`failure_by_prior_joins` conserve les **491** historiques et
+`attempt_reasons_without_observed_initial` décrit les tentatives orphelines.
+Même avec ouverture initiale observée, l'absence d'identifiant de gare ne
+permet pas de prouver le nombre physique de quais ou la constructibilité.
+Aucune conclusion économique ni aucun verdict V307R/P4 n'est changé.
+
 Les 69 `ABND` ont toutes `iters=5000` (médiane = p90 = maximum = 5 000),
 ce qui indique ici l'épuisement du budget de recherche enregistré. **Le côté
 disponible pour un quai parallèle est impossible à reconstruire** : ni la
