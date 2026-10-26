@@ -18,6 +18,11 @@ class OpexAIInfo extends AIInfo {
       min_value = 0, max_value = 2,
       easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
       flags = 0 });
+    AddSetting({ name = "multi1_air_over_rail",
+      description = "MULTI-1 1971-73 multimodal: 0=off (default), 1=shadow, 2=promote one funded AIR ahead of unprepared RAIL head",
+      min_value = 0, max_value = 2,
+      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
+      flags = 0 });
     AddSetting({ name = "n75_multi_cargo",
       description = "1972+ cash-idle rail refill: 0=off, 1=shadow, 2=one extra freight cargo on empty funded rail pool (default 2)",
       min_value = 0, max_value = 2,

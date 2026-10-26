@@ -40,7 +40,7 @@ class Multi1RoadPriorityContracts(unittest.TestCase):
         self.assertIn("if (realSelection && MULTI1_ROAD_PRIORITY > 0)\n"
                       "    OpexMulti1RoadPromote(affordable, capitalBudget, MULTI1_ROAD_PRIORITY);", code)
         start = code.index("function OpexMulti1RoadPromote(")
-        body = code[start:code.index("function OpexProjectSelectAffordable(", start)]
+        body = code[start:code.index("function OpexMulti1AirOverRail(", start)]
         self.assertIn('action=" + (level == 2 ? "promote" : "shadow")', body)
         self.assertIn("if (level == 2) {\n      affordable.remove(i);", body)
         self.assertEqual(body.count("affordable.remove("), 1)
@@ -48,7 +48,7 @@ class Multi1RoadPriorityContracts(unittest.TestCase):
     def test_scope_and_c77_priority_are_preserved(self):
         code = src("projects_selection.nut")
         block = code[code.index("function OpexMulti1RoadPromote("):
-                     code.index("function OpexProjectSelectAffordable(")]
+                     code.index("function OpexMulti1AirOverRail(")]
         for required in (
             "!MODE_AIR || !MODE_RAIL || !MODE_ROAD",
             "year < 1971 || year > 1973",

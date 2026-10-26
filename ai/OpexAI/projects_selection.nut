@@ -837,6 +837,50 @@ function OpexMulti1RoadPromote(affordable, capitalBudget, level)
   }
 }
 
+/* MULTI-1 second experiment: defer an unprepared RAIL search only for an
+ * already funded AIR alternative of comparable profit and score. The C77
+ * defensive tier has already been computed and must not be bypassed. */
+function OpexMulti1AirOverRail(affordable, capitalBudget, level)
+{
+  if (affordable == null || affordable.len() < 2 || !MODE_AIR || !MODE_RAIL || !MODE_ROAD) return;
+  local year = AIDate.GetYear(AIDate.GetCurrentDate());
+  if (year < 1971 || year > 1973) return;
+  local head = affordable[0];
+  if (head == null || head.mode != "rail" || head.profitAnnual <= 0
+      || !("fundScore" in head) || head.fundScore <= 0
+      || OpexProjectDefensiveAirPriority(head) != 0) return;
+  if (("payload" in head) && head.payload != null
+      && ("railPlan" in head.payload) && head.payload.railPlan != null) return;
+  local limit = affordable.len() < 8 ? affordable.len() : 8;
+  for (local i = 1; i < limit; i++) {
+    local air = affordable[i];
+    if (air == null || air.mode != "air" || air.profitAnnual <= 0
+        || !("fundScore" in air) || air.fundScore < 0.80 * head.fundScore
+        || air.profitAnnual < 0.70 * head.profitAnnual
+        || OpexProjectDefensiveAirPriority(air) != 0
+        || OpexProjectFinanceCapital(air) > capitalBudget) continue;
+    if (!("payload" in air) || air.payload == null
+        || !("siteA" in air.payload) || !("siteB" in air.payload)
+        || air.payload.siteA == null || air.payload.siteB == null
+        || !("town" in air.payload.siteA) || !("town" in air.payload.siteB)
+        || air.payload.siteA.town == null || air.payload.siteB.town == null
+        || !("tile" in air.payload.siteA.town)
+        || !("tile" in air.payload.siteB.town)) continue;
+    AILog.Info("MULTI1_AIR_OVER_RAIL year=" + year
+        + " action=" + (level == 2 ? "promote" : "shadow") + " rank=" + i
+        + " src=" + air.payload.siteA.town.tile + " dst=" + air.payload.siteB.town.tile
+        + " air_score=" + air.fundScore + " air_profit=" + air.profitAnnual
+        + " air_capital=" + OpexProjectFinanceCapital(air)
+        + " rail_score=" + head.fundScore + " rail_profit=" + head.profitAnnual
+        + " rail_capital=" + OpexProjectFinanceCapital(head));
+    if (level == 2) {
+      affordable.remove(i);
+      affordable.insert(0, air);
+    }
+    return;
+  }
+}
+
 function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSelection = true, abandonedPairs = null)
 {
   SELECT_BISECT_STAMP++;
@@ -1058,6 +1102,8 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSel
     OpexP2OpportunityTopK(affordable, capitalBudget, abandonedPairs, P2_RAIL_CARGO_OPPORTUNITY_RANK);
   if (realSelection && MULTI1_ROAD_PRIORITY > 0)
     OpexMulti1RoadPromote(affordable, capitalBudget, MULTI1_ROAD_PRIORITY);
+  if (realSelection && MULTI1_AIR_OVER_RAIL > 0)
+    OpexMulti1AirOverRail(affordable, capitalBudget, MULTI1_AIR_OVER_RAIL);
   if (spEpilogue != null) OpexSpanEnd(spEpilogue);
   if (spSelect != null) OpexSpanEnd(spSelect);
   return affordable;

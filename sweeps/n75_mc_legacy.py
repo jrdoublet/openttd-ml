@@ -107,6 +107,21 @@ MULTI1_SETTINGS_DELTA = (
 )
 MULTI1_DELTAS = {"info.nut": MULTI1_INFO_DELTA, "settings.nut": MULTI1_SETTINGS_DELTA}
 
+# MULTI-1 second pilot: another independent default-off setting, with its
+# historical inventory preserved by removing only these exact bytes.
+MULTI1_AIR_INFO_DELTA = (
+    b'    AddSetting({ name = "multi1_air_over_rail",\n'
+    b'      description = "MULTI-1 1971-73 multimodal: 0=off (default), 1=shadow, 2=promote one funded AIR ahead of unprepared RAIL head",\n'
+    b'      min_value = 0, max_value = 2,\n'
+    b'      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,\n'
+    b'      flags = 0 });\n'
+)
+MULTI1_AIR_SETTINGS_DELTA = (
+    b'  local multi1AirOverRail = AIController.GetSetting("multi1_air_over_rail");\n'
+    b'  MULTI1_AIR_OVER_RAIL = (multi1AirOverRail == 1 || multi1AirOverRail == 2) ? multi1AirOverRail : 0;\n'
+)
+MULTI1_AIR_DELTAS = {"info.nut": MULTI1_AIR_INFO_DELTA, "settings.nut": MULTI1_AIR_SETTINGS_DELTA}
+
 # P1 is an independent opt-in C121 rail experiment; retain the frozen
 # historical contract by subtracting ONLY its exact additions. In particular,
 # P1's auxiliary freight candidate must never rebaseline PO01D's rail scan.
@@ -598,6 +613,10 @@ P3_PROBES_CALLS = (
 
 
 def historical_bytes(name, raw):
+    multi1_air_delta = MULTI1_AIR_DELTAS.get(name)
+    if multi1_air_delta is not None:
+        assert raw.count(multi1_air_delta) == 1, f"MULTI-1 AIR {name}: opt-in bytes changed"
+        raw = raw.replace(multi1_air_delta, b"", 1)
     multi1_delta = MULTI1_DELTAS.get(name)
     if multi1_delta is not None:
         assert raw.count(multi1_delta) == 1, f"MULTI-1 {name}: opt-in bytes changed"
