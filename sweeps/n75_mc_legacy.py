@@ -108,6 +108,32 @@ P1_SETTINGS_DELTA = (
 )
 P1_DELTAS = {"info.nut": P1_INFO_DELTA, "settings.nut": P1_SETTINGS_DELTA}
 
+# V286 adds an independent, default-OFF passive rail flow probe. Preserve
+# PO01D's original byte hashes by subtracting only these reviewed fragments;
+# the probe body has its own frozen hash to catch accidental changes.
+V286_INFO_DELTA = (
+    b'    AddSetting({ name = "v286_rail_flow_probe",\n'
+    b'      description = "V286 passive RAIL cargo/vehicle/industry snapshots: 0=off (default), 1=sample 16 lines every 30 game days; no policy change",\n'
+    b'      min_value = 0, max_value = 1,\n'
+    b'      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,\n'
+    b'      flags = AICONFIG_BOOLEAN });\n\n'
+)
+V286_SETTINGS_DELTA = (
+    b'  V286_FLOW_PROBE = AIController.GetSetting("v286_rail_flow_probe") == 1;\n'
+    b'  V286_FLOW_LAST_DAY = -1;\n'
+    b'  V286_FLOW_CURSOR = 0;\n'
+)
+V286_MAIN_DELTA = b'    if (V286_FLOW_PROBE) OpexV286FlowSample(this._lines);\n'
+V286_DELTAS = {
+    "info.nut": V286_INFO_DELTA,
+    "settings.nut": V286_SETTINGS_DELTA,
+    "main.nut": V286_MAIN_DELTA,
+}
+V286_PROBES_BLOCK_PREFIX = b"/* V286 : photographies RAIL"
+V286_PROBES_BLOCK_END = b"/* V309 : observation passive"
+V286_PROBES_BLOCK_SHA256 = "c0e942556f53da25881c52cfed6cb36fdb045d663b978bc97d48d9ae5fb37380"
+V286_PROBES_CALL = b'    if (V286_FLOW_PROBE) OpexV286FlowSample(this._lines);\n'
+
 P1_CANDIDATES_BLOCK_START = b"/* P1 : le balayage industriel normal"
 P1_CANDIDATES_BLOCK_END = b"/* Ne garder que les K meilleurs"
 P1_CANDIDATES_BLOCK_SHA256 = "69db60bef45147f21364ae192cd82c961764469b7a719a0e56da49409e99879f"
@@ -471,6 +497,15 @@ P3_PROBES_CALLS = (
 
 
 def historical_bytes(name, raw):
+    v286_delta = V286_DELTAS.get(name)
+    if v286_delta is not None:
+        assert raw.count(v286_delta) == 1, f"V286 {name}: opt-in addition changed or duplicated"
+        raw = raw.replace(v286_delta, b"", 1)
+    if name == "probes.nut":
+        raw = _strip_fp2_block(raw, name, V286_PROBES_BLOCK_PREFIX,
+                               V286_PROBES_BLOCK_END, V286_PROBES_BLOCK_SHA256)
+        assert raw.count(V286_PROBES_CALL) == 1, "V286 profiled-loop call changed or duplicated"
+        raw = raw.replace(V286_PROBES_CALL, b"", 1)
     for source, previous in FP1_SOURCE_PATCHES.get(name, ()):
         assert raw.count(source) == 1, f"FRONT-PAX-1 {name}: source diagnostique absente ou modifiee"
         raw = raw.replace(source, previous, 1)

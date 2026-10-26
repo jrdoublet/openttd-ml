@@ -2628,6 +2628,66 @@ function OpexC76FlushYear(year)
              + reasonsStr);
 }
 
+/* V286 : photographies RAIL mensuelles. Les tailles de files en gare, charge et
+ * capacite de chaque rame et production source sont lues a la MEME date de jeu.
+ * Le pourcentage de transport de l'industrie couvre toutes les compagnies ;
+ * il ne mesure pas les livraisons de cette ligne. Ni age des stocks, ni livraisons
+ * entre deux instantanes ne sont exposes ici. L'absence vaut -1, pas zero.
+ * Toutes les donnees sont transitoires : apres Load un echantillon repart de zero. */
+function OpexV286FlowSample(lines)
+{
+  if (!V286_FLOW_PROBE || lines == null || lines.len() == 0) return;
+  local day = AIDate.GetCurrentDate();
+  if (V286_FLOW_LAST_DAY >= 0 && day - V286_FLOW_LAST_DAY < 30) return;
+  V286_FLOW_LAST_DAY = day;
+
+  local total = lines.len();
+  if (V286_FLOW_CURSOR < 0 || V286_FLOW_CURSOR >= total) V286_FLOW_CURSOR = 0;
+  local batch = total < 16 ? total : 16;
+  for (local step = 0; step < batch; step++) {
+    local index = (V286_FLOW_CURSOR + step) % total;
+    local line = lines[index];
+    if (line == null || !("mode" in line) || line.mode != "rail"
+        || !("cargo" in line) || !AICargo.IsValidCargo(line.cargo)) continue;
+    local stA = ("stationA" in line) ? AIStation.GetStationID(line.stationA) : -1;
+    local stB = ("stationB" in line) ? AIStation.GetStationID(line.stationB) : -1;
+    local validA = AIStation.IsValidStation(stA);
+    local validB = AIStation.IsValidStation(stB);
+    local src = ("srcIndustry" in line) ? line.srcIndustry : -1;
+    local validSrc = src != null && src >= 0 && AIIndustry.IsValidIndustry(src);
+    local lineId = ("lineId" in line) ? line.lineId : -1;
+    local cargos = [line.cargo];
+    if (("cargo2" in line) && AICargo.IsValidCargo(line.cargo2)
+        && line.cargo2 != line.cargo) cargos.append(line.cargo2);
+    foreach (cargo in cargos) {
+      local waitingA = validA ? AIStation.GetCargoWaiting(stA, cargo) : -1;
+      local waitingB = validB ? AIStation.GetCargoWaiting(stB, cargo) : -1;
+      local prod = validSrc ? AIIndustry.GetLastMonthProduction(src, cargo) : -1;
+      local pct = validSrc ? AIIndustry.GetLastMonthTransportedPercentage(src, cargo) : -1;
+      AILog.Info("V286_FLOW day=" + day + " line=" + lineId + " cargo=" + AICargo.GetCargoLabel(cargo)
+          + " station_a=" + stA + " station_b=" + stB + " wait_a=" + waitingA
+          + " wait_b=" + waitingB + " source=" + src + " src_prod_last_month=" + prod
+          + " src_transport_pct_all_companies=" + pct + " delivered_by_line=unknown stock_age=unknown");
+      if (!("vehicles" in line) || line.vehicles == null) continue;
+      local inspected = 0;
+      foreach (v in line.vehicles) {
+        if (inspected >= 4) break;
+        if (!AIVehicle.IsValidVehicle(v) || AIVehicle.GetVehicleType(v) != AIVehicle.VT_RAIL) continue;
+        inspected++;
+        local cap = AIVehicle.GetCapacity(v, cargo);
+        if (cap <= 0) continue;
+        local load = AIVehicle.GetCargoLoad(v, cargo);
+        local fillPct = load >= 0 ? (100 * load / cap) : -1;
+        local fillState = (load < 0) ? "unknown" : (load == 0 ? "empty" : (load >= cap ? "full" : "partial"));
+        AILog.Info("V286_VEH day=" + day + " line=" + lineId + " cargo=" + AICargo.GetCargoLabel(cargo)
+            + " vehicle=" + v + " capacity=" + cap + " load=" + load
+            + " fill_pct=" + fillPct + " state=" + fillState);
+      }
+    }
+  }
+  V286_FLOW_CURSOR = (V286_FLOW_CURSOR + batch) % total;
+}
+
 /* V309 : observation passive des tours et de leur budget d'opcodes. La mesure
  * n'est allouee qu'avec v309_idle_probe=1 ; sans decision_log, aucun journal.
  * L'identite du projet est stable entre regenerations, jamais celle du payload. */
@@ -2908,6 +2968,7 @@ function OpexAI::_mainLoopProfiled()
     local spC117 = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.c117") : null;
     OpexC117AirThroughputStep(this._lines, this._catalog);
     if (spC117 != null) OpexSpanEnd(spC117);
+    if (V286_FLOW_PROBE) OpexV286FlowSample(this._lines);
     OpexLoopProfAdd(C117_AIR_LAST_DATE != before ? "c117_sample" : "c117_skip", mark);
     if (C56_TASK_TRACE) this._v89TrackSearchDays(AIDate.GetCurrentDate());
     mark = OpexOpsMeasureBegin();

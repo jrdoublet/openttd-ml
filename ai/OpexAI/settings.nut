@@ -102,6 +102,9 @@ function OpexLoadSettings()
   FRONT_PAX1_CLAMP_PROBE = AIController.GetSetting("front_pax1_bounds_probe") == 1;
   local v307Year = AIController.GetSetting("v307_probe_year");
   V307_PROBE_YEAR = (v307Year != null && v307Year > 0 && v307Year <= 9) ? v307Year : 0;
+  V286_FLOW_PROBE = AIController.GetSetting("v286_rail_flow_probe") == 1;
+  V286_FLOW_LAST_DAY = -1;
+  V286_FLOW_CURSOR = 0;
   V308_CARTO_PROBE = OpexProbeEnabled(134217728) ? 1 : 0;
   V307_ABND_AUTOPSY = OpexProbeEnabled(268435456);
   local v307Sites = AIController.GetSetting("v307_sites");

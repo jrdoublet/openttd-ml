@@ -81,6 +81,12 @@ class OpexAIInfo extends AIInfo {
       flags = 0
     });
 
+    AddSetting({ name = "v286_rail_flow_probe",
+      description = "V286 passive RAIL cargo/vehicle/industry snapshots: 0=off (default), 1=sample 16 lines every 30 game days; no policy change",
+      min_value = 0, max_value = 1,
+      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
+      flags = AICONFIG_BOOLEAN });
+
     /* Les panneaux requis par les sweeps restent actifs avec probes=2. */
     AddSetting({
       name = "save_full_state",

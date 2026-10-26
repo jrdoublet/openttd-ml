@@ -798,6 +798,7 @@ function OpexAI::Start()
     local spC117 = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.c117") : null;
     OpexC117AirThroughputStep(this._lines, this._catalog);
     if (spC117 != null) OpexSpanEnd(spC117);
+    if (V286_FLOW_PROBE) OpexV286FlowSample(this._lines);
     if (C56_TASK_TRACE) this._v89TrackSearchDays(AIDate.GetCurrentDate());
     local spOrch = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.orch") : null;
     this._runOrchestratorTick();

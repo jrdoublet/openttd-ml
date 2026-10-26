@@ -24,6 +24,10 @@ const V264_CONVERGENT_FREIGHT = 1; // Lot 7 : politique adoptee figee a 1 (scala
 V269_RAIL_LATE_RELAX <- 5;
 V269_RAIL_MAX_DIST <- 250;
 V269_IDLE_CASH_MIN <- 1000000;
+/* V286 : instantanes de flux RAIL, reglage independent OFF au defaut. */
+V286_FLOW_PROBE <- false;
+V286_FLOW_LAST_DAY <- -1;
+V286_FLOW_CURSOR <- 0;
 /* V309 : sondage passif des tours en attente, sans changer l'ordonnanceur. */
 V309_IDLE_PROBE <- false;
 V309_IDLE_STATE <- null;
