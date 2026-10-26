@@ -112,6 +112,27 @@ class TestAnalyseFullRegenCost(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "copies de journal contradictoires"):
                 collect_log_paths([directory])
 
+    def test_numeric_seed_aliases_must_not_double_count_regeneration_cost(self) -> None:
+        event = ("[0] [I] OPEX 1972-1-2 C76_REGEN phase=regen kind=full "
+                 "reason=periodic year=1972 ops=123 days=1\n")
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "reference_seed1_r0.log").write_text(event, encoding="utf-8")
+            (root / "reference_seed01_r0.log").write_text(event, encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "identite de partie ambigue"):
+                collect_log_paths([directory])
+
+    def test_numeric_repetition_aliases_must_not_double_count_regeneration_cost(self) -> None:
+        event = ("[0] [I] OPEX 1972-1-2 C76_REGEN phase=regen kind=full "
+                 "reason=periodic year=1972 ops=123 days=1\n")
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "reference_seed1_r0.log").write_text(event, encoding="utf-8")
+            with gzip.open(root / "reference_seed1_r00.log.gz", "wt", encoding="utf-8") as stream:
+                stream.write(event)
+            with self.assertRaisesRegex(ValueError, "identite de partie ambigue"):
+                collect_log_paths([directory])
+
     def test_parse_log_line_formats(self) -> None:
         # Ligne 1 : Reconstruction périodique annuelle C78 découpée terminée à l'application
         line1 = "[2026-10-12 14:26:20] dbg: [script:4] [0] [I] OPEX 1951-1-3 C76_REGEN phase=regen kind=full reason=periodic year=1951 days=28 days_since_prev=0 ops=254120 towns_n=40"

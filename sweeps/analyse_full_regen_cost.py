@@ -30,6 +30,7 @@ from typing import Any, Dict, List, Optional
 # Capture all KV fields regardless of their order; parse_log_line checks phase.
 RE_C76_REGEN = re.compile(r"\bC76_REGEN\s+(.*)$")
 RE_FIELD = re.compile(r"(\w+)=(\S*)")
+RE_GAME_NAME = re.compile(r"(?P<arm>.+)_seed(?P<seed>\d+)_r(?P<repeat>\d+)\.log")
 
 
 def parse_log_line(line: str) -> Optional[Dict[str, Any]]:
@@ -198,8 +199,18 @@ def collect_log_paths(inputs: List[str]) -> List[Path]:
         return digest.hexdigest()
 
     by_logical_file: Dict[Path, Path] = {}
+    numeric_game_names: Dict[tuple, str] = {}
     for path in sorted({p.resolve() for p in collected}):
         base_name = path.name[:-3] if path.suffix == ".gz" else path.name
+        match = RE_GAME_NAME.fullmatch(base_name)
+        if match is not None:
+            game = (str(path.parent), match["arm"], int(match["seed"]),
+                    int(match["repeat"]))
+            previous_name = numeric_game_names.setdefault(game, base_name)
+            if previous_name != base_name:
+                raise ValueError(
+                    f"identite de partie ambigue : {previous_name} / {base_name}"
+                )
         key = path.with_name(base_name)
         previous = by_logical_file.get(key)
         if previous is None:
