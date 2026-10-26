@@ -242,6 +242,8 @@ def main() -> int:
         help="Chemin du fichier JSON de sortie.",
     )
     args = parser.parse_args()
+    if args.out and Path(args.out).exists():
+        parser.error(f"refuse d'ecraser un resultat existant : {args.out}")
 
     paths = collect_log_paths(args.inputs)
     if not paths:
@@ -258,8 +260,11 @@ def main() -> int:
     if args.out:
         out_path = Path(args.out)
         out_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(out_path, "w", encoding="utf-8") as f:
-            json.dump(summary, f, indent=2, ensure_ascii=False)
+        try:
+            with open(out_path, "x", encoding="utf-8") as f:
+                json.dump(summary, f, indent=2, ensure_ascii=False)
+        except FileExistsError:
+            parser.error(f"refuse d'ecraser un resultat existant : {out_path}")
         print(f"\nRésultats structurés enregistrés dans {out_path}")
 
     return 0

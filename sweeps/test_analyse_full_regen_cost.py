@@ -8,14 +8,20 @@ et l'agrégation statistique par motif et par année.
 
 from __future__ import annotations
 
+import contextlib
 import gzip
+import io
+import json
+import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from sweeps.analyse_full_regen_cost import (
     aggregate_events,
     collect_log_paths,
+    main,
     parse_log_files,
     parse_log_line,
 )
@@ -132,6 +138,38 @@ class TestAnalyseFullRegenCost(unittest.TestCase):
                 stream.write(event)
             with self.assertRaisesRegex(ValueError, "identite de partie ambigue"):
                 collect_log_paths([directory])
+
+    def test_existing_json_output_is_never_overwritten(self) -> None:
+        event = ("[0] [I] OPEX 1972-1-2 C76_REGEN phase=regen kind=full "
+                 "reason=periodic year=1972 ops=123 days=1\n")
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            log = root / "reference_seed42_r0.log"
+            output = root / "historical.json"
+            log.write_text(event, encoding="utf-8")
+            original = '{"historical":true}\n'
+            output.write_text(original, encoding="utf-8")
+            with patch.object(sys, "argv", ["analyse_full_regen_cost.py", str(log),
+                                            "--out", str(output)]):
+                with contextlib.redirect_stderr(io.StringIO()):
+                    with self.assertRaises(SystemExit) as raised:
+                        main()
+            self.assertEqual(raised.exception.code, 2)
+            self.assertEqual(output.read_text(encoding="utf-8"), original)
+
+    def test_fresh_json_output_can_be_created_once(self) -> None:
+        event = ("[0] [I] OPEX 1972-1-2 C76_REGEN phase=regen kind=full "
+                 "reason=periodic year=1972 ops=123 days=1\n")
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            log = root / "reference_seed42_r0.log"
+            output = root / "new.json"
+            log.write_text(event, encoding="utf-8")
+            with patch.object(sys, "argv", ["analyse_full_regen_cost.py", str(log),
+                                            "--out", str(output)]):
+                with contextlib.redirect_stdout(io.StringIO()):
+                    self.assertEqual(main(), 0)
+            self.assertEqual(json.loads(output.read_text(encoding="utf-8"))["total_ops"], 123)
 
     def test_parse_log_line_formats(self) -> None:
         # Ligne 1 : Reconstruction périodique annuelle C78 découpée terminée à l'application
