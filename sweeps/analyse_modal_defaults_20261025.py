@@ -226,9 +226,28 @@ def summarize(mode):
     return summary
 
 
+def publish_reports():
+    """Write new diagnostics only, without replacing historical observations.
+
+    Check both destinations before calculating either report, then calculate
+    both reports before creating a file. Exclusive creation also covers a
+    competing writer arriving after the existence check.
+    """
+    modes = ('rail', 'air')
+    destinations = {
+        mode: ROOT / f'modal_{mode}_defaults_master85c88_40x5_20261025_analysis.json'
+        for mode in modes
+    }
+    existing = [path for path in destinations.values() if path.exists()]
+    if existing:
+        raise FileExistsError(f"rapports existants : {', '.join(map(str, existing))}")
+    reports = {mode: summarize(mode) for mode in modes}
+    for mode, result in reports.items():
+        path = destinations[mode]
+        with path.open('x', encoding='utf-8') as stream:
+            stream.write(json.dumps(result, ensure_ascii=False, indent=2) + '\n')
+        print(mode, result['status_counts'], 'profit 1974', result['losses']['1974'])
+
+
 if __name__ == '__main__':
-    for mode in ('rail','air'):
-        result = summarize(mode)
-        path = ROOT / (result['campaign'] + '_analysis.json')
-        path.write_text(json.dumps(result, ensure_ascii=False, indent=2)+'\n', encoding='utf-8')
-        print(mode, result['status_counts'], 'profit 1974',result['losses']['1974'])
+    publish_reports()

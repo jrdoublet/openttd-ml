@@ -1,10 +1,12 @@
 """The modal summary must not attribute mixed-service profits to freight alone."""
 
 import json
+import contextlib
+import io
 from pathlib import Path
 import tempfile
 import unittest
-from unittest.mock import patch
+from unittest.mock import patch, Mock
 
 from sweeps import analyse_modal_defaults_20261025 as modal
 
@@ -56,6 +58,58 @@ class ModalCargoClassesTests(unittest.TestCase):
             self.assertEqual(classes['freight']['mean'], 100)
             self.assertEqual(classes['mixed_passenger_freight']['n'], 1)
             self.assertEqual(classes['mixed_passenger_freight']['mean'], 300)
+
+    def test_existing_rail_report_cannot_be_replaced_or_trigger_air_output(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            existing = root / 'modal_rail_defaults_master85c88_40x5_20261025_analysis.json'
+            existing.write_bytes(b'original historic rail verdict\n')
+            unused = Mock()
+            with patch.object(modal, 'ROOT', root), patch.object(modal, 'summarize', unused):
+                with self.assertRaises(FileExistsError):
+                    modal.publish_reports()
+            unused.assert_not_called()
+            self.assertEqual(existing.read_bytes(), b'original historic rail verdict\n')
+            self.assertFalse((root / 'modal_air_defaults_master85c88_40x5_20261025_analysis.json').exists())
+
+    def test_existing_air_report_blocks_rail_before_any_partial_output(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            existing = root / 'modal_air_defaults_master85c88_40x5_20261025_analysis.json'
+            existing.write_bytes(b'original historic air verdict\n')
+            with patch.object(modal, 'ROOT', root), patch.object(modal, 'summarize') as run:
+                with self.assertRaises(FileExistsError):
+                    modal.publish_reports()
+            run.assert_not_called()
+            self.assertEqual(existing.read_bytes(), b'original historic air verdict\n')
+            self.assertFalse((root / 'modal_rail_defaults_master85c88_40x5_20261025_analysis.json').exists())
+
+    def test_failed_second_analysis_creates_neither_report(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            def summarizer(mode):
+                if mode == 'air':
+                    raise ValueError('missing source archive')
+                return {'campaign': 'fixture'}
+            with patch.object(modal, 'ROOT', root), patch.object(modal, 'summarize', summarizer):
+                with self.assertRaisesRegex(ValueError, 'missing source archive'):
+                    modal.publish_reports()
+            self.assertEqual(list(root.iterdir()), [])
+
+    def test_new_reports_are_written_exclusively_with_expected_payload(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            def summarizer(mode):
+                return {'campaign': f'{mode}-fixture', 'status_counts': {'complete': 1},
+                        'losses': {'1974': {'ratio_of_means_pct': 95}}}
+            with patch.object(modal, 'ROOT', root), patch.object(modal, 'summarize', summarizer):
+                with contextlib.redirect_stdout(io.StringIO()):
+                    modal.publish_reports()
+            for mode in ('rail', 'air'):
+                path = root / f'modal_{mode}_defaults_master85c88_40x5_20261025_analysis.json'
+                self.assertEqual(json.loads(path.read_text(encoding='utf-8'))['campaign'],
+                                 f'{mode}-fixture')
+                self.assertTrue(path.read_bytes().endswith(b'\n'))
 
 
 if __name__ == '__main__':
