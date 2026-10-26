@@ -91,6 +91,18 @@ class RoiPredictorsTest(unittest.TestCase):
             self.assertEqual({(row["source_arm"], row["repeat"]) for row in rows},
                              {("reference", 0), ("reference", 1)})
 
+    def test_source_arm_with_embedded_seed_word_keeps_full_name(self):
+        # Only the final _seed<digits>_r<digits> suffix is the game identity.
+        with tempfile.TemporaryDirectory() as folder:
+            for source_arm in ("reference_seeded", "reference_seedlike"):
+                with open(os.path.join(folder, f"{source_arm}_seed42_r0.log"),
+                          "w", encoding="utf-8") as fh:
+                    fh.write(self._one_rail_game())
+            rows, counts = parse(folder, "duel")
+            self.assertEqual(counts["games"], 2)
+            self.assertEqual({row["source_arm"] for row in rows},
+                             {"reference_seeded", "reference_seedlike"})
+
     def test_crossvalidated_predictions_do_not_merge_mixed_source_arms(self):
         # All 20 seeds have a reference/variant pair reusing the same line ID;
         # source arms are different observations, but folds still hold out

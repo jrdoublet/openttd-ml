@@ -17,6 +17,7 @@ lorsque chaque cargo se divise exactement, sinon ``mixed``.
 from __future__ import annotations
 
 import argparse
+from datetime import date
 import json
 import statistics
 from collections import defaultdict
@@ -347,21 +348,35 @@ def _airport_ends(line):
 
 
 def collect_air_lines(payload, path=None):
-    """Lignes aériennes d'au moins un an, une observation par instantané de décembre."""
+    """Lignes AIR présentes aux deux derniers checkpoints annuels observés."""
     map_info = resolve_map(payload, path)
     width = map_info["width"]
     present = set()
     raw = []
+    annual_snapshots = {}
     for snapshot in _snapshots(payload):
         if not isinstance(snapshot, dict):
             continue
         year = _norm_int(snapshot.get("year"))
         if year is None:
             continue
+        try:
+            stamp = date.fromisoformat(snapshot["date"])
+        except (KeyError, TypeError, ValueError) as exc:
+            raise ValueError("checkpoint choix AIR sans date valide") from exc
+        if stamp.year != year:
+            raise ValueError(f"checkpoint choix AIR avec annee contradictoire : {snapshot['date']}")
         policy = snapshot.get("duel_policy_id")
         arm = snapshot.get("arm")
         seed = snapshot.get("seed")
         repeat = _norm_int(snapshot.get("repeat"), 0)
+        game_year = (str(policy), str(arm), seed, repeat, year)
+        previous = annual_snapshots.get(game_year)
+        if previous is None or stamp > previous[0]:
+            annual_snapshots[game_year] = (stamp, snapshot)
+        elif stamp == previous[0] and snapshot != previous[1]:
+            raise ValueError(f"checkpoints choix AIR contradictoires : {game_year} {stamp}")
+    for (policy, arm, seed, repeat, year), (_, snapshot) in annual_snapshots.items():
         for line in snapshot.get("lines") or []:
             if not isinstance(line, dict):
                 continue

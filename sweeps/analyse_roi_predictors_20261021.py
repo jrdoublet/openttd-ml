@@ -71,12 +71,14 @@ def parse(folder, arm):
     items = []
     ct = Counter()
     for file in _unique_game_logs(folder):
-        match = SEED_RE.search(os.path.basename(file).replace(".gz", ""))
+        filename = os.path.basename(file)
+        stem = filename[:-3] if filename.endswith(".gz") else filename
+        match = SEED_RE.search(stem)
         if match is None:
             continue
         seed = int(match.group(1))
         repetition = int(match.group(2))
-        source_arm = os.path.basename(file).split("_seed", 1)[0]
+        source_arm = stem[:match.start()]
         chosen, builds, observed = {}, {}, defaultdict(list)
         ct["games"] += 1
         with open_text(file) as log:

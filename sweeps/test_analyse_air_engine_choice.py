@@ -108,6 +108,47 @@ class AirEngineChoiceTests(unittest.TestCase):
         self.assertEqual(mixed[0]["lines_with_profit"], 0)
         self.assertIsNone(mixed[0]["profit_per_aircraft_line_level"]["median"])
 
+    def test_monthly_snapshots_cannot_multiply_mature_engine_observations(self):
+        payload = fixture_payload()
+        december_1971 = next(s for s in payload["line_telemetry"]["snapshots"]
+                             if s["year"] == 1971 and s["arm"] == "OpexAI")
+        january_1971 = dict(december_1971, date="1971-01-01", lines=[
+            _line("air|1,2", 1, {"0": 90, "2": 10}, 1000, [0, 257]),
+        ])
+        payload["line_telemetry"]["snapshots"].append(january_1971)
+        forwards = analyse_campaign(payload)
+        payload["line_telemetry"]["snapshots"].reverse()
+        backwards = analyse_campaign(payload)
+        self.assertEqual(forwards, backwards)
+        self.assertEqual(forwards["mature_air_lines"], 4)
+        opex = forwards["by_arm"]["reference|OpexAI"]["pooled"]
+        self.assertEqual(opex["profit"]["profit_per_aircraft_line_level"]["median"], 100)
+
+    def test_seed_repeat_and_calendar_year_remain_independent(self):
+        payload = fixture_payload()
+        payload["line_telemetry"]["snapshots"].extend([
+            dict(_snapshot(1970, "OpexAI", [_line("air|1,2", 1, {"0": 90}, 5, [0, 257])]), repeat=1),
+            dict(_snapshot(1971, "OpexAI", [_line("air|1,2", 1, {"0": 90}, 50, [0, 257])]), repeat=1),
+            _snapshot(1971, "OpexAI", [_line("air|1,2", 1, {"0": 90}, 40, [0, 257])], seed=100),
+        ])
+        _map, rows = collect_air_lines(payload)
+        self.assertEqual(len(rows), 5)
+        self.assertEqual(len([r for r in rows if r["arm"] == "OpexAI" and r["repeat"] == 1]), 1)
+        self.assertEqual(len([r for r in rows if r["seed"] == 100]), 0)
+
+    def test_same_day_conflict_or_bad_date_fails_closed(self):
+        payload = fixture_payload()
+        original = payload["line_telemetry"]["snapshots"][0]
+        payload["line_telemetry"]["snapshots"].append(dict(original, lines=[]))
+        with self.assertRaisesRegex(ValueError, "contradictoires"):
+            collect_air_lines(payload)
+        payload["line_telemetry"]["snapshots"][-1] = dict(original, year=1971)
+        with self.assertRaisesRegex(ValueError, "annee contradictoire"):
+            collect_air_lines(payload)
+        payload["line_telemetry"]["snapshots"][-1] = dict(original, date="1970-02-30")
+        with self.assertRaisesRegex(ValueError, "date valide"):
+            collect_air_lines(payload)
+
     def test_same_model_and_distance_still_separates_the_ais(self):
         report = analyse_campaign(fixture_payload())
         comparison = report["comparisons"][0]
