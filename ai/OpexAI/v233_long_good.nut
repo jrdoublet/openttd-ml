@@ -532,13 +532,12 @@ function OpexV233LSiteSearch(center, length, cargo, coverage, producing, host = 
     ops = ops, length = length, cacheKey = key };
 }
 
-/* Rayon du carre urbain : 8 sous 1000 hab., 10 jusqu'a 2000, 12 jusqu'a 3000,
- * puis +2 par palier de 1000, plafond 18. */
+/* Rayon du carre urbain : 12 jusqu'a 3000 hab., puis +2 par millier au-dela,
+ * plafond 18. */
 function OpexV233LFunnelRadius(population)
 {
-  if (population < 1000) return 8;
+  if (population <= 3000) return 12;
   local band = (population - 1) / 1000;
-  if (band < 1) band = 1;
   local radius = 8 + 2 * band;
   if (radius > 18) radius = 18;
   return radius;

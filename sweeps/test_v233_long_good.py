@@ -653,22 +653,20 @@ class V233LongGoodContracts(unittest.TestCase):
 
     def test_funnel_radius_bands_are_inclusive_up_to_each_thousand(self):
         radius = body("v233_long_good.nut", "OpexV233LFunnelRadius")
-        self.assertIn("if (population < 1000) return 8;", radius)
+        self.assertIn("if (population <= 3000) return 12;", radius)
         self.assertIn("local band = (population - 1) / 1000;", radius)
         self.assertIn("local radius = 8 + 2 * band;", radius)
         self.assertIn("if (radius > 18) radius = 18;", radius)
 
         def funnel_radius(population):
-            if population < 1000:
-                return 8
+            if population <= 3000:
+                return 12
             band = (population - 1) // 1000
-            if band < 1:
-                band = 1
             value = 8 + 2 * band
             return 18 if value > 18 else value
 
         expected = {
-            0: 8, 999: 8, 1000: 10, 1999: 10, 2000: 10, 2001: 12,
+            0: 12, 999: 12, 1000: 12, 1999: 12, 2000: 12, 2001: 12,
             2999: 12, 3000: 12, 3001: 14, 4000: 14, 4001: 16,
             5000: 16, 5001: 18, 20000: 18,
         }
