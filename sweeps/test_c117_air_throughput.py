@@ -7,6 +7,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "sweeps"))
 
 from campaign_freeze import parse_ai_settings
+from diag_c117_air_throughput import enrich
 
 INFO = ROOT / "ai" / "OpexAI" / "info.nut"
 GLOBALS = ROOT / "ai" / "OpexAI" / "globals_pre.nut"
@@ -19,6 +20,36 @@ BUILDER_AIR = ROOT / "ai" / "OpexAI" / "builder_air.nut"
 
 
 class TestC117AirThroughput(unittest.TestCase):
+    def test_unobserved_load_sentinel_cannot_prove_demand_limit(self):
+        observation = enrich({
+            "load_factor": -1, "trips": 0, "seat_legs": 0,
+            "wait_a": 2, "wait_b": 4, "cap_avg": 100,
+        })
+        self.assertEqual(observation["limit_class"], "mixed_or_uncertain")
+
+    def test_real_zero_load_with_flights_can_indicate_demand_limit(self):
+        observation = enrich({
+            "load_factor": 0, "trips": 3, "seat_legs": 300,
+            "wait_a": 2, "wait_b": 4, "cap_avg": 100,
+        })
+        self.assertEqual(observation["limit_class"], "demand_limited")
+
+    def test_high_observed_load_still_indicates_capacity_limit(self):
+        observation = enrich({
+            "load_factor": 0.95, "trips": 3, "seat_legs": 300,
+            "wait_a": 30, "wait_b": 55, "cap_avg": 100,
+        })
+        self.assertEqual(observation["limit_class"], "capacity_limited")
+
+    def test_non_finite_or_out_of_range_load_is_unknown(self):
+        for load_factor in (float("nan"), float("inf"), 1.2):
+            with self.subTest(load_factor=load_factor):
+                observation = enrich({
+                    "load_factor": load_factor, "trips": 3, "seat_legs": 300,
+                    "wait_a": 2, "wait_b": 4, "cap_avg": 100,
+                })
+                self.assertEqual(observation["limit_class"], "mixed_or_uncertain")
+
     def test_builder_air_requires_coverage(self):
         self.assertIn('require("air_coverage.nut");', BUILDER_AIR.read_text(encoding="utf-8"))
 

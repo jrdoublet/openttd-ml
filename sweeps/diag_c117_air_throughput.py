@@ -134,12 +134,22 @@ def enrich(raw):
     lf = e.get("load_factor")
     waiting = e.get("waiting_mean")
     cap_avg = e.get("cap_avg")
-    if isinstance(lf, (int, float)) and lf >= 0.9:
+    trips = e.get("trips")
+    seat_legs = e.get("seat_legs")
+    # The C117 probe uses -1 for an unobserved load (no completed trip or
+    # sampled seats). It is neither a low occupancy rate nor a capacity limit.
+    observed_load = (
+        isinstance(lf, (int, float)) and math.isfinite(lf) and 0 <= lf <= 1
+        and isinstance(trips, (int, float)) and math.isfinite(trips) and trips > 0
+        and isinstance(seat_legs, (int, float)) and math.isfinite(seat_legs)
+        and seat_legs > 0
+    )
+    if observed_load and lf >= 0.9:
         e["limit_class"] = "capacity_limited"
     elif (
-        isinstance(lf, (int, float)) and lf < 0.75
-        and isinstance(waiting, (int, float))
-        and isinstance(cap_avg, (int, float)) and cap_avg > 0
+        observed_load and lf < 0.75
+        and isinstance(waiting, (int, float)) and math.isfinite(waiting)
+        and isinstance(cap_avg, (int, float)) and math.isfinite(cap_avg) and cap_avg > 0
         and waiting < 0.25 * cap_avg
     ):
         e["limit_class"] = "demand_limited"

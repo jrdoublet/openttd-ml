@@ -9,7 +9,8 @@ def window(bucket, pax=100):
         "build_engine": 228, "engine_changes": 0, "mixed_engine_samples": 0,
         "invalid_order_samples": 0, "unobserved_transitions": 0,
         "c121_actual_pax_pm": 90, "c121_actual_n": 1, "arm": "hubsite",
-        "load_factor": 0.5, "cap_avg": 100, "wait_a": 0, "wait_b": 0}
+        "load_factor": 0.5, "trips": 3, "seat_legs": 300,
+        "cap_avg": 100, "wait_a": 0, "wait_b": 0}
 
 
 class FluxForecastTests(unittest.TestCase):
