@@ -174,9 +174,11 @@ def describe_run(identity, inventory, paths):
         str(key): [field for field in COMPLETE_TYPE_FIELDS if record[field] is None]
         for key, record in types.items()
     }
+    # A logged valid=0 explicitly denies the setting's availability: it must
+    # not make the inventory appear complete merely because the type rows are.
     incomplete_setting = (
-        setting is None or setting["valid"] is None
-        or (setting["valid"] is True and setting["raw_industry_construction"] is None)
+        setting is None or setting["valid"] is not True
+        or setting["raw_industry_construction"] is None
     )
     partial = incomplete_setting or not types or any(missing.values())
     counts = None

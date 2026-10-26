@@ -149,6 +149,22 @@ class V251IndustryInventoryTest(unittest.TestCase):
         self.assertIsNone(run["setting"]["raw_industry_construction"])
         self.assertEqual(run["types"]["6"]["raw_industry_construction"], 0)
 
+    def test_invalid_setting_never_makes_complete_type_inventory_observed(self):
+        with tempfile.TemporaryDirectory() as folder:
+            write_log(folder, "reference_seed42_r0.log",
+                      log("scope=setting valid=0 raw_industry_construction=0",
+                          FACTORY, MINE))
+            report = analyse_campaign(folder)
+        run = report["runs"][0]
+        self.assertEqual(run["status"], "partial")
+        self.assertEqual(report["n_runs_partial"], 1)
+        self.assertEqual(run["setting"], {
+            "valid": False, "raw_industry_construction": None,
+        })
+        self.assertEqual(run["counts"]["n_types_observed"], 2)
+        self.assertEqual(run["counts"]["n_types_can_build"], 1)
+        self.assertIsNone(run["physical_site_buildable"])
+
     def test_text_and_gzip_duplicate_are_one_run_and_gzip_only_works(self):
         with tempfile.TemporaryDirectory() as folder:
             plain = write_log(folder, "reference_seed42_r1.log", log(SETTING, FACTORY))
