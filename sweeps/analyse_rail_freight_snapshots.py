@@ -64,7 +64,8 @@ def analyse(report, policy="reference", passenger="0", mail="2"):
             "rail_vehicles": vehicles,
             "rail_lines": lines,
             "rail_profit_ytd_gbp": profits,
-            "unresolved_rail_vehicles": sum(item.get("mode") in ("rail", None) for item in unresolved),
+            "unresolved_rail_vehicles": sum(item.get("mode") == "rail" for item in unresolved),
+            "unresolved_unknown_mode_vehicles": sum(item.get("mode") is None for item in unresolved),
         })
 
     annual = []
@@ -113,14 +114,35 @@ def check_against_jsonl(result, jsonl_path):
                 if key not in observed or date > observed[key][0]:
                     observed[key] = (date, int(physical["rail"]))
     mismatches = []
+    reconciled_by_unresolved_rail = []
+    unexplained = []
     for row in result["per_seed"]:
         key = (row["year"], row["seed"], row["repeat"], row["arm"])
         actual = observed.get(key)
         if actual is None:
-            mismatches.append({"key": key, "reason": "missing_raw_snapshot"})
-        elif sum(row["rail_vehicles"].values()) != actual[1]:
-            mismatches.append({"key": key, "reason": "train_count_diff",
-                               "raw": actual[1], "grouped": sum(row["rail_vehicles"].values())})
+            difference = {"key": key, "reason": "missing_raw_snapshot"}
+            mismatches.append(difference)
+            unexplained.append(difference)
+        else:
+            classified = sum(row["rail_vehicles"].values())
+            if classified != actual[1]:
+                difference = {"key": key, "reason": "train_count_diff",
+                              "raw": actual[1], "grouped": classified}
+                mismatches.append(difference)
+                # Preserve the historical line-only mismatch. A rail vehicle
+                # omitted from the line catalogue may still be accounted for
+                # in the independent unresolved-vehicle inventory.
+                if (actual[0] == row["date"]
+                        and row["unresolved_unknown_mode_vehicles"] == 0
+                        and classified + row["unresolved_rail_vehicles"] == actual[1]):
+                    reconciled_by_unresolved_rail.append({
+                        **difference, "unresolved_rail": row["unresolved_rail_vehicles"]})
+                else:
+                    unexplained.append(difference)
+            elif row["unresolved_rail_vehicles"]:
+                unexplained.append({"key": key, "reason": "unresolved_rail_exceeds_physical",
+                                    "raw": actual[1], "grouped": classified,
+                                    "unresolved_rail": row["unresolved_rail_vehicles"]})
     for row in result["annual"]:
         numbers = [observed[(row["year"], run["seed"], run["repeat"], row["arm"])][1]
                    for run in row["runs"]
@@ -136,6 +158,9 @@ def check_against_jsonl(result, jsonl_path):
         "per_seed_snapshots": len(result["per_seed"]),
         "mismatches": mismatches,
         "all_equal": not mismatches,
+        "reconciled_by_unresolved_rail": reconciled_by_unresolved_rail,
+        "unexplained": unexplained,
+        "all_physical_rail_accounted": not unexplained,
     }
     return result
 

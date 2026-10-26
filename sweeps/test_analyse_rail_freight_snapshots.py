@@ -100,6 +100,8 @@ class RailFreightSnapshotsTests(unittest.TestCase):
             self.assertEqual(len(validation["mismatches"]), 1)
             self.assertEqual(validation["mismatches"][0]["reason"], "train_count_diff")
             self.assertEqual(validation["mismatches"][0]["key"], (1975, 42, 1, "OpexAI"))
+            self.assertFalse(validation["all_physical_rail_accounted"])
+            self.assertEqual(len(validation["unexplained"]), 1)
             self.assertEqual(result["annual"][0]["raw_rail_check"]["samples"], 2)
 
     def test_jsonl_without_repetition_identity_is_not_verified(self):
@@ -117,6 +119,64 @@ class RailFreightSnapshotsTests(unittest.TestCase):
             self.assertFalse(result["physical_count_validation"]["all_equal"])
             self.assertEqual(result["physical_count_validation"]["mismatches"][0]["reason"],
                              "missing_raw_snapshot")
+
+    def test_unresolved_rail_explains_line_only_count_difference(self):
+        snapshot = {
+            "date": "1971-12-01", "duel_policy_id": "reference", "arm": "AAAHogEx",
+            "seed": 512, "repeat": 0, "ok": True,
+            "lines": [{"mode": "rail", "capacity_by_cargo": {"1": 25},
+                       "vehicles": 15, "profit_this_year_gbp": 0}],
+            "unresolved_vehicles": [{"vehicle_id": 257, "mode": "rail",
+                                     "reason": "unresolved_order_list"}],
+        }
+        raw = {"duel_policy_id": "reference", "date": "1971-12-01",
+               "run": ["AAAHogEx", 512, 0], "vehs_chunk_valid": True,
+               "primary_vehicles_by_mode": {"rail": 16}}
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "snap.jsonl"
+            path.write_text(json.dumps(raw) + "\n", encoding="utf-8")
+            result = check_against_jsonl(analyse({
+                "line_telemetry": {"snapshots": [snapshot]}}), path)
+        check = result["physical_count_validation"]
+        self.assertFalse(check["all_equal"])  # Historical line-only difference stays.
+        self.assertEqual(len(check["mismatches"]), 1)
+        self.assertTrue(check["all_physical_rail_accounted"])
+        self.assertEqual(len(check["reconciled_by_unresolved_rail"]), 1)
+        self.assertEqual(check["reconciled_by_unresolved_rail"][0]["unresolved_rail"], 1)
+
+    def test_unknown_mode_is_not_invented_as_an_unresolved_rail_train(self):
+        snapshot = {"date": "1971-12-01", "duel_policy_id": "reference",
+                    "arm": "AAAHogEx", "seed": 512, "ok": True, "lines": [],
+                    "unresolved_vehicles": [{"vehicle_id": 257, "mode": None}]}
+        raw = {"duel_policy_id": "reference", "date": "1971-12-01",
+               "run": ["AAAHogEx", 512, 0], "vehs_chunk_valid": True,
+               "primary_vehicles_by_mode": {"rail": 1}}
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "snap.jsonl"
+            path.write_text(json.dumps(raw) + "\n", encoding="utf-8")
+            result = check_against_jsonl(analyse({
+                "line_telemetry": {"snapshots": [snapshot]}}), path)
+        self.assertEqual(result["per_seed"][0]["unresolved_rail_vehicles"], 0)
+        self.assertEqual(result["per_seed"][0]["unresolved_unknown_mode_vehicles"], 1)
+        self.assertFalse(result["physical_count_validation"]["all_physical_rail_accounted"])
+        self.assertEqual(len(result["physical_count_validation"]["unexplained"]), 1)
+
+    def test_only_same_date_rail_unresolved_can_reconcile_physical_total(self):
+        snapshot = {"date": "1971-12-01", "duel_policy_id": "reference",
+                    "arm": "AAAHogEx", "seed": 512, "ok": True, "lines": [],
+                    "unresolved_vehicles": [{"vehicle_id": 257, "mode": "rail"}]}
+        raw = {"duel_policy_id": "reference", "date": "1971-12-15",
+               "run": ["AAAHogEx", 512, 0], "vehs_chunk_valid": True,
+               "primary_vehicles_by_mode": {"rail": 1}}
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "snap.jsonl"
+            path.write_text(json.dumps(raw) + "\n", encoding="utf-8")
+            result = check_against_jsonl(analyse({
+                "line_telemetry": {"snapshots": [snapshot]}}), path)
+        check = result["physical_count_validation"]
+        self.assertFalse(check["all_physical_rail_accounted"])
+        self.assertEqual(len(check["reconciled_by_unresolved_rail"]), 0)
+        self.assertEqual(len(check["unexplained"]), 1)
 
 
 if __name__ == "__main__":
