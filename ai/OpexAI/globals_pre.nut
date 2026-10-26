@@ -97,6 +97,8 @@ function OpexV198Active()
   return V198_TEMPLATE_DOUBLE && OpexV190Active();
 }
 V190_RAIL_MAX_TRAINS <- 4;
+/* P1 : fenetre de fret long, exclusivement sur C121/C80 ; 0 OFF historique. */
+P1_RAIL_LONG_VALUE_RANK <- 0;
 /* V172 : heuristique A* rail renforcee sur longues distances (>= v172_rail_long_weight_dist).
  * 0 = inerte (poids V91_ASTAR_WEIGHT_PCT conserve, defaut) ; 100..300 = poids applique. */
 V172_RAIL_LONG_WEIGHT_PCT <- 200;

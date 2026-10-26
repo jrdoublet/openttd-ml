@@ -4360,6 +4360,20 @@ function OpexCompleteRailRouteAfterSearch(catalog, candidate, plan, search)
     }
   }
 
+  /* P1 : un trajet reel plus long peut transformer une rame en deux et activer
+   * la recherche BLOQUANTE de seconde voie juste dessous. Ce chemin experimental
+   * abandonne avant cet A* et conserve l'unique recherche segmentee C80. */
+  if (("p1Long" in candidate) && candidate.p1Long) {
+    if (candidate.trains != 1 || OpexV190Active()) {
+      plan.reason = "P1FLEET";
+      return plan;
+    }
+    if (candidate.profitAnnual < 25000 || candidate.roi < 150) {
+      plan.reason = "P1VALUE";
+      return plan;
+    }
+  }
+
   if (!OpexV198Active() && (candidate.trains > 1 || (OpexV190Active() && candidate.kind == "freight"))) {
     local remain = plan.iterationBudget - plan.iterations;
     if (remain < ATTEMPT_FLOOR) remain = ATTEMPT_FLOOR;

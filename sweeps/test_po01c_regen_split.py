@@ -249,8 +249,14 @@ class PO01CContracts(unittest.TestCase):
             'economy.nut': '288a69d242f7b8b473984350a5d539da927576972b42a3f2269928173ac05fbc',
             'builder_rail.nut': '80ee1d02e1a4fd7234329b8a762a9b1a7f44f06cba2696022bf7a63376d9c56d',
         }
+        from n75_mc_legacy import historical_bytes
         for name, digest in expected.items():
-            self.assertEqual(hashlib.sha256((AI / name).read_bytes()).hexdigest(), digest)
+            # P1 inserts only the guarded no-second-A* safety check in builder_rail.
+            # The R07/R11 historical SHA itself remains untouched.
+            current = (AI / name).read_bytes()
+            if name == 'builder_rail.nut':
+                current = historical_bytes(name, current)
+            self.assertEqual(hashlib.sha256(current).hexdigest(), digest)
 
     def test_po01f_heavy_loop_tokens_and_checkpoints(self):
         for file, name in [('probe_v216.nut', 'V216MarkRect'),

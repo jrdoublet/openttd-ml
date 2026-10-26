@@ -857,6 +857,54 @@ function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, orig
   return candidate;
 }
 
+/* P1 : le balayage industriel normal voit deja les paires, y compris celles rejetees
+ * par railMax. Garder seulement les metadonnees du meilleur long trajet : aucun
+ * calcul economique, cache de site ou A* en shadow ; un unique calcul en ON apres
+ * la passe. Le produit en flottant evite un debordement entier sur grosse industrie. */
+function OpexP1LongOffer(state, catalog, cargo, source, sink, monthly, transformer)
+{
+  if (state == null || monthly <= 0) return false;
+  /* Au plus 4096 comparaisons proxy sur le passage C121 existant : un
+   * catalogue dense n'introduit pas un nouveau budget d'opcodes non borne. */
+  if (state.scanned >= 4096) return false;
+  state.scanned++;
+  local dist = AIMap.DistanceManhattan(source.tile, sink.tile);
+  if (dist < 160 || dist > 300 || dist <= OpexCatalogBounds(catalog).railMax) return false;
+  state.observed++;
+  local score = monthly.tofloat() * dist;
+  local prev = state.best;
+  if (prev == null || score > prev.score
+      || (score == prev.score && (source.tile < prev.src
+          || (source.tile == prev.src && (sink.tile < prev.dst
+              || (sink.tile == prev.dst && cargo < prev.cargo)))))) {
+    state.best = { cargo = cargo, src = source.tile, dst = sink.tile,
+                   monthly = monthly, transformer = transformer,
+                   distance = dist, score = score };
+  }
+  return true;
+}
+
+/* Une seule evaluation de modele de profit/site par generation C121 ; la source
+ * et le puits sont toujours des industries, admissibles au worker C80. */
+function OpexP1LongEvaluate(catalog, state, stats)
+{
+  if (state == null || state.best == null || P1_RAIL_LONG_VALUE_RANK != 2
+      || OpexV190Active()) return null;
+  local pair = state.best;
+  /* Une copie locale de la borne admise uniquement pour le devis de cette
+   * paire : le catalogue du jeu, son railMax et ses bornes AIR restent intacts.
+   * Le chemin historique OpexMakeCandidate garde sa signature et ses octets. */
+  local localCatalog = clone catalog;
+  localCatalog.bounds = clone OpexCatalogBounds(catalog);
+  localCatalog.bounds.railMax = pair.distance;
+  local candidate = OpexMakeCandidate(localCatalog, "freight", pair.cargo, pair.src, pair.dst,
+      pair.monthly, false, stats, pair.transformer);
+  if (candidate == null || candidate.trains != 1 || candidate.profitAnnual < 25000
+      || candidate.roi < 150) return null;
+  candidate.p1Long <- true;
+  return candidate;
+}
+
 /* Ne garder que les K meilleurs, sans trier les autres.
  *
  * Mesure du 2026-08-28 : trier les 687 candidats coutait 96 803 opcodes, soit 56 % du cout annuel
@@ -1171,7 +1219,7 @@ function OpexV264EmitConvergent(catalog, stats, profile, cruiseCache, cargo, sou
 
 /* Industries : on n'apparie que des couples producteur/accepteur du MEME cargo, ce qui garde
  * l'etage 1 lineaire en nombre d'industries plutot que quadratique sur tout le catalogue. */
-function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null, profile = null, cruiseCache = null, freightCargo = null, targetKind = null, targetId = -1)
+function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null, profile = null, cruiseCache = null, freightCargo = null, targetKind = null, targetId = -1, p1LongState = null)
 {
   /* C41.44 : les lignes sont immuables pendant une generation ; une ville peut donc reutiliser
    * exactement son resultat OpexOriginService, y compris null et l'etat blocked. */
@@ -1231,6 +1279,14 @@ function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null
           continue;
         }
         local isTransformer = ("isTransformer" in industries[di]) && industries[di].isTransformer;
+        /* P1 : les paires hors railMax ne doivent pas evincer les courtes du TopK
+         * papier. En shadow les stats historiques restent identiques. */
+        if (p1LongState != null && monthly > 0
+            && OpexP1LongOffer(p1LongState, catalog, cargo, source, industries[di],
+                               monthly, isTransformer)) {
+          stats.distanceLong++;
+          continue;
+        }
         local candidateMark = profile != null ? OpexOpsMeasureBegin() : null;
         local secondary = null;
         local candidate = OpexMakeCandidate(catalog, "freight", cargo, source.tile,
@@ -1322,7 +1378,7 @@ function OpexRailCandidateStats()
   return stats;
 }
 
-function OpexBuildCandidates(catalog, budget, lines, abandonedPairs = null, profile = null, paxProfile = null, paxCandidateProfile = null, paxCruiseCache = null, freightCruiseCache = null, generatePax = true, generateFreight = true, paxBand = PAX_BAND_ALL, freightCargo = null, targetKind = null, targetId = -1)
+function OpexBuildCandidates(catalog, budget, lines, abandonedPairs = null, profile = null, paxProfile = null, paxCandidateProfile = null, paxCruiseCache = null, freightCruiseCache = null, generatePax = true, generateFreight = true, paxBand = PAX_BAND_ALL, freightCargo = null, targetKind = null, targetId = -1, p1LongState = null)
 {
   if (V276_CAND_SLICES > 0) return OpexV276Published(catalog, targetKind, targetId);
   /* Memo origin_sitable vide a chaque passe de generation : une gare ou un rail bati depuis la
@@ -1355,10 +1411,22 @@ function OpexBuildCandidates(catalog, budget, lines, abandonedPairs = null, prof
   budget.begin();
   if (generateFreight) {
     OpexFreightCandidates(catalog, lines, all, stats, abandonedPairs, profile, freightCruiseCache,
-                          freightCargo, targetKind, targetId);
+                          freightCargo, targetKind, targetId, p1LongState);
   }
   local opsFreight = budget.end("cand_freight");
   if (profile != null) profile.freightOps += OpexOpsMeasureEnd(freightMark);
+
+  /* P1 : l'economie n'est calculee qu'APRES le scan, pour l'unique meilleur
+   * proxy. Le candidat reste hors `all` et hors `best` jusqu'a la preuve C80. */
+  if (p1LongState != null && p1LongState.best != null) {
+    if (P1_RAIL_LONG_VALUE_RANK == 2)
+      p1LongState.candidate = OpexP1LongEvaluate(catalog, p1LongState, stats);
+    if (DECISION_LOG) OpexDecide("P1_LONG_SHADOW", "mode=" + P1_RAIL_LONG_VALUE_RANK
+        + " count=" + p1LongState.observed + " cargo=" + p1LongState.best.cargo
+        + " src=" + p1LongState.best.src + " dst=" + p1LongState.best.dst
+        + " dist=" + p1LongState.best.distance
+        + " candidate=" + (p1LongState.candidate != null ? 1 : 0));
+  }
 
   if (targetKind != null && targetId >= 0) {
     local targeted = [];

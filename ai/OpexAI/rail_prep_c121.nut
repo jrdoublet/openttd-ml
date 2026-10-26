@@ -188,8 +188,14 @@ function OpexAI::_c121RailPrepMaybeCatalog()
     /* Ne pas estampiller le mois : une unite peut publier dans le meme mois. */
     return;
   }
+  /* P1 est cantonne a cette passe C121 deja planifiee. Le scan lit la meme
+   * population fret ; aucun nouveau catalogue, ni A* et aucun candidat long
+   * expose au classement papier. */
+  local p1State = (P1_RAIL_LONG_VALUE_RANK > 0 && !V269_RELAXED)
+      ? { best = null, observed = 0, scanned = 0, candidate = null } : null;
   local built = OpexBuildCandidates(this._catalog, this._budget, this._lines,
-      this._abandonedPairs, null, null, null, null, null, true, true, PAX_BAND_ALL, null);
+      this._abandonedPairs, null, null, null, null, null, true, true, PAX_BAND_ALL,
+      null, null, -1, p1State);
   local ranked = null;
   if (built != null && ("best" in built) && built.best != null && built.best.len() > 0) {
     ranked = built.best;
@@ -197,6 +203,17 @@ function OpexAI::_c121RailPrepMaybeCatalog()
     ranked = built.candidates;
   } else {
     ranked = [];
+  }
+  if (p1State != null && p1State.candidate != null) {
+    /* Une seule place prioritaire de preparation, PAS une place TopK ni une
+     * election de construction : seul plan.ok permet l'entree au stock. */
+    ranked = clone ranked;
+    ranked.insert(0, p1State.candidate);
+    if (DECISION_LOG) OpexDecide("P1_LONG_SELECT", "cargo=" + p1State.candidate.cargo
+        + " src=" + p1State.candidate.src + " dst=" + p1State.candidate.dst
+        + " dist=" + p1State.candidate.distance
+        + " profit=" + p1State.candidate.profitAnnual
+        + " capital=" + p1State.candidate.capital);
   }
   this._c121RailPrepCandidates = ranked;
   this._c121RailPrepMonth = stamp;

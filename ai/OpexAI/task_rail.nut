@@ -211,6 +211,17 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
                                     reason = "rail_prep_" + reval.reason, extra = "" });
             return { outcome = "rejected", discards = passDiscards };
           }
+          if (("p1Long" in candidate) && candidate.p1Long) {
+            /* P1 a deja consomme son unique A* C80. Une revalidation physique
+             * ratee retire le stock et laisse les choix ordinaires concourir ;
+             * ne pas demarrer un second A* de reprise pour cette paire. */
+            this._c121RailPrepDropStock(candidate, reval.reason, prepOps, prepTicks);
+            if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL)
+              passDiscards.append({ rank = i, mode = "rail", src = candidate.src,
+                                    dst = candidate.dst, reason = "p1_revalidate_" + reval.reason,
+                                    extra = "" });
+            return { outcome = "rejected", discards = passDiscards };
+          }
           this._c121RailPrepDropStock(candidate, reval.reason, prepOps, prepTicks);
           c121PrepPlan = false;
           if (this._railSearch != null) {
@@ -302,6 +313,16 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
         /* Le candidat n'a pas encore cette cle dans le chemin qui termine sa
          * recherche dans le meme tour : creation de slot Squirrel avec `<-`. */
         candidate.railPlan <- start.plan;
+      }
+      /* C121 depose un railPlan hors choix historique et court-circuite le
+       * journal PROJECT_CHOSEN ci-dessus. P1 conserve la meme identite qu'une
+       * tentative classique pour joindre choix, tentative et construction. */
+      if (DECISION_LOG && c121PrepPlan && ("p1Long" in candidate) && candidate.p1Long) {
+        OpexDecide("PROJECT_CHOSEN", "rank=" + i + " mode=rail kind=freight cargo="
+            + AICargo.GetCargoLabel(candidate.cargo) + " src=" + candidate.src
+            + " dst=" + candidate.dst + " dist=" + candidate.distance
+            + " cost=" + candidate.capital + " profit=" + candidate.profitAnnual
+            + " roi=" + candidate.roi + " p1_long=1");
       }
       local railPlanRef = ("railPlan" in candidate) ? candidate.railPlan : null;
       local result = OpexBuildLine(this._catalog, this._budget, candidate, alternativeRatio,
@@ -1609,6 +1630,31 @@ function OpexAI::_handleRailStockSearchCompleted()
     local readyFundScore = OpexProjectScore(readyProfit, readyFinanceCapital);
     readyProject.fundScore <- readyFundScore;
 
+    /* P1 : comparer le revenu net du trajet physique au meilleur projet AIR
+     * ou rail court qu'on pourrait acheter avec la caisse et la reserve
+     * ACTUELLES. Marge indicative ; le selecteur commun reste seul decideur. */
+    if (("p1Long" in candidate) && candidate.p1Long && DECISION_LOG) {
+      local available = OpexAvailableCapital();
+      local altProfit = 0.0;
+      local altMode = "none";
+      if (this._projects != null && this._projects.best != null) {
+        foreach (alt in this._projects.best) {
+          if (alt == null || !("mode" in alt)
+              || (alt.mode != "rail" && alt.mode != "air")) continue;
+          if (OpexProjectFinanceCapital(alt) > available) continue;
+          local p = OpexCalibratedProfit(alt);
+          if (p > altProfit) { altProfit = p; altMode = alt.mode; }
+        }
+      }
+      OpexDecide("P1_LONG_MARGIN", "cargo=" + candidate.cargo
+          + " src=" + candidate.src + " dst=" + candidate.dst
+          + " dist=" + candidate.distance
+          + " profit=" + readyProfit + " capital=" + readyFinanceCapital
+          + " affordable=" + (readyFinanceCapital <= available ? 1 : 0)
+          + " alternative=" + altMode + " alt_profit=" + altProfit
+          + " net_margin=" + (readyProfit - altProfit));
+    }
+
     this._railReadyStock[pairKey] <- {
       plan = plan,
       candidate = candidate,
@@ -2678,7 +2724,7 @@ function OpexAI::_revalidateRailStockPlan(candidate, plan)
 
   /* Si V131_RAIL_REPAIR est inactif (defaut 0), executer le chemin de reference
    * d'origine avec STRICTEMENT ZERO opcode ajoute et aucun test supplementaire. */
-  if (!V131_RAIL_REPAIR) {
+  if (!V131_RAIL_REPAIR || (("p1Long" in candidate) && candidate.p1Long)) {
     local testMode = AITestMode();
     local stIdA = ("stationId" in planA) ? planA.stationId : AIStation.STATION_NEW;
     local stIdB = ("stationId" in planB) ? planB.stationId : AIStation.STATION_NEW;
