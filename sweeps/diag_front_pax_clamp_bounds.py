@@ -94,6 +94,10 @@ def classify(event):
 def analyse(logdirs):
     observations = Counter()
     years = defaultdict(Counter)
+    raw_observations = Counter()
+    raw_years = defaultdict(Counter)
+    repeated_observations = Counter()
+    repeated_years = defaultdict(Counter)
     examples = {}
     games = set()
     seen_event_keys = set()
@@ -133,14 +137,19 @@ def analyse(logdirs):
             games.add(stream_id)
             for year, month, day, payload in events:
                 fields = dict(FIELDS.findall(payload))
-                # Keep multiple genuinely distinct events on the same day,
-                # but ignore repeated byte-identical checkpoint copies.
-                event_id = (stream_id, year, month, day, payload)
-                if event_id in seen_event_keys:
-                    continue
-                seen_event_keys.add(event_id)
                 result = classify(fields)
                 reason = result["reason"]
+                raw_observations[reason] += 1
+                raw_years[year][reason] += 1
+                # Keep multiple genuinely distinct events on the same day,
+                # but count re-emissions of the same day/payload separately
+                # from the historical unique-state metric.
+                event_id = (stream_id, year, month, day, payload)
+                if event_id in seen_event_keys:
+                    repeated_observations[reason] += 1
+                    repeated_years[year][reason] += 1
+                    continue
+                seen_event_keys.add(event_id)
                 observations[reason] += 1
                 years[year][reason] += 1
                 examples.setdefault(reason, {"date": f"{year}-{month:02d}-{day:02d}",
@@ -151,8 +160,15 @@ def analyse(logdirs):
         raise ValueError("aucun EPOCH_BOUNDS interpretable dans les journaux fournis")
     return {
         "games": len(games), "events": sum(observations.values()),
+        "raw_emissions": sum(raw_observations.values()),
+        "same_day_same_payload_reemissions": sum(repeated_observations.values()),
         "reasons": dict(sorted(observations.items())),
         "years": {str(y): dict(sorted(row.items())) for y, row in sorted(years.items())},
+        "raw_reasons": dict(sorted(raw_observations.items())),
+        "raw_years": {str(y): dict(sorted(row.items())) for y, row in sorted(raw_years.items())},
+        "reemission_reasons": dict(sorted(repeated_observations.items())),
+        "reemission_years": {str(y): dict(sorted(row.items()))
+                             for y, row in sorted(repeated_years.items())},
         "examples": examples,
         "proven_scope": "rail-air physical crossover vs upper railMax clamp only",
         "unknown_scope": [
@@ -174,7 +190,9 @@ def main():
     report = analyse(args.logs)
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    print(json.dumps({k: report[k] for k in ("games", "events", "reasons")}, ensure_ascii=False, indent=2))
+    print(json.dumps({k: report[k] for k in (
+        "games", "events", "raw_emissions", "same_day_same_payload_reemissions", "reasons")},
+        ensure_ascii=False, indent=2))
 
 
 if __name__ == "__main__":

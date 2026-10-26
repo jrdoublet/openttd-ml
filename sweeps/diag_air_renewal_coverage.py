@@ -11,11 +11,15 @@ import argparse
 from collections import Counter
 import json
 from pathlib import Path
+import re
 
 try:
     from sweeps.analyse_calibration_projets import KV_RE, LINE_RE, SEED_RE, num, open_text
 except ModuleNotFoundError:
     from analyse_calibration_projets import KV_RE, LINE_RE, SEED_RE, num, open_text
+
+
+LINE_ID_RE = re.compile(r"(?:0|[1-9][0-9]*)\Z")
 
 
 def audit(lines):
@@ -36,7 +40,9 @@ def audit(lines):
         elif tag == "V252_REPLACE":
             counts["replace_events"] += 1
             old_id, new_id = kv.get("old_veh"), kv.get("new_veh")
-            if (not kv.get("line") or old_id is None or new_id is None
+            line_id = kv.get("line")
+            valid_line = line_id is not None and LINE_ID_RE.fullmatch(line_id) is not None
+            if (not valid_line or old_id is None or new_id is None
                     or old_id == new_id):
                 counts["incomplete_identity"] += 1
             if num(kv.get("price")) is None:
@@ -45,18 +51,27 @@ def audit(lines):
                 counts["purchase_price_reported"] += 1
             if num(kv.get("profit")) is None:
                 counts["missing_prior_vehicle_profit"] += 1
-            replacements.append((date, kv.get("line")))
+            replacements.append((date, line_id if valid_line else None))
         elif tag == "LINE_REVENUE" and kv.get("mode") == "air":
-            year = num(kv.get("year"))
-            if year is None or num(kv.get("age"), -1) < 2:
+            age = num(kv.get("age"))
+            if age is None or age < 2:
                 continue
-            key = (kv.get("line"), int(year))
+            line_id = kv.get("line")
+            if line_id is None or LINE_ID_RE.fullmatch(line_id) is None:
+                counts["invalid_mature_line_id"] += 1
+                continue
+            year = num(kv.get("year"))
+            if year is None or not year.is_integer():
+                counts["invalid_mature_revenue_year"] += 1
+                continue
+            key = (line_id, int(year))
             if key in annual:
                 counts["duplicate_line_year"] += 1
             else:
                 annual[key] = date
     for date, line in replacements:
-        future = [(yr, d) for (lid, yr), d in annual.items() if lid == line and d > date]
+        future = [(yr, d) for (lid, yr), d in annual.items()
+                  if line is not None and lid == line and d > date]
         if future:
             counts["events_with_later_mature_line_report"] += 1
             first_date = min(d for _, d in future)

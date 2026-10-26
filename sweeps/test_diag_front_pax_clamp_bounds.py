@@ -12,6 +12,12 @@ BASE = dict(roadMin="7", roadMax="7", railAir="200", railMax="200",
             vRail="115.88227", vAir="144", tFixe="26", tpd="74")
 
 
+def bound_line(day="1970-1-2", **fields):
+    values = dict(BASE, **fields)
+    return "OPEX " + day + " EPOCH_BOUNDS " + " ".join(
+        f"{key}={value}" for key, value in values.items()) + "\n"
+
+
 class FrontPaxBoundedAudit(unittest.TestCase):
     def test_numeric_seed_spelling_cannot_inflate_independent_games(self):
         line = "OPEX 1970-1-2 EPOCH_BOUNDS " + " ".join(
@@ -81,11 +87,34 @@ class FrontPaxBoundedAudit(unittest.TestCase):
                 stream.write(line)
             report = analyse([root])
             self.assertEqual(report["events"], 1)
+            self.assertEqual(report["raw_emissions"], 1)
+            self.assertEqual(report["same_day_same_payload_reemissions"], 0)
             self.assertEqual(report["games"], 1)
             with gzip.open(root / "reference_seed42_r0.log.gz", "wt", encoding="utf-8") as stream:
                 stream.write(line.replace("vAir=144", "vAir=143"))
             with self.assertRaisesRegex(ValueError, "copies contradictoires"):
                 analyse([root])
+
+    def test_reemission_after_other_log_event_counts_as_new_execution(self):
+        content = bound_line() + "OPEX 1970-1-2 AIR_FLEET reason=tick\n" + bound_line()
+        with tempfile.TemporaryDirectory() as tmp:
+            (Path(tmp) / "reference_seed42_r0.log").write_text(content, encoding="utf-8")
+            report = analyse([Path(tmp)])
+        self.assertEqual(report["events"], 1)
+        self.assertEqual(report["raw_emissions"], 2)
+        self.assertEqual(report["same_day_same_payload_reemissions"], 1)
+        self.assertEqual(report["raw_reasons"], {"proven_upper_rail_clamp": 2})
+        self.assertEqual(report["reemission_years"], {"1970": {"proven_upper_rail_clamp": 1}})
+
+    def test_two_different_same_day_bounds_are_distinct_executions(self):
+        content = bound_line() + bound_line(vAir="145")
+        with tempfile.TemporaryDirectory() as tmp:
+            (Path(tmp) / "reference_seed42_r0.log").write_text(content, encoding="utf-8")
+            report = analyse([Path(tmp)])
+        self.assertEqual(report["events"], 2)
+        self.assertEqual(report["raw_emissions"], 2)
+        self.assertEqual(report["same_day_same_payload_reemissions"], 0)
+        self.assertEqual(sum(report["reasons"].values()), 2)
 
     def test_source_contract_calendar_and_logged_truncations(self):
         source = (Path(__file__).resolve().parents[1] / "ai/OpexAI/candidates.nut").read_text(encoding="utf-8")

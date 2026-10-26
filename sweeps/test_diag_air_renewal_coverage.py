@@ -65,6 +65,52 @@ class RenewalCoverageTests(unittest.TestCase):
         self.assertEqual(result["events_with_intervening_v252"], 1)
         self.assertEqual(result["events_without_later_mature_line_report"], 1)
 
+    def test_invalid_line_id_cannot_claim_mature_followup(self):
+        rows = [
+            e("1974-9-8", "V252_REPLACE", "line=oops old_veh=40 new_veh=41 price=100"),
+            e("1975-1-1", "LINE_REVENUE", "mode=air line=oops year=1975 age=2 real_prof=100"),
+        ]
+        result = audit(rows)
+        self.assertEqual(result["replace_events"], 1)
+        self.assertEqual(result["incomplete_identity"], 1)
+        self.assertEqual(result["invalid_mature_line_id"], 1)
+        self.assertEqual(result.get("events_with_later_mature_line_report", 0), 0)
+        self.assertEqual(result["events_without_later_mature_line_report"], 1)
+
+    def test_fractional_year_cannot_prove_annual_followup(self):
+        prefix = [e("1974-9-8", "V252_REPLACE", "line=3 old_veh=40 new_veh=41 price=100")]
+        invalid = audit(prefix + [
+            e("1975-1-1", "LINE_REVENUE", "mode=air line=3 year=1975.75 age=2 real_prof=100"),
+        ])
+        self.assertEqual(invalid["invalid_mature_revenue_year"], 1)
+        self.assertEqual(invalid.get("events_with_later_mature_line_report", 0), 0)
+        self.assertEqual(invalid["events_without_later_mature_line_report"], 1)
+        valid = audit(prefix + [
+            e("1975-1-1", "LINE_REVENUE", "mode=air line=3 year=1975.0 age=2 real_prof=100"),
+        ])
+        self.assertEqual(valid["events_with_later_mature_line_report"], 1)
+        self.assertEqual(valid.get("invalid_mature_revenue_year", 0), 0)
+
+    def test_noncanonical_line_alias_does_not_create_extra_replacement_cohort(self):
+        rows = [
+            e("1974-9-8", "V252_REPLACE", "line=01 old_veh=40 new_veh=41 price=100"),
+            e("1974-9-8", "V252_REPLACE", "line=1 old_veh=42 new_veh=43 price=100"),
+            e("1975-1-1", "LINE_REVENUE", "mode=air line=01 year=1975 age=2 real_prof=100"),
+            e("1975-1-1", "LINE_REVENUE", "mode=air line=1 year=1975 age=2 real_prof=100"),
+        ]
+        result = audit(rows)
+        self.assertEqual(result["incomplete_identity"], 1)
+        self.assertEqual(result["invalid_mature_line_id"], 1)
+        self.assertEqual(result["events_without_later_mature_line_report"], 1)
+        self.assertEqual(result["events_with_later_mature_line_report"], 1)
+
+    def test_line_zero_and_integer_year_remain_valid(self):
+        rows = [
+            e("1974-9-8", "V252_REPLACE", "line=0 old_veh=40 new_veh=41 price=100"),
+            e("1975-1-1", "LINE_REVENUE", "mode=air line=0 year=1975 age=2 real_prof=100"),
+        ]
+        self.assertEqual(audit(rows)["events_with_later_mature_line_report"], 1)
+
     def test_copy_log_gzip_conflict_rejected(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

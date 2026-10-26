@@ -45,6 +45,8 @@ rabattre la frontière à `railMax`. Les autres configurations restent
 |---|---:|
 | Jeux distincts parcourus | **80** (SOLO + DUEL) |
 | Événements EPOCH_BOUNDS distincts dans ces journaux | **1 524** |
+| Émissions `EPOCH_BOUNDS` brutes, copies `.log`/`.gz` dédoublonnées | **2 109** |
+| Réémissions même partie, jour et payload | **585** |
 | Événements dont le clamp haut RAIL→AIR est prouvé | **1 524 / 1 524** |
 | Contradictions de clamp avec `railAir` final | **0** |
 | Première observation-type : vitesse RAIL / avion efficace journalisés | **115,88227 / 144** |
@@ -52,11 +54,18 @@ rabattre la frontière à `railMax`. Les autres configurations restent
 | Première observation-type : croisement brut sous incertitude | **[433,52 ; 463,39] tuiles** |
 | Valeur finale observée | **`railAir=railMax=200`** |
 
-Il s'agit de **1 524** événements conservés dans les *journaux de
-calibration consultés*, **pas** d'une réanalyse exhaustive des **2 109**
-événements agrégés dans `docs/demo_frontieres_temps_20261021.md` à partir
-d'une autre sélection d'artefacts. Ne pas confondre leurs dénominateurs ou
-prétendre que le motif vaut pour toutes les cartes, époques et moteurs.
+**26/10 — rectification du dénominateur :** les **2 109** sont bien les
+émissions brutes `EPOCH_BOUNDS` de ces **mêmes 80 journaux**, tandis que
+**1 524** sont les états distincts `(partie, jour, contenu)` conservés par
+le rapport historique. **585** émissions supplémentaires répètent un état
+identique plus tôt dans la journée, même après des événements intermédiaires ;
+elles peuvent correspondre à des recalculs effectifs distincts. La ventilation
+brute par motif et par année, ainsi que celle des réémissions, est dans
+[`front_pax_emissions_solo_duel_20261026.json`](../results/front_pax_emissions_solo_duel_20261026.json).
+Le classement du clamp reste **1 524/1 524 états distincts** prouvés et
+**2 109/2 109 émissions** classées hautes, sans contradiction. Ne pas
+interpréter ces fréquences comme le nombre de projets, de décisions utiles
+ou de changements de frontières, ni étendre la conclusion à d'autres cartes.
 
 ## Ce qui demeure inconnu (case FRONT-PAX-1 maintenue ouverte)
 
@@ -69,6 +78,7 @@ les termes intermédiaires et leur coût opcode. Les champs loggés ne disent
 pas non plus quels projets PASS non sélectionnés seraient devenus faisables
 avec une autre frontière. Aucun verdict économique ou adoption n'en découle.
 
-Le contrôle hôte a **six tests** : preuve de clamp à 200, refus d'inventer le
-motif route, bornes basses et incohérences, classification incertaine, copies
-texte/gzip identiques ou contradictoires, et contrat source des troncatures.
+Le contrôle hôte a **11 tests** dont émissions identiques séparées par
+un autre événement, états différents le même jour, copie texte/gzip conforme
+ou contradictoire, preuve du clamp, classification incertaine et contrat
+source des troncatures.
