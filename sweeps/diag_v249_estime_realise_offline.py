@@ -198,10 +198,20 @@ def reference_logs(directory):
     files = list(directory.glob("reference_seed*_r*.log"))
     files += list(directory.glob("reference_seed*_r*.log.gz"))
     chosen = {}
+    canonical_names = {}
     for path in sorted(files):
         stem = path.name[:-3] if path.suffix == ".gz" else path.name
-        if SEED.search(stem) is None:
+        match = SEED.search(stem)
+        if match is None:
             continue
+        # Two spellings such as seed1/seed01 or r0/r00 are one numeric
+        # game identity, not independent evidence.  Only .log/.gz copies of
+        # the SAME spelling may be reconciled by their event signatures.
+        identity = (int(match[1]), int(match[2]))
+        previous_name = canonical_names.setdefault(identity, stem)
+        if previous_name != stem:
+            raise ValueError(f"identite de partie V249 ambigue : "
+                             f"{previous_name} et {stem} (seed={identity[0]}, r={identity[1]})")
         if stem in chosen:
             prior = chosen[stem]
             if _event_signature(prior) != _event_signature(path):

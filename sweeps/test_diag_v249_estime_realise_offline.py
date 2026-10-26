@@ -14,6 +14,32 @@ def event(when, tag, details, company=0):
 
 
 class V249OfflineAuditTests(unittest.TestCase):
+    def test_leading_zero_seed_alias_is_rejected_even_if_contents_equal(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            content = event("1974-9-7", "V249_STATUE", "town=41 gain=40 cost=120")
+            (root / "reference_seed1_r0.log").write_text(content, encoding="utf-8")
+            (root / "reference_seed01_r0.log").write_text(content, encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "identite de partie V249 ambigue"):
+                reference_logs(root)
+
+    def test_leading_zero_repeat_alias_is_rejected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "reference_seed1_r0.log").write_text("", encoding="utf-8")
+            (root / "reference_seed1_r00.log").write_text("", encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "identite de partie V249 ambigue"):
+                reference_logs(root)
+
+    def test_distinct_numeric_seeds_and_repeats_remain_separate(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            names = ("reference_seed1_r0.log", "reference_seed2_r0.log",
+                     "reference_seed1_r1.log")
+            for name in names:
+                (root / name).write_text("", encoding="utf-8")
+            self.assertEqual({p.name for p in reference_logs(root)}, set(names))
+
     def test_gzip_only_and_duplicate_text_maintain_one_game(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
