@@ -1737,7 +1737,11 @@ function OpexCreateRailPathfinder(plansA, plansB, ignoredTiles = null, weight = 
   local goals = [];
   /* Convention [lead, station_exit] aux deux bouts : node[0] est le vrai depart, node[1] le
    * predecesseur virtuel ; a l'arrivee la bibliotheque ajoute goal[1] apres goal[0]. */
-  foreach (plan in plansA) sources.push([plan.lead, plan.station_exit]);
+  foreach (plan in plansA) {
+    if (("approach" in plan) && plan.approach != null)
+      sources.push([plan.lead, plan.station_exit, plan.approach]);
+    else sources.push([plan.lead, plan.station_exit]);
+  }
   foreach (plan in plansB) goals.push([plan.lead, plan.station_exit]);
   if (sources.len() == 0 || goals.len() == 0) return null;
   if (weight == null) {
@@ -2184,7 +2188,11 @@ function OpexCreateSegmentedSearch(plansA, plansB, iterationBudget, ignoredTiles
   if (V307_SINK_ROOM > 0) ignoredTiles = OpexV307SinkRoomIgnoredTiles(plansA, plansB, ignoredTiles);
   local sources = [];
   local goals = [];
-  foreach (plan in plansA) sources.push([plan.lead, plan.station_exit]);
+  foreach (plan in plansA) {
+    if (("approach" in plan) && plan.approach != null)
+      sources.push([plan.lead, plan.station_exit, plan.approach]);
+    else sources.push([plan.lead, plan.station_exit]);
+  }
   foreach (plan in plansB) goals.push([plan.lead, plan.station_exit]);
   if (sources.len() == 0 || goals.len() == 0) return null;
 

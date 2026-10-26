@@ -225,6 +225,56 @@ class V233LongGoodContracts(unittest.TestCase):
         self.assertIn("if (!(t in forbidden)) forbidden[t] <- true", planner)
         self.assertIn("if (!(tile in forbidden)) forbidden[tile] <- true", planner)
 
+    def test_track4_after_tile_must_be_the_rail_and_closed_launch_is_skipped(self):
+        reserve = body("v233_long_good.nut", "OpexV233LReserveDouble")
+        self.assertIn("AIRail.BuildRail(front, after, beyond)", reserve)
+        self.assertLess(reserve.index("AIRail.BuildRail(p.lead, front, after)"),
+                        reserve.index("AIRail.BuildRail(front, after, beyond)"))
+        self.assertIn("beyond == front || beyond == after", reserve)
+        # Rail on `after` needs a third tile one step further, still off the platform.
+        for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+            lead = (20 + dx, 20 + dy)
+            after = (lead[0] + 2 * dx, lead[1] + 2 * dy)
+            beyond = (lead[0] + 3 * dx, lead[1] + 3 * dy)
+            self.assertEqual(abs(beyond[0] - after[0]) + abs(beyond[1] - after[1]), 1)
+            self.assertEqual(len({(20, 20), lead, after, beyond}), 4)
+        launch = body("v233_long_good.nut", "OpexV233LParallelLaunchOpen")
+        self.assertIn("AIRail.BuildRail(front, after, beyond)", launch)
+        self.assertIn("return false", launch)
+        plans = body("v233_long_good.nut", "OpexV233LPlatformPlans")
+        self.assertLess(plans.index("OpexV233LParallelLaunchOpen(p)"),
+                        plans.index("if (validB.len() > 0) { validA.append(p); break; }"))
+        self.assertIn('phase == "build"', plans)
+        self.assertIn("reason=LAUNCH_CLOSED", plans)
+        self.assertIn("if (validA.len() == 0 && holdA != null)", plans)
+
+    def test_track4_first_local_ok_is_adopted_and_larger_radii_stop(self):
+        repair = body("v233_long_good.nut", "OpexV233LRepairParallel")
+        self.assertIn("phase=adopt", repair)
+        self.assertIn("reason=REJECT_SPLICE", repair)
+        self.assertIn("reason=REJECT_DEDICATED", repair)
+        self.assertIn("reason=REJECT_ISSUE", repair)
+        self.assertIn("if (search.path == null || search.path == false) continue;", repair)
+        reject = repair.index("reason=REJECT_SPLICE")
+        self.assertIn("break;", repair[reject:reject + 500])
+        self.assertNotIn("continue;", repair[reject:reject + 350])
+        adopt = repair.index("phase=adopt")
+        self.assertLess(adopt, repair.index("reason=SPLICED", adopt))
+        self.assertIn("approach = approach", repair)
+        self.assertIn("tail[0] == approach", repair)
+        search = body("builder_rail.nut", "OpexCreateSegmentedSearch")
+        self.assertIn("plan.approach", search)
+        self.assertIn("[plan.lead, plan.station_exit, plan.approach]", search)
+        self.assertIn("[plan.lead, plan.station_exit]", search)
+        direct = body("builder_rail.nut", "OpexCreateRailPathfinder")
+        self.assertIn("[plan.lead, plan.station_exit, plan.approach]", direct)
+        finder = source("pathfinder_v90/v129.nut")
+        self.assertIn("node.len() >= 3 && node[2] != null", finder)
+        self.assertIn("node[1] % 61", finder)
+        self.assertIn("node[0] % 61", finder)
+        self.assertNotRegex(finder, r"function\s*\(")
+        self.assertNotIn(".find(", finder)
+
     def test_track2_reservation_precedes_every_primary_search_including_reverse_probe(self):
         entries = (("builder_rail.nut", "OpexPlanRailRoute", "OpexSearchPath("),
                    ("task_rail.nut", "OpexAI::_startRailSearch", "OpexV294fReverseProbe("),

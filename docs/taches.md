@@ -67,6 +67,23 @@ rollback intégral, aucun second train sur voie unique. Suite Python :
 **2 576 tests, OK** (9 ignorés, 2 échecs attendus). Pose moteur **non validée**
 (Docker interdit). [Détails](v233_long_good_20261025.md#26-octobre--track3-pont-parallèle-et-repli-local).
 
+**26/10 — V233L, TRACK4 après le smoke7 fourni (local, défaut 0) :** deux
+doubles sans erreur moteur et sans voie livrée. `58979→20909` réserve
+`after=58464` puis `LOCAL_OBSTACLE` erreur **260** (`ERR_AREA_NOT_CLEAR`) :
+`BuildRail(lead, front, after)` pose le rail sur `front`, pas sur `after`.
+Ce n'est pas la voie 1 (`PRIMARY_COLLISION` absent, `next_rail=0`). La sortie
+ouest est enfermée (`NOPA` à 5). `6172→21717` échoue en **264**
+(`ERR_LAND_SLOPED_WRONG`) ; les rayons 4, 8 et 16 trouvent un chemin
+(`reason=OK`) qui n'est pas greffé, puis l'A* complet part en `SEARCH_ABND`
+(19 264 itérations, juin–octobre). La réservation exige maintenant le rail
+sur `after`. Une sortie droite fermée cède le quai à l'autre bout. Le premier
+détour local OK est adopté (`phase=adopt`), sans rayon supérieur ni A* complet
+s'il tient. L'approche du pathfinder n'existe que si le réglage est actif ; à 0
+les trois instructions d'origine restent en place. Échec : rollback intégral,
+aucun second train sur voie unique.
+Pose moteur **non validée** (Docker interdit).
+[Détails](v233_long_good_20261025.md#26-octobre--track4-couloir-réel-et-adoption-du-détour).
+
 ### Priorités ouvertes après les deux références monomodales du 25/10 (sans adoption)
 
 - [ ] **P1 — `rail_long_value_rank` : qualifier et classer le fret long constructible (opt-in, défaut 0 ; coût 4/5).** Ne plus relever globalement les bornes : vérifier site, A*, capital et ROI marginal pour une paire fret ≥160 tuiles, puis la comparer aux projets courts et AIR réellement finançables ; [analyse §4](analyse_rail_vs_air_seul_20261025.md#4-pistes-expérimentales-par-potentiel-de-gain-relatif-au-coût).

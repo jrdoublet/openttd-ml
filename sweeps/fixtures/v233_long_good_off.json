@@ -108,6 +108,14 @@
         {
           "off": "  }\n  result.doubleTrack = (okD ? 1 : 0);\n  if (okD) {\n    result.v181Loop <- true;\n    if (depot2 != null) {\n      result.depot2 <- depot2;\n",
           "guarded": "  }\n  result.doubleTrack = (okD ? 1 : 0);\n  if (okD) {\n    if (OpexV233LIs(candidate) && DECISION_LOG) OpexV233LLog(\"DOUBLE\",\n        \"src=\" + candidate.src + \" dst=\" + candidate.dst + \" phase=build reason=OK ok=1 trains=\" + result.trains);\n    result.v181Loop <- true;\n    if (depot2 != null) {\n      result.depot2 <- depot2;\n"
+        },
+        {
+          "off": "  /* Convention [lead, station_exit] aux deux bouts : node[0] est le vrai depart, node[1] le\n   * predecesseur virtuel ; a l'arrivee la bibliotheque ajoute goal[1] apres goal[0]. */\n  foreach (plan in plansA) sources.push([plan.lead, plan.station_exit]);\n  foreach (plan in plansB) goals.push([plan.lead, plan.station_exit]);\n",
+          "guarded": "  /* Convention [lead, station_exit] aux deux bouts : node[0] est le vrai depart, node[1] le\n   * predecesseur virtuel ; a l'arrivee la bibliotheque ajoute goal[1] apres goal[0]. */\n  foreach (plan in plansA) {\n    if ((\"approach\" in plan) && plan.approach != null)\n      sources.push([plan.lead, plan.station_exit, plan.approach]);\n    else sources.push([plan.lead, plan.station_exit]);\n  }\n  foreach (plan in plansB) goals.push([plan.lead, plan.station_exit]);\n"
+        },
+        {
+          "off": "  local sources = [];\n  local goals = [];\n  foreach (plan in plansA) sources.push([plan.lead, plan.station_exit]);\n  foreach (plan in plansB) goals.push([plan.lead, plan.station_exit]);\n  if (sources.len() == 0 || goals.len() == 0) return null;\n\n  /* timeSafe = min(50 000, budget). Sous A3 le budget vaut 5k-10k, donc se confond\n",
+          "guarded": "  local sources = [];\n  local goals = [];\n  foreach (plan in plansA) {\n    if ((\"approach\" in plan) && plan.approach != null)\n      sources.push([plan.lead, plan.station_exit, plan.approach]);\n    else sources.push([plan.lead, plan.station_exit]);\n  }\n  foreach (plan in plansB) goals.push([plan.lead, plan.station_exit]);\n  if (sources.len() == 0 || goals.len() == 0) return null;\n\n  /* timeSafe = min(50 000, budget). Sous A3 le budget vaut 5k-10k, donc se confond\n"
         }
       ]
     },
@@ -348,6 +356,15 @@
         {
           "off": "  line.trains = line.vehicles.len();\n  line.vehCount <- line.trains;\n  owner._saveProjection = null;\n}\n\nfunction OpexV284Cancel(owner, pending, reason)\n",
           "guarded": "  line.trains = line.vehicles.len();\n  line.vehCount <- line.trains;\n  owner._saveProjection = null;\n  if (V233_LONG_GOOD > 0 && (\"v233Input\" in pending) && DECISION_LOG)\n    OpexV233LLog(\"INPUT_GROW\", \"line=\" + line.lineId + \" trains=\" + line.trains + \" wagons=\" + line.wagons);\n}\n\nfunction OpexV284Cancel(owner, pending, reason)\n"
+        }
+      ]
+    },
+    "pathfinder_v90/v129.nut": {
+      "sha256_off": "8d5c869eb2e3a6c8f297fc2379f1c0a48ac68b74e2ae20b442518f3ee59c6e05",
+      "edits": [
+        {
+          "off": "\t\tforeach (node in sources) {\n\t\t\t\tlocal p0 = this._pathfinder.Path(null, node[1], 0xFF, 0, 1 << (node[1] % 61));\n\t\t\tlocal c1 = this._Cost(p0, node[0], 0xFF, this);\n\t\t\t\tlocal b1 = p0._bloom | (1 << (node[0] % 61));\n\t\t\tnsources.push(this._pathfinder.Path(p0, node[0], 0xFF, c1, b1));\n\t\t}\n",
+          "guarded": "\t\tforeach (node in sources) {\n\t\t\t/* Defaut 0 : les trois instructions d'origine. L'approche avant\n\t\t\t * la sortie n'existe que pour un detour local V233L. */\n\t\t\tif (V233_LONG_GOOD > 0 && node.len() >= 3 && node[2] != null) {\n\t\t\t\tlocal rootPath = this._pathfinder.Path(null, node[2], 0xFF, 0, 1 << (node[2] % 61));\n\t\t\t\tlocal bloomExit = (1 << (node[1] % 61)) | rootPath._bloom;\n\t\t\t\tlocal p0 = this._pathfinder.Path(rootPath, node[1], 0xFF, 0, bloomExit);\n\t\t\t\tlocal c1 = this._Cost(p0, node[0], 0xFF, this);\n\t\t\t\tlocal b1 = p0._bloom | (1 << (node[0] % 61));\n\t\t\t\tnsources.push(this._pathfinder.Path(p0, node[0], 0xFF, c1, b1));\n\t\t\t} else {\n\t\t\t\tlocal p0 = this._pathfinder.Path(null, node[1], 0xFF, 0, 1 << (node[1] % 61));\n\t\t\t\tlocal c1 = this._Cost(p0, node[0], 0xFF, this);\n\t\t\t\tlocal b1 = p0._bloom | (1 << (node[0] % 61));\n\t\t\t\tnsources.push(this._pathfinder.Path(p0, node[0], 0xFF, c1, b1));\n\t\t\t}\n\t\t}\n"
         }
       ]
     }
