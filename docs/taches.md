@@ -25,6 +25,14 @@ péremption 1–3 mois et motifs REJECT distincts, dates persistées avec migrat
 Défaut 0 et hashes OFF conservés ; aucun nouveau jeu/Docker, aucune qualification.
 Diagnostic, limites et validation : [journal V233L](v233_long_good_20261025.md#26-octobre--correction-de-linertie-observée).
 
+**26/10 — V233L, reprise SITEB et repli aéroport (local, défaut 0) :**
+préflight A/B avant portefeuille, scans indépendants reprenables et distinction
+`SITE_BUDGET`/refus physiques ; après échec urbain complet, quai double joint à
+notre aéroport de destination, acceptation composite et spread de toute la station.
+Protection des installations et revalidation avant dépense, rollback conservé.
+Contrats Python/OFF vérifiés ; compilation et exposition moteur **non validées**,
+aucune partie/Docker autorisée ici. [Diagnostic et limites](v233_long_good_20261025.md#26-octobre--sites-ab-et-repli-sur-aéroport).
+
 ### Priorités ouvertes après les deux références monomodales du 25/10 (sans adoption)
 
 - [ ] **P1 — `rail_long_value_rank` : qualifier et classer le fret long constructible (opt-in, défaut 0 ; coût 4/5).** Ne plus relever globalement les bornes : vérifier site, A*, capital et ROI marginal pour une paire fret ≥160 tuiles, puis la comparer aux projets courts et AIR réellement finançables ; [analyse §4](analyse_rail_vs_air_seul_20261025.md#4-pistes-expérimentales-par-potentiel-de-gain-relatif-au-coût).

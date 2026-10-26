@@ -8,6 +8,11 @@ const V233L_MAX_AGE = 3;
 const V233L_MAX_FACTORIES = 64;
 const V233L_SLICE_OPS = 20000;
 const V233L_TOWNS = 8;
+/* Cache reconstructible, jamais sauvegarde : curseurs et preuves revalidees.
+ * Cle par extremite/cargo/longueur/type de rail ; aucun plan partage mutable. */
+V233L_SITE_CACHE <- {};
+V233L_JOIN_CURSOR <- {};
+const V233L_SITE_CACHE_MAX = 128;
 
 function OpexV233LIs(candidate)
 {
@@ -242,19 +247,23 @@ function OpexV233LSourceEnd(context, source)
 /* Source propre d'abord si elle capte effectivement l'usine. Une jointure
  * native au quai d'intrants est aussi possible : pas de voie d'intrants reutilisee.
  * Le cargo de ce quai n'est jamais assimile a GOOD. */
-function OpexV233LPlatformPlans(catalog, candidate)
+function OpexV233LPlatformPlans(catalog, candidate, phase = "build")
 {
-  local mark = OpexOpsMeasureBegin();
-  local statsA = { nClear = 0, nCargo = 0, nCmd = 0 };
-  local statsB = { nClear = 0, nCargo = 0, nCmd = 0 };
   local industry = AIIndustry.GetIndustryID(candidate.src);
-  local wanted = candidate.platformLength;
-  for (local length = wanted; length >= OpexRailMinimumPlatformLength(); length--) {
-    if (OpexOpsMeasureEnd(mark) >= V233L_SLICE_OPS) break;
-    local rawA = OpexStationPlans(candidate.src, candidate.dst, STATION_SEARCH_RADIUS,
-        length, MAX_STATION_PLANS, candidate.cargo, catalog.railCoverage, true, statsA, true, 0, true, mark);
-    local plansA = [];
-    foreach (p in rawA) {
+  /* Quai pour la rame initiale, sans la marge de croissance facultative.
+   * Ne jamais raccourcir en dessous des wagons promis au portefeuille. */
+  local length = OpexRailPlatformLengthForWagons(candidate.wagons);
+  local scanA = OpexV233LSiteSearch(candidate.src, length, candidate.cargo, catalog.railCoverage, true);
+  local scanB = OpexV233LSiteSearch(candidate.dst, length, candidate.cargo, catalog.railCoverage, false);
+  local plansA = scanA.plans;
+  local plansB = scanB.plans;
+  /* Un scan censure doit reprendre avant de conclure a l'echec urbain. */
+  if (plansB.len() == 0 && scanB.reason == "exhausted") {
+    if (DECISION_LOG) OpexV233LSiteLog(candidate, scanB, "B", phase + "_town");
+    scanB = OpexV233LJoinSearch(candidate, length, catalog.railCoverage, phase);
+    plansB = scanB.plans;
+  }
+  foreach (p in plansA) {
       if (!OpexV233LTouches(p, industry, true, catalog.railCoverage)) continue;
       local station = candidate.v233InputStation;
       /* Meme captage, StationID partage si le moteur l'autorise. Une note GOOD
@@ -264,19 +273,354 @@ function OpexV233LPlatformPlans(catalog, candidate)
       if (AIStation.IsValidStation(station) && (goodRating <= 0 || goodRating >= candidate.stationRating)) {
         local accounting = AIAccounting();
         local test = AITestMode();
-        shared = AIRail.BuildRailStation(p.anchor, p.direction, 1, p.length, station);
+        /* Tester l'emprise des DEUX quais : AITestMode ne pose pas le premier. */
+        local adjacent = p.parallel.anchor < p.anchor ? p.parallel.anchor : p.anchor;
+        shared = AIRail.BuildRailStation(adjacent, p.direction, 2, p.length, station);
       }
       if (shared) p.stationId <- station;
-      plansA.append(p);
-    }
-    local plansB = OpexStationPlans(candidate.dst, candidate.src, STATION_SEARCH_RADIUS,
-        length, MAX_STATION_PLANS, candidate.cargo, catalog.railCoverage, false, statsB, true, 0, true, mark);
-    if (plansA.len() > 0 && plansB.len() > 0) return {
-      plansA = plansA, plansB = plansB, length = length, slopeRelaxed = 0,
-      reason = "OK", statsA = statsA, statsB = statsB };
   }
-  return { plansA = null, plansB = null, length = wanted, slopeRelaxed = 0,
-    reason = OpexRailSiteReason(statsA.nCmd > 0, statsB.nCmd > 0), statsA = statsA, statsB = statsB };
+  /* Ne pas publier une paire hors de la fenetre tarifaire apres deplacement. */
+  local validA = [], validB = [];
+  foreach (p in plansA) {
+    foreach (q in plansB) {
+      local origin = ("stationId" in p) ? AIStation.GetLocation(p.stationId) : p.anchor;
+      local distance = AIMap.DistanceManhattan(origin, OpexV233LTariffTile(q));
+      if (distance < 150 || distance > 300) continue;
+      validB.append(q);
+    }
+    /* Un seul A, tous ses B compatibles : le produit cartesien offert a A*
+     * ne doit pas reintroduire de paire hors bornes. */
+    if (validB.len() > 0) { validA.append(p); break; }
+  }
+  local ok = validA.len() > 0 && validB.len() > 0;
+  local pending = scanA.reason == "budget" || scanB.reason == "budget";
+  local reason = ok ? "OK" : (pending ? "SITE_BUDGET" : (plansA.len() > 0 && plansB.len() > 0 ? "DISTANCE"
+      : OpexRailSiteReason(plansA.len() > 0, plansB.len() > 0)));
+  if (DECISION_LOG) {
+    OpexV233LSiteLog(candidate, scanA, "A", phase);
+    OpexV233LSiteLog(candidate, scanB, "B", phase);
+    if (!ok) OpexV233LLog("REJECT", "src=" + candidate.src + " dst=" + candidate.dst
+        + " reason=" + reason + " phase=" + phase + " site_a=" + scanA.reason + " site_b=" + scanB.reason);
+  }
+  return { plansA = ok ? validA : null, plansB = ok ? validB : null, length = length, slopeRelaxed = 0,
+    reason = reason, pending = pending,
+    statsA = scanA.stats, statsB = scanB.stats };
+}
+
+function OpexV233LPreflight(catalog, candidate)
+{
+  local sites = OpexV233LPlatformPlans(catalog, candidate, "admission");
+  return { ready = sites.reason == "OK", pending = sites.pending, reason = sites.reason };
+}
+
+function OpexV233LSiteStats()
+{
+  return { nClear = 0, nCargo = 0, nCmd = 0, terrain = 0, acceptance = 0,
+    parallel = 0, authority = 0, native = 0, catchment = 0, spread = 0, error = 0 };
+}
+
+/* Coordonnees explicites : pas de retour a la ligne aux bords de carte. */
+function OpexV233LOffset(tile, dx, dy)
+{
+  local x = AIMap.GetTileX(tile) + dx, y = AIMap.GetTileY(tile) + dy;
+  if (x < 0 || y < 0 || x >= AIMap.GetMapSizeX() || y >= AIMap.GetMapSizeY()) return -1;
+  return AIMap.GetTileIndex(x, y);
+}
+
+function OpexV233LFlat(tile)
+{
+  return AIMap.IsValidTile(tile) && AITile.IsBuildable(tile) && AITile.GetSlope(tile) == AITile.SLOPE_FLAT;
+}
+
+/* Une geometrie atomique. Aucun terrassement/demolition dans cette sonde.
+ * Deux quais adjacents, sortie en tete au choix : un quai traversant libre
+ * aux deux bouts fournit deux plans, sans exiger une sortie urbaine inutilisee. */
+function OpexV233LSiteProbe(anchor, length, axis, sign, side, cargo, coverage, producing, industry, stats, host = null)
+{
+  local ux = axis == 0 ? 1 : 0, uy = axis == 0 ? 0 : 1;
+  local step = axis == 0 ? 1 : AIMap.GetMapSizeX();
+  local direction = axis == 0 ? AIRail.RAILTRACK_NE_SW : AIRail.RAILTRACK_NW_SE;
+  local anchor2 = OpexV233LOffset(anchor, uy * side, ux * side);
+  if (anchor2 < 0) { stats.parallel++; return null; }
+  local exitIndex = sign > 0 ? length - 1 : 0;
+  local leadIndex = sign > 0 ? length : -1;
+  local lead = OpexV233LOffset(anchor, ux * leadIndex, uy * leadIndex);
+  local lead2 = OpexV233LOffset(anchor2, ux * leadIndex, uy * leadIndex);
+  if (!OpexV233LFlat(lead)) { stats.terrain++; return null; }
+  if (!OpexV233LFlat(lead2)) { stats.parallel++; return null; }
+  for (local i = 0; i < length; i++) {
+    if (!OpexV233LFlat(OpexV233LOffset(anchor, ux * i, uy * i))) { stats.terrain++; return null; }
+    if (!OpexV233LFlat(OpexV233LOffset(anchor2, ux * i, uy * i))) { stats.parallel++; return null; }
+  }
+  stats.nClear++;
+  local value = OpexV233LCargoValue(anchor, step, length, cargo, coverage, producing);
+  if (host != null) value = host.acceptance;
+  local p = { anchor = anchor, step = step, length = length, direction = direction,
+    station_exit = anchor + exitIndex * step, lead = lead, cargoValue = value };
+  if ((producing && (value <= 0 || !OpexV233LTouches(p, industry, true, coverage)))
+      || (!producing && value < 8)) { stats.acceptance++; return null; }
+  stats.nCargo++;
+  local first = anchor < anchor2 ? anchor : anchor2;
+  local last = (anchor > anchor2 ? anchor : anchor2) + (length - 1) * step;
+  if (host != null && !OpexV233LJoinFits(host, first, last)) { stats.spread++; return null; }
+  if (OPEX_LEVEL_LIMITS && !OpexLevelAllows("encroach_rival_catchment")
+      && OpexStationEncroachesRival(AIMap.GetTileX(first), AIMap.GetTileY(first),
+          AIMap.GetTileX(last), AIMap.GetTileY(last), coverage)) {
+    stats.catchment++; return null;
+  }
+  local stationOk = false;
+  {
+    local accounting = AIAccounting();
+    local test = AITestMode();
+    local station = host == null ? AIStation.STATION_NEW : host.station;
+    stationOk = AIRail.BuildRailStation(first, direction, 2, length, station);
+    if (!stationOk) stats.error = AIError.GetLastError();
+  }
+  if (!stationOk) {
+    if (stats.error == AIError.ERR_LOCAL_AUTHORITY_REFUSES) stats.authority++;
+    else stats.native++;
+    return null;
+  }
+  stats.nCmd++;
+  p.parallel <- { anchor = anchor2, step = step, length = length, direction = direction,
+    station_exit = anchor2 + exitIndex * step, lead = lead2 };
+  p.parallels <- [p.parallel];
+  if (host != null) { p.stationId <- host.station; p.v233Airport <- host.station; }
+  return p;
+}
+
+/* Anneaux sans reparcourir leur interieur. Chaque cote a son propre budget,
+ * son curseur (anneau, position, geometrie) et sa preuve de fin de recherche.
+ * Un budget epuise n'est jamais une preuve d'absence de gare. */
+function OpexV233LSiteSearch(center, length, cargo, coverage, producing, host = null)
+{
+  local mark = OpexOpsMeasureBegin();
+  if (producing) {
+    local industry = AIIndustry.GetIndustryID(center);
+    if (OPEX_LEVEL_LIMITS && industry >= 0 && OpexIndustryPrimaryRivalServed(industry, center, coverage))
+      return { plans = [], stats = OpexV233LSiteStats(), reason = "rival_source", ring = 0, ops = 0, length = length };
+  }
+  local now = AIDate.GetCurrentDate();
+  local key = center + ":" + length + ":" + cargo + ":" + coverage + ":" + (producing ? 1 : 0)
+      + ":" + AIRail.GetCurrentRailType();
+  local radius = host == null ? STATION_SEARCH_RADIUS : host.spread;
+  if (host != null) key += ":join:" + host.station + ":" + host.left + ":" + host.top
+      + ":" + host.right + ":" + host.bottom + ":" + host.spread;
+  if (key in V233L_SITE_CACHE) {
+    local old = V233L_SITE_CACHE[key];
+    if (now < old.used || now - old.used > 60 || (old.done && now - old.date > 30)) delete V233L_SITE_CACHE[key];
+  }
+  if (!(key in V233L_SITE_CACHE)) {
+    if (V233L_SITE_CACHE.len() >= V233L_SITE_CACHE_MAX) {
+      local oldest = null, date = now + 1;
+      foreach (k, entry in V233L_SITE_CACHE) if (entry.used < date) { oldest = k; date = entry.used; }
+      if (oldest != null) delete V233L_SITE_CACHE[oldest];
+    }
+    V233L_SITE_CACHE[key] <- { ring = 0, pos = 0, geometry = 0, done = false,
+      date = now, used = now, stats = OpexV233LSiteStats(), hints = [] };
+  }
+  local scan = V233L_SITE_CACHE[key];
+  scan.used = now;
+  local plans = [];
+  local industry = producing ? AIIndustry.GetIndustryID(center) : -1;
+  /* Relire le monde meme pour un cache positif ; jamais reutiliser une preuve
+   * native stale apres pose voisine, changement de note ou chargement. */
+  foreach (hint in scan.hints) {
+    local p = OpexV233LSiteProbe(hint.anchor, length, hint.axis, hint.sign, hint.side,
+        cargo, coverage, producing, industry, scan.stats, host);
+    if (p != null) plans.append(p);
+  }
+  if (scan.hints.len() > 0 && plans.len() == 0) {
+    scan.hints.clear(); scan.done = false; scan.ring = 0; scan.pos = 0; scan.geometry = 0;
+    scan.stats = OpexV233LSiteStats();
+  }
+  while (plans.len() < 4 && !scan.done && OpexOpsMeasureEnd(mark) < V233L_SLICE_OPS) {
+    local r = scan.ring, pos = scan.pos;
+    local dx = 0, dy = 0;
+    if (r > 0) {
+      local edge = pos / (2 * r), along = pos % (2 * r);
+      if (edge == 0) { dx = -r + along; dy = -r; }
+      else if (edge == 1) { dx = r; dy = -r + along; }
+      else if (edge == 2) { dx = r - along; dy = r; }
+      else { dx = -r; dy = r - along; }
+    }
+    local anchor = OpexV233LOffset(center, dx, dy);
+    local clear = anchor >= 0 && OpexV233LFlat(anchor);
+    /* Un centre occupe refuse les huit geometries d'un coup. */
+    if (!clear) { scan.geometry = 7; scan.stats.terrain++; }
+    local geometry = scan.geometry;
+    scan.geometry++;
+    if (scan.geometry == 8) {
+      scan.geometry = 0; scan.pos++;
+      if (scan.pos >= (r == 0 ? 1 : 8 * r)) { scan.pos = 0; scan.ring++; }
+      if (scan.ring > radius) { scan.done = true; scan.date = now; }
+    }
+    if (!clear) continue;
+    local axis = geometry / 4, sign = (geometry % 4) < 2 ? -1 : 1, side = geometry % 2 == 0 ? -1 : 1;
+    local p = OpexV233LSiteProbe(anchor, length, axis, sign, side, cargo, coverage, producing, industry, scan.stats, host);
+    if (p == null) continue;
+    plans.append(p);
+    scan.hints.append({ anchor = anchor, axis = axis, sign = sign, side = side });
+  }
+  /* Des que des plans existent, ils suffisent a l'admission ; pas de scan
+   * jusqu'a douze resultats qui affame la destination. */
+  if (plans.len() > 0) { scan.done = true; scan.date = now; }
+  local reason = plans.len() > 0 ? "OK" : (!scan.done ? "budget" : "exhausted");
+  return { plans = plans, stats = scan.stats, reason = reason, ring = scan.ring,
+    ops = OpexOpsMeasureEnd(mark), length = length };
+}
+
+/* NoAI 15.3 n'expose pas GetCargoAcceptance sur AIStation. La liste de
+ * couverture est le masque moteur (union dedupliquee, arrets C33.2 inclus).
+ * radius=0 n'est respecte par AITile qu'avec modified_catchment actif. */
+function OpexV233LJoinHost(station, town, cargo)
+{
+  local host = { station = station, reason = "host", acceptance = 0,
+    left = AIMap.GetMapSizeX(), top = AIMap.GetMapSizeY(), right = -1, bottom = -1,
+    spread = AIGameSettings.GetValue("station.station_spread") };
+  if (!AIStation.IsValidStation(station) || !AIStation.HasStationType(station, AIStation.STATION_AIRPORT)
+      || AIStation.GetNearestTown(station) != town) return host;
+  local airport = AITileList_StationType(station, AIStation.STATION_AIRPORT);
+  if (airport.IsEmpty() || AITile.GetOwner(airport.Begin()) != AICompany.ResolveCompanyID(AICompany.COMPANY_SELF)) return host;
+  if (!AIGameSettings.GetValue("station.distant_join_stations")) { host.reason = "join_disabled"; return host; }
+  if (!AIGameSettings.GetValue("station.modified_catchment")) { host.reason = "catchment_mode"; return host; }
+  local parts = AITileList_StationType(station, AIStation.STATION_ANY);
+  for (local t = parts.Begin(); !parts.IsEnd(); t = parts.Next()) {
+    local x = AIMap.GetTileX(t), y = AIMap.GetTileY(t);
+    host.left = min(host.left, x); host.right = max(host.right, x);
+    host.top = min(host.top, y); host.bottom = max(host.bottom, y);
+  }
+  if (host.right < 0 || host.right - host.left + 1 > host.spread
+      || host.bottom - host.top + 1 > host.spread) { host.reason = "spread"; return host; }
+  local catchment = AITileList_StationCoverage(station);
+  for (local t = catchment.Begin(); !catchment.IsEnd(); t = catchment.Next()) {
+    local value = AITile.GetCargoAcceptance(t, cargo, 1, 1, 0);
+    if (value < 0) { host.reason = "acceptance_unknown"; return host; }
+    host.acceptance += value;
+    if (host.acceptance >= 8) break;
+  }
+  host.reason = host.acceptance >= 8 ? "OK" : "acceptance";
+  return host;
+}
+
+function OpexV233LJoinFits(host, first, last)
+{
+  return max(host.right, AIMap.GetTileX(last)) - min(host.left, AIMap.GetTileX(first)) + 1 <= host.spread
+      && max(host.bottom, AIMap.GetTileY(last)) - min(host.top, AIMap.GetTileY(first)) + 1 <= host.spread;
+}
+
+function OpexV233LJoinSearch(candidate, length, coverage, phase)
+{
+  local mark = OpexOpsMeasureBegin();
+  local result = { plans = [], stats = OpexV233LSiteStats(), reason = "no_airport",
+    ring = 0, ops = 0, length = length };
+  local stations = AIStationList(AIStation.STATION_AIRPORT);
+  local ids = [];
+  for (local id = stations.Begin(); !stations.IsEnd(); id = stations.Next())
+    if (AIStation.GetNearestTown(id) == candidate.dstTown) ids.append(id);
+  local key = candidate.dstTown;
+  if (!(key in V233L_JOIN_CURSOR)) {
+    if (V233L_JOIN_CURSOR.len() >= V233L_SITE_CACHE_MAX) V233L_JOIN_CURSOR.clear();
+    V233L_JOIN_CURSOR[key] <- 0;
+  }
+  local start = V233L_JOIN_CURSOR[key];
+  for (local i = 0; i < ids.len(); i++) {
+    local index = (start + i) % ids.len();
+    local host = OpexV233LJoinHost(ids[index], candidate.dstTown, candidate.cargo);
+    local reason = host.reason;
+    /* Ne pas attribuer les compteurs du precedent aeroport a cet hote. */
+    result = { plans = [], stats = OpexV233LSiteStats(), reason = reason,
+      ring = 0, ops = 0, length = length };
+    if (reason == "OK") {
+      result = OpexV233LSiteSearch(AIMap.GetTileIndex(host.left, host.top), length,
+          candidate.cargo, coverage, false, host);
+      reason = result.reason;
+    }
+    if (DECISION_LOG) OpexV233LLog("SITE_B_JOIN", "src=" + candidate.src + " dst=" + candidate.dst
+        + " phase=" + phase + " station=" + host.station + " ok=" + (result.plans.len() > 0 ? 1 : 0)
+        + " reason=" + reason + " acceptance=" + host.acceptance + " spread=" + host.spread
+        + " terrain=" + result.stats.terrain + " parallel=" + result.stats.parallel
+        + " authority=" + result.stats.authority + " native=" + result.stats.native
+        + " spread_refused=" + result.stats.spread + " error=" + result.stats.error);
+    if (result.plans.len() > 0 || reason == "budget") {
+      V233L_JOIN_CURSOR[key] = index;
+      return result;
+    }
+    result.reason = reason;
+    V233L_JOIN_CURSOR[key] = (index + 1) % ids.len();
+    if (i + 1 < ids.len() && OpexOpsMeasureEnd(mark) >= V233L_SLICE_OPS) {
+      result.reason = "budget"; break;
+    }
+  }
+  result.ops = OpexOpsMeasureEnd(mark);
+  if (ids.len() == 0 && DECISION_LOG) OpexV233LLog("SITE_B_JOIN", "src=" + candidate.src
+      + " dst=" + candidate.dst + " phase=" + phase + " station=-1 ok=0 reason=no_airport");
+  return result;
+}
+
+function OpexV233LTariffTile(platform)
+{
+  return ("stationId" in platform) ? AIStation.GetLocation(platform.stationId) : platform.anchor;
+}
+
+/* Avant devis/depense : la station a pu s'etendre pendant A*. Proteger ses
+ * tuiles et les routes de desserte dans sa boite (+1), y compris C33.2.
+ * Le rollback commun retire des tuiles rail, jamais la station composite. */
+function OpexV233LJoinRouteClear(candidate, plan)
+{
+  if (!("v233Airport" in plan.planB)) return true;
+  local host = OpexV233LJoinHost(plan.planB.v233Airport, candidate.dstTown, candidate.cargo);
+  local reason = host.reason;
+  local parts = AITileList_StationType(host.station, AIStation.STATION_ANY);
+  if (reason == "OK") {
+    foreach (path in [plan.tiles, plan.tiles2]) {
+      if (path == null) { reason = "double_missing"; break; }
+      foreach (t in path) {
+        local x = AIMap.GetTileX(t), y = AIMap.GetTileY(t);
+        if (parts.HasItem(t) || (AIRoad.IsRoadTile(t) && x >= host.left - 1 && x <= host.right + 1
+            && y >= host.top - 1 && y <= host.bottom + 1)) { reason = "protected_route"; break; }
+      }
+      if (reason != "OK") break;
+    }
+  }
+  if (reason == "OK") {
+    local p = plan.planB, q = plan.planB2;
+    if (q == null || p.step != q.step || p.length != q.length) reason = "double_geometry";
+    else {
+      local first = min(p.anchor, q.anchor), last = max(p.anchor, q.anchor) + (p.length - 1) * p.step;
+      local sideways = p.step == 1 ? AIMap.GetMapSizeX() : 1;
+      if (abs(p.anchor - q.anchor) != sideways || !OpexV233LJoinFits(host, first, last)) reason = "spread";
+      foreach (platform in [p, q]) {
+        if (!OpexV233LFlat(platform.lead)) reason = "occupied";
+        for (local i = 0; i < platform.length; i++)
+          if (!OpexV233LFlat(platform.anchor + i * platform.step)) reason = "occupied";
+      }
+      if (reason == "OK") {
+        local accounting = AIAccounting();
+        local test = AITestMode();
+        if (!AIRail.BuildRailStation(first, p.direction, 2, p.length, host.station)) reason = "native";
+      }
+    }
+  }
+  if (DECISION_LOG) OpexV233LLog("SITE_B_JOIN", "src=" + candidate.src + " dst=" + candidate.dst
+      + " phase=recheck station=" + host.station + " ok=" + (reason == "OK" ? 1 : 0) + " reason=" + reason);
+  return reason == "OK";
+}
+
+function OpexV233LSiteLog(candidate, scan, side, phase)
+{
+  local s = scan.stats;
+  OpexV233LLog("SITE", "src=" + candidate.src + " dst=" + candidate.dst + " side=" + side
+      + " phase=" + phase + " reason=" + scan.reason + " plans=" + scan.plans.len()
+      + " length=" + scan.length + " ring=" + scan.ring + " ops=" + scan.ops
+      + " clear=" + s.nClear + " cargo=" + s.nCargo + " cmd=" + s.nCmd
+      + " terrain=" + s.terrain + " acceptance=" + s.acceptance + " parallel=" + s.parallel
+      + " authority=" + s.authority + " native=" + s.native + " catchment=" + s.catchment
+      + " spread=" + s.spread + " error=" + s.error);
+  foreach (p in scan.plans) OpexV233LLog("SITE_PLAN", "src=" + candidate.src + " dst=" + candidate.dst
+      + " side=" + side + " phase=" + phase + " anchor=" + p.anchor + " parallel=" + p.parallel.anchor
+      + " direction=" + p.direction + " length=" + p.length + " exit=" + p.station_exit + " lead=" + p.lead
+      + " cargo_value=" + p.cargoValue + " threshold=" + (side == "B" ? 8 : 1));
 }
 
 /* Seule exception de proximite : cote A, quai NON-GOOD livrant exactement
@@ -304,11 +648,13 @@ function OpexV233LRecheck(candidate, plan)
   if (!OpexV233LFresh(row.month, OpexV233LMonth())
       || !OpexV233LDurable(row) || OpexV233LMean(row.residual) < candidate.monthly) return false;
   local coverage = AIStation.GetCoverageRadius(AIStation.STATION_TRAIN);
-  if (!OpexV233LTouches(plan.planA, industry, true, coverage)
-      || OpexV233LCargoValue(plan.planB.anchor, plan.planB.step, plan.planB.length,
-          candidate.cargo, coverage, false) < 8) return false;
+  if (!OpexV233LTouches(plan.planA, industry, true, coverage)) return false;
+  if ("v233Airport" in plan.planB) {
+    if (!OpexV233LJoinRouteClear(candidate, plan)) return false;
+  } else if (OpexV233LCargoValue(plan.planB.anchor, plan.planB.step, plan.planB.length,
+      candidate.cargo, coverage, false) < 8) return false;
   local sourceTile = ("stationId" in plan.planA) ? AIStation.GetLocation(plan.planA.stationId) : plan.planA.anchor;
-  local distance = AIMap.DistanceManhattan(sourceTile, plan.planB.anchor);
+  local distance = AIMap.DistanceManhattan(sourceTile, OpexV233LTariffTile(plan.planB));
   return distance >= 150 && distance <= 300;
 }
 
@@ -539,6 +885,8 @@ function OpexV233LGrowthStep(owner)
 
 function OpexV233LLoad(data)
 {
+  V233L_SITE_CACHE.clear();
+  V233L_JOIN_CURSOR.clear();
   local state = OpexV233LNewState();
   if (data == null || typeof data != "table") return state;
   if (!("month" in data) || typeof data.month != "integer"

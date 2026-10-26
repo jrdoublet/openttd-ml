@@ -232,6 +232,180 @@ class V233LongGoodContracts(unittest.TestCase):
         self.assertIn('AIRail.BuildRailStation', plans)
         self.assertIn('end == "A" && line.originB == candidate.src', body("v233_long_good.nut", "OpexV233LSourceNeighbour"))
 
+    def test_site_admission_precedes_publication_in_both_producers(self):
+        for filename in ("candidates.nut", "po01c_generators.nut"):
+            code = source(filename)
+            start = code.index('candidate.v233LongGood <- true;')
+            end = code.index('out.append(candidate);', start)
+            guarded = code[start:end]
+            self.assertLess(guarded.index('OpexV233LPreflight(catalog, candidate)'),
+                            guarded.index('OpexV233LLog("CANDIDATE"'))
+            self.assertIn('if (!siteCheck.ready)', guarded)
+            self.assertIn('stats.unsitable++;', guarded)
+            self.assertIn('stats.accepted--;', guarded)
+            self.assertIn('if (siteCheck.pending) { longGood.visits--; break; }', guarded)
+            self.assertIn('longGood.ops += OpexOpsMeasureEnd(siteMark)', guarded)
+            self.assertNotIn('OpexV233LPreflight', off_source(filename, code))
+
+    def test_site_b_has_own_budget_and_incomplete_scan_is_resumable(self):
+        plans = body("v233_long_good.nut", "OpexV233LPlatformPlans")
+        self.assertIn('OpexV233LSiteSearch(candidate.src', plans)
+        self.assertIn('OpexV233LSiteSearch(candidate.dst', plans)
+        self.assertNotIn('OpexOpsMeasureBegin', plans)  # Regression: shared A/B clock.
+        scan = body("v233_long_good.nut", "OpexV233LSiteSearch")
+        self.assertIn('local mark = OpexOpsMeasureBegin();', scan)
+        self.assertIn('OpexOpsMeasureEnd(mark) < V233L_SLICE_OPS', scan)
+        self.assertIn('!scan.done ? "budget" : "exhausted"', scan)
+        self.assertIn('local r = scan.ring, pos = scan.pos;', scan)
+        self.assertIn('scan.geometry = 7; scan.stats.terrain++', scan)
+        self.assertIn('host == null ? STATION_SEARCH_RADIUS : host.spread', scan)
+        self.assertIn('scan.ring > radius', scan)
+        self.assertIn('pending ? "SITE_BUDGET"', plans)
+        self.assertNotIn('OpexStationPlans(', plans)
+
+    def test_site_cache_revalidates_live_native_geometry_and_is_not_saved(self):
+        scan = body("v233_long_good.nut", "OpexV233LSiteSearch")
+        self.assertIn('V233L_SITE_CACHE.len() >= V233L_SITE_CACHE_MAX', scan)
+        self.assertIn('now < old.used', scan)
+        self.assertIn('now - old.date > 30', scan)
+        self.assertIn('AIRail.GetCurrentRailType()', scan)
+        validation = scan[scan.index('foreach (hint in scan.hints)'):scan.index('while (plans.len()')]
+        self.assertIn('OpexV233LSiteProbe(', validation)
+        self.assertIn('scan.hints.clear(); scan.done = false;', validation)
+        self.assertIn('V233L_SITE_CACHE.clear();', body("v233_long_good.nut", "OpexV233LLoad"))
+        self.assertNotIn('V233L_SITE_CACHE', source("persist.nut"))
+
+    def test_both_quays_leads_acceptance_and_authority_checked_without_mutation(self):
+        probe = body("v233_long_good.nut", "OpexV233LSiteProbe")
+        for token in ('OpexV233LFlat(lead)', 'OpexV233LFlat(lead2)',
+                      'OpexV233LOffset(anchor, ux * i, uy * i)',
+                      'OpexV233LOffset(anchor2, ux * i, uy * i)',
+                      '(!producing && value < 8)', 'OpexV233LTouches(p, industry, true',
+                      'OpexStationEncroachesRival', 'AIError.ERR_LOCAL_AUTHORITY_REFUSES'):
+            self.assertIn(token, probe)
+        self.assertLess(probe.index('local test = AITestMode();'), probe.index('AIRail.BuildRailStation'))
+        self.assertIn('host == null ? AIStation.STATION_NEW : host.station', probe)
+        self.assertIn('BuildRailStation(first, direction, 2, length, station)', probe)
+        self.assertNotIn('DemolishTile', probe)
+        self.assertNotIn('LevelTiles', probe)
+        plans = body("v233_long_good.nut", "OpexV233LPlatformPlans")
+        self.assertIn('BuildRailStation(adjacent, p.direction, 2, p.length, station)', plans)
+
+    def test_site_coordinates_do_not_wrap_and_geometry_has_both_exits(self):
+        offset = body("v233_long_good.nut", "OpexV233LOffset")
+        for condition in ('x < 0', 'y < 0', 'x >= AIMap.GetMapSizeX()', 'y >= AIMap.GetMapSizeY()'):
+            self.assertIn(condition, offset)
+        probe = body("v233_long_good.nut", "OpexV233LSiteProbe")
+        self.assertIn('axis == 0 ? AIRail.RAILTRACK_NE_SW : AIRail.RAILTRACK_NW_SE', probe)
+        self.assertIn('sign > 0 ? length - 1 : 0', probe)
+        self.assertIn('sign > 0 ? length : -1', probe)
+        self.assertIn('p.parallels <- [p.parallel]', probe)
+
+    def test_platform_length_keeps_all_promised_wagons_and_tariff_pairs(self):
+        plans = body("v233_long_good.nut", "OpexV233LPlatformPlans")
+        self.assertIn('OpexRailPlatformLengthForWagons(candidate.wagons)', plans)
+        self.assertNotIn('length--', plans)
+        self.assertIn('distance < 150 || distance > 300', plans)
+        self.assertIn('if (validB.len() > 0) { validA.append(p); break; }', plans)
+        # The original transaction still checks actual vehicle length and rolls back.
+        builder = source("builder_rail.nut")
+        self.assertIn('local trainLengthLimit = platformLength * 16;', builder)
+        self.assertIn('OpexV233LIs(candidate) && !okD', builder)
+
+    def test_site_logs_separate_search_censoring_and_physical_refusals(self):
+        log = body("v233_long_good.nut", "OpexV233LSiteLog")
+        for field in ('side=', 'phase=', 'reason=', 'length=', 'ring=', 'ops=',
+                      'terrain=', 'acceptance=', 'parallel=', 'authority=', 'native=',
+                      'catchment=', 'error=', 'anchor=', 'cargo_value=', 'threshold='):
+            self.assertIn(field, log)
+        self.assertIn('OpexV233LLog("SITE_PLAN"', log)
+        plans = body("v233_long_good.nut", "OpexV233LPlatformPlans")
+        self.assertIn('site_a=', plans)
+        self.assertIn('site_b=', plans)
+
+    def test_airport_fallback_only_after_complete_town_failure(self):
+        plans = body("v233_long_good.nut", "OpexV233LPlatformPlans")
+        self.assertIn('plansB.len() == 0 && scanB.reason == "exhausted"', plans)
+        self.assertIn('OpexV233LJoinSearch(candidate, length, catalog.railCoverage, phase)', plans)
+        join = body("v233_long_good.nut", "OpexV233LJoinSearch")
+        for token in ('AIStationList(AIStation.STATION_AIRPORT)',
+                      'AIStation.GetNearestTown(id) == candidate.dstTown',
+                      'V233L_JOIN_CURSOR[key] = index', 'reason == "budget"',
+                      '"SITE_B_JOIN"', 'reason=no_airport', 'if (DECISION_LOG)'):
+            self.assertIn(token, join)
+        self.assertIn('V233L_JOIN_CURSOR.clear()', body("v233_long_good.nut", "OpexV233LLoad"))
+
+    def test_composite_acceptance_uses_exact_union_and_actual_noai_api(self):
+        host = body("v233_long_good.nut", "OpexV233LJoinHost")
+        for token in ('AIStation.IsValidStation(station)',
+                      'AITile.GetOwner(airport.Begin())', 'AICompany.COMPANY_SELF',
+                      'AIStation.GetNearestTown(station) != town',
+                      'AITileList_StationCoverage(station)',
+                      'AITile.GetCargoAcceptance(t, cargo, 1, 1, 0)',
+                      'host.acceptance >= 8', 'value < 0',
+                      'station.modified_catchment', 'station.distant_join_stations'):
+            self.assertIn(token, host)
+        self.assertNotIn('AIStation.GetCargoAcceptance', uncomment(source("v233_long_good.nut")))
+        self.assertIn('if (host != null) value = host.acceptance', body("v233_long_good.nut", "OpexV233LSiteProbe"))
+        # Overlapping airport/stop catchments count each house tile once.
+        airport, stop = {1, 2, 3}, {3, 4}
+        values = {1: 0, 2: 2, 3: 3, 4: 2, 5: 1}
+        self.assertEqual(sum(values[t] for t in airport | stop), 7)
+        self.assertEqual(sum(values[t] for t in airport | stop | {5}), 8)
+        self.assertEqual(sum(values[t] for t in airport) + sum(values[t] for t in stop), 10)
+
+    def test_spread_includes_remote_stops_and_second_quay(self):
+        host = body("v233_long_good.nut", "OpexV233LJoinHost")
+        self.assertIn('AITileList_StationType(station, AIStation.STATION_ANY)', host)
+        self.assertIn('AIGameSettings.GetValue("station.station_spread")', host)
+        fits = body("v233_long_good.nut", "OpexV233LJoinFits")
+        # Evaluate the real source predicate on synthetic coordinates (no VM).
+        expr = fits.split('return ', 1)[1].split(';', 1)[0].replace('&&', ' and ')
+        expr = expr.replace('AIMap.GetTileX(last)', 'last[0]').replace('AIMap.GetTileY(last)', 'last[1]')
+        expr = expr.replace('AIMap.GetTileX(first)', 'first[0]').replace('AIMap.GetTileY(first)', 'first[1]')
+        from types import SimpleNamespace
+        cases = [
+            ((10, 10, 15, 15), (18, 10), (21, 11), True),  # 6 + 2 gap + 4 = 12
+            ((10, 10, 15, 15), (19, 10), (22, 11), False),
+            ((9, 10, 15, 15), (18, 10), (21, 11), False),  # joined bus stop
+            ((10, 10, 15, 15), (10, 21), (13, 22), False),  # second quay exceeds spread
+            ((10, 10, 15, 15), (4, 10), (7, 11), True),
+            ((10, 10, 15, 15), (10, 4), (11, 7), True),
+        ]
+        for bounds, first, last, expected in cases:
+            host = SimpleNamespace(left=bounds[0], top=bounds[1], right=bounds[2], bottom=bounds[3], spread=12)
+            with self.subTest(bounds=bounds, first=first, last=last):
+                self.assertEqual(eval('(' + expr + ')', {"__builtins__": {}, "min": min, "max": max},
+                                      {"host": host, "first": first, "last": last}), expected)
+
+    def test_join_recheck_protects_airport_stops_roads_and_both_paths(self):
+        recheck = body("v233_long_good.nut", "OpexV233LRecheck")
+        self.assertIn('if ("v233Airport" in plan.planB)', recheck)
+        self.assertIn('OpexV233LJoinRouteClear(candidate, plan)', recheck)
+        guard = body("v233_long_good.nut", "OpexV233LJoinRouteClear")
+        for token in ('OpexV233LJoinHost(', '[plan.tiles, plan.tiles2]', 'parts.HasItem(t)',
+                      'AIRoad.IsRoadTile(t)', 'reason = "protected_route"', 'reason = "occupied"',
+                      'OpexV233LJoinFits(host, first, last)', 'local test = AITestMode()',
+                      'BuildRailStation(first, p.direction, 2, p.length, host.station)'):
+            self.assertIn(token, guard)
+        for forbidden in ('DemolishTile', 'RemoveAirport', 'RemoveRoadStation'):
+            self.assertNotIn(forbidden, guard)
+        execute = body("builder_rail.nut", "OpexV190ExecuteRailPlan")
+        self.assertLess(execute.index('OpexV233LRecheck'), execute.index('OpexQuoteRailCapital'))
+        self.assertIn('OpexV233LIs(candidate) && !okD', execute)
+        rollback = body("builder_rail.nut", "OpexRollback")
+        self.assertIn('AIRail.RemoveRailStationTileRectangle(t, t, false)', rollback)
+        self.assertNotIn('RemoveAirport', rollback)
+
+    def test_join_uses_host_station_tariff_at_admission_route_and_recheck(self):
+        for filename, function in (("v233_long_good.nut", "OpexV233LPlatformPlans"),
+                                   ("v233_long_good.nut", "OpexV233LRecheck"),
+                                   ("builder_rail.nut", "OpexCompleteRailRouteAfterSearch")):
+            self.assertIn('OpexV233LTariffTile(', body(filename, function))
+        tariff = body("v233_long_good.nut", "OpexV233LTariffTile")
+        self.assertIn('AIStation.GetLocation(platform.stationId)', tariff)
+        self.assertIn(': platform.anchor', tariff)
+
     def test_growth_needs_persistent_stock_physics_margin_and_real_loop(self):
         backlog = body("v233_long_good.nut", "OpexV233LBacklog")
         for text in ('row.waiting.len() == 3', 'OpexV233LMin(row.waiting) >= required', 'row.month >= row.nextMonth'):

@@ -4339,7 +4339,7 @@ function OpexCompleteRailRouteAfterSearch(catalog, candidate, plan, search)
   plan.planB = planB;
   if (OpexV233LIs(candidate)) {
     local sourceTile = ("stationId" in planA) ? AIStation.GetLocation(planA.stationId) : planA.anchor;
-    local tariffDistance = AIMap.DistanceManhattan(sourceTile, planB.anchor);
+    local tariffDistance = AIMap.DistanceManhattan(sourceTile, OpexV233LTariffTile(planB));
     if (tariffDistance < 150 || tariffDistance > 300) { plan.reason = "DISTANCE"; return plan; }
     candidate.distance = tariffDistance;
   }

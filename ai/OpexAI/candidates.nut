@@ -1258,6 +1258,18 @@ function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null
             if (longGood != null) {
               candidate.v233LongGood <- true;
               candidate.v233InputStation <- longGood.row.station;
+              local siteMark = OpexOpsMeasureBegin();
+              local siteCheck = OpexV233LPreflight(catalog, candidate);
+              longGood.ops += OpexOpsMeasureEnd(siteMark);
+              if (!siteCheck.ready) {
+                stats.unsitable++;
+                stats.accepted--;
+                if (DECISION_LOG) OpexV233LLog("REJECT", "industry=" + source.id + " town=" + town.id
+                    + " reason=" + siteCheck.reason + " sitable=0 phase=admission");
+                /* Reprendre cette ville au prochain passage si le scan est incomplet. */
+                if (siteCheck.pending) { longGood.visits--; break; }
+                continue;
+              }
               if (DECISION_LOG) OpexV233LLog("CANDIDATE", "industry=" + source.id + " town=" + town.id
                   + " distance=" + candidate.distance + " monthly=" + townMonthly + " trains=" + candidate.trains
                   + " wagons=" + candidate.wagons + " profit=" + candidate.profitAnnual + " capital=" + candidate.capital);
