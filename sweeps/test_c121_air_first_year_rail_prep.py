@@ -75,8 +75,10 @@ class TestC121RailPrepAndOneOrTwoSettings(unittest.TestCase):
         self.assertIn("const C121_RAIL_PREP_MAX = 3;", prep)
         self.assertIn(
             "OpexBuildCandidates(this._catalog, this._budget, this._lines,\n"
-            "      this._abandonedPairs, null, null, null, null, null, true, true, PAX_BAND_ALL, null);",
+            "      this._abandonedPairs, null, null, null, null, null, true, true, PAX_BAND_ALL,\n"
+            "      null, null, -1, p1State);",
             prep)
+        self.assertIn("local p1State = (P1_RAIL_LONG_VALUE_RANK > 0 && !V269_RELAXED)", prep)
         self.assertNotIn("OpexBuildCandidates", gate)
         code = squirrel_code(prep)
         self.assertNotIn("C80_RAIL_STOCK_GATE", code)

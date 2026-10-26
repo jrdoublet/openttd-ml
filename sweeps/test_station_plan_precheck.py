@@ -9,6 +9,8 @@ import random
 import re
 import unittest
 
+from n75_mc_legacy import P1_BUILDER_RAIL_DELTA
+
 AI = Path(__file__).resolve().parents[1] / "ai" / "OpexAI"
 INSERTION = """        /* PO-02 : base est le premier/dernier quai selon sign, sur les deux axes.
          * Le filtre historique rejette avant stats/cargo/commande/paralleles.
@@ -66,7 +68,8 @@ class StationPlanPrecheck(unittest.TestCase):
         source = (AI / "builder_rail.nut").read_text(encoding="utf-8")
         self.assertEqual(source.count(INSERTION), 1)
         # rebasé le 24/10 : eec5db81 (revue R11 OpexBridgeSortBySpeed et eb6f26fc retrait V233)
-        historical = source.replace(INSERTION, "")
+        self.assertEqual(source.count(P1_BUILDER_RAIL_DELTA.decode("utf-8")), 1)
+        historical = source.replace(INSERTION, "").replace(P1_BUILDER_RAIL_DELTA.decode("utf-8"), "")
         self.assertEqual(hashlib.sha256(historical.encode()).hexdigest(),
                          "a68b8620a773b28c830ea8df3d905da1233576023c9837575a12f9ac24af4560")
         body = source[source.index("function OpexStationPlans("):]

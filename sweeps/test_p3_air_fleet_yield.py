@@ -111,7 +111,8 @@ class TestP3AirFleetYield(unittest.TestCase):
         self.assertIn("P3_AIR_FLEET_YIELD <- 0;", self.globals_pre)
         self.assertIn("P3_AIR_FLEET_WINDOWS <- {};", self.globals_pre)
         self.assertIn("P3_AIR_FLEET_WINDOWS = {};", self.settings)
-        self.assertEqual(self.info.count("AddSetting("), 63)
+        # P1 et P2 experimentaux sont independants de P3 et exclus de historical_info.
+        self.assertEqual(self.info.count("AddSetting("), 64)
         self.assertEqual(historical_info(self.info).count("AddSetting("), 58)
 
     def test_off_branch_cannot_sample_scan_or_veto(self):

@@ -92,6 +92,80 @@ P2_SETTINGS_DELTA = (
 )
 P2_DELTAS = {"info.nut": P2_INFO_DELTA, "settings.nut": P2_SETTINGS_DELTA}
 
+# P1 is an independent opt-in C121 rail experiment; retain the frozen
+# historical contract by subtracting ONLY its exact additions. In particular,
+# P1's auxiliary freight candidate must never rebaseline PO01D's rail scan.
+P1_INFO_DELTA = (
+    b'    AddSetting({ name = "rail_long_value_rank",\n'
+    b'      description = "P1: C121/C80 one-train freight 160-300 beyond railMax; 0=off (default), 1=passive proxy shadow, 2=one physically prepared long option",\n'
+    b'      min_value = 0, max_value = 2,\n'
+    b'      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,\n'
+    b'      flags = 0 });\n'
+)
+P1_SETTINGS_DELTA = (
+    b'  local p1LongRank = AIController.GetSetting("rail_long_value_rank");\n'
+    b'  P1_RAIL_LONG_VALUE_RANK = (p1LongRank == 1 || p1LongRank == 2) ? p1LongRank : 0;\n'
+)
+P1_DELTAS = {"info.nut": P1_INFO_DELTA, "settings.nut": P1_SETTINGS_DELTA}
+
+P1_CANDIDATES_BLOCK_START = b"/* P1 : le balayage industriel normal"
+P1_CANDIDATES_BLOCK_END = b"/* Ne garder que les K meilleurs"
+P1_CANDIDATES_BLOCK_SHA256 = "69db60bef45147f21364ae192cd82c961764469b7a719a0e56da49409e99879f"
+P1_BUILDER_RAIL_DELTA = (
+    b'  /* P1 : un trajet reel plus long peut transformer une rame en deux et activer\n'
+    b'   * la recherche BLOQUANTE de seconde voie juste dessous. Ce chemin experimental\n'
+    b'   * abandonne avant cet A* et conserve l\'unique recherche segmentee C80. */\n'
+    b'  if (("p1Long" in candidate) && candidate.p1Long) {\n'
+    b'    if (candidate.trains != 1 || OpexV190Active()) {\n'
+    b'      plan.reason = "P1FLEET";\n'
+    b'      return plan;\n'
+    b'    }\n'
+    b'    if (candidate.profitAnnual < 25000 || candidate.roi < 150) {\n'
+    b'      plan.reason = "P1VALUE";\n'
+    b'      return plan;\n'
+    b'    }\n'
+    b'  }\n\n'
+)
+P1_CANDIDATES_EDITS = (
+    (
+        b'function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null, profile = null, cruiseCache = null, freightCargo = null, targetKind = null, targetId = -1, p1LongState = null)\n',
+        b'function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null, profile = null, cruiseCache = null, freightCargo = null, targetKind = null, targetId = -1)\n',
+    ),
+    (
+        b'        /* P1 : les paires hors railMax ne doivent pas evincer les courtes du TopK\n'
+        b'         * papier. En shadow les stats historiques restent identiques. */\n'
+        b'        if (p1LongState != null && monthly > 0\n'
+        b'            && OpexP1LongOffer(p1LongState, catalog, cargo, source, industries[di],\n'
+        b'                               monthly, isTransformer)) {\n'
+        b'          stats.distanceLong++;\n'
+        b'          continue;\n'
+        b'        }\n',
+        b'',
+    ),
+    (
+        b'function OpexBuildCandidates(catalog, budget, lines, abandonedPairs = null, profile = null, paxProfile = null, paxCandidateProfile = null, paxCruiseCache = null, freightCruiseCache = null, generatePax = true, generateFreight = true, paxBand = PAX_BAND_ALL, freightCargo = null, targetKind = null, targetId = -1, p1LongState = null)\n',
+        b'function OpexBuildCandidates(catalog, budget, lines, abandonedPairs = null, profile = null, paxProfile = null, paxCandidateProfile = null, paxCruiseCache = null, freightCruiseCache = null, generatePax = true, generateFreight = true, paxBand = PAX_BAND_ALL, freightCargo = null, targetKind = null, targetId = -1)\n',
+    ),
+    (
+        b'                          freightCargo, targetKind, targetId, p1LongState);\n',
+        b'                          freightCargo, targetKind, targetId);\n',
+    ),
+    (
+        b'  /* P1 : l\'economie n\'est calculee qu\'APRES le scan, pour l\'unique meilleur\n'
+        b'   * proxy. Le candidat reste hors `all` et hors `best` jusqu\'a la preuve C80. */\n'
+        b'  if (p1LongState != null && p1LongState.best != null) {\n'
+        b'    if (P1_RAIL_LONG_VALUE_RANK == 2)\n'
+        b'      p1LongState.candidate = OpexP1LongEvaluate(catalog, p1LongState, stats);\n'
+        b'    if (DECISION_LOG) OpexDecide("P1_LONG_SHADOW", "mode=" + P1_RAIL_LONG_VALUE_RANK\n'
+        b'        + " count=" + p1LongState.observed + " cargo=" + p1LongState.best.cargo\n'
+        b'        + " src=" + p1LongState.best.src + " dst=" + p1LongState.best.dst\n'
+        b'        + " dist=" + p1LongState.best.distance\n'
+        b'        + " candidate=" + (p1LongState.candidate != null ? 1 : 0));\n'
+        b'  }\n\n',
+        b'',
+    ),
+)
+
 # The two PO01D-frozen producer files gained FP2 helpers and guarded call
 # sites. Verify the precise independent helper contents and delete ONLY those
 # additions for historical byte-hash checks. Never change the frozen digests.
@@ -173,6 +247,13 @@ def historical_bytes(name, raw):
     if p2_delta is not None:
         assert raw.count(p2_delta) == 1, f"P2 {name}: expected precisely one unchanged opt-in fragment"
         raw = raw.replace(p2_delta, b"", 1)
+    p1_delta = P1_DELTAS.get(name)
+    if p1_delta is not None:
+        assert raw.count(p1_delta) == 1, f"P1 {name}: expected one unchanged opt-in fragment"
+        raw = raw.replace(p1_delta, b"", 1)
+    if name == "builder_rail.nut":
+        assert raw.count(P1_BUILDER_RAIL_DELTA) == 1, "P1 builder: safety guard changed or duplicated"
+        raw = raw.replace(P1_BUILDER_RAIL_DELTA, b"", 1)
     if name == "air_planning.nut":
         raw = _strip_fp2_block(
             raw, name, FP2_PLANNING_BLOCK_START, FP2_PLANNING_BLOCK_END,
@@ -182,6 +263,11 @@ def historical_bytes(name, raw):
             assert raw.count(insert) == 1, f"FP2 {name}: guarded call changed or duplicated"
             raw = raw.replace(insert, b"", 1)
     if name == "candidates.nut":
+        raw = _strip_fp2_block(raw, name, P1_CANDIDATES_BLOCK_START,
+                               P1_CANDIDATES_BLOCK_END, P1_CANDIDATES_BLOCK_SHA256)
+        for addition, original in P1_CANDIDATES_EDITS:
+            assert raw.count(addition) == 1, "P1 candidates: addition changed or duplicated"
+            raw = raw.replace(addition, original, 1)
         raw = _strip_fp2_block(
             raw, name, FP2_CANDIDATES_BLOCK_START, FP2_CANDIDATES_BLOCK_END,
             FP2_CANDIDATES_BLOCK_SHA256,

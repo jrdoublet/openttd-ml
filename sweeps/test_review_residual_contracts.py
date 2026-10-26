@@ -159,7 +159,8 @@ class ReviewResidualContractsTest(unittest.TestCase):
         # Le chemin historique conserve son emission unique. P2 ajoute une
         # deuxieme emission uniquement pour un plan rail deja pret et annote ON,
         # qui sautait autrement PROJECT_CHOSEN avant la construction.
-        self.assertEqual(src.count('OpexDecide("PROJECT_CHOSEN"'), 2)
+        # Historique + P2 et P1 opt-in ont des journaux de provenance distincts.
+        self.assertEqual(src.count('OpexDecide("PROJECT_CHOSEN"'), 3)
         self.assertIn('} else if (DECISION_LOG && P2_RAIL_CARGO_OPPORTUNITY_RANK == 2)', src)
         self.assertIn('if (p2Trace != "") {', src)
         self.assertNotIn("if (RAIL_REFLEET)", src)

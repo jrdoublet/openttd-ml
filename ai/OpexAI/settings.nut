@@ -173,6 +173,8 @@ function OpexLoadSettings()
   if (distDecouple != null && distDecouple >= 0) {
     V294_RAIL_DIST_DECOUPLE = distDecouple;
   }
+  local p1LongRank = AIController.GetSetting("rail_long_value_rank");
+  P1_RAIL_LONG_VALUE_RANK = (p1LongRank == 1 || p1LongRank == 2) ? p1LongRank : 0;
   local slopeEngine = AIController.GetSetting("v294_rail_slope_engine");
   if (slopeEngine != null && slopeEngine >= 0) {
     V294_RAIL_SLOPE_ENGINE = slopeEngine;

@@ -153,7 +153,7 @@ function OpexPO01CPaxCandidates(catalog, lines, out, stats, abandonedPairs = nul
   if (po01fContext.used) V216_COVER = po01fContext.cover;
 }
 
-function OpexPO01CFreightCandidates(catalog, lines, out, stats, abandonedPairs = null, profile = null, cruiseCache = null, freightCargo = null, targetKind = null, targetId = -1)
+function OpexPO01CFreightCandidates(catalog, lines, out, stats, abandonedPairs = null, profile = null, cruiseCache = null, freightCargo = null, targetKind = null, targetId = -1, p1LongState = null)
 {
   if (DECISION_LOG) OpexPO01CWhere("OpexPO01CFreightCandidates", "before_first_yield", -1);
   /* C41.44 : les lignes sont immuables pendant une generation ; une ville peut donc reutiliser
@@ -223,6 +223,14 @@ function OpexPO01CFreightCandidates(catalog, lines, out, stats, abandonedPairs =
           continue;
         }
         local isTransformer = ("isTransformer" in industries[di]) && industries[di].isTransformer;
+        /* P1 : les paires hors railMax ne doivent pas evincer les courtes du TopK
+         * papier. En shadow les stats historiques restent identiques. */
+        if (p1LongState != null && monthly > 0
+            && OpexP1LongOffer(p1LongState, catalog, cargo, source, industries[di],
+                               monthly, isTransformer)) {
+          stats.distanceLong++;
+          continue;
+        }
         local candidateMark = profile != null ? OpexOpsMeasureBegin() : null;
         local secondary = null;
         if (DECISION_LOG) OpexPO01CWhere("OpexPO01CFreightCandidates", "rail_freight:pair_candidate", PO01C_WHERE.idx);
