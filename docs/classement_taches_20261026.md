@@ -38,13 +38,13 @@ pré-enregistrées restent obligatoires.
 
 | Ordre | Case | Effort / dépendance principale | Besoin de banc | Risque |
 |---:|---|---|---|---|
-| 1 | OPCODE-AILIST-2 | Moyen ; L1/L2 retirés, coût de création et cache | Mesure 1024² années 8–10 | Moyen |
-| 2 | Désactiver les sondes non essentielles | Moyen ; `probes=0` déjà par défaut, C75_YEAR_LEDGER résiduel | Mesure opcodes puis neutralité B si optimisé | Moyen à élevé |
-| 3 | AIR-ROI-LIGNE-1 | Moyen à élevé ; coûts réels, flotte modifiée et témoin | Hors ligne puis expérience même-save | Moyen à élevé |
-| 4 | AIR-ROI-RENOUVELLEMENT-1 | Moyen à élevé ; V252, revente et contrefactuel | Hors ligne puis expérience même-save | Moyen à élevé |
-| 5 | DIST-BORNES-1 | Moyen à élevé ; double écran V276/V269 sur 201–250 | Exposition 1024², puis porte si choix | Élevé |
-| 6 | V249a | Moyen à élevé ; demande supplémentaire captable par gare/cargo | Shadow puis expérience | Moyen à élevé |
-| 7 | V286 | Moyen ; mesures de stock par gare/cargo, remplissage effectif et production ; instrumentation passive d'abord | Observation moteur, sans porte comportementale à ce stade | Moyen |
+| 1 | OPCODE-AILIST-2 | Moyen ; mesure tardive L1/L2 1024² absente, cache à prouver | Bloquée sur N/ops années 8–10 | Moyen |
+| 2 | Désactiver les sondes non essentielles | Moyen ; C75 opt-in défaut 0 préparé, registre bypass conservé | Smoke, micro opcodes puis B20×10 avant adoption | Moyen à élevé |
+| 3 | V286 | Moyen ; snapshots rail livrés, livraisons exactes et coût observateur manquants | Observer flux moteur, sans porte comportementale à ce stade | Moyen |
+| 4 | AIR-ROI-LIGNE-1 | Moyen à élevé ; coûts réels, flotte modifiée et témoin | Hors ligne puis expérience même-save | Moyen à élevé |
+| 5 | AIR-ROI-RENOUVELLEMENT-1 | Moyen à élevé ; V252, revente et contrefactuel | Hors ligne puis expérience même-save | Moyen à élevé |
+| 6 | DIST-BORNES-1 | Moyen à élevé ; filtres spatiaux V276/V269 et contexte tardif différé | Exposition 1024², puis porte si choix | Élevé |
+| 7 | V249a | Moyen à élevé ; demande supplémentaire captable par gare/cargo | Shadow puis expérience | Moyen à élevé |
 
 ## C3 — prototypes et validations dépendantes
 

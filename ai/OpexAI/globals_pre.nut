@@ -488,6 +488,8 @@ C75_KPASS_BYPASS_LEDGER_YEAR <- -1;
 RAIL_FINANCE_BIAS_PCT <- 100;
 C75_PASS_DATES <- null;
 C75_YEAR_LEDGER <- null;
+/* Opt-in de mesure d'opcodes ; 0 conserve les compteurs historiques. */
+C75_YEAR_LEDGER_SKIP <- false;
 /* C76 : sonde passive de la regeneration du vivier sous C39_INVALIDATION_PROBE */
 C76_PREV_STATE <- null;
 C76_YEAR_LEDGER <- null;

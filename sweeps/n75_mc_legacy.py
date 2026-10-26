@@ -129,6 +129,27 @@ V286_DELTAS = {
     "settings.nut": V286_SETTINGS_DELTA,
     "main.nut": V286_MAIN_DELTA,
 }
+# C75 is a separate default-OFF opcode experiment. Remove only the exact
+# setting/loader declarations from the historical byte inventory; do not
+# rebaseline any frozen hash or remove the decision-critical K_pass code.
+C75_INFO_DELTA = (
+    b'    AddSetting({ name = "c75_year_ledger_skip",\n'
+    b'      description = "C75 opcode experiment: 0=keep annual counters (default), 1=skip only when C49/C69 diagnostics are off; K_pass unchanged",\n'
+    b'      min_value = 0, max_value = 1,\n'
+    b'      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,\n'
+    b'      flags = AICONFIG_BOOLEAN });\n\n'
+)
+C75_SETTINGS_DELTA = b'  C75_YEAR_LEDGER_SKIP = AIController.GetSetting("c75_year_ledger_skip") == 1;\n'
+C75_DELTAS = {"info.nut": C75_INFO_DELTA, "settings.nut": C75_SETTINGS_DELTA}
+C75_PROBES_DELTA = (
+    "  /* C75_PASS_DATES et K_pass restent décisionnels. Les compteurs annuels ne\n"
+    "   * servent qu'aux consommateurs de diagnostic C49/UB et C69/c75_year.\n"
+    "   * Le chemin historique (réglage 0) garde exactement les compteurs. */\n"
+    "  if (C75_YEAR_LEDGER_SKIP && !C49_SCARCITY_LEDGER && !C69_BOTTLENECK_PROBE) {\n"
+    "    C75_YEAR_LEDGER = null;\n"
+    "    return;\n"
+    "  }\n"
+).encode("utf-8")
 V286_PROBES_BLOCK_PREFIX = b"/* V286 : photographies RAIL"
 V286_PROBES_BLOCK_END = b"/* V309 : observation passive"
 V286_PROBES_BLOCK_SHA256 = "c0e942556f53da25881c52cfed6cb36fdb045d663b978bc97d48d9ae5fb37380"
@@ -497,6 +518,13 @@ P3_PROBES_CALLS = (
 
 
 def historical_bytes(name, raw):
+    if name == "probes.nut":
+        assert raw.count(C75_PROBES_DELTA) == 1, "C75 probes: guard changed or duplicated"
+        raw = raw.replace(C75_PROBES_DELTA, b"", 1)
+    c75_delta = C75_DELTAS.get(name)
+    if c75_delta is not None:
+        assert raw.count(c75_delta) == 1, f"C75 {name}: opt-in fragment changed or duplicated"
+        raw = raw.replace(c75_delta, b"", 1)
     v286_delta = V286_DELTAS.get(name)
     if v286_delta is not None:
         assert raw.count(v286_delta) == 1, f"V286 {name}: opt-in addition changed or duplicated"

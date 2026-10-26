@@ -2150,6 +2150,13 @@ function OpexC75ComputeKPass(now = null)
 /* C75 : reinitialise le registre annuel de passes et chantiers */
 function OpexC75ResetYearLedger()
 {
+  /* C75_PASS_DATES et K_pass restent décisionnels. Les compteurs annuels ne
+   * servent qu'aux consommateurs de diagnostic C49/UB et C69/c75_year.
+   * Le chemin historique (réglage 0) garde exactement les compteurs. */
+  if (C75_YEAR_LEDGER_SKIP && !C49_SCARCITY_LEDGER && !C69_BOTTLENECK_PROBE) {
+    C75_YEAR_LEDGER = null;
+    return;
+  }
   C75_YEAR_LEDGER = {
     passes = 0,
     builds = 0,

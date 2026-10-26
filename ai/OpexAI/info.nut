@@ -87,6 +87,12 @@ class OpexAIInfo extends AIInfo {
       easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
       flags = AICONFIG_BOOLEAN });
 
+    AddSetting({ name = "c75_year_ledger_skip",
+      description = "C75 opcode experiment: 0=keep annual counters (default), 1=skip only when C49/C69 diagnostics are off; K_pass unchanged",
+      min_value = 0, max_value = 1,
+      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
+      flags = AICONFIG_BOOLEAN });
+
     /* Les panneaux requis par les sweeps restent actifs avec probes=2. */
     AddSetting({
       name = "save_full_state",

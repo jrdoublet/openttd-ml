@@ -111,8 +111,8 @@ class TestP3AirFleetYield(unittest.TestCase):
         self.assertIn("P3_AIR_FLEET_YIELD <- 0;", self.globals_pre)
         self.assertIn("P3_AIR_FLEET_WINDOWS <- {};", self.globals_pre)
         self.assertIn("P3_AIR_FLEET_WINDOWS = {};", self.settings)
-        # P1/P2 et les sondes FP1/V286 sont exclus du contrat historique de P3.
-        self.assertEqual(self.info.count("AddSetting("), 66)
+        # P1/P2 et les sondes FP1/V286, opt-in C75, hors contrat historique P3.
+        self.assertEqual(self.info.count("AddSetting("), 67)
         self.assertEqual(historical_info(self.info).count("AddSetting("), 58)
 
     def test_off_branch_cannot_sample_scan_or_veto(self):
