@@ -97,6 +97,8 @@ class TestP2RailCargoOpportunity(unittest.TestCase):
         topk = body(self.selection, "function OpexP2OpportunityTopK(")
         self.assertIn("if (mode == 2) P2_OPPORTUNITY_STAMP++", topk)
         self.assertIn("chosenIndex >= 0 && mode == 2 && spent < 50000", topk)
+        self.assertIn("if (DECISION_LOG && chosenIndex >= 0)", topk)
+        self.assertNotIn('"action=none"', topk)
         self.assertNotIn('rawset("_bs', topk)
         self.assertNotIn("OpexProjectInsertDefensive(", topk)
         self.assertNotIn("OpexRailPrepMergeAlternatives(", topk)

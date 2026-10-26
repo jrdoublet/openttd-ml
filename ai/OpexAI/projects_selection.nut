@@ -774,9 +774,12 @@ function OpexP2OpportunityTopK(affordable, capitalBudget, abandonedPairs, mode)
       affordable[chosenIndex - 1] = prior;
     }
   }
-  if (DECISION_LOG) {
-    if (chosenIndex < 0 || (mode == 2 && !applied && spent >= 50000)) {
-      OpexDecide("P2_OPPORTUNITY", "action=" + (chosenIndex >= 0 ? "ops_reject" : "none")
+  /* Le smoke 1x1 a expose 184 logs `none` sans promotion : l'instrumentation
+   * perturbait les trajectoires alors qu'aucune opportunite n'existait.
+   * Ne tracer que les conflits prouvables ou leur refus d'opcodes. */
+  if (DECISION_LOG && chosenIndex >= 0) {
+    if (mode == 2 && !applied && spent >= 50000) {
+      OpexDecide("P2_OPPORTUNITY", "action=ops_reject"
           + " mode=" + mode + " topk=" + affordable.len() + " ops=" + spent
           + " budget=" + capitalBudget);
     } else {
