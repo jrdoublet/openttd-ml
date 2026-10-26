@@ -99,6 +99,8 @@ function OpexPO01CGenerateMode(owner, s, mode)
     generated.road = { all = all.len(), candidates = all,
         best = DECISION_LOG ? OpexPO01CLoggedTopK(all, ROAD_TOP_K, mode) : OpexTopK(all, ROAD_TOP_K),
         stats = stats, opcodes = 0, profile = null };
+    if (MULTI1_ROAD_CARGO_SHADOW == 1)
+      OpexMulti1RoadCargoShadowArm(s.catalog, s.lines, s.abandoned, generated.freightCargo, all);
   } else if (mode == "water") {
     iterator = OpexPO01CWaterPlans(s.catalog, s.lines, generated.waterPlans);
     while (iterator.getstatus() != "dead") { resume iterator; yield null; }

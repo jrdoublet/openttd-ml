@@ -16,6 +16,10 @@ MULTI1_ROAD_PRIORITY <- 0;
 MULTI1_AIR_OVER_RAIL <- 0;
 /* MULTI-1 third pilot: bounded ROAD detours after all historical traces fail. */
 MULTI1_ROAD_DETOUR <- 0;
+/* MULTI-1: passive secondary ROAD freight study. Never enters a real portfolio. */
+MULTI1_ROAD_CARGO_SHADOW <- 0;
+MULTI1_ROAD_CARGO_PENDING <- null;
+MULTI1_ROAD_CARGO_LAST_MONTH <- -1;
 /* V168 : borne de distance des candidats rail. 160 = defaut (portes A et B du 13/10) ; 0 = derivee
  * du plafond d'A* par la table de noeuds (94 tuiles a 10k) ; N = N tuiles, sans le filtre
  * d'iterations predites. */

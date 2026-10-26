@@ -746,6 +746,9 @@ function OpexAI::Save()
 }
 function OpexAI::Load(version, data)
 {
+  /* MULTI-1 SHADOW transactions are diagnostic only and cannot survive Load. */
+  MULTI1_ROAD_CARGO_PENDING = null;
+  MULTI1_ROAD_CARGO_LAST_MONTH = -1;
   this._po01cJob = null;
   this._po01cPending = false;
   this._po01cLineState = null;

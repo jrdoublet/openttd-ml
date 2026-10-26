@@ -136,6 +136,39 @@ MULTI1_ROAD_DETOUR_SETTINGS_DELTA = (
 MULTI1_ROAD_DETOUR_DELTAS = {"info.nut": MULTI1_ROAD_DETOUR_INFO_DELTA,
                              "settings.nut": MULTI1_ROAD_DETOUR_SETTINGS_DELTA}
 
+# Fourth MULTI-1 study adds diagnostic-only ROAD exploration. Pin its exact
+# additions independently, and subtract them before comparing historic bytes.
+# No frozen PO01D digest or legacy inventory is rebaselined by this probe.
+MULTI1_ROAD_CARGO_DELTAS = {
+    "info.nut": (
+        b'    AddSetting({ name = "multi1_road_cargo_shadow",\n'
+        b'      description = "MULTI-1: passive secondary ROAD freight cargo probe on 256 maps, 1971-1973; <=16 pairs and <=3 physical plans per monthly observation. 0=off (default), 1=shadow only",\n'
+        b'      min_value = 0, max_value = 1,\n'
+        b'      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,\n'
+        b'      flags = AICONFIG_BOOLEAN });\n'
+    ),
+    "settings.nut": (
+        b'  MULTI1_ROAD_CARGO_SHADOW = AIController.GetSetting("multi1_road_cargo_shadow") == 1 ? 1 : 0;\n'
+        b'  MULTI1_ROAD_CARGO_PENDING = null;\n'
+        b'  MULTI1_ROAD_CARGO_LAST_MONTH = -1;\n'
+    ),
+    "main.nut": (
+        b'    if (MULTI1_ROAD_CARGO_SHADOW == 1 && MULTI1_ROAD_CARGO_PENDING != null)\n'
+        b'      OpexMulti1RoadCargoShadowTick(this);\n'
+    ),
+    "probes.nut": (
+        b'    if (MULTI1_ROAD_CARGO_SHADOW == 1 && MULTI1_ROAD_CARGO_PENDING != null)\n'
+        b'      OpexMulti1RoadCargoShadowTick(this);\n'
+    ),
+}
+MULTI1_ROAD_CARGO_HELPER_PREFIX = b"/* MULTI-1 : observation privee d'un cargo ROUTE"
+MULTI1_ROAD_CARGO_HELPER_END = b"/* Classement routier complet."
+MULTI1_ROAD_CARGO_HELPER_SHA256 = "bac59fa319cde9fa15ff078fd326b0e04902650d153ea70e30a589d9562e2bec"
+MULTI1_ROAD_CARGO_GENERATION_DELTA = (
+    b'  if (MULTI1_ROAD_CARGO_SHADOW == 1 && targetKind == null && targetId < 0)\n'
+    b'    OpexMulti1RoadCargoShadowArm(catalog, lines, abandonedPairs, freightCargo, all);\n'
+)
+
 # P1 is an independent opt-in C121 rail experiment; retain the frozen
 # historical contract by subtracting ONLY its exact additions. In particular,
 # P1's auxiliary freight candidate must never rebaseline PO01D's rail scan.
@@ -627,6 +660,17 @@ P3_PROBES_CALLS = (
 
 
 def historical_bytes(name, raw):
+    shadow_delta = MULTI1_ROAD_CARGO_DELTAS.get(name)
+    if shadow_delta is not None:
+        assert raw.count(shadow_delta) == 1, f"MULTI-1 ROAD SHADOW {name}: new opt-in fragment changed"
+        raw = raw.replace(shadow_delta, b"", 1)
+    if name == "candidates.nut":
+        raw = _strip_fp2_block(raw, name, MULTI1_ROAD_CARGO_HELPER_PREFIX,
+                               MULTI1_ROAD_CARGO_HELPER_END,
+                               MULTI1_ROAD_CARGO_HELPER_SHA256)
+        assert raw.count(MULTI1_ROAD_CARGO_GENERATION_DELTA) == 1, (
+            "MULTI-1 ROAD SHADOW candidates: opt-in guard changed")
+        raw = raw.replace(MULTI1_ROAD_CARGO_GENERATION_DELTA, b"", 1)
     multi1_detour_delta = MULTI1_ROAD_DETOUR_DELTAS.get(name)
     if multi1_detour_delta is not None:
         assert raw.count(multi1_detour_delta) == 1, f"MULTI-1 ROAD detour {name}: opt-in bytes changed"

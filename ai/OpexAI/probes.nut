@@ -2975,6 +2975,8 @@ function OpexAI::_mainLoopProfiled()
   while (true) {
     if (V309_IDLE_PROBE) OpexV309IdleBegin();
     if (PO01C_REGEN_SPLIT && (this._po01cPending || this._po01cJob != null)) OpexPO01CStep(this);
+    if (MULTI1_ROAD_CARGO_SHADOW == 1 && MULTI1_ROAD_CARGO_PENDING != null)
+      OpexMulti1RoadCargoShadowTick(this);
     if (PROBE_SPAN_TRACE) {
       OpexSpanRescueOrphans();
       OpexSpanYearRoll();

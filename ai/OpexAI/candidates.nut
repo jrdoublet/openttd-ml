@@ -1963,6 +1963,239 @@ function OpexRoadFreightCandidates(catalog, lines, out, stats, abandonedPairs = 
   }
 }
 
+/* MULTI-1 : observation privee d'un cargo ROUTE absent du lot courant.
+ * Ce curseur ne publie AUCUN projet et ne construit rien. Le cout est decoupe
+ * entre deux tours de boucle ; un plan routier individuel demeure atomique. */
+function OpexMulti1RoadCargoShadowLog(fields)
+{
+  /* OpexDecide modifierait _currentTaskLogged ; une sonde ne doit jamais
+   * consommer le marqueur de la decision active. */
+  local date = AIDate.GetCurrentDate();
+  AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date)
+      + "-" + AIDate.GetDayOfMonth(date) + " MULTI1_ROAD_CARGO_SHADOW " + fields);
+}
+
+function OpexMulti1RoadCargoSortProfit(a, b)
+{
+  if (a.profitAnnual != b.profitAnnual) return a.profitAnnual > b.profitAnnual ? -1 : 1;
+  if (a.src != b.src) return a.src < b.src ? -1 : 1;
+  if (a.dst != b.dst) return a.dst < b.dst ? -1 : 1;
+  return 0;
+}
+
+function OpexMulti1RoadCargoSample(list, count, stamp)
+{
+  local out = [];
+  if (list == null || list.len() == 0) return out;
+  local start = stamp % list.len();
+  for (local i = 0; i < count && i < list.len(); i++)
+    out.append(list[(start + i) % list.len()]);
+  return out;
+}
+
+function OpexMulti1RoadCargoShadowArm(catalog, lines, abandonedPairs, freightCargo, ordinary)
+{
+  if (MULTI1_ROAD_CARGO_SHADOW != 1 || !DECISION_LOG || !MODE_AIR || !MODE_RAIL
+      || !MODE_ROAD || !ROAD_BUILD_ENABLED || V276_CAND_SLICES > 0
+      || catalog == null || catalog.roadType < 0 || freightCargo == null
+      || MULTI1_ROAD_CARGO_PENDING != null) return;
+  local year = AIDate.GetYear(AIDate.GetCurrentDate());
+  if (year < 1971 || year > 1973) return;
+  local stamp = year * 12 + AIDate.GetMonth(AIDate.GetCurrentDate());
+  if (stamp == MULTI1_ROAD_CARGO_LAST_MONTH) return;
+  MULTI1_ROAD_CARGO_LAST_MONTH = stamp;
+
+  /* La caisse financant deja un candidat normal signifie qu'il n'y a
+   * pas de trou a combler dans le lot courant. C'est le seul test
+   * supplementaire paye lors de la generation historique. */
+  local available = OpexAvailableCapital();
+  if (ordinary != null) foreach (candidate in ordinary) {
+    local project = OpexProjectFromCandidate(candidate);
+    if (project != null && OpexProjectFinanceCapital(project) <= available) {
+      OpexMulti1RoadCargoShadowLog("phase=skip year=" + year
+          + " month=" + stamp + " reason=ordinary_financeable");
+      return;
+    }
+  }
+
+  local order = OpexFreightCargoOrder(catalog);
+  local start = -1;
+  for (local i = 0; i < order.len(); i++)
+    if (order[i] == freightCargo) { start = i; break; }
+  local alternate = -1;
+  for (local offset = 1; offset < order.len(); offset++) {
+    local idx = start >= 0 ? (start + offset) % order.len() : offset - 1;
+    local cargo = order[idx];
+    if (cargo != freightCargo && catalog.roadEngineByCargo != null
+        && cargo in catalog.roadEngineByCargo) { alternate = cargo; break; }
+  }
+  if (alternate < 0) {
+    OpexMulti1RoadCargoShadowLog("phase=skip year=" + year
+        + " month=" + stamp + " reason=no_secondary_road_cargo");
+    return;
+  }
+
+  local snapshot = clone catalog;
+  snapshot.towns = clone catalog.towns;
+  snapshot.industries = clone catalog.industries;
+  snapshot.producers = clone catalog.producers;
+  snapshot.acceptors = clone catalog.acceptors;
+  local sources = OpexMulti1RoadCargoSample(catalog.producers[alternate], 2, stamp);
+  local sinks = (alternate in catalog.acceptors)
+      ? OpexMulti1RoadCargoSample(catalog.acceptors[alternate], 4, stamp + 1) : [];
+  local destinations = [];
+  foreach (industryIndex in sinks)
+    destinations.append({ kind = "industry", industryIndex = industryIndex });
+  foreach (town in OpexMulti1RoadCargoSample(catalog.towns, 4, stamp + 2))
+    destinations.append({ kind = "town", town = town });
+
+  MULTI1_ROAD_CARGO_PENDING = {
+    catalog = snapshot, lines = lines != null ? OpexPO01CCopyLines(lines) : [],
+    abandoned = abandonedPairs != null ? clone abandonedPairs : {},
+    cargo = alternate, ordinaryCargo = freightCargo, year = year, stamp = stamp,
+    sources = sources, destinations = destinations, pairCursor = 0,
+    phase = "pairs", financeableCandidates = [], planCursor = 0,
+    examined = 0, economic = 0, financeable = 0, plans = 0, planned = 0,
+    positivePlans = 0, predictedProfit = 0, stale = 0,
+    totalOps = 0, censored = false,
+    stats = { noEngine = 0, noMonthly = 0, pairsInBand = 0,
+      townRejected = 0, profitTooLow = 0, profitNonPositive = 0,
+      profitBelowFloorKept = 0, accepted = 0, economicsUnavailable = 0,
+      roadDistanceShort = 0, roadDistanceLong = 0 }
+  };
+  OpexMulti1RoadCargoShadowLog("phase=arm year=" + year
+      + " month=" + stamp + " original=" + freightCargo
+      + " cargo=" + alternate + " sources=" + sources.len()
+      + " destinations=" + destinations.len() + " cash=" + available);
+}
+
+function OpexMulti1RoadCargoShadowPair(s)
+{
+  if (s.destinations.len() == 0) return;
+  local index = s.pairCursor;
+  s.pairCursor++;
+  local sourceIndex = s.sources[(index / s.destinations.len()).tointeger()];
+  if (sourceIndex < 0 || sourceIndex >= s.catalog.industries.len()) return;
+  local source = s.catalog.industries[sourceIndex];
+  if (OpexOriginServed(s.lines, source.tile, true)) return;
+  if (OPEX_LEVEL_LIMITS && OpexIndustryPrimaryRivalServed(source.id, source.tile)) return;
+  local monthly = AIIndustry.GetLastMonthProduction(source.id, s.cargo);
+  if (monthly <= 0) { s.stats.noMonthly++; return; }
+  local dest = s.destinations[index % s.destinations.len()];
+  local dstTile, dstTown = -1, pairKey, isTransformer = false;
+  if (dest.kind == "industry") {
+    if (dest.industryIndex < 0 || dest.industryIndex >= s.catalog.industries.len()
+        || dest.industryIndex == sourceIndex) return;
+    local industry = s.catalog.industries[dest.industryIndex];
+    dstTile = industry.tile;
+    pairKey = "freight|" + s.cargo + "|" + source.id + "|" + industry.id;
+    isTransformer = ("isTransformer" in industry) && industry.isTransformer;
+  } else {
+    dstTile = dest.town.tile;
+    dstTown = dest.town.id;
+    pairKey = "freight|" + s.cargo + "|" + source.id + "|t" + dstTown;
+    local coverage = AIStation.GetCoverageRadius(AIStation.STATION_TRUCK_STOP);
+    if (AITile.GetCargoAcceptance(dstTile, s.cargo, 1, 1, coverage)
+        < ROAD_ACCEPTANCE_FULL_UNIT) { s.stats.townRejected++; return; }
+  }
+  if (OpexOriginServed(s.lines, dstTile, true) || pairKey in s.abandoned) return;
+  local distance = AIMap.DistanceManhattan(source.tile, dstTile);
+  if (!OpexRoadDistanceAllowed(s.catalog, distance, s.stats)) return;
+  s.examined++;
+  local candidate = OpexMakeRoadCandidate(s.catalog, "freight", s.cargo,
+      source.tile, dstTile, -1, dstTown, distance, monthly, s.stats, isTransformer);
+  if (candidate == null) return;
+  s.economic++;
+  local project = OpexProjectFromCandidate(candidate);
+  if (project == null || OpexProjectFinanceCapital(project) > OpexAvailableCapital()) return;
+  s.financeable++;
+  s.financeableCandidates.append(candidate);
+}
+
+function OpexMulti1RoadCargoShadowTick(owner)
+{
+  local s = MULTI1_ROAD_CARGO_PENDING;
+  if (s == null || MULTI1_ROAD_CARGO_SHADOW != 1) return false;
+  local mark = OpexOpsMeasureBegin();
+  local tick = AIController.GetTick();
+  while (AIController.GetTick() == tick && AIController.GetOpsTillSuspend() > 2000
+      && OpexOpsMeasureEnd(mark) < 40000) {
+    if (s.totalOps + OpexOpsMeasureEnd(mark) >= 200000) {
+      s.censored = true;
+      s.phase = "done";
+    }
+    if (s.phase == "pairs") {
+      if (s.pairCursor < s.sources.len() * s.destinations.len()) {
+        OpexMulti1RoadCargoShadowPair(s);
+        continue;
+      }
+      s.financeableCandidates.sort(OpexMulti1RoadCargoSortProfit);
+      s.phase = "plans";
+    } else if (s.phase == "plans") {
+      if (s.planCursor >= s.financeableCandidates.len() || s.planCursor >= 3) {
+        s.phase = "done";
+        continue;
+      }
+      local candidate = s.financeableCandidates[s.planCursor++];
+      /* Une generation PO01c peut durer plusieurs jours. Si la ligne est
+       * apparue entre temps, ce plan n'est plus une occasion additionnelle. */
+      if (owner._lines == null
+          || OpexOriginServed(owner._lines, candidate.src, true)
+          || OpexOriginServed(owner._lines, candidate.dst, true)
+          || OpexCandidateIsAbandoned(candidate, owner._abandonedPairs)) {
+        s.stale++;
+        OpexMulti1RoadCargoShadowLog("phase=plan month=" + s.stamp
+            + " cargo=" + s.cargo + " src=" + candidate.src + " dst=" + candidate.dst
+            + " reason=STALE profit=0 plan_ops=0");
+        continue;
+      }
+      local planMark = OpexOpsMeasureBegin();
+      local roadTypeBefore = AIRoad.GetCurrentRoadType();
+      local siteNameBefore = OPCODE_EXACT_SITE_NAME;
+      local planning = OpexRoadPlanFor(s.catalog, candidate);
+      AIRoad.SetCurrentRoadType(roadTypeBefore);
+      OPCODE_EXACT_SITE_NAME = siteNameBefore;
+      local planOps = OpexOpsMeasureEnd(planMark);
+      s.plans++;
+      local realProfit = 0;
+      if (planning != null && planning.plan != null) {
+        s.planned++;
+        local plan = planning.plan;
+        local actualDistance = AIMap.DistanceManhattan(plan.stopA.tile, plan.stopB.tile);
+        if (actualDistance < 1) actualDistance = 1;
+        local economics = OpexRoadLineEconomics(s.catalog, candidate.cargo, actualDistance,
+            candidate.monthly, candidate.engine, candidate.kind, plan.routeDistance);
+        if (economics != null && economics.profitAnnual > 0) {
+          realProfit = economics.profitAnnual;
+          s.positivePlans++;
+          /* Plusieurs projets peuvent partager une origine ou un puits :
+           * leur somme n'est pas un gain marginal simultanement realisable. */
+          if (realProfit > s.predictedProfit) s.predictedProfit = realProfit;
+        }
+      }
+      OpexMulti1RoadCargoShadowLog("phase=plan month=" + s.stamp
+          + " cargo=" + s.cargo + " src=" + candidate.src
+          + " dst=" + candidate.dst + " reason="
+          + (planning != null ? planning.reason : "NO_PLAN")
+          + " profit=" + realProfit + " plan_ops=" + planOps);
+    } else {
+      break;
+    }
+  }
+  s.totalOps += OpexOpsMeasureEnd(mark);
+  if (s.phase == "done") {
+    OpexMulti1RoadCargoShadowLog("phase=done month=" + s.stamp
+        + " original=" + s.ordinaryCargo + " cargo=" + s.cargo
+        + " pairs=" + s.examined + " economic=" + s.economic
+        + " financeable=" + s.financeable + " plans=" + s.plans
+        + " planned=" + s.planned + " positive=" + s.positivePlans
+        + " stale=" + s.stale + " best_profit=" + s.predictedProfit + " ops=" + s.totalOps
+        + " sampled=1 censored=" + (s.censored ? 1 : 0));
+    MULTI1_ROAD_CARGO_PENDING = null;
+  }
+  return true;
+}
+
 /* Classement routier complet. Rendu a part de celui du rail : les deux ne partagent ni leur unite
  * de cout (cf. ROAD_PLAN_ITERATIONS_BASE) ni leur phase de construction. */
 /* C41.16 : `profile` est fourni seulement par la sonde du scheduler. Il n'influence jamais les
@@ -2070,6 +2303,8 @@ function OpexBuildRoadCandidates(catalog, budget, lines, abandonedPairs = null, 
   /* Le cout de CETTE annee, pas le cumul : budget.get() totalise depuis le debut de la partie, et
    * c'est le debit annuel qui dit si la generation routiere merite sa place. Il est paye meme les
    * annees ou rien n'est bati, donc le panneau RN le porte sans condition (main.nut). */
+  if (MULTI1_ROAD_CARGO_SHADOW == 1 && targetKind == null && targetId < 0)
+    OpexMulti1RoadCargoShadowArm(catalog, lines, abandonedPairs, freightCargo, all);
   return { all = all.len(), candidates = all, best = best,
            stats = stats, opcodes = ops, profile = profile };
 }

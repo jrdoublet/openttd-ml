@@ -78,6 +78,11 @@ class OpexAIInfo extends AIInfo {
       min_value = 0, max_value = 2,
       easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
       flags = 0 });
+    AddSetting({ name = "multi1_road_cargo_shadow",
+      description = "MULTI-1: passive secondary ROAD freight cargo probe on 256 maps, 1971-1973; <=16 pairs and <=3 physical plans per monthly observation. 0=off (default), 1=shadow only",
+      min_value = 0, max_value = 1,
+      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
+      flags = AICONFIG_BOOLEAN });
     AddSetting({ name = "front_pax1_bounds_probe",
       description = "FRONT-PAX-1: passive one-log-per-bounds-refresh road/rail and rail/air clamp reasons, 0=off (default), 1=log; no candidate or policy changes",
       min_value = 0, max_value = 1,

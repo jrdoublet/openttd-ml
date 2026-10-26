@@ -75,6 +75,9 @@ function OpexLoadSettings()
   MULTI1_AIR_OVER_RAIL = (multi1AirOverRail == 1 || multi1AirOverRail == 2) ? multi1AirOverRail : 0;
   local multi1RoadDetour = AIController.GetSetting("multi1_road_detour");
   MULTI1_ROAD_DETOUR = (multi1RoadDetour == 1 || multi1RoadDetour == 2) ? multi1RoadDetour : 0;
+  MULTI1_ROAD_CARGO_SHADOW = AIController.GetSetting("multi1_road_cargo_shadow") == 1 ? 1 : 0;
+  MULTI1_ROAD_CARGO_PENDING = null;
+  MULTI1_ROAD_CARGO_LAST_MONTH = -1;
   P6_AIR_FIRSTLINE_WINDOW = AIController.GetSetting("p6_air_firstline_window");
   local p3AirFleetYield = AIController.GetSetting("air_fleet_yield_rightsize");
   P3_AIR_FLEET_YIELD = (p3AirFleetYield == 1 || p3AirFleetYield == 2) ? p3AirFleetYield : 0;
