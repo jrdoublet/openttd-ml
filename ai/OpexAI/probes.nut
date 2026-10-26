@@ -2648,14 +2648,23 @@ function OpexV286FlowSample(lines)
   if (V286_FLOW_LAST_DAY >= 0 && day - V286_FLOW_LAST_DAY < 30) return;
   V286_FLOW_LAST_DAY = day;
 
+  /* Mesurer le cout reel de la passe ON, y compris lectures API et journaux
+   * FLOW/VEH. V286_SAMPLE lui-meme est publie hors intervalle mesure. */
+  local opsMark = OpexOpsMeasureBegin();
+  local examined = 0;
+  local railLines = 0;
+  local cargoSamples = 0;
+  local vehicleSamples = 0;
   local total = lines.len();
   if (V286_FLOW_CURSOR < 0 || V286_FLOW_CURSOR >= total) V286_FLOW_CURSOR = 0;
   local batch = total < 16 ? total : 16;
   for (local step = 0; step < batch; step++) {
+    examined++;
     local index = (V286_FLOW_CURSOR + step) % total;
     local line = lines[index];
     if (line == null || !("mode" in line) || line.mode != "rail"
         || !("cargo" in line) || !AICargo.IsValidCargo(line.cargo)) continue;
+    railLines++;
     local stA = ("stationA" in line) ? AIStation.GetStationID(line.stationA) : -1;
     local stB = ("stationB" in line) ? AIStation.GetStationID(line.stationB) : -1;
     local validA = AIStation.IsValidStation(stA);
@@ -2667,22 +2676,28 @@ function OpexV286FlowSample(lines)
     if (("cargo2" in line) && AICargo.IsValidCargo(line.cargo2)
         && line.cargo2 != line.cargo) cargos.append(line.cargo2);
     foreach (cargo in cargos) {
+      cargoSamples++;
       local waitingA = validA ? AIStation.GetCargoWaiting(stA, cargo) : -1;
       local waitingB = validB ? AIStation.GetCargoWaiting(stB, cargo) : -1;
       local prod = validSrc ? AIIndustry.GetLastMonthProduction(src, cargo) : -1;
+      /* Quantite en unites transportee depuis l'industrie par TOUTES compagnies,
+       * jamais un delivre de notre ligne, ni un volume capte OpexAI. */
+      local transportedAll = validSrc ? AIIndustry.GetLastMonthTransported(src, cargo) : -1;
       local pct = validSrc ? AIIndustry.GetLastMonthTransportedPercentage(src, cargo) : -1;
       AILog.Info("V286_FLOW day=" + day + " line=" + lineId + " cargo=" + AICargo.GetCargoLabel(cargo)
           + " station_a=" + stA + " station_b=" + stB + " wait_a=" + waitingA
           + " wait_b=" + waitingB + " source=" + src + " src_prod_last_month=" + prod
+          + " src_transported_last_month_all=" + transportedAll
           + " src_transport_pct_all_companies=" + pct + " delivered_by_line=unknown stock_age=unknown");
       if (!("vehicles" in line) || line.vehicles == null) continue;
       local inspected = 0;
       foreach (v in line.vehicles) {
         if (inspected >= 4) break;
         if (!AIVehicle.IsValidVehicle(v) || AIVehicle.GetVehicleType(v) != AIVehicle.VT_RAIL) continue;
-        inspected++;
         local cap = AIVehicle.GetCapacity(v, cargo);
         if (cap <= 0) continue;
+        inspected++;
+        vehicleSamples++;
         local load = AIVehicle.GetCargoLoad(v, cargo);
         local fillPct = load >= 0 ? (100 * load / cap) : -1;
         local fillState = (load < 0) ? "unknown" : (load == 0 ? "empty" : (load >= cap ? "full" : "partial"));
@@ -2693,6 +2708,10 @@ function OpexV286FlowSample(lines)
     }
   }
   V286_FLOW_CURSOR = (V286_FLOW_CURSOR + batch) % total;
+  local measuredOps = OpexOpsMeasureEnd(opsMark);
+  AILog.Info("V286_SAMPLE day=" + day + " ops=" + measuredOps
+      + " total_lines=" + total + " examined=" + examined + " rail=" + railLines
+      + " cargo=" + cargoSamples + " vehicles_cargo=" + vehicleSamples);
 }
 
 /* V309 : observation passive des tours et de leur budget d'opcodes. La mesure

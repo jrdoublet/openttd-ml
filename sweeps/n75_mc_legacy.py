@@ -152,7 +152,10 @@ C75_PROBES_DELTA = (
 ).encode("utf-8")
 V286_PROBES_BLOCK_PREFIX = b"/* V286 : photographies RAIL"
 V286_PROBES_BLOCK_END = b"/* V309 : observation passive"
-V286_PROBES_BLOCK_SHA256 = "c0e942556f53da25881c52cfed6cb36fdb045d663b978bc97d48d9ae5fb37380"
+# 26/10 : reviewed V286 opt-in only: sample-ops + industry cargo units,
+# and count four vehicles with positive cargo capacity. Historical PO01D
+# remains frozen; this digest guards the intentionally changed probe body.
+V286_PROBES_BLOCK_SHA256 = "dc8210ba9cc27be6c5879006961a2e550e2a31c154b99443b27115f91b5dff40"
 V286_PROBES_CALL = b'    if (V286_FLOW_PROBE) OpexV286FlowSample(this._lines);\n'
 
 P1_CANDIDATES_BLOCK_START = b"/* P1 : le balayage industriel normal"

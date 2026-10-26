@@ -40,7 +40,7 @@ pré-enregistrées restent obligatoires.
 |---:|---|---|---|---|
 | 1 | OPCODE-AILIST-2 | Moyen ; mesure tardive L1/L2 1024² absente, cache à prouver | Bloquée sur N/ops années 8–10 | Moyen |
 | 2 | Désactiver les sondes non essentielles | Moyen ; C75 opt-in défaut 0 préparé, registre bypass conservé | Smoke, micro opcodes puis B20×10 avant adoption | Moyen à élevé |
-| 3 | V286 | Moyen ; snapshots rail livrés, livraisons exactes et coût observateur manquants | Observer flux moteur, sans porte comportementale à ce stade | Moyen |
+| 3 | V286 | Moyen ; stocks/charges et quantité sortie d'industrie relevés ; livraisons par ligne inconnues | Microcoût mesuré sur 42×3 (22 000 ops), cas mixtes et effet observateur à qualifier | Moyen |
 | 4 | AIR-ROI-LIGNE-1 | Moyen à élevé ; coûts réels, flotte modifiée et témoin | Hors ligne puis expérience même-save | Moyen à élevé |
 | 5 | AIR-ROI-RENOUVELLEMENT-1 | Moyen à élevé ; V252, revente et contrefactuel | Hors ligne puis expérience même-save | Moyen à élevé |
 | 6 | DIST-BORNES-1 | Moyen à élevé ; filtres spatiaux V276/V269 et contexte tardif différé | Exposition 1024², puis porte si choix | Élevé |
@@ -55,6 +55,14 @@ uniquement sur les 40 journaux DUEL existants** sont closes en
 AIR-ROI-LIGNE-1 et AIR-ROI-RENOUVELLEMENT-1 demeurent ouvertes et
 nécessitent des contrefactuels même-save plus coût net.
 **Aucune nouvelle case racine fermée ; 20 cases ouvertes.**
+
+**Sous-lot V286 complémentaire :** `src_transported_last_month_all` et
+`V286_SAMPLE` désormais produits par la sonde préexistante en opt-in,
+avec 35 passes et 22 000 opcodes sur la graine 42×3 et Save/Load sain.
+Cette dépense de mesure n'est pas un gain d'opcodes. L'option reste
+à 0 par défaut ; la sous-étape source/coût est instruite, mais la
+case V286 ne peut être fermée sans livraison réelle par ligne,
+cas mixtes et qualification de l'effet observateur.
 
 ## C3 — prototypes et validations dépendantes
 
