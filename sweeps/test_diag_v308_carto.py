@@ -14,6 +14,7 @@ from sweeps.diag_v308_carto import (
     TRUTH_FIELDS,
     complete_record,
     read_blocks,
+    read_complete_surveys,
     summarize,
 )
 
@@ -37,7 +38,62 @@ def block_line(record):
     ) + "\n"
 
 
+def survey_body(indices=range(400), *, ending=True):
+    body = "[0] [I] OPEX 1970-1-1 V308_START n=400 side=8\n"
+    body += "".join(block_line(block_record(index)) for index in indices)
+    if ending:
+        body += "[0] [I] OPEX 1970-2-11 V308_END n=400\n"
+    return body
+
+
 class TestV308RecordValidation(unittest.TestCase):
+    def test_complete_survey_has_exactly_400_indexed_blocks(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "reference_seed42_r0.log"
+            path.write_text(survey_body(), encoding="utf-8")
+            blocks = list(read_complete_surveys([path]))
+            self.assertEqual(len(blocks), 400)
+            self.assertEqual({b["i"] for b in blocks}, set(range(400)))
+            self.assertEqual(summarize(blocks)[0]["ops_total"], 360000)
+
+    def test_missing_block_rejected_despite_end_marker(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "reference_seed42_r0.log.gz"
+            with gzip.open(path, "wt", encoding="utf-8") as stream:
+                stream.write(survey_body(range(399)))
+            with self.assertRaisesRegex(ValueError, "sondage incomplet.*399/400"):
+                list(read_complete_surveys([path]))
+
+    def test_duplicate_index_and_missing_index_rejected(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "reference_seed42_r0.log"
+            # 400 records but index 0 twice, index 1 never observed.
+            path.write_text(survey_body([0] + [0] + list(range(2, 400))),
+                            encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "indice invalide ou duplique"):
+                list(read_complete_surveys([path]))
+
+    def test_missing_end_and_bad_start_rejected(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "reference_seed42_r0.log"
+            path.write_text(survey_body(ending=False), encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "START/END manquant"):
+                list(read_complete_surveys([path]))
+            path.write_text(survey_body().replace("START n=400", "START n=399"),
+                            encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "START absent, duplique ou n invalide"):
+                list(read_complete_surveys([path]))
+
+    def test_invalid_block_cannot_be_silently_skipped_from_complete_survey(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "reference_seed42_r0.log"
+            invalid = block_record(0)
+            invalid["full6_river"] = 7
+            body = survey_body().replace(block_line(block_record(0)), block_line(invalid))
+            path.write_text(body, encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "BLOCK hors sondage ou invalide"):
+                list(read_complete_surveys([path]))
+
     def test_same_source_given_as_directory_and_file_is_once(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)

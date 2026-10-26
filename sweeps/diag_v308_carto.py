@@ -18,6 +18,8 @@ from pathlib import Path
 ARM_NAMES = ("v307", "full6", "short6", "parity6", "flatdry6")
 CLASSES = ("sea", "lake", "river", "coast", "house", "town", "city", "obst", "mountain", "river_cross")
 PATTERN = re.compile(r"\bV308_BLOCK\s+(.*)$")
+EVENT_PATTERN = re.compile(r"\bV308_(START|BLOCK|END)\s+(.*)$")
+EXPECTED_BLOCKS = 400
 GAME_NAME = re.compile(r"^(?P<arm>.+)_seed(?P<seed>\d+)_r(?P<repeat>\d+)\.log$")
 TRUTH_FIELDS = ("n", "sea", "lake", "river", "river_cross", "coast", "house", "town", "build", "road", "obst", "relief")
 ARM_FIELDS = ("n", "sea", "lake", "river", "coast", "house", "town", "obst", "relief", "ops")
@@ -110,6 +112,7 @@ def complete_record(fields):
 
 
 def read_blocks(paths):
+    """Read valid individual blocks (permissive API for exploratory fixtures)."""
     for path in logs(paths):
         opener = gzip.open if path.suffix == ".gz" else open
         with opener(path, "rt", encoding="utf-8", errors="replace") as stream:
@@ -120,6 +123,52 @@ def read_blocks(paths):
                     if complete_record(fields):
                         fields["source"] = str(path)
                         yield fields
+
+
+def read_complete_surveys(paths):
+    """Read complete probe runs; reject partial/duplicate data before reporting.
+
+    Each physical game log must contain exactly one START, 400 valid unique
+    indexed BLOCK records, and a matching END. `read_blocks` intentionally
+    remains permissive for diagnostics on partial synthetic inputs.
+    """
+    for path in logs(paths):
+        opener = gzip.open if path.suffix == ".gz" else open
+        started = False
+        ended = False
+        indices = set()
+        rows = []
+        with opener(path, "rt", encoding="utf-8", errors="replace") as stream:
+            for line in stream:
+                match = EVENT_PATTERN.search(line)
+                if not match:
+                    continue
+                kind, payload = match.groups()
+                fields = parse_fields(payload)
+                if kind == "START":
+                    if started or ended or fields.get("n") != EXPECTED_BLOCKS:
+                        raise ValueError(f"V308 START absent, duplique ou n invalide : {path}")
+                    started = True
+                elif kind == "BLOCK":
+                    if not started or ended or not complete_record(fields):
+                        raise ValueError(f"V308 BLOCK hors sondage ou invalide : {path}")
+                    index = fields["i"]
+                    if not 0 <= index < EXPECTED_BLOCKS or index in indices:
+                        raise ValueError(f"V308 BLOCK indice invalide ou duplique : {path} i={index}")
+                    indices.add(index)
+                    fields["source"] = str(path)
+                    rows.append(fields)
+                else:
+                    if not started or ended or fields.get("n") != EXPECTED_BLOCKS:
+                        raise ValueError(f"V308 END absent, duplique ou n invalide : {path}")
+                    if len(indices) != EXPECTED_BLOCKS:
+                        raise ValueError(
+                            f"V308 sondage incomplet : {path} "
+                            f"{len(indices)}/{EXPECTED_BLOCKS} indices")
+                    ended = True
+        if not started or not ended:
+            raise ValueError(f"V308 START/END manquant : {path}")
+        yield from rows
 
 
 def is_present(record, prefix, kind):
@@ -175,7 +224,7 @@ def main():
     parser.add_argument("paths", nargs="+", type=Path, help="Dossiers de campagne ou journaux")
     parser.add_argument("--json", type=Path, help="Exporter un tableau machine")
     args = parser.parse_args()
-    blocks = list(read_blocks(args.paths))
+    blocks = list(read_complete_surveys(args.paths))
     rows = summarize(blocks)
     print(f"V308: {len(blocks)} blocs complets (5 bras + verite)")
     for row in rows:
