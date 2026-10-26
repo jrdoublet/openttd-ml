@@ -96,3 +96,31 @@ Le `SaveLoad` réel `sweeps/save_load_roundtrip.py` et la compilation
 Squirrel nécessitent un moteur, **interdit ici tant que Docker P6 tourne**.
 Après reload, les trois fenêtres de preuve sont volontairement perdues :
 les achats reprennent selon le chemin historique en attendant leur reconstitution.
+
+## Validation mécanique réalisée le 26/10
+
+Le code comportemental a été figé au commit `5e9c7266`, réglage `0` aux
+quatre difficultés. Après restauration à l'identique de la copie locale
+ignorée `ai/AAAHogEx-115` dans le worktree, la suite hôte complète a passé
+**2 874 tests**, avec six ignorés et deux échecs attendus ; les 11 contrats P3
+et les suites C117/C121/N75 sont verts, `git diff --check` est conforme.
+
+Smoke réel `p3_yield_smoke_42x1_20261026_r1`, code Git propre `5e9c7266`,
+bundle `bf263ee0d42b38eb310abb2f4f41f3f73148fc5518172625dbebceabf58b311d`,
+manifeste `07e3017bae883aaa9a810e1ff078b177e19d514983cc2e7cdbb50b47477d79b2`,
+image `openttd-lab:latest` SHA256 `f4b2b9b3b7399cbfecacfe03b3b8dda49bff2921de36a61fed4e9441e5d44659` :
+deux duels 1970 complets et sains, aucune erreur ou partie invalide ;
+`0` contre `2`, un seul monde graine 42, delta annuel +1 478 £, strictement
+**diagnostique** (`diagnostic_only`).
+
+Save/Load moteur `=2`, court (`save_full_state=0`) puis complet
+(`save_full_state=1`) :
+`results/p3_yield_saveload_{short,full}_42_20261026.json`. Dans chaque essai,
+13 sauvegardes à chacune des deux phases, rechargement du **01/07/1970**,
+`LOAD_RECONCILE` positif et aucun marqueur d'erreur script. Le harnais de
+rechargement fait apparaître une compagnie humaine fantôme connue, sans
+activité construite : les résultats valident la reprise du script, **pas**
+un bilan de gain économique ou une équivalence de trajectoire.
+
+L'exposition des décisions shadow 5×5 et, si admissible, la porte A sont des
+étapes distinctes à documenter avec leurs propres bundles et résultats.
