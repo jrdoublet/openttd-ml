@@ -724,11 +724,59 @@ class V233LongGoodContracts(unittest.TestCase):
 
         search = body("v233_long_good.nut", "OpexV233LFunnelSearch")
         self.assertIn("V233_SITE_FUNNEL > 0 && V233_FUNNEL_CENTER_TEST > 0", search)
-        self.assertIn("AITile.GetCargoAcceptance(center, cargo, 1, 1, coverage)", search)
+        self.assertIn("AITile.GetCargoAcceptance(tile0, cargo, w, h, coverage)", search)
+        self.assertIn("axis == 0 ? length : 2", search)
+        self.assertIn("axis == 0 ? 2 : length", search)
+        self.assertIn("cx - (w / 2)", search)
+        self.assertIn("cy - (h / 2)", search)
+        self.assertIn("x0 > mapX - w", search)
+        self.assertIn("y0 > mapY - h", search)
+        self.assertIn("AIMap.IsValidTile(tile0)", search)
         self.assertIn("centerAcc < 8", search)
-        self.assertIn('OpexV233LLog("SITE_FUNNEL", "town=" + town + " reason=CENTER_REJECT center_acc=" + centerAcc)', search)
+        self.assertIn('OpexV233LLog("SITE_FUNNEL", "town=" + town + " reason=CENTER_REJECT center_acc=" + centerAcc + " w=" + bestW + " h=" + bestH)', search)
         self.assertIn("cached0.done = true;", search)
         self.assertIn("cached0.limited = false;", search)
         self.assertIn("cached1.done = true;", search)
         self.assertIn("cached1.limited = false;", search)
         self.assertLess(search.index("centerAcc < 8"), search.index("OpexV233LFunnelAdvance"))
+
+    def test_funnel_center_test_quay_footprint_geometry_and_bounds(self):
+        # Independent Python model verifying the quay footprint centering and boundary clamping.
+        def compute_tile0(cx, cy, w, h, map_x=256, map_y=256):
+            x0 = cx - (w // 2)
+            y0 = cy - (h // 2)
+            if x0 < 0:
+                x0 = 0
+            if y0 < 0:
+                y0 = 0
+            if x0 > map_x - w:
+                x0 = map_x - w
+            if y0 > map_y - h:
+                y0 = map_y - h
+            return x0, y0
+
+        # Normal center: Town 28 at (55, 149), length 2 (w=2, h=2)
+        self.assertEqual(compute_tile0(55, 149, 2, 2), (54, 148))
+        # Length 3: axis 0 (3x2) and axis 1 (2x3)
+        self.assertEqual(compute_tile0(55, 149, 3, 2), (54, 148))
+        self.assertEqual(compute_tile0(55, 149, 2, 3), (54, 148))
+
+        # Edge clamping at (0, 0)
+        self.assertEqual(compute_tile0(0, 0, 3, 2), (0, 0))
+        self.assertEqual(compute_tile0(0, 0, 2, 3), (0, 0))
+
+        # Edge clamping at (255, 255) on a 256x256 map
+        self.assertEqual(compute_tile0(255, 255, 3, 2), (253, 254))
+        self.assertEqual(compute_tile0(255, 255, 2, 3), (254, 253))
+
+        # Coverage extension over 1x1: a house at (50, 146) is out of 1x1 coverage (rad=4 from (55, 149) covers x in [51, 59]),
+        # but within footprint coverage (rad=4 from [54..55, 148..149] covers x in [50, 59]).
+        footprint_x0, footprint_y0 = compute_tile0(55, 149, 2, 2)
+        rad = 4
+        point_x, point_y = 50, 146
+        # Distance to center point (55, 149)
+        self.assertGreater(max(abs(55 - point_x), abs(149 - point_y)), rad)
+        # Distance to footprint rectangle [54..55, 148..149]
+        dist_x = max(0, footprint_x0 - point_x, point_x - (footprint_x0 + 1))
+        dist_y = max(0, footprint_y0 - point_y, point_y - (footprint_y0 + 1))
+        self.assertLessEqual(max(dist_x, dist_y), rad)

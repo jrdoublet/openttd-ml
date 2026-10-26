@@ -851,8 +851,33 @@ function OpexV233LFunnelSearch(candidate, length, coverage)
         ops = OpexOpsMeasureEnd(mark), length = length };
     }
     if (cached0 != null && cached0.cursor == 0 && cached0.anchors.len() == 0 && !cached0.done) {
-      /* Pre-test au centre de la ville : AITile.GetCargoAcceptance(AITown.GetLocation(town), cargo, 1, 1, coverage). */
-      local centerAcc = AITile.GetCargoAcceptance(center, cargo, 1, 1, coverage);
+      /* Pre-test d'emprise du quai (w x h = length x 2 puis 2 x length) centree sur la ville. */
+      local centerAcc = -1;
+      local bestW = length;
+      local bestH = 2;
+      local cx = AIMap.GetTileX(center);
+      local cy = AIMap.GetTileY(center);
+      local mapX = AIMap.GetMapSizeX();
+      local mapY = AIMap.GetMapSizeY();
+      for (local axis = 0; axis < 2; axis++) {
+        local w = axis == 0 ? length : 2;
+        local h = axis == 0 ? 2 : length;
+        local x0 = cx - (w / 2);
+        local y0 = cy - (h / 2);
+        if (x0 < 0) x0 = 0;
+        if (y0 < 0) y0 = 0;
+        if (x0 > mapX - w) x0 = mapX - w;
+        if (y0 > mapY - h) y0 = mapY - h;
+        local tile0 = AIMap.GetTileIndex(x0, y0);
+        if (AIMap.IsValidTile(tile0)) {
+          local acc = AITile.GetCargoAcceptance(tile0, cargo, w, h, coverage);
+          if (acc > centerAcc) {
+            centerAcc = acc;
+            bestW = w;
+            bestH = h;
+          }
+        }
+      }
       if (centerAcc < 8) {
         cached0.done = true;
         cached0.limited = false;
@@ -863,7 +888,7 @@ function OpexV233LFunnelSearch(candidate, length, coverage)
           cached1.limited = false;
           cached1.date = cached0.date;
         }
-        if (DECISION_LOG) OpexV233LLog("SITE_FUNNEL", "town=" + town + " reason=CENTER_REJECT center_acc=" + centerAcc);
+        if (DECISION_LOG) OpexV233LLog("SITE_FUNNEL", "town=" + town + " reason=CENTER_REJECT center_acc=" + centerAcc + " w=" + bestW + " h=" + bestH);
         return { plans = plans, stats = stats, reason = "exhausted", ring = 0,
           ops = OpexOpsMeasureEnd(mark), length = length };
       }
