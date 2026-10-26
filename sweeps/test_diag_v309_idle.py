@@ -59,6 +59,23 @@ class TestV309RegenReader(unittest.TestCase):
 
 
 class TestV309IdleReader(unittest.TestCase):
+    def test_invalid_first_flush_is_not_a_copy_conflict(self):
+        """Copy comparison must use the same accepted months as aggregation."""
+        with tempfile.TemporaryDirectory() as tmp:
+            log = Path(tmp) / "reference_seed42_r0.log"
+            valid = idle_line("1970-1-2", loops=12, useless=3)
+            invalid = idle_line("1970-1-1", loops="bad")
+            for bad_in_text in (True, False):
+                with self.subTest(bad_in_text=bad_in_text):
+                    log.write_text(invalid + valid if bad_in_text else valid,
+                                   encoding="utf-8")
+                    with gzip.open(str(log) + ".gz", "wt", encoding="utf-8") as stream:
+                        stream.write(valid if bad_in_text else invalid + valid)
+                    row = read_idle_logs(tmp)["reference"][1970]
+                    self.assertEqual(row["months"], 1)
+                    self.assertEqual(row["loops"], 12)
+                    self.assertEqual(row["useless"], 3)
+
     def test_one_copy_can_contain_additional_consistent_monthly_flushes(self):
         with tempfile.TemporaryDirectory() as tmp:
             log = Path(tmp) / "reference_seed42_r0.log"

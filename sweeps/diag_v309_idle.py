@@ -25,6 +25,20 @@ REGEN = re.compile(r'\bOPEX (\d{4})-\d+-\d+ C76_REGEN\s+(.*)')
 IDLE = re.compile(r'\bOPEX (\d{4})-(\d{1,2})-\d{1,2} V309_IDLE\s+(.*)')
 FIELDS = re.compile(r'([\w]+)=([^\s]+)')
 MODES = ('rail', 'road', 'air', 'water', 'fleet')
+IDLE_CORE_FIELDS = ('loops', 'useless', 'useless_ops', 'sleep_ops', 'blocks')
+
+
+def _valid_idle_core(fields):
+    """Return comparable core counters, or None for an invalid monthly flush."""
+    try:
+        values = {name: int(fields[name]) for name in IDLE_CORE_FIELDS}
+    except (KeyError, ValueError):
+        return None
+    if (values['loops'] < 0 or not 0 <= values['useless'] <= values['loops']
+            or any(values[name] < 0 for name in
+                   ('useless_ops', 'sleep_ops', 'blocks'))):
+        return None
+    return values
 
 
 def _idle_monthly_rows(path):
@@ -35,8 +49,11 @@ def _idle_monthly_rows(path):
         for line in stream:
             event = IDLE.search(line)
             if event is not None:
+                fields = dict(FIELDS.findall(event.group(3)))
+                if _valid_idle_core(fields) is None:
+                    continue
                 key = (int(event.group(1)), int(event.group(2)))
-                months.setdefault(key, dict(FIELDS.findall(event.group(3))))
+                months.setdefault(key, fields)
     return months
 
 
@@ -159,13 +176,8 @@ def read_idle_logs(directory):
                     continue
                 year, month = int(event.group(1)), int(event.group(2))
                 fields = dict(FIELDS.findall(event.group(3)))
-                required = ('loops', 'useless', 'useless_ops', 'sleep_ops', 'blocks')
-                try:
-                    values = {name: int(fields[name]) for name in required}
-                except (KeyError, ValueError):
-                    continue  # Missing fields cannot be interpreted as zero.
-                if (values['loops'] < 0 or not 0 <= values['useless'] <= values['loops']
-                        or any(values[name] < 0 for name in ('useless_ops', 'sleep_ops', 'blocks'))):
+                values = _valid_idle_core(fields)
+                if values is None:
                     continue
                 # One monthly flush per game; ignore duplicate replayed records
                 # and .log/.log.gz copies rather than inflating annual totals.
