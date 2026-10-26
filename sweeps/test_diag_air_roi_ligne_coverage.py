@@ -26,7 +26,9 @@ class AirLineCoverageTests(unittest.TestCase):
         self.assertEqual(got["censored_immature_events"], 1)
         self.assertEqual(got["mature_line_years_joined"], 2)
         self.assertEqual(got["builds_with_fleet_drift"], 1)
-        self.assertEqual(got["observed_capex_actual"], 0)
+        self.assertEqual(got["observed_net_infrastructure_capex"], 0)
+        self.assertEqual(got["builds_postbuild_capital_present"], 1)
+        self.assertNotIn("builds_cost_is_quote_only", got)
         self.assertEqual(got["observed_marginal_counterfactual"], 0)
 
     def test_no_match_for_old_choice_and_missing_build(self):
@@ -124,7 +126,19 @@ class AirLineCoverageTests(unittest.TestCase):
         self.assertEqual(by_arm["hubhub"]["mature_line_years_fleet_count_unknown"], 1)
         for arm in by_arm.values():
             self.assertEqual(arm["builds"], 1)
-            self.assertEqual(arm["cost_quotes_present"], 1)
+            self.assertEqual(arm["postbuild_capital_present"], 1)
+
+    def test_capital_presence_does_not_create_actual_infrastructure_capex(self):
+        rows = [
+            row("1970-1-1", "AIR_BUILD", "arm=newpair line=0 planes=1 cost=900"),
+            row("1970-1-2", "AIR_BUILD", "arm=hubsite line=1 planes=1"),
+        ]
+        totals, arms = analyse_log(rows, with_arms=True)
+        self.assertEqual(totals["air_builds_distinct"], 2)
+        self.assertEqual(totals["builds_postbuild_capital_present"], 1)
+        self.assertEqual(totals["observed_net_infrastructure_capex"], 0)
+        self.assertEqual(arms["newpair"]["postbuild_capital_present"], 1)
+        self.assertEqual(arms["hubsite"]["postbuild_capital_present"], 0)
 
     def test_directory_build_arm_totals_do_not_double_count_gzip_copies(self):
         import gzip

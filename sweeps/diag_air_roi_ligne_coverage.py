@@ -1,8 +1,10 @@
 """AIR-ROI-LIGNE-1: auditer les jointures des nouvelles lignes, hors moteur.
 
-La presence d'un devis AIR_BUILD, d'un PROJECT_CHOSEN et d'un LINE_REVENUE
-ne suffit PAS a mesurer un ROI marginal ni un CAPEX reel. L'outil ne les
-assimile jamais et distingue explicitement flotte initiale / flotte observee.
+Le capital AIR_BUILD est journalise apres construction et peut inclure les
+depenses AIAccounting reconciliees ; il n'isole pas le CAPEX net du site.
+PROJECT_CHOSEN est lui aussi emis apres le chantier. Ces donnees et
+LINE_REVENUE ne mesurent pas un ROI marginal ; l'outil distingue la flotte
+initiale de la flotte observee.
 
 Usage: python -X utf8 sweeps/diag_air_roi_ligne_coverage.py
            --logs results/.../calib_duel_40x10_pc_20261021_engine
@@ -50,7 +52,7 @@ def analyse_log(lines, with_arms=False):
             if line_id is None or LINE_ID_RE.fullmatch(line_id) is None or line_id in builds:
                 counts["invalid_or_reused_line_id"] += 1
                 continue
-            planned_cost = num(kv.get("cost"))
+            postbuild_capital = num(kv.get("cost"))
             init_fleet = num(kv.get("planes"))
             key = (kv.get("src"), kv.get("dst"))
             chosen = choices.get(key)
@@ -62,7 +64,7 @@ def analyse_log(lines, with_arms=False):
                 counts["no_exact_day_choice"] += 1
             builds[line_id] = {
                 "date": date, "arm": kv.get("arm", "unknown"),
-                "planned_cost": planned_cost, "initial_planes": init_fleet,
+                "postbuild_capital": postbuild_capital, "initial_planes": init_fleet,
                 "choice_profit": num(chosen[1].get("profit")) if same_day else None,
                 "choice_cost": num(chosen[1].get("cost")) if same_day else None,
                 "choice_matched": same_day,
@@ -112,8 +114,10 @@ def analyse_log(lines, with_arms=False):
     counts["mature_line_years_joined"] = len(mature_per_line_year)
     counts["mature_line_years_fleet_drift"] = sum(len(b["fleet_drift_years"]) for b in builds.values())
     counts["mature_line_years_fleet_unknown"] = sum(len(b["fleet_unknown_years"]) for b in builds.values())
-    counts["builds_cost_is_quote_only"] = sum(b["planned_cost"] is not None for b in builds.values())
-    counts["observed_capex_actual"] = 0  # not emitted by AIR_BUILD
+    counts["builds_postbuild_capital_present"] = sum(
+        b["postbuild_capital"] is not None for b in builds.values()
+    )
+    counts["observed_net_infrastructure_capex"] = 0  # not separable from AIR_BUILD.cost
     counts["observed_marginal_counterfactual"] = 0  # not emitted by LINE_REVENUE
     if not with_arms:
         return dict(counts)
@@ -131,7 +135,7 @@ def analyse_log(lines, with_arms=False):
         arm["mature_line_years_fleet_count_drift"] += len(drift)
         arm["mature_line_years_fleet_count_unknown"] += len(unknown)
         arm["mature_line_years_same_fleet_count"] += len(mature - drift - unknown)
-        arm["cost_quotes_present"] += build["planned_cost"] is not None
+        arm["postbuild_capital_present"] += build["postbuild_capital"] is not None
     return dict(counts), {key: dict(value) for key, value in sorted(arms.items())}
 
 
@@ -175,7 +179,8 @@ def analyse_directory(path: Path):
         "counts": dict(sorted(totals.items())),
         "by_build_arm": {arm: dict(sorted(row.items())) for arm, row in sorted(by_arm.items())},
         "limitations": [
-            "AIR_BUILD.cost is a plan quote, not observed capital spent",
+            "AIR_BUILD.cost is post-construction capital, potentially reconciled with "
+            "AIAccounting; no isolated net infrastructure CAPEX is observed",
             "LINE_REVENUE.real_prof is whole-line profit, not an incremental counterfactual",
             "No construction-free controls or opportunity cost observations",
             "Fleet expansion/replacement confounds gross line-profit comparisons",

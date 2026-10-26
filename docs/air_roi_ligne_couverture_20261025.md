@@ -98,6 +98,21 @@ marginal d'infrastructure isolé et 0 contrefactuel** : cette correction
 de provenance ne transforme pas les données en preuve économique et
 ne change aucun effectif historique.
 
+**26/10 — correction du lecteur hôte après cet audit :**
+`sweeps/diag_air_roi_ligne_coverage.py` n'étiquette plus ce champ comme
+un « devis uniquement ». Les nouveaux rapports utilisent
+`builds_postbuild_capital_present` et, par bras,
+`postbuild_capital_present`, avec
+`observed_net_infrastructure_capex=0` (coût **non isolable**, et non
+absence de toute dépense physique). Les anciens noms
+`builds_cost_is_quote_only`, `cost_quotes_present` et
+`observed_capex_actual` sont retirés du **nouveau format** car leur
+interprétation était erronée. Le rapport archivé
+`results/air_roi_ligne_arms_40x10_20261026.json` conserve ses noms
+historiques sans être écrasé ; seuls les nouveaux rapports portent la
+provenance corrigée. Les 1 932 constructions et 1 921 lignes mûres
+restent des mesures de couverture, sans ROI marginal causal.
+
 Reproduction en choisissant un nom de fichier neuf :
 
 ```powershell

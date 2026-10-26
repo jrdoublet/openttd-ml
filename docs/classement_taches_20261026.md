@@ -38,13 +38,13 @@ pré-enregistrées restent obligatoires.
 
 | Ordre | Case | Effort / dépendance principale | Besoin de banc | Risque |
 |---:|---|---|---|---|
-| 1 | OPCODE-AILIST-2 | Moyen ; mesure tardive L1/L2 1024² absente, cache à prouver | Bloquée sur N/ops années 8–10 | Moyen |
-| 2 | Désactiver les sondes non essentielles | Moyen ; C75 opt-in défaut 0 préparé, registre bypass conservé | Smoke, micro opcodes puis B20×10 avant adoption | Moyen à élevé |
-| 3 | V286 | Moyen ; stocks/charges et quantité sortie d'industrie relevés ; livraisons par ligne inconnues | Microcoût mesuré sur 42×3 (22 000 ops), cas mixtes et effet observateur à qualifier | Moyen |
-| 4 | AIR-ROI-LIGNE-1 | Moyen à élevé ; coûts réels, flotte modifiée et témoin | Hors ligne puis expérience même-save | Moyen à élevé |
-| 5 | AIR-ROI-RENOUVELLEMENT-1 | Moyen à élevé ; V252, revente et contrefactuel | Hors ligne puis expérience même-save | Moyen à élevé |
-| 6 | DIST-BORNES-1 | Moyen à élevé ; filtres spatiaux V276/V269 et contexte tardif différé | Exposition 1024², puis porte si choix | Élevé |
-| 7 | V249a | Moyen à élevé ; demande supplémentaire captable par gare/cargo | Shadow puis expérience | Moyen à élevé |
+| 1 | OPCODE-AILIST-2 | Moyen ; étude tardive L1/L2 explicitement demandée « pour plus tard » | **Bloquée sur N et opcodes L1/L2 en années 8–10 sur 1024²** ; les variantes de sonde avaient été retirées après les rejets initiaux | Moyen |
+| 2 | Désactiver les sondes non essentielles | Moyen ; C75 annuel opt-in défaut 0 prêt, **bypass C75 et émetteurs de logs C121 encore à classifier** | Micro-opcodes puis B20×10 du seul C75 annuel ; poursuivre l'inventaire avant toute clôture globale | Moyen à élevé |
+| 3 | V286 | Moyen ; stocks, charges et quantité sortie d'industrie relevés, sans livraisons attribuées à la ligne | Microcoût 42×3 de 22 000 ops ; **événement physique par ligne/cargo**, cas mixtes et effet observateur manquants | Moyen |
+| 4 | AIR-ROI-LIGNE-1 | Moyen à élevé ; rétrospective 40 DUEL déjà close `not_identifiable`, coût net et témoin absents | Épisode pré-décision et coût d'infrastructure attribuable, puis AA/AA même-save | Moyen à élevé |
+| 5 | AIR-ROI-RENOUVELLEMENT-1 | Moyen à élevé ; rétrospective 40 DUEL déjà close `not_identifiable`, revente et témoin absents | Coût net V252 daté et fourche achat/sans achat après AA/AA même-save | Moyen à élevé |
+| 6 | DIST-BORNES-1 | Moyen à élevé ; **double filtre 201–250 tuiles fret** (grille `railMax` et `OpexRailPaxPairInBand`) et contexte V269 effacé après requête V276 différée | Exposition réelle 1024² avant correction opt-in et porte V102 si choix modifiés | Élevé |
+| 7 | V249a | Moyen à élevé ; V249s mode 2 évalue déjà gare/cargo mais captage concurrentiel non démontré | Observation au choix, témoin des gains captable et garde des doublons avant qualification | Moyen à élevé |
 
 **Lot du 26/10 après `bca3c701` :** V286 instrumenté sur cinq graines
 et trois ans (294 instantanés gare/cargo, 314 véhicules), mais la livraison
@@ -69,6 +69,33 @@ cas mixtes et qualification de l'effet observateur.
 | Ordre | Case | Effort / dépendance principale | Besoin de banc | Risque |
 |---:|---|---|---|---|
 | 8 | Mode fair_play explicite | Moyen à élevé ; audit existant, choix des comportements | Contrats niveaux et smoke, banc si comportement | Moyen à élevé |
+
+**Blocages vérifiés au HEAD `1b37fead` (26/10, sans nouvelle expérimentation) :**
+`OPCODE-AILIST-2` a rejeté L1 sur **16 appels** et L2 sur **un appel** en
+début de partie, sans tableau N/opcodes des années 8–10 sur 1024²
+(`opcode_ailist_lots_20261023.md:11-29,89-91`). Les archives 1024²
+disponibles n'ont pas été qualifiées comme mesure des variantes L1/L2 :
+ne pas fermer cette demande ni extrapoler un seuil de rentabilité. Pour
+`DIST-BORNES-1`, `candidates_v276.nut:139-145,278-280` applique deux
+barrières voyageurs même au fret ; `candidates.nut:757-770` autorise
+conditionnellement 201–250 tuiles et `orchestrator.nut:860-875` remet
+`V269_RELAXED` à faux après la requête, alors que V276 peut reprendre
+plus tard. L'effet physique et le nombre de paires perdues demeurent inconnus.
+Le classement privilégie donc le passage au dossier suivant plutôt qu'un
+verdict économique fabriqué.
+
+La tâche globale « sondes non essentielles » ne sera **pas** close par
+le seul B20×10 C75 : `C75_KPASS_BYPASS_LEDGER` est encore initialisé
+(`settings.nut:358-360`) et alimenté même hors diagnostic dans
+`task_projects.nut:1042,1235-1245` puis `probes.nut:2229-2300` ; distinguer
+ces comptes de la décision `K_pass`. Les émissions `C121_FLEET_MARGINAL`
+(`task_report.nut:61-64`) et `[FLEET_PROJECT]` (`task_projects.nut:344`)
+méritent la même vérification de pure télémétrie. Aucun de ces postes
+n'a une économie mesurée ni une qualification 20×10, et aucun réglage
+par défaut n'a changé. L'audit du `fair_play` est livré
+(`fair_play_audit_20261018.md`) ; le **choix utilisateur des comportements**
+et le réglage distinct restent absents. Le profil de difficulté existant
+ne vaut pas autorisation implicite de ce nouveau mode.
 
 ## C4 — chantiers lourds dépendants de constructions ou de séquences
 
