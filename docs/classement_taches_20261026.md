@@ -10,8 +10,8 @@ ces trois parcours sont exclus des lots à lancer.
 
 Au début du reclassement, **39 cases ouvertes** (dont quatre sous-cases
 indentées). Les lots successifs du 26/10 ont déjà clos V304, V309,
-V224, V290, V241, FRONT-PAX-1, V303, V308, PCAL-03 et AIR-FLOTTE-1 et RAIL-CAPEX-1, soit **onze cases**.
-Le reste comporte **28 cases** : 25 dossiers actionnables, trois
+V224, V290, V241, FRONT-PAX-1, V303, V308, PCAL-03 et AIR-FLOTTE-1 et RAIL-CAPEX-1 et AIR-MONOPOLY-1, soit **douze cases**.
+Le reste comporte **27 cases** : 24 dossiers actionnables, trois
 avec dépendance bloquante. Les estimations restent des **ordres de
 grandeur relatifs**, pas une promesse de calendrier. Pour tout code
 comportemental, OFF par défaut, tests/smoke/exposition et portes
@@ -23,39 +23,38 @@ pré-enregistrées restent obligatoires.
 |---:|---|---|---|---|
 | 1 | AIR-ROI-RENOUVELLEMENT-1 | Moyen ; V252 et rendement après remplacement | Hors ligne puis expérience | Moyen |
 | 2 | AIR-ROI-LIGNE-1 | Moyen ; site, flotte, capital et revenu mûr | Hors ligne puis expérience | Moyen |
-| 3 | AIR-MONOPOLY-1 | Moyen ; concurrents, fenêtre et valeur défensive | Exposition shadow, puis porte | Moyen |
-| 4 | OPCODE-AILIST-2 | Moyen ; L1/L2 retirés, inventaire d'éléments et coût de création | Mesure 1024² années 8–10 | Moyen |
-| 5 | V306 | Moyen ; modèle revenu cellule éprouvé hors graines, pas ROI causal | Ablation au choix / A-B ultérieure | Moyen à élevé |
-| 6 | DIST-BORNES-1 | Moyen à élevé ; contrats ROUTE/PASS/FRET, V276 et V269 | Relecture, smoke, porte si modification | Élevé |
-| 7 | V249a | Moyen à élevé ; demande supplémentaire captable par gare/cargo | Shadow puis expérience | Moyen à élevé |
+| 3 | OPCODE-AILIST-2 | Moyen ; L1/L2 retirés, inventaire d'éléments et coût de création | Mesure 1024² années 8–10 | Moyen |
+| 4 | V306 | Moyen ; modèle revenu cellule éprouvé hors graines, pas ROI causal | Ablation au choix / A-B ultérieure | Moyen à élevé |
+| 5 | DIST-BORNES-1 | Moyen à élevé ; contrats ROUTE/PASS/FRET, V276 et V269 | Relecture, smoke, porte si modification | Élevé |
+| 6 | V249a | Moyen à élevé ; demande supplémentaire captable par gare/cargo | Shadow puis expérience | Moyen à élevé |
 
 ## C3 — prototypes bornés nécessitant intégration et qualification
 
 | Ordre | Case | Effort / dépendance principale | Besoin de banc | Risque |
 |---:|---|---|---|---|
-| 8 | PCAL-01 | Moyen ; V289, pré-calcul utile et consommation d'un plan | 3×3 de preuve, puis porte | Moyen |
-| 9 | V294k | Moyen ; tunnels sous plateau/eau, géométrie et budgets A* | Smoke puis A rail | Élevé |
-| 10 | PO-01 | Moyen ; PO-01c, reconstructions partielles et invalidation | Traces de publication, puis A/B | Élevé |
-| 11 | Mode fair_play explicite | Moyen ; décisions V261 par niveau, compatibilité avec les profils | Contrats niveaux et smoke, banc si comportement | Moyen à élevé |
-| 12 | V250 | Moyen ; droits exclusifs limités au niveau permissif | Exposition puis A/B | Élevé |
+| 7 | PCAL-01 | Moyen ; V289, pré-calcul utile et consommation d'un plan | 3×3 de preuve, puis porte | Moyen |
+| 8 | V294k | Moyen ; tunnels sous plateau/eau, géométrie et budgets A* | Smoke puis A rail | Élevé |
+| 9 | PO-01 | Moyen ; PO-01c, reconstructions partielles et invalidation | Traces de publication, puis A/B | Élevé |
+| 10 | Mode fair_play explicite | Moyen ; décisions V261 par niveau, compatibilité avec les profils | Contrats niveaux et smoke, banc si comportement | Moyen à élevé |
+| 11 | V250 | Moyen ; droits exclusifs limités au niveau permissif | Exposition puis A/B | Élevé |
 
 ## C4 — chantiers lourds dépendants de constructions ou de séquences
 
 | Ordre | Case | Effort / dépendance principale | Besoin de banc | Risque |
 |---:|---|---|---|---|
-| 13 | IDLE-1 | Élevé ; fusion V308/V309, réserve, carte invalidable et consommateur concret | 3×10 puis A/B si exposé | Élevé |
-| 14 | V294 | Élevé ; A*, paramètres physiques et itérations | Porte RAIL, puis B | Élevé |
-| 15 | PO-02 | Élevé ; PO-01, publication/expiration de viviers | Exposition, A/B | Élevé |
-| 16 | Croissance des lignes RAIL (19/10 nuit) | Élevé ; fins de projets, garde de financement, V269/V284 | Portes rail dédiées | Élevé |
-| 17 | V240 | Élevé ; croissance urbaine retirée, devis géométrique nouveau | Démontrer activité puis A/B | Élevé |
-| 18 | V242 | Élevé ; feeders et transport multimodal | Chaînes physiques, A/B | Élevé |
-| 19 | V233 | Très élevé ; marchandises transformées, sources/débouchés et rivalité | Exposition causale, A/B | Élevé |
-| 20 | V226 | Très élevé ; réseau ferroviaire en araignée | Architecture, Save/Load, A/B | Très élevé |
-| 21 | V249b | Élevé ; marges réelles V249a et achats marginaux | A/B finance | Très élevé |
-| 22 | V249c | Élevé ; surplus durable après V249b et choix intermodaux | A/B finance | Très élevé |
-| 23 | V253 | Très élevé ; choix global d'avions, V252 et cycles de renouvellement | A/B AIR | Très élevé |
-| 24 | V251 | Très élevé ; construction d'industries et contrat économique de l'API | Exposition puis A/B | Très élevé |
-| 25 | V291 | Très élevé ; terrassement/canaux uniquement au niveau permissif | Garde de sécurité, exposition, A/B | Très élevé |
+| 12 | IDLE-1 | Élevé ; fusion V308/V309, réserve, carte invalidable et consommateur concret | 3×10 puis A/B si exposé | Élevé |
+| 13 | V294 | Élevé ; A*, paramètres physiques et itérations | Porte RAIL, puis B | Élevé |
+| 14 | PO-02 | Élevé ; PO-01, publication/expiration de viviers | Exposition, A/B | Élevé |
+| 15 | Croissance des lignes RAIL (19/10 nuit) | Élevé ; fins de projets, garde de financement, V269/V284 | Portes rail dédiées | Élevé |
+| 16 | V240 | Élevé ; croissance urbaine retirée, devis géométrique nouveau | Démontrer activité puis A/B | Élevé |
+| 17 | V242 | Élevé ; feeders et transport multimodal | Chaînes physiques, A/B | Élevé |
+| 18 | V233 | Très élevé ; marchandises transformées, sources/débouchés et rivalité | Exposition causale, A/B | Élevé |
+| 19 | V226 | Très élevé ; réseau ferroviaire en araignée | Architecture, Save/Load, A/B | Très élevé |
+| 20 | V249b | Élevé ; marges réelles V249a et achats marginaux | A/B finance | Très élevé |
+| 21 | V249c | Élevé ; surplus durable après V249b et choix intermodaux | A/B finance | Très élevé |
+| 22 | V253 | Très élevé ; choix global d'avions, V252 et cycles de renouvellement | A/B AIR | Très élevé |
+| 23 | V251 | Très élevé ; construction d'industries et contrat économique de l'API | Exposition puis A/B | Très élevé |
+| 24 | V291 | Très élevé ; terrassement/canaux uniquement au niveau permissif | Garde de sécurité, exposition, A/B | Très élevé |
 
 ## Bloquées : annoter et passer sans nouvelle expérience
 
