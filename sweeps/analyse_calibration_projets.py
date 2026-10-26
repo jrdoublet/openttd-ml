@@ -163,7 +163,10 @@ def load_campaign(path, arm=None):
         unmatched = 0
         for r in revenue:
             b = builds.get(r["line"])
-            if b is None or not r["vehs"] or r["vehs"] <= 0:
+            # A line identifier is local to the game. Never transplant a
+            # construction's distance/fleet into a different transport mode.
+            if (b is None or r["mode"] != b["mode"]
+                    or not r["vehs"] or r["vehs"] <= 0):
                 unmatched += 1
                 continue
             scale = b["n0"] / r["vehs"]

@@ -306,6 +306,38 @@ class CalibrationCampaignLoadingTest(unittest.TestCase):
         else:
             path.write_text(content, encoding="utf-8")
 
+    def test_mature_revenue_requires_the_same_mode_as_built_line(self):
+        valid = ("[0] [I] OPEX 1974-1-1 LINE_REVENUE line=3 mode=rail "
+                 "cargo=COAL year=1974 age=3 pred_rev=100 real_rev=150 vehs=2")
+        foreign_mode = ("[0] [I] OPEX 1974-1-1 LINE_REVENUE line=3 mode=air "
+                        "cargo=PASS year=1974 age=3 pred_rev=100 real_rev=900 vehs=2")
+        missing_mode = ("[0] [I] OPEX 1975-1-1 LINE_REVENUE line=3 "
+                        "cargo=COAL year=1975 age=4 pred_rev=100 real_rev=800 vehs=2")
+        build = ("[0] [I] OPEX 1971-2-1 RAIL_BUILD line=3 src=1 dst=2 "
+                 "cargo=COAL dist=100 cost=1500 trains=2")
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "reference_seed42_r0.log"
+            self.write_log(path, "\n".join((build, valid, foreign_mode, missing_mode)))
+            games = load_campaign(directory)
+        game = next(iter(games.values()))
+        self.assertEqual(len(game["rows"]), 1)
+        self.assertEqual(game["unmatched"], 2)
+        self.assertEqual(game["rows"][0]["mode"], "rail")
+        self.assertEqual(game["rows"][0]["cell"], "rail|RAW|80-160|1974-1976")
+
+    def test_legitimate_air_build_and_revenue_still_join(self):
+        build = ("[0] [I] OPEX 1971-2-1 AIR_BUILD line=4 src=1 dst=2 "
+                 "cargo=PASS dist=200 cost=1500 planes=2")
+        revenue = ("[0] [I] OPEX 1974-1-1 LINE_REVENUE line=4 mode=air "
+                   "cargo=PASS year=1974 age=3 pred_rev=100 real_rev=150 vehs=2")
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "reference_seed42_r0.log"
+            self.write_log(path, build + "\n" + revenue)
+            game = next(iter(load_campaign(directory).values()))
+        self.assertEqual(game["unmatched"], 0)
+        self.assertEqual(len(game["rows"]), 1)
+        self.assertEqual(game["rows"][0]["cell"], "air|PASS|160-250|1974-1976")
+
     def test_text_and_gzip_copies_count_as_one_game(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "reference_seed42_r0.log"
