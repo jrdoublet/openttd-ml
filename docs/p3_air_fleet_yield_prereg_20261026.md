@@ -124,3 +124,48 @@ un bilan de gain économique ou une équivalence de trajectoire.
 
 L'exposition des décisions shadow 5×5 et, si admissible, la porte A sont des
 étapes distinctes à documenter avec leurs propres bundles et résultats.
+
+## Verdict d'exposition shadow — 26/10/2026
+
+Campagne `p3_yield_expo_5x5_20261026_r1`, code propre `87931643`,
+bundle `bf263ee0d42b38eb310abb2f4f41f3f73148fc5518172625dbebceabf58b311d`,
+manifeste SHA256 `3331c72fbf4194fa81ddfcb1675aeaecebcd69a2294b5743e388ecb1890b7548`,
+même image Docker que le smoke, carte 256², 1970–1974. Bras de référence
+`air_fleet_yield_rightsize=0` et shadow `=1`, `probes=6` identique dans les
+deux bras, cinq graines **42, 100, 7, 999, 2026**. Les **5/5 paires**, soit
+dix parties, sont terminées et saines, `comparison_complete=true`,
+`metric_coverage_complete=true`, zéro `failed_runs`. Le rapport donne
+`diagnostic_only` (l'échantillon de 40 graines de A n'est pas présent).
+
+Les journaux moteur du bras shadow contiennent les événements de décision
+`P3_FLEET_YIELD stage=score` suivants :
+
+| Graine | Évaluations de portefeuille 2→3+ | Avec preuve C117 complète | `would_veto=1` |
+|---|---:|---:|---:|
+| 42 | 546 | 0 | 0 |
+| 100 | 285 | 0 | 0 |
+| 7 | 987 | 81 | 0 |
+| 999 | 577 | 0 | 0 |
+| 2026 | 427 | 40 | 0 |
+| **Total** | **2 822** | **121** | **0** |
+
+Les **121** évaluations positives pour la disponibilité de preuve sont des
+passages répétés du portefeuille, couvrant **neuf LineID dans seulement deux
+mondes** (sept graine 7, deux graine 2026), et **aucune ne franchit les quatre
+conditions simultanées** du veto conservateur. Exemple authentique, graine
+2026 le 17/05/1974 : ligne 6, deux avions, sept vols, 153 voyageurs sur
+700 sièges, marge C121 `29 260` £, `evidence=1 veto=0`.
+Il n'existe donc **aucun achat effectivement substitué par un veto observé**
+sur le chemin du portefeuille de cette cohorte ; le journal de score seul
+ne prouve pas exhaustivement l'absence d'autres opportunités hors portefeuille.
+
+Le delta `profit_year` shadow moins OFF à cinq ans vaut **+69 127,6 £/an**
+(3V/2D, Wilcoxon p=0,8125, IC95 bootstrap
+`[−105 228,6 ; +295 078,8]` £/an), chiffre **diagnostique** : le shadow
+n'applique aucun veto, donc cette différence ne constitue pas un gain P3.
+
+**Décision pré-enregistrée : NO-GO d'exposition pour P3 sous ces seuils.**
+Ne pas lancer la porte A 40×5 ni la porte B 20×10, et ne pas adapter les seuils
+aux cinq graines inspectées. Réglage laissé à `0` aux quatre difficultés.
+L'implémentation opt-in reste disponible pour un essai ultérieur avec une
+nouvelle hypothèse indépendante et une exposition suffisante.
