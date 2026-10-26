@@ -49,6 +49,62 @@ class AirLineCoverageTests(unittest.TestCase):
         self.assertEqual(got["duplicate_line_year"], 1)
         self.assertEqual(got["mature_line_years_joined"], 1)
 
+    def test_fractional_calendar_year_never_becomes_an_observed_line_year(self):
+        rows = [
+            row("1970-1-1", "AIR_BUILD", "arm=newpair line=0 planes=1 cost=10"),
+            row("1970-1-2", "AIR_BUILD", "arm=hubsite line=1 planes=1 cost=10"),
+            row("1972-1-2", "LINE_REVENUE", "mode=air line=0 age=2 year=1972.75 vehs=1 pred_prof=10 real_prof=12"),
+            row("1972-1-2", "LINE_REVENUE", "mode=air line=1 age=2 year=1972 vehs=1 pred_prof=10 real_prof=12"),
+        ]
+        totals, arms = analyse_log(rows, with_arms=True)
+        self.assertEqual(totals["mature_invalid_year"], 1)
+        self.assertEqual(totals["mature_line_years_joined"], 1)
+        self.assertEqual(arms["newpair"]["builds_without_mature_report"], 1)
+        self.assertEqual(arms["hubsite"]["mature_line_years"], 1)
+
+    def test_invalid_age_does_not_raise_or_count_as_mature(self):
+        rows = [
+            row("1970-1-1", "AIR_BUILD", "arm=newpair line=0 planes=1 cost=10"),
+            row("1972-1-2", "LINE_REVENUE", "mode=air line=0 age=NaN year=1972 vehs=1 pred_prof=10 real_prof=12"),
+            row("1972-1-2", "LINE_REVENUE", "mode=air line=0 age=1 year=1972 vehs=1 pred_prof=10 real_prof=12"),
+        ]
+        totals = analyse_log(rows)
+        self.assertEqual(totals["air_revenue_events"], 2)
+        self.assertEqual(totals["invalid_age_revenue_events"], 1)
+        self.assertEqual(totals["censored_immature_events"], 1)
+        self.assertEqual(totals["mature_line_years_joined"], 0)
+
+    def test_invalid_line_ids_never_forge_an_observed_air_line(self):
+        rows = [
+            row("1970-1-1", "AIR_BUILD", "line=oops arm=newpair planes=1 cost=10"),
+            row("1970-1-1", "AIR_BUILD", "line=-1 arm=newpair planes=1 cost=10"),
+            row("1970-1-1", "AIR_BUILD", "line=0 arm=hubsite planes=1 cost=10"),
+            row("1972-1-1", "LINE_REVENUE", "mode=air line=oops age=2 year=1972 vehs=1 pred_prof=10 real_prof=12"),
+            row("1972-1-1", "LINE_REVENUE", "mode=air line=-1 age=2 year=1972 vehs=1 pred_prof=10 real_prof=12"),
+            row("1972-1-1", "LINE_REVENUE", "mode=air line=0 age=2 year=1972 vehs=1 pred_prof=10 real_prof=12"),
+        ]
+        totals, arms = analyse_log(rows, with_arms=True)
+        self.assertEqual(totals["invalid_or_reused_line_id"], 2)
+        self.assertEqual(totals["mature_invalid_line_id"], 2)
+        self.assertEqual(totals["air_builds_distinct"], 1)
+        self.assertEqual(totals["mature_line_years_joined"], 1)
+        self.assertEqual(arms["hubsite"]["mature_line_years"], 1)
+
+    def test_noncanonical_numeric_line_alias_cannot_duplicate_identity(self):
+        rows = [
+            row("1970-1-1", "AIR_BUILD", "line=01 arm=newpair planes=1 cost=10"),
+            row("1970-1-1", "AIR_BUILD", "line=1 arm=hubsite planes=1 cost=10"),
+            row("1972-1-1", "LINE_REVENUE", "mode=air line=01 age=2 year=1972 vehs=1 pred_prof=10 real_prof=12"),
+            row("1972-1-1", "LINE_REVENUE", "mode=air line=1 age=2 year=1972.0 vehs=1 pred_prof=10 real_prof=12"),
+        ]
+        totals, arms = analyse_log(rows, with_arms=True)
+        self.assertEqual(totals["invalid_or_reused_line_id"], 1)
+        self.assertEqual(totals["mature_invalid_line_id"], 1)
+        self.assertEqual(totals["air_builds_distinct"], 1)
+        self.assertEqual(totals["mature_line_years_joined"], 1)
+        self.assertNotIn("newpair", arms)
+        self.assertEqual(arms["hubsite"]["mature_line_years"], 1)
+
     def test_build_arms_keep_maturity_and_unknown_fleet_count_separate(self):
         rows = [
             row("1970-1-1", "AIR_BUILD", "arm=newpair line=0 src=1 dst=2 planes=1 cost=900"),

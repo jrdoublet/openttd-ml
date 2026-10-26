@@ -16,11 +16,15 @@ from collections import Counter, defaultdict
 import hashlib
 import json
 from pathlib import Path
+import re
 
 try:
     from sweeps.analyse_calibration_projets import KV_RE, LINE_RE, SEED_RE, num, open_text
 except ModuleNotFoundError:
     from analyse_calibration_projets import KV_RE, LINE_RE, SEED_RE, num, open_text
+
+
+LINE_ID_RE = re.compile(r"(?:0|[1-9][0-9]*)\Z")
 
 
 def analyse_log(lines, with_arms=False):
@@ -43,7 +47,7 @@ def analyse_log(lines, with_arms=False):
         elif tag == "AIR_BUILD":
             counts["air_build_events"] += 1
             line_id = kv.get("line")
-            if line_id is None or line_id in builds:
+            if line_id is None or LINE_ID_RE.fullmatch(line_id) is None or line_id in builds:
                 counts["invalid_or_reused_line_id"] += 1
                 continue
             planned_cost = num(kv.get("cost"))
@@ -67,31 +71,38 @@ def analyse_log(lines, with_arms=False):
             }
         elif tag == "LINE_REVENUE" and kv.get("mode") == "air":
             counts["air_revenue_events"] += 1
-            age = num(kv.get("age"), -1)
+            age = num(kv.get("age"))
+            if age is None:
+                counts["invalid_age_revenue_events"] += 1
+                continue
             if age < 2:
                 counts["censored_immature_events"] += 1
                 continue
             counts["mature_revenue_events"] += 1
             line_id = kv.get("line")
+            if line_id is None or LINE_ID_RE.fullmatch(line_id) is None:
+                counts["mature_invalid_line_id"] += 1
+                continue
             if line_id not in builds:
                 counts["mature_without_build"] += 1
                 continue
             year = num(kv.get("year"))
-            if year is None:
+            if year is None or not year.is_integer():
                 counts["mature_invalid_year"] += 1
                 continue
-            key = (line_id, int(year))
+            year = int(year)
+            key = (line_id, year)
             if key in mature_per_line_year:
                 counts["duplicate_line_year"] += 1
                 continue
             mature_per_line_year[key] = True
             b = builds[line_id]
-            b["mature_years"].add(int(year))
+            b["mature_years"].add(year)
             observed_fleet = num(kv.get("vehs"))
             if observed_fleet is None or b["initial_planes"] is None:
-                b["fleet_unknown_years"].add(int(year))
+                b["fleet_unknown_years"].add(year)
             elif observed_fleet != b["initial_planes"]:
-                b["fleet_drift_years"].add(int(year))
+                b["fleet_drift_years"].add(year)
             if num(kv.get("real_prof")) is None or num(kv.get("pred_prof")) is None:
                 counts["mature_missing_profit"] += 1
     counts["air_builds_distinct"] = len(builds)
