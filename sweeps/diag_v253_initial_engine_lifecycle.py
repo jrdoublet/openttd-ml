@@ -70,10 +70,18 @@ def _rows_for_game(path):
             raise ValueError(f"AIR_BUILD ligne locale repetee : {path}, line={line}")
         by_line[line] = build
 
-    replacements = [row for row in parse_events(path) if row["type"] == "replace"]
+    v252_events = list(parse_events(path))
+    replacements = [row for row in v252_events if row["type"] == "replace"]
+    observed_build = bool(builds)
+    observed_v252 = bool(v252_events)
     first_seen = set()
     result = {
         "build_events": len(builds),
+        "air_build_marker_observed": observed_build,
+        "v252_marker_observed": observed_v252,
+        "lifecycle_coverage": ("both_markers_observed" if observed_build and observed_v252
+                               else "partial_markers_observed" if observed_build or observed_v252
+                               else "unknown_no_markers"),
         "distinct_built_lines": len(by_line),
         "builds_missing_line": sum(row["line"] is None for row in builds),
         "builds_missing_engine": sum(row["engine"] is None for row in builds),
@@ -177,6 +185,17 @@ def analyze(inputs):
              "repeat": game["repeat"], **row}
             for game in selected for row in game["first_replacement_disagreements"]
         ]
+        summed["games_with_both_lifecycle_markers"] = sum(
+            game["lifecycle_coverage"] == "both_markers_observed" for game in selected)
+        summed["games_with_partial_lifecycle_markers"] = sum(
+            game["lifecycle_coverage"] == "partial_markers_observed" for game in selected)
+        summed["games_without_lifecycle_markers"] = sum(
+            game["lifecycle_coverage"] == "unknown_no_markers" for game in selected)
+        summed["lifecycle_coverage"] = (
+            "unknown" if summed["games_without_lifecycle_markers"] == len(selected)
+            else "partial" if (summed["games_without_lifecycle_markers"] or
+                                   summed["games_with_partial_lifecycle_markers"])
+            else "both_markers_observed")
         by_arm[arm] = {"logical_games": len(selected), **summed}
     return {
         "scope": "observed AIR_BUILD to first subsequent V252_REPLACE per game-line; descriptive only",
@@ -191,6 +210,8 @@ def analyze(inputs):
             "Elapsed calendar days to first logged replacement describe observed transactions, "
             "not engine longevity or a replacement profit effect.",
             "Local line IDs are never matched across different games, arms or repeats.",
+            "No AIR_BUILD or V252 marker in a log means instrumentation is unknown, "
+            "not evidence that no AIR lines or replacements existed.",
         ],
     }
 

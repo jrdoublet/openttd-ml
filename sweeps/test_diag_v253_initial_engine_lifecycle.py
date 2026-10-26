@@ -138,6 +138,44 @@ class V253EngineLifecycleTests(unittest.TestCase):
         self.assertEqual(row["replacement_events"], 0)
         self.assertEqual(row["build_events"], 0)
 
+    def test_uninstrumented_active_game_has_unknown_lifecycle_coverage(self):
+        path = self.write("reference_seed42_r0.log",
+                          "[0] [I] OPEX 1971-1-1 AIR_LINE_REVENUE line=9 profit=1000\n")
+        report = analyze([path])
+        game = report["games"][0]
+        self.assertEqual(game["build_events"], 0)
+        self.assertEqual(game["replacement_events"], 0)
+        self.assertFalse(game["air_build_marker_observed"])
+        self.assertFalse(game["v252_marker_observed"])
+        self.assertEqual(game["lifecycle_coverage"], "unknown_no_markers")
+        self.assertEqual(report["by_arm"]["reference"]["lifecycle_coverage"], "unknown")
+
+    def test_observed_creation_and_v252_skip_are_both_markers_without_replacement(self):
+        path = self.write("reference_seed42_r0.log", build() +
+                          "[0] [I] OPEX 1974-1-1 V252_SKIP reason=loan\n")
+        report = analyze([path])
+        game = report["games"][0]
+        self.assertEqual(game["build_events"], 1)
+        self.assertEqual(game["replacement_events"], 0)
+        self.assertTrue(game["v252_marker_observed"])
+        self.assertEqual(game["lifecycle_coverage"], "both_markers_observed")
+        self.assertEqual(report["by_arm"]["reference"]["lifecycle_coverage"],
+                         "both_markers_observed")
+
+    def test_mixed_instrumented_and_uninstrumented_games_are_partial(self):
+        self.write("reference_seed42_r0.log", build() + replace())
+        self.write("reference_seed7_r0.log", "[0] [I] OPEX 1971-1-1 C121_HUB_DELAY n=1\n")
+        self.write("reference_seed100_r0.log", build(line=4))
+        report = analyze([self.root])
+        arm = report["by_arm"]["reference"]
+        self.assertEqual(arm["logical_games"], 3)
+        self.assertEqual(arm["build_events"], 2)
+        self.assertEqual(arm["replacement_events"], 1)
+        self.assertEqual(arm["games_with_both_lifecycle_markers"], 1)
+        self.assertEqual(arm["games_with_partial_lifecycle_markers"], 1)
+        self.assertEqual(arm["games_without_lifecycle_markers"], 1)
+        self.assertEqual(arm["lifecycle_coverage"], "partial")
+
 
 if __name__ == "__main__":
     unittest.main()
