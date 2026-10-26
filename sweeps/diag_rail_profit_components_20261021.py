@@ -24,6 +24,7 @@ REPORT = ROOT / "docs/diag_rail_profit_components_20261021.md"
 LOG = re.compile(r"\[0\] \[.\] OPEX (\d+)-(\d+)-(\d+) (\S+) (.*)$")
 KV = re.compile(r"(\w+)=(\S+)")
 SEED = re.compile(r"_seed(\d+)_r(\d+)\.log(?:\.gz)?$")
+LINE_ID = re.compile(r"(?:0|[1-9][0-9]*)\Z")
 CUTS = (90, 127, 172)
 PRIOR = 50
 MIN_CELL = 10
@@ -95,6 +96,9 @@ def parse_game(lines, seed):
             if line is None:
                 counts["build_missing_id"] += 1
                 continue
+            if LINE_ID.fullmatch(line) is None:
+                counts["build_invalid_line_id"] += 1
+                continue
             candidates = selected.get((kv.get("src"), kv.get("dst")), [])
             same = [x for _, x in candidates if x.get("cargo") == kv.get("cargo")]
             chosen = same[-1] if same else (candidates[-1][1] if candidates else None)
@@ -121,12 +125,16 @@ def parse_game(lines, seed):
                 counts["immature"] += 1
                 continue
             line = kv.get("line")
+            if line is None or LINE_ID.fullmatch(line) is None:
+                counts["revenue_invalid_line_id"] += 1
+                continue
             if line not in builds:
                 counts["revenue_no_build"] += 1
                 continue
             yr = number(kv.get("year"))
             vehs = number(kv.get("vehs"))
-            if yr is None or vehs is None or vehs <= 0 or not builds[line]["n0"] or builds[line]["n0"] <= 0:
+            if (yr is None or not yr.is_integer() or vehs is None or vehs <= 0
+                    or not builds[line]["n0"] or builds[line]["n0"] <= 0):
                 counts["revenue_bad_vehicle_or_year"] += 1
                 continue
             keys = ("pred_rev", "real_rev", "pred_run", "real_run", "pred_prof", "real_prof")

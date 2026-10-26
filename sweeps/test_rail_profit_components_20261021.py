@@ -51,6 +51,55 @@ class ProfitComponentsTests(unittest.TestCase):
         self.assertEqual(rows[0]['real_prof'],-100)
         self.assertIsNone(rows[0]['roi_pred'])
 
+    def test_fractional_year_is_not_joined_to_an_existing_line_year(self):
+        lines = [
+            event("1970-1-1", "RAIL_BUILD",
+                  "line=4 cargo=COAL src=1 dst=2 dist=80 cost=1000 trains=1"),
+            event("1972-1-1", "LINE_REVENUE",
+                  "line=4 mode=rail year=1972.75 age=2 vehs=1 pred_rev=100 "
+                  "real_rev=100 pred_run=20 real_run=20 pred_prof=80 real_prof=80"),
+            event("1972-1-1", "LINE_REVENUE",
+                  "line=4 mode=rail year=1972 age=2 vehs=1 pred_rev=100 "
+                  "real_rev=100 pred_run=20 real_run=20 pred_prof=80 real_prof=80"),
+        ]
+        rows, counts = parse_game(lines, 42)
+        self.assertEqual(counts["revenue_bad_vehicle_or_year"], 1)
+        self.assertEqual(counts["mature_usable_line_years"], 1)
+        self.assertEqual(rows[0]["years"], 1)
+
+    def test_invalid_line_numbers_cannot_forge_mature_rail_line(self):
+        lines = [
+            event("1970-1-1", "RAIL_BUILD",
+                  "line=oops cargo=COAL src=1 dst=2 dist=80 cost=1000 trains=1"),
+            event("1970-1-1", "RAIL_BUILD",
+                  "line=01 cargo=COAL src=1 dst=2 dist=80 cost=1000 trains=1"),
+            event("1972-1-1", "LINE_REVENUE",
+                  "line=oops mode=rail year=1972 age=2 vehs=1 pred_rev=100 "
+                  "real_rev=100 pred_run=20 real_run=20 pred_prof=80 real_prof=80"),
+            event("1972-1-1", "LINE_REVENUE",
+                  "line=01 mode=rail year=1972 age=2 vehs=1 pred_rev=100 "
+                  "real_rev=100 pred_run=20 real_run=20 pred_prof=80 real_prof=80"),
+        ]
+        rows, counts = parse_game(lines, 42)
+        self.assertEqual(counts["build_invalid_line_id"], 2)
+        self.assertEqual(counts["revenue_invalid_line_id"], 2)
+        self.assertEqual(counts["mature_usable_line_years"], 0)
+        self.assertEqual(rows, [])
+
+    def test_canonical_zero_line_and_integral_float_year_remain_valid(self):
+        lines = [
+            event("1970-1-1", "RAIL_BUILD",
+                  "line=0 cargo=COAL src=1 dst=2 dist=80 cost=1000 trains=1"),
+            event("1972-1-1", "LINE_REVENUE",
+                  "line=0 mode=rail year=1972.0 age=2 vehs=1 pred_rev=100 "
+                  "real_rev=100 pred_run=20 real_run=20 pred_prof=80 real_prof=80"),
+        ]
+        rows, counts = parse_game(lines, 42)
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["line"], "0")
+        self.assertEqual(rows[0]["years"], 1)
+        self.assertEqual(counts.get("revenue_bad_vehicle_or_year", 0), 0)
+
     def test_shrinkage_sign_and_rank_ties(self):
         sample=[]
         for i in range(30):
