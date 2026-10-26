@@ -171,6 +171,57 @@ class TestAnalyseFullRegenCost(unittest.TestCase):
                     self.assertEqual(main(), 0)
             self.assertEqual(json.loads(output.read_text(encoding="utf-8"))["total_ops"], 123)
 
+    def test_missing_requested_log_cannot_publish_partial_opcode_total(self) -> None:
+        event = ("OPEX 1972-1-2 C76_REGEN phase=regen kind=full "
+                 "reason=periodic year=1972 ops=123 days=1\n")
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            valid = root / "reference_seed42_r0.log"
+            missing = root / "reference_seed7_r0.log"
+            output = root / "misleading.json"
+            valid.write_text(event, encoding="utf-8")
+            with patch.object(sys, "argv", ["analyse_full_regen_cost.py", str(valid),
+                                            str(missing), "--out", str(output)]):
+                with contextlib.redirect_stderr(io.StringIO()) as errors:
+                    with self.assertRaises(SystemExit) as raised:
+                        main()
+            self.assertEqual(raised.exception.code, 2)
+            self.assertIn("chemin de journal introuvable", errors.getvalue())
+            self.assertFalse(output.exists())
+
+    def test_empty_requested_directory_cannot_be_hidden_by_valid_logs(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            valid = root / "reference_seed42_r0.log"
+            valid.write_text("", encoding="utf-8")
+            empty = root / "missing_seed_logs"
+            empty.mkdir()
+            with self.assertRaisesRegex(ValueError, "aucun journal dans le dossier"):
+                collect_log_paths([str(valid), str(empty)])
+
+    def test_corrupt_gzip_cannot_be_skipped_from_requested_campaign(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            valid = root / "reference_seed42_r0.log"
+            corrupt = root / "reference_seed7_r0.log.gz"
+            valid.write_text("OPEX 1972-1-2 C76_REGEN phase=regen kind=full "
+                             "reason=periodic year=1972 ops=123 days=1\n", encoding="utf-8")
+            corrupt.write_bytes(b"not a gzip journal")
+            with self.assertRaisesRegex(ValueError, "journal illisible"):
+                parse_log_files(collect_log_paths([directory]))
+
+    def test_log_removed_after_discovery_cannot_make_partial_report(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            first = root / "reference_seed42_r0.log"
+            second = root / "reference_seed7_r0.log"
+            first.write_text("", encoding="utf-8")
+            second.write_text("", encoding="utf-8")
+            discovered = collect_log_paths([directory])
+            second.unlink()
+            with self.assertRaisesRegex(ValueError, "journal indisponible"):
+                parse_log_files(discovered)
+
     def test_parse_log_line_formats(self) -> None:
         # Ligne 1 : Reconstruction périodique annuelle C78 découpée terminée à l'application
         line1 = "[2026-10-12 14:26:20] dbg: [script:4] [0] [I] OPEX 1951-1-3 C76_REGEN phase=regen kind=full reason=periodic year=1951 days=28 days_since_prev=0 ops=254120 towns_n=40"

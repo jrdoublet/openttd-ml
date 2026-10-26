@@ -62,7 +62,7 @@ def parse_log_files(paths: List[Path], kind_filter: Optional[str] = "full") -> L
     events: List[Dict[str, Any]] = []
     for path in paths:
         if not path.is_file():
-            continue
+            raise ValueError(f"journal indisponible : {path}")
         try:
             opener = gzip.open if path.suffix == ".gz" else open
             with opener(path, "rt", encoding="utf-8", errors="replace") as f:
@@ -73,8 +73,8 @@ def parse_log_files(paths: List[Path], kind_filter: Optional[str] = "full") -> L
                             rec["source_file"] = str(path)
                             rec["line_no"] = line_no
                             events.append(rec)
-        except OSError as e:
-            sys.stderr.write(f"Avertissement : impossible de lire {path}: {e}\n")
+        except (OSError, EOFError) as e:
+            raise ValueError(f"journal illisible : {path}: {e}") from e
     return events
 
 
@@ -184,12 +184,15 @@ def collect_log_paths(inputs: List[str]) -> List[Path]:
         if p.is_file():
             collected.append(p)
         elif p.is_dir():
+            start = len(collected)
             for root, _, files in os.walk(p):
                 for f in files:
                     if f.endswith((".log", ".log.gz")) or "engine" in f:
                         collected.append(Path(root) / f)
+            if len(collected) == start:
+                raise ValueError(f"aucun journal dans le dossier demande : {inp}")
         else:
-            sys.stderr.write(f"Avertissement : chemin introuvable : {inp}\n")
+            raise ValueError(f"chemin de journal introuvable : {inp}")
     def decompressed_digest(path: Path) -> str:
         digest = hashlib.sha256()
         opener = gzip.open if path.suffix == ".gz" else open
@@ -245,13 +248,12 @@ def main() -> int:
     if args.out and Path(args.out).exists():
         parser.error(f"refuse d'ecraser un resultat existant : {args.out}")
 
-    paths = collect_log_paths(args.inputs)
-    if not paths:
-        sys.stderr.write("Erreur : aucun fichier de journal trouvé.\n")
-        return 1
-
     kind_filter = None if args.kind == "all" else args.kind
-    events = parse_log_files(paths, kind_filter=kind_filter)
+    try:
+        paths = collect_log_paths(args.inputs)
+        events = parse_log_files(paths, kind_filter=kind_filter)
+    except (OSError, ValueError) as exc:
+        parser.error(str(exc))
     summary = aggregate_events(events)
 
     text_report = format_text_summary(summary, kind_filter=kind_filter)
