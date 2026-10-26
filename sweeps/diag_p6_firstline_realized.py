@@ -284,6 +284,44 @@ def _check_manifest(logs, snapshots, games, provenance, manifest=None):
     return True, str(selected)
 
 
+def _check_manifest_anchor(snapshots, manifest_path, provenance, result=None):
+    """Match manifest bytes to a separate frozen campaign result when present.
+
+    A structurally valid manifest can still have been replaced in place. The
+    adjacent campaign JSON records its original SHA256; archives without that
+    record have an unknown checksum status rather than a claimed match.
+    """
+    selected = Path(result) if result is not None else Path(snapshots).with_suffix(".json")
+    if not selected.is_file():
+        if result is not None:
+            raise ValueError(f"result explicitly requested but missing: {selected}")
+        return None, None
+    if manifest_path is None:
+        return None, None
+    try:
+        with selected.open("r", encoding="utf-8") as stream:
+            source = json.load(stream)
+        if not isinstance(source, dict):
+            raise ValueError("result must be an object")
+        if (source.get("campaign_id") != provenance[0]
+                or source.get("source_bundle_sha256") != provenance[1]
+                or source.get("policy_id") != provenance[2]
+                or not isinstance(source.get("manifest_path"), str)
+                or PurePosixPath(source["manifest_path"]).name != Path(manifest_path).name):
+            raise ValueError("result campaign, bundle, policy or manifest path mismatch")
+        expected = source.get("manifest_sha256")
+        if expected is None:
+            return None, str(selected)
+        if not isinstance(expected, str) or re.fullmatch(r"[0-9a-f]{64}", expected) is None:
+            raise ValueError("invalid manifest SHA256 in campaign result")
+        actual = hashlib.sha256(Path(manifest_path).read_bytes()).hexdigest()
+        if actual != expected:
+            raise ValueError(f"manifest SHA256 mismatch (expected {expected}, actual {actual})")
+    except (OSError, KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
+        raise ValueError(f"invalid or conflicting campaign result {selected}: {exc}") from exc
+    return True, str(selected)
+
+
 def _ranks(values):
     result = [0] * len(values)
     ordered = sorted(range(len(values)), key=lambda position: values[position])
@@ -352,13 +390,15 @@ def _fleet_id_cohorts(rows):
     }
 
 
-def analyze(logs, snapshots, expected_games=40, manifest=None):
+def analyze(logs, snapshots, expected_games=40, manifest=None, result=None):
     games = collect_builds(logs)
     if len(games) != expected_games:
         raise ValueError(f"expected {expected_games} independent games; found {len(games)}")
     measured, first, provenance = read_snapshots(snapshots, games)
     manifest_verified, manifest_path = _check_manifest(
         logs, snapshots, games, provenance, manifest)
+    manifest_sha256_verified, result_path = _check_manifest_anchor(
+        snapshots, manifest_path, provenance, result)
     details, cohorts = [], defaultdict(list)
     for (seed, repetition), entry in sorted(games.items()):
         baseline = first.get((seed, repetition))
@@ -393,6 +433,8 @@ def analyze(logs, snapshots, expected_games=40, manifest=None):
         },
         "provenance_manifest_verified": manifest_verified,
         "provenance_manifest_path": manifest_path,
+        "provenance_manifest_sha256_verified": manifest_sha256_verified,
+        "provenance_result_path": result_path,
         "games": len(games),
         "years": {str(year): _statistics(cohorts[year], len(games)) for year in YEARS},
         "fleet_id_cohorts_by_year": {
@@ -414,6 +456,9 @@ def analyze(logs, snapshots, expected_games=40, manifest=None):
             "Manifest checks campaign, bundle, declared paths and game identities when "
             "available, but does not hash individual engine logs; an in-place replacement "
             "under the declared name cannot be detected from this manifest.",
+            "When the frozen campaign result provides manifest_sha256, manifest bytes "
+            "are checked against that separate anchor; without it checksum verification "
+            "is unknown, and changing both artifacts together remains undetectable.",
             "Without a manifest the campaign origin of engine logs is unverified.",
         ],
     }
@@ -425,13 +470,15 @@ def main(argv=None):
     parser.add_argument("--snapshots", required=True, type=Path)
     parser.add_argument("--manifest", type=Path,
                         help="optional frozen campaign manifest; autodetected next to snapshots")
+    parser.add_argument("--result", type=Path,
+                        help="optional frozen campaign JSON; autodetected next to snapshots")
     parser.add_argument("--expected-games", type=int, default=40)
     args = parser.parse_args(argv)
     try:
         if args.expected_games < 1:
             raise ValueError("expected-games must be positive")
         output = analyze(args.logs, args.snapshots, args.expected_games,
-                         manifest=args.manifest)
+                         manifest=args.manifest, result=args.result)
     except (OSError, ValueError, EOFError, json.JSONDecodeError) as exc:
         parser.error(str(exc))
     print(json.dumps(output, ensure_ascii=False, indent=2, allow_nan=False))

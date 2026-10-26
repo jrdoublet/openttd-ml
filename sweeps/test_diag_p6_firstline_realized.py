@@ -2,6 +2,7 @@
 
 import contextlib
 import gzip
+import hashlib
 import io
 import json
 from pathlib import Path
@@ -87,6 +88,54 @@ class FirstlineContracts(unittest.TestCase):
         path = self.snapshots.with_suffix(".manifest.json")
         path.write_text(json.dumps(manifest), encoding="utf-8")
         return path
+
+    def write_result(self, manifest_sha256=None, **changes):
+        result = {
+            "campaign_id": CAMPAIGN, "source_bundle_sha256": "a" * 64,
+            "policy_id": "air_defaults",
+            "manifest_path": "/work/results/snapshots.manifest.json",
+        }
+        if manifest_sha256 is not None:
+            result["manifest_sha256"] = manifest_sha256
+        result.update(changes)
+        path = self.snapshots.with_suffix(".json")
+        path.write_text(json.dumps(result), encoding="utf-8")
+        return path
+
+    def test_manifest_hash_agrees_with_frozen_campaign_result(self):
+        self.log(42)
+        self.write_snapshots([snapshot(42, "1971-01-01")])
+        manifest = self.write_manifest()
+        expected = hashlib.sha256(manifest.read_bytes()).hexdigest()
+        result = self.write_result(expected)
+        report = analyze(self.logs, self.snapshots, 1)
+        self.assertTrue(report["provenance_manifest_verified"])
+        self.assertTrue(report["provenance_manifest_sha256_verified"])
+        self.assertEqual(report["provenance_result_path"], str(result))
+
+    def test_manifest_with_changed_configuration_rejected_by_frozen_sha(self):
+        self.log(42)
+        self.write_snapshots([snapshot(42, "1971-01-01")])
+        manifest = self.write_manifest()
+        self.write_result(hashlib.sha256(manifest.read_bytes()).hexdigest())
+        changed = json.loads(manifest.read_text(encoding="utf-8"))
+        changed["configuration"] = {"map_size": 10, "starting_year": 1980}
+        manifest.write_text(json.dumps(changed), encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "manifest SHA256 mismatch"):
+            analyze(self.logs, self.snapshots, 1)
+
+    def test_absent_or_invalid_result_anchor_is_explicit(self):
+        self.log(42)
+        self.write_snapshots([snapshot(42, "1971-01-01")])
+        self.write_manifest()
+        self.assertIsNone(analyze(self.logs, self.snapshots, 1)["provenance_manifest_sha256_verified"])
+        self.write_result()
+        self.assertIsNone(analyze(self.logs, self.snapshots, 1)["provenance_manifest_sha256_verified"])
+        self.write_result("not-a-sha256")
+        with self.assertRaisesRegex(ValueError, "invalid manifest SHA256"):
+            analyze(self.logs, self.snapshots, 1)
+        with self.assertRaisesRegex(ValueError, "result explicitly requested but missing"):
+            analyze(self.logs, self.snapshots, 1, result=self.root / "missing.json")
 
     def test_manifest_binds_real_campaign_paths_bundle_and_game(self):
         self.log(42)
