@@ -8,11 +8,13 @@ const V233L_MAX_AGE = 3;
 const V233L_MAX_FACTORIES = 64;
 const V233L_SLICE_OPS = 20000;
 const V233L_TOWNS = 8;
-/* Cache reconstructible, jamais sauvegarde : curseurs et preuves revalidees.
- * Cle par extremite/cargo/longueur/type de rail ; aucun plan partage mutable. */
+/* Curseurs sauvegardes par paire/geometrie. Seuls les indices des plans sont
+ * gardes : toute preuve physique est recalculee avant admission/construction. */
 V233L_SITE_CACHE <- {};
 V233L_JOIN_CURSOR <- {};
 const V233L_SITE_CACHE_MAX = 128;
+const V233L_SITE_TOTAL_OPS = 240000;
+const V233L_JOIN_TOTAL_OPS = 80000;
 
 function OpexV233LIs(candidate)
 {
@@ -27,7 +29,7 @@ function OpexV233LLog(event, fields)
 
 function OpexV233LNewState()
 {
-  return { month = -1, cursor = 0, rows = {}, growth = {}, pending = null };
+  return { month = -1, cursor = 0, rows = {}, growth = {}, pending = null, sites = V233L_SITE_CACHE };
 }
 
 function OpexV233LGoodCargo()
@@ -253,16 +255,8 @@ function OpexV233LPlatformPlans(catalog, candidate, phase = "build")
   /* Quai pour la rame initiale, sans la marge de croissance facultative.
    * Ne jamais raccourcir en dessous des wagons promis au portefeuille. */
   local length = OpexRailPlatformLengthForWagons(candidate.wagons);
-  local scanA = OpexV233LSiteSearch(candidate.src, length, candidate.cargo, catalog.railCoverage, true);
-  local scanB = OpexV233LSiteSearch(candidate.dst, length, candidate.cargo, catalog.railCoverage, false);
+  local scanA = OpexV233LSiteSearch(candidate.src, length, candidate.cargo, catalog.railCoverage, true, null, candidate);
   local plansA = scanA.plans;
-  local plansB = scanB.plans;
-  /* Un scan censure doit reprendre avant de conclure a l'echec urbain. */
-  if (plansB.len() == 0 && scanB.reason == "exhausted") {
-    if (DECISION_LOG) OpexV233LSiteLog(candidate, scanB, "B", phase + "_town");
-    scanB = OpexV233LJoinSearch(candidate, length, catalog.railCoverage, phase);
-    plansB = scanB.plans;
-  }
   foreach (p in plansA) {
       if (!OpexV233LTouches(p, industry, true, catalog.railCoverage)) continue;
       local station = candidate.v233InputStation;
@@ -279,6 +273,22 @@ function OpexV233LPlatformPlans(catalog, candidate, phase = "build")
       }
       if (shared) p.stationId <- station;
   }
+  /* Chemin court en premier, meme si le scan urbain est encore censure.
+   * Chaque recherche garde son curseur ; un aeroport difficile ne bloque pas
+   * le scan urbain, et reciproquement. */
+  local joined = OpexV233LJoinSearch(candidate, length, catalog.railCoverage, phase + "_first");
+  local compatible = plansA.len() == 0;
+  foreach (p in plansA) foreach (q in joined.plans) {
+    local distance = AIMap.DistanceManhattan(OpexV233LTariffTile(p), OpexV233LTariffTile(q));
+    if (distance >= 150 && distance <= 300) compatible = true;
+  }
+  local scanB = joined;
+  if (joined.plans.len() == 0 || !compatible)
+    scanB = OpexV233LSiteSearch(candidate.dst, length, candidate.cargo, catalog.railCoverage, false, null, candidate);
+  if (!compatible && joined.plans.len() > 0 && DECISION_LOG)
+    OpexV233LLog("SITE_B_JOIN", "src=" + candidate.src + " dst=" + candidate.dst
+        + " phase=" + phase + " ok=0 reason=distance");
+  local plansB = scanB.plans;
   /* Ne pas publier une paire hors de la fenetre tarifaire apres deplacement. */
   local validA = [], validB = [];
   foreach (p in plansA) {
@@ -293,13 +303,17 @@ function OpexV233LPlatformPlans(catalog, candidate, phase = "build")
     if (validB.len() > 0) { validA.append(p); break; }
   }
   local ok = validA.len() > 0 && validB.len() > 0;
-  local pending = scanA.reason == "budget" || scanB.reason == "budget";
-  local reason = ok ? "OK" : (pending ? "SITE_BUDGET" : (plansA.len() > 0 && plansB.len() > 0 ? "DISTANCE"
-      : OpexRailSiteReason(plansA.len() > 0, plansB.len() > 0)));
+  local pending = !ok && (scanA.reason == "budget" || scanB.reason == "budget"
+      || (plansB.len() == 0 && joined.reason == "budget"));
+  local limited = scanA.reason == "total_budget" || scanB.reason == "total_budget"
+      || scanA.reason == "capacity" || scanB.reason == "capacity"
+      || (plansB.len() == 0 && (joined.reason == "total_budget" || joined.reason == "capacity"));
+  local reason = ok ? "OK" : (pending ? "SITE_PENDING" : (limited ? "SITE_LIMIT"
+      : (plansA.len() > 0 && plansB.len() > 0 ? "DISTANCE" : OpexRailSiteReason(plansA.len() > 0, plansB.len() > 0))));
   if (DECISION_LOG) {
     OpexV233LSiteLog(candidate, scanA, "A", phase);
     OpexV233LSiteLog(candidate, scanB, "B", phase);
-    if (!ok) OpexV233LLog("REJECT", "src=" + candidate.src + " dst=" + candidate.dst
+    if (!ok) OpexV233LLog(pending ? "SITE_WAIT" : "REJECT", "src=" + candidate.src + " dst=" + candidate.dst
         + " reason=" + reason + " phase=" + phase + " site_a=" + scanA.reason + " site_b=" + scanB.reason);
   }
   return { plansA = ok ? validA : null, plansB = ok ? validB : null, length = length, slopeRelaxed = 0,
@@ -316,7 +330,7 @@ function OpexV233LPreflight(catalog, candidate)
 function OpexV233LSiteStats()
 {
   return { nClear = 0, nCargo = 0, nCmd = 0, terrain = 0, acceptance = 0,
-    parallel = 0, authority = 0, native = 0, catchment = 0, spread = 0, error = 0 };
+    parallel = 0, authority = 0, native = 0, catchment = 0, spread = 0, error = 0, earlyAcceptance = 0 };
 }
 
 /* Coordonnees explicites : pas de retour a la ligne aux bords de carte. */
@@ -342,6 +356,10 @@ function OpexV233LSiteProbe(anchor, length, axis, sign, side, cargo, coverage, p
   local direction = axis == 0 ? AIRail.RAILTRACK_NE_SW : AIRail.RAILTRACK_NW_SE;
   local anchor2 = OpexV233LOffset(anchor, uy * side, ux * side);
   if (anchor2 < 0) { stats.parallel++; return null; }
+  local first = anchor < anchor2 ? anchor : anchor2;
+  local last = OpexV233LOffset(anchor > anchor2 ? anchor : anchor2, ux * (length - 1), uy * (length - 1));
+  if (last < 0) { stats.terrain++; return null; }
+  if (host != null && !OpexV233LJoinFits(host, first, last)) { stats.spread++; return null; }
   local exitIndex = sign > 0 ? length - 1 : 0;
   local leadIndex = sign > 0 ? length : -1;
   local lead = OpexV233LOffset(anchor, ux * leadIndex, uy * leadIndex);
@@ -360,9 +378,6 @@ function OpexV233LSiteProbe(anchor, length, axis, sign, side, cargo, coverage, p
   if ((producing && (value <= 0 || !OpexV233LTouches(p, industry, true, coverage)))
       || (!producing && value < 8)) { stats.acceptance++; return null; }
   stats.nCargo++;
-  local first = anchor < anchor2 ? anchor : anchor2;
-  local last = (anchor > anchor2 ? anchor : anchor2) + (length - 1) * step;
-  if (host != null && !OpexV233LJoinFits(host, first, last)) { stats.spread++; return null; }
   if (OPEX_LEVEL_LIMITS && !OpexLevelAllows("encroach_rival_catchment")
       && OpexStationEncroachesRival(AIMap.GetTileX(first), AIMap.GetTileY(first),
           AIMap.GetTileX(last), AIMap.GetTileY(last), coverage)) {
@@ -392,7 +407,7 @@ function OpexV233LSiteProbe(anchor, length, axis, sign, side, cargo, coverage, p
 /* Anneaux sans reparcourir leur interieur. Chaque cote a son propre budget,
  * son curseur (anneau, position, geometrie) et sa preuve de fin de recherche.
  * Un budget epuise n'est jamais une preuve d'absence de gare. */
-function OpexV233LSiteSearch(center, length, cargo, coverage, producing, host = null)
+function OpexV233LSiteSearch(center, length, cargo, coverage, producing, host = null, pair = null)
 {
   local mark = OpexOpsMeasureBegin();
   if (producing) {
@@ -403,21 +418,34 @@ function OpexV233LSiteSearch(center, length, cargo, coverage, producing, host = 
   local now = AIDate.GetCurrentDate();
   local key = center + ":" + length + ":" + cargo + ":" + coverage + ":" + (producing ? 1 : 0)
       + ":" + AIRail.GetCurrentRailType();
-  local radius = host == null ? STATION_SEARCH_RADIUS : host.spread;
+  if (pair != null) key += ":pair:" + pair.src + ":" + pair.dst;
+  local radius = host == null ? STATION_SEARCH_RADIUS : host.spread / 2;
   if (host != null) key += ":join:" + host.station + ":" + host.left + ":" + host.top
       + ":" + host.right + ":" + host.bottom + ":" + host.spread;
+  local action = "start";
   if (key in V233L_SITE_CACHE) {
     local old = V233L_SITE_CACHE[key];
-    if (now < old.used || now - old.used > 60 || (old.done && now - old.date > 30)) delete V233L_SITE_CACHE[key];
+    /* Jamais de TTL sur une recherche en attente ni sur un indice positif.
+     * Un plafond total reste censure, avec delai de 180 jours avant nouvel essai. */
+    if (now < old.used || (old.done && old.hints.len() == 0
+        && now - old.date > (old.limited ? 180 : 30))) delete V233L_SITE_CACHE[key];
+    else action = old.done ? "cached" : "continue";
   }
   if (!(key in V233L_SITE_CACHE)) {
     if (V233L_SITE_CACHE.len() >= V233L_SITE_CACHE_MAX) {
       local oldest = null, date = now + 1;
-      foreach (k, entry in V233L_SITE_CACHE) if (entry.used < date) { oldest = k; date = entry.used; }
+      foreach (k, entry in V233L_SITE_CACHE) if (entry.done && entry.used < date) { oldest = k; date = entry.used; }
       if (oldest != null) delete V233L_SITE_CACHE[oldest];
+      else return { plans = [], stats = OpexV233LSiteStats(), reason = "capacity",
+        ring = 0, ops = OpexOpsMeasureEnd(mark), length = length };
     }
     V233L_SITE_CACHE[key] <- { ring = 0, pos = 0, geometry = 0, done = false,
-      date = now, used = now, stats = OpexV233LSiteStats(), hints = [] };
+      date = now, used = now, stats = OpexV233LSiteStats(), hints = [],
+      total = 0, slices = 0, limited = false, worked = -1,
+      center = center, length = length, cargo = cargo, coverage = coverage, producing = producing,
+      station = host == null ? -1 : host.station, railType = AIRail.GetCurrentRailType(),
+      src = pair == null ? center : pair.src, dst = pair == null ? center : pair.dst,
+      dstTown = pair == null ? -1 : pair.dstTown };
   }
   local scan = V233L_SITE_CACHE[key];
   scan.used = now;
@@ -433,12 +461,18 @@ function OpexV233LSiteSearch(center, length, cargo, coverage, producing, host = 
   if (scan.hints.len() > 0 && plans.len() == 0) {
     scan.hints.clear(); scan.done = false; scan.ring = 0; scan.pos = 0; scan.geometry = 0;
     scan.stats = OpexV233LSiteStats();
+    scan.total = 0; scan.slices = 0; scan.limited = false; action = "invalidate";
   }
-  while (plans.len() < 4 && !scan.done && OpexOpsMeasureEnd(mark) < V233L_SLICE_OPS) {
+  local totalLimit = host == null ? V233L_SITE_TOTAL_OPS : V233L_JOIN_TOTAL_OPS;
+  local startRing = scan.ring, startPos = scan.pos, startGeometry = scan.geometry;
+  while (plans.len() < 4 && !scan.done && OpexOpsMeasureEnd(mark) < V233L_SLICE_OPS
+      && scan.total + OpexOpsMeasureEnd(mark) < totalLimit) {
     local r = scan.ring, pos = scan.pos;
     local dx = 0, dy = 0;
     if (r > 0) {
-      local edge = pos / (2 * r), along = pos % (2 * r);
+      local edge = pos / (2 * r), order = pos % (2 * r);
+      /* Milieu de chaque bord avant ses coins : distance au centre croissante. */
+      local along = r + (order % 2 == 0 ? order / 2 : -(order + 1) / 2);
       if (edge == 0) { dx = -r + along; dy = -r; }
       else if (edge == 1) { dx = r; dy = -r + along; }
       else if (edge == 2) { dx = r - along; dy = r; }
@@ -446,8 +480,21 @@ function OpexV233LSiteSearch(center, length, cargo, coverage, producing, host = 
     }
     local anchor = OpexV233LOffset(center, dx, dy);
     local clear = anchor >= 0 && OpexV233LFlat(anchor);
+    /* Fenetre rapide spread x spread centree sur l'aeroport (12x12 au banc).
+     * Le coin negatif de l'anneau pair est exclu pour ne pas scanner 13x13. */
+    if (host != null && (dx < -((host.spread - 1) / 2) || dy < -((host.spread - 1) / 2))) clear = false;
     /* Un centre occupe refuse les huit geometries d'un coup. */
     if (!clear) { scan.geometry = 7; scan.stats.terrain++; }
+    /* Une lecture d'acceptation par axe elimine ses quatre sorties/cotes avant
+     * les boucles de terrain et les commandes natives. Pas de tri global cher. */
+    if (clear && !producing && host == null && scan.geometry % 4 == 0) {
+      local step = scan.geometry == 0 ? 1 : AIMap.GetMapSizeX();
+      local last = OpexV233LOffset(anchor, scan.geometry == 0 ? length - 1 : 0,
+          scan.geometry == 0 ? 0 : length - 1);
+      if (last < 0 || OpexV233LCargoValue(anchor, step, length, cargo, coverage, false) < 8) {
+        scan.geometry += 3; scan.stats.earlyAcceptance++; clear = false;
+      }
+    }
     local geometry = scan.geometry;
     scan.geometry++;
     if (scan.geometry == 8) {
@@ -465,9 +512,54 @@ function OpexV233LSiteSearch(center, length, cargo, coverage, producing, host = 
   /* Des que des plans existent, ils suffisent a l'admission ; pas de scan
    * jusqu'a douze resultats qui affame la destination. */
   if (plans.len() > 0) { scan.done = true; scan.date = now; }
-  local reason = plans.len() > 0 ? "OK" : (!scan.done ? "budget" : "exhausted");
+  local ops = OpexOpsMeasureEnd(mark);
+  /* Un indice positif revalide ne consomme pas une nouvelle recherche. */
+  if (action != "cached") { scan.total += ops; scan.slices++; }
+  scan.worked = AIController.GetTick();
+  if (!scan.done && scan.total >= totalLimit) { scan.done = true; scan.limited = true; scan.date = now; }
+  local reason = plans.len() > 0 ? "OK" : (scan.limited ? "total_budget" : (!scan.done ? "budget" : "exhausted"));
+  if (DECISION_LOG) OpexV233LLog("SITE_STEP", "src=" + scan.src + " dst=" + scan.dst
+      + " side=" + (producing ? "A" : "B") + " station=" + scan.station + " action=" + action
+      + " from=" + startRing + ":" + startPos + ":" + startGeometry
+      + " next=" + scan.ring + ":" + scan.pos + ":" + scan.geometry + " reason=" + reason
+      + " slices=" + scan.slices + " ops=" + ops + " total_ops=" + scan.total + " limit=" + totalLimit
+      + " early_acceptance=" + scan.stats.earlyAcceptance);
   return { plans = plans, stats = scan.stats, reason = reason, ring = scan.ring,
-    ops = OpexOpsMeasureEnd(mark), length = length };
+    ops = ops, length = length, cacheKey = key };
+}
+
+/* Une seule tranche par tour, la recherche la moins recemment travaillee.
+ * Ne depend plus du prochain rafraichissement (parfois annuel) du portefeuille.
+ * Aucun candidat financier n'est conserve/publie par ce worker. */
+function OpexV233LContinueSites()
+{
+  local selected = null, selectedKey = null;
+  foreach (key, scan in V233L_SITE_CACHE) {
+    if (scan.done) continue;
+    if (selected == null || scan.worked < selected.worked) { selected = scan; selectedKey = key; }
+  }
+  if (selected == null) return;
+  local host = null;
+  if (selected.station >= 0) {
+    host = OpexV233LJoinHost(selected.station, selected.dstTown, selected.cargo);
+    if (host.reason != "OK") {
+      selected.done = true; selected.date = AIDate.GetCurrentDate();
+      if (DECISION_LOG) OpexV233LLog("SITE_B_JOIN", "src=" + selected.src + " dst=" + selected.dst
+          + " phase=background station=" + selected.station + " reason=" + host.reason + " ok=0");
+      return;
+    }
+  }
+  local railType = AIRail.GetCurrentRailType();
+  AIRail.SetCurrentRailType(selected.railType);
+  local center = host == null ? selected.center
+      : AIMap.GetTileIndex((host.left + host.right) / 2, (host.top + host.bottom) / 2);
+  local result = OpexV233LSiteSearch(center, selected.length, selected.cargo,
+      selected.coverage, selected.producing, host, selected);
+  AIRail.SetCurrentRailType(railType);
+  /* Une extension de l'hote change la cle ; ne pas laisser son ancien scan
+   * inacheve reprendre indefiniment. La nouvelle entree garde sa propre borne. */
+  if (!("cacheKey" in result) || result.cacheKey != selectedKey) delete V233L_SITE_CACHE[selectedKey];
+  if (DECISION_LOG) OpexV233LSiteLog(selected, result, selected.producing ? "A" : "B", "background");
 }
 
 /* NoAI 15.3 n'expose pas GetCargoAcceptance sur AIStation. La liste de
@@ -518,7 +610,7 @@ function OpexV233LJoinSearch(candidate, length, coverage, phase)
   local ids = [];
   for (local id = stations.Begin(); !stations.IsEnd(); id = stations.Next())
     if (AIStation.GetNearestTown(id) == candidate.dstTown) ids.append(id);
-  local key = candidate.dstTown;
+  local key = candidate.src + ":" + candidate.dst + ":" + length + ":" + candidate.cargo;
   if (!(key in V233L_JOIN_CURSOR)) {
     if (V233L_JOIN_CURSOR.len() >= V233L_SITE_CACHE_MAX) V233L_JOIN_CURSOR.clear();
     V233L_JOIN_CURSOR[key] <- 0;
@@ -532,8 +624,8 @@ function OpexV233LJoinSearch(candidate, length, coverage, phase)
     result = { plans = [], stats = OpexV233LSiteStats(), reason = reason,
       ring = 0, ops = 0, length = length };
     if (reason == "OK") {
-      result = OpexV233LSiteSearch(AIMap.GetTileIndex(host.left, host.top), length,
-          candidate.cargo, coverage, false, host);
+      result = OpexV233LSiteSearch(AIMap.GetTileIndex((host.left + host.right) / 2, (host.top + host.bottom) / 2), length,
+          candidate.cargo, coverage, false, host, candidate);
       reason = result.reason;
     }
     if (DECISION_LOG) OpexV233LLog("SITE_B_JOIN", "src=" + candidate.src + " dst=" + candidate.dst
@@ -541,9 +633,11 @@ function OpexV233LJoinSearch(candidate, length, coverage, phase)
         + " reason=" + reason + " acceptance=" + host.acceptance + " spread=" + host.spread
         + " terrain=" + result.stats.terrain + " parallel=" + result.stats.parallel
         + " authority=" + result.stats.authority + " native=" + result.stats.native
-        + " spread_refused=" + result.stats.spread + " error=" + result.stats.error);
+        + " spread_refused=" + result.stats.spread + " error=" + result.stats.error
+        + " scan_ops=" + result.ops + " ops=" + OpexOpsMeasureEnd(mark));
     if (result.plans.len() > 0 || reason == "budget") {
       V233L_JOIN_CURSOR[key] = index;
+      result.ops = OpexOpsMeasureEnd(mark);
       return result;
     }
     result.reason = reason;
@@ -636,6 +730,7 @@ function OpexV233LTick(owner)
   if (!SAVE_FULL_STATE) return; // transactions et identites exigent la sauvegarde complete.
   if (V233L_STATE == null) V233L_STATE = OpexV233LNewState();
   OpexV233LObserve(owner);
+  OpexV233LContinueSites();
   OpexV233LContinueGrowth(owner);
 }
 
@@ -883,6 +978,46 @@ function OpexV233LGrowthStep(owner)
   }
 }
 
+/* Un ancien save n'a pas de sites. Une entree invalide est abandonnee sans
+ * perdre les observations/transactions ; aucun objet API ni plan natif sauve. */
+function OpexV233LLoadSites(data)
+{
+  local restored = {};
+  if (typeof data != "table" || data.len() > V233L_SITE_CACHE_MAX) return restored;
+  foreach (key, scan in data) {
+    if (typeof key != "string" || typeof scan != "table") continue;
+    local valid = true;
+    foreach (field in ["ring", "pos", "geometry", "date", "used", "total", "slices", "worked",
+        "center", "length", "cargo", "coverage", "station", "railType", "src", "dst", "dstTown"])
+      if (!(field in scan) || typeof scan[field] != "integer") valid = false;
+    foreach (field in ["done", "limited", "producing"])
+      if (!(field in scan) || typeof scan[field] != "bool") valid = false;
+    if (!valid) continue;
+    if (scan.ring < 0 || scan.ring > 256 || scan.pos < 0
+        || scan.pos >= (scan.ring == 0 ? 1 : 8 * scan.ring)
+        || scan.geometry < 0 || scan.geometry > 7 || scan.length < 1 || scan.length > 64
+        || scan.total < 0 || scan.slices < 0 || scan.coverage < 0 || scan.coverage > 64
+        || scan.center < 0 || scan.src < 0 || scan.dst < 0 || scan.cargo < 0
+        || scan.station < -1 || scan.railType < 0 || (scan.limited && !scan.done)) continue;
+    if (!("stats" in scan) || typeof scan.stats != "table"
+        || !("hints" in scan) || typeof scan.hints != "array" || scan.hints.len() > 4) continue;
+    foreach (field, value in OpexV233LSiteStats())
+      if (!(field in scan.stats) || typeof scan.stats[field] != "integer" || scan.stats[field] < 0) valid = false;
+    foreach (hint in scan.hints) {
+      if (typeof hint != "table") { valid = false; break; }
+      foreach (field in ["anchor", "axis", "sign", "side"])
+        if (!(field in hint) || typeof hint[field] != "integer") valid = false;
+      if (!valid) break;
+      if (hint.anchor < 0 || hint.axis < 0 || hint.axis > 1
+          || abs(hint.sign) != 1 || abs(hint.side) != 1) valid = false;
+    }
+    if (!valid) continue;
+    scan.worked = -1; // horloge VM nouvelle ; curseurs et cumul conserves.
+    restored[key] <- scan;
+  }
+  return restored;
+}
+
 function OpexV233LLoad(data)
 {
   V233L_SITE_CACHE.clear();
@@ -942,6 +1077,8 @@ function OpexV233LLoad(data)
     for (local i = 0; i < row.production.len(); i++)
       row.months.append(row.month - row.production.len() + 1 + i);
   }
+  V233L_SITE_CACHE = ("sites" in data) ? OpexV233LLoadSites(data.sites) : {};
+  data.sites <- V233L_SITE_CACHE;
   return data;
 }
 

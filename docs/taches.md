@@ -33,6 +33,15 @@ Protection des installations et revalidation avant dépense, rollback conservé.
 Contrats Python/OFF vérifiés ; compilation et exposition moteur **non validées**,
 aucune partie/Docker autorisée ici. [Diagnostic et limites](v233_long_good_20261025.md#26-octobre--sites-ab-et-repli-sur-aéroport).
 
+**26/10 — V233L, suite SITEB3 (local, défaut 0 conservé) :** le smoke3 fourni
+contient 24 scans B censurés mais aussi 7 réussis ; le cache positif de 30 jours
+perdait des sites entre admission et construction. Reprise autonome d'une recherche
+par tour, curseurs par paire sauvegardés, indices positifs revalidés sans expiration,
+plafonds cumulés 240 k urbain / 80 k jointure et repli aéroport essayé avant B urbain.
+Traces de progression/censure distinctes. Suite Python : **2 557 tests, OK**
+(9 ignorés, 2 échecs attendus) ; **nouveau code non validé au moteur**, aucun Docker
+ni banc lancé. [Détails et contrôles restants](v233_long_good_20261025.md#26-octobre--siteb3-reprise-autonome-et-aéroport-en-premier).
+
 ### Priorités ouvertes après les deux références monomodales du 25/10 (sans adoption)
 
 - [ ] **P1 — `rail_long_value_rank` : qualifier et classer le fret long constructible (opt-in, défaut 0 ; coût 4/5).** Ne plus relever globalement les bornes : vérifier site, A*, capital et ROI marginal pour une paire fret ≥160 tuiles, puis la comparer aux projets courts et AIR réellement finançables ; [analyse §4](analyse_rail_vs_air_seul_20261025.md#4-pistes-expérimentales-par-potentiel-de-gain-relatif-au-coût).

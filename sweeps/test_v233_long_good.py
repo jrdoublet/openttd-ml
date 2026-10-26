@@ -260,20 +260,114 @@ class V233LongGoodContracts(unittest.TestCase):
         self.assertIn('scan.geometry = 7; scan.stats.terrain++', scan)
         self.assertIn('host == null ? STATION_SEARCH_RADIUS : host.spread', scan)
         self.assertIn('scan.ring > radius', scan)
-        self.assertIn('pending ? "SITE_BUDGET"', plans)
+        self.assertIn('pending ? "SITE_PENDING"', plans)
+        self.assertIn('limited ? "SITE_LIMIT"', plans)
         self.assertNotIn('OpexStationPlans(', plans)
 
-    def test_site_cache_revalidates_live_native_geometry_and_is_not_saved(self):
+    def test_site_cache_revalidates_live_native_geometry_and_keeps_progress(self):
         scan = body("v233_long_good.nut", "OpexV233LSiteSearch")
         self.assertIn('V233L_SITE_CACHE.len() >= V233L_SITE_CACHE_MAX', scan)
         self.assertIn('now < old.used', scan)
-        self.assertIn('now - old.date > 30', scan)
+        self.assertIn('old.done && old.hints.len() == 0', scan)
+        self.assertIn('old.limited ? 180 : 30', scan)
+        self.assertNotIn('now - old.used >', scan)
+        self.assertIn('":pair:" + pair.src + ":" + pair.dst', scan)
         self.assertIn('AIRail.GetCurrentRailType()', scan)
         validation = scan[scan.index('foreach (hint in scan.hints)'):scan.index('while (plans.len()')]
         self.assertIn('OpexV233LSiteProbe(', validation)
         self.assertIn('scan.hints.clear(); scan.done = false;', validation)
         self.assertIn('V233L_SITE_CACHE.clear();', body("v233_long_good.nut", "OpexV233LLoad"))
         self.assertNotIn('V233L_SITE_CACHE', source("persist.nut"))
+
+    def test_positive_sites_survive_admission_to_build_and_pending_never_expires(self):
+        # Execute the actual TTL predicate, including July -> August regression.
+        from types import SimpleNamespace
+        scan = body("v233_long_good.nut", "OpexV233LSiteSearch")
+        expr = scan.split('if (now < old.used || ', 1)[1].split(') delete V233L_SITE_CACHE[key]', 1)[0]
+        expr = ('now < old.used || ' + expr).replace('&&', ' and ').replace('||', ' or ')
+        expr = expr.replace('old.hints.len()', 'len(old.hints)')
+        expr = expr.replace('(old.limited ? 180 : 30)', '(180 if old.limited else 30)')
+        cases = [
+            (True, [42], False, 51, False),  # ready July 5, build August 25
+            (False, [], False, 455, False),  # sparse admissions cannot reset cursor
+            (True, [], False, 31, True),
+            (True, [], True, 179, False),
+            (True, [], True, 181, True),
+        ]
+        for done, hints, limited, now, expired in cases:
+            old = SimpleNamespace(done=done, hints=hints, limited=limited, used=0, date=0)
+            self.assertEqual(eval(expr, {"__builtins__": {}, "len": len}, {"old": old, "now": now}), expired)
+
+    def test_background_progress_is_fair_bounded_and_restores_rail_type(self):
+        worker = body("v233_long_good.nut", "OpexV233LContinueSites")
+        self.assertIn('if (scan.done) continue;', worker)
+        self.assertIn('scan.worked < selected.worked', worker)
+        self.assertEqual(worker.count('OpexV233LSiteSearch('), 1)
+        self.assertIn('AIRail.SetCurrentRailType(selected.railType)', worker)
+        self.assertIn('AIRail.SetCurrentRailType(railType)', worker)
+        self.assertIn('OpexV233LContinueSites();', body("v233_long_good.nut", "OpexV233LTick"))
+        scan = body("v233_long_good.nut", "OpexV233LSiteSearch")
+        for token in ('scan.total + OpexOpsMeasureEnd(mark) < totalLimit',
+                      'scan.total += ops; scan.slices++', 'scan.total >= totalLimit',
+                      'scan.limited = true', '"total_budget"', 'entry.done && entry.used < date',
+                      '"SITE_STEP"', '" from="', '" next="', '" total_ops="'):
+            self.assertIn(token, scan)
+        self.assertIn('const V233L_SITE_TOTAL_OPS = 240000;', source("v233_long_good.nut"))
+        self.assertIn('const V233L_JOIN_TOTAL_OPS = 80000;', source("v233_long_good.nut"))
+
+    def test_saved_site_cursors_are_validated_and_migrate_old_saves(self):
+        self.assertIn('sites = V233L_SITE_CACHE', body("v233_long_good.nut", "OpexV233LNewState"))
+        load = body("v233_long_good.nut", "OpexV233LLoad")
+        self.assertIn('("sites" in data) ? OpexV233LLoadSites(data.sites) : {}', load)
+        self.assertIn('data.sites <- V233L_SITE_CACHE', load)
+        validation = body("v233_long_good.nut", "OpexV233LLoadSites")
+        for token in ('data.len() > V233L_SITE_CACHE_MAX', 'typeof scan[field] != "integer"',
+                      'typeof scan[field] != "bool"', 'scan.geometry > 7', 'scan.pos >=',
+                      'scan.total < 0', 'scan.hints.len() > 4', 'typeof hint[field] != "integer"',
+                      'scan.worked = -1', 'restored[key] <- scan'):
+            self.assertIn(token, validation)
+        self.assertNotIn('scan.ring = 0', validation)
+        self.assertNotIn('scan.total = 0', validation)
+
+    def test_ordered_rings_cover_every_anchor_once_and_airport_window_is_12_squared(self):
+        # Read the along-position expression from production code; prove coverage,
+        # no duplicate corners, near-edge-first order and the even-width window.
+        scan = body("v233_long_good.nut", "OpexV233LSiteSearch")
+        expr = scan.split('local along = ', 1)[1].split(';', 1)[0]
+        expr = expr.replace('(order % 2 == 0 ? order / 2 : -(order + 1) / 2)',
+                            '(order // 2 if order % 2 == 0 else -(order + 1) // 2)')
+        all_points = {(0, 0)}
+        for r in range(1, 13):
+            points = []
+            for edge in range(4):
+                for order in range(2 * r):
+                    along = eval(expr, {"__builtins__": {}}, {"r": r, "order": order})
+                    points.append([(-r + along, -r), (r, -r + along),
+                                   (r - along, r), (-r, r - along)][edge])
+            self.assertEqual(points[0], (0, -r))
+            self.assertEqual(len(set(points)), 8 * r)
+            self.assertFalse(all_points.intersection(points))
+            all_points.update(points)
+            self.assertEqual(len(all_points), (2 * r + 1) ** 2)
+        window = {(x, y) for x, y in all_points if -5 <= x <= 6 and -5 <= y <= 6}
+        self.assertEqual(len(window), 144)
+        self.assertIn('host.spread / 2', scan)
+        self.assertIn('dx < -((host.spread - 1) / 2)', scan)
+
+    def test_early_acceptance_skips_four_geometries_before_native_probe(self):
+        scan = body("v233_long_good.nut", "OpexV233LSiteSearch")
+        loop = scan[scan.index('while (plans.len()'):]
+        self.assertLess(loop.index('OpexV233LFlat(anchor)'), loop.index('OpexV233LCargoValue('))
+        self.assertLess(loop.index('OpexV233LCargoValue('), loop.index('OpexV233LSiteProbe('))
+        self.assertIn('scan.geometry % 4 == 0', loop)
+        self.assertIn('last < 0 || OpexV233LCargoValue', loop)
+        self.assertIn('scan.geometry += 3; scan.stats.earlyAcceptance++; clear = false', loop)
+        self.assertIn('scan.geometry++;', loop)
+        self.assertIn('if (!clear) continue;', loop)
+        probe = body("v233_long_good.nut", "OpexV233LSiteProbe")
+        self.assertLess(probe.index('!OpexV233LJoinFits'), probe.index('OpexV233LFlat(lead)'))
+        worker = body("v233_long_good.nut", "OpexV233LContinueSites")
+        self.assertIn('result.cacheKey != selectedKey', worker)
 
     def test_both_quays_leads_acceptance_and_authority_checked_without_mutation(self):
         probe = body("v233_long_good.nut", "OpexV233LSiteProbe")
@@ -323,10 +417,13 @@ class V233LongGoodContracts(unittest.TestCase):
         self.assertIn('site_a=', plans)
         self.assertIn('site_b=', plans)
 
-    def test_airport_fallback_only_after_complete_town_failure(self):
+    def test_airport_precedes_town_scan_even_while_town_is_budget_limited(self):
         plans = body("v233_long_good.nut", "OpexV233LPlatformPlans")
-        self.assertIn('plansB.len() == 0 && scanB.reason == "exhausted"', plans)
-        self.assertIn('OpexV233LJoinSearch(candidate, length, catalog.railCoverage, phase)', plans)
+        self.assertLess(plans.index('OpexV233LJoinSearch('), plans.index('OpexV233LSiteSearch(candidate.dst'))
+        self.assertIn('if (joined.plans.len() == 0 || !compatible)', plans)
+        self.assertIn('joined.reason == "budget"', plans)
+        self.assertNotIn('scanB.reason == "exhausted"', plans)
+        self.assertIn('"SITE_WAIT"', plans)
         join = body("v233_long_good.nut", "OpexV233LJoinSearch")
         for token in ('AIStationList(AIStation.STATION_AIRPORT)',
                       'AIStation.GetNearestTown(id) == candidate.dstTown',
