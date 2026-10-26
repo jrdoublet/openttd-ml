@@ -27,6 +27,7 @@ V269_IDLE_CASH_MIN <- 1000000;
 /* V309 : sondage passif des tours en attente, sans changer l'ordonnanceur. */
 V309_IDLE_PROBE <- false;
 V309_IDLE_STATE <- null;
+FRONT_PAX1_CLAMP_PROBE <- false; // Réglage indépendant, motifs des bornes PASS.
 V284_RAIL_GROWTH <- 0; // 0 : master ; N : croissance fret apres N ans et 1 M£ disponible.
 /* V294 : ponts/tunnels longs et recherche A* continue (defauts 0 = master inchange). */
 V294_RAIL_BRIDGE_LEN <- 20;  // defaut V294all depuis le 21/10 (decision utilisateur)

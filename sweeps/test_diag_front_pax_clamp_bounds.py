@@ -124,6 +124,54 @@ class FrontPaxBoundedAudit(unittest.TestCase):
         self.assertIn("local d = tFixe / (tauRail - tauAir);", source)
         self.assertIn("if (railAir > railMax) railAir = railMax;", source)
 
+    def test_passive_dedicated_probe_counts_refreshes_with_year_and_seed(self):
+        first = ("OPEX 1970-1-2 FRONT_PAX_CLAMP road_reason=nonpositive_income_edge"
+                 " air_reason=physical air_clamp=rail_max rail_air_raw=440"
+                 " road_final=7 map_span=512 rail_max=200 ops=513\n")
+        second = ("OPEX 1971-2-3 FRONT_PAX_CLAMP road_reason=below_road_min"
+                  " air_reason=rail_as_fast air_clamp=rail_max rail_air_raw=512"
+                  " road_final=7 map_span=600 rail_max=200 ops=712\n")
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "reference_seed42_r0.log").write_text(first + second, encoding="utf-8")
+            with gzip.open(root / "reference_seed42_r0.log.gz", "wt", encoding="utf-8") as stream:
+                stream.write(first + second)
+            report = analyse([root])
+            self.assertEqual(report["events"], 0)
+            self.assertEqual(report["probe"]["events"], 2)
+            self.assertEqual(report["probe"]["road_reasons"],
+                             {"below_road_min": 1, "nonpositive_income_edge": 1})
+            self.assertEqual(report["probe"]["ops_median"], 612.5)
+            self.assertEqual(report["probe"]["air_clamps"], {"rail_max": 2})
+            self.assertEqual([item["year"] for item in report["probe"]["by_game_year"]],
+                             [1970, 1971])
+            self.assertEqual(report["probe"]["by_game_year"][0]["seed"], 42)
+            with gzip.open(root / "reference_seed42_r0.log.gz", "wt", encoding="utf-8") as stream:
+                stream.write(first + second.replace("ops=712", "ops=900"))
+            with self.assertRaisesRegex(ValueError, "copies contradictoires"):
+                analyse([root])
+
+    def test_probe_rejects_contradictory_clamp_reason(self):
+        log = ("OPEX 1970-1-2 FRONT_PAX_CLAMP road_reason=below_road_min"
+               " air_reason=physical air_clamp=none rail_air_raw=450"
+               " road_final=7 rail_max=200 map_span=512 ops=500\n")
+        with tempfile.TemporaryDirectory() as tmp:
+            (Path(tmp) / "reference_seed42_r0.log").write_text(log, encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "FRONT_PAX_CLAMP incoherent"):
+                analyse([Path(tmp)])
+
+    def test_front_pax_probe_defaults_off_and_has_no_decision_logging_side_effect(self):
+        base = Path(__file__).resolve().parents[1] / "ai/OpexAI"
+        settings = (base / "settings.nut").read_text(encoding="utf-8")
+        globals_pre = (base / "globals_pre.nut").read_text(encoding="utf-8")
+        source = (base / "candidates.nut").read_text(encoding="utf-8")
+        self.assertIn("FRONT_PAX1_CLAMP_PROBE <- false;", globals_pre)
+        self.assertIn('FRONT_PAX1_CLAMP_PROBE = AIController.GetSetting("front_pax1_bounds_probe") == 1;', settings)
+        self.assertIn("OpexComputeRoadToRailDistance(catalog, bestBus, bestTrain, ticksPerDay, probe = null)", source)
+        probe = source.split('if (FRONT_PAX1_CLAMP_PROBE) {', 1)[1].split('if (DECISION_LOG)', 1)[0]
+        self.assertIn('AILog.Info("OPEX "', probe)
+        self.assertNotIn('OpexDecide(', probe.replace("/* OpexDecide modifie", "/* journal modifie"))
+
 
 if __name__ == "__main__":
     unittest.main()

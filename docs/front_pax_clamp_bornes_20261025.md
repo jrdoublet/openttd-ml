@@ -82,3 +82,66 @@ Le contrôle hôte a **11 tests** dont émissions identiques séparées par
 un autre événement, états différents le même jour, copie texte/gzip conforme
 ou contradictoire, preuve du clamp, classification incertaine et contrat
 source des troncatures.
+
+## 26/10 — diagnostic instrumenté et clôture
+
+La sonde indépendante `front_pax1_bounds_probe=1` (valeur **0** dans
+les quatre profils) émet un `FRONT_PAX_CLAMP` par appel réel à
+`OpexRefreshEpochBounds`. Les mesures incluent la raison de la branche
+ROUTE→RAIL, les valeurs `deltaM`, numérateur/dénominateur (ou
+sentinelle « non calculé »), le croisement RAIL→AIR physique non
+tronqué, les vitesses, temps par tuile, type d'aéroport et cause
+finale de clamp. Le log direct n'active pas `DECISION_LOG` et
+n'affecte ni `catalog.bounds`, ni Save/Load, ni les choix. Les bits
+24/25 réservés aux travaux AIR-ROI/AIR-LOAD restent disponibles.
+
+Les cinq parties instrumentées (graines 42, 100, 7, 999, 2026,
+chacune 1970–1974) se trouvent dans
+`results/front_pax1_probe_5x5_20261026_engine/` et le rapport
+`results/front_pax1_probe_5x5_analysis_20261026.json` (résultats
+locaux ignorés par Git). Le lecteur préexistant
+`sweeps/diag_front_pax_clamp_bounds.py` interprète les nouveaux
+événements, ventile par graine/année et vérifie la cohérence des
+clamps, tout en conservant les anciennes mesures sur 80 parties.
+
+| Année | Rafraîchissements réels | ROAD→RAIL | RAIL→AIR |
+|---|---:|---|---|
+| 1970 | 9 | 9 × `deltaM=0` | 9 × `rail_max` |
+| 1971 | 5 | 5 × `deltaM=0` | 5 × `rail_max` |
+| 1972 | 12 | 12 × `deltaM=0` | 12 × `rail_max` |
+| 1973 | 11 | 11 × `deltaM=0` | 11 × `rail_max` |
+| 1974 | 4 | 4 × `deltaM=0` | 4 × `rail_max` |
+| **Total** | **41** | **41/41 revenu non positif** | **41/41 borne haute** |
+
+Le résultat fournit la cause **dans ces cinq mondes** de
+`roadMax=7` : `deltaM=0`, donc retour au minimum avant le calcul
+du dénominateur ; la valeur `denom=-1` est une sentinelle. Le
+croisement AIR initial y est environ 440 tuiles, puis plafonné à
+`railMax=200`. Les 41 émissions sont des rafraîchissements, pas
+des projets distincts ; elles couvrent 18 couples partie/année.
+Les 80 journaux historiques dépourvus de cette sonde ne permettent
+toujours pas d'inférer rétroactivement leur cause ROUTE→RAIL.
+
+Le coût **total du calcul des bornes dans le bras instrumenté**,
+comprenant le choix des profils moteurs mais excluant le formatage
+du journal, est médian **3 376 opcodes**, maximum **3 507** ;
+ce n'est **pas** le surcoût marginal OFF→ON de la sonde. Smoke
+OpenTTD 15.3 d'une graine × un an : les bras OFF et ON terminent
+sains avec les mêmes profit (530 274 £/an), valeur (500 667 £),
+score (185), 20 véhicules et 22 gares. Cette neutralité apparente
+sur une graine ne prouve pas l'identité de tous les mondes.
+
+La partition RAIL voyageurs est bien celle de
+`OpexRailPaxPairInBand` ; le fret direct suit
+`OpexMakeCandidate` avec une éventuelle relaxation V269.
+Nuance : le générateur V276 préfiltre aussi les unités RAIL
+fret au moyen de `OpexRailPaxPairInBand(..., ALL)`, ce qui
+reste dans le périmètre de DIST-BORNES-1. FRONT-PAX-1 ne
+modifie aucune garde PASS, fret, ROAD ou AIR.
+
+**Verdict : FRONT-PAX-1 clos en tant que diagnostic des
+frontières et de leur cause observée.** L'évaluation de
+frontières alternatives, leur exposition en lignes réellement
+construites, la neutralité incrémentale des opcodes et toute
+qualification économique nécessiteraient un nouveau périmètre.
+Aucune porte A/B ni adoption.

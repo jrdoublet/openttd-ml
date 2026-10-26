@@ -3,8 +3,10 @@
 Le journal n'enregistre que vRail texte, vAir.tointeger(), tFixe.tointeger(),
 tpd.tointeger(), et les bornes finales. Nous traitons les valeurs tronquees
 comme des INTERVALLES (et jamais comme des valeurs physiques exactes).
-Le resultat classe les bornes rail/air prouvables; il ne retrouve PAS le motif
-roadMax=roadMin ni les bornes physiques AIR/RAIL manquantes.
+Le resultat classe les bornes rail/air prouvables. Quand la sonde dediee
+front_pax1_bounds_probe=1 est presente, il compte aussi les motifs effectivement
+observes au rafraichissement, par partie et par annee. Un log ancien sans
+sonde ne permet toujours pas d'inferer roadMax=roadMin.
 
 Usage: python -X utf8 sweeps/diag_front_pax_clamp_bounds.py
        --logs results/.../calib_duel_40x10_pc_20261021_engine
@@ -21,12 +23,14 @@ import json
 import math
 from pathlib import Path
 import re
+from statistics import median
 
 
 EVENT = re.compile(r"\bOPEX (\d{4})-(\d{1,2})-(\d{1,2}) EPOCH_BOUNDS\s+(.*)$")
 FIELDS = re.compile(r"(\w+)=([^\s]+)")
 GAME = re.compile(r"^(.*?)_seed(\d+)_r(\d+)\.log(?:\.gz)?$")
 EPS = 0.01  # marge sur l'affichage vRail texte (Squirrel, precision limitee)
+PROBE_EVENT = re.compile(r"\bOPEX (\d{4})-(\d{1,2})-(\d{1,2}) FRONT_PAX_CLAMP\s+(.*)$")
 
 
 def _days_per_tile(speed, ticks_per_day):
@@ -103,6 +107,13 @@ def analyse(logdirs):
     seen_event_keys = set()
     copied_sources = {}
     canonical_names = {}
+    probe_road = Counter()
+    probe_air = Counter()
+    probe_clamp = Counter()
+    probe_years = defaultdict(Counter)
+    probe_game_year = defaultdict(lambda: {"road": Counter(), "air": Counter(), "clamp": Counter()})
+    probe_ops = []
+    probe_count = 0
     for folder in logdirs:
         folder = Path(folder)
         if not folder.is_dir():
@@ -112,7 +123,7 @@ def analyse(logdirs):
             if game is None:
                 continue
             # A copied .log and .log.gz may coexist. In order not to mask
-            # contradictions, compare their EPOCH_BOUNDS lines exactly.
+            # contradictions, compare their EPOCH_BOUNDS and probe lines.
             # Canonical numeric identities prevent seed01/seed1 and r00/r0
             # from being counted as different independent games. Different
             # arms and directories remain separate experiments.
@@ -128,15 +139,48 @@ def analyse(logdirs):
                 for line in handle:
                     m = EVENT.search(line)
                     if m:
-                        events.append((int(m.group(1)), int(m.group(2)), int(m.group(3)), m.group(4)))
+                        events.append(("bounds", int(m.group(1)), int(m.group(2)), int(m.group(3)), m.group(4)))
+                    m = PROBE_EVENT.search(line)
+                    if m:
+                        events.append(("probe", int(m.group(1)), int(m.group(2)), int(m.group(3)), m.group(4)))
             if stream_id in copied_sources:
                 if copied_sources[stream_id] != events:
-                    raise ValueError(f"copies contradictoires de EPOCH_BOUNDS: {path}")
+                    raise ValueError(f"copies contradictoires de EPOCH_BOUNDS/FRONT_PAX_CLAMP: {path}")
                 continue
             copied_sources[stream_id] = events
             games.add(stream_id)
-            for year, month, day, payload in events:
+            for kind, year, month, day, payload in events:
                 fields = dict(FIELDS.findall(payload))
+                if kind == "probe":
+                    probe_count += 1
+                    road_reason = fields.get("road_reason", "missing")
+                    air_reason = fields.get("air_reason", "missing")
+                    clamp_reason = fields.get("air_clamp", "missing")
+                    probe_road[road_reason] += 1
+                    probe_air[air_reason] += 1
+                    probe_clamp[clamp_reason] += 1
+                    probe_years[year][road_reason] += 1
+                    key = (str(folder.resolve()), game.group(1), int(game.group(2)),
+                           int(game.group(3)), year)
+                    probe_game_year[key]["road"][road_reason] += 1
+                    probe_game_year[key]["air"][air_reason] += 1
+                    probe_game_year[key]["clamp"][clamp_reason] += 1
+                    if all(field in fields for field in ("rail_air_raw", "road_final",
+                                                          "rail_max", "map_span", "air_clamp")):
+                        raw, road, rail, span = (
+                            float(fields[field]) for field in (
+                                "rail_air_raw", "road_final", "rail_max", "map_span"))
+                        expected = ("map_span" if raw > span else "road_max" if raw < road
+                                    else "rail_max" if raw > rail else "none")
+                        if expected != clamp_reason:
+                            raise ValueError(f"FRONT_PAX_CLAMP incoherent: {path}: {payload}")
+                    try:
+                        ops = int(fields["ops"])
+                        if ops >= 0:
+                            probe_ops.append(ops)
+                    except (KeyError, ValueError, OverflowError):
+                        pass
+                    continue
                 result = classify(fields)
                 reason = result["reason"]
                 raw_observations[reason] += 1
@@ -156,8 +200,8 @@ def analyse(logdirs):
                                              "seed": int(game.group(2)),
                                              "source": path.name,
                                              "values": fields, "interpretation": result})
-    if not games or not observations:
-        raise ValueError("aucun EPOCH_BOUNDS interpretable dans les journaux fournis")
+    if not games or (not observations and not probe_count):
+        raise ValueError("aucun EPOCH_BOUNDS ni FRONT_PAX_CLAMP interpretable dans les journaux fournis")
     return {
         "games": len(games), "events": sum(observations.values()),
         "raw_emissions": sum(raw_observations.values()),
@@ -170,9 +214,27 @@ def analyse(logdirs):
         "reemission_years": {str(y): dict(sorted(row.items()))
                              for y, row in sorted(repeated_years.items())},
         "examples": examples,
-        "proven_scope": "rail-air physical crossover vs upper railMax clamp only",
+        "probe": {
+            "events": probe_count,
+            "road_reasons": dict(sorted(probe_road.items())),
+            "air_reasons": dict(sorted(probe_air.items())),
+            "air_clamps": dict(sorted(probe_clamp.items())),
+            "road_by_year": {str(y): dict(sorted(row.items()))
+                             for y, row in sorted(probe_years.items())},
+            "by_game_year": [
+                {"source_dir": folder, "arm": arm, "seed": seed, "repeat": repeat,
+                 "year": year, "road_reasons": dict(sorted(counts["road"].items())),
+                 "air_reasons": dict(sorted(counts["air"].items())),
+                 "air_clamps": dict(sorted(counts["clamp"].items()))}
+                for (folder, arm, seed, repeat, year), counts in sorted(probe_game_year.items())
+            ],
+            "ops_samples": len(probe_ops),
+            "ops_median": median(probe_ops) if probe_ops else None,
+            "ops_max": max(probe_ops) if probe_ops else None,
+        },
+        "proven_scope": "historical EPOCH_BOUNDS rail-air clamp; opt-in FRONT_PAX_CLAMP refresh causes when available",
         "unknown_scope": [
-            "Reason for roadMax=roadMin (vehicle availability, deltaM, numerator, denominator, or sub-minimum raw distance)",
+            "Reason for roadMax=roadMin absent from historical logs without FRONT_PAX_CLAMP",
             "Exact unrounded tFixe/vAir, airport type and economic effect",
             "Counterfactual newly executable RAIL PASS and non-building projects",
             "Rail freight is not governed by the rail-air passenger frontier",
@@ -193,6 +255,10 @@ def main():
     print(json.dumps({k: report[k] for k in (
         "games", "events", "raw_emissions", "same_day_same_payload_reemissions", "reasons")},
         ensure_ascii=False, indent=2))
+    if report["probe"]["events"]:
+        print(json.dumps({k: report["probe"][k] for k in (
+            "events", "road_reasons", "air_reasons", "air_clamps", "ops_median", "ops_max")},
+            ensure_ascii=False, indent=2))
 
 
 if __name__ == "__main__":

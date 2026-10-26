@@ -166,6 +166,250 @@ P1_CANDIDATES_EDITS = (
     ),
 )
 
+# FRONT-PAX-1 : retirer uniquement les fragments opt-in depuis la version
+# publiee, afin de verifier les SHA historiques sur des octets inchanges.
+# Patches exacts entre le commit precedent et la sonde, controles 1 fois.
+FP1_SOURCE_PATCHES = {
+    "candidates.nut": (
+        (r'''}
+
+function OpexComputeRoadToRailDistance(catalog, bestBus, bestTrain, ticksPerDay, probe = null)
+{
+  local roadMin = (AIStation.GetCoverageRadius(AIStation.STATION_BUS_STOP) * 2) + 1;
+  if (bestBus == null || bestTrain == null || catalog.paxCargo < 0) {
+    if (probe != null) probe.reason = (catalog.paxCargo < 0) ? "no_pax"
+        : (bestBus == null ? "no_bus" : "no_train");
+    return roadMin;
+  }
+
+  local kStop = catalog.costRoadBusStop;
+'''.encode("utf-8"), r'''}
+
+function OpexComputeRoadToRailDistance(catalog, bestBus, bestTrain, ticksPerDay)
+{
+  local roadMin = (AIStation.GetCoverageRadius(AIStation.STATION_BUS_STOP) * 2) + 1;
+  if (bestBus == null || bestTrain == null || catalog.paxCargo < 0) return roadMin;
+
+  local kStop = catalog.costRoadBusStop;
+'''.encode("utf-8")),
+        (r'''  local incBus = AICargo.GetCargoIncome(catalog.paxCargo, refD, transitBus.tointeger());
+  local deltaM = incRail - incBus;
+  if (probe != null) {
+    probe.deltaM = deltaM;
+    probe.num = num;
+  }
+  if (deltaM <= 0) {
+    if (probe != null) probe.reason = "nonpositive_income_edge";
+    return roadMin;
+  }
+  /* GetCargoIncome livre ici le gain TOTAL a refD, pas un gain par tuile.
+   * L'equation qui isole d doit soustraire deux coefficients par tuile. */
+'''.encode("utf-8"), r'''  local incBus = AICargo.GetCargoIncome(catalog.paxCargo, refD, transitBus.tointeger());
+  local deltaM = incRail - incBus;
+  if (deltaM <= 0) return roadMin;
+  /* GetCargoIncome livre ici le gain TOTAL a refD, pas un gain par tuile.
+   * L'equation qui isole d doit soustraire deux coefficients par tuile. */
+'''.encode("utf-8")),
+        (r'''  /* r_cible = 0,40 : ROI annuel vise pour amortir le capital fixe ferroviaire. */
+  local denom = ((12.0 * M * deltaPerTile * 100.0) / 40.0) - cTile;
+  if (probe != null) probe.denom = denom;
+  if (denom <= 0) {
+    if (probe != null) probe.reason = "nonpositive_denom";
+    return roadMin;
+  }
+  if (num <= 0) {
+    if (probe != null) probe.reason = "nonpositive_num";
+    return roadMin;
+  }
+  local d = num / denom;
+  if (probe != null) {
+    probe.rawRoad = d;
+    probe.reason = d < roadMin ? "below_road_min"
+        : (d.tointeger() == roadMin ? "truncated_to_min" : "computed_road");
+  }
+  if (d < roadMin) d = roadMin;
+  return d.tointeger();
+}
+
+function OpexComputeRailToAirDistance(bestTrain, bestPlane, ticksPerDay, airportType, probe = null)
+{
+  if (bestTrain == null || bestPlane == null) return OpexMapManhattanSpan();
+'''.encode("utf-8"), r'''  /* r_cible = 0,40 : ROI annuel vise pour amortir le capital fixe ferroviaire. */
+  local denom = ((12.0 * M * deltaPerTile * 100.0) / 40.0) - cTile;
+  if (denom <= 0) return roadMin;
+  if (num <= 0) return roadMin;
+  local d = num / denom;
+  if (d < roadMin) d = roadMin;
+  return d.tointeger();
+}
+
+function OpexComputeRailToAirDistance(bestTrain, bestPlane, ticksPerDay, airportType)
+{
+  if (bestTrain == null || bestPlane == null) return OpexMapManhattanSpan();
+'''.encode("utf-8")),
+        (r'''  local tauAir = OpexDaysPerTile(vAir, ticksPerDay);
+  local tFixe = OpexAirManeuverDays(bestPlane, airportType, airportType, ticksPerDay, planeDiv);
+  if (probe != null) {
+    probe.tauRail = tauRail;
+    probe.tauAir = tauAir;
+    probe.tFixe = tFixe;
+  }
+  if (tauRail <= tauAir) {
+    if (probe != null) {
+      probe.reason = "rail_as_fast";
+      probe.rawRailAir = OpexMapManhattanSpan();
+    }
+    return OpexMapManhattanSpan();
+  }
+  local d = tFixe / (tauRail - tauAir);
+  if (probe != null) {
+    probe.rawRailAir = d;
+    probe.reason = "physical";
+  }
+  if (d < 1.0) d = 1.0;
+  return d.tointeger();
+'''.encode("utf-8"), r'''  local tauAir = OpexDaysPerTile(vAir, ticksPerDay);
+  local tFixe = OpexAirManeuverDays(bestPlane, airportType, airportType, ticksPerDay, planeDiv);
+  if (tauRail <= tauAir) return OpexMapManhattanSpan();
+  local d = tFixe / (tauRail - tauAir);
+  if (d < 1.0) d = 1.0;
+  return d.tointeger();
+'''.encode("utf-8")),
+        (r'''  if (roadMin < 1) roadMin = 1;
+
+  local fp1Mark = FRONT_PAX1_CLAMP_PROBE ? OpexOpsMeasureBegin() : null;
+  local bestBus = (pax >= 0) ? OpexGetEpochVehicle(AIVehicle.VT_ROAD, pax) : null;
+  local bestTrain = (pax >= 0) ? OpexGetEpochRailProfile(catalog, pax, 20) : null;
+  local bestPlane = (pax >= 0) ? OpexGetEpochVehicle(AIVehicle.VT_AIR, pax) : null;
+
+  /* FRONT-PAX-1: sonde locale transitoire, jamais incluse dans catalog,
+   * Save/Load, tri, ni construction. Un seul releve par refresh des bornes. */
+  local fp1Probe = FRONT_PAX1_CLAMP_PROBE
+      ? { reason = "unknown", deltaM = -1, num = -1, denom = -1, rawRoad = -1 }
+      : null;
+  local roadMax = OpexComputeRoadToRailDistance(catalog, bestBus, bestTrain, tpd, fp1Probe);
+  if (roadMax < roadMin) roadMax = roadMin;
+  local mapSpan = OpexMapManhattanSpan();
+'''.encode("utf-8"), r'''  if (roadMin < 1) roadMin = 1;
+
+  local bestBus = (pax >= 0) ? OpexGetEpochVehicle(AIVehicle.VT_ROAD, pax) : null;
+  local bestTrain = (pax >= 0) ? OpexGetEpochRailProfile(catalog, pax, 20) : null;
+  local bestPlane = (pax >= 0) ? OpexGetEpochVehicle(AIVehicle.VT_AIR, pax) : null;
+
+  local roadMax = OpexComputeRoadToRailDistance(catalog, bestBus, bestTrain, tpd);
+  if (roadMax < roadMin) roadMax = roadMin;
+  local mapSpan = OpexMapManhattanSpan();
+'''.encode("utf-8")),
+        (r'''  local vRail = 0;
+  local vAirEff = 0.0;
+  local fp1AirProbe = FRONT_PAX1_CLAMP_PROBE
+      ? { reason = "no_plane", tauRail = -1, tauAir = -1, tFixe = -1, rawRailAir = -1 }
+      : null;
+  if (bestPlane != null && bestTrain != null) {
+    railAir = OpexComputeRailToAirDistance(bestTrain, bestPlane, tpd, airportType, fp1AirProbe);
+    vRail = bestTrain.speed;
+    vAirEff = AIEngine.GetMaxSpeed(bestPlane).tofloat() / OpexPlaneSpeedDivisor();
+'''.encode("utf-8"), r'''  local vRail = 0;
+  local vAirEff = 0.0;
+  if (bestPlane != null && bestTrain != null) {
+    railAir = OpexComputeRailToAirDistance(bestTrain, bestPlane, tpd, airportType);
+    vRail = bestTrain.speed;
+    vAirEff = AIEngine.GetMaxSpeed(bestPlane).tofloat() / OpexPlaneSpeedDivisor();
+'''.encode("utf-8")),
+        (r'''  } else if (bestPlane != null) {
+    railAir = roadMax;
+    if (fp1AirProbe != null) fp1AirProbe.reason = "no_train";
+  }
+  local fp1RailAirRaw = FRONT_PAX1_CLAMP_PROBE ? railAir : -1;
+
+  local airMax = bestPlane ? OpexComputeAirMaxDistance(bestPlane, tpd, airportType, pax) : 0;
+'''.encode("utf-8"), r'''  } else if (bestPlane != null) {
+    railAir = roadMax;
+  }
+
+  local airMax = bestPlane ? OpexComputeAirMaxDistance(bestPlane, tpd, airportType, pax) : 0;
+'''.encode("utf-8")),
+        (r'''  };
+
+  if (FRONT_PAX1_CLAMP_PROBE) {
+    /* Inclut les calculs de bornes, avant les journaux ; le coût du journal
+     * lui-même est distinct. Les valeurs -1 signifient non calculé. */
+    local fp1Ops = OpexOpsMeasureEnd(fp1Mark);
+    local fp1Clamp = fp1RailAirRaw > mapSpan ? "map_span"
+        : (fp1RailAirRaw < roadMax ? "road_max"
+        : (fp1RailAirRaw > railMax ? "rail_max" : "none"));
+    /* OpexDecide modifie _currentTaskLogged : journaliser directement
+     * pour garantir la passivite, y compris pendant un TASK actif. */
+    local fp1Date = AIDate.GetCurrentDate();
+    AILog.Info("OPEX " + AIDate.GetYear(fp1Date) + "-"
+        + AIDate.GetMonth(fp1Date) + "-" + AIDate.GetDayOfMonth(fp1Date)
+        + " FRONT_PAX_CLAMP road_reason=" + fp1Probe.reason
+        + " road_raw=" + fp1Probe.rawRoad + " road_final=" + roadMax
+        + " road_min=" + roadMin + " deltaM=" + fp1Probe.deltaM
+        + " num=" + fp1Probe.num + " denom=" + fp1Probe.denom
+        + " air_reason=" + fp1AirProbe.reason
+        + " air_clamp=" + fp1Clamp
+        + " rail_air_raw=" + fp1RailAirRaw
+        + " rail_air_physical=" + fp1AirProbe.rawRailAir
+        + " rail_air_final=" + railAir + " rail_max=" + railMax
+        + " map_span=" + mapSpan + " airport_type="
+        + (airportType == null ? -1 : airportType)
+        + " rail_speed=" + vRail + " air_speed=" + vAirEff
+        + " air_fixed=" + tFixe + " tau_rail=" + fp1AirProbe.tauRail
+        + " tau_air=" + fp1AirProbe.tauAir + " tpd=" + tpd
+        + " ops=" + fp1Ops);
+  }
+
+  if (DECISION_LOG) {
+    OpexDecide("EPOCH_BOUNDS", "roadMin=" + roadMin + " roadMax=" + roadMax
+'''.encode("utf-8"), r'''  };
+
+  if (DECISION_LOG) {
+    OpexDecide("EPOCH_BOUNDS", "roadMin=" + roadMin + " roadMax=" + roadMax
+'''.encode("utf-8")),
+    ),
+    "globals_pre.nut": (
+        (r'''V309_IDLE_PROBE <- false;
+V309_IDLE_STATE <- null;
+FRONT_PAX1_CLAMP_PROBE <- false; // Réglage indépendant, motifs des bornes PASS.
+V284_RAIL_GROWTH <- 0; // 0 : master ; N : croissance fret apres N ans et 1 M£ disponible.
+/* V294 : ponts/tunnels longs et recherche A* continue (defauts 0 = master inchange). */
+'''.encode("utf-8"), r'''V309_IDLE_PROBE <- false;
+V309_IDLE_STATE <- null;
+V284_RAIL_GROWTH <- 0; // 0 : master ; N : croissance fret apres N ans et 1 M£ disponible.
+/* V294 : ponts/tunnels longs et recherche A* continue (defauts 0 = master inchange). */
+'''.encode("utf-8")),
+    ),
+    "info.nut": (
+        (r'''      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
+      flags = 0 });
+    AddSetting({ name = "front_pax1_bounds_probe",
+      description = "FRONT-PAX-1: passive one-log-per-bounds-refresh road/rail and rail/air clamp reasons, 0=off (default), 1=log; no candidate or policy changes",
+      min_value = 0, max_value = 1,
+      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
+      flags = AICONFIG_BOOLEAN });
+    /* --- 1. Systeme et instrumentation --- */
+
+'''.encode("utf-8"), r'''      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
+      flags = 0 });
+    /* --- 1. Systeme et instrumentation --- */
+
+'''.encode("utf-8")),
+    ),
+    "settings.nut": (
+        (r'''  V307_LONG_PROBE = (v307Probe != null && v307Probe > 0 && v307Probe <= 9) ? v307Probe : 0;
+  V309_IDLE_PROBE = OpexProbeEnabled(67108864);
+  FRONT_PAX1_CLAMP_PROBE = AIController.GetSetting("front_pax1_bounds_probe") == 1;
+  local v307Year = AIController.GetSetting("v307_probe_year");
+  V307_PROBE_YEAR = (v307Year != null && v307Year > 0 && v307Year <= 9) ? v307Year : 0;
+'''.encode("utf-8"), r'''  V307_LONG_PROBE = (v307Probe != null && v307Probe > 0 && v307Probe <= 9) ? v307Probe : 0;
+  V309_IDLE_PROBE = OpexProbeEnabled(67108864);
+  local v307Year = AIController.GetSetting("v307_probe_year");
+  V307_PROBE_YEAR = (v307Year != null && v307Year > 0 && v307Year <= 9) ? v307Year : 0;
+'''.encode("utf-8")),
+    ),
+}
+
 # The two PO01D-frozen producer files gained FP2 helpers and guarded call
 # sites. Verify the precise independent helper contents and delete ONLY those
 # additions for historical byte-hash checks. Never change the frozen digests.
@@ -227,6 +471,9 @@ P3_PROBES_CALLS = (
 
 
 def historical_bytes(name, raw):
+    for source, previous in FP1_SOURCE_PATCHES.get(name, ()):
+        assert raw.count(source) == 1, f"FRONT-PAX-1 {name}: source diagnostique absente ou modifiee"
+        raw = raw.replace(source, previous, 1)
     delta = {"info.nut": INFO_DELTA, "settings.nut": SETTINGS_DELTA}.get(name)
     if delta is not None:
         assert raw.count(delta) == 1, f"N75-MC {name}: expected precisely one unchanged opt-in fragment"

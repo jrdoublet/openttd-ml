@@ -63,6 +63,11 @@ class OpexAIInfo extends AIInfo {
       min_value = 0, max_value = 2,
       easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
       flags = 0 });
+    AddSetting({ name = "front_pax1_bounds_probe",
+      description = "FRONT-PAX-1: passive one-log-per-bounds-refresh road/rail and rail/air clamp reasons, 0=off (default), 1=log; no candidate or policy changes",
+      min_value = 0, max_value = 1,
+      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
+      flags = AICONFIG_BOOLEAN });
     /* --- 1. Systeme et instrumentation --- */
 
     /* V167 : un seul entier pilote panneaux, journal et sondes (somme de bits, voir settings.nut).

@@ -99,6 +99,7 @@ function OpexLoadSettings()
   local v307Probe = AIController.GetSetting("v307_long_probe");
   V307_LONG_PROBE = (v307Probe != null && v307Probe > 0 && v307Probe <= 9) ? v307Probe : 0;
   V309_IDLE_PROBE = OpexProbeEnabled(67108864);
+  FRONT_PAX1_CLAMP_PROBE = AIController.GetSetting("front_pax1_bounds_probe") == 1;
   local v307Year = AIController.GetSetting("v307_probe_year");
   V307_PROBE_YEAR = (v307Year != null && v307Year > 0 && v307Year <= 9) ? v307Year : 0;
   V308_CARTO_PROBE = OpexProbeEnabled(134217728) ? 1 : 0;
