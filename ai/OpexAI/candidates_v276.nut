@@ -56,15 +56,33 @@ function OpexV276Request(catalog, kind = null, id = -1)
 {
   local task = V276_CATALOG_TASK;
   if (task == null) return;
-  /* Ne jamais remplacer un curseur en vol : les evenements tardifs restent
-   * non acquittes par le snapshot et provoqueront la passe suivante. */
-  if (("v276" in task) && task.v276 != null) return;
+  /* Ne jamais remplacer un curseur en vol. En opt-in, un refill V269
+   * tardif demande une seconde passe, avec son contexte capture au tick
+   * demandeur ; les requetes ordinaires suivent la logique historique. */
+  if (("v276" in task) && task.v276 != null) {
+    if (DIST_BORNES_V276_FREIGHT && V269_RAIL_LATE_RELAX > 0 && V269_RELAXED) {
+      if (!("v276Request" in task) || task.v276Request == null)
+        task.v276Request <- { catalog = catalog, kind = kind, id = id, v269LateFreight = true };
+      else {
+        if (task.v276Request.kind != kind || task.v276Request.id != id) {
+          task.v276Request.kind = null;
+          task.v276Request.id = -1;
+        }
+        task.v276Request.v269LateFreight = true;
+      }
+    }
+    return;
+  }
   if (!("v276Request" in task) || task.v276Request == null)
-    task.v276Request <- { catalog = catalog, kind = kind, id = id };
+    task.v276Request <- { catalog = catalog, kind = kind, id = id,
+      v269LateFreight = DIST_BORNES_V276_FREIGHT && V269_RAIL_LATE_RELAX > 0 && V269_RELAXED };
   else if (task.v276Request.kind != kind || task.v276Request.id != id) {
     task.v276Request.kind = null;
     task.v276Request.id = -1;
   }
+  /* Plusieurs demandes peuvent etre coalescees avant l'execution V276. */
+  if (DIST_BORNES_V276_FREIGHT && V269_RAIL_LATE_RELAX > 0 && V269_RELAXED)
+    task.v276Request.v269LateFreight = true;
 }
 
 function OpexV276Published(catalog, kind = null, id = -1)
@@ -97,6 +115,9 @@ function OpexV276Start(owner, task)
   catalog.acceptors = clone catalog.acceptors;
   catalog.townAcceptors = clone catalog.townAcceptors;
   catalog.bounds = clone OpexCatalogBounds(catalog);
+  /* La demande V217 et son execution reprenable ne sont pas le meme tick. */
+  if (DIST_BORNES_V276_FREIGHT)
+    catalog.bounds.distBornesV269Relaxed <- request.v269LateFreight;
   local units = [];
   if (MODE_RAIL) {
     OpexV276AddUnits(units, catalog, !MODE_AIR);
@@ -139,6 +160,9 @@ function OpexV276PrepareUnit(s, u)
   local bounds = s.catalog.bounds;
   local maxDistance = u.mode == "road"
       ? (("roadGenMax" in bounds) ? bounds.roadGenMax : bounds.roadMax) : bounds.railMax;
+  if (u.mode == "rail" && !u.pax && DIST_BORNES_V276_FREIGHT
+      && ("distBornesV269Relaxed" in bounds) && bounds.distBornesV269Relaxed
+      && V269_RAIL_MAX_DIST > maxDistance) maxDistance = V269_RAIL_MAX_DIST;
   if (u.pax && u.band == PAX_BAND_RAIL_ONLY) maxDistance = bounds.railAirOverlapMin - 1;
   local grid = OpexSpatialGrid();
   grid.Build(destinations, maxDistance);
@@ -276,7 +300,14 @@ function OpexV276Enumerate(s, u, mark, opsBudget, startTick, deadlineTick)
       if (!touches) continue;
     }
     local distance = AIMap.DistanceManhattan(src.tile, dst.tile);
-    if (u.mode == "rail" && !OpexRailPaxPairInBand(s.catalog.bounds, distance, u.band)) continue;
+    if (u.mode == "rail") {
+      if (!u.pax && DIST_BORNES_V276_FREIGHT
+          && ("distBornesV269Relaxed" in s.catalog.bounds)
+          && s.catalog.bounds.distBornesV269Relaxed
+          && V269_RAIL_MAX_DIST > s.catalog.bounds.railMax) {
+        if (distance < s.catalog.bounds.railMin || distance > V269_RAIL_MAX_DIST) continue;
+      } else if (!OpexRailPaxPairInBand(s.catalog.bounds, distance, u.band)) continue;
+    }
     if (u.mode == "road" && !OpexRoadDistanceAllowed(s.catalog, distance, c.roadStats)) continue;
     local score = u.pax ? (src.pop.tofloat() * dst.pop * sqrt(distance.tofloat())).tointeger() : distance;
     /* Prune par la meme priorite native avant que la liste depasse 1000 paires.

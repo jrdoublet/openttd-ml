@@ -2227,7 +2227,10 @@ function OpexPO01CMakePaxCandidate(po01dResult, po01fSitableCache, po01fContext,
       stats.distanceLong++;
       { po01dResult.value = null; return; }
     }
-  } else if (distance > ((V269_RAIL_LATE_RELAX > 0 && V269_RELAXED && V269_RAIL_MAX_DIST > bounds.railMax) ? V269_RAIL_MAX_DIST : bounds.railMax)) {
+  } else if (distance > ((V269_RAIL_LATE_RELAX > 0
+      && (V269_RELAXED || (DIST_BORNES_V276_FREIGHT
+          && ("distBornesV269Relaxed" in bounds) && bounds.distBornesV269Relaxed))
+      && V269_RAIL_MAX_DIST > bounds.railMax) ? V269_RAIL_MAX_DIST : bounds.railMax)) {
     stats.distanceLong++;
     { po01dResult.value = null; return; }
   }

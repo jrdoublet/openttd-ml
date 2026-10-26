@@ -176,6 +176,13 @@ class OpexAIInfo extends AIInfo {
       step_size = 1,
       flags = 0
     });
+    AddSetting({
+      name = "dist_bornes_v276_freight",
+      description = "DIST-BORNES-1: 1 = preserve V269 late freight relaxation in deferred V276 scans, including the spatial grid and freight band; 0 = historical V276 (default)",
+      min_value = 0, max_value = 1,
+      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
+      default_value = 0, step_size = 1, flags = 0
+    });
 
     AddSetting({
       name = "v284_rail_growth",

@@ -765,7 +765,10 @@ function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, orig
       stats.distanceLong++;
       return null;
     }
-  } else if (distance > ((V269_RAIL_LATE_RELAX > 0 && V269_RELAXED && V269_RAIL_MAX_DIST > bounds.railMax) ? V269_RAIL_MAX_DIST : bounds.railMax)) {
+  } else if (distance > ((V269_RAIL_LATE_RELAX > 0
+      && (V269_RELAXED || (DIST_BORNES_V276_FREIGHT
+          && ("distBornesV269Relaxed" in bounds) && bounds.distBornesV269Relaxed))
+      && V269_RAIL_MAX_DIST > bounds.railMax) ? V269_RAIL_MAX_DIST : bounds.railMax)) {
     stats.distanceLong++;
     return null;
   }

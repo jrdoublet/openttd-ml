@@ -43,7 +43,7 @@ pré-enregistrées restent obligatoires.
 | 3 | V286 | Moyen ; stocks, charges et quantité sortie d'industrie relevés, sans livraisons attribuées à la ligne | Microcoût 42×3 de 22 000 ops ; **événement physique par ligne/cargo**, cas mixtes et effet observateur manquants | Moyen |
 | 4 | AIR-ROI-LIGNE-1 | Moyen à élevé ; rétrospective 40 DUEL déjà close `not_identifiable`, coût net et témoin absents | Épisode pré-décision et coût d'infrastructure attribuable, puis AA/AA même-save | Moyen à élevé |
 | 5 | AIR-ROI-RENOUVELLEMENT-1 | Moyen à élevé ; rétrospective 40 DUEL déjà close `not_identifiable`, revente et témoin absents | Coût net V252 daté et fourche achat/sans achat après AA/AA même-save | Moyen à élevé |
-| 6 | DIST-BORNES-1 | Moyen à élevé ; **double filtre 201–250 tuiles fret** (grille `railMax` et `OpexRailPaxPairInBand`) et contexte V269 effacé après requête V276 différée | Exposition réelle 1024² avant correction opt-in et porte V102 si choix modifiés | Élevé |
+| 6 | DIST-BORNES-1 | Moyen à élevé ; **correctif expérimental opt-in OFF par défaut** des deux filtres fret 201–250 et du contexte V269 différé, sans clôture des bornes route/rail/AIR | Smoke 42×1 sain ; exposition tardive réelle 1024² absente, puis porte V102 si les choix changent | Élevé |
 | 7 | V249a | Moyen à élevé ; V249s mode 2 évalue déjà gare/cargo mais captage concurrentiel non démontré | Observation au choix, témoin des gains captable et garde des doublons avant qualification | Moyen à élevé |
 
 **Lot du 26/10 après `bca3c701` :** V286 instrumenté sur cinq graines
@@ -63,6 +63,14 @@ Cette dépense de mesure n'est pas un gain d'opcodes. L'option reste
 à 0 par défaut ; la sous-étape source/coût est instruite, mais la
 case V286 ne peut être fermée sans livraison réelle par ligne,
 cas mixtes et qualification de l'effet observateur.
+
+**Sous-lot DIST-BORNES-1 du 26/10 :** grille fret, filtre `ALL` et
+contexte de régénération tardive V269 réparés sous
+`dist_bornes_v276_freight=1` (**défaut 0**). Contrats et smoke moteur
+42×1 sains après correction de l'emplacement Squirrel du contexte.
+L'exposition 1024² après activation de V269 manque toujours, ainsi
+que la comparaison causale des choix, les portes et le traitement des
+frontières route/AIR : tâche globale ouverte, **20 cases ouvertes**.
 
 ## C3 — prototypes et validations dépendantes
 

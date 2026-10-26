@@ -141,6 +141,33 @@ C75_INFO_DELTA = (
 )
 C75_SETTINGS_DELTA = b'  C75_YEAR_LEDGER_SKIP = AIController.GetSetting("c75_year_ledger_skip") == 1;\n'
 C75_DELTAS = {"info.nut": C75_INFO_DELTA, "settings.nut": C75_SETTINGS_DELTA}
+# DIST-BORNES-1 is a separate default-OFF correction to the deferred V276
+# freight path. Remove the *exact* reviewed addition from the frozen PO01D
+# inventory, including restoration of the historic V269 expression. This
+# keeps the original hashes and rejects edits to any other part of the file.
+DIST_BORNES_INFO_DELTA = (
+    b'    AddSetting({\n'
+    b'      name = "dist_bornes_v276_freight",\n'
+    b'      description = "DIST-BORNES-1: 1 = preserve V269 late freight relaxation in deferred V276 scans, including the spatial grid and freight band; 0 = historical V276 (default)",\n'
+    b'      min_value = 0, max_value = 1,\n'
+    b'      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,\n'
+    b'      default_value = 0, step_size = 1, flags = 0\n'
+    b'    });\n'
+)
+DIST_BORNES_SETTINGS_DELTA = (
+    b'  DIST_BORNES_V276_FREIGHT = AIController.GetSetting("dist_bornes_v276_freight") == 1;\n'
+)
+DIST_BORNES_DELTAS = {
+    "info.nut": DIST_BORNES_INFO_DELTA,
+    "settings.nut": DIST_BORNES_SETTINGS_DELTA,
+}
+DIST_BORNES_CANDIDATE_EDIT = (
+    b'  } else if (distance > ((V269_RAIL_LATE_RELAX > 0\n'
+    b'      && (V269_RELAXED || (DIST_BORNES_V276_FREIGHT\n'
+    b'          && ("distBornesV269Relaxed" in bounds) && bounds.distBornesV269Relaxed))\n'
+    b'      && V269_RAIL_MAX_DIST > bounds.railMax) ? V269_RAIL_MAX_DIST : bounds.railMax)) {\n',
+    b'  } else if (distance > ((V269_RAIL_LATE_RELAX > 0 && V269_RELAXED && V269_RAIL_MAX_DIST > bounds.railMax) ? V269_RAIL_MAX_DIST : bounds.railMax)) {\n',
+)
 C75_PROBES_DELTA = (
     "  /* C75_PASS_DATES et K_pass restent décisionnels. Les compteurs annuels ne\n"
     "   * servent qu'aux consommateurs de diagnostic C49/UB et C69/c75_year.\n"
@@ -521,6 +548,14 @@ P3_PROBES_CALLS = (
 
 
 def historical_bytes(name, raw):
+    dist_delta = DIST_BORNES_DELTAS.get(name)
+    if dist_delta is not None:
+        assert raw.count(dist_delta) == 1, f"DIST-BORNES {name}: opt-in fragment changed"
+        raw = raw.replace(dist_delta, b"", 1)
+    if name == "candidates.nut":
+        edited, previous = DIST_BORNES_CANDIDATE_EDIT
+        assert raw.count(edited) == 1, "DIST-BORNES candidates: reviewed opt-in guard changed"
+        raw = raw.replace(edited, previous, 1)
     if name == "probes.nut":
         assert raw.count(C75_PROBES_DELTA) == 1, "C75 probes: guard changed or duplicated"
         raw = raw.replace(C75_PROBES_DELTA, b"", 1)

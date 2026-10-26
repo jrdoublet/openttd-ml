@@ -88,6 +88,7 @@ function OpexLoadSettings()
   V216A_GHOST_DEMAND = AIController.GetSetting("v216a_ghost_demand");
   V216F_DWELL_PCT = AIController.GetSetting("v216f_dwell_pct");
   local lateRelax = AIController.GetSetting("v269_rail_late_relax");
+  DIST_BORNES_V276_FREIGHT = AIController.GetSetting("dist_bornes_v276_freight") == 1;
   local railGrowth = AIController.GetSetting("v284_rail_growth");
   if (railGrowth != null && railGrowth >= 0 && railGrowth <= 10) V284_RAIL_GROWTH = railGrowth;
   local v294BridgeLen = AIController.GetSetting("v294_rail_bridge_len");

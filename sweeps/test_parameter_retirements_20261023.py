@@ -85,8 +85,8 @@ class TestParameterRetirement(unittest.TestCase):
 
     def test_exact_size_after_retirement(self):
         self.assertEqual(len(RETIRED), 43)
-        # 58 historiques + N75 adopte + P6/P3/FP2/P2/P1 opt-in + FP1/V286/C75.
-        self.assertEqual(len(self.config), 67)
+        # 58 historiques + N75 adopte + P6/P3/FP2/P2/P1 opt-in + FP1/V286/C75/DIST.
+        self.assertEqual(len(self.config), 68)
         self.assertIn("n75_multi_cargo", self.config)
         self.assertIn("p6_air_firstline_window", self.config)
         self.assertIn("air_fleet_yield_rightsize", self.config)
@@ -96,6 +96,7 @@ class TestParameterRetirement(unittest.TestCase):
         self.assertIn("front_pax1_bounds_probe", self.config)
         self.assertIn("v286_rail_flow_probe", self.config)
         self.assertIn("c75_year_ledger_skip", self.config)
+        self.assertIn("dist_bornes_v276_freight", self.config)
         p2_setting = self.config["rail_cargo_opportunity_rank"]
         self.assertRegex(p2_setting, r"\bmin_value\s*=\s*0\b")
         self.assertRegex(p2_setting, r"\bmax_value\s*=\s*2\b")
