@@ -35,12 +35,13 @@ def analyse(report, policy="reference", passenger="0", mail="2"):
             continue
         if snap.get("arm") not in ("OpexAI", "AAAHogEx"):
             continue
-        key = (int(date[:4]), int(snap["seed"]), snap["arm"])
+        key = (int(date[:4]), int(snap["seed"]), int(snap.get("repeat", 0) or 0),
+               snap["arm"])
         if key not in latest or date > str(latest[key].get("date") or ""):
             latest[key] = snap
 
     by_year = defaultdict(list)
-    for (year, seed, arm), snap in sorted(latest.items()):
+    for (year, seed, repeat, arm), snap in sorted(latest.items()):
         classes = ("passenger", "mail", "freight", "mixed", "unknown")
         vehicles = {key: 0 for key in classes}
         lines = {key: 0 for key in classes}
@@ -57,6 +58,7 @@ def analyse(report, policy="reference", passenger="0", mail="2"):
             "year": year,
             "arm": arm,
             "seed": seed,
+            "repeat": repeat,
             "date": snap.get("date"),
             "telemetry_ok": snap.get("ok") is True,
             "rail_vehicles": vehicles,
@@ -74,6 +76,8 @@ def analyse(report, policy="reference", passenger="0", mail="2"):
             "arm": arm,
             "samples": n,
             "seeds": sorted(row["seed"] for row in rows),
+            "runs": [{"seed": row["seed"], "repeat": row["repeat"]}
+                     for row in sorted(rows, key=lambda r: (r["seed"], r["repeat"]))],
             "complete_snapshots": sum(row["telemetry_ok"] for row in rows),
             "unresolved_rail_vehicles": sum(row["unresolved_rail_vehicles"] for row in rows),
             "mean_trains": {k: round(sum(row["rail_vehicles"][k] for row in rows) / n, 3) for k in classes},
@@ -101,16 +105,16 @@ def check_against_jsonl(result, jsonl_path):
             run = row.get("run") or []
             if (row.get("duel_policy_id") != result["policy"]
                     or len(date) < 7 or date[5:7] != "12"
-                    or not run or run[0] not in ("OpexAI", "AAAHogEx")):
+                    or len(run) < 3 or run[0] not in ("OpexAI", "AAAHogEx")):
                 continue
             physical = row.get("primary_vehicles_by_mode") or {}
             if row.get("vehs_chunk_valid") is True and physical.get("rail") is not None:
-                key = (int(date[:4]), int(run[1]), run[0])
+                key = (int(date[:4]), int(run[1]), int(run[2]), run[0])
                 if key not in observed or date > observed[key][0]:
                     observed[key] = (date, int(physical["rail"]))
     mismatches = []
     for row in result["per_seed"]:
-        key = (row["year"], row["seed"], row["arm"])
+        key = (row["year"], row["seed"], row["repeat"], row["arm"])
         actual = observed.get(key)
         if actual is None:
             mismatches.append({"key": key, "reason": "missing_raw_snapshot"})
@@ -118,8 +122,9 @@ def check_against_jsonl(result, jsonl_path):
             mismatches.append({"key": key, "reason": "train_count_diff",
                                "raw": actual[1], "grouped": sum(row["rail_vehicles"].values())})
     for row in result["annual"]:
-        numbers = [observed[(row["year"], seed, row["arm"])][1] for seed in row["seeds"]
-                   if (row["year"], seed, row["arm"]) in observed]
+        numbers = [observed[(row["year"], run["seed"], run["repeat"], row["arm"])][1]
+                   for run in row["runs"]
+                   if (row["year"], run["seed"], run["repeat"], row["arm"]) in observed]
         mean = sum(numbers) / len(numbers) if numbers else None
         line_count = sum(row["mean_trains"].values())
         row["raw_rail_check"] = {
