@@ -75,6 +75,8 @@ def parse(folder, arm):
         if match is None:
             continue
         seed = int(match.group(1))
+        repetition = int(match.group(2))
+        source_arm = os.path.basename(file).split("_seed", 1)[0]
         chosen, builds, observed = {}, {}, defaultdict(list)
         ct["games"] += 1
         with open_text(file) as log:
@@ -107,7 +109,8 @@ def parse(folder, arm):
                         continue
                     n0 = num(kv.get("planes") or kv.get("trains") or kv.get("vehicles")) or 1.
                     builds[kv["line"]] = {
-                        "seed": seed, "arm": arm, "line": kv["line"], "mode": mode,
+                        "seed": seed, "arm": arm, "source_arm": source_arm,
+                        "repeat": repetition, "line": kv["line"], "mode": mode,
                         "cargo": kv.get("cargo", "PASS"), "year": year,
                         "src_tile": num(p.get("src")),
                         "dst_tile": num(p.get("dst")),
@@ -227,12 +230,21 @@ def predict(train, test, spec):
     return m[n:] @ beta
 
 
+def physical_line_key(row):
+    """A line number is local to a physical game, not merely to a seed."""
+    return (row["arm"], row.get("source_arm", row["arm"]),
+            row["seed"], row.get("repeat", 0), row["line"])
+
+
 def run_cv(data):
     out = {}
     for mode in sorted(set(r["mode"] for r in data)):
         rows = [r for r in data if r["mode"] == mode and r["arm"] == "duel"]
         if len(rows) < 30:
             continue
+        keys = [physical_line_key(r) for r in rows]
+        if len(set(keys)) != len(rows):
+            raise ValueError(f"ambiguous ROI line identity in mode {mode}")
         names = ("raw", "factor") + tuple(FEATURE_SETS)
         forecasts = {name: {} for name in names}
         seeds = sorted(set(r["seed"] for r in rows))
@@ -242,16 +254,18 @@ def run_cv(data):
             test = [r for r in rows if r["seed"] in held]
             scale = med([r["roi_real"] / r["roi_pred"] for r in train])
             for r in test:
-                key = (r["seed"], r["line"])
+                key = physical_line_key(r)
                 forecasts["raw"][key] = r["roi_pred"]
                 forecasts["factor"][key] = r["roi_pred"] * scale
             for name, spec in FEATURE_SETS.items():
                 estimates = predict(train, test, spec)
                 for r, v in zip(test, estimates):
-                    forecasts[name][(r["seed"], r["line"])] = float(v)
+                    forecasts[name][physical_line_key(r)] = float(v)
         errors = {}
         for name, predictions in forecasts.items():
-            residual = np.array([predictions[(r["seed"], r["line"])]-r["roi_real"]
+            if len(predictions) != len(rows):
+                raise ValueError(f"missing or overwritten ROI predictions in {mode}/{name}")
+            residual = np.array([predictions[physical_line_key(r)]-r["roi_real"]
                                  for r in rows])
             per_seed_rho = []
             for seed in seeds:
@@ -259,7 +273,7 @@ def run_cv(data):
                 if len(one) < 4:
                     continue
                 a = np.array([r["roi_real"] for r in one])
-                b = np.array([predictions[(r["seed"], r["line"])] for r in one])
+                b = np.array([predictions[physical_line_key(r)] for r in one])
                 if a.std() > 1.e-7 and b.std() > 1.e-7:
                     # Spearman ranks for within-game selected-line prioritization.
                     ra = np.argsort(np.argsort(a))
@@ -282,8 +296,8 @@ def run_cv(data):
             for seed in seeds:
                 selected = [r for r in rows if r["seed"] == seed]
                 per_seed_delta[seed] = np.mean([
-                    abs(ref[(r["seed"], r["line"])] - r["roi_real"]) -
-                    abs(predictions[(r["seed"], r["line"])] - r["roi_real"])
+                    abs(ref[physical_line_key(r)] - r["roi_real"]) -
+                    abs(predictions[physical_line_key(r)] - r["roi_real"])
                     for r in selected
                 ])
             means = np.array([per_seed_delta[s] for s in seeds])
@@ -309,6 +323,7 @@ def run_cv(data):
             }
         out[mode] = {
             "lines": len(rows), "seeds": len(seeds),
+            "distinct_prediction_keys": len(keys),
             "cv": errors,
             "gains_vs_roi_quadratic": gains,
             "by_predicted_roi_quartile": quartiles(rows, "roi_pred"),

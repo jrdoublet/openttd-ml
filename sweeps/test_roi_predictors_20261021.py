@@ -9,7 +9,7 @@ import importlib.util
 if importlib.util.find_spec("numpy") is None:
     raise unittest.SkipTest("optional numpy dependency is unavailable")
 
-from analyse_roi_predictors_20261021 import parse, quartiles, predict
+from analyse_roi_predictors_20261021 import parse, quartiles, predict, run_cv
 
 
 class RoiPredictorsTest(unittest.TestCase):
@@ -74,6 +74,42 @@ class RoiPredictorsTest(unittest.TestCase):
             rows, counts = parse(folder, "duel")
             self.assertEqual((len(rows), counts["games"], counts["matched_rail"]),
                              (4, 4, 4))
+            self.assertEqual({(row["source_arm"], row["repeat"], row["seed"], row["line"])
+                              for row in rows}, {
+                ("reference", 0, 42, "1"), ("variant", 0, 42, "1"),
+                ("reference", 1, 42, "1"), ("reference", 0, 100, "1"),
+            })
+
+    def test_same_source_arm_different_repeat_retains_identity(self):
+        with tempfile.TemporaryDirectory() as folder:
+            for rep in (0, 1):
+                with open(os.path.join(folder, f"reference_seed42_r{rep}.log"),
+                          "w", encoding="utf-8") as fh:
+                    fh.write(self._one_rail_game())
+            rows, counts = parse(folder, "duel")
+            self.assertEqual(counts["games"], 2)
+            self.assertEqual({(row["source_arm"], row["repeat"]) for row in rows},
+                             {("reference", 0), ("reference", 1)})
+
+    def test_crossvalidated_predictions_do_not_merge_mixed_source_arms(self):
+        # All 20 seeds have a reference/variant pair reusing the same line ID;
+        # source arms are different observations, but folds still hold out
+        # both arms of each seed together.
+        rows = []
+        for seed in range(20):
+            for source_arm, realized in (("reference", 30.0), ("variant", 55.0)):
+                rows.append({
+                    "seed": seed, "line": "0", "arm": "duel",
+                    "source_arm": source_arm, "repeat": 0,
+                    "mode": "rail", "cargo": "COAL", "subtype": "freight", "reuse": "0",
+                    "year": 1974, "roi_pred": 40.0 + seed,
+                    "roi_real": realized + seed, "profit_ratio": 1.0,
+                    "dist": 100 + seed, "capital": 2000.0, "rank": 0,
+                })
+        result = run_cv(rows)["rail"]
+        self.assertEqual(result["lines"], 40)
+        self.assertEqual(result["distinct_prediction_keys"], 40)
+        self.assertEqual(result["seeds"], 20)
 
     def test_revenue_with_wrong_mode_cannot_mature_another_line(self):
         # Une ligne AIR homonyme ne doit pas fournir un revenu au build RAIL.
