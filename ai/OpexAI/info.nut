@@ -23,6 +23,11 @@ class OpexAIInfo extends AIInfo {
       min_value = 0, max_value = 2,
       easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
       flags = 0 });
+    AddSetting({ name = "multi1_road_detour",
+      description = "MULTI-1 road TRACEX rescue in 1971-73: 0=off (default), 1=shadow, 2=bounded extra doglegs",
+      min_value = 0, max_value = 2,
+      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
+      flags = 0 });
     AddSetting({ name = "n75_multi_cargo",
       description = "1972+ cash-idle rail refill: 0=off, 1=shadow, 2=one extra freight cargo on empty funded rail pool (default 2)",
       min_value = 0, max_value = 2,

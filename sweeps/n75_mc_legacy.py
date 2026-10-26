@@ -122,6 +122,20 @@ MULTI1_AIR_SETTINGS_DELTA = (
 )
 MULTI1_AIR_DELTAS = {"info.nut": MULTI1_AIR_INFO_DELTA, "settings.nut": MULTI1_AIR_SETTINGS_DELTA}
 
+MULTI1_ROAD_DETOUR_INFO_DELTA = (
+    b'    AddSetting({ name = "multi1_road_detour",\n'
+    b'      description = "MULTI-1 road TRACEX rescue in 1971-73: 0=off (default), 1=shadow, 2=bounded extra doglegs",\n'
+    b'      min_value = 0, max_value = 2,\n'
+    b'      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,\n'
+    b'      flags = 0 });\n'
+)
+MULTI1_ROAD_DETOUR_SETTINGS_DELTA = (
+    b'  local multi1RoadDetour = AIController.GetSetting("multi1_road_detour");\n'
+    b'  MULTI1_ROAD_DETOUR = (multi1RoadDetour == 1 || multi1RoadDetour == 2) ? multi1RoadDetour : 0;\n'
+)
+MULTI1_ROAD_DETOUR_DELTAS = {"info.nut": MULTI1_ROAD_DETOUR_INFO_DELTA,
+                             "settings.nut": MULTI1_ROAD_DETOUR_SETTINGS_DELTA}
+
 # P1 is an independent opt-in C121 rail experiment; retain the frozen
 # historical contract by subtracting ONLY its exact additions. In particular,
 # P1's auxiliary freight candidate must never rebaseline PO01D's rail scan.
@@ -613,6 +627,10 @@ P3_PROBES_CALLS = (
 
 
 def historical_bytes(name, raw):
+    multi1_detour_delta = MULTI1_ROAD_DETOUR_DELTAS.get(name)
+    if multi1_detour_delta is not None:
+        assert raw.count(multi1_detour_delta) == 1, f"MULTI-1 ROAD detour {name}: opt-in bytes changed"
+        raw = raw.replace(multi1_detour_delta, b"", 1)
     multi1_air_delta = MULTI1_AIR_DELTAS.get(name)
     if multi1_air_delta is not None:
         assert raw.count(multi1_air_delta) == 1, f"MULTI-1 AIR {name}: opt-in bytes changed"

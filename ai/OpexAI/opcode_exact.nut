@@ -503,6 +503,49 @@ function OpexRoadPlanForActive(catalog, candidate) {
     }
   }
 
+  /* MULTI-1 third pilot: independently rescue TRACEX after every historical
+   * shape failed. An otherwise viable historical DEPOTX is left intact.
+   * No extra API/candidate search at the default OFF value. */
+  if (MULTI1_ROAD_DETOUR > 0 && MODE_AIR && MODE_RAIL && MODE_ROAD && noDepot == 0) {
+    local date = AIDate.GetCurrentDate();
+    local year = AIDate.GetYear(date);
+    if (year >= 1971 && year <= 1973) {
+      local extraTrials = 0;
+      foreach (siteA in sitesA) {
+        if (extraTrials >= 64) break;
+        foreach (siteB in sitesB) {
+          if (extraTrials >= 64) break;
+          if (stop.vehType == AIRoad.ROADVEHTYPE_BUS &&
+              AIMap.DistanceManhattan(siteA.tile, siteB.tile) < ROAD_BUS_STOP_MIN_DISTANCE) continue;
+          for (local shape = 6; shape < 10 && extraTrials < 64; shape++) {
+            extraTrials++;
+            local trace = OpexRoadTraceMulti(siteA.front, siteB.front, shape);
+            if (trace.len() == 0 || trace.len() > ROAD_MAX_TRACE_TILES) continue;
+            if (OpexRoadTraceHitsStop(trace, siteA.tile) || OpexRoadTraceHitsStop(trace, siteB.tile)) continue;
+            if (!OpexRoadTraceBuildable(trace)) continue;
+            local depot = OpexRoadFindDepot(trace, siteA, siteB);
+            if (depot == null) continue;
+            AILog.Info("MULTI1_ROAD_DETOUR year=" + year
+                + " date=" + year + "-" + AIDate.GetMonth(date) + "-" + AIDate.GetDayOfMonth(date)
+                + " action=" + (MULTI1_ROAD_DETOUR == 2 ? "rescue" : "shadow")
+                + " src=" + candidate.src + " dst=" + candidate.dst
+                + " stopA=" + siteA.tile + " stopB=" + siteB.tile
+                + " variant=" + shape + " length=" + trace.len() + " trials=" + extraTrials);
+            if (MULTI1_ROAD_DETOUR == 2) {
+              return { plan = { stopA = siteA, stopB = siteB, trace = trace, depot = depot,
+                                stationType = stop.stationType, vehType = stop.vehType,
+                                routeDistance = trace.len(), shape = shape, trials = trials + extraTrials },
+                       reason = "OK" };
+            }
+            return { plan = null, reason = "TRACEX",
+                     trace = { trials = trials, nEmpty = nEmpty, nLong = nLong,
+                               nHit = nHit, nUnb = nUnb, nNoDepot = noDepot } };
+          }
+        }
+      }
+    }
+  }
+
   return { plan = null, reason = noDepot > 0 ? "DEPOTX" : "TRACEX",
            trace = { trials = trials, nEmpty = nEmpty, nLong = nLong, nHit = nHit,
                      nUnb = nUnb, nNoDepot = noDepot } };

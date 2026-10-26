@@ -111,8 +111,8 @@ class TestP3AirFleetYield(unittest.TestCase):
         self.assertIn("P3_AIR_FLEET_YIELD <- 0;", self.globals_pre)
         self.assertIn("P3_AIR_FLEET_WINDOWS <- {};", self.globals_pre)
         self.assertIn("P3_AIR_FLEET_WINDOWS = {};", self.settings)
-        # P1/P2, sondes FP1/V286, C75/DIST et deux MULTI-1 opt-in, hors historique P3.
-        self.assertEqual(self.info.count("AddSetting("), 71)
+        # P1/P2, sondes FP1/V286, C75/DIST et trois MULTI-1 opt-in, hors historique P3.
+        self.assertEqual(self.info.count("AddSetting("), 72)
         self.assertEqual(historical_info(self.info).count("AddSetting("), 58)
 
     def test_off_branch_cannot_sample_scan_or_veto(self):

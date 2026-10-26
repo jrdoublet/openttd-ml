@@ -14,6 +14,8 @@ MODE_WATER <- true;
 MULTI1_ROAD_PRIORITY <- 0;
 /* MULTI-1 second pilot: bounded AIR-over-unprepared-RAIL selection, off by default. */
 MULTI1_AIR_OVER_RAIL <- 0;
+/* MULTI-1 third pilot: bounded ROAD detours after all historical traces fail. */
+MULTI1_ROAD_DETOUR <- 0;
 /* V168 : borne de distance des candidats rail. 160 = defaut (portes A et B du 13/10) ; 0 = derivee
  * du plafond d'A* par la table de noeuds (94 tuiles a 10k) ; N = N tuiles, sans le filtre
  * d'iterations predites. */

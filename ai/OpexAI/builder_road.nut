@@ -337,6 +337,31 @@ function OpexRoadTraceMulti(from, to, variant)
     OpexRoadAppendSegment(out, c2, to);
     return out;
   }
+  /* MULTI-1: four signed midpoint offsets, constrained to the rectangle.
+   * Variants 0..5 remain untouched and take precedence in the planner. */
+  if (variant >= 6 && variant <= 9) {
+    local c1 = null;
+    local c2 = null;
+    if (variant == 6 || variant == 7) {
+      local xmid = (x1 + x2) / 2 - (variant == 6 ? 1 : 2);
+      if (xmid < (x1 < x2 ? x1 : x2) || xmid > (x1 > x2 ? x1 : x2)
+        || !OpexRoadInMap(xmid, y1) || !OpexRoadInMap(xmid, y2)) return [];
+      c1 = AIMap.GetTileIndex(xmid, y1);
+      c2 = AIMap.GetTileIndex(xmid, y2);
+    } else {
+      local ymid = (y1 + y2) / 2 - (variant == 8 ? 1 : 2);
+      if (ymid < (y1 < y2 ? y1 : y2) || ymid > (y1 > y2 ? y1 : y2)
+        || !OpexRoadInMap(x1, ymid) || !OpexRoadInMap(x2, ymid)) return [];
+      c1 = AIMap.GetTileIndex(x1, ymid);
+      c2 = AIMap.GetTileIndex(x2, ymid);
+    }
+    if (!OpexRoadIsFlat(c1) || !OpexRoadIsFlat(c2)) return [];
+    local out = [];
+    OpexRoadAppendSegment(out, from, c1);
+    OpexRoadAppendSegment(out, c1, c2);
+    OpexRoadAppendSegment(out, c2, to);
+    return out;
+  }
   return [];
 }
 
