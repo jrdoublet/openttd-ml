@@ -598,6 +598,82 @@ class V233LongGoodContracts(unittest.TestCase):
         self.assertNotIn("21210", body("v233_long_good.nut", "OpexV233LReserveDouble"))
         self.assertNotIn("length = 3", plans)
 
+    def test_track7_aside_bridge_and_span_budget_precede_the_full_search(self):
+        """Smoke 10, 62245->46727: length-8 bridge lands on company rail.
+
+        Slide stays on the axis. The other perpendicular side, then a longer
+        or shorter span, is tried before any A*. A length-8 obstacle no
+        longer inherits the 1000-iteration floor of a 4-node window.
+        """
+        repair = body("v233_long_good.nut", "OpexV233LRepairParallel")
+        self.assertLess(repair.index("OpexV233LSlideBridge("), repair.index("OpexV233LAsideBridge("))
+        self.assertLess(repair.index("OpexV233LAsideBridge("), repair.index("foreach (radius in [4, 8, 16])"))
+        self.assertLess(repair.index("foreach (radius in [4, 8, 16])"), repair.index("OpexSearchPath("))
+        self.assertIn("if (span > reach) reach = span", repair)
+        self.assertIn("span * span * 48", repair)
+        self.assertIn("min(8000, max(1000, span * span * 48))", repair)
+        # Length 8: 3072, above the old 1000 floor and inside the 8000 cap.
+        # A one-tile obstacle stays on the 1000 floor.
+        self.assertEqual(min(8000, max(1000, 8 * 8 * 48)), 3072)
+        self.assertEqual(min(8000, max(1000, 1 * 1 * 48)), 1000)
+        aside = body("v233_long_good.nut", "OpexV233LAsideBridge")
+        for token in ("reason=OCCUPANT", "reason=ASIDE_OK", "reason=ASIDE_NONE",
+                      "OpexV190MakeTile", "AIBridge.BuildBridge", "local testMode = AITestMode()"):
+            self.assertIn(token, aside)
+        for token in ("DemolishTile", "RemoveRail", ".find(", "function("):
+            self.assertNotIn(token, aside)
+        # Same-length shift of both heads by one perpendicular step.
+        # Map x grows by 1. Bridge along +x, perp (0, +1) moves the span off the rail.
+        cur, nxt = (54, 240), (61, 240)
+        perp = (0, 1)
+        new_start = (cur[0] + perp[0], cur[1] + perp[1])
+        new_end = (nxt[0] + perp[0], nxt[1] + perp[1])
+        self.assertEqual(abs(new_end[0] - new_start[0]) + abs(new_end[1] - new_start[1]), 7)
+        self.assertNotEqual(new_start[1], cur[1])
+        kind = body("v233_long_good.nut", "OpexV233LOccupantKind")
+        for label in ('"rail"', '"bridge"', '"tunnel"', '"road"', '"water"', '"house"', '"slope"', '"clear"'):
+            self.assertIn(label, kind)
+        self.assertLess(kind.index("IsBridgeTile"), kind.index("IsRailTile"))
+        probe = body("v233_long_good.nut", "OpexV233LBridgeProbe")
+        self.assertIn('kind=" + OpexV233LOccupantKind(t)', probe)
+        self.assertIn("water=", probe)
+
+    def test_track7_pocket_probe_drops_a_head_before_the_full_search(self):
+        """Smoke 10, 58979->20909: east head is open one tile, then 14656 iters.
+
+        A 64-step probe that cannot close 12 tiles toward the other lead
+        notes the head and returns SKIP_POCKET. The straight corridor names
+        the first blocker. An open corridor is not rejected.
+        """
+        planner = body("builder_rail.nut", "OpexV190PlanDoubleTrack")
+        self.assertLess(planner.index('OpexV233LSearchHeadLog(v233Context, p, "A", forbidden)'),
+                        planner.index("OpexV233LProbeHeads("))
+        self.assertLess(planner.index("OpexV233LProbeHeads("),
+                        planner.index("phase=search reason=BEGIN"))
+        self.assertLess(planner.index("reason=SKIP_POCKET"),
+                        planner.index("local search = OpexSearchPath"))
+        self.assertLess(planner.index("reason=SKIP_ENCLOSED"),
+                        planner.index("OpexV233LProbeHeads("))
+        pocket = body("v233_long_good.nut", "OpexV233LProbeHead")
+        self.assertIn("OpexV233LWalkCorridor(candidate, p, side, forbidden)", pocket)
+        self.assertIn("OpexV233LNoteEnclosed(candidate, p.lead)", pocket)
+        self.assertIn("reason=POCKET", pocket)
+        self.assertIn("reason=POCKET_OPEN", pocket)
+        self.assertIn("AIController.GetTick() >= deadline", pocket)
+        self.assertIn("startDist + 3", pocket)
+        self.assertIn("> 16", pocket)
+        walk = body("v233_long_good.nut", "OpexV233LWalkCorridor")
+        self.assertIn("reason=CORRIDOR", walk)
+        self.assertIn("OpexV233LOccupantKind(nxt)", walk)
+        self.assertLess(walk.index("error = AIError.GetLastError()"), walk.index("OpexV233LOccupantKind(nxt)"))
+        # 210 tiles apart, best still 206: not enough. 198 is enough.
+        start = 210
+        need = 12 if start >= 12 else start
+        self.assertLess(start - 206, need)
+        self.assertGreaterEqual(start - 198, need)
+        self.assertNotIn(".find(", pocket)
+        self.assertNotIn("function(", pocket)
+
     def test_setting_bounds_defaults_and_single_read(self):
         block = re.search(r'AddSetting\(\{\s*name = "v233_long_good",.*?\}\);', source("info.nut"), re.S)[0]
         self.assertIn("min_value = 0, max_value = 1", block)

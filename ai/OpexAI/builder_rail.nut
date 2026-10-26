@@ -3293,6 +3293,20 @@ function OpexV190PlanDoubleTrack(catalog, planA, planB, tiles, iterationBudget, 
     }
     foreach (p in dualA) OpexV233LSearchHeadLog(v233Context, p, "A", forbidden);
     foreach (p in dualB) OpexV233LSearchHeadLog(v233Context, p, "B", forbidden);
+    /* Poche a faible cout : une sortie qui ne se rapproche pas du but
+     * dans une file de 64 est retiree avant l'A* de plusieurs milliers. */
+    OpexV233LProbeHeads(v233Context, dualA, dualB, forbidden, deadlineTick);
+    dualA = OpexV233LWithoutEnclosed(dualA, v233Context);
+    dualB = OpexV233LWithoutEnclosed(dualB, v233Context);
+    if (dualA.len() == 0 || dualB.len() == 0) {
+      acc.skip = 3;
+      acc.reason = "NOPATH2";
+      acc.step = "SEARCH_NOPA";
+      if (DECISION_LOG) OpexV233LLog("DOUBLE", "src=" + v233Context.src + " dst=" + v233Context.dst
+          + " phase=search reason=SKIP_POCKET budget=" + iterationBudget
+          + " a=" + dualA.len() + " b=" + dualB.len());
+      return acc;
+    }
   }
   if (v233Context != null && DECISION_LOG) OpexV233LLog("DOUBLE", "src=" + v233Context.src + " dst=" + v233Context.dst
       + " phase=search reason=BEGIN budget=" + iterationBudget + " ticks_left=" + (deadlineTick - AIController.GetTick())

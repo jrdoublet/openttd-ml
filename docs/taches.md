@@ -124,6 +124,28 @@ la voie 1. Suite Python : **2 581 tests, OK** (9 ignorés, 2 échecs
 attendus). Pose moteur **non validée** (Docker interdit).
 [Détails](v233_long_good_20261025.md#26-octobre--track6-pose-du-quai-double-et-sortie-enfermée).
 
+**26/10 — V233L, TRACK7 après le smoke 10 fourni (local, défaut 0) :**
+graine 100, cinq ans, zéro erreur, toujours aucune voie double livrée.
+`62245→46727` greffe un détour (167 tuiles) et un pont 62259→61235
+(longueur 5). Le pont 61494→61501, longueur 8, reste en erreur 260 :
+la tête 61501 et le tablier portent le rail de la compagnie 0, hors
+interdit (milieu de pont de la voie 1 absent du tracé). Le glissement
+axial (11 essais) ne quitte pas cette ligne. Un pont décalé sur
+l'autre perpendiculaire, même portée puis plus long ou plus court, est
+tenté avant l'A*. Le budget local d'un ouvrage de longueur L passe à
+`L²×48` (3 072 pour L=8, plancher 1 000 inchangé pour un obstacle
+court) et la fenêtre part de L. `58979→20909` retire toujours l'ouest.
+L'est, ouvert au premier pas, est sondé sur 64 pas vers l'autre quai :
+sans 12 tuiles de progrès dans un rayon 16, la tête est une poche et
+l'A* complet ne part pas. La marche droite nomme le premier obstacle
+(rail, pont, route, eau, maison). AAAHogEx ne pose pas les deux voies
+d'un coup : il construit la voie 1, puis cherche la voie 2 le long
+d'une bande parallèle, en pénalisant un pont qui n'a pas de jumeau.
+Ce mode n'est pas ajouté : il changerait la voie 1. Suite Python :
+**60 contrats V233L, puis 2 583 tests, OK** (9 ignorés, 2 échecs
+attendus). Pose moteur **non validée** (Docker interdit).
+[Détails](v233_long_good_20261025.md#26-octobre--track7-pont-de-lautre-côté-et-poche).
+
 ### Priorités ouvertes après les deux références monomodales du 25/10 (sans adoption)
 
 - [ ] **P1 — `rail_long_value_rank` : qualifier et classer le fret long constructible (opt-in, défaut 0 ; coût 4/5).** Ne plus relever globalement les bornes : vérifier site, A*, capital et ROI marginal pour une paire fret ≥160 tuiles, puis la comparer aux projets courts et AIR réellement finançables ; [analyse §4](analyse_rail_vs_air_seul_20261025.md#4-pistes-expérimentales-par-potentiel-de-gain-relatif-au-coût).

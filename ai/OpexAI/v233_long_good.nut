@@ -724,8 +724,15 @@ function OpexV233LBridgeProbe(candidate, fromTile, toTile, forbidden)
         OpexV233LLog("DOUBLE", "src=" + candidate.src + " dst=" + candidate.dst
             + " phase=bridge_span reason=STATE tile=" + t + " forbidden=" + ((t in forbidden) ? 1 : 0)
             + " owner=" + AITile.GetOwner(t) + " hi=" + AITile.GetMaxHeight(t)
+            + " slope=" + AITile.GetSlope(t)
+            + " buildable=" + (AITile.IsBuildable(t) ? 1 : 0)
             + " rail=" + (AITile.HasTransportType(t, AITile.TRANSPORT_RAIL) ? 1 : 0)
-            + " road=" + (AITile.HasTransportType(t, AITile.TRANSPORT_ROAD) ? 1 : 0));
+            + " bridge=" + (AIBridge.IsBridgeTile(t) ? 1 : 0)
+            + " tunnel=" + (AITunnel.IsTunnelTile(t) ? 1 : 0)
+            + " road=" + (AIRoad.IsRoadTile(t) ? 1 : 0)
+            + " water=" + (AITile.IsWaterTile(t) ? 1 : 0)
+            + " station=" + (AIRail.IsRailStationTile(t) ? 1 : 0)
+            + " kind=" + OpexV233LOccupantKind(t));
       }
     }
     if (!ok && bridgeType >= 0) {
@@ -961,6 +968,209 @@ function OpexV233LSlideBridge(candidate, trace, index, forbidden)
   return null;
 }
 
+/* Voie au sol, tablier, rampe, route, eau, maison ou pente. Une rampe est
+ * un pont : elle est comptee avant le rail au sol. `house` couvre aussi une
+ * industrie ou un objet non constructible qui n'est ni eau ni transport. */
+function OpexV233LOccupantKind(tile)
+{
+  if (tile == null || !AIMap.IsValidTile(tile)) return "off";
+  if (AIRail.IsRailStationTile(tile)) return "station";
+  if (AIBridge.IsBridgeTile(tile)) return "bridge";
+  if (AITunnel.IsTunnelTile(tile)) return "tunnel";
+  if (AIRail.IsRailTile(tile) || AITile.HasTransportType(tile, AITile.TRANSPORT_RAIL)) return "rail";
+  if (AIRoad.IsRoadTile(tile)) return "road";
+  if (AITile.IsWaterTile(tile) || AITile.IsCoastTile(tile)) return "water";
+  if (!AITile.IsBuildable(tile)) return "house";
+  if (AITile.GetSlope(tile) != AITile.SLOPE_FLAT) return "slope";
+  return "clear";
+}
+
+/* Le glissement axial a echoue : le tablier ou la tete lointaine est occupe,
+ * souvent par la voie 1 dont le milieu de pont n'est pas dans l'interdit.
+ * Decale le pont sur l'autre perpendiculaire, meme portee d'abord, puis une
+ * portee plus longue qui depasse l'occupation. Rien n'est pose. */
+function OpexV233LAsideBridge(candidate, trace, index, forbidden)
+{
+  local tiles = trace.tiles;
+  if (candidate == null || index < 1 || index + 2 >= tiles.len()) return null;
+  local prev = tiles[index - 1];
+  local cur = tiles[index];
+  local next = tiles[index + 1];
+  local dist = AIMap.DistanceManhattan(cur, next);
+  if (dist < 2) return null;
+  if (AIMap.GetTileX(cur) != AIMap.GetTileX(next) && AIMap.GetTileY(cur) != AIMap.GetTileY(next)) return null;
+  local udx = AIMap.GetTileX(next) - AIMap.GetTileX(cur);
+  local udy = AIMap.GetTileY(next) - AIMap.GetTileY(cur);
+  udx = udx > 0 ? 1 : (udx < 0 ? -1 : 0);
+  udy = udy > 0 ? 1 : (udy < 0 ? -1 : 0);
+  local step = (next - cur) / dist;
+  if (cur - prev != step || tiles[index + 2] - next != step) return null;
+  local kind = OpexV233LOccupantKind(next);
+  if (DECISION_LOG) OpexV233LLog("DOUBLE", "src=" + candidate.src + " dst=" + candidate.dst
+      + " phase=bridge reason=OCCUPANT tile=" + next + " kind=" + kind
+      + " rail=" + (AIRail.IsRailTile(next) ? 1 : 0)
+      + " bridge=" + (AIBridge.IsBridgeTile(next) ? 1 : 0)
+      + " road=" + (AIRoad.IsRoadTile(next) ? 1 : 0)
+      + " water=" + (AITile.IsWaterTile(next) ? 1 : 0)
+      + " station=" + (AIRail.IsRailStationTile(next) ? 1 : 0)
+      + " buildable=" + (AITile.IsBuildable(next) ? 1 : 0)
+      + " slope=" + AITile.GetSlope(next) + " owner=" + AITile.GetOwner(next));
+  local perps = [[-udy, udx], [udy, -udx]];
+  /* Indice de perpendiculaire, amplitude laterale, glissement de la tete
+   * lointaine. La tete proche reste en face de cur : un seul coude suffit. */
+  local specs = [
+    [0, 1, 0], [1, 1, 0],
+    [0, 2, 0], [1, 2, 0],
+    [0, 1, 2], [1, 1, 2],
+    [0, 1, 4], [1, 1, 4],
+    [0, 1, 6], [1, 1, 6],
+    [0, 1, 8], [1, 1, 8],
+    [0, 2, 2], [1, 2, 2],
+    [0, 2, 4], [1, 2, 4],
+    [0, 1, -2], [1, 1, -2],
+    [0, 1, -4], [1, 1, -4]
+  ];
+  local tries = 0;
+  local lastError = -1;
+  foreach (spec in specs) {
+    local px = perps[spec[0]][0];
+    local py = perps[spec[0]][1];
+    local lateral = spec[1];
+    local endSlide = spec[2];
+    local gap = dist + endSlide;
+    if (gap < 2 || gap + 1 > 20) continue;
+    local newStart = OpexV190MakeTile(cur, px * lateral, py * lateral);
+    local newEnd = OpexV190MakeTile(next, px * lateral + udx * endSlide, py * lateral + udy * endSlide);
+    if (newStart == null || newEnd == null) continue;
+    if (AIMap.DistanceManhattan(newStart, newEnd) != gap) continue;
+    if ((newEnd - newStart) / gap != step) continue;
+    local axisBefore = OpexV190MakeTile(newStart, -udx, -udy);
+    if (axisBefore == null) continue;
+    local rejoin = -1;
+    local seg = [];
+    seg.append(prev);
+    if (lateral == 2) {
+      local midIn = OpexV190MakeTile(prev, px, py);
+      if (midIn == null) continue;
+      seg.append(midIn);
+    }
+    seg.append(axisBefore);
+    seg.append(newStart);
+    seg.append(newEnd);
+    if (endSlide >= 0) {
+      local axisAfter = OpexV190MakeTile(newEnd, udx, udy);
+      if (axisAfter == null) continue;
+      seg.append(axisAfter);
+      local off = 0;
+      local scanLimit = index + 1 + gap + 4;
+      if (scanLimit > tiles.len()) scanLimit = tiles.len();
+      for (local j = index + 1; j < scanLimit; j++) {
+        local want = OpexV190MakeTile(next, udx * off, udy * off);
+        if (want == null || tiles[j] != want) break;
+        if (off > endSlide) { rejoin = j; break; }
+        off++;
+      }
+      if (rejoin < 0) continue;
+      if (lateral == 2) {
+        local midOut = OpexV190MakeTile(tiles[rejoin], px, py);
+        if (midOut == null) continue;
+        seg.append(midOut);
+      }
+      seg.append(tiles[rejoin]);
+    } else {
+      if (index + 2 >= tiles.len() || tiles[index + 2] - next != step) continue;
+      rejoin = index + 2;
+      local walk = newEnd;
+      local walkOk = true;
+      for (local s = endSlide; s < 1; s++) {
+        walk = OpexV190MakeTile(walk, udx, udy);
+        if (walk == null) { walkOk = false; break; }
+        seg.append(walk);
+      }
+      if (!walkOk) continue;
+      if (lateral == 2) {
+        local midOut = OpexV190MakeTile(tiles[rejoin], px, py);
+        if (midOut == null) continue;
+        seg.append(midOut);
+      }
+      seg.append(tiles[rejoin]);
+    }
+    local joined = [];
+    for (local n = 0; n < index - 1; n++) joined.append(tiles[n]);
+    foreach (t in seg) joined.append(t);
+    for (local n = rejoin + 1; n < tiles.len(); n++) joined.append(tiles[n]);
+    local seen = {};
+    local clash = false;
+    foreach (t in joined) {
+      if (t in seen) { clash = true; break; }
+      seen[t] <- true;
+    }
+    if (!clash) {
+      foreach (t in seg) {
+        if (t == prev || t == tiles[rejoin]) continue;
+        if (t in forbidden) { clash = true; break; }
+      }
+    }
+    if (clash || newStart in forbidden || newEnd in forbidden || axisBefore in forbidden) continue;
+    local bridgeType = -1;
+    local error = -1;
+    local built = true;
+    local testSeq = [];
+    if (index >= 2) testSeq.append(tiles[index - 2]);
+    foreach (t in seg) testSeq.append(t);
+    if (rejoin + 1 < tiles.len()) testSeq.append(tiles[rejoin + 1]);
+    {
+      local testMode = AITestMode();
+      for (local n = 0; n < testSeq.len() - 1; n++) {
+        local far = AIMap.DistanceManhattan(testSeq[n], testSeq[n + 1]) > 1;
+        if (far) {
+          local length = AIMap.DistanceManhattan(testSeq[n], testSeq[n + 1]) + 1;
+          local bridges = AIBridgeList_Length(length);
+          OpexBridgeSortBySpeed(bridges);
+          bridgeType = bridges.IsEmpty() ? -1 : bridges.Begin();
+          if (bridgeType < 0 || !AIBridge.BuildBridge(AIVehicle.VT_RAIL, bridgeType, testSeq[n], testSeq[n + 1])) {
+            built = false;
+            error = AIError.GetLastError();
+            break;
+          }
+        } else if (n > 0 && AIMap.DistanceManhattan(testSeq[n - 1], testSeq[n]) == 1) {
+          if (!AIRail.BuildRail(testSeq[n - 1], testSeq[n], testSeq[n + 1])) {
+            built = false;
+            error = AIError.GetLastError();
+            break;
+          }
+        }
+      }
+    }
+    tries++;
+    if (!built) { lastError = error; continue; }
+    if (!OpexV233LParallelGeometry(candidate, joined)) continue;
+    local structures = [];
+    foreach (s in trace.structures) {
+      if (!("from" in s) || !("to" in s)) continue;
+      if (s.from == cur && s.to == next) continue;
+      local kept = false;
+      for (local n = 0; n + 1 < joined.len(); n++) {
+        if (s.from == joined[n] && s.to == joined[n + 1]) { kept = true; break; }
+      }
+      if (kept) structures.append(s);
+    }
+    structures.append({ from = newStart, to = newEnd, kind = "bridge",
+      length = AIMap.DistanceManhattan(newStart, newEnd) });
+    if (DECISION_LOG) OpexV233LLog("DOUBLE", "src=" + candidate.src + " dst=" + candidate.dst
+        + " phase=bridge reason=ASIDE_OK from=" + newStart + " to=" + newEnd
+        + " perp=" + spec[0] + " k=" + lateral + " end_slide=" + endSlide
+        + " length=" + (gap + 1) + " bridge_type=" + bridgeType
+        + " tries=" + tries + " occupant=" + kind);
+    return { tiles = joined, structures = structures };
+  }
+  if (DECISION_LOG) OpexV233LLog("DOUBLE", "src=" + candidate.src + " dst=" + candidate.dst
+      + " phase=bridge reason=ASIDE_NONE tile=" + cur + " tries=" + tries
+      + " error=" + lastError + " occupant=" + kind
+      + " area_not_clear=" + (lastError == AIError.ERR_AREA_NOT_CLEAR ? 1 : 0));
+  return null;
+}
+
 /* Bande fermee autour de la fenetre. L'interieur elargi de `margin` reste libre
  * pour le detour. L'epaisseur vaut la portee max du pathfinder : il n'ajoute
  * que la tuile d'atterrissage, donc une ligne d'une tuile se saute. Les tuiles
@@ -1106,6 +1316,135 @@ function OpexV233LNoteEnclosed(candidate, lead)
   if (!(lead in candidate.v233Enclosed)) candidate.v233Enclosed[lead] <- true;
 }
 
+/* Marche droite dans l'axe de sortie. Le premier obstacle est nomme
+ * (rail, pont, route, eau, maison) avant toute recherche large. */
+function OpexV233LWalkCorridor(candidate, p, side, forbidden)
+{
+  if (!DECISION_LOG || candidate == null || p == null) return;
+  local ux = AIMap.GetTileX(p.lead) - AIMap.GetTileX(p.station_exit);
+  local uy = AIMap.GetTileY(p.lead) - AIMap.GetTileY(p.station_exit);
+  ux = ux > 0 ? 1 : (ux < 0 ? -1 : 0);
+  uy = uy > 0 ? 1 : (uy < 0 ? -1 : 0);
+  local came = p.station_exit;
+  local cur = p.lead;
+  local steps = 0;
+  local blocked = -1;
+  local kind = "open";
+  local error = -1;
+  for (local n = 0; n < 10; n++) {
+    local nxt = OpexV190MakeTile(cur, ux, uy);
+    if (nxt == null) { kind = "edge"; break; }
+    if (nxt in forbidden) { blocked = nxt; kind = "forbidden"; break; }
+    local ok = false;
+    {
+      local testMode = AITestMode();
+      ok = AIRail.BuildRail(came, cur, nxt);
+      if (!ok) error = AIError.GetLastError();
+    }
+    if (!ok) {
+      blocked = nxt;
+      kind = OpexV233LOccupantKind(nxt);
+      break;
+    }
+    steps++;
+    came = cur;
+    cur = nxt;
+  }
+  OpexV233LLog("DOUBLE", "src=" + candidate.src + " dst=" + candidate.dst
+      + " phase=head reason=CORRIDOR side=" + side + " lead=" + p.lead
+      + " ux=" + ux + " uy=" + uy + " steps=" + steps + " blocked=" + blocked
+      + " kind=" + kind + " error=" + error);
+}
+
+/* File bornee, seulement vers le but (au plus 3 tuiles de detour). Si elle
+ * se vide ou s'epuise sans gagner 12 tuiles, la sortie est une poche : on
+ * ne lance pas l'A* complet. Une echeance atteinte ne conclut rien. */
+function OpexV233LProbeHead(candidate, p, side, goal, forbidden, deadline)
+{
+  if (candidate == null || p == null || goal == null) return;
+  OpexV233LWalkCorridor(candidate, p, side, forbidden);
+  local startDist = AIMap.DistanceManhattan(p.lead, goal);
+  local need = startDist < 12 ? startDist : 12;
+  if (need < 1) need = 1;
+  local best = startDist;
+  local seen = {};
+  seen[p.lead] <- true;
+  local qx = [p.lead];
+  local qcame = [p.station_exit];
+  local qh = 0;
+  local expanded = 0;
+  local cap = 64;
+  while (qh < qx.len() && expanded < cap) {
+    if (AIController.GetTick() >= deadline) return;
+    /* Le plus proche du but d'abord : une poche ne doit pas remplir la
+     * file avec des tuiles qui s'en eloignent avant d'avoir teste l'axe. */
+    local bestI = qh;
+    local bestD = AIMap.DistanceManhattan(qx[qh], goal);
+    for (local i = qh + 1; i < qx.len(); i++) {
+      local queued = AIMap.DistanceManhattan(qx[i], goal);
+      if (queued < bestD) { bestD = queued; bestI = i; }
+    }
+    if (bestI != qh) {
+      local swapTile = qx[qh];
+      qx[qh] = qx[bestI];
+      qx[bestI] = swapTile;
+      local swapCame = qcame[qh];
+      qcame[qh] = qcame[bestI];
+      qcame[bestI] = swapCame;
+    }
+    local cur = qx[qh];
+    local came = qcame[qh];
+    qh++;
+    expanded++;
+    foreach (delta in [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      local nxt = OpexV190MakeTile(cur, delta[0], delta[1]);
+      if (nxt == null || nxt == came || nxt in seen || nxt in forbidden) continue;
+      if (AIMap.DistanceManhattan(p.lead, nxt) > 16) continue;
+      if (AIMap.DistanceManhattan(nxt, goal) > startDist + 3) continue;
+      local ok = false;
+      {
+        local testMode = AITestMode();
+        ok = AIRail.BuildRail(came, cur, nxt);
+      }
+      if (!ok) continue;
+      seen[nxt] <- true;
+      local dist = AIMap.DistanceManhattan(nxt, goal);
+      if (dist < best) best = dist;
+      qx.append(nxt);
+      qcame.append(cur);
+    }
+  }
+  local progress = startDist - best;
+  local closed = qh >= qx.len() ? 1 : 0;
+  if (progress >= need) {
+    if (DECISION_LOG) OpexV233LLog("DOUBLE", "src=" + candidate.src + " dst=" + candidate.dst
+        + " phase=head reason=POCKET_OPEN side=" + side + " lead=" + p.lead
+        + " start=" + startDist + " best=" + best + " progress=" + progress
+        + " expanded=" + expanded + " closed=" + closed);
+    return;
+  }
+  if (progress < need && (closed == 1 || expanded >= cap)) {
+    OpexV233LNoteEnclosed(candidate, p.lead);
+    if (DECISION_LOG) OpexV233LLog("DOUBLE", "src=" + candidate.src + " dst=" + candidate.dst
+        + " phase=head reason=POCKET side=" + side + " lead=" + p.lead
+        + " start=" + startDist + " best=" + best + " progress=" + progress
+        + " need=" + need + " expanded=" + expanded + " closed=" + closed);
+  }
+}
+
+function OpexV233LProbeHeads(candidate, plansA, plansB, forbidden, deadline)
+{
+  if (candidate == null) return;
+  local goalA = (plansB != null && plansB.len() > 0) ? plansB[0].lead : null;
+  local goalB = (plansA != null && plansA.len() > 0) ? plansA[0].lead : null;
+  if (plansA != null) {
+    foreach (p in plansA) OpexV233LProbeHead(candidate, p, "A", goalA, forbidden, deadline);
+  }
+  if (plansB != null) {
+    foreach (p in plansB) OpexV233LProbeHead(candidate, p, "B", goalB, forbidden, deadline);
+  }
+}
+
 /* Retire les leads dont le detour local est NOPA a la tete. L'autre bout reste. */
 function OpexV233LWithoutEnclosed(plans, candidate)
 {
@@ -1141,6 +1480,9 @@ function OpexV233LRepairParallel(candidate, trace, forbidden, planA, planB, budg
     local bridgeAt = OpexV233LBridgeAt(trace.tiles, issue);
     if (bridgeAt >= 0) {
       local slid = OpexV233LSlideBridge(candidate, trace, bridgeAt, blocked);
+      /* L'axe est occupe (voie 1, rampe, eau). L'autre cote et une portee
+       * plus longue sont testes avant tout A*, meme local. */
+      if (slid == null) slid = OpexV233LAsideBridge(candidate, trace, bridgeAt, blocked);
       if (slid != null) {
         local nextIssue = OpexV233LParallelIssue(candidate, slid, blocked);
         /* L'index change avec la longueur du detour : comparer la tuile.
@@ -1161,9 +1503,19 @@ function OpexV233LRepairParallel(candidate, trace, forbidden, planA, planB, budg
     }
     if (repairs == 6 || result.iterations >= budget) return result;
     local fixed = false;
+    /* Un pont de longueur L est un seul saut du trace. Le rayon 4 ne voit
+     * pas le contour : la fenetre et le budget suivent L, pas le nombre de
+     * noeuds. 1000 iterations ne contournent pas un ouvrage de 8. */
+    local span = 1;
+    if (bridgeAt >= 0) span = AIMap.DistanceManhattan(trace.tiles[bridgeAt], trace.tiles[bridgeAt + 1]) + 1;
+    local seenReach = -1;
     foreach (radius in [4, 8, 16]) {
+      local reach = radius;
+      if (span > reach) reach = span;
+      if (reach == seenReach) continue;
+      seenReach = reach;
       local tiles = trace.tiles;
-      local left = max(0, issue - radius), right = min(tiles.len() - 1, issue + radius + 1);
+      local left = max(0, issue - reach), right = min(tiles.len() - 1, issue + reach + 1);
       /* Deux interfaces disjointes, jamais un acces hors du trace. */
       if (left + 1 >= right) continue;
       /* Interfaces ordinaires : ne jamais couper au milieu d'un ouvrage. */
@@ -1175,7 +1527,7 @@ function OpexV233LRepairParallel(candidate, trace, forbidden, planA, planB, budg
         if (i < left || i > right) ignored.append(tiles[i]);
       /* Marge libre 20. L'epaisseur du cadre est V294_RAIL_BRIDGE_LEN. */
       OpexV233LFence(tiles, left, right, 20, ignored);
-      local cap = min(budget - result.iterations, min(4000, max(1000, (right - left) * 64)));
+      local cap = min(budget - result.iterations, min(8000, max(1000, span * span * 48)));
       if (cap <= 0 || AIController.GetTick() >= deadline) return result;
       /* Grand-parent reel : sans lui le premier pas du pathfinder n'a pas
        * d'interdit de coude, et la greffe est refusee en silence. */
@@ -1194,7 +1546,8 @@ function OpexV233LRepairParallel(candidate, trace, forbidden, planA, planB, budg
       result.iterations += search.iterations;
       if (DECISION_LOG) OpexV233LLog("DOUBLE", "src=" + candidate.src + " dst=" + candidate.dst
           + " phase=local reason=" + search.stop + " issue=" + tiles[issue] + " left=" + left + " right=" + right
-          + " radius=" + radius + " iters=" + search.iterations + " budget=" + cap + " spent=" + result.iterations);
+          + " radius=" + radius + " reach=" + reach + " span=" + span
+          + " iters=" + search.iterations + " budget=" + cap + " spent=" + result.iterations);
       /* Fenetre collee a la tete et file vide en 5 iterations : la sortie
        * est fermee. Ne pas elargir le rayon ni la redonner a l'A* complet. */
       if (radius == 4 && left == 0 && (search.path == null || search.path == false)
