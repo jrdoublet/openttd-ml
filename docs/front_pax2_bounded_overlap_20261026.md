@@ -126,3 +126,51 @@ script, jamais une égalité de trajectoire ou de profit.
 
 Les conditions de GO économique définies ci-dessus ne sont pas encore
 remplies par ces essais mécaniques. Aucun réglage par défaut n'est modifié.
+
+## Verdict de l'exposition shadow 5×10 (26/10/2026)
+
+Campagne **`frontpax2_bounded_shadow_5x10_20261026_r1`**, bras OFF `0`
+contre shadow strictement passif `1`, cinq graines **42, 100, 7, 999,
+2026**, 1970–1979, carte 256×256, sondes identiques `probes=6`, code Git
+`65fd91c3`, bundle SHA256
+`bc7ef57c3c7b7eb1ca635a054c6841808b27f103931f0cbcc7f284553ea3a367`,
+manifeste SHA256
+`9c0411ae2456e6e2d809c3c6ed92e54f695526a8283ea9648c1a29e04749a0d0`
+vérifié. **5/5 paires complètes et saines**, aucune partie invalide,
+`comparison_complete=true`, `metric_coverage_complete=true` ; verdict du
+harnais **`diagnostic_only`** en l'absence des 40 graines requises pour A.
+
+Analyse directe des cinq vrais journaux moteur du bras shadow,
+`FRONT_PAX2_BOUNDED`, sans extrapoler une émission au rang d'un chantier :
+
+| Graine | Évaluations géométriques répétées | Éligibles au préfiltre | Shortlists émises | Clés distinctes `(bras, paire, sites, combo)` | Clés après 1974 |
+|---|---:|---:|---:|---:|---:|
+| 42 | 3 015 | 2 764 | 5 | 5 | 0 |
+| 100 | 3 886 | 3 378 | 50 | 25 | 6 |
+| 7 | 91 | 84 | 6 | 6 | 0 |
+| 999 | 167 | 153 | 10 | 9 | 0 |
+| 2026 | 122 | 108 | 7 | 7 | 0 |
+| **Total** | **7 281** | **6 487** | **78** | **52** | **6 (une seule graine)** |
+
+Les 96 émissions de synthèse par bras/scan résument des passages répétés ;
+les 52 clés couvrent cinq mondes, mais **seule la graine 100** dispose
+d'une shortlist admissible après 1974. Le shadow ne déclenche par définition
+aucun appel C121 ni achat supplémentaire : aucun de ces 52 candidats n'est
+prouvé constructible, rentable **et** finançable, top-K ou bâti à ce stade.
+Le smoke ON d'une seule graine avait observé un candidat économiquement
+positif, mais explicitement rejeté pour trésorerie (`result=cash`).
+
+**NO-GO d'exposition pré-enregistré** : la condition d'au moins une
+opportunité tardive après 1974 dans **deux graines** échoue déjà sur cinq
+graines après dix ans. Pas de pilote ON 5×10 supplémentaire, pas de porte A
+40×5 ni B 20×10 ; pas de retouche des seuils après observation des données.
+Le réglage demeure **0 par défaut aux quatre difficultés**, aucune adoption.
+
+Contexte descriptif de la même cohorte (sans effet causal attribuable au
+shadow) : `profit_year` Opex/AAAHogEx de **59,0276 %** comme rapport des
+moyennes (4 177 726 £/an contre 7 077 577), médiane des cinq ratios
+appariés **61,3077 %** ; sous la cible externe de 75 %. Différence shadow−OFF
+**−32 099 £/an** (2V/3D, Wilcoxon **p=1**, IC95 bootstrap
+**[−321 869 ; +278 464,4] £/an**), `company_value` shadow/OFF **+6,443 %**,
+strictement diagnostique. Ce sous-échantillon de cinq graines ne remplace
+pas le banc officiel 20×10 et ne justifie aucun changement de politique.
