@@ -10,8 +10,8 @@ ces trois parcours sont exclus des lots à lancer.
 
 Au début du reclassement, **39 cases ouvertes** (dont quatre sous-cases
 indentées). Les lots successifs du 26/10 ont déjà clos V304, V309,
-V224, V290, V241, FRONT-PAX-1, V303, V308, PCAL-03, AIR-FLOTTE-1, RAIL-CAPEX-1, AIR-MONOPOLY-1, V250, PO-01 (suite PO-01c non qualifiée) et programme historique de croissance RAIL (sous-lots clos), soit **quinze cases**.
-Le reste comporte **24 cases** : 21 dossiers actionnables, trois
+V224, V290, V241, FRONT-PAX-1, V303, V308, PCAL-03, AIR-FLOTTE-1, RAIL-CAPEX-1, AIR-MONOPOLY-1, V250, PO-01 (suite PO-01c non qualifiée), programme historique de croissance RAIL (sous-lots clos) et V281 (portage obsolète), soit **seize cases**.
+Le reste comporte **23 cases** : 21 dossiers actionnables, deux
 avec dépendance bloquante. Les estimations restent des **ordres de
 grandeur relatifs**, pas une promesse de calendrier. Pour tout code
 comportemental, OFF par défaut, tests/smoke/exposition et portes
@@ -58,7 +58,6 @@ pré-enregistrées restent obligatoires.
 | Case | Blocage concret | Reprise possible |
 |---|---|---|
 | V306 | Les journaux mesurent le revenu et le profit des lignes construites, mais pas le contrefactuel au choix ; les ratios de profit positifs excluent aussi les pertes réalisées | Formuler une hypothèse de classement marginal avec témoin même monde et portes A/B avant une table de décision |
-| V281 | V269 déjà intégré, V270 absent du master et voie V284 adoptée | Décision utilisateur : remplacer V270 ou définir une nouvelle variante |
 | V261 | Audit/forum et tests déjà livrés, liste publique hébergée sur un tiers | Publication par le gestionnaire de tipsyfox.net/ottd/ |
 
 Les dossiers d'un niveau ne sont pas interchangeables : une mesure
