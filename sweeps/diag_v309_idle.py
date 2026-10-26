@@ -91,8 +91,14 @@ def read_regen_logs(directory):
     logs = sorted(p for p in Path(directory).glob('reference_seed*_r0.log*')
                   if re.fullmatch(r'reference_seed\d+_r0\.log(?:\.gz)?', p.name))
     source_hashes = {}
+    name_by_identity = {}
     for log in logs:
         base = log.name[:-3] if log.name.endswith('.gz') else log.name
+        match = re.fullmatch(r'reference_seed(\d+)_r(\d+)\.log', base)
+        identity = ('reference', int(match.group(1)), int(match.group(2)))
+        earlier = name_by_identity.setdefault(identity, base)
+        if earlier != base:
+            raise ValueError(f'identite de partie ambigue : {earlier} / {base}')
         local_stats = defaultdict(Counter)
         digest = hashlib.sha256()
         opener = gzip.open if log.suffix == '.gz' else open
@@ -156,18 +162,23 @@ def read_idle_logs(directory):
                   if re.search(r'_seed\d+_r\d+\.log(?:\.gz)?$', p.name))
     for log in logs:
         base = log.name[:-3] if log.name.endswith('.gz') else log.name
-        if base in first_copy_by_game:
-            original = _idle_monthly_rows(first_copy_by_game[base])
+        match = re.fullmatch(r'(.+)_seed(\d+)_r(\d+)\.log', base)
+        if match is None:
+            continue
+        arm = match.group(1)
+        stream_id = (arm, int(match.group(2)), int(match.group(3)))
+        if stream_id in first_copy_by_game:
+            previous_base, previous_log = first_copy_by_game[stream_id]
+            if previous_base != base:
+                raise ValueError(f'identite de partie ambigue : {previous_base} / {base}')
+            original = _idle_monthly_rows(previous_log)
             duplicate = _idle_monthly_rows(log)
             if (not (original.keys() <= duplicate.keys() or duplicate.keys() <= original.keys())
                     or any(original[month] != duplicate[month]
                            for month in original.keys() & duplicate.keys())):
                 raise ValueError(f'copies de partie contradictoires : {base}')
         else:
-            first_copy_by_game[base] = log
-        arm = re.sub(r'_seed\d+_r\d+\.log(?:\.gz)?$', '', log.name)
-        match = re.search(r'_seed(\d+)_r(\d+)', log.name)
-        stream_id = (arm, match.group(1), match.group(2)) if match else (arm, log.name)
+            first_copy_by_game[stream_id] = (base, log)
         opener = gzip.open if log.suffix == '.gz' else open
         with opener(log, 'rt', encoding='utf-8', errors='replace') as stream:
             for line in stream:

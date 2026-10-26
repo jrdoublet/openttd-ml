@@ -30,6 +30,14 @@ def regen_line(ops=100, top1=1):
 
 
 class TestV309RegenReader(unittest.TestCase):
+    def test_numeric_seed_aliases_do_not_become_two_games(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            directory = Path(tmp)
+            (directory / "reference_seed1_r0.log").write_text(regen_line(), encoding="utf-8")
+            (directory / "reference_seed01_r0.log").write_text(regen_line(), encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "identite de partie ambigue"):
+                read_regen_logs(directory)
+
     def test_text_gzip_copy_counts_one_game_but_real_repeated_regens_survive(self):
         with tempfile.TemporaryDirectory() as tmp:
             directory = Path(tmp)
@@ -59,6 +67,16 @@ class TestV309RegenReader(unittest.TestCase):
 
 
 class TestV309IdleReader(unittest.TestCase):
+    def test_numeric_seed_and_repeat_aliases_do_not_inflate_months(self):
+        for alias in ("reference_seed01_r0.log", "reference_seed1_r00.log"):
+            with self.subTest(alias=alias), tempfile.TemporaryDirectory() as tmp:
+                directory = Path(tmp)
+                (directory / "reference_seed1_r0.log").write_text(
+                    idle_line(), encoding="utf-8")
+                (directory / alias).write_text(idle_line(), encoding="utf-8")
+                with self.assertRaisesRegex(ValueError, "identite de partie ambigue"):
+                    read_idle_logs(directory)
+
     def test_invalid_first_flush_is_not_a_copy_conflict(self):
         """Copy comparison must use the same accepted months as aggregation."""
         with tempfile.TemporaryDirectory() as tmp:
