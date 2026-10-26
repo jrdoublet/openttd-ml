@@ -576,6 +576,30 @@ def replay_fleet(build, one_way_override=None, fleet_cap_override=None,
     }
 
 
+def observed_final_service(event):
+    """Measured final C117 hub service, independent of the initial C121 engine.
+
+    cap_avg is the average *total fleet* PASS capacity, live_avg is the
+    concurrent fleet size, and mail_seat_legs/trips is the observed MAIL
+    capacity per completed leg. If these exposures were not recorded, the
+    final cargo rates are unknown, never silently replaced with build rates.
+    """
+    keys = ("headway_days", "cap_avg", "live_avg", "mail_seat_legs", "trips")
+    values = []
+    for key in keys:
+        val = event.get(key)
+        if isinstance(val, bool) or not isinstance(val, (int, float)) or not math.isfinite(val):
+            return None
+        values.append(float(val))
+    headway, cap_avg, live_avg, mail_seats, trips = values
+    if headway <= 0 or cap_avg <= 0 or live_avg <= 0 or mail_seats < 0 or trips <= 0:
+        return None
+    pickup_rate = 1.0 / headway
+    return {"pickup_rate": pickup_rate,
+            "pax_rate": (cap_avg / live_avg) * pickup_rate,
+            "mail_rate": (mail_seats / trips) * pickup_rate}
+
+
 def analyse(payload, min_age=6, max_age=None):
     builds = {}
     all_events = defaultdict(list)
@@ -642,19 +666,12 @@ def analyse(payload, min_age=6, max_age=None):
                 event.get("age_days", -1) if isinstance(event.get("age_days"), (int, float)) else -1,
             ),
         )
-        headway = latest.get("headway_days")
-        pax_cap = build.get("pax_cap")
-        mail_cap = build.get("mail_cap")
-        if not (isinstance(headway, (int, float)) and headway > 0
-                and isinstance(pax_cap, (int, float)) and pax_cap > 0
-                and isinstance(mail_cap, (int, float)) and mail_cap >= 0):
+        service = observed_final_service(latest)
+        if service is None:
             continue
-        pickup_rate = 1.0 / float(headway)
-        pax_rate = float(pax_cap) * pickup_rate
-        mail_rate = float(mail_cap) * pickup_rate
-        final_line_service[event_key] = {
-            "pickup_rate": pickup_rate, "pax_rate": pax_rate, "mail_rate": mail_rate,
-        }
+        pickup_rate, pax_rate, mail_rate = (
+            service["pickup_rate"], service["pax_rate"], service["mail_rate"])
+        final_line_service[event_key] = service
         for station_key in ("station_id_a", "station_id_b"):
             station_id = build.get(station_key)
             if isinstance(station_id, (int, float)) and station_id >= 0:
