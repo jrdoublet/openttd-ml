@@ -222,7 +222,9 @@ def analyze(inputs):
             "arm": log["arm"], "seed": log["seed"], "repeat": log["repeat"],
             "directory": log["directory"], "source_files": log["source_files"],
             "sha256_decompressed": log["sha256_decompressed"],
-            "vivier_calls": n,
+            "vivier_calls": n if n else None,
+            "logged_vivier_events": n,
+            "vivier_coverage": "observed" if n else "unknown_no_vivier_marker",
         })
     grouped = []
     for (directory, arm, seed, repeat, year, path), rows in sorted(
@@ -234,6 +236,8 @@ def analyze(inputs):
             "repeat": repeat, "year": year, "path": path,
             **summarize(rows),
         })
+    observed_logs = sum(row["vivier_coverage"] == "observed" for row in per_file)
+    logged_calls = sum(group["calls"] for group in grouped)
     return {
         "scope": "VIVIER selection calls only; no construction or causal profitability inferred",
         "cap_definition": "selected >= 64; selected > 0 alone is NOT cap",
@@ -242,13 +246,21 @@ def analyze(inputs):
         "duplicate_log_gzip_copies_ignored": (
             sum(len(log["source_files"]) - 1 for log in files)
         ),
-        "total_vivier_calls": sum(group["calls"] for group in grouped),
+        "total_vivier_calls": logged_calls if observed_logs == len(files) else None,
+        "logged_vivier_events": logged_calls,
+        "vivier_coverage": {
+            "observed_log_count": observed_logs,
+            "unknown_log_count": len(files) - observed_logs,
+            "status": ("observed" if observed_logs == len(files) else
+                       "unknown" if observed_logs == 0 else "partial"),
+        },
         "files": per_file,
         "groups": grouped,
         "limitations": [
             "No inference of constructed lines, counterfactual K, or causal ROI.",
             "Every VIVIER line is a call, even if the same date and fields repeat.",
             "Missing/invalid selected cannot be classified as cap or non-cap.",
+            "No VIVIER marker in a log means uninstrumented or unobserved selection, not proven zero calls.",
             "Costs are reported by cap category only with observed sel_ops.",
             "Identical compressed/plain copies are one game; differing bytes fail closed.",
         ],

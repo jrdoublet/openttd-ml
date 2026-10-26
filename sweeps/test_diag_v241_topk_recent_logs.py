@@ -212,10 +212,45 @@ class V241TopKContracts(unittest.TestCase):
         self.write("reference_seed42_r0.log", "no matching VIVIER event\n")
         result = analyze([self.root])
         self.assertEqual(result["logical_log_count"], 1)
-        self.assertEqual(result["total_vivier_calls"], 0)
+        self.assertIsNone(result["total_vivier_calls"])
+        self.assertEqual(result["logged_vivier_events"], 0)
+        self.assertEqual(result["vivier_coverage"]["status"], "unknown")
+        self.assertIsNone(result["files"][0]["vivier_calls"])
         self.assertEqual(result["groups"], [])
         with self.assertRaisesRegex(ValueError, "not an existing"):
             analyze([self.root / "does_not_exist"])
+
+    def test_active_engine_log_without_probe_is_unknown_not_zero_selection(self):
+        self.write("reference_seed42_r0.log",
+                   "[0] [I] OPEX 1971-2-1 AIR_BUILD line=7 kind=newpair\n"
+                   "[0] [I] OPEX 1971-2-2 C121_HUB_DELAY count=1\n")
+        report = analyze([self.root])
+        self.assertEqual(report["vivier_coverage"], {
+            "observed_log_count": 0, "unknown_log_count": 1, "status": "unknown"})
+        self.assertEqual(report["logged_vivier_events"], 0)
+        self.assertIsNone(report["total_vivier_calls"])
+
+    def test_real_zero_selected_call_is_observed_selection(self):
+        self.write("reference_seed42_r0.log",
+                   vivier(selected="0", considered="0", not_selected="0", sel_ops="0"))
+        report = analyze([self.root])
+        self.assertEqual(report["vivier_coverage"]["status"], "observed")
+        self.assertEqual(report["total_vivier_calls"], 1)
+        self.assertEqual(report["groups"][0]["selected_zero_calls"], 1)
+        self.assertEqual(report["files"][0]["vivier_calls"], 1)
+
+    def test_mixed_probed_and_unprobed_logs_maintain_partial_coverage(self):
+        self.write("reference_seed42_r0.log", vivier(selected="64"))
+        self.write("reference_seed7_r0.log", "[0] [I] OPEX 1971-2-1 AIR_BUILD line=1\n")
+        report = analyze([self.root])
+        self.assertEqual(report["logical_log_count"], 2)
+        self.assertEqual(report["vivier_coverage"], {
+            "observed_log_count": 1, "unknown_log_count": 1, "status": "partial"})
+        self.assertEqual(report["logged_vivier_events"], 1)
+        self.assertIsNone(report["total_vivier_calls"])
+        self.assertEqual(len(report["groups"]), 1)
+        self.assertEqual(sorted((r["seed"], r["vivier_calls"]) for r in report["files"]
+                                if r["vivier_calls"] is not None), [(42, 1)])
 
     def test_observed_cost_zero_and_missing_are_distinct(self):
         report = summarize([
