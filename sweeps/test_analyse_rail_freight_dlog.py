@@ -1,9 +1,61 @@
+import contextlib
+import io
+import json
+from pathlib import Path
+import sys
+import tempfile
 import unittest
+from unittest.mock import patch
 
-from analyse_rail_freight_dlog import count_log, decode_line
+from analyse_rail_freight_dlog import count_log, decode_line, main
 
 
 class RailFreightLogTests(unittest.TestCase):
+    def report(self, *files):
+        output = io.StringIO()
+        with patch.object(sys, "argv", ["analyse_rail_freight_dlog.py", *(str(p) for p in files)]):
+            with contextlib.redirect_stdout(output):
+                main()
+        return json.loads(output.getvalue())
+
+    def test_independent_campaigns_with_same_basename_do_not_overwrite(self):
+        with tempfile.TemporaryDirectory() as directory:
+            base = Path(directory)
+            a, b = base / "solo", base / "duel"
+            a.mkdir()
+            b.mkdir()
+            left, right = a / "reference_seed42_r0.log", b / "reference_seed42_r0.log"
+            left.write_text("OPEX 1972-1-1 VIVIER_GEN mode=rail produced=10 kept=3\n", encoding="utf-8")
+            right.write_text("OPEX 1972-1-1 VIVIER_GEN mode=rail produced=20 kept=4\n", encoding="utf-8")
+            result = self.report(left, right)
+            self.assertEqual(set(result["logs"]), {str(left.resolve()), str(right.resolve())})
+            self.assertEqual(result["logs"][str(left.resolve())]["1972"]["rail_generated_pairs_examined_sum"], 10)
+            self.assertEqual(result["logs"][str(right.resolve())]["1972"]["rail_generated_pairs_examined_sum"], 20)
+            self.assertEqual(result["log_basenames"][str(left.resolve())], left.name)
+            self.assertEqual(result["log_basenames"][str(right.resolve())], right.name)
+
+    def test_campaign_result_is_independent_of_input_order(self):
+        with tempfile.TemporaryDirectory() as directory:
+            base = Path(directory)
+            a, b = base / "solo", base / "duel"
+            a.mkdir()
+            b.mkdir()
+            left, right = a / "reference_seed42_r0.log", b / "reference_seed42_r0.log"
+            left.write_text("OPEX 1972-1-1 VIVIER_GEN mode=rail produced=12 kept=3\n", encoding="utf-8")
+            right.write_text("OPEX 1972-1-1 VIVIER_GEN mode=rail produced=30 kept=7\n", encoding="utf-8")
+            self.assertEqual(self.report(left, right), self.report(right, left))
+
+    def test_repeated_physical_path_collapses_but_distinct_names_survive(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            a, b = root / "reference_seed42_r0.log", root / "reference_seed42_r1.log"
+            content = "OPEX 1972-1-1 VIVIER_GEN mode=rail produced=15 kept=5\n"
+            a.write_text(content, encoding="utf-8")
+            b.write_text(content, encoding="utf-8")
+            got = self.report(a, a, b, a.resolve())
+            self.assertEqual(set(got["logs"]), {str(a.resolve()), str(b.resolve())})
+            self.assertEqual(len(got["log_basenames"]), 2)
+
     def test_decode_and_split_freight_passenger(self):
         rows = [
             "[now] dbg OPEX 1973-1-8 VIVIER_GEN mode=rail produced=50 kept=10\n",

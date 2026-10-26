@@ -192,10 +192,15 @@ def main():
     parser.add_argument("--out", type=Path)
     args = parser.parse_args()
     report = {"warning": "Instrumented runs only. Counts repeat across refreshes; no causal baseline.",
-              "logs": {}}
-    for path in args.logs:
+              "logs": {}, "log_basenames": {}}
+    # The same seed/repeat name may occur in independent campaigns. Use the
+    # resolved physical path for provenance and collapse only repeated inputs
+    # referring to that exact file, regardless of argument order.
+    for path in sorted({item.resolve() for item in args.logs}):
+        key = str(path)
         with path.open(encoding="utf-8", errors="replace") as handle:
-            report["logs"][path.name] = count_log(handle)
+            report["logs"][key] = count_log(handle)
+        report["log_basenames"][key] = path.name
     output = json.dumps(report, ensure_ascii=False, indent=2)
     if args.out:
         args.out.write_text(output + "\n", encoding="utf-8")
