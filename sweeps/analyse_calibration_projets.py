@@ -172,8 +172,11 @@ def load_campaign(path, arm=None):
             scale = b["n0"] / r["vehs"]
             row = dict(r)
             row.update({"dist": b["dist"], "n0": b["n0"], "scale": scale,
+                        # LINE_REVENUE year=Y is published in Y but measures
+                        # the completed accounting year Y-1 (task_report.nut).
+                        # Era cells must describe the observed economic period.
                         "cell": "%s|%s|%s|%s" % (r["mode"], cargo_class(r["cargo"]), dist_bin(b["dist"]),
-                                                 era(int(r["year"] or 0)))})
+                                                 era(int(r["year"] or 0) - 1))})
             rows.append(row)
         key = (name, int(m.group(1)))
         game = {"rows": rows, "costs": costs, "unmatched": unmatched}

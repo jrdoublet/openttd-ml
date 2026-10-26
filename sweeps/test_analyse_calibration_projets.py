@@ -306,6 +306,25 @@ class CalibrationCampaignLoadingTest(unittest.TestCase):
         else:
             path.write_text(content, encoding="utf-8")
 
+    def observed_era(self, report_year):
+        # LINE_REVENUE year=Y publishes the *previous* calendar year's revenue.
+        build = ("[0] [I] OPEX 1971-2-1 RAIL_BUILD line=3 src=1 dst=2 "
+                 "cargo=COAL dist=100 cost=1500 trains=2")
+        report = (f"[0] [I] OPEX {report_year}-1-1 LINE_REVENUE line=3 mode=rail "
+                  f"cargo=COAL year={report_year} age=3 pred_rev=100 real_rev=150 vehs=2")
+        with tempfile.TemporaryDirectory() as directory:
+            self.write_log(Path(directory) / "reference_seed42_r0.log", build + "\n" + report)
+            return next(iter(load_campaign(directory).values()))["rows"][0]["cell"]
+
+    def test_report_published_1974_is_revenue_from_1973(self):
+        self.assertEqual(self.observed_era(1974), "rail|RAW|80-160|1970-1973")
+
+    def test_report_published_1977_is_revenue_from_1976(self):
+        self.assertEqual(self.observed_era(1977), "rail|RAW|80-160|1974-1976")
+
+    def test_report_inside_era_remains_in_same_cell(self):
+        self.assertEqual(self.observed_era(1975), "rail|RAW|80-160|1974-1976")
+
     def test_mature_revenue_requires_the_same_mode_as_built_line(self):
         valid = ("[0] [I] OPEX 1974-1-1 LINE_REVENUE line=3 mode=rail "
                  "cargo=COAL year=1974 age=3 pred_rev=100 real_rev=150 vehs=2")
@@ -323,7 +342,7 @@ class CalibrationCampaignLoadingTest(unittest.TestCase):
         self.assertEqual(len(game["rows"]), 1)
         self.assertEqual(game["unmatched"], 2)
         self.assertEqual(game["rows"][0]["mode"], "rail")
-        self.assertEqual(game["rows"][0]["cell"], "rail|RAW|80-160|1974-1976")
+        self.assertEqual(game["rows"][0]["cell"], "rail|RAW|80-160|1970-1973")
 
     def test_legitimate_air_build_and_revenue_still_join(self):
         build = ("[0] [I] OPEX 1971-2-1 AIR_BUILD line=4 src=1 dst=2 "
@@ -336,7 +355,7 @@ class CalibrationCampaignLoadingTest(unittest.TestCase):
             game = next(iter(load_campaign(directory).values()))
         self.assertEqual(game["unmatched"], 0)
         self.assertEqual(len(game["rows"]), 1)
-        self.assertEqual(game["rows"][0]["cell"], "air|PASS|160-250|1974-1976")
+        self.assertEqual(game["rows"][0]["cell"], "air|PASS|160-250|1970-1973")
 
     def test_text_and_gzip_copies_count_as_one_game(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -356,7 +375,8 @@ class CalibrationCampaignLoadingTest(unittest.TestCase):
         self.assertEqual(report["line_years"], 2)
         self.assertEqual(report["unmatched"], 1)
         self.assertEqual(report["cost"]["rail"]["n"], 1)
-        self.assertEqual(report["revenue_cells"]["rail|RAW|80-160|1974-1976"]["n"], 2)
+        self.assertEqual(report["revenue_cells"]["rail|RAW|80-160|1970-1973"]["n"], 1)
+        self.assertEqual(report["revenue_cells"]["rail|RAW|80-160|1974-1976"]["n"], 1)
         self.assertEqual(sum(fold["n"] for fold in report["cv_same_campaign"]), 2)
 
     def test_deduplication_preserves_arms_seeds_and_repetitions(self):
