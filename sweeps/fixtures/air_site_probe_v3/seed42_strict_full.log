@@ -1,0 +1,4 @@
+AIR_PROBE_START v=4 method=strict_full loan=100000 ops_per_tick=10000
+AIR_PROBE_PASS v=4 edge=begin method=strict_full target=719529 date=719529 fingerprint_end_date=719529 fingerprint=2:400:3:0.1.1 cases=1
+AIR_SITE_PROBE v=4 target=719529 town=0 type=1 method=strict_full tile=300 score=20 oracle=null oracle_tile=null center=1 buildable=1 error=0 quote=1000 ops=140 tiles=100 tested=5 begin=719529 end=719535 levelable=1 level_error=0 level_quote=0 admitted=1 total_quote=1000 quote_exact=1 clear_quote=null catchment=1 fallback=0 level_complete=1
+AIR_PROBE_PASS v=4 edge=end method=strict_full target=719529 date=719536 fingerprint=2:450:3:0.1.1 stable=0 truncated=0 rows=1 vehicles=0 stations=0 loan=100000

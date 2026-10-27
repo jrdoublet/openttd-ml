@@ -18,7 +18,7 @@ AI = ROOT / "ai/OpexAI"
 
 class ReaderTests(unittest.TestCase):
     def setUp(self):
-        self.texts = {method: (FIXTURES / "air_site_probe_v2" / f"seed42_{method}.log").read_text() for method in METHODS}
+        self.texts = {method: (FIXTURES / "air_site_probe_v3" / f"seed42_{method}.log").read_text() for method in METHODS}
 
     def streams(self, texts=None, seed=42):
         return [parse_text(text, f"seed{seed}_{method}.log", seed) for method, text in (texts or self.texts).items()]
@@ -33,7 +33,7 @@ class ReaderTests(unittest.TestCase):
         self.assertEqual(stats["spiral"]["ratio_median"], .5)
         self.assertEqual(stats["initial"]["error_263"], 1)
         self.assertEqual(stats["initial"]["ratio_median"], 1.5)
-        self.assertEqual(stats["initial"]["feasible_ratio_median"], 0)
+        self.assertEqual(stats["initial"]["feasible_ratio_median"], 1.5)
         self.assertEqual(stats["bands"]["miss_with_oracle"], 1)
         self.assertEqual(stats["bands"]["ratio_median"], 0)
         self.assertEqual(stats["oracle"]["ratio_equal_one"], 1)
@@ -65,7 +65,7 @@ class ReaderTests(unittest.TestCase):
                  original.replace("loan=100000", "loan=90000", 1),
                  original.replace("town=0", "town=1"),
                  original.replace("truncated=0", "truncated=1"),
-                 original[:original.index("AIR_PROBE_PASS v=2 edge=end")],
+                 original[:original.index("AIR_PROBE_PASS v=4 edge=end")],
                  original + original.splitlines()[2] + "\n"]
         for text in cases:
             with self.subTest(text=text[-120:]):
@@ -96,7 +96,7 @@ class ReaderTests(unittest.TestCase):
         self.assertTrue(parse_text(old, seed=42)["issues"])
 
     def test_truncated_pass_retains_explicit_flag(self):
-        text = self.texts["oracle"].split("AIR_PROBE_PASS v=2 edge=end")[0]
+        text = self.texts["oracle"].split("AIR_PROBE_PASS v=4 edge=end")[0]
         result = self.result({**self.texts, "oracle": text})
         self.assertEqual(next(p for p in result["passes"] if p["method"] == "oracle")["truncated"], 1)
         self.assertFalse(result["comparisons"][0]["valid"])
@@ -133,7 +133,8 @@ class ProbeContracts(unittest.TestCase):
     def test_off_hashes(self):
         expected = json.loads((FIXTURES / "air_site_probe_off_hashes.json").read_text())
         for name, digest in expected.items():
-            text = (AI / name).read_text()
+            from air_site_ranked_legacy import off_source
+            text = off_source(name, (AI / name).read_text())
             if name == "main.nut":
                 gate = '  OpexLoadAirSiteProbeSetting();\n  if (AIR_SITE_PROBE > 0) {\n    require("air_site_probe.nut");\n    OpexAirSiteProbeRun(this);\n    return;\n  }\n'
                 self.assertEqual(text.count(gate), 1)
@@ -157,7 +158,7 @@ class ProbeContracts(unittest.TestCase):
         self.assertEqual(settings.count('GetSetting("air_site_probe")'), 1)
         info = (AI / "info.nut").read_text()
         block = re.search(r'name = "air_site_probe",.*?\}\);', info, re.S)[0]
-        self.assertIn("min_value = 0, max_value = 9", block)
+        self.assertIn("min_value = 0, max_value = 10", block)
         for level in ("easy", "medium", "hard", "custom"):
             self.assertIn(f"{level}_value = 0", block)
 
@@ -172,7 +173,7 @@ class ProbeContracts(unittest.TestCase):
         oracle = body(code, "function OpexAirProbeOracle(")
         self.assertNotIn("CheapOk", oracle)
         self.assertNotIn("probes.left", oracle)
-        self.assertIn("OpexAirProbeBuild(anchor, airport)", oracle)
+        self.assertIn("OpexAirProbeBuild(anchor, airport, bestScore)", oracle)
         clear = body(code, "function OpexAirProbeClear(")
         for cache in ("DEAD", "LIST", "RAW", "PEN"):
             self.assertIn(f"AIR_PROBE_FUNNEL_{cache}.clear()", clear)
@@ -181,7 +182,7 @@ class ProbeContracts(unittest.TestCase):
     def test_delimiters_reserved_names_closures_and_api_symbols(self):
         api = {f"{c}.{member}" for kind, c, member in (line.split("\t") for line in (ROOT / "docs/noai_api_15.3.tsv").read_text().splitlines()) if kind in ("static", "const")}
         api.update(symbol.replace("AIBaseStation.", "AIStation.") for symbol in tuple(api) if symbol.startswith("AIBaseStation."))
-        for path in AI.glob("air_site_probe*.nut"):
+        for path in list(AI.glob("air_site_probe*.nut")) + [AI / "air_site_ranked.nut"]:
             code = uncomment(path.read_text())
             self.assertNotRegex(code, r"\blocal\s+(clone|base|parent|static|delegate|vargc|vargv|resume|yield|constructor|instanceof)\b")
             self.assertNotRegex(code, r"function\s*\(")

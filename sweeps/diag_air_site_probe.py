@@ -4,8 +4,10 @@
 One method per solo game. Only complete passes with equal START fingerprints
 and exact start target dates across games enter the primary tables. `observed` retains invalid passes for diagnosis, never evidence.
 A missing site scores zero relative to a positive oracle; absent oracle scores
-and zero oracle denominators remain unknown. Ratios above one are retained:
-the historic algorithms may choose an unbuildable, only supposedly levelable site.
+and zero oracle denominators remain unknown. V4 checks every required leveling corner (bulk LevelTiles can partially succeed),
+retaining V3 production admission and
+acceptance >= 8. Ratios above one remain visible because scans span game ticks.
+Slope totals are explicitly estimates: test-mode commands do not compose.
 """
 from __future__ import annotations
 
@@ -17,7 +19,7 @@ from pathlib import Path
 import re
 import statistics
 
-METHODS = ("spiral", "hybrid", "initial", "bands", "border", "funnel", "strict", "strict_full", "oracle")
+METHODS = ("spiral", "hybrid", "initial", "bands", "border", "funnel", "strict", "strict_full", "oracle", "ranked")
 TAG = re.compile(r"\b(AIR_SITE_PROBE|AIR_PROBE_PASS|AIR_PROBE_START|AIR_PROBE_DONE)\s+(.*)")
 
 
@@ -48,7 +50,7 @@ def parse_text(text, source="memory", seed=None):
         except ValueError as exc:
             issues.append({"source": source, "line": line, "reason": str(exc)})
             continue
-        if f.get("v") != 2 or f.get("method") not in METHODS:
+        if f.get("v") != 4 or f.get("method") not in METHODS:
             issues.append({"source": source, "line": line, "reason": "unsupported_version_or_method"})
             continue
         if tag == "AIR_PROBE_START":
@@ -63,12 +65,14 @@ def parse_text(text, source="memory", seed=None):
                 passes[target][edge] = {**f, "line": line}
         elif tag == "AIR_SITE_PROBE":
             required = {"v", "target", "town", "type", "method", "tile", "score", "oracle", "oracle_tile",
-                        "center", "buildable", "error", "quote", "ops", "tiles", "tested", "begin", "end"}
+                        "center", "buildable", "error", "quote", "ops", "tiles", "tested", "begin", "end",
+                        "levelable", "level_error", "level_quote", "admitted", "total_quote", "quote_exact",
+                        "clear_quote", "catchment", "fallback", "level_complete"}
             if not required <= f.keys():
                 issues.append({"source": source, "line": line, "reason": "malformed_row"})
                 continue
-            numeric = required - {"method", "tile", "score", "oracle", "oracle_tile", "error", "quote"}
-            nullable = {"tile", "score", "oracle", "oracle_tile", "error", "quote"}
+            nullable = {"tile", "score", "oracle", "oracle_tile", "error", "quote", "level_error", "level_quote", "total_quote", "clear_quote"}
+            numeric = required - nullable - {"method"}
             if any(not isinstance(f[k], int) for k in numeric) or any(f[k] < 0 for k in ("ops", "tiles", "tested")):
                 issues.append({"source": source, "line": line, "reason": "invalid_numeric_field"})
                 continue
@@ -78,6 +82,10 @@ def parse_text(text, source="memory", seed=None):
             if (f["center"] not in (0, 1) or f["buildable"] not in (0, 1)
                     or (f["tile"] is None) != (f["score"] is None)
                     or f["end"] < f["begin"]
+                    or any(f[k] not in (0, 1) for k in ("levelable", "level_complete", "admitted", "quote_exact", "catchment"))
+                    or (f["admitted"] == 1 and f["tile"] is None)
+                    or (f["levelable"] == 1 and f["level_quote"] is None)
+                    or (f["quote_exact"] == 1 and (f["buildable"] != 1 or f["total_quote"] != f["quote"]))
                     or (f["buildable"] == 1 and (f["tile"] is None or f["error"] != 0 or f["quote"] is None))):
                 issues.append({"source": source, "line": line, "reason": "inconsistent_row"})
             identity = tuple(f[k] for k in ("target", "town", "type"))
@@ -145,7 +153,7 @@ def quantile(values, q):
 def ratio(row, feasible=False):
     if row["oracle"] is None or row["oracle"] <= 0:
         return None
-    if row["tile"] is None or (feasible and row["buildable"] != 1):
+    if row["tile"] is None or (feasible and (row["admitted"] != 1 or row["catchment"] != 1)):
         return 0.0
     return row["score"] / row["oracle"] if row["score"] is not None else None
 
@@ -154,13 +162,29 @@ def summary(rows):
     ratios = [r for row in rows if (r := ratio(row)) is not None]
     feasible = [r for row in rows if (r := ratio(row, True)) is not None]
     ops = [r["ops"] for r in rows]
+    costs = [r["total_quote"] for r in rows if r["total_quote"] is not None]
+    levels = [r["level_quote"] for r in rows if r["level_quote"] is not None]
     return {"n": len(rows), "ratio_n": len(ratios),
             "ratio_median": statistics.median(ratios) if ratios else None,
             "ratio_p10": quantile(ratios, .1),
+            "ratio_mean": statistics.mean(ratios) if ratios else None,
             "ratio_equal_one": sum(v == 1 for v in ratios) / len(ratios) if ratios else None,
             "feasible_ratio_median": statistics.median(feasible) if feasible else None,
+            "feasible_ratio_p10": quantile(feasible, .1),
+            "feasible_ratio_mean": statistics.mean(feasible) if feasible else None,
             "constructible_share": sum(r["buildable"] == 1 for r in rows) / len(rows) if rows else None,
+            "admitted_share": sum(r["admitted"] == 1 and r["catchment"] == 1 for r in rows) / len(rows) if rows else None,
+            "levelable_share": sum(r["levelable"] == 1 for r in rows) / len(rows) if rows else None,
+            "complete_level_share": sum(r["level_complete"] == 1 for r in rows) / len(rows) if rows else None,
+            "partial_level_n": sum(r["levelable"] == 1 and r["level_complete"] == 0 and r["buildable"] == 0 for r in rows),
+            "total_quote_median": statistics.median(costs) if costs else None,
+            "total_quote_n": len(costs),
+            "estimated_total_n": sum(r["total_quote"] is not None and r["quote_exact"] == 0 for r in rows),
+            "level_quote_median": statistics.median(levels) if levels else None,
+            "fallbacks": sum(r["fallback"] for r in rows),
             "miss_with_oracle": sum(r["tile"] is None and r["oracle_tile"] is not None for r in rows),
+            "unusable_with_oracle": sum((r["tile"] is None or r["admitted"] != 1 or r["catchment"] != 1)
+                                         and r["oracle_tile"] is not None for r in rows),
             "miss_with_positive_oracle": sum(r["tile"] is None and r["oracle"] is not None and r["oracle"] > 0 for r in rows),
             "unique_towns_missed_with_oracle": len({(r["seed"], r["town"]) for r in rows
                                                     if r["tile"] is None and r["oracle_tile"] is not None}),
@@ -183,6 +207,8 @@ def tables(rows):
         paired.append({k: row[k] for k in ("source", "seed", "target", "town", "type", "method", "line", "valid")}
                       | {"score_delta": row["score"] - other["score"] if row["score"] is not None and other["score"] is not None else None,
                          "ratio_delta": a - b if a is not None and b is not None else None,
+                         "total_quote_delta": row["total_quote"] - other["total_quote"]
+                             if row["total_quote"] is not None and other["total_quote"] is not None else None,
                          "ops_delta": row["ops"] - other["ops"], "reference_line": other["line"], "reference_source": other["source"]})
     return {"by_method": {name: summary(groups[name]) for name in METHODS},
             "by_town": [{"seed": key[0], "town": key[1], "method": key[2], **summary(items)} for key, items in towns.items()],
@@ -223,6 +249,8 @@ def analyse(parsed):
             row["oracle_line"] = found["line"] if found else None
             row["oracle_begin"] = found["begin"] if found else None
             row["oracle_end"] = found["end"] if found else None
+            row["oracle_total_quote"] = found["total_quote"] if found else None
+            row["oracle_quote_exact"] = found["quote_exact"] if found else None
             row["valid"] = not reasons
         for p in group:
             p["reasons"] = sorted(set(p["reasons"]) | reasons)
@@ -231,7 +259,7 @@ def analyse(parsed):
                             "reasons": sorted(reasons), "method_count": len(group),
                             "cases": len(keys[0]) if keys else 0})
     valid_rows = [r for r in rows if r["valid"]]
-    return {"schema": 2, "protocol": "separate_solo_games_equal_start_fingerprint", "passes": passes,
+    return {"schema": 4, "protocol": "separate_solo_games_equal_start_fingerprint_leveling_admission", "passes": passes,
             "comparisons": comparisons, "issues": [r for p in parsed for r in p["issues"]],
             "valid": tables(valid_rows), "by_date": {str(date): tables([r for r in valid_rows if r["target"] == date])
                 for date in sorted({r["target"] for r in rows})},

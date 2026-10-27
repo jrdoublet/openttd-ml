@@ -123,7 +123,7 @@ def freeze(args):
     _, libraries = freeze_bananas_libraries((
         {"unique_id": "51554648", "name": "Queue.FibonacciHeap"},
         {"unique_id": "5046524c", "name": "Pathfinder.Rail"}), bundle / "libraries")
-    manifest = {"schema": 2, "purpose": "separate_solo_games_per_method_no_construction_not_AB", "git": git,
+    manifest = {"schema": 4, "purpose": "separate_solo_games_per_method_no_construction_not_AB", "git": git,
                 "seeds": args.seeds, "years": args.years, "config": bench.make_cfg(), "out": str(out),
                 "bundle": str(bundle), "fingerprint": fingerprint_tree(bundle), "libraries": libraries,
                 "ai_fingerprint": ai_fingerprint,
@@ -134,7 +134,9 @@ def freeze(args):
                 "protocol": {"dates": ["1970-01-02", "1972-01-01", "1975-01-01"],
                              "validity": "complete passes, equal START fingerprints and exact start dates across methods, no vehicles/stations/loan changes",
                              "terminal_margin": "six years authorized solely to finish the 1975 pass; truncated passes excluded",
-                             "budget": "1500 BuildAirport tests per method/town/type; exhaustive oracle unlimited",
+                             "budget": "1500 BuildAirport tests per method/town/type; ranked phase <=12 shared with spiral fallback; exhaustive oracle unlimited",
+                             "oracle": "complete per-corner leveling admission, catchment acceptance >=8, max C96 then min total quote",
+                             "cost": "direct BuildAirport exact; slope total estimated tariff + native leveling + original clearing (possible overlap)",
                              "stop": "invalid smoke blocks three-seed diagnostic"}}
     manifest_path.write_text(json.dumps(manifest, indent=2) + "\n")
     subprocess.run([sys.executable, str(harness / "run_air_site_probe.py"), "--worker", str(manifest_path)], check=True)
@@ -166,7 +168,7 @@ def main():
             parser.error("diagnostics require --smoke-result with smoke_ok=true")
         smoke = json.loads(args.smoke_result.read_text())
         if (not smoke.get("probe_health", {}).get("smoke_ok") or smoke.get("seeds") != [42]
-                or smoke.get("years") != 1 or smoke.get("analysis", {}).get("schema") != 2):
+                or smoke.get("years") != 1 or smoke.get("analysis", {}).get("schema") != 4):
             parser.error("smoke is not a valid 42x1 separate-game diagnostic")
     if args.docker:
         if args.out is None:

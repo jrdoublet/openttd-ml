@@ -1,0 +1,14 @@
+{
+  "globals_pre.nut": {
+    "marker": "AIR_SITE_RANKED <- 0; // Native score-ranked funnel; default OFF.",
+    "fragment": "AIR_SITE_RANKED <- 0; // Native score-ranked funnel; default OFF.\n"
+  },
+  "settings.nut": {
+    "marker": "  AIR_SITE_RANKED = AIController.GetSetting(\"air_site_ranked\") == 1 ? 1 : 0;",
+    "fragment": "  AIR_SITE_RANKED = AIController.GetSetting(\"air_site_ranked\") == 1 ? 1 : 0;\n  if (AIR_SITE_RANKED > 0) {\n    require(\"air_site_ranked.nut\");\n    OpexAirRankedInstall();\n  }\n"
+  },
+  "info.nut": {
+    "marker": "name = \"air_site_ranked\"",
+    "fragment": "    AddSetting({\n      name = \"air_site_ranked\",\n      description = \"Airport sites: native ranked bands with spiral fallback (0 off, 1 on)\",\n      min_value = 0, max_value = 1,\n      easy_value = 0, medium_value = 0, hard_value = 0,\n      custom_value = 0, flags = 0, step_size = 1\n    });\n"
+  }
+}

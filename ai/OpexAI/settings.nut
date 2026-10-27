@@ -33,7 +33,7 @@ function OpexResolveDifficulty()
 function OpexLoadAirSiteProbeSetting()
 {
   local method = AIController.GetSetting("air_site_probe");
-  AIR_SITE_PROBE = method >= 1 && method <= 9 ? method : 0;
+  AIR_SITE_PROBE = method >= 1 && method <= 10 ? method : 0;
 }
 
 function OpexLoadSettings()
@@ -483,6 +483,11 @@ function OpexLoadSettings()
   local airSiteFunnel = AIController.GetSetting("air_site_funnel");
   AIR_SITE_FUNNEL = (airSiteFunnel == 1) ? 1 : 0;
   if (AIR_SITE_FUNNEL > 0) OpexAirFunnelInstall();
+  AIR_SITE_RANKED = AIController.GetSetting("air_site_ranked") == 1 ? 1 : 0;
+  if (AIR_SITE_RANKED > 0) {
+    require("air_site_ranked.nut");
+    OpexAirRankedInstall();
+  }
   V217_LAST_MONTH = -1;
   local v276 = AIController.GetSetting("v276_cand_slices");
   V276_CAND_SLICES = (v276 == 3) ? (bigMap ? 2 : 0) : v276;

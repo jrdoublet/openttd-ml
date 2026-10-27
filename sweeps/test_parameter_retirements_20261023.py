@@ -87,7 +87,7 @@ class TestParameterRetirement(unittest.TestCase):
         self.assertEqual(len(RETIRED), 43)
         # 58 historiques + N75 adopte + P6/P3/FP2/P2/P1 opt-in + FP1/V286/C75/DIST
         # C75 bis diagnostic, trois MULTI-1 opt-in (defaut 0), trois V233L et AIR funnel.
-        self.assertEqual(len(self.config), 79)  # DIST-BORNES unified + V233L + AIR  # + default-OFF air_site_probe
+        self.assertEqual(len(self.config), 80)  # DIST-BORNES unified + V233L + AIR  # + default-OFF air_site_probe and air_site_ranked
         self.assertIn("n75_multi_cargo", self.config)
         self.assertIn("p6_air_firstline_window", self.config)
         self.assertIn("air_fleet_yield_rightsize", self.config)
