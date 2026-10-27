@@ -903,7 +903,7 @@ class V233LongGoodContracts(unittest.TestCase):
             self.assertRegex(block, level + r"_value\s*=\s*0\b")
         self.assertEqual(source("settings.nut").count('GetSetting("v233_long_good")'), 1)
         self.assertIn("V233_LONG_GOOD <- 0;", source("globals_pre.nut"))
-        self.assertEqual(source("info.nut").count("AddSetting("), 77)
+        self.assertEqual(source("info.nut").count("AddSetting("), 78)
 
     def test_off_reviewed_edits_preserve_all_original_hashes(self):
         for name, entry in FIXTURE["files"].items():

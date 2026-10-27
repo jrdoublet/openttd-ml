@@ -1759,7 +1759,9 @@ function OpexAirPlansFinalize(ctx)
                + " probes=" + perfProbesCount + " cheap_skip=" + perfCheapSkip
                + " sites=" + perfSitesFound
                + " combos=" + combos.len()
-               + " plans=" + (projects != null ? projects.len() : (bestPlan != null ? 1 : 0)));
+               + " plans=" + (projects != null ? projects.len() : (bestPlan != null ? 1 : 0))
+               + " site_search_ops=" + AIR_SITE_SEARCH_OPS
+               + " site_search_calls=" + AIR_SITE_SEARCH_CALLS);
   }
   AILog.Info("AIR_PLAN_PERF: total_ops=" + totalOps + " ops_sites=" + perfOpsSites
              + " ops_eval=" + perfOpsEval + " ticks=" + elapsedTicks + " days=" + elapsedDays
@@ -1777,7 +1779,9 @@ function OpexAirPlansFinalize(ctx)
              + " c121_winner_ticks=" + (C121_AIR_PLAN_PERF != null ? C121_AIR_PLAN_PERF.winnerTicks : 0)
              + " c121_no_winner=" + (C121_AIR_PLAN_PERF != null ? C121_AIR_PLAN_PERF.noWinner : 0)
              + " c121_endpoint_hits=" + (C121_AIR_PLAN_PERF != null ? C121_AIR_PLAN_PERF.endpointHits : 0)
-             + " c121_endpoint_misses=" + (C121_AIR_PLAN_PERF != null ? C121_AIR_PLAN_PERF.endpointMisses : 0));
+             + " c121_endpoint_misses=" + (C121_AIR_PLAN_PERF != null ? C121_AIR_PLAN_PERF.endpointMisses : 0)
+             + " site_search_ops=" + AIR_SITE_SEARCH_OPS
+             + " site_search_calls=" + AIR_SITE_SEARCH_CALLS);
   OpexSign(AIMap.GetTileIndex(1, 2), "AP|T=" + totalOps + "|S=" + perfOpsSites + "|E=" + perfOpsEval + "|TK=" + elapsedTicks);
   if (C69_BOTTLENECK_PROBE) {
     local actualPlans = (projects != null) ? projects.len() : (bestPlan != null ? 1 : 0);

@@ -1,6 +1,6 @@
 {
   "baseline": "2b3cddda4cd8c2864827a972aa3a85879d5bfcf4",
-  "note": "Explicit OFF projection of reviewed V233L guards onto origin/master 2b3cddda after integrating v233-long. Source contracts, not a VM equivalence proof. The original hashes are preserved by rebasing the off side onto the current master functions rather than regenerating po01c_generators.nut.",
+  "note": "Explicit OFF projection of reviewed V233L guards onto current master+air after integrating v233-long then air-site-funnel. Source contracts, not a VM equivalence proof. Air-only additions remain; V233L hunks restore the pre-V233L function text. po01c_generators.nut was patched, never regenerated.",
   "files": {
     "builder_rail.nut": {
       "sha256_off": "39c5ca1cda27b47be587a8a0a6c8c1f51d9dae18e4273fac6f2763c04ac9485c",
@@ -358,7 +358,7 @@
       ]
     },
     "globals_pre.nut": {
-      "sha256_off": "4d0133e3fc4800f8ee7c12bc566deb5b1e9ea2cb58673e279082dbd01cc698fd",
+      "sha256_off": "958c4432d5f3cdbafb1165a8e5e7092b1dc9ca18acacf0d7aa250641487241e5",
       "edits": [
         {
           "off": "",
@@ -367,7 +367,7 @@
       ]
     },
     "info.nut": {
-      "sha256_off": "2efa5a81cea403498e60ab873996368ee1e09aee2e27516624e7644771e21d72",
+      "sha256_off": "bba826f15e7a3dfb427a1f76a9f241b42f71058a9eaaba16d418d86d2746dc9c",
       "edits": [
         {
           "off": "",
@@ -501,7 +501,7 @@
       ]
     },
     "settings.nut": {
-      "sha256_off": "b90718ce513e547a7fe322109a2d08043f53d87094c61124a21cbcb31e65b715",
+      "sha256_off": "1aed71fd31342970a55b4a708c290d98dd053af7548ce51a9254154a54799bbe",
       "edits": [
         {
           "off": "",

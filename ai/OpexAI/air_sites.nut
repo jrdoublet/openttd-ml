@@ -356,6 +356,8 @@ function OpexAirC96LogChoice(town, airport, firstAnchor, firstScore, best, bestS
                             valid, firstValidRing, bestRing, used)
 {
   if (best == null) return;
+  local ops = -1;
+  if (AIR_SITE_OPS_MARK != null) ops = OpexOpsMeasureEnd(AIR_SITE_OPS_MARK);
   local firstDist = OpexAirDistanceToRect(town.tile, firstAnchor, airport.width, airport.height);
   local bestDist = OpexAirDistanceToRect(town.tile, best.anchor, airport.width, airport.height);
   AILog.Info("C96_SITE town=" + town.id
@@ -366,7 +368,7 @@ function OpexAirC96LogChoice(town, airport, firstAnchor, firstScore, best, bestS
       + " gain=" + (bestScore - firstScore)
       + " first_dist=" + firstDist + " best_dist=" + bestDist
       + " valid=" + valid + " first_ring=" + firstValidRing
-      + " best_ring=" + bestRing + " probes=" + used);
+      + " best_ring=" + bestRing + " probes=" + used + " ops=" + ops);
 }
 
 /* C96 : meme vivier physique que V94, mais ne retourne pas le premier succes.

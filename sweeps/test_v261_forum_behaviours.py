@@ -297,6 +297,7 @@ class ForumBehaviours(unittest.TestCase):
             "AITile.GetClosestTown", "AITile.GetMaxHeight", "AITile.GetMinHeight",
             "AITile.GetSlope", "AITile.IsBuildable", "AITile.IsBuildableRectangle",
             "AITile.GetCargoAcceptance", "AITile.IsCoastTile",
+            "AITile.IsRiverTile",
             "AITile.IsStationTile", "AITile.IsWaterTile", "AIVehicle.GetRunningCost",
             "AITown.GetPopulation", "AIIndustry.GetLastMonthProduction",
         }

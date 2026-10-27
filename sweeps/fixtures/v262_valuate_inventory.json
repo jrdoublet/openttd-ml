@@ -65,6 +65,31 @@
     "AIMap.GetTileX"
   ],
   [
+    "air_site_funnel.nut",
+    "tiles",
+    "AITile.IsWaterTile"
+  ],
+  [
+    "air_site_funnel.nut",
+    "tiles",
+    "AITile.IsCoastTile"
+  ],
+  [
+    "air_site_funnel.nut",
+    "tiles",
+    "AITile.IsRiverTile"
+  ],
+  [
+    "air_site_funnel.nut",
+    "tiles",
+    "AITile.GetMinHeight"
+  ],
+  [
+    "air_site_funnel.nut",
+    "tiles",
+    "AITile.GetMaxHeight"
+  ],
+  [
     "air_towns.nut",
     "tiles",
     "AITile.IsStationTile"
