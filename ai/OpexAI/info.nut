@@ -639,8 +639,8 @@ class OpexAIInfo extends AIInfo {
       name = "air_site_ranked",
       description = "Airport sites: native ranked bands with spiral fallback (0 off, 1 on)",
       min_value = 0, max_value = 1,
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0, flags = 0, step_size = 1
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1, flags = 0, step_size = 1
     });
     AddSetting({
       name = "air_site_probe",

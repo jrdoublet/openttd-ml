@@ -15,7 +15,7 @@ class RankedContracts(unittest.TestCase):
         info = (AI / "info.nut").read_text()
         from campaign_freeze import effective_ai_settings
         settings = effective_ai_settings(AI / "info.nut", ())["effective"]
-        self.assertEqual(settings["air_site_ranked"], 0)
+        self.assertEqual(settings["air_site_ranked"], 1)
         self.assertEqual(settings["air_site_funnel"], 1)
         deltas = json.loads((ROOT / "sweeps/fixtures/air_site_ranked_off_deltas.json").read_text())
         from air_site_ranked_legacy import off_source
@@ -24,7 +24,7 @@ class RankedContracts(unittest.TestCase):
             self.assertNotIn(deltas[name]["marker"], off_source(name, text))
         block = info[info.index('name = "air_site_ranked"'):].split('});')[0]
         for level in ("easy", "medium", "hard", "custom"):
-            self.assertIn(f"{level}_value = 0", block)
+            self.assertIn(f"{level}_value = 1", block)
 
     def test_real_generator_uses_same_dispatcher_only_when_on(self):
         code = (AI / "air_site_ranked.nut").read_text()
