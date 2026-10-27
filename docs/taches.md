@@ -9,6 +9,22 @@ risque) : [ordre de clôture du 26/10](classement_taches_20261026.md).
 
 ## État courant
 
+**27/10 — `air_site_probe`, recherche seule, défaut 0 (branche `air-site-probe`).**
+Neuf méthodes en parties solo séparées ; smoke 9/9 puis diagnostic 27/27 sur
+42, 100, 7, dates 02/01/1970, 01/01/1972, 01/01/1975. Six ans autorisés uniquement
+pour terminer la dernière passe. 81 passes complètes, empreintes initiales égales
+dans les neuf groupes graine/date, 3 402 observations, aucune erreur NoAI,
+aucune construction. Strict par bandes : score oracle positif atteint dans
+333/357 cas, mais **+19,7 %** d'opcodes contre la spirale ; strict complet
+336/357, **+45,9 %**. Bandes seules **−42,7 %**, mais 249 refus BuildAirport 263
+sans terrassement. Aucun défaut modifié, aucune qualification économique.
+Les passes avancent encore après leur départ (oracle 59–70 jours) ; l'égalité
+initiale ne prouve pas l'identité de la carte à chaque ville évaluée.
+Protocole, corrections proposées, tests, exemples et provenance :
+[rapport versionné](air_site_probe_20261027.md#résultats-v2--27-octobre-2026).
+Suite : distinguer constructible/nivelable et réduire le coût du contrôle strict,
+sans adoption ni nouveau banc implicite.
+
 **27/10 — défauts V233L + entonnoir site B + spirale hybride AIR (décision utilisateur).**
 `v233_long_good=1`, `v233_site_funnel=1`, `v233_funnel_center_test=1` (inchangé) et
 `air_site_funnel=1` aux quatre difficultés. Branche d'intégration `integ-v233l-airhyb`

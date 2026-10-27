@@ -150,3 +150,93 @@ inconstructible. Un ratio réalisable complémentaire met ces refus à zéro.
 
 Les corrections proposées devront être appuyées par des passes valides, couverture
 complète et moins d'opcodes. Sinon, elles restent des hypothèses, sans adoption.
+
+## Résultats V2 — 27 octobre 2026
+
+**Mesure achevée ; aucun défaut adopté.** Smoke 9/9 parties (42 × 1 an), puis 27/27 diagnostics (42, 100, 7 × 9 méthodes, durée technique six ans). Les 81 passes sont complètes, les neuf groupes graine/date ont chacun neuf empreintes de début identiques. Zéro erreur NoAI, aucune passe tronquée. 3 402 observations, soit 378 par méthode ; 1 944 sauvegardes avec zéro véhicule et zéro station. Emprunt initial 100 000, inchangé.
+
+La santé générique signale `inactive_company`, attendu ici ; le verdict dédié `engine_script_horizon_ok=true` conserve ce verdict brut et vérifie indépendamment moteur, script, horizon et couverture. Le smoke V2 initial avait une erreur de correspondance méthode/nom de compagnie dans le contrôle Python ; réanalyse séparée des mêmes journaux après correction, sans rejouer les parties.
+
+### Scores et coût
+
+Ratios sur **357** observations à oracle strictement positif ; 21 dénominateurs absents ou nuls exclus. Les parts constructibles utilisent les **378** observations, site absent compris. Les valeurs >1 décrivent souvent une ancre qui réclame un terrassement : elles ne battent pas l’oracle des sites immédiatement constructibles.
+
+| Méthode | Score/oracle médian | p10 | Part = 1 | Constructible sans terrassement | Erreurs 263 | Sans site / oracle trouve | Opcodes médian | Total M | Écart total spirale |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| spiral | 1.000 | 0.588 | 27.5 % | 34.9 % | 237 | 9 | 21,135.0 | 14.374 | +0.0 % |
+| hybrid | 1.000 | 0.588 | 27.5 % | 34.9 % | 237 | 9 | 17,579.0 | 12.981 | -9.7 % |
+| initial | 1.056 | 1.000 | 44.8 % | 34.1 % | 246 | 3 | 32,053.0 | 12.308 | -14.4 % |
+| bands | 1.056 | 1.000 | 44.3 % | 33.3 % | 249 | 3 | 18,887.5 | 8.231 | -42.7 % |
+| border | 1.000 | 0.848 | 38.7 % | 38.4 % | 218 | 15 | 26,524.0 | 12.317 | -14.3 % |
+| funnel | 1.000 | 0.759 | 39.8 % | 46.6 % | 187 | 15 | 37,594.0 | 14.503 | +0.9 % |
+| strict | 1.000 | 1.000 | 93.3 % | 92.9 % | 0 | 24 | 29,339.0 | 17.210 | +19.7 % |
+| strict_full | 1.000 | 1.000 | 94.1 % | 92.9 % | 0 | 24 | 38,718.5 | 20.973 | +45.9 % |
+| oracle | 1.000 | 1.000 | 100.0 % | 99.2 % | 0 | 0 | 285,937.5 | 107.790 | +649.9 % |
+
+L’oracle trouve un site dans 375/378 cas, dont 18 à score nul. `strict` et `strict_full` manquent 24 cas avec site oracle, dont **6 à score positif**, dans deux villes : graine 42/ville 20 et graine 100/ville 17, aux trois dates. Les 24 cas correspondent à huit villes distinctes graine×ville ; ce ne sont pas 24 villes indépendantes.
+
+La médiane du ratio réalisable (zéro pour site absent ou refusé) vaut **0** pour les spirales et les quatre entonnoirs non stricts ; **1** pour les stricts et l’oracle. `strict` atteint l’égalité 333/357 fois, `strict_full` 336/357. Aucune variante ne démontre sur l’ensemble à la fois cette proximité réalisable de l’oracle et moins d’opcodes que la spirale.
+
+### Coût apparié par graine, trois dates réunies
+
+| Graine | Villes/type par date | Spirale M | Hybride Δ | Bandes Δ | Combinaison Δ | Strict Δ | Strict complet Δ |
+|---:|---:|---:|---:|---:|---:|---:|---:|
+| 42 | 42 | 4.332 | -8.9 % | -34.9 % | +13.6 % | +53.0 % | +81.4 % |
+| 100 | 38 | 5.939 | -2.9 % | -61.3 % | -31.6 % | -10.3 % | +8.4 % |
+| 7 | 46 | 4.103 | -20.4 % | -24.1 % | +34.5 % | +28.1 % | +62.7 % |
+
+`strict` est moins coûteux sur 100, mais ce sous-ensemble ne remplace pas le résultat complet. Globalement, les deltas d’opcodes appariés médians sont −3 325 pour l’hybride, −2 948 pour les bandes, +6 764,5 pour strict et +18 280 pour strict complet. Le lecteur livre chaque delta ville/type/date dans `valid.paired`, ainsi que les agrégats par ville et par date.
+
+### Cas recoupés dans les journaux
+
+Tous les exemples suivants concernent la passe cible du 02/01/1970, type 1 (grand aéroport) :
+
+- **Graine 100, ville 6, ligne 34** : `initial` et `bands` reprennent exactement l’ancre **21013**, score **29**, centre couvert, mais `BuildAirport` renvoie **263** ; oracle **19**. `funnel` choisit 20757, score 24, également 263. `strict` et l’oracle choisissent **21018**, score 19, constructible, centre non couvert. Cela mesure une constructibilité sans terrassement, pas le succès d’un chantier de nivellement réel.
+
+- **Graine 42, ville 20, ligne 24** : `strict` retourne null après 17 tests et 210 390 opcodes ; oracle 40168, score 10, centre couvert, 229 024 opcodes. Le score oracle est repris des lignes de l’autre partie ; la cause exacte du rejet préalable n’est pas instrumentée.
+
+- **Graine 100, ville 17, ligne 23** : `funnel` ne trouve rien, zéro test moteur ; `strict` ne trouve rien après un test ; l’oracle trouve 43740, score 1, centre non couvert. Les filtres amont et l’écart temporel doivent être distingués avant d’attribuer le manque à un filtre précis.
+
+- **Graine 100, ville 11, ligne 29** : `funnel` trouve 44429, score 24, constructible, **centre non couvert**, score oracle 24. La couverture du centre n’est donc pas une conséquence automatique d’un bon score C96. L’oracle lui-même laisse le centre hors couverture dans 99 observations.
+
+Le recoupement indépendant relit les 27 fichiers bruts, compare les 3 402 lignes et 3 402 deltas à la spirale (référence comprise), recalcule médianes, p10, totaux, parts =1, refus 263 et parts constructibles : tous égaux au lecteur. `air_site_probe_v2_crosscheck.json` conserve les échantillons bruts et SHA-256 des 27 journaux.
+
+### Corrections proposées, non implémentées dans les modes existants
+
+1. **Séparer « constructible maintenant » de « admis avec nivellement ».** Le succès de `LevelTiles` sous AITestMode ne change pas la carte. Un score >oracle suivi de 263 ne prouve donc pas une meilleure ancre, ni à lui seul un chantier réel impossible. Pour cette sonde, le test strict résout l’ambiguïté ; pour la production, conserver explicitement le statut et le devis de terrassement plutôt que remplacer silencieusement l’admission.
+
+2. **Conserver les bandes comme organisation du travail, puis étudier un contrôle strict moins coûteux.** Bandes seules : −42,7 % d’opcodes, mais 249 refus 263/378 observations. Strict par bandes : 93,3 % d’égalité au score oracle positif, aucun refus final 263, mais +19,7 % d’opcodes. Le prédicat natif de l’hybride est une piste ciblée à associer au strict ; son économie observée seule (−9,7 %) ne garantit pas d’effacer les +19,7 %. Ce cumul n’a pas été testé.
+
+3. **Ne pas employer la couverture du centre comme borne du score.** Le domaine complet strict ne gagne que trois égalités sur 357 par rapport aux bandes, en coûtant 21,9 % de plus que strict par bandes. Réserver un élargissement aux cas encore sous la cible de qualité est une hypothèse ; la seule couverture centrale ne prouve pas qu’une bande externe ne peut mieux scorer.
+
+4. **Examiner les six absences à oracle positif avant d’élargir les filtres.** Oracle teste directement toutes les ancres du domaine ; l’entonnoir conserve CheapOk, acceptation ≥8 et production positive. Ces contrats sont plus restrictifs que « BuildAirport réussit ». La sonde situe le manque, sans prouver quel filtre en est la cause. Aucun filtre historique n’est retiré dans cette livraison.
+
+### Limites et validation
+
+La comparaison est valide **au sens du protocole V2 demandé** : états initiaux échantillonnés égaux. Les passes durent 4–14 jours pour les recherches et **59–70 jours pour l’oracle**. La dernière finit le **12/03/1975**, dans la marge technique autorisée. Les villes ne sont donc pas évaluées au même instant après le début ; les 64 tuiles échantillonnées ne constituent pas un hash exhaustif de la carte. Les 378 observations ne sont ni 378 graines ni une preuve économique. Un seul type disponible a été exposé (type 1) aux trois dates.
+
+Les neuf hashes OFF restent ceux de la base 6c1481a1 après retrait exact des ajouts de démarrage ; aucun ancien hash n’a été rebasé. OFF ajoute la lecture unique obligatoire de `air_site_probe` et sa branche, puis aucun appel de sonde. Aucune équivalence temporelle absolue de la VM n’est revendiquée.
+
+- Tests ciblés : **282 OK**, dont deux échecs attendus préexistants ; lecteur et contrats dédiés : **15 OK**. Délimiteurs, identifiants réservés, absence de closures et références API contrôlés ; compilation/exécution confirmées par les parties.
+
+- Suite complète : **3 028 tests**, 9 ignorés, 2 échecs attendus, **19 erreurs + 1 échec** : 7 erreurs exigent NumPy absent ; 12 erreurs et 1 échec exigent `ai/AAAHogEx-115/info.nut`, absent du worktree. Modules concernés : `test_demo_frontieres_temps_20261025` et `test_v166_aaahogex_settings`. Aucun ajout de dépendance ni d’adversaire.
+
+- `git diff --check` passe. L’IA figée des deux campagnes est byte-identique à celle du commit de livraison.
+
+### Provenance et chemins
+
+Racine des artefacts : `/home/deploy/projects/openttd-ml/.worktrees/air-site-probe/results`.
+
+- Smoke V2 : `air_site_probe_v2_smoke01_20261027.json` (verdict Python initial conservé), `air_site_probe_v2_smoke01_reanalysed.json` (correspondance de compagnie corrigée), manifeste, bundle, `.host.log` et dossier `_engine/` de neuf journaux.
+
+- Diagnostic : `air_site_probe_v2_diag_3seeds_20261027.json`, `.jsonl`, `.manifest.json`, `.host.log`, `_bundle/`, `_engine/seed<42|100|7>_<méthode>.log`.
+
+- Lecteur final : `air_site_probe_v2_reader_final.json` ; recoupement : `air_site_probe_v2_crosscheck.json`. Tests : `air_site_probe_v2_targeted_final.txt`, `air_site_probe_v2_full_tests.txt`.
+
+- Smokes V1 : `air_site_probe_smoke02_20261027_engine/` et `air_site_probe_smoke03_20261027_engine/`, invalidés par la dérive intra-partie ; première tentative arrêtée avant moteur faute d’injection Git dans Docker. Ils ne sont pas agrégés au V2.
+
+- Hash arbre IA : `26b3754a2041aedbd3390a659845dfdf69cbdc5d2ba5989c8b40f23d5cda8a69`.
+
+- Hash bundle diagnostic : `12377d1d306babcc15036be89704a20c45b4f42c29b3212d132b0bb0303fb7cf`.
+
+- Lancement sur arbre non commité de base 6c1481a1, état local et contenu exact conservés dans les manifestes. Le SHA Git seul n’est pas la provenance de ce qui a tourné. Aucun push, merge, changement de défaut ou porte économique.
