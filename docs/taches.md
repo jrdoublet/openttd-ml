@@ -7,6 +7,14 @@ ne créent pas une tâche. Protocole et pilotage des bancs : [AGENTS.md](../AGEN
 
 ## État courant
 
+**27/10 — V233L + entonnoir site B (`5a48b623`, défaut 0, non qualifié).** Première double voie longue au smoke 15 (`a420a574`, 247 tuiles, 2 trains) ; smoke 16 avec `v233_site_funnel=1` : 3 lignes GOOD dont 169 tuiles en double voie, +210 k (graine 100). Entonnoir : rayon min 12, pré-test d'emprise au centre, `V233L_SITE` −86 % d'opcodes. Bancs, bras `v233_long_good=0,v233_site_funnel=0` contre `1,1` :
+- multimodal 40×3 GitHub 40411178169 : −14,6 k (−0,7 %), 19/21, `fail_primary` ;
+- multimodal 40×5 GitHub 40413946739 : −66,1 k (−2,4 %), 16/24, p = 0,23 ;
+- rail seul 40×3 VPS (`v233l_railseul_porteA_40x3_20261027`) : +11,0 k (+1,0 %), 20/20, p = 0,97, `fail_primary` ;
+- rail seul 40×5 VPS (`v233l_railseul_40x5_20261027`) : +71,8 k (+4,6 %), 25/15, Wilcoxon p = 0,077, IC95 bootstrap [+0,1 k ; +146 k], valeur +4,0 % — limite ;
+- rail seul 40×5, graines 3001-3040 (`v233l_railseul_40x5_seedsB_20261027`) : +69,7 k (+4,55 %), 24/16, p = 0,135, IC95 [−13,5 k ; +154 k], valeur +2,6 %.
+Aucun test isolé ne passe ; pas de mise en commun a posteriori. Suite proposée : rail seul 20×10 (porte B). Défaut 0.
+
 **25/10 — V233L, nouvelle variante autorisée par l'utilisateur :** `v233_long_good=0/1`,
 défaut **0**, branche locale `v233-long`. Sorties GOOD de secondaires alimentées,
 150–300 tuiles, deux trains dimensionnés sur six mois observés, portefeuille normal ;
