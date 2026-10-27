@@ -1,0 +1,12 @@
+AIR_PROBE_START v=1 loan=100000 ops_per_tick=10000
+AIR_PROBE_PASS edge=begin target=719529 date=719529 fingerprint=2:400:3:0.1.1
+AIR_SITE_PROBE v=1 target=719529 town=0 type=1 method=spiral tile=100 score=10 oracle=20 oracle_tile=300 center=1 buildable=1 error=0 quote=1000 ops=100 tiles=100 tested=5 begin=719529 end=719529 case_stable=1 case_same_date=1
+AIR_SITE_PROBE v=1 target=719529 town=0 type=1 method=hybrid tile=100 score=10 oracle=20 oracle_tile=300 center=1 buildable=1 error=0 quote=1000 ops=80 tiles=100 tested=5 begin=719529 end=719529 case_stable=1 case_same_date=1
+AIR_SITE_PROBE v=1 target=719529 town=0 type=1 method=initial tile=200 score=30 oracle=20 oracle_tile=300 center=1 buildable=0 error=263 quote=null ops=70 tiles=100 tested=5 begin=719529 end=719529 case_stable=1 case_same_date=1
+AIR_SITE_PROBE v=1 target=719529 town=0 type=1 method=bands tile=null score=null oracle=20 oracle_tile=300 center=1 buildable=0 error=null quote=null ops=90 tiles=100 tested=5 begin=719529 end=719529 case_stable=1 case_same_date=1
+AIR_SITE_PROBE v=1 target=719529 town=0 type=1 method=border tile=300 score=20 oracle=20 oracle_tile=300 center=1 buildable=1 error=0 quote=1000 ops=110 tiles=100 tested=5 begin=719529 end=719529 case_stable=1 case_same_date=1
+AIR_SITE_PROBE v=1 target=719529 town=0 type=1 method=funnel tile=300 score=20 oracle=20 oracle_tile=300 center=1 buildable=1 error=0 quote=1000 ops=120 tiles=100 tested=5 begin=719529 end=719529 case_stable=1 case_same_date=1
+AIR_SITE_PROBE v=1 target=719529 town=0 type=1 method=strict tile=300 score=20 oracle=20 oracle_tile=300 center=1 buildable=1 error=0 quote=1000 ops=130 tiles=100 tested=5 begin=719529 end=719529 case_stable=1 case_same_date=1
+AIR_SITE_PROBE v=1 target=719529 town=0 type=1 method=strict_full tile=300 score=20 oracle=20 oracle_tile=300 center=1 buildable=1 error=0 quote=1000 ops=140 tiles=100 tested=5 begin=719529 end=719529 case_stable=1 case_same_date=1
+AIR_SITE_PROBE v=1 target=719529 town=0 type=1 method=oracle tile=300 score=20 oracle=20 oracle_tile=300 center=1 buildable=1 error=0 quote=1000 ops=1000 tiles=100 tested=5 begin=719529 end=719529 case_stable=1 case_same_date=1
+AIR_PROBE_PASS edge=end target=719529 date=719529 fingerprint=2:400:3:0.1.1 stable=1 same_date=1 rows=9 vehicles=0 stations=0 loan=100000

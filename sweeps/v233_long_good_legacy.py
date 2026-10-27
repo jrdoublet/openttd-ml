@@ -13,6 +13,8 @@ FIXTURE = json.loads((Path(__file__).parent / "fixtures/v233_long_good_off.json"
 def off_source(name, code):
     from estim_unifie_legacy import estim_off
     code = estim_off(name, code)
+    from air_site_probe_legacy import off_source as air_probe_off
+    code = air_probe_off(name, code)
     entry = FIXTURE["files"].get(name)
     if entry is None:
         return code

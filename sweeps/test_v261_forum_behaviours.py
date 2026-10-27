@@ -287,6 +287,9 @@ class ForumBehaviours(unittest.TestCase):
         # Inventaire exhaustif des premiers arguments. Liste blanche Squirrel vide :
         # aucun petit AIList évalué par closure dans l'arbre actuel.
         native = {
+            # air_site_probe_{initial,funnel} restore historical native callbacks
+            # behind the probe-only loader; sites are frozen in the V262 fixture.
+            # air_site_ranked reuses the seven native band callbacks (default OFF).
             # PO01F copies V216AdvAround's native AITile.IsStationTile valuation;
             # its additional call site is recorded in v262_valuate_inventory.json.
             "AIAirport.GetNearestTown", "AIBridge.GetMaxSpeed", "AIEngine.CanRefitCargo",
@@ -295,7 +298,7 @@ class ForumBehaviours(unittest.TestCase):
             "AIRail.IsRailTypeAvailable", "AIRoad.IsRoadDepotTile", "AIRoad.IsRoadStationTile",
             "AIRoad.IsRoadTile", "AIStation.GetNearestTown", "AITile.GetCargoProduction",
             "AITile.GetClosestTown", "AITile.GetMaxHeight", "AITile.GetMinHeight",
-            "AITile.GetSlope", "AITile.IsBuildable", "AITile.IsBuildableRectangle",
+            "AITile.GetSlope", "AITile.GetCornerHeight", "AITile.IsBuildable", "AITile.IsBuildableRectangle",
             "AITile.GetCargoAcceptance", "AITile.IsCoastTile",
             "AITile.IsRiverTile",
             "AITile.IsStationTile", "AITile.IsWaterTile", "AIVehicle.GetRunningCost",
