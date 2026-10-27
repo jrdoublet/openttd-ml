@@ -13,7 +13,7 @@ ne créent pas une tâche. Protocole et pilotage des bancs : [AGENTS.md](../AGEN
 - rail seul 40×3 VPS (`v233l_railseul_porteA_40x3_20261027`) : +11,0 k (+1,0 %), 20/20, p = 0,97, `fail_primary` ;
 - rail seul 40×5 VPS (`v233l_railseul_40x5_20261027`) : +71,8 k (+4,6 %), 25/15, Wilcoxon p = 0,077, IC95 bootstrap [+0,1 k ; +146 k], valeur +4,0 % — limite ;
 - rail seul 40×5, graines 3001-3040 (`v233l_railseul_40x5_seedsB_20261027`) : +69,7 k (+4,55 %), 24/16, p = 0,135, IC95 [−13,5 k ; +154 k], valeur +2,6 %.
-Aucun test isolé ne passe ; pas de mise en commun a posteriori. Suite proposée : rail seul 20×10 (porte B). Défaut 0.
+Aucun test isolé de porte A ne passe ; pas de mise en commun a posteriori. **27/10 — porte B rail seul 20×10 PC `v233l_railseul_porteB_20x10_20261027` : `pass` non-érosion**, 20/20 paires saines (40/40 parties), Δ `profit_year` moyen **+38 078,7 £/an** (+2,19 % du profit de référence), médiane **+58 544,5 £/an**, **12 V / 8 D / 0 E**, Wilcoxon **p=0,521673**, IC95 bootstrap **[−54 255,1 ; +130 906,15] £/an**, valeur (ratio des moyennes) **+5,7407 %**, `failed_runs=[]`, aucune erreur de script signalée. B passe par la borne haute de l'IC95 et la garde de valeur ; **gain positif non démontré et V233L non qualifiée** puisque A a échoué. Défaut 0, aucune adoption. [Rapport et provenance](v233l_railseul_porteB_20261027.md).
 
 **25/10 — V233L, nouvelle variante autorisée par l'utilisateur :** `v233_long_good=0/1`,
 défaut **0**, branche locale `v233-long`. Sorties GOOD de secondaires alimentées,
