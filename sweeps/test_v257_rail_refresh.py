@@ -320,7 +320,7 @@ class RailRefresh(unittest.TestCase):
         self.assertIn("if (newLife < remaining) remaining = newLife", self.off_replace)
         # ESTIM-1 : bit 4 recontrole le projet M1 au depot ; bit 2 finance
         # le prix BRUT du nouveau train, sans anticiper la revente.
-        self.assertIn("OpexEstimV257Project(currentPlan, targetPlan, oldVehicle, sale)",
+        self.assertIn("OpexEstimV257Project(currentPlan, targetPlan, oldVehicle, sale, line)",
                       self.replace)
         self.assertIn("estimPays = refreshed.deltaP > 0 && refreshed.score > 0",
                       self.replace)

@@ -982,6 +982,8 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSel
         && project.decisionFinanceCapital > 0)
       decisionFinanceCapital = project.decisionFinanceCapital;
     local scoreDecisionFinanceCapital = decisionFinanceCapital;
+    if ((ESTIM_UNIFIE & 16) != 0)
+      scoreDecisionFinanceCapital = OpexEstimRailScoreCapital(project, scoreDecisionFinanceCapital);
     /* C121 : un renfort d'avion est un vrai projet economique concurrent d'une
      * nouvelle ligne. L'exemption historique C69 lui donnerait un denominateur
      * ~= prix avion alors que les lignes AIR sont bornees par K_dec, ce qui
@@ -992,6 +994,16 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSel
     project.fundScore <- OpexProjectScore(OpexProjectFundProfit(project),
         (kDec > scoreDecisionFinanceCapital && !fleetExemptDecision)
             ? kDec : scoreDecisionFinanceCapital);
+    if (DECISION_LOG && (ESTIM_UNIFIE & 16) != 0 && project.mode == "rail"
+        && ESTIM16_RAIL_SCORE_TRACES < 32) {
+      ESTIM16_RAIL_SCORE_TRACES++;
+      OpexDecide("ESTIM16_RAIL_SCORE", "dist=" + project.distance
+          + " capital=" + project.capital + " finance=" + financeCapital
+          + " score_capital=" + scoreDecisionFinanceCapital
+          + " actual=" + ((("capitalIsActual" in project) && project.capitalIsActual) ? 1 : 0)
+          + " kR=" + OpexEstimRailRevenueFactor(project.distance)
+          + " score=" + project.fundScore);
+    }
     if (project.mode == "air" && ("payload" in project) && project.payload != null && ("c121CatalogKey" in project.payload) && project.payload.c121CatalogKey in C121_CATALOG_CACHE)
       C121_CATALOG_CACHE[project.payload.c121CatalogKey].lastScore = project.fundScore;
     if (fundMark != null) {
@@ -1040,6 +1052,8 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSel
           && project.decisionFinanceCapital > 0)
         decisionFinanceCapital = project.decisionFinanceCapital;
       local scoreDecisionFinanceCapital = decisionFinanceCapital;
+      if ((ESTIM_UNIFIE & 16) != 0)
+        scoreDecisionFinanceCapital = OpexEstimRailScoreCapital(project, scoreDecisionFinanceCapital);
       local fleetExemptDecision = project.mode == "fleet"
           && !OpexC121ProjectHasRealization(project);
       project.fundScore <- OpexProjectScore(OpexProjectFundProfit(project),
@@ -1115,6 +1129,8 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSel
     OpexMulti1RoadPromote(affordable, capitalBudget, MULTI1_ROAD_PRIORITY);
   if (realSelection && MULTI1_AIR_OVER_RAIL > 0)
     OpexMulti1AirOverRail(affordable, capitalBudget, MULTI1_AIR_OVER_RAIL);
+  if (DECISION_LOG)
+    OpexEstimDTraceTopK(alternatives, affordable, capitalBudget, kDec, realSelection);
   if (spEpilogue != null) OpexSpanEnd(spEpilogue);
   if (spSelect != null) OpexSpanEnd(spSelect);
   return affordable;

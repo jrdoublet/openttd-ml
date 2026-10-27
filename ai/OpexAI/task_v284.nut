@@ -70,7 +70,8 @@ function OpexEstimV284Project(line, vehicle, wagon, number, loco, add, waiting, 
   local years = AIEngine.GetMaxAge(loco.id).tofloat() / 365.0;
   if (years <= 0) return null;
   return OpexEstimVProject("rail", newRevenue - current.revenue,
-      newRunning - oldRunning, netVehiclePrice / years, netVehiclePrice + loopCost, kDec);
+      newRunning - oldRunning, netVehiclePrice / years, netVehiclePrice + loopCost,
+      kDec, null, line.distance);
 }
 
 /* Le modele C41 courant compare les deux compositions sur la meme distance.

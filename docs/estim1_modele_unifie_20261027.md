@@ -447,3 +447,195 @@ pas des régressions démontrées du défaut 0. Le jugement d'absence de perte
 appartient à la porte B en cours ; la propreté est améliorée sur les contrats
 et gardes, mais les anciennes voies restent présentes et les deux réserves
 empêchent d'affirmer une unification complète.
+
+## 17. Lot 5 — calibration RAIL par distance (bit 16, 27/10)
+
+**Réouverture limitée autorisée par l'utilisateur.** Malgré la clôture de
+`RAIL-CAL-1` aux portes du 21/10, une nouvelle formulation sous `estim_unifie=16`
+est autorisée pour ce lot seulement : les deux corrections portent ensemble sur
+la **recette** et le **coût pré-A***. `rail_cal=1` demeure non qualifié.
+
+**Échantillon hors ligne.** Le corpus DUEL 40 × 10 du 21/10 comprend
+4 495 années-lignes RAIL mûres (`âge ≥ 2`) dont la flotte égale la flotte
+de construction. Comme le prior du bit 1, la recette réalisée est
+`Σ GetProfitLastYear + Σ GetRunningCost`, rapportée à la recette prédite brute.
+Les quartiles fixes de distance sont ≤90, 91–127, 128–172 et ≥173 tuiles.
+Après recentrage à une moyenne **pondérée par recette prédite de 0,92**,
+les rapports par quartile sont **0,7341 / 0,8527 / 0,9728 / 1,0652**
+(effectifs **1 227 / 1 156 / 1 109 / 1 003**, IC95 respectifs
+[0,6779 ; 0,7977], [0,7977 ; 0,9157], [0,9033 ; 1,0427],
+[1,0071 ; 1,1238]).
+
+La droite retenue est `k_R0(d)=0,5722990662 + 0,00258519378 × d`, avec
+distance en tuiles. La pente est positive (IC95 bootstrap par partie,
+3 000 tirages : **[0,001874 ; 0,003255]**) ; le centre pondéré se situe
+à **134,497** tuiles. La validation croisée par partie réduit la MAE annuelle
+de recette **13 559 £ (prior plat) à 12 949 £ (droite)** ; les quatre paliers
+donnent **13 008 £**. La droite possède moins de degrés de liberté et gagne
+sur 32/40 parties : elle est préférée aux paliers.
+
+Le devis **avant recherche A*** de 1 014 constructions DUEL exploitables
+donne `k_C(d)=1,0778667894 + 0,00324189259 × d` ; pente IC95 bootstrap
+**[0,002986 ; 0,003488]**. Pour un devis déjà physique obtenu après A*,
+**`k_C=1`**. Le coût recalé n'agit que dans le dénominateur du classement
+`1000 × P / max(C_score, K_dec)` des candidats RAIL **non tracés**.
+`OpexProjectFinanceCapital` et toutes les gardes restent à leur financement
+RAIL **100 %**, conformément à la décision du 26/09.
+
+**Comportement des bits.** Le bit 16 **seul** corrige la recette RAIL dès le
+classement, sans nécessiter le bit 1 ; les autres modes restent sur C70/C121.
+Le bit 31 combine toutes les corrections 1/2/4/8/16. Le niveau RAIL
+`ESTIM_K_R.rail` est appris en partie à partir du ratio de sommes, avec
+le même rétrécissement `(n × ρ + 10 × 0,92)/(n + 10)` qu'au lot 1.
+La pente reste figée : le facteur utilisé est
+`k_R(d)=ESTIM_K_R.rail × k_R0(d)/0,92`. La flotte et les années exigées
+par l'observateur sont inchangées. Le même profil s'applique aux `ΔR`
+des renforts et remplacements RAIL sous bit 4 ; il n'est pas réappliqué
+aux profits déjà observés. Les coûts physiques de ces interventions ne
+sont pas majorés.
+
+**Validation et traçabilité.** Le réglage `estim_unifie` garde `default_value=0`
+pour les quatre difficultés et `max_value=31`, sans réglage supplémentaire.
+`sweeps/estim_unifie_priors.py` et
+`docs/estim1_bit16_calibration_20261027.md` détaillent le corpus, les IC
+et le contrôle SOLO. La table de projection OFF
+`sweeps/estim_unifie_off_lots.py` est figée en comparant les sources courantes
+aux sources historiques déjà revues, sans `--refresh` contre HEAD qui
+contient ESTIM-1. Les preuves de campagnes sont ajoutées ci-dessous au fur
+et à mesure des mesures ; la sonde `probes=258` (panneaux + journal de
+décisions, sans nouveau réglage) permet de tracer au plus 32
+`ESTIM16_RAIL_SCORE` sans surcharger les journaux ordinaires.
+
+### Premier smoke et porte A isolée
+
+Le smoke `estim1_bit16_smoke_1x1_20261027` (graine 42, un an,
+`--probes 258` équilibré entre bras) a terminé ses deux parties, sans erreur
+Squirrel. Delta final de profit **−23 368 £/an**, garde de valeur **−6,58 %** ;
+le verdict `diagnostic_only` découle du format 1×1, qui n'est pas une porte.
+Les premières traces ne contiennent **aucun** `ESTIM16_RAIL_SCORE` ; ce monde
+court n'apporte pas de preuve d'exposition du classement RAIL.
+
+La campagne `estim1_bit16_porteA_40x3_20261027` est complète sur le bundle
+`1d920f47d10c947ccc5e7368a23b7b2909017e9283ab3842a8b9471498b44d2c` :
+**40/40 paires**, `profit_year` delta moyen **+18 019,4 £/an**, médiane
+**+5 152 £/an**, **20V/20D/0E**, Wilcoxon **p=0,58081**, IC95 bootstrap
+**[−60 718,95 ; +92 745,38] £**, valeur (ratio des moyennes) **+3,2678 %**.
+Seuil de gain +4 % : **+92 361,6 £/an**. Verdict **`fail_primary`** : seuil
+et significativité non atteints, même si la garde de valeur passe. La porte B
+de non-érosion de ce lot isolé est maintenue par décision utilisateur.
+
+### Gel corrigé pour les quatre portes définitives
+
+La revue Squirrel a repéré puis fait corriger un appel V257 dont la nouvelle
+expression de distance lisait `line` hors de sa portée : le paramètre est
+désormais explicitement transmis aux deux appels (sélection, dépôt). V257/V284
+emploient maintenant la même distance du candidat que le corpus RAIL ; les
+droites recette et coût sont bornées aux distances observées **15–250** tuiles.
+La projection OFF sur **26 sources** a été reconstruite et revérifiée, sans
+relancer `--refresh` contre HEAD. Suite complète finale : **3 060 tests OK**,
+5 ignorés, 2 échecs attendus ; `git diff --check` passe.
+
+Les campagnes corrigées `r2` pour le bit 16 et `r3` pour l'intégré 31 ont
+le **même bundle** `ec515a3a68af52666bf1080da1ab313b7ccfa7906fdae99b3ecf5ace8f9851cb`.
+Les campagnes antérieures restent archivées, sans être utilisées pour juger
+ce gel. Chaque porte A compte 40 paires complètes sur 1970–1972,
+avec gain minimal +4 %, Wilcoxon exact p<0,05, IC95 bootstrap positif et
+garde de valeur −5 %.
+
+| Porte A (bits) | Δ moyen `profit_year` | Médiane | V/D/E | Wilcoxon p | IC95 bootstrap du Δ (£/an) | Δ valeur | Verdict |
+|---|---:|---:|---:|---:|---:|---:|---|
+| [`16`, isolé](../results/estim1_bit16_porteA_40x3_r2_20261027.json) | **+29 544,2 £/an** | +73 695 £/an | 21/19/0 | 0,40494 | [−59 333,7 ; +113 407,2] | **+5,1163 %** | `fail_primary` |
+| [`31`, intégré](../results/estim1_bit31_porteA_40x3_r3_20261027.json) | **−87 018,7 £/an** | −135 798 £/an | 15/25/0 | 0,03813 | [−184 354,8 ; +20 496,0] | **−1,3650 %** | `fail_primary` |
+
+La garde de valeur passe dans les deux bras. La hausse ponctuelle de valeur
+ou un p de Wilcoxon inférieur à 0,05 ne suffisent pas : aucun IC95 ne prouve
+le gain +4 % demandé. Les portes B 20×10 sont néanmoins requises par la
+décision utilisateur de ce lot, y compris pour l'intégré négatif à trois ans.
+
+### Porte B — non-érosion isolée à dix ans
+
+`estim1_bit16_porteB_20x10_r2_20261027` utilise le même bundle que les
+portes A. Les **20/20 paires** sont complètes (1970–1979), sans échec moteur.
+Le delta `profit_year` est **−18 828,65 £/an** en moyenne, médiane
+**+70 686 £/an**, **12V/8D/0E**, Wilcoxon descriptif **p=0,84082**,
+IC95 bootstrap **[−179 467,6 ; +140 725,5] £/an** et changement de valeur
+(ratio des moyennes) **+1,73687 %**. Verdict natif `non_erosion` : **`pass`**
+(borne haute de l'IC95 ≥ 0 et garde de valeur −5 % respectée).
+Ce résultat accepte la **non-érosion** du lot isolé à dix ans, sans établir
+un gain significatif ni renverser le verdict A de gain (`fail_primary`).
+
+### Porte B — intégré 31 à dix ans et décision croisée
+
+`estim1_bit31_porteB_20x10_r2_20261027` partage le **même bundle source**
+`ec515a3a68af52666bf1080da1ab313b7ccfa7906fdae99b3ecf5ace8f9851cb`
+avec A16, A31 et B16 : **20/20 paires** complètes en 1970–1979,
+`failed_runs=[]`. Le `profit_year` de la variante moins la référence est
+**+60 609,65 £/an** en moyenne, **+10 467 £/an** en médiane,
+**10V/10D/0E**, Wilcoxon descriptif **p=0,43043**, IC95 bootstrap
+**[−90 700,5 ; +207 463,4] £/an**. Cependant la valeur d'entreprise
+(ratio des moyennes) chute de **−18,933477 %**, très au-delà de la garde
+de −5 % : verdict natif **`fail_value_guard`**. Le signe ponctuellement
+positif du profit n'annule ni cette forte érosion de valeur ni l'absence
+de gain statistiquement établi.
+
+| Profil | Porte A 40×3 `gain_short` | Porte B 20×10 `non_erosion` | Conclusion |
+|---|---|---|---|
+| Bit 16 seul | `fail_primary` (+29,5 k£/an ; IC95 traversant zéro) | `pass` (−18,8 k£/an ; valeur +1,74 %) | **Non-érosion B** selon sa règle, **pas de gain A démontré** |
+| Bits 31 intégrés | `fail_primary` (−87,0 k£/an) | **`fail_value_guard`** (+60,6 k£/an ; valeur −18,93 %) | **Échec de qualification**, pas d'adoption |
+
+La règle B de non-érosion exige seulement une borne haute de l'IC95 du
+profit non négative et une garde de valeur respectée : un `pass` B16 n'est
+donc **pas une preuve de rentabilité accrue**. Dans ces conditions, aucun
+passage de `estim_unifie` à 16 ou 31 **par défaut** n'est qualifié ; le
+réglage reste **0**. Aucun commit ni push n'est effectué dans ce lot.
+
+### Exposition du score RAIL (diagnostic distinct des portes)
+
+Le premier smoke 42 × 1 an n'avait produit aucune trace du score RAIL.
+Après B31, un diagnostic **RAIL seul** (AIR/ROAD/WATER désactivés **dans
+les deux bras**) a été exécuté sur la graine 1337, trois années,
+`probes=258`, référence 0 contre variante 16 :
+`results/estim1_bit16_railscore_exposure_seed1337_3y_20261027.json`.
+Deux parties complètes, zéro échec moteur, bundle source **identique**
+`ec515a3a68af52666bf1080da1ab313b7ccfa7906fdae99b3ecf5ace8f9851cb`.
+Le verdict natif est `diagnostic_only` (une seule paire, non une porte).
+
+Dans le journal moteur de la variante, **32/32 événements**
+`ESTIM16_RAIL_SCORE` (plafond de sonde atteint), tous le **16/01/1970** :
+distances **29–186** tuiles, `actual=0`, et dans tous les cas
+`finance=capital` tandis que `score_capital > finance`, avec rapport
+`score_capital/finance` allant de **1,17188 à 1,68085**. Les facteurs de
+recette `kR` enregistrés varient effectivement selon la distance.
+
+Exemple **d=179** : `capital=finance=82 693 £`,
+`score_capital=137 119 £`, `kR=1,0350487`, score effectif **414,8732**.
+Le premier chantier RAIL n'est choisi que le 22/01 et construit le 26/01 ;
+le 16/01, `C69_BUILD_DATES` est encore vide et `K_dec=0` selon
+`OpexC69ComputeKDec`. **À profit calibré fixé**, si le dénominateur était
+resté au capital financier, le score de ce candidat aurait été
+`414,8732 × 137119 / 82693 = 687,93` : la correction de coût infléchit
+donc bien un **score effectivement utilisé** (−273,06 points dans cette
+comparaison à numérateur fixé), **sans renchérir la garde financière**.
+La recette est, elle aussi, calibrée : le score réel complet n'est pas
+identique à ce contrefactuel qui ne retire que le facteur de coût.
+
+Les premiers projets choisis sont identiques entre bras, puis la séquence
+des choix et leurs dates divergent (le troisième projet est choisi le
+13/02 dans la référence et le 14/03 dans la variante). Ce constat est
+**descriptif**, pas une attribution causale isolée de chaque construction :
+les mondes évoluent ensuite séparément. Le diagnostic montre la **prise
+d'effet du classement**, pas un gain de profit ; les quatre portes
+multimodales ci-dessus restent seules décisionnelles.
+
+**Réserves de portée.** Les traces sont plafonnées aux 32 premières
+alternatives RAIL admissibles et l'indicateur `actual` du journal ne regarde
+que `project.capitalIsActual`, alors que le calcul de score vérifie aussi
+le payload. Le cas post-A* `capitalIsActual` (`k_C=1`) est couvert par les
+tests statiques, pas par ces 32 observations (`actual=0`). Les projets mixtes
+V249 avec `modeRevenues` continuent d'utiliser un scalaire RAIL par revenu,
+sans distance propre à chaque composante ; l'hypothèse ne s'applique donc
+pas à toutes les recettes RAIL possibles. Enfin un `railPlan` préparé C121
+peut disposer d'un devis A* avant le marquage `capitalIsActual` : vérifier
+un éventuel double redressement sur ce chemin avant toute promotion.
+**Aucune correction comportementale supplémentaire** n'est introduite
+après le gel des quatre portes.

@@ -213,7 +213,7 @@ function OpexAI::_reportLines(year)
   local anchor = AIMap.GetTileIndex(1, 1);
   local c70Sums = { rail = [0.0, 0], road = [0.0, 0], air = [0.0, 0], water = [0.0, 0] };
   local c121RealizationSums = OpexC121RealizationSums();
-  local estimRevSums = (ESTIM_UNIFIE & 1) != 0 ? OpexEstimRevenueSums() : null;
+  local estimRevSums = (ESTIM_UNIFIE & 17) != 0 ? OpexEstimRevenueSums() : null;
   local c69ProfRatios = C69_BOTTLENECK_PROBE ? { rail = [], road = [], air = [], water = [] } : null;
   local c69RevRatios = C69_BOTTLENECK_PROBE ? { rail = [], road = [], air = [], water = [] } : null;
   local c69LineCounts = C69_BOTTLENECK_PROBE ? { rail = 0, road = 0, air = 0, water = 0 } : null;

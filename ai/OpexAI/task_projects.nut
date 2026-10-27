@@ -235,6 +235,15 @@ function OpexAI::_tryBuildFleetProject(year, project, rank, passDiscards, builtK
                             reason = "fleet_stale", extra = "" });
     return { outcome = "rejected", discards = passDiscards };
   }
+  /* A listed fleet project can outlive its load observation: revalidate at purchase. */
+  if (AIR_LOAD_MIN_PCT > 0 && OpexAirLoadBlocksGrowth(line)) {
+    OpexAirFleetRefusal(line, year, "F");
+    if (C69_BOTTLENECK_PROBE) OpexC73RecordRejection("fleet", "low_load_factor", 1);
+    if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL)
+      passDiscards.append({ rank = i, mode = "fleet", src = project.src, dst = project.dst,
+                            reason = "low_load_factor", extra = "" });
+    return { outcome = "rejected", discards = passDiscards };
+  }
   /* Revalidation au dernier instant : projet cache, nouvelle fenetre C117,
    * mutation moteur V252 ou disparition de la preuve ne doivent pas produire
    * un veto base sur un ancien instantane. Inconnu = comportement historique. */
@@ -880,8 +889,29 @@ function OpexAI::_consumeResumableRailAtPassStart(year, passDiscards, c49Best, c
   }
   local railCandidate = this._railSearch.candidate;
   local c78DiscardsLenRail = (C69_BOTTLENECK_PROBE && passDiscards != null) ? passDiscards.len() : 0;
+  local dtraceRail = DECISION_LOG && OpexEstimDTraceActive();
+  local dtraceRailCash = dtraceRail ? AICompany.GetBankBalance(AICompany.COMPANY_SELF) : -1;
   local railResult = this._consumeRailSearch(year);
   local outcome = railResult.outcome;
+  if (dtraceRail) {
+    local key = "rail|" + railCandidate.src + "|" + railCandidate.dst + "|"
+        + railCandidate.cargo + "|" + railCandidate.kind;
+    local project = null;
+    local rank = this._projectsRankOfAttemptKey(key);
+    if (rank >= 0 && this._projects != null && this._projects.best != null)
+      project = this._projects.best[rank];
+    if (project == null) {
+      project = { mode = "rail", kind = railCandidate.kind, cargo = railCandidate.cargo,
+          src = railCandidate.src, dst = railCandidate.dst, payload = railCandidate,
+          distance = railCandidate.distance, capital = railCandidate.capital,
+          budgetCapital = railCandidate.capital, profitAnnual = railCandidate.profitAnnual,
+          revenueAnnual = railCandidate.revenueAnnual };
+    }
+    OpexEstimDTraceOutcome(project, rank, outcome, railResult.reason,
+        -1, dtraceRailCash,
+        AICompany.GetBankBalance(AICompany.COMPANY_SELF), OpexAvailableCapital(),
+        outcome == "built" ? this._nextLineId - 1 : -1);
+  }
   if ((outcome == "failed" || outcome == "cash")
       && (DECISION_LOG || C49_SCARCITY_LEDGER || C63_INVEST_PROBE || MONTHLY_FUNNEL)) {
     local failKey = "rail|" + railCandidate.src + "|" + railCandidate.dst + "|"
@@ -1183,12 +1213,14 @@ function OpexAI::_tryBuildProjects(year)
     if (project == null) continue;
     local c121LiveOpp = null;
     if ((OpexC69AttemptKey(project) in c75BuiltKeys)) {
+      if (DECISION_LOG) OpexEstimDTraceSkip(project, i, "already_built_in_pass");
       if (AIR_FLOTTE1_SHADOW && project.mode == "rail")
         OpexAirF1RailPath(project, i, "skipped", "already_built_in_pass");
       continue;
     }
     // V261 point 6 : pas de chantier dont les vehicules ne tiendraient pas sous le plafond.
     if (!OpexModeVehicleRoom(project.mode, OpexTensionProjectVehicleCount(project))) {
+      if (DECISION_LOG) OpexEstimDTraceSkip(project, i, "mode_vehicle_limit");
       if (AIR_FLOTTE1_SHADOW && project.mode == "rail")
         OpexAirF1RailPath(project, i, "skipped", "mode_vehicle_limit");
       continue;
@@ -1207,6 +1239,7 @@ function OpexAI::_tryBuildProjects(year)
      * au defaut, pas uniquement dans le batch C121 de premiere annee. */
     if (project.mode == "air"
         && !OpexAirBatchPlanStillLive(project.payload, this._lines)) {
+      if (DECISION_LOG) OpexEstimDTraceSkip(project, i, "batch_plan_dead");
       if (R1_R3_TEST_ONLY) OpexR1R3AirTrace(this, project, i, "reject", "batch_plan_dead",
           r1r3BypassBefore, r1r3BypassBefore, builtCount, r1r3Threshold);
       if (c121FirstYearAirBatch) c121DeadSkipped++;
@@ -1248,6 +1281,7 @@ function OpexAI::_tryBuildProjects(year)
         }
           if (!c75BypassThisProject) {
             c75StopReason = (availCap >= 0 && projCap > availCap) ? "cash" : "k_pass";
+            if (DECISION_LOG) OpexEstimDTraceSkip(project, i, c75StopReason);
             if (R1_R3_TEST_ONLY && project.mode == "air") OpexR1R3AirTrace(this, project, i,
               "stop", c75StopReason, c75BypassConsumed, c75BypassConsumed,
               builtCount, c75KPass, projCap, availCap >= 0 ? availCap : null);
@@ -1276,6 +1310,7 @@ function OpexAI::_tryBuildProjects(year)
       }
       {
         if (OpexC80ProjectBelowMarginalFloor(this._lines, project)) {
+          if (DECISION_LOG) OpexEstimDTraceSkip(project, i, "c80_marginal_floor");
           c80DiscardsThisPass++;
           if (C69_BOTTLENECK_PROBE) {
             OpexC80RecordMarginalDiscard(year, i, project);
@@ -1288,6 +1323,9 @@ function OpexAI::_tryBuildProjects(year)
     local mode = project.mode;
     local modeChar = mode == "rail" ? "T" : (mode == "road" ? "R" : (mode == "air" ? "A" : "W"));
     local liveBuiltCount = builtCount;
+    local dtraceActive = DECISION_LOG && OpexEstimDTraceActive()
+        && (mode == "air" || mode == "rail" || mode == "fleet");
+    local dtraceCash = dtraceActive ? AICompany.GetBankBalance(AICompany.COMPANY_SELF) : -1;
     if (MONTHLY_FUNNEL) funnelAttempted++;
 
     if (mode == "fleet") {
@@ -1295,6 +1333,8 @@ function OpexAI::_tryBuildProjects(year)
       local c78DiscardsLen = (C69_BOTTLENECK_PROBE && passDiscards != null) ? passDiscards.len() : 0;
       local attempt = this._tryBuildFleetProject(year, project, i, passDiscards, c75BuiltKeys);
       passDiscards = attempt.discards;
+      if (dtraceActive) OpexEstimDTraceAttempt(project, i, attempt, passDiscards,
+          -1, dtraceCash, project.payload.line.lineId);
       if (C69_BOTTLENECK_PROBE) OpexC78LogBuild(year, i, mode, project, attempt, passDiscards, c78DiscardsLen);
       if (C49_SCARCITY_LEDGER && attempt.outcome == "built") c49BuiltRanks.rawset(i, true);
       if (fallthroughProbeActive) {
@@ -1373,6 +1413,8 @@ function OpexAI::_tryBuildProjects(year)
       }
       OpexC122ThreatNoteOutcome(project, i, attempt);
       passDiscards = attempt.discards;
+      if (dtraceActive) OpexEstimDTraceAttempt(project, i, attempt, passDiscards,
+          -1, dtraceCash, attempt.outcome == "built" ? this._nextLineId - 1 : -1);
       if (C69_BOTTLENECK_PROBE) OpexC78LogBuild(year, i, mode, project, attempt, passDiscards, c78DiscardsLen);
       if (C78_SLOT_INTERCEPT_PROBE) {
         local c78Reason = (attempt.outcome == "built") ? "built" : "unknown";
@@ -1440,6 +1482,8 @@ function OpexAI::_tryBuildProjects(year)
       local attempt = this._tryBuildRailProject(year, project, i, liveBuiltCount, passDiscards,
                                                  anchor, yy);
       passDiscards = attempt.discards;
+      if (dtraceActive) OpexEstimDTraceAttempt(project, i, attempt, passDiscards,
+          -1, dtraceCash, attempt.outcome == "built" ? this._nextLineId - 1 : -1);
       if (AIR_FLOTTE1_SHADOW) {
         local airF1Reason = attempt.outcome;
         if (attempt.outcome == "rejected" && passDiscards != null && passDiscards.len() > 0) {

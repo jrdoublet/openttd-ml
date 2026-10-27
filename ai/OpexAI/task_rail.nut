@@ -1114,6 +1114,14 @@ function OpexP2RailTraceKey(candidate)
 
 function OpexAI::_recordRailAttempt(candidate, result, posPacked, year, railPlan = null)
 {
+  if (DECISION_LOG && OpexEstimDTraceActive()) {
+    OpexDecide("ESTIM_SPEND", "mode=rail id=rail|" + candidate.src + "|"
+        + candidate.dst + "|" + candidate.cargo + "|" + candidate.kind
+        + " line=" + this._nextLineId + " rank=-1"
+        + " actual_paid=" + (("actualCost" in result) ? result.actualCost : -1)
+        + " quote=" + (("capital" in result) ? result.capital : candidate.capital)
+        + " ok=" + (result.ok ? 1 : 0) + " reason=" + result.reason);
+  }
   if (OpexV233LIs(candidate) && !result.ok && DECISION_LOG)
     OpexV233LLog("REJECT", "src=" + candidate.src + " dst=" + candidate.dst + " reason=" + result.reason);
   if (RAIL_FAILURE_AUDIT) OpexRailFailureAudit("attempt", candidate,

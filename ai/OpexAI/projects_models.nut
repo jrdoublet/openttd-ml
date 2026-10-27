@@ -186,6 +186,44 @@ function OpexC70Profit(project)
   return project.profitAnnual * OpexC70Factor(project);
 }
 
+/* ESTIM-1 bit 16 : multiplier le profil fixe de distance par le niveau rail
+ * appris (rapport de sommes retreci vers le prior 0.92). Valeur 0.92 au centre
+ * de la population de calibration ; aucun apprentissage d'une pente sur quelques lignes. */
+function OpexEstimRailRevenueFactor(distance)
+{
+  if ((ESTIM_UNIFIE & 16) == 0 || distance <= 0) return ESTIM_K_R.rail;
+  /* Le corpus DUEL couvre 15..250 tuiles. Conserver le dernier niveau observe
+   * hors de cette plage, sans extrapoler une pente a tres grande distance. */
+  local calibratedDistance = distance;
+  if (calibratedDistance < 15) calibratedDistance = 15;
+  if (calibratedDistance > 250) calibratedDistance = 250;
+  local profile = ESTIM_RAIL_KR_PROFILE_A + ESTIM_RAIL_KR_PROFILE_B * calibratedDistance;
+  if (profile < 0.05) profile = 0.05;
+  return ESTIM_K_R.rail * profile / ESTIM_K_R_PRIOR.rail;
+}
+
+/* ESTIM-1 bit 16 : corriger le capital RAIL pour le seul classement des
+ * candidats non traces. Un devis physique issu d'A* reste facteur 1.
+ * Le cout estime ne doit jamais modifier la garde de financement. */
+function OpexEstimRailScoreCapital(project, decisionFinanceCapital)
+{
+  if ((ESTIM_UNIFIE & 16) == 0 || project == null
+      || !("mode" in project) || project.mode != "rail"
+      || !("distance" in project) || project.distance <= 0
+      || !("capital" in project) || project.capital <= 0) return decisionFinanceCapital;
+  if ((("capitalIsActual" in project) && project.capitalIsActual)
+      || (("payload" in project) && project.payload != null
+          && ("capitalIsActual" in project.payload) && project.payload.capitalIsActual))
+    return decisionFinanceCapital;
+  local calibratedDistance = project.distance;
+  if (calibratedDistance < 15) calibratedDistance = 15;
+  if (calibratedDistance > 250) calibratedDistance = 250;
+  local factor = ESTIM_RAIL_KC_A + ESTIM_RAIL_KC_B * calibratedDistance;
+  local extra = decisionFinanceCapital - project.capital;
+  if (extra < 0) extra = 0;
+  return (project.capital.tofloat() * factor + 0.5).tointeger() + extra;
+}
+
 /* ESTIM-1 bit 1 : P = P_modele - (1 - k_R) * R. Le facteur corrige la recette, jamais le
  * profit : un projet a faible marge peut devenir negatif. AIR C121 porte deja k_R dans son
  * economie (OpexC121RealizationFactor). Flotte et observations : logique historique (lot 3). */
@@ -198,9 +236,13 @@ function OpexEstimProfit(project)
       || (("profitIsObserved" in project) && project.profitIsObserved)
       || !("revenueAnnual" in project) || project.revenueAnnual <= 0)
     return OpexC70Profit(project);
+  if ((ESTIM_UNIFIE & 1) == 0 && !((ESTIM_UNIFIE & 16) != 0 && project.mode == "rail"))
+    return OpexC70Profit(project);
   if (project.mode == "air" && OpexC121ProjectHasRealization(project))
     return project.profitAnnual;
-  return (project.profitAnnual - (1.0 - ESTIM_K_R[project.mode]) * project.revenueAnnual).tointeger();
+  local kR = (project.mode == "rail" && (ESTIM_UNIFIE & 16) != 0) ? OpexEstimRailRevenueFactor(
+      ("distance" in project) ? project.distance : 0) : ESTIM_K_R[project.mode];
+  return (project.profitAnnual - (1.0 - kR) * project.revenueAnnual).tointeger();
 }
 
 /* ESTIM-1 bit 1 : cumul par ligne, annees pleines (age >= 2) a flotte de construction, sans
@@ -209,6 +251,7 @@ function OpexEstimAccumulateLine(line, year, vehCount, currentRevenue, sums)
 {
   local mode = ("mode" in line) ? line.mode : "unknown";
   if (!(mode in sums)) return;
+  if ((ESTIM_UNIFIE & 1) == 0 && mode != "rail") return;
   /* Sous bit 1, predRevenue AIR contient deja k_R. Quand le shadow C121 n'a
    * pas pu fournir la recette brute, ne jamais apprendre sur cette valeur
    * deja calibree (ce qui ferait artificiellement tendre k_R vers 1). */
@@ -242,6 +285,7 @@ function OpexEstimPublishRevenueFactors(sums, year, phase)
   local w0 = ESTIM_K_R_PRIOR_WEIGHT;
   local airChanged = false;
   foreach (m, acc in sums) {
+    if ((ESTIM_UNIFIE & 1) == 0 && m != "rail") continue;
     local n = acc[2].tofloat();
     local k = ESTIM_K_R_PRIOR[m];
     if (n > 0 && acc[1] > 0) k = (n * acc[0] / acc[1] + w0 * k) / (n + w0);

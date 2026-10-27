@@ -52,6 +52,152 @@ function OpexDecide(kind, fields)
   AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
              + AIDate.GetDayOfMonth(date) + " " + kind + " " + fields);
 }
+/* ESTIM-1 diagnostic 1973-1975. Le journal DECISION_LOG est deja un canal
+ * opt-in (probes=256, ajouter 2 pour conserver les panneaux du banc).
+ * Les compteurs temporaires ne sont alloues que dans la branche instrumentee. */
+function OpexEstimDTraceActive()
+{
+  if (!DECISION_LOG) return false;
+  local yr = AIDate.GetYear(AIDate.GetCurrentDate());
+  return yr >= 1973 && yr <= 1975;
+}
+
+function OpexEstimDTraceProject(project, rank, stage, reason, kDec, available)
+{
+  if (project == null) return;
+  local mode = project.mode;
+  if (mode != "air" && mode != "rail" && mode != "fleet") return;
+  local key = OpexProjectAttemptKey(project);
+  local raw = ("revenueAnnual" in project) ? project.revenueAnnual : -1;
+  local calibrated = ("deltaR" in project) ? project.deltaR : raw;
+  local kR = 1.0;
+  if (mode == "rail" && (ESTIM_UNIFIE & 16) != 0)
+    kR = OpexEstimRailRevenueFactor(project.distance);
+  else if ((ESTIM_UNIFIE & 1) != 0 && mode in ESTIM_K_R)
+    kR = ESTIM_K_R[mode];
+  else if (mode == "fleet" && (ESTIM_UNIFIE & 4) != 0)
+    kR = ESTIM_K_R.air;
+  local p = ("profitAnnual" in project) ? project.profitAnnual : -1;
+  local payload = ("payload" in project) ? project.payload : null;
+  local economics = payload != null && ("economics" in payload) ? payload.economics : null;
+  local e = ("deltaE" in project) ? project.deltaE
+      : (payload != null && ("runningAnnual" in payload) ? payload.runningAnnual
+          : (economics != null && ("runningAnnual" in economics) ? economics.runningAnnual : -1));
+  local a = ("deltaA" in project) ? project.deltaA
+      : (payload != null && ("amortAnnual" in payload) ? payload.amortAnnual
+          : (economics != null && ("amortAnnual" in economics) ? economics.amortAnnual : -1));
+  local c = ("capital" in project) ? project.capital : -1;
+  local scoreC = (mode == "air" && ("decisionFinanceCapital" in project)
+      && project.decisionFinanceCapital > 0) ? project.decisionFinanceCapital
+      : OpexProjectFinanceCapital(project);
+  if ((ESTIM_UNIFIE & 16) != 0) scoreC = OpexEstimRailScoreCapital(project, scoreC);
+  local fleetExempt = mode == "fleet" && !OpexC121ProjectHasRealization(project);
+  local denominator = kDec > scoreC && !fleetExempt ? kDec : scoreC;
+  local score = ("fundScore" in project) ? project.fundScore : -1;
+  local subtype = mode == "fleet" ? "reinforce_or_replace" : "open";
+  OpexDecide("ESTIM_DECISION", "stage=" + stage + " mode=" + mode + " type=" + subtype
+      + " id=" + key + " rank=" + rank + " dist=" + (("distance" in project) ? project.distance : -1)
+      + " raw_r=" + raw + " k_r=" + kR + " r=" + calibrated
+      + " raw_scope=" + (mode == "air" ? "post_c121" : "pre_estim")
+      + " e=" + e + " a=" + a + " c_quote=" + c
+      + " c_score=" + denominator + " p=" + p + " p_score=" + OpexProjectFundProfit(project)
+      + " k_dec=" + kDec
+      + " score=" + score + " finance=" + OpexProjectFinanceCapital(project)
+      + " cash=" + AICompany.GetBankBalance(AICompany.COMPANY_SELF)
+      + " available=" + available + " reason=" + reason);
+}
+
+/* Premier classement reel de chaque mois : candidats classes tous modes et
+ * dix meilleures offres par mode, meme si elles ont ete retirees par cash.
+ * Le rang global -1 signifie absent de la liste finale, et non score nul. */
+function OpexEstimDTraceTopK(alternatives, affordable, budget, kDec, realSelection)
+{
+  if (!realSelection || !OpexEstimDTraceActive()) return;
+  local date = AIDate.GetCurrentDate();
+  local month = AIDate.GetYear(date) * 12 + AIDate.GetMonth(date);
+  if (ESTIM_DTRACE_LAST_MONTH == month) return;
+  ESTIM_DTRACE_LAST_MONTH = month;
+  OpexDecide("ESTIM_PASS", "month=" + month + " budget=" + budget
+      + " k_dec=" + kDec + " alternatives=" + alternatives.len()
+      + " selected=" + affordable.len() + " top_k=10");
+  for (local i = 0; i < affordable.len() && i < 10; i++)
+    OpexEstimDTraceProject(affordable[i], i, "selected", "ranked", kDec, budget);
+  foreach (mode in ["air", "rail", "fleet"]) {
+    local top = [];
+    foreach (project in alternatives) {
+      if (project == null || project.mode != mode) continue;
+      local score = ("fundScore" in project) ? project.fundScore
+          : OpexSelectRejectScore(project, kDec);
+      local pos = 0;
+      while (pos < top.len() && top[pos].score >= score) pos++;
+      if (pos >= 10) continue;
+      top.insert(pos, { candidate = project, score = score });
+      if (top.len() > 10) top.pop();
+    }
+    for (local n = 0; n < top.len(); n++) {
+      local candidate = top[n].candidate;
+      local rank = -1;
+      for (local j = 0; j < affordable.len(); j++) {
+        if (affordable[j] == candidate) { rank = j; break; }
+      }
+      local reason = rank >= 0 ? "ranked"
+          : (OpexProjectFinanceCapital(candidate) > budget ? "cash_selection"
+          : "excluded_or_topk");
+      OpexEstimDTraceProject(candidate, rank, "mode_top_" + n, reason, kDec, budget);
+    }
+  }
+}
+
+/* Toute tentative executee est horodatee ; limite mensuelle a 60 evenements.
+ * Coût constructeur exact sur ESTIM_SPEND (AIR/RAIL); le delta de caisse
+ * reste un indicateur pour le renfort. -1 = montant non mesure. */
+function OpexEstimDTraceOutcome(project, rank, outcome, reason, paidAccounting,
+    cashBefore, cashAfter, available, lineId = -1)
+{
+  if (!OpexEstimDTraceActive() || project == null) return;
+  if (project.mode != "air" && project.mode != "rail" && project.mode != "fleet") return;
+  local date = AIDate.GetCurrentDate();
+  local month = AIDate.GetYear(date) * 12 + AIDate.GetMonth(date);
+  if (ESTIM_DTRACE_OUT_MONTH != month) {
+    ESTIM_DTRACE_OUT_MONTH = month;
+    ESTIM_DTRACE_OUT_COUNT = 0;
+  }
+  if (ESTIM_DTRACE_OUT_COUNT >= 60) return;
+  ESTIM_DTRACE_OUT_COUNT++;
+  OpexDecide("ESTIM_OUTCOME", "id=" + OpexProjectAttemptKey(project)
+      + " mode=" + project.mode + " rank=" + rank + " line=" + lineId
+      + " outcome=" + outcome + " reason=" + reason
+      + " finance=" + OpexProjectFinanceCapital(project)
+      + " available=" + available + " cash_before=" + cashBefore
+      + " cash_after=" + cashAfter + " paid_cash_delta=" + (cashBefore - cashAfter)
+      + " paid_accounting=" + paidAccounting);
+}
+
+function OpexEstimDTraceAttempt(project, rank, attempt, discards, paid, cashBefore, lineId = -1)
+{
+  if (!OpexEstimDTraceActive()) return;
+  local reason = ("reason" in attempt) ? attempt.reason : attempt.outcome;
+  if (discards != null) {
+    for (local d = discards.len() - 1; d >= 0; d--) {
+      if (discards[d] != null && discards[d].rank == rank
+          && discards[d].mode == project.mode
+          && discards[d].src == project.src && discards[d].dst == project.dst) {
+        reason = discards[d].reason;
+        break;
+      }
+    }
+  }
+  OpexEstimDTraceOutcome(project, rank, attempt.outcome, reason, paid, cashBefore,
+      AICompany.GetBankBalance(AICompany.COMPANY_SELF), OpexAvailableCapital(), lineId);
+}
+
+function OpexEstimDTraceSkip(project, rank, reason)
+{
+  if (!OpexEstimDTraceActive()) return;
+  local cash = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+  OpexEstimDTraceOutcome(project, rank, "skipped", reason, -1, cash, cash,
+      OpexAvailableCapital());
+}
 /* V251 etape 1 : etiquettes de cargo d'une AIList, separees par des virgules. */
 function OpexV251CargoLabels(list)
 {
@@ -784,6 +930,7 @@ function OpexC117AirThroughputStep(lines, catalog)
         vehicleState.lastDate = now;
 
         if (curOrder == AIOrder.ORDER_INVALID || curOrder < 0 || curOrder > 1) {
+          if (AIR_LOAD_MIN_PCT > 0) vehicleState.airLoadInvalid <- true;
           if (!skipUnused) {
             state.invalidOrderSamples++;
           }
@@ -823,6 +970,12 @@ function OpexC117AirThroughputStep(lines, catalog)
           continue;
         }
 
+        if (AIR_LOAD_MIN_PCT > 0) {
+          if (vehicleState.seenTransition && vehicleState.legMoving
+              && !("airLoadInvalid" in vehicleState))
+            OpexAirLoadRecord(line, vehicleState.legPaxMax, vehicleState.legCap, now);
+          if ("airLoadInvalid" in vehicleState) delete vehicleState.airLoadInvalid;
+        }
         if (vehicleState.legMoving) {
           state.pax += vehicleState.legPaxMax;
           state.seatLegs += vehicleState.legCap;

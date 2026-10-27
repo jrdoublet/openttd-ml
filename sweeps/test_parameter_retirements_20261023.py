@@ -88,7 +88,7 @@ class TestParameterRetirement(unittest.TestCase):
         # 58 historiques + N75 adopte + P6/P3/FP2/P2/P1 opt-in + FP1/V286/C75/DIST
         # C75 bis diagnostic, trois MULTI-1 opt-in (defaut 0), trois V233L et AIR funnel,
         # ESTIM-1 estim_unifie opt-in (defaut 0).
-        self.assertEqual(len(self.config), 79)  # DIST-BORNES unified + V233L + AIR + ESTIM-1
+        self.assertEqual(len(self.config), 80)  # DIST-BORNES unified + V233L + AIR + ESTIM-1 + AIR-LOAD-1
         self.assertIn("estim_unifie", self.config)
         self.assertIn("n75_multi_cargo", self.config)
         self.assertIn("p6_air_firstline_window", self.config)

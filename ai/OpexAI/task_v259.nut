@@ -291,7 +291,8 @@ function OpexAI::_v259EvaluateAndRenew(item)
       foreach (vehicle in line.vehicles)
         if (AIVehicle.IsValidVehicle(vehicle)) revenue += AIVehicle.GetRunningCost(vehicle);
     local mode = vtype == AIVehicle.VT_RAIL ? "rail" : "road";
-    local project = OpexEstimVProject(mode, cycleFraction * revenue, 0, 0, cost);
+    local project = OpexEstimVProject(mode, cycleFraction * revenue, 0, 0, cost,
+        -1, null, line.distance);
     OpexEstimVLog("V259", lineId, project);
     gain = project.deltaP;
     estimViable = project.deltaP > 0 && project.score > 0;

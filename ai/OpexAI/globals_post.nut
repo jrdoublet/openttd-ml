@@ -31,6 +31,10 @@ LOAN_REPAY_FLOOR <- 300000;
 DECISION_LOG <- false;
 _lastAirRefuseMonth <- -1;
 _lastProjectScanMonth <- -1;
+/* Sonde ESTIM decision : etat transitoire, sans sauvegarde ni allocation OFF. */
+ESTIM_DTRACE_LAST_MONTH <- -1;
+ESTIM_DTRACE_OUT_MONTH <- -1;
+ESTIM_DTRACE_OUT_COUNT <- 0;
 /* La memoire est l'autre correctif, independamment des 40 000 iterations. Elle reste un repli
  * actif jusqu'a la lecture unique de abandon_memory dans Start(), comme les autres reglages de
  * decision qui ne changent pas pendant une partie. */

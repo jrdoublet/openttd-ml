@@ -1,4 +1,4 @@
-"""Strict OFF source projection of ESTIM-1 bits 1, 2, 4 and 8.
+"""Strict OFF source projection of ESTIM-1 bits 1, 2, 4, 8 and 16.
 
 The reviewed reverse hunks live in ``estim_unifie_off_lots.py``. This module
 keeps the existing ``estim_off``/``estim_off_bytes`` API for callers such as

@@ -32,6 +32,9 @@ function OpexResolveDifficulty()
  * restent dans Start(), juste apres l'appel. */
 function OpexLoadSettings()
 {
+  AIR_LOAD_MIN_PCT = AIController.GetSetting("air_load_min_pct");
+  if (AIR_LOAD_MIN_PCT == null || AIR_LOAD_MIN_PCT < 0) AIR_LOAD_MIN_PCT = 0;
+  if (AIR_LOAD_MIN_PCT > 100) AIR_LOAD_MIN_PCT = 100;
   /* Le masque doit etre initialise avant la toute premiere sonde AIR. */
   local probes = AIController.GetSetting("probes");
   if (probes < 0) probes = 2;
@@ -100,6 +103,7 @@ function OpexLoadSettings()
   DIST_BORNES_V276_FREIGHT = AIController.GetSetting("dist_bornes_v276_freight") == 1;
   DIST_BORNES_UNIFIED = AIController.GetSetting("dist_bornes_unified") == 1;
   ESTIM_UNIFIE = AIController.GetSetting("estim_unifie");
+  ESTIM16_RAIL_SCORE_TRACES = 0;
   foreach (m, k in ESTIM_K_R_PRIOR) ESTIM_K_R[m] = k;
   local railGrowth = AIController.GetSetting("v284_rail_growth");
   V233_LONG_GOOD = AIController.GetSetting("v233_long_good") == 1 ? 1 : 0;
@@ -307,7 +311,7 @@ function OpexLoadSettings()
   C63_INVEST_PROBE = probePort;
   if (C63_INVEST_PROBE) OpexC63ResetLedger();
   ::OpexCalibratedProfit <- OpexC70Profit;
-  if ((ESTIM_UNIFIE & 1) != 0) ::OpexCalibratedProfit <- OpexEstimProfit;
+  if ((ESTIM_UNIFIE & 17) != 0) ::OpexCalibratedProfit <- OpexEstimProfit;
   C69_BOTTLENECK_PROBE = probePort;
   C75_YEAR_LEDGER_SKIP = AIController.GetSetting("c75_year_ledger_skip") == 1;
   C75_BYPASS_LEDGER_SKIP = AIController.GetSetting("c75_bypass_ledger_skip") == 1;

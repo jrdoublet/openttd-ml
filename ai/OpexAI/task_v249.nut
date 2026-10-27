@@ -16,9 +16,10 @@ const V249_HORIZON_YEARS = 5;
  * deltaA l'amortissement annuel des vehicules, deltaC le prix net a payer.
  * La correction de recette est autonome du bit 1 (apprentissage facultatif).
  * Une amelioration peut avoir deltaR/deltaE negatifs : garder leurs signes. */
-function OpexEstimVProject(mode, deltaR, deltaE, deltaA, deltaC, kDec = -1, modeRevenues = null)
+function OpexEstimVProject(mode, deltaR, deltaE, deltaA, deltaC, kDec = -1, modeRevenues = null, distance = 0)
 {
-  local kR = (mode in ESTIM_K_R) ? ESTIM_K_R[mode] : 1.0;
+  local kR = mode == "rail" && (ESTIM_UNIFIE & 16) != 0 ? OpexEstimRailRevenueFactor(distance)
+      : ((mode in ESTIM_K_R) ? ESTIM_K_R[mode] : 1.0);
   local calibrated = kR * deltaR;
   if (modeRevenues != null) {
     calibrated = 0.0;

@@ -373,6 +373,13 @@ ESTIM_UNIFIE <- 0;
 ESTIM_K_R_PRIOR <- { rail = 0.92, road = 0.57, air = 0.40, water = 1.0 };
 ESTIM_K_R_PRIOR_WEIGHT <- 10.0;
 ESTIM_K_R <- { rail = 0.92, road = 0.57, air = 0.40, water = 1.0 };
+/* ESTIM-1 bit 16 : profil RAIL fige par distance, recentre sur le prior global
+ * rail 0.92. L'apprentissage en jeu conserve un seul facteur de niveau. */
+ESTIM_RAIL_KR_PROFILE_A <- 0.5722990662;
+ESTIM_RAIL_KR_PROFILE_B <- 0.00258519378;
+ESTIM_RAIL_KC_A <- 1.0778667894;
+ESTIM_RAIL_KC_B <- 0.00324189259;
+ESTIM16_RAIL_SCORE_TRACES <- 0;
 /* C69 etape 1 : sonde passive goulot de decision P / max(C, F*tau). */
 /* Annee de depart de la compagnie (sauvegardee via _startYear) : base des calculs C69/C75 de F et
  * de tau. 1970 n'est qu'un repli, pose avant Start(). */
@@ -409,6 +416,7 @@ AIR_SITE_OPS_MARK <- null;
 AIR_SITE_SEARCH_OPS <- 0;
 AIR_SITE_SEARCH_CALLS <- 0;
 C117_AIR_SAMPLE_DAYS <- 2;
+AIR_LOAD_MIN_PCT <- 0;
 C117_AIR_LAST_DATE <- -1;
 C117_AIR_LINE_STATE <- {};
 C117_AIR_VEHICLE_STATE <- {};

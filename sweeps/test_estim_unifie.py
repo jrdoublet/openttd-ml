@@ -1,4 +1,4 @@
-"""ESTIM-1 bits 1/2/4/8 : projection OFF stricte et contrats du lot 1."""
+"""ESTIM-1 bits 1/2/4/8/16 : projection OFF stricte et contrats."""
 import re
 import unittest
 from pathlib import Path
@@ -17,7 +17,7 @@ def shrink(real, pred, n, prior, w0=10.0):
 class EstimUnifieContracts(unittest.TestCase):
     def test_setting_default_zero_everywhere_and_single_read(self):
         block = re.search(r'AddSetting\(\{\s*name = "estim_unifie",.*?\}\);', source("info.nut"), re.S)[0]
-        self.assertIn("min_value = 0, max_value = 15", block)
+        self.assertIn("min_value = 0, max_value = 31", block)
         for level in ("easy", "medium", "hard", "custom", "default"):
             self.assertRegex(block, level + r"_value\s*=\s*0\b")
         self.assertEqual(source("settings.nut").count('GetSetting("estim_unifie")'), 1)
@@ -28,7 +28,7 @@ class EstimUnifieContracts(unittest.TestCase):
         hist = settings.index("::OpexCalibratedProfit <- OpexC70Profit;")
         self.assertLess(settings.index('GetSetting("estim_unifie")'), hist)
         self.assertLess(hist, settings.index("::OpexCalibratedProfit <- OpexEstimProfit;"))
-        self.assertIn("if ((ESTIM_UNIFIE & 1) != 0) ::OpexCalibratedProfit <- OpexEstimProfit;", settings)
+        self.assertIn("if ((ESTIM_UNIFIE & 17) != 0) ::OpexCalibratedProfit <- OpexEstimProfit;", settings)
         # Nouvelle partie : facteurs remis a l'a priori a chaque chargement des reglages.
         self.assertIn("foreach (m, k in ESTIM_K_R_PRIOR) ESTIM_K_R[m] = k;", settings)
 
@@ -37,7 +37,7 @@ class EstimUnifieContracts(unittest.TestCase):
         # n'est donc plus la reference historique OFF depuis cette adoption.
         # La table figee reste stricte : elle s'applique aux sources courantes,
         # est idempotente et conserve les modifications hors ESTIM.
-        self.assertEqual(set(EDITS), ESTIM_FILES)
+        self.assertTrue(set(EDITS).issubset(ESTIM_FILES))
         for name in EDITS:
             current = (ROOT / "ai" / "OpexAI" / name).read_bytes()
             with self.subTest(name=name):
@@ -59,8 +59,8 @@ class EstimUnifieContracts(unittest.TestCase):
                 "if (estimRevSums != null) OpexEstimAccumulateLine", "if (true) OpexEstimAccumulateLine"))
 
     def test_each_opt_in_bit_has_source_coverage(self):
-        files = {name: source(name) for name in EDITS}
-        for bit in (1, 2, 4, 8):
+        files = {name: source(name) for name in ESTIM_FILES}
+        for bit in (1, 2, 4, 8, 16):
             with self.subTest(bit=bit):
                 self.assertTrue(any(re.search(r"ESTIM_UNIFIE\s*&\s*" + str(bit) + r"\b", src)
                                     for src in files.values()))
@@ -76,12 +76,13 @@ class EstimUnifieContracts(unittest.TestCase):
 
     def test_profit_corrects_revenue_not_profit(self):
         fn = body("projects_models.nut", "OpexEstimProfit")
-        self.assertIn("project.profitAnnual - (1.0 - ESTIM_K_R[project.mode]) * project.revenueAnnual", fn)
+        self.assertIn("project.profitAnnual - (1.0 - kR) * project.revenueAnnual", fn)
+        self.assertIn('(ESTIM_UNIFIE & 16) != 0) ? OpexEstimRailRevenueFactor(', fn)
         # AIR C121 porte deja k_R dans l'economie : pas de double correction.
         self.assertIn('project.mode == "air" && OpexC121ProjectHasRealization(project)', fn)
         # Observations, flotte (mode absent de ESTIM_K_R) et projets sans recette : historique.
         self.assertIn("profitIsObserved", fn)
-        self.assertEqual(fn.count("return OpexC70Profit(project);"), 1)
+        self.assertEqual(fn.count("return OpexC70Profit(project);"), 2)
         self.assertNotIn("fleet", re.sub(r"/\*.*?\*/", "", source("globals_pre.nut").split("ESTIM_K_R <-")[1].split("\n")[0]))
 
     def test_learning_sample_contract(self):
@@ -93,7 +94,7 @@ class EstimUnifieContracts(unittest.TestCase):
         self.assertIn('mode == "air" ? line.c121RawRevenueAnnual', fn)
         self.assertNotIn("/ vehCount", fn)  # aucune normalisation lineaire par la flotte
         report = source("task_report.nut")
-        self.assertIn("local estimRevSums = (ESTIM_UNIFIE & 1) != 0 ? OpexEstimRevenueSums() : null;", report)
+        self.assertIn("local estimRevSums = (ESTIM_UNIFIE & 17) != 0 ? OpexEstimRevenueSums() : null;", report)
         self.assertLess(report.index("OpexEstimAccumulateLine"), report.index("line.vehCount <- vehCount;"))
         self.assertLess(report.index('OpexC121ApplyRealizationSums(c121RealizationSums, year, "annual")'),
                         report.index('OpexEstimPublishRevenueFactors(estimRevSums, year, "annual")'))

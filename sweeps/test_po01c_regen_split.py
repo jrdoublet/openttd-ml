@@ -16,8 +16,8 @@ from estim_unifie_legacy import estim_off, estim_off_bytes
 RESERVE0_PO01D_SHA256 = {
     'builder_water.nut': '91393cd154a4635be00c8d4a2de0ec295c179520dc84d82400c5b81cfacf46c7',
     'main.nut': '2a6815a7c4965aae1c5fd558647eb1e75401a0cbe81794a8955e9e0a4ff873d1',
-    'probes.nut': '7a737521239b5f5742d086f2c30fa0f97baa266fde9123f011778e93f26b247f',
-    'settings.nut': '592da5ea37533f13d372c6b40eb3ae6789534b6e869056e1d9fce365beef06c1',
+    'probes.nut': '2f4116ec74934905ea8f8822af08c3ba78835c57da4be4b450e859ef8685b113',
+    'settings.nut': '0ff55c2c6e1bd043ac7c0c0a80b2fd313caf3a34ebb9e1b93c40b7baa9358eb1',
     'info.nut': 'db288d554fb59a2d80e3effd723a5966b69fa1643bd0daf0c690f8e4e44ee22f',
 }
 RESERVE0_PO01F_SHA256 = {
@@ -492,6 +492,15 @@ class PO01CContracts(unittest.TestCase):
                 # Keep the already reviewed V233L -> historical order and
                 # exercise their projections without a second ESTIM pass.
                 without_estim = estim_off_bytes(name, (AI / name).read_bytes())
+                if name == 'probes.nut':
+                    # La sonde de decision 1973-1975 est appendue en dehors de
+                    # toute branche ESTIM, sous DECISION_LOG. Le temoin PO01D
+                    # n'en contenait pas : retirer exactement ce bloc borne
+                    # avant de comparer les empreintes historiques gelees.
+                    start = without_estim.index(b'/* ESTIM-1 diagnostic 1973-1975.')
+                    end = without_estim.index(b'/* V251 etape 1 :', start)
+                    self.assertIn(b'function OpexEstimDTraceOutcome(', without_estim[start:end])
+                    without_estim = without_estim[:start] + without_estim[end:]
                 with patch("estim_unifie_legacy.estim_off", side_effect=lambda n, code: code), \
                      patch("estim_unifie_legacy.estim_off_bytes", side_effect=lambda n, code: code):
                     legacy = historical_bytes(name, off_bytes(name, without_estim))

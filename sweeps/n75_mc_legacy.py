@@ -861,8 +861,20 @@ def _strip_once(raw, name, delta, replacement=b""):
     return raw.replace(delta, replacement, 1)
 
 
+AIR_LOAD_INFO_DELTA = (
+    b'    AddSetting({ name = "air_load_min_pct",\n'
+    b'      description = "AIR-LOAD-1: minimum AIR load for fleet growth (0=off; 6 completed legs required, last 12 legs)",\n'
+    b'      min_value = 0, max_value = 100, step_size = 5,\n'
+    b'      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,\n'
+    b'      flags = 0 });\n')
+
+
 def historical_bytes(name, raw):
     from estim_unifie_legacy import estim_off_bytes
+    if name == "info.nut":
+        # AIR-LOAD-1 (air_load_min_pct, defaut 0) : reglage opt-in hors inventaire historique.
+        assert raw.count(AIR_LOAD_INFO_DELTA) == 1, "AIR-LOAD-1 info.nut: opt-in bytes changed"
+        raw = raw.replace(AIR_LOAD_INFO_DELTA, b"", 1)
     raw = estim_off_bytes(name, raw)
     raw = _project_v233l_off(name, raw)
     if name == "air_sites.nut":

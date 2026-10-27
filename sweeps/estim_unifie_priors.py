@@ -29,7 +29,9 @@ import argparse
 import glob
 import gzip
 import json
+import math
 import os
+import random
 import re
 import statistics
 import sys
@@ -41,6 +43,8 @@ KV_RE = re.compile(r"(\w+)=(\S+)")
 SEED_RE = re.compile(r"_seed(\d+)_r(\d+)\.log")
 ERAS = [("1970-1973", 1900, 1973), ("1974-1976", 1974, 1976), ("1977-", 1977, 3000)]
 MODES = ("rail", "road", "air")
+RAIL_CUTS = (90, 127, 172)  # Quartiles fixes RAIL-CAL-1, constructions SOLO+DUEL du 21/10.
+RAIL_K0 = 0.92
 
 
 def num(value, default=None):
@@ -64,12 +68,13 @@ def era_of(year):
     return "other"
 
 
-def parse_game(lines):
+def parse_game(lines, rail_costs=None):
     """Rend (samples, c121) : echantillons de recette et moyennes C121 par bras."""
     builds = {}
     arms = {}
     samples = []
     c121 = []
+    untraced = set()
     for raw in lines:
         m = RAW_RE.search(raw)
         if m:
@@ -88,10 +93,24 @@ def parse_game(lines):
             continue
         tag, rest = m.group(4), m.group(5)
         kv = dict(KV_RE.findall(rest))
-        if tag in ("RAIL_BUILD", "AIR_BUILD", "ROAD_BUILD"):
+        if tag == "PROJECT_CHOSEN" and kv.get("mode") == "rail" and kv.get("p1_long") != "1":
+            # task_rail.nut:313 : evenement emis avant _startRailSearch, uniquement
+            # sans railPlan preexistant (hors trace explicite P1 de preparation).
+            untraced.add((kv.get("src"), kv.get("dst")))
+        elif tag == "RAIL_ATTEMPT" and rail_costs is not None:
+            pre, actual, dist = (num(kv.get(k)) for k in ("pre", "actual", "manh"))
+            pair = (kv.get("src"), kv.get("dst"))
+            quote_is_pre_astar = pair in untraced
+            untraced.discard(pair)  # Une selection ne peut valider deux tentatives.
+            if (kv.get("ok") == "1" and pre is not None and pre > 0
+                    and actual is not None and actual > 0 and dist is not None and dist >= 0):
+                rail_costs.append({"dist": dist, "pred": pre, "real": actual,
+                                   "untraced": quote_is_pre_astar})
+        elif tag in ("RAIL_BUILD", "AIR_BUILD", "ROAD_BUILD"):
             n0 = num(kv.get("trains") or kv.get("planes") or kv.get("vehicles"))
             if n0 and n0 > 0:
-                builds[kv.get("line")] = {"mode": tag.split("_")[0].lower(), "n0": n0}
+                builds[kv.get("line")] = {"mode": tag.split("_")[0].lower(), "n0": n0,
+                                          "dist": num(kv.get("dist"))}
         elif tag == "LINE_REVENUE":
             age = num(kv.get("age"), -1)
             line = kv.get("line")
@@ -106,11 +125,12 @@ def parse_game(lines):
                 continue
             samples.append({"line": line, "mode": mode, "arm": arms.get(line, "-"),
                             "year": int(num(kv.get("year"), 0)), "age": int(age),
-                            "pred": pred, "real": max(real, 0.0), "vehs": vehs, "n0": b["n0"]})
+                            "pred": pred, "real": max(real, 0.0), "vehs": vehs, "n0": b["n0"],
+                            "dist": b["dist"]})
     return samples, c121
 
 
-def load_campaign(path):
+def load_campaign(path, rail_costs_by_game=None):
     files = sorted(glob.glob(os.path.join(path, "*.log")) + glob.glob(os.path.join(path, "*.log.gz")))
     games = {}
     for f in files:
@@ -119,7 +139,10 @@ def load_campaign(path):
         if key in games:
             continue
         with open_text(f) as fh:
-            games[key] = parse_game(fh)
+            game_costs = [] if rail_costs_by_game is not None else None
+            games[key] = parse_game(fh, game_costs)
+            if rail_costs_by_game is not None:
+                rail_costs_by_game[key] = game_costs
     return games
 
 
@@ -224,6 +247,188 @@ def analyse(campaigns):
     return out
 
 
+def rail_quartile(distance):
+    return 1 + sum(distance > cut for cut in RAIL_CUTS)
+
+
+def rail_rows(games):
+    """Observations exactement eligibles pour l'apprentissage ESTIM bit 1."""
+    rows = {}
+    for game, (samples, _c121) in games.items():
+        rows[game] = [s for s in samples if eligible(s, "rail") and s["dist"] is not None
+                      and math.isfinite(s["dist"]) and s["dist"] >= 0]
+    return rows
+
+
+def percentage_ci(values):
+    """Quantiles bootstrap deterministes, avec interpolation lineaire."""
+    if not values:
+        return [None, None]
+    values.sort()
+    def q(frac):
+        pos = (len(values) - 1) * frac
+        lo = int(pos)
+        return values[lo] + (values[min(lo + 1, len(values) - 1)] - values[lo]) * (pos - lo)
+    return [round(q(0.025), 6), round(q(0.975), 6)]
+
+
+def metric_cost(rows):
+    """Moyennes par volume de devis; cout publie est le cout effectivement depense."""
+    nume = sum(s["real"] for s in rows)
+    deno = sum(s["pred"] for s in rows)
+    return nume / deno if deno > 0 else None
+
+
+def fit_rail_revenue(rows):
+    """WLS avec poids=recette predite et recentrage sur le prior 0.92.
+
+    Somme pred * k_R(d) / somme pred vaut exactement RAIL_K0.
+    Renvoie aussi une table par quartile conservee comme comparateur.
+    """
+    rows = list(rows)
+    w = sum(r["pred"] for r in rows)
+    if w <= 0:
+        raise ValueError("Pas de recette RAIL eligibile")
+    mean_d = sum(r["pred"] * r["dist"] for r in rows) / w
+    mean_y = sum(r["real"] for r in rows) / w
+    variance_d = sum(r["pred"] * (r["dist"] - mean_d) ** 2 for r in rows)
+    cov = sum((r["dist"] - mean_d) * (r["real"] - mean_y * r["pred"]) for r in rows)
+    if variance_d == 0 or mean_y <= 0:
+        raise ValueError("Distance constante ou revenu nul")
+    slope = (cov / variance_d) * RAIL_K0 / mean_y
+    quartiles = {}
+    for q in range(1, 5):
+        segment = [r for r in rows if rail_quartile(r["dist"]) == q]
+        ratio = metric_cost(segment)
+        quartiles[str(q)] = {"n": len(segment),
+                            "ratio_raw": ratio,
+                            "k_normalized": ratio * RAIL_K0 / mean_y if ratio is not None else None,
+                            "mean_distance_weighted":
+                                sum(r["pred"] * r["dist"] for r in segment) /
+                                sum(r["pred"] for r in segment) if segment else None,
+                            "predicted_revenue": sum(r["pred"] for r in segment)}
+    return {"n": len(rows), "raw_pooled": mean_y, "predicted_weighted_mean_distance": mean_d,
+            "slope_per_tile": slope, "intercept": RAIL_K0 - slope * mean_d,
+            "normalized_mean": RAIL_K0, "quartiles": quartiles,
+            "distance_min": min(r["dist"] for r in rows), "distance_max": max(r["dist"] for r in rows)}
+
+
+def fit_rail_cost(rows):
+    """OLS lineaire du ratio reel/devis pre-A*, poids egal par construction."""
+    rows = list(rows)
+    if len(rows) < 2:
+        raise ValueError("Moins de deux constructions RAIL exploitables")
+    mean_d = statistics.fmean(r["dist"] for r in rows)
+    mean_r = statistics.fmean(r["real"] / r["pred"] for r in rows)
+    variance_d = sum((r["dist"] - mean_d) ** 2 for r in rows)
+    if variance_d <= 0:
+        raise ValueError("Distance constante : cout")
+    slope = sum((r["dist"] - mean_d) * (r["real"] / r["pred"] - mean_r)
+                for r in rows) / variance_d
+    quartiles = {}
+    for q in range(1, 5):
+        segment = [r for r in rows if rail_quartile(r["dist"]) == q]
+        quartiles[str(q)] = {"n": len(segment), "cost_ratio_sum": metric_cost(segment),
+                             "ratio_mean": statistics.fmean(r["real"] / r["pred"] for r in segment)
+                             if segment else None}
+    return {"n": len(rows), "slope_per_tile": slope,
+            "intercept": mean_r - slope * mean_d,
+            "ratio_mean": mean_r, "ratio_of_sums": metric_cost(rows),
+            "quartiles": quartiles, "distance_min": min(r["dist"] for r in rows),
+            "distance_max": max(r["dist"] for r in rows)}
+
+
+def rail_distance_analysis(games, costs_by_game, bootstrap=3000):
+    """Descriptif DUEL/SOLO et IC95 en grappes de parties (graine/repetition)."""
+    rev_by_game = rail_rows(games)
+    cost_by_game = {g: [r for r in rows if r["untraced"]] for g, rows in costs_by_game.items()}
+    rev = [r for rows in rev_by_game.values() for r in rows]
+    costs = [r for rows in cost_by_game.values() for r in rows]
+    if not rev or len(costs) < 2:
+        raise ValueError("Aucune recette RAIL mature ou devis pre-A* exploitable")
+    fitted_rev = fit_rail_revenue(rev)
+    fitted_cost = fit_rail_cost(costs)
+    keys = sorted(games)
+    rng = random.Random(20261027)
+    boot_rev = {q: [] for q in range(1, 5)}
+    boot_cost = {q: [] for q in range(1, 5)}
+    boot_slope_rev, boot_slope_cost = [], []
+    boot_intercept_cost = []
+    for _ in range(bootstrap):
+        selected = [keys[rng.randrange(len(keys))] for _ in keys]
+        br = [r for k in selected for r in rev_by_game[k]]
+        bc = [r for k in selected for r in cost_by_game[k]]
+        if not br or len(bc) < 2:
+            continue
+        try:
+            fr = fit_rail_revenue(br)
+            fc = fit_rail_cost(bc)
+        except ValueError:
+            continue
+        boot_slope_rev.append(fr["slope_per_tile"])
+        boot_slope_cost.append(fc["slope_per_tile"])
+        boot_intercept_cost.append(fc["intercept"])
+        for q in range(1, 5):
+            a, b = fr["quartiles"][str(q)]["k_normalized"], fc["quartiles"][str(q)]["cost_ratio_sum"]
+            if a is not None:
+                boot_rev[q].append(a)
+            if b is not None:
+                boot_cost[q].append(b)
+    fitted_rev["slope_ci95_cluster_game"] = percentage_ci(boot_slope_rev)
+    fitted_cost["slope_ci95_cluster_game"] = percentage_ci(boot_slope_cost)
+    fitted_cost["intercept_ci95_cluster_game"] = percentage_ci(boot_intercept_cost)
+    for q in range(1, 5):
+        fitted_rev["quartiles"][str(q)]["k_ci95_cluster_game"] = percentage_ci(boot_rev[q])
+        fitted_cost["quartiles"][str(q)]["ratio_ci95_cluster_game"] = percentage_ci(boot_cost[q])
+
+    # Validation par partie tenue a l'ecart : re-ajuster sur les 39 autres.
+    # Score = erreur absolue de recette annuelle, observable sur les seules lignes construites.
+    cv = {method: [0., 0] for method in ("flat", "linear", "steps")}
+    bygame = {}
+    for k in keys:
+        held = rev_by_game[k]
+        train = [r for game, rows in rev_by_game.items() if game != k for r in rows]
+        if not held or not train:
+            continue
+        fit = fit_rail_revenue(train)
+        sums = {method: 0. for method in cv}
+        for r in held:
+            f = {"flat": RAIL_K0,
+                 "linear": fit["intercept"] + fit["slope_per_tile"] * r["dist"],
+                 "steps": fit["quartiles"][str(rail_quartile(r["dist"]))]["k_normalized"]}
+            for method, factor in f.items():
+                # Quartile absent en apprentissage : utiliser le seul prior.
+                if factor is None:
+                    factor = RAIL_K0
+                delta = abs(r["real"] - r["pred"] * factor)
+                sums[method] += delta
+                cv[method][0] += delta
+                cv[method][1] += 1
+        bygame[k] = {"n": len(held), "sum_absolute": sums,
+                     **{method: sums[method] / len(held) for method in cv}}
+    cross_validation = {method: {"mae_revenue": total / n if n else None,
+                                  "n": n} for method, (total, n) in cv.items()}
+    cross_validation["games_evaluated"] = len(bygame)
+    cross_validation["games_where_linear_beats_flat"] = sum(v["linear"] < v["flat"] for v in bygame.values())
+    cross_validation["games_where_steps_beats_linear"] = sum(v["steps"] < v["linear"] for v in bygame.values())
+    cvkeys = sorted(bygame)
+    for newer, older in (("linear", "flat"), ("steps", "linear")):
+        differences = []
+        for _ in range(bootstrap):
+            choices = [cvkeys[rng.randrange(len(cvkeys))] for _ in cvkeys]
+            numerator = sum(bygame[k]["sum_absolute"][newer] -
+                            bygame[k]["sum_absolute"][older] for k in choices)
+            n = sum(bygame[k]["n"] for k in choices)
+            differences.append(numerator / n)
+        cross_validation[newer + "_minus_" + older + "_ci95_game"] = percentage_ci(differences)
+    return {"games": len(keys), "bootstrap_draws": bootstrap,
+            "cuts": list(RAIL_CUTS), "rail_revenue": fitted_rev, "rail_pre_astar_cost": fitted_cost,
+            "cost_attempts_all_success": sum(len(rows) for rows in costs_by_game.values()),
+            "cost_excluded_pretraced": sum(sum(not r["untraced"] for r in rows)
+                                         for rows in costs_by_game.values()),
+            "cv_leave_one_game_out": cross_validation}
+
+
 def selftest():
     lines = [
         "[0] [I] C121_BUILD line=3 arm=newpair engine=1",
@@ -244,6 +449,28 @@ def selftest():
     rail = cell_stats(games, "rail")
     assert rail["n"] == 1 and rail["ratio_of_sums"] == 1.5, rail
     assert abs(c121[0]["mean"] - (0.5 * 4 - 1) / 3) < 1e-9
+    rev = [{"dist": d, "pred": 100., "real": 92. + 0.1 * (d - 100.)}
+           for d in (40., 80., 120., 160.)]
+    fit = fit_rail_revenue(rev)
+    assert abs(fit["slope_per_tile"] - 0.001) < 1e-12, fit
+    assert abs(fit["normalized_mean"] - 0.92) < 1e-12
+    assert abs(sum(r["pred"] * (fit["intercept"] + fit["slope_per_tile"] * r["dist"])
+                   for r in rev) / sum(r["pred"] for r in rev) - RAIL_K0) < 1e-12
+    costs = [{"dist": d, "pred": 100., "real": 100. * (1.05 + 0.003 * d)}
+             for d in (40., 80., 120., 160.)]
+    fit_c = fit_rail_cost(costs)
+    assert abs(fit_c["slope_per_tile"] - 0.003) < 1e-12, fit_c
+    assert abs(fit_c["intercept"] - 1.05) < 1e-12, fit_c
+    detail = []
+    parse_game([
+        "[0] [I] OPEX 1971-1-1 PROJECT_CHOSEN mode=rail src=1 dst=2 cost=100",
+        "[0] [I] OPEX 1971-1-2 RAIL_ATTEMPT src=1 dst=2 manh=80 pre=100 actual=120 ok=1",
+        "[0] [I] OPEX 1971-1-3 RAIL_ATTEMPT src=3 dst=4 manh=120 pre=200 actual=210 ok=1",
+        "[0] [I] OPEX 1971-1-4 PROJECT_CHOSEN mode=rail p1_long=1 src=5 dst=6 cost=100",
+        "[0] [I] OPEX 1971-1-5 RAIL_ATTEMPT src=5 dst=6 manh=70 pre=100 actual=110 ok=1",
+        "[0] [I] OPEX 1971-1-6 RAIL_ATTEMPT src=1 dst=2 manh=80 pre=100 actual=0 ok=0",
+    ], detail)
+    assert len(detail) == 3 and [r["untraced"] for r in detail] == [True, False, False], detail
     print("selftest OK")
 
 
@@ -251,6 +478,10 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--campaign", action="append", default=[], help="nom=dossier de journaux")
     ap.add_argument("--out")
+    ap.add_argument("--rail-distance", action="store_true",
+                    help="k_R(d), k_C(d) par quartile; format sortie distinct des a priori modaux")
+    ap.add_argument("--bootstrap", type=int, default=3000,
+                    help="nombre de reechantillonnages en grappes de parties pour les IC (defaut 3000)")
     ap.add_argument("--selftest", action="store_true")
     args = ap.parse_args()
     if args.selftest:
@@ -259,10 +490,23 @@ def main():
     if not args.campaign:
         ap.error("--campaign requis")
     campaigns = {}
+    costs_by_campaign = {}
     for spec in args.campaign:
         name, path = spec.split("=", 1)
-        campaigns[name] = load_campaign(path)
-    out = analyse(campaigns)
+        costs = {} if args.rail_distance else None
+        campaigns[name] = load_campaign(path, costs)
+        if costs is not None:
+            costs_by_campaign[name] = costs
+    out = ({"definition": {
+        "revenue": "LINE_REVENUE real_rev / pred_rev age>=2 et vehs=n0, d=RAIL_BUILD.dist; "
+                   "facteur revenu brut ratio des sommes; prior normalise a 0.92",
+        "cost": "RAIL_ATTEMPT ok=1 pre>0 actual>0 avec PROJECT_CHOSEN sans railPlan "
+                "anteriorite; k_C ne s'applique qu'au devis pre-A*, facteur=1 apres A*",
+        "confidence_interval": "bootstrap par partie 95%, reechantillonnage graines independantes",
+        "train": "DUEL 21/10 pour k_R, SOLO en controle; lignes construites, pas de contrefactuel",
+    }, "campaigns": {name: rail_distance_analysis(games, costs_by_campaign[name], args.bootstrap)
+                      for name, games in campaigns.items()}} if args.rail_distance
+           else analyse(campaigns))
     text = json.dumps(out, indent=2, ensure_ascii=False)
     if args.out:
         with open(args.out, "w", encoding="utf-8") as fh:

@@ -21,7 +21,7 @@ class EstimVProjectsContracts(unittest.TestCase):
         self.assertIn("kR * deltaR", model)
         self.assertIn("calibrated - deltaE - deltaA", model)
         self.assertIn("OpexProjectScore(deltaP, denominator)", model)
-        self.assertNotIn("ESTIM_UNIFIE & 1", model)
+        self.assertNotRegex(model, r"ESTIM_UNIFIE\s*&\s*1\b")
 
     def test_statue_uses_mode_specific_revenues_and_no_five_year_payback_on_bit4(self):
         code = source("task_v249.nut")
@@ -56,7 +56,8 @@ class EstimVProjectsContracts(unittest.TestCase):
 
     def test_bridge_replacement_no_remaining_years_gate_under_bit4(self):
         fn = body("task_v259.nut", "OpexAI::_v259EvaluateAndRenew")
-        self.assertIn("OpexEstimVProject(mode, cycleFraction * revenue, 0, 0, cost)", fn)
+        self.assertIn("OpexEstimVProject(mode, cycleFraction * revenue, 0, 0, cost,", fn)
+        self.assertIn("-1, null, line.distance", fn)
         self.assertIn("estimViable = project.deltaP > 0 && project.score > 0", fn)
         self.assertIn("(ESTIM_UNIFIE & 4) == 0 && totalGain < cost.tofloat()", fn)
         self.assertIn("AIBridge.BuildBridge", fn)

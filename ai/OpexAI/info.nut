@@ -211,8 +211,8 @@ class OpexAIInfo extends AIInfo {
     });
     AddSetting({
       name = "estim_unifie",
-      description = "ESTIM-1: unified estimate model; bit 1 = revenue realization, bit 2 = common cash guard, bit 4 = reinforcement/replacement, bit 8 = shared physical primitives; 0 = historical (default)",
-      min_value = 0, max_value = 15,
+      description = "ESTIM-1: 1 revenue, 2 cash, 4 marginal operations, 8 physical primitives, 16 distance-dependent RAIL revenue and score cost; 0 = historical (default)",
+      min_value = 0, max_value = 31,
       easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
       default_value = 0, step_size = 1, flags = 0
     });
@@ -649,6 +649,11 @@ class OpexAIInfo extends AIInfo {
       easy_value = 1, medium_value = 1, hard_value = 1,
       custom_value = 1, flags = 0, step_size = 1
     });
+    AddSetting({ name = "air_load_min_pct",
+      description = "AIR-LOAD-1: minimum AIR load for fleet growth (0=off; 6 completed legs required, last 12 legs)",
+      min_value = 0, max_value = 100, step_size = 5,
+      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
+      flags = 0 });
   }
 }
 

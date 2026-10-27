@@ -106,9 +106,9 @@ function OpexV257Plan(line, loco, wagon, wagons, monthly, rating, serviceSpeed, 
 /* ESTIM-1 : meme modele de trafic avant/apres remplacement, recettes corrigees
  * via k_R rail, entretien reel des deux compositions et amortissement net du
  * nouveau vehicule sur sa duree utile. Aucun horizon de retour sur achat. */
-function OpexEstimV257Project(current, target, oldVehicle, sale)
+function OpexEstimV257Project(current, target, oldVehicle, sale, line)
 {
-  if (current == null || target == null || sale == null
+  if (current == null || target == null || sale == null || line == null
       || current.revenue <= 0) return null;
   local years = AIEngine.GetMaxAge(target.loco.id).tofloat() / 365.0;
   if (years <= 0) return null;
@@ -116,7 +116,7 @@ function OpexEstimV257Project(current, target, oldVehicle, sale)
   if (netPrice < 0) netPrice = 0;
   return OpexEstimVProject("rail", target.revenue - current.revenue,
       target.running - AIVehicle.GetRunningCost(oldVehicle),
-      netPrice / years, netPrice);
+      netPrice / years, netPrice, -1, null, line.distance);
 }
 
 function OpexV257ReviewLog(line, current, best, gain, cost, decision, reason, profit = 0, waiting = 0, rating = -1, load = 0, delivered = 0)
@@ -384,7 +384,7 @@ function OpexAI::_v257Review(line, state, date, force)
     local pays = gain > 0 && remaining > 0 && gain * remaining >= cost;
     local estimProject = null;
     if ((ESTIM_UNIFIE & 4) != 0) {
-      estimProject = OpexEstimV257Project(current, best, vehicle, sale);
+      estimProject = OpexEstimV257Project(current, best, vehicle, sale, line);
       if (estimProject == null) continue;
       OpexEstimVLog("V257", line.lineId, estimProject);
       gain = estimProject.deltaP;
@@ -507,7 +507,7 @@ function OpexAI::_v257ReplaceStep()
   if (newLife < remaining) remaining = newLife;
   local estimPays = false;
   if ((ESTIM_UNIFIE & 4) != 0) {
-    local refreshed = OpexEstimV257Project(currentPlan, targetPlan, oldVehicle, sale);
+    local refreshed = OpexEstimV257Project(currentPlan, targetPlan, oldVehicle, sale, line);
     if (refreshed != null) {
       pending.gain = refreshed.deltaP;
       OpexEstimVLog("V257_DEPOT", line.lineId, refreshed);

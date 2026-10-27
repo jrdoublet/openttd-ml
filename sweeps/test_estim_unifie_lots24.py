@@ -25,7 +25,7 @@ class EstimUnifieLots24(unittest.TestCase):
     def test_switch_and_unchanged_default(self):
         settings = code("settings.nut")
         info = code("info.nut")
-        self.assertRegex(info, r'name\s*=\s*"estim_unifie"[\s\S]*?max_value\s*=\s*15')
+        self.assertRegex(info, r'name\s*=\s*"estim_unifie"[\s\S]*?max_value\s*=\s*31')
         self.assertRegex(info, r'name\s*=\s*"estim_unifie"[\s\S]*?default_value\s*=\s*0')
         self.assertIn('GetSetting("estim_unifie")', settings)
 

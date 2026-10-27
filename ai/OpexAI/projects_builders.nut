@@ -78,9 +78,11 @@ function OpexEstimAttachProjectComponents(project, revenue, running, amort)
 {
   if (project == null || (ESTIM_UNIFIE & 4) == 0) return;
   local dR = revenue;
-  if ((ESTIM_UNIFIE & 1) != 0 && project.mode != "air"
+  if ((ESTIM_UNIFIE & 17) != 0 && project.mode != "air"
       && project.mode in ESTIM_K_R)
-    dR = (revenue.tofloat() * ESTIM_K_R[project.mode]).tointeger();
+    dR = (revenue.tofloat() * (project.mode == "rail" && (ESTIM_UNIFIE & 16) != 0
+        ? OpexEstimRailRevenueFactor(("distance" in project) ? project.distance : 0)
+        : ((ESTIM_UNIFIE & 1) != 0 ? ESTIM_K_R[project.mode] : 1.0))).tointeger();
   project.deltaR <- dR;
   project.deltaE <- running;
   project.deltaA <- amort;
