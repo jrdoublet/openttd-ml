@@ -28,6 +28,11 @@ class OpexAIInfo extends AIInfo {
       min_value = 0, max_value = 2,
       easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
       flags = 0 });
+    AddSetting({ name = "eb2_new_station_fallback",
+      description = "EB-2: fallback to normal stations when shared destination join fails (default 0)",
+      min_value = 0, max_value = 1,
+      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
+      flags = AICONFIG_BOOLEAN });
     AddSetting({ name = "n75_multi_cargo",
       description = "1972+ cash-idle rail refill: 0=off, 1=shadow, 2=one extra freight cargo on empty funded rail pool (default 2)",
       min_value = 0, max_value = 2,

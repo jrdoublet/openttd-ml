@@ -48,6 +48,7 @@ class TestV251Inventory(unittest.TestCase):
         # PO03/C77=2 et PO02=1. historical_info soustrait N75, P6, P3 et FP2
         # P1, C75 annuel/bypass, DIST-BORNES et V233L par blocs EXACTS : historique 58.
         # air_site_probe adds one default-OFF diagnostic, never a policy knob.
+        # +1 pour eb2_new_station_fallback (EB-2 repli gare).
         self.assertLessEqual(info.count("AddSetting("), 60)  # + default-OFF ranked funnel
         self.assertNotIn('name = "v251', info)
         settings = self.sources["settings.nut"]

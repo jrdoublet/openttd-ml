@@ -618,6 +618,8 @@ V217_REGEN_NO_PAX <- false;
 N75_MULTI_CARGO <- 0;
 N75_MC_LAST_MONTH <- -1;
 N75_MC_SAVED_MONTH <- -1;
+/* EB-2 : repli sur une nouvelle gare normale quand le quai partagé échoue (défaut 0). */
+EB2_NEW_STATION_FALLBACK <- 0;
 AIR0310_SITE_VALIDITY_STATE <- null;
 /* E10 : Correctif du doublement de flotte routiere au cycle de construction */
 /* C26a : Pricer l'avion de la ligne lors du refleet au lieu du meilleur avion du catalogue */
