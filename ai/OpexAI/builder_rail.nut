@@ -3293,9 +3293,8 @@ function OpexV190PlanDoubleTrack(catalog, planA, planB, tiles, iterationBudget, 
     }
     foreach (p in dualA) OpexV233LSearchHeadLog(v233Context, p, "A", forbidden);
     foreach (p in dualB) OpexV233LSearchHeadLog(v233Context, p, "B", forbidden);
-    /* Poche a faible cout : une sortie qui ne se rapproche pas du but
-     * dans une file de 64 est retiree avant l'A* de plusieurs milliers. */
-    OpexV233LProbeHeads(v233Context, dualA, dualB, forbidden, deadlineTick);
+    /* Sonde consultative en mode diagnostic : ne retire rien avant l'A*. */
+    if (DECISION_LOG) OpexV233LProbeHeads(v233Context, dualA, dualB, forbidden, deadlineTick);
     dualA = OpexV233LWithoutEnclosed(dualA, v233Context);
     dualB = OpexV233LWithoutEnclosed(dualB, v233Context);
     if (dualA.len() == 0 || dualB.len() == 0) {

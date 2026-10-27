@@ -356,19 +356,31 @@ function OpexAirC96LogChoice(town, airport, firstAnchor, firstScore, best, bestS
                             valid, firstValidRing, bestRing, used)
 {
   if (best == null) return;
-  local ops = -1;
-  if (AIR_SITE_OPS_MARK != null) ops = OpexOpsMeasureEnd(AIR_SITE_OPS_MARK);
   local firstDist = OpexAirDistanceToRect(town.tile, firstAnchor, airport.width, airport.height);
   local bestDist = OpexAirDistanceToRect(town.tile, best.anchor, airport.width, airport.height);
-  AILog.Info("C96_SITE town=" + town.id
-      + " pop=" + AITown.GetPopulation(town.id)
-      + " type=" + airport.type
-      + " first=" + firstAnchor + " first_score=" + firstScore
-      + " best=" + best.anchor + " best_score=" + bestScore
-      + " gain=" + (bestScore - firstScore)
-      + " first_dist=" + firstDist + " best_dist=" + bestDist
-      + " valid=" + valid + " first_ring=" + firstValidRing
-      + " best_ring=" + bestRing + " probes=" + used + " ops=" + ops);
+  if (AIR_SITE_FUNNEL > 0 || DECISION_LOG) {
+    local ops = -1;
+    if (AIR_SITE_OPS_MARK != null) ops = OpexOpsMeasureEnd(AIR_SITE_OPS_MARK);
+    AILog.Info("C96_SITE town=" + town.id
+        + " pop=" + AITown.GetPopulation(town.id)
+        + " type=" + airport.type
+        + " first=" + firstAnchor + " first_score=" + firstScore
+        + " best=" + best.anchor + " best_score=" + bestScore
+        + " gain=" + (bestScore - firstScore)
+        + " first_dist=" + firstDist + " best_dist=" + bestDist
+        + " valid=" + valid + " first_ring=" + firstValidRing
+        + " best_ring=" + bestRing + " probes=" + used + " ops=" + ops);
+  } else {
+    AILog.Info("C96_SITE town=" + town.id
+        + " pop=" + AITown.GetPopulation(town.id)
+        + " type=" + airport.type
+        + " first=" + firstAnchor + " first_score=" + firstScore
+        + " best=" + best.anchor + " best_score=" + bestScore
+        + " gain=" + (bestScore - firstScore)
+        + " first_dist=" + firstDist + " best_dist=" + bestDist
+        + " valid=" + valid + " first_ring=" + firstValidRing
+        + " best_ring=" + bestRing + " probes=" + used);
+  }
 }
 
 /* C96 : meme vivier physique que V94, mais ne retourne pas le premier succes.

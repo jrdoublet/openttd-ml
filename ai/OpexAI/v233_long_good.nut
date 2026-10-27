@@ -1405,7 +1405,7 @@ function OpexV233LWalkCorridor(candidate, p, side, forbidden)
  * de progression sert au diagnostic, jamais a interdire l'A* complet. */
 function OpexV233LProbeHead(candidate, p, side, goal, forbidden, deadline)
 {
-  if (candidate == null || p == null || goal == null) return;
+  if (!DECISION_LOG || candidate == null || p == null || goal == null) return;
   OpexV233LWalkCorridor(candidate, p, side, forbidden);
   local startDist = AIMap.DistanceManhattan(p.lead, goal);
   local need = startDist < 12 ? startDist : 12;
@@ -1477,7 +1477,7 @@ function OpexV233LProbeHead(candidate, p, side, goal, forbidden, deadline)
 
 function OpexV233LProbeHeads(candidate, plansA, plansB, forbidden, deadline)
 {
-  if (candidate == null) return;
+  if (!DECISION_LOG || candidate == null) return;
   local goalA = (plansB != null && plansB.len() > 0) ? plansB[0].lead : null;
   local goalB = (plansA != null && plansA.len() > 0) ? plansA[0].lead : null;
   if (plansA != null) {
@@ -2353,7 +2353,7 @@ function OpexV233LFunnelEnsure(town, axis, length, cargo, coverage)
   }
   local entry = {
     funnel = true, town = town, axis = axis, length = length, cargo = cargo, coverage = coverage,
-    radius = 0, anchors = [], cursor = 0, done = false, limited = false,
+    radius = 0, anchors = [], cursor = 0, done = false, limited = false, centerReject = false,
     date = now, used = now, total = 0, slices = 0, worked = -1,
     tiles = 0, buildable = 0, accepting = 0, probes = {}
   };
@@ -2524,7 +2524,14 @@ function OpexV233LFunnelSearch(candidate, length, coverage)
   local source = candidate.src;
   if (V233_SITE_FUNNEL > 0 && V233_FUNNEL_CENTER_TEST > 0) {
     local cached0 = OpexV233LFunnelEnsure(town, 0, length, cargo, coverage);
-    if (cached0 != null && cached0.done && cached0.anchors.len() == 0) {
+    local cached1 = OpexV233LFunnelEnsure(town, 1, length, cargo, coverage);
+    if ((cached0 != null && ("centerReject" in cached0) && cached0.centerReject)
+        || (cached1 != null && ("centerReject" in cached1) && cached1.centerReject)) {
+      return { plans = plans, stats = stats, reason = "exhausted", ring = 0,
+        ops = OpexOpsMeasureEnd(mark), length = length };
+    }
+    if (cached0 != null && cached0.done && cached0.anchors.len() == 0
+        && cached1 != null && cached1.done && cached1.anchors.len() == 0) {
       return { plans = plans, stats = stats, reason = "exhausted", ring = 0,
         ops = OpexOpsMeasureEnd(mark), length = length };
     }
@@ -2559,11 +2566,12 @@ function OpexV233LFunnelSearch(candidate, length, coverage)
       if (centerAcc < 8) {
         cached0.done = true;
         cached0.limited = false;
+        cached0.centerReject = true;
         cached0.date = AIDate.GetCurrentDate();
-        local cached1 = OpexV233LFunnelEnsure(town, 1, length, cargo, coverage);
         if (cached1 != null) {
           cached1.done = true;
           cached1.limited = false;
+          cached1.centerReject = true;
           cached1.date = cached0.date;
         }
         if (DECISION_LOG) OpexV233LLog("SITE_FUNNEL", "town=" + town + " reason=CENTER_REJECT center_acc=" + centerAcc + " w=" + bestW + " h=" + bestH);
@@ -2665,6 +2673,8 @@ function OpexV233LLoadFunnel(scan)
     if (!(field in scan) || typeof scan[field] != "integer") return false;
   foreach (field in ["done", "limited", "funnel"])
     if (!(field in scan) || typeof scan[field] != "bool") return false;
+  if (!("centerReject" in scan)) scan.centerReject <- false;
+  else if (typeof scan.centerReject != "bool") return false;
   if (scan.town < 0 || (scan.axis != 0 && scan.axis != 1) || scan.radius < 0 || scan.radius > 18
       || scan.length < 1 || scan.length > 64 || scan.cargo < 0 || scan.coverage < 0
       || scan.coverage > 64 || scan.cursor < 0 || scan.cursor > 4096 || scan.total < 0

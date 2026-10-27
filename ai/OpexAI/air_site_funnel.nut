@@ -22,6 +22,10 @@ function OpexAirSiteSearchNote(reason)
 
 function OpexAirFindSite(town, airport, probes, requiredSlotTownId = -1)
 {
+  if (AIR_SITE_FUNNEL == 0 && !DECISION_LOG) {
+    ::OpexAirFindSite <- OpexAirFindSiteSpiral;
+    return OpexAirFindSiteSpiral(town, airport, probes, requiredSlotTownId);
+  }
   local mark = OpexOpsMeasureBegin();
   AIR_SITE_OPS_MARK = mark;
   local site = OpexAirFindSiteSpiral(town, airport, probes, requiredSlotTownId);

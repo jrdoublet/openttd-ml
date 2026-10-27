@@ -646,6 +646,9 @@ class V233LongGoodContracts(unittest.TestCase):
         NOPA must also preserve the only head, or all heads if all are suspect.
         """
         planner = body("builder_rail.nut", "OpexV190PlanDoubleTrack")
+        self.assertIn("if (DECISION_LOG) OpexV233LProbeHeads(", planner)
+        self.assertIn("Sonde consultative en mode diagnostic", source("builder_rail.nut"))
+        self.assertNotIn("est retiree avant l'A*", source("builder_rail.nut"))
         self.assertLess(planner.index('OpexV233LSearchHeadLog(v233Context, p, "A", forbidden)'),
                         planner.index("OpexV233LProbeHeads("))
         self.assertLess(planner.index("OpexV233LProbeHeads("),
@@ -655,6 +658,9 @@ class V233LongGoodContracts(unittest.TestCase):
         self.assertLess(planner.index("reason=SKIP_ENCLOSED"),
                         planner.index("OpexV233LProbeHeads("))
         pocket = body("v233_long_good.nut", "OpexV233LProbeHead")
+        self.assertIn("if (!DECISION_LOG || candidate == null", pocket)
+        heads = body("v233_long_good.nut", "OpexV233LProbeHeads")
+        self.assertIn("if (!DECISION_LOG || candidate == null", heads)
         self.assertIn("OpexV233LWalkCorridor(candidate, p, side, forbidden)", pocket)
         self.assertNotIn("OpexV233LNoteEnclosed", pocket)
         self.assertIn("reason=POCKET_UNKNOWN", pocket)
@@ -1622,3 +1628,81 @@ class V233LongGoodContracts(unittest.TestCase):
         dist_x = max(0, footprint_x0 - point_x, point_x - (footprint_x0 + 1))
         dist_y = max(0, footprint_y0 - point_y, point_y - (footprint_y0 + 1))
         self.assertLessEqual(max(dist_x, dist_y), rad)
+
+    def test_funnel_axis0_empty_axis1_valid_admission_and_construction(self):
+        # 1. Static contract verification
+        ensure = body("v233_long_good.nut", "OpexV233LFunnelEnsure")
+        self.assertIn("centerReject = false", ensure)
+
+        load_funnel = body("v233_long_good.nut", "OpexV233LLoadFunnel")
+        self.assertIn("centerReject", load_funnel)
+
+        search = body("v233_long_good.nut", "OpexV233LFunnelSearch")
+        self.assertIn("cached0.centerReject = true;", search)
+        self.assertIn("cached1.centerReject = true;", search)
+        self.assertIn("centerReject", search)
+        self.assertIn("cached1 != null && cached1.done && cached1.anchors.len() == 0", search)
+
+        # 2. Behavioral simulation of admission then construction with axis 0 empty, axis 1 valid
+        def simulate_search(town_id, cache, center_acc=10):
+            plans = []
+            cached0 = cache.get((town_id, 0))
+            cached1 = cache.get((town_id, 1))
+            if (cached0 and getattr(cached0, "centerReject", False)) or (cached1 and getattr(cached1, "centerReject", False)):
+                return {"plans": [], "reason": "exhausted"}
+            if (cached0 and cached0.done and len(cached0.anchors) == 0 and
+                cached1 and cached1.done and len(cached1.anchors) == 0):
+                return {"plans": [], "reason": "exhausted"}
+            if cached0 and cached0.cursor == 0 and len(cached0.anchors) == 0 and not cached0.done:
+                if center_acc < 8:
+                    cached0.done = True
+                    cached0.centerReject = True
+                    if cached1:
+                        cached1.done = True
+                        cached1.centerReject = True
+                    return {"plans": [], "reason": "exhausted"}
+            for axis in (0, 1):
+                entry = cache.get((town_id, axis))
+                if entry and entry.anchors:
+                    for a in entry.anchors:
+                        plans.append({"anchor": a, "axis": axis})
+            verdict = "OK" if plans else "exhausted"
+            return {"plans": plans, "reason": verdict}
+
+        town = 42
+        cache = {
+            (town, 0): SimpleNamespace(cursor=10, done=True, anchors=[], centerReject=False),
+            (town, 1): SimpleNamespace(cursor=10, done=True, anchors=[1042], centerReject=False),
+        }
+
+        # Admission phase: finds vertical plan on axis 1 even though axis 0 is empty
+        res_admission = simulate_search(town, cache)
+        self.assertEqual(res_admission["reason"], "OK")
+        self.assertEqual(len(res_admission["plans"]), 1)
+        self.assertEqual(res_admission["plans"][0]["anchor"], 1042)
+        self.assertEqual(res_admission["plans"][0]["axis"], 1)
+
+        # Construction phase: re-evaluates the town with axis 0 done and empty.
+        # Must NOT conclude early "exhausted"; retrieves axis 1 valid plan.
+        res_construction = simulate_search(town, cache)
+        self.assertEqual(res_construction["reason"], "OK")
+        self.assertEqual(len(res_construction["plans"]), 1)
+        self.assertEqual(res_construction["plans"][0]["anchor"], 1042)
+
+        # Both axes genuinely empty -> exhausted
+        empty_cache = {
+            (town, 0): SimpleNamespace(cursor=10, done=True, anchors=[], centerReject=False),
+            (town, 1): SimpleNamespace(cursor=10, done=True, anchors=[], centerReject=False),
+        }
+        self.assertEqual(simulate_search(town, empty_cache)["reason"], "exhausted")
+
+        # Center pre-test failure -> exhausted on initial and subsequent calls
+        rej_cache = {
+            (town, 0): SimpleNamespace(cursor=0, done=False, anchors=[], centerReject=False),
+            (town, 1): SimpleNamespace(cursor=0, done=False, anchors=[], centerReject=False),
+        }
+        res_rej = simulate_search(town, rej_cache, center_acc=3)
+        self.assertEqual(res_rej["reason"], "exhausted")
+        self.assertTrue(rej_cache[(town, 0)].centerReject)
+        self.assertTrue(rej_cache[(town, 1)].centerReject)
+        self.assertEqual(simulate_search(town, rej_cache)["reason"], "exhausted")

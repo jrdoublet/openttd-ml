@@ -109,8 +109,10 @@ class AirSiteFunnelContracts(unittest.TestCase):
         self.assertNotIn("OpexAirFootprintCheapOkNative", self.generators.decode("utf-8"))
         self.assertIn("OpexAirFootprintCheapOk(anchor, airport)", self.generators.decode("utf-8"))
         log = body(self.sites, "function OpexAirC96LogChoice(")
+        self.assertIn("if (AIR_SITE_FUNNEL > 0 || DECISION_LOG)", log)
         self.assertIn('" probes=" + used + " ops=" + ops', log)
         self.assertIn("OpexOpsMeasureEnd(AIR_SITE_OPS_MARK)", log)
+        self.assertIn('" probes=" + used);', log)
 
     def test_setting_default_one_and_historical_cache_only(self):
         blocks = re.findall(
@@ -145,12 +147,15 @@ class AirSiteFunnelContracts(unittest.TestCase):
     def test_both_modes_call_the_spiral_and_accumulate_every_call(self):
         wrap = body(self.funnel, "function OpexAirFindSite(")
         self.assertIn("OpexAirFindSiteSpiral <- OpexAirFindSite;", self.funnel)
-        self.assertNotIn("AIR_SITE_FUNNEL", wrap)
-        self.assertLess(wrap.index("OpexOpsMeasureBegin()"), wrap.index("OpexAirFindSiteSpiral("))
-        self.assertLess(wrap.index("OpexAirFindSiteSpiral("), wrap.index("OpexOpsMeasureEnd(mark)"))
-        self.assertLess(wrap.index("OpexOpsMeasureEnd(mark)"), wrap.index("AIR_SITE_SEARCH_OPS += spent"))
-        self.assertLess(wrap.index("AIR_SITE_SEARCH_OPS += spent"), wrap.index('OpexAirSiteSearchNote("call")'))
-        self.assertLess(wrap.index('OpexAirSiteSearchNote("call")'), wrap.index("return site;"))
+        self.assertIn("AIR_SITE_FUNNEL == 0 && !DECISION_LOG", wrap)
+        self.assertIn("::OpexAirFindSite <- OpexAirFindSiteSpiral;", wrap)
+        self.assertLess(wrap.index("AIR_SITE_FUNNEL == 0 && !DECISION_LOG"), wrap.index("OpexOpsMeasureBegin()"))
+        after_guard = wrap[wrap.index("OpexOpsMeasureBegin()"):]
+        self.assertLess(after_guard.index("OpexOpsMeasureBegin()"), after_guard.index("OpexAirFindSiteSpiral("))
+        self.assertLess(after_guard.index("OpexAirFindSiteSpiral("), after_guard.index("OpexOpsMeasureEnd(mark)"))
+        self.assertLess(after_guard.index("OpexOpsMeasureEnd(mark)"), after_guard.index("AIR_SITE_SEARCH_OPS += spent"))
+        self.assertLess(after_guard.index("AIR_SITE_SEARCH_OPS += spent"), after_guard.index('OpexAirSiteSearchNote("call")'))
+        self.assertLess(after_guard.index('OpexAirSiteSearchNote("call")'), after_guard.index("return site;"))
         note = body(self.funnel, "function OpexAirSiteSearchNote(")
         self.assertIn('"AIR_SITE_SEARCH ops="', note)
         self.assertIn('" calls="', note)
@@ -249,6 +254,70 @@ class AirSiteFunnelContracts(unittest.TestCase):
                     cheap_native(tiles, buildable),
                     (buildable, tiles),
                 )
+
+    def test_mode0_unhooks_and_follows_master_path(self):
+        # Simulation of the wrapper unhooking mechanism and log gating.
+        state = {
+            "root_OpexAirFindSite": "wrapper",
+            "search_ops": 0,
+            "search_calls": 0,
+            "logged_search": [],
+            "logged_c96": [],
+        }
+
+        def mock_spiral(town, airport, probes, slot=-1):
+            return {"town": town, "anchor": 42}
+
+        def mock_c96_log(town_id, best_anchor, funnel, decision_log, ops_mark=None):
+            if funnel > 0 or decision_log:
+                ops = 100 if ops_mark is not None else -1
+                state["logged_c96"].append(f"probes=5 ops={ops}")
+            else:
+                state["logged_c96"].append("probes=5")
+
+        def mock_find_site(town, airport, probes, slot, funnel, decision_log):
+            if funnel == 0 and not decision_log:
+                state["root_OpexAirFindSite"] = "spiral"
+                return mock_spiral(town, airport, probes, slot)
+            mark = 1
+            res = mock_spiral(town, airport, probes, slot)
+            spent = 100
+            if spent > 0:
+                state["search_ops"] += spent
+            state["search_calls"] += 1
+            state["logged_search"].append("AIR_SITE_SEARCH")
+            return res
+
+        # Case 1: AIR_SITE_FUNNEL == 0 and DECISION_LOG == 0 (master path)
+        res = mock_find_site(10, None, None, -1, funnel=0, decision_log=0)
+        self.assertEqual(res["anchor"], 42)
+        self.assertEqual(state["root_OpexAirFindSite"], "spiral")
+        self.assertEqual(state["search_ops"], 0)
+        self.assertEqual(state["search_calls"], 0)
+        self.assertEqual(len(state["logged_search"]), 0)
+        mock_c96_log(10, 42, funnel=0, decision_log=0)
+        self.assertEqual(state["logged_c96"][-1], "probes=5")
+        self.assertNotIn("ops=", state["logged_c96"][-1])
+
+        # Case 2: AIR_SITE_FUNNEL == 1 (funnel active)
+        state["root_OpexAirFindSite"] = "wrapper"
+        res = mock_find_site(10, None, None, -1, funnel=1, decision_log=0)
+        self.assertEqual(state["root_OpexAirFindSite"], "wrapper")
+        self.assertEqual(state["search_ops"], 100)
+        self.assertEqual(state["search_calls"], 1)
+        self.assertEqual(len(state["logged_search"]), 1)
+        mock_c96_log(10, 42, funnel=1, decision_log=0, ops_mark=1)
+        self.assertIn("ops=100", state["logged_c96"][-1])
+
+        # Case 3: DECISION_LOG == 1 (diagnostic active, funnel=0)
+        state["root_OpexAirFindSite"] = "wrapper"
+        res = mock_find_site(10, None, None, -1, funnel=0, decision_log=1)
+        self.assertEqual(state["root_OpexAirFindSite"], "wrapper")
+        self.assertEqual(state["search_ops"], 200)
+        self.assertEqual(state["search_calls"], 2)
+        self.assertEqual(len(state["logged_search"]), 2)
+        mock_c96_log(10, 42, funnel=0, decision_log=1, ops_mark=1)
+        self.assertIn("ops=100", state["logged_c96"][-1])
 
 
 if __name__ == "__main__":

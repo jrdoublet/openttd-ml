@@ -786,18 +786,42 @@ AIR_FUNNEL_SETTINGS_DELTA = (
     b'  AIR_SITE_FUNNEL = (airSiteFunnel == 1) ? 1 : 0;\n'
     b'  if (AIR_SITE_FUNNEL > 0) OpexAirFunnelInstall();\n'
 )
-AIR_SITE_C96_HEAD_NEW = (
-    b"  if (best == null) return;\n"
-    b"  local ops = -1;\n"
-    b"  if (AIR_SITE_OPS_MARK != null) ops = OpexOpsMeasureEnd(AIR_SITE_OPS_MARK);\n"
-    b"  local firstDist = OpexAirDistanceToRect(town.tile, firstAnchor, airport.width, airport.height);\n"
+AIR_SITE_C96_NEW = (
+    b"  if (AIR_SITE_FUNNEL > 0 || DECISION_LOG) {\n"
+    b"    local ops = -1;\n"
+    b"    if (AIR_SITE_OPS_MARK != null) ops = OpexOpsMeasureEnd(AIR_SITE_OPS_MARK);\n"
+    b'    AILog.Info("C96_SITE town=" + town.id\n'
+    b'        + " pop=" + AITown.GetPopulation(town.id)\n'
+    b'        + " type=" + airport.type\n'
+    b'        + " first=" + firstAnchor + " first_score=" + firstScore\n'
+    b'        + " best=" + best.anchor + " best_score=" + bestScore\n'
+    b'        + " gain=" + (bestScore - firstScore)\n'
+    b'        + " first_dist=" + firstDist + " best_dist=" + bestDist\n'
+    b'        + " valid=" + valid + " first_ring=" + firstValidRing\n'
+    b'        + " best_ring=" + bestRing + " probes=" + used + " ops=" + ops);\n'
+    b"  } else {\n"
+    b'    AILog.Info("C96_SITE town=" + town.id\n'
+    b'        + " pop=" + AITown.GetPopulation(town.id)\n'
+    b'        + " type=" + airport.type\n'
+    b'        + " first=" + firstAnchor + " first_score=" + firstScore\n'
+    b'        + " best=" + best.anchor + " best_score=" + bestScore\n'
+    b'        + " gain=" + (bestScore - firstScore)\n'
+    b'        + " first_dist=" + firstDist + " best_dist=" + bestDist\n'
+    b'        + " valid=" + valid + " first_ring=" + firstValidRing\n'
+    b'        + " best_ring=" + bestRing + " probes=" + used);\n'
+    b"  }\n"
 )
-AIR_SITE_C96_HEAD_OLD = (
-    b"  if (best == null) return;\n"
-    b"  local firstDist = OpexAirDistanceToRect(town.tile, firstAnchor, airport.width, airport.height);\n"
+AIR_SITE_C96_OLD = (
+    b'  AILog.Info("C96_SITE town=" + town.id\n'
+    b'      + " pop=" + AITown.GetPopulation(town.id)\n'
+    b'      + " type=" + airport.type\n'
+    b'      + " first=" + firstAnchor + " first_score=" + firstScore\n'
+    b'      + " best=" + best.anchor + " best_score=" + bestScore\n'
+    b'      + " gain=" + (bestScore - firstScore)\n'
+    b'      + " first_dist=" + firstDist + " best_dist=" + bestDist\n'
+    b'      + " valid=" + valid + " first_ring=" + firstValidRing\n'
+    b'      + " best_ring=" + bestRing + " probes=" + used);\n'
 )
-AIR_SITE_C96_TAIL_NEW = b'      + " best_ring=" + bestRing + " probes=" + used + " ops=" + ops);\n'
-AIR_SITE_C96_TAIL_OLD = b'      + " best_ring=" + bestRing + " probes=" + used);\n'
 
 # Telemetrie AIR_SITE_SEARCH sur les deux lignes AIR_PLAN_PERF. Le gel
 # po01d reste le fichier sans ces deux champs.
@@ -827,8 +851,7 @@ def _strip_once(raw, name, delta, replacement=b""):
 def historical_bytes(name, raw):
     raw = _project_v233l_off(name, raw)
     if name == "air_sites.nut":
-        raw = _strip_once(raw, name, AIR_SITE_C96_HEAD_NEW, AIR_SITE_C96_HEAD_OLD)
-        raw = _strip_once(raw, name, AIR_SITE_C96_TAIL_NEW, AIR_SITE_C96_TAIL_OLD)
+        raw = _strip_once(raw, name, AIR_SITE_C96_NEW, AIR_SITE_C96_OLD)
     if name == "air_planning.nut":
         raw = _strip_once(raw, name, AIR_PLAN_PERF_DECIDE_NEW, AIR_PLAN_PERF_DECIDE_OLD)
         raw = _strip_once(raw, name, AIR_PLAN_PERF_LOG_NEW, AIR_PLAN_PERF_LOG_OLD)
