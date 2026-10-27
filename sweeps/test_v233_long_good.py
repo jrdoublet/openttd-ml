@@ -900,9 +900,9 @@ class V233LongGoodContracts(unittest.TestCase):
         block = re.search(r'AddSetting\(\{\s*name = "v233_long_good",.*?\}\);', source("info.nut"), re.S)[0]
         self.assertIn("min_value = 0, max_value = 1", block)
         for level in ("easy", "medium", "hard", "custom"):
-            self.assertRegex(block, level + r"_value\s*=\s*0\b")
+            self.assertRegex(block, level + r"_value\s*=\s*1\b")
         self.assertEqual(source("settings.nut").count('GetSetting("v233_long_good")'), 1)
-        self.assertIn("V233_LONG_GOOD <- 0;", source("globals_pre.nut"))
+        self.assertIn("V233_LONG_GOOD <- 1;", source("globals_pre.nut"))
         self.assertEqual(source("info.nut").count("AddSetting("), 78)
 
     def test_off_reviewed_edits_preserve_all_original_hashes(self):
@@ -1443,13 +1443,13 @@ class V233LongGoodContracts(unittest.TestCase):
         self.assertIn('OpexV233LGrowthStep(owner)', execute)
         self.assertIn('phase=growth_execute ops=', execute)
 
-    def test_site_funnel_setting_defaults_off_and_keeps_the_spiral(self):
+    def test_site_funnel_setting_defaults_on_and_keeps_the_spiral(self):
         block = re.search(r'AddSetting\(\{\s*name = "v233_site_funnel",.*?\}\);', source("info.nut"), re.S)[0]
         self.assertIn("min_value = 0, max_value = 1", block)
         for level in ("easy", "medium", "hard", "custom"):
-            self.assertRegex(block, level + r"_value\s*=\s*0\b")
+            self.assertRegex(block, level + r"_value\s*=\s*1\b")
         self.assertEqual(source("settings.nut").count('GetSetting("v233_site_funnel")'), 1)
-        self.assertIn("V233_SITE_FUNNEL <- 0;", source("globals_pre.nut"))
+        self.assertIn("V233_SITE_FUNNEL <- 1;", source("globals_pre.nut"))
         plans = body("v233_long_good.nut", "OpexV233LPlatformPlans")
         self.assertLess(plans.index("OpexV233LJoinSearch("), plans.index("OpexV233LFunnelSearch("))
         self.assertLess(plans.index("if (V233_SITE_FUNNEL > 0)"), plans.index("OpexV233LSiteSearch(candidate.dst"))

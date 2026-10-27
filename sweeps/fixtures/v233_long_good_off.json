@@ -358,20 +358,20 @@
       ]
     },
     "globals_pre.nut": {
-      "sha256_off": "958c4432d5f3cdbafb1165a8e5e7092b1dc9ca18acacf0d7aa250641487241e5",
+      "sha256_off": "07f65a86d539ad788eaa1fd252e7fe8eb265eb8ab6ab8cb936157da31d686f54",
       "edits": [
         {
           "off": "",
-          "guarded": "V233_LONG_GOOD <- 0; // Variante autonome, aucun mode V233 historique reactive.\nV233L_STATE <- null; // Fenetres mensuelles entieres, sauvegardees seulement sous l'option.\nV233_SITE_FUNNEL <- 0; // 0 = spirale B urbaine ; 1 = entonnoir natif du quai GOOD.\nV233_FUNNEL_CENTER_TEST <- 1; // 0 = off ; 1 = pre-test d'acceptation au centre de la ville.\n"
+          "guarded": "V233_LONG_GOOD <- 1; // Defaut 1 depuis le 27/10 (decision utilisateur).\nV233L_STATE <- null; // Fenetres mensuelles entieres, sauvegardees seulement sous l'option.\nV233_SITE_FUNNEL <- 1; // 0 = spirale B urbaine ; 1 = entonnoir natif (defaut 1 depuis le 27/10).\nV233_FUNNEL_CENTER_TEST <- 1; // 0 = off ; 1 = pre-test d'acceptation au centre de la ville.\n"
         }
       ]
     },
     "info.nut": {
-      "sha256_off": "bba826f15e7a3dfb427a1f76a9f241b42f71058a9eaaba16d418d86d2746dc9c",
+      "sha256_off": "bf4aff09d5acebab1f56f3d52a9f65e66248563e014a2256c5aa24d2a12e1c08",
       "edits": [
         {
           "off": "",
-          "guarded": "    });\n\n    AddSetting({\n      name = \"v233_long_good\",\n      description = \"V233L: observed fed-factory GOOD exports, 150-300 tiles, two trains and backlog growth; 0=off (default), 1=experiment\",\n      min_value = 0, max_value = 1,\n      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,\n      step_size = 1, flags = 0\n    });\n\n    AddSetting({\n      name = \"v233_site_funnel\",\n      description = \"V233L urban site B: 0 = current spiral (default), 1 = native funnel (buildable rectangle, GOOD acceptance, then squirrel checks)\",\n      min_value = 0, max_value = 1,\n      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,\n      step_size = 1, flags = 0\n    });\n\n    AddSetting({\n      name = \"v233_funnel_center_test\",\n      description = \"V233L funnel center pre-test: 0 = off, 1 = skip town if center acceptance < 8 (default 1, active if v233_site_funnel=1)\",\n      min_value = 0, max_value = 1,\n      easy_value = 1, medium_value = 1, hard_value = 1, custom_value = 1,\n      step_size = 1, flags = 0\n"
+          "guarded": "    });\n\n    AddSetting({\n      name = \"v233_long_good\",\n      description = \"V233L: observed fed-factory GOOD exports, 150-300 tiles, two trains and backlog growth; 0=off, 1=on (default 1 since 27/10, user decision)\",\n      min_value = 0, max_value = 1,\n      easy_value = 1, medium_value = 1, hard_value = 1, custom_value = 1,\n      step_size = 1, flags = 0\n    });\n\n    AddSetting({\n      name = \"v233_site_funnel\",\n      description = \"V233L urban site B: 0 = spiral, 1 = native funnel (buildable rectangle, GOOD acceptance, then squirrel checks; default 1 since 27/10, user decision)\",\n      min_value = 0, max_value = 1,\n      easy_value = 1, medium_value = 1, hard_value = 1, custom_value = 1,\n      step_size = 1, flags = 0\n    });\n\n    AddSetting({\n      name = \"v233_funnel_center_test\",\n      description = \"V233L funnel center pre-test: 0 = off, 1 = skip town if center acceptance < 8 (default 1, active if v233_site_funnel=1)\",\n      min_value = 0, max_value = 1,\n      easy_value = 1, medium_value = 1, hard_value = 1, custom_value = 1,\n      step_size = 1, flags = 0\n"
         }
       ]
     },

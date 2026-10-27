@@ -775,10 +775,10 @@ def _project_v233l_off(name, raw):
 AIR_FUNNEL_INFO_DELTA = (
     b'    AddSetting({\n'
     b'      name = "air_site_funnel",\n'
-    b'      description = "Airport site search: 0 = current ring spiral (default), 1 = same spiral with a native footprint predicate",\n'
+    b'      description = "Airport site search: 0 = ring spiral, 1 = same spiral with a native footprint predicate (default 1 since 27/10, user decision)",\n'
     b'      min_value = 0, max_value = 1,\n'
-    b'      easy_value = 0, medium_value = 0, hard_value = 0,\n'
-    b'      custom_value = 0, flags = 0, step_size = 1\n'
+    b'      easy_value = 1, medium_value = 1, hard_value = 1,\n'
+    b'      custom_value = 1, flags = 0, step_size = 1\n'
     b'    });\n'
 )
 AIR_FUNNEL_SETTINGS_DELTA = (

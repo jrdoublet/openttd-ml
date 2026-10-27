@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Contrats air_site_funnel : defaut 0, mode 1 = spirale et predicat natif."""
+"""Contrats air_site_funnel : defaut 1, mode 1 = spirale et predicat natif."""
 
 from __future__ import annotations
 
@@ -112,18 +112,18 @@ class AirSiteFunnelContracts(unittest.TestCase):
         self.assertIn('" probes=" + used + " ops=" + ops', log)
         self.assertIn("OpexOpsMeasureEnd(AIR_SITE_OPS_MARK)", log)
 
-    def test_setting_default_zero_and_historical_cache_only(self):
+    def test_setting_default_one_and_historical_cache_only(self):
         blocks = re.findall(
             r'AddSetting\(\{\s*name = "air_site_funnel".*?\}\);', self.info, re.S)
         self.assertEqual(len(blocks), 1)
         for level in ("easy", "medium", "hard", "custom"):
-            self.assertIn(f"{level}_value = 0", blocks[0])
+            self.assertIn(f"{level}_value = 1", blocks[0])
         self.assertIn("min_value = 0, max_value = 1", blocks[0])
         self.assertIn("same spiral with a native footprint predicate", blocks[0])
         self.assertEqual(self.settings.count('GetSetting("air_site_funnel")'), 1)
         self.assertIn("AIR_SITE_FUNNEL = (airSiteFunnel == 1) ? 1 : 0;", self.settings)
         self.assertIn("if (AIR_SITE_FUNNEL > 0) OpexAirFunnelInstall();", self.settings)
-        self.assertIn("AIR_SITE_FUNNEL <- 0;", self.globals)
+        self.assertIn("AIR_SITE_FUNNEL <- 1;", self.globals)
         self.assertIn("AIR_SITE_SEARCH_OPS <- 0;", self.globals)
         self.assertIn("AIR_SITE_SEARCH_CALLS <- 0;", self.globals)
         self.assertIn("AIR_SITE_OPS_MARK <- null;", self.globals)

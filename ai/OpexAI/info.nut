@@ -219,17 +219,17 @@ class OpexAIInfo extends AIInfo {
 
     AddSetting({
       name = "v233_long_good",
-      description = "V233L: observed fed-factory GOOD exports, 150-300 tiles, two trains and backlog growth; 0=off (default), 1=experiment",
+      description = "V233L: observed fed-factory GOOD exports, 150-300 tiles, two trains and backlog growth; 0=off, 1=on (default 1 since 27/10, user decision)",
       min_value = 0, max_value = 1,
-      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
+      easy_value = 1, medium_value = 1, hard_value = 1, custom_value = 1,
       step_size = 1, flags = 0
     });
 
     AddSetting({
       name = "v233_site_funnel",
-      description = "V233L urban site B: 0 = current spiral (default), 1 = native funnel (buildable rectangle, GOOD acceptance, then squirrel checks)",
+      description = "V233L urban site B: 0 = spiral, 1 = native funnel (buildable rectangle, GOOD acceptance, then squirrel checks; default 1 since 27/10, user decision)",
       min_value = 0, max_value = 1,
-      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
+      easy_value = 1, medium_value = 1, hard_value = 1, custom_value = 1,
       step_size = 1, flags = 0
     });
 
@@ -637,10 +637,10 @@ class OpexAIInfo extends AIInfo {
     });
     AddSetting({
       name = "air_site_funnel",
-      description = "Airport site search: 0 = current ring spiral (default), 1 = same spiral with a native footprint predicate",
+      description = "Airport site search: 0 = ring spiral, 1 = same spiral with a native footprint predicate (default 1 since 27/10, user decision)",
       min_value = 0, max_value = 1,
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0, flags = 0, step_size = 1
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1, flags = 0, step_size = 1
     });
   }
 }

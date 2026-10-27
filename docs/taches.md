@@ -1,6 +1,6 @@
 # Tâches — travail restant
 
-**Mise à jour : 26 octobre 2026 — classement par effort restant et clôtures progressives. Seule liste autoritaire des actions ouvertes.**
+**Mise à jour : 27 octobre 2026 — défauts V233L et spirale hybride AIR. Seule liste autoritaire des actions ouvertes.**
 Les décisions et résultats terminés sont dans la [synthèse historique](journaux/synthese_decisions_2026-09-30.md)
 et les [journaux](journaux/README.md). Les anciennes mentions « à faire » des fiches
 ne créent pas une tâche. Protocole et pilotage des bancs : [AGENTS.md](../AGENTS.md), §4/§4.1.
@@ -8,6 +8,16 @@ Classement des cases encore ouvertes (effort, dépendances, besoin de banc,
 risque) : [ordre de clôture du 26/10](classement_taches_20261026.md).
 
 ## État courant
+
+**27/10 — défauts V233L + entonnoir site B + spirale hybride AIR (décision utilisateur).**
+`v233_long_good=1`, `v233_site_funnel=1`, `v233_funnel_center_test=1` (inchangé) et
+`air_site_funnel=1` aux quatre difficultés. Branche d'intégration `integ-v233l-airhyb`
+depuis `origin/master` `2b3cddda`, fusions `--no-ff` de `v233-long` (`8e668fad`) puis
+`air-site-funnel` (`1ffcd431`). Verdicts de référence conservés, sans nouvelle
+qualification économique : V233L rail seul 40×5 **+4,6 %** Wilcoxon **p=0,077** et
+**+4,55 %** **p=0,135** ; multimodal 40×5 **−2,4 %** ; spirale hybride AIR
+**−14 à −27 %** d'opcodes de sites (`AIR_SITE_SEARCH`) sur 6 graines, aéroports au
+pire **−1**. Fusion/push sur `master` à la décision de l'utilisateur.
 
 **27/10 — V233L + entonnoir site B (`5a48b623`, défaut 0, non qualifié).** Première double voie longue au smoke 15 (`a420a574`, 247 tuiles, 2 trains) ; smoke 16 avec `v233_site_funnel=1` : 3 lignes GOOD dont 169 tuiles en double voie, +210 k (graine 100). Entonnoir : rayon min 12, pré-test d'emprise au centre, `V233L_SITE` −86 % d'opcodes. Bancs, bras `v233_long_good=0,v233_site_funnel=0` contre `1,1` :
 - multimodal 40×3 GitHub 40411178169 : −14,6 k (−0,7 %), 19/21, `fail_primary` ;

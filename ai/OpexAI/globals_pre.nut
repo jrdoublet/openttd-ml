@@ -43,9 +43,9 @@ V309_IDLE_PROBE <- false;
 V309_IDLE_STATE <- null;
 FRONT_PAX1_CLAMP_PROBE <- false; // Réglage indépendant, motifs des bornes PASS.
 V284_RAIL_GROWTH <- 0; // 0 : master ; N : croissance fret apres N ans et 1 M£ disponible.
-V233_LONG_GOOD <- 0; // Variante autonome, aucun mode V233 historique reactive.
+V233_LONG_GOOD <- 1; // Defaut 1 depuis le 27/10 (decision utilisateur).
 V233L_STATE <- null; // Fenetres mensuelles entieres, sauvegardees seulement sous l'option.
-V233_SITE_FUNNEL <- 0; // 0 = spirale B urbaine ; 1 = entonnoir natif du quai GOOD.
+V233_SITE_FUNNEL <- 1; // 0 = spirale B urbaine ; 1 = entonnoir natif (defaut 1 depuis le 27/10).
 V233_FUNNEL_CENTER_TEST <- 1; // 0 = off ; 1 = pre-test d'acceptation au centre de la ville.
 /* V294 : ponts/tunnels longs et recherche A* continue (defauts 0 = master inchange). */
 V294_RAIL_BRIDGE_LEN <- 20;  // defaut V294all depuis le 21/10 (decision utilisateur)
@@ -392,9 +392,10 @@ V278_AIR_EPOCH <- 0;
 C96_AIR_SITE_MAX_VALID <- 4;
 C96_AIR_SITE_EXTRA_RINGS <- 1;
 /* air_site_funnel : 0 = spirale actuelle, 1 = meme spirale, predicat
- * d'emprise natif. Defaut inchange. AIR_SITE_SEARCH_* cumule les opcodes
- * de chaque OpexAirFindSite, scan finalise ou non. Telemetrie, hors Save. */
-AIR_SITE_FUNNEL <- 0;
+ * d'emprise natif. Defaut 1 depuis le 27/10 (decision utilisateur).
+ * AIR_SITE_SEARCH_* cumule les opcodes de chaque OpexAirFindSite, scan
+ * finalise ou non. Telemetrie, hors Save. */
+AIR_SITE_FUNNEL <- 1;
 AIR_SITE_OPS_MARK <- null;
 AIR_SITE_SEARCH_OPS <- 0;
 AIR_SITE_SEARCH_CALLS <- 0;
