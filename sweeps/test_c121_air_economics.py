@@ -112,7 +112,8 @@ class TestC121AirEconomics(unittest.TestCase):
         self.assertNotIn("OpexAirportStationDateSpan", rating)
         self.assertNotIn("AIR_MAX_PLANES_PER_ROUTE", rating)
         self.assertIn("ratingWaiting = waitingUpper / 2.0", rating)
-        self.assertIn("capacityPerVisit * 30.4 * 255.0", rating)
+        self.assertIn("capacityPerVisit * OpexEstimMonthDays(30.4) * 255.0", rating)
+        self.assertIn("OpexEstimMonthDays(30.4)", rating)
         self.assertIn("capturableMonthly * headwayDays", rating)
 
     def test_reused_hub_rating_uses_station_wide_existing_service(self):
@@ -194,7 +195,7 @@ class TestC121AirEconomics(unittest.TestCase):
         self.assertIn("runwayRateA / requestedStationPickupRateA", econ)
         self.assertIn("runwayRateB / requestedStationPickupRateB", econ)
         self.assertIn("requestedCandidatePickupRate * candidateRunwayScale", econ)
-        self.assertIn("local departuresPerDirectionMonth = 30.4 * candidatePickupRate;", econ)
+        self.assertIn("local departuresPerDirectionMonth = OpexEstimMonthDays(30.4) * candidatePickupRate;", econ)
         self.assertNotIn("30.4 * planes.tofloat() / trip.roundTripDays", econ)
 
     def test_pass_and_mail_are_directional_and_paid_separately(self):

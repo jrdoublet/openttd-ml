@@ -57,6 +57,7 @@ function OpexAirEconomics(catalog, airport, plane, distance, monthlyPax,
   if (maxCapital > 0) {
     extraMargin = ((newAirportCount == 2) ? 30000 : (newAirportCount == 1 ? 12000 : 2000)) - 2000;
   }
+  if ((ESTIM_UNIFIE & 2) != 0) extraMargin = 0;
 
   local firstPlanes = fixedPlanes > 0 ? fixedPlanes : 1;
   for (local planes = firstPlanes; planes <= targetPlanes; planes++) {

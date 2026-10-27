@@ -10,6 +10,8 @@ from pathlib import Path
 import re
 import unittest
 
+from estim_unifie_legacy import estim_off
+
 
 AI = Path(__file__).resolve().parents[1] / "ai" / "OpexAI"
 ROOT = Path(__file__).resolve().parents[1]
@@ -28,6 +30,11 @@ class TestV249Statues(unittest.TestCase):
         cls.dispatch = _body(cls.task, "function OpexAI::_dispatchV249Statue(task, year)")
         cls.dispatch_m2 = _body(cls.task, "function OpexV249DispatchMode2(ai, ym, year)")
         cls.measure = _body(cls.task, "function OpexV249MeasureStatueCost(townId)")
+        # Les contrats V249 historiques s'evaluent sur le code OFF exact de
+        # ESTIM-1. Les branches bit 4 et bit 2 ont leurs propres assertions.
+        cls.off_task = estim_off("task_v249.nut", cls.task)
+        cls.off_dispatch = _body(cls.off_task, "function OpexAI::_dispatchV249Statue(task, year)")
+        cls.off_dispatch_m2 = _body(cls.off_task, "function OpexV249DispatchMode2(ai, ym, year)")
 
     def test_setting_declared_default_two(self):
         block = re.search(
@@ -81,6 +88,15 @@ class TestV249Statues(unittest.TestCase):
                       self.dispatch)
         self.assertIn("cash - cost < threshold", self.dispatch)
         self.assertNotRegex(self.task, r"\b\d{4,}\b")
+        # M5 remplace sous bit 2 le tampon propre a V249 par la reserve
+        # unique; le chemin historique garde son seuil d'opportunite.
+        self.assertIn(
+            "local threshold = OpexCashReserve() + OpexV249MaxListedCapital(this._projects);",
+            self.off_dispatch)
+        compact = " ".join(self.dispatch.split())
+        self.assertIn("if ((ESTIM_UNIFIE & 2) != 0)", compact)
+        self.assertIn(
+            'threshold = OpexEstimFinanceCashNeeded("statue", 0, 0);', compact)
 
     def test_at_most_one_statue_per_pass(self):
         self.assertEqual(self.dispatch.count("AITown.PerformTownAction"), 1)
@@ -98,9 +114,17 @@ class TestV249Statues(unittest.TestCase):
         self.assertIn('task.name == "v249_statue"', self.sources["scheduler.nut"])
 
     def test_journal_guarded_and_aggregated(self):
-        for line in self.task.splitlines():
+        for line in self.off_task.splitlines():
             if "OpexDecide(" in line:
                 self.assertIn("DECISION_LOG", line, line)
+        # ESTIM-1 publie un log sur plusieurs lignes : son helper verifie
+        # DECISION_LOG avant l'appel, y compris lorsque le bit 4 est actif.
+        helper = _body(self.task, "function OpexEstimVLog(kind, id, project)")
+        self.assertIn("if (!DECISION_LOG || project == null) return;", helper)
+        self.assertIn('OpexDecide("ESTIM_VPROJECT",', helper)
+        self.assertLess(helper.index("if (!DECISION_LOG || project == null) return;"),
+                        helper.index('OpexDecide("ESTIM_VPROJECT",'))
+        self.assertIn('OpexEstimVLog("V249", bestTown, project);', self.dispatch_m2)
         self.assertIn(
             'OpexDecide("V249_STATUE", "town=" + bestTown + " cost=" + cost + " cash=" + cash'
             ' + " threshold=" + threshold + " lines=" + bestLines + " profit=" + bestProfit)',
@@ -121,7 +145,8 @@ class TestV249Statues(unittest.TestCase):
         self.assertIn("_v249StatueMonth = -1;", self.sources["main.nut"])
 
     def test_mode2_dispatch_branch(self):
-        self.assertIn("if (V249_STATUE == 2) {", self.dispatch)
+        self.assertIn("if (V249_STATUE == 2) {", self.off_dispatch)
+        self.assertIn("if (V249_STATUE == 2 || (ESTIM_UNIFIE & 4) != 0) {", self.dispatch)
         self.assertIn("return OpexV249DispatchMode2(this, ym, year);", self.dispatch)
         self.assertTrue(self.dispatch_m2)
 
@@ -153,12 +178,25 @@ class TestV249Statues(unittest.TestCase):
         self.assertIn("const V249_HORIZON_YEARS = 5;", self.task)
 
         # Payback condition
-        self.assertIn("if (bestGain * V249_HORIZON_YEARS <= cost)", self.dispatch_m2)
+        self.assertIn("if (bestGain * V249_HORIZON_YEARS <= cost)", self.off_dispatch_m2)
+        self.assertIn(
+            "if ((ESTIM_UNIFIE & 4) == 0 && bestGain * V249_HORIZON_YEARS <= cost)",
+            self.dispatch_m2)
+        self.assertIn('OpexEstimVProject("mixed", townGain, 0, 0, statueCost,',
+                      self.dispatch_m2)
+        self.assertIn("statueProject.deltaP <= 0 || statueProject.deltaC <= 0",
+                      self.dispatch_m2)
         self.assertIn('reason=payback', self.dispatch_m2)
 
     def test_mode2_v249c_treasury_and_v252(self):
-        # No cash reserve in mode 2
-        self.assertNotIn("OpexCashReserve()", self.dispatch_m2)
+        # Mode 2 historique : seulement le cout d'opportunite, sans reserve.
+        # Lot 2 M5 : reserve financiere commune, sous son bit.
+        self.assertNotIn("OpexCashReserve()", self.off_dispatch_m2)
+        self.assertIn("threshold = bestProjCap + v252Cost;", self.off_dispatch_m2)
+        compact = " ".join(self.dispatch_m2.split())
+        self.assertIn("if ((ESTIM_UNIFIE & 2) != 0)", compact)
+        self.assertIn(
+            'threshold = OpexEstimFinanceCashNeeded("statue", 0, 0);', compact)
 
         # Preserves best admissible project and pending V252 fleet renewal
         self.assertIn("OpexV249BestAdmissibleCapital", self.dispatch_m2)

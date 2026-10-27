@@ -41,6 +41,33 @@ const TARGET_HEADWAY_DAYS = 7;
  * pas. Les plafonds routiers ont leur propre constante plus bas. */
 const MAX_RAIL_TRAINS = 2;
 
+/* ESTIM-1 lot 4 : primitives physiques communes a tous les modes. Le mois
+ * de planification est une moyenne calendaire; l'ancien 30/30.4 reste sous OFF. */
+function OpexEstimDaysPerMonth()
+{
+  return 365.0 / 12.0;
+}
+
+function OpexEstimMonthDays(legacyDays)
+{
+  return (ESTIM_UNIFIE & 8) != 0 ? OpexEstimDaysPerMonth() : legacyDays;
+}
+
+function OpexEstimRivalAvailableMonthly(monthly, transportedPercent)
+{
+  if (monthly <= 0) return monthly;
+  if (transportedPercent < 0) return monthly;
+  if (transportedPercent > 100) transportedPercent = 100;
+  return (monthly.tofloat() * (100 - transportedPercent) / 100.0).tointeger();
+}
+
+/* Le chantier ferroviaire realise au plus deux voies dediees. Cette limite
+ * provient du constructeur, et non d'une taille de flotte arbitraire. */
+function OpexEstimRailPhysicalTrainCap()
+{
+  return 2;
+}
+
 /* Duree d'amortissement de l'infrastructure, en annees. Convention deja utilisee par les
  * campagnes (profit_ligne), gardee pour rester comparable. */
 const INFRA_LIFE_YEARS = 30;
@@ -95,7 +122,7 @@ function OpexLoadedTripsPerMonth(oneWayDays, roundTripDays, bidirectional)
   /* 30 / duree, sans plafond : ceil(30 / legDays) etait favorable de 1,20x a 1,63x sur les
    * 155 lignes mesurees (mediane 1,27x). Une fraction est une capacite MENSUELLE moyenne, pas un
    * demi-convoi a construire ; les arrondis ne reviennent qu'au nombre entier de convois. */
-  return 30.0 / legDays;
+  return ((ESTIM_UNIFIE & 8) != 0 ? OpexEstimDaysPerMonth() : 30.0) / legDays;
 }
 
 /* Le bareme du jeu donne 130 / 95 / 50 / 25 points de ramassage sous 6,8 / 13,5 / 27 / 47 jours
@@ -232,7 +259,10 @@ function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPl
     profile.freightEconomicsReferenceCalls++;
   }
   local consistMark = freightSetupDetail ? OpexOpsMeasureBegin() : null;
-  local calibrationOffered = (monthlyUnits * STATION_RATING_PCT) / 100.0;
+  local calibrationRating = STATION_RATING_PCT;
+  if ((ESTIM_UNIFIE & 8) != 0)
+    calibrationRating = OpexStationRatingForHeadway(referenceRoundTripDays / OpexEstimRailPhysicalTrainCap());
+  local calibrationOffered = (monthlyUnits * calibrationRating) / 100.0;
   if (longModel) calibrationOffered /= 2.0; // deux rames partageant le debit observe.
   if (calibrationOffered <= 0) return null;
   local wagons = OpexCeilDiv(calibrationOffered, wagon.capacity * referenceTrips);
@@ -294,7 +324,8 @@ function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPl
   local wagons2 = 0;
   if (secondary != null && secondary.monthly > 0 && (secondary.cargo in catalog.wagonByCargo)) {
     wagon2 = catalog.wagonByCargo[secondary.cargo];
-    wagons2 = OpexCeilDiv((secondary.monthly * STATION_RATING_PCT) / 100.0, wagon2.capacity * tripsPerMonth);
+    local secondaryRating = (ESTIM_UNIFIE & 8) != 0 ? calibrationRating : STATION_RATING_PCT;
+    wagons2 = OpexCeilDiv((secondary.monthly * secondaryRating) / 100.0, wagon2.capacity * tripsPerMonth);
     if (wagons2 < 1) wagons2 = 1;
     if (wagons + wagons2 > maxWagons) wagons2 = maxWagons - wagons;
     local loco2 = wagons2 > 0 ? choices[wagons + wagons2 - 1] : null;
@@ -360,7 +391,8 @@ function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPl
   local loopMark = profile != null ? OpexOpsMeasureBegin() : null;
   local best = null;
   local startTrains = (longModel || (OpexV190Active() && kind == "freight")) ? 2 : 1;
-  for (local trains = startTrains; trains <= MAX_RAIL_TRAINS; trains++) {
+  local maxTrains = (ESTIM_UNIFIE & 8) != 0 ? OpexEstimRailPhysicalTrainCap() : MAX_RAIL_TRAINS;
+  for (local trains = startTrains; trains <= maxTrains; trains++) {
     local headwayDays = roundTripDays / trains;
     local effectiveHeadway = headwayDays;
     if (kind == "freight") {
@@ -368,10 +400,10 @@ function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPl
        * Un convoi de fret charge a 100 % (OF_FULL_LOAD_ANY, builder_rail.nut:1188).
        * Tant que le train charge a quai, time_since_pickup = 0 (130 points de ramassage).
        * La gare n'est vide que pendant le trajet aller-retour moins le temps passe en chargement. */
-      local loadDays = monthlyUnits > 0 ? (perTrain * 30.0) / monthlyUnits : 0;
+      local loadDays = monthlyUnits > 0 ? (perTrain * ((ESTIM_UNIFIE & 8) != 0 ? OpexEstimDaysPerMonth() : 30.0)) / monthlyUnits : 0;
       /* V163 : OF_FULL_LOAD_ANY part des que l'UN des cargos remplit ses wagons. */
       if (wagon2 != null) {
-        local loadDays2 = (perTrain2 * 30.0) / secondary.monthly;
+        local loadDays2 = (perTrain2 * ((ESTIM_UNIFIE & 8) != 0 ? OpexEstimDaysPerMonth() : 30.0)) / secondary.monthly;
         if (loadDays2 < loadDays) loadDays = loadDays2;
       }
       local absentDays = roundTripDays - loadDays;
@@ -667,7 +699,10 @@ function OpexRoadLineEconomics(catalog, cargo, distance, monthlyUnits, engine, k
   /* Ce `offered` sert au DIMENSIONNEMENT, comme `calibrationOffered` au rail : la note a plat de
    * calibrage, avant de connaitre la frequence reelle. La demande effective est recalculee plus
    * bas sous pricing_fix, une fois le nombre de vehicules connu. */
-  local offered = (monthlyUnits * STATION_RATING_PCT) / 100;
+  local volumeRating = (ESTIM_UNIFIE & 8) != 0
+      ? OpexStationRatingForHeadway(roundTripDays / OpexRoadPhysicalVehicleCap(1, 1))
+      : STATION_RATING_PCT;
+  local offered = (monthlyUnits * volumeRating) / 100;
   if (offered <= 0) return null;
 
   /* D4 (docs/taches.md S0 quadragesies / S0 trenonagies) :
@@ -690,9 +725,11 @@ function OpexRoadLineEconomics(catalog, cargo, distance, monthlyUnits, engine, k
     /* Flux par rotation : a chaque visite, seulement ce qui s'est accumule pendant le headway,
      * plafonne a la capacite. Deux bus ne doublent pas la demande, ils se partagent le quai. */
     local headwayDays = roundTripDays.tofloat() / vehicles;
-    local waitingOneEnd = (monthlyUnits.tofloat() / 2.0) * headwayDays / 30.0;
+    local waitingOneEnd = (monthlyUnits.tofloat() / 2.0) * headwayDays /
+        ((ESTIM_UNIFIE & 8) != 0 ? OpexEstimDaysPerMonth() : 30.0);
     local pickup = waitingOneEnd < engine.capacity ? waitingOneEnd : engine.capacity.tofloat();
-    local visitsOneEnd = vehicles.tofloat() * 30.0 / roundTripDays;
+    local visitsOneEnd = vehicles.tofloat() *
+        ((ESTIM_UNIFIE & 8) != 0 ? OpexEstimDaysPerMonth() : 30.0) / roundTripDays;
     local flowCarried = (2.0 * visitsOneEnd * pickup).tointeger();
     if (flowCarried < carried) carried = flowCarried;
   }

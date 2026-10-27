@@ -276,6 +276,10 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
       }
 
       local need = candidate.capital + OpexCashReserve();
+      if ((ESTIM_UNIFIE & 2) != 0)
+        need = OpexEstimFinanceCashNeeded("rail", candidate.capital, candidate.distance,
+            ("capitalIsActual" in candidate) && candidate.capitalIsActual,
+            ("immobilise" in candidate) ? candidate.immobilise : 0);
       local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
       local lowCash = (money < need);
       /* G3§2 : pour le chemin reprenable sans railPlan, la recherche A* ne coute aucune
@@ -1054,6 +1058,10 @@ function OpexAI::_consumeRailSearch(year)
                      && !candidate.railPlan.ok;
   if (!planFailed) {
     local need = candidate.capital + OpexCashReserve();
+    if ((ESTIM_UNIFIE & 2) != 0)
+      need = OpexEstimFinanceCashNeeded("rail", candidate.capital, candidate.distance,
+          ("capitalIsActual" in candidate) && candidate.capitalIsActual,
+          ("immobilise" in candidate) ? candidate.immobilise : 0);
     local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
     if (money < need) {
       if (C50_CHRONOLOGY_PROBE) this._logC50CashRefusal("rail", -1, candidate.capital, candidate.profitAnnual, candidate.roi, candidate.src, candidate.dst, need, money);
@@ -2750,6 +2758,10 @@ function OpexAI::_revalidateRailStockPlan(candidate, plan)
   if (candidate == null || plan == null) return { ok = false, reason = "null_plan" };
 
   local need = candidate.capital + OpexCashReserve();
+  if ((ESTIM_UNIFIE & 2) != 0)
+    need = OpexEstimFinanceCashNeeded("rail", candidate.capital, candidate.distance,
+        ("capitalIsActual" in candidate) && candidate.capitalIsActual,
+        ("immobilise" in candidate) ? candidate.immobilise : 0);
   local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
   if (money < need) return { ok = false, reason = "cash" };
 

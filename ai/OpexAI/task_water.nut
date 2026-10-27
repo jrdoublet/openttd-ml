@@ -27,6 +27,9 @@ function OpexAI::_tryBuildWaterProject(year, project, rank, builtCount, passDisc
       }
       local capital = 2 * this._catalog.costDock + this._catalog.costWaterDepot + this._catalog.maxShipPrice;
       local need = capital + OpexCashReserve() + WATER_CAPITAL_MARGIN;
+      if ((ESTIM_UNIFIE & 2) != 0)
+        need = OpexEstimFinanceCashNeeded("water", project.capital, project.distance, false,
+            ("immobilise" in plan.economics) ? plan.economics.immobilise : 0);
       local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
       if (money < need) {
         if (C50_CHRONOLOGY_PROBE) this._logC50CashRefusal("water", i, capital, plan.economics.profitAnnual, project.roi, plan.siteA.town.id, plan.siteB.town.id, need, money);

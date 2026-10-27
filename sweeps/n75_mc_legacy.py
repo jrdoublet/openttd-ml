@@ -849,6 +849,8 @@ def _strip_once(raw, name, delta, replacement=b""):
 
 
 def historical_bytes(name, raw):
+    from estim_unifie_legacy import estim_off_bytes
+    raw = estim_off_bytes(name, raw)
     raw = _project_v233l_off(name, raw)
     if name == "air_sites.nut":
         raw = _strip_once(raw, name, AIR_SITE_C96_NEW, AIR_SITE_C96_OLD)

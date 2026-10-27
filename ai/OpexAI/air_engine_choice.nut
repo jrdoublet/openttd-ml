@@ -8,6 +8,14 @@ function OpexAirPlanBetter(plan, bestPlan)
       ? plan.decisionEconomics : plan.economics;
   local bestEconomics = (("decisionEconomics" in bestPlan) && bestPlan.decisionEconomics != null)
       ? bestPlan.decisionEconomics : bestPlan.economics;
+  if ((ESTIM_UNIFIE & 8) != 0) {
+    /* Le classement d'un appareil utilise la meme convention de rendement que
+     * le portefeuille; aucune bande de preference ROI de 25 %. */
+    local planScore = OpexProjectScore(planEconomics.profitAnnual, planEconomics.capital);
+    local bestScore = OpexProjectScore(bestEconomics.profitAnnual, bestEconomics.capital);
+    return planScore != bestScore ? planScore > bestScore
+        : planEconomics.profitAnnual > bestEconomics.profitAnnual;
+  }
   /* Arbitrage ROI vs Volume : si un plan offre un ROI significativement superieur (>25% d'ecart),
    * il deploie le capital plus vite et permet de batir plus de lignes. */
   if (planEconomics.roi > (bestEconomics.roi * 1.25).tointeger()) return true;

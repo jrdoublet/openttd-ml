@@ -9,7 +9,7 @@ import re
 import unittest
 from types import SimpleNamespace
 
-from po01c_generate import generated
+from test_po01c_regen_split import generated_estim_off
 from test_v261_forum_behaviours import body, source, uncomment
 from v233_long_good_legacy import FIXTURE, off_source
 
@@ -909,7 +909,7 @@ class V233LongGoodContracts(unittest.TestCase):
             self.assertRegex(block, level + r"_value\s*=\s*1\b")
         self.assertEqual(source("settings.nut").count('GetSetting("v233_long_good")'), 1)
         self.assertIn("V233_LONG_GOOD <- 1;", source("globals_pre.nut"))
-        self.assertEqual(source("info.nut").count("AddSetting("), 78)
+        self.assertEqual(source("info.nut").count("AddSetting("), 80)
 
     def test_off_reviewed_edits_preserve_all_original_hashes(self):
         for name, entry in FIXTURE["files"].items():
@@ -1367,7 +1367,8 @@ class V233LongGoodContracts(unittest.TestCase):
         self.assertNotRegex(margin, r'waiting\s*\*\s*12')
         v284 = body("task_v284.nut", "OpexV284Select")
         self.assertIn('!v233Input && (year < OPEX_START_YEAR', v284)
-        self.assertIn('v233Input && !OpexV233LInputMargin', v284)
+        self.assertIn('v233Input && (ESTIM_UNIFIE & 4) == 0', v284)
+        self.assertIn('&& !OpexV233LInputMargin', v284)
 
     def test_save_load_option_guards_scalar_state_and_idempotent_adoption(self):
         save = body("persist.nut", "OpexAI::Save")
@@ -1406,7 +1407,7 @@ class V233LongGoodContracts(unittest.TestCase):
         self.assertEqual(plain.count('.Valuate('), 2)
         for name in ("OpexV233LSiteSearch", "OpexV233LSiteProbe", "OpexV233LPlatformPlans"):
             self.assertNotIn('.Valuate(', body("v233_long_good.nut", name))
-        self.assertEqual(source("po01c_generators.nut"), generated())  # read-only, never regenerate.
+        self.assertEqual(source("po01c_generators.nut"), generated_estim_off())  # read-only, never regenerate.
 
     def test_new_module_balanced_and_no_reserved_identifiers(self):
         code = uncomment(source("v233_long_good.nut"))

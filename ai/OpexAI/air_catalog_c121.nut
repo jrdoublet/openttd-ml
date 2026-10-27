@@ -262,6 +262,14 @@ function OpexC121MeasureBuiltEconomics(catalog, plan, result)
       ? next.profitAnnual - actual.profitAnnual : 0;
   result.c121MarginalRevenue <- (next != null && actual != null)
       ? next.revenueAnnual - actual.revenueAnnual : 0;
+  if ((ESTIM_UNIFIE & 4) != 0 && next != null && actual != null) {
+    /* Le modele physique C121 fournit des deltas bruts persistables, au palier
+     * n -> n+1 reellement construit. Aucun historique V161/C70 dans ces champs. */
+    result.estimMarginalRawRevenue <- next.rawRevenueAnnual - actual.rawRevenueAnnual;
+    result.estimMarginalRunning <- next.runningAnnual - actual.runningAnnual;
+    result.estimMarginalAmort <- next.vehicleAmortAnnual - actual.vehicleAmortAnnual;
+    result.estimMarginalBaseVehicles <- actualN;
+  }
   result.c121EvalTicks <- tick1 - tick0;
   result.c121EvalOps <- OpexAirCalcDeltaOps(tick0, ops0);
 }
@@ -286,6 +294,12 @@ function OpexC121AttachLineShadow(line, lineId, plan, result)
   line.c121Arm <- ("arm" in plan) ? plan.arm : "unknown";
   line.c121MarginalProfit <- ("c121MarginalProfit" in result) ? result.c121MarginalProfit : 0;
   line.c121MarginalRevenue <- ("c121MarginalRevenue" in result) ? result.c121MarginalRevenue : 0;
+  if ((ESTIM_UNIFIE & 4) != 0 && ("estimMarginalRawRevenue" in result)) {
+    line.estimMarginalRawRevenue <- result.estimMarginalRawRevenue;
+    line.estimMarginalRunning <- result.estimMarginalRunning;
+    line.estimMarginalAmort <- result.estimMarginalAmort;
+    line.estimMarginalBaseVehicles <- result.estimMarginalBaseVehicles;
+  }
   /* 0 = aucune marge reelle encore observee. Le cold-start physique reste
    * disponible dans c121Marginal*, mais la premiere observation complete le
    * remplace ; seules les observations reelles suivantes sont moyennees. */

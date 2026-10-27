@@ -67,7 +67,8 @@ class TestV212Economics(unittest.TestCase):
         self.assertNotIn("V212_RAIL_PAX_CAPITAL_PCT != 100", self.body)
 
     def test_v275_bit2_applied_after_train_choice(self):
-        loop = self.body.index("for (local trains = startTrains; trains <= MAX_RAIL_TRAINS; trains++)")
+        loop = self.body.index("for (local trains = startTrains; trains <= maxTrains; trains++)")
+        self.assertIn("(ESTIM_UNIFIE & 8) != 0 ? OpexEstimRailPhysicalTrainCap() : MAX_RAIL_TRAINS", self.body)
         result = self.body.index("local result = {")
         calib = self.body.index('if (kind == "pax" && (V275_RAIL_PAX_MM & 2)) {')
         ret = self.body.rindex("return result;")

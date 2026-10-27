@@ -99,6 +99,9 @@ function OpexLoadSettings()
   local lateRelax = AIController.GetSetting("v269_rail_late_relax");
   DIST_BORNES_V276_FREIGHT = AIController.GetSetting("dist_bornes_v276_freight") == 1;
   DIST_BORNES_UNIFIED = AIController.GetSetting("dist_bornes_unified") == 1;
+  ESTIM_UNIFIE = AIController.GetSetting("estim_unifie");
+  CASH_RESERVE_OFF = AIController.GetSetting("cash_reserve_off") == 1;
+  foreach (m, k in ESTIM_K_R_PRIOR) ESTIM_K_R[m] = k;
   local railGrowth = AIController.GetSetting("v284_rail_growth");
   V233_LONG_GOOD = AIController.GetSetting("v233_long_good") == 1 ? 1 : 0;
   V233_SITE_FUNNEL = AIController.GetSetting("v233_site_funnel") == 1 ? 1 : 0;
@@ -305,6 +308,7 @@ function OpexLoadSettings()
   C63_INVEST_PROBE = probePort;
   if (C63_INVEST_PROBE) OpexC63ResetLedger();
   ::OpexCalibratedProfit <- OpexC70Profit;
+  if ((ESTIM_UNIFIE & 1) != 0) ::OpexCalibratedProfit <- OpexEstimProfit;
   C69_BOTTLENECK_PROBE = probePort;
   C75_YEAR_LEDGER_SKIP = AIController.GetSetting("c75_year_ledger_skip") == 1;
   C75_BYPASS_LEDGER_SKIP = AIController.GetSetting("c75_bypass_ledger_skip") == 1;

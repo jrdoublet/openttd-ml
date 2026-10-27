@@ -64,7 +64,7 @@ function OpexAirTripModel(speed, capacity, distance, engineId = -1, airportType 
   local oneWayDays = flightDays + airportDelayDays;
   if (oneWayDays < 1.0) oneWayDays = 1.0;
   local roundTripDays = 2.0 * oneWayDays;
-  local tripsPerMonth = 30.4 / oneWayDays;
+  local tripsPerMonth = OpexEstimMonthDays(30.4) / oneWayDays;
   return {
     effectiveSpeed = effectiveSpeed, flightDays = flightDays,
     airportDelayDays = airportDelayDays, oneWayDays = oneWayDays,

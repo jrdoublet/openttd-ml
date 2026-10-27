@@ -967,6 +967,7 @@ function OpexAI::_reconcileAfterLoad()
    * tournait sur la liste encore vide et remettait tous les facteurs a 1 (mesure 2026-09-22). */
   OpexC70RecomputeFactors(this._lines);
   OpexC121RecomputeRealizationFactors(this._lines);
+  if ((ESTIM_UNIFIE & 1) != 0) OpexEstimRecomputeRevenueFactors(this._lines);
 
   local selfComp = AICompany.ResolveCompanyID(AICompany.COMPANY_SELF);
   foreach (line in this._lines) {

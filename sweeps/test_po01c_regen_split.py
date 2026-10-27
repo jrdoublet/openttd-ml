@@ -2,10 +2,33 @@
 import re
 import unittest
 import hashlib
+from pathlib import Path
+from unittest.mock import patch
 from po01c_generate import AI, DEEP_SOURCES, generated, function, unit_sites, bridge, budgeted_pax
 from test_v261_forum_behaviours import source, body, uncomment
 from po01c_diagnostics import pending_save_dates, summarize
 from v233_long_good_legacy import off_bytes
+from estim_unifie_legacy import estim_off, estim_off_bytes
+
+
+def generated_estim_off():
+    """Generate from the historical producers, leaving live bit-8 sources intact.
+
+    The private po01c_generators.nut was frozen before ESTIM-1. Its physical
+    counterpart candidates.nut now has opt-in rival-demand guards; those do
+    not belong to PO01C's generator identity contract.
+    """
+    actual_read = Path.read_text
+    candidates = (AI / "candidates.nut").resolve()
+
+    def read_with_off(path, *args, **kwargs):
+        code = actual_read(path, *args, **kwargs)
+        if path.resolve() == candidates:
+            return estim_off("candidates.nut", code)
+        return code
+
+    with patch.object(Path, "read_text", read_with_off):
+        return generated()
 
 
 def unbudgeted_pax(code):
@@ -424,7 +447,7 @@ class PO01CContracts(unittest.TestCase):
         self.assertIn('PO01C_REGEN_SPLIT <- true;', source('globals_pre.nut'))
 
     def test_generators_track_current_producers(self):
-        self.assertEqual(source('po01c_generators.nut'), generated())
+        self.assertEqual(source('po01c_generators.nut'), generated_estim_off())
 
     def test_po01d_synchronous_path_bytes_unchanged(self):
         # Rebased to 2026-10-24 R01–R12 (source hashes frozen for the complete
@@ -444,7 +467,15 @@ class PO01CContracts(unittest.TestCase):
         from n75_mc_legacy import historical_bytes
         for name, digest in expected.items():
             with self.subTest(name=name):
-                legacy = historical_bytes(name, off_bytes(name, (AI / name).read_bytes()))
+                # Project ESTIM once on the live source. Its strict guards
+                # include neighboring historical code, so applying it again
+                # after V233L has stripped nearby guards is not meaningful.
+                # Keep the already reviewed V233L -> historical order and
+                # exercise their projections without a second ESTIM pass.
+                without_estim = estim_off_bytes(name, (AI / name).read_bytes())
+                with patch("estim_unifie_legacy.estim_off", side_effect=lambda n, code: code), \
+                     patch("estim_unifie_legacy.estim_off_bytes", side_effect=lambda n, code: code):
+                    legacy = historical_bytes(name, off_bytes(name, without_estim))
                 self.assertEqual(hashlib.sha256(legacy).hexdigest(), digest)
 
         # PO03 ajoute exactement deux lignes dans _dispatchReactiveIntention.

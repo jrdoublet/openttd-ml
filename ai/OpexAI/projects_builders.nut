@@ -71,6 +71,23 @@ function OpexC80ProjectBelowMarginalFloor(lines, project)
   return projProfitPerVeh < modeProfitPerVeh;
 }
 
+/* ESTIM-1 lot 3 : meme schema comptable pour les lignes neuves et les
+ * operations marginales. L'economie de l'AIR C121 porte deja son propre k_R
+ * sous bit 1, celle des autres modes est corrigee dans OpexEstimProfit. */
+function OpexEstimAttachProjectComponents(project, revenue, running, amort)
+{
+  if (project == null || (ESTIM_UNIFIE & 4) == 0) return;
+  local dR = revenue;
+  if ((ESTIM_UNIFIE & 1) != 0 && project.mode != "air"
+      && project.mode in ESTIM_K_R)
+    dR = (revenue.tofloat() * ESTIM_K_R[project.mode]).tointeger();
+  project.deltaR <- dR;
+  project.deltaE <- running;
+  project.deltaA <- amort;
+  project.deltaC <- project.capital;
+  project.deltaP <- dR - running - amort;
+}
+
 function OpexProjectFromCandidate(candidate)
 {
   if (candidate == null || candidate.profitAnnual <= 0 || candidate.revenueAnnual <= 0 ||
@@ -101,6 +118,7 @@ function OpexProjectFromCandidate(candidate)
     return null;
   }
   local budgetCapital = candidate.capital + margin;
+  if ((ESTIM_UNIFIE & 2) != 0) budgetCapital = candidate.capital;
   if (("immobilise" in candidate) && candidate.immobilise > 0) {
     budgetCapital += candidate.immobilise;
   }
@@ -127,6 +145,8 @@ function OpexProjectFromCandidate(candidate)
   /* B6 : conserver les composantes de pre-classement comme mesures seulement. */
   project.turnoverBonus <- ("turnoverBonus" in candidate) ? candidate.turnoverBonus : 100;
   project.generationRatio <- ("ratio" in candidate) ? candidate.ratio : 0;
+  OpexEstimAttachProjectComponents(project, candidate.revenueAnnual,
+      candidate.runningAnnual, candidate.amortAnnual);
   return project;
 }
 
@@ -142,6 +162,10 @@ function OpexProjectFromCandidate(candidate)
  * Sinon le profit realise / avion, puis le repli predRevenue - predRunning. */
 function OpexProjectFromFleet(entry)
 {
+  /* Palier C121 n -> n+1 mesure a la construction ; au-dela, il n'est jamais
+   * recalcule : reprendre alors la marge historique plutot que bloquer la flotte. */
+  if ((ESTIM_UNIFIE & 4) != 0 && OpexEstimFleetStepCurrent(entry))
+    return OpexEstimProjectFromFleet(entry);
   if (entry == null || entry.want <= 0 || entry.planePrice <= 0) return null;
   local line = entry.line;
   local have = ("vehCount" in line && line.vehCount > 0) ? line.vehCount
@@ -273,6 +297,56 @@ function OpexProjectFromFleet(entry)
   return project;
 }
 
+/* ESTIM-1 lot 3 : le renfort garde la composante physique n -> n+1 de C121,
+ * recompose sa recette au facteur commun, puis retire exploitation/amortissement.
+ * Un palier devenu perime apres un achat ne peut pas etre rejoue sans nouveau
+ * calcul C121 : on attend alors le prochain chantier physique. */
+function OpexEstimFleetStepCurrent(entry)
+{
+  if (entry == null || entry.line == null) return false;
+  local line = entry.line;
+  local have = ("vehCount" in line) ? line.vehCount
+      : (("vehicles" in line) && line.vehicles != null ? line.vehicles.len() : 0);
+  return have > 0 && ("estimMarginalRawRevenue" in line)
+      && ("estimMarginalBaseVehicles" in line) && line.estimMarginalBaseVehicles == have;
+}
+
+function OpexEstimProjectFromFleet(entry)
+{
+  if (entry == null || entry.line == null || entry.want <= 0 || entry.planePrice <= 0) return null;
+  local line = entry.line;
+  local have = ("vehCount" in line) ? line.vehCount
+      : (("vehicles" in line) && line.vehicles != null ? line.vehicles.len() : 0);
+  if (have <= 0 || !("estimMarginalRawRevenue" in line)
+      || !("estimMarginalRunning" in line) || !("estimMarginalAmort" in line)
+      || !("estimMarginalBaseVehicles" in line)
+      || line.estimMarginalBaseVehicles != have) return null;
+  /* C121 a evalue une unique transition n -> n+1. Ne pas extrapoler la
+   * marge de ce palier a plusieurs avions, car demande et cannibalisation
+   * changent a chaque achat. Le prochain palier sera reevalue apres l'achat. */
+  local tranche = clone entry;
+  tranche.want = 1;
+  local dRaw = line.estimMarginalRawRevenue;
+  local dR = (dRaw.tofloat() * ESTIM_K_R.air).tointeger();
+  local dE = line.estimMarginalRunning;
+  local dA = line.estimMarginalAmort;
+  local dC = entry.planePrice;
+  local dP = dR - dE - dA;
+  if (dR <= 0 || dP <= 0 || dC <= 0) return null;
+  local budget = dC + ((ESTIM_UNIFIE & 2) != 0 ? 0 : 1000);
+  return {
+    mode = "fleet", kind = "fleet", cargo = line.cargo,
+    src = line.stationA, dst = ("stationB" in line) ? line.stationB : line.stationA,
+    payload = tranche, distance = 0, capital = dC, budgetCapital = budget,
+    deltaR = dR, deltaE = dE, deltaA = dA, deltaC = dC, deltaP = dP,
+    revenueAnnual = dR, profitAnnual = dP, estimMarginalModeled = true,
+    roi = (dP * 1000) / dC, expectedOpcodes = PROJECT_ROAD_TRANSACTION_OPS,
+    budgetScore = OpexProjectScore(dR, budget),
+    opcodeScore = OpexProjectScore(dR, PROJECT_ROAD_TRANSACTION_OPS),
+    planningOpcodes = 0, economicsDate = AIDate.GetCurrentDate(),
+  };
+}
+
 /* Marge de caisse AIR selon le nombre d'aeroports neufs. `plan` reste dans la
  * signature : les appelants le passent, il n'est plus lu. */
 function OpexAirRequiredMargin(newAirports, plan = null)
@@ -293,10 +367,12 @@ function OpexProjectFromAir(catalog, plan, planningOps)
   local newAirports = (("reuseA" in plan) && plan.reuseA ? 0 : 1) + (("reuseB" in plan) && plan.reuseB ? 0 : 1);
   local margin = OpexAirRequiredMargin(newAirports, plan);
   local budgetCapital = economics.capital + margin;
+  if ((ESTIM_UNIFIE & 2) != 0) budgetCapital = economics.capital;
   if (("immobilise" in economics) && economics.immobilise > 0) {
     budgetCapital += economics.immobilise;
   }
   local decisionBudgetCapital = decisionEconomics.capital + margin;
+  if ((ESTIM_UNIFIE & 2) != 0) decisionBudgetCapital = decisionEconomics.capital;
   if (("immobilise" in decisionEconomics) && decisionEconomics.immobilise > 0) {
     decisionBudgetCapital += decisionEconomics.immobilise;
   }
@@ -317,6 +393,8 @@ function OpexProjectFromAir(catalog, plan, planningOps)
     planningOpcodes = planningOps,
     economicsDate = AIDate.GetCurrentDate(),
   };
+  OpexEstimAttachProjectComponents(project, decisionEconomics.revenueAnnual,
+      decisionEconomics.runningAnnual, decisionEconomics.amortAnnual);
   return project;
 }
 
@@ -327,6 +405,7 @@ function OpexProjectFromWater(catalog, plan, planningOps)
   if (economics.profitAnnual <= 0 || economics.revenueAnnual <= 0 ||
       economics.capital <= 0) return null;
   local budgetCapital = economics.capital + WATER_CAPITAL_MARGIN;
+  if ((ESTIM_UNIFIE & 2) != 0) budgetCapital = economics.capital;
   if (("immobilise" in economics) && economics.immobilise > 0) {
     budgetCapital += economics.immobilise;
   }
@@ -345,6 +424,8 @@ function OpexProjectFromWater(catalog, plan, planningOps)
      * permet de mesurer 06.11 au meme titre que rail/route. */
     economicsDate = AIDate.GetCurrentDate(),
   };
+  OpexEstimAttachProjectComponents(project, economics.revenueAnnual,
+      economics.runningAnnual, economics.amortAnnual);
   return project;
 }
 

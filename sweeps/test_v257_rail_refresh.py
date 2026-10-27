@@ -8,6 +8,8 @@ import re
 from types import SimpleNamespace
 import unittest
 
+from estim_unifie_legacy import estim_off
+
 
 ROOT = Path(__file__).resolve().parents[1]
 AI = ROOT / "ai" / "OpexAI"
@@ -76,9 +78,11 @@ class RailRefresh(unittest.TestCase):
     def setUpClass(cls):
         cls.sources = {path.name: path.read_text(encoding="utf-8") for path in AI.glob("*.nut")}
         cls.task = cls.sources["task_v257.nut"]
+        cls.off_task = estim_off("task_v257.nut", cls.task)
         cls.step = body(cls.task, "function OpexAI::_v257ReactiveStep()")
         cls.review = body(cls.task, "function OpexAI::_v257Review(line, state, date, force)")
         cls.replace = body(cls.task, "function OpexAI::_v257ReplaceStep()")
+        cls.off_replace = body(cls.off_task, "function OpexAI::_v257ReplaceStep()")
         cls.reconcile = body(cls.task, "function OpexV257Reconcile(owner)")
         cls.choice = body(cls.task, "function OpexV257BestPlan(owner, line, monthly, rating, serviceSpeed, railType, wagonLimits)")
 
@@ -310,9 +314,21 @@ class RailRefresh(unittest.TestCase):
         self.assertEqual(self.replace.count("lineProfit, waiting, rating, load, delivered"), 3)
 
     def test_resume_and_purchase_have_gross_cash_and_fresh_payback_guards(self):
-        self.assertIn("GetBankBalance(AICompany.COMPANY_SELF) - price < OpexCashReserve()", self.replace)
-        self.assertIn("pending.gain * remaining < cost", self.replace)
-        self.assertIn("if (newLife < remaining) remaining = newLife", self.replace)
+        self.assertIn("GetBankBalance(AICompany.COMPANY_SELF) - price < OpexCashReserve()",
+                      self.off_replace)
+        self.assertIn("pending.gain * remaining < cost", self.off_replace)
+        self.assertIn("if (newLife < remaining) remaining = newLife", self.off_replace)
+        # ESTIM-1 : bit 4 recontrole le projet M1 au depot ; bit 2 finance
+        # le prix BRUT du nouveau train, sans anticiper la revente.
+        self.assertIn("OpexEstimV257Project(currentPlan, targetPlan, oldVehicle, sale)",
+                      self.replace)
+        self.assertIn("estimPays = refreshed.deltaP > 0 && refreshed.score > 0",
+                      self.replace)
+        self.assertIn("((ESTIM_UNIFIE & 4) != 0 ? !estimPays", self.replace)
+        self.assertIn(": (remaining <= 0 || pending.gain <= 0 || pending.gain * remaining < cost)",
+                      self.replace)
+        self.assertIn('OpexEstimFinanceCashNeeded("rail", price, 0, true)', self.replace)
+        self.assertIn(": price + OpexCashReserve()", self.replace)
         self.assertLess(self.replace.index("depot_recheck"), self.replace.index("OpexBuildTrains("))
         self.assertIn('if (pending.phase == "resume")', self.replace)
 
@@ -332,11 +348,23 @@ class RailRefresh(unittest.TestCase):
         self.assertIn("!SAVE_FULL_STATE", self.reconcile)
 
     def test_no_magic_money_age_or_profit_threshold(self):
-        code = re.sub(r"/\*.*?\*/|//[^\n]*|\"[^\"]*\"", "", self.task, flags=re.S)
-        numbers = set(re.findall(r"(?<![\w.])\d+(?:\.\d+)?(?![\w.])", code))
+        strip_comments = lambda src: re.sub(
+            r"/\*.*?\*/|//[^\n]*|\"[^\"]*\"", "", src, flags=re.S)
+        numbers = set(re.findall(
+            r"(?<![\w.])\d+(?:\.\d+)?(?![\w.])", strip_comments(self.off_task)))
         # 85 et 255 : station_cmd.cpp:4048 (last_speed - 85) et le plafond
         # uint8 de economy.cpp:1764. Le decalage >> 2 reutilise le 2 deja livre.
-        self.assertLessEqual(numbers, {"0", "0.0", "1", "1.0", "2", "12", "365", "365.0", "0.036", "85", "255"})
+        allowed = {"0", "0.0", "1", "1.0", "2", "12", "365", "365.0",
+                   "0.036", "85", "255"}
+        self.assertLessEqual(numbers, allowed)
+        # Le seul literal additionnel permis en ON est le masque du lot 3,
+        # avec une garde explicite a chaque occurrence.
+        live = strip_comments(self.task)
+        live_numbers = set(re.findall(r"(?<![\w.])\d+(?:\.\d+)?(?![\w.])", live))
+        self.assertLessEqual(live_numbers, allowed | {"4"})
+        self.assertIn("4", live_numbers)
+        self.assertEqual(len(re.findall(r"(?<![\w.])4(?![\w.])", live)),
+                         len(re.findall(r"ESTIM_UNIFIE\s*&\s*4\b", live)))
 
     def test_persistence_outside_monthly_projection_and_after_live_lines(self):
         persist = self.sources["persist.nut"]

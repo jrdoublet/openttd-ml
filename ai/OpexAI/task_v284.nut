@@ -22,10 +22,61 @@ function OpexV284Log(action, fields)
   if (DECISION_LOG) OpexDecide("V284", "action=" + action + " " + fields);
 }
 
+/* ESTIM-1 : deux evaluations physiques de la meme ligne. Pour un train en
+ * plus, la demande est partagee entre deux rames et la note utilise la demi-
+ * cadence ; pour des wagons en plus, on conserve la cadence courante. */
+function OpexEstimV284Project(line, vehicle, wagon, number, loco, add, waiting, loopCost, kDec = -1)
+{
+  local oldLoco = OpexV257Engine(AIVehicle.GetEngineType(vehicle), line.cargo, false);
+  local oldNumber = AIVehicle.GetNumWagons(vehicle) - 1;
+  if (oldNumber < 1 || oldLoco == null || loco == null) return null;
+  local wagonLimits = OpexV257WagonSpeedLimits();
+  local serviceSpeed = OpexV257ConsistLastSpeed(oldLoco, wagon, wagonLimits);
+  local station = AIStation.GetStationID(line.stationA);
+  if (!AIStation.IsValidStation(station)) return null;
+  local rating = AIStation.GetCargoRating(station, line.cargo);
+  if (rating < 0) return null;
+  local monthly = ("monthly" in line && line.monthly > 0) ? line.monthly : 0;
+  if (("predCarried" in line) && line.predCarried > monthly) monthly = line.predCarried;
+  monthly += waiting.tofloat() / 12.0; // stock etale sur une annee.
+  if (monthly <= 0) return null;
+  local current = OpexV257Plan(line, oldLoco, wagon, oldNumber, monthly, rating,
+      serviceSpeed, wagonLimits);
+  local targetRating = rating;
+  if (add) {
+    local oneWay = line.distance.tofloat() / (0.036 * loco.speed);
+    local better = OpexStationRatingForHeadway(oneWay);
+    if (better > targetRating) targetRating = better;
+  }
+  local target = OpexV257Plan(line, loco, wagon, number,
+      add ? monthly / 2.0 : monthly, targetRating, serviceSpeed, wagonLimits);
+  if (current == null || target == null) return null;
+  local oldRunning = AIVehicle.GetRunningCost(vehicle);
+  local newRevenue = target.revenue;
+  local newRunning = target.running;
+  if (add) {
+    /* La premiere rame garde son moteur. Le service futur est donc un vieux
+     * train et un nouveau, evalues a la meme demande et au meme headway. */
+    local existing = OpexV257Plan(line, oldLoco, wagon, oldNumber,
+        monthly / 2.0, targetRating, serviceSpeed, wagonLimits);
+    if (existing == null) return null;
+    newRevenue += existing.revenue;
+    newRunning += oldRunning;
+  }
+  local sale = add ? 0 : AIVehicle.GetCurrentValue(vehicle);
+  if (sale < 0) sale = 0;
+  local netVehiclePrice = target.price - sale;
+  if (netVehiclePrice < 0) netVehiclePrice = 0;
+  local years = AIEngine.GetMaxAge(loco.id).tofloat() / 365.0;
+  if (years <= 0) return null;
+  return OpexEstimVProject("rail", newRevenue - current.revenue,
+      newRunning - oldRunning, netVehiclePrice / years, netVehiclePrice + loopCost, kDec);
+}
+
 /* Le modele C41 courant compare les deux compositions sur la meme distance.
  * Garder la vitesse, pas seulement 85 % de la vitesse du passage precedent :
  * aucune erosion multiplicative a chaque ajout. */
-function OpexV284Equipment(line, vehicle, wagon, number)
+function OpexV284Equipment(line, vehicle, wagon, number, add = false, waiting = 0, kDec = -1)
 {
   local current = OpexV257Engine(AIVehicle.GetEngineType(vehicle), line.cargo, false);
   local oldNumber = AIVehicle.GetNumWagons(vehicle) - 1;
@@ -46,9 +97,16 @@ function OpexV284Equipment(line, vehicle, wagon, number)
     if (nextSpeed < speed || loco.speed < current.speed) continue;
     /* A vitesse suffisante, minimiser achat + cinq ans d'entretien. */
     local cost = loco.price + 5 * loco.runningCost;
-    if (best == null || cost < best.cost) best = {
-      engine = engine, cost = cost, speed = nextSpeed, oldSpeed = speed
-    };
+    local project = null;
+    if ((ESTIM_UNIFIE & 4) != 0) {
+      project = OpexEstimV284Project(line, vehicle, wagon, number, loco, add, waiting, 0, kDec);
+      if (project == null || project.deltaP <= 0 || project.score <= 0) continue;
+    }
+    if (best == null || ((ESTIM_UNIFIE & 4) != 0
+        ? project.score > best.project.score : cost < best.cost)) {
+      best = { engine = engine, cost = cost, speed = nextSpeed, oldSpeed = speed };
+      if ((ESTIM_UNIFIE & 4) != 0) best.project <- project;
+    }
   }
   return best;
 }
@@ -66,6 +124,7 @@ function OpexV284Select(owner, year, v233Input = false)
   if (!v233Input && date < state.nextDate) return false;
   if (!v233Input) state.nextDate = date + 30; // au plus un choix/mois, pas une recherche de fenetre par tick.
   local best = null;
+  local kDec = (ESTIM_UNIFIE & 4) != 0 ? OpexC69ComputeKDec().K_dec : -1;
   local v233Mark = v233Input ? OpexOpsMeasureBegin() : null;
   foreach (line in owner._lines) {
     if (v233Input && OpexOpsMeasureEnd(v233Mark) >= V233L_SLICE_OPS) break;
@@ -103,16 +162,25 @@ function OpexV284Select(owner, year, v233Input = false)
     if (atLimit && (waiting < capacity || !OpexRailVehicleSlotAvailable())) continue;
     if (atLimit && (line.lineId in state.loops)) continue;
     local score = line.distance.tofloat() * waiting / capacity;
-    if (best == null || score > best.score) best = {
-      line = line, vehicle = vehicle, wagon = wagon, number = number,
-      waiting = waiting, capacity = capacity, add = atLimit, score = score
-    };
+    local candidateEquipment = null;
+    if ((ESTIM_UNIFIE & 4) != 0) {
+      candidateEquipment = OpexV284Equipment(line, vehicle, wagon,
+          number + (atLimit ? 0 : 1), atLimit, waiting, kDec);
+      if (candidateEquipment == null) continue;
+      score = candidateEquipment.project.score;
+    }
+    if (best == null || score > best.score) {
+      best = { line = line, vehicle = vehicle, wagon = wagon, number = number,
+        waiting = waiting, capacity = capacity, add = atLimit, score = score };
+      if ((ESTIM_UNIFIE & 4) != 0) best.equipment <- candidateEquipment;
+    }
   }
   if (best == null) return false;
   local line = best.line;
   state.dates.rawset(line.lineId, date + 90); // quota de croissance par ligne.
   local number = best.number + (best.add ? 0 : 1);
-  local equipment = OpexV284Equipment(line, best.vehicle, best.wagon, number);
+  local equipment = ((ESTIM_UNIFIE & 4) != 0) ? best.equipment
+      : OpexV284Equipment(line, best.vehicle, best.wagon, number);
   if (equipment == null) {
     state.dates.rawset(line.lineId, date + 365);
     OpexV284Log("skip", "line=" + line.lineId + " reason=traction");
@@ -130,7 +198,17 @@ function OpexV284Select(owner, year, v233Input = false)
       return false;
     }
   }
-  if (v233Input && !OpexV233LInputMargin(line, best, equipment, number, loopPlan)) return false;
+  if (v233Input && (ESTIM_UNIFIE & 4) == 0
+      && !OpexV233LInputMargin(line, best, equipment, number, loopPlan)) return false;
+  if ((ESTIM_UNIFIE & 4) != 0) {
+    local loopCost = loopPlan == null ? 0 : loopPlan.pieces.len() * AIRail.GetBuildCost(
+        AIRail.GetRailType(line.depot), AIRail.BT_TRACK);
+    local loco = OpexV257Engine(equipment.engine, line.cargo, false);
+    local project = OpexEstimV284Project(line, best.vehicle, best.wagon, number,
+        loco, best.add, best.waiting, loopCost, kDec);
+    if (project == null || project.deltaP <= 0 || project.score <= 0) return false;
+    OpexEstimVLog("V284", line.lineId, project);
+  }
   local oneWay = line.distance.tofloat() / (0.036 * equipment.speed);
   local waitDays = (2 * oneWay).tointeger() + 60;
   if (waitDays < 120) waitDays = 120;
@@ -431,11 +509,17 @@ function OpexV284Tick(owner)
   local station = AIStation.GetStationID(line.stationA);
   local waitingNow = AIStation.IsValidStation(station) ? AIStation.GetCargoWaiting(station, line.cargo) : -1;
   local requiredWaiting = pending.add ? AIVehicle.GetCapacity(oldVehicle, line.cargo) : wagon.capacity;
+  local cashNeed = price + OpexCashReserve() + 50000;
+  if ((ESTIM_UNIFIE & 2) != 0) {
+    local loopCost = pending.loopPlan != null ? pending.loopPlan.pieces.len()
+        * AIRail.GetBuildCost(AIRail.GetRailType(pending.depot), AIRail.BT_TRACK) : 0;
+    cashNeed = OpexEstimFinanceCashNeeded("rail", price + loopCost, 0, true);
+  }
   if (waitingNow < requiredWaiting || !AIEngine.IsBuildable(pending.engine) || !AIEngine.IsBuildable(pending.wagon)
       || !AIRail.IsRailDepotTile(pending.depot)
       || !AIEngine.HasPowerOnRail(pending.engine, AIRail.GetRailType(pending.depot))
       || pending.wagons > OpexRailNominalMaxWagons(limit)
-      || AICompany.GetBankBalance(AICompany.COMPANY_SELF) < price + OpexCashReserve() + 50000) {
+      || AICompany.GetBankBalance(AICompany.COMPANY_SELF) < cashNeed) {
     OpexV284Cancel(owner, pending, "depot_recheck"); return;
   }
   pending.cashBefore = AICompany.GetBankBalance(AICompany.COMPANY_SELF);

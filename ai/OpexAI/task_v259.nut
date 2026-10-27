@@ -282,7 +282,22 @@ function OpexAI::_v259EvaluateAndRenew(item)
   if (cost <= 0) cost = AIBridge.GetPrice(bestBridgeType, len);
 
   local totalGain = gain.tofloat() * remainingYears;
-  if (totalGain < cost.tofloat()) {
+  local estimViable = true;
+  if ((ESTIM_UNIFIE & 4) != 0) {
+    /* Rotation plus courte : recette additionnelle sur la meme ligne, sans
+     * depense courante nouvelle ni amortissement du pont (infrastructure). */
+    local revenue = lineProfit;
+    if (("vehicles" in line) && line.vehicles != null)
+      foreach (vehicle in line.vehicles)
+        if (AIVehicle.IsValidVehicle(vehicle)) revenue += AIVehicle.GetRunningCost(vehicle);
+    local mode = vtype == AIVehicle.VT_RAIL ? "rail" : "road";
+    local project = OpexEstimVProject(mode, cycleFraction * revenue, 0, 0, cost);
+    OpexEstimVLog("V259", lineId, project);
+    gain = project.deltaP;
+    estimViable = project.deltaP > 0 && project.score > 0;
+  }
+  if (((ESTIM_UNIFIE & 4) != 0 && !estimViable)
+      || ((ESTIM_UNIFIE & 4) == 0 && totalGain < cost.tofloat())) {
     if (DECISION_LOG) OpexDecide("V259_BRIDGE", "line=" + lineId + " tiles=" + start + "->" + end
       + " old_type=" + oldBridgeType + " old_speed=" + oldSpeed
       + " new_type=" + bestBridgeType + " new_speed=" + bestSpeed
@@ -292,6 +307,8 @@ function OpexAI::_v259EvaluateAndRenew(item)
 
   local cash = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
   local threshold = OpexCashReserve();
+  if ((ESTIM_UNIFIE & 2) != 0)
+    threshold = OpexEstimFinanceCashNeeded("rail", 0, 0, true);
   if (cost > 0 && cash - cost < threshold) {
     if (DECISION_LOG) OpexDecide("V259_BRIDGE", "line=" + lineId + " tiles=" + start + "->" + end
       + " old_type=" + oldBridgeType + " old_speed=" + oldSpeed

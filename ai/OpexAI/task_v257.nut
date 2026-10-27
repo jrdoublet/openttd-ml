@@ -103,6 +103,22 @@ function OpexV257Plan(line, loco, wagon, wagons, monthly, rating, serviceSpeed, 
            price = loco.price + wagons * wagon.price, speed = speed, days = days };
 }
 
+/* ESTIM-1 : meme modele de trafic avant/apres remplacement, recettes corrigees
+ * via k_R rail, entretien reel des deux compositions et amortissement net du
+ * nouveau vehicule sur sa duree utile. Aucun horizon de retour sur achat. */
+function OpexEstimV257Project(current, target, oldVehicle, sale)
+{
+  if (current == null || target == null || sale == null
+      || current.revenue <= 0) return null;
+  local years = AIEngine.GetMaxAge(target.loco.id).tofloat() / 365.0;
+  if (years <= 0) return null;
+  local netPrice = target.price - sale;
+  if (netPrice < 0) netPrice = 0;
+  return OpexEstimVProject("rail", target.revenue - current.revenue,
+      target.running - AIVehicle.GetRunningCost(oldVehicle),
+      netPrice / years, netPrice);
+}
+
 function OpexV257ReviewLog(line, current, best, gain, cost, decision, reason, profit = 0, waiting = 0, rating = -1, load = 0, delivered = 0)
 {
   if (DECISION_LOG) OpexDecide("V257_REVIEW", "line=" + line.lineId + " current=" + current
@@ -296,6 +312,7 @@ function OpexAI::_v257Review(line, state, date, force)
   local selected = null;
   local selectedVehicle = -1;
   local selectedGain = 0;
+  local selectedScore = 0;
   local selectedCost = 0;
   local selectedCurrent = -1;
   local currentYearStart = AIDate.GetDate(year - 1, 1, 1);
@@ -365,11 +382,23 @@ function OpexAI::_v257Review(line, state, date, force)
     local newLife = AIEngine.GetMaxAge(best.loco.id) / 365.0;
     if (newLife < remaining) remaining = newLife;
     local pays = gain > 0 && remaining > 0 && gain * remaining >= cost;
+    local estimProject = null;
+    if ((ESTIM_UNIFIE & 4) != 0) {
+      estimProject = OpexEstimV257Project(current, best, vehicle, sale);
+      if (estimProject == null) continue;
+      OpexEstimVLog("V257", line.lineId, estimProject);
+      gain = estimProject.deltaP;
+      pays = estimProject.deltaP > 0 && estimProject.score > 0;
+    }
     OpexV257ReviewLog(line, currentEngine, best.loco.id, gain, cost, pays ? "replace" : "keep",
         pays ? "payback" : "payback_failed", lineProfit, waiting, rating, load, state.annualDelivered);
-    if (pays && (selected == null || gain > selectedGain)) {
+    if (pays && (selected == null || ((ESTIM_UNIFIE & 4) != 0
+        ? estimProject.score > selectedScore
+        : gain > selectedGain))) {
       selected = best; selectedVehicle = vehicle; selectedGain = gain;
       selectedCost = cost; selectedCurrent = currentEngine;
+      if ((ESTIM_UNIFIE & 4) != 0)
+        selectedScore = estimProject.score;
     }
   }
   if (selected != null) {
@@ -439,6 +468,8 @@ function OpexAI::_v257ReplaceStep()
   local state = (line.lineId in this._v257State) ? this._v257State[line.lineId] : null;
   local number = AIVehicle.GetNumWagons(oldVehicle) - 1;
   local gain = 0.0;
+  local currentPlan = null;
+  local targetPlan = null;
   if (state != null && state.annualDays > 0 && number > 0 && line.vehicles.len() > 0) {
     local wagonEngine = AIVehicle.GetWagonEngineType(oldVehicle, 1);
     local stock = AIStation.GetCargoWaiting(AIStation.GetStationID(line.stationA), line.cargo);
@@ -462,6 +493,8 @@ function OpexAI::_v257ReplaceStep()
     local serviceSpeed = OpexV257ConsistLastSpeed(serviceLoco, serviceWagon, wagonLimits);
     local current = OpexV257Plan(line, serviceLoco, serviceWagon, number, monthly, rating, serviceSpeed, wagonLimits);
     local target = OpexV257Plan(line, loco, wagon, pending.wagons, monthly, rating, serviceSpeed, wagonLimits);
+    currentPlan = current;
+    targetPlan = target;
     local realRevenue = AIVehicle.GetProfitLastYear(oldVehicle) + AIVehicle.GetRunningCost(oldVehicle);
     if (current != null && target != null && current.revenue > 0 && realRevenue > 0) {
       gain = realRevenue * (target.revenue.tofloat() / current.revenue - 1.0)
@@ -472,8 +505,21 @@ function OpexAI::_v257ReplaceStep()
   local remaining = AIVehicle.GetAgeLeft(oldVehicle) / 365.0;
   local newLife = AIEngine.GetMaxAge(pending.engine) / 365.0;
   if (newLife < remaining) remaining = newLife;
-  if (sale == null || !compatible || remaining <= 0 || pending.gain <= 0 || pending.gain * remaining < cost
-      || AICompany.GetBankBalance(AICompany.COMPANY_SELF) - price < OpexCashReserve()) {
+  local estimPays = false;
+  if ((ESTIM_UNIFIE & 4) != 0) {
+    local refreshed = OpexEstimV257Project(currentPlan, targetPlan, oldVehicle, sale);
+    if (refreshed != null) {
+      pending.gain = refreshed.deltaP;
+      OpexEstimVLog("V257_DEPOT", line.lineId, refreshed);
+      estimPays = refreshed.deltaP > 0 && refreshed.score > 0;
+    }
+  }
+  if (sale == null || !compatible || ((ESTIM_UNIFIE & 4) != 0 ? !estimPays
+      : (remaining <= 0 || pending.gain <= 0 || pending.gain * remaining < cost))
+      || AICompany.GetBankBalance(AICompany.COMPANY_SELF) <
+          ((ESTIM_UNIFIE & 2) != 0
+              ? OpexEstimFinanceCashNeeded("rail", price, 0, true)
+              : price + OpexCashReserve())) {
     pending.phase = "resume";
     local resumed = AIVehicle.StartStopVehicle(oldVehicle);
     OpexV257ReviewLog(line, pending.current, pending.engine, pending.gain, cost, "keep", "depot_recheck",

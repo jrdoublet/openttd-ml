@@ -1222,6 +1222,9 @@ function OpexPaxCandidates(catalog, lines, out, stats, abandonedPairs = null, pr
   for (local i = 0; i < n; i++) {
     local p = AITown.GetLastMonthProduction(towns[i].id, cargo);
     if (p <= 0 && towns[i].pop > 0) p = (towns[i].pop * 22) / 100;
+    if ((ESTIM_UNIFIE & 8) != 0 && !OpexOriginServed(lines, towns[i].tile, true))
+      p = OpexEstimRivalAvailableMonthly(p,
+          AITown.GetLastMonthTransportedPercentage(towns[i].id, cargo));
     produced.append(p);
     local service = OpexOriginService(lines, towns[i].tile);
     served.append(service);
@@ -1234,6 +1237,9 @@ function OpexPaxCandidates(catalog, lines, out, stats, abandonedPairs = null, pr
     for (local i = 0; i < n; i++) {
       local mp = AITown.GetLastMonthProduction(towns[i].id, catalog.mailCargo);
       if (mp < 0) mp = 0;
+      if ((ESTIM_UNIFIE & 8) != 0 && !OpexOriginServed(lines, towns[i].tile, true))
+        mp = OpexEstimRivalAvailableMonthly(mp,
+            AITown.GetLastMonthTransportedPercentage(towns[i].id, catalog.mailCargo));
       mailProduced.append(mp);
     }
   }
@@ -1401,6 +1407,9 @@ function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null
       if (OPEX_LEVEL_LIMITS && OpexIndustryPrimaryRivalServed(source.id, source.tile)) continue;
       local monthly = AIIndustry.GetLastMonthProduction(source.id, cargo);
       local ss = served[si];
+      if ((ESTIM_UNIFIE & 8) != 0 && ss == null)
+        monthly = OpexEstimRivalAvailableMonthly(monthly,
+            AIIndustry.GetLastMonthTransportedPercentage(source.id, cargo));
       local longGood = V233_LONG_GOOD > 0 ? OpexV233LSource(source, cargo, lines) : null;
       local others2 = null;
       local industryMark = profile != null ? OpexOpsMeasureBegin() : null;
@@ -1961,6 +1970,9 @@ function OpexRoadFreightCandidates(catalog, lines, out, stats, abandonedPairs = 
       local source = industries[si];
       if (OPEX_LEVEL_LIMITS && OpexIndustryPrimaryRivalServed(source.id, source.tile)) continue;
       local monthly = AIIndustry.GetLastMonthProduction(source.id, cargo);
+      if ((ESTIM_UNIFIE & 8) != 0 && !OpexOriginServed(lines, source.tile, true))
+        monthly = OpexEstimRivalAvailableMonthly(monthly,
+            AIIndustry.GetLastMonthTransportedPercentage(source.id, cargo));
       if (monthly <= 0) { stats.noMonthly++; continue; }
 
       local industryMark = profile != null ? OpexOpsMeasureBegin() : null;
@@ -2185,6 +2197,9 @@ function OpexMulti1RoadCargoShadowPair(s)
   if (OpexOriginServed(s.lines, source.tile, true)) return;
   if (OPEX_LEVEL_LIMITS && OpexIndustryPrimaryRivalServed(source.id, source.tile)) return;
   local monthly = AIIndustry.GetLastMonthProduction(source.id, s.cargo);
+  if ((ESTIM_UNIFIE & 8) != 0)
+    monthly = OpexEstimRivalAvailableMonthly(monthly,
+        AIIndustry.GetLastMonthTransportedPercentage(source.id, s.cargo));
   if (monthly <= 0) { s.stats.noMonthly++; return; }
   local dest = s.destinations[index % s.destinations.len()];
   local dstTile, dstTown = -1, pairKey, isTransformer = false;

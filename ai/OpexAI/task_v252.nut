@@ -4,6 +4,47 @@
  * et le projet le plus cher du portefeuille. Au plus un remplacement par passage.
  * Aucun nombre a 4 chiffres ou plus dans ce fichier. */
 
+/* ESTIM-1 : cout et marge de la substitution d'UN avion a flotte constante.
+ * Les deux appareils passent par le meme modele physique de route ; la
+ * difference entre flottes homogenes est repartie sur les n appareils. */
+function OpexEstimV252Project(line, vehicle, newEngine, catalog, hangar, kDec = -1)
+{
+  local monthly = ("airMonthlyPax" in line && line.airMonthlyPax > 0) ? line.airMonthlyPax
+      : (("monthlyPax" in line) ? line.monthlyPax : 0);
+  if (monthly <= 0 || line.vehicles == null || line.vehicles.len() == 0) return null;
+  local distance = ("distance" in line && line.distance > 0)
+      ? line.distance : AIMap.DistanceManhattan(line.stationA, line.stationB);
+  if (distance <= 0) return null;
+  local cargo = ("cargo" in line) ? line.cargo : catalog.paxCargo;
+  local oldEngine = AIVehicle.GetEngineType(vehicle);
+  local oldCapacity = AIVehicle.GetCapacity(vehicle, cargo);
+  local newCapacity = AIVehicle.GetBuildWithRefitCapacity(hangar, newEngine, cargo);
+  if (oldCapacity <= 0 || newCapacity <= 0) return null;
+  local airport = { type = AIAirport.GetAirportType(line.stationA), price = 0, maintenance = 0 };
+  local oldPlane = { id = oldEngine, speed = AIEngine.GetMaxSpeed(oldEngine),
+      capacity = oldCapacity, price = AIEngine.GetPrice(oldEngine),
+      runningCost = AIEngine.GetRunningCost(oldEngine) };
+  local newPlane = { id = newEngine, speed = AIEngine.GetMaxSpeed(newEngine),
+      capacity = newCapacity, price = AIEngine.GetPrice(newEngine),
+      runningCost = AIEngine.GetRunningCost(newEngine) };
+  local count = line.vehicles.len();
+  local before = OpexAirEconomics(catalog, airport, oldPlane, distance, monthly,
+      false, 0, 0, 0, count);
+  local after = OpexAirEconomics(catalog, airport, newPlane, distance, monthly,
+      false, 0, 0, 0, count);
+  if (before == null || after == null) return null;
+  local price = AIEngine.GetPrice(newEngine);
+  local sale = AIVehicle.GetCurrentValue(vehicle);
+  if (sale < 0) sale = 0;
+  local netCapital = price - sale;
+  if (netCapital < 0) netCapital = 0;
+  local years = AIEngine.GetMaxAge(newEngine).tofloat() / 365.0;
+  if (years <= 0) return null;
+  local deltaR = (after.revenueAnnual - before.revenueAnnual).tofloat() / count;
+  local deltaE = newPlane.runningCost - oldPlane.runningCost;
+  return OpexEstimVProject("air", deltaR, deltaE, netCapital / years, netCapital, kDec);
+}
+
 function OpexAI::_dispatchV252AirEngineRefresh(task, year)
 {
   local date = AIDate.GetCurrentDate();
@@ -38,6 +79,8 @@ function OpexAI::_dispatchV252AirEngineRefresh(task, year)
   local nOutdated = 0;
   local candidates = [];
   local rank = 0;
+  local bestProject = null;
+  local kDec = (ESTIM_UNIFIE & 4) != 0 ? OpexC69ComputeKDec().K_dec : -1;
 
   foreach (line in this._lines) {
     if (line == null) continue;
@@ -86,6 +129,17 @@ function OpexAI::_dispatchV252AirEngineRefresh(task, year)
     if (targetEngine == null) continue;
     if (cand.engine == targetEngine) continue;
 
+    local project = null;
+    if ((ESTIM_UNIFIE & 4) != 0) {
+      local airportTile = ("originA" in cand.line) && AIAirport.IsAirportTile(cand.line.originA)
+          ? cand.line.originA : cand.line.stationA;
+      local hangar = AIAirport.GetHangarOfAirport(airportTile);
+      if (!AIMap.IsValidTile(hangar) || !AIAirport.IsHangarTile(hangar)) continue;
+      project = OpexEstimV252Project(cand.line, cand.veh, targetEngine, this._catalog, hangar, kDec);
+      if (project == null || project.deltaP <= 0 || project.score <= 0) continue;
+      if (bestProject != null && project.score <= bestProject.score) continue;
+      bestProject = project;
+    }
     nOutdated = 1;
     bestLine = cand.line;
     bestVeh = cand.veh;
@@ -93,7 +147,7 @@ function OpexAI::_dispatchV252AirEngineRefresh(task, year)
     bestProfit = cand.profit;
     bestNewEngine = targetEngine;
     curEngine = cand.engine;
-    break;
+    if ((ESTIM_UNIFIE & 4) == 0) break;
   }
 
   if (bestVeh < 0 || bestLine == null) {
@@ -102,8 +156,11 @@ function OpexAI::_dispatchV252AirEngineRefresh(task, year)
   }
 
   local price = AIEngine.GetPrice(bestNewEngine);
+  if ((ESTIM_UNIFIE & 4) != 0) OpexEstimVLog("V252", bestLine.lineId, bestProject);
   local cash = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
   local threshold = OpexCashReserve() + OpexV249MaxListedCapital(this._projects);
+  if ((ESTIM_UNIFIE & 2) != 0)
+    threshold = OpexEstimFinanceCashNeeded("fleet", 0, 0);
   if (price <= 0 || cash - price < threshold) {
     if (DECISION_LOG) OpexDecide("V252_SKIP", "reason=cost cash=" + cash + " cost=" + price + " threshold=" + threshold + " line=" + bestLine.lineId);
     return true;

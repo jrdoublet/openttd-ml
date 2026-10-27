@@ -61,6 +61,9 @@ function OpexC70RecomputeFactors(lines)
  * petits echantillons ; sous MIN_LINES on conserve strictement le cold-start. */
 function OpexC121RealizationFactor(plan)
 {
+  /* ESTIM-1 bit 1 : un facteur de recette AIR unique, tous bras, remplace la
+   * realisation directe P0 des hubs et la calibration C70 des paires neuves. */
+  if ((ESTIM_UNIFIE & 1) != 0) return ESTIM_K_R.air;
   /* Les anciens essais r4/r5 appliquaient trop brutalement le facteur appris.
    * Le levier reste separe et ne corrige que les bras reutilisant un hub. */
   if (!C121_AIR_PROJECT_REALIZATION_ADAPTIVE
@@ -159,6 +162,9 @@ function OpexC70Factor(project)
  * line.predicted : le facteur mesure le modele, jamais sa propre correction. */
 function OpexC70Profit(project)
 {
+  if ((ESTIM_UNIFIE & 4) != 0 && project != null
+      && ("estimMarginalModeled" in project) && project.estimMarginalModeled)
+    return project.profitAnnual;
   /* R2 : une observation n'est pas une prediction a recalibrer. Le marqueur
    * vient de la branche qui a fourni profitAnnual, pas de l'etat actuel de la ligne. */
   if (project != null && ("profitIsObserved" in project) && project.profitIsObserved)
@@ -180,7 +186,97 @@ function OpexC70Profit(project)
   return project.profitAnnual * OpexC70Factor(project);
 }
 
-/* Profit calibre des scores : OpexC70Profit. */
+/* ESTIM-1 bit 1 : P = P_modele - (1 - k_R) * R. Le facteur corrige la recette, jamais le
+ * profit : un projet a faible marge peut devenir negatif. AIR C121 porte deja k_R dans son
+ * economie (OpexC121RealizationFactor). Flotte et observations : logique historique (lot 3). */
+function OpexEstimProfit(project)
+{
+  if ((ESTIM_UNIFIE & 4) != 0 && project != null
+      && ("estimMarginalModeled" in project) && project.estimMarginalModeled)
+    return project.profitAnnual;
+  if (project == null || !("mode" in project) || !(project.mode in ESTIM_K_R)
+      || (("profitIsObserved" in project) && project.profitIsObserved)
+      || !("revenueAnnual" in project) || project.revenueAnnual <= 0)
+    return OpexC70Profit(project);
+  if (project.mode == "air" && OpexC121ProjectHasRealization(project))
+    return project.profitAnnual;
+  return (project.profitAnnual - (1.0 - ESTIM_K_R[project.mode]) * project.revenueAnnual).tointeger();
+}
+
+/* ESTIM-1 bit 1 : cumul par ligne, annees pleines (age >= 2) a flotte de construction, sans
+ * normalisation par la flotte. Recette predite brute : AIR = recette C121 avant facteur. */
+function OpexEstimAccumulateLine(line, year, vehCount, currentRevenue, sums)
+{
+  local mode = ("mode" in line) ? line.mode : "unknown";
+  if (!(mode in sums)) return;
+  /* Sous bit 1, predRevenue AIR contient deja k_R. Quand le shadow C121 n'a
+   * pas pu fournir la recette brute, ne jamais apprendre sur cette valeur
+   * deja calibree (ce qui ferait artificiellement tendre k_R vers 1). */
+  if (mode == "air" && (!("c121RawRevenueAnnual" in line)
+      || line.c121RawRevenueAnnual <= 0)) return;
+  local age = ("year" in line) ? year - line.year : -1;
+  local n0 = ("trains0" in line) ? line.trains0 : 0;
+  local pred = mode == "air" ? line.c121RawRevenueAnnual
+      : (("predRevenue" in line) ? line.predRevenue : 0);
+  if (age >= 2 && n0 > 0 && vehCount == n0 && pred > 0) {
+    if (!("estimRevPred" in line)) { line.estimRevReal <- 0; line.estimRevPred <- 0; line.estimRevN <- 0; }
+    line.estimRevReal += currentRevenue > 0 ? currentRevenue.tointeger() : 0;
+    line.estimRevPred += pred.tointeger();
+    line.estimRevN++;
+  }
+  if (("estimRevPred" in line) && line.estimRevPred > 0) {
+    sums[mode][0] += line.estimRevReal.tofloat();
+    sums[mode][1] += line.estimRevPred.tofloat();
+    sums[mode][2] += line.estimRevN;
+  }
+}
+
+function OpexEstimRevenueSums()
+{
+  return { rail = [0.0, 0.0, 0], road = [0.0, 0.0, 0], air = [0.0, 0.0, 0], water = [0.0, 0.0, 0] };
+}
+
+/* k = (n * rho + w0 * k0) / (n + w0) : rho rapport des sommes, n annees-lignes. */
+function OpexEstimPublishRevenueFactors(sums, year, phase)
+{
+  local w0 = ESTIM_K_R_PRIOR_WEIGHT;
+  local airChanged = false;
+  foreach (m, acc in sums) {
+    local n = acc[2].tofloat();
+    local k = ESTIM_K_R_PRIOR[m];
+    if (n > 0 && acc[1] > 0) k = (n * acc[0] / acc[1] + w0 * k) / (n + w0);
+    local changed = ESTIM_K_R[m] != k;
+    ESTIM_K_R[m] = k;
+    if (m == "air" && changed) airChanged = true;
+    /* Le catalogue C121 met en cache l'economie par bras : invalider quand k_R AIR change. */
+    if (m == "air" && changed) {
+      foreach (arm in ["newpair", "hubsite", "hubhub"])
+        C121_CATALOG_ARM_LEARN_REV.rawset(arm,
+          (arm in C121_CATALOG_ARM_LEARN_REV ? C121_CATALOG_ARM_LEARN_REV[arm] : 0) + 1);
+    }
+    AILog.Info("ESTIM_KR phase=" + phase + " year=" + year + " mode=" + m
+        + " line_years=" + acc[2] + " real=" + acc[0].tointeger() + " pred=" + acc[1].tointeger()
+        + " k=" + k);
+  }
+  return airChanged;
+}
+
+function OpexEstimRecomputeRevenueFactors(lines)
+{
+  local sums = OpexEstimRevenueSums();
+  if (lines != null) {
+    foreach (line in lines) {
+      if (line == null || !("mode" in line) || !(line.mode in sums)
+          || !("estimRevPred" in line) || line.estimRevPred <= 0) continue;
+      sums[line.mode][0] += line.estimRevReal.tofloat();
+      sums[line.mode][1] += line.estimRevPred.tofloat();
+      sums[line.mode][2] += line.estimRevN;
+    }
+  }
+  OpexEstimPublishRevenueFactors(sums, AIDate.GetYear(AIDate.GetCurrentDate()), "reload");
+}
+
+/* Profit calibre des scores : OpexC70Profit, ou OpexEstimProfit sous estim_unifie bit 1. */
 OpexCalibratedProfit <- OpexC70Profit;
 
 function OpexProjectScore(value, cost)

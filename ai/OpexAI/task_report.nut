@@ -213,6 +213,7 @@ function OpexAI::_reportLines(year)
   local anchor = AIMap.GetTileIndex(1, 1);
   local c70Sums = { rail = [0.0, 0], road = [0.0, 0], air = [0.0, 0], water = [0.0, 0] };
   local c121RealizationSums = OpexC121RealizationSums();
+  local estimRevSums = (ESTIM_UNIFIE & 1) != 0 ? OpexEstimRevenueSums() : null;
   local c69ProfRatios = C69_BOTTLENECK_PROBE ? { rail = [], road = [], air = [], water = [] } : null;
   local c69RevRatios = C69_BOTTLENECK_PROBE ? { rail = [], road = [], air = [], water = [] } : null;
   local c69LineCounts = C69_BOTTLENECK_PROBE ? { rail = 0, road = 0, air = 0, water = 0 } : null;
@@ -364,6 +365,7 @@ function OpexAI::_reportLines(year)
         && ("c121RawRevenueAnnual" in line) && line.c121RawRevenueAnnual > 0) {
       OpexC121ObserveLineRealization(line, year, vehCount, currentRevenue, c121RealizationSums);
     }
+    if (estimRevSums != null) OpexEstimAccumulateLine(line, year, vehCount, currentRevenue, estimRevSums);
     if (("mode" in line) && line.mode == "air"
         && ("c121MarginalObserveYear" in line) && year >= line.c121MarginalObserveYear
         && ("c121MarginalBaselineProfit" in line) && ("c121MarginalBaselineRevenue" in line)
@@ -583,6 +585,10 @@ function OpexAI::_reportLines(year)
   if (c121RealizationSums != null) {
     OpexC121ApplyRealizationSums(c121RealizationSums, year, "annual");
   }
+  /* Les projets AIR deja construits dans le vivier conservent l'ancien
+   * decisionEconomics : la revision C121 seule ne les recalcule pas. */
+  if (estimRevSums != null && OpexEstimPublishRevenueFactors(estimRevSums, year, "annual"))
+    this._portfolioInvalidated = true;
   if (C69_BOTTLENECK_PROBE && C69_PENDING_FOLLOWUPS != null) {
     foreach (item in C69_PENDING_FOLLOWUPS) {
       OpexC69Log("phase=c3_pending pass=" + item.passId + " passes_waited=" + item.passesWaited

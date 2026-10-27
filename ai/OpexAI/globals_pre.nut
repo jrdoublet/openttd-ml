@@ -364,6 +364,17 @@ C63_INVEST_PROBE <- false;
 C63_INVEST_LEDGER <- null;
 /* C70 : facteur realise/predit par mode, recalcule au rapport annuel et au rechargement. */
 C70_MODE_FACTOR <- { rail = 1.0, road = 1.0, air = 1.0, water = 1.0 };
+/* ESTIM-1 (estim_unifie, bits par lot, defaut 0). Bit 1 : facteur de realisation de la RECETTE
+ * par mode, applique avant frais et amortissement. A priori = recette realisee / recette brute
+ * predite, annees pleines a flotte de construction, DUEL 40x10 du 21/10
+ * (sweeps/estim_unifie_priors.py ; AIR = moyenne C121 des trois bras) ; WATER sans mesure.
+ * Poids de l'a priori en annees-lignes : Bayes empirique AIR 9, RAIL 36, ROUTE 1 ; une valeur. */
+ESTIM_UNIFIE <- 0;
+ESTIM_K_R_PRIOR <- { rail = 0.92, road = 0.57, air = 0.40, water = 1.0 };
+ESTIM_K_R_PRIOR_WEIGHT <- 10.0;
+ESTIM_K_R <- { rail = 0.92, road = 0.57, air = 0.40, water = 1.0 };
+/* cash_reserve_off : suppression de la reserve de caisse (5k-25k), demandee le 27/10 ; a qualifier. */
+CASH_RESERVE_OFF <- false;
 /* C69 etape 1 : sonde passive goulot de decision P / max(C, F*tau). */
 /* Annee de depart de la compagnie (sauvegardee via _startYear) : base des calculs C69/C75 de F et
  * de tau. 1970 n'est qu'un repli, pose avant Start(). */

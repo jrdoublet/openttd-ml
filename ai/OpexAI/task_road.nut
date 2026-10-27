@@ -82,6 +82,10 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
       }
 
       local need = candidate.capital + OpexCashReserve() + ROAD_CAPITAL_MARGIN;
+      if ((ESTIM_UNIFIE & 2) != 0)
+        need = OpexEstimFinanceCashNeeded("road", candidate.capital, candidate.distance,
+            ("capitalIsActual" in candidate) && candidate.capitalIsActual,
+            ("immobilise" in candidate) ? candidate.immobilise : 0);
       local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
       if (money < need) {
         if (C50_CHRONOLOGY_PROBE) this._logC50CashRefusal("road", i, candidate.capital, candidate.profitAnnual, candidate.roi, candidate.src, candidate.dst, need, money);

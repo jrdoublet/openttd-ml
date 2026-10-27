@@ -1,6 +1,8 @@
 /* C65 : deplace depuis main.nut (passe 1, deplacement pur, aucun corps retouche). */
 function OpexCashReserve()
 {
+  /* ESTIM-1 / cash_reserve_off : aucune reserve conservee avant depense. */
+  if (CASH_RESERVE_OFF) return 0;
   local cashMark = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
 
   local totalRunning = 0;

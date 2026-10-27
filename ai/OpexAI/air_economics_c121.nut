@@ -383,7 +383,7 @@ function OpexC121ExistingMonthlyBefore(rawMonthly, currentRating, competition,
   local runwayScale = 1.0;
   if (runwayRate > 0.0 && servicePickupRate > runwayRate) runwayScale = runwayRate / servicePickupRate;
   local allocated = OpexC121StationAllocatedMonthly(rawMonthly, currentRating, competition);
-  local capacityMonthly = serviceCargoRate * runwayScale * 30.4;
+  local capacityMonthly = serviceCargoRate * runwayScale * OpexEstimMonthDays(30.4);
   return allocated < capacityMonthly ? allocated : capacityMonthly;
 }
 
@@ -470,7 +470,7 @@ function OpexC121RatingTarget(plane, town, capturableMonthly, headwayDays, capac
   for (local iter = 0; iter < 8; iter++) {
     local offered = capturableMonthly > 0
         ? capturableMonthly * rating.tofloat() / 255.0 : 0.0;
-    local waitingUpper = offered * headwayDays / 30.4;
+    local waitingUpper = offered * headwayDays / OpexEstimMonthDays(30.4);
     /* OpenTTD 15.3 note le stock via ge->max_waiting_cargo = waiting_avg.
      * Meme en distribution manuelle, num_dests + 1 vaut au moins 2 :
      * waiting_avg <= waiting / 2. Garder waitingUpper pour savoir si une
@@ -488,7 +488,7 @@ function OpexC121RatingTarget(plane, town, capturableMonthly, headwayDays, capac
       /* Si les paliers oscillent autour de la saturation, la note moyenne est
        * imposee par la conservation du flux : production offerte = capacite. */
       if (capturableMonthly > 0 && headwayDays > 0 && capacityPerVisit > 0) {
-        rating = (capacityPerVisit * 30.4 * 255.0
+        rating = (capacityPerVisit * OpexEstimMonthDays(30.4) * 255.0
             / (capturableMonthly * headwayDays)).tointeger();
         if (rating < 0) rating = 0;
         if (rating > 255) rating = 255;
@@ -502,7 +502,7 @@ function OpexC121RatingTarget(plane, town, capturableMonthly, headwayDays, capac
   }
   local offered = capturableMonthly > 0
       ? capturableMonthly * rating.tofloat() / 255.0 : 0.0;
-  local waitingUpper = offered * headwayDays / 30.4;
+  local waitingUpper = offered * headwayDays / OpexEstimMonthDays(30.4);
   if (pointsOnly) return rating;
   return {
     points = rating, offered = offered, waitingUpper = waitingUpper,
@@ -519,13 +519,13 @@ function OpexC121AirFleetScanCap(plan, roundTripDays, paxCapacity, mailCapacity)
 {
   if (plan == null || !("c121Demand" in plan) || roundTripDays <= 0 || paxCapacity <= 0) return 1;
   local demand = plan.c121Demand;
-  local paxPerPlaneDirection = paxCapacity * 30.4 / roundTripDays;
+  local paxPerPlaneDirection = paxCapacity * OpexEstimMonthDays(30.4) / roundTripDays;
   local maxPax = demand.paxA > demand.paxB ? demand.paxA : demand.paxB;
   local cap = OpexCeilDiv(maxPax, paxPerPlaneDirection);
   local frequencyPlanes = OpexCeilDiv(roundTripDays, 7.5);
   if (frequencyPlanes > cap) cap = frequencyPlanes;
   if (mailCapacity > 0) {
-    local mailPerPlaneDirection = mailCapacity * 30.4 / roundTripDays;
+    local mailPerPlaneDirection = mailCapacity * OpexEstimMonthDays(30.4) / roundTripDays;
     local maxMail = demand.mailA > demand.mailB ? demand.mailA : demand.mailB;
     local mailPlanes = OpexCeilDiv(maxMail, mailPerPlaneDirection);
     if (mailPlanes > cap) cap = mailPlanes;
@@ -713,7 +713,7 @@ function OpexC121AirEconomics(catalog, plan, plane, paxCapacity, mailCapacity, f
      * les deux pistes, pas la cadence demandee par N avions. Sinon le cap FTA
      * reduit le rating/partage mais laisse encore transporter du cargo sur des
      * rotations qui ne peuvent pas avoir lieu. */
-    local departuresPerDirectionMonth = 30.4 * candidatePickupRate;
+    local departuresPerDirectionMonth = OpexEstimMonthDays(30.4) * candidatePickupRate;
     local paxDirectionCapacity = paxCapacity.tofloat() * departuresPerDirectionMonth;
     local mailDirectionCapacity = useMail ? mailCapacity.tofloat() * departuresPerDirectionMonth : 0.0;
     local carriedPaxA = (offeredPaxA < paxDirectionCapacity ? offeredPaxA : paxDirectionCapacity).tointeger();
@@ -729,8 +729,8 @@ function OpexC121AirEconomics(catalog, plan, plane, paxCapacity, mailCapacity, f
      * valoriser la perte au revenu moyen par unite DES lignes du hub. */
     local existingPaxAfterA = stationPaxA * (1.0 - routeSharePaxA);
     local existingPaxAfterB = stationPaxB * (1.0 - routeSharePaxB);
-    local existingPaxCapacityA = existingPaxRateA * 30.4;
-    local existingPaxCapacityB = existingPaxRateB * 30.4;
+    local existingPaxCapacityA = existingPaxRateA * OpexEstimMonthDays(30.4);
+    local existingPaxCapacityB = existingPaxRateB * OpexEstimMonthDays(30.4);
     if (existingPaxAfterA > existingPaxCapacityA) existingPaxAfterA = existingPaxCapacityA;
     if (existingPaxAfterB > existingPaxCapacityB) existingPaxAfterB = existingPaxCapacityB;
     local lostPaxA = existingPaxBeforeA > existingPaxAfterA ? existingPaxBeforeA - existingPaxAfterA : 0.0;
@@ -740,8 +740,8 @@ function OpexC121AirEconomics(catalog, plan, plane, paxCapacity, mailCapacity, f
     if (useMail) {
       existingMailAfterA = stationMailA * (1.0 - routeShareMailA);
       existingMailAfterB = stationMailB * (1.0 - routeShareMailB);
-      local existingMailCapacityA = existingMailRateA * 30.4;
-      local existingMailCapacityB = existingMailRateB * 30.4;
+      local existingMailCapacityA = existingMailRateA * OpexEstimMonthDays(30.4);
+      local existingMailCapacityB = existingMailRateB * OpexEstimMonthDays(30.4);
       if (existingMailAfterA > existingMailCapacityA) existingMailAfterA = existingMailCapacityA;
       if (existingMailAfterB > existingMailCapacityB) existingMailAfterB = existingMailCapacityB;
     }
@@ -1278,7 +1278,7 @@ function OpexC121OneOrTwoDepth(inv, planes)
   local offeredPaxB = stationPaxB * routeSharePaxB;
   local offeredMailA = stationMailA * routeShareMailA;
   local offeredMailB = stationMailB * routeShareMailB;
-  local departuresPerDirectionMonth = 30.4 * candidatePickupRate;
+  local departuresPerDirectionMonth = OpexEstimMonthDays(30.4) * candidatePickupRate;
   local paxDirectionCapacity = paxCapacity.tofloat() * departuresPerDirectionMonth;
   local mailDirectionCapacity = useMail ? mailCapacity.tofloat() * departuresPerDirectionMonth : 0.0;
   local carriedPaxA = (offeredPaxA < paxDirectionCapacity ? offeredPaxA : paxDirectionCapacity).tointeger();
@@ -1289,8 +1289,8 @@ function OpexC121OneOrTwoDepth(inv, planes)
   local carriedMail = carriedMailA + carriedMailB;
   local existingPaxAfterA = stationPaxA * (1.0 - routeSharePaxA);
   local existingPaxAfterB = stationPaxB * (1.0 - routeSharePaxB);
-  local existingPaxCapacityA = existingPaxRateA * 30.4;
-  local existingPaxCapacityB = existingPaxRateB * 30.4;
+  local existingPaxCapacityA = existingPaxRateA * OpexEstimMonthDays(30.4);
+  local existingPaxCapacityB = existingPaxRateB * OpexEstimMonthDays(30.4);
   if (existingPaxAfterA > existingPaxCapacityA) existingPaxAfterA = existingPaxCapacityA;
   if (existingPaxAfterB > existingPaxCapacityB) existingPaxAfterB = existingPaxCapacityB;
   local lostPaxA = existingPaxBeforeA > existingPaxAfterA ? existingPaxBeforeA - existingPaxAfterA : 0.0;
@@ -1300,8 +1300,8 @@ function OpexC121OneOrTwoDepth(inv, planes)
   if (useMail) {
     existingMailAfterA = stationMailA * (1.0 - routeShareMailA);
     existingMailAfterB = stationMailB * (1.0 - routeShareMailB);
-    local existingMailCapacityA = existingMailRateA * 30.4;
-    local existingMailCapacityB = existingMailRateB * 30.4;
+    local existingMailCapacityA = existingMailRateA * OpexEstimMonthDays(30.4);
+    local existingMailCapacityB = existingMailRateB * OpexEstimMonthDays(30.4);
     if (existingMailAfterA > existingMailCapacityA) existingMailAfterA = existingMailCapacityA;
     if (existingMailAfterB > existingMailCapacityB) existingMailAfterB = existingMailCapacityB;
   }
@@ -1523,7 +1523,7 @@ function OpexC121InitialEngineUpperScore(catalog, plan, plane, engineContext = n
   local mailIncome = engineContext != null ? engineContext.mailIncome
       : (useMail ? AICargo.GetCargoIncome(catalog.mailCargo, st.paymentDistance, incomeDays) : 0);
   if (useMail && mailIncome < 0) return null;
-  local departuresPerDirectionMonth = 30.4 / trip.roundTripDays;
+  local departuresPerDirectionMonth = OpexEstimMonthDays(30.4) / trip.roundTripDays;
   local paxDirectionCapacity = paxCapacity.tofloat() * departuresPerDirectionMonth;
   local paxUpperA = st.paxRawA.tofloat() < paxDirectionCapacity ? st.paxRawA.tofloat() : paxDirectionCapacity;
   local paxUpperB = st.paxRawB.tofloat() < paxDirectionCapacity ? st.paxRawB.tofloat() : paxDirectionCapacity;

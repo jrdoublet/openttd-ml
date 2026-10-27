@@ -11,6 +11,38 @@
 
 const V249_HORIZON_YEARS = 5;
 
+/* ESTIM-1 lot 3 (bit 4) : contrat M1 commun aux investissements sur lignes
+ * existantes. deltaR est une recette BRUTE, deltaE l'entretien annuel,
+ * deltaA l'amortissement annuel des vehicules, deltaC le prix net a payer.
+ * La correction de recette est autonome du bit 1 (apprentissage facultatif).
+ * Une amelioration peut avoir deltaR/deltaE negatifs : garder leurs signes. */
+function OpexEstimVProject(mode, deltaR, deltaE, deltaA, deltaC, kDec = -1, modeRevenues = null)
+{
+  local kR = (mode in ESTIM_K_R) ? ESTIM_K_R[mode] : 1.0;
+  local calibrated = kR * deltaR;
+  if (modeRevenues != null) {
+    calibrated = 0.0;
+    foreach (revenueMode, revenue in modeRevenues)
+      calibrated += revenue * ((revenueMode in ESTIM_K_R) ? ESTIM_K_R[revenueMode] : 1.0);
+  }
+  local deltaP = (calibrated - deltaE - deltaA).tointeger();
+  if (kDec < 0) kDec = OpexC69ComputeKDec().K_dec;
+  local capital = deltaC > 0 ? deltaC : 0;
+  local denominator = capital > kDec ? capital : kDec;
+  return { mode = mode, deltaR = deltaR, deltaE = deltaE, deltaA = deltaA,
+      deltaC = deltaC, deltaP = deltaP, score = OpexProjectScore(deltaP, denominator) };
+}
+
+function OpexEstimVLog(kind, id, project)
+{
+  if (!DECISION_LOG || project == null) return;
+  OpexDecide("ESTIM_VPROJECT", "kind=" + kind + " id=" + id
+      + " mode=" + project.mode + " deltaR=" + project.deltaR
+      + " deltaE=" + project.deltaE + " deltaA=" + project.deltaA
+      + " deltaC=" + project.deltaC + " deltaP=" + project.deltaP
+      + " score=" + project.score);
+}
+
 /* Capital du projet le plus cher encore liste : la statue ne doit jamais
  * prendre l'argent d'un projet que le portefeuille veut financer. */
 function OpexV249MaxListedCapital(projects)
@@ -183,6 +215,12 @@ function OpexV249LineServiceInfo(line, stationId, cargo)
   local unitRevenue = 0.0;
   if (profit > 0 && currentCarried > 0) {
     unitRevenue = profit.tofloat() / currentCarried;
+    if ((ESTIM_UNIFIE & 4) != 0) {
+      local expenses = 0;
+      foreach (vehicle in vehicles)
+        if (AIVehicle.IsValidVehicle(vehicle)) expenses += AIVehicle.GetRunningCost(vehicle);
+      unitRevenue = (profit + expenses).tofloat() / currentCarried;
+    }
   } else if (("predRevenue" in line) && line.predRevenue > 0 && ("predCarried" in line) && line.predCarried > 0) {
     unitRevenue = line.predRevenue.tofloat() / (line.predCarried * 12);
   } else if (("predicted" in line) && line.predicted > 0 && ("predCarried" in line) && line.predCarried > 0) {
@@ -241,10 +279,12 @@ function OpexV249DispatchMode2(ai, ym, year)
   local bestCargo = -1;
   local bestRating = -1;
   local bestProd = 0;
+  local bestProject = null;
   local found = false;
   local nStatue = 0;
   local nUnavail = 0;
   local nTowns = 0;
+  local kDec = (ESTIM_UNIFIE & 4) != 0 ? OpexC69ComputeKDec().K_dec : -1;
 
   foreach (townId, cargoMap in byTownCargoStation) {
     nTowns++;
@@ -258,6 +298,7 @@ function OpexV249DispatchMode2(ai, ym, year)
     }
 
     local townGain = 0;
+    local townModeRevenues = {};
     local topSt = -1;
     local topCg = -1;
     local topRt = -1;
@@ -291,6 +332,7 @@ function OpexV249DispatchMode2(ai, ym, year)
 
       local cargoExtraTotal = 0;
       local cargoRevSum = 0.0;
+      local cargoModeRevenues = {};
 
       foreach (stId, linesList in stations) {
         local ratingPct = AIStation.GetCargoRating(stId, cg);
@@ -327,19 +369,44 @@ function OpexV249DispatchMode2(ai, ym, year)
 
         cargoExtraTotal += deliverableStation;
         cargoRevSum += deliverableStation * stationAvgUnitRev;
+        if ((ESTIM_UNIFIE & 4) != 0) {
+          foreach (line in linesList) {
+            local sInfo = OpexV249LineServiceInfo(line, stId, cg);
+            local mode = ("mode" in line) ? line.mode : "unknown";
+            if (!(mode in cargoModeRevenues)) cargoModeRevenues.rawset(mode, 0.0);
+            cargoModeRevenues[mode] += deliverableStation * sInfo.spareCapacity
+                * sInfo.unitRevenue / stationSpareCap;
+          }
+        }
       }
 
       if (cargoExtraTotal <= 0) continue;
       local deliverableCargoTown = cargoExtraTotal < maxTownExtra ? cargoExtraTotal : maxTownExtra;
       local avgCargoUnitRev = cargoRevSum / cargoExtraTotal;
       townGain += (deliverableCargoTown * avgCargoUnitRev).tointeger();
+      if ((ESTIM_UNIFIE & 4) != 0)
+        foreach (mode, revenue in cargoModeRevenues) {
+          if (!(mode in townModeRevenues)) townModeRevenues.rawset(mode, 0.0);
+          townModeRevenues[mode] += revenue * deliverableCargoTown / cargoExtraTotal;
+        }
     }
 
     if (townGain <= 0) continue;
-    if (!found || townGain > bestGain || (townGain == bestGain && townId < bestTown)) {
+    local statueProject = null;
+    if ((ESTIM_UNIFIE & 4) != 0) {
+      local statueCost = OpexV249MeasureStatueCost(townId);
+      statueProject = OpexEstimVProject("mixed", townGain, 0, 0, statueCost,
+          kDec, townModeRevenues);
+      if (statueProject.deltaP <= 0 || statueProject.deltaC <= 0) continue;
+    }
+    if (!found || ((ESTIM_UNIFIE & 4) != 0
+        ? (statueProject.score > bestProject.score
+          || (statueProject.score == bestProject.score && townId < bestTown))
+        : (townGain > bestGain || (townGain == bestGain && townId < bestTown)))) {
       found = true;
       bestTown = townId;
       bestGain = townGain;
+      bestProject = statueProject;
       bestStation = topSt;
       bestCargo = topCg;
       bestRating = topRt;
@@ -355,7 +422,17 @@ function OpexV249DispatchMode2(ai, ym, year)
   local cost = OpexV249MeasureStatueCost(bestTown);
   local bestCargoLabel = AICargo.IsValidCargo(bestCargo) ? AICargo.GetCargoLabel(bestCargo) : "unknown";
 
-  if (bestGain * V249_HORIZON_YEARS <= cost) {
+  if ((ESTIM_UNIFIE & 4) != 0) {
+    local project = bestProject;
+    project.deltaC = cost;
+    OpexEstimVLog("V249", bestTown, project);
+    if (project.deltaP <= 0 || project.deltaC <= 0) {
+      if (DECISION_LOG) OpexDecide("V249_SKIP", "reason=estim_margin town=" + bestTown + " deltaP=" + project.deltaP);
+      return true;
+    }
+  }
+
+  if ((ESTIM_UNIFIE & 4) == 0 && bestGain * V249_HORIZON_YEARS <= cost) {
     if (DECISION_LOG) OpexDecide("V249_SKIP", "reason=payback town=" + bestTown + " station=" + bestStation + " cargo=" + bestCargoLabel + " rating=" + bestRating + " prod=" + bestProd + " gain=" + bestGain + " cost=" + cost + " horizon=" + V249_HORIZON_YEARS);
     return true;
   }
@@ -364,6 +441,8 @@ function OpexV249DispatchMode2(ai, ym, year)
   local bestProjCap = OpexV249BestAdmissibleCapital(ai._projects, ai._lines, cash);
   local v252Cost = OpexV249GetPendingV252Cost(ai);
   local threshold = bestProjCap + v252Cost;
+  if ((ESTIM_UNIFIE & 2) != 0)
+    threshold = OpexEstimFinanceCashNeeded("statue", 0, 0);
 
   if (cost <= 0 || cash - cost < threshold) {
     if (DECISION_LOG) OpexDecide("V249_SKIP", "reason=cost town=" + bestTown + " station=" + bestStation + " cargo=" + bestCargoLabel + " rating=" + bestRating + " prod=" + bestProd + " gain=" + bestGain + " cost=" + cost + " cash=" + cash + " threshold=" + threshold + " best_proj=" + bestProjCap + " v252=" + v252Cost);
@@ -400,7 +479,7 @@ function OpexAI::_dispatchV249Statue(task, year)
     return true;
   }
 
-  if (V249_STATUE == 2) {
+  if (V249_STATUE == 2 || (ESTIM_UNIFIE & 4) != 0) {
     return OpexV249DispatchMode2(this, ym, year);
   }
 
@@ -458,6 +537,8 @@ function OpexAI::_dispatchV249Statue(task, year)
   local cost = OpexV249MeasureStatueCost(bestTown);
   local cash = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
   local threshold = OpexCashReserve() + OpexV249MaxListedCapital(this._projects);
+  if ((ESTIM_UNIFIE & 2) != 0)
+    threshold = OpexEstimFinanceCashNeeded("statue", 0, 0);
   if (cost <= 0 || cash - cost < threshold) {
     if (DECISION_LOG) OpexDecide("V249_SKIP", "reason=cost cash=" + cash + " cost=" + cost + " threshold=" + threshold + " town=" + bestTown);
     return true;

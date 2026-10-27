@@ -553,6 +553,7 @@ function OpexProjectFitFleetToBudget(project, capitalBudget)
   local have = ("vehCount" in line) ? line.vehCount : line.vehicles.len();
   if (("baseVehicles" in entry) && have != entry.baseVehicles) return null;
   local purchaseBudget = capitalBudget - 1000; // tampon d'OpexAirAddPlane
+  if ((ESTIM_UNIFIE & 2) != 0) purchaseBudget = capitalBudget;
   if (entry.planePrice <= 0 || entry.want <= 0 || purchaseBudget < entry.planePrice) return null;
   local quantity = (purchaseBudget / entry.planePrice).tointeger();
   if (quantity >= entry.want) return project;
@@ -566,6 +567,14 @@ function OpexProjectFitFleetToBudget(project, capitalBudget)
   fitted.payload = reduced;
   fitted.capital = quantity * entry.planePrice;
   fitted.budgetCapital = fitted.capital + 1000;
+  if ((ESTIM_UNIFIE & 2) != 0) fitted.budgetCapital = fitted.capital;
+  if ((ESTIM_UNIFIE & 4) != 0 && ("deltaR" in project)) {
+    fitted.deltaR = (project.deltaR / entry.want) * quantity;
+    fitted.deltaE = (project.deltaE / entry.want) * quantity;
+    fitted.deltaA = (project.deltaA / entry.want) * quantity;
+    fitted.deltaC = fitted.capital;
+    fitted.deltaP = fitted.deltaR - fitted.deltaE - fitted.deltaA;
+  }
   fitted.profitAnnual = (project.profitAnnual / entry.want) * quantity;
   fitted.revenueAnnual = (project.revenueAnnual / entry.want) * quantity;
   if (fitted.profitAnnual <= 0) return null;
@@ -1366,9 +1375,9 @@ function OpexProjectsStampSelectionStats(stats, projects, alternatives, funded, 
         && ("planePrice" in p.payload) && p.payload.planePrice > 0) {
       local planePrice = p.payload.planePrice;
       local want = ("want" in p.payload) ? p.payload.want : 1;
-      local fitQty = ((capitalBudget - 1000) / planePrice).tointeger();
+      local fitQty = ((capitalBudget - ((ESTIM_UNIFIE & 2) != 0 ? 0 : 1000)) / planePrice).tointeger();
       if (fitQty < 0) fitQty = 0;
-      if (fitQty < want) cap = (fitQty + 1) * planePrice + 1000;
+      if (fitQty < want) cap = (fitQty + 1) * planePrice + ((ESTIM_UNIFIE & 2) != 0 ? 0 : 1000);
     }
     if (cap > capitalBudget && (nextCap < 0 || cap < nextCap)) nextCap = cap;
   }
