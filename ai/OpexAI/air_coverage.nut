@@ -13,6 +13,11 @@ function OpexAirResetSiteCache(invalidateGeometry = true)
 {
   if (V278_AIR_LAZY_SITES) OpexV278InvalidateSites();
   AIR_SITE_CACHE.clear();
+  AIR_SITE_FUNNEL_DEAD.clear();
+  AIR_SITE_FUNNEL_LIST.clear();
+  AIR_SITE_FUNNEL_LIST_MONTH = -1;
+  AIR_SITE_FUNNEL_RAW.clear();
+  AIR_SITE_FUNNEL_PEN.clear();
   AIR_STATION_COVERAGE_TOWN_CACHE.clear();
   AIR_C121_STATION_COVERAGE_CACHE.clear();
   if (invalidateGeometry) OpexC121InvalidateEndpointGeometry();
@@ -86,6 +91,27 @@ function OpexAirInvalidateCachedSite(site, airport)
   if (V278_AIR_LAZY_SITES) OpexV278InvalidateSites();
   if (site == null) return;
   local key = site.town.id + "_" + airport.type;
+  /* Le mode 0 ne touche pas ces tables : la spirale ne les consulte pas.
+   * Un echec reel (emprise non plate) ne doit pas reeligir la meme ancre. */
+  if (AIR_SITE_FUNNEL > 0 && site.anchor != null) {
+    AIR_SITE_FUNNEL_DEAD.rawset(site.anchor, 1);
+    /* On retire seulement l'ancre morte : le reste de la liste evite un
+     * nouveau Valuate dans le mois. Liste vide : on l'oublie. */
+    if (key in AIR_SITE_FUNNEL_LIST) {
+      local packed = AIR_SITE_FUNNEL_LIST[key];
+      local keptA = [];
+      local keptS = [];
+      local anchors = packed.anchors;
+      local scores = packed.scores;
+      for (local i = 0; i < anchors.len(); i++) {
+        if (anchors[i] == site.anchor) continue;
+        keptA.append(anchors[i]);
+        keptS.append(scores[i]);
+      }
+      if (keptA.len() == 0) delete AIR_SITE_FUNNEL_LIST[key];
+      else AIR_SITE_FUNNEL_LIST.rawset(key, { anchors = keptA, scores = keptS });
+    }
+  }
   if (key in AIR_SITE_CACHE && AIR_SITE_CACHE[key] == site.anchor) {
     delete AIR_SITE_CACHE[key];
     if (V279_RESELECT_MEMO != 0) OPEX_AIR_SITE_EPOCH++;

@@ -360,10 +360,25 @@ V278_AIR_VALIDITY <- null;
 V278_AIR_EPOCH <- 0;
 C96_AIR_SITE_MAX_VALID <- 4;
 C96_AIR_SITE_EXTRA_RINGS <- 1;
-/* air_site_funnel : 0 = spirale actuelle, 1 = entonnoir. Defaut inchange. */
+/* air_site_funnel : 0 = spirale actuelle, 1 = entonnoir. Defaut inchange.
+ * Les drapeaux suivants ne sont pas des reglages joueur : ils servent a
+ * mesurer chaque levier. La livraison garde bandes, borne, cout et liste. */
 AIR_SITE_FUNNEL <- 0;
 AIR_SITE_FUNNEL_BATCH <- 5;
 AIR_SITE_OPS_MARK <- null;
+AIR_SITE_FUNNEL_BANDS_ON <- 1;
+AIR_SITE_FUNNEL_BOUND_ON <- 1;
+AIR_SITE_FUNNEL_COST_ON <- 1;
+AIR_SITE_FUNNEL_LIST_ON <- 1;
+AIR_SITE_FUNNEL_KEEP_TOP <- 0;
+AIR_SITE_FUNNEL_SLOPE_PENALTY <- 4;
+AIR_SITE_FUNNEL_COST_CAP <- 16;
+AIR_SITE_FUNNEL_LIST_CAP <- 24;
+AIR_SITE_FUNNEL_DEAD <- {};
+AIR_SITE_FUNNEL_LIST <- {};
+AIR_SITE_FUNNEL_LIST_MONTH <- -1;
+AIR_SITE_FUNNEL_RAW <- {};
+AIR_SITE_FUNNEL_PEN <- {};
 C117_AIR_SAMPLE_DAYS <- 2;
 C117_AIR_LAST_DATE <- -1;
 C117_AIR_LINE_STATE <- {};
