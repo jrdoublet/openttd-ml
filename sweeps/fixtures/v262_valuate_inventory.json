@@ -67,11 +67,6 @@
   [
     "air_site_funnel.nut",
     "tiles",
-    "AITile.IsBuildableRectangle,w,h"
-  ],
-  [
-    "air_site_funnel.nut",
-    "tiles",
     "AITile.IsWaterTile"
   ],
   [
@@ -82,22 +77,17 @@
   [
     "air_site_funnel.nut",
     "tiles",
-    "AITile.GetClosestTown"
+    "AITile.IsRiverTile"
   ],
   [
     "air_site_funnel.nut",
     "tiles",
-    "AIAirport.GetNearestTown,airport.type"
+    "AITile.GetMinHeight"
   ],
   [
     "air_site_funnel.nut",
     "tiles",
-    "AITile.GetCargoAcceptance,paxCargo,w,h,radius"
-  ],
-  [
-    "air_site_funnel.nut",
-    "tiles",
-    "AITile.GetCargoProduction,paxCargo,w,h,radius"
+    "AITile.GetMaxHeight"
   ],
   [
     "air_towns.nut",

@@ -25,7 +25,7 @@ SETTINGS_DELTA = (
 AIR_FUNNEL_INFO_DELTA = (
     b'    AddSetting({\n'
     b'      name = "air_site_funnel",\n'
-    b'      description = "Airport site search: 0 = current ring spiral (default), 1 = native tile-list funnel stopping at the best score",\n'
+    b'      description = "Airport site search: 0 = current ring spiral (default), 1 = same spiral with a native footprint predicate",\n'
     b'      min_value = 0, max_value = 1,\n'
     b'      easy_value = 0, medium_value = 0, hard_value = 0,\n'
     b'      custom_value = 0, flags = 0, step_size = 1\n'
@@ -49,6 +49,25 @@ AIR_SITE_C96_HEAD_OLD = (
 AIR_SITE_C96_TAIL_NEW = b'      + " best_ring=" + bestRing + " probes=" + used + " ops=" + ops);\n'
 AIR_SITE_C96_TAIL_OLD = b'      + " best_ring=" + bestRing + " probes=" + used);\n'
 
+# Telemetrie AIR_SITE_SEARCH sur les deux lignes AIR_PLAN_PERF. Le gel
+# po01d reste le fichier sans ces deux champs.
+AIR_PLAN_PERF_DECIDE_NEW = (
+    b'               + " plans=" + (projects != null ? projects.len() : (bestPlan != null ? 1 : 0))\n'
+    b'               + " site_search_ops=" + AIR_SITE_SEARCH_OPS\n'
+    b'               + " site_search_calls=" + AIR_SITE_SEARCH_CALLS);\n'
+)
+AIR_PLAN_PERF_DECIDE_OLD = (
+    b'               + " plans=" + (projects != null ? projects.len() : (bestPlan != null ? 1 : 0)));\n'
+)
+AIR_PLAN_PERF_LOG_NEW = (
+    b'             + " c121_endpoint_misses=" + (C121_AIR_PLAN_PERF != null ? C121_AIR_PLAN_PERF.endpointMisses : 0)\n'
+    b'             + " site_search_ops=" + AIR_SITE_SEARCH_OPS\n'
+    b'             + " site_search_calls=" + AIR_SITE_SEARCH_CALLS);\n'
+)
+AIR_PLAN_PERF_LOG_OLD = (
+    b'             + " c121_endpoint_misses=" + (C121_AIR_PLAN_PERF != null ? C121_AIR_PLAN_PERF.endpointMisses : 0));\n'
+)
+
 
 def _strip_once(raw, name, delta, replacement=b""):
     assert raw.count(delta) == 1, f"{name}: expected precisely one unchanged opt-in fragment"
@@ -59,6 +78,9 @@ def historical_bytes(name, raw):
     if name == "air_sites.nut":
         raw = _strip_once(raw, name, AIR_SITE_C96_HEAD_NEW, AIR_SITE_C96_HEAD_OLD)
         return _strip_once(raw, name, AIR_SITE_C96_TAIL_NEW, AIR_SITE_C96_TAIL_OLD)
+    if name == "air_planning.nut":
+        raw = _strip_once(raw, name, AIR_PLAN_PERF_DECIDE_NEW, AIR_PLAN_PERF_DECIDE_OLD)
+        return _strip_once(raw, name, AIR_PLAN_PERF_LOG_NEW, AIR_PLAN_PERF_LOG_OLD)
     deltas = {
         "info.nut": (INFO_DELTA, AIR_FUNNEL_INFO_DELTA),
         "settings.nut": (SETTINGS_DELTA, AIR_FUNNEL_SETTINGS_DELTA),

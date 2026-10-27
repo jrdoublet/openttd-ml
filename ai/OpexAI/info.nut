@@ -531,7 +531,7 @@ class OpexAIInfo extends AIInfo {
     });
     AddSetting({
       name = "air_site_funnel",
-      description = "Airport site search: 0 = current ring spiral (default), 1 = native tile-list funnel stopping at the best score",
+      description = "Airport site search: 0 = current ring spiral (default), 1 = same spiral with a native footprint predicate",
       min_value = 0, max_value = 1,
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0, flags = 0, step_size = 1

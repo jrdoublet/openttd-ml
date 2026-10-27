@@ -294,11 +294,9 @@ class ForumBehaviours(unittest.TestCase):
             "AIEngine.IsBuildable", "AIEngine.IsWagon", "AIEngine.CanRunOnRail", "AIMap.GetTileX", "AIMap.DistanceManhattan", "AIMap.DistanceMax",
             "AIRail.IsRailTypeAvailable", "AIRoad.IsRoadDepotTile", "AIRoad.IsRoadStationTile",
             "AIRoad.IsRoadTile", "AIStation.GetNearestTown", "AITile.GetCargoProduction",
-            # air_site_funnel: acceptance native, meme signature que la production.
-            "AITile.GetCargoAcceptance",
-            "AITile.IsBuildableRectangle",
             "AITile.GetClosestTown", "AITile.GetMaxHeight", "AITile.GetMinHeight",
             "AITile.GetSlope", "AITile.IsBuildable", "AITile.IsCoastTile",
+            "AITile.IsRiverTile",
             "AITile.IsStationTile", "AITile.IsWaterTile", "AIVehicle.GetRunningCost",
             "AITown.GetPopulation", "AIIndustry.GetLastMonthProduction",
         }
