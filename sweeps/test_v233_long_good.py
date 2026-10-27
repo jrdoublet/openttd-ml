@@ -923,7 +923,7 @@ class V233LongGoodContracts(unittest.TestCase):
             self.assertRegex(block, level + r"_value\s*=\s*1\b")
         self.assertEqual(source("settings.nut").count('GetSetting("v233_long_good")'), 1)
         self.assertIn("V233_LONG_GOOD <- 1;", source("globals_pre.nut"))
-        self.assertEqual(source("info.nut").count("AddSetting("), 80)
+        self.assertEqual(source("info.nut").count("AddSetting("), 82)  # + air_site_probe/ranked + AIR-LOAD-1
 
     def test_off_reviewed_edits_preserve_all_original_hashes(self):
         self.assertEqual(

@@ -876,6 +876,8 @@ def historical_bytes(name, raw):
         assert raw.count(AIR_LOAD_INFO_DELTA) == 1, "AIR-LOAD-1 info.nut: opt-in bytes changed"
         raw = raw.replace(AIR_LOAD_INFO_DELTA, b"", 1)
     raw = estim_off_bytes(name, raw)
+    from air_site_probe_legacy import off_source as air_probe_off
+    raw = air_probe_off(name, raw.decode("utf-8")).encode("utf-8")
     raw = _project_v233l_off(name, raw)
     if name == "air_sites.nut":
         raw = _strip_once(raw, name, AIR_SITE_C96_NEW, AIR_SITE_C96_OLD)
