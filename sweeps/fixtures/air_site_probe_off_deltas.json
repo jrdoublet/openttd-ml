@@ -1,0 +1,18 @@
+{
+  "main.nut": {
+    "marker": "OpexLoadAirSiteProbeSetting();",
+    "fragment": "  OpexLoadAirSiteProbeSetting();\n  if (AIR_SITE_PROBE > 0) {\n    require(\"air_site_probe.nut\");\n    OpexAirSiteProbeRun(this);\n    return;\n  }\n"
+  },
+  "settings.nut": {
+    "marker": "function OpexLoadAirSiteProbeSetting(",
+    "fragment": "function OpexLoadAirSiteProbeSetting()\n{\n  local method = AIController.GetSetting(\"air_site_probe\");\n  AIR_SITE_PROBE = method >= 1 && method <= 9 ? method : 0;\n}\n\n"
+  },
+  "globals_pre.nut": {
+    "marker": "AIR_SITE_PROBE <-",
+    "fragment": "AIR_SITE_PROBE <- 0; // Read once at Start; no probe code loaded when OFF.\n"
+  },
+  "info.nut": {
+    "marker": "name = \"air_site_probe\"",
+    "fragment": "    AddSetting({\n      name = \"air_site_probe\",\n      description = \"Solo site probe, no construction: 0 off, 1 spiral, 2 hybrid, 3 initial, 4 bands, 5 border, 6 funnel, 7 strict, 8 strict_full, 9 oracle\",\n      min_value = 0, max_value = 9,\n      easy_value = 0, medium_value = 0, hard_value = 0,\n      custom_value = 0, flags = 0, step_size = 1\n    });\n"
+  }
+}

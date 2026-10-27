@@ -678,6 +678,12 @@ require("selftests.nut");
 
 function OpexAI::Start()
 {
+  OpexLoadAirSiteProbeSetting();
+  if (AIR_SITE_PROBE > 0) {
+    require("air_site_probe.nut");
+    OpexAirSiteProbeRun(this);
+    return;
+  }
   AICompany.SetName("OpexAI");
   this._startTick = AIController.GetTick();
 

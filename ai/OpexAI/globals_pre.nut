@@ -396,6 +396,7 @@ C96_AIR_SITE_EXTRA_RINGS <- 1;
  * AIR_SITE_SEARCH_* cumule les opcodes de chaque OpexAirFindSite, scan
  * finalise ou non. Telemetrie, hors Save. */
 AIR_SITE_FUNNEL <- 1;
+AIR_SITE_PROBE <- 0; // Read once at Start; no probe code loaded when OFF.
 AIR_SITE_OPS_MARK <- null;
 AIR_SITE_SEARCH_OPS <- 0;
 AIR_SITE_SEARCH_CALLS <- 0;

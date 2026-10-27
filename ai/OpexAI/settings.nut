@@ -30,6 +30,12 @@ function OpexResolveDifficulty()
 /* C65 passe 2 & regroupement macro-politiques : lecture unique des reglages.
  * Fonction libre : n'affecte que des globales. Les mutations d'instance
  * restent dans Start(), juste apres l'appel. */
+function OpexLoadAirSiteProbeSetting()
+{
+  local method = AIController.GetSetting("air_site_probe");
+  AIR_SITE_PROBE = method >= 1 && method <= 9 ? method : 0;
+}
+
 function OpexLoadSettings()
 {
   /* Le masque doit etre initialise avant la toute premiere sonde AIR. */
