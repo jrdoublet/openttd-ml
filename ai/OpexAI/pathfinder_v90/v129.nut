@@ -391,10 +391,21 @@ class OpexRailPathFinderV129 extends OpexRailPathFinderV90
 		this._bestBridgeForLength = bridgeTable;
 
 		foreach (node in sources) {
-				local p0 = this._pathfinder.Path(null, node[1], 0xFF, 0, 1 << (node[1] % 61));
-			local c1 = this._Cost(p0, node[0], 0xFF, this);
+			/* Defaut 0 : les trois instructions d'origine. L'approche avant
+			 * la sortie n'existe que pour un detour local V233L. */
+			if (V233_LONG_GOOD > 0 && node.len() >= 3 && node[2] != null) {
+				local rootPath = this._pathfinder.Path(null, node[2], 0xFF, 0, 1 << (node[2] % 61));
+				local bloomExit = (1 << (node[1] % 61)) | rootPath._bloom;
+				local p0 = this._pathfinder.Path(rootPath, node[1], 0xFF, 0, bloomExit);
+				local c1 = this._Cost(p0, node[0], 0xFF, this);
 				local b1 = p0._bloom | (1 << (node[0] % 61));
-			nsources.push(this._pathfinder.Path(p0, node[0], 0xFF, c1, b1));
+				nsources.push(this._pathfinder.Path(p0, node[0], 0xFF, c1, b1));
+			} else {
+				local p0 = this._pathfinder.Path(null, node[1], 0xFF, 0, 1 << (node[1] % 61));
+				local c1 = this._Cost(p0, node[0], 0xFF, this);
+				local b1 = p0._bloom | (1 << (node[0] % 61));
+				nsources.push(this._pathfinder.Path(p0, node[0], 0xFF, c1, b1));
+			}
 		}
 		this._goals = goals;
 		this._pathfinder.InitializePath(nsources, goals, ignored_tiles);

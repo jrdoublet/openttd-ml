@@ -2,6 +2,8 @@
 
 Historical inventory ceilings and PO01C byte hashes must continue to cover
 the same 58 legacy settings and the exact original bytes. Never rebaseline.
+V233L is projected OFF first from the rebased fixture, then the other
+reviewed opt-in fragments are subtracted.
 """
 
 import hashlib
@@ -736,7 +738,40 @@ def _strip_dist_bornes_unified_candidates(raw):
     return raw
 
 
+def _project_v233l_off(name, raw):
+    """Restore origin/master bytes for files patched by V233L.
+
+    The OFF fixture is rebased onto the current master functions. Tests that
+    already projected the hunks skip this step; a mixed state is an error.
+    """
+    from v233_long_good_legacy import FIXTURE
+    entry = FIXTURE["files"].get(name)
+    if entry is None:
+        return raw
+    text = raw.decode("utf-8")
+    missing = 0
+    present = 0
+    for edit in entry["edits"]:
+        n = text.count(edit["guarded"])
+        if n == 1:
+            present += 1
+        elif n == 0:
+            missing += 1
+        else:
+            raise AssertionError(f"V233L {name}: guarded hunk count {n}")
+    if missing == len(entry["edits"]):
+        return raw
+    if missing:
+        raise AssertionError(
+            f"V233L {name}: mixed OFF projection present={present} missing={missing}"
+        )
+    for edit in reversed(entry["edits"]):
+        text = text.replace(edit["guarded"], edit["off"], 1)
+    return text.encode("utf-8")
+
+
 def historical_bytes(name, raw):
+    raw = _project_v233l_off(name, raw)
     shadow_delta = MULTI1_ROAD_CARGO_DELTAS.get(name)
     if shadow_delta is not None:
         assert raw.count(shadow_delta) == 1, f"MULTI-1 ROAD SHADOW {name}: new opt-in fragment changed"

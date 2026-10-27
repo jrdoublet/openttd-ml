@@ -5,6 +5,7 @@ import hashlib
 from po01c_generate import AI, DEEP_SOURCES, generated, function, unit_sites, bridge, budgeted_pax
 from test_v261_forum_behaviours import source, body, uncomment
 from po01c_diagnostics import pending_save_dates, summarize
+from v233_long_good_legacy import off_bytes
 
 
 def unbudgeted_pax(code):
@@ -252,8 +253,8 @@ class PO01CContracts(unittest.TestCase):
         from n75_mc_legacy import historical_bytes
         for name, digest in expected.items():
             # P1 inserts only the guarded no-second-A* safety check in builder_rail.
-            # The R07/R11 historical SHA itself remains untouched.
-            current = (AI / name).read_bytes()
+            # V233L is projected OFF first; the R07/R11 historical SHA stays untouched.
+            current = off_bytes(name, (AI / name).read_bytes())
             if name == 'builder_rail.nut':
                 current = historical_bytes(name, current)
             self.assertEqual(hashlib.sha256(current).hexdigest(), digest)
@@ -443,7 +444,7 @@ class PO01CContracts(unittest.TestCase):
         from n75_mc_legacy import historical_bytes
         for name, digest in expected.items():
             with self.subTest(name=name):
-                legacy = historical_bytes(name, (AI / name).read_bytes())
+                legacy = historical_bytes(name, off_bytes(name, (AI / name).read_bytes()))
                 self.assertEqual(hashlib.sha256(legacy).hexdigest(), digest)
 
         # PO03 ajoute exactement deux lignes dans _dispatchReactiveIntention.
@@ -456,7 +457,7 @@ class PO01CContracts(unittest.TestCase):
             b'(this._po01cJob != null || this._po01cPending))\n'
             b'      blocked = true;\n'
         )
-        orchestrator = (AI / 'orchestrator.nut').read_bytes()
+        orchestrator = off_bytes('orchestrator.nut', (AI / 'orchestrator.nut').read_bytes())
         self.assertEqual(orchestrator.count(guard), 1, 'garde PO03 exactement une fois')
         dispatch = function(source('orchestrator.nut'), 'OpexAI::_dispatchReactiveIntention')
         self.assertIn(guard.decode('ascii'), dispatch)

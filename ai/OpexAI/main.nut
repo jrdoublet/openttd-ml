@@ -46,6 +46,7 @@ require("spatial.nut");
 require("terrain_map.nut");
 require("water_graph.nut");
 require("candidates.nut");
+require("v233_long_good.nut");
 require("candidates_v276.nut");
 require("tension.nut");
 require("projects.nut");
@@ -142,6 +143,7 @@ class OpexAI extends AIController {
    * boucle principale continue par pas de dix jours. Jamais de Sleep bloquant dans la tache. */
   _railExpansion = null;
   _v284State = null; // entiers/identites uniquement ; transaction et cadence hors projection.
+  _v233LReload = null; // donnees brutes de Load, consommees apres lecture des reglages.
   /* Recherche A* ferroviaire reprise d'un tour de file a l'autre (docs/taches.md A4). Meme
    * patron que _railExpansion : l'etat vit ici, il est repris en TETE de _runNextTask, et on
    * termine en remettant _railSearch = null. Le pathfinder lui-meme est dans state.pathfinder. */
@@ -681,6 +683,8 @@ function OpexAI::Start()
 
   OpexLoadSettings();
   OpexV147ExtendQueue(this);
+  V233L_STATE = V233_LONG_GOOD > 0 ? OpexV233LLoad(this._v233LReload) : null;
+  this._v233LReload = null;
   if (V309_IDLE_PROBE) V309_IDLE_STATE = null;
   if (V276_CAND_SLICES > 0) V276_CATALOG_TASK = this._taskQueue[0];
   this._v184InitRailSlots();

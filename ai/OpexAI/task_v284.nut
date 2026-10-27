@@ -53,20 +53,23 @@ function OpexV284Equipment(line, vehicle, wagon, number)
   return best;
 }
 
-function OpexV284Select(owner, year)
+function OpexV284Select(owner, year, v233Input = false)
 {
   if (OpexV284Busy(owner)) return true;
   if (!SAVE_FULL_STATE || owner._v257Pending != null || owner._railExpansion != null
       || owner._catalog == null || owner._lines == null) return false;
   if (owner._railSearch != null && owner._railSearch.kind == "upgrade") return false;
-  if (year < OPEX_START_YEAR + V284_RAIL_GROWTH || OpexAvailableCapital() < 1000000) return false;
+  if (!v233Input && (year < OPEX_START_YEAR + V284_RAIL_GROWTH || OpexAvailableCapital() < 1000000)) return false;
   if (owner._v284State == null) owner._v284State = { nextDate = 0, dates = {}, loops = {}, pending = null };
   local state = owner._v284State;
   local date = AIDate.GetCurrentDate();
-  if (date < state.nextDate) return false;
-  state.nextDate = date + 30; // au plus un choix/mois, pas une recherche de fenetre par tick.
+  if (!v233Input && date < state.nextDate) return false;
+  if (!v233Input) state.nextDate = date + 30; // au plus un choix/mois, pas une recherche de fenetre par tick.
   local best = null;
+  local v233Mark = v233Input ? OpexOpsMeasureBegin() : null;
   foreach (line in owner._lines) {
+    if (v233Input && OpexOpsMeasureEnd(v233Mark) >= V233L_SLICE_OPS) break;
+    if (v233Input && !OpexV233LInputTarget(line)) continue;
     if (!("mode" in line) || line.mode != "rail" || !("kind" in line) || line.kind != "freight"
         || !("platformLength" in line) || !("depot" in line) || !("distance" in line)) continue;
     if (line.vehicles.len() != 1 || line.trains != 1 || OpexV163Wagons2(line) > 0) continue;
@@ -96,6 +99,7 @@ function OpexV284Select(owner, year)
     local maxWagons = OpexRailNominalMaxWagons(length);
     /* La longueur mesuree protege aussi les compositions NewGRF plus longues. */
     local atLimit = number >= maxWagons || AIVehicle.GetLength(vehicle) + 8 > length * 16;
+    if (v233Input && !OpexV233LBacklog(line, waiting, atLimit ? capacity : wagon.capacity)) continue;
     if (atLimit && (waiting < capacity || !OpexRailVehicleSlotAvailable())) continue;
     if (atLimit && (line.lineId in state.loops)) continue;
     local score = line.distance.tofloat() * waiting / capacity;
@@ -126,6 +130,7 @@ function OpexV284Select(owner, year)
       return false;
     }
   }
+  if (v233Input && !OpexV233LInputMargin(line, best, equipment, number, loopPlan)) return false;
   local oneWay = line.distance.tofloat() / (0.036 * equipment.speed);
   local waitDays = (2 * oneWay).tointeger() + 60;
   if (waitDays < 120) waitDays = 120;
@@ -139,6 +144,7 @@ function OpexV284Select(owner, year)
     phase = "approach", deadline = date + waitDays, before = null,
     depot = line.depot, waiting = best.waiting, cashBefore = 0
   };
+  if (v233Input) state.pending.v233Input <- true;
   OpexV284Log("pick", "line=" + line.lineId + " kind=" + (best.add ? "train" : "wagon")
       + " waiting=" + best.waiting + " capacity=" + best.capacity + " distance=" + line.distance
       + " old_wagons=" + best.number + " new_wagons=" + number + " engine=" + equipment.engine
@@ -355,6 +361,8 @@ function OpexV284Adopt(owner, line, pending)
   line.trains = line.vehicles.len();
   line.vehCount <- line.trains;
   owner._saveProjection = null;
+  if (V233_LONG_GOOD > 0 && ("v233Input" in pending) && DECISION_LOG)
+    OpexV233LLog("INPUT_GROW", "line=" + line.lineId + " trains=" + line.trains + " wagons=" + line.wagons);
 }
 
 function OpexV284Cancel(owner, pending, reason)

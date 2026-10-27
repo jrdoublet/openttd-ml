@@ -29,6 +29,7 @@ from __future__ import annotations
 import re
 import sys
 import unittest
+from v233_long_good_legacy import off_source  # explicit OFF projection, original hashes retained
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -39,7 +40,7 @@ from campaign_freeze import parse_ai_setting_specs  # noqa: E402
 
 
 def _read(name: str) -> str:
-    return (AI / name).read_text(encoding="utf-8")
+    return off_source(name, (AI / name).read_text(encoding="utf-8"))
 
 
 def _function_body(source: str, name: str) -> str:

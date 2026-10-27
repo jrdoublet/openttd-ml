@@ -27,6 +27,7 @@ class FixedPolicies(unittest.TestCase):
         info, settings = historical_info(read("info.nut")), read("settings.nut")
         # 101 options initiales, 43 retraits intentionnels ; PO03/C77 et
         # PO02 restent declares et actifs malgre leur absence du vieux WIP.
+        # V233L est retire par historical_info : historique toujours 58.
         self.assertLessEqual(info.count("AddSetting("), 58)
         for name in PACKAGES:
             with self.subTest(name=name):

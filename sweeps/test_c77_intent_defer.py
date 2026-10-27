@@ -6,12 +6,13 @@ import json
 from pathlib import Path
 import re
 import unittest
+from v233_long_good_legacy import off_source  # explicit OFF projection, original hashes retained
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
 def source(name):
-    return (ROOT / 'ai/OpexAI' / name).read_text(encoding='utf-8')
+    return off_source(name, (ROOT / 'ai/OpexAI' / name).read_text(encoding='utf-8'))
 
 
 class DispatchModel:

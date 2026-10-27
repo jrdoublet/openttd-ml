@@ -10,6 +10,7 @@ from collections import Counter
 from pathlib import Path
 import re
 import unittest
+from v233_long_good_legacy import off_source  # explicit OFF projection, original hashes retained
 
 from sweeps.diag_v307_sites import autopsy, iso_state, parse_logs, summarise
 
@@ -18,7 +19,7 @@ AI = Path(__file__).resolve().parents[1] / "ai" / "OpexAI"
 
 
 def source(file):
-    return (AI / file).read_text(encoding="utf-8")
+    return off_source(file, (AI / file).read_text(encoding="utf-8"))
 
 
 def octant(dx, dy):

@@ -9,6 +9,215 @@ risque) : [ordre de clôture du 26/10](classement_taches_20261026.md).
 
 ## État courant
 
+**27/10 — V233L + entonnoir site B (`5a48b623`, défaut 0, non qualifié).** Première double voie longue au smoke 15 (`a420a574`, 247 tuiles, 2 trains) ; smoke 16 avec `v233_site_funnel=1` : 3 lignes GOOD dont 169 tuiles en double voie, +210 k (graine 100). Entonnoir : rayon min 12, pré-test d'emprise au centre, `V233L_SITE` −86 % d'opcodes. Bancs, bras `v233_long_good=0,v233_site_funnel=0` contre `1,1` :
+- multimodal 40×3 GitHub 40411178169 : −14,6 k (−0,7 %), 19/21, `fail_primary` ;
+- multimodal 40×5 GitHub 40413946739 : −66,1 k (−2,4 %), 16/24, p = 0,23 ;
+- rail seul 40×3 VPS (`v233l_railseul_porteA_40x3_20261027`) : +11,0 k (+1,0 %), 20/20, p = 0,97, `fail_primary` ;
+- rail seul 40×5 VPS (`v233l_railseul_40x5_20261027`) : +71,8 k (+4,6 %), 25/15, Wilcoxon p = 0,077, IC95 bootstrap [+0,1 k ; +146 k], valeur +4,0 % — limite ;
+- rail seul 40×5, graines 3001-3040 (`v233l_railseul_40x5_seedsB_20261027`) : +69,7 k (+4,55 %), 24/16, p = 0,135, IC95 [−13,5 k ; +154 k], valeur +2,6 %.
+Aucun test isolé ne passe ; pas de mise en commun a posteriori. Suite proposée : rail seul 20×10 (porte B). Défaut 0.
+
+**25/10 — V233L, nouvelle variante autorisée par l'utilisateur :** `v233_long_good=0/1`,
+défaut **0**, branche locale `v233-long`. Sorties GOOD de secondaires alimentées,
+150–300 tuiles, deux trains dimensionnés sur six mois observés, portefeuille normal ;
+renforts GOOD et intrants après stock persistant et marge physique positive.
+Livraison et limites : [v233_long_good_20261025.md](v233_long_good_20261025.md).
+Contrats OFF/hash et PO01C ; **aucune partie, aucun Docker, aucune qualification
+économique ni mesure VM dans cette livraison**, selon l'interdiction explicite.
+Les échecs V218, V233 antérieurs et `good_source_rail_join` restent clos ; ce
+nouveau mécanisme n'adopte aucun défaut ni résultat historique.
+
+**26/10 — V233L, correctif local de l'inertie du smoke fourni (graine 100, cinq ans) :**
+préparation de gare synchrone pendant juin–août 1974, observation bornée à huit
+lignes par passage ; pas de saturation de sa tranche 20 000 opcodes dans ce log.
+Six observations datées sur sept mois au plus (un mois absent non imputé),
+péremption 1–3 mois et motifs REJECT distincts, dates persistées avec migration.
+Défaut 0 et hashes OFF conservés ; aucun nouveau jeu/Docker, aucune qualification.
+Diagnostic, limites et validation : [journal V233L](v233_long_good_20261025.md#26-octobre--correction-de-linertie-observée).
+
+**26/10 — V233L, reprise SITEB et repli aéroport (local, défaut 0) :**
+préflight A/B avant portefeuille, scans indépendants reprenables et distinction
+`SITE_BUDGET`/refus physiques ; après échec urbain complet, quai double joint à
+notre aéroport de destination, acceptation composite et spread de toute la station.
+Protection des installations et revalidation avant dépense, rollback conservé.
+Contrats Python/OFF vérifiés ; compilation et exposition moteur **non validées**,
+aucune partie/Docker autorisée ici. [Diagnostic et limites](v233_long_good_20261025.md#26-octobre--sites-ab-et-repli-sur-aéroport).
+
+**26/10 — V233L, suite SITEB3 (local, défaut 0 conservé) :** le smoke3 fourni
+contient 24 scans B censurés mais aussi 7 réussis ; le cache positif de 30 jours
+perdait des sites entre admission et construction. Reprise autonome d'une recherche
+par tour, curseurs par paire sauvegardés, indices positifs revalidés sans expiration,
+plafonds cumulés 240 k urbain / 80 k jointure et repli aéroport essayé avant B urbain.
+Traces de progression/censure distinctes. Suite Python : **2 557 tests, OK**
+(9 ignorés, 2 échecs attendus) ; **nouveau code non validé au moteur**, aucun Docker
+ni banc lancé. [Détails et contrôles restants](v233_long_good_20261025.md#26-octobre--siteb3-reprise-autonome-et-aéroport-en-premier).
+
+**26/10 — V233L, TRACK2 après le smoke4 fourni (local, défaut 0) :** quatre
+`NOPLAN2`, **zéro itération de voie 2**, aucune recherche A* secondaire atteinte.
+Le filtre des quais parallèles échoue après la voie 1 : V233L n'activait pas leur
+réservation, conditionnée à V190=1 alors que le banc est à 0. Réservation ajoutée
+aux trois entrées de recherche, paire A/B cohérente figée avant A*, corrections
+du raccourci parallèle limitées à V233L et raisons `V233L_DOUBLE` sous
+`DECISION_LOG`. Construction double toujours obligatoire, aucun repli à deux
+trains sur voie unique. **2 567 tests Python OK** (9 ignorés, 2 échecs attendus),
+hashes OFF historiques conservés ; nouveau smoke **non exécuté** (Docker interdit,
+runtime hôte absent). Pose effective et gain économique restent non validés.
+[Diagnostic, corrections et limites](v233_long_good_20261025.md#26-octobre--track2-réservation-de-la-seconde-voie).
+
+**26/10 — V233L, TRACK3 après le smoke6 fourni (local, défaut 0) :** les trois
+tentatives de doublement du log graine 100 valident la réservation et les quais,
+puis jettent le raccourci au premier pont parallèle (`BRIDGE_NATIVE`, erreur 260
+= `AIError.ERR_AREA_NOT_CLEAR`). Le repli A* ne reçoit que le reliquat d'un
+budget 5 000 : `SEARCH_NOPA` à 5 itérations, puis deux `SEARCH_ABND` à 4 154 et
+4 793. Le plan conserve le pont refusé, le glisse sur son axe avec le type le
+plus rapide du constructeur, et ne relance l'A* que sur la portion en échec,
+dans une bande épaisse de `V294_RAIL_BRIDGE_LEN`. Budget de voie 2 borné par la
+longueur réelle, couloir de lancement de deux tuiles, traces `V233L_DOUBLE`,
+rollback intégral, aucun second train sur voie unique. Suite Python :
+**2 576 tests, OK** (9 ignorés, 2 échecs attendus). Pose moteur **non validée**
+(Docker interdit). [Détails](v233_long_good_20261025.md#26-octobre--track3-pont-parallèle-et-repli-local).
+
+**26/10 — V233L, TRACK4 après le smoke7 fourni (local, défaut 0) :** deux
+doubles sans erreur moteur et sans voie livrée. `58979→20909` réserve
+`after=58464` puis `LOCAL_OBSTACLE` erreur **260** (`ERR_AREA_NOT_CLEAR`) :
+`BuildRail(lead, front, after)` pose le rail sur `front`, pas sur `after`.
+Ce n'est pas la voie 1 (`PRIMARY_COLLISION` absent, `next_rail=0`). La sortie
+ouest est enfermée (`NOPA` à 5). `6172→21717` échoue en **264**
+(`ERR_LAND_SLOPED_WRONG`) ; les rayons 4, 8 et 16 trouvent un chemin
+(`reason=OK`) qui n'est pas greffé, puis l'A* complet part en `SEARCH_ABND`
+(19 264 itérations, juin–octobre). La réservation exige maintenant le rail
+sur `after`. Une sortie droite fermée cède le quai à l'autre bout. Le premier
+détour local OK est adopté (`phase=adopt`), sans rayon supérieur ni A* complet
+s'il tient. L'approche du pathfinder n'existe que si le réglage est actif ; à 0
+les trois instructions d'origine restent en place. Échec : rollback intégral,
+aucun second train sur voie unique.
+Pose moteur **non validée** (Docker interdit).
+[Détails](v233_long_good_20261025.md#26-octobre--track4-couloir-réel-et-adoption-du-détour).
+
+**26/10 — V233L, TRACK5 après le smoke8 fourni (local, défaut 0) :**
+le smoke8 (graine 100, cinq ans) a zéro erreur moteur et **plus de voie 1**.
+`58979→20909` : `LAUNCH_CLOSED` a publié l'autre bout du quai
+(`lead_a2` 58466→58469, `b2` 22701→22956). La sonde inverse passe de
+300 à 3 itérations et `RAIL_SEARCH` abandonne à 5 000, contre **813**
+itérations au smoke7. `6172→21717` garde les mêmes extrémités ; le test
+strict retire les tuiles 21977 et 21976, et la recherche abandonne à
+5 000 contre **834** (`RAIL_SEARCH`) au smoke7. Le grand-parent du
+pathfinder ne s'applique pas à la voie 1. La voie 1 reprend le premier
+plan compatible et le couloir lenient d'avant TRACK4. Un conflit avec
+son départ lâche `after`, puis l'axe. L'autre bout, A et B, n'est
+offert qu'à la voie 2 et n'entre pas dans l'interdit. Échec : rollback
+intégral, aucun second train sur voie unique. Suite Python :
+**2 579 tests, OK** (9 ignorés, 2 échecs attendus). Pose moteur
+**non validée** (Docker interdit).
+[Détails](v233_long_good_20261025.md#26-octobre--track5-la-voie-1-retrouve-ses-extrémités).
+
+**26/10 — V233L, TRACK6 après le smoke9 fourni (local, défaut 0) :**
+le smoke9 (graine 100, cinq ans) a zéro erreur moteur. `37055→55398`
+valide le plan de voie 2 (964 itérations) puis rate la pose du quai B
+(`STN2FAIL` / `STN_B2`) : le recheck avait accepté un
+`BuildRailStation` de deux quais, la pose les construisait séparément
+après la voie et le premier train. La paire adjacente est maintenant
+posée par cette même commande avant la voie. L'erreur native est
+journalisée (`phase=build step=stn_b2 reason=FAIL`). Le message V190
+`fallback_single trains=1` reste, puis le rollback vend ce train
+(`trains=0 rollback=1`). Pas de second train hors boucle double
+réussie. La croissance exige `doubleTrack == 1` : une ligne annulée
+n'est pas redoublée plus tard. `58979→20909` greffe bien l'autre bout
+(`lead=58469`) ; la sortie ouest, `NOPA` à 5 itérations au rayon 4,
+est retirée avant l'A* complet au lieu de partir `a=2` pour 14 656
+itérations. `6172→21717` a déjà les couloirs du smoke7 (`5402/5146`,
+`21977/21976`) et les mêmes extrémités (5915/21723). L'abandon à
+5 000 suit le blocage de novembre 1973–janvier 1974 et un quai de
+longueur 2 (`OpexRailPlatformLengthForWagons`), pas un couloir retiré.
+813 et 834 ne sont pas remesurés ; 21210 reste hors de l'interdit de
+la voie 1. Suite Python : **2 581 tests, OK** (9 ignorés, 2 échecs
+attendus). Pose moteur **non validée** (Docker interdit).
+[Détails](v233_long_good_20261025.md#26-octobre--track6-pose-du-quai-double-et-sortie-enfermée).
+
+**26/10 — V233L, TRACK7 après le smoke 10 fourni (local, défaut 0) :**
+graine 100, cinq ans, zéro erreur, toujours aucune voie double livrée.
+`62245→46727` greffe un détour (167 tuiles) et un pont 62259→61235
+(longueur 5). Le pont 61494→61501, longueur 8, reste en erreur 260 :
+la tête 61501 et le tablier portent le rail de la compagnie 0, hors
+interdit (milieu de pont de la voie 1 absent du tracé). Le glissement
+axial (11 essais) ne quitte pas cette ligne. Un pont décalé sur
+l'autre perpendiculaire, même portée puis plus long ou plus court, est
+tenté avant l'A*. Le budget local d'un ouvrage de longueur L passe à
+`L²×48` (3 072 pour L=8, plancher 1 000 inchangé pour un obstacle
+court) et la fenêtre part de L. `58979→20909` retire toujours l'ouest.
+L'est, ouvert au premier pas, est sondé sur 64 pas vers l'autre quai :
+sans 12 tuiles de progrès dans un rayon 16, la tête est une poche et
+l'A* complet ne part pas. La marche droite nomme le premier obstacle
+(rail, pont, route, eau, maison). AAAHogEx ne pose pas les deux voies
+d'un coup : il construit la voie 1, puis cherche la voie 2 le long
+d'une bande parallèle, en pénalisant un pont qui n'a pas de jumeau.
+Ce mode n'est pas ajouté : il changerait la voie 1. Suite Python :
+**60 contrats V233L, puis 2 583 tests, OK** (9 ignorés, 2 échecs
+attendus). Pose moteur **non validée** (Docker interdit).
+[Détails](v233_long_good_20261025.md#26-octobre--track7-pont-de-lautre-côté-et-poche).
+
+**26/10 — V233L, TRACK8 après le smoke 11 fourni (local, défaut 0) :**
+graine 100, cinq ans. `6172→21717` (247 tuiles, tracé 301) planifie
+la voie 2 le 29 août 1974 (`iters=658`), pose le quai `stn_a2`, puis
+la pose échoue le 17 septembre : `TRACK_FAIL_idx138_err260`
+(`ERR_AREA_NOT_CLEAR`). Le 30 septembre, rollback et `DOUBLEFAIL`.
+Un obstacle local (260, 264, ou autre occupant, pas le manque
+d'argent) ne jette plus toute la ligne : l'occupant est nommé, le
+rail déjà posé sur le lead est retiré, et le même détour A* local
+que la greffe du plan raccorde un point sûr avant l'échec au premier
+couple adjacent après la zone. Budget `min(8000, max(1000, L²×48))`,
+trois réparations au plus, trace `V233L_DOUBLE phase=repair
+reason=OK|NOPA|LIMIT`. Si le détour ne se raccorde pas, le
+`fallback_single` puis le rollback `DOUBLEFAIL` restent ceux du
+smoke. V199 n'est pas repris. Suite Python : **61 contrats V233L,
+puis 2 584 tests, OK** (9 ignorés, 2 échecs attendus). Pose moteur
+**non validée** (Docker interdit).
+[Détails](v233_long_good_20261025.md#26-octobre--track8-réparation-de-la-pose).
+
+**26/10 — V233L, TRACK9 après le smoke 12 fourni (local, défaut 0) :**
+graine 100, cinq ans, même ligne `6172→21717`. Le 7 septembre 1974,
+`phase=repair reason=NOPA idx=138 kind=clear error=260` : la tuile
+est plate et constructible, donc nommée `clear`, mais `BuildRail`
+renvoie `ERR_AREA_NOT_CLEAR`. Le cas réel est le sol sous un tablier
+(`IsBridgeTile` ne voit que les rampes ; pas d'API `IsBridgeAbove`),
+ou le voisin du triplet, dont l'occupant n'était pas journalisé.
+Fenêtre d'une tuile, budget plancher 1 000, but encore sur la
+portée (`remaining=8`, file morte en 9 itérations) : le pathfinder
+ne pont pas une tuile plate constructible. `above`, arbre, rocher,
+champ et friche sont nommés ; une tuile libre dont le triplet est
+quand même refusé allonge la zone (plafond 24) et le but atterrit
+après. Trace `prev`/`next`, occupants, ancre, but, itérations et
+budget. Le 24 décembre, plan et quai `stn_a2` réussis, puis
+`LOOPFAIL` `NO_SW_OUT_B` : le quai B parallèle est là (21466) ; la
+voie 1 sort au sud (219, 85), le couloir sud de la voie 2 meurt sur
+la maison 22490, et le lancement ouest n'est que lenient, donc
+l'autre bout nord (21210) reste un but. Les six dernières tuiles de
+ces arrivées opposées sont à plus de deux tuiles. V233L élargit la
+fenêtre à 24 puis pose le raccord sur les leads parallèles du bout
+atteint, gare seulement en tuile précédente. Hors V233L, la fenêtre
+de 6 est inchangée. Suite Python : **62 contrats V233L, puis
+2 585 tests, OK** (9 ignorés, 2 échecs attendus). Pose moteur
+**non validée** (Docker interdit).
+[Détails](v233_long_good_20261025.md#26-octobre--track9-sol-sous-tablier-et-aiguillage-opposé).
+
+**26/10 — V233L TRACK10, smoke 15 graine 100 × cinq ans réussi (local, défaut 0) :**
+ligne GOOD `6172→21717`, **247 tuiles, double voie, deux trains**, livrée le
+5 septembre 1974. Sonde de poche désormais consultative ; filtre local conservant
+la tête unique et toutes les têtes si toutes sont suspectes. Aiguillages aux
+bouts opposés : alignement des deux quais, raccord au voisin réel du tracé.
+Smoke 14 : pose puis `NO_SW_OUT_B` ; smoke 15 : raccords B nord/sud et boucle OK.
+La première tentative échoue encore à idx138 (260), puis rollback intégral ;
+la seconde réussit. Deux duels sains par smoke, verdict `diagnostic_only` ;
+aucune qualification économique. **2 586 tests OK** (9 ignorés, 2 échecs attendus),
+builder et hash OFF inchangés. [Diagnostic et preuves](v233_long_good_20261025.md#26-octobre--track10-poche-consultative-et-double-voie-livrée).
+
+**26/10 — V233L, entonnoir de site B (local, défaut 0) :** nouveau réglage
+`v233_site_funnel`. À 0 la spirale urbaine est inchangée. À 1, le quai GOOD de
+destination est cherché par liste native (rectangle constructible, acceptation,
+tri) puis contrôles squirrel par lots de 5, avec cache par ville et axe.
+Le repli aéroport reste devant ce scan. Aucune partie, aucun Docker, aucune
+compilation ni qualification. [Détail](v233_long_good_20261025.md#26-octobre--entonnoir-de-site-b).
+
 ### Priorités ouvertes après les deux références monomodales du 25/10 (sans adoption)
 
 **26/10/2026 — MULTI-1 suspendu par décision de l'utilisateur.** Sites de gares et

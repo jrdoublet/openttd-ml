@@ -70,6 +70,16 @@ def without_freight_memory(body):
     return body
 
 
+def without_v233l_pose(source):
+    """Project builder_rail.nut to origin/master before the historical capture.
+
+    Pose-time V233L repair is several reviewed hunks; the OFF fixture as a
+    whole restores the pre-V233L function, including V296a log counts.
+    """
+    from v233_long_good_legacy import off_source
+    return off_source("builder_rail.nut", source)
+
+
 def without_v199(body):
     """Project the current builder onto the pre-V199 capture contract."""
     body = re.sub(r'local isDouble = .*?local retriesCount = 0;', '', body, flags=re.S)
@@ -131,15 +141,17 @@ class TestRailTrackFailureCapture(unittest.TestCase):
         cls.source = (AI / "builder_rail.nut").read_text(encoding="utf-8")
 
     def test_inlining_capture_restores_original_builder(self):
-        helper = function_body(self.source, "OpexRailCaptureTrackFailure")
-        body = function_body(self.source, "OpexBuildTrack")
+        source = without_v233l_pose(self.source)
+        helper = function_body(source, "OpexRailCaptureTrackFailure")
+        body = function_body(source, "OpexBuildTrack")
         for kind in ('"connect"', "segmentKind"):
             call = ("OpexRailCaptureTrackFailure(failure, tiles, i, cur, "
                     + kind + ", err, manhPrev, manhNext);")
             self.assertEqual(body.count(call), 1)
             body = body.replace(call, helper.replace("failure.kind <- kind;",
                                                     "failure.kind <- " + kind + ";"))
-        self.assertEqual(digest(without_v199(without_v296a(body))), PRE_EXTRACTION_HASHES["OpexBuildTrack"])
+        self.assertEqual(digest(without_v199(without_v296a(body))),
+                         PRE_EXTRACTION_HASHES["OpexBuildTrack"])
 
     def test_testmode_twin_is_unchanged(self):
         self.assertEqual(digest(function_body(self.source, "OpexTestRailTrack")),

@@ -86,8 +86,8 @@ class TestParameterRetirement(unittest.TestCase):
     def test_exact_size_after_retirement(self):
         self.assertEqual(len(RETIRED), 43)
         # 58 historiques + N75 adopte + P6/P3/FP2/P2/P1 opt-in + FP1/V286/C75/DIST
-        # C75 bis diagnostic et les trois MULTI-1 opt-in (defaut 0).
-        self.assertEqual(len(self.config), 74)  # DIST-BORNES unified opt-in default 0
+        # C75 bis diagnostic, trois MULTI-1 opt-in (defaut 0) et trois V233L.
+        self.assertEqual(len(self.config), 77)  # DIST-BORNES unified + V233L
         self.assertIn("n75_multi_cargo", self.config)
         self.assertIn("p6_air_firstline_window", self.config)
         self.assertIn("air_fleet_yield_rightsize", self.config)
@@ -102,6 +102,9 @@ class TestParameterRetirement(unittest.TestCase):
         self.assertIn("multi1_road_priority", self.config)
         self.assertIn("multi1_air_over_rail", self.config)
         self.assertIn("multi1_road_detour", self.config)
+        self.assertIn("v233_long_good", self.config)
+        self.assertIn("v233_site_funnel", self.config)
+        self.assertIn("v233_funnel_center_test", self.config)
         p2_setting = self.config["rail_cargo_opportunity_rank"]
         self.assertRegex(p2_setting, r"\bmin_value\s*=\s*0\b")
         self.assertRegex(p2_setting, r"\bmax_value\s*=\s*2\b")

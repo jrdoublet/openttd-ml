@@ -165,8 +165,9 @@ function OpexStationRatingForHeadway(headwayDays)
  * comme OpexRoadLineEconomics distingue deja les deux. */
 function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPlatformLength = 0,
                            routeDistance = null, profile = null, cruiseCache = null,
-                           wagonOverride = null, locoChoicesOverride = null, secondary = null)
+                           wagonOverride = null, locoChoicesOverride = null, secondary = null, longGood = false)
 {
+  local longModel = V233_LONG_GOOD > 0 && longGood;
   local setupMark = profile != null ? OpexOpsMeasureBegin() : null;
   local freightDetail = profile != null && kind == "freight" && C41_RAIL_FREIGHT_ECONOMICS_DETAIL_PROFILE;
   local freightSetupDetail = profile != null && kind == "freight" && C41_RAIL_FREIGHT_ECONOMICS_SETUP_PROFILE;
@@ -205,7 +206,7 @@ function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPl
   /* V207 : une rame passagers (+ courrier) plus longue que vehicle.max_train_length ne quitte
    * jamais le depot (MoveWagon : ERR_VEHICLE_TOO_LONG, voir V206). Borne limitee aux rames pax
    * V207 : le quai, le fret et les defauts restent inchanges. */
-  if (((kind == "pax" && OpexV207Active()) || (kind != "pax" && (V301_NOTRAIN_FIX & 2)))
+  if ((longModel || (kind == "pax" && OpexV207Active()) || (kind != "pax" && (V301_NOTRAIN_FIX & 2)))
       && catalog.maxTrainLength > 0) {
     local trainMaxWagons = OpexRailNominalMaxWagons(catalog.maxTrainLength);
     if (trainMaxWagons < maxWagons) maxWagons = trainMaxWagons;
@@ -232,6 +233,7 @@ function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPl
   }
   local consistMark = freightSetupDetail ? OpexOpsMeasureBegin() : null;
   local calibrationOffered = (monthlyUnits * STATION_RATING_PCT) / 100.0;
+  if (longModel) calibrationOffered /= 2.0; // deux rames partageant le debit observe.
   if (calibrationOffered <= 0) return null;
   local wagons = OpexCeilDiv(calibrationOffered, wagon.capacity * referenceTrips);
   if (wagons < 1) wagons = 1;
@@ -338,7 +340,7 @@ function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPl
     infraCost = 2 * travelDist * effectiveTrackCost + 3 * platformLength * catalog.costStation
         + 12 * effectiveTrackCost + numSignals * signalCost
         + (RAIL_DEPOT_COST ? catalog.costRailDepot : 0);
-  } else if (OpexV190Active() && kind == "freight") {
+  } else if (longModel || (OpexV190Active() && kind == "freight")) {
     infraCost = 2 * travelDist * effectiveTrackCost + 4 * platformLength * catalog.costStation
         + (RAIL_DEPOT_COST ? 2 * catalog.costRailDepot : 0);
   }
@@ -357,7 +359,7 @@ function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPl
   }
   local loopMark = profile != null ? OpexOpsMeasureBegin() : null;
   local best = null;
-  local startTrains = (OpexV190Active() && kind == "freight") ? 2 : 1;
+  local startTrains = (longModel || (OpexV190Active() && kind == "freight")) ? 2 : 1;
   for (local trains = startTrains; trains <= MAX_RAIL_TRAINS; trains++) {
     local headwayDays = roundTripDays / trains;
     local effectiveHeadway = headwayDays;
@@ -380,7 +382,9 @@ function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPl
     local offered = monthlyUnits * stationRating / 100.0;
     local monthlyCapacity = trains * perTrain * tripsPerMonth;
     local carried = (offered < monthlyCapacity ? offered : monthlyCapacity).tointeger();
-    local revenueAnnual = (12 * carried * AICargo.GetCargoIncome(cargo, distance, incomeDays)).tointeger();
+    local paidDays = incomeDays;
+    if (longModel && offered > 0) paidDays = OpexCeilDiv(oneWayDays + dwellDays / 2 + perTrain * 15.0 / offered, 1);
+    local revenueAnnual = (12 * carried * AICargo.GetCargoIncome(cargo, distance, paidDays)).tointeger();
     local vehicleCost = trains * (loco.price + wagons * wagon.price);
     local carried2 = 0;
     local revenue2 = 0;
