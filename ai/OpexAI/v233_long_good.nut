@@ -3023,7 +3023,7 @@ function OpexV233LFleetMargin(line, vehicle, added, newLoco, newWagons, extraCos
   local cost = newLoco.price + newWagons * wagon.price + extraCost;
   local running = newLoco.runningCost - (added ? 0 : oldLoco.runningCost);
   local profit = 12 * delta * income - running - cost / (newLoco.ageYears > 0 ? newLoco.ageYears : 20);
-  if (profit <= 0 || OpexAvailableCapital() < cost + OpexCashReserve()) return null;
+  if (profit <= 0 || OpexAvailableCapital() < cost) return null;
   return { profit = profit, cost = cost, monthly = delta };
 }
 

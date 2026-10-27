@@ -104,14 +104,14 @@ function FxEntry(ai, entry)
   FxAssert(AICompany.SetLoanAmount(AICompany.GetMaxLoanAmount()), "loan_max");
   local price = AIEngine.GetPrice(AIVehicle.GetEngineType(line.vehicles[0]));
   FxAssert(price == entry.planePrice, "producer_actual_price");
-  FxBank(price + OpexCashReserve() + 999);
-  local budget = AICompany.GetBankBalance(AICompany.COMPANY_SELF) - OpexCashReserve();
+  FxBank(price + 999);
+  local budget = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
   FxAssert(budget == price + 999, "below_precondition");
   local below = OpexProjectSelectAffordable([original], budget, PROJECT_TOP_K);
   FxAssert(below.len() == 0 && FxSame(before, FxIds(line)), "below_no_admission_or_purchase");
   FxLog("scenario=r1_below pass=1 price=" + price + " budget=" + budget);
-  FxBank(price + OpexCashReserve() + 1000);
-  budget = AICompany.GetBankBalance(AICompany.COMPANY_SELF) - OpexCashReserve();
+  FxBank(price + 1000);
+  budget = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
   FxAssert(budget == price + 1000, "exact_precondition");
   local selected = OpexProjectSelectAffordable([original], budget, PROJECT_TOP_K);
   FxAssert(selected.len() == 1 && selected[0].payload.want == 1 && entry.want == 4, "selected_four_to_one");
@@ -138,7 +138,7 @@ function FxResume(ai)
     local price = AIEngine.GetPrice(AIVehicle.GetEngineType(line.vehicles[0]));
     FxAssert(price == p.payload.planePrice, "reload_price_unchanged");
     FxAssert(AICompany.SetLoanAmount(AICompany.GetMaxLoanAmount()), "reload_loan_max");
-    FxBank(price + OpexCashReserve() + 1000);
+    FxBank(price + 1000);
     R1_R3_TEST_PASS++;
     local attempt = ai._tryBuildFleetProject(AIDate.GetYear(AIDate.GetCurrentDate()), p, 0, []);
     local after = FxIds(line);
@@ -164,7 +164,7 @@ function FxResume(ai)
   // Independent stale snapshot: admit against current inventory, mutate using
   // the real aircraft helper, reconcile from real IDs, then submit unchanged.
   local entry = { line = line, want = 1, planePrice = p.payload.planePrice, baseVehicles = ids.len() };
-  FxBank(entry.planePrice * 3 + OpexCashReserve() + 1000);
+  FxBank(entry.planePrice * 3 + 1000);
   local selected = OpexProjectSelectAffordable([OpexProjectFromFleet(entry)], OpexAvailableCapital(), PROJECT_TOP_K);
   FxAssert(selected.len() == 1, "stale_selected");
   local mutation = OpexAirAddPlane(line, ai._catalog);

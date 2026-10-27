@@ -35,13 +35,13 @@ class TestV296cPhases(unittest.TestCase):
         plan_route_body = function_body(self.builder_rail, "function OpexPlanRailRoute(catalog, budget, candidate, alternativeRatio, hardCap = 10000)")
         self.assertIn("plan.phaseOps.search", plan_route_body)
 
-        exec_body = function_body(self.builder_rail, "function OpexExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)")
+        exec_body = function_body(self.builder_rail, "function OpexExecuteRailPlan(catalog, budget, candidate, plan)")
         self.assertIn("phaseOps = { plans = plan.phaseOps.plans", exec_body)
         self.assertIn("result.phaseOps.stations", exec_body)
         self.assertIn("result.phaseOps.track", exec_body)
         self.assertIn("result.phaseOps.trains", exec_body)
 
-        v190_exec_body = function_body(self.builder_rail, "function OpexV190ExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)")
+        v190_exec_body = function_body(self.builder_rail, "function OpexV190ExecuteRailPlan(catalog, budget, candidate, plan)")
         self.assertIn("phaseOps = { plans = plan.phaseOps.plans", v190_exec_body)
         self.assertIn("result.phaseOps.stations", v190_exec_body)
         self.assertIn("result.phaseOps.track", v190_exec_body)

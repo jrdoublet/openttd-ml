@@ -276,7 +276,7 @@ function OpexProjectFromFleet(entry)
     src = line.stationA, dst = ("stationB" in line) ? line.stationB : line.stationA,
     payload = entry, distance = 0, capital = capital,
     /* Meme tampon de 1000 que le dernier garde d'OpexAirAddPlane, une seule
-     * fois par lot, en plus de la reserve deja soustraite par le portefeuille. */
+     * fois par lot. */
     budgetCapital = capital + 1000, profitAnnual = profit, revenueAnnual = revenue,
     /* Provenance transitoire du profit. C121 conserve son exemption de
      * realisation propre dans OpexC70Profit. */

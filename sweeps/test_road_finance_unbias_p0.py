@@ -32,7 +32,7 @@ class RoadFinanceUnbiasContracts(unittest.TestCase):
 
     def test_road_build_cash_gate_does_not_change(self):
         task = src("task_road.nut")
-        self.assertIn('candidate.capital + OpexCashReserve() + ROAD_CAPITAL_MARGIN', task)
+        self.assertIn('candidate.capital + ROAD_CAPITAL_MARGIN', task)
         self.assertNotIn('if (ROAD_FINANCE_UNBIAS_P0)', task)
         self.assertNotIn('ROAD_FINANCE_POSTPLAN_P0', task)
         self.assertNotIn('ROAD_FINANCE_BUILD_P0', task)

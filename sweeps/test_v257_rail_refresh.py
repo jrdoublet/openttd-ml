@@ -314,7 +314,7 @@ class RailRefresh(unittest.TestCase):
         self.assertEqual(self.replace.count("lineProfit, waiting, rating, load, delivered"), 3)
 
     def test_resume_and_purchase_have_gross_cash_and_fresh_payback_guards(self):
-        self.assertIn("GetBankBalance(AICompany.COMPANY_SELF) - price < OpexCashReserve()",
+        self.assertIn("GetBankBalance(AICompany.COMPANY_SELF) < price",
                       self.off_replace)
         self.assertIn("pending.gain * remaining < cost", self.off_replace)
         self.assertIn("if (newLife < remaining) remaining = newLife", self.off_replace)
@@ -327,8 +327,8 @@ class RailRefresh(unittest.TestCase):
         self.assertIn("((ESTIM_UNIFIE & 4) != 0 ? !estimPays", self.replace)
         self.assertIn(": (remaining <= 0 || pending.gain <= 0 || pending.gain * remaining < cost)",
                       self.replace)
-        self.assertIn('OpexEstimFinanceCashNeeded("rail", price, 0, true)', self.replace)
-        self.assertIn(": price + OpexCashReserve()", self.replace)
+        self.assertIn('OpexEstimFinanceCapital("rail", price, 0, true)', self.replace)
+        self.assertIn(": price", self.replace)
         self.assertLess(self.replace.index("depot_recheck"), self.replace.index("OpexBuildTrains("))
         self.assertIn('if (pending.phase == "resume")', self.replace)
 

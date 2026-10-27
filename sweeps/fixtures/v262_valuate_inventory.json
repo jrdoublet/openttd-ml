@@ -145,11 +145,6 @@
     "AIEngine.GetMaxSpeed"
   ],
   [
-    "capital.nut",
-    "vehicles",
-    "AIVehicle.GetRunningCost"
-  ],
-  [
     "catalog.nut",
     "types",
     "AIRail.IsRailTypeAvailable"

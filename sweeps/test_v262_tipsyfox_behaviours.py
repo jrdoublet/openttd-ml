@@ -21,8 +21,7 @@ class TipsyfoxBehaviours(unittest.TestCase):
         self.assertEqual(Counter(found), Counter(tuple(row) for row in expected))
 
     def test_cpu_fleet_valuators_are_native_and_single_pass(self):
-        for name, fn in [('capital.nut', 'OpexCashReserve'),
-                         ('tension.nut', 'OpexTensionFleetScan')]:
+        for name, fn in [('tension.nut', 'OpexTensionFleetScan')]:
             code = body(name, fn)
             self.assertIn('local vehicles = AIVehicleList();', code)
             self.assertEqual(code.count('Valuate(AIVehicle.GetRunningCost)'), 1)

@@ -26,7 +26,7 @@ function OpexR1R3FleetTrace(ai, project, rank, phase, reason, added = "unknown",
       + " vehicles=" + (ids != "" ? ids : "none")
       + " cached=" + (line != null && ("vehCount" in line) ? line.vehCount : "unknown")
       + " added=" + added + " replaced=" + replaced + " price=" + entry.planePrice
-      + " reserve=" + OpexCashReserve() + " buffer=1000"
+      + " buffer=1000"
       + " cash=" + AICompany.GetBankBalance(AICompany.COMPANY_SELF));
 }
 
@@ -248,7 +248,7 @@ function OpexAI::_tryBuildFleetProject(year, project, rank, passDiscards, builtK
       return { outcome = "rejected", discards = passDiscards };
     }
   }
-  local need = entry.planePrice + OpexCashReserve();
+  local need = entry.planePrice;
   local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
   if (money < need) {
     if (R1_R3_TEST_ONLY) OpexR1R3FleetTrace(this, project, i, "result", "insufficient_cash", 0, 0);

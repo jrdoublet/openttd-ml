@@ -29,7 +29,7 @@ function FxR3Prepare(ai)
   }
   if (chosen == null) return;
   FxAssert(AICompany.SetLoanAmount(AICompany.GetMaxLoanAmount()), "R3_loan_max");
-  local cash = OpexCashReserve();
+  local cash = 0;
   foreach (p in chosen) cash += 2 * OpexProjectFinanceCapital(p);
   FxBank(cash);
   local selected = OpexProjectSelectAffordable(chosen, OpexAvailableCapital(), PROJECT_TOP_K);
@@ -55,7 +55,7 @@ function FxR3Outcome(ai, project, attempt)
     FX3.successes++;
     FxIds(ai._lines.top());
     if (FX3_SCENARIO == "r3_cash" && FX3.successes == 1)
-      FxBank(OpexCashReserve() + FX3.nextFinance - 10000);
+      FxBank(FX3.nextFinance - 10000);
   }
 }
 

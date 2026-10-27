@@ -518,8 +518,8 @@ function OpexAI::_v257ReplaceStep()
       : (remaining <= 0 || pending.gain <= 0 || pending.gain * remaining < cost))
       || AICompany.GetBankBalance(AICompany.COMPANY_SELF) <
           ((ESTIM_UNIFIE & 2) != 0
-              ? OpexEstimFinanceCashNeeded("rail", price, 0, true)
-              : price + OpexCashReserve())) {
+              ? OpexEstimFinanceCapital("rail", price, 0, true)
+              : price)) {
     pending.phase = "resume";
     local resumed = AIVehicle.StartStopVehicle(oldVehicle);
     OpexV257ReviewLog(line, pending.current, pending.engine, pending.gain, cost, "keep", "depot_recheck",

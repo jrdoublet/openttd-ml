@@ -54,7 +54,7 @@ class TestV252EngineRefresh(unittest.TestCase):
         self.assertLess(loan, cost)
         self.assertLess(stop, cost)
         self.assertLess(self.dispatch.index("::V252_CASH_STOP = false;"), stop)
-        self.assertIn("local threshold = OpexCashReserve() + OpexV249MaxListedCapital(this._projects);",
+        self.assertIn("local threshold = OpexV249MaxListedCapital(this._projects);",
                       self.dispatch)
         self.assertIn("cash - price < threshold", self.dispatch)
         # Aucun nombre a 4 chiffres ou plus dans task_v252.nut

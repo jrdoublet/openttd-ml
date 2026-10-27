@@ -1,40 +1,11 @@
-/* C65 : deplace depuis main.nut (passe 1, deplacement pur, aucun corps retouche). */
-function OpexCashReserve()
-{
-  /* ESTIM-1 / cash_reserve_off : aucune reserve conservee avant depense. */
-  if (CASH_RESERVE_OFF) return 0;
-  local cashMark = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
-
-  local totalRunning = 0;
-  local vehicles = AIVehicleList();
-  vehicles.Valuate(AIVehicle.GetRunningCost);
-  for (local v = vehicles.Begin(); !vehicles.IsEnd(); v = vehicles.Next()) {
-    totalRunning += vehicles.GetValue(v);
-  }
-  local reserve;
-  local quarterlyBuffer = totalRunning / 4;
-  if (CASH_RESERVE_PROBE) CASH_RESERVE_PROBE_CALLS++;
-  if (quarterlyBuffer < CASH_RESERVE_MIN) {
-    reserve = CASH_RESERVE_MIN;
-    if (CASH_RESERVE_PROBE) CASH_RESERVE_PROBE_MIN_BINDS++;
-  } else if (quarterlyBuffer > CASH_RESERVE_MAX) {
-    reserve = CASH_RESERVE_MAX;
-    if (CASH_RESERVE_PROBE) CASH_RESERVE_PROBE_MAX_BINDS++;
-  } else reserve = quarterlyBuffer;
-  if (cashMark != null) OpexSpanAgg("pub.cash", cashMark);
-  return reserve;
-}
 /* Capital effectivement mobilisable par le portefeuille. Cette valeur doit toujours etre relue
- * apres une depense : la caisse, le reliquat d'emprunt et la reserve peuvent tous avoir change.
+ * apres une depense, car la caisse peut changer.
  * Centraliser la formule evite que la future passe dynamique (C38) ne diverge de la generation,
  * du rafraichissement ou du cache incremental. */
 function OpexAvailableCapital()
 {
   local cash = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
-  local borrowable = 0;
-  if (borrowable < 0) borrowable = 0;
-  local available = cash + borrowable - OpexCashReserve();
-  return available > 0 ? available : 0;
+  return cash > 0 ? cash : 0;
 }
 /* Remboursement annuel : une fois la tresorerie confortablement au-dessus du plancher, on
  * rembourse le maximum d'emprunt qui laisse encore ce plancher disponible pour l'annee

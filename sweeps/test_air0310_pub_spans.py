@@ -93,7 +93,6 @@ class TestAir0310PubSpans(unittest.TestCase):
         cls.publish = _function_body(cls.update, "function OpexAir0310PublishIncremental(")
         cls.reselect = _function_body(cls.selection, "function OpexReselectProjects(")
         cls.fund = _function_body(cls.selection, "function OpexProjectFundProfit(")
-        cls.cash = _function_body(cls.capital, "function OpexCashReserve(")
         cls.available = _function_body(cls.capital, "function OpexAvailableCapital(")
 
     def test_publish_steps_are_probe_gated_spans(self):
@@ -166,15 +165,9 @@ class TestAir0310PubSpans(unittest.TestCase):
             self.fund.index('OpexSpanAgg("pub.select.calibrate"'),
         )
         self.assertNotIn("OpexSpanBegin(", self.fund)
-        cash_mark = "local cashMark = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;"
-        self.assertIn(cash_mark, self.cash)
-        self.assertEqual(self.cash.count('OpexSpanAgg("pub.cash", cashMark)'), 1)
-        self.assertNotIn("DYNAMIC_CASH_RESERVE", self.cash)
-        self.assertLess(self.cash.index(cash_mark), self.cash.index("AIVehicleList()"))
-        self.assertIn("if (cashMark != null) OpexSpanAgg(\"pub.cash\", cashMark);", self.cash)
-        self.assertNotIn("OpexSpanBegin(", self.cash)
+        self.assertNotIn("OpexCashReserve", self.capital)
         self.assertNotIn("OpexSpanBegin(", self.available)
-        self.assertIn("OpexCashReserve()", self.available)
+        self.assertIn("return cash > 0 ? cash : 0;", self.available)
 
     def test_sources_stay_balanced(self):
         self.assertEqual(_brace_balance(self.update), 0)

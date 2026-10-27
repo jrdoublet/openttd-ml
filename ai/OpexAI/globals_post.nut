@@ -57,7 +57,7 @@ PORTFOLIO_MAX_BATCH <- 1;
  * absolu de 2 500 opcodes. */
 /* C43/E3 famille 2 : PORTFOLIO_REFRESH_MIN_GAIN mord-il independamment du doublement (l'autre
  * moitie de la condition ET) ? Compteurs cumulatifs, publies en delta annuel par la tache
- * "report", meme schema que CASH_RESERVE_PROBE. */
+ * "report". */
 PORTFOLIO_REFRESH_PROBE <- false;
 PORTFOLIO_REFRESH_PROBE_CHECKS <- 0;
 PORTFOLIO_REFRESH_PROBE_GAIN_OK <- 0;

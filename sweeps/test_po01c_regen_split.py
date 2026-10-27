@@ -10,6 +10,20 @@ from po01c_diagnostics import pending_save_dates, summarize
 from v233_long_good_legacy import off_bytes
 from estim_unifie_legacy import estim_off, estim_off_bytes
 
+# These are the ONLY new hashes admitted after retiring the cash reserve on
+# 2026-10-27. The original PO01D/PO01F historical pins stay in their tables
+# below for provenance; the projected bytes remain compared in full.
+RESERVE0_PO01D_SHA256 = {
+    'builder_water.nut': '91393cd154a4635be00c8d4a2de0ec295c179520dc84d82400c5b81cfacf46c7',
+    'main.nut': '2a6815a7c4965aae1c5fd558647eb1e75401a0cbe81794a8955e9e0a4ff873d1',
+    'probes.nut': '7a737521239b5f5742d086f2c30fa0f97baa266fde9123f011778e93f26b247f',
+    'settings.nut': '592da5ea37533f13d372c6b40eb3ae6789534b6e869056e1d9fce365beef06c1',
+    'info.nut': 'db288d554fb59a2d80e3effd723a5966b69fa1643bd0daf0c690f8e4e44ee22f',
+}
+RESERVE0_PO01F_SHA256 = {
+    'builder_rail.nut': '7da752216554795c4f01b6d1600a01c28f1bbc955fd4e9c705496b418227b54f',
+}
+
 
 def generated_estim_off():
     """Generate from the historical producers, leaving live bit-8 sources intact.
@@ -273,6 +287,7 @@ class PO01CContracts(unittest.TestCase):
             'economy.nut': '288a69d242f7b8b473984350a5d539da927576972b42a3f2269928173ac05fbc',
             'builder_rail.nut': '80ee1d02e1a4fd7234329b8a762a9b1a7f44f06cba2696022bf7a63376d9c56d',
         }
+        self.assertEqual(set(RESERVE0_PO01F_SHA256), {'builder_rail.nut'})
         from n75_mc_legacy import historical_bytes
         for name, digest in expected.items():
             # P1 inserts only the guarded no-second-A* safety check in builder_rail.
@@ -280,7 +295,8 @@ class PO01CContracts(unittest.TestCase):
             current = off_bytes(name, (AI / name).read_bytes())
             if name == 'builder_rail.nut':
                 current = historical_bytes(name, current)
-            self.assertEqual(hashlib.sha256(current).hexdigest(), digest)
+            self.assertEqual(hashlib.sha256(current).hexdigest(),
+                             RESERVE0_PO01F_SHA256.get(name, digest))
 
     def test_po01f_heavy_loop_tokens_and_checkpoints(self):
         for file, name in [('probe_v216.nut', 'V216MarkRect'),
@@ -464,6 +480,9 @@ class PO01CContracts(unittest.TestCase):
             'settings.nut': '6946a9ed7d3864e22714167b4fbb4fe74d8e6b95b39c0fac0054cfde80bc214b',
             'info.nut': '1bc76539590e9272aa59849baa54d0248a74ac5f993e0d0e77d679906c7ad2c3',
         }
+        self.assertEqual(set(RESERVE0_PO01D_SHA256),
+                         {'builder_water.nut', 'main.nut', 'probes.nut',
+                          'settings.nut', 'info.nut'})
         from n75_mc_legacy import historical_bytes
         for name, digest in expected.items():
             with self.subTest(name=name):
@@ -476,7 +495,8 @@ class PO01CContracts(unittest.TestCase):
                 with patch("estim_unifie_legacy.estim_off", side_effect=lambda n, code: code), \
                      patch("estim_unifie_legacy.estim_off_bytes", side_effect=lambda n, code: code):
                     legacy = historical_bytes(name, off_bytes(name, without_estim))
-                self.assertEqual(hashlib.sha256(legacy).hexdigest(), digest)
+                self.assertEqual(hashlib.sha256(legacy).hexdigest(),
+                                 RESERVE0_PO01D_SHA256.get(name, digest))
 
         # PO03 ajoute exactement deux lignes dans _dispatchReactiveIntention.
         # Conserver la preuve byte-a-byte de tout le reste de orchestrator.nut :

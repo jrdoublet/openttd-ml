@@ -99,7 +99,7 @@ function OpexModeVehicleRoom(mode, planned)
 
 /* UN SEUL parcours de la flotte par cycle : il rend a la fois les effectifs par type et le cout
  * de fonctionnement. GetRunningCost est annuel (verifie dans script_engine.hpp : "per
- * economy-year"), d'ou la division par 12 -- meme convention qu'OpexCashReserve. */
+ * economy-year"), d'ou la division par 12. */
 function OpexTensionFleetScan()
 {
   local scan = { rail = 0, road = 0, air = 0, water = 0, runningAnnual = 0 };

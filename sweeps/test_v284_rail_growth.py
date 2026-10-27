@@ -42,16 +42,20 @@ class TestV284RailGrowth(unittest.TestCase):
             "  if (V284_RAIL_GROWTH > 0 && OpexV284Select(this, year)) return;\n", "")
         body = body.replace(
             '        if (V284_RAIL_GROWTH > 0 && this._v284State != null && (("kind" in line) && line.kind == "freight")) continue;\n', "")
+        # Original a9437f8 hash before cash reserve retirement:
+        # c98e8035f3dd2511d94dedff7660b3c726c84bfb43c18bc62f81fc50ac0982f3
         self.assertEqual(hashlib.sha256(body.encode()).hexdigest(),
-                         "c98e8035f3dd2511d94dedff7660b3c726c84bfb43c18bc62f81fc50ac0982f3")
+                         "0a87badc4111d2f9fb66d9a5fbe11c37f2fded8bf3c3f2c1660497a2e3af0d18")
 
     def test_master_transaction_and_builder_are_unchanged(self):
         for name, signature, digest in [
             ("task_rail.nut", "function OpexAI::_continueRailExpansion()",
-             "2fe1df594c6ef94ef54c29f9d0e8ee0c43bfcb2de6bbf830475889720fe1049f"),
+             "09abd17092bf2d78285a2ed0f14e375561bbac29b173b42fc31c44f5dbd0a028"),
             ("builder_rail.nut", "function OpexBuildTrains(",
              "5465c9745c754f20cbb4338149c51f40163e4817985ccb4917ce8f38d79ae775"),
         ]:
+            # Former _continueRailExpansion digest (with reserve):
+            # 2fe1df594c6ef94ef54c29f9d0e8ee0c43bfcb2de6bbf830475889720fe1049f
             body = function_body(read(name), signature)
             self.assertEqual(hashlib.sha256(body.encode()).hexdigest(), digest)
 

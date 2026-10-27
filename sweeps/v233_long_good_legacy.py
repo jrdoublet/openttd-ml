@@ -17,8 +17,14 @@ def off_source(name, code):
     if entry is None:
         return code
     for edit in reversed(entry["edits"]):
-        assert code.count(edit["guarded"]) == 1, f"V233L {name}: guarded hunk changed"
-        code = code.replace(edit["guarded"], edit["off"], 1)
+        guarded = edit["guarded"]
+        # The frozen V233L fixture predates permanent cash-reserve removal.
+        # Its V233L dispatch is still exact once the obsolete argument is dropped.
+        if (name == "builder_rail.nut" and guarded ==
+                "  if (OpexV233LIs(candidate)) return OpexV190ExecuteRailPlan(catalog, budget, candidate, plan, cashReserve);\n"):
+            guarded = "  if (OpexV233LIs(candidate)) return OpexV190ExecuteRailPlan(catalog, budget, candidate, plan);\n"
+        assert code.count(guarded) == 1, f"V233L {name}: guarded hunk changed"
+        code = code.replace(guarded, edit["off"], 1)
     return code
 
 

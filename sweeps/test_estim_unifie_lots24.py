@@ -36,14 +36,14 @@ class EstimUnifieLots24(unittest.TestCase):
         self.assertNotIn("1.063", finance)
         self.assertIn("else if (mode == \"road\") factor = 1.21;", finance)
         self.assertIn("if (!capitalIsActual)", finance)
-        self.assertIn("function OpexEstimFinanceCashNeeded", finance)
-        self.assertIn("+ OpexCashReserve();", finance)
+        self.assertNotIn("function OpexEstimFinanceCashNeeded", finance)
+        self.assertNotIn("OpexCashReserve", finance)
         self.assertIn("(ESTIM_UNIFIE & 2) != 0", finance)
         for name in ("task_air.nut", "task_road.nut", "task_rail.nut", "task_water.nut", "air_fleet.nut"):
             with self.subTest(name=name):
                 text = code(name)
                 self.assertIn("(ESTIM_UNIFIE & 2) != 0", text)
-                self.assertIn("OpexEstimFinanceCashNeeded(", text)
+                self.assertIn("OpexEstimFinanceCapital(", text)
 
     def test_m1_fleet_uses_physical_marginal_components(self):
         catalog = code("air_catalog_c121.nut")
@@ -73,7 +73,7 @@ class EstimUnifieLots24(unittest.TestCase):
             self.assertIn("fitted." + name + " =", selection)
             self.assertNotIn("fitted." + name + " <-", selection)
         self.assertIn("fitted.deltaP = fitted.deltaR - fitted.deltaE - fitted.deltaA;", selection)
-        self.assertIn('OpexEstimFinanceCashNeeded("air", capital, plan.distance', code("task_air.nut"))
+        self.assertIn('OpexEstimFinanceCapital("air", capital, plan.distance', code("task_air.nut"))
 
     def test_m4_monthly_rate_is_bounded_to_bit_8(self):
         economy = code("economy.nut")

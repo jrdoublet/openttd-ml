@@ -67,7 +67,6 @@ function C121InvestFleetSnapshot(line, year, event, reason, before = -1, after =
   local age = ("year" in line) ? year - line.year : -1;
   local lastProfit = ("lastProfit" in line) ? line.lastProfit : "na";
   local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
-  local reserve = OpexCashReserve();
   local waitA = "na";
   local waitB = "na";
   if (("cargo" in line) && ("stationA" in line)) {
@@ -87,11 +86,11 @@ function C121InvestFleetSnapshot(line, year, event, reason, before = -1, after =
       break;
     }
   }
-  local need = typeof planePrice == "integer" ? planePrice + reserve + 2000 : "na";
+  local need = typeof planePrice == "integer" ? planePrice + 2000 : "na";
   C121InvestLog("fleet", " phase=" + event + " line=" + lineId + " reason=" + reason
       + " year=" + year + " age=" + age + " have=" + have + " target=" + target
       + " after=" + (after >= 0 ? after : "na") + " added=" + added
-      + " last_profit=" + lastProfit + " cash=" + money + " reserve=" + reserve
+      + " last_profit=" + lastProfit + " cash=" + money
       + " plane_price=" + planePrice + " need=" + need
       + " wait_a=" + waitA + " wait_b=" + waitB);
 }

@@ -21,7 +21,7 @@ FILE_RE = re.compile(r"^diff --git a/ai/OpexAI/(\S+) b/ai/OpexAI/\1$")
 ESTIM_FILES = {
     "air_catalog_c121.nut", "air_economics_c121.nut", "air_engine_choice.nut",
     "air_fleet.nut", "air_route_economics.nut", "air_trip.nut",
-    "candidates.nut", "capital.nut", "economy.nut", "globals_pre.nut", "info.nut",
+    "candidates.nut", "economy.nut", "globals_pre.nut", "info.nut",
     "persist.nut", "projects_builders.nut", "projects_finance.nut",
     "projects_models.nut", "projects_selection.nut", "settings.nut",
     "task_air.nut", "task_rail.nut", "task_report.nut", "task_road.nut",
@@ -32,8 +32,6 @@ ESTIM_FILES = {
 # Contiguous edits with no ESTIM symbol, manually reviewed as part of bit 4.
 # Every future unmarked edit must be reviewed before refreshing the frozen map.
 REVIEWED_UNMARKED = {
-    # cash_reserve_off (27/10), qualifie avec ESTIM-1.
-    "capital.nut": {"if (CASH_RESERVE_OFF) return 0;"},
     "task_v249.nut": {
         "local bestProject = null;", "local townModeRevenues = {};",
         "local cargoModeRevenues = {};", "bestProject = statueProject;",
@@ -190,11 +188,9 @@ def refresh_reviewed_patch():
 # BEGIN REVIEWED ESTIM-1 SOURCE DIFF
 PATCH_TEXT = r"""
 diff --git a/ai/OpexAI/air_catalog_c121.nut b/ai/OpexAI/air_catalog_c121.nut
-index 0a53b12b..2a0985fa 100644
 --- a/ai/OpexAI/air_catalog_c121.nut
 +++ b/ai/OpexAI/air_catalog_c121.nut
-@@ -259,12 +259,20 @@ function OpexC121MeasureBuiltEconomics(catalog, plan, result)
-   result.c121TargetEconomics <- target;
+@@ -260,10 +260,18 @@
    result.c121ActualEconomics <- actual;
    result.c121MarginalProfit <- (next != null && actual != null)
        ? next.profitAnnual - actual.profitAnnual : 0;
@@ -213,9 +209,7 @@ index 0a53b12b..2a0985fa 100644
  }
  
  function OpexC121AttachLineShadow(line, lineId, plan, result)
- {
-@@ -283,12 +291,18 @@ function OpexC121AttachLineShadow(line, lineId, plan, result)
-    * des floats imbriques fait refuser le savegame par OpenTTD. Les decisions ne
+@@ -284,10 +292,16 @@
     * relisent pas ces tables apres le build ; conserver uniquement les scalaires
     * necessaires au probe maintient la telemetry et un graphe de sauvegarde plat. */
    line.c121Arm <- ("arm" in plan) ? plan.arm : "unknown";
@@ -232,13 +226,10 @@ index 0a53b12b..2a0985fa 100644
     * remplace ; seules les observations reelles suivantes sont moyennees. */
    line.c121MarginalSamples <- 0;
    if (actual != null) {
-     line.c121RawRevenueAnnual <- ("rawRevenueAnnual" in actual) ? actual.rawRevenueAnnual : actual.revenueAnnual;
 diff --git a/ai/OpexAI/air_economics_c121.nut b/ai/OpexAI/air_economics_c121.nut
-index 904342dd..96b6ad69 100644
 --- a/ai/OpexAI/air_economics_c121.nut
 +++ b/ai/OpexAI/air_economics_c121.nut
-@@ -380,13 +380,13 @@ function OpexC121ExistingMonthlyBefore(rawMonthly, currentRating, competition,
-                                        servicePickupRate, serviceCargoRate, runwayRate)
+@@ -381,11 +381,11 @@
  {
    if (rawMonthly <= 0 || servicePickupRate <= 0.0 || serviceCargoRate <= 0.0) return 0.0;
    local runwayScale = 1.0;
@@ -251,9 +242,7 @@ index 904342dd..96b6ad69 100644
  
  /* C121 : points de rating OpenTTD calculables avant construction.
   * Aucune ancre STATION_RATING_PCT n'entre ici. */
- function OpexC121PickupRatingPoints(headwayDays)
-@@ -467,13 +467,13 @@ function OpexC121RatingTarget(plane, town, capturableMonthly, headwayDays, capac
-    * les six paliers de stock bornent en plus strictement le nombre d'etats.
+@@ -468,11 +468,11 @@
     * Eviter ici la table `seen` supprime une allocation/hash dans le coeur du
     * scan flotte (jusqu'a quatre ratings par N). */
    for (local iter = 0; iter < 8; iter++) {
@@ -266,9 +255,7 @@ index 904342dd..96b6ad69 100644
       * waiting_avg <= waiting / 2. Garder waitingUpper pour savoir si une
       * visite vide physiquement la gare, mais appliquer au rating la borne
       * source waiting/2 plutot que le stock accumule sur tout le headway. */
-     local ratingWaiting = waitingUpper / 2.0;
-@@ -485,13 +485,13 @@ function OpexC121RatingTarget(plane, town, capturableMonthly, headwayDays, capac
-     if (target == rating) break;
+@@ -486,11 +486,11 @@
      if (previous != null && target == previous) {
        cycled = true;
        /* Si les paliers oscillent autour de la saturation, la note moyenne est
@@ -281,9 +268,7 @@ index 904342dd..96b6ad69 100644
          if (rating > 255) rating = 255;
        } else if (target < rating) {
          rating = target;
-       }
-@@ -499,13 +499,13 @@ function OpexC121RatingTarget(plane, town, capturableMonthly, headwayDays, capac
-     }
+@@ -500,11 +500,11 @@
      previous = rating;
      rating = target;
    }
@@ -296,9 +281,7 @@ index 904342dd..96b6ad69 100644
      points = rating, offered = offered, waitingUpper = waitingUpper,
      ratingWaiting = waitingUpper / 2.0, cycled = cycled
    };
- }
-@@ -516,19 +516,19 @@ function OpexC121RatingTarget(plane, town, capturableMonthly, headwayDays, capac
-  * Au-dela, ni la demande brute ni le rating de ramassage ne peuvent augmenter.
+@@ -517,17 +517,17 @@
   * Pas de borne globale historique ni de cadence copiee d'un autre AI. */
  function OpexC121AirFleetScanCap(plan, roundTripDays, paxCapacity, mailCapacity)
  {
@@ -318,9 +301,7 @@ index 904342dd..96b6ad69 100644
      if (mailPlanes > cap) cap = mailPlanes;
    }
    return cap > 0 ? cap : 1;
- }
-@@ -710,13 +710,13 @@ function OpexC121AirEconomics(catalog, plan, plane, paxCapacity, mailCapacity, f
-     local offeredMailA = stationMailA * routeShareMailA;
+@@ -711,11 +711,11 @@
      local offeredMailB = stationMailB * routeShareMailB;
      /* La capacite physique doit employer la cadence effectivement admise par
       * les deux pistes, pas la cadence demandee par N avions. Sinon le cap FTA
@@ -333,9 +314,7 @@ index 904342dd..96b6ad69 100644
      local carriedPaxA = (offeredPaxA < paxDirectionCapacity ? offeredPaxA : paxDirectionCapacity).tointeger();
      local carriedPaxB = (offeredPaxB < paxDirectionCapacity ? offeredPaxB : paxDirectionCapacity).tointeger();
      local carriedMailA = (offeredMailA < mailDirectionCapacity ? offeredMailA : mailDirectionCapacity).tointeger();
-     local carriedMailB = (offeredMailB < mailDirectionCapacity ? offeredMailB : mailDirectionCapacity).tointeger();
-@@ -726,25 +726,25 @@ function OpexC121AirEconomics(catalog, plan, plane, paxCapacity, mailCapacity, f
-      * tout son trafic. Une partie est detournee des lignes deja presentes et la
+@@ -727,23 +727,23 @@
       * congestion de piste peut aussi reduire leur debit. Comparer le trafic
       * existant avant le candidat a ce qu'il lui reste apres partage, puis
       * valoriser la perte au revenu moyen par unite DES lignes du hub. */
@@ -363,9 +342,7 @@ index 904342dd..96b6ad69 100644
      }
      local lostMailA = existingMailBeforeA > existingMailAfterA ? existingMailBeforeA - existingMailAfterA : 0.0;
      local lostMailB = existingMailBeforeB > existingMailAfterB ? existingMailBeforeB - existingMailAfterB : 0.0;
-     local rawCannibalLossAnnual = (12.0 * (lostPaxA * existingPaxIncomeA
-@@ -1275,36 +1275,36 @@ function OpexC121OneOrTwoDepth(inv, planes)
-   local stationMailB = useMail ? OpexC121StationAllocatedMonthly(
+@@ -1276,34 +1276,34 @@
        mailRawB, mailRatingPointsB, ("mailCompetitionB" in demand) ? demand.mailCompetitionB : null) : 0.0;
    local offeredPaxA = stationPaxA * routeSharePaxA;
    local offeredPaxB = stationPaxB * routeSharePaxB;
@@ -405,9 +382,7 @@ index 904342dd..96b6ad69 100644
    }
    local lostMailA = existingMailBeforeA > existingMailAfterA ? existingMailBeforeA - existingMailAfterA : 0.0;
    local lostMailB = existingMailBeforeB > existingMailAfterB ? existingMailBeforeB - existingMailAfterB : 0.0;
-   local rawCannibalLossAnnual = (12.0 * (lostPaxA * existingPaxIncomeA
-@@ -1520,13 +1520,13 @@ function OpexC121InitialEngineUpperScore(catalog, plan, plane, engineContext = n
-     }
+@@ -1521,11 +1521,11 @@
    }
    if (paxCapacity <= 0) return null;
    local mailIncome = engineContext != null ? engineContext.mailIncome
@@ -420,13 +395,10 @@ index 904342dd..96b6ad69 100644
    local paxUpperB = st.paxRawB.tofloat() < paxDirectionCapacity ? st.paxRawB.tofloat() : paxDirectionCapacity;
    local mailUpperA = 0.0;
    local mailUpperB = 0.0;
-   if (useMail) {
 diff --git a/ai/OpexAI/air_engine_choice.nut b/ai/OpexAI/air_engine_choice.nut
-index 6e591b04..ceb3380e 100644
 --- a/ai/OpexAI/air_engine_choice.nut
 +++ b/ai/OpexAI/air_engine_choice.nut
-@@ -5,12 +5,20 @@ function OpexAirPlanBetter(plan, bestPlan)
- {
+@@ -6,10 +6,18 @@
    if (bestPlan == null) return true;
    local planEconomics = (("decisionEconomics" in plan) && plan.decisionEconomics != null)
        ? plan.decisionEconomics : plan.economics;
@@ -445,32 +417,26 @@ index 6e591b04..ceb3380e 100644
    if (planEconomics.roi > (bestEconomics.roi * 1.25).tointeger()) return true;
    if (bestEconomics.roi > (planEconomics.roi * 1.25).tointeger()) return false;
    return planEconomics.profitAnnual > bestEconomics.profitAnnual;
- }
 diff --git a/ai/OpexAI/air_fleet.nut b/ai/OpexAI/air_fleet.nut
-index 9e327bb2..35c91f8a 100644
 --- a/ai/OpexAI/air_fleet.nut
 +++ b/ai/OpexAI/air_fleet.nut
-@@ -118,12 +118,14 @@ function OpexAirAddPlane(line, catalog = null, lines = null)
-     }
+@@ -119,10 +119,12 @@
    }
  
    local price = AIEngine.GetPrice(targetEngine);
    if (price <= 0) { result.reason = "PRICE"; return result; }
-   local need = price + OpexCashReserve() + 1000;
+   local need = price + 1000;
 +  if ((ESTIM_UNIFIE & 2) != 0)
-+    need = OpexEstimFinanceCashNeeded("fleet", price, 0);
++    need = OpexEstimFinanceCapital("fleet", price, 0);
    local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
    if (money < need) {
      if (money < need) {
        result.reason = "CASH"; return result;
      }
-   }
 diff --git a/ai/OpexAI/air_route_economics.nut b/ai/OpexAI/air_route_economics.nut
-index 0bafda44..c2b15f88 100644
 --- a/ai/OpexAI/air_route_economics.nut
 +++ b/ai/OpexAI/air_route_economics.nut
-@@ -54,12 +54,13 @@ function OpexAirEconomics(catalog, airport, plane, distance, monthlyPax,
-    * Sous 0 ou maxCapital == 0 (chemin portefeuille), ce bloc ne change rien. Adopte le
+@@ -55,10 +55,11 @@
     * 2026-09-02 (defaut 1) : mesure NEUTRE, adopte pour la justesse -- voir main.nut. */
    local extraMargin = 0;
    if (maxCapital > 0) {
@@ -482,13 +448,10 @@ index 0bafda44..c2b15f88 100644
    for (local planes = firstPlanes; planes <= targetPlanes; planes++) {
      local capital = newAirportCount * airport.price + planes * plane.price;
      if (maxCapital > 0 && capital + extraMargin > maxCapital) break;
-     local headwayDays = roundTripDays / planes;
 diff --git a/ai/OpexAI/air_trip.nut b/ai/OpexAI/air_trip.nut
-index 1f4a2d05..3755ee9e 100644
 --- a/ai/OpexAI/air_trip.nut
 +++ b/ai/OpexAI/air_trip.nut
-@@ -61,13 +61,13 @@ function OpexAirTripModel(speed, capacity, distance, engineId = -1, airportType
-       && AIEngine.IsValidEngine(engineId) && AIAirport.IsValidAirportType(airportType)) {
+@@ -62,11 +62,11 @@
      airportDelayDays = OpexC100AirManeuverDays(engineId, airportType, airportType);
    }
    local oneWayDays = flightDays + airportDelayDays;
@@ -501,13 +464,10 @@ index 1f4a2d05..3755ee9e 100644
      airportDelayDays = airportDelayDays, oneWayDays = oneWayDays,
      roundTripDays = roundTripDays, tripsPerMonth = tripsPerMonth,
      capacityPerPlane = capacity * tripsPerMonth,
-   };
 diff --git a/ai/OpexAI/candidates.nut b/ai/OpexAI/candidates.nut
-index 4aa43cc4..8e828cdf 100644
 --- a/ai/OpexAI/candidates.nut
 +++ b/ai/OpexAI/candidates.nut
-@@ -1219,24 +1219,30 @@ function OpexPaxCandidates(catalog, lines, out, stats, abandonedPairs = null, pr
-     }
+@@ -1220,10 +1220,13 @@
    }
    local preparationMark = profile != null ? OpexOpsMeasureBegin() : null;
    for (local i = 0; i < n; i++) {
@@ -521,8 +481,7 @@ index 4aa43cc4..8e828cdf 100644
      served.append(service);
      if (service != null) stats.townsServed++; else stats.townsUnserved++;
    }
-   local hasMail = V207_RAIL_MAIL && catalog.mailCargo >= 0 && (catalog.mailCargo in catalog.wagonByCargo);
-   local mailProduced = null;
+@@ -1232,10 +1235,13 @@
    if (hasMail) {
      mailProduced = [];
      for (local i = 0; i < n; i++) {
@@ -536,9 +495,7 @@ index 4aa43cc4..8e828cdf 100644
    }
    if (profile != null) profile.paxPreparationOps += OpexOpsMeasureEnd(preparationMark);
    local pairTotalMark = profile != null ? OpexOpsMeasureBegin() : null;
-   local bounds = OpexCatalogBounds(catalog);
-@@ -1398,12 +1404,15 @@ function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null
- 
+@@ -1399,10 +1405,13 @@
      foreach (si in sources) {
        local source = industries[si];
        if (OPEX_LEVEL_LIMITS && OpexIndustryPrimaryRivalServed(source.id, source.tile)) continue;
@@ -552,9 +509,7 @@ index 4aa43cc4..8e828cdf 100644
        local industryMark = profile != null ? OpexOpsMeasureBegin() : null;
        for (local k = 0; k < sinks.len(); k++) {
          if (longGood != null) continue;
-         local di = sinks[k];
-@@ -1958,12 +1967,15 @@ function OpexRoadFreightCandidates(catalog, lines, out, stats, abandonedPairs =
-         }
+@@ -1959,10 +1968,13 @@
          continue;
        }
        local source = industries[si];
@@ -568,9 +523,7 @@ index 4aa43cc4..8e828cdf 100644
        local industryMark = profile != null ? OpexOpsMeasureBegin() : null;
        for (local k = 0; k < sinks.len(); k++) {
          local di = sinks[k];
-         if (di == si) continue;
-@@ -2182,12 +2194,15 @@ function OpexMulti1RoadCargoShadowPair(s)
-   local sourceIndex = s.sources[(index / s.destinations.len()).tointeger()];
+@@ -2183,10 +2195,13 @@
    if (sourceIndex < 0 || sourceIndex >= s.catalog.industries.len()) return;
    local source = s.catalog.industries[sourceIndex];
    if (OpexOriginServed(s.lines, source.tile, true)) return;
@@ -584,29 +537,10 @@ index 4aa43cc4..8e828cdf 100644
    local dstTile, dstTown = -1, pairKey, isTransformer = false;
    if (dest.kind == "industry") {
      if (dest.industryIndex < 0 || dest.industryIndex >= s.catalog.industries.len()
-         || dest.industryIndex == sourceIndex) return;
-diff --git a/ai/OpexAI/capital.nut b/ai/OpexAI/capital.nut
-index 1575604f..fc53f555 100644
---- a/ai/OpexAI/capital.nut
-+++ b/ai/OpexAI/capital.nut
-@@ -1,9 +1,11 @@
- /* C65 : deplace depuis main.nut (passe 1, deplacement pur, aucun corps retouche). */
- function OpexCashReserve()
- {
-+  /* ESTIM-1 / cash_reserve_off : aucune reserve conservee avant depense. */
-+  if (CASH_RESERVE_OFF) return 0;
-   local cashMark = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
- 
-   local totalRunning = 0;
-   local vehicles = AIVehicleList();
-   vehicles.Valuate(AIVehicle.GetRunningCost);
-   for (local v = vehicles.Begin(); !vehicles.IsEnd(); v = vehicles.Next()) {
 diff --git a/ai/OpexAI/economy.nut b/ai/OpexAI/economy.nut
-index 9b4ce397..87ee633d 100644
 --- a/ai/OpexAI/economy.nut
 +++ b/ai/OpexAI/economy.nut
-@@ -38,12 +38,39 @@ const TARGET_HEADWAY_DAYS = 7;
- 
+@@ -39,10 +39,37 @@
  /* Le constructeur realise une voie simple avec un train, ou deux voies dediees avec deux
   * trains. Le classement ne doit donc pas attribuer du revenu a une flotte qu'il ne construit
   * pas. Les plafonds routiers ont leur propre constante plus bas. */
@@ -644,9 +578,7 @@ index 9b4ce397..87ee633d 100644
  const INFRA_LIFE_YEARS = 30;
  /* D3.2 : Taux d'amortissement de l'infrastructure (100 = defaut historique, 0 = reel OpenTTD, adopte). */
  INFRA_AMORT_PCT <- 0;
- 
-@@ -92,13 +119,13 @@ function OpexLoadedTripsPerMonth(oneWayDays, roundTripDays, bidirectional)
- {
+@@ -93,11 +120,11 @@
    local legDays = bidirectional ? oneWayDays : roundTripDays;
    if (legDays <= 0) return 0;
    /* 30 / duree, sans plafond : ceil(30 / legDays) etait favorable de 1,20x a 1,63x sur les
@@ -659,9 +591,7 @@ index 9b4ce397..87ee633d 100644
  /* Le bareme du jeu donne 130 / 95 / 50 / 25 points de ramassage sous 6,8 / 13,5 / 27 / 47 jours
   * (docs/mecanique_jeu.md section 3). STATION_RATING_PCT = 50 a ete calibre sur des lignes dont le
   * headway cible etait 7 jours, donc dans la tranche 95. Les autres facteurs observes a ce regime
-  * valent 50 % * 255 - 95 = 32,5 points ; on les conserve et on ne fait varier QUE le facteur que
-@@ -229,13 +256,16 @@ function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPl
-                                                   kind == "pax");
+@@ -230,11 +257,14 @@
    if (freightSetupDetail) {
      profile.freightEconomicsReferenceOps += OpexOpsMeasureEnd(referenceMark);
      profile.freightEconomicsReferenceCalls++;
@@ -677,9 +607,7 @@ index 9b4ce397..87ee633d 100644
    local wagons = OpexCeilDiv(calibrationOffered, wagon.capacity * referenceTrips);
    if (wagons < 1) wagons = 1;
    if (wagons > maxWagons) wagons = maxWagons;
- 
-@@ -291,13 +321,14 @@ function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPl
-    * (table du premier cargo, poids de son wagon), ce qui garde le meme cycle pour les deux.
+@@ -292,11 +322,12 @@
     * Sans place ou sans locomotive pour le total, la ligne reste mono-cargo. */
    local wagon2 = null;
    local wagons2 = 0;
@@ -693,9 +621,7 @@ index 9b4ce397..87ee633d 100644
      local loco2 = wagons2 > 0 ? choices[wagons + wagons2 - 1] : null;
      if (loco2 == null) {
        wagons2 = 0;
-     } else {
-@@ -357,24 +388,25 @@ function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPl
-       profile.freightEconomicsSetupCalls++;
+@@ -358,22 +389,23 @@
      }
    }
    local loopMark = profile != null ? OpexOpsMeasureBegin() : null;
@@ -722,9 +648,7 @@ index 9b4ce397..87ee633d 100644
        local absentDays = roundTripDays - loadDays;
        if (absentDays < 0) absentDays = 0;
        effectiveHeadway = absentDays / trains;
-     }
-@@ -664,13 +696,16 @@ function OpexRoadLineEconomics(catalog, cargo, distance, monthlyUnits, engine, k
-   local oneWayDays = transitDays + dwellDays;
+@@ -665,11 +697,14 @@
    local roundTripDays = 2 * oneWayDays;
  
    /* Ce `offered` sert au DIMENSIONNEMENT, comme `calibrationOffered` au rail : la note a plat de
@@ -740,9 +664,7 @@ index 9b4ce397..87ee633d 100644
    /* D4 (docs/taches.md S0 quadragesies / S0 trenonagies) :
     * Le dimensionnement routier se fait sur le VOLUME physiquement offert (vehiclesForVolume),
     * et non sur le TARGET_HEADWAY_DAYS ferroviaire (7 jours) qui forcerait 4 a 6 bus sur un
-    * simple arret de village, provoquant surendettement, couts d'exploitation destructeurs
-@@ -687,15 +722,17 @@ function OpexRoadLineEconomics(catalog, cargo, distance, monthlyUnits, engine, k
-   local monthlyCapacity = vehicles * engine.capacity * tripsPerMonth;
+@@ -688,13 +723,15 @@
    local carried = offered < monthlyCapacity ? offered : monthlyCapacity;
    if (kind == "pax" && vehicles > 0 && roundTripDays > 0) {
      /* Flux par rotation : a chaque visite, seulement ce qui s'est accumule pendant le headway,
@@ -760,13 +682,10 @@ index 9b4ce397..87ee633d 100644
    }
    /* OpexLoadedTripsPerMonth est aussi partage par la route. Sa capacite moyenne peut etre
     * fractionnaire depuis la suppression du ceil favorable ; les cargaisons et les panneaux restent
-    * entiers, donc on ne credite jamais 28,57 unites qui n'existent pas dans le moteur. */
 diff --git a/ai/OpexAI/globals_pre.nut b/ai/OpexAI/globals_pre.nut
-index 58fc9182..65faeeda 100644
 --- a/ai/OpexAI/globals_pre.nut
 +++ b/ai/OpexAI/globals_pre.nut
-@@ -361,12 +361,23 @@ C56_WORKER_ACC <- null;
- C50_CHRONOLOGY_PROBE <- false;
+@@ -362,10 +362,19 @@
  /* C63+C58 : ledger annuel depenses / recettes / occasions. Nul hors sonde. */
  C63_INVEST_PROBE <- false;
  C63_INVEST_LEDGER <- null;
@@ -781,26 +700,20 @@ index 58fc9182..65faeeda 100644
 +ESTIM_K_R_PRIOR <- { rail = 0.92, road = 0.57, air = 0.40, water = 1.0 };
 +ESTIM_K_R_PRIOR_WEIGHT <- 10.0;
 +ESTIM_K_R <- { rail = 0.92, road = 0.57, air = 0.40, water = 1.0 };
-+/* cash_reserve_off : suppression de la reserve de caisse (5k-25k), demandee le 27/10 ; a qualifier. */
-+CASH_RESERVE_OFF <- false;
  /* C69 etape 1 : sonde passive goulot de decision P / max(C, F*tau). */
  /* Annee de depart de la compagnie (sauvegardee via _startYear) : base des calculs C69/C75 de F et
   * de tau. 1970 n'est qu'un repli, pose avant Start(). */
  OPEX_START_YEAR <- 1970;
  C69_BOTTLENECK_PROBE <- false;
- /* C69 : le levier permanent exige le suivi des dates de chantier pour tau. */
 diff --git a/ai/OpexAI/info.nut b/ai/OpexAI/info.nut
-index 7f1ccb47..d19581d5 100644
 --- a/ai/OpexAI/info.nut
 +++ b/ai/OpexAI/info.nut
-@@ -206,12 +206,26 @@ class OpexAIInfo extends AIInfo {
-       name = "dist_bornes_v276_freight",
-       description = "DIST-BORNES-1: 1 = preserve V269 late freight relaxation in deferred V276 scans, including the spatial grid and freight band; 0 = historical V276 (default)",
+@@ -208,10 +208,17 @@
        min_value = 0, max_value = 1,
        easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
        default_value = 0, step_size = 1, flags = 0
      });
-+    AddSetting({
+     AddSetting({
 +      name = "estim_unifie",
 +      description = "ESTIM-1: unified estimate model; bit 1 = revenue realization, bit 2 = common cash guard, bit 4 = reinforcement/replacement, bit 8 = shared physical primitives; 0 = historical (default)",
 +      min_value = 0, max_value = 15,
@@ -808,24 +721,15 @@ index 7f1ccb47..d19581d5 100644
 +      default_value = 0, step_size = 1, flags = 0
 +    });
 +    AddSetting({
-+      name = "cash_reserve_off",
-+      description = "1 = no cash reserve kept before spending (OpexCashReserve returns 0); 0 = historical quarterly running-cost reserve, 5k-25k (default)",
-+      min_value = 0, max_value = 1,
-+      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
-+      default_value = 0, step_size = 1, flags = 0
-+    });
-     AddSetting({
        name = "dist_bornes_unified",
        description = "DIST-BORNES-1: 1 = one route, passenger rail, freight rail and air candidate distance window shared by all generators, PO01C, V276 and C42; 0 = historical filters (default)",
        min_value = 0, max_value = 1,
        easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
        default_value = 0, step_size = 1, flags = 0
 diff --git a/ai/OpexAI/persist.nut b/ai/OpexAI/persist.nut
-index 4421df37..2423a84a 100644
 --- a/ai/OpexAI/persist.nut
 +++ b/ai/OpexAI/persist.nut
-@@ -964,12 +964,13 @@ function OpexAI::_reconcileAfterLoad()
-   if (V233_LONG_GOOD > 0) OpexV233LReconcile(this);
+@@ -965,10 +965,11 @@
    this._pendingLines = null;
    /* C70 : recalcul des facteurs APRES la reconstitution de this._lines. Appele plus haut, il
     * tournait sur la liste encore vide et remettait tous les facteurs a 1 (mesure 2026-09-22). */
@@ -837,18 +741,16 @@ index 4421df37..2423a84a 100644
    foreach (line in this._lines) {
      if (line == null || typeof line != "table") continue;
      if (!("bridges" in line) || line.bridges == null || typeof line.bridges != "array") {
-       line.bridges <- [];
 diff --git a/ai/OpexAI/projects_builders.nut b/ai/OpexAI/projects_builders.nut
-index dc8a9535..ff758cef 100644
 --- a/ai/OpexAI/projects_builders.nut
 +++ b/ai/OpexAI/projects_builders.nut
-@@ -68,12 +68,29 @@ function OpexC80ProjectBelowMarginalFloor(lines, project)
-   local projProfitPerVeh = calibProfit.tofloat() / projVehs.tofloat();
+@@ -67,10 +67,27 @@
+""" + " \n" + r"""   local projProfitPerVeh = calibProfit.tofloat() / projVehs.tofloat();
    local modeProfitPerVeh = totalProfit.tofloat() / totalVehs.tofloat();
  
    return projProfitPerVeh < modeProfitPerVeh;
- }
- 
++}
++
 +/* ESTIM-1 lot 3 : meme schema comptable pour les lignes neuves et les
 + * operations marginales. L'economie de l'AIR C121 porte deja son propre k_R
 + * sous bit 1, celle des autres modes est corrigee dans OpexEstimProfit. */
@@ -864,16 +766,11 @@ index dc8a9535..ff758cef 100644
 +  project.deltaA <- amort;
 +  project.deltaC <- project.capital;
 +  project.deltaP <- dR - running - amort;
-+}
-+
- function OpexProjectFromCandidate(candidate)
+ }
+""" + " \n" + r""" function OpexProjectFromCandidate(candidate)
  {
    if (candidate == null || candidate.profitAnnual <= 0 || candidate.revenueAnnual <= 0 ||
-       candidate.capital <= 0) return null;
-   local mode = candidate.mode;
-   local margin = 0;
-@@ -98,12 +115,13 @@ function OpexProjectFromCandidate(candidate)
-      * Consequence : opcodeScore route sous-estime, donc la route defavorisee au second tri. */
+@@ -99,10 +116,11 @@
      expectedOps = PROJECT_ROAD_TRANSACTION_OPS;
    } else {
      return null;
@@ -885,9 +782,7 @@ index dc8a9535..ff758cef 100644
    }
    local scoreRevenue = candidate.revenueAnnual;
    local project = {
-     mode = mode, kind = candidate.kind, cargo = candidate.cargo,
-@@ -124,12 +142,14 @@ function OpexProjectFromCandidate(candidate)
-     project.roadVehicleCap <- ("roadVehicleCap" in candidate) ? candidate.roadVehicleCap : candidate.trains;
+@@ -125,10 +143,12 @@
      project.selectedRoadVehicles <- candidate.trains;
    }
    /* B6 : conserver les composantes de pre-classement comme mesures seulement. */
@@ -900,9 +795,7 @@ index dc8a9535..ff758cef 100644
  
  /* C34.2 : un ACHAT D'AVION devient un projet, pour etre arbitre contre les lignes neuves au lieu
   * d'etre servi d'office avant elles (la tache air_fleet passait avant `projects` dans l'ordre de
-  * service, main.nut:626-630, donc elle avait un droit de tirage sur la tresorerie).
-@@ -139,12 +159,16 @@ function OpexProjectFromCandidate(candidate)
-  * reellement au sol. Il ne reste ici qu'a pricer la marge.
+@@ -140,10 +160,14 @@
   *
   * Sous la cible C121, le score est la marge par avion deja publiee sur la ligne.
   * Sinon le profit realise / avion, puis le repli predRevenue - predRunning. */
@@ -917,9 +810,7 @@ index dc8a9535..ff758cef 100644
    local have = ("vehCount" in line && line.vehCount > 0) ? line.vehCount
               : (("vehicles" in line) ? line.vehicles.len() : 0);
    if (have < 1) return null;
- 
-@@ -270,12 +294,62 @@ function OpexProjectFromFleet(entry)
-     project.v161ModelPerPlane <- v161Model;
+@@ -271,10 +295,60 @@
      project.v161Calibrate <- true;
    }
    return project;
@@ -980,9 +871,7 @@ index dc8a9535..ff758cef 100644
  function OpexAirRequiredMargin(newAirports, plan = null)
  {
    return (newAirports == 2) ? 30000 : (newAirports == 1 ? 12000 : 2000);
- }
-@@ -290,16 +364,18 @@ function OpexProjectFromAir(catalog, plan, planningOps)
-       economics.capital <= 0) return null;
+@@ -291,14 +365,16 @@
    if (decisionEconomics.profitAnnual <= 0 || decisionEconomics.revenueAnnual <= 0 ||
        decisionEconomics.capital <= 0) return null;
    local newAirports = (("reuseA" in plan) && plan.reuseA ? 0 : 1) + (("reuseB" in plan) && plan.reuseB ? 0 : 1);
@@ -999,9 +888,7 @@ index dc8a9535..ff758cef 100644
    }
    /* La decouverte a deja ete payee pendant l'etape projets. La contrainte d'execution ne porte
     * que sur les opcodes encore necessaires pour construire le projet. */
-   local expectedOps = PROJECT_AIR_TRANSACTION_OPS;
-@@ -314,22 +390,25 @@ function OpexProjectFromAir(catalog, plan, planningOps)
-     expectedOpcodes = expectedOps,
+@@ -315,20 +391,23 @@
      budgetScore = OpexProjectScore(decisionEconomics.revenueAnnual, decisionBudgetCapital),
      opcodeScore = OpexProjectScore(decisionEconomics.revenueAnnual, expectedOps),
      planningOpcodes = planningOps,
@@ -1025,9 +912,7 @@ index dc8a9535..ff758cef 100644
    }
    local expectedOps = PROJECT_WATER_TRANSACTION_OPS;
    local project = {
-     mode = "water", kind = "pax", cargo = catalog.paxCargo,
-@@ -342,12 +421,14 @@ function OpexProjectFromWater(catalog, plan, planningOps)
-     opcodeScore = OpexProjectScore(economics.revenueAnnual, expectedOps),
+@@ -343,10 +422,12 @@
      planningOpcodes = planningOps,
      /* L'eau est recyclee par OpexIncrementalUpdateProjects : dater son economie
       * permet de mesurer 06.11 au meme titre que rail/route. */
@@ -1040,13 +925,10 @@ index dc8a9535..ff758cef 100644
  
  /* portfolio_v2 : garde TOUTES les alternatives modales d'un couple origine/destination au lieu
   * d'en elire une avant le test de capital. Motif (docs/taches.md S0 septies, soupcon 1 confirme) :
-  * OpexProjectModeBetter classe sur `roi`, un RATIO -- une ligne rail a 900 k£ (roi 180) bat une
 diff --git a/ai/OpexAI/projects_finance.nut b/ai/OpexAI/projects_finance.nut
-index 2fadd676..eee571c0 100644
 --- a/ai/OpexAI/projects_finance.nut
 +++ b/ai/OpexAI/projects_finance.nut
-@@ -2,15 +2,60 @@
- 
+@@ -3,13 +3,52 @@
  /* P1 : cout a comparer a la tresorerie mobilisable. budgetCapital reste le
   * cout economique utilise par les scores historiques ; il ne faut pas y injecter
   * un multiplicateur global. Le repli de financabilite applique rail 1,7x et route
@@ -1054,7 +936,7 @@ index 2fadd676..eee571c0 100644
   * ce montant. Les marges et le capital immobilise restent inchanges. */
 +/* ESTIM-1 M5 : cout de decaissement commun au choix et au chantier, aux facteurs
 + * de financement qualifies du chemin historique. Un devis realise (AITestMode ou plan reel) n'est jamais multiplie de nouveau.
-+ * OpexAvailableCapital soustrait deja OpexCashReserve exactement une fois. */
++ * OpexAvailableCapital represente la caisse mobilisable sans reserve. */
 +function OpexEstimFinanceCapital(mode, capital, distance, capitalIsActual = false, immobilise = 0)
 +{
 +  if (capital < 0) capital = 0;
@@ -1067,12 +949,6 @@ index 2fadd676..eee571c0 100644
 +    else if (mode == "road") factor = 1.21;
 +  }
 +  return (capital.tofloat() * factor + 0.999).tointeger() + immobilise;
-+}
-+
-+function OpexEstimFinanceCashNeeded(mode, capital, distance, capitalIsActual = false, immobilise = 0)
-+{
-+  return OpexEstimFinanceCapital(mode, capital, distance, capitalIsActual, immobilise)
-+      + OpexCashReserve();
 +}
 +
  function OpexProjectFinanceCapital(project)
@@ -1105,13 +981,10 @@ index 2fadd676..eee571c0 100644
  
    local biasPct = 0;
    if (project.mode == "rail") biasPct = RAIL_FINANCE_BIAS_PCT;
-   else if (project.mode == "road") biasPct = 121;
 diff --git a/ai/OpexAI/projects_models.nut b/ai/OpexAI/projects_models.nut
-index c87aded8..10be8a0f 100644
 --- a/ai/OpexAI/projects_models.nut
 +++ b/ai/OpexAI/projects_models.nut
-@@ -58,12 +58,15 @@ function OpexC70RecomputeFactors(lines)
- 
+@@ -59,10 +59,13 @@
  /* C121 : le facteur de realisation corrige le revenu brut du modele physique,
   * jamais une prediction deja corrigee. Une pseudo-ligne a 1.0 stabilise les
   * petits echantillons ; sous MIN_LINES on conserve strictement le cold-start. */
@@ -1125,9 +998,7 @@ index c87aded8..10be8a0f 100644
    if (!C121_AIR_PROJECT_REALIZATION_ADAPTIVE
        || plan == null || !("arm" in plan)) return 1.0;
    local arm = plan.arm;
-   if (arm != "hubsite" && arm != "hubhub") return 1.0;
-@@ -156,12 +159,15 @@ function OpexC70Factor(project)
- }
+@@ -157,10 +160,13 @@
  
  /* C70 : profit servant au classement. Le brut reste dans profitAnnual, et donc dans
   * line.predicted : le facteur mesure le modele, jamais sa propre correction. */
@@ -1141,9 +1012,7 @@ index c87aded8..10be8a0f 100644
    if (project != null && ("profitIsObserved" in project) && project.profitIsObserved)
      return project.profitAnnual;
    /* Eviter une seconde calibration C70 apres une correction C121 non neutre. */
-   if (AIR_P0_DIRECT_REALIZATION_ACTIVE && project != null && ("mode" in project)
-@@ -177,13 +183,103 @@ function OpexC70Profit(project)
-       && !("v161Calibrate" in project)
+@@ -178,11 +184,101 @@
        && OpexC121ProjectHasRealization(project)) return project.profitAnnual;
  
    return project.profitAnnual * OpexC70Factor(project);
@@ -1246,13 +1115,10 @@ index c87aded8..10be8a0f 100644
  function OpexProjectScore(value, cost)
  {
    if (value <= 0 || cost <= 0) return 0.0;
-   return (value.tofloat() * 1000.0) / cost;
 diff --git a/ai/OpexAI/projects_selection.nut b/ai/OpexAI/projects_selection.nut
-index 854981a5..5e871303 100644
 --- a/ai/OpexAI/projects_selection.nut
 +++ b/ai/OpexAI/projects_selection.nut
-@@ -550,12 +550,13 @@ function OpexProjectFitFleetToBudget(project, capitalBudget)
-   local entry = project.payload;
+@@ -551,10 +551,11 @@
    local line = entry.line;
    if (line == null || (("scrapping" in line) && line.scrapping)) return null;
    local have = ("vehCount" in line) ? line.vehCount : line.vehicles.len();
@@ -1264,9 +1130,7 @@ index 854981a5..5e871303 100644
    if (quantity >= entry.want) return project;
  
    /* Une seule tranche par demande, jamais des +1 concurrents pour la meme ligne.
-    * Ne pas modifier le vivier : une reelection avec davantage de capital doit
-@@ -563,12 +564,20 @@ function OpexProjectFitFleetToBudget(project, capitalBudget)
-   local fitted = clone project;
+@@ -564,10 +565,18 @@
    local reduced = clone entry;
    reduced.want = quantity;
    fitted.payload = reduced;
@@ -1285,9 +1149,7 @@ index 854981a5..5e871303 100644
    if (fitted.profitAnnual <= 0) return null;
    fitted.roi = (fitted.profitAnnual * 1000) / fitted.capital;
    fitted.budgetScore = OpexProjectScore(fitted.revenueAnnual, fitted.budgetCapital);
-   fitted.opcodeScore = OpexProjectScore(fitted.revenueAnnual, fitted.expectedOpcodes);
-@@ -1363,15 +1372,15 @@ function OpexProjectsStampSelectionStats(stats, projects, alternatives, funded,
-   foreach (p in alternatives) {
+@@ -1364,13 +1373,13 @@
      local cap = OpexProjectFinanceCapital(p);
      if (("mode" in p) && p.mode == "fleet" && ("payload" in p) && p.payload != null
          && ("planePrice" in p.payload) && p.payload.planePrice > 0) {
@@ -1303,29 +1165,23 @@ index 854981a5..5e871303 100644
    }
    stats.nextProjectCapital = nextCap;
    /* minCapital ne sert qu'a expliquer une selection vide. Eviter de
-    * rescanner tout le vivier quand un projet financable existe deja. */
 diff --git a/ai/OpexAI/settings.nut b/ai/OpexAI/settings.nut
-index b8c11d5a..f80d6bcb 100644
 --- a/ai/OpexAI/settings.nut
 +++ b/ai/OpexAI/settings.nut
-@@ -96,12 +96,15 @@ function OpexLoadSettings()
-   V211_RIVALS = OpexProbeEnabled(1073741824);
+@@ -97,10 +97,12 @@
    V216A_GHOST_DEMAND = AIController.GetSetting("v216a_ghost_demand");
    V216F_DWELL_PCT = AIController.GetSetting("v216f_dwell_pct");
    local lateRelax = AIController.GetSetting("v269_rail_late_relax");
    DIST_BORNES_V276_FREIGHT = AIController.GetSetting("dist_bornes_v276_freight") == 1;
    DIST_BORNES_UNIFIED = AIController.GetSetting("dist_bornes_unified") == 1;
 +  ESTIM_UNIFIE = AIController.GetSetting("estim_unifie");
-+  CASH_RESERVE_OFF = AIController.GetSetting("cash_reserve_off") == 1;
 +  foreach (m, k in ESTIM_K_R_PRIOR) ESTIM_K_R[m] = k;
    local railGrowth = AIController.GetSetting("v284_rail_growth");
    V233_LONG_GOOD = AIController.GetSetting("v233_long_good") == 1 ? 1 : 0;
    V233_SITE_FUNNEL = AIController.GetSetting("v233_site_funnel") == 1 ? 1 : 0;
    V233_FUNNEL_CENTER_TEST = AIController.GetSetting("v233_funnel_center_test") == 0 ? 0 : 1;
    if (railGrowth != null && railGrowth >= 0 && railGrowth <= 10) V284_RAIL_GROWTH = railGrowth;
-   local v294BridgeLen = AIController.GetSetting("v294_rail_bridge_len");
-@@ -302,12 +305,13 @@ function OpexLoadSettings()
-   if (C50_CHRONOLOGY_PROBE) {
+@@ -303,10 +305,11 @@
      OpexC50ResetNonExpansionLedger();
    }
    C63_INVEST_PROBE = probePort;
@@ -1337,57 +1193,49 @@ index b8c11d5a..f80d6bcb 100644
    C75_BYPASS_LEDGER_SKIP = AIController.GetSetting("c75_bypass_ledger_skip") == 1;
    /* Amorcage plat : sans etapes, chaque regeneration apres chantier prend le
     * chemin incremental C121 au lieu d'un OpexBuildProjects complet synchrone. */
-   STAGED_BOOTSTRAP = false;
 diff --git a/ai/OpexAI/task_air.nut b/ai/OpexAI/task_air.nut
-index 8f1bd624..d20d6824 100644
 --- a/ai/OpexAI/task_air.nut
 +++ b/ai/OpexAI/task_air.nut
-@@ -197,12 +197,17 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
-       local newAirports = (("reuseA" in plan) && plan.reuseA ? 0 : 1) + (("reuseB" in plan) && plan.reuseB ? 0 : 1);
+@@ -198,10 +198,15 @@
        if (EQUIPMENT_ROI_PROBE) OpexM3ProbeAirEquipment(this._catalog, plan, "portfolio_selected");
        local requiredMargin = OpexAirRequiredMargin(newAirports, buildPlan);
        local capital = ("capital" in buildPlan) ? buildPlan.capital
            : (newAirports * buildPlan.airport.price + buildPlan.plane.price);
-       local need = capital + OpexCashReserve() + requiredMargin;
+       local need = capital + requiredMargin;
 +      if ((ESTIM_UNIFIE & 2) != 0) {
 +        local immobilise = ("economics" in buildPlan) && buildPlan.economics != null
 +            && ("immobilise" in buildPlan.economics) ? buildPlan.economics.immobilise : 0;
-+        need = OpexEstimFinanceCashNeeded("air", capital, plan.distance, false, immobilise);
++        need = OpexEstimFinanceCapital("air", capital, plan.distance, false, immobilise);
 +      }
        if (spCash != null) OpexSpanEnd(spCash);
        if (money < need) {
          if (C50_CHRONOLOGY_PROBE) this._logC50CashRefusal("air", i, capital, plan.economics.profitAnnual, project.roi, plan.siteA.town.tile, plan.siteB.town.tile, need, money);
          if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL || C78_SLOT_INTERCEPT_PROBE
              || C122_AIR_THREAT_PROBE) passDiscards.append({ rank = i, mode = "air", src = plan.siteA.town.tile, dst = plan.siteB.town.tile, reason = "insufficient_cash", extra = "need=" + need + " cash=" + money });
-         return { outcome = "rejected", discards = passDiscards };
-@@ -648,12 +653,14 @@ function OpexAI::_resizeAirFleets(year, plan = null)
-       }
+@@ -649,10 +654,12 @@
      }
      /* Croissance d'une ligne aerienne EXISTANTE : aucun aeroport a batir, donc rien que
       * cette marge doive couvrir. 88 refus insufficient_cash pour 3 acceptations mesures
       * sur 3 parties x 2 ans (results/diag_1v1_decisions.json). */
-     local need = planePrice + OpexCashReserve() + 2000;
+     local need = planePrice + 2000;
 +    if ((ESTIM_UNIFIE & 2) != 0)
-+      need = OpexEstimFinanceCashNeeded("fleet", planePrice, 0);
++      need = OpexEstimFinanceCapital("fleet", planePrice, 0);
      local addedThisPass = 0;
      local maxAddedPerPass = 4;
      /* C14 : Dimensionnement dynamique de flotte par le stock au sol (AAAHogEx route.nut:2896-2921).
       * Si AIR_FLEET_BUFFER >= 0 : calcule buildNum = (maxWait - bottom) / capacity.
       * Si buildNum < 1 : refus W (pas assez de cargo au sol).
-      * Sinon : autorise jusqu'a min(buildNum, 4). */
 diff --git a/ai/OpexAI/task_rail.nut b/ai/OpexAI/task_rail.nut
-index 204dc29b..b1436e27 100644
 --- a/ai/OpexAI/task_rail.nut
 +++ b/ai/OpexAI/task_rail.nut
-@@ -273,12 +273,16 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
-         if (DECISION_LOG || C49_SCARCITY_LEDGER || C63_INVEST_PROBE
+@@ -274,10 +274,14 @@
              || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "too_close_no_join", extra = "" });
          return { outcome = "rejected", discards = passDiscards };
        }
  
-       local need = candidate.capital + OpexCashReserve();
+       local need = candidate.capital;
 +      if ((ESTIM_UNIFIE & 2) != 0)
-+        need = OpexEstimFinanceCashNeeded("rail", candidate.capital, candidate.distance,
++        need = OpexEstimFinanceCapital("rail", candidate.capital, candidate.distance,
 +            ("capitalIsActual" in candidate) && candidate.capitalIsActual,
 +            ("immobilise" in candidate) ? candidate.immobilise : 0);
        local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
@@ -1395,16 +1243,14 @@ index 204dc29b..b1436e27 100644
        /* G3§2 : pour le chemin reprenable sans railPlan, la recherche A* ne coute aucune
         * tresorerie et le cash peut arriver pendant les tranches. On ne saute que le chemin
         * non reprenable (construction immediate). _consumeRailSearch verifiera la caisse a
-        * la fin. */
-@@ -1051,12 +1055,16 @@ function OpexAI::_consumeRailSearch(year)
-    * invalide en phase build indefiniment, sinon _railSearch ne se libere jamais et le
+@@ -1051,10 +1055,14 @@
     * pipeline rail est neutralise (l'echec n'est pas non plus transmis a C22). */
    local planFailed = ("railPlan" in candidate) && candidate.railPlan != null
                       && !candidate.railPlan.ok;
    if (!planFailed) {
-     local need = candidate.capital + OpexCashReserve();
+     local need = candidate.capital;
 +    if ((ESTIM_UNIFIE & 2) != 0)
-+      need = OpexEstimFinanceCashNeeded("rail", candidate.capital, candidate.distance,
++      need = OpexEstimFinanceCapital("rail", candidate.capital, candidate.distance,
 +          ("capitalIsActual" in candidate) && candidate.capitalIsActual,
 +          ("immobilise" in candidate) ? candidate.immobilise : 0);
      local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
@@ -1412,16 +1258,14 @@ index 204dc29b..b1436e27 100644
        if (C50_CHRONOLOGY_PROBE) this._logC50CashRefusal("rail", -1, candidate.capital, candidate.profitAnnual, candidate.roi, candidate.src, candidate.dst, need, money);
        /* C41.47 : pendant de la garde G3S1 ci-dessus, applique au motif tresorerie -- des le
         * premier blocage constate, liberer _railSearch pour que _expandRailLines et les AUTRES
-        * candidats rail du portefeuille ne soient plus geles (main.nut:4445, 2574). candidate.
-@@ -2747,12 +2755,16 @@ function OpexAI::_v131OnRepairSliceDone(state, slice)
-  * Vérifie capital, slots de véhicules, gares, voies et possibilité de dépôt sous AITestMode. */
+@@ -2747,10 +2755,14 @@
  function OpexAI::_revalidateRailStockPlan(candidate, plan)
  {
    if (candidate == null || plan == null) return { ok = false, reason = "null_plan" };
  
-   local need = candidate.capital + OpexCashReserve();
+   local need = candidate.capital;
 +  if ((ESTIM_UNIFIE & 2) != 0)
-+    need = OpexEstimFinanceCashNeeded("rail", candidate.capital, candidate.distance,
++    need = OpexEstimFinanceCapital("rail", candidate.capital, candidate.distance,
 +        ("capitalIsActual" in candidate) && candidate.capitalIsActual,
 +        ("immobilise" in candidate) ? candidate.immobilise : 0);
    local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
@@ -1429,13 +1273,10 @@ index 204dc29b..b1436e27 100644
  
    if (!OpexRailVehicleSlotAvailable()) return { ok = false, reason = "no_vehicle_slot" };
  
-   if (candidate.kind != "pax") {
 diff --git a/ai/OpexAI/task_report.nut b/ai/OpexAI/task_report.nut
-index 6c9d8200..3ef50dd3 100644
 --- a/ai/OpexAI/task_report.nut
 +++ b/ai/OpexAI/task_report.nut
-@@ -210,12 +210,13 @@ function OpexUpdateTownGrowthLineHealth(ai, line, year, anchor, profit)
- function OpexAI::_reportLines(year)
+@@ -211,10 +211,11 @@
  {
    this._purgeUnprofitableStreaks();
    local anchor = AIMap.GetTileIndex(1, 1);
@@ -1447,9 +1288,7 @@ index 6c9d8200..3ef50dd3 100644
    local c69LineCounts = C69_BOTTLENECK_PROBE ? { rail = 0, road = 0, air = 0, water = 0 } : null;
    for (local i = 0; i < this._lines.len(); i++) {
      local line = this._lines[i];
-     local stationA = AIStation.GetStationID(line.stationA);
-@@ -361,12 +362,13 @@ function OpexAI::_reportLines(year)
-     local currentRevenue = profit + runCost;
+@@ -362,10 +363,11 @@
      if (c121RealizationSums != null && ("mode" in line) && line.mode == "air"
          && ("c121Arm" in line) && (line.c121Arm in c121RealizationSums)
          && ("c121RawRevenueAnnual" in line) && line.c121RawRevenueAnnual > 0) {
@@ -1461,9 +1300,7 @@ index 6c9d8200..3ef50dd3 100644
          && ("c121MarginalBaselineProfit" in line) && ("c121MarginalBaselineRevenue" in line)
          && ("c121MarginalBaselineVehicles" in line) && vehCount > line.c121MarginalBaselineVehicles) {
        OpexC121ObserveLineMarginal(line, year, vehCount, profit, currentRevenue);
-     }
-@@ -580,12 +582,16 @@ function OpexAI::_reportLines(year)
-   {
+@@ -581,10 +583,14 @@
      OpexC70PublishModeFactors(c70Sums, year);
    }
    if (c121RealizationSums != null) {
@@ -1478,20 +1315,17 @@ index 6c9d8200..3ef50dd3 100644
        OpexC69Log("phase=c3_pending pass=" + item.passId + " passes_waited=" + item.passesWaited
            + " target=" + item.c69Key);
      }
-   }
 diff --git a/ai/OpexAI/task_road.nut b/ai/OpexAI/task_road.nut
-index 1016c59c..a3bd1917 100644
 --- a/ai/OpexAI/task_road.nut
 +++ b/ai/OpexAI/task_road.nut
-@@ -79,12 +79,16 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
-       if ((abandonedKey in this._abandonedPairs)) {
+@@ -80,10 +80,14 @@
          if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "road", src = candidate.src, dst = candidate.dst, reason = "abandoned_pair", extra = "" });
          return { outcome = "rejected", discards = passDiscards };
        }
  
-       local need = candidate.capital + OpexCashReserve() + ROAD_CAPITAL_MARGIN;
+       local need = candidate.capital + ROAD_CAPITAL_MARGIN;
 +      if ((ESTIM_UNIFIE & 2) != 0)
-+        need = OpexEstimFinanceCashNeeded("road", candidate.capital, candidate.distance,
++        need = OpexEstimFinanceCapital("road", candidate.capital, candidate.distance,
 +            ("capitalIsActual" in candidate) && candidate.capitalIsActual,
 +            ("immobilise" in candidate) ? candidate.immobilise : 0);
        local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
@@ -1499,18 +1333,16 @@ index 1016c59c..a3bd1917 100644
          if (C50_CHRONOLOGY_PROBE) this._logC50CashRefusal("road", i, candidate.capital, candidate.profitAnnual, candidate.roi, candidate.src, candidate.dst, need, money);
          if (DECISION_LOG || C63_INVEST_PROBE
              || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "road", src = candidate.src, dst = candidate.dst, reason = "insufficient_cash", extra = "need=" + need + " cash=" + money });
-         return { outcome = "rejected", discards = passDiscards };
 diff --git a/ai/OpexAI/task_v249.nut b/ai/OpexAI/task_v249.nut
-index 1de392a0..94cc90f5 100644
 --- a/ai/OpexAI/task_v249.nut
 +++ b/ai/OpexAI/task_v249.nut
-@@ -8,12 +8,44 @@
-  * gain annuel x horizon (5 ans) > cout mesure. Pas de reserve de caisse requise,
-  * mais preservation du meilleur projet admissible et financable et de la flotte V252.
+@@ -8,10 +8,42 @@
+  * gain annuel x horizon (5 ans) > cout mesure. Preservation du meilleur
+  * projet admissible et financable et de la flotte V252.
   * Aucun etat sauvegarde. La statue est un bit du monde (AITown.HasStatue). */
  
  const V249_HORIZON_YEARS = 5;
- 
++
 +/* ESTIM-1 lot 3 (bit 4) : contrat M1 commun aux investissements sur lignes
 + * existantes. deltaR est une recette BRUTE, deltaE l'entretien annuel,
 + * deltaA l'amortissement annuel des vehicules, deltaC le prix net a payer.
@@ -1542,15 +1374,11 @@ index 1de392a0..94cc90f5 100644
 +      + " deltaC=" + project.deltaC + " deltaP=" + project.deltaP
 +      + " score=" + project.score);
 +}
-+
- /* Capital du projet le plus cher encore liste : la statue ne doit jamais
+""" + " \n" + r""" /* Capital du projet le plus cher encore liste : la statue ne doit jamais
   * prendre l'argent d'un projet que le portefeuille veut financer. */
  function OpexV249MaxListedCapital(projects)
  {
-   if (projects == null || !("best" in projects) || projects.best == null) return 0;
-   local most = 0;
-@@ -180,12 +212,18 @@ function OpexV249LineServiceInfo(line, stationId, cargo)
-   if (spareCapacity < 0) spareCapacity = 0;
+@@ -181,10 +213,16 @@
  
    local profit = OpexV249LineProfit(line);
    local unitRevenue = 0.0;
@@ -1567,9 +1395,7 @@ index 1de392a0..94cc90f5 100644
    } else if (("predicted" in line) && line.predicted > 0 && ("predCarried" in line) && line.predCarried > 0) {
      unitRevenue = line.predicted.tofloat() / (line.predCarried * 12);
    }
- 
-@@ -238,16 +276,18 @@ function OpexV249DispatchMode2(ai, ym, year)
-   local bestTown = -1;
+@@ -239,14 +277,16 @@
    local bestGain = 0;
    local bestStation = -1;
    local bestCargo = -1;
@@ -1586,9 +1412,7 @@ index 1de392a0..94cc90f5 100644
      nTowns++;
      if (AITown.HasStatue(townId)) {
        nStatue++;
-       continue;
-@@ -255,12 +295,13 @@ function OpexV249DispatchMode2(ai, ym, year)
-     if (!AITown.IsActionAvailable(townId, AITown.TOWN_ACTION_BUILD_STATUE)) {
+@@ -256,10 +296,11 @@
        nUnavail++;
        continue;
      }
@@ -1600,9 +1424,7 @@ index 1de392a0..94cc90f5 100644
      local topRt = -1;
      local topPr = 0;
      local topStGain = -1;
- 
-@@ -288,12 +329,13 @@ function OpexV249DispatchMode2(ai, ym, year)
-       if (prodMonthly <= 0) continue;
+@@ -289,10 +330,11 @@
        local annualProd = prodMonthly * 12;
        local maxTownExtra = (annualProd * 26) / 256;
  
@@ -1614,9 +1436,7 @@ index 1de392a0..94cc90f5 100644
          local ratingPct = AIStation.GetCargoRating(stId, cg);
          if (ratingPct < 0) continue;
          local curByte = OpexC121RatingPercentToByteMid(ratingPct);
-         local targetByte = curByte + 26;
-@@ -324,25 +366,50 @@ function OpexV249DispatchMode2(ai, ym, year)
-           topRt = ratingPct;
+@@ -325,23 +367,48 @@
            topPr = prodMonthly;
          }
  
@@ -1666,9 +1486,7 @@ index 1de392a0..94cc90f5 100644
        bestRating = topRt;
        bestProd = topPr;
      }
-   }
-@@ -352,21 +419,33 @@ function OpexV249DispatchMode2(ai, ym, year)
-     return true;
+@@ -353,19 +420,31 @@
    }
  
    local cost = OpexV249MeasureStatueCost(bestTown);
@@ -1695,15 +1513,13 @@ index 1de392a0..94cc90f5 100644
    local v252Cost = OpexV249GetPendingV252Cost(ai);
    local threshold = bestProjCap + v252Cost;
 +  if ((ESTIM_UNIFIE & 2) != 0)
-+    threshold = OpexEstimFinanceCashNeeded("statue", 0, 0);
++    threshold = 0;
  
    if (cost <= 0 || cash - cost < threshold) {
      if (DECISION_LOG) OpexDecide("V249_SKIP", "reason=cost town=" + bestTown + " station=" + bestStation + " cargo=" + bestCargoLabel + " rating=" + bestRating + " prod=" + bestProd + " gain=" + bestGain + " cost=" + cost + " cash=" + cash + " threshold=" + threshold + " best_proj=" + bestProjCap + " v252=" + v252Cost);
      return true;
    }
- 
-@@ -397,13 +476,13 @@ function OpexAI::_dispatchV249Statue(task, year)
-   }
+@@ -398,11 +477,11 @@
    if (cashStop) {
      if (DECISION_LOG) OpexDecide("V249_SKIP", "reason=cash_stop");
      return true;
@@ -1716,33 +1532,29 @@ index 1de392a0..94cc90f5 100644
  
    local byTown = {};
    local nLines = 0;
-   if (this._lines != null) {
-@@ -455,12 +534,14 @@ function OpexAI::_dispatchV249Statue(task, year)
-     return true;
+@@ -456,10 +535,12 @@
    }
  
    local cost = OpexV249MeasureStatueCost(bestTown);
    local cash = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
-   local threshold = OpexCashReserve() + OpexV249MaxListedCapital(this._projects);
+   local threshold = OpexV249MaxListedCapital(this._projects);
 +  if ((ESTIM_UNIFIE & 2) != 0)
-+    threshold = OpexEstimFinanceCashNeeded("statue", 0, 0);
++    threshold = 0;
    if (cost <= 0 || cash - cost < threshold) {
      if (DECISION_LOG) OpexDecide("V249_SKIP", "reason=cost cash=" + cash + " cost=" + cost + " threshold=" + threshold + " town=" + bestTown);
      return true;
    }
    local built = AITown.PerformTownAction(bestTown, AITown.TOWN_ACTION_BUILD_STATUE);
-   if (!built) {
 diff --git a/ai/OpexAI/task_v252.nut b/ai/OpexAI/task_v252.nut
-index afef5ddd..56f6ee68 100644
 --- a/ai/OpexAI/task_v252.nut
 +++ b/ai/OpexAI/task_v252.nut
-@@ -1,12 +1,53 @@
+@@ -1,10 +1,51 @@
  /* V252 : modernisation de la flotte aerienne quand on est riche. Aucun montant fixe.
   * Riche = aucun emprunt, aucune passe projets arretee faute de caisse depuis le mois
-  * precedent (V252_CASH_STOP), et apres l'achat la caisse couvre encore la reserve
-  * et le projet le plus cher du portefeuille. Au plus un remplacement par passage.
+  * precedent (V252_CASH_STOP), et apres l'achat la caisse couvre encore
+  * le projet le plus cher du portefeuille. Au plus un remplacement par passage.
   * Aucun nombre a 4 chiffres ou plus dans ce fichier. */
- 
++
 +/* ESTIM-1 : cout et marge de la substitution d'UN avion a flotte constante.
 + * Les deux appareils passent par le meme modele physique de route ; la
 + * difference entre flottes homogenes est repartie sur les n appareils. */
@@ -1783,15 +1595,11 @@ index afef5ddd..56f6ee68 100644
 +  local deltaE = newPlane.runningCost - oldPlane.runningCost;
 +  return OpexEstimVProject("air", deltaR, deltaE, netCapital / years, netCapital, kDec);
 +}
-+
- function OpexAI::_dispatchV252AirEngineRefresh(task, year)
+""" + " \n" + r""" function OpexAI::_dispatchV252AirEngineRefresh(task, year)
  {
    local date = AIDate.GetCurrentDate();
    local ym = year * 12 + AIDate.GetMonth(date);
-   if (this._v252RefreshMonth == ym) return false;
-   this._v252RefreshMonth = ym;
-@@ -35,12 +76,14 @@ function OpexAI::_dispatchV252AirEngineRefresh(task, year)
-   local bestNewEngine = -1;
+@@ -36,10 +77,12 @@
    local curEngine = -1;
    local nAirLines = 0;
    local nOutdated = 0;
@@ -1804,9 +1612,7 @@ index afef5ddd..56f6ee68 100644
      if (line == null) continue;
      if (("mode" in line) && line.mode != "air") continue;
      if (!("vehicles" in line) || line.vehicles == null || line.vehicles.len() == 0) continue;
-     if (("scrapping" in line) && line.scrapping) continue;
-@@ -83,30 +126,44 @@ function OpexAI::_dispatchV252AirEngineRefresh(task, year)
-     }
+@@ -84,28 +127,42 @@
  
      local targetEngine = lineTargetCache[lineKey];
      if (targetEngine == null) continue;
@@ -1842,21 +1648,18 @@ index afef5ddd..56f6ee68 100644
    local price = AIEngine.GetPrice(bestNewEngine);
 +  if ((ESTIM_UNIFIE & 4) != 0) OpexEstimVLog("V252", bestLine.lineId, bestProject);
    local cash = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
-   local threshold = OpexCashReserve() + OpexV249MaxListedCapital(this._projects);
+   local threshold = OpexV249MaxListedCapital(this._projects);
 +  if ((ESTIM_UNIFIE & 2) != 0)
-+    threshold = OpexEstimFinanceCashNeeded("fleet", 0, 0);
++    threshold = 0;
    if (price <= 0 || cash - price < threshold) {
      if (DECISION_LOG) OpexDecide("V252_SKIP", "reason=cost cash=" + cash + " cost=" + price + " threshold=" + threshold + " line=" + bestLine.lineId);
      return true;
    }
  
-   local airportTile = ("originA" in bestLine) && AIAirport.IsAirportTile(bestLine.originA)
 diff --git a/ai/OpexAI/task_v257.nut b/ai/OpexAI/task_v257.nut
-index 04ef4b1c..4c6df52e 100644
 --- a/ai/OpexAI/task_v257.nut
 +++ b/ai/OpexAI/task_v257.nut
-@@ -100,12 +100,28 @@ function OpexV257Plan(line, loco, wagon, wagons, monthly, rating, serviceSpeed,
-   local revenue = 12 * carried * AICargo.GetCargoIncome(line.cargo, line.distance, OpexCeilDiv(days, 1));
+@@ -101,10 +101,26 @@
    return { loco = loco, wagon = wagon, wagons = wagons, revenue = revenue,
             running = loco.runningCost + wagons * wagon.runningCost,
             price = loco.price + wagons * wagon.price, speed = speed, days = days };
@@ -1883,9 +1686,7 @@ index 04ef4b1c..4c6df52e 100644
    if (DECISION_LOG) OpexDecide("V257_REVIEW", "line=" + line.lineId + " current=" + current
        + " best=" + best + " gain=" + gain + " cost=" + cost + " decision=" + decision
        + " reason=" + reason + " line_profit=" + profit + " waiting=" + waiting
-       + " rating=" + rating + " load=" + load + " delivered_lower_bound=" + delivered);
-@@ -293,12 +309,13 @@ function OpexAI::_v257Review(line, state, date, force)
-   /* Stock en attente amorti sur un an, jamais considere comme un flux mensuel.
+@@ -294,10 +310,11 @@
     * La moyenne mesuree et le stock sont partages entre les rames de la ligne. */
    local monthly = (state.annualDelivered * 365.0 / state.annualDays + waiting) / (12 * count);
    local selected = null;
@@ -1897,9 +1698,7 @@ index 04ef4b1c..4c6df52e 100644
    local currentYearStart = AIDate.GetDate(year - 1, 1, 1);
    /* Le choix depend de la last_speed de la rame en service. Une composition
     * non modelisable (automotrice, rame mixte, trop courte) garde l'ancien
-    * catalogue non recale, seulement pour le journal. */
-@@ -362,17 +379,29 @@ function OpexAI::_v257Review(line, state, date, force)
-     if (sale == null) continue;
+@@ -363,15 +380,27 @@
      local cost = best.price - sale;
      local remaining = AIVehicle.GetAgeLeft(vehicle) / 365.0;
      local newLife = AIEngine.GetMaxAge(best.loco.id) / 365.0;
@@ -1928,9 +1727,7 @@ index 04ef4b1c..4c6df52e 100644
    if (selected != null) {
      /* Le depot atteint decide du depot de reconstruction, pas le premier depot
       * de la ligne : important pour les deux voies independantes. */
-     this._v257Pending = { lineId = line.lineId, vehicle = selectedVehicle,
-@@ -436,12 +465,14 @@ function OpexAI::_v257ReplaceStep()
-   /* Le trajet jusqu'au depot peut traverser un nouvel exercice ou une variation
+@@ -437,10 +466,12 @@
     * de prix. Recalculer le gain avec le profit/entretien actuels et le stock
     * maintenant observe, sans figer le gain du jour de l'envoi. */
    local state = (line.lineId in this._v257State) ? this._v257State[line.lineId] : null;
@@ -1943,9 +1740,7 @@ index 04ef4b1c..4c6df52e 100644
      local stock = AIStation.GetCargoWaiting(AIStation.GetStationID(line.stationA), line.cargo);
      if (line.kind == "pax") stock += AIStation.GetCargoWaiting(AIStation.GetStationID(line.stationB), line.cargo);
      local monthly = (state.annualDelivered * 365.0 / state.annualDays + stock) / (12 * line.vehicles.len());
-     local stationA = AIStation.GetStationID(line.stationA);
-@@ -459,24 +490,39 @@ function OpexAI::_v257ReplaceStep()
-     local wagonLimits = OpexV257WagonSpeedLimits();
+@@ -460,22 +491,37 @@
      local serviceLoco = OpexV257Engine(AIVehicle.GetEngineType(oldVehicle), line.cargo, false);
      local serviceWagon = OpexV257Engine(wagonEngine, line.cargo, true);
      local serviceSpeed = OpexV257ConsistLastSpeed(serviceLoco, serviceWagon, wagonLimits);
@@ -1964,7 +1759,7 @@ index 04ef4b1c..4c6df52e 100644
    local newLife = AIEngine.GetMaxAge(pending.engine) / 365.0;
    if (newLife < remaining) remaining = newLife;
 -  if (sale == null || !compatible || remaining <= 0 || pending.gain <= 0 || pending.gain * remaining < cost
--      || AICompany.GetBankBalance(AICompany.COMPANY_SELF) - price < OpexCashReserve()) {
+-      || AICompany.GetBankBalance(AICompany.COMPANY_SELF) < price) {
 +  local estimPays = false;
 +  if ((ESTIM_UNIFIE & 4) != 0) {
 +    local refreshed = OpexEstimV257Project(currentPlan, targetPlan, oldVehicle, sale);
@@ -1978,20 +1773,17 @@ index 04ef4b1c..4c6df52e 100644
 +      : (remaining <= 0 || pending.gain <= 0 || pending.gain * remaining < cost))
 +      || AICompany.GetBankBalance(AICompany.COMPANY_SELF) <
 +          ((ESTIM_UNIFIE & 2) != 0
-+              ? OpexEstimFinanceCashNeeded("rail", price, 0, true)
-+              : price + OpexCashReserve())) {
++              ? OpexEstimFinanceCapital("rail", price, 0, true)
++              : price)) {
      pending.phase = "resume";
      local resumed = AIVehicle.StartStopVehicle(oldVehicle);
      OpexV257ReviewLog(line, pending.current, pending.engine, pending.gain, cost, "keep", "depot_recheck",
          lineProfit, waiting, rating, load, delivered);
      if (resumed) { this._v257Pending = null; this._v257PendingLine = null; }
-     return;
 diff --git a/ai/OpexAI/task_v259.nut b/ai/OpexAI/task_v259.nut
-index ee9550cd..f5dd487f 100644
 --- a/ai/OpexAI/task_v259.nut
 +++ b/ai/OpexAI/task_v259.nut
-@@ -279,22 +279,39 @@ function OpexAI::_v259EvaluateAndRenew(item)
-   local remainingYears = OpexV259LineRemainingYears(line);
+@@ -280,11 +280,26 @@
  
    local cost = OpexV259MeasureBridgeCost(vtype, bestBridgeType, start, end);
    if (cost <= 0) cost = AIBridge.GetPrice(bestBridgeType, len);
@@ -2019,24 +1811,10 @@ index ee9550cd..f5dd487f 100644
        + " new_type=" + bestBridgeType + " new_speed=" + bestSpeed
        + " cost=" + cost + " gain=" + gain + " decision=skip_unprofitable");
      return;
-   }
- 
-   local cash = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
-   local threshold = OpexCashReserve();
-+  if ((ESTIM_UNIFIE & 2) != 0)
-+    threshold = OpexEstimFinanceCashNeeded("rail", 0, 0, true);
-   if (cost > 0 && cash - cost < threshold) {
-     if (DECISION_LOG) OpexDecide("V259_BRIDGE", "line=" + lineId + " tiles=" + start + "->" + end
-       + " old_type=" + oldBridgeType + " old_speed=" + oldSpeed
-       + " new_type=" + bestBridgeType + " new_speed=" + bestSpeed
-       + " cost=" + cost + " gain=" + gain + " decision=skip_cash");
-     return;
 diff --git a/ai/OpexAI/task_v284.nut b/ai/OpexAI/task_v284.nut
-index 9c4b6abf..b2e7cb4d 100644
 --- a/ai/OpexAI/task_v284.nut
 +++ b/ai/OpexAI/task_v284.nut
-@@ -19,16 +19,67 @@ function OpexV284Limit(line)
- 
+@@ -20,14 +20,65 @@
  function OpexV284Log(action, fields)
  {
    if (DECISION_LOG) OpexDecide("V284", "action=" + action + " " + fields);
@@ -2103,9 +1881,7 @@ index 9c4b6abf..b2e7cb4d 100644
    local oldNumber = AIVehicle.GetNumWagons(vehicle) - 1;
    local distance = ("routeDistance" in line) ? line.routeDistance : line.distance;
    local speed = OpexRailEffectiveSpeed(current, wagon, oldNumber, distance);
-   local railType = AIRail.GetRailType(line.depot);
-@@ -43,15 +94,22 @@ function OpexV284Equipment(line, vehicle, wagon, number)
-         || !AIEngine.CanRunOnRail(engine, railType) || !AIEngine.HasPowerOnRail(engine, railType)) continue;
+@@ -44,13 +95,20 @@
      local loco = OpexV257Engine(engine, line.cargo, false);
      local nextSpeed = OpexRailEffectiveSpeed(loco, wagon, number, distance);
      if (nextSpeed < speed || loco.speed < current.speed) continue;
@@ -2129,9 +1905,7 @@ index 9c4b6abf..b2e7cb4d 100644
  }
  
  function OpexV284Select(owner, year, v233Input = false)
- {
-@@ -63,12 +121,13 @@ function OpexV284Select(owner, year, v233Input = false)
-   if (owner._v284State == null) owner._v284State = { nextDate = 0, dates = {}, loops = {}, pending = null };
+@@ -64,10 +122,11 @@
    local state = owner._v284State;
    local date = AIDate.GetCurrentDate();
    if (!v233Input && date < state.nextDate) return false;
@@ -2143,9 +1917,7 @@ index 9c4b6abf..b2e7cb4d 100644
      if (v233Input && OpexOpsMeasureEnd(v233Mark) >= V233L_SLICE_OPS) break;
      if (v233Input && !OpexV233LInputTarget(line)) continue;
      if (!("mode" in line) || line.mode != "rail" || !("kind" in line) || line.kind != "freight"
-         || !("platformLength" in line) || !("depot" in line) || !("distance" in line)) continue;
-@@ -100,22 +159,31 @@ function OpexV284Select(owner, year, v233Input = false)
-     /* La longueur mesuree protege aussi les compositions NewGRF plus longues. */
+@@ -101,20 +160,29 @@
      local atLimit = number >= maxWagons || AIVehicle.GetLength(vehicle) + 8 > length * 16;
      if (v233Input && !OpexV233LBacklog(line, waiting, atLimit ? capacity : wagon.capacity)) continue;
      if (atLimit && (waiting < capacity || !OpexRailVehicleSlotAvailable())) continue;
@@ -2180,9 +1952,7 @@ index 9c4b6abf..b2e7cb4d 100644
      OpexV284Log("skip", "line=" + line.lineId + " reason=traction");
      return false;
    }
-   local loopPlan = null;
-@@ -127,13 +195,23 @@ function OpexV284Select(owner, year, v233Input = false)
-     if (loopPlan == null) {
+@@ -128,11 +196,21 @@
        state.dates.rawset(line.lineId, date + 365);
        OpexV284Log("skip", "line=" + line.lineId + " reason=geometry waiting=" + best.waiting);
        return false;
@@ -2205,52 +1975,46 @@ index 9c4b6abf..b2e7cb4d 100644
    if (waitDays < 120) waitDays = 120;
    if (waitDays > 730) waitDays = 730;
    state.pending = {
-     lineId = line.lineId, vehicle = best.vehicle, newVehicle = -1,
-@@ -428,17 +506,23 @@ function OpexV284Tick(owner)
-   local loco = OpexV257Engine(pending.engine, line.cargo, false);
+@@ -429,15 +507,21 @@
    local price = loco.price + pending.wagons * wagon.price;
    local limit = OpexV284Limit(line);
    local station = AIStation.GetStationID(line.stationA);
    local waitingNow = AIStation.IsValidStation(station) ? AIStation.GetCargoWaiting(station, line.cargo) : -1;
    local requiredWaiting = pending.add ? AIVehicle.GetCapacity(oldVehicle, line.cargo) : wagon.capacity;
-+  local cashNeed = price + OpexCashReserve() + 50000;
++  local cashNeed = price + 50000;
 +  if ((ESTIM_UNIFIE & 2) != 0) {
 +    local loopCost = pending.loopPlan != null ? pending.loopPlan.pieces.len()
 +        * AIRail.GetBuildCost(AIRail.GetRailType(pending.depot), AIRail.BT_TRACK) : 0;
-+    cashNeed = OpexEstimFinanceCashNeeded("rail", price + loopCost, 0, true);
++    cashNeed = OpexEstimFinanceCapital("rail", price + loopCost, 0, true);
 +  }
    if (waitingNow < requiredWaiting || !AIEngine.IsBuildable(pending.engine) || !AIEngine.IsBuildable(pending.wagon)
        || !AIRail.IsRailDepotTile(pending.depot)
        || !AIEngine.HasPowerOnRail(pending.engine, AIRail.GetRailType(pending.depot))
        || pending.wagons > OpexRailNominalMaxWagons(limit)
--      || AICompany.GetBankBalance(AICompany.COMPANY_SELF) < price + OpexCashReserve() + 50000) {
+-      || AICompany.GetBankBalance(AICompany.COMPANY_SELF) < price + 50000) {
 +      || AICompany.GetBankBalance(AICompany.COMPANY_SELF) < cashNeed) {
      OpexV284Cancel(owner, pending, "depot_recheck"); return;
    }
    pending.cashBefore = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
    pending.before = [];
    local vehicles = AIVehicleList();
-   for (local vehicle = vehicles.Begin(); !vehicles.IsEnd(); vehicle = vehicles.Next())
 diff --git a/ai/OpexAI/task_water.nut b/ai/OpexAI/task_water.nut
-index e1f84920..db9a0a1e 100644
 --- a/ai/OpexAI/task_water.nut
 +++ b/ai/OpexAI/task_water.nut
-@@ -24,12 +24,15 @@ function OpexAI::_tryBuildWaterProject(year, project, rank, builtCount, passDisc
-         if (DECISION_LOG || C63_INVEST_PROBE
+@@ -25,10 +25,13 @@
              || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "water", src = plan.siteA.town.id, dst = plan.siteB.town.id, reason = "batch_site_unbuildable", extra = "" });
          return { outcome = "rejected", discards = passDiscards };
        }
        local capital = 2 * this._catalog.costDock + this._catalog.costWaterDepot + this._catalog.maxShipPrice;
-       local need = capital + OpexCashReserve() + WATER_CAPITAL_MARGIN;
+       local need = capital + WATER_CAPITAL_MARGIN;
 +      if ((ESTIM_UNIFIE & 2) != 0)
-+        need = OpexEstimFinanceCashNeeded("water", project.capital, project.distance, false,
++        need = OpexEstimFinanceCapital("water", project.capital, project.distance, false,
 +            ("immobilise" in plan.economics) ? plan.economics.immobilise : 0);
        local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
        if (money < need) {
          if (C50_CHRONOLOGY_PROBE) this._logC50CashRefusal("water", i, capital, plan.economics.profitAnnual, project.roi, plan.siteA.town.id, plan.siteB.town.id, need, money);
          if (DECISION_LOG || C63_INVEST_PROBE
              || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "water", src = plan.siteA.town.id, dst = plan.siteB.town.id, reason = "insufficient_cash", extra = "need=" + need + " cash=" + money });
-         return { outcome = "rejected", discards = passDiscards };
 """
 # END REVIEWED ESTIM-1 SOURCE DIFF
 

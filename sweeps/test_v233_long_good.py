@@ -15,6 +15,20 @@ from v233_long_good_legacy import FIXTURE, off_source
 
 AI = Path(__file__).resolve().parents[1] / "ai/OpexAI"
 
+# 2026-10-27: the immutable fixture still records the pre-retirement V233L
+# OFF hashes. These seven projected sources now implement cash_reserve_off=1
+# permanently. Pin the new bytes explicitly; all other files must continue
+# matching their unchanged historical hashes.
+RESERVE0_OFF_SHA256 = {
+    "builder_rail.nut": "42c3802b6e9a609b644923df416a6233d70404e08a23f21e5641964215153e41",
+    "globals_pre.nut": "f3eef1db959e4b8f6f47af3100811906a0ebcfd04ac41a4114b2d94bd2b74b8c",
+    "info.nut": "d2a3978a93ed8486960415dcc036a5cc7a6f75ca7228c8ca78f2c28dd1cbe351",
+    "main.nut": "8bba058b5f3235e68bae9a0345d9c8ba8444680ef7ef2a39f2ad2153fd5f16e8",
+    "settings.nut": "1fd30b5485df8c42344f1f639bcd8f556a5864730d249633de551be515462af9",
+    "task_rail.nut": "4ef8afd1dea52b0e5658d1d39011bcd3a903ed3b00ba85552cc1cc3503af7d2a",
+    "task_v284.nut": "5d2ffd11523c306c0d4236534a75e3e7e79da168e314fb2978e44aad32fd02d6",
+}
+
 
 def observe(samples):
     """Six real observations in seven calendar months; no missing value imputed."""
@@ -909,13 +923,19 @@ class V233LongGoodContracts(unittest.TestCase):
             self.assertRegex(block, level + r"_value\s*=\s*1\b")
         self.assertEqual(source("settings.nut").count('GetSetting("v233_long_good")'), 1)
         self.assertIn("V233_LONG_GOOD <- 1;", source("globals_pre.nut"))
-        self.assertEqual(source("info.nut").count("AddSetting("), 80)
+        self.assertEqual(source("info.nut").count("AddSetting("), 79)
 
     def test_off_reviewed_edits_preserve_all_original_hashes(self):
+        self.assertEqual(
+            set(RESERVE0_OFF_SHA256),
+            {"builder_rail.nut", "globals_pre.nut", "info.nut", "main.nut",
+             "settings.nut", "task_rail.nut", "task_v284.nut"},
+        )
         for name, entry in FIXTURE["files"].items():
             with self.subTest(name=name):
                 projected = off_source(name, source(name))
-                self.assertEqual(hashlib.sha256(projected.encode()).hexdigest(), entry["sha256_off"])
+                self.assertEqual(hashlib.sha256(projected.encode()).hexdigest(),
+                                 RESERVE0_OFF_SHA256.get(name, entry["sha256_off"]))
                 if name not in ("main.nut", "globals_pre.nut", "info.nut", "settings.nut", "persist.nut"):
                     self.assertNotIn("OpexV233L", uncomment(projected))
         edited = source("candidates.nut").replace("V233_LONG_GOOD > 0 ? OpexV233LSource", "true ? OpexV233LSource")

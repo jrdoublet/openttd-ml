@@ -1441,7 +1441,7 @@ function OpexV264SpreadScan(plans, platform, stationId, stats, box, spread, leng
 
 /* V264 : quai joint hors du parallele, dans l'emprise moteur. Une seule longueur,
  * celle du quai deja pose. Echec = liste vide (pas de seconde gare, pas de quai plus court).
- * Aucun seuil de caisse ajoute : la reserve reste CASH_RESERVE_MIN/MAX (main.nut:42-43).
+ * Aucun seuil de caisse supplementaire ajoute.
  * station.distant_join_stations (game_settings.ini:136, defaut vrai) et
  * station.station_spread (game_settings.ini:108, defaut 12, min 4, max 64).
  * Un spread < 4 est refuse : c'est le minimum moteur, sans repli a 12. */
@@ -2740,7 +2740,7 @@ function OpexSameStationEnd(plan, original)
  * le pathfinder ignore la premiere voie, le depot 2 n'y touche pas, et si la pose
  * echoue on garde la ligne a UN train. skip : 2=pas de quai, 3=pas de chemin, 4=voie,
  * 5=gare, 6=depot, 7=cash, 8=chevauchement, 9=court. */
-function OpexTryDoubleTrack(catalog, planA, planB, tiles, depot, cashReserve, iterationBudget, deadlineTick, extraForbidden = null)
+function OpexTryDoubleTrack(catalog, planA, planB, tiles, depot, iterationBudget, deadlineTick, extraForbidden = null)
 {
   local acc = { ok = false, skip = 2, tiles = null, planA = null, planB = null, depot = null,
                 iterations = 0, actualCost = 0, structures = null };
@@ -2789,7 +2789,7 @@ function OpexTryDoubleTrack(catalog, planA, planB, tiles, depot, cashReserve, it
   local depotCost = AIRail.GetBuildCost(AIRail.GetCurrentRailType(), AIRail.BT_DEPOT);
   local extra = tiles2.len() * catalog.costTrackPerTile
       + (planA2.length + planB2.length) * catalog.costStation + depotCost;
-  if (AICompany.GetBankBalance(AICompany.COMPANY_SELF) < extra + cashReserve) {
+  if (AICompany.GetBankBalance(AICompany.COMPANY_SELF) < extra) {
     acc.skip = 7;
     return acc;
   }
@@ -4545,7 +4545,7 @@ function OpexCompleteRailRouteAfterSearch(catalog, candidate, plan, search)
     } else if (OpexV190Active() && candidate.kind == "freight") {
       dual = OpexV190PlanDoubleTrack(catalog, planA, planB, tiles, remain, dualDeadline, plan.structures);
     } else {
-      dual = OpexTryDoubleTrack(catalog, planA, planB, tiles, null, 0,
+      dual = OpexTryDoubleTrack(catalog, planA, planB, tiles, null,
                                 remain, dualDeadline, []);
     }
     /* Cumul : les iterations de la seconde voie s'ajoutent au denominateur, pas le remplacent. */
@@ -4886,18 +4886,18 @@ function OpexRailVehicleSlotAvailable()
 }
 
 /* Execute la construction reelle d'un plan precalcule ou valide. */
-function OpexV200WantDouble(candidate, cashReserve)
+function OpexV200WantDouble(candidate)
 {
   if (V200_DOUBLE_CASH_K <= 0) return true;
   local capital = ("capital" in candidate) ? candidate.capital : 0;
-  local need = capital * 2 + cashReserve;
+  local need = capital * 2;
   local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
   local ok = money >= need;
   if (DECISION_LOG) OpexDecide("V200", "double=" + (ok ? 1 : 0) + " money=" + money + " need=" + need);
   return ok;
 }
 
-function OpexExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
+function OpexExecuteRailPlan(catalog, budget, candidate, plan)
 {
   local result = { ok = false, reason = "", iterations = plan.iterations, opcodes = plan.opcodes,
                    phaseOps = { plans = plan.phaseOps.plans, search = plan.phaseOps.search,
@@ -5003,10 +5003,8 @@ function OpexExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
   }
 
   result.money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
-  local need = result.capital + cashReserve;
-  if (result.money < need) {
-    if (result.money < need) { result.reason = "CASH"; return result; }
-  }
+  local need = result.capital;
+  if (result.money < need) { result.reason = "CASH"; return result; }
 
   /* Fail-before-spend : stations, voie, depot et terrassement commencent juste apres. */
   if (!OpexRailVehicleSlotAvailable()) {
@@ -5278,7 +5276,7 @@ function OpexExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
  * Un railPlan non-null, y compris en echec (ABND/DEAD/SITE), est consomme tel quel : la
  * recherche reprenable a deja paye les iterations, les rejouer casserait le denominateur
  * et referait le gel. Le bras historique (railPlan absent) planifie puis construit. */
-function OpexBuildLine(catalog, budget, candidate, alternativeRatio, cashReserve, hardCap = 10000)
+function OpexBuildLine(catalog, budget, candidate, alternativeRatio, hardCap = 10000)
 {
   /* C67.6 rail : cout modele avant devis, pour mesurer l'ecart au facteur fixe 1,70.
    * Journal de decision seulement (defaut 0) : aucun effet sur la partie par defaut. */
@@ -5316,16 +5314,16 @@ function OpexBuildLine(catalog, budget, candidate, alternativeRatio, cashReserve
   }
   /* V200 : comme l'estimateur d'AAAHogEx, ne doubler que si la caisse paie la ligne double
    * (environ deux fois le devis simple) avec une marge ; sinon voie unique historique. */
-  local v200Double = OpexV200WantDouble(candidate, cashReserve);
-  if (OpexV233LIs(candidate)) return OpexV190ExecuteRailPlan(catalog, budget, candidate, plan, cashReserve);
+  local v200Double = OpexV200WantDouble(candidate);
+  if (OpexV233LIs(candidate)) return OpexV190ExecuteRailPlan(catalog, budget, candidate, plan);
   /* V198 replaces both station sites with independent templates. */
   if (v200Double && OpexV198Active() && candidate.kind == "freight") {
-    return OpexV198ExecuteRailPlan(catalog, budget, candidate, plan, cashReserve);
+    return OpexV198ExecuteRailPlan(catalog, budget, candidate, plan);
   }
   if (v200Double && OpexV190Active() && candidate.kind == "freight") {
-    return OpexV190ExecuteRailPlan(catalog, budget, candidate, plan, cashReserve);
+    return OpexV190ExecuteRailPlan(catalog, budget, candidate, plan);
   }
-  return OpexExecuteRailPlan(catalog, budget, candidate, plan, cashReserve);
+  return OpexExecuteRailPlan(catalog, budget, candidate, plan);
 }
 
 /* V190 : Verifie l'integrite complete de la voie primaire 1 apres repli.
@@ -5481,7 +5479,7 @@ function OpexV190RollbackDoubleTrack(tiles1, planA1, planB1, depot1, tiles2, pla
 
 /* V190 : Construit une ligne fret directement en double voie a sens unique avec 2 trains et boucle PBS.
  * En cas d'impossibilite de la seconde voie, repli propre et transparent en voie unique (1 train). */
-function OpexV190ExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
+function OpexV190ExecuteRailPlan(catalog, budget, candidate, plan)
 {
   local result = { ok = false, reason = "", iterations = plan.iterations, opcodes = plan.opcodes,
                    phaseOps = { plans = plan.phaseOps.plans, search = plan.phaseOps.search,
@@ -5588,7 +5586,7 @@ function OpexV190ExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
   }
 
   result.money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
-  local need = result.capital + cashReserve;
+  local need = result.capital;
   if (result.money < need) {
     result.reason = "CASH";
     return result;
@@ -6056,7 +6054,7 @@ function OpexPrepareUpgradeSearch(line, hardCap = 10000)
 
 /* Pose la seconde voie une fois l'A* termine. search.iterations est ignore ici
  * (l'upgrade n'entre pas dans le denominateur du classement des candidats). */
-function OpexExecuteUpgradeAfterSearch(catalog, budget, line, cashReserve, search, prep)
+function OpexExecuteUpgradeAfterSearch(catalog, budget, line, search, prep)
 {
   local result = { ok = false, reason = "", cost = 0, train = null, depot2 = null,
                    stationA2 = null, stationB2 = null, platformA2 = null, platformB2 = null };
@@ -6092,7 +6090,7 @@ function OpexExecuteUpgradeAfterSearch(catalog, budget, line, cashReserve, searc
   local depotCost = AIRail.GetBuildCost(AIRail.GetCurrentRailType(), AIRail.BT_DEPOT);
   local trackCost = tiles2.len() * catalog.costTrackPerTile + (planA2.length + planB2.length) * catalog.costStation + depotCost;
   local trainCost = line.loco.price + line.wagons * wagon.price + OpexV163WagonsPrice(catalog, line);
-  local totalNeeded = trackCost + trainCost + cashReserve;
+  local totalNeeded = trackCost + trainCost;
   if (AICompany.GetBankBalance(AICompany.COMPANY_SELF) < totalNeeded) {
     result.reason = "CASH";
     return result;
@@ -6155,7 +6153,7 @@ function OpexExecuteUpgradeAfterSearch(catalog, budget, line, cashReserve, searc
 }
 
 /* Construit un 2e train sur une ligne deja doublee avec depot2 valide. */
-function OpexBuildSecondTrain(catalog, line, cashReserve)
+function OpexBuildSecondTrain(catalog, line)
 {
   local result = { ok = false, reason = "", train = null };
   if (!("depot2" in line) || line.depot2 == null || !AIRail.IsRailDepotTile(line.depot2)) {
@@ -6164,7 +6162,7 @@ function OpexBuildSecondTrain(catalog, line, cashReserve)
   local wagon = (line.cargo in catalog.wagonByCargo) ? catalog.wagonByCargo[line.cargo] : null;
   if (wagon == null) { result.reason = "NOWAGON"; return result; }
   local trainCost = line.loco.price + line.wagons * wagon.price + OpexV163WagonsPrice(catalog, line);
-  if (AICompany.GetBankBalance(AICompany.COMPANY_SELF) < trainCost + cashReserve) {
+  if (AICompany.GetBankBalance(AICompany.COMPANY_SELF) < trainCost) {
     result.reason = "CASH"; return result;
   }
   local stA = (("stationA2" in line) && line.stationA2 != null) ? line.stationA2 : line.stationA;

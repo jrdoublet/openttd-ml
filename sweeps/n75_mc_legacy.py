@@ -751,8 +751,21 @@ def _project_v233l_off(name, raw):
     text = raw.decode("utf-8")
     missing = 0
     present = 0
+    # Reserve retirement changed one V233L dispatcher signature in lockstep
+    # with its target function. Keep the historical fixture immutable; verify
+    # the precise reserve-free spelling before projecting this reviewed hunk.
+    original_dispatch = (
+        "  if (OpexV233LIs(candidate)) return OpexV190ExecuteRailPlan("
+        "catalog, budget, candidate, plan, cashReserve);\n")
+    current_dispatch = (
+        "  if (OpexV233LIs(candidate)) return OpexV190ExecuteRailPlan("
+        "catalog, budget, candidate, plan);\n")
+    def live_guard(guarded):
+        if name == "builder_rail.nut" and guarded == original_dispatch:
+            return current_dispatch
+        return guarded
     for edit in entry["edits"]:
-        n = text.count(edit["guarded"])
+        n = text.count(live_guard(edit["guarded"]))
         if n == 1:
             present += 1
         elif n == 0:
@@ -766,7 +779,7 @@ def _project_v233l_off(name, raw):
             f"V233L {name}: mixed OFF projection present={present} missing={missing}"
         )
     for edit in reversed(entry["edits"]):
-        text = text.replace(edit["guarded"], edit["off"], 1)
+        text = text.replace(live_guard(edit["guarded"]), edit["off"], 1)
     return text.encode("utf-8")
 
 

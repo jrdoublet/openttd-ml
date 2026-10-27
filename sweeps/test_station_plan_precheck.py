@@ -68,12 +68,16 @@ class StationPlanPrecheck(unittest.TestCase):
     def test_only_guard_added_to_historical_rail_source(self):
         source = (AI / "builder_rail.nut").read_text(encoding="utf-8")
         self.assertEqual(source.count(INSERTION), 1)
-        # rebasé le 24/10 : eec5db81 (revue R11 OpexBridgeSortBySpeed et eb6f26fc retrait V233)
+        # Rebase 24/10 : eec5db81 ; rebase 27/10 : reserve=0 permanent.
+        # L'empreinte historique avant retrait etait
+        # a68b8620a773b28c830ea8df3d905da1233576023c9837575a12f9ac24af4560.
+        # Les deux gardes PO-02/P1 restent retires avec comptage exact avant
+        # la comparaison SHA de l'integralite du builder actuel.
         self.assertEqual(source.count(P1_BUILDER_RAIL_DELTA.decode("utf-8")), 1)
         historical = off_source("builder_rail.nut", source).replace(INSERTION, "").replace(
             P1_BUILDER_RAIL_DELTA.decode("utf-8"), "")
         self.assertEqual(hashlib.sha256(historical.encode()).hexdigest(),
-                         "a68b8620a773b28c830ea8df3d905da1233576023c9837575a12f9ac24af4560")
+                         "f36d705996a0a24de726ca8548fbc1f49a88cecd16c90db811e23a25c8edefb4")
         body = source[source.index("function OpexStationPlans("):]
         self.assertLess(body.index(INSERTION), body.index("foreach (axis in axes)"))
         self.assertLess(body.index("if (!AIMap.IsValidTile(base)) continue;"), body.index(INSERTION))

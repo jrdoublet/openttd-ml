@@ -5,8 +5,8 @@
  *     riche au sens V249. Facile et moyen restent coupes.
  * 2 : test. Villes ou le regime sans bruit (meme porte que C83) a
  *     GetAllowedNoise == 0 et ou nous n'avons aucun aeroport. On rachete a
- *     chaque expiration tant que la caisse couvre cout + reserve. Plafond N =
- *     (caisse - reserve) / cout : un achat pose exclusive_counter = 12 mois
+ *     chaque expiration tant que la caisse couvre le cout. Plafond N =
+ *     caisse / cout : un achat pose exclusive_counter = 12 mois
  *     economiques, donc un achat couvre un an. Pas de plafond arbitraire.
  * L'echeance est relue via IsActionAvailable (exclusive_counter != 0 refuse
  * l'achat, town_cmd.cpp). GetExclusiveRightsCompany / Duration existent en
@@ -37,14 +37,13 @@ function OpexV250MeasureRightsCost(townId)
 }
 
 /* 1 achete, 0 indisponible ou refus, -1 caisse insuffisante (arreter la passe). */
-function OpexV250BuyRights(ai, townId, mode, pop, reserve, mark = 1)
+function OpexV250BuyRights(ai, townId, mode, pop, mark = 1)
 {
   if (!AITown.IsValidTown(townId)) return 0;
   if (!AITown.IsActionAvailable(townId, AITown.TOWN_ACTION_BUY_RIGHTS)) return 0;
   local cost = OpexV250MeasureRightsCost(townId);
   local cash = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
-  local need = reserve;
-  if (mode == 1) need += OpexV249MaxListedCapital(ai._projects);
+  local need = mode == 1 ? OpexV249MaxListedCapital(ai._projects) : 0;
   if (cost <= 0 || cash - cost < need) return -1;
   local bought = AITown.PerformTownAction(townId, AITown.TOWN_ACTION_BUY_RIGHTS);
   if (!bought) return 0;
@@ -55,13 +54,12 @@ function OpexV250BuyRights(ai, townId, mode, pop, reserve, mark = 1)
 }
 
 /* Un achat = un an de droits. N est le nombre de villes que la caisse
- * au-dessus de la reserve peut tenir une annee, pas un constant de carte. */
-function OpexV250YearSlots(cash, reserve, cost)
+ * peut tenir une annee, pas un constant de carte. */
+function OpexV250YearSlots(cash, cost)
 {
   if (cost <= 0) return 0;
-  local spendable = cash - reserve;
-  if (spendable < cost) return 0;
-  return (spendable / cost).tointeger();
+  if (cash < cost) return 0;
+  return (cash / cost).tointeger();
 }
 
 /* Population decroissante, puis identifiant croissant. */
@@ -168,8 +166,7 @@ function OpexV250RunNormal(ai)
     }
   }
   if (!found) return true;
-  local reserve = OpexCashReserve();
-  OpexV250BuyRights(ai, bestTown, 1, bestPop, reserve);
+  OpexV250BuyRights(ai, bestTown, 1, bestPop);
   return true;
 }
 
@@ -234,7 +231,7 @@ function OpexV250RunTest(ai, date, allRival = false)
 }
 
 /* Rachat des villes tenues, puis nouvelles villes dans l'ordre donne, tant
- * qu'une annee de droits tient dans la caisse au-dessus de la reserve. */
+ * qu'une annee de droits tient dans la caisse. */
 function OpexV250BuyOrdered(ai, date, ordered, ownCounts, mode)
 {
   /* Mode 4 : une ville sortie de la cible (nous y sommes venus, ou elle a
@@ -258,23 +255,22 @@ function OpexV250BuyOrdered(ai, date, ordered, ownCounts, mode)
   local sample = OpexV250SampleTown(ordered);
   if (sample < 0) sample = OpexV250SampleTown(renew);
   local cash = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
-  local reserve = OpexCashReserve();
   local cost = sample >= 0 ? OpexV250MeasureRightsCost(sample) : 0;
-  local slots = OpexV250YearSlots(cash, reserve, cost);
+  local slots = OpexV250YearSlots(cash, cost);
 
   local kept = 0;
   foreach (item in renew) {
     if (kept >= slots) break;
     kept++;
     if (!AITown.IsActionAvailable(item.id, AITown.TOWN_ACTION_BUY_RIGHTS)) continue;
-    if (OpexV250BuyRights(ai, item.id, mode, item.pop, reserve) < 0) break;
+    if (OpexV250BuyRights(ai, item.id, mode, item.pop) < 0) break;
   }
   foreach (item in ordered) {
     if (OpexV250TargetCount(ai) >= slots) break;
     if (ai._v250Targets != null && (item.id in ai._v250Targets)) continue;
     local saturated = AITown.GetAllowedNoise(item.id) == 0
         && !(item.id in ownCounts && ownCounts[item.id] > 0);
-    local bought = OpexV250BuyRights(ai, item.id, mode, item.pop, reserve, saturated ? 1 : 2);
+    local bought = OpexV250BuyRights(ai, item.id, mode, item.pop, saturated ? 1 : 2);
     if (bought < 0) break;
     if (bought > 0 && saturated) OpexV250WatchTown(ai, item.id, date, ownCounts);
   }

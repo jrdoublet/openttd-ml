@@ -120,9 +120,9 @@ function OpexAirAddPlane(line, catalog = null, lines = null)
 
   local price = AIEngine.GetPrice(targetEngine);
   if (price <= 0) { result.reason = "PRICE"; return result; }
-  local need = price + OpexCashReserve() + 1000;
+  local need = price + 1000;
   if ((ESTIM_UNIFIE & 2) != 0)
-    need = OpexEstimFinanceCashNeeded("fleet", price, 0);
+    need = OpexEstimFinanceCapital("fleet", price, 0);
   local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
   if (money < need) {
     if (money < need) {
@@ -216,7 +216,7 @@ function OpexAirRefleetCrashedPlane(line, catalog = null)
     }
   }
   local price = AIEngine.GetPrice(targetEngine);
-  if (price <= 0 || AICompany.GetBankBalance(AICompany.COMPANY_SELF) < price + OpexCashReserve()) {
+  if (price <= 0 || AICompany.GetBankBalance(AICompany.COMPANY_SELF) < price) {
     result.reason = "CASH"; return result;
   }
   local plane = AIVehicle.BuildVehicleWithRefit(hangar, targetEngine, line.cargo);

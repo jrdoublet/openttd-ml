@@ -509,11 +509,11 @@ function OpexV284Tick(owner)
   local station = AIStation.GetStationID(line.stationA);
   local waitingNow = AIStation.IsValidStation(station) ? AIStation.GetCargoWaiting(station, line.cargo) : -1;
   local requiredWaiting = pending.add ? AIVehicle.GetCapacity(oldVehicle, line.cargo) : wagon.capacity;
-  local cashNeed = price + OpexCashReserve() + 50000;
+  local cashNeed = price + 50000;
   if ((ESTIM_UNIFIE & 2) != 0) {
     local loopCost = pending.loopPlan != null ? pending.loopPlan.pieces.len()
         * AIRail.GetBuildCost(AIRail.GetRailType(pending.depot), AIRail.BT_TRACK) : 0;
-    cashNeed = OpexEstimFinanceCashNeeded("rail", price + loopCost, 0, true);
+    cashNeed = OpexEstimFinanceCapital("rail", price + loopCost, 0, true);
   }
   if (waitingNow < requiredWaiting || !AIEngine.IsBuildable(pending.engine) || !AIEngine.IsBuildable(pending.wagon)
       || !AIRail.IsRailDepotTile(pending.depot)

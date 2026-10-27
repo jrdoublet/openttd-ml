@@ -373,8 +373,6 @@ ESTIM_UNIFIE <- 0;
 ESTIM_K_R_PRIOR <- { rail = 0.92, road = 0.57, air = 0.40, water = 1.0 };
 ESTIM_K_R_PRIOR_WEIGHT <- 10.0;
 ESTIM_K_R <- { rail = 0.92, road = 0.57, air = 0.40, water = 1.0 };
-/* cash_reserve_off : suppression de la reserve de caisse (5k-25k), demandee le 27/10 ; a qualifier. */
-CASH_RESERVE_OFF <- false;
 /* C69 etape 1 : sonde passive goulot de decision P / max(C, F*tau). */
 /* Annee de depart de la compagnie (sauvegardee via _startYear) : base des calculs C69/C75 de F et
  * de tau. 1970 n'est qu'un repli, pose avant Start(). */
@@ -627,13 +625,6 @@ C52_UNPROFITABLE_LOG <- false;
 C52_STATION_FIRST_VEHICLE_LOG <- false;
 /* P3 / A7.5 : une nouvelle ville ou industrie rend le portefeuille obsolete.
  * Le rafraichissement reactif est rare et evite d'attendre le prochain mois. */
-/* C43/E3 famille 2 : CASH_RESERVE_MIN mord-il ? OpexCashReserve() est appelee tres souvent (a
- * chaque decision de construction), donc journaliser chaque appel serait bruyant -- compteurs
- * cumulatifs, publies une fois par an en delta par la tache "report". */
-CASH_RESERVE_PROBE <- false;
-CASH_RESERVE_PROBE_CALLS <- 0;
-CASH_RESERVE_PROBE_MIN_BINDS <- 0;
-CASH_RESERVE_PROBE_MAX_BINDS <- 0;
 /* Plafond absolu du pathfinder. Initialisation de repli seulement : Start() le remplace UNE fois
  * par pathfinder_hard_cap_k. Plafonné à 10 000 (docs/taches.md A3, §0 undecies ter) pour
  * éliminer le gel de l'IA pendant des mois sur les recherches chères. */

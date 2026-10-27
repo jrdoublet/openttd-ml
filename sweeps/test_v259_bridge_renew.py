@@ -129,9 +129,9 @@ class TestV259BridgeRenew(unittest.TestCase):
         self.assertIn("AIAccounting()", cost_body)
         self.assertIn("AITestMode()", cost_body)
         self.assertIn("account.GetCosts()", cost_body)
-        # 8. Réserve de trésorerie respectée
-        self.assertIn("OpexCashReserve()", eval_body)
-        self.assertIn("cash - cost < threshold", eval_body)
+        # 8. Garde de trésorerie respectée
+        self.assertNotIn("OpexCashReserve", eval_body)
+        self.assertIn("cost > 0 && cash < cost", eval_body)
 
     def test_priority_to_most_profitable_lines(self):
         body_prep = _body(self.task, "function OpexAI::_v259PrepareBridgeQueue()")

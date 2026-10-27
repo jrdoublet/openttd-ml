@@ -1,6 +1,5 @@
-"""ESTIM-1 bits 1/2/4/8 : contrats de source OFF exacte (HEAD) et lot 1."""
+"""ESTIM-1 bits 1/2/4/8 : projection OFF stricte et contrats du lot 1."""
 import re
-import subprocess
 import unittest
 from pathlib import Path
 
@@ -9,22 +8,6 @@ from estim_unifie_off_lots import ESTIM_FILES
 from test_v261_forum_behaviours import body, source
 
 ROOT = Path(__file__).resolve().parents[1]
-
-
-def head_source(name):
-    try:
-        return subprocess.run(["git", "show", "HEAD:ai/OpexAI/" + name], cwd=ROOT,
-                              capture_output=True, check=True).stdout.decode("utf-8")
-    except (OSError, subprocess.CalledProcessError):
-        return None
-
-
-def head_bytes(name):
-    try:
-        return subprocess.run(["git", "show", "HEAD:ai/OpexAI/" + name], cwd=ROOT,
-                              capture_output=True, check=True).stdout
-    except (OSError, subprocess.CalledProcessError):
-        return None
 
 
 def shrink(real, pred, n, prior, w0=10.0):
@@ -50,24 +33,26 @@ class EstimUnifieContracts(unittest.TestCase):
         self.assertIn("foreach (m, k in ESTIM_K_R_PRIOR) ESTIM_K_R[m] = k;", settings)
 
     def test_off_projection_restores_head_bytes(self):
+        # HEAD contient deja ESTIM-1 et l'ancienne reserve. Son contenu brut
+        # n'est donc plus la reference historique OFF depuis cette adoption.
+        # La table figee reste stricte : elle s'applique aux sources courantes,
+        # est idempotente et conserve les modifications hors ESTIM.
         self.assertEqual(set(EDITS), ESTIM_FILES)
         for name in EDITS:
-            head = head_bytes(name)
-            if head is None:
-                self.fail("git HEAD indisponible : projection non verifiable")
             current = (ROOT / "ai" / "OpexAI" / name).read_bytes()
             with self.subTest(name=name):
-                self.assertEqual(estim_off_bytes(name, current), head)
-                # Une projection deja effectuee est un no-op strict.
-                self.assertEqual(estim_off_bytes(name, head), head)
-        # Hors ESTIM, les modifications d'origine restent en place. Les deux
-        # reglages dist_bornes figuraient deja dans HEAD avant le lot ESTIM.
+                off = estim_off_bytes(name, current)
+                self.assertEqual(estim_off_bytes(name, off), off)
+                self.assertNotIn(b"OpexCashReserve", off)
+                self.assertNotIn(b"CASH_RESERVE", off)
+                self.assertNotIn(b"cash_reserve_off", off)
+        # Les deux reglages dist_bornes et les ajouts externes restent presents.
         for name in ("info.nut", "settings.nut"):
             with self.subTest(preserve=name):
                 extra = "/* autre modification deja presente */\n"
                 self.assertEqual(estim_off(name, extra + source(name)),
-                                 extra + head_source(name))
-                self.assertIn("dist_bornes_unified", head_source(name))
+                                 extra + estim_off(name, source(name)))
+                self.assertIn("dist_bornes_unified", estim_off(name, source(name)))
         self.assertEqual(estim_off("unknown.nut", "non-ESTIM edit"), "non-ESTIM edit")
         with self.assertRaises(AssertionError):
             estim_off("task_report.nut", source("task_report.nut").replace(

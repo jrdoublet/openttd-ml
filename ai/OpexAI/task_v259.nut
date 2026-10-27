@@ -306,10 +306,7 @@ function OpexAI::_v259EvaluateAndRenew(item)
   }
 
   local cash = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
-  local threshold = OpexCashReserve();
-  if ((ESTIM_UNIFIE & 2) != 0)
-    threshold = OpexEstimFinanceCashNeeded("rail", 0, 0, true);
-  if (cost > 0 && cash - cost < threshold) {
+  if (cost > 0 && cash < cost) {
     if (DECISION_LOG) OpexDecide("V259_BRIDGE", "line=" + lineId + " tiles=" + start + "->" + end
       + " old_type=" + oldBridgeType + " old_speed=" + oldSpeed
       + " new_type=" + bestBridgeType + " new_speed=" + bestSpeed

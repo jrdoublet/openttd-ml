@@ -590,10 +590,10 @@ function OpexBuildBlockSignals(tiles, interval = 7)
 }
 
 /* Repli gracieux en voie unique classique en cas d'echec V198. */
-function OpexV198FallbackSingle(catalog, budget, candidate, plan, cashReserve, failReason)
+function OpexV198FallbackSingle(catalog, budget, candidate, plan, failReason)
 {
   local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
-  local need = plan.capital + cashReserve;
+  local need = plan.capital;
   if (money < need) {
     if (DECISION_LOG) {
       OpexDecide("V198", "step=fallback_single ok=0 reason=CASH need=" + need + " money=" + money);
@@ -603,7 +603,7 @@ function OpexV198FallbackSingle(catalog, budget, candidate, plan, cashReserve, f
   if (DECISION_LOG) {
     OpexDecide("V198", "step=fallback_single ok=1 reason=" + failReason);
   }
-  return OpexExecuteRailPlan(catalog, budget, candidate, plan, cashReserve);
+  return OpexExecuteRailPlan(catalog, budget, candidate, plan);
 }
 
 /* Les sondes en mode test de l'A* s'ajoutent au compteur AIAccounting englobant :
@@ -615,7 +615,7 @@ function OpexV198ShieldedSearch(plansA, plansB, iterationBudget, deadlineTick, i
 }
 
 /* Construction d'une ligne complete V198 avec gabarits de gare et double voie guidee. */
-function OpexV198ExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
+function OpexV198ExecuteRailPlan(catalog, budget, candidate, plan)
 {
   local result = { ok = false, reason = "", iterations = plan.iterations, opcodes = plan.opcodes,
                    phaseOps = (("phaseOps" in plan) && plan.phaseOps != null)
@@ -644,19 +644,19 @@ function OpexV198ExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
   local srcTemplate = OpexFindSourceTemplateSite(catalog, candidate, plan.length);
   if (srcTemplate == null) {
     if (DECISION_LOG) OpexDecide("V198", "step=place_src ok=0 reason=NOSRC");
-    return OpexV198FallbackSingle(catalog, budget, candidate, plan, cashReserve, "NOSRC");
+    return OpexV198FallbackSingle(catalog, budget, candidate, plan, "NOSRC");
   }
   if (DECISION_LOG) OpexDecide("V198", "step=place_src ok=1 reason=OK");
 
   local dstTemplate = OpexFindDestTemplateSite(catalog, candidate, plan.length);
   if (dstTemplate == null) {
     if (DECISION_LOG) OpexDecide("V198", "step=place_dst ok=0 reason=NODST");
-    return OpexV198FallbackSingle(catalog, budget, candidate, plan, cashReserve, "NODST");
+    return OpexV198FallbackSingle(catalog, budget, candidate, plan, "NODST");
   }
   if (DECISION_LOG) OpexDecide("V198", "step=place_dst ok=1 reason=OK");
 
   local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
-  local need = candidate.capital + cashReserve;
+  local need = candidate.capital;
   if (money < need) {
     result.reason = "CASH";
     if (DECISION_LOG) OpexDecide("V198", "step=budget ok=0 reason=CASH need=" + need + " money=" + money);
@@ -674,7 +674,7 @@ function OpexV198ExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
   if (!builtSrc.ok) {
     if (DECISION_LOG) OpexDecide("V198", "step=build_src ok=0 reason=" + builtSrc.reason);
     OpexDemolishSourceTemplate(builtSrc);
-    return OpexV198FallbackSingle(catalog, budget, candidate, plan, cashReserve, builtSrc.reason);
+    return OpexV198FallbackSingle(catalog, budget, candidate, plan, builtSrc.reason);
   }
 
   local builtDst = OpexBuildDestTemplateReal(dstTemplate);
@@ -682,7 +682,7 @@ function OpexV198ExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
     if (DECISION_LOG) OpexDecide("V198", "step=build_dst ok=0 reason=" + builtDst.reason);
     OpexDemolishDestTemplate(builtDst);
     OpexDemolishSourceTemplate(builtSrc);
-    return OpexV198FallbackSingle(catalog, budget, candidate, plan, cashReserve, builtDst.reason);
+    return OpexV198FallbackSingle(catalog, budget, candidate, plan, builtDst.reason);
   }
 
   if (DECISION_LOG) OpexDecide("V198", "step=cost at=stations cum=" + costs.GetCosts() + " money=" + AICompany.GetBankBalance(AICompany.COMPANY_SELF));
@@ -698,7 +698,7 @@ function OpexV198ExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
     if (DECISION_LOG) OpexDecide("V198", "step=path_track1 ok=0 reason=" + stopReason);
     OpexDemolishDestTemplate(builtDst);
     OpexDemolishSourceTemplate(builtSrc);
-    return OpexV198FallbackSingle(catalog, budget, candidate, plan, cashReserve, stopReason);
+    return OpexV198FallbackSingle(catalog, budget, candidate, plan, stopReason);
   }
   local tiles1 = OpexResolveSearchTiles(search1);
   local structures1 = OpexResolveSearchStructures(search1);
@@ -706,7 +706,7 @@ function OpexV198ExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
     if (DECISION_LOG) OpexDecide("V198", "step=path_track1 ok=0 reason=SHORT1");
     OpexDemolishDestTemplate(builtDst);
     OpexDemolishSourceTemplate(builtSrc);
-    return OpexV198FallbackSingle(catalog, budget, candidate, plan, cashReserve, "SHORT1");
+    return OpexV198FallbackSingle(catalog, budget, candidate, plan, "SHORT1");
   }
   if (DECISION_LOG) OpexDecide("V198", "step=path_track1 ok=1 reason=OK len=" + tiles1.len());
 
@@ -736,7 +736,7 @@ function OpexV198ExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
     if (DECISION_LOG) OpexDecide("V198", "step=path_track2 ok=0 reason=" + stopReason);
     OpexDemolishDestTemplate(builtDst);
     OpexDemolishSourceTemplate(builtSrc);
-    return OpexV198FallbackSingle(catalog, budget, candidate, plan, cashReserve, stopReason);
+    return OpexV198FallbackSingle(catalog, budget, candidate, plan, stopReason);
   }
   local tiles2 = OpexResolveSearchTiles(search2);
   local structures2 = OpexResolveSearchStructures(search2);
@@ -744,7 +744,7 @@ function OpexV198ExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
     if (DECISION_LOG) OpexDecide("V198", "step=path_track2 ok=0 reason=SHORT2");
     OpexDemolishDestTemplate(builtDst);
     OpexDemolishSourceTemplate(builtSrc);
-    return OpexV198FallbackSingle(catalog, budget, candidate, plan, cashReserve, "SHORT2");
+    return OpexV198FallbackSingle(catalog, budget, candidate, plan, "SHORT2");
   }
   if (DECISION_LOG) OpexDecide("V198", "step=path_track2 ok=1 reason=OK len=" + tiles2.len());
 
@@ -758,7 +758,7 @@ function OpexV198ExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
     OpexDemolishTrack(tiles1);
     OpexDemolishDestTemplate(builtDst);
     OpexDemolishSourceTemplate(builtSrc);
-    return OpexV198FallbackSingle(catalog, budget, candidate, plan, cashReserve, "TRKFAIL1");
+    return OpexV198FallbackSingle(catalog, budget, candidate, plan, "TRKFAIL1");
   }
 
   if (DECISION_LOG) OpexDecide("V198", "step=cost at=track1 cum=" + costs.GetCosts() + " money=" + AICompany.GetBankBalance(AICompany.COMPANY_SELF));
@@ -777,7 +777,7 @@ function OpexV198ExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
     OpexDemolishTrack(tiles1);
     OpexDemolishDestTemplate(builtDst);
     OpexDemolishSourceTemplate(builtSrc);
-    return OpexV198FallbackSingle(catalog, budget, candidate, plan, cashReserve, "TRKFAIL2");
+    return OpexV198FallbackSingle(catalog, budget, candidate, plan, "TRKFAIL2");
   }
 
   if (DECISION_LOG) OpexDecide("V198", "step=cost at=track2 cum=" + costs.GetCosts() + " money=" + AICompany.GetBankBalance(AICompany.COMPANY_SELF));
@@ -809,7 +809,7 @@ function OpexV198ExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
     OpexDemolishTrack(tiles1);
     OpexDemolishDestTemplate(builtDst);
     OpexDemolishSourceTemplate(builtSrc);
-    return OpexV198FallbackSingle(catalog, budget, candidate, plan, cashReserve, "TRAINFAIL");
+    return OpexV198FallbackSingle(catalog, budget, candidate, plan, "TRAINFAIL");
   }
 
   if (DECISION_LOG) OpexDecide("V198", "step=cost at=trains cum=" + costs.GetCosts() + " money=" + AICompany.GetBankBalance(AICompany.COMPANY_SELF));

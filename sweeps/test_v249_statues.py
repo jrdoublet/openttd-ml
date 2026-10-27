@@ -84,19 +84,18 @@ class TestV249Statues(unittest.TestCase):
         self.assertLess(loan, cost)
         self.assertLess(stop, cost)
         self.assertLess(self.dispatch.index("::V249_CASH_STOP = false;"), stop)
-        self.assertIn("local threshold = OpexCashReserve() + OpexV249MaxListedCapital(this._projects);",
+        self.assertIn("local threshold = OpexV249MaxListedCapital(this._projects);",
                       self.dispatch)
         self.assertIn("cash - cost < threshold", self.dispatch)
         self.assertNotRegex(self.task, r"\b\d{4,}\b")
-        # M5 remplace sous bit 2 le tampon propre a V249 par la reserve
-        # unique; le chemin historique garde son seuil d'opportunite.
+        # M5 remplace sous bit 2 le seuil d'opportunite historique.
         self.assertIn(
-            "local threshold = OpexCashReserve() + OpexV249MaxListedCapital(this._projects);",
+            "local threshold = OpexV249MaxListedCapital(this._projects);",
             self.off_dispatch)
         compact = " ".join(self.dispatch.split())
         self.assertIn("if ((ESTIM_UNIFIE & 2) != 0)", compact)
         self.assertIn(
-            'threshold = OpexEstimFinanceCashNeeded("statue", 0, 0);', compact)
+            'threshold = 0;', compact)
 
     def test_at_most_one_statue_per_pass(self):
         self.assertEqual(self.dispatch.count("AITown.PerformTownAction"), 1)
@@ -189,14 +188,14 @@ class TestV249Statues(unittest.TestCase):
         self.assertIn('reason=payback', self.dispatch_m2)
 
     def test_mode2_v249c_treasury_and_v252(self):
-        # Mode 2 historique : seulement le cout d'opportunite, sans reserve.
-        # Lot 2 M5 : reserve financiere commune, sous son bit.
-        self.assertNotIn("OpexCashReserve()", self.off_dispatch_m2)
+        # Mode 2 historique : seulement le cout d'opportunite.
+        # Lot 2 M5 : capital financier commun, sous son bit.
+        self.assertNotIn("OpexCashReserve", self.off_dispatch_m2)
         self.assertIn("threshold = bestProjCap + v252Cost;", self.off_dispatch_m2)
         compact = " ".join(self.dispatch_m2.split())
         self.assertIn("if ((ESTIM_UNIFIE & 2) != 0)", compact)
         self.assertIn(
-            'threshold = OpexEstimFinanceCashNeeded("statue", 0, 0);', compact)
+            'threshold = 0;', compact)
 
         # Preserves best admissible project and pending V252 fleet renewal
         self.assertIn("OpexV249BestAdmissibleCapital", self.dispatch_m2)

@@ -213,6 +213,22 @@ class TestRailTrackFailureCapture(unittest.TestCase):
         for addition, original in v307r:
             self.assertEqual(current.count(addition), 1, addition)
             current = current.replace(addition, original)
+        # cash_reserve_off=1 was made permanent. Restore only the old money
+        # guard for the pre-extraction byte contract; all surrounding rollback
+        # ordering and decision logs must still match the original SHA.
+        reserve0_guard = (
+            '  local need = result.capital;\n'
+            '  if (result.money < need) { result.reason = "CASH"; return result; }\n'
+        )
+        historical_guard = (
+            '  local need = result.capital + cashReserve;\n'
+            '  if (result.money < need) {\n'
+            '    if (result.money < need) { result.reason = "CASH"; return result; }\n'
+            '  }\n'
+        )
+        self.assertEqual(current.count(reserve0_guard), 1)
+        self.assertNotIn('cashReserve', current)
+        current = current.replace(reserve0_guard, historical_guard, 1)
         self.assertEqual(digest(without_v199_v163_plan(without_freight_memory(current))),
                          PRE_EXTRACTION_HASHES["OpexExecuteRailPlan"])
 

@@ -676,7 +676,7 @@ function OpexWaterRefleetCrashedShip(line)
     result.reason = "REFIT"; return result;
   }
   local price = AIEngine.GetPrice(line.refleetEngine);
-  if (price <= 0 || AICompany.GetBankBalance(AICompany.COMPANY_SELF) < price + OpexCashReserve()) {
+  if (price <= 0 || AICompany.GetBankBalance(AICompany.COMPANY_SELF) < price) {
     result.reason = "CASH"; return result;
   }
   local ship = AIVehicle.BuildVehicleWithRefit(line.depot, line.refleetEngine, line.cargo);

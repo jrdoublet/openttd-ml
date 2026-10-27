@@ -125,7 +125,7 @@ function OpexR1R3FitTrace(project, fitted, budget)
       + " have=" + (line != null ? (("vehCount" in line) ? line.vehCount : line.vehicles.len()) : "unknown")
       + " scrapping=" + (line == null || (("scrapping" in line) && line.scrapping) ? 1 : 0)
       + " budget=" + budget + " price=" + entry.planePrice
-      + " reserve=" + OpexCashReserve() + " buffer=1000"
+      + " buffer=1000"
       + " cash=" + AICompany.GetBankBalance(AICompany.COMPANY_SELF);
   OpexR1R3Log(fields);
   if (fitted == null) return null;
@@ -897,7 +897,7 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSel
   SELECT_BISECT_STAMP++;
   local spSelect = PROBE_SPAN_TRACE ? OpexSpanBegin("select.full") : null;
   /* R1 : dimensionnement AVANT plancher, sondes et classement commun a tous
-   * les modes. Le budget fourni a deja soustrait la reserve de tresorerie. */
+   * les modes. Le budget fourni represente la caisse mobilisable. */
   local fittedAlternatives = [];
   foreach (project in alternatives) {
     local fitMark = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;

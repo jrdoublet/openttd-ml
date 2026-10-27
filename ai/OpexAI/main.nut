@@ -36,9 +36,6 @@ const RAIL_EXPAND_TIMEOUT_DAYS = 120;
  * une rame vers le depot qu'une fois entree dans cette zone locale. */
 const RAIL_EXPAND_APPROACH_TILES = 8;
 
-const CASH_RESERVE_MIN = 5000;
-const CASH_RESERVE_MAX = 25000;
-
 require("budget.nut");
 require("catalog.nut");
 require("economy.nut");
@@ -205,10 +202,7 @@ class OpexAI extends AIController {
   _lastReportYear = -1;
   _c55PaxLastYear = -1;
   _c55PaxLastFlushedYear = -1;
-  /* C43/E3 famille 2 : dernier compte cumulatif publie, pour ne journaliser que le delta annuel. */
-  _cashReserveProbeLastCalls = 0;
-  _cashReserveProbeLastMinBinds = 0;
-  _cashReserveProbeLastMaxBinds = 0;
+  /* C43/E3 : dernier compte cumulatif publie, pour ne journaliser que le delta annuel. */
   _portfolioRefreshProbeLastChecks = 0;
   _portfolioRefreshProbeLastGainOk = 0;
   _portfolioRefreshProbeLastDoubleOk = 0;
@@ -743,11 +737,10 @@ function OpexAI::Start()
    * ⚠️ Ce reglage vaut pour TOUTE la compagnie, rail compris : ce n'est donc PAS un morceau du mode
    * route, et il ne doit pas etre attribue a lui au banc. Les mois negatifs veulent dire "avant"
    * l'age maximal ; -6 laisse au vehicule le temps de rejoindre le depot de sa ligne. Le plancher
-   * de tresorerie reprend CASH_RESERVE, pour que le renouvellement ne puisse pas vider la caisse
-   * que la construction protege. */
+   * de tresorerie est nul comme pour les autres achats. */
   AICompany.SetAutoRenewStatus(true);
   AICompany.SetAutoRenewMonths(-6);
-  AICompany.SetAutoRenewMoney(OpexCashReserve());
+  AICompany.SetAutoRenewMoney(0);
 
   /* L'emprunt maximal des le depart : la note de compagnie recompense l'emprunt a zero (5 %),
    * mais une ligne non construite faute de tresorerie coute bien davantage. Le remboursement

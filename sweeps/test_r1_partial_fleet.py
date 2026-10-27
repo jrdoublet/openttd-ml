@@ -110,9 +110,9 @@ class TestPartialFleet(unittest.TestCase):
         add = function(self.builder, "OpexAirAddPlane")
         execute = function(self.task, "OpexAI::_tryBuildFleetProject")
         self.assertIn("budgetCapital = capital + 1000", make)
-        self.assertIn("price + OpexCashReserve() + 1000", add)
+        self.assertIn("price + 1000", add)
         self.assertIn("if (money < need)", add)
-        self.assertIn("entry.planePrice + OpexCashReserve()", execute)
+        self.assertIn("entry.planePrice", execute)
         self.assertNotIn("SetLoanAmount", self.fit)
         self.assertIn("c75BuiltKeys[OpexC69AttemptKey(project)] <- true;", self.task)
 

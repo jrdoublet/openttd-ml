@@ -217,13 +217,6 @@ class OpexAIInfo extends AIInfo {
       default_value = 0, step_size = 1, flags = 0
     });
     AddSetting({
-      name = "cash_reserve_off",
-      description = "1 = no cash reserve kept before spending (OpexCashReserve returns 0); 0 = historical quarterly running-cost reserve, 5k-25k (default)",
-      min_value = 0, max_value = 1,
-      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
-      default_value = 0, step_size = 1, flags = 0
-    });
-    AddSetting({
       name = "dist_bornes_unified",
       description = "DIST-BORNES-1: 1 = one route, passenger rail, freight rail and air candidate distance window shared by all generators, PO01C, V276 and C42; 0 = historical filters (default)",
       min_value = 0, max_value = 1,
@@ -438,7 +431,7 @@ class OpexAIInfo extends AIInfo {
 
     AddSetting({
       name = "v200_double_cash_k",
-      description = "V200: double-track machinery only when cash net of loan >= this (k GBP) and cash >= 2x single quote + reserve; 0 = always (inert)",
+      description = "V200: double-track machinery only when cash net of loan >= this (k GBP) and cash >= 2x single quote; 0 = always (inert)",
       min_value = 0, max_value = 2000, step_size = 25,
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
@@ -553,7 +546,7 @@ class OpexAIInfo extends AIInfo {
     });
     AddSetting({
       name = "v249_statue",
-      description = "V249 town statues when rich. 0 = off. 1 = mode 1: build at most one statue per month in served town with highest line profit, requiring cash to cover reserve and most expensive listed project. 2 = mode 2 (V249a+b+c, default since 21/10): buy statue whenever predicted annual marginal gain over horizon covers measured cost, without cash reserve, preserving admissible financeable projects and pending fleet renewal (V252).",
+      description = "V249 town statues when rich. 0 = off. 1 = mode 1: build at most one statue per month in served town with highest line profit, requiring cash to cover the most expensive listed project. 2 = mode 2 (V249a+b+c, default since 21/10): buy statue whenever predicted annual marginal gain over horizon covers measured cost, preserving admissible financeable projects and pending fleet renewal (V252).",
       min_value = 0, max_value = 2,
       easy_value = 2, medium_value = 2, hard_value = 2,
       custom_value = 2, default_value = 2,
@@ -564,7 +557,7 @@ class OpexAIInfo extends AIInfo {
      * Mode 1 coupe en facile/moyen meme si la valeur est 1. Mode 2 ignore le niveau. */
     AddSetting({
       name = "v250_rights",
-      description = "V250 exclusive transport rights, only when difficulty is custom (3): any other level forces 0. 0 = off at easy, medium, hard and custom (default). 1 = normal policy, and only when difficulty is hard (2) or custom (3): buy in the town where we and a rival share the most station catchment, and only when rich in the V249 sense (no loan, no project pass stopped for cash, cash after the purchase still covers the reserve and the most expensive listed project). Easy and medium keep mode 1 off even if this setting is 1. A later fair_play switch will also cut mode 1. 2 = test, not filtered by difficulty or wealth: in the no-noise two-airport regime, rebuy rights in the largest towns where GetAllowedNoise is 0 and we own no airport, while cash covers the cost plus the reserve, for at most as many towns as one year of rights (one purchase lasts 12 economy months) that cash can pay. A freed slot is only logged; the normal AIR pipeline takes it. 3 = wider test: rival airport links are invisible to an AI, so buy rights in every town holding a rival airport (two-airport towns first, then by population), same cash cap; only towns saturated at purchase are watched for a freed slot. 4 = targeted: towns where a rival holds a town rating and we hold none (rival monopoly), then towns where both hold one and the population is in the top quarter of the map; each list by population, same cash cap and yearly rebuy as mode 2.",
+      description = "V250 exclusive transport rights, only when difficulty is custom (3): any other level forces 0. 0 = off at easy, medium, hard and custom (default). 1 = normal policy, and only when difficulty is hard (2) or custom (3): buy in the town where we and a rival share the most station catchment, and only when rich in the V249 sense (no loan, no project pass stopped for cash, cash after the purchase still covers the most expensive listed project). Easy and medium keep mode 1 off even if this setting is 1. A later fair_play switch will also cut mode 1. 2 = test, not filtered by difficulty or wealth: in the no-noise two-airport regime, rebuy rights in the largest towns where GetAllowedNoise is 0 and we own no airport, while cash covers the cost, for at most as many towns as one year of rights (one purchase lasts 12 economy months) that cash can pay. A freed slot is only logged; the normal AIR pipeline takes it. 3 = wider test: rival airport links are invisible to an AI, so buy rights in every town holding a rival airport (two-airport towns first, then by population), same cash cap; only towns saturated at purchase are watched for a freed slot. 4 = targeted: towns where a rival holds a town rating and we hold none (rival monopoly), then towns where both hold one and the population is in the top quarter of the map; each list by population, same cash cap and yearly rebuy as mode 2.",
       min_value = 0, max_value = 4,
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0, default_value = 0,

@@ -1,7 +1,7 @@
 /* V252 : modernisation de la flotte aerienne quand on est riche. Aucun montant fixe.
  * Riche = aucun emprunt, aucune passe projets arretee faute de caisse depuis le mois
- * precedent (V252_CASH_STOP), et apres l'achat la caisse couvre encore la reserve
- * et le projet le plus cher du portefeuille. Au plus un remplacement par passage.
+ * precedent (V252_CASH_STOP), et apres l'achat la caisse couvre encore
+ * le projet le plus cher du portefeuille. Au plus un remplacement par passage.
  * Aucun nombre a 4 chiffres ou plus dans ce fichier. */
 
 /* ESTIM-1 : cout et marge de la substitution d'UN avion a flotte constante.
@@ -158,9 +158,9 @@ function OpexAI::_dispatchV252AirEngineRefresh(task, year)
   local price = AIEngine.GetPrice(bestNewEngine);
   if ((ESTIM_UNIFIE & 4) != 0) OpexEstimVLog("V252", bestLine.lineId, bestProject);
   local cash = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
-  local threshold = OpexCashReserve() + OpexV249MaxListedCapital(this._projects);
+  local threshold = OpexV249MaxListedCapital(this._projects);
   if ((ESTIM_UNIFIE & 2) != 0)
-    threshold = OpexEstimFinanceCashNeeded("fleet", 0, 0);
+    threshold = 0;
   if (price <= 0 || cash - price < threshold) {
     if (DECISION_LOG) OpexDecide("V252_SKIP", "reason=cost cash=" + cash + " cost=" + price + " threshold=" + threshold + " line=" + bestLine.lineId);
     return true;

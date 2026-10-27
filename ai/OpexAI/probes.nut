@@ -1933,13 +1933,6 @@ function OpexC39AirEngineReason(catalog, engine)
   if (OpexC39CatalogUsesEngine(catalog, engine, "air")) return "selected";
   return "dominated";
 }
-function OpexCashReserveProbeLog(fields)
-{
-  if (!CASH_RESERVE_PROBE) return;
-  local date = AIDate.GetCurrentDate();
-  AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
-             + AIDate.GetDayOfMonth(date) + " CASH_RESERVE_PROBE " + fields);
-}
 function OpexPortfolioRefreshProbeLog(fields)
 {
   if (!PORTFOLIO_REFRESH_PROBE) return;

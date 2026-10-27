@@ -105,9 +105,8 @@ function OpexAirF1Before(ai, channel, lineId, price, project, rank,
   local date = AIDate.GetCurrentDate();
   local tick = AIController.GetTick();
   local cash = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
-  local reserve = OpexCashReserve();
   /* Meme notion de capital mobilisable que le portefeuille, emprunt compris
-   * lorsqu'il est autorise. Le seuil apres achat est un proxy a reserve fixe. */
+   * lorsqu'il est autorise. */
   local avail = OpexAvailableCapital();
   local id = tick + "-" + ai._taskCycle + "-" + channel + "-" + lineId;
   local logs = [];
@@ -139,7 +138,7 @@ function OpexAirF1Before(ai, channel, lineId, price, project, rank,
   OpexAirF1Queue(logs, "AIRF1_BUY", "id=" + id + " channel=" + channel + " phase=before"
       + " date=" + date + " tick=" + tick + " cycle=" + ai._taskCycle
       + " line=" + lineId + " rank=" + rank + " cash=" + cash
-      + " reserve=" + reserve + " avail=" + avail + " unit_price=" + price
+      + " avail=" + avail + " unit_price=" + price
       + " spend=" + plannedSpend
       + " finance=" + finance + " k_dec_snapshot=" + kdec
       + " k_dec_selection_tick=" + kdecTick

@@ -819,7 +819,6 @@ function OpexAI::_dispatchReport(task, year)
   if (C49_SCARCITY_LEDGER) {
     local ucCash = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
     local ucLoan = AICompany.GetLoanAmount();
-    local ucReserve = OpexCashReserve();
     local ucAvail = OpexAvailableCapital();
     local ucHeadNeed = -1;
     local ucHeadMode = "none";
@@ -838,7 +837,7 @@ function OpexAI::_dispatchReport(task, year)
         ucRailNeed = this._railSearch.candidate.capital;
       }
     }
-    OpexSign(AIMap.GetTileIndex(2, 1), "UC|" + (year % 100) + "|" + ucCash + "|" + ucLoan + "|" + ucReserve);
+    OpexSign(AIMap.GetTileIndex(2, 1), "UC|" + (year % 100) + "|" + ucCash + "|" + ucLoan + "|0");
     OpexSign(AIMap.GetTileIndex(2, 2), "UP|" + (year % 100) + "|" + ucAvail + "|" + ucHeadNeed + "|" + ucHeadMode);
     OpexSign(AIMap.GetTileIndex(2, 3), "UR|" + (year % 100) + "|" + ucRailPhase + "|" + ucRailNeed);
     if (this._c49ScarcityLedger != null) {
@@ -853,16 +852,6 @@ function OpexAI::_dispatchReport(task, year)
       OpexSign(AIMap.GetTileIndex(2, 6), "UB|" + (year % 100) + "|" + C75_YEAR_LEDGER.passes
                + "|" + C75_YEAR_LEDGER.builds + "|" + C75_YEAR_LEDGER.multi_passes);
     }
-  }
-  if (CASH_RESERVE_PROBE) {
-    local calls = CASH_RESERVE_PROBE_CALLS - this._cashReserveProbeLastCalls;
-    local minBinds = CASH_RESERVE_PROBE_MIN_BINDS - this._cashReserveProbeLastMinBinds;
-    local maxBinds = CASH_RESERVE_PROBE_MAX_BINDS - this._cashReserveProbeLastMaxBinds;
-    this._cashReserveProbeLastCalls = CASH_RESERVE_PROBE_CALLS;
-    this._cashReserveProbeLastMinBinds = CASH_RESERVE_PROBE_MIN_BINDS;
-    this._cashReserveProbeLastMaxBinds = CASH_RESERVE_PROBE_MAX_BINDS;
-    OpexCashReserveProbeLog("year=" + year + " calls=" + calls + " min_binds=" + minBinds
-                            + " max_binds=" + maxBinds);
   }
   if (PORTFOLIO_REFRESH_PROBE) {
     local checks = PORTFOLIO_REFRESH_PROBE_CHECKS - this._portfolioRefreshProbeLastChecks;

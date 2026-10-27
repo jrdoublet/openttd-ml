@@ -1,12 +1,12 @@
 /* V249 : une statue par mois quand on est riche. Aucun montant fixe.
  * Mode 1 : riche = aucun emprunt, aucune passe projets arretee faute de caisse depuis le
- * mois precedent (V249_CASH_STOP), et apres la statue la caisse couvre encore la
- * reserve et le projet le plus cher du portefeuille. Ville au plus fort profit historique.
+ * mois precedent (V249_CASH_STOP), et apres la statue la caisse couvre encore
+ * le projet le plus cher du portefeuille. Ville au plus fort profit historique.
  * Mode 2 (V249a+b+c) : gain marginal capturable sur les gares qui chargent, note cible (+26),
  * production disponible (ville pour passagers/courrier, industrie source pour fret),
  * plafonnee par la capacite disponible de la ligne (saturation). Achat seulement si
- * gain annuel x horizon (5 ans) > cout mesure. Pas de reserve de caisse requise,
- * mais preservation du meilleur projet admissible et financable et de la flotte V252.
+ * gain annuel x horizon (5 ans) > cout mesure. Preservation du meilleur
+ * projet admissible et financable et de la flotte V252.
  * Aucun etat sauvegarde. La statue est un bit du monde (AITown.HasStatue). */
 
 const V249_HORIZON_YEARS = 5;
@@ -442,7 +442,7 @@ function OpexV249DispatchMode2(ai, ym, year)
   local v252Cost = OpexV249GetPendingV252Cost(ai);
   local threshold = bestProjCap + v252Cost;
   if ((ESTIM_UNIFIE & 2) != 0)
-    threshold = OpexEstimFinanceCashNeeded("statue", 0, 0);
+    threshold = 0;
 
   if (cost <= 0 || cash - cost < threshold) {
     if (DECISION_LOG) OpexDecide("V249_SKIP", "reason=cost town=" + bestTown + " station=" + bestStation + " cargo=" + bestCargoLabel + " rating=" + bestRating + " prod=" + bestProd + " gain=" + bestGain + " cost=" + cost + " cash=" + cash + " threshold=" + threshold + " best_proj=" + bestProjCap + " v252=" + v252Cost);
@@ -536,9 +536,9 @@ function OpexAI::_dispatchV249Statue(task, year)
 
   local cost = OpexV249MeasureStatueCost(bestTown);
   local cash = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
-  local threshold = OpexCashReserve() + OpexV249MaxListedCapital(this._projects);
+  local threshold = OpexV249MaxListedCapital(this._projects);
   if ((ESTIM_UNIFIE & 2) != 0)
-    threshold = OpexEstimFinanceCashNeeded("statue", 0, 0);
+    threshold = 0;
   if (cost <= 0 || cash - cost < threshold) {
     if (DECISION_LOG) OpexDecide("V249_SKIP", "reason=cost cash=" + cash + " cost=" + cost + " threshold=" + threshold + " town=" + bestTown);
     return true;

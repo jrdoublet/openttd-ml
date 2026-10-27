@@ -42,14 +42,13 @@ function OpexAI::_c121RailPrepAirFundable()
   return cap <= OpexAvailableCapital();
 }
 
-/* Pas de parcours du portefeuille : le minimum a ete fige en fin de passe.
- * Tant que la caisse seule ne couvre pas ce minimum, la reserve n'est pas lue. */
+/* Pas de parcours du portefeuille : le minimum a ete fige en fin de passe. */
 function OpexAI::_c121RailPrepAirFundableCheap()
 {
   local cap = this._c121RailPrepMinAirCap;
   if (cap < 0) return false;
   /* Emprunt desactive : disponible <= caisse. Une caisse sous le minimum
-   * dispense de la reserve (liste de vehicules). */
+   * suffit a conclure immediatement. */
   if (cap > 0) {
     local cash = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
     if (cash < cap) return false;

@@ -199,11 +199,11 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
       local requiredMargin = OpexAirRequiredMargin(newAirports, buildPlan);
       local capital = ("capital" in buildPlan) ? buildPlan.capital
           : (newAirports * buildPlan.airport.price + buildPlan.plane.price);
-      local need = capital + OpexCashReserve() + requiredMargin;
+      local need = capital + requiredMargin;
       if ((ESTIM_UNIFIE & 2) != 0) {
         local immobilise = ("economics" in buildPlan) && buildPlan.economics != null
             && ("immobilise" in buildPlan.economics) ? buildPlan.economics.immobilise : 0;
-        need = OpexEstimFinanceCashNeeded("air", capital, plan.distance, false, immobilise);
+        need = OpexEstimFinanceCapital("air", capital, plan.distance, false, immobilise);
       }
       if (spCash != null) OpexSpanEnd(spCash);
       if (money < need) {
@@ -655,9 +655,9 @@ function OpexAI::_resizeAirFleets(year, plan = null)
     /* Croissance d'une ligne aerienne EXISTANTE : aucun aeroport a batir, donc rien que
      * cette marge doive couvrir. 88 refus insufficient_cash pour 3 acceptations mesures
      * sur 3 parties x 2 ans (results/diag_1v1_decisions.json). */
-    local need = planePrice + OpexCashReserve() + 2000;
+    local need = planePrice + 2000;
     if ((ESTIM_UNIFIE & 2) != 0)
-      need = OpexEstimFinanceCashNeeded("fleet", planePrice, 0);
+      need = OpexEstimFinanceCapital("fleet", planePrice, 0);
     local addedThisPass = 0;
     local maxAddedPerPass = 4;
     /* C14 : Dimensionnement dynamique de flotte par le stock au sol (AAAHogEx route.nut:2896-2921).

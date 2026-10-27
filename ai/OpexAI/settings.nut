@@ -100,7 +100,6 @@ function OpexLoadSettings()
   DIST_BORNES_V276_FREIGHT = AIController.GetSetting("dist_bornes_v276_freight") == 1;
   DIST_BORNES_UNIFIED = AIController.GetSetting("dist_bornes_unified") == 1;
   ESTIM_UNIFIE = AIController.GetSetting("estim_unifie");
-  CASH_RESERVE_OFF = AIController.GetSetting("cash_reserve_off") == 1;
   foreach (m, k in ESTIM_K_R_PRIOR) ESTIM_K_R[m] = k;
   local railGrowth = AIController.GetSetting("v284_rail_growth");
   V233_LONG_GOOD = AIController.GetSetting("v233_long_good") == 1 ? 1 : 0;
@@ -386,7 +385,6 @@ function OpexLoadSettings()
   if (TENSION_PROBE) {
     PORTFOLIO_LOG = true;
   }
-  CASH_RESERVE_PROBE = probePort;
   PORTFOLIO_REFRESH_PROBE = probePort;
   C55_ORIGIN_RELAX_PROBE = probePort;
   if (C55_ORIGIN_RELAX_PROBE) {

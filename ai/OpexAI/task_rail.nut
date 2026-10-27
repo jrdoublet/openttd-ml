@@ -275,9 +275,9 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
         return { outcome = "rejected", discards = passDiscards };
       }
 
-      local need = candidate.capital + OpexCashReserve();
+      local need = candidate.capital;
       if ((ESTIM_UNIFIE & 2) != 0)
-        need = OpexEstimFinanceCashNeeded("rail", candidate.capital, candidate.distance,
+        need = OpexEstimFinanceCapital("rail", candidate.capital, candidate.distance,
             ("capitalIsActual" in candidate) && candidate.capitalIsActual,
             ("immobilise" in candidate) ? candidate.immobilise : 0);
       local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
@@ -343,8 +343,7 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
             + " roi=" + candidate.roi + " p1_long=1");
       }
       local railPlanRef = ("railPlan" in candidate) ? candidate.railPlan : null;
-      local result = OpexBuildLine(this._catalog, this._budget, candidate, alternativeRatio,
-                                   OpexCashReserve(), hardCap);
+      local result = OpexBuildLine(this._catalog, this._budget, candidate, alternativeRatio, hardCap);
       if (result.reason == "CASH") {
         if (AIR_FLOTTE1_SHADOW) OpexAirF1RailPath(project, i, "rejected", "cash_at_build");
         if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "cash_at_build", extra = "" });
@@ -417,10 +416,10 @@ function OpexAI::_expandRailLines(year)
           // Cas 1 : Ligne deja doublee avec depot2 -> ajout immediat du 2e train
           if (("doubleTrack" in line) && line.doubleTrack == 1 && ("depot2" in line) && line.depot2 != null) {
             local trainCost = line.loco.price + line.wagons * wagon.price + OpexV163WagonsPrice(this._catalog, line);
-            local need = trainCost + OpexCashReserve();
+            local need = trainCost;
             local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
             if (money >= need) {
-              local secondTrain = OpexBuildSecondTrain(this._catalog, line, OpexCashReserve());
+              local secondTrain = OpexBuildSecondTrain(this._catalog, line);
               if (secondTrain.ok) {
                 line.vehicles.append(secondTrain.train);
                 line.trains = line.vehicles.len();
@@ -454,7 +453,7 @@ function OpexAI::_expandRailLines(year)
             local depotCost = AIRail.GetBuildCost(AIRail.GetCurrentRailType(), AIRail.BT_DEPOT);
             local trackCost = line.distance * this._catalog.costTrackPerTile + 2 * line.platformLength * this._catalog.costStation + depotCost;
             local trainCost = line.loco.price + line.wagons * wagon.price + OpexV163WagonsPrice(this._catalog, line);
-            local need = trackCost + trainCost + OpexCashReserve();
+            local need = trackCost + trainCost;
             local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
             if (money >= need) {
               {
@@ -510,7 +509,7 @@ function OpexAI::_expandRailLines(year)
           if (trainWaitingAtSource) continue;
 
           local trainCost = line.loco.price + line.wagons * wagon.price;
-          local need = trainCost + OpexCashReserve() + 1000;
+          local need = trainCost + 1000;
           local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
           if (money < need) continue;
           if (!OpexRailVehicleSlotAvailable()) continue;
@@ -691,7 +690,7 @@ function OpexAI::_continueRailExpansion()
     return true;
   }
   local wagonPrice = AIEngine.GetPrice(state.wagonId);
-  if (AICompany.GetBankBalance(AICompany.COMPANY_SELF) < wagonPrice + OpexCashReserve()) {
+  if (AICompany.GetBankBalance(AICompany.COMPANY_SELF) < wagonPrice) {
     AIVehicle.StartStopVehicle(state.vehicle);
     state.ops += this._budget.end("expand_rail_build");
     OpexSign(anchor, "EX|" + year + "|" + state.lineId + "|C|" + state.ops + "|0");
@@ -1057,9 +1056,9 @@ function OpexAI::_consumeRailSearch(year)
   local planFailed = ("railPlan" in candidate) && candidate.railPlan != null
                      && !candidate.railPlan.ok;
   if (!planFailed) {
-    local need = candidate.capital + OpexCashReserve();
+    local need = candidate.capital;
     if ((ESTIM_UNIFIE & 2) != 0)
-      need = OpexEstimFinanceCashNeeded("rail", candidate.capital, candidate.distance,
+      need = OpexEstimFinanceCapital("rail", candidate.capital, candidate.distance,
           ("capitalIsActual" in candidate) && candidate.capitalIsActual,
           ("immobilise" in candidate) ? candidate.immobilise : 0);
     local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
@@ -1081,7 +1080,7 @@ function OpexAI::_consumeRailSearch(year)
 
   local railPlanRef = ("railPlan" in candidate) ? candidate.railPlan : null;
   local result = OpexBuildLine(this._catalog, this._budget, candidate, state.alternativeRatio,
-                               OpexCashReserve(), state.hardCap);
+                               state.hardCap);
   /* Ne pas jeter le plan sur CASH : on reessaiera au prochain tour, sans refaire l'A*. */
   if (result.reason == "CASH") {
     if (C50_CHRONOLOGY_PROBE) this._logC50CashRefusal("rail", -1, candidate.capital, candidate.profitAnnual, candidate.roi, candidate.src, candidate.dst, candidate.capital, AICompany.GetBankBalance(AICompany.COMPANY_SELF));
@@ -1425,7 +1424,7 @@ function OpexAI::_consumeRailUpgrade()
   local state = this._railSearch;
   local year = AIDate.GetYear(AIDate.GetCurrentDate());
   local upgrade = OpexExecuteUpgradeAfterSearch(this._catalog, this._budget, state.line,
-                                                OpexCashReserve(), state.search, state.prep);
+                                                state.search, state.prep);
   /* Appliquer au doublement la meme politique de liberation cash que pour
    * une recherche primaire, sinon l'unique slot _railSearch gele tout le rail. */
   if (upgrade.reason == "CASH") {
@@ -2757,9 +2756,9 @@ function OpexAI::_revalidateRailStockPlan(candidate, plan)
 {
   if (candidate == null || plan == null) return { ok = false, reason = "null_plan" };
 
-  local need = candidate.capital + OpexCashReserve();
+  local need = candidate.capital;
   if ((ESTIM_UNIFIE & 2) != 0)
-    need = OpexEstimFinanceCashNeeded("rail", candidate.capital, candidate.distance,
+    need = OpexEstimFinanceCapital("rail", candidate.capital, candidate.distance,
         ("capitalIsActual" in candidate) && candidate.capitalIsActual,
         ("immobilise" in candidate) ? candidate.immobilise : 0);
   local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);

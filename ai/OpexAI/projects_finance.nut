@@ -7,7 +7,7 @@
  * ce montant. Les marges et le capital immobilise restent inchanges. */
 /* ESTIM-1 M5 : cout de decaissement commun au choix et au chantier, aux facteurs
  * de financement qualifies du chemin historique. Un devis realise (AITestMode ou plan reel) n'est jamais multiplie de nouveau.
- * OpexAvailableCapital soustrait deja OpexCashReserve exactement une fois. */
+ * OpexAvailableCapital represente la caisse mobilisable sans reserve. */
 function OpexEstimFinanceCapital(mode, capital, distance, capitalIsActual = false, immobilise = 0)
 {
   if (capital < 0) capital = 0;
@@ -20,12 +20,6 @@ function OpexEstimFinanceCapital(mode, capital, distance, capitalIsActual = fals
     else if (mode == "road") factor = 1.21;
   }
   return (capital.tofloat() * factor + 0.999).tointeger() + immobilise;
-}
-
-function OpexEstimFinanceCashNeeded(mode, capital, distance, capitalIsActual = false, immobilise = 0)
-{
-  return OpexEstimFinanceCapital(mode, capital, distance, capitalIsActual, immobilise)
-      + OpexCashReserve();
 }
 
 function OpexProjectFinanceCapital(project)

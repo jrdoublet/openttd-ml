@@ -353,8 +353,7 @@ class ForumBehaviours(unittest.TestCase):
         self.assertIn("this._active = null", code)
 
     def test_4_3_valuate_results_are_consumed_without_recomputing(self):
-        for name, function in (("capital.nut", "OpexCashReserve"),
-                               ("tension.nut", "OpexTensionFleetScan")):
+        for name, function in (("tension.nut", "OpexTensionFleetScan"),):
             code = body(name, function)
             self.assertEqual(code.count("AIVehicle.GetRunningCost"), 1)
             self.assertIn("vehicles.GetValue(v)", code)
