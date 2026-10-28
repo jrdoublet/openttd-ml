@@ -127,6 +127,7 @@ function OpexLoadSettings()
   if (ROAD1Y_FLEET < 0) ROAD1Y_FLEET = 0;
   ROAD1Y_PAX_SITES = AIController.GetSetting("road1y_pax_sites") == 1;
   ROAD1Y_PAX_ECONOMY = AIController.GetSetting("road1y_pax_economy") == 1;
+  ROAD1Y_PAX_REFLEET = AIController.GetSetting("road1y_pax_refleet") == 1;
   ROAD100_WAIT_FLEET = AIController.GetSetting("road100_wait_fleet") == 1
       && ROAD100_SITE_FIRST;
   ROAD100_SITE_WINDOW = AIController.GetSetting("road100_site_window") == 1

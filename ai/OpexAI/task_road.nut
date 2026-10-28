@@ -1280,6 +1280,13 @@ function OpexAI::_refleetRoadLines(year)
     if (have + extraNeeded > target) target = have + extraNeeded;
     if (target > physicalCap) target = physicalCap;
 
+    /* ROAD1Y-D : pour les lignes bus en route seule, la flotte est dynamique
+     * et pilotée par le bloc ROAD1Y_FLEET ci-dessous selon les passagers en
+     * attente aux deux bouts (totalWaiting). target démarre à have. */
+    if (("kind" in line) && line.kind == "pax" && ROAD1Y_PAX_REFLEET) {
+      target = have;
+    }
+
     /* ROAD100-24 : la cible finale transmise à refleet pour une ligne
      * doubles quais fret ne doit pas être écrasée par la logique historique :
      * réserve 50k, bénéfice clos >= 3000 £, circulation, slots et plafond 2. */
@@ -1325,17 +1332,24 @@ function OpexAI::_refleetRoadLines(year)
      * sous un plafond de ROAD1Y_FLEET vehicules par paire de quais. Un
      * vehicule a l'arret qui charge ne bloque pas l'achat. */
     if (ROAD1Y_FLEET > 0 && capacity > 0 && movingCount > 0) {
-      local road1yStops = ("nStopsA" in line) ? line.nStopsA : 1;
+      local isPax = (("kind" in line) && line.kind == "pax");
+      local road1yStopsA = ("nStopsA" in line) ? line.nStopsA : 1;
       local road1yStopsB = ("nStopsB" in line) ? line.nStopsB : 1;
-      if (road1yStopsB < road1yStops) road1yStops = road1yStopsB;
+      local road1yStops = (isPax && ROAD1Y_PAX_REFLEET)
+          ? (road1yStopsA + road1yStopsB)
+          : (road1yStopsB < road1yStopsA ? road1yStopsB : road1yStopsA);
       if (road1yStops < 1) road1yStops = 1;
       local road1yCap = ROAD1Y_FLEET * road1yStops;
+      if (isPax && ROAD1Y_PAX_REFLEET && ("predTrains" in line) && line.predTrains > road1yCap)
+        road1yCap = line.predTrains;
       local road1yMonth = year * 12 + AIDate.GetMonth(AIDate.GetCurrentDate());
       if (!("road1yMonth" in line) || line.road1yMonth != road1yMonth) {
         local road1yWait = (("kind" in line) && line.kind == "freight") ? waitingA : totalWaiting;
         local road1yWant = road1yWait / capacity;
         if (road1yWant > 2) road1yWant = 2;
         if (have + road1yWant > road1yCap) road1yWant = road1yCap - have;
+        if (isPax && ROAD1Y_PAX_REFLEET && AICompany.GetBankBalance(AICompany.COMPANY_SELF) < 15000)
+          road1yWant = 0;
         if (road1yWant > 0) {
           line.road1yMonth <- road1yMonth;
           if (have + road1yWant > target) target = have + road1yWant;
