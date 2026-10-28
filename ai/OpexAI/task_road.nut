@@ -1216,6 +1216,29 @@ function OpexAI::_refleetRoadLines(year)
       }
     }
 
+    /* ROAD1Y : des la premiere annee, le stock reellement en attente
+     * commande la flotte, au plus deux vehicules par mois et par ligne,
+     * sous un plafond de ROAD1Y_FLEET vehicules par paire de quais. Un
+     * vehicule a l'arret qui charge ne bloque pas l'achat. */
+    if (ROAD1Y_FLEET > 0 && capacity > 0 && movingCount > 0) {
+      local road1yStops = ("nStopsA" in line) ? line.nStopsA : 1;
+      local road1yStopsB = ("nStopsB" in line) ? line.nStopsB : 1;
+      if (road1yStopsB < road1yStops) road1yStops = road1yStopsB;
+      if (road1yStops < 1) road1yStops = 1;
+      local road1yCap = ROAD1Y_FLEET * road1yStops;
+      local road1yMonth = year * 12 + AIDate.GetMonth(AIDate.GetCurrentDate());
+      if (!("road1yMonth" in line) || line.road1yMonth != road1yMonth) {
+        local road1yWait = (("kind" in line) && line.kind == "freight") ? waitingA : totalWaiting;
+        local road1yWant = road1yWait / capacity;
+        if (road1yWant > 2) road1yWant = 2;
+        if (have + road1yWant > road1yCap) road1yWant = road1yCap - have;
+        if (road1yWant > 0) {
+          line.road1yMonth <- road1yMonth;
+          if (have + road1yWant > target) target = have + road1yWant;
+        }
+      }
+    }
+
     if (have >= target) {
       if (C50_CHRONOLOGY_PROBE && dedupRoad && C50_NON_EXPANSION_LEDGER != null && have < physicalCap && !isAnyWaiting) {
         C50_NON_EXPANSION_LEDGER.road.no_demand++;

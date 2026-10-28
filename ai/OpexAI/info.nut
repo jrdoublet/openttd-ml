@@ -382,6 +382,14 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
     AddSetting({
+      name = "road1y_fleet",
+      description = "ROAD1Y: road vehicles allowed per stop pair from the first year, bought monthly on measured waiting cargo (0=off, historical cap of 2; default 0)",
+      min_value = 0, max_value = 16,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = 0
+    });
+    AddSetting({
       name = "road100_wait_fleet",
       description = "ROAD100-10: ROAD-only profitable mature bus routes expand fleet cautiously using actual station waiting; requires road100_site_first=1, 0=off (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,
