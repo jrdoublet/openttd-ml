@@ -185,8 +185,7 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
          * huit sacs de courrier. Le revenu initial est 100% A->B. */
         local siteDemand = hasSiteDemand ? plan.stopA.value + plan.stopB.value : -1;
         if (("road100SegmentedUnits" in candidate) &&
-            candidate.road100SegmentedUnits && ROAD100_SEGMENTED_CORRIDOR
-            && ("road100Segmented" in plan) && plan.road100Segmented) {
+            candidate.road100SegmentedUnits && ROAD100_SEGMENTED_CORRIDOR) {
           local radius = AIStation.GetCoverageRadius(AIStation.STATION_BUS_STOP);
           local aUnits = OpexRoad100PaxSiteMonthly(candidate.srcTown,
               candidate.cargo, plan.stopA.tile, radius);
@@ -201,11 +200,11 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
               + " ops=" + (aUnits.ops + bUnits.ops));
         }
         if ((("road100SparseUnits" in candidate) &&
-             candidate.road100SparseUnits && ROAD100_SPARSE_CORRIDOR
-             && ("road100Sparse" in plan) && plan.road100Sparse) ||
+             candidate.road100SparseUnits && ROAD100_SPARSE_CORRIDOR) ||
             (("road100GraphRequested" in candidate) &&
-             candidate.road100GraphRequested && ROAD100_PAX_GRAPH_BRIDGE
-             && ("road100Graph" in plan) && plan.road100Graph)) {
+             candidate.road100GraphRequested && ROAD100_PAX_GRAPH_BRIDGE) ||
+            (("road100LongUnits" in candidate) &&
+             candidate.road100LongUnits)) {
           local sparseRadius = AIStation.GetCoverageRadius(AIStation.STATION_BUS_STOP);
           local sparseA = OpexRoad100PaxSiteMonthly(candidate.srcTown,
               candidate.cargo, plan.stopA.tile, sparseRadius);

@@ -4666,6 +4666,10 @@ function OpexRoad100PaxPortfolioBuild(catalog, candidate, plan, preview,
         out.reason != "ROLLBACK")
       out.reason = out.joined == 0 ? "NO_JOIN" :
           out.failed > 0 ? "PARTIAL" : "OK";
+    if (("road100PaxProducerUnits" in candidate) &&
+        candidate.road100PaxProducerUnits && candidate.monthly > 0) {
+      out.monthly = candidate.monthly;
+    }
   } while (false);
   out.ops = OpexOpsMeasureEnd(mark);
   if (out.ops > 65000) out.reason = "OPCAP";
@@ -5096,6 +5100,8 @@ function OpexBuildRoadRoute(catalog, budget, plan, candidate)
      * fiable, rester a un seul bus plutot que supposer une cadence. */
     if (portfolioSummary != null && portfolioSummary.joined > 0) {
        local measuredMonthly = ROAD100_PAX_INITIAL_BERTH_FLEET
+           || ROAD100_PAX_PRODUCER_UNITS;
+       measuredMonthly = measuredMonthly
            && ("road100PaxProducerUnits" in candidate)
            && candidate.road100PaxProducerUnits
            ? candidate.monthly : portfolioSummary.monthly;
