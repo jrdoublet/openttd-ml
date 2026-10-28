@@ -3911,6 +3911,136 @@ function OpexRoad100LongConstructPlan(catalog, candidate, limitOps = 400000)
   return selectedPlan;
 }
 
+/* ROAD100: revalidation directe du plan stocke (aretes, gares, depot, devis)
+ * avant de relancer les scanners et la selection. Distingue invalidite physique,
+ * derive de classement et manque de ressource. */
+function OpexRoad100LongVerifyStoredPlan(catalog, candidate, storedPlan, limitOps = 400000)
+{
+  if (!ROAD100_LONG_BUILD || candidate == null || storedPlan == null ||
+      !("kind" in candidate) || candidate.kind != "pax" ||
+      !("stopA" in storedPlan) || storedPlan.stopA == null ||
+      !("stopB" in storedPlan) || storedPlan.stopB == null ||
+      !("trace" in storedPlan) || storedPlan.trace == null) {
+    return { ok = false, reason = "LONG_SETTING", category = "resource" };
+  }
+  if (limitOps < 65000 || limitOps > 400000) limitOps = 400000;
+  if (ROAD100_PORTAL_STITCH && limitOps > 180000) limitOps = 180000;
+  if (ROAD100_PAX_GRAPH_BRIDGE && limitOps > 180000) limitOps = 180000;
+
+  if (("road100GraphRequested" in candidate) && candidate.road100GraphRequested &&
+      (!ROAD100_PAX_GRAPH_BRIDGE || !("road100Graph" in storedPlan) || !storedPlan.road100Graph)) {
+    return { ok = false, reason = "GRAPH_DRIFT", category = "drift" };
+  }
+  if (("road100SegmentedUnits" in candidate) && candidate.road100SegmentedUnits &&
+      (!ROAD100_SEGMENTED_CORRIDOR || !("road100Segmented" in storedPlan) || !storedPlan.road100Segmented)) {
+    return { ok = false, reason = "SEGMENT_DRIFT", category = "drift" };
+  }
+  if (("road100SparseUnits" in candidate) && candidate.road100SparseUnits &&
+      (!ROAD100_SPARSE_CORRIDOR || !("road100Sparse" in storedPlan) || !storedPlan.road100Sparse)) {
+    return { ok = false, reason = "SPARSE_DRIFT", category = "drift" };
+  }
+  if (("road100PortalRequested" in candidate) && candidate.road100PortalRequested && !ROAD100_PORTAL_STITCH) {
+    return { ok = false, reason = "PORTAL_SETTING", category = "resource" };
+  }
+  if (("road100PortalRequested" in candidate) && candidate.road100PortalRequested &&
+      (("road100PortalUnits" in candidate) && candidate.road100PortalUnits) !=
+      (("road100Portal" in storedPlan) && storedPlan.road100Portal)) {
+    return { ok = false, reason = "PORTAL_DRIFT", category = "drift" };
+  }
+
+  local mark = OpexOpsMeasureBegin();
+
+  /* 1. Gares : verification physique des extremites et facades */
+  local stopA = storedPlan.stopA;
+  local stopB = storedPlan.stopB;
+  if (!AIRoad.IsRoadTile(stopA.tile) || !AIRoad.IsRoadTile(stopB.tile)) {
+    return { ok = false, reason = "STATION_NOT_ROAD", category = "physical" };
+  }
+  if (!AIRoad.AreRoadTilesConnected(stopA.tile, stopA.front) ||
+      !AIRoad.AreRoadTilesConnected(stopB.tile, stopB.front)) {
+    return { ok = false, reason = "STATION_FRONT", category = "physical" };
+  }
+  local allowedA = false;
+  local allowedB = false;
+  {
+    local test = AITestMode();
+    allowedA = AIRoad.BuildDriveThroughRoadStation(stopA.tile, stopA.front,
+        AIRoad.ROADVEHTYPE_BUS, AIStation.STATION_NEW);
+    allowedB = AIRoad.BuildDriveThroughRoadStation(stopB.tile, stopB.front,
+        AIRoad.ROADVEHTYPE_BUS, AIStation.STATION_NEW);
+  }
+  if (!allowedA || !allowedB) {
+    return { ok = false, reason = "STATION_TEST", category = "physical" };
+  }
+
+  /* 2. Aretes : revalidation complete du trace */
+  local checked = OpexRoad100LongVerifyTrace(storedPlan.trace, stopA, stopB, mark, limitOps);
+  if (!checked.ok) {
+    if (checked.reason == "OPCAP") {
+      return { ok = false, reason = "OPCAP", category = "resource" };
+    }
+    return { ok = false, reason = "TRACE_" + checked.reason, category = "physical" };
+  }
+  local missing = checked.missing;
+
+  /* 3. Depot : verification du depot stocke ou preflight de repli */
+  local depot = null;
+  if (("depot" in storedPlan) && storedPlan.depot != null &&
+      ("tile" in storedPlan.depot) && ("front" in storedPlan.depot)) {
+    local dt = storedPlan.depot.tile;
+    local df = storedPlan.depot.front;
+    if (AIRoad.IsRoadTile(df) && OpexRoadIsFlat(dt) &&
+        !AITile.IsStationTile(dt) && !AIRoad.IsRoadDepotTile(dt) && !AIRoad.IsRoadStationTile(dt) &&
+        AIMap.DistanceManhattan(df, stopA.tile) >= ROAD_DEPOT_MIN_STOP_DISTANCE &&
+        AIMap.DistanceManhattan(df, stopB.tile) >= ROAD_DEPOT_MIN_STOP_DISTANCE) {
+      local allowed = false;
+      {
+        local test = AITestMode();
+        allowed = AIRoad.BuildRoad(df, dt) && AIRoad.BuildRoadDepot(dt, df);
+      }
+      if (allowed) depot = storedPlan.depot;
+    }
+  }
+  if (depot == null) {
+    depot = OpexRoad100LongDepotPreflight(storedPlan.trace, stopA, stopB, mark, limitOps);
+  }
+  if (OpexOpsMeasureEnd(mark) >= limitOps - 20000) {
+    return { ok = false, reason = "OPCAP", category = "resource" };
+  }
+  if (depot == null) {
+    return { ok = false, reason = "DEPOT_TEST", category = "physical" };
+  }
+
+  /* 4. Devis et ressources : devis infrastructure, slots et tresorerie */
+  local quoteRoad = missing * catalog.costRoadPerTile * 3;
+  if (("road100GenRoadQuote" in candidate) && quoteRoad > candidate.road100GenRoadQuote) {
+    return { ok = false, reason = "QUOTE_EXCEEDED", category = "drift" };
+  }
+  local infrastructure = quoteRoad + 2 * catalog.costRoadBusStop
+      + catalog.costRoadDepot + 3 * catalog.costRoadPerTile;
+  local fleet = ("trains" in candidate) && candidate.trains > 0
+      ? candidate.trains : 2;
+  if (!OpexVehicleSlotAvailable(AIVehicle.VT_ROAD, fleet)) {
+    return { ok = false, reason = "NOSLOT", category = "resource" };
+  }
+  local capital = infrastructure + fleet * candidate.engine.price;
+  if (("capital" in candidate) && candidate.capital > capital)
+    capital = candidate.capital;
+  if (("immobilise" in candidate) && candidate.immobilise > 0)
+    capital += candidate.immobilise;
+  local quoteTotal = capital + capital / 4 + 50000;
+  if (AICompany.GetBankBalance(AICompany.COMPANY_SELF) < quoteTotal) {
+    return { ok = false, reason = "CASH", category = "resource" };
+  }
+
+  /* Plan valide et pret pour la pose */
+  storedPlan.depot = depot;
+  storedPlan.roadMissingCount = missing;
+  storedPlan.roadQuoteCost = quoteRoad;
+  storedPlan.road100LongCashNeed = quoteTotal;
+  return { ok = true, plan = storedPlan, reason = "OK", category = "ok" };
+}
+
 function OpexRoadPlanFor(catalog, candidate)
 {
   return OpexRoadPlanForActive(catalog, candidate);

@@ -120,7 +120,21 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
         if (DECISION_LOG) {
           OpexDecide("PROJECT_DISCARD", "rank=" + i + " mode=road src=" + candidate.src + " dst=" + candidate.dst + " reason=plan_failed detail=" + planning.reason);
         }
-        this._markPairAbandoned(abandonedKey);
+        local isAbandonable = true;
+        if (("road100LongBuild" in candidate) && candidate.road100LongBuild) {
+          local r = ("reason" in planning) ? planning.reason : "";
+          if (("category" in planning) && planning.category != "physical") {
+            isAbandonable = false;
+          } else if (r == "LONG_DRIFT" || r == "GRAPH_DRIFT" || r == "SEGMENT_DRIFT" ||
+                     r == "SPARSE_DRIFT" || r == "PORTAL_DRIFT" || r == "QUOTE_EXCEEDED" ||
+                     r == "LONG_SETTING" || r == "PORTAL_SETTING" || r == "CASH" ||
+                     r == "NOSLOT" || r == "OPCAP") {
+            isAbandonable = false;
+          }
+        }
+        if (isAbandonable) {
+          this._markPairAbandoned(abandonedKey);
+        }
         OpexSign(anchor, "RA|" + yy + "|" + idx + "|1|" + planning.reason + "|0");
         OpexSign(anchor, "RB|" + yy + "|" + idx + "|1|" + planOps + "|0");
         return { outcome = "rejected", discards = passDiscards };

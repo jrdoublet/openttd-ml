@@ -2154,6 +2154,7 @@ function OpexRoad100LongBuildCandidate(catalog, preliminary, plan, stats)
   candidate.road100GenRoadQuote <- plan.roadQuoteCost;
   candidate.road100GenCashNeed <- ("road100LongCashNeed" in plan)
       ? plan.road100LongCashNeed : need + 50000;
+  candidate.road100StoredPlan <- plan;
   candidate.monthly = monthly;
   OpexApplyRoadEconomics(candidate, economics, distance);
   candidate.immobilise = economics.immobilise;

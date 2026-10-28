@@ -434,6 +434,17 @@ function OpexRoadPlanForActive(catalog, candidate) {
   if (("road100LongBuild" in candidate) && candidate.road100LongBuild) {
     if (!ROAD100_LONG_BUILD || candidate.kind != "pax")
       return { plan = null, reason = "LONG_SETTING" };
+    /* Constat 6: revérifier d'abord le plan stocké (arêtes, gares, dépôt, devis) */
+    if (("road100StoredPlan" in candidate) && candidate.road100StoredPlan != null) {
+      local storedCheck = OpexRoad100LongVerifyStoredPlan(catalog, candidate, candidate.road100StoredPlan);
+      if (storedCheck.ok) {
+        return { plan = storedCheck.plan, reason = "OK", category = "ok" };
+      }
+      /* Manque de ressource ou de budget : ne pas relancer la sélection coûteuse */
+      if (storedCheck.category == "resource") {
+        return { plan = null, reason = storedCheck.reason, category = "resource" };
+      }
+    }
     local longPlan = OpexRoad100LongConstructPlan(catalog, candidate);
     if (longPlan == null) return { plan = null, reason = "LONG_TRACEX" };
     if (("road100GraphRequested" in candidate) && candidate.road100GraphRequested &&
