@@ -42,3 +42,4 @@ scratch/
 # Etat temporaire du Save/Load MULTI-1 (conserver, mais pas suivre).
 .scratch_multi1_roadcargo_shadow_roundtrip/
 .vscode/settings.json
+/.worktrees/

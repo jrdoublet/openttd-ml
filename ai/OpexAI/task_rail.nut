@@ -1206,6 +1206,37 @@ function OpexAI::_recordRailAttempt(candidate, result, posPacked, year, railPlan
                       + " pred_revenue2=" + candidate.revenue2 : "") + p2Trace);
     } else {
       OpexDecide("RAIL_BUILD_FAIL", "line=" + this._nextLineId + " reason=" + result.reason + " error=" + result.error + " iters=" + result.iterations + " budget=" + iterationBudget);
+      if (DECISION_LOG && (result.reason == "SITEA" || result.reason == "SITEB" || result.reason == "SITEAB")) {
+        local a = ("statsA" in result && result.statsA != null) ? result.statsA
+            : ((railPlan != null && ("statsA" in railPlan) && railPlan.statsA != null) ? railPlan.statsA
+            : { nClear = 0, nCargo = 0, nCmd = 0 });
+        local b = ("statsB" in result && result.statsB != null) ? result.statsB
+            : ((railPlan != null && ("statsB" in railPlan) && railPlan.statsB != null) ? railPlan.statsB
+            : { nClear = 0, nCargo = 0, nCmd = 0 });
+        OpexDecide("RAIL_SITE_DIAG", "line=" + this._nextLineId + " reason=" + result.reason
+                   + " src=" + candidate.src + " dst=" + candidate.dst
+                   + " kind=" + candidate.kind
+                   + " cargo=" + (AICargo.IsValidCargo(candidate.cargo) ? AICargo.GetCargoLabel(candidate.cargo) : "?")
+                   + " manh=" + candidate.distance
+                   + " reuse=" + ((("originServed" in candidate) && candidate.originServed) ? 1 : 0)
+                   + " join_end=" + (("joinEnd" in candidate) ? candidate.joinEnd : "-")
+                   + " shared_dest=" + ((("shared_dest" in candidate) && candidate.shared_dest) ? 1 : 0)
+                   + " wanted_len=" + (("platformLength" in candidate) ? candidate.platformLength : -1)
+                   + " a_clear=" + a.nClear + " a_cargo=" + a.nCargo + " a_cmd=" + a.nCmd
+                   + " a_slope=" + (("slope" in a) ? a.slope : 0)
+                   + " a_water=" + (("water" in a) ? a.water : 0)
+                   + " a_occ=" + (("occupied" in a) ? a.occupied : 0)
+                   + " a_oob=" + (("oob" in a) ? a.oob : 0)
+                   + " a_cgfail=" + (("cargo_fail" in a) ? a.cargo_fail : 0)
+                   + " a_cmdfail=" + (("cmd_fail" in a) ? a.cmd_fail : 0)
+                   + " b_clear=" + b.nClear + " b_cargo=" + b.nCargo + " b_cmd=" + b.nCmd
+                   + " b_slope=" + (("slope" in b) ? b.slope : 0)
+                   + " b_water=" + (("water" in b) ? b.water : 0)
+                   + " b_occ=" + (("occupied" in b) ? b.occupied : 0)
+                   + " b_oob=" + (("oob" in b) ? b.oob : 0)
+                   + " b_cgfail=" + (("cargo_fail" in b) ? b.cargo_fail : 0)
+                   + " b_cmdfail=" + (("cmd_fail" in b) ? b.cmd_fail : 0));
+      }
     }
   }
 
