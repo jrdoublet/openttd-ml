@@ -185,8 +185,7 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
          * huit sacs de courrier. Le revenu initial est 100% A->B. */
         local siteDemand = hasSiteDemand ? plan.stopA.value + plan.stopB.value : -1;
         if (("road100SegmentedUnits" in candidate) &&
-            candidate.road100SegmentedUnits && ROAD100_SEGMENTED_CORRIDOR
-            && ("road100Segmented" in plan) && plan.road100Segmented) {
+            candidate.road100SegmentedUnits && ROAD100_SEGMENTED_CORRIDOR) {
           local radius = AIStation.GetCoverageRadius(AIStation.STATION_BUS_STOP);
           local aUnits = OpexRoad100PaxSiteMonthly(candidate.srcTown,
               candidate.cargo, plan.stopA.tile, radius);
@@ -201,11 +200,11 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
               + " ops=" + (aUnits.ops + bUnits.ops));
         }
         if ((("road100SparseUnits" in candidate) &&
-             candidate.road100SparseUnits && ROAD100_SPARSE_CORRIDOR
-             && ("road100Sparse" in plan) && plan.road100Sparse) ||
+             candidate.road100SparseUnits && ROAD100_SPARSE_CORRIDOR) ||
             (("road100GraphRequested" in candidate) &&
-             candidate.road100GraphRequested && ROAD100_PAX_GRAPH_BRIDGE
-             && ("road100Graph" in plan) && plan.road100Graph)) {
+             candidate.road100GraphRequested && ROAD100_PAX_GRAPH_BRIDGE) ||
+            (("road100LongUnits" in candidate) &&
+             candidate.road100LongUnits)) {
           local sparseRadius = AIStation.GetCoverageRadius(AIStation.STATION_BUS_STOP);
           local sparseA = OpexRoad100PaxSiteMonthly(candidate.srcTown,
               candidate.cargo, plan.stopA.tile, sparseRadius);
@@ -505,6 +504,28 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
         subsidyMultiplier = (isSubsidy && ("subsidyMultiplier" in candidate)) ? candidate.subsidyMultiplier : 1.0,
         lineId = idx,
       });
+      if (("road100PaxPortfolio" in result) &&
+          result.road100PaxPortfolio != null) {
+        local port = result.road100PaxPortfolio;
+        local satA = [];
+        local satB = [];
+        if (("stopsA" in port) && typeof port.stopsA == "array") {
+          foreach (t in port.stopsA) satA.append(t);
+        }
+        if (("stopsB" in port) && typeof port.stopsB == "array") {
+          foreach (t in port.stopsB) satB.append(t);
+        }
+        local sidA = ("stationA" in result && result.stationA != null)
+            ? result.stationA : AIStation.GetStationID(result.stopA);
+        local sidB = ("stationB" in result && result.stationB != null)
+            ? result.stationB : AIStation.GetStationID(result.stopB);
+        this._lines[this._lines.len() - 1].rawset("road100PaxPortfolio", {
+          stopsA = satA,
+          stopsB = satB,
+          stationA = sidA,
+          stationB = sidB,
+        });
+      }
       if (("road100PaxInitialBays" in result) &&
           result.road100PaxInitialBays != null)
         this._lines[this._lines.len() - 1].rawset(
@@ -623,6 +644,75 @@ function OpexAI::_refleetRoadLines(year)
                 "phase=recover line=" + line.lineId
                 + " side=" + side + " reason=LOST_BAY");
           }
+        }
+      }
+    }
+    /* ROAD100-20 : les satellites PORTFOLIO et leurs StationID
+     * traversent Save/Load. Si un satellite est detruit ou invalide,
+     * recalculer nStopsA/nStopsB pour ne pas conserver un plafond fantome.
+     * Ce controle survit meme si l'option repasse a OFF. */
+    if (("road100PaxPortfolio" in line) &&
+        line.road100PaxPortfolio != null) {
+      local portValid = typeof line.road100PaxPortfolio == "table";
+      if (!portValid) {
+        line.nStopsA = 1;
+        line.nStopsB = 1;
+        line.road100PaxPortfolio = null;
+        if (DECISION_LOG) OpexDecide("ROAD100_PAX_PORTFOLIO",
+            "phase=recover line=" + line.lineId + " reason=BAD_PORTFOLIO");
+      } else {
+        local port = line.road100PaxPortfolio;
+        local roots = [line.stationA, line.stationB];
+        local ids = [
+          ("stationA" in port && port.stationA != null) ? port.stationA : -1,
+          ("stationB" in port && port.stationB != null) ? port.stationB : -1
+        ];
+        local stopsArrays = [
+          ("stopsA" in port && typeof port.stopsA == "array") ? port.stopsA : null,
+          ("stopsB" in port && typeof port.stopsB == "array") ? port.stopsB : null
+        ];
+        local lostSat = false;
+        local newCounts = [1, 1];
+        for (local side = 0; side < 2; side++) {
+          local root = roots[side];
+          local rootId = ids[side];
+          if (rootId < 0 && AIRoad.IsRoadStationTile(root)) {
+            rootId = AIStation.GetStationID(root);
+            if (side == 0) port.stationA <- rootId;
+            else port.stationB <- rootId;
+          }
+          local rootOk = typeof root == "integer" && AIMap.IsValidTile(root)
+              && AIRoad.IsRoadStationTile(root)
+              && AICompany.IsMine(AITile.GetOwner(root))
+              && rootId >= 0 && AIStation.IsValidStation(rootId)
+              && AIStation.GetStationID(root) == rootId;
+          local remaining = [];
+          if (rootOk && stopsArrays[side] != null) {
+            foreach (sat in stopsArrays[side]) {
+              local good = typeof sat == "integer" && AIMap.IsValidTile(sat)
+                  && AIRoad.IsRoadStationTile(sat)
+                  && AICompany.IsMine(AITile.GetOwner(sat))
+                  && AIStation.GetStationID(sat) == rootId;
+              if (good) {
+                remaining.append(sat);
+              } else {
+                lostSat = true;
+              }
+            }
+          } else if (stopsArrays[side] != null && stopsArrays[side].len() > 0) {
+            lostSat = true;
+          }
+          if (side == 0) port.stopsA = remaining;
+          else port.stopsB = remaining;
+          newCounts[side] = 1 + remaining.len();
+        }
+        if (lostSat || line.nStopsA != newCounts[0] || line.nStopsB != newCounts[1]) {
+          line.nStopsA = newCounts[0];
+          line.nStopsB = newCounts[1];
+          if (DECISION_LOG) OpexDecide("ROAD100_PAX_PORTFOLIO",
+              "phase=recover line=" + line.lineId
+              + " stops_a=" + line.nStopsA + " stops_b=" + line.nStopsB
+              + " reason=LOST_SATELLITE");
         }
       }
     }

@@ -2059,7 +2059,11 @@ function OpexRoad100LongBuildCandidate(catalog, preliminary, plan, stats)
       && ("road100Graph" in plan) && plan.road100Graph;
   local sparseUnits = (ROAD100_SPARSE_CORRIDOR
       && ("road100Sparse" in plan) && plan.road100Sparse) || graphUnits;
-  if (segmentedUnits || sparseUnits) {
+  local convertLongUnits = ROAD100_PAX_PRODUCER_UNITS
+      || ROAD100_SEGMENTED_CORRIDOR
+      || ROAD100_SPARSE_CORRIDOR
+      || ROAD100_PAX_GRAPH_BRIDGE;
+  if (convertLongUnits) {
     local radius = AIStation.GetCoverageRadius(AIStation.STATION_BUS_STOP);
     local unitsA = OpexRoad100PaxSiteMonthly(preliminary.srcTown,
         preliminary.cargo, plan.stopA.tile, radius);
@@ -2135,6 +2139,8 @@ function OpexRoad100LongBuildCandidate(catalog, preliminary, plan, stats)
   if (ROAD100_PORTAL_STITCH) candidate.road100PortalRequested <- true;
   if (("road100Portal" in plan) && plan.road100Portal)
     candidate.road100PortalUnits <- true;
+  if (convertLongUnits) candidate.road100LongUnits <- true;
+  if (ROAD100_PAX_PRODUCER_UNITS) candidate.road100PaxProducerUnits <- true;
   if (("road100MultiCatchment" in preliminary) && preliminary.road100MultiCatchment)
     candidate.road100MultiCatchment <- true;
   candidate.road100SiteMonthly <- monthly;
