@@ -2135,6 +2135,8 @@ function OpexRoad100LongBuildCandidate(catalog, preliminary, plan, stats)
   if (ROAD100_PORTAL_STITCH) candidate.road100PortalRequested <- true;
   if (("road100Portal" in plan) && plan.road100Portal)
     candidate.road100PortalUnits <- true;
+  if (("road100MultiCatchment" in preliminary) && preliminary.road100MultiCatchment)
+    candidate.road100MultiCatchment <- true;
   candidate.road100SiteMonthly <- monthly;
   candidate.road100GenSiteA <- plan.stopA.tile;
   candidate.road100GenSiteB <- plan.stopB.tile;
