@@ -95,24 +95,19 @@ function OpexPO01CGenerateMode(owner, s, mode)
       if (ROAD1Y_DIST_BANDS) {
         /* ROAD1Y : meme ordre de bandes que la voie synchrone. La bande est
          * reposee a chaque reprise : un autre generateur peut tourner entre deux. */
-        try {
-          for (local band = 0; band < ROAD1Y_DIST_BAND_LIMITS.len(); band++) {
-            local before = all.len();
+        for (local band = 0; band < ROAD1Y_DIST_BAND_LIMITS.len(); band++) {
+          local before = all.len();
+          ROAD1Y_DIST_BAND = band;
+          iterator = OpexPO01CRoadFreightCandidates(s.catalog, s.lines, all, stats, s.abandoned,
+              null, generated.freightCargo);
+          while (iterator.getstatus() != "dead") {
             ROAD1Y_DIST_BAND = band;
-            iterator = OpexPO01CRoadFreightCandidates(s.catalog, s.lines, all, stats, s.abandoned,
-                null, generated.freightCargo);
-            while (iterator.getstatus() != "dead") {
-              ROAD1Y_DIST_BAND = band;
-              resume iterator;
-              ROAD1Y_DIST_BAND = -1;
-              yield null;
-            }
+            resume iterator;
             ROAD1Y_DIST_BAND = -1;
-            if (all.len() > before) break;
+            yield null;
           }
-        } catch (e) {
           ROAD1Y_DIST_BAND = -1;
-          throw e;
+          if (all.len() > before) break;
         }
       } else {
         ROAD1Y_DIST_BAND = -1;

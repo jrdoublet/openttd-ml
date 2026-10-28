@@ -86,7 +86,7 @@ class Road1yDistBandsContracts(unittest.TestCase):
         self.assertIn("for (local band = 0; band < ROAD1Y_DIST_BAND_LIMITS.len(); band++)", async_fn)
         self.assertRegex(async_fn, r"ROAD1Y_DIST_BAND = -1;\s*yield null;")
         self.assertRegex(async_fn, r"ROAD1Y_DIST_BAND = -1;\s*if \(all\.len\(\) > before\) break;")
-        self.assertRegex(async_fn, r"catch \(e\) \{\s*ROAD1Y_DIST_BAND = -1;\s*throw e;\s*\}")
+        self.assertRegex(async_fn, r"resume iterator;\s*ROAD1Y_DIST_BAND = -1;\s*yield null;")
         self.assertRegex(async_fn, r"else \{\s*ROAD1Y_DIST_BAND = -1;")
 
     def test_band_selection_simulation(self):
