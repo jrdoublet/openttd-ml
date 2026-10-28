@@ -162,8 +162,13 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
-
-
+    AddSetting({
+      name = "road1y_load_orders",
+      description = "ROAD1Y: Align road vehicle orders on AAAHogEx (freight sink UNLOAD|NO_LOAD, pax source FULL_LOAD_ANY); 0 = off (default), 1 = on",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
 
     /* --- 3. Interrupteurs de mode et options rail --- */
     AddSetting({

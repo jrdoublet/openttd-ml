@@ -5241,11 +5241,13 @@ function OpexBuildRoadRoute(catalog, budget, plan, candidate)
    * s'accumule de toute facon, et un camion qui part avec une unite paie son trajet pour rien.
    * qui attend d'etre plein detruit precisement ce que la ligne a de bon. */
   local nonstopFlag = AIOrder.OF_NON_STOP_INTERMEDIATE;
-  local sourceFlags = (candidate.kind == "freight" ? AIOrder.OF_FULL_LOAD_ANY : AIOrder.OF_NONE) | nonstopFlag;
+  local isFreight = (candidate.kind == "freight");
+  local sourceFullLoad = isFreight || ROAD1Y_LOAD_ORDERS;
+  local sourceFlags = (sourceFullLoad ? AIOrder.OF_FULL_LOAD_ANY : AIOrder.OF_NONE) | nonstopFlag;
   local orderA = AIOrder.AppendOrder(first, stopA, sourceFlags);
   local errorA = orderA ? 0 : AIError.GetLastError();
-  /* Terminus : OF_NONE (C53_ORDER_NOLOAD fige a false, pas de OF_NO_LOAD). */
-  local destFlags = AIOrder.OF_NONE;
+  /* Terminus : OF_NONE (ou OF_UNLOAD | OF_NO_LOAD sous ROAD1Y_LOAD_ORDERS sur fret). */
+  local destFlags = (ROAD1Y_LOAD_ORDERS && isFreight) ? (AIOrder.OF_UNLOAD | AIOrder.OF_NO_LOAD) : AIOrder.OF_NONE;
   destFlags = destFlags | nonstopFlag;
   local orderB = AIOrder.AppendOrder(first, stopB, destFlags);
   local errorB = orderB ? 0 : AIError.GetLastError();

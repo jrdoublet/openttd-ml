@@ -52,6 +52,7 @@ V294_RAIL_BRIDGE_LEN <- 20;  // defaut V294all depuis le 21/10 (decision utilisa
 V294_RAIL_CONTINUOUS <- 0;
 V269_RELAXED <- false;
 V269_ON <- false;
+ROAD1Y_LOAD_ORDERS <- false; // ROAD1Y : alignement ordres AAAHogEx (dest fret UNLOAD|NO_LOAD, source pax FULL_LOAD_ANY)
 /* DIST-BORNES-1 : experiment V276 fret tardif, OFF sur tous les profils. */
 DIST_BORNES_V276_FREIGHT <- false;
 /* DIST-BORNES-1 : table unique des fenetres modales, opt-in strictement OFF. */
