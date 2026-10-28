@@ -1175,6 +1175,47 @@ function OpexAI::_refleetRoadLines(year)
 
     if (have + extraNeeded > target) target = have + extraNeeded;
     if (target > physicalCap) target = physicalCap;
+
+    /* ROAD100-24 : la cible finale transmise à refleet pour une ligne
+     * doubles quais fret ne doit pas être écrasée par la logique historique :
+     * réserve 50k, bénéfice clos >= 3000 £, circulation, slots et plafond 2. */
+    if (("road100FreightBerths" in line) && line.road100FreightBerths != null &&
+        ("kind" in line) && line.kind == "freight") {
+      if (target > have) {
+        if (target > have + 2) target = have + 2;
+        if (!("lastProfit" in line) || line.lastProfit < 3000 || isAnyWaiting || capacity <= 0) {
+          target = have;
+        } else {
+          local demandWanted = waitingA / capacity - have;
+          if (demandWanted <= 0) target = have;
+          else {
+            if (target > have + demandWanted) target = have + demandWanted;
+            local freightCash = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+            local freightPrice = 0;
+            foreach (v in vehicles) {
+              if (AIVehicle.IsValidVehicle(v)) {
+                freightPrice = AIEngine.GetPrice(AIVehicle.GetEngineType(v));
+                if (freightPrice > 0) break;
+              }
+            }
+            if (freightPrice <= 0 || freightCash < 50000) {
+              target = have;
+            } else {
+              local canPay = (freightCash - 50000) / freightPrice;
+              if (target - have > canPay) target = have + canPay;
+              local missing = target - have;
+              if (missing > 0 && !OpexVehicleSlotAvailable(AIVehicle.VT_ROAD, missing)) {
+                if (missing > 1 && OpexVehicleSlotAvailable(AIVehicle.VT_ROAD, 1))
+                  target = have + 1;
+                else
+                  target = have;
+              }
+            }
+          }
+        }
+      }
+    }
+
     if (have >= target) {
       if (C50_CHRONOLOGY_PROBE && dedupRoad && C50_NON_EXPANSION_LEDGER != null && have < physicalCap && !isAnyWaiting) {
         C50_NON_EXPANSION_LEDGER.road.no_demand++;
