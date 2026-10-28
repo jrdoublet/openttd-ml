@@ -537,11 +537,16 @@ function OpexRoad100GBFastOnSegment(tile, x0, y0, x1, y1, width)
  * (two bends), then a middle corridor (three bends). No loop over map
  * positions: every corner is derived from the actual sleeve tips. */
 function OpexRoad100GBFastTrace(siteA, siteB, sleeveA, sleeveB,
-                                 mark, pairCeiling, cache)
+                                 mark, pairCeiling, cache, startVariantIndex = 0)
 {
   local result = { trace = null, reason = "FAST_REJECT", ops = 0,
       variants = 0, bends = 0, existing = 0, pending = 0,
-      blocked_tile = -1, route = -1, rejections = "" };
+      blocked_tile = -1, route = -1, rejections = "",
+      variantIndex = -1, nextVariantIndex = -1 };
+  if (startVariantIndex < 0) {
+    result.reason = "FAST_SKIPPED";
+    return result;
+  }
   local started = OpexOpsMeasureBegin();
   local axTile = sleeveA.tiles[sleeveA.tiles.len() - 1];
   local bxTile = sleeveB.tiles[sleeveB.tiles.len() - 1];
@@ -562,7 +567,7 @@ function OpexRoad100GBFastTrace(siteA, siteB, sleeveA, sleeveB,
       : [3, 1, 2, 0, 4];
   local span = (ax > bx ? ax - bx : bx - ax) +
       (ay > by ? ay - by : by - ay);
-  for (local vi = 0; vi < variants.len(); vi++) {
+  for (local vi = startVariantIndex; vi < variants.len(); vi++) {
     if (OpexOpsMeasureEnd(started) >= 6000 ||
         OpexOpsMeasureEnd(mark) >= pairCeiling - 50000) {
       result.reason = "FAST_OPCAP";
@@ -814,6 +819,8 @@ function OpexRoad100GBFastTrace(siteA, siteB, sleeveA, sleeveB,
     result.existing = sleeveA.tiles.len() + sleeveB.tiles.len();
     result.pending = bridgeLength;
     result.reason = "FAST_CANDIDATE";
+    result.variantIndex = vi;
+    result.nextVariantIndex = (vi + 1 < variants.len()) ? (vi + 1) : -1;
     break;
   }
   result.ops = OpexOpsMeasureEnd(started);
@@ -821,6 +828,7 @@ function OpexRoad100GBFastTrace(siteA, siteB, sleeveA, sleeveB,
       OpexOpsMeasureEnd(mark) >= pairCeiling - 50000) {
     result.trace = null;
     result.reason = "FAST_OPCAP";
+    result.nextVariantIndex = -1;
   }
   return result;
 }
@@ -993,7 +1001,7 @@ function OpexRoad100GBFrontDoglegTrace(original, blockedIndex, side, offset,
  * at most 180k of the caller's current pair budget (50k retained for
  * VerifyTrace, depot and economics). It does not allocate a new 180k pot.
  */
-function OpexRoad100GraphBridgeTrace(siteA, siteB, mark, limitOps)
+function OpexRoad100GraphBridgeTrace(siteA, siteB, mark, limitOps, fastCursor = 0)
 {
   local out = { trace = null, verified = false, reason = "PRECHECK",
       ops = 0, sleeve_a = 0, sleeve_b = 0, expanded = 0,
@@ -1002,7 +1010,7 @@ function OpexRoad100GraphBridgeTrace(siteA, siteB, mark, limitOps)
       road_queries = 0, edge_queries = 0, cache_hits = 0,
       fast_reason = "FAST_NOT_RUN", fast_ops = 0,
       fast_variants = 0, fast_bends = 0, fast_blocked = -1,
-      fast_rejections = "" };
+      fast_rejections = "", nextFastCursor = -2 };
   local beginMark = OpexOpsMeasureBegin();
   local pairCeiling = limitOps < 180000 ? limitOps : 180000;
   /* The original 38k upper budget includes 3k reserved for aggregation:
@@ -1041,7 +1049,7 @@ function OpexRoad100GraphBridgeTrace(siteA, siteB, mark, limitOps)
        * before any repeated GBGap graph expansions. Its speculative edges
        * MUST still pass the common LongVerifyTrace in builder_road.nut. */
       local fast = OpexRoad100GBFastTrace(siteA, siteB, sleeveA, sleeveB,
-          mark, pairCeiling, cache);
+          mark, pairCeiling, cache, fastCursor);
       out.fast_reason = fast.reason;
       out.fast_ops = fast.ops;
       out.fast_variants = fast.variants;
@@ -1055,9 +1063,13 @@ function OpexRoad100GraphBridgeTrace(siteA, siteB, mark, limitOps)
         out.existing = fast.existing;
         out.pending = fast.pending;
         out.blocked_tile = -1;
+        out.nextFastCursor = fast.nextVariantIndex;
       }
-      if (fast.trace == null) {
-      local used = {};
+      if (out.trace == null && (fastCursor == -1 ||
+          (fastCursor >= 0 && fast.nextVariantIndex < 0 &&
+           fast.reason != "FAST_OPCAP"))) {
+        out.nextFastCursor = -2;
+        local used = {};
       local protectedB = {};
       local candidate = [siteA.tile];
       used.rawset(siteA.tile, true);
@@ -1223,6 +1235,7 @@ function OpexRoad100GraphBridgeTrace(siteA, siteB, mark, limitOps)
   if (out.ops >= 38000 || OpexOpsMeasureEnd(mark) >= pairCeiling - 50000) {
     out.trace = null;
     out.reason = "OPCAP";
+    out.nextFastCursor = -2;
   }
   if (DECISION_LOG) OpexDecide("ROAD100_GRAPH_BRIDGE",
       "reason=" + out.reason + " candidate=" + (out.trace != null ? 1 : 0)
@@ -1239,10 +1252,15 @@ function OpexRoad100GraphBridgeTrace(siteA, siteB, mark, limitOps)
       + " fast_variants=" + out.fast_variants
       + " fast_bends=" + out.fast_bends + " fast_blocked=" + out.fast_blocked
       + " fast_rejections=" + out.fast_rejections
+      + " next_fast_cursor=" + out.nextFastCursor
       + " attempt_cap=42000 search_cap=35000 pair_cap=180000");
   out.ops = OpexOpsMeasureEnd(beginMark);
   /* Emergency guard: should remain unreachable with the reserved 4k.
    * The ordinary log above already followed the definitive 38k gate. */
-  if (out.ops >= 42000) { out.trace = null; out.reason = "OPCAP"; }
+  if (out.ops >= 42000) {
+    out.trace = null;
+    out.reason = "OPCAP";
+    out.nextFastCursor = -2;
+  }
   return out;
 }

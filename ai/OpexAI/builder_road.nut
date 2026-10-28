@@ -3377,17 +3377,20 @@ function OpexRoad100LongConstructPlan(catalog, candidate, limitOps = 400000)
         local trace = null;
         local checked = null;
         if (shape == -3) {
-          local graph = OpexRoad100GraphBridgeTrace(pair.a, pair.b, mark, limitOps);
-          trace = graph.trace;
-          if (DECISION_LOG) OpexDecide("ROAD100_GRAPH",
-              "phase=trace reason=" + graph.reason
-              + " ops=" + graph.ops
-              + " route=" + (trace == null ? -1 : trace.len())
-              + " total_ops=" + OpexOpsMeasureEnd(mark)
-              + " site_a=" + pair.a.tile + " site_b=" + pair.b.tile);
-          if (graph.reason == "OPCAP") {
-            reason = "OPCAP"; lastStage = "GRAPH_OPCAP"; break;
-          }
+          local fastCursor = 0;
+          while (true) {
+            local graph = OpexRoad100GraphBridgeTrace(pair.a, pair.b, mark, limitOps, fastCursor);
+            trace = graph.trace;
+            checked = null;
+            if (DECISION_LOG) OpexDecide("ROAD100_GRAPH",
+                "phase=trace reason=" + graph.reason
+                + " ops=" + graph.ops
+                + " route=" + (trace == null ? -1 : trace.len())
+                + " total_ops=" + OpexOpsMeasureEnd(mark)
+                + " site_a=" + pair.a.tile + " site_b=" + pair.b.tile);
+            if (graph.reason == "OPCAP") {
+              reason = "OPCAP"; lastStage = "GRAPH_OPCAP"; break;
+            }
           /* Verify this speculative trace inside the V36-only dispatch,
            * before any portfolio admission. Preserve frozen V33 OFF hunks. */
           if (trace != null) {
@@ -3512,6 +3515,23 @@ function OpexRoad100LongConstructPlan(catalog, candidate, limitOps = 400000)
                 + " site_a=" + pair.a.tile + " site_b=" + pair.b.tile
                 + " total_ops=" + OpexOpsMeasureEnd(mark));
           }
+            if (checked != null && checked.ok) {
+              break;
+            }
+            if (OpexOpsMeasureEnd(mark) >= limitOps - 50000) {
+              reason = "OPCAP"; lastStage = "GRAPH_OPCAP"; break;
+            }
+            if (("nextFastCursor" in graph) && graph.nextFastCursor >= 0) {
+              fastCursor = graph.nextFastCursor;
+              trials++;
+            } else if (("nextFastCursor" in graph) && graph.nextFastCursor == -1) {
+              fastCursor = -1;
+              trials++;
+            } else {
+              break;
+            }
+          }
+          if (reason == "OPCAP") break;
         } else if (shape == -2) {
           local sparse = ROAD100_PORTAL_STITCH
               ? OpexRoad100PortalStitchTrace(pair.a, pair.b, mark, limitOps)
