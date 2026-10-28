@@ -67,6 +67,9 @@ ROAD100_INTERCITY_SITE_FLEET <- false; // ROAD100-6 : demande par arrêt et flot
 ROAD100_SITE_FIRST <- false; // ROAD100-7 : classer sur sites réellement constructibles, ROAD seul
 ROAD100_JOINED_STOPS <- false; // ROAD100-8 : satellites passagers joints au terminal, ROAD seul
 ROAD100_MULTICATCHMENT <- false; // ROAD100-9 : nouvelle ligne vers quartiers non recouverts, ROAD seul
+ROAD1Y_DIST_BANDS <- true; // ROAD1Y : traces route jusqu'a 96 tuiles, candidats fret par bandes 64-96, 32-63, 7-31
+ROAD1Y_DIST_BAND <- -1; // bande courante pendant une generation (-1 = bornes historiques)
+ROAD1Y_DIST_BAND_LIMITS <- [[64, 96], [32, 63], [7, 31]];
 ROAD1Y_FLEET <- 4; // ROAD1Y : vehicules par paire de quais des la premiere annee (0 = plafond historique ; 4 par defaut sur cette branche)
 ROAD100_WAIT_FLEET <- false; // ROAD100-10 : renfort des bus rentables sur attente mesuree
 ROAD100_SITE_WINDOW <- false; // ROAD100-11 : diversifier les preplans physiques a budget fixe

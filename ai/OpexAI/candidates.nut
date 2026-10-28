@@ -482,6 +482,7 @@ function OpexRefreshEpochBounds(catalog)
   }
   if (roadGenMax > railMax) roadGenMax = railMax;
   if (roadGenMax < roadMin) roadGenMax = roadMin;
+  if (ROAD1Y_DIST_BANDS && ROAD_MAX_TRACE_TILES > roadGenMax) roadGenMax = ROAD_MAX_TRACE_TILES;
 
   local airportType = (catalog.airport != null) ? catalog.airport.type : null;
   local railAir = railMax;
@@ -590,8 +591,15 @@ function OpexCatalogBounds(catalog)
 function OpexDistBornesWindow(bounds, mode, pax = false, paxBand = PAX_BAND_ALL)
 {
   if (mode == "road") {
+    if (ROAD1Y_DIST_BANDS && ROAD1Y_DIST_BAND >= 0) {
+      local band = ROAD1Y_DIST_BAND_LIMITS[ROAD1Y_DIST_BAND];
+      local bandMin = band[0] > bounds.roadMin ? band[0] : bounds.roadMin;
+      return { minDistance = bandMin, maxDistance = band[1], flightMax = 0 };
+    }
+    local maxDist = ("roadGenMax" in bounds) ? bounds.roadGenMax : bounds.roadMax;
+    if (ROAD1Y_DIST_BANDS && ROAD_MAX_TRACE_TILES > maxDist) maxDist = ROAD_MAX_TRACE_TILES;
     return { minDistance = bounds.roadMin,
-      maxDistance = ("roadGenMax" in bounds) ? bounds.roadGenMax : bounds.roadMax,
+      maxDistance = maxDist,
       flightMax = 0 };
   }
   if (mode == "rail") {
@@ -637,6 +645,14 @@ function OpexDistBornesAllows(window, manhattan, flightDistance = 0)
 function OpexRoadDistanceAllowed(catalog, distance, stats)
 {
   local b = OpexCatalogBounds(catalog);
+  /* ROAD1Y : pendant une generation par bandes, seule la bande courante compte. */
+  if (ROAD1Y_DIST_BANDS && ROAD1Y_DIST_BAND >= 0) {
+    local band = ROAD1Y_DIST_BAND_LIMITS[ROAD1Y_DIST_BAND];
+    local bandMin = band[0] > b.roadMin ? band[0] : b.roadMin;
+    if (distance < bandMin) { stats.roadDistanceShort++; return false; }
+    if (distance > band[1]) { stats.roadDistanceLong++; return false; }
+    return true;
+  }
   if (DIST_BORNES_UNIFIED) {
     local w = OpexDistBornesWindow(b, "road");
     if (distance < w.minDistance) { stats.roadDistanceShort++; return false; }
@@ -648,6 +664,7 @@ function OpexRoadDistanceAllowed(catalog, distance, stats)
     return false;
   }
   local roadCap = ("roadGenMax" in b) ? b.roadGenMax : b.roadMax;
+  if (ROAD1Y_DIST_BANDS && ROAD_MAX_TRACE_TILES > roadCap) roadCap = ROAD_MAX_TRACE_TILES;
   if (distance > roadCap) {
     stats.roadDistanceLong++;
     return false;
@@ -3700,8 +3717,26 @@ function OpexBuildRoadCandidates(catalog, budget, lines, abandonedPairs = null, 
    * fret de reference ; C41.17 ne publie que ses intervalles disjoints. */
   local freightMark = (profile != null && !C41_ROAD_FREIGHT_PROFILE && !C41_ROAD_FREIGHT_TOWN_PROFILE)
       ? OpexOpsMeasureBegin() : null;
-  OpexRoadFreightCandidates(catalog, lines, all, stats, abandonedPairs, profile, freightCargo,
-                            targetKind, targetId);
+  if (ROAD1Y_DIST_BANDS && targetKind == null && targetId < 0) {
+    /* ROAD1Y : bandes longues d'abord ; la premiere bande non vide l'emporte. */
+    try {
+      for (local band = 0; band < ROAD1Y_DIST_BAND_LIMITS.len(); band++) {
+        local before = all.len();
+        ROAD1Y_DIST_BAND = band;
+        OpexRoadFreightCandidates(catalog, lines, all, stats, abandonedPairs, profile, freightCargo,
+                                  targetKind, targetId);
+        ROAD1Y_DIST_BAND = -1;
+        if (all.len() > before) break;
+      }
+    } catch (e) {
+      ROAD1Y_DIST_BAND = -1;
+      throw e;
+    }
+  } else {
+    ROAD1Y_DIST_BAND = -1;
+    OpexRoadFreightCandidates(catalog, lines, all, stats, abandonedPairs, profile, freightCargo,
+                              targetKind, targetId);
+  }
   if (ROAD100_SOLO_PAX)
     OpexRoad100SoloPaxCandidates(catalog, lines, all, stats, abandonedPairs, targetKind, targetId);
   if (ROAD100_TOWN_BUS)

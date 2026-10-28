@@ -92,9 +92,34 @@ function OpexPO01CGenerateMode(owner, s, mode)
         profitNonPositive = 0, profitBelowFloorKept = 0, accepted = 0,
         roadDistanceShort = 0, roadDistanceLong = 0 };
     if (s.catalog.roadType >= 0) {
-      iterator = OpexPO01CRoadFreightCandidates(s.catalog, s.lines, all, stats, s.abandoned,
-          null, generated.freightCargo);
-      while (iterator.getstatus() != "dead") { resume iterator; yield null; }
+      if (ROAD1Y_DIST_BANDS) {
+        /* ROAD1Y : meme ordre de bandes que la voie synchrone. La bande est
+         * reposee a chaque reprise : un autre generateur peut tourner entre deux. */
+        try {
+          for (local band = 0; band < ROAD1Y_DIST_BAND_LIMITS.len(); band++) {
+            local before = all.len();
+            ROAD1Y_DIST_BAND = band;
+            iterator = OpexPO01CRoadFreightCandidates(s.catalog, s.lines, all, stats, s.abandoned,
+                null, generated.freightCargo);
+            while (iterator.getstatus() != "dead") {
+              ROAD1Y_DIST_BAND = band;
+              resume iterator;
+              ROAD1Y_DIST_BAND = -1;
+              yield null;
+            }
+            ROAD1Y_DIST_BAND = -1;
+            if (all.len() > before) break;
+          }
+        } catch (e) {
+          ROAD1Y_DIST_BAND = -1;
+          throw e;
+        }
+      } else {
+        ROAD1Y_DIST_BAND = -1;
+        iterator = OpexPO01CRoadFreightCandidates(s.catalog, s.lines, all, stats, s.abandoned,
+            null, generated.freightCargo);
+        while (iterator.getstatus() != "dead") { resume iterator; yield null; }
+      }
       /* ROAD100-7 opt-in : la publication PO01C remplace tous les projets
        * ROAD. Il faut donc inclure les bus site-first dans CE producteur.
        * Le générateur rend la main à chaque paire préfiltrée. */

@@ -21,7 +21,7 @@
  * fichier ne fait plus que planifier et batir la paire qu'on lui donne.
  */
 
-ROAD_MAX_TRACE_TILES <- 48;
+ROAD_MAX_TRACE_TILES <- ROAD1Y_DIST_BANDS ? 96 : 48;
 ROAD_TOWN_SEARCH_RADIUS <- 16;
 ROAD_INDUSTRY_SEARCH_RADIUS <- 5;
 ROAD_MAX_SITE_PROBES <- 64;
