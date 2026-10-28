@@ -388,7 +388,7 @@ class OpexAIInfo extends AIInfo {
     });
     AddSetting({
       name = "road1y_dist_bands",
-      description = "ROAD1Y: Freight road candidate generation by decreasing distance bands (96-128, 64-95, 32-63, 7-31) and 128-tile traces; 0 = off, 1 = on (default)",
+      description = "ROAD1Y: Freight road candidate generation by decreasing distance bands (64-128, 32-63, 7-31) and 128-tile traces; 0 = off, 1 = on (default)",
       easy_value = 1, medium_value = 1, hard_value = 1,
       custom_value = 1,
       flags = AICONFIG_BOOLEAN

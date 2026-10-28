@@ -35,8 +35,8 @@ class Road1yDistBandsContracts(unittest.TestCase):
     def test_globals_and_band_definitions(self):
         self.assertIn("ROAD1Y_DIST_BANDS <- true;", self.globals)
         self.assertIn("ROAD1Y_DIST_BAND <- -1;", self.globals)
-        # Ordre exact des bandes : 96-128, puis 64-95, puis 32-63, puis 7-31
-        self.assertIn("ROAD1Y_DIST_BAND_LIMITS <- [[96, 128], [64, 95], [32, 63], [7, 31]];", self.globals)
+        # Ordre exact des bandes : 64-128, puis 32-63, puis 7-31
+        self.assertIn("ROAD1Y_DIST_BAND_LIMITS <- [[64, 128], [32, 63], [7, 31]];", self.globals)
 
     def test_settings_and_trace_limit(self):
         # Setting road1y_dist_bands default 1 on this branch
@@ -91,7 +91,7 @@ class Road1yDistBandsContracts(unittest.TestCase):
 
     def test_band_selection_simulation(self):
         """Simulation Python de la logique des bandes : premiere non vide retenue."""
-        band_limits = [[96, 128], [64, 95], [32, 63], [7, 31]]
+        band_limits = [[64, 128], [32, 63], [7, 31]]
 
         def filter_candidates(distances):
             all_cands = []
@@ -103,24 +103,19 @@ class Road1yDistBandsContracts(unittest.TestCase):
                     return band_idx, all_cands
             return -1, all_cands
 
-        # Cas 1 : candidat dans la bande 96-128 => bande 0 retenue, les autres ignorees
+        # Cas 1 : candidat dans 64-128 => bande 0 retenue, les autres ignorees
         band_idx, selected = filter_candidates([115, 80, 45, 20])
         self.assertEqual(band_idx, 0)
-        self.assertEqual(selected, [115])
+        self.assertEqual(selected, [115, 80])
 
-        # Cas 2 : aucun candidat dans 96-128, candidat dans 64-95 => bande 1 retenue
-        band_idx, selected = filter_candidates([80, 45, 20])
-        self.assertEqual(band_idx, 1)
-        self.assertEqual(selected, [80])
-
-        # Cas 3 : aucun candidat dans 96-128 ni 64-95, candidat dans 32-63 => bande 2 retenue
+        # Cas 2 : rien dans 64-128, candidat dans 32-63 => bande 1 retenue
         band_idx, selected = filter_candidates([45, 20])
-        self.assertEqual(band_idx, 2)
+        self.assertEqual(band_idx, 1)
         self.assertEqual(selected, [45])
 
-        # Cas 4 : aucun candidat dans 96-128 ni 64-95 ni 32-63, candidat dans 7-31 => bande 3 retenue
+        # Cas 3 : rien dans 64-128 ni 32-63, candidat dans 7-31 => bande 2 retenue
         band_idx, selected = filter_candidates([20, 10])
-        self.assertEqual(band_idx, 3)
+        self.assertEqual(band_idx, 2)
         self.assertEqual(selected, [20, 10])
 
         # Cas 5 : aucun candidat dans aucune bande
