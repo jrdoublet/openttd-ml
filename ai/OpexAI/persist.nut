@@ -632,6 +632,7 @@ function OpexAI::Save()
       shortSave.v259Queue <- OpexV259SaveQueue(this._v259Queue);
     }
     if (this._v292LastHqTryYear >= 0) shortSave.v292LastHqTryYear <- this._v292LastHqTryYear;
+    if (ROAD100_LONG_SHADOW_YEAR >= 0) shortSave.road100LongShadowYear <- ROAD100_LONG_SHADOW_YEAR;
     if (DECISION_LOG && startOps != null) {
       local endOps = AIController.GetOpsTillSuspend();
       local opsSpent = startOps - endOps;
@@ -737,6 +738,7 @@ function OpexAI::Save()
     saveObj.v259Queue <- OpexV259SaveQueue(this._v259Queue);
   }
   if (this._v292LastHqTryYear >= 0) saveObj.v292LastHqTryYear <- this._v292LastHqTryYear;
+  if (ROAD100_LONG_SHADOW_YEAR >= 0) saveObj.road100LongShadowYear <- ROAD100_LONG_SHADOW_YEAR;
   if (DECISION_LOG && startOps != null) {
     local endOps = AIController.GetOpsTillSuspend();
     local opsSpent = startOps - endOps;
@@ -760,6 +762,7 @@ function OpexAI::Load(version, data)
   this._po01cPending = false;
   this._po01cLineState = null;
   this._po01cLastTick = -1;
+  ROAD100_LONG_SHADOW_YEAR = -1;
   /* C78 repart d'un scan neuf apres Load : ne jamais rouvrir une attente P6
    * active lors du Save et ainsi depasser le budget de ticks initial. */
   this._p6FirstlineWindow = null;
@@ -863,6 +866,8 @@ function OpexAI::Load(version, data)
   if ("v259Cursor" in data) this._reloadV259Cursor = data.v259Cursor;
   if ("v259Queue" in data) this._reloadV259Queue = data.v259Queue;
   this._v292LastHqTryYear = ("v292LastHqTryYear" in data) ? data.v292LastHqTryYear : -1;
+  ROAD100_LONG_SHADOW_YEAR = ("road100LongShadowYear" in data && typeof data.road100LongShadowYear == "integer")
+      ? data.road100LongShadowYear : -1;
   /* C80 étape 2 : mémoire transitoire du seuil de sélection du stock rail, remise à 0 au rechargement. */
   this._railStockLastFundedScore = 0.0;
   this._railStockLastFundedDate = -1;
