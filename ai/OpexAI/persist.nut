@@ -979,6 +979,57 @@ function OpexAI::_reconcileAfterLoad()
               " reason=" + tourReason);
         }
       }
+      /* ROAD100-20 : reconciliation des satellites PORTFOLIO au chargement.
+       * Si un quai satellite a ete detruit hors jeu, recalculer nStopsA/B
+       * et nettoyer la liste des tuiles pour ne laisser aucun plafond fantome. */
+      if (("mode" in line) && line.mode == "road" &&
+          ("road100PaxPortfolio" in line) &&
+          line.road100PaxPortfolio != null) {
+        local portValid = typeof line.road100PaxPortfolio == "table";
+        if (!portValid) {
+          line.nStopsA = 1;
+          line.nStopsB = 1;
+          line.road100PaxPortfolio = null;
+        } else {
+          local port = line.road100PaxPortfolio;
+          local roots = [line.stationA, line.stationB];
+          local ids = [
+            ("stationA" in port && port.stationA != null) ? port.stationA : stationA,
+            ("stationB" in port && port.stationB != null) ? port.stationB : stationB
+          ];
+          local stopsArrays = [
+            ("stopsA" in port && typeof port.stopsA == "array") ? port.stopsA : null,
+            ("stopsB" in port && typeof port.stopsB == "array") ? port.stopsB : null
+          ];
+          for (local side = 0; side < 2; side++) {
+            local root = roots[side];
+            local rootId = ids[side];
+            local rootOk = typeof root == "integer" && AIMap.IsValidTile(root)
+                && AIRoad.IsRoadStationTile(root)
+                && AICompany.IsMine(AITile.GetOwner(root))
+                && rootId >= 0 && AIStation.IsValidStation(rootId)
+                && AIStation.GetStationID(root) == rootId;
+            local remaining = [];
+            if (rootOk && stopsArrays[side] != null) {
+              foreach (sat in stopsArrays[side]) {
+                if (typeof sat == "integer" && AIMap.IsValidTile(sat)
+                    && AIRoad.IsRoadStationTile(sat)
+                    && AICompany.IsMine(AITile.GetOwner(sat))
+                    && AIStation.GetStationID(sat) == rootId) {
+                  remaining.append(sat);
+                }
+              }
+            }
+            if (side == 0) {
+              port.stopsA = remaining;
+              line.nStopsA = 1 + remaining.len();
+            } else {
+              port.stopsB = remaining;
+              line.nStopsB = 1 + remaining.len();
+            }
+          }
+        }
+      }
       /* Les camions sont identifies par leurs ordres : ne pas reecrire le champ vehicles d'une
        * ligne route, meme si une ancienne version l'a laisse dans la table. */
       if ((!("mode" in line) || line.mode != "road") && ("vehicles" in line) && line.vehicles != null) {
