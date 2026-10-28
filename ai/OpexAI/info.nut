@@ -409,6 +409,13 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
     AddSetting({
+      name = "road1y_pax_economy",
+      description = "ROAD1Y-C: Scale bus line economics and fleet to passenger demand and round-trip rotation; 0 = off, 1 = on (default)",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+    AddSetting({
       name = "road100_wait_fleet",
       description = "ROAD100-10: ROAD-only profitable mature bus routes expand fleet cautiously using actual station waiting; requires road100_site_first=1, 0=off (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,

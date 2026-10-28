@@ -74,6 +74,7 @@ ROAD1Y_DIST_BAND_LIMITS <- [[64, 128], [32, 63], [7, 31]];
 ROAD1Y_FLEET <- 4; // ROAD1Y : vehicules par paire de quais des la premiere annee (0 = plafond historique ; 4 par defaut sur cette branche)
 ROAD1Y_PAX_SITES <- true; // ROAD1Y-B : scan natif des sites de bus (modele aeroport)
 ROAD_BUS_SITE_CACHE <- {}; // ROAD1Y-B : cache des sites de bus par ville (town.id)
+ROAD1Y_PAX_ECONOMY <- true; // ROAD1Y-C : dimensionnement de flotte bus selon demande et rotation
 ROAD100_WAIT_FLEET <- false; // ROAD100-10 : renfort des bus rentables sur attente mesuree
 ROAD100_SITE_WINDOW <- false; // ROAD100-11 : diversifier les preplans physiques a budget fixe
 ROAD100_SITE_NEAR <- false; // ROAD100-12 : trier les couples site-first par distance faisable

@@ -753,8 +753,12 @@ function OpexRoadLineEconomics(catalog, cargo, distance, monthlyUnits, engine, k
   /* Ce `offered` sert au DIMENSIONNEMENT, comme `calibrationOffered` au rail : la note a plat de
    * calibrage, avant de connaitre la frequence reelle. La demande effective est recalculee plus
    * bas sous pricing_fix, une fois le nombre de vehicules connu. */
+  local paxRatingCap = (ROAD1Y_PAX_ECONOMY && kind == "pax")
+      ? (ROAD1Y_FLEET > 0 ? (ROAD1Y_FLEET * 2) : 2)
+      : OpexRoadPhysicalVehicleCap(1, 1);
+  if (fleetCapOverride > 0 && fleetCapOverride > paxRatingCap) paxRatingCap = fleetCapOverride;
   local volumeRating = (ESTIM_UNIFIE & 8) != 0
-      ? OpexStationRatingForHeadway(roundTripDays / OpexRoadPhysicalVehicleCap(1, 1))
+      ? OpexStationRatingForHeadway(roundTripDays.tofloat() / paxRatingCap)
       : STATION_RATING_PCT;
   local offered = (monthlyUnits * volumeRating) / 100;
   if (offered <= 0) return null;
@@ -784,6 +788,15 @@ function OpexRoadLineEconomics(catalog, cargo, distance, monthlyUnits, engine, k
   if (fleetCapOverride == 30 && kind == "pax") roadVehicleCap = 30;
 
   if (vehicles > roadVehicleCap) vehicles = roadVehicleCap;
+  if (ROAD1Y_PAX_ECONOMY && kind == "pax") {
+    local road1yPaxCap = ROAD1Y_FLEET > 0 ? (ROAD1Y_FLEET * 2) : 8;
+    if (fleetCapOverride > 0 && fleetCapOverride > road1yPaxCap)
+      road1yPaxCap = fleetCapOverride;
+    roadVehicleCap = road1yPaxCap;
+    vehicles = vehiclesForVolume;
+    if (vehicles < 1) vehicles = 1;
+    if (vehicles > roadVehicleCap) vehicles = roadVehicleCap;
+  }
   local monthlyCapacity = vehicles * engine.capacity * tripsPerMonth;
   local carried = offered < monthlyCapacity ? offered : monthlyCapacity;
   if (kind == "pax" && vehicles > 0 && roundTripDays > 0) {
