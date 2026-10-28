@@ -21,7 +21,7 @@
  * fichier ne fait plus que planifier et batir la paire qu'on lui donne.
  */
 
-ROAD_MAX_TRACE_TILES <- ROAD1Y_DIST_BANDS ? 96 : 48;
+ROAD_MAX_TRACE_TILES <- ROAD1Y_DIST_BANDS ? 128 : 48;
 ROAD_TOWN_SEARCH_RADIUS <- 16;
 ROAD_INDUSTRY_SEARCH_RADIUS <- 5;
 ROAD_MAX_SITE_PROBES <- 64;
@@ -1346,7 +1346,7 @@ function OpexRoadPlanPaxVoirie(candidate, catalog = null)
     if (siteFirst && pair.d > ROAD_MAX_TRACE_TILES) continue;
     local siteA = pair.a;
     local siteB = pair.b;
-    local trace = OpexRoadBfsPath(siteA.tile, siteB.tile, 96, siteA.front, siteB.front);
+    local trace = OpexRoadBfsPath(siteA.tile, siteB.tile, ROAD_MAX_TRACE_TILES, siteA.front, siteB.front);
     local via = "L";
     local depot = null;
     if (trace != null) {
