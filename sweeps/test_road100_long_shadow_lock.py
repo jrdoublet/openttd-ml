@@ -71,5 +71,120 @@ class TestRoad100LongShadowLock(unittest.TestCase):
         )
 
 
+class ShadowLockSimulation:
+    """Executable simulation of candidate generation shadow locking and persistence."""
+
+    def __init__(self):
+        self.shadow_year = -1
+
+    def run_generator(
+        self,
+        current_year: int,
+        target_kind: str | None = None,
+        target_id: int = -1,
+        interrupted_at_yield: bool = False,
+    ) -> dict:
+        is_global_search = (target_kind is None or target_id < 0)
+        # Gate check: ROAD100_LONG_INTERCITY && (!isGlobalSearch || ROAD100_LONG_SHADOW_YEAR != currentYear)
+        if is_global_search and self.shadow_year == current_year:
+            return {"executed": False, "reason": "LOCKED_ANNUAL"}
+
+        if interrupted_at_yield:
+            # Yielded and aborted before completion -> lock must NOT be set
+            return {"executed": True, "completed": False, "shadow_year": self.shadow_year}
+
+        # Completed to the end -> lock only if global search
+        if is_global_search:
+            self.shadow_year = current_year
+
+        return {"executed": True, "completed": True, "shadow_year": self.shadow_year}
+
+    def save(self) -> dict:
+        data = {}
+        if self.shadow_year >= 0:
+            data["road100LongShadowYear"] = self.shadow_year
+        return data
+
+    def load(self, data: dict):
+        self.shadow_year = -1
+        if "road100LongShadowYear" in data and isinstance(data["road100LongShadowYear"], int):
+            self.shadow_year = data["road100LongShadowYear"]
+
+
+class TestRoad100LongShadowLockBehavioralOracle(unittest.TestCase):
+    """Behavioral simulation tests verifying actual VALUES consumed by shadow locking."""
+
+    def test_targeted_search_does_not_consume_global_annual_lock(self):
+        sim = ShadowLockSimulation()
+        # A targeted search for a specific town must run and not lock the annual global slot
+        res = sim.run_generator(1975, target_kind="town", target_id=12)
+        self.assertTrue(res["executed"])
+        self.assertTrue(res["completed"])
+        self.assertEqual(sim.shadow_year, -1, "Targeted search must leave shadow_year as -1")
+
+        # Global search in the same year must still be allowed to run
+        res_global = sim.run_generator(1975)
+        self.assertTrue(res_global["executed"])
+        self.assertTrue(res_global["completed"])
+        self.assertEqual(sim.shadow_year, 1975, "Global search completion locks shadow_year to 1975")
+
+    def test_interrupted_global_search_does_not_lock_out_future_attempts(self):
+        sim = ShadowLockSimulation()
+        # An interrupted global search (e.g. opcap or yield before completion)
+        res = sim.run_generator(1975, interrupted_at_yield=True)
+        self.assertTrue(res["executed"])
+        self.assertFalse(res["completed"])
+        self.assertEqual(sim.shadow_year, -1, "Interrupted search must NOT set annual lock")
+
+        # Next generator pass in same year can retry
+        retry = sim.run_generator(1975)
+        self.assertTrue(retry["executed"])
+        self.assertTrue(retry["completed"])
+        self.assertEqual(sim.shadow_year, 1975)
+
+    def test_completed_global_search_locks_subsequent_global_searches_in_same_year_only(self):
+        sim = ShadowLockSimulation()
+        # First global run in 1975 completes
+        res1 = sim.run_generator(1975)
+        self.assertTrue(res1["executed"])
+        self.assertEqual(sim.shadow_year, 1975)
+
+        # Second global run in 1975 is locked
+        res2 = sim.run_generator(1975)
+        self.assertFalse(res2["executed"])
+        self.assertEqual(res2["reason"], "LOCKED_ANNUAL")
+
+        # Targeted run in 1975 is NOT locked
+        res_targeted = sim.run_generator(1975, target_kind="town", target_id=9)
+        self.assertTrue(res_targeted["executed"])
+
+        # Next year 1976 unlocks global search
+        res_next_year = sim.run_generator(1976)
+        self.assertTrue(res_next_year["executed"])
+        self.assertEqual(sim.shadow_year, 1976)
+
+    def test_save_load_persistence_and_fallback(self):
+        sim = ShadowLockSimulation()
+        sim.shadow_year = 1976
+        saved = sim.save()
+        self.assertEqual(saved, {"road100LongShadowYear": 1976})
+
+        # Load into fresh state
+        restored = ShadowLockSimulation()
+        restored.load(saved)
+        self.assertEqual(restored.shadow_year, 1976)
+
+        # Fallback on missing key
+        fallback = ShadowLockSimulation()
+        fallback.load({})
+        self.assertEqual(fallback.shadow_year, -1)
+
+        # Fallback on corrupt key (non-integer)
+        corrupt = ShadowLockSimulation()
+        corrupt.load({"road100LongShadowYear": "not_an_int"})
+        self.assertEqual(corrupt.shadow_year, -1)
+
+
+
 if __name__ == "__main__":
     unittest.main()

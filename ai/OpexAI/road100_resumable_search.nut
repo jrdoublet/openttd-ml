@@ -156,6 +156,7 @@ function OpexRoad100V37Start(sitePairs, budget)
       siteA = null, siteB = null,
       route = 0, existing = 0, pending = 0,
       pairs = pairs, seedCursor = 0, nodes = [], open = [], bestG = {},
+      resumeNodeIndex = -1, resumeDir = 0,
       cache = OpexRoad100GBCache(), searchLimit = searchCap,
       searchOps = 0, slices = 0, expanded = 0, states = 0,
       width = AIMap.GetMapSizeX(), height = AIMap.GetMapSizeY(),
@@ -283,26 +284,49 @@ function OpexRoad100V37Step(s, quotaOps = ROAD100_V37_MAX_SLICE_OPS)
         directionIndex), g);
     OpexRoad100V37Push(s, index);
   }
-  while (s.seedCursor >= s.pairs.len() && s.open.len() > 0 &&
+  while (s.seedCursor >= s.pairs.len() && (s.resumeNodeIndex >= 0 || s.open.len() > 0) &&
       s.expanded < ROAD100_V37_MAX_EXPANSIONS &&
       OpexOpsMeasureEnd(mark) < quota - 1500 &&
       s.searchOps + OpexOpsMeasureEnd(mark) < s.searchLimit - 1200) {
-    local index = OpexRoad100V37Pop(s);
-    local node = s.nodes[index];
-    if (node.closed) continue;
-    local directionIndex = node.direction == 1 ? 0 : node.direction == -1 ? 1 :
-        node.direction == s.width ? 2 : node.direction == -s.width ? 3 : -1;
-    local key = OpexRoad100V37PairKey(node.pairIndex, node.tile, directionIndex);
-    if (key in s.bestG && s.bestG[key] < node.g) continue;
-    node.closed = true;
-    s.expanded++;
-    local pair = s.pairs[node.pairIndex];
-    if (node.tile == pair.b.front && OpexRoad100V37Candidate(s, index)) break;
-    if (node.depth >= ROAD100_V37_MAX_DEPTH - 1) continue;
-    for (local d = 0; d < 4; d++) {
-      if (OpexOpsMeasureEnd(mark) >= quota - 1200 ||
-          s.searchOps + OpexOpsMeasureEnd(mark) >= s.searchLimit - 1000)
+    local index = -1;
+    local startD = 0;
+    if (s.resumeNodeIndex >= 0) {
+      index = s.resumeNodeIndex;
+      startD = s.resumeDir;
+      s.resumeNodeIndex = -1;
+      s.resumeDir = 0;
+    } else {
+      index = OpexRoad100V37Pop(s);
+      local node = s.nodes[index];
+      if (node.closed) continue;
+      local directionIndex = node.direction == 1 ? 0 : node.direction == -1 ? 1 :
+          node.direction == s.width ? 2 : node.direction == -s.width ? 3 : -1;
+      local key = OpexRoad100V37PairKey(node.pairIndex, node.tile, directionIndex);
+      if (key in s.bestG && s.bestG[key] < node.g) continue;
+      local pair = s.pairs[node.pairIndex];
+      if (node.tile == pair.b.front && OpexRoad100V37Candidate(s, index)) {
+        node.closed = true;
+        s.expanded++;
         break;
+      }
+      if (node.depth >= ROAD100_V37_MAX_DEPTH - 1) {
+        node.closed = true;
+        s.expanded++;
+        continue;
+      }
+      startD = 0;
+    }
+    local node = s.nodes[index];
+    local pair = s.pairs[node.pairIndex];
+    local interrupted = false;
+    for (local d = startD; d < 4; d++) {
+      if (OpexOpsMeasureEnd(mark) >= quota - 1200 ||
+          s.searchOps + OpexOpsMeasureEnd(mark) >= s.searchLimit - 1000) {
+        s.resumeNodeIndex = index;
+        s.resumeDir = d;
+        interrupted = true;
+        break;
+      }
       local nx = node.x + dx[d];
       local ny = node.y + dy[d];
       if (nx < 0 || ny < 0 || nx >= s.width || ny >= s.height) continue;
@@ -327,7 +351,11 @@ function OpexRoad100V37Step(s, quotaOps = ROAD100_V37_MAX_SLICE_OPS)
           ROAD100_V37_MISSING_EDGE_COST) + (turns ? ROAD100_V37_TURN_COST : 0);
       local newKey = OpexRoad100V37PairKey(node.pairIndex, next, d);
       if (newKey in s.bestG && s.bestG[newKey] <= g) continue;
-      if (s.nodes.len() >= ROAD100_V37_MAX_STATES) break;
+      if (s.nodes.len() >= ROAD100_V37_MAX_STATES) {
+        s.resumeNodeIndex = -1;
+        s.resumeDir = 0;
+        break;
+      }
       local newIndex = s.nodes.len();
       local h = toGoal * ROAD100_V37_HEURISTIC_WEIGHT +
           ROAD100_V37_REAL_EDGE_COST;
@@ -339,6 +367,9 @@ function OpexRoad100V37Step(s, quotaOps = ROAD100_V37_MAX_SLICE_OPS)
       s.bestG.rawset(newKey, g);
       OpexRoad100V37Push(s, newIndex);
     }
+    if (interrupted) break;
+    node.closed = true;
+    s.expanded++;
     if (s.nodes.len() >= ROAD100_V37_MAX_STATES) break;
   }
   s.searchOps += OpexOpsMeasureEnd(mark);
@@ -351,7 +382,7 @@ function OpexRoad100V37Step(s, quotaOps = ROAD100_V37_MAX_SLICE_OPS)
     s.reason = s.states >= ROAD100_V37_MAX_STATES ? "STATE_CAP" : "EXPANSION_CAP";
   } else if (s.searchOps >= s.searchLimit - 1200) {
     s.status = "OPCAP"; s.reason = "SEARCH_OPCAP";
-  } else if (s.seedCursor == s.pairs.len() && s.open.len() == 0) {
+  } else if (s.seedCursor == s.pairs.len() && s.open.len() == 0 && s.resumeNodeIndex < 0) {
     s.status = "NO_PATH"; s.reason = "FRONTIER_EXHAUSTED";
   }
   /* A non-terminal PENDING result is a checkpoint only, not a trace. */

@@ -168,6 +168,20 @@ class V37ProspectiveModuleContracts(unittest.TestCase):
         self.assertRegex(code, r"\b190\b|MAX_ROUTE|MAX_LENGTH")
         self.assertRegex(code, r"\b43\b|MIN_ROUTE|MIN_LENGTH")
 
+    def test_step_has_explicit_direction_resumption_point(self):
+        code = nut_code(module())
+        start = nut_code(function_by_suffix(code, ("Start", "Init")))
+        step = nut_code(function_by_suffix(code, ("Step", "Advance")))
+        # State initializes resumeNodeIndex and resumeDir
+        self.assertRegex(start, r"resumeNodeIndex\s*=\s*-1")
+        self.assertRegex(start, r"resumeDir\s*=\s*0")
+        # Step reads and saves resumeNodeIndex and resumeDir across slices
+        self.assertRegex(step, r"\bs\.resumeNodeIndex\s*>=\s*0\b")
+        self.assertRegex(step, r"s\.resumeNodeIndex\s*=\s*index;")
+        self.assertRegex(step, r"s\.resumeDir\s*=\s*d;")
+        # Frontier exhaustion requires no pending node resumption
+        self.assertRegex(step, r"s\.resumeNodeIndex\s*<\s*0\b")
+
 
 class V37ProspectiveCallerContracts(unittest.TestCase):
     def test_v37_reference_is_gated_and_reverified_by_common_builder(self):
@@ -350,6 +364,228 @@ class V37IndependentOracleTests(unittest.TestCase):
                               (self.line(0, 15), self.line(15, 30), self.line(30, 45)),
                               max_nodes=2)
         self.assertEqual(capped["reason"], "NODE_CAP")
+
+
+@dataclass
+class _V37GridNode:
+    idx: int
+    x: int
+    y: int
+    direction_idx: int
+    parent_idx: int
+    depth: int
+    g: int
+    h: int
+    f: int
+    closed: bool = False
+
+
+class V37GridOracle:
+    """Independent grid search oracle mirroring Squirrel V37 resumable best-first search."""
+
+    DIRS = ((1, 0), (-1, 0), (0, 1), (0, -1))
+
+    def __init__(
+        self,
+        width: int,
+        height: int,
+        start: tuple[int, int],
+        goal: tuple[int, int],
+        start_dir: int = 0,
+        obstacles: frozenset[tuple[int, int]] = frozenset(),
+        real_edges: frozenset[tuple[tuple[int, int], tuple[int, int]]] = frozenset(),
+        enable_resume: bool = True,
+    ):
+        self.width = width
+        self.height = height
+        self.start = start
+        self.goal = goal
+        self.obstacles = set(obstacles)
+        self.real_edges = set(real_edges)
+        self.enable_resume = enable_resume
+        self.nodes: list[_V37GridNode] = []
+        self.open: list[tuple[int, int, int, int, int]] = []
+        self.best_g: dict[tuple[int, int, int], int] = {}
+        self.resume_node_index = -1
+        self.resume_dir = 0
+        self.status = "PENDING"
+        self.reason = "SEARCHING"
+        self.expanded = 0
+        self.slices = 0
+        self.trace: list[tuple[int, int]] | None = None
+
+        h = (abs(start[0] - goal[0]) + abs(start[1] - goal[1])) * 9 + 3
+        g = 3
+        node = _V37GridNode(0, start[0], start[1], start_dir, -1, 1, g, h, g + h)
+        self.nodes.append(node)
+        self.best_g[(start[0], start[1], start_dir)] = g
+        heapq.heappush(self.open, (node.f, node.h, node.g, node.depth, 0))
+
+    def _reconstruct(self, goal_idx: int) -> list[tuple[int, int]]:
+        path = []
+        curr = goal_idx
+        while curr >= 0:
+            path.append((self.nodes[curr].x, self.nodes[curr].y))
+            curr = self.nodes[curr].parent_idx
+        path.reverse()
+        return path
+
+    def step(
+        self,
+        cut_after_dir: int | None = None,
+        max_dirs_in_slice: int | None = None,
+    ) -> str:
+        if self.status != "PENDING":
+            return self.status
+        self.slices += 1
+        dirs_evaluated_in_slice = 0
+
+        while self.resume_node_index >= 0 or len(self.open) > 0:
+            if self.resume_node_index >= 0:
+                idx = self.resume_node_index
+                start_d = self.resume_dir
+                self.resume_node_index = -1
+                self.resume_dir = 0
+            else:
+                _, _, _, _, idx = heapq.heappop(self.open)
+                node = self.nodes[idx]
+                if node.closed:
+                    continue
+                key = (node.x, node.y, node.direction_idx)
+                if key in self.best_g and self.best_g[key] < node.g:
+                    continue
+                if (node.x, node.y) == self.goal:
+                    node.closed = True
+                    self.expanded += 1
+                    self.status = "CANDIDATE"
+                    self.reason = "CANDIDATE_FOUND"
+                    self.trace = self._reconstruct(idx)
+                    return self.status
+                start_d = 0
+
+            node = self.nodes[idx]
+            interrupted = False
+
+            for d in range(start_d, 4):
+                if max_dirs_in_slice is not None and dirs_evaluated_in_slice >= max_dirs_in_slice:
+                    if self.enable_resume:
+                        self.resume_node_index = idx
+                        self.resume_dir = d
+                    interrupted = True
+                    break
+
+                dx, dy = self.DIRS[d]
+                nx = node.x + dx
+                ny = node.y + dy
+                dirs_evaluated_in_slice += 1
+
+                if 0 <= nx < self.width and 0 <= ny < self.height and (nx, ny) not in self.obstacles:
+                    is_real = (
+                        ((node.x, node.y), (nx, ny)) in self.real_edges
+                        or ((nx, ny), (node.x, node.y)) in self.real_edges
+                    )
+                    edge_cost = 3 if is_real else 11
+                    turn_cost = 2 if d != node.direction_idx else 0
+                    g = node.g + edge_cost + turn_cost
+                    new_key = (nx, ny, d)
+                    if new_key not in self.best_g or g < self.best_g[new_key]:
+                        self.best_g[new_key] = g
+                        to_goal = abs(nx - self.goal[0]) + abs(ny - self.goal[1])
+                        h = to_goal * 9 + 3
+                        new_idx = len(self.nodes)
+                        new_node = _V37GridNode(new_idx, nx, ny, d, idx, node.depth + 1, g, h, g + h)
+                        self.nodes.append(new_node)
+                        heapq.heappush(self.open, (new_node.f, new_node.h, new_node.g, new_node.depth, new_idx))
+
+                if cut_after_dir is not None and d == cut_after_dir:
+                    if d < 3:
+                        if self.enable_resume:
+                            self.resume_node_index = idx
+                            self.resume_dir = d + 1
+                        interrupted = True
+                        break
+                    else:
+                        interrupted = True
+
+            if interrupted and self.resume_node_index >= 0:
+                break
+
+            node.closed = True
+            self.expanded += 1
+            if interrupted:
+                break
+
+        if self.status == "PENDING" and self.resume_node_index < 0 and len(self.open) == 0:
+            self.status = "NO_PATH"
+            self.reason = "FRONTIER_EXHAUSTED"
+
+        return self.status
+
+
+class V37GridOracleTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.obstacles = frozenset({(2, 1), (2, 2), (2, 3), (4, 3), (4, 4), (4, 5)})
+        cls.start = (1, 1)
+        cls.goal = (6, 6)
+
+    def test_search_sliced_after_each_of_the_four_directions_matches_unsliced(self):
+        # 1. Baseline un-sliced run: runs in a single step to completion
+        base = V37GridOracle(8, 8, self.start, self.goal, obstacles=self.obstacles)
+        while base.status == "PENDING":
+            base.step()
+        self.assertEqual(base.status, "CANDIDATE")
+        self.assertIsNotNone(base.trace)
+        self.assertEqual(base.trace[0], self.start)
+        self.assertEqual(base.trace[-1], self.goal)
+
+        # 2. Compare against runs cut after direction 0, 1, 2, and 3
+        for cut_dir in (0, 1, 2, 3):
+            with self.subTest(cut_dir=cut_dir):
+                sliced = V37GridOracle(8, 8, self.start, self.goal, obstacles=self.obstacles)
+                while sliced.status == "PENDING":
+                    sliced.step(cut_after_dir=cut_dir)
+                self.assertEqual(sliced.status, "CANDIDATE")
+                self.assertEqual(sliced.trace, base.trace)
+                self.assertEqual(sliced.expanded, base.expanded)
+                self.assertGreaterEqual(sliced.slices, 2)
+
+    def test_search_sliced_after_single_direction_matches_unsliced(self):
+        # Extreme slicing: at most 1 direction evaluated per slice
+        base = V37GridOracle(8, 8, self.start, self.goal, obstacles=self.obstacles)
+        while base.status == "PENDING":
+            base.step()
+
+        extreme = V37GridOracle(8, 8, self.start, self.goal, obstacles=self.obstacles)
+        while extreme.status == "PENDING":
+            extreme.step(max_dirs_in_slice=1)
+        self.assertEqual(extreme.status, "CANDIDATE")
+        self.assertEqual(extreme.trace, base.trace)
+        self.assertEqual(extreme.expanded, base.expanded)
+        self.assertGreater(extreme.slices, 50)
+
+    def test_cyclic_direction_slicing_matches_unsliced(self):
+        base = V37GridOracle(8, 8, self.start, self.goal, obstacles=self.obstacles)
+        while base.status == "PENDING":
+            base.step()
+
+        cyclic = V37GridOracle(8, 8, self.start, self.goal, obstacles=self.obstacles)
+        slice_idx = 0
+        while cyclic.status == "PENDING":
+            cyclic.step(cut_after_dir=slice_idx % 4)
+            slice_idx += 1
+        self.assertEqual(cyclic.status, "CANDIDATE")
+        self.assertEqual(cyclic.trace, base.trace)
+        self.assertEqual(cyclic.expanded, base.expanded)
+
+    def test_bug_reproduction_without_resume_point_fails(self):
+        # Without resume point, cutting after direction 0 or 1 loses remaining directions (2, 3)
+        # In this grid layout, cutting after direction 0 without resume loses the pathway and exhausts frontier
+        no_resume = V37GridOracle(8, 8, self.start, self.goal, obstacles=self.obstacles, enable_resume=False)
+        while no_resume.status == "PENDING":
+            no_resume.step(cut_after_dir=0)
+        self.assertEqual(no_resume.status, "NO_PATH")
+        self.assertEqual(no_resume.reason, "FRONTIER_EXHAUSTED")
 
 
 if __name__ == "__main__":
