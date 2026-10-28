@@ -668,6 +668,60 @@ const ROAD_SPEED_EFFICIENCY_PCT = 60;
  * le constructeur : un candidat mis en cache ne peut donc pas contourner la regle. */
 const ROAD_BUS_STOP_MIN_DISTANCE = 6;
 
+/* ROAD100-30a : AITile.GetCargoProduction ne retourne PAS des PASS/mois
+ * mais des PRODUCERS (maisons/industries) dans le bassin de couverture.
+ * Comme B9 AIR, convertir seulement la part de producteurs appartenant
+ * a la ville cible en part de sa vraie production mensuelle.
+ * Ce resultat est une estimation ex ante : chaque maison n'a pas la meme
+ * production, la concurrence et la notation devront toujours etre
+ * jugees au profit_year reel apres chantier. Aucun waiting AAA.
+ * OFF : la fonction n'est jamais appelee. */
+function OpexRoad100PaxSiteMonthly(townId, cargo, siteTile, coverage)
+{
+  local out = { monthly = 0, siteProducers = 0, townProducers = 0,
+      townMonthly = 0, totalSiteProducers = 0, ops = 0 };
+  if (!AITown.IsValidTown(townId) || !AIMap.IsValidTile(siteTile)
+      || cargo < 0 || coverage < 0) return out;
+  local mark = OpexOpsMeasureBegin();
+  local population = AITown.GetPopulation(townId);
+  local radius = 4 + (sqrt(population > 0 ? population : 0) / 8).tointeger();
+  if (radius > 20) radius = 20;
+  local center = AITown.GetLocation(townId);
+  out.townProducers = AITile.GetCargoProduction(center, cargo, 1, 1, radius);
+  out.townMonthly = AITown.GetLastMonthProduction(townId, cargo);
+  if (out.townProducers <= 0 || out.townMonthly <= 0) {
+    out.ops = OpexOpsMeasureEnd(mark);
+    return out;
+  }
+  local x = AIMap.GetTileX(siteTile);
+  local y = AIMap.GetTileY(siteTile);
+  local xmin = x - coverage;
+  local ymin = y - coverage;
+  local xmax = x + coverage;
+  local ymax = y + coverage;
+  if (xmin < 0) xmin = 0;
+  if (ymin < 0) ymin = 0;
+  if (xmax >= AIMap.GetMapSizeX()) xmax = AIMap.GetMapSizeX() - 1;
+  if (ymax >= AIMap.GetMapSizeY()) ymax = AIMap.GetMapSizeY() - 1;
+  local producing = AITileList();
+  producing.AddRectangle(AIMap.GetTileIndex(xmin, ymin),
+      AIMap.GetTileIndex(xmax, ymax));
+  producing.Valuate(AITile.GetCargoProduction, cargo, 1, 1, 0);
+  producing.KeepAboveValue(0);
+  foreach (tile, producers in producing) out.totalSiteProducers += producers;
+  local fromTown = AITileList();
+  fromTown.AddList(producing);
+  fromTown.Valuate(AITile.GetClosestTown);
+  fromTown.KeepValue(townId);
+  producing.KeepList(fromTown);
+  foreach (tile, producers in producing) out.siteProducers += producers;
+  local usable = out.siteProducers;
+  if (usable > out.townProducers) usable = out.townProducers;
+  out.monthly = (out.townMonthly * usable) / out.townProducers;
+  out.ops = OpexOpsMeasureEnd(mark);
+  return out;
+}
+
 function OpexRoadPhysicalVehicleCap(nStopsA, nStopsB)
 {
   local nMin = nStopsA < nStopsB ? nStopsA : nStopsB;
@@ -681,7 +735,7 @@ function OpexRoadPhysicalVehicleCap(nStopsA, nStopsB)
  * capacite apres refit depuis le depot.
  * `routeDistance` (optionnel) : longueur reelle du trace routier decouvert, pour recalibrage post-site (D4). */
 function OpexRoadLineEconomics(catalog, cargo, distance, monthlyUnits, engine, kind,
-                               routeDistance = null)
+                               routeDistance = null, fleetCapOverride = 0)
 {
   if (engine == null) return null;
   local effectiveSpeed = (engine.speed * ROAD_SPEED_EFFICIENCY_PCT) / 100;
@@ -717,6 +771,17 @@ function OpexRoadLineEconomics(catalog, cargo, distance, monthlyUnits, engine, k
   if (vehicles < 1) vehicles = 1;
   local roadBerthCapacity = OpexRoadPhysicalVehicleCap(1, 1);
   local roadVehicleCap = roadBerthCapacity;
+  /* ROAD100-4 : mesure ciblée d'un plafond plus élevé. Le risque d'attente
+   * devant les quais reste réel, et sera jugé sur le revenu effectivement
+   * livré (jamais sur le seul score de cet estimateur). */
+  if (fleetCapOverride == 8 && kind == "pax") roadVehicleCap = 8;
+  /* ROAD100-31 : sur deux vrais quais joints, garder le contrat
+   * historique 8 exact et autoriser seulement 3..7 apres preuve
+   * physique par le constructeur, jamais pour un preplan. */
+  if (ROAD100_PAX_INITIAL_BERTH_FLEET && kind == "pax"
+      && fleetCapOverride >= 3 && fleetCapOverride <= 7)
+    roadVehicleCap = fleetCapOverride;
+  if (fleetCapOverride == 30 && kind == "pax") roadVehicleCap = 30;
 
   if (vehicles > roadVehicleCap) vehicles = roadVehicleCap;
   local monthlyCapacity = vehicles * engine.capacity * tripsPerMonth;

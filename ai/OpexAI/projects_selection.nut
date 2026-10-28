@@ -1594,6 +1594,52 @@ function OpexFilterAirAlternativesV279Memo(alternatives, abandonedPairs = null, 
   return live;
 }
 
+/* ROAD100-25 : au moment exact de la publication du portefeuille (sync ET
+ * PO01C), les lignes actuelles priment sur un snapshot de generation ancien.
+ * Le constructeur continue a verifier la ville au dernier instant ; ce filtre
+ * n'ajoute ni abandon persistant, ni revenu estime, ni nouveau score. */
+function OpexRoad100FilterLiveBusTownProjects(alternatives, lines)
+{
+  if (!ROAD100_PAX_LIVE_FILTER || lines == null) return alternatives;
+  local served = {};
+  foreach (line in lines) {
+    if (line == null || !("mode" in line) || line.mode != "road"
+        || (("scrapping" in line) && line.scrapping)
+        || !("cargo" in line) || line.cargo < 0
+        || !AICargo.HasCargoClass(line.cargo, AICargo.CC_PASSENGERS)) continue;
+    local aTown = (("srcTown" in line) && line.srcTown >= 0)
+        ? line.srcTown : AITile.GetClosestTown(line.originA);
+    local bTown = (("dstTown" in line) && line.dstTown >= 0)
+        ? line.dstTown : AITile.GetClosestTown(line.originB);
+    if (aTown >= 0) served.rawset(aTown, true);
+    if (bTown >= 0) served.rawset(bTown, true);
+  }
+  if (served.len() == 0) return alternatives;
+  local live = [];
+  local dropped = 0;
+  foreach (project in alternatives) {
+    if (project != null && ("mode" in project) && project.mode == "road"
+        && ("kind" in project) && project.kind == "pax"
+        && ("payload" in project) && project.payload != null
+        && !(("isRoadExtension" in project.payload) && project.payload.isRoadExtension)
+        && !(ROAD100_MULTICATCHMENT
+             && ("road100MultiCatchment" in project.payload)
+             && project.payload.road100MultiCatchment)) {
+      local towns = OpexGetCandidateTownEndpoints(project.payload);
+      if ((towns.srcTown >= 0 && (towns.srcTown in served))
+          || (towns.dstTown >= 0 && (towns.dstTown in served))) {
+        dropped++;
+        continue;
+      }
+    }
+    live.append(project);
+  }
+  if (DECISION_LOG && dropped > 0) OpexDecide("ROAD100_PAX_LIVE",
+      "phase=reselect dropped=" + dropped + " before=" + alternatives.len()
+      + " after=" + live.len() + " served_towns=" + served.len());
+  return live;
+}
+
 /* Rejoue UNIQUEMENT la contrainte de capital sur les projets deja produits par le catalogue.
  * candidateGroups porte le vivier ; cette fonction se contente de reaplatir ses alternatives et
  * de retester le capital. Aucune planification rail, recherche de site aerien ou generation de
@@ -1626,6 +1672,8 @@ function OpexReselectProjects(projects, capitalBudget, abandonedPairs = null, li
   alternatives = (V279_RESELECT_MEMO != 0)
       ? OpexFilterAirAlternativesV279Memo(alternatives, abandonedPairs, lines)
       : OpexFilterAirAlternativesStillValid(alternatives, abandonedPairs, lines);
+  if (ROAD100_PAX_LIVE_FILTER)
+    alternatives = OpexRoad100FilterLiveBusTownProjects(alternatives, lines);
   if (spPubFilt != null) OpexSpanEnd(spPubFilt);
   local spPubScore = PROBE_SPAN_TRACE ? OpexSpanBegin("pub.select.score") : null;
   funded = OpexProjectSelectAffordable(alternatives, capitalBudget, PROJECT_TOP_K, true, abandonedPairs);

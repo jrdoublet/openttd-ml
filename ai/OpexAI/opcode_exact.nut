@@ -88,7 +88,8 @@ function OpexRoadExactClassify(tile, townId, near, cargo, wantProduction, covera
   return { skip = false, why = "ok", value = value, build = build };
 }
 
-function OpexRoadAccumulateFronts(out, x, y, tile, value, otherCenter, vehType, offsets, probes, nCmd) {
+function OpexRoadAccumulateFronts(out, x, y, tile, value, otherCenter, vehType, offsets, probes, nCmd,
+                                  existingOnly = false) {
   foreach (offset in offsets) {
     if (probes >= ROAD_MAX_SITE_PROBES) break;
     local fx = x + offset[0];
@@ -96,6 +97,10 @@ function OpexRoadAccumulateFronts(out, x, y, tile, value, otherCenter, vehType, 
     if (!OpexRoadInMap(fx, fy)) continue;
     local front = AIMap.GetTileIndex(fx, fy);
     if (!OpexRoadIsFlat(front)) continue;
+    /* ROAD100-27b : ne pas remplir les quatre places du TopK avec
+     * des facades seulement CONSTRUCTIBLES, mais sans route existante.
+     * Tous les appels historiques conservent existingOnly=false. */
+    if (existingOnly && !AIRoad.IsRoadTile(front)) continue;
     if (!AIRoad.IsRoadTile(front) && !AITile.IsBuildable(front)) continue;
     local ok = false;
     { local test = AITestMode();
@@ -121,7 +126,8 @@ function OpexRoadAccumulateFronts(out, x, y, tile, value, otherCenter, vehType, 
 }
 
 function OpexRoadSitesScan(center, townId, cargo, vehType, coverage, wantProduction, radius,
-                           otherCenter, requireCargo, excludeTiles, paired) {
+                           otherCenter, requireCargo, excludeTiles, paired,
+                           existingOnly = false) {
   local out = [];
   local cx = AIMap.GetTileX(center);
   local cy = AIMap.GetTileY(center);
@@ -204,13 +210,13 @@ function OpexRoadSitesScan(center, townId, cargo, vehType, coverage, wantProduct
         if (paired) {
           local markP = OpexOpsMeasureBegin();
           acc = OpexRoadAccumulateFronts(out, x, y, tile, use.value, otherCenter, vehType,
-                                         offsets, probes, nCmd);
+                                         offsets, probes, nCmd, existingOnly);
           local spentP = OpexOpsMeasureEnd(markP);
           opsO += spentP;
           opsN += spentP;
         } else {
           acc = OpexRoadAccumulateFronts(out, x, y, tile, use.value, otherCenter, vehType,
-                                         offsets, probes, nCmd);
+                                         offsets, probes, nCmd, existingOnly);
         }
         probes = acc.probes;
         nCmd = acc.nCmd;
@@ -229,16 +235,16 @@ function OpexRoadSitesScan(center, townId, cargo, vehType, coverage, wantProduct
 }
 
 function OpexRoadSitesExact(center, townId, cargo, vehType, coverage, wantProduction, radius,
-                            otherCenter, requireCargo, excludeTiles) {
+                            otherCenter, requireCargo, excludeTiles, existingOnly = false) {
   return OpexRoadSitesScan(center, townId, cargo, vehType, coverage, wantProduction, radius,
-                           otherCenter, requireCargo, excludeTiles, false);
+                           otherCenter, requireCargo, excludeTiles, false, existingOnly);
 }
 
 function OpexRoadSitesGated(center, townId, cargo, vehType, coverage, wantProduction, radius,
-                            otherCenter, requireCargo, excludeTiles) {
+                            otherCenter, requireCargo, excludeTiles, existingOnly = false) {
   return OpexRoadHuntCore(OpexRoadSitesExact(center, townId, cargo, vehType, coverage,
                                                wantProduction, radius, otherCenter, requireCargo,
-                                               excludeTiles));
+                                               excludeTiles, existingOnly));
 }
 
 function OpexRoadVoirieHistoricClassify(tile, townId, excludeTiles, cargo, coverage, requireCargo, minPair) {
@@ -404,15 +410,85 @@ function OpexRoadPaxVoirieGated(center, townId, cargo, vehType, coverage, otherC
 function OpexRoadPlanForActive(catalog, candidate) {
   if (catalog.roadType < 0) return { plan = null, reason = "NOROAD" };
   AIRoad.SetCurrentRoadType(catalog.roadType);
+  /* ROAD100-27b : aucune retombee sur l'ancien L >48 cases. Le trajet
+   * complet doit deja exister sur voirie en jeu, sinon pas de plan. */
+  if (("road100MailLongExisting" in candidate) && candidate.road100MailLongExisting) {
+    if (!ROAD100_MAIL_LONG_EXISTING || candidate.kind != "freight"
+        || candidate.cargo != catalog.mailCargo)
+      return { plan = null, reason = "MAIL_SETTING" };
+    local existing = OpexRoad100MailExistingConnectedPlan(catalog, candidate);
+    /* Un devis repris de PO01C ne donne pas le droit de changer
+     * silencieusement de site, de depot ou de corridor au chantier. */
+    if (existing != null && ("road100GenSiteA" in candidate) &&
+        (existing.stopA.tile != candidate.road100GenSiteA ||
+         existing.stopB.tile != candidate.road100GenSiteB ||
+         existing.depot.tile != candidate.road100GenDepot ||
+         existing.routeDistance != candidate.road100GenRoute))
+      return { plan = null, reason = "MAIL_DRIFT" };
+    return { plan = existing, reason = existing == null ? "MAIL_NO_CONNECTED_ROAD" : "OK" };
+  }
+  /* ROAD100-16 v6 : la ligne longue ne doit JAMAIS retomber sur les
+   * deux L historiques (48 tuiles), ni changer de gare/corridor entre
+   * génération, admission et chantier. Refaire le preflight et refuser
+   * si n'importe quel identifiant physique ou arc ordonné a changé. */
+  if (("road100LongBuild" in candidate) && candidate.road100LongBuild) {
+    if (!ROAD100_LONG_BUILD || candidate.kind != "pax")
+      return { plan = null, reason = "LONG_SETTING" };
+    local longPlan = OpexRoad100LongConstructPlan(catalog, candidate);
+    if (longPlan == null) return { plan = null, reason = "LONG_TRACEX" };
+    if (("road100GraphRequested" in candidate) && candidate.road100GraphRequested &&
+        (!ROAD100_PAX_GRAPH_BRIDGE || !("road100Graph" in longPlan) ||
+         !longPlan.road100Graph))
+      return { plan = null, reason = "GRAPH_DRIFT" };
+    if (("road100SegmentedUnits" in candidate) &&
+        candidate.road100SegmentedUnits &&
+        (!ROAD100_SEGMENTED_CORRIDOR ||
+         !("road100Segmented" in longPlan) || !longPlan.road100Segmented))
+      return { plan = null, reason = "SEGMENT_DRIFT" };
+    if (("road100SparseUnits" in candidate) &&
+        candidate.road100SparseUnits &&
+        (!ROAD100_SPARSE_CORRIDOR ||
+         !("road100Sparse" in longPlan) || !longPlan.road100Sparse))
+      return { plan = null, reason = "SPARSE_DRIFT" };
+    if (("road100PortalRequested" in candidate) &&
+        candidate.road100PortalRequested && !ROAD100_PORTAL_STITCH)
+      return { plan = null, reason = "PORTAL_SETTING" };
+    if (("road100PortalRequested" in candidate) &&
+        candidate.road100PortalRequested &&
+        (("road100PortalUnits" in candidate) && candidate.road100PortalUnits) !=
+        (("road100Portal" in longPlan) && longPlan.road100Portal))
+      return { plan = null, reason = "PORTAL_DRIFT" };
+    if (longPlan.stopA.tile != candidate.road100GenSiteA ||
+        longPlan.stopB.tile != candidate.road100GenSiteB ||
+        longPlan.stopA.front != candidate.road100GenFrontA ||
+        longPlan.stopB.front != candidate.road100GenFrontB ||
+        longPlan.depot.tile != candidate.road100GenDepot ||
+        longPlan.routeDistance != candidate.road100GenRoute ||
+        OpexRoad100LongTraceHash(longPlan.trace) != candidate.road100GenTraceHash ||
+        !("roadQuoteCost" in longPlan) ||
+        longPlan.roadQuoteCost > candidate.road100GenRoadQuote)
+      return { plan = null, reason = "LONG_DRIFT" };
+    return { plan = longPlan, reason = "OK" };
+  }
   if (candidate.kind == "pax") {
     local sameTown = candidate.srcTown >= 0 && candidate.srcTown == candidate.dstTown;
-    if (!sameTown) {
-      local voirie = OpexRoadPlanPaxVoirie(candidate);
+    /* ROAD100-2b : les bus intra-urbains peuvent emprunter la voirie deja
+     * presente. Si la recherche BFS echoue, garder le fallback historique. */
+    if (!sameTown || ROAD100_TOWN_VOIRIE) {
+      local voirie = OpexRoadPlanPaxVoirie(candidate, catalog);
       if (voirie != null) return { plan = voirie, reason = "OK" };
       if (DECISION_LOG) {
         OpexDecide("VOIRIE_PLAN", "fail=FALLBACK srcTown=" + candidate.srcTown
                    + " dstTown=" + candidate.dstTown);
       }
+      /* ROAD100-7 : un classement sur les sites traversants de la voirie
+       * n'est valable QUE si ces sites/leur depot/leur trace sont reellement
+       * constructibles. Le repli historique invente d'autres sites/route et
+       * l'a fait passer a tort pour un plan site-first admis ; le smoke v3
+       * a ensuite echoue au deuxieme arret (BSTOP 260). Le chemin OFF garde
+       * son repli inchangé. */
+      if (("road100SiteFirst" in candidate) && candidate.road100SiteFirst)
+        return { plan = null, reason = "TRACEX" };
     }
   }
   local stop = OpexRoadStopKind(candidate.cargo);

@@ -95,6 +95,26 @@ function OpexPO01CGenerateMode(owner, s, mode)
       iterator = OpexPO01CRoadFreightCandidates(s.catalog, s.lines, all, stats, s.abandoned,
           null, generated.freightCargo);
       while (iterator.getstatus() != "dead") { resume iterator; yield null; }
+      /* ROAD100-7 opt-in : la publication PO01C remplace tous les projets
+       * ROAD. Il faut donc inclure les bus site-first dans CE producteur.
+       * Le générateur rend la main à chaque paire préfiltrée. */
+      if (ROAD100_SITE_FIRST) {
+        iterator = OpexRoad100SiteFirstGenerator(s.catalog, s.lines, all, stats, s.abandoned);
+        while (iterator.getstatus() != "dead") { resume iterator; yield null; }
+      }
+      /* ROAD100-27 : le MEME iterateur cote sync et PO01C. Le cout
+       * unitaire du preflight reste atomique ; yield entre couples. */
+      if (ROAD100_MAIL_INTERTOWN) {
+        iterator = OpexRoad100MailIntertownGenerator(
+            s.catalog, s.lines, all, stats, s.abandoned);
+        while (iterator.getstatus() != "dead") { resume iterator; yield null; }
+      }
+      /* ROAD100-29: meme generateur passif que la voie synchrone.
+       * Ne publie aucun candidat et rend la main entre paires/sources. */
+      if (ROAD100_PAX_INTERCITY_ROOTS) {
+        iterator = OpexRoad100PaxRootsShadowGenerator(s.catalog);
+        while (iterator.getstatus() != "dead") { resume iterator; yield null; }
+      }
     }
     generated.road = { all = all.len(), candidates = all,
         best = DECISION_LOG ? OpexPO01CLoggedTopK(all, ROAD_TOP_K, mode) : OpexTopK(all, ROAD_TOP_K),

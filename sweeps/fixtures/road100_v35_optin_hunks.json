@@ -1,0 +1,74 @@
+{
+  "builder_road.nut": [
+    {
+      "before": " * budget : 35k scan, 65k total par bout, garde du mark partage pour le plan. */\nfunction OpexRoad100LongBuildSites(center, townId, cargo, coverage, otherCenter,\n                                   excluded, mark, limitOps)\n{\n  local res = { sites = [], reason = \"NO_SITE\", samples = 0, road = 0,\n",
+      "after": " * budget : 35k scan, 65k total par bout, garde du mark partage pour le plan. */\nfunction OpexRoad100LongBuildSites(center, townId, cargo, coverage, otherCenter,\n                                   excluded, mark, limitOps, nearOnly = false)\n{\n  local res = { sites = [], reason = \"NO_SITE\", samples = 0, road = 0,\n"
+    },
+    {
+      "before": "      scan_limited = 0, quadrant_mask = 0 };\n  local scanMark = OpexOpsMeasureBegin();\n  local radii = [3, 8, 14, 22];\n  local azimuth = [[1, 3], [2, 3], [3, 3], [3, 2], [3, 1], [3, 0]];\n  local offsets = [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]];\n",
+      "after": "      scan_limited = 0, quadrant_mask = 0 };\n  local scanMark = OpexOpsMeasureBegin();\n  local radii = nearOnly ? [3] : [3, 8, 14, 22];\n  local azimuth = [[1, 3], [2, 3], [3, 3], [3, 2], [3, 1], [3, 0]];\n  local offsets = [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]];\n"
+    },
+    {
+      "before": "   * mais la génération transmet explicitement son reliquat. */\n  if (limitOps < 65000 || limitOps > 400000) return null;\n  local mark = OpexOpsMeasureBegin();\n  local reason = \"PRECHECK\";\n",
+      "after": "   * mais la génération transmet explicitement son reliquat. */\n  if (limitOps < 65000 || limitOps > 400000) return null;\n  /* ROAD100-35 : les deux couples utilisent exactement la meme borne\n   * 180k d'opcodes, y compris lors d'une revalidation au chantier. */\n  if (ROAD100_PORTAL_STITCH && limitOps > 180000) limitOps = 180000;\n  local mark = OpexOpsMeasureBegin();\n  local reason = \"PRECHECK\";\n"
+    },
+    {
+      "before": "     * shadow ancien. Chaque bout consomme au plus ~65k sur le meme mark. */\n    buildScanA = OpexRoad100LongBuildSites(candidate.src, candidate.srcTown,\n        candidate.cargo, coverage, candidate.dst, excluded, mark, limitOps);\n    if (buildScanA.reason == \"OPCAP\" ||\n        OpexOpsMeasureEnd(mark) >= limitOps - 90000) {\n",
+      "after": "     * shadow ancien. Chaque bout consomme au plus ~65k sur le meme mark. */\n    buildScanA = OpexRoad100LongBuildSites(candidate.src, candidate.srcTown,\n        candidate.cargo, coverage, candidate.dst, excluded, mark, limitOps,\n        ROAD100_PORTAL_STITCH);\n    if (ROAD100_PORTAL_STITCH && buildScanA.sites.len() == 0\n        && buildScanA.reason != \"OPCAP\"\n        && OpexOpsMeasureEnd(mark) < limitOps - 100000) {\n      buildScanA = OpexRoad100LongBuildSites(candidate.src, candidate.srcTown,\n          candidate.cargo, coverage, candidate.dst, excluded, mark, limitOps);\n    }\n    if (buildScanA.reason == \"OPCAP\" ||\n        OpexOpsMeasureEnd(mark) >= limitOps - 90000) {\n"
+    },
+    {
+      "before": "    if (sitesA.len() == 0) { reason = \"SITE_A\"; lastStage = \"BUILD_SITE_A\"; break; }\n    buildScanB = OpexRoad100LongBuildSites(candidate.dst, candidate.dstTown,\n        candidate.cargo, coverage, candidate.src, excluded, mark, limitOps);\n    if (buildScanB.reason == \"OPCAP\" ||\n        OpexOpsMeasureEnd(mark) >= limitOps - 90000) {\n",
+      "after": "    if (sitesA.len() == 0) { reason = \"SITE_A\"; lastStage = \"BUILD_SITE_A\"; break; }\n    buildScanB = OpexRoad100LongBuildSites(candidate.dst, candidate.dstTown,\n        candidate.cargo, coverage, candidate.src, excluded, mark, limitOps,\n        ROAD100_PORTAL_STITCH);\n    if (ROAD100_PORTAL_STITCH && buildScanB.sites.len() == 0\n        && buildScanB.reason != \"OPCAP\"\n        && OpexOpsMeasureEnd(mark) < limitOps - 100000) {\n      buildScanB = OpexRoad100LongBuildSites(candidate.dst, candidate.dstTown,\n          candidate.cargo, coverage, candidate.src, excluded, mark, limitOps);\n    }\n    if (buildScanB.reason == \"OPCAP\" ||\n        OpexOpsMeasureEnd(mark) >= limitOps - 90000) {\n"
+    },
+    {
+      "before": "        local checked = null;\n        if (shape == -2) {\n          local sparse = OpexRoad100SparseCorridorTrace(pair.a, pair.b,\n              mark, limitOps);\n          sparseAttempts++;\n          sparseReason = sparse.reason;\n",
+      "after": "        local checked = null;\n        if (shape == -2) {\n          local sparse = ROAD100_PORTAL_STITCH\n              ? OpexRoad100PortalStitchTrace(pair.a, pair.b, mark, limitOps)\n              : OpexRoad100SparseCorridorTrace(pair.a, pair.b, mark, limitOps);\n          sparseAttempts++;\n          sparseReason = sparse.reason;\n"
+    },
+    {
+      "before": "              + \" ops=\" + sparse.ops\n              + \" total_ops=\" + OpexOpsMeasureEnd(mark));\n          if (sparse.reason == \"OPCAP\") {\n            reason = \"OPCAP\"; lastStage = \"SPARSE_OPCAP\"; break;\n",
+      "after": "              + \" ops=\" + sparse.ops\n              + \" total_ops=\" + OpexOpsMeasureEnd(mark));\n          if (ROAD100_PORTAL_STITCH && DECISION_LOG) OpexDecide(\"ROAD100_PORTAL\",\n              \"phase=preflight reason=\" + sparse.reason\n              + \" detail=\" + sparse.reason_detail\n              + \" first_reject=\" + sparse.stats.first_reject\n              + \" portals_a=\" + sparse.stats.portals_a\n              + \" portals_b=\" + sparse.stats.portals_b\n              + \" expanded_a=\" + sparse.stats.expanded_a\n              + \" expanded_b=\" + sparse.stats.expanded_b\n              + \" road_links=\" + sparse.stats.road_links\n              + \" portal_pairs=\" + sparse.stats.portal_pairs\n              + \" bands=\" + sparse.stats.bands\n              + \" alternatives=\" + sparse.stats.alternatives\n              + \" cycles=\" + sparse.stats.cycles\n              + \" route=\" + (sparse.trace != null ? sparse.trace.len() : -1)\n              + \" ops=\" + sparse.ops + \" total_ops=\" + OpexOpsMeasureEnd(mark)\n              + \" site_a=\" + pair.a.tile + \" front_a=\" + pair.a.front\n              + \" site_b=\" + pair.b.tile + \" front_b=\" + pair.b.front);\n          if (sparse.reason == \"OPCAP\") {\n            reason = \"OPCAP\"; lastStage = \"SPARSE_OPCAP\"; break;\n"
+    },
+    {
+      "before": "            road100Segmented = shape == -1,\n            road100Sparse = shape == -2,\n            roadMissingCount = missing, roadQuoteCost = quoteRoad,\n            road100LongCashNeed = quoteTotal, road100LongDepotChecked = true };\n",
+      "after": "            road100Segmented = shape == -1,\n            road100Sparse = shape == -2,\n            road100Portal = shape == -2 && ROAD100_PORTAL_STITCH,\n            roadMissingCount = missing, roadQuoteCost = quoteRoad,\n            road100LongCashNeed = quoteTotal, road100LongDepotChecked = true };\n"
+    }
+  ],
+  "candidates.nut": [
+    {
+      "before": "  if (segmentedUnits) candidate.road100SegmentedUnits <- true;\n  if (sparseUnits) candidate.road100SparseUnits <- true;\n  candidate.road100SiteMonthly <- monthly;\n  candidate.road100GenSiteA <- plan.stopA.tile;\n",
+      "after": "  if (segmentedUnits) candidate.road100SegmentedUnits <- true;\n  if (sparseUnits) candidate.road100SparseUnits <- true;\n  /* V35 : un projet sauve sous la sonde portail ne doit pas changer\n   * silencieusement de mode ou de trace a la reprise du chantier. */\n  if (ROAD100_PORTAL_STITCH) candidate.road100PortalRequested <- true;\n  if ((\"road100Portal\" in plan) && plan.road100Portal)\n    candidate.road100PortalUnits <- true;\n  candidate.road100SiteMonthly <- monthly;\n  candidate.road100GenSiteA <- plan.stopA.tile;\n"
+    },
+    {
+      "before": "        if (li + 1 < longBest.len() && attemptLimit > 180000)\n          attemptLimit = 180000;\n        local buildMark = OpexOpsMeasureBegin();\n        local physical = OpexRoad100LongConstructPlan(catalog, preliminaryLong,\n            attemptLimit);\n        local planOps = OpexOpsMeasureEnd(buildMark);\n        longOps += planOps;\n        longAttempts++;\n        local admittedLong = null;\n        if (physical != null) {\n          admittedLong = OpexRoad100LongBuildCandidate(catalog,\n              preliminaryLong, physical, stats);\n        }\n        if (admittedLong != null) {\n          out.append(admittedLong);\n",
+      "after": "        if (li + 1 < longBest.len() && attemptLimit > 180000)\n          attemptLimit = 180000;\n        if (ROAD100_PORTAL_STITCH && attemptLimit > 180000)\n          attemptLimit = 180000;\n        /* Le plafond V35 par couple couvre aussi admission et calcul de\n         * demande, pas uniquement le planificateur physique. */\n        local buildMark = OpexOpsMeasureBegin();\n        local physical = OpexRoad100LongConstructPlan(catalog, preliminaryLong,\n            attemptLimit);\n        local planOps = OpexOpsMeasureEnd(buildMark);\n        longAttempts++;\n        local admittedLong = null;\n        if (physical != null && (!ROAD100_PORTAL_STITCH ||\n            planOps < attemptLimit - 12000)) {\n          admittedLong = OpexRoad100LongBuildCandidate(catalog,\n              preliminaryLong, physical, stats);\n        }\n        local pairOps = OpexOpsMeasureEnd(buildMark);\n        longOps += pairOps;\n        if (ROAD100_PORTAL_STITCH && pairOps >= attemptLimit)\n          admittedLong = null; // Ne publier aucun projet hors enveloppe.\n        if (admittedLong != null) {\n          out.append(admittedLong);\n"
+    },
+    {
+      "before": "            + \" pred_capital=\" + (admittedLong != null ? admittedLong.capital : -1)\n            + \" cash=\" + AICompany.GetBankBalance(AICompany.COMPANY_SELF)\n             + \" plan_ops=\" + planOps + \" attempt_cap=\" + attemptLimit\n             + \" total_ops=\" + longOps);\n        continue;\n",
+      "after": "            + \" pred_capital=\" + (admittedLong != null ? admittedLong.capital : -1)\n            + \" cash=\" + AICompany.GetBankBalance(AICompany.COMPANY_SELF)\n             + \" plan_ops=\" + planOps + \" pair_ops=\" + pairOps\n             + \" attempt_cap=\" + attemptLimit\n             + \" total_ops=\" + longOps);\n        continue;\n"
+    }
+  ],
+  "globals_pre.nut": [
+    {
+      "before": "ROAD100_SPARSE_CORRIDOR <- false; // ROAD100-33 : chainage creux lineaire, LONG ROAD-only opt-in\nROAD100_LONG_MARKET_PROBE <- false; // ROAD100-34 : PASS/mois des racines avant trace, SHADOW ROAD-only\nROAD100_PAX_PORTFOLIO <- false; // ROAD100-20 : pre-capture multi-quartiers et quais joints physiquement verifies, ROAD seul\nROAD100_FREIGHT_DIVERSITY <- false; // ROAD100-21 : examiner deux cargos fret supplementaires dans une passe ROUTE, opt-in\n",
+      "after": "ROAD100_SPARSE_CORRIDOR <- false; // ROAD100-33 : chainage creux lineaire, LONG ROAD-only opt-in\nROAD100_LONG_MARKET_PROBE <- false; // ROAD100-34 : PASS/mois des racines avant trace, SHADOW ROAD-only\nROAD100_PORTAL_STITCH <- false; // ROAD100-35 : scanner urbain proche + portails routiers LONG, opt-in ROAD-only\nROAD100_PAX_PORTFOLIO <- false; // ROAD100-20 : pre-capture multi-quartiers et quais joints physiquement verifies, ROAD seul\nROAD100_FREIGHT_DIVERSITY <- false; // ROAD100-21 : examiner deux cargos fret supplementaires dans une passe ROUTE, opt-in\n"
+    }
+  ],
+  "info.nut": [
+    {
+      "before": "      name = \"road100_long_market_probe\",\n      description = \"ROAD100-34: passive PASS/month root-site telemetry BEFORE long road preflight; ROAD-only long_build required, 0=off default\",\n      easy_value = 0, medium_value = 0, hard_value = 0,\n      custom_value = 0,\n",
+      "after": "      name = \"road100_long_market_probe\",\n      description = \"ROAD100-34: passive PASS/month root-site telemetry BEFORE long road preflight; ROAD-only long_build required, 0=off default\",\n      easy_value = 0, medium_value = 0, hard_value = 0,\n      custom_value = 0,\n      flags = AICONFIG_BOOLEAN\n    });\n    AddSetting({\n      name = \"road100_portal_stitch\",\n      description = \"ROAD100-35: short urban scanner and road portal corridor trial in ROAD-only, requires sparse+long_build; 0=off default\",\n      easy_value = 0, medium_value = 0, hard_value = 0,\n      custom_value = 0,\n"
+    }
+  ],
+  "settings.nut": [
+    {
+      "before": "      && ROAD100_LONG_BUILD && MODE_ROAD && !MODE_AIR\n      && !MODE_RAIL && !MODE_WATER;\n  ROAD100_PAX_PORTFOLIO = AIController.GetSetting(\"road100_pax_portfolio\") == 1\n      && ROAD100_SITE_FIRST && !ROAD100_JOINED_STOPS && !ROAD100_LONG_BUILD;\n",
+      "after": "      && ROAD100_LONG_BUILD && MODE_ROAD && !MODE_AIR\n      && !MODE_RAIL && !MODE_WATER;\n  ROAD100_PORTAL_STITCH = AIController.GetSetting(\"road100_portal_stitch\") == 1\n      && ROAD100_SPARSE_CORRIDOR && ROAD100_LONG_BUILD\n      && MODE_ROAD && !MODE_AIR && !MODE_RAIL && !MODE_WATER;\n  ROAD100_PAX_PORTFOLIO = AIController.GetSetting(\"road100_pax_portfolio\") == 1\n      && ROAD100_SITE_FIRST && !ROAD100_JOINED_STOPS && !ROAD100_LONG_BUILD;\n"
+    }
+  ],
+  "opcode_exact.nut": [
+    {
+      "before": "         !(\"road100Sparse\" in longPlan) || !longPlan.road100Sparse))\n      return { plan = null, reason = \"SPARSE_DRIFT\" };\n    if (longPlan.stopA.tile != candidate.road100GenSiteA ||\n        longPlan.stopB.tile != candidate.road100GenSiteB ||\n",
+      "after": "         !(\"road100Sparse\" in longPlan) || !longPlan.road100Sparse))\n      return { plan = null, reason = \"SPARSE_DRIFT\" };\n    if ((\"road100PortalRequested\" in candidate) &&\n        candidate.road100PortalRequested && !ROAD100_PORTAL_STITCH)\n      return { plan = null, reason = \"PORTAL_SETTING\" };\n    if ((\"road100PortalRequested\" in candidate) &&\n        candidate.road100PortalRequested &&\n        ((\"road100PortalUnits\" in candidate) && candidate.road100PortalUnits) !=\n        ((\"road100Portal\" in longPlan) && longPlan.road100Portal))\n      return { plan = null, reason = \"PORTAL_DRIFT\" };\n    if (longPlan.stopA.tile != candidate.road100GenSiteA ||\n        longPlan.stopB.tile != candidate.road100GenSiteB ||\n"
+    }
+  ]
+}

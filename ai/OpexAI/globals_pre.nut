@@ -56,6 +56,44 @@ V269_ON <- false;
 DIST_BORNES_V276_FREIGHT <- false;
 /* DIST-BORNES-1 : table unique des fenetres modales, opt-in strictement OFF. */
 DIST_BORNES_UNIFIED <- false;
+/* ROAD100 : generation de bus autonome strictement en ROAD seul ; 0 = historique. */
+ROAD100_SOLO_PAX <- false;
+ROAD100_TOWN_BUS <- false; // experiment intra-urbain, uniquement route seule
+ROAD100_ROAD_BATCH <- false; // extension du nombre de lignes ROAD par passe, opt-in
+ROAD100_TOWN_VOIRIE <- false; // reutilisation du planiteur voirie pour bus locaux
+ROAD100_PAX_FLEET_CAP <- 0; // seul ROAD100-4 : 0=plafond historique 2, 8=essai
+ROAD100_TOWN_ROI_POST <- false; // ROAD100-5 : garde PAX locale apres tracé réel
+ROAD100_INTERCITY_SITE_FLEET <- false; // ROAD100-6 : demande par arrêt et flotte interurbaine
+ROAD100_SITE_FIRST <- false; // ROAD100-7 : classer sur sites réellement constructibles, ROAD seul
+ROAD100_JOINED_STOPS <- false; // ROAD100-8 : satellites passagers joints au terminal, ROAD seul
+ROAD100_MULTICATCHMENT <- false; // ROAD100-9 : nouvelle ligne vers quartiers non recouverts, ROAD seul
+ROAD100_WAIT_FLEET <- false; // ROAD100-10 : renfort des bus rentables sur attente mesuree
+ROAD100_SITE_WINDOW <- false; // ROAD100-11 : diversifier les preplans physiques a budget fixe
+ROAD100_SITE_NEAR <- false; // ROAD100-12 : trier les couples site-first par distance faisable
+ROAD100_DETOUR <- false; // ROAD100-13 : deux coudes constructibles quand BFS/L echouent
+ROAD100_TOUR <- false; // ROAD100-14 : 3 StationID/4 ordres sur ligne PAX existante
+ROAD100_LONG_INTERCITY <- false; // ROAD100-16 : preflight shadow grands corridors PAX (aucune construction)
+ROAD100_LONG_BUILD <- false; // ROAD100-16 v6 : vrai plan LONG, opt-in distinct du diagnostic shadow
+ROAD100_SEGMENTED_CORRIDOR <- false; // ROAD100-32 : micro-gaps physiques bornes, LONG ROAD-only
+ROAD100_SPARSE_CORRIDOR <- false; // ROAD100-33 : chainage creux lineaire, LONG ROAD-only opt-in
+ROAD100_LONG_MARKET_PROBE <- false; // ROAD100-34 : PASS/mois des racines avant trace, SHADOW ROAD-only
+ROAD100_PORTAL_STITCH <- false; // ROAD100-35 : scanner urbain proche + portails routiers LONG, opt-in ROAD-only
+ROAD100_PAX_GRAPH_BRIDGE <- false; // ROAD100-36 : vrai corridor d43..170 sur voirie + raccords courts, opt-in ROAD-only
+ROAD100_PAX_PORTFOLIO <- false; // ROAD100-20 : pre-capture multi-quartiers et quais joints physiquement verifies, ROAD seul
+ROAD100_FREIGHT_DIVERSITY <- false; // ROAD100-21 : examiner deux cargos fret supplementaires dans une passe ROUTE, opt-in
+ROAD100_FREIGHT_CARGO_ORIGIN <- false; // ROAD100-22 : separer physiquement les origines par cargo fret, opt-in
+ROAD100_BATCH_ROI_15 <- false; // ROAD100-23 : second chantier ROI >=15% au lieu de 25%, garde cash inchangee
+ROAD100_FREIGHT_BERTHS <- false; // ROAD100-24 : deux quais routiers reels pour renfort fret mature, opt-in
+ROAD100_PAX_LIVE_FILTER <- false; // ROAD100-25 : retirer les projets PAX perimes avant reselection, opt-in
+ROAD100_PAX_BERTH_BALANCE <- false; // ROAD100-26 : vrai quai bus du cote limitant, sans captation anticipee
+ROAD100_PAX_DOUBLE_BERTHS <- false; // ROAD100-28 : deux quais bus physiques en deux annees pour lignes pax 1/1
+ROAD100_MAIL_INTERTOWN <- false; // ROAD100-27 : lignes MAIL ville->ville sur sites camion physiques, option
+ROAD100_MAIL_LONG_EXISTING <- false; // ROAD100-27b : uniquement longue voirie deja connectee, mode2
+ROAD100_PAX_INTERCITY_ROOTS <- false; // ROAD100-29 : sonde passive villes PAX distance 43..80, aucun projet
+ROAD100_PAX_PRODUCER_UNITS <- false; // ROAD100-30a : producer counts -> town-share PAX/month only on site-first
+ROAD100_PAX_INITIAL_BERTH_FLEET <- false; // ROAD100-31 : initial extra PAX buses only after bilateral real joined berths
+ROAD100_PAX_ROOTS_LAST_YEAR <- -1; // sonde transitoire : au plus une exposition par annee et par processus
+ROAD100_LONG_SHADOW_YEAR <- -1; // ROAD100-16 : une prequalification longue par annee, jamais par regeneration PO01C
 /* V190 : lignes rail fret posees en double voie a sens unique des la construction. */
 V190_RAIL_DOUBLE_BUILD <- false;
 /* V197 : double voie guidee (outwardSide pour voie 1, guideTiles pour voie 2). */

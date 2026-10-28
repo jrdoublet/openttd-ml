@@ -132,9 +132,10 @@ class ReaderTests(unittest.TestCase):
 class ProbeContracts(unittest.TestCase):
     def test_off_hashes(self):
         expected = json.loads((FIXTURES / "air_site_probe_off_hashes.json").read_text())
+        from road100_off_projection import off_source as road100_off_source
         for name, digest in expected.items():
             from air_site_ranked_legacy import off_source
-            text = off_source(name, (AI / name).read_text())
+            text = off_source(name, road100_off_source(name, (AI / name).read_text()))
             if name == "main.nut":
                 gate = '  OpexLoadAirSiteProbeSetting();\n  if (AIR_SITE_PROBE > 0) {\n    require("air_site_probe.nut");\n    OpexAirSiteProbeRun(this);\n    return;\n  }\n'
                 self.assertEqual(text.count(gate), 1)

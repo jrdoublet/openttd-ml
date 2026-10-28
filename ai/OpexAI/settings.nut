@@ -101,6 +101,90 @@ function OpexLoadSettings()
   if (MODE_RAIL && !OpexModeAllowedByGame("rail")) MODE_RAIL = false;
   if (MODE_ROAD && !OpexModeAllowedByGame("road")) MODE_ROAD = false;
   if (MODE_WATER && !OpexModeAllowedByGame("water")) MODE_WATER = false;
+  /* Mode unique seulement : les bus autonomes avaient cannibalise AIR en multimodal. */
+  ROAD100_SOLO_PAX = AIController.GetSetting("road100_solo_pax") == 1
+      && MODE_ROAD && !MODE_AIR && !MODE_RAIL && !MODE_WATER;
+  ROAD100_TOWN_BUS = AIController.GetSetting("road100_town_bus") == 1
+      && MODE_ROAD && !MODE_AIR && !MODE_RAIL && !MODE_WATER;
+  ROAD100_ROAD_BATCH = AIController.GetSetting("road100_road_batch") == 1
+      && MODE_ROAD && !MODE_AIR && !MODE_RAIL && !MODE_WATER;
+  ROAD100_TOWN_VOIRIE = AIController.GetSetting("road100_town_voirie") == 1
+      && ROAD100_TOWN_BUS;
+  ROAD100_TOWN_ROI_POST = AIController.GetSetting("road100_town_roi_post") == 1
+      && ROAD100_TOWN_BUS && ROAD100_TOWN_VOIRIE;
+  ROAD100_INTERCITY_SITE_FLEET = AIController.GetSetting("road100_intercity_site_fleet") == 1
+      && ROAD100_SOLO_PAX;
+  ROAD100_SITE_FIRST = AIController.GetSetting("road100_site_first") == 1
+      && ROAD100_SOLO_PAX;
+  ROAD100_JOINED_STOPS = AIController.GetSetting("road100_joined_stops") == 1
+      && ROAD100_SITE_FIRST;
+  ROAD100_MULTICATCHMENT = AIController.GetSetting("road100_multicatchment") == 1
+      && ROAD100_SITE_FIRST;
+  ROAD100_WAIT_FLEET = AIController.GetSetting("road100_wait_fleet") == 1
+      && ROAD100_SITE_FIRST;
+  ROAD100_SITE_WINDOW = AIController.GetSetting("road100_site_window") == 1
+      && ROAD100_SITE_FIRST;
+  ROAD100_SITE_NEAR = AIController.GetSetting("road100_site_near") == 1
+      && ROAD100_SITE_FIRST;
+  ROAD100_DETOUR = AIController.GetSetting("road100_detour") == 1
+      && ROAD100_SITE_FIRST;
+  ROAD100_TOUR = AIController.GetSetting("road100_tour") == 1
+      && ROAD100_SOLO_PAX;
+  ROAD100_LONG_INTERCITY = AIController.GetSetting("road100_long_intercity") == 1
+      && ROAD100_SITE_FIRST;
+  ROAD100_LONG_BUILD = AIController.GetSetting("road100_long_build") == 1
+      && ROAD100_LONG_INTERCITY;
+  ROAD100_SEGMENTED_CORRIDOR = AIController.GetSetting("road100_segmented_corridor") == 1
+      && ROAD100_LONG_BUILD && MODE_ROAD && !MODE_AIR
+      && !MODE_RAIL && !MODE_WATER;
+  ROAD100_SPARSE_CORRIDOR = AIController.GetSetting("road100_sparse_corridor") == 1
+      && ROAD100_LONG_BUILD && !ROAD100_SEGMENTED_CORRIDOR
+      && MODE_ROAD && !MODE_AIR && !MODE_RAIL && !MODE_WATER;
+  ROAD100_LONG_MARKET_PROBE = AIController.GetSetting("road100_long_market_probe") == 1
+      && ROAD100_LONG_BUILD && MODE_ROAD && !MODE_AIR
+      && !MODE_RAIL && !MODE_WATER;
+  ROAD100_PORTAL_STITCH = AIController.GetSetting("road100_portal_stitch") == 1
+      && ROAD100_SPARSE_CORRIDOR && ROAD100_LONG_BUILD
+      && MODE_ROAD && !MODE_AIR && !MODE_RAIL && !MODE_WATER;
+  ROAD100_PAX_GRAPH_BRIDGE = AIController.GetSetting("road100_pax_graph_bridge") == 1
+      && ROAD100_LONG_BUILD && !ROAD100_SEGMENTED_CORRIDOR
+      && !ROAD100_SPARSE_CORRIDOR && !ROAD100_PORTAL_STITCH
+      && MODE_ROAD && !MODE_AIR && !MODE_RAIL && !MODE_WATER;
+  ROAD100_PAX_PORTFOLIO = AIController.GetSetting("road100_pax_portfolio") == 1
+      && ROAD100_SITE_FIRST && !ROAD100_JOINED_STOPS && !ROAD100_LONG_BUILD;
+  ROAD100_FREIGHT_DIVERSITY = AIController.GetSetting("road100_freight_diversity") == 1
+      && MODE_ROAD && !MODE_AIR && !MODE_RAIL && !MODE_WATER;
+  ROAD100_FREIGHT_CARGO_ORIGIN = AIController.GetSetting("road100_freight_cargo_origin") == 1
+      && MODE_ROAD && !MODE_AIR && !MODE_RAIL && !MODE_WATER;
+  ROAD100_BATCH_ROI_15 = AIController.GetSetting("road100_batch_roi_15") == 1
+      && ROAD100_ROAD_BATCH;
+  ROAD100_FREIGHT_BERTHS = AIController.GetSetting("road100_freight_berths") == 1
+      && MODE_ROAD && !MODE_AIR && !MODE_RAIL && !MODE_WATER;
+  ROAD100_PAX_LIVE_FILTER = AIController.GetSetting("road100_pax_live_filter") == 1
+      && MODE_ROAD && !MODE_AIR && !MODE_RAIL && !MODE_WATER;
+  ROAD100_PAX_BERTH_BALANCE = AIController.GetSetting("road100_pax_berth_balance") == 1
+      && MODE_ROAD && !MODE_AIR && !MODE_RAIL && !MODE_WATER;
+  ROAD100_PAX_DOUBLE_BERTHS = AIController.GetSetting("road100_pax_double_berths") == 1
+      && !ROAD100_PAX_BERTH_BALANCE
+      && MODE_ROAD && !MODE_AIR && !MODE_RAIL && !MODE_WATER;
+  local road100MailMode = AIController.GetSetting("road100_mail_intertown");
+  ROAD100_MAIL_INTERTOWN = road100MailMode >= 1
+      && ROAD100_SITE_FIRST && MODE_ROAD && !MODE_AIR && !MODE_RAIL && !MODE_WATER;
+  ROAD100_MAIL_LONG_EXISTING = ROAD100_MAIL_INTERTOWN && road100MailMode == 2;
+  ROAD100_PAX_INTERCITY_ROOTS = AIController.GetSetting("road100_pax_intercity_roots") == 1
+      && MODE_ROAD && !MODE_AIR && !MODE_RAIL && !MODE_WATER;
+  ROAD100_PAX_PRODUCER_UNITS = AIController.GetSetting("road100_pax_producer_units") == 1
+      && ROAD100_SITE_FIRST && !ROAD100_MULTICATCHMENT
+      && !ROAD100_LONG_BUILD
+      && MODE_ROAD && !MODE_AIR && !MODE_RAIL && !MODE_WATER;
+  ROAD100_PAX_INITIAL_BERTH_FLEET =
+      AIController.GetSetting("road100_pax_initial_berth_fleet") == 1
+      && ROAD100_PAX_PRODUCER_UNITS && ROAD100_PAX_PORTFOLIO
+      && !ROAD100_PAX_DOUBLE_BERTHS && !ROAD100_PAX_BERTH_BALANCE
+      && MODE_ROAD && !MODE_AIR && !MODE_RAIL && !MODE_WATER;
+  ROAD100_PAX_ROOTS_LAST_YEAR = -1;
+  local road100FleetCap = AIController.GetSetting("road100_pax_fleet_cap");
+  ROAD100_PAX_FLEET_CAP = ROAD100_TOWN_BUS && road100FleetCap == 8 ? 8 : 0;
   V216_PROBE = OpexProbeEnabled(536870912);
   V211_RIVALS = OpexProbeEnabled(1073741824);
   V216A_GHOST_DEMAND = AIController.GetSetting("v216a_ghost_demand");

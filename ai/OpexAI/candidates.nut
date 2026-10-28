@@ -1119,7 +1119,7 @@ function OpexOriginServed(lines, tile, includeRoad)
  * economise les appels DistanceManhattan repetees sur toutes les villes et industries. Ce helper
  * est volontairement local au fret route ; rail et controles de construction gardent
  * l'autorite historique OpexOriginServed. */
-function OpexRoadFreightServedIndex(lines)
+function OpexRoadFreightServedIndex(lines, cargoFilter = null)
 {
   local served = {};
   local width = AIMap.GetMapSizeX();
@@ -1127,6 +1127,9 @@ function OpexRoadFreightServedIndex(lines)
   local radius = ORIGIN_SEPARATION - 1;
   foreach (line in lines) {
     if (("mode" in line) && line.mode != "rail" && line.mode != "road") continue;
+    /* ROAD100-22 : une gare COAL n'epuise ni WOOD ni IORE. Une ligne
+     * legacy sans cargo reste conservativement bloquante. */
+    if (cargoFilter != null && ("cargo" in line) && line.cargo != cargoFilter) continue;
     local origins = [line.originA, line.originB];
     foreach (origin in origins) {
       local ox = AIMap.GetTileX(origin);
@@ -1144,6 +1147,19 @@ function OpexRoadFreightServedIndex(lines)
     }
   }
   return served;
+}
+
+/* ROAD100-22 : autorite au dernier moment pour les projets fret. Ne
+ * relache jamais un second projet du MEME cargo sur une origine servie. */
+function OpexRoadFreightOriginServedCargo(lines, tile, cargo)
+{
+  foreach (line in lines) {
+    if (("mode" in line) && line.mode != "road" && line.mode != "rail") continue;
+    if (("cargo" in line) && line.cargo != cargo) continue;
+    if (AIMap.DistanceManhattan(tile, line.originA) < ORIGIN_SEPARATION ||
+        AIMap.DistanceManhattan(tile, line.originB) < ORIGIN_SEPARATION) return true;
+  }
+  return false;
 }
 
 /* C41.20 : les villes qui n'acceptent pas une unite pleine ne pourront jamais devenir un puits
@@ -1781,14 +1797,15 @@ function OpexRoadIterations(distance)
  * rapport annuel et la mise au rebut sont communs), plus ce qu'il faut pour retrouver les sites
  * d'arret : le role de chaque extremite (ville ou industrie) et, pour une ville, son identifiant. */
 function OpexMakeRoadCandidate(catalog, kind, cargo, src, dst, srcTown, dstTown, distance,
-                               monthly, stats, isTransformer = false)
+                               monthly, stats, isTransformer = false, fleetCapOverride = 0)
 {
   local engine = (cargo in catalog.roadEngineByCargo) ? catalog.roadEngineByCargo[cargo] : null;
   if (engine == null) {
     stats.noEngine++;
     return null;
   }
-  local economics = OpexRoadLineEconomics(catalog, cargo, distance, monthly, engine, kind);
+  local economics = OpexRoadLineEconomics(catalog, cargo, distance, monthly, engine, kind,
+                                          null, fleetCapOverride);
   if (EQUIPMENT_ROI_PROBE) {
     local m3Candidate = {
       cargo = cargo, distance = distance, monthly = monthly, kind = kind, engine = engine
@@ -1901,6 +1918,877 @@ function OpexTownBusPaxServed(lines, townId)
   return false;
 }
 
+/* ROAD100 : candidats PAX destines aux seuls bancs ROAD. La selection et le chantier
+ * continuent d'utiliser le portefeuille normal ; la garde de ville deja servie
+ * reste en place. Trier par demande des villes evite de consacrer le vivier aux
+ * premieres villes dans l'ordre du catalogue. Aucun etat persistant. */
+function OpexRoad100SortTownDemand(a, b)
+{
+  if (a.captured != b.captured) return a.captured > b.captured ? -1 : 1;
+  if (a.id != b.id) return a.id < b.id ? -1 : 1;
+  return 0;
+}
+
+/* Filtre géographique bon marché AVANT les sondes de 64 arrêts et le BFS.
+ * Le score est uniquement une priorité de visite, jamais un refus de profit :
+ * les vrais sites peuvent inverser le jugement du modèle théorique. */
+function OpexRoad100SortSitePreview(a, b)
+{
+  if (a.score != b.score) return a.score > b.score ? -1 : 1;
+  if (a.distance != b.distance) return a.distance < b.distance ? -1 : 1;
+  if (a.src.id != b.src.id) return a.src.id < b.src.id ? -1 : 1;
+  return a.dst.id < b.dst.id ? -1 : (a.dst.id > b.dst.id ? 1 : 0);
+}
+
+/* ROAD100-12 : un couple dont le proxy urbain est positif, mais dont le
+ * trajet est court, a moins de voies a poser ou a contourner. Prioriser la
+ * faisabilite de l'etude physique, sans toucher a l'economie du projet. */
+function OpexRoad100SortSiteNear(a, b)
+{
+  local aPositive = a.score > 0;
+  local bPositive = b.score > 0;
+  if (aPositive != bPositive) return aPositive ? -1 : 1;
+  if (a.distance != b.distance) return a.distance < b.distance ? -1 : 1;
+  return OpexRoad100SortSitePreview(a, b);
+}
+
+/* ROAD100-16 shadow : comparer deux paires par demande urbaine PROXY sans
+ * trier tout le produit cartesien des 40 villes. Le vrai volume appartient
+ * au preflight physique, jamais a ce classement exploratoire. */
+function OpexRoad100LongShadowBetter(a, b)
+{
+  if (a.proxy != b.proxy) return a.proxy > b.proxy;
+  if (a.distance != b.distance) return a.distance < b.distance;
+  if (a.idLo != b.idLo) return a.idLo < b.idLo;
+  return a.idHi < b.idHi;
+}
+
+/* V7 LONG BUILD seulement : un proxy 'dix maisons' favorise de petites
+ * villes et peut cacher les très gros bassins réels. La production totale
+ * mensuelle sert UNIQUEMENT à ouvrir la recherche ; jamais au ROI. */
+function OpexRoad100LongSortTownTotal(a, b)
+{
+  if (a.total != b.total) return a.total > b.total ? -1 : 1;
+  if (a.captured != b.captured) return a.captured > b.captured ? -1 : 1;
+  if (a.id != b.id) return a.id < b.id ? -1 : 1;
+  return 0;
+}
+
+/* ROAD100-16 v5 : deux territoires indépendants, pas deux projets
+ * compétiteurs du même hub urbain. Même proxy non économique et même
+ * départage déterministe que v4b ; explorer le meilleur second couple
+ * disjoint, et ne revenir au deuxième global qu'en dernier recours.
+ * Une seule passe supplémentaire sur au plus C(40,2)=780 paires. */
+function OpexRoad100LongSelectDiverse(pool)
+{
+  local chosen = [];
+  local first = null;
+  foreach (item in pool) {
+    if (first == null || OpexRoad100LongShadowBetter(item, first)) first = item;
+  }
+  if (first == null) return chosen;
+  chosen.append(first);
+  local second = null;
+  foreach (item in pool) {
+    if (item.idLo == first.idLo || item.idLo == first.idHi ||
+        item.idHi == first.idLo || item.idHi == first.idHi) continue;
+    if (second == null || OpexRoad100LongShadowBetter(item, second)) second = item;
+  }
+  if (second == null) {
+    foreach (item in pool) {
+      if (item.idLo == first.idLo && item.idHi == first.idHi) continue;
+      if (second == null || OpexRoad100LongShadowBetter(item, second)) second = item;
+    }
+  }
+  if (second != null) chosen.append(second);
+  return chosen;
+}
+
+/* V6 : empreinte d'ordre des aretes pour refuser un chantier dont le plan
+ * physique a derive depuis l'admission. Multiplications bornées (<30M)
+ * et somme réduite modulo 1e9+7 pour éviter l'overflow 32-bit Squirrel. */
+function OpexRoad100LongTraceHash(trace)
+{
+  if (trace == null || trace.len() == 0) return -1;
+  local checksum = 0;
+  local pos = 1;
+  foreach (edge in trace) {
+    checksum = (checksum + pos * (17 * (edge.from % 4093)
+        + 19 * (edge.to % 4093))) % 1000000007;
+    pos++;
+  }
+  return checksum;
+}
+
+/* Le devis du constructeur LONG peut dépasser le poste d'infrastructure
+ * standard (routeDistance * prix par tuile). Imputer STRICTEMENT le
+ * supplément aux coûts/amortissements, sans toucher aux recettes ; sinon
+ * un corridor de 136 arêtes pourrait sembler rentable à tort. */
+function OpexRoad100LongQuotedEconomics(catalog, economics, plan)
+{
+  if (economics == null || plan == null || !("roadQuoteCost" in plan)
+      || plan.roadQuoteCost < 0 || plan.routeDistance < 1) return null;
+  local provision = plan.routeDistance * catalog.costRoadPerTile;
+  local quoted = plan.roadQuoteCost + 3 * catalog.costRoadPerTile;
+  local extra = quoted > provision ? quoted - provision : 0;
+  economics.capital += extra;
+  economics.amortAnnual += ((extra * INFRA_AMORT_PCT / 100) / INFRA_LIFE_YEARS);
+  economics.profitAnnual = economics.revenueAnnual
+      - economics.runningAnnual - economics.amortAnnual;
+  local total = economics.capital + economics.immobilise;
+  economics.roi = economics.profitAnnual > 0 && total > 0
+      ? (economics.profitAnnual * 1000) / total : 0;
+  return economics;
+}
+
+/* V6 : exposer UNIQUEMENT un plan LONG réellement préflighté, avec les
+ * deux producteurs locaux et un prix conservateur. Ni le proxy de ville
+ * ni un chemin PATH_ONLY ne donnent droit à du profit fictif. */
+function OpexRoad100LongBuildCandidate(catalog, preliminary, plan, stats)
+{
+  if (!ROAD100_LONG_BUILD || plan == null || plan.trace == null ||
+      plan.depot == null || plan.stopA == null || plan.stopB == null) return null;
+  local monthly = plan.stopA.value + plan.stopB.value;
+  /* ROAD100-32 : GetCargoProduction donne des producteurs, PAS des
+   * PASS/mois. Le branchement segmenté convertit uniquement les vrais
+   * arrêts racines en fractions conservatrices de la production mensuelle
+   * de leur ville. Aucun satellite ni retour virtuel n'est crédité. */
+  local segmentedUnits = ROAD100_SEGMENTED_CORRIDOR
+      && ("road100Segmented" in plan) && plan.road100Segmented;
+  local graphUnits = ROAD100_PAX_GRAPH_BRIDGE
+      && ("road100Graph" in plan) && plan.road100Graph;
+  local sparseUnits = (ROAD100_SPARSE_CORRIDOR
+      && ("road100Sparse" in plan) && plan.road100Sparse) || graphUnits;
+  if (segmentedUnits || sparseUnits) {
+    local radius = AIStation.GetCoverageRadius(AIStation.STATION_BUS_STOP);
+    local unitsA = OpexRoad100PaxSiteMonthly(preliminary.srcTown,
+        preliminary.cargo, plan.stopA.tile, radius);
+    local unitsB = OpexRoad100PaxSiteMonthly(preliminary.dstTown,
+        preliminary.cargo, plan.stopB.tile, radius);
+    monthly = unitsA.monthly + unitsB.monthly;
+    if (DECISION_LOG) OpexDecide(sparseUnits ? "ROAD100_SPARSE" : "ROAD100_SEGMENTED",
+        "phase=market town_a=" + preliminary.srcTown
+        + " town_b=" + preliminary.dstTown
+        + " producers_a=" + unitsA.siteProducers
+        + " producers_b=" + unitsB.siteProducers
+        + " town_producers_a=" + unitsA.townProducers
+        + " town_producers_b=" + unitsB.townProducers
+        + " town_monthly_a=" + unitsA.townMonthly
+        + " town_monthly_b=" + unitsB.townMonthly
+        + " root_monthly_a=" + unitsA.monthly
+        + " root_monthly_b=" + unitsB.monthly
+        + " ops=" + (unitsA.ops + unitsB.ops));
+  }
+  local minimumGraph = graphUnits ? 43 : 80;
+  if (monthly <= 0 || plan.routeDistance < minimumGraph || plan.routeDistance > 190) {
+    if (DECISION_LOG) OpexDecide("ROAD100_LONG_ADMIT",
+        "reason=MONTHLY_OR_TRACE monthly=" + monthly + " route=" + plan.routeDistance);
+    return null;
+  }
+  local distance = AIMap.DistanceManhattan(plan.stopA.tile, plan.stopB.tile);
+  if (distance < minimumGraph || distance > 190) {
+    if (DECISION_LOG) OpexDecide("ROAD100_LONG_ADMIT",
+        "reason=DISTANCE distance=" + distance);
+    return null;
+  }
+  local economics = OpexRoad100LongQuotedEconomics(catalog,
+      OpexRoadLineEconomics(catalog, preliminary.cargo, distance,
+          monthly, preliminary.engine, "pax", plan.routeDistance), plan);
+  if (economics == null || economics.profitAnnual <= 0) {
+    if (DECISION_LOG) OpexDecide("ROAD100_LONG_ADMIT",
+        "reason=NEG_PROFIT monthly=" + monthly + " distance=" + distance
+        + " route=" + plan.routeDistance + " road_quote=" + plan.roadQuoteCost
+        + " pred_profit=" + (economics != null ? economics.profitAnnual : -1));
+    return null;
+  }
+  local cash = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+  local need = OpexEstimFinanceCapital("road", economics.capital, distance,
+      false, economics.immobilise);
+  if (cash < need + 50000 ||
+      (("road100LongCashNeed" in plan) && cash < plan.road100LongCashNeed) ||
+      !OpexVehicleSlotAvailable(AIVehicle.VT_ROAD, economics.trains)) {
+    if (DECISION_LOG) OpexDecide("ROAD100_LONG_ADMIT",
+        "reason=FINANCE_OR_SLOT monthly=" + monthly
+        + " pred_profit=" + economics.profitAnnual
+        + " capital=" + economics.capital + " trains=" + economics.trains
+        + " cash=" + cash + " need=" + need
+        + " long_need=" + (("road100LongCashNeed" in plan)
+            ? plan.road100LongCashNeed : -1));
+    return null;
+  }
+  local candidate = OpexMakeRoadCandidate(catalog, "pax", preliminary.cargo,
+      preliminary.src, preliminary.dst, preliminary.srcTown,
+      preliminary.dstTown, distance, monthly, stats);
+  if (candidate == null) {
+    if (DECISION_LOG) OpexDecide("ROAD100_LONG_ADMIT",
+        "reason=MAKE_CANDIDATE monthly=" + monthly
+        + " pred_profit=" + economics.profitAnnual);
+    return null;
+  }
+  candidate.road100SiteFirst <- true;
+  candidate.road100LongBuild <- true;
+  if (graphUnits) candidate.road100GraphRequested <- true;
+  if (segmentedUnits) candidate.road100SegmentedUnits <- true;
+  if (sparseUnits && !graphUnits) candidate.road100SparseUnits <- true;
+  /* V35 : un projet sauve sous la sonde portail ne doit pas changer
+   * silencieusement de mode ou de trace a la reprise du chantier. */
+  if (ROAD100_PORTAL_STITCH) candidate.road100PortalRequested <- true;
+  if (("road100Portal" in plan) && plan.road100Portal)
+    candidate.road100PortalUnits <- true;
+  candidate.road100SiteMonthly <- monthly;
+  candidate.road100GenSiteA <- plan.stopA.tile;
+  candidate.road100GenSiteB <- plan.stopB.tile;
+  candidate.road100GenFrontA <- plan.stopA.front;
+  candidate.road100GenFrontB <- plan.stopB.front;
+  candidate.road100GenDepot <- plan.depot.tile;
+  candidate.road100GenRoute <- plan.routeDistance;
+  candidate.road100GenTraceHash <- OpexRoad100LongTraceHash(plan.trace);
+  candidate.road100GenRoadQuote <- plan.roadQuoteCost;
+  candidate.road100GenCashNeed <- ("road100LongCashNeed" in plan)
+      ? plan.road100LongCashNeed : need + 50000;
+  candidate.monthly = monthly;
+  OpexApplyRoadEconomics(candidate, economics, distance);
+  candidate.immobilise = economics.immobilise;
+  candidate.iterations = OpexRoadIterations(distance);
+  candidate.ratio = (economics.profitAnnual * 1000) / candidate.iterations;
+  if (DECISION_LOG) OpexDecide("ROAD100_LONG_ADMIT",
+      "reason=OK monthly=" + monthly + " pred_profit=" + economics.profitAnnual
+      + " capital=" + economics.capital + " cash=" + cash
+      + " need=" + need + " trains=" + economics.trains);
+  return candidate;
+}
+
+/* ROAD100-7 : le calcul économique et le classement sont établis AVANT le
+ * portefeuille, sur un plan de stations physiquement réalisable. Seulement
+ * six plans au plus par génération (et un budget d'opcodes), jamais de
+ * Pathfinder.Road non borné. Une présélection par distance élimine les
+ * villes distantes de 100-200 cases qui ont saturé le smoke v1 (12 TRACEX).
+ * Les sites sont à nouveau validés au chantier : aucune géométrie en cache. */
+function OpexRoad100SiteFirstGenerator(catalog, lines, out, stats,
+                                      abandonedPairs = null, targetKind = null, targetId = -1)
+{
+  if (!ROAD100_SITE_FIRST || (targetKind != null && targetKind != "town")) return;
+  local cargo = catalog.paxCargo;
+  if (cargo < 0 || !(cargo in catalog.roadEngineByCargo)) return;
+  local roadEngine = catalog.roadEngineByCargo[cargo];
+  local ranked = [];
+  foreach (i, town in catalog.towns) {
+    if ((!ROAD100_MULTICATCHMENT && OpexTownBusPaxServed(lines, town.id))
+        || OpexTownRoadLineCount(lines, town.tile) >= 4) continue;
+    local monthly = AITown.GetLastMonthProduction(town.id, cargo);
+    if (monthly <= 0 && town.pop > 0) monthly = (town.pop * 15) / 100;
+    if (monthly <= 0) continue;
+    local houses = ("houses" in town && town.houses > 0) ? town.houses : town.pop / 25;
+    if (houses < 1) houses = 1;
+    local share = (10 * 100) / houses;
+    if (share > 86) share = 86;
+    if (share < 1) share = 1;
+    local captured = (monthly * share) / 100;
+    if (captured < 1) captured = 1;
+    ranked.append({ index = i, id = town.id, captured = captured, total = monthly });
+  }
+  ranked.sort(OpexRoad100SortTownDemand);
+  local n = ranked.len();
+  if (n > 40) n = 40;
+  local examined = 0;
+  local plans = 0;
+  local accepted = 0;
+  local noPlan = 0;
+  local noSite = 0;
+  local noProfit = 0;
+  local ops = 0;
+  local nearby = [];
+  for (local a = 0; a < n; a++) {
+    for (local b = a + 1; b < n; b++) {
+      local src = ranked[a];
+      local dst = ranked[b];
+      if (targetKind == "town" && targetId >= 0
+          && src.id != targetId && dst.id != targetId) continue;
+      examined++;
+      if (C69_BOTTLENECK_PROBE) OpexC73RecordExamined("road", 1);
+      local townA = catalog.towns[src.index];
+      local townB = catalog.towns[dst.index];
+      if (OpexRoadPairServed(lines, townA.tile, townB.tile)) continue;
+      local distance = AIMap.DistanceManhattan(townA.tile, townB.tile);
+      /* Les 12 échecs du smoke v1 étaient distants de 86-197 cases entre
+       * sites, ceux du v2 de 56-63 cases : tous dépassent les 48 arêtes
+       * constructibles par les traces L. Le filtre centre 12..42 privilégie
+       * des liaisons réellement raccordables avant 2 scans et 16 BFS. */
+      if (distance < 12 || distance > 42) continue;
+      if (!OpexRoadDistanceAllowed(catalog, distance, stats)) continue;
+      if (abandonedPairs != null) {
+        local idA = src.id;
+        local idB = dst.id;
+        if (idA > idB) { local swapId = idA; idA = idB; idB = swapId; }
+        local pairKey = "pax|" + cargo + "|" + idA + "|" + idB;
+        if (pairKey in abandonedPairs) continue;
+      }
+      local proxy = OpexRoadLineEconomics(catalog, cargo, distance,
+          src.captured + dst.captured, roadEngine, "pax");
+      local score = proxy != null ? proxy.profitAnnual : -999999;
+      nearby.append({ src = src, dst = dst, distance = distance, score = score });
+    }
+  }
+  if (ROAD100_SITE_NEAR) nearby.sort(OpexRoad100SortSiteNear);
+  else nearby.sort(OpexRoad100SortSitePreview);
+  local shortlisted = nearby.len();
+  /* ROAD100-11 : les paires aux premiers rangs TRACEX consommaient le meme
+   * preflight (~500 k opcodes) lors de plusieurs regenerations successives.
+   * Conserver la meilleure paire, puis tourner une fenetre deterministe sur
+   * les autres rangs. Le budget et tous les refus physiques restent identiques. */
+  local siteWindowOffset = 0;
+  if (ROAD100_SITE_WINDOW && shortlisted > 1) {
+    local today = AIDate.GetCurrentDate();
+    siteWindowOffset = ((AIDate.GetYear(today) % 10) * 5
+        + (AIDate.GetMonth(today) - 1) / 3) % (shortlisted - 1);
+  }
+  for (local k = 0; k < shortlisted && plans < 6 && ops < 2500000; k++) {
+      /* PO01C : la régénération coopérative laisse la main entre projets.
+       * La voie synchrone déroule explicitement le générateur. */
+      yield null;
+      local rank = ROAD100_SITE_WINDOW && k > 0 && shortlisted > 1
+          ? 1 + ((siteWindowOffset + k - 1) % (shortlisted - 1)) : k;
+      local src = nearby[rank].src;
+      local dst = nearby[rank].dst;
+      local townA = catalog.towns[src.index];
+      local townB = catalog.towns[dst.index];
+      local distance = nearby[rank].distance;
+      stats.pairsInBand++;
+      /* Ne jamais filtrer sur le profit tiré des villes avant le vrai site :
+       * le premier modèle pourrait condamner un meilleur couple d'arrêts. */
+      local preliminary = { mode = "road", kind = "pax", cargo = cargo,
+          src = townA.tile, dst = townB.tile, srcTown = src.id, dstTown = dst.id,
+          distance = distance, monthly = src.captured + dst.captured,
+          engine = roadEngine, road100SiteFirst = true,
+          road100PaxPortfolio = ROAD100_PAX_PORTFOLIO,
+          road100MultiCatchment = ROAD100_MULTICATCHMENT };
+      plans++;
+      local planMark = OpexOpsMeasureBegin();
+      local siting = OpexRoadPlanFor(catalog, preliminary);
+      ops += OpexOpsMeasureEnd(planMark);
+      if (siting.plan == null) {
+        noPlan++;
+        if (DECISION_LOG) OpexDecide("ROAD100_SITE_FIRST",
+            "phase=reject reason=plan" + (ROAD100_SITE_WINDOW ? " rank=" + rank : "")
+            + " src=" + preliminary.src + " dst=" + preliminary.dst
+            + " detail=" + siting.reason);
+        continue;
+      }
+      local plan = siting.plan;
+      local siteMonthly = plan.stopA.value + plan.stopB.value;
+      if (ROAD100_PAX_PRODUCER_UNITS) {
+        if (!("road100PaxUnitsMonthly" in plan)) {
+          noSite++;
+          continue;
+        }
+        siteMonthly = plan.road100PaxUnitsMonthly;
+        if (DECISION_LOG) {
+          local a = plan.road100PaxUnitA;
+          local b = plan.road100PaxUnitB;
+          OpexDecide("ROAD100_PAX_UNITS",
+              "phase=generator src_town=" + src.id + " dst_town=" + dst.id
+              + " producers_a=" + a.siteProducers + " producers_b=" + b.siteProducers
+              + " producers_total_a=" + a.townProducers
+              + " producers_total_b=" + b.townProducers
+              + " city_monthly_a=" + a.townMonthly
+              + " city_monthly_b=" + b.townMonthly
+              + " site_monthly_a=" + a.monthly + " site_monthly_b=" + b.monthly
+              + " ops=" + (a.ops + b.ops));
+        }
+      }
+      if (siteMonthly <= 0) { noSite++; continue; }
+      /* ROAD100-20 : l'union preconstruction de plusieurs quartiers reste un
+       * potentiel de classement. Le revenu reel ne sera credite qu'apres
+       * pose effective des quais joints ; jamais dans candidate.monthly ni
+       * dans les besoins d'achat des bus initiaux. */
+      local portfolioPreview = null;
+      if (ROAD100_PAX_PORTFOLIO) {
+        portfolioPreview = OpexRoad100PaxPortfolioPreview(catalog, preliminary, plan);
+        if (portfolioPreview != null && ("ops" in portfolioPreview))
+          ops += portfolioPreview.ops;
+        if (DECISION_LOG && portfolioPreview != null)
+          OpexDecide("ROAD100_PAX_PORTFOLIO",
+              "phase=preview src=" + preliminary.src + " dst=" + preliminary.dst
+              + " root=" + siteMonthly + " union=" + portfolioPreview.monthly
+              + " marginal_a=" + portfolioPreview.marginalA
+              + " marginal_b=" + portfolioPreview.marginalB
+              + " ops=" + portfolioPreview.ops + " reason=" + portfolioPreview.reason);
+      }
+      local actualDistance = AIMap.DistanceManhattan(plan.stopA.tile, plan.stopB.tile);
+      if (actualDistance < 1) actualDistance = 1;
+      local economics = OpexRoadLineEconomics(catalog, cargo, actualDistance,
+          siteMonthly, roadEngine, "pax", plan.routeDistance);
+      if (economics == null || economics.profitAnnual <= 0) { noProfit++; continue; }
+      local candidate = OpexMakeRoadCandidate(catalog, "pax", cargo, townA.tile,
+          townB.tile, src.id, dst.id, actualDistance, siteMonthly, stats);
+      if (candidate == null) { noProfit++; continue; }
+      candidate.road100SiteFirst <- true;
+      if (ROAD100_PAX_PRODUCER_UNITS) candidate.road100PaxProducerUnits <- true;
+      if (ROAD100_PAX_PORTFOLIO) {
+        candidate.road100PaxPortfolio <- true;
+        candidate.road100PaxPortfolioPreview <- portfolioPreview;
+      }
+      if (ROAD100_JOINED_STOPS) candidate.road100JoinedStops <- true;
+      if (ROAD100_MULTICATCHMENT) candidate.road100MultiCatchment <- true;
+      candidate.monthly = siteMonthly;
+      OpexApplyRoadEconomics(candidate, economics, actualDistance);
+      candidate.immobilise = economics.immobilise;
+      candidate.iterations = OpexRoadIterations(actualDistance);
+      candidate.ratio = (economics.profitAnnual * 1000) / candidate.iterations;
+      if (ROAD100_PAX_PORTFOLIO) {
+        /* V20e : le shadow de satellites n'a apporte aucun gain de
+         * profit_year en 5x5 et a erode le classement des lignes fret.
+         * Ne jamais avancer une ligne sur un benefice NON CONSTRUIT :
+         * la capture physique est gardee, le rang reste celui des racines. */
+        candidate.road100PaxPortfolioRankDelta <- 0;
+      }
+      candidate.road100SiteMonthly <- siteMonthly;
+      candidate.road100GenSiteA <- plan.stopA.tile;
+      candidate.road100GenSiteB <- plan.stopB.tile;
+      candidate.road100GenFrontA <- plan.stopA.front;
+      candidate.road100GenFrontB <- plan.stopB.front;
+      candidate.road100GenDepot <- plan.depot.tile;
+      candidate.road100GenRoute <- plan.routeDistance;
+      out.append(candidate);
+      accepted++;
+      if (DECISION_LOG) OpexDecide("ROAD100_SITE_FIRST",
+          "phase=admit" + (ROAD100_SITE_WINDOW ? " rank=" + rank : "")
+          + " src=" + candidate.src + " dst=" + candidate.dst
+          + " siteA=" + plan.stopA.tile + " siteB=" + plan.stopB.tile
+          + " monthly=" + siteMonthly + " city_monthly=" + (src.captured + dst.captured)
+          + " dist=" + actualDistance + " route=" + plan.routeDistance
+          + " vehicles=" + economics.trains + " profit=" + economics.profitAnnual
+          + " capital=" + economics.capital + " roi=" + economics.roi
+          + " cash=" + AICompany.GetBankBalance(AICompany.COMPANY_SELF));
+    }
+  if (DECISION_LOG) OpexDecide("ROAD100_SITE_FIRST",
+      "phase=summary towns=" + n + " examined=" + examined
+      + " nearby=" + shortlisted
+      + (ROAD100_SITE_WINDOW ? " window=" + siteWindowOffset : "")
+      + " plans=" + plans + " accepted=" + accepted + " no_plan=" + noPlan
+      + " no_site=" + noSite + " no_profit=" + noProfit + " ops=" + ops);
+
+  /* ROAD100-16 : la voie longue reste OFF sauf opt-in explicite. En shadow
+   * aucun candidat n'entre au portefeuille ; ROAD100_LONG_BUILD est un
+   * deuxième réglage distinct, avec chantier seulement après préflight. */
+  if (ROAD100_LONG_INTERCITY
+      && ROAD100_LONG_SHADOW_YEAR != AIDate.GetYear(AIDate.GetCurrentDate())) {
+    /* Marquer avant le balayage et les yield : les regenerations PO01C
+     * suivantes de la meme annee ne relancent pas ce shadow couteux. */
+    ROAD100_LONG_SHADOW_YEAR = AIDate.GetYear(AIDate.GetCurrentDate());
+    local longBest = [];
+    local longPool = [];
+    local longExamined = 0;
+    local longInBand = 0;
+    local longOps = 0;
+    local longAttempts = 0;
+    local longOk = 0;
+    local longAdmitted = 0;
+    local longCap = ROAD100_LONG_BUILD ? 400000 : 250000;
+    local longRanked = ranked;
+    local longCount = n;
+    if (ROAD100_LONG_BUILD) {
+      /* Un autre classement n'affecte PAS le générateur 12..42 déjà
+       * produit plus haut. Aucun appel natif supplémentaire : total est
+       * lu du cache AITown.GetLastMonthProduction de ranked. */
+      local rankMark = OpexOpsMeasureBegin();
+      longRanked = [];
+      foreach (longCity in ranked) longRanked.append(longCity);
+      longRanked.sort(OpexRoad100LongSortTownTotal);
+      longCount = longRanked.len() < 40 ? longRanked.len() : 40;
+      longOps += OpexOpsMeasureEnd(rankMark);
+    }
+    for (local la = 0; la < longCount && longOps < longCap; la++) {
+      /* PO01C reprend le generateur entre deux tranches de classement. */
+      yield null;
+      local scanMark = OpexOpsMeasureBegin();
+      local longSrc = longRanked[la];
+      local longTownA = catalog.towns[longSrc.index];
+      for (local lb = la + 1; lb < longCount; lb++) {
+        local longDst = longRanked[lb];
+        if (targetKind == "town" && targetId >= 0
+            && longSrc.id != targetId && longDst.id != targetId) continue;
+        longExamined++;
+        local longTownB = catalog.towns[longDst.index];
+        local longDistance = AIMap.DistanceManhattan(longTownA.tile, longTownB.tile);
+        if (longDistance < (ROAD100_PAX_GRAPH_BRIDGE ? 43 : 80)
+            || longDistance > 170) continue;
+        longInBand++;
+        if (OpexRoadPairServed(lines, longTownA.tile, longTownB.tile)) continue;
+        local longIdLo = longSrc.id < longDst.id ? longSrc.id : longDst.id;
+        local longIdHi = longSrc.id > longDst.id ? longSrc.id : longDst.id;
+        if (abandonedPairs != null) {
+          local longKey = "pax|" + cargo + "|" + longIdLo + "|" + longIdHi;
+          if (longKey in abandonedPairs) continue;
+        }
+        local searchProxy = ROAD100_LONG_BUILD
+            ? longSrc.total + longDst.total
+            : longSrc.captured + longDst.captured;
+        local preview = { src = longSrc, dst = longDst,
+            distance = longDistance, proxy = searchProxy,
+            idLo = longIdLo, idHi = longIdHi };
+        longPool.append(preview);
+      }
+      longOps += OpexOpsMeasureEnd(scanMark);
+    }
+    if (longOps < longCap) {
+      local choiceMark = OpexOpsMeasureBegin();
+      if (ROAD100_PAX_GRAPH_BRIDGE)
+        longBest = OpexRoad100GBSelectDiverseMarkets(longPool);
+      else
+        longBest = OpexRoad100LongSelectDiverse(longPool);
+      longOps += OpexOpsMeasureEnd(choiceMark);
+    }
+    for (local li = 0; li < longBest.len() && longOps < longCap; li++) {
+      yield null;
+      local selected = longBest[li];
+      local selectedA = catalog.towns[selected.src.index];
+      local selectedB = catalog.towns[selected.dst.index];
+      local preliminaryLong = {
+        mode = "road", kind = "pax", cargo = cargo,
+        src = selectedA.tile, dst = selectedB.tile,
+        srcTown = selected.src.id, dstTown = selected.dst.id,
+        distance = selected.distance, monthly = selected.proxy,
+        engine = roadEngine, road100SiteFirst = true,
+        road100LongIntercity = true,
+        road100LongBuild = ROAD100_LONG_BUILD,
+        road100MultiCatchment = ROAD100_MULTICATCHMENT
+      };
+      if (ROAD100_LONG_BUILD) {
+        /* Le planificateur v6 exige le type routier choisi ; ne jamais
+         * changer le type dans le helper ni toucher le chemin OFF. */
+        AIRoad.SetCurrentRoadType(catalog.roadType);
+        /* Le constructeur LONG reçoit LE RELIQUAT de la recherche totale
+         * de l'année ; jamais 400k renouvelés par paire. Sous erreur ou
+         * plan non physique, aucun candidat ni projet n'est publié. */
+        /* ROAD100-16 v14 : le premier couple ne peut plus consommer à
+         * lui seul tout le reliquat : réserver au second au moins sa
+         * tranche de scan+trace, sans augmenter le cap annuel 400k.
+         * Sur un seul couple, le reliquat habituel reste inchangé. */
+        local attemptLimit = longCap - longOps;
+        if (li + 1 < longBest.len() && attemptLimit > 180000)
+          attemptLimit = 180000;
+        if (ROAD100_PORTAL_STITCH && attemptLimit > 180000)
+          attemptLimit = 180000;
+        if (ROAD100_PAX_GRAPH_BRIDGE && attemptLimit > 180000)
+          attemptLimit = 180000;
+        /* Le plafond V35 par couple couvre aussi admission et calcul de
+         * demande, pas uniquement le planificateur physique. */
+        local buildMark = OpexOpsMeasureBegin();
+        local physical = OpexRoad100LongConstructPlan(catalog, preliminaryLong,
+            attemptLimit);
+        local planOps = OpexOpsMeasureEnd(buildMark);
+        longAttempts++;
+        local admittedLong = null;
+        if (physical != null && (!(ROAD100_PORTAL_STITCH || ROAD100_PAX_GRAPH_BRIDGE) ||
+            planOps < attemptLimit - 12000)) {
+          admittedLong = OpexRoad100LongBuildCandidate(catalog,
+              preliminaryLong, physical, stats);
+        }
+        local pairOps = OpexOpsMeasureEnd(buildMark);
+        longOps += pairOps;
+        if ((ROAD100_PORTAL_STITCH || ROAD100_PAX_GRAPH_BRIDGE)
+            && pairOps >= attemptLimit)
+          admittedLong = null; // Ne publier aucun projet hors enveloppe.
+        if (admittedLong != null) {
+          out.append(admittedLong);
+          longAdmitted++;
+          longOk++;
+        }
+        if (DECISION_LOG) OpexDecide("ROAD100_LONG_BUILD",
+            "phase=preflight rank=" + li
+            + " town_a=" + preliminaryLong.srcTown
+            + " town_b=" + preliminaryLong.dstTown
+            + " centre_dist=" + selected.distance
+            + " physical=" + (physical != null ? 1 : 0)
+            + " admitted=" + (admittedLong != null ? 1 : 0)
+            + " siteA=" + (physical != null ? physical.stopA.tile : -1)
+            + " siteB=" + (physical != null ? physical.stopB.tile : -1)
+            + " monthly=" + (physical != null
+                ? physical.stopA.value + physical.stopB.value : -1)
+            + " route=" + (physical != null ? physical.routeDistance : -1)
+            + " missing=" + (physical != null && ("roadMissingCount" in physical)
+                ? physical.roadMissingCount : -1)
+            + " road_quote=" + (physical != null && ("roadQuoteCost" in physical)
+                ? physical.roadQuoteCost : -1)
+            + " pred_profit=" + (admittedLong != null ? admittedLong.profitAnnual : -1)
+            + " pred_capital=" + (admittedLong != null ? admittedLong.capital : -1)
+            + " cash=" + AICompany.GetBankBalance(AICompany.COMPANY_SELF)
+             + " plan_ops=" + planOps + " pair_ops=" + pairOps
+             + " attempt_cap=" + attemptLimit
+             + " total_ops=" + longOps);
+        continue;
+      }
+      /* Ce point est l'unique appel physique LONG. Une tentative indivisible
+       * peut depasser la borne soft ; la suivante ne demarre alors jamais. */
+      local longMark = OpexOpsMeasureBegin();
+      local shadow = OpexRoad100LongCorridorShadow(catalog, preliminaryLong,
+          250000 - longOps);
+      local measuredOps = OpexOpsMeasureEnd(longMark);
+      longOps += measuredOps;
+      longAttempts++;
+      local shadowOk = shadow != null && ("ok" in shadow) && shadow.ok;
+      if (shadowOk) longOk++;
+      if (DECISION_LOG) {
+        local reason = shadow != null && ("reason" in shadow) &&
+            typeof shadow.reason == "string" ? shadow.reason : "NO_RESULT";
+        local siteA = -1;
+        local siteB = -1;
+        local monthly = -1;
+        local route = -1;
+        local helperOps = -1;
+        local tested = -1;
+        local fleet = -1;
+        local predictedProfit = -1;
+        local predictedCapital = -1;
+        local cash = -1;
+        local maxSiteA = -1;
+        local maxSiteB = -1;
+        local maxPairMonthly = -1;
+        local siteCountA = -1;
+        local siteCountB = -1;
+        local unionA = -1;
+        local unionB = -1;
+        local unionSingleA = -1;
+        local unionSingleB = -1;
+        local unionDeltaA = -1;
+        local unionDeltaB = -1;
+        local unionSatA = -1;
+        local unionSatB = -1;
+        local unionCombosA = -1;
+        local unionCombosB = -1;
+        local joinValidated = 0;
+        if (shadow != null) {
+          if ("siteA" in shadow) {
+            if (typeof shadow.siteA == "integer") siteA = shadow.siteA;
+            else if (typeof shadow.siteA == "table" && ("tile" in shadow.siteA))
+              siteA = shadow.siteA.tile;
+          }
+          if ("siteB" in shadow) {
+            if (typeof shadow.siteB == "integer") siteB = shadow.siteB;
+            else if (typeof shadow.siteB == "table" && ("tile" in shadow.siteB))
+              siteB = shadow.siteB.tile;
+          }
+          if ("monthly" in shadow && typeof shadow.monthly == "integer") monthly = shadow.monthly;
+          if ("route" in shadow) {
+            if (typeof shadow.route == "integer") route = shadow.route;
+            else if (typeof shadow.route == "array") route = shadow.route.len();
+          }
+          if ("ops" in shadow && typeof shadow.ops == "integer") helperOps = shadow.ops;
+          if ("tested" in shadow && typeof shadow.tested == "integer") tested = shadow.tested;
+          if ("fleet" in shadow && typeof shadow.fleet == "integer") fleet = shadow.fleet;
+          if ("pred_profit" in shadow && typeof shadow.pred_profit == "integer")
+            predictedProfit = shadow.pred_profit;
+          if ("pred_capital" in shadow && typeof shadow.pred_capital == "integer")
+            predictedCapital = shadow.pred_capital;
+          if ("cash" in shadow && typeof shadow.cash == "integer") cash = shadow.cash;
+          if ("max_site_a" in shadow) maxSiteA = shadow.max_site_a;
+          if ("max_site_b" in shadow) maxSiteB = shadow.max_site_b;
+          if ("max_pair_monthly" in shadow) maxPairMonthly = shadow.max_pair_monthly;
+          if ("sites_a" in shadow) siteCountA = shadow.sites_a;
+          if ("sites_b" in shadow) siteCountB = shadow.sites_b;
+          if ("max_union_a" in shadow) unionA = shadow.max_union_a;
+          if ("max_union_b" in shadow) unionB = shadow.max_union_b;
+          if ("union_single_a" in shadow) unionSingleA = shadow.union_single_a;
+          if ("union_single_b" in shadow) unionSingleB = shadow.union_single_b;
+          if ("delta_single_a" in shadow) unionDeltaA = shadow.delta_single_a;
+          if ("delta_single_b" in shadow) unionDeltaB = shadow.delta_single_b;
+          if ("union_satellites_a" in shadow) unionSatA = shadow.union_satellites_a;
+          if ("union_satellites_b" in shadow) unionSatB = shadow.union_satellites_b;
+          if ("union_combos_a" in shadow) unionCombosA = shadow.union_combos_a;
+          if ("union_combos_b" in shadow) unionCombosB = shadow.union_combos_b;
+          if ("join_validated" in shadow && shadow.join_validated) joinValidated = 1;
+        }
+        OpexDecide("ROAD100_LONG", "phase=shadow rank=" + li
+            + " src=" + preliminaryLong.src + " dst=" + preliminaryLong.dst
+            + " town_a=" + preliminaryLong.srcTown + " town_b=" + preliminaryLong.dstTown
+            + " centre_dist=" + selected.distance + " proxy_monthly=" + selected.proxy
+            + " ok=" + (shadowOk ? 1 : 0) + " reason=" + reason
+            + " siteA=" + siteA + " siteB=" + siteB + " site_monthly=" + monthly
+            + " route=" + route + " tested=" + tested + " fleet=" + fleet
+            + " pred_profit=" + predictedProfit + " pred_capital=" + predictedCapital
+            + " cash=" + cash + " helper_ops=" + helperOps
+            + " max_site_a=" + maxSiteA + " max_site_b=" + maxSiteB
+            + " max_pair_monthly=" + maxPairMonthly
+            + " sites_a=" + siteCountA + " sites_b=" + siteCountB
+            + " union_a=" + unionA + " union_b=" + unionB
+            + " union_single_a=" + unionSingleA + " union_single_b=" + unionSingleB
+            + " union_delta_a=" + unionDeltaA + " union_delta_b=" + unionDeltaB
+            + " union_sat_a=" + unionSatA + " union_sat_b=" + unionSatB
+            + " union_combos_a=" + unionCombosA + " union_combos_b=" + unionCombosB
+            + " join_validated=" + joinValidated
+            + " measured_ops=" + measuredOps + " total_ops=" + longOps);
+      }
+    }
+    if (DECISION_LOG) OpexDecide("ROAD100_LONG", "phase=summary towns=" + longCount
+        + " examined=" + longExamined + " in_band=" + longInBand
+        + " shortlisted=" + longBest.len() + " attempts=" + longAttempts
+        + " physical_ok=" + longOk + " ops=" + longOps
+        + " opcap=" + (longOps >= longCap ? 1 : 0)
+        + " admitted=" + longAdmitted
+        + " build=" + (ROAD100_LONG_BUILD ? 1 : 0));
+  }
+}
+
+function OpexRoad100SiteFirstCandidates(catalog, lines, out, stats,
+                                       abandonedPairs = null, targetKind = null, targetId = -1)
+{
+  local iterator = OpexRoad100SiteFirstGenerator(catalog, lines, out, stats,
+                                                abandonedPairs, targetKind, targetId);
+  while (iterator.getstatus() != "dead") resume iterator;
+}
+
+function OpexRoad100SoloPaxCandidates(catalog, lines, out, stats,
+                                      abandonedPairs = null, targetKind = null, targetId = -1)
+{
+  if (!ROAD100_SOLO_PAX || (targetKind != null && targetKind != "town")) return;
+  if (ROAD100_SITE_FIRST) {
+    OpexRoad100SiteFirstCandidates(catalog, lines, out, stats, abandonedPairs, targetKind, targetId);
+    return;
+  }
+  local cargo = catalog.paxCargo;
+  if (cargo < 0 || !(cargo in catalog.roadEngineByCargo)) return;
+  local towns = catalog.towns;
+  local ranked = [];
+  foreach (i, town in towns) {
+    if (OpexTownBusPaxServed(lines, town.id)
+        || OpexTownRoadLineCount(lines, town.tile) >= 4) continue;
+    local monthly = AITown.GetLastMonthProduction(town.id, cargo);
+    if (monthly <= 0 && town.pop > 0) monthly = (town.pop * 15) / 100;
+    if (monthly <= 0) continue;
+    local houses = ("houses" in town && town.houses > 0) ? town.houses : (town.pop / 25);
+    if (houses < 1) houses = 1;
+    /* Meme capture prudente que le generateur de bus historique V231 :
+     * une dizaine de maisons dans le rayon de l'arret, au plus 86 % du flux.
+     * Le site reel devra encore etre valide par le constructeur. */
+    local pct = (10 * 100) / houses;
+    if (pct > 86) pct = 86;
+    if (pct < 1) pct = 1;
+    local captured = (monthly * pct) / 100;
+    if (captured < 1) continue;
+    ranked.append({ index = i, id = town.id, captured = captured, totalMonthly = monthly });
+  }
+  ranked.sort(OpexRoad100SortTownDemand);
+  local n = ranked.len();
+  if (n > 40) n = 40;
+  local examined = 0;
+  local positive = 0;
+  for (local a = 0; a < n; a++) {
+    local found = 0;
+    for (local b = a + 1; b < n && found < 12; b++) {
+      local src = ranked[a];
+      local dst = ranked[b];
+      if (targetKind == "town" && targetId >= 0
+          && src.id != targetId && dst.id != targetId) continue;
+      examined++;
+      if (C69_BOTTLENECK_PROBE) OpexC73RecordExamined("road", 1);
+      local townA = towns[src.index];
+      local townB = towns[dst.index];
+      if (OpexRoadPairServed(lines, townA.tile, townB.tile)) continue;
+      local distance = AIMap.DistanceManhattan(townA.tile, townB.tile);
+      if (!OpexRoadDistanceAllowed(catalog, distance, stats)) continue;
+      if (abandonedPairs != null) {
+        local idA = src.id;
+        local idB = dst.id;
+        if (idA > idB) { local swapId = idA; idA = idB; idB = swapId; }
+        local pairKey = "pax|" + cargo + "|" + idA + "|" + idB;
+        if (pairKey in abandonedPairs) continue;
+      }
+      stats.pairsInBand++;
+      local monthly = ROAD100_INTERCITY_SITE_FLEET
+          ? (src.totalMonthly + dst.totalMonthly) : (src.captured + dst.captured);
+      local candidate = OpexMakeRoadCandidate(catalog, "pax", cargo, townA.tile,
+          townB.tile, src.id, dst.id, distance, monthly, stats, false,
+          ROAD100_INTERCITY_SITE_FLEET ? 30 : 0);
+      if (candidate != null) {
+        if (ROAD100_INTERCITY_SITE_FLEET) {
+          candidate.road100FleetCap <- 30;
+          candidate.road100IntercitySiteFleet <- true;
+        }
+        out.append(candidate);
+        positive++;
+        found++;
+      }
+    }
+  }
+  if (DECISION_LOG) {
+    OpexDecide("ROAD100_PAX_GEN", "towns=" + n + " examined=" + examined
+        + " positive=" + positive + " kept_total=" + out.len());
+  }
+}
+
+/* ROAD100-2 : une liaison courte entre deux quartiers de la MEME ville.
+ * Le financement, l'economie reelle et le rejet de la ville deja desservie
+ * restent ceux de la route commune. Par construction ce vivier n'existe
+ * qu'en route seule et seulement lorsque le reglage vaut 1. */
+function OpexRoad100TownBusCandidates(catalog, lines, out, stats,
+                                      abandonedPairs = null, targetKind = null, targetId = -1)
+{
+  if (!ROAD100_TOWN_BUS || (targetKind != null && targetKind != "town")) return;
+  local cargo = catalog.paxCargo;
+  if (cargo < 0 || !(cargo in catalog.roadEngineByCargo)) return;
+  local nTowns = 0;
+  local nPositive = 0;
+  local nInBand = 0;
+  local width = AIMap.GetMapSizeX();
+  local height = AIMap.GetMapSizeY();
+  foreach (town in catalog.towns) {
+    if (targetKind == "town" && targetId >= 0 && town.id != targetId) continue;
+    if (OpexTownBusPaxServed(lines, town.id) || OpexTownRoadLineCount(lines, town.tile) >= 4)
+      continue;
+    local monthly = AITown.GetLastMonthProduction(town.id, cargo);
+    if (monthly <= 0 && town.pop > 0) monthly = (town.pop * 15) / 100;
+    if (monthly <= 0) continue;
+    local houses = ("houses" in town && town.houses > 0) ? town.houses : town.pop / 25;
+    if (houses < 1) houses = 1;
+    local pct = (20 * 100) / houses;
+    if (pct > 86) pct = 86;
+    if (pct < 1) pct = 1;
+    local captured = (monthly * pct) / 100;
+    if (captured < 1) continue;
+    local cx = AIMap.GetTileX(town.tile);
+    local cy = AIMap.GetTileY(town.tile);
+    local ends = null;
+    for (local axis = 0; axis < 2 && ends == null; axis++) {
+      local ax = cx - (axis == 0 ? 5 : 0);
+      local bx = cx + (axis == 0 ? 5 : 0);
+      local ay = cy - (axis == 1 ? 5 : 0);
+      local by = cy + (axis == 1 ? 5 : 0);
+      if (ax < 0 || ay < 0 || bx >= width || by >= height) continue;
+      local src = AIMap.GetTileIndex(ax, ay);
+      local dst = AIMap.GetTileIndex(bx, by);
+      if (AITile.GetClosestTown(src) != town.id || AITile.GetClosestTown(dst) != town.id)
+        continue;
+      ends = { src = src, dst = dst };
+    }
+    if (ends == null) continue;
+    nTowns++;
+    if (OpexRoadPairServed(lines, ends.src, ends.dst)) continue;
+    local distance = AIMap.DistanceManhattan(ends.src, ends.dst);
+    if (!OpexRoadDistanceAllowed(catalog, distance, stats)) continue;
+    nInBand++;
+    if (abandonedPairs != null) {
+      local pairKey = "pax|" + cargo + "|" + town.id + "|" + town.id;
+      if (pairKey in abandonedPairs) continue;
+    }
+    stats.pairsInBand++;
+    if (C69_BOTTLENECK_PROBE) OpexC73RecordExamined("road", 1);
+    local candidate = OpexMakeRoadCandidate(catalog, "pax", cargo, ends.src,
+        ends.dst, town.id, town.id, distance, captured, stats, false,
+        ROAD100_PAX_FLEET_CAP);
+    if (candidate != null) {
+      if (ROAD100_PAX_FLEET_CAP > 0)
+        candidate.road100FleetCap <- ROAD100_PAX_FLEET_CAP;
+      out.append(candidate);
+      nPositive++;
+    }
+  }
+  if (DECISION_LOG) {
+    OpexDecide("ROAD100_TOWN_GEN", "towns=" + nTowns + " in_band=" + nInBand
+        + " positive=" + nPositive + " kept_total=" + out.len());
+  }
+}
+
 /* Familles 2 et 3 : industrie -> industrie, et industrie -> ville.
  *
  * Le sens est ORIENTE (un producteur vers un accepteur) : contrairement au pax, rien ne revient.
@@ -1912,6 +2800,35 @@ function OpexTownBusPaxServed(lines, townId)
  * tuile, elle n'a pas la dilution geometrique d'une ville (cf. TOWN_CATCHMENT_SHARE_PCT). */
 /* C41.17 : `profile` ne sert qu'a separer le cout du fret en checkpoints candidats. Les trois
  * tranches restent synchrones : aucune ne modifie le vivier ni n'est reprise entre deux tours. */
+/* ROAD100-21 : la meme liste d'admission est utilisee par les chemins
+ * synchrones ET PO01C, sans multiplier les appels au generateur PAX.
+ * V276 possede deja ses propres unites fret par cargo : ne pas les doubler. */
+function OpexRoad100FreightDiverseCargoSet(catalog, primary)
+{
+  local allowed = {};
+  if (primary == null) return allowed;
+  allowed.rawset(primary, true);
+  if (!ROAD100_FREIGHT_DIVERSITY || !MODE_ROAD || MODE_RAIL || MODE_AIR ||
+      MODE_WATER || V276_CAND_SLICES > 0) return allowed;
+  local order = OpexFreightCargoOrder(catalog);
+  local first = -1;
+  for (local i = 0; i < order.len(); i++) {
+    if (order[i] == primary) { first = i; break; }
+  }
+  local extras = 0;
+  for (local offset = 1; offset < order.len() && extras < 2; offset++) {
+    local index = first >= 0 ? (first + offset) % order.len() : offset - 1;
+    local cargo = order[index];
+    if (cargo == primary || cargo == catalog.paxCargo ||
+        !(cargo in catalog.roadEngineByCargo) ||
+        !(cargo in catalog.producers) || catalog.producers[cargo].len() == 0)
+      continue;
+    allowed.rawset(cargo, true);
+    extras++;
+  }
+  return allowed;
+}
+
 function OpexRoadFreightCandidates(catalog, lines, out, stats, abandonedPairs = null, profile = null, freightCargo = null, targetKind = null, targetId = -1)
 {
   local preparationMark = profile != null ? OpexOpsMeasureBegin() : null;
@@ -1933,36 +2850,53 @@ function OpexRoadFreightCandidates(catalog, lines, out, stats, abandonedPairs = 
    * couple, et non par paire industrie-ville, evite de repayer AITile.GetCargoAcceptance pour
    * chaque producteur du meme cargo. Cle chaine plutot que table imbriquee : une seule table. */
   local acceptanceCache = {};
+  local diversityCargos = (ROAD100_FREIGHT_DIVERSITY && freightCargo != null &&
+      V276_CAND_SLICES <= 0) ? OpexRoad100FreightDiverseCargoSet(catalog, freightCargo) : null;
   /* Rayon d'une aire de chargement : c'est bien l'empreinte de la gare qu'on projette de poser,
    * pas un rayon arbitraire autour du centre administratif. Lu une fois, il ne change jamais. */
   local truckCoverage = AIStation.GetCoverageRadius(AIStation.STATION_TRUCK_STOP);
   if (profile != null) profile.freightPreparationOps += OpexOpsMeasureEnd(preparationMark);
 
   foreach (cargo, sources in catalog.producers) {
-    if (freightCargo != null && cargo != freightCargo) continue;
+    if (freightCargo != null && cargo != freightCargo &&
+        (diversityCargos == null || !(cargo in diversityCargos))) continue;
     if (!(cargo in catalog.roadEngineByCargo)) { stats.noEngine++; continue; }
     /* Les passagers sont traites par la famille 1 : les inclure ici apparierait une industrie a
      * une ville pour un cargo qu'aucune industrie ne produit utilement en volume. */
     if (cargo == catalog.paxCargo) continue;
+    local servedIndustryCargo = servedIndustry;
+    local servedTownCargo = servedTown;
+    if (ROAD100_FREIGHT_CARGO_ORIGIN && V276_CAND_SLICES <= 0) {
+      /* Un index per-cargo, sans valuation de terrain et sans double scan PAX. */
+      local sameCargoIndex = OpexRoadFreightServedIndex(lines, cargo);
+      servedIndustryCargo = [];
+      servedTownCargo = [];
+      foreach (industry in industries) {
+        servedIndustryCargo.append(industry.tile in sameCargoIndex);
+      }
+      foreach (town in towns) {
+        servedTownCargo.append(town.tile in sameCargoIndex);
+      }
+    }
     local sinks = (cargo in catalog.acceptors) ? catalog.acceptors[cargo] : [];
     /* C41.20 : la liste est locale au cargo et a cette generation. Les appels API anticipes sont
      * purs ; ils ne changent ni l'industrie, ni le filtre de distance, ni l'ordre des candidats. */
-    local townTargets = OpexRoadFreightAcceptedTowns(towns, servedTown, cargo, truckCoverage);
+    local townTargets = OpexRoadFreightAcceptedTowns(towns, servedTownCargo, cargo, truckCoverage);
     if (townTargets != null) stats.townAcceptancePrefiltered += towns.len() - townTargets.len();
 
     foreach (si in sources) {
-      if (servedIndustry[si]) {
+      if (servedIndustryCargo[si]) {
         /* Le code livre saute toute la source. Sous sonde, enumerer seulement les paires
          * qu'il aurait sautees permet de compter ce filtre sans changer son continue. */
         if (C55_ORIGIN_RELAX_PROBE) {
           local source = industries[si];
           foreach (di in sinks) {
             if (di != si) OpexC55OriginRelaxObserve("freight", lines, source.tile,
-                industries[di].tile, true, servedIndustry[di]);
+                industries[di].tile, true, servedIndustryCargo[di]);
           }
           for (local ti = 0; ti < towns.len(); ti++) {
             OpexC55OriginRelaxObserve("freight", lines, source.tile, towns[ti].tile,
-                true, servedTown[ti]);
+                true, servedTownCargo[ti]);
           }
         }
         continue;
@@ -1984,8 +2918,8 @@ function OpexRoadFreightCandidates(catalog, lines, out, stats, abandonedPairs = 
             && source.id != targetId && industries[di].id != targetId) continue;
         if (C69_BOTTLENECK_PROBE) OpexC73RecordExamined("road", 1);
         if (C55_ORIGIN_RELAX_PROBE) OpexC55OriginRelaxObserve("freight", lines,
-            source.tile, industries[di].tile, false, servedIndustry[di]);
-        if (servedIndustry[di]) {
+            source.tile, industries[di].tile, false, servedIndustryCargo[di]);
+        if (servedIndustryCargo[di]) {
           if (C69_BOTTLENECK_PROBE) OpexC73RecordRejection("road", "origin_served", 1);
           continue;
         }
@@ -2013,7 +2947,7 @@ function OpexRoadFreightCandidates(catalog, lines, out, stats, abandonedPairs = 
       if (C55_ORIGIN_RELAX_PROBE && townTargets != null) {
         for (local ti = 0; ti < towns.len(); ti++) {
           OpexC55OriginRelaxObserve("freight", lines, source.tile, towns[ti].tile,
-              false, servedTown[ti]);
+              false, servedTownCargo[ti]);
         }
       }
       local townPool = (townTargets != null) ? townTargets : towns;
@@ -2025,8 +2959,8 @@ function OpexRoadFreightCandidates(catalog, lines, out, stats, abandonedPairs = 
         if (C69_BOTTLENECK_PROBE) OpexC73RecordExamined("road", 1);
         if (profile != null && C41_ROAD_FREIGHT_TOWN_PROFILE) profile.freightTownScanned++;
         if (C55_ORIGIN_RELAX_PROBE && townTargets == null) OpexC55OriginRelaxObserve("freight",
-            lines, source.tile, towns[t].tile, false, servedTown[t]);
-        if (townTargets == null && servedTown[t]) {
+            lines, source.tile, towns[t].tile, false, servedTownCargo[t]);
+        if (townTargets == null && servedTownCargo[t]) {
           if (C69_BOTTLENECK_PROBE) OpexC73RecordRejection("road", "origin_served", 1);
           continue;
         }
@@ -2321,6 +3255,414 @@ function OpexMulti1RoadCargoShadowTick(owner)
 /* C41.16 : `profile` est fourni seulement par la sonde du scheduler. Il n'influence jamais les
  * filtres, l'ordre ni le vivier ; les compteurs mesurent les trois familles et le TopK qui suit
  * le budget historique. */
+/* ROAD100-27 : un marche absent de la famille de fret industrielle : le
+ * courrier PRODUIT par une ville et ACCEPTE par une seconde. Une vraie
+ * gare camion, un depot, une route et la capture exacte du site A sont
+ * obligatoires avant le classement. Le retour B->A n'est PAS valorise.
+ * Un seul iterateur est utilise par le calendrier sync et PO01C. */
+function OpexRoad100MailOwnedCoverage()
+{
+  local covered = AITileList();
+  local ids = AIStationList(AIStation.STATION_ANY);
+  for (local id = ids.Begin(); !ids.IsEnd(); id = ids.Next()) {
+    if (!AIStation.IsValidStation(id)) continue;
+    covered.AddList(AITileList_StationCoverage(id));
+  }
+  return covered;
+}
+
+/* Ce scan est sur la couverture REELLE de la tuile où sera la station,
+ * pas la production de la ville ou l'attente d'une ligne AAA. Une tuile
+ * de production déjà captée par une station propre n'est jamais recomptée.
+ * Le même helper est invoqué à l'admission ET au chantier. */
+function OpexRoad100MailMarginalSource(cargo, stopTile, covered)
+{
+  if (cargo < 0 || !AIMap.IsValidTile(stopTile)) return 0;
+  local radius = AIStation.GetCoverageRadius(AIStation.STATION_TRUCK_STOP);
+  if (radius < 1) return 0;
+  local x = AIMap.GetTileX(stopTile);
+  local y = AIMap.GetTileY(stopTile);
+  local x0 = x - radius; if (x0 < 0) x0 = 0;
+  local y0 = y - radius; if (y0 < 0) y0 = 0;
+  local x1 = x + radius;
+  if (x1 >= AIMap.GetMapSizeX()) x1 = AIMap.GetMapSizeX() - 1;
+  local y1 = y + radius;
+  if (y1 >= AIMap.GetMapSizeY()) y1 = AIMap.GetMapSizeY() - 1;
+  local sources = AITileList();
+  sources.AddRectangle(AIMap.GetTileIndex(x0, y0), AIMap.GetTileIndex(x1, y1));
+  sources.Valuate(AITile.GetCargoProduction, cargo, 1, 1, 0);
+  sources.KeepAboveValue(0);
+  local total = 0;
+  foreach (tile, amount in sources) {
+    if (covered != null && covered.HasItem(tile)) continue;
+    total += amount;
+  }
+  return total;
+}
+
+function OpexRoad100MailPairSort(a, b)
+{
+  if (ROAD100_MAIL_LONG_EXISTING) {
+    local longA = a.distance >= 43;
+    local longB = b.distance >= 43;
+    if (longA != longB) return longA ? -1 : 1;
+  }
+  if (a.sourceMonthly != b.sourceMonthly)
+    return a.sourceMonthly > b.sourceMonthly ? -1 : 1;
+  if (a.distance != b.distance) return a.distance < b.distance ? -1 : 1;
+  if (a.from.id != b.from.id) return a.from.id < b.from.id ? -1 : 1;
+  return a.to.id < b.to.id ? -1 : (a.to.id > b.to.id ? 1 : 0);
+}
+
+/* ROAD100-29 : prioritisation de visite seulement, jamais score portefeuille.
+ * L'ordre interurbain est determine par la production native des villes,
+ * tandis que tout debit financier sera borne aux vrais producteurs du site A. */
+function OpexRoad100PaxRootsSortPair(a, b)
+{
+  if (a.priority != b.priority) return a.priority > b.priority ? -1 : 1;
+  if (a.distance != b.distance) return a.distance < b.distance ? -1 : 1;
+  if (a.from.id != b.from.id) return a.from.id < b.from.id ? -1 : 1;
+  return a.to.id < b.to.id ? -1 : (a.to.id > b.to.id ? 1 : 0);
+}
+
+/* Bus et camion ne sont PAS supposes partager le rayon de couverture.
+ * Produits des tuiles source, et non total du centre-ville, moins TOUTE
+ * couverture propre. Une tuile productrice n'est sommee qu'une fois. */
+function OpexRoad100PaxRootsMarginalSource(cargo, stopTile, covered)
+{
+  if (cargo < 0 || !AIMap.IsValidTile(stopTile)) return 0;
+  local radius = AIStation.GetCoverageRadius(AIStation.STATION_BUS_STOP);
+  if (radius < 1) return 0;
+  local x = AIMap.GetTileX(stopTile);
+  local y = AIMap.GetTileY(stopTile);
+  local x0 = x - radius; if (x0 < 0) x0 = 0;
+  local y0 = y - radius; if (y0 < 0) y0 = 0;
+  local x1 = x + radius;
+  local y1 = y + radius;
+  if (x1 >= AIMap.GetMapSizeX()) x1 = AIMap.GetMapSizeX() - 1;
+  if (y1 >= AIMap.GetMapSizeY()) y1 = AIMap.GetMapSizeY() - 1;
+  local producers = AITileList();
+  producers.AddRectangle(AIMap.GetTileIndex(x0, y0), AIMap.GetTileIndex(x1, y1));
+  producers.Valuate(AITile.GetCargoProduction, cargo, 1, 1, 0);
+  producers.KeepAboveValue(0);
+  local total = 0;
+  foreach (tile, volume in producers) {
+    if (covered != null && covered.HasItem(tile)) continue;
+    total += volume;
+  }
+  return total;
+}
+
+/* Prescreen MINIMAL : uniquement des routes deja presentes, avec facade
+ * bidirectionnelle et BuildDriveThroughRoadStation(STATION_NEW) en AITest.
+ * 12 tuiles de route visitees par ville, 2 essais de station maximum.
+ * Le test ne construit RIEN et ne certifie ni nouveau StationID effectif,
+ * ni depot, ni corridor interurbain continu. Ces lacunes sont loguees.
+ * La capture est marginale a TOUTES nos stations, jamais une demande-ville. */
+function OpexRoad100PaxRootsTownSite(town, cargo, covered, mark, budget)
+{
+  local result = { tile = -1, front = -1, marginal = 0,
+      acceptance = 0, roads = 0, tests = 0, reason = "NO_SITE" };
+  local radius = AIStation.GetCoverageRadius(AIStation.STATION_BUS_STOP);
+  if (radius < 1) { result.reason = "COVERAGE"; return result; }
+  local cx = AIMap.GetTileX(town.tile);
+  local cy = AIMap.GetTileY(town.tile);
+  local r = 8;
+  local x0 = cx - r; if (x0 < 0) x0 = 0;
+  local y0 = cy - r; if (y0 < 0) y0 = 0;
+  local x1 = cx + r;
+  local y1 = cy + r;
+  if (x1 >= AIMap.GetMapSizeX()) x1 = AIMap.GetMapSizeX() - 1;
+  if (y1 >= AIMap.GetMapSizeY()) y1 = AIMap.GetMapSizeY() - 1;
+  local roads = AITileList();
+  roads.AddRectangle(AIMap.GetTileIndex(x0, y0), AIMap.GetTileIndex(x1, y1));
+  roads.Valuate(AIRoad.IsRoadTile);
+  roads.KeepAboveValue(0);
+  local directions = [1, -1, AIMap.GetMapSizeX(), -AIMap.GetMapSizeX()];
+  for (local tile = roads.Begin(); !roads.IsEnd() && result.roads < 12;
+       tile = roads.Next()) {
+    if (OpexOpsMeasureEnd(mark) >= budget - 15000) {
+      result.reason = "OPCAP"; return result;
+    }
+    result.roads++;
+    if (AITile.IsStationTile(tile) || AIRoad.IsRoadDepotTile(tile)
+        || covered.HasItem(tile) || AITile.GetClosestTown(tile) != town.id) continue;
+    local marginal = OpexRoad100PaxRootsMarginalSource(cargo, tile, covered);
+    if (marginal <= result.marginal) continue;
+    for (local di = 0; di < directions.len() && result.tests < 2; di++) {
+      if (OpexOpsMeasureEnd(mark) >= budget - 10000) {
+        result.reason = "OPCAP"; return result;
+      }
+      local front = tile + directions[di];
+      if (!AIMap.IsValidTile(front) || AIMap.DistanceManhattan(tile, front) != 1
+          || !AIRoad.IsRoadTile(front)
+          || !AIRoad.AreRoadTilesConnected(tile, front)
+          || !AIRoad.AreRoadTilesConnected(front, tile)) continue;
+      local buildable = false;
+      result.tests++;
+      { local test = AITestMode();
+        buildable = AIRoad.BuildDriveThroughRoadStation(tile, front,
+            AIRoad.ROADVEHTYPE_BUS, AIStation.STATION_NEW); }
+      if (!buildable) continue;
+      result.tile = tile;
+      result.front = front;
+      result.marginal = marginal;
+      result.acceptance = AITile.GetCargoAcceptance(tile, cargo, 1, 1, radius);
+      result.reason = "FRONT_ONLY";
+      break;
+    }
+    if (result.tests >= 2) break;
+  }
+  return result;
+}
+
+/* ROAD100-29 : SHADOW NON CONSTRUCTEUR. Partage par les chemins synchrone
+ * et PO01C via le MEME generateur ; PO01C reprend entre paires. Budget
+ * annuel transitoire (un scan par annee/processus) : <= 2 vrais couples,
+ * <= 200k opcodes soft, aucun A*, BFS, projet, ranking ou chantier.
+ * Le ROI reel est -1 (non quote) : les facades A/B, meme constructibles,
+ * ne prouvent PAS une liaison, un depot ou deux StationID distincts.
+ * Un plafond de revenu A->B est chiffre sans retour, sans satellite,
+ * sans attendre AAA ; le cout plancher n'est PAS un devis complet. */
+function OpexRoad100PaxRootsShadowGenerator(catalog)
+{
+  if (!ROAD100_PAX_INTERCITY_ROOTS) return;
+  local year = AIDate.GetYear(AIDate.GetCurrentDate());
+  if (ROAD100_PAX_ROOTS_LAST_YEAR == year) return;
+  ROAD100_PAX_ROOTS_LAST_YEAR = year;
+  local mark = OpexOpsMeasureBegin();
+  local limit = 200000;
+  local towns = [];
+  local pairs = [];
+  local seen = 0;
+  local inBand = 0;
+  local scans = 0;
+  local tested = 0;
+  local facades = 0;
+  local reason = "PRECHECK";
+  local cargo = catalog != null ? catalog.paxCargo : -1;
+  do {
+    if (catalog == null || catalog.roadType < 0 || cargo < 0
+        || !(cargo in catalog.roadEngineByCargo)) {
+      reason = "NO_ENGINE"; break;
+    }
+    if (AIRoad.GetCurrentRoadType() != catalog.roadType) {
+      reason = "ROAD_TYPE_MISMATCH"; break;
+    }
+    local radius = AIStation.GetCoverageRadius(AIStation.STATION_BUS_STOP);
+    local stopCost = AIRoad.GetBuildCost(catalog.roadType, AIRoad.BT_BUS_STOP);
+    local engine = catalog.roadEngineByCargo[cargo];
+    if (radius < 1 || stopCost <= 0 || engine == null || engine.price <= 0) {
+      reason = "NO_PRICE"; break;
+    }
+    foreach (town in catalog.towns) {
+      if (OpexOpsMeasureEnd(mark) >= limit - 20000) { reason = "OPCAP"; break; }
+      local produced = AITown.GetLastMonthProduction(town.id, cargo);
+      if (produced > 0) towns.append({ id = town.id, tile = town.tile,
+          captured = produced });
+    }
+    if (reason == "OPCAP") break;
+    towns.sort(OpexRoad100SortTownDemand);
+    if (towns.len() > 12) towns.resize(12);
+    for (local a = 0; a < towns.len(); a++) {
+      if (OpexOpsMeasureEnd(mark) >= limit - 20000) { reason = "OPCAP"; break; }
+      for (local b = a + 1; b < towns.len(); b++) {
+        seen++;
+        local distance = AIMap.DistanceManhattan(towns[a].tile, towns[b].tile);
+        if (distance < 43 || distance > 80) continue;
+        inBand++;
+        pairs.append({ from = towns[a], to = towns[b], distance = distance,
+            priority = towns[a].captured + towns[b].captured });
+      }
+    }
+    if (reason == "OPCAP") break;
+    pairs.sort(OpexRoad100PaxRootsSortPair);
+    if (pairs.len() < 1) { reason = "NO_PAIR"; break; }
+    /* Construire une seule union des couvertures EXISTANTES, dont les
+     * gares rail/air/eau, pour eviter toute double production Opex. */
+    local covered = AITileList();
+    local stations = AIStationList(AIStation.STATION_ANY);
+    for (local id = stations.Begin(); !stations.IsEnd(); id = stations.Next()) {
+      if (OpexOpsMeasureEnd(mark) >= limit - 20000) { reason = "OPCAP"; break; }
+      if (AIStation.IsValidStation(id)) covered.AddList(AITileList_StationCoverage(id));
+    }
+    if (reason == "OPCAP") break;
+    local costFloor = engine.price + 2 * stopCost + catalog.costRoadDepot;
+    if (costFloor <= 0) { reason = "NO_PRICE"; break; }
+    /* Deux previsualisations ne sont pas deux marches independants si
+     * elles reutilisent la MEME facade productrice. Pas de somme fictive. */
+    local seenRootSites = {};
+    for (local k = 0; k < pairs.len() && tested < 2; k++) {
+      if (OpexOpsMeasureEnd(mark) >= limit - 20000) { reason = "OPCAP"; break; }
+      yield null;
+      local pair = pairs[k];
+      tested++;
+      local aSite = OpexRoad100PaxRootsTownSite(pair.from, cargo, covered,
+          mark, limit);
+      scans += aSite.roads;
+      if (aSite.reason == "OPCAP") { reason = "OPCAP"; break; }
+      yield null;
+      local bSite = OpexRoad100PaxRootsTownSite(pair.to, cargo, covered,
+          mark, limit);
+      scans += bSite.roads;
+      if (bSite.reason == "OPCAP") { reason = "OPCAP"; break; }
+      local status = "NO_SITE";
+      local revenueUpper = 0;
+      local roiUpper = -1;
+      if (aSite.tile >= 0 && bSite.tile >= 0) {
+        facades++;
+        status = "FRONT_ONLY_UNCONNECTED";
+        if ((aSite.tile in seenRootSites) || (bSite.tile in seenRootSites))
+          status = "REUSED_ROOT_NO_INCREMENT";
+        else if (aSite.marginal <= 0) status = "NO_SOURCE";
+        else if (bSite.acceptance < ROAD_ACCEPTANCE_FULL_UNIT) status = "NO_ACCEPT";
+        else {
+          /* Sur-estimation DECLAREE : tous les PASS source livrés avec
+           * 0 jour de transit, sans temps de rotation ni bouchon.
+           * B->A ne contribue en rien ; A seulement et 1 bus theorique. */
+          local fareMax = AICargo.GetCargoIncome(cargo, pair.distance, 0);
+          revenueUpper = 12 * aSite.marginal * fareMax;
+          roiUpper = ((revenueUpper - engine.runningCost) * 1000) / costFloor;
+          status = "UPPER_ONLY_NO_ROUTE_QUOTE";
+        }
+        seenRootSites.rawset(aSite.tile, true);
+        seenRootSites.rawset(bSite.tile, true);
+      }
+      AILog.Info("ROAD100_PAX_ROOTS phase=pair year=" + year
+          + " srcTown=" + pair.from.id + " dstTown=" + pair.to.id
+          + " center_dist=" + pair.distance + " siteA=" + aSite.tile
+          + " siteB=" + bSite.tile + " frontA=" + aSite.front
+          + " frontB=" + bSite.front + " roadsA=" + aSite.roads
+          + " roadsB=" + bSite.roads + " tests=" + (aSite.tests + bSite.tests)
+          + " site_status_a=" + aSite.reason + " site_status_b=" + bSite.reason
+          + " prod_a=" + aSite.marginal + " prod_b=" + bSite.marginal
+          + " accept_b=" + bSite.acceptance + " cost_floor=" + costFloor
+          + " cost_quote=-1 revenue_cap_a_to_b=" + revenueUpper
+          + " roi=-1 roi_upper=" + roiUpper + " status=" + status
+          + " ops=" + OpexOpsMeasureEnd(mark));
+    }
+    if (reason != "OPCAP") reason = facades > 0 ? "FRONTS_ONLY" : "NO_FRONT_PAIR";
+  } while (false);
+  AILog.Info("ROAD100_PAX_ROOTS phase=summary year=" + year
+      + " status=" + reason + " towns=" + towns.len()
+      + " pairs_scanned=" + seen + " in_band=" + inBand
+      + " pairs_ranked=" + pairs.len() + " pairs_tested=" + tested
+      + " roads_scanned=" + scans + " facade_pairs=" + facades
+      + " ops=" + OpexOpsMeasureEnd(mark)
+      + " admitted=0 built=0 route_quoted=0");
+}
+
+function OpexRoad100MailIntertownGenerator(catalog, lines, out, stats,
+    abandonedPairs = null, targetKind = null, targetId = -1)
+{
+  if (!ROAD100_MAIL_INTERTOWN || catalog == null || catalog.mailCargo < 0
+      || !(catalog.mailCargo in catalog.roadEngineByCargo)
+      || (targetKind != null && targetKind != "town")) return;
+  local cargo = catalog.mailCargo;
+  local towns = [];
+  foreach (town in catalog.towns) {
+    local produced = AITown.GetLastMonthProduction(town.id, cargo);
+    if (produced <= 0 || OpexOriginServed(lines, town.tile, true)) continue;
+    towns.append({ id = town.id, tile = town.tile, monthly = produced });
+  }
+  towns.sort(function(a, b) {
+    if (a.monthly != b.monthly) return a.monthly > b.monthly ? -1 : 1;
+    return a.id < b.id ? -1 : (a.id > b.id ? 1 : 0);
+  });
+  if (towns.len() > 16) towns.resize(16);
+  local pairs = [];
+  foreach (from in towns) {
+    foreach (to in towns) {
+      if (from.id == to.id) continue;
+      if (targetKind == "town" && targetId >= 0
+          && from.id != targetId && to.id != targetId) continue;
+      local d = AIMap.DistanceManhattan(from.tile, to.tile);
+      if (d < (ROAD100_MAIL_LONG_EXISTING ? 43 : 12)
+          || d > (ROAD100_MAIL_LONG_EXISTING ? 80 : 42)
+          || OpexRoadPairServed(lines, from.tile, to.tile)) continue;
+      if (abandonedPairs != null) {
+        local key = "freight|" + cargo + "|t" + from.id + "|t" + to.id;
+        if (key in abandonedPairs) continue;
+      }
+      pairs.append({ from = from, to = to, sourceMonthly = from.monthly,
+          distance = d });
+    }
+  }
+  pairs.sort(OpexRoad100MailPairSort);
+  local covered = OpexRoad100MailOwnedCoverage();
+  local tested = 0;
+  local admitted = 0;
+  local noPlan = 0;
+  local noProfit = 0;
+  local mark = OpexOpsMeasureBegin();
+  foreach (pair in pairs) {
+    if (tested >= 3 || OpexOpsMeasureEnd(mark) >= 200000) break;
+    yield null;
+    /* Proxy de ville pour LOCALISER le site uniquement, pas pour classer
+     * une recette annuelle. Le planner ne reconnait du MAIL que sur son
+     * site source, et l'acceptation pleine sur le site B. */
+    local mailLong = ROAD100_MAIL_LONG_EXISTING;
+    local preliminary = { mode = "road", kind = "freight", cargo = cargo,
+        src = pair.from.tile, dst = pair.to.tile,
+        srcTown = pair.from.id, dstTown = pair.to.id };
+    if (mailLong) preliminary.road100MailLongExisting <- true;
+    local siting = OpexRoadPlanFor(catalog, preliminary);
+    tested++;
+    if (siting.plan == null) { noPlan++; continue; }
+    local plan = siting.plan;
+    if (plan.vehType != AIRoad.ROADVEHTYPE_TRUCK
+        || plan.stationType != AIStation.STATION_TRUCK_STOP
+        || plan.stopA.value <= 0
+        || plan.stopB.value < ROAD_ACCEPTANCE_FULL_UNIT) {
+      noPlan++;
+      continue;
+    }
+    local marginal = OpexRoad100MailMarginalSource(cargo, plan.stopA.tile, covered);
+    if (marginal <= 0) { noPlan++; continue; }
+    local realDistance = AIMap.DistanceManhattan(plan.stopA.tile, plan.stopB.tile);
+    if (realDistance < 1) { noPlan++; continue; }
+    local candidate = OpexMakeRoadCandidate(catalog, "freight", cargo,
+        pair.from.tile, pair.to.tile, pair.from.id, pair.to.id,
+        realDistance, marginal, stats);
+    if (candidate == null) { noProfit++; continue; }
+    local economics = OpexRoadLineEconomics(catalog, cargo, realDistance,
+        marginal, candidate.engine, "freight", plan.routeDistance);
+    if (mailLong)
+      economics = OpexRoad100MailExistingEconomics(catalog, economics, plan);
+    if (economics == null || economics.profitAnnual <= 0) {
+      noProfit++;
+      continue;
+    }
+    if (ROAD100_MAIL_LONG_EXISTING &&
+        (economics.profitAnnual < 3000 || economics.roi < 250)) {
+      noProfit++;
+      continue;
+    }
+    OpexApplyRoadEconomics(candidate, economics, realDistance);
+    candidate.road100SiteFirst <- true;
+    candidate.road100MailIntertown <- true;
+    if (mailLong) candidate.road100MailLongExisting <- true;
+    candidate.road100SiteMonthly <- marginal;
+    candidate.road100GenSiteA <- plan.stopA.tile;
+    candidate.road100GenSiteB <- plan.stopB.tile;
+    candidate.road100GenDepot <- plan.depot.tile;
+    candidate.road100GenRoute <- plan.routeDistance;
+    candidate.immobilise = economics.immobilise;
+    out.append(candidate);
+    admitted++;
+    if (DECISION_LOG) OpexDecide("ROAD100_MAIL",
+        "phase=admit srcTown=" + pair.from.id + " dstTown=" + pair.to.id
+        + " source_monthly=" + marginal + " accept=" + plan.stopB.value
+        + " distance=" + realDistance + " route=" + plan.routeDistance
+        + " existing_long=" + (mailLong ? 1 : 0)
+        + " profit=" + economics.profitAnnual + " vehicles=" + economics.trains);
+  }
+  if (DECISION_LOG) OpexDecide("ROAD100_MAIL",
+      "phase=summary towns=" + towns.len() + " pairs=" + pairs.len()
+      + " tested=" + tested + " admitted=" + admitted + " no_plan=" + noPlan
+      + " no_profit=" + noProfit + " ops=" + OpexOpsMeasureEnd(mark));
+}
+
 function OpexBuildRoadCandidates(catalog, budget, lines, abandonedPairs = null, profile = null, freightCargo = null, targetKind = null, targetId = -1, v276Pair = false)
 {
   if (V276_CAND_SLICES > 0 && !v276Pair) {
@@ -2347,6 +3689,21 @@ function OpexBuildRoadCandidates(catalog, budget, lines, abandonedPairs = null, 
       ? OpexOpsMeasureBegin() : null;
   OpexRoadFreightCandidates(catalog, lines, all, stats, abandonedPairs, profile, freightCargo,
                             targetKind, targetId);
+  if (ROAD100_SOLO_PAX)
+    OpexRoad100SoloPaxCandidates(catalog, lines, all, stats, abandonedPairs, targetKind, targetId);
+  if (ROAD100_TOWN_BUS)
+    OpexRoad100TownBusCandidates(catalog, lines, all, stats, abandonedPairs, targetKind, targetId);
+  if (ROAD100_MAIL_INTERTOWN) {
+    local mailIterator = OpexRoad100MailIntertownGenerator(
+        catalog, lines, all, stats, abandonedPairs, targetKind, targetId);
+    while (mailIterator.getstatus() != "dead") resume mailIterator;
+  }
+  /* ROAD100-29 : diagnostics seulement. Aucun ajout dans `all`, donc TopK,
+   * classement, projet et chantier restent exactement ceux d'avant. */
+  if (ROAD100_PAX_INTERCITY_ROOTS && targetKind == null) {
+    local rootsIterator = OpexRoad100PaxRootsShadowGenerator(catalog);
+    while (rootsIterator.getstatus() != "dead") resume rootsIterator;
+  }
   if (freightMark != null) {
     profile.freightOps += OpexOpsMeasureEnd(freightMark);
   }

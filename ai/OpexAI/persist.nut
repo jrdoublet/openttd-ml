@@ -926,6 +926,59 @@ function OpexAI::_reconcileAfterLoad()
         dropped++;
         continue;
       }
+      /* ROAD100-14 : les deux terminus historiques valides suffisent pour
+       * conserver la ligne. Un arret A1 disparu, corrompu ou joint a une
+       * ancienne gare ne doit PAS faire perdre la ligne ni provoquer des
+       * commandes monde pendant la reconciliation. task_road effectuera la
+       * reparation des ordres plus tard, hors Load. Chemin sans tour intact. */
+      if (("mode" in line) && line.mode == "road" &&
+          ("kind" in line) && line.kind == "pax" &&
+          ("road100TourActive" in line) && line.road100TourActive) {
+        local tourValid = ("road100TourStops" in line) &&
+            typeof line.road100TourStops == "array" &&
+            line.road100TourStops.len() == 4;
+        local tourReason = "SHAPE";
+        if (tourValid) {
+          foreach (tourTile in line.road100TourStops) {
+            if (typeof tourTile != "integer") {
+              tourValid = false;
+              tourReason = "TYPE";
+              break;
+            }
+          }
+        }
+        if (tourValid && (line.road100TourStops[0] != line.stationA ||
+            line.road100TourStops[1] != line.stationB ||
+            line.road100TourStops[3] != line.stationB ||
+            line.road100TourStops[2] == line.stationA ||
+            line.road100TourStops[2] == line.stationB)) {
+          tourValid = false;
+          tourReason = "ORDERS";
+        }
+        if (tourValid) {
+          local tourTileA1 = line.road100TourStops[2];
+          if (!AIMap.IsValidTile(tourTileA1) ||
+              !AIRoad.IsRoadStationTile(tourTileA1)) {
+            tourValid = false;
+            tourReason = "TILE";
+          } else {
+            local tourStationA1 = AIStation.GetStationID(tourTileA1);
+            if (!AIStation.IsValidStation(tourStationA1) ||
+                tourStationA1 == stationA || tourStationA1 == stationB ||
+                !AICompany.IsMine(AITile.GetOwner(tourTileA1))) {
+              tourValid = false;
+              tourReason = "STATION";
+            }
+          }
+        }
+        if ("road100TourNeedsRepair" in line) line.road100TourNeedsRepair = !tourValid;
+        else line.road100TourNeedsRepair <- !tourValid;
+        if (!tourValid && DECISION_LOG) {
+          OpexDecide("ROAD100_TOUR", "phase=load_repair line=" +
+              (("lineId" in line) ? line.lineId : -1) +
+              " reason=" + tourReason);
+        }
+      }
       /* Les camions sont identifies par leurs ordres : ne pas reecrire le champ vehicles d'une
        * ligne route, meme si une ancienne version l'a laisse dans la table. */
       if ((!("mode" in line) || line.mode != "road") && ("vehicles" in line) && line.vehicles != null) {

@@ -289,10 +289,11 @@ class PO01CContracts(unittest.TestCase):
         }
         self.assertEqual(set(RESERVE0_PO01F_SHA256), {'builder_rail.nut'})
         from n75_mc_legacy import historical_bytes
+        from road100_off_projection import off_bytes as road100_off_bytes
         for name, digest in expected.items():
             # P1 inserts only the guarded no-second-A* safety check in builder_rail.
             # V233L is projected OFF first; the R07/R11 historical SHA stays untouched.
-            current = off_bytes(name, (AI / name).read_bytes())
+            current = off_bytes(name, road100_off_bytes(name, (AI / name).read_bytes()))
             if name == 'builder_rail.nut':
                 current = historical_bytes(name, current)
             self.assertEqual(hashlib.sha256(current).hexdigest(),
@@ -484,6 +485,7 @@ class PO01CContracts(unittest.TestCase):
                          {'builder_water.nut', 'main.nut', 'probes.nut',
                           'settings.nut', 'info.nut'})
         from n75_mc_legacy import historical_bytes
+        from road100_off_projection import off_bytes as road100_off_bytes
         for name, digest in expected.items():
             with self.subTest(name=name):
                 # Project ESTIM once on the live source. Its strict guards
@@ -491,7 +493,7 @@ class PO01CContracts(unittest.TestCase):
                 # after V233L has stripped nearby guards is not meaningful.
                 # Keep the already reviewed V233L -> historical order and
                 # exercise their projections without a second ESTIM pass.
-                without_estim = estim_off_bytes(name, (AI / name).read_bytes())
+                without_estim = estim_off_bytes(name, road100_off_bytes(name, (AI / name).read_bytes()))
                 if name == 'probes.nut':
                     # La sonde de decision 1973-1975 est appendue en dehors de
                     # toute branche ESTIM, sous DECISION_LOG. Le temoin PO01D

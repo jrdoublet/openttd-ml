@@ -14,11 +14,39 @@ from test_v261_forum_behaviours import ROOT, all_code, body, source, uncomment
 class TipsyfoxBehaviours(unittest.TestCase):
     def test_cpu_each_valuate_site_is_reviewed(self):
         expected = json.loads((ROOT / 'sweeps/fixtures/v262_valuate_inventory.json').read_text())
+        # L'inventaire V262 historique reste immuable. Les ajouts ROAD100
+        # opt-in, revus séparément, s'ajoutent à l'égalité de multiensembles
+        # (aucun appel surnuméraire, manquant ou argument modifié n'est toléré).
+        road100_reviewed = [
+            ('builder_road.nut', 'producing', 'AITile.GetCargoProduction,cargo,1,1,0'),
+            ('builder_road.nut', 'producing', 'AITile.GetCargoProduction,candidate.cargo,1,1,0'),
+            ('builder_road.nut', 'producers', 'AITile.GetCargoProduction,candidate.cargo,1,1,0'),
+            ('builder_road.nut', 'producing', 'AITile.GetCargoProduction,candidate.cargo,1,1,0'),
+            ('builder_road.nut', 'production', 'AITile.GetCargoProduction,line.cargo,1,1,0'),
+            ('builder_road.nut', 'roads', 'AIRoad.IsRoadTile'),
+            # ROAD100-27a/27b : couverture exacte de la source MAIL
+            # (appel unique, avec exclusion des tuiles déjà couvertes).
+            # L'inventaire historique V262 est immuable.
+            ('candidates.nut', 'sources', 'AITile.GetCargoProduction,cargo,1,1,0'),
+            # ROAD100-24 : un seul inventaire natif de la voirie pour chaque
+            # extrémité de quai fret, opt-in et borné; fixture V262 inchangée.
+            ('builder_road.nut', 'roads', 'AIRoad.IsRoadTile'),
+            # ROAD100-29 : sonde opt-in bornée à douze façades par ville,
+            # production PAX sur rayon BUS, excluant les stations Opex.
+            # Ces deux Valuate sont contrôlés sans changer la fixture V262.
+            ('candidates.nut', 'roads', 'AIRoad.IsRoadTile'),
+            ('candidates.nut', 'producers', 'AITile.GetCargoProduction,cargo,1,1,0'),
+            # ROAD100-30a : deux listes natives distinctes, producteurs
+            # PAX par tuile et appartenance a la ville du site.
+            ('economy.nut', 'producing', 'AITile.GetCargoProduction,cargo,1,1,0'),
+            ('economy.nut', 'fromTown', 'AITile.GetClosestTown'),
+        ]
         found = []
         for name, code in all_code().items():
             for m in re.finditer(r'(\w+)\.Valuate\s*\(([^()]*)\)', code):
                 found.append((name, m[1], re.sub(r'\s+', '', m[2])))
-        self.assertEqual(Counter(found), Counter(tuple(row) for row in expected))
+        self.assertEqual(Counter(found), Counter(tuple(row) for row in expected)
+                         + Counter(road100_reviewed))
 
     def test_cpu_fleet_valuators_are_native_and_single_pass(self):
         for name, fn in [('tension.nut', 'OpexTensionFleetScan')]:

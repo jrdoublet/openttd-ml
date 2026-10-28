@@ -12,6 +12,7 @@ from types import SimpleNamespace
 from test_po01c_regen_split import generated_estim_off
 from test_v261_forum_behaviours import body, source, uncomment
 from v233_long_good_legacy import FIXTURE, off_source
+from road100_off_projection import off_source as road100_off_source
 
 AI = Path(__file__).resolve().parents[1] / "ai/OpexAI"
 
@@ -923,7 +924,7 @@ class V233LongGoodContracts(unittest.TestCase):
             self.assertRegex(block, level + r"_value\s*=\s*1\b")
         self.assertEqual(source("settings.nut").count('GetSetting("v233_long_good")'), 1)
         self.assertIn("V233_LONG_GOOD <- 1;", source("globals_pre.nut"))
-        self.assertEqual(source("info.nut").count("AddSetting("), 82)  # + air_site_probe/ranked + AIR-LOAD-1
+        self.assertEqual(source("info.nut").count("AddSetting("), 116)  # historical 82 + 34 default-OFF ROAD100 experiments incl. V36
 
     def test_off_reviewed_edits_preserve_all_original_hashes(self):
         self.assertEqual(
@@ -943,7 +944,7 @@ class V233LongGoodContracts(unittest.TestCase):
                     end = current.index('  if (OpexV233LIs(candidate)', start)
                     self.assertIn('OpexDecide("ESTIM_SPEND"', current[start:end])
                     current = current[:start] + current[end:]
-                projected = off_source(name, current)
+                projected = off_source(name, road100_off_source(name, current))
                 self.assertEqual(hashlib.sha256(projected.encode()).hexdigest(),
                                  RESERVE0_OFF_SHA256.get(name, entry["sha256_off"]))
                 if name not in ("main.nut", "globals_pre.nut", "info.nut", "settings.nut", "persist.nut"):

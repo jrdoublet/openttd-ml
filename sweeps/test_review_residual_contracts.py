@@ -223,7 +223,12 @@ class ReviewResidualContractsTest(unittest.TestCase):
         route_end = src.index("function OpexRoadRefleet(", route_start)
         route_body = src[route_start:route_end]
         start_check = route_body.index("if (!AIVehicle.StartStopVehicle(v)) {")
-        rollback_call = route_body.index("OpexRoadRollback(stopA, stopB, depot, built, added);", start_check)
+        # V20 conserve l'arrêt de tous les véhicules avant rollback et
+        # étend la transaction aux stations satellites physiquement jointes.
+        self.assertIn("if (!allSold) return;", rb_body)
+        self.assertIn("if (satellites != null)", rb_body)
+        self.assertIn("AIRoad.RemoveRoadStation(entry.tile)", rb_body)
+        rollback_call = route_body.index("OpexRoadRollback(stopA, stopB, depot, built, added, portfolioSatellites);", start_check)
         self.assertIn("AIVehicle.StartStopVehicle(v)", route_body[start_check:rollback_call])
 
     def test_sign_truncates_name_to_31_chars(self):

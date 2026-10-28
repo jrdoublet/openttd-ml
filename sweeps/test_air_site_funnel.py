@@ -11,6 +11,7 @@ from pathlib import Path
 
 from n75_mc_legacy import historical_bytes
 from v233_long_good_legacy import FIXTURE, off_bytes
+from road100_off_projection import off_source as road100_off_source
 
 ROOT = Path(__file__).resolve().parents[1]
 AI = ROOT / "ai" / "OpexAI"
@@ -97,8 +98,11 @@ class AirSiteFunnelContracts(unittest.TestCase):
     def test_mode0_historical_bytes_and_frozen_generator(self):
         legacy = historical_bytes("air_sites.nut", (AI / "air_sites.nut").read_bytes())
         self.assertEqual(hashlib.sha256(legacy).hexdigest(), AIR_SITES_SHA)
-        # Air does not edit the PO01C copy; V233L patches are projected OFF.
-        projected = off_bytes("po01c_generators.nut", self.generators)
+        # ROAD100-21 ne modifie la copie PO01C qu'en opt-in. Soustraire
+        # ses hunks EXACTS avant la projection V233L historique, sans jamais
+        # modifier le hash ni la fixture de référence AIR/V233L.
+        road100_off = road100_off_source("po01c_generators.nut", self.generators.decode("utf-8"))
+        projected = off_bytes("po01c_generators.nut", road100_off.encode("utf-8"))
         self.assertEqual(
             hashlib.sha256(projected).hexdigest(),
             FIXTURE["files"]["po01c_generators.nut"]["sha256_off"],

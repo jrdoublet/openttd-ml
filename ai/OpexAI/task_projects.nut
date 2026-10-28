@@ -1253,6 +1253,12 @@ function OpexAI::_tryBuildProjects(year)
     }
 
     local c121ChainAttempt = false;
+    if (ROAD100_ROAD_BATCH && project.mode == "road" && builtCount >= 4) {
+      c75StopReason = "road100_pass_limit";
+      if (DECISION_LOG) OpexDecide("ROAD100_BATCH", "year=" + year
+          + " rank=" + i + " built=" + builtCount + " action=pass_limit");
+      break;
+    }
     if (builtCount > 0) {
       local projCap = OpexProjectFinanceCapital(project);
       local c75KPass = (c75KPassData != null) ? c75KPassData.K_pass : 0;
@@ -1265,7 +1271,34 @@ function OpexAI::_tryBuildProjects(year)
             c75BypassThisProject = true;
             c121ChainAttempt = true;
           }
-        } else if (OpexC75KPassBypassIsNewLine(project)) {
+        } else if (ROAD100_ROAD_BATCH && project.mode == "road"
+                   && builtCount < 4 && project.profitAnnual > 0) {
+          availCap = OpexAvailableCapital();
+          /* Le prix du deuxieme chantier ne doit jamais epuiser la caisse.
+           * L'heuristique reste un filet de securite : seule la simulation
+           * jugera du profit reel. */
+          local road100Return = (projCap > 0)
+              ? project.profitAnnual.tofloat() / projCap.tofloat() : 0.0;
+          /* ROAD100-23 : 41 refus V21/5x5 venaient tous du ROI<25%,
+           * mediane 16,3% et aucun de la caisse. Essai a 15% sans credit
+           * de profit virtuel ni allegement du garde-fou de 50 k£. */
+          local road100Floor = ROAD100_BATCH_ROI_15 ? 0.15 : 0.25;
+          if (road100Return >= road100Floor && availCap >= projCap + 50000) {
+            c75BypassThisProject = true;
+            if (DECISION_LOG) {
+              OpexDecide("ROAD100_BATCH", "year=" + year + " rank=" + i
+                  + " built=" + builtCount + " k_pass=" + c75KPass
+                  + " finance=" + projCap + " available=" + availCap
+                  + " profit=" + project.profitAnnual + " action=allow");
+            }
+          } else if (DECISION_LOG) {
+            OpexDecide("ROAD100_BATCH", "year=" + year + " rank=" + i
+                + " built=" + builtCount + " k_pass=" + c75KPass
+                + " finance=" + projCap + " available=" + availCap
+                + " profit=" + project.profitAnnual + " action=refuse");
+          }
+        } else if ((!ROAD100_ROAD_BATCH || project.mode != "road")
+                   && OpexC75KPassBypassIsNewLine(project)) {
           availCap = OpexAvailableCapital();
           if (projCap <= availCap) {
             OpexC75BypassRecordEligible(year, project, projCap, availCap, c75KPass,
