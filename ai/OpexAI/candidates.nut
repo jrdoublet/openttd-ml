@@ -2677,23 +2677,30 @@ function OpexRoad100SoloPaxCandidates(catalog, lines, out, stats,
   if (cargo < 0 || !(cargo in catalog.roadEngineByCargo)) return;
   local towns = catalog.towns;
   local ranked = [];
+  local coverage = AIStation.GetCoverageRadius(AIStation.STATION_BUS_STOP);
   foreach (i, town in towns) {
     if (OpexTownBusPaxServed(lines, town.id)
         || OpexTownRoadLineCount(lines, town.tile) >= 4) continue;
-    local monthly = AITown.GetLastMonthProduction(town.id, cargo);
-    if (monthly <= 0 && town.pop > 0) monthly = (town.pop * 15) / 100;
-    if (monthly <= 0) continue;
-    local houses = ("houses" in town && town.houses > 0) ? town.houses : (town.pop / 25);
-    if (houses < 1) houses = 1;
-    /* Meme capture prudente que le generateur de bus historique V231 :
-     * une dizaine de maisons dans le rayon de l'arret, au plus 86 % du flux.
-     * Le site reel devra encore etre valide par le constructeur. */
-    local pct = (10 * 100) / houses;
-    if (pct > 86) pct = 86;
-    if (pct < 1) pct = 1;
-    local captured = (monthly * pct) / 100;
-    if (captured < 1) continue;
-    ranked.append({ index = i, id = town.id, captured = captured, totalMonthly = monthly });
+    if (ROAD1Y_PAX_SITES) {
+      local site = OpexRoadFindTownBusSite(town, cargo, coverage);
+      if (site == null || site.monthly <= 0) continue;
+      ranked.append({ index = i, id = town.id, site = site, captured = site.monthly, totalMonthly = site.monthly });
+    } else {
+      local monthly = AITown.GetLastMonthProduction(town.id, cargo);
+      if (monthly <= 0 && town.pop > 0) monthly = (town.pop * 15) / 100;
+      if (monthly <= 0) continue;
+      local houses = ("houses" in town && town.houses > 0) ? town.houses : (town.pop / 25);
+      if (houses < 1) houses = 1;
+      /* Meme capture prudente que le generateur de bus historique V231 :
+       * une dizaine de maisons dans le rayon de l'arret, au plus 86 % du flux.
+       * Le site reel devra encore etre valide par le constructeur. */
+      local pct = (10 * 100) / houses;
+      if (pct > 86) pct = 86;
+      if (pct < 1) pct = 1;
+      local captured = (monthly * pct) / 100;
+      if (captured < 1) continue;
+      ranked.append({ index = i, id = town.id, site = null, captured = captured, totalMonthly = monthly });
+    }
   }
   ranked.sort(OpexRoad100SortTownDemand);
   local n = ranked.len();
@@ -2722,12 +2729,18 @@ function OpexRoad100SoloPaxCandidates(catalog, lines, out, stats,
         if (pairKey in abandonedPairs) continue;
       }
       stats.pairsInBand++;
-      local monthly = ROAD100_INTERCITY_SITE_FLEET
-          ? (src.totalMonthly + dst.totalMonthly) : (src.captured + dst.captured);
+      local monthly = ROAD1Y_PAX_SITES
+          ? (src.captured + dst.captured)
+          : (ROAD100_INTERCITY_SITE_FLEET ? (src.totalMonthly + dst.totalMonthly) : (src.captured + dst.captured));
       local candidate = OpexMakeRoadCandidate(catalog, "pax", cargo, townA.tile,
           townB.tile, src.id, dst.id, distance, monthly, stats, false,
           ROAD100_INTERCITY_SITE_FLEET ? 30 : 0);
       if (candidate != null) {
+        if (ROAD1Y_PAX_SITES && src.site != null && dst.site != null) {
+          candidate.siteA <- src.site;
+          candidate.siteB <- dst.site;
+          candidate.road1yBusSite <- true;
+        }
         if (ROAD100_INTERCITY_SITE_FLEET) {
           candidate.road100FleetCap <- 30;
           candidate.road100IntercitySiteFleet <- true;

@@ -125,6 +125,7 @@ function OpexLoadSettings()
   ROAD_MAX_TRACE_TILES = ROAD1Y_DIST_BANDS ? 128 : 48;
   ROAD1Y_FLEET = AIController.GetSetting("road1y_fleet");
   if (ROAD1Y_FLEET < 0) ROAD1Y_FLEET = 0;
+  ROAD1Y_PAX_SITES = AIController.GetSetting("road1y_pax_sites") == 1;
   ROAD100_WAIT_FLEET = AIController.GetSetting("road100_wait_fleet") == 1
       && ROAD100_SITE_FIRST;
   ROAD100_SITE_WINDOW = AIController.GetSetting("road100_site_window") == 1

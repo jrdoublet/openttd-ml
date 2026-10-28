@@ -396,6 +396,199 @@ function OpexRoadTileTooClose(tile, others, minDist)
   return false;
 }
 
+function OpexRoadSiteFrontToward(site, targetTile)
+{
+  if (site == null) return -1;
+  if (!("driveThrough" in site) || !site.driveThrough) return site.front;
+  if (!("front2" in site) || site.front2 == null || site.front2 < 0) return site.front;
+  if (AIMap.DistanceManhattan(site.front2, targetTile) < AIMap.DistanceManhattan(site.front, targetTile)) {
+    return site.front2;
+  }
+  return site.front;
+}
+
+function OpexRoadBusSiteStillBuildable(site)
+{
+  if (site == null || !("tile" in site) || !("front" in site)) return false;
+  if (!AIMap.IsValidTile(site.tile) || !AIMap.IsValidTile(site.front)) return false;
+  if (AITile.IsStationTile(site.tile) || AIRoad.IsRoadDepotTile(site.tile)) return false;
+  local liveBusStops = OpexRoadOurBusTiles();
+  if (OpexRoadTileTooClose(site.tile, liveBusStops, ROAD_BUS_STOP_MIN_DISTANCE)) return false;
+  local isDriveThrough = ("driveThrough" in site) && site.driveThrough;
+  local ok = false;
+  {
+    local test = AITestMode();
+    if (isDriveThrough) {
+      ok = AIRoad.IsRoadTile(site.tile) && AIRoad.IsRoadTile(site.front)
+          && AIRoad.AreRoadTilesConnected(site.tile, site.front)
+          && AIRoad.BuildDriveThroughRoadStation(site.tile, site.front, AIRoad.ROADVEHTYPE_BUS, AIStation.STATION_NEW);
+    } else {
+      ok = (AIRoad.IsRoadTile(site.front) || AITile.IsBuildable(site.front))
+          && AIRoad.BuildRoad(site.front, site.tile)
+          && AIRoad.BuildRoadStation(site.tile, site.front, AIRoad.ROADVEHTYPE_BUS, AIStation.STATION_NEW);
+    }
+  }
+  return ok;
+}
+
+/* ROAD1Y-B : Scan natif des sites de bus sur le modele des aeroports.
+ * Valuate natifs sans boucle Squirrel sur les tuiles; budget d'opcodes borne. */
+function OpexRoadFindTownBusSite(town, cargo, coverage)
+{
+  if (town == null || !("id" in town) || cargo < 0 || coverage < 0) return null;
+  if (town.id in ROAD_BUS_SITE_CACHE) {
+    local cached = ROAD_BUS_SITE_CACHE[town.id];
+    if (cached != null && OpexRoadBusSiteStillBuildable(cached)) {
+      return cached;
+    }
+    delete ROAD_BUS_SITE_CACHE[town.id];
+  }
+
+  local pop = ("pop" in town && town.pop > 0) ? town.pop : AITown.GetPopulation(town.id);
+  local r = 5 + (sqrt(pop > 0 ? pop : 0) / 8).tointeger();
+  if (r > 16) r = 16;
+  if (r < 5) r = 5;
+
+  local center = ("tile" in town && AIMap.IsValidTile(town.tile)) ? town.tile : AITown.GetLocation(town.id);
+  if (!AIMap.IsValidTile(center)) return null;
+
+  local cx = AIMap.GetTileX(center);
+  local cy = AIMap.GetTileY(center);
+  local minX = cx - r; if (minX < 1) minX = 1;
+  local minY = cy - r; if (minY < 1) minY = 1;
+  local maxX = cx + r; if (maxX >= AIMap.GetMapSizeX() - 1) maxX = AIMap.GetMapSizeX() - 2;
+  local maxY = cy + r; if (maxY >= AIMap.GetMapSizeY() - 1) maxY = AIMap.GetMapSizeY() - 2;
+  if (minX > maxX || minY > maxY) {
+    ROAD_BUS_SITE_CACHE[town.id] <- null;
+    return null;
+  }
+
+  local tiles = AITileList();
+  tiles.AddRectangle(AIMap.GetTileIndex(minX, minY), AIMap.GetTileIndex(maxX, maxY));
+  tiles.Valuate(AITile.IsWaterTile);
+  tiles.KeepValue(0);
+  tiles.Valuate(AITile.IsCoastTile);
+  tiles.KeepValue(0);
+  tiles.Valuate(AITile.GetClosestTown);
+  tiles.KeepValue(town.id);
+  tiles.Valuate(AIMap.DistanceManhattan, center);
+  tiles.RemoveAboveValue(r);
+  tiles.Valuate(AITile.GetCargoAcceptance, cargo, 1, 1, coverage);
+  tiles.KeepAboveValue(7);
+
+  local roadList = AITileList();
+  roadList.AddList(tiles);
+  roadList.Valuate(AIRoad.IsRoadTile);
+  roadList.KeepValue(1);
+
+  local buildList = AITileList();
+  buildList.AddList(tiles);
+  buildList.Valuate(AITile.IsBuildable);
+  buildList.KeepValue(1);
+
+  roadList.AddList(buildList);
+  tiles.KeepList(roadList);
+
+  tiles.Valuate(AITile.GetCargoProduction, cargo, 1, 1, coverage);
+  tiles.KeepAboveValue(0);
+  tiles.Sort(AIList.SORT_BY_VALUE, AIList.SORT_DESCENDING);
+
+  if (tiles.Count() == 0) {
+    ROAD_BUS_SITE_CACHE[town.id] <- null;
+    return null;
+  }
+
+  local mapX = AIMap.GetMapSizeX();
+  local offsets = [1, -1, mapX, -mapX];
+  local liveBusStops = OpexRoadOurBusTiles();
+  local bestSite = null;
+  local probed = 0;
+
+  for (local t = tiles.Begin(); !tiles.IsEnd() && probed < 8; t = tiles.Next()) {
+    probed++;
+    if (OpexRoadTileTooClose(t, liveBusStops, ROAD_BUS_STOP_MIN_DISTANCE)) continue;
+    local isRoad = AIRoad.IsRoadTile(t);
+    local isBuild = !isRoad && AITile.IsBuildable(t) && OpexRoadIsFlat(t);
+    if (!isRoad && !isBuild) continue;
+
+    if (isRoad) {
+      local front1 = -1;
+      local front2 = -1;
+      foreach (offset in offsets) {
+        local f = t + offset;
+        if (AIMap.IsValidTile(f) && AIRoad.IsRoadTile(f) && AIRoad.AreRoadTilesConnected(t, f)) {
+          if (front1 < 0) front1 = f;
+          else if (front2 < 0) { front2 = f; break; }
+        }
+      }
+      if (front1 >= 0) {
+        local ok = false;
+        {
+          local test = AITestMode();
+          ok = AIRoad.BuildDriveThroughRoadStation(t, front1, AIRoad.ROADVEHTYPE_BUS, AIStation.STATION_NEW);
+        }
+        if (ok) {
+          bestSite = {
+            tile = t,
+            front = front1,
+            front2 = front2,
+            driveThrough = true,
+            townId = town.id,
+            prod = tiles.GetValue(t),
+            accept = AITile.GetCargoAcceptance(t, cargo, 1, 1, coverage)
+          };
+          break;
+        }
+      }
+    } else {
+      foreach (offset in offsets) {
+        local front = t + offset;
+        if (!AIMap.IsValidTile(front)) continue;
+        if (!AIRoad.IsRoadTile(front) && !AITile.IsBuildable(front)) continue;
+        if (!OpexRoadIsFlat(front)) continue;
+        local ok = false;
+        {
+          local test = AITestMode();
+          ok = AIRoad.BuildRoad(front, t) &&
+               AIRoad.BuildRoadStation(t, front, AIRoad.ROADVEHTYPE_BUS, AIStation.STATION_NEW);
+        }
+        if (ok) {
+          bestSite = {
+            tile = t,
+            front = front,
+            front2 = -1,
+            driveThrough = false,
+            townId = town.id,
+            prod = tiles.GetValue(t),
+            accept = AITile.GetCargoAcceptance(t, cargo, 1, 1, coverage)
+          };
+          break;
+        }
+      }
+      if (bestSite != null) break;
+    }
+  }
+
+  if (bestSite != null) {
+    local townProducers = AITile.GetCargoProduction(center, cargo, 1, 1, r);
+    local townMonthly = AITown.GetLastMonthProduction(town.id, cargo);
+    if (townMonthly <= 0 && pop > 0) townMonthly = (pop * 15) / 100;
+    if (townProducers <= 0) townProducers = bestSite.prod;
+    local usable = bestSite.prod;
+    if (usable > townProducers) usable = townProducers;
+    local siteMonthly = townProducers > 0 ? (townMonthly * usable) / townProducers : usable;
+    if (siteMonthly < 1) siteMonthly = 1;
+    bestSite.monthly <- siteMonthly;
+    bestSite.value <- siteMonthly;
+    bestSite.score <- bestSite.prod;
+    ROAD_BUS_SITE_CACHE[town.id] <- bestSite;
+    return bestSite;
+  }
+
+  ROAD_BUS_SITE_CACHE[town.id] <- null;
+  return null;
+}
+
 /* BFS sur les tuiles de route deja connectees. Pas Pathfinder.Road.
  * srcFront/dstFront : contraindre le premier et dernier pas a l'axe DT, sinon le bus
  * sort en perpendiculaire et reste fige dans l'arret. */
@@ -5016,8 +5209,10 @@ function OpexBuildRoadRoute(catalog, budget, plan, candidate)
    * clairable -- CMD_LANDSCAPE_CLEAR interne de CmdBuildRoadStop la remplace ensuite, "front"
    * garde le bit. Chaque arete n'est ajoutee a `added` que si elle est reellement connectee. */
   local driveThrough = ("driveThrough" in plan) && plan.driveThrough;
+  local driveThroughA = (("driveThrough" in plan.stopA) && plan.stopA.driveThrough) || driveThrough;
+  local driveThroughB = (("driveThrough" in plan.stopB) && plan.stopB.driveThrough) || driveThrough;
   local okA = false;
-  if (driveThrough) {
+  if (driveThroughA) {
     okA = AIRoad.BuildDriveThroughRoadStation(plan.stopA.tile, plan.stopA.front,
                                              plan.vehType, AIStation.STATION_NEW);
   } else {
@@ -5033,7 +5228,7 @@ function OpexBuildRoadRoute(catalog, budget, plan, candidate)
    * MP_STATION (GetAnyRoadBits en fait un cas explicite, verifie dans road_map.cpp) : c'est donc le
    * seul predicat qui prouve que l'arret est reellement raccorde a "front", pas seulement pose. */
   if (okA && AIRoad.IsRoadStationTile(plan.stopA.tile) &&
-      (driveThrough || AIRoad.GetRoadStationFrontTile(plan.stopA.tile) == plan.stopA.front) &&
+      (driveThroughA || AIRoad.GetRoadStationFrontTile(plan.stopA.tile) == plan.stopA.front) &&
       AIRoad.AreRoadTilesConnected(plan.stopA.tile, plan.stopA.front)) stopA = plan.stopA.tile;
   if (stopA == null) {
     result.error = AIError.GetLastError(); result.opcodes += budget.end("build_road_stops");
@@ -5049,7 +5244,7 @@ function OpexBuildRoadRoute(catalog, budget, plan, candidate)
     OpexRoadRollback(partialA, null, null, built, added); result.reason = "ASTOP"; return result;
   }
   local okB = false;
-  if (driveThrough) {
+  if (driveThroughB) {
     okB = AIRoad.BuildDriveThroughRoadStation(plan.stopB.tile, plan.stopB.front,
                                              plan.vehType, AIStation.STATION_NEW);
   } else {
@@ -5060,7 +5255,7 @@ function OpexBuildRoadRoute(catalog, budget, plan, candidate)
                                                     plan.vehType, AIStation.STATION_NEW);
   }
   if (okB && AIRoad.IsRoadStationTile(plan.stopB.tile) &&
-      (driveThrough || AIRoad.GetRoadStationFrontTile(plan.stopB.tile) == plan.stopB.front) &&
+      (driveThroughB || AIRoad.GetRoadStationFrontTile(plan.stopB.tile) == plan.stopB.front) &&
       AIRoad.AreRoadTilesConnected(plan.stopB.tile, plan.stopB.front)) stopB = plan.stopB.tile;
   if (stopB == null) {
     result.error = AIError.GetLastError(); result.opcodes += budget.end("build_road_stops");

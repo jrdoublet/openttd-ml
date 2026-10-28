@@ -508,30 +508,62 @@ function OpexRoadPlanForActive(catalog, candidate) {
   local radiusB = candidate.dstTown >= 0 ? ROAD_TOWN_SEARCH_RADIUS : ROAD_INDUSTRY_SEARCH_RADIUS;
   local dstWantsProduction = candidate.kind == "pax";
 
-  local excludeA = null;
-  if (stop.vehType == AIRoad.ROADVEHTYPE_BUS) {
-    excludeA = OpexRoadOurBusTiles();
-    if (("existingStops" in candidate) && candidate.existingStops != null) {
-      foreach (existingTile in candidate.existingStops) excludeA.append(existingTile);
+  local sitesA = null;
+  local sitesB = null;
+  if (ROAD1Y_PAX_SITES && ("road1yBusSite" in candidate) && candidate.road1yBusSite) {
+    if (!OpexRoadBusSiteStillBuildable(candidate.siteA) ||
+        !OpexRoadBusSiteStillBuildable(candidate.siteB)) {
+      return { plan = null, reason = "SITE_LOST" };
     }
-  } else if ("existingStops" in candidate) {
-    excludeA = candidate.existingStops;
-  }
-  OPCODE_EXACT_SITE_NAME = "road_a";
-  local huntA = OpexRoadSites(candidate.src, candidate.srcTown, candidate.cargo, stop.vehType,
-                              coverage, true, radiusA, candidate.dst, true, excludeA);
-  OPCODE_EXACT_SITE_NAME = "road_b";
-  local sitesA = huntA.sites;
-  if (sitesA.len() == 0) {
+    local frontA = OpexRoadSiteFrontToward(candidate.siteA, candidate.siteB.tile);
+    local frontB = OpexRoadSiteFrontToward(candidate.siteB, candidate.siteA.tile);
+    local copyA = clone candidate.siteA;
+    copyA.front = frontA;
+    local copyB = clone candidate.siteB;
+    copyB.front = frontB;
+    sitesA = [copyA];
+    sitesB = [copyB];
+
+    local directTrace = OpexRoadBfsPath(frontA, frontB, ROAD_MAX_TRACE_TILES, frontA, frontB);
+    if (directTrace != null && directTrace.len() > 0 &&
+        !OpexRoadTraceHitsStop(directTrace, copyA.tile) &&
+        !OpexRoadTraceHitsStop(directTrace, copyB.tile)) {
+      local depot = OpexRoadFindDepot(directTrace, copyA, copyB,
+                                      copyA.driveThrough || copyB.driveThrough);
+      if (depot != null) {
+        return { plan = { stopA = copyA, stopB = copyB, trace = directTrace, depot = depot,
+                          stationType = stop.stationType, vehType = stop.vehType,
+                          routeDistance = directTrace.len(), shape = 100, trials = 1,
+                          driveThrough = (copyA.driveThrough && copyB.driveThrough) },
+                 reason = "OK" };
+      }
+    }
+  } else {
+    local excludeA = null;
+    if (stop.vehType == AIRoad.ROADVEHTYPE_BUS) {
+      excludeA = OpexRoadOurBusTiles();
+      if (("existingStops" in candidate) && candidate.existingStops != null) {
+        foreach (existingTile in candidate.existingStops) excludeA.append(existingTile);
+      }
+    } else if ("existingStops" in candidate) {
+      excludeA = candidate.existingStops;
+    }
+    OPCODE_EXACT_SITE_NAME = "road_a";
+    local huntA = OpexRoadSites(candidate.src, candidate.srcTown, candidate.cargo, stop.vehType,
+                                coverage, true, radiusA, candidate.dst, true, excludeA);
+    OPCODE_EXACT_SITE_NAME = "road_b";
+    sitesA = huntA.sites;
+    if (sitesA.len() == 0) {
+      OPCODE_EXACT_SITE_NAME = null;
+      return { plan = null, reason = "SITEA", site = huntA };
+    }
+    local huntB = OpexRoadSites(candidate.dst, candidate.dstTown, candidate.cargo, stop.vehType,
+                                coverage, dstWantsProduction, radiusB, candidate.src, true,
+                                excludeA);
     OPCODE_EXACT_SITE_NAME = null;
-    return { plan = null, reason = "SITEA", site = huntA };
+    sitesB = huntB.sites;
+    if (sitesB.len() == 0) return { plan = null, reason = "SITEB", site = huntB };
   }
-  local huntB = OpexRoadSites(candidate.dst, candidate.dstTown, candidate.cargo, stop.vehType,
-                              coverage, dstWantsProduction, radiusB, candidate.src, true,
-                              excludeA);
-  OPCODE_EXACT_SITE_NAME = null;
-  local sitesB = huntB.sites;
-  if (sitesB.len() == 0) return { plan = null, reason = "SITEB", site = huntB };
 
   local trials = 0;
   local nEmpty = 0;
@@ -555,11 +587,13 @@ function OpexRoadPlanForActive(catalog, candidate) {
           continue;
         }
         if (!OpexRoadTraceBuildable(trace)) { nUnb++; continue; }
-        local depot = OpexRoadFindDepot(trace, siteA, siteB);
+        local depot = OpexRoadFindDepot(trace, siteA, siteB,
+            (("driveThrough" in siteA) && siteA.driveThrough) || (("driveThrough" in siteB) && siteB.driveThrough));
         if (depot == null) { noDepot++; continue; }
         return { plan = { stopA = siteA, stopB = siteB, trace = trace, depot = depot,
                           stationType = stop.stationType, vehType = stop.vehType,
-                          routeDistance = trace.len(), shape = shape, trials = trials },
+                          routeDistance = trace.len(), shape = shape, trials = trials,
+                          driveThrough = (("driveThrough" in siteA) && siteA.driveThrough && ("driveThrough" in siteB) && siteB.driveThrough) },
                  reason = "OK" };
       }
     }
@@ -580,11 +614,13 @@ function OpexRoadPlanForActive(catalog, candidate) {
           continue;
         }
         if (!OpexRoadTraceBuildable(trace)) { nUnb++; continue; }
-        local depot = OpexRoadFindDepot(trace, siteA, siteB);
+        local depot = OpexRoadFindDepot(trace, siteA, siteB,
+            (("driveThrough" in siteA) && siteA.driveThrough) || (("driveThrough" in siteB) && siteB.driveThrough));
         if (depot == null) { noDepot++; continue; }
         return { plan = { stopA = siteA, stopB = siteB, trace = trace, depot = depot,
                           stationType = stop.stationType, vehType = stop.vehType,
-                          routeDistance = trace.len(), shape = shape, trials = trials },
+                          routeDistance = trace.len(), shape = shape, trials = trials,
+                          driveThrough = (("driveThrough" in siteA) && siteA.driveThrough && ("driveThrough" in siteB) && siteB.driveThrough) },
                  reason = "OK" };
       }
     }

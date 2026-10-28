@@ -40,6 +40,15 @@ class TipsyfoxBehaviours(unittest.TestCase):
             # PAX par tuile et appartenance a la ville du site.
             ('economy.nut', 'producing', 'AITile.GetCargoProduction,cargo,1,1,0'),
             ('economy.nut', 'fromTown', 'AITile.GetClosestTown'),
+            # ROAD1Y-B : scan natif des sites de bus (modele aeroport).
+            ('builder_road.nut', 'tiles', 'AITile.IsWaterTile'),
+            ('builder_road.nut', 'tiles', 'AITile.IsCoastTile'),
+            ('builder_road.nut', 'tiles', 'AITile.GetClosestTown'),
+            ('builder_road.nut', 'tiles', 'AIMap.DistanceManhattan,center'),
+            ('builder_road.nut', 'tiles', 'AITile.GetCargoAcceptance,cargo,1,1,coverage'),
+            ('builder_road.nut', 'roadList', 'AIRoad.IsRoadTile'),
+            ('builder_road.nut', 'buildList', 'AITile.IsBuildable'),
+            ('builder_road.nut', 'tiles', 'AITile.GetCargoProduction,cargo,1,1,coverage'),
         ]
         found = []
         for name, code in all_code().items():
