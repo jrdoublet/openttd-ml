@@ -2378,12 +2378,12 @@ function OpexRoad100SiteFirstGenerator(catalog, lines, out, stats,
 
   /* ROAD100-16 : la voie longue reste OFF sauf opt-in explicite. En shadow
    * aucun candidat n'entre au portefeuille ; ROAD100_LONG_BUILD est un
-   * deuxième réglage distinct, avec chantier seulement après préflight. */
+   * deuxième réglage distinct, avec chantier seulement après préflight.
+   * Le verrou annuel ne s'applique qu'à la recherche globale et n'est posé
+   * qu'au terme complet de celle-ci (jamais avant les yield ni sur targetId). */
+  local isGlobalSearch = (targetKind == null || targetId < 0);
   if (ROAD100_LONG_INTERCITY
-      && ROAD100_LONG_SHADOW_YEAR != AIDate.GetYear(AIDate.GetCurrentDate())) {
-    /* Marquer avant le balayage et les yield : les regenerations PO01C
-     * suivantes de la meme annee ne relancent pas ce shadow couteux. */
-    ROAD100_LONG_SHADOW_YEAR = AIDate.GetYear(AIDate.GetCurrentDate());
+      && (!isGlobalSearch || ROAD100_LONG_SHADOW_YEAR != AIDate.GetYear(AIDate.GetCurrentDate()))) {
     local longBest = [];
     local longPool = [];
     local longExamined = 0;
@@ -2635,6 +2635,10 @@ function OpexRoad100SiteFirstGenerator(catalog, lines, out, stats,
         + " opcap=" + (longOps >= longCap ? 1 : 0)
         + " admitted=" + longAdmitted
         + " build=" + (ROAD100_LONG_BUILD ? 1 : 0));
+    /* Verrou annuel posé seulement au terme complet d'une recherche globale. */
+    if (isGlobalSearch) {
+      ROAD100_LONG_SHADOW_YEAR = AIDate.GetYear(AIDate.GetCurrentDate());
+    }
   }
 }
 

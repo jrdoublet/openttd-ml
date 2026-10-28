@@ -3964,7 +3964,7 @@ function OpexRoadRollback(stopA, stopB, depot, vehicles, added, satellites = nul
  * les tuiles productrices deja couvertes ne sont jamais recomptees.
  * Recherche limitee a 8 cases Manhattan, 4 essais physiques et 25k opcodes
  * par bout. Une extension echouee ne compromet jamais la ligne de base. */
-function OpexRoad100ExpandJoinedStops(catalog, candidate, stopA, stopB, stationA, stationB)
+function OpexRoad100ExpandJoinedStops(catalog, candidate, stopA, stopB, stationA, stationB, accounting = null)
 {
   local summary = { stopsA = [], stopsB = [], marginalA = 0, marginalB = 0,
                     cost = 0, ops = 0 };
@@ -4107,18 +4107,29 @@ function OpexRoad100ExpandJoinedStops(catalog, candidate, stopA, stopB, stationA
           if (!connected) continue;
           local testOk = false;
           {
+            /* Bouclier : AIAccounting imbriqué jette le coût simulé sous AITestMode
+             * pour ne pas gonfler actualCost du chantier parent. */
+            local shield = AIAccounting();
             local test = AITestMode();
             testOk = AIRoad.BuildDriveThroughRoadStation(choice.tile, adj,
                           AIRoad.ROADVEHTYPE_BUS, id);
             test = null;
+            shield = null;
           }
           if (testOk) { front = adj; break; }
         }
         if (front == null) { reason = "CONNECT"; continue; }
         if (OpexOpsMeasureEnd(mark) >= 25000) { reason = "OPCAP"; break; }
-        local cashBefore = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+        /* Mesurer la commande réelle par AIAccounting isolé (sans polluer par le delta
+         * de caisse), en respectant la non-imbrication : si accounting englobant est
+         * fourni, lire par différence sur celui-ci, sinon ouvrir un compteur local. */
+        local costBefore = accounting != null ? accounting.GetCosts() : 0;
+        local stationAccounting = accounting != null ? null : AIAccounting();
         local ok = AIRoad.BuildDriveThroughRoadStation(choice.tile, front,
                                                         AIRoad.ROADVEHTYPE_BUS, id);
+        local actualCost = accounting != null ? (accounting.GetCosts() - costBefore) : stationAccounting.GetCosts();
+        stationAccounting = null;
+        if (actualCost < 0) actualCost = 0;
         /* Un Build false ou une jonction vers un autre StationID ne doivent
          * JAMAIS demolir la ligne. Retirer seulement le nouveau tile. */
         local newTile = AIRoad.IsRoadStationTile(choice.tile) &&
@@ -4136,7 +4147,6 @@ function OpexRoad100ExpandJoinedStops(catalog, candidate, stopA, stopB, stationA
           if (newTile) AIRoad.RemoveRoadStation(choice.tile);
           reason = "JOIN"; continue;
         }
-        local actualCost = cashBefore - AICompany.GetBankBalance(AICompany.COMPANY_SELF);
         if (actualCost < 1 || deltaAnnual * 100 < actualCost * 20 ||
             AICompany.GetBankBalance(AICompany.COMPANY_SELF) < 25000) {
           AIRoad.RemoveRoadStation(choice.tile);
@@ -4455,7 +4465,7 @@ function OpexRoad100PaxPortfolioPreview(catalog, candidate, plan)
  * les bus ou les quais A0/B0. Seules les stations NOUVELLES a nous
  * pourront etre retirees par OpexRoadRollback si le chantier echoue. */
 function OpexRoad100PaxPortfolioBuild(catalog, candidate, plan, preview,
-                                     stopA, stopB, stationA, stationB)
+                                      stopA, stopB, stationA, stationB, accounting = null)
 {
   local out = { ok = false, stopsA = [], stopsB = [],
       marginalA = 0, marginalB = 0, monthly = 0, cost = 0,
@@ -4601,13 +4611,27 @@ function OpexRoad100PaxPortfolioBuild(catalog, candidate, plan, preview,
         if (out.tested >= 4) { out.reason = "TEST_CAP"; break; }
         out.tested++;
         local testOk = false;
-        { local test = AITestMode();
+        {
+          /* Bouclier : AIAccounting imbriqué jette le coût simulé sous AITestMode
+           * pour ne pas gonfler actualCost du chantier parent. */
+          local shield = AIAccounting();
+          local test = AITestMode();
           testOk = AIRoad.BuildDriveThroughRoadStation(sat.tile,
-              sat.front, AIRoad.ROADVEHTYPE_BUS, ids[end]); }
+              sat.front, AIRoad.ROADVEHTYPE_BUS, ids[end]);
+          test = null;
+          shield = null;
+        }
         if (!testOk) { out.failed++; continue; }
-        local cashBefore = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+        /* Mesurer la commande réelle par AIAccounting isolé (sans polluer par le delta
+         * de caisse), en respectant la non-imbrication : si accounting englobant est
+         * fourni, lire par différence sur celui-ci, sinon ouvrir un compteur local. */
+        local costBefore = accounting != null ? accounting.GetCosts() : 0;
+        local stationAccounting = accounting != null ? null : AIAccounting();
         local done = AIRoad.BuildDriveThroughRoadStation(sat.tile,
             sat.front, AIRoad.ROADVEHTYPE_BUS, ids[end]);
+        local paid = accounting != null ? (accounting.GetCosts() - costBefore) : stationAccounting.GetCosts();
+        stationAccounting = null;
+        if (paid < 0) paid = 0;
         local ours = AIRoad.IsRoadStationTile(sat.tile) &&
             AICompany.IsMine(AITile.GetOwner(sat.tile)) &&
             AIStation.GetStationID(sat.tile) == ids[end];
@@ -4617,8 +4641,6 @@ function OpexRoad100PaxPortfolioBuild(catalog, candidate, plan, preview,
         local connected = done && ours &&
             AIRoad.AreRoadTilesConnected(sat.tile, sat.front) &&
             AIRoad.AreRoadTilesConnected(sat.front, sat.tile);
-        local paid = cashBefore -
-            AICompany.GetBankBalance(AICompany.COMPANY_SELF);
         if (!connected || paid <= 0 ||
             AICompany.GetBankBalance(AICompany.COMPANY_SELF) < reserveAfterSat) {
           if (ours) {
@@ -4787,8 +4809,8 @@ function OpexBuildRoadRoute(catalog, budget, plan, candidate)
                    capacity = 0, opcodes = 0, nStopsA = 1, nStopsB = 1, actualCost = 0,
                    plannedCapital = (("capital" in candidate) ? candidate.capital : 0) };
   /* road_cost_probe : symetrique de air_cost_probe (builder_air.nut) et du devis rail P1.1.
-   * Aucun AITestMode n'est appele depuis cette fonction (verifie : OpexRoadBuildTrace et le reste
-   * du corps n'exécutent que de vraies commandes) -- pas de bouclier imbrique necessaire. */
+   * Tout AITestMode dans les sous-modules (satellites PORTFOLIO, JOINED_STOPS) est isole
+   * sous bouclier AIAccounting imbrique afin de ne mesurer que les commandes reelles executees. */
   local costs = AIAccounting();
   AIRoad.SetCurrentRoadType(catalog.roadType);
   local balanceBefore = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
@@ -4925,7 +4947,7 @@ function OpexBuildRoadRoute(catalog, budget, plan, candidate)
     budget.begin();
     portfolioSummary = OpexRoad100PaxPortfolioBuild(
         catalog, candidate, plan, plan.road100PortfolioPreview,
-        stopA, stopB, stationA, stationB);
+        stopA, stopB, stationA, stationB, costs);
     portfolioSatellites = portfolioSummary.builtTiles;
     result.opcodes += budget.end("build_road_portfolio");
     result.road100PaxPortfolio <- portfolioSummary;
@@ -5202,7 +5224,7 @@ function OpexBuildRoadRoute(catalog, budget, plan, candidate)
   if (ROAD100_JOINED_STOPS && ("road100JoinedStops" in candidate) &&
       candidate.road100JoinedStops) {
     result.road100JoinedStops <- OpexRoad100ExpandJoinedStops(
-        catalog, candidate, stopA, stopB, stationA, stationB);
+        catalog, candidate, stopA, stopB, stationA, stationB, costs);
   }
   result.cost = balanceBefore - AICompany.GetBankBalance(AICompany.COMPANY_SELF);
   result.actualCost = costs.GetCosts();
