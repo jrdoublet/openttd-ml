@@ -58,7 +58,7 @@ DIST_BORNES_V276_FREIGHT <- false;
 /* DIST-BORNES-1 : table unique des fenetres modales, opt-in strictement OFF. */
 DIST_BORNES_UNIFIED <- false;
 /* ROAD100 : generation de bus autonome strictement en ROAD seul ; 0 = historique. */
-ROAD100_SOLO_PAX <- false;
+ROAD100_SOLO_PAX <- true; // ROAD100 : candidats PAX route seule (active par defaut sur cette branche)
 ROAD100_TOWN_BUS <- false; // experiment intra-urbain, uniquement route seule
 ROAD100_ROAD_BATCH <- false; // extension du nombre de lignes ROAD par passe, opt-in
 ROAD100_TOWN_VOIRIE <- false; // reutilisation du planiteur voirie pour bus locaux

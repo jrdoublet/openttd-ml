@@ -33,8 +33,8 @@ class Road100Contracts(unittest.TestCase):
         setting = re.search(r'name = "road100_solo_pax"(.{0,320})', self.info, re.S)
         self.assertIsNotNone(setting)
         for difficulty in ("easy", "medium", "hard", "custom"):
-            self.assertRegex(setting.group(1), rf"{difficulty}_value\s*=\s*0")
-        self.assertIn("ROAD100_SOLO_PAX <- false", self.globaldefs)
+            self.assertRegex(setting.group(1), rf"{difficulty}_value\s*=\s*1")
+        self.assertIn("ROAD100_SOLO_PAX <- true", self.globaldefs)
         expression = re.search(r'ROAD100_SOLO_PAX\s*=\s*AIController.GetSetting\("road100_solo_pax"\)\s*==\s*1\s*'
                                r'&& MODE_ROAD && !MODE_AIR && !MODE_RAIL && !MODE_WATER;', self.settings)
         self.assertIsNotNone(expression)
@@ -613,7 +613,7 @@ class Road100Contracts(unittest.TestCase):
                          r'&& ROAD100_SOLO_PAX;')
         gen = function_body(self.candidates, "OpexRoad100SiteFirstGenerator")
         self.assertIn("if (n > 40) n = 40", gen)
-        self.assertIn("if (distance < 12 || distance > 42) continue", gen)
+        self.assertIn("if (distance < 12 || distance > ROAD_MAX_TRACE_TILES) continue", gen)
         self.assertIn("nearby.sort(OpexRoad100SortSitePreview)", gen)
         self.assertIn("plans < 6 && ops < 2500000", gen)
         self.assertIn("yield null", gen)

@@ -204,9 +204,9 @@ class OpexAIInfo extends AIInfo {
     });
     AddSetting({
       name = "road100_solo_pax",
-      description = "ROAD100: Generate profitable town-to-town buses only in ROAD-only games; 0 = off (default), 1 = on",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
+      description = "ROAD100: Generate profitable town-to-town buses only in ROAD-only games; 0 = off, 1 = on (default on this branch)",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
       flags = AICONFIG_BOOLEAN
     });
     AddSetting({

@@ -2236,11 +2236,8 @@ function OpexRoad100SiteFirstGenerator(catalog, lines, out, stats,
       local townB = catalog.towns[dst.index];
       if (OpexRoadPairServed(lines, townA.tile, townB.tile)) continue;
       local distance = AIMap.DistanceManhattan(townA.tile, townB.tile);
-      /* Les 12 échecs du smoke v1 étaient distants de 86-197 cases entre
-       * sites, ceux du v2 de 56-63 cases : tous dépassent les 48 arêtes
-       * constructibles par les traces L. Le filtre centre 12..42 privilégie
-       * des liaisons réellement raccordables avant 2 scans et 16 BFS. */
-      if (distance < 12 || distance > 42) continue;
+      /* Les liaisons sont bornees par ROAD_MAX_TRACE_TILES (128 sur cette branche). */
+      if (distance < 12 || distance > ROAD_MAX_TRACE_TILES) continue;
       if (!OpexRoadDistanceAllowed(catalog, distance, stats)) continue;
       if (abandonedPairs != null) {
         local idA = src.id;
