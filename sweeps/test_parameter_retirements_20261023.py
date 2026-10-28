@@ -87,8 +87,10 @@ class TestParameterRetirement(unittest.TestCase):
         self.assertEqual(len(RETIRED), 43)
         # 58 historiques + N75 adopte + P6/P3/FP2/P2/P1 opt-in + FP1/V286/C75/DIST
         # C75 bis diagnostic, trois MULTI-1 opt-in (defaut 0), trois V233L et AIR funnel,
-        # ESTIM-1 estim_unifie opt-in (defaut 0), air_site_probe, air_site_ranked et AIR-LOAD-1.
-        self.assertEqual(len(self.config), 116)  # previous 82 plus 34 ROAD100 settings at strict default 0 (V36)
+        # ESTIM-1, air_site_probe, air_site_ranked, AIR-LOAD-1, 34 ROAD100
+        # opt-ins default 0, et EB-2 default 0.
+        self.assertEqual(len(self.config), 117)  # 82 initiaux + 34 ROAD100 + EB-2
+        self.assertIn("eb2_new_station_fallback", self.config)
         self.assertIn("estim_unifie", self.config)
         self.assertIn("n75_multi_cargo", self.config)
         self.assertIn("p6_air_firstline_window", self.config)

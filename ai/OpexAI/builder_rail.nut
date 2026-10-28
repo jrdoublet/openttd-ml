@@ -1599,9 +1599,16 @@ function OpexRailPlatformPlans(catalog, candidate)
       }
     }
     if (strictOriginReuseJoin) {
-      return { plansA = null, plansB = null, length = jointLength,
-               slopeRelaxed = 0, reason = OpexRailSiteReason(joinHasA, joinHasB),
-               statsA = statsA, statsB = statsB };
+      if (EB2_NEW_STATION_FALLBACK == 0) {
+        return { plansA = null, plansB = null, length = jointLength,
+                 slopeRelaxed = 0, reason = OpexRailSiteReason(joinHasA, joinHasB),
+                 statsA = statsA, statsB = statsB };
+      }
+      if (DECISION_LOG) {
+        OpexDecide("EB2_FALLBACK", "src=" + candidate.src + " dst=" + candidate.dst
+                   + " join_end=" + (("joinEnd" in candidate) ? candidate.joinEnd : "-")
+                   + " joint_len=" + jointLength);
+      }
     }
   }
 
@@ -5294,7 +5301,7 @@ function OpexBuildLine(catalog, budget, candidate, alternativeRatio, hardCap = 1
     }
   }
   if (!plan.ok) {
-    return { ok = false, reason = plan.reason, iterations = plan.iterations, opcodes = plan.opcodes,
+    local failRes = { ok = false, reason = plan.reason, iterations = plan.iterations, opcodes = plan.opcodes,
              phaseOps = (("phaseOps" in plan) && plan.phaseOps != null)
                  ? { plans = plan.phaseOps.plans, search = plan.phaseOps.search,
                      stations = plan.phaseOps.stations, track = plan.phaseOps.track,
@@ -5311,6 +5318,11 @@ function OpexBuildLine(catalog, budget, candidate, alternativeRatio, hardCap = 1
              segmentedSegments = plan.segmentedSegments,
              segmentedBacktracks = plan.segmentedBacktracks,
              segmentedLocalChoices = plan.segmentedLocalChoices };
+    if (DECISION_LOG) {
+      if ("statsA" in plan) failRes.statsA <- plan.statsA;
+      if ("statsB" in plan) failRes.statsB <- plan.statsB;
+    }
+    return failRes;
   }
   /* V200 : comme l'estimateur d'AAAHogEx, ne doubler que si la caisse paie la ligne double
    * (environ deux fois le devis simple) avec une marge ; sinon voie unique historique. */
