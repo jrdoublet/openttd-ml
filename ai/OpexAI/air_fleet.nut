@@ -253,25 +253,103 @@ function OpexAirRefleetCrashedPlane(line, catalog = null)
   return result;
 }
 
-/* V161 : valeur d'un renfort AIR nette de ce qu'il retire aux voisines.
- * Mesure du 12/10 (v160_B20x10, regression Delta profit par ligne, effets fixes d'annee,
- * 1973-74) : un avion de plus rapporte +13,4 k/an a SA ligne et retire -2,6 k/an a chaque
- * voisine ; la marge C121 et le profit moyen ne regardent que la ligne (23 a 73 k predits).
- * Une mesure en jeu a l'echelle de la grappe d'aeroports a ete essayee puis retiree : sans
- * temoin a flotte stable et avec les lignes neuves qui cannibalisent, elle donnait -5 a
- * -110 k par avion (smoke 12/10), et elle n'arrive qu'en 1974, quand la tresorerie n'est
- * plus le verrou (mediane 0,5 M en 1973, 1,4 M en 1974). L'a priori agit des 1970, la ou
- * la tresorerie lie (emprunt au maximum, 87 refus air faute de caisse en 1971).
- * Retourne null pour refuser le renfort, sinon { profit, source } ; source = "model"
- * (valeur historique, sous l'a priori ; calibree C70) ou "prior". */
-function OpexV161PerPlaneProfit(line, entry, modelPerPlane)
+/* V161 : valeur NETTE du prochain avion, en £/an, pour UN achat.
+ * C121 chiffre la cannibalisation du reseau pour un palier n -> n+1 exact.
+ * Une marge observee sur un palier precedent n'est pas celle du prochain.
+ * Sur une ligne isolee, le modele physique permet une nouvelle comparaison.
+ * Sur un hub sans estimation C121 actuelle, refuser : le modele simplifie
+ * ne connait pas le manque a gagner des autres lignes de ce hub. */
+function OpexV161NextMarginal(line, catalog, have, neighbours)
 {
-  local neighbours = ("v161Neighbours" in entry) ? entry.v161Neighbours : 0;
-  /* L'a priori mesure des profits annuels hors amortissement ; le modele C121 en est net. */
-  local amort = (("c121VehicleAmortPerPlane" in line) && line.c121VehicleAmortPerPlane > 0)
-      ? line.c121VehicleAmortPerPlane.tointeger() : 0;
-  local prior = V161_PRIOR_OWN - V161_PRIOR_NEIGHBOUR * neighbours - amort;
-  if (prior <= 0) return null;
-  if (modelPerPlane <= prior) return { profit = modelPerPlane, source = "model" };
-  return { profit = prior, source = "prior" };
+  if (line == null || catalog == null || have <= 0 || !("vehicles" in line)
+      || line.vehicles == null || !("cargo" in line)) return null;
+  local template = null;
+  foreach (v in line.vehicles) {
+    if (AIVehicle.IsValidVehicle(v) && AIVehicle.GetVehicleType(v) == AIVehicle.VT_AIR) {
+      template = v; break;
+    }
+  }
+  if (template == null) return null;
+  local engineId = AIVehicle.GetEngineType(template);
+  /* Changement V252 de moteur : le modele de n appareils identiques ne
+   * chiffre pas le melange d'avions; cette transaction exige un autre devis. */
+  local upgrade = OpexAirBestEngineForLine(line, catalog);
+  if (upgrade != null && upgrade != engineId) return null;
+  if (!AIEngine.IsValidEngine(engineId) || !AIEngine.IsBuildable(engineId)) return null;
+  local price = AIEngine.GetPrice(engineId);
+  if (price <= 0) return null;
+  /* Une observation du dernier renfort deficitaire constitue un veto. */
+  if (("c121MarginalSamples" in line) && line.c121MarginalSamples > 0
+      && ("c121LastMarginalProfit" in line) && line.c121LastMarginalProfit <= 0)
+    return null;
+
+  if (("c121MarginalBaseVehicles" in line) && line.c121MarginalBaseVehicles == have
+      && ("c121MarginalSamples" in line) && line.c121MarginalSamples == 0
+      && ("c121MarginalProfit" in line) && ("c121MarginalRevenue" in line)
+      && ("c121MarginalRunning" in line) && ("c121MarginalAmort" in line)) {
+    local dR = line.c121MarginalRevenue;
+    local dE = line.c121MarginalRunning;
+    local dA = line.c121MarginalAmort;
+    if ((ESTIM_UNIFIE & 4) != 0 && ("estimMarginalBaseVehicles" in line)
+        && line.estimMarginalBaseVehicles == have
+        && ("estimMarginalRawRevenue" in line)
+        && ("estimMarginalRunning" in line) && ("estimMarginalAmort" in line)) {
+      dR = (line.estimMarginalRawRevenue.tofloat() * ESTIM_K_R.air).tointeger();
+      dE = line.estimMarginalRunning;
+      dA = line.estimMarginalAmort;
+    }
+    /* Save/Load arrondit les floats top-level separement : reconstruire le
+     * profit depuis les trois composantes sauvegardees reste exact pour le
+     * classement, meme si l'ancien champ c121MarginalProfit differait d'1 £. */
+    local dP = dR - dE - dA;
+    if (dP <= 0 || dR <= 0 || dE < 0 || dA < 0) return null;
+    return { revenue = dR, running = dE, amort = dA, profit = dP,
+             price = price, engine = engineId, baseVehicles = have, source = "c121" };
+  }
+  if (neighbours > 0) return null;
+  local monthlyPax = ("airMonthlyPax" in line && line.airMonthlyPax > 0)
+      ? line.airMonthlyPax : (("monthlyPax" in line && line.monthlyPax > 0) ? line.monthlyPax : 0);
+  if (monthlyPax <= 0 || !("stationA" in line) || !("stationB" in line)
+      || !AIAirport.IsAirportTile(line.stationA) || !AIAirport.IsAirportTile(line.stationB)) return null;
+  local typeA = AIAirport.GetAirportType(line.stationA);
+  local typeB = AIAirport.GetAirportType(line.stationB);
+  if (!AIAirport.IsValidAirportType(typeA) || !AIAirport.IsValidAirportType(typeB)) return null;
+  local airportType = (typeA == AIAirport.AT_SMALL || typeA == AIAirport.AT_COMMUTER)
+      ? typeA : ((typeB == AIAirport.AT_SMALL || typeB == AIAirport.AT_COMMUTER)
+          ? typeB : typeA);
+  if (!("airPlaneChoicesByAirport" in catalog) || catalog.airPlaneChoicesByAirport == null
+      || !(airportType in catalog.airPlaneChoicesByAirport)) return null;
+  local plane = null;
+  foreach (choice in catalog.airPlaneChoicesByAirport[airportType]) {
+    if (choice.id == engineId) { plane = choice; break; }
+  }
+  if (plane == null) return null;
+  local distance = ("distance" in line && line.distance > 0) ? line.distance
+      : AIMap.DistanceManhattan(line.stationA, line.stationB);
+  if (distance <= 0 || !OpexAirPlaneInRange(plane, distance)) return null;
+  local airport = { type = airportType, price = 0, maintenance = 0 };
+  local before = OpexAirEconomics(catalog, airport, plane, distance,
+      monthlyPax, false, 0, 0, 0, have);
+  local after = OpexAirEconomics(catalog, airport, plane, distance,
+      monthlyPax, false, 0, 0, 0, have + 1);
+  if (before == null || after == null) return null;
+  local dR = after.revenueAnnual - before.revenueAnnual;
+  local dE = after.runningAnnual - before.runningAnnual;
+  local dA = after.amortAnnual - before.amortAnnual;
+  if ((ESTIM_UNIFIE & 1) != 0) dR = (dR.tofloat() * ESTIM_K_R.air).tointeger();
+  local dP = dR - dE - dA;
+  if (dR <= 0 || dP <= 0 || dE < 0 || dA < 0) return null;
+  return { revenue = dR, running = dE, amort = dA, profit = dP,
+           price = price, engine = engineId, baseVehicles = have, source = "physical" };
+}
+
+function OpexV161NeighbourCount(line, routesIndex)
+{
+  if (line == null || routesIndex == null) return 0;
+  local a = OpexAirLineStationId(line, 0);
+  local b = OpexAirLineStationId(line, 1);
+  local count = 0;
+  if (a in routesIndex) count += routesIndex[a] - 1;
+  if (b != a && (b in routesIndex)) count += routesIndex[b] - 1;
+  return count > 0 ? count : 0;
 }

@@ -262,10 +262,17 @@ function OpexC121MeasureBuiltEconomics(catalog, plan, result)
       ? next.profitAnnual - actual.profitAnnual : 0;
   result.c121MarginalRevenue <- (next != null && actual != null)
       ? next.revenueAnnual - actual.revenueAnnual : 0;
+  result.c121MarginalRunning <- (next != null && actual != null)
+      ? next.runningAnnual - actual.runningAnnual : 0;
+  result.c121MarginalAmort <- (next != null && actual != null)
+      ? next.amortAnnual - actual.amortAnnual : 0;
+  result.c121MarginalBaseVehicles <- (next != null && actual != null) ? actualN : -1;
   if ((ESTIM_UNIFIE & 4) != 0 && next != null && actual != null) {
     /* Le modele physique C121 fournit des deltas bruts persistables, au palier
      * n -> n+1 reellement construit. Aucun historique V161/C70 dans ces champs. */
-    result.estimMarginalRawRevenue <- next.rawRevenueAnnual - actual.rawRevenueAnnual;
+    /* Inclure la perte brute des autres lignes du hub, avant k_R. */
+    result.estimMarginalRawRevenue <- (next.rawRevenueAnnual - next.rawCannibalLossAnnual)
+        - (actual.rawRevenueAnnual - actual.rawCannibalLossAnnual);
     result.estimMarginalRunning <- next.runningAnnual - actual.runningAnnual;
     result.estimMarginalAmort <- next.vehicleAmortAnnual - actual.vehicleAmortAnnual;
     result.estimMarginalBaseVehicles <- actualN;
@@ -294,6 +301,10 @@ function OpexC121AttachLineShadow(line, lineId, plan, result)
   line.c121Arm <- ("arm" in plan) ? plan.arm : "unknown";
   line.c121MarginalProfit <- ("c121MarginalProfit" in result) ? result.c121MarginalProfit : 0;
   line.c121MarginalRevenue <- ("c121MarginalRevenue" in result) ? result.c121MarginalRevenue : 0;
+  line.c121MarginalRunning <- ("c121MarginalRunning" in result) ? result.c121MarginalRunning : 0;
+  line.c121MarginalAmort <- ("c121MarginalAmort" in result) ? result.c121MarginalAmort : 0;
+  line.c121MarginalBaseVehicles <- ("c121MarginalBaseVehicles" in result)
+      ? result.c121MarginalBaseVehicles : -1;
   if ((ESTIM_UNIFIE & 4) != 0 && ("estimMarginalRawRevenue" in result)) {
     line.estimMarginalRawRevenue <- result.estimMarginalRawRevenue;
     line.estimMarginalRunning <- result.estimMarginalRunning;

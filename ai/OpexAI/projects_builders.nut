@@ -160,92 +160,24 @@ function OpexProjectFromCandidate(candidate)
  * franchies, y compris la regle de tampon C14 qui garantit qu'une pleine capacite d'avion attend
  * reellement au sol. Il ne reste ici qu'a pricer la marge.
  *
- * Sous la cible C121, le score est la marge par avion deja publiee sur la ligne.
- * Sinon le profit realise / avion, puis le repli predRevenue - predRunning. */
+ * Le projet est toujours une transition n -> n+1 evaluee par V161 avant
+ * publication (C121 avec cannibalisation ou modele physique sans voisines). */
 function OpexProjectFromFleet(entry)
 {
-  /* Palier C121 n -> n+1 mesure a la construction ; au-dela, il n'est jamais
-   * recalcule : reprendre alors la marge historique plutot que bloquer la flotte. */
   if ((ESTIM_UNIFIE & 4) != 0 && OpexEstimFleetStepCurrent(entry))
     return OpexEstimProjectFromFleet(entry);
-  if (entry == null || entry.want <= 0 || entry.planePrice <= 0) return null;
+  if (entry == null || entry.want != 1 || entry.planePrice <= 0) return null;
   local line = entry.line;
   local have = ("vehCount" in line && line.vehCount > 0) ? line.vehCount
              : (("vehicles" in line) ? line.vehicles.len() : 0);
-  if (have < 1) return null;
-
-  local profit = 0;
-  local revenue = 0;
-  local profitIsObserved = false;
-  local usedTargetMarginal = false;
-  local c121BelowTarget = ("targetAirPlanes" in line)
-      && line.targetAirPlanes > have;
-  if (c121BelowTarget) {
-    /* C121 : score MARGINAL, jamais profit moyen / avion. Le premier palier
-     * vient du modele exact post-build. Tant qu'aucune marge reelle n'a ete
-     * observee, recalibrer ce cold-start avec le facteur de realisation courant
-     * de l'arm. Apres la premiere observation complete, c121Marginal* ne
-     * contient plus que du reel. */
-    if (!("c121MarginalProfit" in line) || !("c121MarginalRevenue" in line)) return null;
-    local perPlaneProfit = line.c121MarginalProfit;
-    local perPlaneRevenue = line.c121MarginalRevenue;
-    local samples = ("c121MarginalSamples" in line) ? line.c121MarginalSamples : 0;
-    /* Une moyenne historique positive ne peut pas financer un nouveau palier
-     * si le dernier renfort mesure a detruit du profit. Le cold-start (0 sample)
-     * conserve exactement le comportement C121 existant. */
-    if (samples > 0 && ("c121LastMarginalProfit" in line)
-        && line.c121LastMarginalProfit <= 0) return null;
-    if (samples <= 0 && ("c121Arm" in line) && (line.c121Arm in C121_AIR_REALIZATION_FACTOR)) {
-      local builtFactor = ("c121RealizationPmAtBuild" in line)
-          ? line.c121RealizationPmAtBuild.tofloat() / 1000.0
-          : (("c121RealizationFactor" in line) ? line.c121RealizationFactor : 1.0);
-      local learnedFactor = C121_AIR_REALIZATION_FACTOR[line.c121Arm];
-      if (builtFactor > 0.0 && learnedFactor >= 0.0 && learnedFactor != builtFactor) {
-        local marginalCost = perPlaneRevenue - perPlaneProfit;
-        perPlaneRevenue = (perPlaneRevenue.tofloat() * learnedFactor / builtFactor).tointeger();
-        perPlaneProfit = perPlaneRevenue - marginalCost;
-      }
-    }
-    profit = perPlaneProfit * entry.want;
-    revenue = perPlaneRevenue * entry.want;
-    if (profit <= 0 || revenue <= 0) return null;
-    usedTargetMarginal = true;
-  }
-
-  if (!usedTargetMarginal) {
-    local perPlaneProfit = 0;
-    if (("lastProfit" in line) && line.lastProfit > 0) {
-      perPlaneProfit = line.lastProfit / have;
-      profitIsObserved = true;
-    } else if (("predRevenue" in line) && line.predRevenue > 0) {
-      local running = ("predRunning" in line) ? line.predRunning : 0;
-      local planes = ("predTrains" in line && line.predTrains > 0) ? line.predTrains : have;
-      perPlaneProfit = (line.predRevenue - running) / planes;
-    }
-    if (perPlaneProfit <= 0) return null;
-    profit = perPlaneProfit * entry.want;
-    revenue = profit;
-    if (("predRevenue" in line) && line.predRevenue > 0) {
-      local planes = ("predTrains" in line && line.predTrains > 0) ? line.predTrains : have;
-      revenue = (line.predRevenue / planes) * entry.want;
-    }
-  }
-
-  /* V161 : la marge C121 (ligne seule) et le profit moyen ignorent ce que l'avion retire
-   * aux voisines du meme aeroport : plafonner par l'a priori net des voisines. Une valeur
-   * restee "model" perd l'exemption C70 des renforts (v161Calibrate). */
-  local v161Source = null;
-  local v161Model = 0;
-  {
-    v161Model = profit / entry.want;
-    local marginalCost = revenue - profit;
-    local v161 = OpexV161PerPlaneProfit(line, entry, v161Model);
-    if (v161 == null) return null;
-    profit = v161.profit * entry.want;
-    revenue = profit + (marginalCost > 0 ? marginalCost : 0);
-    v161Source = v161.source;
-    profitIsObserved = v161Source != "model";
-  }
+  if (have < 1 || !("v161BaseVehicles" in entry) || entry.v161BaseVehicles != have
+      || !("v161Profit" in entry) || !("v161DeltaR" in entry)
+      || !("v161DeltaE" in entry) || !("v161DeltaA" in entry)
+      || !("v161Engine" in entry) || !("v161Source" in entry)
+      || entry.v161Profit != entry.v161DeltaR - entry.v161DeltaE - entry.v161DeltaA
+      || entry.v161Profit <= 0 || entry.v161DeltaR <= 0) return null;
+  local profit = entry.v161Profit;
+  local revenue = entry.v161DeltaR;
 
   /* P3 : OFF n'effectue aucune lecture de monde ni de sonde. Shadow journalise
    * le meme verdict que ON mais ne touche jamais les projets. Limiter aux
@@ -269,6 +201,7 @@ function OpexProjectFromFleet(entry)
   }
 
   local capital = entry.planePrice * entry.want;
+  local budget = capital + ((ESTIM_UNIFIE & 2) != 0 ? 0 : 1000);
   /* Un achat d'avion ne coute aucune planification : ni pathfinder, ni sondage de site. Seules
    * les commandes transactionnelles restent, d'ou un opcodeScore structurellement tres favorable
    * -- c'est exact, et c'est precisement ce que l'arbitrage doit pouvoir voir. */
@@ -277,24 +210,29 @@ function OpexProjectFromFleet(entry)
     mode = "fleet", kind = "fleet", cargo = line.cargo,
     src = line.stationA, dst = ("stationB" in line) ? line.stationB : line.stationA,
     payload = entry, distance = 0, capital = capital,
-    /* Meme tampon de 1000 que le dernier garde d'OpexAirAddPlane, une seule
-     * fois par lot. */
-    budgetCapital = capital + 1000, profitAnnual = profit, revenueAnnual = revenue,
+    /* Le budget peut inclure la marge historique de liquidite; sous
+     * ESTIM bit 2, seule la depense physique est requise. */
+    budgetCapital = budget, profitAnnual = profit, revenueAnnual = revenue,
     /* Provenance transitoire du profit. C121 conserve son exemption de
      * realisation propre dans OpexC70Profit. */
-    profitIsObserved = profitIsObserved,
+    profitIsObserved = false,
     roi = capital > 0 ? (profit * 1000) / capital : 0,
     expectedOpcodes = expectedOps,
-    budgetScore = OpexProjectScore(revenue, capital + 1000),
+    budgetScore = OpexProjectScore(revenue, budget),
     opcodeScore = OpexProjectScore(revenue, expectedOps),
     planningOpcodes = 0,
     /* B6/06.11 diagnostic-only: horodate l'economie mise en cache. */
     economicsDate = AIDate.GetCurrentDate(),
   };
-  if (v161Source != null) {
-    project.v161Source <- v161Source;
-    project.v161ModelPerPlane <- v161Model;
-    project.v161Calibrate <- true;
+  project.v161Source <- entry.v161Source;
+  project.v161ModelPerPlane <- profit;
+  project.v161NetMarginalModeled <- true;
+  if ((ESTIM_UNIFIE & 4) != 0) {
+    project.deltaR <- revenue;
+    project.deltaE <- entry.v161DeltaE;
+    project.deltaA <- entry.v161DeltaA;
+    project.deltaC <- capital;
+    project.deltaP <- profit;
   }
   return project;
 }
@@ -309,13 +247,16 @@ function OpexEstimFleetStepCurrent(entry)
   local line = entry.line;
   local have = ("vehCount" in line) ? line.vehCount
       : (("vehicles" in line) && line.vehicles != null ? line.vehicles.len() : 0);
-  return have > 0 && ("estimMarginalRawRevenue" in line)
+  return have > 0 && entry.want == 1 && ("v161BaseVehicles" in entry)
+      && entry.v161BaseVehicles == have && ("v161Profit" in entry)
+      && ("v161Source" in entry) && entry.v161Source == "c121"
+      && ("estimMarginalRawRevenue" in line)
       && ("estimMarginalBaseVehicles" in line) && line.estimMarginalBaseVehicles == have;
 }
 
 function OpexEstimProjectFromFleet(entry)
 {
-  if (entry == null || entry.line == null || entry.want <= 0 || entry.planePrice <= 0) return null;
+  if (entry == null || entry.line == null || entry.want != 1 || entry.planePrice <= 0) return null;
   local line = entry.line;
   local have = ("vehCount" in line) ? line.vehCount
       : (("vehicles" in line) && line.vehicles != null ? line.vehicles.len() : 0);
@@ -328,10 +269,9 @@ function OpexEstimProjectFromFleet(entry)
    * changent a chaque achat. Le prochain palier sera reevalue apres l'achat. */
   local tranche = clone entry;
   tranche.want = 1;
-  local dRaw = line.estimMarginalRawRevenue;
-  local dR = (dRaw.tofloat() * ESTIM_K_R.air).tointeger();
-  local dE = line.estimMarginalRunning;
-  local dA = line.estimMarginalAmort;
+  local dR = entry.v161DeltaR;
+  local dE = entry.v161DeltaE;
+  local dA = entry.v161DeltaA;
   local dC = entry.planePrice;
   local dP = dR - dE - dA;
   if (dR <= 0 || dP <= 0 || dC <= 0) return null;
@@ -342,6 +282,8 @@ function OpexEstimProjectFromFleet(entry)
     payload = tranche, distance = 0, capital = dC, budgetCapital = budget,
     deltaR = dR, deltaE = dE, deltaA = dA, deltaC = dC, deltaP = dP,
     revenueAnnual = dR, profitAnnual = dP, estimMarginalModeled = true,
+    v161NetMarginalModeled = true, v161Source = entry.v161Source,
+    v161ModelPerPlane = dP,
     roi = (dP * 1000) / dC, expectedOpcodes = PROJECT_ROAD_TRANSACTION_OPS,
     budgetScore = OpexProjectScore(dR, budget),
     opcodeScore = OpexProjectScore(dR, PROJECT_ROAD_TRANSACTION_OPS),

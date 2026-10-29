@@ -990,7 +990,8 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSel
      * surclasse artificiellement les +1 avion. Conserver l'exemption pour le
      * chemin legacy, mais pas pour une flotte portant une marge C121. */
     local fleetExemptDecision = project.mode == "fleet"
-        && !OpexC121ProjectHasRealization(project);
+        && !OpexC121ProjectHasRealization(project)
+        && !(("v161NetMarginalModeled" in project) && project.v161NetMarginalModeled);
     project.fundScore <- OpexProjectScore(OpexProjectFundProfit(project),
         (kDec > scoreDecisionFinanceCapital && !fleetExemptDecision)
             ? kDec : scoreDecisionFinanceCapital);
@@ -1055,7 +1056,8 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSel
       if ((ESTIM_UNIFIE & 16) != 0)
         scoreDecisionFinanceCapital = OpexEstimRailScoreCapital(project, scoreDecisionFinanceCapital);
       local fleetExemptDecision = project.mode == "fleet"
-          && !OpexC121ProjectHasRealization(project);
+          && !OpexC121ProjectHasRealization(project)
+          && !(("v161NetMarginalModeled" in project) && project.v161NetMarginalModeled);
       project.fundScore <- OpexProjectScore(OpexProjectFundProfit(project),
           (kDec > scoreDecisionFinanceCapital && !fleetExemptDecision)
               ? kDec : scoreDecisionFinanceCapital);

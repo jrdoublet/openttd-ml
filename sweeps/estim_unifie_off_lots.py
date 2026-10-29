@@ -2296,6 +2296,20 @@ diff --git a/ai/OpexAI/task_water.nut b/ai/OpexAI/task_water.nut
 
 PATCHES = _parse_patches(PATCH_TEXT) if PATCH_TEXT.strip() else {}
 
+# V161 (29/10) modified the context of eight strictly reviewed ESTIM-1 hunks.
+# Retain the original frozen mapping and rebase ONLY these eight inverse anchors
+# against the new one-plane marginal contract. The overlays are literal frozen
+# ON/OFF pairs: tests must never derive them from the live working tree.
+from estim_unifie_v161_compat import REBASED_HUNKS
+
+for _name, _overlays in REBASED_HUNKS.items():
+    if _name not in PATCHES:
+        raise AssertionError(f"ESTIM-1 V161 unknown file: {_name}")
+    for _index, _pair in _overlays.items():
+        if not 0 <= _index < len(PATCHES[_name]) or len(_pair) != 2:
+            raise AssertionError(f"ESTIM-1 V161 invalid reviewed hunk: {_name} #{_index}")
+        PATCHES[_name][_index] = _pair
+
 
 if __name__ == "__main__":
     if sys.argv[1:] == ["--refresh"]:

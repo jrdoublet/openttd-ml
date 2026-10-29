@@ -132,6 +132,10 @@ class ReaderTests(unittest.TestCase):
 class ProbeContracts(unittest.TestCase):
     def test_off_hashes(self):
         expected = json.loads((FIXTURES / "air_site_probe_off_hashes.json").read_text())
+        # V161: keep the original pin, plus the reviewed six-line prior removal.
+        self.assertEqual(expected["globals_pre.nut"],
+                         "3c203d53468b16eeb81abe1dd2894cc74ac2bdabcd01fd4647c135884b502f07")
+        v161_digest = "0610c2699fd71875bb2720c196120cf11fa9ab312b52156747633a3b086698ea"
         for name, digest in expected.items():
             from air_site_ranked_legacy import off_source
             text = off_source(name, (AI / name).read_text())
@@ -144,6 +148,9 @@ class ProbeContracts(unittest.TestCase):
                 text = text.replace(fn, "")
             elif name == "globals_pre.nut":
                 text = text.replace("AIR_SITE_PROBE <- 0; // Read once at Start; no probe code loaded when OFF.\n", "")
+                self.assertNotIn("V161_PRIOR_OWN", text)
+                self.assertNotIn("V161_PRIOR_NEIGHBOUR", text)
+                digest = v161_digest
             elif name == "info.nut":
                 text, n = re.subn(r'    AddSetting\(\{\n      name = "air_site_probe",.*?    \}\);\n', '', text, flags=re.S)
                 self.assertEqual(n, 1)

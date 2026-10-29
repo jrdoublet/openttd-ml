@@ -235,6 +235,25 @@ function OpexAI::_tryBuildFleetProject(year, project, rank, passDiscards, builtK
                             reason = "fleet_stale", extra = "" });
     return { outcome = "rejected", discards = passDiscards };
   }
+  /* Le projet peut attendre dans le vivier. Reprendre le rendement marginal
+   * du prochain avion avec la flotte, la concurrence et le prix courants,
+   * avant tout debit. Aucun achat sur une estimation devenue obsolete. */
+  if (("v161BaseVehicles" in entry)) {
+    local liveIndex = OpexAirBuildRoutesIndex(this._lines);
+    local currentMargin = OpexV161NextMarginal(line, this._catalog, liveCount,
+        OpexV161NeighbourCount(line, liveIndex));
+    if (currentMargin == null || currentMargin.engine != entry.v161Engine
+        || currentMargin.price != entry.planePrice
+        || currentMargin.profit != entry.v161Profit
+        || currentMargin.revenue != entry.v161DeltaR
+        || currentMargin.running != entry.v161DeltaE
+        || currentMargin.amort != entry.v161DeltaA) {
+      if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL)
+        passDiscards.append({ rank = i, mode = "fleet", src = project.src, dst = project.dst,
+                              reason = "fleet_marginal_stale", extra = "" });
+      return { outcome = "rejected", discards = passDiscards };
+    }
+  }
   /* A listed fleet project can outlive its load observation: revalidate at purchase. */
   if (AIR_LOAD_MIN_PCT > 0 && OpexAirLoadBlocksGrowth(line)) {
     OpexAirFleetRefusal(line, year, "F");
