@@ -403,23 +403,23 @@ class OpexAIInfo extends AIInfo {
     });
     AddSetting({
       name = "road1y_pax_sites",
-      description = "ROAD1Y-B: Scan natif des sites de bus sur modele aeroport et demande reelle couverte; 0 = off, 1 = on (default)",
-      easy_value = 1, medium_value = 1, hard_value = 1,
-      custom_value = 1,
+      description = "ROAD1Y-B: Scan natif des sites de bus sur modele aeroport et demande reelle couverte; 0 = off (default), 1 = on",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
       flags = AICONFIG_BOOLEAN
     });
     AddSetting({
       name = "road1y_pax_economy",
-      description = "ROAD1Y-C: Scale bus line economics and fleet to passenger demand and round-trip rotation; 0 = off, 1 = on (default)",
-      easy_value = 1, medium_value = 1, hard_value = 1,
-      custom_value = 1,
+      description = "ROAD1Y-C: Scale bus line economics and fleet to passenger demand and round-trip rotation; 0 = off (default), 1 = on",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
       flags = AICONFIG_BOOLEAN
     });
     AddSetting({
       name = "road1y_pax_refleet",
-      description = "ROAD1Y-D: Allow bus line refleet to scale up to road1y_fleet * total stops based on waiting passengers at both ends; 0 = off, 1 = on (default)",
-      easy_value = 1, medium_value = 1, hard_value = 1,
-      custom_value = 1,
+      description = "ROAD1Y-D: Allow bus line refleet to scale up to road1y_fleet * total stops based on waiting passengers at both ends; 0 = off (default), 1 = on",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
       flags = AICONFIG_BOOLEAN
     });
     AddSetting({
