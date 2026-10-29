@@ -856,3 +856,6 @@ function OpexAI::Start()
     if (spSleep != null) OpexSpanEnd(spSleep);
   }
 }
+
+// Install optional methods before OpenTTD instantiates OpexAI.
+OpexLoadBusDistrictSettings();

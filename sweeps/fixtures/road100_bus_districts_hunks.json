@@ -1,0 +1,30 @@
+{
+  "globals_pre.nut": [
+    {
+      "before": "ROAD1Y_DIST_BAND_LIMITS <- [[64, 128], [32, 63], [7, 31]];\nROAD1Y_FLEET <- 4; // ROAD1Y : vehicules par paire de quais des la premiere annee (0 = plafond historique ; 4 par defaut sur cette branche)\nROAD1Y_PAX_SITES <- false; // ROAD1Y-B : scan natif des sites de bus (modele aeroport)\nROAD_BUS_SITE_CACHE <- {}; // ROAD1Y-B : cache des sites de bus par ville (town.id)\n",
+      "after": "ROAD1Y_DIST_BAND_LIMITS <- [[64, 128], [32, 63], [7, 31]];\nROAD1Y_FLEET <- 4; // ROAD1Y : vehicules par paire de quais des la premiere annee (0 = plafond historique ; 4 par defaut sur cette branche)\nROAD1Y_EXTRA_STOPS <- 0; // Quais joints supplementaires, opt-in 0..3.\nROAD1Y_PAX_SITES <- false; // ROAD1Y-B : scan natif des sites de bus (modele aeroport)\nROAD_BUS_SITE_CACHE <- {}; // ROAD1Y-B : cache des sites de bus par ville (town.id)\n"
+    }
+  ],
+  "info.nut": [
+    {
+      "before": "      easy_value = 4, medium_value = 4, hard_value = 4,\n      custom_value = 4,\n      flags = 0\n    });\n",
+      "after": "      easy_value = 4, medium_value = 4, hard_value = 4,\n      custom_value = 4,\n      flags = 0\n    });\n    AddSetting({\n      name = \"road1y_extra_stops\",\n      description = \"ROAD1Y: extra joined road stops per endpoint (0=off)\",\n      min_value = 0, max_value = 3,\n      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,\n      flags = 0\n    });\n"
+    }
+  ],
+  "settings.nut": [
+    {
+      "before": "  ROAD1Y_FLEET = AIController.GetSetting(\"road1y_fleet\");\n  if (ROAD1Y_FLEET < 0) ROAD1Y_FLEET = 0;\n  ROAD1Y_PAX_SITES = AIController.GetSetting(\"road1y_pax_sites\") == 1;\n  ROAD1Y_PAX_ECONOMY = AIController.GetSetting(\"road1y_pax_economy\") == 1;\n  ROAD1Y_PAX_REFLEET = AIController.GetSetting(\"road1y_pax_refleet\") == 1;\n  ROAD100_WAIT_FLEET = AIController.GetSetting(\"road100_wait_fleet\") == 1\n      && ROAD100_SITE_FIRST;\n",
+      "after": "  ROAD1Y_FLEET = AIController.GetSetting(\"road1y_fleet\");\n  if (ROAD1Y_FLEET < 0) ROAD1Y_FLEET = 0;\n  ROAD1Y_PAX_ECONOMY = AIController.GetSetting(\"road1y_pax_economy\") == 1;\n  ROAD1Y_PAX_REFLEET = AIController.GetSetting(\"road1y_pax_refleet\") == 1;\n\n  ROAD100_WAIT_FLEET = AIController.GetSetting(\"road100_wait_fleet\") == 1\n      && ROAD100_SITE_FIRST;\n"
+    },
+    {
+      "before": "  AIR_FLEET_BUFFER = 0;\n}\n",
+      "after": "  AIR_FLEET_BUFFER = 0;\n}\n\n/* Read once before class instantiation: Squirrel forbids replacing class methods later. */\nfunction OpexLoadBusDistrictSettings()\n{\n  ROAD1Y_EXTRA_STOPS = AIController.GetSetting(\"road1y_extra_stops\");\n  if (ROAD1Y_EXTRA_STOPS < 0) ROAD1Y_EXTRA_STOPS = 0;\n  if (ROAD1Y_EXTRA_STOPS > 3) ROAD1Y_EXTRA_STOPS = 3;\n  ROAD1Y_PAX_SITES = AIController.GetSetting(\"road1y_pax_sites\") == 1;\n  if (ROAD1Y_PAX_SITES || ROAD1Y_EXTRA_STOPS > 0) {\n    require(\"bus_districts.nut\");\n    require(\"bus_districts_overrides.nut\");\n  }\n}\n"
+    }
+  ],
+  "main.nut": [
+    {
+      "before": "  }\n}\n",
+      "after": "  }\n}\n\n// Install optional methods before OpenTTD instantiates OpexAI.\nOpexLoadBusDistrictSettings();\n"
+    }
+  ]
+}

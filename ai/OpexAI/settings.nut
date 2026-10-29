@@ -125,9 +125,9 @@ function OpexLoadSettings()
   ROAD_MAX_TRACE_TILES = ROAD1Y_DIST_BANDS ? 128 : 48;
   ROAD1Y_FLEET = AIController.GetSetting("road1y_fleet");
   if (ROAD1Y_FLEET < 0) ROAD1Y_FLEET = 0;
-  ROAD1Y_PAX_SITES = AIController.GetSetting("road1y_pax_sites") == 1;
   ROAD1Y_PAX_ECONOMY = AIController.GetSetting("road1y_pax_economy") == 1;
   ROAD1Y_PAX_REFLEET = AIController.GetSetting("road1y_pax_refleet") == 1;
+
   ROAD100_WAIT_FLEET = AIController.GetSetting("road100_wait_fleet") == 1
       && ROAD100_SITE_FIRST;
   ROAD100_SITE_WINDOW = AIController.GetSetting("road100_site_window") == 1
@@ -604,4 +604,17 @@ function OpexLoadSettings()
   INFRA_AMORT_PCT = 0;
   PORTFOLIO_MAX_BATCH = 1;
   AIR_FLEET_BUFFER = 0;
+}
+
+/* Read once before class instantiation: Squirrel forbids replacing class methods later. */
+function OpexLoadBusDistrictSettings()
+{
+  ROAD1Y_EXTRA_STOPS = AIController.GetSetting("road1y_extra_stops");
+  if (ROAD1Y_EXTRA_STOPS < 0) ROAD1Y_EXTRA_STOPS = 0;
+  if (ROAD1Y_EXTRA_STOPS > 3) ROAD1Y_EXTRA_STOPS = 3;
+  ROAD1Y_PAX_SITES = AIController.GetSetting("road1y_pax_sites") == 1;
+  if (ROAD1Y_PAX_SITES || ROAD1Y_EXTRA_STOPS > 0) {
+    require("bus_districts.nut");
+    require("bus_districts_overrides.nut");
+  }
 }

@@ -50,7 +50,8 @@ class TestV251Inventory(unittest.TestCase):
         # air_site_probe adds one default-OFF diagnostic, never a policy knob.
         # ROAD100 ajoute 34 réglages opt-in (défaut 0), retirés par
         # historical_info ; EB-2 ajoute une option de repli (défaut 0).
-        self.assertLessEqual(info.count("AddSetting("), 68)
+        # ROAD1Y extra joined stops: one default-OFF setting, projected by ROAD1Y-B2.
+        self.assertLessEqual(info.count("AddSetting("), 69)
         self.assertNotIn('name = "v251', info)
         settings = self.sources["settings.nut"]
         self.assertNotIn('GetSetting("v251', settings)

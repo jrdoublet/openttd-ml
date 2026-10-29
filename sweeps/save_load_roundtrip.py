@@ -194,7 +194,7 @@ def scan_markers(output_text, patterns):
     return {pattern: matches for pattern, matches in hits.items() if matches}
 
 
-def run_phase_a(seed, years, arm, cfg, checkpoint_path, persist_dir):
+def run_phase_a(seed, years, arm, cfg, checkpoint_path, persist_dir, *, days=None):
     if persist_dir.exists():
         shutil.rmtree(persist_dir)
     persist_dir.mkdir(parents=True, exist_ok=True)
@@ -212,7 +212,7 @@ def run_phase_a(seed, years, arm, cfg, checkpoint_path, persist_dir):
             result_processor=bench_v2.keep,
             experiments=[{
                 "seed": seed,
-                "days": 365 * years,
+                "days": 365 * years if days is None else days,
                 "openttd_config": cfg,
                 "ais": (arm,),
                 "bench_run": ["OpexAI", seed, "phaseA"],
@@ -235,7 +235,7 @@ def run_phase_a(seed, years, arm, cfg, checkpoint_path, persist_dir):
     return rows, output_text, saved_files
 
 
-def run_phase_b(seed, years, arm, cfg, checkpoint_path, load_savegame, persist_dir):
+def run_phase_b(seed, years, arm, cfg, checkpoint_path, load_savegame, persist_dir, *, days=None):
     if persist_dir.exists():
         shutil.rmtree(persist_dir)
     persist_dir.mkdir(parents=True, exist_ok=True)
@@ -255,7 +255,7 @@ def run_phase_b(seed, years, arm, cfg, checkpoint_path, load_savegame, persist_d
             result_processor=bench_v2.keep,
             experiments=[{
                 "seed": seed,
-                "days": 365 * years,
+                "days": 365 * years if days is None else days,
                 "openttd_config": cfg,
                 "ais": (arm,),
                 "bench_run": ["OpexAI", seed, "phaseB"],
@@ -283,6 +283,8 @@ def parse_args():
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--years-a", type=int, default=3, help="duree de la phase A (partie initiale)")
     parser.add_argument("--years-b", type=int, default=2, help="duree de la phase B (apres rechargement)")
+    parser.add_argument("--days-a", type=int, help="override phase A duration in days (short roundtrips)")
+    parser.add_argument("--days-b", type=int, help="override phase B duration in days (short roundtrips)")
     parser.add_argument("--starting-year", type=int, default=1970)
     parser.add_argument("--out", type=Path, default=DEFAULT_OUT)
     parser.add_argument("--work-dir", type=Path, default=WORK_DIR,
@@ -302,7 +304,10 @@ def parse_args():
         help="niveau -d script=N. 4 est necessaire pour capturer AILog.Info ([I]), "
              "3 ne rend que les [W]/[E]",
     )
-    return parser.parse_args()
+    args = parser.parse_args()
+    if any(value is not None and value <= 0 for value in (args.days_a, args.days_b)):
+        parser.error("day overrides must be positive")
+    return args
 
 
 def main():
@@ -323,8 +328,10 @@ def main():
     checkpoint_a = WORK_DIR / "phaseA_checkpoint.jsonl"
     checkpoint_b = WORK_DIR / "phaseB_checkpoint.jsonl"
 
-    print(f"=== Phase A : OpexAI seule, graine {args.seed}, {args.years_a} an(s), sauvegardes conservees ===")
-    rows_a, output_a, files_a = run_phase_a(args.seed, args.years_a, arm, cfg, checkpoint_a, phase_a_dir)
+    days_a = 365 * args.years_a if args.days_a is None else args.days_a
+    print(f"=== Phase A : OpexAI seule, graine {args.seed}, {days_a} jours, sauvegardes conservees ===")
+    rows_a, output_a, files_a = run_phase_a(args.seed, args.years_a, arm, cfg, checkpoint_a, phase_a_dir,
+                                         days=args.days_a)
     print(f"Phase A terminee : {len(files_a)} sauvegarde(s) conservee(s) dans {phase_a_dir}")
 
     if not files_a:
@@ -365,9 +372,11 @@ def main():
         f"(date={chosen['date']}, gares={chosen['n_stations']}, vehicules={chosen['n_vehicles']})"
     )
 
-    print(f"\n=== Phase B : rechargement de {chosen['file']}, {args.years_b} an(s) supplementaire(s) ===")
+    days_b = 365 * args.years_b if args.days_b is None else args.days_b
+    print(f"\n=== Phase B : rechargement de {chosen['file']}, {days_b} jours supplementaires ===")
     rows_b, output_b, files_b = run_phase_b(
         args.seed, args.years_b, arm, cfg, checkpoint_b, chosen["path"], phase_b_dir,
+        days=args.days_b,
     )
     print(f"Phase B terminee : {len(files_b)} sauvegarde(s) conservee(s) dans {phase_b_dir}")
 
@@ -430,6 +439,8 @@ def main():
         "seed": args.seed,
         "years_a": args.years_a,
         "years_b": args.years_b,
+        "phase_a_days": 365 * args.years_a if args.days_a is None else args.days_a,
+        "phase_b_days": 365 * args.years_b if args.days_b is None else args.days_b,
         "starting_year": args.starting_year,
         "config": cfg,
         "script_debug_level": SCRIPT_DEBUG_LEVEL,

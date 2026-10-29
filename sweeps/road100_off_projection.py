@@ -94,6 +94,9 @@ def _subtract_exact(name: str, source: str, edits, label: str) -> str:
 
 
 def off_source(name: str, source: str, *, hunk_data=None) -> str:
+    # ROAD1Y-B2: exact reviewed layer above 4354cafa; historical fixtures unchanged.
+    districts = json.loads((FIXTURE.parent / "road100_bus_districts_hunks.json").read_text())
+    source = _subtract_exact(name, source, districts.get(name), "ROAD1Y-B2")
     # ROAD100-36 is a new opt-in above all frozen historic layers. Remove
     # only its exact current hunks, then use the unchanged V35..V7 fixtures.
     v36_hunks = json.loads(V36_FIXTURE.read_text(encoding="utf-8"))

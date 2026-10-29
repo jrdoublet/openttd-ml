@@ -1,0 +1,106 @@
+{
+  "OpexRoadBusSiteStillBuildable": {
+    "file": "builder_road.nut",
+    "hunks": [
+      {
+        "before": "  if (AITile.IsStationTile(site.tile) || AIRoad.IsRoadDepotTile(site.tile)) return false;\n  local liveBusStops = OpexRoadOurBusTiles();\n  if (OpexRoadTileTooClose(site.tile, liveBusStops, ROAD_BUS_STOP_MIN_DISTANCE)) return false;\n  local isDriveThrough = (\"driveThrough\" in site) && site.driveThrough;\n  local ok = false;\n",
+        "after": "  if (AITile.IsStationTile(site.tile) || AIRoad.IsRoadDepotTile(site.tile)) return false;\n  local liveBusStops = OpexRoadOurBusTiles();\n  if (OpexRoad100CatchmentOverlaps(site.tile, liveBusStops,\n      AIStation.GetCoverageRadius(AIStation.STATION_BUS_STOP))) return false;\n  local isDriveThrough = (\"driveThrough\" in site) && site.driveThrough;\n  local ok = false;\n"
+      }
+    ]
+  },
+  "OpexRoadPlanPaxVoirie": {
+    "file": "builder_road.nut",
+    "hunks": [
+      {
+        "before": "    foreach (t in candidate.existingStops) exclude.append(t);\n  }\n  local sitesA = OpexRoadPaxVoirieSites(candidate.src, candidate.srcTown, candidate.cargo,\n                                        stop.vehType, coverage, candidate.dst, true, exclude);\n  if (sitesA.len() == 0) {\n",
+        "after": "    foreach (t in candidate.existingStops) exclude.append(t);\n  }\n  local sitesA = null, sitesB = null;\n  if (ROAD1Y_PAX_SITES && (\"road1yBusSite\" in candidate)) {\n    if (!candidate.siteA.driveThrough || !candidate.siteB.driveThrough) return null;\n    if (!OpexRoadBusSiteStillBuildable(candidate.siteA)\n        || !OpexRoadBusSiteStillBuildable(candidate.siteB)) return null;\n    sitesA = [candidate.siteA]; sitesB = [candidate.siteB];\n  } else {\n  sitesA = OpexRoadPaxVoirieSites(candidate.src, candidate.srcTown, candidate.cargo,\n                                        stop.vehType, coverage, candidate.dst, true, exclude);\n  if (sitesA.len() == 0) {\n"
+      },
+      {
+        "before": "    return null;\n  }\n  local sitesB = OpexRoadPaxVoirieSites(candidate.dst, candidate.dstTown, candidate.cargo,\n                                        stop.vehType, coverage, candidate.src, true, exclude);\n  if (sitesB.len() == 0) {\n",
+        "after": "    return null;\n  }\n  sitesB = OpexRoadPaxVoirieSites(candidate.dst, candidate.dstTown, candidate.cargo,\n                                        stop.vehType, coverage, candidate.src, true, exclude);\n  if (sitesB.len() == 0) {\n"
+      },
+      {
+        "before": "                                 + \" nA=\" + sitesA.len());\n    return null;\n  }\n  local minPair = ROAD_PAX_VOIRIE_MIN_PAIR;\n",
+        "after": "                                 + \" nA=\" + sitesA.len());\n    return null;\n  }\n  }\n  local minPair = ROAD_PAX_VOIRIE_MIN_PAIR;\n"
+      },
+      {
+        "before": "    pairs.sort(OpexRoad100SortSitePair);\n  } else {\n    pairs.sort(function(x, y) {\n      if (x.d < y.d) return -1;\n      if (x.d > y.d) return 1;\n      return 0;\n    });\n  }\n  local nBfs = 0;\n",
+        "after": "    pairs.sort(OpexRoad100SortSitePair);\n  } else {\n    pairs.sort(OpexBusDistrictSortDistance);\n  }\n  local nBfs = 0;\n"
+      }
+    ]
+  },
+  "OpexRoad100SoloPaxCandidates": {
+    "file": "candidates.nut",
+    "hunks": [
+      {
+        "before": "  local coverage = AIStation.GetCoverageRadius(AIStation.STATION_BUS_STOP);\n  foreach (i, town in towns) {\n    if (OpexTownBusPaxServed(lines, town.id)\n        || OpexTownRoadLineCount(lines, town.tile) >= 4) continue;\n    if (ROAD1Y_PAX_SITES) {\n      local site = OpexRoadFindTownBusSite(town, cargo, coverage);\n      if (site == null || site.monthly <= 0) continue;\n      ranked.append({ index = i, id = town.id, site = site, captured = site.monthly, totalMonthly = site.monthly });\n    } else {\n      local monthly = AITown.GetLastMonthProduction(town.id, cargo);\n",
+        "after": "  local coverage = AIStation.GetCoverageRadius(AIStation.STATION_BUS_STOP);\n  foreach (i, town in towns) {\n    if ((!ROAD1Y_PAX_SITES && OpexTownBusPaxServed(lines, town.id))\n        || OpexTownRoadLineCount(lines, town.tile) >= 4) continue;\n    if (ROAD1Y_PAX_SITES) {\n      foreach (site in OpexBusDistrictSites(town, cargo, coverage))\n        ranked.append({ index = i, id = town.id, site = site, captured = site.monthly, totalMonthly = site.monthly });\n    } else {\n      local monthly = AITown.GetLastMonthProduction(town.id, cargo);\n"
+      },
+      {
+        "before": "      local townA = towns[src.index];\n      local townB = towns[dst.index];\n      if (OpexRoadPairServed(lines, townA.tile, townB.tile)) continue;\n      local distance = AIMap.DistanceManhattan(townA.tile, townB.tile);\n      if (!OpexRoadDistanceAllowed(catalog, distance, stats)) continue;\n      if (abandonedPairs != null) {\n",
+        "after": "      local townA = towns[src.index];\n      local townB = towns[dst.index];\n      if (src.id == dst.id) continue;\n      local tileA = ROAD1Y_PAX_SITES ? src.site.tile : townA.tile;\n      local tileB = ROAD1Y_PAX_SITES ? dst.site.tile : townB.tile;\n      if (OpexRoadPairServed(lines, tileA, tileB)) continue;\n      local distance = AIMap.DistanceManhattan(tileA, tileB);\n      if (!OpexRoadDistanceAllowed(catalog, distance, stats)) continue;\n      if (abandonedPairs != null) {\n"
+      },
+      {
+        "before": "        if (idA > idB) { local swapId = idA; idA = idB; idB = swapId; }\n        local pairKey = \"pax|\" + cargo + \"|\" + idA + \"|\" + idB;\n        if (pairKey in abandonedPairs) continue;\n      }\n      stats.pairsInBand++;\n",
+        "after": "        if (idA > idB) { local swapId = idA; idA = idB; idB = swapId; }\n        local pairKey = \"pax|\" + cargo + \"|\" + idA + \"|\" + idB;\n        if (!ROAD1Y_PAX_SITES && pairKey in abandonedPairs) continue;\n      }\n      stats.pairsInBand++;\n"
+      },
+      {
+        "before": "          ? (src.captured + dst.captured)\n          : (ROAD100_INTERCITY_SITE_FLEET ? (src.totalMonthly + dst.totalMonthly) : (src.captured + dst.captured));\n      local candidate = OpexMakeRoadCandidate(catalog, \"pax\", cargo, townA.tile,\n          townB.tile, src.id, dst.id, distance, monthly, stats, false,\n          ROAD100_INTERCITY_SITE_FLEET ? 30 : 0);\n      if (candidate != null) {\n",
+        "after": "          ? (src.captured + dst.captured)\n          : (ROAD100_INTERCITY_SITE_FLEET ? (src.totalMonthly + dst.totalMonthly) : (src.captured + dst.captured));\n      local candidate = OpexMakeRoadCandidate(catalog, \"pax\", cargo, tileA,\n          tileB, src.id, dst.id, distance, monthly, stats, false,\n          ROAD100_INTERCITY_SITE_FLEET ? 30 : 0);\n      if (candidate != null) {\n"
+      },
+      {
+        "before": "          candidate.siteB <- dst.site;\n          candidate.road1yBusSite <- true;\n        }\n        if (ROAD100_INTERCITY_SITE_FLEET) {\n",
+        "after": "          candidate.siteB <- dst.site;\n          candidate.road1yBusSite <- true;\n          if (abandonedPairs != null && OpexAbandonedPairKey(candidate) in abandonedPairs) continue;\n          if (DECISION_LOG) OpexDecide(\"BUS_DISTRICT_CAND\", \"town_a=\" + src.id\n              + \" town_b=\" + dst.id + \" site_a=\" + tileA + \" site_b=\" + tileB\n              + \" distance=\" + distance + \" monthly=\" + monthly\n              + \" profit=\" + candidate.profitAnnual + \" roi=\" + candidate.roi);\n        }\n        if (ROAD100_INTERCITY_SITE_FLEET) {\n"
+      }
+    ]
+  },
+  "OpexAbandonedPairKey": {
+    "file": "lines.nut",
+    "hunks": [
+      {
+        "before": "function OpexAbandonedPairKey(candidate)\n{\n\n  if ((\"isSubsidy\" in candidate) && candidate.isSubsidy) {\n",
+        "after": "function OpexAbandonedPairKey(candidate)\n{\n  if (ROAD1Y_PAX_SITES && (\"road1yBusSite\" in candidate)) {\n    local a = candidate.siteA.tile, b = candidate.siteB.tile;\n    return \"bus_district|\" + candidate.cargo + \"|\" + (a < b ? a : b) + \"|\" + (a < b ? b : a);\n  }\n\n  if ((\"isSubsidy\" in candidate) && candidate.isSubsidy) {\n"
+      }
+    ]
+  },
+  "OpexCandidateStillValid": {
+    "file": "projects_generation.nut",
+    "hunks": [
+      {
+        "before": "    }\n\n    if (p.kind == \"pax\") {\n      local endpoints = OpexGetCandidateTownEndpoints(p.payload);\n      if ((endpoints.srcTown >= 0 && OpexTownBusPaxServed(lines, endpoints.srcTown)) ||\n",
+        "after": "    }\n\n    if (p.kind == \"pax\" && !(ROAD1Y_PAX_SITES && (\"road1yBusSite\" in p.payload))) {\n      local endpoints = OpexGetCandidateTownEndpoints(p.payload);\n      if ((endpoints.srcTown >= 0 && OpexTownBusPaxServed(lines, endpoints.srcTown)) ||\n"
+      }
+    ]
+  },
+  "OpexCandidateStillValidIndexed": {
+    "file": "projects_generation.nut",
+    "hunks": [
+      {
+        "before": "    }\n\n    if (p.kind == \"pax\") {\n      local endpoints = OpexGetCandidateTownEndpoints(p.payload);\n      if ((endpoints.srcTown >= 0 && (endpoints.srcTown in ctx.townBusPaxServed)) ||\n",
+        "after": "    }\n\n    if (p.kind == \"pax\" && !(ROAD1Y_PAX_SITES && (\"road1yBusSite\" in p.payload))) {\n      local endpoints = OpexGetCandidateTownEndpoints(p.payload);\n      if ((endpoints.srcTown >= 0 && (endpoints.srcTown in ctx.townBusPaxServed)) ||\n"
+      }
+    ]
+  },
+  "OpexAI::_tryBuildRoadProject": {
+    "file": "task_road.nut",
+    "hunks": [
+      {
+        "before": "        /* Dernier verrou contre un candidat cache : des qu'une des communes a recu une ligne bus,\n         * sa croissance passe exclusivement par une extension de cette ligne. */\n        if (!(((\"road100MultiCatchment\" in candidate) && candidate.road100MultiCatchment)\n              && ROAD100_MULTICATCHMENT)\n            && ((towns.srcTown >= 0 && OpexTownBusPaxServed(this._lines, towns.srcTown)) ||\n",
+        "after": "        /* Dernier verrou contre un candidat cache : des qu'une des communes a recu une ligne bus,\n         * sa croissance passe exclusivement par une extension de cette ligne. */\n        if (!(ROAD1Y_PAX_SITES && (\"road1yBusSite\" in candidate))\n            && !(((\"road100MultiCatchment\" in candidate) && candidate.road100MultiCatchment)\n              && ROAD100_MULTICATCHMENT)\n            && ((towns.srcTown >= 0 && OpexTownBusPaxServed(this._lines, towns.srcTown)) ||\n"
+      }
+    ]
+  },
+  "OpexAI::_refleetRoadLines": {
+    "file": "task_road.nut",
+    "hunks": [
+      {
+        "before": "      }\n    }\n    if ((\"expandBlocked\" in line) && line.expandBlocked) continue;\n    if ((\"expandRetryCycle\" in line) && line.expandRetryCycle > this._taskCycle) continue;\n",
+        "after": "      }\n    }\n    // Maintenance avant tout veto economique (m1). Invalidation AVANT mutation (M2).\n    if (ROAD1Y_EXTRA_STOPS > 0 || (\"road1yExtraStops\" in line)) {\n      if (this._saveProjection != null && line in this._saveProjection)\n        delete this._saveProjection[line];\n      OpexRoad1yCleanupExtraStop(line);\n      OpexRoad1yReconcileExtraStops(line);\n    }\n    if ((\"expandBlocked\" in line) && line.expandBlocked) continue;\n    if ((\"expandRetryCycle\" in line) && line.expandRetryCycle > this._taskCycle) continue;\n"
+      },
+      {
+        "before": "            + AICompany.GetBankBalance(AICompany.COMPANY_SELF));\n      }\n    }\n\n",
+        "after": "            + AICompany.GetBankBalance(AICompany.COMPANY_SELF));\n      }\n    }\n\n    if (ROAD1Y_EXTRA_STOPS > 0) {\n      if (this._saveProjection != null && line in this._saveProjection)\n        delete this._saveProjection[line];\n      OpexRoad1yExtraStops(this._catalog, line, have, capacity,\n          waitingA, waitingB, movingCount, ym);\n      money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);\n    }\n\n"
+      }
+    ]
+  }
+}

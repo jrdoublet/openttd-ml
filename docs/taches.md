@@ -9,6 +9,21 @@ risque) : [ordre de clôture du 26/10](classement_taches_20261026.md).
 
 ## État courant
 
+### 29/10 — ROAD1Y-B2, reprise bus explicitement demandée, limitée à un an
+
+Branche `road1y-bus-sites`, parent `4354cafa`. Refonte des quartiers bus et
+quais joints derrière `road1y_pax_sites=0` / `road1y_extra_stops=0` ; C/D restent
+OFF. Cinq graines 17/2026/12345/1337/100, aucune porte A/B : moyenne terminale
+du harnais **58 369 £ sites seuls**, **69 430 £ sites + deux quais joints**,
+contre seuil historique A **54 031 £** et témoin du même arbre **51 193 £**.
+Les quinze parties finales sont saines ; OFF reproduit le parent sur les cinq
+graines. Forte régression sur 17 (**19 631 £** avec quais) : résultat descriptif,
+aucune adoption. Les profits de cette première année couvrent trois trimestres
+clos. Save/Load court sain ; le cas projection ≥64 lignes reste vérifié par
+contrat, non exposé au moteur. [Diagnostic, preuves et limites](road1y_busB_20261029.md).
+La demande présente n'autorise aucune poursuite au-delà d'un an ni changement
+des défauts ; elle ne rouvre pas les autres travaux ROAD100 arrêtés.
+
 ### 28/10 — ROAD100 arrêté sur demande utilisateur ; bilan consolidé
 
 **ROAD100 arrêté : 0/5 parités H1–H5.** Ne pas reprendre de travaux ROUTE,

@@ -284,6 +284,7 @@ class ForumBehaviours(unittest.TestCase):
             self.assertIn(fragment, code)
 
     def test_3_2_valuate_callbacks_are_native_inventory(self):
+        # ROAD1Y-B2: bus_districts uses four existing native callbacks; V262 inventories each call.
         # Inventaire exhaustif des premiers arguments. Liste blanche Squirrel vide :
         # aucun petit AIList évalué par closure dans l'arbre actuel.
         native = {
