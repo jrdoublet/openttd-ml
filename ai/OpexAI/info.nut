@@ -410,16 +410,16 @@ class OpexAIInfo extends AIInfo {
     });
     AddSetting({
       name = "road1y_extra_stops",
-      description = "ROAD1Y: extra joined road stops per endpoint (0=off)",
+      description = "ROAD1Y: extra joined road stops per endpoint (0=off, 2=default on this branch)",
       min_value = 0, max_value = 3,
-      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
+      easy_value = 2, medium_value = 2, hard_value = 2, custom_value = 2,
       flags = 0
     });
     AddSetting({
       name = "road1y_pax_sites",
-      description = "ROAD1Y-B: Scan natif des sites de bus sur modele aeroport et demande reelle couverte; 0 = off (default), 1 = on",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
+      description = "ROAD1Y-B: Scan natif des sites de bus sur modele aeroport et demande reelle couverte; 0 = off, 1 = on (default)",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
       flags = AICONFIG_BOOLEAN
     });
     AddSetting({

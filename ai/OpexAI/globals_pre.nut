@@ -72,8 +72,8 @@ ROAD1Y_DIST_BANDS <- true; // ROAD1Y : traces route jusqu'a 128 tuiles, candidat
 ROAD1Y_DIST_BAND <- -1; // bande courante pendant une generation (-1 = bornes historiques)
 ROAD1Y_DIST_BAND_LIMITS <- [[64, 128], [32, 63], [7, 31]];
 ROAD1Y_FLEET <- 4; // ROAD1Y : vehicules par paire de quais des la premiere annee (0 = plafond historique ; 4 par defaut sur cette branche)
-ROAD1Y_EXTRA_STOPS <- 0; // Quais joints supplementaires, opt-in 0..3.
-ROAD1Y_PAX_SITES <- false; // ROAD1Y-B : scan natif des sites de bus (modele aeroport)
+ROAD1Y_EXTRA_STOPS <- 2; // Quais joints supplementaires, opt-in 0..3.
+ROAD1Y_PAX_SITES <- true; // ROAD1Y-B : scan natif des sites de bus (modele aeroport)
 ROAD_BUS_SITE_CACHE <- {}; // ROAD1Y-B : cache des sites de bus par ville (town.id)
 ROAD1Y_PAX_ECONOMY <- false; // ROAD1Y-C : dimensionnement de flotte bus selon demande et rotation
 ROAD1Y_PAX_REFLEET <- false; // ROAD1Y-D : renfort refleet bus selon passagers en attente aux deux bouts
