@@ -402,6 +402,13 @@ class OpexAIInfo extends AIInfo {
       flags = 0
     });
     AddSetting({
+      name = "road1y_bus_fixes",
+      description = "ROAD1Y B2 fixes mask: 1 passenger-only extra stops, 4 minimum pax distance 30, 8 max two districts per town (bit 2 unused)",
+      min_value = 0, max_value = 13,
+      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
+      flags = 0
+    });
+    AddSetting({
       name = "road1y_extra_stops",
       description = "ROAD1Y: extra joined road stops per endpoint (0=off)",
       min_value = 0, max_value = 3,

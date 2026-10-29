@@ -51,6 +51,14 @@
       {
         "before": "          candidate.siteB <- dst.site;\n          candidate.road1yBusSite <- true;\n        }\n        if (ROAD100_INTERCITY_SITE_FLEET) {\n",
         "after": "          candidate.siteB <- dst.site;\n          candidate.road1yBusSite <- true;\n          if (abandonedPairs != null && OpexAbandonedPairKey(candidate) in abandonedPairs) continue;\n          if (DECISION_LOG) OpexDecide(\"BUS_DISTRICT_CAND\", \"town_a=\" + src.id\n              + \" town_b=\" + dst.id + \" site_a=\" + tileA + \" site_b=\" + tileB\n              + \" distance=\" + distance + \" monthly=\" + monthly\n              + \" profit=\" + candidate.profitAnnual + \" roi=\" + candidate.roi);\n        }\n        if (ROAD100_INTERCITY_SITE_FLEET) {\n"
+      },
+      {
+        "before": "  ranked.sort(OpexRoad100SortTownDemand);\n  local n = ranked.len();",
+        "after": "  ranked.sort(OpexRoad100SortTownDemand);\n  if ((ROAD1Y_BUS_FIXES & 8) != 0) {\n    local diverse = [], counts = {};\n    foreach (item in ranked) {\n      local count = item.id in counts ? counts[item.id] : 0;\n      if (count >= 2) continue;\n      counts[item.id] <- count + 1;\n      diverse.append(item);\n    }\n    ranked = diverse;\n  }\n  local n = ranked.len();"
+      },
+      {
+        "before": "      local distance = AIMap.DistanceManhattan(tileA, tileB);\n      if (!OpexRoadDistanceAllowed(catalog, distance, stats)) continue;",
+        "after": "      local distance = AIMap.DistanceManhattan(tileA, tileB);\n      if ((ROAD1Y_BUS_FIXES & 4) != 0 && distance < 30) continue;\n      if (!OpexRoadDistanceAllowed(catalog, distance, stats)) continue;"
       }
     ]
   },

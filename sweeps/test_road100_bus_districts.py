@@ -146,3 +146,27 @@ class BusDistrictContracts(unittest.TestCase):
         code = body('builder_road.nut', 'OpexRoadRefleet')
         self.assertIn('isFreight || ROAD1Y_LOAD_ORDERS', code)
         self.assertIn('(ROAD1Y_LOAD_ORDERS && isFreight) ? (AIOrder.OF_UNLOAD | AIOrder.OF_NO_LOAD)', code)
+
+    def test_isolated_fixes_default_off_and_loaded_once(self):
+        settings = source('settings.nut')
+        self.assertEqual(settings.count('GetSetting("road1y_bus_fixes")'), 1)
+        self.assertIn('ROAD1Y_BUS_FIXES <- 0;', source('globals_pre.nut'))
+        setting = source('info.nut').split('name = "road1y_bus_fixes",')[1].split('});')[0]
+        for difficulty in ('easy', 'medium', 'hard', 'custom'):
+            self.assertIn(difficulty + '_value = 0', setting)
+
+    def test_passenger_restriction_preserves_saved_freight_maintenance(self):
+        code = body('bus_districts.nut', 'OpexRoad1yExtraStops')
+        guard = code.index('(ROAD1Y_BUS_FIXES & 1)')
+        self.assertLess(code.index('OpexRoad1yReconcileExtraStops(line)'), guard)
+        self.assertLess(guard, code.index('OpexRoad1yBuildExtraStop('))
+        self.assertIn('!AICargo.HasCargoClass(line.cargo, AICargo.CC_PASSENGERS)', code)
+        self.assertNotIn('ROAD1Y_BUS_FIXES', body('bus_districts.nut', 'OpexRoad1yCleanupExtraStop'))
+
+    def test_diversity_keeps_best_two_before_top40_and_distance_before_quote(self):
+        code = body('bus_districts_overrides.nut', 'OpexRoad100SoloPaxCandidates')
+        self.assertLess(code.index('ranked.sort('), code.index('(ROAD1Y_BUS_FIXES & 8)'))
+        self.assertIn('if (count >= 2) continue;', code)
+        self.assertLess(code.index('ranked = diverse;'), code.index('if (n > 40)'))
+        self.assertIn('(ROAD1Y_BUS_FIXES & 4) != 0 && distance < 30', code)
+        self.assertLess(code.index('distance < 30'), code.index('OpexMakeRoadCandidate('))

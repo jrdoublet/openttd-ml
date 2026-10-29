@@ -334,6 +334,16 @@ function OpexRoad100SoloPaxCandidates(catalog, lines, out, stats,
     }
   }
   ranked.sort(OpexRoad100SortTownDemand);
+  if ((ROAD1Y_BUS_FIXES & 8) != 0) {
+    local diverse = [], counts = {};
+    foreach (item in ranked) {
+      local count = item.id in counts ? counts[item.id] : 0;
+      if (count >= 2) continue;
+      counts[item.id] <- count + 1;
+      diverse.append(item);
+    }
+    ranked = diverse;
+  }
   local n = ranked.len();
   if (n > 40) n = 40;
   local examined = 0;
@@ -354,6 +364,7 @@ function OpexRoad100SoloPaxCandidates(catalog, lines, out, stats,
       local tileB = ROAD1Y_PAX_SITES ? dst.site.tile : townB.tile;
       if (OpexRoadPairServed(lines, tileA, tileB)) continue;
       local distance = AIMap.DistanceManhattan(tileA, tileB);
+      if ((ROAD1Y_BUS_FIXES & 4) != 0 && distance < 30) continue;
       if (!OpexRoadDistanceAllowed(catalog, distance, stats)) continue;
       if (abandonedPairs != null) {
         local idA = src.id;

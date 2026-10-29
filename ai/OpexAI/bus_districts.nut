@@ -293,6 +293,8 @@ function OpexRoad1yExtraStops(catalog, line, have, capacity, waitingA, waitingB,
   OpexRoad1yReconcileExtraStops(line);
   if (("road1yExtraPending" in line) && line.road1yExtraPending >= 0) return;
   if (ROAD1Y_EXTRA_STOPS <= 0 || capacity <= 0 || moving <= 0) return;
+  if ((ROAD1Y_BUS_FIXES & 1) != 0
+      && !AICargo.HasCargoClass(line.cargo, AICargo.CC_PASSENGERS)) return;
   if (("road1yExtraMonth" in line) && line.road1yExtraMonth == month) return;
   local stops = line.nStopsA < line.nStopsB ? line.nStopsA : line.nStopsB;
   local cap = OpexRoadPhysicalVehicleCap(line.nStopsA, line.nStopsB);

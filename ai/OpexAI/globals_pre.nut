@@ -811,3 +811,4 @@ C77_INTENT_DEFER_SUBSIDY <- true;
 const C77_INTENT_DEFER_DAYS = 365;
 
 ROAD1Y_SAVED_STOPS <- false; // Set only by reconciliation after Load.
+ROAD1Y_BUS_FIXES <- 0; // 1: pax-only additions; 4: min distance 30; 8: top two districts.

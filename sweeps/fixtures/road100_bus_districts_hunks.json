@@ -6,13 +6,13 @@
     },
     {
       "before": "C77_INTENT_DEFER_SUBSIDY <- true;\nconst C77_INTENT_DEFER_DAYS = 365;\n",
-      "after": "C77_INTENT_DEFER_SUBSIDY <- true;\nconst C77_INTENT_DEFER_DAYS = 365;\n\nROAD1Y_SAVED_STOPS <- false; // Set only by reconciliation after Load.\n"
+      "after": "C77_INTENT_DEFER_SUBSIDY <- true;\nconst C77_INTENT_DEFER_DAYS = 365;\n\nROAD1Y_SAVED_STOPS <- false; // Set only by reconciliation after Load.\nROAD1Y_BUS_FIXES <- 0; // 1: pax-only additions; 4: min distance 30; 8: top two districts.\n"
     }
   ],
   "info.nut": [
     {
       "before": "      easy_value = 4, medium_value = 4, hard_value = 4,\n      custom_value = 4,\n      flags = 0\n    });\n",
-      "after": "      easy_value = 4, medium_value = 4, hard_value = 4,\n      custom_value = 4,\n      flags = 0\n    });\n    AddSetting({\n      name = \"road1y_extra_stops\",\n      description = \"ROAD1Y: extra joined road stops per endpoint (0=off)\",\n      min_value = 0, max_value = 3,\n      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,\n      flags = 0\n    });\n"
+      "after": "      easy_value = 4, medium_value = 4, hard_value = 4,\n      custom_value = 4,\n      flags = 0\n    });\n    AddSetting({\n      name = \"road1y_bus_fixes\",\n      description = \"ROAD1Y B2 fixes mask: 1 passenger-only extra stops, 4 minimum pax distance 30, 8 max two districts per town (bit 2 unused)\",\n      min_value = 0, max_value = 13,\n      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,\n      flags = 0\n    });\n    AddSetting({\n      name = \"road1y_extra_stops\",\n      description = \"ROAD1Y: extra joined road stops per endpoint (0=off)\",\n      min_value = 0, max_value = 3,\n      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,\n      flags = 0\n    });\n"
     }
   ],
   "settings.nut": [
@@ -22,7 +22,7 @@
     },
     {
       "before": "  AIR_FLEET_BUFFER = 0;\n}\n",
-      "after": "  AIR_FLEET_BUFFER = 0;\n}\n\n/* Read once before class instantiation: Squirrel forbids replacing class methods later. */\nfunction OpexLoadBusDistrictSettings()\n{\n  ROAD1Y_EXTRA_STOPS = AIController.GetSetting(\"road1y_extra_stops\");\n  if (ROAD1Y_EXTRA_STOPS < 0) ROAD1Y_EXTRA_STOPS = 0;\n  if (ROAD1Y_EXTRA_STOPS > 3) ROAD1Y_EXTRA_STOPS = 3;\n  ROAD1Y_PAX_SITES = AIController.GetSetting(\"road1y_pax_sites\") == 1;\n  { // Definitions also needed for saved markers after ON -> OFF.\n    require(\"bus_districts.nut\");\n    require(\"bus_districts_overrides.nut\");\n  }\n}\n"
+      "after": "  AIR_FLEET_BUFFER = 0;\n}\n\n/* Read once before class instantiation: Squirrel forbids replacing class methods later. */\nfunction OpexLoadBusDistrictSettings()\n{\n  ROAD1Y_BUS_FIXES = AIController.GetSetting(\"road1y_bus_fixes\");\n  if (ROAD1Y_BUS_FIXES < 0 || ROAD1Y_BUS_FIXES > 13) ROAD1Y_BUS_FIXES = 0;\n  ROAD1Y_EXTRA_STOPS = AIController.GetSetting(\"road1y_extra_stops\");\n  if (ROAD1Y_EXTRA_STOPS < 0) ROAD1Y_EXTRA_STOPS = 0;\n  if (ROAD1Y_EXTRA_STOPS > 3) ROAD1Y_EXTRA_STOPS = 3;\n  ROAD1Y_PAX_SITES = AIController.GetSetting(\"road1y_pax_sites\") == 1;\n  { // Definitions also needed for saved markers after ON -> OFF.\n    require(\"bus_districts.nut\");\n    require(\"bus_districts_overrides.nut\");\n  }\n}\n"
     }
   ],
   "main.nut": [

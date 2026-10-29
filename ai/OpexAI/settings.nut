@@ -609,6 +609,8 @@ function OpexLoadSettings()
 /* Read once before class instantiation: Squirrel forbids replacing class methods later. */
 function OpexLoadBusDistrictSettings()
 {
+  ROAD1Y_BUS_FIXES = AIController.GetSetting("road1y_bus_fixes");
+  if (ROAD1Y_BUS_FIXES < 0 || ROAD1Y_BUS_FIXES > 13) ROAD1Y_BUS_FIXES = 0;
   ROAD1Y_EXTRA_STOPS = AIController.GetSetting("road1y_extra_stops");
   if (ROAD1Y_EXTRA_STOPS < 0) ROAD1Y_EXTRA_STOPS = 0;
   if (ROAD1Y_EXTRA_STOPS > 3) ROAD1Y_EXTRA_STOPS = 3;

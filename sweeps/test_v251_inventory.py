@@ -51,7 +51,8 @@ class TestV251Inventory(unittest.TestCase):
         # ROAD100 ajoute 34 réglages opt-in (défaut 0), retirés par
         # historical_info ; EB-2 ajoute une option de repli (défaut 0).
         # ROAD1Y extra joined stops: one default-OFF setting, projected by ROAD1Y-B2.
-        self.assertLessEqual(info.count("AddSetting("), 69)
+        # B2 fixes adds one default-OFF bitmask for isolated one-year diagnostics.
+        self.assertLessEqual(info.count("AddSetting("), 70)
         self.assertNotIn('name = "v251', info)
         settings = self.sources["settings.nut"]
         self.assertNotIn('GetSetting("v251', settings)

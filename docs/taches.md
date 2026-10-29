@@ -9,6 +9,22 @@ risque) : [ordre de clôture du 26/10](classement_taches_20261026.md).
 
 ## État courant
 
+### 29/10 — corrections de revue B2 et diagnostic des variantes a/c
+
+Partie 1 `8ff35570` : projection Save reconstruite hors Save, maintenance des
+marqueurs après reprise OFF, exclusion pending, exception LIVE et ordres du
+refleet sans modèle. Échec du lancement précédent identifié : affectation de
+méthode Squirrel par `=` au lieu de `<-` ; campagne corrigée saine.
+Nouveau masque `road1y_bus_fixes=0` : 1 quais passagers, 4 distance ≥30,
+8 deux quartiers par ville. **Aucune adoption, objectif économique non atteint** :
+meilleure combinaison essayée sur 17 = 29 914 £, mais moyenne des quatre autres
+77 249 £ contre 81 701 £ au JOINED témoin final. Le repli baie demandé sous
+condition n'est pas codé : diagnostic de couverture contraire à la cause supposée.
+OFF final identique sur 130 observations hors provenance ; 230 contrats ROAD100
+OK (3 ignorés), 7 V251 OK, Save/Load court OK. ON→OFF effectif et projection ≥64
+lignes restent non exposés au moteur. Bancs limités à un an, aucun push.
+[Rapport et tableau par graine](road1y_busB2_fix_20261029.md).
+
 ### 29/10 — ROAD1Y-B2, reprise bus explicitement demandée, limitée à un an
 
 Branche `road1y-bus-sites`, parent `4354cafa`. Refonte des quartiers bus et
