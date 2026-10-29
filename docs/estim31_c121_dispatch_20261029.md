@@ -49,8 +49,51 @@ Le gain de profit OpexAI est **+508 786 £/an** (5/5 graines). Ces chiffres
 portent sur ESTIM31/EB14=3 avec AIR initial 1,50, RAIL 1,00 et poids 15,
 pas sur toutes les configurations ni sur la branche historique sans EB14.
 
-Le contrôle 40×5 et la recherche combinatoire AIR/RAIL doivent être ajoutés
-au présent rapport à leur achèvement. Les tests ne justifient pas de changer
+### Qualification 40×5, décembre 1974
+
+Campagne `estim31_engine_dispatch_air15_40x5_20261029`, **40/40 duels sains**,
+8 workers, carte 256², `probes=2`, année 1970–1974. Les résultats ci-dessous
+proviennent du JSONL filtré sur `duel_policy_id` : le tableau imprimé en
+console appartient uniquement à la référence OFF. Calcul et bootstrap 20 000
+tirages reproductibles dans `results/estim31_dispatch_40x5_analyse_20261029.py`.
+
+| Politique | Profit OpexAI | Profit AAAHogEx | Ratio des moyennes |
+|---|---:|---:|---:|
+| OFF historique | 2 856 233 £/an | 3 001 621 £/an | **95,1563 %** |
+| `estim_unifie=31`, `eb14_progressive=3` avec dispatch, AIR 1,50 / RAIL 1,00 / poids 15 | 2 627 711 £/an | 2 891 442 £/an | **90,8789 %** |
+
+La variante **ne dépasse pas OFF** : −4,2774 points de ratio de profit,
+IC bootstrap 95 % apparié [−10,797 ; +2,051] points ; Opex perd en propre
+**228 522 £/an**, 13 graines gagnantes / 27 perdantes. L’ancien verdict
+`fail_primary` est une sortie du banc, **pas** un veto du nouveau protocole
+utilisateur : seul le pourcentage relatif Opex/AAA détermine le classement.
+
+Les 40 cartes montrent 58,675 avions OpexAI en moyenne contre 66,525 en OFF,
+32,425 aéroports contre 33,675 et 31,975 villes avec au moins un aéroport
+OpexAI contre 33,0. Le rail progresse de 23,9 à 25,7 trains ; le cash recule
+de 2,395 M£ à 1,242 M£. Comptage des moteurs dans les 40 flottes :
+223 **850→879**, 228 **428→360**, mais les flottes incluent les acquisitions
+et renouvellements ; ce n'est pas une mesure isolée du premier achat.
+Les opcodes partiellement observés Opex passent de 54,048 M à 47,209 M ;
+le champ `observed_opcode_complete_cpu=false` interdit d'en déduire une
+consommation CPU absolue. Les dépenses exactes et les rollbacks ne sont pas
+entièrement observables dans ce banc non intrusif ; ne pas assimiler les
+devis ou `air_vehicle_book_value` à des mouvements nets de trésorerie.
+
+### Non-régression de la branche d'intégration
+
+La suite générale `python -X utf8 -m unittest discover -s sweeps -p
+'test_*.py' -q` a ensuite passé **3 128 tests**, 6 ignorés et 2 échecs
+attendus. Les projections historiques `sweeps/estim_unifie_off_lots.py`
+et `sweeps/air_site_ranked_legacy.py` enlèvent explicitement le seul append
+C121, sans rebâtir les fixtures aveuglément ; l'encodage LF a été figé
+sur le source C121 pour préserver les empreintes historiques. Le test B6
+reconnaît le nouveau cas V161 de renfort marginal déjà présent en HEAD.
+La dépendance locale `ai/AAAHogEx-115/info.nut`, absente du worktree mais
+présente dans le dépôt principal, a été copiée **sans être versionnée** pour
+les tests d'intégration.
+
+La recherche combinatoire AIR/RAIL n'est pas terminée. Les tests ne justifient pas de changer
 le défaut `estim_unifie=0`, et **le seul critère économique de classement est
 le ratio de `profit_year` OpexAI/AAAHogEx-115 fin 1974** ; valeur de société,
 trésorerie, constructions et opcodes sont explicatifs, pas éliminatoires.

@@ -43,7 +43,10 @@ class TestB6PortfolioCausality(unittest.TestCase):
         fund = body(self.projects, "function OpexProjectFundProfit(")
         self.assertIn("OpexCalibratedProfit(project)", fund)
         self.assertIn("return calibrated;", fund)
-        self.assertIn('local fleetExemptDecision = project.mode == "fleet" && !OpexC121ProjectHasRealization(project);', flat)
+        # V161 now explicitly models net marginal reinforcements. Keep their
+        # exemption disabled; the old exact line is no longer authoritative.
+        self.assertIn('local fleetExemptDecision = project.mode == "fleet" && !OpexC121ProjectHasRealization(project)', flat)
+        self.assertIn('!(("v161NetMarginalModeled" in project) && project.v161NetMarginalModeled)', flat)
         helper = body(self.projects, "function OpexC121ProjectHasRealization(")
         self.assertNotIn("C121_AIR_ECONOMICS", helper)
 

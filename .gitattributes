@@ -1,0 +1,3 @@
+# The frozen ESTIM source-diff fixtures are LF exact. Force the modified
+# C121 source to LF on Windows as well, without changing its Squirrel tokens.
+ai/OpexAI/air_economics_c121.nut text eol=lf

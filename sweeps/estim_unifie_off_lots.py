@@ -101,8 +101,42 @@ def _unique_location(code, snippet, name, index):
     return found
 
 
+def strip_c121_dispatch(name, code):
+    """Explicitly invert only the independently reviewed C121 opt-in append."""
+    # C121 dispatch (29/10) is an independently reviewed opt-in addition,
+    # added *after* this ESTIM-1 patch inventory was frozen. Strip its exact
+    # owned source before matching the unchanged ESTIM-1 historical anchors.
+    # Never attempt to synthesize an OFF approximation by deleting arbitrary
+    # code: a changed/partial dispatch must be detected by the source tests.
+    if name == "settings.nut":
+        extra = (
+            "  /* C121 ESTIM : conserver le chemin historique et ses opcodes OFF.\n"
+            "   * La variante experimentee evalue tous les moteurs admissibles,\n"
+            "   * sans arret sur une borne non prouvee pour k_R AIR et les flottes. */\n"
+            "  if ((ESTIM_UNIFIE & 1) != 0)\n"
+            "    ::OpexC121ChooseRoutePlane <- OpexC121ChooseRoutePlaneFullScan;\n"
+        )
+        if "::OpexC121ChooseRoutePlane <-" in code:
+            if code.count(extra) != 1:
+                raise AssertionError("C121 dispatch settings source changed or duplicated")
+            code = code.replace(extra, "", 1)
+    elif name == "air_economics_c121.nut":
+        marker = "/* ESTIM C121 experimental full-scan functions. */\n"
+        if marker in code:
+            if code.count(marker) != 1:
+                raise AssertionError("C121 dispatcher clone marker duplicated")
+            prefix, suffix = code.split(marker, 1)
+            if not suffix.startswith("function OpexC121ScanRoutePlaneEnginesFullScan("):
+                raise AssertionError("C121 clone source changed")
+            if "function OpexC121ChooseRoutePlaneFullScan(" not in suffix:
+                raise AssertionError("C121 missing clone of chooser")
+            code = prefix.rstrip() + "\n"
+    return code
+
+
 def estim_off(name, code):
     """Remove only the frozen ESTIM changes, retaining every other source edit."""
+    code = strip_c121_dispatch(name, code)
     hunks = PATCHES.get(name)
     if hunks is None:
         return code
