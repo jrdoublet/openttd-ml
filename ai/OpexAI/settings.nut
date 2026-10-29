@@ -129,6 +129,17 @@ function OpexLoadSettings()
   ROAD1Y_PAX_REFLEET = AIController.GetSetting("road1y_pax_refleet") == 1;
   ROAD1Y_FLEET_UNLOCK = AIController.GetSetting("road1y_fleet_unlock");
   if (ROAD1Y_FLEET_UNLOCK < 0 || ROAD1Y_FLEET_UNLOCK > 15) ROAD1Y_FLEET_UNLOCK = 0;
+  ROAD1Y_LONG_BAND = AIController.GetSetting("road1y_long_band");
+  if (ROAD1Y_LONG_BAND < 0 || ROAD1Y_LONG_BAND > 2) ROAD1Y_LONG_BAND = 0;
+  if (ROAD1Y_LONG_BAND == 1) {
+    ROAD1Y_DIST_BAND_LIMITS = [[129, 192], [64, 128], [32, 63], [7, 31]];
+    ROAD_MAX_TRACE_TILES = 192;
+  } else if (ROAD1Y_LONG_BAND == 2) {
+    ROAD1Y_DIST_BAND_LIMITS = [[96, 192], [48, 95], [7, 47]];
+    ROAD_MAX_TRACE_TILES = 192;
+  } else {
+    ROAD1Y_DIST_BAND_LIMITS = [[64, 128], [32, 63], [7, 31]];
+  }
 
   ROAD100_WAIT_FLEET = AIController.GetSetting("road100_wait_fleet") == 1
       && ROAD100_SITE_FIRST;
