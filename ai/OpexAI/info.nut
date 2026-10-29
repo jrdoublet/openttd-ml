@@ -416,6 +416,14 @@ class OpexAIInfo extends AIInfo {
       flags = 0
     });
     AddSetting({
+      name = "road1y_fleet_unlock",
+      description = "ROAD1Y fleet unlock bitmask: 1 joint stop 5k cash, 2 pax refleet 10k cash, 4 wait refleet & tracked stops, 8 cap 6 per stop on wait > 100; 0 = off (default)",
+      min_value = 0, max_value = 15,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = 0
+    });
+    AddSetting({
       name = "road1y_pax_sites",
       description = "ROAD1Y-B: Scan natif des sites de bus sur modele aeroport et demande reelle couverte; 0 = off, 1 = on (default)",
       easy_value = 1, medium_value = 1, hard_value = 1,

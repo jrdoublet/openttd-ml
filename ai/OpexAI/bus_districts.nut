@@ -233,7 +233,8 @@ function OpexRoad1yBuildExtraStop(catalog, line, side, tiles)
           canBuild = AIRoad.BuildDriveThroughRoadStation(tile, front, vehType, id);
           cost = accounting.GetCosts(); }
         if (!canBuild) continue;
-        if (cost < 0 || AICompany.GetBankBalance(AICompany.COMPANY_SELF) < cost + 50000) {
+        local cashReserve = (ROAD1Y_FLEET_UNLOCK & 1) != 0 ? 5000 : 50000;
+        if (cost < 0 || AICompany.GetBankBalance(AICompany.COMPANY_SELF) < cost + cashReserve) {
           out.reason = "CASH"; return out;
         }
         local built = AIRoad.BuildDriveThroughRoadStation(tile, front, vehType, id);

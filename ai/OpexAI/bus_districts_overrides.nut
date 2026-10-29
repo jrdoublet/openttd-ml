@@ -1855,11 +1855,12 @@ function OpexRoad1yRefleetSaved(year)
           waitFleetPrice = AIEngine.GetPrice(AIVehicle.GetEngineType(v));
           if (waitFleetPrice > 0) break;
         }
-        if (waitFleetPrice > 0 && money >= 50000 + waitFleetPrice) {
+        local waitFleetReserve = (ROAD1Y_FLEET_UNLOCK & 2) != 0 ? 10000 : 50000;
+        if (waitFleetPrice > 0 && money >= waitFleetReserve + waitFleetPrice) {
           incrementalWanted = totalWaiting / capacity - have;
           if (incrementalWanted < 1) incrementalWanted = 1;
           if (incrementalWanted > 2) incrementalWanted = 2;
-          local affordable = (money - 50000) / waitFleetPrice;
+          local affordable = (money - waitFleetReserve) / waitFleetPrice;
           if (incrementalWanted > affordable) incrementalWanted = affordable;
           if (incrementalWanted > physicalCap - have)
             incrementalWanted = physicalCap - have;
@@ -1914,6 +1915,7 @@ function OpexRoad1yRefleetSaved(year)
       /* Achat à vrai prix, réserve 50k, bénéfice clos et stock de la ligne.
        * Pas de crédit de profit pour le quai ; refleet garde les ordres.
        * Limiter l'achat à deux bus par appel au plafond physique courant. */
+      local paxBalanceReserve = (ROAD1Y_FLEET_UNLOCK & 2) != 0 ? 10000 : 50000;
       if (("lastProfit" in line) && line.lastProfit >= 5000
           && totalWaiting >= 3 * capacity && movingCount > 0
           && !isAnyWaiting && have < physicalCap) {
@@ -1928,7 +1930,7 @@ function OpexRoad1yRefleetSaved(year)
         if (wanted > physicalCap - have) wanted = physicalCap - have;
         if (busPrice <= 0) wanted = 0;
         else {
-          local canPay = (money - 50000) / busPrice;
+          local canPay = (money - paxBalanceReserve) / busPrice;
           if (wanted > canPay) wanted = canPay;
         }
         if (wanted > 0 && !OpexVehicleSlotAvailable(AIVehicle.VT_ROAD, wanted))
@@ -1945,7 +1947,7 @@ function OpexRoad1yRefleetSaved(year)
         }
       }
       if (busUnitPrice > 0) {
-        local affordableAboveReserve = (money - 50000) / busUnitPrice;
+        local affordableAboveReserve = (money - paxBalanceReserve) / busUnitPrice;
         if (extraNeeded > affordableAboveReserve) extraNeeded = affordableAboveReserve;
       } else extraNeeded = 0;
     }
@@ -1994,7 +1996,8 @@ function OpexRoad1yRefleetSaved(year)
     /* ROAD1Y-D : pour les lignes bus en route seule, la flotte est dynamique
      * et pilotée par le bloc ROAD1Y_FLEET ci-dessous selon les passagers en
      * attente aux deux bouts (totalWaiting). target démarre à have. */
-    if (("kind" in line) && line.kind == "pax" && ROAD1Y_PAX_REFLEET) {
+    local paxRefleet = ROAD1Y_PAX_REFLEET || ((ROAD1Y_FLEET_UNLOCK & 4) != 0);
+    if (("kind" in line) && line.kind == "pax" && paxRefleet) {
       target = have;
     }
 
@@ -2046,12 +2049,16 @@ function OpexRoad1yRefleetSaved(year)
       local isPax = (("kind" in line) && line.kind == "pax");
       local road1yStopsA = ("nStopsA" in line) ? line.nStopsA : 1;
       local road1yStopsB = ("nStopsB" in line) ? line.nStopsB : 1;
-      local road1yStops = (isPax && ROAD1Y_PAX_REFLEET)
+      local road1yStops = (isPax && paxRefleet)
           ? (road1yStopsA + road1yStopsB)
           : (road1yStopsB < road1yStopsA ? road1yStopsB : road1yStopsA);
       if (road1yStops < 1) road1yStops = 1;
-      local road1yCap = ROAD1Y_FLEET * road1yStops;
-      if (isPax && ROAD1Y_PAX_REFLEET && ("predTrains" in line) && line.predTrains > road1yCap)
+      local fleetPerStop = ROAD1Y_FLEET;
+      if (isPax && ((ROAD1Y_FLEET_UNLOCK & 8) != 0) && waitingA > 100 && waitingB > 100) {
+        if (fleetPerStop < 6) fleetPerStop = 6;
+      }
+      local road1yCap = fleetPerStop * road1yStops;
+      if (isPax && paxRefleet && ("predTrains" in line) && line.predTrains > road1yCap)
         road1yCap = line.predTrains;
       local road1yMonth = year * 12 + AIDate.GetMonth(AIDate.GetCurrentDate());
       if (!("road1yMonth" in line) || line.road1yMonth != road1yMonth) {
@@ -2059,7 +2066,7 @@ function OpexRoad1yRefleetSaved(year)
         local road1yWant = road1yWait / capacity;
         if (road1yWant > 2) road1yWant = 2;
         if (have + road1yWant > road1yCap) road1yWant = road1yCap - have;
-        if (isPax && ROAD1Y_PAX_REFLEET && AICompany.GetBankBalance(AICompany.COMPANY_SELF) < 15000)
+        if (isPax && paxRefleet && AICompany.GetBankBalance(AICompany.COMPANY_SELF) < 15000)
           road1yWant = 0;
         if (road1yWant > 0) {
           line.road1yMonth <- road1yMonth;
