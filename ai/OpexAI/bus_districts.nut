@@ -271,6 +271,7 @@ function OpexRoad1yReconcileExtraStops(line)
         ? AIStation.STATION_BUS_STOP : AIStation.STATION_TRUCK_STOP;
     local tiles = AITileList_StationType(AIStation.GetStationID(root), kind);
     for (local tile = tiles.Begin(); !tiles.IsEnd(); tile = tiles.Next()) {
+      if (("road1yExtraPending" in line) && tile == line.road1yExtraPending) continue;
       if (tile != root) line.road1yExtraStops[side].append(tile);
     }
     local count = 1 + line.road1yExtraStops[side].len();

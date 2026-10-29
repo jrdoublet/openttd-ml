@@ -6472,8 +6472,8 @@ function OpexRoadRefleet(catalog, line, have, target)
     built.append(first);
     local nonstopFlag = AIOrder.OF_NON_STOP_INTERMEDIATE;
     local isFreight = (("kind" in line) && line.kind == "freight");
-    local sourceFlags = (isFreight ? AIOrder.OF_FULL_LOAD_ANY : AIOrder.OF_NONE) | nonstopFlag;
-    local destFlags = AIOrder.OF_NONE;
+    local sourceFlags = ((isFreight || ROAD1Y_LOAD_ORDERS) ? AIOrder.OF_FULL_LOAD_ANY : AIOrder.OF_NONE) | nonstopFlag;
+    local destFlags = (ROAD1Y_LOAD_ORDERS && isFreight) ? (AIOrder.OF_UNLOAD | AIOrder.OF_NO_LOAD) : AIOrder.OF_NONE;
     destFlags = destFlags | nonstopFlag;
     /* ROAD100-14 : les ordres persistants d'une ligne convertie survivent
      * a la disparition de sa flotte. Ne pas conditionner cette reconstitution

@@ -1250,8 +1250,7 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
 }
 }
 
-if (ROAD1Y_EXTRA_STOPS > 0) {
-function OpexAI::_refleetRoadLines(year)
+function OpexRoad1yRefleetSaved(year)
 {
 
   local anchor = AIMap.GetTileIndex(1, 1);
@@ -1557,11 +1556,13 @@ function OpexAI::_refleetRoadLines(year)
       }
     }
     // Maintenance avant tout veto economique (m1). Invalidation AVANT mutation (M2).
-    if (ROAD1Y_EXTRA_STOPS > 0 || ("road1yExtraStops" in line)) {
+    if (ROAD1Y_EXTRA_STOPS > 0 || ("road1yExtraStops" in line) || ("road1yExtraPending" in line)) {
       if (this._saveProjection != null && line in this._saveProjection)
         delete this._saveProjection[line];
       OpexRoad1yCleanupExtraStop(line);
       OpexRoad1yReconcileExtraStops(line);
+      if (this._saveProjection != null)
+        this._saveProjection[line] <- OpexSaveProjectLine(line);
     }
     if (("expandBlocked" in line) && line.expandBlocked) continue;
     if (("expandRetryCycle" in line) && line.expandRetryCycle > this._taskCycle) continue;
@@ -1782,6 +1783,8 @@ function OpexAI::_refleetRoadLines(year)
         delete this._saveProjection[line];
       OpexRoad1yExtraStops(this._catalog, line, have, capacity,
           waitingA, waitingB, movingCount, ym);
+      if (this._saveProjection != null)
+        this._saveProjection[line] <- OpexSaveProjectLine(line);
       money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
     }
 
@@ -2094,18 +2097,23 @@ function OpexAI::_refleetRoadLines(year)
                      + (refill.added > 0 ? refill.after : refill.reason));
   }
 }
-}
+
+if (ROAD1Y_EXTRA_STOPS > 0) OpexAI._refleetRoadLines <- OpexRoad1yRefleetSaved;
 
 ROAD1Y_RECONCILE_ORIGINAL <- OpexAI._reconcileAfterLoad;
 function OpexAI::_reconcileAfterLoad()
 {
   ROAD1Y_RECONCILE_ORIGINAL.call(this);
   ROAD_BUS_SITE_CACHE.clear();
+  ROAD1Y_SAVED_STOPS = false;
   foreach (line in this._lines) {
     if (!("mode" in line) || line.mode != "road") continue;
-    if (ROAD1Y_EXTRA_STOPS > 0 || ("road1yExtraStops" in line)) {
+    if (ROAD1Y_EXTRA_STOPS > 0 || ("road1yExtraStops" in line) || ("road1yExtraPending" in line)) {
+      ROAD1Y_SAVED_STOPS = true;
       OpexRoad1yCleanupExtraStop(line);
       OpexRoad1yReconcileExtraStops(line);
+      if (this._saveProjection != null)
+        this._saveProjection[line] <- OpexSaveProjectLine(line);
     }
   }
 }

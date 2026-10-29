@@ -34,7 +34,11 @@ class BusDistrictContracts(unittest.TestCase):
         for name, item in edits.items():
             with self.subTest(name=name):
                 original = complete_function(source(item['file']), name)
-                projected = complete_function(source('bus_districts_overrides.nut'), name)
+                if name == 'OpexAI::_refleetRoadLines':
+                    original = original.replace('  if (ROAD1Y_SAVED_STOPS) return OpexRoad1yRefleetSaved.call(this, year);\n', '')
+                projected = complete_function(source('bus_districts_overrides.nut'),
+                    'OpexRoad1yRefleetSaved' if name == 'OpexAI::_refleetRoadLines' else name)
+                projected = projected.replace('function OpexRoad1yRefleetSaved', 'function OpexAI::_refleetRoadLines')
                 for edit in reversed(item['hunks']):
                     self.assertEqual(projected.count(edit['after']), 1)
                     projected = projected.replace(edit['after'], edit['before'], 1)
@@ -50,6 +54,8 @@ class BusDistrictContracts(unittest.TestCase):
         self.assertNotIn('bus_districts_overrides', body('settings.nut', 'OpexLoadSettings'))
         self.assertEqual(settings.count('GetSetting("road1y_pax_sites")'), 1)
         self.assertTrue(source('main.nut').rstrip().endswith('OpexLoadBusDistrictSettings();'))
+        self.assertIn('OpexAI._refleetRoadLines <- OpexRoad1yRefleetSaved;', source('bus_districts_overrides.nut'))
+        self.assertNotIn('OpexAI._refleetRoadLines =', source('bus_districts_overrides.nut'))
 
     def test_reviewed_layer_reconstructs_exact_parent(self):
         edits = json.loads((ROOT / 'sweeps/fixtures/road100_bus_districts_hunks.json').read_text())
@@ -84,7 +90,7 @@ class BusDistrictContracts(unittest.TestCase):
         load = body('bus_districts_overrides.nut', 'OpexAI::_reconcileAfterLoad')
         self.assertIn('ROAD_BUS_SITE_CACHE.clear()', load)
         self.assertIn('OpexRoad1yReconcileExtraStops(line)', load)
-        task = body('bus_districts_overrides.nut', 'OpexAI::_refleetRoadLines')
+        task = body('bus_districts_overrides.nut', 'OpexRoad1yRefleetSaved')
         self.assertLess(task.index('delete this._saveProjection[line]'),
                         task.index('OpexRoad1yCleanupExtraStop(line)'))
         self.assertLess(task.index('OpexRoad1yCleanupExtraStop(line)'),
@@ -116,3 +122,27 @@ class BusDistrictContracts(unittest.TestCase):
             self.assertNotRegex(code, r'\blocal\s+' + word + r'\b')
         self.assertNotIn('function(', code)
         self.assertNotIn('.find(', code)
+
+    def test_projection_rebuilt_after_each_maintenance_before_veto(self):
+        task = body('bus_districts_overrides.nut', 'OpexRoad1yRefleetSaved')
+        self.assertEqual(task.count('delete this._saveProjection[line]'), 2)
+        self.assertEqual(task.count('this._saveProjection[line] <- OpexSaveProjectLine(line)'), 2)
+        self.assertLess(task.index('OpexSaveProjectLine(line)'), task.index('"expandBlocked"'))
+
+    def test_saved_markers_enable_maintenance_without_construction(self):
+        load = body('bus_districts_overrides.nut', 'OpexAI::_reconcileAfterLoad')
+        self.assertIn('ROAD1Y_SAVED_STOPS = true', load)
+        self.assertIn('("road1yExtraPending" in line)', load)
+        self.assertIn('if (ROAD1Y_SAVED_STOPS) return OpexRoad1yRefleetSaved.call', source('task_road.nut'))
+        self.assertIn('if (ROAD1Y_EXTRA_STOPS > 0) {', body('bus_districts_overrides.nut', 'OpexRoad1yRefleetSaved'))
+
+    def test_pending_tiles_never_supply_capacity(self):
+        code = body('bus_districts.nut', 'OpexRoad1yReconcileExtraStops')
+        self.assertLess(code.index('tile == line.road1yExtraPending) continue'), code.index('append(tile)'))
+
+    def test_live_filter_accepts_districts_and_refleet_restores_load_policy(self):
+        self.assertIn('!(ROAD1Y_PAX_SITES && ("road1yBusSite" in project.payload))',
+                      body('projects_selection.nut', 'OpexRoad100FilterLiveBusTownProjects'))
+        code = body('builder_road.nut', 'OpexRoadRefleet')
+        self.assertIn('isFreight || ROAD1Y_LOAD_ORDERS', code)
+        self.assertIn('(ROAD1Y_LOAD_ORDERS && isFreight) ? (AIOrder.OF_UNLOAD | AIOrder.OF_NO_LOAD)', code)

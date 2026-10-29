@@ -95,11 +95,11 @@
     "hunks": [
       {
         "before": "      }\n    }\n    if ((\"expandBlocked\" in line) && line.expandBlocked) continue;\n    if ((\"expandRetryCycle\" in line) && line.expandRetryCycle > this._taskCycle) continue;\n",
-        "after": "      }\n    }\n    // Maintenance avant tout veto economique (m1). Invalidation AVANT mutation (M2).\n    if (ROAD1Y_EXTRA_STOPS > 0 || (\"road1yExtraStops\" in line)) {\n      if (this._saveProjection != null && line in this._saveProjection)\n        delete this._saveProjection[line];\n      OpexRoad1yCleanupExtraStop(line);\n      OpexRoad1yReconcileExtraStops(line);\n    }\n    if ((\"expandBlocked\" in line) && line.expandBlocked) continue;\n    if ((\"expandRetryCycle\" in line) && line.expandRetryCycle > this._taskCycle) continue;\n"
+        "after": "      }\n    }\n    // Maintenance avant tout veto economique (m1). Invalidation AVANT mutation (M2).\n    if (ROAD1Y_EXTRA_STOPS > 0 || (\"road1yExtraStops\" in line) || (\"road1yExtraPending\" in line)) {\n      if (this._saveProjection != null && line in this._saveProjection)\n        delete this._saveProjection[line];\n      OpexRoad1yCleanupExtraStop(line);\n      OpexRoad1yReconcileExtraStops(line);\n      if (this._saveProjection != null)\n        this._saveProjection[line] <- OpexSaveProjectLine(line);\n    }\n    if ((\"expandBlocked\" in line) && line.expandBlocked) continue;\n    if ((\"expandRetryCycle\" in line) && line.expandRetryCycle > this._taskCycle) continue;\n"
       },
       {
         "before": "            + AICompany.GetBankBalance(AICompany.COMPANY_SELF));\n      }\n    }\n\n",
-        "after": "            + AICompany.GetBankBalance(AICompany.COMPANY_SELF));\n      }\n    }\n\n    if (ROAD1Y_EXTRA_STOPS > 0) {\n      if (this._saveProjection != null && line in this._saveProjection)\n        delete this._saveProjection[line];\n      OpexRoad1yExtraStops(this._catalog, line, have, capacity,\n          waitingA, waitingB, movingCount, ym);\n      money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);\n    }\n\n"
+        "after": "            + AICompany.GetBankBalance(AICompany.COMPANY_SELF));\n      }\n    }\n\n    if (ROAD1Y_EXTRA_STOPS > 0) {\n      if (this._saveProjection != null && line in this._saveProjection)\n        delete this._saveProjection[line];\n      OpexRoad1yExtraStops(this._catalog, line, have, capacity,\n          waitingA, waitingB, movingCount, ym);\n      if (this._saveProjection != null)\n        this._saveProjection[line] <- OpexSaveProjectLine(line);\n      money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);\n    }\n\n"
       }
     ]
   }

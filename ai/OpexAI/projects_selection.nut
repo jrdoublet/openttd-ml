@@ -1621,6 +1621,7 @@ function OpexRoad100FilterLiveBusTownProjects(alternatives, lines)
     if (project != null && ("mode" in project) && project.mode == "road"
         && ("kind" in project) && project.kind == "pax"
         && ("payload" in project) && project.payload != null
+        && !(ROAD1Y_PAX_SITES && ("road1yBusSite" in project.payload))
         && !(("isRoadExtension" in project.payload) && project.payload.isRoadExtension)
         && !(ROAD100_MULTICATCHMENT
              && ("road100MultiCatchment" in project.payload)

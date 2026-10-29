@@ -571,6 +571,7 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
  * (succes) ou RF|year|id|0|REASON (echec). */
 function OpexAI::_refleetRoadLines(year)
 {
+  if (ROAD1Y_SAVED_STOPS) return OpexRoad1yRefleetSaved.call(this, year);
 
   local anchor = AIMap.GetTileIndex(1, 1);
   local road100FreightBerthAttempted = false;

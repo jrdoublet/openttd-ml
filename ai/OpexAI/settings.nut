@@ -613,7 +613,7 @@ function OpexLoadBusDistrictSettings()
   if (ROAD1Y_EXTRA_STOPS < 0) ROAD1Y_EXTRA_STOPS = 0;
   if (ROAD1Y_EXTRA_STOPS > 3) ROAD1Y_EXTRA_STOPS = 3;
   ROAD1Y_PAX_SITES = AIController.GetSetting("road1y_pax_sites") == 1;
-  if (ROAD1Y_PAX_SITES || ROAD1Y_EXTRA_STOPS > 0) {
+  { // Definitions also needed for saved markers after ON -> OFF.
     require("bus_districts.nut");
     require("bus_districts_overrides.nut");
   }

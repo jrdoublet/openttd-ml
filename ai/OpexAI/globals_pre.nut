@@ -809,3 +809,5 @@ PO01C_REGEN_SPLIT <- true; // PO-01c : defaut adopte le 23/10
 C77_INTENT_DEFER <- true; // PO-03 : mode 2 adopte le 23/10
 C77_INTENT_DEFER_SUBSIDY <- true;
 const C77_INTENT_DEFER_DAYS = 365;
+
+ROAD1Y_SAVED_STOPS <- false; // Set only by reconciliation after Load.
