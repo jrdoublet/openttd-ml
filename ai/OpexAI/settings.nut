@@ -109,6 +109,11 @@ function OpexLoadSettings()
   DIST_BORNES_V276_FREIGHT = AIController.GetSetting("dist_bornes_v276_freight") == 1;
   DIST_BORNES_UNIFIED = AIController.GetSetting("dist_bornes_unified") == 1;
   ESTIM_UNIFIE = AIController.GetSetting("estim_unifie");
+  /* C121 ESTIM : conserver le chemin historique et ses opcodes OFF.
+   * La variante experimentee evalue tous les moteurs admissibles,
+   * sans arret sur une borne non prouvee pour k_R AIR et les flottes. */
+  if ((ESTIM_UNIFIE & 1) != 0)
+    ::OpexC121ChooseRoutePlane <- OpexC121ChooseRoutePlaneFullScan;
   ESTIM16_RAIL_SCORE_TRACES = 0;
   foreach (m, k in ESTIM_K_R_PRIOR) ESTIM_K_R[m] = k;
   local railGrowth = AIController.GetSetting("v284_rail_growth");
