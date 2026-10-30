@@ -127,7 +127,7 @@ ni les 167,3 k£ aux avions/trains achetés. Des projets proposés avec un
 
 À la lecture du code, `OpexEstimDTraceActive` dans `probes.nut` ne trace
 les comparaisons détaillées des offres **qu'en 1973–1975**. Les traces
-`ESTIM_PASS`/`ESTIM_PROJ` ne sauraient donc expliquer 1976–1979 sans
+`ESTIM_PASS`/`ESTIM_DECISION` ne sauraient donc expliquer 1976–1979 sans
 nouvelle instrumentation explicitement bornée. Le code `OpexC75KPassBypass...`
 ne comptabilise que les projets neufs **après** un premier chantier réussi
 dans la même passe. Les absences de compte C75 ne sont donc jamais
@@ -140,20 +140,17 @@ La graine **42** a été pré-enregistrée pour l'unique 1×10 de sondes passive
 refusé par le harnais** (garde d'argument manquante), deuxième interrompu
 avant le jeu (répertoire `AAAHogEx-115` absent du worktree isolé), troisième
 refusé avant le jeu par prévention d'écrasement de la préparation partielle.
-Il n'en existe **aucun résultat de simulation achevée** pour cette tâche.
-Le dossier incomplet `results/post1974_entonnoir_seed42_1x10_20261030_bundle`
-ne doit pas être interprété comme une campagne. Un Docker étranger a ensuite
-été constaté actif : **aucune simultanéité Docker permise**. Le worktree
-possède désormais une copie locale du dossier AAAHogEx dans son chemin ignoré.
+Ces trois refus historiques sont des **échecs de préparation avant simulation**,
+et non des résultats économiques. Le dossier incomplet
+`results/post1974_entonnoir_seed42_1x10_20261030_bundle` ne doit pas être
+interprété comme une campagne. Un Docker étranger était alors actif.
+**Nouvelle tentative terminée avec succès** : voir §6, qui prévaut sur
+l'ancien constat d'absence de logs ci-dessus.
 
-**Verdict mesuré : diagnostic d'attrition confirmé, mécanisme discriminant
-non identifié ; preuve d'un projet rentable, finançable, physiquement
-constructible puis injustement écarté = 0 cas qualifié.** Ce dernier zéro
-désigne le nombre de preuves **établies**, pas le nombre de bons projets
-existants. Aucune modification ON, aucun seuil/bonus économique changé.
-La tâche doit rester **ouverte** jusqu'à la déduplication des projets par
-identité OD/cargo, la comptabilité des dépenses réelles et la preuve
-de leur viabilité physique, notamment après 1975.
+**Verdict actualisé au §6 :** un entonnoir de recherche physique V233L et
+une sous-réalisation des prévisions AIR sont documentés sur **une graine**.
+La preuve d'un projet rentable, finançable, **physiquement constructible**
+et injustement écarté reste absente. Aucune modification ON.
 
 **Reproduction et contrôles :**
 
@@ -165,3 +162,112 @@ git diff --check
 
 Ne pas utiliser la source historique `multi1_retard_1975_1979_resultats_20261026.md`
 comme si elle avait les mêmes paramètres que le défaut élu.
+
+## 6. Relance du 1×10 sur graine 42 — deux bras achevés
+
+La relance, demandée expressément, est **réussie** sous le nom
+`post1974_entonnoir_seed42_retry_1x10_20261030` ; la première préparation
+interrompue n'a pas été réutilisée. Provenance :
+
+- Source exécutée **`3998d9b1`**, campagne figée SHA-256
+  `3590ff3bd7e0a2e3b9990ac2d1e1239a05065e423d0f12b7a15ee39163193abc`,
+  même bundle pour les deux bras ; manifeste dans `results/`.
+- Carte partagée 256², graine **42**, années **1970–1979**, AAAHogEx-115,
+  `estim_unifie=31`, `eb14_progressive=3` ; témoin `probes=2`, observation
+  `probes=131330` (C63/C50/C78 + décisions + panneaux), `--script-debug`.
+  Un seul Docker, **1 worker**, CPU ≤10, mémoire ≤8 Gio.
+- **2/2 parties complètes**, deux sociétés saines, checkpoint attendu
+  `1979-12-01`, **zéro erreur Squirrel** repérée dans le log diagnostique.
+  Sans sonde : profit annuel Opex **3 620 331 £** ; avec sonde :
+  **3 507 554 £**, soit **−112 777 £**. Ce décalage rappelle que
+  l'instrumentation **n'est pas neutre sur la trajectoire** : aucune
+  conclusion économique par comparaison de ces deux bras. AAAHogEx fait
+  **5 992 017 £/an** dans le duel témoin de la graine ; ce **n'est pas**
+  le ratio décennal 20×10.
+
+Les traces existantes ont été exploitées par
+[`sweeps/post1974_probe.py`](../sweeps/post1974_probe.py) ;
+leur [résumé dédupliqué et C63 par année](post1974_entonnoir_seed42_1x10_20261030.json)
+permet de contrôler les comptages. Dans cette **unique graine instrumentée** :
+
+| Année | Sélections RAIL / AIR journalisées | Tentatives RAIL (résultats) | Constructions AIR journalisées | Jours C63 `invalid` / `waiting_compute` / `unaffordable` | Dépenses C63 réussies (échecs précisés) |
+|---|---|---|---:|---|---|
+| 1974 | 1 / 0 | 0 | 0 | 305 / 15 / 20 | flotte 194 820 £ |
+| 1975 | 0 / 0 | 1 `ABND` | 0 | 230 / 115 / 0 | flotte 188 668 £ ; AIR échec 960 £ |
+| 1976 | 1 / 1 | 1 `ABND` | 1 | 215 / 128 / 0 | AIR 38 964 £ |
+| 1977 | 3 / 1 | 3 `OK` | 1 | 134 / 195 / 0 | RAIL 411 212 £ ; AIR 38 964 £ |
+| 1978 | 3 / 0 | 1 `NOPA`, 1 `NOPLAN2` | 0 | 186 / 124 / 0 | aucun chantier réussi recensé |
+| 1979 | 1 / 1 | 1 `NOPLAN2` | 1 | **censuré** | **C63 non vidangé** |
+
+Les 1978 **54 jours `absent`** s'ajoutent à 186 jours `invalid`
+et 124 jours `waiting_compute` (364 jours classés au total) ;
+`launched=0`. **Un état C63 exclusif par passe n'identifie pas un
+nombre de projets uniques.** Le nombre de rejets `too_close_no_join`
+se répète pour les **mêmes OD**, par exemple 13 événements RAIL en 1978 ;
+ne pas les compter comme 13 projets distincts. Les compteurs `V284`
+de 1979 sont `pick=7`, `done=4`, `fail=2`, `skip=1`, événements
+du déclencheur de renfort **et non sept nouvelles lignes**.
+
+### Deux projets fret longs particulièrement révélateurs
+
+1. **GOOD 50791→7810** : offre sélectionnée le **5 novembre 1978**
+   (profit prédit **69 478 £/an**, devis d'offre **98 426 £**).
+   Son constructeur n'achève la tentative que le **26 octobre 1979** ;
+   résultat `NOPLAN2`, `ok=0`, `quote=-1`, `actual=-1`
+   (montant réellement payé **non mesuré**, et non zéro certifié).
+   À la tentative, profit réestimé **79 663 £/an**. La cause dans
+   `builder_rail.nut:4575–4579` est **l'échec du plan obligatoire
+   de seconde voie pour V233L**, et non une simple pénurie de caisse ;
+   `lines.nut:10–31` regroupe ce motif non codé dans `OTHER` sur
+   les panneaux `OR`. La durée entre sélection et fin de tentative
+   est d'environ **355 jours** — observation descriptive, pas mesure
+   isolée d'opcodes A*.
+2. **GOOD 50791→12090** : sélectionné le **10 novembre 1979**
+   (profit prédit **67 822 £/an**, devis **98 650 £**) avec
+   **plus de 11 M£ de capital disponible** relevé par `C78_SLOT`
+   dans la fin d'année. La recherche V233L de seconde voie continue
+   en décembre, après des obstacles précis : `BRIDGE_NATIVE`
+   `error=260`, `area_not_clear=1`, présence d'un **tunnel RAIL
+   concurrent** au débouché, puis `REJECT_SPLICE` et nouveau
+   `search BEGIN` le **21 décembre**. **Aucun succès ni échec
+   définitif n'est observé avant la fin du banc.**
+
+Ces cas valident **une exposition de candidats économiquement positifs
+et finançables dont la réalisation est bloquée/retardée** ; ils ne
+valident **pas** l'existence d'un tracé physique rentable **constructible**
+que la politique aurait arbitrairement éliminé. Essayer le
+monovoie, élargir les options de doublement ou desserrer les filtres V233L
+exigerait un **nouveau levier opt-in** et une validation indépendante,
+pas un changement automatique du défaut.
+
+### Cohortes AIR matures : seconde alerte distincte
+
+Dans le ledger **1978** (vidangé le 29 janvier 1979), pour les lignes
+âgées d'au moins deux ans, **38 lignes AIR** totalisent
+`pred_p=8 507 573 £` contre `real_p=2 527 205 £`
+(**29,7 %** du profit prédit) ; les **25 lignes RAIL** totalisent
+`pred_p=445 733 £`, `real_p=602 789 £`. Ce sont les *sommes de
+prévisions enregistrées à la construction* et des *profits de lignes
+observés lors du rapport annuel*, dans le bras **sondé**, pas des
+profits incrémentaux contrefactuels. Elles orientent la tâche
+**AIR-PRODUCTIVITÉ**, sans justifier une correction immédiate de
+`estim_unifie`.
+
+### Frontières de preuve et décision
+
+La dernière ligne `C63_INVEST phase=opp` est la vidange de
+**1978** ; celle de **1979** est attendue en **1980** et le banc
+s'arrête fin 1979. Les **projets non sélectionnés** n'ont pas de
+liste OD complète après 1975 : `OpexEstimDTraceActive` est borné
+aux années **1973–1975**. Le détail des lignes V233L confirme un
+**blocage de seconde voie** sur cette graine mais n'établit pas
+le mécanisme dominant sur les 20 graines. **Critère de clôture de
+POST-1974-ENTONNOIR non satisfait** : aucun projet économiquement bon
+et **physiquement réalisable** n'a été démontré injustement rejeté.
+
+**Décision : maintenir le défaut élu inchangé.** Conserver la tâche
+ouverte sur la validation physique V233L (deuxième voie obligatoire,
+recherche longue, collisions concurrentes), la comparaison avec
+un éventuel projet monovoie constructible et la reproduction sur
+plusieurs graines **avant** tout levier. Ne pas relancer la même
+campagne sous couvert de la relance déjà réussie.

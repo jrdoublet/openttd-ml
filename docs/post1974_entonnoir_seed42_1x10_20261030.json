@@ -1,0 +1,4240 @@
+{
+  "log_path": "results\\post1974_entonnoir_seed42_retry_1x10_20261030_engine\\post1974_probe131330_seed42_r0.log",
+  "years": {
+    "1974": {
+      "event_counts": {
+        "ESTIM_PASS": 9,
+        "ESTIM_DECISION": 128,
+        "AIR_FLEET": 212,
+        "FLEET_PROJECT": 5,
+        "ESTIM_OUTCOME": 283,
+        "PROJECT_DISCARD": 15,
+        "PROJECT_CHOSEN": 1
+      },
+      "rail_attempt_events": 0,
+      "rail_min_distinct_od_kind": 0,
+      "rail_reason_counts": {},
+      "rail_kind_counts": {},
+      "rail_success_actual_paid_observed": 0,
+      "rail_success_paid_observed_n": 0,
+      "air_build_events": 0,
+      "air_min_distinct_od": 0,
+      "chosen_events_by_mode": {
+        "rail": 1
+      },
+      "chosen_unique_od_mode_kind_cargo": 1,
+      "discarded_unique_od_mode_kind_reason": 9,
+      "chosen_offers": [
+        {
+          "date": "1974-10-25",
+          "mode": "rail",
+          "kind": "freight",
+          "cargo": "GOOD",
+          "src": "29129",
+          "dst": "38955",
+          "profit": 135432,
+          "cost_quote": 101432
+        }
+      ],
+      "rail_attempt_details": [],
+      "discard_events_by_mode_reason": {
+        "rail:too_close_no_join": 12,
+        "rail:search_in_progress": 3
+      },
+      "v284_events_by_action": {},
+      "fleet_events_by_action": {
+        "AIR_FLEET:refuse": 212,
+        "FLEET_PROJECT:grow": 5
+      },
+      "c63_available": true,
+      "c63_spend_by_mode": {
+        "rail": {
+          "planned_ok": 0,
+          "actual_ok": 0,
+          "n_ok": 0,
+          "planned_fail": 0,
+          "actual_fail": 0,
+          "n_fail": 0
+        },
+        "road": {
+          "planned_ok": 0,
+          "actual_ok": 0,
+          "n_ok": 0,
+          "planned_fail": 0,
+          "actual_fail": 0,
+          "n_fail": 0
+        },
+        "air": {
+          "planned_ok": 0,
+          "actual_ok": 0,
+          "n_ok": 0,
+          "planned_fail": 0,
+          "actual_fail": 0,
+          "n_fail": 0
+        },
+        "water": {
+          "planned_ok": 0,
+          "actual_ok": 0,
+          "n_ok": 0,
+          "planned_fail": 0,
+          "actual_fail": 0,
+          "n_fail": 0
+        },
+        "fleet": {
+          "planned_ok": 194820,
+          "actual_ok": 194820,
+          "n_ok": 5,
+          "planned_fail": 0,
+          "actual_fail": 0,
+          "n_fail": 0
+        }
+      },
+      "c63_opportunities": {
+        "absent": {
+          "n": 1,
+          "days": 5
+        },
+        "invalid": {
+          "n": 40,
+          "days": 305
+        },
+        "unaffordable": {
+          "n": 13,
+          "days": 20
+        },
+        "demand": {
+          "n": 0,
+          "days": 0
+        },
+        "waiting_compute": {
+          "n": 2,
+          "days": 15
+        },
+        "launched": {
+          "n": 5,
+          "days": 19
+        }
+      },
+      "c63_absent_subcauses": {
+        "empty_pool": {
+          "n": 0,
+          "days": 0
+        },
+        "unprofitable": {
+          "n": 0,
+          "days": 0
+        },
+        "already_served": {
+          "n": 0,
+          "days": 0
+        },
+        "no_site": {
+          "n": 0,
+          "days": 0
+        },
+        "mode_cargo_filter": {
+          "n": 0,
+          "days": 0
+        },
+        "selection_empty": {
+          "n": 1,
+          "days": 5
+        },
+        "stage_empty": {
+          "n": 0,
+          "days": 0
+        },
+        "cache_exhausted": {
+          "n": 0,
+          "days": 0
+        },
+        "abandon_filtered": {
+          "n": 0,
+          "days": 0
+        }
+      },
+      "c63_mature_lines_by_mode": {
+        "rail": {
+          "n": 22,
+          "pred_p": 411442,
+          "real_p": 373959,
+          "losing_n": 1
+        },
+        "air": {
+          "n": 39,
+          "pred_p": 8576176,
+          "real_p": 1654431,
+          "losing_n": 2
+        },
+        "fleet": {
+          "n": 0,
+          "pred_p": 0,
+          "real_p": 0,
+          "losing_n": 0
+        }
+      },
+      "c63_empty_probe_causes": {
+        "all_unaffordable": 4
+      },
+      "c63_lines": [
+        {
+          "line": 0,
+          "mode": "air",
+          "age": 5,
+          "pred_p": 642736,
+          "real_p": 122013,
+          "pred_r": 657432,
+          "real_r": 138213,
+          "vehs": 3
+        },
+        {
+          "line": 1,
+          "mode": "air",
+          "age": 5,
+          "pred_p": 468380,
+          "real_p": 104841,
+          "pred_r": 475728,
+          "real_r": 115641,
+          "vehs": 2
+        },
+        {
+          "line": 2,
+          "mode": "air",
+          "age": 5,
+          "pred_p": 715240,
+          "real_p": 72770,
+          "pred_r": 729936,
+          "real_r": 83570,
+          "vehs": 2
+        },
+        {
+          "line": 3,
+          "mode": "air",
+          "age": 5,
+          "pred_p": 321884,
+          "real_p": 88539,
+          "pred_r": 329232,
+          "real_r": 102601,
+          "vehs": 2
+        },
+        {
+          "line": 4,
+          "mode": "air",
+          "age": 5,
+          "pred_p": 446828,
+          "real_p": 121356,
+          "pred_r": 454176,
+          "real_r": 135418,
+          "vehs": 2
+        },
+        {
+          "line": 5,
+          "mode": "air",
+          "age": 5,
+          "pred_p": 372044,
+          "real_p": 18856,
+          "pred_r": 379392,
+          "real_r": 29656,
+          "vehs": 2
+        },
+        {
+          "line": 6,
+          "mode": "air",
+          "age": 5,
+          "pred_p": 343028,
+          "real_p": 45247,
+          "pred_r": 350376,
+          "real_r": 56047,
+          "vehs": 2
+        },
+        {
+          "line": 7,
+          "mode": "air",
+          "age": 5,
+          "pred_p": 333164,
+          "real_p": 57987,
+          "pred_r": 340512,
+          "real_r": 72049,
+          "vehs": 2
+        },
+        {
+          "line": 8,
+          "mode": "air",
+          "age": 5,
+          "pred_p": 246956,
+          "real_p": 49688,
+          "pred_r": 254304,
+          "real_r": 60488,
+          "vehs": 2
+        },
+        {
+          "line": 9,
+          "mode": "air",
+          "age": 5,
+          "pred_p": 307988,
+          "real_p": 84434,
+          "pred_r": 315336,
+          "real_r": 95234,
+          "vehs": 2
+        },
+        {
+          "line": 10,
+          "mode": "air",
+          "age": 4,
+          "pred_p": 341348,
+          "real_p": 47576,
+          "pred_r": 348696,
+          "real_r": 52976,
+          "vehs": 1
+        },
+        {
+          "line": 11,
+          "mode": "air",
+          "age": 4,
+          "pred_p": 313292,
+          "real_p": 91147,
+          "pred_r": 320640,
+          "real_r": 105209,
+          "vehs": 2
+        },
+        {
+          "line": 12,
+          "mode": "rail",
+          "age": 4,
+          "pred_p": 18903,
+          "real_p": 10310,
+          "pred_r": 22848,
+          "real_r": 11757,
+          "vehs": 1
+        },
+        {
+          "line": 13,
+          "mode": "rail",
+          "age": 4,
+          "pred_p": 22755,
+          "real_p": 9527,
+          "pred_r": 26700,
+          "real_r": 10974,
+          "vehs": 1
+        },
+        {
+          "line": 14,
+          "mode": "air",
+          "age": 4,
+          "pred_p": 313052,
+          "real_p": 63229,
+          "pred_r": 320400,
+          "real_r": 68629,
+          "vehs": 1
+        },
+        {
+          "line": 15,
+          "mode": "air",
+          "age": 4,
+          "pred_p": 224084,
+          "real_p": 72918,
+          "pred_r": 231432,
+          "real_r": 83718,
+          "vehs": 2
+        },
+        {
+          "line": 16,
+          "mode": "air",
+          "age": 4,
+          "pred_p": 202004,
+          "real_p": 8058,
+          "pred_r": 209352,
+          "real_r": 18858,
+          "vehs": 2
+        },
+        {
+          "line": 17,
+          "mode": "rail",
+          "age": 4,
+          "pred_p": 21927,
+          "real_p": 36925,
+          "pred_r": 25872,
+          "real_r": 39456,
+          "vehs": 1
+        },
+        {
+          "line": 18,
+          "mode": "rail",
+          "age": 4,
+          "pred_p": 41829,
+          "real_p": 14816,
+          "pred_r": 45864,
+          "real_r": 16263,
+          "vehs": 1
+        },
+        {
+          "line": 19,
+          "mode": "air",
+          "age": 4,
+          "pred_p": 197828,
+          "real_p": 25042,
+          "pred_r": 205176,
+          "real_r": 35842,
+          "vehs": 2
+        },
+        {
+          "line": 20,
+          "mode": "rail",
+          "age": 4,
+          "pred_p": 28023,
+          "real_p": 30889,
+          "pred_r": 31968,
+          "real_r": 33420,
+          "vehs": 1
+        },
+        {
+          "line": 21,
+          "mode": "rail",
+          "age": 4,
+          "pred_p": 28972,
+          "real_p": 25299,
+          "pred_r": 32964,
+          "real_r": 27431,
+          "vehs": 1
+        },
+        {
+          "line": 22,
+          "mode": "air",
+          "age": 4,
+          "pred_p": 188636,
+          "real_p": 33208,
+          "pred_r": 195984,
+          "real_r": 44008,
+          "vehs": 2
+        },
+        {
+          "line": 23,
+          "mode": "air",
+          "age": 4,
+          "pred_p": 169388,
+          "real_p": 23397,
+          "pred_r": 176736,
+          "real_r": 34197,
+          "vehs": 2
+        },
+        {
+          "line": 24,
+          "mode": "rail",
+          "age": 4,
+          "pred_p": 14282,
+          "real_p": 23227,
+          "pred_r": 18228,
+          "real_r": 25758,
+          "vehs": 1
+        },
+        {
+          "line": 25,
+          "mode": "air",
+          "age": 4,
+          "pred_p": 139724,
+          "real_p": 514,
+          "pred_r": 147072,
+          "real_r": 11314,
+          "vehs": 2
+        },
+        {
+          "line": 26,
+          "mode": "air",
+          "age": 4,
+          "pred_p": 132620,
+          "real_p": 27829,
+          "pred_r": 139968,
+          "real_r": 38629,
+          "vehs": 2
+        },
+        {
+          "line": 27,
+          "mode": "rail",
+          "age": 4,
+          "pred_p": 21612,
+          "real_p": 8243,
+          "pred_r": 25560,
+          "real_r": 9690,
+          "vehs": 1
+        },
+        {
+          "line": 28,
+          "mode": "air",
+          "age": 4,
+          "pred_p": 184172,
+          "real_p": 79288,
+          "pred_r": 191520,
+          "real_r": 90088,
+          "vehs": 2
+        },
+        {
+          "line": 29,
+          "mode": "air",
+          "age": 4,
+          "pred_p": 242732,
+          "real_p": 71604,
+          "pred_r": 250080,
+          "real_r": 77004,
+          "vehs": 1
+        },
+        {
+          "line": 30,
+          "mode": "air",
+          "age": 4,
+          "pred_p": 203012,
+          "real_p": 83146,
+          "pred_r": 210360,
+          "real_r": 93946,
+          "vehs": 2
+        },
+        {
+          "line": 31,
+          "mode": "air",
+          "age": 4,
+          "pred_p": 181844,
+          "real_p": 45378,
+          "pred_r": 189192,
+          "real_r": 56178,
+          "vehs": 2
+        },
+        {
+          "line": 32,
+          "mode": "air",
+          "age": 4,
+          "pred_p": 124700,
+          "real_p": 18952,
+          "pred_r": 132048,
+          "real_r": 29752,
+          "vehs": 2
+        },
+        {
+          "line": 33,
+          "mode": "rail",
+          "age": 4,
+          "pred_p": 3299,
+          "real_p": 5172,
+          "pred_r": 7200,
+          "real_r": 6619,
+          "vehs": 1
+        },
+        {
+          "line": 34,
+          "mode": "rail",
+          "age": 4,
+          "pred_p": 3438,
+          "real_p": 8470,
+          "pred_r": 7344,
+          "real_r": 10602,
+          "vehs": 1
+        },
+        {
+          "line": 35,
+          "mode": "air",
+          "age": 4,
+          "pred_p": 143756,
+          "real_p": 20844,
+          "pred_r": 151104,
+          "real_r": 31644,
+          "vehs": 2
+        },
+        {
+          "line": 36,
+          "mode": "air",
+          "age": 4,
+          "pred_p": 133292,
+          "real_p": 1989,
+          "pred_r": 140640,
+          "real_r": 11045,
+          "vehs": 2
+        },
+        {
+          "line": 37,
+          "mode": "air",
+          "age": 4,
+          "pred_p": 156788,
+          "real_p": 39951,
+          "pred_r": 164136,
+          "real_r": 50751,
+          "vehs": 2
+        },
+        {
+          "line": 38,
+          "mode": "air",
+          "age": 4,
+          "pred_p": 81452,
+          "real_p": 21567,
+          "pred_r": 88800,
+          "real_r": 26967,
+          "vehs": 1
+        },
+        {
+          "line": 39,
+          "mode": "air",
+          "age": 4,
+          "pred_p": 98396,
+          "real_p": 8050,
+          "pred_r": 105744,
+          "real_r": 18850,
+          "vehs": 2
+        },
+        {
+          "line": 40,
+          "mode": "air",
+          "age": 4,
+          "pred_p": 108332,
+          "real_p": 34824,
+          "pred_r": 115680,
+          "real_r": 45624,
+          "vehs": 2
+        },
+        {
+          "line": 41,
+          "mode": "air",
+          "age": 3,
+          "pred_p": 79793,
+          "real_p": 27074,
+          "pred_r": 87141,
+          "real_r": 36130,
+          "vehs": 2
+        },
+        {
+          "line": 42,
+          "mode": "air",
+          "age": 3,
+          "pred_p": 61979,
+          "real_p": -3812,
+          "pred_r": 69327,
+          "real_r": 1588,
+          "vehs": 1
+        },
+        {
+          "line": 43,
+          "mode": "rail",
+          "age": 3,
+          "pred_p": 23934,
+          "real_p": 33427,
+          "pred_r": 27936,
+          "real_r": 35958,
+          "vehs": 1
+        },
+        {
+          "line": 44,
+          "mode": "air",
+          "age": 3,
+          "pred_p": 74585,
+          "real_p": 0,
+          "pred_r": 81933,
+          "real_r": 0,
+          "vehs": 0
+        },
+        {
+          "line": 45,
+          "mode": "air",
+          "age": 3,
+          "pred_p": 68610,
+          "real_p": 7781,
+          "pred_r": 75958,
+          "real_r": 16837,
+          "vehs": 2
+        },
+        {
+          "line": 46,
+          "mode": "air",
+          "age": 3,
+          "pred_p": 55086,
+          "real_p": 7777,
+          "pred_r": 62434,
+          "real_r": 16833,
+          "vehs": 2
+        },
+        {
+          "line": 47,
+          "mode": "air",
+          "age": 3,
+          "pred_p": 81413,
+          "real_p": 24774,
+          "pred_r": 88761,
+          "real_r": 33830,
+          "vehs": 2
+        },
+        {
+          "line": 48,
+          "mode": "rail",
+          "age": 3,
+          "pred_p": 15543,
+          "real_p": 9019,
+          "pred_r": 19488,
+          "real_r": 10466,
+          "vehs": 1
+        },
+        {
+          "line": 49,
+          "mode": "rail",
+          "age": 3,
+          "pred_p": 43375,
+          "real_p": 8838,
+          "pred_r": 47472,
+          "real_r": 10970,
+          "vehs": 1
+        },
+        {
+          "line": 50,
+          "mode": "rail",
+          "age": 3,
+          "pred_p": 23413,
+          "real_p": 29509,
+          "pred_r": 27360,
+          "real_r": 32040,
+          "vehs": 1
+        },
+        {
+          "line": 51,
+          "mode": "rail",
+          "age": 3,
+          "pred_p": 9599,
+          "real_p": 17426,
+          "pred_r": 13500,
+          "real_r": 19558,
+          "vehs": 1
+        },
+        {
+          "line": 52,
+          "mode": "air",
+          "age": 3,
+          "pred_p": 31035,
+          "real_p": -4787,
+          "pred_r": 38383,
+          "real_r": 6013,
+          "vehs": 2
+        },
+        {
+          "line": 53,
+          "mode": "rail",
+          "age": 3,
+          "pred_p": 24866,
+          "real_p": 26462,
+          "pred_r": 28812,
+          "real_r": 28993,
+          "vehs": 1
+        },
+        {
+          "line": 54,
+          "mode": "rail",
+          "age": 3,
+          "pred_p": 18518,
+          "real_p": 28709,
+          "pred_r": 22464,
+          "real_r": 31240,
+          "vehs": 1
+        },
+        {
+          "line": 55,
+          "mode": "rail",
+          "age": 3,
+          "pred_p": 5075,
+          "real_p": 7837,
+          "pred_r": 8976,
+          "real_r": 10368,
+          "vehs": 1
+        },
+        {
+          "line": 56,
+          "mode": "rail",
+          "age": 3,
+          "pred_p": 19563,
+          "real_p": 30625,
+          "pred_r": 23520,
+          "real_r": 33156,
+          "vehs": 1
+        },
+        {
+          "line": 57,
+          "mode": "rail",
+          "age": 3,
+          "pred_p": 9966,
+          "real_p": 11287,
+          "pred_r": 13872,
+          "real_r": 13818,
+          "vehs": 1
+        },
+        {
+          "line": 58,
+          "mode": "rail",
+          "age": 3,
+          "pred_p": -1062,
+          "real_p": 5535,
+          "pred_r": 2856,
+          "real_r": 6982,
+          "vehs": 1
+        },
+        {
+          "line": 59,
+          "mode": "rail",
+          "age": 3,
+          "pred_p": 13612,
+          "real_p": -7593,
+          "pred_r": 21420,
+          "real_r": 0,
+          "vehs": 3
+        },
+        {
+          "line": 60,
+          "mode": "air",
+          "age": 2,
+          "pred_p": 44975,
+          "real_p": 11382,
+          "pred_r": 52323,
+          "real_r": 16782,
+          "vehs": 1
+        }
+      ]
+    },
+    "1975": {
+      "event_counts": {
+        "ESTIM_OUTCOME": 217,
+        "AIR_FLEET": 77,
+        "ESTIM_PASS": 9,
+        "ESTIM_DECISION": 137,
+        "V284": 7,
+        "ESTIM_SPEND": 2,
+        "RAIL_ATTEMPT": 1,
+        "FLEET_PROJECT": 5,
+        "PROJECT_DISCARD": 11
+      },
+      "rail_attempt_events": 1,
+      "rail_min_distinct_od_kind": 1,
+      "rail_reason_counts": {
+        "ABND": 1
+      },
+      "rail_kind_counts": {
+        "freight": 1
+      },
+      "rail_success_actual_paid_observed": 0,
+      "rail_success_paid_observed_n": 0,
+      "air_build_events": 0,
+      "air_min_distinct_od": 0,
+      "chosen_events_by_mode": {},
+      "chosen_unique_od_mode_kind_cargo": 0,
+      "discarded_unique_od_mode_kind_reason": 9,
+      "chosen_offers": [],
+      "rail_attempt_details": [
+        {
+          "date": "1975-04-26",
+          "kind": "freight",
+          "src": "29129",
+          "dst": "38955",
+          "reason": "ABND",
+          "ok": false,
+          "pred_profit": 90135,
+          "quote": -1,
+          "actual": -1,
+          "iterations": 5000,
+          "opcodes": 15528490
+        }
+      ],
+      "discard_events_by_mode_reason": {
+        "air:build_failed": 1,
+        "rail:too_close_no_join": 10
+      },
+      "v284_events_by_action": {
+        "pick": 4,
+        "done": 3
+      },
+      "fleet_events_by_action": {
+        "AIR_FLEET:refuse": 77,
+        "FLEET_PROJECT:grow": 5
+      },
+      "c63_available": true,
+      "c63_spend_by_mode": {
+        "rail": {
+          "planned_ok": 0,
+          "actual_ok": 0,
+          "n_ok": 0,
+          "planned_fail": 90818,
+          "actual_fail": 0,
+          "n_fail": 1
+        },
+        "road": {
+          "planned_ok": 0,
+          "actual_ok": 0,
+          "n_ok": 0,
+          "planned_fail": 0,
+          "actual_fail": 0,
+          "n_fail": 0
+        },
+        "air": {
+          "planned_ok": 0,
+          "actual_ok": 0,
+          "n_ok": 0,
+          "planned_fail": 55164,
+          "actual_fail": 960,
+          "n_fail": 1
+        },
+        "water": {
+          "planned_ok": 0,
+          "actual_ok": 0,
+          "n_ok": 0,
+          "planned_fail": 0,
+          "actual_fail": 0,
+          "n_fail": 0
+        },
+        "fleet": {
+          "planned_ok": 188668,
+          "actual_ok": 188668,
+          "n_ok": 5,
+          "planned_fail": 0,
+          "actual_fail": 0,
+          "n_fail": 0
+        }
+      },
+      "c63_opportunities": {
+        "absent": {
+          "n": 0,
+          "days": 0
+        },
+        "invalid": {
+          "n": 39,
+          "days": 230
+        },
+        "unaffordable": {
+          "n": 0,
+          "days": 0
+        },
+        "demand": {
+          "n": 0,
+          "days": 0
+        },
+        "waiting_compute": {
+          "n": 1,
+          "days": 115
+        },
+        "launched": {
+          "n": 3,
+          "days": 19
+        }
+      },
+      "c63_absent_subcauses": {
+        "empty_pool": {
+          "n": 0,
+          "days": 0
+        },
+        "unprofitable": {
+          "n": 0,
+          "days": 0
+        },
+        "already_served": {
+          "n": 0,
+          "days": 0
+        },
+        "no_site": {
+          "n": 0,
+          "days": 0
+        },
+        "mode_cargo_filter": {
+          "n": 0,
+          "days": 0
+        },
+        "selection_empty": {
+          "n": 0,
+          "days": 0
+        },
+        "stage_empty": {
+          "n": 0,
+          "days": 0
+        },
+        "cache_exhausted": {
+          "n": 0,
+          "days": 0
+        },
+        "abandon_filtered": {
+          "n": 0,
+          "days": 0
+        }
+      },
+      "c63_mature_lines_by_mode": {
+        "rail": {
+          "n": 22,
+          "pred_p": 411442,
+          "real_p": 371596,
+          "losing_n": 0
+        },
+        "air": {
+          "n": 38,
+          "pred_p": 8514197,
+          "real_p": 1983580,
+          "losing_n": 1
+        },
+        "fleet": {
+          "n": 0,
+          "pred_p": 0,
+          "real_p": 0,
+          "losing_n": 0
+        }
+      },
+      "c63_empty_probe_causes": {},
+      "c63_lines": [
+        {
+          "line": 0,
+          "mode": "air",
+          "age": 6,
+          "pred_p": 642736,
+          "real_p": 137331,
+          "pred_r": 657432,
+          "real_r": 153531,
+          "vehs": 3
+        },
+        {
+          "line": 1,
+          "mode": "air",
+          "age": 6,
+          "pred_p": 468380,
+          "real_p": 68843,
+          "pred_r": 475728,
+          "real_r": 79643,
+          "vehs": 2
+        },
+        {
+          "line": 2,
+          "mode": "air",
+          "age": 6,
+          "pred_p": 715240,
+          "real_p": 110660,
+          "pred_r": 729936,
+          "real_r": 121460,
+          "vehs": 2
+        },
+        {
+          "line": 3,
+          "mode": "air",
+          "age": 6,
+          "pred_p": 321884,
+          "real_p": 80229,
+          "pred_r": 329232,
+          "real_r": 94291,
+          "vehs": 2
+        },
+        {
+          "line": 4,
+          "mode": "air",
+          "age": 6,
+          "pred_p": 446828,
+          "real_p": 137976,
+          "pred_r": 454176,
+          "real_r": 152038,
+          "vehs": 2
+        },
+        {
+          "line": 5,
+          "mode": "air",
+          "age": 6,
+          "pred_p": 372044,
+          "real_p": 24040,
+          "pred_r": 379392,
+          "real_r": 34840,
+          "vehs": 2
+        },
+        {
+          "line": 6,
+          "mode": "air",
+          "age": 6,
+          "pred_p": 343028,
+          "real_p": 39795,
+          "pred_r": 350376,
+          "real_r": 50595,
+          "vehs": 2
+        },
+        {
+          "line": 7,
+          "mode": "air",
+          "age": 6,
+          "pred_p": 333164,
+          "real_p": 53972,
+          "pred_r": 340512,
+          "real_r": 68034,
+          "vehs": 2
+        },
+        {
+          "line": 8,
+          "mode": "air",
+          "age": 6,
+          "pred_p": 246956,
+          "real_p": 56393,
+          "pred_r": 254304,
+          "real_r": 67193,
+          "vehs": 2
+        },
+        {
+          "line": 9,
+          "mode": "air",
+          "age": 6,
+          "pred_p": 307988,
+          "real_p": 63429,
+          "pred_r": 315336,
+          "real_r": 74229,
+          "vehs": 2
+        },
+        {
+          "line": 10,
+          "mode": "air",
+          "age": 5,
+          "pred_p": 341348,
+          "real_p": 111740,
+          "pred_r": 348696,
+          "real_r": 126196,
+          "vehs": 3
+        },
+        {
+          "line": 11,
+          "mode": "air",
+          "age": 5,
+          "pred_p": 313292,
+          "real_p": 130536,
+          "pred_r": 320640,
+          "real_r": 144598,
+          "vehs": 2
+        },
+        {
+          "line": 12,
+          "mode": "rail",
+          "age": 5,
+          "pred_p": 18903,
+          "real_p": 10311,
+          "pred_r": 22848,
+          "real_r": 11758,
+          "vehs": 1
+        },
+        {
+          "line": 13,
+          "mode": "rail",
+          "age": 5,
+          "pred_p": 22755,
+          "real_p": 8793,
+          "pred_r": 26700,
+          "real_r": 10240,
+          "vehs": 1
+        },
+        {
+          "line": 14,
+          "mode": "air",
+          "age": 5,
+          "pred_p": 313052,
+          "real_p": 32974,
+          "pred_r": 320400,
+          "real_r": 42030,
+          "vehs": 2
+        },
+        {
+          "line": 15,
+          "mode": "air",
+          "age": 5,
+          "pred_p": 224084,
+          "real_p": 98686,
+          "pred_r": 231432,
+          "real_r": 109486,
+          "vehs": 2
+        },
+        {
+          "line": 16,
+          "mode": "air",
+          "age": 5,
+          "pred_p": 202004,
+          "real_p": 31231,
+          "pred_r": 209352,
+          "real_r": 42031,
+          "vehs": 2
+        },
+        {
+          "line": 17,
+          "mode": "rail",
+          "age": 5,
+          "pred_p": 21927,
+          "real_p": 36927,
+          "pred_r": 25872,
+          "real_r": 39458,
+          "vehs": 1
+        },
+        {
+          "line": 18,
+          "mode": "rail",
+          "age": 5,
+          "pred_p": 41829,
+          "real_p": 10282,
+          "pred_r": 45864,
+          "real_r": 13164,
+          "vehs": 1
+        },
+        {
+          "line": 19,
+          "mode": "air",
+          "age": 5,
+          "pred_p": 197828,
+          "real_p": 61618,
+          "pred_r": 205176,
+          "real_r": 72418,
+          "vehs": 2
+        },
+        {
+          "line": 20,
+          "mode": "rail",
+          "age": 5,
+          "pred_p": 28023,
+          "real_p": 39425,
+          "pred_r": 31968,
+          "real_r": 41956,
+          "vehs": 1
+        },
+        {
+          "line": 21,
+          "mode": "rail",
+          "age": 5,
+          "pred_p": 28972,
+          "real_p": 25344,
+          "pred_r": 32964,
+          "real_r": 27476,
+          "vehs": 1
+        },
+        {
+          "line": 22,
+          "mode": "air",
+          "age": 5,
+          "pred_p": 188636,
+          "real_p": 34513,
+          "pred_r": 195984,
+          "real_r": 43569,
+          "vehs": 2
+        },
+        {
+          "line": 23,
+          "mode": "air",
+          "age": 5,
+          "pred_p": 169388,
+          "real_p": 23042,
+          "pred_r": 176736,
+          "real_r": 32098,
+          "vehs": 2
+        },
+        {
+          "line": 24,
+          "mode": "rail",
+          "age": 5,
+          "pred_p": 14282,
+          "real_p": 23274,
+          "pred_r": 18228,
+          "real_r": 25805,
+          "vehs": 1
+        },
+        {
+          "line": 25,
+          "mode": "air",
+          "age": 5,
+          "pred_p": 139724,
+          "real_p": 20297,
+          "pred_r": 147072,
+          "real_r": 29353,
+          "vehs": 2
+        },
+        {
+          "line": 26,
+          "mode": "air",
+          "age": 5,
+          "pred_p": 132620,
+          "real_p": 11782,
+          "pred_r": 139968,
+          "real_r": 20838,
+          "vehs": 2
+        },
+        {
+          "line": 27,
+          "mode": "rail",
+          "age": 5,
+          "pred_p": 21612,
+          "real_p": 8225,
+          "pred_r": 25560,
+          "real_r": 9672,
+          "vehs": 1
+        },
+        {
+          "line": 28,
+          "mode": "air",
+          "age": 5,
+          "pred_p": 184172,
+          "real_p": 85403,
+          "pred_r": 191520,
+          "real_r": 96203,
+          "vehs": 2
+        },
+        {
+          "line": 29,
+          "mode": "air",
+          "age": 5,
+          "pred_p": 242732,
+          "real_p": 89229,
+          "pred_r": 250080,
+          "real_r": 100029,
+          "vehs": 2
+        },
+        {
+          "line": 30,
+          "mode": "air",
+          "age": 5,
+          "pred_p": 203012,
+          "real_p": 57341,
+          "pred_r": 210360,
+          "real_r": 68141,
+          "vehs": 2
+        },
+        {
+          "line": 31,
+          "mode": "air",
+          "age": 5,
+          "pred_p": 181844,
+          "real_p": 61657,
+          "pred_r": 189192,
+          "real_r": 72457,
+          "vehs": 2
+        },
+        {
+          "line": 32,
+          "mode": "air",
+          "age": 5,
+          "pred_p": 124700,
+          "real_p": 62110,
+          "pred_r": 132048,
+          "real_r": 72910,
+          "vehs": 2
+        },
+        {
+          "line": 33,
+          "mode": "rail",
+          "age": 5,
+          "pred_p": 3299,
+          "real_p": 8208,
+          "pred_r": 7200,
+          "real_r": 9655,
+          "vehs": 1
+        },
+        {
+          "line": 34,
+          "mode": "rail",
+          "age": 5,
+          "pred_p": 3438,
+          "real_p": 5063,
+          "pred_r": 7344,
+          "real_r": 7195,
+          "vehs": 1
+        },
+        {
+          "line": 35,
+          "mode": "air",
+          "age": 5,
+          "pred_p": 143756,
+          "real_p": 18249,
+          "pred_r": 151104,
+          "real_r": 29049,
+          "vehs": 2
+        },
+        {
+          "line": 36,
+          "mode": "air",
+          "age": 5,
+          "pred_p": 133292,
+          "real_p": 18437,
+          "pred_r": 140640,
+          "real_r": 27493,
+          "vehs": 2
+        },
+        {
+          "line": 37,
+          "mode": "air",
+          "age": 5,
+          "pred_p": 156788,
+          "real_p": 46457,
+          "pred_r": 164136,
+          "real_r": 57257,
+          "vehs": 2
+        },
+        {
+          "line": 38,
+          "mode": "air",
+          "age": 5,
+          "pred_p": 81452,
+          "real_p": 27260,
+          "pred_r": 88800,
+          "real_r": 36316,
+          "vehs": 2
+        },
+        {
+          "line": 39,
+          "mode": "air",
+          "age": 5,
+          "pred_p": 98396,
+          "real_p": 116,
+          "pred_r": 105744,
+          "real_r": 9172,
+          "vehs": 2
+        },
+        {
+          "line": 40,
+          "mode": "air",
+          "age": 5,
+          "pred_p": 108332,
+          "real_p": 51185,
+          "pred_r": 115680,
+          "real_r": 60241,
+          "vehs": 2
+        },
+        {
+          "line": 41,
+          "mode": "air",
+          "age": 4,
+          "pred_p": 79793,
+          "real_p": 32606,
+          "pred_r": 87141,
+          "real_r": 41662,
+          "vehs": 2
+        },
+        {
+          "line": 43,
+          "mode": "rail",
+          "age": 4,
+          "pred_p": 23934,
+          "real_p": 40683,
+          "pred_r": 27936,
+          "real_r": 43214,
+          "vehs": 1
+        },
+        {
+          "line": 44,
+          "mode": "air",
+          "age": 4,
+          "pred_p": 74585,
+          "real_p": 0,
+          "pred_r": 81933,
+          "real_r": 0,
+          "vehs": 0
+        },
+        {
+          "line": 45,
+          "mode": "air",
+          "age": 4,
+          "pred_p": 68610,
+          "real_p": 25294,
+          "pred_r": 75958,
+          "real_r": 34350,
+          "vehs": 2
+        },
+        {
+          "line": 46,
+          "mode": "air",
+          "age": 4,
+          "pred_p": 55086,
+          "real_p": 24026,
+          "pred_r": 62434,
+          "real_r": 33082,
+          "vehs": 2
+        },
+        {
+          "line": 47,
+          "mode": "air",
+          "age": 4,
+          "pred_p": 81413,
+          "real_p": 43422,
+          "pred_r": 88761,
+          "real_r": 52478,
+          "vehs": 2
+        },
+        {
+          "line": 48,
+          "mode": "rail",
+          "age": 4,
+          "pred_p": 15543,
+          "real_p": 0,
+          "pred_r": 19488,
+          "real_r": 2882,
+          "vehs": 1
+        },
+        {
+          "line": 49,
+          "mode": "rail",
+          "age": 4,
+          "pred_p": 43375,
+          "real_p": 11013,
+          "pred_r": 47472,
+          "real_r": 13145,
+          "vehs": 1
+        },
+        {
+          "line": 50,
+          "mode": "rail",
+          "age": 4,
+          "pred_p": 23413,
+          "real_p": 29509,
+          "pred_r": 27360,
+          "real_r": 32040,
+          "vehs": 1
+        },
+        {
+          "line": 51,
+          "mode": "rail",
+          "age": 4,
+          "pred_p": 9599,
+          "real_p": 27568,
+          "pred_r": 13500,
+          "real_r": 29700,
+          "vehs": 1
+        },
+        {
+          "line": 52,
+          "mode": "air",
+          "age": 4,
+          "pred_p": 31035,
+          "real_p": -2293,
+          "pred_r": 38383,
+          "real_r": 8507,
+          "vehs": 2
+        },
+        {
+          "line": 53,
+          "mode": "rail",
+          "age": 4,
+          "pred_p": 24866,
+          "real_p": 23576,
+          "pred_r": 28812,
+          "real_r": 26107,
+          "vehs": 1
+        },
+        {
+          "line": 54,
+          "mode": "rail",
+          "age": 4,
+          "pred_p": 18518,
+          "real_p": 22435,
+          "pred_r": 22464,
+          "real_r": 24966,
+          "vehs": 1
+        },
+        {
+          "line": 55,
+          "mode": "rail",
+          "age": 4,
+          "pred_p": 5075,
+          "real_p": 0,
+          "pred_r": 8976,
+          "real_r": 1447,
+          "vehs": 1
+        },
+        {
+          "line": 56,
+          "mode": "rail",
+          "age": 4,
+          "pred_p": 19563,
+          "real_p": 19567,
+          "pred_r": 23520,
+          "real_r": 22098,
+          "vehs": 1
+        },
+        {
+          "line": 57,
+          "mode": "rail",
+          "age": 4,
+          "pred_p": 9966,
+          "real_p": 11287,
+          "pred_r": 13872,
+          "real_r": 13818,
+          "vehs": 1
+        },
+        {
+          "line": 58,
+          "mode": "rail",
+          "age": 4,
+          "pred_p": -1062,
+          "real_p": 9217,
+          "pred_r": 2856,
+          "real_r": 10664,
+          "vehs": 1
+        },
+        {
+          "line": 59,
+          "mode": "rail",
+          "age": 4,
+          "pred_p": 13612,
+          "real_p": 889,
+          "pred_r": 21420,
+          "real_r": 8482,
+          "vehs": 3
+        },
+        {
+          "line": 60,
+          "mode": "air",
+          "age": 3,
+          "pred_p": 44975,
+          "real_p": 13994,
+          "pred_r": 52323,
+          "real_r": 21306,
+          "vehs": 2
+        }
+      ]
+    },
+    "1976": {
+      "event_counts": {
+        "V284": 8,
+        "AIR_FLEET": 51,
+        "PROJECT_DISCARD": 17,
+        "PROJECT_CHOSEN": 2,
+        "RAIL_ATTEMPT": 1,
+        "AIR_BUILD": 1
+      },
+      "rail_attempt_events": 1,
+      "rail_min_distinct_od_kind": 1,
+      "rail_reason_counts": {
+        "ABND": 1
+      },
+      "rail_kind_counts": {
+        "freight": 1
+      },
+      "rail_success_actual_paid_observed": 0,
+      "rail_success_paid_observed_n": 0,
+      "air_build_events": 1,
+      "air_min_distinct_od": 1,
+      "chosen_events_by_mode": {
+        "rail": 1,
+        "air": 1
+      },
+      "chosen_unique_od_mode_kind_cargo": 2,
+      "discarded_unique_od_mode_kind_reason": 10,
+      "chosen_offers": [
+        {
+          "date": "1976-05-08",
+          "mode": "rail",
+          "kind": "freight",
+          "cargo": "GOOD",
+          "src": "50791",
+          "dst": "10926",
+          "profit": 50890,
+          "cost_quote": 129032
+        },
+        {
+          "date": "1976-11-14",
+          "mode": "air",
+          "kind": null,
+          "cargo": "PASS",
+          "src": "32963",
+          "dst": "40461",
+          "profit": 41420,
+          "cost_quote": 38964
+        }
+      ],
+      "rail_attempt_details": [
+        {
+          "date": "1976-09-14",
+          "kind": "freight",
+          "src": "50791",
+          "dst": "10926",
+          "reason": "ABND",
+          "ok": false,
+          "pred_profit": 50890,
+          "quote": -1,
+          "actual": -1,
+          "iterations": 5000,
+          "opcodes": 6150787
+        }
+      ],
+      "discard_events_by_mode_reason": {
+        "rail:too_close_no_join": 14,
+        "rail:search_in_progress": 2,
+        "rail:ABND": 1
+      },
+      "v284_events_by_action": {
+        "done": 4,
+        "pick": 4
+      },
+      "fleet_events_by_action": {
+        "AIR_FLEET:refuse": 51
+      },
+      "c63_available": true,
+      "c63_spend_by_mode": {
+        "rail": {
+          "planned_ok": 0,
+          "actual_ok": 0,
+          "n_ok": 0,
+          "planned_fail": 127892,
+          "actual_fail": 0,
+          "n_fail": 1
+        },
+        "road": {
+          "planned_ok": 0,
+          "actual_ok": 0,
+          "n_ok": 0,
+          "planned_fail": 0,
+          "actual_fail": 0,
+          "n_fail": 0
+        },
+        "air": {
+          "planned_ok": 38964,
+          "actual_ok": 38964,
+          "n_ok": 1,
+          "planned_fail": 0,
+          "actual_fail": 0,
+          "n_fail": 0
+        },
+        "water": {
+          "planned_ok": 0,
+          "actual_ok": 0,
+          "n_ok": 0,
+          "planned_fail": 0,
+          "actual_fail": 0,
+          "n_fail": 0
+        },
+        "fleet": {
+          "planned_ok": 0,
+          "actual_ok": 0,
+          "n_ok": 0,
+          "planned_fail": 0,
+          "actual_fail": 0,
+          "n_fail": 0
+        }
+      },
+      "c63_opportunities": {
+        "absent": {
+          "n": 15,
+          "days": 20
+        },
+        "invalid": {
+          "n": 46,
+          "days": 215
+        },
+        "unaffordable": {
+          "n": 0,
+          "days": 0
+        },
+        "demand": {
+          "n": 0,
+          "days": 0
+        },
+        "waiting_compute": {
+          "n": 9,
+          "days": 128
+        },
+        "launched": {
+          "n": 1,
+          "days": 2
+        }
+      },
+      "c63_absent_subcauses": {
+        "empty_pool": {
+          "n": 0,
+          "days": 0
+        },
+        "unprofitable": {
+          "n": 0,
+          "days": 0
+        },
+        "already_served": {
+          "n": 0,
+          "days": 0
+        },
+        "no_site": {
+          "n": 0,
+          "days": 0
+        },
+        "mode_cargo_filter": {
+          "n": 0,
+          "days": 0
+        },
+        "selection_empty": {
+          "n": 0,
+          "days": 0
+        },
+        "stage_empty": {
+          "n": 15,
+          "days": 20
+        },
+        "cache_exhausted": {
+          "n": 0,
+          "days": 0
+        },
+        "abandon_filtered": {
+          "n": 0,
+          "days": 0
+        }
+      },
+      "c63_mature_lines_by_mode": {
+        "rail": {
+          "n": 22,
+          "pred_p": 411442,
+          "real_p": 475892,
+          "losing_n": 0
+        },
+        "air": {
+          "n": 37,
+          "pred_p": 8483162,
+          "real_p": 2239264,
+          "losing_n": 0
+        },
+        "fleet": {
+          "n": 0,
+          "pred_p": 0,
+          "real_p": 0,
+          "losing_n": 0
+        }
+      },
+      "c63_empty_probe_causes": {
+        "stage_empty": 1
+      },
+      "c63_lines": [
+        {
+          "line": 0,
+          "mode": "air",
+          "age": 7,
+          "pred_p": 642736,
+          "real_p": 230011,
+          "pred_r": 657432,
+          "real_r": 246211,
+          "vehs": 3
+        },
+        {
+          "line": 1,
+          "mode": "air",
+          "age": 7,
+          "pred_p": 468380,
+          "real_p": 137739,
+          "pred_r": 475728,
+          "real_r": 148539,
+          "vehs": 2
+        },
+        {
+          "line": 2,
+          "mode": "air",
+          "age": 7,
+          "pred_p": 715240,
+          "real_p": 135631,
+          "pred_r": 729936,
+          "real_r": 146431,
+          "vehs": 2
+        },
+        {
+          "line": 3,
+          "mode": "air",
+          "age": 7,
+          "pred_p": 321884,
+          "real_p": 126398,
+          "pred_r": 329232,
+          "real_r": 140460,
+          "vehs": 2
+        },
+        {
+          "line": 4,
+          "mode": "air",
+          "age": 7,
+          "pred_p": 446828,
+          "real_p": 110307,
+          "pred_r": 454176,
+          "real_r": 124369,
+          "vehs": 2
+        },
+        {
+          "line": 5,
+          "mode": "air",
+          "age": 7,
+          "pred_p": 372044,
+          "real_p": 16149,
+          "pred_r": 379392,
+          "real_r": 26949,
+          "vehs": 2
+        },
+        {
+          "line": 6,
+          "mode": "air",
+          "age": 7,
+          "pred_p": 343028,
+          "real_p": 41158,
+          "pred_r": 350376,
+          "real_r": 51958,
+          "vehs": 2
+        },
+        {
+          "line": 7,
+          "mode": "air",
+          "age": 7,
+          "pred_p": 333164,
+          "real_p": 42759,
+          "pred_r": 340512,
+          "real_r": 56821,
+          "vehs": 2
+        },
+        {
+          "line": 8,
+          "mode": "air",
+          "age": 7,
+          "pred_p": 246956,
+          "real_p": 67681,
+          "pred_r": 254304,
+          "real_r": 78481,
+          "vehs": 2
+        },
+        {
+          "line": 9,
+          "mode": "air",
+          "age": 7,
+          "pred_p": 307988,
+          "real_p": 133608,
+          "pred_r": 315336,
+          "real_r": 144408,
+          "vehs": 2
+        },
+        {
+          "line": 10,
+          "mode": "air",
+          "age": 6,
+          "pred_p": 341348,
+          "real_p": 140241,
+          "pred_r": 348696,
+          "real_r": 154697,
+          "vehs": 3
+        },
+        {
+          "line": 11,
+          "mode": "air",
+          "age": 6,
+          "pred_p": 313292,
+          "real_p": 157594,
+          "pred_r": 320640,
+          "real_r": 171656,
+          "vehs": 2
+        },
+        {
+          "line": 12,
+          "mode": "rail",
+          "age": 6,
+          "pred_p": 18903,
+          "real_p": 10308,
+          "pred_r": 22848,
+          "real_r": 11755,
+          "vehs": 1
+        },
+        {
+          "line": 13,
+          "mode": "rail",
+          "age": 6,
+          "pred_p": 22755,
+          "real_p": 8787,
+          "pred_r": 26700,
+          "real_r": 10234,
+          "vehs": 1
+        },
+        {
+          "line": 14,
+          "mode": "air",
+          "age": 6,
+          "pred_p": 313052,
+          "real_p": 72077,
+          "pred_r": 320400,
+          "real_r": 81133,
+          "vehs": 2
+        },
+        {
+          "line": 15,
+          "mode": "air",
+          "age": 6,
+          "pred_p": 224084,
+          "real_p": 110769,
+          "pred_r": 231432,
+          "real_r": 121569,
+          "vehs": 2
+        },
+        {
+          "line": 16,
+          "mode": "air",
+          "age": 6,
+          "pred_p": 202004,
+          "real_p": 62674,
+          "pred_r": 209352,
+          "real_r": 73474,
+          "vehs": 2
+        },
+        {
+          "line": 17,
+          "mode": "rail",
+          "age": 6,
+          "pred_p": 21927,
+          "real_p": 40314,
+          "pred_r": 25872,
+          "real_r": 43196,
+          "vehs": 1
+        },
+        {
+          "line": 18,
+          "mode": "rail",
+          "age": 6,
+          "pred_p": 41829,
+          "real_p": 35154,
+          "pred_r": 45864,
+          "real_r": 38036,
+          "vehs": 1
+        },
+        {
+          "line": 19,
+          "mode": "air",
+          "age": 6,
+          "pred_p": 197828,
+          "real_p": 46454,
+          "pred_r": 205176,
+          "real_r": 55510,
+          "vehs": 2
+        },
+        {
+          "line": 20,
+          "mode": "rail",
+          "age": 6,
+          "pred_p": 28023,
+          "real_p": 35200,
+          "pred_r": 31968,
+          "real_r": 37731,
+          "vehs": 1
+        },
+        {
+          "line": 21,
+          "mode": "rail",
+          "age": 6,
+          "pred_p": 28972,
+          "real_p": 21179,
+          "pred_r": 32964,
+          "real_r": 23311,
+          "vehs": 1
+        },
+        {
+          "line": 22,
+          "mode": "air",
+          "age": 6,
+          "pred_p": 188636,
+          "real_p": 37742,
+          "pred_r": 195984,
+          "real_r": 46798,
+          "vehs": 2
+        },
+        {
+          "line": 23,
+          "mode": "air",
+          "age": 6,
+          "pred_p": 169388,
+          "real_p": 39407,
+          "pred_r": 176736,
+          "real_r": 48463,
+          "vehs": 2
+        },
+        {
+          "line": 24,
+          "mode": "rail",
+          "age": 6,
+          "pred_p": 14282,
+          "real_p": 26105,
+          "pred_r": 18228,
+          "real_r": 28636,
+          "vehs": 1
+        },
+        {
+          "line": 25,
+          "mode": "air",
+          "age": 6,
+          "pred_p": 139724,
+          "real_p": 25880,
+          "pred_r": 147072,
+          "real_r": 34936,
+          "vehs": 2
+        },
+        {
+          "line": 26,
+          "mode": "air",
+          "age": 6,
+          "pred_p": 132620,
+          "real_p": 50881,
+          "pred_r": 139968,
+          "real_r": 59937,
+          "vehs": 2
+        },
+        {
+          "line": 27,
+          "mode": "rail",
+          "age": 6,
+          "pred_p": 21612,
+          "real_p": 9042,
+          "pred_r": 25560,
+          "real_r": 10489,
+          "vehs": 1
+        },
+        {
+          "line": 28,
+          "mode": "air",
+          "age": 6,
+          "pred_p": 184172,
+          "real_p": 68473,
+          "pred_r": 191520,
+          "real_r": 77529,
+          "vehs": 2
+        },
+        {
+          "line": 29,
+          "mode": "air",
+          "age": 6,
+          "pred_p": 242732,
+          "real_p": 90579,
+          "pred_r": 250080,
+          "real_r": 101379,
+          "vehs": 2
+        },
+        {
+          "line": 30,
+          "mode": "air",
+          "age": 6,
+          "pred_p": 203012,
+          "real_p": 29652,
+          "pred_r": 210360,
+          "real_r": 38708,
+          "vehs": 2
+        },
+        {
+          "line": 31,
+          "mode": "air",
+          "age": 6,
+          "pred_p": 181844,
+          "real_p": 25714,
+          "pred_r": 189192,
+          "real_r": 34770,
+          "vehs": 2
+        },
+        {
+          "line": 32,
+          "mode": "air",
+          "age": 6,
+          "pred_p": 124700,
+          "real_p": 24407,
+          "pred_r": 132048,
+          "real_r": 33463,
+          "vehs": 2
+        },
+        {
+          "line": 33,
+          "mode": "rail",
+          "age": 6,
+          "pred_p": 3299,
+          "real_p": 7516,
+          "pred_r": 7200,
+          "real_r": 8963,
+          "vehs": 1
+        },
+        {
+          "line": 34,
+          "mode": "rail",
+          "age": 6,
+          "pred_p": 3438,
+          "real_p": 5624,
+          "pred_r": 7344,
+          "real_r": 7756,
+          "vehs": 1
+        },
+        {
+          "line": 35,
+          "mode": "air",
+          "age": 6,
+          "pred_p": 143756,
+          "real_p": 6709,
+          "pred_r": 151104,
+          "real_r": 15765,
+          "vehs": 2
+        },
+        {
+          "line": 36,
+          "mode": "air",
+          "age": 6,
+          "pred_p": 133292,
+          "real_p": 6945,
+          "pred_r": 140640,
+          "real_r": 16001,
+          "vehs": 2
+        },
+        {
+          "line": 37,
+          "mode": "air",
+          "age": 6,
+          "pred_p": 156788,
+          "real_p": 17346,
+          "pred_r": 164136,
+          "real_r": 26402,
+          "vehs": 2
+        },
+        {
+          "line": 38,
+          "mode": "air",
+          "age": 6,
+          "pred_p": 81452,
+          "real_p": 33776,
+          "pred_r": 88800,
+          "real_r": 42832,
+          "vehs": 2
+        },
+        {
+          "line": 39,
+          "mode": "air",
+          "age": 6,
+          "pred_p": 98396,
+          "real_p": 3793,
+          "pred_r": 105744,
+          "real_r": 12849,
+          "vehs": 2
+        },
+        {
+          "line": 40,
+          "mode": "air",
+          "age": 6,
+          "pred_p": 108332,
+          "real_p": 58891,
+          "pred_r": 115680,
+          "real_r": 67947,
+          "vehs": 2
+        },
+        {
+          "line": 41,
+          "mode": "air",
+          "age": 5,
+          "pred_p": 79793,
+          "real_p": 31484,
+          "pred_r": 87141,
+          "real_r": 40540,
+          "vehs": 2
+        },
+        {
+          "line": 43,
+          "mode": "rail",
+          "age": 5,
+          "pred_p": 23934,
+          "real_p": 33458,
+          "pred_r": 27936,
+          "real_r": 35989,
+          "vehs": 1
+        },
+        {
+          "line": 44,
+          "mode": "air",
+          "age": 5,
+          "pred_p": 74585,
+          "real_p": 0,
+          "pred_r": 81933,
+          "real_r": 0,
+          "vehs": 0
+        },
+        {
+          "line": 45,
+          "mode": "air",
+          "age": 5,
+          "pred_p": 68610,
+          "real_p": 9690,
+          "pred_r": 75958,
+          "real_r": 17002,
+          "vehs": 2
+        },
+        {
+          "line": 46,
+          "mode": "air",
+          "age": 5,
+          "pred_p": 55086,
+          "real_p": 4586,
+          "pred_r": 62434,
+          "real_r": 9986,
+          "vehs": 1
+        },
+        {
+          "line": 47,
+          "mode": "air",
+          "age": 5,
+          "pred_p": 81413,
+          "real_p": 17207,
+          "pred_r": 88761,
+          "real_r": 24519,
+          "vehs": 2
+        },
+        {
+          "line": 48,
+          "mode": "rail",
+          "age": 5,
+          "pred_p": 15543,
+          "real_p": 37459,
+          "pred_r": 19488,
+          "real_r": 40341,
+          "vehs": 1
+        },
+        {
+          "line": 49,
+          "mode": "rail",
+          "age": 5,
+          "pred_p": 43375,
+          "real_p": 4019,
+          "pred_r": 47472,
+          "real_r": 6550,
+          "vehs": 1
+        },
+        {
+          "line": 50,
+          "mode": "rail",
+          "age": 5,
+          "pred_p": 23413,
+          "real_p": 29502,
+          "pred_r": 27360,
+          "real_r": 32033,
+          "vehs": 1
+        },
+        {
+          "line": 51,
+          "mode": "rail",
+          "age": 5,
+          "pred_p": 9599,
+          "real_p": 24862,
+          "pred_r": 13500,
+          "real_r": 26994,
+          "vehs": 1
+        },
+        {
+          "line": 53,
+          "mode": "rail",
+          "age": 5,
+          "pred_p": 24866,
+          "real_p": 26465,
+          "pred_r": 28812,
+          "real_r": 28996,
+          "vehs": 1
+        },
+        {
+          "line": 54,
+          "mode": "rail",
+          "age": 5,
+          "pred_p": 18518,
+          "real_p": 26554,
+          "pred_r": 22464,
+          "real_r": 29436,
+          "vehs": 1
+        },
+        {
+          "line": 55,
+          "mode": "rail",
+          "age": 5,
+          "pred_p": 5075,
+          "real_p": 7681,
+          "pred_r": 8976,
+          "real_r": 9128,
+          "vehs": 1
+        },
+        {
+          "line": 56,
+          "mode": "rail",
+          "age": 5,
+          "pred_p": 19563,
+          "real_p": 25087,
+          "pred_r": 23520,
+          "real_r": 27618,
+          "vehs": 1
+        },
+        {
+          "line": 57,
+          "mode": "rail",
+          "age": 5,
+          "pred_p": 9966,
+          "real_p": 11280,
+          "pred_r": 13872,
+          "real_r": 13811,
+          "vehs": 1
+        },
+        {
+          "line": 58,
+          "mode": "rail",
+          "age": 5,
+          "pred_p": -1062,
+          "real_p": 9226,
+          "pred_r": 2856,
+          "real_r": 10673,
+          "vehs": 1
+        },
+        {
+          "line": 59,
+          "mode": "rail",
+          "age": 5,
+          "pred_p": 13612,
+          "real_p": 41070,
+          "pred_r": 21420,
+          "real_r": 53725,
+          "vehs": 5
+        },
+        {
+          "line": 60,
+          "mode": "air",
+          "age": 4,
+          "pred_p": 44975,
+          "real_p": 24852,
+          "pred_r": 52323,
+          "real_r": 32164,
+          "vehs": 2
+        },
+        {
+          "line": 61,
+          "mode": "air",
+          "age": 1,
+          "pred_p": 41420,
+          "real_p": -389,
+          "pred_r": 48768,
+          "real_r": 5011,
+          "vehs": 1
+        }
+      ]
+    },
+    "1977": {
+      "event_counts": {
+        "V284": 10,
+        "AIR_FLEET": 24,
+        "PROJECT_DISCARD": 23,
+        "PROJECT_CHOSEN": 4,
+        "RAIL_ATTEMPT": 3,
+        "AIR_BUILD": 1
+      },
+      "rail_attempt_events": 3,
+      "rail_min_distinct_od_kind": 3,
+      "rail_reason_counts": {
+        "OK": 3
+      },
+      "rail_kind_counts": {
+        "pax": 1,
+        "freight": 2
+      },
+      "rail_success_actual_paid_observed": 411212,
+      "rail_success_paid_observed_n": 3,
+      "air_build_events": 1,
+      "air_min_distinct_od": 1,
+      "chosen_events_by_mode": {
+        "rail": 3,
+        "air": 1
+      },
+      "chosen_unique_od_mode_kind_cargo": 4,
+      "discarded_unique_od_mode_kind_reason": 16,
+      "chosen_offers": [
+        {
+          "date": "1977-02-25",
+          "mode": "rail",
+          "kind": "pax",
+          "cargo": "PASS",
+          "src": "22642",
+          "dst": "24869",
+          "profit": 6279,
+          "cost_quote": 47375
+        },
+        {
+          "date": "1977-04-27",
+          "mode": "rail",
+          "kind": "freight",
+          "cargo": "GOOD",
+          "src": "55598",
+          "dst": "51421",
+          "profit": 26723,
+          "cost_quote": 117826
+        },
+        {
+          "date": "1977-08-26",
+          "mode": "rail",
+          "kind": "freight",
+          "cargo": "GOOD",
+          "src": "29129",
+          "dst": "28461",
+          "profit": 24473,
+          "cost_quote": 56788
+        },
+        {
+          "date": "1977-09-04",
+          "mode": "air",
+          "kind": null,
+          "cargo": "PASS",
+          "src": "40461",
+          "dst": "21394",
+          "profit": 24411,
+          "cost_quote": 38964
+        }
+      ],
+      "rail_attempt_details": [
+        {
+          "date": "1977-04-23",
+          "kind": "pax",
+          "src": "22642",
+          "dst": "24869",
+          "reason": "OK",
+          "ok": true,
+          "pred_profit": 2823,
+          "quote": 79134,
+          "actual": 79134,
+          "iterations": 3863,
+          "opcodes": 5325701
+        },
+        {
+          "date": "1977-08-17",
+          "kind": "freight",
+          "src": "55598",
+          "dst": "51421",
+          "reason": "OK",
+          "ok": true,
+          "pred_profit": 16991,
+          "quote": 225767,
+          "actual": 225767,
+          "iterations": 11677,
+          "opcodes": 6207867
+        },
+        {
+          "date": "1977-10-09",
+          "kind": "freight",
+          "src": "29129",
+          "dst": "28461",
+          "reason": "OK",
+          "ok": true,
+          "pred_profit": 14477,
+          "quote": 106311,
+          "actual": 106311,
+          "iterations": 2270,
+          "opcodes": 4559495
+        }
+      ],
+      "discard_events_by_mode_reason": {
+        "rail:too_close_no_join": 13,
+        "rail:search_in_progress": 10
+      },
+      "v284_events_by_action": {
+        "skip": 1,
+        "pick": 5,
+        "done": 4
+      },
+      "fleet_events_by_action": {
+        "AIR_FLEET:refuse": 24
+      },
+      "c63_available": true,
+      "c63_spend_by_mode": {
+        "rail": {
+          "planned_ok": 411212,
+          "actual_ok": 411212,
+          "n_ok": 3,
+          "planned_fail": 0,
+          "actual_fail": 0,
+          "n_fail": 0
+        },
+        "road": {
+          "planned_ok": 0,
+          "actual_ok": 0,
+          "n_ok": 0,
+          "planned_fail": 0,
+          "actual_fail": 0,
+          "n_fail": 0
+        },
+        "air": {
+          "planned_ok": 38964,
+          "actual_ok": 38964,
+          "n_ok": 1,
+          "planned_fail": 0,
+          "actual_fail": 0,
+          "n_fail": 0
+        },
+        "water": {
+          "planned_ok": 0,
+          "actual_ok": 0,
+          "n_ok": 0,
+          "planned_fail": 0,
+          "actual_fail": 0,
+          "n_fail": 0
+        },
+        "fleet": {
+          "planned_ok": 0,
+          "actual_ok": 0,
+          "n_ok": 0,
+          "planned_fail": 0,
+          "actual_fail": 0,
+          "n_fail": 0
+        }
+      },
+      "c63_opportunities": {
+        "absent": {
+          "n": 0,
+          "days": 0
+        },
+        "invalid": {
+          "n": 33,
+          "days": 134
+        },
+        "unaffordable": {
+          "n": 0,
+          "days": 0
+        },
+        "demand": {
+          "n": 0,
+          "days": 0
+        },
+        "waiting_compute": {
+          "n": 19,
+          "days": 195
+        },
+        "launched": {
+          "n": 4,
+          "days": 35
+        }
+      },
+      "c63_absent_subcauses": {
+        "empty_pool": {
+          "n": 0,
+          "days": 0
+        },
+        "unprofitable": {
+          "n": 0,
+          "days": 0
+        },
+        "already_served": {
+          "n": 0,
+          "days": 0
+        },
+        "no_site": {
+          "n": 0,
+          "days": 0
+        },
+        "mode_cargo_filter": {
+          "n": 0,
+          "days": 0
+        },
+        "selection_empty": {
+          "n": 0,
+          "days": 0
+        },
+        "stage_empty": {
+          "n": 0,
+          "days": 0
+        },
+        "cache_exhausted": {
+          "n": 0,
+          "days": 0
+        },
+        "abandon_filtered": {
+          "n": 0,
+          "days": 0
+        }
+      },
+      "c63_mature_lines_by_mode": {
+        "rail": {
+          "n": 22,
+          "pred_p": 411442,
+          "real_p": 437358,
+          "losing_n": 0
+        },
+        "air": {
+          "n": 38,
+          "pred_p": 8524582,
+          "real_p": 2541373,
+          "losing_n": 1
+        },
+        "fleet": {
+          "n": 0,
+          "pred_p": 0,
+          "real_p": 0,
+          "losing_n": 0
+        }
+      },
+      "c63_empty_probe_causes": {},
+      "c63_lines": [
+        {
+          "line": 0,
+          "mode": "air",
+          "age": 8,
+          "pred_p": 642736,
+          "real_p": 221583,
+          "pred_r": 657432,
+          "real_r": 237783,
+          "vehs": 3
+        },
+        {
+          "line": 1,
+          "mode": "air",
+          "age": 8,
+          "pred_p": 468380,
+          "real_p": 108747,
+          "pred_r": 475728,
+          "real_r": 119547,
+          "vehs": 2
+        },
+        {
+          "line": 2,
+          "mode": "air",
+          "age": 8,
+          "pred_p": 715240,
+          "real_p": 146576,
+          "pred_r": 729936,
+          "real_r": 157376,
+          "vehs": 2
+        },
+        {
+          "line": 3,
+          "mode": "air",
+          "age": 8,
+          "pred_p": 321884,
+          "real_p": 126468,
+          "pred_r": 329232,
+          "real_r": 140530,
+          "vehs": 2
+        },
+        {
+          "line": 4,
+          "mode": "air",
+          "age": 8,
+          "pred_p": 446828,
+          "real_p": 140630,
+          "pred_r": 454176,
+          "real_r": 154692,
+          "vehs": 2
+        },
+        {
+          "line": 5,
+          "mode": "air",
+          "age": 8,
+          "pred_p": 372044,
+          "real_p": 32672,
+          "pred_r": 379392,
+          "real_r": 43472,
+          "vehs": 2
+        },
+        {
+          "line": 6,
+          "mode": "air",
+          "age": 8,
+          "pred_p": 343028,
+          "real_p": 36537,
+          "pred_r": 350376,
+          "real_r": 47337,
+          "vehs": 2
+        },
+        {
+          "line": 7,
+          "mode": "air",
+          "age": 8,
+          "pred_p": 333164,
+          "real_p": 97767,
+          "pred_r": 340512,
+          "real_r": 111829,
+          "vehs": 2
+        },
+        {
+          "line": 8,
+          "mode": "air",
+          "age": 8,
+          "pred_p": 246956,
+          "real_p": 80589,
+          "pred_r": 254304,
+          "real_r": 91389,
+          "vehs": 2
+        },
+        {
+          "line": 9,
+          "mode": "air",
+          "age": 8,
+          "pred_p": 307988,
+          "real_p": 119427,
+          "pred_r": 315336,
+          "real_r": 130227,
+          "vehs": 2
+        },
+        {
+          "line": 10,
+          "mode": "air",
+          "age": 7,
+          "pred_p": 341348,
+          "real_p": 189184,
+          "pred_r": 348696,
+          "real_r": 203640,
+          "vehs": 3
+        },
+        {
+          "line": 11,
+          "mode": "air",
+          "age": 7,
+          "pred_p": 313292,
+          "real_p": 201083,
+          "pred_r": 320640,
+          "real_r": 215145,
+          "vehs": 2
+        },
+        {
+          "line": 12,
+          "mode": "rail",
+          "age": 7,
+          "pred_p": 18903,
+          "real_p": 11150,
+          "pred_r": 22848,
+          "real_r": 12597,
+          "vehs": 1
+        },
+        {
+          "line": 13,
+          "mode": "rail",
+          "age": 7,
+          "pred_p": 22755,
+          "real_p": 8798,
+          "pred_r": 26700,
+          "real_r": 10245,
+          "vehs": 1
+        },
+        {
+          "line": 14,
+          "mode": "air",
+          "age": 7,
+          "pred_p": 313052,
+          "real_p": 82307,
+          "pred_r": 320400,
+          "real_r": 91363,
+          "vehs": 2
+        },
+        {
+          "line": 15,
+          "mode": "air",
+          "age": 7,
+          "pred_p": 224084,
+          "real_p": 101018,
+          "pred_r": 231432,
+          "real_r": 111818,
+          "vehs": 2
+        },
+        {
+          "line": 16,
+          "mode": "air",
+          "age": 7,
+          "pred_p": 202004,
+          "real_p": 37898,
+          "pred_r": 209352,
+          "real_r": 46954,
+          "vehs": 2
+        },
+        {
+          "line": 17,
+          "mode": "rail",
+          "age": 7,
+          "pred_p": 21927,
+          "real_p": 56212,
+          "pred_r": 25872,
+          "real_r": 59094,
+          "vehs": 1
+        },
+        {
+          "line": 18,
+          "mode": "rail",
+          "age": 7,
+          "pred_p": 41829,
+          "real_p": 35136,
+          "pred_r": 45864,
+          "real_r": 38018,
+          "vehs": 1
+        },
+        {
+          "line": 19,
+          "mode": "air",
+          "age": 7,
+          "pred_p": 197828,
+          "real_p": 72560,
+          "pred_r": 205176,
+          "real_r": 81616,
+          "vehs": 2
+        },
+        {
+          "line": 20,
+          "mode": "rail",
+          "age": 7,
+          "pred_p": 28023,
+          "real_p": 35158,
+          "pred_r": 31968,
+          "real_r": 37689,
+          "vehs": 1
+        },
+        {
+          "line": 21,
+          "mode": "rail",
+          "age": 7,
+          "pred_p": 28972,
+          "real_p": 5560,
+          "pred_r": 32964,
+          "real_r": 8442,
+          "vehs": 1
+        },
+        {
+          "line": 22,
+          "mode": "air",
+          "age": 7,
+          "pred_p": 188636,
+          "real_p": 28399,
+          "pred_r": 195984,
+          "real_r": 37455,
+          "vehs": 2
+        },
+        {
+          "line": 23,
+          "mode": "air",
+          "age": 7,
+          "pred_p": 169388,
+          "real_p": 40038,
+          "pred_r": 176736,
+          "real_r": 49094,
+          "vehs": 2
+        },
+        {
+          "line": 24,
+          "mode": "rail",
+          "age": 7,
+          "pred_p": 14282,
+          "real_p": 23252,
+          "pred_r": 18228,
+          "real_r": 25783,
+          "vehs": 1
+        },
+        {
+          "line": 25,
+          "mode": "air",
+          "age": 7,
+          "pred_p": 139724,
+          "real_p": 33151,
+          "pred_r": 147072,
+          "real_r": 42207,
+          "vehs": 2
+        },
+        {
+          "line": 26,
+          "mode": "air",
+          "age": 7,
+          "pred_p": 132620,
+          "real_p": 52342,
+          "pred_r": 139968,
+          "real_r": 61398,
+          "vehs": 2
+        },
+        {
+          "line": 27,
+          "mode": "rail",
+          "age": 7,
+          "pred_p": 21612,
+          "real_p": 7490,
+          "pred_r": 25560,
+          "real_r": 8937,
+          "vehs": 1
+        },
+        {
+          "line": 28,
+          "mode": "air",
+          "age": 7,
+          "pred_p": 184172,
+          "real_p": 58200,
+          "pred_r": 191520,
+          "real_r": 67256,
+          "vehs": 2
+        },
+        {
+          "line": 29,
+          "mode": "air",
+          "age": 7,
+          "pred_p": 242732,
+          "real_p": 143629,
+          "pred_r": 250080,
+          "real_r": 154429,
+          "vehs": 2
+        },
+        {
+          "line": 30,
+          "mode": "air",
+          "age": 7,
+          "pred_p": 203012,
+          "real_p": 82298,
+          "pred_r": 210360,
+          "real_r": 91354,
+          "vehs": 2
+        },
+        {
+          "line": 31,
+          "mode": "air",
+          "age": 7,
+          "pred_p": 181844,
+          "real_p": 15099,
+          "pred_r": 189192,
+          "real_r": 22411,
+          "vehs": 2
+        },
+        {
+          "line": 32,
+          "mode": "air",
+          "age": 7,
+          "pred_p": 124700,
+          "real_p": 24583,
+          "pred_r": 132048,
+          "real_r": 31895,
+          "vehs": 2
+        },
+        {
+          "line": 33,
+          "mode": "rail",
+          "age": 7,
+          "pred_p": 3299,
+          "real_p": 6823,
+          "pred_r": 7200,
+          "real_r": 8270,
+          "vehs": 1
+        },
+        {
+          "line": 34,
+          "mode": "rail",
+          "age": 7,
+          "pred_p": 3438,
+          "real_p": 1450,
+          "pred_r": 7344,
+          "real_r": 2897,
+          "vehs": 1
+        },
+        {
+          "line": 35,
+          "mode": "air",
+          "age": 7,
+          "pred_p": 143756,
+          "real_p": 7085,
+          "pred_r": 151104,
+          "real_r": 14397,
+          "vehs": 2
+        },
+        {
+          "line": 36,
+          "mode": "air",
+          "age": 7,
+          "pred_p": 133292,
+          "real_p": 7579,
+          "pred_r": 140640,
+          "real_r": 14891,
+          "vehs": 2
+        },
+        {
+          "line": 37,
+          "mode": "air",
+          "age": 7,
+          "pred_p": 156788,
+          "real_p": 14515,
+          "pred_r": 164136,
+          "real_r": 21827,
+          "vehs": 2
+        },
+        {
+          "line": 38,
+          "mode": "air",
+          "age": 7,
+          "pred_p": 81452,
+          "real_p": 31389,
+          "pred_r": 88800,
+          "real_r": 38701,
+          "vehs": 2
+        },
+        {
+          "line": 39,
+          "mode": "air",
+          "age": 7,
+          "pred_p": 98396,
+          "real_p": 8948,
+          "pred_r": 105744,
+          "real_r": 16260,
+          "vehs": 2
+        },
+        {
+          "line": 40,
+          "mode": "air",
+          "age": 7,
+          "pred_p": 108332,
+          "real_p": 34531,
+          "pred_r": 115680,
+          "real_r": 41843,
+          "vehs": 2
+        },
+        {
+          "line": 41,
+          "mode": "air",
+          "age": 6,
+          "pred_p": 79793,
+          "real_p": 28110,
+          "pred_r": 87141,
+          "real_r": 35422,
+          "vehs": 2
+        },
+        {
+          "line": 43,
+          "mode": "rail",
+          "age": 6,
+          "pred_p": 23934,
+          "real_p": 8869,
+          "pred_r": 27936,
+          "real_r": 11751,
+          "vehs": 1
+        },
+        {
+          "line": 44,
+          "mode": "air",
+          "age": 6,
+          "pred_p": 74585,
+          "real_p": 0,
+          "pred_r": 81933,
+          "real_r": 0,
+          "vehs": 0
+        },
+        {
+          "line": 45,
+          "mode": "air",
+          "age": 6,
+          "pred_p": 68610,
+          "real_p": 35323,
+          "pred_r": 75958,
+          "real_r": 42635,
+          "vehs": 2
+        },
+        {
+          "line": 46,
+          "mode": "air",
+          "age": 6,
+          "pred_p": 55086,
+          "real_p": 13954,
+          "pred_r": 62434,
+          "real_r": 17610,
+          "vehs": 1
+        },
+        {
+          "line": 47,
+          "mode": "air",
+          "age": 6,
+          "pred_p": 81413,
+          "real_p": 48618,
+          "pred_r": 88761,
+          "real_r": 55930,
+          "vehs": 2
+        },
+        {
+          "line": 48,
+          "mode": "rail",
+          "age": 6,
+          "pred_p": 15543,
+          "real_p": 57514,
+          "pred_r": 19488,
+          "real_r": 60396,
+          "vehs": 1
+        },
+        {
+          "line": 49,
+          "mode": "rail",
+          "age": 6,
+          "pred_p": 43375,
+          "real_p": 21829,
+          "pred_r": 47472,
+          "real_r": 24711,
+          "vehs": 1
+        },
+        {
+          "line": 50,
+          "mode": "rail",
+          "age": 6,
+          "pred_p": 23413,
+          "real_p": 26304,
+          "pred_r": 27360,
+          "real_r": 28835,
+          "vehs": 1
+        },
+        {
+          "line": 51,
+          "mode": "rail",
+          "age": 6,
+          "pred_p": 9599,
+          "real_p": 27568,
+          "pred_r": 13500,
+          "real_r": 29700,
+          "vehs": 1
+        },
+        {
+          "line": 53,
+          "mode": "rail",
+          "age": 6,
+          "pred_p": 24866,
+          "real_p": 23571,
+          "pred_r": 28812,
+          "real_r": 26102,
+          "vehs": 1
+        },
+        {
+          "line": 54,
+          "mode": "rail",
+          "age": 6,
+          "pred_p": 18518,
+          "real_p": 34718,
+          "pred_r": 22464,
+          "real_r": 37600,
+          "vehs": 1
+        },
+        {
+          "line": 55,
+          "mode": "rail",
+          "age": 6,
+          "pred_p": 5075,
+          "real_p": 8272,
+          "pred_r": 8976,
+          "real_r": 9719,
+          "vehs": 1
+        },
+        {
+          "line": 56,
+          "mode": "rail",
+          "age": 6,
+          "pred_p": 19563,
+          "real_p": 7195,
+          "pred_r": 23520,
+          "real_r": 10077,
+          "vehs": 1
+        },
+        {
+          "line": 57,
+          "mode": "rail",
+          "age": 6,
+          "pred_p": 9966,
+          "real_p": 11287,
+          "pred_r": 13872,
+          "real_r": 13818,
+          "vehs": 1
+        },
+        {
+          "line": 58,
+          "mode": "rail",
+          "age": 6,
+          "pred_p": -1062,
+          "real_p": 3637,
+          "pred_r": 2856,
+          "real_r": 5769,
+          "vehs": 1
+        },
+        {
+          "line": 59,
+          "mode": "rail",
+          "age": 6,
+          "pred_p": 13612,
+          "real_p": 15565,
+          "pred_r": 21420,
+          "real_r": 30751,
+          "vehs": 6
+        },
+        {
+          "line": 60,
+          "mode": "air",
+          "age": 5,
+          "pred_p": 44975,
+          "real_p": 38581,
+          "pred_r": 52323,
+          "real_r": 45893,
+          "vehs": 2
+        },
+        {
+          "line": 61,
+          "mode": "air",
+          "age": 2,
+          "pred_p": 41420,
+          "real_p": -45,
+          "pred_r": 48768,
+          "real_r": 5355,
+          "vehs": 1
+        },
+        {
+          "line": 62,
+          "mode": "rail",
+          "age": 1,
+          "pred_p": 2823,
+          "real_p": -1988,
+          "pred_r": 7296,
+          "real_r": 894,
+          "vehs": 1
+        },
+        {
+          "line": 63,
+          "mode": "rail",
+          "age": 1,
+          "pred_p": 16991,
+          "real_p": 979,
+          "pred_r": 25908,
+          "real_r": 6743,
+          "vehs": 2
+        },
+        {
+          "line": 64,
+          "mode": "air",
+          "age": 1,
+          "pred_p": 24411,
+          "real_p": -955,
+          "pred_r": 31759,
+          "real_r": 4445,
+          "vehs": 1
+        },
+        {
+          "line": 65,
+          "mode": "rail",
+          "age": 1,
+          "pred_p": 14477,
+          "real_p": -651,
+          "pred_r": 18984,
+          "real_r": 2231,
+          "vehs": 1
+        }
+      ]
+    },
+    "1978": {
+      "event_counts": {
+        "V284": 6,
+        "AIR_FLEET": 19,
+        "PROJECT_DISCARD": 15,
+        "PROJECT_CHOSEN": 3,
+        "RAIL_ATTEMPT": 2
+      },
+      "rail_attempt_events": 2,
+      "rail_min_distinct_od_kind": 2,
+      "rail_reason_counts": {
+        "NOPA": 1,
+        "NOPLAN2": 1
+      },
+      "rail_kind_counts": {
+        "pax": 1,
+        "freight": 1
+      },
+      "rail_success_actual_paid_observed": 0,
+      "rail_success_paid_observed_n": 0,
+      "air_build_events": 0,
+      "air_min_distinct_od": 0,
+      "chosen_events_by_mode": {
+        "rail": 3
+      },
+      "chosen_unique_od_mode_kind_cargo": 3,
+      "discarded_unique_od_mode_kind_reason": 7,
+      "chosen_offers": [
+        {
+          "date": "1978-05-17",
+          "mode": "rail",
+          "kind": "pax",
+          "cargo": "PASS",
+          "src": "52319",
+          "dst": "59980",
+          "profit": 1359,
+          "cost_quote": 43231
+        },
+        {
+          "date": "1978-06-08",
+          "mode": "rail",
+          "kind": "freight",
+          "cargo": "GOOD",
+          "src": "44972",
+          "dst": "59980",
+          "profit": 11819,
+          "cost_quote": 109538
+        },
+        {
+          "date": "1978-11-05",
+          "mode": "rail",
+          "kind": "freight",
+          "cargo": "GOOD",
+          "src": "50791",
+          "dst": "7810",
+          "profit": 69478,
+          "cost_quote": 98426
+        }
+      ],
+      "rail_attempt_details": [
+        {
+          "date": "1978-05-21",
+          "kind": "pax",
+          "src": "52319",
+          "dst": "59980",
+          "reason": "NOPA",
+          "ok": false,
+          "pred_profit": 1359,
+          "quote": -1,
+          "actual": -1,
+          "iterations": 141,
+          "opcodes": 181031
+        },
+        {
+          "date": "1978-08-19",
+          "kind": "freight",
+          "src": "44972",
+          "dst": "59980",
+          "reason": "NOPLAN2",
+          "ok": false,
+          "pred_profit": 3443,
+          "quote": -1,
+          "actual": -1,
+          "iterations": 12677,
+          "opcodes": 606351
+        }
+      ],
+      "discard_events_by_mode_reason": {
+        "rail:too_close_no_join": 13,
+        "rail:NOPLAN2": 1,
+        "road:src_origin_served": 1
+      },
+      "v284_events_by_action": {
+        "done": 3,
+        "pick": 3
+      },
+      "fleet_events_by_action": {
+        "AIR_FLEET:refuse": 19
+      },
+      "c63_available": true,
+      "c63_spend_by_mode": {
+        "rail": {
+          "planned_ok": 0,
+          "actual_ok": 0,
+          "n_ok": 0,
+          "planned_fail": 159469,
+          "actual_fail": 0,
+          "n_fail": 2
+        },
+        "road": {
+          "planned_ok": 0,
+          "actual_ok": 0,
+          "n_ok": 0,
+          "planned_fail": 0,
+          "actual_fail": 0,
+          "n_fail": 0
+        },
+        "air": {
+          "planned_ok": 0,
+          "actual_ok": 0,
+          "n_ok": 0,
+          "planned_fail": 0,
+          "actual_fail": 0,
+          "n_fail": 0
+        },
+        "water": {
+          "planned_ok": 0,
+          "actual_ok": 0,
+          "n_ok": 0,
+          "planned_fail": 0,
+          "actual_fail": 0,
+          "n_fail": 0
+        },
+        "fleet": {
+          "planned_ok": 0,
+          "actual_ok": 0,
+          "n_ok": 0,
+          "planned_fail": 0,
+          "actual_fail": 0,
+          "n_fail": 0
+        }
+      },
+      "c63_opportunities": {
+        "absent": {
+          "n": 39,
+          "days": 54
+        },
+        "invalid": {
+          "n": 51,
+          "days": 186
+        },
+        "unaffordable": {
+          "n": 0,
+          "days": 0
+        },
+        "demand": {
+          "n": 0,
+          "days": 0
+        },
+        "waiting_compute": {
+          "n": 3,
+          "days": 124
+        },
+        "launched": {
+          "n": 0,
+          "days": 0
+        }
+      },
+      "c63_absent_subcauses": {
+        "empty_pool": {
+          "n": 0,
+          "days": 0
+        },
+        "unprofitable": {
+          "n": 0,
+          "days": 0
+        },
+        "already_served": {
+          "n": 0,
+          "days": 0
+        },
+        "no_site": {
+          "n": 0,
+          "days": 0
+        },
+        "mode_cargo_filter": {
+          "n": 0,
+          "days": 0
+        },
+        "selection_empty": {
+          "n": 0,
+          "days": 0
+        },
+        "stage_empty": {
+          "n": 19,
+          "days": 32
+        },
+        "cache_exhausted": {
+          "n": 0,
+          "days": 0
+        },
+        "abandon_filtered": {
+          "n": 20,
+          "days": 22
+        }
+      },
+      "c63_mature_lines_by_mode": {
+        "rail": {
+          "n": 25,
+          "pred_p": 445733,
+          "real_p": 602789,
+          "losing_n": 1
+        },
+        "air": {
+          "n": 38,
+          "pred_p": 8507573,
+          "real_p": 2527205,
+          "losing_n": 0
+        },
+        "fleet": {
+          "n": 0,
+          "pred_p": 0,
+          "real_p": 0,
+          "losing_n": 0
+        }
+      },
+      "c63_empty_probe_causes": {
+        "stage_empty": 1,
+        "abandon_filtered": 1
+      },
+      "c63_lines": [
+        {
+          "line": 0,
+          "mode": "air",
+          "age": 9,
+          "pred_p": 642736,
+          "real_p": 233580,
+          "pred_r": 657432,
+          "real_r": 249780,
+          "vehs": 3
+        },
+        {
+          "line": 1,
+          "mode": "air",
+          "age": 9,
+          "pred_p": 468380,
+          "real_p": 160670,
+          "pred_r": 475728,
+          "real_r": 171470,
+          "vehs": 2
+        },
+        {
+          "line": 2,
+          "mode": "air",
+          "age": 9,
+          "pred_p": 715240,
+          "real_p": 136027,
+          "pred_r": 729936,
+          "real_r": 146827,
+          "vehs": 2
+        },
+        {
+          "line": 3,
+          "mode": "air",
+          "age": 9,
+          "pred_p": 321884,
+          "real_p": 128405,
+          "pred_r": 329232,
+          "real_r": 142467,
+          "vehs": 2
+        },
+        {
+          "line": 4,
+          "mode": "air",
+          "age": 9,
+          "pred_p": 446828,
+          "real_p": 143464,
+          "pred_r": 454176,
+          "real_r": 157526,
+          "vehs": 2
+        },
+        {
+          "line": 5,
+          "mode": "air",
+          "age": 9,
+          "pred_p": 372044,
+          "real_p": 54044,
+          "pred_r": 379392,
+          "real_r": 64844,
+          "vehs": 2
+        },
+        {
+          "line": 6,
+          "mode": "air",
+          "age": 9,
+          "pred_p": 343028,
+          "real_p": 19937,
+          "pred_r": 350376,
+          "real_r": 30737,
+          "vehs": 2
+        },
+        {
+          "line": 7,
+          "mode": "air",
+          "age": 9,
+          "pred_p": 333164,
+          "real_p": 120797,
+          "pred_r": 340512,
+          "real_r": 134859,
+          "vehs": 2
+        },
+        {
+          "line": 8,
+          "mode": "air",
+          "age": 9,
+          "pred_p": 246956,
+          "real_p": 67060,
+          "pred_r": 254304,
+          "real_r": 77860,
+          "vehs": 2
+        },
+        {
+          "line": 9,
+          "mode": "air",
+          "age": 9,
+          "pred_p": 307988,
+          "real_p": 76741,
+          "pred_r": 315336,
+          "real_r": 87541,
+          "vehs": 2
+        },
+        {
+          "line": 10,
+          "mode": "air",
+          "age": 8,
+          "pred_p": 341348,
+          "real_p": 136129,
+          "pred_r": 348696,
+          "real_r": 150585,
+          "vehs": 3
+        },
+        {
+          "line": 11,
+          "mode": "air",
+          "age": 8,
+          "pred_p": 313292,
+          "real_p": 200507,
+          "pred_r": 320640,
+          "real_r": 214569,
+          "vehs": 2
+        },
+        {
+          "line": 12,
+          "mode": "rail",
+          "age": 8,
+          "pred_p": 18903,
+          "real_p": 10311,
+          "pred_r": 22848,
+          "real_r": 11758,
+          "vehs": 1
+        },
+        {
+          "line": 13,
+          "mode": "rail",
+          "age": 8,
+          "pred_p": 22755,
+          "real_p": 11523,
+          "pred_r": 26700,
+          "real_r": 13655,
+          "vehs": 1
+        },
+        {
+          "line": 14,
+          "mode": "air",
+          "age": 8,
+          "pred_p": 313052,
+          "real_p": 45110,
+          "pred_r": 320400,
+          "real_r": 52422,
+          "vehs": 2
+        },
+        {
+          "line": 15,
+          "mode": "air",
+          "age": 8,
+          "pred_p": 224084,
+          "real_p": 149344,
+          "pred_r": 231432,
+          "real_r": 160144,
+          "vehs": 2
+        },
+        {
+          "line": 16,
+          "mode": "air",
+          "age": 8,
+          "pred_p": 202004,
+          "real_p": 49376,
+          "pred_r": 209352,
+          "real_r": 58432,
+          "vehs": 2
+        },
+        {
+          "line": 17,
+          "mode": "rail",
+          "age": 8,
+          "pred_p": 21927,
+          "real_p": 56234,
+          "pred_r": 25872,
+          "real_r": 59116,
+          "vehs": 1
+        },
+        {
+          "line": 18,
+          "mode": "rail",
+          "age": 8,
+          "pred_p": 41829,
+          "real_p": 35086,
+          "pred_r": 45864,
+          "real_r": 37968,
+          "vehs": 1
+        },
+        {
+          "line": 19,
+          "mode": "air",
+          "age": 8,
+          "pred_p": 197828,
+          "real_p": 29847,
+          "pred_r": 205176,
+          "real_r": 37159,
+          "vehs": 2
+        },
+        {
+          "line": 20,
+          "mode": "rail",
+          "age": 8,
+          "pred_p": 28023,
+          "real_p": 35137,
+          "pred_r": 31968,
+          "real_r": 37668,
+          "vehs": 1
+        },
+        {
+          "line": 21,
+          "mode": "rail",
+          "age": 8,
+          "pred_p": 28972,
+          "real_p": 38160,
+          "pred_r": 32964,
+          "real_r": 41042,
+          "vehs": 1
+        },
+        {
+          "line": 22,
+          "mode": "air",
+          "age": 8,
+          "pred_p": 188636,
+          "real_p": 18487,
+          "pred_r": 195984,
+          "real_r": 25799,
+          "vehs": 2
+        },
+        {
+          "line": 23,
+          "mode": "air",
+          "age": 8,
+          "pred_p": 169388,
+          "real_p": 19001,
+          "pred_r": 176736,
+          "real_r": 26313,
+          "vehs": 2
+        },
+        {
+          "line": 24,
+          "mode": "rail",
+          "age": 8,
+          "pred_p": 14282,
+          "real_p": 23262,
+          "pred_r": 18228,
+          "real_r": 25793,
+          "vehs": 1
+        },
+        {
+          "line": 25,
+          "mode": "air",
+          "age": 8,
+          "pred_p": 139724,
+          "real_p": 10056,
+          "pred_r": 147072,
+          "real_r": 17368,
+          "vehs": 2
+        },
+        {
+          "line": 26,
+          "mode": "air",
+          "age": 8,
+          "pred_p": 132620,
+          "real_p": 26206,
+          "pred_r": 139968,
+          "real_r": 33518,
+          "vehs": 2
+        },
+        {
+          "line": 27,
+          "mode": "rail",
+          "age": 8,
+          "pred_p": 21612,
+          "real_p": 13509,
+          "pred_r": 25560,
+          "real_r": 16391,
+          "vehs": 1
+        },
+        {
+          "line": 28,
+          "mode": "air",
+          "age": 8,
+          "pred_p": 184172,
+          "real_p": 75773,
+          "pred_r": 191520,
+          "real_r": 83085,
+          "vehs": 2
+        },
+        {
+          "line": 29,
+          "mode": "air",
+          "age": 8,
+          "pred_p": 242732,
+          "real_p": 188995,
+          "pred_r": 250080,
+          "real_r": 199795,
+          "vehs": 2
+        },
+        {
+          "line": 30,
+          "mode": "air",
+          "age": 8,
+          "pred_p": 203012,
+          "real_p": 62199,
+          "pred_r": 210360,
+          "real_r": 69511,
+          "vehs": 2
+        },
+        {
+          "line": 31,
+          "mode": "air",
+          "age": 8,
+          "pred_p": 181844,
+          "real_p": 53243,
+          "pred_r": 189192,
+          "real_r": 60555,
+          "vehs": 2
+        },
+        {
+          "line": 32,
+          "mode": "air",
+          "age": 8,
+          "pred_p": 124700,
+          "real_p": 20587,
+          "pred_r": 132048,
+          "real_r": 24243,
+          "vehs": 1
+        },
+        {
+          "line": 33,
+          "mode": "rail",
+          "age": 8,
+          "pred_p": 3299,
+          "real_p": 6809,
+          "pred_r": 7200,
+          "real_r": 8256,
+          "vehs": 1
+        },
+        {
+          "line": 34,
+          "mode": "rail",
+          "age": 8,
+          "pred_p": 3438,
+          "real_p": 2783,
+          "pred_r": 7344,
+          "real_r": 4915,
+          "vehs": 1
+        },
+        {
+          "line": 35,
+          "mode": "air",
+          "age": 8,
+          "pred_p": 143756,
+          "real_p": 17144,
+          "pred_r": 151104,
+          "real_r": 24456,
+          "vehs": 2
+        },
+        {
+          "line": 36,
+          "mode": "air",
+          "age": 8,
+          "pred_p": 133292,
+          "real_p": 8713,
+          "pred_r": 140640,
+          "real_r": 16025,
+          "vehs": 2
+        },
+        {
+          "line": 37,
+          "mode": "air",
+          "age": 8,
+          "pred_p": 156788,
+          "real_p": 17692,
+          "pred_r": 164136,
+          "real_r": 21348,
+          "vehs": 1
+        },
+        {
+          "line": 38,
+          "mode": "air",
+          "age": 8,
+          "pred_p": 81452,
+          "real_p": 24445,
+          "pred_r": 88800,
+          "real_r": 31757,
+          "vehs": 2
+        },
+        {
+          "line": 39,
+          "mode": "air",
+          "age": 8,
+          "pred_p": 98396,
+          "real_p": 24425,
+          "pred_r": 105744,
+          "real_r": 31737,
+          "vehs": 2
+        },
+        {
+          "line": 40,
+          "mode": "air",
+          "age": 8,
+          "pred_p": 108332,
+          "real_p": 56812,
+          "pred_r": 115680,
+          "real_r": 64124,
+          "vehs": 2
+        },
+        {
+          "line": 41,
+          "mode": "air",
+          "age": 7,
+          "pred_p": 79793,
+          "real_p": 44745,
+          "pred_r": 87141,
+          "real_r": 52057,
+          "vehs": 2
+        },
+        {
+          "line": 43,
+          "mode": "rail",
+          "age": 7,
+          "pred_p": 23934,
+          "real_p": 44353,
+          "pred_r": 27936,
+          "real_r": 47235,
+          "vehs": 1
+        },
+        {
+          "line": 44,
+          "mode": "air",
+          "age": 7,
+          "pred_p": 74585,
+          "real_p": 0,
+          "pred_r": 81933,
+          "real_r": 0,
+          "vehs": 0
+        },
+        {
+          "line": 45,
+          "mode": "air",
+          "age": 7,
+          "pred_p": 68610,
+          "real_p": 45357,
+          "pred_r": 75958,
+          "real_r": 52669,
+          "vehs": 2
+        },
+        {
+          "line": 46,
+          "mode": "air",
+          "age": 7,
+          "pred_p": 55086,
+          "real_p": 16001,
+          "pred_r": 62434,
+          "real_r": 19657,
+          "vehs": 1
+        },
+        {
+          "line": 47,
+          "mode": "air",
+          "age": 7,
+          "pred_p": 81413,
+          "real_p": 14726,
+          "pred_r": 88761,
+          "real_r": 18382,
+          "vehs": 1
+        },
+        {
+          "line": 48,
+          "mode": "rail",
+          "age": 7,
+          "pred_p": 15543,
+          "real_p": 36732,
+          "pred_r": 19488,
+          "real_r": 39614,
+          "vehs": 1
+        },
+        {
+          "line": 49,
+          "mode": "rail",
+          "age": 7,
+          "pred_p": 43375,
+          "real_p": 43961,
+          "pred_r": 47472,
+          "real_r": 46843,
+          "vehs": 1
+        },
+        {
+          "line": 50,
+          "mode": "rail",
+          "age": 7,
+          "pred_p": 23413,
+          "real_p": 26298,
+          "pred_r": 27360,
+          "real_r": 28829,
+          "vehs": 1
+        },
+        {
+          "line": 51,
+          "mode": "rail",
+          "age": 7,
+          "pred_p": 9599,
+          "real_p": 27568,
+          "pred_r": 13500,
+          "real_r": 29700,
+          "vehs": 1
+        },
+        {
+          "line": 53,
+          "mode": "rail",
+          "age": 7,
+          "pred_p": 24866,
+          "real_p": 26494,
+          "pred_r": 28812,
+          "real_r": 29025,
+          "vehs": 1
+        },
+        {
+          "line": 54,
+          "mode": "rail",
+          "age": 7,
+          "pred_p": 18518,
+          "real_p": 34037,
+          "pred_r": 22464,
+          "real_r": 36919,
+          "vehs": 1
+        },
+        {
+          "line": 55,
+          "mode": "rail",
+          "age": 7,
+          "pred_p": 5075,
+          "real_p": 8272,
+          "pred_r": 8976,
+          "real_r": 9719,
+          "vehs": 1
+        },
+        {
+          "line": 56,
+          "mode": "rail",
+          "age": 7,
+          "pred_p": 19563,
+          "real_p": 21748,
+          "pred_r": 23520,
+          "real_r": 24630,
+          "vehs": 1
+        },
+        {
+          "line": 57,
+          "mode": "rail",
+          "age": 7,
+          "pred_p": 9966,
+          "real_p": 13889,
+          "pred_r": 13872,
+          "real_r": 16771,
+          "vehs": 1
+        },
+        {
+          "line": 58,
+          "mode": "rail",
+          "age": 7,
+          "pred_p": -1062,
+          "real_p": 19252,
+          "pred_r": 2856,
+          "real_r": 21384,
+          "vehs": 1
+        },
+        {
+          "line": 59,
+          "mode": "rail",
+          "age": 7,
+          "pred_p": 13612,
+          "real_p": 14116,
+          "pred_r": 21420,
+          "real_r": 29302,
+          "vehs": 6
+        },
+        {
+          "line": 60,
+          "mode": "air",
+          "age": 6,
+          "pred_p": 44975,
+          "real_p": 31560,
+          "pred_r": 52323,
+          "real_r": 38872,
+          "vehs": 2
+        },
+        {
+          "line": 62,
+          "mode": "rail",
+          "age": 2,
+          "pred_p": 2823,
+          "real_p": -2882,
+          "pred_r": 7296,
+          "real_r": 0,
+          "vehs": 1
+        },
+        {
+          "line": 63,
+          "mode": "rail",
+          "age": 2,
+          "pred_p": 16991,
+          "real_p": 30843,
+          "pred_r": 25908,
+          "real_r": 39489,
+          "vehs": 3
+        },
+        {
+          "line": 64,
+          "mode": "air",
+          "age": 2,
+          "pred_p": 24411,
+          "real_p": 0,
+          "pred_r": 31759,
+          "real_r": 3656,
+          "vehs": 1
+        },
+        {
+          "line": 65,
+          "mode": "rail",
+          "age": 2,
+          "pred_p": 14477,
+          "real_p": 25294,
+          "pred_r": 18984,
+          "real_r": 28176,
+          "vehs": 1
+        }
+      ]
+    },
+    "1979": {
+      "event_counts": {
+        "V284": 14,
+        "AIR_FLEET": 23,
+        "RAIL_ATTEMPT": 1,
+        "PROJECT_DISCARD": 4,
+        "PROJECT_CHOSEN": 2,
+        "AIR_BUILD": 1
+      },
+      "rail_attempt_events": 1,
+      "rail_min_distinct_od_kind": 1,
+      "rail_reason_counts": {
+        "NOPLAN2": 1
+      },
+      "rail_kind_counts": {
+        "freight": 1
+      },
+      "rail_success_actual_paid_observed": 0,
+      "rail_success_paid_observed_n": 0,
+      "air_build_events": 1,
+      "air_min_distinct_od": 1,
+      "chosen_events_by_mode": {
+        "air": 1,
+        "rail": 1
+      },
+      "chosen_unique_od_mode_kind_cargo": 2,
+      "discarded_unique_od_mode_kind_reason": 4,
+      "chosen_offers": [
+        {
+          "date": "1979-10-27",
+          "mode": "air",
+          "kind": null,
+          "cargo": "PASS",
+          "src": "32963",
+          "dst": "40461",
+          "profit": 48854,
+          "cost_quote": 38964
+        },
+        {
+          "date": "1979-11-10",
+          "mode": "rail",
+          "kind": "freight",
+          "cargo": "GOOD",
+          "src": "50791",
+          "dst": "12090",
+          "profit": 67822,
+          "cost_quote": 98650
+        }
+      ],
+      "rail_attempt_details": [
+        {
+          "date": "1979-10-26",
+          "kind": "freight",
+          "src": "50791",
+          "dst": "7810",
+          "reason": "NOPLAN2",
+          "ok": false,
+          "pred_profit": 79663,
+          "quote": -1,
+          "actual": -1,
+          "iterations": 12162,
+          "opcodes": 231039
+        }
+      ],
+      "discard_events_by_mode_reason": {
+        "rail:NOPLAN2": 1,
+        "road:plan_failed": 1,
+        "rail:search_in_progress": 2
+      },
+      "v284_events_by_action": {
+        "skip": 1,
+        "pick": 7,
+        "done": 4,
+        "fail": 2
+      },
+      "fleet_events_by_action": {
+        "AIR_FLEET:refuse": 23
+      },
+      "c63_available": false,
+      "c63_spend_by_mode": null,
+      "c63_opportunities": null,
+      "c63_absent_subcauses": null,
+      "c63_mature_lines_by_mode": null,
+      "c63_empty_probe_causes": null,
+      "c63_lines": null
+    }
+  },
+  "script_error_line_numbers": [],
+  "limitations": [
+    "Single instrumented seed, not representative nor a controlled economic duel",
+    "Not all rejected projects log their OD; RAIL_ATTEMPT lacks cargo; OD-kind is a lower bound",
+    "C63 invalid is residual, not proof of unbuildable site",
+    "ESTIM decision trace limited in code to 1973-1975",
+    "Missing C63 flush at end of 1979 is censored, not zero spend/opportunities",
+    "No rejected project is certified physically buildable from this log alone"
+  ]
+}

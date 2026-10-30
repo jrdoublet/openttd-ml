@@ -76,10 +76,26 @@ def parse_log(path: Path, *, first=1974, last=1979):
 
         rail_od = sorted({key for r in rail if (key := od_key(r)) is not None})
         air_od = sorted({key for r in air_built if (key := od_key(r)) is not None})
+        chosen_od = {(
+            r.get("mode", "?"), *od_key(r), r.get("cargo", "?"),
+        ) for r in chosen if od_key(r) is not None}
+        discarded_od_reasons = {(
+            r.get("mode", "?"), *od_key(r), r.get("reason", "?"),
+        ) for r in discard if od_key(r) is not None}
         by_mode = Counter(r.get("mode", "unknown") for r in chosen)
         paid_rail = [int_or_none(r.get("actual")) for r in rail if r.get("ok") == "1"]
         paid_rail = [x for x in paid_rail if x is not None and x >= 0]
         c63_year = c63.get(year)
+        mature = {}
+        if c63_year is not None:
+            for mode in ("rail", "air", "fleet"):
+                lines = [line for line in c63_year["lines"] if line["mode"] == mode and line["age"] >= 2]
+                mature[mode] = {
+                    "n": len(lines),
+                    "pred_p": sum(line["pred_p"] for line in lines),
+                    "real_p": sum(line["real_p"] for line in lines),
+                    "losing_n": sum(line["real_p"] < 0 for line in lines),
+                }
         annual[str(year)] = {
             "event_counts": dict(counts),
             "rail_attempt_events": len(rail),
@@ -91,6 +107,24 @@ def parse_log(path: Path, *, first=1974, last=1979):
             "air_build_events": len(air_built),
             "air_min_distinct_od": len(air_od),
             "chosen_events_by_mode": dict(by_mode),
+            "chosen_unique_od_mode_kind_cargo": len(chosen_od),
+            "discarded_unique_od_mode_kind_reason": len(discarded_od_reasons),
+            "chosen_offers": [{
+                "date": r["date"], "mode": r.get("mode"), "kind": r.get("kind"),
+                "cargo": r.get("cargo"), "src": r.get("src"), "dst": r.get("dst"),
+                "profit": int_or_none(r.get("profit")),
+                "cost_quote": int_or_none(r.get("cost")),
+            } for r in chosen],
+            "rail_attempt_details": [{
+                "date": r["date"], "kind": r.get("kind"), "src": r.get("src"),
+                "dst": r.get("dst"), "reason": r.get("reason"),
+                "ok": r.get("ok") == "1",
+                "pred_profit": int_or_none(r.get("pred_profit")),
+                "quote": int_or_none(r.get("quote")),
+                "actual": int_or_none(r.get("actual")),
+                "iterations": int_or_none(r.get("iters")),
+                "opcodes": int_or_none(r.get("ops")),
+            } for r in rail],
             "discard_events_by_mode_reason": dict(Counter(r.get("mode", "unknown") + ":" + r.get("reason", "unlogged") for r in discard)),
             "v284_events_by_action": dict(Counter(r.get("action", "unknown") for r in rows if r["event_kind"] == "V284")),
             "fleet_events_by_action": dict(Counter(r["event_kind"] + ":" + r.get("action", "unknown") for r in rows if r["event_kind"] in {"FLEET_PROJECT", "AIR_FLEET"})),
@@ -98,6 +132,8 @@ def parse_log(path: Path, *, first=1974, last=1979):
             "c63_spend_by_mode": c63_year["spend"] if c63_year is not None else None,
             "c63_opportunities": c63_year["opp"] if c63_year is not None else None,
             "c63_absent_subcauses": c63_year["absent_causes"] if c63_year is not None else None,
+            "c63_mature_lines_by_mode": mature if c63_year is not None else None,
+            "c63_empty_probe_causes": dict(Counter(p["cause"] for p in c63_year["empty_probes"])) if c63_year is not None else None,
             "c63_lines": c63_year["lines"] if c63_year is not None else None,
         }
     return {
