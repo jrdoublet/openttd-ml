@@ -13,7 +13,7 @@ import re
 import shutil
 from pathlib import Path
 
-from sweeps.estim31_top3_20x10_20261030 import SUITES_ALL
+from sweeps.estim31_top3_20x10_20261030 import SUITES_ALL, analyze
 
 
 def edit_setting(code, name, value):
@@ -50,6 +50,18 @@ def promote(repo, worktree, result, apply=False):
             or any(row['health'] != '40/40 complete' for row in finalists)
             or winner != max(finalists, key=lambda row: row['ratio_pct'])):
         raise ValueError('No fully qualified unique top-three 20x10 winner')
+    if sorted((r['ratio_pct'] for r in finalists), reverse=True)[0] <= sorted(
+            (r['ratio_pct'] for r in finalists), reverse=True)[1]:
+        raise ValueError('Tie at best ten-year economic ratio; no unique winner')
+    frozen_path = worktree / 'docs/estim31_top3_frozen_20261030.json'
+    if not frozen_path.is_file():
+        raise ValueError('Missing frozen 40x5 top-three evidence')
+    frozen = json.loads(frozen_path.read_text('utf-8'))
+    rechecked = analyze(repo, frozen)
+    if (rechecked['winner'] != winner or
+            rechecked['ranked_healthy_20x10'] != finalists or
+            rechecked['not_yet_qualified']):
+        raise ValueError('Fresh 20x10 game/manifest revalidation failed')
     folder, _ = SUITES_ALL[winner['suite']]
     bundle = repo / 'results' / folder / winner['name']
     source = bundle / 'ai/OpexAI'
