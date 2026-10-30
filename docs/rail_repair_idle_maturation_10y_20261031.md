@@ -106,3 +106,65 @@ par Git). Les conclusions et les agrégats individuels seront publiés
 dans ce rapport et dans un petit JSON de preuve versionné.
 
 **Aucun réglage IA par défaut n'est modifié.**
+
+## Résultats de maturation — 5 graines × 10 ans, diagnostic
+
+**10/10 parties saines**, 120 clichés mensuels par partie, tous jusqu'au
+1er décembre 1979. Le préenregistrement a été fixé avant le calcul au
+commit `ba680b44`. Résultat brut de la campagne diagnostique :
+`results/rail_repair_idle_pilot_10y_20261031.json`, SHA256
+`258f48e624fa61b5ecd1d908d5c2ab8bcffb2597822a46b6abd23d3f9699bddf`.
+Les chiffres par année et l'identification physique des services figurent
+dans [les preuves détaillées](rail_repair_idle_pilot_10y_20261031_evidence.json).
+
+**Les cinq constructions SITE de 1974 ont été reproduites** à la même
+OD/cargo. La lecture VEHS/ORDL/STNN a permis d'attribuer à chacune un
+service RAIL sans ambiguïté (cargo correspondant, proximité des deux
+gares, pas de concurrent proche). Les profits ci-dessous proviennent
+des véhicules réellement présents aux clichés de décembre, en livres,
+et **ne déduisent pas l'investissement en voies, gare, dépôt et véhicules**.
+
+| Graine | Profit prédit au BUILD | Devis BUILD | Profit VEHS observé 1975* | Profit VEHS observé 1979* |
+|---|---:|---:|---:|---:|
+| 100 | +36 330 | 80 279 | +52 420 | +28 030 |
+| 512 | +6 704 | 57 195 | +12 819 | +8 190 |
+| 12345 | +4 738 | 47 445 | +5 132 | +6 102 |
+| 54321 | +5 458 | 81 370 | +10 786 | +23 198 |
+| 65537 | +20 064 | 82 606 | +26 280 | +27 429 |
+
+\* `profit_this_year/256`, cumul d'année civile partielle à la
+date de sauvegarde (1er décembre, environ onze mois). La présence
+de trains et un profit VEHS positif à maturité ne garantissent pas
+le remboursement du capital initial. En particulier, la ligne de
+graine 100 a connu une année 1977 légèrement négative à la date de
+snapshot, et un train renouvelé peut avoir son profit annuel
+`profit_last_year` remis à zéro : ne pas extrapoler le profit par
+véhicule à tous les trains historiques.
+
+### Effet sur les sociétés à la fin de 1979
+
+| Graine | `profit_year` variante − témoin |
+|---|---:|
+| 100 | +263 390 £/an |
+| 512 | −11 522 £/an |
+| 12345 | −6 524 £/an |
+| 54321 | +97 718 £/an |
+| 65537 | +181 795 £/an |
+
+- Gain moyen apparié **+104 971,4 £/an, +5,4634 %** de la moyenne témoin ;
+  **3 victoires / 2 défaites**, Wilcoxon bilatéral exact **p=0,3125**.
+- IC95 bootstrap apparié [**+12 325,2 ; +197 617,6**] £/an, sur seulement
+  cinq graines sélectionnées : aucun statut de confirmation indépendante.
+- Ratio des valeurs moyennes : **109,7933 %**.
+- Le service utilisant la même OD est aussi présent dans le témoin à la
+  fin 1979 dans **quatre des cinq graines** ; on ne peut pas créditer
+  automatiquement la totalité de la différence de profits aux seules
+  lignes « sauvées ». Le diagnostic prouve la **construction effective**,
+  l'**exploitation** et un **profit VEHS positif**, pas l'impact causal
+  marginal exact après CAPEX.
+
+Les **trois conditions préenregistrées** de promotion sont vraies :
+5/5 constructions et associations non ambiguës, 5/5 lignes avec
+profit VEHS mature positif, delta moyen décennal positif et
+garde de valeur tenue. **La B exploratoire 20×10 a donc été lancée**,
+sans nouvelle activation de réglage par défaut.
