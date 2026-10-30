@@ -11,6 +11,7 @@ import hashlib
 import json
 import re
 import shutil
+import subprocess
 from pathlib import Path
 
 from sweeps.estim31_top3_20x10_20261030 import SUITES_ALL, analyze
@@ -49,6 +50,17 @@ def sha(path):
 
 
 def promote(repo, worktree, result, apply=False):
+    if apply:
+        branch = subprocess.check_output(
+            ['git', '-C', str(worktree), 'branch', '--show-current'],
+            text=True).strip()
+        if branch in ('main', 'master') or not branch:
+            raise ValueError('Never apply to shared master/main or detached HEAD')
+        dirty = subprocess.check_output(
+            ['git', '-C', str(worktree), 'status', '--porcelain',
+             '--untracked-files=all'], text=True).strip()
+        if dirty:
+            raise ValueError('Promotion target contains concurrent/unstaged modifications')
     finalists = result.get('ranked_healthy_20x10', [])
     winner = result.get('winner')
     if (len(finalists) != 3 or not winner
