@@ -44,7 +44,7 @@ OUT = ROOT / "results/rail_repair_idle_railonly_gateA_40x5_20261030.json"
 sys.argv = [
     "bench_v2.py", "--arms", REF, TREAT, "--seeds",
     *(str(s) for s in bench_v2.SEEDS_40),
-    "--years", "5", "--max-workers", "8",
+    "--years", "5", "--max-workers", "8", "--allow-shared-nondefault",
     "--out", str(OUT),
 ]
 
