@@ -590,6 +590,18 @@ Au dernier checkpoint Opex, moyenne : **80,250 avions**, **24,475 trains**,
 L'OFF présente 1 695 discordances historiques sur 2 800 champs comparés,
 à distinguer d'une modification comportementale OFF.
 
+Le relevé indépendant des **60 stocks mensuels physiques** par graine
+(40/40 couvertes, SHA exigés, sans instrumentation en moteur) mesure la somme
+des hausses de stock visibles, **minimum de nouvelles apparitions entre deux
+snapshots et non nombre réel de transactions**. V161×motorcap :
+223 = **1 953**, 228 = **69**, 220 = **1 015** hausses positives sur
+40 jeux ; V161 antérieur : 223 = **2 436**, 228 = **449**, 220 = **69**.
+Les disparitions mensuelles et les achats/ventes intramensuels empêchent
+de transformer ces mouvements en CAPEX brut. Résultats et validation :
+`sweeps/estim31_engine_stock_deltas_20261030.py`,
+`docs/estim31_v161_motorcap_stock_steps_40x5_20261030.json`,
+`docs/estim31_v161_stock_steps_40x5_20261030.json`.
+
 Le décodeur de classement vérifie désormais *exactement* les 40 graines
 et les deux compagnies à chacune des cinq dates annuelles pour
 chaque politique, les 80 statuts détaillés, le `probes=2` témoin,
