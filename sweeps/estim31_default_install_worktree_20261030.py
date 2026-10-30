@@ -48,6 +48,17 @@ def install(release, target):
         raise ValueError('Release OpexAI source file count mismatch')
     if sha(source / 'info.nut') != manifest['release_info_sha256']:
         raise ValueError('Release default settings were modified')
+    library_source = release / 'ai_libraries'
+    library_target = target / 'ai_libraries'
+    libraries = {p.relative_to(library_source).as_posix(): sha(p)
+                 for p in library_source.rglob('*') if p.is_file()}
+    if len(libraries) != manifest['ai_libraries_file_count']:
+        raise ValueError('Required AI libraries missing from default release')
+    existing_libraries = {
+        p.relative_to(library_target).as_posix(): sha(p)
+        for p in library_target.rglob('*') if p.is_file()} if library_target.is_dir() else {}
+    if any(libraries.get(name) != value for name, value in existing_libraries.items()):
+        raise ValueError('Conflicting existing AI libraries in target')
     # The sealed source is a self-contained AI with its own dependency files.
     for name in sorted(src):
         original = source / name
@@ -59,11 +70,22 @@ def install(release, target):
              for p in destination.rglob('*') if p.is_file()}
     if after != src:
         raise ValueError('Installed AI does not byte-match default release')
+    for name in sorted(libraries):
+        original = library_source / name
+        copied = library_target / name
+        copied.parent.mkdir(parents=True, exist_ok=True)
+        if not copied.exists():
+            shutil.copy2(original, copied)
+    after_libraries = {p.relative_to(library_target).as_posix(): sha(p)
+                       for p in library_target.rglob('*') if p.is_file()}
+    if after_libraries != libraries:
+        raise ValueError('Installed AI libraries do not byte-match default release')
     changed = sorted(name for name in src if dst.get(name) != src[name])
     return {'branch': git(target, 'branch', '--show-current'),
             'release_winner': manifest['winner'],
             'files_changed': changed,
             'files_changed_count': len(changed),
+            'ai_libraries_verified_count': len(libraries),
             'ai_source_sha_verified': True,
             'deployed_to_shared_master': False}
 
