@@ -109,6 +109,8 @@ def prepare(repo, chosen, output):
                 'frozen_info_sha256': expected_files['ai/OpexAI/info.nut'],
                 'release_info_sha256': actual_files['ai/OpexAI/info.nut'],
                 'ai_file_count': len(expected_files),
+                'opexai_file_count': sum(
+                    1 for item in expected_files if item.startswith('ai/OpexAI/')),
                 'deployable_source_ready': True,
                 'production_ai_updated': False,
                 'important': ('Releasing a candidate does not touch shared dirty master. '
