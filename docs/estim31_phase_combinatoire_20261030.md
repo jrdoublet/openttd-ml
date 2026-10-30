@@ -576,6 +576,9 @@ EB14=3, V249=2, EB2=0, charge min AIR=0, `estim_unifie=31`,
 **Ratio exact des deux moyennes de la nouvelle campagne : 106,062929 %**,
 écart apparié moyen +171 857,250 £/an, **27/40 victoires**, soit
 +2,264262 points sur le précédent record V161 **103,798667 %**.
+Le témoin OFF **de ce même duel** vaut **98,167743 %**
+(Opex 2 861 644 £/an contre AAA 2 915 056 £/an) :
+la variante le dépasse de **7,895186 points** sur le critère relatif.
 Les comparaisons entre deux campagnes ne constituent pas un appariement
 expérimental parfait, car les trajectoires OFF divergent déjà à source
 identique ; seul le ratio de profits au sein de chaque duel fonde
@@ -602,6 +605,17 @@ de transformer ces mouvements en CAPEX brut. Résultats et validation :
 `docs/estim31_v161_motorcap_stock_steps_40x5_20261030.json`,
 `docs/estim31_v161_stock_steps_40x5_20261030.json`.
 
+Les journaux `RAIL_ATTEMPT` retenus (couverture
+`retained_signs_only`, **pas** journal exhaustif des investissements)
+témoignent d'un rail construit surtout en 1971–1972 : motifs `OK`
+motorcap, agrégés sur 40 graines, **0 en 1970, 420 en 1971,
+448 en 1972, 70 en 1973, 21 en 1974**, contre **0/408/448/79/15**
+dans V161 sans motorcap. Il subsiste un effondrement des succès après
+1972 et aucune trace de construction RAIL en 1970, cohérente avec
+l'interdit de financement déjà identifié. Les motifs `OK` sont
+les signatures d'essais conservées, non le nombre total de dépenses
+ou un bilan transactionnel exhaustif.
+
 Le décodeur de classement vérifie désormais *exactement* les 40 graines
 et les deux compagnies à chacune des cinq dates annuelles pour
 chaque politique, les 80 statuts détaillés, le `probes=2` témoin,
@@ -614,3 +628,49 @@ La deuxième qualification prioritaire, **V161 AIR2,50/RAIL0,75/poids15**,
 a démarré à **08:48:58** dans le seul Docker (session `19413`,
 `estim31vcoef_v161_a250_r075_w15_40x5_20261030`). Son écran 5×5
 était sain à 103,285240 % ; aucun ratio 40×5 ne peut être anticipé.
+
+### Qualification AIR2,50 et protocole des dix ans
+
+La campagne V161 AIR2,50/RAIL0,75/poids15 est terminée : **80/80 parties
+saines**, SHA source `10d21056814b32f8672db28c7d6016538904ae335e1fa7c22bef0dfbd00527ec`,
+ratio des moyennes **105,171758 %** (Opex **2 939 119,125 £/an**,
+AAA **2 794 589,700 £/an**) : deuxième rang, derrière le croisement
+V161×motorcap à **106,062929 %**, devant V161 AIR2 initial à
+**103,798667 %**. Comptabilité PLYR réellement inscrite à la save
+du 1er décembre 1974 contrôlée 80/80 : dans le croisement motorcap,
+Opex 1974 YTD construction tous modes **73 263,075 £**, achats véhicules
+nets **974 756,875 £**, autres **1 160 717,875 £**, recettes AIR
+**2 629 958,275 £**, RAIL **627 705,025 £**. Pour V161 AIR2,50,
+respectivement **92 332,825 £**, **996 126,275 £**,
+**1 083 520,375 £**, **2 560 617,2 £** et **621 223,175 £**.
+Il est interdit de convertir ces postes nets et tous modes en achats
+bruts de moteurs, dépenses par infrastructure ou facture des statues.
+
+**Nouvelle instruction utilisateur** : au terme du classement sain des
+40×5, figer **les trois meilleures variantes** et exécuter **trois duels
+20 graines × 10 ans, 1970–1979**, sur les vingt graines canoniques
+communes, huit workers, un seul Docker, `probes=2` et les bundles
+source gelés. Classer exclusivement par
+`100 × mean_20(profit_year Opex au 1979-12-01) /
+mean_20(profit_year AAAHogEx au 1979-12-01)`,
+avec chaque dénominateur issu du duel correspondant. Ne pas appliquer
+de veto valeur/Wilcoxon/IC95/ancien `gain_short`; exiger 40/40 parties
+saines, 20 graines appariées, dix snapshots annuels complets et
+empreintes de source/manifeste valides. **La meilleure à dix ans deviendra
+le nouveau défaut** après contrôles techniques et Save/Load. C'est une
+autorisation explicite de promotion qui modifie la règle antérieure
+« toutes variantes à défaut 0 » pour la seule configuration gagnante.
+Ne pas altérer le `master` sale ni le travail concurrent : intégration
+dans une branche dédiée, puis publication contrôlée.
+
+Outils préparés :
+`sweeps/estim31_top3_20x10_20261030.py` (figer le top 3 et
+vérifier toutes les séries 20×10 avant de choisir) et
+`sweeps/run_estim31_finalist_20x10_20261030.ps1`
+(sélection figée par rang, exclusivité Docker, budgets identiques).
+**Aucune qualification décennale n'est présumée terminée.**
+
+L'essai exploratoire RAIL finançable en 1970 a fini 5×5 sain,
+**97,296780 %** de ratio des deux profits, contre **99,056010 %**
+pour son témoin propre ; **aucun train construit en 1970** sur
+les cinq graines. Non exposé au résultat attendu, sans promotion 40×5.
