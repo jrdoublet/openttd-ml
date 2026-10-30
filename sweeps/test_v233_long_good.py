@@ -1096,8 +1096,9 @@ class V233LongGoodContracts(unittest.TestCase):
 
     def test_two_train_sizing_tariff_and_both_recalculations(self):
         econ = body("economy.nut", "OpexLineEconomics")
-        self.assertIn('if (longModel) calibrationOffered /= 2.0;', econ)
-        self.assertIn('longModel || (OpexV190Active()', econ)
+        self.assertIn('if (longModel && !monoLong) calibrationOffered /= 2.0;', econ)
+        self.assertIn('(longModel && !monoLong) || (OpexV190Active()', econ)
+        self.assertIn('v233Single = false', source("economy.nut"))  # historique double inchangé par défaut
         self.assertIn('AICargo.GetCargoIncome(cargo, distance, paidDays)', econ)
         self.assertIn('oneWayDays + dwellDays / 2 + perTrain * 15.0 / offered', econ)
         self.assertIn('OpexV163CandidateSecondary(candidate), OpexV233LIs(candidate)', source("builder_rail.nut"))

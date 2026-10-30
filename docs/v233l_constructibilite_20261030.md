@@ -100,3 +100,31 @@ toute publication économique ; ne pas réécrire les empreintes historiques.
 
 **Verdict actuel : `UNQUALIFIED`**, ni GO ni NO-GO physique sur les OD
 historiques. Aucune permutation du défaut, aucun profit causal revendiqué.
+
+### Duel exploratoire terminé — une graine, 10 ans
+
+Deux bras **complets et sains** sur la carte partagée graine 42, 256²,
+1970–1979, chacun contre AAAHogEx-115, configuration par défaut hors
+`v233l_constructibilite=1` (référence passif) ou `=2` (repli autorisé) :
+
+| Mesure OpexAI, 1979 | Mode 1 passif | Mode 2 repli |
+|---|---:|---:|
+| `profit_year` | 3 730 271 £ | 3 300 691 £ |
+| Valeur de compagnie | 16 146 874 £ | 14 460 937 £ |
+| Trains et véhicules tous modes | 106 | 105 |
+| Gares | 75 | 75 |
+
+**Différence appareillée variante − référence : `−429 580 £/an`
+(`profit_year`), valeur `−10,44 %`.** La garde de valeur −5 % échoue,
+et la règle de profit primaire échoue aussi ; `0V/1D`, Wilcoxon `p=1`
+non informatif à `n=1`, aucune IC exploitable pour une décision.
+Résultats gelés :
+`results/v233l_construct_seed42_1x10_20261030b.json` et manifeste associé
+(résultats locaux ignorés par Git).
+
+**Limite causale capitale :** ce banc compare deux parties issues d'une
+même graine, **pas la même sauvegarde à l'instant NOPLAN2**. Les traces
+disponibles ne prouvent pas qu'une monovoie supplémentaire ait été posée
+ni que l'écart de profit provienne spécifiquement des trois OD ciblées.
+La variante **n'est pas adoptable** au vu de ce signal négatif ; les
+expériences historiques requises restent ouvertes.
