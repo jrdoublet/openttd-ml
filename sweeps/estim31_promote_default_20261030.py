@@ -14,6 +14,7 @@ import shutil
 import subprocess
 from pathlib import Path
 
+from sweeps.campaign_freeze import fingerprint_tree
 from sweeps.estim31_top3_20x10_20261030 import SUITES_ALL, analyze
 
 
@@ -76,6 +77,27 @@ def mirror_verified_files(source, target, apply=False):
     return changed, len(src)
 
 
+def verify_exact_simulated_source(bundle, campaign, expected_sha):
+    """Prove the deployable AI and libraries match the actual frozen 20x10 run."""
+    frozen = bundle / 'results' / (campaign + '_bundle')
+    if fingerprint_tree(frozen)['sha256'] != expected_sha:
+        raise ValueError('20x10 executed source fingerprint no longer matches frozen SHA')
+    verified = {}
+    for part in ('ai/OpexAI', 'ai_libraries'):
+        original = bundle / part
+        executed = frozen / part
+        if not original.is_dir() or not executed.is_dir():
+            raise ValueError('Missing source or executed tree: ' + part)
+        a = {p.relative_to(original).as_posix(): sha(p)
+             for p in original.rglob('*') if p.is_file()}
+        b = {p.relative_to(executed).as_posix(): sha(p)
+             for p in executed.rglob('*') if p.is_file()}
+        if not a or a != b:
+            raise ValueError('Deployable source differs from executed 20x10: ' + part)
+        verified[part] = len(a)
+    return verified
+
+
 def promote(repo, worktree, result, apply=False):
     if apply:
         branch = subprocess.check_output(
@@ -109,6 +131,8 @@ def promote(repo, worktree, result, apply=False):
         raise ValueError('Fresh 20x10 game/manifest revalidation failed')
     folder, _ = SUITES_ALL[winner['suite']]
     bundle = repo / 'results' / folder / winner['name']
+    executed_count = verify_exact_simulated_source(
+        bundle, winner['campaign'], winner['source_bundle_sha256'])
     source = bundle / 'ai/OpexAI'
     target = worktree / 'ai/OpexAI'
     if not (source / 'info.nut').is_file() or not target.is_dir():
@@ -158,6 +182,7 @@ def promote(repo, worktree, result, apply=False):
         'ai_libraries_files': libraries_count,
         'ai_libraries_to_install': libraries_changed,
         'ai_libraries_verified': True,
+        'executed_source_verified': executed_count,
         'files_to_add_or_update': changed,
         'default_settings': defaults,
         'explicit_old_settings_preserved': True,
