@@ -49,6 +49,33 @@ def sha(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def mirror_verified_files(source, target, apply=False):
+    """Copy exact tested files, never overwrite an extraneous destination file.
+
+    In particular, NoAI libraries must accompany the frozen AI. A dry-run
+    performs all source/destination checks without touching either tree.
+    """
+    if not source.is_dir():
+        raise ValueError('Missing frozen source tree: ' + str(source))
+    src = {p.relative_to(source): p for p in source.rglob('*') if p.is_file()}
+    dst = {p.relative_to(target): p for p in target.rglob('*') if p.is_file()}
+    if not src:
+        raise ValueError('Frozen source tree is empty: ' + str(source))
+    if dst.keys() - src.keys():
+        raise ValueError('Unmapped production-only files: ' +
+                         ', '.join(str(k) for k in sorted(dst.keys() - src.keys())))
+    changed = []
+    for rel, file in sorted(src.items()):
+        if not (target / rel).is_file() or sha(target / rel) != sha(file):
+            changed.append(rel.as_posix())
+            if apply:
+                (target / rel).parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(file, target / rel)
+                if sha(target / rel) != sha(file):
+                    raise ValueError('Copy checksum mismatch: ' + str(rel))
+    return changed, len(src)
+
+
 def promote(repo, worktree, result, apply=False):
     if apply:
         branch = subprocess.check_output(
@@ -86,6 +113,10 @@ def promote(repo, worktree, result, apply=False):
     target = worktree / 'ai/OpexAI'
     if not (source / 'info.nut').is_file() or not target.is_dir():
         raise ValueError('Missing tested OpexAI bundle or destination')
+    lib_source = bundle / 'ai_libraries'
+    lib_target = worktree / 'ai_libraries'
+    libraries_changed, libraries_count = mirror_verified_files(
+        lib_source, lib_target, apply=False)
     src = {p.relative_to(source): p for p in source.rglob('*') if p.is_file()}
     dst = {p.relative_to(target): p for p in target.rglob('*') if p.is_file()}
     if dst.keys() - src.keys():
@@ -112,12 +143,21 @@ def promote(repo, worktree, result, apply=False):
             if apply:
                 (target / rel).parent.mkdir(parents=True, exist_ok=True)
                 (target / rel).write_bytes(new_bytes)
+                if (target / rel).read_bytes() != new_bytes:
+                    raise ValueError('OpexAI installed checksum mismatch: ' + str(rel))
+    if apply:
+        installed, count = mirror_verified_files(lib_source, lib_target, apply=True)
+        if installed != libraries_changed or count != libraries_count:
+            raise ValueError('NoAI library source changed during installation')
     return {
         'selected_20x10': {k: winner[k] for k in (
             'suite', 'name', 'ratio_pct', 'opex_profit_mean',
             'aaa_profit_mean', 'source_bundle_sha256', 'campaign')},
         'source_bundle_path': str(bundle),
         'source_files': len(src),
+        'ai_libraries_files': libraries_count,
+        'ai_libraries_to_install': libraries_changed,
+        'ai_libraries_verified': True,
         'files_to_add_or_update': changed,
         'default_settings': defaults,
         'explicit_old_settings_preserved': True,

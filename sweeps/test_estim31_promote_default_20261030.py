@@ -1,9 +1,26 @@
 import unittest
 
-from sweeps.estim31_promote_default_20261030 import edit_setting, promote
+from sweeps.estim31_promote_default_20261030 import edit_setting, promote, mirror_verified_files
 
 
 class PromotionSafety(unittest.TestCase):
+    def test_noai_libraries_are_mirrored_and_verified(self):
+        from pathlib import Path
+        from tempfile import TemporaryDirectory
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            source, target = root / 'bundle_ai_libraries', root / 'installed_ai_libraries'
+            source.mkdir()
+            (source / 'Graph.tar').write_bytes(b'original')
+            self.assertEqual(mirror_verified_files(source, target), (['Graph.tar'], 1))
+            self.assertFalse(target.exists())
+            self.assertEqual(mirror_verified_files(source, target, apply=True), (['Graph.tar'], 1))
+            self.assertEqual((target / 'Graph.tar').read_bytes(), b'original')
+            self.assertEqual(mirror_verified_files(source, target), ([], 1))
+            (target / 'alien.tar').write_bytes(b'not from tested bundle')
+            with self.assertRaisesRegex(ValueError, 'Unmapped production-only'):
+                mirror_verified_files(source, target, apply=True)
+
     def test_replace_existing_values_only(self):
         sample = ('AddSetting({ name = "estim_unifie", min_value = 0, max_value = 31, '
                   'easy_value = 0, medium_value = 0, hard_value = 0, '
