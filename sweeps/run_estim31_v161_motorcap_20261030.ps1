@@ -3,7 +3,7 @@
    Source is a frozen private bundle, not shared/master source. #>
 param([Parameter(Mandatory=$true)][string]$Name,
     [ValidateSet(5,40)][int]$SeedCount=5,
-    [ValidateSet('v161cap','v161policy')][string]$Suite='v161cap')
+    [ValidateSet('v161cap','v161policy','noupper')][string]$Suite='v161cap')
 $ErrorActionPreference='Stop'
 $Worktree=(git rev-parse --show-toplevel)
 if($LASTEXITCODE -ne 0){throw 'Git worktree not found'}
@@ -17,6 +17,11 @@ if($Suite -eq 'v161policy'){
   $Allowed=@('v161_a200_r075_w15_statue0',
     'v161_a200_r075_w15_eb142','v161_a200_r075_w15_load25',
     'v161_a200_r075_w15_statue0_eb142')
+}
+if($Suite -eq 'noupper'){
+  $DirName='estim31_no_upper20261030'
+  $Prefix='estim31nohi'
+  $Allowed=@('v161_a200_r075','v161_motorcap_a200_r075')
 }
 if($Name -notin $Allowed){throw ('Unknown suite/name: '+$Suite+'/'+$Name)}
 $Source=Join-Path $Repo ('results/'+$DirName+'/'+$Name)

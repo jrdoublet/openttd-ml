@@ -382,3 +382,38 @@ une autopsie, sans attribuer tout ce montant aux statues. Les compteurs
 physiques mensuels de moteurs 223/228 sont des **minima d'entrées observées**,
 non un journal exhaustif des achats ; aucune ventilation AIR/RAIL du poste
 construction ni un chiffre de rollback certain n'en découle.
+
+### Croisements V161 complémentaires et second 40×5 concurrent
+
+Le 40×5 de l'autre agent \x60grid31_a200_r075_w15_slope_40x5_20261030\x60
+s'est finalement terminé : 80 parties produites, **79 \x60complete\x60 et une
+\x60stagnation_suspect\x60** (Opex, graine 802204, horizon présent, activité
+\x60declining_without_expansion\x60). Ratio descriptif des moyennes **94,460621 %**
+(Opex **2 692 185,575 £/an**, AAA **2 850 061,275 £/an**), ratio du témoin
+OFF de ce duel **96,003859 %**, 360 divergences OFF historiques sur 2 800.
+Le statut malsain et le shortcut GE sans preuve excluent cette campagne du
+classement technique final, malgré son ratio plus haut que 92,7851 %.
+
+La source \x60results/estim31_v161_policy20261030/\x60 contient quatre copies
+**strictement identiques octet pour octet à la variante V161 AIR2/RAIL0,75
+existante**, mais avec réglages appariés : \x60statue0\x60, \x60EB14=2\x60, \x60load25\x60,
+et \x60statue0×EB14=2\x60. Elles sont opt-in, sans nouvelle constante ni défaut
+public. Leur objectif est de séparer la compétition de capital AIR/RAIL,
+la dépense municipale V249 et la disponibilité des renforts.
+
+Deux autres copies \x60results/estim31_no_upper20261030/\x60 examinent
+l'élimination du seul **calcul** de la borne de tri C121 dans les deux scans
+ESTIM : les candidats éligibles sont alors gardés en ordre catalogue,
+chacun évalué, et le départage final par score/profit/ID est inchangé.
+Le raccourci GE reste désactivé sous ESTIM et les deux scans historiques
+OFF byte-identiques. Cette variante ne prétend pas encore gagner des opcodes
+ni du profit : comparer d'abord les vrais 5×5, puis les profits 40×5
+des variantes techniquement saines. Les tests ciblés des copies et de
+leurs provenance/neutralité de source passent.
+
+À partir de 07:33, une qualification **40×5 de V161 AIR2/RAIL0,75/poids15**
+(source \x60estim31_v161_safe20261030/mix_a200_r075_w15_slope\x60, SHA
+\x6015078ee31b595f31c9deb054de58cd88edeb72ed9e1eafc9b03463535a28f879\x60)
+a commencé dans l'unique Docker, 8 workers, 256², \x60probes=2\x60, autosaves
+conservées. **Ne pas publier de verdict avant présence du résumé final,
+des 80 statuts et des snapshots annuels des deux compagnies.**
