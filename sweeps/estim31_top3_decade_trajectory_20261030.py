@@ -23,6 +23,12 @@ def company_mean(rows):
         'train_stock': mean(r['primary_vehicles_by_mode']['rail'] for r in rows),
         'airport_count': mean(r['air_airports'] for r in rows),
         'airport_towns': mean(r['airport_towns_opex_present'] for r in rows),
+        'air_engine_stock_223': mean(r.get('air_engine_counts', {}).get('223', 0)
+                                     for r in rows),
+        'air_engine_stock_228': mean(r.get('air_engine_counts', {}).get('228', 0)
+                                     for r in rows),
+        'air_engine_stock_220': mean(r.get('air_engine_counts', {}).get('220', 0)
+                                     for r in rows),
     }
 
 
