@@ -292,8 +292,93 @@ est supérieur à 95 %, il reste **comparateur diagnostique** tant que
 cette réserve technique n'est pas résolue. Aucune mesure 40×5 nouvelle
 n'est anticipée avant publication d'un vrai résumé final complet.
 
+### Diagnostic 40×5 terminé à 06:35 : meilleure ancienne grille
+
+Le duel `results/estim31_oldge_best_40x5_20261030` est **terminé** sur
+40 graines, 80/80 jeux sains, source gelée, 8 workers, `probes=2`,
+1970–1974, 256², avec 4 800 sauvegardes archivées et le Docker libéré.
+Le ratio de moyennes 01/12/1974 est **92,785063 %**, OpexAI
+**2 614 480,750 £/an**, AAAHogEx-115 **2 817 781,950 £/an**, écart
+apparié −203 301,200 £/an. Bootstrap descriptif du ratio
+**[87,7087 % ; 98,1759 %]** ; 19/40 graines profitables face à AAA.
+Le OFF **de ce duel** atteint 96,093121 %, contre la référence OFF plus
+ancienne 95,156346 %, et présente **358 écarts / 2 800** comparaisons
+de champs annuels, donc sa trajectoire n'est pas strictement reproductible.
+Le ratio variante dépasse le meilleur ESTIM31 historiquement qualifié
+90,87889 % de +1,90617 point, mais **ne dépasse pas l'OFF historique**.
+La source conserve `C121_GE` sous ESTIM sans démonstration d'exhaustivité
+par projet : ce résultat est **un diagnostic économique, pas une
+qualification technique sans réserve**.
+
+Stocks et couverture fin 1974, moyennes Opex : trésorerie 1 440 776 £,
+53,25 avions, 26,325 trains, 33,025 aéroports et 32,425 villes avec
+aéroport. `observed_opcodes_total` 48 205 376, **partiel**.
+La lecture physique `CITY.statues` sur les saves finales (80/80) donne
+21,375 villes ayant une statue Opex dans la variante contre 5,525 dans
+son propre OFF ; AAAHogEx possède 15,625 puis 16,375 villes avec statue
+respectivement. Ces nombres constatent des états physiques, pas les
+coûts ou tentatives bruts d'actions municipales.
+
+Les postes de dépenses réellement comptabilisés, les acquisitions 223/228
+visibles entre sauvegardes, les échecs de construction et les rollbacks
+restent à compléter ou à limiter explicitement si les archives ne les
+contiennent pas. Ne pas attribuer le différentiel de profit aux statues
+sans les autres contre-factuels : les moteurs, villes, hubs, AIR, RAIL et
+ordonnancements changent également.
+
 À ce stade, **19 tests ciblés passent**, ainsi que sept analyseurs de
 syntaxe PowerShell. Les essais 40×5 safe, motorjoint, railnorm et V161,
 les replays huit workers, les acquisitions brutes 223/228, les nouveaux
 Save/Load de V161, le relevé précis des rollbacks et la batterie générale
 restent à exécuter si l'exposition et la fenêtre Docker le permettent.
+
+### Reprise des 5×5 supplémentaires (07:16–07:25)
+
+Une file supplémentaire de **neuf** duels 5×5 s'est achevée à 07:15, sans
+Docker en doublon, notamment la variante `v161` à AIR2,00/RAIL0,75/poids15 :
+**95,32751 %** (Opex 2 907 214, AAA 3 049 712 £/an), cinq paires saines,
+contre **80,52539 %** (Opex 2 510 662, AAA 3 117 852 £/an) pour son parent
+`safe` et **90,93142 %** (Opex 2 751 481, AAA 3 025 886 £/an) pour
+`motorcap` N=1/N=2 à flotte physiquement admissible. Le second V161
+AIR2/RAIL1,5/poids5/plat/load25 atteint **90,9765 %** (Opex 2 755 066,
+AAA 3 028 326), contre 84,6119 % pour son parent safe. Les 5×5 ne
+sont **pas** des validations 40×5 ni des preuves causales isolées ; leur
+variation d'AAAHogEx entre duels et la dérive OFF sont documentées dans
+`docs/estim31_followup_screen_summary_20261030.json`. Sur les duels 5×5,
+V161 AIR2/RAIL0,75 présente 240 écarts OFF/350 inter-campagnes et
+`motorcap` 22 ; en revanche, les sources OFF restent protégées par l'opt-in.
+
+À l'examen des trois fichiers V161, l'intervention n'affecte sous ESTIM
+que l'achat de renfort *du même moteur vivant*, contrôle son moteur/son prix
+juste avant débit, conserve le chemin de crash, et n'ajoute aucune constante
+produit. `OpexC121InitialEngineUpperScore` ne retourne `null` que sur des
+préconditions de marché/physique (prix, capacité, moteur/rotation ou recette
+invalide), non parce que le score supérieur serait plus bas qu'un gagnant.
+L'ancien `C121_GE` peut en revanche dispenser d'examiner les autres moteurs
+et n'est **pas** techniquement qualifié sous ESTIM.
+
+**Interaction nouvelle préparée, non jouée au moment de cette note :**
+`sweeps/estim31_v161_motorcap_prepare_20261030.py` crée deux bundles
+write-once `results/estim31_v161_motorcap20261030/`, croisant les quatre
+fichiers opt-in disjoints de V161 et du N1/N2 corrigé. Teste la source
+parente identique, le jeu des fichiers modifiés exactement égal à leur union,
+les deux fonctions C121 historiques inchangées, les moteurs révalidés, et
+l'absence de `break` par borne non prouvée. Deux tests dédiés et 13 ciblés
+existants sont verts, syntaxe PowerShell du lanceur dédiée validée. Ne
+promouvoir un croisement en 40×5 qu'après un vrai 5×5 sain du même bundle.
+
+**Autre duel en cours au contrôle :** l'agent concurrent a lancé un 40×5
+`grid31_a200_r075_w15_slope_40x5_20261030`, source antérieure avec GE,
+dans l'unique Docker. Ne pas interrompre, ne pas en extrapoler le résultat,
+ni le mélanger avec les nouveaux bundles `safe` ou `v161`.
+
+**Dépenses constatées via 4 800 saves du vieux GE 40×5 :** au 01/12/1974,
+les écritures 1974 YTD de sa variante Opex sont 73 682,7 £ de construction
+globale, 367 928,1 £ d'achats de véhicules nets des ventes et
+1 301 181,6 £ du poste divers dont actions municipales, contre
+124 655,6 £, 775 972,3 £ et 267 437,5 £ dans son témoin OFF, respectivement.
+Le poste « autres » croît de **1 033 744 £** par graine en moyenne et mérite
+une autopsie, sans attribuer tout ce montant aux statues. Les compteurs
+physiques mensuels de moteurs 223/228 sont des **minima d'entrées observées**,
+non un journal exhaustif des achats ; aucune ventilation AIR/RAIL du poste
+construction ni un chiffre de rollback certain n'en découle.

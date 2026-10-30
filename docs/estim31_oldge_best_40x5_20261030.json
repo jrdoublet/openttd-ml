@@ -1,0 +1,206 @@
+{
+  "campaign": "estim31_oldge_best_40x5_20261030",
+  "source_bundle_sha256": "7f533a193be669a73b40824fbc560d24e45919a98f3724b7ab88d034fdf7bdcb",
+  "image_id": "sha256:f4b2b9b3b7399cbfecacfe03b3b8dda49bff2921de36a61fed4e9441e5d44659",
+  "paired_games": 80,
+  "healthy_games": 80,
+  "historical_off_mismatches": 358,
+  "historical_off_comparisons": 2800,
+  "own_off_ratio_pct": 96.09312146613365,
+  "engine_certification": "NOT PROVEN: GE shortcut can omit eligible ESTIM engines",
+  "ratio_pct": 92.78506273347375,
+  "ratio_ci95": [
+    87.7086687471637,
+    98.17586826468698
+  ],
+  "opex_profit_mean": 2614480.75,
+  "aaa_profit_mean": 2817781.95,
+  "paired_profit_difference_mean": -203301.2,
+  "opex_cash_mean": 1440776.05,
+  "aaa_cash_mean": 759480.15,
+  "opex_loan_mean": 0,
+  "aaa_loan_mean": 11000,
+  "aircraft_stock_mean": 53.25,
+  "train_stock_mean": 26.325,
+  "airport_count_mean": 33.025,
+  "airport_towns_mean": 32.425,
+  "observed_opcodes_mean": 48205375.525,
+  "opcodes_complete_all": false,
+  "final_engine_stocks": {
+    "223": 832,
+    "217": 716,
+    "218": 197,
+    "228": 320,
+    "221": 14,
+    "225": 16,
+    "227": 9,
+    "219": 4,
+    "220": 19,
+    "232": 2,
+    "233": 1
+  },
+  "confirmed_cash_spend_by_category": null,
+  "financing_note": "Cash spends cannot be inferred from quotes, vehicle stocks, profit and loan.",
+  "pairs": {
+    "42": {
+      "opex": 2743442,
+      "aaa": 2495499
+    },
+    "100": {
+      "opex": 1926147,
+      "aaa": 1411339
+    },
+    "7": {
+      "opex": 2650892,
+      "aaa": 3707924
+    },
+    "999": {
+      "opex": 2737263,
+      "aaa": 3399666
+    },
+    "2026": {
+      "opex": 2446988,
+      "aaa": 2999846
+    },
+    "1": {
+      "opex": 3047323,
+      "aaa": 2819778
+    },
+    "17": {
+      "opex": 2554281,
+      "aaa": 2047861
+    },
+    "73": {
+      "opex": 3454296,
+      "aaa": 2841440
+    },
+    "314": {
+      "opex": 3145433,
+      "aaa": 3316719
+    },
+    "512": {
+      "opex": 2039653,
+      "aaa": 2708427
+    },
+    "1024": {
+      "opex": 2199966,
+      "aaa": 2263242
+    },
+    "1337": {
+      "opex": 2062520,
+      "aaa": 3134011
+    },
+    "4096": {
+      "opex": 2400489,
+      "aaa": 2977128
+    },
+    "8191": {
+      "opex": 2632806,
+      "aaa": 3277107
+    },
+    "12345": {
+      "opex": 2230703,
+      "aaa": 2062043
+    },
+    "54321": {
+      "opex": 2620502,
+      "aaa": 2721116
+    },
+    "65537": {
+      "opex": 2770466,
+      "aaa": 2511466
+    },
+    "123456": {
+      "opex": 2831573,
+      "aaa": 2901722
+    },
+    "424242": {
+      "opex": 3115292,
+      "aaa": 3720775
+    },
+    "8675309": {
+      "opex": 2259790,
+      "aaa": 3076709
+    },
+    "423960": {
+      "opex": 2898123,
+      "aaa": 3497963
+    },
+    "613553": {
+      "opex": 2586773,
+      "aaa": 2780273
+    },
+    "515222": {
+      "opex": 2566795,
+      "aaa": 2374844
+    },
+    "781335": {
+      "opex": 2091751,
+      "aaa": 2911039
+    },
+    "375172": {
+      "opex": 3289240,
+      "aaa": 3053116
+    },
+    "999533": {
+      "opex": 2181300,
+      "aaa": 2717392
+    },
+    "442018": {
+      "opex": 2970636,
+      "aaa": 2592546
+    },
+    "746035": {
+      "opex": 3693212,
+      "aaa": 2886353
+    },
+    "455216": {
+      "opex": 2095788,
+      "aaa": 2400028
+    },
+    "230185": {
+      "opex": 1953327,
+      "aaa": 2461394
+    },
+    "706990": {
+      "opex": 2301670,
+      "aaa": 2288631
+    },
+    "983759": {
+      "opex": 2278105,
+      "aaa": 2733687
+    },
+    "802204": {
+      "opex": 3095564,
+      "aaa": 3588496
+    },
+    "232037": {
+      "opex": 2987040,
+      "aaa": 2677734
+    },
+    "723002": {
+      "opex": 3156287,
+      "aaa": 3313189
+    },
+    "313707": {
+      "opex": 2810325,
+      "aaa": 3320286
+    },
+    "701256": {
+      "opex": 2273226,
+      "aaa": 2718360
+    },
+    "292001": {
+      "opex": 2248055,
+      "aaa": 2261201
+    },
+    "841478": {
+      "opex": 3043968,
+      "aaa": 2487791
+    },
+    "59527": {
+      "opex": 2188220,
+      "aaa": 3253137
+    }
+  }
+}
