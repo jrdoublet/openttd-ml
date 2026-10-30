@@ -417,3 +417,63 @@ leurs provenance/neutralité de source passent.
 a commencé dans l'unique Docker, 8 workers, 256², \x60probes=2\x60, autosaves
 conservées. **Ne pas publier de verdict avant présence du résumé final,
 des 80 statuts et des snapshots annuels des deux compagnies.**
+
+### Qualification V161 40×5 terminée à 07:51 : meilleur signal
+
+\x60estim31v161_mix_a200_r075_w15_slope_40x5_20261030\x60 est **réellement achevé** :
+40 graines communes, 80/80 parties \x60game_ok=true\x60 / \x60game_status=complete\x60,
+400 checkpoints annuels \x60reference\x60 et 400 \x60variant\x60, provenance source
+\x6015078ee31b595f31c9deb054de58cd88edeb72ed9e1eafc9b03463535a28f879\x60,
+Docker \x60sha256:f4b2b9b3...\x60, 256², années 1970–1974, 8 workers,
+\x60probes=2\x60 et saves mensuelles conservées. Contrôle direct et analyseur
+indépendant concordants.
+
+| Au 01/12/1974 | OFF propre au duel | V161 (ESTIM31, EB14=3, AIR=2,00, RAIL=0,75, poids=15, profil incliné, V249=2, EB2=0, load=0) |
+|---|---:|---:|
+| Profit Opex moyen 40 graines (£/an) | 2 840 621,600 | **2 946 867,750** |
+| Profit AAA moyen 40 graines (£/an) | 2 909 840,000 | **2 839 022,725** |
+| Ratio des deux moyennes | **97,621230 %** | **103,798667 %** |
+| Différence de profits Opex−AAA (£/an) | −69 218,400 | **+107 845,025** |
+
+V161 gagne 22/40 duels face à AAA ; intervalle bootstrap descriptif du
+ratio **[97,76056 %, 110,28337 %]**, **aucun veto économique** sur cet
+intervalle ni sur Wilcoxon/valeur. Le gain de ratio contre l'ancien
+ESTIM31 qualifié (90,87889 %) est **+12,91978 points**, contre OFF
+historique (95,15635 %) **+8,64232 points** ; sources et tirages de ces
+références diffèrent et ne doivent pas constituer un contre-factuel exact.
+
+Le tableau final imprimé par le runner affiche **le témoin OFF** de la
+campagne (2,84062/2,90984 M£), non la variante : ne pas confondre ces
+résultats avec les 2,94687/2,83902 M£ lus dans les lignes portant
+\x60duel_policy_id=estim31v161_mix_a200_r075_w15_slope\x60. Le verdict
+\x60fail_primary\x60 au seuil ancien de 4 % n'est pas un critère de cette mission.
+
+Fin 1974, Opex V161 compte en moyenne **77,975 avions, 24,250 trains,
+33,325 aéroports et 32,725 villes avec aéroport**, trésorerie
+**1 144 314,80 £** ; contre OFF du même duel **65,900 avions, 24,175 trains,
+34,175 aéroports, 33,450 villes et 2 405 229,475 £**. Les moteurs 223
+et 228 sont observés en **stocks physiques** finaux de 2 040/408 au
+total sur 40 V161, contre 889/440 OFF, **pas des achats bruts**.
+\x60observed_opcodes_total\x60 = 48,38 M contre 51,10 M, indicateur partiel,
+\x60observed_opcode_complete_cpu=false\x60. Il existe **1 663 discordances
+OFF inter-campagnes / 2 800 champs** ; ce fait appelle la prudence sur
+la reproductibilité exacte, mais n'est pas imputable automatiquement à un
+bug de source OFF : un replay du même code à un worker avait déjà divergé.
+
+La nouvelle source n'a ni \x60C121_GE\x60 actif sous ESTIM ni élagage par score
+supérieur non prouvé, et ses décisions de renforcement revalident le moteur
+et les marges juste avant l'achat. La validation Save/Load **spécifique à
+V161** et le relevé des écritures PLYR de cette campagne sont les derniers
+contrôles fonctionnels nécessaires avant de figer le classement définitif.
+La file des huit autres croisements 5×5 a débuté à 07:52 dans le Docker
+libéré ; aucune conclusion anticipée sur leur rang 40×5.
+
+**Exploration élargie des coefficients AIR/RAIL initiaux :** quatre copies
+write-once \x60estim31_v161_coeff20261030\x60 réemploient exactement le modèle
+V161 et ne modifient que les trois anciennes affectations de niveau et poids
+\x60ESTIM_K_R_PRIOR\x60 à l'initialisation : AIR2,00/RAIL0,50/poids15,
+AIR2,25/RAIL0,75/poids15, AIR2,25/RAIL0,50/poids5 et
+AIR2,50/RAIL0,75/poids15. Les autres sources et le OFF sont byte-identiques ;
+aucun résultat économique n'est disponible au moment de la préparation,
+tests de séparation positifs. Ces tuples visent à savoir si V161 change
+l'optimum de coefficient et à isoler une éventuelle synergie AIR/RAIL.

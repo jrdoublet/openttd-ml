@@ -1,0 +1,225 @@
+{
+  "suite": "v161",
+  "complete": [
+    {
+      "name": "mix_a200_r075_w15_slope",
+      "suite": "v161",
+      "configuration": {
+        "air": 2.0,
+        "rail": 0.75,
+        "weight": 15.0,
+        "flat_rail": false,
+        "eb14": 3,
+        "v249_statue": 2,
+        "eb2_fallback": 0,
+        "air_load_min_pct": 0
+      },
+      "health": "80/80 complete",
+      "source_bundle_sha256": "15078ee31b595f31c9deb054de58cd88edeb72ed9e1eafc9b03463535a28f879",
+      "reference_off_ratio_pct": 97.62123003326643,
+      "historical_off_mismatches": 1663,
+      "historical_off_comparisons": 2800,
+      "ratio_pct": 103.79866719805844,
+      "ratio_ci95": [
+        97.76056100765082,
+        110.2833706557012
+      ],
+      "opex_profit_mean": 2946867.75,
+      "aaa_profit_mean": 2839022.725,
+      "paired_profit_difference_mean": 107845.025,
+      "opex_cash_mean": 1144314.8,
+      "aaa_cash_mean": 882928.025,
+      "opex_loan_mean": 0,
+      "aaa_loan_mean": 10250,
+      "aircraft_stock_mean": 77.975,
+      "train_stock_mean": 24.25,
+      "airport_count_mean": 33.325,
+      "airport_towns_mean": 32.725,
+      "observed_opcodes_mean": 48375305.45,
+      "opcodes_complete_all": false,
+      "final_engine_stocks": {
+        "223": 2040,
+        "217": 186,
+        "218": 424,
+        "228": 408,
+        "220": 61
+      },
+      "confirmed_cash_spend_by_category": null,
+      "financing_note": "Cash spends cannot be inferred from quotes, vehicle stocks, profit and loan.",
+      "pairs": {
+        "42": {
+          "opex": 2551979,
+          "aaa": 2589238
+        },
+        "100": {
+          "opex": 2204873,
+          "aaa": 2268059
+        },
+        "7": {
+          "opex": 3674730,
+          "aaa": 3617962
+        },
+        "999": {
+          "opex": 2875386,
+          "aaa": 3249356
+        },
+        "2026": {
+          "opex": 3156145,
+          "aaa": 3011506
+        },
+        "1": {
+          "opex": 3762082,
+          "aaa": 2494916
+        },
+        "17": {
+          "opex": 2430476,
+          "aaa": 2152741
+        },
+        "73": {
+          "opex": 3646933,
+          "aaa": 3394178
+        },
+        "314": {
+          "opex": 3529191,
+          "aaa": 2847801
+        },
+        "512": {
+          "opex": 2313493,
+          "aaa": 2903076
+        },
+        "1024": {
+          "opex": 2268557,
+          "aaa": 2730659
+        },
+        "1337": {
+          "opex": 2238711,
+          "aaa": 2961813
+        },
+        "4096": {
+          "opex": 3066180,
+          "aaa": 3107312
+        },
+        "8191": {
+          "opex": 3329322,
+          "aaa": 2777859
+        },
+        "12345": {
+          "opex": 2867599,
+          "aaa": 1772442
+        },
+        "54321": {
+          "opex": 3115593,
+          "aaa": 2930806
+        },
+        "65537": {
+          "opex": 2668498,
+          "aaa": 2526095
+        },
+        "123456": {
+          "opex": 3083779,
+          "aaa": 1755942
+        },
+        "424242": {
+          "opex": 2956350,
+          "aaa": 3905408
+        },
+        "8675309": {
+          "opex": 2317735,
+          "aaa": 3218501
+        },
+        "423960": {
+          "opex": 3452200,
+          "aaa": 2909170
+        },
+        "613553": {
+          "opex": 3277739,
+          "aaa": 2773951
+        },
+        "515222": {
+          "opex": 2677114,
+          "aaa": 2474344
+        },
+        "781335": {
+          "opex": 2747515,
+          "aaa": 3361526
+        },
+        "375172": {
+          "opex": 3286741,
+          "aaa": 3768248
+        },
+        "999533": {
+          "opex": 2988905,
+          "aaa": 2547866
+        },
+        "442018": {
+          "opex": 3108077,
+          "aaa": 3507042
+        },
+        "746035": {
+          "opex": 3478977,
+          "aaa": 2804374
+        },
+        "455216": {
+          "opex": 2413303,
+          "aaa": 2545873
+        },
+        "230185": {
+          "opex": 2308792,
+          "aaa": 2361910
+        },
+        "706990": {
+          "opex": 2729385,
+          "aaa": 2287780
+        },
+        "983759": {
+          "opex": 2617417,
+          "aaa": 2849989
+        },
+        "802204": {
+          "opex": 3401890,
+          "aaa": 3381072
+        },
+        "232037": {
+          "opex": 2614528,
+          "aaa": 2764149
+        },
+        "723002": {
+          "opex": 3271713,
+          "aaa": 2620793
+        },
+        "313707": {
+          "opex": 3516896,
+          "aaa": 3429178
+        },
+        "701256": {
+          "opex": 2698634,
+          "aaa": 3001388
+        },
+        "292001": {
+          "opex": 2709895,
+          "aaa": 2216197
+        },
+        "841478": {
+          "opex": 3653462,
+          "aaa": 2591303
+        },
+        "59527": {
+          "opex": 2863915,
+          "aaa": 3149086
+        }
+      }
+    }
+  ],
+  "pending": [
+    [
+      "mix_a125_r125_w05_flat_statue0",
+      "not completed"
+    ],
+    [
+      "mix_a200_r150_w05_flat_load25",
+      "not completed"
+    ]
+  ],
+  "criterion": "100 * mean_40(profit_year Opex) / mean_40(profit_year AAA)",
+  "sample": "40 paired map seeds, year 1974-12-01, 1970-1974"
+}

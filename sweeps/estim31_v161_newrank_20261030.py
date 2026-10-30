@@ -16,6 +16,7 @@ SUITES = {
     'v161cap': ('estim31_v161_motorcap20261030', 'estim31vcap'),
     'v161policy': ('estim31_v161_policy20261030', 'estim31vp'),
     'noupper': ('estim31_no_upper20261030', 'estim31nohi'),
+    'v161coeff': ('estim31_v161_coeff20261030', 'estim31vcoef'),
 }
 
 
