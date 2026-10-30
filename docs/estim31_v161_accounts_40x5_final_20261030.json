@@ -1,0 +1,69 @@
+{
+  "campaign": "estim31v161_mix_a200_r075_w15_slope_40x5_20261030",
+  "source_sha256": "15078ee31b595f31c9deb054de58cd88edeb72ed9e1eafc9b03463535a28f879",
+  "cutoff": "1974-12-01",
+  "healthy_games": 80,
+  "category_mean_net_postings": {
+    "estim31v161_mix_a200_r075_w15_slope:AAAHogEx": {
+      "construction_all_modes": 388414.1,
+      "new_vehicles_net_all_modes": 1145165.125,
+      "train_running": 39243.025,
+      "road_running": 66166.75,
+      "aircraft_running": 215752.625,
+      "ship_running": 98.775,
+      "property": 0,
+      "train_revenue": -594690.675,
+      "road_vehicle_revenue": -2669.975,
+      "aircraft_revenue": -2406146.775,
+      "ship_revenue": -494.05,
+      "loan_interest": 206.7,
+      "other_including_town_actions": 843091.375
+    },
+    "estim31v161_mix_a200_r075_w15_slope:OpexAI": {
+      "construction_all_modes": 71169.05,
+      "new_vehicles_net_all_modes": 953541.075,
+      "train_running": 52419.85,
+      "road_running": 128.075,
+      "aircraft_running": 396846.125,
+      "ship_running": 142.7,
+      "property": 0,
+      "train_revenue": -604873.15,
+      "road_vehicle_revenue": -606.2,
+      "aircraft_revenue": -2552420.4,
+      "ship_revenue": -2019.825,
+      "loan_interest": 139.175,
+      "other_including_town_actions": 1118636.125
+    },
+    "reference:AAAHogEx": {
+      "construction_all_modes": 365506.425,
+      "new_vehicles_net_all_modes": 1270787.325,
+      "train_running": 40970,
+      "road_running": 64478.175,
+      "aircraft_running": 211715.725,
+      "ship_running": 498.575,
+      "property": 0,
+      "train_revenue": -622703.825,
+      "road_vehicle_revenue": -4890.75,
+      "aircraft_revenue": -2468440.775,
+      "ship_revenue": -3641.325,
+      "loan_interest": 224.675,
+      "other_including_town_actions": 818124.25
+    },
+    "reference:OpexAI": {
+      "construction_all_modes": 130171.125,
+      "new_vehicles_net_all_modes": 784736.925,
+      "train_running": 52468.975,
+      "road_running": 1298.275,
+      "aircraft_running": 324861.75,
+      "ship_running": 285.05,
+      "property": 0,
+      "train_revenue": -728537.2,
+      "road_vehicle_revenue": -6023.7,
+      "aircraft_revenue": -2294483.825,
+      "ship_revenue": -3303.025,
+      "loan_interest": 0,
+      "other_including_town_actions": 270988.75
+    }
+  },
+  "note": "OpenTTD PLYR net 1974 YTD accounts through Dec 1, not gross cash spent per line or engine. Construction includes all modes; vehicle net purchases less sale proceeds across all modes; Other includes statues and unrelated expenses."
+}

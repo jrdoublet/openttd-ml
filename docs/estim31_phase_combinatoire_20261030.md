@@ -385,23 +385,23 @@ construction ni un chiffre de rollback certain n'en découle.
 
 ### Croisements V161 complémentaires et second 40×5 concurrent
 
-Le 40×5 de l'autre agent \x60grid31_a200_r075_w15_slope_40x5_20261030\x60
-s'est finalement terminé : 80 parties produites, **79 \x60complete\x60 et une
-\x60stagnation_suspect\x60** (Opex, graine 802204, horizon présent, activité
-\x60declining_without_expansion\x60). Ratio descriptif des moyennes **94,460621 %**
+Le 40×5 de l'autre agent `grid31_a200_r075_w15_slope_40x5_20261030`
+s'est finalement terminé : 80 parties produites, **79 `complete` et une
+`stagnation_suspect`** (Opex, graine 802204, horizon présent, activité
+`declining_without_expansion`). Ratio descriptif des moyennes **94,460621 %**
 (Opex **2 692 185,575 £/an**, AAA **2 850 061,275 £/an**), ratio du témoin
 OFF de ce duel **96,003859 %**, 360 divergences OFF historiques sur 2 800.
 Le statut malsain et le shortcut GE sans preuve excluent cette campagne du
 classement technique final, malgré son ratio plus haut que 92,7851 %.
 
-La source \x60results/estim31_v161_policy20261030/\x60 contient quatre copies
+La source `results/estim31_v161_policy20261030/` contient quatre copies
 **strictement identiques octet pour octet à la variante V161 AIR2/RAIL0,75
-existante**, mais avec réglages appariés : \x60statue0\x60, \x60EB14=2\x60, \x60load25\x60,
-et \x60statue0×EB14=2\x60. Elles sont opt-in, sans nouvelle constante ni défaut
+existante**, mais avec réglages appariés : `statue0`, `EB14=2`, `load25`,
+et `statue0×EB14=2`. Elles sont opt-in, sans nouvelle constante ni défaut
 public. Leur objectif est de séparer la compétition de capital AIR/RAIL,
 la dépense municipale V249 et la disponibilité des renforts.
 
-Deux autres copies \x60results/estim31_no_upper20261030/\x60 examinent
+Deux autres copies `results/estim31_no_upper20261030/` examinent
 l'élimination du seul **calcul** de la borne de tri C121 dans les deux scans
 ESTIM : les candidats éligibles sont alors gardés en ordre catalogue,
 chacun évalué, et le départage final par score/profit/ID est inchangé.
@@ -412,20 +412,20 @@ des variantes techniquement saines. Les tests ciblés des copies et de
 leurs provenance/neutralité de source passent.
 
 À partir de 07:33, une qualification **40×5 de V161 AIR2/RAIL0,75/poids15**
-(source \x60estim31_v161_safe20261030/mix_a200_r075_w15_slope\x60, SHA
-\x6015078ee31b595f31c9deb054de58cd88edeb72ed9e1eafc9b03463535a28f879\x60)
-a commencé dans l'unique Docker, 8 workers, 256², \x60probes=2\x60, autosaves
+(source `estim31_v161_safe20261030/mix_a200_r075_w15_slope`, SHA
+`15078ee31b595f31c9deb054de58cd88edeb72ed9e1eafc9b03463535a28f879`)
+a commencé dans l'unique Docker, 8 workers, 256², `probes=2`, autosaves
 conservées. **Ne pas publier de verdict avant présence du résumé final,
 des 80 statuts et des snapshots annuels des deux compagnies.**
 
 ### Qualification V161 40×5 terminée à 07:51 : meilleur signal
 
-\x60estim31v161_mix_a200_r075_w15_slope_40x5_20261030\x60 est **réellement achevé** :
-40 graines communes, 80/80 parties \x60game_ok=true\x60 / \x60game_status=complete\x60,
-400 checkpoints annuels \x60reference\x60 et 400 \x60variant\x60, provenance source
-\x6015078ee31b595f31c9deb054de58cd88edeb72ed9e1eafc9b03463535a28f879\x60,
-Docker \x60sha256:f4b2b9b3...\x60, 256², années 1970–1974, 8 workers,
-\x60probes=2\x60 et saves mensuelles conservées. Contrôle direct et analyseur
+`estim31v161_mix_a200_r075_w15_slope_40x5_20261030` est **réellement achevé** :
+40 graines communes, 80/80 parties `game_ok=true` / `game_status=complete`,
+400 checkpoints annuels `reference` et 400 `variant`, provenance source
+`15078ee31b595f31c9deb054de58cd88edeb72ed9e1eafc9b03463535a28f879`,
+Docker `sha256:f4b2b9b3...`, 256², années 1970–1974, 8 workers,
+`probes=2` et saves mensuelles conservées. Contrôle direct et analyseur
 indépendant concordants.
 
 | Au 01/12/1974 | OFF propre au duel | V161 (ESTIM31, EB14=3, AIR=2,00, RAIL=0,75, poids=15, profil incliné, V249=2, EB2=0, load=0) |
@@ -445,8 +445,8 @@ références diffèrent et ne doivent pas constituer un contre-factuel exact.
 Le tableau final imprimé par le runner affiche **le témoin OFF** de la
 campagne (2,84062/2,90984 M£), non la variante : ne pas confondre ces
 résultats avec les 2,94687/2,83902 M£ lus dans les lignes portant
-\x60duel_policy_id=estim31v161_mix_a200_r075_w15_slope\x60. Le verdict
-\x60fail_primary\x60 au seuil ancien de 4 % n'est pas un critère de cette mission.
+`duel_policy_id=estim31v161_mix_a200_r075_w15_slope`. Le verdict
+`fail_primary` au seuil ancien de 4 % n'est pas un critère de cette mission.
 
 Fin 1974, Opex V161 compte en moyenne **77,975 avions, 24,250 trains,
 33,325 aéroports et 32,725 villes avec aéroport**, trésorerie
@@ -454,13 +454,13 @@ Fin 1974, Opex V161 compte en moyenne **77,975 avions, 24,250 trains,
 34,175 aéroports, 33,450 villes et 2 405 229,475 £**. Les moteurs 223
 et 228 sont observés en **stocks physiques** finaux de 2 040/408 au
 total sur 40 V161, contre 889/440 OFF, **pas des achats bruts**.
-\x60observed_opcodes_total\x60 = 48,38 M contre 51,10 M, indicateur partiel,
-\x60observed_opcode_complete_cpu=false\x60. Il existe **1 663 discordances
+`observed_opcodes_total` = 48,38 M contre 51,10 M, indicateur partiel,
+`observed_opcode_complete_cpu=false`. Il existe **1 663 discordances
 OFF inter-campagnes / 2 800 champs** ; ce fait appelle la prudence sur
 la reproductibilité exacte, mais n'est pas imputable automatiquement à un
 bug de source OFF : un replay du même code à un worker avait déjà divergé.
 
-La nouvelle source n'a ni \x60C121_GE\x60 actif sous ESTIM ni élagage par score
+La nouvelle source n'a ni `C121_GE` actif sous ESTIM ni élagage par score
 supérieur non prouvé, et ses décisions de renforcement revalident le moteur
 et les marges juste avant l'achat. La validation Save/Load **spécifique à
 V161** et le relevé des écritures PLYR de cette campagne sont les derniers
@@ -469,11 +469,59 @@ La file des huit autres croisements 5×5 a débuté à 07:52 dans le Docker
 libéré ; aucune conclusion anticipée sur leur rang 40×5.
 
 **Exploration élargie des coefficients AIR/RAIL initiaux :** quatre copies
-write-once \x60estim31_v161_coeff20261030\x60 réemploient exactement le modèle
+write-once `estim31_v161_coeff20261030` réemploient exactement le modèle
 V161 et ne modifient que les trois anciennes affectations de niveau et poids
-\x60ESTIM_K_R_PRIOR\x60 à l'initialisation : AIR2,00/RAIL0,50/poids15,
+`ESTIM_K_R_PRIOR` à l'initialisation : AIR2,00/RAIL0,50/poids15,
 AIR2,25/RAIL0,75/poids15, AIR2,25/RAIL0,50/poids5 et
 AIR2,50/RAIL0,75/poids15. Les autres sources et le OFF sont byte-identiques ;
 aucun résultat économique n'est disponible au moment de la préparation,
 tests de séparation positifs. Ces tuples visent à savoir si V161 change
 l'optimum de coefficient et à isoler une éventuelle synergie AIR/RAIL.
+
+### Huit croisements V161 : tous les 5×5 terminés à 08:17
+
+Les huit campagnes ont chacune 10/10 jeux complets et sains, cinq graines
+appariées. Les ratios sont calculés avec les deux profits du même duel,
+jamais avec un dénominateur AAA emprunté à une autre campagne.
+
+| Variation | Ratio 5×5 | Opex (£/an) | AAA (£/an) |
+|---|---:|---:|---:|
+| V161 × N=1/N=2, plafond physique | **103,218655 %** | 2 979 404 | 2 886 498 |
+| V249=0 et EB14=2 | 98,408337 % | 2 813 504 | 2 859 010 |
+| N=1/N=2 et suppression du calcul de borne C121 | 98,030577 % | 2 985 054 | 3 045 024 |
+| EB14=2 | 96,812794 % | 2 793 641 | 2 885 612 |
+| Sans calcul de borne, N=1 historique | 95,706230 % | 2 800 010 | 2 925 630 |
+| V249=0 | 95,392413 % | 2 832 245 | 2 969 046 |
+| Garde AIR load25 | 92,749293 % | 2 747 514 | 2 962 302 |
+| N=1/N=2, AIR2/RAIL1,50/poids5/plat/load25 | 91,988213 % | 2 804 700 | 3 048 978 |
+
+Ces 5×5 sont exploratoires et leurs dénominateurs AAA varient avec
+l'exécution ; ils ne sont pas une preuve d'effet causal ou un classement
+40×5. Le croisement V161 × N=1/N=2 est le premier candidat à qualifier
+sur les mêmes 40 graines. Quatre variantes AIR/RAIL initial ont commencé
+une nouvelle file séquentielle après la clôture de celle-ci.
+
+**Postes comptables réels PLYR, 1974 YTD arrêté au 01/12**, issus
+des 80 dernières sauvegardes vérifiées par SHA, pour V161 gagnant
+contre son propre OFF (moyennes £/graine) :
+
+| Catégorie nette | V161 | OFF | Écart V161−OFF |
+|---|---:|---:|---:|
+| Construction tous modes | 71 169 | 130 171 | −59 002 |
+| Achats de véhicules moins ventes tous modes | 953 541 | 784 737 | +168 804 |
+| Autres dépenses, dont statues | 1 118 636 | 270 989 | +847 647 |
+| Recettes AIR (signe retourné) | 2 552 420 | 2 294 484 | +257 937 |
+| Recettes RAIL (signe retourné) | 604 873 | 728 537 | −123 664 |
+| Exploitation AIR | 396 846 | 324 862 | +71 984 |
+
+La lecture est non perturbatrice et ne transforme pas les achats nets en
+acquisitions brutes de moteurs 223/228, ni le poste Autres en dépenses
+prouvées de statues. Fichiers : `docs/estim31_v161_accounts_40x5_final_20261030.json`
+et `sweeps/estim31_accounts_final_fast_20261030.py`.
+
+**Pourquoi le rail est vide en 1970 :** le code de cette source, dans
+`projects.nut:524-528`, retire explicitement les projets RAIL de la
+sélection pendant le premier catalogue AIR. Le préchargement en
+arrière-plan EB3 (`po01c_regen.nut:701-716,886-905`) n'autorise pas
+leur financement. C'est une exclusion de capital voulue, et pas une
+preuve que le vivier ne produit aucune opportunité.
