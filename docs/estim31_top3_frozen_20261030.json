@@ -1,0 +1,79 @@
+{
+  "criterion_5y": "100 \u00d7 mean_40(OpexAI profit_year 1974-12-01) / mean_40(AAAHogEx-115 profit_year 1974-12-01), both recorded in the same experiment duel",
+  "criterion_10y": "100 * mean20(OpexAI 1979-12-01 profit_year) / mean20(AAAHogEx 1979-12-01 profit_year)",
+  "locked_40x5_ranking": [
+    {
+      "suite": "v161cap",
+      "name": "mix_a200_r075_w15_slope",
+      "ratio_40x5_pct": 106.06292869277968,
+      "source_bundle_sha256": "183187e6b60f442edf3f0ea7eaa556cfccb4729aed185f1ddf12298e242711c9",
+      "configuration": {
+        "air": 2.0,
+        "rail": 0.75,
+        "weight": 15.0,
+        "flat_rail": false,
+        "eb14": 3,
+        "v249_statue": 2,
+        "eb2_fallback": 0,
+        "air_load_min_pct": 0
+      }
+    },
+    {
+      "suite": "v161coeff",
+      "name": "v161_a250_r075_w15",
+      "ratio_40x5_pct": 105.17175830856316,
+      "source_bundle_sha256": "10d21056814b32f8672db28c7d6016538904ae335e1fa7c22bef0dfbd00527ec",
+      "configuration": {
+        "air": 2.5,
+        "rail": 0.75,
+        "weight": 15,
+        "flat_rail": false,
+        "eb14": 3,
+        "v249_statue": 2,
+        "eb2_fallback": 0,
+        "air_load_min_pct": 0
+      }
+    },
+    {
+      "suite": "v161",
+      "name": "mix_a200_r075_w15_slope",
+      "ratio_40x5_pct": 103.79866719805844,
+      "source_bundle_sha256": "15078ee31b595f31c9deb054de58cd88edeb72ed9e1eafc9b03463535a28f879",
+      "configuration": {
+        "air": 2.0,
+        "rail": 0.75,
+        "weight": 15.0,
+        "flat_rail": false,
+        "eb14": 3,
+        "v249_statue": 2,
+        "eb2_fallback": 0,
+        "air_load_min_pct": 0
+      }
+    }
+  ],
+  "seeds20": [
+    42,
+    100,
+    7,
+    999,
+    2026,
+    1,
+    17,
+    73,
+    314,
+    512,
+    1024,
+    1337,
+    4096,
+    8191,
+    12345,
+    54321,
+    65537,
+    123456,
+    424242,
+    8675309
+  ],
+  "runner_years": 10,
+  "runner_workers_max": 8,
+  "default_decision": "Highest healthy 20x10 ratio only, user explicitly authorized default change"
+}

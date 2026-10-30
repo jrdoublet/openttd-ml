@@ -674,3 +674,24 @@ L'essai exploratoire RAIL finançable en 1970 a fini 5×5 sain,
 **97,296780 %** de ratio des deux profits, contre **99,056010 %**
 pour son témoin propre ; **aucun train construit en 1970** sur
 les cinq graines. Non exposé au résultat attendu, sans promotion 40×5.
+
+**Clôture des deux écrans capcombo 5×5** : motorcap×AIR2,50 donne
+**102,799555 %** (Opex 3 006 218,8 £, AAA 2 924 350 £) et
+motorcap×V249=0/EB14=2 donne **103,590107 %**
+(Opex 2 958 670 £, AAA 2 856 131,8 £), dix parties saines
+chacun. Ces résultats n'ont que cinq graines et ne sont pas substituables
+aux trois qualifications 40×5 déjà achevées ; aucune promotion sur
+cette seule base.
+
+**Trio figé pour 20×10** dans
+`docs/estim31_top3_frozen_20261030.json`, ordre de ratios 40×5 :
+1. `v161cap/mix_a200_r075_w15_slope` : **106,062929 %**,
+   source `183187e6b60f...` ;
+2. `v161coeff/v161_a250_r075_w15` : **105,171758 %**,
+   source `10d21056814b...` ;
+3. `v161/mix_a200_r075_w15_slope` : **103,798667 %**,
+   source `15078ee31b595...`.
+
+Premier banc décennal lancé le **30/10 à 09:47:01**, top1 V161×motorcap,
+20 graines × 10 ans, huit workers, uniquement le Docker disponible.
+Il ne faut pas déduire son résultat 1979 des cinq premières années.
