@@ -736,6 +736,8 @@ function OpexAI::Save()
       airBuilt = this._airBuilt,
       waterBuilt = this._waterBuilt,
     };
+    if (OpexRailRepairAnyOptIn())
+      shortSave.railRepairLastConstructionDate <- RAIL_REPAIR_LAST_CONSTRUCTION_DATE;
     {
       shortSave.c76Revisions <- this._c76SaveRevisions();
     }
@@ -833,6 +835,8 @@ function OpexAI::Save()
     c41RailJunctionLines = OpexCopyBoolTable(this._c41RailJunctionLines),
     stateVersion = 2,
   };
+  if (OpexRailRepairAnyOptIn())
+    saveObj.railRepairLastConstructionDate <- RAIL_REPAIR_LAST_CONSTRUCTION_DATE;
   saveObj.c80ReactiveQueue <- OpexSaveReactiveQueue(this._reactiveQueue);
   saveObj.c80ActiveWorker <- OpexSaveActiveWorker(this._activeWorker);
   {
@@ -874,6 +878,13 @@ function OpexAI::Save()
 }
 function OpexAI::Load(version, data)
 {
+  /* Load s'exécute avant lecture des settings : lire le scalaire meme si
+   * l'option est changee apres sauvegarde. Absence = cooldown prudent. */
+  RAIL_REPAIR_LAST_CONSTRUCTION_DATE = -1;
+  if (data != null && ("railRepairLastConstructionDate" in data)
+      && typeof data.railRepairLastConstructionDate == "integer"
+      && data.railRepairLastConstructionDate >= 0)
+    RAIL_REPAIR_LAST_CONSTRUCTION_DATE = data.railRepairLastConstructionDate;
   /* MULTI-1 SHADOW transactions are diagnostic only and cannot survive Load. */
   MULTI1_ROAD_CARGO_PENDING = null;
   MULTI1_ROAD_CARGO_LAST_MONTH = -1;

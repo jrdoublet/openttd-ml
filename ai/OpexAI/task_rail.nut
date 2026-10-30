@@ -982,7 +982,7 @@ function OpexAI::_continueRailSearch()
    * des interfaces de quais deja testees par le moteur. Le temps et le budget
    * de la recherche primaire sont conserves dans la comptabilite finale.
    * Aucun autre essai si NOPA/ABND se reproduit. */
-  if (RAIL_REPAIR_ASTAR_PAIR && state.kind == "primary"
+  if (RAIL_REPAIR_ASTAR_PAIR && OpexRailRepairIdleActive() && state.kind == "primary"
       && !state.astarRepairTried && (slice.stop == "ABND" || slice.stop == "NOPA")
       && state.candidate != null && state.candidate.profitAnnual > 0) {
     local pair = OpexRailRepairAlternatePair(state.plan.plansA, state.plan.plansB);
@@ -1418,6 +1418,7 @@ function OpexAI::_recordRailAttempt(candidate, result, posPacked, year, railPlan
       opcodeRatio = ("opcodeRatio" in candidate) ? candidate.opcodeRatio : -1,
       lineId = idx,
     });
+    OpexRailRepairNoteConstruction();
     if (V279_RESELECT_MEMO != 0) OPEX_LINES_REVISION++;
     /* V163 : la rame porte un second cargo ; les seconds trains et le doublement le reprennent. */
     if (("wagons2" in candidate) && candidate.wagons2 > 0) {
@@ -2686,6 +2687,8 @@ function OpexAI::_v131PlanRepairs(candidate, plan, cause)
 
 function OpexAI::_v131TryStartRepair(candidate, plan, cause)
 {
+  if (RAIL_REPAIR_V131_FOCUS && !RAIL_REPAIR_V131_LEGACY_ACTIVE
+      && !OpexRailRepairIdleActive()) return "fallback";
   if (this._v131RepairIsPending(plan)) return "pending";
   if (this._railSearch != null) {
     OpexV131RepairLog(candidate, "fallback", 0, 0, 0, 0, "reason=slot_busy");
@@ -2909,7 +2912,9 @@ function OpexAI::_revalidateRailStockPlan(candidate, plan)
 
   /* Si V131_RAIL_REPAIR est inactif (defaut 0), executer le chemin de reference
    * d'origine avec STRICTEMENT ZERO opcode ajoute et aucun test supplementaire. */
-  if (!V131_RAIL_REPAIR || (("p1Long" in candidate) && candidate.p1Long)) {
+  if (!V131_RAIL_REPAIR || (RAIL_REPAIR_V131_FOCUS && !RAIL_REPAIR_V131_LEGACY_ACTIVE
+      && !OpexRailRepairIdleActive())
+      || (("p1Long" in candidate) && candidate.p1Long)) {
     local testMode = AITestMode();
     local stIdA = ("stationId" in planA) ? planA.stationId : AIStation.STATION_NEW;
     local stIdB = ("stationId" in planB) ? planB.stationId : AIStation.STATION_NEW;

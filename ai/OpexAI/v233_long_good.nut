@@ -2921,7 +2921,8 @@ function OpexV233LTick(owner)
  * Seul le mode 2 autorise le repli, avec un modele physique d'UNE rame. */
 function OpexV233LMonoAllowed(candidate, plan)
 {
-  return V233L_CONSTRUCT == 2 && OpexV233LIs(candidate) && plan != null
+  return V233L_CONSTRUCT == 2 && OpexRailRepairIdleActive()
+      && OpexV233LIs(candidate) && plan != null
       && ("v233MonoVerified" in plan) && plan.v233MonoVerified
       && plan.doubleTrack == 0 && candidate.trains == 1;
 }
@@ -2931,6 +2932,9 @@ function OpexV233LMonoCounterfactual(catalog, candidate, plan, routeDistance)
   if (V233L_CONSTRUCT <= 0 || !OpexV233LIs(candidate) || plan == null
       || plan.tiles == null || plan.tiles.len() < 3 || plan.doubleTrack != 0)
     return false;
+  /* Mode 1 is passive measurement; mode 2 is a real fallback and is only
+   * considered after six months without a successful new line. */
+  if (V233L_CONSTRUCT == 2 && !OpexRailRepairIdleActive()) return false;
   local model = OpexLineEconomics(catalog, candidate.cargo, candidate.distance,
       candidate.monthly, candidate.kind, plan.length, routeDistance,
       null, null, null, null, OpexV163CandidateSecondary(candidate), true, true);

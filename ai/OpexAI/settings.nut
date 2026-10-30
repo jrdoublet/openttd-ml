@@ -513,6 +513,7 @@ function OpexLoadSettings()
   AIR0310_SITE_VALIDITY_STATE = null;
   RAIL_DEPOT_COST = AIController.GetSetting("rail_depot_cost") != 0;
   V131_RAIL_REPAIR = AIController.GetSetting("v131_rail_repair") != 0;
+  RAIL_REPAIR_V131_LEGACY_ACTIVE = V131_RAIL_REPAIR;
   RAIL_REPAIR_JOIN_SITE = AIController.GetSetting("rail_repair_join_site") == 1;
   RAIL_REPAIR_V131_FOCUS = AIController.GetSetting("rail_repair_v131_focus") == 1;
   /* Le moteur d'etat V131 existant gere reprise, rollback et abandon sur Load.

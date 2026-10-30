@@ -1573,7 +1573,7 @@ function OpexRailPlatformPlans(catalog, candidate)
     if (!joinB) {
       local jointPlansA = OpexJoinPlatformPlans(candidate.joinPlatform, candidate.joinStationId, statsA);
       local repairedJoinA = false;
-      if (RAIL_REPAIR_JOIN_SITE && jointPlansA.len() == 0
+      if (RAIL_REPAIR_JOIN_SITE && OpexRailRepairIdleActive() && jointPlansA.len() == 0
           && (("shared_dest" in candidate) && candidate.shared_dest)) {
         jointPlansA = OpexRailRepairJoinSite(candidate.joinPlatform, candidate.joinStationId, statsA);
         repairedJoinA = jointPlansA.len() > 0;
@@ -1600,7 +1600,7 @@ function OpexRailPlatformPlans(catalog, candidate)
     } else {
       local jointPlansB = OpexJoinPlatformPlans(candidate.joinPlatform, candidate.joinStationId, statsB);
       local repairedJoinB = false;
-      if (RAIL_REPAIR_JOIN_SITE && jointPlansB.len() == 0
+      if (RAIL_REPAIR_JOIN_SITE && OpexRailRepairIdleActive() && jointPlansB.len() == 0
           && (("shared_dest" in candidate) && candidate.shared_dest)) {
         jointPlansB = OpexRailRepairJoinSite(candidate.joinPlatform, candidate.joinStationId, statsB);
         repairedJoinB = jointPlansB.len() > 0;
@@ -5174,7 +5174,7 @@ function OpexExecuteRailPlan(catalog, budget, candidate, plan)
 
   /* Faire le controle AVANT tout BuildRailStation : le prefiltre de la pose
    * alternative ne doit jamais permettre le rollback d'une ligne existante. */
-  local poseOrderSafe = RAIL_REPAIR_POSE_ORDER && !V199_ROBUST_BUILD
+  local poseOrderSafe = RAIL_REPAIR_POSE_ORDER && OpexRailRepairIdleActive() && !V199_ROBUST_BUILD
       && !OpexV233LIs(candidate) && OpexRailRepairPoseVirgin(tiles);
 
   budget.begin();
@@ -5770,7 +5770,7 @@ function OpexV190ExecuteRailPlan(catalog, budget, candidate, plan)
 
   local costs = AIAccounting();
 
-  local poseOrderSafe = RAIL_REPAIR_POSE_ORDER && !V199_ROBUST_BUILD
+  local poseOrderSafe = RAIL_REPAIR_POSE_ORDER && OpexRailRepairIdleActive() && !V199_ROBUST_BUILD
       && !OpexV233LIs(candidate) && plan.doubleTrack != 1
       && OpexRailRepairPoseVirgin(tiles);
 

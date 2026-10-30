@@ -725,6 +725,7 @@ V131_REPAIR_MAX_ITERS <- 2500;
  * FOCUS = reparation d'un unique defaut local d'un plan prepare, budgets tres limites. */
 RAIL_REPAIR_JOIN_SITE <- false;
 RAIL_REPAIR_V131_FOCUS <- false;
+RAIL_REPAIR_V131_LEGACY_ACTIVE <- false; // Preserve explicitly enabled historical V131 independently of idle gate.
 /* 30/10 : reprises ferroviaires experimentales et independantes. */
 RAIL_REPAIR_ASTAR_PAIR <- false;
 RAIL_REPAIR_POSE_ORDER <- false;
