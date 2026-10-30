@@ -17,6 +17,7 @@ SUITES = {
     'v161policy': ('estim31_v161_policy20261030', 'estim31vp'),
     'noupper': ('estim31_no_upper20261030', 'estim31nohi'),
     'v161coeff': ('estim31_v161_coeff20261030', 'estim31vcoef'),
+    'rail1970': ('estim31_v161_rail1970_20261030', 'estim31r1970'),
 }
 
 

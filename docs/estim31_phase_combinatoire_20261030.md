@@ -525,3 +525,34 @@ sélection pendant le premier catalogue AIR. Le préchargement en
 arrière-plan EB3 (`po01c_regen.nut:701-716,886-905`) n'autorise pas
 leur financement. C'est une exclusion de capital voulue, et pas une
 preuve que le vivier ne produit aucune opportunité.
+
+### Grille de quatre nouveaux coefficients V161 : 5×5 clôturés (08:30)
+
+| Priors AIR / RAIL / poids (pente RAIL) | Ratio des deux moyennes 5×5 | Opex £/an | AAA £/an | Santé |
+|---|---:|---:|---:|---|
+| 2,50 / 0,75 / 15 | **103,285240 %** | 2 862 537 | 2 771 487 | 10/10 sains |
+| 2,25 / 0,75 / 15 | non classé | — | — | 9/10 complets, seed42 Opex `stagnation_suspect` |
+| 2,25 / 0,50 / 5 | 88,950634 % | 2 725 694 | 3 064 277 | 10/10 sains |
+| 2,00 / 0,50 / 15 | 86,421994 % | 2 822 557 | 3 266 017 | 10/10 sains |
+
+Ces ratios 5×5 ne sont pas des confirmations 40×5 ; le dénominateur
+AAAHogEx doit être conservé propre à chaque duel, les exécutions
+historiquement divergent parfois malgré une source identique. Le
+coefficient AIR2,50/RAIL0,75 demeure un second candidat à qualifier.
+La campagne **V161×choix moteur C121 N1/N2** a commencé son vrai 40×5
+à 08:30, 8 workers et 10 CPU/8 GiB dans le seul Docker, source
+`183187e6b60f442edf3f0ea7eaa556cfccb4729aed185f1ddf12298e242711c9`.
+À l'heure de cette note elle est encore en cours, aucun ratio 40×5
+de ce croisement n'est disponible.
+
+**Piste économique complémentaire préparée, pas encore exécutée :**
+`estim31_v161_rail1970_20261030/v161_a200_r075_allow_rail1970`
+supprime uniquement sous `ESTIM_UNIFIE & 1` le bloc
+`projects.nut` qui interdit le financement de tout RAIL durant la
+première fenêtre AIR. Les candidats RAIL doivent déjà être présents
+et physiquement admissibles, aucun barème ou constante supplémentaire
+n'est créé. Test de modification exacte d'un seul fichier et
+neutralité source OFF passé. Mesurer exposition (trains dès 1970),
+timing/opcodes et ratio 5×5 avant toute promotion économique ; si les
+candidats restent absents, documenter une non-exposition sans inventer
+un gain.
