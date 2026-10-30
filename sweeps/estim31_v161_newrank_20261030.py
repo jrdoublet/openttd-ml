@@ -5,6 +5,7 @@ Partially written or unhealthy runs never enter the confirmed rankings.
 Historical OFF mismatch is reported, not conflated with source identity.
 """
 import argparse
+import hashlib
 import json
 from pathlib import Path
 
@@ -28,6 +29,69 @@ def check_health(report, count):
                     for g in games))
 
 
+def check_qualification(report, reference, variant, campaign, policy, manifest_path):
+    """Verify exact seed/policy/source pairs, rather than merely game counts."""
+    if not check_health(report, 80):
+        return 'unhealthy or incomplete final report'
+    if (report.get('campaign_id') != campaign or report.get('policy_id') != 'reference'
+            or report.get('years') != 5 or report.get('start_year') != 1970
+            or report.get('repeats') != 1 or report.get('map_size') != 8
+            or report.get('expected_last_checkpoint') != '1974-12-01'
+            or set(report.get('seeds', [])) != set(SEEDS40)
+            or len(report.get('seeds', [])) != 40):
+        return 'campaign, horizon or seed manifest mismatch'
+    policies = report.get('policies', [])
+    if len(policies) != 2 or {p.get('id') for p in policies} != {'reference', policy}:
+        return 'reference/variant policy manifest mismatch'
+    try:
+        explicit = {p['id']: dict(p['explicit_settings']) for p in policies}
+    except (KeyError, TypeError, ValueError):
+        return 'invalid policy settings manifest'
+    if (explicit['reference'] != {'probes': 2}
+            or explicit[policy].get('estim_unifie') != 31
+            or explicit[policy].get('probes') != 2):
+        return 'reference OFF or ESTIM variant settings mismatch'
+    source_sha = report.get('source_bundle_sha256')
+    if not isinstance(source_sha, str) or len(source_sha) != 64:
+        return 'missing source bundle SHA256'
+    if (not manifest_path.is_file()
+            or hashlib.sha256(manifest_path.read_bytes()).hexdigest()
+            != report.get('manifest_sha256')):
+        return 'missing or altered run manifest'
+    game_keys = set()
+    for game in report['games']:
+        key = (game.get('seed'), game.get('policy_id'), game.get('repeat'))
+        if (key in game_keys or game.get('campaign_id') != campaign
+                or game.get('source_bundle_sha256') != source_sha
+                or game.get('expected_last_checkpoint') != '1974-12-01'):
+            return 'duplicate game or game provenance mismatch'
+        game_keys.add(key)
+        companies = game.get('companies', {})
+        if any(not companies.get(company, {}).get('horizon_complete')
+               or companies[company].get('status') != 'complete'
+               or not companies[company].get('run_ok')
+               for company in ('OpexAI', 'AAAHogEx')):
+            return 'incomplete company or invalid run'
+    expected_games = {(seed, p, 0) for seed in SEEDS40
+                      for p in ('reference', policy)}
+    if game_keys != expected_games:
+        return 'games do not cover identical 40 seeds in both policies'
+    expected_checkpoints = {(seed, company, f'{year}-12-01')
+                            for seed in SEEDS40
+                            for company in ('OpexAI', 'AAAHogEx')
+                            for year in range(1970, 1975)}
+    for name, arm in (('reference', reference), (policy, variant)):
+        if set(arm) != expected_checkpoints:
+            return f'{name}: incomplete/misaligned 40-seed annual checkpoints'
+        if any(row.get('campaign_id') != campaign
+               or row.get('duel_policy_id') != name
+               or row.get('source_bundle_sha256') != source_sha
+               or list(row.get('run', [])) != [key[1], key[0], 0]
+               for key, row in arm.items()):
+            return f'{name}: mixed source/campaign/identity checkpoints'
+    return None
+
+
 def analyze_40x5(repo, suite):
     folder, prefix = SUITES[suite]
     root = repo / 'results' / folder
@@ -48,17 +112,14 @@ def analyze_40x5(repo, suite):
         if not json_path.is_file() or not jsonl_path.is_file():
             pending.append([name, 'result incomplete']); continue
         report = json.loads(json_path.read_text('utf-8'))
-        if not check_health(report, 80):
-            pending.append([name, 'unhealthy; not ranked']); continue
         arms = parse(jsonl_path, prefix + '_' + name)
         reference, variant = arms['reference'], arms[prefix + '_' + name]
-        if len(reference) != 400 or len(variant) != 400:
-            pending.append([name, f'checkpoints {len(reference)}/{len(variant)}']); continue
+        problem = check_qualification(report, reference, variant, campaign,
+                                      prefix + '_' + name,
+                                      resultdir / (campaign + '.manifest.json'))
+        if problem:
+            pending.append([name, problem]); continue
         source_sha = report.get('source_bundle_sha256')
-        if (not source_sha
-                or {r.get('source_bundle_sha256') for r in (*reference.values(), *variant.values())}
-                != {source_sha}):
-            pending.append([name, 'source mismatch']); continue
         mismatches = sum(reference[key].get(field) != old[key].get(field)
                          for key in old for field in FIELDS)
         details = describe_arm(variant)
