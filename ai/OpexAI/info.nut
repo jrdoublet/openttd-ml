@@ -706,6 +706,14 @@ class OpexAIInfo extends AIInfo {
       custom_value = 0,
       flags = AICONFIG_BOOLEAN
     });
+    AddSetting({ name = "rail_repair_astar_pair",
+      description = "Rail repair ASTAR: one bounded search with an alternate physically planned station pair after ABND/NOPA; 0=off",
+      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
+      flags = AICONFIG_BOOLEAN });
+    AddSetting({ name = "rail_repair_pose_order",
+      description = "Rail repair POSE: one reversed local track laying order on virgin rail tiles, with transaction rollback; 0=off",
+      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
+      flags = AICONFIG_BOOLEAN });
   }
 }
 

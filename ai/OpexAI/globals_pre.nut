@@ -725,6 +725,9 @@ V131_REPAIR_MAX_ITERS <- 2500;
  * FOCUS = reparation d'un unique defaut local d'un plan prepare, budgets tres limites. */
 RAIL_REPAIR_JOIN_SITE <- false;
 RAIL_REPAIR_V131_FOCUS <- false;
+/* 30/10 : reprises ferroviaires experimentales et independantes. */
+RAIL_REPAIR_ASTAR_PAIR <- false;
+RAIL_REPAIR_POSE_ORDER <- false;
 
 /* V131 : degagement urbain (clearance) de l'A* rail pour eviter les centres-villes
  * et leurs emprises aeroportuaires futures. Defaut 0 : cout nul. */

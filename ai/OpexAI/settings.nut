@@ -518,6 +518,8 @@ function OpexLoadSettings()
   /* Le moteur d'etat V131 existant gere reprise, rollback et abandon sur Load.
    * Le profil focus utilise ce moteur, avec des plafonds distincts et stricts. */
   V131_RAIL_REPAIR = V131_RAIL_REPAIR || RAIL_REPAIR_V131_FOCUS;
+  RAIL_REPAIR_ASTAR_PAIR = AIController.GetSetting("rail_repair_astar_pair") == 1;
+  RAIL_REPAIR_POSE_ORDER = AIController.GetSetting("rail_repair_pose_order") == 1;
   V131_TOWN_CLEARANCE = AIController.GetSetting("v131_town_clearance") != 0;
   AIR_MAX_DISTANCE = 0;
   TRANSIT_COST_PERMILLE = 0;

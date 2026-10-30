@@ -1813,6 +1813,40 @@ function OpexCreateRailPathfinder(plansA, plansB, ignoredTiles = null, weight = 
   return pathfinder;
 }
 
+/* REPAIR-ASTAR : le premier A* multi-source a deja vu tous les quais. Un autre
+ * sens identique (V307) ou une hausse de son plafond n'est pas une alternative.
+ * Choisir une seule paire dont l'approche physique est differente de la premiere
+ * interface, proche du trajet le plus direct ; le depart directionnel change,
+ * et le nouvel A* ne disperse plus ses opcodes sur tous les quais.
+ * Aucun site fictif : tous les plans viennent du prefiltre BuildRailStation. */
+function OpexRailRepairAlternatePair(plansA, plansB)
+{
+  if (plansA == null || plansB == null || plansA.len() == 0 || plansB.len() == 0) return null;
+  if (plansA.len() == 1 && plansB.len() == 1) return null;
+  local best = null;
+  local direct = AIMap.DistanceManhattan(plansA[0].lead, plansB[0].lead);
+  local limitA = plansA.len() < 8 ? plansA.len() : 8;
+  local limitB = plansB.len() < 8 ? plansB.len() : 8;
+  for (local a = 0; a < limitA; a++) {
+    for (local b = 0; b < limitB; b++) {
+      if (a == 0 && b == 0) continue;
+      local pA = plansA[a];
+      local pB = plansB[b];
+      if (pA.lead == plansA[0].lead && pB.lead == plansB[0].lead) continue;
+      if (!AIMap.IsValidTile(pA.lead) || !AIMap.IsValidTile(pB.lead)) continue;
+      local dist = AIMap.DistanceManhattan(pA.lead, pB.lead);
+      /* Pas de recherche de sites a l'infini, ni de paire eloignee de >12 cases. */
+      if (dist > direct + 12) continue;
+      local shift = AIMap.DistanceManhattan(pA.lead, plansA[0].lead)
+                  + AIMap.DistanceManhattan(pB.lead, plansB[0].lead);
+      if (shift < 2 || shift > 12) continue;
+      local score = dist * 10 + shift;
+      if (best == null || score < best.score) best = { a = pA, b = pB, score = score };
+    }
+  }
+  return best;
+}
+
 /* V294f : sonde inverse bornée à iterationCap iterations (sources = plansB, buts = plansA).
  * Si un chemin est trouvé, il est retourné inversé au format attendu par la pose. */
 function OpexV294fReverseProbe(plansA, plansB, clearanceTiles, searchWeight, candidate, iterationCap)
@@ -3722,6 +3756,51 @@ function OpexV296aLog(batch)
              + " fallbacks=" + batch.fallbacks + " mismatch=" + batch.mismatch);
 }
 
+/* REPAIR-POSE : precondition avant tout chantier. Si le chemin traverse du rail
+ * existant, la suppression transactionnelle de ce trajet pourrait detruire une
+ * voie d'une autre ligne. Dans ce cas, pas de reordonnancement de la pose. */
+function OpexRailRepairPoseVirgin(tiles)
+{
+  if (tiles == null || tiles.len() < 5) return false;
+  local seen = {};
+  for (local i = 1; i < tiles.len() - 1; i++) {
+    local t = tiles[i];
+    if (!AIMap.IsValidTile(t) || t in seen) return false;
+    seen[t] <- true;
+    if (AIRail.IsRailTile(t) || AIRail.IsRailStationTile(t)
+        || AIRail.IsRailDepotTile(t) || AIBridge.IsBridgeTile(t)
+        || AITunnel.IsTunnelTile(t)) return false;
+  }
+  return true;
+}
+
+/* Tentative strictement bornee : la commande (prev,cur,next) a ete refusee,
+ * alors que la suivante (cur,next,after) peut etre posable en premier. Aucune
+ * demolition, gare, pont ou tunnel nouveau ; une seule fois par chantier.
+ * Si la deuxieme commande echoue, OpexBuildTrack retourne TRKFAIL et le
+ * constructeur doit annuler l'ENSEMBLE du chantier, y compris `next`. */
+function OpexRailRepairPoseFollowing(tiles, i)
+{
+  if (i < 1 || i + 2 >= tiles.len() - 1) return false;
+  local prev = tiles[i - 1];
+  local cur = tiles[i];
+  local next = tiles[i + 1];
+  local after = tiles[i + 2];
+  if (prev == next || cur == after || next == prev) return false;
+  if (AIMap.DistanceManhattan(prev, cur) != 1
+      || AIMap.DistanceManhattan(cur, next) != 1
+      || AIMap.DistanceManhattan(next, after) != 1) return false;
+  if (!AITile.IsBuildable(cur) || !AITile.IsBuildable(next)) return false;
+  if (AIRail.IsRailTile(cur) || AIRail.IsRailTile(next)
+      || AIRail.IsRailStationTile(cur) || AIRail.IsRailStationTile(next)) return false;
+  if (!AIRail.BuildRail(cur, next, after)) return false;
+  /* L'absence de reconstruction du prefixe est volontaire : le rollback
+   * du constructeur possede toutes les tuiles nouvelles de cette transaction. */
+  if (!AIRail.BuildRail(prev, cur, next)) return false;
+  return AIRail.AreTilesConnected(prev, cur, next)
+      && AIRail.AreTilesConnected(cur, next, after);
+}
+
 function OpexBuildTrack(tiles, structures = null, failure = null, options = null)
 {
   local failed = 0;
@@ -3733,8 +3812,10 @@ function OpexBuildTrack(tiles, structures = null, failure = null, options = null
   local signalDist = 0;
   local signalsBuiltCount = 0;
   local retriesCount = 0;
+  local poseSafe = options != null && ("poseSafe" in options) && options.poseSafe;
+  local poseTried = false;
   /* V296a : la signalisation V199 de la double voie se pose tuile par tuile, on ne groupe pas. */
-  local batch = (!V296A_MISMATCH && !(V199_ROBUST_BUILD && isDouble))
+  local batch = (!poseSafe && !V296A_MISMATCH && !(V199_ROBUST_BUILD && isDouble))
       ? { runs = 0, tiles = 0, single = 0, fallbacks = 0, mismatch = 0, skipUntil = 0 } : null;
 
   for (local i = 1; i < tiles.len() - 1; i++) {
@@ -3851,6 +3932,28 @@ function OpexBuildTrack(tiles, structures = null, failure = null, options = null
     }
 
     // V199 : Reprise locale (RetryToBuild) quand la pose echoue
+    if (!ok && poseSafe && !poseTried && !isDouble && !V199_ROBUST_BUILD
+        && AIMap.DistanceManhattan(prev, cur) == 1 && AIMap.DistanceManhattan(cur, next) == 1) {
+      poseTried = true;
+      local firstError = AIError.GetLastError();
+      local fixed = OpexRailRepairPoseFollowing(tiles, i);
+      if (DECISION_LOG) OpexDecide("RAIL_POSE_REPAIR", "idx=" + i
+          + " tile=" + cur + " first_err=" + firstError + " ok=" + (fixed ? 1 : 0));
+      if (fixed) {
+        if (options != null && ("candidate" in options) && options.candidate != null)
+          options.candidate.rawset("railPoseRepaired", 1);
+        i++;
+        continue;
+      }
+      /* Toute pose partielle de next sera annulee par le rollback normal,
+       * avant de continuer : ne pas laisser le constructeur utiliser la voie. */
+      if (failure != null && !("index" in failure)) {
+        OpexRailCaptureTrackFailure(failure, tiles, i, cur, "order", firstError, 1, 1);
+      }
+      failed++;
+      OpexV296aLog(batch);
+      return failed;
+    }
     if (!ok && V199_ROBUST_BUILD) {
       if (retriesCount < 3) {
         retriesCount++;
@@ -5069,6 +5172,11 @@ function OpexExecuteRailPlan(catalog, budget, candidate, plan)
 
   local costs = AIAccounting();
 
+  /* Faire le controle AVANT tout BuildRailStation : le prefiltre de la pose
+   * alternative ne doit jamais permettre le rollback d'une ligne existante. */
+  local poseOrderSafe = RAIL_REPAIR_POSE_ORDER && !V199_ROBUST_BUILD
+      && !OpexV233LIs(candidate) && OpexRailRepairPoseVirgin(tiles);
+
   budget.begin();
   OpexAir0310InvalidateSiteValidity();
   for (local i = 0; i < planA.length; i++) {
@@ -5110,7 +5218,8 @@ function OpexExecuteRailPlan(catalog, budget, candidate, plan)
   /* Table seulement sous decision_log ou garde geometrique : null au defaut 0/0. */
   local trackFailure = null;
   if (DECISION_LOG || RAIL_GEOMETRY_GUARD) trackFailure = {};
-  local trackFailed = OpexBuildTrack(tiles, plan.structures, trackFailure);
+  local trackOptions = poseOrderSafe ? { poseSafe = true, candidate = candidate } : null;
+  local trackFailed = OpexBuildTrack(tiles, plan.structures, trackFailure, trackOptions);
   local last = tiles.len() - 1;
   local connected = trackFailed == 0 &&
       OpexRailEndConnected(planA.station_exit, tiles[1], tiles[2], "A") &&
@@ -5333,6 +5442,7 @@ function OpexExecuteRailPlan(catalog, budget, candidate, plan)
  * et referait le gel. Le bras historique (railPlan absent) planifie puis construit. */
 function OpexBuildLine(catalog, budget, candidate, alternativeRatio, hardCap = 10000)
 {
+  if (RAIL_REPAIR_POSE_ORDER) candidate.rawset("railPoseRepaired", 0);
   /* C67.6 rail : cout modele avant devis, pour mesurer l'ecart au facteur fixe 1,70.
    * Journal de decision seulement (defaut 0) : aucun effet sur la partie par defaut. */
   if (DECISION_LOG && !("modelCapital" in candidate)
@@ -5660,6 +5770,10 @@ function OpexV190ExecuteRailPlan(catalog, budget, candidate, plan)
 
   local costs = AIAccounting();
 
+  local poseOrderSafe = RAIL_REPAIR_POSE_ORDER && !V199_ROBUST_BUILD
+      && !OpexV233LIs(candidate) && plan.doubleTrack != 1
+      && OpexRailRepairPoseVirgin(tiles);
+
   budget.begin();
   OpexAir0310InvalidateSiteValidity();
   for (local i = 0; i < planA.length; i++) {
@@ -5711,6 +5825,10 @@ function OpexV190ExecuteRailPlan(catalog, budget, candidate, plan)
   local trackFailure = null;
   if (DECISION_LOG || RAIL_GEOMETRY_GUARD) trackFailure = {};
   local trackOpt1 = { isDouble = (plan.doubleTrack == 1), trainLength = candidate.platformLength, initialBudget = plan.iterationBudget };
+  if (poseOrderSafe) {
+    trackOpt1.poseSafe <- true;
+    trackOpt1.candidate <- candidate;
+  }
   local trackFailed = OpexBuildTrack(tiles, plan.structures, trackFailure, trackOpt1);
   local last = tiles.len() - 1;
   local connected = trackFailed == 0 &&

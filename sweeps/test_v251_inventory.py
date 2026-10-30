@@ -49,7 +49,7 @@ class TestV251Inventory(unittest.TestCase):
         # P1, C75 annuel/bypass, DIST-BORNES et V233L par blocs EXACTS : historique 58.
         # air_site_probe adds one default-OFF diagnostic, never a policy knob.
         # +1 pour eb2_new_station_fallback (EB-2 repli gare).
-        self.assertLessEqual(info.count("AddSetting("), 63)  # + two rail repair profiles and V233L physical counterfactual, all default OFF
+        self.assertLessEqual(info.count("AddSetting("), 65)  # + 4 rail repair profiles and V233L counterfactual; all default OFF
         self.assertNotIn('name = "v251', info)
         settings = self.sources["settings.nut"]
         self.assertNotIn('GetSetting("v251', settings)

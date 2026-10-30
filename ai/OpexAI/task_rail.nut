@@ -767,6 +767,7 @@ function OpexAI::_continueRailExpansion()
  * Fonction de classe, pas une closure : Squirrel ne capture jamais les locales englobantes. */
 function OpexAI::_startRailSearch(candidate, alternativeRatio, hardCap, posPacked)
 {
+  if (RAIL_REPAIR_ASTAR_PAIR) candidate.rawset("railAstarRepaired", 0);
   local plan = OpexPrepareRailRoute(this._catalog, this._budget, candidate, alternativeRatio, hardCap);
   if (plan.plansA == null) return { pending = false, plan = plan };
   local clearanceTiles = V131_TOWN_CLEARANCE ? OpexV131BuildTownClearance(candidate, plan.plansA, plan.plansB) : null;
@@ -839,6 +840,12 @@ function OpexAI::_startRailSearch(candidate, alternativeRatio, hardCap, posPacke
     startTick = curTick,
     slotIndex = 0,
   };
+  /* Aucun slot supplementaire sur le chemin OFF. */
+  if (RAIL_REPAIR_ASTAR_PAIR) {
+    this._railSearch.astarRepairTried <- false;
+    this._railSearch.astarFirstSpent <- 0;
+    this._railSearch.astarFirstReason <- "";
+  }
   if (C56_TASK_TRACE) {
     OpexC56TaskLog("RAIL_SEARCH_START", "primary", this._taskCycle,
                    "src=" + candidate.src + " dst=" + candidate.dst
@@ -969,6 +976,44 @@ function OpexAI::_continueRailSearch()
           + " best_cost=" + bestCost);
     }
     return;
+  }
+
+  /* Nouveau chemin de sauvetage : une seule recherche directionnelle 1x1 sur
+   * des interfaces de quais deja testees par le moteur. Le temps et le budget
+   * de la recherche primaire sont conserves dans la comptabilite finale.
+   * Aucun autre essai si NOPA/ABND se reproduit. */
+  if (RAIL_REPAIR_ASTAR_PAIR && state.kind == "primary"
+      && !state.astarRepairTried && (slice.stop == "ABND" || slice.stop == "NOPA")
+      && state.candidate != null && state.candidate.profitAnnual > 0) {
+    local pair = OpexRailRepairAlternatePair(state.plan.plansA, state.plan.plansB);
+    local cap = state.plan.iterationBudget / 4;
+    if (cap > 900) cap = 900;
+    if (pair != null && cap >= 250) {
+      local pf = OpexCreateRailPathfinder([pair.a], [pair.b], state.clearanceTiles,
+          state.weight, null, null, OpexRailEngineOf(state.candidate));
+      if (pf != null) {
+        state.astarRepairTried = true;
+        state.astarFirstSpent = state.spent;
+        state.astarFirstReason = slice.stop;
+        state.pathfinder = pf;
+        state.segmented = null;
+        state.spent = 0;
+        state.iterationBudget = cap;
+        state.safetyDeadline = AIController.GetTick() + RAIL_SEARCH_SAFETY_TICKS;
+        if (DECISION_LOG) OpexDecide("RAIL_ASTAR_REPAIR", "action=start src=" + state.candidate.src
+            + " dst=" + state.candidate.dst + " reason=" + slice.stop
+            + " a=" + pair.a.anchor + " b=" + pair.b.anchor + " cap=" + cap);
+        return;
+      }
+    }
+  }
+  if (RAIL_REPAIR_ASTAR_PAIR && state.kind == "primary" && state.astarRepairTried) {
+    if (DECISION_LOG) OpexDecide("RAIL_ASTAR_REPAIR", "action=end src=" + state.candidate.src
+        + " dst=" + state.candidate.dst + " first=" + state.astarFirstReason
+        + " result=" + slice.stop + " extra=" + state.spent);
+    if (slice.stop == "OK") state.candidate.rawset("railAstarRepaired", 1);
+    state.spent += state.astarFirstSpent;
+    slice.iterations = state.spent;
   }
 
   if (DECISION_LOG) {
@@ -1168,6 +1213,9 @@ function OpexAI::_recordRailAttempt(candidate, result, posPacked, year, railPlan
       repairTrace = " site_repair=" + ((("railSiteRepair" in candidate) && candidate.railSiteRepair) ? 1 : 0)
           + " v131_repair=" + ((railPlan != null && ("v131Repaired" in railPlan) && railPlan.v131Repaired) ? 1 : 0);
     }
+    if (RAIL_REPAIR_ASTAR_PAIR || RAIL_REPAIR_POSE_ORDER)
+      repairTrace += " astar_repair=" + ((("railAstarRepaired" in candidate) && candidate.railAstarRepaired) ? 1 : 0)
+          + " pose_repair=" + ((("railPoseRepaired" in candidate) && candidate.railPoseRepaired) ? 1 : 0);
     local phasesStr = "-1/-1/-1/-1/-1";
     if (("phaseOps" in result) && result.phaseOps != null) {
       local p = result.phaseOps;
