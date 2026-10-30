@@ -109,11 +109,11 @@ function OpexLoadSettings()
   DIST_BORNES_V276_FREIGHT = AIController.GetSetting("dist_bornes_v276_freight") == 1;
   DIST_BORNES_UNIFIED = AIController.GetSetting("dist_bornes_unified") == 1;
   ESTIM_UNIFIE = AIController.GetSetting("estim_unifie");
-  /* C121 ESTIM : conserver le chemin historique et ses opcodes OFF.
-   * La variante experimentee evalue tous les moteurs admissibles,
-   * sans arret sur une borne non prouvee pour k_R AIR et les flottes. */
-  if ((ESTIM_UNIFIE & 1) != 0)
+  /* Experiment: leave the historical C121 scanner untouched OFF. */
+  if ((ESTIM_UNIFIE & 1) != 0) {
+    require("air_economics_c121_fullscan.nut");
     ::OpexC121ChooseRoutePlane <- OpexC121ChooseRoutePlaneFullScan;
+  }
   ESTIM16_RAIL_SCORE_TRACES = 0;
   foreach (m, k in ESTIM_K_R_PRIOR) ESTIM_K_R[m] = k;
   local railGrowth = AIController.GetSetting("v284_rail_growth");
@@ -517,4 +517,23 @@ function OpexLoadSettings()
   INFRA_AMORT_PCT = 0;
   PORTFOLIO_MAX_BATCH = 1;
   AIR_FLEET_BUFFER = 0;
+  local eb14Mode = AIController.GetSetting("eb14_progressive");
+  EB14_PROGRESSIVE = eb14Mode >= 1;
+  EB14_AIR_ROAD_YEAR_GUARD = eb14Mode >= 2;
+  EB3_RAIL_FIRST_YEAR_PREFETCH = eb14Mode == 3;
+  EB14_INITIAL_RAIL_JOB = false;
+  EB14_TRACE_SIGN_COUNT = 0;
+  EB14_TRACE_SIGN_TYPES = { E4 = 0, E5 = 0, E6 = 0 };
+  EB14_TRACE_SELECTED = {};
+  /* EB-14 ne force pas V278 sur 256x256 : son classement AIR popA*popB
+   * est independant, et sa qualification historique concerne 1024x1024.
+   * Respecter l'option v278_air_lazy_sites et l'auto du monde courant. */
+  /* AIR doit etre reellement permis par la partie, cf. V261 ci-dessus. */
+  local paxAirFirst = AIController.GetSetting("pax_air_first");
+  /* Bit 4 : seules les nouvelles navettes aeroportuaires sont admises pour
+   * RAIL/ROUTE voyageurs, avec verification physique et preuve par ville. */
+  PAX_AIR_FIRST_FEEDER_ONLY = MODE_AIR && (paxAirFirst & 4) != 0;
+  PAX_AIR_FIRST_RAIL_OFF = MODE_AIR && ((paxAirFirst & 1) != 0
+      || PAX_AIR_FIRST_FEEDER_ONLY);
+  PAX_AIR_FIRST_AIR_UNBOUNDED = MODE_AIR && (paxAirFirst & 2) != 0;
 }

@@ -695,3 +695,113 @@ cette seule base.
 Premier banc décennal lancé le **30/10 à 09:47:01**, top1 V161×motorcap,
 20 graines × 10 ans, huit workers, uniquement le Docker disponible.
 Il ne faut pas déduire son résultat 1979 des cinq premières années.
+
+## Décision finale : trois 20×10 et promotion du défaut (30/10/2026)
+
+Les trois variantes ont chacune **40/40 parties saines**, 20 graines
+canoniques communes, 1970–1979, 10 points annuels par politique et par
+compagnie, paramètres `estim_unifie=31`, `eb14_progressive=3`, `probes=2`,
+8 workers et SHA source/manifeste conformes aux qualifications 40×5 figées.
+La session Docker exclusive `52644` a terminé le dernier duel à 11:07:18.
+Le seul critère de classement 10 ans est
+`100 × moyenne20(profit_year OpexAI 1979-12-01) /
+moyenne20(profit_year AAAHogEx-115 1979-12-01)`, les deux moyennes provenant
+**du propre duel** de la variante. Aucun veto valeur, Wilcoxon, IC95 ou
+`gain_short` n'a été appliqué.
+
+| Rang 10 ans | Variante (rang 40×5) | Ratio 40×5 | Ratio 20×10 | Opex 1979 £/an | AAA 1979 £/an | SHA source 20×10 |
+|---:|---|---:|---:|---:|---:|---|
+| **1** | **V161 AIR2,00/RAIL0,75, N1 (3e)** | 103,798667198 % | **66,557726256 %** | 4 255 528,00 | 6 393 740,05 | `15078ee31b595f31c9deb054de58cd88edeb72ed9e1eafc9b03463535a28f879` |
+| 2 | V161 AIR2,50/RAIL0,75, N1 (2e) | 105,171758309 % | 65,921947052 % | 4 225 862,90 | 6 410 403,65 | `10d21056814b32f8672db28c7d6016538904ae335e1fa7c22bef0dfbd00527ec` |
+| 3 | V161 AIR2,00/RAIL0,75 × C121 N1/N2 (1er) | 106,062928693 % | 65,188575006 % | 4 290 978,40 | 6 582 408,65 | `183187e6b60f442edf3f0ea7eaa556cfccb4729aed185f1ddf12298e242711c9` |
+
+**Élu : `v161/mix_a200_r075_w15_slope`**, malgré sa troisième place à
+cinq ans. Les dénominateurs AAAHogEx sont différents entre campagnes ; la
+comparaison ne suppose pas une reproductibilité inter-campagnes parfaite.
+
+### Trajectoire annuelle : ratio des deux moyennes de profit (même duel)
+
+| 1er décembre | V161 AIR2,00, élu | V161 AIR2,50 | V161 × N1/N2 |
+|---:|---:|---:|---:|
+| 1970 | 117,98 % | 117,98 % | 125,77 % |
+| 1971 | 129,72 % | 130,20 % | 138,39 % |
+| 1972 | 131,56 % | 129,83 % | 141,94 % |
+| 1973 | 113,90 % | 113,10 % | 115,47 % |
+| 1974 | 103,24 % | 102,92 % | 106,37 % |
+| 1975 | 88,88 % | 87,64 % | 94,26 % |
+| 1976 | 80,80 % | 77,72 % | 83,91 % |
+| 1977 | 73,62 % | 71,84 % | 75,54 % |
+| 1978 | 70,47 % | 68,95 % | 70,07 % |
+| 1979 | **66,56 %** | 65,92 % | 65,19 % |
+
+Source détaillée : `docs/estim31_top3_decade_trajectory_20261030.json`,
+analyse de santé/provenance : `docs/estim31_top3_20x10_20261030.json`.
+Les trois variantes dominent relativement AAA tôt puis décrochent après
+1974–1975 ; le gagnant conserve une trésorerie importante en 1979.
+
+### Comptes PLYR 1979 réellement constatés et bilan physique
+
+Chaque catégorie PLYR vient des **40 sauvegardes finales par campagne**,
+vérifiées par SHA, sur les écritures 1979 YTD du 1er décembre.
+
+| Poste moyen OpexAI 1979 | V161 AIR2,00 élu | V161 AIR2,50 | V161 × N1/N2 |
+|---|---:|---:|---:|
+| Construction, tous modes (£) | 60 677,45 | 34 087,50 | 12 114,50 |
+| Véhicules neufs **nets des ventes**, tous modes (£) | 167 348,70 | 215 174,25 | 232 734,25 |
+| Autres, dont actions municipales (£) | 77 715,25 | 78 043,00 | 21 566,50 |
+| Recettes AIR, valeur absolue (£) | 3 578 481,75 | 3 557 309,40 | 3 631 907,45 |
+| Recettes RAIL, valeur absolue (£) | 799 231,15 | 772 293,95 | 783 915,65 |
+| Exploitation AIR (£) | 370 912,00 | 372 329,10 | 376 008,50 |
+| Exploitation RAIL (£) | 70 229,90 | 68 108,35 | 65 795,40 |
+| Trésorerie au 01/12/1979 (£) | 14 742 506,80 | 14 601 760,80 | 16 072 476,05 |
+| Prêt restant (£) | 0 | 0 | 0 |
+| Stock avions | 84,25 | 82,70 | 84,95 |
+| Stock trains | 29,55 | 29,20 | 27,95 |
+| Aéroports | 34,30 | 34,05 | 34,90 |
+| Villes à aéroport | 33,75 | 33,40 | 34,10 |
+| Moteur 223 : **stock survivant** | 15,75 | 15,60 | 15,35 |
+| Moteur 228 : **stock survivant** | 6,80 | 8,05 | 0,60 |
+| Moteur 220 : **stock survivant** | 0,55 | 0,70 | 7,05 |
+
+Ces nombres 223/228/220 sont des **stocks physiques**, pas des achats
+bruts. Les achats de véhicules PLYR sont **nets des ventes**, non ventilés
+par AIR/RAIL et non assimilables à une dépense brute par moteur. Le poste
+« Autres » n'est pas attribuable entièrement aux statues. Les opcodes
+observés ne sont pas le CPU total (`observed_opcode_complete_cpu=false`).
+Sources : `docs/estim31_ten_v161_accounts_1979_20261030.json`,
+`docs/estim31_ten_v161a250_accounts_1979_20261030.json`,
+`docs/estim31_ten_motorcap_accounts_1979_20261030.json`.
+
+### Promotion du défaut et contrôle technique
+
+**Nouveau défaut public installé dans le worktree isolé**
+`experiments/estim31-default-promotion-20261030` :
+`estim_unifie=31`, `eb14_progressive=3`, `probes=2`, priors AIR=2,00,
+RAIL=0,75, poids=15, profil RAIL incliné, renfort V161 du même moteur,
+scan moteur C121 exhaustif N1 (pas la variante N1/N2), V249=2, EB2=0,
+charge AIR min=0. Les anciens réglages `0` restent accessibles par
+sélection explicite. Le promoteur unique
+`sweeps/estim31_promote_default_20261030.py` a installé 31 fichiers OpexAI
+différents du dépôt de départ et quatre archives NoAI ; ils sont comparés
+octet pour octet au bundle source **effectivement exécuté** en 20×10,
+hormis `info.nut` où seuls trois réglages publics et leur description
+changent. Le rapport est `docs/estim31_default_promotion_20261030.json`.
+
+`docs/estim31_default_c121_verified_20261030.json` atteste que les deux
+fonctions C121 historiques OFF sont identiques au Git de référence, et que
+le nouveau dispatcher sous ESTIM ne s'arrête pas sur la borne économique
+non prouvée et ne court-circuite pas le scan par `C121_GE`. Les anciens
+chemins restent accessibles sous `estim_unifie=0`. Deux vrais Save/Load
+seed999 (d'abord `OpexAI` **sans options**, puis
+`OpexAI[estim_unifie=31,eb14_progressive=3,probes=2]`) ont produit
+les sauvegardes et le marqueur de reprise `LOAD_RECONCILE` ; une compagnie
+fantôme propre au harnais apparaît au rechargement, donc pas de prétention
+à une parité stochastique bit à bit. Les tests ciblés de promotion/C121
+passent (12 tests). Le registre de tests historiques inclut des attentes
+sur les **anciens défauts à 0** et des instantanés de source historiques,
+incompatibles par construction avec cette promotion : les échecs éventuels
+de cette suite sont à distinguer des tests du nouveau défaut et à documenter.
+
+La publication du commit sur `origin/master` doit être confirmée par un
+push normal (sans `--force`) depuis le worktree isolé : ne jamais écraser
+le `master` local sale ou les modifications d'autres agents.

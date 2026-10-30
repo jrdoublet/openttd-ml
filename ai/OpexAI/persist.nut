@@ -589,6 +589,125 @@ function OpexAI::_refreshSaveProjection()
   this._saveProjection = cache;
 }
 
+/* EB-14: completed RAIL bands are useful evidence, but their projects live only
+ * in _projects (which Save never serializes). Never use this journal to skip a
+ * producer after Load: published opportunities MUST be re-estimated first.
+ * All work needed to build this small, bounded table happens outside Save(). */
+const EB14_RAIL_JOURNAL_VERSION = 1;
+const EB14_RAIL_JOURNAL_MAX_UNITS = 128;
+const EB14_RAIL_JOURNAL_MAX_KEY = 96;
+/* As with OPEX_RELOAD_C121_STRATEGY above, the NoAI process owns one AI. Keep
+ * these slots here so the frozen main.nut PO01D path remains byte-identical. */
+EB14_RAIL_JOURNAL_STATE <- null;
+EB14_RAIL_JOURNAL_RELOAD <- null;
+
+function OpexEB14JournalNew()
+{
+  return { version = EB14_RAIL_JOURNAL_VERSION, diagnosticOnly = true,
+      observed = {}, dropped = 0 };
+}
+
+function OpexEB14JournalUnitKey(kind, cargo, low, high)
+{
+  if (typeof kind != "string" || (kind != "pax" && kind != "freight" && kind != "v233")
+      || typeof cargo != "integer" || cargo < 0
+      || typeof low != "integer" || low < 0
+      || typeof high != "integer" || high < low) return null;
+  local key = kind + "|" + cargo + "|" + low + "|" + high;
+  return key.len() <= EB14_RAIL_JOURNAL_MAX_KEY ? key : null;
+}
+
+/* Each checkpoint records only a FINISHED band and the C76 snapshot at which
+ * it was scanned; never the coroutine, candidate payloads, current selection,
+ * or a claimed resume cursor. This hook may be called after EB14_RAIL band_done. */
+function OpexEB14JournalRecordUnit(owner, unit, snapshot, produced, admitted)
+{
+  if (!EB14_PROGRESSIVE || owner == null || unit == null || snapshot == null
+      || typeof unit != "table" || typeof snapshot != "table"
+      || !("kind" in unit) || !("cargo" in unit) || !("low" in unit)
+      || !("high" in unit) || typeof produced != "integer" || produced < 0
+      || typeof admitted != "integer" || admitted < 0 || admitted > produced) return false;
+  local key = OpexEB14JournalUnitKey(unit.kind, unit.cargo, unit.low, unit.high);
+  if (key == null) return false;
+  local rev = [];
+  foreach (field in ["towns", "industries", "lines", "engines_rail", "engines_road",
+                     "engines_air", "engines_water"]) {
+    if (!(field in snapshot) || typeof snapshot[field] != "integer"
+        || snapshot[field] < 0) return false;
+    rev.append(snapshot[field]);
+  }
+  if (EB14_RAIL_JOURNAL_STATE == null) EB14_RAIL_JOURNAL_STATE = OpexEB14JournalNew();
+  local journal = EB14_RAIL_JOURNAL_STATE;
+  if (!(key in journal.observed) && journal.observed.len() >= EB14_RAIL_JOURNAL_MAX_UNITS) {
+    if (journal.dropped < 2147483647) journal.dropped++;
+    return false;
+  }
+  local prior = key in journal.observed ? journal.observed[key] : null;
+  local count = prior == null ? 1
+      : (prior.scans >= 2147483647 ? 2147483647 : prior.scans + 1);
+  journal.observed.rawset(key, { kind = unit.kind, cargo = unit.cargo,
+      low = unit.low, high = unit.high, date = AIDate.GetCurrentDate(),
+      produced = produced, admitted = admitted, scans = count, revisions = rev });
+  return true;
+}
+
+/* Load() precedes OpexLoadSettings() and forbids world checks. Strictly
+ * validate/copy the complete primitive graph here; reject malformed saves
+ * atomically and let PO01C regenerate from scratch. */
+function OpexEB14JournalDecode(data)
+{
+  if (data == null || typeof data != "table"
+      || !("version" in data) || data.version != EB14_RAIL_JOURNAL_VERSION
+      || !("diagnosticOnly" in data) || data.diagnosticOnly != true
+      || !("observed" in data) || typeof data.observed != "table"
+      || data.observed.len() > EB14_RAIL_JOURNAL_MAX_UNITS
+      || !("dropped" in data) || typeof data.dropped != "integer"
+      || data.dropped < 0) return null;
+  local journal = OpexEB14JournalNew();
+  journal.dropped = data.dropped;
+  foreach (key, row in data.observed) {
+    if (typeof key != "string" || key.len() > EB14_RAIL_JOURNAL_MAX_KEY
+        || typeof row != "table") return null;
+    foreach (field in ["kind", "cargo", "low", "high", "date", "produced",
+                       "admitted", "scans", "revisions"])
+      if (!(field in row)) return null;
+    if (OpexEB14JournalUnitKey(row.kind, row.cargo, row.low, row.high) != key
+        || typeof row.date != "integer" || row.date < 0
+        || typeof row.produced != "integer" || row.produced < 0
+        || typeof row.admitted != "integer" || row.admitted < 0
+        || row.admitted > row.produced
+        || typeof row.scans != "integer" || row.scans < 1
+        || typeof row.revisions != "array" || row.revisions.len() != 7) return null;
+    local copyRev = [];
+    foreach (revision in row.revisions) {
+      if (typeof revision != "integer" || revision < 0) return null;
+      copyRev.append(revision);
+    }
+    journal.observed.rawset(key, { kind = row.kind, cargo = row.cargo,
+        low = row.low, high = row.high, date = row.date,
+        produced = row.produced, admitted = row.admitted, scans = row.scans,
+        revisions = copyRev });
+  }
+  return journal;
+}
+
+function OpexAI::_reconcileEB14JournalAfterLoad()
+{
+  local raw = EB14_RAIL_JOURNAL_RELOAD;
+  EB14_RAIL_JOURNAL_RELOAD = null;
+  if (!EB14_PROGRESSIVE) {
+    EB14_RAIL_JOURNAL_STATE = null;
+    return;
+  }
+  EB14_RAIL_JOURNAL_STATE = OpexEB14JournalDecode(raw);
+  if (EB14_RAIL_JOURNAL_STATE == null) EB14_RAIL_JOURNAL_STATE = OpexEB14JournalNew();
+  /* No published project/ticket is recovered by this schema. All rail units
+   * remain due; the historical PO01C/C76 reload reconstruction stays enabled. */
+  if (DECISION_LOG) OpexDecide("EB14_RELOAD",
+      "journal_units=" + EB14_RAIL_JOURNAL_STATE.observed.len()
+      + " dropped=" + EB14_RAIL_JOURNAL_STATE.dropped + " replay_required=1");
+}
+
 function OpexAI::Save()
 {
   if (PO01C_REGEN_SPLIT && DECISION_LOG && this._po01cJob != null)
@@ -632,6 +751,8 @@ function OpexAI::Save()
       shortSave.v259Queue <- OpexV259SaveQueue(this._v259Queue);
     }
     if (this._v292LastHqTryYear >= 0) shortSave.v292LastHqTryYear <- this._v292LastHqTryYear;
+    if (EB14_PROGRESSIVE && EB14_RAIL_JOURNAL_STATE != null)
+      shortSave.eb14RailJournal <- EB14_RAIL_JOURNAL_STATE;
     if (DECISION_LOG && startOps != null) {
       local endOps = AIController.GetOpsTillSuspend();
       local opsSpent = startOps - endOps;
@@ -737,6 +858,8 @@ function OpexAI::Save()
     saveObj.v259Queue <- OpexV259SaveQueue(this._v259Queue);
   }
   if (this._v292LastHqTryYear >= 0) saveObj.v292LastHqTryYear <- this._v292LastHqTryYear;
+  if (EB14_PROGRESSIVE && EB14_RAIL_JOURNAL_STATE != null)
+    saveObj.eb14RailJournal <- EB14_RAIL_JOURNAL_STATE;
   if (DECISION_LOG && startOps != null) {
     local endOps = AIController.GetOpsTillSuspend();
     local opsSpent = startOps - endOps;
@@ -760,6 +883,10 @@ function OpexAI::Load(version, data)
   this._po01cPending = false;
   this._po01cLineState = null;
   this._po01cLastTick = -1;
+  EB14_RAIL_JOURNAL_STATE = null;
+  /* Settings are not loaded yet: defer EB-14 ON/OFF decision until Start(). */
+  EB14_RAIL_JOURNAL_RELOAD = data != null && ("eb14RailJournal" in data)
+      ? data.eb14RailJournal : null;
   /* C78 repart d'un scan neuf apres Load : ne jamais rouvrir une attente P6
    * active lors du Save et ainsi depasser le budget de ticks initial. */
   this._p6FirstlineWindow = null;
@@ -959,6 +1086,7 @@ function OpexAI::_reconcileAfterLoad()
   }
   this._lines = liveLines;
   if (V279_RESELECT_MEMO != 0) OPEX_LINES_REVISION++;
+  this._reconcileEB14JournalAfterLoad();
   OpexV257Reconcile(this);
   if (V284_RAIL_GROWTH > 0 || V233_LONG_GOOD > 0) OpexV284Reconcile(this);
   if (V233_LONG_GOOD > 0) OpexV233LReconcile(this);

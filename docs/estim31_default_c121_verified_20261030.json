@@ -1,0 +1,12 @@
+{
+  "historical_functions_byte_identical_to_git": {
+    "OpexC121ChooseRoutePlane": "48328e41968ae2269c0dabb5449a0ea6e7c3cc1733dde97460fd8958c20a1e36",
+    "OpexC121ScanRoutePlaneEngines": "f7ae959183d19459de6f6b79ec77127460de536f2f88fb09b97d1e3b74a20052"
+  },
+  "ESTIM_bit1_only_dispatch": true,
+  "historical_GE_disabled_under_ESTIM": true,
+  "no_unproven_economic_upperScore_pruning": true,
+  "fleet_bound": "N1 physical only",
+  "limitations": "Static source audit only; does not count physical engine purchases",
+  "baseline_commit": "99f29d9c"
+}

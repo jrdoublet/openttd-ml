@@ -900,6 +900,12 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSel
    * les modes. Le budget fourni represente la caisse mobilisable. */
   local fittedAlternatives = [];
   foreach (project in alternatives) {
+    /* Final selection fence: a cached C121/PO01C rail pax project may have
+     * been produced before the opt-in filter. Never fund its construction. */
+    if (PAX_AIR_FIRST_RAIL_OFF && project != null
+        && project.mode == "rail" && project.kind == "pax") continue;
+    if (PAX_AIR_FIRST_FEEDER_ONLY && project != null
+        && project.mode == "road" && project.kind == "pax") continue;
     local fitMark = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
     local fitted = OpexProjectFitFleetToBudget(project, capitalBudget);
     if (R1_R3_TEST_ONLY) fitted = OpexR1R3FitTrace(project, fitted, capitalBudget);
@@ -1628,6 +1634,16 @@ function OpexReselectProjects(projects, capitalBudget, abandonedPairs = null, li
   alternatives = (V279_RESELECT_MEMO != 0)
       ? OpexFilterAirAlternativesV279Memo(alternatives, abandonedPairs, lines)
       : OpexFilterAirAlternativesStillValid(alternatives, abandonedPairs, lines);
+  /* EB-14 publie RAIL directement dans candidateGroups. Ce parcours de
+   * re-selection (contrairement a OpexBuildProjects) doit proteger la
+   * premiere liaison AIR : publier un RAIL ne lui donne pas le droit de
+   * consommer sa tresorerie avant la premiere construction AIR. */
+  if (EB14_PROGRESSIVE && MODE_AIR && C121_CATALOG_FIRST_YEAR_ACTIVE) {
+    local airFirst = [];
+    foreach (project in alternatives)
+      if (project.mode == "air") airFirst.append(project);
+    alternatives = airFirst;
+  }
   if (spPubFilt != null) OpexSpanEnd(spPubFilt);
   local spPubScore = PROBE_SPAN_TRACE ? OpexSpanBegin("pub.select.score") : null;
   funded = OpexProjectSelectAffordable(alternatives, capitalBudget, PROJECT_TOP_K, true, abandonedPairs);
@@ -1669,6 +1685,8 @@ function OpexReselectProjects(projects, capitalBudget, abandonedPairs = null, li
   OpexProjectsStampSelectionStats(projects.stats, projects, alternatives, funded, capitalBudget, null);
 
   projects.best = funded;
+  if (EB14_PROGRESSIVE && DECISION_LOG && DEBUG_SIGNS)
+    OpexEB14RailTraceSelection(funded);
   if ((MODE_AIR && MODE_RAIL) && railReadyStock != null) {
     if ("railReadyStock" in projects) projects.railReadyStock = railReadyStock;
     else projects.railReadyStock <- railReadyStock;

@@ -305,7 +305,10 @@ function OpexAI::_tryBuildFleetProject(year, project, rank, passDiscards, builtK
                         project, i, -1, -1, builtKeys) : null;
   if (airF1Event != null) OpexAirF1Ready(airF1Event);
   for (local k = 0; k < entry.want; k++) {
-    local grown = OpexAirAddPlane(line, this._catalog, this._lines);
+    /* The revalidated V161 quote explicitly names its live engine. */
+    local locked = ((ESTIM_UNIFIE & 1) != 0 && ("v161Engine" in entry))
+        ? entry.v161Engine : null;
+    local grown = OpexAirAddPlane(line, this._catalog, this._lines, locked);
     if (R1_R3_TEST_ONLY) OpexR1R3Log("mechanism=R1 phase=api_result id="
         + (("r1r3Id" in project) ? project.r1r3Id : "unknown")
         + " pass=" + R1_R3_TEST_PASS + " cycle=" + this._taskCycle + " rank=" + i
@@ -832,6 +835,8 @@ function OpexAI::_c39LogProjectBuilt(key, mode, rank, railSearchFlag)
  * boucle appelante (break/continue non deplaces). Appele une fois par construction. */
 function OpexAI::_recordPortfolioProjectBuilt(project, rank, c75BuiltKeys, c69BuiltProjects)
 {
+  if (EB14_PROGRESSIVE && DECISION_LOG && project != null && project.mode == "rail")
+    OpexEB14RailTraceProject(project, "built", rank, this._nextLineId - 1);
   /* Autopsie C115/C121 : tracer UNE premiere construction de nouvelle ligne AIR,
    * uniquement APRES son succes physique. Ainsi aucune allocation, boucle ou chaine de
    * diagnostic ne peut modifier la decision que ce snapshot cherche a expliquer. Les
@@ -972,6 +977,11 @@ function OpexAI::_consumeResumableRailAtPassStart(year, passDiscards, c49Best, c
   }
   this._railSearch = null;
   if (outcome != "built") return false;
+  if (EB14_PROGRESSIVE && DECISION_LOG && railCandidate != null
+      && ("eb14Low" in railCandidate)) {
+    local eb14Project = { payload = railCandidate };
+    OpexEB14RailTraceProject(eb14Project, "built", -1, this._nextLineId - 1);
+  }
   c75BuiltKeys[OpexC69AttemptKey(railCandidate)] <- true;
   c69BuiltProjects.append(railCandidate);
   if (C50_CHRONOLOGY_PROBE && railCandidate != null) {
@@ -1730,7 +1740,10 @@ function OpexAI::_rebuildProjects(fleetPlan, airOverride = null, advanceStage = 
     local yearNow = AIDate.GetYear(AIDate.GetCurrentDate());
     if (this._generationStageMonth < 0)
       this._generationStageMonth = yearNow * 12 + AIDate.GetMonth(AIDate.GetCurrentDate());
-    C121_CATALOG_FIRST_YEAR_ACTIVE = yearNow == (this._generationStageMonth - 1) / 12 && OpexV293AirEngineBuildable();
+    C121_CATALOG_FIRST_YEAR_ACTIVE = yearNow == (this._generationStageMonth - 1) / 12
+        && OpexV293AirEngineBuildable()
+        && !(EB14_PROGRESSIVE && this._airBuilt
+            && !(EB14_AIR_ROAD_YEAR_GUARD && MODE_ROAD));
   }
   /* B6/06.11 : conserver le vivier cache uniquement comme oracle passif. Le
    * rebuild normal reste l'unique producteur du nouveau portefeuille. */

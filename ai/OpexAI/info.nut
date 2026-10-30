@@ -96,13 +96,13 @@ class OpexAIInfo extends AIInfo {
     /* --- 1. Systeme et instrumentation --- */
 
     /* V167 : un seul entier pilote panneaux, journal et sondes (somme de bits, voir settings.nut).
-     * Defaut publication 0 = carte vierge ; les harnais injectent probes=2. */
+     * Defaut public 2 = panneaux ; valeur identique aux duels 20x10 de promotion. */
     AddSetting({
       name = "probes",
-      description = "Diagnostics bitmask (signed 31 bits): 0 none (default), 1 all, 2 signs, 4 legacy log, 8/16/32/64/128 legacy groups, 256 decision log only, 512..1073741824 individual channels (see docs/audit_sondes_20261022.md); groups also enable decision log; 67108864 V309 idle needs +256 for logs (67109120)",
+      description = "Diagnostics bitmask (signed 31 bits): 0 none, 2 signs (default), 1 all, 2 signs, 4 legacy log, 8/16/32/64/128 legacy groups, 256 decision log only, 512..1073741824 individual channels (see docs/audit_sondes_20261022.md); groups also enable decision log; 67108864 V309 idle needs +256 for logs (67109120)",
       min_value = 0, max_value = 2147483647,
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
+      easy_value = 2, medium_value = 2, hard_value = 2,
+      custom_value = 2,
       flags = 0
     });
 
@@ -216,10 +216,10 @@ class OpexAIInfo extends AIInfo {
     });
     AddSetting({
       name = "estim_unifie",
-      description = "ESTIM-1: 1 revenue, 2 cash, 4 marginal operations, 8 physical primitives, 16 distance-dependent RAIL revenue and score cost; 0 = historical (default)",
+      description = "ESTIM-1: 1 revenue, 2 cash, 4 marginal operations, 8 physical primitives, 16 distance-dependent RAIL revenue and score cost; 0 = historical, 31 = default",
       min_value = 0, max_value = 31,
-      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
-      default_value = 0, step_size = 1, flags = 0
+      easy_value = 31, medium_value = 31, hard_value = 31, custom_value = 31,
+      default_value = 31, step_size = 1, flags = 0
     });
     AddSetting({
       name = "dist_bornes_unified",
@@ -227,6 +227,13 @@ class OpexAIInfo extends AIInfo {
       min_value = 0, max_value = 1,
       easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
       default_value = 0, step_size = 1, flags = 0
+    });
+    AddSetting({
+      name = "eb14_progressive",
+      description = "EB-14: 0=off, 3=default, 1=progressive AIR/RAIL, 2=C121 AIR-first with ROAD, 3=EB-3 RAIL pool prefetch in 1970 after first AIR (AIR purchases first)",
+      min_value = 0, max_value = 3,
+      easy_value = 3, medium_value = 3, hard_value = 3, custom_value = 3,
+      default_value = 3, step_size = 1, flags = 0
     });
 
     AddSetting({
@@ -668,6 +675,11 @@ class OpexAIInfo extends AIInfo {
       easy_value = 1, medium_value = 1, hard_value = 1,
       custom_value = 1, flags = 0, step_size = 1
     });
+    AddSetting({ name = "pax_air_first",
+      description = "PAX-AIR-FIRST experimental bits: 1 = suppress new ordinary RAIL passenger lines with AIR; 2 = drop AIR pax economic bounds; 4 = experimental exclusive AIRPORT feeder RAIL/ROAD, no ordinary pax surface projects; 0 = historical (default)",
+      min_value = 0, max_value = 7, step_size = 1,
+      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
+      flags = 0 });
     AddSetting({ name = "air_load_min_pct",
       description = "AIR-LOAD-1: minimum AIR load for fleet growth (0=off; 6 completed legs required, last 12 legs)",
       min_value = 0, max_value = 100, step_size = 5,

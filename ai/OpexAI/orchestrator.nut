@@ -642,7 +642,14 @@ function OpexAI::_dispatchReactiveIntention(intention)
      * AISubsidy.GetExpireDate est le dernier jour valide de l'offre non attribuee.
      * Ne plus reenfiler des ce jour : aucun chantier ne peut alors finir a temps.
      * Verifier aussi c77_build si l'offre expire apres son injection. */
-    if (C77_INTENT_DEFER_SUBSIDY && PO01C_REGEN_SPLIT && (this._po01cJob != null || this._po01cPending))
+    /* EB-14 : une intention de construction peut utiliser un projet deja
+     * publie et revalide pendant que le scan RAIL finit les autres bandes.
+     * L'absence de portefeuille / un autre worker restent bloquants, ainsi
+     * que les subventions dont les contraintes temporelles sont distinctes. */
+    if (C77_INTENT_DEFER_SUBSIDY && PO01C_REGEN_SPLIT
+        && (this._po01cJob != null || this._po01cPending)
+        && !(EB14_PROGRESSIVE && intention.kind == "c77_build"
+            && this._projects != null && this._activeWorker == null))
       blocked = true;
     if (C77_INTENT_DEFER_SUBSIDY && ("subsidyId" in deferPayload) && deferPayload.subsidyId >= 0) {
       local deferSubId = deferPayload.subsidyId;
@@ -994,6 +1001,17 @@ function OpexAI::_c77InjectSubsidy(subId)
  */
 function OpexAI::_runOrchestratorTick()
 {
+  /* EB-14 : lancer une seule passe RAIL privee apres le premier portefeuille.
+   * La regeneration initiale a deja acquitte C76 : la demande doit donc
+   * partir du tick suivant, sinon elle serait effacee par l'acquittement. */
+  if (EB14_PROGRESSIVE && PO01C_REGEN_SPLIT && MODE_RAIL
+      && !EB14_INITIAL_RAIL_JOB && this._projects != null
+      && this._c76Revisions != null && this._c76AckRevisions != null) {
+    EB14_INITIAL_RAIL_JOB = true;
+    this._c76BumpLayer("rail");
+    this._po01cPending = true;
+    if (DECISION_LOG) OpexDecide("EB14_START", "mode=rail reason=first_portfolio");
+  }
   if (V233_LONG_GOOD > 0) OpexV233LTick(this);
   /* Shared by normal and profiled loops; once per tick, before other workers
    * consume the remaining opcodes. No queue entry and no work while idle. */

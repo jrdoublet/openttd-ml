@@ -215,7 +215,8 @@ function OpexRoadTraceHitsStop(trace, stopTile)
  * vitesse qui oscille sans jamais avancer (RV/RQ) -- il ne peut litteralement pas monter sur
  * "front", quel que soit le nombre d'annees. Chaque site candidat doit donc AUSSI poser ce bit
  * manquant avec BuildRoad(front, tile) avant BuildRoadDepot -- cf. OpexBuildRoadRoute. */
-function OpexRoadFindDepot(trace, stopA, stopB, driveThrough = false)
+function OpexRoadFindDepot(trace, stopA, stopB, driveThrough = false,
+                           excludedSites = null, excludedFronts = null)
 {
   local offsets = [[1, 0], [-1, 0], [0, 1], [0, -1]];
   local seen = {};
@@ -243,6 +244,7 @@ function OpexRoadFindDepot(trace, stopA, stopB, driveThrough = false)
     foreach (front in fronts) {
       if (front in seen) continue;
       seen.rawset(front, true);
+      if (excludedFronts != null && front in excludedFronts) continue;
       /* Mesure du 2026-08-28 : meme apres avoir evite que le trace ne traverse le CORPS d'un
        * arret (OpexRoadTraceHitsStop), la premiere facade du trace est TOUJOURS siteA.front (le
        * trace commence toujours la), donc sans ce filet le depot s'y accroche systematiquement --
@@ -266,6 +268,9 @@ function OpexRoadFindDepot(trace, stopA, stopB, driveThrough = false)
         local y2 = y + offset[1];
         if (!OpexRoadInMap(x2, y2)) continue;
         local tile = AIMap.GetTileIndex(x2, y2);
+        /* Feeder-only recovery may exclude a depot whose frontage was
+         * occupied when actually built. Default null keeps ROAD unchanged. */
+        if (excludedSites != null && tile in excludedSites) continue;
         if (OpexRoadIsForbidden(tile, stopA, stopB)) continue;
         if (tile in onTrace) continue;      // cf. le commentaire ERR_AREA_NOT_CLEAR ci-dessus
         if (!OpexRoadIsFlat(tile)) continue;

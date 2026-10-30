@@ -100,6 +100,7 @@ function OpexV276Published(catalog, kind = null, id = -1)
 function OpexV276AddUnits(units, catalog, pax)
 {
   if (pax) {
+    if (PAX_AIR_FIRST_RAIL_OFF) return;
     units.append({ mode = "rail", cargo = catalog.paxCargo, pax = true, band = PAX_BAND_AIR_RAIL });
     units.append({ mode = "rail", cargo = catalog.paxCargo, pax = true, band = PAX_BAND_RAIL_ONLY });
   } else {
@@ -193,6 +194,7 @@ function OpexV276Evaluate(s, u, a, b, lines, abandonedPairs, budget)
   local catalog = clone s.catalog;
   local out = [];
   if (u.mode == "rail" && !MODE_RAIL) return out;
+  if (u.pax && PAX_AIR_FIRST_RAIL_OFF) return out;
   if (u.mode == "road" && (!MODE_ROAD || !ROAD_BUILD_ENABLED)) return out;
   if (u.pax) {
     catalog.towns = a < b ? [s.catalog.towns[a], s.catalog.towns[b]]
@@ -318,6 +320,10 @@ function OpexV276Enumerate(s, u, mark, opsBudget, startTick, deadlineTick)
           && s.catalog.bounds.distBornesV269Relaxed
           && V269_RAIL_MAX_DIST > s.catalog.bounds.railMax) {
         if (distance < s.catalog.bounds.railMin || distance > V269_RAIL_MAX_DIST) continue;
+      } else if (!u.pax && PAX_AIR_FIRST_RAIL_OFF) {
+        /* The shared historical helper is named RailPax but also screens
+         * freight here. Preserve the exact freight window under PAX veto. */
+        if (distance < s.catalog.bounds.railMin || distance > s.catalog.bounds.railMax) continue;
       } else if (!OpexRailPaxPairInBand(s.catalog.bounds, distance, u.band)) continue;
     }
     if (u.mode == "road" && !OpexRoadDistanceAllowed(s.catalog, distance, c.roadStats)) continue;

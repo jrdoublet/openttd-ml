@@ -311,6 +311,19 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
             "line=" + this._nextLineId + " profit=" + buildPlan.economics.profitAnnual + " cost=" + buildPlan.capital
             + " stA=" + AIStation.GetStationID(result.stationA) + " stB=" + AIStation.GetStationID(result.stationB));
         this._airBuilt = true;
+        /* La premiere liaison AIR est deja batie : sous EB-14, permettre au
+         * stock RAIL publie en arriere-plan de concurrencer les achats suivants. */
+        if (EB14_PROGRESSIVE) {
+          /* Ablation ROUTE : la garde C121 du temoin dure jusqu'a fin de l'annee.
+           * Ne change ni OFF ni AIR/RAIL si le reglage est a zero. */
+          if (!(EB14_AIR_ROAD_YEAR_GUARD && MODE_ROAD))
+            C121_CATALOG_FIRST_YEAR_ACTIVE = false;
+          /* Le rail deja publie doit redevenir selectable au passage suivant. */
+          if (this._projects != null) {
+            if ("selectionStale" in this._projects) this._projects.selectionStale = true;
+            else this._projects.selectionStale <- true;
+          }
+        }
         OpexAir0310InvalidateSiteValidity();
         this._lines.append({
           stationA = result.stationA, stationB = result.stationB,
@@ -830,7 +843,8 @@ function OpexAI::_resizeAirFleets(year, plan = null)
         break;
       }
       local spAdd = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
-      local grown = OpexAirAddPlane(line, this._catalog, this._lines);
+      local locked = ((ESTIM_UNIFIE & 1) != 0) ? nextMargin.engine : null;
+      local grown = OpexAirAddPlane(line, this._catalog, this._lines, locked);
       if (spAdd != null) OpexSpanAgg("fleet.add_plane", spAdd);
       routesIndex = null;
       if (("reason" in grown) && (grown.reason == "REEEQUIP_WAIT" || grown.reason == "REPLACE" || grown.reason == "REEEQUIP_FAIL" || grown.reason == "REEEQUIP_ABORT")) {

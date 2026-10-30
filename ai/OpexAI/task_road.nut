@@ -1,4 +1,13 @@
 /* C65 : deplace depuis main.nut (passe 1, deplacement pur, aucun corps retouche). */
+/* Opt-in only: legacy execution never reaches this dedicated feeder. */
+require("airport_feeder.nut");
+require("airport_feeder_dispatch.nut");
+require("airport_feeder_depot.nut");
+require("airport_feeder_connector.nut");
+require("airport_feeder_siting.nut");
+require("airport_rail_feeder.nut");
+require("airport_rail_feeder_dispatch.nut");
+require("airport_feeder_telemetry.nut");
 /* C38 etape 2 : tentative synchrone route, y compris le siting vivant. */
 function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor, yy)
 {
@@ -9,6 +18,10 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
         return { outcome = "rejected", discards = passDiscards };
       }
       local candidate = project.payload;
+      /* A cached passenger project remains ordinary intercity ROAD, not an
+       * airport transfer. Only the dedicated joined-station feeder may run. */
+      if (PAX_AIR_FIRST_FEEDER_ONLY && candidate.kind == "pax")
+        return { outcome = "rejected", discards = passDiscards };
 
       local isSubsidy = ("isSubsidy" in candidate) && candidate.isSubsidy;
       if (isSubsidy) {
@@ -298,6 +311,19 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
  * (succes) ou RF|year|id|0|REASON (echec). */
 function OpexAI::_refleetRoadLines(year)
 {
+  /* Cleanup is NOT opt-in: disabling bit4 cannot strand previously recorded
+   * partial transactions or their vehicles after Save/Load. */
+  if (this._lines != null) {
+    OpexAirportRailFeederRecover(this);
+    OpexAirportFeederRecover(this);
+  }
+  if (PAX_AIR_FIRST_FEEDER_ONLY) OpexAirportFeederTryExisting(this, year);
+  if (PAX_AIR_FIRST_FEEDER_ONLY && DECISION_LOG)
+    OpexAirportFeederObserveFlows(this._lines, this._catalog.paxCargo);
+  /* RAIL has no joined-platform exposure in current smokes; let the BUS
+   * construction attempt use the remaining opcode headroom first. */
+  if (PAX_AIR_FIRST_FEEDER_ONLY && MODE_RAIL)
+    OpexAirportRailFeederTryExisting(this, year);
 
   local anchor = AIMap.GetTileIndex(1, 1);
   for (local i = 0; i < this._lines.len(); i++) {

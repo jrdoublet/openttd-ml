@@ -201,7 +201,7 @@ function OpexEstimRailRevenueFactor(distance)
   if (calibratedDistance > 250) calibratedDistance = 250;
   local profile = ESTIM_RAIL_KR_PROFILE_A + ESTIM_RAIL_KR_PROFILE_B * calibratedDistance;
   if (profile < 0.05) profile = 0.05;
-  return ESTIM_K_R.rail * profile / ESTIM_K_R_PRIOR.rail;
+  return ESTIM_K_R.rail * profile / 0.92; /* Le profil DUEL est centre sur 0.92, meme si le prior experimental change. */
 }
 
 /* ESTIM-1 bit 16 : corriger le capital RAIL pour le seul classement des

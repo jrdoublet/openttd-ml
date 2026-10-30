@@ -85,7 +85,7 @@ function OpexP3HasEngineUpgrade(line, catalog)
       && AIEngine.IsBuildable(candidate);
 }
 
-function OpexAirAddPlane(line, catalog = null, lines = null)
+function OpexAirAddPlane(line, catalog = null, lines = null, forcedEngine = null)
 {
   local result = { added = 0, reason = "" };
   if (!("vehicles" in line) || line.vehicles.len() == 0) {
@@ -110,8 +110,14 @@ function OpexAirAddPlane(line, catalog = null, lines = null)
   if (template == null) { result.reason = "NOLIVE"; return result; }
   local oldEngine = AIVehicle.GetEngineType(template);
   local targetEngine = oldEngine;
+  /* The marginal model prices a SAME-engine acquisition. Never mix a
+   * V252 suggested replacement into a verified V161 marginal purchase. */
+  if (forcedEngine != null && (forcedEngine != oldEngine
+      || !AIEngine.IsValidEngine(forcedEngine) || !AIEngine.IsBuildable(forcedEngine))) {
+    result.reason = "MARGINAL_ENGINE_STALE"; return result;
+  }
 
-  if (catalog != null) {
+  if (catalog != null && forcedEngine == null) {
     local candidate = OpexAirBestEngineForLine(line, catalog);
     if (candidate != null && candidate != oldEngine && AIEngine.IsBuildable(candidate)) {
       targetEngine = candidate;
@@ -273,8 +279,13 @@ function OpexV161NextMarginal(line, catalog, have, neighbours)
   local engineId = AIVehicle.GetEngineType(template);
   /* Changement V252 de moteur : le modele de n appareils identiques ne
    * chiffre pas le melange d'avions; cette transaction exige un autre devis. */
-  local upgrade = OpexAirBestEngineForLine(line, catalog);
-  if (upgrade != null && upgrade != engineId) return null;
+  /* Under this isolated ESTIM experiment, a profitable same-engine
+   * marginal growth can be priced without the unrelated V252 upgrade veto.
+   * Outside ESTIM the historical veto remains exactly as before. */
+  if ((ESTIM_UNIFIE & 1) == 0) {
+    local upgrade = OpexAirBestEngineForLine(line, catalog);
+    if (upgrade != null && upgrade != engineId) return null;
+  }
   if (!AIEngine.IsValidEngine(engineId) || !AIEngine.IsBuildable(engineId)) return null;
   local price = AIEngine.GetPrice(engineId);
   if (price <= 0) return null;

@@ -56,6 +56,17 @@ V269_ON <- false;
 DIST_BORNES_V276_FREIGHT <- false;
 /* DIST-BORNES-1 : table unique des fenetres modales, opt-in strictement OFF. */
 DIST_BORNES_UNIFIED <- false;
+/* EB-14 : vivier AIR/RAIL en tranches avec publication intermediaire ; OFF par defaut. */
+EB14_PROGRESSIVE <- false;
+/* Ablation EB-14 : garder C121 toute la premiere annee avec ROUTE ; OFF. */
+EB14_AIR_ROAD_YEAR_GUARD <- false;
+/* EB-3: pre-remplir le vivier RAIL en annee initiale, sans avancer les achats RAIL. */
+EB3_RAIL_FIRST_YEAR_PREFETCH <- false;
+EB14_INITIAL_RAIL_JOB <- false; // transitoire : le prochain Load repart d'une demande neuve.
+/* Trace EB14 strictement experimentale (EB14 + probes=258). Jamais sauvegardee. */
+EB14_TRACE_SIGN_COUNT <- 0;
+EB14_TRACE_SIGN_TYPES <- { E4 = 0, E5 = 0, E6 = 0 };
+EB14_TRACE_SELECTED <- {};
 /* V190 : lignes rail fret posees en double voie a sens unique des la construction. */
 V190_RAIL_DOUBLE_BUILD <- false;
 /* V197 : double voie guidee (outwardSide pour voie 1, guideTiles pour voie 2). */
@@ -370,9 +381,9 @@ C70_MODE_FACTOR <- { rail = 1.0, road = 1.0, air = 1.0, water = 1.0 };
  * (sweeps/estim_unifie_priors.py ; AIR = moyenne C121 des trois bras) ; WATER sans mesure.
  * Poids de l'a priori en annees-lignes : Bayes empirique AIR 9, RAIL 36, ROUTE 1 ; une valeur. */
 ESTIM_UNIFIE <- 0;
-ESTIM_K_R_PRIOR <- { rail = 0.92, road = 0.57, air = 0.40, water = 1.0 };
-ESTIM_K_R_PRIOR_WEIGHT <- 10.0;
-ESTIM_K_R <- { rail = 0.92, road = 0.57, air = 0.40, water = 1.0 };
+ESTIM_K_R_PRIOR <- { rail = 1.00, road = 0.57, air = 1.50, water = 1.0 };
+ESTIM_K_R_PRIOR_WEIGHT <- 15.0;
+ESTIM_K_R <- { rail = 1.00, road = 0.57, air = 1.50, water = 1.0 };
 /* ESTIM-1 bit 16 : profil RAIL fige par distance, recentre sur le prior global
  * rail 0.92. L'apprentissage en jeu conserve un seul facteur de niveau. */
 ESTIM_RAIL_KR_PROFILE_A <- 0.5722990662;
@@ -755,3 +766,8 @@ PO01C_REGEN_SPLIT <- true; // PO-01c : defaut adopte le 23/10
 C77_INTENT_DEFER <- true; // PO-03 : mode 2 adopte le 23/10
 C77_INTENT_DEFER_SUBSIDY <- true;
 const C77_INTENT_DEFER_DAYS = 365;
+
+/* PAX-AIR-FIRST : ablations independantes, strictement OFF par defaut. */
+PAX_AIR_FIRST_RAIL_OFF <- false;
+PAX_AIR_FIRST_AIR_UNBOUNDED <- false;
+PAX_AIR_FIRST_FEEDER_ONLY <- false;

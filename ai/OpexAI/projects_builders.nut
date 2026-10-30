@@ -95,6 +95,8 @@ function OpexProjectFromCandidate(candidate)
   if (candidate == null || candidate.profitAnnual <= 0 || candidate.revenueAnnual <= 0 ||
       candidate.capital <= 0) return null;
   local mode = candidate.mode;
+  if (PAX_AIR_FIRST_RAIL_OFF && mode == "rail" && candidate.kind == "pax") return null;
+  if (PAX_AIR_FIRST_FEEDER_ONLY && mode == "road" && candidate.kind == "pax") return null;
   local margin = 0;
   local expectedOps = 0;
   if (mode == "rail") {

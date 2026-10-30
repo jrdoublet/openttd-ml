@@ -657,6 +657,10 @@ function OpexRoadDistanceAllowed(catalog, distance, stats)
 
 function OpexAirPairInBand(catalog, manhattan, flightDistance, paxBand = PAX_BAND_ALL)
 {
+  if (PAX_AIR_FIRST_AIR_UNBOUNDED) {
+    return manhattan > 0 && flightDistance > 0
+        && (AIR_MAX_DISTANCE <= 0 || flightDistance <= AIR_MAX_DISTANCE);
+  }
   local b = OpexCatalogBounds(catalog);
   if (DIST_BORNES_UNIFIED)
     return OpexDistBornesAllows(OpexDistBornesWindow(b, "air", true, paxBand),
@@ -674,6 +678,7 @@ function OpexAirPairInBand(catalog, manhattan, flightDistance, paxBand = PAX_BAN
 
 function OpexRailPaxPairInBand(bounds, distance, paxBand)
 {
+  if (PAX_AIR_FIRST_RAIL_OFF) return false;
   if (DIST_BORNES_UNIFIED)
     return OpexDistBornesAllows(OpexDistBornesWindow(bounds, "rail", true, paxBand), distance);
   if (paxBand == PAX_BAND_AIR_RAIL) {
@@ -1127,6 +1132,14 @@ function OpexRoadFreightServedIndex(lines)
   local radius = ORIGIN_SEPARATION - 1;
   foreach (line in lines) {
     if (("mode" in line) && line.mode != "rail" && line.mode != "road") continue;
+    /* Opt-in airport passenger feeders (including incomplete recovery
+     * tickets) are NOT freight services. Their airport/town anchors must
+     * never reserve freight origins in PO01C's shared spatial index. */
+    if (("purpose" in line) && (
+        line.purpose == "airport_feeder"
+        || line.purpose == "airport_feeder_recovery"
+        || line.purpose == "airport_rail_feeder"
+        || line.purpose == "airport_rail_feeder_recovery")) continue;
     local origins = [line.originA, line.originB];
     foreach (origin in origins) {
       local ox = AIMap.GetTileX(origin);
@@ -1593,6 +1606,7 @@ function OpexBuildCandidates(catalog, budget, lines, abandonedPairs = null, prof
     generatePax = false;
     generateFreight = false;
   }
+  if (PAX_AIR_FIRST_RAIL_OFF) generatePax = false;
   local paxMark = profile != null ? OpexOpsMeasureBegin() : null;
   budget.begin();
   if (generatePax) {
@@ -2587,6 +2601,7 @@ function OpexGenerateSubsidyCandidates(catalog, lines, activeSubsidies, stats, a
 
     // Garde 4 : Production source et acceptation destination
     local isPax = AICargo.HasCargoClass(cargo, AICargo.CC_PASSENGERS);
+    if (isPax && PAX_AIR_FIRST_FEEDER_ONLY) continue;
     local kind = isPax ? "pax" : "freight";
     local monthlyProd = 0;
 
