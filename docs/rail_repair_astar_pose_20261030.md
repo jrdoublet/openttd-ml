@@ -123,3 +123,11 @@ en compte deja 85, et des empreintes de projection historiques.
 **Non realises :** compilation Squirrel, essai moteur reel, Save/Load reel,
 preuve d'OD reprise rentable, verification des debrits en carte et portes
 economiques. Les deux items restent **ouverts**.
+
+**Mise à jour de l'intégration :** un premier smoke a découvert une
+erreur de slot `astarRepairTried` absent dans le chemin stock C121.
+Après correctif et test de ses deux initialisations, le smoke moteur,
+la comparaison OFF/ON 1×1 et le Save/Load réel passent. Le 5×5 combiné
+est sain mais non significatif. Les preuves par OD, l'absence de débris
+sur cartes exposées et les réparations `STNFAIL/LOOPFAIL` restent en suspens.
+Voir [rapport commun](rail_repairs_integration_validation_20261030.md).

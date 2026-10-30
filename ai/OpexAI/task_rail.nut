@@ -1681,6 +1681,14 @@ function OpexAI::_startRailStockSearch(candidate, isRepair = false, repairReason
     repairReason = repairReason,
     coarseScore = coarseScore
   };
+  /* Le prechargement C121 cree lui aussi kind="primary", contrairement a
+   * _startRailSearch : il doit fournir les trois champs du secours A*.
+   * En OFF, le tableau reste identique a l'historique. */
+  if (RAIL_REPAIR_ASTAR_PAIR) {
+    this._railSearch.astarRepairTried <- false;
+    this._railSearch.astarFirstSpent <- 0;
+    this._railSearch.astarFirstReason <- "";
+  }
 
   this._activeWorker = {
     kind = "rail_stock",

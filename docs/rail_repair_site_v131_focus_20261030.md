@@ -103,3 +103,10 @@ est monte de 60 a 62 uniquement pour les deux controles publics.
 **Non realises par ce worker (interdiction Docker) :** compilation Squirrel,
 smoke moteur, verification physiquement causale, Save/Load reel, campagne
 5×5, portes A et B. Les deux items restent donc **ouverts**.
+
+**Mise à jour de l'intégration :** le smoke Squirrel 1×1, le Save/Load
+réel et le banc exploratoire 5×5 OFF/ON ont depuis été effectués sur la
+branche réunissant les cinq contrôles. Les résultats, dont un écart
+positif moyen non significatif, les problèmes de causalité et les tests
+sont rassemblés dans [la validation intégrée](rail_repairs_integration_validation_20261030.md).
+Les deux items restent ouverts faute de preuve de sauvetage rentable par OD.
