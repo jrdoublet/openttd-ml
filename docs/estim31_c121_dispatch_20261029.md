@@ -80,6 +80,53 @@ consommation CPU absolue. Les dépenses exactes et les rollbacks ne sont pas
 entièrement observables dans ce banc non intrusif ; ne pas assimiler les
 devis ou `air_vehicle_book_value` à des mouvements nets de trésorerie.
 
+**Rapprochement financier 1974 :** le résultat annuel moyen Opex passe de
+2 856 233 à 2 627 711 £, la variation de caisse entre décembre 1973 et
+décembre 1974 de **+1 562 187** à **+692 603 £**. Aucune variation de dette
+dans cet exercice. Le résidu `profit_year + variation_dette − variation_caisse`
+se déplace de **1 294 046** à **1 935 108 £ par compagnie**, soit
+**+641 062 £ d'emplois nets hors résultat non attribués**. Ce résidu ne
+constitue pas un total de dépenses de flotte, de statues, ni d'aéroports ;
+il contient aussi les flux de vente/crédit, les remboursements et les postes
+non instrumentés. Sur un autre bundle ESTIM31+EB2+load25, la sonde C63
+avait observé 773 statues contre 227, mais **ces résultats ne prouvent pas
+une cause de nos 641 k£**.
+
+**Stocks de moteurs (40 cartes, décembre 1974) :** Opex moteur 223
+**850→879**, 228 **428→360**, 217 **625→814**, 218 **516→224** ; parc
+AIR total **2 661→2 347**. Les stocks cumulés ne distinguent pas acquisitions,
+ventes, remplacements, ni appareils en transfert. Les journaux moteur du
+40×5 (`probes=2`) sont vides ; seules les traces Save/Load seed999
+`probes=258` apportent une liste de chantiers partielle, sous un protocole
+SOLO non comparable aux duels 40×5.
+
+**Couverture physique aéroportuaire :** Opex 33,675→32,425 aéroports
+et **33,000→31,975 villes portant au moins un aéroport Opex** par carte ;
+AAAHogEx dans son duel passe de 34,125→35,275 aéroports et de
+29,750→30,500 villes avec aéroport AAA. Les villes où AAA possède au moins
+deux aéroports et Opex aucun montent de **4,375→4,775 par carte** ; les
+villes possédant exactement un aéroport de chaque concurrent diminuent de
+22,325→21,550. Ces champs sont calculés par appartenance des stations
+`STNN` à une ville, **pas par voyageurs effectivement transportés, bus de
+rabattement, catchment, revenu, ou foncier encore constructible**. Les mêmes
+champs apparaissent dans la ligne de chaque compagnie du duel : ne pas les
+additionner deux fois.
+
+**Save/Load et achats effectifs (cas seed999 isolé) :** les comptes bruts
+`n_vehicles=22` et 89 imprimés par le harnais sont les tailles de chunk VEHS,
+**pas 22 et 89 avions**. Le décodage physique donne 4 avions (228) au
+01/07/1970, puis 31 avions (25×223, 6×228) et 3 trains au 01/07/1971
+après rechargement. Les 21 `AIR_BUILD` phase B décrivent 24 avions
+initiaux 223 et deux `FLEET_PROJECT grow added=1` décrivent 2 renforts ;
+un avion 223 du stock final n'est **pas expliqué exhaustivement** par ces
+événements. Un échec `PROJECT_DISCARD ... PLANE error=257 ERR_NOT_ENOUGH_CASH`
+et un `AIR_ROLLBACK_DONE immediate=1` sont observés, mais pas les montants nets
+perdus/récupérés. Le C121_GE évite réellement le scan sur 19/21 ouvertures
+post-reprise (`causal_engine_evals=0`), alors que les autres évaluent 12
+moteurs. Le changement de 228 en phase A vers 223 en phase B après recharge
+n'est **pas une comparaison causale de moteur** : la reprise crée une
+trajectoire différente et une compagnie fantôme du harnais.
+
 ### Non-régression de la branche d'intégration
 
 La suite générale `python -X utf8 -m unittest discover -s sweeps -p

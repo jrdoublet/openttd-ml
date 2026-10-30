@@ -1,0 +1,1724 @@
+{
+  "off_historical": {
+    "opex_profit_mean": 2856232.65,
+    "aaa_profit_mean": 3001620.775,
+    "ratio_pct": 95.15634599110875,
+    "opex_money_mean": 2394975.575,
+    "opex_company_value_mean": 7858216,
+    "opex_air_primary_vehicles_mean": 66.525,
+    "opex_air_airports_mean": 33.675,
+    "opex_observed_opcodes_total_mean": 54048207.575,
+    "opex_airport_towns_opex_present_mean": 33,
+    "opex_airport_towns_aaahogex_present_mean": 29.75,
+    "opex_airport_towns_aaahogex_2_opex_0_mean": 4.375,
+    "opex_income_last_year_mean": 834638.825,
+    "opex_expenses_last_year_mean": -105618.075,
+    "opex_project_builds_sign_total_mean": 92.075,
+    "opex_town_growth_builds_sign_total_mean": 0,
+    "opex_rail_vehicles_mean": 23.9,
+    "observed_opcodes_complete_cpu_all": false,
+    "opex_engine_counts_40_maps": {
+      "218": 516,
+      "228": 428,
+      "217": 625,
+      "223": 850,
+      "225": 52,
+      "227": 117,
+      "221": 49,
+      "220": 19,
+      "232": 3,
+      "233": 2
+    },
+    "seed_profits": {
+      "42": {
+        "opex": 2108814,
+        "aaa": 2987682
+      },
+      "100": {
+        "opex": 2080771,
+        "aaa": 2017930
+      },
+      "7": {
+        "opex": 3701017,
+        "aaa": 3384197
+      },
+      "999": {
+        "opex": 2573569,
+        "aaa": 3275249
+      },
+      "2026": {
+        "opex": 3400621,
+        "aaa": 3880970
+      },
+      "1": {
+        "opex": 3357301,
+        "aaa": 3219539
+      },
+      "17": {
+        "opex": 2279321,
+        "aaa": 2450889
+      },
+      "73": {
+        "opex": 3404075,
+        "aaa": 3489139
+      },
+      "314": {
+        "opex": 3940662,
+        "aaa": 2973303
+      },
+      "512": {
+        "opex": 2215344,
+        "aaa": 3058397
+      },
+      "1024": {
+        "opex": 2223466,
+        "aaa": 2419885
+      },
+      "1337": {
+        "opex": 1708577,
+        "aaa": 3759211
+      },
+      "4096": {
+        "opex": 3275103,
+        "aaa": 2950499
+      },
+      "8191": {
+        "opex": 3329392,
+        "aaa": 3104289
+      },
+      "12345": {
+        "opex": 2314543,
+        "aaa": 2197421
+      },
+      "54321": {
+        "opex": 3317729,
+        "aaa": 1798566
+      },
+      "65537": {
+        "opex": 2685481,
+        "aaa": 2602413
+      },
+      "123456": {
+        "opex": 2953566,
+        "aaa": 2330507
+      },
+      "424242": {
+        "opex": 3070476,
+        "aaa": 3976663
+      },
+      "8675309": {
+        "opex": 2399813,
+        "aaa": 3525091
+      },
+      "423960": {
+        "opex": 3257644,
+        "aaa": 3301094
+      },
+      "613553": {
+        "opex": 3032365,
+        "aaa": 3927529
+      },
+      "515222": {
+        "opex": 3258364,
+        "aaa": 2272464
+      },
+      "781335": {
+        "opex": 2304486,
+        "aaa": 2884355
+      },
+      "375172": {
+        "opex": 3300631,
+        "aaa": 3666111
+      },
+      "999533": {
+        "opex": 3140021,
+        "aaa": 3016213
+      },
+      "442018": {
+        "opex": 3517810,
+        "aaa": 3038655
+      },
+      "746035": {
+        "opex": 3375750,
+        "aaa": 3651216
+      },
+      "455216": {
+        "opex": 2183093,
+        "aaa": 2727726
+      },
+      "230185": {
+        "opex": 2075395,
+        "aaa": 2582934
+      },
+      "706990": {
+        "opex": 2500605,
+        "aaa": 2024846
+      },
+      "983759": {
+        "opex": 2156731,
+        "aaa": 2794001
+      },
+      "802204": {
+        "opex": 3366643,
+        "aaa": 3498201
+      },
+      "232037": {
+        "opex": 2167018,
+        "aaa": 2705066
+      },
+      "723002": {
+        "opex": 3913037,
+        "aaa": 3285720
+      },
+      "313707": {
+        "opex": 3928238,
+        "aaa": 4159723
+      },
+      "701256": {
+        "opex": 2439362,
+        "aaa": 3415640
+      },
+      "292001": {
+        "opex": 2811781,
+        "aaa": 2105601
+      },
+      "841478": {
+        "opex": 2484388,
+        "aaa": 2405691
+      },
+      "59527": {
+        "opex": 2696303,
+        "aaa": 3200205
+      }
+    },
+    "annual_history": [
+      {
+        "date": "1970-12-01",
+        "opex_profit_year": 363995.25,
+        "aaahogex_profit_year": 302042.95,
+        "opex_income_last_year": 216849.675,
+        "opex_expenses_last_year": -11909.475,
+        "opex_cash": 50639.5,
+        "opex_loan": 300000,
+        "opex_aircraft": 12.1,
+        "opex_airports": 14.1,
+        "opex_trains": 0,
+        "opex_project_build_signs_total": 425,
+        "opex_town_growth_build_signs_total": 0
+      },
+      {
+        "date": "1971-12-01",
+        "opex_profit_year": 1688217.75,
+        "aaahogex_profit_year": 1338424.05,
+        "opex_income_last_year": 575668.375,
+        "opex_expenses_last_year": -46097.475,
+        "opex_cash": 233304.85,
+        "opex_loan": 249500,
+        "opex_aircraft": 38.2,
+        "opex_airports": 29.175,
+        "opex_trains": 4,
+        "opex_project_build_signs_total": 1688,
+        "opex_town_growth_build_signs_total": 0,
+        "net_nonoperating_residual_not_attributed": 1455052.4
+      },
+      {
+        "date": "1972-12-01",
+        "opex_profit_year": 2403877.75,
+        "aaahogex_profit_year": 1950064.575,
+        "opex_income_last_year": 704050.675,
+        "opex_expenses_last_year": -75745.975,
+        "opex_cash": 271967.275,
+        "opex_loan": 52500,
+        "opex_aircraft": 48.225,
+        "opex_airports": 32.925,
+        "opex_trains": 16.25,
+        "opex_project_build_signs_total": 2610,
+        "opex_town_growth_build_signs_total": 0,
+        "net_nonoperating_residual_not_attributed": 2168215.325
+      },
+      {
+        "date": "1973-12-01",
+        "opex_profit_year": 2686596.75,
+        "aaahogex_profit_year": 2482320.025,
+        "opex_income_last_year": 772252.3,
+        "opex_expenses_last_year": -95038.375,
+        "opex_cash": 832788.575,
+        "opex_loan": 0,
+        "opex_aircraft": 56.45,
+        "opex_airports": 33.45,
+        "opex_trains": 21.425,
+        "opex_project_build_signs_total": 3158,
+        "opex_town_growth_build_signs_total": 0,
+        "net_nonoperating_residual_not_attributed": 2073275.45
+      },
+      {
+        "date": "1974-12-01",
+        "opex_profit_year": 2856232.65,
+        "aaahogex_profit_year": 3001620.775,
+        "opex_income_last_year": 834638.825,
+        "opex_expenses_last_year": -105618.075,
+        "opex_cash": 2394975.575,
+        "opex_loan": 0,
+        "opex_aircraft": 66.525,
+        "opex_airports": 33.675,
+        "opex_trains": 23.9,
+        "opex_project_build_signs_total": 3683,
+        "opex_town_growth_build_signs_total": 0,
+        "net_nonoperating_residual_not_attributed": 1294045.65
+      }
+    ]
+  },
+  "initial_ESTIM31_A150_R100_w15_sloped": {
+    "opex_profit_mean": 2627710.55,
+    "aaa_profit_mean": 2891442.15,
+    "ratio_pct": 90.87889066015033,
+    "opex_money_mean": 1242470.45,
+    "opex_company_value_mean": 5399841.45,
+    "opex_air_primary_vehicles_mean": 58.675,
+    "opex_air_airports_mean": 32.425,
+    "opex_observed_opcodes_total_mean": 47208881.325,
+    "opex_airport_towns_opex_present_mean": 31.975,
+    "opex_airport_towns_aaahogex_present_mean": 30.5,
+    "opex_airport_towns_aaahogex_2_opex_0_mean": 4.775,
+    "opex_income_last_year_mean": 771377.325,
+    "opex_expenses_last_year_mean": -90919,
+    "opex_project_builds_sign_total_mean": 83.475,
+    "opex_town_growth_builds_sign_total_mean": 0,
+    "opex_rail_vehicles_mean": 25.7,
+    "observed_opcodes_complete_cpu_all": false,
+    "opex_engine_counts_40_maps": {
+      "223": 879,
+      "218": 224,
+      "217": 814,
+      "228": 360,
+      "221": 8,
+      "225": 21,
+      "227": 8,
+      "232": 4,
+      "220": 27,
+      "219": 1,
+      "216": 1
+    },
+    "seed_profits": {
+      "42": {
+        "opex": 2137206,
+        "aaa": 2309141
+      },
+      "100": {
+        "opex": 1826065,
+        "aaa": 1958853
+      },
+      "7": {
+        "opex": 2935387,
+        "aaa": 3517550
+      },
+      "999": {
+        "opex": 2834189,
+        "aaa": 3724641
+      },
+      "2026": {
+        "opex": 2690391,
+        "aaa": 3381273
+      },
+      "1": {
+        "opex": 2906459,
+        "aaa": 3556820
+      },
+      "17": {
+        "opex": 2525346,
+        "aaa": 2035480
+      },
+      "73": {
+        "opex": 3642424,
+        "aaa": 2950529
+      },
+      "314": {
+        "opex": 3008961,
+        "aaa": 3708563
+      },
+      "512": {
+        "opex": 2525895,
+        "aaa": 2357685
+      },
+      "1024": {
+        "opex": 1969779,
+        "aaa": 2629665
+      },
+      "1337": {
+        "opex": 1719563,
+        "aaa": 3321311
+      },
+      "4096": {
+        "opex": 2492084,
+        "aaa": 2806122
+      },
+      "8191": {
+        "opex": 3061338,
+        "aaa": 2940903
+      },
+      "12345": {
+        "opex": 2524841,
+        "aaa": 1905747
+      },
+      "54321": {
+        "opex": 2456721,
+        "aaa": 2113768
+      },
+      "65537": {
+        "opex": 2967589,
+        "aaa": 2947819
+      },
+      "123456": {
+        "opex": 2342371,
+        "aaa": 2529202
+      },
+      "424242": {
+        "opex": 2931029,
+        "aaa": 3874024
+      },
+      "8675309": {
+        "opex": 2303198,
+        "aaa": 2950241
+      },
+      "423960": {
+        "opex": 2889950,
+        "aaa": 3482977
+      },
+      "613553": {
+        "opex": 2717807,
+        "aaa": 2902210
+      },
+      "515222": {
+        "opex": 2813876,
+        "aaa": 2022771
+      },
+      "781335": {
+        "opex": 2002792,
+        "aaa": 3478122
+      },
+      "375172": {
+        "opex": 2999909,
+        "aaa": 3405706
+      },
+      "999533": {
+        "opex": 2244940,
+        "aaa": 2552714
+      },
+      "442018": {
+        "opex": 3133618,
+        "aaa": 3485801
+      },
+      "746035": {
+        "opex": 3522307,
+        "aaa": 3117417
+      },
+      "455216": {
+        "opex": 2085732,
+        "aaa": 2545764
+      },
+      "230185": {
+        "opex": 1796875,
+        "aaa": 2522391
+      },
+      "706990": {
+        "opex": 2475109,
+        "aaa": 3034431
+      },
+      "983759": {
+        "opex": 2345152,
+        "aaa": 2498700
+      },
+      "802204": {
+        "opex": 2942292,
+        "aaa": 3539621
+      },
+      "232037": {
+        "opex": 2383811,
+        "aaa": 2936943
+      },
+      "723002": {
+        "opex": 3358147,
+        "aaa": 2709872
+      },
+      "313707": {
+        "opex": 3070905,
+        "aaa": 3499015
+      },
+      "701256": {
+        "opex": 2474806,
+        "aaa": 2146789
+      },
+      "292001": {
+        "opex": 2491414,
+        "aaa": 2510718
+      },
+      "841478": {
+        "opex": 2929473,
+        "aaa": 2804605
+      },
+      "59527": {
+        "opex": 2628671,
+        "aaa": 2941782
+      }
+    },
+    "annual_history": [
+      {
+        "date": "1970-12-01",
+        "opex_profit_year": 352053.6,
+        "aaahogex_profit_year": 296945.575,
+        "opex_income_last_year": 206977.8,
+        "opex_expenses_last_year": -10874.9,
+        "opex_cash": 45213.95,
+        "opex_loan": 300000,
+        "opex_aircraft": 10.35,
+        "opex_airports": 14.675,
+        "opex_trains": 0,
+        "opex_project_build_signs_total": 363,
+        "opex_town_growth_build_signs_total": 0
+      },
+      {
+        "date": "1971-12-01",
+        "opex_profit_year": 1670383.275,
+        "aaahogex_profit_year": 1286740.475,
+        "opex_income_last_year": 574269.125,
+        "opex_expenses_last_year": -39236.575,
+        "opex_cash": 109493.975,
+        "opex_loan": 289250,
+        "opex_aircraft": 29.4,
+        "opex_airports": 28.6,
+        "opex_trains": 11.45,
+        "opex_project_build_signs_total": 1590,
+        "opex_town_growth_build_signs_total": 0,
+        "net_nonoperating_residual_not_attributed": 1595353.25
+      },
+      {
+        "date": "1972-12-01",
+        "opex_profit_year": 2386457.9,
+        "aaahogex_profit_year": 1893575.8,
+        "opex_income_last_year": 666338.9,
+        "opex_expenses_last_year": -69096.075,
+        "opex_cash": 245626.575,
+        "opex_loan": 79250,
+        "opex_aircraft": 41.4,
+        "opex_airports": 30.75,
+        "opex_trains": 21.85,
+        "opex_project_build_signs_total": 2505,
+        "opex_town_growth_build_signs_total": 0,
+        "net_nonoperating_residual_not_attributed": 2040325.3
+      },
+      {
+        "date": "1973-12-01",
+        "opex_profit_year": 2465887.575,
+        "aaahogex_profit_year": 2501150.65,
+        "opex_income_last_year": 714486.475,
+        "opex_expenses_last_year": -83149.075,
+        "opex_cash": 549867.65,
+        "opex_loan": 0,
+        "opex_aircraft": 48.275,
+        "opex_airports": 31.9,
+        "opex_trains": 24.55,
+        "opex_project_build_signs_total": 2873,
+        "opex_town_growth_build_signs_total": 0,
+        "net_nonoperating_residual_not_attributed": 2082396.5
+      },
+      {
+        "date": "1974-12-01",
+        "opex_profit_year": 2627710.55,
+        "aaahogex_profit_year": 2891442.15,
+        "opex_income_last_year": 771377.325,
+        "opex_expenses_last_year": -90919,
+        "opex_cash": 1242470.45,
+        "opex_loan": 0,
+        "opex_aircraft": 58.675,
+        "opex_airports": 32.425,
+        "opex_trains": 25.7,
+        "opex_project_build_signs_total": 3339,
+        "opex_town_growth_build_signs_total": 0,
+        "net_nonoperating_residual_not_attributed": 1935107.75
+      }
+    ],
+    "ratio_ci95": [
+      85.549,
+      96.493
+    ],
+    "delta_vs_OFF_ratio_points": -4.277455330958418,
+    "delta_ratio_ci95": [
+      -10.752,
+      2.273
+    ]
+  },
+  "complete": [
+    {
+      "opex_profit_mean": 2585673.275,
+      "aaa_profit_mean": 2880130,
+      "ratio_pct": 89.77626964755063,
+      "opex_money_mean": 1393303,
+      "opex_company_value_mean": 5188616.775,
+      "opex_air_primary_vehicles_mean": 59.575,
+      "opex_air_airports_mean": 32.475,
+      "opex_observed_opcodes_total_mean": 44063664.95,
+      "opex_airport_towns_opex_present_mean": 31.9,
+      "opex_airport_towns_aaahogex_present_mean": 30.125,
+      "opex_airport_towns_aaahogex_2_opex_0_mean": 4.875,
+      "opex_income_last_year_mean": 753370.225,
+      "opex_expenses_last_year_mean": -87696.9,
+      "opex_project_builds_sign_total_mean": 83.85,
+      "opex_town_growth_builds_sign_total_mean": 0,
+      "opex_rail_vehicles_mean": 24.6,
+      "observed_opcodes_complete_cpu_all": false,
+      "opex_engine_counts_40_maps": {
+        "223": 824,
+        "217": 994,
+        "218": 136,
+        "228": 333,
+        "225": 39,
+        "221": 15,
+        "227": 17,
+        "232": 3,
+        "220": 19,
+        "233": 2,
+        "219": 1
+      },
+      "seed_profits": {
+        "42": {
+          "opex": 2365266,
+          "aaa": 2876708
+        },
+        "100": {
+          "opex": 1758322,
+          "aaa": 2152921
+        },
+        "7": {
+          "opex": 2831976,
+          "aaa": 4122609
+        },
+        "999": {
+          "opex": 3093328,
+          "aaa": 3155781
+        },
+        "2026": {
+          "opex": 2574343,
+          "aaa": 2867767
+        },
+        "1": {
+          "opex": 3152857,
+          "aaa": 3022728
+        },
+        "17": {
+          "opex": 1966616,
+          "aaa": 2446226
+        },
+        "73": {
+          "opex": 3012829,
+          "aaa": 3733552
+        },
+        "314": {
+          "opex": 2896571,
+          "aaa": 3126786
+        },
+        "512": {
+          "opex": 2268773,
+          "aaa": 2145060
+        },
+        "1024": {
+          "opex": 1821449,
+          "aaa": 2782179
+        },
+        "1337": {
+          "opex": 1927835,
+          "aaa": 2750954
+        },
+        "4096": {
+          "opex": 2818486,
+          "aaa": 3411091
+        },
+        "8191": {
+          "opex": 2454049,
+          "aaa": 3071827
+        },
+        "12345": {
+          "opex": 2374504,
+          "aaa": 1691456
+        },
+        "54321": {
+          "opex": 2756115,
+          "aaa": 1961795
+        },
+        "65537": {
+          "opex": 2608049,
+          "aaa": 2764248
+        },
+        "123456": {
+          "opex": 3113173,
+          "aaa": 1957497
+        },
+        "424242": {
+          "opex": 2826489,
+          "aaa": 3273042
+        },
+        "8675309": {
+          "opex": 2218435,
+          "aaa": 3951602
+        },
+        "423960": {
+          "opex": 2678661,
+          "aaa": 3470964
+        },
+        "613553": {
+          "opex": 2678858,
+          "aaa": 2849535
+        },
+        "515222": {
+          "opex": 2463745,
+          "aaa": 2481123
+        },
+        "781335": {
+          "opex": 2005199,
+          "aaa": 2541358
+        },
+        "375172": {
+          "opex": 3169383,
+          "aaa": 3295346
+        },
+        "999533": {
+          "opex": 2330060,
+          "aaa": 2655824
+        },
+        "442018": {
+          "opex": 2729756,
+          "aaa": 3169248
+        },
+        "746035": {
+          "opex": 3380890,
+          "aaa": 2744879
+        },
+        "455216": {
+          "opex": 2112239,
+          "aaa": 2516371
+        },
+        "230185": {
+          "opex": 1976984,
+          "aaa": 2395989
+        },
+        "706990": {
+          "opex": 2385852,
+          "aaa": 2484881
+        },
+        "983759": {
+          "opex": 2269573,
+          "aaa": 2218276
+        },
+        "802204": {
+          "opex": 2835377,
+          "aaa": 3645015
+        },
+        "232037": {
+          "opex": 2393147,
+          "aaa": 3146596
+        },
+        "723002": {
+          "opex": 3411392,
+          "aaa": 3138803
+        },
+        "313707": {
+          "opex": 3043307,
+          "aaa": 3970515
+        },
+        "701256": {
+          "opex": 2925694,
+          "aaa": 3360258
+        },
+        "292001": {
+          "opex": 2292866,
+          "aaa": 2419017
+        },
+        "841478": {
+          "opex": 2959647,
+          "aaa": 2332531
+        },
+        "59527": {
+          "opex": 2544836,
+          "aaa": 3102842
+        }
+      },
+      "annual_history": [
+        {
+          "date": "1970-12-01",
+          "opex_profit_year": 351252.2,
+          "aaahogex_profit_year": 297953.6,
+          "opex_income_last_year": 204889.525,
+          "opex_expenses_last_year": -10909.2,
+          "opex_cash": 53293.775,
+          "opex_loan": 300000,
+          "opex_aircraft": 10.25,
+          "opex_airports": 14.625,
+          "opex_trains": 0,
+          "opex_project_build_signs_total": 361,
+          "opex_town_growth_build_signs_total": 0
+        },
+        {
+          "date": "1971-12-01",
+          "opex_profit_year": 1661179,
+          "aaahogex_profit_year": 1316661.15,
+          "opex_income_last_year": 569536.075,
+          "opex_expenses_last_year": -39880.975,
+          "opex_cash": 95745,
+          "opex_loan": 293750,
+          "opex_aircraft": 29.925,
+          "opex_airports": 29.05,
+          "opex_trains": 12.075,
+          "opex_project_build_signs_total": 1635,
+          "opex_town_growth_build_signs_total": 0,
+          "net_nonoperating_residual_not_attributed": 1612477.775
+        },
+        {
+          "date": "1972-12-01",
+          "opex_profit_year": 2413414.525,
+          "aaahogex_profit_year": 1916229.775,
+          "opex_income_last_year": 681923.925,
+          "opex_expenses_last_year": -71678.075,
+          "opex_cash": 369768.725,
+          "opex_loan": 52250,
+          "opex_aircraft": 43.15,
+          "opex_airports": 31.325,
+          "opex_trains": 21.725,
+          "opex_project_build_signs_total": 2567,
+          "opex_town_growth_build_signs_total": 0,
+          "net_nonoperating_residual_not_attributed": 1897890.8
+        },
+        {
+          "date": "1973-12-01",
+          "opex_profit_year": 2467362.075,
+          "aaahogex_profit_year": 2526859.175,
+          "opex_income_last_year": 697164.475,
+          "opex_expenses_last_year": -82841.6,
+          "opex_cash": 779467.325,
+          "opex_loan": 0,
+          "opex_aircraft": 49.375,
+          "opex_airports": 32.075,
+          "opex_trains": 23.7,
+          "opex_project_build_signs_total": 2898,
+          "opex_town_growth_build_signs_total": 0,
+          "net_nonoperating_residual_not_attributed": 2005413.475
+        },
+        {
+          "date": "1974-12-01",
+          "opex_profit_year": 2585673.275,
+          "aaahogex_profit_year": 2880130,
+          "opex_income_last_year": 753370.225,
+          "opex_expenses_last_year": -87696.9,
+          "opex_cash": 1393303,
+          "opex_loan": 0,
+          "opex_aircraft": 59.575,
+          "opex_airports": 32.475,
+          "opex_trains": 24.6,
+          "opex_project_build_signs_total": 3354,
+          "opex_town_growth_build_signs_total": 0,
+          "net_nonoperating_residual_not_attributed": 1971837.6
+        }
+      ],
+      "name": "a100_r100_w15_flat",
+      "off_parity_mismatches": 401,
+      "off_mismatch_examples": [
+        [
+          [
+            "1974-12-01",
+            999,
+            "OpexAI"
+          ],
+          "money",
+          1015570,
+          991028
+        ],
+        [
+          [
+            "1974-12-01",
+            999,
+            "OpexAI"
+          ],
+          "observed_opcodes_total",
+          37928856,
+          37928697
+        ],
+        [
+          [
+            "1974-12-01",
+            999,
+            "AAAHogEx"
+          ],
+          "profit_year",
+          3275249,
+          3275258
+        ],
+        [
+          [
+            "1974-12-01",
+            999,
+            "AAAHogEx"
+          ],
+          "company_value",
+          7317194,
+          7317966
+        ],
+        [
+          [
+            "1974-12-01",
+            999,
+            "AAAHogEx"
+          ],
+          "money",
+          1109793,
+          1109505
+        ],
+        [
+          [
+            "1974-12-01",
+            2026,
+            "OpexAI"
+          ],
+          "profit_year",
+          3400621,
+          3342199
+        ]
+      ],
+      "off_checks": 2800,
+      "off_ratio_pct": 95.6451348599748,
+      "completed_games": 80,
+      "healthy_paired_seeds": 40,
+      "source_bundle_sha256": "9c3f84555b4f0970c600c67ef8c4cb96a14100580df5bf65d83d18e6cf52027c",
+      "technically_neutral_off": false,
+      "ratio_ci95": [
+        84.476,
+        95.777
+      ],
+      "delta_vs_OFF_ratio_points": -5.380076343558116,
+      "delta_ratio_ci95": [
+        -12.066,
+        1.456
+      ],
+      "opex_profit_delta_vs_OFF_mean": -270559.375,
+      "opex_wins_vs_OFF": 11,
+      "source_bundle": "C:\\Users\\jr\\vscode\\openttd-ml\\openttd-ml\\results\\estim31_joint_dispatch20261029\\a100_r100_w15_flat",
+      "campaign": "dispatch31_a100_r100_w15_flat_40x5_20261029"
+    },
+    {
+      "opex_profit_mean": 2571104.575,
+      "aaa_profit_mean": 2916744.425,
+      "ratio_pct": 88.14980678329401,
+      "opex_money_mean": 1511333,
+      "opex_company_value_mean": 5114285.25,
+      "opex_air_primary_vehicles_mean": 53.425,
+      "opex_air_airports_mean": 33.375,
+      "opex_observed_opcodes_total_mean": 46847191.6,
+      "opex_airport_towns_opex_present_mean": 32.825,
+      "opex_airport_towns_aaahogex_present_mean": 30.45,
+      "opex_airport_towns_aaahogex_2_opex_0_mean": 4.35,
+      "opex_income_last_year_mean": 749795.7,
+      "opex_expenses_last_year_mean": -83761.925,
+      "opex_project_builds_sign_total_mean": 77.425,
+      "opex_town_growth_builds_sign_total_mean": 0,
+      "opex_rail_vehicles_mean": 25.3,
+      "observed_opcodes_complete_cpu_all": false,
+      "opex_engine_counts_40_maps": {
+        "223": 835,
+        "218": 151,
+        "217": 746,
+        "228": 334,
+        "216": 1,
+        "225": 25,
+        "221": 11,
+        "227": 9,
+        "220": 21,
+        "232": 2,
+        "233": 2
+      },
+      "seed_profits": {
+        "42": {
+          "opex": 2322381,
+          "aaa": 2815861
+        },
+        "100": {
+          "opex": 1972444,
+          "aaa": 1718651
+        },
+        "7": {
+          "opex": 2679087,
+          "aaa": 3996719
+        },
+        "999": {
+          "opex": 2770852,
+          "aaa": 3489556
+        },
+        "2026": {
+          "opex": 2581498,
+          "aaa": 3033489
+        },
+        "1": {
+          "opex": 2934774,
+          "aaa": 2610022
+        },
+        "17": {
+          "opex": 2214626,
+          "aaa": 2430853
+        },
+        "73": {
+          "opex": 3462533,
+          "aaa": 2813842
+        },
+        "314": {
+          "opex": 2952271,
+          "aaa": 3781088
+        },
+        "512": {
+          "opex": 2008666,
+          "aaa": 2670599
+        },
+        "1024": {
+          "opex": 2167912,
+          "aaa": 2629351
+        },
+        "1337": {
+          "opex": 2127686,
+          "aaa": 3439339
+        },
+        "4096": {
+          "opex": 2624807,
+          "aaa": 2995165
+        },
+        "8191": {
+          "opex": 2769116,
+          "aaa": 2927571
+        },
+        "12345": {
+          "opex": 2532036,
+          "aaa": 1792502
+        },
+        "54321": {
+          "opex": 2684588,
+          "aaa": 2136700
+        },
+        "65537": {
+          "opex": 2498356,
+          "aaa": 2916921
+        },
+        "123456": {
+          "opex": 2976640,
+          "aaa": 2429711
+        },
+        "424242": {
+          "opex": 2809572,
+          "aaa": 3389704
+        },
+        "8675309": {
+          "opex": 2108185,
+          "aaa": 3493274
+        },
+        "423960": {
+          "opex": 2747625,
+          "aaa": 3930291
+        },
+        "613553": {
+          "opex": 2470364,
+          "aaa": 3056655
+        },
+        "515222": {
+          "opex": 2634932,
+          "aaa": 2362070
+        },
+        "781335": {
+          "opex": 1916833,
+          "aaa": 2828037
+        },
+        "375172": {
+          "opex": 3161385,
+          "aaa": 3729729
+        },
+        "999533": {
+          "opex": 2374270,
+          "aaa": 3356810
+        },
+        "442018": {
+          "opex": 3017356,
+          "aaa": 2343251
+        },
+        "746035": {
+          "opex": 3653366,
+          "aaa": 2853678
+        },
+        "455216": {
+          "opex": 1742621,
+          "aaa": 2933214
+        },
+        "230185": {
+          "opex": 2029889,
+          "aaa": 2542529
+        },
+        "706990": {
+          "opex": 2264068,
+          "aaa": 2312193
+        },
+        "983759": {
+          "opex": 2175909,
+          "aaa": 2459965
+        },
+        "802204": {
+          "opex": 3029408,
+          "aaa": 3425125
+        },
+        "232037": {
+          "opex": 2516675,
+          "aaa": 2472697
+        },
+        "723002": {
+          "opex": 3242255,
+          "aaa": 3212559
+        },
+        "313707": {
+          "opex": 3057236,
+          "aaa": 3638215
+        },
+        "701256": {
+          "opex": 2370443,
+          "aaa": 2734067
+        },
+        "292001": {
+          "opex": 2132246,
+          "aaa": 2466951
+        },
+        "841478": {
+          "opex": 2790132,
+          "aaa": 3260329
+        },
+        "59527": {
+          "opex": 2319140,
+          "aaa": 3240494
+        }
+      },
+      "annual_history": [
+        {
+          "date": "1970-12-01",
+          "opex_profit_year": 353041.35,
+          "aaahogex_profit_year": 295054.325,
+          "opex_income_last_year": 207339.075,
+          "opex_expenses_last_year": -10919.975,
+          "opex_cash": 40821.9,
+          "opex_loan": 300000,
+          "opex_aircraft": 10.6,
+          "opex_airports": 14.95,
+          "opex_trains": 0,
+          "opex_project_build_signs_total": 374,
+          "opex_town_growth_build_signs_total": 0
+        },
+        {
+          "date": "1971-12-01",
+          "opex_profit_year": 1687375.3,
+          "aaahogex_profit_year": 1304804.8,
+          "opex_income_last_year": 572236.25,
+          "opex_expenses_last_year": -40122.425,
+          "opex_cash": 97086.025,
+          "opex_loan": 289000,
+          "opex_aircraft": 30.375,
+          "opex_airports": 29.325,
+          "opex_trains": 11.775,
+          "opex_project_build_signs_total": 1634,
+          "opex_town_growth_build_signs_total": 0,
+          "net_nonoperating_residual_not_attributed": 1620111.175
+        },
+        {
+          "date": "1972-12-01",
+          "opex_profit_year": 2438433.625,
+          "aaahogex_profit_year": 1932046.375,
+          "opex_income_last_year": 683791.5,
+          "opex_expenses_last_year": -71476.625,
+          "opex_cash": 299855.425,
+          "opex_loan": 75500,
+          "opex_aircraft": 43.05,
+          "opex_airports": 31.85,
+          "opex_trains": 21.625,
+          "opex_project_build_signs_total": 2544,
+          "opex_town_growth_build_signs_total": 0,
+          "net_nonoperating_residual_not_attributed": 2022164.225
+        },
+        {
+          "date": "1973-12-01",
+          "opex_profit_year": 2447532.5,
+          "aaahogex_profit_year": 2504061.05,
+          "opex_income_last_year": 697376.075,
+          "opex_expenses_last_year": -82010.4,
+          "opex_cash": 676688.2,
+          "opex_loan": 0,
+          "opex_aircraft": 48.375,
+          "opex_airports": 32.8,
+          "opex_trains": 24,
+          "opex_project_build_signs_total": 2841,
+          "opex_town_growth_build_signs_total": 0,
+          "net_nonoperating_residual_not_attributed": 1995199.725
+        },
+        {
+          "date": "1974-12-01",
+          "opex_profit_year": 2571104.575,
+          "aaahogex_profit_year": 2916744.425,
+          "opex_income_last_year": 749795.7,
+          "opex_expenses_last_year": -83761.925,
+          "opex_cash": 1511333,
+          "opex_loan": 0,
+          "opex_aircraft": 53.425,
+          "opex_airports": 33.375,
+          "opex_trains": 25.3,
+          "opex_project_build_signs_total": 3097,
+          "opex_town_growth_build_signs_total": 0,
+          "net_nonoperating_residual_not_attributed": 1736459.775
+        }
+      ],
+      "name": "a150_r100_w05_flat_load25",
+      "off_parity_mismatches": 440,
+      "off_mismatch_examples": [
+        [
+          [
+            "1972-12-01",
+            999,
+            "OpexAI"
+          ],
+          "profit_year",
+          2011709,
+          2083346
+        ],
+        [
+          [
+            "1972-12-01",
+            999,
+            "OpexAI"
+          ],
+          "company_value",
+          3593676,
+          3545456
+        ],
+        [
+          [
+            "1972-12-01",
+            999,
+            "OpexAI"
+          ],
+          "money",
+          97296,
+          49602
+        ],
+        [
+          [
+            "1972-12-01",
+            999,
+            "OpexAI"
+          ],
+          "air_primary_vehicles",
+          42,
+          40
+        ],
+        [
+          [
+            "1972-12-01",
+            999,
+            "OpexAI"
+          ],
+          "air_airports",
+          33,
+          31
+        ],
+        [
+          [
+            "1972-12-01",
+            999,
+            "OpexAI"
+          ],
+          "observed_opcodes_total",
+          25546000,
+          31590942
+        ]
+      ],
+      "off_checks": 2800,
+      "off_ratio_pct": 96.38231034033429,
+      "completed_games": 80,
+      "healthy_paired_seeds": 40,
+      "source_bundle_sha256": "060b59d1be3aedcabb85072d580d5132f50c24bc5482907c6ee02f05f3bbd038",
+      "technically_neutral_off": false,
+      "ratio_ci95": [
+        82.67,
+        94.275
+      ],
+      "delta_vs_OFF_ratio_points": -7.00653920781474,
+      "delta_ratio_ci95": [
+        -13.327,
+        -0.738
+      ],
+      "opex_profit_delta_vs_OFF_mean": -285128.075,
+      "opex_wins_vs_OFF": 10,
+      "source_bundle": "C:\\Users\\jr\\vscode\\openttd-ml\\openttd-ml\\results\\estim31_joint_dispatch20261029\\a150_r100_w05_flat_load25",
+      "campaign": "dispatch31_a150_r100_w05_flat_load25_40x5_20261029"
+    },
+    {
+      "opex_profit_mean": 2547657.75,
+      "aaa_profit_mean": 2901612.875,
+      "ratio_pct": 87.80143526210401,
+      "opex_money_mean": 1170786.25,
+      "opex_company_value_mean": 5029831.775,
+      "opex_air_primary_vehicles_mean": 59.5,
+      "opex_air_airports_mean": 32.05,
+      "opex_observed_opcodes_total_mean": 48357603.2,
+      "opex_airport_towns_opex_present_mean": 31.65,
+      "opex_airport_towns_aaahogex_present_mean": 29.95,
+      "opex_airport_towns_aaahogex_2_opex_0_mean": 4.725,
+      "opex_income_last_year_mean": 749233.075,
+      "opex_expenses_last_year_mean": -88113.375,
+      "opex_project_builds_sign_total_mean": 84.45,
+      "opex_town_growth_builds_sign_total_mean": 0,
+      "opex_rail_vehicles_mean": 25.575,
+      "observed_opcodes_complete_cpu_all": false,
+      "opex_engine_counts_40_maps": {
+        "223": 801,
+        "217": 999,
+        "218": 129,
+        "228": 350,
+        "225": 39,
+        "227": 18,
+        "221": 21,
+        "232": 4,
+        "220": 18,
+        "216": 1
+      },
+      "seed_profits": {
+        "42": {
+          "opex": 2145783,
+          "aaa": 2417169
+        },
+        "100": {
+          "opex": 1828890,
+          "aaa": 1721505
+        },
+        "7": {
+          "opex": 2927221,
+          "aaa": 4530632
+        },
+        "999": {
+          "opex": 2811452,
+          "aaa": 3279605
+        },
+        "2026": {
+          "opex": 2939490,
+          "aaa": 3194815
+        },
+        "1": {
+          "opex": 3091120,
+          "aaa": 3352122
+        },
+        "17": {
+          "opex": 2482642,
+          "aaa": 1985463
+        },
+        "73": {
+          "opex": 3624152,
+          "aaa": 3127883
+        },
+        "314": {
+          "opex": 2968533,
+          "aaa": 3300361
+        },
+        "512": {
+          "opex": 2111317,
+          "aaa": 2527022
+        },
+        "1024": {
+          "opex": 2107699,
+          "aaa": 2328721
+        },
+        "1337": {
+          "opex": 1862955,
+          "aaa": 3097112
+        },
+        "4096": {
+          "opex": 2389111,
+          "aaa": 2588469
+        },
+        "8191": {
+          "opex": 2835456,
+          "aaa": 3294505
+        },
+        "12345": {
+          "opex": 2316559,
+          "aaa": 1896810
+        },
+        "54321": {
+          "opex": 2342756,
+          "aaa": 2270392
+        },
+        "65537": {
+          "opex": 2748807,
+          "aaa": 2812127
+        },
+        "123456": {
+          "opex": 2410023,
+          "aaa": 2516867
+        },
+        "424242": {
+          "opex": 2968712,
+          "aaa": 3848759
+        },
+        "8675309": {
+          "opex": 2046525,
+          "aaa": 2896394
+        },
+        "423960": {
+          "opex": 2843516,
+          "aaa": 3374462
+        },
+        "613553": {
+          "opex": 2725407,
+          "aaa": 2582752
+        },
+        "515222": {
+          "opex": 2634039,
+          "aaa": 1759134
+        },
+        "781335": {
+          "opex": 1753883,
+          "aaa": 3273353
+        },
+        "375172": {
+          "opex": 2750517,
+          "aaa": 3422804
+        },
+        "999533": {
+          "opex": 2294905,
+          "aaa": 2780413
+        },
+        "442018": {
+          "opex": 2874951,
+          "aaa": 3805314
+        },
+        "746035": {
+          "opex": 3342813,
+          "aaa": 3107570
+        },
+        "455216": {
+          "opex": 2032528,
+          "aaa": 2603532
+        },
+        "230185": {
+          "opex": 1643387,
+          "aaa": 2752549
+        },
+        "706990": {
+          "opex": 2414927,
+          "aaa": 2689924
+        },
+        "983759": {
+          "opex": 2186668,
+          "aaa": 2586001
+        },
+        "802204": {
+          "opex": 2621806,
+          "aaa": 3606832
+        },
+        "232037": {
+          "opex": 2278791,
+          "aaa": 2784181
+        },
+        "723002": {
+          "opex": 3231882,
+          "aaa": 3442117
+        },
+        "313707": {
+          "opex": 2884696,
+          "aaa": 3914834
+        },
+        "701256": {
+          "opex": 2584948,
+          "aaa": 2386203
+        },
+        "292001": {
+          "opex": 2425731,
+          "aaa": 2723787
+        },
+        "841478": {
+          "opex": 3103772,
+          "aaa": 2886662
+        },
+        "59527": {
+          "opex": 2317940,
+          "aaa": 2595358
+        }
+      },
+      "annual_history": [
+        {
+          "date": "1970-12-01",
+          "opex_profit_year": 352053.6,
+          "aaahogex_profit_year": 296945.575,
+          "opex_income_last_year": 206977.8,
+          "opex_expenses_last_year": -10874.9,
+          "opex_cash": 45213.95,
+          "opex_loan": 300000,
+          "opex_aircraft": 10.35,
+          "opex_airports": 14.675,
+          "opex_trains": 0,
+          "opex_project_build_signs_total": 363,
+          "opex_town_growth_build_signs_total": 0
+        },
+        {
+          "date": "1971-12-01",
+          "opex_profit_year": 1668429.725,
+          "aaahogex_profit_year": 1286775.8,
+          "opex_income_last_year": 572296.925,
+          "opex_expenses_last_year": -39217.35,
+          "opex_cash": 104215.55,
+          "opex_loan": 289250,
+          "opex_aircraft": 29.4,
+          "opex_airports": 28.6,
+          "opex_trains": 11.525,
+          "opex_project_build_signs_total": 1591,
+          "opex_town_growth_build_signs_total": 0,
+          "net_nonoperating_residual_not_attributed": 1598678.125
+        },
+        {
+          "date": "1972-12-01",
+          "opex_profit_year": 2392808.85,
+          "aaahogex_profit_year": 1892797.55,
+          "opex_income_last_year": 669591.625,
+          "opex_expenses_last_year": -68972.6,
+          "opex_cash": 247734.975,
+          "opex_loan": 73500,
+          "opex_aircraft": 41.275,
+          "opex_airports": 30.75,
+          "opex_trains": 21.95,
+          "opex_project_build_signs_total": 2500,
+          "opex_town_growth_build_signs_total": 0,
+          "net_nonoperating_residual_not_attributed": 2033539.425
+        },
+        {
+          "date": "1973-12-01",
+          "opex_profit_year": 2439553.65,
+          "aaahogex_profit_year": 2501452.65,
+          "opex_income_last_year": 685302.475,
+          "opex_expenses_last_year": -80798.3,
+          "opex_cash": 687233.75,
+          "opex_loan": 0,
+          "opex_aircraft": 47.575,
+          "opex_airports": 31.425,
+          "opex_trains": 24.125,
+          "opex_project_build_signs_total": 2834,
+          "opex_town_growth_build_signs_total": 0,
+          "net_nonoperating_residual_not_attributed": 1926554.875
+        },
+        {
+          "date": "1974-12-01",
+          "opex_profit_year": 2547657.75,
+          "aaahogex_profit_year": 2901612.875,
+          "opex_income_last_year": 749233.075,
+          "opex_expenses_last_year": -88113.375,
+          "opex_cash": 1170786.25,
+          "opex_loan": 0,
+          "opex_aircraft": 59.5,
+          "opex_airports": 32.05,
+          "opex_trains": 25.575,
+          "opex_project_build_signs_total": 3378,
+          "opex_town_growth_build_signs_total": 0,
+          "net_nonoperating_residual_not_attributed": 2064105.25
+        }
+      ],
+      "name": "a150_r100_w05",
+      "off_parity_mismatches": 318,
+      "off_mismatch_examples": [
+        [
+          [
+            "1974-12-01",
+            999,
+            "OpexAI"
+          ],
+          "money",
+          1015570,
+          991028
+        ],
+        [
+          [
+            "1974-12-01",
+            999,
+            "OpexAI"
+          ],
+          "observed_opcodes_total",
+          37928856,
+          37928697
+        ],
+        [
+          [
+            "1974-12-01",
+            999,
+            "AAAHogEx"
+          ],
+          "profit_year",
+          3275249,
+          3275258
+        ],
+        [
+          [
+            "1974-12-01",
+            999,
+            "AAAHogEx"
+          ],
+          "company_value",
+          7317194,
+          7317966
+        ],
+        [
+          [
+            "1974-12-01",
+            999,
+            "AAAHogEx"
+          ],
+          "money",
+          1109793,
+          1109505
+        ],
+        [
+          [
+            "1973-12-01",
+            1,
+            "OpexAI"
+          ],
+          "money",
+          1865529,
+          1867464
+        ]
+      ],
+      "off_checks": 2800,
+      "off_ratio_pct": 96.24424792758545,
+      "completed_games": 80,
+      "healthy_paired_seeds": 40,
+      "source_bundle_sha256": "88eb2adbb9a61b6a53fed36362906b80c49719613515206d79eeba4d3ee44ff4",
+      "technically_neutral_off": false,
+      "ratio_ci95": [
+        82.672,
+        93.196
+      ],
+      "delta_vs_OFF_ratio_points": -7.354910729004743,
+      "delta_ratio_ci95": [
+        -14.421,
+        -0.456
+      ],
+      "opex_profit_delta_vs_OFF_mean": -308574.9,
+      "opex_wins_vs_OFF": 11,
+      "source_bundle": "C:\\Users\\jr\\vscode\\openttd-ml\\openttd-ml\\results\\estim31_joint_dispatch20261029\\a150_r100_w05",
+      "campaign": "dispatch31_a150_r100_w05_40x5_20261029"
+    }
+  ],
+  "pending": [],
+  "paired_comparisons": [
+    {
+      "left": "OFF_historical",
+      "right": "initial_A150_R100_w15_sloped",
+      "right_minus_left_ratio_points": -4.2775,
+      "CI95_paired_bootstrap": [
+        -10.642,
+        2.13
+      ]
+    }
+  ],
+  "exploratory_pairwise_comparisons": [
+    {
+      "left": "OFF_historical",
+      "right": "initial_A150_R100_w15_sloped",
+      "right_minus_left_ratio_points": -4.2775,
+      "CI95_paired_bootstrap": [
+        -10.743,
+        2.04
+      ],
+      "descriptive_only": false
+    },
+    {
+      "left": "OFF_historical",
+      "right": "a100_r100_w15_flat",
+      "right_minus_left_ratio_points": -5.3801,
+      "CI95_paired_bootstrap": [
+        -12.164,
+        1.697
+      ],
+      "descriptive_only": true
+    },
+    {
+      "left": "OFF_historical",
+      "right": "a150_r100_w05_flat_load25",
+      "right_minus_left_ratio_points": -7.0065,
+      "CI95_paired_bootstrap": [
+        -13.475,
+        -0.878
+      ],
+      "descriptive_only": true
+    },
+    {
+      "left": "OFF_historical",
+      "right": "a150_r100_w05",
+      "right_minus_left_ratio_points": -7.3549,
+      "CI95_paired_bootstrap": [
+        -14.437,
+        -0.32
+      ],
+      "descriptive_only": true
+    },
+    {
+      "left": "initial_A150_R100_w15_sloped",
+      "right": "a100_r100_w15_flat",
+      "right_minus_left_ratio_points": -1.1026,
+      "CI95_paired_bootstrap": [
+        -6.823,
+        4.738
+      ],
+      "descriptive_only": true
+    },
+    {
+      "left": "initial_A150_R100_w15_sloped",
+      "right": "a150_r100_w05_flat_load25",
+      "right_minus_left_ratio_points": -2.7291,
+      "CI95_paired_bootstrap": [
+        -7.663,
+        2.365
+      ],
+      "descriptive_only": true
+    },
+    {
+      "left": "initial_A150_R100_w15_sloped",
+      "right": "a150_r100_w05",
+      "right_minus_left_ratio_points": -3.0775,
+      "CI95_paired_bootstrap": [
+        -6.533,
+        0.288
+      ],
+      "descriptive_only": true
+    },
+    {
+      "left": "a100_r100_w15_flat",
+      "right": "a150_r100_w05_flat_load25",
+      "right_minus_left_ratio_points": -1.6265,
+      "CI95_paired_bootstrap": [
+        -6.696,
+        3.556
+      ],
+      "descriptive_only": true
+    },
+    {
+      "left": "a100_r100_w15_flat",
+      "right": "a150_r100_w05",
+      "right_minus_left_ratio_points": -1.9748,
+      "CI95_paired_bootstrap": [
+        -7.165,
+        3.443
+      ],
+      "descriptive_only": true
+    },
+    {
+      "left": "a150_r100_w05_flat_load25",
+      "right": "a150_r100_w05",
+      "right_minus_left_ratio_points": -0.3484,
+      "CI95_paired_bootstrap": [
+        -5.493,
+        4.607
+      ],
+      "descriptive_only": true
+    }
+  ]
+}
