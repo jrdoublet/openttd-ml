@@ -1,16 +1,26 @@
 <# Write-once joint C121 N1/N2 fleet cap x V161 marginal experiments.
    A completed healthy five-seed screen is mandatory before a 40-seed run.
    Source is a frozen private bundle, not shared/master source. #>
-param([Parameter(Mandatory=$true)][ValidateSet('mix_a200_r075_w15_slope',
-    'mix_a200_r150_w05_flat_load25')][string]$Name,
-    [ValidateSet(5,40)][int]$SeedCount=5)
+param([Parameter(Mandatory=$true)][string]$Name,
+    [ValidateSet(5,40)][int]$SeedCount=5,
+    [ValidateSet('v161cap','v161policy')][string]$Suite='v161cap')
 $ErrorActionPreference='Stop'
 $Worktree=(git rev-parse --show-toplevel)
 if($LASTEXITCODE -ne 0){throw 'Git worktree not found'}
 $Repo=Split-Path (Split-Path $Worktree -Parent) -Parent
-$Source=Join-Path $Repo ('results/estim31_v161_motorcap20261030/'+$Name)
-$Design=Get-Content -Raw -Encoding UTF8 (Join-Path $Source 'design.json')|ConvertFrom-Json
+$DirName='estim31_v161_motorcap20261030'
+$Allowed=@('mix_a200_r075_w15_slope','mix_a200_r150_w05_flat_load25')
 $Prefix='estim31vcap'
+if($Suite -eq 'v161policy'){
+  $DirName='estim31_v161_policy20261030'
+  $Prefix='estim31vp'
+  $Allowed=@('v161_a200_r075_w15_statue0',
+    'v161_a200_r075_w15_eb142','v161_a200_r075_w15_load25',
+    'v161_a200_r075_w15_statue0_eb142')
+}
+if($Name -notin $Allowed){throw ('Unknown suite/name: '+$Suite+'/'+$Name)}
+$Source=Join-Path $Repo ('results/'+$DirName+'/'+$Name)
+$Design=Get-Content -Raw -Encoding UTF8 (Join-Path $Source 'design.json')|ConvertFrom-Json
 $Suffix=if($SeedCount -eq 40){'40x5'}else{'5x5'}
 $Campaign=$Prefix+'_'+$Name+'_'+$Suffix+'_20261030'
 $Result=Join-Path $Source ('results/'+$Campaign+'.json')
