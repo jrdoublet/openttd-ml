@@ -556,3 +556,49 @@ neutralité source OFF passé. Mesurer exposition (trains dès 1970),
 timing/opcodes et ratio 5×5 avant toute promotion économique ; si les
 candidats restent absents, documenter une non-exposition sans inventer
 un gain.
+
+### Qualification V161 × C121 N=1/N=2 : nouveau record (08:48)
+
+Le duel `estim31vcap_mix_a200_r075_w15_slope_40x5_20261030` est
+**achevé** : 40 graines strictement communes, 80/80 jeux complets/sains,
+400 checkpoints annuels dans chaque politique, manifeste et source SHA
+`183187e6b60f442edf3f0ea7eaa556cfccb4729aed185f1ddf12298e242711c9`
+contrôlés. Source opt-in V161 `same-engine` × choix moteur exact
+N=1/N=2 avec plafond physique, AIR2,00/RAIL0,75/poids15/profil incliné,
+EB14=3, V249=2, EB2=0, charge min AIR=0, `estim_unifie=31`,
+`probes=2`, huit workers.
+
+| Profit au 01/12/1974, moyenne de 40 graines | OpexAI | AAAHogEx-115 |
+|---|---:|---:|
+| V161 × N=1/N=2 (même duel) | **3 006 415,575 £/an** | **2 834 558,325 £/an** |
+| V161 précédent, autre duel | 2 946 867,750 £/an | 2 839 022,725 £/an |
+
+**Ratio exact des deux moyennes de la nouvelle campagne : 106,062929 %**,
+écart apparié moyen +171 857,250 £/an, **27/40 victoires**, soit
++2,264262 points sur le précédent record V161 **103,798667 %**.
+Les comparaisons entre deux campagnes ne constituent pas un appariement
+expérimental parfait, car les trajectoires OFF divergent déjà à source
+identique ; seul le ratio de profits au sein de chaque duel fonde
+le classement.
+
+Au dernier checkpoint Opex, moyenne : **80,250 avions**, **24,475 trains**,
+**33,575 aéroports**, **33,075 villes avec aéroport**, trésorerie
+**1 106 026,70 £**, emprunts nuls. Stocks physiques cumulés sur
+40 jeux : moteur 223 **1 645**, moteur 228 **64**, moteur 220 **858**
+(ne pas les appeler des achats). `observed_opcodes_total` atteint
+**53,965 M** par jeu en moyenne, observation **incomplète du CPU**.
+L'OFF présente 1 695 discordances historiques sur 2 800 champs comparés,
+à distinguer d'une modification comportementale OFF.
+
+Le décodeur de classement vérifie désormais *exactement* les 40 graines
+et les deux compagnies à chacune des cinq dates annuelles pour
+chaque politique, les 80 statuts détaillés, le `probes=2` témoin,
+`estim_unifie=31` variant, les identités de campagne et
+les empreintes SHA des parties, snapshots et manifeste ; des tests
+synthétiques couvrent doublon, source mélangée et politique non neutre.
+Publication du code de contrôle : `f5c129d5`.
+
+La deuxième qualification prioritaire, **V161 AIR2,50/RAIL0,75/poids15**,
+a démarré à **08:48:58** dans le seul Docker (session `19413`,
+`estim31vcoef_v161_a250_r075_w15_40x5_20261030`). Son écran 5×5
+était sain à 103,285240 % ; aucun ratio 40×5 ne peut être anticipé.
