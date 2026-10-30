@@ -74,10 +74,23 @@ qualifiés, pas un dépassement décennal d'AAAHogEx.
 
 ## Publication
 
-Le `master` local est sale et partagé. La publication demandée doit être
-effectuée par **push normal fast-forward** du commit validé depuis le
-worktree isolé vers `origin/master`, sans `--force` et sans checkout,
-reset ni écrasement du répertoire `master` local. Les tests historiques
-qui supposent encore l'ancien comportement public restent une dette de
-compatibilité de la suite complète, à réparer sans renoncer au nouveau
-défaut validé par duels et Save/Load.
+**Publication effectuée avec succès à 11 h 14 environ le 30/10/2026** :
+le commit de promotion `7160c6f57b6c10b66f5b83dd589693194aba58be`
+a été poussé vers **`origin/master`** par fast-forward normal depuis
+`99f29d9c858f390de6193978a4f12d3fbdb48127`, puis vers
+`origin/experiments/estim31-default-promotion-20261030`. `git ls-remote`
+a confirmé les deux références au commit `7160c6f5`. **Aucun push forcé,
+checkout, reset ou écrasement du `master` local sale** n'a eu lieu.
+Le nouveau défaut est donc effectivement publié sur le `master` distant ;
+la copie locale sale de `master` peut rester à l'ancien commit tant que son
+propriétaire ne l'a pas synchronisée en préservant ses travaux.
+
+La grande suite historique sous le nouveau défaut n'est **pas** verte :
+les tests qui supposent encore les anciens défauts et instantanés sont une
+dette de compatibilité de tests à corriger indépendamment, sans annuler le
+nouveau comportement validé par les trois duels, les deux Save/Load et les
+suites de CI. La fullsuite a aussi été exécutée dans un worktree distinct
+sur l'ancienne source de `origin/master` : **3124 tests, 2 échecs et
+12 erreurs**, ce qui confirme que sa découverte globale comportait déjà
+des difficultés hors promotion. Ne pas présenter cette situation comme une
+réussite générale ni comme un blocage du push déjà réalisé.

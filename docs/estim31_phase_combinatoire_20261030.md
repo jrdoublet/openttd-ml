@@ -802,6 +802,14 @@ sur les **anciens défauts à 0** et des instantanés de source historiques,
 incompatibles par construction avec cette promotion : les échecs éventuels
 de cette suite sont à distinguer des tests du nouveau défaut et à documenter.
 
-La publication du commit sur `origin/master` doit être confirmée par un
-push normal (sans `--force`) depuis le worktree isolé : ne jamais écraser
-le `master` local sale ou les modifications d'autres agents.
+**Publication effective sur `origin/master` :** commit initial de promotion
+`7160c6f5`, poussé par fast-forward normal depuis `99f29d9c` et confirmé
+par `git ls-remote`, en parallèle sur
+`experiments/estim31-default-promotion-20261030`. Aucun `--force` ni
+checkout du `master` local sale, travaux des autres agents préservés.
+La grande fullsuite historique comporte des attentes qui ne s'appliquent
+plus aux nouveaux réglages publics : 3175 tests, 84 échecs/16 erreurs
+sur le défaut promu, contre 3124 tests, 2 échecs/12 erreurs au même
+processus de découverte sur la référence pré-promotion. Les suites de CI
+et les tests ciblés du défaut passent ; voir
+`docs/estim31_default_validation_20261030.md` pour les limites exactes.
