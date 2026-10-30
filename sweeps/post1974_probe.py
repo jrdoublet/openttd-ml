@@ -18,7 +18,7 @@ except ImportError:
     from diag_c63_c58 import parse_c63_invest, C63_RE
 
 LOG_RE = re.compile(r"OPEX\s+(\d{4})-(\d{1,2})-(\d{1,2})\s+([A-Z0-9_]+)\s*(.*)$")
-KINDS = {"RAIL_ATTEMPT", "PROJECT_CHOSEN", "PROJECT_DISCARD", "AIR_BUILD", "FLEET_PROJECT", "AIR_FLEET", "V284", "ESTIM_SPEND", "ESTIM_PASS", "ESTIM_PROJECT", "ESTIM_OUTCOME"}
+KINDS = {"RAIL_ATTEMPT", "PROJECT_CHOSEN", "PROJECT_DISCARD", "AIR_BUILD", "FLEET_PROJECT", "AIR_FLEET", "V284", "ESTIM_SPEND", "ESTIM_PASS", "ESTIM_DECISION", "ESTIM_OUTCOME"}
 
 
 def fields_of(payload: str) -> dict[str, str]:

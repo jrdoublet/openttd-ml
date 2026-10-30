@@ -20,6 +20,7 @@ class TestPost1974Probe(unittest.TestCase):
             "INFO: OPEX 1979-5-2 AIR_BUILD src=54 dst=42 cost=300000 profit=15000",
             "INFO: OPEX 1979-5-2 AIR_BUILD src=42 dst=54 cost=300000 profit=15000",
             "INFO: OPEX 1979-6-3 V284 action=reject reason=waiting",
+            "INFO: OPEX 1975-5-1 ESTIM_DECISION mode=air stage=mode_top_0 id=air|42|54 reason=excluded_or_topk",
             "INFO: OPEX 1980-1-1 C63_INVEST phase=spend year=1979 mode=rail planned_ok=140000 actual_ok=120000 n_ok=1 planned_fail=180000 actual_fail=7000 n_fail=2",
             "INFO: OPEX 1980-1-1 C63_INVEST phase=opp year=1979 absent_n=1 absent_d=20 invalid_n=0 invalid_d=0",
         ])
@@ -35,6 +36,7 @@ class TestPost1974Probe(unittest.TestCase):
         self.assertEqual(year["air_min_distinct_od"], 1)
         self.assertEqual(year["chosen_events_by_mode"]["rail"], 1)
         self.assertEqual(year["v284_events_by_action"]["reject"], 1)
+        self.assertEqual(data["years"]["1975"]["event_counts"]["ESTIM_DECISION"], 1)
         self.assertEqual(year["c63_spend_by_mode"]["rail"]["actual_fail"], 7000)
         self.assertEqual(data["years"]["1978"]["c63_spend_by_mode"], None)
 
