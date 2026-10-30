@@ -35,14 +35,14 @@ def edit_setting(code, name, value):
         block = sub.sub(lambda m: m.group(1) + str(value), block, count=1)
     if name == 'estim_unifie':
         block = block.replace('0 = historical (default)',
-                              '0 = historical (opt-out); 31 = qualified default')
+                              '0 = historical, 31 = default')
     elif name == 'eb14_progressive':
-        block = block.replace('0=off (default)', '0=off (opt-out); 3=qualified default')
+        block = block.replace('0=off (default)', '0=off, 3=default')
     elif name == 'probes':
         if 'default_value' in block:
             raise ValueError('Unexpected explicit probes default in source')
         block = block.replace('0 none (default)',
-                              '0 none (opt-out); 2 signs = qualified default')
+                              '0 none, 2 signs (default)')
     return code[:matches[0].start()] + block + code[matches[0].end():]
 
 
@@ -159,6 +159,9 @@ def promote(repo, worktree, result, apply=False):
     info = (source / 'info.nut').read_text('utf-8')
     for setting, value in defaults.items():
         info = edit_setting(info, setting, value)
+    info = info.replace(
+        'Defaut publication 0 = carte vierge ; les harnais injectent probes=2.',
+        'Defaut public 2 = panneaux ; valeur identique aux duels 20x10 de promotion.')
     changed = []
     for rel, file in sorted(src.items()):
         new_bytes = info.encode('utf-8') if rel.as_posix() == 'info.nut' else file.read_bytes()
