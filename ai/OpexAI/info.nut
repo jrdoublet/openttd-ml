@@ -245,6 +245,13 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "v233l_constructibilite",
+      description = "V233L physical single-track counterfactual after NOPLAN2: 0=historical mandatory double (default), 1=quote/log only, 2=bounded funded single-track fallback (experimental)",
+      min_value = 0, max_value = 2,
+      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
+      default_value = 0, step_size = 1, flags = 0
+    });
+    AddSetting({
       name = "v233_site_funnel",
       description = "V233L urban site B: 0 = spiral, 1 = native funnel (buildable rectangle, GOOD acceptance, then squirrel checks; default 1 since 27/10, user decision)",
       min_value = 0, max_value = 1,

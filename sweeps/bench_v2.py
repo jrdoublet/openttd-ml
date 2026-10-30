@@ -303,12 +303,15 @@ def arm_notes():
 
 def append_checkpoint(record):
     """Ajoute une ligne complete sans reecrire le checkpoint partage par les workers."""
-    if CHECKPOINT_PATH is None:
+    # Spawn (Windows/Python 3.14) importe le module dans un interprete neuf :
+    # la globale fixee par main() n'est pas heritee contrairement au fork POSIX.
+    path = CHECKPOINT_PATH or os.environ.get("OPEX_BENCH_CHECKPOINT_PATH")
+    if path is None:
         raise RuntimeError("checkpoint non configure")
     encoded = (json.dumps(record, separators=(",", ":")) + "\n").encode("utf-8")
     # O_APPEND evite que deux workers ecrivent au meme offset. Une ligne est petite et ecrite en
     # un appel : un crash laisse au pire sa derniere ligne incomplete, qu'une relecture ligne a ligne ignore.
-    fd = os.open(CHECKPOINT_PATH, os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o644)
+    fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o644)
     try:
         os.write(fd, encoded)
     finally:
@@ -1023,6 +1026,7 @@ def main():
     out = args.out
     out.parent.mkdir(parents=True, exist_ok=True)
     CHECKPOINT_PATH = out.with_suffix(".jsonl")
+    os.environ["OPEX_BENCH_CHECKPOINT_PATH"] = str(CHECKPOINT_PATH.resolve())
     enable_savegame_cleanup()
     cfg = make_cfg(args.starting_year, args.map_size)
     rows = list(run_experiments(
@@ -1129,4 +1133,10 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    if os.name == "nt":
+        # Sous spawn Windows, le processeur de resultats doit etre importable
+        # sous un nom de module stable, pas via le __main__ du programme.
+        import importlib
+        importlib.import_module("bench_v2").main()
+    else:
+        main()

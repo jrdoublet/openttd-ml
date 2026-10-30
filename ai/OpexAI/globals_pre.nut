@@ -44,6 +44,7 @@ V309_IDLE_STATE <- null;
 FRONT_PAX1_CLAMP_PROBE <- false; // Réglage indépendant, motifs des bornes PASS.
 V284_RAIL_GROWTH <- 0; // 0 : master ; N : croissance fret apres N ans et 1 M£ disponible.
 V233_LONG_GOOD <- 1; // Defaut 1 depuis le 27/10 (decision utilisateur).
+V233L_CONSTRUCT <- 0; // 0 historique, 1 devis monovoie passif, 2 repli monovoie physique opt-in.
 V233L_STATE <- null; // Fenetres mensuelles entieres, sauvegardees seulement sous l'option.
 V233_SITE_FUNNEL <- 1; // 0 = spirale B urbaine ; 1 = entonnoir natif (defaut 1 depuis le 27/10).
 V233_FUNNEL_CENTER_TEST <- 1; // 0 = off ; 1 = pre-test d'acceptation au centre de la ville.

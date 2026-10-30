@@ -192,9 +192,11 @@ function OpexStationRatingForHeadway(headwayDays)
  * comme OpexRoadLineEconomics distingue deja les deux. */
 function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPlatformLength = 0,
                            routeDistance = null, profile = null, cruiseCache = null,
-                           wagonOverride = null, locoChoicesOverride = null, secondary = null, longGood = false)
+                           wagonOverride = null, locoChoicesOverride = null, secondary = null,
+                           longGood = false, v233Single = false)
 {
   local longModel = V233_LONG_GOOD > 0 && longGood;
+  local monoLong = longModel && v233Single && V233L_CONSTRUCT > 0;
   local setupMark = profile != null ? OpexOpsMeasureBegin() : null;
   local freightDetail = profile != null && kind == "freight" && C41_RAIL_FREIGHT_ECONOMICS_DETAIL_PROFILE;
   local freightSetupDetail = profile != null && kind == "freight" && C41_RAIL_FREIGHT_ECONOMICS_SETUP_PROFILE;
@@ -263,7 +265,7 @@ function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPl
   if ((ESTIM_UNIFIE & 8) != 0)
     calibrationRating = OpexStationRatingForHeadway(referenceRoundTripDays / OpexEstimRailPhysicalTrainCap());
   local calibrationOffered = (monthlyUnits * calibrationRating) / 100.0;
-  if (longModel) calibrationOffered /= 2.0; // deux rames partageant le debit observe.
+  if (longModel && !monoLong) calibrationOffered /= 2.0; // deux rames partageant le debit observe.
   if (calibrationOffered <= 0) return null;
   local wagons = OpexCeilDiv(calibrationOffered, wagon.capacity * referenceTrips);
   if (wagons < 1) wagons = 1;
@@ -371,7 +373,7 @@ function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPl
     infraCost = 2 * travelDist * effectiveTrackCost + 3 * platformLength * catalog.costStation
         + 12 * effectiveTrackCost + numSignals * signalCost
         + (RAIL_DEPOT_COST ? catalog.costRailDepot : 0);
-  } else if (longModel || (OpexV190Active() && kind == "freight")) {
+  } else if ((longModel && !monoLong) || (OpexV190Active() && kind == "freight" && !monoLong)) {
     infraCost = 2 * travelDist * effectiveTrackCost + 4 * platformLength * catalog.costStation
         + (RAIL_DEPOT_COST ? 2 * catalog.costRailDepot : 0);
   }
@@ -390,8 +392,8 @@ function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPl
   }
   local loopMark = profile != null ? OpexOpsMeasureBegin() : null;
   local best = null;
-  local startTrains = (longModel || (OpexV190Active() && kind == "freight")) ? 2 : 1;
-  local maxTrains = (ESTIM_UNIFIE & 8) != 0 ? OpexEstimRailPhysicalTrainCap() : MAX_RAIL_TRAINS;
+  local startTrains = (!monoLong && (longModel || (OpexV190Active() && kind == "freight"))) ? 2 : 1;
+  local maxTrains = monoLong ? 1 : ((ESTIM_UNIFIE & 8) != 0 ? OpexEstimRailPhysicalTrainCap() : MAX_RAIL_TRAINS);
   for (local trains = startTrains; trains <= maxTrains; trains++) {
     local headwayDays = roundTripDays / trains;
     local effectiveHeadway = headwayDays;

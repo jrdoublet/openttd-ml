@@ -2914,10 +2914,70 @@ function OpexV233LTick(owner)
   OpexV233LContinueGrowth(owner);
 }
 
+/* Contre-factuel sur la MEME carte, juste apres le rejet de la voie 2 :
+ * le plan primaire doit deja avoir ete produit par A* et le devis utilise
+ * les vraies commandes AITestMode, sans construire ni depenser en mode 1.
+ * Un devis ne prouve pas la pose : le constructeur revalide et peut rollback.
+ * Seul le mode 2 autorise le repli, avec un modele physique d'UNE rame. */
+function OpexV233LMonoAllowed(candidate, plan)
+{
+  return V233L_CONSTRUCT == 2 && OpexV233LIs(candidate) && plan != null
+      && ("v233MonoVerified" in plan) && plan.v233MonoVerified
+      && plan.doubleTrack == 0 && candidate.trains == 1;
+}
+
+function OpexV233LMonoCounterfactual(catalog, candidate, plan, routeDistance)
+{
+  if (V233L_CONSTRUCT <= 0 || !OpexV233LIs(candidate) || plan == null
+      || plan.tiles == null || plan.tiles.len() < 3 || plan.doubleTrack != 0)
+    return false;
+  local model = OpexLineEconomics(catalog, candidate.cargo, candidate.distance,
+      candidate.monthly, candidate.kind, plan.length, routeDistance,
+      null, null, null, null, OpexV163CandidateSecondary(candidate), true, true);
+  local reason = "OK";
+  local quoted = -1;
+  local mono = null;
+  local failure = {};
+  if (model == null || model.trains != 1 || model.profitAnnual <= 0) {
+    reason = "ECON";
+  } else {
+    mono = clone candidate;
+    OpexApplyRailEconomics(mono, model);
+    quoted = OpexQuoteRailCapital(catalog, mono, plan, failure);
+    if (quoted == null || quoted <= 0) {
+      reason = ("reason" in failure) ? failure.reason : "QUOTE";
+      quoted = -1;
+    } else {
+      OpexApplyRailActualCapital(mono, quoted);
+      if (mono.profitAnnual <= 0) reason = "NEGATIVE_AFTER_QUOTE";
+      else if (mono.capital > AICompany.GetBankBalance(AICompany.COMPANY_SELF)
+          || mono.capital > OpexAvailableCapital()) reason = "CASH";
+      else if (!OpexVehicleSlotAvailable(AIVehicle.VT_RAIL, 1)) reason = "NOSLOT";
+    }
+  }
+  if (DECISION_LOG) {
+    OpexV233LLog("CONSTRUCT", "src=" + candidate.src + " dst=" + candidate.dst
+        + " mode=" + V233L_CONSTRUCT + " alternative=single"
+        + " primary=found double=failed quote=" + quoted
+        + " monthly_capacity=" + (mono != null ? mono.monthlyCapacity : -1)
+        + " carried=" + (mono != null ? mono.carried : -1)
+        + " profit=" + (mono != null ? mono.profitAnnual : -1)
+        + " cash=" + AICompany.GetBankBalance(AICompany.COMPANY_SELF)
+        + " reason=" + reason + " native_error=" + (("error" in failure) ? failure.error : -1));
+  }
+  if (reason != "OK" || V233L_CONSTRUCT != 2) return false;
+  OpexApplyRailEconomics(candidate, model);
+  OpexApplyRailActualCapital(candidate, quoted);
+  plan.capital = candidate.capital;
+  plan.v233MonoVerified <- true;
+  return true;
+}
+
 function OpexV233LRecheck(candidate, plan)
 {
   local industry = AIIndustry.GetIndustryID(candidate.src);
-  if (V233L_STATE == null || !(industry in V233L_STATE.rows) || plan.doubleTrack != 1
+  if (V233L_STATE == null || !(industry in V233L_STATE.rows)
+      || (plan.doubleTrack != 1 && !OpexV233LMonoAllowed(candidate, plan))
       || plan.planA == null || plan.planB == null) return false;
   local row = V233L_STATE.rows[industry];
   if (!OpexV233LFresh(row.month, OpexV233LMonth())

@@ -4615,9 +4615,15 @@ function OpexCompleteRailRouteAfterSearch(catalog, candidate, plan, search)
   }
 
   if (OpexV233LIs(candidate) && plan.doubleTrack != 1) {
-    plan.reason = "NOPLAN2";
-    if (DECISION_LOG) OpexV233LLog("REJECT", "src=" + candidate.src + " dst=" + candidate.dst + " reason=second_track");
-    return plan;
+    /* Aucun assouplissement dans OFF. En mode 1, contre-test physique passif
+     * et rejet NOPLAN2 identique ; mode 2 n'admet qu'une monovoie re-devisée
+     * et financée, avec un train et un quai réellement testables. */
+    if (!(V233L_CONSTRUCT > 0
+        && OpexV233LMonoCounterfactual(catalog, candidate, plan, routeDistance))) {
+      plan.reason = "NOPLAN2";
+      if (DECISION_LOG) OpexV233LLog("REJECT", "src=" + candidate.src + " dst=" + candidate.dst + " reason=second_track");
+      return plan;
+    }
   }
   plan.ok = true;
   plan.reason = "OK";
@@ -5564,7 +5570,8 @@ function OpexV190ExecuteRailPlan(catalog, budget, candidate, plan)
     result.reason = "STALE";
     return result;
   }
-  if (OpexV233LIs(candidate) && !OpexVehicleSlotAvailable(AIVehicle.VT_RAIL, 2)) {
+  if (OpexV233LIs(candidate) && !OpexVehicleSlotAvailable(AIVehicle.VT_RAIL,
+      OpexV233LMonoAllowed(candidate, plan) ? 1 : 2)) {
     result.reason = "NOSLOT";
     return result;
   }
@@ -5958,7 +5965,7 @@ function OpexV190ExecuteRailPlan(catalog, budget, candidate, plan)
     }
   }
 
-  if (OpexV233LIs(candidate) && !okD) {
+  if (OpexV233LIs(candidate) && !okD && !OpexV233LMonoAllowed(candidate, plan)) {
     OpexRollback(tiles, planA, planB, depot, trains.rollbackVehicles);
     result.actualCost = primaryCost + (postPathCosts != null ? postPathCosts.GetCosts() : 0);
     result.reason = "DOUBLEFAIL";
@@ -6012,6 +6019,10 @@ function OpexV190ExecuteRailPlan(catalog, budget, candidate, plan)
   result.wagonLength = trains.wagonLength;
   result.vehicles = trains.vehicles;
   result.actualCost = primaryCost + doubleCost + postPathCosts.GetCosts();
+  if (OpexV233LMonoAllowed(candidate, plan) && DECISION_LOG)
+    OpexV233LLog("CONSTRUCT", "src=" + candidate.src + " dst=" + candidate.dst
+        + " phase=actual outcome=build_ok track=single trains=" + trains.built
+        + " actual=" + result.actualCost + " predicted_profit=" + candidate.profitAnnual);
   OpexApplyRailActualCapital(candidate, result.actualCost);
   result.capital = candidate.capital;
   result.stationA = planA.station_exit;
