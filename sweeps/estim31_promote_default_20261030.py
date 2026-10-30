@@ -23,8 +23,9 @@ def edit_setting(code, name, value):
     if len(matches) != 1:
         raise ValueError('Setting missing or duplicate: ' + name)
     block = matches[0].group()
-    keys = ('easy_value', 'medium_value', 'hard_value', 'custom_value',
-            'default_value')
+    keys = ('easy_value', 'medium_value', 'hard_value', 'custom_value')
+    if name != 'probes':
+        keys += ('default_value',)
     for key in keys:
         sub = re.compile(r'(\b' + re.escape(key) + r'\s*=\s*)\d+')
         if len(sub.findall(block)) != 1:
@@ -35,6 +36,11 @@ def edit_setting(code, name, value):
                               '0 = historical (opt-out); 31 = qualified default')
     elif name == 'eb14_progressive':
         block = block.replace('0=off (default)', '0=off (opt-out); 3=qualified default')
+    elif name == 'probes':
+        if 'default_value' in block:
+            raise ValueError('Unexpected explicit probes default in source')
+        block = block.replace('0 none (default)',
+                              '0 none (opt-out); 2 signs = qualified default')
     return code[:matches[0].start()] + block + code[matches[0].end():]
 
 
@@ -75,7 +81,8 @@ def promote(repo, worktree, result, apply=False):
                          ', '.join(str(k) for k in sorted(dst.keys() - src.keys())))
     design = json.loads((bundle / 'design.json').read_text('utf-8'))
     cfg = design['configuration']
-    defaults = {'estim_unifie': 31, 'eb14_progressive': cfg['eb14']}
+    defaults = {'estim_unifie': 31, 'eb14_progressive': cfg['eb14'],
+                'probes': 2}
     for key, setting, old_default in (
             ('v249_statue', 'v249_statue', 2),
             ('eb2_fallback', 'eb2_new_station_fallback', 0),

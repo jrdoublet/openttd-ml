@@ -16,6 +16,16 @@ class PromotionSafety(unittest.TestCase):
         with self.assertRaises(ValueError):
             edit_setting(sample, 'missing_setting', 3)
 
+    def test_probes_signs_default_without_explicit_default_value(self):
+        source = ('AddSetting({ name = "probes", description = "0 none (default)", '
+                  'min_value = 0, max_value = 2147483647, '
+                  'easy_value = 0, medium_value = 0, hard_value = 0, '
+                  'custom_value = 0, flags = 0 });')
+        actual = edit_setting(source, 'probes', 2)
+        self.assertIn('easy_value = 2, medium_value = 2', actual)
+        self.assertIn('custom_value = 2', actual)
+        self.assertNotIn('default_value', actual)
+
     def test_refuses_incomplete_ten_year_default_election(self):
         from pathlib import Path
         with self.assertRaisesRegex(ValueError, 'qualified'):
