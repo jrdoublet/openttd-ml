@@ -168,3 +168,59 @@ Les **trois conditions préenregistrées** de promotion sont vraies :
 profit VEHS mature positif, delta moyen décennal positif et
 garde de valeur tenue. **La B exploratoire 20×10 a donc été lancée**,
 sans nouvelle activation de réglage par défaut.
+
+## Résultats de la B exploratoire 20×10 — non-érosion PASS, pas d'adoption
+
+**40/40 parties** saines et complètes (20 graines appariées, 2 bras,
+1970–1979, cartes 256², sans `script-debug`, `probes=2` par défaut).
+Toutes les données jusqu'au 1er décembre 1979, 120 clichés mensuels
+par partie, aucune erreur de script ni anomalie VEHS/STNN. Source brute :
+`results/rail_repair_idle_b_10y_20261031.json`,
+SHA256 **`be6c7c5eb15edf810050cb581ec45c99be6166f4e75660b3d4e96e7516632ebc`**.
+Les 20 deltas et la décision calculée sont archivés dans
+[le JSON des preuves de B](rail_repair_idle_b_10y_20261031_evidence.json).
+
+| Mesure terminale, décembre 1979 | Référence OFF | Réparations ON |
+|---|---:|---:|
+| `profit_year` moyen | 2 102 608,05 £/an | 2 092 141,65 £/an |
+| `company_value` moyen | 7 284 487,60 £ | 7 256 727,85 £ |
+
+- Différence moyenne appariée : **−10 466,4 £/an**, soit **−0,49778 %**
+  du témoin ; médiane **−11 158,5 £/an**.
+- **8 victoires / 12 défaites, 0 égalité**, Wilcoxon bilatéral exact
+  **p=0,57060** : aucun gain statistiquement confirmé.
+- IC95 bootstrap de la moyenne appariée (20 000 tirages, seed 0) :
+  **[−53 505,5 ; +34 582,25] £/an**. La borne haute est positive :
+  critère de non-érosion à la B **réussi**, sans prouver que la moyenne
+  du traitement est non négative.
+- Ratio des valeurs moyennes **99,6189 %** : garde de valeur ≥95 %
+  **réussie**.
+
+**Verdict de B : `B_EXPLORATORY_NON_EROSION_PASS`** ; la porte
+exploratoire **ne rejette pas** la non-érosion selon son protocole
+unilatéral. Le gain moyen reste négatif ; elle ne démontre ni une
+amélioration, ni un bénéfice global des réparations.
+
+**Cohérence entre les expériences :** la maturation 5×10 est réalisée
+sur cinq graines *sélectionnées parce que SITE avait construit* et
+utilise `probes=258` (avec trace `-d script=4`), tandis que la B
+utilise `probes=2` et 20 graines canoniques. La différence est réelle
+et peut fortement modifier le parcours des parties : par exemple, la
+graine 65537 donne **+181 795 £/an** dans le pilote instrumenté,
+mais **−149 496 £/an** dans la B sans instrumentation. Ce ne sont
+**pas** deux mesures interchangeables d'un même effet causal.
+
+### Décision de mise en production
+
+La porte A RAIL seul 40×5 est **NO-GO** (+0,113 %, p≈0,824),
+et la B n'est qu'une non-érosion exploratoire expressément autorisée
+après maturation. Le critère d'adoption (gain robuste sur A) n'a jamais
+été franchi. **Tous les opt-ins demeurent à 0 par défaut, pas de
+promotion**.
+
+La prochaine hypothèse expérimentale devrait **isoler SITE**
+(les cinq récupérations réelles) et chercher à augmenter sa
+**sélectivité économique** après six mois d'inactivité ; les
+secondes chances A* ont échoué dans le replay 40×5 et POSE/V131
+n'y ont pas été observés. Toute nouvelle adoption exige une nouvelle
+porte A indépendante et explicite, sans réinterpréter ce NO-GO.

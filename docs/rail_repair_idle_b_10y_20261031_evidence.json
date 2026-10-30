@@ -1,0 +1,192 @@
+{
+  "stage": "b",
+  "source_sha256": "be6c7c5eb15edf810050cb581ec45c99be6166f4e75660b3d4e96e7516632ebc",
+  "metrics": {
+    "n_pairs": 20,
+    "ref_profit_year_mean": 2102608.05,
+    "variant_profit_year_mean": 2092141.65,
+    "delta_mean": -10466.4,
+    "delta_median": -11158.5,
+    "delta_pct": -0.4977817905719495,
+    "wins": 8,
+    "losses": 12,
+    "ties": 0,
+    "wilcoxon_exact_p": 0.5705966949462891,
+    "bootstrap_ci95": [
+      -53505.5,
+      34582.25
+    ],
+    "bootstrap_replays": 20000,
+    "value_ref_mean": 7284487.6,
+    "value_variant_mean": 7256727.85,
+    "value_ratio": 0.9961891966155588,
+    "by_seed": [
+      {
+        "seed": 42,
+        "ref": 1872465,
+        "on": 1722345,
+        "delta": -150120.0,
+        "ref_value": 6663067,
+        "on_value": 6024449
+      },
+      {
+        "seed": 100,
+        "ref": 1567693,
+        "on": 1642160,
+        "delta": 74467.0,
+        "ref_value": 3510479,
+        "on_value": 3856580
+      },
+      {
+        "seed": 7,
+        "ref": 2707064,
+        "on": 2695578,
+        "delta": -11486.0,
+        "ref_value": 11285566,
+        "on_value": 11361813
+      },
+      {
+        "seed": 999,
+        "ref": 2425956,
+        "on": 2415125,
+        "delta": -10831.0,
+        "ref_value": 8966427,
+        "on_value": 9083492
+      },
+      {
+        "seed": 2026,
+        "ref": 1787187,
+        "on": 1834322,
+        "delta": 47135.0,
+        "ref_value": 3387483,
+        "on_value": 4116792
+      },
+      {
+        "seed": 1,
+        "ref": 2104067,
+        "on": 1969774,
+        "delta": -134293.0,
+        "ref_value": 6993337,
+        "on_value": 6734524
+      },
+      {
+        "seed": 17,
+        "ref": 2225037,
+        "on": 2254103,
+        "delta": 29066.0,
+        "ref_value": 9537030,
+        "on_value": 9417314
+      },
+      {
+        "seed": 73,
+        "ref": 2240232,
+        "on": 2201102,
+        "delta": -39130.0,
+        "ref_value": 9361310,
+        "on_value": 8545419
+      },
+      {
+        "seed": 314,
+        "ref": 2255111,
+        "on": 2146743,
+        "delta": -108368.0,
+        "ref_value": 8512484,
+        "on_value": 8645223
+      },
+      {
+        "seed": 512,
+        "ref": 1626067,
+        "on": 1598721,
+        "delta": -27346.0,
+        "ref_value": 4823017,
+        "on_value": 4729135
+      },
+      {
+        "seed": 1024,
+        "ref": 2161519,
+        "on": 2079575,
+        "delta": -81944.0,
+        "ref_value": 7625257,
+        "on_value": 7489811
+      },
+      {
+        "seed": 1337,
+        "ref": 1711327,
+        "on": 1846768,
+        "delta": 135441.0,
+        "ref_value": 4495920,
+        "on_value": 4845724
+      },
+      {
+        "seed": 4096,
+        "ref": 2416670,
+        "on": 2442541,
+        "delta": 25871.0,
+        "ref_value": 11786352,
+        "on_value": 11796229
+      },
+      {
+        "seed": 8191,
+        "ref": 2286664,
+        "on": 2405081,
+        "delta": 118417.0,
+        "ref_value": 7716698,
+        "on_value": 8154480
+      },
+      {
+        "seed": 12345,
+        "ref": 2304145,
+        "on": 2151607,
+        "delta": -152538.0,
+        "ref_value": 7125630,
+        "on_value": 6643609
+      },
+      {
+        "seed": 54321,
+        "ref": 1467390,
+        "on": 1693506,
+        "delta": 226116.0,
+        "ref_value": 3567970,
+        "on_value": 4466992
+      },
+      {
+        "seed": 65537,
+        "ref": 2273123,
+        "on": 2123627,
+        "delta": -149496.0,
+        "ref_value": 8810753,
+        "on_value": 8226677
+      },
+      {
+        "seed": 123456,
+        "ref": 2426516,
+        "on": 2486451,
+        "delta": 59935.0,
+        "ref_value": 8464611,
+        "on_value": 8348111
+      },
+      {
+        "seed": 424242,
+        "ref": 2180018,
+        "on": 2130364,
+        "delta": -49654.0,
+        "ref_value": 6864304,
+        "on_value": 6165222
+      },
+      {
+        "seed": 8675309,
+        "ref": 2013910,
+        "on": 2003340,
+        "delta": -10570.0,
+        "ref_value": 6192057,
+        "on_value": 6482961
+      }
+    ]
+  },
+  "checks": {
+    "bootstrap_ci95_upper_ge_zero": true,
+    "company_value_ratio_ge_0_95": true
+  },
+  "verdict": "B_EXPLORATORY_NON_EROSION_PASS",
+  "warning": "Prior rail-only 40x5 A failed. This B is non-erosion diagnostics, never adoption qualification."
+}
