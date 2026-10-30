@@ -182,3 +182,21 @@ fréquence, note et V284) puis **P1 AIR-PRODUCTIVITÉ** (rentabilité par
 avion/ligne V161/V252). Les tests historiques du nouveau défaut
 restent un P0 **technique**, suivi en parallèle. Aucun code métier,
 réglage par défaut ou verdict des variantes rejetées n'est modifié.
+
+## 30/10 — Rapport détaillé des trois finalistes 20×10
+
+Les trois variantes qualifiées sur vingt graines ont maintenant un
+[rapport complet de résultats](../estim31_trois_variantes_20x10_detail_20261030.md)
+qui préserve **par variante** la configuration figée, l'identité et le
+SHA du bundle, le ratio de classement des profits, les **dix moyennes
+annuelles** des deux concurrents et leurs stocks AIR/RAIL, les **vingt
+paires individuelles** de profits de 1979, l'ancien **OFF propre au
+duel** et les comptes PLYR nets au 1er décembre 1979. Les sources
+JSON gelées ne sont pas modifiées ;
+[`sweeps/estim31_document_three_finalists_20261030.py`](../../sweeps/estim31_document_three_finalists_20261030.py)
+permet une reconstruction et une vérification identiques du Markdown.
+Classement inchangé : **V161 AIR2,00/RAIL0,75 66,557726256 %** (adopté),
+**V161 AIR2,50 65,921947052 %** (non adopté), **V161 × C121 N1/N2
+65,188575006 %** (non adopté). Le 1er à cinq ans devient le 3e à
+dix ans, sans inférence causale automatique. Aucun nouveau benchmark,
+changement économique ni nouvelle promotion du défaut.

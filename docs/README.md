@@ -17,6 +17,12 @@ annuel AAAHogEx-115 à fin 1979. [Élection et preuves](estim31_phase_combinatoi
 L'augmentation de la trésorerie et l'écart des parcs ne prouvent pas un
 correctif particulier ; aucun nouveau banc n'a été relancé pour ce classement.
 
+**Résultats détaillés des trois variantes ESTIM31 20×10** :
+[rapport intégral, trois configurations, dix années chacune, soixante paires
+de graines et comptes PLYR 1979](estim31_trois_variantes_20x10_detail_20261030.md).
+Source immuable et [génération vérifiable](../sweeps/estim31_document_three_finalists_20261030.py)
+sans relancer les simulations.
+
 ## Commencer ici
 
 | Document courant | Rôle |
