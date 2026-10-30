@@ -511,6 +511,11 @@ function OpexLoadSettings()
   AIR0310_SITE_VALIDITY_STATE = null;
   RAIL_DEPOT_COST = AIController.GetSetting("rail_depot_cost") != 0;
   V131_RAIL_REPAIR = AIController.GetSetting("v131_rail_repair") != 0;
+  RAIL_REPAIR_JOIN_SITE = AIController.GetSetting("rail_repair_join_site") == 1;
+  RAIL_REPAIR_V131_FOCUS = AIController.GetSetting("rail_repair_v131_focus") == 1;
+  /* Le moteur d'etat V131 existant gere reprise, rollback et abandon sur Load.
+   * Le profil focus utilise ce moteur, avec des plafonds distincts et stricts. */
+  V131_RAIL_REPAIR = V131_RAIL_REPAIR || RAIL_REPAIR_V131_FOCUS;
   V131_TOWN_CLEARANCE = AIController.GetSetting("v131_town_clearance") != 0;
   AIR_MAX_DISTANCE = 0;
   TRANSIT_COST_PERMILLE = 0;

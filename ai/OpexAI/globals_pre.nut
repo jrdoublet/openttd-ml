@@ -719,6 +719,12 @@ V131_REPAIR_MAX_TILES <- 35;
 V131_REPAIR_MAX_RUNS <- 3;
 V131_REPAIR_MAX_ITERS <- 2500;
 
+/* Rail repair 30/10 : deux variantes independantes, inertes au defaut ESTIM31.
+ * SITE = joindre un quai oriente a la gare existante quand le parallele est impossible.
+ * FOCUS = reparation d'un unique defaut local d'un plan prepare, budgets tres limites. */
+RAIL_REPAIR_JOIN_SITE <- false;
+RAIL_REPAIR_V131_FOCUS <- false;
+
 /* V131 : degagement urbain (clearance) de l'A* rail pour eviter les centres-villes
  * et leurs emprises aeroportuaires futures. Defaut 0 : cout nul. */
 V131_TOWN_CLEARANCE <- false;

@@ -685,6 +685,20 @@ class OpexAIInfo extends AIInfo {
       min_value = 0, max_value = 100, step_size = 5,
       easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
       flags = 0 });
+    AddSetting({
+      name = "rail_repair_join_site",
+      description = "Rail repair SITE: on shared destination join failure, test nearby rotated station platforms preserving the existing station ID (experimental; 0 = off)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+    AddSetting({
+      name = "rail_repair_v131_focus",
+      description = "Rail repair V131: bounded single localized obstruction or station shift in stocked rail routes (experimental; 0 = off)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
   }
 }
 

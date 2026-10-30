@@ -1469,6 +1469,27 @@ function OpexV264SpreadJoinPlans(platform, stationId, stats = null)
   return plans;
 }
 
+/* REPAIR-SITE : l'echec SITE d'une destination V178 partagee ne justifie pas de
+ * construire une nouvelle gare (ancien EB-2 negatif). Chercher seulement dans les
+ * deux premiers anneaux de la gare existante un quai d'orientation differente.
+ * OpexV264SpreadVisit effectue le devis BuildRailStation en AITestMode, verifie
+ * chaque tuile et l'entree de voie. La limite de deux anneaux evite le balayage
+ * V307/V264 complet, et la jonction garde le StationID du candidat. */
+function OpexRailRepairJoinSite(platform, stationId, stats)
+{
+  if (platform == null || !AIStation.IsValidStation(stationId)
+      || !AIStation.HasStationType(stationId, AIStation.STATION_TRAIN)) return [];
+  if (!AIGameSettings.GetValue("station.distant_join_stations")) return [];
+  local spread = AIGameSettings.GetValue("station.station_spread");
+  if (spread == null || spread < 4 || platform.length > spread) return [];
+  local box = OpexV264StationRailBox(stationId);
+  if (box == null) return [];
+  local plans = [];
+  OpexV264SpreadScan(plans, platform, stationId, stats, box, spread,
+                     platform.length, 1, 2);
+  return plans;
+}
+
 /* Un couple de plans a une longueur donnee. Rend nA/nB meme en echec : c'est ce qui permet de
  * distinguer SITEA, SITEB et SITEAB, au lieu du seau unique NOPLAN. Les closures Squirrel de
  * cet environnement ne capturent pas les locaux englobants -- d'ou une fonction libre. */
@@ -1523,6 +1544,8 @@ function OpexRailSiteReason(sawA, sawB)
 function OpexRailPlatformPlans(catalog, candidate)
 {
   if (OpexV233LIs(candidate)) return OpexV233LPlatformPlans(catalog, candidate);
+  if (RAIL_REPAIR_JOIN_SITE && ("railSiteRepair" in candidate))
+    candidate.rawset("railSiteRepair", 0);
   local statsA = { nClear = 0, nCargo = 0, nCmd = 0 };
   local statsB = { nClear = 0, nCargo = 0, nCmd = 0 };
 
@@ -1549,6 +1572,14 @@ function OpexRailPlatformPlans(catalog, candidate)
         || (("convergent_dest" in candidate) && candidate.convergent_dest);
     if (!joinB) {
       local jointPlansA = OpexJoinPlatformPlans(candidate.joinPlatform, candidate.joinStationId, statsA);
+      local repairedJoinA = false;
+      if (RAIL_REPAIR_JOIN_SITE && jointPlansA.len() == 0
+          && (("shared_dest" in candidate) && candidate.shared_dest)) {
+        jointPlansA = OpexRailRepairJoinSite(candidate.joinPlatform, candidate.joinStationId, statsA);
+        repairedJoinA = jointPlansA.len() > 0;
+        if (DECISION_LOG) OpexDecide("RAIL_SITE_REPAIR", "end=A src=" + candidate.src
+            + " dst=" + candidate.dst + " cargo=" + candidate.cargo + " options=" + jointPlansA.len());
+      }
       joinHasA = jointPlansA.len() > 0;
       if (jointPlansA.len() > 0) {
         foreach (p in jointPlansA) {
@@ -1559,6 +1590,8 @@ function OpexRailPlatformPlans(catalog, candidate)
                                         candidate.kind == "pax", statsB);
         joinHasB = plansB.len() > 0;
         if (plansB.len() > 0) {
+          if (repairedJoinA)
+            candidate.rawset("railSiteRepair", 1);
           return { plansA = jointPlansA, plansB = plansB, length = jointLength,
                    slopeRelaxed = 0, reason = "OK", statsA = statsA, statsB = statsB };
         }
@@ -1566,6 +1599,14 @@ function OpexRailPlatformPlans(catalog, candidate)
       }
     } else {
       local jointPlansB = OpexJoinPlatformPlans(candidate.joinPlatform, candidate.joinStationId, statsB);
+      local repairedJoinB = false;
+      if (RAIL_REPAIR_JOIN_SITE && jointPlansB.len() == 0
+          && (("shared_dest" in candidate) && candidate.shared_dest)) {
+        jointPlansB = OpexRailRepairJoinSite(candidate.joinPlatform, candidate.joinStationId, statsB);
+        repairedJoinB = jointPlansB.len() > 0;
+        if (DECISION_LOG) OpexDecide("RAIL_SITE_REPAIR", "end=B src=" + candidate.src
+            + " dst=" + candidate.dst + " cargo=" + candidate.cargo + " options=" + jointPlansB.len());
+      }
       if (("convergent_dest" in candidate) && candidate.convergent_dest == 1) {
         local joinMode = "parallel";
         if (jointPlansB.len() == 0) {
@@ -1592,6 +1633,7 @@ function OpexRailPlatformPlans(catalog, candidate)
                                         true, statsA);
         joinHasA = plansA.len() > 0;
         if (plansA.len() > 0) {
+          if (repairedJoinB) candidate.rawset("railSiteRepair", 1);
           return { plansA = plansA, plansB = jointPlansB, length = jointLength,
                    slopeRelaxed = 0, reason = "OK", statsA = statsA, statsB = statsB };
         }
