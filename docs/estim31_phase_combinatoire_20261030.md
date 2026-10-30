@@ -695,3 +695,34 @@ cette seule base.
 Premier banc décennal lancé le **30/10 à 09:47:01**, top1 V161×motorcap,
 20 graines × 10 ans, huit workers, uniquement le Docker disponible.
 Il ne faut pas déduire son résultat 1979 des cinq premières années.
+
+### Premier 20×10 terminé et sain (10:13)
+
+`estim31ten_estim31vcap_mix_a200_r075_w15_slope_20x10_20261030`
+est **réellement terminé sur 40/40 jeux sains**, vingt graines appariées,
+dix ans (1970–1979), source gelée
+`183187e6b60f442edf3f0ea7eaa556cfccb4729aed185f1ddf12298e242711c9`,
+`probes=2`, huit workers. Le lecteur exige les 400 checkpoints annuels
+par politique et la cohérence SHA du manifeste, des jeux et des snapshots.
+
+**Variante V161×motorcap au 01/12/1979** :
+Opex **4 290 978,400 £/an**, AAAHogEx **6 582 408,650 £/an**,
+ratio des moyennes **65,188575 %**, écart apparié
+**−2 291 430,250 £/an**, zéro victoire sur vingt graines.
+Témoin OFF du *même duel* : Opex **4 038 345,350 £/an**,
+AAA **6 892 616,350 £/an**, ratio **58,589440 %**.
+Cette comparaison interne est valide mais ne suffit **pas** à choisir
+le nouveau défaut avant les deux autres 20×10.
+
+Fin 1979, Opex conserve **16 072 476,05 £** de caisse moyenne,
+**84,95 avions**, **27,95 trains**, **34,90 aéroports**,
+**34,10 villes avec aéroport**, emprunt nul.
+Le fort matelas de trésorerie suggère une capacité d'investissement
+non mobilisée, pas un chiffre de dépenses prouvé : les comptes PLYR
+de fin de campagne seront lus sur les dernières sauvegardes.
+`observed_opcode_complete_cpu=false` : ne pas présenter les
+compteurs comme CPU exhaustif.
+
+La **deuxième** qualification 20×10, V161 AIR2,50/RAIL0,75,
+a démarré automatiquement le **30/10 à 10:13:14**, sous l'unique Docker.
+La troisième reste en file séquentielle, aucun défaut modifié.
