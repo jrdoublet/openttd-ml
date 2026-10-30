@@ -5,15 +5,26 @@
 param([Parameter(Mandatory=$true)][string]$Release)
 $ErrorActionPreference='Stop'
 $Source=(Resolve-Path -LiteralPath $Release).Path
-$ManifestFile=Join-Path $Source 'release_manifest.json'
-if(-not(Test-Path -LiteralPath $ManifestFile)){throw 'Release manifest absent'}
-$Manifest=Get-Content -Raw -Encoding UTF8 -LiteralPath $ManifestFile|ConvertFrom-Json
-if(-not $Manifest.deployable_source_ready -or $Manifest.production_ai_updated){
-  throw 'Release must be sealed and isolated'
-}
-if($Manifest.settings_promoted.estim_unifie -ne 31 -or
-   $Manifest.settings_promoted.eb14_progressive -ne 3 -or
-   $Manifest.settings_promoted.probes -ne 2){throw 'Wrong public-default contract'}
+$Promotion=Join-Path $Source 'docs/estim31_default_promotion_20261030.json'
+$ReleaseSeal=Join-Path $Source 'release_manifest.json'
+if(Test-Path -LiteralPath $Promotion){
+  $Manifest=Get-Content -Raw -Encoding UTF8 -LiteralPath $Promotion|ConvertFrom-Json
+  if(-not $Manifest.applied_to_isolated_worktree -or
+     -not $Manifest.ai_libraries_verified -or
+     -not $Manifest.executed_source_verified){
+    throw 'Promotion is not installed and source-verified'
+  }
+  $Settings=$Manifest.default_settings
+} elseif(Test-Path -LiteralPath $ReleaseSeal){
+  $Manifest=Get-Content -Raw -Encoding UTF8 -LiteralPath $ReleaseSeal|ConvertFrom-Json
+  if(-not $Manifest.deployable_source_ready -or $Manifest.production_ai_updated){
+    throw 'Release must be sealed and isolated'
+  }
+  $Settings=$Manifest.settings_promoted
+} else { throw 'No verified release or promotion manifest' }
+if($Settings.estim_unifie -ne 31 -or
+   $Settings.eb14_progressive -ne 3 -or
+   $Settings.probes -ne 2){throw 'Wrong public-default contract'}
 if(-not(Test-Path -LiteralPath (Join-Path $Source 'ai_libraries'))){throw 'NoAI libraries absent'}
 $Worktree=git rev-parse --show-toplevel
 if($LASTEXITCODE -ne 0){throw 'Missing git worktree'}
