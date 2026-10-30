@@ -380,7 +380,12 @@ V233L, test physique des variantes de tracé sur la *même* carte,
 preuve de profit net, et validation multisource) est donc
 ouverte comme tâche **distincte `V233L-CONSTRUCTIBILITE`** ;
 elle ne doit jamais être considérée comme déjà prouvée par
-le diagnostic. La comparaison AIR des sites/rangs absents
-reste dans **AIR-COVERAGE**, et l'écart de rendement réel
-dans **AIR-PRODUCTIVITÉ**. Les valeurs par défaut et les
-verdicts des trois campagnes 20×10 restent inchangés.
+le diagnostic. **Décision utilisateur postérieure du 30/10 :**
+`AIR-COVERAGE` est limité à **arrêter les nouvelles recherches
+de villes une fois le vivier épuisé et ne les relancer que sur
+`ET_TOWN_FOUNDED`** ; l'item actif `AIR-PRODUCTIVITÉ` est **supprimé**
+(ses chiffres historiques ne disparaissent pas). Les réparations
+RAIL à l'échec sont rouvertes dans [le registre et son journal
+de décision](journaux/journal_2026-10-30_repriorisation_air_rail.md).
+Les valeurs par défaut et les verdicts des trois campagnes 20×10
+restent inchangés.
