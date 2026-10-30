@@ -1,0 +1,262 @@
+{
+  "economic_criterion": "100 * mean20(OpexAI 1979-12-01 profit_year) / mean20(AAAHogEx 1979-12-01 profit_year)",
+  "same_seed_set": [
+    42,
+    100,
+    7,
+    999,
+    2026,
+    1,
+    17,
+    73,
+    314,
+    512,
+    1024,
+    1337,
+    4096,
+    8191,
+    12345,
+    54321,
+    65537,
+    123456,
+    424242,
+    8675309
+  ],
+  "ranked_healthy_20x10": [
+    {
+      "suite": "v161coeff",
+      "name": "v161_a250_r075_w15",
+      "ratio_40x5_pct": 105.17175830856316,
+      "source_bundle_sha256": "10d21056814b32f8672db28c7d6016538904ae335e1fa7c22bef0dfbd00527ec",
+      "opex_profit_mean": 4225862.9,
+      "aaa_profit_mean": 6410403.65,
+      "ratio_pct": 65.92194705242937,
+      "paired_profit_difference_mean": -2184540.75,
+      "opex_wins": 1,
+      "opex_cash_mean": 14601760.8,
+      "aaa_cash_mean": 17483905.5,
+      "opex_loan_mean": 0,
+      "aircraft_stock_mean": 82.7,
+      "train_stock_mean": 29.2,
+      "airport_count_mean": 34.05,
+      "airport_towns_mean": 33.4,
+      "opcodes_complete_all": false,
+      "pairs": {
+        "42": {
+          "opex": 3815065,
+          "aaa": 6223025
+        },
+        "100": {
+          "opex": 2985782,
+          "aaa": 5549820
+        },
+        "7": {
+          "opex": 4677426,
+          "aaa": 7750909
+        },
+        "999": {
+          "opex": 5453033,
+          "aaa": 6203477
+        },
+        "2026": {
+          "opex": 4656753,
+          "aaa": 7371693
+        },
+        "1": {
+          "opex": 4839112,
+          "aaa": 5833193
+        },
+        "17": {
+          "opex": 3363099,
+          "aaa": 4262531
+        },
+        "73": {
+          "opex": 5323617,
+          "aaa": 8423861
+        },
+        "314": {
+          "opex": 5101153,
+          "aaa": 9185742
+        },
+        "512": {
+          "opex": 3119331,
+          "aaa": 6891912
+        },
+        "1024": {
+          "opex": 3095695,
+          "aaa": 5550488
+        },
+        "1337": {
+          "opex": 3631550,
+          "aaa": 7509657
+        },
+        "4096": {
+          "opex": 4436264,
+          "aaa": 8277685
+        },
+        "8191": {
+          "opex": 4150709,
+          "aaa": 5865883
+        },
+        "12345": {
+          "opex": 4198509,
+          "aaa": 4298756
+        },
+        "54321": {
+          "opex": 3429522,
+          "aaa": 4952970
+        },
+        "65537": {
+          "opex": 3859219,
+          "aaa": 6276847
+        },
+        "123456": {
+          "opex": 4759304,
+          "aaa": 4057555
+        },
+        "424242": {
+          "opex": 5091412,
+          "aaa": 6140839
+        },
+        "8675309": {
+          "opex": 4530703,
+          "aaa": 7581230
+        }
+      },
+      "health": "40/40 complete",
+      "policy_id": "estim31vcoef_v161_a250_r075_w15",
+      "campaign": "estim31ten_estim31vcoef_v161_a250_r075_w15_20x10_20261030",
+      "own_off": {
+        "ratio_pct": 58.778124159427534,
+        "opex_profit_mean": 4059112.6,
+        "aaa_profit_mean": 6905821.95
+      },
+      "source_provenance": "40x5 frozen SHA matches 20x10 and all annual checkpoints",
+      "limitations": "Observed opcode counters are partial; 1979 profit alone determines economic rank"
+    },
+    {
+      "suite": "v161cap",
+      "name": "mix_a200_r075_w15_slope",
+      "ratio_40x5_pct": 106.06292869277968,
+      "source_bundle_sha256": "183187e6b60f442edf3f0ea7eaa556cfccb4729aed185f1ddf12298e242711c9",
+      "opex_profit_mean": 4290978.4,
+      "aaa_profit_mean": 6582408.65,
+      "ratio_pct": 65.18857500589849,
+      "paired_profit_difference_mean": -2291430.25,
+      "opex_wins": 0,
+      "opex_cash_mean": 16072476.05,
+      "aaa_cash_mean": 18341902.25,
+      "opex_loan_mean": 0,
+      "aircraft_stock_mean": 84.95,
+      "train_stock_mean": 27.95,
+      "airport_count_mean": 34.9,
+      "airport_towns_mean": 34.1,
+      "opcodes_complete_all": false,
+      "pairs": {
+        "42": {
+          "opex": 3312983,
+          "aaa": 6030248
+        },
+        "100": {
+          "opex": 3124470,
+          "aaa": 3495608
+        },
+        "7": {
+          "opex": 4824106,
+          "aaa": 7258196
+        },
+        "999": {
+          "opex": 4912570,
+          "aaa": 7414778
+        },
+        "2026": {
+          "opex": 4284887,
+          "aaa": 8109182
+        },
+        "1": {
+          "opex": 5067427,
+          "aaa": 8280053
+        },
+        "17": {
+          "opex": 3474314,
+          "aaa": 6657601
+        },
+        "73": {
+          "opex": 5090863,
+          "aaa": 6874021
+        },
+        "314": {
+          "opex": 4662665,
+          "aaa": 8362385
+        },
+        "512": {
+          "opex": 3400558,
+          "aaa": 7587308
+        },
+        "1024": {
+          "opex": 3621085,
+          "aaa": 4910847
+        },
+        "1337": {
+          "opex": 4250707,
+          "aaa": 7489704
+        },
+        "4096": {
+          "opex": 5588873,
+          "aaa": 6718518
+        },
+        "8191": {
+          "opex": 4070167,
+          "aaa": 6185466
+        },
+        "12345": {
+          "opex": 4309594,
+          "aaa": 4593479
+        },
+        "54321": {
+          "opex": 3542912,
+          "aaa": 6632245
+        },
+        "65537": {
+          "opex": 3862654,
+          "aaa": 6070995
+        },
+        "123456": {
+          "opex": 4562719,
+          "aaa": 5912042
+        },
+        "424242": {
+          "opex": 5171122,
+          "aaa": 6112691
+        },
+        "8675309": {
+          "opex": 4684892,
+          "aaa": 6952806
+        }
+      },
+      "health": "40/40 complete",
+      "policy_id": "estim31vcap_mix_a200_r075_w15_slope",
+      "campaign": "estim31ten_estim31vcap_mix_a200_r075_w15_slope_20x10_20261030",
+      "own_off": {
+        "ratio_pct": 58.58944042344675,
+        "opex_profit_mean": 4038345.35,
+        "aaa_profit_mean": 6892616.35
+      },
+      "source_provenance": "40x5 frozen SHA matches 20x10 and all annual checkpoints",
+      "limitations": "Observed opcode counters are partial; 1979 profit alone determines economic rank"
+    }
+  ],
+  "not_yet_qualified": [
+    {
+      "suite": "v161",
+      "name": "mix_a200_r075_w15_slope",
+      "ratio_40x5_pct": 103.79866719805844,
+      "source_bundle_sha256": "15078ee31b595f31c9deb054de58cd88edeb72ed9e1eafc9b03463535a28f879",
+      "reason": "result incomplete"
+    }
+  ],
+  "winner": null,
+  "default_authorized": true,
+  "default_integrated": false,
+  "note": "Winner only when ALL three complete healthy 20x10; never promote partial data"
+}

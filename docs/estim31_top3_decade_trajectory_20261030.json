@@ -1,0 +1,1211 @@
+{
+  "criterion": "100 * mean20(OpexAI annual profit_year) / mean20(AAAHogEx annual profit_year), same duel",
+  "qualified_candidates": [
+    {
+      "suite": "v161coeff",
+      "name": "v161_a250_r075_w15",
+      "campaign": "estim31ten_estim31vcoef_v161_a250_r075_w15_20x10_20261030",
+      "source_bundle_sha256": "10d21056814b32f8672db28c7d6016538904ae335e1fa7c22bef0dfbd00527ec",
+      "years": [
+        {
+          "date": "1970-12-01",
+          "off": {
+            "opex": {
+              "profit_year": 370995.65,
+              "cash": 52347.25,
+              "current_loan": 300000,
+              "aircraft_stock": 12.1,
+              "train_stock": 0,
+              "airport_count": 14.05,
+              "airport_towns": 14.05,
+              "air_engine_stock_223": 9.45,
+              "air_engine_stock_228": 2.15,
+              "air_engine_stock_220": 0.5
+            },
+            "aaa": {
+              "profit_year": 306401.85,
+              "cash": 37588.35,
+              "current_loan": 292000,
+              "aircraft_stock": 11.75,
+              "train_stock": 0.35,
+              "airport_count": 12.35,
+              "airport_towns": 14.05,
+              "air_engine_stock_223": 4.1,
+              "air_engine_stock_228": 0,
+              "air_engine_stock_220": 4.3
+            },
+            "ratio_of_means_pct": 121.08140012862195,
+            "samples": 20
+          },
+          "variant": {
+            "opex": {
+              "profit_year": 368178.2,
+              "cash": 52338.45,
+              "current_loan": 300000,
+              "aircraft_stock": 10.25,
+              "train_stock": 0,
+              "airport_count": 14.4,
+              "airport_towns": 14.35,
+              "air_engine_stock_223": 7.95,
+              "air_engine_stock_228": 1.9,
+              "air_engine_stock_220": 0.4
+            },
+            "aaa": {
+              "profit_year": 312075.95,
+              "cash": 38249.85,
+              "current_loan": 298500,
+              "aircraft_stock": 11.75,
+              "train_stock": 0.4,
+              "airport_count": 12.55,
+              "airport_towns": 14.35,
+              "air_engine_stock_223": 4.15,
+              "air_engine_stock_228": 0,
+              "air_engine_stock_220": 4.15
+            },
+            "ratio_of_means_pct": 117.97711422491864,
+            "samples": 20
+          }
+        },
+        {
+          "date": "1971-12-01",
+          "off": {
+            "opex": {
+              "profit_year": 1687598.75,
+              "cash": 229056.25,
+              "current_loan": 242000,
+              "aircraft_stock": 37.65,
+              "train_stock": 4.1,
+              "airport_count": 28.65,
+              "airport_towns": 28.45,
+              "air_engine_stock_223": 30,
+              "air_engine_stock_228": 5.9,
+              "air_engine_stock_220": 1.75
+            },
+            "aaa": {
+              "profit_year": 1312334.6,
+              "cash": 61031.1,
+              "current_loan": 129000,
+              "aircraft_stock": 23,
+              "train_stock": 6.15,
+              "airport_count": 23.85,
+              "airport_towns": 28.45,
+              "air_engine_stock_223": 7.85,
+              "air_engine_stock_228": 0,
+              "air_engine_stock_220": 6.2
+            },
+            "ratio_of_means_pct": 128.5951578202693,
+            "samples": 20
+          },
+          "variant": {
+            "opex": {
+              "profit_year": 1729317.2,
+              "cash": 128495.65,
+              "current_loan": 293000,
+              "aircraft_stock": 35.1,
+              "train_stock": 8.9,
+              "airport_count": 26.8,
+              "airport_towns": 26.6,
+              "air_engine_stock_223": 28.3,
+              "air_engine_stock_228": 5.25,
+              "air_engine_stock_220": 1.55
+            },
+            "aaa": {
+              "profit_year": 1328152.45,
+              "cash": 57361.2,
+              "current_loan": 140500,
+              "aircraft_stock": 23.8,
+              "train_stock": 5.55,
+              "airport_count": 24.1,
+              "airport_towns": 26.6,
+              "air_engine_stock_223": 8.05,
+              "air_engine_stock_228": 0,
+              "air_engine_stock_220": 6.6
+            },
+            "ratio_of_means_pct": 130.20472160405984,
+            "samples": 20
+          }
+        },
+        {
+          "date": "1972-12-01",
+          "off": {
+            "opex": {
+              "profit_year": 2370176.8,
+              "cash": 237513.55,
+              "current_loan": 81500,
+              "aircraft_stock": 48.05,
+              "train_stock": 16.45,
+              "airport_count": 33.2,
+              "airport_towns": 32.8,
+              "air_engine_stock_223": 29.2,
+              "air_engine_stock_228": 14.4,
+              "air_engine_stock_220": 2.25
+            },
+            "aaa": {
+              "profit_year": 1923506.45,
+              "cash": 280612.55,
+              "current_loan": 43000,
+              "aircraft_stock": 28.4,
+              "train_stock": 11.8,
+              "airport_count": 26.6,
+              "airport_towns": 32.8,
+              "air_engine_stock_223": 10.1,
+              "air_engine_stock_228": 0.05,
+              "air_engine_stock_220": 7.6
+            },
+            "ratio_of_means_pct": 123.22167154677334,
+            "samples": 20
+          },
+          "variant": {
+            "opex": {
+              "profit_year": 2514856.1,
+              "cash": 251410.55,
+              "current_loan": 141000,
+              "aircraft_stock": 52.8,
+              "train_stock": 20,
+              "airport_count": 30.7,
+              "airport_towns": 30.35,
+              "air_engine_stock_223": 37.9,
+              "air_engine_stock_228": 10.85,
+              "air_engine_stock_220": 2.5
+            },
+            "aaa": {
+              "profit_year": 1937054.8,
+              "cash": 286167.85,
+              "current_loan": 47500,
+              "aircraft_stock": 29.2,
+              "train_stock": 10.75,
+              "airport_count": 26.8,
+              "airport_towns": 30.35,
+              "air_engine_stock_223": 10.45,
+              "air_engine_stock_228": 0.1,
+              "air_engine_stock_220": 7.85
+            },
+            "ratio_of_means_pct": 129.82885667457626,
+            "samples": 20
+          }
+        },
+        {
+          "date": "1973-12-01",
+          "off": {
+            "opex": {
+              "profit_year": 2630286.4,
+              "cash": 920339.3,
+              "current_loan": 0,
+              "aircraft_stock": 56.1,
+              "train_stock": 21.6,
+              "airport_count": 33.45,
+              "airport_towns": 33,
+              "air_engine_stock_223": 24.75,
+              "air_engine_stock_228": 14.8,
+              "air_engine_stock_220": 1.65
+            },
+            "aaa": {
+              "profit_year": 2478379.1,
+              "cash": 597621.3,
+              "current_loan": 18000,
+              "aircraft_stock": 35.6,
+              "train_stock": 18.95,
+              "airport_count": 30.6,
+              "airport_towns": 33,
+              "air_engine_stock_223": 11.75,
+              "air_engine_stock_228": 0.2,
+              "air_engine_stock_220": 8.25
+            },
+            "ratio_of_means_pct": 106.129300396376,
+            "samples": 20
+          },
+          "variant": {
+            "opex": {
+              "profit_year": 2690813.05,
+              "cash": 489441.55,
+              "current_loan": 30000,
+              "aircraft_stock": 67.05,
+              "train_stock": 23.15,
+              "airport_count": 32.1,
+              "airport_towns": 31.7,
+              "air_engine_stock_223": 43.65,
+              "air_engine_stock_228": 13.95,
+              "air_engine_stock_220": 3.1
+            },
+            "aaa": {
+              "profit_year": 2379154.9,
+              "cash": 553087.3,
+              "current_loan": 0,
+              "aircraft_stock": 36.85,
+              "train_stock": 19.4,
+              "airport_count": 32,
+              "airport_towns": 31.7,
+              "air_engine_stock_223": 12.15,
+              "air_engine_stock_228": 0.35,
+              "air_engine_stock_220": 8.8
+            },
+            "ratio_of_means_pct": 113.0995316866506,
+            "samples": 20
+          }
+        },
+        {
+          "date": "1974-12-01",
+          "off": {
+            "opex": {
+              "profit_year": 2792194,
+              "cash": 2426028.7,
+              "current_loan": 0,
+              "aircraft_stock": 65.7,
+              "train_stock": 24.3,
+              "airport_count": 33.6,
+              "airport_towns": 33.1,
+              "air_engine_stock_223": 19.75,
+              "air_engine_stock_228": 12.65,
+              "air_engine_stock_220": 1.2
+            },
+            "aaa": {
+              "profit_year": 2948981.4,
+              "cash": 880247.2,
+              "current_loan": 15000,
+              "aircraft_stock": 39.15,
+              "train_stock": 26.8,
+              "airport_count": 32.55,
+              "airport_towns": 33.1,
+              "air_engine_stock_223": 8.4,
+              "air_engine_stock_228": 2.6,
+              "air_engine_stock_220": 5.2
+            },
+            "ratio_of_means_pct": 94.68333710073587,
+            "samples": 20
+          },
+          "variant": {
+            "opex": {
+              "profit_year": 2868143.2,
+              "cash": 965531.8,
+              "current_loan": 0,
+              "aircraft_stock": 77.5,
+              "train_stock": 24.7,
+              "airport_count": 32.65,
+              "airport_towns": 32.25,
+              "air_engine_stock_223": 43.85,
+              "air_engine_stock_228": 17.45,
+              "air_engine_stock_220": 2.9
+            },
+            "aaa": {
+              "profit_year": 2786735.8,
+              "cash": 715461.9,
+              "current_loan": 0,
+              "aircraft_stock": 38.35,
+              "train_stock": 28.75,
+              "airport_count": 33.2,
+              "airport_towns": 32.25,
+              "air_engine_stock_223": 9,
+              "air_engine_stock_228": 3.1,
+              "air_engine_stock_220": 5.45
+            },
+            "ratio_of_means_pct": 102.92124570976553,
+            "samples": 20
+          }
+        },
+        {
+          "date": "1975-12-01",
+          "off": {
+            "opex": {
+              "profit_year": 3016595.3,
+              "cash": 4589105.5,
+              "current_loan": 0,
+              "aircraft_stock": 75.6,
+              "train_stock": 25.35,
+              "airport_count": 33.65,
+              "airport_towns": 33.1,
+              "air_engine_stock_223": 14,
+              "air_engine_stock_228": 10.4,
+              "air_engine_stock_220": 0.5
+            },
+            "aaa": {
+              "profit_year": 3608330.1,
+              "cash": 1917692.85,
+              "current_loan": 0,
+              "aircraft_stock": 39.45,
+              "train_stock": 33,
+              "airport_count": 33.8,
+              "airport_towns": 33.1,
+              "air_engine_stock_223": 5.9,
+              "air_engine_stock_228": 4.8,
+              "air_engine_stock_220": 2.5
+            },
+            "ratio_of_means_pct": 83.60086844604378,
+            "samples": 20
+          },
+          "variant": {
+            "opex": {
+              "profit_year": 3104372,
+              "cash": 2171516.25,
+              "current_loan": 0,
+              "aircraft_stock": 81.35,
+              "train_stock": 25.85,
+              "airport_count": 33.35,
+              "airport_towns": 32.85,
+              "air_engine_stock_223": 38.95,
+              "air_engine_stock_228": 17,
+              "air_engine_stock_220": 2.55
+            },
+            "aaa": {
+              "profit_year": 3542238.85,
+              "cash": 1722604.7,
+              "current_loan": 500,
+              "aircraft_stock": 39.35,
+              "train_stock": 37.25,
+              "airport_count": 33.65,
+              "airport_towns": 32.85,
+              "air_engine_stock_223": 6.15,
+              "air_engine_stock_228": 5.35,
+              "air_engine_stock_220": 3.75
+            },
+            "ratio_of_means_pct": 87.6386977687854,
+            "samples": 20
+          }
+        },
+        {
+          "date": "1976-12-01",
+          "off": {
+            "opex": {
+              "profit_year": 3339402.2,
+              "cash": 7544790.45,
+              "current_loan": 0,
+              "aircraft_stock": 79.1,
+              "train_stock": 25.75,
+              "airport_count": 33.65,
+              "airport_towns": 33.1,
+              "air_engine_stock_223": 10.6,
+              "air_engine_stock_228": 8.4,
+              "air_engine_stock_220": 0.1
+            },
+            "aaa": {
+              "profit_year": 4309755,
+              "cash": 4265200.6,
+              "current_loan": 0,
+              "aircraft_stock": 42.1,
+              "train_stock": 43.3,
+              "airport_count": 34.55,
+              "airport_towns": 33.1,
+              "air_engine_stock_223": 4.3,
+              "air_engine_stock_228": 7.2,
+              "air_engine_stock_220": 1.9
+            },
+            "ratio_of_means_pct": 77.48473405100754,
+            "samples": 20
+          },
+          "variant": {
+            "opex": {
+              "profit_year": 3400814.25,
+              "cash": 4274941.7,
+              "current_loan": 0,
+              "aircraft_stock": 82.85,
+              "train_stock": 26.6,
+              "airport_count": 33.7,
+              "airport_towns": 33.1,
+              "air_engine_stock_223": 31.7,
+              "air_engine_stock_228": 15.7,
+              "air_engine_stock_220": 1.9
+            },
+            "aaa": {
+              "profit_year": 4375705.7,
+              "cash": 4339316.05,
+              "current_loan": 0,
+              "aircraft_stock": 42.8,
+              "train_stock": 43,
+              "airport_count": 34.35,
+              "airport_towns": 33.1,
+              "air_engine_stock_223": 3.85,
+              "air_engine_stock_228": 7.95,
+              "air_engine_stock_220": 2.8
+            },
+            "ratio_of_means_pct": 77.7203606266299,
+            "samples": 20
+          }
+        },
+        {
+          "date": "1977-12-01",
+          "off": {
+            "opex": {
+              "profit_year": 3633367,
+              "cash": 10851819.65,
+              "current_loan": 0,
+              "aircraft_stock": 80.75,
+              "train_stock": 26.75,
+              "airport_count": 33.65,
+              "airport_towns": 33.1,
+              "air_engine_stock_223": 10,
+              "air_engine_stock_228": 8,
+              "air_engine_stock_220": 0.1
+            },
+            "aaa": {
+              "profit_year": 5370390.25,
+              "cash": 8217282.9,
+              "current_loan": 0,
+              "aircraft_stock": 46.1,
+              "train_stock": 49.55,
+              "airport_count": 35.65,
+              "airport_towns": 33.1,
+              "air_engine_stock_223": 4.35,
+              "air_engine_stock_228": 9.5,
+              "air_engine_stock_220": 1.95
+            },
+            "ratio_of_means_pct": 67.65554886816652,
+            "samples": 20
+          },
+          "variant": {
+            "opex": {
+              "profit_year": 3662580.55,
+              "cash": 7237731.05,
+              "current_loan": 0,
+              "aircraft_stock": 83.35,
+              "train_stock": 27.2,
+              "airport_count": 33.75,
+              "airport_towns": 33.15,
+              "air_engine_stock_223": 25.05,
+              "air_engine_stock_228": 13.05,
+              "air_engine_stock_220": 1.35
+            },
+            "aaa": {
+              "profit_year": 5098464.45,
+              "cash": 7915199.3,
+              "current_loan": 0,
+              "aircraft_stock": 44.95,
+              "train_stock": 50.6,
+              "airport_count": 35,
+              "airport_towns": 33.15,
+              "air_engine_stock_223": 3.3,
+              "air_engine_stock_228": 9.65,
+              "air_engine_stock_220": 2.5
+            },
+            "ratio_of_means_pct": 71.83693415769527,
+            "samples": 20
+          }
+        },
+        {
+          "date": "1978-12-01",
+          "off": {
+            "opex": {
+              "profit_year": 3923412.6,
+              "cash": 14457054,
+              "current_loan": 0,
+              "aircraft_stock": 80.8,
+              "train_stock": 27.55,
+              "airport_count": 33.75,
+              "airport_towns": 33.15,
+              "air_engine_stock_223": 9.8,
+              "air_engine_stock_228": 7.8,
+              "air_engine_stock_220": 0
+            },
+            "aaa": {
+              "profit_year": 5969224.75,
+              "cash": 13041053.75,
+              "current_loan": 0,
+              "aircraft_stock": 49.4,
+              "train_stock": 54.35,
+              "airport_count": 36.3,
+              "airport_towns": 33.15,
+              "air_engine_stock_223": 6.35,
+              "air_engine_stock_228": 12.2,
+              "air_engine_stock_220": 1.5
+            },
+            "ratio_of_means_pct": 65.72733921603471,
+            "samples": 20
+          },
+          "variant": {
+            "opex": {
+              "profit_year": 3965239.95,
+              "cash": 10716052.6,
+              "current_loan": 0,
+              "aircraft_stock": 83,
+              "train_stock": 28.45,
+              "airport_count": 33.75,
+              "airport_towns": 33.15,
+              "air_engine_stock_223": 19.2,
+              "air_engine_stock_228": 10.75,
+              "air_engine_stock_220": 0.95
+            },
+            "aaa": {
+              "profit_year": 5751254.2,
+              "cash": 12469444.9,
+              "current_loan": 0,
+              "aircraft_stock": 46.6,
+              "train_stock": 56.1,
+              "airport_count": 35.3,
+              "airport_towns": 33.15,
+              "air_engine_stock_223": 3.55,
+              "air_engine_stock_228": 13.15,
+              "air_engine_stock_220": 2.2
+            },
+            "ratio_of_means_pct": 68.94565623616498,
+            "samples": 20
+          }
+        },
+        {
+          "date": "1979-12-01",
+          "off": {
+            "opex": {
+              "profit_year": 4059112.6,
+              "cash": 18216341.25,
+              "current_loan": 0,
+              "aircraft_stock": 80.6,
+              "train_stock": 28.35,
+              "airport_count": 33.8,
+              "airport_towns": 33.2,
+              "air_engine_stock_223": 9.7,
+              "air_engine_stock_228": 7.7,
+              "air_engine_stock_220": 0.05
+            },
+            "aaa": {
+              "profit_year": 6905821.95,
+              "cash": 18770140.2,
+              "current_loan": 0,
+              "aircraft_stock": 51.05,
+              "train_stock": 61.6,
+              "airport_count": 36.75,
+              "airport_towns": 33.2,
+              "air_engine_stock_223": 7.3,
+              "air_engine_stock_228": 12.85,
+              "air_engine_stock_220": 1.15
+            },
+            "ratio_of_means_pct": 58.778124159427534,
+            "samples": 20
+          },
+          "variant": {
+            "opex": {
+              "profit_year": 4225862.9,
+              "cash": 14601760.8,
+              "current_loan": 0,
+              "aircraft_stock": 82.7,
+              "train_stock": 29.2,
+              "airport_count": 34.05,
+              "airport_towns": 33.4,
+              "air_engine_stock_223": 15.6,
+              "air_engine_stock_228": 8.05,
+              "air_engine_stock_220": 0.7
+            },
+            "aaa": {
+              "profit_year": 6410403.65,
+              "cash": 17483905.5,
+              "current_loan": 0,
+              "aircraft_stock": 50.05,
+              "train_stock": 63.25,
+              "airport_count": 36,
+              "airport_towns": 33.4,
+              "air_engine_stock_223": 4.7,
+              "air_engine_stock_228": 17.2,
+              "air_engine_stock_220": 1.95
+            },
+            "ratio_of_means_pct": 65.92194705242937,
+            "samples": 20
+          }
+        }
+      ]
+    },
+    {
+      "suite": "v161cap",
+      "name": "mix_a200_r075_w15_slope",
+      "campaign": "estim31ten_estim31vcap_mix_a200_r075_w15_slope_20x10_20261030",
+      "source_bundle_sha256": "183187e6b60f442edf3f0ea7eaa556cfccb4729aed185f1ddf12298e242711c9",
+      "years": [
+        {
+          "date": "1970-12-01",
+          "off": {
+            "opex": {
+              "profit_year": 370995.65,
+              "cash": 52347.25,
+              "current_loan": 300000,
+              "aircraft_stock": 12.1,
+              "train_stock": 0,
+              "airport_count": 14.05,
+              "airport_towns": 14.05,
+              "air_engine_stock_223": 9.45,
+              "air_engine_stock_228": 2.15,
+              "air_engine_stock_220": 0.5
+            },
+            "aaa": {
+              "profit_year": 306401.85,
+              "cash": 37588.35,
+              "current_loan": 292000,
+              "aircraft_stock": 11.75,
+              "train_stock": 0.35,
+              "airport_count": 12.35,
+              "airport_towns": 14.05,
+              "air_engine_stock_223": 4.1,
+              "air_engine_stock_228": 0,
+              "air_engine_stock_220": 4.3
+            },
+            "ratio_of_means_pct": 121.08140012862195,
+            "samples": 20
+          },
+          "variant": {
+            "opex": {
+              "profit_year": 387018.45,
+              "cash": 37935.55,
+              "current_loan": 300000,
+              "aircraft_stock": 11.1,
+              "train_stock": 0,
+              "airport_count": 15.9,
+              "airport_towns": 15.85,
+              "air_engine_stock_223": 6.85,
+              "air_engine_stock_228": 0.3,
+              "air_engine_stock_220": 3.95
+            },
+            "aaa": {
+              "profit_year": 307731.05,
+              "cash": 42798.3,
+              "current_loan": 293500,
+              "aircraft_stock": 11.5,
+              "train_stock": 0.45,
+              "airport_count": 12.25,
+              "airport_towns": 15.85,
+              "air_engine_stock_223": 3.75,
+              "air_engine_stock_228": 0,
+              "air_engine_stock_220": 4.7
+            },
+            "ratio_of_means_pct": 125.76516084418522,
+            "samples": 20
+          }
+        },
+        {
+          "date": "1971-12-01",
+          "off": {
+            "opex": {
+              "profit_year": 1687598.75,
+              "cash": 229056.25,
+              "current_loan": 242000,
+              "aircraft_stock": 37.65,
+              "train_stock": 4.1,
+              "airport_count": 28.65,
+              "airport_towns": 28.45,
+              "air_engine_stock_223": 30,
+              "air_engine_stock_228": 5.9,
+              "air_engine_stock_220": 1.75
+            },
+            "aaa": {
+              "profit_year": 1312334.6,
+              "cash": 61031.1,
+              "current_loan": 129000,
+              "aircraft_stock": 23,
+              "train_stock": 6.15,
+              "airport_count": 23.85,
+              "airport_towns": 28.45,
+              "air_engine_stock_223": 7.85,
+              "air_engine_stock_228": 0,
+              "air_engine_stock_220": 6.2
+            },
+            "ratio_of_means_pct": 128.5951578202693,
+            "samples": 20
+          },
+          "variant": {
+            "opex": {
+              "profit_year": 1796746.95,
+              "cash": 117926.8,
+              "current_loan": 298000,
+              "aircraft_stock": 39.65,
+              "train_stock": 9.45,
+              "airport_count": 29.7,
+              "airport_towns": 29.45,
+              "air_engine_stock_223": 24.55,
+              "air_engine_stock_228": 0.6,
+              "air_engine_stock_220": 14.5
+            },
+            "aaa": {
+              "profit_year": 1298356.3,
+              "cash": 67738.95,
+              "current_loan": 163000,
+              "aircraft_stock": 22.9,
+              "train_stock": 5.8,
+              "airport_count": 24,
+              "airport_towns": 29.45,
+              "air_engine_stock_223": 7.55,
+              "air_engine_stock_228": 0,
+              "air_engine_stock_220": 6.75
+            },
+            "ratio_of_means_pct": 138.38627732618542,
+            "samples": 20
+          }
+        },
+        {
+          "date": "1972-12-01",
+          "off": {
+            "opex": {
+              "profit_year": 2370176.8,
+              "cash": 237513.55,
+              "current_loan": 81500,
+              "aircraft_stock": 48.05,
+              "train_stock": 16.45,
+              "airport_count": 33.2,
+              "airport_towns": 32.8,
+              "air_engine_stock_223": 29.2,
+              "air_engine_stock_228": 14.4,
+              "air_engine_stock_220": 2.25
+            },
+            "aaa": {
+              "profit_year": 1923506.45,
+              "cash": 280612.55,
+              "current_loan": 43000,
+              "aircraft_stock": 28.4,
+              "train_stock": 11.8,
+              "airport_count": 26.6,
+              "airport_towns": 32.8,
+              "air_engine_stock_223": 10.1,
+              "air_engine_stock_228": 0.05,
+              "air_engine_stock_220": 7.6
+            },
+            "ratio_of_means_pct": 123.22167154677334,
+            "samples": 20
+          },
+          "variant": {
+            "opex": {
+              "profit_year": 2698299,
+              "cash": 350673,
+              "current_loan": 26000,
+              "aircraft_stock": 55.8,
+              "train_stock": 20.5,
+              "airport_count": 31.9,
+              "airport_towns": 31.6,
+              "air_engine_stock_223": 32.55,
+              "air_engine_stock_228": 1.7,
+              "air_engine_stock_220": 19.9
+            },
+            "aaa": {
+              "profit_year": 1900980.4,
+              "cash": 200532.05,
+              "current_loan": 47000,
+              "aircraft_stock": 29.35,
+              "train_stock": 12.1,
+              "airport_count": 26.9,
+              "airport_towns": 31.6,
+              "air_engine_stock_223": 11.05,
+              "air_engine_stock_228": 0,
+              "air_engine_stock_220": 8.65
+            },
+            "ratio_of_means_pct": 141.94249451493556,
+            "samples": 20
+          }
+        },
+        {
+          "date": "1973-12-01",
+          "off": {
+            "opex": {
+              "profit_year": 2629030,
+              "cash": 936666.3,
+              "current_loan": 0,
+              "aircraft_stock": 56.15,
+              "train_stock": 21.55,
+              "airport_count": 33.5,
+              "airport_towns": 33,
+              "air_engine_stock_223": 24.85,
+              "air_engine_stock_228": 14.8,
+              "air_engine_stock_220": 1.65
+            },
+            "aaa": {
+              "profit_year": 2478171.55,
+              "cash": 629738.05,
+              "current_loan": 18500,
+              "aircraft_stock": 35.65,
+              "train_stock": 18.95,
+              "airport_count": 30.7,
+              "airport_towns": 33,
+              "air_engine_stock_223": 11.6,
+              "air_engine_stock_228": 0.3,
+              "air_engine_stock_220": 8.1
+            },
+            "ratio_of_means_pct": 106.087490190096,
+            "samples": 20
+          },
+          "variant": {
+            "opex": {
+              "profit_year": 2834773.8,
+              "cash": 473538.25,
+              "current_loan": 0,
+              "aircraft_stock": 69.75,
+              "train_stock": 23,
+              "airport_count": 32.75,
+              "airport_towns": 32.35,
+              "air_engine_stock_223": 36.9,
+              "air_engine_stock_228": 2.1,
+              "air_engine_stock_220": 22.65
+            },
+            "aaa": {
+              "profit_year": 2455038.45,
+              "cash": 509779.15,
+              "current_loan": 0,
+              "aircraft_stock": 38,
+              "train_stock": 18.1,
+              "airport_count": 32.35,
+              "airport_towns": 32.35,
+              "air_engine_stock_223": 13.25,
+              "air_engine_stock_228": 0.45,
+              "air_engine_stock_220": 9.55
+            },
+            "ratio_of_means_pct": 115.46759277843489,
+            "samples": 20
+          }
+        },
+        {
+          "date": "1974-12-01",
+          "off": {
+            "opex": {
+              "profit_year": 2780154.9,
+              "cash": 2504411.4,
+              "current_loan": 0,
+              "aircraft_stock": 64.95,
+              "train_stock": 24.4,
+              "airport_count": 33.6,
+              "airport_towns": 33.1,
+              "air_engine_stock_223": 19.8,
+              "air_engine_stock_228": 12.5,
+              "air_engine_stock_220": 1.2
+            },
+            "aaa": {
+              "profit_year": 2990347.35,
+              "cash": 1035388.8,
+              "current_loan": 15000,
+              "aircraft_stock": 38.9,
+              "train_stock": 26.25,
+              "airport_count": 32.7,
+              "airport_towns": 33.1,
+              "air_engine_stock_223": 8.45,
+              "air_engine_stock_228": 2.65,
+              "air_engine_stock_220": 5.5
+            },
+            "ratio_of_means_pct": 92.9709687404709,
+            "samples": 20
+          },
+          "variant": {
+            "opex": {
+              "profit_year": 3022441.65,
+              "cash": 1095044.4,
+              "current_loan": 0,
+              "aircraft_stock": 78.45,
+              "train_stock": 24.2,
+              "airport_count": 33.1,
+              "airport_towns": 32.65,
+              "air_engine_stock_223": 37.25,
+              "air_engine_stock_228": 1.7,
+              "air_engine_stock_220": 23.15
+            },
+            "aaa": {
+              "profit_year": 2841351.05,
+              "cash": 918694.1,
+              "current_loan": 0,
+              "aircraft_stock": 39.85,
+              "train_stock": 26.05,
+              "airport_count": 33,
+              "airport_towns": 32.65,
+              "air_engine_stock_223": 11.7,
+              "air_engine_stock_228": 2.05,
+              "air_engine_stock_220": 6.25
+            },
+            "ratio_of_means_pct": 106.3733976130827,
+            "samples": 20
+          }
+        },
+        {
+          "date": "1975-12-01",
+          "off": {
+            "opex": {
+              "profit_year": 3036927.75,
+              "cash": 4603268.3,
+              "current_loan": 0,
+              "aircraft_stock": 75.5,
+              "train_stock": 25.75,
+              "airport_count": 33.6,
+              "airport_towns": 33.1,
+              "air_engine_stock_223": 13.7,
+              "air_engine_stock_228": 10.45,
+              "air_engine_stock_220": 0.6
+            },
+            "aaa": {
+              "profit_year": 3696955.45,
+              "cash": 2273219.3,
+              "current_loan": 0,
+              "aircraft_stock": 39.9,
+              "train_stock": 33.35,
+              "airport_count": 34.05,
+              "airport_towns": 33.1,
+              "air_engine_stock_223": 6.15,
+              "air_engine_stock_228": 4.85,
+              "air_engine_stock_220": 3.2
+            },
+            "ratio_of_means_pct": 82.14672292034247,
+            "samples": 20
+          },
+          "variant": {
+            "opex": {
+              "profit_year": 3258723.5,
+              "cash": 2486503.9,
+              "current_loan": 0,
+              "aircraft_stock": 82.1,
+              "train_stock": 25,
+              "airport_count": 33.75,
+              "airport_towns": 33.25,
+              "air_engine_stock_223": 32.7,
+              "air_engine_stock_228": 1.85,
+              "air_engine_stock_220": 20.3
+            },
+            "aaa": {
+              "profit_year": 3457162.45,
+              "cash": 2203848.3,
+              "current_loan": 0,
+              "aircraft_stock": 38.7,
+              "train_stock": 32.85,
+              "airport_count": 33.4,
+              "airport_towns": 33.25,
+              "air_engine_stock_223": 7.6,
+              "air_engine_stock_228": 4.25,
+              "air_engine_stock_220": 4.7
+            },
+            "ratio_of_means_pct": 94.26006290216417,
+            "samples": 20
+          }
+        },
+        {
+          "date": "1976-12-01",
+          "off": {
+            "opex": {
+              "profit_year": 3358723.95,
+              "cash": 7533141.2,
+              "current_loan": 0,
+              "aircraft_stock": 79.15,
+              "train_stock": 26.25,
+              "airport_count": 33.6,
+              "airport_towns": 33.1,
+              "air_engine_stock_223": 10.85,
+              "air_engine_stock_228": 8.3,
+              "air_engine_stock_220": 0.05
+            },
+            "aaa": {
+              "profit_year": 4412385.05,
+              "cash": 4961296.3,
+              "current_loan": 0,
+              "aircraft_stock": 42.75,
+              "train_stock": 39.3,
+              "airport_count": 34.55,
+              "airport_towns": 33.1,
+              "air_engine_stock_223": 3.95,
+              "air_engine_stock_228": 6.85,
+              "air_engine_stock_220": 2.95
+            },
+            "ratio_of_means_pct": 76.12037281288495,
+            "samples": 20
+          },
+          "variant": {
+            "opex": {
+              "profit_year": 3534185,
+              "cash": 4995897,
+              "current_loan": 0,
+              "aircraft_stock": 83.4,
+              "train_stock": 25.4,
+              "airport_count": 34,
+              "airport_towns": 33.4,
+              "air_engine_stock_223": 26.35,
+              "air_engine_stock_228": 1.8,
+              "air_engine_stock_220": 16.8
+            },
+            "aaa": {
+              "profit_year": 4211807.9,
+              "cash": 4710374.65,
+              "current_loan": 0,
+              "aircraft_stock": 41.35,
+              "train_stock": 40.6,
+              "airport_count": 33.9,
+              "airport_towns": 33.4,
+              "air_engine_stock_223": 6.35,
+              "air_engine_stock_228": 5.95,
+              "air_engine_stock_220": 3.55
+            },
+            "ratio_of_means_pct": 83.91135312700277,
+            "samples": 20
+          }
+        },
+        {
+          "date": "1977-12-01",
+          "off": {
+            "opex": {
+              "profit_year": 3621791.75,
+              "cash": 10775709.25,
+              "current_loan": 0,
+              "aircraft_stock": 80.15,
+              "train_stock": 26.8,
+              "airport_count": 33.6,
+              "airport_towns": 33.1,
+              "air_engine_stock_223": 9.95,
+              "air_engine_stock_228": 7.8,
+              "air_engine_stock_220": 0
+            },
+            "aaa": {
+              "profit_year": 5278797.35,
+              "cash": 8841350.85,
+              "current_loan": 0,
+              "aircraft_stock": 45.1,
+              "train_stock": 45.85,
+              "airport_count": 35.2,
+              "airport_towns": 33.1,
+              "air_engine_stock_223": 2.95,
+              "air_engine_stock_228": 8.85,
+              "air_engine_stock_220": 3
+            },
+            "ratio_of_means_pct": 68.61016837480985,
+            "samples": 20
+          },
+          "variant": {
+            "opex": {
+              "profit_year": 3830083.05,
+              "cash": 8365902.8,
+              "current_loan": 0,
+              "aircraft_stock": 84.5,
+              "train_stock": 26.35,
+              "airport_count": 34.35,
+              "airport_towns": 33.65,
+              "air_engine_stock_223": 20.95,
+              "air_engine_stock_228": 1.4,
+              "air_engine_stock_220": 13
+            },
+            "aaa": {
+              "profit_year": 5070545.2,
+              "cash": 8092298.3,
+              "current_loan": 0,
+              "aircraft_stock": 44.25,
+              "train_stock": 48.75,
+              "airport_count": 34.5,
+              "airport_towns": 33.65,
+              "air_engine_stock_223": 4.35,
+              "air_engine_stock_228": 8.8,
+              "air_engine_stock_220": 3.25
+            },
+            "ratio_of_means_pct": 75.5359216598641,
+            "samples": 20
+          }
+        },
+        {
+          "date": "1978-12-01",
+          "off": {
+            "opex": {
+              "profit_year": 3824347.45,
+              "cash": 14315189.45,
+              "current_loan": 0,
+              "aircraft_stock": 80.25,
+              "train_stock": 27.65,
+              "airport_count": 33.7,
+              "airport_towns": 33.15,
+              "air_engine_stock_223": 10,
+              "air_engine_stock_228": 7.7,
+              "air_engine_stock_220": 0
+            },
+            "aaa": {
+              "profit_year": 6051224.7,
+              "cash": 13708537.4,
+              "current_loan": 0,
+              "aircraft_stock": 48.4,
+              "train_stock": 52.5,
+              "airport_count": 35.95,
+              "airport_towns": 33.15,
+              "air_engine_stock_223": 5.15,
+              "air_engine_stock_228": 11.75,
+              "air_engine_stock_220": 3
+            },
+            "ratio_of_means_pct": 63.19956107397565,
+            "samples": 20
+          },
+          "variant": {
+            "opex": {
+              "profit_year": 4100142.95,
+              "cash": 12059949.3,
+              "current_loan": 0,
+              "aircraft_stock": 84.95,
+              "train_stock": 27.4,
+              "airport_count": 34.5,
+              "airport_towns": 33.8,
+              "air_engine_stock_223": 17.5,
+              "air_engine_stock_228": 0.95,
+              "air_engine_stock_220": 9.95
+            },
+            "aaa": {
+              "profit_year": 5851313.85,
+              "cash": 12840835.3,
+              "current_loan": 0,
+              "aircraft_stock": 46.35,
+              "train_stock": 55.5,
+              "airport_count": 35.3,
+              "airport_towns": 33.8,
+              "air_engine_stock_223": 5.7,
+              "air_engine_stock_228": 11.35,
+              "air_engine_stock_220": 2.9
+            },
+            "ratio_of_means_pct": 70.07217618313193,
+            "samples": 20
+          }
+        },
+        {
+          "date": "1979-12-01",
+          "off": {
+            "opex": {
+              "profit_year": 4038345.35,
+              "cash": 18218617,
+              "current_loan": 0,
+              "aircraft_stock": 79.85,
+              "train_stock": 28.15,
+              "airport_count": 33.9,
+              "airport_towns": 33.35,
+              "air_engine_stock_223": 10.15,
+              "air_engine_stock_228": 7.65,
+              "air_engine_stock_220": 0
+            },
+            "aaa": {
+              "profit_year": 6892616.35,
+              "cash": 19268857.4,
+              "current_loan": 0,
+              "aircraft_stock": 50.7,
+              "train_stock": 59.8,
+              "airport_count": 36.8,
+              "airport_towns": 33.35,
+              "air_engine_stock_223": 6.1,
+              "air_engine_stock_228": 13.55,
+              "air_engine_stock_220": 2.35
+            },
+            "ratio_of_means_pct": 58.58944042344675,
+            "samples": 20
+          },
+          "variant": {
+            "opex": {
+              "profit_year": 4290978.4,
+              "cash": 16072476.05,
+              "current_loan": 0,
+              "aircraft_stock": 84.95,
+              "train_stock": 27.95,
+              "airport_count": 34.9,
+              "airport_towns": 34.1,
+              "air_engine_stock_223": 15.35,
+              "air_engine_stock_228": 0.6,
+              "air_engine_stock_220": 7.05
+            },
+            "aaa": {
+              "profit_year": 6582408.65,
+              "cash": 18341902.25,
+              "current_loan": 0,
+              "aircraft_stock": 49.25,
+              "train_stock": 59.45,
+              "airport_count": 35.6,
+              "airport_towns": 34.1,
+              "air_engine_stock_223": 6.1,
+              "air_engine_stock_228": 12.7,
+              "air_engine_stock_220": 2.75
+            },
+            "ratio_of_means_pct": 65.18857500589849,
+            "samples": 20
+          }
+        }
+      ]
+    }
+  ],
+  "pending": [
+    {
+      "suite": "v161",
+      "name": "mix_a200_r075_w15_slope",
+      "ratio_40x5_pct": 103.79866719805844,
+      "source_bundle_sha256": "15078ee31b595f31c9deb054de58cd88edeb72ed9e1eafc9b03463535a28f879",
+      "reason": "result incomplete"
+    }
+  ],
+  "winner": null
+}
