@@ -3,16 +3,20 @@
   "years": {
     "1974": {
       "event_counts": {
+        "V233L_REJECT": 248,
         "ESTIM_PASS": 9,
         "ESTIM_DECISION": 128,
         "AIR_FLEET": 212,
+        "C78_SLOT": 144,
         "FLEET_PROJECT": 5,
         "ESTIM_OUTCOME": 283,
         "PROJECT_DISCARD": 15,
         "PROJECT_CHOSEN": 1
       },
       "rail_attempt_events": 0,
+      "rail_build_events": 0,
       "rail_min_distinct_od_kind": 0,
+      "rail_undirected_min_distinct_od_kind": 0,
       "rail_reason_counts": {},
       "rail_kind_counts": {},
       "rail_success_actual_paid_observed": 0,
@@ -46,6 +50,30 @@
         "AIR_FLEET:refuse": 212,
         "FLEET_PROJECT:grow": 5
       },
+      "c78_limited_trace": {
+        "first": "1974-02-11",
+        "last": "1974-12-31",
+        "projects_pass_events": 62,
+        "passes_no_air_candidates": 62,
+        "passes_with_air_candidates": 0,
+        "pass_stop_reasons": {
+          "k_pass": 3,
+          "cash": 1,
+          "rail_search": 1
+        },
+        "cash_available_min": 481,
+        "cash_available_max": 919971
+      },
+      "v233l_reject_event_reasons": {
+        "export_exists": 8,
+        "destination_served": 11,
+        "distance": 88,
+        "economics_or_site": 90,
+        "SITE_PENDING": 7,
+        "SITEB": 8,
+        "export_margin": 36
+      },
+      "v233l_reject_distinct_od": 4,
       "c63_available": true,
       "c63_spend_by_mode": {
         "rail": {
@@ -792,9 +820,11 @@
     "1975": {
       "event_counts": {
         "ESTIM_OUTCOME": 217,
+        "C78_SLOT": 98,
         "AIR_FLEET": 77,
         "ESTIM_PASS": 9,
         "ESTIM_DECISION": 137,
+        "V233L_REJECT": 194,
         "V284": 7,
         "ESTIM_SPEND": 2,
         "RAIL_ATTEMPT": 1,
@@ -802,7 +832,9 @@
         "PROJECT_DISCARD": 11
       },
       "rail_attempt_events": 1,
+      "rail_build_events": 0,
       "rail_min_distinct_od_kind": 1,
+      "rail_undirected_min_distinct_od_kind": 1,
       "rail_reason_counts": {
         "ABND": 1
       },
@@ -844,6 +876,28 @@
         "AIR_FLEET:refuse": 77,
         "FLEET_PROJECT:grow": 5
       },
+      "c78_limited_trace": {
+        "first": "1975-01-01",
+        "last": "1975-11-28",
+        "projects_pass_events": 42,
+        "passes_no_air_candidates": 40,
+        "passes_with_air_candidates": 2,
+        "pass_stop_reasons": {
+          "k_pass": 1
+        },
+        "cash_available_min": 784469,
+        "cash_available_max": 1607418
+      },
+      "v233l_reject_event_reasons": {
+        "export_margin": 21,
+        "export_exists": 6,
+        "distance": 83,
+        "economics_or_site": 62,
+        "SITEB": 10,
+        "destination_served": 8,
+        "SITE_PENDING": 4
+      },
+      "v233l_reject_distinct_od": 5,
       "c63_available": true,
       "c63_spend_by_mode": {
         "rail": {
@@ -1578,14 +1632,18 @@
     "1976": {
       "event_counts": {
         "V284": 8,
+        "V233L_REJECT": 286,
         "AIR_FLEET": 51,
+        "C78_SLOT": 152,
         "PROJECT_DISCARD": 17,
         "PROJECT_CHOSEN": 2,
         "RAIL_ATTEMPT": 1,
         "AIR_BUILD": 1
       },
       "rail_attempt_events": 1,
+      "rail_build_events": 0,
       "rail_min_distinct_od_kind": 1,
+      "rail_undirected_min_distinct_od_kind": 1,
       "rail_reason_counts": {
         "ABND": 1
       },
@@ -1651,6 +1709,28 @@
       "fleet_events_by_action": {
         "AIR_FLEET:refuse": 51
       },
+      "c78_limited_trace": {
+        "first": "1976-03-26",
+        "last": "1976-12-31",
+        "projects_pass_events": 71,
+        "passes_no_air_candidates": 70,
+        "passes_with_air_candidates": 1,
+        "pass_stop_reasons": {
+          "rail_search": 1
+        },
+        "cash_available_min": 2160314,
+        "cash_available_max": 3376753
+      },
+      "v233l_reject_event_reasons": {
+        "export_exists": 10,
+        "distance": 125,
+        "economics_or_site": 110,
+        "destination_served": 16,
+        "SITEB": 22,
+        "SITE_PENDING": 2,
+        "ABND": 1
+      },
+      "v233l_reject_distinct_od": 12,
       "c63_available": true,
       "c63_spend_by_mode": {
         "rail": {
@@ -2386,15 +2466,20 @@
     },
     "1977": {
       "event_counts": {
+        "V233L_REJECT": 183,
         "V284": 10,
         "AIR_FLEET": 24,
+        "C78_SLOT": 127,
         "PROJECT_DISCARD": 23,
         "PROJECT_CHOSEN": 4,
         "RAIL_ATTEMPT": 3,
+        "RAIL_BUILD": 3,
         "AIR_BUILD": 1
       },
       "rail_attempt_events": 3,
+      "rail_build_events": 3,
       "rail_min_distinct_od_kind": 3,
+      "rail_undirected_min_distinct_od_kind": 3,
       "rail_reason_counts": {
         "OK": 3
       },
@@ -2507,6 +2592,28 @@
       "fleet_events_by_action": {
         "AIR_FLEET:refuse": 24
       },
+      "c78_limited_trace": {
+        "first": "1977-02-10",
+        "last": "1977-12-31",
+        "projects_pass_events": 57,
+        "passes_no_air_candidates": 55,
+        "passes_with_air_candidates": 2,
+        "pass_stop_reasons": {
+          "rail_search": 3,
+          "k_pass": 4
+        },
+        "cash_available_min": 3693407,
+        "cash_available_max": 5567812
+      },
+      "v233l_reject_event_reasons": {
+        "export_exists": 11,
+        "economics_or_site": 64,
+        "distance": 75,
+        "SITEB": 16,
+        "destination_served": 12,
+        "SITE_PENDING": 5
+      },
+      "v233l_reject_distinct_od": 7,
       "c63_available": true,
       "c63_spend_by_mode": {
         "rail": {
@@ -3280,6 +3387,8 @@
     },
     "1978": {
       "event_counts": {
+        "C78_SLOT": 189,
+        "V233L_REJECT": 259,
         "V284": 6,
         "AIR_FLEET": 19,
         "PROJECT_DISCARD": 15,
@@ -3287,7 +3396,9 @@
         "RAIL_ATTEMPT": 2
       },
       "rail_attempt_events": 2,
+      "rail_build_events": 0,
       "rail_min_distinct_od_kind": 2,
+      "rail_undirected_min_distinct_od_kind": 2,
       "rail_reason_counts": {
         "NOPA": 1,
         "NOPLAN2": 1
@@ -3377,6 +3488,32 @@
       "fleet_events_by_action": {
         "AIR_FLEET:refuse": 19
       },
+      "c78_limited_trace": {
+        "first": "1978-01-01",
+        "last": "1978-11-08",
+        "projects_pass_events": 92,
+        "passes_no_air_candidates": 92,
+        "passes_with_air_candidates": 0,
+        "pass_stop_reasons": {
+          "rail_search": 3
+        },
+        "cash_available_min": 5808112,
+        "cash_available_max": 7957934
+      },
+      "v233l_reject_event_reasons": {
+        "export_exists": 25,
+        "distance": 108,
+        "economics_or_site": 65,
+        "destination_served": 22,
+        "SITE_PENDING": 4,
+        "SITEB": 26,
+        "export_margin": 2,
+        "second_track": 1,
+        "NOPLAN2": 1,
+        "input_not_live": 4,
+        "window": 1
+      },
+      "v233l_reject_distinct_od": 11,
       "c63_available": true,
       "c63_spend_by_mode": {
         "rail": {
@@ -4143,15 +4280,19 @@
     },
     "1979": {
       "event_counts": {
+        "V233L_REJECT": 83,
         "V284": 14,
         "AIR_FLEET": 23,
+        "C78_SLOT": 21,
         "RAIL_ATTEMPT": 1,
         "PROJECT_DISCARD": 4,
         "PROJECT_CHOSEN": 2,
         "AIR_BUILD": 1
       },
       "rail_attempt_events": 1,
+      "rail_build_events": 0,
       "rail_min_distinct_od_kind": 1,
+      "rail_undirected_min_distinct_od_kind": 1,
       "rail_reason_counts": {
         "NOPLAN2": 1
       },
@@ -4219,6 +4360,32 @@
       "fleet_events_by_action": {
         "AIR_FLEET:refuse": 23
       },
+      "c78_limited_trace": {
+        "first": "1979-10-26",
+        "last": "1979-12-18",
+        "projects_pass_events": 8,
+        "passes_no_air_candidates": 7,
+        "passes_with_air_candidates": 1,
+        "pass_stop_reasons": {
+          "rail_search": 1
+        },
+        "cash_available_min": 11069494,
+        "cash_available_max": 11579955
+      },
+      "v233l_reject_event_reasons": {
+        "second_track": 1,
+        "window": 28,
+        "export_exists": 18,
+        "stale": 4,
+        "export_margin": 1,
+        "economics_or_site": 10,
+        "SITE_PENDING": 1,
+        "SITEB": 6,
+        "distance": 12,
+        "NOPLAN2": 1,
+        "destination_served": 1
+      },
+      "v233l_reject_distinct_od": 4,
       "c63_available": false,
       "c63_spend_by_mode": null,
       "c63_opportunities": null,
@@ -4228,6 +4395,319 @@
       "c63_lines": null
     }
   },
+  "rail_crossyear_witnesses": [
+    {
+      "src": "22642",
+      "dst": "24869",
+      "choices": [
+        {
+          "date": "1977-02-25",
+          "kind": "pax",
+          "cargo": "PASS",
+          "profit": 6279,
+          "cost_quote": 47375
+        }
+      ],
+      "attempts": [
+        {
+          "date": "1977-04-23",
+          "kind": "pax",
+          "ok": true,
+          "reason": "OK",
+          "actual_paid": 79134,
+          "profit_at_attempt": 2823
+        }
+      ],
+      "builds": [
+        {
+          "date": "1977-04-23",
+          "line": 62,
+          "actual_logged_cost": 79134
+        }
+      ],
+      "physically_built": true,
+      "positive_selected_profit": true,
+      "actual_success_paid": 79134,
+      "classification": "build_confirmed"
+    },
+    {
+      "src": "29129",
+      "dst": "28461",
+      "choices": [
+        {
+          "date": "1977-08-26",
+          "kind": "freight",
+          "cargo": "GOOD",
+          "profit": 24473,
+          "cost_quote": 56788
+        }
+      ],
+      "attempts": [
+        {
+          "date": "1977-10-09",
+          "kind": "freight",
+          "ok": true,
+          "reason": "OK",
+          "actual_paid": 106311,
+          "profit_at_attempt": 14477
+        }
+      ],
+      "builds": [
+        {
+          "date": "1977-10-09",
+          "line": 65,
+          "actual_logged_cost": 106311
+        }
+      ],
+      "physically_built": true,
+      "positive_selected_profit": true,
+      "actual_success_paid": 106311,
+      "classification": "build_confirmed"
+    },
+    {
+      "src": "29129",
+      "dst": "38955",
+      "choices": [
+        {
+          "date": "1974-10-25",
+          "kind": "freight",
+          "cargo": "GOOD",
+          "profit": 135432,
+          "cost_quote": 101432
+        }
+      ],
+      "attempts": [
+        {
+          "date": "1975-04-26",
+          "kind": "freight",
+          "ok": false,
+          "reason": "ABND",
+          "actual_paid": -1,
+          "profit_at_attempt": 90135
+        }
+      ],
+      "builds": [],
+      "physically_built": false,
+      "positive_selected_profit": true,
+      "actual_success_paid": 0,
+      "classification": "attempt_failed_no_build_proof"
+    },
+    {
+      "src": "44972",
+      "dst": "59980",
+      "choices": [
+        {
+          "date": "1978-06-08",
+          "kind": "freight",
+          "cargo": "GOOD",
+          "profit": 11819,
+          "cost_quote": 109538
+        }
+      ],
+      "attempts": [
+        {
+          "date": "1978-08-19",
+          "kind": "freight",
+          "ok": false,
+          "reason": "NOPLAN2",
+          "actual_paid": -1,
+          "profit_at_attempt": 3443
+        }
+      ],
+      "builds": [],
+      "physically_built": false,
+      "positive_selected_profit": true,
+      "actual_success_paid": 0,
+      "classification": "attempt_failed_no_build_proof"
+    },
+    {
+      "src": "50791",
+      "dst": "10926",
+      "choices": [
+        {
+          "date": "1976-05-08",
+          "kind": "freight",
+          "cargo": "GOOD",
+          "profit": 50890,
+          "cost_quote": 129032
+        }
+      ],
+      "attempts": [
+        {
+          "date": "1976-09-14",
+          "kind": "freight",
+          "ok": false,
+          "reason": "ABND",
+          "actual_paid": -1,
+          "profit_at_attempt": 50890
+        }
+      ],
+      "builds": [],
+      "physically_built": false,
+      "positive_selected_profit": true,
+      "actual_success_paid": 0,
+      "classification": "attempt_failed_no_build_proof"
+    },
+    {
+      "src": "50791",
+      "dst": "12090",
+      "choices": [
+        {
+          "date": "1979-11-10",
+          "kind": "freight",
+          "cargo": "GOOD",
+          "profit": 67822,
+          "cost_quote": 98650
+        }
+      ],
+      "attempts": [],
+      "builds": [],
+      "physically_built": false,
+      "positive_selected_profit": true,
+      "actual_success_paid": 0,
+      "classification": "selected_no_completed_attempt"
+    },
+    {
+      "src": "50791",
+      "dst": "7810",
+      "choices": [
+        {
+          "date": "1978-11-05",
+          "kind": "freight",
+          "cargo": "GOOD",
+          "profit": 69478,
+          "cost_quote": 98426
+        }
+      ],
+      "attempts": [
+        {
+          "date": "1979-10-26",
+          "kind": "freight",
+          "ok": false,
+          "reason": "NOPLAN2",
+          "actual_paid": -1,
+          "profit_at_attempt": 79663
+        }
+      ],
+      "builds": [],
+      "physically_built": false,
+      "positive_selected_profit": true,
+      "actual_success_paid": 0,
+      "classification": "attempt_failed_no_build_proof"
+    },
+    {
+      "src": "52319",
+      "dst": "59980",
+      "choices": [
+        {
+          "date": "1978-05-17",
+          "kind": "pax",
+          "cargo": "PASS",
+          "profit": 1359,
+          "cost_quote": 43231
+        }
+      ],
+      "attempts": [
+        {
+          "date": "1978-05-21",
+          "kind": "pax",
+          "ok": false,
+          "reason": "NOPA",
+          "actual_paid": -1,
+          "profit_at_attempt": 1359
+        }
+      ],
+      "builds": [],
+      "physically_built": false,
+      "positive_selected_profit": true,
+      "actual_success_paid": 0,
+      "classification": "attempt_failed_no_build_proof"
+    },
+    {
+      "src": "55598",
+      "dst": "51421",
+      "choices": [
+        {
+          "date": "1977-04-27",
+          "kind": "freight",
+          "cargo": "GOOD",
+          "profit": 26723,
+          "cost_quote": 117826
+        }
+      ],
+      "attempts": [
+        {
+          "date": "1977-08-17",
+          "kind": "freight",
+          "ok": true,
+          "reason": "OK",
+          "actual_paid": 225767,
+          "profit_at_attempt": 16991
+        }
+      ],
+      "builds": [
+        {
+          "date": "1977-08-17",
+          "line": 63,
+          "actual_logged_cost": 225767
+        }
+      ],
+      "physically_built": true,
+      "positive_selected_profit": true,
+      "actual_success_paid": 225767,
+      "classification": "build_confirmed"
+    }
+  ],
+  "air_crossyear_witnesses": [
+    {
+      "src": "32963",
+      "dst": "40461",
+      "choices": [
+        {
+          "date": "1976-11-14",
+          "profit": 41420,
+          "cost_quote": 38964
+        },
+        {
+          "date": "1979-10-27",
+          "profit": 48854,
+          "cost_quote": 38964
+        }
+      ],
+      "built": [
+        {
+          "date": "1976-11-14",
+          "line": "61",
+          "model_cost": 38964
+        },
+        {
+          "date": "1979-10-27",
+          "line": "66",
+          "model_cost": 38964
+        }
+      ],
+      "physically_built": true
+    },
+    {
+      "src": "40461",
+      "dst": "21394",
+      "choices": [
+        {
+          "date": "1977-09-04",
+          "profit": 24411,
+          "cost_quote": 38964
+        }
+      ],
+      "built": [
+        {
+          "date": "1977-09-04",
+          "line": "64",
+          "model_cost": 38964
+        }
+      ],
+      "physically_built": true
+    }
+  ],
   "script_error_line_numbers": [],
   "limitations": [
     "Single instrumented seed, not representative nor a controlled economic duel",

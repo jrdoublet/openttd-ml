@@ -261,13 +261,126 @@ s'arrête fin 1979. Les **projets non sélectionnés** n'ont pas de
 liste OD complète après 1975 : `OpexEstimDTraceActive` est borné
 aux années **1973–1975**. Le détail des lignes V233L confirme un
 **blocage de seconde voie** sur cette graine mais n'établit pas
-le mécanisme dominant sur les 20 graines. **Critère de clôture de
-POST-1974-ENTONNOIR non satisfait** : aucun projet économiquement bon
+le mécanisme dominant sur les 20 graines. **Critère d'autorisation d'un
+nouveau levier non satisfait** : aucun projet économiquement bon
 et **physiquement réalisable** n'a été démontré injustement rejeté.
 
-**Décision : maintenir le défaut élu inchangé.** Conserver la tâche
-ouverte sur la validation physique V233L (deuxième voie obligatoire,
-recherche longue, collisions concurrentes), la comparaison avec
-un éventuel projet monovoie constructible et la reproduction sur
-plusieurs graines **avant** tout levier. Ne pas relancer la même
-campagne sous couvert de la relance déjà réussie.
+**Décision : maintenir le défaut élu inchangé.** La poursuite éventuelle
+du contre-factuel physique V233L ne fait pas partie d'une modification
+du défaut ; voir la clôture diagnostique en §7.
+
+## 7. Réconciliation finale, preuve physique et clôture du diagnostic
+
+Cette section clôt **le diagnostic POST-1974-ENTONNOIR, pas une hypothèse
+d'amélioration**. Elle vérifie les cas individuels au lieu de compter
+chaque rejet de passe comme un projet. Source : le journal complet de
+la **seule graine sondée (42)**, les panneaux des **trois 20×10**
+archivés (§2–4) et le code du bundle `3998d9b1`.
+La [table machine-readable](post1974_entonnoir_seed42_1x10_20261030.json)
+contient désormais `rail_crossyear_witnesses`,
+`air_crossyear_witnesses`, `c78_limited_trace`,
+`v233l_reject_event_reasons` et le ledger C63 par année.
+
+### 7.1. Neuf OD RAIL dirigées, pas des dizaines de projets perdus
+
+La jointure `PROJECT_CHOSEN` → `RAIL_ATTEMPT` →
+`RAIL_BUILD` sur **(src,dst) orienté**, de 1974 à 1979,
+retourne exactement **9 couples de tuiles** sélectionnés.
+L'identité complète peut néanmoins inclure le cargo :
+`RAIL_ATTEMPT` ne réémet pas le cargo et une paire réutilisée
+ne serait pas automatiquement un même projet.
+
+| OD | Type | Offre positive à la sélection | Verdict observé | Construction et débours vérifiables |
+|---|---|---:|---|---|
+| 29129→38955 | GOOD | 135 432 £/an (1974) | `ABND` 1975, budget de recherche épuisé | Non prouvés |
+| 50791→10926 | GOOD | 50 890 £/an (1976) | `ABND` 1976, budget de recherche épuisé | Non prouvés |
+| 22642→24869 | PASS | 6 279 £/an (1977) | `OK` ; ligne **62** construite le 23 avril 1977 | **79 134 £** |
+| 55598→51421 | GOOD | 26 723 £/an (1977) | `OK` ; ligne **63** construite le 17 août 1977 | **225 767 £** |
+| 29129→28461 | GOOD | 24 473 £/an (1977) | `OK` ; ligne **65** construite le 9 octobre 1977 | **106 311 £** |
+| 52319→59980 | PASS | 1 359 £/an (1978) | `NOPA` : aucun plan primaire trouvé | Non prouvés |
+| 44972→59980 | GOOD | 11 819 £/an (1978) | `NOPLAN2` : seconde voie V233L ; `SEARCH_ABND` | Non prouvés |
+| 50791→7810 | GOOD | 69 478 £/an (1978) | `NOPLAN2` en octobre 1979, seconde voie V233L | Non prouvés |
+| 50791→12090 | GOOD | 67 822 £/an (1979) | Recherche V233L encore en cours le 21 décembre | **Censuré**, pas un échec final |
+
+Ainsi **3 projets ont été physiquement réalisés**, **5 tentatives
+ont échoué** et **1 projet demeure inachevé à l'horizon**.
+Les **3 `RAIL_BUILD`** recoupent les **3 `RAIL_ATTEMPT ok=1`**,
+les mêmes OD, et **411 212 £** de dépenses effectives :
+la somme est égale au `C63_INVEST rail actual_ok` de **1977**.
+Les devis des trois offres à leur sélection totalisaient **221 989 £**,
+soit un coût réellement exécuté **1,85 fois** plus élevé ; les
+modèles initiaux ne sont **pas** des coûts payés. Les tentatives
+échouées ont `actual=-1` : il ne faut **ni** additionner ces
+`-1` **ni** leur substituer zéro (restitutions/frais possibles).
+
+**Preuve de rentabilité réalisée** : dans `C63 phase=line
+year=1978` (rapport émis en février 1979), les lignes fret
+**63** et **65** rapportent respectivement **+30 843 £** et
+**+25 294 £** de profit réel ; ces deux témoins sont **rentables
+et effectivement constructibles**. La ligne voyageurs **62**,
+pourtant construite, réalise **−2 882 £** : une prévision de profit
+positif ne prouve pas un profit réel. Ces trois témoins ne sont
+**pas des projets injustement rejetés**.
+
+### 7.2. AIR neuf, V161 et V284 : trois entonnoirs distincts
+
+- **AIR neuf :** 3 constructions `AIR_BUILD` (1976, 1977,
+  1979), **2 OD dirigées distinctes** ; 32963→40461 a été
+  reconstruite en 1979 après 1976. Les trois `cost=38964`
+  sont des **coûts de modèle**, non des débours vérifiés pour 1979.
+  Le ledger C63 atteste **38 964 £** payés en 1976 et
+  **38 964 £** en 1977 ; 1979 reste censuré.
+- **V161 flotte AIR :** `FLEET_PROJECT action=grow` compte
+  **5 décisions réalisées en 1974** et **5 en 1975** ; zéro
+  événement `grow` de 1976 à 1979 dans ce journal. En C63,
+  les dépenses réussies `fleet` sont **194 820 £** et
+  **188 668 £** en 1974 et 1975. Les refus `AIR_FLEET` ne
+  doivent pas être assimilés à des projets d'aéroport neufs.
+- **V284 RAIL existant :** en 1979 `pick=7`,
+  `done=4`, `fail=2`, `skip=1`, **événements** et
+  non OD nouvelles. V284 et les 5 nouveaux projets fret
+  ne représentent pas le même vivier.
+
+La sonde `C78_SLOT` donne une observation complémentaire
+**bornée par sa couverture** : en **1978**, du 1er janvier au
+8 novembre, **92 passes `projects_pass` sur 92** déclarent
+`air_candidates=0`, avec une trésorerie disponible comprise
+entre **5 808 112 et 7 957 934 £** au moment de ces passes.
+Le manque de nouveaux candidats AIR à ce stade est donc
+**observé sans pénurie globale de caisse**, mais il n'établit
+pas qu'un OD rentable et bâtissable a été injustement filtré.
+Pour **1979**, la trace C78 ne couvre **que le 26 octobre au
+18 décembre** : 8 passes, 7 sans candidat, 1 avec candidat
+**effectivement bâti** ; il serait faux d'extrapoler à toute
+l'année 1979. Le C63 annuel 1979 n'a pas été vidangé.
+
+### 7.3. Classification finale et décision de clôture
+
+| Issue recherchée | Résultat vérifié | Interprétation permise |
+|---|---|---|
+| Pas de candidat / candidat éliminé | 1978 : **32 jours `stage_empty`**, **22 jours `abandon_filtered`** dans les **54 jours `absent`** | Comptes de **jours**, pas identités OD rejetées |
+| Candidat invalidé, score marginal faible | 1978 : **186 jours `invalid`** résiduels ; PASS +1 359 £/an sélectionné puis `NOPA` | `invalid` **n'identifie pas une cause unique** ; faible profit ne prouve pas rejet |
+| Attente de calcul / A* plafonné | 1978 : **124 jours `waiting_compute`** ; 2 `ABND` primaires et `SEARCH_ABND` de seconde voie V233L | **Blocage opérationnel observé**, pas preuve d'un tracé alternatif viable |
+| Site non viable / seconde voie | `NOPA`, `NOPLAN2`, collisions eau/pont/tunnel dans V233L | Échec du constructeur en configuration courante, pas impossibilité absolue |
+| Flotte plutôt qu'infrastructure | V161 et V284 séparés de `AIR_BUILD`/`RAIL_BUILD` | Ne pas ajouter leurs achats à un compte de lignes neuves |
+| Projet réellement bâti | **3 RAIL**, **3 AIR** dans le diagnostic ; 1977 RAIL **411 212 £ réellement payés** | **Exposition physique positive démontrée** |
+| Projet rentable et exécutable injustement éliminé | **Aucun témoin qualifié** dans les preuves disponibles | **Pas de GO** pour un changement de filtre ou de double voie |
+
+**Clôture : POST-1974-ENTONNOIR = TERMINÉ, verdict
+`DIAGNOSTIC_NO_GO` pour tout nouveau comportement.** Le mandat
+de **mesurer le phénomène et décider s'il existe une preuve
+suffisante pour toucher aux règles économiques** est achevé :
+la preuve d'exposition à la rentabilité/constructibilité existe
+pour **deux lignes fret réellement bâties et bénéficiaires**,
+mais **pas pour un candidat artificiellement rejeté**.
+On ne peut pas déclarer le filtre fautif sur ces seuls résultats.
+
+La vérification **contrefactuelle** (monovoie contre double voie
+V233L, test physique des variantes de tracé sur la *même* carte,
+preuve de profit net, et validation multisource) est donc
+ouverte comme tâche **distincte `V233L-CONSTRUCTIBILITE`** ;
+elle ne doit jamais être considérée comme déjà prouvée par
+le diagnostic. La comparaison AIR des sites/rangs absents
+reste dans **AIR-COVERAGE**, et l'écart de rendement réel
+dans **AIR-PRODUCTIVITÉ**. Les valeurs par défaut et les
+verdicts des trois campagnes 20×10 restent inchangés.
