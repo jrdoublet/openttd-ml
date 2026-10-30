@@ -12,6 +12,11 @@ annuel AAAHogEx-115 à fin 1979. [Élection et preuves](estim31_phase_combinatoi
 [validation](estim31_default_validation_20261030.md),
 [journal de mise à jour](journaux/journal_2026-10-30_mise_a_jour.md).
 
+**Analyse économique des trois derniers 20×10** :
+[décrochage 1975–1979, comptes AIR/RAIL et tâches prioritaires](estim31_priorites_20x10_20261030.md).
+L'augmentation de la trésorerie et l'écart des parcs ne prouvent pas un
+correctif particulier ; aucun nouveau banc n'a été relancé pour ce classement.
+
 ## Commencer ici
 
 | Document courant | Rôle |

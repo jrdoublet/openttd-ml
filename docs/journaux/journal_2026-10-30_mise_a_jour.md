@@ -159,3 +159,26 @@ tardives, les renouvellements V252, le suivi d'actions municipales et les
 tests historiques. Les idées V208–V211, NewGRF, multimodal MULTI-1 suspendu et
 maritime restent en **réserve**, sans lancer de banc sur la seule base d'une
 phrase « à faire » datée.
+
+## 30/10 — Analyse complémentaire des trois 20×10 et ordre des priorités
+
+Sur les trois qualifications complètes du top3, la première année où
+**OpexAI repasse sous 100 % AAAHogEx** est **1975**. Le gagnant tombe de
+**103,24 % en 1974 à 66,56 % en 1979**, au moment où le parc de trains
+d'AAAHogEx passe de 26,3 à 56,3, contre seulement 24,5 à 29,6 chez
+OpexAI. En 1979, le gagnant détient 84,25 avions, 14,74 M£ de caisse
+et aucun emprunt restant. Comptes PLYR **1979 cumulés au 1er décembre** :
+retard de recettes ferroviaires 1,168 M£ et aériennes 0,857 M£, sans
+prétendre que ces deux différences sont des profits marginaux.
+
+Une [analyse dédiée et reproductible](../estim31_priorites_20x10_20261030.md)
+et [ses 5 nouveaux tests de cohérence](../../sweeps/test_estim31_20x10_priority_analysis.py)
+documentent la lecture précise, le statut non causal de la comparaison
+avec le C63 du 26/10 et l'absence de banc supplémentaire. Trois
+priorités économiques deviennent explicites dans
+[la liste active](../taches.md) : **P0 POST-1974-ENTONNOIR** des
+nouveaux projets rentables, **P1 RAIL-RENDEMENT-TARDIF** (capacité,
+fréquence, note et V284) puis **P1 AIR-PRODUCTIVITÉ** (rentabilité par
+avion/ligne V161/V252). Les tests historiques du nouveau défaut
+restent un P0 **technique**, suivi en parallèle. Aucun code métier,
+réglage par défaut ou verdict des variantes rejetées n'est modifié.
