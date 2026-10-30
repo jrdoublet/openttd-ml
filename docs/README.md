@@ -1,7 +1,16 @@
 # Documentation — index et statut des documents
 
-**Réconcilié le 30 septembre 2026 ; validation V102 actualisée le 3 octobre.
-Lecture documentaire, pas nouvelle validation économique.**
+**Registre et références courantes réconciliés le 30 octobre 2026.** La
+réorganisation ne réalise aucun nouveau banc et ne modifie pas l'IA : la
+publication ESTIM-31 date d'avant ce rangement documentaire. Les anciennes
+fiches sont conservées avec leur contexte historique.
+
+**Défaut public en vigueur (code `ai/OpexAI/info.nut`, `origin/master`
+`2429d175`) : `estim_unifie=31`, `eb14_progressive=3`, `probes=2`.** Le
+gagnant AIR2,00/RAIL0,75 du trio 20×10 obtient **66,557726256 %** du profit
+annuel AAAHogEx-115 à fin 1979. [Élection et preuves](estim31_phase_combinatoire_20261030.md),
+[validation](estim31_default_validation_20261030.md),
+[journal de mise à jour](journaux/journal_2026-10-30_mise_a_jour.md).
 
 ## Commencer ici
 
@@ -13,6 +22,7 @@ Lecture documentaire, pas nouvelle validation économique.**
 | [Bancs GitHub](bancs_github.md) | Parcours opérationnel ; publication et accès requis |
 | [Qualification enchaînée](../qualifications/README.md) | Schéma 2 V102 livré localement ; confirmation Actions après publication, protocole dans AGENTS §4/§4.1 |
 | [Journaux](journaux/README.md) | Chronologie, décisions et résultats ; pas un second backlog |
+| [Journal de transfert 30/10](journaux/journal_2026-10-30_transfert_taches.md) | **Ancien `taches.md` intégral**, avec empreinte et verdicts d'époque : archives, pas file active |
 | [Synthèse des décisions](journaux/synthese_decisions_2026-09-30.md) | Défauts adoptés, exceptions et rejets, avec sources |
 | [Preuves](../evidence/review/README.md) | Audit, archives et limites de couverture |
 | [Archives](archives/README.md) | Sources anciennes/corrompues, propositions non intégrées |
@@ -69,7 +79,7 @@ pour compléter une archive. Les HTML/CSV et bundles sont des artefacts, pas des
 | [40 B9](40_b9_demande_catchment_20260927.md) | Diagnostic clos ; 461 builds / 923 endpoints, chiffres rapportés |
 | [41 C117](41_c117_air_throughput_20260927.md) | Méthode reconstruite depuis le code ; original corrompu archivé |
 | [42 C119](42_c119_air_income_model_20260928.md) | Modèle revenu non qualifié, défaut 0 |
-| [43 C121 AIR](43_c121_air_economics_shadow_20260928.md) | Dernière décision du 29 prime sur étapes shadow ; pas de 20×10 |
+| [43 C121 AIR](43_c121_air_economics_shadow_20260928.md) | Étude de septembre : remplacée par le **FullScan ESTIM-31 effectivement qualifié et publié le 30/10** ; voir [décision](estim31_default_validation_20261030.md) |
 | [44 C122](44_c122_air_regime_priority_20260929.md) | Arrêt au smoke, défauts 0 ; pas de 5×6/20×10 |
 | [Catalogue C121](catalogue_decoupe_phase2_20260929.md) | Prototype phases 2/3 non adoptable ; correctif R4 local non mesuré |
 

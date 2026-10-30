@@ -1,5 +1,14 @@
 # ESTIM-1 — modèle d'estimation unifié : plan (27 octobre 2026)
 
+> **Mise à jour du statut au 30/10/2026 : ce document décrit la conception
+> expérimentale du 27/10, non le défaut courant.** Les bits intégrés
+> `estim_unifie=31` ont été qualifiés **en combinaison AIR/RAIL**, avec
+> `eb14_progressive=3` et `probes=2`, puis le gagnant V161 AIR2,00/RAIL0,75
+> a été installé et poussé sur `origin/master` (`2429d175`). Les bras
+> `estim_unifie=0` ci-dessous restent des **références explicites historiques**.
+> Voir [décision](estim31_phase_combinatoire_20261030.md) et
+> [reste à faire](taches.md).
+
 **Statut au 27/10 : lots 1–4 implémentés dans l'arbre de travail sous les bits
 `1/2/4/8`, `estim_unifie` conserve son défaut `0` ; qualification expérimentale en
 cours (§12–16). Lot 5 exclu. Aucun commit ni push.**

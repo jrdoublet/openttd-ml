@@ -1,5 +1,13 @@
 # ESTIM-31 — phase combinatoire et neutralité de référence (30 octobre)
 
+> **Décision définitive à lire en priorité :** les trois qualifications
+> 20×10 et l'installation de la meilleure variante sont **terminées**.
+> Le vainqueur V161 AIR2,00/RAIL0,75 obtient **66,557726256 %** au
+> 01/12/1979. Défaut publié `estim_unifie=31`, EB14=3, `probes=2`,
+> `origin/master` `2429d175`. Les anciennes mentions « en cours » dans
+> la chronologie qui suit sont des relevés **au moment de l'expérience** ;
+> lire la section « Décision finale » et la [validation](estim31_default_validation_20261030.md).
+
 ## Protocole et état du travail
 
 **Mandat :** maximiser exclusivement le ratio des moyennes de `profit_year`

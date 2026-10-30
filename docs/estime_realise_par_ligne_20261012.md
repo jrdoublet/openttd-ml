@@ -2,7 +2,7 @@
 
 **Date :** 12 octobre 2026  
 **Dépôt :** `/home/deploy/projects/openttd-ml` (lecture seule, commit `29dac01`)  
-**Sujet :** Ligne « Estimé à l'élection / réalisé par ligne » de [`docs/taches.md:773`](../docs/taches.md#L773) :  
+**Sujet :** ligne « Estimé à l'élection / réalisé par ligne » de l'[ancien registre archivé](journaux/journal_2026-10-30_transfert_taches.md) (ligne originale 773) :
 > *« Restent identité élection→achat→année réalisée complète et qualification isolée avant changement de score. »*  
 **Fiches de référence :**  
 - [`docs/three_lots_integration_20261001.md`](../docs/three_lots_integration_20261001.md)  
@@ -216,7 +216,7 @@ $$\text{fundScore} = \frac{\text{profitCalibré}}{\max(K_{\text{dec}}, \text{fin
   - **Inversion majeure de tête :** Les lignes de fret ferroviaire majeures passeraient **directement au rang 0 (tête de portefeuille)** devant les liaisons aériennes secondaires ou les maillages `hubhub` saturés (dont le score réel tombe à ~600).
 
 #### B. Pourquoi l'audit shadow du 01/10 notait-il « zéro changement de tête » ?
-Dans [`docs/taches.md:773`](../docs/taches.md#L773) et [`docs/three_lots_integration_20261001.md:182`](../docs/three_lots_integration_20261001.md#L182), le relevé indiquait :
+Dans l'[ancien registre, ligne 773](journaux/journal_2026-10-30_transfert_taches.md) et [`docs/three_lots_integration_20261001.md:182`](../docs/three_lots_integration_20261001.md#L182), le relevé indiquait :
 > *« 369 inversions fleet↔nouvelle liaison, zéro changement de tête. »*
 - **Explication causale :** La sonde shadow d'amortissement (`fleet_amort_shadow_probe`) ne testait **que la déduction de l'amortissement du capital de flotte** (un ajustement mineur de 1 640 £/an en médiane, soit ~7,5 % du score). Elle ne corrigeait aucunement l'écart d'un facteur 2× à 2,5× entre l'aérien et le rail, ni la surévaluation des liaisons neuves.
 - Dès lors, les projets de tête (nouvelles liaisons à 300 k£ affichés) conservaient une avance artificielle écrasante sur les renforts de flotte et sur le rail. Un correctif de score fondé sur le ratio réalisé/estimé produirait, lui, de véritables changements de tête.

@@ -1,5 +1,13 @@
 # ESTIM-31 — sélection des moteurs AIR, version expérimentale isolée
 
+> **Statut actuel (30/10) :** diagnostic et branche expérimentale datés
+> du 29/10. Le correctif FullScan C121 a ensuite été intégré dans le
+> bundle **réellement élu** à dix ans et poussé comme défaut
+> `estim_unifie=31` sur `origin/master` (`2429d175`). La présente fiche
+> reste utile pour la cause d'élagage, mais ses conclusions intermédiaires
+> « non adopté » ne prévalent pas sur la [qualification finale](estim31_phase_combinatoire_20261030.md)
+> et le [contrat C121](estim31_default_c121_verified_20261030.json).
+
 ## Défaut et correction
 
 `OpexC121InitialEngineUpperScore` n'est pas une borne supérieure prouvée du
