@@ -325,3 +325,420 @@ function OpexRoad1yExtraStops(catalog, line, have, capacity, waitingA, waitingB,
     if (result.reason == "ROLLBACK") break;
   }
 }
+
+/* --- ROAD1Y_MAIL_ON_PAX : ligne MAIL fille sur paire de villes bus PAX rentable --- */
+
+function OpexRoad1yOurTruckTiles(ai, townId)
+{
+  local tiles = [];
+  foreach (line in ai._lines) {
+    if (!("mode" in line) || line.mode != "road") continue;
+    if (("scrapping" in line) && line.scrapping) continue;
+    local isPax = ("kind" in line) && line.kind == "pax";
+    if (isPax) continue;
+    local ends = [line.stationA, line.stationB];
+    foreach (t in ends) {
+      if (typeof t != "integer" || !AIMap.IsValidTile(t)) continue;
+      if (!AIRoad.IsRoadStationTile(t) || !AICompany.IsMine(AITile.GetOwner(t))) continue;
+      if (AITile.GetClosestTown(t) == townId) tiles.append(t);
+    }
+  }
+  return tiles;
+}
+
+function OpexRoad1yFindMailSite(ai, catalog, townId, busTile, mailCargo)
+{
+  if (!AITown.IsValidTown(townId) || !AIMap.IsValidTile(busTile)
+      || !AIRoad.IsRoadStationTile(busTile)) return null;
+  local busFront = AIRoad.GetRoadStationFrontTile(busTile);
+  if (!AIMap.IsValidTile(busFront)) return null;
+  AIRoad.SetCurrentRoadType(catalog.roadType);
+  local coverage = AIStation.GetCoverageRadius(AIStation.STATION_TRUCK_STOP);
+  local used = OpexRoad1yOurTruckTiles(ai, townId);
+  local center = AITown.GetLocation(townId);
+  local cx = AIMap.GetTileX(center);
+  local cy = AIMap.GetTileY(center);
+  local bx = AIMap.GetTileX(busTile);
+  local by = AIMap.GetTileY(busTile);
+  local mapX = AIMap.GetMapSizeX();
+  local mapY = AIMap.GetMapSizeY();
+  local cands = [];
+  for (local pass = 0; pass < 2; pass++) {
+    local ox = pass == 0 ? cx : bx;
+    local oy = pass == 0 ? cy : by;
+    local rad = pass == 0 ? 6 : 4;
+    for (local dx = -rad; dx <= rad; dx++) {
+      for (local dy = -rad; dy <= rad; dy++) {
+        local x = ox + dx;
+        local y = oy + dy;
+        if (x <= 0 || y <= 0 || x >= mapX - 1 || y >= mapY - 1) continue;
+        if (pass == 1) {
+          local cdx = x - cx; if (cdx < 0) cdx = -cdx;
+          local cdy = y - cy; if (cdy < 0) cdy = -cdy;
+          if (cdx <= 6 && cdy <= 6) continue;
+        }
+        local tile = AIMap.GetTileIndex(x, y);
+        if (tile == busTile || !AIRoad.IsRoadTile(tile)
+            || AIRoad.IsRoadDepotTile(tile) || AIRoad.IsRoadStationTile(tile)
+            || AITile.IsStationTile(tile)) continue;
+        if (AITile.GetClosestTown(tile) != townId) continue;
+        if (OpexRoad100CatchmentOverlaps(tile, used, coverage)) continue;
+        local axis = OpexBusDistrictAxis(tile);
+        if (axis == 0) continue;
+        local front = tile + axis;
+        local back = tile - axis;
+        if (!AIMap.IsValidTile(front) || !AIMap.IsValidTile(back)) continue;
+        local prod = AITile.GetCargoProduction(tile, mailCargo, 1, 1, coverage);
+        if (prod <= 0) continue;
+        local acc = AITile.GetCargoAcceptance(tile, mailCargo, 1, 1, coverage);
+        if (acc < 8) continue;
+        local score = prod * 100 + acc - AIMap.DistanceManhattan(tile, center);
+        local item = { tile = tile, front = front, back = back, prod = prod, acc = acc, score = score };
+        local pos = cands.len();
+        cands.append(item);
+        while (pos > 0 && cands[pos - 1].score < item.score) {
+          cands[pos] = cands[pos - 1];
+          pos--;
+        }
+        cands[pos] = item;
+        if (cands.len() > 4) cands.pop();
+      }
+    }
+  }
+  foreach (c in cands) {
+    if (OpexRoadBfsPath(c.front, busFront, 48) == null
+        || OpexRoadBfsPath(busFront, c.front, 48) == null) continue;
+    local canBuild = false;
+    { local test = AITestMode();
+      canBuild = AIRoad.BuildDriveThroughRoadStation(c.tile, c.front,
+          AIRoad.ROADVEHTYPE_TRUCK, AIStation.STATION_NEW); }
+    if (canBuild) return c;
+  }
+  return null;
+}
+
+function OpexRoad1yParentAlive(ai, parentId)
+{
+  if (parentId < 0) return null;
+  local p = ai._findLineById(parentId);
+  if (p == null) return null;
+  if (("scrapping" in p) && p.scrapping) return null;
+  if (("deadStreak" in p) && p.deadStreak >= DEAD_STREAK_THRESHOLD) return null;
+  if (!AIMap.IsValidTile(p.stationA) || !AIRoad.IsRoadStationTile(p.stationA)
+      || !AICompany.IsMine(AITile.GetOwner(p.stationA))) return null;
+  if (!AIMap.IsValidTile(p.stationB) || !AIRoad.IsRoadStationTile(p.stationB)
+      || !AICompany.IsMine(AITile.GetOwner(p.stationB))) return null;
+  return p;
+}
+
+function OpexRoad1yAbandonMailChild(ai, child, reason)
+{
+  if (("scrapping" in child) && child.scrapping) return;
+  local parentId = ("parentLineId" in child) ? child.parentLineId : -1;
+  if (parentId >= 0) {
+    local p = ai._findLineById(parentId);
+    if (p != null && ("mailChildLineId" in p) && p.mailChildLineId == child.lineId)
+      p.mailChildLineId = -1;
+  }
+  ai._triggerScrapLine(child, reason);
+  if (AIMap.IsValidTile(child.stationA) && AIRoad.IsRoadStationTile(child.stationA)
+      && AICompany.IsMine(AITile.GetOwner(child.stationA)))
+    AIRoad.RemoveRoadStation(child.stationA);
+  if (AIMap.IsValidTile(child.stationB) && AIRoad.IsRoadStationTile(child.stationB)
+      && AICompany.IsMine(AITile.GetOwner(child.stationB)))
+    AIRoad.RemoveRoadStation(child.stationB);
+  AILog.Info("ROAD1Y_MAIL action=abandon line=" + child.lineId
+      + " parent=" + parentId
+      + " pair=" + (("srcTown" in child) ? child.srcTown : -1) + ":" + (("dstTown" in child) ? child.dstTown : -1)
+      + " tiles=" + child.stationA + ":" + child.stationB
+      + " mail_vol=0 vans=" + (("vehCount" in child) ? child.vehCount : 0)
+      + " reason=" + reason);
+}
+
+function OpexRoad1yRefleetMailLine(ai, line, year)
+{
+  local parentId = ("parentLineId" in line) ? line.parentLineId : -1;
+  if (OpexRoad1yParentAlive(ai, parentId) == null) {
+    OpexRoad1yAbandonMailChild(ai, line, "PARENT_ABANDONED");
+    return;
+  }
+  if (!AIMap.IsValidTile(line.stationA) || !AIRoad.IsRoadStationTile(line.stationA)
+      || !AICompany.IsMine(AITile.GetOwner(line.stationA))
+      || !AIMap.IsValidTile(line.stationB) || !AIRoad.IsRoadStationTile(line.stationB)
+      || !AICompany.IsMine(AITile.GetOwner(line.stationB))) {
+    OpexRoad1yAbandonMailChild(ai, line, "STOP_LOST");
+    return;
+  }
+  local stationA = AIStation.GetStationID(line.stationA);
+  local stationB = AIStation.GetStationID(line.stationB);
+  if (!AIStation.IsValidStation(stationA) || !AIStation.IsValidStation(stationB)) {
+    OpexRoad1yAbandonMailChild(ai, line, "STATION_INVALID");
+    return;
+  }
+  local waitingA = AICargo.IsValidCargo(line.cargo) ? AIStation.GetCargoWaiting(stationA, line.cargo) : 0;
+  local waitingB = AICargo.IsValidCargo(line.cargo) ? AIStation.GetCargoWaiting(stationB, line.cargo) : 0;
+  local totalWaiting = waitingA + waitingB;
+  local vehicles = OpexLineVehicleIds(line, stationA);
+  local have = 0;
+  local movingCount = 0;
+  local liveCap = 0;
+  local unitPrice = 0;
+  foreach (v in vehicles) {
+    if (!AIVehicle.IsValidVehicle(v)) continue;
+    have++;
+    if (AIVehicle.GetCurrentSpeed(v) > 0) movingCount++;
+    if (liveCap <= 0) {
+      local c = AIVehicle.GetCapacity(v, line.cargo);
+      if (c > 0) liveCap = c;
+    }
+    if (unitPrice <= 0) unitPrice = AIEngine.GetPrice(AIVehicle.GetEngineType(v));
+  }
+  line.vehCount <- have;
+  local stopsA = ("nStopsA" in line) && line.nStopsA > 0 ? line.nStopsA : 1;
+  local stopsB = ("nStopsB" in line) && line.nStopsB > 0 ? line.nStopsB : 1;
+  local stops = stopsA < stopsB ? stopsA : stopsB;
+  local mailCap = 2 * stops;
+  local ym = year * 12 + AIDate.GetMonth(AIDate.GetCurrentDate());
+  if (("road1yMailRefleetMonth" in line) && line.road1yMailRefleetMonth == ym) return;
+  local capacity = liveCap > 0 ? liveCap : (("capacity" in line) ? line.capacity : 0);
+  if (have >= mailCap || movingCount <= 0 || capacity <= 0 || totalWaiting < capacity) return;
+  if (unitPrice <= 0 && ai._catalog != null && (line.cargo in ai._catalog.roadEngineByCargo))
+    unitPrice = ai._catalog.roadEngineByCargo[line.cargo].price;
+  local cashReserve = (ROAD1Y_FLEET_UNLOCK & 2) != 0 ? 10000 : (ROAD1Y_PAX_REFLEET ? 15000 : 25000);
+  local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+  if (unitPrice <= 0 || money < cashReserve + unitPrice) return;
+  local want = totalWaiting / capacity;
+  if (want > 2) want = 2;
+  if (have + want > mailCap) want = mailCap - have;
+  local canPay = (money - cashReserve) / unitPrice;
+  if (want > canPay) want = canPay;
+  if (want <= 0) return;
+  line.road1yMailRefleetMonth <- ym;
+  local refill = OpexRoadRefleet(ai._catalog, line, have, have + want);
+  if (refill.added > 0) {
+    line.vehCount <- refill.after;
+    if (("trains" in line) && line.trains < refill.after) line.trains = refill.after;
+    AILog.Info("ROAD1Y_MAIL action=refleet line=" + line.lineId
+        + " parent=" + parentId + " pair=" + line.srcTown + ":" + line.dstTown
+        + " tiles=" + line.stationA + ":" + line.stationB
+        + " mail_vol=" + totalWaiting + " vans=" + refill.after
+        + " added=" + refill.added + " reason=OK");
+  } else {
+    AILog.Info("ROAD1Y_MAIL action=fail line=" + line.lineId
+        + " parent=" + parentId + " pair=" + line.srcTown + ":" + line.dstTown
+        + " tiles=" + line.stationA + ":" + line.stationB
+        + " mail_vol=" + totalWaiting + " vans=" + have
+        + " added=0 reason=REFLEET_" + refill.reason);
+  }
+}
+
+function OpexRoad1yBuildMailChild(ai, parentLine, cashReserve)
+{
+  local catalog = ai._catalog;
+  local mailCargo = catalog.mailCargo;
+  local engine = catalog.roadEngineByCargo[mailCargo];
+  local townA = parentLine.srcTown;
+  local townB = parentLine.dstTown;
+  local siteA = OpexRoad1yFindMailSite(ai, catalog, townA, parentLine.stationA, mailCargo);
+  local siteB = siteA != null ? OpexRoad1yFindMailSite(ai, catalog, townB, parentLine.stationB, mailCargo) : null;
+  if (siteA == null || siteB == null) {
+    AILog.Info("ROAD1Y_MAIL action=fail parent=" + parentLine.lineId
+        + " pair=" + townA + ":" + townB
+        + " tiles=" + (siteA != null ? siteA.tile : -1) + ":" + (siteB != null ? siteB.tile : -1)
+        + " mail_vol=0 vans=0 reason=" + (siteA == null ? "NO_SITE_A" : "NO_SITE_B"));
+    return false;
+  }
+  local mailVol = siteA.prod + siteB.prod;
+  local refitCap = OpexRoadRefitCapacity(parentLine.depot, engine, mailCargo);
+  if (refitCap <= 0) {
+    AILog.Info("ROAD1Y_MAIL action=fail parent=" + parentLine.lineId
+        + " pair=" + townA + ":" + townB + " tiles=" + siteA.tile + ":" + siteB.tile
+        + " mail_vol=" + mailVol + " vans=0 reason=REFIT_CAP");
+    return false;
+  }
+  AIRoad.SetCurrentRoadType(catalog.roadType);
+  local okA = AIRoad.BuildDriveThroughRoadStation(siteA.tile, siteA.front,
+      AIRoad.ROADVEHTYPE_TRUCK, AIStation.STATION_NEW);
+  local validA = okA && AIRoad.IsRoadStationTile(siteA.tile)
+      && AICompany.IsMine(AITile.GetOwner(siteA.tile))
+      && AIRoad.AreRoadTilesConnected(siteA.tile, siteA.front)
+      && AIRoad.AreRoadTilesConnected(siteA.tile, siteA.back);
+  if (!validA) {
+    if (AIRoad.IsRoadStationTile(siteA.tile) && AICompany.IsMine(AITile.GetOwner(siteA.tile)))
+      AIRoad.RemoveRoadStation(siteA.tile);
+    AILog.Info("ROAD1Y_MAIL action=fail parent=" + parentLine.lineId
+        + " pair=" + townA + ":" + townB + " tiles=" + siteA.tile + ":" + siteB.tile
+        + " mail_vol=" + mailVol + " vans=0 reason=BUILD_STOP_A");
+    return false;
+  }
+  local okB = AIRoad.BuildDriveThroughRoadStation(siteB.tile, siteB.front,
+      AIRoad.ROADVEHTYPE_TRUCK, AIStation.STATION_NEW);
+  local stIdA = AIStation.GetStationID(siteA.tile);
+  local stIdB = AIStation.GetStationID(siteB.tile);
+  local validB = okB && AIRoad.IsRoadStationTile(siteB.tile)
+      && AICompany.IsMine(AITile.GetOwner(siteB.tile))
+      && AIStation.IsValidStation(stIdA) && AIStation.IsValidStation(stIdB) && stIdA != stIdB
+      && AIRoad.AreRoadTilesConnected(siteB.tile, siteB.front)
+      && AIRoad.AreRoadTilesConnected(siteB.tile, siteB.back);
+  if (!validB) {
+    if (AIRoad.IsRoadStationTile(siteB.tile) && AICompany.IsMine(AITile.GetOwner(siteB.tile)))
+      AIRoad.RemoveRoadStation(siteB.tile);
+    if (AIRoad.IsRoadStationTile(siteA.tile) && AICompany.IsMine(AITile.GetOwner(siteA.tile)))
+      AIRoad.RemoveRoadStation(siteA.tile);
+    AILog.Info("ROAD1Y_MAIL action=fail parent=" + parentLine.lineId
+        + " pair=" + townA + ":" + townB + " tiles=" + siteA.tile + ":" + siteB.tile
+        + " mail_vol=" + mailVol + " vans=0 reason=BUILD_STOP_B");
+    return false;
+  }
+  local wantVans = (mailVol >= 2 * refitCap
+      && AICompany.GetBankBalance(AICompany.COMPANY_SELF) >= cashReserve + 2 * engine.price
+      && OpexVehicleSlotAvailable(AIVehicle.VT_ROAD, 2)) ? 2 : 1;
+  local built = [];
+  local first = AIVehicle.BuildVehicleWithRefit(parentLine.depot, engine.id, mailCargo);
+  if (!AIVehicle.IsValidVehicle(first)) {
+    OpexRoadRollback(siteA.tile, siteB.tile, null, built, null);
+    AILog.Info("ROAD1Y_MAIL action=fail parent=" + parentLine.lineId
+        + " pair=" + townA + ":" + townB + " tiles=" + siteA.tile + ":" + siteB.tile
+        + " mail_vol=" + mailVol + " vans=0 reason=BUILD_VEH");
+    return false;
+  }
+  built.append(first);
+  local cap = AIVehicle.GetCapacity(first, mailCargo);
+  local orderFlags = AIOrder.OF_NONE | AIOrder.OF_NON_STOP_INTERMEDIATE;
+  local ordersOk = cap > 0
+      && AIOrder.AppendOrder(first, siteA.tile, orderFlags)
+      && AIOrder.AppendOrder(first, siteB.tile, orderFlags)
+      && AIOrder.GetOrderCount(first) == 2;
+  if (!ordersOk) {
+    OpexRoadRollback(siteA.tile, siteB.tile, null, built, null);
+    AILog.Info("ROAD1Y_MAIL action=fail parent=" + parentLine.lineId
+        + " pair=" + townA + ":" + townB + " tiles=" + siteA.tile + ":" + siteB.tile
+        + " mail_vol=" + mailVol + " vans=0 reason=ORDERS");
+    return false;
+  }
+  if (wantVans == 2) {
+    local second = AIVehicle.CloneVehicle(parentLine.depot, first, true);
+    if (AIVehicle.IsValidVehicle(second)) built.append(second);
+  }
+  local started = 0;
+  foreach (v in built) {
+    if (AIVehicle.StartStopVehicle(v)) started++;
+  }
+  if (started <= 0) {
+    OpexRoadRollback(siteA.tile, siteB.tile, null, built, null);
+    AILog.Info("ROAD1Y_MAIL action=fail parent=" + parentLine.lineId
+        + " pair=" + townA + ":" + townB + " tiles=" + siteA.tile + ":" + siteB.tile
+        + " mail_vol=" + mailVol + " vans=0 reason=START_VEH");
+    return false;
+  }
+  local idx = ai._nextLineId++;
+  local dist = AIMap.DistanceManhattan(siteA.tile, siteB.tile);
+  local childLine = {
+    mode = "road",
+    kind = "mail_pax",
+    parentLineId = parentLine.lineId,
+    stationA = siteA.tile,
+    stationB = siteB.tile,
+    originA = ("originA" in parentLine) ? parentLine.originA : siteA.tile,
+    originB = ("originB" in parentLine) ? parentLine.originB : siteB.tile,
+    depot = parentLine.depot,
+    cargo = mailCargo,
+    nStopsA = 1,
+    nStopsB = 1,
+    trains = built.len(),
+    trains0 = built.len(),
+    predTrains = built.len(),
+    vehCount = built.len(),
+    capacity = cap,
+    distance = dist,
+    srcTown = townA,
+    dstTown = townB,
+    srcIndustry = -1,
+    dstIndustry = -1,
+    deadStreak = 0,
+    scrapping = false,
+    scrapVehicles = [],
+    lineId = idx
+  };
+  ai._lines.append(childLine);
+  parentLine.mailChildLineId <- idx;
+  if (V279_RESELECT_MEMO != 0) OPEX_LINES_REVISION++;
+  ai._c76BumpLayer("lines", false);
+  OpexAir0310InvalidateSiteValidity();
+  AILog.Info("ROAD1Y_MAIL action=create line=" + idx
+      + " parent=" + parentLine.lineId + " pair=" + townA + ":" + townB
+      + " tiles=" + siteA.tile + ":" + siteB.tile
+      + " mail_vol=" + mailVol + " vans=" + built.len() + " reason=OK");
+  return true;
+}
+
+function OpexRoad1yMailStep(ai, year)
+{
+  local catalog = ai._catalog;
+  if (catalog == null || !("mailCargo" in catalog) || catalog.mailCargo < 0) return;
+  local mailCargo = catalog.mailCargo;
+  if (!(mailCargo in catalog.roadEngineByCargo)) return;
+  local engine = catalog.roadEngineByCargo[mailCargo];
+  if (engine == null || engine.price <= 0) return;
+  local cashReserve = (ROAD1Y_FLEET_UNLOCK & 2) != 0 ? 10000 : (ROAD1Y_PAX_REFLEET ? 15000 : 25000);
+  local needCash = cashReserve + 2 * catalog.costRoadTruckStop + engine.price;
+  if (AICompany.GetBankBalance(AICompany.COMPANY_SELF) < needCash) return;
+  if (!OpexVehicleSlotAvailable(AIVehicle.VT_ROAD, 1)) return;
+  local activeParents = {};
+  local activePairs = {};
+  foreach (line in ai._lines) {
+    if (!("mode" in line) || line.mode != "road") continue;
+    if (("scrapping" in line) && line.scrapping) continue;
+    if (!("kind" in line) || line.kind != "mail_pax") continue;
+    if ("parentLineId" in line) activeParents[line.parentLineId] <- true;
+    local ta = ("srcTown" in line) ? line.srcTown : -1;
+    local tb = ("dstTown" in line) ? line.dstTown : -1;
+    if (ta >= 0 && tb >= 0) {
+      local key = ta < tb ? (ta + ":" + tb) : (tb + ":" + ta);
+      activePairs[key] <- true;
+    }
+  }
+  local ym = year * 12 + AIDate.GetMonth(AIDate.GetCurrentDate());
+  local bestParent = null;
+  local bestProfit = 0;
+  foreach (line in ai._lines) {
+    if (!("mode" in line) || line.mode != "road") continue;
+    if (("scrapping" in line) && line.scrapping) continue;
+    if (!("kind" in line) || line.kind != "pax") continue;
+    if (("deadStreak" in line) && line.deadStreak > 0) continue;
+    if (line.lineId in activeParents) continue;
+    if (("road1yMailTryMonth" in line) && line.road1yMailTryMonth == ym) continue;
+    local ta = ("srcTown" in line) ? line.srcTown : -1;
+    local tb = ("dstTown" in line) ? line.dstTown : -1;
+    if (ta < 0 || tb < 0 || ta == tb) continue;
+    local pairKey = ta < tb ? (ta + ":" + tb) : (tb + ":" + ta);
+    if (pairKey in activePairs) continue;
+    if (!AIMap.IsValidTile(line.stationA) || !AIRoad.IsRoadStationTile(line.stationA)
+        || !AICompany.IsMine(AITile.GetOwner(line.stationA))) continue;
+    if (!AIMap.IsValidTile(line.stationB) || !AIRoad.IsRoadStationTile(line.stationB)
+        || !AICompany.IsMine(AITile.GetOwner(line.stationB))) continue;
+    if (!("depot" in line) || !AIMap.IsValidTile(line.depot)
+        || !AIRoad.IsRoadDepotTile(line.depot)
+        || !AICompany.IsMine(AITile.GetOwner(line.depot))) continue;
+    local profit = 0;
+    if ("lastProfit" in line) {
+      profit = line.lastProfit;
+    } else {
+      local stA = AIStation.GetStationID(line.stationA);
+      if (AIStation.IsValidStation(stA)) {
+        local vehs = OpexLineVehicleIds(line, stA);
+        foreach (v in vehs) {
+          if (AIVehicle.IsValidVehicle(v)) profit += AIVehicle.GetProfitThisYear(v);
+        }
+        if (profit <= 500) profit = 0;
+      }
+    }
+    if (profit > bestProfit) {
+      bestProfit = profit;
+      bestParent = line;
+    }
+  }
+  if (bestParent == null) return;
+  bestParent.road1yMailTryMonth <- ym;
+  OpexRoad1yBuildMailChild(ai, bestParent, cashReserve);
+}

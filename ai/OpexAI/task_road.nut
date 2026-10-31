@@ -625,6 +625,10 @@ function OpexAI::_refleetRoadLines(year)
     local line = this._lines[i];
     if (!("mode" in line) || line.mode != "road") continue;
     if (("scrapping" in line) && line.scrapping) continue;
+    if (ROAD1Y_MAIL_ON_PAX && ("kind" in line) && line.kind == "mail_pax") {
+      OpexRoad1yRefleetMailLine(this, line, year);
+      continue;
+    }
     /* ROAD100-31 : les tuiles physiques des deux quais ayant
      * permis quatre bus initiaux traversent Save/Load. Meme
      * avec le reglage OFF au rechargement, une destruction
@@ -1397,4 +1401,5 @@ function OpexAI::_refleetRoadLines(year)
     OpexSign(anchor, "RF|" + year + "|" + line.lineId + "|" + refill.added + "|"
                      + (refill.added > 0 ? refill.after : refill.reason));
   }
+  if (ROAD1Y_MAIL_ON_PAX) OpexRoad1yMailStep(this, year);
 }
