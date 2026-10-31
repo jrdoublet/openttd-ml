@@ -1,5 +1,12 @@
 # Diagnostic 5 ans : graines 512 et 1337, RAIL seul et AIR seul contre AAAHogEx
 
+> **CORRECTION — 31 octobre 2026 : cette expérience n'est pas la comparaison
+> monomodale contre monomodale demandée.** Seul OpexAI était limité à
+> RAIL ou AIR ; AAAHogEx était resté multimodal. Les résultats ci-dessous
+> sont conservés comme archive **asymétrique**, et ne doivent plus être
+> utilisés pour répondre à cette question. Résultats **corrigés et vérifiés**
+> dans [le banc symétrique RAIL/RAIL et AIR/AIR](seed512_1337_symmetric_rail_air_vs_aaa_5y_20261031.md).
+
 **31 octobre 2026 — 4 duels partagés OpenTTD 15.3, OpenGFX 7.1, 256²,
 1970–1974.** Demandes : rejouer la pire graine relative à dix ans (512)
 en RAIL seul puis AIR seul ; étendre le même protocole à la pire graine
