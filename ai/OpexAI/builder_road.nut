@@ -6472,10 +6472,13 @@ function OpexRoadRefleet(catalog, line, have, target)
     built.append(first);
     local nonstopFlag = AIOrder.OF_NON_STOP_INTERMEDIATE;
     local isFreight = (("kind" in line) && line.kind == "freight");
-    local isMailPax = ROAD1Y_MAIL_ON_PAX && ("kind" in line) && line.kind == "mail_pax";
-    local sourceFlags = ((!isMailPax && (isFreight || ROAD1Y_LOAD_ORDERS)) ? AIOrder.OF_FULL_LOAD_ANY : AIOrder.OF_NONE) | nonstopFlag;
-    local destFlags = (!isMailPax && ROAD1Y_LOAD_ORDERS && isFreight) ? (AIOrder.OF_UNLOAD | AIOrder.OF_NO_LOAD) : AIOrder.OF_NONE;
+    local sourceFlags = ((isFreight || ROAD1Y_LOAD_ORDERS) ? AIOrder.OF_FULL_LOAD_ANY : AIOrder.OF_NONE) | nonstopFlag;
+    local destFlags = (ROAD1Y_LOAD_ORDERS && isFreight) ? (AIOrder.OF_UNLOAD | AIOrder.OF_NO_LOAD) : AIOrder.OF_NONE;
     destFlags = destFlags | nonstopFlag;
+    if (ROAD1Y_MAIL_ON_PAX && ("kind" in line) && line.kind == "mail_pax") {
+      sourceFlags = AIOrder.OF_NONE | nonstopFlag;
+      destFlags = AIOrder.OF_NONE | nonstopFlag;
+    }
     /* ROAD100-14 : les ordres persistants d'une ligne convertie survivent
      * a la disparition de sa flotte. Ne pas conditionner cette reconstitution
      * au switch de CREATION : ON -> OFF ne doit pas casser une ligne payee. */

@@ -127,6 +127,7 @@ function OpexLoadSettings()
   if (ROAD1Y_FLEET < 0) ROAD1Y_FLEET = 0;
   ROAD1Y_PAX_ECONOMY = AIController.GetSetting("road1y_pax_economy") == 1;
   ROAD1Y_PAX_REFLEET = AIController.GetSetting("road1y_pax_refleet") == 1;
+  ROAD1Y_MAIL_ON_PAX = AIController.GetSetting("road1y_mail_on_pax") == 1;
   ROAD1Y_FLEET_UNLOCK = AIController.GetSetting("road1y_fleet_unlock");
   if (ROAD1Y_FLEET_UNLOCK < 0 || ROAD1Y_FLEET_UNLOCK > 15) ROAD1Y_FLEET_UNLOCK = 0;
   ROAD1Y_LONG_BAND = AIController.GetSetting("road1y_long_band");
@@ -628,6 +629,7 @@ function OpexLoadBusDistrictSettings()
   if (ROAD1Y_EXTRA_STOPS < 0) ROAD1Y_EXTRA_STOPS = 0;
   if (ROAD1Y_EXTRA_STOPS > 3) ROAD1Y_EXTRA_STOPS = 3;
   ROAD1Y_PAX_SITES = AIController.GetSetting("road1y_pax_sites") == 1;
+  ROAD1Y_MAIL_ON_PAX = AIController.GetSetting("road1y_mail_on_pax") == 1;
   { // Definitions also needed for saved markers after ON -> OFF.
     require("bus_districts.nut");
     require("bus_districts_overrides.nut");

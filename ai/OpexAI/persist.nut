@@ -1061,6 +1061,13 @@ function OpexAI::_reconcileAfterLoad()
         }
         if (template != null) line.refleetEngine <- AIVehicle.GetEngineType(template);
       }
+      /* ROAD1Y mail_pax: clone in OpexSaveProjectLine already keeps kind,
+       * parentLineId, mailChildLineId and road1yMailTryMonth. Old saves omit them. */
+      if (("mode" in line) && line.mode == "road") {
+        if (!("parentLineId" in line)) line.parentLineId <- -1;
+        if (!("mailChildLineId" in line)) line.mailChildLineId <- -1;
+        if (!("road1yMailTryMonth" in line)) line.road1yMailTryMonth <- -1;
+      }
       liveLines.append(line);
       kept++;
     }
