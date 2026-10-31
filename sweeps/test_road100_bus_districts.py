@@ -2,6 +2,8 @@
 
 These checks do not compile Squirrel; the five-seed OFF/ON engine runs do.
 """
+import difflib
+import hashlib
 import json
 import re
 from pathlib import Path
@@ -12,6 +14,16 @@ from test_v261_forum_behaviours import body, source
 from road100_off_projection import _subtract_exact
 
 ROOT = Path(__file__).resolve().parents[1]
+# Default-path bodies that are 4354cafa plus only the lines origin/master
+# inserted inside the function. The merged text is not a single ancestor blob.
+MERGED_FUNCTION_SHA = {
+    'OpexAI::_tryBuildRoadProject': 'e775e1aeba5ba60d22409e032c21b652d62549c27b8d18dc85b9b0b0daa21f69',
+    'OpexAI::_refleetRoadLines': '6fb02ac06ca4b6041c90165910ffc324148693f88faa160ed535f5ff0097048d',
+}
+MASTER_OWNED_FUNCTIONS = (
+    'OpexCandidateStillValid',
+    'OpexCandidateStillValidIndexed',
+)
 
 
 def complete_function(text, name):
@@ -43,9 +55,31 @@ class BusDistrictContracts(unittest.TestCase):
                     self.assertEqual(projected.count(edit['after']), 1)
                     projected = projected.replace(edit['after'], edit['before'], 1)
                 self.assertEqual(projected, original)
-                historical = subprocess.check_output(
-                    ['git', 'show', '4354cafa:ai/OpexAI/' + item['file']], cwd=ROOT).decode()
-                self.assertEqual(original, complete_function(historical, name))
+                if name in MERGED_FUNCTION_SHA:
+                    # Byte pin, plus the proof that every difference from
+                    # 4354cafa is an insertion taken from origin/master.
+                    self.assertEqual(hashlib.sha256(original.encode()).hexdigest(),
+                                     MERGED_FUNCTION_SHA[name])
+                    baseline = subprocess.check_output(
+                        ['git', 'show', '4354cafa:ai/OpexAI/' + item['file']], cwd=ROOT).decode()
+                    master_text = subprocess.check_output(
+                        ['git', 'show', '481e7c08:ai/OpexAI/' + item['file']], cwd=ROOT).decode()
+                    parent_fn = complete_function(baseline, name)
+                    matcher = difflib.SequenceMatcher(
+                        None, parent_fn.splitlines(), original.splitlines(), autojunk=False)
+                    saw_insert = False
+                    for tag, _i1, _i2, j1, j2 in matcher.get_opcodes():
+                        if tag == 'equal':
+                            continue
+                        saw_insert = True
+                        self.assertEqual(tag, 'insert')
+                        self.assertIn('\n'.join(original.splitlines()[j1:j2]), master_text)
+                    self.assertTrue(saw_insert)
+                else:
+                    rev = '481e7c08' if name in MASTER_OWNED_FUNCTIONS else '4354cafa'
+                    historical = subprocess.check_output(
+                        ['git', 'show', rev + ':ai/OpexAI/' + item['file']], cwd=ROOT).decode()
+                    self.assertEqual(original, complete_function(historical, name))
 
     def test_lazy_class_methods_are_installed_before_instantiation(self):
         settings = source('settings.nut')
@@ -62,7 +96,7 @@ class BusDistrictContracts(unittest.TestCase):
         for name, hunks in edits.items():
             with self.subTest(name=name):
                 parent = subprocess.check_output(
-                    ['git', 'show', '4354cafa:ai/OpexAI/' + name], cwd=ROOT).decode()
+                    ['git', 'show', '481e7c08:ai/OpexAI/' + name], cwd=ROOT).decode()
                 self.assertEqual(_subtract_exact(name, source(name), hunks, 'B2'), parent)
 
     def test_no_shadowed_lists_in_default_fallback(self):
