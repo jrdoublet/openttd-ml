@@ -3,8 +3,8 @@
 > **Date :** 21 octobre 2026  
 > **Branche de travail :** `notrain` (dépôt `/home/deploy/projects/wt-notrain`)  
 > **Données de banc analysées :** `/home/deploy/projects/wt-v299/results/v299_diag_3x10_20261021_engine/` (10 ans, 3 graines : 42, 7, 100 ; 2 bras : `reference_*` = master, `v299_*` = `v294_rail_weight_adapt=400`)  
-> **Script de diagnostic :** [`sweeps/diag_notrain_adapt400.py`](file:///home/deploy/projects/wt-notrain/sweeps/diag_notrain_adapt400.py)  
-> **Précédentes autopsies liées :** [`docs/railech_abnd_20261021.md`](file:///home/deploy/projects/wt-notrain/docs/railech_abnd_20261021.md), entrée `RAIL-ECH` dans [`docs/taches.md`](file:///home/deploy/projects/wt-notrain/docs/taches.md#L49-L52)
+> **Script de diagnostic :** [`sweeps/diag_notrain_adapt400.py`](../sweeps/diag_notrain_adapt400.py)
+> **Précédentes autopsies liées :** [`docs/railech_abnd_20261021.md`](railech_abnd_20261021.md), entrée historique `RAIL-ECH` dans l'[ancien registre archivé](journaux/journal_2026-10-30_transfert_taches.md)
 
 ---
 

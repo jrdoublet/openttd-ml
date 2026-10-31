@@ -1,0 +1,1012 @@
+{
+  "stage": "pilot",
+  "source_sha256": "258f48e624fa61b5ecd1d908d5c2ab8bcffb2597822a46b6abd23d3f9699bddf",
+  "metrics": {
+    "n_pairs": 5,
+    "ref_profit_year_mean": 1921359.2,
+    "variant_profit_year_mean": 2026330.6,
+    "delta_mean": 104971.4,
+    "delta_median": 97718.0,
+    "delta_pct": 5.463392789854193,
+    "wins": 3,
+    "losses": 2,
+    "ties": 0,
+    "wilcoxon_exact_p": 0.3125,
+    "bootstrap_ci95": [
+      12325.2,
+      197617.6
+    ],
+    "bootstrap_replays": 20000,
+    "value_ref_mean": 6280312.4,
+    "value_variant_mean": 6895364.8,
+    "value_ratio": 1.097933408535537,
+    "by_seed": [
+      {
+        "seed": 100,
+        "ref": 1548033,
+        "on": 1811423,
+        "delta": 263390.0,
+        "ref_value": 3550454,
+        "on_value": 4405381
+      },
+      {
+        "seed": 512,
+        "ref": 1728891,
+        "on": 1717369,
+        "delta": -11522.0,
+        "ref_value": 4529751,
+        "on_value": 5747557
+      },
+      {
+        "seed": 12345,
+        "ref": 2290295,
+        "on": 2283771,
+        "delta": -6524.0,
+        "ref_value": 7942219,
+        "on_value": 8478963
+      },
+      {
+        "seed": 54321,
+        "ref": 1837691,
+        "on": 1935409,
+        "delta": 97718.0,
+        "ref_value": 5929188,
+        "on_value": 6589579
+      },
+      {
+        "seed": 65537,
+        "ref": 2201886,
+        "on": 2383681,
+        "delta": 181795.0,
+        "ref_value": 9449950,
+        "on_value": 9255344
+      }
+    ]
+  },
+  "physical": [
+    {
+      "seed": 100,
+      "src": 46958,
+      "dst": 29140,
+      "cargo": "1",
+      "cargo_name": "COAL",
+      "reproduced_site_build_1974": true,
+      "build_event": "1974-8-18 RAIL_BUILD line=33 src=46958 dst=29140 cargo=COAL dist=172 reuse=1 join_end=B shared_dest=1 pred_profit=36330 cost=80279 trains=1 wagons=3 site_repair=1 v131_repair=0 astar_repair=0 pose_repair=0",
+      "pred_profit_annual": 36330,
+      "quoted_cost": 80279,
+      "on_annual_services": {
+        "1974": {
+          "status": "matched",
+          "distance_tiles": 3,
+          "station_ids": [
+            37,
+            61
+          ],
+          "station_tiles": [
+            46702,
+            28883
+          ],
+          "vehicle_ids": [
+            47
+          ],
+          "vehicles": 1,
+          "profit_this_year_gbp": 10018.097656,
+          "profit_last_year_gbp": 0.0,
+          "vehicle_value_gbp": 31932
+        },
+        "1975": {
+          "status": "matched",
+          "distance_tiles": 3,
+          "station_ids": [
+            37,
+            61
+          ],
+          "station_tiles": [
+            46702,
+            28883
+          ],
+          "vehicle_ids": [
+            47
+          ],
+          "vehicles": 1,
+          "profit_this_year_gbp": 52420.179688,
+          "profit_last_year_gbp": 9803.15625,
+          "vehicle_value_gbp": 26870
+        },
+        "1976": {
+          "status": "matched",
+          "distance_tiles": 3,
+          "station_ids": [
+            37,
+            61
+          ],
+          "station_tiles": [
+            46702,
+            28883
+          ],
+          "vehicle_ids": [
+            47
+          ],
+          "vehicles": 1,
+          "profit_this_year_gbp": 41307.246094,
+          "profit_last_year_gbp": 63137.238281,
+          "vehicle_value_gbp": 22521
+        },
+        "1977": {
+          "status": "matched",
+          "distance_tiles": 3,
+          "station_ids": [
+            37,
+            61
+          ],
+          "station_tiles": [
+            46702,
+            28883
+          ],
+          "vehicle_ids": [
+            80
+          ],
+          "vehicles": 1,
+          "profit_this_year_gbp": -53.023438,
+          "profit_last_year_gbp": 0.0,
+          "vehicle_value_gbp": 37073
+        },
+        "1978": {
+          "status": "matched",
+          "distance_tiles": 3,
+          "station_ids": [
+            37,
+            61
+          ],
+          "station_tiles": [
+            46702,
+            28883
+          ],
+          "vehicle_ids": [
+            80
+          ],
+          "vehicles": 1,
+          "profit_this_year_gbp": 34154.226562,
+          "profit_last_year_gbp": -297.753906,
+          "vehicle_value_gbp": 31162
+        },
+        "1979": {
+          "status": "matched",
+          "distance_tiles": 3,
+          "station_ids": [
+            37,
+            61
+          ],
+          "station_tiles": [
+            46702,
+            28883
+          ],
+          "vehicle_ids": [
+            146
+          ],
+          "vehicles": 1,
+          "profit_this_year_gbp": 28029.535156,
+          "profit_last_year_gbp": 0.0,
+          "vehicle_value_gbp": 36531
+        }
+      },
+      "ref_service_checks": {
+        "1974": {
+          "status": "matched",
+          "distance_tiles": 7,
+          "station_ids": [
+            33,
+            58
+          ],
+          "station_tiles": [
+            46702,
+            28114
+          ],
+          "vehicle_ids": [
+            111
+          ],
+          "vehicles": 1,
+          "profit_this_year_gbp": 42427.546875,
+          "profit_last_year_gbp": 0.0,
+          "vehicle_value_gbp": 29131
+        },
+        "1975": {
+          "status": "matched",
+          "distance_tiles": 7,
+          "station_ids": [
+            33,
+            58
+          ],
+          "station_tiles": [
+            46702,
+            28114
+          ],
+          "vehicle_ids": [
+            111
+          ],
+          "vehicles": 1,
+          "profit_this_year_gbp": 53596.179688,
+          "profit_last_year_gbp": 42212.605469,
+          "vehicle_value_gbp": 24392
+        },
+        "1979": {
+          "status": "matched",
+          "distance_tiles": 7,
+          "station_ids": [
+            33,
+            58
+          ],
+          "station_tiles": [
+            46702,
+            28114
+          ],
+          "vehicle_ids": [
+            89
+          ],
+          "vehicles": 1,
+          "profit_this_year_gbp": 53449.226562,
+          "profit_last_year_gbp": 64560.496094,
+          "vehicle_value_gbp": 19785
+        }
+      },
+      "matched_any_1975_1979": true,
+      "mature_profit_positive": true,
+      "mature_profit_observed": 4
+    },
+    {
+      "seed": 512,
+      "src": 31408,
+      "dst": 39017,
+      "cargo": "8",
+      "cargo_name": "IORE",
+      "reproduced_site_build_1974": true,
+      "build_event": "1974-12-16 RAIL_BUILD line=38 src=31408 dst=39017 cargo=IORE dist=101 reuse=1 join_end=B shared_dest=1 pred_profit=6704 cost=57195 trains=1 wagons=1 site_repair=1 v131_repair=0 astar_repair=0 pose_repair=0",
+      "pred_profit_annual": 6704,
+      "quoted_cost": 57195,
+      "on_annual_services": {
+        "1974": {
+          "status": "not_observed",
+          "best_distance": 106
+        },
+        "1975": {
+          "status": "matched",
+          "distance_tiles": 8,
+          "station_ids": [
+            35,
+            65
+          ],
+          "station_tiles": [
+            31663,
+            39782
+          ],
+          "vehicle_ids": [
+            57
+          ],
+          "vehicles": 1,
+          "profit_this_year_gbp": 12819.226562,
+          "profit_last_year_gbp": -124.820312,
+          "vehicle_value_gbp": 30638
+        },
+        "1976": {
+          "status": "matched",
+          "distance_tiles": 8,
+          "station_ids": [
+            35,
+            65
+          ],
+          "station_tiles": [
+            31663,
+            39782
+          ],
+          "vehicle_ids": [
+            178
+          ],
+          "vehicles": 1,
+          "profit_this_year_gbp": 3398.351562,
+          "profit_last_year_gbp": 0.0,
+          "vehicle_value_gbp": 17714
+        },
+        "1977": {
+          "status": "matched",
+          "distance_tiles": 8,
+          "station_ids": [
+            35,
+            65
+          ],
+          "station_tiles": [
+            31663,
+            39782
+          ],
+          "vehicle_ids": [
+            178
+          ],
+          "vehicles": 1,
+          "profit_this_year_gbp": 10087.742188,
+          "profit_last_year_gbp": 3275.441406,
+          "vehicle_value_gbp": 14842
+        },
+        "1978": {
+          "status": "matched",
+          "distance_tiles": 8,
+          "station_ids": [
+            35,
+            65
+          ],
+          "station_tiles": [
+            31663,
+            39782
+          ],
+          "vehicle_ids": [
+            178
+          ],
+          "vehicles": 1,
+          "profit_this_year_gbp": 10229.742188,
+          "profit_last_year_gbp": 11853.832031,
+          "vehicle_value_gbp": 12483
+        },
+        "1979": {
+          "status": "matched",
+          "distance_tiles": 8,
+          "station_ids": [
+            35,
+            65
+          ],
+          "station_tiles": [
+            31663,
+            39782
+          ],
+          "vehicle_ids": [
+            178
+          ],
+          "vehicles": 1,
+          "profit_this_year_gbp": 8189.742188,
+          "profit_last_year_gbp": 12028.832031,
+          "vehicle_value_gbp": 10479
+        }
+      },
+      "ref_service_checks": {
+        "1974": {
+          "status": "matched",
+          "distance_tiles": 8,
+          "station_ids": [
+            35,
+            57
+          ],
+          "station_tiles": [
+            31663,
+            39782
+          ],
+          "vehicle_ids": [
+            141
+          ],
+          "vehicles": 1,
+          "profit_this_year_gbp": 11339.179688,
+          "profit_last_year_gbp": 6594.996094,
+          "vehicle_value_gbp": 24689
+        },
+        "1975": {
+          "status": "matched",
+          "distance_tiles": 8,
+          "station_ids": [
+            35,
+            57
+          ],
+          "station_tiles": [
+            31663,
+            39782
+          ],
+          "vehicle_ids": [
+            98
+          ],
+          "vehicles": 1,
+          "profit_this_year_gbp": 21483.3125,
+          "profit_last_year_gbp": 0.0,
+          "vehicle_value_gbp": 20203
+        },
+        "1979": {
+          "status": "matched",
+          "distance_tiles": 8,
+          "station_ids": [
+            35,
+            57
+          ],
+          "station_tiles": [
+            31663,
+            39782
+          ],
+          "vehicle_ids": [
+            184
+          ],
+          "vehicles": 1,
+          "profit_this_year_gbp": 28317.226562,
+          "profit_last_year_gbp": 14361.320312,
+          "vehicle_value_gbp": 29543
+        }
+      },
+      "matched_any_1975_1979": true,
+      "mature_profit_positive": true,
+      "mature_profit_observed": 4
+    },
+    {
+      "seed": 12345,
+      "src": 46126,
+      "dst": 50747,
+      "cargo": "6",
+      "cargo_name": "GRAI",
+      "reproduced_site_build_1974": true,
+      "build_event": "1974-11-13 RAIL_BUILD line=42 src=46126 dst=50747 cargo=GRAI dist=31 reuse=1 join_end=B shared_dest=1 pred_profit=4738 cost=47445 trains=1 wagons=1 site_repair=1 v131_repair=0 astar_repair=0 pose_repair=0",
+      "pred_profit_annual": 4738,
+      "quoted_cost": 47445,
+      "on_annual_services": {
+        "1974": {
+          "status": "matched",
+          "distance_tiles": 4,
+          "station_ids": [
+            57,
+            73
+          ],
+          "station_tiles": [
+            45870,
+            50489
+          ],
+          "vehicle_ids": [
+            86
+          ],
+          "vehicles": 1,
+          "profit_this_year_gbp": -113.839844,
+          "profit_last_year_gbp": 0.0,
+          "vehicle_value_gbp": 31289
+        },
+        "1975": {
+          "status": "matched",
+          "distance_tiles": 4,
+          "station_ids": [
+            57,
+            73
+          ],
+          "station_tiles": [
+            45870,
+            50489
+          ],
+          "vehicle_ids": [
+            86
+          ],
+          "vehicles": 1,
+          "profit_this_year_gbp": 5132.179688,
+          "profit_last_year_gbp": 132.21875,
+          "vehicle_value_gbp": 26283
+        },
+        "1976": {
+          "status": "matched",
+          "distance_tiles": 4,
+          "station_ids": [
+            57,
+            73
+          ],
+          "station_tiles": [
+            45870,
+            50489
+          ],
+          "vehicle_ids": [
+            86
+          ],
+          "vehicles": 1,
+          "profit_this_year_gbp": 4645.246094,
+          "profit_last_year_gbp": 5383.238281,
+          "vehicle_value_gbp": 21986
+        },
+        "1977": {
+          "status": "matched",
+          "distance_tiles": 4,
+          "station_ids": [
+            57,
+            73
+          ],
+          "station_tiles": [
+            45870,
+            50489
+          ],
+          "vehicle_ids": [
+            86
+          ],
+          "vehicles": 1,
+          "profit_this_year_gbp": 5616.179688,
+          "profit_last_year_gbp": 5360.304688,
+          "vehicle_value_gbp": 18417
+        },
+        "1978": {
+          "status": "matched",
+          "distance_tiles": 4,
+          "station_ids": [
+            57,
+            73
+          ],
+          "station_tiles": [
+            45870,
+            50489
+          ],
+          "vehicle_ids": [
+            86
+          ],
+          "vehicles": 1,
+          "profit_this_year_gbp": 6576.179688,
+          "profit_last_year_gbp": 5869.238281,
+          "vehicle_value_gbp": 15483
+        },
+        "1979": {
+          "status": "matched",
+          "distance_tiles": 4,
+          "station_ids": [
+            57,
+            73
+          ],
+          "station_tiles": [
+            45870,
+            50489
+          ],
+          "vehicle_ids": [
+            86
+          ],
+          "vehicles": 1,
+          "profit_this_year_gbp": 6102.179688,
+          "profit_last_year_gbp": 6829.238281,
+          "vehicle_value_gbp": 12964
+        }
+      },
+      "ref_service_checks": {
+        "1974": {
+          "status": "not_observed",
+          "best_distance": 182
+        },
+        "1975": {
+          "status": "not_observed",
+          "best_distance": 182
+        },
+        "1979": {
+          "status": "not_observed",
+          "best_distance": 182
+        }
+      },
+      "matched_any_1975_1979": true,
+      "mature_profit_positive": true,
+      "mature_profit_observed": 4
+    },
+    {
+      "seed": 54321,
+      "src": 12108,
+      "dst": 23443,
+      "cargo": "6",
+      "cargo_name": "GRAI",
+      "reproduced_site_build_1974": true,
+      "build_event": "1974-10-17 RAIL_BUILD line=38 src=12108 dst=23443 cargo=GRAI dist=115 reuse=1 join_end=B shared_dest=1 pred_profit=5458 cost=81370 trains=1 wagons=1 site_repair=1 v131_repair=0 astar_repair=0 pose_repair=0",
+      "pred_profit_annual": 5458,
+      "quoted_cost": 81370,
+      "on_annual_services": {
+        "1974": {
+          "status": "matched",
+          "distance_tiles": 4,
+          "station_ids": [
+            56,
+            69
+          ],
+          "station_tiles": [
+            12363,
+            23188
+          ],
+          "vehicle_ids": [
+            167
+          ],
+          "vehicles": 1,
+          "profit_this_year_gbp": -301.890625,
+          "profit_last_year_gbp": 0.0,
+          "vehicle_value_gbp": 30925
+        },
+        "1975": {
+          "status": "matched",
+          "distance_tiles": 4,
+          "station_ids": [
+            56,
+            69
+          ],
+          "station_tiles": [
+            12363,
+            23188
+          ],
+          "vehicle_ids": [
+            167
+          ],
+          "vehicles": 1,
+          "profit_this_year_gbp": 10786.179688,
+          "profit_last_year_gbp": 1318.167969,
+          "vehicle_value_gbp": 25879
+        },
+        "1976": {
+          "status": "matched",
+          "distance_tiles": 4,
+          "station_ids": [
+            56,
+            69
+          ],
+          "station_tiles": [
+            12363,
+            23188
+          ],
+          "vehicle_ids": [
+            167
+          ],
+          "vehicles": 1,
+          "profit_this_year_gbp": 12653.246094,
+          "profit_last_year_gbp": 12446.238281,
+          "vehicle_value_gbp": 21731
+        },
+        "1977": {
+          "status": "matched",
+          "distance_tiles": 4,
+          "station_ids": [
+            56,
+            69
+          ],
+          "station_tiles": [
+            12363,
+            23188
+          ],
+          "vehicle_ids": [
+            106
+          ],
+          "vehicles": 1,
+          "profit_this_year_gbp": 3499.511719,
+          "profit_last_year_gbp": 0.0,
+          "vehicle_value_gbp": 36855
+        },
+        "1978": {
+          "status": "matched",
+          "distance_tiles": 4,
+          "station_ids": [
+            56,
+            69
+          ],
+          "station_tiles": [
+            12363,
+            23188
+          ],
+          "vehicle_ids": [
+            106
+          ],
+          "vehicles": 1,
+          "profit_this_year_gbp": 23182.226562,
+          "profit_last_year_gbp": 3254.78125,
+          "vehicle_value_gbp": 30855
+        },
+        "1979": {
+          "status": "matched",
+          "distance_tiles": 4,
+          "station_ids": [
+            56,
+            69
+          ],
+          "station_tiles": [
+            12363,
+            23188
+          ],
+          "vehicle_ids": [
+            106
+          ],
+          "vehicles": 1,
+          "profit_this_year_gbp": 23198.226562,
+          "profit_last_year_gbp": 26613.496094,
+          "vehicle_value_gbp": 25820
+        }
+      },
+      "ref_service_checks": {
+        "1974": {
+          "status": "matched",
+          "distance_tiles": 10,
+          "station_ids": [
+            19,
+            61
+          ],
+          "station_tiles": [
+            11852,
+            24727
+          ],
+          "vehicle_ids": [
+            137
+          ],
+          "vehicles": 1,
+          "profit_this_year_gbp": 22617.179688,
+          "profit_last_year_gbp": 7071.203125,
+          "vehicle_value_gbp": 25668
+        },
+        "1975": {
+          "status": "matched",
+          "distance_tiles": 10,
+          "station_ids": [
+            19,
+            61
+          ],
+          "station_tiles": [
+            11852,
+            24727
+          ],
+          "vehicle_ids": [
+            137
+          ],
+          "vehicles": 1,
+          "profit_this_year_gbp": 18189.179688,
+          "profit_last_year_gbp": 26538.238281,
+          "vehicle_value_gbp": 21576
+        },
+        "1979": {
+          "status": "matched",
+          "distance_tiles": 10,
+          "station_ids": [
+            19,
+            61
+          ],
+          "station_tiles": [
+            11852,
+            24727
+          ],
+          "vehicle_ids": [
+            191
+          ],
+          "vehicles": 1,
+          "profit_this_year_gbp": -727.363281,
+          "profit_last_year_gbp": 0.0,
+          "vehicle_value_gbp": 37767
+        }
+      },
+      "matched_any_1975_1979": true,
+      "mature_profit_positive": true,
+      "mature_profit_observed": 4
+    },
+    {
+      "seed": 65537,
+      "src": 42142,
+      "dst": 29270,
+      "cargo": "6",
+      "cargo_name": "GRAI",
+      "reproduced_site_build_1974": true,
+      "build_event": "1974-2-18 RAIL_BUILD line=37 src=42142 dst=29270 cargo=GRAI dist=122 reuse=1 join_end=B shared_dest=1 pred_profit=20064 cost=82606 trains=1 wagons=2 site_repair=1 v131_repair=0 astar_repair=0 pose_repair=0",
+      "pred_profit_annual": 20064,
+      "quoted_cost": 82606,
+      "on_annual_services": {
+        "1974": {
+          "status": "matched",
+          "distance_tiles": 10,
+          "station_ids": [
+            33,
+            66
+          ],
+          "station_tiles": [
+            41882,
+            28247
+          ],
+          "vehicle_ids": [
+            189
+          ],
+          "vehicles": 1,
+          "profit_this_year_gbp": 18420.992188,
+          "profit_last_year_gbp": 0.0,
+          "vehicle_value_gbp": 28483
+        },
+        "1975": {
+          "status": "matched",
+          "distance_tiles": 10,
+          "station_ids": [
+            33,
+            66
+          ],
+          "station_tiles": [
+            41882,
+            28247
+          ],
+          "vehicle_ids": [
+            189
+          ],
+          "vehicles": 1,
+          "profit_this_year_gbp": 26280.179688,
+          "profit_last_year_gbp": 18206.050781,
+          "vehicle_value_gbp": 23848
+        },
+        "1976": {
+          "status": "matched",
+          "distance_tiles": 10,
+          "station_ids": [
+            33,
+            66
+          ],
+          "station_tiles": [
+            41882,
+            28247
+          ],
+          "vehicle_ids": [
+            119
+          ],
+          "vehicles": 1,
+          "profit_this_year_gbp": 28640.945312,
+          "profit_last_year_gbp": 0.0,
+          "vehicle_value_gbp": 33905
+        },
+        "1977": {
+          "status": "matched",
+          "distance_tiles": 10,
+          "station_ids": [
+            33,
+            66
+          ],
+          "station_tiles": [
+            41882,
+            28247
+          ],
+          "vehicle_ids": [
+            119
+          ],
+          "vehicles": 1,
+          "profit_this_year_gbp": 34220.226562,
+          "profit_last_year_gbp": 34495.214844,
+          "vehicle_value_gbp": 28511
+        },
+        "1978": {
+          "status": "matched",
+          "distance_tiles": 10,
+          "station_ids": [
+            33,
+            66
+          ],
+          "station_tiles": [
+            41882,
+            28247
+          ],
+          "vehicle_ids": [
+            119
+          ],
+          "vehicles": 1,
+          "profit_this_year_gbp": 33713.226562,
+          "profit_last_year_gbp": 40087.496094,
+          "vehicle_value_gbp": 23908
+        },
+        "1979": {
+          "status": "matched",
+          "distance_tiles": 10,
+          "station_ids": [
+            33,
+            66
+          ],
+          "station_tiles": [
+            41882,
+            28247
+          ],
+          "vehicle_ids": [
+            119
+          ],
+          "vehicles": 1,
+          "profit_this_year_gbp": 27429.226562,
+          "profit_last_year_gbp": 33468.496094,
+          "vehicle_value_gbp": 20066
+        }
+      },
+      "ref_service_checks": {
+        "1974": {
+          "status": "matched",
+          "distance_tiles": 6,
+          "station_ids": [
+            22,
+            23
+          ],
+          "station_tiles": [
+            41883,
+            29272
+          ],
+          "vehicle_ids": [
+            209
+          ],
+          "vehicles": 1,
+          "profit_this_year_gbp": 52972.492188,
+          "profit_last_year_gbp": 22703.957031,
+          "vehicle_value_gbp": 20051
+        },
+        "1975": {
+          "status": "matched",
+          "distance_tiles": 6,
+          "station_ids": [
+            22,
+            23
+          ],
+          "station_tiles": [
+            41883,
+            29272
+          ],
+          "vehicle_ids": [
+            209
+          ],
+          "vehicles": 1,
+          "profit_this_year_gbp": 45016.492188,
+          "profit_last_year_gbp": 60695.457031,
+          "vehicle_value_gbp": 16837
+        },
+        "1979": {
+          "status": "matched",
+          "distance_tiles": 6,
+          "station_ids": [
+            22,
+            23
+          ],
+          "station_tiles": [
+            41883,
+            29272
+          ],
+          "vehicle_ids": [
+            178
+          ],
+          "vehicles": 1,
+          "profit_this_year_gbp": 66253.226562,
+          "profit_last_year_gbp": 75847.496094,
+          "vehicle_value_gbp": 26299
+        }
+      },
+      "matched_any_1975_1979": true,
+      "mature_profit_positive": true,
+      "mature_profit_observed": 4
+    }
+  ],
+  "by_year": {
+    "1970": {
+      "ref_mean": 124687.2,
+      "on_mean": 124305,
+      "delta_mean": -382.2
+    },
+    "1971": {
+      "ref_mean": 599041.2,
+      "on_mean": 602544.6,
+      "delta_mean": 3503.4
+    },
+    "1972": {
+      "ref_mean": 995181.4,
+      "on_mean": 963585.2,
+      "delta_mean": -31596.2
+    },
+    "1973": {
+      "ref_mean": 1337506.6,
+      "on_mean": 1342790.4,
+      "delta_mean": 5283.8
+    },
+    "1974": {
+      "ref_mean": 1593095.6,
+      "on_mean": 1613509.2,
+      "delta_mean": 20413.6
+    },
+    "1975": {
+      "ref_mean": 1616742.4,
+      "on_mean": 1745727,
+      "delta_mean": 128984.6
+    },
+    "1976": {
+      "ref_mean": 1651945.8,
+      "on_mean": 1817870,
+      "delta_mean": 165924.2
+    },
+    "1977": {
+      "ref_mean": 1782608.6,
+      "on_mean": 1901399.6,
+      "delta_mean": 118791
+    },
+    "1978": {
+      "ref_mean": 1855030.6,
+      "on_mean": 1985514.4,
+      "delta_mean": 130483.8
+    },
+    "1979": {
+      "ref_mean": 1921359.2,
+      "on_mean": 2026330.6,
+      "delta_mean": 104971.4
+    }
+  },
+  "promotion_checks": {
+    "at_least_three_1974_site_builds_with_unambiguous_service": true,
+    "at_least_three_mature_positive_fleet_profits": true,
+    "positive_company_profit_delta_and_value_ratio_ge_0_95": true
+  },
+  "promising_launch_B": true,
+  "economic_interpretation": "Exploratory selected-seed and instrumented; never override failed A"
+}

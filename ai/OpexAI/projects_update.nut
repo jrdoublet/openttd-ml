@@ -182,6 +182,11 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
   local extValidity = (INCR_REVALIDATE_INDEX == 1 && ctx != null) ? ctx.airSiteValidity : null;
   local extTownLim = (INCR_REVALIDATE_INDEX == 1 && ctx != null) ? ctx.stationLimitedTowns : null;
   alternatives = OpexFilterAirAlternativesStillValid(alternatives, abandonedPairs, lines, extValidity, extTownLim);
+  if (EB3_RAIL_FIRST_YEAR_PREFETCH && MODE_AIR && C121_CATALOG_FIRST_YEAR_ACTIVE) {
+    local airOnly = [];
+    foreach (project in alternatives) if (project.mode == "air") airOnly.append(project);
+    alternatives = airOnly;
+  }
   funded = OpexProjectSelectAffordable(alternatives, capitalBudget, PROJECT_TOP_K, true, abandonedPairs);
   if (RAIL_FAILURE_AUDIT) OpexRailPortfolioAudit("incremental", alternatives, funded,
       capitalBudget, 0, 0);
@@ -323,6 +328,65 @@ function OpexV141RefreshPublishedAir(project, catalog, planningOps)
   project.cargo = catalog.paxCargo;
 }
 
+/* EB-14 : un projet deja publie ne doit jamais obtenir une date economique
+ * neuve sans un nouveau calcul C121. Reevaluer seulement au debut d'une
+ * nouvelle serie AIR ; les appels suivants republient le meme prefixe.
+ * Copie de plan, car une erreur de calcul ne doit pas muter l'ancien projet. */
+function OpexEB14RepricePublishedAir(catalog, project, lines, planningOps)
+{
+  if (project == null || !("payload" in project) || project.payload == null) return null;
+  local plan = clone project.payload;
+  if (!("siteA" in plan) || !("siteB" in plan) || !("airport" in plan)
+      || !("arm" in plan) || plan.siteA == null || plan.siteB == null
+      || plan.airport == null) return null;
+  local choice = OpexC121CatalogChoice(catalog, plan, lines);
+  if (choice == null || !("plane" in choice) || choice.plane == null
+      || !("economics" in choice) || choice.economics == null) return null;
+  plan.plane = choice.plane;
+  plan.economics = choice.economics;
+  plan.planes = choice.economics.planes;
+  plan.capital = choice.economics.capital;
+  if ("decisionEconomics" in plan) delete plan.decisionEconomics;
+  if ("portfolioEconomics" in plan) delete plan.portfolioEconomics;
+  if (("decisionEconomics" in choice) && choice.decisionEconomics != null)
+    plan.decisionEconomics <- choice.decisionEconomics;
+  if (("portfolioEconomics" in choice) && choice.portfolioEconomics != null)
+    plan.portfolioEconomics <- choice.portfolioEconomics;
+  if (("targetPlanes" in choice)) {
+    if ("targetPlanes" in plan) plan.targetPlanes = choice.targetPlanes;
+    else plan.targetPlanes <- choice.targetPlanes;
+  }
+  return OpexProjectFromAir(catalog, plan, planningOps);
+}
+
+/* Des revues successives peuvent publier le meme avion/site plusieurs fois.
+ * L'identite d'une alternative doit inclure bras, sites, aeroport et moteur.
+ * Le dernier plan revalue (nouveau scan) l'emporte, sans fusionner des
+ * alternatives distinctes ou supprimer les projets d'autres modes. */
+function OpexEB14DedupAirBlock(airBlock)
+{
+  local seen = {}, reversed = [];
+  for (local i = airBlock.len() - 1; i >= 0; i--) {
+    local project = airBlock[i];
+    local plan = (project != null && ("payload" in project)) ? project.payload : null;
+    if (plan != null && ("arm" in plan) && ("airport" in plan)
+        && ("plane" in plan) && ("siteA" in plan) && ("siteB" in plan)
+        && plan.airport != null && plan.plane != null
+        && plan.siteA != null && plan.siteB != null) {
+      local identity = plan.arm + "|" + plan.siteA.anchor + "|" + plan.siteB.anchor
+          + "|" + plan.airport.type + "|" + plan.plane.id
+          + "|" + (("reuseA" in plan) && plan.reuseA ? 1 : 0)
+          + "|" + (("reuseB" in plan) && plan.reuseB ? 1 : 0);
+      if (identity in seen) continue;
+      seen.rawset(identity, true);
+    }
+    reversed.append(project);
+  }
+  local distinct = [];
+  for (local i = reversed.len() - 1; i >= 0; i--) distinct.append(reversed[i]);
+  return distinct;
+}
+
 /* V277 : insertion rapide d'un lot de projets aeriens neufs dans candidateGroups
  * et mise a jour incrementale de odProjects, modeCandidates, modeAlternatives. */
 function OpexV277AirPubFastInsert(groups, stats, newKeyOrder, pendingNew)
@@ -373,7 +437,12 @@ function OpexV277AirPubFastInsert(groups, stats, newKeyOrder, pendingNew)
  * C111 reste sur FromAir. A 0 le chemin FromAir est conserve. */
 function OpexAir0310PublishIncremental(owner, scanPlans, publishedCount, airOps, bestPlan)
 {
-  if (owner == null || scanPlans == null || publishedCount <= 0) return null;
+  /* EB-14 : le tout premier lot d'une nouvelle revision est egalement
+   * additif des qu'un portefeuille existe ; evite un rebuild multimodal
+   * synchrone pour chaque nouvelle serie de paires AIR. */
+  if (!EB14_PROGRESSIVE &&
+      (owner == null || scanPlans == null || publishedCount <= 0)) return null;
+  if (owner == null || scanPlans == null) return null;
   if (owner._projects == null || owner._catalog == null) return null;
   local projects = owner._projects;
   if (!("candidateGroups" in projects) || projects.candidateGroups == null) return null;
@@ -441,6 +510,7 @@ function OpexAir0310PublishIncremental(owner, scanPlans, publishedCount, airOps,
   /* V277 : publication rapide sans reparcours du vivier (mode 1 et mode 2). */
   local v277FastGroups = null;
   local v277FastStats = null;
+  if (!EB14_PROGRESSIVE) {
   if (V277_AIR_PUB_FAST == 1 && priorRaw.len() == 0) {
     OpexV277AirPubFastInsert(projects.candidateGroups, projects.stats, newKeyOrder, pendingNew);
     projects.all = projects.stats.odProjects;
@@ -481,6 +551,7 @@ function OpexAir0310PublishIncremental(owner, scanPlans, publishedCount, airOps,
     };
     OpexV277AirPubFastInsert(v277FastGroups, v277FastStats, newKeyOrder, pendingNew);
   }
+  }
 
   local spPubFilter = PROBE_SPAN_TRACE ? OpexSpanBegin("pub.filter") : null;
   local keptAir = {};
@@ -513,7 +584,20 @@ function OpexAir0310PublishIncremental(owner, scanPlans, publishedCount, airOps,
           invalidated++;
           continue;
         }
-        OpexV141RefreshPublishedAir(project, catalog, airOpsPerPlan);
+        if (EB14_PROGRESSIVE && publishedCount <= 0) {
+          local repriced = OpexEB14RepricePublishedAir(catalog, project,
+              owner._lines, airOpsPerPlan);
+          if (repriced == null) {
+            invalidated++;
+            continue;
+          }
+          project = repriced;
+        } else if (!EB14_PROGRESSIVE) {
+          OpexV141RefreshPublishedAir(project, catalog, airOpsPerPlan);
+        } else {
+          /* Meme scan, aucune modification d'economicsDate sans C121. */
+          project.planningOpcodes = airOpsPerPlan;
+        }
         refreshedCount++;
         freshKey = OpexProjectKeyFor(project);
         if (freshKey == slotKey) {
@@ -585,6 +669,7 @@ function OpexAir0310PublishIncremental(owner, scanPlans, publishedCount, airOps,
     if (slotKey in pendingNew) {
       foreach (project in pendingNew[slotKey]) airBlock.append(project);
     }
+    if (EB14_PROGRESSIVE) airBlock = OpexEB14DedupAirBlock(airBlock);
     local spliced = OpexAir0310InsertAirBlock(row, airBlock);
     if (spliced.len() > 0) rebuilt.rawset(slotKey, spliced);
   }

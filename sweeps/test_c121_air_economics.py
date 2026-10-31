@@ -327,10 +327,10 @@ class TestC121AirEconomics(unittest.TestCase):
         self.assertIn('c121Age < 2 || !("lastProfit" in line) || line.lastProfit <= 0', self.task)
         self.assertIn('(year - line.lastAirFleetYear) < 2', self.task)
         fleet_project = body(self.projects, "function OpexProjectFromFleet", "function OpexAirRequiredMargin")
-        self.assertIn("local c121BelowTarget = (\"targetAirPlanes\" in line)", fleet_project)
-        self.assertIn("perPlaneProfit * entry.want", fleet_project)
+        self.assertIn("entry.v161BaseVehicles != have", fleet_project)
+        self.assertIn("local profit = entry.v161Profit;", fleet_project)
         self.assertNotIn("line.lastProfit / have - amortPerPlane", fleet_project)
-        self.assertIn("perPlaneRevenue * entry.want", fleet_project)
+        self.assertIn("local revenue = entry.v161DeltaR;", fleet_project)
         self.assertNotIn("line.lastRevenue / have", fleet_project)
         self.assertIn("observedProfit -= line.c121VehicleAmortPerPlane * addedObserved", self.task_report)
         self.assertIn("observedProfit /= addedObserved", self.task_report)
@@ -339,13 +339,16 @@ class TestC121AirEconomics(unittest.TestCase):
         self.assertIn("line.c121MarginalRevenue * samples + observedRevenue", self.task_report)
         self.assertIn("line.c121LastMarginalProfit <- observedProfit", self.task_report)
         self.assertIn("line.c121LastMarginalRevenue <- observedRevenue", self.task_report)
-        self.assertIn('samples > 0 && ("c121LastMarginalProfit" in line)', fleet_project)
-        self.assertIn("line.c121LastMarginalProfit <= 0", fleet_project)
+        marginal = (ROOT / "ai" / "OpexAI" / "air_fleet.nut").read_text(encoding="utf-8")
+        self.assertIn('"c121LastMarginalProfit" in line', marginal)
+        self.assertIn("line.c121LastMarginalProfit <= 0", marginal)
         self.assertIn("line.c121MarginalObserveYear <- year + 2", self.task_projects)
 
     def test_c121_fleet_projects_do_not_bypass_kdec(self):
         self.assertIn('local fleetExemptDecision = project.mode == "fleet"', self.projects)
-        self.assertIn("&& !OpexC121ProjectHasRealization(project);", self.projects)
+        self.assertIn('&& !OpexC121ProjectHasRealization(project)', self.projects)
+        self.assertIn('&& !(("v161NetMarginalModeled" in project) && project.v161NetMarginalModeled);',
+                      self.projects)
         self.assertGreaterEqual(self.projects.count("&& !fleetExemptDecision)"), 2)
         self.assertGreaterEqual(self.projects.count("? kDec : scoreDecisionFinanceCapital"), 1)
 

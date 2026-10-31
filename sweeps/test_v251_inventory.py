@@ -52,7 +52,8 @@ class TestV251Inventory(unittest.TestCase):
         # historical_info ; EB-2 ajoute une option de repli (défaut 0).
         # ROAD1Y extra joined stops: one default-OFF setting, projected by ROAD1Y-B2.
         # B2 fixes adds one default-OFF bitmask for isolated one-year diagnostics.
-        self.assertLessEqual(info.count("AddSetting("), 70)
+        # master: eb2 fallback + 4 rail repair profiles and V233L counterfactual.
+        self.assertLessEqual(info.count("AddSetting("), 75)
         self.assertNotIn('name = "v251', info)
         settings = self.sources["settings.nut"]
         self.assertNotIn('GetSetting("v251', settings)

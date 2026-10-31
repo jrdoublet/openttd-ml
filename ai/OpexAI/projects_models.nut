@@ -162,6 +162,10 @@ function OpexC70Factor(project)
  * line.predicted : le facteur mesure le modele, jamais sa propre correction. */
 function OpexC70Profit(project)
 {
+  /* V161 : la recette marginale est deja calibree (C121 ou ESTIM), la perte
+   * des voisines et les couts sont decomptes ; ne pas recalibrer le profit. */
+  if (project != null && ("v161NetMarginalModeled" in project)
+      && project.v161NetMarginalModeled) return project.profitAnnual;
   if ((ESTIM_UNIFIE & 4) != 0 && project != null
       && ("estimMarginalModeled" in project) && project.estimMarginalModeled)
     return project.profitAnnual;
@@ -178,9 +182,7 @@ function OpexC70Profit(project)
   /* Le learner de realisation AIR C121 reste en shadow (facteur causal = 1.0),
    * donc une nouvelle ligne AIR doit continuer a beneficier de la calibration
    * C70 existante. Seule la flotte C121 porte deja sa propre marge observee. */
-  /* V161 : un renfort dont la valeur reste celle du modele perd cette exemption. */
   if (project != null && ("mode" in project) && project.mode == "fleet"
-      && !("v161Calibrate" in project)
       && OpexC121ProjectHasRealization(project)) return project.profitAnnual;
 
   return project.profitAnnual * OpexC70Factor(project);
@@ -199,7 +201,7 @@ function OpexEstimRailRevenueFactor(distance)
   if (calibratedDistance > 250) calibratedDistance = 250;
   local profile = ESTIM_RAIL_KR_PROFILE_A + ESTIM_RAIL_KR_PROFILE_B * calibratedDistance;
   if (profile < 0.05) profile = 0.05;
-  return ESTIM_K_R.rail * profile / ESTIM_K_R_PRIOR.rail;
+  return ESTIM_K_R.rail * profile / 0.92; /* Le profil DUEL est centre sur 0.92, meme si le prior experimental change. */
 }
 
 /* ESTIM-1 bit 16 : corriger le capital RAIL pour le seul classement des
@@ -229,6 +231,8 @@ function OpexEstimRailScoreCapital(project, decisionFinanceCapital)
  * economie (OpexC121RealizationFactor). Flotte et observations : logique historique (lot 3). */
 function OpexEstimProfit(project)
 {
+  if (project != null && ("v161NetMarginalModeled" in project)
+      && project.v161NetMarginalModeled) return project.profitAnnual;
   if ((ESTIM_UNIFIE & 4) != 0 && project != null
       && ("estimMarginalModeled" in project) && project.estimMarginalModeled)
     return project.profitAnnual;

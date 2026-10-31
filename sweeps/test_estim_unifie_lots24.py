@@ -49,7 +49,8 @@ class EstimUnifieLots24(unittest.TestCase):
         catalog = code("air_catalog_c121.nut")
         builder = code("projects_builders.nut")
         models = code("projects_models.nut")
-        self.assertIn("next.rawRevenueAnnual - actual.rawRevenueAnnual", catalog)
+        self.assertIn("next.rawRevenueAnnual - next.rawCannibalLossAnnual", catalog)
+        self.assertIn("actual.rawRevenueAnnual - actual.rawCannibalLossAnnual", catalog)
         self.assertIn("next.runningAnnual - actual.runningAnnual", catalog)
         self.assertIn("next.vehicleAmortAnnual - actual.vehicleAmortAnnual", catalog)
         self.assertIn("estimMarginalBaseVehicles != have", builder)
@@ -57,12 +58,14 @@ class EstimUnifieLots24(unittest.TestCase):
         self.assertIn("tranche.want = 1;", builder)
         self.assertIn("payload = tranche", builder)
         self.assertIn("deltaC = dC, deltaP = dP", builder)
-        self.assertIn("local dR = (dRaw.tofloat() * ESTIM_K_R.air).tointeger();", builder)
+        self.assertIn("local dR = entry.v161DeltaR;", builder)
+        self.assertIn("line.estimMarginalRawRevenue.tofloat() * ESTIM_K_R.air",
+                      code("air_fleet.nut"))
         self.assertIn("local dP = dR - dE - dA;", builder)
         self.assertIn("deltaR = dR, deltaE = dE, deltaA = dA, deltaC = dC", builder)
         self.assertIn("estimMarginalModeled", models)
         self.assertIn("(ESTIM_UNIFIE & 4) != 0", builder)
-        # Palier perime (flotte au-dela du n -> n+1 mesure) : marge historique, pas de blocage.
+        # Palier perime : refuser la marge stockee et rechercher un devis physique.
         self.assertIn("if ((ESTIM_UNIFIE & 4) != 0 && OpexEstimFleetStepCurrent(entry))\n"
                       "    return OpexEstimProjectFromFleet(entry);", builder)
         self.assertIn("line.estimMarginalBaseVehicles == have", builder)

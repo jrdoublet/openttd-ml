@@ -1,0 +1,70 @@
+{
+  "campaign": "estim31ten_estim31vcoef_v161_a250_r075_w15_20x10_20261030",
+  "cutoff": "1979-12-01",
+  "source_bundle_sha256": "10d21056814b32f8672db28c7d6016538904ae335e1fa7c22bef0dfbd00527ec",
+  "healthy_games": 40,
+  "paired_seeds": 20,
+  "mean_1979_ytd_net_postings": {
+    "reference:OpexAI": {
+      "construction_all_modes": 40761.85,
+      "new_vehicles_net_all_modes": 113257.6,
+      "train_running": 67820.7,
+      "road_running": 850.9,
+      "aircraft_running": 353176.6,
+      "ship_running": 427.95,
+      "property": 0,
+      "train_revenue": -792472.1,
+      "road_vehicle_revenue": -4024.9,
+      "aircraft_revenue": -3353867.7,
+      "ship_revenue": -5063.45,
+      "loan_interest": 0,
+      "other_including_town_actions": 148005.25
+    },
+    "reference:AAAHogEx": {
+      "construction_all_modes": 230301.55,
+      "new_vehicles_net_all_modes": 829372.8,
+      "train_running": 116313.95,
+      "road_running": 76909.15,
+      "aircraft_running": 299692.8,
+      "ship_running": 1242.85,
+      "property": 0,
+      "train_revenue": -2188027.05,
+      "road_vehicle_revenue": -10923.1,
+      "aircraft_revenue": -4767737.75,
+      "ship_revenue": -8731.7,
+      "loan_interest": 0,
+      "other_including_town_actions": 140020
+    },
+    "estim31vcoef_v161_a250_r075_w15:OpexAI": {
+      "construction_all_modes": 34087.5,
+      "new_vehicles_net_all_modes": 215174.25,
+      "train_running": 68108.35,
+      "road_running": 127,
+      "aircraft_running": 372329.1,
+      "ship_running": 142.5,
+      "property": 0,
+      "train_revenue": -772293.95,
+      "road_vehicle_revenue": -732.45,
+      "aircraft_revenue": -3557309.4,
+      "ship_revenue": -2102.35,
+      "loan_interest": 0,
+      "other_including_town_actions": 78043
+    },
+    "estim31vcoef_v161_a250_r075_w15:AAAHogEx": {
+      "construction_all_modes": 260926.15,
+      "new_vehicles_net_all_modes": 1093741.55,
+      "train_running": 115226.5,
+      "road_running": 76631.3,
+      "aircraft_running": 287746.4,
+      "ship_running": 2487.45,
+      "property": 0,
+      "train_revenue": -2156744.55,
+      "road_vehicle_revenue": -5295.5,
+      "aircraft_revenue": -4424964.25,
+      "ship_revenue": -7413.75,
+      "loan_interest": 0,
+      "other_including_town_actions": 186634.75
+    }
+  },
+  "limitations": "Yearly PLYR posts are real NET entries: construction ALL modes; vehicles purchases LESS sales ALL modes; Other includes town actions, not solely statues. Not gross acquisition costs."
+}

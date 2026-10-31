@@ -311,6 +311,19 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
             "line=" + this._nextLineId + " profit=" + buildPlan.economics.profitAnnual + " cost=" + buildPlan.capital
             + " stA=" + AIStation.GetStationID(result.stationA) + " stB=" + AIStation.GetStationID(result.stationB));
         this._airBuilt = true;
+        /* La premiere liaison AIR est deja batie : sous EB-14, permettre au
+         * stock RAIL publie en arriere-plan de concurrencer les achats suivants. */
+        if (EB14_PROGRESSIVE) {
+          /* Ablation ROUTE : la garde C121 du temoin dure jusqu'a fin de l'annee.
+           * Ne change ni OFF ni AIR/RAIL si le reglage est a zero. */
+          if (!(EB14_AIR_ROAD_YEAR_GUARD && MODE_ROAD))
+            C121_CATALOG_FIRST_YEAR_ACTIVE = false;
+          /* Le rail deja publie doit redevenir selectable au passage suivant. */
+          if (this._projects != null) {
+            if ("selectionStale" in this._projects) this._projects.selectionStale = true;
+            else this._projects.selectionStale <- true;
+          }
+        }
         OpexAir0310InvalidateSiteValidity();
         this._lines.append({
           stationA = result.stationA, stationB = result.stationB,
@@ -338,6 +351,7 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
           isLowRatio = false, opcodeRatio = -1,   /* plan, pas de candidat : sans objet */
           lineId = this._nextLineId,
         });
+        OpexRailRepairNoteConstruction();
         if (V279_RESELECT_MEMO != 0) OPEX_LINES_REVISION++;
         OpexC121AttachLineShadow(this._lines[this._lines.len() - 1], this._nextLineId, buildPlan, result);
         local builtLine = this._lines[this._lines.len() - 1];
@@ -480,20 +494,17 @@ function OpexAirFleetRefusal(line, year, code)
         + (code == "F" ? " load_pct=" + OpexAirLoadPct(line) : ""));
   }
 }
-/* Rendement marginal d'une ligne aerienne : profit PAR APPAREIL deja en service. C'est le
- * predicteur du remboursement de l'appareil SUIVANT -- une ligne qui gagne 100 k£ avec 2 avions
- * rembourse deux fois plus vite que celle qui gagne 100 k£ avec 8. `lastProfit` (mesure ecrite
- * par _reportLines) prime sur `predicted` (modele) des qu'il existe ; une ligne neuve jamais
- * rapportee tombe donc sur sa prevision plutot que sur zero, sinon elle serait servie en dernier
- * pendant toute sa premiere annee. */
+/* Indicateur de tri seulement : jamais remplacer un delta n -> n+1 manquant
+ * par le profit moyen des avions deja en service. Les projets du portefeuille
+ * utilisent OpexV161NextMarginal et leur marge exacte. */
 function OpexAirFleetYield(line)
 {
   local fleet = ("vehCount" in line) ? line.vehCount
-              : (("vehicles" in line) ? line.vehicles.len() : 1);
-  if (fleet < 1) fleet = 1;
-  local profit = ("lastProfit" in line) ? line.lastProfit
-               : (("predicted" in line) ? line.predicted : 0);
-  return profit / fleet;
+              : (("vehicles" in line) ? line.vehicles.len() : 0);
+  return fleet > 0 && ("c121MarginalBaseVehicles" in line)
+      && line.c121MarginalBaseVehicles == fleet && ("c121MarginalSamples" in line)
+      && line.c121MarginalSamples == 0 && ("c121MarginalProfit" in line)
+      ? line.c121MarginalProfit : 0;
 }
 /* C34.2 : `plan` non nul = MODE A BLANC. La fonction traverse exactement les memes treize gardes
  * de refus, mais au lieu d'acheter elle enregistre ce qu'elle achererait dans `plan`, sous la forme
@@ -780,26 +791,32 @@ function OpexAI::_resizeAirFleets(year, plan = null)
       local room = maxPlanesForAirport - have;
       local want = (room < maxAddedPerPass) ? room : maxAddedPerPass;
       if (want > 0) {
-        local fleetEntry = { line = line, want = want, planePrice = planePrice, baseVehicles = have };
+        /* Le prochain avion modifie le remplissage : ne jamais extrapoler
+         * une marge n -> n+1 sur un lot de plusieurs appareils. */
+        if (routesIndex == null) routesIndex = OpexAirBuildRoutesIndex(this._lines);
+        local neighbours = OpexV161NeighbourCount(line, routesIndex);
+        local nextMargin = OpexV161NextMarginal(line, this._catalog, have, neighbours);
+        if (nextMargin == null) {
+          if (C69_BOTTLENECK_PROBE)
+            OpexC73RecordRejection("fleet", "marginal_unavailable_or_negative", 1);
+          continue;
+        }
+        local fleetEntry = {
+          line = line, want = 1, planePrice = nextMargin.price, baseVehicles = have,
+          v161BaseVehicles = have, v161DeltaR = nextMargin.revenue,
+          v161DeltaE = nextMargin.running, v161DeltaA = nextMargin.amort,
+          v161Profit = nextMargin.profit, v161Engine = nextMargin.engine,
+          v161Source = nextMargin.source
+        };
         if (p3Upgrade) fleetEntry.p3EngineUpgrade <- true;
         if (c121FirstLiveEntry) fleetEntry.c121FirstLive <- true;
-        {
-          /* V161 : voisines AIR vivantes partageant une gare, pour l'a priori. Index
-           * construit une fois par passe (aucun achat en mode a blanc). */
-          if (routesIndex == null) routesIndex = OpexAirBuildRoutesIndex(this._lines);
-          local v161A = OpexAirLineStationId(line, 0);
-          local v161B = OpexAirLineStationId(line, 1);
-          local v161Nb = 0;
-          if (v161A in routesIndex) v161Nb += routesIndex[v161A] - 1;
-          if (v161B != v161A && (v161B in routesIndex)) v161Nb += routesIndex[v161B] - 1;
-          fleetEntry.v161Neighbours <- v161Nb > 0 ? v161Nb : 0;
-        }
+        fleetEntry.v161Neighbours <- neighbours;
         plan.append(fleetEntry);
         if (C50_CHRONOLOGY_PROBE && C50_NON_EXPANSION_LEDGER != null) {
           local ym = year * 12 + AIDate.GetMonth(AIDate.GetCurrentDate());
           if (!("c50_want_ym" in line) || line.c50_want_ym != ym) {
             line.c50_want_ym <- ym;
-            C50_NON_EXPANSION_LEDGER.air.want_sum += want;
+            C50_NON_EXPANSION_LEDGER.air.want_sum += fleetEntry.want;
           }
         }
       } else if (C69_BOTTLENECK_PROBE) {
@@ -808,6 +825,17 @@ function OpexAI::_resizeAirFleets(year, plan = null)
       continue;
     }
     while (have < maxPlanesForAirport && addedThisPass < maxAddedPerPass) {
+      if (routesIndex == null) routesIndex = OpexAirBuildRoutesIndex(this._lines);
+      local nextMargin = OpexV161NextMarginal(line, this._catalog, have,
+          OpexV161NeighbourCount(line, routesIndex));
+      if (nextMargin == null) {
+        if (C69_BOTTLENECK_PROBE)
+          OpexC73RecordRejection("fleet", "marginal_unavailable_or_negative", 1);
+        break;
+      }
+      need = nextMargin.price + 2000;
+      if ((ESTIM_UNIFIE & 2) != 0)
+        need = OpexEstimFinanceCapital("fleet", nextMargin.price, 0);
       local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
       if (money < need) {
         local spRef = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
@@ -816,7 +844,8 @@ function OpexAI::_resizeAirFleets(year, plan = null)
         break;
       }
       local spAdd = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
-      local grown = OpexAirAddPlane(line, this._catalog, this._lines);
+      local locked = ((ESTIM_UNIFIE & 1) != 0) ? nextMargin.engine : null;
+      local grown = OpexAirAddPlane(line, this._catalog, this._lines, locked);
       if (spAdd != null) OpexSpanAgg("fleet.add_plane", spAdd);
       routesIndex = null;
       if (("reason" in grown) && (grown.reason == "REEEQUIP_WAIT" || grown.reason == "REPLACE" || grown.reason == "REEEQUIP_FAIL" || grown.reason == "REEEQUIP_ABORT")) {

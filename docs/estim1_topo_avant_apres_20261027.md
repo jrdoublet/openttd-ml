@@ -1,5 +1,12 @@
 # ESTIM-1 — des estimations disparates à un contrat commun (27 octobre 2026)
 
+> **Statut du 30/10 : photographie du 27/10, désormais dépassée sur les
+> défauts publics.** La proposition « `estim_unifie=0` par défaut » dans
+> les cinq lignes ci-dessous était vraie **sur le code étudié alors**.
+> Le code publié utilise maintenant `estim_unifie=31`, EB14=3 et `probes=2`
+> après élection AIR×RAIL 20×10 ; `0` est toujours sélectionnable
+> explicitement. [Preuves](estim31_default_validation_20261030.md).
+
 ## En cinq lignes
 
 1. **Avant**, OpexAI évaluait lignes neuves, renforts et remplacements avec plusieurs modèles, facteurs et seuils de caisse difficiles à comparer.

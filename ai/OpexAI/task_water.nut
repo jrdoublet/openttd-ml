@@ -80,6 +80,7 @@ function OpexAI::_tryBuildWaterProject(year, project, rank, builtCount, passDisc
           isLowRatio = false, opcodeRatio = -1,   /* plan, pas de candidat : sans objet */
           lineId = this._nextLineId,
         });
+        OpexRailRepairNoteConstruction();
         if (V279_RESELECT_MEMO != 0) OPEX_LINES_REVISION++;
         OpexSign(anchor, "PM|" + this._nextLineId + "|W|" + plan.distance + "|"
                          + AICargo.GetCargoLabel(this._catalog.paxCargo));

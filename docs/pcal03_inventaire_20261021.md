@@ -121,7 +121,7 @@ Les chiffres ci-dessous proviennent de l'extraction sur les campagnes disponible
   Toute modification des tuiles de la plateforme (bâtiment municipal, route, nivellement, voies posées par l'adversaire).
 - **Caches existants :**
   - **Aucun cache persistant** entre tentatives successives.
-  - Tentative V296c : précalcul d'un ensemble de tuiles plates et constructibles (`AITileList` natif) au lieu de boucles Squirrel. **Résultat : ÉCHEC** — le coût est passé de 48,7 k à 488,5 k opcodes par appel (×10), car la boucle Squirrel historique sort dès `limit` quais trouvés, alors que le précalcul parcourait l'ensemble du rectangle (cf. [docs/taches.md](taches.md#L18)).
+  - Tentative V296c : précalcul d'un ensemble de tuiles plates et constructibles (`AITileList` natif) au lieu de boucles Squirrel. **Résultat : ÉCHEC** — le coût est passé de 48,7 k à 488,5 k opcodes par appel (×10), car la boucle Squirrel historique sort dès `limit` quais trouvés, alors que le précalcul parcourait l'ensemble du rectangle (cf. [ancien registre archivé](journaux/journal_2026-10-30_transfert_taches.md)).
 - **Consommateur réel :**
   `task_rail.nut` (`_advanceRailSearchThroughput` et `_tryBuildRailProject`).
 

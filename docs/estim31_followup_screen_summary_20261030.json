@@ -1,0 +1,939 @@
+{
+  "criterion": "ratio of mean profits within each paired duel, five seeds only",
+  "suites": {
+    "safe": {
+      "complete": [
+        {
+          "name": "mix_a100_w15_statue0_eb2",
+          "configuration": {
+            "air": 1.0,
+            "rail": 1.0,
+            "weight": 15.0,
+            "flat_rail": false,
+            "eb14": 3,
+            "v249_statue": 0,
+            "eb2_fallback": 1,
+            "air_load_min_pct": 0
+          },
+          "ratio_pct": 85.14031369025467,
+          "opex_profit_mean": 2614553.8,
+          "aaa_profit_mean": 3070876.4,
+          "baseline_ratio_5x5": 83.20305427049684,
+          "delta_ratio_pts": 1.9372594197578366,
+          "delta_ratio_ci95": [
+            -10.568,
+            14.455
+          ],
+          "ratio_ci95": [
+            75.905,
+            97.073
+          ],
+          "paired_profit_delta_mean": -456322.6000000001,
+          "off_mismatches": 0,
+          "off_mismatch_by_seed": {},
+          "off_comparisons": 350,
+          "technically_neutral_off": true,
+          "off_ratio_pct": 89.18537888466366,
+          "cash_mean": 3905713.8,
+          "aaa_cash_mean": 1165399.4,
+          "loan_mean": 0,
+          "air_mean": 63.6,
+          "rail_mean": 26.6,
+          "airports_mean": 33.2,
+          "airport_towns_mean": 32.8,
+          "opcodes_observed_mean": 55863396,
+          "opcodes_complete": false,
+          "pairs": {
+            "42": {
+              "opex": 2203229,
+              "aaa": 3083066
+            },
+            "100": {
+              "opex": 2061430,
+              "aaa": 1913992
+            },
+            "7": {
+              "opex": 2836841,
+              "aaa": 3635923
+            },
+            "999": {
+              "opex": 2829896,
+              "aaa": 3570068
+            },
+            "2026": {
+              "opex": 3141373,
+              "aaa": 3151333
+            }
+          },
+          "air_engines": {
+            "223": 98,
+            "217": 150,
+            "228": 54,
+            "218": 12,
+            "225": 2,
+            "221": 2
+          },
+          "source_bundle_sha256": "a9d57fdbcf21bb1d47e712d751411feeac87bf1410d241cf404105cdcd15e6fa"
+        },
+        {
+          "name": "mix_a200_r150_w05_flat_load25",
+          "configuration": {
+            "air": 2.0,
+            "rail": 1.5,
+            "weight": 5.0,
+            "flat_rail": true,
+            "eb14": 3,
+            "v249_statue": 2,
+            "eb2_fallback": 0,
+            "air_load_min_pct": 25
+          },
+          "ratio_pct": 84.61185873286173,
+          "opex_profit_mean": 2370569.6,
+          "aaa_profit_mean": 2801699,
+          "baseline_ratio_5x5": 83.20305427049684,
+          "delta_ratio_pts": 1.4088044623648983,
+          "delta_ratio_ci95": [
+            -9.564,
+            13.89
+          ],
+          "ratio_ci95": [
+            78.835,
+            93.159
+          ],
+          "paired_profit_delta_mean": -431129.3999999999,
+          "off_mismatches": 0,
+          "off_mismatch_by_seed": {},
+          "off_comparisons": 350,
+          "technically_neutral_off": true,
+          "off_ratio_pct": 89.18537888466366,
+          "cash_mean": 1520597,
+          "aaa_cash_mean": 987171.4,
+          "loan_mean": 0,
+          "air_mean": 51.6,
+          "rail_mean": 24.4,
+          "airports_mean": 32,
+          "airport_towns_mean": 31.8,
+          "opcodes_observed_mean": 33799814,
+          "opcodes_complete": false,
+          "pairs": {
+            "42": {
+              "opex": 2097098,
+              "aaa": 2512682
+            },
+            "100": {
+              "opex": 1489828,
+              "aaa": 1856203
+            },
+            "7": {
+              "opex": 2596120,
+              "aaa": 3391361
+            },
+            "999": {
+              "opex": 2867425,
+              "aaa": 2868436
+            },
+            "2026": {
+              "opex": 2802377,
+              "aaa": 3379813
+            }
+          },
+          "air_engines": {
+            "223": 109,
+            "217": 74,
+            "218": 21,
+            "228": 49,
+            "225": 3,
+            "221": 2
+          },
+          "source_bundle_sha256": "7427b2905a9bc94d3e8538e88c9020135fe1d0a398bd830584b1d53e6d4b7f36"
+        },
+        {
+          "name": "mix_a125_w15_eb142_load25",
+          "configuration": {
+            "air": 1.25,
+            "rail": 1.0,
+            "weight": 15.0,
+            "flat_rail": false,
+            "eb14": 2,
+            "v249_statue": 2,
+            "eb2_fallback": 0,
+            "air_load_min_pct": 25
+          },
+          "ratio_pct": 81.34916983723232,
+          "opex_profit_mean": 2521545.4,
+          "aaa_profit_mean": 3099657.2,
+          "baseline_ratio_5x5": 83.20305427049684,
+          "delta_ratio_pts": -1.8538844332645112,
+          "delta_ratio_ci95": [
+            -8.261,
+            2.205
+          ],
+          "ratio_ci95": [
+            79.575,
+            83.165
+          ],
+          "paired_profit_delta_mean": -578111.8000000003,
+          "off_mismatches": 0,
+          "off_mismatch_by_seed": {},
+          "off_comparisons": 350,
+          "technically_neutral_off": true,
+          "off_ratio_pct": 89.18537888466366,
+          "cash_mean": 1246662.4,
+          "aaa_cash_mean": 966680.8,
+          "loan_mean": 0,
+          "air_mean": 51.2,
+          "rail_mean": 24.2,
+          "airports_mean": 30.6,
+          "airport_towns_mean": 30.6,
+          "opcodes_observed_mean": 54161369,
+          "opcodes_complete": false,
+          "pairs": {
+            "42": {
+              "opex": 2402804,
+              "aaa": 3014929
+            },
+            "100": {
+              "opex": 2142593,
+              "aaa": 2548279
+            },
+            "7": {
+              "opex": 2866406,
+              "aaa": 3438658
+            },
+            "999": {
+              "opex": 2471508,
+              "aaa": 3148375
+            },
+            "2026": {
+              "opex": 2724416,
+              "aaa": 3348045
+            }
+          },
+          "air_engines": {
+            "223": 92,
+            "217": 82,
+            "225": 4,
+            "218": 24,
+            "228": 50,
+            "216": 1,
+            "227": 1,
+            "221": 2
+          },
+          "source_bundle_sha256": "6780a9a4c95f7cf58196329f5cfb0aae3a7cae3d1170d774cab4f8f84677315c"
+        },
+        {
+          "name": "mix_a200_r075_w15_slope",
+          "configuration": {
+            "air": 2.0,
+            "rail": 0.75,
+            "weight": 15.0,
+            "flat_rail": false,
+            "eb14": 3,
+            "v249_statue": 2,
+            "eb2_fallback": 0,
+            "air_load_min_pct": 0
+          },
+          "ratio_pct": 80.52539251544925,
+          "opex_profit_mean": 2510662.4,
+          "aaa_profit_mean": 3117851.8,
+          "baseline_ratio_5x5": 83.20305427049684,
+          "delta_ratio_pts": -2.6776617550475805,
+          "delta_ratio_ci95": [
+            -12.196,
+            5.514
+          ],
+          "ratio_ci95": [
+            71.57,
+            91.136
+          ],
+          "paired_profit_delta_mean": -607189.3999999999,
+          "off_mismatches": 0,
+          "off_mismatch_by_seed": {},
+          "off_comparisons": 350,
+          "technically_neutral_off": true,
+          "off_ratio_pct": 89.18537888466366,
+          "cash_mean": 905590.8,
+          "aaa_cash_mean": 1035582.8,
+          "loan_mean": 0,
+          "air_mean": 60,
+          "rail_mean": 23.8,
+          "airports_mean": 32.4,
+          "airport_towns_mean": 32.2,
+          "opcodes_observed_mean": 33655909.6,
+          "opcodes_complete": false,
+          "pairs": {
+            "42": {
+              "opex": 2246429,
+              "aaa": 2271244
+            },
+            "100": {
+              "opex": 1923952,
+              "aaa": 2233485
+            },
+            "7": {
+              "opex": 2711512,
+              "aaa": 4102852
+            },
+            "999": {
+              "opex": 2805575,
+              "aaa": 3694617
+            },
+            "2026": {
+              "opex": 2865844,
+              "aaa": 3287061
+            }
+          },
+          "air_engines": {
+            "223": 111,
+            "217": 101,
+            "218": 33,
+            "228": 55
+          },
+          "source_bundle_sha256": "4f0ba4c046ce6ca55beee70c916f1b2219157417f214a9849f33ebb37e71c4ff"
+        },
+        {
+          "name": "mix_a125_r125_w05_flat_statue0",
+          "configuration": {
+            "air": 1.25,
+            "rail": 1.25,
+            "weight": 5.0,
+            "flat_rail": true,
+            "eb14": 3,
+            "v249_statue": 0,
+            "eb2_fallback": 0,
+            "air_load_min_pct": 0
+          },
+          "ratio_pct": 69.87970028519346,
+          "opex_profit_mean": 2352784.8,
+          "aaa_profit_mean": 3366907.4,
+          "baseline_ratio_5x5": 83.20305427049684,
+          "delta_ratio_pts": -13.32335398530337,
+          "delta_ratio_ci95": [
+            -21.564,
+            -5.47
+          ],
+          "ratio_ci95": [
+            63.652,
+            79.031
+          ],
+          "paired_profit_delta_mean": -1014122.6000000001,
+          "off_mismatches": 22,
+          "off_mismatch_by_seed": {
+            "999": 22
+          },
+          "off_comparisons": 350,
+          "technically_neutral_off": false,
+          "off_ratio_pct": 87.83997335146461,
+          "cash_mean": 3986143.6,
+          "aaa_cash_mean": 1233907.6,
+          "loan_mean": 0,
+          "air_mean": 58.6,
+          "rail_mean": 24.4,
+          "airports_mean": 33.6,
+          "airport_towns_mean": 33.2,
+          "opcodes_observed_mean": 43119626.8,
+          "opcodes_complete": false,
+          "pairs": {
+            "42": {
+              "opex": 2037750,
+              "aaa": 3298658
+            },
+            "100": {
+              "opex": 2048649,
+              "aaa": 2300742
+            },
+            "7": {
+              "opex": 2645475,
+              "aaa": 3993471
+            },
+            "999": {
+              "opex": 2310917,
+              "aaa": 3652350
+            },
+            "2026": {
+              "opex": 2721133,
+              "aaa": 3589316
+            }
+          },
+          "air_engines": {
+            "223": 99,
+            "218": 16,
+            "217": 133,
+            "228": 37,
+            "225": 6,
+            "220": 1,
+            "227": 1
+          },
+          "source_bundle_sha256": "8d48ce06489e54c9e58d37e1bf17af3ea4db89b83c44dc06414b463b3a640bd1"
+        }
+      ],
+      "pending": [
+        "mix_a075_r125_w15_statue0",
+        "mix_a100_r125_w15_eb142_statue0",
+        "mix_a100_w15_statue0_load25",
+        "mix_a125_w15_eb2_load25",
+        "mix_a150_w15_statue0_eb2",
+        "mix_a175_r125_w30_flat"
+      ]
+    },
+    "motorjoint": {
+      "complete": [
+        {
+          "name": "mix_a200_r150_w05_flat_load25",
+          "configuration": {
+            "air": 2.0,
+            "rail": 1.5,
+            "weight": 5.0,
+            "flat_rail": true,
+            "eb14": 3,
+            "v249_statue": 2,
+            "eb2_fallback": 0,
+            "air_load_min_pct": 25
+          },
+          "ratio_pct": 87.28464497983951,
+          "opex_profit_mean": 2460925.8,
+          "aaa_profit_mean": 2819425.8,
+          "baseline_ratio_5x5": 83.20305427049684,
+          "delta_ratio_pts": 4.081590709342677,
+          "delta_ratio_ci95": [
+            -11.808,
+            20.54
+          ],
+          "ratio_ci95": [
+            76.137,
+            99.732
+          ],
+          "paired_profit_delta_mean": -358500.0,
+          "off_mismatches": 22,
+          "off_mismatch_by_seed": {
+            "999": 22
+          },
+          "off_comparisons": 350,
+          "technically_neutral_off": false,
+          "off_ratio_pct": 87.83997335146461,
+          "cash_mean": 1479014.8,
+          "aaa_cash_mean": 878233.4,
+          "loan_mean": 0,
+          "air_mean": 54.4,
+          "rail_mean": 27.4,
+          "airports_mean": 33.4,
+          "airport_towns_mean": 33.2,
+          "opcodes_observed_mean": 50310984.8,
+          "opcodes_complete": false,
+          "pairs": {
+            "42": {
+              "opex": 2079016,
+              "aaa": 2908147
+            },
+            "100": {
+              "opex": 1835665,
+              "aaa": 1918009
+            },
+            "7": {
+              "opex": 2665271,
+              "aaa": 3569598
+            },
+            "999": {
+              "opex": 3057397,
+              "aaa": 3124873
+            },
+            "2026": {
+              "opex": 2667280,
+              "aaa": 2576502
+            }
+          },
+          "air_engines": {
+            "220": 50,
+            "217": 104,
+            "218": 13,
+            "223": 82,
+            "228": 22,
+            "225": 1
+          },
+          "source_bundle_sha256": "397aac644d47c078e91ada920c74dda330df0c1899482725424e181cf8a0fdf4"
+        }
+      ],
+      "pending": [
+        "mix_a125_r125_w05_flat_statue0",
+        "mix_a200_r075_w15_slope"
+      ]
+    },
+    "motorcap": {
+      "complete": [
+        {
+          "name": "mix_a200_r075_w15_slope",
+          "configuration": {
+            "air": 2.0,
+            "rail": 0.75,
+            "weight": 15.0,
+            "flat_rail": false,
+            "eb14": 3,
+            "v249_statue": 2,
+            "eb2_fallback": 0,
+            "air_load_min_pct": 0
+          },
+          "ratio_pct": 90.93142366028174,
+          "opex_profit_mean": 2751481.4,
+          "aaa_profit_mean": 3025886.2,
+          "baseline_ratio_5x5": 83.20305427049684,
+          "delta_ratio_pts": 7.728369389784902,
+          "delta_ratio_ci95": [
+            -9.335,
+            30.619
+          ],
+          "ratio_ci95": [
+            76.308,
+            110.694
+          ],
+          "paired_profit_delta_mean": -274404.8000000003,
+          "off_mismatches": 22,
+          "off_mismatch_by_seed": {
+            "999": 22
+          },
+          "off_comparisons": 350,
+          "technically_neutral_off": false,
+          "off_ratio_pct": 87.83997335146461,
+          "cash_mean": 1029463.4,
+          "aaa_cash_mean": 1210993,
+          "loan_mean": 0,
+          "air_mean": 61.4,
+          "rail_mean": 27.6,
+          "airports_mean": 33.4,
+          "airport_towns_mean": 33,
+          "opcodes_observed_mean": 45113583.6,
+          "opcodes_complete": false,
+          "pairs": {
+            "42": {
+              "opex": 2152627,
+              "aaa": 2793433
+            },
+            "100": {
+              "opex": 2244133,
+              "aaa": 1953095
+            },
+            "7": {
+              "opex": 3050590,
+              "aaa": 4276429
+            },
+            "999": {
+              "opex": 3445932,
+              "aaa": 2855471
+            },
+            "2026": {
+              "opex": 2864125,
+              "aaa": 3251003
+            }
+          },
+          "air_engines": {
+            "220": 51,
+            "217": 99,
+            "218": 38,
+            "223": 94,
+            "228": 25
+          },
+          "source_bundle_sha256": "ab4c70f02df826ed133ed44ab862a824e131a8025b33e52931a795f21dfdc9d6"
+        },
+        {
+          "name": "mix_a200_r150_w05_flat_load25",
+          "configuration": {
+            "air": 2.0,
+            "rail": 1.5,
+            "weight": 5.0,
+            "flat_rail": true,
+            "eb14": 3,
+            "v249_statue": 2,
+            "eb2_fallback": 0,
+            "air_load_min_pct": 25
+          },
+          "ratio_pct": 82.93695926694019,
+          "opex_profit_mean": 2430458.8,
+          "aaa_profit_mean": 2930489.4,
+          "baseline_ratio_5x5": 83.20305427049684,
+          "delta_ratio_pts": -0.26609500355664295,
+          "delta_ratio_ci95": [
+            -11.786,
+            13.128
+          ],
+          "ratio_ci95": [
+            73.012,
+            95.992
+          ],
+          "paired_profit_delta_mean": -500030.6000000001,
+          "off_mismatches": 0,
+          "off_mismatch_by_seed": {},
+          "off_comparisons": 350,
+          "technically_neutral_off": true,
+          "off_ratio_pct": 89.18537888466366,
+          "cash_mean": 2000393.4,
+          "aaa_cash_mean": 736354.6,
+          "loan_mean": 0,
+          "air_mean": 49.2,
+          "rail_mean": 24.2,
+          "airports_mean": 33,
+          "airport_towns_mean": 32.8,
+          "opcodes_observed_mean": 49279688.2,
+          "opcodes_complete": false,
+          "pairs": {
+            "42": {
+              "opex": 2121280,
+              "aaa": 2947879
+            },
+            "100": {
+              "opex": 1970697,
+              "aaa": 1690565
+            },
+            "7": {
+              "opex": 2576216,
+              "aaa": 3059771
+            },
+            "999": {
+              "opex": 3020709,
+              "aaa": 3388465
+            },
+            "2026": {
+              "opex": 2463392,
+              "aaa": 3565767
+            }
+          },
+          "air_engines": {
+            "220": 48,
+            "217": 89,
+            "218": 19,
+            "223": 61,
+            "228": 24,
+            "227": 1,
+            "225": 4
+          },
+          "source_bundle_sha256": "6d08f175bfa369553c4b20fef84a1e8391c342f3f4803ac24243672fa6ecdcd7"
+        }
+      ],
+      "pending": [
+        "mix_a125_r125_w05_flat_statue0"
+      ]
+    },
+    "v161": {
+      "complete": [
+        {
+          "name": "mix_a200_r075_w15_slope",
+          "configuration": {
+            "air": 2.0,
+            "rail": 0.75,
+            "weight": 15.0,
+            "flat_rail": false,
+            "eb14": 3,
+            "v249_statue": 2,
+            "eb2_fallback": 0,
+            "air_load_min_pct": 0
+          },
+          "ratio_pct": 95.32751258659917,
+          "opex_profit_mean": 2907214.4,
+          "aaa_profit_mean": 3049711.8,
+          "baseline_ratio_5x5": 83.20305427049684,
+          "delta_ratio_pts": 12.124458316102334,
+          "delta_ratio_ci95": [
+            5.085,
+            16.512
+          ],
+          "ratio_ci95": [
+            90.833,
+            99.369
+          ],
+          "paired_profit_delta_mean": -142497.3999999999,
+          "off_mismatches": 240,
+          "off_mismatch_by_seed": {
+            "100": 46,
+            "7": 49,
+            "999": 51,
+            "42": 51,
+            "2026": 43
+          },
+          "off_comparisons": 350,
+          "technically_neutral_off": false,
+          "off_ratio_pct": 96.6270726973434,
+          "cash_mean": 969018,
+          "aaa_cash_mean": 892904,
+          "loan_mean": 0,
+          "air_mean": 82.4,
+          "rail_mean": 24.4,
+          "airports_mean": 34.8,
+          "airport_towns_mean": 34.4,
+          "opcodes_observed_mean": 44285191.6,
+          "opcodes_complete": false,
+          "pairs": {
+            "42": {
+              "opex": 2543756,
+              "aaa": 2751104
+            },
+            "100": {
+              "opex": 2204873,
+              "aaa": 2268059
+            },
+            "7": {
+              "opex": 3674730,
+              "aaa": 3617962
+            },
+            "999": {
+              "opex": 2875373,
+              "aaa": 3249361
+            },
+            "2026": {
+              "opex": 3237340,
+              "aaa": 3362073
+            }
+          },
+          "air_engines": {
+            "223": 263,
+            "217": 18,
+            "218": 49,
+            "228": 82
+          },
+          "source_bundle_sha256": "15078ee31b595f31c9deb054de58cd88edeb72ed9e1eafc9b03463535a28f879"
+        },
+        {
+          "name": "mix_a200_r150_w05_flat_load25",
+          "configuration": {
+            "air": 2.0,
+            "rail": 1.5,
+            "weight": 5.0,
+            "flat_rail": true,
+            "eb14": 3,
+            "v249_statue": 2,
+            "eb2_fallback": 0,
+            "air_load_min_pct": 25
+          },
+          "ratio_pct": 90.97654552228165,
+          "opex_profit_mean": 2755066.2,
+          "aaa_profit_mean": 3028325.8,
+          "baseline_ratio_5x5": 83.20305427049684,
+          "delta_ratio_pts": 7.773491251784819,
+          "delta_ratio_ci95": [
+            2.906,
+            13.438
+          ],
+          "ratio_ci95": [
+            86.015,
+            97.765
+          ],
+          "paired_profit_delta_mean": -273259.5999999996,
+          "off_mismatches": 239,
+          "off_mismatch_by_seed": {
+            "100": 46,
+            "7": 48,
+            "999": 51,
+            "42": 51,
+            "2026": 43
+          },
+          "off_comparisons": 350,
+          "technically_neutral_off": false,
+          "off_ratio_pct": 100.53650746257908,
+          "cash_mean": 1045519.2,
+          "aaa_cash_mean": 974416.8,
+          "loan_mean": 0,
+          "air_mean": 61.6,
+          "rail_mean": 27.4,
+          "airports_mean": 31.8,
+          "airport_towns_mean": 31.8,
+          "opcodes_observed_mean": 37236471.8,
+          "opcodes_complete": false,
+          "pairs": {
+            "42": {
+              "opex": 2720688,
+              "aaa": 2641598
+            },
+            "100": {
+              "opex": 1991076,
+              "aaa": 2077523
+            },
+            "7": {
+              "opex": 3190923,
+              "aaa": 3705813
+            },
+            "999": {
+              "opex": 3078201,
+              "aaa": 3349343
+            },
+            "2026": {
+              "opex": 2794443,
+              "aaa": 3367352
+            }
+          },
+          "air_engines": {
+            "223": 180,
+            "217": 42,
+            "218": 43,
+            "225": 3,
+            "228": 40
+          },
+          "source_bundle_sha256": "28ff5a814e6ef5b7e946d84a4319f16cb2929d50bd7b7c6b961fa793cfa6d1f3"
+        }
+      ],
+      "pending": [
+        "mix_a125_r125_w05_flat_statue0"
+      ]
+    },
+    "railnorm": {
+      "complete": [
+        {
+          "name": "mix_a100_r125_w15_eb142_statue0",
+          "configuration": {
+            "air": 1.0,
+            "rail": 1.25,
+            "weight": 15.0,
+            "flat_rail": false,
+            "eb14": 2,
+            "v249_statue": 0,
+            "eb2_fallback": 0,
+            "air_load_min_pct": 0
+          },
+          "ratio_pct": 81.16896901533413,
+          "opex_profit_mean": 2488405.2,
+          "aaa_profit_mean": 3065710,
+          "baseline_ratio_5x5": 83.20305427049684,
+          "delta_ratio_pts": -2.034085255162708,
+          "delta_ratio_ci95": [
+            -10.483,
+            2.312
+          ],
+          "ratio_ci95": [
+            74.882,
+            87.915
+          ],
+          "paired_profit_delta_mean": -577304.7999999998,
+          "off_mismatches": 10,
+          "off_mismatch_by_seed": {
+            "2026": 10
+          },
+          "off_comparisons": 350,
+          "technically_neutral_off": false,
+          "off_ratio_pct": 89.23056758517313,
+          "cash_mean": 4203689.6,
+          "aaa_cash_mean": 1185208.6,
+          "loan_mean": 0,
+          "air_mean": 63.6,
+          "rail_mean": 25.8,
+          "airports_mean": 32.2,
+          "airport_towns_mean": 31.8,
+          "opcodes_observed_mean": 42849247.2,
+          "opcodes_complete": false,
+          "pairs": {
+            "42": {
+              "opex": 2472342,
+              "aaa": 2629313
+            },
+            "100": {
+              "opex": 1616711,
+              "aaa": 2276190
+            },
+            "7": {
+              "opex": 3082479,
+              "aaa": 3578289
+            },
+            "999": {
+              "opex": 2612723,
+              "aaa": 3448399
+            },
+            "2026": {
+              "opex": 2657771,
+              "aaa": 3396359
+            }
+          },
+          "air_engines": {
+            "223": 86,
+            "217": 157,
+            "218": 15,
+            "228": 48,
+            "225": 5,
+            "221": 2,
+            "227": 5
+          },
+          "source_bundle_sha256": "6f330abc7580789b4247b745448e3f17c442e2e312f63020f979a1f193bdbb87"
+        }
+      ],
+      "pending": [
+        "mix_a125_r125_w05_flat_statue0"
+      ]
+    },
+    "center": {
+      "complete": [
+        {
+          "name": "centernorm_a100_r125_w15_eb142",
+          "configuration": {
+            "air": 1.0,
+            "rail": 1.25,
+            "weight": 15.0,
+            "flat_rail": false,
+            "eb14": 2,
+            "v249_statue": 0,
+            "eb2_fallback": 0,
+            "air_load_min_pct": 0
+          },
+          "ratio_pct": 87.47947053966958,
+          "opex_profit_mean": 2680274.4,
+          "aaa_profit_mean": 3063889.6,
+          "baseline_ratio_5x5": 83.20305427049684,
+          "delta_ratio_pts": 4.276416269172742,
+          "delta_ratio_ci95": [
+            0.89,
+            9.281
+          ],
+          "ratio_ci95": [
+            81.703,
+            93.795
+          ],
+          "paired_profit_delta_mean": -383615.2000000002,
+          "off_mismatches": 0,
+          "off_mismatch_by_seed": {},
+          "off_comparisons": 350,
+          "technically_neutral_off": true,
+          "off_ratio_pct": 89.18537888466366,
+          "cash_mean": 4414443,
+          "aaa_cash_mean": 862382.6,
+          "loan_mean": 0,
+          "air_mean": 65.2,
+          "rail_mean": 25.8,
+          "airports_mean": 32,
+          "airport_towns_mean": 31.8,
+          "opcodes_observed_mean": 50003022.6,
+          "opcodes_complete": false,
+          "pairs": {
+            "42": {
+              "opex": 2533574,
+              "aaa": 2770174
+            },
+            "100": {
+              "opex": 1871538,
+              "aaa": 1928526
+            },
+            "7": {
+              "opex": 3041556,
+              "aaa": 3569266
+            },
+            "999": {
+              "opex": 3012915,
+              "aaa": 3882737
+            },
+            "2026": {
+              "opex": 2941789,
+              "aaa": 3168745
+            }
+          },
+          "air_engines": {
+            "223": 89,
+            "217": 148,
+            "218": 22,
+            "228": 52,
+            "225": 6,
+            "216": 1,
+            "227": 6,
+            "221": 2
+          },
+          "source_bundle_sha256": "e7ae0402d4341017e32adf877a7ce8d1390a2c7ae7c1a3b5decd3d6c9abe6f60"
+        }
+      ],
+      "pending": [
+        "center_a100_r125_w15_eb142",
+        "center_a200_r075_w15"
+      ]
+    }
+  }
+}

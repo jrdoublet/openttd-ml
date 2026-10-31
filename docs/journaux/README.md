@@ -9,10 +9,19 @@ ultérieur. Pour agir, lire `taches.md` ; pour comprendre une décision, partir 
 Les mesures antérieures au **9 septembre 2026** ne font plus preuve actuelle.
 Les autres mesures exigent toujours bundle, protocole et santé vérifiables.
 
+**Dernière réconciliation : 30/10/2026.** Le défaut actuel
+`estim_unifie=31`, `eb14_progressive=3`, `probes=2` a été publié sur
+`origin/master` au commit documentaire `2429d175` ; les mentions « défaut 0 »
+des anciennes fiches doivent être lues à leur date, sauf configuration
+**explicite** OFF. Voir [élection](../estim31_phase_combinatoire_20261030.md).
+
 ## Derniers comptes rendus
 
 | Journal | Contenu / portée |
 |---|---|
+| [30 octobre — réconciliation](journal_2026-10-30_mise_a_jour.md) | Élection décennale, état du code, résultats EB, contrats à corriger et liste active actualisée |
+| [30 octobre — transfert intégral](journal_2026-10-30_transfert_taches.md) | Ancien `docs/taches.md` de 2 874 lignes, SHA source et liens rebases ; **archive non autoritaire** |
+| [24–25 octobre — nuit 75 %](journal_2026-10-24_nuit_75pct.md) | Multicargo et programmes de fermeture nocturnes ; chiffres des campagnes historiques, pas les défauts du 30/10 |
 | [19 octobre](journal_2026-10-19.md) | V257rev adopté par dérogation, V259 conservé ; position face à AAA (3 ans 107 %, 10 ans 47 %) ; V262 T30/T12, T04 en mesure ; V264/V265 en 40×10 PC ; RVA-16 inerte |
 | [18 octobre](journal_2026-10-18.md) | V252 qualifié (défaut 2), V256, niveaux de difficulté (défaut 2), V261/V262 fair-play fusionnés ; échecs V233, V249, V250, V253, V258, V266 |
 | [17 octobre](journal_2026-10-17.md) | Simplification des paramètres 282 → ~70 réglages (V222-V247, 20×10 neutres) ; V217 défaut 1 ; V218, V220, V221 clos ; plan RVA |

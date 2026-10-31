@@ -519,6 +519,13 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
     alternatives = OpexRailPrepMergeAlternatives(alternatives, railReadyStock);
   }
   alternatives = OpexFilterAirAlternativesStillValid(alternatives, abandonedPairs, lines);
+  /* EB-3 publie le RAIL durant le bootstrap, mais la premiere annee AIR
+   * conserve strictement la priorite de financement du mode AIR. */
+  if (EB3_RAIL_FIRST_YEAR_PREFETCH && MODE_AIR && C121_CATALOG_FIRST_YEAR_ACTIVE) {
+    local airOnly = [];
+    foreach (project in alternatives) if (project.mode == "air") airOnly.append(project);
+    alternatives = airOnly;
+  }
   funded = OpexProjectSelectAffordable(alternatives, capitalBudget, PROJECT_TOP_K, true, abandonedPairs);
   if (RAIL_FAILURE_AUDIT) OpexRailPortfolioAudit("full", alternatives, funded, capitalBudget);
   stats.budgetConsidered = alternatives.len();

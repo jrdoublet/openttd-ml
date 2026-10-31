@@ -1,0 +1,659 @@
+{
+  "campaign": "estim31_oldge_best_40x5_20261030",
+  "date": "1974-12-01",
+  "interpretation": "Physical current-town statues; not the purchase count nor cash debit.",
+  "summary": {
+    "reference": {
+      "opex_statue_towns_mean": 5.525,
+      "aaa_statue_towns_mean": 16.375,
+      "towns_mean": 44.275
+    },
+    "grid31_a200_r150_w05_flat_load25": {
+      "opex_statue_towns_mean": 21.375,
+      "aaa_statue_towns_mean": 15.625,
+      "towns_mean": 44.275
+    }
+  },
+  "rows": [
+    {
+      "seed": 42,
+      "policy": "reference",
+      "date": "1974-12-01",
+      "towns": 42,
+      "statues_opex": 4,
+      "statues_aaa": 17
+    },
+    {
+      "seed": 42,
+      "policy": "grid31_a200_r150_w05_flat_load25",
+      "date": "1974-12-01",
+      "towns": 42,
+      "statues_opex": 22,
+      "statues_aaa": 14
+    },
+    {
+      "seed": 100,
+      "policy": "reference",
+      "date": "1974-12-01",
+      "towns": 39,
+      "statues_opex": 4,
+      "statues_aaa": 11
+    },
+    {
+      "seed": 100,
+      "policy": "grid31_a200_r150_w05_flat_load25",
+      "date": "1974-12-01",
+      "towns": 39,
+      "statues_opex": 16,
+      "statues_aaa": 5
+    },
+    {
+      "seed": 7,
+      "policy": "reference",
+      "date": "1974-12-01",
+      "towns": 46,
+      "statues_opex": 9,
+      "statues_aaa": 26
+    },
+    {
+      "seed": 7,
+      "policy": "grid31_a200_r150_w05_flat_load25",
+      "date": "1974-12-01",
+      "towns": 46,
+      "statues_opex": 26,
+      "statues_aaa": 24
+    },
+    {
+      "seed": 999,
+      "policy": "reference",
+      "date": "1974-12-01",
+      "towns": 45,
+      "statues_opex": 5,
+      "statues_aaa": 20
+    },
+    {
+      "seed": 999,
+      "policy": "grid31_a200_r150_w05_flat_load25",
+      "date": "1974-12-01",
+      "towns": 45,
+      "statues_opex": 20,
+      "statues_aaa": 23
+    },
+    {
+      "seed": 2026,
+      "policy": "reference",
+      "date": "1974-12-01",
+      "towns": 49,
+      "statues_opex": 8,
+      "statues_aaa": 15
+    },
+    {
+      "seed": 2026,
+      "policy": "grid31_a200_r150_w05_flat_load25",
+      "date": "1974-12-01",
+      "towns": 49,
+      "statues_opex": 22,
+      "statues_aaa": 18
+    },
+    {
+      "seed": 1,
+      "policy": "reference",
+      "date": "1974-12-01",
+      "towns": 44,
+      "statues_opex": 7,
+      "statues_aaa": 17
+    },
+    {
+      "seed": 1,
+      "policy": "grid31_a200_r150_w05_flat_load25",
+      "date": "1974-12-01",
+      "towns": 44,
+      "statues_opex": 24,
+      "statues_aaa": 15
+    },
+    {
+      "seed": 17,
+      "policy": "reference",
+      "date": "1974-12-01",
+      "towns": 39,
+      "statues_opex": 3,
+      "statues_aaa": 14
+    },
+    {
+      "seed": 17,
+      "policy": "grid31_a200_r150_w05_flat_load25",
+      "date": "1974-12-01",
+      "towns": 39,
+      "statues_opex": 21,
+      "statues_aaa": 8
+    },
+    {
+      "seed": 73,
+      "policy": "reference",
+      "date": "1974-12-01",
+      "towns": 47,
+      "statues_opex": 4,
+      "statues_aaa": 18
+    },
+    {
+      "seed": 73,
+      "policy": "grid31_a200_r150_w05_flat_load25",
+      "date": "1974-12-01",
+      "towns": 47,
+      "statues_opex": 24,
+      "statues_aaa": 16
+    },
+    {
+      "seed": 314,
+      "policy": "reference",
+      "date": "1974-12-01",
+      "towns": 45,
+      "statues_opex": 7,
+      "statues_aaa": 18
+    },
+    {
+      "seed": 314,
+      "policy": "grid31_a200_r150_w05_flat_load25",
+      "date": "1974-12-01",
+      "towns": 45,
+      "statues_opex": 27,
+      "statues_aaa": 28
+    },
+    {
+      "seed": 512,
+      "policy": "reference",
+      "date": "1974-12-01",
+      "towns": 40,
+      "statues_opex": 2,
+      "statues_aaa": 14
+    },
+    {
+      "seed": 512,
+      "policy": "grid31_a200_r150_w05_flat_load25",
+      "date": "1974-12-01",
+      "towns": 40,
+      "statues_opex": 15,
+      "statues_aaa": 13
+    },
+    {
+      "seed": 1024,
+      "policy": "reference",
+      "date": "1974-12-01",
+      "towns": 43,
+      "statues_opex": 4,
+      "statues_aaa": 10
+    },
+    {
+      "seed": 1024,
+      "policy": "grid31_a200_r150_w05_flat_load25",
+      "date": "1974-12-01",
+      "towns": 43,
+      "statues_opex": 17,
+      "statues_aaa": 9
+    },
+    {
+      "seed": 1337,
+      "policy": "reference",
+      "date": "1974-12-01",
+      "towns": 46,
+      "statues_opex": 2,
+      "statues_aaa": 25
+    },
+    {
+      "seed": 1337,
+      "policy": "grid31_a200_r150_w05_flat_load25",
+      "date": "1974-12-01",
+      "towns": 46,
+      "statues_opex": 10,
+      "statues_aaa": 17
+    },
+    {
+      "seed": 4096,
+      "policy": "reference",
+      "date": "1974-12-01",
+      "towns": 45,
+      "statues_opex": 5,
+      "statues_aaa": 13
+    },
+    {
+      "seed": 4096,
+      "policy": "grid31_a200_r150_w05_flat_load25",
+      "date": "1974-12-01",
+      "towns": 45,
+      "statues_opex": 19,
+      "statues_aaa": 15
+    },
+    {
+      "seed": 8191,
+      "policy": "reference",
+      "date": "1974-12-01",
+      "towns": 46,
+      "statues_opex": 6,
+      "statues_aaa": 22
+    },
+    {
+      "seed": 8191,
+      "policy": "grid31_a200_r150_w05_flat_load25",
+      "date": "1974-12-01",
+      "towns": 46,
+      "statues_opex": 25,
+      "statues_aaa": 16
+    },
+    {
+      "seed": 12345,
+      "policy": "reference",
+      "date": "1974-12-01",
+      "towns": 43,
+      "statues_opex": 2,
+      "statues_aaa": 7
+    },
+    {
+      "seed": 12345,
+      "policy": "grid31_a200_r150_w05_flat_load25",
+      "date": "1974-12-01",
+      "towns": 43,
+      "statues_opex": 21,
+      "statues_aaa": 3
+    },
+    {
+      "seed": 54321,
+      "policy": "reference",
+      "date": "1974-12-01",
+      "towns": 42,
+      "statues_opex": 7,
+      "statues_aaa": 8
+    },
+    {
+      "seed": 54321,
+      "policy": "grid31_a200_r150_w05_flat_load25",
+      "date": "1974-12-01",
+      "towns": 42,
+      "statues_opex": 25,
+      "statues_aaa": 13
+    },
+    {
+      "seed": 65537,
+      "policy": "reference",
+      "date": "1974-12-01",
+      "towns": 42,
+      "statues_opex": 7,
+      "statues_aaa": 15
+    },
+    {
+      "seed": 65537,
+      "policy": "grid31_a200_r150_w05_flat_load25",
+      "date": "1974-12-01",
+      "towns": 42,
+      "statues_opex": 24,
+      "statues_aaa": 16
+    },
+    {
+      "seed": 123456,
+      "policy": "reference",
+      "date": "1974-12-01",
+      "towns": 46,
+      "statues_opex": 7,
+      "statues_aaa": 10
+    },
+    {
+      "seed": 123456,
+      "policy": "grid31_a200_r150_w05_flat_load25",
+      "date": "1974-12-01",
+      "towns": 46,
+      "statues_opex": 26,
+      "statues_aaa": 16
+    },
+    {
+      "seed": 424242,
+      "policy": "reference",
+      "date": "1974-12-01",
+      "towns": 46,
+      "statues_opex": 5,
+      "statues_aaa": 28
+    },
+    {
+      "seed": 424242,
+      "policy": "grid31_a200_r150_w05_flat_load25",
+      "date": "1974-12-01",
+      "towns": 46,
+      "statues_opex": 22,
+      "statues_aaa": 21
+    },
+    {
+      "seed": 8675309,
+      "policy": "reference",
+      "date": "1974-12-01",
+      "towns": 45,
+      "statues_opex": 1,
+      "statues_aaa": 23
+    },
+    {
+      "seed": 8675309,
+      "policy": "grid31_a200_r150_w05_flat_load25",
+      "date": "1974-12-01",
+      "towns": 45,
+      "statues_opex": 14,
+      "statues_aaa": 22
+    },
+    {
+      "seed": 423960,
+      "policy": "reference",
+      "date": "1974-12-01",
+      "towns": 47,
+      "statues_opex": 6,
+      "statues_aaa": 20
+    },
+    {
+      "seed": 423960,
+      "policy": "grid31_a200_r150_w05_flat_load25",
+      "date": "1974-12-01",
+      "towns": 47,
+      "statues_opex": 21,
+      "statues_aaa": 24
+    },
+    {
+      "seed": 613553,
+      "policy": "reference",
+      "date": "1974-12-01",
+      "towns": 45,
+      "statues_opex": 4,
+      "statues_aaa": 13
+    },
+    {
+      "seed": 613553,
+      "policy": "grid31_a200_r150_w05_flat_load25",
+      "date": "1974-12-01",
+      "towns": 45,
+      "statues_opex": 26,
+      "statues_aaa": 16
+    },
+    {
+      "seed": 515222,
+      "policy": "reference",
+      "date": "1974-12-01",
+      "towns": 45,
+      "statues_opex": 8,
+      "statues_aaa": 12
+    },
+    {
+      "seed": 515222,
+      "policy": "grid31_a200_r150_w05_flat_load25",
+      "date": "1974-12-01",
+      "towns": 45,
+      "statues_opex": 25,
+      "statues_aaa": 10
+    },
+    {
+      "seed": 781335,
+      "policy": "reference",
+      "date": "1974-12-01",
+      "towns": 47,
+      "statues_opex": 4,
+      "statues_aaa": 16
+    },
+    {
+      "seed": 781335,
+      "policy": "grid31_a200_r150_w05_flat_load25",
+      "date": "1974-12-01",
+      "towns": 47,
+      "statues_opex": 21,
+      "statues_aaa": 14
+    },
+    {
+      "seed": 375172,
+      "policy": "reference",
+      "date": "1974-12-01",
+      "towns": 49,
+      "statues_opex": 7,
+      "statues_aaa": 18
+    },
+    {
+      "seed": 375172,
+      "policy": "grid31_a200_r150_w05_flat_load25",
+      "date": "1974-12-01",
+      "towns": 49,
+      "statues_opex": 21,
+      "statues_aaa": 21
+    },
+    {
+      "seed": 999533,
+      "policy": "reference",
+      "date": "1974-12-01",
+      "towns": 45,
+      "statues_opex": 3,
+      "statues_aaa": 15
+    },
+    {
+      "seed": 999533,
+      "policy": "grid31_a200_r150_w05_flat_load25",
+      "date": "1974-12-01",
+      "towns": 45,
+      "statues_opex": 23,
+      "statues_aaa": 16
+    },
+    {
+      "seed": 442018,
+      "policy": "reference",
+      "date": "1974-12-01",
+      "towns": 42,
+      "statues_opex": 8,
+      "statues_aaa": 17
+    },
+    {
+      "seed": 442018,
+      "policy": "grid31_a200_r150_w05_flat_load25",
+      "date": "1974-12-01",
+      "towns": 42,
+      "statues_opex": 25,
+      "statues_aaa": 8
+    },
+    {
+      "seed": 746035,
+      "policy": "reference",
+      "date": "1974-12-01",
+      "towns": 48,
+      "statues_opex": 10,
+      "statues_aaa": 22
+    },
+    {
+      "seed": 746035,
+      "policy": "grid31_a200_r150_w05_flat_load25",
+      "date": "1974-12-01",
+      "towns": 48,
+      "statues_opex": 30,
+      "statues_aaa": 14
+    },
+    {
+      "seed": 455216,
+      "policy": "reference",
+      "date": "1974-12-01",
+      "towns": 38,
+      "statues_opex": 6,
+      "statues_aaa": 12
+    },
+    {
+      "seed": 455216,
+      "policy": "grid31_a200_r150_w05_flat_load25",
+      "date": "1974-12-01",
+      "towns": 38,
+      "statues_opex": 19,
+      "statues_aaa": 12
+    },
+    {
+      "seed": 230185,
+      "policy": "reference",
+      "date": "1974-12-01",
+      "towns": 44,
+      "statues_opex": 2,
+      "statues_aaa": 12
+    },
+    {
+      "seed": 230185,
+      "policy": "grid31_a200_r150_w05_flat_load25",
+      "date": "1974-12-01",
+      "towns": 44,
+      "statues_opex": 12,
+      "statues_aaa": 12
+    },
+    {
+      "seed": 706990,
+      "policy": "reference",
+      "date": "1974-12-01",
+      "towns": 41,
+      "statues_opex": 5,
+      "statues_aaa": 7
+    },
+    {
+      "seed": 706990,
+      "policy": "grid31_a200_r150_w05_flat_load25",
+      "date": "1974-12-01",
+      "towns": 41,
+      "statues_opex": 24,
+      "statues_aaa": 10
+    },
+    {
+      "seed": 983759,
+      "policy": "reference",
+      "date": "1974-12-01",
+      "towns": 39,
+      "statues_opex": 5,
+      "statues_aaa": 14
+    },
+    {
+      "seed": 983759,
+      "policy": "grid31_a200_r150_w05_flat_load25",
+      "date": "1974-12-01",
+      "towns": 39,
+      "statues_opex": 24,
+      "statues_aaa": 13
+    },
+    {
+      "seed": 802204,
+      "policy": "reference",
+      "date": "1974-12-01",
+      "towns": 49,
+      "statues_opex": 6,
+      "statues_aaa": 23
+    },
+    {
+      "seed": 802204,
+      "policy": "grid31_a200_r150_w05_flat_load25",
+      "date": "1974-12-01",
+      "towns": 49,
+      "statues_opex": 19,
+      "statues_aaa": 22
+    },
+    {
+      "seed": 232037,
+      "policy": "reference",
+      "date": "1974-12-01",
+      "towns": 40,
+      "statues_opex": 9,
+      "statues_aaa": 13
+    },
+    {
+      "seed": 232037,
+      "policy": "grid31_a200_r150_w05_flat_load25",
+      "date": "1974-12-01",
+      "towns": 40,
+      "statues_opex": 24,
+      "statues_aaa": 13
+    },
+    {
+      "seed": 723002,
+      "policy": "reference",
+      "date": "1974-12-01",
+      "towns": 49,
+      "statues_opex": 9,
+      "statues_aaa": 21
+    },
+    {
+      "seed": 723002,
+      "policy": "grid31_a200_r150_w05_flat_load25",
+      "date": "1974-12-01",
+      "towns": 49,
+      "statues_opex": 26,
+      "statues_aaa": 25
+    },
+    {
+      "seed": 313707,
+      "policy": "reference",
+      "date": "1974-12-01",
+      "towns": 48,
+      "statues_opex": 12,
+      "statues_aaa": 28
+    },
+    {
+      "seed": 313707,
+      "policy": "grid31_a200_r150_w05_flat_load25",
+      "date": "1974-12-01",
+      "towns": 48,
+      "statues_opex": 20,
+      "statues_aaa": 29
+    },
+    {
+      "seed": 701256,
+      "policy": "reference",
+      "date": "1974-12-01",
+      "towns": 45,
+      "statues_opex": 2,
+      "statues_aaa": 16
+    },
+    {
+      "seed": 701256,
+      "policy": "grid31_a200_r150_w05_flat_load25",
+      "date": "1974-12-01",
+      "towns": 45,
+      "statues_opex": 15,
+      "statues_aaa": 7
+    },
+    {
+      "seed": 292001,
+      "policy": "reference",
+      "date": "1974-12-01",
+      "towns": 41,
+      "statues_opex": 10,
+      "statues_aaa": 7
+    },
+    {
+      "seed": 292001,
+      "policy": "grid31_a200_r150_w05_flat_load25",
+      "date": "1974-12-01",
+      "towns": 41,
+      "statues_opex": 21,
+      "statues_aaa": 9
+    },
+    {
+      "seed": 841478,
+      "policy": "reference",
+      "date": "1974-12-01",
+      "towns": 45,
+      "statues_opex": 2,
+      "statues_aaa": 13
+    },
+    {
+      "seed": 841478,
+      "policy": "grid31_a200_r150_w05_flat_load25",
+      "date": "1974-12-01",
+      "towns": 45,
+      "statues_opex": 24,
+      "statues_aaa": 14
+    },
+    {
+      "seed": 59527,
+      "policy": "reference",
+      "date": "1974-12-01",
+      "towns": 44,
+      "statues_opex": 4,
+      "statues_aaa": 25
+    },
+    {
+      "seed": 59527,
+      "policy": "grid31_a200_r150_w05_flat_load25",
+      "date": "1974-12-01",
+      "towns": 44,
+      "statues_opex": 15,
+      "statues_aaa": 24
+    }
+  ]
+}

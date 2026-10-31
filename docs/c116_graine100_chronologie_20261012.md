@@ -2,7 +2,7 @@
 
 **Date :** 12 octobre 2026  
 **Auteur :** Antigravity (d'après les données d'exécution de référence 3 ans, duel AAAHogEx)  
-**Cible d'analyse :** Ligne « C116 graine 100 » de [`docs/taches.md`](../docs/taches.md#L774) : *« Chronologie cash/projets face à 999/1234/5678 dans C116.2 ; aucune nouvelle règle ni 20×10 sous les formulations rejetées. »*  
+**Cible d'analyse :** ligne historique « C116 graine 100 » de l'[ancien registre archivé](journaux/journal_2026-10-30_transfert_taches.md) (ligne originale 774) : *« Chronologie cash/projets face à 999/1234/5678 dans C116.2 ; aucune nouvelle règle ni 20×10 sous les formulations rejetées. »*
 **Fichiers analysés :**
 - `results/afm_probe_5x3_20261012_engine/reference_seed{100,999,1234,5678}_r0.log` (logs moteur OpenTTD avec `--script-debug` et `probe_air_finance_margin=1`)
 - `results/afm_probe_5x3_20261012.jsonl` (36 checkpoints mensuels complets par graine, compteurs physiques et financiers)
@@ -25,7 +25,7 @@ Le chantier **C116** visait initialement à introduire un régulariseur de capit
    *Résultat :* Rejeté contre C115 courant (**−166,6 k£/an**, valeur −11,55 %, garde de valeur échouée dans `smoke_c116_decoupled_1x3_20260927_r1`).
 
 ### 1.2 Décisions arrêtées et limites méthodologiques
-- **Décision ferme :** `C116 = 0` par défaut ; **aucun 20×10 sous les formulations rejetées** ([`docs/taches.md:774, 792`](../docs/taches.md#L774)).
+- **Décision ferme à la date du 12/10 :** `C116 = 0` par défaut ; **aucun 20×10 sous les formulations rejetées** ([ancien registre, lignes 774 et 792](journaux/journal_2026-10-30_transfert_taches.md)).
 - **Interdiction formelle :** Ne proposer aucune nouvelle règle de cap ou de marge déjà rejetée ; ne pas modifier le catalogue AIR.
 - **Rôle de l'autopsie graine 100 et d'AC04-A v3 :** L'autopsie du 12/10 ([`docs/autopsie_air_graine100_20261012.md`](../docs/autopsie_air_graine100_20261012.md)) a démontré que la graine 100 subit en partie un blocage AIR structurel lié au reclassement erroné de hubs saturés en orphelins à `routes=0`. Ce bug a été corrigé et adopté le 12/10 sous **AC04-A v3** (`ac04_hub_usage_gate=1`, [`docs/ac04a_v3_adoption_20261012.md`](../docs/ac04a_v3_adoption_20261012.md)).
 
@@ -190,7 +190,7 @@ Dès août 1971, OpexAI avait construit 20 aéroports sur la graine 100, soit **
 
 #### 4. Piège d'allocation : Re-flotte stérile et détour ferroviaire (V100)
 - En avril 1972, face au blocage des ouvertures de lignes, OpexAI a injecté son capital dormant dans **5 avions de flotte supplémentaires** (`[FLEET_PROJECT]`). Sur des petites villes à faible génération de passagers, ces avions supplémentaires n'ont fait que diviser les flux sans augmenter le profit.
-- De mai à novembre 1972, l'IA s'est tournée vers le rail (`top_mode=rail`, projet à 22 934 £ de profit prédit, score 606). Sous la contrainte du créneau de recherche ferroviaire sériel unique (V100, [`docs/taches.md:795`](../docs/taches.md#L795)), l'IA a construit 4 trains supplémentaires (atteignant 7 trains fin 1972). Ces 7 trains ont absorbé du capital sans rien rapporter : entre août et décembre 1972, le profit annualisé n'a progressé que de **+8 201 £/an** !
+- De mai à novembre 1972, l'IA s'est tournée vers le rail (`top_mode=rail`, projet à 22 934 £ de profit prédit, score 606). Sous la contrainte du créneau de recherche ferroviaire sériel unique (V100, [ancien registre, ligne 795](journaux/journal_2026-10-30_transfert_taches.md)), l'IA a construit 4 trains supplémentaires (atteignant 7 trains fin 1972). Ces 7 trains ont absorbé du capital sans rien rapporter : entre août et décembre 1972, le profit annualisé n'a progressé que de **+8 201 £/an** !
 
 #### 5. Impossibilité d'éteindre la dette
 Le seuil de remboursement de l'emprunt est fixé par `LOAN_REPAY_FLOOR = 300 000 £` ([`ai/OpexAI/capital.nut:62`](../ai/OpexAI/capital.nut#L62)). Comme le cash flow de la 100 est faible, la trésorerie au 31 décembre de chaque année n'a jamais dépassé 65 000 £. L'emprunt de 300 000 £ est resté intact pendant les 3 ans, grevant les résultats financiers des intérêts d'emprunt. À l'inverse, les graines 999 et 5678 ont remboursé l'intégralité de leurs 300 000 £ de dette dès l'été 1972.

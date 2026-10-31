@@ -1,0 +1,369 @@
+{
+  "status": "complete",
+  "source": "results\\rail_repair_idle_railonly_gateA_40x5_20261030.json",
+  "source_sha256": "d6a0d3980e2a5f2c5177e3fb92a8aadf64a678e7ce1a7ed54abf3700c24f25ae",
+  "seeds": [
+    42,
+    100,
+    7,
+    999,
+    2026,
+    1,
+    17,
+    73,
+    314,
+    512,
+    1024,
+    1337,
+    4096,
+    8191,
+    12345,
+    54321,
+    65537,
+    123456,
+    424242,
+    8675309,
+    423960,
+    613553,
+    515222,
+    781335,
+    375172,
+    999533,
+    442018,
+    746035,
+    455216,
+    230185,
+    706990,
+    983759,
+    802204,
+    232037,
+    723002,
+    313707,
+    701256,
+    292001,
+    841478,
+    59527
+  ],
+  "n_seeds": 40,
+  "arms": [
+    "OpexAI[mode_air=0,mode_road=0,mode_water=0,mode_rail=1]",
+    "OpexAI[mode_air=0,mode_road=0,mode_water=0,mode_rail=1,rail_repair_join_site=1,rail_repair_v131_focus=1,rail_repair_astar_pair=1,rail_repair_pose_order=1]"
+  ],
+  "required_years": 5,
+  "required_pairs": 40,
+  "n_summary": 80,
+  "missing": [],
+  "invalid": [],
+  "failed_runs": [],
+  "gate": {
+    "primary": "profit_year",
+    "min_relative_gain_pct": 4,
+    "wilcoxon_p_max_exclusive": 0.05,
+    "bootstrap_ci95_lower_exclusive": 0,
+    "company_value_min_ratio": 0.95
+  },
+  "profit_year": {
+    "ref_mean": 1770915.975,
+    "variant_mean": 1772915.75,
+    "delta_mean": 1999.775,
+    "delta_median": 0.0,
+    "delta_pct_ref_mean": 0.11292320066173138,
+    "wins": 15,
+    "losses": 15,
+    "ties": 10,
+    "wilcoxon_exact_two_sided_p": 0.8235769439488649,
+    "bootstrap_ci95_delta": [
+      -37210.425,
+      41626.9
+    ],
+    "bootstrap_replays": 20000,
+    "bootstrap_seed": 0,
+    "by_seed": [
+      {
+        "seed": 42,
+        "ref": 1570339,
+        "variant": 1551684,
+        "delta": -18655.0
+      },
+      {
+        "seed": 100,
+        "ref": 1110913,
+        "variant": 1110913,
+        "delta": 0.0
+      },
+      {
+        "seed": 7,
+        "ref": 2231198,
+        "variant": 2231198,
+        "delta": 0.0
+      },
+      {
+        "seed": 999,
+        "ref": 1882899,
+        "variant": 1882899,
+        "delta": 0.0
+      },
+      {
+        "seed": 2026,
+        "ref": 1009693,
+        "variant": 1466163,
+        "delta": 456470.0
+      },
+      {
+        "seed": 1,
+        "ref": 1893015,
+        "variant": 1893015,
+        "delta": 0.0
+      },
+      {
+        "seed": 17,
+        "ref": 2019587,
+        "variant": 1926822,
+        "delta": -92765.0
+      },
+      {
+        "seed": 73,
+        "ref": 1981243,
+        "variant": 2065296,
+        "delta": 84053.0
+      },
+      {
+        "seed": 314,
+        "ref": 2301852,
+        "variant": 2272608,
+        "delta": -29244.0
+      },
+      {
+        "seed": 512,
+        "ref": 1484604,
+        "variant": 1475547,
+        "delta": -9057.0
+      },
+      {
+        "seed": 1024,
+        "ref": 1676730,
+        "variant": 1662430,
+        "delta": -14300.0
+      },
+      {
+        "seed": 1337,
+        "ref": 1531530,
+        "variant": 1586715,
+        "delta": 55185.0
+      },
+      {
+        "seed": 4096,
+        "ref": 2164969,
+        "variant": 2182256,
+        "delta": 17287.0
+      },
+      {
+        "seed": 8191,
+        "ref": 1906203,
+        "variant": 1906203,
+        "delta": 0.0
+      },
+      {
+        "seed": 12345,
+        "ref": 1882328,
+        "variant": 1778126,
+        "delta": -104202.0
+      },
+      {
+        "seed": 54321,
+        "ref": 1573905,
+        "variant": 1573905,
+        "delta": 0.0
+      },
+      {
+        "seed": 65537,
+        "ref": 1703890,
+        "variant": 1719914,
+        "delta": 16024.0
+      },
+      {
+        "seed": 123456,
+        "ref": 1959459,
+        "variant": 2023205,
+        "delta": 63746.0
+      },
+      {
+        "seed": 424242,
+        "ref": 1483481,
+        "variant": 1489071,
+        "delta": 5590.0
+      },
+      {
+        "seed": 8675309,
+        "ref": 1561398,
+        "variant": 1557729,
+        "delta": -3669.0
+      },
+      {
+        "seed": 423960,
+        "ref": 2616870,
+        "variant": 2565950,
+        "delta": -50920.0
+      },
+      {
+        "seed": 613553,
+        "ref": 2006827,
+        "variant": 2019770,
+        "delta": 12943.0
+      },
+      {
+        "seed": 515222,
+        "ref": 1864687,
+        "variant": 1795255,
+        "delta": -69432.0
+      },
+      {
+        "seed": 781335,
+        "ref": 1318025,
+        "variant": 1318025,
+        "delta": 0.0
+      },
+      {
+        "seed": 375172,
+        "ref": 1157272,
+        "variant": 1159242,
+        "delta": 1970.0
+      },
+      {
+        "seed": 999533,
+        "ref": 1767873,
+        "variant": 1672098,
+        "delta": -95775.0
+      },
+      {
+        "seed": 442018,
+        "ref": 1509818,
+        "variant": 1790280,
+        "delta": 280462.0
+      },
+      {
+        "seed": 746035,
+        "ref": 2170025,
+        "variant": 2141534,
+        "delta": -28491.0
+      },
+      {
+        "seed": 455216,
+        "ref": 1458446,
+        "variant": 1457364,
+        "delta": -1082.0
+      },
+      {
+        "seed": 230185,
+        "ref": 1731626,
+        "variant": 1731626,
+        "delta": 0.0
+      },
+      {
+        "seed": 706990,
+        "ref": 1371174,
+        "variant": 1382599,
+        "delta": 11425.0
+      },
+      {
+        "seed": 983759,
+        "ref": 1727009,
+        "variant": 1727009,
+        "delta": 0.0
+      },
+      {
+        "seed": 802204,
+        "ref": 2363246,
+        "variant": 2187580,
+        "delta": -175666.0
+      },
+      {
+        "seed": 232037,
+        "ref": 1605661,
+        "variant": 1591525,
+        "delta": -14136.0
+      },
+      {
+        "seed": 723002,
+        "ref": 1932930,
+        "variant": 1455965,
+        "delta": -476965.0
+      },
+      {
+        "seed": 313707,
+        "ref": 1891769,
+        "variant": 1940712,
+        "delta": 48943.0
+      },
+      {
+        "seed": 701256,
+        "ref": 1879821,
+        "variant": 1887848,
+        "delta": 8027.0
+      },
+      {
+        "seed": 292001,
+        "ref": 1820192,
+        "variant": 2014655,
+        "delta": 194463.0
+      },
+      {
+        "seed": 841478,
+        "ref": 1692988,
+        "variant": 1700750,
+        "delta": 7762.0
+      },
+      {
+        "seed": 59527,
+        "ref": 2021144,
+        "variant": 2021144,
+        "delta": 0.0
+      }
+    ]
+  },
+  "company_value": {
+    "ref_mean": 2323086.525,
+    "variant_mean": 2345461.05,
+    "ratio": 1.0096313782371924
+  },
+  "fleet": {
+    "ref_trains_mean": 49.15,
+    "variant_trains_mean": 49.45,
+    "ref_stations_mean": 74.2,
+    "variant_stations_mean": 74.4
+  },
+  "by_year_descriptive": {
+    "1970": {
+      "ref_profit_mean": 112408.8,
+      "variant_profit_mean": 112107.775,
+      "paired_delta_mean": -301.025
+    },
+    "1971": {
+      "ref_profit_mean": 587647.3,
+      "variant_profit_mean": 587730.825,
+      "paired_delta_mean": 83.525
+    },
+    "1972": {
+      "ref_profit_mean": 1020427.7,
+      "variant_profit_mean": 1021586.625,
+      "paired_delta_mean": 1158.925
+    },
+    "1973": {
+      "ref_profit_mean": 1460641.3,
+      "variant_profit_mean": 1465040.975,
+      "paired_delta_mean": 4399.675
+    },
+    "1974": {
+      "ref_profit_mean": 1770915.975,
+      "variant_profit_mean": 1772915.75,
+      "paired_delta_mean": 1999.775
+    }
+  },
+  "gate_checks": {
+    "relative_gain_ge_4pct": false,
+    "wilcoxon_p_lt_0_05": false,
+    "bootstrap_ci95_lower_gt_0": false,
+    "company_value_ratio_ge_0_95": true
+  },
+  "verdict": "NO_GO"
+}

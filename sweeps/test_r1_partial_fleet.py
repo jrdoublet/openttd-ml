@@ -109,7 +109,8 @@ class TestPartialFleet(unittest.TestCase):
         make = function(self.projects, "OpexProjectFromFleet")
         add = function(self.builder, "OpexAirAddPlane")
         execute = function(self.task, "OpexAI::_tryBuildFleetProject")
-        self.assertIn("budgetCapital = capital + 1000", make)
+        self.assertIn("budgetCapital = budget", make)
+        self.assertIn("capital + ((ESTIM_UNIFIE & 2) != 0 ? 0 : 1000)", make)
         self.assertIn("price + 1000", add)
         self.assertIn("if (money < need)", add)
         self.assertIn("entry.planePrice", execute)
@@ -119,7 +120,9 @@ class TestPartialFleet(unittest.TestCase):
     def test_c121_and_c69_scoring_stay_in_common_selector(self):
         self.assertNotIn("C84_AIR_TARGET_FLEET", self.fit)
         self.assertNotIn("c84Catalog", self.fit)
-        self.assertIn("&& !OpexC121ProjectHasRealization(project);", self.select)
+        self.assertIn("&& !OpexC121ProjectHasRealization(project)", self.select)
+        self.assertIn('&& !(("v161NetMarginalModeled" in project) && project.v161NetMarginalModeled);',
+                      self.select)
         # 9e29951 : profit et capital de classement passent par le split C121
         # (defaut 0), qui retombe sur l'expression historique hors split.
         self.assertIn("OpexProjectScore(OpexProjectFundProfit(project),", self.select)

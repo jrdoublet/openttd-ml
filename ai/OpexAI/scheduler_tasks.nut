@@ -165,6 +165,9 @@ function OpexC78PublishPartialAir(owner, s)
     if (owner._projects != null && ("lastPublishedCount" in s) && s.lastPublishedCount > 0) {
       publishCounts = OpexAir0310PublishIncremental(owner, s.plans, s.lastPublishedCount,
           s.airOps, partialAir.airPlan);
+    } else if (EB14_PROGRESSIVE && owner._projects != null && ("lastPublishedCount" in s)) {
+      publishCounts = OpexAir0310PublishIncremental(owner, s.plans, s.lastPublishedCount,
+          s.airOps, partialAir.airPlan);
     }
     if (publishCounts == null) {
       owner._rebuildProjects(s.fleetPlan, partialAir, false);
@@ -206,6 +209,37 @@ function OpexC78PublishPartialAir(owner, s)
     return false;
 }
 
+/* EB-14 only: finish an AIR scan without rebuilding unrelated RAIL/ROAD.
+ * Kept outside ApplyAir so the frozen OFF branch remains visibly unchanged. */
+function OpexEB14ApplyAir(owner, s)
+{
+  if (!EB14_PROGRESSIVE || owner._projects == null) return false;
+  return OpexAir0310PublishIncremental(owner, s.plans,
+      s.lastPublishedCount, s.airOps, s.bestPlan) != null;
+}
+
+/* EB-14 : la fin d'un scan AIR ne peut acquitter ni les couches RAIL ni
+ * les autres modes qui n'ont PAS ete regeneres. PO01C consommera leurs
+ * revisions independamment et progressivement. */
+function OpexEB14AcknowledgeAirOnly(owner, snapshot)
+{
+  if (snapshot != null) {
+    if (!("air" in owner._c76ModeConsumed))
+      owner._c76ModeConsumed.rawset("air", {});
+    local consumed = owner._c76ModeConsumed["air"];
+    local sumRev = 0;
+    foreach (layer in owner._c76GetModeDeps("air")) {
+      local rev = OpexAC06SnapshotLayer(snapshot, layer);
+      local old = layer in consumed ? consumed[layer] : 0;
+      consumed.rawset(layer, rev > old ? rev : old);
+      sumRev += consumed[layer];
+    }
+    owner._c76ModeConsumedRevision.rawset("air", sumRev);
+  }
+  owner._po01cPending = true;
+  if (DECISION_LOG) OpexDecide("EB14_C76", "ack=air_only land=pending");
+}
+
 function OpexC78ApplyAir(owner, task, year, s)
 {
     local airOverride = {
@@ -216,7 +250,11 @@ function OpexC78ApplyAir(owner, task, year, s)
     };
     local rebuildMark = OpexOpsMeasureBegin();
     local spApply = PROBE_SPAN_TRACE ? OpexSpanBegin("catalog.rebuild") : null;
-    owner._rebuildProjects(s.fleetPlan, airOverride);
+    /* EB-14 : la tranche AIR a deja ete publiee dans le portefeuille
+     * courant. Revaluer seulement les plans neufs et les candidats vivants,
+     * sans reconstruire les autres modes a chaque fermeture de curseur. */
+    if (!OpexEB14ApplyAir(owner, s))
+      owner._rebuildProjects(s.fleetPlan, airOverride);
     if (spApply != null) OpexSpanEnd(spApply);
     s.regenOps += OpexOpsMeasureEnd(rebuildMark);
     if (C39_INVALIDATION_PROBE) {
@@ -225,7 +263,10 @@ function OpexC78ApplyAir(owner, task, year, s)
       owner._c76RecordRegen("full", s.regenOps, regenDays, year, reason);
     }
     if (s.c76Full) {
-      if (("c76StartRevisions" in s)
+      if (EB14_PROGRESSIVE && PO01C_REGEN_SPLIT) {
+        OpexEB14AcknowledgeAirOnly(owner,
+            ("c76StartRevisions" in s) ? s.c76StartRevisions : null);
+      } else if (("c76StartRevisions" in s)
           && s.c76StartRevisions != null) {
         OpexAC06AcknowledgeSnapshot(owner, s.c76StartRevisions);
       } else {
@@ -319,7 +360,10 @@ function OpexAI::_dispatchCatalog(task, year)
   if (MODE_AIR) {
     if (this._generationStageMonth < 0)
       this._generationStageMonth = year * 12 + AIDate.GetMonth(AIDate.GetCurrentDate());
-    C121_CATALOG_FIRST_YEAR_ACTIVE = year == (this._generationStageMonth - 1) / 12 && OpexV293AirEngineBuildable();
+    C121_CATALOG_FIRST_YEAR_ACTIVE = year == (this._generationStageMonth - 1) / 12
+        && OpexV293AirEngineBuildable()
+        && !(EB14_PROGRESSIVE && this._airBuilt
+            && !(EB14_AIR_ROAD_YEAR_GUARD && MODE_ROAD));
   }
   if (C121_CATALOG_TOWN_BATCH_DATE != AIDate.GetCurrentDate()) {
     C121_CATALOG_TOWN_BATCH_DATE = AIDate.GetCurrentDate();

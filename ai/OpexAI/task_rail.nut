@@ -767,6 +767,7 @@ function OpexAI::_continueRailExpansion()
  * Fonction de classe, pas une closure : Squirrel ne capture jamais les locales englobantes. */
 function OpexAI::_startRailSearch(candidate, alternativeRatio, hardCap, posPacked)
 {
+  if (RAIL_REPAIR_ASTAR_PAIR) candidate.rawset("railAstarRepaired", 0);
   local plan = OpexPrepareRailRoute(this._catalog, this._budget, candidate, alternativeRatio, hardCap);
   if (plan.plansA == null) return { pending = false, plan = plan };
   local clearanceTiles = V131_TOWN_CLEARANCE ? OpexV131BuildTownClearance(candidate, plan.plansA, plan.plansB) : null;
@@ -839,6 +840,12 @@ function OpexAI::_startRailSearch(candidate, alternativeRatio, hardCap, posPacke
     startTick = curTick,
     slotIndex = 0,
   };
+  /* Aucun slot supplementaire sur le chemin OFF. */
+  if (RAIL_REPAIR_ASTAR_PAIR) {
+    this._railSearch.astarRepairTried <- false;
+    this._railSearch.astarFirstSpent <- 0;
+    this._railSearch.astarFirstReason <- "";
+  }
   if (C56_TASK_TRACE) {
     OpexC56TaskLog("RAIL_SEARCH_START", "primary", this._taskCycle,
                    "src=" + candidate.src + " dst=" + candidate.dst
@@ -969,6 +976,44 @@ function OpexAI::_continueRailSearch()
           + " best_cost=" + bestCost);
     }
     return;
+  }
+
+  /* Nouveau chemin de sauvetage : une seule recherche directionnelle 1x1 sur
+   * des interfaces de quais deja testees par le moteur. Le temps et le budget
+   * de la recherche primaire sont conserves dans la comptabilite finale.
+   * Aucun autre essai si NOPA/ABND se reproduit. */
+  if (RAIL_REPAIR_ASTAR_PAIR && OpexRailRepairIdleActive() && state.kind == "primary"
+      && !state.astarRepairTried && (slice.stop == "ABND" || slice.stop == "NOPA")
+      && state.candidate != null && state.candidate.profitAnnual > 0) {
+    local pair = OpexRailRepairAlternatePair(state.plan.plansA, state.plan.plansB);
+    local cap = state.plan.iterationBudget / 4;
+    if (cap > 900) cap = 900;
+    if (pair != null && cap >= 250) {
+      local pf = OpexCreateRailPathfinder([pair.a], [pair.b], state.clearanceTiles,
+          state.weight, null, null, OpexRailEngineOf(state.candidate));
+      if (pf != null) {
+        state.astarRepairTried = true;
+        state.astarFirstSpent = state.spent;
+        state.astarFirstReason = slice.stop;
+        state.pathfinder = pf;
+        state.segmented = null;
+        state.spent = 0;
+        state.iterationBudget = cap;
+        state.safetyDeadline = AIController.GetTick() + RAIL_SEARCH_SAFETY_TICKS;
+        if (DECISION_LOG) OpexDecide("RAIL_ASTAR_REPAIR", "action=start src=" + state.candidate.src
+            + " dst=" + state.candidate.dst + " reason=" + slice.stop
+            + " a=" + pair.a.anchor + " b=" + pair.b.anchor + " cap=" + cap);
+        return;
+      }
+    }
+  }
+  if (RAIL_REPAIR_ASTAR_PAIR && state.kind == "primary" && state.astarRepairTried) {
+    if (DECISION_LOG) OpexDecide("RAIL_ASTAR_REPAIR", "action=end src=" + state.candidate.src
+        + " dst=" + state.candidate.dst + " first=" + state.astarFirstReason
+        + " result=" + slice.stop + " extra=" + state.spent);
+    if (slice.stop == "OK") state.candidate.rawset("railAstarRepaired", 1);
+    state.spent += state.astarFirstSpent;
+    slice.iterations = state.spent;
   }
 
   if (DECISION_LOG) {
@@ -1161,6 +1206,16 @@ function OpexAI::_recordRailAttempt(candidate, result, posPacked, year, railPlan
   if (V216_PROBE && result.ok) OpexV216OnRailBuild(candidate);
   if (DECISION_LOG) {
     local p2Trace = OpexP2RailTraceKey(candidate);
+    /* L'ancien schema RAIL_ATTEMPT/RAIL_BUILD reste inchange en OFF, y compris
+     * sous probes=2 qui active DECISION_LOG sur le defaut publie. */
+    local repairTrace = "";
+    if (RAIL_REPAIR_JOIN_SITE || RAIL_REPAIR_V131_FOCUS) {
+      repairTrace = " site_repair=" + ((("railSiteRepair" in candidate) && candidate.railSiteRepair) ? 1 : 0)
+          + " v131_repair=" + ((railPlan != null && ("v131Repaired" in railPlan) && railPlan.v131Repaired) ? 1 : 0);
+    }
+    if (RAIL_REPAIR_ASTAR_PAIR || RAIL_REPAIR_POSE_ORDER)
+      repairTrace += " astar_repair=" + ((("railAstarRepaired" in candidate) && candidate.railAstarRepaired) ? 1 : 0)
+          + " pose_repair=" + ((("railPoseRepaired" in candidate) && candidate.railPoseRepaired) ? 1 : 0);
     local phasesStr = "-1/-1/-1/-1/-1";
     if (("phaseOps" in result) && result.phaseOps != null) {
       local p = result.phaseOps;
@@ -1191,7 +1246,7 @@ function OpexAI::_recordRailAttempt(candidate, result, posPacked, year, railPlan
                + " weight=" + (("searchWeight" in candidate) ? candidate.searchWeight : (V91_ASTAR_WEIGHT_PCT))
                + " adapt=" + (("v294cAdapt" in candidate) ? candidate.v294cAdapt : "-")
                + " len=" + (("routeLen" in candidate) ? candidate.routeLen : -1)
-               + " phases=" + phasesStr + p2Trace);
+               + " phases=" + phasesStr + p2Trace + repairTrace);
     if (result.ok) {
       local cargoStr = AICargo.GetCargoLabel(candidate.cargo);
       OpexDecide("RAIL_BUILD", "line=" + this._nextLineId + " src=" + candidate.src + " dst=" + candidate.dst
@@ -1203,7 +1258,7 @@ function OpexAI::_recordRailAttempt(candidate, result, posPacked, year, railPlan
                  + " cost=" + result.actualCost + " trains=" + result.trains + " wagons=" + result.wagons
                  + ((("wagons2" in candidate) && candidate.wagons2 > 0)
                     ? " cargo2=" + AICargo.GetCargoLabel(candidate.cargo2) + " wagons2=" + candidate.wagons2
-                      + " pred_revenue2=" + candidate.revenue2 : "") + p2Trace);
+                      + " pred_revenue2=" + candidate.revenue2 : "") + p2Trace + repairTrace);
     } else {
       OpexDecide("RAIL_BUILD_FAIL", "line=" + this._nextLineId + " reason=" + result.reason + " error=" + result.error + " iters=" + result.iterations + " budget=" + iterationBudget);
       if (DECISION_LOG && (result.reason == "SITEA" || result.reason == "SITEB" || result.reason == "SITEAB")) {
@@ -1363,6 +1418,7 @@ function OpexAI::_recordRailAttempt(candidate, result, posPacked, year, railPlan
       opcodeRatio = ("opcodeRatio" in candidate) ? candidate.opcodeRatio : -1,
       lineId = idx,
     });
+    OpexRailRepairNoteConstruction();
     if (V279_RESELECT_MEMO != 0) OPEX_LINES_REVISION++;
     /* V163 : la rame porte un second cargo ; les seconds trains et le doublement le reprennent. */
     if (("wagons2" in candidate) && candidate.wagons2 > 0) {
@@ -1626,6 +1682,14 @@ function OpexAI::_startRailStockSearch(candidate, isRepair = false, repairReason
     repairReason = repairReason,
     coarseScore = coarseScore
   };
+  /* Le prechargement C121 cree lui aussi kind="primary", contrairement a
+   * _startRailSearch : il doit fournir les trois champs du secours A*.
+   * En OFF, le tableau reste identique a l'historique. */
+  if (RAIL_REPAIR_ASTAR_PAIR) {
+    this._railSearch.astarRepairTried <- false;
+    this._railSearch.astarFirstSpent <- 0;
+    this._railSearch.astarFirstReason <- "";
+  }
 
   this._activeWorker = {
     kind = "rail_stock",
@@ -1810,6 +1874,9 @@ function OpexV131RepairLog(candidate, action, runs, tiles, iters, ops, extra)
       + " iters=" + iters + " ops=" + ops
       + " src=" + src + " dst=" + dst;
   if (extra != null && extra != "") fields = fields + " " + extra;
+  if (RAIL_REPAIR_V131_FOCUS && candidate != null && ("cargo" in candidate)
+      && AICargo.IsValidCargo(candidate.cargo))
+    fields = fields + " cargo=" + AICargo.GetCargoLabel(candidate.cargo) + " focus=1";
   OpexDecide("V131_REPAIR", fields);
 }
 
@@ -2523,6 +2590,12 @@ function OpexAI::_v131PlanRepairs(candidate, plan, cause)
   local blockedTiles = OpexV131CountBlocked(blocked);
   local rawRuns = OpexV131RawRuns(blocked);
   local mergedRuns = OpexV131MergedRuns(rawRuns);
+  /* V131c historique pouvait entreprendre trois deviations couvrant 35 tuiles.
+   * Hypothese distincte : ne sauver que les plans a un incident local, et
+   * ne pas monopoliser les opcodes sur les grands obstacles urbains. */
+  if (RAIL_REPAIR_V131_FOCUS && (blockedTiles > 4 || mergedRuns.len() > 1)) {
+    return OpexV131PlanResult(false, "focus_not_local", mergedRuns.len(), blockedTiles, [], null, null);
+  }
   if (blockedTiles > V131_REPAIR_MAX_TILES) {
     return OpexV131PlanResult(false, "over_tiles", mergedRuns.len(), blockedTiles, [], null, null);
   }
@@ -2559,6 +2632,11 @@ function OpexAI::_v131PlanRepairs(candidate, plan, cause)
     if ((!okA && shiftA == null) || (!okB && shiftB == null)) {
       return OpexV131PlanResult(false, "no_shift", mergedRuns.len(), blockedTiles, [], shiftA, shiftB);
     }
+    if (RAIL_REPAIR_V131_FOCUS && ((!okA && !okB)
+        || (shiftA != null && AIMap.DistanceManhattan(shiftA.anchor, planA.anchor) > 4)
+        || (shiftB != null && AIMap.DistanceManhattan(shiftB.anchor, planB.anchor) > 4))) {
+      return OpexV131PlanResult(false, "focus_station_far", mergedRuns.len(), blockedTiles, [], shiftA, shiftB);
+    }
     if (shiftA != null && shiftB != null && OpexV131PlatformsOverlap(shiftA, shiftB)) {
       return OpexV131PlanResult(false, "overlap", mergedRuns.len(), blockedTiles, [], shiftA, shiftB);
     }
@@ -2580,6 +2658,13 @@ function OpexAI::_v131PlanRepairs(candidate, plan, cause)
     }
   } else if (shiftA != null || shiftB != null) {
     local dummyRun = { start = (shiftA != null ? 1 : tiles.len() - 2), end = (shiftB != null ? tiles.len() - 2 : 1) };
+    /* Nouveau profil : quai devenu impossible, mais voie saine. Ne recalculer que
+     * le raccord des quatre premieres/dernieres tuiles ; l'A* historique V131c
+     * repartait de gare a gare (mode full) au cout de tout le parcours. */
+    if (RAIL_REPAIR_V131_FOCUS && tiles.len() > 10) {
+      if (shiftA != null && shiftB == null) dummyRun = { start = 1, end = 3 };
+      if (shiftB != null && shiftA == null) dummyRun = { start = tiles.len() - 4, end = tiles.len() - 2 };
+    }
     local plannedRun = OpexV131PlanAnchorRun(tiles, dummyRun, planA, planB, shiftA, shiftB);
     if (plannedRun == null) {
       return OpexV131PlanResult(false, "no_anchor", 1, blockedTiles, [], shiftA, shiftB);
@@ -2594,11 +2679,16 @@ function OpexAI::_v131PlanRepairs(candidate, plan, cause)
   if (runCount > V131_REPAIR_MAX_RUNS) {
     return OpexV131PlanResult(false, "over_runs", runCount, blockedTiles, [], shiftA, shiftB);
   }
+  if (RAIL_REPAIR_V131_FOCUS && (runCount != 1 || executable[0].mode == "full")) {
+    return OpexV131PlanResult(false, "focus_not_splice", runCount, blockedTiles, [], shiftA, shiftB);
+  }
   return OpexV131PlanResult(true, "ok", runCount, blockedTiles, executable, shiftA, shiftB);
 }
 
 function OpexAI::_v131TryStartRepair(candidate, plan, cause)
 {
+  if (RAIL_REPAIR_V131_FOCUS && !RAIL_REPAIR_V131_LEGACY_ACTIVE
+      && !OpexRailRepairIdleActive()) return "fallback";
   if (this._v131RepairIsPending(plan)) return "pending";
   if (this._railSearch != null) {
     OpexV131RepairLog(candidate, "fallback", 0, 0, 0, 0, "reason=slot_busy");
@@ -2640,6 +2730,7 @@ function OpexAI::_v131TryStartRepair(candidate, plan, cause)
   if (budget < 800) budget = 800;
   if (firstRun.mode == "full" && budget < 1800) budget = 1800;
   if (budget > V131_REPAIR_MAX_ITERS) budget = V131_REPAIR_MAX_ITERS;
+  if (RAIL_REPAIR_V131_FOCUS && budget > 900) budget = 900;
 
   this._railSearch = {
     kind = "v131_repair",
@@ -2821,7 +2912,9 @@ function OpexAI::_revalidateRailStockPlan(candidate, plan)
 
   /* Si V131_RAIL_REPAIR est inactif (defaut 0), executer le chemin de reference
    * d'origine avec STRICTEMENT ZERO opcode ajoute et aucun test supplementaire. */
-  if (!V131_RAIL_REPAIR || (("p1Long" in candidate) && candidate.p1Long)) {
+  if (!V131_RAIL_REPAIR || (RAIL_REPAIR_V131_FOCUS && !RAIL_REPAIR_V131_LEGACY_ACTIVE
+      && !OpexRailRepairIdleActive())
+      || (("p1Long" in candidate) && candidate.p1Long)) {
     local testMode = AITestMode();
     local stIdA = ("stationId" in planA) ? planA.stationId : AIStation.STATION_NEW;
     local stIdB = ("stationId" in planB) ? planB.stationId : AIStation.STATION_NEW;

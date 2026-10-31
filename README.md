@@ -4,6 +4,14 @@ OpexAI est une IA OpenTTD multimodale (rail, route, air, eau). Le projet mesure
 ses décisions économiques face à AAAHogEx sur carte partagée. La prédiction du
 profit d'une ligne et TrainLineAI sont les origines du projet, pas son backlog actuel.
 
+**Défaut public publié le 30/10/2026 : ESTIM-31 / EB14=3 / probes=2**
+(`ai/OpexAI/info.nut`, `origin/master` `2429d175`). Élu après trois vrais
+20×10 sains : V161 AIR2,00 / RAIL0,75, 66,557726256 % du profit moyen
+AAAHogEx-115 en 1979 ; les anciens réglages restent sélectionnables
+explicitement. [Décision et limites des tests](docs/estim31_default_validation_20261030.md).
+Les rapports plus anciens restent des observations datées, pas la description
+du comportement par défaut actuel.
+
 ## Lire et contribuer
 
 | Besoin | Document |

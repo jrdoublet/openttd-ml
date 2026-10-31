@@ -189,7 +189,7 @@ class TestP3AirFleetYield(unittest.TestCase):
         make = body(self.projects, "function OpexProjectFromFleet(")
         execute = body(self.execute, "function OpexAI::_tryBuildFleetProject(")
         self.assertIn('OpexDecide("P3_FLEET_YIELD"', make)
-        self.assertLess(make.index("OpexV161PerPlaneProfit"),
+        self.assertLess(make.index("entry.v161BaseVehicles != have"),
                         make.index("OpexP3MatureEvidence"))
         self.assertIn("P3_AIR_FLEET_YIELD == 2 && p3 != null && p3.veto", make)
         self.assertIn('!(("p3EngineUpgrade" in entry) && entry.p3EngineUpgrade)', make)

@@ -1,0 +1,458 @@
+{
+  "source": "results\\rail_repair_idle_exposure_40x5_20261030.json",
+  "source_sha256": "fb31eb8b4a0fbc9ef901c6e57a9b26ae6dbf81fd31bc9dd07cbcbba549a74292",
+  "scope": "secondary instrumental replay, not economic 40x5",
+  "settings": [
+    "OpexAI[mode_air=0,mode_road=0,mode_water=0,mode_rail=1,rail_repair_join_site=1,rail_repair_v131_focus=1,rail_repair_astar_pair=1,rail_repair_pose_order=1,probes=258]"
+  ],
+  "years": 5,
+  "n_seeds": 40,
+  "counts": {
+    "games": 40,
+    "idle_reset": 1636,
+    "idle_enabled": 30,
+    "idle_enabled_seeds": 26,
+    "site_attempts": 6,
+    "site_with_alternative": 5,
+    "site_successful_builds": 5,
+    "astar_starts": 3,
+    "astar_ends": 3,
+    "astar_abnd": 3,
+    "pose_events": 0,
+    "v131_events": 0,
+    "rail_builds": 1636
+  },
+  "per_seed": [
+    {
+      "seed": 1,
+      "idle_enabled": 1,
+      "idle_resets": 41,
+      "site_attempts": [],
+      "site_successful_builds": [],
+      "astar_events": [],
+      "pose_events": [],
+      "v131_events": []
+    },
+    {
+      "seed": 7,
+      "idle_enabled": 1,
+      "idle_resets": 31,
+      "site_attempts": [],
+      "site_successful_builds": [],
+      "astar_events": [],
+      "pose_events": [],
+      "v131_events": []
+    },
+    {
+      "seed": 17,
+      "idle_enabled": 1,
+      "idle_resets": 37,
+      "site_attempts": [],
+      "site_successful_builds": [],
+      "astar_events": [],
+      "pose_events": [],
+      "v131_events": []
+    },
+    {
+      "seed": 42,
+      "idle_enabled": 0,
+      "idle_resets": 36,
+      "site_attempts": [],
+      "site_successful_builds": [],
+      "astar_events": [],
+      "pose_events": [],
+      "v131_events": []
+    },
+    {
+      "seed": 73,
+      "idle_enabled": 0,
+      "idle_resets": 43,
+      "site_attempts": [],
+      "site_successful_builds": [],
+      "astar_events": [],
+      "pose_events": [],
+      "v131_events": []
+    },
+    {
+      "seed": 100,
+      "idle_enabled": 1,
+      "idle_resets": 34,
+      "site_attempts": [
+        "1974-7-9 RAIL_SITE_REPAIR end=B src=46958 dst=29140 cargo=1 options=5"
+      ],
+      "site_successful_builds": [
+        "1974-8-18 RAIL_BUILD line=33 src=46958 dst=29140 cargo=COAL dist=172 reuse=1 join_end=B shared_dest=1 pred_profit=36330 cost=80279 trains=1 wagons=3 site_repair=1 v131_repair=0 astar_repair=0 pose_repair=0"
+      ],
+      "astar_events": [],
+      "pose_events": [],
+      "v131_events": []
+    },
+    {
+      "seed": 314,
+      "idle_enabled": 1,
+      "idle_resets": 41,
+      "site_attempts": [],
+      "site_successful_builds": [],
+      "astar_events": [],
+      "pose_events": [],
+      "v131_events": []
+    },
+    {
+      "seed": 512,
+      "idle_enabled": 1,
+      "idle_resets": 39,
+      "site_attempts": [
+        "1974-12-7 RAIL_SITE_REPAIR end=B src=31408 dst=39017 cargo=8 options=4"
+      ],
+      "site_successful_builds": [
+        "1974-12-16 RAIL_BUILD line=38 src=31408 dst=39017 cargo=IORE dist=101 reuse=1 join_end=B shared_dest=1 pred_profit=6704 cost=57195 trains=1 wagons=1 site_repair=1 v131_repair=0 astar_repair=0 pose_repair=0"
+      ],
+      "astar_events": [],
+      "pose_events": [],
+      "v131_events": []
+    },
+    {
+      "seed": 999,
+      "idle_enabled": 0,
+      "idle_resets": 45,
+      "site_attempts": [],
+      "site_successful_builds": [],
+      "astar_events": [],
+      "pose_events": [],
+      "v131_events": []
+    },
+    {
+      "seed": 1024,
+      "idle_enabled": 1,
+      "idle_resets": 37,
+      "site_attempts": [],
+      "site_successful_builds": [],
+      "astar_events": [
+        "1974-4-17 RAIL_ASTAR_REPAIR action=start src=14972 dst=18451 reason=ABND a=15225 b=18196 cap=900",
+        "1974-4-23 RAIL_ASTAR_REPAIR action=end src=14972 dst=18451 first=ABND result=ABND extra=900"
+      ],
+      "pose_events": [],
+      "v131_events": []
+    },
+    {
+      "seed": 1337,
+      "idle_enabled": 0,
+      "idle_resets": 42,
+      "site_attempts": [],
+      "site_successful_builds": [],
+      "astar_events": [],
+      "pose_events": [],
+      "v131_events": []
+    },
+    {
+      "seed": 2026,
+      "idle_enabled": 1,
+      "idle_resets": 37,
+      "site_attempts": [],
+      "site_successful_builds": [],
+      "astar_events": [],
+      "pose_events": [],
+      "v131_events": []
+    },
+    {
+      "seed": 4096,
+      "idle_enabled": 2,
+      "idle_resets": 36,
+      "site_attempts": [],
+      "site_successful_builds": [],
+      "astar_events": [],
+      "pose_events": [],
+      "v131_events": []
+    },
+    {
+      "seed": 8191,
+      "idle_enabled": 0,
+      "idle_resets": 45,
+      "site_attempts": [],
+      "site_successful_builds": [],
+      "astar_events": [],
+      "pose_events": [],
+      "v131_events": []
+    },
+    {
+      "seed": 12345,
+      "idle_enabled": 1,
+      "idle_resets": 43,
+      "site_attempts": [
+        "1974-11-11 RAIL_SITE_REPAIR end=B src=46126 dst=50747 cargo=6 options=3"
+      ],
+      "site_successful_builds": [
+        "1974-11-13 RAIL_BUILD line=42 src=46126 dst=50747 cargo=GRAI dist=31 reuse=1 join_end=B shared_dest=1 pred_profit=4738 cost=47445 trains=1 wagons=1 site_repair=1 v131_repair=0 astar_repair=0 pose_repair=0"
+      ],
+      "astar_events": [],
+      "pose_events": [],
+      "v131_events": []
+    },
+    {
+      "seed": 54321,
+      "idle_enabled": 1,
+      "idle_resets": 39,
+      "site_attempts": [
+        "1974-10-9 RAIL_SITE_REPAIR end=B src=12108 dst=23443 cargo=6 options=12"
+      ],
+      "site_successful_builds": [
+        "1974-10-17 RAIL_BUILD line=38 src=12108 dst=23443 cargo=GRAI dist=115 reuse=1 join_end=B shared_dest=1 pred_profit=5458 cost=81370 trains=1 wagons=1 site_repair=1 v131_repair=0 astar_repair=0 pose_repair=0"
+      ],
+      "astar_events": [],
+      "pose_events": [],
+      "v131_events": []
+    },
+    {
+      "seed": 59527,
+      "idle_enabled": 2,
+      "idle_resets": 42,
+      "site_attempts": [],
+      "site_successful_builds": [],
+      "astar_events": [],
+      "pose_events": [],
+      "v131_events": []
+    },
+    {
+      "seed": 65537,
+      "idle_enabled": 2,
+      "idle_resets": 39,
+      "site_attempts": [
+        "1974-2-7 RAIL_SITE_REPAIR end=B src=42142 dst=29270 cargo=6 options=12"
+      ],
+      "site_successful_builds": [
+        "1974-2-18 RAIL_BUILD line=37 src=42142 dst=29270 cargo=GRAI dist=122 reuse=1 join_end=B shared_dest=1 pred_profit=20064 cost=82606 trains=1 wagons=2 site_repair=1 v131_repair=0 astar_repair=0 pose_repair=0"
+      ],
+      "astar_events": [],
+      "pose_events": [],
+      "v131_events": []
+    },
+    {
+      "seed": 123456,
+      "idle_enabled": 1,
+      "idle_resets": 42,
+      "site_attempts": [],
+      "site_successful_builds": [],
+      "astar_events": [],
+      "pose_events": [],
+      "v131_events": []
+    },
+    {
+      "seed": 230185,
+      "idle_enabled": 1,
+      "idle_resets": 41,
+      "site_attempts": [],
+      "site_successful_builds": [],
+      "astar_events": [],
+      "pose_events": [],
+      "v131_events": []
+    },
+    {
+      "seed": 232037,
+      "idle_enabled": 1,
+      "idle_resets": 43,
+      "site_attempts": [],
+      "site_successful_builds": [],
+      "astar_events": [],
+      "pose_events": [],
+      "v131_events": []
+    },
+    {
+      "seed": 292001,
+      "idle_enabled": 0,
+      "idle_resets": 41,
+      "site_attempts": [],
+      "site_successful_builds": [],
+      "astar_events": [],
+      "pose_events": [],
+      "v131_events": []
+    },
+    {
+      "seed": 313707,
+      "idle_enabled": 0,
+      "idle_resets": 44,
+      "site_attempts": [],
+      "site_successful_builds": [],
+      "astar_events": [],
+      "pose_events": [],
+      "v131_events": []
+    },
+    {
+      "seed": 375172,
+      "idle_enabled": 1,
+      "idle_resets": 44,
+      "site_attempts": [],
+      "site_successful_builds": [],
+      "astar_events": [],
+      "pose_events": [],
+      "v131_events": []
+    },
+    {
+      "seed": 423960,
+      "idle_enabled": 1,
+      "idle_resets": 40,
+      "site_attempts": [],
+      "site_successful_builds": [],
+      "astar_events": [],
+      "pose_events": [],
+      "v131_events": []
+    },
+    {
+      "seed": 424242,
+      "idle_enabled": 0,
+      "idle_resets": 48,
+      "site_attempts": [],
+      "site_successful_builds": [],
+      "astar_events": [],
+      "pose_events": [],
+      "v131_events": []
+    },
+    {
+      "seed": 442018,
+      "idle_enabled": 1,
+      "idle_resets": 44,
+      "site_attempts": [],
+      "site_successful_builds": [],
+      "astar_events": [
+        "1971-5-17 RAIL_ASTAR_REPAIR action=start src=35785 dst=8383 reason=ABND a=36046 b=9156 cap=900",
+        "1971-5-24 RAIL_ASTAR_REPAIR action=end src=35785 dst=8383 first=ABND result=ABND extra=900"
+      ],
+      "pose_events": [],
+      "v131_events": []
+    },
+    {
+      "seed": 455216,
+      "idle_enabled": 0,
+      "idle_resets": 37,
+      "site_attempts": [],
+      "site_successful_builds": [],
+      "astar_events": [],
+      "pose_events": [],
+      "v131_events": []
+    },
+    {
+      "seed": 515222,
+      "idle_enabled": 0,
+      "idle_resets": 43,
+      "site_attempts": [],
+      "site_successful_builds": [],
+      "astar_events": [],
+      "pose_events": [],
+      "v131_events": []
+    },
+    {
+      "seed": 613553,
+      "idle_enabled": 0,
+      "idle_resets": 39,
+      "site_attempts": [],
+      "site_successful_builds": [],
+      "astar_events": [],
+      "pose_events": [],
+      "v131_events": []
+    },
+    {
+      "seed": 701256,
+      "idle_enabled": 0,
+      "idle_resets": 47,
+      "site_attempts": [],
+      "site_successful_builds": [],
+      "astar_events": [],
+      "pose_events": [],
+      "v131_events": []
+    },
+    {
+      "seed": 706990,
+      "idle_enabled": 1,
+      "idle_resets": 39,
+      "site_attempts": [],
+      "site_successful_builds": [],
+      "astar_events": [
+        "1971-4-10 RAIL_ASTAR_REPAIR action=start src=26796 dst=26912 reason=ABND a=27559 b=27166 cap=900",
+        "1971-4-18 RAIL_ASTAR_REPAIR action=end src=26796 dst=26912 first=ABND result=ABND extra=900"
+      ],
+      "pose_events": [],
+      "v131_events": []
+    },
+    {
+      "seed": 723002,
+      "idle_enabled": 1,
+      "idle_resets": 43,
+      "site_attempts": [],
+      "site_successful_builds": [],
+      "astar_events": [],
+      "pose_events": [],
+      "v131_events": []
+    },
+    {
+      "seed": 746035,
+      "idle_enabled": 2,
+      "idle_resets": 41,
+      "site_attempts": [
+        "1974-9-8 RAIL_SITE_REPAIR end=B src=30649 dst=43556 cargo=4 options=0"
+      ],
+      "site_successful_builds": [],
+      "astar_events": [],
+      "pose_events": [],
+      "v131_events": []
+    },
+    {
+      "seed": 781335,
+      "idle_enabled": 0,
+      "idle_resets": 41,
+      "site_attempts": [],
+      "site_successful_builds": [],
+      "astar_events": [],
+      "pose_events": [],
+      "v131_events": []
+    },
+    {
+      "seed": 802204,
+      "idle_enabled": 1,
+      "idle_resets": 46,
+      "site_attempts": [],
+      "site_successful_builds": [],
+      "astar_events": [],
+      "pose_events": [],
+      "v131_events": []
+    },
+    {
+      "seed": 841478,
+      "idle_enabled": 0,
+      "idle_resets": 43,
+      "site_attempts": [],
+      "site_successful_builds": [],
+      "astar_events": [],
+      "pose_events": [],
+      "v131_events": []
+    },
+    {
+      "seed": 983759,
+      "idle_enabled": 1,
+      "idle_resets": 38,
+      "site_attempts": [],
+      "site_successful_builds": [],
+      "astar_events": [],
+      "pose_events": [],
+      "v131_events": []
+    },
+    {
+      "seed": 999533,
+      "idle_enabled": 1,
+      "idle_resets": 44,
+      "site_attempts": [],
+      "site_successful_builds": [],
+      "astar_events": [],
+      "pose_events": [],
+      "v131_events": []
+    },
+    {
+      "seed": 8675309,
+      "idle_enabled": 1,
+      "idle_resets": 41,
+      "site_attempts": [],
+      "site_successful_builds": [],
+      "astar_events": [],
+      "pose_events": [],
+      "v131_events": []
+    }
+  ]
+}

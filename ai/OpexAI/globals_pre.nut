@@ -44,6 +44,7 @@ V309_IDLE_STATE <- null;
 FRONT_PAX1_CLAMP_PROBE <- false; // Réglage indépendant, motifs des bornes PASS.
 V284_RAIL_GROWTH <- 0; // 0 : master ; N : croissance fret apres N ans et 1 M£ disponible.
 V233_LONG_GOOD <- 1; // Defaut 1 depuis le 27/10 (decision utilisateur).
+V233L_CONSTRUCT <- 0; // 0 historique, 1 devis monovoie passif, 2 repli monovoie physique opt-in.
 V233L_STATE <- null; // Fenetres mensuelles entieres, sauvegardees seulement sous l'option.
 V233_SITE_FUNNEL <- 1; // 0 = spirale B urbaine ; 1 = entonnoir natif (defaut 1 depuis le 27/10).
 V233_FUNNEL_CENTER_TEST <- 1; // 0 = off ; 1 = pre-test d'acceptation au centre de la ville.
@@ -107,6 +108,17 @@ ROAD100_PAX_PRODUCER_UNITS <- false; // ROAD100-30a : producer counts -> town-sh
 ROAD100_PAX_INITIAL_BERTH_FLEET <- false; // ROAD100-31 : initial extra PAX buses only after bilateral real joined berths
 ROAD100_PAX_ROOTS_LAST_YEAR <- -1; // sonde transitoire : au plus une exposition par annee et par processus
 ROAD100_LONG_SHADOW_YEAR <- -1; // ROAD100-16 : une prequalification longue par annee, jamais par regeneration PO01C
+/* EB-14 : vivier AIR/RAIL en tranches avec publication intermediaire ; OFF par defaut. */
+EB14_PROGRESSIVE <- false;
+/* Ablation EB-14 : garder C121 toute la premiere annee avec ROUTE ; OFF. */
+EB14_AIR_ROAD_YEAR_GUARD <- false;
+/* EB-3: pre-remplir le vivier RAIL en annee initiale, sans avancer les achats RAIL. */
+EB3_RAIL_FIRST_YEAR_PREFETCH <- false;
+EB14_INITIAL_RAIL_JOB <- false; // transitoire : le prochain Load repart d'une demande neuve.
+/* Trace EB14 strictement experimentale (EB14 + probes=258). Jamais sauvegardee. */
+EB14_TRACE_SIGN_COUNT <- 0;
+EB14_TRACE_SIGN_TYPES <- { E4 = 0, E5 = 0, E6 = 0 };
+EB14_TRACE_SELECTED <- {};
 /* V190 : lignes rail fret posees en double voie a sens unique des la construction. */
 V190_RAIL_DOUBLE_BUILD <- false;
 /* V197 : double voie guidee (outwardSide pour voie 1, guideTiles pour voie 2). */
@@ -421,9 +433,9 @@ C70_MODE_FACTOR <- { rail = 1.0, road = 1.0, air = 1.0, water = 1.0 };
  * (sweeps/estim_unifie_priors.py ; AIR = moyenne C121 des trois bras) ; WATER sans mesure.
  * Poids de l'a priori en annees-lignes : Bayes empirique AIR 9, RAIL 36, ROUTE 1 ; une valeur. */
 ESTIM_UNIFIE <- 0;
-ESTIM_K_R_PRIOR <- { rail = 0.92, road = 0.57, air = 0.40, water = 1.0 };
-ESTIM_K_R_PRIOR_WEIGHT <- 10.0;
-ESTIM_K_R <- { rail = 0.92, road = 0.57, air = 0.40, water = 1.0 };
+ESTIM_K_R_PRIOR <- { rail = 1.00, road = 0.57, air = 1.50, water = 1.0 };
+ESTIM_K_R_PRIOR_WEIGHT <- 15.0;
+ESTIM_K_R <- { rail = 1.00, road = 0.57, air = 1.50, water = 1.0 };
 /* ESTIM-1 bit 16 : profil RAIL fige par distance, recentre sur le prior global
  * rail 0.92. L'apprentissage en jeu conserve un seul facteur de niveau. */
 ESTIM_RAIL_KR_PROFILE_A <- 0.5722990662;
@@ -648,12 +660,6 @@ _currentTaskLogged <- false;
  * 0 = comportement casse d'avant le 2026-09-03, pour que le banc puisse chiffrer l'ecart. */
 /* C15 : cadence minimale d'agrandissement de flotte en jours (7 = hebdomadaire, 365 = defaut annuel historique). */
 AIR_FLEET_CADENCE_DAYS <- 7;
-/* V161 : valeur d'un renfort AIR plafonnee par un a priori net des voisines
- * (V161_PRIOR_OWN - V161_PRIOR_NEIGHBOUR x voisines partageant une gare - amortissement).
- * Un renfort reste a sa valeur modele perd l'exemption C70. */
-/* Mesure du 12/10 (v160_B20x10, 1973-74) : +13,4 k sur la ligne, -2,6 k par voisine. */
-V161_PRIOR_OWN <- 13000;
-V161_PRIOR_NEIGHBOUR <- 2600;
 /* C14 : tampon de cargo au sol pour achat proportionnel (-1 = inactif/defaut). */
 AIR_FLEET_BUFFER <- -1;
 /* Bras experimental : reutiliser un aeroport rentable pour une nouvelle destination. */
@@ -765,6 +771,16 @@ V131_REPAIR_MAX_TILES <- 35;
 V131_REPAIR_MAX_RUNS <- 3;
 V131_REPAIR_MAX_ITERS <- 2500;
 
+/* Rail repair 30/10 : deux variantes independantes, inertes au defaut ESTIM31.
+ * SITE = joindre un quai oriente a la gare existante quand le parallele est impossible.
+ * FOCUS = reparation d'un unique defaut local d'un plan prepare, budgets tres limites. */
+RAIL_REPAIR_JOIN_SITE <- false;
+RAIL_REPAIR_V131_FOCUS <- false;
+RAIL_REPAIR_V131_LEGACY_ACTIVE <- false; // Preserve explicitly enabled historical V131 independently of idle gate.
+/* 30/10 : reprises ferroviaires experimentales et independantes. */
+RAIL_REPAIR_ASTAR_PAIR <- false;
+RAIL_REPAIR_POSE_ORDER <- false;
+
 /* V131 : degagement urbain (clearance) de l'A* rail pour eviter les centres-villes
  * et leurs emprises aeroportuaires futures. Defaut 0 : cout nul. */
 V131_TOWN_CLEARANCE <- false;
@@ -815,3 +831,7 @@ const C77_INTENT_DEFER_DAYS = 365;
 
 ROAD1Y_SAVED_STOPS <- false; // Set only by reconciliation after Load.
 ROAD1Y_BUS_FIXES <- 0; // 1: pax-only additions; 4: min distance 30; 8: top two districts.
+/* PAX-AIR-FIRST : ablations independantes, strictement OFF par defaut. */
+PAX_AIR_FIRST_RAIL_OFF <- false;
+PAX_AIR_FIRST_AIR_UNBOUNDED <- false;
+PAX_AIR_FIRST_FEEDER_ONLY <- false;

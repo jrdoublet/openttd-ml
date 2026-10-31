@@ -1,0 +1,27 @@
+{
+  "seeds": 40,
+  "months_each": 60,
+  "policy": "estim31v161_mix_a200_r075_w15_slope",
+  "source_sha256": "15078ee31b595f31c9deb054de58cd88edeb72ed9e1eafc9b03463535a28f879",
+  "positive_observed_stock_steps": {
+    "223": 2436,
+    "218": 431,
+    "217": 186,
+    "228": 449,
+    "220": 69
+  },
+  "negative_observed_stock_steps": {
+    "223": 396,
+    "228": 41,
+    "218": 7,
+    "220": 8
+  },
+  "final_stock": {
+    "223": 2040,
+    "217": 186,
+    "218": 424,
+    "228": 408,
+    "220": 61
+  },
+  "limitations": "Positive monthly stock differences are LOWER BOUNDS of observed appearances, not gross physical purchases, invoices or cash transfers. Intramonth churn is hidden."
+}

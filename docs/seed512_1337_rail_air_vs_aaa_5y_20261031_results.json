@@ -1,0 +1,1105 @@
+{
+  "seeds": [
+    512,
+    1337
+  ],
+  "years": 5,
+  "first_year": 1970,
+  "openttd_version": "15.3",
+  "opengfx_version": "7.1",
+  "shared_map_opponents": true,
+  "config": "[difficulty]\nnumber_towns = 3\nindustry_density = 4\n[economy]\ninflation = false\ntown_growth_rate = 2\n[game_creation]\nstarting_year = 1970\nmap_x = 8\nmap_y = 8\n",
+  "opexai_modes": {
+    "RAIL": "OpexAI[mode_air=0,mode_road=0,mode_water=0,mode_rail=1]",
+    "AIR": "OpexAI[mode_air=1,mode_road=0,mode_water=0,mode_rail=0]"
+  },
+  "summary_1974": {
+    "512": {
+      "AIR": {
+        "AAAHogEx": {
+          "profit_year": 2949351,
+          "company_value": 4989290,
+          "income_last_year": 1039900,
+          "expenses_last_year": -60907,
+          "n_vehicles": 136,
+          "primary_vehicles_by_mode": {
+            "rail": 42,
+            "road": 68,
+            "air": 26,
+            "water": 0
+          },
+          "stations_by_facility": {
+            "rail": 37,
+            "truck": 26,
+            "bus": 61,
+            "airport": 24,
+            "dock": 0
+          },
+          "n_stations": 111,
+          "money": 402924,
+          "current_loan": 0,
+          "median_station_rating": 190.0,
+          "performance_history": 775,
+          "vehs_chunk_valid": true,
+          "stnn_chunk_valid": true,
+          "company_present": true,
+          "profit_year_coverage": "complete"
+        },
+        "OpexAI": {
+          "profit_year": 2381660,
+          "company_value": 4521428,
+          "income_last_year": 692808,
+          "expenses_last_year": -111253,
+          "n_vehicles": 85,
+          "primary_vehicles_by_mode": {
+            "rail": 0,
+            "road": 0,
+            "air": 85,
+            "water": 0
+          },
+          "stations_by_facility": {
+            "rail": 0,
+            "truck": 0,
+            "bus": 32,
+            "airport": 33,
+            "dock": 0
+          },
+          "n_stations": 33,
+          "money": 759964,
+          "current_loan": 0,
+          "median_station_rating": 171.5,
+          "performance_history": 672,
+          "vehs_chunk_valid": true,
+          "stnn_chunk_valid": true,
+          "company_present": true,
+          "profit_year_coverage": "complete"
+        }
+      },
+      "RAIL": {
+        "AAAHogEx": {
+          "profit_year": 2232180,
+          "company_value": 4080112,
+          "income_last_year": 665559,
+          "expenses_last_year": -84178,
+          "n_vehicles": 173,
+          "primary_vehicles_by_mode": {
+            "rail": 16,
+            "road": 112,
+            "air": 45,
+            "water": 0
+          },
+          "stations_by_facility": {
+            "rail": 25,
+            "truck": 30,
+            "bus": 68,
+            "airport": 36,
+            "dock": 0
+          },
+          "n_stations": 114,
+          "money": 295927,
+          "current_loan": 0,
+          "median_station_rating": 180,
+          "performance_history": 693,
+          "vehs_chunk_valid": true,
+          "stnn_chunk_valid": true,
+          "company_present": true,
+          "profit_year_coverage": "complete"
+        },
+        "OpexAI": {
+          "profit_year": 1051209,
+          "company_value": 1594995,
+          "income_last_year": 288370,
+          "expenses_last_year": -22692,
+          "n_vehicles": 38,
+          "primary_vehicles_by_mode": {
+            "rail": 38,
+            "road": 0,
+            "air": 0,
+            "water": 0
+          },
+          "stations_by_facility": {
+            "rail": 65,
+            "truck": 0,
+            "bus": 26,
+            "airport": 0,
+            "dock": 0
+          },
+          "n_stations": 65,
+          "money": 189904,
+          "current_loan": 0,
+          "median_station_rating": 140,
+          "performance_history": 618,
+          "vehs_chunk_valid": true,
+          "stnn_chunk_valid": true,
+          "company_present": true,
+          "profit_year_coverage": "complete"
+        }
+      }
+    },
+    "1337": {
+      "AIR": {
+        "AAAHogEx": {
+          "profit_year": 3146793,
+          "company_value": 5943998,
+          "income_last_year": 924396,
+          "expenses_last_year": -89315,
+          "n_vehicles": 196,
+          "primary_vehicles_by_mode": {
+            "rail": 38,
+            "road": 122,
+            "air": 36,
+            "water": 0
+          },
+          "stations_by_facility": {
+            "rail": 46,
+            "truck": 72,
+            "bus": 84,
+            "airport": 30,
+            "dock": 0
+          },
+          "n_stations": 162,
+          "money": 632029,
+          "current_loan": 0,
+          "median_station_rating": 183,
+          "performance_history": 800,
+          "vehs_chunk_valid": true,
+          "stnn_chunk_valid": true,
+          "company_present": true,
+          "profit_year_coverage": "complete"
+        },
+        "OpexAI": {
+          "profit_year": 2033991,
+          "company_value": 5299748,
+          "income_last_year": 641674,
+          "expenses_last_year": -131260,
+          "n_vehicles": 83,
+          "primary_vehicles_by_mode": {
+            "rail": 0,
+            "road": 0,
+            "air": 83,
+            "water": 0
+          },
+          "stations_by_facility": {
+            "rail": 0,
+            "truck": 0,
+            "bus": 29,
+            "airport": 40,
+            "dock": 0
+          },
+          "n_stations": 40,
+          "money": 279688,
+          "current_loan": 0,
+          "median_station_rating": 156.0,
+          "performance_history": 594,
+          "vehs_chunk_valid": true,
+          "stnn_chunk_valid": true,
+          "company_present": true,
+          "profit_year_coverage": "complete"
+        }
+      },
+      "RAIL": {
+        "AAAHogEx": {
+          "profit_year": 3333683,
+          "company_value": 7442889,
+          "income_last_year": 992899,
+          "expenses_last_year": -113093,
+          "n_vehicles": 276,
+          "primary_vehicles_by_mode": {
+            "rail": 26,
+            "road": 194,
+            "air": 56,
+            "water": 0
+          },
+          "stations_by_facility": {
+            "rail": 43,
+            "truck": 83,
+            "bus": 108,
+            "airport": 46,
+            "dock": 0
+          },
+          "n_stations": 192,
+          "money": 172861,
+          "current_loan": 0,
+          "median_station_rating": 184,
+          "performance_history": 787,
+          "vehs_chunk_valid": true,
+          "stnn_chunk_valid": true,
+          "company_present": true,
+          "profit_year_coverage": "complete"
+        },
+        "OpexAI": {
+          "profit_year": 902190,
+          "company_value": 1593792,
+          "income_last_year": 233148,
+          "expenses_last_year": -21713,
+          "n_vehicles": 36,
+          "primary_vehicles_by_mode": {
+            "rail": 36,
+            "road": 0,
+            "air": 0,
+            "water": 0
+          },
+          "stations_by_facility": {
+            "rail": 60,
+            "truck": 0,
+            "bus": 32,
+            "airport": 0,
+            "dock": 0
+          },
+          "n_stations": 60,
+          "money": 73209,
+          "current_loan": 0,
+          "median_station_rating": 124,
+          "performance_history": 616,
+          "vehs_chunk_valid": true,
+          "stnn_chunk_valid": true,
+          "company_present": true,
+          "profit_year_coverage": "complete"
+        }
+      }
+    }
+  },
+  "annual_trajectories": {
+    "512": {
+      "AIR": {
+        "AAAHogEx": [
+          {
+            "date": "1970-12-01",
+            "profit_year": 208948,
+            "company_value": 71961,
+            "n_vehicles": 8,
+            "primary_vehicles_by_mode": {
+              "rail": 1,
+              "road": 0,
+              "air": 7,
+              "water": 0
+            },
+            "stations_by_facility": {
+              "rail": 2,
+              "truck": 3,
+              "bus": 7,
+              "airport": 8,
+              "dock": 0
+            },
+            "n_stations": 9
+          },
+          {
+            "date": "1971-12-01",
+            "profit_year": 499209,
+            "company_value": 417872,
+            "n_vehicles": 16,
+            "primary_vehicles_by_mode": {
+              "rail": 2,
+              "road": 2,
+              "air": 12,
+              "water": 0
+            },
+            "stations_by_facility": {
+              "rail": 4,
+              "truck": 3,
+              "bus": 16,
+              "airport": 16,
+              "dock": 0
+            },
+            "n_stations": 20
+          },
+          {
+            "date": "1972-12-01",
+            "profit_year": 951736,
+            "company_value": 1049313,
+            "n_vehicles": 37,
+            "primary_vehicles_by_mode": {
+              "rail": 13,
+              "road": 9,
+              "air": 15,
+              "water": 0
+            },
+            "stations_by_facility": {
+              "rail": 23,
+              "truck": 7,
+              "bus": 21,
+              "airport": 18,
+              "dock": 0
+            },
+            "n_stations": 44
+          },
+          {
+            "date": "1973-12-01",
+            "profit_year": 2210331,
+            "company_value": 2747343,
+            "n_vehicles": 110,
+            "primary_vehicles_by_mode": {
+              "rail": 23,
+              "road": 67,
+              "air": 20,
+              "water": 0
+            },
+            "stations_by_facility": {
+              "rail": 28,
+              "truck": 20,
+              "bus": 45,
+              "airport": 22,
+              "dock": 0
+            },
+            "n_stations": 85
+          },
+          {
+            "date": "1974-12-01",
+            "profit_year": 2949351,
+            "company_value": 4989290,
+            "n_vehicles": 136,
+            "primary_vehicles_by_mode": {
+              "rail": 42,
+              "road": 68,
+              "air": 26,
+              "water": 0
+            },
+            "stations_by_facility": {
+              "rail": 37,
+              "truck": 26,
+              "bus": 61,
+              "airport": 24,
+              "dock": 0
+            },
+            "n_stations": 111
+          }
+        ],
+        "OpexAI": [
+          {
+            "date": "1970-12-01",
+            "profit_year": 372336,
+            "company_value": 272556,
+            "n_vehicles": 11,
+            "primary_vehicles_by_mode": {
+              "rail": 0,
+              "road": 0,
+              "air": 11,
+              "water": 0
+            },
+            "stations_by_facility": {
+              "rail": 0,
+              "truck": 0,
+              "bus": 13,
+              "airport": 13,
+              "dock": 0
+            },
+            "n_stations": 13
+          },
+          {
+            "date": "1971-12-01",
+            "profit_year": 1348541,
+            "company_value": 1659155,
+            "n_vehicles": 42,
+            "primary_vehicles_by_mode": {
+              "rail": 0,
+              "road": 0,
+              "air": 42,
+              "water": 0
+            },
+            "stations_by_facility": {
+              "rail": 0,
+              "truck": 0,
+              "bus": 25,
+              "airport": 25,
+              "dock": 0
+            },
+            "n_stations": 25
+          },
+          {
+            "date": "1972-12-01",
+            "profit_year": 2135532,
+            "company_value": 3406281,
+            "n_vehicles": 59,
+            "primary_vehicles_by_mode": {
+              "rail": 0,
+              "road": 0,
+              "air": 59,
+              "water": 0
+            },
+            "stations_by_facility": {
+              "rail": 0,
+              "truck": 0,
+              "bus": 32,
+              "airport": 33,
+              "dock": 0
+            },
+            "n_stations": 33
+          },
+          {
+            "date": "1973-12-01",
+            "profit_year": 2225302,
+            "company_value": 4384581,
+            "n_vehicles": 77,
+            "primary_vehicles_by_mode": {
+              "rail": 0,
+              "road": 0,
+              "air": 77,
+              "water": 0
+            },
+            "stations_by_facility": {
+              "rail": 0,
+              "truck": 0,
+              "bus": 32,
+              "airport": 33,
+              "dock": 0
+            },
+            "n_stations": 33
+          },
+          {
+            "date": "1974-12-01",
+            "profit_year": 2381660,
+            "company_value": 4521428,
+            "n_vehicles": 85,
+            "primary_vehicles_by_mode": {
+              "rail": 0,
+              "road": 0,
+              "air": 85,
+              "water": 0
+            },
+            "stations_by_facility": {
+              "rail": 0,
+              "truck": 0,
+              "bus": 32,
+              "airport": 33,
+              "dock": 0
+            },
+            "n_stations": 33
+          }
+        ]
+      },
+      "RAIL": {
+        "AAAHogEx": [
+          {
+            "date": "1970-12-01",
+            "profit_year": 166902,
+            "company_value": 157596,
+            "n_vehicles": 9,
+            "primary_vehicles_by_mode": {
+              "rail": 0,
+              "road": 0,
+              "air": 9,
+              "water": 0
+            },
+            "stations_by_facility": {
+              "rail": 0,
+              "truck": 1,
+              "bus": 8,
+              "airport": 9,
+              "dock": 0
+            },
+            "n_stations": 9
+          },
+          {
+            "date": "1971-12-01",
+            "profit_year": 787485,
+            "company_value": 783488,
+            "n_vehicles": 25,
+            "primary_vehicles_by_mode": {
+              "rail": 2,
+              "road": 2,
+              "air": 21,
+              "water": 0
+            },
+            "stations_by_facility": {
+              "rail": 4,
+              "truck": 7,
+              "bus": 16,
+              "airport": 20,
+              "dock": 0
+            },
+            "n_stations": 25
+          },
+          {
+            "date": "1972-12-01",
+            "profit_year": 1253496,
+            "company_value": 1742837,
+            "n_vehicles": 62,
+            "primary_vehicles_by_mode": {
+              "rail": 6,
+              "road": 24,
+              "air": 32,
+              "water": 0
+            },
+            "stations_by_facility": {
+              "rail": 14,
+              "truck": 13,
+              "bus": 33,
+              "airport": 32,
+              "dock": 0
+            },
+            "n_stations": 56
+          },
+          {
+            "date": "1973-12-01",
+            "profit_year": 1895242,
+            "company_value": 3152100,
+            "n_vehicles": 133,
+            "primary_vehicles_by_mode": {
+              "rail": 13,
+              "road": 80,
+              "air": 40,
+              "water": 0
+            },
+            "stations_by_facility": {
+              "rail": 23,
+              "truck": 23,
+              "bus": 55,
+              "airport": 34,
+              "dock": 0
+            },
+            "n_stations": 92
+          },
+          {
+            "date": "1974-12-01",
+            "profit_year": 2232180,
+            "company_value": 4080112,
+            "n_vehicles": 173,
+            "primary_vehicles_by_mode": {
+              "rail": 16,
+              "road": 112,
+              "air": 45,
+              "water": 0
+            },
+            "stations_by_facility": {
+              "rail": 25,
+              "truck": 30,
+              "bus": 68,
+              "airport": 36,
+              "dock": 0
+            },
+            "n_stations": 114
+          }
+        ],
+        "OpexAI": [
+          {
+            "date": "1970-12-01",
+            "profit_year": 135517,
+            "company_value": 76999,
+            "n_vehicles": 7,
+            "primary_vehicles_by_mode": {
+              "rail": 7,
+              "road": 0,
+              "air": 0,
+              "water": 0
+            },
+            "stations_by_facility": {
+              "rail": 14,
+              "truck": 0,
+              "bus": 12,
+              "airport": 0,
+              "dock": 0
+            },
+            "n_stations": 14
+          },
+          {
+            "date": "1971-12-01",
+            "profit_year": 567282,
+            "company_value": 504816,
+            "n_vehicles": 16,
+            "primary_vehicles_by_mode": {
+              "rail": 16,
+              "road": 0,
+              "air": 0,
+              "water": 0
+            },
+            "stations_by_facility": {
+              "rail": 33,
+              "truck": 0,
+              "bus": 19,
+              "airport": 0,
+              "dock": 0
+            },
+            "n_stations": 33
+          },
+          {
+            "date": "1972-12-01",
+            "profit_year": 807653,
+            "company_value": 1127416,
+            "n_vehicles": 31,
+            "primary_vehicles_by_mode": {
+              "rail": 31,
+              "road": 0,
+              "air": 0,
+              "water": 0
+            },
+            "stations_by_facility": {
+              "rail": 57,
+              "truck": 0,
+              "bus": 25,
+              "airport": 0,
+              "dock": 0
+            },
+            "n_stations": 57
+          },
+          {
+            "date": "1973-12-01",
+            "profit_year": 1133623,
+            "company_value": 1883578,
+            "n_vehicles": 37,
+            "primary_vehicles_by_mode": {
+              "rail": 37,
+              "road": 0,
+              "air": 0,
+              "water": 0
+            },
+            "stations_by_facility": {
+              "rail": 65,
+              "truck": 0,
+              "bus": 26,
+              "airport": 0,
+              "dock": 0
+            },
+            "n_stations": 65
+          },
+          {
+            "date": "1974-12-01",
+            "profit_year": 1051209,
+            "company_value": 1594995,
+            "n_vehicles": 38,
+            "primary_vehicles_by_mode": {
+              "rail": 38,
+              "road": 0,
+              "air": 0,
+              "water": 0
+            },
+            "stations_by_facility": {
+              "rail": 65,
+              "truck": 0,
+              "bus": 26,
+              "airport": 0,
+              "dock": 0
+            },
+            "n_stations": 65
+          }
+        ]
+      }
+    },
+    "1337": {
+      "AIR": {
+        "AAAHogEx": [
+          {
+            "date": "1970-12-01",
+            "profit_year": 331581,
+            "company_value": 329772,
+            "n_vehicles": 13,
+            "primary_vehicles_by_mode": {
+              "rail": 0,
+              "road": 0,
+              "air": 13,
+              "water": 0
+            },
+            "stations_by_facility": {
+              "rail": 0,
+              "truck": 4,
+              "bus": 9,
+              "airport": 14,
+              "dock": 0
+            },
+            "n_stations": 14
+          },
+          {
+            "date": "1971-12-01",
+            "profit_year": 1553184,
+            "company_value": 1675174,
+            "n_vehicles": 76,
+            "primary_vehicles_by_mode": {
+              "rail": 7,
+              "road": 45,
+              "air": 24,
+              "water": 0
+            },
+            "stations_by_facility": {
+              "rail": 14,
+              "truck": 30,
+              "bus": 33,
+              "airport": 26,
+              "dock": 0
+            },
+            "n_stations": 70
+          },
+          {
+            "date": "1972-12-01",
+            "profit_year": 2235885,
+            "company_value": 3241590,
+            "n_vehicles": 170,
+            "primary_vehicles_by_mode": {
+              "rail": 14,
+              "road": 132,
+              "air": 24,
+              "water": 0
+            },
+            "stations_by_facility": {
+              "rail": 26,
+              "truck": 56,
+              "bus": 73,
+              "airport": 28,
+              "dock": 0
+            },
+            "n_stations": 133
+          },
+          {
+            "date": "1973-12-01",
+            "profit_year": 2592062,
+            "company_value": 4111461,
+            "n_vehicles": 213,
+            "primary_vehicles_by_mode": {
+              "rail": 29,
+              "road": 148,
+              "air": 36,
+              "water": 0
+            },
+            "stations_by_facility": {
+              "rail": 40,
+              "truck": 65,
+              "bus": 84,
+              "airport": 30,
+              "dock": 0
+            },
+            "n_stations": 150
+          },
+          {
+            "date": "1974-12-01",
+            "profit_year": 3146793,
+            "company_value": 5943998,
+            "n_vehicles": 196,
+            "primary_vehicles_by_mode": {
+              "rail": 38,
+              "road": 122,
+              "air": 36,
+              "water": 0
+            },
+            "stations_by_facility": {
+              "rail": 46,
+              "truck": 72,
+              "bus": 84,
+              "airport": 30,
+              "dock": 0
+            },
+            "n_stations": 162
+          }
+        ],
+        "OpexAI": [
+          {
+            "date": "1970-12-01",
+            "profit_year": 321853,
+            "company_value": 391480,
+            "n_vehicles": 9,
+            "primary_vehicles_by_mode": {
+              "rail": 0,
+              "road": 0,
+              "air": 9,
+              "water": 0
+            },
+            "stations_by_facility": {
+              "rail": 0,
+              "truck": 0,
+              "bus": 9,
+              "airport": 11,
+              "dock": 0
+            },
+            "n_stations": 11
+          },
+          {
+            "date": "1971-12-01",
+            "profit_year": 1180431,
+            "company_value": 1523086,
+            "n_vehicles": 29,
+            "primary_vehicles_by_mode": {
+              "rail": 0,
+              "road": 0,
+              "air": 29,
+              "water": 0
+            },
+            "stations_by_facility": {
+              "rail": 0,
+              "truck": 0,
+              "bus": 20,
+              "airport": 23,
+              "dock": 0
+            },
+            "n_stations": 23
+          },
+          {
+            "date": "1972-12-01",
+            "profit_year": 1818684,
+            "company_value": 3278441,
+            "n_vehicles": 52,
+            "primary_vehicles_by_mode": {
+              "rail": 0,
+              "road": 0,
+              "air": 52,
+              "water": 0
+            },
+            "stations_by_facility": {
+              "rail": 0,
+              "truck": 0,
+              "bus": 29,
+              "airport": 37,
+              "dock": 0
+            },
+            "n_stations": 37
+          },
+          {
+            "date": "1973-12-01",
+            "profit_year": 1998792,
+            "company_value": 4504231,
+            "n_vehicles": 66,
+            "primary_vehicles_by_mode": {
+              "rail": 0,
+              "road": 0,
+              "air": 66,
+              "water": 0
+            },
+            "stations_by_facility": {
+              "rail": 0,
+              "truck": 0,
+              "bus": 29,
+              "airport": 40,
+              "dock": 0
+            },
+            "n_stations": 40
+          },
+          {
+            "date": "1974-12-01",
+            "profit_year": 2033991,
+            "company_value": 5299748,
+            "n_vehicles": 83,
+            "primary_vehicles_by_mode": {
+              "rail": 0,
+              "road": 0,
+              "air": 83,
+              "water": 0
+            },
+            "stations_by_facility": {
+              "rail": 0,
+              "truck": 0,
+              "bus": 29,
+              "airport": 40,
+              "dock": 0
+            },
+            "n_stations": 40
+          }
+        ]
+      },
+      "RAIL": {
+        "AAAHogEx": [
+          {
+            "date": "1970-12-01",
+            "profit_year": 363603,
+            "company_value": 340057,
+            "n_vehicles": 14,
+            "primary_vehicles_by_mode": {
+              "rail": 0,
+              "road": 0,
+              "air": 14,
+              "water": 0
+            },
+            "stations_by_facility": {
+              "rail": 0,
+              "truck": 2,
+              "bus": 11,
+              "airport": 14,
+              "dock": 0
+            },
+            "n_stations": 14
+          },
+          {
+            "date": "1971-12-01",
+            "profit_year": 1432383,
+            "company_value": 1491245,
+            "n_vehicles": 50,
+            "primary_vehicles_by_mode": {
+              "rail": 7,
+              "road": 12,
+              "air": 31,
+              "water": 0
+            },
+            "stations_by_facility": {
+              "rail": 15,
+              "truck": 22,
+              "bus": 23,
+              "airport": 32,
+              "dock": 0
+            },
+            "n_stations": 49
+          },
+          {
+            "date": "1972-12-01",
+            "profit_year": 2531936,
+            "company_value": 3472036,
+            "n_vehicles": 177,
+            "primary_vehicles_by_mode": {
+              "rail": 14,
+              "road": 126,
+              "air": 37,
+              "water": 0
+            },
+            "stations_by_facility": {
+              "rail": 23,
+              "truck": 53,
+              "bus": 60,
+              "airport": 36,
+              "dock": 0
+            },
+            "n_stations": 113
+          },
+          {
+            "date": "1973-12-01",
+            "profit_year": 2965508,
+            "company_value": 5298487,
+            "n_vehicles": 266,
+            "primary_vehicles_by_mode": {
+              "rail": 18,
+              "road": 201,
+              "air": 47,
+              "water": 0
+            },
+            "stations_by_facility": {
+              "rail": 31,
+              "truck": 74,
+              "bus": 91,
+              "airport": 44,
+              "dock": 0
+            },
+            "n_stations": 163
+          },
+          {
+            "date": "1974-12-01",
+            "profit_year": 3333683,
+            "company_value": 7442889,
+            "n_vehicles": 276,
+            "primary_vehicles_by_mode": {
+              "rail": 26,
+              "road": 194,
+              "air": 56,
+              "water": 0
+            },
+            "stations_by_facility": {
+              "rail": 43,
+              "truck": 83,
+              "bus": 108,
+              "airport": 46,
+              "dock": 0
+            },
+            "n_stations": 192
+          }
+        ],
+        "OpexAI": [
+          {
+            "date": "1970-12-01",
+            "profit_year": 62191,
+            "company_value": 21139,
+            "n_vehicles": 4,
+            "primary_vehicles_by_mode": {
+              "rail": 4,
+              "road": 0,
+              "air": 0,
+              "water": 0
+            },
+            "stations_by_facility": {
+              "rail": 8,
+              "truck": 0,
+              "bus": 8,
+              "airport": 0,
+              "dock": 0
+            },
+            "n_stations": 8
+          },
+          {
+            "date": "1971-12-01",
+            "profit_year": 466908,
+            "company_value": 460758,
+            "n_vehicles": 15,
+            "primary_vehicles_by_mode": {
+              "rail": 15,
+              "road": 0,
+              "air": 0,
+              "water": 0
+            },
+            "stations_by_facility": {
+              "rail": 30,
+              "truck": 0,
+              "bus": 26,
+              "airport": 0,
+              "dock": 0
+            },
+            "n_stations": 30
+          },
+          {
+            "date": "1972-12-01",
+            "profit_year": 729477,
+            "company_value": 938358,
+            "n_vehicles": 25,
+            "primary_vehicles_by_mode": {
+              "rail": 25,
+              "road": 0,
+              "air": 0,
+              "water": 0
+            },
+            "stations_by_facility": {
+              "rail": 48,
+              "truck": 0,
+              "bus": 30,
+              "airport": 0,
+              "dock": 0
+            },
+            "n_stations": 49
+          },
+          {
+            "date": "1973-12-01",
+            "profit_year": 889746,
+            "company_value": 1491482,
+            "n_vehicles": 34,
+            "primary_vehicles_by_mode": {
+              "rail": 34,
+              "road": 0,
+              "air": 0,
+              "water": 0
+            },
+            "stations_by_facility": {
+              "rail": 59,
+              "truck": 0,
+              "bus": 32,
+              "airport": 0,
+              "dock": 0
+            },
+            "n_stations": 59
+          },
+          {
+            "date": "1974-12-01",
+            "profit_year": 902190,
+            "company_value": 1593792,
+            "n_vehicles": 36,
+            "primary_vehicles_by_mode": {
+              "rail": 36,
+              "road": 0,
+              "air": 0,
+              "water": 0
+            },
+            "stations_by_facility": {
+              "rail": 60,
+              "truck": 0,
+              "bus": 32,
+              "airport": 0,
+              "dock": 0
+            },
+            "n_stations": 60
+          }
+        ]
+      }
+    }
+  },
+  "source_commit_at_benchmark": "545affe3168d8a73bcd4111af4473425bef3b99a",
+  "raw_json_sha256": "1a4d3899929fd81c6e1a2a6814f580333cabaf0e3f8bad55f55a7632c42fcad8",
+  "raw_jsonl_sha256": "201f1644542cab7a8c8bbfa4f81f2c81d6acc953a190b25b3f456b1660611dff",
+  "validation": {
+    "games": 4,
+    "company_streams": 8,
+    "monthly_company_records": 480,
+    "complete_monthly_streams": true,
+    "all_companies_present": true,
+    "all_vehs_and_stnn_valid": true,
+    "zero_script_failures": true,
+    "final_profit_year_complete": true
+  }
+}

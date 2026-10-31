@@ -257,6 +257,10 @@ function OpexCandidateIsAbandoned(p, abandonedPairs)
 /* C36.1 : Revalidation rapide d'un candidat deja en memoire contre this._lines. */
 function OpexCandidateStillValid(p, lines, abandonedPairs = null)
 {
+  if (PAX_AIR_FIRST_RAIL_OFF && p != null && p.mode == "rail" && p.kind == "pax")
+    return false;
+  if (PAX_AIR_FIRST_FEEDER_ONLY && p != null && p.mode == "road" && p.kind == "pax")
+    return false;
   if (p == null) return false;
   local mode = p.mode;
 
@@ -500,6 +504,8 @@ function OpexCandidateStillValidIndexed(p, lines, abandonedPairs, ctx)
 {
   if (p == null) return false;
   local mode = p.mode;
+  if (PAX_AIR_FIRST_RAIL_OFF && mode == "rail" && p.kind == "pax") return false;
+  if (PAX_AIR_FIRST_FEEDER_ONLY && mode == "road" && p.kind == "pax") return false;
 
   /* 0. Candidat abandonne (echec de trace ou depot) */
   if (OpexCandidateIsAbandoned(p, abandonedPairs)) return false;
@@ -688,6 +694,9 @@ function OpexRailPrepMergeAlternatives(alternatives, railReadyStock)
   foreach (pairKey, entry in railReadyStock) {
     if (pairKey in seen) continue;
     if (entry == null || !("project" in entry) || entry.project == null) continue;
+    /* C121 prepared stock may predate the current experiment's pax veto. */
+    if (PAX_AIR_FIRST_RAIL_OFF && entry.project.mode == "rail"
+        && entry.project.kind == "pax") continue;
     if (!("plan" in entry) || entry.plan == null) continue;
     if (("ok" in entry.plan) && !entry.plan.ok) continue;
     if (("payload" in entry.project) && entry.project.payload != null) {

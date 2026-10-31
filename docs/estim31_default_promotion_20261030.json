@@ -1,0 +1,67 @@
+{
+  "selected_20x10": {
+    "suite": "v161",
+    "name": "mix_a200_r075_w15_slope",
+    "ratio_pct": 66.55772625601193,
+    "opex_profit_mean": 4255528,
+    "aaa_profit_mean": 6393740.05,
+    "source_bundle_sha256": "15078ee31b595f31c9deb054de58cd88edeb72ed9e1eafc9b03463535a28f879",
+    "campaign": "estim31ten_estim31v161_mix_a200_r075_w15_slope_20x10_20261030"
+  },
+  "source_bundle_path": "C:\\Users\\jr\\vscode\\openttd-ml\\openttd-ml\\results\\estim31_v161_safe20261030\\mix_a200_r075_w15_slope",
+  "source_files": 99,
+  "ai_libraries_files": 4,
+  "ai_libraries_to_install": [
+    "4752412a-Graph.AyStar-4.tar",
+    "5046524c-Pathfinder.Rail-1.tar",
+    "51554248-Queue.BinaryHeap-1.tar",
+    "51554648-Queue.FibonacciHeap-3.tar"
+  ],
+  "ai_libraries_verified": true,
+  "executed_source_verified": {
+    "ai/OpexAI": 99,
+    "ai_libraries": 4
+  },
+  "files_to_add_or_update": [
+    "air_economics_c121.nut",
+    "air_economics_c121_fullscan.nut",
+    "air_fleet.nut",
+    "air_planning.nut",
+    "airport_feeder.nut",
+    "airport_feeder_connector.nut",
+    "airport_feeder_depot.nut",
+    "airport_feeder_dispatch.nut",
+    "airport_feeder_siting.nut",
+    "airport_feeder_telemetry.nut",
+    "airport_rail_feeder.nut",
+    "airport_rail_feeder_dispatch.nut",
+    "builder_road.nut",
+    "candidates.nut",
+    "candidates_v276.nut",
+    "globals_pre.nut",
+    "info.nut",
+    "orchestrator.nut",
+    "persist.nut",
+    "po01c_regen.nut",
+    "projects.nut",
+    "projects_builders.nut",
+    "projects_generation.nut",
+    "projects_models.nut",
+    "projects_selection.nut",
+    "projects_update.nut",
+    "scheduler_tasks.nut",
+    "settings.nut",
+    "task_air.nut",
+    "task_projects.nut",
+    "task_road.nut"
+  ],
+  "default_settings": {
+    "estim_unifie": 31,
+    "eb14_progressive": 3,
+    "probes": 2
+  },
+  "explicit_old_settings_preserved": true,
+  "c121_fullscan_frozen_source_sha256": "9e6c69eeb13d7522b5965b662dfdffdfb2c772aa9be670608cad7f200162048c",
+  "applied_to_isolated_worktree": true,
+  "not_yet_proven": "A new default has not been runtime-validated; separate tests, SaveLoad, and smoke are required before any master merge."
+}

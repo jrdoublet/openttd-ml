@@ -30,6 +30,12 @@ RESERVE0_OFF_SHA256 = {
     "task_v284.nut": "5d2ffd11523c306c0d4236534a75e3e7e79da168e314fb2978e44aad32fd02d6",
 }
 
+# V161 (29/10): reviewed removal of the 6-line V161 prior block from
+# globals_pre.nut, after all V233L projections. Restoring only that block
+# temporarily for comparison reproduced the frozen a9daf7... hash exactly;
+# retain the historical pin above and add a pin for the new projection.
+V161_GLOBALS_OFF_SHA256 = "a78685378d65dac1f85a28726b40cdd682e1be77634093d28d494649f1691cf7"
+
 
 def observe(samples):
     """Six real observations in seven calendar months; no missing value imputed."""
@@ -945,8 +951,12 @@ class V233LongGoodContracts(unittest.TestCase):
                     self.assertIn('OpexDecide("ESTIM_SPEND"', current[start:end])
                     current = current[:start] + current[end:]
                 projected = off_source(name, road100_off_source(name, current))
+                if name == "globals_pre.nut":
+                    self.assertNotIn("V161_PRIOR_OWN", projected)
+                    self.assertNotIn("V161_PRIOR_NEIGHBOUR", projected)
                 self.assertEqual(hashlib.sha256(projected.encode()).hexdigest(),
-                                 RESERVE0_OFF_SHA256.get(name, entry["sha256_off"]))
+                                 (V161_GLOBALS_OFF_SHA256 if name == "globals_pre.nut"
+                                  else RESERVE0_OFF_SHA256.get(name, entry["sha256_off"])))
                 if name not in ("main.nut", "globals_pre.nut", "info.nut", "settings.nut", "persist.nut"):
                     self.assertNotIn("OpexV233L", uncomment(projected))
         edited = source("candidates.nut").replace("V233_LONG_GOOD > 0 ? OpexV233LSource", "true ? OpexV233LSource")
@@ -1087,8 +1097,9 @@ class V233LongGoodContracts(unittest.TestCase):
 
     def test_two_train_sizing_tariff_and_both_recalculations(self):
         econ = body("economy.nut", "OpexLineEconomics")
-        self.assertIn('if (longModel) calibrationOffered /= 2.0;', econ)
-        self.assertIn('longModel || (OpexV190Active()', econ)
+        self.assertIn('if (longModel && !monoLong) calibrationOffered /= 2.0;', econ)
+        self.assertIn('(longModel && !monoLong) || (OpexV190Active()', econ)
+        self.assertIn('v233Single = false', source("economy.nut"))  # historique double inchangé par défaut
         self.assertIn('AICargo.GetCargoIncome(cargo, distance, paidDays)', econ)
         self.assertIn('oneWayDays + dwellDays / 2 + perTrain * 15.0 / offered', econ)
         self.assertIn('OpexV163CandidateSecondary(candidate), OpexV233LIs(candidate)', source("builder_rail.nut"))

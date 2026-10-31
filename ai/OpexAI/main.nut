@@ -29,6 +29,7 @@ import("pathfinder.rail", "RailPathFinder", 1);
 
 require("globals_pre.nut");
 require("difficulty.nut");
+require("rail_repair_idle.nut");
 
 const RAIL_EXPAND_TIMEOUT_DAYS = 120;
 /* Meme enveloppe locale que les signaux d'approche rail
@@ -682,6 +683,14 @@ function OpexAI::Start()
   this._startTick = AIController.GetTick();
 
   OpexLoadSettings();
+  /* New games and legacy saves have no reliable last-build date. Start with a
+   * conservative cooldown; a loaded valid scalar is not reset. */
+  if (OpexRailRepairAnyOptIn() && (RAIL_REPAIR_LAST_CONSTRUCTION_DATE < 0
+      || RAIL_REPAIR_LAST_CONSTRUCTION_DATE > AIDate.GetCurrentDate()))
+    RAIL_REPAIR_LAST_CONSTRUCTION_DATE = AIDate.GetCurrentDate();
+  if (DECISION_LOG && OpexRailRepairAnyOptIn())
+    OpexDecide("RAIL_REPAIR_IDLE", "phase=start last=" + RAIL_REPAIR_LAST_CONSTRUCTION_DATE
+        + " ready=" + OpexRailRepairSixMonthThreshold(RAIL_REPAIR_LAST_CONSTRUCTION_DATE));
   OpexV147ExtendQueue(this);
   V233L_STATE = V233_LONG_GOOD > 0 ? OpexV233LLoad(this._v233LReload) : null;
   this._v233LReload = null;

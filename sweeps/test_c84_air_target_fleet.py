@@ -88,11 +88,12 @@ class TestC84AirTargetFleetRemoved(unittest.TestCase):
         self.assertNotIn("OpexAirExistingLineMarginalEconomics", resize)
         self.assertNotIn('OpexSpanAgg("fleet.marginal"', resize)
 
-    def test_fleet_project_keeps_c121_or_historical_profit(self):
+    def test_fleet_project_uses_only_next_net_marginal(self):
         project = function_body(self.projects, "function OpexProjectFromFleet(")
-        self.assertIn('local c121BelowTarget = ("targetAirPlanes" in line)', project)
-        self.assertIn("profit = perPlaneProfit * entry.want;", project)
-        self.assertIn('if (("lastProfit" in line) && line.lastProfit > 0)', project)
+        self.assertIn("entry.v161BaseVehicles != have", project)
+        self.assertIn("local profit = entry.v161Profit;", project)
+        self.assertIn("local revenue = entry.v161DeltaR;", project)
+        self.assertNotIn('if (("lastProfit" in line) && line.lastProfit > 0)', project)
         self.assertNotIn("c84MarginalProfit", project)
         self.assertNotIn("c84BelowTarget", project)
         self.assertNotIn("if (V161_FLEET_NET_MARGINAL > 0) {", project)

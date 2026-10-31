@@ -825,7 +825,7 @@ function OpexAirPlansNewPairs(ctx, comboIndex, combo, airport, plane, minDist, r
       local orderDistance = AIOrder.GetOrderDistance(AIVehicle.VT_AIR,
                                                       sites[a].anchor, sites[b].anchor);
       local flightDistance = OpexFlightDistance(sites[a].anchor, sites[b].anchor);
-      if (distance < minDist) {
+      if (distance < minDist && !PAX_AIR_FIRST_AIR_UNBOUNDED) {
         if (C69_BOTTLENECK_PROBE) OpexC73RecordRejection("air", "distance_short", 1);
         if (c78Gen) OpexC78Log("C78_AIRPAIR", "year=" + c78Year + " arm=newpair combo=" + airport.type + ":" + plane.id + " townA=" + sites[a].town.id + " townB=" + sites[b].town.id + " dist=" + distance + " outcome=distance_short P=-1 C=-1");
         continue;
@@ -1416,7 +1416,7 @@ function OpexAirPlansHubToSite(ctx, combo, airport, plane)
           && hub.town.id != targetTownId && site.town.id != targetTownId) continue;
       if (C69_BOTTLENECK_PROBE) OpexC73RecordExamined("air", 1);
       local distance = AIMap.DistanceManhattan(hub.town.tile, site.town.tile);
-      if (distance < 20) {
+      if (distance < 20 && !PAX_AIR_FIRST_AIR_UNBOUNDED) {
         if (C69_BOTTLENECK_PROBE) OpexC73RecordRejection("air", "distance_short", 1);
         if (c78Gen) OpexC78Log("C78_AIRPAIR", "year=" + c78Year + " arm=hubsite combo=" + airport.type + ":" + plane.id + " townA=" + OpexC78HubTownId(hub) + " townB=" + site.town.id + " dist=" + distance + " outcome=distance_short P=-1 C=-1");
         continue;
@@ -1589,7 +1589,7 @@ function OpexAirPlansHubToHub(ctx, combo, airport, plane)
         continue;
       }
       local distance = AIMap.DistanceManhattan(hub1.town.tile, hub2.town.tile);
-      if (distance < 20) {
+      if (distance < 20 && !PAX_AIR_FIRST_AIR_UNBOUNDED) {
         if (C69_BOTTLENECK_PROBE) OpexC73RecordRejection("air", "distance_short", 1);
         if (c78Gen) OpexC78Log("C78_AIRPAIR", "year=" + c78Year + " arm=hub combo=" + airport.type + ":" + plane.id + " townA=" + OpexC78HubTownId(hub1) + " townB=" + OpexC78HubTownId(hub2) + " dist=" + distance + " outcome=distance_short P=-1 C=-1");
         continue;

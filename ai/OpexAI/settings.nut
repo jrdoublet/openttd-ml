@@ -215,10 +215,17 @@ function OpexLoadSettings()
   DIST_BORNES_V276_FREIGHT = AIController.GetSetting("dist_bornes_v276_freight") == 1;
   DIST_BORNES_UNIFIED = AIController.GetSetting("dist_bornes_unified") == 1;
   ESTIM_UNIFIE = AIController.GetSetting("estim_unifie");
+  /* Experiment: leave the historical C121 scanner untouched OFF. */
+  if ((ESTIM_UNIFIE & 1) != 0) {
+    require("air_economics_c121_fullscan.nut");
+    ::OpexC121ChooseRoutePlane <- OpexC121ChooseRoutePlaneFullScan;
+  }
   ESTIM16_RAIL_SCORE_TRACES = 0;
   foreach (m, k in ESTIM_K_R_PRIOR) ESTIM_K_R[m] = k;
   local railGrowth = AIController.GetSetting("v284_rail_growth");
   V233_LONG_GOOD = AIController.GetSetting("v233_long_good") == 1 ? 1 : 0;
+  V233L_CONSTRUCT = AIController.GetSetting("v233l_constructibilite");
+  if (V233L_CONSTRUCT == null || V233L_CONSTRUCT < 0 || V233L_CONSTRUCT > 2) V233L_CONSTRUCT = 0;
   V233_SITE_FUNNEL = AIController.GetSetting("v233_site_funnel") == 1 ? 1 : 0;
   V233_FUNNEL_CENTER_TEST = AIController.GetSetting("v233_funnel_center_test") == 0 ? 0 : 1;
   if (railGrowth != null && railGrowth >= 0 && railGrowth <= 10) V284_RAIL_GROWTH = railGrowth;
@@ -612,12 +619,39 @@ function OpexLoadSettings()
   AIR0310_SITE_VALIDITY_STATE = null;
   RAIL_DEPOT_COST = AIController.GetSetting("rail_depot_cost") != 0;
   V131_RAIL_REPAIR = AIController.GetSetting("v131_rail_repair") != 0;
+  RAIL_REPAIR_V131_LEGACY_ACTIVE = V131_RAIL_REPAIR;
+  RAIL_REPAIR_JOIN_SITE = AIController.GetSetting("rail_repair_join_site") == 1;
+  RAIL_REPAIR_V131_FOCUS = AIController.GetSetting("rail_repair_v131_focus") == 1;
+  /* Le moteur d'etat V131 existant gere reprise, rollback et abandon sur Load.
+   * Le profil focus utilise ce moteur, avec des plafonds distincts et stricts. */
+  V131_RAIL_REPAIR = V131_RAIL_REPAIR || RAIL_REPAIR_V131_FOCUS;
+  RAIL_REPAIR_ASTAR_PAIR = AIController.GetSetting("rail_repair_astar_pair") == 1;
+  RAIL_REPAIR_POSE_ORDER = AIController.GetSetting("rail_repair_pose_order") == 1;
   V131_TOWN_CLEARANCE = AIController.GetSetting("v131_town_clearance") != 0;
   AIR_MAX_DISTANCE = 0;
   TRANSIT_COST_PERMILLE = 0;
   INFRA_AMORT_PCT = 0;
   PORTFOLIO_MAX_BATCH = 1;
   AIR_FLEET_BUFFER = 0;
+  local eb14Mode = AIController.GetSetting("eb14_progressive");
+  EB14_PROGRESSIVE = eb14Mode >= 1;
+  EB14_AIR_ROAD_YEAR_GUARD = eb14Mode >= 2;
+  EB3_RAIL_FIRST_YEAR_PREFETCH = eb14Mode == 3;
+  EB14_INITIAL_RAIL_JOB = false;
+  EB14_TRACE_SIGN_COUNT = 0;
+  EB14_TRACE_SIGN_TYPES = { E4 = 0, E5 = 0, E6 = 0 };
+  EB14_TRACE_SELECTED = {};
+  /* EB-14 ne force pas V278 sur 256x256 : son classement AIR popA*popB
+   * est independant, et sa qualification historique concerne 1024x1024.
+   * Respecter l'option v278_air_lazy_sites et l'auto du monde courant. */
+  /* AIR doit etre reellement permis par la partie, cf. V261 ci-dessus. */
+  local paxAirFirst = AIController.GetSetting("pax_air_first");
+  /* Bit 4 : seules les nouvelles navettes aeroportuaires sont admises pour
+   * RAIL/ROUTE voyageurs, avec verification physique et preuve par ville. */
+  PAX_AIR_FIRST_FEEDER_ONLY = MODE_AIR && (paxAirFirst & 4) != 0;
+  PAX_AIR_FIRST_RAIL_OFF = MODE_AIR && ((paxAirFirst & 1) != 0
+      || PAX_AIR_FIRST_FEEDER_ONLY);
+  PAX_AIR_FIRST_AIR_UNBOUNDED = MODE_AIR && (paxAirFirst & 2) != 0;
 }
 
 /* Read once before class instantiation: Squirrel forbids replacing class methods later. */

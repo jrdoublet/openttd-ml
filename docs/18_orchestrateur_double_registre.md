@@ -449,7 +449,7 @@ Le filet périodique s'exécute en **file de fond** à cadence semestrielle ou a
 
 ### 5.4 Ce que C77 réutilisera directement
 
-Le chantier **C77** (« déclenchement des candidats opportunistes », [reliquat courant](taches.md#c76-c77)) devait, dans ce contrat initial, s'appuyer nativement sur le double registre de C80 :
+Le chantier **C77** (« déclenchement des candidats opportunistes », [reliquat historique archivé](journaux/journal_2026-10-30_transfert_taches.md#c76-c77)) devait, dans ce contrat initial, s'appuyer nativement sur le double registre de C80 ; le [statut à jour](taches.md) prime :
 - Dès qu'un événement survient (ex. `IndustryOpen` ou ouverture d'un second aéroport dans une ville par AAAHogEx), C77 ne réveillera même pas le régénérateur complet du mode : il créera directement une **intention réactive unitaire** ciblant l'entité touchée.
 - Cette intention unitaire générera immédiatement les candidats de la nouvelle entité, les injectera dans `candidateGroups`, et déclenchera une tentative de construction sous 1 tick.
 
