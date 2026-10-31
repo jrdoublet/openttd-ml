@@ -4,6 +4,17 @@
 
 L'ancien registre intégral (2 874 lignes, y compris hypothèses, essais, décisions et anciennes instructions) est conservé dans le [journal de transfert du 30/10](journaux/journal_2026-10-30_transfert_taches.md), avec une empreinte SHA-256 et les numéros de ligne d'origine. Le [bilan de réconciliation du 30/10](journaux/journal_2026-10-30_mise_a_jour.md) indique pourquoi les items ont été clos, séparés ou maintenus. Les fiches expérimentales restent des **photographies de leur date**, pas des consignes courantes. Pour les procédures, suivre [AGENTS.md](../AGENTS.md).
 
+### 01/11 — `road1y_long_v3` codé, défaut 0, non qualifié
+
+`road1y_long_band=2` (porte A 40×3, `fail_primary`, profit_year moyen
+−2 014 £, 19/21) a bien produit des lignes ≥96, mais en remplaçant la
+bande fret 64-128 : le `break` de la première bande non vide
+(`candidates.nut`, `po01c_regen.nut`) saute le fret 64-95 (132 → 5 lignes).
+Le PAX 128+ créé par le tracé 192 est rentable à 4 bus et ouvert dès 1970.
+`road1y_long_v3=1` ne fait que porter `ROAD_MAX_TRACE_TILES` à 192 en
+gardant les bandes 64-128, 32-63, 7-31. Défaut 0 : trajectoire inchangée.
+Aucun banc (VPS occupé). Pas de renfort de flotte. Rapport hors dépôt.
+
 ### 29/10 — corrections de revue B2 et diagnostic des variantes a/c
 
 Partie 1 `8ff35570` : projection Save reconstruite hors Save, maintenance des

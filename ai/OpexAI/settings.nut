@@ -141,6 +141,15 @@ function OpexLoadSettings()
   } else {
     ROAD1Y_DIST_BAND_LIMITS = [[64, 128], [32, 63], [7, 31]];
   }
+  /* ROAD1Y-G : trace 192 pour le PAX (bande -1, BFS, L) sans reordonner
+   * les bandes fret. La premiere bande non vide reste 64-128. long_band
+   * non nul a deja pose le trace 192. Le defaut 0 laisse le trace a 128.
+   * bus_districts_overrides.nut lit ROAD_MAX_TRACE_TILES dans des fonctions,
+   * pas au require : main.nut appelle ce chargement avant le require. */
+  ROAD1Y_LONG_V3 = AIController.GetSetting("road1y_long_v3");
+  if (ROAD1Y_LONG_V3 != 1) ROAD1Y_LONG_V3 = 0;
+  if (ROAD1Y_LONG_V3 == 1 && ROAD1Y_DIST_BANDS && ROAD1Y_LONG_BAND == 0)
+    ROAD_MAX_TRACE_TILES = 192;
 
   ROAD100_WAIT_FLEET = AIController.GetSetting("road100_wait_fleet") == 1
       && ROAD100_SITE_FIRST;
