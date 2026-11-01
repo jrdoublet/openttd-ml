@@ -753,6 +753,7 @@ function OpexAI::Save()
       shortSave.v259Queue <- OpexV259SaveQueue(this._v259Queue);
     }
     if (this._v292LastHqTryYear >= 0) shortSave.v292LastHqTryYear <- this._v292LastHqTryYear;
+    if (ROAD100_LONG_SHADOW_YEAR >= 0) shortSave.road100LongShadowYear <- ROAD100_LONG_SHADOW_YEAR;
     if (EB14_PROGRESSIVE && EB14_RAIL_JOURNAL_STATE != null)
       shortSave.eb14RailJournal <- EB14_RAIL_JOURNAL_STATE;
     if (DECISION_LOG && startOps != null) {
@@ -862,6 +863,7 @@ function OpexAI::Save()
     saveObj.v259Queue <- OpexV259SaveQueue(this._v259Queue);
   }
   if (this._v292LastHqTryYear >= 0) saveObj.v292LastHqTryYear <- this._v292LastHqTryYear;
+  if (ROAD100_LONG_SHADOW_YEAR >= 0) saveObj.road100LongShadowYear <- ROAD100_LONG_SHADOW_YEAR;
   if (EB14_PROGRESSIVE && EB14_RAIL_JOURNAL_STATE != null)
     saveObj.eb14RailJournal <- EB14_RAIL_JOURNAL_STATE;
   if (DECISION_LOG && startOps != null) {
@@ -894,6 +896,7 @@ function OpexAI::Load(version, data)
   this._po01cPending = false;
   this._po01cLineState = null;
   this._po01cLastTick = -1;
+  ROAD100_LONG_SHADOW_YEAR = -1;
   EB14_RAIL_JOURNAL_STATE = null;
   /* Settings are not loaded yet: defer EB-14 ON/OFF decision until Start(). */
   EB14_RAIL_JOURNAL_RELOAD = data != null && ("eb14RailJournal" in data)
@@ -1001,6 +1004,8 @@ function OpexAI::Load(version, data)
   if ("v259Cursor" in data) this._reloadV259Cursor = data.v259Cursor;
   if ("v259Queue" in data) this._reloadV259Queue = data.v259Queue;
   this._v292LastHqTryYear = ("v292LastHqTryYear" in data) ? data.v292LastHqTryYear : -1;
+  ROAD100_LONG_SHADOW_YEAR = ("road100LongShadowYear" in data && typeof data.road100LongShadowYear == "integer")
+      ? data.road100LongShadowYear : -1;
   /* C80 étape 2 : mémoire transitoire du seuil de sélection du stock rail, remise à 0 au rechargement. */
   this._railStockLastFundedScore = 0.0;
   this._railStockLastFundedDate = -1;
@@ -1064,6 +1069,110 @@ function OpexAI::_reconcileAfterLoad()
         dropped++;
         continue;
       }
+      /* ROAD100-14 : les deux terminus historiques valides suffisent pour
+       * conserver la ligne. Un arret A1 disparu, corrompu ou joint a une
+       * ancienne gare ne doit PAS faire perdre la ligne ni provoquer des
+       * commandes monde pendant la reconciliation. task_road effectuera la
+       * reparation des ordres plus tard, hors Load. Chemin sans tour intact. */
+      if (("mode" in line) && line.mode == "road" &&
+          ("kind" in line) && line.kind == "pax" &&
+          ("road100TourActive" in line) && line.road100TourActive) {
+        local tourValid = ("road100TourStops" in line) &&
+            typeof line.road100TourStops == "array" &&
+            line.road100TourStops.len() == 4;
+        local tourReason = "SHAPE";
+        if (tourValid) {
+          foreach (tourTile in line.road100TourStops) {
+            if (typeof tourTile != "integer") {
+              tourValid = false;
+              tourReason = "TYPE";
+              break;
+            }
+          }
+        }
+        if (tourValid && (line.road100TourStops[0] != line.stationA ||
+            line.road100TourStops[1] != line.stationB ||
+            line.road100TourStops[3] != line.stationB ||
+            line.road100TourStops[2] == line.stationA ||
+            line.road100TourStops[2] == line.stationB)) {
+          tourValid = false;
+          tourReason = "ORDERS";
+        }
+        if (tourValid) {
+          local tourTileA1 = line.road100TourStops[2];
+          if (!AIMap.IsValidTile(tourTileA1) ||
+              !AIRoad.IsRoadStationTile(tourTileA1)) {
+            tourValid = false;
+            tourReason = "TILE";
+          } else {
+            local tourStationA1 = AIStation.GetStationID(tourTileA1);
+            if (!AIStation.IsValidStation(tourStationA1) ||
+                tourStationA1 == stationA || tourStationA1 == stationB ||
+                !AICompany.IsMine(AITile.GetOwner(tourTileA1))) {
+              tourValid = false;
+              tourReason = "STATION";
+            }
+          }
+        }
+        if ("road100TourNeedsRepair" in line) line.road100TourNeedsRepair = !tourValid;
+        else line.road100TourNeedsRepair <- !tourValid;
+        if (!tourValid && DECISION_LOG) {
+          OpexDecide("ROAD100_TOUR", "phase=load_repair line=" +
+              (("lineId" in line) ? line.lineId : -1) +
+              " reason=" + tourReason);
+        }
+      }
+      /* ROAD100-20 : reconciliation des satellites PORTFOLIO au chargement.
+       * Si un quai satellite a ete detruit hors jeu, recalculer nStopsA/B
+       * et nettoyer la liste des tuiles pour ne laisser aucun plafond fantome. */
+      if (("mode" in line) && line.mode == "road" &&
+          ("road100PaxPortfolio" in line) &&
+          line.road100PaxPortfolio != null) {
+        local portValid = typeof line.road100PaxPortfolio == "table";
+        if (!portValid) {
+          line.nStopsA = 1;
+          line.nStopsB = 1;
+          line.road100PaxPortfolio = null;
+        } else {
+          local port = line.road100PaxPortfolio;
+          local roots = [line.stationA, line.stationB];
+          local ids = [
+            ("stationA" in port && port.stationA != null) ? port.stationA : stationA,
+            ("stationB" in port && port.stationB != null) ? port.stationB : stationB
+          ];
+          local stopsArrays = [
+            ("stopsA" in port && typeof port.stopsA == "array") ? port.stopsA : null,
+            ("stopsB" in port && typeof port.stopsB == "array") ? port.stopsB : null
+          ];
+          for (local side = 0; side < 2; side++) {
+            local root = roots[side];
+            local rootId = ids[side];
+            local rootOk = typeof root == "integer" && AIMap.IsValidTile(root)
+                && AIRoad.IsRoadStationTile(root)
+                && AICompany.IsMine(AITile.GetOwner(root))
+                && rootId >= 0 && AIStation.IsValidStation(rootId)
+                && AIStation.GetStationID(root) == rootId;
+            local remaining = [];
+            if (rootOk && stopsArrays[side] != null) {
+              foreach (sat in stopsArrays[side]) {
+                if (typeof sat == "integer" && AIMap.IsValidTile(sat)
+                    && AIRoad.IsRoadStationTile(sat)
+                    && AICompany.IsMine(AITile.GetOwner(sat))
+                    && AIStation.GetStationID(sat) == rootId) {
+                  remaining.append(sat);
+                }
+              }
+            }
+            if (side == 0) {
+              port.stopsA = remaining;
+              line.nStopsA = 1 + remaining.len();
+            } else {
+              port.stopsB = remaining;
+              line.nStopsB = 1 + remaining.len();
+            }
+          }
+        }
+      }
       /* Les camions sont identifies par leurs ordres : ne pas reecrire le champ vehicles d'une
        * ligne route, meme si une ancienne version l'a laisse dans la table. */
       if ((!("mode" in line) || line.mode != "road") && ("vehicles" in line) && line.vehicles != null) {
@@ -1089,6 +1198,13 @@ function OpexAI::_reconcileAfterLoad()
           template = line.vehicle;
         }
         if (template != null) line.refleetEngine <- AIVehicle.GetEngineType(template);
+      }
+      /* ROAD1Y mail_pax: clone in OpexSaveProjectLine already keeps kind,
+       * parentLineId, mailChildLineId and road1yMailTryMonth. Old saves omit them. */
+      if (("mode" in line) && line.mode == "road") {
+        if (!("parentLineId" in line)) line.parentLineId <- -1;
+        if (!("mailChildLineId" in line)) line.mailChildLineId <- -1;
+        if (!("road1yMailTryMonth" in line)) line.road1yMailTryMonth <- -1;
       }
       liveLines.append(line);
       kept++;

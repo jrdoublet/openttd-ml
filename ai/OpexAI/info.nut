@@ -162,8 +162,13 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
-
-
+    AddSetting({
+      name = "road1y_load_orders",
+      description = "ROAD1Y: Align road vehicle orders on AAAHogEx (freight sink UNLOAD|NO_LOAD, pax source FULL_LOAD_ANY); 0 = off (default), 1 = on",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
 
     /* --- 3. Interrupteurs de mode et options rail --- */
     AddSetting({
@@ -195,6 +200,313 @@ class OpexAIInfo extends AIInfo {
       description = "V166: Water (ships, docks) mode on/off. 0 = no candidate, catalogue scan, construction or fleet of this mode (mono-mode benches); 1 = enabled (default)",
       easy_value = 1, medium_value = 1, hard_value = 1,
       custom_value = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+    AddSetting({
+      name = "road100_solo_pax",
+      description = "ROAD100: Generate profitable town-to-town buses only in ROAD-only games; 0 = off, 1 = on (default on this branch)",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+    AddSetting({
+      name = "road100_town_bus",
+      description = "ROAD100-2: Generate intratown bus routes only in ROAD-only games; 0 = off (default), 1 = on",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+    AddSetting({
+      name = "road100_road_batch",
+      description = "ROAD100-3: Build up to four profitable ROAD lines per pass in ROAD-only games while preserving cash; 0 = off (default), 1 = on",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+    AddSetting({
+      name = "road100_freight_diversity",
+      description = "ROAD100-21: ROAD-only, score up to three freight cargos per rebuild with bounded work; 0=off, 1=on (default on this branch)",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+    AddSetting({
+      name = "road100_freight_cargo_origin",
+      description = "ROAD100-22: ROAD-only freight source and sink separation by cargo; physical checks unchanged, 0=off (default), 1=on",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+    AddSetting({
+      name = "road100_batch_roi_15",
+      description = "ROAD100-23: ROAD-only batch second build minimum predicted ROI 15% instead of 25%; retain cash reserve and physical checks, 0=off (default), 1=on",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+    AddSetting({
+      name = "road100_freight_berths",
+      description = "ROAD100-24: ROAD-only, add real joined truck berths to mature profitable freight lines before fleet expansion; 0=off (default), 1=on",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+    AddSetting({
+      name = "road100_pax_live_filter",
+      description = "ROAD100-25: ROAD-only, drop stale already-served bus-town candidates before ranking, including PO01C publications; 0=off (default), 1=on",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+    AddSetting({
+      name = "road100_pax_berth_balance",
+      description = "ROAD100-26: ROAD-only, add one real joined bus berth to the bottleneck end of a mature profitable PAX line before fleet growth; 0=off (default), 1=on",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+    AddSetting({
+      name = "road100_pax_double_berths",
+      description = "ROAD100-28: ROAD-only, add physical joined bus berths on both ends of a mature profitable PAX route in separate years, then refleet on real waiting; off by default",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+    AddSetting({
+      name = "road100_mail_intertown",
+      description = "ROAD100-27: ROAD-only MAIL town-to-town with real truck stops; 0=off (default), 1=short diagnostic, 2=existing-road long with profitability guard",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      min_value = 0, max_value = 2, step_size = 1,
+      flags = 0
+    });
+    AddSetting({
+      name = "road100_pax_intercity_roots",
+      description = "ROAD100-29: ROAD-only passive PAX site/coverage probe for intercity distances 43..80; no projects, no builds, default off",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+    AddSetting({
+      name = "road100_pax_producer_units",
+      description = "ROAD100-30a: ROAD-only site-first PAX, convert actual producer counts to estimated monthly PAX using town production share; 0=off (default), 1=on",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+    AddSetting({
+      name = "road100_pax_initial_berth_fleet",
+      description = "ROAD100-31: ROAD-only, extra initial PAX buses after two actual joined terminus berths and incremental ROI guard, requires producer units; 0=off default",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+    AddSetting({
+      name = "road100_segmented_corridor",
+      description = "ROAD100-32: bounded local gaps to build real PAX corridors 80..170 in ROAD-only mode; requires long_build, 0=off default",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+    AddSetting({
+      name = "road100_sparse_corridor",
+      description = "ROAD100-33: sparse bounded roadway segments for physical PAX corridors 80..170; ROAD-only long_build required, 0=off default",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+    AddSetting({
+      name = "road100_long_market_probe",
+      description = "ROAD100-34: passive PASS/month root-site telemetry BEFORE long road preflight; ROAD-only long_build required, 0=off default",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+    AddSetting({
+      name = "road100_portal_stitch",
+      description = "ROAD100-35: short urban scanner and road portal corridor trial in ROAD-only, requires sparse+long_build; 0=off default",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+    AddSetting({
+      name = "road100_pax_graph_bridge",
+      description = "ROAD100-36: ROAD-only high-capture PAX sites with bounded real-road graph bridge at distances 43..170; requires long_build, 0=off default",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+    AddSetting({
+      name = "road100_town_voirie",
+      description = "ROAD100-2b: Use existing road BFS for intratown bus routes; requires road100_town_bus=1 in ROAD-only games, off by default",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+    AddSetting({
+      name = "road100_pax_fleet_cap",
+      description = "ROAD100-4: Experimental intratown bus fleet cap, 0=physical historical 2 (default), 8=up to eight; risk of station queues",
+      min_value = 0, max_value = 8,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0, step_size = 1,
+      flags = 0
+    });
+    AddSetting({
+      name = "road100_town_roi_post",
+      description = "ROAD100-5: Require at least 25% annual expected profit/capital after actual route planning for ROAD-only intratown bus routes; 0=off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+    AddSetting({
+      name = "road100_intercity_site_fleet",
+      description = "ROAD100-6: Intercity ROAD-only pax demand verified on actual sites; scale fleet to up to 30 buses only after physical capture, 0=off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+    AddSetting({
+      name = "road100_site_first",
+      description = "ROAD100-7: ROAD-only bus candidates ranked after bounded buildable-stop capture and route planning; requires road100_solo_pax=1, 0=off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+    AddSetting({
+      name = "road100_joined_stops",
+      description = "ROAD100-8: ROAD-only site-first bus stations try one joined catchment satellite per town; requires road100_site_first=1, 0=off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+    AddSetting({
+      name = "road100_multicatchment",
+      description = "ROAD100-9: ROAD site-first may add passenger connections to already served towns only with physically disjoint stop coverage; requires road100_site_first=1, 0=off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+    AddSetting({
+      name = "road1y_dist_bands",
+      description = "ROAD1Y: Freight road candidate generation by decreasing distance bands (64-128, 32-63, 7-31) and 128-tile traces; 0 = off, 1 = on (default)",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+    AddSetting({
+      name = "road1y_fleet",
+      description = "ROAD1Y: road vehicles allowed per stop pair from the first year, bought monthly on measured waiting cargo (0=off, historical cap of 2; default 4)",
+      min_value = 0, max_value = 16,
+      easy_value = 4, medium_value = 4, hard_value = 4,
+      custom_value = 4,
+      flags = 0
+    });
+    AddSetting({
+      name = "road1y_bus_fixes",
+      description = "ROAD1Y B2 fixes mask: 1 passenger-only extra stops, 4 minimum pax distance 30, 8 max two districts per town (bit 2 unused)",
+      min_value = 0, max_value = 13,
+      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
+      flags = 0
+    });
+    AddSetting({
+      name = "road1y_extra_stops",
+      description = "ROAD1Y: extra joined road stops per endpoint (0=off, 2=default on this branch)",
+      min_value = 0, max_value = 3,
+      easy_value = 2, medium_value = 2, hard_value = 2, custom_value = 2,
+      flags = 0
+    });
+    AddSetting({
+      name = "road1y_fleet_unlock",
+      description = "ROAD1Y fleet unlock bitmask: 1 joint stop 5k cash, 2 pax refleet 10k cash, 4 wait refleet & tracked stops, 8 cap 6 per stop on wait > 100; 0 = off (default)",
+      min_value = 0, max_value = 15,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = 0
+    });
+    AddSetting({
+      name = "road1y_long_band",
+      description = "ROAD1Y: bande routiere 192 tuiles (0=off 128t, 1=bande 129-192 en tete, 2=bandes 96-192, 48-95, 7-47)",
+      min_value = 0, max_value = 2,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = 0
+    });
+    AddSetting({
+      name = "road1y_long_v3",
+      description = "ROAD1Y: trace route 192 tuiles sans reordonner les bandes fret (0=off, trace 128 et bandes 64-128/32-63/7-31 ; 1=trace 192, memes bandes, default); road-only",
+      min_value = 0, max_value = 1,
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
+      flags = 0
+    });
+    AddSetting({
+      name = "road1y_mail_on_pax",
+      description = "ROAD1Y: child MAIL line on a profitable PAX bus town pair; 0 = off, 1 = on (default); road-only",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+    AddSetting({
+      name = "road1y_pax_sites",
+      description = "ROAD1Y-B: Scan natif des sites de bus sur modele aeroport et demande reelle couverte; 0 = off, 1 = on (default)",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+    AddSetting({
+      name = "road1y_pax_economy",
+      description = "ROAD1Y-C: Scale bus line economics and fleet to passenger demand and round-trip rotation; 0 = off (default), 1 = on",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+    AddSetting({
+      name = "road1y_pax_refleet",
+      description = "ROAD1Y-D: Allow bus line refleet to scale up to road1y_fleet * total stops based on waiting passengers at both ends; 0 = off (default), 1 = on",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+    AddSetting({
+      name = "road100_wait_fleet",
+      description = "ROAD100-10: ROAD-only profitable mature bus routes expand fleet cautiously using actual station waiting; requires road100_site_first=1, 0=off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+    AddSetting({
+      name = "road100_site_window",
+      description = "ROAD100-11: ROAD-only site-first physical preflights diversify lower-ranked towns within the existing opcode budget; requires road100_site_first=1, 0=off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+    AddSetting({
+      name = "road100_site_near",
+      description = "ROAD100-12: ROAD-only site-first preflights nearby positive-proxy town pairs before distant pairs at fixed budget; requires road100_site_first=1, 0=off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+    AddSetting({
+      name = "road100_detour",
+      description = "ROAD100-13: ROAD-only site-first try bounded two-corner physical road detours after existing roads and L fail; requires road100_site_first=1, 0=off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+    AddSetting({
+      name = "road100_tour",
+      description = "ROAD100-14: ROAD-only extend a profitable existing passenger line to a third independent station with four orders; requires road100_solo_pax=1, 0=off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+    AddSetting({
+      name = "road100_pax_portfolio",
+      description = "ROAD100-20: ROAD-only site-first multi-district passenger coverage, pre-build union and station-joined satellites with demand-based fleet; exclusive of old ROAD100-8, 0=off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
       flags = AICONFIG_BOOLEAN
     });
 
@@ -692,6 +1004,20 @@ class OpexAIInfo extends AIInfo {
       min_value = 0, max_value = 100, step_size = 5,
       easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
       flags = 0 });
+    AddSetting({
+      name = "road100_long_intercity",
+      description = "ROAD100-16: 0 off; 1 read-only physical and financial shadow of long intercity bus corridors 80..170 tiles, ROAD solo/site-first only",
+      min_value = 0, max_value = 1,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0, flags = 0, step_size = 1
+    });
+    AddSetting({
+      name = "road100_long_build",
+      description = "ROAD100-16 v6: 0 off; 1 opt-in financially guarded long intercity physical bus corridor build (requires long_intercity and ROAD solo site-first)",
+      min_value = 0, max_value = 1,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0, flags = 0, step_size = 1
+    });
     AddSetting({
       name = "rail_repair_join_site",
       description = "Rail repair SITE: on shared destination join failure, test nearby rotated station platforms preserving the existing station ID (experimental; 0 = off)",

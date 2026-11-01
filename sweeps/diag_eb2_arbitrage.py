@@ -271,7 +271,7 @@ def analyze_arbitrage(manifest_path: Path) -> Dict[str, Any]:
             last_fb = fb_list[-1]
             last_idx = last_fb["idx"]
             lines = [l for l in (var_paths[0].parent / f"eb2_new_station_seed{seed}_r0.log").read_text(encoding="utf-8", errors="replace").splitlines()]
-            
+
             search_res = "in_progress_at_end"
             search_iters = 0
             discard_reason = None

@@ -370,6 +370,8 @@ function OpexPO01CRoadFreightCandidates(catalog, lines, out, stats, abandonedPai
    * couple, et non par paire industrie-ville, evite de repayer AITile.GetCargoAcceptance pour
    * chaque producteur du meme cargo. Cle chaine plutot que table imbriquee : une seule table. */
   local acceptanceCache = {};
+  local diversityCargos = (ROAD100_FREIGHT_DIVERSITY && freightCargo != null &&
+      V276_CAND_SLICES <= 0) ? OpexRoad100FreightDiverseCargoSet(catalog, freightCargo) : null;
   /* Rayon d'une aire de chargement : c'est bien l'empreinte de la gare qu'on projette de poser,
    * pas un rayon arbitraire autour du centre administratif. Lu une fois, il ne change jamais. */
   local truckCoverage = AIStation.GetCoverageRadius(AIStation.STATION_TRUCK_STOP);
@@ -378,22 +380,42 @@ function OpexPO01CRoadFreightCandidates(catalog, lines, out, stats, abandonedPai
   foreach (cargo, sources in catalog.producers) {
     yield null; // PO01C_CHECKPOINT
     if (DECISION_LOG) OpexPO01CWhere("OpexPO01CRoadFreightCandidates", "road_freight:cargo", cargo);
-    if (freightCargo != null && cargo != freightCargo) continue;
+    if (freightCargo != null && cargo != freightCargo &&
+        (diversityCargos == null || !(cargo in diversityCargos))) continue;
     if (!(cargo in catalog.roadEngineByCargo)) { stats.noEngine++; continue; }
     /* Les passagers sont traites par la famille 1 : les inclure ici apparierait une industrie a
      * une ville pour un cargo qu'aucune industrie ne produit utilement en volume. */
     if (cargo == catalog.paxCargo) continue;
+    local servedIndustryCargo = servedIndustry;
+    local servedTownCargo = servedTown;
+    if (ROAD100_FREIGHT_CARGO_ORIGIN && V276_CAND_SLICES <= 0) {
+      /* Un index per-cargo, sans valuation de terrain et sans double scan PAX. */
+      if (DECISION_LOG) OpexPO01CWhere("OpexPO01CRoadFreightCandidates", "road_freight:OpexRoadFreightServedIndex", PO01C_WHERE.idx);
+      local sameCargoIndex = OpexRoadFreightServedIndex(lines, cargo);
+      servedIndustryCargo = [];
+      servedTownCargo = [];
+      foreach (industry in industries) {
+    yield null; // PO01C_CHECKPOINT
+    if (DECISION_LOG) OpexPO01CWhere("OpexPO01CRoadFreightCandidates", "road_freight:cargo_industry_service", -1);
+        servedIndustryCargo.append(industry.tile in sameCargoIndex);
+      }
+      foreach (town in towns) {
+    yield null; // PO01C_CHECKPOINT
+    if (DECISION_LOG) OpexPO01CWhere("OpexPO01CRoadFreightCandidates", "road_freight:cargo_town_service", -1);
+        servedTownCargo.append(town.tile in sameCargoIndex);
+      }
+    }
     local sinks = (cargo in catalog.acceptors) ? catalog.acceptors[cargo] : [];
     /* C41.20 : la liste est locale au cargo et a cette generation. Les appels API anticipes sont
      * purs ; ils ne changent ni l'industrie, ni le filtre de distance, ni l'ordre des candidats. */
     if (DECISION_LOG) OpexPO01CWhere("OpexPO01CRoadFreightCandidates", "road_freight:OpexRoadFreightAcceptedTowns", PO01C_WHERE.idx);
-    local townTargets = OpexRoadFreightAcceptedTowns(towns, servedTown, cargo, truckCoverage);
+    local townTargets = OpexRoadFreightAcceptedTowns(towns, servedTownCargo, cargo, truckCoverage);
     if (townTargets != null) stats.townAcceptancePrefiltered += towns.len() - townTargets.len();
 
     foreach (si in sources) {
     yield null; // PO01C_CHECKPOINT
     if (DECISION_LOG) OpexPO01CWhere("OpexPO01CRoadFreightCandidates", "road_freight:source", si);
-      if (servedIndustry[si]) {
+      if (servedIndustryCargo[si]) {
         /* Le code livre saute toute la source. Sous sonde, enumerer seulement les paires
          * qu'il aurait sautees permet de compter ce filtre sans changer son continue. */
         if (C55_ORIGIN_RELAX_PROBE) {
@@ -402,13 +424,13 @@ function OpexPO01CRoadFreightCandidates(catalog, lines, out, stats, abandonedPai
     yield null; // PO01C_CHECKPOINT
     if (DECISION_LOG) OpexPO01CWhere("OpexPO01CRoadFreightCandidates", "road_freight:rejected_industry", di);
             if (di != si) OpexC55OriginRelaxObserve("freight", lines, source.tile,
-                industries[di].tile, true, servedIndustry[di]);
+                industries[di].tile, true, servedIndustryCargo[di]);
           }
           for (local ti = 0; ti < towns.len(); ti++) {
     yield null; // PO01C_CHECKPOINT
     if (DECISION_LOG) OpexPO01CWhere("OpexPO01CRoadFreightCandidates", "road_freight:rejected_town", ti);
             OpexC55OriginRelaxObserve("freight", lines, source.tile, towns[ti].tile,
-                true, servedTown[ti]);
+                true, servedTownCargo[ti]);
           }
         }
         continue;
@@ -429,8 +451,8 @@ function OpexPO01CRoadFreightCandidates(catalog, lines, out, stats, abandonedPai
             && source.id != targetId && industries[di].id != targetId) continue;
         if (C69_BOTTLENECK_PROBE) OpexC73RecordExamined("road", 1);
         if (C55_ORIGIN_RELAX_PROBE) OpexC55OriginRelaxObserve("freight", lines,
-            source.tile, industries[di].tile, false, servedIndustry[di]);
-        if (servedIndustry[di]) {
+            source.tile, industries[di].tile, false, servedIndustryCargo[di]);
+        if (servedIndustryCargo[di]) {
           if (C69_BOTTLENECK_PROBE) OpexC73RecordRejection("road", "origin_served", 1);
           continue;
         }
@@ -461,7 +483,7 @@ function OpexPO01CRoadFreightCandidates(catalog, lines, out, stats, abandonedPai
     yield null; // PO01C_CHECKPOINT
     if (DECISION_LOG) OpexPO01CWhere("OpexPO01CRoadFreightCandidates", "road_freight:town_probe", ti);
           OpexC55OriginRelaxObserve("freight", lines, source.tile, towns[ti].tile,
-              false, servedTown[ti]);
+              false, servedTownCargo[ti]);
         }
       }
       local townPool = (townTargets != null) ? townTargets : towns;
@@ -475,8 +497,8 @@ function OpexPO01CRoadFreightCandidates(catalog, lines, out, stats, abandonedPai
         if (C69_BOTTLENECK_PROBE) OpexC73RecordExamined("road", 1);
         if (profile != null && C41_ROAD_FREIGHT_TOWN_PROFILE) profile.freightTownScanned++;
         if (C55_ORIGIN_RELAX_PROBE && townTargets == null) OpexC55OriginRelaxObserve("freight",
-            lines, source.tile, towns[t].tile, false, servedTown[t]);
-        if (townTargets == null && servedTown[t]) {
+            lines, source.tile, towns[t].tile, false, servedTownCargo[t]);
+        if (townTargets == null && servedTownCargo[t]) {
           if (C69_BOTTLENECK_PROBE) OpexC73RecordRejection("road", "origin_served", 1);
           continue;
         }

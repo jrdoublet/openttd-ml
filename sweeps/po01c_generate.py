@@ -357,7 +357,9 @@ def unit_sites(code, name):
         'OpexFreightCandidates': [('service', 'i'), ('cargo', 'cargo'), ('source', 'si'),
                                  ('industry_pair', 'k'), ('town_pair', 'k')],
         'OpexRoadFreightCandidates': [('industry_service', 'i'), ('town_service', 'i'),
-                                     ('cargo', 'cargo'), ('source', 'si'),
+                                     ('cargo', 'cargo'),
+                                     ('cargo_industry_service', '-1'), ('cargo_town_service', '-1'),
+                                     ('source', 'si'),
                                      ('rejected_industry', 'di'), ('rejected_town', 'ti'),
                                      ('industry_pair', 'k'), ('town_probe', 'ti'), ('town_pair', 'k')],
     }[name]

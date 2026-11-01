@@ -683,6 +683,11 @@ function OpexAI::_triggerScrapLine(line, criterion)
                + " start_year=" + line.scrapStartYear);
   }
   OpexSign(anchor, "DL|" + year + "|" + line.lineId + "|2");
+  if (ROAD1Y_MAIL_ON_PAX && ("mailChildLineId" in line) && line.mailChildLineId >= 0) {
+    local child = this._findLineById(line.mailChildLineId);
+    line.mailChildLineId = -1;
+    if (child != null) OpexRoad1yAbandonMailChild(this, child, "PARENT_SCRAPPED");
+  }
 }
 function OpexAI::_scrapDeadLines(year)
 {

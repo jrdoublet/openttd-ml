@@ -1,0 +1,171 @@
+{
+  "schema": 1,
+  "kind": "standalone ROAD1Y diagnostic summary; not a V102 qualification",
+  "raw_bytes": 612098,
+  "raw_sha256": "904d6a9b49e3b08007c9402e22fbd000a58c13e7f271119815c2593c36179f7b",
+  "gzip_path": "evidence/review/road1y_busB_20261029.json.gz",
+  "gzip_bytes": 33737,
+  "gzip_sha256": "2f458ae89c0b7e390736c31122a7ac30cda7a3c226e73240c4d44f2000edd965",
+  "generator": "sweeps/analyze_road1y_bus.py",
+  "campaigns": [
+    {
+      "campaign": "agybus_A",
+      "bundle": "5913696582300eed2188b4b494954e7251f19c46ac99728fc73d497c7d964e93",
+      "artifacts": [
+        {
+          "path": "/home/deploy/projects/wt-road1y/results/agybus_A.json",
+          "sha256": "8b29ebb83d04197bb2a749971b1bb2c924c1a68a6ecc277b96d1738a37e5c896"
+        },
+        {
+          "path": "/home/deploy/projects/wt-road1y/results/agybus_A.jsonl",
+          "sha256": "a4446581455af6b0b3e4c324dfd2d60e9d4678a2768614e74e6a4c50dbd9f23c"
+        },
+        {
+          "path": "/home/deploy/projects/wt-road1y/results/agybus_A.manifest.json",
+          "sha256": "013243db0f8fe2dda39da33c4d8d6212009a5681fc7f288b2925471c88a3581e"
+        }
+      ]
+    },
+    {
+      "campaign": "agybus_B",
+      "bundle": "23d30f4699f5e539c3c559d95c3975921c9ddbbff1b3055ec319013d5ccd0b84",
+      "artifacts": [
+        {
+          "path": "/home/deploy/projects/wt-road1y/results/agybus_B.json",
+          "sha256": "390454185587b26625de0b9720e7890c73b44e9329ab3f701ff2e7f87cbdd69b"
+        },
+        {
+          "path": "/home/deploy/projects/wt-road1y/results/agybus_B.jsonl",
+          "sha256": "b75f1c8acb79c5fb38a8bb4b37699d23ca946f1ace2f38ddd9db0f5e8f4fa2df"
+        },
+        {
+          "path": "/home/deploy/projects/wt-road1y/results/agybus_B.manifest.json",
+          "sha256": "714205dd2c865ec4b05a19182d6e22f94dc1e49915a991ee2ff347531566f26e"
+        }
+      ]
+    },
+    {
+      "campaign": "busA_diag_p6_20261029",
+      "bundle": "949ae9e720c1380d63d54a8336d9108c9f3101c12e6c3e780e7e5b0d88266dac",
+      "artifacts": [
+        {
+          "path": "results/busA_diag_p6_20261029.json",
+          "sha256": "1e351f75eac31f881e8a43d0ec18dbac11e15fc5bb7e15357d9cfe34db0b7fa4"
+        },
+        {
+          "path": "results/busA_diag_p6_20261029.jsonl",
+          "sha256": "f7086a23877f9403f6e81f2a91a75f1cafb48473e4d1f56a0496bdba8ab4de8c"
+        },
+        {
+          "path": "results/busA_diag_p6_20261029.manifest.json",
+          "sha256": "41817497685f5c3b0a352617af944cf745a7e7644c8e37d546d37ce80e55ba1a"
+        }
+      ]
+    },
+    {
+      "campaign": "busB_diag_old_p6_20261029",
+      "bundle": "949ae9e720c1380d63d54a8336d9108c9f3101c12e6c3e780e7e5b0d88266dac",
+      "artifacts": [
+        {
+          "path": "results/busB_diag_old_p6_20261029.json",
+          "sha256": "95f8c9175809fd01041bd572f88c48e771ffcdb5699d4bc508a7da5ea0ae9b14"
+        },
+        {
+          "path": "results/busB_diag_old_p6_20261029.jsonl",
+          "sha256": "feded0d128ed421195580adb95633a11245a82a17aa7d73c46c67203790c0a00"
+        },
+        {
+          "path": "results/busB_diag_old_p6_20261029.manifest.json",
+          "sha256": "15db9ed7a09492ebf7d741f0a4c70ad4c24562a7de6b032a3dd0d823d76589f8"
+        }
+      ]
+    },
+    {
+      "campaign": "busA_parent4354_p2_20261029",
+      "bundle": "021d122a19d6500e4cd1905d5d111acfea84908443f05b31dac2b12e440cbd7b",
+      "artifacts": [
+        {
+          "path": "results/busA_parent4354_p2_20261029.json",
+          "sha256": "caa8be9fcdac2b50505dfc911cb74c623a0a98208339f8425866f2e93b7f9bf6"
+        },
+        {
+          "path": "results/busA_parent4354_p2_20261029.jsonl",
+          "sha256": "9734f47ca3515bace872c14130da056f77a1aa74ba732c6320b0c64b1fc9d0a3"
+        },
+        {
+          "path": "results/busA_parent4354_p2_20261029.manifest.json",
+          "sha256": "fd0f19533b73b359c76761965e66c485c2a4a5443cd7f4ebd0f211a8870d1fc2"
+        }
+      ]
+    },
+    {
+      "campaign": "busB2_off_final_20261029",
+      "bundle": "97e1efca430a3f302193d83478e0db22c142b52fe10a483762288e2a89f6344a",
+      "artifacts": [
+        {
+          "path": "results/busB2_off_final_20261029.json",
+          "sha256": "4205518099275def61389f16b4f1691d7a84cf893ad7798f7f5aca3a6ff2fcfa"
+        },
+        {
+          "path": "results/busB2_off_final_20261029.jsonl",
+          "sha256": "8aa02398a071e44d72f83dd463d38a6b31c1b373afa4694b1ffe55591a10f216"
+        },
+        {
+          "path": "results/busB2_off_final_20261029.manifest.json",
+          "sha256": "59187893b0dfbfb0935947da895f05abc1197007d9d2af555eb25aa739ac3b14"
+        }
+      ]
+    },
+    {
+      "campaign": "busB2_sites_final_20261029",
+      "bundle": "97e1efca430a3f302193d83478e0db22c142b52fe10a483762288e2a89f6344a",
+      "artifacts": [
+        {
+          "path": "results/busB2_sites_final_20261029.json",
+          "sha256": "27347ca08a67a4c3f9ed87a474a801c6c4d23305c885d74ddd0841568d37cdde"
+        },
+        {
+          "path": "results/busB2_sites_final_20261029.jsonl",
+          "sha256": "3bdc114f4b5100c83e72f7c0b2011482bce826c43b4273f46e3c60e0d50f45ba"
+        },
+        {
+          "path": "results/busB2_sites_final_20261029.manifest.json",
+          "sha256": "721d18e0ed391e43518482df95a6d16084b48aeb2f1f5e9696cf74db4d65441c"
+        }
+      ]
+    },
+    {
+      "campaign": "busB2_joined_final_20261029",
+      "bundle": "97e1efca430a3f302193d83478e0db22c142b52fe10a483762288e2a89f6344a",
+      "artifacts": [
+        {
+          "path": "results/busB2_joined_final_20261029.json",
+          "sha256": "11281cb8d0491e50968262a1b39b3da2aee60239d4f59d3e2ff5cdcdc24cb392"
+        },
+        {
+          "path": "results/busB2_joined_final_20261029.jsonl",
+          "sha256": "795fb951ebc1a153505d858d559d73d89d57985e832e952941e6838f730efcf5"
+        },
+        {
+          "path": "results/busB2_joined_final_20261029.manifest.json",
+          "sha256": "7bb489d33f76b3d91fd89eac2a46e1053e97c86fcd9f6196cdd04fdff1a5983b"
+        }
+      ]
+    }
+  ],
+  "roundtrip": {
+    "path": "results/busB2_roundtrip_final_20261029.json",
+    "sha256": "7d27350209d5c5e41e14f2590689ced76de8068b4ee96c8188b950c71428e6be",
+    "status": "OK",
+    "phase_a_days": 330,
+    "phase_b_days": 120,
+    "reload_date": "1970-06-01",
+    "last_snapshot": "1970-09-01",
+    "load_proof": true
+  },
+  "post_measurement_changes": {
+    "ai/OpexAI/bus_districts.nut": "Removed one blank line at EOF only; no token change",
+    "sweeps/save_load_roundtrip.py": "Print actual day overrides instead of nominal years"
+  },
+  "delivered_bus_districts_sha256": "bc1999542a39caf94be89389d5cd86941b6480af645ef70bc42fbffbbc0a522c"
+}

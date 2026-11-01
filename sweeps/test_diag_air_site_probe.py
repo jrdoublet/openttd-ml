@@ -132,13 +132,14 @@ class ReaderTests(unittest.TestCase):
 class ProbeContracts(unittest.TestCase):
     def test_off_hashes(self):
         expected = json.loads((FIXTURES / "air_site_probe_off_hashes.json").read_text())
+        from road100_off_projection import off_source as road100_off_source
         # V161: keep the original pin, plus the reviewed six-line prior removal.
         self.assertEqual(expected["globals_pre.nut"],
                          "3c203d53468b16eeb81abe1dd2894cc74ac2bdabcd01fd4647c135884b502f07")
         v161_digest = "0610c2699fd71875bb2720c196120cf11fa9ab312b52156747633a3b086698ea"
         for name, digest in expected.items():
             from air_site_ranked_legacy import off_source
-            text = off_source(name, (AI / name).read_text())
+            text = off_source(name, road100_off_source(name, (AI / name).read_text()))
             if name == "main.nut":
                 gate = '  OpexLoadAirSiteProbeSetting();\n  if (AIR_SITE_PROBE > 0) {\n    require("air_site_probe.nut");\n    OpexAirSiteProbeRun(this);\n    return;\n  }\n'
                 self.assertEqual(text.count(gate), 1)

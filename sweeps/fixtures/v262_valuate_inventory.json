@@ -513,5 +513,25 @@
     "air_site_ranked.nut",
     "tiles",
     "AITile.GetCargoProduction,paxCargo,w,h,radius"
+  ],
+  [
+    "bus_districts.nut",
+    "tiles",
+    "AIRoad.IsRoadTile"
+  ],
+  [
+    "bus_districts.nut",
+    "tiles",
+    "AITile.GetClosestTown"
+  ],
+  [
+    "bus_districts.nut",
+    "tiles",
+    "AITile.GetCargoAcceptance,cargo,1,1,coverage"
+  ],
+  [
+    "bus_districts.nut",
+    "tiles",
+    "AITile.GetCargoProduction,cargo,1,1,coverage"
   ]
 ]

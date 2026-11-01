@@ -871,6 +871,11 @@ AIR_LOAD_INFO_DELTA = (
 
 def historical_bytes(name, raw):
     from estim_unifie_legacy import estim_off_bytes
+    # ROAD100 is a separate seven-setting, default-OFF experiment. Project
+    # its exact reviewed hunks before all older opt-in projectors; no
+    # historic SHA is changed or rebaselined by this addition.
+    from road100_off_projection import off_bytes as road100_off_bytes
+    raw = road100_off_bytes(name, raw)
     if name == "info.nut":
         # AIR-LOAD-1 (air_load_min_pct, defaut 0) : reglage opt-in hors inventaire historique.
         assert raw.count(AIR_LOAD_INFO_DELTA) == 1, "AIR-LOAD-1 info.nut: opt-in bytes changed"

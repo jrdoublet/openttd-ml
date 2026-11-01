@@ -1,0 +1,80 @@
+{
+  "builder_road.nut": [
+    {
+      "before": "}\n\n/* ROAD100-16 v6, inerte sans le futur dispatch road100LongBuild : DEUX\n * StationID et aucun satellite. Seul un plan entierement prequalifie peut\n",
+      "after": "}\n\n/* ROAD100-33 : traceur creux d'origine distincte, uniquement appele sous\n * son propre opt-in. La verification et le chantier restent communs. */\nrequire(\"road100_sparse_corridor.nut\");\n\n/* ROAD100-16 v6, inerte sans le futur dispatch road100LongBuild : DEUX\n * StationID et aucun satellite. Seul un plan entierement prequalifie peut\n"
+    },
+    {
+      "before": "  local segmentOps = 0;\n  local segmentReason = \"OFF\";\n  local firstBlockedIndex = -1;\n  local firstBlockedFrom = -1;\n",
+      "after": "  local segmentOps = 0;\n  local segmentReason = \"OFF\";\n  local sparseAttempts = 0;\n  local sparseOps = 0;\n  local sparseReason = \"OFF\";\n  local firstBlockedIndex = -1;\n  local firstBlockedFrom = -1;\n"
+    },
+    {
+      "before": "       * historiques restent une issue deterministe si cette recherche\n       * bornee ne trouve pas de trajet complet. */\n      /* -1 : ROAD100-32 opt-in par micro-corridors; les sept formes\n       * historiques 0..6 restent strictement identiques si OFF. */\n      for (local shape = (ROAD100_SEGMENTED_CORRIDOR ? -1 : 0);\n           shape < 7; shape++) {\n        if (OpexOpsMeasureEnd(mark) >= limitOps - 50000) {\n          reason = \"OPCAP\"; break;\n",
+      "after": "       * historiques restent une issue deterministe si cette recherche\n       * bornee ne trouve pas de trajet complet. */\n      /* -2 : ROAD100-33 sparse; -1 : ROAD100-32 dense; sept formes\n       * historiques 0..6 strictement identiques si OFF. */\n      for (local shape = (ROAD100_SPARSE_CORRIDOR ? -2 :\n               ROAD100_SEGMENTED_CORRIDOR ? -1 : 0);\n           shape < 7; shape++) {\n        if (shape == -1 && !ROAD100_SEGMENTED_CORRIDOR) continue;\n        if (OpexOpsMeasureEnd(mark) >= limitOps - 50000) {\n          reason = \"OPCAP\"; break;\n"
+    },
+    {
+      "before": "        local trace = null;\n        local checked = null;\n        if (shape == -1) {\n          local segment = OpexRoad100LongSegmentedTrace(pair.a, pair.b,\n              mark, limitOps);\n",
+      "after": "        local trace = null;\n        local checked = null;\n        if (shape == -2) {\n          local sparse = OpexRoad100SparseCorridorTrace(pair.a, pair.b,\n              mark, limitOps);\n          sparseAttempts++;\n          sparseReason = sparse.reason;\n          sparseOps += sparse.ops;\n          trace = sparse.trace;\n          if (DECISION_LOG) OpexDecide(\"ROAD100_SPARSE\",\n              \"phase=preflight reason=\" + sparse.reason\n              + \" route=\" + (sparse.trace != null ? sparse.trace.len() : -1)\n              + \" ops=\" + sparse.ops\n              + \" total_ops=\" + OpexOpsMeasureEnd(mark));\n          if (sparse.reason == \"OPCAP\") {\n            reason = \"OPCAP\"; lastStage = \"SPARSE_OPCAP\"; break;\n          }\n        } else if (shape == -1) {\n          local segment = OpexRoad100LongSegmentedTrace(pair.a, pair.b,\n              mark, limitOps);\n"
+    },
+    {
+      "before": "        }\n        if (trace == null) {\n          reason = shape == -1 ? segmentReason :\n              shape == 0 ? obstacleReason : \"GEOMETRY\";\n          lastStage = shape == -1 ? \"SEGMENT_SEARCH\" :\n              shape == 0 ? \"OBSTACLE_SEARCH\" : \"TEMPLATE_GEOMETRY\";\n          continue;\n",
+      "after": "        }\n        if (trace == null) {\n          reason = shape == -2 ? sparseReason :\n              shape == -1 ? segmentReason :\n              shape == 0 ? obstacleReason : \"GEOMETRY\";\n          lastStage = shape == -2 ? \"SPARSE_SEARCH\" :\n              shape == -1 ? \"SEGMENT_SEARCH\" :\n              shape == 0 ? \"OBSTACLE_SEARCH\" : \"TEMPLATE_GEOMETRY\";\n          continue;\n"
+    },
+    {
+      "before": "              mark, limitOps);\n        if (shape == -1 && DECISION_LOG) OpexDecide(\"ROAD100_SEGMENTED\",\n            \"phase=verify ok=\" + (checked.ok ? 1 : 0)\n            + \" reason=\" + checked.reason\n",
+      "after": "              mark, limitOps);\n        if (shape == -1 && DECISION_LOG) OpexDecide(\"ROAD100_SEGMENTED\",\n            \"phase=verify ok=\" + (checked.ok ? 1 : 0)\n            + \" reason=\" + checked.reason\n            + \" missing=\" + checked.missing\n            + \" existing=\" + checked.existing\n            + \" first_fail=\" + checked.blocked_index\n            + \" error=\" + checked.blocked_error\n            + \" total_ops=\" + OpexOpsMeasureEnd(mark));\n        if (shape == -2 && DECISION_LOG) OpexDecide(\"ROAD100_SPARSE\",\n            \"phase=verify ok=\" + (checked.ok ? 1 : 0)\n            + \" reason=\" + checked.reason\n"
+    },
+    {
+      "before": "            trials = trials,\n            road100Segmented = shape == -1,\n            roadMissingCount = missing, roadQuoteCost = quoteRoad,\n            road100LongCashNeed = quoteTotal, road100LongDepotChecked = true };\n",
+      "after": "            trials = trials,\n            road100Segmented = shape == -1,\n            road100Sparse = shape == -2,\n            roadMissingCount = missing, roadQuoteCost = quoteRoad,\n            road100LongCashNeed = quoteTotal, road100LongDepotChecked = true };\n"
+    },
+    {
+      "before": "      + \" segmented_ops=\" + segmentOps\n      + \" segmented_reason=\" + segmentReason\n      + \" obstacle_exit_tests=\" + obstacleExitTests\n      + \" obstacle_exit_viable=\" + obstacleExitViable\n",
+      "after": "      + \" segmented_ops=\" + segmentOps\n      + \" segmented_reason=\" + segmentReason\n      + \" sparse_attempts=\" + sparseAttempts\n      + \" sparse_ops=\" + sparseOps\n      + \" sparse_reason=\" + sparseReason\n      + \" obstacle_exit_tests=\" + obstacleExitTests\n      + \" obstacle_exit_viable=\" + obstacleExitViable\n"
+    }
+  ],
+  "candidates.nut": [
+    {
+      "before": "  local segmentedUnits = ROAD100_SEGMENTED_CORRIDOR\n      && (\"road100Segmented\" in plan) && plan.road100Segmented;\n  if (segmentedUnits) {\n    local radius = AIStation.GetCoverageRadius(AIStation.STATION_BUS_STOP);\n    local unitsA = OpexRoad100PaxSiteMonthly(preliminary.srcTown,\n",
+      "after": "  local segmentedUnits = ROAD100_SEGMENTED_CORRIDOR\n      && (\"road100Segmented\" in plan) && plan.road100Segmented;\n  local sparseUnits = ROAD100_SPARSE_CORRIDOR\n      && (\"road100Sparse\" in plan) && plan.road100Sparse;\n  if (segmentedUnits || sparseUnits) {\n    local radius = AIStation.GetCoverageRadius(AIStation.STATION_BUS_STOP);\n    local unitsA = OpexRoad100PaxSiteMonthly(preliminary.srcTown,\n"
+    },
+    {
+      "before": "        preliminary.cargo, plan.stopB.tile, radius);\n    monthly = unitsA.monthly + unitsB.monthly;\n    if (DECISION_LOG) OpexDecide(\"ROAD100_SEGMENTED\",\n        \"phase=market town_a=\" + preliminary.srcTown\n        + \" town_b=\" + preliminary.dstTown\n",
+      "after": "        preliminary.cargo, plan.stopB.tile, radius);\n    monthly = unitsA.monthly + unitsB.monthly;\n    if (DECISION_LOG) OpexDecide(sparseUnits ? \"ROAD100_SPARSE\" : \"ROAD100_SEGMENTED\",\n        \"phase=market town_a=\" + preliminary.srcTown\n        + \" town_b=\" + preliminary.dstTown\n"
+    },
+    {
+      "before": "  candidate.road100LongBuild <- true;\n  if (segmentedUnits) candidate.road100SegmentedUnits <- true;\n  candidate.road100SiteMonthly <- monthly;\n  candidate.road100GenSiteA <- plan.stopA.tile;\n",
+      "after": "  candidate.road100LongBuild <- true;\n  if (segmentedUnits) candidate.road100SegmentedUnits <- true;\n  if (sparseUnits) candidate.road100SparseUnits <- true;\n  candidate.road100SiteMonthly <- monthly;\n  candidate.road100GenSiteA <- plan.stopA.tile;\n"
+    }
+  ],
+  "globals_pre.nut": [
+    {
+      "before": "ROAD100_LONG_BUILD <- false; // ROAD100-16 v6 : vrai plan LONG, opt-in distinct du diagnostic shadow\nROAD100_SEGMENTED_CORRIDOR <- false; // ROAD100-32 : micro-gaps physiques bornes, LONG ROAD-only\nROAD100_PAX_PORTFOLIO <- false; // ROAD100-20 : pre-capture multi-quartiers et quais joints physiquement verifies, ROAD seul\nROAD100_FREIGHT_DIVERSITY <- false; // ROAD100-21 : examiner deux cargos fret supplementaires dans une passe ROUTE, opt-in\n",
+      "after": "ROAD100_LONG_BUILD <- false; // ROAD100-16 v6 : vrai plan LONG, opt-in distinct du diagnostic shadow\nROAD100_SEGMENTED_CORRIDOR <- false; // ROAD100-32 : micro-gaps physiques bornes, LONG ROAD-only\nROAD100_SPARSE_CORRIDOR <- false; // ROAD100-33 : chainage creux lineaire, LONG ROAD-only opt-in\nROAD100_PAX_PORTFOLIO <- false; // ROAD100-20 : pre-capture multi-quartiers et quais joints physiquement verifies, ROAD seul\nROAD100_FREIGHT_DIVERSITY <- false; // ROAD100-21 : examiner deux cargos fret supplementaires dans une passe ROUTE, opt-in\n"
+    }
+  ],
+  "info.nut": [
+    {
+      "before": "      name = \"road100_segmented_corridor\",\n      description = \"ROAD100-32: bounded local gaps to build real PAX corridors 80..170 in ROAD-only mode; requires long_build, 0=off default\",\n      easy_value = 0, medium_value = 0, hard_value = 0,\n      custom_value = 0,\n",
+      "after": "      name = \"road100_segmented_corridor\",\n      description = \"ROAD100-32: bounded local gaps to build real PAX corridors 80..170 in ROAD-only mode; requires long_build, 0=off default\",\n      easy_value = 0, medium_value = 0, hard_value = 0,\n      custom_value = 0,\n      flags = AICONFIG_BOOLEAN\n    });\n    AddSetting({\n      name = \"road100_sparse_corridor\",\n      description = \"ROAD100-33: sparse bounded roadway segments for physical PAX corridors 80..170; ROAD-only long_build required, 0=off default\",\n      easy_value = 0, medium_value = 0, hard_value = 0,\n      custom_value = 0,\n"
+    }
+  ],
+  "opcode_exact.nut": [
+    {
+      "before": "         !(\"road100Segmented\" in longPlan) || !longPlan.road100Segmented))\n      return { plan = null, reason = \"SEGMENT_DRIFT\" };\n    if (longPlan.stopA.tile != candidate.road100GenSiteA ||\n        longPlan.stopB.tile != candidate.road100GenSiteB ||\n",
+      "after": "         !(\"road100Segmented\" in longPlan) || !longPlan.road100Segmented))\n      return { plan = null, reason = \"SEGMENT_DRIFT\" };\n    if ((\"road100SparseUnits\" in candidate) &&\n        candidate.road100SparseUnits &&\n        (!ROAD100_SPARSE_CORRIDOR ||\n         !(\"road100Sparse\" in longPlan) || !longPlan.road100Sparse))\n      return { plan = null, reason = \"SPARSE_DRIFT\" };\n    if (longPlan.stopA.tile != candidate.road100GenSiteA ||\n        longPlan.stopB.tile != candidate.road100GenSiteB ||\n"
+    }
+  ],
+  "settings.nut": [
+    {
+      "before": "      && ROAD100_LONG_BUILD && MODE_ROAD && !MODE_AIR\n      && !MODE_RAIL && !MODE_WATER;\n  ROAD100_PAX_PORTFOLIO = AIController.GetSetting(\"road100_pax_portfolio\") == 1\n      && ROAD100_SITE_FIRST && !ROAD100_JOINED_STOPS && !ROAD100_LONG_BUILD;\n",
+      "after": "      && ROAD100_LONG_BUILD && MODE_ROAD && !MODE_AIR\n      && !MODE_RAIL && !MODE_WATER;\n  ROAD100_SPARSE_CORRIDOR = AIController.GetSetting(\"road100_sparse_corridor\") == 1\n      && ROAD100_LONG_BUILD && !ROAD100_SEGMENTED_CORRIDOR\n      && MODE_ROAD && !MODE_AIR && !MODE_RAIL && !MODE_WATER;\n  ROAD100_PAX_PORTFOLIO = AIController.GetSetting(\"road100_pax_portfolio\") == 1\n      && ROAD100_SITE_FIRST && !ROAD100_JOINED_STOPS && !ROAD100_LONG_BUILD;\n"
+    }
+  ],
+  "task_road.nut": [
+    {
+      "before": "              + \" producers_b=\" + bUnits.siteProducers\n              + \" ops=\" + (aUnits.ops + bUnits.ops));\n        }\n        if ((\"road100PaxProducerUnits\" in candidate) && candidate.road100PaxProducerUnits) {\n",
+      "after": "              + \" producers_b=\" + bUnits.siteProducers\n              + \" ops=\" + (aUnits.ops + bUnits.ops));\n        }\n        if ((\"road100SparseUnits\" in candidate) &&\n            candidate.road100SparseUnits && ROAD100_SPARSE_CORRIDOR\n            && (\"road100Sparse\" in plan) && plan.road100Sparse) {\n          local sparseRadius = AIStation.GetCoverageRadius(AIStation.STATION_BUS_STOP);\n          local sparseA = OpexRoad100PaxSiteMonthly(candidate.srcTown,\n              candidate.cargo, plan.stopA.tile, sparseRadius);\n          local sparseB = OpexRoad100PaxSiteMonthly(candidate.dstTown,\n              candidate.cargo, plan.stopB.tile, sparseRadius);\n          siteDemand = sparseA.monthly + sparseB.monthly;\n          if (DECISION_LOG) OpexDecide(\"ROAD100_SPARSE\",\n              \"phase=live root_monthly_a=\" + sparseA.monthly\n              + \" root_monthly_b=\" + sparseB.monthly\n              + \" producers_a=\" + sparseA.siteProducers\n              + \" producers_b=\" + sparseB.siteProducers\n              + \" ops=\" + (sparseA.ops + sparseB.ops));\n        }\n        if ((\"road100PaxProducerUnits\" in candidate) && candidate.road100PaxProducerUnits) {\n"
+    }
+  ]
+}

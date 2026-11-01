@@ -53,10 +53,62 @@ V294_RAIL_BRIDGE_LEN <- 20;  // defaut V294all depuis le 21/10 (decision utilisa
 V294_RAIL_CONTINUOUS <- 0;
 V269_RELAXED <- false;
 V269_ON <- false;
+ROAD1Y_LOAD_ORDERS <- false; // ROAD1Y : alignement ordres AAAHogEx (dest fret UNLOAD|NO_LOAD, source pax FULL_LOAD_ANY)
 /* DIST-BORNES-1 : experiment V276 fret tardif, OFF sur tous les profils. */
 DIST_BORNES_V276_FREIGHT <- false;
 /* DIST-BORNES-1 : table unique des fenetres modales, opt-in strictement OFF. */
 DIST_BORNES_UNIFIED <- false;
+/* ROAD100 : generation de bus autonome strictement en ROAD seul ; 0 = historique. */
+ROAD100_SOLO_PAX <- true; // ROAD100 : candidats PAX route seule (active par defaut sur cette branche)
+ROAD100_TOWN_BUS <- false; // experiment intra-urbain, uniquement route seule
+ROAD100_ROAD_BATCH <- false; // extension du nombre de lignes ROAD par passe, opt-in
+ROAD100_TOWN_VOIRIE <- false; // reutilisation du planiteur voirie pour bus locaux
+ROAD100_PAX_FLEET_CAP <- 0; // seul ROAD100-4 : 0=plafond historique 2, 8=essai
+ROAD100_TOWN_ROI_POST <- false; // ROAD100-5 : garde PAX locale apres tracé réel
+ROAD100_INTERCITY_SITE_FLEET <- false; // ROAD100-6 : demande par arrêt et flotte interurbaine
+ROAD100_SITE_FIRST <- false; // ROAD100-7 : classer sur sites réellement constructibles, ROAD seul
+ROAD100_JOINED_STOPS <- false; // ROAD100-8 : satellites passagers joints au terminal, ROAD seul
+ROAD100_MULTICATCHMENT <- false; // ROAD100-9 : nouvelle ligne vers quartiers non recouverts, ROAD seul
+ROAD1Y_DIST_BANDS <- true; // ROAD1Y : traces route jusqu'a 128 tuiles, candidats fret par bandes 64-128, 32-63, 7-31
+ROAD1Y_DIST_BAND <- -1; // bande courante pendant une generation (-1 = bornes historiques)
+ROAD1Y_DIST_BAND_LIMITS <- [[64, 128], [32, 63], [7, 31]];
+ROAD1Y_FLEET <- 4; // ROAD1Y : vehicules par paire de quais des la premiere annee (0 = plafond historique ; 4 par defaut sur cette branche)
+ROAD1Y_EXTRA_STOPS <- 2; // Quais joints supplementaires, opt-in 0..3.
+ROAD1Y_FLEET_UNLOCK <- 0; // ROAD1Y-E : masque deverrouillage flotte bus (1=arret 5k, 2=refleet 10k, 4=pax refleet+suivi quais, 8=cap 6/arret)
+ROAD1Y_LONG_BAND <- 0; // ROAD1Y-F : extension bandes 192 tuiles (0=off 128t, 1=bande 129-192 en tete, 2=bandes 96-192, 48-95, 7-47)
+ROAD1Y_LONG_V3 <- 0; // ROAD1Y-G : trace 192 tuiles, bandes fret inchangees (0 = off, trace 128)
+ROAD1Y_PAX_SITES <- true; // ROAD1Y-B : scan natif des sites de bus (modele aeroport)
+ROAD_BUS_SITE_CACHE <- {}; // ROAD1Y-B : cache des sites de bus par ville (town.id)
+ROAD1Y_PAX_ECONOMY <- false; // ROAD1Y-C : dimensionnement de flotte bus selon demande et rotation
+ROAD1Y_PAX_REFLEET <- false; // ROAD1Y-D : renfort refleet bus selon passagers en attente aux deux bouts
+ROAD1Y_MAIL_ON_PAX <- false; // ROAD1Y : ligne MAIL fille sur paire de villes bus PAX rentable
+ROAD100_WAIT_FLEET <- false; // ROAD100-10 : renfort des bus rentables sur attente mesuree
+ROAD100_SITE_WINDOW <- false; // ROAD100-11 : diversifier les preplans physiques a budget fixe
+ROAD100_SITE_NEAR <- false; // ROAD100-12 : trier les couples site-first par distance faisable
+ROAD100_DETOUR <- false; // ROAD100-13 : deux coudes constructibles quand BFS/L echouent
+ROAD100_TOUR <- false; // ROAD100-14 : 3 StationID/4 ordres sur ligne PAX existante
+ROAD100_LONG_INTERCITY <- false; // ROAD100-16 : preflight shadow grands corridors PAX (aucune construction)
+ROAD100_LONG_BUILD <- false; // ROAD100-16 v6 : vrai plan LONG, opt-in distinct du diagnostic shadow
+ROAD100_SEGMENTED_CORRIDOR <- false; // ROAD100-32 : micro-gaps physiques bornes, LONG ROAD-only
+ROAD100_SPARSE_CORRIDOR <- false; // ROAD100-33 : chainage creux lineaire, LONG ROAD-only opt-in
+ROAD100_LONG_MARKET_PROBE <- false; // ROAD100-34 : PASS/mois des racines avant trace, SHADOW ROAD-only
+ROAD100_PORTAL_STITCH <- false; // ROAD100-35 : scanner urbain proche + portails routiers LONG, opt-in ROAD-only
+ROAD100_PAX_GRAPH_BRIDGE <- false; // ROAD100-36 : vrai corridor d43..170 sur voirie + raccords courts, opt-in ROAD-only
+ROAD100_PAX_PORTFOLIO <- false; // ROAD100-20 : pre-capture multi-quartiers et quais joints physiquement verifies, ROAD seul
+ROAD100_FREIGHT_DIVERSITY <- false; // ROAD100-21 : examiner deux cargos fret supplementaires dans une passe ROUTE, opt-in
+ROAD100_FREIGHT_CARGO_ORIGIN <- false; // ROAD100-22 : separer physiquement les origines par cargo fret, opt-in
+ROAD100_BATCH_ROI_15 <- false; // ROAD100-23 : second chantier ROI >=15% au lieu de 25%, garde cash inchangee
+ROAD100_FREIGHT_BERTHS <- false; // ROAD100-24 : deux quais routiers reels pour renfort fret mature, opt-in
+ROAD100_PAX_LIVE_FILTER <- false; // ROAD100-25 : retirer les projets PAX perimes avant reselection, opt-in
+ROAD100_PAX_BERTH_BALANCE <- false; // ROAD100-26 : vrai quai bus du cote limitant, sans captation anticipee
+ROAD100_PAX_DOUBLE_BERTHS <- false; // ROAD100-28 : deux quais bus physiques en deux annees pour lignes pax 1/1
+ROAD100_MAIL_INTERTOWN <- false; // ROAD100-27 : lignes MAIL ville->ville sur sites camion physiques, option
+ROAD100_MAIL_LONG_EXISTING <- false; // ROAD100-27b : uniquement longue voirie deja connectee, mode2
+ROAD100_PAX_INTERCITY_ROOTS <- false; // ROAD100-29 : sonde passive villes PAX distance 43..80, aucun projet
+ROAD100_PAX_PRODUCER_UNITS <- false; // ROAD100-30a : producer counts -> town-share PAX/month only on site-first
+ROAD100_PAX_INITIAL_BERTH_FLEET <- false; // ROAD100-31 : initial extra PAX buses only after bilateral real joined berths
+ROAD100_PAX_ROOTS_LAST_YEAR <- -1; // sonde transitoire : au plus une exposition par annee et par processus
+ROAD100_LONG_SHADOW_YEAR <- -1; // ROAD100-16 : une prequalification longue par annee, jamais par regeneration PO01C
 /* EB-14 : vivier AIR/RAIL en tranches avec publication intermediaire ; OFF par defaut. */
 EB14_PROGRESSIVE <- false;
 /* Ablation EB-14 : garder C121 toute la premiere annee avec ROUTE ; OFF. */
@@ -778,6 +830,8 @@ C77_INTENT_DEFER <- true; // PO-03 : mode 2 adopte le 23/10
 C77_INTENT_DEFER_SUBSIDY <- true;
 const C77_INTENT_DEFER_DAYS = 365;
 
+ROAD1Y_SAVED_STOPS <- false; // Set only by reconciliation after Load.
+ROAD1Y_BUS_FIXES <- 0; // 1: pax-only additions; 4: min distance 30; 8: top two districts.
 /* PAX-AIR-FIRST : ablations independantes, strictement OFF par defaut. */
 PAX_AIR_FIRST_RAIL_OFF <- false;
 PAX_AIR_FIRST_AIR_UNBOUNDED <- false;
