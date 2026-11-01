@@ -1018,6 +1018,7 @@ class OpexAIInfo extends AIInfo {
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0, flags = 0, step_size = 1
     });
+    AddSetting({
       name = "rail_repair_join_site",
       description = "Rail repair SITE: on shared destination join failure, test nearby rotated station platforms preserving the existing station ID (experimental; 0 = off)",
       easy_value = 0, medium_value = 0, hard_value = 0,
