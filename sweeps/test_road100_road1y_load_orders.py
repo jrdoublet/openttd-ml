@@ -32,8 +32,9 @@ class Road1yLoadOrdersContracts(unittest.TestCase):
             self.assertRegex(block.group(1), rf"{difficulty}_value\s*=\s*0")
         self.assertIn("flags = AICONFIG_BOOLEAN", block.group(1))
 
-        # Lecture dans settings.nut
+        # Lecture dans settings.nut ; inerte hors route seule (valeur master false).
         self.assertIn('ROAD1Y_LOAD_ORDERS = AIController.GetSetting("road1y_load_orders") == 1;', self.settings)
+        self.assertIn("if (!road1yRoadOnly) ROAD1Y_LOAD_ORDERS = false;", self.settings)
 
     def test_builder_road_orders_logic(self):
         # Verification de la logique dans OpexBuildRoadRoute

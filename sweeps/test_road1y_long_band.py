@@ -46,6 +46,11 @@ class TestRoad1yLongBand(unittest.TestCase):
         load_fn = body("settings.nut", "OpexLoadSettings")
         self.assertIn('ROAD1Y_LONG_BAND = AIController.GetSetting("road1y_long_band");', load_fn)
         self.assertIn("if (ROAD1Y_LONG_BAND < 0 || ROAD1Y_LONG_BAND > 2) ROAD1Y_LONG_BAND = 0;", load_fn)
+        self.assertIn("if (!road1yRoadOnly) ROAD1Y_LONG_BAND = 0;", load_fn)
+        self.assertLess(
+            load_fn.index("if (!road1yRoadOnly) ROAD1Y_LONG_BAND = 0;"),
+            load_fn.index("if (ROAD1Y_LONG_BAND == 1) {"),
+        )
         self.assertIn("if (ROAD1Y_LONG_BAND == 1) {", load_fn)
         self.assertIn("ROAD1Y_DIST_BAND_LIMITS = [[129, 192], [64, 128], [32, 63], [7, 31]];", load_fn)
         self.assertIn("ROAD_MAX_TRACE_TILES = 192;", load_fn)

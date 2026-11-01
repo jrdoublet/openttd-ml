@@ -433,17 +433,17 @@ class OpexAIInfo extends AIInfo {
     });
     AddSetting({
       name = "road1y_long_v3",
-      description = "ROAD1Y: trace route 192 tuiles sans reordonner les bandes fret (0=off, trace 128 et bandes 64-128/32-63/7-31 ; 1=trace 192, memes bandes)",
+      description = "ROAD1Y: trace route 192 tuiles sans reordonner les bandes fret (0=off, trace 128 et bandes 64-128/32-63/7-31 ; 1=trace 192, memes bandes, default); road-only",
       min_value = 0, max_value = 1,
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
       flags = 0
     });
     AddSetting({
       name = "road1y_mail_on_pax",
-      description = "ROAD1Y: child MAIL line on a profitable PAX bus town pair; 0 = off (default), 1 = on",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
+      description = "ROAD1Y: child MAIL line on a profitable PAX bus town pair; 0 = off, 1 = on (default); road-only",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
       flags = AICONFIG_BOOLEAN
     });
     AddSetting({

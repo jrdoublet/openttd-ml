@@ -1,7 +1,7 @@
 """Contract tests for ROAD1Y child MAIL lines on PAX bus pairs (road1y_mail_on_pax).
 
 Verifies:
-- setting declared default 0 at all four difficulties;
+- setting declared default 1 at all four difficulties;
 - ROAD1Y_MAIL_ON_PAX loaded before bus_districts_overrides.nut is required
   (same order as ROAD1Y_EXTRA_STOPS) and re-read in OpexLoadSettings;
 - every live entry is guarded by ROAD1Y_MAIL_ON_PAX;
@@ -32,7 +32,7 @@ class TestRoad1yMailOnPax(unittest.TestCase):
         self.assertIn('name = "road1y_mail_on_pax"', info_src)
         setting_block = info_src.split('name = "road1y_mail_on_pax",')[1].split("});")[0]
         for diff in ("easy", "medium", "hard", "custom"):
-            self.assertIn(f"{diff}_value = 0", setting_block)
+            self.assertIn(f"{diff}_value = 1", setting_block)
         self.assertIn("flags = AICONFIG_BOOLEAN", setting_block)
 
     def test_global_pre_declaration(self):
@@ -46,11 +46,13 @@ class TestRoad1yMailOnPax(unittest.TestCase):
             'ROAD1Y_MAIL_ON_PAX = AIController.GetSetting("road1y_mail_on_pax") == 1;',
             load_settings,
         )
+        self.assertIn("if (!road1yRoadOnly) ROAD1Y_MAIL_ON_PAX = false;", load_settings)
         loader = body("settings.nut", "OpexLoadBusDistrictSettings")
         self.assertIn(
             'ROAD1Y_MAIL_ON_PAX = AIController.GetSetting("road1y_mail_on_pax") == 1;',
             loader,
         )
+        self.assertIn("if (!road1yRoadOnly) ROAD1Y_MAIL_ON_PAX = false;", loader)
         self.assertLess(
             loader.index('GetSetting("road1y_mail_on_pax")'),
             loader.index('require("bus_districts_overrides.nut")'),

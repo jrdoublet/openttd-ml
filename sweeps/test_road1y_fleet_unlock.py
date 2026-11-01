@@ -39,6 +39,7 @@ class TestRoad1yFleetUnlock(unittest.TestCase):
         load_fn = body("settings.nut", "OpexLoadSettings")
         self.assertIn('ROAD1Y_FLEET_UNLOCK = AIController.GetSetting("road1y_fleet_unlock");', load_fn)
         self.assertIn("if (ROAD1Y_FLEET_UNLOCK < 0 || ROAD1Y_FLEET_UNLOCK > 15) ROAD1Y_FLEET_UNLOCK = 0;", load_fn)
+        self.assertIn("if (!road1yRoadOnly) ROAD1Y_FLEET_UNLOCK = 0;", load_fn)
 
     def test_bit1_joint_stop_reserve_bus_districts(self):
         code = body("bus_districts.nut", "OpexRoad1yBuildExtraStop")

@@ -87,6 +87,7 @@ class BusDistrictContracts(unittest.TestCase):
         self.assertIn('require("bus_districts_overrides.nut")', loader)
         self.assertNotIn('bus_districts_overrides', body('settings.nut', 'OpexLoadSettings'))
         self.assertEqual(settings.count('GetSetting("road1y_pax_sites")'), 1)
+        self.assertIn("if (!road1yRoadOnly) ROAD1Y_PAX_SITES = false;", loader)
         self.assertTrue(source('main.nut').rstrip().endswith('OpexLoadBusDistrictSettings();'))
         self.assertIn('OpexAI._refleetRoadLines <- OpexRoad1yRefleetSaved;', source('bus_districts_overrides.nut'))
         self.assertNotIn('OpexAI._refleetRoadLines =', source('bus_districts_overrides.nut'))
@@ -184,6 +185,7 @@ class BusDistrictContracts(unittest.TestCase):
     def test_isolated_fixes_default_off_and_loaded_once(self):
         settings = source('settings.nut')
         self.assertEqual(settings.count('GetSetting("road1y_bus_fixes")'), 1)
+        self.assertIn("if (!road1yRoadOnly) ROAD1Y_BUS_FIXES = 0;", body('settings.nut', 'OpexLoadBusDistrictSettings'))
         self.assertIn('ROAD1Y_BUS_FIXES <- 0;', source('globals_pre.nut'))
         setting = source('info.nut').split('name = "road1y_bus_fixes",')[1].split('});')[0]
         for difficulty in ('easy', 'medium', 'hard', 'custom'):

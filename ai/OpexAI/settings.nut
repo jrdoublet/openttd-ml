@@ -121,17 +121,28 @@ function OpexLoadSettings()
       && ROAD100_SITE_FIRST;
   ROAD100_MULTICATCHMENT = AIController.GetSetting("road100_multicatchment") == 1
       && ROAD100_SITE_FIRST;
+  /* ROAD1Y : uniquement route seule, meme condition de modes que ROAD100_SOLO_PAX.
+   * Hors route seule, chaque variable reprend la valeur de origin/master. */
+  local road1yRoadOnly = MODE_ROAD && !MODE_AIR && !MODE_RAIL && !MODE_WATER;
+  if (!road1yRoadOnly) ROAD1Y_LOAD_ORDERS = false;
   ROAD1Y_DIST_BANDS = AIController.GetSetting("road1y_dist_bands") == 1;
+  if (!road1yRoadOnly) ROAD1Y_DIST_BANDS = false;
   ROAD_MAX_TRACE_TILES = ROAD1Y_DIST_BANDS ? 128 : 48;
   ROAD1Y_FLEET = AIController.GetSetting("road1y_fleet");
   if (ROAD1Y_FLEET < 0) ROAD1Y_FLEET = 0;
+  if (!road1yRoadOnly) ROAD1Y_FLEET = 0;
   ROAD1Y_PAX_ECONOMY = AIController.GetSetting("road1y_pax_economy") == 1;
+  if (!road1yRoadOnly) ROAD1Y_PAX_ECONOMY = false;
   ROAD1Y_PAX_REFLEET = AIController.GetSetting("road1y_pax_refleet") == 1;
+  if (!road1yRoadOnly) ROAD1Y_PAX_REFLEET = false;
   ROAD1Y_MAIL_ON_PAX = AIController.GetSetting("road1y_mail_on_pax") == 1;
+  if (!road1yRoadOnly) ROAD1Y_MAIL_ON_PAX = false;
   ROAD1Y_FLEET_UNLOCK = AIController.GetSetting("road1y_fleet_unlock");
   if (ROAD1Y_FLEET_UNLOCK < 0 || ROAD1Y_FLEET_UNLOCK > 15) ROAD1Y_FLEET_UNLOCK = 0;
+  if (!road1yRoadOnly) ROAD1Y_FLEET_UNLOCK = 0;
   ROAD1Y_LONG_BAND = AIController.GetSetting("road1y_long_band");
   if (ROAD1Y_LONG_BAND < 0 || ROAD1Y_LONG_BAND > 2) ROAD1Y_LONG_BAND = 0;
+  if (!road1yRoadOnly) ROAD1Y_LONG_BAND = 0;
   if (ROAD1Y_LONG_BAND == 1) {
     ROAD1Y_DIST_BAND_LIMITS = [[129, 192], [64, 128], [32, 63], [7, 31]];
     ROAD_MAX_TRACE_TILES = 192;
@@ -143,11 +154,12 @@ function OpexLoadSettings()
   }
   /* ROAD1Y-G : trace 192 pour le PAX (bande -1, BFS, L) sans reordonner
    * les bandes fret. La premiere bande non vide reste 64-128. long_band
-   * non nul a deja pose le trace 192. Le defaut 0 laisse le trace a 128.
+   * non nul a deja pose le trace 192. Hors route seule le trace reste 48.
    * bus_districts_overrides.nut lit ROAD_MAX_TRACE_TILES dans des fonctions,
    * pas au require : main.nut appelle ce chargement avant le require. */
   ROAD1Y_LONG_V3 = AIController.GetSetting("road1y_long_v3");
   if (ROAD1Y_LONG_V3 != 1) ROAD1Y_LONG_V3 = 0;
+  if (!road1yRoadOnly) ROAD1Y_LONG_V3 = 0;
   if (ROAD1Y_LONG_V3 == 1 && ROAD1Y_DIST_BANDS && ROAD1Y_LONG_BAND == 0)
     ROAD_MAX_TRACE_TILES = 192;
 
@@ -666,13 +678,22 @@ function OpexLoadSettings()
 /* Read once before class instantiation: Squirrel forbids replacing class methods later. */
 function OpexLoadBusDistrictSettings()
 {
+  /* Appele au chargement, avant Start : MODE_* n'est pas encore pose. */
+  local road1yRoadOnly = AIController.GetSetting("mode_road") != 0
+      && AIController.GetSetting("mode_air") == 0
+      && AIController.GetSetting("mode_rail") == 0
+      && AIController.GetSetting("mode_water") == 0;
   ROAD1Y_BUS_FIXES = AIController.GetSetting("road1y_bus_fixes");
   if (ROAD1Y_BUS_FIXES < 0 || ROAD1Y_BUS_FIXES > 13) ROAD1Y_BUS_FIXES = 0;
+  if (!road1yRoadOnly) ROAD1Y_BUS_FIXES = 0;
   ROAD1Y_EXTRA_STOPS = AIController.GetSetting("road1y_extra_stops");
   if (ROAD1Y_EXTRA_STOPS < 0) ROAD1Y_EXTRA_STOPS = 0;
   if (ROAD1Y_EXTRA_STOPS > 3) ROAD1Y_EXTRA_STOPS = 3;
+  if (!road1yRoadOnly) ROAD1Y_EXTRA_STOPS = 0;
   ROAD1Y_PAX_SITES = AIController.GetSetting("road1y_pax_sites") == 1;
+  if (!road1yRoadOnly) ROAD1Y_PAX_SITES = false;
   ROAD1Y_MAIL_ON_PAX = AIController.GetSetting("road1y_mail_on_pax") == 1;
+  if (!road1yRoadOnly) ROAD1Y_MAIL_ON_PAX = false;
   { // Definitions also needed for saved markers after ON -> OFF.
     require("bus_districts.nut");
     require("bus_districts_overrides.nut");

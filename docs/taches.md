@@ -12,8 +12,10 @@ bande fret 64-128 : le `break` de la première bande non vide
 (`candidates.nut`, `po01c_regen.nut`) saute le fret 64-95 (132 → 5 lignes).
 Le PAX 128+ créé par le tracé 192 est rentable à 4 bus et ouvert dès 1970.
 `road1y_long_v3=1` ne fait que porter `ROAD_MAX_TRACE_TILES` à 192 en
-gardant les bandes 64-128, 32-63, 7-31. Défaut 0 : trajectoire inchangée.
-Aucun banc (VPS occupé). Pas de renfort de flotte. Rapport hors dépôt.
+gardant les bandes 64-128, 32-63, 7-31. Intégré sur `road1y-mail-rebased` :
+défauts `road1y_mail_on_pax=1` et `road1y_long_v3=1` aux quatre difficultés,
+avec garde route seule (comme `ROAD100_SOLO_PAX`) : hors `mode_road` seul,
+chaque `ROAD1Y_*` reprend la valeur master. Aucun banc. Pas de push.
 
 ### 29/10 — corrections de revue B2 et diagnostic des variantes a/c
 

@@ -1,8 +1,10 @@
 """ROAD1Y-G : contrat de road1y_long_v3 (trace 192, bandes fret inchangees).
 
-Le defaut 0 laisse ROAD_MAX_TRACE_TILES et ROAD1Y_DIST_BAND_LIMITS sur le
-chemin de road1y_long_band=0. La valeur 1 n'allonge que le trace, apres le
-choix de bandes, et seulement si les bandes sont actives et long_band vaut 0.
+Le defaut 1 allonge le trace a 192 tuiles en route seule, sans toucher
+ROAD1Y_DIST_BAND_LIMITS (chemin de road1y_long_band=0). La valeur 0 laisse
+le trace a 128. La valeur 1 n'allonge que le trace, apres le choix de
+bandes, et seulement si les bandes sont actives et long_band vaut 0.
+Hors route seule, la garde force 0 et ROAD_MAX_TRACE_TILES=48.
 Aucun champ Save/Load : le reglage est relu a chaque chargement.
 """
 
@@ -54,7 +56,7 @@ def first_nonempty_band(bands, distances):
 
 
 class TestRoad1yLongV3(unittest.TestCase):
-    def test_setting_declaration_defaults_to_zero(self):
+    def test_setting_declaration_defaults_to_one(self):
         info = source("info.nut")
         self.assertEqual(info.count('name = "road1y_long_v3"'), 1)
         block = info.split('name = "road1y_long_v3",')[1].split("});")[0]
@@ -62,7 +64,7 @@ class TestRoad1yLongV3(unittest.TestCase):
         self.assertIn("max_value = 1", block)
         self.assertIn("flags = 0", block)
         for difficulty in ("easy", "medium", "hard", "custom"):
-            self.assertIn(f"{difficulty}_value = 0", block)
+            self.assertIn(f"{difficulty}_value = 1", block)
         self.assertNotIn("AICONFIG_BOOLEAN", block)
 
     def test_global_and_single_load(self):
@@ -72,6 +74,11 @@ class TestRoad1yLongV3(unittest.TestCase):
         load = body("settings.nut", "OpexLoadSettings")
         self.assertIn('ROAD1Y_LONG_V3 = AIController.GetSetting("road1y_long_v3");', load)
         self.assertIn("if (ROAD1Y_LONG_V3 != 1) ROAD1Y_LONG_V3 = 0;", load)
+        self.assertIn("if (!road1yRoadOnly) ROAD1Y_LONG_V3 = 0;", load)
+        self.assertLess(
+            load.index("if (!road1yRoadOnly) ROAD1Y_LONG_V3 = 0;"),
+            load.index("if (ROAD1Y_LONG_V3 == 1 && ROAD1Y_DIST_BANDS && ROAD1Y_LONG_BAND == 0)"),
+        )
         guard = "if (ROAD1Y_LONG_V3 == 1 && ROAD1Y_DIST_BANDS && ROAD1Y_LONG_BAND == 0)"
         self.assertIn(guard, load)
         self.assertLess(load.index("} else if (ROAD1Y_LONG_BAND == 2)"), load.index(guard))

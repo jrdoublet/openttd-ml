@@ -45,8 +45,9 @@ class Road1yDistBandsContracts(unittest.TestCase):
         for difficulty in ("easy", "medium", "hard", "custom"):
             self.assertRegex(block.group(1), rf"{difficulty}_value\s*=\s*1")
 
-        # Trace limit 128 when enabled, 48 otherwise
+        # Trace limit 128 when enabled, 48 otherwise (master). Gated to road-only.
         self.assertIn('ROAD1Y_DIST_BANDS = AIController.GetSetting("road1y_dist_bands") == 1;', self.settings)
+        self.assertIn("if (!road1yRoadOnly) ROAD1Y_DIST_BANDS = false;", self.settings)
         self.assertIn('ROAD_MAX_TRACE_TILES = ROAD1Y_DIST_BANDS ? 128 : 48;', self.settings)
         self.assertIn('ROAD_MAX_TRACE_TILES <- ROAD1Y_DIST_BANDS ? 128 : 48;', self.builder_road)
 
