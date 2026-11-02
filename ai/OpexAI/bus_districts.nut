@@ -742,3 +742,141 @@ function OpexRoad1yMailStep(ai, year)
   bestParent.road1yMailTryMonth <- ym;
   OpexRoad1yBuildMailChild(ai, bestParent, cashReserve);
 }
+
+/* ROAD1Y: realloue les bus des lignes PAX faibles (< seuil x100 £/bus)
+ * vers les lignes PAX fortes saturees par les passagers en attente.
+ * Vente dans le depot de la ligne faible + achat clone dans le depot
+ * de la ligne forte = cout net nul en tresorerie. */
+function OpexRoad1yWeakStep(ai, year)
+{
+  if (ROAD1Y_WEAK <= 0) return;
+  local catalog = ai._catalog;
+  if (catalog == null) return;
+  local weakLimit = ROAD1Y_WEAK * 100;
+  if (weakLimit <= 0) weakLimit = 1500;
+
+  local dateNow = AIDate.GetCurrentDate();
+  local curMonth = AIDate.GetMonth(dateNow);
+
+  // 1. Chercher d'abord la meilleure ligne forte saturee pouvant recevoir un bus
+  local bestStrong = null;
+  local bestWait = 0;
+  local bestTemplate = null;
+
+  foreach (line in ai._lines) {
+    if (line == null || typeof line != "table") continue;
+    if (!("mode" in line) || line.mode != "road") continue;
+    if (!("kind" in line) || line.kind != "pax") continue;
+    if (("scrapping" in line) && line.scrapping) continue;
+    if (("deadStreak" in line) && line.deadStreak > 0) continue;
+    if (!("depot" in line) || !AIMap.IsValidTile(line.depot) || !AIRoad.IsRoadDepotTile(line.depot)) continue;
+    if (!AICompany.IsMine(AITile.GetOwner(line.depot))) continue;
+    if (!("stationA" in line) || !AIMap.IsValidTile(line.stationA) || !AIRoad.IsRoadStationTile(line.stationA)) continue;
+    if (!("stationB" in line) || !AIMap.IsValidTile(line.stationB) || !AIRoad.IsRoadStationTile(line.stationB)) continue;
+
+    local stA = AIStation.GetStationID(line.stationA);
+    local stB = AIStation.GetStationID(line.stationB);
+    if (!AIStation.IsValidStation(stA) || !AIStation.IsValidStation(stB)) continue;
+
+    local sVehs = OpexLineVehicleIds(line, stA);
+    if (sVehs.len() == 0 || sVehs.len() >= 8) continue;
+
+    local sWaitA = AIStation.GetCargoWaiting(stA, line.cargo);
+    local sWaitB = AIStation.GetCargoWaiting(stB, line.cargo);
+    local sTotalWait = sWaitA + sWaitB;
+    local cap = AIVehicle.GetCapacity(sVehs[0], line.cargo);
+    if (cap <= 0) continue;
+
+    if (sTotalWait >= cap && sTotalWait > bestWait) {
+      bestWait = sTotalWait;
+      bestStrong = line;
+      bestTemplate = sVehs[0];
+    }
+  }
+
+  if (bestStrong == null || bestTemplate == null) return;
+  if (!OpexVehicleSlotAvailable(AIVehicle.VT_ROAD, 1)) return;
+
+  // 2. Parcourir les lignes pour trouver une ligne faible eligible
+  foreach (line in ai._lines) {
+    if (line == null || typeof line != "table") continue;
+    if (!("mode" in line) || line.mode != "road") continue;
+    if (!("kind" in line) || line.kind != "pax") continue;
+    if (line.lineId == bestStrong.lineId) continue;
+    if (("scrapping" in line) && line.scrapping) continue;
+    if (("deadStreak" in line) && line.deadStreak > 0) continue;
+    if (!("stationA" in line) || !AIMap.IsValidTile(line.stationA) || !AIRoad.IsRoadStationTile(line.stationA)) continue;
+    if (!("stationB" in line) || !AIMap.IsValidTile(line.stationB) || !AIRoad.IsRoadStationTile(line.stationB)) continue;
+
+    local stA = AIStation.GetStationID(line.stationA);
+    local stB = AIStation.GetStationID(line.stationB);
+    if (!AIStation.IsValidStation(stA) || !AIStation.IsValidStation(stB)) continue;
+
+    local vehs = OpexLineVehicleIds(line, stA);
+    if (vehs.len() <= 2) continue; // Toujours garder au moins 2 bus
+
+    local waitA = AIStation.GetCargoWaiting(stA, line.cargo);
+    local waitB = AIStation.GetCargoWaiting(stB, line.cargo);
+    if (waitA + waitB > 20) continue; // Ne pas toucher si forte attente
+
+    local lineProfit = 0;
+    if (curMonth >= 3) {
+      foreach (v in vehs) {
+        if (AIVehicle.IsValidVehicle(v)) lineProfit += AIVehicle.GetProfitThisYear(v);
+      }
+      lineProfit = (lineProfit * 12) / curMonth;
+    } else {
+      foreach (v in vehs) {
+        if (AIVehicle.IsValidVehicle(v)) lineProfit += AIVehicle.GetProfitLastYear(v);
+      }
+    }
+    local ppb = lineProfit / vehs.len();
+    if (ppb >= weakLimit) continue; // Pas faible
+
+    // Verifier si un vehicule de cette ligne est deja au depot
+    local inDepot = null;
+    local enRoute = null;
+    foreach (v in vehs) {
+      if (!AIVehicle.IsValidVehicle(v)) continue;
+      if (AIVehicle.IsStoppedInDepot(v)) {
+        inDepot = v;
+        break;
+      }
+      if (AIOrder.IsGotoDepotOrder(v, AIOrder.ORDER_CURRENT)) {
+        enRoute = v;
+      }
+    }
+
+    if (inDepot != null) {
+      // Vendre le vehicule au depot
+      if (AIVehicle.SellVehicle(inDepot)) {
+        if ("vehCount" in line && line.vehCount > 1) line.vehCount--;
+        // Acheter immediatement sur la ligne forte
+        local newVeh = AIVehicle.CloneVehicle(bestStrong.depot, bestTemplate, true);
+        if (AIVehicle.IsValidVehicle(newVeh)) {
+          AIVehicle.StartStopVehicle(newVeh);
+          if ("vehCount" in bestStrong) bestStrong.vehCount++;
+          if (DECISION_LOG) {
+            OpexDecide("ROAD1Y_WEAK", "action=transfer from_line=" + line.lineId
+                + " to_line=" + bestStrong.lineId + " old_veh=" + inDepot
+                + " new_veh=" + newVeh + " ppb=" + ppb + " wait=" + (waitA + waitB)
+                + " strong_wait=" + bestWait);
+          }
+        }
+        return; // Une mutation par cycle mensuel
+      }
+    } else if (enRoute == null) {
+      // Envoyer le dernier vehicule au depot
+      local victim = vehs[vehs.len() - 1];
+      if (AIVehicle.IsValidVehicle(victim) && !AIVehicle.IsStoppedInDepot(victim)) {
+        AIVehicle.SendVehicleToDepot(victim);
+        if (DECISION_LOG) {
+          OpexDecide("ROAD1Y_WEAK", "action=send_depot line=" + line.lineId
+              + " veh=" + victim + " ppb=" + ppb + " wait=" + (waitA + waitB)
+              + " vehs=" + vehs.len());
+        }
+        return; // Un seul vehicule en transit a la fois
+      }
+    }
+  }
+}
