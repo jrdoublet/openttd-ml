@@ -42,6 +42,7 @@ Les bras explicitent les mêmes clés d'intervention, avec des valeurs différen
 La référence conserve les défauts publiés ; déclaration, bornes et pas sont
 vérifiés. Les autres réglages restent aux défauts, C115 protégé compris.
 Le plan, SHA, dépôt, ref, run/attempt, graines et commandes sont figés avant jeu.
+Champ optionnel `aaahogex_settings` : réglages AAAHogEx (`cle=valeur` séparés par espaces ou virgules, au plus 16 paires, clés `[a-z0-9_]+`, valeurs entières) ou raccourci `"road_only"` (`disable_veh_train=1 disable_veh_tram=1 disable_veh_ship=1 disable_veh_aircraft=1`).
 Le schéma 2 fixe A à trois ans, seuil relatif 4 %, garde de valeur 5 % : aucune
 variation d'horizon ou de seuil n'est proposée par ce parcours automatique.
 

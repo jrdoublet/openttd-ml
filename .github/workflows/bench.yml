@@ -52,6 +52,10 @@ on:
         description: "Duels : collecter aussi le profit par ligne (artefacts plus gros)"
         type: boolean
         default: false
+      aaahogex_settings:
+        description: "AAAHogEx : réglages cle=valeur (séparés par espaces ou virgules) ou 'road_only'"
+        type: string
+        default: ""
 
 permissions:
   contents: read
@@ -81,6 +85,7 @@ jobs:
       BENCH_MIN_DELTA_PCT: ${{ inputs.min_delta_pct }}
       BENCH_VALUE_GUARD: ${{ inputs.value_guard }}
       BENCH_LINE_TELEMETRY: ${{ inputs.line_telemetry }}
+      BENCH_AAAHOGEX_SETTINGS: ${{ inputs.aaahogex_settings }}
       RESULT_DIR: results/gha-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
       - uses: actions/checkout@v4
