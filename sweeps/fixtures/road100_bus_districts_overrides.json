@@ -66,7 +66,7 @@
       },
       {
         "before": "      local distance = AIMap.DistanceManhattan(tileA, tileB);\n      if (!OpexRoadDistanceAllowed(catalog, distance, stats)) continue;",
-        "after": "      local distance = AIMap.DistanceManhattan(tileA, tileB);\n      if ((ROAD1Y_BUS_FIXES & 4) != 0 && distance < 30) continue;\n      if (!OpexRoadDistanceAllowed(catalog, distance, stats)) continue;"
+        "after": "      local distance = AIMap.DistanceManhattan(tileA, tileB);\n      if (ROAD1Y_NEXT > 0 && distance < ROAD1Y_NEXT) continue;\n      if ((ROAD1Y_BUS_FIXES & 4) != 0 && distance < 30) continue;\n      if (!OpexRoadDistanceAllowed(catalog, distance, stats)) continue;"
       }
     ]
   },

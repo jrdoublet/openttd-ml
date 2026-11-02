@@ -373,6 +373,7 @@ function OpexRoad100SoloPaxCandidates(catalog, lines, out, stats,
       local tileB = ROAD1Y_PAX_SITES ? dst.site.tile : townB.tile;
       if (OpexRoadPairServed(lines, tileA, tileB)) continue;
       local distance = AIMap.DistanceManhattan(tileA, tileB);
+      if (ROAD1Y_NEXT > 0 && distance < ROAD1Y_NEXT) continue;
       if ((ROAD1Y_BUS_FIXES & 4) != 0 && distance < 30) continue;
       if (!OpexRoadDistanceAllowed(catalog, distance, stats)) continue;
       if (abandonedPairs != null) {

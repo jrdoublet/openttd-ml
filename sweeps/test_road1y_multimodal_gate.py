@@ -36,6 +36,7 @@ ROAD1Y_OFF = {
     "ROAD1Y_EXTRA_STOPS": "0",
     "ROAD1Y_PAX_SITES": "false",
     "ROAD1Y_WEAK": "0",
+    "ROAD1Y_NEXT": "0",
 }
 
 SETTING_TO_GLOBAL = {
@@ -54,6 +55,7 @@ SETTING_TO_GLOBAL = {
     "road1y_extra_stops": "ROAD1Y_EXTRA_STOPS",
     "road1y_pax_sites": "ROAD1Y_PAX_SITES",
     "road1y_weak": "ROAD1Y_WEAK",
+    "road1y_next": "ROAD1Y_NEXT",
 }
 
 LOAD_SETTINGS_KEYS = (
@@ -64,6 +66,7 @@ LOAD_SETTINGS_KEYS = (
     "road1y_pax_refleet",
     "road1y_mail_on_pax",
     "road1y_weak",
+    "road1y_next",
     "road1y_fleet_unlock",
     "road1y_long_band",
     "road1y_long_v3",
@@ -76,6 +79,7 @@ BUS_DISTRICT_KEYS = (
     "road1y_pax_sites",
     "road1y_mail_on_pax",
     "road1y_weak",
+    "road1y_next",
 )
 
 ROAD100_SOLO_MODES = "MODE_ROAD && !MODE_AIR && !MODE_RAIL && !MODE_WATER"
@@ -203,13 +207,14 @@ class TestRoad1yMultimodalGate(unittest.TestCase):
         self.assertEqual(ROAD1Y_OFF["ROAD1Y_PAX_REFLEET"], "false")
         self.assertEqual(ROAD1Y_OFF["ROAD1Y_FLEET_UNLOCK"], "0")
         self.assertEqual(ROAD1Y_OFF["ROAD1Y_LONG_BAND"], "0")
+        self.assertEqual(ROAD1Y_OFF["ROAD1Y_NEXT"], "0")
         load = body("settings.nut", "OpexLoadSettings")
         bus = body("settings.nut", "OpexLoadBusDistrictSettings")
         for global_name, off in ROAD1Y_OFF.items():
             blob = load if global_name not in (
                 "ROAD1Y_BUS_FIXES", "ROAD1Y_EXTRA_STOPS", "ROAD1Y_PAX_SITES",
             ) else bus
-            if global_name == "ROAD1Y_MAIL_ON_PAX":
+            if global_name in ("ROAD1Y_MAIL_ON_PAX", "ROAD1Y_NEXT"):
                 self.assertIn(_gate_line(global_name), load)
                 self.assertIn(_gate_line(global_name), bus)
             else:
