@@ -26,6 +26,14 @@
       {
         "before": "    pairs.sort(OpexRoad100SortSitePair);\n  } else {\n    pairs.sort(function(x, y) {\n      if (x.d < y.d) return -1;\n      if (x.d > y.d) return 1;\n      return 0;\n    });\n  }\n  local nBfs = 0;\n",
         "after": "    pairs.sort(OpexRoad100SortSitePair);\n  } else {\n    pairs.sort(OpexBusDistrictSortDistance);\n  }\n  local nBfs = 0;\n"
+      },
+      {
+        "before": "  local nLNoDepot = 0;\n  local viableSitePlans = 0;\n",
+        "after": "  local nLNoDepot = 0;\n  local nAStar = 0;\n  local viableSitePlans = 0;\n"
+      },
+      {
+        "before": "    } else {\n      via = \"BFS\";\n    }\n    if (trace == null || depot == null) continue;\n",
+        "after": "    } else {\n      via = \"BFS\";\n    }\n    /* ROAD1Y-K : dernier recours a la construction, une fois par plan. */\n    if ((trace == null || depot == null) && ROAD1Y_ASTAR > 0\n        && (\"road1yBusSite\" in candidate) && nAStar == 0) {\n      nAStar++;\n      trace = OpexRoad1yAStarTrace(siteA, siteB, ROAD_MAX_TRACE_TILES + 64);\n      depot = trace != null ? OpexRoadFindDepot(trace, siteA, siteB, true) : null;\n      if (depot != null) via = \"ASTAR\";\n    }\n    if (trace == null || depot == null) continue;\n"
       }
     ]
   },

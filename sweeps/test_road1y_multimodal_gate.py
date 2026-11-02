@@ -30,6 +30,7 @@ ROAD1Y_OFF = {
     "ROAD1Y_FLEET_UNLOCK": "0",
     "ROAD1Y_LONG_BAND": "0",
     "ROAD1Y_LONG_V3": "0",
+    "ROAD1Y_ASTAR": "0",
     "ROAD1Y_BUS_FIXES": "0",
     "ROAD1Y_EXTRA_STOPS": "0",
     "ROAD1Y_PAX_SITES": "false",
@@ -45,6 +46,7 @@ SETTING_TO_GLOBAL = {
     "road1y_fleet_unlock": "ROAD1Y_FLEET_UNLOCK",
     "road1y_long_band": "ROAD1Y_LONG_BAND",
     "road1y_long_v3": "ROAD1Y_LONG_V3",
+    "road1y_astar": "ROAD1Y_ASTAR",
     "road1y_bus_fixes": "ROAD1Y_BUS_FIXES",
     "road1y_extra_stops": "ROAD1Y_EXTRA_STOPS",
     "road1y_pax_sites": "ROAD1Y_PAX_SITES",
@@ -60,6 +62,7 @@ LOAD_SETTINGS_KEYS = (
     "road1y_fleet_unlock",
     "road1y_long_band",
     "road1y_long_v3",
+    "road1y_astar",
 )
 BUS_DISTRICT_KEYS = (
     "road1y_bus_fixes",
@@ -185,6 +188,7 @@ class TestRoad1yMultimodalGate(unittest.TestCase):
         self.assertEqual(ROAD1Y_OFF["ROAD1Y_PAX_SITES"], "false")
         self.assertEqual(ROAD1Y_OFF["ROAD1Y_MAIL_ON_PAX"], "false")
         self.assertEqual(ROAD1Y_OFF["ROAD1Y_LONG_V3"], "0")
+        self.assertEqual(ROAD1Y_OFF["ROAD1Y_ASTAR"], "0")
         self.assertEqual(ROAD1Y_OFF["ROAD1Y_BUS_FIXES"], "0")
         self.assertEqual(ROAD1Y_OFF["ROAD1Y_LOAD_ORDERS"], "false")
         self.assertEqual(ROAD1Y_OFF["ROAD1Y_PAX_ECONOMY"], "false")

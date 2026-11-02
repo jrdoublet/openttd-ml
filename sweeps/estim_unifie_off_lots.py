@@ -817,10 +817,10 @@ diff --git a/ai/OpexAI/info.nut b/ai/OpexAI/info.nut
      });
      AddSetting({
 +      name = "estim_unifie",
-+      description = "ESTIM-1: 1 revenue, 2 cash, 4 marginal operations, 8 physical primitives, 16 distance-dependent RAIL revenue and score cost; 0 = historical (default)",
++      description = "ESTIM-1: 1 revenue, 2 cash, 4 marginal operations, 8 physical primitives, 16 distance-dependent RAIL revenue and score cost; 0 = historical, 31 = default",
 +      min_value = 0, max_value = 31,
-+      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
-+      default_value = 0, step_size = 1, flags = 0
++      easy_value = 31, medium_value = 31, hard_value = 31, custom_value = 31,
++      default_value = 31, step_size = 1, flags = 0
 +    });
 +    AddSetting({
        name = "dist_bornes_unified",
