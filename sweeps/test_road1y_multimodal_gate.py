@@ -27,6 +27,7 @@ ROAD1Y_OFF = {
     "ROAD1Y_PAX_ECONOMY": "false",
     "ROAD1Y_PAX_REFLEET": "false",
     "ROAD1Y_MAIL_ON_PAX": "false",
+    "ROAD1Y_MAIL_NET": "0",
     "ROAD1Y_FLEET_UNLOCK": "0",
     "ROAD1Y_LONG_BAND": "0",
     "ROAD1Y_LONG_V3": "0",
@@ -44,6 +45,7 @@ SETTING_TO_GLOBAL = {
     "road1y_pax_economy": "ROAD1Y_PAX_ECONOMY",
     "road1y_pax_refleet": "ROAD1Y_PAX_REFLEET",
     "road1y_mail_on_pax": "ROAD1Y_MAIL_ON_PAX",
+    "road1y_mail_net": "ROAD1Y_MAIL_NET",
     "road1y_fleet_unlock": "ROAD1Y_FLEET_UNLOCK",
     "road1y_long_band": "ROAD1Y_LONG_BAND",
     "road1y_long_v3": "ROAD1Y_LONG_V3",
@@ -61,6 +63,7 @@ LOAD_SETTINGS_KEYS = (
     "road1y_pax_economy",
     "road1y_pax_refleet",
     "road1y_mail_on_pax",
+    "road1y_mail_net",
     "road1y_fleet_unlock",
     "road1y_long_band",
     "road1y_long_v3",
@@ -72,6 +75,7 @@ BUS_DISTRICT_KEYS = (
     "road1y_extra_stops",
     "road1y_pax_sites",
     "road1y_mail_on_pax",
+    "road1y_mail_net",
 )
 
 ROAD100_SOLO_MODES = "MODE_ROAD && !MODE_AIR && !MODE_RAIL && !MODE_WATER"
@@ -190,6 +194,7 @@ class TestRoad1yMultimodalGate(unittest.TestCase):
         self.assertEqual(ROAD1Y_OFF["ROAD1Y_EXTRA_STOPS"], "0")
         self.assertEqual(ROAD1Y_OFF["ROAD1Y_PAX_SITES"], "false")
         self.assertEqual(ROAD1Y_OFF["ROAD1Y_MAIL_ON_PAX"], "false")
+        self.assertEqual(ROAD1Y_OFF["ROAD1Y_MAIL_NET"], "0")
         self.assertEqual(ROAD1Y_OFF["ROAD1Y_LONG_V3"], "0")
         self.assertEqual(ROAD1Y_OFF["ROAD1Y_ASTAR"], "0")
         self.assertEqual(ROAD1Y_OFF["ROAD1Y_GAP"], "0")

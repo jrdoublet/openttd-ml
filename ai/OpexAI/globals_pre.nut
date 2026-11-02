@@ -84,6 +84,7 @@ ROAD_BUS_SITE_CACHE <- {}; // ROAD1Y-B : cache des sites de bus par ville (town.
 ROAD1Y_PAX_ECONOMY <- false; // ROAD1Y-C : dimensionnement de flotte bus selon demande et rotation
 ROAD1Y_PAX_REFLEET <- false; // ROAD1Y-D : renfort refleet bus selon passagers en attente aux deux bouts
 ROAD1Y_MAIL_ON_PAX <- false; // ROAD1Y : ligne MAIL fille sur paire de villes bus PAX rentable
+ROAD1Y_MAIL_NET <- 0; // ROAD1Y : lignes MAIL routieres autonomes (0 = off ; N = plafond de lignes et de fourgons)
 ROAD100_WAIT_FLEET <- false; // ROAD100-10 : renfort des bus rentables sur attente mesuree
 ROAD100_SITE_WINDOW <- false; // ROAD100-11 : diversifier les preplans physiques a budget fixe
 ROAD100_SITE_NEAR <- false; // ROAD100-12 : trier les couples site-first par distance faisable

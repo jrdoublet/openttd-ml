@@ -6484,6 +6484,10 @@ function OpexRoadRefleet(catalog, line, have, target)
       sourceFlags = AIOrder.OF_NONE | nonstopFlag;
       destFlags = AIOrder.OF_NONE | nonstopFlag;
     }
+    if (ROAD1Y_MAIL_NET > 0 && ("kind" in line) && line.kind == "mail_net") {
+      sourceFlags = AIOrder.OF_FULL_LOAD_ANY | nonstopFlag;
+      destFlags = AIOrder.OF_FULL_LOAD_ANY | nonstopFlag;
+    }
     /* ROAD100-14 : les ordres persistants d'une ligne convertie survivent
      * a la disparition de sa flotte. Ne pas conditionner cette reconstitution
      * au switch de CREATION : ON -> OFF ne doit pas casser une ligne payee. */

@@ -66,7 +66,7 @@ class TestRoad1yMailOnPax(unittest.TestCase):
     def test_override_install_uses_mail_flag(self):
         code = source("bus_districts_overrides.nut")
         self.assertIn(
-            "if (ROAD1Y_EXTRA_STOPS > 0 || ROAD1Y_MAIL_ON_PAX) "
+            "if (ROAD1Y_EXTRA_STOPS > 0 || ROAD1Y_MAIL_ON_PAX || ROAD1Y_MAIL_NET > 0) "
             "OpexAI._refleetRoadLines <- OpexRoad1yRefleetSaved;",
             code,
         )

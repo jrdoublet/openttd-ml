@@ -454,6 +454,13 @@ class OpexAIInfo extends AIInfo {
       flags = 0
     });
     AddSetting({
+      name = "road1y_mail_net",
+      description = "ROAD1Y: road-only standalone MAIL truck lines (0 = off; N = at most N lines and N vans each, one opening per month)",
+      min_value = 0, max_value = 12,
+      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
+      flags = 0
+    });
+    AddSetting({
       name = "road1y_mail_on_pax",
       description = "ROAD1Y: child MAIL line on a profitable PAX bus town pair; 0 = off, 1 = on (default); road-only",
       easy_value = 1, medium_value = 1, hard_value = 1,
