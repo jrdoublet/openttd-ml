@@ -160,6 +160,9 @@ function OpexLoadSettings()
   ROAD1Y_LONG_V3 = AIController.GetSetting("road1y_long_v3");
   if (ROAD1Y_LONG_V3 != 1) ROAD1Y_LONG_V3 = 0;
   if (!road1yRoadOnly) ROAD1Y_LONG_V3 = 0;
+  ROAD1Y_ASTAR = AIController.GetSetting("road1y_astar");
+  if (ROAD1Y_ASTAR < 0 || ROAD1Y_ASTAR > 16) ROAD1Y_ASTAR = 0;
+  if (!road1yRoadOnly) ROAD1Y_ASTAR = 0;
   if (ROAD1Y_LONG_V3 == 1 && ROAD1Y_DIST_BANDS && ROAD1Y_LONG_BAND == 0)
     ROAD_MAX_TRACE_TILES = 192;
 

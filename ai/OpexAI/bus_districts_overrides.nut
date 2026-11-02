@@ -86,6 +86,7 @@ function OpexRoadPlanPaxVoirie(candidate, catalog = null)
   local nBfsNoDepot = 0;
   local nL = 0;
   local nLNoDepot = 0;
+  local nAStar = 0;
   local viableSitePlans = 0;
   local financeRejected = 0;
   local unprofitable = 0;
@@ -129,6 +130,14 @@ function OpexRoadPlanPaxVoirie(candidate, catalog = null)
       }
     } else {
       via = "BFS";
+    }
+    /* ROAD1Y-K : dernier recours a la construction, une fois par plan. */
+    if ((trace == null || depot == null) && ROAD1Y_ASTAR > 0
+        && ("road1yBusSite" in candidate) && nAStar == 0) {
+      nAStar++;
+      trace = OpexRoad1yAStarTrace(siteA, siteB, ROAD_MAX_TRACE_TILES + 64);
+      depot = trace != null ? OpexRoadFindDepot(trace, siteA, siteB, true) : null;
+      if (depot != null) via = "ASTAR";
     }
     if (trace == null || depot == null) continue;
     /* Au lieu du premier couple réalisable, comparer au maximum trois
