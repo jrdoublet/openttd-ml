@@ -52,6 +52,7 @@ class TestV251Inventory(unittest.TestCase):
         # historical_info ; EB-2 ajoute une option de repli (défaut 0).
         # ROAD1Y extra joined stops: one default-OFF setting, projected by ROAD1Y-B2.
         # road1y_astar (ROAD1Y-K, défaut 0, borne 0..16) est retiré avec cette couche.
+        # road1y_gap (défaut 0, borne 0..30) est dans le même bloc ROAD1Y-B2 retiré.
         # B2 fixes adds one default-OFF bitmask for isolated one-year diagnostics.
         # master: eb2 fallback + 4 rail repair profiles and V233L counterfactual.
         self.assertLessEqual(info.count("AddSetting("), 75)

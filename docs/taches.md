@@ -4,6 +4,16 @@
 
 L'ancien registre intégral (2 874 lignes, y compris hypothèses, essais, décisions et anciennes instructions) est conservé dans le [journal de transfert du 30/10](journaux/journal_2026-10-30_transfert_taches.md), avec une empreinte SHA-256 et les numéros de ligne d'origine. Le [bilan de réconciliation du 30/10](journaux/journal_2026-10-30_mise_a_jour.md) indique pourquoi les items ont été clos, séparés ou maintenus. Les fiches expérimentales restent des **photographies de leur date**, pas des consignes courantes. Pour les procédures, suivre [AGENTS.md](../AGENTS.md).
 
+### 02/11 — `road1y_gap` codé, défaut 0, non mesuré
+
+Diagnostic route seule, master `3c863206`, `profit_year` au 1972-12-01
+(4 trimestres) : graines 100 / 613553 / 781335, Opex 177 / 364 / 322 k£
+contre AAAHogEx 532 / 792 / 599. Le levier non réfuté le plus large est
+le MAIL (plafond 2 fourgons, parent sans site). `road1y_gap` (0..30, défaut 0,
+forcé à 0 hors route seule) lève ce plafond et saute un parent sans site.
+Valeur conseillée 12, aucun banc ici (un banc tournait déjà). Pas d'adoption,
+pas de push. Rapport hors dépôt : diagnostic de cette session.
+
 ### 01/11 — `road1y_long_v3` codé, défaut 0, non qualifié
 
 `road1y_long_band=2` (porte A 40×3, `fail_primary`, profit_year moyen

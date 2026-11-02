@@ -78,6 +78,7 @@ ROAD1Y_FLEET_UNLOCK <- 0; // ROAD1Y-E : masque deverrouillage flotte bus (1=arre
 ROAD1Y_LONG_BAND <- 0; // ROAD1Y-F : extension bandes 192 tuiles (0=off 128t, 1=bande 129-192 en tete, 2=bandes 96-192, 48-95, 7-47)
 ROAD1Y_LONG_V3 <- 0; // ROAD1Y-G : trace 192 tuiles, bandes fret inchangees (0 = off, trace 128)
 ROAD1Y_ASTAR <- 0; // ROAD1Y-K : A* routier des paires bus site-first, milliers de noeuds (0 = off)
+ROAD1Y_GAP <- 0; // ROAD1Y : plafond de fourgons MAIL par ligne fille (0 = plafond historique 2)
 ROAD1Y_PAX_SITES <- true; // ROAD1Y-B : scan natif des sites de bus (modele aeroport)
 ROAD_BUS_SITE_CACHE <- {}; // ROAD1Y-B : cache des sites de bus par ville (town.id)
 ROAD1Y_PAX_ECONOMY <- false; // ROAD1Y-C : dimensionnement de flotte bus selon demande et rotation
