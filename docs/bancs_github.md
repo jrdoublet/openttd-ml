@@ -108,6 +108,7 @@ reste diagnostique ; il ne constitue pas la porte A V102 du lanceur hôte.
 - **line_telemetry** : uniquement duel/paired ; ajoute la télémétrie annuelle
   par ligne, avec davantage de données et de temps de traitement.
 - **start_year** et **map_size** : année de départ (défaut `"1970"`, bornes 1920-2050) et exposant de carte (défaut `"8"` = 256², `"9"` = 512², `"10"` = 1024²), réservés aux duels.
+- **aaahogex_settings** : uniquement duel/paired ; réglages AAAHogEx (`cle=valeur` séparés par espaces ou virgules, au plus 16 paires, clés `[a-z0-9_]+`, valeurs entières) ou raccourci `road_only` (`disable_veh_train=1 disable_veh_tram=1 disable_veh_ship=1 disable_veh_aircraft=1`), transmis au harnais sous forme de `--aaahogex-setting` répétés.
 
 Exemple de syntaxe, **pas recommandation d'adoption** : mode `paired`, profil
 `smoke`, référence `OpexAI`, variante `OpexAI[c80_worker_rail=1]` si ce réglage

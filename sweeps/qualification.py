@@ -92,9 +92,17 @@ def arm_settings(arm):
 
 def validate_spec(spec):
     require(isinstance(spec, dict), "Plan JSON objet requis")
-    require(set(spec) == {"schema_version", "category", "reference", "variant", "exposure",
-                          "opcode_component", "contract_tests", "budget_minutes", "rationale"},
+    allowed = {"schema_version", "category", "reference", "variant", "exposure",
+               "opcode_component", "contract_tests", "budget_minutes", "rationale"}
+    keys = set(spec)
+    require(keys == allowed or keys == allowed | {"aaahogex_settings"},
             "Champs du plan inconnus ou manquants")
+    if "aaahogex_settings" in spec:
+        try:
+            from sweeps.github_bench import validate_aaahogex_settings
+        except ImportError:
+            from github_bench import validate_aaahogex_settings
+        validate_aaahogex_settings(spec["aaahogex_settings"])
     require(type(spec["schema_version"]) is int and spec["schema_version"] == 2,
             "Plan V102 de schéma 2 requis ; schéma 1 historique non exécutable")
     require(spec["category"] in ("behavior", "opcodes"), "Catégorie invalide")
