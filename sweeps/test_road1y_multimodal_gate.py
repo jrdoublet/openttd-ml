@@ -35,6 +35,7 @@ ROAD1Y_OFF = {
     "ROAD1Y_BUS_FIXES": "0",
     "ROAD1Y_EXTRA_STOPS": "0",
     "ROAD1Y_PAX_SITES": "false",
+    "ROAD1Y_WEAK": "0",
 }
 
 SETTING_TO_GLOBAL = {
@@ -52,6 +53,7 @@ SETTING_TO_GLOBAL = {
     "road1y_bus_fixes": "ROAD1Y_BUS_FIXES",
     "road1y_extra_stops": "ROAD1Y_EXTRA_STOPS",
     "road1y_pax_sites": "ROAD1Y_PAX_SITES",
+    "road1y_weak": "ROAD1Y_WEAK",
 }
 
 LOAD_SETTINGS_KEYS = (
@@ -61,6 +63,7 @@ LOAD_SETTINGS_KEYS = (
     "road1y_pax_economy",
     "road1y_pax_refleet",
     "road1y_mail_on_pax",
+    "road1y_weak",
     "road1y_fleet_unlock",
     "road1y_long_band",
     "road1y_long_v3",
@@ -72,6 +75,7 @@ BUS_DISTRICT_KEYS = (
     "road1y_extra_stops",
     "road1y_pax_sites",
     "road1y_mail_on_pax",
+    "road1y_weak",
 )
 
 ROAD100_SOLO_MODES = "MODE_ROAD && !MODE_AIR && !MODE_RAIL && !MODE_WATER"
