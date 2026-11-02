@@ -12,7 +12,10 @@ ligne du vivier), déclencheur d'attente abaissé à une capacité, bout le plus
 Bit 2 : si `min(quais) >= 2`, +1 bus/mois quand `min(attente) > 10` et moins de
 2 bus à l'arrêt, plafond `ROAD1Y_FLEET * min(quais)`, caisse >= prix + 20 000 £.
 Hors route seule le masque est forcé à 0. Aucune adoption, aucun changement des
-autres défauts. Le smoke 3 graines `berth_smoke` est descriptif, pas une porte V102.
+autres défauts. Smoke descriptif `berth_smoke` (SHA `d97833c3`, graines
+613553 / 781335 / 100, 3 ans, masque 3, parties saines) : `profit_year` Opex
+341 436 / 297 339 / 171 112 £ contre 363 861 / 321 945 / 177 114 £ au master
+`3c863206`. Trois graines en baisse. Pas une porte V102. Le défaut reste 0.
 
 ### 01/11 — `road1y_long_v3` codé, défaut 0, non qualifié
 
