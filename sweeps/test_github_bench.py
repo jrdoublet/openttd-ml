@@ -15,7 +15,16 @@ import tempfile
 import unittest
 from unittest import mock
 
-from sweeps import github_bench as bench
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+if str(ROOT / "sweeps") not in sys.path:
+    sys.path.insert(0, str(ROOT / "sweeps"))
+
+try:
+    from sweeps import github_bench as bench
+except ImportError:
+    import github_bench as bench
 
 
 VARIANT = "OpexAI[c83_local_repair=1]"
@@ -102,7 +111,7 @@ class MakePlanTests(OfflineTestCase):
             "mode": "solo", "profile": "smoke", "reference": "OpexAI",
             "variant": "", "years": 1, "seeds": [42], "minimum": 4.0,
             "guard": 5.0, "telemetry": False, "campaign": "gha-123456-2",
-            "start_year": 1970, "map_size": 8,
+            "start_year": 1970, "map_size": 8, "aaahogex_settings": [],
             "output": "results/gha-123456-2/bench.json", "expected_games": 1,
         })
 
@@ -726,6 +735,100 @@ class ProfitRatioTests(OfflineTestCase):
         text = bench.summary_text(self.plan(), report)
         self.assertIn("Ratio global : n/d", text)
         self.assertIn("Ratios exploitables : 0/2", text)
+
+
+class AaahogexSettingsTests(OfflineTestCase):
+    def test_validation_accepts_valid_settings_and_shortcut(self):
+        self.assertEqual(bench.validate_aaahogex_settings(""), [])
+        self.assertEqual(bench.validate_aaahogex_settings(None), [])
+        self.assertEqual(bench.validate_aaahogex_settings("   "), [])
+        self.assertEqual(
+            bench.validate_aaahogex_settings("road_only"),
+            list(bench.ROAD_ONLY_AAAHOGEX_SETTINGS),
+        )
+        self.assertEqual(
+            bench.validate_aaahogex_settings(["road_only"]),
+            list(bench.ROAD_ONLY_AAAHOGEX_SETTINGS),
+        )
+        self.assertEqual(
+            bench.validate_aaahogex_settings("k1=1, k2=-2 k3=0"),
+            ["k1=1", "k2=-2", "k3=0"],
+        )
+        # 16 pairs accepted
+        pairs_16 = " ".join(f"k_{i}={i}" for i in range(16))
+        self.assertEqual(len(bench.validate_aaahogex_settings(pairs_16)), 16)
+
+    def test_validation_rejects_invalid_inputs(self):
+        for bad in (
+            "UPPERCASE=1",
+            "k-ey=1",
+            "k.ey=1",
+            "k=not_an_int",
+            "k=1.5",
+            "=1",
+            "k=",
+            "k",
+            "k=1, k=2",  # duplicate key
+            " ".join(f"k_{i}={i}" for i in range(17)),  # 17 pairs (>16)
+            "road_only, k=1",  # road_only combined with another setting
+        ):
+            with self.subTest(bad=bad), self.assertRaises(ValueError):
+                bench.validate_aaahogex_settings(bad)
+
+    def test_make_plan_forbids_aaahogex_settings_in_solo_mode(self):
+        with self.assertRaisesRegex(ValueError, "réservé"):
+            bench.make_plan(environment(
+                BENCH_MODE="solo",
+                BENCH_AAAHOGEX_SETTINGS="road_only",
+            ))
+
+    def test_empty_default_produces_identical_command_and_summary(self):
+        # duel
+        plan_default = bench.make_plan(environment(BENCH_MODE="duel"))
+        cmd_default = bench.command_for(plan_default)
+        self.assertEqual(plan_default["aaahogex_settings"], [])
+        self.assertNotIn("--aaahogex-setting", cmd_default)
+
+        # paired
+        plan_paired_default = bench.make_plan(environment(
+            BENCH_MODE="paired", BENCH_PROFILE="gain_short", BENCH_VARIANT=VARIANT))
+        cmd_paired_default = bench.command_for(plan_paired_default)
+        self.assertEqual(plan_paired_default["aaahogex_settings"], [])
+        self.assertNotIn("--aaahogex-setting", cmd_paired_default)
+
+        # summary has no aaahogex line when empty
+        summary = bench.summary_text(plan_default, None)
+        self.assertNotIn("Réglages AAAHogEx", summary)
+
+    def test_harness_command_transmission_for_duel_and_paired(self):
+        # duel with road_only
+        plan = bench.make_plan(environment(
+            BENCH_MODE="duel",
+            BENCH_AAAHOGEX_SETTINGS="road_only",
+        ))
+        cmd = bench.command_for(plan)
+        for s in bench.ROAD_ONLY_AAAHOGEX_SETTINGS:
+            self.assertIn(s, cmd)
+        self.assertEqual(cmd.count("--aaahogex-setting"), 4)
+
+        # paired with explicit key=value settings
+        plan2 = bench.make_plan(environment(
+            BENCH_MODE="paired",
+            BENCH_PROFILE="gain_short",
+            BENCH_VARIANT=VARIANT,
+            BENCH_AAAHOGEX_SETTINGS="disable_veh_train=1, disable_veh_tram=1",
+        ))
+        cmd2 = bench.command_for(plan2)
+        self.assertEqual(cmd2.count("--aaahogex-setting"), 2)
+        idx1 = cmd2.index("--aaahogex-setting")
+        self.assertEqual(cmd2[idx1:idx1 + 4], [
+            "--aaahogex-setting", "disable_veh_train=1",
+            "--aaahogex-setting", "disable_veh_tram=1",
+        ])
+
+        # summary records aaahogex settings
+        summary = bench.summary_text(plan, None)
+        self.assertIn("- Réglages AAAHogEx : `disable_veh_train=1 disable_veh_tram=1 disable_veh_ship=1 disable_veh_aircraft=1`", summary)
 
 
 if __name__ == "__main__":

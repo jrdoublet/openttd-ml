@@ -307,9 +307,32 @@ class GateTests(unittest.TestCase):
         for change in ({"reference": "OpexAI"}, {"variant": "OpexAI[sample=1]; echo bad"},
                        {"variant": "OpexAI[sample=1,sample=2]"}, {"budget_minutes": 271},
                        {"budget_minutes": True}, {"contract_tests": []},
-                       {"contract_tests": ["test_foo;echo"]}, {"min_delta": 0}):
+                       {"contract_tests": ["test_foo;echo"]}, {"min_delta": 0},
+                       {"aaahogex_settings": "BAD=1"}, {"aaahogex_settings": "k=abc"},
+                       {"aaahogex_settings": "k-ey=1"}):
             with self.subTest(change=change), self.assertRaises(ValueError):
                 q.validate_spec(dict(spec(), **change))
+
+    def test_aaahogex_settings_in_spec_and_stage_plan(self):
+        # Valid settings accepted by validate_spec
+        valid_road_only = dict(spec(), aaahogex_settings="road_only")
+        self.assertEqual(q.validate_spec(valid_road_only), valid_road_only)
+        valid_list = dict(spec(), aaahogex_settings=["disable_veh_train=1", "disable_veh_tram=1"])
+        self.assertEqual(q.validate_spec(valid_list), valid_list)
+
+        # stage_plan with road_only transmits settings to plan and command
+        plan_road = runner.stage_plan(valid_road_only, "smoke", ENV)
+        self.assertEqual(plan_road["aaahogex_settings"], [
+            "disable_veh_train=1", "disable_veh_tram=1", "disable_veh_ship=1", "disable_veh_aircraft=1"
+        ])
+        cmd_road = runner.command_for(plan_road)
+        self.assertEqual(cmd_road.count("--aaahogex-setting"), 4)
+
+        # Default without aaahogex_settings produces identical command without options
+        plan_default = runner.stage_plan(spec(), "smoke", ENV)
+        self.assertEqual(plan_default["aaahogex_settings"], [])
+        cmd_default = runner.command_for(plan_default)
+        self.assertNotIn("--aaahogex-setting", cmd_default)
 
     def test_json_rejects_nonfinite_and_duplicate_keys(self):
         with tempfile.TemporaryDirectory() as tmp:
