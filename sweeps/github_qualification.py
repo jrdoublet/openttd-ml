@@ -25,10 +25,16 @@ def location(env):
 
 
 def stage_plan(spec, stage, env):
+    aaa_settings = spec.get("aaahogex_settings")
+    if aaa_settings is None:
+        aaa_settings = env.get("QUALIFICATION_AAAHOGEX_SETTINGS", "")
+    elif isinstance(aaa_settings, (list, tuple)):
+        aaa_settings = " ".join(aaa_settings)
     plan = make_plan(dict(env, BENCH_MODE="paired", BENCH_PROFILE=stage,
                           BENCH_REFERENCE=spec["reference"], BENCH_VARIANT=spec["variant"],
                           BENCH_YEARS="", BENCH_SEEDS="", BENCH_MIN_DELTA_PCT="4",
-                          BENCH_VALUE_GUARD="5", BENCH_LINE_TELEMETRY="false"))
+                          BENCH_VALUE_GUARD="5", BENCH_LINE_TELEMETRY="false",
+                          BENCH_AAAHOGEX_SETTINGS=aaa_settings))
     plan["campaign"] = f"qualification-{env['GITHUB_RUN_ID']}-{env['GITHUB_RUN_ATTEMPT']}-{stage}"
     plan["output"] = (location(env) / stage / "bench.json").relative_to(ROOT).as_posix()
     # Pin the actual seed list, rather than relying on a future harness default.

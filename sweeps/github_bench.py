@@ -36,6 +36,76 @@ AAAHOGEX_URL = (
 AAAHOGEX_SHA256 = "a67f6722b73d9b3179277e45d091747d94148fd8676d13d6bac98c9124c57e0e"
 DOWNLOAD_USER_AGENT = "OpenTTD-ML GitHub benchmark"
 ARM_RE = re.compile(r"OpexAI(?:\[[A-Za-z_][A-Za-z_0-9]*=-?\d+(?:,[A-Za-z_][A-Za-z_0-9]*=-?\d+)*\])?")
+ROAD_ONLY_AAAHOGEX_SETTINGS = (
+    "disable_veh_train=1",
+    "disable_veh_tram=1",
+    "disable_veh_ship=1",
+    "disable_veh_aircraft=1",
+)
+KEY_RE = re.compile(r"^[a-z0-9_]+$")
+VAL_RE = re.compile(r"^-?\d+$")
+
+
+def validate_aaahogex_settings(raw: str | list[str] | tuple[str, ...] | None) -> list[str]:
+    """Valide et normalise les réglages AAAHogEx sous forme de liste ['cle=valeur', ...].
+
+    Règles :
+      - défaut vide / None -> []
+      - raccourci 'road_only' -> 4 réglages de désactivation train/tram/bateau/avion
+      - sinon : paires cle=valeur séparées par espaces ou virgules
+      - clés : [a-z0-9_]+
+      - valeurs : entiers
+      - pas de clé dupliquée
+      - au plus 16 paires
+    """
+    if raw is None:
+        return []
+    if isinstance(raw, (list, tuple)):
+        if not raw:
+            return []
+        items = []
+        for elem in raw:
+            if not isinstance(elem, str):
+                raise ValueError("Les réglages AAAHogEx doivent être des chaînes de caractères")
+            items.extend(re.split(r"[\s,]+", elem.strip()))
+        tokens = [t for t in items if t]
+    elif isinstance(raw, str):
+        text = raw.strip()
+        if not text:
+            return []
+        if text == "road_only":
+            return list(ROAD_ONLY_AAAHOGEX_SETTINGS)
+        tokens = [t for t in re.split(r"[\s,]+", text) if t]
+    else:
+        raise ValueError("Type invalide pour aaahogex_settings")
+
+    if not tokens:
+        return []
+
+    if len(tokens) == 1 and tokens[0] == "road_only":
+        return list(ROAD_ONLY_AAAHOGEX_SETTINGS)
+
+    if len(tokens) > 16:
+        raise ValueError("Au plus 16 réglages AAAHogEx acceptés")
+
+    seen_keys = set()
+    result = []
+    for token in tokens:
+        if token == "road_only":
+            raise ValueError("Le raccourci road_only ne peut pas être combiné avec d'autres réglages")
+        parts = token.split("=")
+        if len(parts) != 2:
+            raise ValueError(f"Format cle=valeur attendu : {token!r}")
+        key, val = parts[0], parts[1]
+        if not KEY_RE.fullmatch(key):
+            raise ValueError(f"Clé AAAHogEx invalide (attendu [a-z0-9_]+) : {key!r}")
+        if not VAL_RE.fullmatch(val):
+            raise ValueError(f"Valeur AAAHogEx entière attendue : {val!r}")
+        if key in seen_keys:
+            raise ValueError(f"Clé AAAHogEx dupliquée : {key!r}")
+        seen_keys.add(key)
+        result.append(f"{key}={int(val)}")
+    return result
 
 
 def make_plan(env):
@@ -103,6 +173,11 @@ def make_plan(env):
     if mode == "solo" and (start_year != 1970 or map_size != 8):
         raise ValueError("Le mode solo (smoke_test.py) ne supporte pas d'année de départ ou de taille de carte non standard")
 
+    raw_aaa = env.get("BENCH_AAAHOGEX_SETTINGS", "")
+    aaa_settings = validate_aaahogex_settings(raw_aaa)
+    if mode == "solo" and aaa_settings:
+        raise ValueError("aaahogex_settings est réservé aux modes duel et paired")
+
     run_id, attempt = env.get("GITHUB_RUN_ID", ""), env.get("GITHUB_RUN_ATTEMPT", "")
     if not re.fullmatch(r"\d+", run_id) or not re.fullmatch(r"\d+", attempt):
         raise ValueError("Identifiants GitHub run/attempt requis")
@@ -111,6 +186,7 @@ def make_plan(env):
                 years=years, seeds=seeds, minimum=minimum, guard=guard,
                 telemetry=telemetry == "true", campaign=campaign,
                 start_year=start_year, map_size=map_size,
+                aaahogex_settings=aaa_settings,
                 output=f"results/{campaign}/bench.json",
                 expected_games=(len(seeds) if seeds is not None else
                                 40 if profile == "gain_short" else 20) * (2 if mode == "paired" else 1))
@@ -149,6 +225,9 @@ def command_for(plan, root=ROOT):
         command += ["--start-year", str(plan["start_year"])]
     if plan["map_size"] != 8:
         command += ["--map-size", str(plan["map_size"])]
+    if plan["mode"] in ("duel", "paired"):
+        for setting in plan.get("aaahogex_settings", []):
+            command += ["--aaahogex-setting", setting]
     return command
 
 
@@ -281,6 +360,8 @@ def summary_text(plan, report):
              f"- Horizon : {plan['years']} ans ; parties attendues : {plan['expected_games']}",
              f"- Année de départ : {start_year}",
              f"- Taille de carte : {2**map_size}² (exposant {map_size})"]
+    if plan.get("aaahogex_settings"):
+        lines.append(f"- Réglages AAAHogEx : `{' '.join(plan['aaahogex_settings'])}`")
     if report is None:
         lines += ["- **Rapport final absent : campagne non validée.** Consulter les logs et artefacts partiels."]
     elif plan["mode"] == "solo":

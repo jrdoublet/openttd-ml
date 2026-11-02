@@ -9,6 +9,10 @@ on:
         description: "Plan V102 schéma 2 pré-enregistré et publié : qualifications/<chantier>.json"
         required: true
         type: string
+      aaahogex_settings:
+        description: "Optionnel si absent du plan : liste cle=valeur ou 'road_only'"
+        type: string
+        default: ""
 
 permissions:
   contents: read
@@ -29,6 +33,7 @@ jobs:
       PYTHONUNBUFFERED: "1"
       PYTHONDONTWRITEBYTECODE: "1"
       QUALIFICATION_PLAN: ${{ inputs.plan }}
+      QUALIFICATION_AAAHOGEX_SETTINGS: ${{ inputs.aaahogex_settings }}
       RESULT_DIR: results/qualification-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
       - uses: actions/checkout@v4
