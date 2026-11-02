@@ -38,7 +38,7 @@ def _balanced_block(text, open_at):
 
 
 class TestRoad1yAstar(unittest.TestCase):
-    def test_setting_defaults_to_zero_and_bounds_are_zero_to_sixteen(self):
+    def test_setting_defaults_to_four_and_bounds_are_zero_to_sixteen(self):
         info = source("info.nut")
         self.assertEqual(info.count('name = "road1y_astar"'), 1)
         block = info.split('name = "road1y_astar",')[1].split("});")[0]
@@ -47,8 +47,7 @@ class TestRoad1yAstar(unittest.TestCase):
         self.assertIn("flags = 0", block)
         self.assertNotIn("AICONFIG_BOOLEAN", block)
         for difficulty in ("easy", "medium", "hard", "custom"):
-            self.assertIn(f"{difficulty}_value = 0", block)
-            self.assertNotIn(f"{difficulty}_value = 1", block)
+            self.assertIn(f"{difficulty}_value = 4", block)
         self.assertIn("ROAD1Y_ASTAR <- 0;", source("globals_pre.nut"))
 
     def test_loaded_once_clamped_and_forced_off_outside_road_only(self):
