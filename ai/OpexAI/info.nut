@@ -447,6 +447,13 @@ class OpexAIInfo extends AIInfo {
       flags = 0
     });
     AddSetting({
+      name = "road1y_gap",
+      description = "ROAD1Y: road-only mail vans per child line (0 = historical cap of 2 and the same parent each pass; N>2 raises the cap to N and skips a parent with no mail site)",
+      min_value = 0, max_value = 30,
+      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
+      flags = 0
+    });
+    AddSetting({
       name = "road1y_mail_on_pax",
       description = "ROAD1Y: child MAIL line on a profitable PAX bus town pair; 0 = off, 1 = on (default); road-only",
       easy_value = 1, medium_value = 1, hard_value = 1,

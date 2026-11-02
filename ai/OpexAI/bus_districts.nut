@@ -498,6 +498,7 @@ function OpexRoad1yRefleetMailLine(ai, line, year)
   local stopsB = ("nStopsB" in line) && line.nStopsB > 0 ? line.nStopsB : 1;
   local stops = stopsA < stopsB ? stopsA : stopsB;
   local mailCap = 2 * stops;
+  if (ROAD1Y_GAP > mailCap) mailCap = ROAD1Y_GAP;
   local ym = year * 12 + AIDate.GetMonth(AIDate.GetCurrentDate());
   if (("road1yMailRefleetMonth" in line) && line.road1yMailRefleetMonth == ym) return;
   local capacity = liveCap > 0 ? liveCap : (("capacity" in line) ? line.capacity : 0);
@@ -542,6 +543,7 @@ function OpexRoad1yBuildMailChild(ai, parentLine, cashReserve)
   local siteA = OpexRoad1yFindMailSite(ai, catalog, townA, parentLine.stationA, mailCargo);
   local siteB = siteA != null ? OpexRoad1yFindMailSite(ai, catalog, townB, parentLine.stationB, mailCargo) : null;
   if (siteA == null || siteB == null) {
+    if (ROAD1Y_GAP > 0) parentLine.road1yMailNoSite <- 1;
     AILog.Info("ROAD1Y_MAIL action=fail parent=" + parentLine.lineId
         + " pair=" + townA + ":" + townB
         + " tiles=" + (siteA != null ? siteA.tile : -1) + ":" + (siteB != null ? siteB.tile : -1)
@@ -672,6 +674,59 @@ function OpexRoad1yBuildMailChild(ai, parentLine, cashReserve)
   return true;
 }
 
+/* ROAD1Y_GAP : jusqu'a 4 parents PAX par passe, en sautant un parent sans
+ * site MAIL. Un seul succes. A 0, OpexRoad1yMailStep garde le parent unique. */
+function OpexRoad1yMailStepGap(ai, cashReserve, activeParents, activePairs, ym)
+{
+  local attempts = 0;
+  while (attempts < 4) {
+    local bestLine = null;
+    local bestProfit = 0;
+    foreach (line in ai._lines) {
+      if (!("mode" in line) || line.mode != "road") continue;
+      if (("scrapping" in line) && line.scrapping) continue;
+      if (!("kind" in line) || line.kind != "pax") continue;
+      if (("deadStreak" in line) && line.deadStreak > 0) continue;
+      if (line.lineId in activeParents) continue;
+      if (("road1yMailTryMonth" in line) && line.road1yMailTryMonth == ym) continue;
+      if (("road1yMailNoSite" in line) && line.road1yMailNoSite != 0) continue;
+      local ta = ("srcTown" in line) ? line.srcTown : -1;
+      local tb = ("dstTown" in line) ? line.dstTown : -1;
+      if (ta < 0 || tb < 0 || ta == tb) continue;
+      local pairKey = ta < tb ? (ta + ":" + tb) : (tb + ":" + ta);
+      if (pairKey in activePairs) continue;
+      if (!AIMap.IsValidTile(line.stationA) || !AIRoad.IsRoadStationTile(line.stationA)
+          || !AICompany.IsMine(AITile.GetOwner(line.stationA))) continue;
+      if (!AIMap.IsValidTile(line.stationB) || !AIRoad.IsRoadStationTile(line.stationB)
+          || !AICompany.IsMine(AITile.GetOwner(line.stationB))) continue;
+      if (!("depot" in line) || !AIMap.IsValidTile(line.depot)
+          || !AIRoad.IsRoadDepotTile(line.depot)
+          || !AICompany.IsMine(AITile.GetOwner(line.depot))) continue;
+      local profit = 0;
+      if ("lastProfit" in line) {
+        profit = line.lastProfit;
+      } else {
+        local stA = AIStation.GetStationID(line.stationA);
+        if (AIStation.IsValidStation(stA)) {
+          local vehs = OpexLineVehicleIds(line, stA);
+          foreach (v in vehs) {
+            if (AIVehicle.IsValidVehicle(v)) profit += AIVehicle.GetProfitThisYear(v);
+          }
+          if (profit <= 500) profit = 0;
+        }
+      }
+      if (profit > bestProfit) {
+        bestProfit = profit;
+        bestLine = line;
+      }
+    }
+    if (bestLine == null) return;
+    bestLine.road1yMailTryMonth <- ym;
+    attempts++;
+    if (OpexRoad1yBuildMailChild(ai, bestLine, cashReserve)) return;
+  }
+}
+
 function OpexRoad1yMailStep(ai, year)
 {
   local catalog = ai._catalog;
@@ -699,6 +754,10 @@ function OpexRoad1yMailStep(ai, year)
     }
   }
   local ym = year * 12 + AIDate.GetMonth(AIDate.GetCurrentDate());
+  if (ROAD1Y_GAP > 0) {
+    OpexRoad1yMailStepGap(ai, cashReserve, activeParents, activePairs, ym);
+    return;
+  }
   local bestParent = null;
   local bestProfit = 0;
   foreach (line in ai._lines) {
