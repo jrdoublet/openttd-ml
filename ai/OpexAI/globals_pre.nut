@@ -75,6 +75,7 @@ ROAD1Y_DIST_BAND_LIMITS <- [[64, 128], [32, 63], [7, 31]];
 ROAD1Y_FLEET <- 4; // ROAD1Y : vehicules par paire de quais des la premiere annee (0 = plafond historique ; 4 par defaut sur cette branche)
 ROAD1Y_EXTRA_STOPS <- 2; // Quais joints supplementaires, opt-in 0..3.
 ROAD1Y_FLEET_UNLOCK <- 0; // ROAD1Y-E : masque deverrouillage flotte bus (1=arret 5k, 2=refleet 10k, 4=pax refleet+suivi quais, 8=cap 6/arret)
+ROAD1Y_BERTH_FLEET <- 0; // ROAD1Y quais+frequence : 1 = extra-quai bus sans reserve 50k, 2 = +1 bus/mois si min(quais)>=2 ; defaut 0
 ROAD1Y_LONG_BAND <- 0; // ROAD1Y-F : extension bandes 192 tuiles (0=off 128t, 1=bande 129-192 en tete, 2=bandes 96-192, 48-95, 7-47)
 ROAD1Y_LONG_V3 <- 0; // ROAD1Y-G : trace 192 tuiles, bandes fret inchangees (0 = off, trace 128)
 ROAD1Y_ASTAR <- 0; // ROAD1Y-K : A* routier des paires bus site-first, milliers de noeuds (0 = off)

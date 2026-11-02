@@ -424,6 +424,14 @@ class OpexAIInfo extends AIInfo {
       flags = 0
     });
     AddSetting({
+      name = "road1y_berth_fleet",
+      description = "ROAD1Y berth fleet mask, road-only: 1 fund the shorter bus berth at platform cost plus max(20000, next pool line) and lower the wait trigger to one bus; 2 once min(stops)>=2 add one bus per month when min(wait)>10 and fewer than 2 buses are stopped, cap road1y_fleet*min(stops), cash >= price+20000; 0 = off (default)",
+      min_value = 0, max_value = 3,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = 0
+    });
+    AddSetting({
       name = "road1y_long_band",
       description = "ROAD1Y: bande routiere 192 tuiles (0=off 128t, 1=bande 129-192 en tete, 2=bandes 96-192, 48-95, 7-47)",
       min_value = 0, max_value = 2,

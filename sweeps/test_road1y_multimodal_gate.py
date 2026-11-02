@@ -28,6 +28,7 @@ ROAD1Y_OFF = {
     "ROAD1Y_PAX_REFLEET": "false",
     "ROAD1Y_MAIL_ON_PAX": "false",
     "ROAD1Y_FLEET_UNLOCK": "0",
+    "ROAD1Y_BERTH_FLEET": "0",
     "ROAD1Y_LONG_BAND": "0",
     "ROAD1Y_LONG_V3": "0",
     "ROAD1Y_ASTAR": "0",
@@ -44,6 +45,7 @@ SETTING_TO_GLOBAL = {
     "road1y_pax_refleet": "ROAD1Y_PAX_REFLEET",
     "road1y_mail_on_pax": "ROAD1Y_MAIL_ON_PAX",
     "road1y_fleet_unlock": "ROAD1Y_FLEET_UNLOCK",
+    "road1y_berth_fleet": "ROAD1Y_BERTH_FLEET",
     "road1y_long_band": "ROAD1Y_LONG_BAND",
     "road1y_long_v3": "ROAD1Y_LONG_V3",
     "road1y_astar": "ROAD1Y_ASTAR",
@@ -60,6 +62,7 @@ LOAD_SETTINGS_KEYS = (
     "road1y_pax_refleet",
     "road1y_mail_on_pax",
     "road1y_fleet_unlock",
+    "road1y_berth_fleet",
     "road1y_long_band",
     "road1y_long_v3",
     "road1y_astar",
@@ -194,6 +197,7 @@ class TestRoad1yMultimodalGate(unittest.TestCase):
         self.assertEqual(ROAD1Y_OFF["ROAD1Y_PAX_ECONOMY"], "false")
         self.assertEqual(ROAD1Y_OFF["ROAD1Y_PAX_REFLEET"], "false")
         self.assertEqual(ROAD1Y_OFF["ROAD1Y_FLEET_UNLOCK"], "0")
+        self.assertEqual(ROAD1Y_OFF["ROAD1Y_BERTH_FLEET"], "0")
         self.assertEqual(ROAD1Y_OFF["ROAD1Y_LONG_BAND"], "0")
         load = body("settings.nut", "OpexLoadSettings")
         bus = body("settings.nut", "OpexLoadBusDistrictSettings")

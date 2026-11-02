@@ -140,6 +140,9 @@ function OpexLoadSettings()
   ROAD1Y_FLEET_UNLOCK = AIController.GetSetting("road1y_fleet_unlock");
   if (ROAD1Y_FLEET_UNLOCK < 0 || ROAD1Y_FLEET_UNLOCK > 15) ROAD1Y_FLEET_UNLOCK = 0;
   if (!road1yRoadOnly) ROAD1Y_FLEET_UNLOCK = 0;
+  ROAD1Y_BERTH_FLEET = AIController.GetSetting("road1y_berth_fleet");
+  if (ROAD1Y_BERTH_FLEET < 0 || ROAD1Y_BERTH_FLEET > 3) ROAD1Y_BERTH_FLEET = 0;
+  if (!road1yRoadOnly) ROAD1Y_BERTH_FLEET = 0;
   ROAD1Y_LONG_BAND = AIController.GetSetting("road1y_long_band");
   if (ROAD1Y_LONG_BAND < 0 || ROAD1Y_LONG_BAND > 2) ROAD1Y_LONG_BAND = 0;
   if (!road1yRoadOnly) ROAD1Y_LONG_BAND = 0;

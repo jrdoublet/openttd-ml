@@ -4,6 +4,16 @@
 
 L'ancien registre intégral (2 874 lignes, y compris hypothèses, essais, décisions et anciennes instructions) est conservé dans le [journal de transfert du 30/10](journaux/journal_2026-10-30_transfert_taches.md), avec une empreinte SHA-256 et les numéros de ligne d'origine. Le [bilan de réconciliation du 30/10](journaux/journal_2026-10-30_mise_a_jour.md) indique pourquoi les items ont été clos, séparés ou maintenus. Les fiches expérimentales restent des **photographies de leur date**, pas des consignes courantes. Pour les procédures, suivre [AGENTS.md](../AGENTS.md).
 
+### 02/11 — `road1y_berth_fleet` codé, défaut 0, non qualifié
+
+Masque route seule `road1y_berth_fleet` (0..3, défaut 0 aux quatre difficultés).
+Bit 1 : extra-quai bus au coût du quai plus max(20 000 £, capital de la meilleure
+ligne du vivier), déclencheur d'attente abaissé à une capacité, bout le plus court.
+Bit 2 : si `min(quais) >= 2`, +1 bus/mois quand `min(attente) > 10` et moins de
+2 bus à l'arrêt, plafond `ROAD1Y_FLEET * min(quais)`, caisse >= prix + 20 000 £.
+Hors route seule le masque est forcé à 0. Aucune adoption, aucun changement des
+autres défauts. Le smoke 3 graines `berth_smoke` est descriptif, pas une porte V102.
+
 ### 01/11 — `road1y_long_v3` codé, défaut 0, non qualifié
 
 `road1y_long_band=2` (porte A 40×3, `fail_primary`, profit_year moyen
