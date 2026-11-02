@@ -108,7 +108,7 @@ ils sont historiques et ne définissent pas le runtime d'OpexAI.
   dépendre d'anciens outils `run_command`, `write_to_file` ou `ArtifactMetadata`.
 - Conserver l'UTF-8. Sous Windows, `python -X utf8` évite les erreurs de console sur les accents ;
   préciser `-Encoding utf8` pour lire avec PowerShell. Ne pas mélanger quoting Bash et PowerShell.
-- Garder les modifications ciblées. Aucun reset, nettoyage, commit ou publication implicite.
+- Garder les modifications ciblées. Aucun reset, nettoyage ou commit implicite ; publication limitée au push vers `origin master`.
   Ne pas écraser une campagne ni modifier un bundle figé pour le faire correspondre au code courant.
 - `sweeps/archive/` contient des références historiques : vérifier leurs dépendances et protocole
   avant toute réutilisation, plutôt que les traiter comme des harnais courants.
@@ -278,7 +278,7 @@ restent applicables.
 4. Si le moteur local manque, vérifier l'accès et les capacités réelles de GitHub
    Actions : dépôt, branche publiée contenant le candidat et les harnais, SHA,
    workflow, authentification, quota. **L'autorisation de banc n'autorise aucun
-   commit, push, merge ou publication implicite.** Si le candidat n'est pas publié,
+   commit, merge ou publication implicite autre que le push vers `origin master`.** Si le candidat n'est pas publié,
    demander la publication ou l'autorisation correspondante. Si runtime, accès,
    budget ou workflow compatible manque : **bloqué/non validé**, obstacle précis,
    paramètres prêts et défaut inchangé.
@@ -333,6 +333,19 @@ Le parcours opcodes reste distinct : smoke→20×10 avec gain d'opcodes préalab
 | VPS (3 workers) | bancs courts quand GitHub est occupé, diagnostics ; 10 ans seulement la nuit, sur autorisation |
 | PC de l'utilisateur (10 workers) | bancs à 10 ans (porte B 20×10, 40×10, expositions) : pousser la branche, fournir la commande GitHub et le script PC, puis demander |
 
+**Décisions du 02/11 (soir) :**
+
+- **Route seule** : les deux bras portent `OpexAI[mode_air=0,mode_rail=0,mode_road=1,mode_water=0,...]`
+  et AAAHogEx est bridé de la même façon (`--aaahogex-setting disable_veh_train=1` … `tram`, `ship`,
+  `aircraft`). Sur GitHub, entrée `aaahogex_settings=road_only` de `bench.yml` (ajoutée le 02/11).
+- **Proche du seuil** : un levier dont le delta est **positif** avec p≈0,07-0,15 peut être
+  rebanqué sans redemander sur **40 graines disjointes** des canoniques (`--seeds` explicites,
+  liste notée dans le journal), puis les 80 paires agrégées (delta, Wilcoxon exact, IC95
+  bootstrap, garde de valeur) par `sweeps/aggregate_paired_gates.py`. Un delta négatif reste rejeté.
+- **Nuit autorisée** : après une porte A `pass`, lancer la porte B sans redemander ; **aucun
+  changement de défaut ni fusion** avant le point du matin avec l'utilisateur. Cette autorisation
+  vaut pour la nuit où elle est donnée.
+
 Avant un lancement, vérifier dans `docs/taches.md`, le lot de prompts courant et les runs
 GitHub que la même porte ne tourne pas déjà, notamment sur le PC : un doublon s'annule.
 Pour suivre un banc long sur GitHub, une seule boucle `gh run view <id> --json status`
@@ -372,8 +385,8 @@ pour les composants couverts ; son absence de preuve arrête sa séquence.
   appliquer uniquement le défaut testé aux quatre difficultés, vérifier chargement
   et persistance, exécuter tests ciblés et smoke du défaut livré. Si la demande
   porte seulement sur l'évaluation, rapporter « qualifié » sans changer le défaut.
-  Aucun autre changement comportemental ne bénéficie du verdict ; aucun push/merge
-  automatique.
+  Aucun autre changement comportemental ne bénéficie du verdict ; aucun merge
+  automatique ; push vers `origin master` autorisé.
 - Journaliser décision, SHA/arbre figé, bras, paramètres, campagne ou URL/run/attempt,
   chemins d'artefacts, couverture, santé, deltas par graine, moyenne/médiane,
   Wilcoxon p, IC95 **bootstrap**, V/D/E, garde de valeur et verdict brut de chaque
@@ -524,14 +537,25 @@ statut de chantier change, sans recopier tout l'historique dans ce fichier.
 **Décisions utilisateur du 20 et du 21/10.** L'agent qui orchestre lit, conçoit, découpe,
 vérifie, lance les bancs autorisés et rend compte ; il ne délègue pas ce travail.
 
-- **Tâches simples et moyennes** (inventaire, dépouillement de journaux, sonde, script
-  d'analyse, contrats, passes mécaniques) : écrire un prompt autonome dans
-  `docs/prompts/<sujet>_<date>.md`, poussé sur `master` ; l'utilisateur le distribue à ses
-  agents. Ne pas lancer soi-même d'agent dessus.
+- **Mise à jour du 02/11 : déléguer le maximum, directement.** L'orchestrateur lance lui-même
+  agy et grok (diagnostics chiffrés, leviers derrière un réglage à 0, tests), chacun dans son
+  worktree, et enchaîne une nouvelle tâche dès qu'un agent se libère. Il ne prend une partie
+  complexe à son compte qu'**après l'échec** d'agy ou de grok sur cette partie. Commandes :
+  `grok --always-approve --prompt-file X.md > X.out; echo "^exit=$?" >> X.out` ;
+  `agy --dangerously-skip-permissions -p "$(cat X.md)"`. Un agent n'exécute aucun banc Docker
+  pendant qu'une campagne tourne : l'orchestrateur fait smoke et portes lui-même.
 - **codex** : réservé à **une** sous-étape très complexe et bornée (une fonction ou un mécanisme
-  précis), fichiers et contrat fournis, sans smoke, banc ni rapport long. Jamais un chantier
-  entier : un prompt « conception + code + tests + smoke + exposition + rapport » a épuisé son
-  quota en ~200 k tokens le 21/10, avec trois commits et sans rapport.
+  précis), fichiers et contrat fournis, sans smoke, banc, analyse ni rapport long. Jamais un
+  chantier entier : un prompt « conception + code + tests + smoke + exposition + rapport » a
+  épuisé son quota en ~200 k tokens le 21/10, avec trois commits et sans rapport. Quota rare :
+  **au plus une fois par nuit**, sur autorisation explicite. Le lancer **par le plugin**
+  (agent `codex:codex-rescue`, `CODEX_SANDBOX=danger-full-access` dans les réglages), jamais
+  par `codex exec --dangerously-bypass-approvals-and-sandbox` en Bash, refusé par le
+  classifieur du mode auto (02/11).
+- **Outils à jour** : vérifier quand les agents sont libres — `codex --version` contre
+  `npm view @openai/codex version`, `grok update --check`, `agy update`, et pour les plugins
+  `git ls-remote origin HEAD` dans `~/.claude/plugins/marketplaces/*` contre
+  `~/.claude/plugins/installed_plugins.json`.
 - **Un prompt autonome contient** : dépôt et branche (`git pull --rebase` avant de pousser),
   fichiers à lire, fichiers autorisés (disjoints entre prompts lancés en parallèle), réglage à
   défaut 0, contrats de tests, commandes exactes avec profil d'hôte, critère pré-enregistré,
@@ -542,7 +566,9 @@ vérifie, lance les bancs autorisés et rend compte ; il ne délègue pas ce tra
   diagnostic avant de les transmettre.
 - **Surveiller par fichiers** : rapport présent et de taille stable plus commit sur la branche,
   ou ligne `^exit=` en fin de script de chaîne. Jamais `pgrep -f` (il se trouve lui-même),
-  `kill -0` depuis une tâche de fond, ni `$!` après `setsid nohup`.
+  `kill -0` depuis une tâche de fond, ni `$!` après `setsid nohup`. Dans une chaîne de bancs,
+  écrire les marqueurs (`*.done`, journaux) en **chemins absolus** : le lanceur fait `cd` dans
+  le worktree et un marqueur relatif atterrit ailleurs (chaîne bloquée 1 h le 02/11).
 - **Arrêt sur quota** : les commits restent, le contexte est perdu. Reprendre par
   `codex exec resume <id de session>` (coûteux si la session est longue) ou par un prompt
   réduit qui part des commits existants ; jamais une relance en boucle du prompt complet.
