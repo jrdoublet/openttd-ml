@@ -727,6 +727,25 @@ function OpexRoad1yMailStepGap(ai, cashReserve, activeParents, activePairs, ym)
   }
 }
 
+/* Paires de villes deja prises par une fille mail_pax OU une ligne mail_net.
+ * Les deux pas lisent cette table : une paire n'a jamais les deux. */
+function OpexRoad1yMailActivePairs(ai)
+{
+  local activePairs = {};
+  foreach (line in ai._lines) {
+    if (!("mode" in line) || line.mode != "road") continue;
+    if (("scrapping" in line) && line.scrapping) continue;
+    if (!("kind" in line)) continue;
+    if (line.kind != "mail_pax" && line.kind != "mail_net") continue;
+    local ta = ("srcTown" in line) ? line.srcTown : -1;
+    local tb = ("dstTown" in line) ? line.dstTown : -1;
+    if (ta < 0 || tb < 0) continue;
+    local key = ta < tb ? (ta + ":" + tb) : (tb + ":" + ta);
+    activePairs[key] <- true;
+  }
+  return activePairs;
+}
+
 function OpexRoad1yMailStep(ai, year)
 {
   local catalog = ai._catalog;
@@ -740,19 +759,13 @@ function OpexRoad1yMailStep(ai, year)
   if (AICompany.GetBankBalance(AICompany.COMPANY_SELF) < needCash) return;
   if (!OpexVehicleSlotAvailable(AIVehicle.VT_ROAD, 1)) return;
   local activeParents = {};
-  local activePairs = {};
   foreach (line in ai._lines) {
     if (!("mode" in line) || line.mode != "road") continue;
     if (("scrapping" in line) && line.scrapping) continue;
     if (!("kind" in line) || line.kind != "mail_pax") continue;
     if ("parentLineId" in line) activeParents[line.parentLineId] <- true;
-    local ta = ("srcTown" in line) ? line.srcTown : -1;
-    local tb = ("dstTown" in line) ? line.dstTown : -1;
-    if (ta >= 0 && tb >= 0) {
-      local key = ta < tb ? (ta + ":" + tb) : (tb + ":" + ta);
-      activePairs[key] <- true;
-    }
   }
+  local activePairs = OpexRoad1yMailActivePairs(ai);
   local ym = year * 12 + AIDate.GetMonth(AIDate.GetCurrentDate());
   if (ROAD1Y_GAP > 0) {
     OpexRoad1yMailStepGap(ai, cashReserve, activeParents, activePairs, ym);
@@ -869,43 +882,41 @@ function OpexRoad1yFindMailNetSite(ai, catalog, townId, mailCargo)
   return null;
 }
 
-/* BFS sur la voirie existante, sinon le L des deux axes retenu par
- * OpexRoadTraceBuildable. Un trace qui traverse le corps de l'arret est
- * refuse : la pose du quai couperait le chemin (meme filet que le bus). */
-function OpexRoad1yMailNetTrace(frontA, frontB, tileA, tileB)
+/* Meme schema que OpexRoadPlanPaxVoirie : tuile a tuile, fronts = axe DT.
+ * BFS sur la voirie, puis le L des deux sens (premier pas dans l'axe),
+ * puis A*. Un trace sans depot est laisse au repli suivant. */
+function OpexRoad1yMailNetTrace(siteA, siteB)
 {
-  local direct = OpexRoadBfsPath(frontA, frontB, ROAD_MAX_TRACE_TILES);
-  if (direct != null && direct.len() > 0
-      && !OpexRoadTraceHitsStop(direct, tileA)
-      && !OpexRoadTraceHitsStop(direct, tileB)) return direct;
-  local picked = null;
-  local pickedLen = 0;
-  local axisH = OpexRoadTrace(frontA, frontB, true);
-  local axisV = OpexRoadTrace(frontA, frontB, false);
-  if (axisH.len() > 0 && OpexRoadTraceBuildable(axisH)
-      && !OpexRoadTraceHitsStop(axisH, tileA)
-      && !OpexRoadTraceHitsStop(axisH, tileB)) {
-    picked = axisH;
-    pickedLen = axisH.len();
+  local trace = OpexRoadBfsPath(siteA.tile, siteB.tile, ROAD_MAX_TRACE_TILES, siteA.front, siteB.front);
+  if (trace != null && trace.len() > 0
+      && OpexRoadFindDepot(trace, siteA, siteB, true) != null) return trace;
+  local axisH = AIMap.GetTileX(siteA.front) != AIMap.GetTileX(siteA.tile);
+  for (local k = 0; k < 2; k++) {
+    local firstH = (k == 0) ? axisH : !axisH;
+    local dx = AIMap.GetTileX(siteB.tile) - AIMap.GetTileX(siteA.tile);
+    local dy = AIMap.GetTileY(siteB.tile) - AIMap.GetTileY(siteA.tile);
+    /* Premier pas reel du L : s'il est perpendiculaire a l'axe DT, le camion ne sort pas. */
+    local firstIsH = firstH ? (dx != 0) : (dy == 0);
+    if (firstIsH != axisH) continue;
+    local leg = OpexRoadTrace(siteA.tile, siteB.tile, firstH);
+    if (leg.len() == 0 || leg.len() > ROAD_MAX_TRACE_TILES) continue;
+    if (!OpexRoadTraceBuildable(leg)) continue;
+    if (OpexRoadFindDepot(leg, siteA, siteB, true) == null) continue;
+    return leg;
   }
-  if (axisV.len() > 0 && OpexRoadTraceBuildable(axisV)
-      && !OpexRoadTraceHitsStop(axisV, tileA)
-      && !OpexRoadTraceHitsStop(axisV, tileB)) {
-    if (picked == null || axisV.len() < pickedLen) picked = axisV;
-  }
-  /* Repli A* routier (road1y_astar) entre les deux facades. */
-  if (picked == null && ROAD1Y_ASTAR > 0) {
-    local astar = OpexRoad1yAStarTrace({ tile = frontA, front = null },
-                                       { tile = frontB, front = null }, ROAD_MAX_TRACE_TILES + 64);
+  if (ROAD1Y_ASTAR > 0) {
+    local astar = OpexRoad1yAStarTrace(siteA, siteB, ROAD_MAX_TRACE_TILES + 64);
     if (astar != null && astar.len() > 0
-        && !OpexRoadTraceHitsStop(astar, tileA)
-        && !OpexRoadTraceHitsStop(astar, tileB)) picked = astar;
+        && OpexRoadFindDepot(astar, siteA, siteB, true) != null) return astar;
   }
-  return picked;
+  return null;
 }
 
 function OpexRoad1yBuildMailNet(ai, townA, townB, cashReserve)
 {
+  /* 1970 : les bus d'abord. L'ouverture ne descend pas sous 25 k£. */
+  if (AIDate.GetYear(AIDate.GetCurrentDate()) == 1970 && cashReserve < 25000)
+    cashReserve = 25000;
   local catalog = ai._catalog;
   if (catalog == null || !("mailCargo" in catalog) || catalog.mailCargo < 0) {
     OpexRoad1yMailNetLog("action=fail pair=" + townA + ":" + townB + " reason=NO_CARGO");
@@ -934,21 +945,14 @@ function OpexRoad1yBuildMailNet(ai, townA, townB, cashReserve)
         + " reason=" + (siteA == null ? "NO_SITE_A" : "NO_SITE_B"));
     return false;
   }
-  /* Front qui regarde l'autre ville : le sens unique de l'axe peut partir
-   * a l'oppose, et le trace traverserait alors le corps de l'arret. */
-  local frontA = siteA.front;
-  local frontB = siteB.front;
-  if (AIMap.DistanceManhattan(siteA.back, siteB.tile)
-      < AIMap.DistanceManhattan(siteA.front, siteB.tile)) frontA = siteA.back;
-  if (AIMap.DistanceManhattan(siteB.back, siteA.tile)
-      < AIMap.DistanceManhattan(siteB.front, siteA.tile)) frontB = siteB.back;
   local siteDist = AIMap.DistanceManhattan(siteA.tile, siteB.tile);
   if (siteDist < 40 || siteDist > 160) {
     OpexRoad1yMailNetLog("action=fail pair=" + townA + ":" + townB
         + " dist=" + siteDist + " reason=SITE_DIST");
     return false;
   }
-  local trace = OpexRoad1yMailNetTrace(frontA, frontB, siteA.tile, siteB.tile);
+  AIRoad.SetCurrentRoadType(catalog.roadType);
+  local trace = OpexRoad1yMailNetTrace(siteA, siteB);
   if (trace == null) {
     OpexRoad1yMailNetLog("action=fail pair=" + townA + ":" + townB
         + " dist=" + siteDist + " reason=NO_TRACE");
@@ -960,23 +964,44 @@ function OpexRoad1yBuildMailNet(ai, townA, townB, cashReserve)
         + " dist=" + siteDist + " reason=NO_DEPOT");
     return false;
   }
-  AIRoad.SetCurrentRoadType(catalog.roadType);
+  /* Devis du preflight bus : arete neuve x3, raccord de depot, deux quais,
+   * le depot et deux fourgons. On ne pose rien si la caisse passerait sous
+   * la reserve (25 k£ au minimum en 1970, deja applique a cashReserve). */
+  local missing = 0;
+  foreach (edge in trace) {
+    if (!AIRoad.AreRoadTilesConnected(edge.from, edge.to)) missing++;
+  }
+  local estimated = missing * catalog.costRoadPerTile * 3
+      + 3 * catalog.costRoadPerTile
+      + 2 * catalog.costRoadTruckStop
+      + catalog.costRoadDepot
+      + 2 * engine.price;
+  if (AICompany.GetBankBalance(AICompany.COMPANY_SELF) < cashReserve + estimated) {
+    OpexRoad1yMailNetLog("action=fail pair=" + townA + ":" + townB
+        + " dist=" + siteDist + " reason=CASH");
+    return false;
+  }
   local added = [];
   local built = [];
-  local okA = AIRoad.BuildDriveThroughRoadStation(siteA.tile, frontA,
+  if (!OpexRoadBuildTrace(trace, added)) {
+    OpexRoadRollback(null, null, null, built, added);
+    OpexRoad1yMailNetLog("action=fail pair=" + townA + ":" + townB
+        + " dist=" + siteDist + " reason=TRACE");
+    return false;
+  }
+  local okA = AIRoad.BuildDriveThroughRoadStation(siteA.tile, siteA.front,
       AIRoad.ROADVEHTYPE_TRUCK, AIStation.STATION_NEW);
   local validA = okA && AIRoad.IsRoadStationTile(siteA.tile)
       && AICompany.IsMine(AITile.GetOwner(siteA.tile))
       && AIRoad.AreRoadTilesConnected(siteA.tile, siteA.front)
       && AIRoad.AreRoadTilesConnected(siteA.tile, siteA.back);
   if (!validA) {
-    if (AIRoad.IsRoadStationTile(siteA.tile) && AICompany.IsMine(AITile.GetOwner(siteA.tile)))
-      AIRoad.RemoveRoadStation(siteA.tile);
+    OpexRoadRollback(siteA.tile, null, null, built, added);
     OpexRoad1yMailNetLog("action=fail pair=" + townA + ":" + townB
         + " dist=" + siteDist + " reason=BUILD_STOP_A");
     return false;
   }
-  local okB = AIRoad.BuildDriveThroughRoadStation(siteB.tile, frontB,
+  local okB = AIRoad.BuildDriveThroughRoadStation(siteB.tile, siteB.front,
       AIRoad.ROADVEHTYPE_TRUCK, AIStation.STATION_NEW);
   local stIdA = AIStation.GetStationID(siteA.tile);
   local stIdB = AIStation.GetStationID(siteB.tile);
@@ -987,18 +1012,9 @@ function OpexRoad1yBuildMailNet(ai, townA, townB, cashReserve)
       && AIRoad.AreRoadTilesConnected(siteB.tile, siteB.front)
       && AIRoad.AreRoadTilesConnected(siteB.tile, siteB.back);
   if (!validB) {
-    if (AIRoad.IsRoadStationTile(siteB.tile) && AICompany.IsMine(AITile.GetOwner(siteB.tile)))
-      AIRoad.RemoveRoadStation(siteB.tile);
-    if (AIRoad.IsRoadStationTile(siteA.tile) && AICompany.IsMine(AITile.GetOwner(siteA.tile)))
-      AIRoad.RemoveRoadStation(siteA.tile);
-    OpexRoad1yMailNetLog("action=fail pair=" + townA + ":" + townB
-        + " dist=" + siteDist + " reason=BUILD_STOP_B");
-    return false;
-  }
-  if (!OpexRoadBuildTrace(trace, added)) {
     OpexRoadRollback(siteA.tile, siteB.tile, null, built, added);
     OpexRoad1yMailNetLog("action=fail pair=" + townA + ":" + townB
-        + " dist=" + siteDist + " reason=TRACE");
+        + " dist=" + siteDist + " reason=BUILD_STOP_B");
     return false;
   }
   if (AICompany.GetBankBalance(AICompany.COMPANY_SELF) < cashReserve) {
@@ -1160,6 +1176,7 @@ function OpexRoad1yRefleetMailNet(ai, line, year)
   if (unitPrice <= 0 && ai._catalog != null && (line.cargo in ai._catalog.roadEngineByCargo))
     unitPrice = ai._catalog.roadEngineByCargo[line.cargo].price;
   local cashReserve = (ROAD1Y_FLEET_UNLOCK & 2) != 0 ? 10000 : (ROAD1Y_PAX_REFLEET ? 15000 : 25000);
+  if (year == 1970 && cashReserve < 25000) cashReserve = 25000;
   local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
   if (unitPrice <= 0 || money < cashReserve + unitPrice) return;
   local capFloor = capacity < 50 ? capacity : 50;
@@ -1199,7 +1216,7 @@ function OpexRoad1yMailNetStep(ai, year)
   if (engine == null || engine.price <= 0) return;
   local nLines = 0;
   local townUse = {};
-  local covered = {};
+  local activePairs = OpexRoad1yMailActivePairs(ai);
   foreach (line in ai._lines) {
     if (!("mode" in line) || line.mode != "road") continue;
     if (("scrapping" in line) && line.scrapping) continue;
@@ -1215,15 +1232,12 @@ function OpexRoad1yMailNetStep(ai, year)
       local prevB = (endB in townUse) ? townUse[endB] : 0;
       townUse[endB] <- prevB + 1;
     }
-    if (endA >= 0 && endB >= 0) {
-      local coveredKey = endA < endB ? (endA + ":" + endB) : (endB + ":" + endA);
-      covered[coveredKey] <- true;
-    }
   }
   if (nLines >= ROAD1Y_MAIL_NET) return;
   local ym = year * 12 + AIDate.GetMonth(AIDate.GetCurrentDate());
   if (ROAD1Y_MAIL_NET_OPEN_YM == ym) return;
   local cashReserve = (ROAD1Y_FLEET_UNLOCK & 2) != 0 ? 10000 : (ROAD1Y_PAX_REFLEET ? 15000 : 25000);
+  if (year == 1970 && cashReserve < 25000) cashReserve = 25000;
   local needCash = cashReserve + 2 * catalog.costRoadTruckStop
       + catalog.costRoadDepot + 2 * engine.price;
   if (AICompany.GetBankBalance(AICompany.COMPANY_SELF) < needCash) return;
@@ -1251,7 +1265,7 @@ function OpexRoad1yMailNetStep(ai, year)
       local pairKey = leftTown.id < rightTown.id
           ? (leftTown.id + ":" + rightTown.id)
           : (rightTown.id + ":" + leftTown.id);
-      if (pairKey in covered) continue;
+      if (pairKey in activePairs) continue;
       local centerDist = AIMap.DistanceManhattan(leftTown.center, rightTown.center);
       if (centerDist < 40 || centerDist > 130) continue;
       local prodMin = leftTown.prod < rightTown.prod ? leftTown.prod : rightTown.prod;

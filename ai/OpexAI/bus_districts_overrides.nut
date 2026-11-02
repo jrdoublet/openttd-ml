@@ -2131,8 +2131,8 @@ function OpexRoad1yRefleetSaved(year)
     OpexSign(anchor, "RF|" + year + "|" + line.lineId + "|" + refill.added + "|"
                      + (refill.added > 0 ? refill.after : refill.reason));
   }
+  if (ROAD1Y_MAIL_ON_PAX) OpexRoad1yMailStep(this, year);
   if (ROAD1Y_MAIL_NET > 0) OpexRoad1yMailNetStep(this, year);
-  else if (ROAD1Y_MAIL_ON_PAX) OpexRoad1yMailStep(this, year);
 }
 
 if (ROAD1Y_EXTRA_STOPS > 0 || ROAD1Y_MAIL_ON_PAX || ROAD1Y_MAIL_NET > 0) OpexAI._refleetRoadLines <- OpexRoad1yRefleetSaved;

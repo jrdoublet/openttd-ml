@@ -10,6 +10,7 @@ from test_v261_forum_behaviours import body, source, uncomment
 
 
 NEW_FUNCS = (
+    "OpexRoad1yMailActivePairs",
     "OpexRoad1yMailNetLog",
     "OpexRoad1yFindMailNetSite",
     "OpexRoad1yMailNetTrace",
@@ -20,7 +21,7 @@ NEW_FUNCS = (
 
 # Appels reels du module neuf, avec le nombre d'arguments ecrits.
 CALLS = (
-    ("OpexRoadBfsPath", 3),
+    ("OpexRoadBfsPath", 5),
     ("OpexRoadTrace", 3),
     ("OpexRoadTraceBuildable", 1),
     ("OpexRoadBuildTrace", 2),
@@ -34,7 +35,6 @@ CALLS = (
     ("OpexLineVehicleIds", 2),
     ("OpexDecide", 2),
     ("OpexRoad1yOurTruckTiles", 2),
-    ("OpexRoadTraceHitsStop", 2),
     ("OpexAir0310InvalidateSiteValidity", 0),
 )
 
@@ -102,17 +102,18 @@ class TestRoad1yMailNet(unittest.TestCase):
             bus.index('require("bus_districts_overrides.nut")'),
         )
 
-    def test_zero_returns_before_any_api_and_skips_child_step(self):
+    def test_zero_returns_before_any_api_and_keeps_child_step(self):
         step = uncomment(body("bus_districts.nut", "OpexRoad1yMailNetStep"))
         guard = "if (ROAD1Y_MAIL_NET <= 0) return;"
         self.assertIn(guard, step)
         self.assertLess(step.index(guard), step.find("AI"))
         overrides = uncomment(source("bus_districts_overrides.nut"))
         self.assertIn(
-            "if (ROAD1Y_MAIL_NET > 0) OpexRoad1yMailNetStep(this, year);\n"
-            "  else if (ROAD1Y_MAIL_ON_PAX) OpexRoad1yMailStep(this, year);",
+            "if (ROAD1Y_MAIL_ON_PAX) OpexRoad1yMailStep(this, year);\n"
+            "  if (ROAD1Y_MAIL_NET > 0) OpexRoad1yMailNetStep(this, year);",
             overrides,
         )
+        self.assertNotIn("else if (ROAD1Y_MAIL_ON_PAX) OpexRoad1yMailStep", overrides)
         self.assertIn(
             "if (ROAD1Y_EXTRA_STOPS > 0 || ROAD1Y_MAIL_ON_PAX || ROAD1Y_MAIL_NET > 0) "
             "OpexAI._refleetRoadLines <- OpexRoad1yRefleetSaved;",
@@ -158,10 +159,14 @@ class TestRoad1yMailNet(unittest.TestCase):
             "if (prod <= 0) continue;",
             "if (acc < 8) continue;",
             "AIRoad.ROADVEHTYPE_TRUCK, AIStation.STATION_NEW",
-            "OpexRoadBfsPath(frontA, frontB, ROAD_MAX_TRACE_TILES)",
-            "OpexRoadTrace(frontA, frontB, true)",
-            "OpexRoadTrace(frontA, frontB, false)",
+            "OpexRoadBfsPath(siteA.tile, siteB.tile, ROAD_MAX_TRACE_TILES, siteA.front, siteB.front)",
+            "OpexRoadTrace(siteA.tile, siteB.tile, firstH)",
+            "for (local k = 0; k < 2; k++)",
+            "OpexRoad1yAStarTrace(siteA, siteB, ROAD_MAX_TRACE_TILES + 64)",
             "OpexRoadFindDepot(trace, siteA, siteB, true)",
+            "cashReserve + estimated",
+            "year == 1970 && cashReserve < 25000",
+            "GetYear(AIDate.GetCurrentDate()) == 1970 && cashReserve < 25000",
             "AIRoad.BuildRoad(depotPlan.front, depotPlan.tile)",
             "AIRoad.BuildRoadDepot(depotPlan.tile, depotPlan.front)",
             "AIVehicle.CloneVehicle(depotTile, first, true)",
@@ -195,8 +200,12 @@ class TestRoad1yMailNet(unittest.TestCase):
         self.assertNotIn("OpexRoadSites(", region)
         self.assertNotIn("OpexBuildRoadRoute(", region)
         self.assertNotIn("OpexRoad1yFindMailSite(", region)
+        self.assertNotIn("frontA", region)
+        self.assertIn("OpexRoad1yMailActivePairs(ai)", body("bus_districts.nut", "OpexRoad1yMailStep"))
+        self.assertIn("OpexRoad1yMailActivePairs(ai)", body("bus_districts.nut", "OpexRoad1yMailNetStep"))
         build = uncomment(body("bus_districts.nut", "OpexRoad1yBuildMailNet"))
         self.assertNotIn("OpexRoadRollback", build[:build.index("OpexRoadBuildTrace")])
+        self.assertLess(build.index("OpexRoadBuildTrace"), build.index("BuildDriveThroughRoadStation"))
         self.assertIn("reason=NO_DEPOT", build)
         self.assertIn("reason=RESERVE", build)
 

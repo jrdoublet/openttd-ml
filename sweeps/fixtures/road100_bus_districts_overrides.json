@@ -171,7 +171,7 @@
       },
       {
         "before": "                     + (refill.added > 0 ? refill.after : refill.reason));\n  }\n}",
-        "after": "                     + (refill.added > 0 ? refill.after : refill.reason));\n  }\n  if (ROAD1Y_MAIL_NET > 0) OpexRoad1yMailNetStep(this, year);\n  else if (ROAD1Y_MAIL_ON_PAX) OpexRoad1yMailStep(this, year);\n}"
+        "after": "                     + (refill.added > 0 ? refill.after : refill.reason));\n  }\n  if (ROAD1Y_MAIL_ON_PAX) OpexRoad1yMailStep(this, year);\n  if (ROAD1Y_MAIL_NET > 0) OpexRoad1yMailNetStep(this, year);\n}"
       }
     ]
   }
