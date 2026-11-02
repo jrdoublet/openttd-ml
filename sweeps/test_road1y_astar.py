@@ -97,7 +97,7 @@ class TestRoad1yAstar(unittest.TestCase):
         self.assertIn("nAStar++;", block)
         self.assertIn('if (depot != null) via = "ASTAR";', block)
         joined = "\n".join(path.read_text(encoding="utf-8") for path in AI.glob("*.nut"))
-        self.assertEqual(joined.count("OpexRoad1yAStarTrace("), 2)
+        self.assertEqual(joined.count("OpexRoad1yAStarTrace("), 3)  # + repli mail_net
         self.assertIn("function OpexRoad1yAStarTrace(", source("road1y_astar.nut"))
         self.assertNotIn("OpexRoad1yAStarTrace(", source("builder_road.nut"))
         main = source("main.nut")

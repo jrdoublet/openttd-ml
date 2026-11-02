@@ -893,6 +893,14 @@ function OpexRoad1yMailNetTrace(frontA, frontB, tileA, tileB)
       && !OpexRoadTraceHitsStop(axisV, tileB)) {
     if (picked == null || axisV.len() < pickedLen) picked = axisV;
   }
+  /* Repli A* routier (road1y_astar) entre les deux facades. */
+  if (picked == null && ROAD1Y_ASTAR > 0) {
+    local astar = OpexRoad1yAStarTrace({ tile = frontA, front = null },
+                                       { tile = frontB, front = null }, ROAD_MAX_TRACE_TILES + 64);
+    if (astar != null && astar.len() > 0
+        && !OpexRoadTraceHitsStop(astar, tileA)
+        && !OpexRoadTraceHitsStop(astar, tileB)) picked = astar;
+  }
   return picked;
 }
 
@@ -1075,6 +1083,8 @@ function OpexRoad1yBuildMailNet(ai, townA, townB, cashReserve)
     kind = "mail_net",
     stationA = siteA.tile,
     stationB = siteB.tile,
+    originA = siteA.tile,
+    originB = siteB.tile,
     depot = depotTile,
     cargo = mailCargo,
     nStopsA = 1,
