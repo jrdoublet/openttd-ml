@@ -479,6 +479,31 @@ function OpexRoad1yRefleetMailLine(ai, line, year)
   local waitingB = AICargo.IsValidCargo(line.cargo) ? AIStation.GetCargoWaiting(stationB, line.cargo) : 0;
   local totalWaiting = waitingA + waitingB;
   local vehicles = OpexLineVehicleIds(line, stationA);
+  if (ROAD1Y_MAIL_FULL > 0 && vehicles.len() > 0) {
+    local nonstopFlag = AIOrder.OF_NON_STOP_INTERMEDIATE;
+    foreach (v in vehicles) {
+      if (!AIVehicle.IsValidVehicle(v)) continue;
+      local n = AIOrder.GetOrderCount(v);
+      for (local o = 0; o < n; o++) {
+        if (!AIOrder.IsValidVehicleOrder(v, o)) continue;
+        local dest = AIOrder.GetOrderDestination(v, o);
+        local destSt = AIMap.IsValidTile(dest) ? AIStation.GetStationID(dest) : -1;
+        local wantFull = false;
+        if (destSt == stationA || dest == line.stationA)
+          wantFull = (ROAD1Y_MAIL_FULL & 1) != 0;
+        else if (destSt == stationB || dest == line.stationB)
+          wantFull = (ROAD1Y_MAIL_FULL & 2) != 0;
+        else
+          continue;
+        local hasFull = (AIOrder.GetOrderFlags(v, o) & AIOrder.OF_FULL_LOAD_ANY) != 0;
+        if (hasFull != wantFull) {
+          local newFlags = nonstopFlag | (wantFull ? AIOrder.OF_FULL_LOAD_ANY : AIOrder.OF_NONE);
+          AIOrder.SetOrderFlags(v, o, newFlags);
+        }
+      }
+      if (AIVehicle.HasSharedOrders(v)) break;
+    }
+  }
   local have = 0;
   local movingCount = 0;
   local liveCap = 0;
@@ -606,10 +631,12 @@ function OpexRoad1yBuildMailChild(ai, parentLine, cashReserve)
   }
   built.append(first);
   local cap = AIVehicle.GetCapacity(first, mailCargo);
-  local orderFlags = AIOrder.OF_NONE | AIOrder.OF_NON_STOP_INTERMEDIATE;
+  local nonstopFlag = AIOrder.OF_NON_STOP_INTERMEDIATE;
+  local flagsA = ((ROAD1Y_MAIL_FULL & 1) != 0 ? AIOrder.OF_FULL_LOAD_ANY : AIOrder.OF_NONE) | nonstopFlag;
+  local flagsB = ((ROAD1Y_MAIL_FULL & 2) != 0 ? AIOrder.OF_FULL_LOAD_ANY : AIOrder.OF_NONE) | nonstopFlag;
   local ordersOk = cap > 0
-      && AIOrder.AppendOrder(first, siteA.tile, orderFlags)
-      && AIOrder.AppendOrder(first, siteB.tile, orderFlags)
+      && AIOrder.AppendOrder(first, siteA.tile, flagsA)
+      && AIOrder.AppendOrder(first, siteB.tile, flagsB)
       && AIOrder.GetOrderCount(first) == 2;
   if (!ordersOk) {
     OpexRoadRollback(siteA.tile, siteB.tile, null, built, null);

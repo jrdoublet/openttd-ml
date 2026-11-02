@@ -6481,8 +6481,8 @@ function OpexRoadRefleet(catalog, line, have, target)
     local destFlags = (ROAD1Y_LOAD_ORDERS && isFreight) ? (AIOrder.OF_UNLOAD | AIOrder.OF_NO_LOAD) : AIOrder.OF_NONE;
     destFlags = destFlags | nonstopFlag;
     if (ROAD1Y_MAIL_ON_PAX && ("kind" in line) && line.kind == "mail_pax") {
-      sourceFlags = AIOrder.OF_NONE | nonstopFlag;
-      destFlags = AIOrder.OF_NONE | nonstopFlag;
+      sourceFlags = (((ROAD1Y_MAIL_FULL & 1) != 0 ? AIOrder.OF_FULL_LOAD_ANY : AIOrder.OF_NONE) | nonstopFlag);
+      destFlags = (((ROAD1Y_MAIL_FULL & 2) != 0 ? AIOrder.OF_FULL_LOAD_ANY : AIOrder.OF_NONE) | nonstopFlag);
     }
     /* ROAD100-14 : les ordres persistants d'une ligne convertie survivent
      * a la disparition de sa flotte. Ne pas conditionner cette reconstitution

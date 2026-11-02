@@ -85,6 +85,7 @@ ROAD1Y_PAX_ECONOMY <- false; // ROAD1Y-C : dimensionnement de flotte bus selon d
 ROAD1Y_PAX_REFLEET <- false; // ROAD1Y-D : renfort refleet bus selon passagers en attente aux deux bouts
 ROAD1Y_MAIL_ON_PAX <- false; // ROAD1Y : ligne MAIL fille sur paire de villes bus PAX rentable
 ROAD1Y_WEAK <- 0; // ROAD1Y : realloue les bus des lignes PAX faibles (< seuil x100 £/bus) vers les lignes saturees (0=off)
+ROAD1Y_MAIL_FULL <- 0; // ROAD1Y : fourgons MAIL fils en chargement complet (1=gare A, 2=gare B, 3=les deux, 0=off)
 ROAD100_WAIT_FLEET <- false; // ROAD100-10 : renfort des bus rentables sur attente mesuree
 ROAD100_SITE_WINDOW <- false; // ROAD100-11 : diversifier les preplans physiques a budget fixe
 ROAD100_SITE_NEAR <- false; // ROAD100-12 : trier les couples site-first par distance faisable
