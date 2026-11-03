@@ -799,6 +799,12 @@ function OpexRoadLineEconomics(catalog, cargo, distance, monthlyUnits, engine, k
     if (vehicles < 1) vehicles = 1;
     if (vehicles > roadVehicleCap) vehicles = roadVehicleCap;
   }
+  if (ROAD1Y_FREIGHT > 0 && kind == "freight") {
+    if (ROAD1Y_FREIGHT > roadVehicleCap) roadVehicleCap = ROAD1Y_FREIGHT;
+    vehicles = vehiclesForVolume;
+    if (vehicles < 1) vehicles = 1;
+    if (vehicles > roadVehicleCap) vehicles = roadVehicleCap;
+  }
   local monthlyCapacity = vehicles * engine.capacity * tripsPerMonth;
   local carried = offered < monthlyCapacity ? offered : monthlyCapacity;
   if (kind == "pax" && vehicles > 0 && roundTripDays > 0) {
