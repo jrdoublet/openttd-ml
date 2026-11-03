@@ -1226,7 +1226,7 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
         subsidyMultiplier = (isSubsidy && ("subsidyMultiplier" in candidate)) ? candidate.subsidyMultiplier : 1.0,
         lineId = idx,
       });
-      if ("road1ySpreadDone" in result)
+      if ("road1ySpreadA" in result)
         OpexRoad1ySpreadCopy(result, this._lines[this._lines.len() - 1]);
       if (("road100PaxPortfolio" in result) &&
           result.road100PaxPortfolio != null) {
@@ -1816,7 +1816,7 @@ function OpexRoad1yRefleetSaved(year)
       money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
     }
 
-    if ("road1ySpreadDone" in line) OpexRoad1ySpreadCount(line);
+    if ("road1ySpreadA" in line) OpexRoad1ySpreadCount(line);
     /* Plafond physique historique des arrets. */
     local physicalCap = OpexRoadPhysicalVehicleCap(
         ("nStopsA" in line) ? line.nStopsA : 1, ("nStopsB" in line) ? line.nStopsB : 1);
@@ -2142,7 +2142,7 @@ function OpexAI::_reconcileAfterLoad()
 {
   ROAD1Y_RECONCILE_ORIGINAL.call(this);
   foreach (line in this._lines) {
-    if (!("road1ySpreadDone" in line)) continue;
+    if (!("road1ySpreadA" in line)) continue;
     OpexRoad1ySpreadCount(line);
     if (this._saveProjection != null)
       this._saveProjection[line] <- OpexSaveProjectLine(line);

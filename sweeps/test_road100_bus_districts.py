@@ -55,9 +55,9 @@ class BusDistrictContracts(unittest.TestCase):
                 # Remove them symmetrically before checking the frozen B2 deltas.
                 for addition in (
                     '      if (ROAD1Y_SPREAD_STOPS > 0) plan.road1ySpreadLineId <- idx;\n',
-                    '      if ("road1ySpreadDone" in result)\n'
+                    '      if ("road1ySpreadA" in result)\n'
                     '        OpexRoad1ySpreadCopy(result, this._lines[this._lines.len() - 1]);\n',
-                    '    if ("road1ySpreadDone" in line) OpexRoad1ySpreadCount(line);\n',
+                    '    if ("road1ySpreadA" in line) OpexRoad1ySpreadCount(line);\n',
                 ):
                     original = original.replace(addition, '')
                     projected = projected.replace(addition, '')

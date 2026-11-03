@@ -5318,7 +5318,7 @@ function OpexBuildRoadRoute(catalog, budget, plan, candidate)
         nStopsA = result.nStopsA, nStopsB = result.nStopsB };
     OpexRoad1ySpreadStops(catalog, spreadLine, "A");
     OpexRoad1ySpreadStops(catalog, spreadLine, "B");
-    spreadLine.road1ySpreadDone <- AIDate.GetCurrentDate();
+    OpexRoad1ySpreadMark(spreadLine, AIDate.GetCurrentDate());
     OpexRoad1ySpreadCopy(spreadLine, result);
     result.nStopsA = spreadLine.nStopsA;
     result.nStopsB = spreadLine.nStopsB;

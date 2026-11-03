@@ -95,7 +95,8 @@ function OpexRoad1ySpreadStops(catalog, line, end)
       }
     }
     candidates.sort(OpexRoad1ySpreadSort);
-    local reserve = (ROAD1Y_FLEET_UNLOCK & 2) != 0 ? 10000 : 50000;
+    // A stop costs ~500 GBP: keep only a small buffer, buses are bought right after.
+    local reserve = 5000;
     foreach (site in candidates) {
       if (live.len() >= ROAD1Y_SPREAD_STOPS) { refused = "LIMIT"; break; }
       if (OpexRoad1ySpreadNear(site.tile, occupied)) continue;
@@ -120,6 +121,7 @@ function OpexRoad1ySpreadStops(catalog, line, end)
     }
   } while (false);
   OpexRoad1ySpreadCount(line);
+  if (refused == "CASH") line.rawset("road1ySpreadCash", true);
   if (DECISION_LOG) OpexDecide("ROAD1Y_SPREAD",
       "line=" + (("lineId" in line) ? line.lineId : root)
       + " end=" + end + " candidates=" + candidates.len() + " built=" + built
@@ -136,11 +138,24 @@ function OpexRoad1ySpreadDue(date, now)
   return AIDate.GetDayOfMonth(now) > AIDate.GetDayOfMonth(date);
 }
 
+/* Mark a line done unless an end was refused for cash: it is then retried
+ * by the monthly catch-up instead of waiting five years. */
+function OpexRoad1ySpreadMark(line, now)
+{
+  local cash = ("road1ySpreadCash" in line) && line.road1ySpreadCash;
+  if ("road1ySpreadCash" in line) delete line.road1ySpreadCash;
+  if (!cash) line.road1ySpreadDone <- now;
+  else if ("road1ySpreadDone" in line) delete line.road1ySpreadDone;
+}
+
+ROAD1Y_SPREAD_LAST_MONTH <- -1;
+
 function OpexRoad1ySpreadStep(ai)
 {
   if (ROAD1Y_SPREAD_STOPS <= 0) return;
   local now = AIDate.GetCurrentDate();
   local month = AIDate.GetYear(now) * 12 + AIDate.GetMonth(now);
+  if (ROAD1Y_SPREAD_LAST_MONTH == month) return;
   // Derive monthly throttling from persistent line dates, including after Load.
   foreach (line in ai._lines) {
     if (!("road1ySpreadDone" in line)) continue;
@@ -155,7 +170,8 @@ function OpexRoad1ySpreadStep(ai)
     if (ai._saveProjection != null && line in ai._saveProjection) delete ai._saveProjection[line];
     OpexRoad1ySpreadStops(ai._catalog, line, "A");
     OpexRoad1ySpreadStops(ai._catalog, line, "B");
-    line.road1ySpreadDone <- now;
+    OpexRoad1ySpreadMark(line, now);
+    ROAD1Y_SPREAD_LAST_MONTH = month;
     if (ai._saveProjection != null) ai._saveProjection[line] <- OpexSaveProjectLine(line);
     break;
   }

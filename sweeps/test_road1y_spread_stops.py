@@ -34,7 +34,7 @@ class SpreadStopsContracts(unittest.TestCase):
             'acceptance > 1', 'candidates.sort(OpexRoad1ySpreadSort)',
             'AIExecMode()', 'AIRoad.ROADVEHTYPE_BUS, stationId)',
             'live.len() >= ROAD1Y_SPREAD_STOPS',
-            '(ROAD1Y_FLEET_UNLOCK & 2) != 0 ? 10000 : 50000',
+            'local reserve = 5000;',
             'reserve + catalog.costRoadBusStop',
             'AIError.ERR_LOCAL_AUTHORITY_REFUSES',
             'occupied.append(site.tile)', 'live.append(site.tile)',
@@ -54,15 +54,16 @@ class SpreadStopsContracts(unittest.TestCase):
         self.assertNotIn("portfolioSummary.stopsA.append", code)
         for filename in ("task_road.nut", "bus_districts_overrides.nut"):
             self.assertIn("if (ROAD1Y_SPREAD_STOPS > 0) plan.road1ySpreadLineId <- idx;", source(filename))
-            self.assertIn('if ("road1ySpreadDone" in result)', source(filename))
+            self.assertIn('if ("road1ySpreadA" in result)', source(filename))
             self.assertIn("OpexRoad1ySpreadCopy(result, this._lines[this._lines.len() - 1])", source(filename))
-            self.assertIn('if ("road1ySpreadDone" in line) OpexRoad1ySpreadCount(line);', source(filename))
+            self.assertIn('if ("road1ySpreadA" in line) OpexRoad1ySpreadCount(line);', source(filename))
 
     def test_monthly_persistent_throttle_and_save(self):
         code = body("road1y_spread.nut", "OpexRoad1ySpreadStep")
         self.assertIn("== month) return;", code)
         self.assertIn("!OpexRoad1ySpreadDue(line.road1ySpreadDone, now)", code)
-        self.assertIn("line.road1ySpreadDone <- now;", code)
+        self.assertIn("OpexRoad1ySpreadMark(line, now);", code)
+        self.assertIn("ROAD1Y_SPREAD_LAST_MONTH = month;", code)
         self.assertIn("OpexSaveProjectLine(line)", code)
         self.assertIn("break;", code)
         self.assertIn("if (ROAD1Y_SPREAD_STOPS > 0) OpexRoad1ySpreadStep(this);",
