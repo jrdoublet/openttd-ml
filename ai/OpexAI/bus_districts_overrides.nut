@@ -842,6 +842,9 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
         if (isAbandonable) {
           this._markPairAbandoned(abandonedKey);
         }
+        /* 0 : comparaison fausse, aucun ecrit. BUDGET A* remonte en TRACEX. */
+        if (ROAD1Y_RETRY > 0 && candidate.kind == "pax")
+          ROAD1Y_RETRY_REASON = planning.reason;
         OpexSign(anchor, "RA|" + yy + "|" + idx + "|1|" + planning.reason + "|0");
         OpexSign(anchor, "RB|" + yy + "|" + idx + "|1|" + planOps + "|0");
         return { outcome = "rejected", discards = passDiscards };

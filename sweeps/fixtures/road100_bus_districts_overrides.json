@@ -119,6 +119,10 @@
       {
         "before": "        this._lines[this._lines.len() - 1].rawset(\n            \"road100PaxInitialBays\", result.road100PaxInitialBays);\n      OpexRailRepairNoteConstruction();\n      if (V279_RESELECT_MEMO != 0) OPEX_LINES_REVISION++;\n      if ((\"isSubsidy\" in candidate) && candidate.isSubsidy) {\n",
         "after": "        this._lines[this._lines.len() - 1].rawset(\n            \"road100PaxInitialBays\", result.road100PaxInitialBays);\n      if (V279_RESELECT_MEMO != 0) OPEX_LINES_REVISION++;\n      if ((\"isSubsidy\" in candidate) && candidate.isSubsidy) {\n"
+      },
+      {
+        "before": "        if (isAbandonable) {\n          this._markPairAbandoned(abandonedKey);\n        }\n        OpexSign(anchor, \"RA|\" + yy + \"|\" + idx + \"|1|\" + planning.reason + \"|0\");\n",
+        "after": "        if (isAbandonable) {\n          this._markPairAbandoned(abandonedKey);\n        }\n        /* 0 : comparaison fausse, aucun ecrit. BUDGET A* remonte en TRACEX. */\n        if (ROAD1Y_RETRY > 0 && candidate.kind == \"pax\")\n          ROAD1Y_RETRY_REASON = planning.reason;\n        OpexSign(anchor, \"RA|\" + yy + \"|\" + idx + \"|1|\" + planning.reason + \"|0\");\n"
       }
     ]
   },
@@ -146,8 +150,8 @@
         "after": "          if (waitFleetPrice > 0) break;\n        }\n        local waitFleetReserve = (ROAD1Y_FLEET_UNLOCK & 2) != 0 ? 10000 : 50000;\n        if (waitFleetPrice > 0 && money >= waitFleetReserve + waitFleetPrice) {\n          incrementalWanted = totalWaiting / capacity - have;\n          if (incrementalWanted < 1) incrementalWanted = 1;\n          if (incrementalWanted > 2) incrementalWanted = 2;\n          local affordable = (money - waitFleetReserve) / waitFleetPrice;\n          if (incrementalWanted > affordable) incrementalWanted = affordable;\n          if (incrementalWanted > physicalCap - have)\n"
       },
       {
-        "before": "       * Pas de cr\u00e9dit de profit pour le quai ; refleet garde les ordres.\n       * Limiter l'achat \u00e0 deux bus par appel au plafond physique courant. */\n      if ((\"lastProfit\" in line) && line.lastProfit >= 5000\n          && totalWaiting >= 3 * capacity && movingCount > 0\n",
-        "after": "       * Pas de cr\u00e9dit de profit pour le quai ; refleet garde les ordres.\n       * Limiter l'achat \u00e0 deux bus par appel au plafond physique courant. */\n      local paxBalanceReserve = (ROAD1Y_FLEET_UNLOCK & 2) != 0 ? 10000 : 50000;\n      if ((\"lastProfit\" in line) && line.lastProfit >= 5000\n          && totalWaiting >= 3 * capacity && movingCount > 0\n"
+        "before": "       * Pas de crédit de profit pour le quai ; refleet garde les ordres.\n       * Limiter l'achat à deux bus par appel au plafond physique courant. */\n      if ((\"lastProfit\" in line) && line.lastProfit >= 5000\n          && totalWaiting >= 3 * capacity && movingCount > 0\n",
+        "after": "       * Pas de crédit de profit pour le quai ; refleet garde les ordres.\n       * Limiter l'achat à deux bus par appel au plafond physique courant. */\n      local paxBalanceReserve = (ROAD1Y_FLEET_UNLOCK & 2) != 0 ? 10000 : 50000;\n      if ((\"lastProfit\" in line) && line.lastProfit >= 5000\n          && totalWaiting >= 3 * capacity && movingCount > 0\n"
       },
       {
         "before": "        if (busPrice <= 0) wanted = 0;\n        else {\n          local canPay = (money - 50000) / busPrice;\n          if (wanted > canPay) wanted = canPay;\n        }\n",
@@ -158,8 +162,8 @@
         "after": "      }\n      if (busUnitPrice > 0) {\n        local affordableAboveReserve = (money - paxBalanceReserve) / busUnitPrice;\n        if (extraNeeded > affordableAboveReserve) extraNeeded = affordableAboveReserve;\n      } else extraNeeded = 0;\n"
       },
       {
-        "before": "     * et pilot\u00e9e par le bloc ROAD1Y_FLEET ci-dessous selon les passagers en\n     * attente aux deux bouts (totalWaiting). target d\u00e9marre \u00e0 have. */\n    if ((\"kind\" in line) && line.kind == \"pax\" && ROAD1Y_PAX_REFLEET) {\n      target = have;\n    }\n",
-        "after": "     * et pilot\u00e9e par le bloc ROAD1Y_FLEET ci-dessous selon les passagers en\n     * attente aux deux bouts (totalWaiting). target d\u00e9marre \u00e0 have. */\n    local paxRefleet = ROAD1Y_PAX_REFLEET || ((ROAD1Y_FLEET_UNLOCK & 4) != 0);\n    if ((\"kind\" in line) && line.kind == \"pax\" && paxRefleet) {\n      target = have;\n    }\n"
+        "before": "     * et pilotée par le bloc ROAD1Y_FLEET ci-dessous selon les passagers en\n     * attente aux deux bouts (totalWaiting). target démarre à have. */\n    if ((\"kind\" in line) && line.kind == \"pax\" && ROAD1Y_PAX_REFLEET) {\n      target = have;\n    }\n",
+        "after": "     * et pilotée par le bloc ROAD1Y_FLEET ci-dessous selon les passagers en\n     * attente aux deux bouts (totalWaiting). target démarre à have. */\n    local paxRefleet = ROAD1Y_PAX_REFLEET || ((ROAD1Y_FLEET_UNLOCK & 4) != 0);\n    if ((\"kind\" in line) && line.kind == \"pax\" && paxRefleet) {\n      target = have;\n    }\n"
       },
       {
         "before": "      local road1yStopsA = (\"nStopsA\" in line) ? line.nStopsA : 1;\n      local road1yStopsB = (\"nStopsB\" in line) ? line.nStopsB : 1;\n      local road1yStops = (isPax && ROAD1Y_PAX_REFLEET)\n          ? (road1yStopsA + road1yStopsB)\n          : (road1yStopsB < road1yStopsA ? road1yStopsB : road1yStopsA);\n      if (road1yStops < 1) road1yStops = 1;\n      local road1yCap = ROAD1Y_FLEET * road1yStops;\n      if (isPax && ROAD1Y_PAX_REFLEET && (\"predTrains\" in line) && line.predTrains > road1yCap)\n        road1yCap = line.predTrains;\n      local road1yMonth = year * 12 + AIDate.GetMonth(AIDate.GetCurrentDate());\n",

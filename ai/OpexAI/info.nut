@@ -485,6 +485,13 @@ class OpexAIInfo extends AIInfo {
       flags = 0
     });
     AddSetting({
+      name = "road1y_retry",
+      description = "ROAD1Y: road-only, after a PAX road plan failure (TRACEX, BUDGET or SITE_LOST) try up to N other portfolio projects in the same slot (0 = off, historical pass)",
+      min_value = 0, max_value = 8,
+      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
+      flags = 0
+    });
+    AddSetting({
       name = "road1y_pax_sites",
       description = "ROAD1Y-B: Scan natif des sites de bus sur modele aeroport et demande reelle couverte; 0 = off, 1 = on (default)",
       easy_value = 1, medium_value = 1, hard_value = 1,

@@ -1076,6 +1076,45 @@ function OpexAI::_ensureSelection()
   OpexEnsureSelection(this);
 }
 
+/* ROAD1Y_RETRY > 0 seulement. Le portefeuille finance parfois un seul projet :
+ * l'echec ferme la passe, la reselection est apres le return, et le suivant
+ * attend le prochain tour de scheduler. Ici on rejoue la selection existante
+ * (scores inchanges) et on tente jusqu'a LEFT projets PAX route pas encore vus. */
+function OpexAI::_road1yRetrySameSlot(year, anchor, yy, passDiscards,
+    c75BuiltKeys, c69BuiltProjects, c49BuiltRanks, builtCount)
+{
+  if (this._projects == null || !("candidateGroups" in this._projects)) return builtCount;
+  local budgetNow = OpexAvailableCapital();
+  this._projects = OpexReselectProjects(
+      this._projects, budgetNow, this._abandonedPairs, this._lines);
+  if (this._projects == null || this._projects.best == null) return builtCount;
+  local limit = this._projects.best.len();
+  for (local j = 0; j < limit; j++) {
+    if (ROAD1Y_RETRY_LEFT <= 0 || builtCount > 0) break;
+    local project = this._projects.best[j];
+    if (project == null || project.mode != "road") continue;
+    if (!("kind" in project) || project.kind != "pax") continue;
+    local seenKey = OpexC69AttemptKey(project);
+    if (ROAD1Y_RETRY_SEEN != null && (seenKey in ROAD1Y_RETRY_SEEN)) continue;
+    if ((seenKey in c75BuiltKeys)) continue;
+    if (OpexCandidateIsAbandoned(project, this._abandonedPairs)) continue;
+    if (ROAD1Y_RETRY_SEEN != null) ROAD1Y_RETRY_SEEN.rawset(seenKey, true);
+    local attempt = this._tryBuildRoadProject(year, project, j, passDiscards, anchor, yy);
+    passDiscards = attempt.discards;
+    ROAD1Y_RETRY_TRIED++;
+    ROAD1Y_RETRY_LEFT--;
+    if (attempt.outcome == "built") {
+      if (PROBE_SPAN_TRACE) OpexSpanEvent("line_built", "mode=road built=1");
+      this._recordPortfolioProjectBuilt(project, j, c75BuiltKeys, c69BuiltProjects);
+      if (C49_SCARCITY_LEDGER && c49BuiltRanks != null) c49BuiltRanks.rawset(j, true);
+      builtCount++;
+      ROAD1Y_RETRY_LEFT = 0;
+    }
+    ROAD1Y_RETRY_REASON = "";
+  }
+  return builtCount;
+}
+
 function OpexAI::_tryBuildProjects(year)
 {
   local spPass = PROBE_SPAN_TRACE ? OpexSpanBegin("projects.pass") : null;
@@ -1237,6 +1276,15 @@ function OpexAI::_tryBuildProjects(year)
       logDiscardsThisPass = true;
     }
   }
+  /* Defaut 0 : une comparaison fausse, pas d'allocation. Le balayage historique
+   * de best continue tel quel quand rien n'a encore ete construit. */
+  if (ROAD1Y_RETRY > 0) {
+    ROAD1Y_RETRY_LEFT = 0;
+    ROAD1Y_RETRY_ARMED = false;
+    ROAD1Y_RETRY_REASON = "";
+    ROAD1Y_RETRY_TRIED = 0;
+    ROAD1Y_RETRY_SEEN = {};
+  }
   for (local i = 0; i < this._projects.best.len(); i++) {
     local project = this._projects.best[i];
     if (project == null) continue;
@@ -1342,6 +1390,12 @@ function OpexAI::_tryBuildProjects(year)
           }
         }
           if (!c75BypassThisProject) {
+            /* Le bypass C75 est deja pris : ce break ferme le creneau.
+             * A 0 la comparaison est fausse et le break reste celui d'origine. */
+            if (ROAD1Y_RETRY > 0 && ROAD1Y_RETRY_LEFT > 0
+                && project.mode == "road" && ("kind" in project) && project.kind == "pax") {
+              ROAD1Y_RETRY_LEFT--;
+            } else {
             c75StopReason = (availCap >= 0 && projCap > availCap) ? "cash" : "k_pass";
             if (DECISION_LOG) OpexEstimDTraceSkip(project, i, c75StopReason);
             if (R1_R3_TEST_ONLY && project.mode == "air") OpexR1R3AirTrace(this, project, i,
@@ -1355,6 +1409,7 @@ function OpexAI::_tryBuildProjects(year)
                 + (availCap >= 0 ? " available=" + availCap : ""));
           }
           break;
+            }
         }
       }
       if (availCap < 0) availCap = OpexAvailableCapital();
@@ -1537,6 +1592,20 @@ function OpexAI::_tryBuildProjects(year)
         builtCount++;
 
       }
+      if (ROAD1Y_RETRY > 0 && ("kind" in project) && project.kind == "pax") {
+        ROAD1Y_RETRY_TRIED++;
+        if (ROAD1Y_RETRY_SEEN != null)
+          ROAD1Y_RETRY_SEEN.rawset(OpexC69AttemptKey(project), true);
+        if (attempt.outcome == "built") {
+          ROAD1Y_RETRY_LEFT = 0;
+        } else if (!ROAD1Y_RETRY_ARMED
+            && (ROAD1Y_RETRY_REASON == "TRACEX" || ROAD1Y_RETRY_REASON == "BUDGET"
+                || ROAD1Y_RETRY_REASON == "SITE_LOST")) {
+          ROAD1Y_RETRY_ARMED = true;
+          ROAD1Y_RETRY_LEFT = ROAD1Y_RETRY;
+        }
+        ROAD1Y_RETRY_REASON = "";
+      }
     } else if (mode == "rail") {
       if (AIR_FLOTTE1_SHADOW) OpexAirF1RailPath(project, i, "attempt", "entered_executor");
       if (C49_SCARCITY_LEDGER) c49AttemptedRanks.rawset(i, true);
@@ -1629,6 +1698,13 @@ function OpexAI::_tryBuildProjects(year)
       }
     }
     this._advanceRailSearchThroughput();
+  }
+  /* Liste courte (souvent pool_selected = 1) : best n'a pas de rang suivant.
+   * On ne relance pas quand le balayage historique a deja parcouru plus de N. */
+  if (ROAD1Y_RETRY > 0 && ROAD1Y_RETRY_LEFT > 0 && builtCount == 0
+      && ROAD1Y_RETRY_TRIED > 0 && ROAD1Y_RETRY_TRIED <= ROAD1Y_RETRY) {
+    builtCount = this._road1yRetrySameSlot(year, anchor, yy, passDiscards,
+        c75BuiltKeys, c69BuiltProjects, c49BuiltRanks, builtCount);
   }
   this._advanceRailSearchThroughput();
   if (fallthroughProbeActive) {
