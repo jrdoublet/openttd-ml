@@ -72,10 +72,11 @@ class TestRoad1yNext(unittest.TestCase):
         self.assertLess(code.index("AIMap.DistanceManhattan(tileA, tileB)"), code.index(floor))
         self.assertLess(code.index(floor), code.index("OpexRoadDistanceAllowed("))
         self.assertLess(code.index(floor), code.index("OpexMakeRoadCandidate("))
-        self.assertNotIn("ROAD1Y_NEXT", source("candidates.nut"))
-        self.assertNotIn("ROAD1Y_NEXT", source("po01c_regen.nut"))
-        self.assertNotIn("ROAD1Y_NEXT", source("projects_selection.nut"))
-        self.assertNotIn("ROAD1Y_NEXT", source("projects_models.nut"))
+        for name in ("candidates.nut", "po01c_regen.nut", "projects_selection.nut", "projects_models.nut"):
+            self.assertIsNone(
+                re.search(r"\bROAD1Y_NEXT\b", source(name)),
+                name,
+            )
 
     def test_squirrel_hazards_and_reserved_words(self):
         code = body("bus_districts_overrides.nut", "OpexRoad100SoloPaxCandidates")

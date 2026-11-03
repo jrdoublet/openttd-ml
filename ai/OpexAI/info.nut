@@ -477,6 +477,14 @@ class OpexAIInfo extends AIInfo {
       flags = 0
     });
     AddSetting({
+      name = "road1y_next2",
+      description = "ROAD1Y: road-only, multiply PAX bus fundScore by site Manhattan/N when distance > N so a long pair can win the monthly slot without dropping medium pairs (0 = off, default 0)",
+      min_value = 0, max_value = 192,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = 0
+    });
+    AddSetting({
       name = "road1y_pax_sites",
       description = "ROAD1Y-B: Scan natif des sites de bus sur modele aeroport et demande reelle couverte; 0 = off, 1 = on (default)",
       easy_value = 1, medium_value = 1, hard_value = 1,

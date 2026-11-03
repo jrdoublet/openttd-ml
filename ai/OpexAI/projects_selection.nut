@@ -594,6 +594,12 @@ function OpexProjectFundProfit(project)
   local calibMark = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
   local calibrated = OpexCalibratedProfit(project);
   if (calibMark != null) OpexSpanAgg("pub.select.calibrate", calibMark);
+  /* ROAD1Y_NEXT2 : uniquement le numerateur de fundScore. profitAnnual, devis
+   * et flotte restent ceux du quote. A 0 la comparaison est fausse. */
+  if (ROAD1Y_NEXT2 > 0 && project != null && project.mode == "road"
+      && ("kind" in project) && project.kind == "pax"
+      && ("distance" in project) && project.distance > ROAD1Y_NEXT2)
+    calibrated = calibrated * project.distance / ROAD1Y_NEXT2;
   return calibrated;
 }
 
