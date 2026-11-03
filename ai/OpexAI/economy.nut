@@ -830,6 +830,14 @@ function OpexRoadLineEconomics(catalog, cargo, distance, monthlyUnits, engine, k
       ? catalog.costRoadBusStop : catalog.costRoadTruckStop;
   local vehicleCost = vehicles * engine.price;
   local infraDist = (routeDistance != null && routeDistance > 0) ? routeDistance : distance;
+  /* ROAD1Y-next3 : la voirie deja posee n'est pas payee, mais le bareme
+   * facture tout le corridor. N>0 retire N tuiles du capital des seules
+   * paires PAX 96-127. Le profit annuel ne bouge pas. A 0, test faux. */
+  if (ROAD1Y_NEXT3 > 0 && kind == "pax" && distance >= 96 && distance <= 127) {
+    local credited = infraDist - ROAD1Y_NEXT3;
+    if (credited < 0) credited = 0;
+    infraDist = credited;
+  }
   local infraCost = infraDist * catalog.costRoadPerTile + 2 * stopCost + catalog.costRoadDepot;
 
   local life = engine.ageYears > 0 ? engine.ageYears : 12;
