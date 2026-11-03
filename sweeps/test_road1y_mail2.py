@@ -1,0 +1,114 @@
+"""Contract tests for ROAD1Y child MAIL cash reserve (road1y_mail2).
+
+At 0 the compare is false and both call sites keep the historical reserve
+(25000, or the fleet-unlock / pax-refleet floors). N>0 may only lower it,
+and only in road-only games.
+"""
+from __future__ import annotations
+
+import re
+import sys
+import unittest
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "sweeps"))
+
+from test_v261_forum_behaviours import body, source
+
+AI = ROOT / "ai" / "OpexAI"
+
+HISTORICAL_RESERVE = (
+    "local cashReserve = (ROAD1Y_FLEET_UNLOCK & 2) != 0 ? 10000 "
+    ": (ROAD1Y_PAX_REFLEET ? 15000 : 25000);"
+)
+MAIL2_LOWER = (
+    "if (ROAD1Y_MAIL2 > 0 && cashReserve > ROAD1Y_MAIL2 * 1000) "
+    "cashReserve = ROAD1Y_MAIL2 * 1000;"
+)
+
+
+class TestRoad1yMail2(unittest.TestCase):
+    def test_setting_declaration_and_defaults(self):
+        info_src = source("info.nut")
+        self.assertEqual(info_src.count('name = "road1y_mail2"'), 1)
+        setting_block = info_src.split('name = "road1y_mail2",')[1].split("});")[0]
+        self.assertIn("min_value = 0", setting_block)
+        self.assertIn("max_value = 25", setting_block)
+        for diff in ("easy", "medium", "hard", "custom"):
+            self.assertIn(f"{diff}_value = 0", setting_block)
+        self.assertIn("flags = 0", setting_block)
+        self.assertNotIn("AICONFIG_BOOLEAN", setting_block)
+
+    def test_global_pre_declaration(self):
+        self.assertIn("ROAD1Y_MAIL2 <- 0;", source("globals_pre.nut"))
+
+    def test_settings_nut_loading(self):
+        settings_src = source("settings.nut")
+        self.assertEqual(settings_src.count('GetSetting("road1y_mail2")'), 2)
+        for path in AI.glob("*.nut"):
+            if path.name == "settings.nut":
+                continue
+            self.assertNotIn(
+                'GetSetting("road1y_mail2")',
+                path.read_text(encoding="utf-8"),
+                path.name,
+            )
+        load_fn = body("settings.nut", "OpexLoadSettings")
+        self.assertIn('ROAD1Y_MAIL2 = AIController.GetSetting("road1y_mail2");', load_fn)
+        self.assertIn("if (ROAD1Y_MAIL2 < 0 || ROAD1Y_MAIL2 > 25) ROAD1Y_MAIL2 = 0;", load_fn)
+        self.assertIn("if (!road1yRoadOnly) ROAD1Y_MAIL2 = 0;", load_fn)
+        defined = load_fn.index("local road1yRoadOnly =")
+        read_at = load_fn.index('GetSetting("road1y_mail2")')
+        clamp_at = load_fn.index("if (ROAD1Y_MAIL2 < 0 || ROAD1Y_MAIL2 > 25) ROAD1Y_MAIL2 = 0;")
+        gate_at = load_fn.index("if (!road1yRoadOnly) ROAD1Y_MAIL2 = 0;")
+        self.assertLess(defined, read_at)
+        self.assertLess(read_at, clamp_at)
+        self.assertLess(clamp_at, gate_at)
+        self.assertLess(load_fn.index("if (!road1yRoadOnly) ROAD1Y_NEXT = 0;"), read_at)
+
+        loader = body("settings.nut", "OpexLoadBusDistrictSettings")
+        self.assertIn('ROAD1Y_MAIL2 = AIController.GetSetting("road1y_mail2");', loader)
+        self.assertIn("if (ROAD1Y_MAIL2 < 0 || ROAD1Y_MAIL2 > 25) ROAD1Y_MAIL2 = 0;", loader)
+        self.assertIn("if (!road1yRoadOnly) ROAD1Y_MAIL2 = 0;", loader)
+        self.assertLess(loader.index("local road1yRoadOnly ="), loader.index('GetSetting("road1y_mail2")'))
+        self.assertLess(
+            loader.index("if (!road1yRoadOnly) ROAD1Y_NEXT = 0;"),
+            loader.index('GetSetting("road1y_mail2")'),
+        )
+        self.assertLess(
+            loader.index("if (!road1yRoadOnly) ROAD1Y_MAIL2 = 0;"),
+            loader.index('require("bus_districts.nut")'),
+        )
+        self.assertNotIn("road1y_mail2", source("persist.nut"))
+        self.assertNotIn("ROAD1Y_MAIL2", source("persist.nut"))
+
+    def test_zero_keeps_historical_reserve_and_only_lowers_when_positive(self):
+        districts = source("bus_districts.nut")
+        pair = HISTORICAL_RESERVE + "\n  " + MAIL2_LOWER
+        self.assertEqual(districts.count(HISTORICAL_RESERVE), 2)
+        self.assertEqual(districts.count(MAIL2_LOWER), 2)
+        self.assertEqual(districts.count(pair), 2)
+        refleet = body("bus_districts.nut", "OpexRoad1yRefleetMailLine")
+        step = body("bus_districts.nut", "OpexRoad1yMailStep")
+        for code in (refleet, step):
+            self.assertLess(code.index(HISTORICAL_RESERVE), code.index(MAIL2_LOWER))
+        self.assertLess(
+            refleet.index(MAIL2_LOWER),
+            refleet.index("if (unitPrice <= 0 || money < cashReserve + unitPrice) return;"),
+        )
+        self.assertLess(
+            step.index(MAIL2_LOWER),
+            step.index("local needCash = cashReserve + 2 * catalog.costRoadTruckStop + engine.price;"),
+        )
+        self.assertNotIn("ROAD1Y_MAIL2", body("bus_districts.nut", "OpexRoad1yBuildMailChild"))
+        for code in (refleet, step):
+            self.assertNotIn("function(", code)
+            self.assertNotIn(".find(", code)
+            self.assertNotIn("yield", code)
+            for word in ("clone", "base", "parent", "static", "delegate", "resume", "vargc", "vargv"):
+                self.assertIsNone(re.search(r"\blocal\s+" + word + r"\b", code), word)
+
+
+if __name__ == "__main__":
+    unittest.main()

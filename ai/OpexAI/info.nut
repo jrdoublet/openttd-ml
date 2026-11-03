@@ -477,6 +477,14 @@ class OpexAIInfo extends AIInfo {
       flags = 0
     });
     AddSetting({
+      name = "road1y_mail2",
+      description = "ROAD1Y: road-only child MAIL cash reserve in thousands of pounds (0 = historical 25000; N>0 uses N*1000 when that is lower, for new lines and van refleet)",
+      min_value = 0, max_value = 25,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = 0
+    });
+    AddSetting({
       name = "road1y_pax_sites",
       description = "ROAD1Y-B: Scan natif des sites de bus sur modele aeroport et demande reelle couverte; 0 = off, 1 = on (default)",
       easy_value = 1, medium_value = 1, hard_value = 1,

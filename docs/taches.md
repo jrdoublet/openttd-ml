@@ -4,6 +4,17 @@
 
 L'ancien registre intégral (2 874 lignes, y compris hypothèses, essais, décisions et anciennes instructions) est conservé dans le [journal de transfert du 30/10](journaux/journal_2026-10-30_transfert_taches.md), avec une empreinte SHA-256 et les numéros de ligne d'origine. Le [bilan de réconciliation du 30/10](journaux/journal_2026-10-30_mise_a_jour.md) indique pourquoi les items ont été clos, séparés ou maintenus. Les fiches expérimentales restent des **photographies de leur date**, pas des consignes courantes. Pour les procédures, suivre [AGENTS.md](../AGENTS.md).
 
+### 03/11 — `road1y_mail2` codé, défaut 0, non mesuré
+
+Diagnostic route seule (run GitHub 41550787847, graines 100 / 613553 / 781335,
+`road1y_gap=12`, `weak=15`, `next=64`) : le poste MAIL au 1972-12-01 est
+~234 k£ de `profit_this_year` (179 / 297 / 225). La réserve 25 000 £ de
+`OpexRoad1yMailStep` et `OpexRoad1yRefleetMailLine` (`bus_districts.nut`)
+bloque créations et renforts dès que la caisse résiduelle passe sous ~30 k£.
+`road1y_mail2` (0..25, défaut 0, forcé à 0 hors route seule) peut seulement
+abaisser cette réserve. Valeur conseillée 5, aucun banc. Pas d'adoption,
+pas de push. Rapport hors dépôt.
+
 ### 02/11 — `road1y_gap` codé, défaut 0, non mesuré
 
 Diagnostic route seule, master `3c863206`, `profit_year` au 1972-12-01
