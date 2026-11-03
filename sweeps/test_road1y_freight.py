@@ -86,6 +86,17 @@ class TestRoad1yFreight(unittest.TestCase):
         for word in ("clone", "base", "parent", "static", "delegate", "resume", "vargc", "vargv"):
             self.assertIsNone(re.search(r"\blocal\s+" + word + r"\b", econ), word)
 
+    def test_candidates_freight_admission_boost(self):
+        cand = body("candidates.nut", "OpexBuildRoadCandidates")
+        self.assertIn("if (ROAD1Y_FREIGHT > 0)", cand)
+        self.assertIn('if (c.kind == "freight")', cand)
+        self.assertIn("c.profitAnnual = c.profitAnnual * 2;", cand)
+        self.assertIn("c.ratio = c.ratio * 2;", cand)
+        self.assertNotIn("function(", cand)
+        self.assertNotIn(".find(", cand)
+        for word in ("clone", "base", "parent", "static", "delegate", "resume", "vargc", "vargv"):
+            self.assertIsNone(re.search(r"\blocal\s+" + word + r"\b", cand), word)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -3761,6 +3761,16 @@ function OpexBuildRoadCandidates(catalog, budget, lines, abandonedPairs = null, 
     OpexRoadFreightCandidates(catalog, lines, all, stats, abandonedPairs, profile, freightCargo,
                               targetKind, targetId);
   }
+  if (ROAD1Y_FREIGHT > 0) {
+    foreach (c in all) {
+      if (c.kind == "freight") {
+        c.profitAnnual = c.profitAnnual * 2;
+        c.revenueAnnual = c.revenueAnnual * 2;
+        c.ratio = c.ratio * 2;
+        if (c.capital > 0) c.roi = (c.profitAnnual * 1000) / c.capital;
+      }
+    }
+  }
   if (ROAD100_SOLO_PAX)
     OpexRoad100SoloPaxCandidates(catalog, lines, all, stats, abandonedPairs, targetKind, targetId);
   if (ROAD100_TOWN_BUS)
