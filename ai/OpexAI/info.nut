@@ -485,6 +485,14 @@ class OpexAIInfo extends AIInfo {
       flags = 0
     });
     AddSetting({
+      name = "road1y_mail2_years",
+      description = "ROAD1Y: road-only child MAIL cash reserve duration in years from start (0 = all game; N>0 applies only while current year < start year + N)",
+      min_value = 0, max_value = 20,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = 0
+    });
+    AddSetting({
       name = "road1y_pax_sites",
       description = "ROAD1Y-B: Scan natif des sites de bus sur modele aeroport et demande reelle couverte; 0 = off, 1 = on (default)",
       easy_value = 1, medium_value = 1, hard_value = 1,

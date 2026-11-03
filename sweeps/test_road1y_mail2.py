@@ -23,7 +23,7 @@ HISTORICAL_RESERVE = (
     ": (ROAD1Y_PAX_REFLEET ? 15000 : 25000);"
 )
 MAIL2_LOWER = (
-    "if (ROAD1Y_MAIL2 > 0 && cashReserve > ROAD1Y_MAIL2 * 1000) "
+    "if (ROAD1Y_MAIL2 > 0 && (ROAD1Y_MAIL2_YEARS == 0 || AIDate.GetYear(AIDate.GetCurrentDate()) < OPEX_START_YEAR + ROAD1Y_MAIL2_YEARS) && cashReserve > ROAD1Y_MAIL2 * 1000) "
     "cashReserve = ROAD1Y_MAIL2 * 1000;"
 )
 

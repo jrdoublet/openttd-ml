@@ -506,7 +506,7 @@ function OpexRoad1yRefleetMailLine(ai, line, year)
   if (unitPrice <= 0 && ai._catalog != null && (line.cargo in ai._catalog.roadEngineByCargo))
     unitPrice = ai._catalog.roadEngineByCargo[line.cargo].price;
   local cashReserve = (ROAD1Y_FLEET_UNLOCK & 2) != 0 ? 10000 : (ROAD1Y_PAX_REFLEET ? 15000 : 25000);
-  if (ROAD1Y_MAIL2 > 0 && cashReserve > ROAD1Y_MAIL2 * 1000) cashReserve = ROAD1Y_MAIL2 * 1000;
+  if (ROAD1Y_MAIL2 > 0 && (ROAD1Y_MAIL2_YEARS == 0 || AIDate.GetYear(AIDate.GetCurrentDate()) < OPEX_START_YEAR + ROAD1Y_MAIL2_YEARS) && cashReserve > ROAD1Y_MAIL2 * 1000) cashReserve = ROAD1Y_MAIL2 * 1000;
   local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
   if (unitPrice <= 0 || money < cashReserve + unitPrice) return;
   local want = totalWaiting / capacity;
@@ -737,7 +737,7 @@ function OpexRoad1yMailStep(ai, year)
   local engine = catalog.roadEngineByCargo[mailCargo];
   if (engine == null || engine.price <= 0) return;
   local cashReserve = (ROAD1Y_FLEET_UNLOCK & 2) != 0 ? 10000 : (ROAD1Y_PAX_REFLEET ? 15000 : 25000);
-  if (ROAD1Y_MAIL2 > 0 && cashReserve > ROAD1Y_MAIL2 * 1000) cashReserve = ROAD1Y_MAIL2 * 1000;
+  if (ROAD1Y_MAIL2 > 0 && (ROAD1Y_MAIL2_YEARS == 0 || AIDate.GetYear(AIDate.GetCurrentDate()) < OPEX_START_YEAR + ROAD1Y_MAIL2_YEARS) && cashReserve > ROAD1Y_MAIL2 * 1000) cashReserve = ROAD1Y_MAIL2 * 1000;
   local needCash = cashReserve + 2 * catalog.costRoadTruckStop + engine.price;
   if (AICompany.GetBankBalance(AICompany.COMPANY_SELF) < needCash) return;
   if (!OpexVehicleSlotAvailable(AIVehicle.VT_ROAD, 1)) return;
