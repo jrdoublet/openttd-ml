@@ -88,6 +88,7 @@ ROAD1Y_WEAK <- 0; // ROAD1Y : realloue les bus des lignes PAX faibles (< seuil x
 ROAD1Y_NEXT <- 0; // ROAD1Y : distance Manhattan minimale d'une nouvelle paire bus PAX (0 = off)
 ROAD1Y_MAIL2 <- 0; // ROAD1Y : reserve de caisse MAIL fille en milliers de £ (0 = reserve historique 25000)
 ROAD1Y_MAIL2_YEARS <- 0; // ROAD1Y : duree d'application de road1y_mail2 en annees (0 = toute la partie)
+ROAD1Y_NEXT3 <- 0; // ROAD1Y : tuiles de voirie non facturees sur une paire PAX 96-127 (0 = capital historique)
 ROAD100_WAIT_FLEET <- false; // ROAD100-10 : renfort des bus rentables sur attente mesuree
 ROAD100_SITE_WINDOW <- false; // ROAD100-11 : diversifier les preplans physiques a budget fixe
 ROAD100_SITE_NEAR <- false; // ROAD100-12 : trier les couples site-first par distance faisable
