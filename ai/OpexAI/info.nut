@@ -450,7 +450,7 @@ class OpexAIInfo extends AIInfo {
       name = "road1y_gap",
       description = "ROAD1Y: road-only mail vans per child line (0 = historical cap of 2 and the same parent each pass; N>2 raises the cap to N and skips a parent with no mail site)",
       min_value = 0, max_value = 30,
-      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
+      easy_value = 12, medium_value = 12, hard_value = 12, custom_value = 12,
       flags = 0
     });
     AddSetting({
@@ -464,40 +464,40 @@ class OpexAIInfo extends AIInfo {
       name = "road1y_weak",
       description = "ROAD1Y: realloue les bus des lignes PAX faibles (< seuil x100 £/bus) vers les lignes saturees (0=off, defaut 0)",
       min_value = 0, max_value = 30,
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
+      easy_value = 15, medium_value = 15, hard_value = 15,
+      custom_value = 15,
       flags = 0
     });
     AddSetting({
       name = "road1y_next",
       description = "ROAD1Y: road-only, admit a new PAX bus pair only when site Manhattan distance is at least N tiles (0 = off, default 0)",
       min_value = 0, max_value = 192,
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
+      easy_value = 64, medium_value = 64, hard_value = 64,
+      custom_value = 64,
       flags = 0
     });
     AddSetting({
       name = "road1y_mail2",
       description = "ROAD1Y: road-only child MAIL cash reserve in thousands of pounds (0 = historical 25000; N>0 uses N*1000 when that is lower, for new lines and van refleet)",
       min_value = 0, max_value = 25,
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
+      easy_value = 5, medium_value = 5, hard_value = 5,
+      custom_value = 5,
       flags = 0
     });
     AddSetting({
       name = "road1y_mail2_years",
       description = "ROAD1Y: road-only child MAIL cash reserve duration in years from start (0 = all game; N>0 applies only while current year < start year + N)",
       min_value = 0, max_value = 20,
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
+      easy_value = 3, medium_value = 3, hard_value = 3,
+      custom_value = 3,
       flags = 0
     });
     AddSetting({
       name = "road1y_next3",
       description = "ROAD1Y: road-only, drop N tiles from PAX infra capital when the pair distance is 96-127 (0 = historical full charge, default 0)",
       min_value = 0, max_value = 96,
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
+      easy_value = 56, medium_value = 56, hard_value = 56,
+      custom_value = 56,
       flags = 0
     });
     AddSetting({

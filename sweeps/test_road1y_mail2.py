@@ -36,7 +36,7 @@ class TestRoad1yMail2(unittest.TestCase):
         self.assertIn("min_value = 0", setting_block)
         self.assertIn("max_value = 25", setting_block)
         for diff in ("easy", "medium", "hard", "custom"):
-            self.assertIn(f"{diff}_value = 0", setting_block)
+            self.assertIn(f"{diff}_value = 5", setting_block)
         self.assertIn("flags = 0", setting_block)
         self.assertNotIn("AICONFIG_BOOLEAN", setting_block)
 

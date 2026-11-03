@@ -37,7 +37,7 @@ class TestRoad1yGap(unittest.TestCase):
         self.assertIn("flags = 0", block)
         self.assertNotIn("AICONFIG_BOOLEAN", block)
         for difficulty in ("easy", "medium", "hard", "custom"):
-            self.assertIn(f"{difficulty}_value = 0", block)
+            self.assertIn(f"{difficulty}_value = 12", block)
         self.assertIn("ROAD1Y_GAP <- 0;", source("globals_pre.nut"))
 
     def test_loaded_once_clamped_and_forced_off_outside_road_only(self):

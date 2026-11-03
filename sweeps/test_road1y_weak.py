@@ -33,7 +33,7 @@ class TestRoad1yWeak(unittest.TestCase):
         self.assertIn("min_value = 0", setting_block)
         self.assertIn("max_value = 30", setting_block)
         for diff in ("easy", "medium", "hard", "custom"):
-            self.assertIn(f"{diff}_value = 0", setting_block)
+            self.assertIn(f"{diff}_value = 15", setting_block)
         self.assertIn("flags = 0", setting_block)
 
     def test_global_pre_declaration(self):
