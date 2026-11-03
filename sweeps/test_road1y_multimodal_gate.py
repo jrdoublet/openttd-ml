@@ -21,6 +21,7 @@ AI = ROOT / "ai" / "OpexAI"
 
 # Valeur hors route seule = origin/master (le levier n'existe pas ou est inerte).
 ROAD1Y_OFF = {
+    "ROAD1Y_SPREAD_STOPS": "0",
     "ROAD1Y_LOAD_ORDERS": "false",
     "ROAD1Y_DIST_BANDS": "false",
     "ROAD1Y_FLEET": "0",
@@ -43,6 +44,7 @@ ROAD1Y_OFF = {
 }
 
 SETTING_TO_GLOBAL = {
+    "road1y_spread_stops": "ROAD1Y_SPREAD_STOPS",
     "road1y_load_orders": "ROAD1Y_LOAD_ORDERS",
     "road1y_dist_bands": "ROAD1Y_DIST_BANDS",
     "road1y_fleet": "ROAD1Y_FLEET",
@@ -65,6 +67,7 @@ SETTING_TO_GLOBAL = {
 }
 
 LOAD_SETTINGS_KEYS = (
+    "road1y_spread_stops",
     "road1y_load_orders",
     "road1y_dist_bands",
     "road1y_fleet",
@@ -83,6 +86,7 @@ LOAD_SETTINGS_KEYS = (
     "road1y_gap",
 )
 BUS_DISTRICT_KEYS = (
+    "road1y_spread_stops",
     "road1y_bus_fixes",
     "road1y_extra_stops",
     "road1y_pax_sites",

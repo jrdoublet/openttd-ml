@@ -5311,6 +5311,24 @@ function OpexBuildRoadRoute(catalog, budget, plan, candidate)
     }
   }
 
+  if (ROAD1Y_SPREAD_STOPS > 0 && candidate.kind == "pax") {
+    local spreadLine = { mode = "road", kind = "pax", cargo = cargo,
+        lineId = ("road1ySpreadLineId" in plan) ? plan.road1ySpreadLineId : -1,
+        stationA = stopA, stationB = stopB,
+        nStopsA = result.nStopsA, nStopsB = result.nStopsB };
+    OpexRoad1ySpreadStops(catalog, spreadLine, "A");
+    OpexRoad1ySpreadStops(catalog, spreadLine, "B");
+    spreadLine.road1ySpreadDone <- AIDate.GetCurrentDate();
+    OpexRoad1ySpreadCopy(spreadLine, result);
+    result.nStopsA = spreadLine.nStopsA;
+    result.nStopsB = spreadLine.nStopsB;
+    if (portfolioSatellites == null) portfolioSatellites = [];
+    foreach (tile in spreadLine.road1ySpreadA)
+      portfolioSatellites.append({ tile = tile, id = stationA });
+    foreach (tile in spreadLine.road1ySpreadB)
+      portfolioSatellites.append({ tile = tile, id = stationB });
+  }
+
   budget.begin();
   /* Le vrai bug (2026-08-28, prouve dans road_cmd.cpp:1151/script_road.cpp:524, cf. commentaire
    * sur OpexRoadFindDepot) : CmdBuildRoadDepot ne construit RIEN sur "front", seulement sur sa

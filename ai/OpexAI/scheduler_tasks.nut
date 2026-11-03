@@ -1127,6 +1127,7 @@ function OpexAI::_dispatchExpand(task, year)
 }
 function OpexAI::_dispatchRefleet(task, year)
 {
+  if (ROAD1Y_SPREAD_STOPS > 0) OpexRoad1ySpreadStep(this);
   this._refleetRoadLines(year);
   if (ROAD1Y_WEAK > 0) OpexRoad1yWeakStep(this, year);
   this._refleetCrashedWaterLines(year);

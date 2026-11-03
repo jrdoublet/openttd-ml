@@ -73,6 +73,7 @@ ROAD1Y_DIST_BANDS <- true; // ROAD1Y : traces route jusqu'a 128 tuiles, candidat
 ROAD1Y_DIST_BAND <- -1; // bande courante pendant une generation (-1 = bornes historiques)
 ROAD1Y_DIST_BAND_LIMITS <- [[64, 128], [32, 63], [7, 31]];
 ROAD1Y_FLEET <- 4; // ROAD1Y : vehicules par paire de quais des la premiere annee (0 = plafond historique ; 4 par defaut sur cette branche)
+ROAD1Y_SPREAD_STOPS <- 0; // Distributed joined PAX stops, 0..4.
 ROAD1Y_EXTRA_STOPS <- 2; // Quais joints supplementaires, opt-in 0..3.
 ROAD1Y_FLEET_UNLOCK <- 0; // ROAD1Y-E : masque deverrouillage flotte bus (1=arret 5k, 2=refleet 10k, 4=pax refleet+suivi quais, 8=cap 6/arret)
 ROAD1Y_LONG_BAND <- 0; // ROAD1Y-F : extension bandes 192 tuiles (0=off 128t, 1=bande 129-192 en tete, 2=bandes 96-192, 48-95, 7-47)

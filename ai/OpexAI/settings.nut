@@ -135,6 +135,10 @@ function OpexLoadSettings()
   if (!road1yRoadOnly) ROAD1Y_PAX_ECONOMY = false;
   ROAD1Y_PAX_REFLEET = AIController.GetSetting("road1y_pax_refleet") == 1;
   if (!road1yRoadOnly) ROAD1Y_PAX_REFLEET = false;
+  ROAD1Y_SPREAD_STOPS = AIController.GetSetting("road1y_spread_stops");
+  if (ROAD1Y_SPREAD_STOPS < 0) ROAD1Y_SPREAD_STOPS = 0;
+  if (ROAD1Y_SPREAD_STOPS > 4) ROAD1Y_SPREAD_STOPS = 4;
+  if (!road1yRoadOnly) ROAD1Y_SPREAD_STOPS = 0;
   ROAD1Y_MAIL_ON_PAX = AIController.GetSetting("road1y_mail_on_pax") == 1;
   if (!road1yRoadOnly) ROAD1Y_MAIL_ON_PAX = false;
   ROAD1Y_WEAK = AIController.GetSetting("road1y_weak");
@@ -713,6 +717,10 @@ function OpexLoadBusDistrictSettings()
   if (!road1yRoadOnly) ROAD1Y_EXTRA_STOPS = 0;
   ROAD1Y_PAX_SITES = AIController.GetSetting("road1y_pax_sites") == 1;
   if (!road1yRoadOnly) ROAD1Y_PAX_SITES = false;
+  ROAD1Y_SPREAD_STOPS = AIController.GetSetting("road1y_spread_stops");
+  if (ROAD1Y_SPREAD_STOPS < 0) ROAD1Y_SPREAD_STOPS = 0;
+  if (ROAD1Y_SPREAD_STOPS > 4) ROAD1Y_SPREAD_STOPS = 4;
+  if (!road1yRoadOnly) ROAD1Y_SPREAD_STOPS = 0;
   ROAD1Y_MAIL_ON_PAX = AIController.GetSetting("road1y_mail_on_pax") == 1;
   if (!road1yRoadOnly) ROAD1Y_MAIL_ON_PAX = false;
   ROAD1Y_WEAK = AIController.GetSetting("road1y_weak");

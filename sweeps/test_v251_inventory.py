@@ -57,6 +57,7 @@ class TestV251Inventory(unittest.TestCase):
         # road1y_mail2 (défaut 0, borne 0..25) est dans le même bloc ROAD1Y-B2 retiré.
         # road1y_mail2_years (défaut 0, borne 0..20) est dans le même bloc ROAD1Y-B2 retiré.
         # road1y_next3 (défaut 0, borne 0..96) est dans le même bloc ROAD1Y-B2 retiré.
+        # road1y_spread_stops: default 0, removed by the same B2 historical projection.
         # B2 fixes adds one default-OFF bitmask for isolated one-year diagnostics.
         # master: eb2 fallback + 4 rail repair profiles and V233L counterfactual.
         self.assertLessEqual(info.count("AddSetting("), 75)

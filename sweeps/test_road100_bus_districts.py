@@ -51,6 +51,16 @@ class BusDistrictContracts(unittest.TestCase):
                 projected = complete_function(source('bus_districts_overrides.nut'),
                     'OpexRoad1yRefleetSaved' if name == 'OpexAI::_refleetRoadLines' else name)
                 projected = projected.replace('function OpexRoad1yRefleetSaved', 'function OpexAI::_refleetRoadLines')
+                # Separate opt-in spread additions are checked by test_road1y_spread_stops.
+                # Remove them symmetrically before checking the frozen B2 deltas.
+                for addition in (
+                    '      if (ROAD1Y_SPREAD_STOPS > 0) plan.road1ySpreadLineId <- idx;\n',
+                    '      if ("road1ySpreadDone" in result)\n'
+                    '        OpexRoad1ySpreadCopy(result, this._lines[this._lines.len() - 1]);\n',
+                    '    if ("road1ySpreadDone" in line) OpexRoad1ySpreadCount(line);\n',
+                ):
+                    original = original.replace(addition, '')
+                    projected = projected.replace(addition, '')
                 for edit in reversed(item['hunks']):
                     self.assertEqual(projected.count(edit['after']), 1)
                     projected = projected.replace(edit['after'], edit['before'], 1)

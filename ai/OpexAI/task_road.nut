@@ -420,6 +420,7 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
           return { outcome = "rejected", discards = passDiscards };
         }
       }
+      if (ROAD1Y_SPREAD_STOPS > 0) plan.road1ySpreadLineId <- idx;
       local result = OpexBuildRoadRoute(this._catalog, this._budget, plan, candidate);
       if (DECISION_LOG && ("road100SiteFirst" in candidate) && candidate.road100SiteFirst) {
         OpexDecide("ROAD100_REPRICE", "src=" + candidate.src + " dst=" + candidate.dst
@@ -531,6 +532,8 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
         subsidyMultiplier = (isSubsidy && ("subsidyMultiplier" in candidate)) ? candidate.subsidyMultiplier : 1.0,
         lineId = idx,
       });
+      if ("road1ySpreadDone" in result)
+        OpexRoad1ySpreadCopy(result, this._lines[this._lines.len() - 1]);
       if (("road100PaxPortfolio" in result) &&
           result.road100PaxPortfolio != null) {
         local port = result.road100PaxPortfolio;
@@ -1116,6 +1119,7 @@ function OpexAI::_refleetRoadLines(year)
       }
     }
 
+    if ("road1ySpreadDone" in line) OpexRoad1ySpreadCount(line);
     /* Plafond physique historique des arrets. */
     local physicalCap = OpexRoadPhysicalVehicleCap(
         ("nStopsA" in line) ? line.nStopsA : 1, ("nStopsB" in line) ? line.nStopsB : 1);
