@@ -804,6 +804,138 @@ function OpexRoad1yMailStep(ai, year)
   OpexRoad1yBuildMailChild(ai, bestParent, cashReserve);
 }
 
+/* ROAD1Y alt_load : environ ROAD1Y_ALT_LOAD % des bus d'une ligne PAX
+ * recoivent la liste d'ordres inverse (chargement complet au bout B, aucun
+ * a A) ; les autres gardent l'historique (plein a A). Aucun bus n'attend
+ * deux fois (dest_full, refute) et chaque bout a souvent un bus en charge.
+ * Le sens d'un bus se lit dans ses ordres reels (drapeaux des ordres 0/1),
+ * jamais dans un compteur sauvegarde : rien a persister ni a reconcilier,
+ * les destinations (donc OpexLineVehicleIds) ne changent pas. */
+function OpexRoad1yAltLoadIsInverted(vehicle)
+{
+  if (!AIVehicle.IsValidVehicle(vehicle) || AIOrder.GetOrderCount(vehicle) != 2) return false;
+  local fullAny = AIOrder.OF_FULL_LOAD_ANY;
+  return (AIOrder.GetOrderFlags(vehicle, 0) & fullAny) == 0
+      && (AIOrder.GetOrderFlags(vehicle, 1) & fullAny) == fullAny;
+}
+
+/* Pose le sens voulu sur un bus a ordres PROPRES (copie, jamais partagee). */
+function OpexRoad1yAltLoadOrient(vehicle, inverted)
+{
+  if (!AIVehicle.IsValidVehicle(vehicle) || AIOrder.GetOrderCount(vehicle) != 2) return false;
+  local fullAny = AIOrder.OF_FULL_LOAD_ANY;
+  local flagsA = AIOrder.GetOrderFlags(vehicle, 0) & ~fullAny;
+  local flagsB = AIOrder.GetOrderFlags(vehicle, 1) & ~fullAny;
+  if (inverted) flagsB = flagsB | fullAny;
+  else flagsA = flagsA | fullAny;
+  if (!AIOrder.SetOrderFlags(vehicle, 0, flagsA)) return false;
+  if (!AIOrder.SetOrderFlags(vehicle, 1, flagsB)) return false;
+  return OpexRoad1yAltLoadIsInverted(vehicle) == inverted;
+}
+
+/* Ligne eligible : PAX route, ordres historiques pleins a A (load_orders),
+ * pas de tour a 4 ordres. Les appelants testent ROAD1Y_ALT_LOAD > 0 avant
+ * tout appel : a 0, le code execute est strictement l'ancien. */
+function OpexRoad1yAltLoadEligible(line)
+{
+  return ROAD1Y_ALT_LOAD > 0 && ROAD1Y_LOAD_ORDERS && line != null
+      && ("mode" in line) && line.mode == "road"
+      && ("kind" in line) && line.kind == "pax"
+      && !(("road100TourActive" in line) && line.road100TourActive);
+}
+
+/* Remplace AIVehicle.CloneVehicle(depot, template, true) pour un bus PAX.
+ * fleet = bus de la ligne avant cet achat. Inverser si
+ * inverses < round(N % x bus apres achat), jamais sous 2 bus. Le clone
+ * partage les ordres d'un bus DU MEME SENS ; s'il n'en existe pas, copie
+ * propre (partage refuse) puis drapeaux poses. Un bus inverse ne partage
+ * donc jamais la liste d'un bus normal, et inversement. */
+function OpexRoad1yAltLoadClone(depot, template, fleet, site, lineId)
+{
+  local total = 1;
+  local inverted = 0;
+  local twoOrders = true;
+  local sameNormal = null;
+  local sameInverted = null;
+  foreach (v in fleet) {
+    if (!AIVehicle.IsValidVehicle(v)) continue;
+    total++;
+    if (AIOrder.GetOrderCount(v) != 2) { twoOrders = false; continue; }
+    if (OpexRoad1yAltLoadIsInverted(v)) {
+      inverted++;
+      if (sameInverted == null) sameInverted = v;
+    } else if (sameNormal == null) {
+      sameNormal = v;
+    }
+  }
+  local quota = total >= 2 ? (ROAD1Y_ALT_LOAD * total + 50) / 100 : 0;
+  local wantInverted = twoOrders && inverted < quota;
+  local source = wantInverted ? sameInverted : sameNormal;
+  local how = "shared";
+  local extra = -1;
+  if (!twoOrders || !AIVehicle.IsValidVehicle(template) || AIOrder.GetOrderCount(template) != 2) {
+    how = "historical";
+    extra = AIVehicle.CloneVehicle(depot, template, true);
+  } else if (source != null) {
+    extra = AIVehicle.CloneVehicle(depot, source, true);
+  } else {
+    how = "copy";
+    extra = AIVehicle.CloneVehicle(depot, template, false);
+    if (AIVehicle.IsValidVehicle(extra) && !OpexRoad1yAltLoadOrient(extra, wantInverted)) {
+      /* Sens non pose : ne jamais laisser rouler un bus de sens incertain. */
+      AIVehicle.SellVehicle(extra);
+      how = "orient_failed";
+      extra = -1;
+    }
+  }
+  if (DECISION_LOG && (wantInverted || how != "shared")) {
+    OpexDecide("ROAD1Y_ALT_LOAD", "site=" + site + " line=" + lineId
+        + " veh=" + extra + " inverted=" + (wantInverted ? 1 : 0)
+        + " how=" + how + " fleet_after=" + total
+        + " inverted_after=" + (inverted + ((wantInverted && AIVehicle.IsValidVehicle(extra)) ? 1 : 0))
+        + " quota=" + quota + " weight=" + ROAD1Y_ALT_LOAD);
+  }
+  return extra;
+}
+
+/* ROAD1Y alt_load : recensement de mesure (DECISION_LOG seulement), en juin
+ * et en novembre : bus normaux et inverses par ligne, profits, bus a l'arret
+ * au depot. Ne decide rien. */
+function OpexRoad1yAltLoadCensus(ai, year)
+{
+  local month = AIDate.GetMonth(AIDate.GetCurrentDate());
+  if (month != 6 && month != 11) return;
+  local ym = year * 12 + month;
+  if (ROAD1Y_ALT_LOAD_CENSUS_YM == ym) return;
+  ROAD1Y_ALT_LOAD_CENSUS_YM = ym;
+  foreach (line in ai._lines) {
+    if (line == null || typeof line != "table" || !OpexRoad1yAltLoadEligible(line)) continue;
+    if (!("stationA" in line) || !AIMap.IsValidTile(line.stationA)) continue;
+    local stA = AIStation.GetStationID(line.stationA);
+    if (!AIStation.IsValidStation(stA)) continue;
+    local normal = 0;
+    local inverted = 0;
+    local depotInverted = 0;
+    local profitNormal = 0;
+    local profitInverted = 0;
+    foreach (v in OpexLineVehicleIds(line, stA)) {
+      if (!AIVehicle.IsValidVehicle(v)) continue;
+      if (OpexRoad1yAltLoadIsInverted(v)) {
+        inverted++;
+        profitInverted += AIVehicle.GetProfitThisYear(v);
+        if (AIVehicle.IsStoppedInDepot(v)) depotInverted++;
+      } else {
+        normal++;
+        profitNormal += AIVehicle.GetProfitThisYear(v);
+      }
+    }
+    OpexDecide("ROAD1Y_ALT_LOAD_CENSUS", "line=" + line.lineId + " month=" + month
+        + " normal=" + normal + " inverted=" + inverted
+        + " profit_normal=" + profitNormal + " profit_inverted=" + profitInverted
+        + " depot_inverted=" + depotInverted);
+  }
+}
+
 /* ROAD1Y: realloue les bus des lignes PAX faibles (< seuil x100 £/bus)
  * vers les lignes PAX fortes saturees par les passagers en attente.
  * Vente dans le depot de la ligne faible + achat clone dans le depot
@@ -913,7 +1045,12 @@ function OpexRoad1yWeakStep(ai, year)
       if (AIVehicle.SellVehicle(inDepot)) {
         if ("vehCount" in line && line.vehCount > 1) line.vehCount--;
         // Acheter immediatement sur la ligne forte
-        local newVeh = AIVehicle.CloneVehicle(bestStrong.depot, bestTemplate, true);
+        /* ROAD1Y alt_load : le sens du bus recu suit le quota de la ligne forte. */
+        local newVeh = (ROAD1Y_ALT_LOAD > 0 && OpexRoad1yAltLoadEligible(bestStrong))
+            ? OpexRoad1yAltLoadClone(bestStrong.depot, bestTemplate,
+                OpexLineVehicleIds(bestStrong, AIStation.GetStationID(bestStrong.stationA)),
+                "weak", bestStrong.lineId)
+            : AIVehicle.CloneVehicle(bestStrong.depot, bestTemplate, true);
         if (AIVehicle.IsValidVehicle(newVeh)) {
           AIVehicle.StartStopVehicle(newVeh);
           if ("vehCount" in bestStrong) bestStrong.vehCount++;

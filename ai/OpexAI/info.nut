@@ -515,6 +515,13 @@ class OpexAIInfo extends AIInfo {
       flags = 0
     });
     AddSetting({
+      name = "road1y_alt_load",
+      description = "ROAD1Y: road-only, percent of the buses of a passenger line given the reversed order list (full load at end B, none at end A), 0 = all buses full-load at A (default 0)",
+      min_value = 0, max_value = 50,
+      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
+      flags = 0
+    });
+    AddSetting({
       name = "road1y_pax_sites",
       description = "ROAD1Y-B: Scan natif des sites de bus sur modele aeroport et demande reelle couverte; 0 = off, 1 = on (default)",
       easy_value = 1, medium_value = 1, hard_value = 1,

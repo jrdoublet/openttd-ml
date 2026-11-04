@@ -159,6 +159,9 @@ function OpexLoadSettings()
   ROAD1Y_PAX_MIN = AIController.GetSetting("road1y_pax_min");
   if (ROAD1Y_PAX_MIN < 0 || ROAD1Y_PAX_MIN > 100) ROAD1Y_PAX_MIN = 0;
   if (!road1yRoadOnly) ROAD1Y_PAX_MIN = 0;
+  ROAD1Y_ALT_LOAD = AIController.GetSetting("road1y_alt_load");
+  if (ROAD1Y_ALT_LOAD < 0 || ROAD1Y_ALT_LOAD > 50) ROAD1Y_ALT_LOAD = 0;
+  if (!road1yRoadOnly) ROAD1Y_ALT_LOAD = 0;
   ROAD1Y_FLEET_UNLOCK = AIController.GetSetting("road1y_fleet_unlock");
   if (ROAD1Y_FLEET_UNLOCK < 0 || ROAD1Y_FLEET_UNLOCK > 15) ROAD1Y_FLEET_UNLOCK = 0;
   if (!road1yRoadOnly) ROAD1Y_FLEET_UNLOCK = 0;
@@ -744,6 +747,9 @@ function OpexLoadBusDistrictSettings()
   ROAD1Y_PAX_MIN = AIController.GetSetting("road1y_pax_min");
   if (ROAD1Y_PAX_MIN < 0 || ROAD1Y_PAX_MIN > 100) ROAD1Y_PAX_MIN = 0;
   if (!road1yRoadOnly) ROAD1Y_PAX_MIN = 0;
+  ROAD1Y_ALT_LOAD = AIController.GetSetting("road1y_alt_load");
+  if (ROAD1Y_ALT_LOAD < 0 || ROAD1Y_ALT_LOAD > 50) ROAD1Y_ALT_LOAD = 0;
+  if (!road1yRoadOnly) ROAD1Y_ALT_LOAD = 0;
   { // Definitions also needed for saved markers after ON -> OFF.
     require("bus_districts.nut");
     require("bus_districts_overrides.nut");
