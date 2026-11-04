@@ -35,7 +35,57 @@ reste en échec ; le smoke ne démontre pas la rentabilité économique.
 
 L'ancien registre intégral (2 874 lignes, y compris hypothèses, essais, décisions et anciennes instructions) est conservé dans le [journal de transfert du 30/10](journaux/journal_2026-10-30_transfert_taches.md), avec une empreinte SHA-256 et les numéros de ligne d'origine. Le [bilan de réconciliation du 30/10](journaux/journal_2026-10-30_mise_a_jour.md) indique pourquoi les items ont été clos, séparés ou maintenus. Les fiches expérimentales restent des **photographies de leur date**, pas des consignes courantes. Pour les procédures, suivre [AGENTS.md](../AGENTS.md).
 
-### 03/11 — `road1y_mail2` codé, défaut 0, non mesuré
+### 04/11 — ROAD1Y route seule : bilan des 02-04/11
+
+Synthèse des travaux route seule menés du 02 au 04/11/2026 pour réduire l'écart avec AAAHogEx à 3 ans.
+
+**1. Réglages adoptés par défaut (route seule) et leurs portes :**
+- `road1y_astar=4` (02/11, commit `3c863206`) : A* routier pour liaisons bus-quartier 96–192 tuiles. Porte A 40×3 : +59,2 k£/an (32/8, p=4e-6, IC95 [38 ; 82] k, valeur +39 %) ; Porte B 20×10 : +58,9 k£/an (12/8, p=0,03, IC95 [18,6 ; 103,8] k, valeur +22 %). Optimum 2–4 confirmé par bancs (astar=8 : −15,0 k£ ; astar=2 : +14,3 k£, p=0,094 ; astar=1 : −26,5 k£).
+- `road1y_gap=12` (03/11, commit `e728be6a`) : relèvement du plafond de fourgons courrier à 12 (au lieu de 2×arrêts) et saut de parent sans site. Porte A 40×3 : +16,4 k£/an (28/12, p=0,012, IC95 [2,0 ; 30,5] k, valeur +5,5 %) ; Porte B 20×10 : +201,1 k£/an (20/0, p=1,9e-6, IC95 [168,6 ; 237,2] k, valeur +50,5 %). Plateau 6–24 vérifié (gap=6 : +2,4 k£ ; gap=24 : −0,2 k£).
+- `road1y_weak=15` (03/11, commit `e728be6a`) : réallocation mensuelle des bus des lignes faibles (<1,5 k£/bus) vers les lignes saturées. Porte A 40×3 : +22,6 k£/an (27/13, p=0,0098, IC95 [8,6 ; 36,7] k, valeur +9,3 %) ; Porte B 20×10 : +210,5 k£/an (18/2, p=1,3e-5, IC95 [148,8 ; 270,6] k, valeur +45,6 %). Cumul `gap=12 + weak=15` : Porte A +23,2 k£ (29/11, p=0,0037, IC95 [9,2 ; 37,0] k) ; Porte B +430,5 k£/an (20/0, p=1,9e-6, IC95 [372 ; 491] k, valeur +94,5 %).
+- `road1y_mail2=5` et `road1y_mail2_years=3` (03/11, commit `e728be6a`) : baisse de la réserve de caisse courrier de 25 k£ à 5 k£ pendant les 3 premières années (pour éviter l'érosion à 10 ans observée avec mail2 seul à −89,5 k£). Porte A 40×3 : +23,8 k£/an (26/14, p=0,0047, IC95 [8,3 ; 39,0] k, valeur +23,5 %) ; Porte B 20×10 : +1,6 k£/an (11/9, p=0,87, IC95 [−58 ; +64] k, valeur −1,8 %, non-érosion tenue).
+- `road1y_next=64` (03/11, commit `e728be6a`) : plancher de distance interurbaine à 64 tuiles pour privilégier les lignes longues à fort rendement. Porte A 40×3 : +39,2 k£/an (29/11, p=8e-4, IC95 [20,1 ; 58,5] k, valeur −0,8 %) ; Porte B 20×10 : profit +80,3 k£/an (14/6, p=0,09, IC95 [−20 ; 179] k), valeur −8,8 %. Adopté sur dérogation utilisateur de la garde de valeur 5 % (profit +80 k£, objectif rattraper AAA).
+- `road1y_next3=56` (03/11, commit `e728be6a`) : crédit de 56 tuiles de voirie pour les paires PAX 96–127 tuiles. Porte A 40×3 : +30,2 k£/an (28/12, p=0,010, IC95 [7,0 ; 52,8] k, valeur −4,3 %) ; Porte B 20×10 : profit +36,8 k£/an (11/9, p=0,67, IC95 [−39 ; 119] k), valeur −9,3 %. Adopté sur dérogation utilisateur de la garde de valeur 5 %.
+- `road1y_load_orders=1` (04/11, commit `558f5bd8`) : ordre `OF_FULL_LOAD_ANY` à la source PAX (comme AAA). Porte A 40×3 : +49,0 k£/an (34/6, p=8,7e-7, IC95 [33,9 ; 63,3] k, valeur +7,6 %) ; Porte B 20×10 : +281,9 k£/an (18/2, p=1,9e-5, IC95 [201,6 ; 361,7] k, valeur +10,0 %).
+- `road1y_spread_stops=2` (04/11, commit `558f5bd8`) : arrêts bus joints répartis dans un rayon ≤12 tuiles pour étendre la zone de captage (style AAA). Porte A 40×3 : +69,5 k£/an (33/7, p=1,1e-4, IC95 [36,2 ; 101,6] k, valeur +17,0 %) ; Porte B 20×10 : +20,3 k£/an (9/11, p=0,90, IC95 [−50,9 ; 98,6] k, valeur +3,9 %).
+
+**2. Leviers testés et rejetés :**
+- `road1y_bridge` (wt-bridge, `f8023aec`) : ponts routiers pour débloquer les tracés A*. Porte A 40×3 : +0,4 k£/an (22/18, p=0,90, IC95 [−21 ; +22] k) ⇒ `fail_primary`.
+- `road1y_far` (wt-far, `988fea38`) : ouverture des paires interurbaines >128 tuiles. Porte A 40×3 : +8,8 k£/an (25/15, p=0,23, IC95 [−7,2 ; +24,7] k) ⇒ `fail_primary`.
+- `road1y_rich_fleet=10` (wt-richfleet, `0a16d948` sur astar=4 : Porte A −9,8 k£/an, 14/26, p=0,07 ; wt-richfleet2, `48e27039` sur load_orders=1 : Porte A −1,3 k£/an, 20/20, p=0,87) ⇒ neutre/négatif.
+- `road1y_berth_fleet=3` (wt-berth, `d525c1f4`) : arrêt sans réserve 50 k et renfort style AAA. Porte A 40×3 : +11,5 k£/an (21/19, p=0,11) ; réplique 80 paires : +8,9 k£/an (2,8 %, p=0,10) ⇒ rejeté.
+- `road1y_mail_next=7` (wt-mailnext, `dc72a253`) : Porte A 40×3 : +6,4 k£/an (21/18/1, p=0,50) ⇒ rejeté.
+- `road1y_mail_min=15` (wt-mailmin, `989a2fa6`) : suppression des fourgons sous 15 sacs d'attente. Smoke 3 graines : −45 k£/an (fourgons 94→46, détruit du cash net car un fourgon à 1,4 k£/an reste rentable) ⇒ rejeté.
+- `road1y_mail_full` (`ca83c0a7`) : chargement complet des fourgons courrier. Porte A 40×3 : mail_full=3 −4,5 k£ (19/20) ; mail_full=1 −8,2 k£ (16/23) ⇒ échec (attente paralysante).
+- `road1y_dest_full=1` (wt-destfull, `537c3d44`) : chargement complet également à destination. Smoke 3 graines : −29 k£/an (3/3 négatives) ⇒ rejeté (source seule = optimum).
+- `road1y_spread_mail=2` (wt-spreadmail, `9bfc0bda`) : arrêts courrier joints multiples répartis. Porte A 40×3 : −0,0 k£/an (19/21, p=0,93, valeur −1,8 %) ⇒ `fail_primary`.
+- `road1y_mail_pick=20` (wt-mailpick, `760ba36e`) : sélection des parents courrier par production de courrier (≥20 sacs). Smoke 3 graines : −27,0 k£/an (0/3) ⇒ rejeté.
+- `road1y_pax_bilat` (wt-paxbilat, `00e64762`) : renfort de bus conditionné au min d'attente bilatéral. Porte A 40×3 : +9,7 k£/an (20/20, p=0,55, IC95 [−9,5 ; 29,6] k) ⇒ `fail_primary`.
+- `road1y_site_relocate` (wt-sitelost, `52a7e0ec`) : relocalisation de site bus perdu à ≤6 tuiles. Porte A 40×3 : −4,2 k£/an (14/26, p=0,29) ⇒ `fail_primary`.
+- `road1y_mail_net=12` (wt-mailnet, `fb959178` + `396c95d3`) : réseau intercités courrier autonome v1 (smoke 138/317/189 vs 177/364/322 k£/an, 23 NO_TRACE) ; mail_net v2 (`35332753`, tracé voirie bus) smoke 166/292/233 vs 177/364/322 k£/an ⇒ rejeté (éviction de capex : voirie dédiée 15–25 k£ à payback 6–8 ans siphonne la caisse des bus à payback <1 an).
+- `road1y_next2` (`a67f0f7f`) : bonus fundScore pour paires >N tuiles. Porte A 40×3 : =64 −303 k£, =96 −295 k£ (TRACEX bloque le créneau) ⇒ abandonné.
+- `road1y_retry` (`7cacb7ed`) : réessais dans le même créneau après échec PAX. Porte A 40×3 : =2 −0,0 k£ ; =4 +3,9 k£ ⇒ neutre, rejeté.
+- `road1y_freight` (`28b62b3a` et `af087da9`) : relèvement plafond camions et ×2 profit estimé fret. Porte A 40×3 : +5,4 k£/an (17/23, p=0,91) ⇒ neutre, rejeté.
+- Réglages fins testés et non retenus : `astar=8` (−15,0 k£) et `astar=1` (−26,5 k£) vs 4 ; `gap=24` (−0,2 k£) et `gap=6` (+2,4 k£) vs 12 ; `weak=25` (−11,2 k£) et `weak=8` (−6,6 k£) vs 15 ; `next=96` (−19,1 k£), `next=48` (−1,6 k£) et `next=80` (−14,3 k£) vs 64 ; `next3=28` (+5,7 k£) et `next3=80` (−27,2 k£) vs 56 ; `mail2=2` (−10,0 k£) vs 5.
+
+**3. État de l'écart à 3 ans et diagnostics :**
+- Profit terminal an 3 (campagne 40 graines `n_spread2_gateA` sous `load_orders=1` + `spread_stops=2`) : OpexAI 527,5 k£/an (médiane 541,9 k£) vs AAAHogEx 715,9 k£/an (médiane 705,6 k£), soit un ratio de 73,7 % (≈ 74 %). Écart résiduel moyen : −188,3 k£/an.
+- Décomposition de l'écart total (−188,3 k£) :
+  - **Bus PAX (−94,5 k£, 50,2 % du retard) :** 378,6 k£ vs 473,1 k£. Opex possède plus de bus qu'AAA (100,2 vs 85,9 bus/graine), mais un rendement unitaire inférieur (3 778 £ vs 5 509 £/bus) ; 9,2 % des bus d'Opex ont un profit annuel nul ou négatif.
+  - **Courrier MAIL (−51,0 k£, 27,1 % du retard) :** 134,1 k£ vs 185,1 k£. Opex déploie 73,4 fourgons (1 826 £/f) contre 60,0 chez AAA (3 086 £/f) ; attente moyenne de 10,9 sacs (médiane 5) vs 44,5 sacs (médiane 15) ; AAA livre +59 à 65 % de courrier en plus.
+  - **Camions Fret (−45,0 k£, 23,9 % du retard) :** 1,4 k£ vs 46,4 k£. Opex a 0,45 camion/graine contre 45,0 camions chez AAA (3 lignes charbon/bois par graine).
+- Enseignements des diagnostics :
+  - *Paires communes à parité :* sur les 48 paires de villes communes (1,2 paire/graine), le profit par ligne est strictement identique (39,4 k£ Opex vs 39,7 k£ AAA). Le retard historique de captage est comblé par `spread_stops=2`. En revanche, Opex y consomme 8,75 bus contre 6,81 chez AAA (flotte excédentaire).
+  - *Topologie :* AAA ne construit aucun réseau en étoile (96,4 % de villes à 1 seule ligne, 0 ville ≥ 4 lignes). Ses paires sont simplement 10 tuiles plus longues en moyenne (105,6 vs 95,7 tuiles) entre villes de taille comparable.
+  - *Caisse 1972 non bloquante :* les 157 k£ de trésorerie oisive fin 1972 (vs 15–20 k£ chez AAA) ne traduisent pas un blocage du capital. Les graines les plus riches (>300 k£ de caisse, n=8) sont les plus rentables (profit moyen 619 k£ vs 410 k£ pour les graines <15 k£). Les refus par caisse >50 k£ proviennent d'artefacts intra-cycle après constructions multiples, de `SITE_LOST` (365 j de bannissement) et du plafond de 4 lignes par ville. Piste identifiée mais sous seuil 4 % : `LOAN_REPAY_FLOOR` 300 k → 50 k (gain intérêts d'emprunt ≤ 12 k£/an).
+  - *Courrier clos :* 78 % des lignes courrier d'AAA sont sans bus (dédiées). Mais tenter un réseau autonome dédié (`mail_net`) détruit du profit par éviction du capex bus. Le chargement complet (`mail_full`) paralyse les fourgons, le captage joint (`spread_mail=2`) est neutre, et les filtres de stock/rendement (`mail_min`, `mail_pick`) réduisent le cash net. Le gisement courrier à 3 ans est saturé et clos.
+
+**4. Pistes encore ouvertes :**
+- Rendement des paires exclusives d'AAA : les paires exclusives d'AAA rapportent 30,2 k£ (5,1 bus) contre 25,1 k£ chez Opex (7,3 bus). Piste `road1y_spread_cap` (plafond de flotte sous arrêts multiples) non lancée : le plafond large explique peut-être une part du gain de `spread_stops=2`, et retirer des bus à profit nul ne libère que de la caisse déjà oisive. Analyse comparative du code d'AAA confiée à une session cloud (branche `cloud/road1y-pack-0411`, `docs/cloud/road1y_0411/PROMPT.md`).
+- Fret routier AAA : AAA déploie 45 camions (charbon, bois) pour 46,4 k£/an, quasiment absent chez Opex (écart de 45 k£/an).
+- Durée de bannissement des paires : réduction du cooldown `ABANDON_COOLDOWN_DAYS` (actuellement 365 jours après `SITE_LOST`) pour réévaluer plus rapidement les paires viables (en cours d'exploration).
+
+### 03/11 — `road1y_mail2` codé, défaut 0, mesuré et qualifié (03/11)
 
 Diagnostic route seule (run GitHub 41550787847, graines 100 / 613553 / 781335,
 `road1y_gap=12`, `weak=15`, `next=64`) : le poste MAIL au 1972-12-01 est
@@ -45,8 +95,12 @@ bloque créations et renforts dès que la caisse résiduelle passe sous ~30 k£.
 `road1y_mail2` (0..25, défaut 0, forcé à 0 hors route seule) peut seulement
 abaisser cette réserve. Valeur conseillée 5, aucun banc. Pas d'adoption,
 pas de push. Rapport hors dépôt.
+**Mesure et qualification (03/11) :** `mail2=5` seul Porte A +23,8 k£ (p=0,0047),
+mais échec Porte B à 10 ans (−89,5 k£) ; qualifié en combinaison avec
+`road1y_mail2_years=3` (Porte A +23,8 k£, Porte B +1,6 k£ sans érosion) ;
+adopté par défaut (mail2=5, mail2_years=3) sur `road1y-defaults` (commit `e728be6a`).
 
-### 02/11 — `road1y_gap` codé, défaut 0, non mesuré
+### 02/11 — `road1y_gap` codé, défaut 0, mesuré et qualifié (02-03/11)
 
 Diagnostic route seule, master `3c863206`, `profit_year` au 1972-12-01
 (4 trimestres) : graines 100 / 613553 / 781335, Opex 177 / 364 / 322 k£
@@ -55,6 +109,9 @@ le MAIL (plafond 2 fourgons, parent sans site). `road1y_gap` (0..30, défaut 0,
 forcé à 0 hors route seule) lève ce plafond et saute un parent sans site.
 Valeur conseillée 12, aucun banc ici (un banc tournait déjà). Pas d'adoption,
 pas de push. Rapport hors dépôt : diagnostic de cette session.
+**Mesure et qualification (02-03/11) :** Porte A 40×3 +16,4 k£/an (p=0,012),
+Porte B 20×10 +201,1 k£/an (p=1,9e-6) ; cumul `gap=12 + weak=15` qualifié
+(Porte A +23,2 k£, Porte B +430,5 k£) ; adopté par défaut à 12 sur `road1y-defaults` (commit `e728be6a`).
 
 ### 01/11 — `road1y_long_v3` codé, défaut 0, non qualifié
 
