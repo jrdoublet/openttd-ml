@@ -1,5 +1,36 @@
 # Tâches — registre actif OpexAI
 
+### 04/11 — RAIL-SIBLING + RAIL-OPEN : adoption explicite utilisateur
+
+Décision utilisateur du 04/11 : adopter sur `master` **`rail_sibling=1` et
+`rail_open=1`** aux quatre difficultés. Les autres prototypes ferroviaires
+RAIL-LONG v2/v3, INVEST-STALL et DOUBLE-GROW restent absents de cette intégration
+et désactivés. Origine du comportement : bundle figé
+`rail_open_railseul_40x5_20261102` (`c440c5cc327742daa91d3c4febcb5f3e431e5767712e587531905a4e08287bd8`),
+intégré avec le code courant de `master` en conservant les réparations de quai
+déjà présentes. Sous rail seul contre AAAHogEx rail seul, 40×5 : 1 597 978
+contre 1 980 131 £/an (80,70 %) ; 20×10 : 1 787 861 contre 3 772 393 £/an
+(47,39 %). Ce sont des résultats de l'ancien arbre expérimental, **pas** une
+qualification économique du défaut nouveau sur le `master` actualisé : la porte
+A 40×5 échouait (`fail_primary`, p = 0,468), la porte B 20×10 passait seulement
+`non_erosion`, garde de valeur neutralisée. L'adoption intervient donc **sur
+instruction explicite**, malgré l'absence de preuve statistique de gain propre.
+Rapports repris dans ce dépôt : [RAIL-OPEN](rail_open_20261102.md) et
+[RAIL-SIBLING](rail_sibling_lot1_bancs_20261102.md). Conserver les JSON/manifestes
+et le SHA du bundle d'origine.
+
+Validation de l'intégration sur la base `558f5bd8` (master du 04/11) : 29 tests
+ciblés réussis ; smoke réel 1 graine × 1 an `rail_sibopen_promoted_smoke_20261104_r2`
+2/2 jeux sains, défauts effectifs `rail_sibling=1`/`rail_open=1`, zéro erreur
+NoAI, bundle `347f93985dad41161d4b920ed6a6d30b4a8e3b7c319b8454cf756e7b4113ae8b`.
+**Contrats historiques à réconcilier :** la suite complète donne 3 563 tests,
+129 échecs et 17 erreurs dans le worktree intégré (AAAHogEx installé localement),
+contre 3 541 tests, 118 échecs et 29 erreurs sur le master témoin propre sans
+AAAHogEx local ; 12 échecs supplémentaires correspondent à des attentes de bytes
+ou de projections historiques incompatibles avec la nouvelle insertion du code.
+Ne pas réécrire les anciennes fixtures pour les masquer. La validation globale
+reste en échec ; le smoke ne démontre pas la rentabilité économique.
+
 **État réconcilié le 30 octobre 2026, depuis `origin/master` (`7ae0cc05`).** Cette page est **l'unique liste d'actions ouvertes**. Une case cochée signifie que l'**étape est close**, pas nécessairement qu'un prototype est adopté. Une expérience rejetée ou suspendue n'est pas un chantier automatiquement réactivable, **sauf nouvelle instruction explicite** comme la réouverture des réparations RAIL ci-dessous.
 
 L'ancien registre intégral (2 874 lignes, y compris hypothèses, essais, décisions et anciennes instructions) est conservé dans le [journal de transfert du 30/10](journaux/journal_2026-10-30_transfert_taches.md), avec une empreinte SHA-256 et les numéros de ligne d'origine. Le [bilan de réconciliation du 30/10](journaux/journal_2026-10-30_mise_a_jour.md) indique pourquoi les items ont été clos, séparés ou maintenus. Les fiches expérimentales restent des **photographies de leur date**, pas des consignes courantes. Pour les procédures, suivre [AGENTS.md](../AGENTS.md).

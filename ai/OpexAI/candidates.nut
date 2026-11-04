@@ -1424,6 +1424,158 @@ function OpexV264EmitConvergent(catalog, stats, profile, cruiseCache, cargo, sou
   return candidate;
 }
 
+/* RAIL-SIBLING lot 1 : une source fret deja desservie par une ligne rail saturee peut ouvrir
+ * une seconde ligne en voie unique, sur un quai joint a la meme gare, vers une destination neuve.
+ * Chez OpexAI une ligne voie unique porte un seul train : sans ce chemin, une source productive
+ * plafonne a une rame (origin_served) pendant qu'AAAHogEx clone ses trains sur la meme industrie.
+ * Rend null hors reglage, ou si la ligne mere n'est pas saturee, a deja une soeur (plus d'une
+ * ligne sur la gare), n'a pas d'annee de recette, ou rapporte moins que sa propre prevision. */
+function OpexRailOpenCashReady(capital = 0)
+{
+  if (RAIL_OPEN == 0) return false;
+  local bankBalance = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+  local needed = RAIL_OPEN_MIN_CASH;
+  if (capital > 0 && capital + RAIL_OPEN_CASH_HEADROOM > needed)
+    needed = capital + RAIL_OPEN_CASH_HEADROOM;
+  return bankBalance >= needed;
+}
+
+function OpexRailSiblingParent(catalog, lines, service, cargo, source, monthly)
+{
+  if (RAIL_SIBLING == 0 && RAIL_OPEN == 0) return null;
+  if (service == null || service.blocked) return null;
+  local openMode = OpexRailOpenCashReady();
+  if (RAIL_SIBLING == 0 && !openMode) return null;
+  if (!("line" in service) || service.line == null || service.lineEnd != "A") return null;
+  local line = service.line;
+  if (!("kind" in line) || line.kind != "freight" || line.cargo != cargo) return null;
+  if (!("lineId" in line) || !("lastRevenue" in line) || !("predRevenue" in line)) return null;
+  if (line.predRevenue <= 0 || line.lastRevenue <= 0) return null;
+  if (!("platformA" in line) || line.platformA == null) return null;
+  local platform = line.platformA;
+  if (!("direction" in platform) || !("length" in platform)
+      || !("anchor" in platform) || !("step" in platform) || platform.length < 1) return null;
+  local stationId = service.stationId;
+  if (stationId < 0 || !AIStation.IsValidStation(stationId)) return null;
+  local stationLines = 1;
+  foreach (other in lines) {
+    if (other == line || (("mode" in other) && other.mode != "rail")) continue;
+    if (OpexLineStationId(other, "A") == stationId || OpexLineStationId(other, "B") == stationId) {
+      if (!openMode) return null;
+      stationLines++;
+      /* Deux lignes existantes au plus : la candidate pourrait devenir la troisieme. */
+      if (stationLines >= 3) return null;
+    }
+  }
+  local revPct = (line.lastRevenue * 100) / line.predRevenue;
+  if (revPct < (openMode ? 80 : 100)) return null;
+  if (revPct > RAIL_SIBLING_MAX_REV_PCT) revPct = RAIL_SIBLING_MAX_REV_PCT;
+  if (!(cargo in catalog.wagonByCargo) || !("wagons" in line)) return null;
+  local trainCapacity = line.wagons * catalog.wagonByCargo[cargo].capacity;
+  local waiting = AIStation.GetCargoWaiting(stationId, cargo);
+  local transported = AIIndustry.GetLastMonthTransportedPercentage(source.id, cargo);
+  if (openMode && (trainCapacity <= 0 || waiting < 0 || transported < 0 || transported > 100)) return null;
+  if (openMode) {
+    if (waiting * 4 < trainCapacity && transported >= 75) return null;
+  } else if (waiting * 2 < trainCapacity && transported >= RAIL_SIBLING_TRANSPORTED_PCT) return null;
+  /* Offre de la soeur : la part non transportee, plus le stock en gare etale sur un an. */
+  local surplus = (monthly * (100 - transported)) / 100 + waiting / 12;
+  if (surplus <= 0) return null;
+  local mother = { line = line, platform = platform, stationId = stationId, revPct = revPct,
+                   surplus = surplus, waiting = waiting, transported = transported };
+  if (openMode) mother.railOpen <- 1;
+  return mother;
+}
+
+/* Majoration de recette d'une ligne soeur par le rapport realise/prevu de sa mere, reappliquee a
+ * chaque reevaluation (OpexApplyRailEconomics) pour survivre au recalcul quai/trace reels. */
+function OpexRailSiblingApplyRevenue(candidate)
+{
+  if (!("siblingRevPct" in candidate)) return;
+  if (candidate.siblingRevPct <= 100 && !("railOpen" in candidate)) return;
+  candidate.revenueAnnual = (candidate.revenueAnnual * candidate.siblingRevPct) / 100;
+  candidate.profitAnnual = candidate.revenueAnnual - candidate.runningAnnual - candidate.amortAnnual;
+  local immobilise = ("immobilise" in candidate) ? candidate.immobilise : 0;
+  local totalCapital = candidate.capital + immobilise;
+  candidate.roi = (candidate.profitAnnual > 0 && totalCapital > 0)
+      ? (candidate.profitAnnual * 1000) / totalCapital : 0;
+}
+
+function OpexRailSiblingEmit(catalog, stats, profile, cruiseCache, cargo, source, dstTile, isTransformer, mother)
+{
+  local candidate = OpexMakeCandidate(catalog, "freight", cargo, source.tile, dstTile,
+                                      mother.surplus, true, stats, isTransformer, profile, cruiseCache, null);
+  if (candidate == null) return null;
+  if (("railOpen" in mother)) {
+    local estimatedCash = candidate.capital + candidate.immobilise;
+    if (!OpexRailOpenCashReady(estimatedCash)) {
+      stats.accepted--;
+      if (DECISION_LOG) OpexDecide("RAIL_OPEN_REJECT", "reason=cash src=" + source.tile
+          + " dst=" + dstTile + " capital=" + estimatedCash);
+      return null;
+    }
+    candidate.railOpen <- 1;
+  }
+  candidate.sibling_src <- 1;
+  candidate.joinPlatform <- mother.platform;
+  candidate.joinStationId <- mother.stationId;
+  candidate.joinEnd <- "A";
+  /* _tooClose ignore la ligne mere : le quai A est volontairement sur sa gare. */
+  candidate.joinLineId <- mother.line.lineId;
+  candidate.siblingOf <- mother.line.lineId;
+  candidate.siblingRevPct <- mother.revPct;
+  OpexRailSiblingApplyRevenue(candidate);
+  /* Le seuil 80 % accepte des meres plus jeunes ; le revenu reel peut alors
+   * faire tomber sous zero un devis initialement profitable. Ne pas le publier. */
+  if (("railOpen" in candidate) && candidate.profitAnnual <= 0) {
+    stats.accepted--;
+    if (DECISION_LOG) OpexDecide("RAIL_OPEN_REJECT", "reason=profit src=" + source.tile
+        + " dst=" + dstTile + " profit=" + candidate.profitAnnual);
+    return null;
+  }
+  /* Meme composition que OpexMakeCandidate, sur le profit majore. */
+  candidate.opcodeRatio = (candidate.profitAnnual * 1000) / candidate.iterations;
+  candidate.ratio = candidate.opcodeRatio
+      + ((((candidate.roi * candidate.turnoverBonus) / 100) * candidate.freightBonus) / 100) * 15;
+  if (DECISION_LOG) {
+    local label = AICargo.IsValidCargo(cargo) ? AICargo.GetCargoLabel(cargo) : "?";
+    OpexDecide("RAIL_SIBLING_KEEP", "cargo=" + label + " src=" + source.tile + " dst=" + dstTile
+        + " parent=" + mother.line.lineId + " station=" + mother.stationId
+        + " rev_pct=" + mother.revPct + " waiting=" + mother.waiting
+        + " transported=" + mother.transported + " surplus=" + mother.surplus
+        + " profit=" + candidate.profitAnnual + " roi=" + candidate.roi);
+  }
+  return candidate;
+}
+
+/* RAIL-OPEN (c) : une soeur a deja une jointure A. Si B est dans la couverture
+ * effective d'une AUTRE gare rail qui accepte ce cargo, la jointure B serait
+ * indispensable, alors que _tooClose interdit une gare B independante.
+ * Ne pas deduire "B desservie" de la seule proximite < MIN_SEPARATION : une
+ * industrie/ville B plus eloignee que le rayon de couverture reste un puits
+ * physiquement distinct, meme si _tooClose risque encore de la bloquer.
+ * Conserver aussi les puits pres d'une gare qui n'accepte PAS ce cargo.
+ * Le test est purement opt-in, sur le chemin soeur A, sans mutation de cache. */
+function OpexRailOpenBAlreadyCovered(catalog, lines, cargo, dstTile, mother)
+{
+  if (RAIL_OPEN == 0 || mother == null || !("railOpen" in mother)) return false;
+  if (!("line" in mother) || mother.line == null || catalog.railCoverage <= 0) return false;
+  foreach (other in lines) {
+    if (other == mother.line || (("mode" in other) && other.mode != "rail")) continue;
+    foreach (lineEnd in ["A", "B"]) {
+      local stationId = OpexLineStationId(other, lineEnd);
+      if (stationId < 0 || stationId == mother.stationId || !AIStation.IsValidStation(stationId)
+          || !AIStation.HasStationType(stationId, AIStation.STATION_TRAIN)) continue;
+      local stationTile = lineEnd == "A" ? other.stationA : other.stationB;
+      local distance = AIMap.DistanceManhattan(dstTile, stationTile);
+      if (distance >= MIN_SEPARATION || distance > catalog.railCoverage) continue;
+      local accepting = AICargoList_StationAccepting(stationId);
+      if (accepting.HasItem(cargo)) return true;
+    }
+  }
+  return false;
+}
+
 /* Industries : on n'apparie que des couples producteur/accepteur du MEME cargo, ce qui garde
  * l'etage 1 lineaire en nombre d'industries plutot que quadratique sur tout le catalogue. */
 function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null, profile = null, cruiseCache = null, freightCargo = null, targetKind = null, targetId = -1, p1LongState = null)
@@ -1458,6 +1610,10 @@ function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null
             AIIndustry.GetLastMonthTransportedPercentage(source.id, cargo));
       local longGood = V233_LONG_GOOD > 0 ? OpexV233LSource(source, cargo, lines) : null;
       local others2 = null;
+      local sibling = (RAIL_SIBLING != 0 && ss != null && longGood == null)
+          ? OpexRailSiblingParent(catalog, lines, ss, cargo, source, monthly) : null;
+      if (sibling == null && RAIL_OPEN != 0 && RAIL_SIBLING == 0 && ss != null && longGood == null)
+        sibling = OpexRailSiblingParent(catalog, lines, ss, cargo, source, monthly);
       local industryMark = profile != null ? OpexOpsMeasureBegin() : null;
       for (local k = 0; k < sinks.len(); k++) {
         if (longGood != null) continue;
@@ -1475,6 +1631,27 @@ function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null
         /* V179 : source neuve, destination deja desservie : on garde la paire, V178 la rattache.
          * Ce chemin n'est pas marque convergent : V264 ne s'execute que dans l'exclusion. */
         local v179Keep = ss == null && sd != null;
+        if (sibling != null && sd == null) {
+          if (OpexRailOpenBAlreadyCovered(catalog, lines, cargo, industries[di].tile, sibling)) {
+            stats.pairsOriginServed++;
+            if (DECISION_LOG) OpexDecide("RAIL_OPEN_REJECT", "reason=too_close_no_join_b"
+                + " src=" + source.tile + " dst=" + industries[di].tile + " cargo=" + cargo);
+            continue;
+          }
+          local siblingTransformer = ("isTransformer" in industries[di]) && industries[di].isTransformer;
+          local kept = OpexRailSiblingEmit(catalog, stats, profile, cruiseCache, cargo, source,
+                                           industries[di].tile, siblingTransformer, sibling);
+          if (kept != null) out.append(kept);
+          continue;
+        }
+        /* V264 ne raccorde que la destination B d'une origine A libre. Une soeur qui
+         * reutilise deja A devrait raccorder DEUX gares : aucun plan ne le garantit. */
+        if (RAIL_OPEN != 0 && sibling != null && sd != null) {
+          if (DECISION_LOG) OpexDecide("RAIL_OPEN_REJECT", "reason=both_ends_served src="
+              + source.tile + " dst=" + industries[di].tile);
+          stats.pairsOriginServed++;
+          continue;
+        }
         if (!v179Keep && (ss != null || sd != null)) {
           /* Paires deja rejetees. A 0 le drapeau est faux : aucun appel, pairsOriginServed. */
           local attached = null;
@@ -1544,6 +1721,21 @@ function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null
             if (townServiceCache != null) townServiceCache[town.id] <- st;
           }
           if (townServiceMark != null) { profile.freightTownServiceOps += OpexOpsMeasureEnd(townServiceMark); profile.freightTownServiceCalls++; }
+          if (sibling != null && st == null) {
+            if (OpexRailOpenBAlreadyCovered(catalog, lines, cargo, town.tile, sibling)) {
+              stats.pairsOriginServed++;
+              if (DECISION_LOG) OpexDecide("RAIL_OPEN_REJECT", "reason=too_close_no_join_b"
+                  + " src=" + source.tile + " dst=" + town.tile + " cargo=" + cargo);
+              continue;
+            }
+            local kept = OpexRailSiblingEmit(catalog, stats, profile, cruiseCache, cargo, source,
+                                             town.tile, false, sibling);
+            if (kept != null) {
+              kept.dstTown <- town.id;
+              out.append(kept);
+            }
+            continue;
+          }
           if ((ss != null && longGood == null) || st != null) {
             if (longGood != null && DECISION_LOG) OpexV233LLog("REJECT", "industry=" + source.id + " town=" + town.id + " reason=destination_served");
             stats.pairsOriginServed++;

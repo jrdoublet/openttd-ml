@@ -1532,6 +1532,60 @@ function OpexRailSiteReason(sawA, sawB)
   return "SITEB";
 }
 
+/* RAIL-OPEN : cache volontairement transitoire et borne des ECHOUEMENTS de quai joint.
+ * Un refus n'est pas un abandon de la paire : pendant 45 jours, eviter de recommencer
+ * la meme recherche de site et essayer directement le repli si la caisse le permet.
+ * Pas de memorisation sous rail_open=0 ; Save/Load reconstruira ce cache opportuniste. */
+RAIL_OPEN_JOIN_FAILURES <- {};
+const RAIL_OPEN_JOIN_RETRY_DAYS = 45;
+const RAIL_OPEN_JOIN_FAILURE_LIMIT = 128;
+
+function OpexRailOpenJoinKey(candidate, joinedLength)
+{
+  local endName = (("joinEnd" in candidate) && candidate.joinEnd == "B") ? "B" : "A";
+  return endName + "|" + candidate.joinStationId + "|" + candidate.src + "|"
+      + candidate.dst + "|" + candidate.cargo + "|" + joinedLength;
+}
+
+function OpexRailOpenJoinCooling(key)
+{
+  if (!(key in RAIL_OPEN_JOIN_FAILURES)) return false;
+  local age = AIDate.GetCurrentDate() - RAIL_OPEN_JOIN_FAILURES[key];
+  if (age >= 0 && age < RAIL_OPEN_JOIN_RETRY_DAYS) return true;
+  delete RAIL_OPEN_JOIN_FAILURES[key];
+  return false;
+}
+
+function OpexRailOpenRememberJoinFailure(key)
+{
+  if (RAIL_OPEN_JOIN_FAILURES.len() >= RAIL_OPEN_JOIN_FAILURE_LIMIT)
+    RAIL_OPEN_JOIN_FAILURES = {};
+  RAIL_OPEN_JOIN_FAILURES[key] <- AIDate.GetCurrentDate();
+}
+
+/* Adapter le scan V264 sans modifier son chemin historique B : la sonde sibling
+ * part de A, tandis que les tests V264 garantissent parallel→spread pour B. */
+function OpexRailOpenSiblingSpreadPlans(candidate, statsA)
+{
+  return OpexV264SpreadJoinPlans(candidate.joinPlatform, candidate.joinStationId, statsA);
+}
+
+/* EB2 a perdu sa porte A : le nouveau fallback n'est permis que par RAIL-OPEN
+ * et avec du vrai cash au-dela du capital estime. La garde centrale de
+ * worker-1 (MIN_CASH et HEADROOM) s'applique aussi : on prefinance en plus
+ * un quai COMPLET de longueur identique et deux tuiles de raccordement.
+ * Ce n'est pas un devis : le devis exact et CASH sont testes avant toute pose. */
+function OpexRailOpenNewStationFunded(catalog, candidate, joinedLength)
+{
+  if (RAIL_OPEN == 0 || candidate.kind != "freight"
+      || !("capital" in candidate) || candidate.capital <= 0
+      || !("profitAnnual" in candidate) || candidate.profitAnnual <= 0
+      || joinedLength <= 0 || catalog.costStation <= 0) return false;
+  local extra = catalog.costStation * joinedLength + 2 * catalog.costTrackPerTile;
+  if (extra <= 0) return false;
+  return OpexRailOpenCashReady(candidate.capital + extra);
+}
+
 /* Cherche les deux extremites a la meme longueur, du quai economiquement voulu vers le plancher
  * d'une locomotive et un wagon. Le test de chaque longueur reste celui de OpexStationPlans :
  * plat, constructible, cargo dans le rayon et BuildRailStation en AITest. Une longueur plus
@@ -1564,22 +1618,35 @@ function OpexRailPlatformPlans(catalog, candidate)
     local jointLength = candidate.joinPlatform.length;
     local joinHasA = false;
     local joinHasB = false;
+    local railOpenSibling = RAIL_OPEN != 0 && !joinB
+        && ("railOpen" in candidate) && candidate.railOpen
+        && ("sibling_src" in candidate) && candidate.sibling_src;
+    local railOpenB = RAIL_OPEN != 0 && joinB
+        && ((("shared_dest" in candidate) && candidate.shared_dest)
+            || (("convergent_dest" in candidate) && candidate.convergent_dest));
+    local railOpenJoin = railOpenSibling || railOpenB;
+    local railOpenKey = railOpenJoin ? OpexRailOpenJoinKey(candidate, jointLength) : null;
+    local railOpenCooldown = railOpenJoin && OpexRailOpenJoinCooling(railOpenKey);
     /* V178 : un rattachement a une destination partagee n'est PAS un simple indice de placement,
      * c'est le contrat physique du candidat. Sans ce garde, tomber dans la recherche libre plus
      * bas tout en gardant joinLineId fait ignorer la ligne existante dans _tooClose et permet de
      * contourner ORIGIN_SEPARATION avec une seconde gare. V88 conserve son fallback historique. */
     local strictOriginReuseJoin = (("shared_dest" in candidate) && candidate.shared_dest)
-        || (("convergent_dest" in candidate) && candidate.convergent_dest);
+        || (("convergent_dest" in candidate) && candidate.convergent_dest)
+        || (("sibling_src" in candidate) && candidate.sibling_src);
     if (!joinB) {
-      local jointPlansA = OpexJoinPlatformPlans(candidate.joinPlatform, candidate.joinStationId, statsA);
+      local jointPlansA = railOpenCooldown ? []
+          : OpexJoinPlatformPlans(candidate.joinPlatform, candidate.joinStationId, statsA);
       local repairedJoinA = false;
-      if (RAIL_REPAIR_JOIN_SITE && OpexRailRepairIdleActive() && jointPlansA.len() == 0
+      if (!railOpenCooldown && RAIL_REPAIR_JOIN_SITE && OpexRailRepairIdleActive() && jointPlansA.len() == 0
           && (("shared_dest" in candidate) && candidate.shared_dest)) {
         jointPlansA = OpexRailRepairJoinSite(candidate.joinPlatform, candidate.joinStationId, statsA);
         repairedJoinA = jointPlansA.len() > 0;
         if (DECISION_LOG) OpexDecide("RAIL_SITE_REPAIR", "end=A src=" + candidate.src
             + " dst=" + candidate.dst + " cargo=" + candidate.cargo + " options=" + jointPlansA.len());
       }
+      if (railOpenSibling && jointPlansA.len() == 0 && !railOpenCooldown)
+        jointPlansA = OpexRailOpenSiblingSpreadPlans(candidate, statsA);
       joinHasA = jointPlansA.len() > 0;
       if (jointPlansA.len() > 0) {
         foreach (p in jointPlansA) {
@@ -1592,32 +1659,43 @@ function OpexRailPlatformPlans(catalog, candidate)
         if (plansB.len() > 0) {
           if (repairedJoinA)
             candidate.rawset("railSiteRepair", 1);
+          if (DECISION_LOG && railOpenSibling)
+            OpexDecide("RAIL_OPEN_SITE", "phase=joint_plan end=A src=" + candidate.src
+                + " dst=" + candidate.dst + " station=" + candidate.joinStationId
+                + " plans=" + jointPlansA.len());
           return { plansA = jointPlansA, plansB = plansB, length = jointLength,
                    slopeRelaxed = 0, reason = "OK", statsA = statsA, statsB = statsB };
         }
         sawA = true;
       }
     } else {
-      local jointPlansB = OpexJoinPlatformPlans(candidate.joinPlatform, candidate.joinStationId, statsB);
+      local jointPlansB = railOpenCooldown ? []
+          : OpexJoinPlatformPlans(candidate.joinPlatform, candidate.joinStationId, statsB);
       local repairedJoinB = false;
-      if (RAIL_REPAIR_JOIN_SITE && OpexRailRepairIdleActive() && jointPlansB.len() == 0
+      if (!railOpenCooldown && RAIL_REPAIR_JOIN_SITE && OpexRailRepairIdleActive() && jointPlansB.len() == 0
           && (("shared_dest" in candidate) && candidate.shared_dest)) {
         jointPlansB = OpexRailRepairJoinSite(candidate.joinPlatform, candidate.joinStationId, statsB);
         repairedJoinB = jointPlansB.len() > 0;
         if (DECISION_LOG) OpexDecide("RAIL_SITE_REPAIR", "end=B src=" + candidate.src
             + " dst=" + candidate.dst + " cargo=" + candidate.cargo + " options=" + jointPlansB.len());
       }
-      if (("convergent_dest" in candidate) && candidate.convergent_dest == 1) {
+      if ((("convergent_dest" in candidate) && candidate.convergent_dest == 1) || railOpenB) {
         local joinMode = "parallel";
         if (jointPlansB.len() == 0) {
-          jointPlansB = OpexV264SpreadJoinPlans(candidate.joinPlatform, candidate.joinStationId, statsB);
-          joinMode = "spread";
+          if (!railOpenCooldown) {
+            jointPlansB = OpexV264SpreadJoinPlans(candidate.joinPlatform, candidate.joinStationId, statsB);
+            joinMode = "spread";
+          } else {
+            joinMode = "cooldown";
+          }
         }
         if (DECISION_LOG) {
-          local joinedLength = jointPlansB.len() > 0 ? jointPlansB[0].length : 0;
-          OpexDecide("V264_JOIN", "mode=" + joinMode + " n=" + jointPlansB.len()
-              + " len=" + joinedLength + " station=" + candidate.joinStationId
-              + " src=" + candidate.src + " dst=" + candidate.dst);
+          if (("convergent_dest" in candidate) && candidate.convergent_dest == 1) {
+            local joinedLength = jointPlansB.len() > 0 ? jointPlansB[0].length : 0;
+            OpexDecide("V264_JOIN", "mode=" + joinMode + " n=" + jointPlansB.len()
+                + " len=" + joinedLength + " station=" + candidate.joinStationId
+                + " src=" + candidate.src + " dst=" + candidate.dst);
+          }
         }
       }
       joinHasB = jointPlansB.len() > 0;
@@ -1634,19 +1712,44 @@ function OpexRailPlatformPlans(catalog, candidate)
         joinHasA = plansA.len() > 0;
         if (plansA.len() > 0) {
           if (repairedJoinB) candidate.rawset("railSiteRepair", 1);
+          if (DECISION_LOG && railOpenB)
+            OpexDecide("RAIL_OPEN_SITE", "phase=joint_plan end=B src=" + candidate.src
+                + " dst=" + candidate.dst + " station=" + candidate.joinStationId
+                + " plans=" + jointPlansB.len());
           return { plansA = plansA, plansB = jointPlansB, length = jointLength,
                    slopeRelaxed = 0, reason = "OK", statsA = statsA, statsB = statsB };
         }
         sawB = true;
       }
     }
+    if (railOpenJoin) {
+      local joinedFound = joinB ? joinHasB : joinHasA;
+      if (!joinedFound && !railOpenCooldown) OpexRailOpenRememberJoinFailure(railOpenKey);
+      if (DECISION_LOG) {
+        OpexDecide("RAIL_OPEN_SITE", "phase=join end=" + (joinB ? "B" : "A")
+            + " src=" + candidate.src + " dst=" + candidate.dst
+            + " station=" + candidate.joinStationId + " found=" + (joinedFound ? 1 : 0)
+            + " cooldown=" + (railOpenCooldown ? 1 : 0));
+      }
+    }
     if (strictOriginReuseJoin) {
-      if (EB2_NEW_STATION_FALLBACK == 0) {
+      local railOpenFallback = railOpenJoin
+          && OpexRailOpenNewStationFunded(catalog, candidate, jointLength);
+      if (EB2_NEW_STATION_FALLBACK == 0 && !railOpenFallback) {
+        if (DECISION_LOG && railOpenJoin)
+          OpexDecide("RAIL_OPEN_SITE", "phase=skip_fallback reason=cash_or_profit"
+              + " src=" + candidate.src + " dst=" + candidate.dst
+              + " station=" + candidate.joinStationId);
         return { plansA = null, plansB = null, length = jointLength,
                  slopeRelaxed = 0, reason = OpexRailSiteReason(joinHasA, joinHasB),
                  statsA = statsA, statsB = statsB };
       }
-      if (DECISION_LOG) {
+      if (DECISION_LOG && railOpenFallback) {
+        OpexDecide("RAIL_OPEN_SITE", "phase=new_station end=" + (joinB ? "B" : "A")
+            + " src=" + candidate.src + " dst=" + candidate.dst
+            + " station=" + candidate.joinStationId + " cash="
+            + OpexAvailableCapital() + " capital=" + candidate.capital);
+      } else if (DECISION_LOG) {
         OpexDecide("EB2_FALLBACK", "src=" + candidate.src + " dst=" + candidate.dst
                    + " join_end=" + (("joinEnd" in candidate) ? candidate.joinEnd : "-")
                    + " joint_len=" + jointLength);

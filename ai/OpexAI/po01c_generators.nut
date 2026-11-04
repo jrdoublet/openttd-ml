@@ -189,6 +189,10 @@ function OpexPO01CFreightCandidates(catalog, lines, out, stats, abandonedPairs =
       local ss = served[si];
       local longGood = V233_LONG_GOOD > 0 ? OpexV233LSource(source, cargo, lines) : null;
       local others2 = null;
+      local sibling = (RAIL_SIBLING != 0 && ss != null && longGood == null)
+          ? OpexRailSiblingParent(catalog, lines, ss, cargo, source, monthly) : null;
+      if (sibling == null && RAIL_OPEN != 0 && RAIL_SIBLING == 0 && ss != null && longGood == null)
+        sibling = OpexRailSiblingParent(catalog, lines, ss, cargo, source, monthly);
       local industryMark = profile != null ? OpexOpsMeasureBegin() : null;
       for (local k = 0; k < sinks.len(); k++) {
     yield null; // PO01C_CHECKPOINT
@@ -208,6 +212,27 @@ function OpexPO01CFreightCandidates(catalog, lines, out, stats, abandonedPairs =
         /* V179 : source neuve, destination deja desservie : on garde la paire, V178 la rattache.
          * Ce chemin n'est pas marque convergent : V264 ne s'execute que dans l'exclusion. */
         local v179Keep = ss == null && sd != null;
+        if (sibling != null && sd == null) {
+          if (OpexRailOpenBAlreadyCovered(catalog, lines, cargo, industries[di].tile, sibling)) {
+            stats.pairsOriginServed++;
+            if (DECISION_LOG) OpexDecide("RAIL_OPEN_REJECT", "reason=too_close_no_join_b"
+                + " src=" + source.tile + " dst=" + industries[di].tile + " cargo=" + cargo);
+            continue;
+          }
+          local siblingTransformer = ("isTransformer" in industries[di]) && industries[di].isTransformer;
+          local kept = OpexRailSiblingEmit(catalog, stats, profile, cruiseCache, cargo, source,
+                                           industries[di].tile, siblingTransformer, sibling);
+          if (kept != null) out.append(kept);
+          continue;
+        }
+        /* Une paire A et B deja desservies necessiterait deux jointures.
+         * V264 reste reserve a une origine libre et un puits partage. */
+        if (RAIL_OPEN != 0 && sibling != null && sd != null) {
+          if (DECISION_LOG) OpexDecide("RAIL_OPEN_REJECT", "reason=both_ends_served src="
+              + source.tile + " dst=" + industries[di].tile);
+          stats.pairsOriginServed++;
+          continue;
+        }
         if (!v179Keep && (ss != null || sd != null)) {
           /* Paires deja rejetees. A 0 le drapeau est faux : aucun appel, pairsOriginServed. */
           local attached = null;
@@ -281,6 +306,21 @@ function OpexPO01CFreightCandidates(catalog, lines, out, stats, abandonedPairs =
             if (townServiceCache != null) townServiceCache[town.id] <- st;
           }
           if (townServiceMark != null) { profile.freightTownServiceOps += OpexOpsMeasureEnd(townServiceMark); profile.freightTownServiceCalls++; }
+          if (sibling != null && st == null) {
+            if (OpexRailOpenBAlreadyCovered(catalog, lines, cargo, town.tile, sibling)) {
+              stats.pairsOriginServed++;
+              if (DECISION_LOG) OpexDecide("RAIL_OPEN_REJECT", "reason=too_close_no_join_b"
+                  + " src=" + source.tile + " dst=" + town.tile + " cargo=" + cargo);
+              continue;
+            }
+            local kept = OpexRailSiblingEmit(catalog, stats, profile, cruiseCache, cargo, source,
+                                             town.tile, false, sibling);
+            if (kept != null) {
+              kept.dstTown <- town.id;
+              out.append(kept);
+            }
+            continue;
+          }
           if ((ss != null && longGood == null) || st != null) {
             if (longGood != null && DECISION_LOG) OpexV233LLog("REJECT", "industry=" + source.id + " town=" + town.id + " reason=destination_served");
             stats.pairsOriginServed++;

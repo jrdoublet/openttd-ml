@@ -686,6 +686,15 @@ N75_MC_LAST_MONTH <- -1;
 N75_MC_SAVED_MONTH <- -1;
 /* EB-2 : repli sur une nouvelle gare normale quand le quai partagé échoue (défaut 0). */
 EB2_NEW_STATION_FALLBACK <- 0;
+/* RAIL-SIBLING lot 1 : defaut 1 dans info.nut ; initialisation avant chargement a 0. */
+RAIL_SIBLING <- 0;
+/* Majoration plafonnee (realise/prevu de la ligne mere, %) et seuil de saturation (%). */
+RAIL_SIBLING_MAX_REV_PCT <- 200;
+RAIL_SIBLING_TRANSPORTED_PCT <- 60;
+/* RAIL-OPEN : defaut 1 dans info.nut ; initialisation avant chargement a 0. */
+RAIL_OPEN <- 0;
+RAIL_OPEN_MIN_CASH <- 250000;
+RAIL_OPEN_CASH_HEADROOM <- 50000;
 AIR0310_SITE_VALIDITY_STATE <- null;
 /* E10 : Correctif du doublement de flotte routiere au cycle de construction */
 /* C26a : Pricer l'avion de la ligne lors du refleet au lieu du meilleur avion du catalogue */

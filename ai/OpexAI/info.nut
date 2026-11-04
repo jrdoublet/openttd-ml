@@ -33,6 +33,16 @@ class OpexAIInfo extends AIInfo {
       min_value = 0, max_value = 1,
       easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
       flags = AICONFIG_BOOLEAN });
+    AddSetting({ name = "rail_sibling",
+      description = "RAIL-SIBLING lot 1: saturated freight source may open a second single-track line on a joined platform, priced by its parent line realised revenue (default 1 since 2026-11-04)",
+      min_value = 0, max_value = 1,
+      easy_value = 1, medium_value = 1, hard_value = 1, custom_value = 1,
+      flags = AICONFIG_BOOLEAN });
+    AddSetting({ name = "rail_open",
+      description = "RAIL-OPEN: funded freight sibling expansion up to three lines per station, earlier saturation and 80 percent parent realization (default 1 since 2026-11-04)",
+      min_value = 0, max_value = 1,
+      easy_value = 1, medium_value = 1, hard_value = 1, custom_value = 1,
+      flags = AICONFIG_BOOLEAN });
     AddSetting({ name = "n75_multi_cargo",
       description = "1972+ cash-idle rail refill: 0=off, 1=shadow, 2=one extra freight cargo on empty funded rail pool (default 2)",
       min_value = 0, max_value = 2,

@@ -655,6 +655,10 @@ function OpexLoadSettings()
   }
   local eb2Fallback = AIController.GetSetting("eb2_new_station_fallback");
   EB2_NEW_STATION_FALLBACK = (eb2Fallback != null && eb2Fallback > 0) ? 1 : 0;
+  local railSibling = AIController.GetSetting("rail_sibling");
+  RAIL_SIBLING = (railSibling != null && railSibling > 0) ? 1 : 0;
+  local railOpen = AIController.GetSetting("rail_open");
+  RAIL_OPEN = (railOpen != null && railOpen > 0) ? 1 : 0;
   V217_LAST_MONTH = -1;
   local v276 = AIController.GetSetting("v276_cand_slices");
   V276_CAND_SLICES = (v276 == 3) ? (bigMap ? 2 : 0) : v276;
