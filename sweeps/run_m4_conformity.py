@@ -37,6 +37,9 @@ def cfg_for(scenario, year=1970, map_size=8):
         pass
     elif scenario == "max_trains_0":
         cfg += "\n[vehicle]\nmax_trains = 0\n"
+    elif scenario.startswith("max_trains_") and scenario[len("max_trains_"):].isdigit():
+        # Revue T3 : plafond bas pour exposer le doublement sans slot train.
+        cfg += "\n[vehicle]\nmax_trains = %d\n" % int(scenario[len("max_trains_"):])
     elif scenario == "forbid_90":
         cfg += "\n[pf]\nforbid_90_deg = true\n"
     else:

@@ -1860,8 +1860,22 @@ function OpexAI::_consumeRailUpgrade()
 {
   local state = this._railSearch;
   local year = AIDate.GetYear(AIDate.GetCurrentDate());
-  local upgrade = OpexExecuteUpgradeAfterSearch(this._catalog, this._budget, state.line,
-                                                state.search, state.prep);
+  /* Revue T3 : RAIL-LOOP a pris la ligne pendant l'A* (meme garde que
+   * _expandRailLines, rejouee a la transaction). Rendre le slot sans poser
+   * ni memoriser : la ligne n'est pas en echec, la boucle la gere. */
+  if (RAIL_LOOP && ("railLoop" in state.line) && state.line.railLoop > 0) {
+    if (DECISION_LOG) OpexDecide("RAIL_EXPAND", "action=double_track line=" + state.line.lineId
+        + " reason=RLOOP_OWNED ok=0");
+    this._railSearch = null;
+    return;
+  }
+  /* Revue T3 : invariant M4/16.2, aucune infrastructure sans slot train.
+   * Sans lui, voie 2, gares et depot sont poses, le train echoue, tout est
+   * demoli (TRAINFAIL). Meme memoire d'echec qu'avant, sans depense. */
+  local upgrade = OpexRailVehicleSlotAvailable()
+      ? OpexExecuteUpgradeAfterSearch(this._catalog, this._budget, state.line,
+                                      state.search, state.prep)
+      : { ok = false, reason = "NOVEHSLOT", cost = 0, train = null };
   /* Appliquer au doublement la meme politique de liberation cash que pour
    * une recherche primaire, sinon l'unique slot _railSearch gele tout le rail. */
   if (upgrade.reason == "CASH") {
