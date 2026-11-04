@@ -4440,7 +4440,17 @@ function OpexRollback(tiles, planA, planB, depot, vehicles)
   OpexAir0310InvalidateSiteValidity();
   if (tiles == null) return;
   for (local i = 1; i < tiles.len() - 1; i++) {
-    AITile.DemolishTile(tiles[i]);
+    local t = tiles[i];
+    /* Revue T6 : ne defaire que NOTRE rail. Un passage a niveau perd son rail,
+     * pas la route ; une case jamais posee (arbres, champ, route d'autrui
+     * apres un echec) n'est plus rasee. */
+    if (AIRail.IsLevelCrossingTile(t)) {
+      AIRail.RemoveRailTrack(t, AIRail.GetRailTracks(t));
+      continue;
+    }
+    if (!AITile.HasTransportType(t, AITile.TRANSPORT_RAIL)
+        || !AICompany.IsMine(AITile.GetOwner(t))) continue;
+    AITile.DemolishTile(t);
   }
 }
 
