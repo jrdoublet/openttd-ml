@@ -58,7 +58,7 @@
       },
       {
         "before": "          candidate.siteB <- dst.site;\n          candidate.road1yBusSite <- true;\n        }\n        if (ROAD100_INTERCITY_SITE_FLEET) {\n",
-        "after": "          candidate.siteB <- dst.site;\n          candidate.road1yBusSite <- true;\n          if (abandonedPairs != null && OpexAbandonedPairKey(candidate) in abandonedPairs) continue;\n          if (DECISION_LOG) OpexDecide(\"BUS_DISTRICT_CAND\", \"town_a=\" + src.id\n              + \" town_b=\" + dst.id + \" site_a=\" + tileA + \" site_b=\" + tileB\n              + \" distance=\" + distance + \" monthly=\" + monthly\n              + \" profit=\" + candidate.profitAnnual + \" roi=\" + candidate.roi);\n        }\n        if (ROAD100_INTERCITY_SITE_FLEET) {\n"
+        "after": "          candidate.siteB <- dst.site;\n          candidate.road1yBusSite <- true;\n          if (abandonedPairs != null && OpexAbandonedPairKey(candidate) in abandonedPairs) continue;\n          if (ROAD1Y_PAIR_FLEET > 0)\n            OpexRoad1yPairFleetRank(catalog, candidate, cargo, distance, monthly, ROAD1Y_PAIR_FLEET);\n          if (DECISION_LOG) OpexDecide(\"BUS_DISTRICT_CAND\", \"town_a=\" + src.id\n              + \" town_b=\" + dst.id + \" site_a=\" + tileA + \" site_b=\" + tileB\n              + \" distance=\" + distance + \" monthly=\" + monthly\n              + \" profit=\" + candidate.profitAnnual + \" roi=\" + candidate.roi);\n        }\n        if (ROAD100_INTERCITY_SITE_FLEET) {\n"
       },
       {
         "before": "  ranked.sort(OpexRoad100SortTownDemand);\n  local n = ranked.len();",

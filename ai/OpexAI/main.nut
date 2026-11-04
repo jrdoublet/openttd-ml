@@ -60,6 +60,7 @@ require("builder_water.nut");
 require("builder_road.nut");
 require("road1y_astar.nut");
 require("road1y_spread.nut");
+require("road1y_pair_fleet.nut");
 require("opcode_exact.nut");
 require("globals_post.nut");
 

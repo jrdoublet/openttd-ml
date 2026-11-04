@@ -414,6 +414,8 @@ function OpexRoad100SoloPaxCandidates(catalog, lines, out, stats,
           candidate.siteB <- dst.site;
           candidate.road1yBusSite <- true;
           if (abandonedPairs != null && OpexAbandonedPairKey(candidate) in abandonedPairs) continue;
+          if (ROAD1Y_PAIR_FLEET > 0)
+            OpexRoad1yPairFleetRank(catalog, candidate, cargo, distance, monthly, ROAD1Y_PAIR_FLEET);
           if (DECISION_LOG) OpexDecide("BUS_DISTRICT_CAND", "town_a=" + src.id
               + " town_b=" + dst.id + " site_a=" + tileA + " site_b=" + tileB
               + " distance=" + distance + " monthly=" + monthly
