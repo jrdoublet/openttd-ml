@@ -611,7 +611,9 @@ function OpexV284Tick(owner)
     local equipment = { engine = pending.engine };
     local margin = OpexInvestStallFleetMargin(line, oldVehicle, wagon,
         pending.oldWagons, equipment, gap);
-    local homogeneous = AIEngine.GetCapacity(AIVehicle.GetEngineType(oldVehicle)) == 0;
+    /* Revue T8 : une locomotive sans cargo rend -1, pas 0 (mesure moteur 10/10,
+     * docs/invest_stall_diagnostic_p0_20261104.md). Meme predicat que la selection. */
+    local homogeneous = AIEngine.GetCapacity(AIVehicle.GetEngineType(oldVehicle)) <= 0;
     for (local w = 1; w <= pending.oldWagons; w++)
       if (AIVehicle.GetWagonEngineType(oldVehicle, w) != pending.wagon) homogeneous = false;
     if (!INVEST_STALL || !OpexInvestStallReady() || pending.add
