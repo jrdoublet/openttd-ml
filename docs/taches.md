@@ -66,6 +66,9 @@ Synthèse des travaux route seule menés du 02 au 04/11/2026 pour réduire l'éc
 - `road1y_next2` (`a67f0f7f`) : bonus fundScore pour paires >N tuiles. Porte A 40×3 : =64 −303 k£, =96 −295 k£ (TRACEX bloque le créneau) ⇒ abandonné.
 - `road1y_retry` (`7cacb7ed`) : réessais dans le même créneau après échec PAX. Porte A 40×3 : =2 −0,0 k£ ; =4 +3,9 k£ ⇒ neutre, rejeté.
 - `road1y_freight` (`28b62b3a` et `af087da9`) : relèvement plafond camions et ×2 profit estimé fret. Porte A 40×3 : +5,4 k£/an (17/23, p=0,91) ⇒ neutre, rejeté.
+- `road1y_abandon_days=60` (wt-abandon, `2e1b131e`) : bannissement de paire ramené de 365 à 60 j. Smoke 3 graines : −22,0 k£/an (1/3) ⇒ rejeté.
+- `road1y_pax_min` (cloud, `ac4a78b2`, branche `cloud/road1y-paxmin`) : paires PAX estimées vers 2×min(captage A, B) comme AAA. Porte A 40×3 : =100 −11,6 k£/an (15/25, p=0,38, IC95 [−48,6 ; 24,7] k) ; =50 −2,9 k£/an (21/19, p=0,97, IC95 [−36,0 ; 29,9] k) ⇒ `fail_primary`, fil clos.
+- Diagnostic lignes 1972 (agy, 04/11) : −38 k£/graine, moitié calendrier (caisse < 10 k£ de février à mai absorbée par les renforts, 31 % des ouvertures au T4), moitié rendement mensuel (864 contre 1 578 £/ligne) ; aucun levier calendrier au-dessus du seuil.
 - Réglages fins testés et non retenus : `astar=8` (−15,0 k£) et `astar=1` (−26,5 k£) vs 4 ; `gap=24` (−0,2 k£) et `gap=6` (+2,4 k£) vs 12 ; `weak=25` (−11,2 k£) et `weak=8` (−6,6 k£) vs 15 ; `next=96` (−19,1 k£), `next=48` (−1,6 k£) et `next=80` (−14,3 k£) vs 64 ; `next3=28` (+5,7 k£) et `next3=80` (−27,2 k£) vs 56 ; `mail2=2` (−10,0 k£) vs 5.
 
 **3. État de l'écart à 3 ans et diagnostics :**
