@@ -1260,10 +1260,20 @@ function OpexAI::_continueRailSearch()
       local v214Tiles = OpexResolveSearchTiles(slice);
       if (v214Tiles.len() >= 2) {
         local geo = OpexV214PathGeometry(v214Tiles);
+        /* Revue T4 (mesure seule) : coudes a 90 deg, trois pas unitaires en U, que
+         * l'A* refuse sauf a la jonction de deux segments (source sans grand-parent). */
+        local ninety = 0;
+        for (local k = 0; k + 3 < v214Tiles.len(); k++) {
+          if (AIMap.DistanceManhattan(v214Tiles[k], v214Tiles[k + 3]) == 1
+              && AIMap.DistanceManhattan(v214Tiles[k], v214Tiles[k + 1]) == 1
+              && AIMap.DistanceManhattan(v214Tiles[k + 1], v214Tiles[k + 2]) == 1
+              && AIMap.DistanceManhattan(v214Tiles[k + 2], v214Tiles[k + 3]) == 1) ninety++;
+        }
         OpexDecide("V214_PATH", "start=" + v214Tiles[0] + " end=" + v214Tiles[v214Tiles.len() - 1]
                    + " steps=" + geo.steps + " turns=" + geo.turns + " exits=" + geo.exits
                    + " tight=" + geo.tight + " turn_cost=" + V214_RAIL_TURN_COST
-                   + " tight_cost=" + V214_RAIL_TIGHT_TURN_COST);
+                   + " tight_cost=" + V214_RAIL_TIGHT_TURN_COST + " ninety=" + ninety
+                   + " segments=" + (("segments" in slice) ? slice.segments : 1));
       }
     }
   }
