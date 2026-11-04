@@ -728,9 +728,9 @@ class OpexAIInfo extends AIInfo {
       easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
       flags = 0 });
     AddSetting({ name = "rail_loop",
-      description = "RAIL-LOOP: one-way return track through the back of both platforms, PBS loop and fleet growth (default 0)",
+      description = "RAIL-LOOP: one-way return track through the back of both platforms, PBS loop and fleet growth (default 1 since 2026-11-04, user decision)",
       min_value = 0, max_value = 1,
-      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
+      easy_value = 1, medium_value = 1, hard_value = 1, custom_value = 1,
       flags = AICONFIG_BOOLEAN });
   }
 }

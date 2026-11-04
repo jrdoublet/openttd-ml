@@ -1,0 +1,32 @@
+﻿=== C66.4 campagne rail_loop_fix1_smoke_4x6_20261104 ===
+Bundle: 7af015bfd379f3a2ae945e0e0ecb7057ed935240ce18c982083603e023e696e6 | Manifest: ff4dd03b4bea7aff52cffa5989e98c5bb25ef6ee240776930f8a52feb16ca117
+=== Lancement Banc 1v1 Duel OpexAI vs AAAHogEx : 8 parties (4 graines x 1 repetition(s) x 2 politique(s) x 6 ans) ===
+Workers: 10 | Sortie: /work/.wt_rail_loop_20261104/results/rail_loop_fix1_smoke_4x6_20261104.json
+✔ Running experiments... ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 8/8
+
+===================================================================================================================
+BANC 1v1 OPEXAI vs AAAHOGEX (CARTE PARTAGÉE) — BILAN 6 ANS (4 GRAINES)
+===================================================================================================================
+Graine   | Valeur Opex vs AAAHogEx          | Profit An Opex vs AAA        | Score O/A      | Véhicules O/A    | Gares O/A    | statut O/A                  
+------------------------------------------------------------------------------------------------------------------------------------------------------------
+17       |  2,042,539 vs  3,162,409 (64.6%) | 1,148,560 vs 2,258,225       |  671 vs 643    |  46 vs 43        |  71 vs 32    | stagnation_suspect/complete
+512      |  3,217,568 vs  4,594,379 (70.0%) | 1,346,997 vs 2,873,487       |  685 vs 722    |  48 vs 67        |  70 vs 38    | complete/complete
+314      |  3,482,437 vs  4,170,480 (83.5%) | 1,900,841 vs 2,328,961       |  807 vs 714    |  51 vs 38        |  78 vs 40    | complete/complete
+8191     |  2,094,887 vs  3,280,795 (63.9%) | 1,416,517 vs 1,970,728       |  783 vs 791    |  50 vs 41        |  75 vs 55    | stagnation_suspect/complete
+------------------------------------------------------------------------------------------------------------------------------------------------------------
+MOYENNE [OpexAI  ] : CV:  2,709,358 £ | Profit/an: 1,453,229 £ | Score:  736 | Véhicules: 48.8 | Gares: 73.5
+MOYENNE [AAAHogEx] : CV:  3,802,016 £ | Profit/an: 2,357,850 £ | Score:  718 | Véhicules: 47.2 | Gares: 41.2
+
+=== COMPARAISON APPARIÉE OPEXAI vs AAAHOGEX ===
+  company_value            : d% = -28.74% | Victoires OpexAI = 0/4 (p=0.1250)
+  profit_year              : d% = -38.37% | Victoires OpexAI = 0/4 (p=0.1250)
+  performance_history      : d% = +2.65% | Victoires OpexAI = 2/4 (p=0.8750)
+  median_station_rating    : d% = -33.14% | Victoires OpexAI = 0/4 (p=0.1250)
+
+=== C66.4 VARIANTE - RÉFÉRENCE ===
+profit_year: delta moyen=2158.75 median=6002.0 V/D/E=2/2/0 p_wilcoxon=1.0 CI95_bootstrap=[-174112.0, 174586.25] seuil=58129.15 (pct=4.0)
+company_value: ratio des moyennes=0.905733 (-9.426727%), moyenne des ratios=0.955603
+paires=4/4 verdict=fail_primary
+C66.4 campaign: rail_loop_fix1_smoke_4x6_20261104
+Git: 07e2d3894013f7a125ff4bb8bc4ad6b5df28b633 dirty=1
+Docker: openttd-lab:latest sha256:0480a863e164856797412ff4a0782621464a52087abbb9c056dd3587d46cac31

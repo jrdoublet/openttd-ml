@@ -91,7 +91,8 @@ function OpexRailLoopDepotFlow(route, depot, preferred = 0)
   if (depot == null || !AIRail.IsRailDepotTile(depot)) return null;
   local front = AIRail.GetRailDepotFrontTile(depot);
   local n = route.len();
-  for (local k = 4; k < n - 4; k++) {
+  /* Le depot primaire (OpexBuildDepot) touche la gare : chercher sur toute la voie. */
+  for (local k = 1; k < n - 1; k++) {
     if (route[k] != front) continue;
     /* Reprise apres Load : la courbe de sortie aval a pu deja etre posee,
      * les deux courbes existent ; garder le sens enregistre. */
@@ -150,10 +151,9 @@ function OpexRailLoopArmPrecheck(route, depot, k, flow)
     local test = AITestMode();
     if (!AIRail.BuildRail(depot, front, downstream)) return "depot_exit";
   }
-  local lo = flow > 0 ? 2 : k + 1;
-  local hi = flow > 0 ? k - 1 : n - 3;
-  for (local i = lo; i <= hi; i++) if (OpexRailLoopSignalable(route, i)) return "";
-  return "guard_signal";
+  /* PBS de garde facultatif : un depot colle a la gare n'a pas de case libre ;
+   * la sortie a contre-sens exigerait de franchir un PBS_ONEWAY par l'arriere. */
+  return "";
 }
 
 function OpexRailLoopTrainPrice(vehicle)
@@ -467,17 +467,18 @@ function OpexRailLoopArm(owner, state)
       ? OpexV190Fix2PlaceSignalWindow(route, k - 1, 2, -1, 1, placed)
       : OpexV190Fix2PlaceSignalWindow(route, k + 1, n - 3, 1, -1, placed);
   local count1 = -1;
-  if (guard >= 0) {
+  if (guard < 0) OpexDecide("RLOOP", "phase=guard_skip line=" + line.lineId + " k=" + k);
+  {
     count1 = flow > 0
         ? OpexRailLoopSignalRun(route, k + 2, n - 3, 1, spacing, placed)
         : OpexRailLoopSignalRun(route, 2, k - 2, -1, spacing, placed);
   }
-  if (guard < 0 || count1 < 1) {
+  if (count1 < 1) {
     OpexV190Fix2Rollback([], placed);
     if (addedExit) AIRail.RemoveRail(depot, front, downstreamTile);
-    return guard < 0 ? "guard_signal" : "signals_track1";
+    return "signals_track1";
   }
-  state.signals1 <- count1 + 1;
+  state.signals1 <- count1 + (guard >= 0 ? 1 : 0);
   return "";
 }
 

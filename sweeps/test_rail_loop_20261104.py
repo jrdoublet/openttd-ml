@@ -96,12 +96,12 @@ def global_signatures():
 
 
 class RailLoopSettingContracts(unittest.TestCase):
-    def test_setting_default_zero_boolean_four_difficulties(self):
+    def test_setting_default_one_boolean_four_difficulties(self):
         info = read("info.nut")
         block = info[info.index('name = "rail_loop"'):]
         block = block[:block.index("});")]
         self.assertIn("min_value = 0, max_value = 1", block)
-        self.assertIn("easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0", block)
+        self.assertIn("easy_value = 1, medium_value = 1, hard_value = 1, custom_value = 1", block)
         self.assertIn("AICONFIG_BOOLEAN", block)
         self.assertEqual(info.count('name = "rail_loop"'), 1)
 
