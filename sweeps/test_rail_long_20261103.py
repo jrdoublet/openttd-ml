@@ -119,7 +119,7 @@ class RailLongConfigContracts(unittest.TestCase):
         long_off = rail_long_config_off_bytes("info.nut", live)
         both_off = search_prio_off("info.nut", live)
         # INVEST-STALL vaut 0 et son bloc est retiré des projections ci-dessous.
-        self.assertEqual(live.count(b"AddSetting("), 95)  # DOUBLE-GROW RAIL-LOOP puis RAIL-FILL opt-in OFF
+        self.assertEqual(live.count(b"AddSetting("), 96)  # DOUBLE-GROW RAIL-LOOP RAIL-FILL puis RAIL-KEEP opt-in OFF
         self.assertEqual(long_off.count(b"AddSetting("), 90)
         self.assertEqual(both_off.count(b"AddSetting("), 89)
         self.assertEqual(historical_info(live.decode("utf-8")).count("AddSetting("), 58)

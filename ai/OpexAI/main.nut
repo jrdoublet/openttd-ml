@@ -690,6 +690,7 @@ require("double_grow_v2_build.nut");
 require("double_grow_v2.nut");
 require("rail_loop.nut");
 require("rail_fill.nut");
+require("rail_keep.nut");
 require("task_v250.nut");
 require("task_v259.nut");
 require("probe_v307.nut");

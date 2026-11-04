@@ -649,7 +649,9 @@ function OpexAI::_expandRailLines(year)
     foreach (line in this._lines) {
         if (RAIL_PAIR > 0 && ("v271Tandem" in line) && line.v271Tandem) continue;
         if (RAIL_LOOP && ("railLoop" in line) && line.railLoop > 0) continue;
-        if (V284_RAIL_GROWTH > 0 && this._v284State != null && (("kind" in line) && line.kind == "freight")) continue;
+        if (RAIL_EXPAND_KEEP) {
+          if (OpexRailExpandKeepSkip(this, line)) continue;
+        } else if (V284_RAIL_GROWTH > 0 && this._v284State != null && (("kind" in line) && line.kind == "freight")) continue;
         if ((("mode" in line) && line.mode != "rail") || !("wagons" in line) || !("loco" in line) || !("kind" in line)) continue;
         /* V181 retire (defaut 0) : plafond historique de 2 trains, sauf fret V190. */
         if (!OpexV190Active() || line.kind != "freight") {

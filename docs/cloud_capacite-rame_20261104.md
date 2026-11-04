@@ -281,7 +281,9 @@ wagons, c'est-à-dire sur des quais de plus de 4 cases.
 1. **Avancement de l'état V284.** `_v284State` est créé dès que la porte passe. Or
    `task_rail.nut:650` désactive alors les cas 1 et 2 historiques (second train, double voie
    indépendante) pour **toutes les lignes fret**. Sous RAIL-FILL, cela arrive vers 250 k£ au lieu
-   d'1 M£. C'est un effet de traitement à mesurer :
+   d'1 M£. Le Prompt 3 corrige ce verrou par RAIL-KEEP (`rail_expand_keep=1`,
+   `docs/cloud_portefeuille_20261104.md`) : la combinaison `rail_fill=1,rail_expand_keep=1` est la
+   variante recommandée. C'est un effet de traitement à mesurer :
    - `RAIL_EXPAND action=double_track|second_train` ;
    - trains par ligne, OFF contre ON.
 2. **Vieillissement de la cargaison.** Une rame en chargement complet très longue garde le fret à
