@@ -146,4 +146,34 @@ smoke) : aucun bus n'attend deux fois. Effet attendu ≈ +7 % de revenu des lign
 
 ## 5. Smoke GitHub (phase 3)
 
-_Section complétée après le run : voir ci-dessous._
+Run [41850440520](https://github.com/jrdoublet/openttd-ml/actions/runs/41850440520), commit
+ac4a78b2, `mode=paired`, `profile=custom`, 3 ans, graines 613553 781335 100,
+`aaahogex_settings=road_only`, `line_telemetry=true`. Référence
+`OpexAI[mode_air=0,mode_rail=0,mode_road=1,mode_water=0,probes=258]`, variante identique plus
+`road1y_pax_min=100`. Écart à la commande du PROMPT : `probes=258` ajouté **aux deux bras**
+(le défaut du workflow, probes=2, ne journalise pas `OpexDecide`) pour voir les compteurs.
+
+**Santé** : 6/6 parties `complete`, OpexAI et AAAHogEx `horizon_complete` jusqu'au 1972-12-01,
+aucune erreur non attribuée, 0 ligne `[E]`/`[S]` de script, 0 faillite.
+
+**Mécanisme exercé** (variante seulement ; aucune ligne `ROAD1Y_PAX_MIN` côté référence) :
+35 générations PAX journalisées (12 + 14 + 9, une par `ROAD100_PAX_GEN`), 7 496 paires notées,
+7 411 pénalisées (99 %), 216 562 voyageurs/mois retirés au total des estimations, 7 409 paires
+restent rentables. Le réglage **réordonne** le vivier ; il n'en retire presque rien.
+
+**profit_year 1972** (pas de conclusion économique : bruit ≈ ±18 % à 3 graines) :
+
+| Graine | Réf. Opex | Réf. AAA | Var. Opex | Var. AAA | Var − Réf (Opex) |
+|---|---|---|---|---|---|
+| 100 | 318 045 | 472 323 | 371 647 | 515 636 | +53 602 |
+| 613553 | 473 694 | 769 999 | 624 953 | 716 090 | +151 259 |
+| 781335 | 534 106 | 619 554 | 388 247 | 525 666 | −145 859 |
+| Moyenne | 441 948 | 620 625 | 461 616 | 585 797 | +19 668 |
+
+Opex/AAA (rapport des sommes) : 71,2 % référence, 78,8 % variante. Véhicules Opex en fin de
+partie : 118/166/186 (réf.) contre 158/221/151 (var.) : les ouvertures ne s'effondrent pas.
+La graine 781335 recule fortement : à examiner sur le banc complet (lignes par profil de
+déséquilibre) avant toute conclusion.
+
+**Suite** : porte A `gain_short` 40×3 avec `road1y_pax_min=100` (sur VPS, par l'utilisateur),
+puis porte B 20×10 si elle passe. Aucun défaut modifié.
