@@ -2116,6 +2116,11 @@ function OpexRoad1yRefleetSaved(year)
       }
     }
 
+    /* ROAD1Y truck_fleet : pour les camions fret, la gestion de flotte
+     * d'AAAHogEx remplace le plafond fixe 4 x min(quais) ci-dessus. */
+    if (ROAD1Y_TRUCK_FLEET && ("kind" in line) && line.kind == "freight")
+      target = OpexRoad1yTruckFleetTarget(line, have, capacity, waitingA, year);
+
     if (have >= target) {
       if (C50_CHRONOLOGY_PROBE && dedupRoad && C50_NON_EXPANSION_LEDGER != null && have < physicalCap && !isAnyWaiting) {
         C50_NON_EXPANSION_LEDGER.road.no_demand++;

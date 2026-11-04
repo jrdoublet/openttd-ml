@@ -58,6 +58,7 @@ class TestV251Inventory(unittest.TestCase):
         # road1y_mail2_years (défaut 0, borne 0..20) est dans le même bloc ROAD1Y-B2 retiré.
         # road1y_next3 (défaut 0, borne 0..96) est dans le même bloc ROAD1Y-B2 retiré.
         # road1y_freight (défaut 0, borne 0..30) est dans le même bloc ROAD1Y-B2 retiré.
+        # road1y_truck_fleet (défaut 0, borne 0..1) est dans le même bloc ROAD1Y-B2 retiré.
         # road1y_pax_min (défaut 0, borne 0..100) est dans le même bloc ROAD1Y-B2 retiré :
         # la projection historique le soustrait, le plafond 75 reste inchangé.
         # road1y_spread_stops: default 0, removed by the same B2 historical projection.

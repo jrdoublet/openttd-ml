@@ -162,6 +162,9 @@ function OpexLoadSettings()
   ROAD1Y_FREIGHT = AIController.GetSetting("road1y_freight");
   if (ROAD1Y_FREIGHT < 0 || ROAD1Y_FREIGHT > 30) ROAD1Y_FREIGHT = 0;
   if (!road1yRoadOnly) ROAD1Y_FREIGHT = 0;
+  ROAD1Y_TRUCK_FLEET = AIController.GetSetting("road1y_truck_fleet");
+  if (ROAD1Y_TRUCK_FLEET < 0 || ROAD1Y_TRUCK_FLEET > 1) ROAD1Y_TRUCK_FLEET = 0;
+  if (!road1yRoadOnly) ROAD1Y_TRUCK_FLEET = 0;
   ROAD1Y_FLEET_UNLOCK = AIController.GetSetting("road1y_fleet_unlock");
   if (ROAD1Y_FLEET_UNLOCK < 0 || ROAD1Y_FLEET_UNLOCK > 15) ROAD1Y_FLEET_UNLOCK = 0;
   if (!road1yRoadOnly) ROAD1Y_FLEET_UNLOCK = 0;
@@ -750,6 +753,9 @@ function OpexLoadBusDistrictSettings()
   ROAD1Y_FREIGHT = AIController.GetSetting("road1y_freight");
   if (ROAD1Y_FREIGHT < 0 || ROAD1Y_FREIGHT > 30) ROAD1Y_FREIGHT = 0;
   if (!road1yRoadOnly) ROAD1Y_FREIGHT = 0;
+  ROAD1Y_TRUCK_FLEET = AIController.GetSetting("road1y_truck_fleet");
+  if (ROAD1Y_TRUCK_FLEET < 0 || ROAD1Y_TRUCK_FLEET > 1) ROAD1Y_TRUCK_FLEET = 0;
+  if (!road1yRoadOnly) ROAD1Y_TRUCK_FLEET = 0;
   { // Definitions also needed for saved markers after ON -> OFF.
     require("bus_districts.nut");
     require("bus_districts_overrides.nut");
