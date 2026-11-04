@@ -59,6 +59,7 @@ class TestV251Inventory(unittest.TestCase):
         # road1y_next3 (défaut 0, borne 0..96) est dans le même bloc ROAD1Y-B2 retiré.
         # road1y_pax_min (défaut 0, borne 0..100) est dans le même bloc ROAD1Y-B2 retiré :
         # la projection historique le soustrait, le plafond 75 reste inchangé.
+        # road1y_aaa_fleet (défaut 0, borne 0..1) est dans le même bloc ROAD1Y-B2 retiré.
         # road1y_spread_stops: default 0, removed by the same B2 historical projection.
         # B2 fixes adds one default-OFF bitmask for isolated one-year diagnostics.
         # master: eb2 fallback + 4 rail repair profiles and V233L counterfactual.

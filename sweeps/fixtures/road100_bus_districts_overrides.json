@@ -178,6 +178,10 @@
         "after": "        if (road1yWant > 2) road1yWant = 2;\n        if (have + road1yWant > road1yCap) road1yWant = road1yCap - have;\n        if (isPax && paxRefleet && AICompany.GetBankBalance(AICompany.COMPANY_SELF) < 15000)\n          road1yWant = 0;\n        if (road1yWant > 0) {\n"
       },
       {
+        "before": "          if (have + road1yWant > target) target = have + road1yWant;\n        }\n      }\n    }\n\n    if (have >= target) {\n",
+        "after": "          if (have + road1yWant > target) target = have + road1yWant;\n        }\n      }\n    }\n\n    /* ROAD1Y aaa_fleet : pour les bus PAX, la gestion de flotte d'AAAHogEx\n     * remplace le plafond fixe et la regle somme >= capacite ci-dessus. */\n    if (ROAD1Y_AAA_FLEET && (\"kind\" in line) && line.kind == \"pax\")\n      target = OpexRoad1yAaaFleetTarget(this, line, have, capacity, waitingA, waitingB, year);\n\n    if (have >= target) {\n"
+      },
+      {
         "before": "                     + (refill.added > 0 ? refill.after : refill.reason));\n  }\n}",
         "after": "                     + (refill.added > 0 ? refill.after : refill.reason));\n  }\n  if (ROAD1Y_MAIL_ON_PAX) OpexRoad1yMailStep(this, year);\n}"
       }

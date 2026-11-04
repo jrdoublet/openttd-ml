@@ -91,6 +91,7 @@ ROAD1Y_MAIL2 <- 0; // ROAD1Y : reserve de caisse MAIL fille en milliers de £ (0
 ROAD1Y_MAIL2_YEARS <- 0; // ROAD1Y : duree d'application de road1y_mail2 en annees (0 = toute la partie)
 ROAD1Y_NEXT3 <- 0; // ROAD1Y : tuiles de voirie non facturees sur une paire PAX 96-127 (0 = capital historique)
 ROAD1Y_PAX_MIN <- 0; // ROAD1Y : poids (%) de la demande equilibree 2*min(A,B) des paires bus-quartier (0 = somme historique)
+ROAD1Y_AAA_FLEET <- 0; // ROAD1Y : flotte des bus PAX geree comme AAAHogEx (plafond temps de trajet, ajout/retrait sur min(A,B)), 0 = historique
 ROAD100_WAIT_FLEET <- false; // ROAD100-10 : renfort des bus rentables sur attente mesuree
 ROAD100_SITE_WINDOW <- false; // ROAD100-11 : diversifier les preplans physiques a budget fixe
 ROAD100_SITE_NEAR <- false; // ROAD100-12 : trier les couples site-first par distance faisable

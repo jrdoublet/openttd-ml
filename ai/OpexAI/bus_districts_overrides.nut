@@ -2116,6 +2116,11 @@ function OpexRoad1yRefleetSaved(year)
       }
     }
 
+    /* ROAD1Y aaa_fleet : pour les bus PAX, la gestion de flotte d'AAAHogEx
+     * remplace le plafond fixe et la regle somme >= capacite ci-dessus. */
+    if (ROAD1Y_AAA_FLEET && ("kind" in line) && line.kind == "pax")
+      target = OpexRoad1yAaaFleetTarget(this, line, have, capacity, waitingA, waitingB, year);
+
     if (have >= target) {
       if (C50_CHRONOLOGY_PROBE && dedupRoad && C50_NON_EXPANSION_LEDGER != null && have < physicalCap && !isAnyWaiting) {
         C50_NON_EXPANSION_LEDGER.road.no_demand++;
