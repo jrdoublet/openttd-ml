@@ -272,6 +272,7 @@ function OpexAI::_runNextTask()
   if (C56_TASK_TRACE) this._v89TrackSearchDays(AIDate.GetCurrentDate());
   if (this._railExpansion != null && !this._railWorkerSteppedThisTick) this._continueRailExpansion();
   if (RAIL_LOOP && this._railLoopState != null) OpexRailLoopStep(this);
+  if (RAIL_NET && this._railNetState != null) OpexRailNetStep(this);
   /* A4 : avancer l'A* d'une tranche PUIS continuer la file, comme _railExpansion. Retourner
    * ici sans encherner les autres taches reconstituerait le gel (rien d'autre ne tourne tant
    * que la recherche n'a pas fini).

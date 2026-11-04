@@ -154,6 +154,7 @@ function OpexLoadSettings()
   RAIL_LOOP = AIController.GetSetting("rail_loop") == 1;
   RAIL_FILL = AIController.GetSetting("rail_fill") == 1;
   RAIL_EXPAND_KEEP = AIController.GetSetting("rail_expand_keep") == 1;
+  RAIL_NET = AIController.GetSetting("rail_net") == 1;
   INVEST_STALL_LAST_MONTH = INVEST_STALL ? INVEST_STALL_SAVED_MONTH : -1;
   INVEST_STALL_SAVED_MONTH = -1;
   V190_FIX_DIRECTIONAL = AIController.GetSetting("v190_fix_directional") != 0;

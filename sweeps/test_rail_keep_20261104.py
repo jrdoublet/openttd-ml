@@ -17,6 +17,7 @@ sys.path.insert(0, str(SWEEPS))
 from rail_keep_off import INSERTIONS, REPLACED, off_source  # noqa: E402
 from rail_fill_off import off_source as rail_fill_off  # noqa: E402
 from rail_loop_off import off_source as rail_loop_off  # noqa: E402
+from rail_net_off import off_source as rail_net_off  # noqa: E402
 from test_rail_loop_20261104 import (  # noqa: E402
     PRE_INTERVENTION_SHA, call_args, function_body, global_signatures, read, strip_squirrel)
 
@@ -56,9 +57,9 @@ class RailKeepContracts(unittest.TestCase):
     def test_off_projection_restores_pre_intervention_bytes(self):
         for name, digest in PRE_INTERVENTION_SHA.items():
             with self.subTest(name=name):
-                projected = rail_loop_off(name, rail_fill_off(name, off_source(name, read(name))))
+                projected = rail_loop_off(name, rail_fill_off(name, off_source(name, rail_net_off(name, read(name)))))
                 self.assertEqual(hashlib.sha256(projected.encode("utf8")).hexdigest(), digest)
-                once = off_source(name, read(name))
+                once = off_source(name, rail_net_off(name, read(name)))
                 self.assertEqual(off_source(name, once), once)
 
     def test_partial_hunk_fails_closed(self):

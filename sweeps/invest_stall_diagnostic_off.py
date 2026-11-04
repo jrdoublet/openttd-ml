@@ -15,6 +15,8 @@ def _undo(source, new, old):
 def off_source(name, source):
     # RAIL-LOOP (04/11) est la couche la plus recente : la retirer d'abord
     # garde toutes les empreintes historiques sans les reecrire.
+    from rail_net_off import off_source as rail_net_off
+    source = rail_net_off(name, source)
     from rail_keep_off import off_source as rail_keep_off
     source = rail_keep_off(name, source)
     from rail_fill_off import off_source as rail_fill_off

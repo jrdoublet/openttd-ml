@@ -629,6 +629,7 @@ function OpexAI::_expandRailLines(year)
   if (DOUBLE_GROW && OpexDoubleGrowSelect(this, year)) return;
   if (DOUBLE_GROW_V2 && OpexDoubleGrowV2Select(this, year)) return;
   if (RAIL_LOOP && OpexRailLoopSelect(this, year)) return;
+  if (RAIL_NET && OpexRailNetSelect(this, year)) return;
   if (RAIL_LONG_V3 && OpexRailLongV3UpgradeSelect(this, year)) return;
   if (RAIL_LONG_V2 && OpexRailLongV2Select(this, year)) return;
   if (RAIL_LONG_V2 && OpexRailLongV2FleetSelect(this, year)) return;
@@ -649,6 +650,7 @@ function OpexAI::_expandRailLines(year)
     foreach (line in this._lines) {
         if (RAIL_PAIR > 0 && ("v271Tandem" in line) && line.v271Tandem) continue;
         if (RAIL_LOOP && ("railLoop" in line) && line.railLoop > 0) continue;
+        if (OpexRailNetOwned(line)) continue;
         if (RAIL_EXPAND_KEEP) {
           if (OpexRailExpandKeepSkip(this, line)) continue;
         } else if (V284_RAIL_GROWTH > 0 && this._v284State != null && (("kind" in line) && line.kind == "freight")) continue;

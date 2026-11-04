@@ -90,7 +90,7 @@ class TestParameterRetirement(unittest.TestCase):
         # ESTIM-1 estim_unifie opt-in (defaut 0), air_site_probe, air_site_ranked, AIR-LOAD-1 et EB-2.
         # + V190-FIX2 (historique), puis RAIL-SEARCH-PRIO et RAIL-LONG opt-in defaut 0 :
         # l'ajout ne doit pas etre confondu avec une restauration de parametre retire.
-        self.assertEqual(len(self.config), 96)  # DOUBLE-GROW puis RAIL-LOOP, RAIL-FILL, RAIL-KEEP opt-in, defaut 0
+        self.assertEqual(len(self.config), 97)  # DOUBLE-GROW puis RAIL-LOOP, RAIL-FILL, RAIL-KEEP, RAIL-NET opt-in, defaut 0
         self.assertIn("rail_search_prio", self.config)
         self.assertIn("rail_long", self.config)
         self.assertIn("eb2_new_station_fallback", self.config)

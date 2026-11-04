@@ -81,6 +81,8 @@ RAIL_LOOP <- false;
 RAIL_FILL <- false;
 /* RAIL-KEEP : V284 actif ne coupe plus le doublement Cas 1/2 des autres lignes fret, strict opt-in. */
 RAIL_EXPAND_KEEP <- false;
+/* RAIL-NET : greffe d'une source fret sur une boucle RAIL-LOOP certifiee, strict opt-in. */
+RAIL_NET <- false;
 INVEST_STALL_LAST_MONTH <- -1;
 INVEST_STALL_SAVED_MONTH <- -1;
 /* V190-FIX2 : boucle deux aiguillages et signaux directionnels (strict opt-in). */

@@ -742,6 +742,11 @@ class OpexAIInfo extends AIInfo {
       min_value = 0, max_value = 1,
       easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
       flags = AICONFIG_BOOLEAN });
+    AddSetting({ name = "rail_net",
+      description = "RAIL-NET: graft a new freight source onto a certified RAIL-LOOP through two PBS one-way junctions instead of a new line (default 0)",
+      min_value = 0, max_value = 1,
+      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
+      flags = AICONFIG_BOOLEAN });
   }
 }
 

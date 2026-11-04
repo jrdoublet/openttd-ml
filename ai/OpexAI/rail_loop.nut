@@ -196,6 +196,7 @@ function OpexRailLoopProtected(line, route)
 function OpexRailLoopEligible(line, now)
 {
   return line != null && ("lineId" in line) && ("mode" in line) && line.mode == "rail"
+      && !OpexRailNetOwned(line)
       && ("kind" in line) && line.kind == "freight"
       && ("vehicles" in line) && line.vehicles != null && line.vehicles.len() == 1
       && ("trains" in line) && line.trains == 1
@@ -532,6 +533,7 @@ function OpexRailLoopGrow(owner, line, now)
 {
   local cap = ("railLoopCap" in line) ? line.railLoopCap : 2;
   if (line.trains >= cap) return false;
+  if (RAIL_NET && !OpexRailNetHostMayGrow(owner, line)) return false;
   if (("railLoopNextGrow" in line) && now < line.railLoopNextGrow) return false;
   if (!("lastProfit" in line) || line.lastProfit <= 0) return false;
   local live = OpexRailLoopLiveVehicles(line);

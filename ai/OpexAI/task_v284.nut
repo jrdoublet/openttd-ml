@@ -132,6 +132,7 @@ function OpexV284Select(owner, year, v233Input = false)
   local v233Mark = v233Input ? OpexOpsMeasureBegin() : null;
   foreach (line in owner._lines) {
     if (OpexRailLongV3MultiLine(line)) continue;
+    if (OpexRailNetOwned(line)) continue;
     if (v233Input && OpexOpsMeasureEnd(v233Mark) >= V233L_SLICE_OPS) break;
     if (v233Input && !OpexV233LInputTarget(line)) continue;
     if (!("mode" in line) || line.mode != "rail" || !("kind" in line) || line.kind != "freight"
