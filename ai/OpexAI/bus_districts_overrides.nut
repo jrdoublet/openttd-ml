@@ -357,6 +357,9 @@ function OpexRoad100SoloPaxCandidates(catalog, lines, out, stats,
   if (n > 40) n = 40;
   local examined = 0;
   local positive = 0;
+  local paxMinScored = 0;
+  local paxMinPenalized = 0;
+  local paxMinLost = 0;
   for (local a = 0; a < n; a++) {
     local found = 0;
     for (local b = a + 1; b < n && found < 12; b++) {
@@ -387,6 +390,21 @@ function OpexRoad100SoloPaxCandidates(catalog, lines, out, stats,
       local monthly = ROAD1Y_PAX_SITES
           ? (src.captured + dst.captured)
           : (ROAD100_INTERCITY_SITE_FLEET ? (src.totalMonthly + dst.totalMonthly) : (src.captured + dst.captured));
+      /* ROAD1Y pax_min : comme AAAHogEx (main.nut:1758, production = min des
+       * deux bouts pour une paire bidirectionnelle), une paire desequilibree
+       * ne vaut pas la somme de ses captages : le retour d'un petit bout roule
+       * a vide. N% de la demande passe de la somme a 2*min ; 0 = somme seule. */
+      if (ROAD1Y_PAX_MIN > 0 && ROAD1Y_PAX_SITES) {
+        local paxMinLow = src.captured < dst.captured ? src.captured : dst.captured;
+        local paxMinBlend = (monthly * (100 - ROAD1Y_PAX_MIN)
+            + 2 * paxMinLow * ROAD1Y_PAX_MIN) / 100;
+        paxMinScored++;
+        if (paxMinBlend < monthly) {
+          paxMinPenalized++;
+          paxMinLost += monthly - paxMinBlend;
+        }
+        monthly = paxMinBlend;
+      }
       local candidate = OpexMakeRoadCandidate(catalog, "pax", cargo, tileA,
           tileB, src.id, dst.id, distance, monthly, stats, false,
           ROAD100_INTERCITY_SITE_FLEET ? 30 : 0);
@@ -414,6 +432,11 @@ function OpexRoad100SoloPaxCandidates(catalog, lines, out, stats,
   if (DECISION_LOG) {
     OpexDecide("ROAD100_PAX_GEN", "towns=" + n + " examined=" + examined
         + " positive=" + positive + " kept_total=" + out.len());
+  }
+  if (DECISION_LOG && ROAD1Y_PAX_MIN > 0) {
+    OpexDecide("ROAD1Y_PAX_MIN", "weight=" + ROAD1Y_PAX_MIN + " scored=" + paxMinScored
+        + " penalized=" + paxMinPenalized + " lost_monthly=" + paxMinLost
+        + " positive=" + positive);
   }
 }
 }

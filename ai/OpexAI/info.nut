@@ -508,6 +508,13 @@ class OpexAIInfo extends AIInfo {
       flags = 0
     });
     AddSetting({
+      name = "road1y_pax_min",
+      description = "ROAD1Y: road-only, weight in percent of the balanced AAA-style demand 2*min(A,B) in bus-district pair estimates (0 = historical sum of both ends, default 0)",
+      min_value = 0, max_value = 100,
+      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
+      flags = 0
+    });
+    AddSetting({
       name = "road1y_pax_sites",
       description = "ROAD1Y-B: Scan natif des sites de bus sur modele aeroport et demande reelle couverte; 0 = off, 1 = on (default)",
       easy_value = 1, medium_value = 1, hard_value = 1,

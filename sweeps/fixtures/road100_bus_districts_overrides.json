@@ -54,7 +54,7 @@
       },
       {
         "before": "          ? (src.captured + dst.captured)\n          : (ROAD100_INTERCITY_SITE_FLEET ? (src.totalMonthly + dst.totalMonthly) : (src.captured + dst.captured));\n      local candidate = OpexMakeRoadCandidate(catalog, \"pax\", cargo, townA.tile,\n          townB.tile, src.id, dst.id, distance, monthly, stats, false,\n          ROAD100_INTERCITY_SITE_FLEET ? 30 : 0);\n      if (candidate != null) {\n",
-        "after": "          ? (src.captured + dst.captured)\n          : (ROAD100_INTERCITY_SITE_FLEET ? (src.totalMonthly + dst.totalMonthly) : (src.captured + dst.captured));\n      local candidate = OpexMakeRoadCandidate(catalog, \"pax\", cargo, tileA,\n          tileB, src.id, dst.id, distance, monthly, stats, false,\n          ROAD100_INTERCITY_SITE_FLEET ? 30 : 0);\n      if (candidate != null) {\n"
+        "after": "          ? (src.captured + dst.captured)\n          : (ROAD100_INTERCITY_SITE_FLEET ? (src.totalMonthly + dst.totalMonthly) : (src.captured + dst.captured));\n      /* ROAD1Y pax_min : comme AAAHogEx (main.nut:1758, production = min des\n       * deux bouts pour une paire bidirectionnelle), une paire desequilibree\n       * ne vaut pas la somme de ses captages : le retour d'un petit bout roule\n       * a vide. N% de la demande passe de la somme a 2*min ; 0 = somme seule. */\n      if (ROAD1Y_PAX_MIN > 0 && ROAD1Y_PAX_SITES) {\n        local paxMinLow = src.captured < dst.captured ? src.captured : dst.captured;\n        local paxMinBlend = (monthly * (100 - ROAD1Y_PAX_MIN)\n            + 2 * paxMinLow * ROAD1Y_PAX_MIN) / 100;\n        paxMinScored++;\n        if (paxMinBlend < monthly) {\n          paxMinPenalized++;\n          paxMinLost += monthly - paxMinBlend;\n        }\n        monthly = paxMinBlend;\n      }\n      local candidate = OpexMakeRoadCandidate(catalog, \"pax\", cargo, tileA,\n          tileB, src.id, dst.id, distance, monthly, stats, false,\n          ROAD100_INTERCITY_SITE_FLEET ? 30 : 0);\n      if (candidate != null) {\n"
       },
       {
         "before": "          candidate.siteB <- dst.site;\n          candidate.road1yBusSite <- true;\n        }\n        if (ROAD100_INTERCITY_SITE_FLEET) {\n",
@@ -67,6 +67,14 @@
       {
         "before": "      local distance = AIMap.DistanceManhattan(tileA, tileB);\n      if (!OpexRoadDistanceAllowed(catalog, distance, stats)) continue;",
         "after": "      local distance = AIMap.DistanceManhattan(tileA, tileB);\n      if (ROAD1Y_NEXT > 0 && distance < ROAD1Y_NEXT) continue;\n      if ((ROAD1Y_BUS_FIXES & 4) != 0 && distance < 30) continue;\n      if (!OpexRoadDistanceAllowed(catalog, distance, stats)) continue;"
+      },
+      {
+        "before": "  local examined = 0;\n  local positive = 0;\n",
+        "after": "  local examined = 0;\n  local positive = 0;\n  local paxMinScored = 0;\n  local paxMinPenalized = 0;\n  local paxMinLost = 0;\n"
+      },
+      {
+        "before": "        + \" positive=\" + positive + \" kept_total=\" + out.len());\n  }\n",
+        "after": "        + \" positive=\" + positive + \" kept_total=\" + out.len());\n  }\n  if (DECISION_LOG && ROAD1Y_PAX_MIN > 0) {\n    OpexDecide(\"ROAD1Y_PAX_MIN\", \"weight=\" + ROAD1Y_PAX_MIN + \" scored=\" + paxMinScored\n        + \" penalized=\" + paxMinPenalized + \" lost_monthly=\" + paxMinLost\n        + \" positive=\" + positive);\n  }\n"
       }
     ]
   },
