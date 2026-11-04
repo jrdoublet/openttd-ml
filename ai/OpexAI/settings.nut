@@ -143,6 +143,17 @@ function OpexLoadSettings()
   V269_RAIL_LATE_RELAX = (lateRelax != null && lateRelax > 0 && lateRelax <= 9) ? lateRelax : 0;
   V190_RAIL_DOUBLE_BUILD = AIController.GetSetting("v190_rail_double_build") != 0;
   V197_GUIDED_DOUBLE = AIController.GetSetting("v197_guided_double") != 0;
+  RAIL_SEARCH_PRIO = AIController.GetSetting("rail_search_prio") == 1;
+  local railLongMode = AIController.GetSetting("rail_long");
+  RAIL_LONG = railLongMode == 1;
+  RAIL_LONG_V2 = railLongMode == 2;
+  RAIL_LONG_V3 = railLongMode == 3;
+  INVEST_STALL = AIController.GetSetting("invest_stall") == 1;
+  DOUBLE_GROW = AIController.GetSetting("double_grow") == 1;
+  DOUBLE_GROW_V2 = AIController.GetSetting("double_grow") == 2;
+  INVEST_STALL_LAST_MONTH = INVEST_STALL ? INVEST_STALL_SAVED_MONTH : -1;
+  INVEST_STALL_SAVED_MONTH = -1;
+  V190_FIX_DIRECTIONAL = AIController.GetSetting("v190_fix_directional") != 0;
   V198_TEMPLATE_DOUBLE = AIController.GetSetting("v198_template_double") != 0;
   V200_DOUBLE_CASH_K = AIController.GetSetting("v200_double_cash_k");
   if (V200_DOUBLE_CASH_K < 0) V200_DOUBLE_CASH_K = 0;
@@ -496,6 +507,16 @@ function OpexLoadSettings()
   }
   local eb2Fallback = AIController.GetSetting("eb2_new_station_fallback");
   EB2_NEW_STATION_FALLBACK = (eb2Fallback != null && eb2Fallback > 0) ? 1 : 0;
+  local railSibling = AIController.GetSetting("rail_sibling");
+  RAIL_SIBLING = (railSibling != null && railSibling > 0) ? 1 : 0;
+  local railOpen = AIController.GetSetting("rail_open");
+  RAIL_OPEN = (railOpen != null && railOpen > 0) ? 1 : 0;
+  local railPair = AIController.GetSetting("rail_pair");
+  RAIL_PAIR = (railPair != null && railPair > 0) ? 1 : 0;
+  local railDepotSignal = AIController.GetSetting("rail_depot_signal");
+  RAIL_DEPOT_SIGNAL = (railDepotSignal != null && railDepotSignal > 0);
+  local railConsist = AIController.GetSetting("rail_consist_pct");
+  RAIL_CONSIST_PCT = (railConsist != null && railConsist > 100 && railConsist <= 400) ? railConsist : 100;
   V217_LAST_MONTH = -1;
   local v276 = AIController.GetSetting("v276_cand_slices");
   V276_CAND_SLICES = (v276 == 3) ? (bigMap ? 2 : 0) : v276;

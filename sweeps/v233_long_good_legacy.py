@@ -11,6 +11,19 @@ FIXTURE = json.loads((Path(__file__).parent / "fixtures/v233_long_good_off.json"
 
 
 def off_source(name, code):
+    from double_grow_off import off_source as double_grow_off
+    code = double_grow_off(name, code)
+    if name in ("globals_pre.nut", "settings.nut", "info.nut", "main.nut", "scheduler.nut", "persist.nut",
+                "task_rail.nut", "orchestrator.nut", "candidates.nut", "po01c_generators.nut",
+                "lines.nut", "builder_rail.nut", "task_v284.nut") and (
+        "INVEST_STALL" in code or "invest_stall" in code or "investStall" in code
+    ):
+        from invest_stall_source_off import project_off as invest_stall_off
+        code = invest_stall_off(name, code)
+    from rail_long_source_off import off_source as rail_long_off
+    code = rail_long_off(name, code)
+    from rail_sibling_legacy import off_source as sibling_off
+    code = sibling_off(name, code)
     from estim_unifie_legacy import estim_off
     code = estim_off(name, code)
     from air_site_probe_legacy import off_source as air_probe_off

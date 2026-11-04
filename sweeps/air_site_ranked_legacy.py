@@ -2,11 +2,13 @@
 import json
 from pathlib import Path
 from eb2_legacy import off_source as eb2_off
+from rail_sibling_legacy import off_source as sibling_off
 
 DELTAS = json.loads((Path(__file__).parent / "fixtures/air_site_ranked_off_deltas.json").read_text())
 
 
 def off_source(name, text):
+    text = sibling_off(name, text)
     text = eb2_off(name, text)
     entry = DELTAS.get(name)
     if entry is None or entry["marker"] not in text:

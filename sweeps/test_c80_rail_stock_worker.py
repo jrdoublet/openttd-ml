@@ -226,7 +226,9 @@ class TestC80RailStockWorkerContract(unittest.TestCase):
         stn_at = execute.index('OpexDecide("RAIL_STN_FAIL"')
         stn_block = execute[execute.rindex("if (!okA || !okB)", 0, stn_at):stn_at]
         self.assertIn("if (DECISION_LOG)", stn_block)
-        self.assertLess(stn_at, execute.index("OpexRollback(null, planA, planB, null, null);"))
+        # INVEST-STALL v2 a un rollback de sûreté propre, avant ce bloc.
+        # Vérifier le rollback de RAIL_STN_FAIL, non le premier rollback global.
+        self.assertLess(stn_at, execute.index("OpexRollback(null, planA, planB, null, null);", stn_at))
         self.assertIn("ok_a=", execute)
         self.assertIn("len_a=", execute)
         self.assertIn("len_b=", execute)
@@ -278,7 +280,11 @@ class TestC80RailStockWorkerContract(unittest.TestCase):
 
     def test_no_pending_under_gate_and_no_search_in_progress_when_plan_ready(self):
         self.assertNotIn("C80_RAIL_STOCK_GATE", self.task_rail)
-        call_sites = [m.start() for m in re.finditer(r"this\._startRailSearch", self.task_rail)]
+        # Check pre-RAIL-LONG C80 bytes: the independent, opt-in short retry
+        # adds another start call without changing the historical gate.
+        from rail_long_source_off import off_source as rail_long_off
+        baseline = rail_long_off("task_rail.nut", self.task_rail)
+        call_sites = [m.start() for m in re.finditer(r"this\._startRailSearch", baseline)]
         self.assertEqual(len(call_sites), 1, "Il doit y avoir exactement 1 site d appel à this._startRailSearch (chaine V88 retiree en V232)")
 
     def test_traces_declared(self):

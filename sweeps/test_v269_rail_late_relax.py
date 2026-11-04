@@ -15,7 +15,10 @@ class TestV269RailLateRelax(unittest.TestCase):
         cls.info = read("info.nut")
         cls.settings = read("settings.nut")
         cls.globals = read("globals_pre.nut")
-        cls.candidates = read("candidates.nut")
+        # V269 exige les bornes historiques exactes après retrait de la couche
+        # opt-in INVEST-STALL v2, sans relâcher les assertions de ce contrat.
+        from invest_stall_source_off import project_off as invest_off
+        cls.candidates = invest_off("candidates.nut", read("candidates.nut"))
         cls.orchestrator = read("orchestrator.nut")
 
     def test_setting_declared_in_info(self):

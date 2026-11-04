@@ -88,7 +88,11 @@ class TestParameterRetirement(unittest.TestCase):
         # 58 historiques + N75 adopte + P6/P3/FP2/P2/P1 opt-in + FP1/V286/C75/DIST
         # C75 bis diagnostic, trois MULTI-1 opt-in (defaut 0), trois V233L et AIR funnel,
         # ESTIM-1 estim_unifie opt-in (defaut 0), air_site_probe, air_site_ranked, AIR-LOAD-1 et EB-2.
-        self.assertEqual(len(self.config), 83)  # DIST-BORNES unified + V233L + AIR + ESTIM-1 + air_site_probe/ranked + AIR-LOAD-1 + EB-2
+        # + V190-FIX2 (historique), puis RAIL-SEARCH-PRIO et RAIL-LONG opt-in defaut 0 :
+        # l'ajout ne doit pas etre confondu avec une restauration de parametre retire.
+        self.assertEqual(len(self.config), 93)  # DOUBLE-GROW opt-in, default 0
+        self.assertIn("rail_search_prio", self.config)
+        self.assertIn("rail_long", self.config)
         self.assertIn("eb2_new_station_fallback", self.config)
         self.assertIn("estim_unifie", self.config)
         self.assertIn("n75_multi_cargo", self.config)
@@ -114,6 +118,8 @@ class TestParameterRetirement(unittest.TestCase):
         self.assertRegex(p2_setting, r"\bmax_value\s*=\s*2\b")
         for level in ("easy", "medium", "hard", "custom"):
             self.assertRegex(p2_setting, rf"\b{level}_value\s*=\s*0\b")
+        # Projections OFF par fragments exacts : les options nouvelles de novembre
+        # ne rebasent pas l'inventaire historique de 58.
         self.assertEqual(len(declared(historical_info(self.info))), 58)
 
     def test_retired_settings_have_no_declarations_or_direct_reads(self):

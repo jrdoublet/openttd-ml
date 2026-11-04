@@ -1,0 +1,12 @@
+tag,first_kv,reason,count
+PROJECT_DISCARD,,too_close_no_join,159
+RAIL_LONG_V3,event=quote,,8
+RAIL_BUILD,,,6
+RAIL_LONG_V3_MULTI,event=choice_reject,CASH,6
+PROJECT_DISCARD,,cash_at_build,5
+RAIL_LONG_V3,event=fallback,SITE_ROI_OR_CASH,4
+RAIL_LONG_V3_MULTI,event=choice,,2
+RAIL_SEARCH,,,1
+PROJECT_DISCARD,,insufficient_cash,1
+RAIL_BUILD_FAIL,,STNFAIL,1
+RAIL_BUILD_FAIL,,TRKFAIL,1

@@ -1,0 +1,89 @@
+{
+  "source_bundle": "invest_stall_v3_smoke_4x10_20261103 (cdae36892e7408d)",
+  "files": {
+    "candidates.nut": {
+      "before_sha256": "b6fca7944b5326df5d38ac6f347b3d540677b19a9b766812bdaed463305096f1",
+      "after_sha256": "020d0e51ebbe6c62fa7a14f99c7803acfa0dec7c76a052ec9ec72e952d141dc4",
+      "edits": [
+        {
+          "after_start": 1560,
+          "before": [],
+          "after": [
+            "/* Un wagon ne doit bloquer la seconde gare que si son achat est effectivement\n",
+            " * faisable et rentable. Le seul espace libre dans le quai ne suffit pas :\n",
+            " * traction, prix, attente, vitesse et tresorerie sont controles comme dans\n",
+            " * la selection INVEST-STALL de flotte. */\n",
+            "function OpexInvestStallParentCanGrowWagon(mother, gap, lengthLimit)\n",
+            "{\n",
+            "  if (mother == null || gap == null || !gap.ok || !(\"vehicles\" in mother)\n",
+            "      || mother.vehicles == null || mother.vehicles.len() != 1\n",
+            "      || !(\"trains\" in mother) || mother.trains != 1\n",
+            "      || !(\"depot\" in mother) || mother.depot == null\n",
+            "      || !AIRail.IsRailDepotTile(mother.depot)\n",
+            "      || OpexV163Wagons2(mother) > 0\n",
+            "      || ((\"v271Tandem\" in mother) && mother.v271Tandem)) return false;\n",
+            "  local train = mother.vehicles[0];\n",
+            "  if (!AIVehicle.IsValidVehicle(train)\n",
+            "      || AIVehicle.GetVehicleType(train) != AIVehicle.VT_RAIL) return false;\n",
+            "  local number = AIVehicle.GetNumWagons(train) - 1;\n",
+            "  if (number < 1 || number >= OpexRailNominalMaxWagons(lengthLimit)\n",
+            "      || AIVehicle.GetLength(train) + 8 > lengthLimit * 16) return false;\n",
+            "  local wagonId = AIVehicle.GetWagonEngineType(train, 1);\n",
+            "  if (!AIEngine.IsWagon(wagonId) || !AIEngine.IsBuildable(wagonId)\n",
+            "      || AIEngine.GetCargoType(wagonId) != mother.cargo) return false;\n",
+            "  for (local i = 1; i <= number; i++)\n",
+            "    if (AIVehicle.GetWagonEngineType(train, i) != wagonId) return false;\n",
+            "  local wagon = OpexV257Engine(wagonId, mother.cargo, true);\n",
+            "  if (wagon == null || wagon.capacity <= 0) return false;\n",
+            "  local equipment = OpexV284Equipment(mother, train, wagon, number + 1, false, gap.waiting);\n",
+            "  return equipment != null\n",
+            "      && OpexInvestStallFleetMargin(mother, train, wagon, number, equipment, gap) != null;\n",
+            "}\n",
+            "\n"
+          ]
+        },
+        {
+          "after_start": 1630,
+          "before": [
+            "  if (canLoadMoreAtMother && (physicalHeadroom > 0\n",
+            "      || ((\"doubleTrack\" in mother) && mother.doubleTrack == 1))) {\n"
+          ],
+          "after": [
+            "  local actionableWagon = canLoadMoreAtMother && physicalHeadroom > 0\n",
+            "      && OpexInvestStallParentCanGrowWagon(mother, gap, lengthLimit);\n",
+            "  /* La marque doubleTrack n'atteste pas une deuxieme rame viable :\n",
+            "   * OpexInvestStallFleetTrainCertified ferme actuellement cette voie. */\n",
+            "  if (actionableWagon) {\n"
+          ]
+        }
+      ]
+    },
+    "builder_rail.nut": {
+      "before_sha256": "f4337639968f4a2f3c9f07dbfa114faed00a92e96270ab2527130f3dc4a04b05",
+      "after_sha256": "b381fefd350fbec7d686e6fa5ed489537be18c6d9fc090ca8166f195a36593af",
+      "edits": [
+        {
+          "after_start": 1630,
+          "before": [],
+          "after": [
+            "  }\n",
+            "  /* La gare neuve ne doit pas relier une voie preexistante de la gare mere\n",
+            "   * par son extremite libre. Le chemin A* est controle separement et ne\n",
+            "   * couvre pas cette tuile, qui peut connecter physiquement deux reseaux. */\n",
+            "  local first = plan.anchor;\n",
+            "  local last = plan.anchor + plan.step * (plan.length - 1);\n",
+            "  local approaches = [first - plan.step, last + plan.step];\n",
+            "  foreach (approach in approaches) {\n",
+            "    local end = approach == first - plan.step ? first : last;\n",
+            "    if (!AIMap.IsValidTile(approach)\n",
+            "        || AIMap.DistanceManhattan(approach, end) != 1) return false;\n",
+            "    if (AIRail.IsRailTile(approach) || AIRail.IsRailDepotTile(approach)\n",
+            "        || AIRail.IsRailStationTile(approach) || AITile.IsStationTile(approach)\n",
+            "        || AIBridge.IsBridgeTile(approach) || AITunnel.IsTunnelTile(approach))\n",
+            "      return false;\n"
+          ]
+        }
+      ]
+    }
+  }
+}

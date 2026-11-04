@@ -9,6 +9,7 @@ from pathlib import Path
 import re
 import unittest
 from n75_mc_legacy import historical_info
+from test_rail_search_prio_20261103 import off_config_bytes
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -43,13 +44,18 @@ class TestV251Inventory(unittest.TestCase):
         cls.labels = _function_body(cls.probes, "OpexV251CargoLabels")
 
     def test_no_new_public_setting(self):
-        info = historical_info(self.sources["info.nut"])
+        # La projection legacy stricte extrait des blocs contigus : retirer le
+        # nouveau bloc opt-in avant d'identifier les blocs RAIL-OPEN existants.
+        info = historical_info(off_config_bytes("info.nut").decode("utf-8"))
         # Migration controlee des options historiques : conserver PO01C=1,
         # PO03/C77=2 et PO02=1. historical_info soustrait N75, P6, P3 et FP2
         # P1, C75 annuel/bypass, DIST-BORNES et V233L par blocs EXACTS : historique 58.
         # air_site_probe adds one default-OFF diagnostic, never a policy knob.
         # +1 pour eb2_new_station_fallback (EB-2 repli gare).
-        self.assertLessEqual(info.count("AddSetting("), 60)  # + default-OFF ranked funnel
+        # Le fichier complet compte 93 settings avec RAIL-SEARCH-PRIO,
+        # RAIL-LONG, INVEST-STALL et DOUBLE-GROW, opt-in ; le plafond historique demeure 58.
+        self.assertEqual(self.sources["info.nut"].count("AddSetting("), 93)
+        self.assertEqual(info.count("AddSetting("), 58)
         self.assertNotIn('name = "v251', info)
         settings = self.sources["settings.nut"]
         self.assertNotIn('GetSetting("v251', settings)

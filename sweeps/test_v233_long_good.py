@@ -10,6 +10,8 @@ import unittest
 from types import SimpleNamespace
 
 from test_po01c_regen_split import generated_estim_off
+from test_rail_search_prio_20261103 import off_config_bytes
+from test_rail_search_prio_source_off import off_search_prio_source
 from test_v261_forum_behaviours import body, source, uncomment
 from v233_long_good_legacy import FIXTURE, off_source
 
@@ -929,7 +931,10 @@ class V233LongGoodContracts(unittest.TestCase):
             self.assertRegex(block, level + r"_value\s*=\s*1\b")
         self.assertEqual(source("settings.nut").count('GetSetting("v233_long_good")'), 1)
         self.assertIn("V233_LONG_GOOD <- 1;", source("globals_pre.nut"))
-        self.assertEqual(source("info.nut").count("AddSetting("), 83)  # + air_site_probe/ranked + AIR-LOAD-1 + EB-2
+        # La projection retire les deux AddSetting opt-in SEARCH_PRIO et LONG ;
+        # le plafond du temoin historique reste exactement 89.
+        self.assertEqual(off_config_bytes("info.nut", source("info.nut").encode("utf-8")).count(b"AddSetting("), 89)
+        self.assertEqual(source("info.nut").count("AddSetting("), 93)  # DOUBLE-GROW opt-in OFF
 
     def test_off_reviewed_edits_preserve_all_original_hashes(self):
         self.assertEqual(
@@ -940,7 +945,12 @@ class V233LongGoodContracts(unittest.TestCase):
         for name, entry in FIXTURE["files"].items():
             with self.subTest(name=name):
                 current = source(name)
+                if name in ("info.nut", "globals_pre.nut", "settings.nut"):
+                    current = off_config_bytes(name, current.encode("utf-8")).decode("utf-8")
                 if name == "task_rail.nut":
+                    # Retirer d'abord les seuls ajouts SEARCH_PRIO, puis le
+                    # journal ESTIM independant deja exclu de ce temoin.
+                    current = off_search_prio_source(name, current)
                     # Trace purement diagnostique ESTIM_DECISION_LOG ajoutee a
                     # _recordRailAttempt : la retirer exactement du temoin
                     # historique V233L, sans modifier l'empreinte attendue.
@@ -1447,7 +1457,9 @@ class V233LongGoodContracts(unittest.TestCase):
         self.assertEqual(plain.count('.Valuate('), 2)
         for name in ("OpexV233LSiteSearch", "OpexV233LSiteProbe", "OpexV233LPlatformPlans"):
             self.assertNotIn('.Valuate(', body("v233_long_good.nut", name))
-        self.assertEqual(source("po01c_generators.nut"), generated_estim_off())  # read-only, never regenerate.
+        from rail_open_legacy import off_source as rail_open_off
+        self.assertEqual(rail_open_off("po01c_generators.nut", source("po01c_generators.nut")),
+                         generated_estim_off())  # read-only, never regenerate.
 
     def test_new_module_balanced_and_no_reserved_identifiers(self):
         code = uncomment(source("v233_long_good.nut"))

@@ -153,6 +153,7 @@ function OpexV257Discard(owner, vehicle)
 
 function OpexAI::_v257ReactiveStep()
 {
+  if (this._v271Pending != null) return;
   /* Le format court ne conserve pas les lignes : aucune transaction de flotte
    * n'y est ouverte. Le defaut save_full_state=1 reste intact. */
   if (!SAVE_FULL_STATE) return;
@@ -254,6 +255,10 @@ function OpexV257BestPlan(owner, line, monthly, rating, serviceSpeed, railType, 
 
 function OpexAI::_v257Review(line, state, date, force)
 {
+  /* Le plan V257 de renouvellement ne connait qu'un moteur en tete.
+   * Ne jamais remplacer une rame RAIL-LONG v3 multihead par son faux
+   * equivalent mono-locomotive, meme apres changement du reglage v3. */
+  if (OpexRailLongV3MultiLine(line)) return;
   if (!("vehicles" in line) || line.vehicles == null || line.vehicles.len() == 0) return;
   if (!("depot" in line) || !AIRail.IsRailDepotTile(line.depot)) return;
   /* Les compositions mixtes ont d'autres contrats de refit : ne pas les demolir. */
@@ -435,6 +440,14 @@ function OpexAI::_v257ReplaceStep()
   local load = ("load" in pending) ? pending.load : 0;
   local delivered = ("delivered" in pending) ? pending.delivered : 0;
   if (line == null || (("scrapping" in line) && line.scrapping) || !AIVehicle.IsValidVehicle(oldVehicle)) {
+    this._v257Pending = null; this._v257PendingLine = null;
+    return;
+  }
+  if (OpexRailLongV3MultiLine(line)) {
+    /* Annuler la transaction V257 devenue obsolete, rendre le service.
+     * Aucun nouveau train n'a encore ete construit. */
+    if (AIVehicle.IsStoppedInDepot(oldVehicle)) AIVehicle.StartStopVehicle(oldVehicle);
+    else AIVehicle.SendVehicleToDepot(oldVehicle);
     this._v257Pending = null; this._v257PendingLine = null;
     return;
   }

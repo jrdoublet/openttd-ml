@@ -1000,11 +1000,24 @@ function OpexAI::_runOrchestratorTick()
   if (PO01C_REGEN_SPLIT && (this._po01cPending || this._po01cJob != null)) OpexPO01CStep(this);
   this._railWorkerSteppedThisTick = false;
 
+  /* RAIL-LONG v2 : terminer une transaction de quais meme si le reglage a
+   * ete desactive apres Load. Hors pending, chemin OFF et mode 1 identiques. */
+  if (this._railLongV2Pending != null) OpexRailLongV2Step(this);
+
+  /* RAIL-LONG v3 : terminer ou annuler proprement une transaction deja
+   * engagee, meme si le reglage a ete coupe entre Save et Load. */
+  if (this._railLongV3UpgradePending != null) OpexRailLongV3UpgradeStep(this);
+
   /* V257 : une seule garde au defaut. Une ligne de la file de revision par
    * passage reactif ; ne bloque ni la FIFO existante ni le worker rail. */
   /* Point commun aux boucles normale et _mainLoopProfiled. OFF court-circuite. */
-  if (V284_RAIL_GROWTH > 0 || V233_LONG_GOOD > 0) OpexV284Tick(this);
-  if ((V284_RAIL_GROWTH <= 0 && V233_LONG_GOOD <= 0) || !OpexV284Busy(this)) this._v257ReactiveStep();
+  if (this._railLongV3UpgradePending == null &&
+      (V284_RAIL_GROWTH > 0 || V233_LONG_GOOD > 0 || (INVEST_STALL && OpexV284Busy(this))
+      || OpexInvestStallPending(this) || OpexRailLongV2FleetPending(this))) OpexV284Tick(this);
+  if (this._railLongV3UpgradePending == null && this._railLongV2Pending == null &&
+      ((V284_RAIL_GROWTH <= 0 && V233_LONG_GOOD <= 0 && !(INVEST_STALL && OpexV284Busy(this))
+      && !OpexInvestStallPending(this) && !OpexRailLongV2FleetPending(this))
+      || !OpexV284Busy(this))) this._v257ReactiveStep();
 
   // (b) Intention réactive
   if (this._hasReactiveIntentions()) {

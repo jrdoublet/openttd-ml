@@ -1,0 +1,91 @@
+{
+  "baseline_sha256": {
+    "info.nut": "fa279505733c344afa79e102f11bb6019ff88acce0b8d2b57b9e9224fb7d0165",
+    "globals_pre.nut": "0dbc95b26312d3d80caab80fa3c59068b29b353d4a85eef63667273e283ae9a8",
+    "settings.nut": "5ee33c00c6d06cccfcc794fbabca945623fec89626c4e0492bf6020ebafc2832",
+    "builder_rail.nut": "9d4f42de5c65e95039db5f8b1838c5c490dce040a24fc28e158c80d5a9652707",
+    "task_rail.nut": "ad483a50972ec7c6e4233ac0637fc0d4ab5f98313ca769d2af32997931ede656",
+    "main.nut": "71fd85f3dec8c99dc70b168758a10b3a1772b628bea6471b5d6d09c60199d341"
+  },
+  "files": {
+    "info.nut": [
+      {
+        "old": "",
+        "new": "    AddSetting({ name = \"rail_depot_signal\",\n      description = \"RAIL-DEPOT-SIGNAL: end-side maintenance depot and PBS at joined rail stations (default 0)\",\n      min_value = 0, max_value = 1,\n      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,\n      flags = AICONFIG_BOOLEAN });\n",
+        "count": 1
+      }
+    ],
+    "globals_pre.nut": [
+      {
+        "old": "",
+        "new": "/* RAIL-DEPOT-SIGNAL: opt-in, depot embranche sur chaque cote et PBS de quai partage. */\nRAIL_DEPOT_SIGNAL <- false;\n",
+        "count": 1
+      }
+    ],
+    "settings.nut": [
+      {
+        "old": "",
+        "new": "  local railDepotSignal = AIController.GetSetting(\"rail_depot_signal\");\n  RAIL_DEPOT_SIGNAL = (railDepotSignal != null && railDepotSignal > 0);\n",
+        "count": 1
+      }
+    ],
+    "builder_rail.nut": [
+      {
+        "old": "",
+        "new": "  if (RAIL_DEPOT_SIGNAL) {\n    result.depotSignal <- OpexRailDepotSignalEnhance(candidate, tiles, planA, planB, depot,\n                                                    okD ? tiles2 : null, okD ? depot2 : null);\n    result.depotEndB <- result.depotSignal.depotB;\n    result.depotEndB2 <- result.depotSignal.depotB2;\n  }\n",
+        "count": 2
+      },
+      {
+        "old": "",
+        "new": "  if (RAIL_DEPOT_SIGNAL) {\n    result.depotEndB2 <- OpexRailDepotSignalBuildNear(tiles2, true, depot2, prep.forbidden);\n    if (DECISION_LOG) OpexDecide(\"RAIL_DEPOT_SIGNAL\", \"phase=upgrade line=\" + line.lineId\n        + \" depotA=\" + depot2 + \" depotB=\" + (result.depotEndB2 != null ? result.depotEndB2 : -1)\n        + \" signal_ok=\" + signals.ok + \" signal_fail=\" + signals.fail);\n  }\n",
+        "count": 1
+      },
+      {
+        "old": "  local depot = OpexBuildDepot(tiles);\n",
+        "new": "  local depot = RAIL_DEPOT_SIGNAL ? OpexRailDepotSignalBuildPrimary(tiles) : OpexBuildDepot(tiles);\n",
+        "count": 1
+      },
+      {
+        "old": "        depot2 = OpexBuildDepot(tiles2);\n",
+        "new": "        depot2 = RAIL_DEPOT_SIGNAL ? OpexRailDepotSignalBuildPrimary(tiles2) : OpexBuildDepot(tiles2);\n",
+        "count": 1
+      },
+      {
+        "old": "  local depot = OpexBuildDepot(tiles, forbiddenDepot1);\n",
+        "new": "  local depot = RAIL_DEPOT_SIGNAL ? OpexRailDepotSignalBuildPrimary(tiles, forbiddenDepot1)\n                                  : OpexBuildDepot(tiles, forbiddenDepot1);\n",
+        "count": 1
+      },
+      {
+        "old": "        depot2 = OpexBuildDepot(tiles2, forbiddenD);\n",
+        "new": "        depot2 = RAIL_DEPOT_SIGNAL ? OpexRailDepotSignalBuildPrimary(tiles2, forbiddenD)\n                                   : OpexBuildDepot(tiles2, forbiddenD);\n",
+        "count": 1
+      },
+      {
+        "old": "  local depot2 = OpexBuildDepot(tiles2, prep.forbidden);\n",
+        "new": "  local depot2 = RAIL_DEPOT_SIGNAL ? OpexRailDepotSignalBuildPrimary(tiles2, prep.forbidden)\n                                   : OpexBuildDepot(tiles2, prep.forbidden);\n",
+        "count": 1
+      }
+    ],
+    "task_rail.nut": [
+      {
+        "old": "",
+        "new": "    if (RAIL_DEPOT_SIGNAL && (\"depotSignal\" in result)) {\n      local builtLine = this._lines[this._lines.len() - 1];\n      builtLine.depotEndB <- result.depotEndB;\n      builtLine.depotEndB2 <- result.depotEndB2;\n      local rds = result.depotSignal;\n      local prior = OpexRailDepotSignalProtectExisting(this._lines, candidate, idx);\n      if (DECISION_LOG) {\n        OpexDecide(\"RAIL_DEPOT_SIGNAL\", \"phase=build line=\" + idx\n            + \" src=\" + candidate.src + \" dst=\" + candidate.dst\n            + \" depot_a=\" + result.depot + \" depot_b=\" + (result.depotEndB != null ? result.depotEndB : -1)\n            + \" depot_a2=\" + ((\"depot2\" in result) && result.depot2 != null ? result.depot2 : -1)\n            + \" depot_b2=\" + (result.depotEndB2 != null ? result.depotEndB2 : -1)\n            + \" path_a=\" + rds.startPath + \" path_b=\" + rds.endPath\n            + \" path_a2=\" + rds.startPath2 + \" path_b2=\" + rds.endPath2\n            + \" join=\" + rds.joinEnd + \" pbs_join=\" + rds.joinSignal\n            + \" shared_old=\" + prior.seen + \" pbs_old_built=\" + prior.built\n            + \" pbs_old_present=\" + prior.present + \" pbs_old_refused=\" + prior.refused);\n      }\n    }\n",
+        "count": 1
+      },
+      {
+        "old": "",
+        "new": "    if (RAIL_DEPOT_SIGNAL && (\"depotEndB2\" in upgrade)) line.rawset(\"depotEndB2\", upgrade.depotEndB2);\n",
+        "count": 1
+      }
+    ],
+    "main.nut": [
+      {
+        "old": "",
+        "new": "require(\"rail_depot_signal.nut\");\n",
+        "count": 1
+      }
+    ]
+  },
+  "new_module": "rail_depot_signal.nut",
+  "note": "Frozen as-of pre-opt-in dirty worktree; no test regenerates this fixture."
+}

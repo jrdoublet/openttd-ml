@@ -319,6 +319,16 @@ function OpexAI::_tooClose(candidate)
   /* V178 : la ligne rattachee partage volontairement la gare de la ligne existante. */
   local joinLineId = ("joinLineId" in candidate) ? candidate.joinLineId : -1;
   local joinStationId = ("joinStationId" in candidate) ? candidate.joinStationId : -1;
+  /* INVEST-STALL : A est volontairement la meme industrie que la mere, mais
+   * le nouveau quai aura un AUTRE StationID. Ne jamais ignorer toute la ligne
+   * mere, encore moins son bout B ou une autre ligne : seule la paire (A,A)
+   * certifiee par lineId/stationId a droit a cette exception d'identite. */
+  local stallSource = INVEST_STALL && ("investStallNewSource" in candidate)
+      && candidate.investStallNewSource == 1
+      && ("investStallParentLineId" in candidate)
+      && ("investStallParentStationId" in candidate);
+  local stallParent = stallSource ? candidate.investStallParentLineId : -1;
+  local stallStation = stallSource ? candidate.investStallParentStationId : -1;
   local isSharedDest = ("shared_dest" in candidate) && candidate.shared_dest == 1;
   /* V264 : l'extremite B est la gare deja posee a l'industrie. V194 gardait la paire
    * sans jointure et _tooClose la rejetait too_close_no_join (MIN_SEPARATION, main.nut).
@@ -335,6 +345,9 @@ function OpexAI::_tooClose(candidate)
     foreach (lineEnd in ["A", "B"]) {
       local originTile = lineEnd == "A" ? line.originA : line.originB;
       foreach (entry in entries) {
+        if (stallParent >= 0 && ("lineId" in line) && line.lineId == stallParent
+            && lineEnd == "A" && entry[0] == "A"
+            && OpexLineStationId(line, "A") == stallStation) continue;
         if (V233_LONG_GOOD > 0 && OpexV233LSourceNeighbour(candidate, line, entry[0])) continue;
         if (isSharedDest && entry[0] == "B") continue;
         if (shareEndB && entry[0] == "B") continue;
@@ -359,6 +372,9 @@ function OpexAI::_tooClose(candidate)
       if (isSharedDest && stationId == joinStationId) continue;
       local stationTile = lineEnd == "A" ? line.stationA : line.stationB;
       foreach (entry in entries) {
+        if (stallParent >= 0 && ("lineId" in line) && line.lineId == stallParent
+            && lineEnd == "A" && entry[0] == "A"
+            && stationId == stallStation) continue;
         if (V233_LONG_GOOD > 0 && OpexV233LSourceNeighbour(candidate, line, entry[0])) continue;
         if (isSharedDest && entry[0] == "B") continue;
         if (shareEndB && entry[0] == "B") continue;

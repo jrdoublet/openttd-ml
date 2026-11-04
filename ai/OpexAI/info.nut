@@ -33,6 +33,31 @@ class OpexAIInfo extends AIInfo {
       min_value = 0, max_value = 1,
       easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
       flags = AICONFIG_BOOLEAN });
+    AddSetting({ name = "rail_sibling",
+      description = "RAIL-SIBLING lot 1: saturated freight source may open a second single-track line on a joined platform, priced by its parent line realised revenue (default 0)",
+      min_value = 0, max_value = 1,
+      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
+      flags = AICONFIG_BOOLEAN });
+    AddSetting({ name = "rail_open",
+      description = "RAIL-OPEN: funded freight sibling expansion up to three lines per station, earlier saturation and 80 percent parent realization (default 0)",
+      min_value = 0, max_value = 1,
+      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
+      flags = AICONFIG_BOOLEAN });
+    AddSetting({ name = "rail_pair",
+      description = "RAIL-PAIR: freight second source platform and alternating trains on single track (default 0)",
+      min_value = 0, max_value = 1,
+      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
+      flags = AICONFIG_BOOLEAN });
+    AddSetting({ name = "rail_depot_signal",
+      description = "RAIL-DEPOT-SIGNAL: end-side maintenance depot and PBS at joined rail stations (default 0)",
+      min_value = 0, max_value = 1,
+      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
+      flags = AICONFIG_BOOLEAN });
+    AddSetting({ name = "rail_consist_pct",
+      description = "RAIL-CONSIST: freight train sized for this % of the calibrated offer (longer trains stay loading, higher station rating); 100 = historic (default)",
+      min_value = 100, max_value = 400,
+      easy_value = 100, medium_value = 100, hard_value = 100, custom_value = 100,
+      step_size = 50, flags = 0 });
     AddSetting({ name = "n75_multi_cargo",
       description = "1972+ cash-idle rail refill: 0=off, 1=shadow, 2=one extra freight cargo on empty funded rail pool (default 2)",
       min_value = 0, max_value = 2,
@@ -427,6 +452,14 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "v190_fix_directional",
+      description = "V190-FIX2 experimental two-crossovers, one track per direction and PBS one-way; requires V190+V197 (default 0)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
       name = "v198_template_double",
       description = "V198: double track using station templates (loop source + through destination); 0 = inert default, 1 = on",
       easy_value = 0, medium_value = 0, hard_value = 0,
@@ -671,6 +704,27 @@ class OpexAIInfo extends AIInfo {
     AddSetting({ name = "air_load_min_pct",
       description = "AIR-LOAD-1: minimum AIR load for fleet growth (0=off; 6 completed legs required, last 12 legs)",
       min_value = 0, max_value = 100, step_size = 5,
+      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
+      flags = 0 });
+    /* New opt-in settings go after legacy groups: their OFF fixtures have fixed adjacent anchors. */
+    AddSetting({ name = "rail_search_prio",
+      description = "RAIL-SEARCH-PRIO phase 1: funded project rail search takes priority over speculative stock search (default 0)",
+      min_value = 0, max_value = 1,
+      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
+      flags = AICONFIG_BOOLEAN });
+    AddSetting({ name = "rail_long",
+      description = "RAIL-LONG: 1=production based; 2=6-7 tile platforms with upgrades; 3=initial long freight consist 7 then 6 tiles (default 0)",
+      min_value = 0, max_value = 3, step_size = 1,
+      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
+      flags = 0 });
+    AddSetting({ name = "invest_stall",
+      description = "INVEST-STALL: reinvest idle cash in underserved existing rail freight origins (default 0)",
+      min_value = 0, max_value = 1,
+      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
+      flags = AICONFIG_BOOLEAN });
+    AddSetting({ name = "double_grow",
+      description = "DOUBLE-GROW: 1=parallel experiment, 2=deferred V190 retrofit and fleet growth (default 0)",
+      min_value = 0, max_value = 2,
       easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
       flags = 0 });
   }

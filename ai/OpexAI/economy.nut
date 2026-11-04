@@ -192,7 +192,8 @@ function OpexStationRatingForHeadway(headwayDays)
  * comme OpexRoadLineEconomics distingue deja les deux. */
 function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPlatformLength = 0,
                            routeDistance = null, profile = null, cruiseCache = null,
-                           wagonOverride = null, locoChoicesOverride = null, secondary = null, longGood = false)
+                           wagonOverride = null, locoChoicesOverride = null, secondary = null, longGood = false,
+                           railLongFill = false)
 {
   local longModel = V233_LONG_GOOD > 0 && longGood;
   local setupMark = profile != null ? OpexOpsMeasureBegin() : null;
@@ -233,7 +234,8 @@ function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPl
   /* V207 : une rame passagers (+ courrier) plus longue que vehicle.max_train_length ne quitte
    * jamais le depot (MoveWagon : ERR_VEHICLE_TOO_LONG, voir V206). Borne limitee aux rames pax
    * V207 : le quai, le fret et les defauts restent inchanges. */
-  if ((longModel || (kind == "pax" && OpexV207Active()) || (kind != "pax" && (V301_NOTRAIN_FIX & 2)))
+  if ((longModel || (kind == "pax" && OpexV207Active()) || (kind != "pax" && (V301_NOTRAIN_FIX & 2))
+      || (RAIL_LONG && kind == "freight"))
       && catalog.maxTrainLength > 0) {
     local trainMaxWagons = OpexRailNominalMaxWagons(catalog.maxTrainLength);
     if (trainMaxWagons < maxWagons) maxWagons = trainMaxWagons;
@@ -264,6 +266,10 @@ function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPl
     calibrationRating = OpexStationRatingForHeadway(referenceRoundTripDays / OpexEstimRailPhysicalTrainCap());
   local calibrationOffered = (monthlyUnits * calibrationRating) / 100.0;
   if (longModel) calibrationOffered /= 2.0; // deux rames partageant le debit observe.
+  /* RAIL-CONSIST : AAAHogEx exploite des rames fret ~2,7x plus capacitaires (240 contre 90
+   * unites, 40x5 rail seul du 02/11) et garde une note de gare ~210/255 contre ~143 : une rame
+   * plus longue reste a quai en chargement complet. Borne par le quai et max_train_length. */
+  if (RAIL_CONSIST_PCT > 100 && kind != "pax") calibrationOffered = calibrationOffered * RAIL_CONSIST_PCT / 100.0;
   if (calibrationOffered <= 0) return null;
   local wagons = OpexCeilDiv(calibrationOffered, wagon.capacity * referenceTrips);
   if (wagons < 1) wagons = 1;
@@ -291,6 +297,21 @@ function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPl
   local correctedWagons = OpexCeilDiv(calibrationOffered, wagon.capacity * tripsPerMonth);
   if (correctedWagons < 1) correctedWagons = 1;
   if (correctedWagons > maxWagons) correctedWagons = maxWagons;
+  /* RAIL-LONG : le site 6/7 n'est retenu qu'apres verification du seuil
+   * production >= 1,5 x capacite COURTE, des deux quais et d'un devis positif.
+   * Seule cette decision permet de remplir le nouveau quai. Comparer ici a
+   * 1,5 x la capacite LONGUE rendrait la plupart des quais longs inertes. */
+  if (RAIL_LONG && railLongFill && kind == "freight" && fixedPlatformLength >= 6)
+    correctedWagons = maxWagons;
+  /* v3 only : l'economie DOIT commander assez de wagons pour une rame
+   * initiale de >=200 unites, sans payer un quai de 7 pour 3 wagons.
+   * L'absence d'une loco de traction suffisante retourne un refus du devis
+   * long, jamais une rame silencieusement sous-motorisee. */
+  if (RAIL_LONG_V3 && railLongFill && kind == "freight" && fixedPlatformLength >= 6) {
+    local minimum = OpexRailLongV3WagonFloor(wagon, fixedPlatformLength);
+    if (minimum == 0 || minimum > maxWagons) return null;
+    if (correctedWagons < minimum) correctedWagons = minimum;
+  }
   if (correctedWagons != wagons) {
     wagons = correctedWagons;
     loco = choices[wagons - 1];
@@ -309,6 +330,22 @@ function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPl
     if (oneWayDays < 1) oneWayDays = 1;
     roundTripDays = 2 * oneWayDays;
     tripsPerMonth = OpexLoadedTripsPerMonth(oneWayDays + dwellDays, roundTripDays + dwellDays, kind == "pax");
+  }
+  /* Mode 3 seulement : selectionner une, puis deux, puis trois locomotives
+   * avec la pente de partie et TOUS les wagons charges. L'ancien estimateur
+   * restaure son chemin strictement identique en modes 0/1/2. */
+  local railLongV3Multi = null;
+  if (RAIL_LONG_V3 && railLongFill && kind == "freight" && fixedPlatformLength >= 6) {
+    railLongV3Multi = OpexRailLongV3MultiChoose(catalog, cargo,
+        fixedPlatformLength, wagons, travelDist);
+    if (railLongV3Multi == null) return null;
+    loco = railLongV3Multi.profile;
+    effectiveSpeed = railLongV3Multi.speed;
+    oneWayDays = travelDist.tofloat() / (0.036 * effectiveSpeed);
+    if (oneWayDays < 1) oneWayDays = 1;
+    roundTripDays = 2 * oneWayDays;
+    tripsPerMonth = OpexLoadedTripsPerMonth(oneWayDays + dwellDays,
+        roundTripDays + dwellDays, false);
   }
   if (freightSetupDetail) {
     profile.freightEconomicsConsistOps += OpexOpsMeasureEnd(consistMark);
@@ -392,6 +429,9 @@ function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPl
   local best = null;
   local startTrains = (longModel || (OpexV190Active() && kind == "freight")) ? 2 : 1;
   local maxTrains = (ESTIM_UNIFIE & 8) != 0 ? OpexEstimRailPhysicalTrainCap() : MAX_RAIL_TRAINS;
+  /* Le constructeur v3 multihead est reserve a UNE rame fret sur UNE voie
+   * dediee. Il ne donne aucun permis de construire un second train. */
+  if (railLongV3Multi != null) maxTrains = 1;
   for (local trains = startTrains; trains <= maxTrains; trains++) {
     local headwayDays = roundTripDays / trains;
     local effectiveHeadway = headwayDays;
@@ -497,6 +537,10 @@ function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPl
     roi = best.roi,
     profitAnnual = best.profitAnnual,
   };
+  if (railLongV3Multi != null) {
+    result.railLongV3LocoCount <- railLongV3Multi.count;
+    result.railLongV3GradeSpeed <- railLongV3Multi.gradeSpeed;
+  }
   /* V163 : champs presents des qu'un second cargo a ete demande, a 0 s'il n'a pas trouve place,
    * pour qu'une reevaluation sur le quai reel efface un second cargo devenu impossible. */
   if (secondary != null) {
@@ -545,6 +589,12 @@ function OpexApplyRailEconomics(candidate, economics)
   candidate.perTrain = economics.perTrain;
   candidate.platformLength = economics.platformLength;
   candidate.loco = economics.loco;
+  if (RAIL_LONG_V3) {
+    candidate.rawset("railLongV3LocoCount",
+        ("railLongV3LocoCount" in economics) ? economics.railLongV3LocoCount : 1);
+    candidate.rawset("railLongV3GradeSpeed",
+        ("railLongV3GradeSpeed" in economics) ? economics.railLongV3GradeSpeed : 0);
+  }
   candidate.effectiveSpeed = economics.effectiveSpeed;
   candidate.tripsPerMonth = economics.tripsPerMonth;
   candidate.headwayDays = economics.headwayDays;
@@ -574,6 +624,7 @@ function OpexApplyRailEconomics(candidate, economics)
   } else if ("wagons2" in candidate) {
     candidate.wagons2 = 0;
   }
+  OpexRailSiblingApplyRevenue(candidate);
 }
 
 /* V163 : second cargo memorise sur un candidat rail, a repasser a OpexLineEconomics quand le

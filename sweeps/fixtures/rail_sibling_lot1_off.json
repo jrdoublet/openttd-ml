@@ -1,0 +1,66 @@
+{
+  "files": {
+    "builder_rail.nut": [
+      {
+        "new": "        || ((\"convergent_dest\" in candidate) && candidate.convergent_dest)\n        || ((\"sibling_src\" in candidate) && candidate.sibling_src);\n",
+        "old": "        || ((\"convergent_dest\" in candidate) && candidate.convergent_dest);\n"
+      }
+    ],
+    "candidates.nut": [
+      {
+        "new": "/* RAIL-SIBLING lot 1 : une source fret deja desservie par une ligne rail saturee peut ouvrir\n * une seconde ligne en voie unique, sur un quai joint a la meme gare, vers une destination neuve.\n * Chez OpexAI une ligne voie unique porte un seul train : sans ce chemin, une source productive\n * plafonne a une rame (origin_served) pendant qu'AAAHogEx clone ses trains sur la meme industrie.\n * Rend null hors reglage, ou si la ligne mere n'est pas saturee, a deja une soeur (plus d'une\n * ligne sur la gare), n'a pas d'annee de recette, ou rapporte moins que sa propre prevision. */\nfunction OpexRailSiblingParent(catalog, lines, service, cargo, source, monthly)\n{\n  if (RAIL_SIBLING == 0 || service == null || service.blocked) return null;\n  if (!(\"line\" in service) || service.line == null || service.lineEnd != \"A\") return null;\n  local line = service.line;\n  if (!(\"kind\" in line) || line.kind != \"freight\" || line.cargo != cargo) return null;\n  if (!(\"lineId\" in line) || !(\"lastRevenue\" in line) || !(\"predRevenue\" in line)) return null;\n  if (line.predRevenue <= 0 || line.lastRevenue <= 0) return null;\n  if (!(\"platformA\" in line) || line.platformA == null) return null;\n  local platform = line.platformA;\n  if (!(\"direction\" in platform) || !(\"length\" in platform)\n      || !(\"anchor\" in platform) || !(\"step\" in platform) || platform.length < 1) return null;\n  local stationId = service.stationId;\n  if (stationId < 0 || !AIStation.IsValidStation(stationId)) return null;\n  foreach (other in lines) {\n    if (other == line || ((\"mode\" in other) && other.mode != \"rail\")) continue;\n    if (OpexLineStationId(other, \"A\") == stationId || OpexLineStationId(other, \"B\") == stationId) return null;\n  }\n  local revPct = (line.lastRevenue * 100) / line.predRevenue;\n  if (revPct < 100) return null;\n  if (revPct > RAIL_SIBLING_MAX_REV_PCT) revPct = RAIL_SIBLING_MAX_REV_PCT;\n  if (!(cargo in catalog.wagonByCargo) || !(\"wagons\" in line)) return null;\n  local trainCapacity = line.wagons * catalog.wagonByCargo[cargo].capacity;\n  local waiting = AIStation.GetCargoWaiting(stationId, cargo);\n  local transported = AIIndustry.GetLastMonthTransportedPercentage(source.id, cargo);\n  if (waiting * 2 < trainCapacity && transported >= RAIL_SIBLING_TRANSPORTED_PCT) return null;\n  /* Offre de la soeur : la part non transportee, plus le stock en gare etale sur un an. */\n  local surplus = (monthly * (100 - transported)) / 100 + waiting / 12;\n  if (surplus <= 0) return null;\n  return { line = line, platform = platform, stationId = stationId, revPct = revPct,\n           surplus = surplus, waiting = waiting, transported = transported };\n}\n\n/* Majoration de recette d'une ligne soeur par le rapport realise/prevu de sa mere, reappliquee a\n * chaque reevaluation (OpexApplyRailEconomics) pour survivre au recalcul quai/trace reels. */\nfunction OpexRailSiblingApplyRevenue(candidate)\n{\n  if (!(\"siblingRevPct\" in candidate) || candidate.siblingRevPct <= 100) return;\n  candidate.revenueAnnual = (candidate.revenueAnnual * candidate.siblingRevPct) / 100;\n  candidate.profitAnnual = candidate.revenueAnnual - candidate.runningAnnual - candidate.amortAnnual;\n  local immobilise = (\"immobilise\" in candidate) ? candidate.immobilise : 0;\n  local totalCapital = candidate.capital + immobilise;\n  candidate.roi = (candidate.profitAnnual > 0 && totalCapital > 0)\n      ? (candidate.profitAnnual * 1000) / totalCapital : 0;\n}\n\nfunction OpexRailSiblingEmit(catalog, stats, profile, cruiseCache, cargo, source, dstTile, isTransformer, mother)\n{\n  local candidate = OpexMakeCandidate(catalog, \"freight\", cargo, source.tile, dstTile,\n                                      mother.surplus, true, stats, isTransformer, profile, cruiseCache, null);\n  if (candidate == null) return null;\n  candidate.sibling_src <- 1;\n  candidate.joinPlatform <- mother.platform;\n  candidate.joinStationId <- mother.stationId;\n  candidate.joinEnd <- \"A\";\n  /* _tooClose ignore la ligne mere : le quai A est volontairement sur sa gare. */\n  candidate.joinLineId <- mother.line.lineId;\n  candidate.siblingOf <- mother.line.lineId;\n  candidate.siblingRevPct <- mother.revPct;\n  OpexRailSiblingApplyRevenue(candidate);\n  /* Meme composition que OpexMakeCandidate, sur le profit majore. */\n  candidate.opcodeRatio = (candidate.profitAnnual * 1000) / candidate.iterations;\n  candidate.ratio = candidate.opcodeRatio\n      + ((((candidate.roi * candidate.turnoverBonus) / 100) * candidate.freightBonus) / 100) * 15;\n  if (DECISION_LOG) {\n    local label = AICargo.IsValidCargo(cargo) ? AICargo.GetCargoLabel(cargo) : \"?\";\n    OpexDecide(\"RAIL_SIBLING_KEEP\", \"cargo=\" + label + \" src=\" + source.tile + \" dst=\" + dstTile\n        + \" parent=\" + mother.line.lineId + \" station=\" + mother.stationId\n        + \" rev_pct=\" + mother.revPct + \" waiting=\" + mother.waiting\n        + \" transported=\" + mother.transported + \" surplus=\" + mother.surplus\n        + \" profit=\" + candidate.profitAnnual + \" roi=\" + candidate.roi);\n  }\n  return candidate;\n}\n\n",
+        "old": ""
+      },
+      {
+        "new": "      local sibling = (RAIL_SIBLING != 0 && ss != null && longGood == null)\n          ? OpexRailSiblingParent(catalog, lines, ss, cargo, source, monthly) : null;\n",
+        "old": ""
+      },
+      {
+        "new": "        if (sibling != null && sd == null) {\n          local siblingTransformer = (\"isTransformer\" in industries[di]) && industries[di].isTransformer;\n          local kept = OpexRailSiblingEmit(catalog, stats, profile, cruiseCache, cargo, source,\n                                           industries[di].tile, siblingTransformer, sibling);\n          if (kept != null) out.append(kept);\n          continue;\n        }\n",
+        "old": ""
+      },
+      {
+        "new": "          if (sibling != null && st == null) {\n            local kept = OpexRailSiblingEmit(catalog, stats, profile, cruiseCache, cargo, source,\n                                             town.tile, false, sibling);\n            if (kept != null) {\n              kept.dstTown <- town.id;\n              out.append(kept);\n            }\n            continue;\n          }\n",
+        "old": ""
+      }
+    ],
+    "economy.nut": [
+      {
+        "new": "  OpexRailSiblingApplyRevenue(candidate);\n",
+        "old": ""
+      }
+    ],
+    "globals_pre.nut": [
+      {
+        "new": "/* RAIL-SIBLING lot 1 : ligne soeur depuis une source fret saturee (defaut 0). */\nRAIL_SIBLING <- 0;\n/* Majoration plafonnee (realise/prevu de la ligne mere, %) et seuil de saturation (%). */\nRAIL_SIBLING_MAX_REV_PCT <- 200;\nRAIL_SIBLING_TRANSPORTED_PCT <- 60;\n",
+        "old": ""
+      }
+    ],
+    "info.nut": [
+      {
+        "new": "    AddSetting({ name = \"rail_sibling\",\n      description = \"RAIL-SIBLING lot 1: saturated freight source may open a second single-track line on a joined platform, priced by its parent line realised revenue (default 0)\",\n      min_value = 0, max_value = 1,\n      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,\n      flags = AICONFIG_BOOLEAN });\n",
+        "old": ""
+      }
+    ],
+    "po01c_generators.nut": [
+      {
+        "new": "      local sibling = (RAIL_SIBLING != 0 && ss != null && longGood == null)\n          ? OpexRailSiblingParent(catalog, lines, ss, cargo, source, monthly) : null;\n",
+        "old": ""
+      },
+      {
+        "new": "        if (sibling != null && sd == null) {\n          local siblingTransformer = (\"isTransformer\" in industries[di]) && industries[di].isTransformer;\n          local kept = OpexRailSiblingEmit(catalog, stats, profile, cruiseCache, cargo, source,\n                                           industries[di].tile, siblingTransformer, sibling);\n          if (kept != null) out.append(kept);\n          continue;\n        }\n",
+        "old": ""
+      },
+      {
+        "new": "          if (sibling != null && st == null) {\n            local kept = OpexRailSiblingEmit(catalog, stats, profile, cruiseCache, cargo, source,\n                                             town.tile, false, sibling);\n            if (kept != null) {\n              kept.dstTown <- town.id;\n              out.append(kept);\n            }\n            continue;\n          }\n",
+        "old": ""
+      }
+    ],
+    "settings.nut": [
+      {
+        "new": "  local railSibling = AIController.GetSetting(\"rail_sibling\");\n  RAIL_SIBLING = (railSibling != null && railSibling > 0) ? 1 : 0;\n",
+        "old": ""
+      }
+    ]
+  }
+}

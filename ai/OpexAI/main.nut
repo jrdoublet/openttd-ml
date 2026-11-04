@@ -53,6 +53,7 @@ require("pathfinder_v90/rail.nut");
 require("pathfinder_v90/v129.nut");
 require("pathfinder_v90/v296.nut");
 require("builder_rail.nut");
+require("v190_fix_directional.nut");
 require("rail_templates.nut");
 require("builder_air.nut");
 require("builder_water.nut");
@@ -140,11 +141,14 @@ class OpexAI extends AIController {
    * boucle principale continue par pas de dix jours. Jamais de Sleep bloquant dans la tache. */
   _railExpansion = null;
   _v284State = null; // entiers/identites uniquement ; transaction et cadence hors projection.
+  _railLongV2Pending = null; // transaction d'agrandissement A/B, persistee meme option coupee.
+  _railLongV3UpgradePending = null; // upgrade v3 transactionnel, reprise apres Save/Load.
   _v233LReload = null; // donnees brutes de Load, consommees apres lecture des reglages.
   /* Recherche A* ferroviaire reprise d'un tour de file a l'autre (docs/taches.md A4). Meme
    * patron que _railExpansion : l'etat vit ici, il est repris en TETE de _runNextTask, et on
    * termine en remettant _railSearch = null. Le pathfinder lui-meme est dans state.pathfinder. */
   _railSearch = null;
+  _doubleGrowV2State = null; // Recherche secondaire A* opt-in, transitoire et preemptable.
   /* V184 : etat des slots reinitialise au demarrage et au rechargement (une recherche). */
   _v184RailSlots = null;
   _v184SlotCursor = 0;
@@ -220,6 +224,8 @@ class OpexAI extends AIController {
   _v257Cursor = 0;
   _v257State = null;
   _v257Pending = null;
+  _v271Pending = null; // RAIL-PAIR: transaction reprenable V271b.
+  _v271Year = -1;
   _v257PendingLine = null; // reference vivante, reliee par lineId apres Load.
   _v257Cache = null;
   _v257CatalogRef = null;
@@ -509,6 +515,8 @@ class OpexAI extends AIController {
   function _refleetCrashedWaterLines(year);
   function _resizeAirFleets(year);
   function _expandRailLines(year);
+  function _v271TandemSource(year);
+  function _v271Continue();
   function _continueRailExpansion();
   function _startRailSearch(candidate, alternativeRatio, hardCap, projectIndex);
   function _continueRailSearch();
@@ -650,11 +658,15 @@ require("probe_v216.nut");
 require("rivals_v211.nut");
 require("probe_v262_orphans.nut");
 require("scheduler.nut");
+require("invest_stall.nut");
 require("scheduler_tasks.nut");
 require("settings.nut");
 require("task_air.nut");
 require("task_projects.nut");
 require("task_rail.nut");
+require("rail_depot_signal.nut");
+require("rail_pair_geometry.nut");
+require("task_rail_pair.nut");
 require("rail_prep_c121.nut");
 require("task_report.nut");
 require("task_road.nut");
@@ -664,6 +676,17 @@ require("task_v249.nut");
 require("task_v252.nut");
 require("task_v257.nut");
 require("task_v284.nut");
+require("invest_stall_fleet.nut");
+require("task_rail_long_v2.nut");
+require("task_rail_long_v2_fleet.nut");
+require("rail_long_v3.nut");
+require("rail_long_v3_multi.nut");
+require("rail_long_v3_upgrade.nut");
+require("double_grow_geometry.nut");
+require("double_grow_fleet.nut");
+require("double_grow.nut");
+require("double_grow_v2_build.nut");
+require("double_grow_v2.nut");
 require("task_v250.nut");
 require("task_v259.nut");
 require("probe_v307.nut");

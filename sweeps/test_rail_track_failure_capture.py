@@ -158,7 +158,8 @@ class TestRailTrackFailureCapture(unittest.TestCase):
                          PRE_EXTRACTION_HASHES["OpexTestRailTrack"])
 
     def test_failure_logs_and_rollback_order_are_unchanged(self):
-        current = function_body(self.source, "OpexExecuteRailPlan")
+        from rail_depot_signal_legacy import strip_if_present as rds_off
+        current = function_body(rds_off("builder_rail.nut", self.source), "OpexExecuteRailPlan")
         # V233 graft and its fail-before-spend branch were retired. Preserve
         # the complete historical rollback/hash check below without stripping
         # an obsolete guard that no longer exists in the executable source.

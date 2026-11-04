@@ -103,9 +103,28 @@ def _unique_location(code, snippet, name, index):
 
 def estim_off(name, code):
     """Remove only the frozen ESTIM changes, retaining every other source edit."""
+    # The historical ESTIM guards predate RAIL-OPEN. Its independent opt-in
+    # must be projected first so unchanged candidate context remains exact.
+    from rail_open_legacy import off_source as rail_open_off
+    code = rail_open_off(name, code)
+    from rail_consist_legacy import off_source as rail_consist_off
+    code = rail_consist_off(name, code)
     hunks = PATCHES.get(name)
     if hunks is None:
         return code
+    if name == "candidates.nut" and "local sibling = (RAIL_SIBLING" in code:
+        # RAIL-SIBLING inserts its own OFF-by-default declaration between two
+        # unchanged context lines in ESTIM's freight hunk. Preserve those exact
+        # bytes in both sides of this one guard; do not loosen ESTIM's anchor.
+        from rail_sibling_legacy import FIXTURE as SIBLING_FIXTURE
+        addition = SIBLING_FIXTURE["files"][name][1]["new"]
+        assert code.count(addition) == 1, "RAIL-SIBLING candidates: ESTIM context changed"
+        anchor = "      local others2 = null;\n"
+        hunks = list(hunks)
+        guarded, old = hunks[1]
+        assert guarded.count(anchor) == old.count(anchor) == 1
+        hunks[1] = (guarded.replace(anchor, anchor + addition, 1),
+                    old.replace(anchor, anchor + addition, 1))
     states = []
     for index, (guarded, old) in enumerate(hunks):
         on_at = _unique_location(code, guarded, name, index)

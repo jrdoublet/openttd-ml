@@ -9,6 +9,7 @@ import random
 import re
 import unittest
 from v233_long_good_legacy import off_source
+from rail_long_source_off import off_source as rail_long_off
 
 from n75_mc_legacy import P1_BUILDER_RAIL_DELTA
 
@@ -74,7 +75,7 @@ class StationPlanPrecheck(unittest.TestCase):
         # Les deux gardes PO-02/P1 restent retires avec comptage exact avant
         # la comparaison SHA de l'integralite du builder actuel.
         self.assertEqual(source.count(P1_BUILDER_RAIL_DELTA.decode("utf-8")), 1)
-        historical = off_source("builder_rail.nut", source).replace(INSERTION, "").replace(
+        historical = off_source("builder_rail.nut", rail_long_off("builder_rail.nut", source)).replace(INSERTION, "").replace(
             P1_BUILDER_RAIL_DELTA.decode("utf-8"), "")
         self.assertEqual(hashlib.sha256(historical.encode()).hexdigest(),
                          "f36d705996a0a24de726ca8548fbc1f49a88cecd16c90db811e23a25c8edefb4")

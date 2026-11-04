@@ -1,0 +1,19 @@
+{
+  "feature": "RAIL-SEARCH-PRIO phase 1",
+  "baseline_sha256": {
+    "globals_pre.nut": "43e711851a03d7693af6329818b59715b4f5848e7a9d965b8ac0ecdefc737149",
+    "settings.nut": "3977cf36356cfb53140c7eb2fa0ab3305026a6fb6b08baeebb1c5e589b22e051",
+    "info.nut": "854c52aa116484d2f1e8008a451e2d7d013f65df70394066e076a75f78bfb045"
+  },
+  "insertions": {
+    "globals_pre.nut": [
+      "/* RAIL-SEARCH-PRIO phase 1 : priorite a la recherche projet sur stock, strict opt-in. */\nRAIL_SEARCH_PRIO <- false;\n"
+    ],
+    "settings.nut": [
+      "  RAIL_SEARCH_PRIO = AIController.GetSetting(\"rail_search_prio\") == 1;\n"
+    ],
+    "info.nut": [
+      "    /* New opt-in settings go after legacy groups: their OFF fixtures have fixed adjacent anchors. */\n    AddSetting({ name = \"rail_search_prio\",\n      description = \"RAIL-SEARCH-PRIO phase 1: funded project rail search takes priority over speculative stock search (default 0)\",\n      min_value = 0, max_value = 1,\n      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,\n      flags = AICONFIG_BOOLEAN });\n"
+    ]
+  }
+}

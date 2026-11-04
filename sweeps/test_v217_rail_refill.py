@@ -64,6 +64,9 @@ class TestV217RailRefill(unittest.TestCase):
         # restaure le drapeau historique autour de sa regeneration propre.
         # Le controle du V217 existant garde exactement sa portee precedente.
         isolated = dict(self.sources)
+        # INVEST-STALL possède son propre balayage protégé par opt-in ;
+        # il n'appartient pas aux consommateurs V217 historiques.
+        isolated.pop("invest_stall.nut", None)
         scheduler = isolated["scheduler.nut"]
         start = scheduler.index("/* N75:")
         end = scheduler.index("/* C41.11", start)

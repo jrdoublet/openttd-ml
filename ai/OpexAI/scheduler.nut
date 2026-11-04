@@ -107,6 +107,7 @@ function OpexAI::_runNextTaskWithSlackLedger()
   if (DECISION_LOG) OpexV262OrphanSurvey(this._lines);
   if (V217_RAIL_REFILL > 0) this._v217RailRefill();
   if (N75_MULTI_CARGO > 0) OpexN75MultiCargoRefill(this);
+  if (INVEST_STALL) OpexInvestStallTick(this);
   if (V259_BRIDGE_RENEW > 0) this._v259CheckNewBridges();
   if ((!C41_SLACK_LEDGER && !C41_MONTHLY_BUSY_LEDGER && !C41_OPPORTUNITY_LEDGER && !C41_ADMISSION_LEDGER
        && !C41_RAIL_SLICE_LEDGER && !C39_PASS_CLOCK_LEDGER)
@@ -227,6 +228,8 @@ function OpexAI::_runNextTaskWithSlackLedger()
  * item ne peut affamer ceux places apres lui et le dernier rend litteralement la main au premier. */
 function OpexAI::_runNextTask()
 {
+  /* Un chantier RAIL-PAIR partiellement sauvegarde finit meme si l'option a ete desactivee. */
+  if (this._v271Pending != null && RAIL_PAIR == 0) this._v271Continue();
   if (C41_SLACK_LEDGER || C41_MONTHLY_BUSY_LEDGER || C41_OPPORTUNITY_LEDGER || C41_ADMISSION_LEDGER || C39_PASS_CLOCK_LEDGER) this._c41LastTaskName = "idle";
   if (!this._railWorkerSteppedThisTick) {
     /* C41.46 : sentinelle -1 = aucune tranche A* mesuree cette passe. Remise a chaque passage,
@@ -425,6 +428,10 @@ function OpexAI::_advanceRailSearchSliceWithLedgers()
 {
 
   if (this._railSearch == null) return;
+  /* ON seulement: un upgrade calcule ne depense pas avant la passe projects
+   * si une nouvelle ligne rail reste finançable dans le portefeuille courant.
+   * Celle-ci annulera proprement l'upgrade APRES ses gardes habituelles. */
+  if (RAIL_SEARCH_PRIO && OpexRailSearchPrioDeferUpgrade(this)) return;
   local spanSlice = null;
   /* C41.46 : n'encadrer que les passes qui font REELLEMENT avancer l'A* -- phase == "search".
    * phase == "build" retourne immediatement pour kind == "primary" (le cout reel est ailleurs,

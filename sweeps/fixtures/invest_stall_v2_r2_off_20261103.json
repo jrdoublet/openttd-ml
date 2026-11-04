@@ -1,0 +1,75 @@
+{
+  "reason": "Post-v2-r1: rated origin supply cannot fill existing mother station capacity",
+  "files": {
+    "candidates.nut": {
+      "before_sha256": "9dd1969b732f10660a6d19b2e999a41e7d2b4bf6f1ff8a447c099cbd1b538e7f",
+      "after_sha256": "b6fca7944b5326df5d38ac6f347b3d540677b19a9b766812bdaed463305096f1",
+      "edits": [
+        {
+          "after_start": 1577,
+          "before": [
+            "  /* Priorite a : ne proposer une nouvelle gare que si la ligne mere n'a plus\n",
+            "   * de place physique nominale pour un wagon. C'est volontairement plus\n",
+            "   * restrictif que \"croissance rentable\" : tant que cette derniere n'est pas\n",
+            "   * certifiee par le worker fleet, une possibilite de croissance bloque b.\n",
+            "   * Une voie double peut porter d'autres rames : on la laisse egalement a. */\n"
+          ],
+          "after": [
+            "  /* Avant le choix de site, verifier la production et le deficit reels.\n",
+            "   * Si la gare mere capte deja moins de fret que sa capacite, ni un wagon ni\n",
+            "   * un deuxieme train ne peuvent absorber plus de production via cette gare.\n",
+            "   * Dans CE cas seulement, une seconde gare independante peut etre proposee\n",
+            "   * meme si le quai offre nominalement une place a un autre wagon. */\n",
+            "  local gap = OpexInvestStallSourceGap({ _lines = lines }, mother);\n",
+            "  if (DECISION_LOG) OpexDecide(\"INVEST_STALL\", \"event=origin_screen src=\" + source.tile\n",
+            "      + \" cargo=\" + AICargo.GetCargoLabel(cargo) + \" parent=\" + mother.lineId\n",
+            "      + \" reason=\" + gap.reason + \" production=\" + gap.production\n",
+            "      + \" capacity=\" + gap.capacity + \" transported=\" + gap.pct\n",
+            "      + \" rating=\" + gap.rating);\n",
+            "  if (!gap.ok || gap.industry != source.id) return null;\n",
+            "  local ratedOffer = gap.production.tofloat() * gap.rating / 100.0;\n",
+            "  local canLoadMoreAtMother = ratedOffer > gap.capacity;\n"
+          ]
+        },
+        {
+          "after_start": 1599,
+          "before": [
+            "  if (physicalHeadroom > 0 || ((\"doubleTrack\" in mother) && mother.doubleTrack == 1)) {\n"
+          ],
+          "after": [
+            "  if (canLoadMoreAtMother && (physicalHeadroom > 0\n",
+            "      || ((\"doubleTrack\" in mother) && mother.doubleTrack == 1))) {\n"
+          ]
+        },
+        {
+          "after_start": 1603,
+          "before": [
+            "        + \" wagons=\" + wagonsInTrain + \" free=\" + physicalHeadroom);\n"
+          ],
+          "after": [
+            "        + \" wagons=\" + wagonsInTrain + \" free=\" + physicalHeadroom\n",
+            "        + \" rated_offer=\" + ratedOffer + \" capacity=\" + gap.capacity);\n"
+          ]
+        },
+        {
+          "after_start": 1607,
+          "before": [
+            "  local gap = OpexInvestStallSourceGap({ _lines = lines }, mother);\n",
+            "  if (DECISION_LOG) OpexDecide(\"INVEST_STALL\", \"event=origin_screen src=\" + source.tile\n",
+            "      + \" cargo=\" + AICargo.GetCargoLabel(cargo) + \" parent=\" + mother.lineId\n",
+            "      + \" reason=\" + gap.reason + \" production=\" + gap.production\n",
+            "      + \" capacity=\" + gap.capacity + \" transported=\" + gap.pct\n",
+            "      + \" rating=\" + gap.rating);\n",
+            "  if (!gap.ok || gap.industry != source.id) return null;\n"
+          ],
+          "after": [
+            "  if (!canLoadMoreAtMother && DECISION_LOG)\n",
+            "    OpexDecide(\"INVEST_STALL\", \"event=origin_fleet_blocked reason=rating_supply\"\n",
+            "        + \" src=\" + source.tile + \" parent=\" + mother.lineId\n",
+            "        + \" rated_offer=\" + ratedOffer + \" capacity=\" + gap.capacity);\n"
+          ]
+        }
+      ]
+    }
+  }
+}
