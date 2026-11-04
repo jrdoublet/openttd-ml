@@ -742,6 +742,11 @@ class OpexAIInfo extends AIInfo {
       min_value = 0, max_value = 1,
       easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
       flags = AICONFIG_BOOLEAN });
+    AddSetting({ name = "rail_upgrade_cash_memory",
+      description = "REVUE-T2: remember the real second-track quote after a CASH refusal and use it to admit the next upgrade (default 0)",
+      min_value = 0, max_value = 1,
+      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
+      flags = AICONFIG_BOOLEAN });
   }
 }
 

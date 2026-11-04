@@ -718,6 +718,8 @@ function OpexAI::_expandRailLines(year)
             local trackCost = line.distance * this._catalog.costTrackPerTile + 2 * line.platformLength * this._catalog.costStation + depotCost;
             local trainCost = line.loco.price + line.wagons * wagon.price + OpexV163WagonsPrice(this._catalog, line);
             local need = trackCost + trainCost;
+            if (RAIL_UPGRADE_CASH_MEMORY && ("upgradeCashNeed" in line) && line.upgradeCashNeed > need)
+              need = line.upgradeCashNeed;
             local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
             if (money >= need) {
               {
@@ -1806,6 +1808,9 @@ function OpexAI::_recordRailAttempt(candidate, result, posPacked, year, railPlan
 }
 function OpexAI::_startRailUpgradeSearch(line, prep)
 {
+  /* REVUE-T2 F1 : ne jamais ecraser le slot (sous V190, _expandRailLines ne rend
+   * pas la main quand une recherche est active). Sans effet au defaut. */
+  if (this._railSearch != null) return;
   local searchWeight = OpexRailAstarWeight(line.distance);
   line.searchWeight <- searchWeight;
   local lineEngine = OpexRailEngineOf(line);
@@ -1874,6 +1879,7 @@ function OpexAI::_consumeRailUpgrade()
     }
     {
       OpexC41RailCashReleaseLog("reason=upgrade_cash line=" + state.line.lineId);
+      if (RAIL_UPGRADE_CASH_MEMORY && upgrade.cost > 0) state.line.rawset("upgradeCashNeed", upgrade.cost);
       this._railSearch = null;
     }
     return;

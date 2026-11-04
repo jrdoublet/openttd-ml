@@ -934,7 +934,7 @@ class V233LongGoodContracts(unittest.TestCase):
         # La projection retire les deux AddSetting opt-in SEARCH_PRIO et LONG ;
         # le plafond du temoin historique reste exactement 89.
         self.assertEqual(off_config_bytes("info.nut", source("info.nut").encode("utf-8")).count(b"AddSetting("), 89)
-        self.assertEqual(source("info.nut").count("AddSetting("), 96)  # DOUBLE-GROW, RAIL-LOOP, RAIL-FILL, RAIL-KEEP opt-in OFF
+        self.assertEqual(source("info.nut").count("AddSetting("), 97)  # DOUBLE-GROW, RAIL-LOOP, RAIL-FILL, RAIL-KEEP, REVUE-T2 opt-in OFF
 
     def test_off_reviewed_edits_preserve_all_original_hashes(self):
         self.assertEqual(

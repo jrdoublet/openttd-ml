@@ -6616,6 +6616,7 @@ function OpexExecuteUpgradeAfterSearch(catalog, budget, line, search, prep)
   local totalNeeded = trackCost + trainCost;
   if (AICompany.GetBankBalance(AICompany.COMPANY_SELF) < totalNeeded) {
     result.reason = "CASH";
+    if (RAIL_UPGRADE_CASH_MEMORY) result.cost = totalNeeded;
     return result;
   }
 
