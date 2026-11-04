@@ -111,7 +111,7 @@ Chaque recherche segmentée change de trajectoire : opt-in, puis portes A et B.
 | `OpexBuildTrack` (`builder_rail.nut:4091`, `:4315`) | Repli tunnel si `GetOtherTunnelEnd(cur) == next`, sinon pont | Correct |
 | Devis et sonde de pose (`:4247`, `:5140`, `:5198`) | Même repli | Correct |
 | RAIL-LOOP (`rail_loop.nut:303`) | Même repli | Correct |
-| V259, ponts mémorisés (`task_rail.nut:1610`, `:1898`) | `kind != "tunnel"` et test `GetOtherTunnelEnd` | Correct |
+| V259, ponts mémorisés (`task_rail.nut:1610`, `:1624`, `:1908`) | `kind != "tunnel"` et test `GetOtherTunnelEnd` | Correct |
 | DOUBLE-GROW (`double_grow_geometry.nut:619`, `double_grow_v2_build.nut:151`) | **Refus** (`clear_structure`) | Opt-in ; refuse tout ouvrage de l'A\* |
 
 Le repli équivaut à la règle de la bibliothèque (`_Cost`, `v129.nut:506` :
