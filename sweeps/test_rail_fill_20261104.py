@@ -78,6 +78,9 @@ class RailFillBehaviour(unittest.TestCase):
         gate = function_body(self.code, "OpexRailFillGateClosed")
         self.assertIn("OPEX_START_YEAR + RAIL_FILL_START_YEARS", gate)
 
+    def test_skips_a_line_while_rail_loop_converts_it(self):
+        self.assertIn('if (RAIL_FILL && ("railLoop" in line) && line.railLoop == 1) continue;', self.select)
+
     def test_second_train_keeps_the_one_million_gate(self):
         self.assertIn("if (RAIL_FILL && atLimit && !v233Input && !OpexRailFillAddAllowed()) continue;",
                       self.select)

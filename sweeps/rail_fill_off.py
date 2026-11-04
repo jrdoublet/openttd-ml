@@ -24,6 +24,7 @@ INSERTIONS = {
     "task_v257.nut": ('  if (RAIL_FILL && ("railFill" in line) && line.railFill) return;\n',),
     "task_v284.nut": (
         "    if (RAIL_FILL && atLimit && !v233Input && !OpexRailFillAddAllowed()) continue;\n",
+        '    if (RAIL_FILL && ("railLoop" in line) && line.railLoop == 1) continue;\n',
         "  local railFillPlan = (RAIL_FILL && !best.add && !v233Input && (ESTIM_UNIFIE & 4) == 0)\n"
         "      ? OpexRailFillPlan(line, best.vehicle, best.wagon, best.number,\n"
         "          OpexRailNominalMaxWagons(OpexV284Limit(line))) : null;\n"

@@ -221,7 +221,8 @@ une offre surdimensionnée qui fait monter la note puis le trafic.
 | 3 | **Demande non censurée dans V257** : fret capté = production × note prévue, la note intégrant la présence d'une rame en chargement ; à revenu égal, départager par la capacité plutôt que le prix | Moyen, sur tout le parc et dans la durée | Moyen : V257 est actif par défaut, donc nouvel opt-in obligatoire | Non codé. RAIL-FILL contourne le problème en protégeant ses lignes |
 
 Suite naturelle : quand une rame atteint la longueur maximale du quai, ajouter des **rames** par
-RAIL-LOOP (`rail_loop=1`, Prompt 1). L'évitement V284 (V202k : −27 k£) et l'allongement des quais
+RAIL-LOOP (Prompt 1). Depuis le commit `a8cfb1e`, `rail_loop=1` est le défaut, par décision
+utilisateur (`docs/rail_loop_bancs_20261104.md`). L'évitement V284 (V202k : −27 k£) et l'allongement des quais
 (gardes v2/v3) sont moins prometteurs. La multi-traction ne devient nécessaire qu'au-delà de 7
 wagons, c'est-à-dire sur des quais de plus de 4 cases.
 
@@ -236,14 +237,16 @@ wagons, c'est-à-dire sur des quais de plus de 4 cases.
 | `task_v257.nut` | Une ligne : `_v257Review` ignore une ligne `railFill` |
 | `info.nut`, `globals_pre.nut`, `settings.nut`, `main.nut` | Réglage, globale, lecture unique, `require` |
 | `sweeps/rail_fill_off.py` | Projection OFF stricte, retirée en tête de chaîne avant RAIL-LOOP |
-| `sweeps/test_rail_fill_20261104.py` | 12 contrats |
+| `sweeps/test_rail_fill_20261104.py` | 13 contrats |
 | Six tests d'inventaire | Plafond d'`AddSetting` passé de 94 à 95, avec justification |
 
 ### Points d'accroche dans `task_v284.nut`
 
 1. **Porte de sélection.** Sous `RAIL_FILL` : deux ans et 250 k£. Sinon, la garde historique
    **ligne intacte**, sous forme de `else if`.
-2. **Seconde rame avec évitement** : toujours conditionnée à 1 M£.
+2. **Seconde rame avec évitement** : toujours conditionnée à 1 M£. Une ligne dont la conversion
+   RAIL-LOOP est en cours (`railLoop == 1`) est ignorée : RAIL-LOOP est désormais actif par
+   défaut.
 3. **Taille** : après l'équipement +1 historique, `OpexRailFillPlan` remplace le +1 par la plus
    grande taille qui respecte ces quatre conditions :
    - au plus la cible, calculée ainsi : `production × 75 % × 1,5 cycle / capacité wagon`, bornée
@@ -260,10 +263,10 @@ wagons, c'est-à-dire sur des quais de plus de 4 cases.
 
 ### Validations faites dans cette session
 
-- Suite complète : **3 399 tests**, **mêmes 17 échecs/erreurs qu'avant intervention**, aucun
-  nouveau. Un contrat V233L qui lisait la garde V284 a été préservé en gardant la ligne
+- Suite complète, après rebase sur `a8cfb1e` (RAIL-LOOP par défaut) : **3 400 tests**, **mêmes
+  17 échecs/erreurs qu'avant intervention**, aucun nouveau. Un contrat V233L qui lisait la garde V284 a été préservé en gardant la ligne
   historique intacte.
-- `test_rail_fill_20261104.py` 12/12 et `test_rail_loop_20261104.py` 20/20. Ils vérifient :
+- `test_rail_fill_20261104.py` 13/13 et `test_rail_loop_20261104.py` 20/20. Ils vérifient :
   - la projection OFF égale aux SHA du commit `47395b4` ;
   - le refus d'un hunk modifié ;
   - l'ordre des gardes ;
@@ -295,7 +298,9 @@ wagons, c'est-à-dire sur des quais de plus de 4 cases.
 ## 6. Plan de bancs pour le PC (PowerShell, depuis la racine)
 
 Le code est sur la branche `ccr-6d627d08-tlnphk`. L'intégrer à `master` relève de ta décision.
-**Le défaut reste `rail_fill=0`.**
+**Le défaut reste `rail_fill=0`.** La référence ci-dessous n'écrit pas `rail_loop` : elle
+inclut donc RAIL-LOOP, actif par défaut depuis `a8cfb1e`, et RAIL-FILL est mesuré **en plus** de
+ce nouveau défaut. Pour isoler RAIL-FILL de RAIL-LOOP, ajouter `rail_loop=0` aux deux bras.
 
 ```powershell
 $ref = 'OpexAI[mode_air=0,mode_road=0,mode_water=0,rail_sibling=1,rail_open=1]'
@@ -362,7 +367,7 @@ python -X utf8 sweeps/run_c66_reference.py --campaign rail_fill_non_erosion_20x1
 ```
 
 Ensuite seulement :
-- combinaison `rail_fill=1,rail_loop=1`, sur un smoke puis A et B ;
+- variante sans RAIL-LOOP (`rail_loop=0` dans les deux bras), pour isoler l'effet propre ;
 - correction 2 (INVEST-STALL), en smoke 2×8 sous un nom neuf ;
 - multimodal 20×10.
 

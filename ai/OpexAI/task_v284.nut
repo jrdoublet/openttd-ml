@@ -167,6 +167,7 @@ function OpexV284Select(owner, year, v233Input = false)
     if (v233Input && !OpexV233LBacklog(line, waiting, atLimit ? capacity : wagon.capacity)) continue;
     if (atLimit && (waiting < capacity || !OpexRailVehicleSlotAvailable())) continue;
     if (RAIL_FILL && atLimit && !v233Input && !OpexRailFillAddAllowed()) continue;
+    if (RAIL_FILL && ("railLoop" in line) && line.railLoop == 1) continue;
     if (atLimit && (line.lineId in state.loops)) continue;
     local score = line.distance.tofloat() * waiting / capacity;
     local candidateEquipment = null;
