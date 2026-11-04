@@ -824,8 +824,11 @@ function OpexRoad1yAltLoadOrient(vehicle, inverted)
 {
   if (!AIVehicle.IsValidVehicle(vehicle) || AIOrder.GetOrderCount(vehicle) != 2) return false;
   local fullAny = AIOrder.OF_FULL_LOAD_ANY;
-  local flagsA = AIOrder.GetOrderFlags(vehicle, 0) & ~fullAny;
-  local flagsB = AIOrder.GetOrderFlags(vehicle, 1) & ~fullAny;
+  /* Retire le plein chargement sans operateur ~ (aucun precedent ici). */
+  local flagsA = AIOrder.GetOrderFlags(vehicle, 0);
+  local flagsB = AIOrder.GetOrderFlags(vehicle, 1);
+  flagsA = flagsA - (flagsA & fullAny);
+  flagsB = flagsB - (flagsB & fullAny);
   if (inverted) flagsB = flagsB | fullAny;
   else flagsA = flagsA | fullAny;
   if (!AIOrder.SetOrderFlags(vehicle, 0, flagsA)) return false;

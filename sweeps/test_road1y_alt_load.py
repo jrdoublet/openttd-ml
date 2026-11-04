@@ -130,8 +130,9 @@ class AltLoadHelpers(unittest.TestCase):
 
     def test_orient_only_touches_load_flags_and_verifies(self):
         code = body("bus_districts.nut", "OpexRoad1yAltLoadOrient")
-        self.assertIn("AIOrder.GetOrderFlags(vehicle, 0) & ~fullAny", code)
-        self.assertIn("AIOrder.GetOrderFlags(vehicle, 1) & ~fullAny", code)
+        self.assertIn("flagsA = flagsA - (flagsA & fullAny);", code)
+        self.assertIn("flagsB = flagsB - (flagsB & fullAny);", code)
+        self.assertNotIn("~", code)
         self.assertIn("return OpexRoad1yAltLoadIsInverted(vehicle) == inverted;", code)
 
     def test_eligibility(self):
