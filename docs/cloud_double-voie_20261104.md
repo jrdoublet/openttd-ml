@@ -303,6 +303,10 @@ phases `search`, `reject reason=…`, `defer`, `cash`, `track2`, `fail reason=�
 - `git diff --check` : propre.
 - **Non fait : compilation Squirrel.** Aucun compilateur n'est disponible ici ; la compilation
   du module tiers a été refusée. Le smoke 1×1 du §6 est donc **la première exécution réelle**.
+- **Non fait : smoke sur GitHub Actions.** Le déclenchement de `bench.yml` (solo, smoke,
+  `OpexAI[rail_loop=1]`, branche `ccr-6d627d08-tlnphk`) a été refusé :
+  `403 Resource not accessible by integration`. L'intégration de la session n'a pas le droit
+  de lancer des workflows. Blocage signalé ; rien n'a été contourné.
 
 ## 5. Risques moteur non vérifiés, à regarder au smoke
 
