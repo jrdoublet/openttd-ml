@@ -1504,7 +1504,14 @@ function OpexAI::_recordRailAttempt(candidate, result, posPacked, year, railPlan
                  + " cost=" + result.actualCost + " trains=" + result.trains + " wagons=" + result.wagons
                  + ((("wagons2" in candidate) && candidate.wagons2 > 0)
                     ? " cargo2=" + AICargo.GetCargoLabel(candidate.cargo2) + " wagons2=" + candidate.wagons2
-                      + " pred_revenue2=" + candidate.revenue2 : "") + p2Trace);
+                      + " pred_revenue2=" + candidate.revenue2 : "") + p2Trace
+                 /* Revue T5 (mesure seule) : arriere de quai libre et plat a la pose,
+                  * critere exact du back_lead de RAIL-LOOP. */
+                 + ((("platformA" in result) && result.platformA != null
+                     && ("platformB" in result) && result.platformB != null)
+                    ? " len_a=" + result.platformA.length + " len_b=" + result.platformB.length
+                      + " back_a=" + (OpexRailLoopBackPlan(result.platformA) != null ? 1 : 0)
+                      + " back_b=" + (OpexRailLoopBackPlan(result.platformB) != null ? 1 : 0) : ""));
     } else {
       OpexDecide("RAIL_BUILD_FAIL", "line=" + this._nextLineId + " reason=" + result.reason + " error=" + result.error + " iters=" + result.iterations + " budget=" + iterationBudget);
       if (DECISION_LOG && (result.reason == "SITEA" || result.reason == "SITEB" || result.reason == "SITEAB")) {
