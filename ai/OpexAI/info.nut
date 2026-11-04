@@ -732,6 +732,11 @@ class OpexAIInfo extends AIInfo {
       min_value = 0, max_value = 1,
       easy_value = 1, medium_value = 1, hard_value = 1, custom_value = 1,
       flags = AICONFIG_BOOLEAN });
+    AddSetting({ name = "rail_fill",
+      description = "RAIL-FILL: V284 fills existing freight platforms from 250k cash, sized on real production, protected from V257 (default 0)",
+      min_value = 0, max_value = 1,
+      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
+      flags = AICONFIG_BOOLEAN });
   }
 }
 

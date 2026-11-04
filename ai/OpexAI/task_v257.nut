@@ -259,6 +259,7 @@ function OpexAI::_v257Review(line, state, date, force)
    * Ne jamais remplacer une rame RAIL-LONG v3 multihead par son faux
    * equivalent mono-locomotive, meme apres changement du reglage v3. */
   if (OpexRailLongV3MultiLine(line)) return;
+  if (RAIL_FILL && ("railFill" in line) && line.railFill) return;
   if (!("vehicles" in line) || line.vehicles == null || line.vehicles.len() == 0) return;
   if (!("depot" in line) || !AIRail.IsRailDepotTile(line.depot)) return;
   /* Les compositions mixtes ont d'autres contrats de refit : ne pas les demolir. */

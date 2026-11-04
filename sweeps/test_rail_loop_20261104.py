@@ -19,6 +19,7 @@ sys.path.insert(0, str(SWEEPS))
 AI = SWEEPS.parent / "ai" / "OpexAI"
 
 from rail_loop_off import INSERTIONS, off_source  # noqa: E402
+from rail_fill_off import off_source as rail_fill_off  # noqa: E402
 
 # Empreintes des six fichiers câblés AVANT RAIL-LOOP (commit 47395b4).
 PRE_INTERVENTION_SHA = {
@@ -134,7 +135,8 @@ class RailLoopOffProjection(unittest.TestCase):
     def test_off_projection_restores_pre_intervention_bytes(self):
         for name, digest in PRE_INTERVENTION_SHA.items():
             with self.subTest(name=name):
-                projected = off_source(name, read(name))
+                # RAIL-FILL, couche posterieure, est retiree d'abord.
+                projected = off_source(name, rail_fill_off(name, read(name)))
                 self.assertEqual(hashlib.sha256(projected.encode("utf8")).hexdigest(), digest)
                 self.assertEqual(off_source(name, projected), projected)
 

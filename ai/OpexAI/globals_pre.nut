@@ -77,6 +77,8 @@ DOUBLE_GROW <- false;
 DOUBLE_GROW_V2 <- false;
 /* RAIL-LOOP : voie 2 de retour par l'arriere des quais, boucle a sens unique, strict opt-in. */
 RAIL_LOOP <- false;
+/* RAIL-FILL : V284 remplit les quais existants des 250 k£ de caisse, strict opt-in. */
+RAIL_FILL <- false;
 INVEST_STALL_LAST_MONTH <- -1;
 INVEST_STALL_SAVED_MONTH <- -1;
 /* V190-FIX2 : boucle deux aiguillages et signaux directionnels (strict opt-in). */
