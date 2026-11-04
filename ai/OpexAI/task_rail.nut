@@ -1480,6 +1480,9 @@ function OpexAI::_recordRailAttempt(candidate, result, posPacked, year, railPlan
                + " pred_profit=" + (("profitAnnual" in candidate) ? candidate.profitAnnual : -1)
                + " pred_roi=" + (("roi" in candidate) ? candidate.roi : -1)
                + " pred_astar=" + (("iterations" in candidate) ? candidate.iterations : -1)
+               /* Revue T7 (mesure seule) : rames du devis contre rames posees (voie unique = 1). */
+               + " pred_trains=" + (("trains" in candidate) ? candidate.trains : -1)
+               + " built_trains=" + (("trains" in result) ? result.trains : -1)
                + " pre=" + (("preCapital" in candidate) ? candidate.preCapital : -1)
                + " model=" + (("modelCapital" in candidate) ? candidate.modelCapital : -1)
                + " quote=" + (("capital" in result) ? result.capital : -1)
