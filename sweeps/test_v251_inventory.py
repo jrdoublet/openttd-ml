@@ -52,9 +52,10 @@ class TestV251Inventory(unittest.TestCase):
         # P1, C75 annuel/bypass, DIST-BORNES et V233L par blocs EXACTS : historique 58.
         # air_site_probe adds one default-OFF diagnostic, never a policy knob.
         # +1 pour eb2_new_station_fallback (EB-2 repli gare).
-        # Le fichier complet compte 93 settings avec RAIL-SEARCH-PRIO,
-        # RAIL-LONG, INVEST-STALL et DOUBLE-GROW, opt-in ; le plafond historique demeure 58.
-        self.assertEqual(self.sources["info.nut"].count("AddSetting("), 93)
+        # Le fichier complet compte 94 settings avec RAIL-SEARCH-PRIO,
+        # RAIL-LONG, INVEST-STALL, DOUBLE-GROW et RAIL-LOOP (04/11, boucle a sens
+        # unique par l'arriere des quais, defaut 0), opt-in ; le plafond historique demeure 58.
+        self.assertEqual(self.sources["info.nut"].count("AddSetting("), 94)
         self.assertEqual(info.count("AddSetting("), 58)
         self.assertNotIn('name = "v251', info)
         settings = self.sources["settings.nut"]

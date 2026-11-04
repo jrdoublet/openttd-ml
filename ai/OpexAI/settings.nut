@@ -151,6 +151,7 @@ function OpexLoadSettings()
   INVEST_STALL = AIController.GetSetting("invest_stall") == 1;
   DOUBLE_GROW = AIController.GetSetting("double_grow") == 1;
   DOUBLE_GROW_V2 = AIController.GetSetting("double_grow") == 2;
+  RAIL_LOOP = AIController.GetSetting("rail_loop") == 1;
   INVEST_STALL_LAST_MONTH = INVEST_STALL ? INVEST_STALL_SAVED_MONTH : -1;
   INVEST_STALL_SAVED_MONTH = -1;
   V190_FIX_DIRECTIONAL = AIController.GetSetting("v190_fix_directional") != 0;

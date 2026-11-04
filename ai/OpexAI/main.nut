@@ -149,6 +149,7 @@ class OpexAI extends AIController {
    * termine en remettant _railSearch = null. Le pathfinder lui-meme est dans state.pathfinder. */
   _railSearch = null;
   _doubleGrowV2State = null; // Recherche secondaire A* opt-in, transitoire et preemptable.
+  _railLoopState = null; // RAIL-LOOP : recherche/armement transitoire, hors slot _railSearch.
   /* V184 : etat des slots reinitialise au demarrage et au rechargement (une recherche). */
   _v184RailSlots = null;
   _v184SlotCursor = 0;
@@ -687,6 +688,7 @@ require("double_grow_fleet.nut");
 require("double_grow.nut");
 require("double_grow_v2_build.nut");
 require("double_grow_v2.nut");
+require("rail_loop.nut");
 require("task_v250.nut");
 require("task_v259.nut");
 require("probe_v307.nut");

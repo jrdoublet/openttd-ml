@@ -75,6 +75,8 @@ INVEST_STALL <- false;
 /* DOUBLE-GROW : doublement differe des lignes fret rentables, strict opt-in. */
 DOUBLE_GROW <- false;
 DOUBLE_GROW_V2 <- false;
+/* RAIL-LOOP : voie 2 de retour par l'arriere des quais, boucle a sens unique, strict opt-in. */
+RAIL_LOOP <- false;
 INVEST_STALL_LAST_MONTH <- -1;
 INVEST_STALL_SAVED_MONTH <- -1;
 /* V190-FIX2 : boucle deux aiguillages et signaux directionnels (strict opt-in). */
