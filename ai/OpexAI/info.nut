@@ -164,9 +164,9 @@ class OpexAIInfo extends AIInfo {
 
     AddSetting({
       name = "road1y_load_orders",
-      description = "ROAD1Y: Align road vehicle orders on AAAHogEx (freight sink UNLOAD|NO_LOAD, pax source FULL_LOAD_ANY); 0 = off (default), 1 = on",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
+      description = "ROAD1Y: Align road vehicle orders on AAAHogEx (freight sink UNLOAD|NO_LOAD, pax source FULL_LOAD_ANY); 0 = off, 1 = on (default, road only)",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
       flags = AICONFIG_BOOLEAN
     });
 
@@ -410,9 +410,9 @@ class OpexAIInfo extends AIInfo {
     });
     AddSetting({
       name = "road1y_spread_stops",
-      description = "ROAD1Y: distributed joined PAX stops per endpoint (0=off)",
+      description = "ROAD1Y: distributed joined PAX stops per endpoint (0=off, 2=default, road only)",
       min_value = 0, max_value = 4,
-      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
+      easy_value = 2, medium_value = 2, hard_value = 2, custom_value = 2,
       flags = 0
     });
     AddSetting({

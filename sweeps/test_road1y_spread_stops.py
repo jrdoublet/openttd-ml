@@ -16,7 +16,7 @@ class SpreadStopsContracts(unittest.TestCase):
         self.assertIn('ROAD1Y_SPREAD_STOPS <- 0;', source("globals_pre.nut"))
         block = source("info.nut").split('name = "road1y_spread_stops",')[1].split("});")[0]
         for difficulty in ("easy", "medium", "hard", "custom"):
-            self.assertIn(difficulty + "_value = 0", block)
+            self.assertIn(difficulty + "_value = 2", block)
         self.assertIn("min_value = 0, max_value = 4", block)
         for loader in ("OpexLoadSettings", "OpexLoadBusDistrictSettings"):
             code = body("settings.nut", loader)

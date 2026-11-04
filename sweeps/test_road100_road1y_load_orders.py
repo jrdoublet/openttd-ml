@@ -29,7 +29,7 @@ class Road1yLoadOrdersContracts(unittest.TestCase):
         block = re.search(r'name = "road1y_load_orders"(.{0,430})', self.info, re.S)
         self.assertIsNotNone(block, "road1y_load_orders setting must be declared in info.nut")
         for difficulty in ("easy", "medium", "hard", "custom"):
-            self.assertRegex(block.group(1), rf"{difficulty}_value\s*=\s*0")
+            self.assertRegex(block.group(1), rf"{difficulty}_value\s*=\s*1")
         self.assertIn("flags = AICONFIG_BOOLEAN", block.group(1))
 
         # Lecture dans settings.nut ; inerte hors route seule (valeur master false).
