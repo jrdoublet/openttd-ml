@@ -737,6 +737,11 @@ class OpexAIInfo extends AIInfo {
       min_value = 0, max_value = 1,
       easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
       flags = AICONFIG_BOOLEAN });
+    AddSetting({ name = "v257_demand",
+      description = "V257 demand: forecast freight demand from industry production and station rating, prefer capacity at equal net income (default 1 since 2026-11-05, user decision)",
+      min_value = 0, max_value = 1,
+      easy_value = 1, medium_value = 1, hard_value = 1, custom_value = 1,
+      flags = AICONFIG_BOOLEAN });
   }
 }
 

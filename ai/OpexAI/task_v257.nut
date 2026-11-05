@@ -75,6 +75,37 @@ function OpexV257CapturedMonthly(monthly, ratingPercent, serviceSpeed, planSpeed
   return monthly.tofloat() * predictedShare / observedShare;
 }
 
+/* V257 demande non censuree : l'industrie est la source du flux, non la
+ * quantite que l'ancienne petite rame a effectivement livree. Une rame a
+ * quai donne une perspective de ramassage d'au moins 75 %, sans promettre
+ * davantage que la production mensuelle reelle. Meme division par le nombre
+ * de rames que le modele observe, pour ne pas multiplier la production. */
+function OpexV257UncensoredMonthly(line, vehicles, rating, fallback)
+{
+  if (line.kind != "freight" || vehicles == null || vehicles.len() == 0) return fallback;
+  local industry = -1;
+  if ("srcIndustry" in line) industry = line.srcIndustry;
+  else if ("originA" in line) industry = AIIndustry.GetIndustryID(line.originA);
+  if (!AIIndustry.IsValidIndustry(industry)) return fallback;
+  local production = AIIndustry.GetLastMonthProduction(industry, line.cargo);
+  if (production <= 0) return fallback;
+  local predictedRating = rating;
+  local sourceStation = AIStation.GetStationID(line.stationA);
+  if (AIStation.IsValidStation(sourceStation)) {
+    foreach (vehicle in vehicles) {
+      if (!AIVehicle.IsValidVehicle(vehicle)) continue;
+      if (AIVehicle.IsStoppedInDepot(vehicle)) continue;
+      if (AIStation.GetStationID(AIVehicle.GetLocation(vehicle)) == sourceStation) {
+        if (predictedRating < 75) predictedRating = 75;
+        break;
+      }
+    }
+  }
+  if (predictedRating < 0) return fallback;
+  if (predictedRating > 100) predictedRating = 100;
+  return production.tofloat() * predictedRating / (100.0 * vehicles.len());
+}
+
 /* Cash-flow annuel d'UNE rame, sans amortissement : le remboursement compte deja
  * l'achat net. monthly est le flux capte observe. Chaque plan le recale sur
  * sa propre note de vitesse avant de plafonner le transport. */
@@ -243,7 +274,10 @@ function OpexV257BestPlan(owner, line, monthly, rating, serviceSpeed, railType, 
         local plan = OpexV257Plan(line, loco, wagon, number, monthly, rating, serviceSpeed, wagonLimits);
         if (plan == null) continue;
         if (best == null || plan.revenue - plan.running > best.revenue - best.running
-            || (plan.revenue - plan.running == best.revenue - best.running && plan.price < best.price)) best = plan;
+            || (plan.revenue - plan.running == best.revenue - best.running
+                && (V257_DEMAND ? (number * wagon.capacity > best.wagons * best.wagon.capacity
+                    || (number * wagon.capacity == best.wagons * best.wagon.capacity && plan.price < best.price))
+                    : plan.price < best.price))) best = plan;
       }
     }
   }
@@ -315,6 +349,7 @@ function OpexAI::_v257Review(line, state, date, force)
   /* Stock en attente amorti sur un an, jamais considere comme un flux mensuel.
    * La moyenne mesuree et le stock sont partages entre les rames de la ligne. */
   local monthly = (state.annualDelivered * 365.0 / state.annualDays + waiting) / (12 * count);
+  if (V257_DEMAND) monthly = OpexV257UncensoredMonthly(line, line.vehicles, rating, monthly);
   local selected = null;
   local selectedVehicle = -1;
   local selectedGain = 0;
@@ -501,6 +536,7 @@ function OpexAI::_v257ReplaceStep()
       }
       if (ratingNow >= 0) rating = ratingNow;
     }
+    if (V257_DEMAND) monthly = OpexV257UncensoredMonthly(line, line.vehicles, rating, monthly);
     local wagonLimits = OpexV257WagonSpeedLimits();
     local serviceLoco = OpexV257Engine(AIVehicle.GetEngineType(oldVehicle), line.cargo, false);
     local serviceWagon = OpexV257Engine(wagonEngine, line.cargo, true);
