@@ -7,6 +7,8 @@ reviewed opt-in fragments are subtracted.
 """
 
 import hashlib
+import json
+from pathlib import Path
 
 
 INFO_DELTA = (
@@ -869,13 +871,89 @@ AIR_LOAD_INFO_DELTA = (
     b'      flags = 0 });\n')
 
 
+# RAIL-SEARCH-PRIO is a new default-OFF setting. The reviewed fixture pins
+# precisely the added configuration bytes; historical SHA and setting-count
+# contracts continue to use the pre-intervention source.
+RAIL_SEARCH_PRIO_CONFIG = json.loads(
+    (Path(__file__).parent / "fixtures/rail_search_prio_off_20261103.json")
+    .read_text(encoding="utf-8")
+)["insertions"]
+
+# RAIL-LONG est une experience opt-in supplementaire. Ses trois ajouts
+# exacts sont projetes OFF avant la projection historique des autres leviers.
+RAIL_LONG_CONFIG = json.loads(
+    (Path(__file__).parent / "fixtures/rail_long_off_20261103.json")
+    .read_text(encoding="utf-8")
+)["insertions"]
+
+
+def rail_long_config_off_bytes(name, raw):
+    from v257_demand_off import off_source as demand_off
+    raw = demand_off(name, raw.decode("utf8")).encode("utf8")
+    from double_grow_off import off_source as double_grow_off
+    raw = double_grow_off(name, raw.decode("utf8")).encode("utf8")
+    # La version 2 ajoute une couche APRES la fixture RAIL-LONG v1.
+    # La retirer d'abord sans réécrire les SHA historiques.
+    from rail_long_v2_off import off_source as v2_off
+    raw = v2_off(name, raw.decode("utf8")).encode("utf8")
+    # Nouvelle couche opt-in INVEST-STALL : retirer ses seuls ajouts avant
+    # les fixtures RAIL-LONG historiques, sans changer leurs empreintes.
+    if name in ("globals_pre.nut", "settings.nut", "info.nut", "main.nut", "scheduler.nut", "persist.nut") and (
+        b"INVEST_STALL" in raw or b"invest_stall" in raw
+    ):
+        from invest_stall_source_off import project_off as invest_stall_off
+        raw = invest_stall_off(name, raw.decode("utf8")).encode("utf8")
+    insertions = RAIL_LONG_CONFIG.get(name, ())
+    if not insertions:
+        return raw
+    sentinels = {
+        "globals_pre.nut": b"RAIL_LONG <-",
+        "settings.nut": b"RAIL_LONG =",
+        "info.nut": b'RAIL-LONG freight:',
+    }
+    for insertion in insertions:
+        delta = insertion.encode("utf-8")
+        count = raw.count(delta)
+        assert count <= 1, f"RAIL-LONG {name}: duplicate opt-in bytes"
+        if count:
+            raw = raw.replace(delta, b"", 1)
+        else:
+            assert sentinels[name] not in raw, f"RAIL-LONG {name}: modified opt-in bytes"
+    return raw
+
+
+def rail_search_prio_config_off_bytes(name, raw):
+    insertions = RAIL_SEARCH_PRIO_CONFIG.get(name, ())
+    if not insertions:
+        return raw
+    for insertion in insertions:
+        delta = insertion.encode("utf-8")
+        count = raw.count(delta)
+        assert count <= 1, f"RAIL-SEARCH-PRIO {name}: duplicate opt-in bytes"
+        if count:
+            raw = raw.replace(delta, b"", 1)
+        else:
+            # Accept a source already projected to OFF, but reject a partial
+            # or modified setting that would silently invalidate the fixture.
+            assert b"rail_search_prio" not in raw and b"RAIL_SEARCH_PRIO" not in raw, (
+                f"RAIL-SEARCH-PRIO {name}: modified opt-in bytes"
+            )
+    return raw
+
+
 def historical_bytes(name, raw):
+    raw = rail_long_config_off_bytes(name, raw)
+    raw = rail_search_prio_config_off_bytes(name, raw)
+    from rail_depot_signal_legacy import strip_if_present as depot_signal_off
+    raw = depot_signal_off(name, raw.decode("utf-8")).encode("utf-8")
     from estim_unifie_legacy import estim_off_bytes
     # ROAD100 is a separate seven-setting, default-OFF experiment. Project
     # its exact reviewed hunks before all older opt-in projectors; no
     # historic SHA is changed or rebaselined by this addition.
     from road100_off_projection import off_bytes as road100_off_bytes
     raw = road100_off_bytes(name, raw)
+    from rail_sibling_legacy import off_bytes as sibling_off_bytes
+    raw = sibling_off_bytes(name, raw)
     if name == "info.nut":
         # AIR-LOAD-1 (air_load_min_pct, defaut 0) : reglage opt-in hors inventaire historique.
         assert raw.count(AIR_LOAD_INFO_DELTA) == 1, "AIR-LOAD-1 info.nut: opt-in bytes changed"

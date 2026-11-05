@@ -1,0 +1,48 @@
+﻿=== C66.4 campagne rail_loop_non_erosion_multi_20x10_20261104 ===
+Bundle: 7af015bfd379f3a2ae945e0e0ecb7057ed935240ce18c982083603e023e696e6 | Manifest: 12c84235efd4491f5a1a4293174049093b1c1ff04f21999ad316a66ec0c73d09
+=== Lancement Banc 1v1 Duel OpexAI vs AAAHogEx : 40 parties (20 graines x 1 repetition(s) x 2 politique(s) x 10 ans) ===
+Workers: 10 | Sortie: /work/.wt_rail_loop_20261104/results/rail_loop_non_erosion_multi_20x10_20261104.json
+✔ Running experiments... ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 40/40
+
+===================================================================================================================
+BANC 1v1 OPEXAI vs AAAHOGEX (CARTE PARTAGÉE) — BILAN 10 ANS (20 GRAINES)
+===================================================================================================================
+Graine   | Valeur Opex vs AAAHogEx          | Profit An Opex vs AAA        | Score O/A      | Véhicules O/A    | Gares O/A    | statut O/A                  
+------------------------------------------------------------------------------------------------------------------------------------------------------------
+202945   | 20,162,462 vs 28,189,876 (71.5%) | 4,300,821 vs 7,673,757       |  883 vs 900    | 115 vs 275       |  81 vs 176   | complete/complete
+714470   | 23,295,549 vs 21,243,007 (109.7%) | 4,168,275 vs 6,028,159       |  880 vs 881    | 104 vs 215       |  83 vs 173   | complete/complete
+784679   | 23,857,059 vs 28,935,206 (82.4%) | 4,725,423 vs 7,370,766       |  890 vs 887    | 114 vs 265       |  85 vs 183   | complete/complete
+902164   | 18,413,945 vs 21,856,878 (84.2%) | 3,963,660 vs 6,685,366       |  884 vs 893    | 113 vs 225       |  84 vs 180   | complete/complete
+749629   | 20,623,906 vs 16,301,451 (126.5%) | 3,684,158 vs 5,042,344       |  892 vs 896    | 113 vs 278       |  84 vs 155   | complete/complete
+107890   | 20,569,458 vs 26,138,827 (78.7%) | 4,159,653 vs 6,982,462       |  889 vs 900    | 110 vs 295       |  88 vs 186   | complete/complete
+40643    | 23,176,743 vs 30,098,289 (77.0%) | 4,066,155 vs 8,904,258       |  896 vs 893    | 119 vs 420       |  87 vs 190   | complete/complete
+455360   | 12,753,662 vs 26,801,094 (47.6%) | 2,741,660 vs 6,540,229       |  818 vs 895    |  92 vs 218       |  84 vs 148   | complete/complete
+160569   | 19,855,186 vs 34,866,462 (56.9%) | 4,013,514 vs 8,820,292       |  895 vs 900    | 119 vs 325       |  85 vs 196   | complete/complete
+29374    | 28,735,763 vs 25,009,968 (114.9%) | 5,517,702 vs 7,288,685       |  900 vs 900    | 132 vs 273       |  88 vs 172   | complete/complete
+114463   | 24,446,745 vs 27,636,303 (88.5%) | 4,581,380 vs 7,394,725       |  895 vs 887    | 120 vs 259       |  91 vs 163   | complete/complete
+324204   | 24,520,147 vs 39,744,941 (61.7%) | 4,987,507 vs 9,624,426       |  893 vs 900    | 126 vs 293       |  89 vs 195   | complete/complete
+775093   | 24,497,783 vs 29,978,492 (81.7%) | 5,011,816 vs 8,044,529       |  899 vs 900    | 129 vs 286       |  97 vs 164   | complete/complete
+324874   | 18,880,153 vs 24,209,542 (78.0%) | 4,116,614 vs 6,649,728       |  878 vs 893    | 102 vs 274       |  85 vs 192   | complete/complete
+627451   | 29,842,338 vs 37,171,810 (80.3%) | 5,766,921 vs 8,753,348       |  900 vs 900    | 127 vs 270       |  92 vs 182   | complete/complete
+897560   | 24,768,733 vs 23,163,914 (106.9%) | 4,306,486 vs 7,506,441       |  870 vs 900    |  91 vs 336       |  88 vs 179   | complete/complete
+957425   | 27,556,351 vs 27,903,718 (98.8%) | 5,421,538 vs 7,016,498       |  900 vs 893    | 129 vs 268       |  94 vs 171   | complete/complete
+851094   | 24,796,100 vs 35,809,940 (69.2%) | 5,024,455 vs 8,639,276       |  888 vs 900    | 121 vs 284       |  89 vs 175   | complete/complete
+697815   | 24,687,959 vs 26,948,255 (91.6%) | 4,536,824 vs 6,811,857       |  897 vs 893    | 119 vs 219       |  89 vs 160   | complete/complete
+789380   | 19,735,462 vs 29,504,561 (66.9%) | 4,274,943 vs 7,300,270       |  913 vs 893    | 118 vs 297       |  86 vs 176   | complete/complete
+------------------------------------------------------------------------------------------------------------------------------------------------------------
+MOYENNE [OpexAI  ] : CV: 22,758,775 £ | Profit/an: 4,468,475 £ | Score:  888 | Véhicules: 115.7 | Gares: 87.5
+MOYENNE [AAAHogEx] : CV: 28,075,627 £ | Profit/an: 7,453,871 £ | Score:  895 | Véhicules: 278.8 | Gares: 175.8
+
+=== COMPARAISON APPARIÉE OPEXAI vs AAAHOGEX ===
+  company_value            : d% = -18.94% | Victoires OpexAI = 4/20 (p=0.0007)
+  profit_year              : d% = -40.05% | Victoires OpexAI = 0/20 (p=0.0000)
+  performance_history      : d% = -0.80% | Victoires OpexAI = 6/20 (p=0.0963)
+  median_station_rating    : d% = -19.95% | Victoires OpexAI = 0/20 (p=0.0000)
+
+=== C66.4 VARIANTE - RÉFÉRENCE ===
+profit_year: delta moyen=-63618.55 median=-82830.5 V/D/E=9/11/0 p_wilcoxon=0.6742229461669922 CI95_bootstrap=[-248168.1, 113169.6] (echec si borne haute < 0)
+company_value: ratio des moyennes=1.010901 (1.090111%), moyenne des ratios=1.014304
+paires=20/20 verdict=pass
+C66.4 campaign: rail_loop_non_erosion_multi_20x10_20261104
+Git: 07e2d3894013f7a125ff4bb8bc4ad6b5df28b633 dirty=1
+Docker: openttd-lab:latest sha256:0480a863e164856797412ff4a0782621464a52087abbb9c056dd3587d46cac31

@@ -9,6 +9,7 @@ from pathlib import Path
 import re
 import unittest
 from n75_mc_legacy import historical_info
+from test_rail_search_prio_20261103 import off_config_bytes
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -43,7 +44,9 @@ class TestV251Inventory(unittest.TestCase):
         cls.labels = _function_body(cls.probes, "OpexV251CargoLabels")
 
     def test_no_new_public_setting(self):
-        info = historical_info(self.sources["info.nut"])
+        # La projection legacy stricte extrait des blocs contigus : retirer le
+        # nouveau bloc opt-in avant d'identifier les blocs RAIL-OPEN existants.
+        info = historical_info(off_config_bytes("info.nut").decode("utf-8"))
         # Migration controlee des options historiques : conserver PO01C=1,
         # PO03/C77=2 et PO02=1. historical_info soustrait N75, P6, P3 et FP2
         # P1, C75 annuel/bypass, DIST-BORNES et V233L par blocs EXACTS : historique 58.
@@ -61,6 +64,10 @@ class TestV251Inventory(unittest.TestCase):
         # B2 fixes adds one default-OFF bitmask for isolated one-year diagnostics.
         # master: eb2 fallback + 4 rail repair profiles and V233L counterfactual.
         self.assertLessEqual(info.count("AddSetting("), 75)
+        # After the precise legacy projectors, preserve the master inventory:
+        # origin/master 44d9313e already projects to 68 settings (not 58).
+        # The extra ten belong to master, not to V251 or the rail merge.
+        self.assertEqual(info.count("AddSetting("), 68)
         self.assertNotIn('name = "v251', info)
         settings = self.sources["settings.nut"]
         self.assertNotIn('GetSetting("v251', settings)

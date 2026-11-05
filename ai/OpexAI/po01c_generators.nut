@@ -193,6 +193,8 @@ function OpexPO01CFreightCandidates(catalog, lines, out, stats, abandonedPairs =
           ? OpexRailSiblingParent(catalog, lines, ss, cargo, source, monthly) : null;
       if (sibling == null && RAIL_OPEN != 0 && RAIL_SIBLING == 0 && ss != null && longGood == null)
         sibling = OpexRailSiblingParent(catalog, lines, ss, cargo, source, monthly);
+      local stallSecond = INVEST_STALL && ss != null && longGood == null
+          ? OpexInvestStallSecondSourceParent(lines, ss, cargo, source) : null;
       local industryMark = profile != null ? OpexOpsMeasureBegin() : null;
       for (local k = 0; k < sinks.len(); k++) {
     yield null; // PO01C_CHECKPOINT
@@ -212,6 +214,13 @@ function OpexPO01CFreightCandidates(catalog, lines, out, stats, abandonedPairs =
         /* V179 : source neuve, destination deja desservie : on garde la paire, V178 la rattache.
          * Ce chemin n'est pas marque convergent : V264 ne s'execute que dans l'exclusion. */
         local v179Keep = ss == null && sd != null;
+        if (stallSecond != null && sd == null) {
+          local transformer = ("isTransformer" in industries[di]) && industries[di].isTransformer;
+          local second = OpexInvestStallEmitSecondStation(catalog, stats, profile, cruiseCache,
+              cargo, source, industries[di].tile, transformer, stallSecond);
+          if (second != null) out.append(second);
+          continue;
+        }
         if (sibling != null && sd == null) {
           if (OpexRailOpenBAlreadyCovered(catalog, lines, cargo, industries[di].tile, sibling)) {
             stats.pairsOriginServed++;
@@ -306,6 +315,12 @@ function OpexPO01CFreightCandidates(catalog, lines, out, stats, abandonedPairs =
             if (townServiceCache != null) townServiceCache[town.id] <- st;
           }
           if (townServiceMark != null) { profile.freightTownServiceOps += OpexOpsMeasureEnd(townServiceMark); profile.freightTownServiceCalls++; }
+          if (stallSecond != null && st == null) {
+            local second = OpexInvestStallEmitSecondStation(catalog, stats, profile, cruiseCache,
+                cargo, source, town.tile, false, stallSecond);
+            if (second != null) { second.dstTown <- town.id; out.append(second); }
+            continue;
+          }
           if (sibling != null && st == null) {
             if (OpexRailOpenBAlreadyCovered(catalog, lines, cargo, town.tile, sibling)) {
               stats.pairsOriginServed++;

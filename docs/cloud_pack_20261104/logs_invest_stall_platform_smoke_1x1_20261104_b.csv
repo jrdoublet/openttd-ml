@@ -1,0 +1,10 @@
+tag,first_kv,reason,count
+PROJECT_DISCARD,,too_close_no_join,446
+RAIL_BUILD,,,20
+PROJECT_DISCARD,,cash_at_build,13
+RAIL_SEARCH,,,7
+RAIL_OPEN_SITE,phase=joint_plan,,4
+RAIL_BUILD_FAIL,,TRKFAIL,2
+PROJECT_DISCARD,,TRKFAIL,2
+PROJECT_DISCARD,,abandoned_pair,2
+PROJECT_DISCARD,,insufficient_cash,2

@@ -1,0 +1,375 @@
+{
+  "feature": "RAIL-LONG v2",
+  "origin": "Frozen INVEST-STALL v3 R2 bundle, before RAIL-LONG v2 changes",
+  "files": {
+    "builder_rail.nut": {
+      "before_sha256": "b381fefd350fbec7d686e6fa5ed489537be18c6d9fc090ca8166f195a36593af",
+      "after_sha256": "65a52df9173da4ec0ccb2ff6ee6e61097bfa3e24feb0ff6e1a5df8e40909e81e",
+      "edits": [
+        {
+          "after_start": 1538,
+          "before": [],
+          "after": [
+            "/* RAIL-LONG v2 : le choix d'un quai de 6-7 cases depend du capital et de la\n",
+            " * possibilite physique, pas du remplissage initial d'une rame longue.\n",
+            " * A partir de la quatrieme annee, la caisse minimale est volontairement\n",
+            " * basse. Le cout du projet et sa marge restent controles au devis exact. */\n",
+            "function OpexRailLongV2SiteLength(catalog, candidate)\n",
+            "{\n",
+            "  if (!RAIL_LONG_V2 || candidate.kind != \"freight\" || OpexV233LIs(candidate)\n",
+            "      || ((\"railLongShortRetry\" in candidate) && candidate.railLongShortRetry)\n",
+            "      || candidate.platformLength >= 6 || !(\"monthly\" in candidate)\n",
+            "      || candidate.monthly <= 0) return 0;\n",
+            "  local limit = catalog.platformLength;\n",
+            "  if (catalog.maxTrainLength > 0 && catalog.maxTrainLength < limit)\n",
+            "    limit = catalog.maxTrainLength;\n",
+            "  if (limit < 6) return 0;\n",
+            "  local year = AIDate.GetYear(AIDate.GetCurrentDate());\n",
+            "  local threshold = year >= OPEX_START_YEAR + 3 ? 350000 : 750000;\n",
+            "  local cash = OpexAvailableCapital();\n",
+            "  if (DECISION_LOG) OpexDecide(\"RAIL_LONG_V2\", \"event=site_gate src=\" + candidate.src\n",
+            "      + \" dst=\" + candidate.dst + \" year=\" + year + \" cash=\" + cash\n",
+            "      + \" threshold=\" + threshold + \" monthly=\" + candidate.monthly);\n",
+            "  if (cash < threshold) return 0;\n",
+            "  return limit < 7 ? 6 : 7;\n",
+            "}\n",
+            "\n"
+          ]
+        },
+        {
+          "after_start": 1756,
+          "before": [
+            "  if (RAIL_LONG && candidate.kind == \"freight\") {\n"
+          ],
+          "after": [
+            "  if ((RAIL_LONG || RAIL_LONG_V2) && candidate.kind == \"freight\") {\n"
+          ]
+        },
+        {
+          "after_start": 1762,
+          "before": [
+            "  local railLongLength = OpexRailLongSiteLength(catalog, candidate);\n",
+            "  if (RAIL_LONG && candidate.kind == \"freight\") {\n"
+          ],
+          "after": [
+            "  local railLongLength = RAIL_LONG_V2 ? OpexRailLongV2SiteLength(catalog, candidate)\n",
+            "      : OpexRailLongSiteLength(catalog, candidate);\n",
+            "  if ((RAIL_LONG || RAIL_LONG_V2) && candidate.kind == \"freight\") {\n"
+          ]
+        },
+        {
+          "after_start": 1767,
+          "before": [],
+          "after": [
+            "    if (RAIL_LONG_V2) {\n",
+            "      if (!(\"railLongV2Chosen\" in candidate)) candidate.railLongV2Chosen <- false;\n",
+            "      else candidate.railLongV2Chosen = false;\n",
+            "    }\n"
+          ]
+        },
+        {
+          "after_start": 1913,
+          "before": [
+            "            OpexV163CandidateSecondary(candidate), false, true);\n"
+          ],
+          "after": [
+            "            OpexV163CandidateSecondary(candidate), false, RAIL_LONG);\n"
+          ]
+        },
+        {
+          "after_start": 1916,
+          "before": [
+            "        local longCashNeed = quote != null ? quote.capital * 1.10 : 0;\n"
+          ],
+          "after": [
+            "        local longCashNeed = quote != null ? quote.capital * 1.10\n",
+            "            + (RAIL_LONG_V2 ? 100000 : 0) : 0;\n"
+          ]
+        },
+        {
+          "after_start": 1921,
+          "before": [
+            "          if (DECISION_LOG) OpexDecide(\"RAIL_LONG\", \"event=site src=\" + candidate.src\n"
+          ],
+          "after": [
+            "          if (RAIL_LONG_V2) candidate.railLongV2Chosen = true;\n",
+            "          if (RAIL_LONG_V2 && DECISION_LOG)\n",
+            "            OpexDecide(\"RAIL_LONG_V2\", \"event=site src=\" + candidate.src\n",
+            "                + \" dst=\" + candidate.dst + \" len=\" + length\n",
+            "                + \" monthly=\" + candidate.monthly + \" wagons=\" + quote.wagons\n",
+            "                + \" profit=\" + quote.profitAnnual + \" capital=\" + quote.capital\n",
+            "                + \" cash_need=\" + longCashNeed);\n",
+            "          if (RAIL_LONG && DECISION_LOG) OpexDecide(\"RAIL_LONG\", \"event=site src=\" + candidate.src\n"
+          ]
+        },
+        {
+          "after_start": 1938,
+          "before": [
+            "    if (DECISION_LOG) OpexDecide(\"RAIL_LONG\", \"event=fallback src=\" + candidate.src\n"
+          ],
+          "after": [
+            "    if (RAIL_LONG_V2 && DECISION_LOG)\n",
+            "      OpexDecide(\"RAIL_LONG_V2\", \"event=fallback src=\" + candidate.src\n",
+            "          + \" dst=\" + candidate.dst + \" historical=\" + wanted\n",
+            "          + \" reason=site_roi_or_cash\");\n",
+            "    if (RAIL_LONG && DECISION_LOG) OpexDecide(\"RAIL_LONG\", \"event=fallback src=\" + candidate.src\n"
+          ]
+        }
+      ]
+    },
+    "globals_pre.nut": {
+      "before_sha256": "240f7b0d834e0e2bf9fe900bbd8041ae9c93665f91a101ea033c3117803e5ee7",
+      "after_sha256": "5339971316106eb65e7225fe2c7c1d49a47556b0e81cd5b25751a597553c8e09",
+      "edits": [
+        {
+          "after_start": 68,
+          "before": [],
+          "after": [
+            "/* RAIL-LONG v2 : mode distinct, la politique v1 conserve sa globale booleenne. */\n",
+            "RAIL_LONG_V2 <- false;\n"
+          ]
+        }
+      ]
+    },
+    "info.nut": {
+      "before_sha256": "f905b51f2ddfe9af3b7292cd832cfd4b17b8b91021a42e291443b3f4d8f5cdef",
+      "after_sha256": "96e4671bc495f20e4fdf1fc7599ecf6651a11b9af5c1d26fc5d69cfb24bed399",
+      "edits": [
+        {
+          "after_start": 715,
+          "before": [
+            "      description = \"RAIL-LONG freight: 6-7 wagon consist when monthly production >= 1.5x short-train capacity, with physical fit and safe fallback (default 0)\",\n",
+            "      min_value = 0, max_value = 1,\n"
+          ],
+          "after": [
+            "      description = \"RAIL-LONG: 1=production-based long train; 2=6-7 tile freight platforms, demand-sized trains and later upgrades (default 0)\",\n",
+            "      min_value = 0, max_value = 2, step_size = 1,\n"
+          ]
+        },
+        {
+          "after_start": 718,
+          "before": [
+            "      flags = AICONFIG_BOOLEAN });\n"
+          ],
+          "after": [
+            "      flags = 0 });\n"
+          ]
+        }
+      ]
+    },
+    "main.nut": {
+      "before_sha256": "53c944de483ae71c99d96c084596e8fcddff1f17ea3fa26580db5d5ae2a787d3",
+      "after_sha256": "9391f8a9969559750ce545ebc6375ad29416b0081ed342cf7313656256757b86",
+      "edits": [
+        {
+          "after_start": 143,
+          "before": [],
+          "after": [
+            "  _railLongV2Pending = null; // transaction d'agrandissement A/B, persistee meme option coupee.\n"
+          ]
+        },
+        {
+          "after_start": 677,
+          "before": [],
+          "after": [
+            "require(\"task_rail_long_v2.nut\");\n",
+            "require(\"task_rail_long_v2_fleet.nut\");\n"
+          ]
+        }
+      ]
+    },
+    "orchestrator.nut": {
+      "before_sha256": "11ffa0fc4cf5cb9e87c89fd55a95c63629c88741dc0aae42606088c18818af51",
+      "after_sha256": "018b54d87e094a4bfb07658b34d58a9e62458be3ca7b3a29fd26faee9648166b",
+      "edits": [
+        {
+          "after_start": 1002,
+          "before": [],
+          "after": [
+            "  /* RAIL-LONG v2 : terminer une transaction de quais meme si le reglage a\n",
+            "   * ete desactive apres Load. Hors pending, chemin OFF et mode 1 identiques. */\n",
+            "  if (this._railLongV2Pending != null) OpexRailLongV2Step(this);\n",
+            "\n"
+          ]
+        },
+        {
+          "after_start": 1010,
+          "before": [
+            "      || OpexInvestStallPending(this)) OpexV284Tick(this);\n",
+            "  if ((V284_RAIL_GROWTH <= 0 && V233_LONG_GOOD <= 0 && !(INVEST_STALL && OpexV284Busy(this))\n",
+            "      && !OpexInvestStallPending(this))\n",
+            "      || !OpexV284Busy(this)) this._v257ReactiveStep();\n"
+          ],
+          "after": [
+            "      || OpexInvestStallPending(this) || OpexRailLongV2FleetPending(this)) OpexV284Tick(this);\n",
+            "  if (this._railLongV2Pending == null &&\n",
+            "      ((V284_RAIL_GROWTH <= 0 && V233_LONG_GOOD <= 0 && !(INVEST_STALL && OpexV284Busy(this))\n",
+            "      && !OpexInvestStallPending(this) && !OpexRailLongV2FleetPending(this))\n",
+            "      || !OpexV284Busy(this))) this._v257ReactiveStep();\n"
+          ]
+        }
+      ]
+    },
+    "persist.nut": {
+      "before_sha256": "93d1deb91626d48dbe2daf884c3673fae4acb30820b554d2cbcf536362bf5a76",
+      "after_sha256": "71c08fe66c173628dd2b3cc3a33d3a85f6aa97944664a8a8e937c0cf548a41f9",
+      "edits": [
+        {
+          "after_start": 728,
+          "before": [
+            "  if (V284_RAIL_GROWTH > 0 || V233_LONG_GOOD > 0 || (INVEST_STALL && this._v284State != null)\n",
+            "      || OpexInvestStallPending(this))\n"
+          ],
+          "after": [
+            "  if (V284_RAIL_GROWTH > 0 || V233_LONG_GOOD > 0 || (RAIL_LONG_V2 && this._v284State != null)\n",
+            "      || (INVEST_STALL && this._v284State != null)\n",
+            "      || OpexInvestStallPending(this) || OpexRailLongV2FleetPending(this))\n"
+          ]
+        },
+        {
+          "after_start": 732,
+          "before": [],
+          "after": [
+            "  if (RAIL_LONG_V2 || this._railLongV2Pending != null)\n",
+            "    saveObj.railLongV2Upgrade <- this._railLongV2Pending;\n"
+          ]
+        },
+        {
+          "after_start": 824,
+          "before": [],
+          "after": [
+            "  /* Load s'execute avant les reglages : restaurer une transaction physique\n",
+            "   * sans consulter la valeur initiale du drapeau RAIL_LONG_V2. */\n",
+            "  if ((\"railLongV2Upgrade\" in data) && typeof data.railLongV2Upgrade == \"table\")\n",
+            "    this._railLongV2Pending = data.railLongV2Upgrade;\n"
+          ]
+        },
+        {
+          "after_start": 989,
+          "before": [],
+          "after": [
+            "  if (this._railLongV2Pending != null) OpexRailLongV2Reconcile(this);\n"
+          ]
+        },
+        {
+          "after_start": 991,
+          "before": [
+            "      || OpexInvestStallPending(this))\n"
+          ],
+          "after": [
+            "      || OpexInvestStallPending(this) || OpexRailLongV2FleetPending(this))\n"
+          ]
+        }
+      ]
+    },
+    "settings.nut": {
+      "before_sha256": "b019e844191a9c34eec4e952a93693fd2c10bb5145a0c465de4f41b41012fe2b",
+      "after_sha256": "7013e2b5d2abb47dc3c36949805f534016e0c34f89d4a19f016b444f62995326",
+      "edits": [
+        {
+          "after_start": 146,
+          "before": [
+            "  RAIL_LONG = AIController.GetSetting(\"rail_long\") == 1;\n"
+          ],
+          "after": [
+            "  local railLongMode = AIController.GetSetting(\"rail_long\");\n",
+            "  RAIL_LONG = railLongMode == 1;\n",
+            "  RAIL_LONG_V2 = railLongMode == 2;\n"
+          ]
+        }
+      ]
+    },
+    "task_rail.nut": {
+      "before_sha256": "700c6f622df1429a67f14942ab3337c8ae800b7aae8379ab3a2146ea0d6f6aed",
+      "after_sha256": "78d40484608686b356534280c8eee3a4e77c772e4686f14ef0345dcdeb35aebe",
+      "edits": [
+        {
+          "after_start": 623,
+          "before": [],
+          "after": [
+            "  if (RAIL_LONG_V2 && OpexRailLongV2Select(this, year)) return;\n",
+            "  if (RAIL_LONG_V2 && OpexRailLongV2FleetSelect(this, year)) return;\n"
+          ]
+        },
+        {
+          "after_start": 1293,
+          "before": [
+            "    if (RAIL_LONG && slice.stop != \"OK\"\n"
+          ],
+          "after": [
+            "    if ((RAIL_LONG || RAIL_LONG_V2) && slice.stop != \"OK\"\n"
+          ]
+        },
+        {
+          "after_start": 1698,
+          "before": [],
+          "after": [
+            "    }\n",
+            "    if (RAIL_LONG_V2 && (\"railLongV2Chosen\" in candidate) && candidate.railLongV2Chosen) {\n",
+            "      local builtLong = this._lines[this._lines.len() - 1];\n",
+            "      builtLong.railLongV2 <- true;\n",
+            "      builtLong.railLongV2Build <- true;\n",
+            "      if (result.trainLength > result.locoLength && result.wagonLength > 0\n",
+            "          && !(\"wagons2\" in candidate)) {\n",
+            "        local realWagons = ((result.trainLength - result.locoLength)\n",
+            "            / result.wagonLength).tointeger();\n",
+            "        if (realWagons > 0 && realWagons < builtLong.wagons) builtLong.wagons = realWagons;\n",
+            "      }\n",
+            "      if (DECISION_LOG) OpexDecide(\"RAIL_LONG_V2\", \"event=build line=\" + idx\n",
+            "          + \" src=\" + candidate.src + \" dst=\" + candidate.dst\n",
+            "          + \" len_a=\" + result.platformA.length + \" len_b=\" + result.platformB.length\n",
+            "          + \" wagons=\" + builtLong.wagons + \" monthly=\" + candidate.monthly\n",
+            "          + \" trains=\" + result.trains + \" double=\" + result.doubleTrack);\n"
+          ]
+        }
+      ]
+    },
+    "task_v284.nut": {
+      "before_sha256": "68f42ffc4f51a353f507365134030d8d47ac412099be2420009b8f0d1fded729",
+      "after_sha256": "401096146d5d3435c2c327b48c4477f1c2142d4501734eaf62f6097deac2f757",
+      "edits": [
+        {
+          "after_start": 454,
+          "before": [],
+          "after": [
+            "  if ((\"railLongV2\" in pending) && pending.railLongV2\n",
+            "      && !((\"railLongV2DoneLogged\" in pending) && pending.railLongV2DoneLogged)) {\n",
+            "    pending.railLongV2DoneLogged <- true;\n",
+            "    if (DECISION_LOG) OpexDecide(\"RAIL_LONG_V2\", \"event=fleet_done line=\" + line.lineId\n",
+            "        + \" wagons_old=\" + pending.oldWagons + \" wagons_new=\" + pending.wagons\n",
+            "        + \" new_vehicle=\" + newVehicle + \" capacity=\"\n",
+            "        + AIVehicle.GetCapacity(newVehicle, line.cargo));\n",
+            "  }\n"
+          ]
+        },
+        {
+          "after_start": 482,
+          "before": [],
+          "after": [
+            "    pending.phase = \"rollback\";\n",
+            "  } else if ((\"railLongV2\" in pending) && pending.railLongV2\n",
+            "      && !RAIL_LONG_V2 && pending.phase != \"committed\") {\n"
+          ]
+        },
+        {
+          "after_start": 576,
+          "before": [],
+          "after": [
+            "  if ((\"railLongV2\" in pending) && pending.railLongV2) {\n",
+            "    /* Au depot les mesures de production, attente, traction et finance\n",
+            "     * doivent encore autoriser le remplacement de la rame actuelle. */\n",
+            "    local equipment = { engine = pending.engine };\n",
+            "    local margin = OpexRailLongV2FleetMargin(owner, line, oldVehicle, wagon,\n",
+            "        pending.oldWagons, equipment);\n",
+            "    if (!RAIL_LONG_V2 || pending.add || line.vehicles.len() != 1 || line.trains != 1\n",
+            "        || AIVehicle.GetNumWagons(oldVehicle) - 1 != pending.oldWagons\n",
+            "        || margin == null || pending.wagons != pending.oldWagons + 1) {\n",
+            "      OpexV284Cancel(owner, pending, \"rail_long_v2_recheck\"); return;\n",
+            "    }\n",
+            "  }\n"
+          ]
+        }
+      ]
+    }
+  }
+}

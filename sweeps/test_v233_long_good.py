@@ -4,12 +4,16 @@ OFF projection pins original bytes; the small independent observation model
 checks calendar/zero/missing-data cases, not execution timing or profitability.
 """
 import hashlib
+import json
 from pathlib import Path
 import re
+import subprocess
 import unittest
 from types import SimpleNamespace
 
 from test_po01c_regen_split import generated_estim_off
+from test_rail_search_prio_20261103 import off_config_bytes
+from test_rail_search_prio_source_off import off_search_prio_source
 from test_v261_forum_behaviours import body, source, uncomment
 from v233_long_good_legacy import FIXTURE, off_source
 from road100_off_projection import off_source as road100_off_source
@@ -35,6 +39,12 @@ RESERVE0_OFF_SHA256 = {
 # temporarily for comparison reproduced the frozen a9daf7... hash exactly;
 # retain the historical pin above and add a pin for the new projection.
 V161_GLOBALS_OFF_SHA256 = "a78685378d65dac1f85a28726b40cdd682e1be77634093d28d494649f1691cf7"
+
+# Distinct, independently pinned SHA witnesses for the reviewed ROAD1Y+RAIL
+# union. The October RAIL-only fixture and RESERVE0 hashes above are immutable;
+# no merged output is claimed to have the same bytes as the older source.
+MERGED_V233_SHA_PATH = AI.parents[1] / "sweeps" / "fixtures" / "v233_long_good_merge_sha_20261105.json"
+MERGED_V233_SHA = json.loads(MERGED_V233_SHA_PATH.read_text(encoding="utf-8"))
 
 
 def observe(samples):
@@ -930,7 +940,12 @@ class V233LongGoodContracts(unittest.TestCase):
             self.assertRegex(block, level + r"_value\s*=\s*1\b")
         self.assertEqual(source("settings.nut").count('GetSetting("v233_long_good")'), 1)
         self.assertIn("V233_LONG_GOOD <- 1;", source("globals_pre.nut"))
-        self.assertEqual(source("info.nut").count("AddSetting("), 117)  # 82 + 34 ROAD100 opt-ins + 1 EB-2
+        # ROAD100, V233L and RAIL opt-ins all remain in the live source.
+        self.assertEqual(source("info.nut").count("AddSetting("), 157)  # ROAD100/ROAD1Y + RAIL settings
+        # La projection de configuration retire les 7 reglages RAIL concernes,
+        # tout en conservant les 61 options ROAD1Y ajoutees sur origin/master.
+        # Le temoin historique RAIL-only (= 89) reste gele dans sa fixture.
+        self.assertEqual(off_config_bytes("info.nut", source("info.nut").encode("utf-8")).count(b"AddSetting("), 150)
 
     def test_off_reviewed_edits_preserve_all_original_hashes(self):
         self.assertEqual(
@@ -938,10 +953,24 @@ class V233LongGoodContracts(unittest.TestCase):
             {"builder_rail.nut", "globals_pre.nut", "info.nut", "main.nut",
              "settings.nut", "task_rail.nut", "task_v284.nut"},
         )
+        self.assertEqual(
+            set(MERGED_V233_SHA["files"]),
+            {"builder_rail.nut", "candidates.nut", "info.nut",
+             "main.nut", "orchestrator.nut", "persist.nut"},
+        )
         for name, entry in FIXTURE["files"].items():
             with self.subTest(name=name):
+                witness = MERGED_V233_SHA["files"].get(name)
                 current = source(name)
+                if witness:
+                    self.assertEqual(hashlib.sha256(current.encode("utf-8")).hexdigest(),
+                                     witness["live_sha256"], "Merged source changed")
+                if name in ("info.nut", "globals_pre.nut", "settings.nut"):
+                    current = off_config_bytes(name, current.encode("utf-8")).decode("utf-8")
                 if name == "task_rail.nut":
+                    # Retirer d'abord les seuls ajouts SEARCH_PRIO, puis le
+                    # journal ESTIM independant deja exclu de ce temoin.
+                    current = off_search_prio_source(name, current)
                     # Trace purement diagnostique ESTIM_DECISION_LOG ajoutee a
                     # _recordRailAttempt : la retirer exactement du temoin
                     # historique V233L, sans modifier l'empreinte attendue.
@@ -950,18 +979,98 @@ class V233LongGoodContracts(unittest.TestCase):
                     end = current.index('  if (OpexV233LIs(candidate)', start)
                     self.assertIn('OpexDecide("ESTIM_SPEND"', current[start:end])
                     current = current[:start] + current[end:]
-                projected = off_source(name, road100_off_source(name, current))
+                if witness:
+                    self.assertEqual(hashlib.sha256(current.encode("utf-8")).hexdigest(),
+                                     witness["prepared_sha256"], "Preprojection changed")
+                road_projected = road100_off_source(name, current)
+                if witness:
+                    self.assertEqual(hashlib.sha256(road_projected.encode("utf-8")).hexdigest(),
+                                     witness["road_off_sha256"], "ROAD1Y OFF bytes changed")
+                # Full V233L projector still validates every historical
+                # guarded hunk; an absent, duplicated or changed guard raises.
+                projected = off_source(name, road_projected)
                 if name == "globals_pre.nut":
                     self.assertNotIn("V161_PRIOR_OWN", projected)
                     self.assertNotIn("V161_PRIOR_NEIGHBOUR", projected)
+                historical = (V161_GLOBALS_OFF_SHA256 if name == "globals_pre.nut"
+                              else RESERVE0_OFF_SHA256.get(name, entry["sha256_off"]))
+                if witness:
+                    self.assertEqual(witness["historical_sha256"], historical)
+                    self.assertNotEqual(witness["v233_off_sha256"], historical,
+                                        "New SHA witness must not replace legacy identity")
                 self.assertEqual(hashlib.sha256(projected.encode()).hexdigest(),
-                                 (V161_GLOBALS_OFF_SHA256 if name == "globals_pre.nut"
-                                  else RESERVE0_OFF_SHA256.get(name, entry["sha256_off"])))
-                if name not in ("main.nut", "globals_pre.nut", "info.nut", "settings.nut", "persist.nut"):
+                                 witness["v233_off_sha256"] if witness else historical)
+                if name == "builder_rail.nut" and witness:
+                    # New RAIL-REPAIR guards and the opt-in V233L mono
+                    # diagnostic postdate the 2026-10 V233 fixture. They are
+                    # intentionally *retained* by the V233 historical OFF
+                    # projector. The complete output SHA is pinned above;
+                    # additionally forbid any fifth, unreviewed V233L call.
+                    residual = [line.strip() for line in uncomment(projected).splitlines()
+                                if "OpexV233L" in line]
+                    self.assertEqual(residual, [
+                        "&& !OpexV233LIs(candidate) && OpexRailRepairPoseVirgin(tiles);",
+                        "&& !OpexV233LIs(candidate) && plan.doubleTrack != 1",
+                        "if (OpexV233LMonoAllowed(candidate, plan) && DECISION_LOG)",
+                        'OpexV233LLog("CONSTRUCT", "src=" + candidate.src + " dst=" + candidate.dst',
+                    ])
+                elif name not in ("main.nut", "globals_pre.nut", "info.nut",
+                                  "settings.nut", "persist.nut"):
                     self.assertNotIn("OpexV233L", uncomment(projected))
         edited = source("candidates.nut").replace("V233_LONG_GOOD > 0 ? OpexV233LSource", "true ? OpexV233LSource")
         with self.assertRaises(AssertionError):
             off_source("candidates.nut", edited)
+
+    def test_merge_sha_witness_keeps_historical_rail_source_verifiable(self):
+        self.assertEqual(MERGED_V233_SHA["schema"], "v233-long-good-road100-rail-merge-sha-v1")
+        historical_path = AI.parents[1] / "sweeps" / "fixtures" / "v233_long_good_off.json"
+        self.assertEqual(hashlib.sha256(historical_path.read_bytes()).hexdigest(),
+                         MERGED_V233_SHA["historical_v233_fixture_sha256"])
+        for name, witness in MERGED_V233_SHA["files"].items():
+            with self.subTest(name=name):
+                # The RAIL-only branch is independently frozen at its own
+                # commit, not reconstructed from the merged source/fixture.
+                old = subprocess.check_output(
+                    ["git", "show", MERGED_V233_SHA["rail_baseline_commit"]
+                     + ":ai/OpexAI/" + name],
+                    cwd=AI.parents[1],
+                )
+                self.assertEqual(hashlib.sha256(old).hexdigest(),
+                                 witness["rail_baseline_source_sha256"])
+
+    def test_merge_sha_witness_projects_six_sources_without_rebasing_old_hashes(self):
+        # This independent qualification remains runnable when a separate,
+        # unrelated file is blocked by an ESTIM/INVEST-STALL upstream projector.
+        for name, witness in MERGED_V233_SHA["files"].items():
+            with self.subTest(name=name):
+                current = source(name)
+                self.assertEqual(hashlib.sha256(current.encode()).hexdigest(),
+                                 witness["live_sha256"])
+                if name in ("info.nut", "globals_pre.nut", "settings.nut"):
+                    current = off_config_bytes(name, current.encode("utf-8")).decode("utf-8")
+                self.assertEqual(hashlib.sha256(current.encode()).hexdigest(),
+                                 witness["prepared_sha256"])
+                road_projected = road100_off_source(name, current)
+                self.assertEqual(hashlib.sha256(road_projected.encode()).hexdigest(),
+                                 witness["road_off_sha256"])
+                projected = off_source(name, road_projected)
+                self.assertEqual(hashlib.sha256(projected.encode()).hexdigest(),
+                                 witness["v233_off_sha256"])
+                legacy = RESERVE0_OFF_SHA256.get(name, FIXTURE["files"][name]["sha256_off"])
+                self.assertEqual(witness["historical_sha256"], legacy)
+                self.assertNotEqual(witness["v233_off_sha256"], legacy)
+
+    def test_merge_sha_witness_rejects_partial_v233_source(self):
+        for name, marker in (
+            ("builder_rail.nut", "if (OpexV233LIs(candidate) && plan.doubleTrack != 1)"),
+            ("candidates.nut", "V233_LONG_GOOD > 0 ? OpexV233LSource"),
+        ):
+            with self.subTest(name=name):
+                original = source(name)
+                self.assertEqual(original.count(marker), 1)
+                modified = original.replace(marker, marker.replace("V233", "V233BROKEN", 1), 1)
+                with self.assertRaises(AssertionError):
+                    off_source(name, road100_off_source(name, modified))
 
     def test_off_switch_short_circuits_all_entry_paths(self):
         self.assertIn('return V233_LONG_GOOD > 0 && candidate != null', body("v233_long_good.nut", "OpexV233LIs"))
@@ -1449,7 +1558,9 @@ class V233LongGoodContracts(unittest.TestCase):
         self.assertEqual(plain.count('.Valuate('), 2)
         for name in ("OpexV233LSiteSearch", "OpexV233LSiteProbe", "OpexV233LPlatformPlans"):
             self.assertNotIn('.Valuate(', body("v233_long_good.nut", name))
-        self.assertEqual(source("po01c_generators.nut"), generated_estim_off())  # read-only, never regenerate.
+        from rail_open_legacy import off_source as rail_open_off
+        self.assertEqual(rail_open_off("po01c_generators.nut", source("po01c_generators.nut")),
+                         generated_estim_off())  # read-only, never regenerate.
 
     def test_new_module_balanced_and_no_reserved_identifiers(self):
         code = uncomment(source("v233_long_good.nut"))

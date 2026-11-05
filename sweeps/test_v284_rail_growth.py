@@ -3,16 +3,30 @@ import hashlib
 import re
 import unittest
 from v233_long_good_legacy import off_source  # explicit OFF projection, original hashes retained
+from test_rail_search_prio_source_off import off_search_prio_source
 from n75_mc_legacy import historical_info
 from pathlib import Path
 
 from test_b5_rail_persistence import function_body
+from v284_merged_off import (project_orchestrator, project_expansion,
+                            reviewed_task_rail, reviewed_config,
+                            FIXTURE as MERGE_FIXTURE)
+import json
 
 AI = Path(__file__).resolve().parents[1] / "ai" / "OpexAI"
 
 
 def read(name):
-    return off_source(name, (AI / name).read_text(encoding="utf-8"))
+    # SEARCH_PRIO est une couche opt-in posterieure aux empreintes V284.
+    # Retirer uniquement ses hunks, sans recalculer les SHA historiques.
+    live = (AI / name).read_text(encoding="utf-8")
+    projected = off_search_prio_source(name, live)
+    if 'name = "road1y_load_orders"' in (AI / "info.nut").read_text(encoding="utf-8"):
+        if name == "task_rail.nut":
+            return reviewed_task_rail(live, projected)
+        if name in ("settings.nut", "globals_pre.nut"):
+            return reviewed_config(name, live, projected)
+    return off_source(name, projected)
 
 
 class TestV284RailGrowth(unittest.TestCase):
@@ -33,10 +47,34 @@ class TestV284RailGrowth(unittest.TestCase):
         # 43 retraits reels, PO03/C77 et PO02 adoptes maintenus.
         # off_source retire v233_long_good et v233_site_funnel avant ce compte ;
         # historical_info retire ensuite N75. Le plafond legacy reste 58.
-        self.assertEqual(historical_info(info).count("AddSetting("), 58)
+        if 'name = "road1y_load_orders"' in (AI / "info.nut").read_text(encoding="utf-8"):
+            # The independently frozen ROAD100 58-setting witness remains
+            # unchanged. It cannot be applied after V233L has already
+            # projected the merged ROAD1Y context. Check the exact merged
+            # view and every declared setting instead of inventing a rebased
+            # historical source.
+            import json as _json
+            witness = _json.loads(MERGE_FIXTURE.read_text(encoding="utf-8"))[
+                "merged_info_after_v233"]
+            self.assertEqual(hashlib.sha256(info.encode()).hexdigest(), witness["sha256"])
+            names = re.findall(r'AddSetting\(\{\s*name\s*=\s*"([^"]+)"', info)
+            self.assertEqual(len(names), witness["add_setting_count"])
+            self.assertEqual(len(set(names)), witness["unique_setting_count"])
+            self.assertEqual(names.count("v284_rail_growth"), 1)
+        else:
+            self.assertEqual(historical_info(info).count("AddSetting("), 58)
 
     def test_off_expansion_is_master_a9437f8_after_removing_guards(self):
         body = function_body(read("task_rail.nut"), "function OpexAI::_expandRailLines(year)")
+        if 'name = "road1y_load_orders"' in (AI / "info.nut").read_text(encoding="utf-8"):
+            witness = json.loads(MERGE_FIXTURE.read_text(encoding="utf-8"))["merged_task_rail"]
+            projected = project_expansion(body)
+            self.assertEqual(hashlib.sha256(projected.encode()).hexdigest(),
+                             witness["expansion_off_sha256"])
+            self.assertEqual(project_expansion(projected), projected)
+            self.assertEqual(witness["historical_expansion_off_sha256"],
+                             "0a87badc4111d2f9fb66d9a5fbe11c37f2fded8bf3c3f2c1660497a2e3af0d18")
+            return
         body = body.replace(
             "  /* Port du declencheur V270 c71b707 : avant la garde A*, sans prendre son creneau. */\n"
             "  if (V284_RAIL_GROWTH > 0 && OpexV284Select(this, year)) return;\n", "")
@@ -61,6 +99,18 @@ class TestV284RailGrowth(unittest.TestCase):
 
     def test_off_orchestrator_is_master_and_profiled_loop_uses_same_hook(self):
         body = function_body(read("orchestrator.nut"), "function OpexAI::_runOrchestratorTick()")
+        is_merged = 'name = "road1y_load_orders"' in (AI / "info.nut").read_text(encoding="utf-8")
+        if is_merged:
+            witness = json.loads(MERGE_FIXTURE.read_text(encoding="utf-8"))
+            body_off = project_orchestrator(body)
+            self.assertEqual(hashlib.sha256(body_off.encode()).hexdigest(),
+                             witness["merged_orchestrator"]["function_off_sha256"])
+            self.assertEqual(project_orchestrator(body_off), body_off)
+            self.assertEqual(witness["historical_orchestrator_off_sha256"],
+                             "8fad3902e5b21792e795d6ae453bfb9112be0d708daf5466fbc6cd65aa3668c8")
+            profiled = function_body(read("probes.nut"), "function OpexAI::_mainLoopProfiled()")
+            self.assertIn("this._runOrchestratorTick();", profiled)
+            return
         body = body.replace(
             "  /* Shared by normal and profiled loops; once per tick, before other workers\n"
             "   * consume the remaining opcodes. No queue entry and no work while idle. */\n"

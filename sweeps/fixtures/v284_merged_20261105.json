@@ -1,0 +1,32 @@
+{
+  "schema": 1,
+  "owner": "V284 composite OFF, orchestration without V284 and the independent PO01C hook",
+  "historical_orchestrator_off_sha256": "8fad3902e5b21792e795d6ae453bfb9112be0d708daf5466fbc6cd65aa3668c8",
+  "merged_orchestrator": {
+    "source_sha256": "ba310ed27bca9b339fa16ee5e582fd1cd61377176fe492c97a9d8f4e9f303905",
+    "function_on_sha256": "4369ad0dfee80b3e836a631d02af4d43c5fbddfe841491a5dd8111e2975a11da",
+    "function_off_sha256": "3c750fc1cd4da860da2f63b6e2c5b7686c9c76e1025cc97ee99cd359c6bb4f5d"
+  },
+  "merged_task_rail": {
+    "live_sha256": "3d9356a9cd53cef9f75c706b1b01feeee59b7fcb791ab5f8873424e734bb12d4",
+    "search_prio_off_sha256": "c5c724ea850647ca4ab882d9976eddc496ffcd298d7608183349f46d9e4dc11e",
+    "expansion_on_sha256": "5d28c45b5ad4e3cb05f333ffbde1e6f4d9c888267e99bcf2b98911361e100c3f",
+    "expansion_off_sha256": "66abf766d6c32fd6f68aeb201748ab55f5edebb75e991d3d105f46bf16456936",
+    "historical_expansion_off_sha256": "0a87badc4111d2f9fb66d9a5fbe11c37f2fded8bf3c3f2c1660497a2e3af0d18"
+  },
+  "merged_config": {
+    "settings.nut": {
+      "live_sha256": "32542fef11a2bad6fbc7716a4e07a52758e7a2e358af172d2b43c3ee4a0a59fc",
+      "search_prio_off_sha256": "5f25f759280a5d102fce0847a8b58b79d3804dc966a6b545b6da67ad47dc9f80"
+    },
+    "globals_pre.nut": {
+      "live_sha256": "d0548c85cd11d62de13e4eb1566088d77a15ab6490b3a30a01fb27eda3110424",
+      "search_prio_off_sha256": "2f31b65c0b16345454a927b982381858520f517ee3f1fa1af226900c2aa8e985"
+    }
+  },
+  "merged_info_after_v233": {
+    "sha256": "f28a4896bcbcd2140a50710032c70fb689af16f0c18c914f29288d14ecaaeaa0",
+    "add_setting_count": 138,
+    "unique_setting_count": 138
+  }
+}

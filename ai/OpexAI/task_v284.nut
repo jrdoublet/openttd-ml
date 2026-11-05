@@ -114,11 +114,14 @@ function OpexV284Equipment(line, vehicle, wagon, number, add = false, waiting = 
 
 function OpexV284Select(owner, year, v233Input = false)
 {
+  if (owner._v271Pending != null) return false;
   if (OpexV284Busy(owner)) return true;
   if (!SAVE_FULL_STATE || owner._v257Pending != null || owner._railExpansion != null
       || owner._catalog == null || owner._lines == null) return false;
   if (owner._railSearch != null && owner._railSearch.kind == "upgrade") return false;
-  if (!v233Input && (year < OPEX_START_YEAR + V284_RAIL_GROWTH || OpexAvailableCapital() < 1000000)) return false;
+  if (!v233Input && RAIL_FILL) {
+    if (OpexRailFillGateClosed(year)) return false;
+  } else if (!v233Input && (year < OPEX_START_YEAR + V284_RAIL_GROWTH || OpexAvailableCapital() < 1000000)) return false;
   if (owner._v284State == null) owner._v284State = { nextDate = 0, dates = {}, loops = {}, pending = null };
   local state = owner._v284State;
   local date = AIDate.GetCurrentDate();
@@ -128,11 +131,13 @@ function OpexV284Select(owner, year, v233Input = false)
   local kDec = (ESTIM_UNIFIE & 4) != 0 ? OpexC69ComputeKDec().K_dec : -1;
   local v233Mark = v233Input ? OpexOpsMeasureBegin() : null;
   foreach (line in owner._lines) {
+    if (OpexRailLongV3MultiLine(line)) continue;
     if (v233Input && OpexOpsMeasureEnd(v233Mark) >= V233L_SLICE_OPS) break;
     if (v233Input && !OpexV233LInputTarget(line)) continue;
     if (!("mode" in line) || line.mode != "rail" || !("kind" in line) || line.kind != "freight"
         || !("platformLength" in line) || !("depot" in line) || !("distance" in line)) continue;
     if (line.vehicles.len() != 1 || line.trains != 1 || OpexV163Wagons2(line) > 0) continue;
+    if (("v271Tandem" in line) && line.v271Tandem) continue;
     if (("doubleTrack" in line) && line.doubleTrack != 0) continue;
     if (("scrapping" in line) && line.scrapping) continue;
     if (!("lastProfit" in line) || line.lastProfit <= 0) continue;
@@ -161,6 +166,8 @@ function OpexV284Select(owner, year, v233Input = false)
     local atLimit = number >= maxWagons || AIVehicle.GetLength(vehicle) + 8 > length * 16;
     if (v233Input && !OpexV233LBacklog(line, waiting, atLimit ? capacity : wagon.capacity)) continue;
     if (atLimit && (waiting < capacity || !OpexRailVehicleSlotAvailable())) continue;
+    if (RAIL_FILL && atLimit && !v233Input && !OpexRailFillAddAllowed()) continue;
+    if (RAIL_FILL && ("railLoop" in line) && line.railLoop == 1) continue;
     if (atLimit && (line.lineId in state.loops)) continue;
     local score = line.distance.tofloat() * waiting / capacity;
     local candidateEquipment = null;
@@ -182,6 +189,10 @@ function OpexV284Select(owner, year, v233Input = false)
   local number = best.number + (best.add ? 0 : 1);
   local equipment = ((ESTIM_UNIFIE & 4) != 0) ? best.equipment
       : OpexV284Equipment(line, best.vehicle, best.wagon, number);
+  local railFillPlan = (RAIL_FILL && !best.add && !v233Input && (ESTIM_UNIFIE & 4) == 0)
+      ? OpexRailFillPlan(line, best.vehicle, best.wagon, best.number,
+          OpexRailNominalMaxWagons(OpexV284Limit(line))) : null;
+  if (railFillPlan != null) { number = railFillPlan.number; equipment = railFillPlan.equipment; }
   if (equipment == null) {
     state.dates.rawset(line.lineId, date + 365);
     OpexV284Log("skip", "line=" + line.lineId + " reason=traction");
@@ -224,6 +235,7 @@ function OpexV284Select(owner, year, v233Input = false)
     depot = line.depot, waiting = best.waiting, cashBefore = 0
   };
   if (v233Input) state.pending.v233Input <- true;
+  if (railFillPlan != null) state.pending.railFill <- true;
   OpexV284Log("pick", "line=" + line.lineId + " kind=" + (best.add ? "train" : "wagon")
       + " waiting=" + best.waiting + " capacity=" + best.capacity + " distance=" + line.distance
       + " old_wagons=" + best.number + " new_wagons=" + number + " engine=" + equipment.engine
@@ -440,6 +452,25 @@ function OpexV284Adopt(owner, line, pending)
   line.trains = line.vehicles.len();
   line.vehCount <- line.trains;
   owner._saveProjection = null;
+  if (("investStall" in pending) && pending.investStall
+      && !(("investStallDoneLogged" in pending) && pending.investStallDoneLogged)) {
+    /* Le drapeau voyage avec la transaction pour eviter un double DONE
+     * apres un Save/Load entre le demarrage et l'adoption. */
+    pending.investStallDoneLogged <- true;
+    OpexInvestStallFleetLog("done", line.lineId,
+        "kind=wagon old_vehicle=" + pending.vehicle + " new_vehicle=" + newVehicle
+        + " old_wagons=" + pending.oldWagons + " wagons=" + pending.wagons
+        + " capacity=" + AIVehicle.GetCapacity(newVehicle, line.cargo)
+        + " txn=" + OpexInvestStallTraceId(pending));
+  }
+  if (("railLongV2" in pending) && pending.railLongV2
+      && !(("railLongV2DoneLogged" in pending) && pending.railLongV2DoneLogged)) {
+    pending.railLongV2DoneLogged <- true;
+    if (DECISION_LOG) OpexDecide("RAIL_LONG_V2", "event=fleet_done line=" + line.lineId
+        + " wagons_old=" + pending.oldWagons + " wagons_new=" + pending.wagons
+        + " new_vehicle=" + newVehicle + " capacity="
+        + AIVehicle.GetCapacity(newVehicle, line.cargo));
+  }
   if (V233_LONG_GOOD > 0 && ("v233Input" in pending) && DECISION_LOG)
     OpexV233LLog("INPUT_GROW", "line=" + line.lineId + " trains=" + line.trains + " wagons=" + line.wagons);
 }
@@ -447,6 +478,9 @@ function OpexV284Adopt(owner, line, pending)
 function OpexV284Cancel(owner, pending, reason)
 {
   OpexV284Log("fail", "line=" + pending.lineId + " reason=" + reason + " error=" + AIError.GetLastError());
+  if (("investStall" in pending) && pending.investStall)
+    OpexInvestStallFleetLog("skip", pending.lineId, "reason=" + reason
+        + " txn=" + OpexInvestStallTraceId(pending));
   pending.phase = "rollback";
 }
 
@@ -456,7 +490,15 @@ function OpexV284Tick(owner)
   local pending = owner._v284State.pending;
   local line = owner._findLineById(pending.lineId);
   local oldVehicle = pending.vehicle;
-  if ((line == null || !AIVehicle.IsValidVehicle(oldVehicle)) && pending.phase != "committed") {
+  if (OpexRailLongV3MultiLine(line) && pending.phase != "committed")
+    pending.phase = "rollback";
+  if (("investStall" in pending) && pending.investStall
+      && !INVEST_STALL && pending.phase != "committed") {
+    pending.phase = "rollback";
+  } else if (("railLongV2" in pending) && pending.railLongV2
+      && !RAIL_LONG_V2 && pending.phase != "committed") {
+    pending.phase = "rollback";
+  } else if ((line == null || !AIVehicle.IsValidVehicle(oldVehicle)) && pending.phase != "committed") {
     pending.phase = "rollback";
   } else if (line != null && ("scrapping" in line) && line.scrapping && pending.phase != "committed") {
     pending.phase = "rollback";
@@ -471,6 +513,9 @@ function OpexV284Tick(owner)
       }
     }
     if (!OpexV284RollbackLoop(pending.loopPlan)) return;
+    if (("investStall" in pending) && pending.investStall)
+      OpexInvestStallFleetLog("rolled_back", pending.lineId,
+          "kind=wagon txn=" + OpexInvestStallTraceId(pending));
     pending.phase = "resume";
   }
   if (pending.phase == "resume" || pending.phase == "committed") {
@@ -484,12 +529,26 @@ function OpexV284Tick(owner)
   if (pending.phase == "approach") {
     if (AIDate.GetCurrentDate() > pending.deadline) {
       OpexV284Log("skip", "line=" + pending.lineId + " reason=approach_timeout");
+      if (("investStall" in pending) && pending.investStall)
+        OpexInvestStallFleetLog("skip", pending.lineId,
+            "reason=approach_timeout txn=" + OpexInvestStallTraceId(pending)
+            + " elapsed_days=" + (AIDate.GetCurrentDate()
+                - (("traceStart" in pending) ? pending.traceStart : AIDate.GetCurrentDate()))
+            + " cargo_load=" + (line == null ? -1
+                : AIVehicle.GetCargoLoad(oldVehicle, line.cargo))
+            + " depot_distance=" + (line == null ? -1
+                : AIMap.DistanceManhattan(AIVehicle.GetLocation(oldVehicle), line.depot)));
       owner._v284State.pending = null; return;
     }
     /* Un retour a vide evite de jeter le chargement d'une rame remplacee. */
     if (AIVehicle.GetCargoLoad(oldVehicle, line.cargo) > 0
         || AIMap.DistanceManhattan(AIVehicle.GetLocation(oldVehicle), line.depot) > RAIL_EXPAND_APPROACH_TILES) return;
     if (!AIVehicle.IsStoppedInDepot(oldVehicle) && !AIVehicle.SendVehicleToDepot(oldVehicle)) return;
+    if (("investStall" in pending) && pending.investStall)
+      OpexInvestStallFleetLog("approach", pending.lineId,
+          "kind=wagon txn=" + OpexInvestStallTraceId(pending)
+          + " elapsed_days=" + (AIDate.GetCurrentDate()
+              - (("traceStart" in pending) ? pending.traceStart : AIDate.GetCurrentDate())));
     pending.phase = "depot";
     pending.deadline = AIDate.GetCurrentDate() + RAIL_EXPAND_TIMEOUT_DAYS;
     return;
@@ -498,13 +557,30 @@ function OpexV284Tick(owner)
     if (AIDate.GetCurrentDate() > pending.deadline) {
       AIVehicle.SendVehicleToDepot(oldVehicle); // annule le detournement temporaire.
       OpexV284Log("skip", "line=" + pending.lineId + " reason=depot_timeout");
+      if (("investStall" in pending) && pending.investStall)
+        OpexInvestStallFleetLog("skip", pending.lineId, "reason=depot_timeout"
+            + " txn=" + OpexInvestStallTraceId(pending));
       owner._v284State.pending = null;
     }
     return;
   }
   pending.depot = AIVehicle.GetLocation(oldVehicle);
+  local investStall = ("investStall" in pending) && pending.investStall;
+  if (investStall)
+    OpexInvestStallFleetLog("depot", pending.lineId,
+        "kind=wagon txn=" + OpexInvestStallTraceId(pending)
+        + " elapsed_days=" + (AIDate.GetCurrentDate()
+            - (("traceStart" in pending) ? pending.traceStart : AIDate.GetCurrentDate())));
+  if (investStall && (!AIEngine.IsWagon(pending.wagon)
+      || AIEngine.GetCargoType(pending.wagon) != line.cargo
+      || AIVehicle.GetCargoLoad(oldVehicle, line.cargo) != 0)) {
+    OpexV284Cancel(owner, pending, "invest_stall_cargo"); return;
+  }
   local wagon = OpexV257Engine(pending.wagon, line.cargo, true);
   local loco = OpexV257Engine(pending.engine, line.cargo, false);
+  if (investStall && (wagon == null || loco == null)) {
+    OpexV284Cancel(owner, pending, "invest_stall_equipment"); return;
+  }
   local price = loco.price + pending.wagons * wagon.price;
   local limit = OpexV284Limit(line);
   local station = AIStation.GetStationID(line.stationA);
@@ -516,7 +592,7 @@ function OpexV284Tick(owner)
         * AIRail.GetBuildCost(AIRail.GetRailType(pending.depot), AIRail.BT_TRACK) : 0;
     cashNeed = OpexEstimFinanceCapital("rail", price + loopCost, 0, true);
   }
-  if (waitingNow < requiredWaiting || !AIEngine.IsBuildable(pending.engine) || !AIEngine.IsBuildable(pending.wagon)
+  if ((!investStall && waitingNow < requiredWaiting) || !AIEngine.IsBuildable(pending.engine) || !AIEngine.IsBuildable(pending.wagon)
       || !AIRail.IsRailDepotTile(pending.depot)
       || !AIEngine.HasPowerOnRail(pending.engine, AIRail.GetRailType(pending.depot))
       || pending.wagons > OpexRailNominalMaxWagons(limit)
@@ -528,6 +604,48 @@ function OpexV284Tick(owner)
   local vehicles = AIVehicleList();
   for (local vehicle = vehicles.Begin(); !vehicles.IsEnd(); vehicle = vehicles.Next())
     if (AIVehicle.GetLocation(vehicle) == pending.depot) pending.before.append(vehicle);
+  if (("investStall" in pending) && pending.investStall) {
+    /* La production, le transport existant et la marge peuvent avoir change
+     * depuis la selection : refaire le devis au depot, avant tout achat. */
+    local gap = OpexInvestStallSourceGap(owner, line);
+    local equipment = { engine = pending.engine };
+    local margin = OpexInvestStallFleetMargin(line, oldVehicle, wagon,
+        pending.oldWagons, equipment, gap);
+    local homogeneous = AIEngine.GetCapacity(AIVehicle.GetEngineType(oldVehicle)) == 0;
+    for (local w = 1; w <= pending.oldWagons; w++)
+      if (AIVehicle.GetWagonEngineType(oldVehicle, w) != pending.wagon) homogeneous = false;
+    if (!INVEST_STALL || !OpexInvestStallReady() || pending.add
+        || !homogeneous
+        || owner._railLongV2Pending != null || owner._railLongV3UpgradePending != null
+        || owner._v257Pending != null || owner._v271Pending != null
+        || owner._railExpansion != null
+        || (V233L_STATE != null && V233L_STATE.pending != null)
+        || line.vehicles.len() != 1 || line.trains != 1
+        || line.vehicles[0] != oldVehicle
+        || AIVehicle.GetNumWagons(oldVehicle) - 1 != pending.oldWagons
+        || margin == null || pending.wagons != pending.oldWagons + 1) {
+      if (DECISION_LOG) OpexInvestStallRecheckDiagnostic(owner, line, pending,
+          oldVehicle, wagon, gap, margin, homogeneous, waitingNow);
+      OpexV284Cancel(owner, pending, "invest_stall_recheck"); return;
+    }
+    OpexInvestStallFleetLog("recheck", line.lineId,
+        "kind=wagon waiting=" + waitingNow + " production=" + gap.production
+        + " rating=" + gap.rating + " capacity_month=" + gap.capacity
+        + " monthly_gain=" + margin.monthly + " profit=" + margin.profit
+        + " cost=" + margin.cost + " cash=" + OpexAvailableCapital());
+  }
+  if (("railLongV2" in pending) && pending.railLongV2) {
+    /* Au depot les mesures de production, attente, traction et finance
+     * doivent encore autoriser le remplacement de la rame actuelle. */
+    local equipment = { engine = pending.engine };
+    local margin = OpexRailLongV2FleetMargin(owner, line, oldVehicle, wagon,
+        pending.oldWagons, equipment);
+    if (!RAIL_LONG_V2 || pending.add || line.vehicles.len() != 1 || line.trains != 1
+        || AIVehicle.GetNumWagons(oldVehicle) - 1 != pending.oldWagons
+        || margin == null || pending.wagons != pending.oldWagons + 1) {
+      OpexV284Cancel(owner, pending, "rail_long_v2_recheck"); return;
+    }
+  }
   pending.phase = "building";
   local previousType = AIRail.GetCurrentRailType();
   AIRail.SetCurrentRailType(AIRail.GetRailType(pending.depot));
@@ -541,6 +659,13 @@ function OpexV284Tick(owner)
       line.stationA, line.stationB, 1, loco, pending.wagons, limit, false);
   AIRail.SetCurrentRailType(previousType);
   pending.newVehicle = built.vehicles.len() > 0 ? built.vehicles[0] : -1;
+  if (investStall && !built.failed
+      && (AIVehicle.GetNumWagons(pending.newVehicle) - 1 != pending.wagons
+          || AIVehicle.GetLength(pending.newVehicle) > limit * 16
+          || AIVehicle.GetCapacity(pending.newVehicle, line.cargo)
+              <= AIVehicle.GetCapacity(oldVehicle, line.cargo))) {
+    OpexV284Cancel(owner, pending, "invest_stall_built_capacity"); return;
+  }
   if (built.failed || !AIOrder.CopyOrders(pending.newVehicle, oldVehicle)) {
     OpexV284Cancel(owner, pending, built.failed ? "build" : "orders"); return;
   }
@@ -554,6 +679,7 @@ function OpexV284Tick(owner)
     OpexV284Cancel(owner, pending, "start"); return;
   }
   OpexV284Adopt(owner, line, pending);
+  if (RAIL_FILL && ("railFill" in pending) && pending.railFill) line.rawset("railFill", true);
   pending.phase = "committed";
   OpexV284Log("done", "line=" + line.lineId + " kind=" + (pending.add ? "train" : "wagon")
       + " old_vehicle=" + oldVehicle + " new_vehicle=" + pending.newVehicle

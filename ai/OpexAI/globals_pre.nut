@@ -10,6 +10,8 @@ MODE_AIR <- true;
 MODE_RAIL <- true;
 MODE_ROAD <- true;
 MODE_WATER <- true;
+/* RAIL-DEPOT-SIGNAL: opt-in, depot embranche sur chaque cote et PBS de quai partage. */
+RAIL_DEPOT_SIGNAL <- false;
 /* MULTI-1 : promotion experimentale d'une ROUTE deja qualifiee ; 0 preserve strictement l'election. */
 MULTI1_ROAD_PRIORITY <- 0;
 /* MULTI-1 second pilot: bounded AIR-over-unprepared-RAIL selection, off by default. */
@@ -132,6 +134,28 @@ EB14_TRACE_SELECTED <- {};
 V190_RAIL_DOUBLE_BUILD <- false;
 /* V197 : double voie guidee (outwardSide pour voie 1, guideTiles pour voie 2). */
 V197_GUIDED_DOUBLE <- false;
+/* RAIL-SEARCH-PRIO phase 1 : priorite a la recherche projet sur stock, strict opt-in. */
+RAIL_SEARCH_PRIO <- false;
+/* RAIL-LONG : rames fret 6-7 wagons sur production elevee, strict opt-in. */
+RAIL_LONG <- false;
+/* RAIL-LONG v2 : mode distinct, la politique v1 conserve sa globale booleenne. */
+RAIL_LONG_V2 <- false;
+/* RAIL-LONG v3 : creation fret 7->6->court, sans changer les modes 1/2. */
+RAIL_LONG_V3 <- false;
+/* INVEST-STALL : recharge additionnelle du vivier rail apres 1973, strict opt-in. */
+INVEST_STALL <- false;
+/* DOUBLE-GROW : doublement differe des lignes fret rentables, strict opt-in. */
+DOUBLE_GROW <- false;
+DOUBLE_GROW_V2 <- false;
+/* RAIL-LOOP : voie 2 de retour par l'arriere des quais, boucle a sens unique, strict opt-in. */
+RAIL_LOOP <- false;
+/* RAIL-FILL : V284 remplit les quais existants des 250 k£ de caisse, strict opt-in. */
+RAIL_FILL <- false;
+V257_DEMAND <- false;
+INVEST_STALL_LAST_MONTH <- -1;
+INVEST_STALL_SAVED_MONTH <- -1;
+/* V190-FIX2 : boucle deux aiguillages et signaux directionnels (strict opt-in). */
+V190_FIX_DIRECTIONAL <- false;
 /* V198 : double voie par gabarits de gare (boucle source + gare traversante destination). */
 V198_TEMPLATE_DOUBLE <- false;
 V200_DOUBLE_CASH_K <- 0;
@@ -695,6 +719,10 @@ RAIL_SIBLING_TRANSPORTED_PCT <- 60;
 RAIL_OPEN <- 0;
 RAIL_OPEN_MIN_CASH <- 250000;
 RAIL_OPEN_CASH_HEADROOM <- 50000;
+/* RAIL-PAIR : second train chargeant sur un quai source dedie, OFF par defaut. */
+RAIL_PAIR <- 0;
+/* RAIL-CONSIST : rame fret dimensionnee pour ce % de l'offre calibree (100 = historique). */
+RAIL_CONSIST_PCT <- 100;
 AIR0310_SITE_VALIDITY_STATE <- null;
 /* E10 : Correctif du doublement de flotte routiere au cycle de construction */
 /* C26a : Pricer l'avion de la ligne lors du refleet au lieu du meilleur avion du catalogue */

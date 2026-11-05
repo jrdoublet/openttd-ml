@@ -1,0 +1,68 @@
+﻿=== C66.4 campagne rail_loop_gain_short_multi_40x5_20261104 ===
+Bundle: 7af015bfd379f3a2ae945e0e0ecb7057ed935240ce18c982083603e023e696e6 | Manifest: a93a05ce40c778a93245def5cc5e6ce24b4d316e2ad33bbbb240d3e812b94017
+=== Lancement Banc 1v1 Duel OpexAI vs AAAHogEx : 80 parties (40 graines x 1 repetition(s) x 2 politique(s) x 5 ans) ===
+Workers: 10 | Sortie: /work/.wt_rail_loop_20261104/results/rail_loop_gain_short_multi_40x5_20261104.json
+✔ Running experiments... ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 80/80
+
+===================================================================================================================
+BANC 1v1 OPEXAI vs AAAHOGEX (CARTE PARTAGÉE) — BILAN 5 ANS (40 GRAINES)
+===================================================================================================================
+Graine   | Valeur Opex vs AAAHogEx          | Profit An Opex vs AAA        | Score O/A      | Véhicules O/A    | Gares O/A    | statut O/A                  
+------------------------------------------------------------------------------------------------------------------------------------------------------------
+704041   |  9,757,978 vs  4,938,868 (197.6%) | 3,436,294 vs 2,315,941       |  816 vs 704    | 108 vs 194       |  79 vs 128   | complete/complete
+90670    |  6,316,957 vs  9,405,099 (67.2%) | 2,405,210 vs 4,561,482       |  708 vs 813    |  78 vs 269       |  75 vs 162   | complete/complete
+527503   |  6,330,496 vs  4,248,725 (149.0%) | 2,071,273 vs 2,266,924       |  708 vs 669    | 100 vs 169       |  79 vs 115   | complete/complete
+246300   |  8,130,738 vs  5,618,536 (144.7%) | 3,044,074 vs 2,602,167       |  896 vs 750    | 104 vs 206       |  76 vs 139   | complete/complete
+334757   | 10,830,898 vs  7,030,646 (154.1%) | 3,969,639 vs 4,018,776       |  856 vs 801    | 108 vs 261       |  77 vs 178   | complete/complete
+764858   |  7,903,874 vs  4,084,781 (193.5%) | 2,966,053 vs 2,344,679       |  794 vs 701    | 101 vs 177       |  76 vs 122   | complete/complete
+851627   |  8,991,507 vs  7,734,522 (116.3%) | 3,167,953 vs 4,326,643       |  808 vs 813    | 101 vs 209       |  76 vs 160   | complete/complete
+349832   |  6,371,744 vs  4,340,363 (146.8%) | 2,739,952 vs 2,094,864       |  751 vs 698    |  90 vs 186       |  73 vs 135   | complete/complete
+157793   |  7,455,080 vs  6,673,706 (111.7%) | 2,973,374 vs 3,090,716       |  787 vs 790    |  98 vs 250       |  86 vs 168   | complete/complete
+860934   |  9,680,782 vs  6,796,851 (142.4%) | 4,013,647 vs 3,572,819       |  836 vs 783    | 101 vs 207       |  78 vs 150   | complete/complete
+283207   |  8,433,134 vs  4,711,316 (179.0%) | 3,449,940 vs 2,548,501       |  837 vs 700    | 105 vs 184       |  85 vs 133   | complete/complete
+526388   |  9,044,829 vs  5,758,857 (157.1%) | 3,377,087 vs 3,164,342       |  822 vs 752    |  94 vs 176       |  79 vs 128   | complete/complete
+477981   |  6,953,978 vs  6,554,705 (106.1%) | 2,926,373 vs 2,743,992       |  749 vs 747    |  98 vs 215       |  84 vs 186   | complete/complete
+182802   |  7,264,481 vs  6,356,410 (114.3%) | 2,884,364 vs 3,558,143       |  777 vs 821    | 100 vs 221       |  84 vs 150   | complete/complete
+549603   |  6,799,397 vs  5,526,795 (123.0%) | 2,500,165 vs 2,807,419       |  769 vs 788    |  93 vs 244       |  83 vs 165   | complete/complete
+279648   |  9,658,284 vs  5,983,228 (161.4%) | 3,398,359 vs 2,498,452       |  822 vs 684    | 104 vs 201       |  79 vs 145   | complete/complete
+568537   |  7,686,896 vs  5,663,474 (135.7%) | 2,596,524 vs 2,306,353       |  783 vs 700    |  90 vs 266       |  71 vs 161   | complete/complete
+892958   |  7,546,559 vs  6,444,622 (117.1%) | 2,869,181 vs 2,859,995       |  782 vs 791    |  98 vs 236       |  78 vs 152   | complete/complete
+708863   |  7,803,851 vs  7,189,181 (108.5%) | 2,997,475 vs 3,992,185       |  803 vs 823    |  89 vs 222       |  74 vs 167   | complete/complete
+779084   |  5,234,220 vs  5,815,706 (90.0%) | 2,041,879 vs 2,331,504       |  692 vs 726    |  79 vs 165       |  81 vs 126   | complete/complete
+981717   |  9,920,688 vs  5,568,918 (178.1%) | 3,330,465 vs 2,632,902       |  842 vs 752    | 124 vs 208       |  94 vs 153   | complete/complete
+111530   |  7,452,055 vs  3,483,493 (213.9%) | 2,860,262 vs 1,876,706       |  752 vs 677    |  92 vs 168       |  75 vs 121   | complete/complete
+650715   | 10,157,284 vs  5,995,006 (169.4%) | 3,444,984 vs 2,766,662       |  843 vs 774    | 109 vs 209       |  78 vs 169   | complete/complete
+949304   | 10,051,312 vs  8,833,210 (113.8%) | 3,665,412 vs 4,813,972       |  851 vs 814    |  97 vs 303       |  74 vs 196   | complete/complete
+262417   |  9,560,982 vs  4,139,468 (231.0%) | 3,894,512 vs 2,076,913       |  821 vs 713    | 103 vs 189       |  79 vs 142   | complete/complete
+93494    |  8,092,165 vs  5,499,803 (147.1%) | 2,962,011 vs 2,865,176       |  798 vs 765    | 104 vs 221       |  82 vs 131   | complete/complete
+243831   |  7,514,509 vs  5,353,145 (140.4%) | 2,884,674 vs 2,968,536       |  764 vs 758    |  95 vs 210       |  73 vs 145   | complete/complete
+245796   |  5,923,925 vs  5,534,306 (107.0%) | 2,506,723 vs 2,954,715       |  728 vs 764    |  97 vs 219       |  72 vs 134   | complete/complete
+599565   |  7,748,724 vs  4,762,741 (162.7%) | 3,051,287 vs 2,476,257       |  788 vs 735    | 101 vs 209       |  79 vs 153   | complete/complete
+441474   |  7,886,413 vs  5,284,213 (149.2%) | 2,966,818 vs 2,679,930       |  779 vs 753    |  92 vs 169       |  74 vs 126   | complete/complete
+538579   |  9,425,444 vs  5,489,780 (171.7%) | 3,196,766 vs 2,627,918       |  852 vs 780    | 110 vs 182       |  81 vs 161   | complete/complete
+441936   |  9,590,742 vs 10,555,522 (90.9%) | 3,860,395 vs 4,885,836       |  822 vs 830    | 105 vs 198       |  85 vs 154   | complete/complete
+404553   |  8,468,599 vs  4,417,674 (191.7%) | 3,009,652 vs 2,213,581       |  782 vs 675    |  98 vs 230       |  77 vs 139   | complete/complete
+775374   |  5,312,216 vs  4,421,673 (120.1%) | 2,225,552 vs 2,614,113       |  707 vs 735    |  84 vs 168       |  68 vs 119   | complete/complete
+685743   |  7,170,780 vs  5,176,490 (138.5%) | 2,923,382 vs 3,076,829       |  785 vs 771    |  98 vs 164       |  80 vs 131   | complete/complete
+304636   | 10,186,146 vs  7,804,313 (130.5%) | 3,493,608 vs 4,465,316       |  834 vs 813    | 116 vs 223       |  80 vs 159   | complete/complete
+31429    |  8,860,773 vs  6,642,562 (133.4%) | 3,121,376 vs 2,921,442       |  812 vs 796    | 107 vs 220       |  84 vs 145   | complete/complete
+898010   |  7,187,483 vs  5,286,226 (136.0%) | 2,731,800 vs 3,201,702       |  725 vs 786    |  91 vs 247       |  71 vs 145   | complete/complete
+274763   |  9,034,936 vs  5,553,896 (162.7%) | 3,235,826 vs 2,330,729       |  807 vs 668    | 111 vs 174       |  82 vs 129   | complete/complete
+869032   |  8,751,688 vs  5,290,639 (165.4%) | 3,173,035 vs 2,413,324       |  795 vs 699    | 104 vs 219       |  77 vs 150   | complete/complete
+------------------------------------------------------------------------------------------------------------------------------------------------------------
+MOYENNE [OpexAI  ] : CV:  8,162,314 £ | Profit/an: 3,059,184 £ | Score:  792 | Véhicules: 99.4 | Gares: 78.5
+MOYENNE [AAAHogEx] : CV:  5,899,237 £ | Profit/an: 2,971,711 £ | Score:  753 | Véhicules: 209.7 | Gares: 146.8
+
+=== COMPARAISON APPARIÉE OPEXAI vs AAAHOGEX ===
+  company_value            : d% = +38.36% | Victoires OpexAI = 37/40 (p=0.0000)
+  profit_year              : d% = +2.94% | Victoires OpexAI = 23/40 (p=0.3682)
+  performance_history      : d% = +5.22% | Victoires OpexAI = 28/40 (p=0.0004)
+  median_station_rating    : d% = -21.15% | Victoires OpexAI = 0/40 (p=0.0000)
+
+=== C66.4 VARIANTE - RÉFÉRENCE ===
+profit_year: delta moyen=-32626.75 median=-44097.0 V/D/E=18/22/0 p_wilcoxon=0.33356623058170953 CI95_bootstrap=[-105983.2, 40931.525] seuil=122367.356 (pct=4.0)
+company_value: ratio des moyennes=0.982981 (-1.701945%), moyenne des ratios=0.986916
+paires=40/40 verdict=fail_primary
+C66.4 campaign: rail_loop_gain_short_multi_40x5_20261104
+Git: 07e2d3894013f7a125ff4bb8bc4ad6b5df28b633 dirty=1
+Docker: openttd-lab:latest sha256:0480a863e164856797412ff4a0782621464a52087abbb9c056dd3587d46cac31

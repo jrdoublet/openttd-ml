@@ -832,6 +832,18 @@ function OpexC60ObserveTownRating(mode, phase, townId)
   return allowed;
 }
 
+/* INVEST-STALL c : bonus local FRET, sans mutation de catalog.bounds. La passe
+ * V276 dispose de sa propre grille bornee : ne pas laisser son micro-catalogue
+ * croire a une distance qui n'aurait pas ete enumeree dans cette grille. */
+function OpexInvestStallFreightDistanceBonus(kind)
+{
+  if (!INVEST_STALL || kind != "freight" || V276_CAND_SLICES > 0
+      || !OpexInvestStallReady()) return 0;
+  local years = AIDate.GetYear(AIDate.GetCurrentDate()) - OPEX_START_YEAR;
+  if (years < 4) return 0;
+  return years == 4 ? 20 : (years == 5 ? 40 : 60);
+}
+
 function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, originServed, stats, isTransformer = false, profile = null, cruiseCache = null, secondary = null, longGood = false)
 {
   if (monthly <= 0) {
@@ -840,6 +852,13 @@ function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, orig
   }
   local distance = AIMap.DistanceManhattan(srcTile, dstTile);
   local bounds = OpexCatalogBounds(catalog);
+  local stallBonus = INVEST_STALL ? OpexInvestStallFreightDistanceBonus(kind) : 0;
+  local stallCap = bounds.railMax;
+  if (stallBonus > 0) {
+    stallCap += stallBonus;
+    local mapCap = OpexMapManhattanSpan();
+    if (stallCap > mapCap) stallCap = mapCap;
+  }
   if (V233_LONG_GOOD > 0 && longGood) {
     if (distance < 150 || distance > 300) { stats.distanceLong++; return null; }
   } else if (DIST_BORNES_UNIFIED) {
@@ -848,7 +867,8 @@ function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, orig
       stats.distanceShort++;
       return null;
     }
-    if (distance > w.maxDistance) {
+    if (distance > (kind == "freight" && stallBonus > 0 && stallCap > w.maxDistance
+        ? stallCap : w.maxDistance)) {
       stats.distanceLong++;
       return null;
     }
@@ -861,12 +881,16 @@ function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, orig
       stats.distanceLong++;
       return null;
     }
-  } else if (distance > ((V269_RAIL_LATE_RELAX > 0
-      && (V269_RELAXED || (DIST_BORNES_V276_FREIGHT
-          && ("distBornesV269Relaxed" in bounds) && bounds.distBornesV269Relaxed))
-      && V269_RAIL_MAX_DIST > bounds.railMax) ? V269_RAIL_MAX_DIST : bounds.railMax)) {
-    stats.distanceLong++;
-    return null;
+  } else {
+    local freightCap = (V269_RAIL_LATE_RELAX > 0
+        && (V269_RELAXED || (DIST_BORNES_V276_FREIGHT
+            && ("distBornesV269Relaxed" in bounds) && bounds.distBornesV269Relaxed))
+        && V269_RAIL_MAX_DIST > bounds.railMax) ? V269_RAIL_MAX_DIST : bounds.railMax;
+    if (stallBonus > 0 && stallCap > freightCap) freightCap = stallCap;
+    if (distance > freightCap) {
+      stats.distanceLong++;
+      return null;
+    }
   }
   local iterations = OpexRailIterations(distance);
   /* Source seulement, et seulement si origin_sitable = 1. Les 7 a 15 SITEA mesures etaient
@@ -978,6 +1002,10 @@ function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, orig
   local effectiveRoi = (economics.roi * freightBonus) / 100;
 
   stats.accepted++;
+  if (DECISION_LOG && stallBonus > 0 && kind == "freight" && distance > bounds.railMax)
+    OpexDecide("INVEST_STALL", "event=distance_keep src=" + srcTile + " dst=" + dstTile
+        + " dist=" + distance + " base=" + bounds.railMax + " cap=" + stallCap
+        + " bonus=" + stallBonus);
   local candidate = {
     mode = "rail",
     kind = kind,            // "pax" ou "freight"
@@ -1576,6 +1604,121 @@ function OpexRailOpenBAlreadyCovered(catalog, lines, cargo, dstTile, mother)
   return false;
 }
 
+/* Un wagon ne doit bloquer la seconde gare que si son achat est effectivement
+ * faisable et rentable. Le seul espace libre dans le quai ne suffit pas :
+ * traction, prix, attente, vitesse et tresorerie sont controles comme dans
+ * la selection INVEST-STALL de flotte. */
+function OpexInvestStallParentCanGrowWagon(mother, gap, lengthLimit)
+{
+  if (OpexRailLongV3MultiLine(mother)) return false;
+  if (mother == null || gap == null || !gap.ok || !("vehicles" in mother)
+      || mother.vehicles == null || mother.vehicles.len() != 1
+      || !("trains" in mother) || mother.trains != 1
+      || !("depot" in mother) || mother.depot == null
+      || !AIRail.IsRailDepotTile(mother.depot)
+      || OpexV163Wagons2(mother) > 0
+      || (("v271Tandem" in mother) && mother.v271Tandem)) return false;
+  local train = mother.vehicles[0];
+  if (!AIVehicle.IsValidVehicle(train)
+      || AIVehicle.GetVehicleType(train) != AIVehicle.VT_RAIL) return false;
+  local number = AIVehicle.GetNumWagons(train) - 1;
+  if (number < 1 || number >= OpexRailNominalMaxWagons(lengthLimit)
+      || AIVehicle.GetLength(train) + 8 > lengthLimit * 16) return false;
+  local wagonId = AIVehicle.GetWagonEngineType(train, 1);
+  if (!AIEngine.IsWagon(wagonId) || !AIEngine.IsBuildable(wagonId)
+      || AIEngine.GetCargoType(wagonId) != mother.cargo) return false;
+  for (local i = 1; i <= number; i++)
+    if (AIVehicle.GetWagonEngineType(train, i) != wagonId) return false;
+  local wagon = OpexV257Engine(wagonId, mother.cargo, true);
+  if (wagon == null || wagon.capacity <= 0) return false;
+  local equipment = OpexV284Equipment(mother, train, wagon, number + 1, false, gap.waiting);
+  return equipment != null
+      && OpexInvestStallFleetMargin(mother, train, wagon, number, equipment, gap) != null;
+}
+
+/* INVEST-STALL b : une SECONDE gare ferroviaire independante, jamais un quai
+ * joint a la gare mere. Le screen quantifie la capacite des vehicules reels
+ * sur toutes les lignes du meme producteur/cargo. Une donnee manquante ou deux
+ * gares source preexistantes ferment cette admission sans jamais relaxer OFF. */
+function OpexInvestStallSecondSourceParent(lines, service, cargo, source)
+{
+  if (!INVEST_STALL || V276_CAND_SLICES > 0 || V190_RAIL_DOUBLE_BUILD
+      || !OpexInvestStallReady()
+      || AIDate.GetYear(AIDate.GetCurrentDate()) < OPEX_START_YEAR + 4
+      || service == null || service.blocked || service.lineEnd != "A"
+      || !("line" in service) || service.line == null) return null;
+  local mother = service.line;
+  if (!("kind" in mother) || mother.kind != "freight"
+      || !("mode" in mother) || mother.mode != "rail" || mother.cargo != cargo
+      || !("lineId" in mother) || !("stationA" in mother)
+      || service.stationId < 0 || !AIStation.IsValidStation(service.stationId)
+      || !AIStation.HasStationType(service.stationId, AIStation.STATION_TRAIN)) return null;
+  /* Avant le choix de site, verifier la production et le deficit reels.
+   * Si la gare mere capte deja moins de fret que sa capacite, ni un wagon ni
+   * un deuxieme train ne peuvent absorber plus de production via cette gare.
+   * Dans CE cas seulement, une seconde gare independante peut etre proposee
+   * meme si le quai offre nominalement une place a un autre wagon. */
+  local gap = OpexInvestStallSourceGap({ _lines = lines }, mother);
+  if (DECISION_LOG) OpexDecide("INVEST_STALL", "event=origin_screen src=" + source.tile
+      + " cargo=" + AICargo.GetCargoLabel(cargo) + " parent=" + mother.lineId
+      + " reason=" + gap.reason + " production=" + gap.production
+      + " capacity=" + gap.capacity + " transported=" + gap.pct
+      + " rating=" + gap.rating);
+  if (!gap.ok || gap.industry != source.id) return null;
+  local ratedOffer = gap.production.tofloat() * gap.rating / 100.0;
+  local canLoadMoreAtMother = ratedOffer > gap.capacity;
+  if (!("platformLength" in mother) || !("wagons" in mother)
+      || mother.platformLength <= 0 || mother.wagons <= 0) return null;
+  local lengthLimit = mother.platformLength;
+  local trainLimit = AIGameSettings.GetValue("vehicle.max_train_length");
+  if (trainLimit <= 0) return null;
+  if (trainLimit > 0 && trainLimit < lengthLimit) lengthLimit = trainLimit;
+  local wagonsInTrain = mother.wagons + (("wagons2" in mother) ? mother.wagons2 : 0);
+  local physicalHeadroom = OpexRailNominalMaxWagons(lengthLimit) - wagonsInTrain;
+  local actionableWagon = canLoadMoreAtMother && physicalHeadroom > 0
+      && OpexInvestStallParentCanGrowWagon(mother, gap, lengthLimit);
+  /* La marque doubleTrack n'atteste pas une deuxieme rame viable :
+   * OpexInvestStallFleetTrainCertified ferme actuellement cette voie. */
+  if (actionableWagon) {
+    if (DECISION_LOG) OpexDecide("INVEST_STALL", "event=origin_skip reason=fleet_headroom"
+        + " src=" + source.tile + " parent=" + mother.lineId
+        + " wagons=" + wagonsInTrain + " free=" + physicalHeadroom
+        + " rated_offer=" + ratedOffer + " capacity=" + gap.capacity);
+    return null;
+  }
+  if (!canLoadMoreAtMother && DECISION_LOG)
+    OpexDecide("INVEST_STALL", "event=origin_fleet_blocked reason=rating_supply"
+        + " src=" + source.tile + " parent=" + mother.lineId
+        + " rated_offer=" + ratedOffer + " capacity=" + gap.capacity);
+  local spare = (gap.production.tofloat() - gap.capacity).tointeger();
+  if (spare <= 0) return null;
+  return { lineId = mother.lineId, stationId = service.stationId,
+           stationTile = mother.stationA,
+           sourceIndustry = source.id, monthly = spare, gap = gap };
+}
+
+function OpexInvestStallEmitSecondStation(catalog, stats, profile, cruiseCache,
+                                         cargo, source, dstTile, isTransformer, mother)
+{
+  local c = OpexMakeCandidate(catalog, "freight", cargo, source.tile, dstTile,
+                             mother.monthly, true, stats, isTransformer, profile, cruiseCache);
+  if (c == null) return null;
+  /* La nouvelle gare fonctionne sur une voie unique et une rame propres :
+   * aucun clonage sur le troncon de la mere sans topologie PBS certifiee. */
+  if (c.trains != 1) { stats.accepted--; return null; }
+  c.investStallNewSource <- 1;
+  c.investStallParentLineId <- mother.lineId;
+  c.investStallParentStationId <- mother.stationId;
+  c.investStallParentStationTile <- mother.stationTile;
+  c.investStallSourceIndustry <- mother.sourceIndustry;
+  c.joinPlatform <- null; // bloque la tentative V178 implicite de joindre B
+  if (DECISION_LOG) OpexDecide("INVEST_STALL", "event=origin_candidate src=" + c.src
+      + " dst=" + c.dst + " parent=" + mother.lineId
+      + " parent_station=" + mother.stationId + " monthly=" + mother.monthly
+      + " profit=" + c.profitAnnual + " dist=" + c.distance);
+  return c;
+}
+
 /* Industries : on n'apparie que des couples producteur/accepteur du MEME cargo, ce qui garde
  * l'etage 1 lineaire en nombre d'industries plutot que quadratique sur tout le catalogue. */
 function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null, profile = null, cruiseCache = null, freightCargo = null, targetKind = null, targetId = -1, p1LongState = null)
@@ -1614,6 +1757,8 @@ function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null
           ? OpexRailSiblingParent(catalog, lines, ss, cargo, source, monthly) : null;
       if (sibling == null && RAIL_OPEN != 0 && RAIL_SIBLING == 0 && ss != null && longGood == null)
         sibling = OpexRailSiblingParent(catalog, lines, ss, cargo, source, monthly);
+      local stallSecond = INVEST_STALL && ss != null && longGood == null
+          ? OpexInvestStallSecondSourceParent(lines, ss, cargo, source) : null;
       local industryMark = profile != null ? OpexOpsMeasureBegin() : null;
       for (local k = 0; k < sinks.len(); k++) {
         if (longGood != null) continue;
@@ -1631,6 +1776,13 @@ function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null
         /* V179 : source neuve, destination deja desservie : on garde la paire, V178 la rattache.
          * Ce chemin n'est pas marque convergent : V264 ne s'execute que dans l'exclusion. */
         local v179Keep = ss == null && sd != null;
+        if (stallSecond != null && sd == null) {
+          local transformer = ("isTransformer" in industries[di]) && industries[di].isTransformer;
+          local second = OpexInvestStallEmitSecondStation(catalog, stats, profile, cruiseCache,
+              cargo, source, industries[di].tile, transformer, stallSecond);
+          if (second != null) out.append(second);
+          continue;
+        }
         if (sibling != null && sd == null) {
           if (OpexRailOpenBAlreadyCovered(catalog, lines, cargo, industries[di].tile, sibling)) {
             stats.pairsOriginServed++;
@@ -1721,6 +1873,12 @@ function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null
             if (townServiceCache != null) townServiceCache[town.id] <- st;
           }
           if (townServiceMark != null) { profile.freightTownServiceOps += OpexOpsMeasureEnd(townServiceMark); profile.freightTownServiceCalls++; }
+          if (stallSecond != null && st == null) {
+            local second = OpexInvestStallEmitSecondStation(catalog, stats, profile, cruiseCache,
+                cargo, source, town.tile, false, stallSecond);
+            if (second != null) { second.dstTown <- town.id; out.append(second); }
+            continue;
+          }
           if (sibling != null && st == null) {
             if (OpexRailOpenBAlreadyCovered(catalog, lines, cargo, town.tile, sibling)) {
               stats.pairsOriginServed++;

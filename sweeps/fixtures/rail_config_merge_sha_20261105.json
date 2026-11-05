@@ -1,0 +1,34 @@
+{
+  "purpose": "Exact source/output SHA256 for additive RAIL config projections on ROAD1Y+RAIL merge. Historical PRE_SHA fixtures remain untouched.",
+  "merge_parent": "44d9313eab12e08685ac1bf0cc6254fe0257ba4d",
+  "rail_parent": "056dae12a67b15ae1dedca43493ec9035578cb48",
+  "source": {
+    "globals_pre.nut": "d0548c85cd11d62de13e4eb1566088d77a15ab6490b3a30a01fb27eda3110424",
+    "settings.nut": "32542fef11a2bad6fbc7716a4e07a52758e7a2e358af172d2b43c3ee4a0a59fc",
+    "info.nut": "0e6e6e30aaae1b814dc8afbaad515347e2dc05aea133cd12983a7abc1fce26f1",
+    "main.nut": "c02c66b30ce9bee501d4b593dbf98f1c26e7bbdd50addf393ebd344c90d63762",
+    "task_rail.nut": "3d9356a9cd53cef9f75c706b1b01feeee59b7fcb791ab5f8873424e734bb12d4",
+    "scheduler.nut": "bc0d6edcdb0ad881427dc0b03b33f26f537b8c2a0afaa7739b7a756a241daafe",
+    "task_v284.nut": "3f0cf059f643941408fb4b16e53fa596936fc26ead46ff316876df9f2fc47edb",
+    "task_v257.nut": "7a7d9130784ba25bf2eb0e10fa8f333ea6800547e8997879a66f0f97d52a4bd3"
+  },
+  "rail_fill_then_loop_off": {
+    "globals_pre.nut": "1bf7fdae6f473e233b0d94d1df20e736d273a8533ca0cd6b1da25720799e688c",
+    "settings.nut": "75e470a67ec4f17f1c752e71d55215ee8fe81b38d30f016a95480f72e3ca4edd",
+    "info.nut": "eac875f4a243fb22c8a1d222ede61e00e90060d6b12ceaf7ed5101e4a475788e",
+    "main.nut": "c503c105cdc86af9b0d9af9185b447bc1e53fb3444150d5fe58480c51009c0f3",
+    "task_rail.nut": "805e4e57d29c9d3fb0e4bfed83d621c8ced04fdc94c00edcd2f853f1e2e51c54",
+    "scheduler.nut": "68edd4fb317e019d5bfffa4af50bddfdb86942aee789f575a2767d7180891d10",
+    "task_v284.nut": "088b1e624cb68c4e996924a47cdf685f616ee1fe8fdf97e5e4a4fd50eec91574",
+    "task_v257.nut": "d6bef0f569bd840162aa743079802fe68124b2e53f23a59608d90afb96190cd5"
+  },
+  "rail_search_prio_off": {
+    "globals_pre.nut": "c6861e400454c652fcf150e9148be6d96d6bf7c370df15009bfedf9732bd90e9",
+    "settings.nut": "12ff68193bd638c2f4eb5139151fe872bb05fb163bda1a299610e3481ae1e2e3",
+    "info.nut": "86d67cac63199b4a1ab267acb533513b1f2ab5391558988351eba0e7efc261aa"
+  },
+  "rail_search_prio_source_off": {
+    "scheduler.nut": "3ae35a91f352fce67c7923ecc5223ee000dbb9c066c6f7a5435049e2ee10cb18",
+    "task_rail.nut": "c5c724ea850647ca4ab882d9976eddc496ffcd298d7608183349f46d9e4dc11e"
+  }
+}

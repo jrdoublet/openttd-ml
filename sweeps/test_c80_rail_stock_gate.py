@@ -6,6 +6,7 @@ import unittest
 from pathlib import Path
 import re
 from opex_projects_source import read_projects_source
+from rail_long_source_off import off_source as rail_long_off
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -54,7 +55,10 @@ class TestC80RailStockGateContract(unittest.TestCase):
     def test_task_rail_no_start_rail_search_under_gate(self):
         self.assertNotIn("C80_RAIL_STOCK_GATE", self.task_rail)
         self.assertNotIn('reason = "no_ready_route"', self.task_rail)
-        call_sites = [m.start() for m in re.finditer(r"this\._startRailSearch", self.task_rail)]
+        # The opt-in RAIL-LONG retry adds a second call.  The historical C80
+        # contract applies to its exact OFF source projection.
+        baseline = rail_long_off("task_rail.nut", self.task_rail)
+        call_sites = [m.start() for m in re.finditer(r"this\._startRailSearch", baseline)]
         self.assertEqual(len(call_sites), 1, "Il doit y avoir exactement 1 site d appel à this._startRailSearch (chaine V88 retiree en V232)")
 
 

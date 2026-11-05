@@ -276,8 +276,12 @@ class PO01CContracts(unittest.TestCase):
                         r'po01fContext.diagnostics.sitableFills\+\+;', '', copied)
         copied = copied.replace('po01fContext.used = true;', '')
         copied = re.sub(r'\{ po01dResult.value = ([^;]*); return; \}', r'return \1;', copied)
+        # PO01F est figé avant INVEST-STALL v2, dont le bonus distance ne
+        # modifie que le producteur principal sous opt-in. Comparer OFF exact.
+        from invest_stall_source_off import project_off as invest_off
+        candidate_source = invest_off('candidates.nut', source('candidates.nut'))
         self.assertEqual(re.sub(r'\s+', '', copied),
-                         re.sub(r'\s+', '', function(source('candidates.nut'), 'OpexMakeCandidate')))
+                         re.sub(r'\s+', '', function(candidate_source, 'OpexMakeCandidate')))
 
     def test_po01f_historical_dependencies_unchanged(self):
         # R07/R11 (24-10-2026): byte pins explicitly rebaselined after
@@ -464,7 +468,9 @@ class PO01CContracts(unittest.TestCase):
         self.assertIn('PO01C_REGEN_SPLIT <- true;', source('globals_pre.nut'))
 
     def test_generators_track_current_producers(self):
-        self.assertEqual(source('po01c_generators.nut'), generated_estim_off())
+        from rail_open_legacy import off_source as rail_open_off
+        self.assertEqual(rail_open_off('po01c_generators.nut', source('po01c_generators.nut')),
+                         generated_estim_off())
 
     def test_po01d_synchronous_path_bytes_unchanged(self):
         # Rebased to 2026-10-24 R01–R12 (source hashes frozen for the complete

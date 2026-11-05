@@ -1,0 +1,57 @@
+{
+  "schema": "v233-long-good-road100-rail-merge-sha-v1",
+  "description": "New independent ROAD1Y+RAIL merge witnesses. Historic V233L fixture and reserve-off hashes remain immutable. For each file verify live, prepared, ROAD-OFF and V233-OFF digests; never equate the distinct merge output with the legacy witness.",
+  "origin_master_commit": "44d9313eab12e08685ac1bf0cc6254fe0257ba4d",
+  "rail_baseline_commit": "056dae12a67b15ae1dedca43493ec9035578cb48",
+  "historical_v233_fixture_sha256": "5298336504a28427499c57a138c2b66c1d612e626b30fefe9eb2b2c7527d77f3",
+  "files": {
+    "builder_rail.nut": {
+      "live_sha256": "1eca9310d6a3451820e5c61d721ce531a4b274213e043cfc9efef0075d9ee72e",
+      "prepared_sha256": "1eca9310d6a3451820e5c61d721ce531a4b274213e043cfc9efef0075d9ee72e",
+      "road_off_sha256": "1eca9310d6a3451820e5c61d721ce531a4b274213e043cfc9efef0075d9ee72e",
+      "v233_off_sha256": "b73636334bfb6b3537e335644ec0d355910dbf1fba1be0063b645a8d74c6b452",
+      "historical_sha256": "42c3802b6e9a609b644923df416a6233d70404e08a23f21e5641964215153e41",
+      "rail_baseline_source_sha256": "4fbb28a0fb30afcb0fb39257e5103a9b028b7895332de6b68b652e48460c6d65"
+    },
+    "candidates.nut": {
+      "live_sha256": "7b665f4b9035b8955212683573bfd0b340eaea2dd4a69d8563f1ece12747857d",
+      "prepared_sha256": "7b665f4b9035b8955212683573bfd0b340eaea2dd4a69d8563f1ece12747857d",
+      "road_off_sha256": "a94a6b536e8fa44b4af2255925febd9738016d522003753068d3702321e7d4a1",
+      "v233_off_sha256": "327504d937fe3ac5bc1870e026e0c5c796274d605aa9ab215c973b7d5c4e66fd",
+      "historical_sha256": "d79e1923183720cad83c517a54677962bff0ef964748f4468c76cfd60a90d58f",
+      "rail_baseline_source_sha256": "319fd6ac4dd6d58bba82d91f8e7509ededa4a9c8da90ee3f1ea0a8c5801b815a"
+    },
+    "info.nut": {
+      "live_sha256": "0e6e6e30aaae1b814dc8afbaad515347e2dc05aea133cd12983a7abc1fce26f1",
+      "prepared_sha256": "86d67cac63199b4a1ab267acb533513b1f2ab5391558988351eba0e7efc261aa",
+      "road_off_sha256": "8bf5ca75fe04815effbfa632386adc2118bd78b2147e951a8a067505eb817bdc",
+      "v233_off_sha256": "6fcb3f8e5f33ff8e7be0c5d657de655a051e05fafdfdef44db5c680a8e4907a1",
+      "historical_sha256": "385cb69ae5555b6ba187429cb24fb4bba60e4861d4b9866de3531d737716798d",
+      "rail_baseline_source_sha256": "90ad003727633d66846a36ddc5e28b812095897a53eb5d13c5af36d1945335bf"
+    },
+    "main.nut": {
+      "live_sha256": "c02c66b30ce9bee501d4b593dbf98f1c26e7bbdd50addf393ebd344c90d63762",
+      "prepared_sha256": "c02c66b30ce9bee501d4b593dbf98f1c26e7bbdd50addf393ebd344c90d63762",
+      "road_off_sha256": "ef558efc209ebe54a5ec1956cdff360aa0d49075271ac64902017d169551c54b",
+      "v233_off_sha256": "c237e60a4e751ed35a7b6cd0c24edc363422f7eb5e021adbe9c14a8e4b48f924",
+      "historical_sha256": "8bba058b5f3235e68bae9a0345d9c8ba8444680ef7ef2a39f2ad2153fd5f16e8",
+      "rail_baseline_source_sha256": "ad2cf0d10fa127f7953819774e5b09d0936bcdd2de1783dc5d0de5935633a1ba"
+    },
+    "orchestrator.nut": {
+      "live_sha256": "be8889370a9a4f3e78dc91a87336358aeda7ab38b37c2a0fbcd246639596c3e6",
+      "prepared_sha256": "be8889370a9a4f3e78dc91a87336358aeda7ab38b37c2a0fbcd246639596c3e6",
+      "road_off_sha256": "be8889370a9a4f3e78dc91a87336358aeda7ab38b37c2a0fbcd246639596c3e6",
+      "v233_off_sha256": "ba310ed27bca9b339fa16ee5e582fd1cd61377176fe492c97a9d8f4e9f303905",
+      "historical_sha256": "798d599f0b7308bb5f4bf57357cbd4cd9bd7071fb340d96c097de5e40eb60704",
+      "rail_baseline_source_sha256": "cf44f423472f3d459d9e899839f8ae73487af623a2878567e27757e913422b74"
+    },
+    "persist.nut": {
+      "live_sha256": "9e1a048dfbae9dcb8b40a4715a63ad7305e58981dd969e2fdadd6f06fd036bc9",
+      "prepared_sha256": "9e1a048dfbae9dcb8b40a4715a63ad7305e58981dd969e2fdadd6f06fd036bc9",
+      "road_off_sha256": "d4d9f9cbb5f0b217f4876b24633474a258173db7b7a9617e7f6c2f0ba2903976",
+      "v233_off_sha256": "8786eb0383a305d575db97b1a54323e2ff7815923ab24d85cda3eaaec3727d9d",
+      "historical_sha256": "a3f104932893ca73fa191b3ac46c8056470ea4729701c89b71b2638e054a1424",
+      "rail_baseline_source_sha256": "b743c210f1599ed9da546dcf9aa7035244dcdef84a6ac05d566f0cb8b0a53d0b"
+    }
+  }
+}

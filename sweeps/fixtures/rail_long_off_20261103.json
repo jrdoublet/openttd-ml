@@ -1,0 +1,19 @@
+{
+  "feature": "RAIL-LONG",
+  "baseline_sha256": {
+    "globals_pre.nut": "0f50142e1292f5ffc252994646c8d67569401f83d093375dd2f5e4fc9cf32ef5",
+    "settings.nut": "cf27d89e330bf261b89f2d15e7326e34d2863a8f788f0d1e7b5529f92dc96ffa",
+    "info.nut": "52d36c2ba14890b98a99ebe68a702cbb163d6c7dbee4970590591f0294b13445"
+  },
+  "insertions": {
+    "globals_pre.nut": [
+      "/* RAIL-LONG : rames fret 6-7 wagons sur production elevee, strict opt-in. */\nRAIL_LONG <- false;\n"
+    ],
+    "settings.nut": [
+      "  RAIL_LONG = AIController.GetSetting(\"rail_long\") == 1;\n"
+    ],
+    "info.nut": [
+      "    AddSetting({ name = \"rail_long\",\n      description = \"RAIL-LONG freight: 6-7 wagon consist when monthly production >= 1.5x short-train capacity, with physical fit and safe fallback (default 0)\",\n      min_value = 0, max_value = 1,\n      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,\n      flags = AICONFIG_BOOLEAN });\n"
+    ]
+  }
+}

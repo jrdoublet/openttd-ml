@@ -87,9 +87,11 @@ class TestParameterRetirement(unittest.TestCase):
         self.assertEqual(len(RETIRED), 43)
         # 58 historiques + N75 adopte + P6/P3/FP2/P2/P1 opt-in + FP1/V286/C75/DIST
         # C75 bis diagnostic, trois MULTI-1 opt-in (defaut 0), trois V233L et AIR funnel,
-        # ESTIM-1, air_site_probe, air_site_ranked, AIR-LOAD-1, 34 ROAD100
-        # opt-ins default 0, et EB-2 default 0.
-        self.assertEqual(len(self.config), 117)  # 82 initiaux + 34 ROAD100 + EB-2
+        # ROAD100 (34 off knobs), EB-2 and the independent RAIL options
+        # must all remain present, while the retired parameters stay absent.
+        self.assertEqual(len(self.config), 157)  # ROAD100/ROAD1Y plus independent RAIL features
+        self.assertIn("rail_search_prio", self.config)
+        self.assertIn("rail_long", self.config)
         self.assertIn("eb2_new_station_fallback", self.config)
         self.assertIn("estim_unifie", self.config)
         self.assertIn("n75_multi_cargo", self.config)
@@ -115,6 +117,8 @@ class TestParameterRetirement(unittest.TestCase):
         self.assertRegex(p2_setting, r"\bmax_value\s*=\s*2\b")
         for level in ("easy", "medium", "hard", "custom"):
             self.assertRegex(p2_setting, rf"\b{level}_value\s*=\s*0\b")
+        # Projections OFF par fragments exacts : les options nouvelles de novembre
+        # ne rebasent pas l'inventaire historique de 58.
         self.assertEqual(len(declared(historical_info(self.info))), 58)
 
     def test_retired_settings_have_no_declarations_or_direct_reads(self):

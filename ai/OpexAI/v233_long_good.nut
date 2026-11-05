@@ -2937,7 +2937,7 @@ function OpexV233LMonoCounterfactual(catalog, candidate, plan, routeDistance)
   if (V233L_CONSTRUCT == 2 && !OpexRailRepairIdleActive()) return false;
   local model = OpexLineEconomics(catalog, candidate.cargo, candidate.distance,
       candidate.monthly, candidate.kind, plan.length, routeDistance,
-      null, null, null, null, OpexV163CandidateSecondary(candidate), true, true);
+      null, null, null, null, OpexV163CandidateSecondary(candidate), true, false, true);
   local reason = "OK";
   local quoted = -1;
   local mono = null;

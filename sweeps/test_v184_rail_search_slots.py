@@ -12,6 +12,7 @@ AI = ROOT / "ai" / "OpexAI"
 sys.path.insert(0, str(ROOT / "sweeps"))
 
 from campaign_freeze import parse_ai_setting_specs  # noqa: E402
+from test_rail_search_prio_source_off import off_search_prio_source  # noqa: E402
 
 
 def _read(name: str) -> str:
@@ -87,7 +88,10 @@ class SingleSearchContract(unittest.TestCase):
         self.assertNotIn("_v184", body)
 
     def test_decision_log_preserves_single_search_format(self):
-        body = _function_body(_read("task_rail.nut"), "OpexAI::_continueRailSearch")
+        # Le format V184 precede SEARCH_PRIO; la ligne ON ajoute owner/elapsed
+        # mais l'ancienne decision doit ressortir octet pour octet en OFF.
+        rail_off = off_search_prio_source("task_rail.nut", _read("task_rail.nut"))
+        body = _function_body(rail_off, "OpexAI::_continueRailSearch")
         self.assertNotIn("slotStr", body)
         self.assertIn('OpexDecide("RAIL_SEARCH", "type=resumable outcome=" + slice.stop + " iters=" + state.spent + " budget=" + state.iterationBudget);', body)
 

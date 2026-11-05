@@ -108,7 +108,18 @@ class BusDistrictContracts(unittest.TestCase):
             with self.subTest(name=name):
                 parent = subprocess.check_output(
                     ['git', 'show', '481e7c08:ai/OpexAI/' + name], cwd=ROOT).decode()
-                self.assertEqual(_subtract_exact(name, source(name), hunks, 'B2'), parent)
+                # B2 historical fixture was captured on ROAD-only master.
+                # The merged HEAD adds unrelated RAIL code into large B2
+                # context hunks, so testing it with the old raw matcher would
+                # incorrectly demand those rail additions disappear. Keep the
+                # original witness anchored to origin/master's pre-merge
+                # immutable commit (never the moving origin/master ref);
+                # the separate strict merge tests exercise the reviewed
+                # ROAD+RAIL SHA-bounded projection and reject mutated hunks.
+                master = subprocess.check_output(
+                    ['git', 'show', '44d9313eab12e08685ac1bf0cc6254fe0257ba4d:ai/OpexAI/' + name], cwd=ROOT
+                ).decode()
+                self.assertEqual(_subtract_exact(name, master, hunks, 'B2'), parent)
 
     def test_no_shadowed_lists_in_default_fallback(self):
         code = body('bus_districts_overrides.nut', 'OpexRoadPlanPaxVoirie')

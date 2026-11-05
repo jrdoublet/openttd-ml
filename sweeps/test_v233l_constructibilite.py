@@ -70,7 +70,10 @@ class V233LConstructibilityContracts(unittest.TestCase):
         self.assertIn("if (longModel && !monoLong) calibrationOffered /= 2.0", econ)
         self.assertIn("if (longModel && offered > 0) paidDays", econ)
         quote = function("OpexV233LMonoCounterfactual", "v233_long_good.nut")
-        self.assertIn("OpexV163CandidateSecondary(candidate), true, true", quote)
+        # RAIL-LONG ajoute railLongFill entre longGood et v233Single :
+        # le contre-factuel mono doit conserver longGood=true, railLongFill=false,
+        # v233Single=true et ne jamais activer implicitement le remplissage.
+        self.assertIn("OpexV163CandidateSecondary(candidate), true, false, true", quote)
 
     def test_executor_requotes_and_rolls_back_on_failure(self):
         allow = function("OpexV233LMonoAllowed", "v233_long_good.nut")

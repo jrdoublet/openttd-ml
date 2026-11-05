@@ -743,6 +743,7 @@ function OpexAI::Save()
     }
     if (V250_RIGHTS != 0) OpexSaveV250(shortSave, this);
     if (N75_MULTI_CARGO > 0) shortSave.n75McLastMonth <- N75_MC_LAST_MONTH;
+    if (INVEST_STALL) shortSave.investStallLastMonth <- INVEST_STALL_LAST_MONTH;
     if (OpexC121StrategyStateEnabled()) OpexSaveC121Strategy(shortSave);
     if (P6_AIR_FIRSTLINE_WINDOW != 0 && this._p6FirstlineWindowConsumed)
       shortSave.p6FirstlineWindowConsumed <- true;
@@ -845,12 +846,22 @@ function OpexAI::Save()
   }
   if (V250_RIGHTS != 0) OpexSaveV250(saveObj, this);
   if (N75_MULTI_CARGO > 0) saveObj.n75McLastMonth <- N75_MC_LAST_MONTH;
+  if (INVEST_STALL) saveObj.investStallLastMonth <- INVEST_STALL_LAST_MONTH;
 
   /* Hors projection mensuelle : la transaction et le curseur doivent etre exacts. */
   saveObj.v257RailRefresh <- { cursor = this._v257Cursor, state = this._v257State,
     pending = this._v257Pending, engineRevision = this._v257EngineRevision,
     priorityRemaining = this._v257PriorityRemaining };
-  if (V284_RAIL_GROWTH > 0 || V233_LONG_GOOD > 0) saveObj.v284Growth <- this._v284State;
+  if (V284_RAIL_GROWTH > 0 || V233_LONG_GOOD > 0 || (RAIL_LONG_V2 && this._v284State != null)
+      || (INVEST_STALL && this._v284State != null)
+      || OpexInvestStallPending(this) || OpexRailLongV2FleetPending(this))
+    saveObj.v284Growth <- this._v284State;
+  if (RAIL_LONG_V2 || this._railLongV2Pending != null)
+    saveObj.railLongV2Upgrade <- this._railLongV2Pending;
+  if (RAIL_LONG_V3 || this._railLongV3UpgradePending != null)
+    saveObj.railLongV3Upgrade <- this._railLongV3UpgradePending;
+  if (RAIL_PAIR > 0 || this._v271Pending != null)
+    saveObj.railPair <- { year = this._v271Year, pending = this._v271Pending };
   if (V233_LONG_GOOD > 0) saveObj.v233LongGood <- V233L_STATE;
 
   if (OpexC121StrategyStateEnabled()) OpexSaveC121Strategy(saveObj);
@@ -917,6 +928,7 @@ function OpexAI::Load(version, data)
   }
   this._loadedFromSave = true;
   N75_MC_SAVED_MONTH = -1;
+  INVEST_STALL_SAVED_MONTH = -1;
   OPEX_RELOAD_C121_STRATEGY = null;
   OPEX_AIR_ROLLBACKS = [];
   if (V279_RESELECT_MEMO != 0) OPEX_AIR_ROLLBACK_REVISION++;
@@ -925,6 +937,8 @@ function OpexAI::Load(version, data)
     this._v233LReload = data.v233LongGood;
   if (("n75McLastMonth" in data) && typeof data.n75McLastMonth == "integer")
     N75_MC_SAVED_MONTH = data.n75McLastMonth;
+  if (("investStallLastMonth" in data) && typeof data.investStallLastMonth == "integer")
+    INVEST_STALL_SAVED_MONTH = data.investStallLastMonth;
   /* Legacy v139UnjoinedStops is deliberately ignored: feeder construction was removed. */
   if ("airRollbacks" in data) OPEX_AIR_ROLLBACKS = OpexLoadAirRollbacks(data.airRollbacks);
   if ("airRollbacks" in data && V279_RESELECT_MEMO != 0) OPEX_AIR_ROLLBACK_REVISION++;
@@ -947,6 +961,16 @@ function OpexAI::Load(version, data)
     if (V279_RESELECT_MEMO != 0) OPEX_ABANDON_REVISION++;
   }
   if ("lines" in data) this._pendingLines = data.lines;
+  if ("railPair" in data && typeof data.railPair == "table") {
+    this._v271Year = ("year" in data.railPair) ? data.railPair.year : -1;
+    this._v271Pending = ("pending" in data.railPair) ? data.railPair.pending : null;
+  }
+  /* Load s'execute avant les reglages : restaurer une transaction physique
+   * sans consulter la valeur initiale du drapeau RAIL_LONG_V2. */
+  if (("railLongV2Upgrade" in data) && typeof data.railLongV2Upgrade == "table")
+    this._railLongV2Pending = data.railLongV2Upgrade;
+  if (("railLongV3Upgrade" in data) && typeof data.railLongV3Upgrade == "table")
+    this._railLongV3UpgradePending = data.railLongV3Upgrade;
   if ("abandonCounts" in data && data.abandonCounts != null) this._abandonCounts = data.abandonCounts;
   if ("lastRepayMonth" in data) this._lastRepayMonth = data.lastRepayMonth;
   if ("taskCycle" in data) this._taskCycle = data.taskCycle;
@@ -1214,8 +1238,19 @@ function OpexAI::_reconcileAfterLoad()
   this._lines = liveLines;
   if (V279_RESELECT_MEMO != 0) OPEX_LINES_REVISION++;
   this._reconcileEB14JournalAfterLoad();
+  if (this._v271Pending != null && RAIL_PAIR == 0) {
+    if (this._v271Pending.phase != "commit") {
+      this._v271Pending.phase = "rollback";
+      this._v271Pending.reason = "disabled_after_load";
+    }
+    /* _runNextTask reprend le rollback a chaque passage sans tache fantome. */
+  }
   OpexV257Reconcile(this);
-  if (V284_RAIL_GROWTH > 0 || V233_LONG_GOOD > 0) OpexV284Reconcile(this);
+  if (this._railLongV2Pending != null) OpexRailLongV2Reconcile(this);
+  if (this._railLongV3UpgradePending != null) OpexRailLongV3UpgradeReconcile(this);
+  if (V284_RAIL_GROWTH > 0 || V233_LONG_GOOD > 0 || (INVEST_STALL && this._v284State != null)
+      || OpexInvestStallPending(this) || OpexRailLongV2FleetPending(this))
+    OpexV284Reconcile(this);
   if (V233_LONG_GOOD > 0) OpexV233LReconcile(this);
   this._pendingLines = null;
   /* C70 : recalcul des facteurs APRES la reconstitution de this._lines. Appele plus haut, il

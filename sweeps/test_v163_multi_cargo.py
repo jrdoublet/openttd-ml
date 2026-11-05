@@ -9,6 +9,7 @@ from __future__ import annotations
 import math
 import unittest
 from pathlib import Path
+from rail_long_source_off import off_source as rail_long_off
 
 ROOT = Path(__file__).resolve().parents[1]
 AI = ROOT / "ai" / "OpexAI"
@@ -66,7 +67,9 @@ class StaticContracts(unittest.TestCase):
             self.assertNotIn(name, _read("economy.nut"))
 
     def test_builder_reevaluations_keep_secondary(self):
-        src = _read("builder_rail.nut")
+        # RAIL-LONG adds a new exploratory quote; V163's original two
+        # reevaluations must still exist in the pre-RAIL-LONG projection.
+        src = rail_long_off("builder_rail.nut", _read("builder_rail.nut"))
         self.assertEqual(src.count("OpexV163CandidateSecondary(candidate)"), 2)
 
     def test_economics_counts_secondary(self):

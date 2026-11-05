@@ -13,6 +13,7 @@ Never regenerate a fixture to make a failing legacy hash pass; inspect source.
 from __future__ import annotations
 
 import difflib
+import hashlib
 import json
 from pathlib import Path
 import subprocess
@@ -35,6 +36,79 @@ FILES = (
     "info.nut", "opcode_exact.nut", "settings.nut", "task_projects.nut",
     "task_road.nut", "po01c_regen.nut", "po01c_generators.nut", "persist.nut",
 )
+
+
+# ROAD1Y-B2 was recorded on origin/master with seven unrelated RAIL-SIBLING /
+# RAIL-OPEN additions embedded inside its very large contextual hunks.  Those
+# additions are not ROAD1Y code and MUST survive projection of the merged
+# master+RAIL bundle.  Keep the historical fixture and its normal projection
+# entirely unchanged; the reviewed merge is the sole exception, identified by
+# its exact input AND B2-projected SHA256.  Unknown revisions fail closed via
+# the historical exact-hunk matcher rather than silently losing rail features.
+# Each tuple is (merged SHA, B2-projected SHA, indices of RAIL-only hunks).
+ROAD1Y_B2_RAIL_MERGE = {
+    "candidates.nut": (
+        "7b665f4b9035b8955212683573bfd0b340eaea2dd4a69d8563f1ece12747857d",
+        "a94a6b536e8fa44b4af2255925febd9738016d522003753068d3702321e7d4a1",
+        (7, 8, 9, 10),
+    ),
+    "globals_pre.nut": (
+        "d0548c85cd11d62de13e4eb1566088d77a15ab6490b3a30a01fb27eda3110424",
+        "a5fac92a00c72cdcb7fb091bab51ef14092f76fd92debe759c02986970ee0e1d",
+        (1,),
+    ),
+    "info.nut": (
+        "0e6e6e30aaae1b814dc8afbaad515347e2dc05aea133cd12983a7abc1fce26f1",
+        "db4e98d70522a49ae3242441b5479e22ae3422bc0eca772677da37f8aa04f0d2",
+        (0,),
+    ),
+    "settings.nut": (
+        "32542fef11a2bad6fbc7716a4e07a52758e7a2e358af172d2b43c3ee4a0a59fc",
+        "e9a77ce85ffb1a8b552c2022b3aa1f6abf53797c9813a09b62118d9840de1ec4",
+        (2,),
+    ),
+}
+
+# Selected callers remove newer RAIL policies *before* calling ROAD100 (notably
+# n75_mc_legacy.historical_bytes).  Those intermediate sources are distinct
+# from the live merged file, but remain fixed and reviewed.  The pairs below
+# pin their exact SHA256 before and after subtracting ROAD1Y-B2.  The stages
+# are RAIL-LONG OFF, RAIL-SEARCH-PRIO OFF, then RAIL-DEPOT-SIGNAL OFF, in that
+# order.  Identical stages (no edit for that file) need only one pair.
+ROAD1Y_B2_RAIL_MERGE_STAGES = {
+    "candidates.nut": (
+        ("e58fcedbb7ac99897236aeecf30045a5d4443ec21d8ac00d4508565582ffe0ee",
+         "82253f50c21aa1545f65997a5c1aaf880cc99737ebca4f38dcf9029490f456bd"),
+        # The fully stripped candidate source is BYTE-IDENTICAL to
+        # origin/master.  Do not whitelist it: source alone cannot distinguish
+        # that legacy input from a merged intermediate, so preserve the
+        # historical projection for this SHA.
+    ),
+    "globals_pre.nut": (
+        ("95287db807334e84c5a1146a7d2ca446d6c464aa9daf6cd2b55cd7d76d19ad3d",
+         "8ff485029940bed662ea10a539e1c47a94b0decda19de2c3954020b09a1dbca7"),
+        ("c6861e400454c652fcf150e9148be6d96d6bf7c370df15009bfedf9732bd90e9",
+         "09844bbed074c149fca50293bc9bf9e75f19f3ada9cb0f533a585f6bcf9a6b57"),
+        ("42d7708dc890be6adbf5936c4879075ece39a030a777318edcaaa77b719a86d0",
+         "fe3ffab63749bc618f3ad46c73ed5bbf193727e94ef5c52a1ff13d5a6e5838cf"),
+    ),
+    "info.nut": (
+        ("1fbdac0c3e35ee9812033b7456620b512f7b641cf780ab1c74ff0f1dcc0e3e63",
+         "46b702bbe37532bc8212af5058147caa5b12cce41ac427f3a3b58d244907d19f"),
+        ("86d67cac63199b4a1ab267acb533513b1f2ab5391558988351eba0e7efc261aa",
+         "8bf5ca75fe04815effbfa632386adc2118bd78b2147e951a8a067505eb817bdc"),
+        ("ebb95bf341a59e795c542dc3502d7105f2f9f3413daabd753467230d4dc97ffc",
+         "65c458f5290ceb7c0d36e706bf25a9ac796e6cb833ad534242786868fafd6057"),
+    ),
+    "settings.nut": (
+        ("4ba30a2a9a44059be4f33da8906bf7c289be24cb49376563616ce487a111f483",
+         "5739b3a18c226c969200f142dfa5e173002dec76ff094090b3c120f2fc597bb2"),
+        ("12ff68193bd638c2f4eb5139151fe872bb05fb163bda1a299610e3481ae1e2e3",
+         "5a9c5cddcd059ba8b8679f949d19d75d8c5213427d60375a9421a17dbe362567"),
+        ("1dadbfebb825771eec820582830227c6b2d29580c2eed6f392517f731d5eb02f",
+         "4ac2ffaed7f5a5c7236591422a5154162570d649c48ff36d8db34384dcd20ff9"),
+    ),
+}
 
 
 def build_hunks(original: str, modified: str):
@@ -93,11 +167,47 @@ def _subtract_exact(name: str, source: str, edits, label: str) -> str:
     return source
 
 
+def _subtract_road1y_b2(name: str, source: str, edits) -> str:
+    """Project ROAD only; preserve unrelated RAIL hunks on one frozen merge.
+
+    The seven skipped fixture hunks contain *only* RAIL code insertions.
+    Never infer a merge from substrings, branch names, or a partial match:
+    both input and output SHA checks apply to every reviewed source stage.
+    """
+    reviewed = ROAD1Y_B2_RAIL_MERGE.get(name)
+    digest = hashlib.sha256(source.encode("utf-8")).hexdigest()
+    approved = () if reviewed is None else (
+        ((reviewed[0], reviewed[1]),) + ROAD1Y_B2_RAIL_MERGE_STAGES.get(name, ())
+    )
+    expected = next((out_sha for in_sha, out_sha in approved if in_sha == digest), None)
+    if expected is None:
+        return _subtract_exact(name, source, edits, "ROAD1Y-B2")
+    if not edits or max(reviewed[2]) >= len(edits):
+        raise AssertionError(f"ROAD1Y-B2 {name}: missing reviewed merge hunks")
+    rail_only = set(reviewed[2])
+    for index in rail_only:
+        before, after = edits[index]["before"], edits[index]["after"]
+        operations = difflib.SequenceMatcher(
+            None, before.splitlines(keepends=True), after.splitlines(keepends=True),
+            autojunk=False,
+        ).get_opcodes()
+        changes = [tag for tag, *_ in operations if tag != "equal"]
+        if not changes or any(tag != "insert" for tag in changes):
+            raise AssertionError(f"ROAD1Y-B2 {name}: RAIL-only fixture hunk changed")
+    projected = _subtract_exact(
+        name, source, [edit for i, edit in enumerate(edits) if i not in rail_only],
+        "ROAD1Y-B2-merge",
+    )
+    if hashlib.sha256(projected.encode("utf-8")).hexdigest() != expected:
+        raise AssertionError(f"ROAD1Y-B2 {name}: merge projection SHA mismatch")
+    return projected
+
+
 def off_source(name: str, source: str, *, hunk_data=None) -> str:
     # ROAD1Y-B2: exact reviewed layer above origin/master 481e7c08.
     # Older ROAD100 fixtures stay frozen and must not match that parent.
-    districts = json.loads((FIXTURE.parent / "road100_bus_districts_hunks.json").read_text())
-    source = _subtract_exact(name, source, districts.get(name), "ROAD1Y-B2")
+    districts = json.loads((FIXTURE.parent / "road100_bus_districts_hunks.json").read_text(encoding="utf-8"))
+    source = _subtract_road1y_b2(name, source, districts.get(name))
     # ROAD100-36 is a new opt-in above all frozen historic layers. Remove
     # only its exact current hunks, then use the unchanged V35..V7 fixtures.
     v36_hunks = json.loads(V36_FIXTURE.read_text(encoding="utf-8"))
