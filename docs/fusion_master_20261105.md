@@ -88,3 +88,27 @@ Les defaults ROAD1Y et RAIL restent séparés et contrôlés par les contrats
 Le script de smoke conserve les réglages `rail_sibling=1`, `rail_open=1` de part
 et d'autre, ne change que `rail_loop=0,v257_demand=0` dans le bras témoin,
 et utilise `--cpus 10 --memory 8g --max-workers 10` avec le montage explicite.
+
+### Compilation et smoke moteur du commit de fusion
+
+- Commit de fusion : `6f57003fb781ab6bdb65fca4fe1321d86f6b43a` (parents `44d9313e`,
+  `056dae12` ; co-auteur demandé présent).
+- `results/fusion_master_compile_smoke_1x1_20261105.json` : 2 duels de
+  1 graine × 1 an, `failed_runs=[]`, 4/4 compagnies saines, pas d'erreur NoAI
+  dans les deux journaux moteur. `fail_primary` économique dû à l'égalité,
+  sans incidence sur le contrôle de compilation.
+- `results/fusion_master_rail_smoke_4x6_20261105.json` : 8 duels
+  (4 graines × 2 politiques), 16/16 compagnies saines, `failed_runs=[]`,
+  toutes au 1er décembre 1975, zéro occurrence d'erreur fatale NoAI dans les
+  8 journaux sous `results/fusion_master_rail_smoke_4x6_20261105_engine`.
+  Le smoke ne démontre pas un gain économique : c'est un contrôle de
+  construction, chargement et exécution de l'IA fusionnée.
+- Images/montage : `openttd-lab:latest` (image
+  `sha256:0480a863e164856797412ff4a0782621464a52087abbb9c056dd3587d46cac31`),
+  `--mount-root C:\Users\jr\vscode\openttd-ml\openttd-ml`, 10 CPU, 8 GiB,
+  10 workers. Aucun banc simultané.
+
+Les validations demandées pour la fusion sont satisfaites. Il reste à
+vérifier `origin/master` après `git fetch` et effectuer le push fast-forward
+seulement si le parent attendu est inchangé ; cette ligne est actualisée
+dans le journal au moment du push.
