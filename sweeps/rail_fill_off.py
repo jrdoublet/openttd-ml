@@ -47,6 +47,8 @@ MARKERS = ("RAIL_FILL", '"rail_fill"', "rail_fill.nut", "OpexRailFill", "railFil
 
 
 def off_source(name, source):
+    from v257_demand_off import off_source as demand_off
+    source = demand_off(name, source)
     fragments = INSERTIONS.get(name, ())
     replaced = REPLACED.get(name, ())
     if not fragments and not replaced:

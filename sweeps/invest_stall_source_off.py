@@ -88,6 +88,8 @@ REPLACED = {
 
 
 def project_off(name, source):
+    from v257_demand_off import off_source as demand_off
+    source = demand_off(name, source)
     # DOUBLE-GROW est une couche posterieure au snapshot INVEST-STALL.
     # L'enlever d'abord permet de conserver les SHA geles et l'idempotence.
     from double_grow_off import off_source as double_grow_off

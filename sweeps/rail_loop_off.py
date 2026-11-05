@@ -41,6 +41,8 @@ MARKERS = ("RAIL_LOOP <-", "RAIL_LOOP =", "RAIL_LOOP &&", '"rail_loop"', "rail_l
 
 
 def off_source(name, source):
+    from v257_demand_off import off_source as demand_off
+    source = demand_off(name, source)
     fragments = INSERTIONS.get(name)
     if fragments is None:
         if name != "rail_loop.nut" and any(m in source for m in MARKERS):

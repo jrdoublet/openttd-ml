@@ -888,6 +888,8 @@ RAIL_LONG_CONFIG = json.loads(
 
 
 def rail_long_config_off_bytes(name, raw):
+    from v257_demand_off import off_source as demand_off
+    raw = demand_off(name, raw.decode("utf8")).encode("utf8")
     from double_grow_off import off_source as double_grow_off
     raw = double_grow_off(name, raw.decode("utf8")).encode("utf8")
     # La version 2 ajoute une couche APRES la fixture RAIL-LONG v1.

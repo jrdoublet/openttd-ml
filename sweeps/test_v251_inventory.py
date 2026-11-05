@@ -56,7 +56,7 @@ class TestV251Inventory(unittest.TestCase):
         # RAIL-LONG, INVEST-STALL, DOUBLE-GROW, RAIL-LOOP (04/11, boucle a sens
         # unique par l'arriere des quais) et RAIL-FILL (04/11, remplissage des
         # quais existants par V284), tous defaut 0 ; le plafond historique demeure 58.
-        self.assertEqual(self.sources["info.nut"].count("AddSetting("), 95)
+        self.assertEqual(self.sources["info.nut"].count("AddSetting("), 96)
         self.assertEqual(info.count("AddSetting("), 58)
         self.assertNotIn('name = "v251', info)
         settings = self.sources["settings.nut"]

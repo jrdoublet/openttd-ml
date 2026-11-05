@@ -102,6 +102,8 @@ def _unique_location(code, snippet, name, index):
 
 
 def estim_off(name, code):
+    from v257_demand_off import off_source as demand_off
+    code = demand_off(name, code)
     """Remove only the frozen ESTIM changes, retaining every other source edit."""
     # The historical ESTIM guards predate RAIL-OPEN. Its independent opt-in
     # must be projected first so unchanged candidate context remains exact.

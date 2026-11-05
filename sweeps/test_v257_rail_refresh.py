@@ -9,6 +9,7 @@ from types import SimpleNamespace
 import unittest
 
 from estim_unifie_legacy import estim_off
+from v257_demand_off import off_source as demand_off
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -78,7 +79,7 @@ class RailRefresh(unittest.TestCase):
     def setUpClass(cls):
         cls.sources = {path.name: path.read_text(encoding="utf-8") for path in AI.glob("*.nut")}
         cls.task = cls.sources["task_v257.nut"]
-        cls.off_task = estim_off("task_v257.nut", cls.task)
+        cls.off_task = estim_off("task_v257.nut", demand_off("task_v257.nut", cls.task))
         cls.step = body(cls.task, "function OpexAI::_v257ReactiveStep()")
         cls.review = body(cls.task, "function OpexAI::_v257Review(line, state, date, force)")
         cls.replace = body(cls.task, "function OpexAI::_v257ReplaceStep()")
@@ -359,7 +360,7 @@ class RailRefresh(unittest.TestCase):
         self.assertLessEqual(numbers, allowed)
         # Le seul literal additionnel permis en ON est le masque du lot 3,
         # avec une garde explicite a chaque occurrence.
-        live = strip_comments(self.task)
+        live = strip_comments(demand_off("task_v257.nut", self.task))
         live_numbers = set(re.findall(r"(?<![\w.])\d+(?:\.\d+)?(?![\w.])", live))
         self.assertLessEqual(live_numbers, allowed | {"4"})
         self.assertIn("4", live_numbers)
