@@ -3,6 +3,9 @@
 This test protects the pre-registered scope and OFF path, including the
 otherwise easy-to-break C77 AIR defence and legacy setting inventory.
 """
+
+# Compare historical contracts after the exact outer FLEET-ARB projection.
+from fleet_arb_off import historical_read_bytes as fleet_read_bytes, historical_read_text as fleet_read_text
 import re
 import unittest
 from pathlib import Path
@@ -14,7 +17,7 @@ AI = Path(__file__).resolve().parents[1] / "ai" / "OpexAI"
 
 
 def src(name):
-    return (AI / name).read_text(encoding="utf-8")
+    return fleet_read_text(AI / name, encoding="utf-8")
 
 
 class Multi1RoadPriorityContracts(unittest.TestCase):
@@ -31,7 +34,7 @@ class Multi1RoadPriorityContracts(unittest.TestCase):
         self.assertIn("MULTI1_ROAD_PRIORITY <- 0;", src("globals_pre.nut"))
         self.assertIn("? multi1RoadPriority : 0;", settings)
         for name in ("info.nut", "settings.nut"):
-            self.assertNotIn(b"multi1_road_priority", historical_bytes(name, (AI / name).read_bytes()))
+            self.assertNotIn(b"multi1_road_priority", historical_bytes(name, fleet_read_bytes(AI / name)))
 
     def test_off_and_diagnostic_paths_cannot_promote(self):
         code = src("projects_selection.nut")

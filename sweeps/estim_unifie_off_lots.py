@@ -139,6 +139,8 @@ def strip_c121_dispatch(name, code):
 
 
 def estim_off(name, code):
+    from fleet_arb_off import off_source as fleet_off
+    code = fleet_off(name, code)
     from v257_demand_off import off_source as demand_off
     code = demand_off(name, code)
     """Remove only the frozen ESTIM changes, retaining every other source edit."""

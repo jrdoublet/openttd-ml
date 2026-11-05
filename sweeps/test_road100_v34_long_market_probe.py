@@ -2,6 +2,9 @@
 
 These do not replace an OpenTTD Squirrel runtime smoke.
 """
+
+# Compare historical contracts after the exact outer FLEET-ARB projection.
+from fleet_arb_off import historical_read_text as fleet_read_text
 import re
 import unittest
 from pathlib import Path
@@ -13,7 +16,7 @@ AI = ROOT / "ai" / "OpexAI"
 
 
 def source(name):
-    return (AI / name).read_text(encoding="utf-8")
+    return fleet_read_text(AI / name, encoding="utf-8")
 
 
 class LongMarketProbeContracts(unittest.TestCase):

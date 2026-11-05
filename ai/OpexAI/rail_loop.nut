@@ -492,6 +492,8 @@ function OpexRailLoopClone(owner, line)
   local model = live[0];
   local price = OpexRailLoopTrainPrice(model);
   if (price < 0 || OpexAvailableCapital() < price) return null;
+  if (FLEET_ARB && !OpexFleetRequest(line, "rail", "add_vehicle", price,
+      OpexFleetRailProfit(line, price), "RAIL_LOOP")) return null;
   local train = AIVehicle.CloneVehicle(line.depot, model, true);
   if (!AIVehicle.IsValidVehicle(train)) return null;
   if (!AIVehicle.StartStopVehicle(train)) {

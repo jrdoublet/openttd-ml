@@ -6,6 +6,9 @@ des journaux OpenTTD, sans lancer Docker.
 
 from __future__ import annotations
 
+# Compare historical contracts after the exact outer FLEET-ARB projection.
+from fleet_arb_off import historical_read_text as fleet_read_text
+
 from collections import Counter
 from pathlib import Path
 import re
@@ -19,7 +22,7 @@ AI = Path(__file__).resolve().parents[1] / "ai" / "OpexAI"
 
 
 def source(file):
-    return off_source(file, (AI / file).read_text(encoding="utf-8"))
+    return off_source(file, fleet_read_text(AI / file, encoding="utf-8"))
 
 
 def octant(dx, dy):

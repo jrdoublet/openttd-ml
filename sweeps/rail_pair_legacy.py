@@ -77,6 +77,8 @@ REPLACEMENTS = {
 
 
 def off_source(name, source):
+    from fleet_arb_off import off_source as fleet_off
+    source = fleet_off(name, source)
     if name == "task_rail.nut" and hashlib.sha256(source.encode("utf-8")).hexdigest() == MERGED_TASK_RAIL_PAIR_OFF_SHA256:
         if "RAIL_PAIR" in source or "_v271TandemSource" in source:
             raise AssertionError("RAIL-PAIR task_rail: projected SHA contains live pair wiring")

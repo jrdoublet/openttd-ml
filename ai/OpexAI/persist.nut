@@ -767,6 +767,7 @@ function OpexAI::Save()
       local tCount = (this._taskQueue != null) ? this._taskQueue.len() : 0;
       OpexDecide("V262_SAVE", "ops=" + opsSpent + " budget=100000 lines=" + lCount + " abandons=" + aCount + " abandonCounts=" + hCount + " tasks=" + tCount + " full=0");
     }
+    if (FLEET_ARB) shortSave.fleetArb <- OpexFleetSave();
     return shortSave;
   }
 
@@ -887,10 +888,12 @@ function OpexAI::Save()
     local tCount = (this._taskQueue != null) ? this._taskQueue.len() : 0;
     OpexDecide("V262_SAVE", "ops=" + opsSpent + " budget=100000 lines=" + lCount + " abandons=" + aCount + " abandonCounts=" + hCount + " tasks=" + tCount + " full=1");
   }
+  if (FLEET_ARB) saveObj.fleetArb <- OpexFleetSave();
   return saveObj;
 }
 function OpexAI::Load(version, data)
 {
+  if (data != null && ("fleetArb" in data)) OpexFleetLoad(data.fleetArb);
   /* Load s'exécute avant lecture des settings : lire le scalaire meme si
    * l'option est changee apres sauvegarde. Absence = cooldown prudent. */
   RAIL_REPAIR_LAST_CONSTRUCTION_DATE = -1;

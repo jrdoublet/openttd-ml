@@ -1,4 +1,7 @@
 """Permanent default-OFF and guarded TRACEX-only MULTI-1 third lever."""
+
+# Compare historical contracts after the exact outer FLEET-ARB projection.
+from fleet_arb_off import historical_read_bytes as fleet_read_bytes, historical_read_text as fleet_read_text
 import re
 import unittest
 from pathlib import Path
@@ -8,7 +11,7 @@ ROOT = Path(__file__).resolve().parents[1] / "ai" / "OpexAI"
 
 
 def read(file):
-    return (ROOT / file).read_text(encoding="utf-8")
+    return fleet_read_text(ROOT / file, encoding="utf-8")
 
 
 class RoadDetourContract(unittest.TestCase):
@@ -22,7 +25,7 @@ class RoadDetourContract(unittest.TestCase):
         self.assertEqual(settings.count('AIController.GetSetting("multi1_road_detour")'), 1)
         self.assertIn("MULTI1_ROAD_DETOUR <- 0;", read("globals_pre.nut"))
         for file in ("info.nut", "settings.nut"):
-            self.assertNotIn(b'multi1_road_detour', historical_bytes(file, (ROOT / file).read_bytes()))
+            self.assertNotIn(b'multi1_road_detour', historical_bytes(file, fleet_read_bytes(ROOT / file)))
 
     def test_historical_planner_unchanged_and_shadow_not_published(self):
         code = read("opcode_exact.nut")

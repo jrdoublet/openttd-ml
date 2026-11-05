@@ -942,6 +942,8 @@ def rail_search_prio_config_off_bytes(name, raw):
 
 
 def historical_bytes(name, raw):
+    from fleet_arb_off import off_bytes as fleet_off
+    raw = fleet_off(name, raw)
     raw = rail_long_config_off_bytes(name, raw)
     raw = rail_search_prio_config_off_bytes(name, raw)
     from rail_depot_signal_legacy import strip_if_present as depot_signal_off
@@ -1097,4 +1099,6 @@ def historical_bytes(name, raw):
 
 
 def historical_info(info):
+    from fleet_arb_off import off_source as fleet_off
+    info = fleet_off("info.nut", info)
     return historical_bytes("info.nut", info.encode("utf-8")).decode("utf-8")

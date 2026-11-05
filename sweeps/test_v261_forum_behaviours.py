@@ -7,6 +7,9 @@ pas une lecture script du réglage.
 Une présence textuelle ne prouve ni fluidité, ni absence de deadlock, ni type
 récursif du graphe Save. Aucun chemin externe n'est requis par cette suite.
 """
+
+# Compare historical contracts after the exact outer FLEET-ARB projection.
+from fleet_arb_off import historical_read_text as fleet_read_text
 from pathlib import Path
 import re
 import unittest
@@ -17,7 +20,7 @@ AI = ROOT / "ai" / "OpexAI"
 
 
 def source(name):
-    return (AI / name).read_text(encoding="utf-8")
+    return fleet_read_text(AI / name, encoding="utf-8")
 
 
 def uncomment(text):
@@ -46,7 +49,7 @@ def body(name, function):
 
 
 def all_code():
-    return {p.relative_to(AI).as_posix(): uncomment(p.read_text(encoding="utf-8"))
+    return {p.relative_to(AI).as_posix(): uncomment(fleet_read_text(p, encoding="utf-8"))
             for p in AI.rglob("*.nut")}
 
 
@@ -306,7 +309,7 @@ class ForumBehaviours(unittest.TestCase):
             "AITown.GetPopulation", "AIIndustry.GetLastMonthProduction",
         }
         api = set()
-        for line in (ROOT / "docs/noai_api_15.3.tsv").read_text().splitlines():
+        for line in fleet_read_text(ROOT / "docs/noai_api_15.3.tsv").splitlines():
             fields = line.split("\t")
             if len(fields) == 3 and fields[0] == "static":
                 api.add(".".join(fields[1:]))

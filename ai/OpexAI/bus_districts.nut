@@ -536,6 +536,8 @@ function OpexRoad1yRefleetMailLine(ai, line, year)
 
 function OpexRoad1yBuildMailChild(ai, parentLine, cashReserve)
 {
+  if (FLEET_ARB && !OpexFleetRequest(parentLine, "road", "add_vehicle", null,
+      null, "ROAD_MAIL_CHILD")) return false;
   local catalog = ai._catalog;
   local mailCargo = catalog.mailCargo;
   local engine = catalog.roadEngineByCargo[mailCargo];
@@ -894,6 +896,8 @@ function OpexRoad1yWeakStep(ai, year)
     local ppb = lineProfit / vehs.len();
     if (ppb >= weakLimit) continue; // Pas faible
 
+    if (FLEET_ARB && !OpexFleetRequest(line, "road", "sell", 0,
+        null, "ROAD_WEAK_TRANSFER")) continue; // two-line transfer needs a joint quote
     // Verifier si un vehicule de cette ligne est deja au depot
     local inDepot = null;
     local enRoute = null;

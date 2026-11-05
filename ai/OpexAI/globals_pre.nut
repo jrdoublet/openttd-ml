@@ -148,6 +148,10 @@ INVEST_STALL <- false;
 DOUBLE_GROW <- false;
 DOUBLE_GROW_V2 <- false;
 /* RAIL-LOOP : voie 2 de retour par l'arriere des quais, boucle a sens unique, strict opt-in. */
+/* FLEET-ARB: opt-in, ephemeral proposals and scalar save locks. */
+FLEET_ARB <- false;
+FLEET_ARB_STATE <- null;
+FLEET_ARB_OWNER <- null;
 RAIL_LOOP <- false;
 /* RAIL-FILL : V284 remplit les quais existants des 250 k£ de caisse, strict opt-in. */
 RAIL_FILL <- false;

@@ -183,11 +183,13 @@ function OpexBuildAirRoute(catalog, budget, plan)
                    joinedMonthlyPaxA = 0, joinedMonthlyPaxB = 0,
                    joinedRawMonthlyPax = 0, joinedRawMonthlyPaxA = 0, joinedRawMonthlyPaxB = 0,
                    joinedStopCost = 0, recoveryTraceId = "", orphanRetained = false };
+  if (FLEET_ARB && !OpexFleetRequest(plan, "air", "add_vehicle", result.plannedCapital,
+      OpexFleetPlanProfit(plan), "BUILD_AIR")) { result.reason = "CASH"; return FLEET_ARB ? OpexFleetResult(plan, "BUILD_AIR", result) : result; }
   /* R19 : un retry ne doit pas dupliquer le service ni reutiliser un aeroport
    * promis a la demolition pendant la liquidation du chantier precedent. */
   if (OpexAirRecoveryBlocksPlan(plan)) {
     result.reason = "RECOVERY";
-    return result;
+    return FLEET_ARB ? OpexFleetResult(plan, "BUILD_AIR", result) : result;
   }
 
   /* V262 T12 : revérifier le plafond avions juste avant la premiere depense. */
@@ -195,7 +197,7 @@ function OpexBuildAirRoute(catalog, budget, plan)
   if (!OpexVehicleSlotAvailable(AIVehicle.VT_AIR, plannedAir)) {
     result.reason = "NOSLOT";
     OpexDecide("VEHICLE_SLOT", "mode=air planned=" + plannedAir + " reason=NOSLOT");
-    return result;
+    return FLEET_ARB ? OpexFleetResult(plan, "BUILD_AIR", result) : result;
   }
 
   local spBuild = null;
@@ -272,7 +274,7 @@ function OpexBuildAirRoute(catalog, budget, plan)
     result.opcodes += budget.end("build_airports");
     result.actualCost = costs != null ? costs.GetCosts() : 0;
     result.reason = reuseA ? "HUB" : "AFAIL";
-    return result;
+    return FLEET_ARB ? OpexFleetResult(plan, "BUILD_AIR", result) : result;
   }
 
   if (reuseB) {
@@ -343,7 +345,7 @@ function OpexBuildAirRoute(catalog, budget, plan)
     /* L'aeroport A neuf et conserve est un actif, pas une perte liquidee.
      * La provenance sera jointe hors moteur au premier service du meme
      * (anchor, station). Aucun etat de Save/Load ni calcul hors sonde. */
-    return result;
+    return FLEET_ARB ? OpexFleetResult(plan, "BUILD_AIR", result) : result;
   }
 
   local stationA = AIStation.GetStationID(airportA);
@@ -353,7 +355,7 @@ function OpexBuildAirRoute(catalog, budget, plan)
     result.actualCost = costs != null ? costs.GetCosts() : 0;
     if (brk != null) OpexAirCostBreakdownMark(costs, brk, "planes");
     result.reason = "STNFAIL";
-    return result;
+    return FLEET_ARB ? OpexFleetResult(plan, "BUILD_AIR", result) : result;
   }
   local hangar = AIAirport.GetHangarOfAirport(airportA);
   if (!AIMap.IsValidTile(hangar) || !AIAirport.IsHangarTile(hangar)) {
@@ -361,7 +363,7 @@ function OpexBuildAirRoute(catalog, budget, plan)
     result.actualCost = costs != null ? costs.GetCosts() : 0;
     if (brk != null) OpexAirCostBreakdownMark(costs, brk, "planes");
     result.reason = "HANGAR";
-    return result;
+    return FLEET_ARB ? OpexFleetResult(plan, "BUILD_AIR", result) : result;
   }
 
   budget.begin();
@@ -376,7 +378,7 @@ function OpexBuildAirRoute(catalog, budget, plan)
     result.actualCost = costs != null ? costs.GetCosts() : 0;
     if (brk != null) OpexAirCostBreakdownMark(costs, brk, "planes");
     result.reason = "PLANE";
-    return result;
+    return FLEET_ARB ? OpexFleetResult(plan, "BUILD_AIR", result) : result;
   }
   if (spBuild != null) OpexSpanEnd(spBuild);
 
@@ -398,7 +400,7 @@ function OpexBuildAirRoute(catalog, budget, plan)
     result.actualCost = costs != null ? costs.GetCosts() : 0;
     if (brk != null) OpexAirCostBreakdownMark(costs, brk, "planes");
     result.reason = "ORDFAIL";
-    return result;
+    return FLEET_ARB ? OpexFleetResult(plan, "BUILD_AIR", result) : result;
   }
   if (spBuild != null) OpexSpanEnd(spBuild);
   local built = [plane];
@@ -426,7 +428,7 @@ function OpexBuildAirRoute(catalog, budget, plan)
         result.actualCost = costs != null ? costs.GetCosts() : 0;
         if (brk != null) OpexAirCostBreakdownMark(costs, brk, "planes");
         result.reason = "ORDFAIL";
-        return result;
+        return FLEET_ARB ? OpexFleetResult(plan, "BUILD_AIR", result) : result;
       }
     }
     if (!AIVehicle.IsValidVehicle(extra)) {
@@ -445,7 +447,7 @@ function OpexBuildAirRoute(catalog, budget, plan)
       result.actualCost = costs != null ? costs.GetCosts() : 0;
       if (brk != null) OpexAirCostBreakdownMark(costs, brk, "planes");
       result.reason = "START";
-      return result;
+      return FLEET_ARB ? OpexFleetResult(plan, "BUILD_AIR", result) : result;
     }
   }
   if (spBuild != null) OpexSpanEnd(spBuild);
@@ -532,5 +534,5 @@ function OpexBuildAirRoute(catalog, budget, plan)
         + " probe_ops=" + probeOps);
   }
   OpexAirReconcileActualBuild(catalog, plan, result);
-  return result;
+  return FLEET_ARB ? OpexFleetResult(plan, "BUILD_AIR", result) : result;
 }

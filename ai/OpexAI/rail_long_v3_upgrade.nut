@@ -311,6 +311,8 @@ function OpexRailLongV3UpgradeSelect(owner, year)
       if (quote < 0 || OpexAvailableCapital() <
           (quote + consist.grossPrice) * 1.10 + RAIL_LONG_V3_UPGRADE_CASH_RESERVE)
         continue;
+      if (FLEET_ARB && !OpexFleetRequest(line, "rail", "replace",
+          quote + consist.grossPrice, consist.gain, "RAIL_LONG_V3")) continue;
       line.rawset("railLongV3UpgradeRetry", now + RAIL_LONG_V3_UPGRADE_RETRY_DAYS);
       owner._railLongV3UpgradePending = {
         lineId = line.lineId, vehicle = line.vehicles[0], depot = line.depot,

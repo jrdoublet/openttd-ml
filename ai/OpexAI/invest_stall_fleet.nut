@@ -478,6 +478,10 @@ function OpexInvestStallFleetSelect(owner, year)
   if (best == null) return false;
 
   local line = best.line;
+  if (FLEET_ARB && !OpexFleetRequest(line, "rail", "add_wagons",
+      AIEngine.GetPrice(best.equipment.engine) + (best.oldWagons + 1) * best.wagon.price
+          + (best.extension != null ? best.extension.quote : 0),
+      best.margin.profit, "INVEST_STALL")) { state.investStallNextDate = now + 1; return false; }
   state.investStallDates.rawset(line.lineId, now + 90);
   if (best.extension != null) {
     local ext = best.extension;

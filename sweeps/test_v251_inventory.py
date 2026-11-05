@@ -5,6 +5,9 @@ construction.raw_industry_construction et chaque type (CanBuildIndustry,
 CanProspectIndustry, GetConstructionCost, IsRawIndustry, IsProcessingIndustry,
 cargos). Aucun achat, aucun nouveau reglage public, aucun GetSetting nouveau.
 """
+
+# Compare historical contracts after the exact outer FLEET-ARB projection.
+from fleet_arb_off import historical_read_text as fleet_read_text
 from pathlib import Path
 import re
 import unittest
@@ -17,7 +20,7 @@ AI = ROOT / "ai" / "OpexAI"
 
 
 def _read(name):
-    return (AI / name).read_text(encoding="utf-8")
+    return fleet_read_text(AI / name, encoding="utf-8")
 
 
 def _function_body(source, name):
@@ -37,7 +40,7 @@ def _function_body(source, name):
 class TestV251Inventory(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.sources = {p.name: p.read_text(encoding="utf-8") for p in AI.glob("*.nut")}
+        cls.sources = {p.name: fleet_read_text(p, encoding="utf-8") for p in AI.glob("*.nut")}
         cls.probes = cls.sources["probes.nut"]
         cls.main = cls.sources["main.nut"]
         cls.log = _function_body(cls.probes, "OpexV251LogIndustryTypes")
@@ -63,7 +66,9 @@ class TestV251Inventory(unittest.TestCase):
         # road1y_spread_stops: default 0, removed by the same B2 historical projection.
         # B2 fixes adds one default-OFF bitmask for isolated one-year diagnostics.
         # master: eb2 fallback + 4 rail repair profiles and V233L counterfactual.
-        self.assertLessEqual(info.count("AddSetting("), 75)
+        # FLEET-ARB adds one default-OFF setting (+1 ceiling); the strict outer
+        # projector removes it before this historical 68-setting witness.
+        self.assertLessEqual(info.count("AddSetting("), 76)
         # After the precise legacy projectors, preserve the master inventory:
         # origin/master 44d9313e already projects to 68 settings (not 58).
         # The extra ten belong to master, not to V251 or the rail merge.

@@ -1,5 +1,8 @@
 """MULTI-1: fourth hypothesis is diagnostic only, with a frozen OFF path."""
 
+# Compare historical contracts after the exact outer FLEET-ARB projection.
+from fleet_arb_off import historical_read_bytes as fleet_read_bytes, historical_read_text as fleet_read_text
+
 import hashlib
 import re
 import unittest
@@ -11,7 +14,7 @@ AI = Path(__file__).resolve().parents[1] / "ai" / "OpexAI"
 
 
 def source(name):
-    return (AI / name).read_text(encoding="utf-8")
+    return fleet_read_text(AI / name, encoding="utf-8")
 
 
 class Multi1RoadCargoShadowContracts(unittest.TestCase):
@@ -31,7 +34,7 @@ class Multi1RoadCargoShadowContracts(unittest.TestCase):
         # Changes to an old decision path do not silently rebaseline its hash.
         for name in ("info.nut", "settings.nut", "main.nut", "probes.nut", "candidates.nut"):
             with self.subTest(name=name):
-                raw = (AI / name).read_bytes()
+                raw = fleet_read_bytes(AI / name)
                 self.assertNotIn(b"MULTI1_ROAD_CARGO_SHADOW", historical_bytes(name, raw))
         self.assertEqual(len(MULTI1_ROAD_CARGO_HELPER_SHA256), 64)
 

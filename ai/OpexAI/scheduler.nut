@@ -228,6 +228,7 @@ function OpexAI::_runNextTaskWithSlackLedger()
  * item ne peut affamer ceux places apres lui et le dernier rend litteralement la main au premier. */
 function OpexAI::_runNextTask()
 {
+  if (FLEET_ARB) OpexFleetTick(this);
   /* Un chantier RAIL-PAIR partiellement sauvegarde finit meme si l'option a ete desactivee. */
   if (this._v271Pending != null && RAIL_PAIR == 0) this._v271Continue();
   if (C41_SLACK_LEDGER || C41_MONTHLY_BUSY_LEDGER || C41_OPPORTUNITY_LEDGER || C41_ADMISSION_LEDGER || C39_PASS_CLOCK_LEDGER) this._c41LastTaskName = "idle";

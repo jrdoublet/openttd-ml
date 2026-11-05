@@ -12,6 +12,9 @@ Never regenerate a fixture to make a failing legacy hash pass; inspect source.
 """
 from __future__ import annotations
 
+# Compare historical contracts after the exact outer FLEET-ARB projection.
+from fleet_arb_off import historical_read_text as fleet_read_text
+
 import difflib
 import hashlib
 import json
@@ -132,7 +135,7 @@ def generate():
     all_hunks = {}
     for name in FILES:
         old = subprocess.check_output(["git", "show", "HEAD:ai/OpexAI/" + name], cwd=ROOT).decode("utf-8")
-        new = (ROOT / "ai" / "OpexAI" / name).read_text(encoding="utf-8")
+        new = fleet_read_text(ROOT / "ai" / "OpexAI" / name, encoding="utf-8")
         edits = build_hunks(old, new)
         if edits:
             all_hunks[name] = edits
@@ -206,48 +209,50 @@ def _subtract_road1y_b2(name: str, source: str, edits) -> str:
 def off_source(name: str, source: str, *, hunk_data=None) -> str:
     # ROAD1Y-B2: exact reviewed layer above origin/master 481e7c08.
     # Older ROAD100 fixtures stay frozen and must not match that parent.
-    districts = json.loads((FIXTURE.parent / "road100_bus_districts_hunks.json").read_text(encoding="utf-8"))
+    from fleet_arb_off import off_source as fleet_off
+    source = fleet_off(name, source)
+    districts = json.loads(fleet_read_text(FIXTURE.parent / "road100_bus_districts_hunks.json", encoding="utf-8"))
     source = _subtract_road1y_b2(name, source, districts.get(name))
     # ROAD100-36 is a new opt-in above all frozen historic layers. Remove
     # only its exact current hunks, then use the unchanged V35..V7 fixtures.
-    v36_hunks = json.loads(V36_FIXTURE.read_text(encoding="utf-8"))
+    v36_hunks = json.loads(fleet_read_text(V36_FIXTURE, encoding="utf-8"))
     source = _subtract_exact(name, source, v36_hunks.get(name), "ROAD100-36")
     # V35's near-first scanner and portal dispatch layer sits above the
     # frozen V34 market telemetry and V33 sparse implementation.
-    v35_hunks = json.loads(V35_FIXTURE.read_text(encoding="utf-8"))
+    v35_hunks = json.loads(fleet_read_text(V35_FIXTURE, encoding="utf-8"))
     source = _subtract_exact(name, source, v35_hunks.get(name), "ROAD100-35")
     # ROAD100-34 observes native monthly PASS units before LONG pathfinding.
     # It never participates in ranking or construction; its exact additions
     # must be removed independently before V33 and older fixed layers.
-    v34_hunks = json.loads(V34_FIXTURE.read_text(encoding="utf-8"))
+    v34_hunks = json.loads(fleet_read_text(V34_FIXTURE, encoding="utf-8"))
     source = _subtract_exact(name, source, v34_hunks.get(name), "ROAD100-34")
     # New opt-ins have separate, exact source layers. V31b's fixed-fleet
     # implementation was finalized after V32 but before V33, although its
     # historical smoke preceded V33. Do not mix those helper hunks into V32
     # or V33: older frozen ESTIM/V262 and V31 source must remain untouched.
-    v33_hunks = json.loads(V33_FIXTURE.read_text(encoding="utf-8"))
+    v33_hunks = json.loads(fleet_read_text(V33_FIXTURE, encoding="utf-8"))
     source = _subtract_exact(name, source, v33_hunks.get(name), "ROAD100-33")
-    v31b_hunks = json.loads(V31B_FIXTURE.read_text(encoding="utf-8"))
+    v31b_hunks = json.loads(fleet_read_text(V31B_FIXTURE, encoding="utf-8"))
     source = _subtract_exact(name, source, v31b_hunks.get(name), "ROAD100-31b")
     # ROAD100-32 was isolated against the frozen V31 motor source, not against
     # a regenerated V262 or historic fixture. Strip its exact unique additions
     # first, then the frozen ROAD100-31 / 30a / 7 and original opt-ins.
-    v32_hunks = json.loads(V32_FIXTURE.read_text(encoding="utf-8"))
+    v32_hunks = json.loads(fleet_read_text(V32_FIXTURE, encoding="utf-8"))
     source = _subtract_exact(name, source, v32_hunks.get(name), "ROAD100-32")
-    v31_hunks = json.loads(V31_FIXTURE.read_text(encoding="utf-8"))
+    v31_hunks = json.loads(fleet_read_text(V31_FIXTURE, encoding="utf-8"))
     source = _subtract_exact(name, source, v31_hunks.get(name), "ROAD100-31")
-    v30_hunks = json.loads(V30A_FIXTURE.read_text(encoding="utf-8"))
+    v30_hunks = json.loads(fleet_read_text(V30A_FIXTURE, encoding="utf-8"))
     source = _subtract_exact(name, source, v30_hunks.get(name), "ROAD100-30a")
-    site_hunks = json.loads(SITE_FIRST_FIXTURE.read_text(encoding="utf-8"))
+    site_hunks = json.loads(fleet_read_text(SITE_FIRST_FIXTURE, encoding="utf-8"))
     source = _subtract_exact(name, source, site_hunks.get(name), "ROAD100-7")
     if hunk_data is None:
-        hunk_data = json.loads(FIXTURE.read_text(encoding="utf-8"))
+        hunk_data = json.loads(fleet_read_text(FIXTURE, encoding="utf-8"))
     return _subtract_exact(name, source, hunk_data.get(name), "ROAD100")
 
 
 def generate_site_first():
     """Initial ROAD100-7 review only: derive its delta from old, frozen opt-ins."""
-    old_hunks = json.loads(FIXTURE.read_text(encoding="utf-8"))
+    old_hunks = json.loads(fleet_read_text(FIXTURE, encoding="utf-8"))
     new_hunks = {}
     for name in FILES:
         baseline = subprocess.check_output(
@@ -265,7 +270,7 @@ def generate_site_first():
                 raise AssertionError(f"{name}: existing historic hunk cannot be applied")
             before_new = before_new[:pos] + edit["after"] + before_new[pos + len(edit["before"]):]
             cursor = pos + len(edit["after"])
-        current = (ROOT / "ai" / "OpexAI" / name).read_text(encoding="utf-8")
+        current = fleet_read_text(ROOT / "ai" / "OpexAI" / name, encoding="utf-8")
         edits = build_hunks(before_new, current)
         if edits:
             new_hunks[name] = edits

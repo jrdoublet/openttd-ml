@@ -5,6 +5,9 @@ proves that the ROAD1Y+RAIL merge yields the same V233L-OFF bytes as the frozen
 origin/master baseline for three files whose later V233L guards changed.
 """
 
+# Compare historical contracts after the exact outer FLEET-ARB projection.
+from fleet_arb_off import historical_read_text as fleet_read_text
+
 import hashlib
 import json
 from pathlib import Path
@@ -22,8 +25,7 @@ from v233_long_good_legacy import off_source as v233_off
 
 
 MANIFEST = json.loads(
-    (ROOT / "sweeps/fixtures/v233_long_good_merge_sha_20261105.json")
-    .read_text(encoding="utf-8")
+    fleet_read_text(ROOT / "sweeps/fixtures/v233_long_good_merge_sha_20261105.json", encoding="utf-8")
 )
 EXPECTED = {
     "economy.nut": "a5e75086c455d9b6102a5fc8f2aa0a1210e0b6ec8968314eda191c174e71262c",
@@ -37,7 +39,7 @@ def sha(text):
 
 
 def merge_source(name):
-    return (ROOT / "ai/OpexAI" / name).read_text(encoding="utf-8")
+    return fleet_read_text(ROOT / "ai/OpexAI" / name, encoding="utf-8")
 
 
 def merged_off(name, text):
@@ -49,7 +51,7 @@ def merged_off(name, text):
 class V233MergedConstructibilityGuards(unittest.TestCase):
     def test_merge_outputs_equal_frozen_master_projection(self):
         self.assertEqual(
-            sha((ROOT / "sweeps/fixtures/v233_long_good_off.json").read_text(encoding="utf-8")),
+            sha(fleet_read_text(ROOT / "sweeps/fixtures/v233_long_good_off.json", encoding="utf-8")),
             MANIFEST["historical_v233_fixture_sha256"],
         )
         for name, expected_sha in EXPECTED.items():

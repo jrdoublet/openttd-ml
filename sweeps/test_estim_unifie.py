@@ -1,4 +1,7 @@
 """ESTIM-1 bits 1/2/4/8/16 : projection OFF stricte et contrats."""
+
+# Compare historical contracts after the exact outer FLEET-ARB projection.
+from fleet_arb_off import historical_read_bytes as fleet_read_bytes
 import re
 import unittest
 from pathlib import Path
@@ -39,7 +42,7 @@ class EstimUnifieContracts(unittest.TestCase):
         # est idempotente et conserve les modifications hors ESTIM.
         self.assertTrue(set(EDITS).issubset(ESTIM_FILES))
         for name in EDITS:
-            current = (ROOT / "ai" / "OpexAI" / name).read_bytes()
+            current = fleet_read_bytes(ROOT / "ai" / "OpexAI" / name)
             with self.subTest(name=name):
                 off = estim_off_bytes(name, current)
                 self.assertEqual(estim_off_bytes(name, off), off)

@@ -14,6 +14,8 @@ FIXTURE = Path(__file__).parent / "fixtures" / "invest_stall_v3_off_20261103.jso
 
 
 def off_source(name, source):
+    from fleet_arb_off import off_source as fleet_off
+    source = fleet_off(name, source)
     from invest_stall_merged_off import project_merge_stage
     merged = project_merge_stage(name, source, "v3")
     if merged is not None:

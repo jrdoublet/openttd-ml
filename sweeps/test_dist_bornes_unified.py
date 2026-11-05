@@ -3,6 +3,9 @@
 These source contracts are complemented by real OpenTTD smoke/Save/Load.
 """
 
+# Compare historical contracts after the exact outer FLEET-ARB projection.
+from fleet_arb_off import historical_read_bytes as fleet_read_bytes, historical_read_text as fleet_read_text
+
 import re
 import unittest
 from pathlib import Path
@@ -13,7 +16,7 @@ AI = Path(__file__).resolve().parents[1] / "ai" / "OpexAI"
 
 
 def body(filename, name):
-    src = (AI / filename).read_text(encoding="utf-8")
+    src = fleet_read_text(AI / filename, encoding="utf-8")
     start = src.index("function " + name + "(")
     opening = src.index("{", start)
     depth = 0
@@ -30,7 +33,7 @@ def body(filename, name):
 class UnifiedDistanceContracts(unittest.TestCase):
     @staticmethod
     def read(name):
-        return (AI / name).read_text(encoding="utf-8")
+        return fleet_read_text(AI / name, encoding="utf-8")
 
     def test_opt_in_off_on_all_difficulties_and_once_loaded(self):
         info = self.read("info.nut")
@@ -87,7 +90,7 @@ class UnifiedDistanceContracts(unittest.TestCase):
         # without rewriting the PO01D digest to accept the new branches.
         for filename in ("candidates.nut", "settings.nut", "info.nut"):
             with self.subTest(filename=filename):
-                source = historical_bytes(filename, (AI / filename).read_bytes())
+                source = historical_bytes(filename, fleet_read_bytes(AI / filename))
                 self.assertNotIn(b"DIST_BORNES_UNIFIED", source)
                 self.assertNotIn(b"dist_bornes_unified", source)
 

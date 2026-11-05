@@ -1226,6 +1226,7 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
         subsidyMultiplier = (isSubsidy && ("subsidyMultiplier" in candidate)) ? candidate.subsidyMultiplier : 1.0,
         lineId = idx,
       });
+      if (FLEET_ARB) OpexFleetBorn(this._lines[this._lines.len() - 1]);
       if ("road1ySpreadA" in result)
         OpexRoad1ySpreadCopy(result, this._lines[this._lines.len() - 1]);
       if (("road100PaxPortfolio" in result) &&

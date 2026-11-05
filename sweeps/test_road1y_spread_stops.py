@@ -1,4 +1,7 @@
 """Static contracts only: these tests do not compile or execute Squirrel."""
+
+# Compare historical contracts after the exact outer FLEET-ARB projection.
+from fleet_arb_off import historical_read_text as fleet_read_text
 import json
 import unittest
 from pathlib import Path
@@ -82,7 +85,7 @@ class SpreadStopsContracts(unittest.TestCase):
         # Earlier fixtures are layered historical projections. Only the new
         # spread-containing "after" blocks describe the live source directly.
         for path in (ROOT / "sweeps/fixtures").glob("road100_*_hunks.json"):
-            for filename, hunks in json.loads(path.read_text()).items():
+            for filename, hunks in json.loads(fleet_read_text(path)).items():
                 for hunk in hunks:
                     if "SPREAD_STOPS" in hunk["after"] or "SpreadCopy" in hunk["after"]:
                         self.assertEqual(source(filename).count(hunk["after"]), 1,

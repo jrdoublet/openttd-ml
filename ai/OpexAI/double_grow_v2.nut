@@ -123,6 +123,8 @@ function OpexDoubleGrowV2Select(owner, year)
       OpexDoubleGrowV2Log(line, "skip", "cash", waiting);
       return false;
     }
+    if (FLEET_ARB && !OpexFleetRequest(line, "rail", "add_vehicle", quote,
+        null, "DOUBLE_CONVERSION_V2")) continue;
     /* Failed admissions are retried monthly; paused search is resumed. */
     line.rawset("doubleGrowV2Retry", now + 30);
     owner._saveProjection = null;

@@ -341,6 +341,9 @@ function OpexAirportFeederValidate(catalog, lines, plan, classifyTown = null, op
 function OpexAirportFeederBuild(catalog, lines, plan, classifyTown = null,
                                optIn = false, maxSpend = 0, cashReserve = -1)
 {
+  if (FLEET_ARB && !OpexFleetRequest(plan, "road", "add_vehicle", null,
+      null, "AIRPORT_FEEDER")) return { ok = false, reason = "CASH", vehicle = null,
+          sourceStation = -1, hubStation = -1, parentLine = -1, actualCost = 0 };
   local result = { ok = false, reason = "DISABLED", vehicle = null,
                    sourceStation = -1, hubStation = -1,
                    parentLine = -1, actualCost = 0 };

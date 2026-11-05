@@ -37,6 +37,8 @@ INSERTIONS = {
 
 
 def off_source(name, source):
+    from fleet_arb_off import off_source as fleet_off
+    source = fleet_off(name, source)
     from invest_stall_platform_off import off_source as platform_off
     source = platform_off(name, source)
     fragments = INSERTIONS.get(name)

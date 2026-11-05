@@ -5470,7 +5470,7 @@ function OpexExecuteRailPlan(catalog, budget, candidate, plan)
         || ("v307Prebuilt" in planB)
         || (("stationId" in planB) && planB.stationId != AIStation.STATION_NEW)) {
       result.reason = "SITEA";
-      return result;
+      return FLEET_ARB ? OpexFleetResult(candidate, "BUILD_RAIL", result) : result;
     }
   }
   /* V100bis : si le devis prouve que l'interface A* memorisee n'existe plus dans le
@@ -5541,7 +5541,7 @@ function OpexExecuteRailPlan(catalog, budget, candidate, plan)
       result.reason = result.error == AIError.ERR_NOT_ENOUGH_CASH ? "CASH"
           : (replanGeometry ? "REPLAN_GEOM" : quoteFailure.reason);
       result.quoteFailure <- quoteFailure;
-      return result;
+      return FLEET_ARB ? OpexFleetResult(candidate, "BUILD_RAIL", result) : result;
     }
     if (realCapital > 0) {
       result.capital = realCapital;
@@ -5554,14 +5554,16 @@ function OpexExecuteRailPlan(catalog, budget, candidate, plan)
 
   result.money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
   local need = result.capital;
-  if (result.money < need) { result.reason = "CASH"; return result; }
+  if (result.money < need) { result.reason = "CASH"; return FLEET_ARB ? OpexFleetResult(candidate, "BUILD_RAIL", result) : result; }
 
   /* Fail-before-spend : stations, voie, depot et terrassement commencent juste apres. */
   if (!OpexRailVehicleSlotAvailable()) {
     result.reason = "NOTRAIN";
-    return result;
+    return FLEET_ARB ? OpexFleetResult(candidate, "BUILD_RAIL", result) : result;
   }
 
+  if (FLEET_ARB && !OpexFleetRequest(candidate, "rail", "add_vehicle", result.capital,
+      candidate.profitAnnual, "BUILD_RAIL")) { result.reason = "CASH"; return FLEET_ARB ? OpexFleetResult(candidate, "BUILD_RAIL", result) : result; }
   local costs = AIAccounting();
 
   /* Faire le controle AVANT tout BuildRailStation : le prefiltre de la pose
@@ -5604,7 +5606,7 @@ function OpexExecuteRailPlan(catalog, budget, candidate, plan)
       if (result.phaseOps.stations < 0) result.phaseOps.stations = 0;
       result.phaseOps.stations += stnOps;
       result.reason = "STNFAIL";
-      return result;
+      return FLEET_ARB ? OpexFleetResult(candidate, "BUILD_RAIL", result) : result;
     }
     if (DECISION_LOG) OpexDecide("INVEST_STALL", "event=station_built src="
         + candidate.src + " dst=" + candidate.dst
@@ -5629,7 +5631,7 @@ function OpexExecuteRailPlan(catalog, budget, candidate, plan)
     result.opcodes += stnOps;
     if (result.phaseOps.stations < 0) result.phaseOps.stations = 0;
     result.phaseOps.stations += stnOps;
-    result.reason = "STNFAIL"; return result;
+    result.reason = "STNFAIL"; return FLEET_ARB ? OpexFleetResult(candidate, "BUILD_RAIL", result) : result;
   }
 
   /* Table seulement sous decision_log ou garde geometrique : null au defaut 0/0. */
@@ -5704,7 +5706,7 @@ function OpexExecuteRailPlan(catalog, budget, candidate, plan)
     result.opcodes += trkOps;
     if (result.phaseOps.track < 0) result.phaseOps.track = 0;
     result.phaseOps.track += trkOps;
-    result.reason = "TRKFAIL"; return result;
+    result.reason = "TRKFAIL"; return FLEET_ARB ? OpexFleetResult(candidate, "BUILD_RAIL", result) : result;
   }
 
   local depot = RAIL_DEPOT_SIGNAL ? OpexRailDepotSignalBuildPrimary(tiles, null, candidate.platformLength) : OpexBuildDepot(tiles);
@@ -5715,7 +5717,7 @@ function OpexExecuteRailPlan(catalog, budget, candidate, plan)
   if (depot == null) {
     OpexRollback(tiles, planA, planB, null, null);
     result.actualCost = costs != null ? costs.GetCosts() : 0;
-    result.reason = "DEPFAIL"; return result;
+    result.reason = "DEPFAIL"; return FLEET_ARB ? OpexFleetResult(candidate, "BUILD_RAIL", result) : result;
   }
 
   local primaryCost = costs.GetCosts();
@@ -5821,7 +5823,7 @@ function OpexExecuteRailPlan(catalog, budget, candidate, plan)
     OpexRollback(tiles, planA, planB, depot, trains.rollbackVehicles);
     result.actualCost = primaryCost + (postPathCosts != null ? postPathCosts.GetCosts() : 0);
     result.reason = (trains.failed && trains.failure == "ORDER") ? "ORDFAIL" : "NOTRAIN";
-    return result;
+    return FLEET_ARB ? OpexFleetResult(candidate, "BUILD_RAIL", result) : result;
   }
 
   result.ok = true;
@@ -5871,7 +5873,7 @@ function OpexExecuteRailPlan(catalog, budget, candidate, plan)
     result.platformA2 <- { anchor = planA2.anchor, direction = planA2.direction, step = planA2.step, length = planA2.length };
     result.platformB2 <- { anchor = planB2.anchor, direction = planB2.direction, step = planB2.step, length = planB2.length };
   }
-  return result;
+  return FLEET_ARB ? OpexFleetResult(candidate, "BUILD_RAIL", result) : result;
 }
 
 /* Construit une ligne complete, en reutilisant le plan precalcule s'il est present.
@@ -6156,12 +6158,12 @@ function OpexV190ExecuteRailPlan(catalog, budget, candidate, plan)
   local tiles = plan.tiles;
   if (OpexV233LIs(candidate) && !OpexV233LRecheck(candidate, plan)) {
     result.reason = "STALE";
-    return result;
+    return FLEET_ARB ? OpexFleetResult(candidate, "BUILD_RAIL", result) : result;
   }
   if (OpexV233LIs(candidate) && !OpexVehicleSlotAvailable(AIVehicle.VT_RAIL,
       OpexV233LMonoAllowed(candidate, plan) ? 1 : 2)) {
     result.reason = "NOSLOT";
-    return result;
+    return FLEET_ARB ? OpexFleetResult(candidate, "BUILD_RAIL", result) : result;
   }
   local replanGeometry = false;
   if (DECISION_LOG) {
@@ -6224,7 +6226,7 @@ function OpexV190ExecuteRailPlan(catalog, budget, candidate, plan)
       result.reason = result.error == AIError.ERR_NOT_ENOUGH_CASH ? "CASH"
           : (replanGeometry ? "REPLAN_GEOM" : quoteFailure.reason);
       result.quoteFailure <- quoteFailure;
-      return result;
+      return FLEET_ARB ? OpexFleetResult(candidate, "BUILD_RAIL", result) : result;
     }
     if (realCapital > 0) {
       result.capital = realCapital;
@@ -6238,14 +6240,16 @@ function OpexV190ExecuteRailPlan(catalog, budget, candidate, plan)
   local need = result.capital;
   if (result.money < need) {
     result.reason = "CASH";
-    return result;
+    return FLEET_ARB ? OpexFleetResult(candidate, "BUILD_RAIL", result) : result;
   }
 
   if (!OpexRailVehicleSlotAvailable()) {
     result.reason = "NOTRAIN";
-    return result;
+    return FLEET_ARB ? OpexFleetResult(candidate, "BUILD_RAIL", result) : result;
   }
 
+  if (FLEET_ARB && !OpexFleetRequest(candidate, "rail", "add_vehicle", result.capital,
+      candidate.profitAnnual, "BUILD_RAIL")) { result.reason = "CASH"; return FLEET_ARB ? OpexFleetResult(candidate, "BUILD_RAIL", result) : result; }
   local costs = AIAccounting();
 
   local poseOrderSafe = RAIL_REPAIR_POSE_ORDER && OpexRailRepairIdleActive() && !V199_ROBUST_BUILD
@@ -6297,7 +6301,7 @@ function OpexV190ExecuteRailPlan(catalog, budget, candidate, plan)
     result.opcodes += stnOps;
     if (result.phaseOps.stations < 0) result.phaseOps.stations = 0;
     result.phaseOps.stations += stnOps;
-    result.reason = "STNFAIL"; return result;
+    result.reason = "STNFAIL"; return FLEET_ARB ? OpexFleetResult(candidate, "BUILD_RAIL", result) : result;
   }
 
   local trackFailure = null;
@@ -6334,7 +6338,7 @@ function OpexV190ExecuteRailPlan(catalog, budget, candidate, plan)
     result.opcodes += trkOps;
     if (result.phaseOps.track < 0) result.phaseOps.track = 0;
     result.phaseOps.track += trkOps;
-    result.reason = "TRKFAIL"; return result;
+    result.reason = "TRKFAIL"; return FLEET_ARB ? OpexFleetResult(candidate, "BUILD_RAIL", result) : result;
   }
 
   local tiles2 = plan.tiles2;
@@ -6382,7 +6386,7 @@ function OpexV190ExecuteRailPlan(catalog, budget, candidate, plan)
   if (depot == null) {
     OpexRollback(tiles, planA, planB, null, null);
     result.actualCost = costs != null ? costs.GetCosts() : 0;
-    result.reason = "DEPFAIL"; return result;
+    result.reason = "DEPFAIL"; return FLEET_ARB ? OpexFleetResult(candidate, "BUILD_RAIL", result) : result;
   }
 
   local primaryCost = costs.GetCosts();
@@ -6418,7 +6422,7 @@ function OpexV190ExecuteRailPlan(catalog, budget, candidate, plan)
     OpexRollback(tiles, planA, planB, depot, trains.rollbackVehicles);
     result.actualCost = primaryCost + (postPathCosts != null ? postPathCosts.GetCosts() : 0);
     result.reason = (trains.failed && trains.failure == "ORDER") ? "ORDFAIL" : "NOTRAIN";
-    return result;
+    return FLEET_ARB ? OpexFleetResult(candidate, "BUILD_RAIL", result) : result;
   }
 
   if (plan.doubleTrack == 1 && tiles2 != null && planA2 != null && planB2 != null) {
@@ -6566,7 +6570,7 @@ function OpexV190ExecuteRailPlan(catalog, budget, candidate, plan)
         result.actualCost = primaryCost + doubleCost + (postPathCosts != null ? postPathCosts.GetCosts() : 0);
         result.reason = "PRIMARY_BROKEN";
         result.ok = false;
-        return result;
+        return FLEET_ARB ? OpexFleetResult(candidate, "BUILD_RAIL", result) : result;
       }
 
       result.doubleReason = failReason;
@@ -6599,7 +6603,7 @@ function OpexV190ExecuteRailPlan(catalog, budget, candidate, plan)
           + " trains=0 rollback=1");
       OpexV233LLog("REJECT", "src=" + candidate.src + " dst=" + candidate.dst + " reason=double_rollback");
     }
-    return result;
+    return FLEET_ARB ? OpexFleetResult(candidate, "BUILD_RAIL", result) : result;
   }
   local started = [];
   local startFailed = false;
@@ -6627,7 +6631,7 @@ function OpexV190ExecuteRailPlan(catalog, budget, candidate, plan)
     OpexRollback(tiles, planA, planB, depot, trains.rollbackVehicles);
     result.actualCost = primaryCost + doubleCost + (postPathCosts != null ? postPathCosts.GetCosts() : 0);
     result.reason = "STARTFAIL";
-    return result;
+    return FLEET_ARB ? OpexFleetResult(candidate, "BUILD_RAIL", result) : result;
   }
 
   local trnOps = budget.end("build_trains");
@@ -6682,7 +6686,7 @@ function OpexV190ExecuteRailPlan(catalog, budget, candidate, plan)
       OpexDecide("V190", "action=build_double line=" + candidate.src + "->" + candidate.dst + " trains=" + result.trains + " reason=OK");
     }
   }
-  return result;
+  return FLEET_ARB ? OpexFleetResult(candidate, "BUILD_RAIL", result) : result;
 }
 
 /* Prepare la recherche de seconde voie d'une ligne existante, SANS lancer l'A*.
@@ -6754,40 +6758,44 @@ function OpexExecuteUpgradeAfterSearch(catalog, budget, line, search, prep)
                    stationA2 = null, stationB2 = null, platformA2 = null, platformB2 = null };
   if (search.path == false || search.path == null) {
     result.reason = "NOPATH";
-    return result;
+    return FLEET_ARB ? OpexFleetResult(line, "RAIL_UPGRADE", result) : result;
   }
   local tiles2 = OpexResolveSearchTiles(search);
   local structures2 = OpexResolveSearchStructures(search);
   if (tiles2.len() < 3) {
     result.reason = "SHORT";
-    return result;
+    return FLEET_ARB ? OpexFleetResult(line, "RAIL_UPGRADE", result) : result;
   }
   local planA2 = OpexMatchPlan(prep.dualA, tiles2[0]);
   local planB2 = OpexMatchPlan(prep.dualB, tiles2[tiles2.len() - 1]);
   if (planA2 == null || planB2 == null) {
     result.reason = "NOMATCH";
-    return result;
+    return FLEET_ARB ? OpexFleetResult(line, "RAIL_UPGRADE", result) : result;
   }
   if (!OpexJoinPathIsDedicated(tiles2)) {
     result.reason = "OVERLAP";
-    return result;
+    return FLEET_ARB ? OpexFleetResult(line, "RAIL_UPGRADE", result) : result;
   }
   for (local i = 1; i < tiles2.len() - 1; i++) {
     if (tiles2[i] in prep.forbidden) {
       result.reason = "OVERLAP";
-      return result;
+      return FLEET_ARB ? OpexFleetResult(line, "RAIL_UPGRADE", result) : result;
     }
   }
 
   local wagon = (line.cargo in catalog.wagonByCargo) ? catalog.wagonByCargo[line.cargo] : null;
-  if (wagon == null) { result.reason = "NOWAGON"; return result; }
+  if (wagon == null) { result.reason = "NOWAGON"; return FLEET_ARB ? OpexFleetResult(line, "RAIL_UPGRADE", result) : result; }
   local depotCost = AIRail.GetBuildCost(AIRail.GetCurrentRailType(), AIRail.BT_DEPOT);
   local trackCost = tiles2.len() * catalog.costTrackPerTile + (planA2.length + planB2.length) * catalog.costStation + depotCost;
   local trainCost = line.loco.price + line.wagons * wagon.price + OpexV163WagonsPrice(catalog, line);
   local totalNeeded = trackCost + trainCost;
+  if (FLEET_ARB && !OpexFleetRequest(line, "rail", "add_vehicle", totalNeeded,
+      OpexFleetRailProfit(line, trainCost), "RAIL_UPGRADE")) {
+    result.reason = "CASH"; return result;
+  }
   if (AICompany.GetBankBalance(AICompany.COMPANY_SELF) < totalNeeded) {
     result.reason = "CASH";
-    return result;
+    return FLEET_ARB ? OpexFleetResult(line, "RAIL_UPGRADE", result) : result;
   }
 
   local costs = AIAccounting();
@@ -6801,7 +6809,7 @@ function OpexExecuteUpgradeAfterSearch(catalog, budget, line, search, prep)
   if (!okA || !okB || !joinedA || !joinedB) {
     OpexRollback(null, planA2, planB2, null, null);
     result.reason = "STATIONFAIL";
-    return result;
+    return FLEET_ARB ? OpexFleetResult(line, "RAIL_UPGRADE", result) : result;
   }
 
   local trackFailed = OpexBuildTrack(tiles2, structures2);
@@ -6812,7 +6820,7 @@ function OpexExecuteUpgradeAfterSearch(catalog, budget, line, search, prep)
   if (!connected) {
     OpexRollback(tiles2, planA2, planB2, null, null);
     result.reason = "TRACKFAIL";
-    return result;
+    return FLEET_ARB ? OpexFleetResult(line, "RAIL_UPGRADE", result) : result;
   }
 
   local depot2 = RAIL_DEPOT_SIGNAL ? OpexRailDepotSignalBuildPrimary(tiles2, prep.forbidden, line.platformLength)
@@ -6820,7 +6828,7 @@ function OpexExecuteUpgradeAfterSearch(catalog, budget, line, search, prep)
   if (depot2 == null) {
     OpexRollback(tiles2, planA2, planB2, null, null);
     result.reason = "DEPOTFAIL";
-    return result;
+    return FLEET_ARB ? OpexFleetResult(line, "RAIL_UPGRADE", result) : result;
   }
 
   /* Supprimer OpexPlaceJoinSignals seulement quand RDS dispose d'une branche
@@ -6837,7 +6845,7 @@ function OpexExecuteUpgradeAfterSearch(catalog, budget, line, search, prep)
   if (newTrains.failed || newTrains.built == 0) {
     OpexRollback(tiles2, planA2, planB2, depot2, newTrains.rollbackVehicles);
     result.reason = "TRAINFAIL";
-    return result;
+    return FLEET_ARB ? OpexFleetResult(line, "RAIL_UPGRADE", result) : result;
   }
 
   result.ok = true;
@@ -6855,7 +6863,7 @@ function OpexExecuteUpgradeAfterSearch(catalog, budget, line, search, prep)
         + " signal_ok=" + signals.ok + " signal_fail=" + signals.fail);
   }
   result.cost = costs.GetCosts();
-  return result;
+  return FLEET_ARB ? OpexFleetResult(line, "RAIL_UPGRADE", result) : result;
 }
 
 /* Construit un 2e train sur une ligne deja doublee avec depot2 valide. */
@@ -6863,14 +6871,16 @@ function OpexBuildSecondTrain(catalog, line)
 {
   local result = { ok = false, reason = "", train = null };
   if (!("depot2" in line) || line.depot2 == null || !AIRail.IsRailDepotTile(line.depot2)) {
-    result.reason = "NODEPOT2"; return result;
+    result.reason = "NODEPOT2"; return FLEET_ARB ? OpexFleetResult(line, "RAIL_SECOND", result) : result;
   }
   local wagon = (line.cargo in catalog.wagonByCargo) ? catalog.wagonByCargo[line.cargo] : null;
-  if (wagon == null) { result.reason = "NOWAGON"; return result; }
+  if (wagon == null) { result.reason = "NOWAGON"; return FLEET_ARB ? OpexFleetResult(line, "RAIL_SECOND", result) : result; }
   local trainCost = line.loco.price + line.wagons * wagon.price + OpexV163WagonsPrice(catalog, line);
   if (AICompany.GetBankBalance(AICompany.COMPANY_SELF) < trainCost) {
-    result.reason = "CASH"; return result;
+    result.reason = "CASH"; return FLEET_ARB ? OpexFleetResult(line, "RAIL_SECOND", result) : result;
   }
+  if (FLEET_ARB && !OpexFleetRequest(line, "rail", "add_vehicle", trainCost,
+      OpexFleetRailProfit(line, trainCost), "RAIL_SECOND")) { result.reason = "CASH"; return FLEET_ARB ? OpexFleetResult(line, "RAIL_SECOND", result) : result; }
   local stA = (("stationA2" in line) && line.stationA2 != null) ? line.stationA2 : line.stationA;
   local stB = (("stationB2" in line) && line.stationB2 != null) ? line.stationB2 : line.stationB;
   local newTrains = OpexBuildTrains(catalog, line.cargo, line.kind, line.depot2,
@@ -6878,12 +6888,12 @@ function OpexBuildSecondTrain(catalog, line)
                                     OpexV163Cargo2(line), OpexV163Wagons2(line));
   if (newTrains.failed || newTrains.built == 0) {
     OpexRollback(null, null, null, null, newTrains.rollbackVehicles);
-    result.reason = "TRAINFAIL"; return result;
+    result.reason = "TRAINFAIL"; return FLEET_ARB ? OpexFleetResult(line, "RAIL_SECOND", result) : result;
   }
   result.ok = true;
   result.reason = "OK";
   result.train = newTrains.vehicles[0];
-  return result;
+  return FLEET_ARB ? OpexFleetResult(line, "RAIL_SECOND", result) : result;
 }
 
 /* V181 : Trace les tuiles d'une voie ferree entre la sortie d'une gare et la gare destination. */

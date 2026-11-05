@@ -13,6 +13,8 @@ def _undo(source, new, old):
 
 
 def off_source(name, source):
+    from fleet_arb_off import off_source as fleet_off
+    source = fleet_off(name, source)
     from v257_demand_off import off_source as demand_off
     source = demand_off(name, source)
     # RAIL-LOOP (04/11) est la couche la plus recente : la retirer d'abord

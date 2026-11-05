@@ -26,6 +26,8 @@ RAIL_CONSIST_PCT <- 100;
 
 
 def off_source(name, source):
+    from fleet_arb_off import off_source as fleet_off
+    source = fleet_off(name, source)
     # RAIL-LONG is newer than this frozen RAIL-CONSIST baseline.  Strip its
     # exact opt-in hunks before checking the historical RAIL-CONSIST bytes.
     from rail_long_source_off import off_source as rail_long_off

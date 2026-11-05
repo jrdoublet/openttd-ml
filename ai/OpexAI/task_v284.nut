@@ -221,6 +221,18 @@ function OpexV284Select(owner, year, v233Input = false)
     if (project == null || project.deltaP <= 0 || project.score <= 0) return false;
     OpexEstimVLog("V284", line.lineId, project);
   }
+  if (FLEET_ARB) {
+    local arbLoco = OpexV257Engine(equipment.engine, line.cargo, false);
+    local arbTrackCost = loopPlan == null ? 0 : loopPlan.pieces.len()
+        * AIRail.GetBuildCost(AIRail.GetRailType(line.depot), AIRail.BT_TRACK);
+    local arbMargin = OpexEstimV284Project(line, best.vehicle, best.wagon, number,
+        arbLoco, best.add, best.waiting, arbTrackCost);
+    local arbCost = AIEngine.GetPrice(equipment.engine) + number * AIEngine.GetPrice(best.wagon.id) + arbTrackCost;
+    if (!OpexFleetRequest(line, "rail", best.add ? "add_vehicle" : "add_wagons",
+        arbCost, arbMargin != null ? arbMargin.deltaP : null, "V284")) {
+      state.nextDate = date + 1; return false;
+    }
+  }
   local oneWay = line.distance.tofloat() / (0.036 * equipment.speed);
   local waitDays = (2 * oneWay).tointeger() + 60;
   if (waitDays < 120) waitDays = 120;
@@ -645,6 +657,10 @@ function OpexV284Tick(owner)
         || margin == null || pending.wagons != pending.oldWagons + 1) {
       OpexV284Cancel(owner, pending, "rail_long_v2_recheck"); return;
     }
+  }
+  if (FLEET_ARB && !OpexFleetSpendAllowed(line,
+      AIEngine.GetPrice(pending.engine) + pending.wagons * AIEngine.GetPrice(pending.wagon))) {
+    OpexV284Cancel(owner, pending, "fleet_arb_budget"); return;
   }
   pending.phase = "building";
   local previousType = AIRail.GetCurrentRailType();

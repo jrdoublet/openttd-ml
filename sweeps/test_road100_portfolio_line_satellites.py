@@ -2,6 +2,9 @@
 Transfer of PORTFOLIO satellite tiles and StationID to line table and recalculation
 of nStopsA/B when a satellite disappears (in task_road.nut and persist.nut).
 """
+
+# Compare historical contracts after the exact outer FLEET-ARB projection.
+from fleet_arb_off import historical_read_text as fleet_read_text
 import unittest
 from pathlib import Path
 
@@ -15,9 +18,9 @@ BUILDER_ROAD = ROOT / "ai" / "OpexAI" / "builder_road.nut"
 
 class TestRoad100PortfolioLineSatellites(unittest.TestCase):
     def setUp(self):
-        self.task_road_src = TASK_ROAD.read_text(encoding="utf-8")
-        self.persist_src = PERSIST.read_text(encoding="utf-8")
-        self.builder_road_src = BUILDER_ROAD.read_text(encoding="utf-8")
+        self.task_road_src = fleet_read_text(TASK_ROAD, encoding="utf-8")
+        self.persist_src = fleet_read_text(PERSIST, encoding="utf-8")
+        self.builder_road_src = fleet_read_text(BUILDER_ROAD, encoding="utf-8")
 
     def test_task_road_transfers_portfolio_to_line_table(self):
         """Line creation must copy stopsA, stopsB, stationA, and stationB from result.road100PaxPortfolio."""

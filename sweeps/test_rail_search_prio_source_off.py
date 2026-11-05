@@ -3,6 +3,9 @@
 Only these opt-in additions are removed; unrelated dirty code and historical
 fixtures must stay unchanged. No git access or fixture regeneration at test time.
 """
+
+# Compare historical contracts after the exact outer FLEET-ARB projection.
+from fleet_arb_off import historical_read_text as fleet_read_text
 import hashlib
 import unittest
 from pathlib import Path
@@ -280,6 +283,8 @@ OFF_EDITS = {'scheduler.nut': [('  /* ON seulement: un upgrade calcule ne depens
 
 def off_search_prio_source(name, source):
     """Idempotent, fail-closed removal of the known opt-in source hunks."""
+    from fleet_arb_off import off_source as fleet_off
+    source = fleet_off(name, source)
     # A second projection on the frozen merge OFF witness must be a no-op.
     # Without this exact digest check, the older DOUBLE-GROW projector is
     # asked to reproject INVEST-STALL's already-removed platform source and
@@ -323,7 +328,7 @@ FROZEN_OFF_SHA256 = {'scheduler.nut': '3ae35a91f352fce67c7923ecc5223ee000dbb9c06
 
 class TestRailSearchPrioSourceOffProjection(unittest.TestCase):
     def test_on_materializes_lazy_selection_before_best_reader(self):
-        rail = (AI / "task_rail.nut").read_text(encoding="utf8")
+        rail = fleet_read_text(AI / "task_rail.nut", encoding="utf8")
         start = rail.index("function OpexRailSearchPrioDeferUpgrade(ai)")
         body = rail[start:rail.index("\n}\n", start)]
         self.assertLess(body.index("if (!RAIL_SEARCH_PRIO"),
@@ -334,7 +339,7 @@ class TestRailSearchPrioSourceOffProjection(unittest.TestCase):
     def test_frozen_off_and_idempotence(self):
         for name, digest in FROZEN_OFF_SHA256.items():
             with self.subTest(name=name):
-                original=(AI/name).read_text(encoding="utf8")
+                original=fleet_read_text(AI/name, encoding="utf8")
                 projected=off_search_prio_source(name,original)
                 self.assertNotEqual(original,projected)
                 self.assertEqual(hashlib.sha256(projected.encode("utf8")).hexdigest(),
@@ -345,7 +350,7 @@ class TestRailSearchPrioSourceOffProjection(unittest.TestCase):
     def test_partial_hunks_fail_closed(self):
         for name, edits in OFF_EDITS.items():
             with self.subTest(name=name):
-                original=(AI/name).read_text(encoding="utf8")
+                original=fleet_read_text(AI/name, encoding="utf8")
                 fragment=edits[0][0]
                 corrupted=original.replace(fragment,fragment.replace(fragment[:12],"BROKEN",1),1)
                 with self.assertRaises(AssertionError):

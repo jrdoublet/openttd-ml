@@ -89,17 +89,17 @@ function OpexAirAddPlane(line, catalog = null, lines = null, forcedEngine = null
 {
   local result = { added = 0, reason = "" };
   if (!("vehicles" in line) || line.vehicles.len() == 0) {
-    result.reason = "NOVEH"; return result;
+    result.reason = "NOVEH"; return FLEET_ARB ? OpexFleetResult(line, "AIR_FLEET", result) : result;
   }
   local airportTile = ("originA" in line) && AIAirport.IsAirportTile(line.originA)
       ? line.originA
       : (AIAirport.IsAirportTile(line.stationA) ? line.stationA : null);
   if (airportTile == null) {
-    result.reason = "NOAIR"; return result;
+    result.reason = "NOAIR"; return FLEET_ARB ? OpexFleetResult(line, "AIR_FLEET", result) : result;
   }
   local hangar = AIAirport.GetHangarOfAirport(airportTile);
   if (!AIMap.IsValidTile(hangar) || !AIAirport.IsHangarTile(hangar)) {
-    result.reason = "HANG"; return result;
+    result.reason = "HANG"; return FLEET_ARB ? OpexFleetResult(line, "AIR_FLEET", result) : result;
   }
   local template = null;
   foreach (v in line.vehicles) {
@@ -107,14 +107,14 @@ function OpexAirAddPlane(line, catalog = null, lines = null, forcedEngine = null
       template = v; break;
     }
   }
-  if (template == null) { result.reason = "NOLIVE"; return result; }
+  if (template == null) { result.reason = "NOLIVE"; return FLEET_ARB ? OpexFleetResult(line, "AIR_FLEET", result) : result; }
   local oldEngine = AIVehicle.GetEngineType(template);
   local targetEngine = oldEngine;
   /* The marginal model prices a SAME-engine acquisition. Never mix a
    * V252 suggested replacement into a verified V161 marginal purchase. */
   if (forcedEngine != null && (forcedEngine != oldEngine
       || !AIEngine.IsValidEngine(forcedEngine) || !AIEngine.IsBuildable(forcedEngine))) {
-    result.reason = "MARGINAL_ENGINE_STALE"; return result;
+    result.reason = "MARGINAL_ENGINE_STALE"; return FLEET_ARB ? OpexFleetResult(line, "AIR_FLEET", result) : result;
   }
 
   if (catalog != null && forcedEngine == null) {
@@ -125,17 +125,21 @@ function OpexAirAddPlane(line, catalog = null, lines = null, forcedEngine = null
   }
 
   local price = AIEngine.GetPrice(targetEngine);
-  if (price <= 0) { result.reason = "PRICE"; return result; }
+  if (price <= 0) { result.reason = "PRICE"; return FLEET_ARB ? OpexFleetResult(line, "AIR_FLEET", result) : result; }
   local need = price + 1000;
   if ((ESTIM_UNIFIE & 2) != 0)
     need = OpexEstimFinanceCapital("fleet", price, 0);
   local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
   if (money < need) {
     if (money < need) {
-      result.reason = "CASH"; return result;
+      result.reason = "CASH"; return FLEET_ARB ? OpexFleetResult(line, "AIR_FLEET", result) : result;
     }
   }
 
+  if (FLEET_ARB && !OpexFleetRequest(line, "air", "add_vehicle", price,
+      OpexFleetAirProfit(line, catalog, lines, targetEngine), "AIR_FLEET")) {
+    result.reason = "CASH"; return FLEET_ARB ? OpexFleetResult(line, "AIR_FLEET", result) : result;
+  }
   /* AIVehicle.IsValidVehicle attend un VehicleID entier, jamais null. */
   local extra = -1;
   if (targetEngine == oldEngine) {
@@ -147,7 +151,7 @@ function OpexAirAddPlane(line, catalog = null, lines = null, forcedEngine = null
       if (extra != null && AIVehicle.IsValidVehicle(extra)) {
         if (!AIOrder.ShareOrders(extra, template)) {
           if (AIVehicle.IsStoppedInDepot(extra)) AIVehicle.SellVehicle(extra);
-          result.reason = "ORDER"; return result;
+          result.reason = "ORDER"; return FLEET_ARB ? OpexFleetResult(line, "AIR_FLEET", result) : result;
         }
       }
     }
@@ -170,11 +174,11 @@ function OpexAirAddPlane(line, catalog = null, lines = null, forcedEngine = null
 
   if (extra == null || !AIVehicle.IsValidVehicle(extra)) {
     result.reason = "CLONE|" + AIError.GetLastError();
-    return result;
+    return FLEET_ARB ? OpexFleetResult(line, "AIR_FLEET", result) : result;
   }
   if (!AIVehicle.StartStopVehicle(extra)) {
     if (AIVehicle.IsStoppedInDepot(extra)) AIVehicle.SellVehicle(extra);
-    result.reason = "START"; return result;
+    result.reason = "START"; return FLEET_ARB ? OpexFleetResult(line, "AIR_FLEET", result) : result;
   }
   line.vehicles.append(extra);
   if (targetEngine != oldEngine) {
@@ -185,7 +189,7 @@ function OpexAirAddPlane(line, catalog = null, lines = null, forcedEngine = null
   }
   result.added = 1;
   result.reason = "OK";
-  return result;
+  return FLEET_ARB ? OpexFleetResult(line, "AIR_FLEET", result) : result;
 }
 
 /* Reconstitue un avion perdu sans dependre d'un appareil encore vivant. Le moteur
@@ -195,14 +199,14 @@ function OpexAirRefleetCrashedPlane(line, catalog = null)
 {
   local result = { added = 0, reason = "" };
   if (!(("refleetEngine" in line) && line.refleetEngine >= 0)) {
-    result.reason = "NOENGINE"; return result;
+    result.reason = "NOENGINE"; return FLEET_ARB ? OpexFleetResult(line, "AIR_CRASH", result) : result;
   }
   if (!AIAirport.IsAirportTile(line.stationA) || !AIAirport.IsAirportTile(line.stationB)) {
-    result.reason = "NOAIRPORT"; return result;
+    result.reason = "NOAIRPORT"; return FLEET_ARB ? OpexFleetResult(line, "AIR_CRASH", result) : result;
   }
   local hangar = AIAirport.GetHangarOfAirport(line.stationA);
   if (!AIMap.IsValidTile(hangar) || !AIAirport.IsHangarTile(hangar)) {
-    result.reason = "HANGAR"; return result;
+    result.reason = "HANGAR"; return FLEET_ARB ? OpexFleetResult(line, "AIR_CRASH", result) : result;
   }
 
   local oldEngine = line.refleetEngine;
@@ -218,13 +222,15 @@ function OpexAirRefleetCrashedPlane(line, catalog = null)
     if (targetEngine != oldEngine && AIVehicle.GetBuildWithRefitCapacity(hangar, oldEngine, line.cargo) > 0) {
       targetEngine = oldEngine;
     } else {
-      result.reason = "REFIT"; return result;
+      result.reason = "REFIT"; return FLEET_ARB ? OpexFleetResult(line, "AIR_CRASH", result) : result;
     }
   }
   local price = AIEngine.GetPrice(targetEngine);
   if (price <= 0 || AICompany.GetBankBalance(AICompany.COMPANY_SELF) < price) {
-    result.reason = "CASH"; return result;
+    result.reason = "CASH"; return FLEET_ARB ? OpexFleetResult(line, "AIR_CRASH", result) : result;
   }
+  if (FLEET_ARB && !OpexFleetRequest(line, "air", "replace", price,
+      OpexFleetPlanProfit(line), "AIR_CRASH")) { result.reason = "CASH"; return FLEET_ARB ? OpexFleetResult(line, "AIR_CRASH", result) : result; }
   local plane = AIVehicle.BuildVehicleWithRefit(hangar, targetEngine, line.cargo);
   if (!AIVehicle.IsValidVehicle(plane)) {
     if (targetEngine != oldEngine) {
@@ -233,16 +239,16 @@ function OpexAirRefleetCrashedPlane(line, catalog = null)
       plane = AIVehicle.BuildVehicleWithRefit(hangar, oldEngine, line.cargo);
     }
   }
-  if (!AIVehicle.IsValidVehicle(plane)) { result.reason = "BUILD"; return result; }
+  if (!AIVehicle.IsValidVehicle(plane)) { result.reason = "BUILD"; return FLEET_ARB ? OpexFleetResult(line, "AIR_CRASH", result) : result; }
   local flagsA = AIOrder.OF_NONE;
   local flagsB = AIOrder.OF_NONE;
   if (!AIOrder.AppendOrder(plane, line.stationA, flagsA) ||
       !AIOrder.AppendOrder(plane, line.stationB, flagsB) || AIOrder.GetOrderCount(plane) != 2) {
-    AIVehicle.SellVehicle(plane); result.reason = "ORDER"; return result;
+    AIVehicle.SellVehicle(plane); result.reason = "ORDER"; return FLEET_ARB ? OpexFleetResult(line, "AIR_CRASH", result) : result;
   }
   if (!AIVehicle.StartStopVehicle(plane)) {
     if (AIVehicle.IsStoppedInDepot(plane)) AIVehicle.SellVehicle(plane);
-    result.reason = "START"; return result;
+    result.reason = "START"; return FLEET_ARB ? OpexFleetResult(line, "AIR_CRASH", result) : result;
   }
   if (!("vehicles" in line)) line.vehicles <- [];
   else if (line.vehicles == null) line.vehicles = [];
@@ -256,7 +262,7 @@ function OpexAirRefleetCrashedPlane(line, catalog = null)
                  + " reason=crash_refleet");
   }
   result.added = 1; result.reason = "OK";
-  return result;
+  return FLEET_ARB ? OpexFleetResult(line, "AIR_CRASH", result) : result;
 }
 
 /* V161 : valeur NETTE du prochain avion, en £/an, pour UN achat.

@@ -1,4 +1,7 @@
 """MULTI-1 AIR-before-unprepared-RAIL: permanent OFF and C77 contracts."""
+
+# Compare historical contracts after the exact outer FLEET-ARB projection.
+from fleet_arb_off import historical_read_bytes as fleet_read_bytes, historical_read_text as fleet_read_text
 import re
 import unittest
 from pathlib import Path
@@ -10,7 +13,7 @@ AI = Path(__file__).resolve().parents[1] / "ai" / "OpexAI"
 
 
 def source(name):
-    return (AI / name).read_text(encoding="utf-8")
+    return fleet_read_text(AI / name, encoding="utf-8")
 
 
 class Multi1AirOverRailContracts(unittest.TestCase):
@@ -25,7 +28,7 @@ class Multi1AirOverRailContracts(unittest.TestCase):
         self.assertIn("MULTI1_AIR_OVER_RAIL <- 0;", source("globals_pre.nut"))
         self.assertIn("? multi1AirOverRail : 0;", settings)
         for name in ("info.nut", "settings.nut"):
-            self.assertNotIn(b"multi1_air_over_rail", historical_bytes(name, (AI / name).read_bytes()))
+            self.assertNotIn(b"multi1_air_over_rail", historical_bytes(name, fleet_read_bytes(AI / name)))
 
         code = source("projects_selection.nut")
         self.assertEqual(code.count("OpexMulti1AirOverRail("), 2)

@@ -59,6 +59,8 @@ REPLACED = {
 }
 
 def off_source(name, source):
+    from fleet_arb_off import off_source as fleet_off
+    source = fleet_off(name, source)
     fragments = list(INSERTIONS.get(name, ()))
     replacements = REPLACED.get(name, ())
     if not fragments and not replacements:

@@ -126,6 +126,9 @@ function OpexRailLongV2FleetSelect(owner, year)
   }
   if (best == null) return false;
   local line = best.line;
+  if (FLEET_ARB && !OpexFleetRequest(line, "rail", "add_wagons",
+      AIEngine.GetPrice(best.equipment.engine) + (best.count + 1) * best.wagon.price,
+      best.margin.profit, "RAIL_LONG_V2_FLEET")) { state.railLongV2NextDate = now + 1; return false; }
   state.railLongV2Dates.rawset(line.lineId, now + 180);
   local waitDays = (2 * line.distance / (0.036 * best.equipment.speed)).tointeger() + 60;
   if (waitDays < 120) waitDays = 120;

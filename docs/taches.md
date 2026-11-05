@@ -1,5 +1,22 @@
 # Tâches — registre actif OpexAI
 
+### 05/11 — FLEET-ARB : livraison opt-in, qualification PC restante
+
+Demande utilisateur : arbitre unique de flotte sur `codex/fleet-arbiter-20261105`,
+sans push sur master. Base `873b67ec` avec fusion rail, `rail_loop=1` et
+`v257_demand=1` vérifiés. `fleet_arb=0` aux quatre difficultés ; file mensuelle,
+réserve commune, verrou 90 jours, admission avant transactions existantes et
+persistance des verrous/réservations. OFF exact des 33 fichiers modifiés ; aucun
+ancien témoin SHA remplacé. 16 nouveaux contrats passent ; suite complète
+3 883 tests contre 3 867, mêmes 89 échecs et 29 erreurs, zéro nouveau cas.
+
+Reste à qualifier sur PC : compilation 1×1, exposition rail 4×6 (17, 512, 314,
+8191), Save/Load en transaction et zéro rame perdue, puis A 40×5 et B 20×10
+rail/multimodal selon les portes. Les propositions sans devis marginal complet
+sont refusées ; cette limite ON est détaillée avec les risques dans le
+[rapport FLEET-ARB](fleet_arbiter_20261105.md). Aucun smoke moteur ni gain
+économique revendiqué ; défaut inchangé.
+
 **Mise à jour : 4 novembre 2026 — ajout du diagnostic INVEST-STALL quais ; état historique du 27 octobre conservé. Seule liste autoritaire des actions ouvertes.**
 Les décisions et résultats terminés sont dans la [synthèse historique](journaux/synthese_decisions_2026-09-30.md)
 et les [journaux](journaux/README.md). Les anciennes mentions « à faire » des fiches

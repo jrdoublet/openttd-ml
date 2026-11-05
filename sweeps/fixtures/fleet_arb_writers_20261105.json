@@ -1,0 +1,855 @@
+[
+  {
+    "file": "air_construction.nut",
+    "line": 371,
+    "function": "OpexBuildAirRoute",
+    "api": "BuildVehicleWithRefit",
+    "policy": "admitted",
+    "gate_file": "air_construction.nut",
+    "source": "BUILD_AIR"
+  },
+  {
+    "file": "air_construction.nut",
+    "line": 415,
+    "function": "OpexBuildAirRoute",
+    "api": "CloneVehicle",
+    "policy": "admitted",
+    "gate_file": "air_construction.nut",
+    "source": "BUILD_AIR"
+  },
+  {
+    "file": "air_construction.nut",
+    "line": 419,
+    "function": "OpexBuildAirRoute",
+    "api": "BuildVehicleWithRefit",
+    "policy": "admitted",
+    "gate_file": "air_construction.nut",
+    "source": "BUILD_AIR"
+  },
+  {
+    "file": "air_fleet.nut",
+    "line": 146,
+    "function": "OpexAirAddPlane",
+    "api": "CloneVehicle",
+    "policy": "admitted",
+    "gate_file": "air_fleet.nut",
+    "source": "AIR_FLEET"
+  },
+  {
+    "file": "air_fleet.nut",
+    "line": 150,
+    "function": "OpexAirAddPlane",
+    "api": "BuildVehicleWithRefit",
+    "policy": "admitted",
+    "gate_file": "air_fleet.nut",
+    "source": "AIR_FLEET"
+  },
+  {
+    "file": "air_fleet.nut",
+    "line": 153,
+    "function": "OpexAirAddPlane",
+    "api": "SellVehicle",
+    "policy": "admitted",
+    "gate_file": "air_fleet.nut",
+    "source": "AIR_FLEET"
+  },
+  {
+    "file": "air_fleet.nut",
+    "line": 160,
+    "function": "OpexAirAddPlane",
+    "api": "BuildVehicleWithRefit",
+    "policy": "admitted",
+    "gate_file": "air_fleet.nut",
+    "source": "AIR_FLEET"
+  },
+  {
+    "file": "air_fleet.nut",
+    "line": 163,
+    "function": "OpexAirAddPlane",
+    "api": "SellVehicle",
+    "policy": "admitted",
+    "gate_file": "air_fleet.nut",
+    "source": "AIR_FLEET"
+  },
+  {
+    "file": "air_fleet.nut",
+    "line": 171,
+    "function": "OpexAirAddPlane",
+    "api": "CloneVehicle",
+    "policy": "admitted",
+    "gate_file": "air_fleet.nut",
+    "source": "AIR_FLEET"
+  },
+  {
+    "file": "air_fleet.nut",
+    "line": 180,
+    "function": "OpexAirAddPlane",
+    "api": "SellVehicle",
+    "policy": "admitted",
+    "gate_file": "air_fleet.nut",
+    "source": "AIR_FLEET"
+  },
+  {
+    "file": "air_fleet.nut",
+    "line": 234,
+    "function": "OpexAirRefleetCrashedPlane",
+    "api": "BuildVehicleWithRefit",
+    "policy": "admitted",
+    "gate_file": "air_fleet.nut",
+    "source": "AIR_CRASH"
+  },
+  {
+    "file": "air_fleet.nut",
+    "line": 239,
+    "function": "OpexAirRefleetCrashedPlane",
+    "api": "BuildVehicleWithRefit",
+    "policy": "admitted",
+    "gate_file": "air_fleet.nut",
+    "source": "AIR_CRASH"
+  },
+  {
+    "file": "air_fleet.nut",
+    "line": 247,
+    "function": "OpexAirRefleetCrashedPlane",
+    "api": "SellVehicle",
+    "policy": "admitted",
+    "gate_file": "air_fleet.nut",
+    "source": "AIR_CRASH"
+  },
+  {
+    "file": "air_fleet.nut",
+    "line": 250,
+    "function": "OpexAirRefleetCrashedPlane",
+    "api": "SellVehicle",
+    "policy": "admitted",
+    "gate_file": "air_fleet.nut",
+    "source": "AIR_CRASH"
+  },
+  {
+    "file": "air_recovery.nut",
+    "line": 41,
+    "function": "OpexAirContinueRollback",
+    "api": "SellVehicle",
+    "policy": "rollback",
+    "reason": "Cleanup of the parent transaction; never re-arbitrate cleanup"
+  },
+  {
+    "file": "air_recovery.nut",
+    "line": 50,
+    "function": "OpexAirContinueRollback",
+    "api": "SendVehicleToDepot",
+    "policy": "rollback",
+    "reason": "Cleanup of the parent transaction; never re-arbitrate cleanup"
+  },
+  {
+    "file": "airport_feeder.nut",
+    "line": 374,
+    "function": "OpexAirportFeederBuild",
+    "api": "BuildVehicleWithRefit",
+    "policy": "admitted",
+    "gate_file": "airport_feeder.nut",
+    "source": "AIRPORT_FEEDER"
+  },
+  {
+    "file": "airport_feeder.nut",
+    "line": 411,
+    "function": "OpexAirportFeederBuild",
+    "api": "SellVehicle",
+    "policy": "admitted",
+    "gate_file": "airport_feeder.nut",
+    "source": "AIRPORT_FEEDER"
+  },
+  {
+    "file": "airport_feeder.nut",
+    "line": 414,
+    "function": "OpexAirportFeederBuild",
+    "api": "SendVehicleToDepot",
+    "policy": "admitted",
+    "gate_file": "airport_feeder.nut",
+    "source": "AIRPORT_FEEDER"
+  },
+  {
+    "file": "airport_feeder_siting.nut",
+    "line": 101,
+    "function": "OpexAirportFeederRecover",
+    "api": "SendVehicleToDepot",
+    "policy": "rollback",
+    "reason": "Cleanup of the parent transaction; never re-arbitrate cleanup"
+  },
+  {
+    "file": "airport_feeder_siting.nut",
+    "line": 105,
+    "function": "OpexAirportFeederRecover",
+    "api": "SellVehicle",
+    "policy": "rollback",
+    "reason": "Cleanup of the parent transaction; never re-arbitrate cleanup"
+  },
+  {
+    "file": "airport_rail_feeder_dispatch.nut",
+    "line": 36,
+    "function": "OpexAirportRailFeederRecover",
+    "api": "SendVehicleToDepot",
+    "policy": "rollback",
+    "reason": "Cleanup of the parent transaction; never re-arbitrate cleanup"
+  },
+  {
+    "file": "builder_rail.nut",
+    "line": 4556,
+    "function": "OpexRollback",
+    "api": "SellVehicle",
+    "policy": "rollback",
+    "reason": "Cleanup of the parent transaction; never re-arbitrate cleanup"
+  },
+  {
+    "file": "builder_rail.nut",
+    "line": 4616,
+    "function": "OpexV301Trim",
+    "api": "SellVehicle",
+    "policy": "rollback",
+    "reason": "Cleanup of the parent transaction; never re-arbitrate cleanup"
+  },
+  {
+    "file": "builder_rail.nut",
+    "line": 4666,
+    "function": "OpexBuildTrains",
+    "api": "BuildVehicle",
+    "policy": "native_transaction",
+    "reason": "OpexExecuteRailPlan / OpexV190ExecuteRailPlan / OpexV198ExecuteRailPlan / OpexExecuteUpgradeAfterSearch / OpexBuildSecondTrain / V257 / V284 / RAIL_LONG_V3 / DOUBLE_CONVERSION (unknown quote refused)"
+  },
+  {
+    "file": "builder_rail.nut",
+    "line": 4676,
+    "function": "OpexBuildTrains",
+    "api": "BuildVehicle",
+    "policy": "native_transaction",
+    "reason": "OpexExecuteRailPlan / OpexV190ExecuteRailPlan / OpexV198ExecuteRailPlan / OpexExecuteUpgradeAfterSearch / OpexBuildSecondTrain / V257 / V284 / RAIL_LONG_V3 / DOUBLE_CONVERSION (unknown quote refused)"
+  },
+  {
+    "file": "builder_rail.nut",
+    "line": 4706,
+    "function": "OpexBuildTrains",
+    "api": "BuildVehicle",
+    "policy": "native_transaction",
+    "reason": "OpexExecuteRailPlan / OpexV190ExecuteRailPlan / OpexV198ExecuteRailPlan / OpexExecuteUpgradeAfterSearch / OpexBuildSecondTrain / V257 / V284 / RAIL_LONG_V3 / DOUBLE_CONVERSION (unknown quote refused)"
+  },
+  {
+    "file": "builder_rail.nut",
+    "line": 4724,
+    "function": "OpexBuildTrains",
+    "api": "MoveWagon",
+    "policy": "native_transaction",
+    "reason": "OpexExecuteRailPlan / OpexV190ExecuteRailPlan / OpexV198ExecuteRailPlan / OpexExecuteUpgradeAfterSearch / OpexBuildSecondTrain / V257 / V284 / RAIL_LONG_V3 / DOUBLE_CONVERSION (unknown quote refused)"
+  },
+  {
+    "file": "builder_rail.nut",
+    "line": 6047,
+    "function": "OpexV190RollbackDoubleTrack",
+    "api": "SellVehicle",
+    "policy": "rollback",
+    "reason": "Cleanup of the parent transaction; never re-arbitrate cleanup"
+  },
+  {
+    "file": "builder_road.nut",
+    "line": 4279,
+    "function": "OpexRoadRollback",
+    "api": "SellVehicle",
+    "policy": "rollback",
+    "reason": "Cleanup of the parent transaction; never re-arbitrate cleanup"
+  },
+  {
+    "file": "builder_road.nut",
+    "line": 4282,
+    "function": "OpexRoadRollback",
+    "api": "SendVehicleToDepot",
+    "policy": "rollback",
+    "reason": "Cleanup of the parent transaction; never re-arbitrate cleanup"
+  },
+  {
+    "file": "builder_road.nut",
+    "line": 5372,
+    "function": "OpexBuildRoadRoute",
+    "api": "BuildVehicleWithRefit",
+    "policy": "admitted",
+    "gate_file": "builder_road.nut",
+    "source": "BUILD_ROAD"
+  },
+  {
+    "file": "builder_road.nut",
+    "line": 5535,
+    "function": "OpexBuildRoadRoute",
+    "api": "CloneVehicle",
+    "policy": "admitted",
+    "gate_file": "builder_road.nut",
+    "source": "BUILD_ROAD"
+  },
+  {
+    "file": "builder_road.nut",
+    "line": 6493,
+    "function": "OpexRoadRefleet",
+    "api": "CloneVehicle",
+    "policy": "admitted",
+    "gate_file": "builder_road.nut",
+    "source": "ROAD_REFLEET"
+  },
+  {
+    "file": "builder_road.nut",
+    "line": 6504,
+    "function": "OpexRoadRefleet",
+    "api": "BuildVehicleWithRefit",
+    "policy": "admitted",
+    "gate_file": "builder_road.nut",
+    "source": "ROAD_REFLEET"
+  },
+  {
+    "file": "builder_road.nut",
+    "line": 6544,
+    "function": "OpexRoadRefleet",
+    "api": "SellVehicle",
+    "policy": "admitted",
+    "gate_file": "builder_road.nut",
+    "source": "ROAD_REFLEET"
+  },
+  {
+    "file": "builder_road.nut",
+    "line": 6548,
+    "function": "OpexRoadRefleet",
+    "api": "CloneVehicle",
+    "policy": "admitted",
+    "gate_file": "builder_road.nut",
+    "source": "ROAD_REFLEET"
+  },
+  {
+    "file": "builder_road.nut",
+    "line": 6556,
+    "function": "OpexRoadRefleet",
+    "api": "SellVehicle",
+    "policy": "admitted",
+    "gate_file": "builder_road.nut",
+    "source": "ROAD_REFLEET"
+  },
+  {
+    "file": "builder_road.nut",
+    "line": 6557,
+    "function": "OpexRoadRefleet",
+    "api": "SendVehicleToDepot",
+    "policy": "admitted",
+    "gate_file": "builder_road.nut",
+    "source": "ROAD_REFLEET"
+  },
+  {
+    "file": "builder_water.nut",
+    "line": 493,
+    "function": "OpexWaterRollback",
+    "api": "SellVehicle",
+    "policy": "rollback",
+    "reason": "Cleanup of the parent transaction; never re-arbitrate cleanup"
+  },
+  {
+    "file": "builder_water.nut",
+    "line": 629,
+    "function": "OpexBuildWaterRoute",
+    "api": "BuildVehicleWithRefit",
+    "policy": "admitted",
+    "gate_file": "builder_water.nut",
+    "source": "BUILD_WATER"
+  },
+  {
+    "file": "builder_water.nut",
+    "line": 686,
+    "function": "OpexWaterRefleetCrashedShip",
+    "api": "BuildVehicleWithRefit",
+    "policy": "admitted",
+    "gate_file": "builder_water.nut",
+    "source": "WATER_CRASH"
+  },
+  {
+    "file": "builder_water.nut",
+    "line": 690,
+    "function": "OpexWaterRefleetCrashedShip",
+    "api": "SellVehicle",
+    "policy": "admitted",
+    "gate_file": "builder_water.nut",
+    "source": "WATER_CRASH"
+  },
+  {
+    "file": "builder_water.nut",
+    "line": 693,
+    "function": "OpexWaterRefleetCrashedShip",
+    "api": "SellVehicle",
+    "policy": "admitted",
+    "gate_file": "builder_water.nut",
+    "source": "WATER_CRASH"
+  },
+  {
+    "file": "bus_districts.nut",
+    "line": 602,
+    "function": "OpexRoad1yBuildMailChild",
+    "api": "BuildVehicleWithRefit",
+    "policy": "admitted",
+    "gate_file": "bus_districts.nut",
+    "source": "ROAD_MAIL_CHILD"
+  },
+  {
+    "file": "bus_districts.nut",
+    "line": 625,
+    "function": "OpexRoad1yBuildMailChild",
+    "api": "CloneVehicle",
+    "policy": "admitted",
+    "gate_file": "bus_districts.nut",
+    "source": "ROAD_MAIL_CHILD"
+  },
+  {
+    "file": "bus_districts.nut",
+    "line": 917,
+    "function": "OpexRoad1yWeakStep",
+    "api": "SellVehicle",
+    "policy": "admitted",
+    "gate_file": "bus_districts.nut",
+    "source": "ROAD_WEAK_TRANSFER"
+  },
+  {
+    "file": "bus_districts.nut",
+    "line": 920,
+    "function": "OpexRoad1yWeakStep",
+    "api": "CloneVehicle",
+    "policy": "admitted",
+    "gate_file": "bus_districts.nut",
+    "source": "ROAD_WEAK_TRANSFER"
+  },
+  {
+    "file": "bus_districts.nut",
+    "line": 937,
+    "function": "OpexRoad1yWeakStep",
+    "api": "SendVehicleToDepot",
+    "policy": "admitted",
+    "gate_file": "bus_districts.nut",
+    "source": "ROAD_WEAK_TRANSFER"
+  },
+  {
+    "file": "double_grow_fleet.nut",
+    "line": 248,
+    "function": "OpexDoubleGrowFleet",
+    "api": "CloneVehicle",
+    "policy": "admitted",
+    "gate_file": "double_grow_fleet.nut",
+    "source": "DOUBLE_GROW"
+  },
+  {
+    "file": "double_grow_fleet.nut",
+    "line": 269,
+    "function": "OpexDoubleGrowFleet",
+    "api": "SellVehicle",
+    "policy": "admitted",
+    "gate_file": "double_grow_fleet.nut",
+    "source": "DOUBLE_GROW"
+  },
+  {
+    "file": "persist.nut",
+    "line": 225,
+    "function": "OpexAI::_abortPersistedRailExpansion",
+    "api": "SellVehicle",
+    "policy": "rollback",
+    "reason": "Cleanup of the parent transaction; never re-arbitrate cleanup"
+  },
+  {
+    "file": "persist.nut",
+    "line": 240,
+    "function": "OpexAI::_abortPersistedRailExpansion",
+    "api": "SendVehicleToDepot",
+    "policy": "rollback",
+    "reason": "Cleanup of the parent transaction; never re-arbitrate cleanup"
+  },
+  {
+    "file": "persist.nut",
+    "line": 297,
+    "function": "OpexAI::_reconcileRailExpansionAfterLoad",
+    "api": "MoveWagon",
+    "policy": "rollback",
+    "reason": "Cleanup of the parent transaction; never re-arbitrate cleanup"
+  },
+  {
+    "file": "rail_long_v3_multi.nut",
+    "line": 188,
+    "function": "OpexRailLongV3MultiBuild",
+    "api": "BuildVehicle",
+    "policy": "native_transaction",
+    "reason": "OpexBuildTrains: admitted parent construction or replacement"
+  },
+  {
+    "file": "rail_long_v3_multi.nut",
+    "line": 203,
+    "function": "OpexRailLongV3MultiBuild",
+    "api": "BuildVehicle",
+    "policy": "native_transaction",
+    "reason": "OpexBuildTrains: admitted parent construction or replacement"
+  },
+  {
+    "file": "rail_long_v3_multi.nut",
+    "line": 217,
+    "function": "OpexRailLongV3MultiBuild",
+    "api": "MoveWagon",
+    "policy": "native_transaction",
+    "reason": "OpexBuildTrains: admitted parent construction or replacement"
+  },
+  {
+    "file": "rail_long_v3_multi.nut",
+    "line": 236,
+    "function": "OpexRailLongV3MultiBuild",
+    "api": "BuildVehicle",
+    "policy": "native_transaction",
+    "reason": "OpexBuildTrains: admitted parent construction or replacement"
+  },
+  {
+    "file": "rail_long_v3_multi.nut",
+    "line": 249,
+    "function": "OpexRailLongV3MultiBuild",
+    "api": "MoveWagon",
+    "policy": "native_transaction",
+    "reason": "OpexBuildTrains: admitted parent construction or replacement"
+  },
+  {
+    "file": "rail_long_v3_upgrade.nut",
+    "line": 128,
+    "function": "OpexRailLongV3UpgradeRestoreOrders",
+    "api": "SendVehicleToDepot",
+    "policy": "native_transaction",
+    "reason": "RAIL_LONG_V3: native recovery and depot dispatch"
+  },
+  {
+    "file": "rail_long_v3_upgrade.nut",
+    "line": 435,
+    "function": "OpexRailLongV3UpgradeAdopt",
+    "api": "SellVehicle",
+    "policy": "native_transaction",
+    "reason": "RAIL_LONG_V3: native journal, sell only after verified adoption"
+  },
+  {
+    "file": "rail_loop.nut",
+    "line": 497,
+    "function": "OpexRailLoopClone",
+    "api": "CloneVehicle",
+    "policy": "admitted",
+    "gate_file": "rail_loop.nut",
+    "source": "RAIL_LOOP"
+  },
+  {
+    "file": "rail_loop.nut",
+    "line": 500,
+    "function": "OpexRailLoopClone",
+    "api": "SellVehicle",
+    "policy": "admitted",
+    "gate_file": "rail_loop.nut",
+    "source": "RAIL_LOOP"
+  },
+  {
+    "file": "rail_templates.nut",
+    "line": 802,
+    "function": "OpexV198ExecuteRailPlan",
+    "api": "SellVehicle",
+    "policy": "admitted",
+    "gate_file": "rail_templates.nut",
+    "source": "BUILD_RAIL"
+  },
+  {
+    "file": "rail_templates.nut",
+    "line": 807,
+    "function": "OpexV198ExecuteRailPlan",
+    "api": "SellVehicle",
+    "policy": "admitted",
+    "gate_file": "rail_templates.nut",
+    "source": "BUILD_RAIL"
+  },
+  {
+    "file": "task_rail.nut",
+    "line": 588,
+    "function": "OpexRailLongGrowFleet",
+    "api": "CloneVehicle",
+    "policy": "admitted",
+    "gate_file": "task_rail.nut",
+    "source": "RAIL_LONG_GROW"
+  },
+  {
+    "file": "task_rail.nut",
+    "line": 595,
+    "function": "OpexRailLongGrowFleet",
+    "api": "SellVehicle",
+    "policy": "admitted",
+    "gate_file": "task_rail.nut",
+    "source": "RAIL_LONG_GROW"
+  },
+  {
+    "file": "task_rail.nut",
+    "line": 603,
+    "function": "OpexRailLongGrowFleet",
+    "api": "SellVehicle",
+    "policy": "admitted",
+    "gate_file": "task_rail.nut",
+    "source": "RAIL_LONG_GROW"
+  },
+  {
+    "file": "task_rail.nut",
+    "line": 607,
+    "function": "OpexRailLongGrowFleet",
+    "api": "SellVehicle",
+    "policy": "admitted",
+    "gate_file": "task_rail.nut",
+    "source": "RAIL_LONG_GROW"
+  },
+  {
+    "file": "task_rail.nut",
+    "line": 818,
+    "function": "OpexAI::_expandRailLines",
+    "api": "CloneVehicle",
+    "policy": "admitted",
+    "gate_file": "task_rail.nut",
+    "source": "RAIL_REFLEET"
+  },
+  {
+    "file": "task_rail.nut",
+    "line": 822,
+    "function": "OpexAI::_expandRailLines",
+    "api": "SellVehicle",
+    "policy": "admitted",
+    "gate_file": "task_rail.nut",
+    "source": "RAIL_REFLEET"
+  },
+  {
+    "file": "task_rail.nut",
+    "line": 909,
+    "function": "OpexAI::_continueRailExpansion",
+    "api": "SendVehicleToDepot",
+    "policy": "native_transaction",
+    "reason": "Legacy persisted expansion only: no new assignment to _railExpansion in live sources"
+  },
+  {
+    "file": "task_rail.nut",
+    "line": 934,
+    "function": "OpexAI::_continueRailExpansion",
+    "api": "SendVehicleToDepot",
+    "policy": "native_transaction",
+    "reason": "Legacy persisted expansion only: no new assignment to _railExpansion in live sources"
+  },
+  {
+    "file": "task_rail.nut",
+    "line": 981,
+    "function": "OpexAI::_continueRailExpansion",
+    "api": "BuildVehicle",
+    "policy": "native_transaction",
+    "reason": "Legacy persisted expansion only: no new assignment to _railExpansion in live sources"
+  },
+  {
+    "file": "task_rail.nut",
+    "line": 996,
+    "function": "OpexAI::_continueRailExpansion",
+    "api": "SellVehicle",
+    "policy": "native_transaction",
+    "reason": "Legacy persisted expansion only: no new assignment to _railExpansion in live sources"
+  },
+  {
+    "file": "task_rail.nut",
+    "line": 1007,
+    "function": "OpexAI::_continueRailExpansion",
+    "api": "MoveWagon",
+    "policy": "native_transaction",
+    "reason": "Legacy persisted expansion only: no new assignment to _railExpansion in live sources"
+  },
+  {
+    "file": "task_rail.nut",
+    "line": 1008,
+    "function": "OpexAI::_continueRailExpansion",
+    "api": "SellVehicle",
+    "policy": "native_transaction",
+    "reason": "Legacy persisted expansion only: no new assignment to _railExpansion in live sources"
+  },
+  {
+    "file": "task_rail_pair.nut",
+    "line": 243,
+    "function": "OpexAI::_v271TandemSource",
+    "api": "CloneVehicle",
+    "policy": "simulation",
+    "reason": "AITestMode quote; no physical mutation before admission"
+  },
+  {
+    "file": "task_rail_pair.nut",
+    "line": 460,
+    "function": "OpexAI::_v271Continue",
+    "api": "SellVehicle",
+    "policy": "native_transaction",
+    "reason": "RAIL_PAIR: admitted native transaction or rollback"
+  },
+  {
+    "file": "task_rail_pair.nut",
+    "line": 635,
+    "function": "OpexAI::_v271Continue",
+    "api": "CloneVehicle",
+    "policy": "native_transaction",
+    "reason": "RAIL_PAIR: admitted native transaction or rollback"
+  },
+  {
+    "file": "task_report.nut",
+    "line": 677,
+    "function": "OpexAI::_triggerScrapLine",
+    "api": "SendVehicleToDepot",
+    "policy": "admitted",
+    "gate_file": "task_report.nut",
+    "source": "SCRAP_LINE"
+  },
+  {
+    "file": "task_report.nut",
+    "line": 712,
+    "function": "OpexAI::_scrapDeadLines",
+    "api": "SellVehicle",
+    "policy": "native_transaction",
+    "reason": "SCRAP_LINE: admitted scrap journal"
+  },
+  {
+    "file": "task_report.nut",
+    "line": 795,
+    "function": "OpexAI::_scrapRetiredVehicles",
+    "api": "SellVehicle",
+    "policy": "native_transaction",
+    "reason": "V252 / V257 / V284: retirement after replacement or rollback ticket"
+  },
+  {
+    "file": "task_report.nut",
+    "line": 860,
+    "function": "OpexAI::_scrapRetiredVehicles",
+    "api": "SendVehicleToDepot",
+    "policy": "native_transaction",
+    "reason": "V252 / V257 / V284: retirement after replacement or rollback ticket"
+  },
+  {
+    "file": "task_v252.nut",
+    "line": 189,
+    "function": "OpexAI::_dispatchV252AirEngineRefresh",
+    "api": "BuildVehicleWithRefit",
+    "policy": "admitted",
+    "gate_file": "task_v252.nut",
+    "source": "V252"
+  },
+  {
+    "file": "task_v252.nut",
+    "line": 197,
+    "function": "OpexAI::_dispatchV252AirEngineRefresh",
+    "api": "SellVehicle",
+    "policy": "admitted",
+    "gate_file": "task_v252.nut",
+    "source": "V252"
+  },
+  {
+    "file": "task_v252.nut",
+    "line": 204,
+    "function": "OpexAI::_dispatchV252AirEngineRefresh",
+    "api": "SellVehicle",
+    "policy": "admitted",
+    "gate_file": "task_v252.nut",
+    "source": "V252"
+  },
+  {
+    "file": "task_v252.nut",
+    "line": 228,
+    "function": "OpexAI::_dispatchV252AirEngineRefresh",
+    "api": "SendVehicleToDepot",
+    "policy": "admitted",
+    "gate_file": "task_v252.nut",
+    "source": "V252"
+  },
+  {
+    "file": "task_v252.nut",
+    "line": 230,
+    "function": "OpexAI::_dispatchV252AirEngineRefresh",
+    "api": "SellVehicle",
+    "policy": "admitted",
+    "gate_file": "task_v252.nut",
+    "source": "V252"
+  },
+  {
+    "file": "task_v257.nut",
+    "line": 170,
+    "function": "OpexV257SaleValue",
+    "api": "SellVehicle",
+    "policy": "simulation",
+    "reason": "AITestMode quote; no physical mutation before admission"
+  },
+  {
+    "file": "task_v257.nut",
+    "line": 177,
+    "function": "OpexV257Discard",
+    "api": "SellVehicle",
+    "policy": "rollback",
+    "reason": "Cleanup of the parent transaction; never re-arbitrate cleanup"
+  },
+  {
+    "file": "task_v257.nut",
+    "line": 461,
+    "function": "OpexAI::_v257Review",
+    "api": "SendVehicleToDepot",
+    "policy": "admitted",
+    "gate_file": "task_v257.nut",
+    "source": "V257"
+  },
+  {
+    "file": "task_v257.nut",
+    "line": 488,
+    "function": "OpexAI::_v257ReplaceStep",
+    "api": "SendVehicleToDepot",
+    "policy": "native_transaction",
+    "reason": "V257: admitted replacement journal; live spend recheck"
+  },
+  {
+    "file": "task_v257.nut",
+    "line": 494,
+    "function": "OpexAI::_v257ReplaceStep",
+    "api": "SendVehicleToDepot",
+    "policy": "native_transaction",
+    "reason": "V257: admitted replacement journal; live spend recheck"
+  },
+  {
+    "file": "task_v257.nut",
+    "line": 643,
+    "function": "OpexAI::_v257ReplaceStep",
+    "api": "SellVehicle",
+    "policy": "native_transaction",
+    "reason": "V257: admitted replacement journal; live spend recheck"
+  },
+  {
+    "file": "task_v257.nut",
+    "line": 698,
+    "function": "OpexV257Reconcile",
+    "api": "SellVehicle",
+    "policy": "rollback",
+    "reason": "Cleanup of the parent transaction; never re-arbitrate cleanup"
+  },
+  {
+    "file": "task_v257.nut",
+    "line": 721,
+    "function": "OpexV257Reconcile",
+    "api": "SendVehicleToDepot",
+    "policy": "rollback",
+    "reason": "Cleanup of the parent transaction; never re-arbitrate cleanup"
+  },
+  {
+    "file": "task_v284.nut",
+    "line": 558,
+    "function": "OpexV284Tick",
+    "api": "SendVehicleToDepot",
+    "policy": "native_transaction",
+    "reason": "V284 / INVEST_STALL / RAIL_LONG_V2_FLEET: native journal; live spend recheck"
+  },
+  {
+    "file": "task_v284.nut",
+    "line": 570,
+    "function": "OpexV284Tick",
+    "api": "SendVehicleToDepot",
+    "policy": "native_transaction",
+    "reason": "V284 / INVEST_STALL / RAIL_LONG_V2_FLEET: native journal; live spend recheck"
+  },
+  {
+    "file": "v233_long_good.nut",
+    "line": 3207,
+    "function": "OpexV233LGrowthStep",
+    "api": "CloneVehicle",
+    "policy": "native_transaction",
+    "reason": "V233L: admitted pending clone"
+  }
+]

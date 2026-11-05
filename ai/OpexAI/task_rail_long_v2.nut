@@ -203,6 +203,8 @@ function OpexRailLongV2Quote(left, right, depot)
  * confondre avec RAIL-LONG v2. */
 function OpexRailLongV2Begin(owner, line, planA, planB, target, quote, provenance = null)
 {
+  if (FLEET_ARB && provenance == null
+      && !OpexFleetRequest(line, "rail", "add_wagons", quote, null, "RAIL_LONG_V2")) return;
   local now = AIDate.GetCurrentDate();
   local state = {
     lineId = line.lineId, vehicle = line.vehicles[0], depot = line.depot,

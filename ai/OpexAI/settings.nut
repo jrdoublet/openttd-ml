@@ -310,6 +310,7 @@ function OpexLoadSettings()
   INVEST_STALL = AIController.GetSetting("invest_stall") == 1;
   DOUBLE_GROW = AIController.GetSetting("double_grow") == 1;
   DOUBLE_GROW_V2 = AIController.GetSetting("double_grow") == 2;
+  FLEET_ARB = AIController.GetSetting("fleet_arb") == 1;
   RAIL_LOOP = AIController.GetSetting("rail_loop") == 1;
   RAIL_FILL = AIController.GetSetting("rail_fill") == 1;
   V257_DEMAND = AIController.GetSetting("v257_demand") == 1;

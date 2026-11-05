@@ -11,6 +11,8 @@ DELTAS = json.loads((Path(__file__).parent / "fixtures/air_site_probe_off_deltas
 
 
 def off_source(name, text):
+    from fleet_arb_off import off_source as fleet_off
+    text = fleet_off(name, text)
     text = ranked_off(name, text)
     entry = DELTAS.get(name)
     if entry is None or entry["marker"] not in text:

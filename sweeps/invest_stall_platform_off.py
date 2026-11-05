@@ -16,6 +16,8 @@ FIXTURE = Path(__file__).parent / "fixtures" / "invest_stall_platform_off_202611
 
 
 def off_source(name, source):
+    from fleet_arb_off import off_source as fleet_off
+    source = fleet_off(name, source)
     source = upgrade_reservation_off(name, diagnostic_off(name, source))
     entry = json.loads(FIXTURE.read_text(encoding="utf8"))["files"].get(name)
     if entry is None:

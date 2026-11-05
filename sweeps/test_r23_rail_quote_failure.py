@@ -1,4 +1,7 @@
 """R23 source contracts, not execution of AITestMode or a physical-cost proof."""
+
+# Compare historical contracts after the exact outer FLEET-ARB projection.
+from fleet_arb_off import historical_read_text as fleet_read_text
 from pathlib import Path
 import unittest
 
@@ -8,7 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 class TestRailQuoteFailure(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.source = (ROOT / "ai/OpexAI/builder_rail.nut").read_text(encoding="utf-8")
+        cls.source = fleet_read_text(ROOT / "ai/OpexAI/builder_rail.nut", encoding="utf-8")
         cls.simulate = cls.source.split("function OpexSimulateRailInfraCost(", 1)[1].split("\nfunction ", 1)[0]
         cls.quote = cls.source.split("function OpexQuoteRailCapital(", 1)[1].split("\nfunction ", 1)[0]
         cls.execute = cls.source.split("function OpexExecuteRailPlan(", 1)[1].split("\nfunction ", 1)[0]
@@ -61,7 +64,7 @@ class TestRailQuoteFailure(unittest.TestCase):
             r'\s*\?\s*"CASH"\s*:\s*\(\s*replanGeometry\s*\?\s*"REPLAN_GEOM"'
             r'\s*:\s*quoteFailure\.reason\s*\)\s*;',
         )
-        task = (ROOT / "ai/OpexAI/task_rail.nut").read_text(encoding="utf-8")
+        task = fleet_read_text(ROOT / "ai/OpexAI/task_rail.nut", encoding="utf-8")
         consume = task.split("function OpexAI::_consumeRailSearch(", 1)[1].split("\nfunction ", 1)[0]
         cash_at = consume.index('if (result.reason == "CASH")')
         clear_at = consume.index("candidate.railPlan = null;")

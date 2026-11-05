@@ -3153,6 +3153,8 @@ function OpexV233LSelectGrowth(owner, year)
   if (DECISION_LOG) OpexV233LLog("OPS", "phase=growth ops=" + OpexOpsMeasureEnd(mark) + " budget=" + V233L_SLICE_OPS);
   if (best == null) return OpexV284Select(owner, year, true);
   if (!OpexRailVehicleSlotAvailable() || !AIRail.IsRailDepotTile(best.line.depot)) return false;
+  if (FLEET_ARB && !OpexFleetRequest(best.line, "rail", "add_vehicle", best.margin.cost,
+      best.margin.profit, "V233L")) return false;
   V233L_STATE.pending = { lineId = best.line.lineId, vehicle = best.vehicle,
     newVehicle = -1, depot = best.line.depot, phase = "prepare", before = null };
   V233L_STATE.growth[best.line.lineId].nextMonth = OpexV233LMonth() + 3;

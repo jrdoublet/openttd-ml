@@ -122,6 +122,8 @@ def _off_source(name, code):
 
 
 def off_source(name, code):
+    from fleet_arb_off import off_source as fleet_off
+    code = fleet_off(name, code)
     from rail_long_merged_off import already_v1_off, verify_stage
     if already_v1_off(name, code):
         return code

@@ -66,6 +66,8 @@ _MERGED_V190_PRIO_FIRST_OFF_TASK_RAIL_SHA256 = "d3588288a7f3f6e2b610fe3d7e3331b8
 
 
 def off_source(name, source):
+    from fleet_arb_off import off_source as fleet_off
+    source = fleet_off(name, source)
     digest = hashlib.sha256(source.encode("utf-8")).hexdigest()
     if digest == _MERGED_V190_ALREADY_OFF_SHA256.get(name) or (
         name == "task_rail.nut" and digest == _MERGED_V190_PRIO_FIRST_OFF_TASK_RAIL_SHA256

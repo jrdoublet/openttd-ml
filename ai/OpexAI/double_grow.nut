@@ -44,6 +44,8 @@ function OpexDoubleGrowSelect(owner, year)
     if (line.trains != 1 || line.vehicles.len() != 1
         || (("doubleTrack" in line) && line.doubleTrack != 0)) continue;
     if (("doubleGrowRetry" in line) && now < line.doubleGrowRetry) continue;
+    if (FLEET_ARB && !OpexFleetRequest(line, "rail", "add_vehicle", null,
+        null, "DOUBLE_CONVERSION")) continue;
     /* Un seul essai au maximum par ligne et par an si le terrain refuse. */
     line.rawset("doubleGrowRetry", now + 365);
     owner._saveProjection = null;

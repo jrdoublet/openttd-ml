@@ -4,6 +4,9 @@ These contracts DO NOT rebaseline the 03/11 RAIL-only snapshots.  Composite
 SHA transitions are pinned independently and feature edits remain fail-closed.
 """
 
+# Compare historical contracts after the exact outer FLEET-ARB projection.
+from fleet_arb_off import historical_read_bytes as fleet_read_bytes, historical_read_text as fleet_read_text
+
 import hashlib
 import json
 import unittest
@@ -19,7 +22,7 @@ AI = Path(__file__).resolve().parents[1] / "ai" / "OpexAI"
 
 
 def source(name):
-    return (AI / name).read_text(encoding="utf-8")
+    return fleet_read_text(AI / name, encoding="utf-8")
 
 
 class RailLongMergeContracts(unittest.TestCase):
@@ -30,7 +33,7 @@ class RailLongMergeContracts(unittest.TestCase):
                               ("invest_stall_platform", "invest_stall_platform_off_20261104.json")):
             with self.subTest(name=key):
                 self.assertEqual(
-                    hashlib.sha256((ROOT / filename).read_bytes()).hexdigest(),
+                    hashlib.sha256(fleet_read_bytes(ROOT / filename)).hexdigest(),
                     manifest["original_fixture_sha256"][key],
                 )
         self.assertEqual(manifest["parents"]["master"],

@@ -3,6 +3,9 @@
 This is a source/inventory test, not an economic qualification or NoAI smoke.
 """
 
+# Compare historical contracts after the exact outer FLEET-ARB projection.
+from fleet_arb_off import historical_read_text as fleet_read_text
+
 import pathlib
 import re
 import unittest
@@ -12,7 +15,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[1] / "ai" / "OpexAI"
 
 
 def setting(name):
-    source = (ROOT / "info.nut").read_text(encoding="utf-8")
+    source = fleet_read_text(ROOT / "info.nut", encoding="utf-8")
     pat = r'AddSetting\(\{\s*name\s*=\s*"' + re.escape(name) + r'"([\s\S]*?)\}\);'
     matches = re.findall(pat, source)
     if len(matches) != 1:
@@ -38,11 +41,11 @@ class MergeRoadRailDefaults(unittest.TestCase):
                     self.assertRegex(block, rf'\b{difficulty}_value\s*=\s*{value}\b')
 
     def test_settings_inventory_unique_and_complete(self):
-        info = (ROOT / "info.nut").read_text(encoding="utf-8")
+        info = fleet_read_text(ROOT / "info.nut", encoding="utf-8")
         names = re.findall(r'AddSetting\(\{\s*name\s*=\s*"([^"]+)"', info)
         self.assertEqual(len(names), 157)
         self.assertEqual(len(set(names)), len(names))
-        settings = (ROOT / "settings.nut").read_text(encoding="utf-8")
+        settings = fleet_read_text(ROOT / "settings.nut", encoding="utf-8")
         for name in ("rail_sibling", "rail_open", "rail_loop", "rail_fill", "v257_demand"):
             with self.subTest(setting=name):
                 self.assertEqual(settings.count('GetSetting("' + name + '")'), 1)

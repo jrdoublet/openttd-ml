@@ -445,6 +445,8 @@ function OpexAI::_v257Review(line, state, date, force)
   if (selected != null) {
     /* Le depot atteint decide du depot de reconstruction, pas le premier depot
      * de la ligne : important pour les deux voies independantes. */
+    if (FLEET_ARB && !OpexFleetRequest(line, "rail", "replace", selected.price,
+        selectedGain, "V257")) { state.nextDate = date + 1; return; }
     this._v257Pending = { lineId = line.lineId, vehicle = selectedVehicle,
       engine = selected.loco.id, wagon = selected.wagon.id, wagons = selected.wagons,
       gain = selectedGain.tointeger(), cost = selectedCost, current = selectedCurrent,
@@ -575,6 +577,11 @@ function OpexAI::_v257ReplaceStep()
     OpexV257ReviewLog(line, pending.current, pending.engine, pending.gain, cost, "keep", "depot_recheck",
         lineProfit, waiting, rating, load, delivered);
     if (resumed) { this._v257Pending = null; this._v257PendingLine = null; }
+    return;
+  }
+  if (FLEET_ARB && !OpexFleetSpendAllowed(line, price)) {
+    pending.phase = "resume";
+    OpexFleetFinish(line, "V257", false, "budget_recheck");
     return;
   }
   local previousType = AIRail.GetCurrentRailType();

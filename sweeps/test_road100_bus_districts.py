@@ -2,6 +2,9 @@
 
 These checks do not compile Squirrel; the five-seed OFF/ON engine runs do.
 """
+
+# Compare historical contracts after the exact outer FLEET-ARB projection.
+from fleet_arb_off import historical_read_text as fleet_read_text
 import difflib
 import hashlib
 import json
@@ -42,7 +45,7 @@ def complete_function(text, name):
 
 class BusDistrictContracts(unittest.TestCase):
     def test_lazy_overrides_are_only_reviewed_deltas_of_live_modules(self):
-        edits = json.loads((ROOT / 'sweeps/fixtures/road100_bus_districts_overrides.json').read_text())
+        edits = json.loads(fleet_read_text(ROOT / 'sweeps/fixtures/road100_bus_districts_overrides.json'))
         for name, item in edits.items():
             with self.subTest(name=name):
                 original = complete_function(source(item['file']), name)
@@ -103,7 +106,7 @@ class BusDistrictContracts(unittest.TestCase):
         self.assertNotIn('OpexAI._refleetRoadLines =', source('bus_districts_overrides.nut'))
 
     def test_reviewed_layer_reconstructs_exact_parent(self):
-        edits = json.loads((ROOT / 'sweeps/fixtures/road100_bus_districts_hunks.json').read_text())
+        edits = json.loads(fleet_read_text(ROOT / 'sweeps/fixtures/road100_bus_districts_hunks.json'))
         for name, hunks in edits.items():
             with self.subTest(name=name):
                 parent = subprocess.check_output(

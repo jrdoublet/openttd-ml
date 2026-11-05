@@ -41,6 +41,8 @@ MARKERS = ("RAIL_LOOP <-", "RAIL_LOOP =", "RAIL_LOOP &&", '"rail_loop"', "rail_l
 
 
 def off_source(name, source):
+    from fleet_arb_off import off_source as fleet_off
+    source = fleet_off(name, source)
     from v257_demand_off import off_source as demand_off
     source = demand_off(name, source)
     fragments = INSERTIONS.get(name)

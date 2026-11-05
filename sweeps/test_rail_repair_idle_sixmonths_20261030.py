@@ -3,6 +3,9 @@
 These host contracts validate wiring; engine replay proves Squirrel execution.
 """
 
+# Compare historical contracts after the exact outer FLEET-ARB projection.
+from fleet_arb_off import historical_read_text as fleet_read_text
+
 import calendar
 import datetime as dt
 import pathlib
@@ -13,7 +16,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[1] / "ai" / "OpexAI"
 
 
 def read(name):
-    return (ROOT / name).read_text(encoding="utf-8")
+    return fleet_read_text(ROOT / name, encoding="utf-8")
 
 
 def calendar_threshold(day):

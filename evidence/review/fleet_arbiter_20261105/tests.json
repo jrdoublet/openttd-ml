@@ -1,0 +1,1446 @@
+{
+  "base": "873b67ec",
+  "command": "python -X utf8 -m unittest discover -s sweeps -p test_*.py",
+  "python": "Codex bundled Python on Windows (python3 absent from PATH)",
+  "baseline": {
+    "tests": 3867,
+    "failures": 89,
+    "errors": 29,
+    "skipped": 13,
+    "expected_failures": 2,
+    "log_sha256": "254a766b37a1ab251f3214043bf19a03616d18014a423d96d39344b839618fae"
+  },
+  "final": {
+    "tests": 3883,
+    "failures": 89,
+    "errors": 29,
+    "skipped": 13,
+    "expected_failures": 2,
+    "log_sha256": "47f1ba6b0b317b70e10d62f9af967182dc95ebcb2fa4af68be1edc5d89076133"
+  },
+  "fleet_contracts": {
+    "tests": 16,
+    "result": "OK"
+  },
+  "new_failure_cases": [],
+  "resolved_failure_cases": [],
+  "engine_tests": "not run; PC plan only; no Squirrel compilation claim",
+  "cases": [
+    {
+      "id": "test_air_reinforcement_failed_orders_never_validate_null_vehicle(test_v252_engine_refresh.TestV252EngineRefresh.test_air_reinforcement_failed_orders_never_validate_null_vehicle)Regressionseed123456,1971-08-04:IsValidVehicle(null)crashedOpexAI.",
+      "baseline": {
+        "kind": "FAIL",
+        "reason": "AssertionError: 'local extra = -1;' not found in ''"
+      },
+      "final": {
+        "kind": "FAIL",
+        "reason": "AssertionError: 'local extra = -1;' not found in ''"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_air_scrapping_guard_precedes_crash_refleet_and_growth(test_b8_scrap_lifecycle.TestB8ScrapLifecycle.test_air_scrapping_guard_precedes_crash_refleet_and_growth)",
+      "baseline": {
+        "kind": "ERROR",
+        "reason": "ValueError: substring not found"
+      },
+      "final": {
+        "kind": "ERROR",
+        "reason": "ValueError: substring not found"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_all_new_line_successes_reset_clock(test_rail_repair_idle_sixmonths_20261030.TestRailRepairIdleSixMonths.test_all_new_line_successes_reset_clock)(name='task_road.nut')",
+      "baseline": {
+        "kind": "FAIL",
+        "reason": "AssertionError: Regex didn't match: "
+      },
+      "final": {
+        "kind": "FAIL",
+        "reason": "AssertionError: Regex didn't match: 'this\\\\._lines\\\\.append\\\\(\\\\{[\\\\s\\\\S]*?\\\\}\\\\);\\\\s+OpexRailRepairNoteConstruction\\\\(\\\\);' not found in '/* C65 : deplace depuis main.nut (passe 1, deplacement pur, aucun corps retouche). */\\n/* Opt-in only: legacy execution never reaches this dedicated feeder. */\\nrequire(\"airport_feeder.nut\");\\nrequire(\"airport_feeder_dispatch.nut\");\\nrequire(\"airport_feeder_depot.nut\");\\nrequire(\"airport_feeder_connector.nut\");\\nrequire(\"airport_feeder_siting.nut\");\\nrequire(\"airport_rail_feeder.nut\");\\nrequire(\"airport_rail_feeder_dispatch.nut\");\\nrequire(\"airport_feeder_telemetry.nut\");\\n/* C38 etape 2 : tentative synchrone route, y compris le siting vivant. */\\nfunction OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor, yy)\\n{\\n  if (project == null) return { outcome = \"no_candidate\", discards = passDiscards };\\n  local i = rank;\\n      if (!ROAD_BUILD_ENABLED || this._catalog.roadType < 0) {\\n        if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = \"road\", src = project.src, dst = project.dst, reason = \"road_disabled\", extra = \"\" });\\n        return { outcome = \"rejected\", discards = passDisc"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_all_production_growth_calls_supply_shared_airports(test_c121_visible_target.TestVisibleFleetTarget.test_all_production_growth_calls_supply_shared_airports)",
+      "baseline": {
+        "kind": "FAIL",
+        "reason": "AssertionError: 0 != 1"
+      },
+      "final": {
+        "kind": "FAIL",
+        "reason": "AssertionError: 0 != 1"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_always_on(test_v252_engine_refresh.TestV252EngineRefresh.test_always_on)",
+      "baseline": {
+        "kind": "FAIL",
+        "reason": "AssertionError: 'if (catalog != null) {' not found in ''"
+      },
+      "final": {
+        "kind": "FAIL",
+        "reason": "AssertionError: 'if (catalog != null) {' not found in ''"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_anchor_exists_with_source_and_complete_paired_games(test_estim31_final_rank_20261030.FinalRankingContracts.test_anchor_exists_with_source_and_complete_paired_games)",
+      "baseline": {
+        "kind": "ERROR",
+        "reason": "FileNotFoundError: [Errno 2] No such file or directory: 'C:\\\\Users\\\\jr\\\\vscode\\\\openttd-ml\\\\results\\\\estim31_engine_dis"
+      },
+      "final": {
+        "kind": "ERROR",
+        "reason": "FileNotFoundError: [Errno 2] No such file or directory: 'C:\\\\Users\\\\jr\\\\vscode\\\\openttd-ml\\\\results\\\\estim31_engine_dispatch_air15_root_20261029\\\\results\\\\estim31_engine_dispatch_air15_40x5_20261029.jsonl'"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_balanced_braces_and_parens(test_v198_template_double.SquirrelSafetyAndSyntax.test_balanced_braces_and_parens)",
+      "baseline": {
+        "kind": "FAIL",
+        "reason": "AssertionError: 149 != 148 : Unbalanced braces in info.nut"
+      },
+      "final": {
+        "kind": "FAIL",
+        "reason": "AssertionError: 149 != 148 : Unbalanced braces in info.nut"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_baseline_panel_switch_is_mask_bit_two(test_normal_play_probe_gates.NormalPlayProbeGateContracts.test_baseline_panel_switch_is_mask_bit_two)",
+      "baseline": {
+        "kind": "FAIL",
+        "reason": "AssertionError: Regex didn't match: '\\\\beasy_value\\\\s*=\\\\s*0\\\\b' not found in ',\\n      description = \"Diagnostics "
+      },
+      "final": {
+        "kind": "FAIL",
+        "reason": "AssertionError: Regex didn't match: '\\\\beasy_value\\\\s*=\\\\s*0\\\\b' not found in ',\\n      description = \"Diagnostics bitmask (signed 31 bits): 0 none, 2 signs (default), 1 all, 2 signs, 4 legacy log, 8/16/32/64/128 legacy groups, 256 decision log only, 512..1073741824 individual channels (see docs/audit_sondes_20261022.md); groups also enable decision log; 67108864 V309 idle needs +256 for logs (67109120)\",\\n      min_value = 0, max_value = 2147483647,\\n      easy_value = 2, medium_value = 2, hard_value = 2,\\n      custom_value = 2,\\n      flags = 0\\n    '"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_candidate_capital_and_predicted_trains(test_v190_rail_double_build.PresenceDesEtapes.test_candidate_capital_and_predicted_trains)",
+      "baseline": {
+        "kind": "FAIL",
+        "reason": "AssertionError: V233L economy.nut: guarded hunk changed"
+      },
+      "final": {
+        "kind": "FAIL",
+        "reason": "AssertionError: V233L economy.nut: guarded hunk changed"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_ceiling_after_parameter_cleanup(test_v259_bridge_renew.TestV259BridgeRenew.test_ceiling_after_parameter_cleanup)",
+      "baseline": {
+        "kind": "FAIL",
+        "reason": "AssertionError: 68 != 58"
+      },
+      "final": {
+        "kind": "FAIL",
+        "reason": "AssertionError: 68 != 58"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_checklist_is_an_active_registry(test_taches_reconciliation_20261030.TaskLedgerReconciliation.test_checklist_is_an_active_registry)",
+      "baseline": {
+        "kind": "FAIL",
+        "reason": "AssertionError: 1230 not less than 120"
+      },
+      "final": {
+        "kind": "FAIL",
+        "reason": "AssertionError: 1230 not less than 120"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_crossovers_and_one_way_signals(test_v190_rail_double_build.PresenceDesEtapes.test_crossovers_and_one_way_signals)",
+      "baseline": {
+        "kind": "FAIL",
+        "reason": "AssertionError: V233L economy.nut: guarded hunk changed"
+      },
+      "final": {
+        "kind": "FAIL",
+        "reason": "AssertionError: V233L economy.nut: guarded hunk changed"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_decision_log_format(test_v190_rail_double_build.PresenceDesEtapes.test_decision_log_format)",
+      "baseline": {
+        "kind": "FAIL",
+        "reason": "AssertionError: V233L economy.nut: guarded hunk changed"
+      },
+      "final": {
+        "kind": "FAIL",
+        "reason": "AssertionError: V233L economy.nut: guarded hunk changed"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_default_off_historical_functions_and_experimental_guard(test_estim31_v161_safe_20261030.V161SameEngineContract.test_default_off_historical_functions_and_experimental_guard)",
+      "baseline": {
+        "kind": "ERROR",
+        "reason": "FileNotFoundError: [Errno 2] No such file or directory: 'C:\\\\Users\\\\jr\\\\vscode\\\\openttd-ml\\\\results\\\\estim31_joint_safe"
+      },
+      "final": {
+        "kind": "ERROR",
+        "reason": "FileNotFoundError: [Errno 2] No such file or directory: 'C:\\\\Users\\\\jr\\\\vscode\\\\openttd-ml\\\\results\\\\estim31_joint_safe20261030\\\\mix_a200_r150_w05_flat_load25\\\\ai\\\\OpexAI\\\\settings.nut'"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_default_path_unchanged(test_v296a_batch_build.TestV296aBatchBuild.test_default_path_unchanged)",
+      "baseline": {
+        "kind": "FAIL",
+        "reason": "AssertionError: Regex didn't match: 'local batch = \\\\(!V296A_MISMATCH && !\\\\(V199_ROBUST_BUILD && isDouble\\\\)\\\\)' not "
+      },
+      "final": {
+        "kind": "FAIL",
+        "reason": "AssertionError: Regex didn't match: 'local batch = \\\\(!V296A_MISMATCH && !\\\\(V199_ROBUST_BUILD && isDouble\\\\)\\\\)' not found in '\\n  local failed = 0;\\n  local isDouble = (options != null && (\"isDouble\" in options)) ? options.isDouble : false;\\n  local trainLen = (options != null && (\"trainLength\" in options)) ? options.trainLength : 3;\\n  local initialBudget = (options != null && (\"initialBudget\" in options)) ? options.initialBudget : 5000;\\n  local signalN = max(4, trainLen + 1);\\n\\n  local signalDist = 0;\\n  local signalsBuiltCount = 0;\\n  local retriesCount = 0;\\n  local poseSafe = options != null && (\"poseSafe\" in options) && options.poseSafe;\\n  local poseTried = false;\\n  /* V296a : la signalisation V199 de la double voie se pose tuile par tuile, on ne groupe pas. */\\n  local batch = (!poseSafe && !V296A_MISMATCH && !(V199_ROBUST_BUILD && isDouble))\\n      ? { runs = 0, tiles = 0, single = 0, fallbacks = 0, mismatch = 0, skipUntil = 0 } : null;\\n\\n  for (local i = 1; i < tiles.len() - 1; i++) {\\n    local prev = tiles[i - 1];\\n    local cur = tiles[i];\\n    local next = tiles[i + 1];\\n    local ok = false;\\n    if (batch != null && i > batch.skipUntil) {\\n      local last = O"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_dispatch_is_opt_in_and_not_in_historical_loop(test_estim31_c121_dispatch.C121DispatchContracts.test_dispatch_is_opt_in_and_not_in_historical_loop)",
+      "baseline": {
+        "kind": "FAIL",
+        "reason": "AssertionError: 'if ((ESTIM_UNIFIE & 1) != 0)\\n    ::OpexC121ChooseRoutePlane <- OpexC121ChooseRoutePlaneFullScan;' "
+      },
+      "final": {
+        "kind": "FAIL",
+        "reason": "AssertionError: 'if ((ESTIM_UNIFIE & 1) != 0)\\n    ::OpexC121ChooseRoutePlane <- OpexC121ChooseRoutePlaneFullScan;' not found in '/* Entier signe 32 bits : bits 0..30, max 2147483647.\\n *   1 = toutes les sondes, 2 = panneaux, 4 = ancien alias journal,\\n *   8/16/32/64/128 = groupes historiques, 256 = journal seul.\\n *   512..1073741824 = canaux dedies. Le bit d\\'un canal individuel ne doit\\n *   allumer aucun canal voisin ni forcer DECISION_LOG.\\n * Les groupes historiques continuent a allumer leur ensemble et le journal. */\\nfunction OpexProbeEnabled(bit, legacyGroup = 0)\\n{\\n  return (OPEX_PROBE_MASK & (bit | legacyGroup)) != 0;\\n}\\n\\n/* Niveau 0..3. Sur OpenTTD <= 13.4, script.settings_profile (0 facile, 1 moyen,\\n * 2 difficile ; 3 personnalise existait hors menu) fait foi. Sur 14/15.3 le\\n * reglage a disparu : opex_difficulty, dont les quatre valeurs valent 2, est\\n * le niveau. Un banc qui ne le passe pas joue donc en difficile. */\\nfunction OpexResolveDifficulty()\\n{\\n  if (AIGameSettings.IsValid(\"script.settings_profile\")) {\\n    local profile = AIGameSettings.GetValue(\"script.settings_profile\");\\n    if (profile == null || profile < 0) return 0;\\n    if (profile > 3) ret"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_double_track_planning_forbids_first_track(test_v190_rail_double_build.PresenceDesEtapes.test_double_track_planning_forbids_first_track)",
+      "baseline": {
+        "kind": "FAIL",
+        "reason": "AssertionError: V233L economy.nut: guarded hunk changed"
+      },
+      "final": {
+        "kind": "FAIL",
+        "reason": "AssertionError: V233L economy.nut: guarded hunk changed"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_duplicate_setting_rejected(test_v166_aaahogex_settings.TestV166OptionValidation.test_duplicate_setting_rejected)UnmêmeréglagespécifiédeuxfoisdoitleveruneValueErrorexplicite.",
+      "baseline": {
+        "kind": "ERROR",
+        "reason": "FileNotFoundError: [Errno 2] No such file or directory: "
+      },
+      "final": {
+        "kind": "ERROR",
+        "reason": "FileNotFoundError: [Errno 2] No such file or directory: 'C:\\\\Users\\\\jr\\\\vscode\\\\openttd-ml\\\\openttd-ml\\\\.wt_fleet_arbiter_20261105\\\\ai\\\\AAAHogEx-115\\\\info.nut'"
+      },
+      "classification": "AAAHogEx absent"
+    },
+    {
+      "id": "test_early_prior_and_ge_shortcut_disabled_under_estim(test_estim31_joint_safe_20261030.SafeGridSourceContract.test_early_prior_and_ge_shortcut_disabled_under_estim)",
+      "baseline": {
+        "kind": "ERROR",
+        "reason": "FileNotFoundError: [Errno 2] No such file or directory: 'C:\\\\Users\\\\jr\\\\vscode\\\\openttd-ml\\\\results\\\\estim31_joint_safe"
+      },
+      "final": {
+        "kind": "ERROR",
+        "reason": "FileNotFoundError: [Errno 2] No such file or directory: 'C:\\\\Users\\\\jr\\\\vscode\\\\openttd-ml\\\\results\\\\estim31_joint_safe20261030\\\\mix_a100_w15_statue0_eb2\\\\ai\\\\OpexAI\\\\air_economics_c121_fullscan.nut'"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_economy_inert_at_default(test_v190_rail_double_build.InertDefault.test_economy_inert_at_default)",
+      "baseline": {
+        "kind": "FAIL",
+        "reason": "AssertionError: V233L economy.nut: guarded hunk changed"
+      },
+      "final": {
+        "kind": "FAIL",
+        "reason": "AssertionError: V233L economy.nut: guarded hunk changed"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_empty_or_none_returns_empty_tuple(test_v166_aaahogex_settings.TestV166OptionValidation.test_empty_or_none_returns_empty_tuple)Sansréglage,retourneuntuplevide.",
+      "baseline": {
+        "kind": "ERROR",
+        "reason": "FileNotFoundError: [Errno 2] No such file or directory: "
+      },
+      "final": {
+        "kind": "ERROR",
+        "reason": "FileNotFoundError: [Errno 2] No such file or directory: 'C:\\\\Users\\\\jr\\\\vscode\\\\openttd-ml\\\\openttd-ml\\\\.wt_fleet_arbiter_20261105\\\\ai\\\\AAAHogEx-115\\\\info.nut'"
+      },
+      "classification": "AAAHogEx absent"
+    },
+    {
+      "id": "test_estim_off_rebase_keeps_v161_and_rejects_unreviewed_edits(test_v161_fleet_net_marginal.V161MarginalTests.test_estim_off_rebase_keeps_v161_and_rejects_unreviewed_edits)(name='projects_models.nut')",
+      "baseline": {
+        "kind": "FAIL",
+        "reason": "AssertionError: ESTIM-1 projects_models.nut hunk 2: missing/ambiguous source"
+      },
+      "final": {
+        "kind": "FAIL",
+        "reason": "AssertionError: ESTIM-1 projects_models.nut hunk 2: missing/ambiguous source"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_every_call_site_is_guarded(test_v216_probe.TestV216Probe.test_every_call_site_is_guarded)",
+      "baseline": {
+        "kind": "FAIL",
+        "reason": "AssertionError: 12 != 11"
+      },
+      "final": {
+        "kind": "FAIL",
+        "reason": "AssertionError: 12 != 11"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_every_exit_logs(test_v296a_batch_build.TestV296aBatchBuild.test_every_exit_logs)",
+      "baseline": {
+        "kind": "FAIL",
+        "reason": "AssertionError: 5 != 4"
+      },
+      "final": {
+        "kind": "FAIL",
+        "reason": "AssertionError: 5 != 4"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_exact_opt_in_change_and_off_neutral(test_estim31_v161_rail1970_20261030.FirstYearRailFundingIsolation.test_exact_opt_in_change_and_off_neutral)",
+      "baseline": {
+        "kind": "FAIL",
+        "reason": "AssertionError: Items in the second set but not the first:"
+      },
+      "final": {
+        "kind": "FAIL",
+        "reason": "AssertionError: Items in the second set but not the first:"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_exact_size_after_retirement(test_parameter_retirements_20261023.TestParameterRetirement.test_exact_size_after_retirement)",
+      "baseline": {
+        "kind": "FAIL",
+        "reason": "AssertionError: 68 != 58"
+      },
+      "final": {
+        "kind": "FAIL",
+        "reason": "AssertionError: 158 != 157"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_exact_union_of_parent_source_differences(test_estim31_v161_motorcap_20261030.V161MotorCapContracts.test_exact_union_of_parent_source_differences)",
+      "baseline": {
+        "kind": "FAIL",
+        "reason": "AssertionError: False is not true"
+      },
+      "final": {
+        "kind": "FAIL",
+        "reason": "AssertionError: False is not true"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_exactly_five_public_settings_retired(test_v246_fixed_policies.FixedPolicies.test_exactly_five_public_settings_retired)",
+      "baseline": {
+        "kind": "FAIL",
+        "reason": "AssertionError: 68 not less than or equal to 58"
+      },
+      "final": {
+        "kind": "FAIL",
+        "reason": "AssertionError: 68 not less than or equal to 58"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_expand_not_blocked_by_rail_search(test_v190_rail_double_build.PresenceDesEtapes.test_expand_not_blocked_by_rail_search)",
+      "baseline": {
+        "kind": "FAIL",
+        "reason": "AssertionError: V233L economy.nut: guarded hunk changed"
+      },
+      "final": {
+        "kind": "FAIL",
+        "reason": "AssertionError: V233L economy.nut: guarded hunk changed"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_expand_rail_cloning_and_conditions(test_v190_rail_double_build.PresenceDesEtapes.test_expand_rail_cloning_and_conditions)",
+      "baseline": {
+        "kind": "FAIL",
+        "reason": "AssertionError: V233L economy.nut: guarded hunk changed"
+      },
+      "final": {
+        "kind": "FAIL",
+        "reason": "AssertionError: V233L economy.nut: guarded hunk changed"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_experimental_scans_can_not_prune_by_unproven_bound(test_estim31_c121_dispatch.C121DispatchContracts.test_experimental_scans_can_not_prune_by_unproven_bound)",
+      "baseline": {
+        "kind": "ERROR",
+        "reason": "IndexError: list index out of range"
+      },
+      "final": {
+        "kind": "ERROR",
+        "reason": "IndexError: list index out of range"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_failure_logs_and_rollback_order_are_unchanged(test_rail_track_failure_capture.TestRailTrackFailureCapture.test_failure_logs_and_rollback_order_are_unchanged)",
+      "baseline": {
+        "kind": "FAIL",
+        "reason": "AssertionError: 'f21bdfd1336899ca0571d758e7fd79c4c2a8914935ec008d01303528f6047890' != "
+      },
+      "final": {
+        "kind": "FAIL",
+        "reason": "AssertionError: 'f21bdfd1336899ca0571d758e7fd79c4c2a8914935ec008d01303528f6047890' != 'f165d26650fea5c6926f2bb53c4d92da6f2f85517e03567b3d4d61993c2ba037'"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_fallback_to_single_track_on_failure(test_v190_rail_double_build.PresenceDesEtapes.test_fallback_to_single_track_on_failure)",
+      "baseline": {
+        "kind": "FAIL",
+        "reason": "AssertionError: V233L economy.nut: guarded hunk changed"
+      },
+      "final": {
+        "kind": "FAIL",
+        "reason": "AssertionError: V233L economy.nut: guarded hunk changed"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_first_track_pathfinder_forbids_second_platform_tiles(test_v190_rail_double_build.PresenceDesEtapes.test_first_track_pathfinder_forbids_second_platform_tiles)",
+      "baseline": {
+        "kind": "FAIL",
+        "reason": "AssertionError: V233L economy.nut: guarded hunk changed"
+      },
+      "final": {
+        "kind": "FAIL",
+        "reason": "AssertionError: V233L economy.nut: guarded hunk changed"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_fleet_project_revalidates_scrapping_at_purchase_boundary(test_b8_scrap_lifecycle.TestB8ScrapLifecycle.test_fleet_project_revalidates_scrapping_at_purchase_boundary)",
+      "baseline": {
+        "kind": "ERROR",
+        "reason": "ValueError: substring not found"
+      },
+      "final": {
+        "kind": "ERROR",
+        "reason": "ValueError: substring not found"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_global_and_active_helper_in_globals_pre(test_v198_template_double.Declaration.test_global_and_active_helper_in_globals_pre)",
+      "baseline": {
+        "kind": "FAIL",
+        "reason": "AssertionError: V233L globals_pre.nut: guarded hunk changed"
+      },
+      "final": {
+        "kind": "FAIL",
+        "reason": "AssertionError: V233L globals_pre.nut: guarded hunk changed"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_global_and_reading(test_v207_site_rank.TestV207SiteRankSetting.test_global_and_reading)",
+      "baseline": {
+        "kind": "FAIL",
+        "reason": "AssertionError: V233L globals_pre.nut: guarded hunk changed"
+      },
+      "final": {
+        "kind": "FAIL",
+        "reason": "AssertionError: V233L globals_pre.nut: guarded hunk changed"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_globals_declared(test_v190_rail_double_build.Declaration.test_globals_declared)",
+      "baseline": {
+        "kind": "FAIL",
+        "reason": "AssertionError: V233L globals_pre.nut: guarded hunk changed"
+      },
+      "final": {
+        "kind": "FAIL",
+        "reason": "AssertionError: V233L globals_pre.nut: guarded hunk changed"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_historical_chooser_and_fallback_preserved(test_estim31_c121_dispatch.C121DispatchContracts.test_historical_chooser_and_fallback_preserved)",
+      "baseline": {
+        "kind": "FAIL",
+        "reason": "AssertionError: 1 != 2"
+      },
+      "final": {
+        "kind": "FAIL",
+        "reason": "AssertionError: 1 != 2"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_historical_driver_and_economics_fingerprint(test_v278_air_lazy_sites.TestV278Source.test_historical_driver_and_economics_fingerprint)",
+      "baseline": {
+        "kind": "FAIL",
+        "reason": "AssertionError: '44b7bbed9e99db360ca07d9bf9b499daa7729768fcefb4946dcdcb91df8f6780' != "
+      },
+      "final": {
+        "kind": "FAIL",
+        "reason": "AssertionError: '44b7bbed9e99db360ca07d9bf9b499daa7729768fcefb4946dcdcb91df8f6780' != 'bb2d4cab20680ad35b7695595e7359d25f8359ea514a24d6454f1ff3a994ed06'"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_historical_inventory_not_rebased(test_p2_rail_cargo_opportunity.TestP2RailCargoOpportunity.test_historical_inventory_not_rebased)",
+      "baseline": {
+        "kind": "FAIL",
+        "reason": "AssertionError: 68 != 58"
+      },
+      "final": {
+        "kind": "FAIL",
+        "reason": "AssertionError: 68 != 58"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_historical_off_files_identical(test_estim31_joint_safe_20261030.SafeGridSourceContract.test_historical_off_files_identical)",
+      "baseline": {
+        "kind": "ERROR",
+        "reason": "FileNotFoundError: [Errno 2] No such file or directory: 'C:\\\\Users\\\\jr\\\\vscode\\\\openttd-ml\\\\results\\\\estim31_joint_safe"
+      },
+      "final": {
+        "kind": "ERROR",
+        "reason": "FileNotFoundError: [Errno 2] No such file or directory: 'C:\\\\Users\\\\jr\\\\vscode\\\\openttd-ml\\\\results\\\\estim31_joint_safe20261030\\\\mix_a100_w15_statue0_eb2\\\\ai\\\\OpexAI\\\\settings.nut'"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_historical_producers_and_bytes_stay_frozen(test_p1_rail_long_value_rank.TestP1LongRank.test_historical_producers_and_bytes_stay_frozen)",
+      "baseline": {
+        "kind": "FAIL",
+        "reason": "AssertionError: V233L builder_rail.nut: mixed OFF projection present=62 missing=3"
+      },
+      "final": {
+        "kind": "FAIL",
+        "reason": "AssertionError: V233L builder_rail.nut: mixed OFF projection present=62 missing=3"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_historical_sources_identical_and_exact_engine_choice(test_estim31_motor_joint_20261030.JointEngineContract.test_historical_sources_identical_and_exact_engine_choice)",
+      "baseline": {
+        "kind": "ERROR",
+        "reason": "FileNotFoundError: [Errno 2] No such file or directory: 'C:\\\\Users\\\\jr\\\\vscode\\\\openttd-ml\\\\results\\\\estim31_joint_safe"
+      },
+      "final": {
+        "kind": "ERROR",
+        "reason": "FileNotFoundError: [Errno 2] No such file or directory: 'C:\\\\Users\\\\jr\\\\vscode\\\\openttd-ml\\\\results\\\\estim31_joint_safe20261030\\\\mix_a200_r150_w05_flat_load25\\\\ai\\\\OpexAI\\\\air_economics_c121.nut'"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_identical_off_and_estim_source(test_estim31_v161_policy_20261030.V161PolicyFactorial.test_identical_off_and_estim_source)",
+      "baseline": {
+        "kind": "ERROR",
+        "reason": "FileNotFoundError: [Errno 2] No such file or directory: "
+      },
+      "final": {
+        "kind": "ERROR",
+        "reason": "FileNotFoundError: [Errno 2] No such file or directory: 'C:\\\\Users\\\\jr\\\\vscode\\\\openttd-ml\\\\results\\\\estim31_v161_safe20261030\\\\mix_a200_r075_w15_slope\\\\design.json'"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_inlining_capture_restores_original_builder(test_rail_track_failure_capture.TestRailTrackFailureCapture.test_inlining_capture_restores_original_builder)",
+      "baseline": {
+        "kind": "FAIL",
+        "reason": "AssertionError: V296a logs missing or duplicated"
+      },
+      "final": {
+        "kind": "FAIL",
+        "reason": "AssertionError: V296a logs missing or duplicated"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_learning_is_level_only_and_reload_recalculates(test_estim_unifie_bit16.EstimRailDistanceContracts.test_learning_is_level_only_and_reload_recalculates)",
+      "baseline": {
+        "kind": "FAIL",
+        "reason": "AssertionError: 'return ESTIM_K_R.rail * profile / ESTIM_K_R_PRIOR.rail' not found in '/* Extrait de projects.nut "
+      },
+      "final": {
+        "kind": "FAIL",
+        "reason": "AssertionError: 'return ESTIM_K_R.rail * profile / ESTIM_K_R_PRIOR.rail' not found in '/* Extrait de projects.nut (R14) : Modeles de projet : cles, facteurs de realisation C70/C82/C121, score. Requis depuis projects.nut. */\\n\\n/* Cle stable d\\'un projet dans candidateGroups. */\\nfunction OpexProjectKeyFor(project)\\n{\\n  local prefix = \"\";\\n  if (project.mode == \"fleet\") {\\n    /* C34.2 : un achat d\\'avion n\\'a pas d\\'origine-destination -- il appartient a UNE ligne. */\\n    local lid = ((\"payload\" in project) && project.payload != null\\n                 && (\"line\" in project.payload) && (\"lineId\" in project.payload.line))\\n                ? project.payload.line.lineId : -1;\\n    return \"fleet|\" + lid;\\n  }\\n  if ((\"payload\" in project) && project.payload != null\\n      && (\"isSubsidy\" in project.payload) && project.payload.isSubsidy) {\\n    return \"subsidy|\" + project.payload.subsidyId;\\n  }\\n  /* Garde de forme conservee pour le cout d\\'opcodes historique. La generation d\\'extensions\\n   * route a disparu, mais retirer ces tests de table deplace les frontieres de suspension NoAI\\n   * et change les resultats deterministes du smoke. */\\n  if ((\"payload\" in project) && project.paylo"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_legacy_byte_inventory_unchanged(test_front_pax2_bounded_overlap.TestFrontPax2BoundedOverlap.test_legacy_byte_inventory_unchanged)",
+      "baseline": {
+        "kind": "FAIL",
+        "reason": "AssertionError: 68 != 58"
+      },
+      "final": {
+        "kind": "FAIL",
+        "reason": "AssertionError: 68 != 58"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_line_economics_accounts_for_v198_infra_and_trains(test_v198_template_double.EconomyAndQuoting.test_line_economics_accounts_for_v198_infra_and_trains)",
+      "baseline": {
+        "kind": "FAIL",
+        "reason": "AssertionError: V233L economy.nut: guarded hunk changed"
+      },
+      "final": {
+        "kind": "FAIL",
+        "reason": "AssertionError: V233L economy.nut: guarded hunk changed"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_manifest_options_and_adversary_recording(test_v166_aaahogex_settings.TestV166ManifestAndResults.test_manifest_options_and_adversary_recording)prepare_frozen_campaignconsigneexecution.options['aaahogex_settings']etadversary['settings'].",
+      "baseline": {
+        "kind": "ERROR",
+        "reason": "FileNotFoundError: [Errno 2] No such file or directory: "
+      },
+      "final": {
+        "kind": "ERROR",
+        "reason": "FileNotFoundError: [Errno 2] No such file or directory: 'C:\\\\Users\\\\jr\\\\vscode\\\\openttd-ml\\\\openttd-ml\\\\.wt_fleet_arbiter_20261105\\\\ai\\\\AAAHogEx-115\\\\info.nut'"
+      },
+      "classification": "AAAHogEx absent"
+    },
+    {
+      "id": "test_missing_equals_rejected(test_v166_aaahogex_settings.TestV166OptionValidation.test_missing_equals_rejected)Unformatsans'='doitleveruneValueErrorexplicite.",
+      "baseline": {
+        "kind": "ERROR",
+        "reason": "FileNotFoundError: [Errno 2] No such file or directory: "
+      },
+      "final": {
+        "kind": "ERROR",
+        "reason": "FileNotFoundError: [Errno 2] No such file or directory: 'C:\\\\Users\\\\jr\\\\vscode\\\\openttd-ml\\\\openttd-ml\\\\.wt_fleet_arbiter_20261105\\\\ai\\\\AAAHogEx-115\\\\info.nut'"
+      },
+      "classification": "AAAHogEx absent"
+    },
+    {
+      "id": "test_mix_of_default_and_non_default(test_v166_aaahogex_settings.TestV166DefaultOmission.test_mix_of_default_and_non_default)Seulslesécartsaudéfautsontconservés,lesréglagesaudéfautsontomis.",
+      "baseline": {
+        "kind": "ERROR",
+        "reason": "FileNotFoundError: [Errno 2] No such file or directory: "
+      },
+      "final": {
+        "kind": "ERROR",
+        "reason": "FileNotFoundError: [Errno 2] No such file or directory: 'C:\\\\Users\\\\jr\\\\vscode\\\\openttd-ml\\\\openttd-ml\\\\.wt_fleet_arbiter_20261105\\\\ai\\\\AAAHogEx-115\\\\info.nut'"
+      },
+      "classification": "AAAHogEx absent"
+    },
+    {
+      "id": "test_modes_0_1_orchestrator_bytes_and_api_contract(test_c77_intent_defer.DeferSourceContracts.test_modes_0_1_orchestrator_bytes_and_api_contract)",
+      "baseline": {
+        "kind": "FAIL",
+        "reason": "AssertionError: '2a70dd048191089c3d46695b38c4b6a51af7e9afddc986ed9800b9fa99bcc8d2' != "
+      },
+      "final": {
+        "kind": "FAIL",
+        "reason": "AssertionError: '2a70dd048191089c3d46695b38c4b6a51af7e9afddc986ed9800b9fa99bcc8d2' != 'e93eef4d3c504b36e738d370b3d41007228377a4a3b3af3ef67c70fce12ccdd4'"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_no_historical_code_changed(test_estim31_joint_next_prepare.GridSourceContracts.test_no_historical_code_changed)",
+      "baseline": {
+        "kind": "ERROR",
+        "reason": "FileNotFoundError: [Errno 2] No such file or directory: 'C:\\\\Users\\\\jr\\\\vscode\\\\openttd-ml\\\\results\\\\estim31_joint_disp"
+      },
+      "final": {
+        "kind": "ERROR",
+        "reason": "FileNotFoundError: [Errno 2] No such file or directory: 'C:\\\\Users\\\\jr\\\\vscode\\\\openttd-ml\\\\results\\\\estim31_joint_dispatch20261029\\\\module_a150_r100_w15\\\\ai\\\\OpexAI\\\\air_economics_c121.nut'"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_no_reserved_keywords(test_v190_rail_double_build.SquirrelKeywordSafety.test_no_reserved_keywords)",
+      "baseline": {
+        "kind": "FAIL",
+        "reason": "AssertionError: V233L economy.nut: guarded hunk changed"
+      },
+      "final": {
+        "kind": "FAIL",
+        "reason": "AssertionError: V233L economy.nut: guarded hunk changed"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_no_unproved_pruning_and_same_engine_revalidation(test_estim31_v161_motorcap_20261030.V161MotorCapContracts.test_no_unproved_pruning_and_same_engine_revalidation)",
+      "baseline": {
+        "kind": "FAIL",
+        "reason": "AssertionError: False is not true"
+      },
+      "final": {
+        "kind": "FAIL",
+        "reason": "AssertionError: False is not true"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_non_integer_value_rejected(test_v166_aaahogex_settings.TestV166OptionValidation.test_non_integer_value_rejected)Unevaleurnonentière(chaîne,flottant)doitleveruneValueErrorexplicite.",
+      "baseline": {
+        "kind": "ERROR",
+        "reason": "FileNotFoundError: [Errno 2] No such file or directory: "
+      },
+      "final": {
+        "kind": "ERROR",
+        "reason": "FileNotFoundError: [Errno 2] No such file or directory: 'C:\\\\Users\\\\jr\\\\vscode\\\\openttd-ml\\\\openttd-ml\\\\.wt_fleet_arbiter_20261105\\\\ai\\\\AAAHogEx-115\\\\info.nut'"
+      },
+      "classification": "AAAHogEx absent"
+    },
+    {
+      "id": "test_not_in_estim_off_patch_hunks(test_estim1_decision_probe.EstimDecisionProbeContracts.test_not_in_estim_off_patch_hunks)",
+      "baseline": {
+        "kind": "FAIL",
+        "reason": "AssertionError: ESTIM-1 projects_models.nut hunk 2: missing/ambiguous source"
+      },
+      "final": {
+        "kind": "FAIL",
+        "reason": "AssertionError: ESTIM-1 projects_models.nut hunk 2: missing/ambiguous source"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_off_byte_identity_and_no_upper_bound(test_estim31_c121_no_upper_20261030.ExactEnumeration.test_off_byte_identity_and_no_upper_bound)",
+      "baseline": {
+        "kind": "ERROR",
+        "reason": "FileNotFoundError: [Errno 2] No such file or directory: 'C:\\\\Users\\\\jr\\\\vscode\\\\openttd-ml\\\\results\\\\estim31_v161_safe2"
+      },
+      "final": {
+        "kind": "ERROR",
+        "reason": "FileNotFoundError: [Errno 2] No such file or directory: 'C:\\\\Users\\\\jr\\\\vscode\\\\openttd-ml\\\\results\\\\estim31_v161_safe20261030\\\\mix_a200_r075_w15_slope\\\\ai\\\\OpexAI\\\\air_economics_c121.nut'"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_off_hashes(test_diag_air_site_probe.ProbeContracts.test_off_hashes)",
+      "baseline": {
+        "kind": "FAIL",
+        "reason": "AssertionError: '035c4fad9a6cf964e45260dc2d2bb65801059d71ca598e04d77293ec18f4990e' != "
+      },
+      "final": {
+        "kind": "FAIL",
+        "reason": "AssertionError: '035c4fad9a6cf964e45260dc2d2bb65801059d71ca598e04d77293ec18f4990e' != '5d00005cd0a91b7f6ac4db61123f2f40ea4013b2470534f0cda37d64809729b4'"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_off_projection_removes_bit16_and_preserves_historical_behavior(test_estim_unifie_bit16.EstimRailDistanceContracts.test_off_projection_removes_bit16_and_preserves_historical_behavior)(name='projects_models.nut')",
+      "baseline": {
+        "kind": "FAIL",
+        "reason": "AssertionError: ESTIM-1 projects_models.nut hunk 2: missing/ambiguous source"
+      },
+      "final": {
+        "kind": "FAIL",
+        "reason": "AssertionError: ESTIM-1 projects_models.nut hunk 2: missing/ambiguous source"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_off_projection_restores_head_bytes(test_estim_unifie.EstimUnifieContracts.test_off_projection_restores_head_bytes)(name='projects_models.nut')",
+      "baseline": {
+        "kind": "FAIL",
+        "reason": "AssertionError: ESTIM-1 projects_models.nut hunk 2: missing/ambiguous source"
+      },
+      "final": {
+        "kind": "FAIL",
+        "reason": "AssertionError: ESTIM-1 projects_models.nut hunk 2: missing/ambiguous source"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_off_projection_restores_head_bytes(test_estim_unifie.EstimUnifieContracts.test_off_projection_restores_head_bytes)(preserve='settings.nut')",
+      "baseline": {
+        "kind": "FAIL",
+        "reason": "AssertionError: C121 merged dispatch: unreviewed/duplicated source"
+      },
+      "final": {
+        "kind": "FAIL",
+        "reason": "AssertionError: C121 merged dispatch: unreviewed/duplicated source"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_off_reviewed_edits_preserve_all_original_hashes(test_v233_long_good.V233LongGoodContracts.test_off_reviewed_edits_preserve_all_original_hashes)(name='economy.nut')",
+      "baseline": {
+        "kind": "FAIL",
+        "reason": "AssertionError: 'a5e75086c455d9b6102a5fc8f2aa0a1210e0b6ec8968314eda191c174e71262c' != "
+      },
+      "final": {
+        "kind": "FAIL",
+        "reason": "AssertionError: 'a5e75086c455d9b6102a5fc8f2aa0a1210e0b6ec8968314eda191c174e71262c' != '288a69d242f7b8b473984350a5d539da927576972b42a3f2269928173ac05fbc'"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_off_reviewed_edits_preserve_all_original_hashes(test_v233_long_good.V233LongGoodContracts.test_off_reviewed_edits_preserve_all_original_hashes)(name='globals_pre.nut')",
+      "baseline": {
+        "kind": "FAIL",
+        "reason": "AssertionError: '320007389a5997fc5d8c52ba06b40966d98644844b27703fd47adb96988df0a0' != "
+      },
+      "final": {
+        "kind": "FAIL",
+        "reason": "AssertionError: '320007389a5997fc5d8c52ba06b40966d98644844b27703fd47adb96988df0a0' != 'a78685378d65dac1f85a28726b40cdd682e1be77634093d28d494649f1691cf7'"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_off_reviewed_edits_preserve_all_original_hashes(test_v233_long_good.V233LongGoodContracts.test_off_reviewed_edits_preserve_all_original_hashes)(name='settings.nut')",
+      "baseline": {
+        "kind": "FAIL",
+        "reason": "AssertionError: 'f8359098b70e994d4dcafcf037c0c06bfec9c3eccdb323d79fdb14ceae7e7f2f' != "
+      },
+      "final": {
+        "kind": "FAIL",
+        "reason": "AssertionError: 'f8359098b70e994d4dcafcf037c0c06bfec9c3eccdb323d79fdb14ceae7e7f2f' != '6ba8db03ef9f98ad42a46d0078d9a105aa4c8bb4601e8e3a3d0c143b0fc9eed8'"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_off_reviewed_edits_preserve_all_original_hashes(test_v233_long_good.V233LongGoodContracts.test_off_reviewed_edits_preserve_all_original_hashes)(name='task_rail.nut')",
+      "baseline": {
+        "kind": "FAIL",
+        "reason": "AssertionError: INVEST-STALL platform task_rail.nut: unreviewed merged SHA"
+      },
+      "final": {
+        "kind": "FAIL",
+        "reason": "AssertionError: INVEST-STALL platform task_rail.nut: unreviewed merged SHA"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_only_experimental_prior_or_existing_runtime_settings_change(test_estim31_v161_capcombo_20261030.CapComboContracts.test_only_experimental_prior_or_existing_runtime_settings_change)",
+      "baseline": {
+        "kind": "ERROR",
+        "reason": "FileNotFoundError: [Errno 2] No such file or directory: 'C:\\\\Users\\\\jr\\\\vscode\\\\openttd-ml\\\\results\\\\estim31_v161_motor"
+      },
+      "final": {
+        "kind": "ERROR",
+        "reason": "FileNotFoundError: [Errno 2] No such file or directory: 'C:\\\\Users\\\\jr\\\\vscode\\\\openttd-ml\\\\results\\\\estim31_v161_motorcap20261030\\\\mix_a200_r075_w15_slope\\\\ai\\\\OpexAI\\\\air_economics_c121_fullscan.nut'"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_only_guard_added_to_historical_rail_source(test_station_plan_precheck.StationPlanPrecheck.test_only_guard_added_to_historical_rail_source)",
+      "baseline": {
+        "kind": "FAIL",
+        "reason": "AssertionError: '9b55b39f579d578afb9d22dcfcfa34813b7a26e2b6c84f8c238001dca29ad576' != "
+      },
+      "final": {
+        "kind": "FAIL",
+        "reason": "AssertionError: '9b55b39f579d578afb9d22dcfcfa34813b7a26e2b6c84f8c238001dca29ad576' != 'f36d705996a0a24de726ca8548fbc1f49a88cecd16c90db811e23a25c8edefb4'"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_only_models_file_changes(test_estim31_railnorm_safe_20261030.RailNormSafeContract.test_only_models_file_changes)",
+      "baseline": {
+        "kind": "ERROR",
+        "reason": "FileNotFoundError: [Errno 2] No such file or directory: 'C:\\\\Users\\\\jr\\\\vscode\\\\openttd-ml\\\\results\\\\estim31_railnorm_s"
+      },
+      "final": {
+        "kind": "ERROR",
+        "reason": "FileNotFoundError: [Errno 2] No such file or directory: 'C:\\\\Users\\\\jr\\\\vscode\\\\openttd-ml\\\\results\\\\estim31_railnorm_safe20261030\\\\mix_a125_r125_w05_flat_statue0\\\\ai\\\\OpexAI\\\\projects_models.nut'"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_only_scanned_module_changed_and_no_unsafe_break(test_estim31_joint_next_prepare.GridSourceContracts.test_only_scanned_module_changed_and_no_unsafe_break)",
+      "baseline": {
+        "kind": "ERROR",
+        "reason": "FileNotFoundError: [Errno 2] No such file or directory: 'C:\\\\Users\\\\jr\\\\vscode\\\\openttd-ml\\\\results\\\\estim31_joint_disp"
+      },
+      "final": {
+        "kind": "ERROR",
+        "reason": "FileNotFoundError: [Errno 2] No such file or directory: 'C:\\\\Users\\\\jr\\\\vscode\\\\openttd-ml\\\\results\\\\estim31_joint_dispatch20261029\\\\module_a150_r100_w15\\\\ai\\\\OpexAI\\\\air_economics_c121_fullscan.nut'"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_only_the_early_estim_priors_change(test_estim31_v161_coeff_20261030.PriorCoefficientIsolation.test_only_the_early_estim_priors_change)",
+      "baseline": {
+        "kind": "ERROR",
+        "reason": "FileNotFoundError: [Errno 2] No such file or directory: 'C:\\\\Users\\\\jr\\\\vscode\\\\openttd-ml\\\\results\\\\estim31_v161_safe2"
+      },
+      "final": {
+        "kind": "ERROR",
+        "reason": "FileNotFoundError: [Errno 2] No such file or directory: 'C:\\\\Users\\\\jr\\\\vscode\\\\openttd-ml\\\\results\\\\estim31_v161_safe20261030\\\\mix_a200_r075_w15_slope\\\\ai\\\\OpexAI\\\\air_economics_c121_fullscan.nut'"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_option_off_on_all_difficulties(test_v307_sites.TestV307Sites.test_option_off_on_all_difficulties)",
+      "baseline": {
+        "kind": "FAIL",
+        "reason": "AssertionError: V233L settings.nut: guarded hunk changed"
+      },
+      "final": {
+        "kind": "FAIL",
+        "reason": "AssertionError: V233L settings.nut: guarded hunk changed"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_origin_master_keeps_all_historical_projector_bytes(test_road100_merge_projection_20261105.Road100MergedProjection.test_origin_master_keeps_all_historical_projector_bytes)(name='candidates.nut')",
+      "baseline": {
+        "kind": "FAIL",
+        "reason": "AssertionError: '7b665f4b9035b8955212683573bfd0b340eaea2dd4a69d8563f1ece12747857d' == "
+      },
+      "final": {
+        "kind": "FAIL",
+        "reason": "AssertionError: '7b665f4b9035b8955212683573bfd0b340eaea2dd4a69d8563f1ece12747857d' == '7b665f4b9035b8955212683573bfd0b340eaea2dd4a69d8563f1ece12747857d'"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_origin_master_keeps_all_historical_projector_bytes(test_road100_merge_projection_20261105.Road100MergedProjection.test_origin_master_keeps_all_historical_projector_bytes)(name='globals_pre.nut')",
+      "baseline": {
+        "kind": "FAIL",
+        "reason": "AssertionError: 'd0548c85cd11d62de13e4eb1566088d77a15ab6490b3a30a01fb27eda3110424' == "
+      },
+      "final": {
+        "kind": "FAIL",
+        "reason": "AssertionError: 'd0548c85cd11d62de13e4eb1566088d77a15ab6490b3a30a01fb27eda3110424' == 'd0548c85cd11d62de13e4eb1566088d77a15ab6490b3a30a01fb27eda3110424'"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_origin_master_keeps_all_historical_projector_bytes(test_road100_merge_projection_20261105.Road100MergedProjection.test_origin_master_keeps_all_historical_projector_bytes)(name='info.nut')",
+      "baseline": {
+        "kind": "FAIL",
+        "reason": "AssertionError: '0e6e6e30aaae1b814dc8afbaad515347e2dc05aea133cd12983a7abc1fce26f1' == "
+      },
+      "final": {
+        "kind": "FAIL",
+        "reason": "AssertionError: '0e6e6e30aaae1b814dc8afbaad515347e2dc05aea133cd12983a7abc1fce26f1' == '0e6e6e30aaae1b814dc8afbaad515347e2dc05aea133cd12983a7abc1fce26f1'"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_origin_master_keeps_all_historical_projector_bytes(test_road100_merge_projection_20261105.Road100MergedProjection.test_origin_master_keeps_all_historical_projector_bytes)(name='settings.nut')",
+      "baseline": {
+        "kind": "FAIL",
+        "reason": "AssertionError: '32542fef11a2bad6fbc7716a4e07a52758e7a2e358af172d2b43c3ee4a0a59fc' == "
+      },
+      "final": {
+        "kind": "FAIL",
+        "reason": "AssertionError: '32542fef11a2bad6fbc7716a4e07a52758e7a2e358af172d2b43c3ee4a0a59fc' == '32542fef11a2bad6fbc7716a4e07a52758e7a2e358af172d2b43c3ee4a0a59fc'"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_panel_guard_is_probes_bit2_without_retired_secondary_switch(test_signs_default_off.TestSignsDefaultOff.test_panel_guard_is_probes_bit2_without_retired_secondary_switch)",
+      "baseline": {
+        "kind": "FAIL",
+        "reason": "AssertionError: Regex didn't match: 'easy_value = 0\\\\b' not found in ',\\n      description = \"Diagnostics bitmask "
+      },
+      "final": {
+        "kind": "FAIL",
+        "reason": "AssertionError: Regex didn't match: 'easy_value = 0\\\\b' not found in ',\\n      description = \"Diagnostics bitmask (signed 31 bits): 0 none, 2 signs (default), 1 all, 2 signs, 4 legacy log, 8/16/32/64/128 legacy groups, 256 decision log only, 512..1073741824 individual channels (see docs/audit_sondes_20261022.md); groups also enable decision log; 67108864 V309 idle needs +256 for logs (67109120)\",\\n      min_value = 0, max_value = 2147483647,\\n      easy_value = 2, medium_value = 2, hard_value = 2,\\n      custom_value = 2,\\n      flags = 0\\n    '"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_parallel_platforms_discovery(test_v190_rail_double_build.PresenceDesEtapes.test_parallel_platforms_discovery)",
+      "baseline": {
+        "kind": "FAIL",
+        "reason": "AssertionError: V233L economy.nut: guarded hunk changed"
+      },
+      "final": {
+        "kind": "FAIL",
+        "reason": "AssertionError: V233L economy.nut: guarded hunk changed"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_plan_double_track_granular_reasons(test_v190_rail_double_build.PresenceDesEtapes.test_plan_double_track_granular_reasons)",
+      "baseline": {
+        "kind": "FAIL",
+        "reason": "AssertionError: V233L economy.nut: guarded hunk changed"
+      },
+      "final": {
+        "kind": "FAIL",
+        "reason": "AssertionError: V233L economy.nut: guarded hunk changed"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_plan_passes_settings_to_aaahogex_descriptor(test_v166_aaahogex_settings.TestV166ExperimentsPlanPropagation.test_plan_passes_settings_to_aaahogex_descriptor)local_folderdoitrecevoirletuplefiltré,identiquepourréférenceetvariante.",
+      "baseline": {
+        "kind": "ERROR",
+        "reason": "ValueError: reglages AAAHogEx demandes mais info.nut introuvable: "
+      },
+      "final": {
+        "kind": "ERROR",
+        "reason": "ValueError: reglages AAAHogEx demandes mais info.nut introuvable: C:\\Users\\jr\\vscode\\openttd-ml\\openttd-ml\\.wt_fleet_arbiter_20261105\\ai\\AAAHogEx-115\\info.nut"
+      },
+      "classification": "AAAHogEx absent"
+    },
+    {
+      "id": "test_po01c_stale_portfolio_blocks_mode_2_c77_build(test_c77_intent_defer.DeferSourceContracts.test_po01c_stale_portfolio_blocks_mode_2_c77_build)",
+      "baseline": {
+        "kind": "FAIL",
+        "reason": "AssertionError: unexpectedly None : PO01C pending/job must defer C77 on a non-null stale portfolio"
+      },
+      "final": {
+        "kind": "FAIL",
+        "reason": "AssertionError: unexpectedly None : PO01C pending/job must defer C77 on a non-null stale portfolio"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_po01d_synchronous_path_bytes_unchanged(test_po01c_regen_split.PO01CContracts.test_po01d_synchronous_path_bytes_unchanged)",
+      "baseline": {
+        "kind": "FAIL",
+        "reason": "AssertionError: 0 != 1 : garde PO03 exactement une fois"
+      },
+      "final": {
+        "kind": "FAIL",
+        "reason": "AssertionError: 0 != 1 : garde PO03 exactement une fois"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_po01d_synchronous_path_bytes_unchanged(test_po01c_regen_split.PO01CContracts.test_po01d_synchronous_path_bytes_unchanged)(name='air_planning.nut')",
+      "baseline": {
+        "kind": "FAIL",
+        "reason": "AssertionError: '450fdc97234359c78f8d0af792b02f26ef5995c7f547346e5dc60f78fb29a797' != "
+      },
+      "final": {
+        "kind": "FAIL",
+        "reason": "AssertionError: '450fdc97234359c78f8d0af792b02f26ef5995c7f547346e5dc60f78fb29a797' != 'd97dd1d56b049c8ea98c85a1202239da3d30193028e8526ba44240181460a5c2'"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_po01d_synchronous_path_bytes_unchanged(test_po01c_regen_split.PO01CContracts.test_po01d_synchronous_path_bytes_unchanged)(name='candidates.nut')",
+      "baseline": {
+        "kind": "FAIL",
+        "reason": "AssertionError: '218f1e55306ece1064d5e00b0f6d6d16d25b856d746a82b228e41c3b4d3fb32f' != "
+      },
+      "final": {
+        "kind": "FAIL",
+        "reason": "AssertionError: '218f1e55306ece1064d5e00b0f6d6d16d25b856d746a82b228e41c3b4d3fb32f' != '8ab9ef4b42b0b9ddd00ae47ee6333bded0428341ddcd90b11612f86be315d5e0'"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_po01d_synchronous_path_bytes_unchanged(test_po01c_regen_split.PO01CContracts.test_po01d_synchronous_path_bytes_unchanged)(name='info.nut')",
+      "baseline": {
+        "kind": "FAIL",
+        "reason": "AssertionError: '57210cd8034001c9d65e6e760bc7b6b7533278663e1afe90c062b8443dd21d38' != "
+      },
+      "final": {
+        "kind": "FAIL",
+        "reason": "AssertionError: '57210cd8034001c9d65e6e760bc7b6b7533278663e1afe90c062b8443dd21d38' != 'db288d554fb59a2d80e3effd723a5966b69fa1643bd0daf0c690f8e4e44ee22f'"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_po01d_synchronous_path_bytes_unchanged(test_po01c_regen_split.PO01CContracts.test_po01d_synchronous_path_bytes_unchanged)(name='main.nut')",
+      "baseline": {
+        "kind": "FAIL",
+        "reason": "AssertionError: '6de8ee0ef39210a5d62f42ee3efd17cf41f6888b559d33325fc41c165d512efc' != "
+      },
+      "final": {
+        "kind": "FAIL",
+        "reason": "AssertionError: '6de8ee0ef39210a5d62f42ee3efd17cf41f6888b559d33325fc41c165d512efc' != '2a6815a7c4965aae1c5fd558647eb1e75401a0cbe81794a8955e9e0a4ff873d1'"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_po01d_synchronous_path_bytes_unchanged(test_po01c_regen_split.PO01CContracts.test_po01d_synchronous_path_bytes_unchanged)(name='settings.nut')",
+      "baseline": {
+        "kind": "FAIL",
+        "reason": "AssertionError: V233L settings.nut: guarded hunk changed"
+      },
+      "final": {
+        "kind": "FAIL",
+        "reason": "AssertionError: V233L settings.nut: guarded hunk changed"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_po01f_historical_dependencies_unchanged(test_po01c_regen_split.PO01CContracts.test_po01f_historical_dependencies_unchanged)",
+      "baseline": {
+        "kind": "FAIL",
+        "reason": "AssertionError: 'a5e75086c455d9b6102a5fc8f2aa0a1210e0b6ec8968314eda191c174e71262c' != "
+      },
+      "final": {
+        "kind": "FAIL",
+        "reason": "AssertionError: 'a5e75086c455d9b6102a5fc8f2aa0a1210e0b6ec8968314eda191c174e71262c' != '288a69d242f7b8b473984350a5d539da927576972b42a3f2269928173ac05fbc'"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_priors_match_corpus_rounding(test_estim_unifie.EstimUnifieContracts.test_priors_match_corpus_rounding)",
+      "baseline": {
+        "kind": "FAIL",
+        "reason": "AssertionError: 'ESTIM_K_R_PRIOR <- { rail = 0.92, road = 0.57, air = 0.40, water = 1.0 };' not found in '/* C65 passe "
+      },
+      "final": {
+        "kind": "FAIL",
+        "reason": "AssertionError: 'ESTIM_K_R_PRIOR <- { rail = 0.92, road = 0.57, air = 0.40, water = 1.0 };' not found in '/* C65 passe 2 : globales du bloc AVANT require(budget/catalog/...). */\\n/* Declare avant les require() : catalog.nut consulte ce drapeau dans son cycle annuel. Repli\\n * actif jusqu\\'a la lecture unique de road_mode dans Start(), comme les autres reglages de\\n * decision. Le defaut vrai est celui de info.nut ; 0 reconstitue la baseline sans route, dont le\\n * chemin d\\'opcodes reste alors EXACTEMENT celui des campagnes anterieures. */\\nROAD_BUILD_ENABLED <- true;\\n/* V166 : interrupteurs de mode (bancs mono-mode, rail contre rail, air contre air). Un mode a faux\\n * ne genere ni candidat ni balayage de catalogue et ne construit rien ; les quatre a vrai = defaut. */\\nMODE_AIR <- true;\\nMODE_RAIL <- true;\\nMODE_ROAD <- true;\\nMODE_WATER <- true;\\n/* RAIL-DEPOT-SIGNAL: opt-in, depot embranche sur chaque cote et PBS de quai partage. */\\nRAIL_DEPOT_SIGNAL <- false;\\n/* MULTI-1 : promotion experimentale d\\'une ROUTE deja qualifiee ; 0 preserve strictement l\\'election. */\\nMULTI1_ROAD_PRIORITY <- 0;\\n/* MULTI-1 second pilot: bounded AIR-over-unprepared-RAIL selection, off by default."
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_probe_default_off_and_c68_default_on(test_m3_equipment_roi.TestM3EquipmentRoi.test_probe_default_off_and_c68_default_on)",
+      "baseline": {
+        "kind": "FAIL",
+        "reason": "AssertionError: 2 != 0"
+      },
+      "final": {
+        "kind": "FAIL",
+        "reason": "AssertionError: 2 != 0"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_probe_default_off_and_wired_to_probe_scheduler(test_sched_idle.TestSchedIdleSourceContract.test_probe_default_off_and_wired_to_probe_scheduler)",
+      "baseline": {
+        "kind": "FAIL",
+        "reason": "AssertionError: 'custom_value = 0' not found in 'name = \"probes\",\\n      description = \"Diagnostics bitmask (signed 31 "
+      },
+      "final": {
+        "kind": "FAIL",
+        "reason": "AssertionError: 'custom_value = 0' not found in 'name = \"probes\",\\n      description = \"Diagnostics bitmask (signed 31 bits): 0 none, 2 signs (default), 1 all, 2 signs, 4 legacy log, 8/16/32/64/128 legacy groups, 256 decision log only, 512..1073741824 individual channels (see docs/audit_sondes_20261022.md); groups also enable decision log; 67108864 V309 idle needs +256 for logs (67109120)\",\\n      min_value = 0, max_value = 2147483647,\\n      easy_value = 2, medium_value = 2, hard_value = 2,\\n      custom_value = 2,\\n      flags = 0\\n    '"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_probe_is_default_off_and_loaded_once(test_b9_air_catchment.TestB9AirCatchment.test_probe_is_default_off_and_loaded_once)",
+      "baseline": {
+        "kind": "FAIL",
+        "reason": "AssertionError: 2 != 0"
+      },
+      "final": {
+        "kind": "FAIL",
+        "reason": "AssertionError: 2 != 0"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_probes_setting(test_v167_probes.Declaration.test_probes_setting)",
+      "baseline": {
+        "kind": "FAIL",
+        "reason": "AssertionError: 2 != 0"
+      },
+      "final": {
+        "kind": "FAIL",
+        "reason": "AssertionError: 2 != 0"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_provenance_and_effective_identity(test_publication_probes_default.PublicationProbesDefault.test_provenance_and_effective_identity)",
+      "baseline": {
+        "kind": "FAIL",
+        "reason": "AssertionError: 2 != 0"
+      },
+      "final": {
+        "kind": "FAIL",
+        "reason": "AssertionError: 2 != 0"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_publication_metadata_and_four_defaults(test_publication_probes_default.PublicationProbesDefault.test_publication_metadata_and_four_defaults)",
+      "baseline": {
+        "kind": "FAIL",
+        "reason": "AssertionError: Regex didn't match: '\\\\beasy_value\\\\s*=\\\\s*0\\\\b' not found in ',\\n      description = \"Diagnostics "
+      },
+      "final": {
+        "kind": "FAIL",
+        "reason": "AssertionError: Regex didn't match: '\\\\beasy_value\\\\s*=\\\\s*0\\\\b' not found in ',\\n      description = \"Diagnostics bitmask (signed 31 bits): 0 none, 2 signs (default), 1 all, 2 signs, 4 legacy log, 8/16/32/64/128 legacy groups, 256 decision log only, 512..1073741824 individual channels (see docs/audit_sondes_20261022.md); groups also enable decision log; 67108864 V309 idle needs +256 for logs (67109120)\",\\n      min_value = 0, max_value = 2147483647,\\n      easy_value = 2, medium_value = 2, hard_value = 2,\\n      custom_value = 2,\\n      flags = 0\\n    '"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_queue_extended_at_end_only_under_flag(test_v147_air_catalog_tasks.StaticContract.test_queue_extended_at_end_only_under_flag)",
+      "baseline": {
+        "kind": "ERROR",
+        "reason": "ValueError: substring not found"
+      },
+      "final": {
+        "kind": "ERROR",
+        "reason": "ValueError: substring not found"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_result_tuple_is_sorted(test_v166_aaahogex_settings.TestV166DefaultOmission.test_result_tuple_is_sorted)Letupleretournédoitêtretriéparnomderéglage.",
+      "baseline": {
+        "kind": "ERROR",
+        "reason": "FileNotFoundError: [Errno 2] No such file or directory: "
+      },
+      "final": {
+        "kind": "ERROR",
+        "reason": "FileNotFoundError: [Errno 2] No such file or directory: 'C:\\\\Users\\\\jr\\\\vscode\\\\openttd-ml\\\\openttd-ml\\\\.wt_fleet_arbiter_20261105\\\\ai\\\\AAAHogEx-115\\\\info.nut'"
+      },
+      "classification": "AAAHogEx absent"
+    },
+    {
+      "id": "test_revalidation_mandatory_before_build(test_c80_rail_stock_worker.TestC80RailStockWorkerContract.test_revalidation_mandatory_before_build)",
+      "baseline": {
+        "kind": "FAIL",
+        "reason": "AssertionError: 3 != 2"
+      },
+      "final": {
+        "kind": "FAIL",
+        "reason": "AssertionError: 3 != 2"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_reviewed_intermediate_off_sources_are_exact_and_idempotent(test_road100_merge_projection_20261105.Road100MergedProjection.test_reviewed_intermediate_off_sources_are_exact_and_idempotent)(name='candidates.nut',stage='rail_depot_signal_off')",
+      "baseline": {
+        "kind": "FAIL",
+        "reason": "AssertionError: '/* E[36122 chars]}\\n\\nfunction OpexMakeCandidate(catalog, kind,[177695 chars]n}\\n' != '/* E[36122 "
+      },
+      "final": {
+        "kind": "FAIL",
+        "reason": "AssertionError: '/* E[36122 chars]}\\n\\nfunction OpexMakeCandidate(catalog, kind,[177695 chars]n}\\n' != '/* E[36122 chars]}\\n\\n/* INVEST-STALL c : bonus local FRET, san[186782 chars]n}\\n'"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_run_c66_reference_forwarding_to_docker_cmd(test_v166_aaahogex_settings.TestV166LauncherOption.test_run_c66_reference_forwarding_to_docker_cmd)run_c66_referencetransmettellequellechaqueoption--aaahogex-settingauconteneur.",
+      "baseline": {
+        "kind": "FAIL",
+        "reason": "AssertionError: 2 != 0"
+      },
+      "final": {
+        "kind": "FAIL",
+        "reason": "AssertionError: 2 != 0"
+      },
+      "classification": "AAAHogEx absent"
+    },
+    {
+      "id": "test_scanned_score_tiebreak_contract_preserved(test_estim31_c121_dispatch.C121DispatchContracts.test_scanned_score_tiebreak_contract_preserved)",
+      "baseline": {
+        "kind": "ERROR",
+        "reason": "IndexError: list index out of range"
+      },
+      "final": {
+        "kind": "ERROR",
+        "reason": "IndexError: list index out of range"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_setting(test_c77_intent_defer.DeferSourceContracts.test_setting)",
+      "baseline": {
+        "kind": "FAIL",
+        "reason": "AssertionError: V233L settings.nut: guarded hunk changed"
+      },
+      "final": {
+        "kind": "FAIL",
+        "reason": "AssertionError: V233L settings.nut: guarded hunk changed"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_setting_0_1_2_and_four_defaults_exactly_one_read(test_p3_air_fleet_yield.TestP3AirFleetYield.test_setting_0_1_2_and_four_defaults_exactly_one_read)",
+      "baseline": {
+        "kind": "FAIL",
+        "reason": "AssertionError: 68 != 58"
+      },
+      "final": {
+        "kind": "FAIL",
+        "reason": "AssertionError: 158 != 157"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_setting_declaration_and_defaults(test_event_backlog_probe.TestEventBacklogProbe.test_setting_declaration_and_defaults)",
+      "baseline": {
+        "kind": "FAIL",
+        "reason": "AssertionError: 2 != 0"
+      },
+      "final": {
+        "kind": "FAIL",
+        "reason": "AssertionError: 2 != 0"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_setting_default_zero_everywhere_and_single_read(test_estim_unifie.EstimUnifieContracts.test_setting_default_zero_everywhere_and_single_read)",
+      "baseline": {
+        "kind": "FAIL",
+        "reason": "AssertionError: Regex didn't match: 'easy_value\\\\s*=\\\\s*0\\\\b' not found in 'AddSetting({\\n      name = "
+      },
+      "final": {
+        "kind": "FAIL",
+        "reason": "AssertionError: Regex didn't match: 'easy_value\\\\s*=\\\\s*0\\\\b' not found in 'AddSetting({\\n      name = \"estim_unifie\",\\n      description = \"ESTIM-1: 1 revenue, 2 cash, 4 marginal operations, 8 physical primitives, 16 distance-dependent RAIL revenue and score cost; 0 = historical, 31 = default\",\\n      min_value = 0, max_value = 31,\\n      easy_value = 31, medium_value = 31, hard_value = 31, custom_value = 31,\\n      default_value = 31, step_size = 1, flags = 0\\n    });'"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_setting_four_auto_defaults_and_current_ceiling(test_v276_candidate_slices.Contracts.test_setting_four_auto_defaults_and_current_ceiling)",
+      "baseline": {
+        "kind": "FAIL",
+        "reason": "AssertionError: 68 not less than or equal to 58"
+      },
+      "final": {
+        "kind": "FAIL",
+        "reason": "AssertionError: 68 not less than or equal to 58"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_setting_loaded_in_settings_nut(test_v198_template_double.Declaration.test_setting_loaded_in_settings_nut)",
+      "baseline": {
+        "kind": "FAIL",
+        "reason": "AssertionError: V233L settings.nut: guarded hunk changed"
+      },
+      "final": {
+        "kind": "FAIL",
+        "reason": "AssertionError: V233L settings.nut: guarded hunk changed"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_setting_on_for_all_difficulties_and_one_read(test_n75_multi_cargo.N75MultiCargoContracts.test_setting_on_for_all_difficulties_and_one_read)",
+      "baseline": {
+        "kind": "FAIL",
+        "reason": "AssertionError: 68 != 58"
+      },
+      "final": {
+        "kind": "FAIL",
+        "reason": "AssertionError: 68 != 58"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_setting_with_non_zero_default(test_v166_aaahogex_settings.TestV166DefaultOmission.test_setting_with_non_zero_default)usable_cargos(défaut3)et'Avoidremovingwater'(défaut1).",
+      "baseline": {
+        "kind": "ERROR",
+        "reason": "FileNotFoundError: [Errno 2] No such file or directory: "
+      },
+      "final": {
+        "kind": "ERROR",
+        "reason": "FileNotFoundError: [Errno 2] No such file or directory: 'C:\\\\Users\\\\jr\\\\vscode\\\\openttd-ml\\\\openttd-ml\\\\.wt_fleet_arbiter_20261105\\\\ai\\\\AAAHogEx-115\\\\info.nut'"
+      },
+      "classification": "AAAHogEx absent"
+    },
+    {
+      "id": "test_settings_loaded_in_settings_nut(test_v190_rail_double_build.Declaration.test_settings_loaded_in_settings_nut)",
+      "baseline": {
+        "kind": "FAIL",
+        "reason": "AssertionError: V233L settings.nut: guarded hunk changed"
+      },
+      "final": {
+        "kind": "FAIL",
+        "reason": "AssertionError: V233L settings.nut: guarded hunk changed"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_station_selection_double_platform_filter(test_v190_rail_double_build.PresenceDesEtapes.test_station_selection_double_platform_filter)",
+      "baseline": {
+        "kind": "FAIL",
+        "reason": "AssertionError: V233L economy.nut: guarded hunk changed"
+      },
+      "final": {
+        "kind": "FAIL",
+        "reason": "AssertionError: V233L economy.nut: guarded hunk changed"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_tasks_and_provenance_protect_against_reruns(test_estim31_20x10_priority_analysis.DecadeEconomicPriorityTests.test_tasks_and_provenance_protect_against_reruns)",
+      "baseline": {
+        "kind": "FAIL",
+        "reason": "AssertionError: 'AIR-PRODUCTIVITÉ' not found in \"# Tâches — registre actif OpexAI\\n\\n**Mise à jour : 4 novembre 2026 — "
+      },
+      "final": {
+        "kind": "FAIL",
+        "reason": "AssertionError: 'AIR-PRODUCTIVITÉ' not found in \"# Tâches — registre actif OpexAI\\n\\n**Mise à jour : 4 novembre 2026 — ajout du diagnostic INVEST-STALL quais ; état historique du 27 octobre conservé. Seule liste autoritaire des actions ouvertes.**\\nLes décisions et résultats terminés sont dans la [synthèse historique](journaux/synthese_decisions_2026-09-30.md)\\net les [journaux](journaux/README.md). Les anciennes mentions « à faire » des fiches\\nne créent pas une tâche. Protocole et pilotage des bancs : [AGENTS.md](../AGENTS.md), §4/§4.1.\\nClassement des cases encore ouvertes (effort, dépendances, besoin de banc,\\nrisque) : [ordre de clôture du 26/10](classement_taches_20261026.md).\\n\\n### 04/11 — RAIL-SIBLING + RAIL-OPEN : adoption explicite utilisateur\\n\\nDécision utilisateur du 04/11 : adopter sur `master` **`rail_sibling=1` et\\n`rail_open=1`** aux quatre difficultés. Les autres prototypes ferroviaires\\nRAIL-LONG v2/v3, INVEST-STALL et DOUBLE-GROW restent absents de cette intégration\\net désactivés. Origine du comportement : bundle figé\\n`rail_open_railseul_40x5_20261102` (`c440c5cc327742daa91d3c4febcb5f3e431e5767712e587531905a4e08287bd8`),\\nintégré avec le code courant de `mast"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_three_code_contracts(test_v307_sites.TestV307Sites.test_three_code_contracts)",
+      "baseline": {
+        "kind": "FAIL",
+        "reason": "AssertionError: V233L settings.nut: guarded hunk changed"
+      },
+      "final": {
+        "kind": "FAIL",
+        "reason": "AssertionError: V233L settings.nut: guarded hunk changed"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_trace_and_save_load_transience(test_p1_rail_long_value_rank.TestP1LongRank.test_trace_and_save_load_transience)",
+      "baseline": {
+        "kind": "FAIL",
+        "reason": "AssertionError: '!V131_RAIL_REPAIR || ((\"p1Long\" in candidate) && candidate.p1Long)' not found in 'function "
+      },
+      "final": {
+        "kind": "FAIL",
+        "reason": "AssertionError: '!V131_RAIL_REPAIR || ((\"p1Long\" in candidate) && candidate.p1Long)' not found in 'function OpexAI::_revalidateRailStockPlan(candidate, plan)\\n{\\n  if (candidate == null || plan == null) return { ok = false, reason = \"null_plan\" };\\n\\n  local need = candidate.capital;\\n  if ((ESTIM_UNIFIE & 2) != 0)\\n    need = OpexEstimFinanceCapital(\"rail\", candidate.capital, candidate.distance,\\n        (\"capitalIsActual\" in candidate) && candidate.capitalIsActual,\\n        (\"immobilise\" in candidate) ? candidate.immobilise : 0);\\n  local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);\\n  if (money < need) return { ok = false, reason = \"cash\" };\\n\\n  if (!OpexRailVehicleSlotAvailable()) return { ok = false, reason = \"no_vehicle_slot\" };\\n\\n  if (candidate.kind != \"pax\") {\\n    /* src/dst sont des tuiles (OpexMakeCandidate), pas des IndustryID. */\\n    if (!AIIndustry.IsValidIndustry(AIIndustry.GetIndustryID(candidate.src)) || !AIIndustry.IsValidIndustry(AIIndustry.GetIndustryID(candidate.dst))) {\\n      return { ok = false, reason = \"industry_closed\" };\\n    }\\n  }\\n\\n  local planA = plan.planA;\\n  local planB = plan.planB;\\n  local tiles = plan.tiles;\\n  if (planA == n"
+      },
+      "classification": "preexisting"
+    },
+    {
+      "id": "test_unknown_setting_rejected(test_v166_aaahogex_settings.TestV166OptionValidation.test_unknown_setting_rejected)Unréglagenondéclarédansinfo.nutdoitleveruneValueErrorexplicite.",
+      "baseline": {
+        "kind": "ERROR",
+        "reason": "FileNotFoundError: [Errno 2] No such file or directory: "
+      },
+      "final": {
+        "kind": "ERROR",
+        "reason": "FileNotFoundError: [Errno 2] No such file or directory: 'C:\\\\Users\\\\jr\\\\vscode\\\\openttd-ml\\\\openttd-ml\\\\.wt_fleet_arbiter_20261105\\\\ai\\\\AAAHogEx-115\\\\info.nut'"
+      },
+      "classification": "AAAHogEx absent"
+    },
+    {
+      "id": "test_value_different_from_default_is_retained(test_v166_aaahogex_settings.TestV166DefaultOmission.test_value_different_from_default_is_retained)disable_veh_trainpasséà1(!=0)doitêtreconservésousforme(nom,entier).",
+      "baseline": {
+        "kind": "ERROR",
+        "reason": "FileNotFoundError: [Errno 2] No such file or directory: "
+      },
+      "final": {
+        "kind": "ERROR",
+        "reason": "FileNotFoundError: [Errno 2] No such file or directory: 'C:\\\\Users\\\\jr\\\\vscode\\\\openttd-ml\\\\openttd-ml\\\\.wt_fleet_arbiter_20261105\\\\ai\\\\AAAHogEx-115\\\\info.nut'"
+      },
+      "classification": "AAAHogEx absent"
+    },
+    {
+      "id": "test_value_equal_to_default_is_omitted(test_v166_aaahogex_settings.TestV166DefaultOmission.test_value_equal_to_default_is_omitted)disable_veh_trainapourdéfaut0:sipasséà0,ildoitêtreomis.",
+      "baseline": {
+        "kind": "ERROR",
+        "reason": "FileNotFoundError: [Errno 2] No such file or directory: "
+      },
+      "final": {
+        "kind": "ERROR",
+        "reason": "FileNotFoundError: [Errno 2] No such file or directory: 'C:\\\\Users\\\\jr\\\\vscode\\\\openttd-ml\\\\openttd-ml\\\\.wt_fleet_arbiter_20261105\\\\ai\\\\AAAHogEx-115\\\\info.nut'"
+      },
+      "classification": "AAAHogEx absent"
+    }
+  ]
+}

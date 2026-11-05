@@ -1,5 +1,8 @@
 """The reviewed RAIL-SIBLING additions must disappear from historical OFF bytes."""
 
+# Compare historical contracts after the exact outer FLEET-ARB projection.
+from fleet_arb_off import historical_read_text as fleet_read_text
+
 import unittest
 from pathlib import Path
 
@@ -24,7 +27,7 @@ class RailSiblingOffProjectionContracts(unittest.TestCase):
         })
         for name, edits in FIXTURE["files"].items():
             with self.subTest(name=name):
-                live = rail_open_off(name, (AI / name).read_text(encoding="utf-8"))
+                live = rail_open_off(name, fleet_read_text(AI / name, encoding="utf-8"))
                 projected = off_source(name, live)
                 self.assertEqual(projected, off_source(name, projected))
                 self.assertEqual(off_bytes(name, live.encode("utf-8")), projected.encode("utf-8"))
@@ -37,7 +40,7 @@ class RailSiblingOffProjectionContracts(unittest.TestCase):
     def test_a_modified_guard_fails_instead_of_rebasing_history(self):
         for name, edits in FIXTURE["files"].items():
             with self.subTest(name=name):
-                live = rail_open_off(name, (AI / name).read_text(encoding="utf-8"))
+                live = rail_open_off(name, fleet_read_text(AI / name, encoding="utf-8"))
                 guarded = edits[0]["new"]
                 damaged = guarded.replace("\n", " /* changed */\n", 1)
                 self.assertNotEqual(guarded, damaged)
@@ -45,7 +48,7 @@ class RailSiblingOffProjectionContracts(unittest.TestCase):
                     off_source(name, live.replace(guarded, damaged, 1))
 
     def test_estim_projection_keeps_sibling_additions_intact(self):
-        live = rail_open_off("candidates.nut", (AI / "candidates.nut").read_text(encoding="utf-8"))
+        live = rail_open_off("candidates.nut", fleet_read_text(AI / "candidates.nut", encoding="utf-8"))
         projected = estim_off("candidates.nut", live)
         for edit in FIXTURE["files"]["candidates.nut"]:
             self.assertIn(edit["new"], projected)

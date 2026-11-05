@@ -1,4 +1,7 @@
 """Production integration and conserved spiral budgets, plus V3 cost semantics."""
+
+# Compare historical contracts after the exact outer FLEET-ARB projection.
+from fleet_arb_off import historical_read_text as fleet_read_text
 import json
 from pathlib import Path
 import unittest
@@ -12,45 +15,45 @@ AI = ROOT / "ai/OpexAI"
 
 class RankedContracts(unittest.TestCase):
     def test_off_preserves_preexisting_settings_and_default(self):
-        info = (AI / "info.nut").read_text()
+        info = fleet_read_text(AI / "info.nut")
         from campaign_freeze import effective_ai_settings
         settings = effective_ai_settings(AI / "info.nut", ())["effective"]
         self.assertEqual(settings["air_site_ranked"], 1)
         self.assertEqual(settings["air_site_funnel"], 1)
-        deltas = json.loads((ROOT / "sweeps/fixtures/air_site_ranked_off_deltas.json").read_text())
+        deltas = json.loads(fleet_read_text(ROOT / "sweeps/fixtures/air_site_ranked_off_deltas.json"))
         from air_site_ranked_legacy import off_source
         for name in deltas:
-            text = (AI / name).read_text()
+            text = fleet_read_text(AI / name)
             self.assertNotIn(deltas[name]["marker"], off_source(name, text))
         block = info[info.index('name = "air_site_ranked"'):].split('});')[0]
         for level in ("easy", "medium", "hard", "custom"):
             self.assertIn(f"{level}_value = 1", block)
 
     def test_real_generator_uses_same_dispatcher_only_when_on(self):
-        code = (AI / "air_site_ranked.nut").read_text()
+        code = fleet_read_text(AI / "air_site_ranked.nut")
         install = body(code, "function OpexAirRankedInstall(")
         self.assertIn("::OpexAirFindSiteCatchmentListed <- OpexAirRankedListed", install)
         self.assertIn("::OpexPO01CAirFindSite <- OpexPO01CAirRankedFindSite", install)
         adapter = body(code, "function OpexPO01CAirRankedFindSite(")
         self.assertIn("yield null", adapter)
         self.assertIn("result.value = OpexAirFindSite(", adapter)
-        settings = (AI / "settings.nut").read_text()
+        settings = fleet_read_text(AI / "settings.nut")
         self.assertEqual(settings.count('GetSetting("air_site_ranked")'), 1)
         self.assertIn('if (AIR_SITE_RANKED > 0) {\n    require("air_site_ranked.nut");', settings)
         for name in ("main.nut", "globals_post.nut", "persist.nut"):
-            self.assertNotIn('require("air_site_ranked.nut")', (AI / name).read_text())
+            self.assertNotIn('require("air_site_ranked.nut")', fleet_read_text(AI / name))
 
     def test_fallback_is_original_c96_with_only_budget_initialization_removed(self):
-        original = body((AI / "air_sites.nut").read_text(), "function OpexAirFindSiteCatchmentListed(")
+        original = body(fleet_read_text(AI / "air_sites.nut"), "function OpexAirFindSiteCatchmentListed(")
         expected = original[original.index('  local w = airport.width;'):]
-        actual = body((AI / "air_site_ranked.nut").read_text(), "function OpexAirRankedSpiralRest(")
+        actual = body(fleet_read_text(AI / "air_site_ranked.nut"), "function OpexAirRankedSpiralRest(")
         self.assertEqual(actual[actual.index('  local w = airport.width;'):], expected)
         self.assertNotIn("townsLeft--", actual)
         self.assertNotIn("local execLevels", actual)
         self.assertNotIn("local used", actual)
 
     def test_ranked_search_keeps_native_predicate_and_shared_limits(self):
-        code = (AI / "air_site_ranked.nut").read_text()
+        code = fleet_read_text(AI / "air_site_ranked.nut")
         search = body(code, "function OpexAirRankedListed(")
         self.assertIn("[[4, 14], [15, AIR_SITE_RADIUS]]", search)
         self.assertIn("OpexAirRankedCheapOk(anchor, airport)", search)
@@ -63,7 +66,7 @@ class RankedContracts(unittest.TestCase):
         self.assertNotIn("AIR_PROBE", code)
 
     def test_oracle_filters_dead_catchment_and_breaks_ties_on_cost(self):
-        code = (AI / "air_site_probe.nut").read_text()
+        code = fleet_read_text(AI / "air_site_probe.nut")
         oracle = body(code, "function OpexAirProbeOracle(")
         self.assertIn("result.admitted != 1 || result.catchment != 1", oracle)
         self.assertIn("score == bestScore", oracle)
@@ -75,7 +78,7 @@ class RankedContracts(unittest.TestCase):
         self.assertIn("quote_exact = 0", measure)
 
     def test_leveling_checks_every_changed_corner_and_shared_cache_path(self):
-        code = (AI / "air_site_ranked.nut").read_text()
+        code = fleet_read_text(AI / "air_site_ranked.nut")
         check = body(code, "function OpexAirRankedCanLevelFootprint(")
         moving = body(code, "function OpexAirRankedMovingCorners(")
         boundary = body(code, "function OpexAirRankedBoundaryClear(")
@@ -94,7 +97,7 @@ class RankedContracts(unittest.TestCase):
         failure = check[check.index("if (ok) continue;"):]
         self.assertLess(failure.index("bulk_ok="), failure.index("return false;"))
         self.assertNotIn("return bulkOk", failure)
-        probe = body((AI / "air_site_probe.nut").read_text(), "function OpexAirProbeMethod(")
+        probe = body(fleet_read_text(AI / "air_site_probe.nut"), "function OpexAirProbeMethod(")
         self.assertIn("::OpexAirCanLevelFootprint <- OpexAirRankedOriginalCanLevel", probe)
 
     def test_engine_partial_success_regression_model(self):

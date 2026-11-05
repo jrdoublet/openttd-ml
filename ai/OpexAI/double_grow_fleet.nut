@@ -232,6 +232,8 @@ function OpexDoubleGrowFleet(owner, line)
       && AIDate.GetCurrentDate() < line.doubleGrowNextDate) return false;
   local quote = OpexDoubleGrowQuote(owner, line);
   if (quote == null) return false;
+  if (FLEET_ARB && !OpexFleetRequest(line, "rail", "add_vehicle", quote.margin.cost,
+      quote.margin.profit, "DOUBLE_GROW")) return false;
   local first = line.vehicles[0];
   for (local i = 1; i < line.vehicles.len(); i++) {
     if (!AIOrder.ShareOrders(line.vehicles[i], first)) {

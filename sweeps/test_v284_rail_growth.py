@@ -1,4 +1,7 @@
 """Contrats V284. Ne compilent pas Squirrel : smoke moteur distinct requis."""
+
+# Compare historical contracts after the exact outer FLEET-ARB projection.
+from fleet_arb_off import historical_read_text as fleet_read_text
 import hashlib
 import re
 import unittest
@@ -19,9 +22,9 @@ AI = Path(__file__).resolve().parents[1] / "ai" / "OpexAI"
 def read(name):
     # SEARCH_PRIO est une couche opt-in posterieure aux empreintes V284.
     # Retirer uniquement ses hunks, sans recalculer les SHA historiques.
-    live = (AI / name).read_text(encoding="utf-8")
+    live = fleet_read_text(AI / name, encoding="utf-8")
     projected = off_search_prio_source(name, live)
-    if 'name = "road1y_load_orders"' in (AI / "info.nut").read_text(encoding="utf-8"):
+    if 'name = "road1y_load_orders"' in fleet_read_text(AI / "info.nut", encoding="utf-8"):
         if name == "task_rail.nut":
             return reviewed_task_rail(live, projected)
         if name in ("settings.nut", "globals_pre.nut"):
@@ -47,14 +50,14 @@ class TestV284RailGrowth(unittest.TestCase):
         # 43 retraits reels, PO03/C77 et PO02 adoptes maintenus.
         # off_source retire v233_long_good et v233_site_funnel avant ce compte ;
         # historical_info retire ensuite N75. Le plafond legacy reste 58.
-        if 'name = "road1y_load_orders"' in (AI / "info.nut").read_text(encoding="utf-8"):
+        if 'name = "road1y_load_orders"' in fleet_read_text(AI / "info.nut", encoding="utf-8"):
             # The independently frozen ROAD100 58-setting witness remains
             # unchanged. It cannot be applied after V233L has already
             # projected the merged ROAD1Y context. Check the exact merged
             # view and every declared setting instead of inventing a rebased
             # historical source.
             import json as _json
-            witness = _json.loads(MERGE_FIXTURE.read_text(encoding="utf-8"))[
+            witness = _json.loads(fleet_read_text(MERGE_FIXTURE, encoding="utf-8"))[
                 "merged_info_after_v233"]
             self.assertEqual(hashlib.sha256(info.encode()).hexdigest(), witness["sha256"])
             names = re.findall(r'AddSetting\(\{\s*name\s*=\s*"([^"]+)"', info)
@@ -66,8 +69,8 @@ class TestV284RailGrowth(unittest.TestCase):
 
     def test_off_expansion_is_master_a9437f8_after_removing_guards(self):
         body = function_body(read("task_rail.nut"), "function OpexAI::_expandRailLines(year)")
-        if 'name = "road1y_load_orders"' in (AI / "info.nut").read_text(encoding="utf-8"):
-            witness = json.loads(MERGE_FIXTURE.read_text(encoding="utf-8"))["merged_task_rail"]
+        if 'name = "road1y_load_orders"' in fleet_read_text(AI / "info.nut", encoding="utf-8"):
+            witness = json.loads(fleet_read_text(MERGE_FIXTURE, encoding="utf-8"))["merged_task_rail"]
             projected = project_expansion(body)
             self.assertEqual(hashlib.sha256(projected.encode()).hexdigest(),
                              witness["expansion_off_sha256"])
@@ -99,9 +102,9 @@ class TestV284RailGrowth(unittest.TestCase):
 
     def test_off_orchestrator_is_master_and_profiled_loop_uses_same_hook(self):
         body = function_body(read("orchestrator.nut"), "function OpexAI::_runOrchestratorTick()")
-        is_merged = 'name = "road1y_load_orders"' in (AI / "info.nut").read_text(encoding="utf-8")
+        is_merged = 'name = "road1y_load_orders"' in fleet_read_text(AI / "info.nut", encoding="utf-8")
         if is_merged:
-            witness = json.loads(MERGE_FIXTURE.read_text(encoding="utf-8"))
+            witness = json.loads(fleet_read_text(MERGE_FIXTURE, encoding="utf-8"))
             body_off = project_orchestrator(body)
             self.assertEqual(hashlib.sha256(body_off.encode()).hexdigest(),
                              witness["merged_orchestrator"]["function_off_sha256"])

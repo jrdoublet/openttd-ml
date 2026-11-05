@@ -33,6 +33,9 @@ Contrats statiques :
 """
 from __future__ import annotations
 
+# Compare historical contracts after the exact outer FLEET-ARB projection.
+from fleet_arb_off import historical_read_text as fleet_read_text
+
 import re
 import sys
 import unittest
@@ -47,7 +50,7 @@ from campaign_freeze import parse_ai_setting_specs  # noqa: E402
 
 
 def _read(name: str) -> str:
-    return off_source(name, (AI / name).read_text(encoding="utf-8"))
+    return off_source(name, fleet_read_text(AI / name, encoding="utf-8"))
 
 
 def _function_body(source: str, name: str) -> str:

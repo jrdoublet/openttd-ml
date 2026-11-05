@@ -181,6 +181,11 @@ function OpexAI::_dispatchV252AirEngineRefresh(task, year)
       ? OpexAirF1Before(this, "renewal", bestLine.lineId, price,
                         null, -1, curEngine, bestNewEngine, null, threshold, bestProfit) : null;
   if (airF1Event != null) OpexAirF1Ready(airF1Event);
+  if (FLEET_ARB) {
+    local arbProject = OpexEstimV252Project(bestLine, bestVeh, bestNewEngine, this._catalog, hangar);
+    if (!OpexFleetRequest(bestLine, "air", "replace", price,
+        arbProject != null ? arbProject.deltaP : null, "V252")) return false;
+  }
   local newPlane = AIVehicle.BuildVehicleWithRefit(hangar, bestNewEngine, cargo);
   if (!AIVehicle.IsValidVehicle(newPlane)) {
     if (airF1Event != null) OpexAirF1After(airF1Event, "build_failed");

@@ -34,6 +34,8 @@ def upgrade_reservation_off(name, source):
 
 
 def off_source(name, source):
+    from fleet_arb_off import off_source as fleet_off
+    source = fleet_off(name, source)
     source = upgrade_reservation_off(name, source)
     if name == "main.nut" and 'require("rail_long_v3_multi.nut");' in source:
         source = _replace(source, "", 'require("rail_long_v3_multi.nut");\n')

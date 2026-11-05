@@ -1,4 +1,7 @@
 """R19 source contracts only: no NoAI failure injection or Save/Load execution."""
+
+# Compare historical contracts after the exact outer FLEET-ARB projection.
+from fleet_arb_off import historical_read_text as fleet_read_text
 from pathlib import Path
 import re
 import unittest
@@ -18,11 +21,11 @@ class TestAirRecovery(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         ai = ROOT / "ai/OpexAI"
-        cls.recovery = (ai / "air_recovery.nut").read_text(encoding="utf-8")
+        cls.recovery = fleet_read_text(ai / "air_recovery.nut", encoding="utf-8")
         cls.builder = read_builder_air()
-        cls.persist = (ai / "persist.nut").read_text(encoding="utf-8")
-        cls.task = (ai / "task_air.nut").read_text(encoding="utf-8")
-        cls.scheduler = (ai / "scheduler_tasks.nut").read_text(encoding="utf-8")
+        cls.persist = fleet_read_text(ai / "persist.nut", encoding="utf-8")
+        cls.task = fleet_read_text(ai / "task_air.nut", encoding="utf-8")
+        cls.scheduler = fleet_read_text(ai / "scheduler_tasks.nut", encoding="utf-8")
         cls.cleanup = function(cls.recovery, "OpexAirContinueRollback")
         cls.route = function(cls.builder, "OpexBuildAirRoute")
 
@@ -86,7 +89,7 @@ class TestAirRecovery(unittest.TestCase):
         self.assertIn("if (OpexAirRecoveryBlocksPlan(plan)) return false;", live)
         site = function(self.builder, "OpexAirSiteStillBuildable")
         self.assertLess(site.index("OpexAirRecoveryOwnsAirport"), site.index("if (reuse)"))
-        lines = (ROOT / "ai/OpexAI/lines.nut").read_text(encoding="utf-8")
+        lines = fleet_read_text(ROOT / "ai/OpexAI/lines.nut", encoding="utf-8")
         abandon = function(lines, "OpexBuildFailureIsAbandonable")
         self.assertNotIn("ABANDON_MEMORY_TRANSIENT_GUARD", abandon)
         self.assertLess(abandon.index('result.reason == "RECOVERY"'), abandon.index('result.reason == "CASH"'))

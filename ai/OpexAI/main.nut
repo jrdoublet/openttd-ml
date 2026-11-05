@@ -691,6 +691,8 @@ require("double_grow_fleet.nut");
 require("double_grow.nut");
 require("double_grow_v2_build.nut");
 require("double_grow_v2.nut");
+require("fleet_arb.nut");
+require("fleet_arb_quotes.nut");
 require("rail_loop.nut");
 require("rail_fill.nut");
 require("task_v250.nut");

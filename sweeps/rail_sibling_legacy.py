@@ -4,6 +4,9 @@ The reviewed fixture is a fixed copy of the opt-in hunks, not a fresh Git diff.
 Never update historical byte hashes to accommodate a new OFF-by-default feature.
 """
 
+# Compare historical contracts after the exact outer FLEET-ARB projection.
+from fleet_arb_off import historical_read_text as fleet_read_text
+
 import copy
 import hashlib
 import json
@@ -11,7 +14,7 @@ from pathlib import Path
 
 
 HISTORICAL_FIXTURE = json.loads(
-    (Path(__file__).parent / "fixtures/rail_sibling_lot1_off.json").read_text(encoding="utf-8")
+    fleet_read_text(Path(__file__).parent / "fixtures/rail_sibling_lot1_off.json", encoding="utf-8")
 )
 
 # The 2026-11-05 union promotes RAIL-SIBLING to default 1.  Its two setting
@@ -27,7 +30,7 @@ _MERGE_SHA = {
 
 def _merge_fixture():
     root = Path(__file__).resolve().parents[1] / "ai" / "OpexAI"
-    current = {name: (root / name).read_text(encoding="utf-8") for name in _MERGE_SHA}
+    current = {name: fleet_read_text(root / name, encoding="utf-8") for name in _MERGE_SHA}
     if any(hashlib.sha256(current[name].encode("utf-8")).hexdigest() != sha
            for name, sha in _MERGE_SHA.items()):
         return HISTORICAL_FIXTURE
@@ -66,6 +69,8 @@ SIGNATURES = {
 
 
 def off_source(name, code):
+    from fleet_arb_off import off_source as fleet_off
+    code = fleet_off(name, code)
     """Subtract only exact reviewed sibling hunks, retaining unrelated edits."""
     from v190_fix_legacy import off_source as v190_fix_off
     code = v190_fix_off(name, code)

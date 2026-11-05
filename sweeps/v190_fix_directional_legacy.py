@@ -88,6 +88,8 @@ SIGNATURES = {
 
 
 def off_source(name, source):
+    from fleet_arb_off import off_source as fleet_off
+    source = fleet_off(name, source)
     if name == "task_rail.nut" and hashlib.sha256(source.encode("utf-8")).hexdigest() == (
             _MERGED_TASK_RAIL_ALREADY_OFF_SHA256):
         if any(marker in source for marker in SIGNATURES[name]):

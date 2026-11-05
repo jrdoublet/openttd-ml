@@ -6,6 +6,8 @@ DELTAS = json.loads((Path(__file__).parent / "fixtures/eb2_off_deltas.json").rea
 
 
 def off_source(name, text):
+    from fleet_arb_off import off_source as fleet_off
+    text = fleet_off(name, text)
     entry = DELTAS.get(name)
     if entry is None:
         return text

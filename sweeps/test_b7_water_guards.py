@@ -1,10 +1,13 @@
 """Contrats de connectivité du chemin eau historique conservé après retrait de Lakes."""
+
+# Compare historical contracts after the exact outer FLEET-ARB projection.
+from fleet_arb_off import historical_read_text as fleet_read_text
 from pathlib import Path
 import unittest
 
 
 ROOT = Path(__file__).resolve().parents[1]
-BUILDER = (ROOT / "ai" / "OpexAI" / "builder_water.nut").read_text(encoding="utf-8")
+BUILDER = fleet_read_text(ROOT / "ai" / "OpexAI" / "builder_water.nut", encoding="utf-8")
 
 
 class B7WaterGuardsTest(unittest.TestCase):

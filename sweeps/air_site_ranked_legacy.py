@@ -9,6 +9,8 @@ DELTAS = json.loads((Path(__file__).parent / "fixtures/air_site_ranked_off_delta
 
 
 def off_source(name, text):
+    from fleet_arb_off import off_source as fleet_off
+    text = fleet_off(name, text)
     text = sibling_off(name, text)
     text = strip_c121_dispatch(name, text)
     text = eb2_off(name, text)

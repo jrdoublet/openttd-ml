@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+# Compare historical contracts after the exact outer FLEET-ARB projection.
+from fleet_arb_off import historical_read_text as fleet_read_text
+
 import importlib.util
 import json
 from pathlib import Path
@@ -17,7 +20,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def _read(rel: str) -> str:
-    return (ROOT / rel).read_text(encoding="utf-8")
+    return fleet_read_text(ROOT / rel, encoding="utf-8")
 
 
 class ReviewResidualContractsTest(unittest.TestCase):
@@ -262,7 +265,7 @@ class ReviewResidualContractsTest(unittest.TestCase):
         from sweeps import bench_1v1_3y_10seeds as bench
 
         fixture = json.loads(
-            (ROOT / "sweeps" / "fixtures" / "c66_control_fixture_15_3.json").read_text(encoding="utf-8")
+            fleet_read_text(ROOT / "sweeps" / "fixtures" / "c66_control_fixture_15_3.json", encoding="utf-8")
         )
         record = bench.keep({
             "chunks": fixture["chunks"],

@@ -19,6 +19,8 @@ def _fixture():
 
 
 def off_source(name, source):
+    from fleet_arb_off import off_source as fleet_off
+    source = fleet_off(name, source)
     """Restitue exactement la source pré-v2 ou lève en cas de dérive.
 
     Cette fonction est idempotente pour une source déjà projetée. Les hunks

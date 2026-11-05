@@ -150,6 +150,8 @@ def _reviewed_merge_guard(name, code, index):
 
 
 def off_source(name, code):
+    from fleet_arb_off import off_source as fleet_off
+    code = fleet_off(name, code)
     from double_grow_off import off_source as double_grow_off
     code = double_grow_off(name, code)
     if name in ("globals_pre.nut", "settings.nut", "info.nut", "main.nut", "scheduler.nut", "persist.nut",

@@ -1,5 +1,8 @@
 """SHA-reviewed merge views, without rewriting historical OPEN/SIBLING fixtures."""
 
+# Compare historical contracts after the exact outer FLEET-ARB projection.
+from fleet_arb_off import historical_read_text as fleet_read_text
+
 import hashlib
 import json
 from pathlib import Path
@@ -16,7 +19,7 @@ from rail_pair_legacy import off_source as rail_pair_off
 
 
 def _live(name):
-    return (ROOT / "ai" / "OpexAI" / name).read_text(encoding="utf-8")
+    return fleet_read_text(ROOT / "ai" / "OpexAI" / name, encoding="utf-8")
 
 
 class RailOpenSiblingMergeContracts(unittest.TestCase):
@@ -27,7 +30,7 @@ class RailOpenSiblingMergeContracts(unittest.TestCase):
         ):
             with self.subTest(filename=filename):
                 original = json.loads(
-                    (ROOT / "sweeps" / "fixtures" / filename).read_text(encoding="utf-8")
+                    fleet_read_text(ROOT / "sweeps" / "fixtures" / filename, encoding="utf-8")
                 )
                 self.assertEqual(module.HISTORICAL_FIXTURE, original)
                 self.assertEqual(set(module.FIXTURE["files"]), set(original["files"]))

@@ -583,6 +583,8 @@ function OpexRailLongGrowFleet(catalog, line)
   local price = line.loco.price + line.wagons * catalog.wagonByCargo[line.cargo].price
       + OpexV163WagonsPrice(catalog, line);
   if (AICompany.GetBankBalance(AICompany.COMPANY_SELF) < price + 1000) return false;
+  if (FLEET_ARB && !OpexFleetRequest(line, "rail", "add_vehicle", price,
+      OpexFleetRailProfit(line, price), "RAIL_LONG_GROW")) return false;
   local extra = AIVehicle.CloneVehicle(depot, line.vehicles[0], true);
   if (!AIVehicle.IsValidVehicle(extra)) return false;
   /* V190-FIX2 a pose des ordres egaux mais distincts sur les deux rames.
@@ -787,6 +789,8 @@ function OpexAI::_expandRailLines(year)
           if (money < need) continue;
           if (!OpexRailVehicleSlotAvailable()) continue;
 
+          if (FLEET_ARB && !OpexFleetRequest(line, "rail", "add_vehicle", trainCost,
+              OpexFleetRailProfit(line, trainCost), "RAIL_REFLEET")) continue;
           if (!("v181Loop" in line) || !line.v181Loop) {
             local loopOk = OpexConvertDoubleTrackToLoop(line);
             if (!loopOk) {
@@ -1719,6 +1723,7 @@ function OpexAI::_recordRailAttempt(candidate, result, posPacked, year, railPlan
       opcodeRatio = ("opcodeRatio" in candidate) ? candidate.opcodeRatio : -1,
       lineId = idx,
     });
+      if (FLEET_ARB) OpexFleetBorn(this._lines[this._lines.len() - 1]);
     OpexRailRepairNoteConstruction();
     if (V279_RESELECT_MEMO != 0) OPEX_LINES_REVISION++;
     /* V163 : la rame porte un second cargo ; les seconds trains et le doublement le reprennent. */

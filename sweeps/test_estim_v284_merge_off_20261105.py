@@ -4,6 +4,9 @@ All historical patches and pre-merge SHA remain frozen; new full-file SHA
 transitions and exact edits belong exclusively to the 2026-11-05 merge.
 """
 
+# Compare historical contracts after the exact outer FLEET-ARB projection.
+from fleet_arb_off import historical_read_text as fleet_read_text
+
 import hashlib
 import json
 import re
@@ -28,7 +31,7 @@ AI = Path(__file__).resolve().parents[1] / "ai" / "OpexAI"
 
 
 def read(name):
-    return (AI / name).read_text(encoding="utf-8")
+    return fleet_read_text(AI / name, encoding="utf-8")
 
 
 def pre_estim(name, source):
@@ -106,7 +109,7 @@ class EstimMergedOffContracts(unittest.TestCase):
 
 class V284MergedOffContracts(unittest.TestCase):
     def test_orchestrator_and_rail_expansion_are_new_sha_locked_witnesses(self):
-        fixture = json.loads(V284_FIXTURE.read_text(encoding="utf-8"))
+        fixture = json.loads(fleet_read_text(V284_FIXTURE, encoding="utf-8"))
         from test_v284_rail_growth import read as v284_source
 
         source = v284_source("orchestrator.nut")
@@ -149,7 +152,7 @@ class V284MergedOffContracts(unittest.TestCase):
 
     def test_v284_config_sources_are_frozen_and_setting_unique(self):
         from test_v284_rail_growth import read as v284_source
-        fixture = json.loads(V284_FIXTURE.read_text(encoding="utf-8"))
+        fixture = json.loads(fleet_read_text(V284_FIXTURE, encoding="utf-8"))
         for name in ("settings.nut", "globals_pre.nut"):
             with self.subTest(name=name):
                 live = read(name)

@@ -142,6 +142,8 @@ def strip_if_present(name, source):
 
 
 def off_source(name, source):
+    from fleet_arb_off import off_source as fleet_off
+    source = fleet_off(name, source)
     """Strict source OFF projection; preserve historic and merged identities."""
     original_sha = _sha(source)
     reviewed = _REVIEWED_MERGE_RDS_SHA.get(name, {})

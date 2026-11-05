@@ -5156,6 +5156,8 @@ function OpexBuildRoadRoute(catalog, budget, plan, candidate)
                    stationA = null, stationB = null, depot = null, vehicles = [], cost = 0,
                    capacity = 0, opcodes = 0, nStopsA = 1, nStopsB = 1, actualCost = 0,
                    plannedCapital = (("capital" in candidate) ? candidate.capital : 0) };
+  if (FLEET_ARB && !OpexFleetRequest(candidate, "road", "add_vehicle", candidate.capital,
+      candidate.profitAnnual, "BUILD_ROAD")) { result.reason = "CASH"; return FLEET_ARB ? OpexFleetResult(candidate, "BUILD_ROAD", result) : result; }
   /* road_cost_probe : symetrique de air_cost_probe (builder_air.nut) et du devis rail P1.1.
    * Tout AITestMode dans les sous-modules (satellites PORTFOLIO, JOINED_STOPS) est isole
    * sous bouclier AIAccounting imbrique afin de ne mesurer que les commandes reelles executees. */
@@ -5179,7 +5181,7 @@ function OpexBuildRoadRoute(catalog, budget, plan, candidate)
         OpexRoadTileTooClose(plan.stopB.tile, liveBusStops, ROAD_BUS_STOP_MIN_DISTANCE) ||
         AIMap.DistanceManhattan(plan.stopA.tile, plan.stopB.tile) < ROAD_BUS_STOP_MIN_DISTANCE) {
       result.reason = "SPACING";
-      return result;
+      return FLEET_ARB ? OpexFleetResult(candidate, "BUILD_ROAD", result) : result;
     }
   }
 
@@ -5194,7 +5196,7 @@ function OpexBuildRoadRoute(catalog, budget, plan, candidate)
   if (!OpexVehicleSlotAvailable(AIVehicle.VT_ROAD, plannedRoad)) {
     result.reason = "NOSLOT";
     OpexDecide("VEHICLE_SLOT", "mode=road planned=" + plannedRoad + " reason=NOSLOT");
-    return result;
+    return FLEET_ARB ? OpexFleetResult(candidate, "BUILD_ROAD", result) : result;
   }
 
   budget.begin();
@@ -5203,7 +5205,7 @@ function OpexBuildRoadRoute(catalog, budget, plan, candidate)
     result.error = AIError.GetLastError();
     result.opcodes = budget.end("build_roads");
     result.actualCost = costs.GetCosts();
-    OpexRoadRollback(null, null, null, built, added); result.reason = "ROAD"; return result;
+    OpexRoadRollback(null, null, null, built, added); result.reason = "ROAD"; return FLEET_ARB ? OpexFleetResult(candidate, "BUILD_ROAD", result) : result;
   }
   result.opcodes = budget.end("build_roads");
 
@@ -5246,7 +5248,7 @@ function OpexBuildRoadRoute(catalog, budget, plan, candidate)
                       AIRoad.IsRoadStationTile(plan.stopA.tile) &&
                       AICompany.IsMine(AITile.GetOwner(plan.stopA.tile))
                       ? plan.stopA.tile : null;
-    OpexRoadRollback(partialA, null, null, built, added); result.reason = "ASTOP"; return result;
+    OpexRoadRollback(partialA, null, null, built, added); result.reason = "ASTOP"; return FLEET_ARB ? OpexFleetResult(candidate, "BUILD_ROAD", result) : result;
   }
   local okB = false;
   if (driveThroughB) {
@@ -5272,14 +5274,14 @@ function OpexBuildRoadRoute(catalog, budget, plan, candidate)
                       ? plan.stopB.tile : null;
     OpexRoadRollback(stopA, partialB, null, built, added);
     result.actualCost = costs.GetCosts();
-    result.reason = "BSTOP"; return result;
+    result.reason = "BSTOP"; return FLEET_ARB ? OpexFleetResult(candidate, "BUILD_ROAD", result) : result;
   }
   local stationA = AIStation.GetStationID(stopA);
   local stationB = AIStation.GetStationID(stopB);
   if (!AIStation.IsValidStation(stationA) || !AIStation.IsValidStation(stationB) || stationA == stationB) {
     result.opcodes += budget.end("build_road_stops");
     result.actualCost = costs.GetCosts();
-    OpexRoadRollback(stopA, stopB, null, built, added); result.reason = "STATION"; return result;
+    OpexRoadRollback(stopA, stopB, null, built, added); result.reason = "STATION"; return FLEET_ARB ? OpexFleetResult(candidate, "BUILD_ROAD", result) : result;
   }
 
   result.opcodes += budget.end("build_road_stops");
@@ -5307,7 +5309,7 @@ function OpexBuildRoadRoute(catalog, budget, plan, candidate)
       OpexRoadRollback(stopA, stopB, null, built, added, portfolioSatellites);
       result.actualCost = costs.GetCosts();
       result.reason = "PORTFOLIO_ROLLBACK";
-      return result;
+      return FLEET_ARB ? OpexFleetResult(candidate, "BUILD_ROAD", result) : result;
     }
   }
 
@@ -5356,7 +5358,7 @@ function OpexBuildRoadRoute(catalog, budget, plan, candidate)
   if (depot == null) {
     result.error = AIError.GetLastError(); OpexRoadRollback(stopA, stopB, null, built, added, portfolioSatellites);
     result.actualCost = costs.GetCosts();
-    result.reason = "DEPOT"; return result;
+    result.reason = "DEPOT"; return FLEET_ARB ? OpexFleetResult(candidate, "BUILD_ROAD", result) : result;
   }
 
   budget.begin();
@@ -5365,20 +5367,20 @@ function OpexBuildRoadRoute(catalog, budget, plan, candidate)
     result.opcodes += budget.end("build_road_vehicles");
     OpexRoadRollback(stopA, stopB, depot, built, added, portfolioSatellites);
     result.actualCost = costs.GetCosts();
-    result.reason = "REFIT"; return result;
+    result.reason = "REFIT"; return FLEET_ARB ? OpexFleetResult(candidate, "BUILD_ROAD", result) : result;
   }
   local first = AIVehicle.BuildVehicleWithRefit(depot, candidate.engine.id, cargo);
   if (!AIVehicle.IsValidVehicle(first)) {
     result.error = AIError.GetLastError(); result.opcodes += budget.end("build_road_vehicles");
     result.actualCost = costs.GetCosts();
-    OpexRoadRollback(stopA, stopB, depot, built, added, portfolioSatellites); result.reason = "VEH"; return result;
+    OpexRoadRollback(stopA, stopB, depot, built, added, portfolioSatellites); result.reason = "VEH"; return FLEET_ARB ? OpexFleetResult(candidate, "BUILD_ROAD", result) : result;
   }
   built.append(first);
   if (AIVehicle.GetCapacity(first, cargo) <= 0 ||
       !AIRoad.RoadVehHasPowerOnRoad(AIVehicle.GetRoadType(first), catalog.roadType)) {
     result.opcodes += budget.end("build_road_vehicles");
     result.actualCost = costs.GetCosts();
-    OpexRoadRollback(stopA, stopB, depot, built, added, portfolioSatellites); result.reason = "POWER"; return result;
+    OpexRoadRollback(stopA, stopB, depot, built, added, portfolioSatellites); result.reason = "POWER"; return FLEET_ARB ? OpexFleetResult(candidate, "BUILD_ROAD", result) : result;
   }
 
   /* ROAD100-31 : aucune preview ne permet d'acheter un bus en plus.
@@ -5472,7 +5474,7 @@ function OpexBuildRoadRoute(catalog, budget, plan, candidate)
   if (!orderA || !orderB || AIOrder.GetOrderCount(first) != 2) {
     result.error = !orderA ? errorA : errorB; result.opcodes += budget.end("build_road_vehicles");
     result.actualCost = costs.GetCosts();
-    OpexRoadRollback(stopA, stopB, depot, built, added, portfolioSatellites); result.reason = "ORDERS"; return result;
+    OpexRoadRollback(stopA, stopB, depot, built, added, portfolioSatellites); result.reason = "ORDERS"; return FLEET_ARB ? OpexFleetResult(candidate, "BUILD_ROAD", result) : result;
   }
 
   /* Les vehicules suivants sont CLONES du premier avec partage d'ordres : le clone reprend le
@@ -5553,7 +5555,7 @@ function OpexBuildRoadRoute(catalog, budget, plan, candidate)
     result.actualCost = costs.GetCosts();
     OpexRoadRollback(stopA, stopB, depot, built, added, portfolioSatellites);
     result.reason = "START";
-    return result;
+    return FLEET_ARB ? OpexFleetResult(candidate, "BUILD_ROAD", result) : result;
   }
   /* L'economie de 3/4 bus n'est publiee dans la ligne qu'APRES
    * construction et demarrage effectifs ; aucun bus predit non achete
@@ -5599,7 +5601,7 @@ function OpexBuildRoadRoute(catalog, budget, plan, candidate)
   result.cost = balanceBefore - AICompany.GetBankBalance(AICompany.COMPANY_SELF);
   result.actualCost = costs.GetCosts();
 
-  return result;
+  return FLEET_ARB ? OpexFleetResult(candidate, "BUILD_ROAD", result) : result;
 }
 
 /* ROAD100-14 : un nouvel arret de tour A1 est une STATION DISTINCTE, pas un
@@ -6441,12 +6443,12 @@ function OpexRoadRefleet(catalog, line, have, target)
 {
   local result = { added = 0, after = have, reason = "OK" };
   local missing = target - have;
-  if (missing <= 0) { result.reason = "FULL"; return result; }
+  if (missing <= 0) { result.reason = "FULL"; return FLEET_ARB ? OpexFleetResult(line, "ROAD_REFLEET", result) : result; }
   if (!("depot" in line) || line.depot == null || !AIRoad.IsRoadDepotTile(line.depot)) {
-    result.reason = "NODEPT"; return result;
+    result.reason = "NODEPT"; return FLEET_ARB ? OpexFleetResult(line, "ROAD_REFLEET", result) : result;
   }
   if (!AIRoad.IsRoadStationTile(line.stationA) || !AIRoad.IsRoadStationTile(line.stationB)) {
-    result.reason = "STN"; return result;
+    result.reason = "STN"; return FLEET_ARB ? OpexFleetResult(line, "ROAD_REFLEET", result) : result;
   }
   AIRoad.SetCurrentRoadType(catalog.roadType);
 
@@ -6468,30 +6470,39 @@ function OpexRoadRefleet(catalog, line, have, target)
   } else if (engine != null) {
     unitPrice = engine.price;
   } else {
-    result.reason = "NOENG"; return result;
+    result.reason = "NOENG"; return FLEET_ARB ? OpexFleetResult(line, "ROAD_REFLEET", result) : result;
   }
-  if (unitPrice <= 0) { result.reason = "PRICE"; return result; }
+  if (unitPrice <= 0) { result.reason = "PRICE"; return FLEET_ARB ? OpexFleetResult(line, "ROAD_REFLEET", result) : result; }
   local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
   local affordable = money / unitPrice;
-  if (affordable < 1) { result.reason = "CASH"; return result; }
+  if (affordable < 1) { result.reason = "CASH"; return FLEET_ARB ? OpexFleetResult(line, "ROAD_REFLEET", result) : result; }
   if (missing > affordable) missing = affordable;
 
+  if (FLEET_ARB) {
+    /* One vehicle per action: next proposal re-quotes the next marginal step. */
+    missing = 1;
+    if (engine == null || (template != null && engine.id != AIVehicle.GetEngineType(template))
+        || !OpexFleetRequest(line, "road", "add_vehicle", unitPrice,
+            OpexFleetRoadProfit(catalog, line, have, missing, engine), "ROAD_REFLEET")) {
+      result.reason = "CASH"; return FLEET_ARB ? OpexFleetResult(line, "ROAD_REFLEET", result) : result;
+    }
+  }
   local built = [];
   if (template != null) {
     for (local i = 0; i < missing; i++) {
       local extra = AIVehicle.CloneVehicle(line.depot, template, true);
       if (!AIVehicle.IsValidVehicle(extra)) {
-        if (built.len() == 0) { result.reason = "CLONE"; return result; }
+        if (built.len() == 0) { result.reason = "CLONE"; return FLEET_ARB ? OpexFleetResult(line, "ROAD_REFLEET", result) : result; }
         break;
       }
       built.append(extra);
     }
   } else {
     if (OpexRoadRefitCapacity(line.depot, engine, line.cargo) <= 0) {
-      result.reason = "REFIT"; return result;
+      result.reason = "REFIT"; return FLEET_ARB ? OpexFleetResult(line, "ROAD_REFLEET", result) : result;
     }
     local first = AIVehicle.BuildVehicleWithRefit(line.depot, engine.id, line.cargo);
-    if (!AIVehicle.IsValidVehicle(first)) { result.reason = "VEH"; return result; }
+    if (!AIVehicle.IsValidVehicle(first)) { result.reason = "VEH"; return FLEET_ARB ? OpexFleetResult(line, "ROAD_REFLEET", result) : result; }
     built.append(first);
     local nonstopFlag = AIOrder.OF_NON_STOP_INTERMEDIATE;
     local isFreight = (("kind" in line) && line.kind == "freight");
@@ -6531,7 +6542,7 @@ function OpexRoadRefleet(catalog, line, have, target)
             || !AIOrder.AppendOrder(first, line.stationB, destFlags))) ||
         AIOrder.GetOrderCount(first) != (tourValid ? 4 : 2)) {
       AIVehicle.SellVehicle(first);
-      result.reason = "ORDER"; return result;
+      result.reason = "ORDER"; return FLEET_ARB ? OpexFleetResult(line, "ROAD_REFLEET", result) : result;
     }
     for (local i = 1; i < missing; i++) {
       local extra = AIVehicle.CloneVehicle(line.depot, first, true);
@@ -6548,7 +6559,7 @@ function OpexRoadRefleet(catalog, line, have, target)
       result.added++;
     }
   }
-  if (result.added == 0) { result.reason = "START"; return result; }
+  if (result.added == 0) { result.reason = "START"; return FLEET_ARB ? OpexFleetResult(line, "ROAD_REFLEET", result) : result; }
   result.after = have + result.added;
-  return result;
+  return FLEET_ARB ? OpexFleetResult(line, "ROAD_REFLEET", result) : result;
 }

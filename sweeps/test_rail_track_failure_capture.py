@@ -5,6 +5,9 @@ diagnostics exactly, modulo comments/whitespace. The later freight TRKFAIL
 memory is checked separately and excluded from the historical comparison.
 This is not a NoAI VM test.
 """
+
+# Compare historical contracts after the exact outer FLEET-ARB projection.
+from fleet_arb_off import historical_read_text as fleet_read_text
 import hashlib
 from pathlib import Path
 import re
@@ -138,7 +141,7 @@ def without_v199_v163_plan(body):
 class TestRailTrackFailureCapture(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.source = (AI / "builder_rail.nut").read_text(encoding="utf-8")
+        cls.source = fleet_read_text(AI / "builder_rail.nut", encoding="utf-8")
 
     def test_inlining_capture_restores_original_builder(self):
         source = without_v233l_pose(self.source)

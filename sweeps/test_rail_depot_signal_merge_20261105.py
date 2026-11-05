@@ -1,5 +1,8 @@
 """RAIL-DEPOT-SIGNAL strict ROAD+RAIL merge identities, no fixture rewrites."""
 
+# Compare historical contracts after the exact outer FLEET-ARB projection.
+from fleet_arb_off import historical_read_text as fleet_read_text
+
 import hashlib
 import json
 from pathlib import Path
@@ -23,14 +26,13 @@ def _sha(source):
 
 class RailDepotSignalMergedProjection(unittest.TestCase):
     def test_frozen_historical_fixture_is_untouched(self):
-        fixture = json.loads((ROOT / "sweeps" / "fixtures" / "rail_depot_signal_off.json")
-                             .read_text(encoding="utf-8"))
+        fixture = json.loads(fleet_read_text(ROOT / "sweeps" / "fixtures" / "rail_depot_signal_off.json", encoding="utf-8"))
         self.assertEqual(FIXTURE, fixture)
         self.assertEqual(set(FIXTURE["baseline_sha256"]), set(_REVIEWED_MERGE_RDS_SHA))
 
     def test_actual_merged_bytes_have_distinct_reviewed_sha(self):
         for name, approved in _REVIEWED_MERGE_RDS_SHA.items():
-            current = (ROOT / "ai" / "OpexAI" / name).read_text(encoding="utf-8")
+            current = fleet_read_text(ROOT / "ai" / "OpexAI" / name, encoding="utf-8")
             before = off_search_prio_source(name, current)
             if name in ("info.nut", "globals_pre.nut", "settings.nut"):
                 before = off_config_bytes(name, before.encode("utf-8")).decode("utf-8")
@@ -57,7 +59,7 @@ class RailDepotSignalMergedProjection(unittest.TestCase):
         }
         for name, (before, after) in mutations.items():
             with self.subTest(name=name):
-                source = (ROOT / "ai" / "OpexAI" / name).read_text(encoding="utf-8")
+                source = fleet_read_text(ROOT / "ai" / "OpexAI" / name, encoding="utf-8")
                 self.assertIn(before, source)
                 damaged = source.replace(before, after, 1)
                 self.assertNotEqual(source, damaged)

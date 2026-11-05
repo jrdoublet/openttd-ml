@@ -8,6 +8,9 @@ des opérations de sûreté, et (faute de compilateur) les références et arit�
 des appels du module neuf.
 """
 
+# Compare historical contracts after the exact outer FLEET-ARB projection.
+from fleet_arb_off import historical_read_text as fleet_read_text
+
 import hashlib
 import re
 import sys
@@ -34,7 +37,7 @@ PRE_INTERVENTION_SHA = {
 
 
 def read(name):
-    return (AI / name).read_text(encoding="utf8")
+    return fleet_read_text(AI / name, encoding="utf8")
 
 
 def strip_squirrel(source):
@@ -89,7 +92,7 @@ def call_args(source, start):
 def global_signatures():
     sigs = {}
     for path in AI.rglob("*.nut"):
-        text = strip_squirrel(path.read_text(encoding="utf8", errors="replace"))
+        text = strip_squirrel(fleet_read_text(path, encoding="utf8", errors="replace"))
         for m in re.finditer(r"\bfunction\s+(Opex\w+)\s*\(([^)]*)\)", text):
             params = [p.strip() for p in split_args(m.group(2))]
             required = sum(1 for p in params if p and "=" not in p)

@@ -639,6 +639,8 @@ function OpexV198ExecuteRailPlan(catalog, budget, candidate, plan)
                    segmentedSegments = plan.segmentedSegments,
                    segmentedBacktracks = plan.segmentedBacktracks,
                    segmentedLocalChoices = plan.segmentedLocalChoices };
+  if (FLEET_ARB && !OpexFleetRequest(candidate, "rail", "add_vehicle", plan.capital,
+      candidate.profitAnnual, "BUILD_RAIL")) { result.reason = "CASH"; return FLEET_ARB ? OpexFleetResult(candidate, "BUILD_RAIL", result) : result; }
 
   // 1. Recherche et validation des emplacements des deux gabarits
   local srcTemplate = OpexFindSourceTemplateSite(catalog, candidate, plan.length);
@@ -660,11 +662,11 @@ function OpexV198ExecuteRailPlan(catalog, budget, candidate, plan)
   if (money < need) {
     result.reason = "CASH";
     if (DECISION_LOG) OpexDecide("V198", "step=budget ok=0 reason=CASH need=" + need + " money=" + money);
-    return result;
+    return FLEET_ARB ? OpexFleetResult(candidate, "BUILD_RAIL", result) : result;
   }
   if (!OpexRailVehicleSlotAvailable()) {
     result.reason = "NOTRAIN";
-    return result;
+    return FLEET_ARB ? OpexFleetResult(candidate, "BUILD_RAIL", result) : result;
   }
 
   // 2. Pose reelle des deux gares
@@ -847,5 +849,5 @@ function OpexV198ExecuteRailPlan(catalog, budget, candidate, plan)
   if (DECISION_LOG) {
     OpexDecide("V198", "step=complete ok=1 trains=1 cost=" + result.actualCost);
   }
-  return result;
+  return FLEET_ARB ? OpexFleetResult(candidate, "BUILD_RAIL", result) : result;
 }

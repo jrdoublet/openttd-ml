@@ -519,6 +519,8 @@ function OpexBuildWaterRoute(catalog, budget, plan)
   local result = { ok = false, reason = "", opcodes = 0, error = 0, dockA = null,
                    dockB = null, stationA = null, stationB = null, depot = null, vehicle = null,
                    actualCost = 0, plannedCapital = OpexWaterPlannedCapital(catalog, plan) };
+  if (FLEET_ARB && !OpexFleetRequest(plan, "water", "add_vehicle", result.plannedCapital,
+      OpexFleetPlanProfit(plan), "BUILD_WATER")) { result.reason = "CASH"; return FLEET_ARB ? OpexFleetResult(plan, "BUILD_WATER", result) : result; }
   local costs = C63_INVEST_PROBE ? AIAccounting() : null;
   local dockA = null;
   local dockB = null;
@@ -530,7 +532,7 @@ function OpexBuildWaterRoute(catalog, budget, plan)
   if (!OpexVehicleSlotAvailable(AIVehicle.VT_WATER, 1)) {
     result.reason = "NOSLOT";
     OpexDecide("VEHICLE_SLOT", "mode=water planned=1 reason=NOSLOT");
-    return OpexWaterStampCost(result, costs);
+    return FLEET_ARB ? OpexFleetResult(plan, "BUILD_WATER", OpexWaterStampCost(result, costs)) : OpexWaterStampCost(result, costs);
   }
 
   budget.begin();
@@ -540,7 +542,7 @@ function OpexBuildWaterRoute(catalog, budget, plan)
   if (okA && AIMarine.IsDockTile(plan.siteA.dock)) dockA = plan.siteA.dock;
   if (dockA == null) {
     result.error = errorA; result.opcodes += budget.end("build_docks"); result.reason = "ADOCK";
-    return OpexWaterStampCost(result, costs);
+    return FLEET_ARB ? OpexFleetResult(plan, "BUILD_WATER", OpexWaterStampCost(result, costs)) : OpexWaterStampCost(result, costs);
   }
   local okB = AIMarine.BuildDock(plan.siteB.dock, AIStation.STATION_NEW);
   local errorB = okB ? 0 : AIError.GetLastError();
@@ -548,17 +550,17 @@ function OpexBuildWaterRoute(catalog, budget, plan)
   result.opcodes += budget.end("build_docks");
   if (dockB == null) {
     result.error = errorB; OpexWaterRollback(dockA, null, null, null); result.reason = "BDOCK";
-    return OpexWaterStampCost(result, costs);
+    return FLEET_ARB ? OpexFleetResult(plan, "BUILD_WATER", OpexWaterStampCost(result, costs)) : OpexWaterStampCost(result, costs);
   }
   local stationA = AIStation.GetStationID(dockA);
   local stationB = AIStation.GetStationID(dockB);
   if (!AIStation.IsValidStation(stationA) || !AIStation.IsValidStation(stationB) || stationA == stationB) {
-    OpexWaterRollback(dockA, dockB, null, null); result.reason = "STATION"; return OpexWaterStampCost(result, costs);
+    OpexWaterRollback(dockA, dockB, null, null); result.reason = "STATION"; return FLEET_ARB ? OpexFleetResult(plan, "BUILD_WATER", OpexWaterStampCost(result, costs)) : OpexWaterStampCost(result, costs);
   }
 
   local orderDistance = AIOrder.GetOrderDistance(AIVehicle.VT_WATER, dockA, dockB);
   if (orderDistance < 0 || !OpexWaterHasRange(catalog, orderDistance)) {
-    OpexWaterRollback(dockA, dockB, null, null); result.reason = "RANGE"; return OpexWaterStampCost(result, costs);
+    OpexWaterRollback(dockA, dockB, null, null); result.reason = "RANGE"; return FLEET_ARB ? OpexFleetResult(plan, "BUILD_WATER", OpexWaterStampCost(result, costs)) : OpexWaterStampCost(result, costs);
   }
 
   /* Les fronts et leur composant sont relus apres les constructions reelles. */
@@ -567,19 +569,19 @@ function OpexBuildWaterRoute(catalog, budget, plan)
   local accessB = OpexWaterDockAccess(dockB);
   if (accessA == null || accessB == null) {
     result.opcodes += budget.end("build_water_depot");
-    OpexWaterRollback(dockA, dockB, null, null); result.reason = "NOWATER"; return OpexWaterStampCost(result, costs);
+    OpexWaterRollback(dockA, dockB, null, null); result.reason = "NOWATER"; return FLEET_ARB ? OpexFleetResult(plan, "BUILD_WATER", OpexWaterStampCost(result, costs)) : OpexWaterStampCost(result, costs);
   }
   local realA = { dock = dockA, waterTiles = accessA.fronts };
   local realB = { dock = dockB, waterTiles = accessB.fronts };
   /* Verification historique de connectivite apres construction des quais. */
   if (OpexWaterFindConnection(realA, realB) < 0) {
     result.opcodes += budget.end("build_water_depot");
-    OpexWaterRollback(dockA, dockB, null, null); result.reason = "NOWATER"; return OpexWaterStampCost(result, costs);
+    OpexWaterRollback(dockA, dockB, null, null); result.reason = "NOWATER"; return FLEET_ARB ? OpexFleetResult(plan, "BUILD_WATER", OpexWaterStampCost(result, costs)) : OpexWaterStampCost(result, costs);
   }
   local depotPlan = OpexWaterFindDepot(realA, realB);
   if (depotPlan == null) {
     result.opcodes += budget.end("build_water_depot");
-    OpexWaterRollback(dockA, dockB, null, null); result.reason = "NOWATER"; return OpexWaterStampCost(result, costs);
+    OpexWaterRollback(dockA, dockB, null, null); result.reason = "NOWATER"; return FLEET_ARB ? OpexFleetResult(plan, "BUILD_WATER", OpexWaterStampCost(result, costs)) : OpexWaterStampCost(result, costs);
   }
   local depotOk = AIMarine.BuildWaterDepot(depotPlan.tile, depotPlan.front);
   local depotError = depotOk ? 0 : AIError.GetLastError();
@@ -587,7 +589,7 @@ function OpexBuildWaterRoute(catalog, budget, plan)
   result.opcodes += budget.end("build_water_depot");
   if (depot == null) {
     result.error = depotError; OpexWaterRollback(dockA, dockB, null, null); result.reason = "DEPOT";
-    return OpexWaterStampCost(result, costs);
+    return FLEET_ARB ? OpexFleetResult(plan, "BUILD_WATER", OpexWaterStampCost(result, costs)) : OpexWaterStampCost(result, costs);
   }
 
   budget.begin();
@@ -622,22 +624,22 @@ function OpexBuildWaterRoute(catalog, budget, plan)
   }
   if (chosen == null || chosenCapacity <= 0) {
     result.opcodes += budget.end("build_ships");
-    OpexWaterRollback(dockA, dockB, depot, null); result.reason = "REFIT"; return OpexWaterStampCost(result, costs);
+    OpexWaterRollback(dockA, dockB, depot, null); result.reason = "REFIT"; return FLEET_ARB ? OpexFleetResult(plan, "BUILD_WATER", OpexWaterStampCost(result, costs)) : OpexWaterStampCost(result, costs);
   }
   ship = AIVehicle.BuildVehicleWithRefit(depot, chosen.id, catalog.paxCargo);
   local shipError = AIError.GetLastError();
   if (!AIVehicle.IsValidVehicle(ship)) {
     result.error = shipError; result.opcodes += budget.end("build_ships");
-    OpexWaterRollback(dockA, dockB, depot, null); result.reason = "SHIP"; return OpexWaterStampCost(result, costs);
+    OpexWaterRollback(dockA, dockB, depot, null); result.reason = "SHIP"; return FLEET_ARB ? OpexFleetResult(plan, "BUILD_WATER", OpexWaterStampCost(result, costs)) : OpexWaterStampCost(result, costs);
   }
   if (AIVehicle.GetCapacity(ship, catalog.paxCargo) <= 0) {
     result.opcodes += budget.end("build_ships"); OpexWaterRollback(dockA, dockB, depot, ship);
-    result.reason = "PAX"; return OpexWaterStampCost(result, costs);
+    result.reason = "PAX"; return FLEET_ARB ? OpexFleetResult(plan, "BUILD_WATER", OpexWaterStampCost(result, costs)) : OpexWaterStampCost(result, costs);
   }
   local maxOrderDistance = AIEngine.GetMaximumOrderDistance(chosen.id);
   if (maxOrderDistance > 0 && orderDistance > maxOrderDistance) {
     result.opcodes += budget.end("build_ships"); OpexWaterRollback(dockA, dockB, depot, ship);
-    result.reason = "RANGE"; return OpexWaterStampCost(result, costs);
+    result.reason = "RANGE"; return FLEET_ARB ? OpexFleetResult(plan, "BUILD_WATER", OpexWaterStampCost(result, costs)) : OpexWaterStampCost(result, costs);
   }
   local orderA = AIOrder.AppendOrder(ship, dockA, AIOrder.OF_NONE);
   local errorOrderA = orderA ? 0 : AIError.GetLastError();
@@ -645,18 +647,18 @@ function OpexBuildWaterRoute(catalog, budget, plan)
   local errorOrderB = orderB ? 0 : AIError.GetLastError();
   if (!orderA || !orderB || AIOrder.GetOrderCount(ship) != 2) {
     result.error = !orderA ? errorOrderA : errorOrderB; result.opcodes += budget.end("build_ships");
-    OpexWaterRollback(dockA, dockB, depot, ship); result.reason = "ORDERS"; return OpexWaterStampCost(result, costs);
+    OpexWaterRollback(dockA, dockB, depot, ship); result.reason = "ORDERS"; return FLEET_ARB ? OpexFleetResult(plan, "BUILD_WATER", OpexWaterStampCost(result, costs)) : OpexWaterStampCost(result, costs);
   }
   local started = AIVehicle.StartStopVehicle(ship);
   local startError = started ? 0 : AIError.GetLastError();
   if (!started) {
     result.error = startError; result.opcodes += budget.end("build_ships");
-    OpexWaterRollback(dockA, dockB, depot, ship); result.reason = "START"; return OpexWaterStampCost(result, costs);
+    OpexWaterRollback(dockA, dockB, depot, ship); result.reason = "START"; return FLEET_ARB ? OpexFleetResult(plan, "BUILD_WATER", OpexWaterStampCost(result, costs)) : OpexWaterStampCost(result, costs);
   }
   result.opcodes += budget.end("build_ships");
   result.ok = true; result.reason = "OK"; result.dockA = dockA; result.dockB = dockB;
   result.stationA = stationA; result.stationB = stationB; result.depot = depot; result.vehicle = ship;
-  return OpexWaterStampCost(result, costs);
+  return FLEET_ARB ? OpexFleetResult(plan, "BUILD_WATER", OpexWaterStampCost(result, costs)) : OpexWaterStampCost(result, costs);
 }
 
 /* Une ligne eau ne porte qu'un navire. Son depot, son moteur et ses deux quais
@@ -667,27 +669,29 @@ function OpexWaterRefleetCrashedShip(line)
   local result = { added = 0, reason = "" };
   if (!(("refleetEngine" in line) && line.refleetEngine >= 0) ||
       !("depot" in line) || !AIMarine.IsWaterDepotTile(line.depot)) {
-    result.reason = "NOMETADATA"; return result;
+    result.reason = "NOMETADATA"; return FLEET_ARB ? OpexFleetResult(line, "WATER_CRASH", result) : result;
   }
   if (!AIMarine.IsDockTile(line.stationA) || !AIMarine.IsDockTile(line.stationB)) {
-    result.reason = "NODOCK"; return result;
+    result.reason = "NODOCK"; return FLEET_ARB ? OpexFleetResult(line, "WATER_CRASH", result) : result;
   }
   if (AIVehicle.GetBuildWithRefitCapacity(line.depot, line.refleetEngine, line.cargo) <= 0) {
-    result.reason = "REFIT"; return result;
+    result.reason = "REFIT"; return FLEET_ARB ? OpexFleetResult(line, "WATER_CRASH", result) : result;
   }
   local price = AIEngine.GetPrice(line.refleetEngine);
   if (price <= 0 || AICompany.GetBankBalance(AICompany.COMPANY_SELF) < price) {
-    result.reason = "CASH"; return result;
+    result.reason = "CASH"; return FLEET_ARB ? OpexFleetResult(line, "WATER_CRASH", result) : result;
   }
+  if (FLEET_ARB && !OpexFleetRequest(line, "water", "replace", price,
+      OpexFleetPlanProfit(line), "WATER_CRASH")) { result.reason = "CASH"; return FLEET_ARB ? OpexFleetResult(line, "WATER_CRASH", result) : result; }
   local ship = AIVehicle.BuildVehicleWithRefit(line.depot, line.refleetEngine, line.cargo);
-  if (!AIVehicle.IsValidVehicle(ship)) { result.reason = "BUILD"; return result; }
+  if (!AIVehicle.IsValidVehicle(ship)) { result.reason = "BUILD"; return FLEET_ARB ? OpexFleetResult(line, "WATER_CRASH", result) : result; }
   if (!AIOrder.AppendOrder(ship, line.stationA, AIOrder.OF_NONE) ||
       !AIOrder.AppendOrder(ship, line.stationB, AIOrder.OF_NONE) || AIOrder.GetOrderCount(ship) != 2) {
-    AIVehicle.SellVehicle(ship); result.reason = "ORDER"; return result;
+    AIVehicle.SellVehicle(ship); result.reason = "ORDER"; return FLEET_ARB ? OpexFleetResult(line, "WATER_CRASH", result) : result;
   }
   if (!AIVehicle.StartStopVehicle(ship)) {
     if (AIVehicle.IsStoppedInDepot(ship)) AIVehicle.SellVehicle(ship);
-    result.reason = "START"; return result;
+    result.reason = "START"; return FLEET_ARB ? OpexFleetResult(line, "WATER_CRASH", result) : result;
   }
   if (!("vehicles" in line)) line.vehicles <- [];
   else if (line.vehicles == null) line.vehicles = [];
@@ -695,5 +699,5 @@ function OpexWaterRefleetCrashedShip(line)
   if ("vehicle" in line) line.vehicle = ship;
   else line.vehicle <- ship;
   result.added = 1; result.reason = "OK";
-  return result;
+  return FLEET_ARB ? OpexFleetResult(line, "WATER_CRASH", result) : result;
 }

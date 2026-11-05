@@ -4,6 +4,9 @@ No fixtures are regenerated.  The merge adapter may skip only seven reviewed
 RAIL-only context hunks; all actual ROAD100 deletions use frozen exact hunks.
 """
 
+# Compare historical contracts after the exact outer FLEET-ARB projection.
+from fleet_arb_off import historical_read_bytes as fleet_read_bytes, historical_read_text as fleet_read_text
+
 import difflib
 import hashlib
 import json
@@ -32,7 +35,7 @@ _LEGACY_LAYERS = (
 def _historical_off(name, source):
     """Independently reconstruct the pre-adapter projection for master."""
     for filename, label in _LEGACY_LAYERS:
-        data = json.loads((road.FIXTURE.parent / filename).read_text(encoding="utf-8"))
+        data = json.loads(fleet_read_text(road.FIXTURE.parent / filename, encoding="utf-8"))
         source = road._subtract_exact(name, source, data.get(name), label)
     return source
 
@@ -53,8 +56,7 @@ class Road100MergedProjection(unittest.TestCase):
 
     def test_reviewed_rail_only_hunks_do_not_contain_road_changes(self):
         districts = json.loads(
-            (road.FIXTURE.parent / "road100_bus_districts_hunks.json")
-            .read_text(encoding="utf-8")
+            fleet_read_text(road.FIXTURE.parent / "road100_bus_districts_hunks.json", encoding="utf-8")
         )
         for name, (_, _, indices) in road.ROAD1Y_B2_RAIL_MERGE.items():
             for index in indices:
@@ -71,7 +73,7 @@ class Road100MergedProjection(unittest.TestCase):
     def test_reviewed_merge_projects_all_road_sources_idempotently(self):
         for name in road.FILES:
             with self.subTest(name=name):
-                source = (road.ROOT / "ai" / "OpexAI" / name).read_text(encoding="utf-8")
+                source = fleet_read_text(road.ROOT / "ai" / "OpexAI" / name, encoding="utf-8")
                 if name in road.ROAD1Y_B2_RAIL_MERGE:
                     expected_sha = road.ROAD1Y_B2_RAIL_MERGE[name][0]
                     self.assertEqual(hashlib.sha256(source.encode("utf-8")).hexdigest(), expected_sha)
@@ -86,7 +88,7 @@ class Road100MergedProjection(unittest.TestCase):
         }
         for name, markers in retained.items():
             with self.subTest(retained=name):
-                source = (road.ROOT / "ai" / "OpexAI" / name).read_text(encoding="utf-8")
+                source = fleet_read_text(road.ROOT / "ai" / "OpexAI" / name, encoding="utf-8")
                 projected = road.off_source(name, source)
                 for marker in markers:
                     self.assertIn(marker, projected)
@@ -102,7 +104,7 @@ class Road100MergedProjection(unittest.TestCase):
         from rail_depot_signal_legacy import strip_if_present
 
         for name, reviewed in road.ROAD1Y_B2_RAIL_MERGE.items():
-            raw = (road.ROOT / "ai" / "OpexAI" / name).read_bytes()
+            raw = fleet_read_bytes(road.ROOT / "ai" / "OpexAI" / name)
             stages = []
             raw = rail_long_config_off_bytes(name, raw)
             stages.append(("rail_long_off", raw))
@@ -128,8 +130,7 @@ class Road100MergedProjection(unittest.TestCase):
                         continue
                     self.assertIn(digest, accepted)
                     districts = json.loads(
-                        (road.FIXTURE.parent / "road100_bus_districts_hunks.json")
-                        .read_text(encoding="utf-8")
+                        fleet_read_text(road.FIXTURE.parent / "road100_bus_districts_hunks.json", encoding="utf-8")
                     )[name]
                     b2 = road._subtract_road1y_b2(name, source, districts)
                     self.assertEqual(hashlib.sha256(b2.encode("utf-8")).hexdigest(), accepted[digest])
@@ -150,17 +151,16 @@ class Road100MergedProjection(unittest.TestCase):
         }
         for name, (before, after) in mutations.items():
             with self.subTest(name=name):
-                source = (road.ROOT / "ai" / "OpexAI" / name).read_text(encoding="utf-8")
+                source = fleet_read_text(road.ROOT / "ai" / "OpexAI" / name, encoding="utf-8")
                 self.assertIn(before, source)
                 with self.assertRaises(AssertionError):
                     road.off_source(name, source.replace(before, after, 1))
 
     def test_partial_or_modified_road_hunk_fails_closed(self):
         name = "candidates.nut"
-        source = (road.ROOT / "ai" / "OpexAI" / name).read_text(encoding="utf-8")
+        source = fleet_read_text(road.ROOT / "ai" / "OpexAI" / name, encoding="utf-8")
         data = json.loads(
-            (road.FIXTURE.parent / "road100_bus_districts_hunks.json")
-            .read_text(encoding="utf-8")
+            fleet_read_text(road.FIXTURE.parent / "road100_bus_districts_hunks.json", encoding="utf-8")
         )[name]
         self.assertEqual(source.count(data[0]["after"]), 1)
         partial = source.replace(data[0]["after"], data[0]["before"], 1)

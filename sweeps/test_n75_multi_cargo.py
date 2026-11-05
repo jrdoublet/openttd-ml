@@ -4,6 +4,9 @@ The legacy 58 setting declarations and PO01C bytes remain protected by
 historical_bytes, never by replacing historical SHA literals.
 """
 
+# Compare historical contracts after the exact outer FLEET-ARB projection.
+from fleet_arb_off import historical_read_bytes as fleet_read_bytes, historical_read_text as fleet_read_text
+
 from pathlib import Path
 import re
 import unittest
@@ -14,7 +17,7 @@ AI = Path(__file__).resolve().parents[1] / "ai" / "OpexAI"
 
 
 def source(name):
-    return (AI / name).read_text(encoding="utf-8")
+    return fleet_read_text(AI / name, encoding="utf-8")
 
 
 class N75MultiCargoContracts(unittest.TestCase):
@@ -44,7 +47,7 @@ class N75MultiCargoContracts(unittest.TestCase):
 
     def test_preserves_precisely_the_original_setting_bytes(self):
         for file in ('info.nut', 'settings.nut'):
-            original = historical_bytes(file, (AI / file).read_bytes())
+            original = historical_bytes(file, fleet_read_bytes(AI / file))
             self.assertNotIn(b'n75_multi_cargo', original)
         self.assertIn('V217_RAIL_REFILL = (railRefill != null', self.settings)
         self.assertIn('V276_CAND_SLICES = (v276 == 3) ? (bigMap ? 2 : 0) : v276;',

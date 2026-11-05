@@ -1,4 +1,7 @@
 """ESTIM-1 bit 16: distance calibration, score/finance separation and contracts."""
+
+# Compare historical contracts after the exact outer FLEET-ARB projection.
+from fleet_arb_off import historical_read_text as fleet_read_text
 import re
 import unittest
 from pathlib import Path
@@ -10,7 +13,7 @@ ROOT = Path(__file__).resolve().parents[1] / "ai" / "OpexAI"
 
 
 def src(name):
-    return (ROOT / name).read_text(encoding="utf-8")
+    return fleet_read_text(ROOT / name, encoding="utf-8")
 
 
 def coefficient(name):

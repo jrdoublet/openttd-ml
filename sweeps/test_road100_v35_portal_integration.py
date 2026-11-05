@@ -3,6 +3,9 @@
 No Python source inspection can establish actual Squirrel compatibility;
 the complete paired OpenTTD smoke remains mandatory.
 """
+
+# Compare historical contracts after the exact outer FLEET-ARB projection.
+from fleet_arb_off import historical_read_text as fleet_read_text
 import re
 import unittest
 from pathlib import Path
@@ -14,7 +17,7 @@ AI = ROOT / "ai" / "OpexAI"
 
 
 def src(name):
-    return (AI / name).read_text(encoding="utf-8")
+    return fleet_read_text(AI / name, encoding="utf-8")
 
 
 def function(name, file="builder_road.nut"):

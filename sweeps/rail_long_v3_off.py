@@ -141,6 +141,8 @@ def _off_source(name, source):
 
 
 def off_source(name, source):
+    from fleet_arb_off import off_source as fleet_off
+    source = fleet_off(name, source)
     from rail_long_merged_off import verify_stage
     # A broken v3 require must not be accepted just because multi-off
     # successfully deletes the later requires first.

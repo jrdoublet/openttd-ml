@@ -4,6 +4,9 @@ The behavioral files are owned by worker-1, not edited by this test worker.
 This test uses structural contracts without running OpenTTD or Docker.
 """
 
+# Compare historical contracts after the exact outer FLEET-ARB projection.
+from fleet_arb_off import historical_read_bytes as fleet_read_bytes, historical_read_text as fleet_read_text
+
 import hashlib
 import json
 import re
@@ -16,14 +19,12 @@ from rail_config_merge_witness import expected_off_sha
 ROOT = Path(__file__).resolve().parents[1]
 AI = ROOT / "ai" / "OpexAI"
 FIXTURE = json.loads(
-    (ROOT / "sweeps" / "fixtures" / "rail_search_prio_off_20261103.json").read_text(
-        encoding="utf-8"
-    )
+    fleet_read_text(ROOT / "sweeps" / "fixtures" / "rail_search_prio_off_20261103.json", encoding="utf-8")
 )
 
 
 def source(name):
-    return (AI / name).read_text(encoding="utf-8")
+    return fleet_read_text(AI / name, encoding="utf-8")
 
 
 def function_body(name, symbol):
@@ -47,7 +48,7 @@ def off_config_bytes(name, data=None):
     """Project later RAIL-LONG OFF, then only SEARCH-PRIO, to its frozen SHA."""
     from n75_mc_legacy import rail_long_config_off_bytes
     if data is None:
-        data = (AI / name).read_bytes()
+        data = fleet_read_bytes(AI / name)
     data = rail_long_config_off_bytes(name, data)
     for insertion in FIXTURE["insertions"][name]:
         fragment = insertion.encode("utf-8")
@@ -90,7 +91,7 @@ class RailSearchPrioSettingsContracts(unittest.TestCase):
         self.assertEqual(set(FIXTURE["baseline_sha256"]), set(FIXTURE["insertions"]))
         for name, expected in FIXTURE["baseline_sha256"].items():
             with self.subTest(name=name):
-                original = (AI / name).read_bytes()
+                original = fleet_read_bytes(AI / name)
                 projected = off_config_bytes(name, original)
                 self.assertEqual(hashlib.sha256(projected).hexdigest(),
                                  expected_off_sha(name, "rail_search_prio_off", expected, original))

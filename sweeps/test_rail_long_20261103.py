@@ -5,6 +5,9 @@ the public setting, its default, and exact byte subtraction for frozen sources.
 No OpenTTD, Docker, or WSL process is needed.
 """
 
+# Compare historical contracts after the exact outer FLEET-ARB projection.
+from fleet_arb_off import historical_read_bytes as fleet_read_bytes, historical_read_text as fleet_read_text
+
 import hashlib
 import json
 import re
@@ -19,8 +22,7 @@ from rail_long_v2_off import off_source as rail_long_v2_off
 ROOT = Path(__file__).resolve().parents[1]
 AI = ROOT / "ai" / "OpexAI"
 FIXTURE = json.loads(
-    (ROOT / "sweeps" / "fixtures" / "rail_long_off_20261103.json")
-    .read_text(encoding="utf-8")
+    fleet_read_text(ROOT / "sweeps" / "fixtures" / "rail_long_off_20261103.json", encoding="utf-8")
 )
 
 # Fusion des sources ROAD1Y de origin/master avec RAIL-LONG : les 3 sources
@@ -35,7 +37,7 @@ MERGED_PRE_INTERVENTION_SHA256 = {
 
 
 def source(name):
-    return (AI / name).read_text(encoding="utf-8")
+    return fleet_read_text(AI / name, encoding="utf-8")
 
 
 def function_body(name, symbol):
@@ -82,7 +84,7 @@ class RailLongConfigContracts(unittest.TestCase):
         self.assertIn("RAIL_LONG = railLongMode == 1;", settings)
         self.assertIn("RAIL_LONG_V2 = railLongMode == 2;", settings)
         self.assertEqual(
-            sum(path.read_text(encoding="utf-8").count(getter)
+            sum(fleet_read_text(path, encoding="utf-8").count(getter)
                 for path in AI.glob("*.nut")), 1
         )
 
@@ -93,7 +95,7 @@ class RailLongConfigContracts(unittest.TestCase):
         for name, expected in FIXTURE["baseline_sha256"].items():
             with self.subTest(name=name):
                 # La fixture v1 est gelée ; soustraire d'abord uniquement v2.
-                live = (AI / name).read_bytes()
+                live = fleet_read_bytes(AI / name)
                 current = rail_long_v2_off(name, live.decode("utf-8")).encode("utf-8")
                 self.assertEqual(len(FIXTURE["insertions"][name]), 1)
                 fragment = FIXTURE["insertions"][name][0].encode("utf-8")
@@ -131,7 +133,7 @@ class RailLongConfigContracts(unittest.TestCase):
                     rail_long_config_off_bytes(name, damaged)
 
     def test_inventory_91_live_90_without_long_89_without_prio_58_historical(self):
-        live = (AI / "info.nut").read_bytes()
+        live = fleet_read_bytes(AI / "info.nut")
         long_off = rail_long_config_off_bytes("info.nut", live)
         both_off = search_prio_off("info.nut", live)
         # INVEST-STALL vaut 0 et son bloc est retiré des projections ci-dessous.

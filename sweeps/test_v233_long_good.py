@@ -3,6 +3,9 @@
 OFF projection pins original bytes; the small independent observation model
 checks calendar/zero/missing-data cases, not execution timing or profitability.
 """
+
+# Compare historical contracts after the exact outer FLEET-ARB projection.
+from fleet_arb_off import historical_read_bytes as fleet_read_bytes, historical_read_text as fleet_read_text
 import hashlib
 import json
 from pathlib import Path
@@ -44,7 +47,7 @@ V161_GLOBALS_OFF_SHA256 = "a78685378d65dac1f85a28726b40cdd682e1be77634093d28d494
 # union. The October RAIL-only fixture and RESERVE0 hashes above are immutable;
 # no merged output is claimed to have the same bytes as the older source.
 MERGED_V233_SHA_PATH = AI.parents[1] / "sweeps" / "fixtures" / "v233_long_good_merge_sha_20261105.json"
-MERGED_V233_SHA = json.loads(MERGED_V233_SHA_PATH.read_text(encoding="utf-8"))
+MERGED_V233_SHA = json.loads(fleet_read_text(MERGED_V233_SHA_PATH, encoding="utf-8"))
 
 
 def observe(samples):
@@ -1024,7 +1027,7 @@ class V233LongGoodContracts(unittest.TestCase):
     def test_merge_sha_witness_keeps_historical_rail_source_verifiable(self):
         self.assertEqual(MERGED_V233_SHA["schema"], "v233-long-good-road100-rail-merge-sha-v1")
         historical_path = AI.parents[1] / "sweeps" / "fixtures" / "v233_long_good_off.json"
-        self.assertEqual(hashlib.sha256(historical_path.read_bytes()).hexdigest(),
+        self.assertEqual(hashlib.sha256(fleet_read_bytes(historical_path)).hexdigest(),
                          MERGED_V233_SHA["historical_v233_fixture_sha256"])
         for name, witness in MERGED_V233_SHA["files"].items():
             with self.subTest(name=name):
@@ -1708,7 +1711,7 @@ class V233LongGoodContracts(unittest.TestCase):
 
     def test_funnel_valuate_inventory_lists_both_native_calls(self):
         import json
-        inventory = json.loads((Path(__file__).resolve().parent / "fixtures/v262_valuate_inventory.json").read_text())
+        inventory = json.loads(fleet_read_text(Path(__file__).resolve().parent / "fixtures/v262_valuate_inventory.json"))
         rows = [tuple(row) for row in inventory]
         self.assertIn(("v233_long_good.nut", "tiles", "AITile.IsBuildableRectangle,w,h"), rows)
         self.assertIn(("v233_long_good.nut", "tiles", "AITile.GetCargoAcceptance,cargo,w,h,coverage"), rows)

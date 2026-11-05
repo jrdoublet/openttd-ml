@@ -4,6 +4,9 @@ The new merge SHA witnesses are separate from the earlier economic/engine
 snapshots.  This file never updates their JSON or accepts a partial variant.
 """
 
+# Compare historical contracts after the exact outer FLEET-ARB projection.
+from fleet_arb_off import historical_read_text as fleet_read_text
+
 import hashlib
 import json
 from pathlib import Path
@@ -22,7 +25,7 @@ from test_rail_search_prio_20261103 import off_config_bytes
 
 
 def _source(name):
-    return (ROOT / "ai" / "OpexAI" / name).read_text(encoding="utf-8")
+    return fleet_read_text(ROOT / "ai" / "OpexAI" / name, encoding="utf-8")
 
 
 def _sha(source):
@@ -45,8 +48,7 @@ class V190V233MergeProjection(unittest.TestCase):
                 self.assertEqual(independent.off_source(name, projected), projected)
 
     def test_v233_frozen_json_is_unmodified(self):
-        data = json.loads((ROOT / "sweeps" / "fixtures" / "v233_long_good_off.json")
-                          .read_text(encoding="utf-8"))
+        data = json.loads(fleet_read_text(ROOT / "sweeps" / "fixtures" / "v233_long_good_off.json", encoding="utf-8"))
         self.assertEqual(data, long_good.FIXTURE)
 
     def test_v233_reconciled_builder_and_info_have_reviewed_output_sha(self):

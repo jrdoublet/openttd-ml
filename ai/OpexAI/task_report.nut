@@ -653,6 +653,8 @@ function OpexAI::_triggerScrapLine(line, criterion)
 {
   if (this._v271Pending != null && this._v271Pending.lineId == line.lineId) return;
   if (("scrapping" in line) && line.scrapping) return;
+  if (FLEET_ARB && !OpexFleetRequest(line, line.mode, "sell", 0,
+      OpexFleetSaleProfit(line), "SCRAP_LINE")) return;
   line.scrapping = true;
   line.deadStreak = DEAD_STREAK_THRESHOLD;
   local anchor = AIMap.GetTileIndex(1, 1);
@@ -733,6 +735,8 @@ function OpexAI::_scrapDeadLines(year)
       if (!("scrapStartYear" in line)) line.scrapStartYear <- year;
       local stuck = (year - line.scrapStartYear) >= SCRAP_TIMEOUT_YEARS;
       if (remaining.len() == 0 || stuck) {
+        if (FLEET_ARB) OpexFleetFinish(line, "SCRAP_LINE", remaining.len() == 0,
+            remaining.len() == 0 ? "all_sold" : "scrap_timeout");
         if (this._unprofitableStreaks != null) {
           foreach (v in line.scrapVehicles) {
             if (v in this._unprofitableStreaks) delete this._unprofitableStreaks[v];

@@ -5,13 +5,15 @@ concurrent RAIL-CONSIST additions, which must survive this projection.
 Never regenerate the fixture implicitly during tests.
 """
 
+# Compare historical contracts after the exact outer FLEET-ARB projection.
+from fleet_arb_off import historical_read_text as fleet_read_text
+
 import copy
 import hashlib
 import json
 from pathlib import Path
 
-HISTORICAL_FIXTURE = json.loads((Path(__file__).parent / "fixtures/rail_open_off.json")
-                                .read_text(encoding="utf-8"))
+HISTORICAL_FIXTURE = json.loads(fleet_read_text(Path(__file__).parent / "fixtures/rail_open_off.json", encoding="utf-8"))
 
 # ROAD+RAIL merge snapshot: the historical RAIL-OPEN fixture still describes
 # the policy, but three large contextual hunks intersect later RAIL-REPAIR and
@@ -40,7 +42,7 @@ def _merge_replace(source, old, new):
 
 def _merge_fixture():
     root = Path(__file__).resolve().parents[1] / "ai" / "OpexAI"
-    current = {name: (root / name).read_text(encoding="utf-8") for name in _MERGE_SHA}
+    current = {name: fleet_read_text(root / name, encoding="utf-8") for name in _MERGE_SHA}
     if any(hashlib.sha256(current[name].encode("utf-8")).hexdigest() != sha
            for name, sha in _MERGE_SHA.items()):
         return HISTORICAL_FIXTURE
@@ -120,6 +122,8 @@ SIGNATURES = {
 
 
 def off_source(name, source):
+    from fleet_arb_off import off_source as fleet_off
+    source = fleet_off(name, source)
     """Remove exactly RAIL-OPEN while preserving sibling and unrelated work."""
     if name in ("builder_rail.nut", "candidates.nut", "po01c_generators.nut", "lines.nut", "task_v284.nut") and (
         "INVEST_STALL" in source or "investStall" in source

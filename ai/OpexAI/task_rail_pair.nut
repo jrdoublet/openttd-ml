@@ -281,6 +281,8 @@ function OpexAI::_v271TandemSource(year)
     line.v271SkipYear <- year;
     OpexV271Log(state, "skip", "running_payback_or_cash"); return false;
   }
+  if (FLEET_ARB && !OpexFleetRequest(line, "rail", "add_vehicle", state.cost,
+      state.gain - running, "RAIL_PAIR")) return false;
   state.vehicle <- best.vehicle;
   state.depot <- line.depot;
   state.newVehicle <- -1;
