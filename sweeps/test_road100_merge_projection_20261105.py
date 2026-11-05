@@ -28,12 +28,31 @@ _LEGACY_LAYERS = (
     ("road100_optin_hunks.json", "ROAD100"),
 )
 
+# First parent of the published ROAD1Y+RAIL merge (6f57003f).  This immutable
+# tree, rather than the advancing origin/master ref, is the old ROAD1Y witness.
+_PRE_RAIL_MERGE_MASTER = "44d9313eab12e08685ac1bf0cc6254fe0257ba4d"
 
-def _historical_off(name, source):
-    """Independently reconstruct the pre-adapter projection for master."""
+
+def _historical_off(name, source, *, merged_rail=False):
+    """Project frozen layers independently, preserving reviewed RAIL-only hunks.
+
+    Before the merge all B2 fixture hunks were removed; the merged master
+    contains seven unrelated RAIL insertions inside the B2 context.  The
+    alternate path is admitted ONLY at the exact frozen before/after hashes.
+    """
     for filename, label in _LEGACY_LAYERS:
         data = json.loads((road.FIXTURE.parent / filename).read_text(encoding="utf-8"))
-        source = road._subtract_exact(name, source, data.get(name), label)
+        edits = data.get(name)
+        if merged_rail and filename == "road100_bus_districts_hunks.json":
+            before_sha, after_sha, rail_only = road.ROAD1Y_B2_RAIL_MERGE[name]
+            if hashlib.sha256(source.encode("utf-8")).hexdigest() != before_sha:
+                raise AssertionError(f"{name}: unreviewed merged input")
+            edits = [edit for i, edit in enumerate(edits) if i not in rail_only]
+            source = road._subtract_exact(name, source, edits, label + "-reviewed-merge")
+            if hashlib.sha256(source.encode("utf-8")).hexdigest() != after_sha:
+                raise AssertionError(f"{name}: reviewed merged B2 output changed")
+        else:
+            source = road._subtract_exact(name, source, edits, label)
     return source
 
 
@@ -44,11 +63,14 @@ class Road100MergedProjection(unittest.TestCase):
                 source = subprocess.check_output(
                     ["git", "show", "origin/master:ai/OpexAI/" + name], cwd=road.ROOT,
                 ).decode("utf-8")
-                if name in road.ROAD1Y_B2_RAIL_MERGE:
-                    digest = hashlib.sha256(source.encode("utf-8")).hexdigest()
-                    self.assertNotEqual(digest, road.ROAD1Y_B2_RAIL_MERGE[name][0])
+                reviewed = road.ROAD1Y_B2_RAIL_MERGE.get(name)
+                digest = hashlib.sha256(source.encode("utf-8")).hexdigest()
+                # origin/master now IS the approved merged source.  Compare
+                # the frozen projection in either era; never assert that the
+                # moving branch must differ from the reviewed merge.
+                merged_rail = reviewed is not None and digest == reviewed[0]
                 projected = road.off_source(name, source)
-                self.assertEqual(projected, _historical_off(name, source))
+                self.assertEqual(projected, _historical_off(name, source, merged_rail=merged_rail))
                 self.assertEqual(road.off_source(name, projected), projected)
 
     def test_reviewed_rail_only_hunks_do_not_contain_road_changes(self):
@@ -116,15 +138,19 @@ class Road100MergedProjection(unittest.TestCase):
                 with self.subTest(name=name, stage=stage):
                     source = content.decode("utf-8")
                     digest = hashlib.sha256(content).hexdigest()
-                    # Candidate source at the final stage is exactly the old
-                    # origin/master source: it MUST follow the historic path.
+                    # The last candidates stage matches the PRE-MERGE master,
+                    # not the moving origin/master (which now includes RAIL).
+                    # Keep an exact byte comparison against that immutable
+                    # Git object before exercising the historical projector.
                     if name == "candidates.nut" and stage == "rail_depot_signal_off":
                         legacy = subprocess.check_output(
-                            ["git", "show", "origin/master:ai/OpexAI/" + name],
+                            ["git", "show", _PRE_RAIL_MERGE_MASTER + ":ai/OpexAI/" + name],
                             cwd=road.ROOT,
                         ).decode("utf-8")
                         self.assertEqual(source, legacy)
                         self.assertEqual(road.off_source(name, source), _historical_off(name, source))
+                        self.assertEqual(road.off_source(name, road.off_source(name, source)),
+                                         road.off_source(name, source))
                         continue
                     self.assertIn(digest, accepted)
                     districts = json.loads(
