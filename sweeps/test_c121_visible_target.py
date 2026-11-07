@@ -21,8 +21,8 @@ class TestVisibleFleetTarget(unittest.TestCase):
     def test_all_production_growth_calls_supply_shared_airports(self):
         task = (AI / "task_air.nut").read_text(encoding="utf-8")
         projects = (AI / "task_projects.nut").read_text(encoding="utf-8")
-        self.assertEqual(task.count('OpexAirAddPlane(line, this._catalog, this._lines)'), 1)
-        self.assertEqual(projects.count('OpexAirAddPlane(line, this._catalog, this._lines)'), 1)
+        self.assertEqual(task.count('OpexAirAddPlane(line, this._catalog, this._lines, locked)'), 1)
+        self.assertEqual(projects.count('OpexAirAddPlane(line, this._catalog, this._lines, locked)'), 1)
 
 
 if __name__ == "__main__":

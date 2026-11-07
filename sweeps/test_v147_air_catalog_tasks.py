@@ -51,7 +51,9 @@ class StaticContract(unittest.TestCase):
         self.assertNotIn(".insert(", body)
         main = _read("main.nut")
         # Après la lecture des réglages, avant toute réconciliation de rechargement.
-        load = main.index("  OpexLoadSettings();\n  OpexV147ExtendQueue(this);")
+        settings_idx = main.index("OpexLoadSettings();")
+        load = main.index("OpexV147ExtendQueue(this);")
+        self.assertLess(settings_idx, load)
         self.assertLess(load, main.index("this._reconcileAfterLoad();"))
         # La file historique reste inchangée (14 entrées, catalog en tête).
         queue = main[main.index("this._taskQueue = [") : main.index("];", main.index("this._taskQueue = ["))]

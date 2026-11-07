@@ -23,7 +23,7 @@ class TestV252EngineRefresh(unittest.TestCase):
         cls.task = cls.sources["task_v252.nut"]
         cls.dispatch = _body(cls.task, "function OpexAI::_dispatchV252AirEngineRefresh(task, year)")
         cls.fleet = cls.sources["air_fleet.nut"]
-        cls.add_plane = _body(cls.fleet, "function OpexAirAddPlane(line, catalog = null, lines = null)")
+        cls.add_plane = _body(cls.fleet, "function OpexAirAddPlane(line, catalog = null, lines = null, forcedEngine = null)")
         cls.refleet = _body(cls.fleet, "function OpexAirRefleetCrashedPlane(line, catalog = null)")
 
     def test_setting_frozen_at_two(self):
@@ -40,7 +40,7 @@ class TestV252EngineRefresh(unittest.TestCase):
         self.assertIn(appended, start)
         sched = self.sources["scheduler.nut"]
         self.assertIn('if (task.name == "v252_air_engine_refresh")', sched)
-        self.assertIn("if (catalog != null) {", self.add_plane)
+        self.assertIn("if (catalog != null && forcedEngine == null) {", self.add_plane)
         self.assertIn("if (catalog != null) {", self.refleet)
         hook_v249 = 'if (V249_STATUE && c75StopReason == "cash") ::V249_CASH_STOP = true;'
         hook_v252 = 'if (c75StopReason == "cash") ::V252_CASH_STOP = true;'
