@@ -238,6 +238,18 @@ class OpexAIInfo extends AIInfo {
       flags = 0
     });
 
+    AddSetting({
+      name = "eb4_air_road_arbitrage",
+      description = "EB-4 : arbitrage de caisse 1970-1972 entre air et route (defaut 0)",
+      min_value = 0,
+      max_value = 1,
+      easy_value = 0,
+      medium_value = 0,
+      hard_value = 0,
+      custom_value = 0,
+      flags = 0
+    });
+
     /* Les canaux de mesure sont commandes par probes (bits dedies ou groupes). */
     AddSetting({
       name = "c121_air_project_realization_adaptive",

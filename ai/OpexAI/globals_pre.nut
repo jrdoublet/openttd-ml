@@ -300,6 +300,7 @@ IDLE1_SLACK_RESERVE <- 2500; // Marge de securite anti-franchissement de tick.
 IDLE1_TOWN_CURSOR <- 0;
 PO02_INDEPENDENT_EXPIRY <- 0; // PO-02 : echeance de publication propre a chaque vivier modal (defaut 0).
 PO02_LAST_PUBLISH_DATE <- { air = 0, rail = 0, road = 0, water = 0 };
+EB4_AIR_ROAD_ARBITRAGE <- 0; // EB-4 : arbitrage de caisse 1970-1972 entre air et route (defaut 0).
 /* Mesure ponctuelle : un panneau par ligne reussie, donc desactivee par defaut pour ne pas
  * changer le profil d'opcodes de la baseline. */
 RAIL_COST_PROBE <- false;

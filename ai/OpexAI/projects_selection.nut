@@ -892,6 +892,42 @@ function OpexMulti1AirOverRail(affordable, capitalBudget, level)
   }
 }
 
+/* EB-4 : Arbitrage de caisse 1970-1972 entre air et route. */
+function OpexEB4RoadAllowed(roadProject, roadCapital, bestAir, deltaC, monthlyIncome, capitalBudget)
+{
+  if (bestAir == null) return true;
+  // Zone de protection : si deltaC <= 2 * monthlyIncome, interdiction totale de la route
+  if (monthlyIncome > 0 && deltaC <= monthlyIncome * 2) return false;
+  // Zone d'opportunite : si deltaC > 3 * monthlyIncome (ou monthlyIncome <= 0 avec deltaC > 0)
+  if (monthlyIncome <= 0 || deltaC > monthlyIncome * 3) {
+    // 1. C_route <= 0.25 * capitalBudget
+    if (roadCapital > (capitalBudget / 4)) return false;
+    // 2. Payback <= 6 mois (P_annuel >= 2 * C_route)
+    local prof = ("profitAnnual" in roadProject) ? roadProject.profitAnnual : 0;
+    if (prof < 2 * roadCapital) return false;
+    // 3. Pas de ville couverte par l'aeroport
+    local airTowns = {};
+    if (("payload" in bestAir) && bestAir.payload != null) {
+      local pl = bestAir.payload;
+      if (("siteA" in pl) && pl.siteA != null && ("town" in pl.siteA) && pl.siteA.town != null) {
+        airTowns[pl.siteA.town.id] <- true;
+      }
+      if (("siteB" in pl) && pl.siteB != null && ("town" in pl.siteB) && pl.siteB.town != null) {
+        airTowns[pl.siteB.town.id] <- true;
+      }
+    }
+    local epAir = OpexGetCandidateTownEndpoints(bestAir);
+    if (epAir.srcTown >= 0) airTowns[epAir.srcTown] <- true;
+    if (epAir.dstTown >= 0) airTowns[epAir.dstTown] <- true;
+
+    local epRoad = OpexGetCandidateTownEndpoints(roadProject);
+    if ((epRoad.srcTown in airTowns) || (epRoad.dstTown in airTowns)) return false;
+
+    return true;
+  }
+  return false;
+}
+
 function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSelection = true, abandonedPairs = null)
 {
   SELECT_BISECT_STAMP++;
@@ -953,6 +989,31 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSel
   }
   if (spStates != null) OpexSpanEnd(spStates);
 
+  local eb4BestAir = null;
+  local eb4DeltaC = 0;
+  local eb4MonthlyIncome = 0;
+  if (EB4_AIR_ROAD_ARBITRAGE) {
+    local bestAirProfit = -1;
+    foreach (p in alternatives) {
+      if (p != null && p.mode == "air") {
+        local fc = OpexProjectFinanceCapital(p);
+        if (fc > capitalBudget) {
+          local prof = ("profitAnnual" in p) ? p.profitAnnual : 0;
+          if (eb4BestAir == null || prof > bestAirProfit) {
+            eb4BestAir = p;
+            bestAirProfit = prof;
+          }
+        }
+      }
+    }
+    if (eb4BestAir != null) {
+      eb4DeltaC = OpexProjectFinanceCapital(eb4BestAir) - capitalBudget;
+      local lastQuarter = AICompany.CURRENT_QUARTER + 1;
+      local qIncome = AICompany.GetQuarterlyIncome(AICompany.COMPANY_SELF, lastQuarter);
+      eb4MonthlyIncome = qIncome > 0 ? (qIncome / 3) : 0;
+    }
+  }
+
   foreach (project in alternatives) {
     local fundMark = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
     local slotMark = null;
@@ -968,6 +1029,14 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSel
         OpexSelectRejectLog(project, "cash", affordable, scoreKey, kDec);
       }
       continue;
+    }
+    if (EB4_AIR_ROAD_ARBITRAGE && project.mode == "road") {
+      if (!OpexEB4RoadAllowed(project, financeCapital, eb4BestAir, eb4DeltaC, eb4MonthlyIncome, capitalBudget)) {
+        if (DECISION_LOG) {
+          OpexDecide("EB4_ARBITRAGE", "action=reject_road src=" + project.src + " dst=" + project.dst + " deltaC=" + eb4DeltaC + " monthly=" + eb4MonthlyIncome);
+        }
+        continue;
+      }
     }
     if (project.profitAnnual < floorProfit) {
       if (PROBE_SELECT_REJECT && project.mode == "air") {
@@ -1046,6 +1115,11 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSel
         fundMark = null;
       }
       if (financeCapital > capitalBudget) continue;
+      if (EB4_AIR_ROAD_ARBITRAGE && project.mode == "road") {
+        if (!OpexEB4RoadAllowed(project, financeCapital, eb4BestAir, eb4DeltaC, eb4MonthlyIncome, capitalBudget)) {
+          continue;
+        }
+      }
       slotMark = PROBE_SPAN_TRACE ? OpexOpsMeasureBegin() : null;
       OpexProjectRefreshEarlySlot(project, earlySlotState);
       OpexProjectRefreshDefensiveSlot(project, defensiveSlotState);

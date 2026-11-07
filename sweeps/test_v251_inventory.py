@@ -72,7 +72,8 @@ class TestV251Inventory(unittest.TestCase):
         # air_coverage_stop adds one default-OFF air pool sleeping setting (70 -> 71).
         # idle1_slack_worker adds one default-OFF tick slack worker setting (71 -> 72).
         # po02_independent_expiry adds one default-OFF independent expiry setting (72 -> 73).
-        self.assertEqual(info.count("AddSetting("), 73)
+        # eb4_air_road_arbitrage adds one default-OFF cash arbitrage setting (73 -> 74).
+        self.assertEqual(info.count("AddSetting("), 74)
         self.assertNotIn('name = "v251', info)
         settings = self.sources["settings.nut"]
         self.assertNotIn('GetSetting("v251', settings)
