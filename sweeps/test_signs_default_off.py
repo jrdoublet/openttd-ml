@@ -122,7 +122,7 @@ class TestSignsDefaultOff(unittest.TestCase):
         probes = info.split('name = "probes"', 1)[1].split("});", 1)[0]
         self.assertNotIn('name = "debug_signs"', info)
         for key in ("easy_value", "medium_value", "hard_value", "custom_value"):
-            self.assertRegex(probes, key + r" = 0\b")
+            self.assertRegex(probes, key + r" = 2\b")
 
     def test_opexsign_is_the_wrapper(self):
         probes = (AI / "probes.nut").read_text(encoding="utf-8")

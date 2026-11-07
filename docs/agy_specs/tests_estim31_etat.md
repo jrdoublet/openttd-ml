@@ -20,11 +20,11 @@ Résultat initial :
 ### Famille A : Manque de dépendance optionnelle hôte (numpy) - RÉSOLU
 - `test_demo_frontieres_temps_20261025.py` (7 erreurs initiales -> 0 erreur, 8 OK) : import optionnel de `numpy` protégé dans `sweeps/analyse_roi_predictors_20261021.py`.
 
-### Famille B : Attente obsolète de défauts modifiés lors de ESTIM31 (`probes=2`, etc.)
-- `test_v167_probes.py` (1 échec) : attend `probes=0` dans `info.nut` alors que le nouveau défaut public validé est `probes=2`.
-- `test_b9_air_catchment.py` (1 échec) : attend `probes=0`.
-- `test_publication_probes_default.py` (2 échecs) : attend `probes=0`.
-- `test_signs_default_off.py` (1 échec) : vérification de valeur par défaut / sondes.
+### Famille B : Attente obsolète de défauts modifiés lors de ESTIM31 (`probes=2`, etc.) - RÉSOLU
+- `test_v167_probes.py` (1 échec initial -> 0, 13 OK) : assertion alignée sur `probes=2` dans `info.nut`.
+- `test_b9_air_catchment.py` (1 échec initial -> 0, OK) : assertion alignée sur `defaults["probes"] == 2` tout en vérifiant la désactivation du bit 20.
+- `test_publication_probes_default.py` (2 échecs initiaux -> 0, 5 OK) : aligné sur `probes=2`.
+- `test_signs_default_off.py` (1 échec initial -> 0, 4 OK) : aligné sur `probes=2` dans `info.nut`.
 
 ### Famille C : Plafonds AddSetting codés en dur obsolètes (historique 58 vs 68)
 - `test_v246_fixed_policies.py` (1 échec) : assertion `<= 58` alors que le plafond actuel est 68 (`test_v251_inventory.py`).

@@ -105,12 +105,12 @@ def _effective(probes: int):
 class Declaration(unittest.TestCase):
     def test_probes_setting(self):
         spec = parse_ai_setting_specs(AI / "info.nut")
-        self.assertEqual(spec["probes"]["default"], 0)
+        self.assertEqual(spec["probes"]["default"], 2)
         self.assertFalse(spec["probes"]["boolean"])
         self.assertEqual((spec["probes"]["min_value"], spec["probes"]["max_value"]), (0, ALL_BITS))
         block = _read("info.nut").split('name = "probes"', 1)[1].split("});", 1)[0]
         for key in ("easy_value", "medium_value", "hard_value", "custom_value"):
-            self.assertRegex(block, key + r" = 0\b")
+            self.assertRegex(block, key + r" = 2\b")
         self.assertNotIn("debug_signs", spec)
         self.assertNotIn("decision_log", spec)
         self.assertIn("OPEX_PROBE_MASK <- 2;", _read("globals_pre.nut"))
