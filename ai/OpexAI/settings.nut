@@ -71,9 +71,9 @@ function OpexLoadSettings()
   OPEX_LEVEL_LIMITS = !OpexLevelAllows("encroach_rival_catchment") || !OpexLevelAllows("compete_primary_industry")
       || !OpexLevelAllows("airport_rival_town") || !OpexLevelAllows("preempt_last_airport_slot");
   FAIR_PLAY_COURTESY = AIController.GetSetting("fair_play_courtesy") == 1;
-  EB10_GUARDS = AIController.GetSetting("eb10_guards") == 1;
   if (FAIR_PLAY_COURTESY) OPEX_LEVEL_LIMITS = true;
   EB10_GUARDS = AIController.GetSetting("eb10_guards") == 1;
+  AIR_COVERAGE_STOP = AIController.GetSetting("air_coverage_stop") == 1 ? 1 : 0;
 
   /* --- 2. Interrupteurs de mode et options rail --- */
 

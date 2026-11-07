@@ -757,6 +757,10 @@ function OpexAI::Save()
     if (ROAD100_LONG_SHADOW_YEAR >= 0) shortSave.road100LongShadowYear <- ROAD100_LONG_SHADOW_YEAR;
     if (EB14_PROGRESSIVE && EB14_RAIL_JOURNAL_STATE != null)
       shortSave.eb14RailJournal <- EB14_RAIL_JOURNAL_STATE;
+    if (AIR_COVERAGE_STOP) {
+      shortSave.airCoverageExhausted <- AIR_COVERAGE_EXHAUSTED;
+      shortSave.airNewTownQueue <- AIR_NEW_TOWN_QUEUE;
+    }
     if (DECISION_LOG && startOps != null) {
       local endOps = AIController.GetOpsTillSuspend();
       local opsSpent = startOps - endOps;
@@ -964,6 +968,14 @@ function OpexAI::Load(version, data)
     if (V279_RESELECT_MEMO != 0) OPEX_ABANDON_REVISION++;
   }
   if ("lines" in data) this._pendingLines = data.lines;
+  if (AIR_COVERAGE_STOP && ("airCoverageExhausted" in data))
+    AIR_COVERAGE_EXHAUSTED = data.airCoverageExhausted;
+  else
+    AIR_COVERAGE_EXHAUSTED = false;
+  if (AIR_COVERAGE_STOP && ("airNewTownQueue" in data) && typeof data.airNewTownQueue == "array")
+    AIR_NEW_TOWN_QUEUE = data.airNewTownQueue;
+  else
+    AIR_NEW_TOWN_QUEUE = [];
   if ("railPair" in data && typeof data.railPair == "table") {
     this._v271Year = ("year" in data.railPair) ? data.railPair.year : -1;
     this._v271Pending = ("pending" in data.railPair) ? data.railPair.pending : null;

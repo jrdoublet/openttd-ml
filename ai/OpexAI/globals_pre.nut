@@ -292,6 +292,9 @@ DEBUG_SIGNS <- true;
 OPEX_PROBE_MASK <- 2;
 FAIR_PLAY_COURTESY <- false; // Mode courtoisie pour parties normales/humaines (defaut OFF).
 EB10_GUARDS <- false; // EB-10 : garde sentinelle 65535 industrie et acceptation express urbaine >= 8 (defaut OFF).
+AIR_COVERAGE_STOP <- 0; // AIR-COVERAGE-STOP : mise en veille du scan de villes/sites aeroport apres epuisement (defaut 0).
+AIR_COVERAGE_EXHAUSTED <- false;
+AIR_NEW_TOWN_QUEUE <- [];
 /* Mesure ponctuelle : un panneau par ligne reussie, donc desactivee par defaut pour ne pas
  * changer le profil d'opcodes de la baseline. */
 RAIL_COST_PROBE <- false;

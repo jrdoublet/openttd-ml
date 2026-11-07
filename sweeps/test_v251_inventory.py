@@ -69,7 +69,8 @@ class TestV251Inventory(unittest.TestCase):
         # The extra ten belong to master, not to V251 or the rail merge.
         # fair_play_courtesy adds one default-OFF courtesy setting (68 -> 69).
         # eb10_guards adds one default-OFF sentinel guard setting (69 -> 70).
-        self.assertEqual(info.count("AddSetting("), 70)
+        # air_coverage_stop adds one default-OFF air pool sleeping setting (70 -> 71).
+        self.assertEqual(info.count("AddSetting("), 71)
         self.assertNotIn('name = "v251', info)
         settings = self.sources["settings.nut"]
         self.assertNotIn('GetSetting("v251', settings)

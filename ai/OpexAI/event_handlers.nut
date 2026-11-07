@@ -417,6 +417,10 @@ function OpexAI::_onTownFounded(event)
   if (probeEvt != null) {
     this._markDirty("town_founded", ["towns"], ["rail", "road", "air", "water"],
                     true, true, "town", probeEvt.GetTownID());
+    if (AIR_COVERAGE_STOP) {
+      AIR_NEW_TOWN_QUEUE.append(probeEvt.GetTownID());
+      AIR_COVERAGE_EXHAUSTED = false;
+    }
   }
   {
     local townEvt = AIEventTownFounded.Convert(event);

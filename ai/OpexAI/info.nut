@@ -202,6 +202,18 @@ class OpexAIInfo extends AIInfo {
       flags = 0
     });
 
+    AddSetting({
+      name = "air_coverage_stop",
+      description = "AIR-COVERAGE-STOP : mise en veille du scan des villes/sites aeroport apres epuisement",
+      min_value = 0,
+      max_value = 1,
+      easy_value = 0,
+      medium_value = 0,
+      hard_value = 0,
+      custom_value = 0,
+      flags = 0
+    });
+
     /* Les canaux de mesure sont commandes par probes (bits dedies ou groupes). */
     AddSetting({
       name = "c121_air_project_realization_adaptive",
