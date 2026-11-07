@@ -178,6 +178,13 @@ def estim_off(name, code):
         assert guarded.count(anchor) == old.count(anchor) == 1
         hunks[1] = (guarded.replace(anchor, anchor + addition, 1),
                     old.replace(anchor, anchor + addition, 1))
+    if name == "projects_models.nut":
+        prior_line = "return ESTIM_K_R.rail * profile / ESTIM_K_R_PRIOR.rail;"
+        duel_line = "return ESTIM_K_R.rail * profile / 0.92; /* Le profil DUEL est centre sur 0.92, meme si le prior experimental change. */"
+        if duel_line in code:
+            hunks = list(hunks)
+            guarded, old = hunks[2]
+            hunks[2] = (guarded.replace(prior_line, duel_line, 1), old)
     states = []
     for index, (guarded, old) in enumerate(hunks):
         on_at = _unique_location(code, guarded, name, index)
