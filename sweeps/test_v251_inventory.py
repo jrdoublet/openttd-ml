@@ -71,7 +71,8 @@ class TestV251Inventory(unittest.TestCase):
         # eb10_guards adds one default-OFF sentinel guard setting (69 -> 70).
         # air_coverage_stop adds one default-OFF air pool sleeping setting (70 -> 71).
         # idle1_slack_worker adds one default-OFF tick slack worker setting (71 -> 72).
-        self.assertEqual(info.count("AddSetting("), 72)
+        # po02_independent_expiry adds one default-OFF independent expiry setting (72 -> 73).
+        self.assertEqual(info.count("AddSetting("), 73)
         self.assertNotIn('name = "v251', info)
         settings = self.sources["settings.nut"]
         self.assertNotIn('GetSetting("v251', settings)
