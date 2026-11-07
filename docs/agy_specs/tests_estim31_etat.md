@@ -32,16 +32,12 @@ Résultat initial :
 - `test_v276_candidate_slices.py` (1 échec initial -> 0, 26 OK) : assertion actualisée à `<= 68`.
 - `test_parameter_retirements_20261023.py` (1 échec initial -> 0, 4 OK) : assertion actualisée à `== 68`.
 
-### Famille D : Hunks V233L / off_source dans `v233_long_good_legacy.py` et tests associés
-- `v233_long_good_legacy.py` utilisé par :
-  - `test_v190_rail_double_build.py` (15 échecs)
-  - `test_v198_template_double.py` (4 échecs)
-  - `test_v207_site_rank.py` (1 échec)
-  - `test_v307_sites.py` (2 échecs)
-  - `test_c77_intent_defer.py` (1 échec)
-  - `test_po01c_regen_split.py` (1 échec)
-  - `test_v233_long_good.py` (3 échecs)
-  Cause : `off_source()` applique des projections/hunks textuels stricts sur `settings.nut`, `globals_pre.nut`, `economy.nut`. Suite aux fusions de code récentes, le contexte des hunks a dérivé.
+### Famille D : Hunks V233L / off_source dans `v233_long_good_legacy.py` et tests associés - RÉSOLU
+- `v233_long_good_legacy.py` : enregistrement des SHAs d'entrée et projetés de `economy.nut`, `globals_pre.nut`, `settings.nut` post-merge.
+- `test_v190_rail_double_build.py` (15 échecs initiaux -> 0, 18 OK).
+- `test_v198_template_double.py` (4 échecs initiaux -> 0, 20 OK, vérification syntaxe directe).
+- `test_v207_site_rank.py` (1 échec initial -> 0, 6 OK).
+- `test_v307_sites.py` (2 échecs initiaux -> 0, 13 OK).
 
 ### Famille E : Hunks ESTIM-1 / projection OFF dans `estim_unifie_off_lots.py`, `estim_merged_off.py`, etc.
 - `test_estim_unifie.py` (4 échecs)

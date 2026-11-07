@@ -258,7 +258,7 @@ class SquirrelSafetyAndSyntax(unittest.TestCase):
 
     def test_balanced_braces_and_parens(self):
         for name in ("info.nut", "globals_pre.nut", "settings.nut", "rail_templates.nut", "builder_rail.nut", "task_rail.nut", "economy.nut"):
-            content = _read(name)
+            content = (AI / name).read_text(encoding="utf-8")
             clean = re.sub(r'/\*.*?\*/', '', content, flags=re.DOTALL)
             clean = re.sub(r'//.*$', '', clean, flags=re.MULTILINE)
             clean = re.sub(r'"(\\.|[^"\\])*"', '""', clean)
