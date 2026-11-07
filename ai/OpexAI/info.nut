@@ -178,6 +178,18 @@ class OpexAIInfo extends AIInfo {
       _3 = "custom"
     });
 
+    AddSetting({
+      name = "fair_play_courtesy",
+      description = "Mode courtoisie parties normales : supprime panneaux carte et modere journaux",
+      min_value = 0,
+      max_value = 1,
+      easy_value = 0,
+      medium_value = 0,
+      hard_value = 0,
+      custom_value = 0,
+      flags = 0
+    });
+
     /* Les canaux de mesure sont commandes par probes (bits dedies ou groupes). */
     AddSetting({
       name = "c121_air_project_realization_adaptive",

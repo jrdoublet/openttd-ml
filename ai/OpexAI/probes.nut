@@ -36,11 +36,13 @@ function OpexC50ResetNonExpansionLedger()
 function OpexSign(anchor, name)
 {
   if (!DEBUG_SIGNS) return;
+  if (!OpexSignAllowed("debug_signs")) return;
   if (name != null && name.len() > 31) name = name.slice(0, 31);
   AISign.BuildSign(anchor, name);
 }
 function OpexDecide(kind, fields)
 {
+  if (FAIR_PLAY_COURTESY && kind != "LOAD_RECONCILE") return;
   local date = AIDate.GetCurrentDate();
   if (_currentTaskName != null && !_currentTaskLogged && kind != "TASK") {
     _currentTaskLogged = true;

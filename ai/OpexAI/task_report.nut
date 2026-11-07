@@ -944,6 +944,10 @@ function OpexAI::_reportYear(year, ranked)
   local pctUnused = 1000 - pctUsed;
   local btText = "BT|" + (totalUsed / 1000000) + "M|" + (totalUnused / 1000000) + "M|" + pctUsed + "|" + pctUnused;
   if (DEBUG_SIGNS) {
+    if (!OpexSignAllowed("budget")) {
+      OpexClearBudgetSigns(_budgetSignIds);
+      return;
+    }
     if ("tot" in _budgetSignIds && AISign.IsValidSign(_budgetSignIds["tot"])) {
       AISign.SetName(_budgetSignIds["tot"], btText);
     } else {

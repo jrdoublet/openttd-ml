@@ -67,7 +67,8 @@ class TestV251Inventory(unittest.TestCase):
         # After the precise legacy projectors, preserve the master inventory:
         # origin/master 44d9313e already projects to 68 settings (not 58).
         # The extra ten belong to master, not to V251 or the rail merge.
-        self.assertEqual(info.count("AddSetting("), 68)
+        # fair_play_courtesy adds one default-OFF courtesy setting (68 -> 69).
+        self.assertEqual(info.count("AddSetting("), 69)
         self.assertNotIn('name = "v251', info)
         settings = self.sources["settings.nut"]
         self.assertNotIn('GetSetting("v251', settings)

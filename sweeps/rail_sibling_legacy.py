@@ -20,16 +20,22 @@ HISTORICAL_FIXTURE = json.loads(
 # in-memory view for callers inspecting FIXTURE; do not rewrite the JSON or
 # silently allow modified partial settings.
 _MERGE_SHA = {
-    "globals_pre.nut": "d0548c85cd11d62de13e4eb1566088d77a15ab6490b3a30a01fb27eda3110424",
-    "info.nut": "0e6e6e30aaae1b814dc8afbaad515347e2dc05aea133cd12983a7abc1fce26f1",
+    "globals_pre.nut": (
+        "d0548c85cd11d62de13e4eb1566088d77a15ab6490b3a30a01fb27eda3110424",
+        "06d784ef3eb2826b7ede17b488f46bb92ddcab9e433fed3af68077a2de1d9d4f",
+    ),
+    "info.nut": (
+        "0e6e6e30aaae1b814dc8afbaad515347e2dc05aea133cd12983a7abc1fce26f1",
+        "3e2fda7483d4cd0bc4d0937d3a5dc8e2450640c0e7935b74bcf184ac10992dc9",
+    ),
 }
 
 
 def _merge_fixture():
     root = Path(__file__).resolve().parents[1] / "ai" / "OpexAI"
     current = {name: (root / name).read_text(encoding="utf-8") for name in _MERGE_SHA}
-    if any(hashlib.sha256(current[name].encode("utf-8")).hexdigest() != sha
-           for name, sha in _MERGE_SHA.items()):
+    if any(hashlib.sha256(current[name].encode("utf-8")).hexdigest() not in shas
+           for name, shas in _MERGE_SHA.items()):
         return HISTORICAL_FIXTURE
     result = copy.deepcopy(HISTORICAL_FIXTURE)
     spans = {

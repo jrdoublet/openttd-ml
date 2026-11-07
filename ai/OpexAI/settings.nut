@@ -70,6 +70,8 @@ function OpexLoadSettings()
   OPEX_DIFFICULTY = OpexResolveDifficulty();
   OPEX_LEVEL_LIMITS = !OpexLevelAllows("encroach_rival_catchment") || !OpexLevelAllows("compete_primary_industry")
       || !OpexLevelAllows("airport_rival_town") || !OpexLevelAllows("preempt_last_airport_slot");
+  FAIR_PLAY_COURTESY = AIController.GetSetting("fair_play_courtesy") == 1;
+  if (FAIR_PLAY_COURTESY) OPEX_LEVEL_LIMITS = true;
 
   /* --- 2. Interrupteurs de mode et options rail --- */
 
@@ -728,6 +730,7 @@ function OpexLoadSettings()
 function OpexLoadBusDistrictSettings()
 {
   /* Appele au chargement, avant Start : MODE_* n'est pas encore pose. */
+  FAIR_PLAY_COURTESY = AIController.GetSetting("fair_play_courtesy") == 1;
   local road1yRoadOnly = AIController.GetSetting("mode_road") != 0
       && AIController.GetSetting("mode_air") == 0
       && AIController.GetSetting("mode_rail") == 0

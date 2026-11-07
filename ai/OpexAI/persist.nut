@@ -1352,6 +1352,9 @@ function OpexAI::_reconcileAfterLoad()
   {
     this._c76ForceReloadRegen = true;
   }
+  if (FAIR_PLAY_COURTESY && this._budgetSignIds != null) {
+    OpexClearBudgetSigns(this._budgetSignIds);
+  }
   /* Sans sonde : cette unique preuve doit toujours accompagner un rechargement, jamais une partie neuve. */
   OpexDecide("LOAD_RECONCILE", "saved=" + saved + " kept=" + kept + " dropped=" + dropped
              + " vehicles_purged=" + purgedVehicles

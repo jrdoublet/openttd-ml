@@ -53,18 +53,18 @@ ROAD1Y_B2_RAIL_MERGE = {
         (7, 8, 9, 10),
     ),
     "globals_pre.nut": (
-        "d0548c85cd11d62de13e4eb1566088d77a15ab6490b3a30a01fb27eda3110424",
-        "a5fac92a00c72cdcb7fb091bab51ef14092f76fd92debe759c02986970ee0e1d",
+        "06d784ef3eb2826b7ede17b488f46bb92ddcab9e433fed3af68077a2de1d9d4f",
+        "421d81c528a9a32bc8b010fedb73f7373d5b2177a910b49aa4f057c714d48429",
         (1,),
     ),
     "info.nut": (
-        "0e6e6e30aaae1b814dc8afbaad515347e2dc05aea133cd12983a7abc1fce26f1",
-        "db4e98d70522a49ae3242441b5479e22ae3422bc0eca772677da37f8aa04f0d2",
+        "3e2fda7483d4cd0bc4d0937d3a5dc8e2450640c0e7935b74bcf184ac10992dc9",
+        "1b7361f6ac7bccb65c9222eb9e8aa5ade1b7b5b967e46acb80d0539ccfd8d462",
         (0,),
     ),
     "settings.nut": (
-        "32542fef11a2bad6fbc7716a4e07a52758e7a2e358af172d2b43c3ee4a0a59fc",
-        "e9a77ce85ffb1a8b552c2022b3aa1f6abf53797c9813a09b62118d9840de1ec4",
+        "a612a9d620386480bf471d2e91357b8b9f6a02a301009c96759208691719b313",
+        "57ada069b47ca127fdbae85acfdb692e3830f887ce859bafc50136381c8db343",
         (2,),
     ),
 }
@@ -85,28 +85,52 @@ ROAD1Y_B2_RAIL_MERGE_STAGES = {
         # historical projection for this SHA.
     ),
     "globals_pre.nut": (
+        ("d0548c85cd11d62de13e4eb1566088d77a15ab6490b3a30a01fb27eda3110424",
+         "a5fac92a00c72cdcb7fb091bab51ef14092f76fd92debe759c02986970ee0e1d"),
         ("95287db807334e84c5a1146a7d2ca446d6c464aa9daf6cd2b55cd7d76d19ad3d",
          "8ff485029940bed662ea10a539e1c47a94b0decda19de2c3954020b09a1dbca7"),
         ("c6861e400454c652fcf150e9148be6d96d6bf7c370df15009bfedf9732bd90e9",
          "09844bbed074c149fca50293bc9bf9e75f19f3ada9cb0f533a585f6bcf9a6b57"),
         ("42d7708dc890be6adbf5936c4879075ece39a030a777318edcaaa77b719a86d0",
          "fe3ffab63749bc618f3ad46c73ed5bbf193727e94ef5c52a1ff13d5a6e5838cf"),
+        ("bbcda5db139fe06a1e9440c003c96203260c957a94b9ab1038609ff9f2e7f732",
+         "18321f3b50751331160fe8d40a4f44c869a5d423f04f0a1d3e2ab3fe2e277cda"),
+        ("8259ace0676901f7203b1a38207f94d62ad9b0cf948abe3b6a321e05d31e4daa",
+         "726382e286bcba6cdae6e19b34225f5a5e6b5814d73e898d6a87a7f918bf9908"),
+        ("1deda3150a9e324b738758aaf7a25f1d1c8c3933f363652a22f992b9146218d1",
+         "11c544053875e3cba179310e39157a3ca4f3a6b0746102afcc790966b15e6c9f"),
     ),
     "info.nut": (
+        ("0e6e6e30aaae1b814dc8afbaad515347e2dc05aea133cd12983a7abc1fce26f1",
+         "db4e98d70522a49ae3242441b5479e22ae3422bc0eca772677da37f8aa04f0d2"),
         ("1fbdac0c3e35ee9812033b7456620b512f7b641cf780ab1c74ff0f1dcc0e3e63",
          "46b702bbe37532bc8212af5058147caa5b12cce41ac427f3a3b58d244907d19f"),
         ("86d67cac63199b4a1ab267acb533513b1f2ab5391558988351eba0e7efc261aa",
          "8bf5ca75fe04815effbfa632386adc2118bd78b2147e951a8a067505eb817bdc"),
         ("ebb95bf341a59e795c542dc3502d7105f2f9f3413daabd753467230d4dc97ffc",
          "65c458f5290ceb7c0d36e706bf25a9ac796e6cb833ad534242786868fafd6057"),
+        ("978be3150bee4ff41f31b2cea1cfcc106e8e3bc82ce048ab42d434111a06338a",
+         "aa97ac5cffd849ab30b7bcf9c60bff018c488d201288c77ec88d0708a0666dd9"),
+        ("d748080325db7968857449ced8d716621519f80ef70b6f4719ff5eff2ea439b5",
+         "e2138b136cc1f72010866dc95a1cc41d9fd202653505380d0d53d77a45ff33ee"),
+        ("58f6702b0eff983cc6773101dd545de91c1ee992a0ad58288ca40e43e41741f8",
+         "d8f95765dd460bac123773ee05c1c6bc2c401743747aff6eb0da098a9062a113"),
     ),
     "settings.nut": (
+        ("32542fef11a2bad6fbc7716a4e07a52758e7a2e358af172d2b43c3ee4a0a59fc",
+         "e9a77ce85ffb1a8b552c2022b3aa1f6abf53797c9813a09b62118d9840de1ec4"),
         ("4ba30a2a9a44059be4f33da8906bf7c289be24cb49376563616ce487a111f483",
          "5739b3a18c226c969200f142dfa5e173002dec76ff094090b3c120f2fc597bb2"),
         ("12ff68193bd638c2f4eb5139151fe872bb05fb163bda1a299610e3481ae1e2e3",
          "5a9c5cddcd059ba8b8679f949d19d75d8c5213427d60375a9421a17dbe362567"),
         ("1dadbfebb825771eec820582830227c6b2d29580c2eed6f392517f731d5eb02f",
          "4ac2ffaed7f5a5c7236591422a5154162570d649c48ff36d8db34384dcd20ff9"),
+        ("691263ee1f004aee0a65af986424c19878a43932197f3042972ec809d1755f17",
+         "f37e4ec74c036fbd548da3c31e9f896f70cc6f860ee0254471da47fd2a2e2df0"),
+        ("1ebe32ba82706e84e7d7a87e3771b4d565cd11d4384d2c5a3995a749a5e06ecc",
+         "7b34f37fbfb4af1a7e64c43efcea8d1d2c89de0cfc375c3e029befa204853e1a"),
+        ("e6b49db8010b756a5216d9762bfc62f8c9cc3d93ba47ee2801edbaa0a0079abb",
+         "762b4d234b7b78925bbce0416536cf46d9bf3195eca6a96e82ca31a0c979ea49"),
     ),
 }
 
@@ -146,6 +170,16 @@ def generate():
 def _subtract_exact(name: str, source: str, edits, label: str) -> str:
     if not edits:
         return source
+    if (
+        name == "settings.nut"
+        and "FAIR_PLAY_COURTESY = AIController.GetSetting(\"fair_play_courtesy\") == 1;" not in source
+        and "function OpexLoadBusDistrictSettings()\n{\n  /* Appele au chargement, avant Start : MODE_* n'est pas encore pose. */\n  local road1yRoadOnly" in source
+    ):
+        source = source.replace(
+            "function OpexLoadBusDistrictSettings()\n{\n  /* Appele au chargement, avant Start : MODE_* n'est pas encore pose. */\n  local road1yRoadOnly",
+            "function OpexLoadBusDistrictSettings()\n{\n  /* Appele au chargement, avant Start : MODE_* n'est pas encore pose. */\n  FAIR_PLAY_COURTESY = AIController.GetSetting(\"fair_play_courtesy\") == 1;\n  local road1yRoadOnly",
+            1,
+        )
     present = [source.count(edit["after"]) == 1 for edit in edits]
     if not any(present):
         # Grouped hunks can contain old context that occurs multiple times,
