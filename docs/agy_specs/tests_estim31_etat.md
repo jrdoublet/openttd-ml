@@ -26,11 +26,11 @@ Résultat initial :
 - `test_publication_probes_default.py` (2 échecs initiaux -> 0, 5 OK) : aligné sur `probes=2`.
 - `test_signs_default_off.py` (1 échec initial -> 0, 4 OK) : aligné sur `probes=2` dans `info.nut`.
 
-### Famille C : Plafonds AddSetting codés en dur obsolètes (historique 58 vs 68)
-- `test_v246_fixed_policies.py` (1 échec) : assertion `<= 58` alors que le plafond actuel est 68 (`test_v251_inventory.py`).
-- `test_v259_bridge_renew.py` (1 échec) : assertion `== 58`.
-- `test_v276_candidate_slices.py` (1 échec) : assertion `<= 58`.
-- `test_parameter_retirements_20261023.py` (1 échec).
+### Famille C : Plafonds AddSetting codés en dur obsolètes (historique 58 vs 68) - RÉSOLU
+- `test_v246_fixed_policies.py` (1 échec initial -> 0, 6 OK) : assertion actualisée à `<= 68`.
+- `test_v259_bridge_renew.py` (1 échec initial -> 0, 14 OK) : assertion actualisée à `== 68`.
+- `test_v276_candidate_slices.py` (1 échec initial -> 0, 26 OK) : assertion actualisée à `<= 68`.
+- `test_parameter_retirements_20261023.py` (1 échec initial -> 0, 4 OK) : assertion actualisée à `== 68`.
 
 ### Famille D : Hunks V233L / off_source dans `v233_long_good_legacy.py` et tests associés
 - `v233_long_good_legacy.py` utilisé par :

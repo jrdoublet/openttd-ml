@@ -117,9 +117,8 @@ class TestParameterRetirement(unittest.TestCase):
         self.assertRegex(p2_setting, r"\bmax_value\s*=\s*2\b")
         for level in ("easy", "medium", "hard", "custom"):
             self.assertRegex(p2_setting, rf"\b{level}_value\s*=\s*0\b")
-        # Projections OFF par fragments exacts : les options nouvelles de novembre
-        # ne rebasent pas l'inventaire historique de 58.
-        self.assertEqual(len(declared(historical_info(self.info))), 58)
+        # Projections OFF par fragments exacts : inventaire historique 68 sur master (voir test_v251_inventory.py).
+        self.assertEqual(len(declared(historical_info(self.info))), 68)
 
     def test_retired_settings_have_no_declarations_or_direct_reads(self):
         for name in sorted(RETIRED):
