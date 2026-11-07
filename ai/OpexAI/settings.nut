@@ -74,6 +74,7 @@ function OpexLoadSettings()
   if (FAIR_PLAY_COURTESY) OPEX_LEVEL_LIMITS = true;
   EB10_GUARDS = AIController.GetSetting("eb10_guards") == 1;
   AIR_COVERAGE_STOP = AIController.GetSetting("air_coverage_stop") == 1 ? 1 : 0;
+  IDLE1_SLACK_WORKER = AIController.GetSetting("idle1_slack_worker") == 1 ? 1 : 0;
 
   /* --- 2. Interrupteurs de mode et options rail --- */
 

@@ -3216,6 +3216,7 @@ function OpexAI::_mainLoopProfiled()
     }
     OpexLoopProfAddRaw("sleep_left", AIController.GetOpsTillSuspend(), 0);
     if (V309_IDLE_PROBE) OpexV309IdleTick(this);
+    if (IDLE1_SLACK_WORKER) this._idle1SlackStep();
     local spSleep = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.sleep") : null;
     AIController.Sleep(1);
     if (spSleep != null) OpexSpanEnd(spSleep);
