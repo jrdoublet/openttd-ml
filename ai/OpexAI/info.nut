@@ -190,6 +190,18 @@ class OpexAIInfo extends AIInfo {
       flags = 0
     });
 
+    AddSetting({
+      name = "eb10_guards",
+      description = "EB-10 : garde sentinelle 65535 industrie et acceptation express urbaine >= 8",
+      min_value = 0,
+      max_value = 1,
+      easy_value = 0,
+      medium_value = 0,
+      hard_value = 0,
+      custom_value = 0,
+      flags = 0
+    });
+
     /* Les canaux de mesure sont commandes par probes (bits dedies ou groupes). */
     AddSetting({
       name = "c121_air_project_realization_adaptive",

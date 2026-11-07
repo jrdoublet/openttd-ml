@@ -957,7 +957,10 @@ function OpexAI::Load(version, data)
   if ("waterBuilt" in data) this._waterBuilt = data.waterBuilt;
   if ("abandonedPairs" in data && data.abandonedPairs != null) {
     this._abandonedPairs = {};
-    foreach (key, val in data.abandonedPairs) this._abandonedPairs[key] <- val;
+    foreach (key, val in data.abandonedPairs) {
+      if (EB10_GUARDS && typeof key == "string" && key.len() >= 6 && key.slice(key.len() - 6) == "|65535") continue;
+      this._abandonedPairs[key] <- val;
+    }
     if (V279_RESELECT_MEMO != 0) OPEX_ABANDON_REVISION++;
   }
   if ("lines" in data) this._pendingLines = data.lines;

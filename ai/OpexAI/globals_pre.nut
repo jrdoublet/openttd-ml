@@ -291,6 +291,7 @@ DEBUG_SIGNS <- true;
 /* V167 : masque du reglage `probes` apres expansion du bit 1 (voir settings.nut). */
 OPEX_PROBE_MASK <- 2;
 FAIR_PLAY_COURTESY <- false; // Mode courtoisie pour parties normales/humaines (defaut OFF).
+EB10_GUARDS <- false; // EB-10 : garde sentinelle 65535 industrie et acceptation express urbaine >= 8 (defaut OFF).
 /* Mesure ponctuelle : un panneau par ligne reussie, donc desactivee par defaut pour ne pas
  * changer le profil d'opcodes de la baseline. */
 RAIL_COST_PROBE <- false;

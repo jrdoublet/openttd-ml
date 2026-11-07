@@ -1013,7 +1013,8 @@ function OpexPO01CTowns(catalog)
     yield null; // PO01C_CHECKPOINT
       if (cargo == catalog.paxCargo) continue;
       local acceptance = AITile.GetCargoAcceptance(tile, cargo, 2, 2, catalog.railCoverage > 0 ? catalog.railCoverage : 4);
-      if (acceptance >= 8 || (pop >= 300 && AICargo.HasCargoClass(cargo, AICargo.CC_EXPRESS))) {
+      local acceptValid = EB10_GUARDS ? (acceptance >= 8) : (acceptance >= 8 || (pop >= 300 && AICargo.HasCargoClass(cargo, AICargo.CC_EXPRESS)));
+      if (acceptValid) {
         if (!(cargo in catalog.townAcceptors)) catalog.townAcceptors.rawset(cargo, []);
         catalog.townAcceptors[cargo].append(townObj);
       }
