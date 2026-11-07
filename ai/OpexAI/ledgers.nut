@@ -1497,3 +1497,36 @@ function OpexAI::_recordC69BuildingPass(year, projects, builtProjects)
     }
   }
 }
+
+/* EB-7 phase 2 : comptabilite fine et passive des depenses reelles AIR et ROUTE */
+function OpexEB7RecordSpend(mode, category, amount)
+{
+  if (!EB7_DETAILED_ACCOUNTING || amount <= 0) return;
+  if (mode == "road") {
+    if (category == "capex") EB7_LEDGER.capexRoad += amount;
+  } else if (mode == "air") {
+    if (category == "capex") EB7_LEDGER.capexAir += amount;
+    else if (category == "vehBuy") EB7_LEDGER.vehBuyAir += amount;
+  }
+  if (DECISION_LOG) {
+    OpexDecide("EB7_ACCOUNTING", "mode=" + mode + " cat=" + category + " amount=" + amount
+        + " road_total=" + EB7_LEDGER.capexRoad
+        + " air_total=" + (EB7_LEDGER.capexAir + EB7_LEDGER.vehBuyAir));
+  }
+}
+
+function OpexEB7MonthlyReconciliation()
+{
+  if (!EB7_DETAILED_ACCOUNTING) return;
+  local curCash = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+  local curLoan = AICompany.GetLoanAmount();
+  EB7_LEDGER.lastCash = curCash;
+  EB7_LEDGER.lastLoan = curLoan;
+  if (DECISION_LOG) {
+    OpexDecide("EB7_MONTHLY_REPORT", "capex_road=" + EB7_LEDGER.capexRoad
+        + " capex_air=" + EB7_LEDGER.capexAir
+        + " veh_buy_air=" + EB7_LEDGER.vehBuyAir
+        + " total_spent=" + (EB7_LEDGER.capexRoad + EB7_LEDGER.capexAir + EB7_LEDGER.vehBuyAir)
+        + " cash=" + curCash + " loan=" + curLoan);
+  }
+}

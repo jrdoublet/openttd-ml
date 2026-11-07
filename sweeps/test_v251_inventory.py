@@ -73,7 +73,8 @@ class TestV251Inventory(unittest.TestCase):
         # idle1_slack_worker adds one default-OFF tick slack worker setting (71 -> 72).
         # po02_independent_expiry adds one default-OFF independent expiry setting (72 -> 73).
         # eb4_air_road_arbitrage adds one default-OFF cash arbitrage setting (73 -> 74).
-        self.assertEqual(info.count("AddSetting("), 74)
+        # eb7_detailed_accounting adds one default-OFF accounting probe setting (74 -> 75).
+        self.assertEqual(info.count("AddSetting("), 75)
         self.assertNotIn('name = "v251', info)
         settings = self.sources["settings.nut"]
         self.assertNotIn('GetSetting("v251', settings)

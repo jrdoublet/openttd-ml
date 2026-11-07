@@ -77,6 +77,7 @@ function OpexLoadSettings()
   IDLE1_SLACK_WORKER = AIController.GetSetting("idle1_slack_worker") == 1 ? 1 : 0;
   PO02_INDEPENDENT_EXPIRY = AIController.GetSetting("po02_independent_expiry") == 1 ? 1 : 0;
   EB4_AIR_ROAD_ARBITRAGE = AIController.GetSetting("eb4_air_road_arbitrage") == 1 ? 1 : 0;
+  EB7_DETAILED_ACCOUNTING = AIController.GetSetting("eb7_detailed_accounting") == 1 ? 1 : 0;
 
   /* --- 2. Interrupteurs de mode et options rail --- */
 

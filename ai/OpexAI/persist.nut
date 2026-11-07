@@ -764,6 +764,9 @@ function OpexAI::Save()
     if (PO02_INDEPENDENT_EXPIRY) {
       shortSave.po02LastPublishDate <- PO02_LAST_PUBLISH_DATE;
     }
+    if (EB7_DETAILED_ACCOUNTING) {
+      shortSave.eb7Ledger <- EB7_LEDGER;
+    }
     if (DECISION_LOG && startOps != null) {
       local endOps = AIController.GetOpsTillSuspend();
       local opsSpent = startOps - endOps;
@@ -981,6 +984,8 @@ function OpexAI::Load(version, data)
     AIR_NEW_TOWN_QUEUE = [];
   if (PO02_INDEPENDENT_EXPIRY && ("po02LastPublishDate" in data) && typeof data.po02LastPublishDate == "table")
     PO02_LAST_PUBLISH_DATE = data.po02LastPublishDate;
+  if (EB7_DETAILED_ACCOUNTING && ("eb7Ledger" in data) && typeof data.eb7Ledger == "table")
+    EB7_LEDGER = data.eb7Ledger;
   if ("railPair" in data && typeof data.railPair == "table") {
     this._v271Year = ("year" in data.railPair) ? data.railPair.year : -1;
     this._v271Pending = ("pending" in data.railPair) ? data.railPair.pending : null;
