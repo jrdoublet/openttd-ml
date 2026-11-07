@@ -3,17 +3,21 @@
 Date de référence : 2026-11-07
 Commit initial : `7e5ad9d4` (base `origin/master`)
 
-## 1. Bilan initial
+## 1. Bilan initial et progression
 
-Exécution globale :
-`python3 -m unittest discover -s sweeps -p 'test_*.py'`
-Résultat initial :
+Exécution globale initiale :
 - Total tests : **3849**
 - Échecs (`FAIL`) : **83**
 - Erreurs (`ERROR`) : **24**
+- Total anomalies : **107**
+
+Exécution globale après corrections lots A, B, C, D et Tâche 3 (commit `d8ff6b34`) :
+- Total tests : **3849**
+- Échecs (`FAIL`) : **49** (au lieu de 83, -34 échecs)
+- Erreurs (`ERROR`) : **17** (au lieu de 24, -7 erreurs)
 - Ignorés (`skipped`) : **16**
 - Échecs attendus (`expected failures`) : **2**
-- Total anomalies : **107**
+- Total anomalies restantes : **66** (au lieu de 107, -41 anomalies résolues !)
 
 ## 2. Classification par famille
 
