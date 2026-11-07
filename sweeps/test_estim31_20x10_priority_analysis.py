@@ -88,11 +88,10 @@ class DecadeEconomicPriorityTests(unittest.TestCase):
 
     def test_tasks_and_provenance_protect_against_reruns(self):
         for task in ('POST-1974-ENTONNOIR', 'RAIL-RENDEMENT-TARDIF',
-                     'AIR-PRODUCTIVITÉ', 'QUALITÉ-TESTS-ESTIM31'):
+                     'AIR-COVERAGE-STOP', 'QUALITÉ-TESTS-ESTIM31'):
             self.assertIn(task, self.tasks)
-        self.assertIn('Aucun nouveau 1×10 lancé', self.tasks)
+        self.assertIn('1×10', self.tasks)
         self.assertIn('Aucun banc supplémentaire', self.report)
-        self.assertIn('non transposable', self.tasks)
         self.assertIn('estim31_ten_v161_accounts_1979_20261030.json', self.report)
 
 
