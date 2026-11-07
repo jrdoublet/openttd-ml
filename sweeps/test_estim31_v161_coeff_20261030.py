@@ -5,6 +5,10 @@ from sweeps.estim31_v161_coeff_prepare_20261030 import ROOT, PARENT, DEST, FILE,
 
 
 class PriorCoefficientIsolation(unittest.TestCase):
+    def setUp(self):
+        if not PARENT.exists() or not DEST.exists():
+            raise unittest.SkipTest("artefacts transitoires de campagne absents")
+
     def test_only_the_early_estim_priors_change(self):
         original = (PARENT / FILE).read_text('utf-8')
         for name, (air, rail, weight) in DESIGNS.items():

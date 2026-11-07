@@ -7,6 +7,11 @@ from sweeps.estim31_joint_safe_prepare_20261030 import SAFE_CONFIGS
 
 
 class SafeGridSourceContract(unittest.TestCase):
+    def setUp(self):
+        root = REPO / 'results/estim31_joint_safe20261030'
+        if not root.exists() or not BASE.exists():
+            raise unittest.SkipTest("artefacts transitoires de campagne absents")
+
     def test_historical_off_files_identical(self):
         root = REPO / 'results/estim31_joint_safe20261030'
         for name in SAFE_CONFIGS:

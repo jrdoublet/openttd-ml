@@ -12,6 +12,10 @@ SPEC.loader.exec_module(MODULE)
 
 
 class GridSourceContracts(unittest.TestCase):
+    def setUp(self):
+        if not MODULE.BASE.exists():
+            raise unittest.SkipTest(f"artefacts transitoires de campagne absents : {MODULE.BASE}")
+
     def test_no_historical_code_changed(self):
         owner = MODULE.BASE / 'ai/OpexAI'
         for name in MODULE.CONFIGS:

@@ -6,6 +6,10 @@ from sweeps.estim31_v161_policy_prepare_20261030 import DEST, MIX, PARENT, file_
 
 
 class V161PolicyFactorial(unittest.TestCase):
+    def setUp(self):
+        if not PARENT.exists() or not DEST.exists():
+            raise unittest.SkipTest("artefacts transitoires de campagne absents")
+
     def test_identical_off_and_estim_source(self):
         original = file_map(PARENT)
         base = json.loads((PARENT / 'design.json').read_text('utf-8'))['configuration']

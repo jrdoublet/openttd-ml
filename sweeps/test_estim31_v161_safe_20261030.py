@@ -5,6 +5,10 @@ from sweeps.estim31_v161_safe_prepare_20261030 import ROOT, DEST, DESIGNS
 
 
 class V161SameEngineContract(unittest.TestCase):
+    def setUp(self):
+        if not ROOT.exists() or not DEST.exists():
+            raise unittest.SkipTest("artefacts transitoires de campagne absents")
+
     def test_default_off_historical_functions_and_experimental_guard(self):
         for name,parent in DESIGNS.items():
             a=ROOT/parent/name/'ai/OpexAI'

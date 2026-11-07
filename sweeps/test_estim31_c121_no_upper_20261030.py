@@ -8,6 +8,8 @@ class ExactEnumeration(unittest.TestCase):
         for name, parent in DESIGNS.items():
             a = ROOT / parent / 'ai/OpexAI'
             b = DEST / name / 'ai/OpexAI'
+            if not a.exists() or not b.exists():
+                raise unittest.SkipTest(f"artefacts transitoires de campagne absents : {a}")
             for file in ('air_economics_c121.nut', 'settings.nut', 'globals_pre.nut',
                          'task_air.nut', 'air_fleet.nut', 'task_projects.nut'):
                 self.assertEqual((a / file).read_bytes(), (b / file).read_bytes())
