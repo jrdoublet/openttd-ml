@@ -60,6 +60,7 @@ class BusDistrictContracts(unittest.TestCase):
                     '    if ("road1ySpreadA" in line) OpexRoad1ySpreadCount(line);\n',
                     '    if (EB10_GUARDS && ("dstTown" in candidate) && candidate.dstTown >= 0 && (dst < 0 || dst == 65535 || !AIIndustry.IsValidIndustry(dst))) dst = "t" + candidate.dstTown;\n',
                     '    if (EB10_GUARDS && ("srcTown" in candidate) && candidate.srcTown >= 0 && (src < 0 || src == 65535 || !AIIndustry.IsValidIndustry(src))) src = "t" + candidate.srcTown;\n',
+                    '    if (EB10_GUARDS) return candidate.kind + "|" + candidate.cargo + "|" + src + "|" + dst;\n',
                 ):
                     original = original.replace(addition, '')
                     projected = projected.replace(addition, '')
