@@ -767,6 +767,9 @@ function OpexAI::Save()
     if (EB7_DETAILED_ACCOUNTING) {
       shortSave.eb7Ledger <- EB7_LEDGER;
     }
+    if (MULTI1_RELANCE) {
+      shortSave.multi1LastBuildDate <- MULTI1_LAST_BUILD_DATE;
+    }
     if (DECISION_LOG && startOps != null) {
       local endOps = AIController.GetOpsTillSuspend();
       local opsSpent = startOps - endOps;
@@ -986,6 +989,10 @@ function OpexAI::Load(version, data)
     PO02_LAST_PUBLISH_DATE = data.po02LastPublishDate;
   if (EB7_DETAILED_ACCOUNTING && ("eb7Ledger" in data) && typeof data.eb7Ledger == "table")
     EB7_LEDGER = data.eb7Ledger;
+  if (MULTI1_RELANCE && ("multi1LastBuildDate" in data) && typeof data.multi1LastBuildDate == "integer")
+    MULTI1_LAST_BUILD_DATE = data.multi1LastBuildDate;
+  else if (MULTI1_RELANCE)
+    MULTI1_LAST_BUILD_DATE = AIDate.GetCurrentDate();
   if ("railPair" in data && typeof data.railPair == "table") {
     this._v271Year = ("year" in data.railPair) ? data.railPair.year : -1;
     this._v271Pending = ("pending" in data.railPair) ? data.railPair.pending : null;

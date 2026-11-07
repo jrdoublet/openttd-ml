@@ -1513,6 +1513,7 @@ function OpexAI::_tryBuildProjects(year)
           c121AirBuilt++;
           if (c121ChainAttempt) c121AirChained++;
         }
+        if (MULTI1_RELANCE) MULTI1_LAST_BUILD_DATE = AIDate.GetCurrentDate();
         this._recordPortfolioProjectBuilt(project, i, c75BuiltKeys, c69BuiltProjects);
         builtCount++;
         if (airTouchedTowns == null) airTouchedTowns = {};
@@ -1546,6 +1547,7 @@ function OpexAI::_tryBuildProjects(year)
           OpexEB7RecordSpend("road", "capex", spent);
         }
         if (PROBE_SPAN_TRACE) OpexSpanEvent("line_built", "mode=road built=1");
+        if (MULTI1_RELANCE) MULTI1_LAST_BUILD_DATE = AIDate.GetCurrentDate();
         this._recordPortfolioProjectBuilt(project, i, c75BuiltKeys, c69BuiltProjects);
         builtCount++;
 

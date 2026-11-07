@@ -928,6 +928,32 @@ function OpexEB4RoadAllowed(roadProject, roadCapital, bestAir, deltaC, monthlyIn
   return false;
 }
 
+/* MULTI-1 : Predicat d'activation tardive du multimodal en cas de starvation. */
+function OpexMulti1TriggerActive(ai)
+{
+  if (MULTI1_RELANCE == 0) return false;
+  local date = AIDate.GetCurrentDate();
+  local year = AIDate.GetYear(date);
+  if (year < 1975) return false;
+
+  local cash = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+  local loan = AICompany.GetLoanAmount();
+  if (cash < 2000000 || loan > 0) return false;
+
+  local daysSinceBuild = (MULTI1_LAST_BUILD_DATE > 0)
+      ? (date - MULTI1_LAST_BUILD_DATE) : 999;
+  local portfolioEmpty = (ai == null || !("_projects" in ai) || ai._projects == null
+                          || !("best" in ai._projects)
+                          || ai._projects.best == null || ai._projects.best.len() == 0);
+
+  local triggered = (daysSinceBuild >= 180 || portfolioEmpty);
+  if (triggered && DECISION_LOG) {
+    OpexDecide("MULTI1_TRIGGER", "year=" + year + " cash=" + cash + " loan=" + loan
+        + " days_since=" + daysSinceBuild + " empty=" + (portfolioEmpty ? 1 : 0));
+  }
+  return triggered;
+}
+
 function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSelection = true, abandonedPairs = null)
 {
   SELECT_BISECT_STAMP++;

@@ -274,6 +274,18 @@ class OpexAIInfo extends AIInfo {
       flags = 0
     });
 
+    AddSetting({
+      name = "multi1_relance",
+      description = "MULTI-1 : conditions de relance du multimodal tardif (0=off, 1=shadow, 2=on)",
+      min_value = 0,
+      max_value = 2,
+      easy_value = 0,
+      medium_value = 0,
+      hard_value = 0,
+      custom_value = 0,
+      flags = 0
+    });
+
     /* Les canaux de mesure sont commandes par probes (bits dedies ou groupes). */
     AddSetting({
       name = "c121_air_project_realization_adaptive",

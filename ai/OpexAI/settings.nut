@@ -79,6 +79,7 @@ function OpexLoadSettings()
   EB4_AIR_ROAD_ARBITRAGE = AIController.GetSetting("eb4_air_road_arbitrage") == 1 ? 1 : 0;
   EB7_DETAILED_ACCOUNTING = AIController.GetSetting("eb7_detailed_accounting") == 1 ? 1 : 0;
   LATE_GAME_POLICY = AIController.GetSetting("late_game_policy");
+  MULTI1_RELANCE = AIController.GetSetting("multi1_relance");
 
   /* --- 2. Interrupteurs de mode et options rail --- */
 

@@ -75,7 +75,8 @@ class TestV251Inventory(unittest.TestCase):
         # eb4_air_road_arbitrage adds one default-OFF cash arbitrage setting (73 -> 74).
         # eb7_detailed_accounting adds one default-OFF accounting probe setting (74 -> 75).
         # late_game_policy adds one default-OFF late game cash reinvestment setting (75 -> 76).
-        self.assertEqual(info.count("AddSetting("), 76)
+        # multi1_relance adds one default-OFF multimodal restart conditions setting (76 -> 77).
+        self.assertEqual(info.count("AddSetting("), 77)
         self.assertNotIn('name = "v251', info)
         settings = self.sources["settings.nut"]
         self.assertNotIn('GetSetting("v251', settings)
