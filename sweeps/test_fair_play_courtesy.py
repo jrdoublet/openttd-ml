@@ -108,8 +108,8 @@ class TestFairPlayCourtesy(unittest.TestCase):
 
     def test_persist_reconcile_cleans_budget_signs(self) -> None:
         reconcile_body = _function_body(self.persist, "OpexAI::_reconcileAfterLoad")
-        self.assertIn("if (FAIR_PLAY_COURTESY && this._budgetSignIds != null)", reconcile_body)
-        self.assertIn("OpexClearBudgetSigns(this._budgetSignIds);", reconcile_body)
+        self.assertIn("if (FAIR_PLAY_COURTESY && _budgetSignIds != null)", reconcile_body)
+        self.assertIn("OpexClearBudgetSigns(_budgetSignIds);", reconcile_body)
 
     def test_squirrel_safety_and_no_sleep(self) -> None:
         for fn_name in ("OpexSignAllowed", "OpexClearBudgetSigns"):
