@@ -303,6 +303,7 @@ PO02_LAST_PUBLISH_DATE <- { air = 0, rail = 0, road = 0, water = 0 };
 EB4_AIR_ROAD_ARBITRAGE <- 0; // EB-4 : arbitrage de caisse 1970-1972 entre air et route (defaut 0).
 EB7_DETAILED_ACCOUNTING <- 0; // EB-7 : comptabilite fine et passive des depenses reelles AIR/ROUTE (defaut 0).
 EB7_LEDGER <- { capexRoad = 0, capexAir = 0, vehBuyAir = 0, lastCash = 0, lastLoan = 0 };
+LATE_GAME_POLICY <- 0; // LATE-GAME-1 : reinvestissement de l'excedent de tresorerie tardif (defaut 0).
 /* Mesure ponctuelle : un panneau par ligne reussie, donc desactivee par defaut pour ne pas
  * changer le profil d'opcodes de la baseline. */
 RAIL_COST_PROBE <- false;

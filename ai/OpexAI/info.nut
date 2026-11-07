@@ -262,6 +262,18 @@ class OpexAIInfo extends AIInfo {
       flags = 0
     });
 
+    AddSetting({
+      name = "late_game_policy",
+      description = "LATE-GAME-1 : reinvestissement de l'excedent de tresorerie tardif (0=off, 1=urbain, 2=industries)",
+      min_value = 0,
+      max_value = 2,
+      easy_value = 0,
+      medium_value = 0,
+      hard_value = 0,
+      custom_value = 0,
+      flags = 0
+    });
+
     /* Les canaux de mesure sont commandes par probes (bits dedies ou groupes). */
     AddSetting({
       name = "c121_air_project_realization_adaptive",
