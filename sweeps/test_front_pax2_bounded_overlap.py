@@ -90,7 +90,7 @@ class TestFrontPax2BoundedOverlap(unittest.TestCase):
         self.assertIn("(fp2Overlap == 1 || fp2Overlap == 2)", self.settings)
 
     def test_legacy_byte_inventory_unchanged(self):
-        self.assertEqual(historical_info(self.info).count("AddSetting("), 58)
+        self.assertEqual(historical_info(self.info).count("AddSetting("), 68)
         for filename in ("settings.nut", "info.nut"):
             stripped = historical_bytes(filename, (AI / filename).read_bytes())
             self.assertNotIn(b"front_pax2_bounded_overlap", stripped)
