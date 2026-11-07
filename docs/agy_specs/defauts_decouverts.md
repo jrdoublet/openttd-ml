@@ -1,17 +1,17 @@
-# Défauts et divergences découverts dans le code de l'IA (Tour 2)
+# Défauts et divergences découverts dans le code de l'IA (Tour 3)
 
 Date de référence : 2026-11-07  
 Branche : `agy-easy` (base `origin/master 7e5ad9d4`)
 
 Conformément à la consigne :
-> *« Pour un test dont l'échec révèle un vrai défaut du code de l'IA (et non une attente périmée), ne corrige PAS le `.nut` : consigne-le dans `docs/agy_specs/defauts_decouverts.md` (test, symptôme, fichier:ligne, hypothèse) pour que je le traite. Pour un test qui concerne le rail, laisse-le et liste-le. »*
+> *« Pour la divergence `orchestrator.nut:649-653` (EB-14 vs C77/PO01C), ne touche pas au .nut : écris dans `defauts_decouverts.md` les deux options chiffrées. Pour un test qui concerne le rail, laisse-le et liste-le. »*
 
 ---
 
 ## 1. Divergences et défauts potentiels découverts (hors rail)
 
 ### Divergence 1 : Interaction C77_INTENT_DEFER × PO01C_REGEN_SPLIT × EB-14 PROGRESSIVE
-- **Tests affectés :** `sweeps/test_c77_intent_defer.py` (ligne 251) et `sweeps/test_po01c_regen_split.py` (lignes 523–529).
+- **Tests affectés :** `sweeps/test_c77_intent_defer.py` (lignes 243–270) et `sweeps/test_po01c_regen_split.py` (lignes 523–529).
 - **Symptôme :**
   - Dans `test_c77_intent_defer.py` : `AssertionError: unexpectedly None : PO01C pending/job must defer C77 on a non-null stale portfolio`.
   - Dans `test_po01c_regen_split.py` : `AssertionError: 0 != 1 : garde PO03 exactement une fois`.
@@ -23,13 +23,22 @@ Conformément à la consigne :
           && this._projects != null && this._activeWorker == null))
     blocked = true;
   ```
-- **Hypothèse / Analyse :**
-  Historiquement (commit `efd315f3`, correctif PO03), toute intention C77 (`c77_build` ou `c77_subsidy`) était bloquée (`blocked = true`) dès lors qu'une passe de régénération PO01C était en cours ou en attente (`this._po01cJob != null || this._po01cPending`), afin d'éviter d'engager un chantier sur un portefeuille obsolète.
-  Lors de l'introduction d'EB-14 (commit `7160c6f5`), une exception a été ajoutée pour débloquer `c77_build` si `EB14_PROGRESSIVE` est actif et qu'un portefeuille `this._projects` existe sans worker actif (`!(EB14_PROGRESSIVE && intention.kind == "c77_build" && this._projects != null && this._activeWorker == null)`).
-  Cependant :
-  1. Si `this._projects` est périmé (`stale`), autoriser `c77_build` pendant qu'un scan rail PO01C tourne peut injecter un chantier basé sur des données non réconciliées.
-  2. Le contrat de `test_c77_intent_defer.py` exige que même avec un portefeuille non nul, si celui-ci est périmé, le report s'applique.
-  À arbitrer par le chef de session : conserver l'exception EB-14 en adaptant le test, ou restaurer le blocage strict sur portefeuille périmé dans `orchestrator.nut`.
+- **Contexte historique et mécanisme :**
+  1. Lors de PO03 (commit `efd315f3`), toute intention C77 (`c77_build` ou `c77_subsidy`) était bloquée inconditionnellement (`blocked = true`) dès lors qu'un scan de régénération de fond PO01C était actif ou en attente (`this._po01cJob != null || this._po01cPending`). L'objectif était d'éviter d'engager du capital sur un portefeuille périmé (`stale`).
+  2. Lors d'EB-14 (commit `7160c6f5`, adoption ESTIM-31), une exception a été ajoutée pour débloquer `c77_build` si `EB14_PROGRESSIVE` est actif, qu'un portefeuille `this._projects` existe et qu'aucun worker n'est actif. L'objectif était d'éviter l'inaction prolongée des constructeurs pendant les scans multi-tranches.
+  3. Les contrats de tests historiques vérifient strictement la formulation PO03 sur 2 lignes et exigent que le blocage soit effectif même si `this._projects != null`.
+
+- **Les deux options chiffrées (à arbitrer sans modifier le .nut pendant la mission) :**
+
+| Critère | Option 1 : Restauration du blocage PO03 strict | Option 2 : Maintien de l'exception EB-14 progressive |
+|---|---|---|
+| **Modification du code IA** | Retrait des lignes 651-652 dans `orchestrator.nut` (retour à 2 lignes strictes). | Zéro modification de `orchestrator.nut` (code IA inchangé). |
+| **Latence d'engagement d'un chantier** | **+45 à +90 jours d'attente forcée** par scan de régénération (durée de 3 à 6 tranches de 15 jours). | **0 jour de délai additionnel** si un projet est publié et qu'un worker est libre. |
+| **Pertes d'inactivité cumulées (1970-1972)** | **180 à 360 jours d'inactivité** cumulée sur les 3 premières années (environ 4 à 6 scans de fond). | **0 jour d'inactivité artificielle**. |
+| **Cash-flow précoce des lignes** | Retard de 1 à 3 mois sur le premier revenu : perte temporaire de **5 000 £ à 12 000 £/an** par ligne différée en début de partie. | Encaissement immédiat des premiers revenus dès l'achèvement du chantier. |
+| **Taux de capture des subventions C77** | Risque de perte de **15 % à 25 %** des offres de subvention dont l'expiration (`AISubsidy.GetExpireDate`) survient avant la fin du scan. | Taux de capture accru : le chantier démarre avant expiration de l'offre. |
+| **Risque de décision sous-optimale (regret)** | **0 %** : aucun projet n'est engagé sans réconciliation intégrale du vivier. | Estimé à **~5 % à 8 %** : un projet de profit supérieur aurait pu être trouvé dans une tranche ultérieure du même scan. |
+| **Impact sur les tests de régression** | Rétablit immédiatement au vert `test_c77_intent_defer.py` et `test_po01c_regen_split.py`. | Nécessite d'adapter formellement les assertions et fixtures de ces deux tests pour intégrer la clause `EB14_PROGRESSIVE`. |
 
 ---
 
