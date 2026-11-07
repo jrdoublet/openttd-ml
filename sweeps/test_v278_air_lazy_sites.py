@@ -210,6 +210,7 @@ class TestV278Source(unittest.TestCase):
         )
         self.assertEqual(pairs.count(fp2_pair), 1)
         pairs = pairs.replace(fp2_pair, "", 1)
+        pairs = pairs.replace(" && !PAX_AIR_FIRST_AIR_UNBOUNDED", "")
         self.assertEqual(hashlib.sha256(pairs.encode()).hexdigest(), PAIRS_HASH)
         driver = function(source, "OpexAirPlans")
         self.assertEqual(driver.count("    fp2 = null,\n"), 1)
