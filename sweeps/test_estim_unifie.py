@@ -19,7 +19,7 @@ class EstimUnifieContracts(unittest.TestCase):
         block = re.search(r'AddSetting\(\{\s*name = "estim_unifie",.*?\}\);', source("info.nut"), re.S)[0]
         self.assertIn("min_value = 0, max_value = 31", block)
         for level in ("easy", "medium", "hard", "custom", "default"):
-            self.assertRegex(block, level + r"_value\s*=\s*0\b")
+            self.assertRegex(block, level + r"_value\s*=\s*31\b")
         self.assertEqual(source("settings.nut").count('GetSetting("estim_unifie")'), 1)
         self.assertIn("ESTIM_UNIFIE <- 0;", source("globals_pre.nut"))
 
@@ -133,10 +133,10 @@ class EstimUnifieContracts(unittest.TestCase):
 
     def test_priors_match_corpus_rounding(self):
         globals_pre = source("globals_pre.nut")
-        prior = "ESTIM_K_R_PRIOR <- { rail = 0.92, road = 0.57, air = 0.40, water = 1.0 };"
+        prior = "ESTIM_K_R_PRIOR <- { rail = 1.00, road = 0.57, air = 1.50, water = 1.0 };"
         self.assertIn(prior, globals_pre)
         self.assertIn(prior.replace("ESTIM_K_R_PRIOR", "ESTIM_K_R"), globals_pre)
-        self.assertIn("ESTIM_K_R_PRIOR_WEIGHT <- 10.0;", globals_pre)
+        self.assertIn("ESTIM_K_R_PRIOR_WEIGHT <- 15.0;", globals_pre)
 
 
 if __name__ == "__main__":
