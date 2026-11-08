@@ -255,6 +255,9 @@ function OpexLoadSettings()
   ROAD100_PAX_FLEET_CAP = ROAD100_TOWN_BUS && road100FleetCap == 8 ? 8 : 0;
   V216_PROBE = OpexProbeEnabled(536870912);
   V211_RIVALS = OpexProbeEnabled(1073741824);
+  ROAD1Y_LOAN_FLOOR = AIController.GetSetting("road1y_loan_floor");
+  if (ROAD1Y_LOAN_FLOOR < 0 || ROAD1Y_LOAN_FLOOR > 500) ROAD1Y_LOAN_FLOOR = 0;
+  if (!road1yRoadOnly) ROAD1Y_LOAN_FLOOR = 0;
   V216A_GHOST_DEMAND = AIController.GetSetting("v216a_ghost_demand");
   V216F_DWELL_PCT = AIController.GetSetting("v216f_dwell_pct");
   local lateRelax = AIController.GetSetting("v269_rail_late_relax");

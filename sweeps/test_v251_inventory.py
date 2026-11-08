@@ -60,14 +60,15 @@ class TestV251Inventory(unittest.TestCase):
         # road1y_mail2 (défaut 0, borne 0..25) est dans le même bloc ROAD1Y-B2 retiré.
         # road1y_mail2_years (défaut 0, borne 0..20) est dans le même bloc ROAD1Y-B2 retiré.
         # road1y_next3 (défaut 0, borne 0..96) est dans le même bloc ROAD1Y-B2 retiré.
+        # road1y_loan_floor: default 0, projected out with the ROAD1Y-B2 layer.
         # road1y_spread_stops: default 0, removed by the same B2 historical projection.
         # B2 fixes adds one default-OFF bitmask for isolated one-year diagnostics.
         # master: eb2 fallback + 4 rail repair profiles and V233L counterfactual.
         self.assertLessEqual(info.count("AddSetting("), 75)
         # After the precise legacy projectors, preserve the master inventory:
         # origin/master 44d9313e already projects to 68 settings (not 58).
-        # The extra ten belong to master, not to V251 or the rail merge.
-        self.assertEqual(info.count("AddSetting("), 68)
+        # road1y_loan_floor adds one opt-in setting (default 0), bringing count to 69.
+        self.assertEqual(info.count("AddSetting("), 69)
         self.assertNotIn('name = "v251', info)
         settings = self.sources["settings.nut"]
         self.assertNotIn('GetSetting("v251', settings)

@@ -45,11 +45,14 @@ def _historical_off(name, source, *, merged_rail=False):
         edits = data.get(name)
         if merged_rail and filename == "road100_bus_districts_hunks.json":
             before_sha, after_sha, rail_only = road.ROAD1Y_B2_RAIL_MERGE[name]
-            if hashlib.sha256(source.encode("utf-8")).hexdigest() != before_sha:
+            accepted = {p[0]: p[1] for p in road.ROAD1Y_B2_RAIL_MERGE_STAGES.get(name, ())}
+            accepted[before_sha] = after_sha
+            digest = hashlib.sha256(source.encode("utf-8")).hexdigest()
+            if digest not in accepted:
                 raise AssertionError(f"{name}: unreviewed merged input")
             edits = [edit for i, edit in enumerate(edits) if i not in rail_only]
             source = road._subtract_exact(name, source, edits, label + "-reviewed-merge")
-            if hashlib.sha256(source.encode("utf-8")).hexdigest() != after_sha:
+            if hashlib.sha256(source.encode("utf-8")).hexdigest() != accepted[digest]:
                 raise AssertionError(f"{name}: reviewed merged B2 output changed")
         else:
             source = road._subtract_exact(name, source, edits, label)
@@ -68,7 +71,10 @@ class Road100MergedProjection(unittest.TestCase):
                 # origin/master now IS the approved merged source.  Compare
                 # the frozen projection in either era; never assert that the
                 # moving branch must differ from the reviewed merge.
-                merged_rail = reviewed is not None and digest == reviewed[0]
+                approved = set() if reviewed is None else (
+                    {reviewed[0]} | {p[0] for p in road.ROAD1Y_B2_RAIL_MERGE_STAGES.get(name, ())}
+                )
+                merged_rail = reviewed is not None and digest in approved
                 projected = road.off_source(name, source)
                 self.assertEqual(projected, _historical_off(name, source, merged_rail=merged_rail))
                 self.assertEqual(road.off_source(name, projected), projected)

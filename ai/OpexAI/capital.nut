@@ -16,28 +16,29 @@ function OpexAI::_tryRepayLoan(year)
 {
   local loan = AICompany.GetLoanAmount();
   local cash = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+  local floor = (ROAD1Y_LOAN_FLOOR > 0) ? (ROAD1Y_LOAN_FLOOR * 1000) : LOAN_REPAY_FLOOR;
   OpexSign(AIMap.GetTileIndex(1, 1), "LF|" + (year % 100) + "|" + cash + "|" + loan);
   if (loan <= 0) {
     if (DECISION_LOG) {
-      OpexDecide("LOAN", "action=none reason=no_loan cash=" + cash + " floor=" + LOAN_REPAY_FLOOR);
+      OpexDecide("LOAN", "action=none reason=no_loan cash=" + cash + " floor=" + floor);
     }
     return;
   }
 
-  if (cash <= LOAN_REPAY_FLOOR) {
+  if (cash <= floor) {
     if (DECISION_LOG) {
-      OpexDecide("LOAN", "action=refuse_repay reason=cash_below_floor cash=" + cash + " floor=" + LOAN_REPAY_FLOOR + " loan=" + loan);
+      OpexDecide("LOAN", "action=refuse_repay reason=cash_below_floor cash=" + cash + " floor=" + floor + " loan=" + loan);
     }
     return;
   }
 
   local interval = AICompany.GetLoanInterval();
-  local minNewLoan = loan - (cash - LOAN_REPAY_FLOOR);
+  local minNewLoan = loan - (cash - floor);
   if (minNewLoan < 0) minNewLoan = 0;
   local newLoan = ((minNewLoan + interval - 1) / interval) * interval;
   if (newLoan >= loan) {
     if (DECISION_LOG) {
-      OpexDecide("LOAN", "action=refuse_repay reason=less_than_interval cash=" + cash + " floor=" + LOAN_REPAY_FLOOR + " loan=" + loan + " interval=" + interval);
+      OpexDecide("LOAN", "action=refuse_repay reason=less_than_interval cash=" + cash + " floor=" + floor + " loan=" + loan + " interval=" + interval);
     }
     return;  // moins d'un palier remboursable : pas la peine
   }
@@ -47,6 +48,6 @@ function OpexAI::_tryRepayLoan(year)
   local anchor = AIMap.GetTileIndex(1, 1);
   OpexSign(anchor, "LR|" + year + "|" + repaid + "|" + newLoan);
   if (DECISION_LOG) {
-    OpexDecide("LOAN", "action=repay repaid=" + repaid + " new_loan=" + newLoan + " cash=" + cash + " floor=" + LOAN_REPAY_FLOOR);
+    OpexDecide("LOAN", "action=repay repaid=" + repaid + " new_loan=" + newLoan + " cash=" + cash + " floor=" + floor);
   }
 }

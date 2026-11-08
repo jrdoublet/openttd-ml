@@ -18,9 +18,17 @@ HISTORICAL_FIXTURE = json.loads((Path(__file__).parent / "fixtures/rail_open_off
 # changed public defaults.  These exact source hashes authorize the in-memory
 # merge view; the historical JSON (and old-source projection path) stays frozen.
 _MERGE_SHA = {
-    "builder_rail.nut": "1eca9310d6a3451820e5c61d721ce531a4b274213e043cfc9efef0075d9ee72e",
-    "globals_pre.nut": "d0548c85cd11d62de13e4eb1566088d77a15ab6490b3a30a01fb27eda3110424",
-    "info.nut": "0e6e6e30aaae1b814dc8afbaad515347e2dc05aea133cd12983a7abc1fce26f1",
+    "builder_rail.nut": (
+        "1eca9310d6a3451820e5c61d721ce531a4b274213e043cfc9efef0075d9ee72e",
+    ),
+    "globals_pre.nut": (
+        "d0548c85cd11d62de13e4eb1566088d77a15ab6490b3a30a01fb27eda3110424",
+        "14092ce902f853a19d77980467627b727cf6e32e9d4bc094c8a9145e296bdac9",
+    ),
+    "info.nut": (
+        "0e6e6e30aaae1b814dc8afbaad515347e2dc05aea133cd12983a7abc1fce26f1",
+        "dea79bb97b5153aab3fe91e659451c6021ac30660846342cf1e0ae4382877613",
+    ),
 }
 
 
@@ -41,8 +49,8 @@ def _merge_replace(source, old, new):
 def _merge_fixture():
     root = Path(__file__).resolve().parents[1] / "ai" / "OpexAI"
     current = {name: (root / name).read_text(encoding="utf-8") for name in _MERGE_SHA}
-    if any(hashlib.sha256(current[name].encode("utf-8")).hexdigest() != sha
-           for name, sha in _MERGE_SHA.items()):
+    if any(hashlib.sha256(current[name].encode("utf-8")).hexdigest() not in shas
+           for name, shas in _MERGE_SHA.items()):
         return HISTORICAL_FIXTURE
     result = copy.deepcopy(HISTORICAL_FIXTURE)
     builder = current["builder_rail.nut"]

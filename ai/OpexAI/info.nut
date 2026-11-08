@@ -1170,6 +1170,14 @@ class OpexAIInfo extends AIInfo {
       min_value = 0, max_value = 1,
       easy_value = 1, medium_value = 1, hard_value = 1, custom_value = 1,
       flags = AICONFIG_BOOLEAN });
+    AddSetting({
+      name = "road1y_loan_floor",
+      description = "ROAD1Y: Early loan repayment cash floor in k GBP (0 = legacy LOAN_REPAY_FLOOR 300k, >0 = floor in k GBP, e.g. 50); 0 = off (default)",
+      min_value = 0, max_value = 500,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = 0
+    });
   }
 }
 
