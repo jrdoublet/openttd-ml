@@ -48,22 +48,22 @@ FILES = (
 # Each tuple is (merged SHA, B2-projected SHA, indices of RAIL-only hunks).
 ROAD1Y_B2_RAIL_MERGE = {
     "candidates.nut": (
-        "7b665f4b9035b8955212683573bfd0b340eaea2dd4a69d8563f1ece12747857d",
+        "7f25e7b1c77a88ebebfb797518cfce289c9242363f9a103d5b67b393e8a94ed4",
         "a94a6b536e8fa44b4af2255925febd9738016d522003753068d3702321e7d4a1",
         (7, 8, 9, 10),
     ),
     "globals_pre.nut": (
-        "642b3ef9df0cdf25010b8f59f6251750187345c75f305ae95572357fe3064635",
-        "567ecdf5c7d27cb3623bd01423b844004aa0cb532ca0bdc5eaebb08b1c1a70fb",
+        "28a4c3bf248ee8c17e449e8da9949080c7dc1b675b459120a74e92c3d8ee6420",
+        "79e564c92494256263a500e04509766dfad6e20983361eba6a048c90b5928715",
         (1,),
     ),
     "info.nut": (
-        "718d0abd368e550a8c55b4c2a46909b3c7354369119116fad6ae28e1c9ce5a90",
+        "1153b1a70caca3f2c33e203313d0e4027c5079f0b594c25763ecf02ad98a78b3",
         "db4e98d70522a49ae3242441b5479e22ae3422bc0eca772677da37f8aa04f0d2",
         (0,),
     ),
     "settings.nut": (
-        "dada8794fdc294c9bba2fe58dff9ba0bd2c4a2a1dfe0e616c12c11a1e303933e",
+        "737a90ba89833b7532427a2c63e93daafeff90a4a850a702f49e802af5006882",
         "e9a77ce85ffb1a8b552c2022b3aa1f6abf53797c9813a09b62118d9840de1ec4",
         (2,),
     ),
@@ -77,7 +77,7 @@ ROAD1Y_B2_RAIL_MERGE = {
 # order.  Identical stages (no edit for that file) need only one pair.
 ROAD1Y_B2_RAIL_MERGE_STAGES = {
     "candidates.nut": (
-        ("e58fcedbb7ac99897236aeecf30045a5d4443ec21d8ac00d4508565582ffe0ee",
+        ("a369a0b15b28d4e8408267efecf50e6fc395d8148a63c66c9e7a73fd726d0cec",
          "82253f50c21aa1545f65997a5c1aaf880cc99737ebca4f38dcf9029490f456bd"),
         # The fully stripped candidate source is BYTE-IDENTICAL to
         # origin/master.  Do not whitelist it: source alone cannot distinguish
@@ -85,27 +85,27 @@ ROAD1Y_B2_RAIL_MERGE_STAGES = {
         # historical projection for this SHA.
     ),
     "globals_pre.nut": (
-        ("fd815cfe9009250d77bfd814c4f0d0c44ee717de293edc6e55be9dd849a2c9dd",
-         "2851a8829bb997b2921b981994fb9ce8d11d6921890a96ac2a32bdf90dbb121b"),
-        ("ea76dc6d41dda3aceaa76491006aa62061a063270349bede05b94956d7add383",
-         "e51cee90b54bcfdbd9f801d67fa9f21bb02491d1e1d9a5b1622108b6bff07317"),
-        ("44ee2ac11ce032e0fa85548ac78b3f917a4d3d70acbff2f34d6a006e0db0b992",
-         "c141d10018f9bc0767b7702db46d0acd7ef8992878170be3a979de72fbcf87b6"),
+        ("5524c06d628b6c82372f7c6ba72e1fa38fe812527637fee254311995527d5906",
+         "fc5dcfb8a016dc6d8614ae4749ba98868444541348b3c1f460f9fe254a6a3f84"),
+        ("9fcbe72718c6d97a8d0a6b2ddabe893c6a78754ab0db3448dfc56b7294517c15",
+         "0cf805e33fd6c9253d4aeacbf064328c60e17d974923f87f06485d891d63ba3a"),
+        ("648efb42b61a38cc724698be73347519efe1da12eb61ecacb94d005f9520a702",
+         "a24217ee81d6fae9a9a3c45ef8ec4ccb6a564414ddcf9ade5d9f73681ee9be5f"),
     ),
     "info.nut": (
-        ("563dbccc8a35e048b4ef6e22bc671c605bda11ac6d69a3995b0f24919ff07b84",
+        ("08aa3a4a532b6f411c5c8b8a0f3f735d0f26335ae65b9050838890ca533e8768",
          "46b702bbe37532bc8212af5058147caa5b12cce41ac427f3a3b58d244907d19f"),
-        ("7415c39aee022a74cf54ede8ffc959f6b0a9885bf7e3acc4ebb64c7fa135e17a",
+        ("f63acf598fc652f487e782e9e0105147500a7591ffd373460d7d30f5fc8a84d7",
          "8bf5ca75fe04815effbfa632386adc2118bd78b2147e951a8a067505eb817bdc"),
-        ("2383564dbe4e8048d7a62553b1f594a3fcdd4577a7723bf103f304ae51108d47",
+        ("3f08bf9208b8955d7fb64f8bdc0e40456329ea35e5ac6f58f8d8d0c226ac8273",
          "65c458f5290ceb7c0d36e706bf25a9ac796e6cb833ad534242786868fafd6057"),
     ),
     "settings.nut": (
-        ("9f0c15a9851c2f2503148eb8ca8f0c07b961ee9e3cd2134f841ee37755158fb3",
+        ("e7f41cf2c0f0f994e24fe19d68e0b9b36e12672d0dae57e33493de9e9eaba103",
          "5739b3a18c226c969200f142dfa5e173002dec76ff094090b3c120f2fc597bb2"),
-        ("96ce5df10d944ec30e7d5f688ea5a36f6476c11d2cf1e4636748c96e4d8e00e1",
+        ("9afd154f9c8308b53b5c5be58406702db640de96af2dde4c39badd6426831fe0",
          "5a9c5cddcd059ba8b8679f949d19d75d8c5213427d60375a9421a17dbe362567"),
-        ("5448c063ac77faebccc0bcf5e8109cbe859d56f1c4052f9aa1ee356848eca547",
+        ("c8a5178e4ef2bda5a824f4b356191d383c849c31d67c40c9f81b492b27659eaa",
          "4ac2ffaed7f5a5c7236591422a5154162570d649c48ff36d8db34384dcd20ff9"),
     ),
 }

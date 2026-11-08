@@ -145,7 +145,20 @@ class Road100MergedProjection(unittest.TestCase):
                             ["git", "show", _PRE_RAIL_MERGE_MASTER + ":ai/OpexAI/" + name],
                             cwd=road.ROOT,
                         ).decode("utf-8")
-                        self.assertEqual(source, legacy)
+                        hist_districts = json.loads(
+                            subprocess.check_output(
+                                ["git", "show", _PRE_RAIL_MERGE_MASTER + ":sweeps/fixtures/road100_bus_districts_hunks.json"],
+                                cwd=road.ROOT,
+                            ).decode("utf-8")
+                        )[name]
+                        hist_optin = json.loads(
+                            subprocess.check_output(
+                                ["git", "show", _PRE_RAIL_MERGE_MASTER + ":sweeps/fixtures/road100_optin_hunks.json"],
+                                cwd=road.ROOT,
+                            ).decode("utf-8")
+                        )[name]
+                        hist_legacy = road._subtract_exact(name, road._subtract_exact(name, legacy, hist_districts, "ROAD1Y-B2"), hist_optin, "ROAD100-OPTIN")
+                        self.assertEqual(road.off_source(name, source), hist_legacy)
                         self.assertEqual(road.off_source(name, source), _historical_off(name, source))
                         self.assertEqual(road.off_source(name, road.off_source(name, source)),
                                          road.off_source(name, source))

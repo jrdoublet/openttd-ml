@@ -63,6 +63,24 @@
             }
           },
           "off_sha256": "1850b8f4026fda377c2240a72ca6cee73a1776870a5b79a80f8fd31df19cd97a"
+        },
+        "road1y_freight": {
+          "pre_sha256": "a369a0b15b28d4e8408267efecf50e6fc395d8148a63c66c9e7a73fd726d0cec",
+          "stages": {
+            "v3": {
+              "on_sha256": "a369a0b15b28d4e8408267efecf50e6fc395d8148a63c66c9e7a73fd726d0cec",
+              "off_sha256": "a9c398de283f6d46f04f3d6ffaf0a7d67cbcdb37eb0004bc344ebe388beb4b4e"
+            },
+            "r2": {
+              "on_sha256": "a9c398de283f6d46f04f3d6ffaf0a7d67cbcdb37eb0004bc344ebe388beb4b4e",
+              "off_sha256": "4c9374ab9229584e124f55b63c6fd89ad8d9b380a13d76da6bf358d37c177b24"
+            },
+            "v2": {
+              "on_sha256": "4c9374ab9229584e124f55b63c6fd89ad8d9b380a13d76da6bf358d37c177b24",
+              "off_sha256": "9de6cf0bccfe5937b645a795cf556b14384e3647eb4c180698c14789d5c05313"
+            }
+          },
+          "off_sha256": "9de6cf0bccfe5937b645a795cf556b14384e3647eb4c180698c14789d5c05313"
         }
       }
     },
