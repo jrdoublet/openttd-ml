@@ -219,10 +219,10 @@ class OpexAIInfo extends AIInfo {
       description = "OPCODES/IDLE-1 : valorisation du reliquat de tick pour taches de fond interrompables",
       min_value = 0,
       max_value = 1,
-      easy_value = 0,
-      medium_value = 0,
-      hard_value = 0,
-      custom_value = 0,
+      easy_value = 1,
+      medium_value = 1,
+      hard_value = 1,
+      custom_value = 1,
       flags = 0
     });
 
@@ -255,10 +255,10 @@ class OpexAIInfo extends AIInfo {
       description = "EB-7 : comptabilite fine et passive des depenses reelles AIR/ROUTE (defaut 0)",
       min_value = 0,
       max_value = 1,
-      easy_value = 0,
-      medium_value = 0,
-      hard_value = 0,
-      custom_value = 0,
+      easy_value = 1,
+      medium_value = 1,
+      hard_value = 1,
+      custom_value = 1,
       flags = 0
     });
 
