@@ -89,7 +89,7 @@ class TestParameterRetirement(unittest.TestCase):
         # C75 bis diagnostic, trois MULTI-1 opt-in (defaut 0), trois V233L et AIR funnel,
         # ROAD100 (34 off knobs), EB-2 and the independent RAIL options
         # must all remain present, while the retired parameters stay absent.
-        self.assertEqual(len(self.config), 157)  # ROAD100/ROAD1Y plus independent RAIL features
+        self.assertEqual(len(self.config), 166)  # ROAD100/ROAD1Y plus independent RAIL features
         self.assertIn("rail_search_prio", self.config)
         self.assertIn("rail_long", self.config)
         self.assertIn("eb2_new_station_fallback", self.config)

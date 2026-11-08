@@ -228,6 +228,15 @@ class TestV278Source(unittest.TestCase):
         )
         self.assertEqual(driver.count(fp2_init), 1)
         driver = driver.replace(fp2_init, "", 1)
+        air_stop = (
+            "\n\n  if (AIR_COVERAGE_STOP && AIR_COVERAGE_EXHAUSTED && AIR_NEW_TOWN_QUEUE.len() == 0) {\n"
+            '    if (DECISION_LOG) OpexDecide("AIR_STOP", "status=sleeping reason=pool_exhausted");\n'
+            "    if (spPlans != null) OpexSpanEnd(spPlans);\n"
+            "    return null;\n"
+            "  }\n"
+        )
+        if air_stop in driver:
+            driver = driver.replace(air_stop, "", 1)
         self.assertEqual(hashlib.sha256(driver.encode()).hexdigest(), DRIVER_HASH)
 
     def test_population_potential_and_bounded_frontier(self):

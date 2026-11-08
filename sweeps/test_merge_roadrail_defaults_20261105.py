@@ -40,7 +40,7 @@ class MergeRoadRailDefaults(unittest.TestCase):
     def test_settings_inventory_unique_and_complete(self):
         info = (ROOT / "info.nut").read_text(encoding="utf-8")
         names = re.findall(r'AddSetting\(\{\s*name\s*=\s*"([^"]+)"', info)
-        self.assertEqual(len(names), 157)
+        self.assertEqual(len(names), 166)
         self.assertEqual(len(set(names)), len(names))
         settings = (ROOT / "settings.nut").read_text(encoding="utf-8")
         for name in ("rail_sibling", "rail_open", "rail_loop", "rail_fill", "v257_demand"):

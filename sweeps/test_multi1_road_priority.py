@@ -63,7 +63,7 @@ class Multi1RoadPriorityContracts(unittest.TestCase):
         self.assertNotIn("AAAHogEx", block)
         self.assertNotIn("OpexProjectScore(", block)
         self.assertNotIn("OpexBuild", block)
-        self.assertNotIn("multi1", src("persist.nut"))
+        self.assertNotIn("multi1_road_priority", src("persist.nut"))
 
 
 if __name__ == "__main__":

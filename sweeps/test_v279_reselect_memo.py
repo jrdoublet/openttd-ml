@@ -157,7 +157,10 @@ class TestV279ReselectMemo(unittest.TestCase):
         # 4. main.nut:409 (constructeur)
         self.assertIn("this._abandonedPairs = {};\n    if (V279_RESELECT_MEMO != 0) OPEX_ABANDON_REVISION++;", self.main)
         # 5. persist.nut:791-792 (chargement)
-        self.assertIn("this._abandonedPairs = {};\n    foreach (key, val in data.abandonedPairs) this._abandonedPairs[key] <- val;\n    if (V279_RESELECT_MEMO != 0) OPEX_ABANDON_REVISION++;", self.persist)
+        self.assertTrue(
+            "this._abandonedPairs = {};\n    foreach (key, val in data.abandonedPairs) this._abandonedPairs[key] <- val;\n    if (V279_RESELECT_MEMO != 0) OPEX_ABANDON_REVISION++;" in self.persist
+            or "this._abandonedPairs = {};\n    foreach (key, val in data.abandonedPairs) {\n      if (EB10_GUARDS && typeof key == \"string\" && key.len() >= 6 && key.slice(key.len() - 6) == \"|65535\") continue;\n      this._abandonedPairs[key] <- val;\n    }\n    if (V279_RESELECT_MEMO != 0) OPEX_ABANDON_REVISION++;" in self.persist
+        )
 
     def test_rollback_revision_increments_at_all_mutations(self):
         # 6 sites de mutation de OPEX_AIR_ROLLBACKS identifiés
