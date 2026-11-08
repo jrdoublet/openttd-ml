@@ -124,6 +124,7 @@ EB14_PROGRESSIVE <- false;
 ROAD1Y_BRIDGE <- 0; // ROAD1Y-BRIDGE : longueur maximale de pont en tuiles franchies (0 = off, 1..6)
 ROAD1Y_FAR <- 0; // ROAD1Y : paires bus longue distance jusqu'a 128 + N tuiles (0 = off)
 ROAD1Y_FREIGHT <- 0; // ROAD1Y : plafond de flotte camions fret routier (0 = plafond historique 2)
+ROAD1Y_TRUCK_FLEET <- 0; // ROAD1Y : flotte des camions fret geree comme AAAHogEx (plafond temps de trajet, ajout/retrait sur l'attente source), 0 = historique
 /* Ablation EB-14 : garder C121 toute la premiere annee avec ROUTE ; OFF. */
 EB14_AIR_ROAD_YEAR_GUARD <- false;
 /* EB-3: pre-remplir le vivier RAIL en annee initiale, sans avancer les achats RAIL. */
