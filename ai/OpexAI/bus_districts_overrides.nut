@@ -1820,7 +1820,7 @@ function OpexRoad1yRefleetSaved(year)
       if (this._saveProjection != null && line in this._saveProjection)
         delete this._saveProjection[line];
       OpexRoad1yExtraStops(this._catalog, line, have, capacity,
-          waitingA, waitingB, movingCount, ym);
+          waitingA, waitingB, movingCount, ym, this);
       if (this._saveProjection != null)
         this._saveProjection[line] <- OpexSaveProjectLine(line);
       money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
@@ -2092,6 +2092,45 @@ function OpexRoad1yRefleetSaved(year)
       if (!("road1yMonth" in line) || line.road1yMonth != road1yMonth) {
         local road1yWait = (("kind" in line) && line.kind == "freight") ? waitingA : totalWaiting;
         local road1yWant = road1yWait / capacity;
+        // Bit 2 : une fois min(quais) >= 2, +1 bus/mois a la regle AAA.
+        // Le plafond reste ROAD1Y_FLEET * min, jamais la somme des quais.
+        if (isPax && (ROAD1Y_BERTH_FLEET & 2) != 0) {
+          local berthMin = road1yStopsB < road1yStopsA ? road1yStopsB : road1yStopsA;
+          if (berthMin >= 2) {
+            local berthCap = ROAD1Y_FLEET * berthMin;
+            local berthWait = waitingA < waitingB ? waitingA : waitingB;
+            local berthStopped = 0;
+            local berthPrice = 0;
+            foreach (berthVeh in vehicles) {
+              if (!AIVehicle.IsValidVehicle(berthVeh)) continue;
+              if (AIVehicle.GetCurrentSpeed(berthVeh) == 0) berthStopped++;
+              if (berthPrice <= 0) berthPrice = AIEngine.GetPrice(AIVehicle.GetEngineType(berthVeh));
+            }
+            local berthCash = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+            local berthDecision = "wait";
+            road1yWant = 0;
+            road1yCap = berthCap;
+            if (have >= berthCap) berthDecision = "cap";
+            else if (berthStopped >= 2) berthDecision = "stopped";
+            else if (berthWait <= 10) berthDecision = "wait";
+            else if (berthPrice <= 0 || berthCash < berthPrice + 20000) berthDecision = "cash";
+            else {
+              road1yWant = 1;
+              if (have + road1yWant > berthCap) road1yWant = berthCap - have;
+              if (road1yWant < 0) road1yWant = 0;
+              berthDecision = road1yWant > 0 ? "add" : "cap";
+            }
+            local berthStamp = !("road1yBerthFleetMonth" in line) || line.road1yBerthFleetMonth != road1yMonth;
+            if (berthDecision != "add") line.road1yBerthFleetMonth <- road1yMonth;
+            if (DECISION_LOG && (berthDecision == "add" || berthStamp)) {
+              OpexDecide("ROAD1Y_BERTH_FLEET",
+                  "bit=2 line=" + line.lineId
+                  + " stops_a=" + road1yStopsA + " stops_b=" + road1yStopsB
+                  + " wait=" + berthWait + " cash=" + berthCash
+                  + " decision=" + berthDecision);
+            }
+          }
+        }
         if (road1yWant > 2) road1yWant = 2;
         if (have + road1yWant > road1yCap) road1yWant = road1yCap - have;
         if (isPax && paxRefleet && AICompany.GetBankBalance(AICompany.COMPANY_SELF) < 15000)

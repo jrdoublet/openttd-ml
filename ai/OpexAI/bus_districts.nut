@@ -152,10 +152,27 @@ function OpexBusDistrictSites(town, cargo, coverage)
   return out;
 }
 
+/* ROAD1Y berth bit 1 : plancher de caisse deja connu, sans rescan du vivier.
+ * nextProjectCapital est le capital finance de la meilleure ligne en attente.
+ * Absent, non entier ou <= 20000 : le plancher reste 20000. */
+function OpexRoad1yBerthReserve(ai)
+{
+  local floor = 20000;
+  if (ai == null) return floor;
+  local projects = ai._projects;
+  if (projects == null || !("stats" in projects) || projects.stats == null) return floor;
+  if (!("nextProjectCapital" in projects.stats)) return floor;
+  local nextCap = projects.stats.nextProjectCapital;
+  if (typeof nextCap != "integer") return floor;
+  if (nextCap > floor) return nextCap;
+  return floor;
+}
+
 /* ROAD1Y : uniquement des routes deja raccordees, aucun terrassement ni
  * branche morte. Les ordres existants vers A/B designent leur StationID :
- * les quais joints sont donc accessibles sans dupliquer les ordres. */
-function OpexRoad1yBuildExtraStop(catalog, line, side, tiles)
+ * les quais joints sont donc accessibles sans dupliquer les ordres.
+ * berthReserve < 0 : reserve historique 50000 (ou 5000 si fleet_unlock bit 1). */
+function OpexRoad1yBuildExtraStop(catalog, line, side, tiles, berthReserve = -1)
 {
   local out = { ok = false, tile = -1, reason = "NO_SITE" };
   local root = side == 0 ? line.stationA : line.stationB;
@@ -169,7 +186,8 @@ function OpexRoad1yBuildExtraStop(catalog, line, side, tiles)
   local vehType = passenger ? AIRoad.ROADVEHTYPE_BUS : AIRoad.ROADVEHTYPE_TRUCK;
   local price = AIRoad.GetBuildCost(catalog.roadType,
       passenger ? AIRoad.BT_BUS_STOP : AIRoad.BT_TRUCK_STOP);
-  if (price <= 0 || AICompany.GetBankBalance(AICompany.COMPANY_SELF) < price + 50000) {
+  local openingReserve = berthReserve >= 0 ? berthReserve : 50000;
+  if (price <= 0 || AICompany.GetBankBalance(AICompany.COMPANY_SELF) < price + openingReserve) {
     out.reason = "CASH"; return out;
   }
   local mark = OpexOpsMeasureBegin();
@@ -234,6 +252,7 @@ function OpexRoad1yBuildExtraStop(catalog, line, side, tiles)
           cost = accounting.GetCosts(); }
         if (!canBuild) continue;
         local cashReserve = (ROAD1Y_FLEET_UNLOCK & 1) != 0 ? 5000 : 50000;
+        if (berthReserve >= 0) cashReserve = berthReserve;
         if (cost < 0 || AICompany.GetBankBalance(AICompany.COMPANY_SELF) < cost + cashReserve) {
           out.reason = "CASH"; return out;
         }
@@ -289,7 +308,7 @@ function OpexRoad1yCleanupExtraStop(line)
       || AIRoad.RemoveRoadStation(tile)) line.road1yExtraPending = -1;
 }
 
-function OpexRoad1yExtraStops(catalog, line, have, capacity, waitingA, waitingB, moving, month)
+function OpexRoad1yExtraStops(catalog, line, have, capacity, waitingA, waitingB, moving, month, ai = null)
 {
   OpexRoad1yReconcileExtraStops(line);
   if (("road1yExtraPending" in line) && line.road1yExtraPending >= 0) return;
@@ -302,15 +321,43 @@ function OpexRoad1yExtraStops(catalog, line, have, capacity, waitingA, waitingB,
   // ROAD1Y_FLEET remplace le cap historique dans son chemin de refleet.
   if (ROAD1Y_FLEET > 0) cap = ROAD1Y_FLEET * stops;
   local waiting = waitingA > waitingB ? waitingA : waitingB;
-  if (have < cap || waiting <= cap * capacity) return;
+  local waitLimit = cap * capacity;
+  local berthQuay = false;
+  // Bit 1, bus seulement : le court-circuit laisse le fret et le defaut 0 intacts.
+  if ((ROAD1Y_BERTH_FLEET & 1) != 0
+      && AICargo.HasCargoClass(line.cargo, AICargo.CC_PASSENGERS)) {
+    berthQuay = true;
+    waitLimit = capacity;
+  }
+  if (have < cap || waiting <= waitLimit) {
+    if (berthQuay && DECISION_LOG
+        && (!("road1yBerthQuayMonth" in line) || line.road1yBerthQuayMonth != month)) {
+      line.road1yBerthQuayMonth <- month;
+      if (DECISION_LOG) OpexDecide("ROAD1Y_BERTH_FLEET",
+          "bit=1 line=" + line.lineId
+          + " stops_a=" + line.nStopsA + " stops_b=" + line.nStopsB
+          + " wait=" + waiting + " cash=" + AICompany.GetBankBalance(AICompany.COMPANY_SELF)
+          + " decision=" + (have < cap ? "fleet" : "wait"));
+    }
+    return;
+  }
   line.road1yExtraMonth <- month; // Echecs et manque de caisse dedupliques aussi.
   if (!("road1yExtraStops" in line)) line.road1yExtraStops <- [[], []];
+  // Bit 1 : le bout le plus court, pour faire monter min(quais). Egalite : les deux.
+  local onlySide = -1;
+  if (berthQuay) {
+    if (line.nStopsA < line.nStopsB) onlySide = 0;
+    else if (line.nStopsB < line.nStopsA) onlySide = 1;
+  }
+  local berthReserve = -1;
+  if (berthQuay) berthReserve = OpexRoad1yBerthReserve(ai);
   // Les deux extremites limitantes sont concernees, meme un puits de fret.
   for (local side = 0; side < 2; side++) {
+    if (onlySide >= 0 && side != onlySide) continue;
     local count = side == 0 ? line.nStopsA : line.nStopsB;
     local tiles = line.road1yExtraStops[side];
     if (count > stops || count >= 1 + ROAD1Y_EXTRA_STOPS) continue;
-    local result = OpexRoad1yBuildExtraStop(catalog, line, side, tiles);
+    local result = OpexRoad1yBuildExtraStop(catalog, line, side, tiles, berthReserve);
     if (result.reason == "ROLLBACK") line.road1yExtraPending <- result.tile;
     if (result.ok) {
       tiles.append(result.tile);
@@ -322,6 +369,21 @@ function OpexRoad1yExtraStops(catalog, line, have, capacity, waitingA, waitingB,
         "phase=build line=" + line.lineId + " side=" + side
         + " ok=" + result.ok + " reason=" + result.reason + " tile=" + result.tile
         + " stops_a=" + line.nStopsA + " stops_b=" + line.nStopsB);
+    if (berthQuay && DECISION_LOG) {
+      local berthDecision = "other";
+      if (result.reason == "OK") berthDecision = "ok";
+      else if (result.reason == "CASH") berthDecision = "cash";
+      else if (result.reason == "NO_SITE") berthDecision = "no_site";
+      else if (result.reason == "ROOT") berthDecision = "root";
+      else if (result.reason == "BUDGET") berthDecision = "budget";
+      else if (result.reason == "BUILD") berthDecision = "build";
+      else if (result.reason == "ROLLBACK") berthDecision = "rollback";
+      if (DECISION_LOG) OpexDecide("ROAD1Y_BERTH_FLEET",
+          "bit=1 line=" + line.lineId
+          + " stops_a=" + line.nStopsA + " stops_b=" + line.nStopsB
+          + " wait=" + waiting + " cash=" + AICompany.GetBankBalance(AICompany.COMPANY_SELF)
+          + " decision=" + berthDecision);
+    }
     if (result.reason == "ROLLBACK") break;
   }
 }
