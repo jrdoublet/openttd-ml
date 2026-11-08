@@ -566,12 +566,17 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
         }
       }
       if (affordableFreight.len() > 0) {
-        local bestF = OpexTopK(affordableFreight, 1)[0];
+        /* Les projets n'ont pas de champ ratio (seuls les candidats en ont) : choisir par profit annuel. */
+        local bestF = affordableFreight[0];
+        foreach (pf in affordableFreight) {
+          if (!("profitAnnual" in pf)) continue;
+          if (!("profitAnnual" in bestF) || pf.profitAnnual > bestF.profitAnnual) bestF = pf;
+        }
         if (funded.len() >= PROJECT_TOP_K) funded.pop();
         funded.append(bestF);
         if (DECISION_LOG) {
           OpexDecide("ROAD1Y_FREIGHT_ADM", "action=preserve_funded cargo="
-              + bestF.cargo + " profit=" + bestF.profitAnnual + " capital=" + bestF.capital);
+              + bestF.cargo + " profit=" + (("profitAnnual" in bestF) ? bestF.profitAnnual : 0) + " capital=" + bestF.capital);
         }
       }
     }
