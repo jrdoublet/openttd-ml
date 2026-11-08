@@ -67,8 +67,8 @@ class TestV251Inventory(unittest.TestCase):
         self.assertLessEqual(info.count("AddSetting("), 75)
         # After the precise legacy projectors, preserve the master inventory:
         # origin/master 44d9313e already projects to 68 settings (not 58).
-        # road1y_loan_floor and road1y_freight_adm add two opt-in settings (default 0), bringing count to 70.
-        self.assertEqual(info.count("AddSetting("), 70)
+        # road1y_loan_floor, road1y_freight_adm and road1y_alt_load_cond add three opt-in settings (default 0), bringing count to 71.
+        self.assertEqual(info.count("AddSetting("), 71)
         self.assertNotIn('name = "v251', info)
         settings = self.sources["settings.nut"]
         self.assertNotIn('GetSetting("v251', settings)

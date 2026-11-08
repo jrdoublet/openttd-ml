@@ -43,6 +43,7 @@ ROAD1Y_OFF = {
     "ROAD1Y_NEXT3": "0",
     "ROAD1Y_FREIGHT_ADM": "0",
     "ROAD1Y_LOAN_FLOOR": "0",
+    "ROAD1Y_ALT_LOAD_COND": "0",
 }
 
 SETTING_TO_GLOBAL = {
@@ -68,6 +69,7 @@ SETTING_TO_GLOBAL = {
     "road1y_next3": "ROAD1Y_NEXT3",
     "road1y_freight_adm": "ROAD1Y_FREIGHT_ADM",
     "road1y_loan_floor": "ROAD1Y_LOAN_FLOOR",
+    "road1y_alt_load_cond": "ROAD1Y_ALT_LOAD_COND",
 }
 
 LOAD_SETTINGS_KEYS = (
@@ -85,6 +87,7 @@ LOAD_SETTINGS_KEYS = (
     "road1y_next3",
     "road1y_freight_adm",
     "road1y_loan_floor",
+    "road1y_alt_load_cond",
     "road1y_fleet_unlock",
     "road1y_long_band",
     "road1y_long_v3",

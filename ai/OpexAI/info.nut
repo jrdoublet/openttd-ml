@@ -1186,6 +1186,14 @@ class OpexAIInfo extends AIInfo {
       custom_value = 0,
       flags = 0
     });
+    AddSetting({
+      name = "road1y_alt_load_cond",
+      description = "ROAD1Y: alt_load conditionnel B (0 = off, N = seuil passagers stock/ville a B pour chargement complet); 0 = off (default)",
+      min_value = 0, max_value = 100,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = 0
+    });
   }
 }
 

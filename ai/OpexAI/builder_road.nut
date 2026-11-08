@@ -5534,6 +5534,9 @@ function OpexBuildRoadRoute(catalog, budget, plan, candidate)
     if (!AIVehicle.IsValidVehicle(extra)) break;
     built.append(extra);
   }
+  if (ROAD1Y_ALT_LOAD_COND > 0 && !isFreight && ("kind" in candidate) && candidate.kind == "pax") {
+    OpexRoad1yAltLoadCondAdjustFleet(candidate, built, "open");
+  }
 
   local started = [];
   local startFailed = false;
@@ -6538,6 +6541,9 @@ function OpexRoadRefleet(catalog, line, have, target)
       if (!AIVehicle.IsValidVehicle(extra)) break;
       built.append(extra);
     }
+  }
+  if (ROAD1Y_ALT_LOAD_COND > 0) {
+    OpexRoad1yAltLoadCondAdjustFleet(line, built, "refleet");
   }
 
   foreach (v in built) {

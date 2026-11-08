@@ -941,3 +941,97 @@ function OpexRoad1yWeakStep(ai, year)
     }
   }
 }
+
+/* ROAD1Y alt_load_cond : une part des bus PAX recoit la liste d'ordres inverse
+ * (plein chargement au bout B, rien a A), uniquement si le potentiel mesure de B
+ * est suffisant (stock d'attente a B >= seuil ou taille de ville >= seuil * 15). */
+
+function OpexRoad1yAltLoadIsInverted(vehicle)
+{
+  if (!AIVehicle.IsValidVehicle(vehicle) || AIOrder.GetOrderCount(vehicle) != 2) return false;
+  local fullAny = AIOrder.OF_FULL_LOAD_ANY;
+  return (AIOrder.GetOrderFlags(vehicle, 0) & fullAny) == 0
+      && (AIOrder.GetOrderFlags(vehicle, 1) & fullAny) == fullAny;
+}
+
+function OpexRoad1yAltLoadOrient(vehicle, inverted)
+{
+  if (!AIVehicle.IsValidVehicle(vehicle) || AIOrder.GetOrderCount(vehicle) != 2) return false;
+  local fullAny = AIOrder.OF_FULL_LOAD_ANY;
+  local flagsA = AIOrder.GetOrderFlags(vehicle, 0) & ~fullAny;
+  local flagsB = AIOrder.GetOrderFlags(vehicle, 1) & ~fullAny;
+  if (inverted) flagsB = flagsB | fullAny;
+  else flagsA = flagsA | fullAny;
+  if (!AIOrder.SetOrderFlags(vehicle, 0, flagsA)) return false;
+  if (!AIOrder.SetOrderFlags(vehicle, 1, flagsB)) return false;
+  return OpexRoad1yAltLoadIsInverted(vehicle) == inverted;
+}
+
+function OpexRoad1yAltLoadCondEligible(line)
+{
+  if (ROAD1Y_ALT_LOAD_COND <= 0 || !ROAD1Y_LOAD_ORDERS || line == null) return false;
+  if (!("mode" in line) || line.mode != "road" || !("kind" in line) || line.kind != "pax") return false;
+  if (("road100TourActive" in line) && line.road100TourActive) return false;
+  local threshold = ROAD1Y_ALT_LOAD_COND;
+  local stB = ("stationB" in line && AIMap.IsValidTile(line.stationB)) ? AIStation.GetStationID(line.stationB) : -1;
+  local waitingB = (stB >= 0 && AIStation.IsValidStation(stB) && ("cargo" in line) && AICargo.IsValidCargo(line.cargo))
+      ? AIStation.GetCargoWaiting(stB, line.cargo) : 0;
+  if (waitingB >= threshold) return true;
+  local townB = ("dstTown" in line) ? line.dstTown : -1;
+  if (townB >= 0 && AITown.IsValidTown(townB)) {
+    if (AITown.GetPopulation(townB) >= threshold * 15) return true;
+  }
+  return false;
+}
+
+function OpexRoad1yAltLoadCondEligibleCandidate(candidate)
+{
+  if (ROAD1Y_ALT_LOAD_COND <= 0 || !ROAD1Y_LOAD_ORDERS || candidate == null) return false;
+  local threshold = ROAD1Y_ALT_LOAD_COND;
+  local townB = ("dstTown" in candidate) ? candidate.dstTown : -1;
+  if (townB >= 0 && AITown.IsValidTown(townB)) {
+    if (AITown.GetPopulation(townB) >= threshold * 15) return true;
+  }
+  return false;
+}
+
+function OpexRoad1yAltLoadCondAdjustFleet(lineOrCandidate, built, site)
+{
+  if (ROAD1Y_ALT_LOAD_COND <= 0 || built == null || built.len() < 2) return;
+  local eligible = false;
+  if ("lineId" in lineOrCandidate) {
+    eligible = OpexRoad1yAltLoadCondEligible(lineOrCandidate);
+  } else {
+    eligible = OpexRoad1yAltLoadCondEligibleCandidate(lineOrCandidate);
+  }
+  if (!eligible) return;
+
+  local total = built.len();
+  local quota = (33 * total + 50) / 100;
+  if (quota < 1) quota = 1;
+  if (quota >= total) quota = total - 1;
+
+  local invertedCount = 0;
+  local firstInverted = null;
+  for (local i = 1; i < total; i++) {
+    if (invertedCount >= quota) break;
+    local v = built[i];
+    if (!AIVehicle.IsValidVehicle(v) || AIOrder.GetOrderCount(v) != 2) continue;
+    AIOrder.UnshareOrders(v);
+    if (firstInverted == null) {
+      if (OpexRoad1yAltLoadOrient(v, true)) {
+        firstInverted = v;
+        invertedCount++;
+        if (DECISION_LOG) {
+          OpexDecide("ROAD1Y_ALT_LOAD_COND", "site=" + site + " veh=" + v + " inverted=1 first=1");
+        }
+      }
+    } else {
+      AIOrder.ShareOrders(v, firstInverted);
+      invertedCount++;
+      if (DECISION_LOG) {
+        OpexDecide("ROAD1Y_ALT_LOAD_COND", "site=" + site + " veh=" + v + " inverted=1 shared=1");
+      }
+    }
+  }
+}
