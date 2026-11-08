@@ -1178,6 +1178,14 @@ class OpexAIInfo extends AIInfo {
       custom_value = 0,
       flags = 0
     });
+    AddSetting({
+      name = "road1y_freight_adm",
+      description = "ROAD1Y: road-only freight admission and volume sizing (0 = off, 1 = on/auto volume, N>1 = truck cap N); 0 = off (default)",
+      min_value = 0, max_value = 30,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = 0
+    });
   }
 }
 

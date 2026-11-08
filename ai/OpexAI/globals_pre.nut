@@ -131,6 +131,7 @@ EB14_TRACE_SIGN_COUNT <- 0;
 EB14_TRACE_SIGN_TYPES <- { E4 = 0, E5 = 0, E6 = 0 };
 EB14_TRACE_SELECTED <- {};
 ROAD1Y_LOAN_FLOOR <- 0; // ROAD1Y : plancher de remboursement de dette en k£ (0 = LOAN_REPAY_FLOOR historique 300k)
+ROAD1Y_FREIGHT_ADM <- 0; // ROAD1Y : admission et dimensionnement du fret routier (0=off)
 /* V190 : lignes rail fret posees en double voie a sens unique des la construction. */
 V190_RAIL_DOUBLE_BUILD <- false;
 /* V197 : double voie guidee (outwardSide pour voie 1, guideTiles pour voie 2). */

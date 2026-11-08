@@ -258,6 +258,12 @@ function OpexLoadSettings()
   ROAD1Y_LOAN_FLOOR = AIController.GetSetting("road1y_loan_floor");
   if (ROAD1Y_LOAN_FLOOR < 0 || ROAD1Y_LOAN_FLOOR > 500) ROAD1Y_LOAN_FLOOR = 0;
   if (!road1yRoadOnly) ROAD1Y_LOAN_FLOOR = 0;
+  ROAD1Y_FREIGHT_ADM = AIController.GetSetting("road1y_freight_adm");
+  if (ROAD1Y_FREIGHT_ADM < 0 || ROAD1Y_FREIGHT_ADM > 30) ROAD1Y_FREIGHT_ADM = 0;
+  if (!road1yRoadOnly) ROAD1Y_FREIGHT_ADM = 0;
+  if (ROAD1Y_FREIGHT_ADM > 0 && ROAD1Y_DIST_BANDS && ROAD1Y_LONG_BAND == 0) {
+    ROAD1Y_DIST_BAND_LIMITS = [[32, 128], [7, 31]];
+  }
   V216A_GHOST_DEMAND = AIController.GetSetting("v216a_ghost_demand");
   V216F_DWELL_PCT = AIController.GetSetting("v216f_dwell_pct");
   local lateRelax = AIController.GetSetting("v269_rail_late_relax");

@@ -53,18 +53,18 @@ ROAD1Y_B2_RAIL_MERGE = {
         (7, 8, 9, 10),
     ),
     "globals_pre.nut": (
-        "14092ce902f853a19d77980467627b727cf6e32e9d4bc094c8a9145e296bdac9",
-        "1fb4a5e52ac92b5db12c7b5d06107a880437b99352375124d60bb8b0f55e7c9f",
+        "f914642ec34f9347436c1b4cfbebfc7eecd8ae38940dae65af12bdd7dde6dc46",
+        "9d6e7a5191d0933f97e83c7712cbd5f7cb6d6198ef742d91688e3586d8052910",
         (1,),
     ),
     "info.nut": (
-        "dea79bb97b5153aab3fe91e659451c6021ac30660846342cf1e0ae4382877613",
-        "9373cb046c9328d93e17e00bca55a2052af26215ceaf886721f4d81f366c63ea",
+        "6f4107a4c5100fcfabb2d9caf8d4f204101fd6a92534b72c2a9d102da71dff11",
+        "5e3c1c006151e853582f423352cc8d431474e8aa439fabb5bce677e5e88252b0",
         (0,),
     ),
     "settings.nut": (
-        "91a5180fea0be5e719e6cb3710a1165dba6939bc8274169429654b0bca73837c",
-        "5a8e52db0acfb1b69ce31b2cd18553d1c6e80d9086d472ef165e3ab3250bc7e0",
+        "774e9295d11ddc678d8f174b0d2fb86b4f99f2ad0a1966a7cd9a75802c473f65",
+        "145e22d3a84a366cb13d0378441f4a7bd75ee6965089c64c567b87dbed07e948",
         (2,),
     ),
 }
@@ -79,10 +79,10 @@ ROAD1Y_B2_RAIL_MERGE_STAGES = {
     "candidates.nut": (
         ("e58fcedbb7ac99897236aeecf30045a5d4443ec21d8ac00d4508565582ffe0ee",
          "82253f50c21aa1545f65997a5c1aaf880cc99737ebca4f38dcf9029490f456bd"),
-        # The fully stripped candidate source is BYTE-IDENTICAL to
-        # origin/master.  Do not whitelist it: source alone cannot distinguish
-        # that legacy input from a merged intermediate, so preserve the
-        # historical projection for this SHA.
+        ("b5b1ec86bfb2803f2c8df7b67a133a24aa6d85a43830db4145213a0f5b5c04a4",
+         "622796e810d1c6afcb5861a980caaea1a9024a16b84e7ff1c2f9524d7c20154b"),
+        ("8a41b1da499c9604a50913d5697530925c8c32a7ce6b078ca9338bf37a4c0b33",
+         "ee351823e319d471d7b53146bb1ac2341ba1119081b23e5ebbcb3ce63fa2c89f"),
     ),
     "globals_pre.nut": (
         ("95287db807334e84c5a1146a7d2ca446d6c464aa9daf6cd2b55cd7d76d19ad3d",
@@ -99,6 +99,16 @@ ROAD1Y_B2_RAIL_MERGE_STAGES = {
          "45052446bc784c2a7da1d0ab2cb6d7fb88a5e598549bd3471624bb41542bac0a"),
         ("22295625b0bbb8ffb226e46df8b2b2ab9caf28c55d2a62054581b42705ffc323",
          "f984c78ef25566d83bff3d91af2e2ffcc0ae0df695252ae752f3b760f48e75ea"),
+        ("14092ce902f853a19d77980467627b727cf6e32e9d4bc094c8a9145e296bdac9",
+         "1fb4a5e52ac92b5db12c7b5d06107a880437b99352375124d60bb8b0f55e7c9f"),
+        ("f914642ec34f9347436c1b4cfbebfc7eecd8ae38940dae65af12bdd7dde6dc46",
+         "9d6e7a5191d0933f97e83c7712cbd5f7cb6d6198ef742d91688e3586d8052910"),
+        ("bf786d7685278d8fa4bce5dc6b141cf0cf45b86753db955073e1b68a5ff91dd7",
+         "883b875cf3b7f0f630ccf8ae4acf3d3074fd9fc97438312e5f0d0cc5ee0ff0d4"),
+        ("352d7a9db8c1b367e382fbf52c20e1fd0f8105e7a713fa8a86c4263b8fbf537b",
+         "39654f30b7e1e112c9cccb2adbca7b85679b5e99d17bb2a013075b58a0a8345e"),
+        ("b82fa06acecfbeb8d1154ab89dd590ac7527c7c82bec13cbcf8a4cac2f685494",
+         "0a0104b232f8b037f3999637aa71b2af48600c919be8202ba9e495a8de4f49d2"),
     ),
     "info.nut": (
         ("1fbdac0c3e35ee9812033b7456620b512f7b641cf780ab1c74ff0f1dcc0e3e63",
@@ -115,6 +125,16 @@ ROAD1Y_B2_RAIL_MERGE_STAGES = {
          "225adee94dbb54fd8318cf8d55d08ca9991e9c3412f98666bdb956842682ef0b"),
         ("505d709a7fa7a4340a984503ac26ea993da13ca42863836ad1796bf5d79cb46c",
          "0e9068acb705de9c03a6b4ba9adf1dea1135d2e2f69687baaf1324c07aa25dcc"),
+        ("dea79bb97b5153aab3fe91e659451c6021ac30660846342cf1e0ae4382877613",
+         "9373cb046c9328d93e17e00bca55a2052af26215ceaf886721f4d81f366c63ea"),
+        ("6f4107a4c5100fcfabb2d9caf8d4f204101fd6a92534b72c2a9d102da71dff11",
+         "5e3c1c006151e853582f423352cc8d431474e8aa439fabb5bce677e5e88252b0"),
+        ("9d2e28e8b93e7da7f855b124e971b2567c05171ff3f5af713561fc1d1834a872",
+         "a82cd93490750053d9549474e92c3e3d461fb95e37345d7c214f00b7164e1953"),
+        ("40669104c16556e1f4d3bd6f84475c921054fd1f719acd73222da10d79d79db9",
+         "106b85f063d46f351cc0e19bbe396501d63bfe6d35291a8e135d6754218e8364"),
+        ("053c32b60ea03c4a857644ac59296cb0a8b0c18df67a7a5e84317132a9e6eecd",
+         "8947c5a2ced846591668fc76f16ce3301fd446d435a469f0de1d349c6bc3656d"),
     ),
     "settings.nut": (
         ("4ba30a2a9a44059be4f33da8906bf7c289be24cb49376563616ce487a111f483",
@@ -131,6 +151,16 @@ ROAD1Y_B2_RAIL_MERGE_STAGES = {
          "802e87045cc7eeae9b065b3f9bd07aa6f35ebd2b0b3d7ae9c09169f18175dd39"),
         ("98024603f7c926a881cc3add09371e312ff8ac235204386a79ff86c7cc2ea9d1",
          "15b84d1e226bde237284cb1339d7ea88f46dbc0069a4f08687c1da1a2194dc8f"),
+        ("91a5180fea0be5e719e6cb3710a1165dba6939bc8274169429654b0bca73837c",
+         "5a8e52db0acfb1b69ce31b2cd18553d1c6e80d9086d472ef165e3ab3250bc7e0"),
+        ("774e9295d11ddc678d8f174b0d2fb86b4f99f2ad0a1966a7cd9a75802c473f65",
+         "145e22d3a84a366cb13d0378441f4a7bd75ee6965089c64c567b87dbed07e948"),
+        ("d887b324868c577b324f419dd2a77cb3e71705ff8e5a7491dc4d00a32c77aafb",
+         "7adaafc4e992b2ef878723fdb89c05670e4116a9f63e5537830c7eecc88d64b0"),
+        ("76473de8986994623e07e9193617b150a4ec37f11a88dcf670a6e9e8ec840fd8",
+         "06e5a84e4346d43abcd5aa00b1799eaa86c13dde1bf7d4afc394feb629ee0d7a"),
+        ("135d2f89c3e29ffd6c0e9858d7709742155c4be1136664dbfea87bcde2974aed",
+         "9ba8957d73950db2895b53bc4fc666f4d02f489a98474f4e710aca595eb7956e"),
     ),
 }
 

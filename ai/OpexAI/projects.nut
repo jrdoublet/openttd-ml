@@ -303,7 +303,32 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
   local road;
   if (doRoad && ROAD_BUILD_ENABLED) {
     local spRoad = PROBE_SPAN_TRACE ? OpexSpanBegin("build.road") : null;
-    road = OpexBuildRoadCandidates(catalog, budget, lines, abandonedPairs, roadProfile, freightCargo);
+    local roadFreightCargo = (ROAD1Y_FREIGHT_ADM > 0) ? null : freightCargo;
+    road = OpexBuildRoadCandidates(catalog, budget, lines, abandonedPairs, roadProfile, roadFreightCargo);
+    if (ROAD1Y_FREIGHT_ADM > 0 && road.candidates.len() > 0) {
+      local freightCands = [];
+      foreach (c in road.candidates) {
+        if (c.kind == "freight") freightCands.append(c);
+      }
+      if (freightCands.len() > 0) {
+        local bestFreight = OpexTopK(freightCands, 4);
+        foreach (fc in bestFreight) {
+          local found = false;
+          foreach (b in road.best) {
+            if (b == fc) { found = true; break; }
+          }
+          if (!found) {
+            if (road.best.len() >= ROAD_TOP_K) road.best.pop();
+            road.best.append(fc);
+            if (DECISION_LOG) {
+              OpexDecide("ROAD1Y_FREIGHT_ADM", "action=preserve_candidate cargo="
+                  + fc.cargo + " dist=" + fc.distance + " profit=" + fc.profitAnnual
+                  + " ratio=" + fc.ratio);
+            }
+          }
+        }
+      }
+    }
     if (spRoad != null) OpexSpanEnd(spRoad);
   } else if (priorProjects != null && ("road" in priorProjects) && priorProjects.road != null) {
     road = priorProjects.road;
@@ -527,6 +552,30 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
     alternatives = airOnly;
   }
   funded = OpexProjectSelectAffordable(alternatives, capitalBudget, PROJECT_TOP_K, true, abandonedPairs);
+  if (ROAD1Y_FREIGHT_ADM > 0 && funded.len() > 0) {
+    local hasFreight = false;
+    foreach (p in funded) {
+      if (p.mode == "road" && p.kind == "freight") { hasFreight = true; break; }
+    }
+    if (!hasFreight) {
+      local affordableFreight = [];
+      foreach (p in alternatives) {
+        if (p.mode == "road" && p.kind == "freight") {
+          local cap = OpexProjectFinanceCapital(p);
+          if (cap <= capitalBudget) affordableFreight.append(p);
+        }
+      }
+      if (affordableFreight.len() > 0) {
+        local bestF = OpexTopK(affordableFreight, 1)[0];
+        if (funded.len() >= PROJECT_TOP_K) funded.pop();
+        funded.append(bestF);
+        if (DECISION_LOG) {
+          OpexDecide("ROAD1Y_FREIGHT_ADM", "action=preserve_funded cargo="
+              + bestF.cargo + " profit=" + bestF.profitAnnual + " capital=" + bestF.capital);
+        }
+      }
+    }
+  }
   if (RAIL_FAILURE_AUDIT) OpexRailPortfolioAudit("full", alternatives, funded, capitalBudget);
   stats.budgetConsidered = alternatives.len();
   stats.budgetSelected = funded.len();

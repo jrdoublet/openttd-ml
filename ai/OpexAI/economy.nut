@@ -827,6 +827,15 @@ function OpexRoadLineEconomics(catalog, cargo, distance, monthlyUnits, engine, k
   if (vehicles < 1) vehicles = 1;
   local roadBerthCapacity = OpexRoadPhysicalVehicleCap(1, 1);
   local roadVehicleCap = roadBerthCapacity;
+  if (ROAD1Y_FREIGHT_ADM > 0 && kind == "freight") {
+    local freightCap = (ROAD1Y_FREIGHT_ADM > 1) ? ROAD1Y_FREIGHT_ADM : 15;
+    if (fleetCapOverride > 0 && fleetCapOverride > freightCap)
+      freightCap = fleetCapOverride;
+    roadVehicleCap = freightCap;
+    vehicles = vehiclesForVolume;
+    if (vehicles < 1) vehicles = 1;
+    if (vehicles > roadVehicleCap) vehicles = roadVehicleCap;
+  }
   /* ROAD100-4 : mesure ciblée d'un plafond plus élevé. Le risque d'attente
    * devant les quais reste réel, et sera jugé sur le revenu effectivement
    * livré (jamais sur le seul score de cet estimateur). */

@@ -24,10 +24,12 @@ _MERGE_SHA = {
     "globals_pre.nut": (
         "d0548c85cd11d62de13e4eb1566088d77a15ab6490b3a30a01fb27eda3110424",
         "14092ce902f853a19d77980467627b727cf6e32e9d4bc094c8a9145e296bdac9",
+        "f914642ec34f9347436c1b4cfbebfc7eecd8ae38940dae65af12bdd7dde6dc46",
     ),
     "info.nut": (
         "0e6e6e30aaae1b814dc8afbaad515347e2dc05aea133cd12983a7abc1fce26f1",
         "dea79bb97b5153aab3fe91e659451c6021ac30660846342cf1e0ae4382877613",
+        "6f4107a4c5100fcfabb2d9caf8d4f204101fd6a92534b72c2a9d102da71dff11",
     ),
 }
 
