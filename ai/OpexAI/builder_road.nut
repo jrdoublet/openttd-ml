@@ -5530,7 +5530,11 @@ function OpexBuildRoadRoute(catalog, budget, plan, candidate)
       if (price <= 0) break;
       if (AICompany.GetBankBalance(AICompany.COMPANY_SELF) < price) break;
     }
-    local extra = AIVehicle.CloneVehicle(depot, first, true);
+    /* ROAD1Y alt_load : une part des bus PAX recoit les ordres inverses. */
+    local extra = (ROAD1Y_ALT_LOAD > 0 && !isFreight && ("kind" in candidate)
+        && candidate.kind == "pax" && ROAD1Y_LOAD_ORDERS)
+        ? OpexRoad1yAltLoadClone(depot, first, built, "open", -1)
+        : AIVehicle.CloneVehicle(depot, first, true);
     if (!AIVehicle.IsValidVehicle(extra)) break;
     built.append(extra);
   }
@@ -6477,14 +6481,22 @@ function OpexRoadRefleet(catalog, line, have, target)
   if (missing > affordable) missing = affordable;
 
   local built = [];
+  /* ROAD1Y alt_load : flotte reelle de la ligne (ordres lus), completee a
+   * chaque achat, pour choisir le sens de chaque nouveau bus PAX. */
+  local altLoad = ROAD1Y_ALT_LOAD > 0 && OpexRoad1yAltLoadEligible(line);
+  local altLineId = (altLoad && ("lineId" in line)) ? line.lineId : -1;
+  local altFleet = altLoad ? OpexLineVehicleIds(line, AIStation.GetStationID(line.stationA)) : null;
   if (template != null) {
     for (local i = 0; i < missing; i++) {
-      local extra = AIVehicle.CloneVehicle(line.depot, template, true);
+      local extra = altLoad
+          ? OpexRoad1yAltLoadClone(line.depot, template, altFleet, "refleet", altLineId)
+          : AIVehicle.CloneVehicle(line.depot, template, true);
       if (!AIVehicle.IsValidVehicle(extra)) {
         if (built.len() == 0) { result.reason = "CLONE"; return result; }
         break;
       }
       built.append(extra);
+      if (altLoad) altFleet.append(extra);
     }
   } else {
     if (OpexRoadRefitCapacity(line.depot, engine, line.cargo) <= 0) {
@@ -6534,7 +6546,9 @@ function OpexRoadRefleet(catalog, line, have, target)
       result.reason = "ORDER"; return result;
     }
     for (local i = 1; i < missing; i++) {
-      local extra = AIVehicle.CloneVehicle(line.depot, first, true);
+      local extra = altLoad
+          ? OpexRoad1yAltLoadClone(line.depot, first, built, "refleet_new", altLineId)
+          : AIVehicle.CloneVehicle(line.depot, first, true);
       if (!AIVehicle.IsValidVehicle(extra)) break;
       built.append(extra);
     }

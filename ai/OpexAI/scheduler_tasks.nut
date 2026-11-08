@@ -1130,6 +1130,7 @@ function OpexAI::_dispatchRefleet(task, year)
   if (ROAD1Y_SPREAD_STOPS > 0) OpexRoad1ySpreadStep(this);
   this._refleetRoadLines(year);
   if (ROAD1Y_WEAK > 0) OpexRoad1yWeakStep(this, year);
+  if (ROAD1Y_ALT_LOAD > 0 && DECISION_LOG) OpexRoad1yAltLoadCensus(this, year);
   this._refleetCrashedWaterLines(year);
   if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);
   return true;

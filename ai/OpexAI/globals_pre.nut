@@ -128,6 +128,8 @@ ROAD1Y_TRUCK_FLEET <- 0; // ROAD1Y : flotte des camions fret geree comme AAAHogE
 ROAD1Y_BERTH_FLEET <- 0; // ROAD1Y quais+frequence : 1 = extra-quai bus sans reserve 50k, 2 = +1 bus/mois si min(quais)>=2 ; defaut 0
 ROAD1Y_PAX_BILAT <- 0; // ROAD1Y: bus refleet on weakest terminus stock, 0..1.
 ROAD1Y_PAIR_FLEET <- 0; // ROAD1Y : classement des paires bus-quartier <= 127 tuiles sur l'estimation a N bus (0 = estimation historique)
+ROAD1Y_ALT_LOAD <- 0; // ROAD1Y : part (%) des bus PAX d'une ligne a ordres inverses (plein a B, rien a A ; 0 = tous pleins a A)
+ROAD1Y_ALT_LOAD_CENSUS_YM <- -1; // ROAD1Y alt_load : dernier mois recense (mesure DECISION_LOG, non sauvegarde)
 /* Ablation EB-14 : garder C121 toute la premiere annee avec ROUTE ; OFF. */
 EB14_AIR_ROAD_YEAR_GUARD <- false;
 /* EB-3: pre-remplir le vivier RAIL en annee initiale, sans avancer les achats RAIL. */
