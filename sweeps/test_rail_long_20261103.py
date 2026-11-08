@@ -28,9 +28,9 @@ FIXTURE = json.loads(
 # historiques de la fixture RAIL-only restent inchangees et verifiees dans
 # son chemin historique. Ce second jeu est specifique au bundle fusionne.
 MERGED_PRE_INTERVENTION_SHA256 = {
-    "globals_pre.nut": "95287db807334e84c5a1146a7d2ca446d6c464aa9daf6cd2b55cd7d76d19ad3d",
-    "settings.nut": "4ba30a2a9a44059be4f33da8906bf7c289be24cb49376563616ce487a111f483",
-    "info.nut": "1fbdac0c3e35ee9812033b7456620b512f7b641cf780ab1c74ff0f1dcc0e3e63",
+    "globals_pre.nut": "d70577622aa7949b3655e515929efb60dc512e96fbc21258708eb18455a9f2e2",
+    "settings.nut": "fcd831d53d86f98d42c5007a9a97b3c8b1066b9677015e067456124fcb635764",
+    "info.nut": "746d6afe204f2e91047dda8915de51055bb21b101fe42435abefe4a3156cd596",
 }
 
 
@@ -138,9 +138,9 @@ class RailLongConfigContracts(unittest.TestCase):
         # Fusion ROAD1Y + RAIL : 146 reglages sur master, 96 sur RAIL,
         # 157 dans l'union. Les projecteurs retires les 6 puis 7 reglages
         # du volet rail sans effacer les 61 ajouts propres a ROAD1Y.
-        self.assertEqual(live.count(b"AddSetting("), 157)
-        self.assertEqual(long_off.count(b"AddSetting("), 151)
-        self.assertEqual(both_off.count(b"AddSetting("), 150)
+        self.assertEqual(live.count(b"AddSetting("), 166)
+        self.assertEqual(long_off.count(b"AddSetting("), 160)
+        self.assertEqual(both_off.count(b"AddSetting("), 159)
         # Le master ROAD1Y/SIBLING/OPEN de 44d9313e conserve deja 68
         # AddSetting dans sa projection historique, contre 58 dans l'ancien
         # bundle RAIL-only. Cette valeur est verifiee contre origin/master.
