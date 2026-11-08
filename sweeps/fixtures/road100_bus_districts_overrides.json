@@ -33,7 +33,7 @@
       },
       {
         "before": "    } else {\n      via = \"BFS\";\n    }\n    if (trace == null || depot == null) continue;\n",
-        "after": "    } else {\n      via = \"BFS\";\n    }\n    /* ROAD1Y-K : dernier recours a la construction, une fois par plan. */\n    if ((trace == null || depot == null) && ROAD1Y_ASTAR > 0\n        && (\"road1yBusSite\" in candidate) && nAStar == 0) {\n      nAStar++;\n      trace = OpexRoad1yAStarTrace(siteA, siteB, ROAD_MAX_TRACE_TILES + 64);\n      depot = trace != null ? OpexRoadFindDepot(trace, siteA, siteB, true) : null;\n      if (depot != null) via = \"ASTAR\";\n    }\n    if (trace == null || depot == null) continue;\n"
+        "after": "    } else {\n      via = \"BFS\";\n    }\n    /* ROAD1Y-K : dernier recours a la construction, une fois par plan. */\n    if ((trace == null || depot == null) && ROAD1Y_ASTAR > 0\n        && (\"road1yBusSite\" in candidate) && nAStar == 0) {\n      nAStar++;\n      local astarMaxLen = ROAD_MAX_TRACE_TILES + 64;\n      if (ROAD1Y_FAR > 0 && (128 + ROAD1Y_FAR + 64) > astarMaxLen) {\n        astarMaxLen = 128 + ROAD1Y_FAR + 64;\n      }\n      trace = OpexRoad1yAStarTrace(siteA, siteB, astarMaxLen);\n      depot = trace != null ? OpexRoadFindDepot(trace, siteA, siteB, true) : null;\n      if (depot != null) via = \"ASTAR\";\n    }\n    if (trace == null || depot == null) continue;\n"
       }
     ]
   },
@@ -58,7 +58,7 @@
       },
       {
         "before": "          candidate.siteB <- dst.site;\n          candidate.road1yBusSite <- true;\n        }\n        if (ROAD100_INTERCITY_SITE_FLEET) {\n",
-        "after": "          candidate.siteB <- dst.site;\n          candidate.road1yBusSite <- true;\n          if (abandonedPairs != null && OpexAbandonedPairKey(candidate) in abandonedPairs) continue;\n          if (DECISION_LOG) OpexDecide(\"BUS_DISTRICT_CAND\", \"town_a=\" + src.id\n              + \" town_b=\" + dst.id + \" site_a=\" + tileA + \" site_b=\" + tileB\n              + \" distance=\" + distance + \" monthly=\" + monthly\n              + \" profit=\" + candidate.profitAnnual + \" roi=\" + candidate.roi);\n        }\n        if (ROAD100_INTERCITY_SITE_FLEET) {\n"
+        "after": "          candidate.siteB <- dst.site;\n          candidate.road1yBusSite <- true;\n          if (abandonedPairs != null && OpexAbandonedPairKey(candidate) in abandonedPairs) continue;\n          if (DECISION_LOG) OpexDecide(\"BUS_DISTRICT_CAND\", \"town_a=\" + src.id\n              + \" town_b=\" + dst.id + \" site_a=\" + tileA + \" site_b=\" + tileB\n              + \" distance=\" + distance + \" monthly=\" + monthly\n              + \" profit=\" + candidate.profitAnnual + \" roi=\" + candidate.roi);\n          if (DECISION_LOG && ROAD1Y_FAR > 0 && distance > 128) {\n            OpexDecide(\"ROAD1Y_FAR\", \"added=1 distance=\" + distance\n                + \" town_a=\" + src.id + \" town_b=\" + dst.id);\n          }\n        }\n        if (ROAD100_INTERCITY_SITE_FLEET) {\n"
       },
       {
         "before": "  ranked.sort(OpexRoad100SortTownDemand);\n  local n = ranked.len();",
@@ -66,7 +66,7 @@
       },
       {
         "before": "      local distance = AIMap.DistanceManhattan(tileA, tileB);\n      if (!OpexRoadDistanceAllowed(catalog, distance, stats)) continue;",
-        "after": "      local distance = AIMap.DistanceManhattan(tileA, tileB);\n      if (ROAD1Y_NEXT > 0 && distance < ROAD1Y_NEXT) continue;\n      if ((ROAD1Y_BUS_FIXES & 4) != 0 && distance < 30) continue;\n      if (!OpexRoadDistanceAllowed(catalog, distance, stats)) continue;"
+        "after": "      local distance = AIMap.DistanceManhattan(tileA, tileB);\n      if (ROAD1Y_NEXT > 0 && distance < ROAD1Y_NEXT) continue;\n      if ((ROAD1Y_BUS_FIXES & 4) != 0 && distance < 30) continue;\n      local farAllowed = ROAD1Y_FAR > 0 && distance > 128 && distance <= (128 + ROAD1Y_FAR);\n      if (!farAllowed && !OpexRoadDistanceAllowed(catalog, distance, stats)) continue;\n      if (ROAD1Y_FAR > 0 && distance > (128 + ROAD1Y_FAR)) continue;"
       }
     ]
   },

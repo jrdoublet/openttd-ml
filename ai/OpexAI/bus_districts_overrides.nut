@@ -135,7 +135,11 @@ function OpexRoadPlanPaxVoirie(candidate, catalog = null)
     if ((trace == null || depot == null) && ROAD1Y_ASTAR > 0
         && ("road1yBusSite" in candidate) && nAStar == 0) {
       nAStar++;
-      trace = OpexRoad1yAStarTrace(siteA, siteB, ROAD_MAX_TRACE_TILES + 64);
+      local astarMaxLen = ROAD_MAX_TRACE_TILES + 64;
+      if (ROAD1Y_FAR > 0 && (128 + ROAD1Y_FAR + 64) > astarMaxLen) {
+        astarMaxLen = 128 + ROAD1Y_FAR + 64;
+      }
+      trace = OpexRoad1yAStarTrace(siteA, siteB, astarMaxLen);
       depot = trace != null ? OpexRoadFindDepot(trace, siteA, siteB, true) : null;
       if (depot != null) via = "ASTAR";
     }
@@ -375,7 +379,9 @@ function OpexRoad100SoloPaxCandidates(catalog, lines, out, stats,
       local distance = AIMap.DistanceManhattan(tileA, tileB);
       if (ROAD1Y_NEXT > 0 && distance < ROAD1Y_NEXT) continue;
       if ((ROAD1Y_BUS_FIXES & 4) != 0 && distance < 30) continue;
-      if (!OpexRoadDistanceAllowed(catalog, distance, stats)) continue;
+      local farAllowed = ROAD1Y_FAR > 0 && distance > 128 && distance <= (128 + ROAD1Y_FAR);
+      if (!farAllowed && !OpexRoadDistanceAllowed(catalog, distance, stats)) continue;
+      if (ROAD1Y_FAR > 0 && distance > (128 + ROAD1Y_FAR)) continue;
       if (abandonedPairs != null) {
         local idA = src.id;
         local idB = dst.id;
@@ -400,6 +406,10 @@ function OpexRoad100SoloPaxCandidates(catalog, lines, out, stats,
               + " town_b=" + dst.id + " site_a=" + tileA + " site_b=" + tileB
               + " distance=" + distance + " monthly=" + monthly
               + " profit=" + candidate.profitAnnual + " roi=" + candidate.roi);
+          if (DECISION_LOG && ROAD1Y_FAR > 0 && distance > 128) {
+            OpexDecide("ROAD1Y_FAR", "added=1 distance=" + distance
+                + " town_a=" + src.id + " town_b=" + dst.id);
+          }
         }
         if (ROAD100_INTERCITY_SITE_FLEET) {
           candidate.road100FleetCap <- 30;

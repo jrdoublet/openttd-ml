@@ -188,7 +188,12 @@ function OpexRoad1yAStarSearch(src, srcFront, dst, dstFront, banned, budget, max
 /* Tracé validé arête par arête, avec bannissement et relance. */
 function OpexRoad1yAStarTrace(siteA, siteB, maxLen)
 {
-  local budget = { nodes = ROAD1Y_ASTAR * 1000 };
+  local nodeBudget = ROAD1Y_ASTAR * 1000;
+  local dist = AIMap.DistanceManhattan(siteA.tile, siteB.tile);
+  if (ROAD1Y_FAR > 0 && dist > 128) {
+    nodeBudget = (nodeBudget * dist) / 128;
+  }
+  local budget = { nodes = nodeBudget };
   local banned = {};
   local tries = 0;
   local reason = "BUDGET";
