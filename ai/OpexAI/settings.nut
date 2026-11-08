@@ -182,6 +182,9 @@ function OpexLoadSettings()
   ROAD1Y_ASTAR = AIController.GetSetting("road1y_astar");
   if (ROAD1Y_ASTAR < 0 || ROAD1Y_ASTAR > 16) ROAD1Y_ASTAR = 0;
   if (!road1yRoadOnly) ROAD1Y_ASTAR = 0;
+  ROAD1Y_BRIDGE = AIController.GetSetting("road1y_bridge");
+  if (ROAD1Y_BRIDGE < 0 || ROAD1Y_BRIDGE > 6) ROAD1Y_BRIDGE = 0;
+  if (!road1yRoadOnly) ROAD1Y_BRIDGE = 0;
   ROAD1Y_GAP = AIController.GetSetting("road1y_gap");
   if (ROAD1Y_GAP < 0 || ROAD1Y_GAP > 30) ROAD1Y_GAP = 0;
   if (!road1yRoadOnly) ROAD1Y_GAP = 0;
@@ -762,6 +765,9 @@ function OpexLoadBusDistrictSettings()
   ROAD1Y_NEXT3 = AIController.GetSetting("road1y_next3");
   if (ROAD1Y_NEXT3 < 0 || ROAD1Y_NEXT3 > 96) ROAD1Y_NEXT3 = 0;
   if (!road1yRoadOnly) ROAD1Y_NEXT3 = 0;
+  ROAD1Y_BRIDGE = AIController.GetSetting("road1y_bridge");
+  if (ROAD1Y_BRIDGE < 0 || ROAD1Y_BRIDGE > 6) ROAD1Y_BRIDGE = 0;
+  if (!road1yRoadOnly) ROAD1Y_BRIDGE = 0;
   { // Definitions also needed for saved markers after ON -> OFF.
     require("bus_districts.nut");
     require("bus_districts_overrides.nut");

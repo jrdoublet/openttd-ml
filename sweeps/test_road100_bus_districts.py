@@ -103,7 +103,9 @@ class BusDistrictContracts(unittest.TestCase):
         self.assertNotIn('OpexAI._refleetRoadLines =', source('bus_districts_overrides.nut'))
 
     def test_reviewed_layer_reconstructs_exact_parent(self):
-        edits = json.loads((ROOT / 'sweeps/fixtures/road100_bus_districts_hunks.json').read_text())
+        edits = json.loads(subprocess.check_output(
+            ['git', 'show', '44d9313eab12e08685ac1bf0cc6254fe0257ba4d:sweeps/fixtures/road100_bus_districts_hunks.json'],
+            cwd=ROOT).decode())
         for name, hunks in edits.items():
             with self.subTest(name=name):
                 parent = subprocess.check_output(

@@ -121,6 +121,7 @@ ROAD100_PAX_ROOTS_LAST_YEAR <- -1; // sonde transitoire : au plus une exposition
 ROAD100_LONG_SHADOW_YEAR <- -1; // ROAD100-16 : une prequalification longue par annee, jamais par regeneration PO01C
 /* EB-14 : vivier AIR/RAIL en tranches avec publication intermediaire ; OFF par defaut. */
 EB14_PROGRESSIVE <- false;
+ROAD1Y_BRIDGE <- 0; // ROAD1Y-BRIDGE : longueur maximale de pont en tuiles franchies (0 = off, 1..6)
 /* Ablation EB-14 : garder C121 toute la premiere annee avec ROUTE ; OFF. */
 EB14_AIR_ROAD_YEAR_GUARD <- false;
 /* EB-3: pre-remplir le vivier RAIL en annee initiale, sans avancer les achats RAIL. */

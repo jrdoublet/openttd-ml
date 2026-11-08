@@ -32,6 +32,7 @@ ROAD1Y_OFF = {
     "ROAD1Y_LONG_BAND": "0",
     "ROAD1Y_LONG_V3": "0",
     "ROAD1Y_ASTAR": "0",
+    "ROAD1Y_BRIDGE": "0",
     "ROAD1Y_GAP": "0",
     "ROAD1Y_BUS_FIXES": "0",
     "ROAD1Y_EXTRA_STOPS": "0",
@@ -55,6 +56,7 @@ SETTING_TO_GLOBAL = {
     "road1y_long_band": "ROAD1Y_LONG_BAND",
     "road1y_long_v3": "ROAD1Y_LONG_V3",
     "road1y_astar": "ROAD1Y_ASTAR",
+    "road1y_bridge": "ROAD1Y_BRIDGE",
     "road1y_gap": "ROAD1Y_GAP",
     "road1y_bus_fixes": "ROAD1Y_BUS_FIXES",
     "road1y_extra_stops": "ROAD1Y_EXTRA_STOPS",
@@ -83,6 +85,7 @@ LOAD_SETTINGS_KEYS = (
     "road1y_long_band",
     "road1y_long_v3",
     "road1y_astar",
+    "road1y_bridge",
     "road1y_gap",
 )
 BUS_DISTRICT_KEYS = (
@@ -96,6 +99,7 @@ BUS_DISTRICT_KEYS = (
     "road1y_mail2",
     "road1y_mail2_years",
     "road1y_next3",
+    "road1y_bridge",
 )
 
 ROAD100_SOLO_MODES = "MODE_ROAD && !MODE_AIR && !MODE_RAIL && !MODE_WATER"

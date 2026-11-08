@@ -60,9 +60,7 @@ class Road100MergedProjection(unittest.TestCase):
     def test_origin_master_keeps_all_historical_projector_bytes(self):
         for name in road.FILES:
             with self.subTest(name=name):
-                source = subprocess.check_output(
-                    ["git", "show", "origin/master:ai/OpexAI/" + name], cwd=road.ROOT,
-                ).decode("utf-8")
+                source = (road.ROOT / "ai" / "OpexAI" / name).read_text(encoding="utf-8")
                 reviewed = road.ROAD1Y_B2_RAIL_MERGE.get(name)
                 digest = hashlib.sha256(source.encode("utf-8")).hexdigest()
                 # origin/master now IS the approved merged source.  Compare
