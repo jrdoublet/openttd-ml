@@ -116,7 +116,19 @@
         }
       },
       "pre_v1_sha256": "0bdc78a53de62a20324da292ccfd0ebda4720d692ef2ce8e23e98befc8b950ff",
-      "off_sha256": "0bdc78a53de62a20324da292ccfd0ebda4720d692ef2ce8e23e98befc8b950ff"
+      "off_sha256": "0bdc78a53de62a20324da292ccfd0ebda4720d692ef2ce8e23e98befc8b950ff",
+      "variants": {
+        "road_off": {
+          "pre_sha256": "8bf142c5d989a963402db45217012692417ecf9c47433c7ce0b71a181f163188",
+          "stages": {
+            "v2": {
+              "on_sha256": "8bf142c5d989a963402db45217012692417ecf9c47433c7ce0b71a181f163188",
+              "off_sha256": "efaea418f6a758207fa64e342a80737096ee6c8c75368c4216b8a8eafe3130f5"
+            }
+          },
+          "off_sha256": "efaea418f6a758207fa64e342a80737096ee6c8c75368c4216b8a8eafe3130f5"
+        }
+      }
     },
     "scheduler.nut": {
       "pre_sha256": "c7e30eefea5c75c5537969024f689b7de3c78d1327ced855500f46b2643bd630",
