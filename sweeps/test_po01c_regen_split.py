@@ -34,11 +34,28 @@ def generated_estim_off():
     """
     actual_read = Path.read_text
     candidates = (AI / "candidates.nut").resolve()
+    air_planning = (AI / "air_planning.nut").resolve()
 
     def read_with_off(path, *args, **kwargs):
         code = actual_read(path, *args, **kwargs)
         if path.resolve() == candidates:
             return estim_off("candidates.nut", code)
+        if path.resolve() == air_planning:
+            block = (
+                '  local spPlans = PROBE_SPAN_TRACE ? OpexSpanBegin("air.plans") : null;\n\n'
+                '  if (AIR_COVERAGE_STOP && AIR_COVERAGE_EXHAUSTED && AIR_NEW_TOWN_QUEUE.len() == 0) {\n'
+                '    if (DECISION_LOG) OpexDecide("AIR_STOP", "status=sleeping reason=pool_exhausted");\n'
+                '    if (spPlans != null) OpexSpanEnd(spPlans);\n'
+                '    return null;\n'
+                '  }\n\n'
+                '  local prepared = OpexAirPlansStepPrepare(ctx);'
+            )
+            repl = (
+                '  local spPlans = PROBE_SPAN_TRACE ? OpexSpanBegin("air.plans") : null;\n'
+                '  local prepared = OpexAirPlansStepPrepare(ctx);'
+            )
+            if block in code:
+                return code.replace(block, repl, 1)
         return code
 
     with patch.object(Path, "read_text", read_with_off):
