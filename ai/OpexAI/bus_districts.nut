@@ -804,6 +804,358 @@ function OpexRoad1yMailStep(ai, year)
   OpexRoad1yBuildMailChild(ai, bestParent, cashReserve);
 }
 
+/* --- ROAD1Y_MAIL_P2P : lignes de courrier autonomes point a point --- */
+
+function OpexRoad1yMailP2PLog(fields)
+{
+  if (DECISION_LOG) OpexDecide("ROAD1Y_MAIL_P2P", fields);
+}
+
+function OpexRoad1yFindMailP2PSite(ai, catalog, townId, mailCargo)
+{
+  if (!AITown.IsValidTown(townId)) return null;
+  AIRoad.SetCurrentRoadType(catalog.roadType);
+  local coverage = AIStation.GetCoverageRadius(AIStation.STATION_TRUCK_STOP);
+  local used = OpexRoad1yOurTruckTiles(ai, townId);
+  local center = AITown.GetLocation(townId);
+  local cx = AIMap.GetTileX(center);
+  local cy = AIMap.GetTileY(center);
+  local mapX = AIMap.GetMapSizeX();
+  local mapY = AIMap.GetMapSizeY();
+  local cands = [];
+  local rad = 6;
+  for (local dx = -rad; dx <= rad; dx++) {
+    for (local dy = -rad; dy <= rad; dy++) {
+      local x = cx + dx;
+      local y = cy + dy;
+      if (x <= 0 || y <= 0 || x >= mapX - 1 || y >= mapY - 1) continue;
+      local tile = AIMap.GetTileIndex(x, y);
+      if (!AIRoad.IsRoadTile(tile) || AIRoad.IsRoadDepotTile(tile)
+          || AIRoad.IsRoadStationTile(tile) || AITile.IsStationTile(tile)) continue;
+      if (AITile.GetClosestTown(tile) != townId) continue;
+      if (OpexRoad100CatchmentOverlaps(tile, used, coverage)) continue;
+      local axis = OpexBusDistrictAxis(tile);
+      if (axis == 0) continue;
+      local front = tile + axis;
+      local back = tile - axis;
+      if (!AIMap.IsValidTile(front) || !AIMap.IsValidTile(back)) continue;
+      local prod = AITile.GetCargoProduction(tile, mailCargo, 1, 1, coverage);
+      if (prod <= 0) continue;
+      local acc = AITile.GetCargoAcceptance(tile, mailCargo, 1, 1, coverage);
+      if (acc < 8) continue;
+      local score = prod * 100 + acc - AIMap.DistanceManhattan(tile, center);
+      local item = { tile = tile, front = front, back = back, prod = prod, acc = acc, score = score };
+      local pos = cands.len();
+      cands.append(item);
+      while (pos > 0 && cands[pos - 1].score < item.score) {
+        cands[pos] = cands[pos - 1];
+        pos--;
+      }
+      cands[pos] = item;
+      if (cands.len() > 4) cands.pop();
+    }
+  }
+  foreach (c in cands) {
+    local canBuild = false;
+    {
+      local test = AITestMode();
+      canBuild = AIRoad.BuildDriveThroughRoadStation(c.tile, c.front,
+          AIRoad.ROADVEHTYPE_TRUCK, AIStation.STATION_NEW);
+    }
+    if (canBuild) return c;
+  }
+  return null;
+}
+
+function OpexRoad1yMailP2PActivePairs(ai)
+{
+  local activePairs = {};
+  foreach (line in ai._lines) {
+    if (line == null || typeof line != "table") continue;
+    if (!("mode" in line) || line.mode != "road") continue;
+    if (("scrapping" in line) && line.scrapping) continue;
+    local ta = ("srcTown" in line) ? line.srcTown : -1;
+    local tb = ("dstTown" in line) ? line.dstTown : -1;
+    if (ta >= 0 && tb >= 0 && ta != tb) {
+      local key = ta < tb ? (ta + ":" + tb) : (tb + ":" + ta);
+      activePairs[key] <- true;
+    }
+  }
+  return activePairs;
+}
+
+function OpexRoad1yBuildMailP2P(ai, catalog, ta, tb, siteA, siteB, trace, depot, cashReserve)
+{
+  local mailCargo = catalog.mailCargo;
+  local engine = catalog.roadEngineByCargo[mailCargo];
+  if (engine == null || engine.price <= 0) return false;
+  local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+  if (money < cashReserve + 4000 + 2 * engine.price) return false;
+
+  AIRoad.SetCurrentRoadType(catalog.roadType);
+  local okA = AIRoad.BuildDriveThroughRoadStation(siteA.tile, siteA.front,
+      AIRoad.ROADVEHTYPE_TRUCK, AIStation.STATION_NEW);
+  local validA = okA && AIRoad.IsRoadStationTile(siteA.tile)
+      && AICompany.IsMine(AITile.GetOwner(siteA.tile));
+  if (!validA) {
+    if (AIRoad.IsRoadStationTile(siteA.tile) && AICompany.IsMine(AITile.GetOwner(siteA.tile)))
+      AIRoad.RemoveRoadStation(siteA.tile);
+    OpexRoad1yMailP2PLog("action=fail pair=" + ta.id + ":" + tb.id + " reason=BUILD_STOP_A");
+    return false;
+  }
+
+  local okB = AIRoad.BuildDriveThroughRoadStation(siteB.tile, siteB.front,
+      AIRoad.ROADVEHTYPE_TRUCK, AIStation.STATION_NEW);
+  local stIdA = AIStation.GetStationID(siteA.tile);
+  local stIdB = AIStation.GetStationID(siteB.tile);
+  local validB = okB && AIRoad.IsRoadStationTile(siteB.tile)
+      && AICompany.IsMine(AITile.GetOwner(siteB.tile))
+      && AIStation.IsValidStation(stIdA) && AIStation.IsValidStation(stIdB) && stIdA != stIdB;
+  if (!validB) {
+    if (AIRoad.IsRoadStationTile(siteB.tile) && AICompany.IsMine(AITile.GetOwner(siteB.tile)))
+      AIRoad.RemoveRoadStation(siteB.tile);
+    if (AIRoad.IsRoadStationTile(siteA.tile) && AICompany.IsMine(AITile.GetOwner(siteA.tile)))
+      AIRoad.RemoveRoadStation(siteA.tile);
+    OpexRoad1yMailP2PLog("action=fail pair=" + ta.id + ":" + tb.id + " reason=BUILD_STOP_B");
+    return false;
+  }
+
+  local builtRoad = [];
+  foreach (edge in trace) {
+    if (!AIRoad.AreRoadTilesConnected(edge.from, edge.to)) {
+      if (AIRoad.BuildRoad(edge.from, edge.to)) builtRoad.append(edge);
+    }
+  }
+
+  local depotTile = depot.tile;
+  local depotFront = depot.front;
+  if (!AIRoad.IsRoadDepotTile(depotTile)) {
+    AIRoad.BuildRoad(depotFront, depotTile);
+    local okDepot = AIRoad.BuildRoadDepot(depotTile, depotFront);
+    if (!okDepot) {
+      if (AIRoad.IsRoadStationTile(siteA.tile) && AICompany.IsMine(AITile.GetOwner(siteA.tile)))
+        AIRoad.RemoveRoadStation(siteA.tile);
+      if (AIRoad.IsRoadStationTile(siteB.tile) && AICompany.IsMine(AITile.GetOwner(siteB.tile)))
+        AIRoad.RemoveRoadStation(siteB.tile);
+      OpexRoad1yMailP2PLog("action=fail pair=" + ta.id + ":" + tb.id + " reason=BUILD_DEPOT");
+      return false;
+    }
+  }
+
+  local first = AIVehicle.BuildVehicleWithRefit(depotTile, engine.id, mailCargo);
+  if (!AIVehicle.IsValidVehicle(first)) {
+    if (AIRoad.IsRoadStationTile(siteA.tile) && AICompany.IsMine(AITile.GetOwner(siteA.tile)))
+      AIRoad.RemoveRoadStation(siteA.tile);
+    if (AIRoad.IsRoadStationTile(siteB.tile) && AICompany.IsMine(AITile.GetOwner(siteB.tile)))
+      AIRoad.RemoveRoadStation(siteB.tile);
+    OpexRoad1yMailP2PLog("action=fail pair=" + ta.id + ":" + tb.id + " reason=BUILD_VEH");
+    return false;
+  }
+
+  local built = [first];
+  local cap = AIVehicle.GetCapacity(first, mailCargo);
+  local orderFlags = AIOrder.OF_NONE | AIOrder.OF_NON_STOP_INTERMEDIATE;
+  local ordersOk = cap > 0
+      && AIOrder.AppendOrder(first, siteA.tile, orderFlags)
+      && AIOrder.AppendOrder(first, siteB.tile, orderFlags)
+      && AIOrder.GetOrderCount(first) == 2;
+  if (!ordersOk) {
+    OpexRoadRollback(siteA.tile, siteB.tile, null, built, null);
+    OpexRoad1yMailP2PLog("action=fail pair=" + ta.id + ":" + tb.id + " reason=ORDERS");
+    return false;
+  }
+
+  if (OpexVehicleSlotAvailable(AIVehicle.VT_ROAD, 1)) {
+    local second = AIVehicle.CloneVehicle(depotTile, first, true);
+    if (AIVehicle.IsValidVehicle(second)) built.append(second);
+  }
+
+  local started = 0;
+  foreach (v in built) {
+    if (AIVehicle.StartStopVehicle(v)) started++;
+  }
+  if (started <= 0) {
+    OpexRoadRollback(siteA.tile, siteB.tile, null, built, null);
+    OpexRoad1yMailP2PLog("action=fail pair=" + ta.id + ":" + tb.id + " reason=START_VEH");
+    return false;
+  }
+
+  local idx = ai._nextLineId++;
+  local dist = AIMap.DistanceManhattan(siteA.tile, siteB.tile);
+  local p2pLine = {
+    mode = "road",
+    kind = "mail_p2p",
+    stationA = siteA.tile,
+    stationB = siteB.tile,
+    originA = siteA.tile,
+    originB = siteB.tile,
+    depot = depotTile,
+    cargo = mailCargo,
+    nStopsA = 1,
+    nStopsB = 1,
+    trains = built.len(),
+    trains0 = built.len(),
+    predTrains = built.len(),
+    vehCount = built.len(),
+    capacity = cap,
+    distance = dist,
+    srcTown = ta.id,
+    dstTown = tb.id,
+    srcIndustry = -1,
+    dstIndustry = -1,
+    deadStreak = 0,
+    scrapping = false,
+    scrapVehicles = [],
+    lineId = idx
+  };
+  ai._lines.append(p2pLine);
+  if (V279_RESELECT_MEMO != 0) OPEX_LINES_REVISION++;
+  ai._c76BumpLayer("lines", false);
+  OpexAir0310InvalidateSiteValidity();
+  OpexRoad1yMailP2PLog("action=create line=" + idx + " pair=" + ta.id + ":" + tb.id
+      + " tiles=" + siteA.tile + ":" + siteB.tile + " dist=" + dist + " vans=" + built.len() + " reason=OK");
+  return true;
+}
+
+function OpexRoad1yMailP2PStep(ai, year)
+{
+  if (year <= 1970) return;
+  if (ROAD1Y_MAIL_P2P <= 0) return;
+  local ym = year * 12 + AIDate.GetMonth(AIDate.GetCurrentDate());
+  if (ROAD1Y_MAIL_P2P_TRY_YM == ym) return;
+  ROAD1Y_MAIL_P2P_TRY_YM = ym;
+
+  local cashReserve = 25000;
+  if (AICompany.GetBankBalance(AICompany.COMPANY_SELF) < cashReserve + 12000) return;
+  if (!OpexVehicleSlotAvailable(AIVehicle.VT_ROAD, 2)) return;
+
+  local catalog = ai._catalog;
+  if (catalog == null || !("mailCargo" in catalog) || catalog.mailCargo < 0) return;
+  local mailCargo = catalog.mailCargo;
+  if (!(mailCargo in catalog.roadEngineByCargo)) return;
+
+  local activePairs = OpexRoad1yMailP2PActivePairs(ai);
+  local towns = catalog.towns;
+  local nTowns = towns.len();
+  local attempts = 0;
+  for (local i = 0; i < nTowns; i++) {
+    local ta = towns[i];
+    if (ta.pop < 350) continue;
+    for (local j = i + 1; j < nTowns; j++) {
+      local tb = towns[j];
+      if (tb.pop < 350) continue;
+      local key = ta.id < tb.id ? (ta.id + ":" + tb.id) : (tb.id + ":" + ta.id);
+      if (key in activePairs) continue;
+      local dist = AIMap.DistanceManhattan(ta.tile, tb.tile);
+      if (dist < 24 || dist > 128) continue;
+
+      attempts++;
+      if (attempts > 4) return;
+
+      local siteA = OpexRoad1yFindMailP2PSite(ai, catalog, ta.id, mailCargo);
+      if (siteA == null) continue;
+      local siteB = OpexRoad1yFindMailP2PSite(ai, catalog, tb.id, mailCargo);
+      if (siteB == null) continue;
+
+      local trace = OpexRoadBfsPath(siteA.tile, siteB.tile, ROAD_MAX_TRACE_TILES, siteA.front, siteB.front);
+      if (trace == null) {
+        local axisH = AIMap.GetTileX(siteA.front) != AIMap.GetTileX(siteA.tile);
+        for (local k = 0; k < 2; k++) {
+          local firstH = (k == 0) ? axisH : !axisH;
+          local dx = AIMap.GetTileX(siteB.tile) - AIMap.GetTileX(siteA.tile);
+          local dy = AIMap.GetTileY(siteB.tile) - AIMap.GetTileY(siteA.tile);
+          local firstIsH = firstH ? (dx != 0) : (dy == 0);
+          if (firstIsH != axisH) continue;
+          local l = OpexRoadTrace(siteA.tile, siteB.tile, firstH);
+          if (l == null || l.len() == 0 || l.len() > ROAD_MAX_TRACE_TILES) continue;
+          if (!OpexRoadTraceBuildable(l)) continue;
+          local missing = 0;
+          foreach (edge in l) {
+            if (!AIRoad.IsRoadTile(edge.to) || !AIRoad.AreRoadTilesConnected(edge.from, edge.to)) {
+              missing++;
+            }
+          }
+          if (missing <= 14) {
+            trace = l;
+            break;
+          }
+        }
+      }
+      if (trace == null) continue;
+
+      local depot = OpexRoadFindDepot(trace, siteA, siteB, true);
+      if (depot == null) continue;
+
+      if (OpexRoad1yBuildMailP2P(ai, catalog, ta, tb, siteA, siteB, trace, depot, cashReserve)) {
+        return;
+      }
+    }
+  }
+}
+
+function OpexRoad1yRefleetMailP2PLine(ai, line, year)
+{
+  if (!AIMap.IsValidTile(line.stationA) || !AIRoad.IsRoadStationTile(line.stationA)
+      || !AICompany.IsMine(AITile.GetOwner(line.stationA))
+      || !AIMap.IsValidTile(line.stationB) || !AIRoad.IsRoadStationTile(line.stationB)
+      || !AICompany.IsMine(AITile.GetOwner(line.stationB))) return;
+
+  local stationA = AIStation.GetStationID(line.stationA);
+  local stationB = AIStation.GetStationID(line.stationB);
+  if (!AIStation.IsValidStation(stationA) || !AIStation.IsValidStation(stationB)) return;
+
+  local waitingA = AICargo.IsValidCargo(line.cargo) ? AIStation.GetCargoWaiting(stationA, line.cargo) : 0;
+  local waitingB = AICargo.IsValidCargo(line.cargo) ? AIStation.GetCargoWaiting(stationB, line.cargo) : 0;
+  local totalWaiting = waitingA + waitingB;
+
+  local vehicles = OpexLineVehicleIds(line, stationA);
+  local have = 0;
+  local movingCount = 0;
+  local liveCap = 0;
+  local unitPrice = 0;
+  foreach (v in vehicles) {
+    if (!AIVehicle.IsValidVehicle(v)) continue;
+    have++;
+    if (AIVehicle.GetCurrentSpeed(v) > 0) movingCount++;
+    if (liveCap <= 0) {
+      local c = AIVehicle.GetCapacity(v, line.cargo);
+      if (c > 0) liveCap = c;
+    }
+    if (unitPrice <= 0) unitPrice = AIEngine.GetPrice(AIVehicle.GetEngineType(v));
+  }
+  line.vehCount <- have;
+
+  local mailCap = ROAD1Y_MAIL_P2P > 0 ? ROAD1Y_MAIL_P2P : 4;
+  if (have >= mailCap || movingCount <= 0) return;
+
+  local capacity = liveCap > 0 ? liveCap : (("capacity" in line) ? line.capacity : 0);
+  if (capacity <= 0 || totalWaiting < capacity) return;
+
+  local ym = year * 12 + AIDate.GetMonth(AIDate.GetCurrentDate());
+  if (("road1yMailRefleetMonth" in line) && line.road1yMailRefleetMonth == ym) return;
+
+  local cashReserve = 25000;
+  local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+  if (unitPrice <= 0 && ai._catalog != null && (line.cargo in ai._catalog.roadEngineByCargo))
+    unitPrice = ai._catalog.roadEngineByCargo[line.cargo].price;
+  if (unitPrice <= 0 || money < cashReserve + unitPrice) return;
+
+  local want = totalWaiting / capacity;
+  if (want > 2) want = 2;
+  if (have + want > mailCap) want = mailCap - have;
+  local canPay = (money - cashReserve) / unitPrice;
+  if (want > canPay) want = canPay;
+  if (want <= 0) return;
+
+  line.road1yMailRefleetMonth <- ym;
+  local refill = OpexRoadRefleet(ai._catalog, line, have, have + want);
+  if (refill.added > 0) {
+    line.vehCount <- refill.after;
+    if (("trains" in line) && line.trains < refill.after) line.trains = refill.after;
+    OpexRoad1yMailP2PLog("action=refleet line=" + line.lineId + " added=" + refill.added + " total=" + refill.after + " waiting=" + totalWaiting);
+  }
+}
+
 /* ROAD1Y: realloue les bus des lignes PAX faibles (< seuil x100 £/bus)
  * vers les lignes PAX fortes saturees par les passagers en attente.
  * Vente dans le depot de la ligne faible + achat clone dans le depot
