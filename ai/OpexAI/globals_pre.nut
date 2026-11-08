@@ -127,6 +127,7 @@ ROAD1Y_FREIGHT <- 0; // ROAD1Y : plafond de flotte camions fret routier (0 = pla
 ROAD1Y_TRUCK_FLEET <- 0; // ROAD1Y : flotte des camions fret geree comme AAAHogEx (plafond temps de trajet, ajout/retrait sur l'attente source), 0 = historique
 ROAD1Y_BERTH_FLEET <- 0; // ROAD1Y quais+frequence : 1 = extra-quai bus sans reserve 50k, 2 = +1 bus/mois si min(quais)>=2 ; defaut 0
 ROAD1Y_PAX_BILAT <- 0; // ROAD1Y: bus refleet on weakest terminus stock, 0..1.
+ROAD1Y_PAIR_FLEET <- 0; // ROAD1Y : classement des paires bus-quartier <= 127 tuiles sur l'estimation a N bus (0 = estimation historique)
 /* Ablation EB-14 : garder C121 toute la premiere annee avec ROUTE ; OFF. */
 EB14_AIR_ROAD_YEAR_GUARD <- false;
 /* EB-3: pre-remplir le vivier RAIL en annee initiale, sans avancer les achats RAIL. */

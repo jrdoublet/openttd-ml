@@ -840,6 +840,14 @@ function OpexRoadLineEconomics(catalog, cargo, distance, monthlyUnits, engine, k
   if (fleetCapOverride == 30 && kind == "pax") roadVehicleCap = 30;
 
   if (vehicles > roadVehicleCap) vehicles = roadVehicleCap;
+  /* ROAD1Y pair_fleet : estimation a flotte mure, demandee par le seul
+   * classement des paires bus-quartier (road1y_pair_fleet.nut). */
+  if (ROAD1Y_PAIR_FLEET > 0 && kind == "pax" && fleetCapOverride == ROAD1Y_PAIR_FLEET) {
+    roadVehicleCap = ROAD1Y_PAIR_FLEET;
+    vehicles = vehiclesForVolume;
+    if (vehicles < 1) vehicles = 1;
+    if (vehicles > roadVehicleCap) vehicles = roadVehicleCap;
+  }
   if (ROAD1Y_PAX_ECONOMY && kind == "pax") {
     local road1yPaxCap = ROAD1Y_FLEET > 0 ? (ROAD1Y_FLEET * 2) : 8;
     if (fleetCapOverride > 0 && fleetCapOverride > road1yPaxCap)
