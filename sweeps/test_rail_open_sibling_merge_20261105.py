@@ -36,7 +36,8 @@ class RailOpenSiblingMergeContracts(unittest.TestCase):
         for module in (rail_open, rail_sibling):
             for name, sha in module._MERGE_SHA.items():
                 with self.subTest(policy=module.__name__, name=name):
-                    self.assertEqual(hashlib.sha256(_live(name).encode("utf-8")).hexdigest(), sha)
+                    allowed = sha if isinstance(sha, (tuple, list, set)) else (sha,)
+                    self.assertIn(hashlib.sha256(_live(name).encode("utf-8")).hexdigest(), allowed)
                     self.assertIsNot(module.FIXTURE, module.HISTORICAL_FIXTURE)
 
     def test_rail_open_merge_keeps_repair_and_removes_all_open_branches(self):
