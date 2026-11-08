@@ -517,6 +517,13 @@ class OpexAIInfo extends AIInfo {
       flags = 0
     });
     AddSetting({
+      name = "road1y_pax_bilat",
+      description = "ROAD1Y: bus refleet on weakest terminus stock (0=off, 1=on)",
+      min_value = 0, max_value = 1,
+      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
+      flags = 0
+    });
+    AddSetting({
       name = "road1y_gap",
       description = "ROAD1Y: road-only mail vans per child line (0 = historical cap of 2 and the same parent each pass; N>2 raises the cap to N and skips a parent with no mail site)",
       min_value = 0, max_value = 30,

@@ -58,6 +58,7 @@ class BusDistrictContracts(unittest.TestCase):
                     '      if ("road1ySpreadA" in result)\n'
                     '        OpexRoad1ySpreadCopy(result, this._lines[this._lines.len() - 1]);\n',
                     '    if ("road1ySpreadA" in line) OpexRoad1ySpreadCount(line);\n',
+                    '        if (isPax && ROAD1Y_PAX_BILAT > 0)\n          road1yWait = (waitingB < waitingA ? waitingB : waitingA) * 2;\n',
                 ):
                     original = original.replace(addition, '')
                     projected = projected.replace(addition, '')

@@ -197,6 +197,10 @@ function OpexLoadSettings()
   ROAD1Y_BERTH_FLEET = AIController.GetSetting("road1y_berth_fleet");
   if (ROAD1Y_BERTH_FLEET < 0 || ROAD1Y_BERTH_FLEET > 3) ROAD1Y_BERTH_FLEET = 0;
   if (!road1yRoadOnly) ROAD1Y_BERTH_FLEET = 0;
+  ROAD1Y_PAX_BILAT = AIController.GetSetting("road1y_pax_bilat");
+  if (ROAD1Y_PAX_BILAT < 0) ROAD1Y_PAX_BILAT = 0;
+  if (ROAD1Y_PAX_BILAT > 1) ROAD1Y_PAX_BILAT = 1;
+  if (!road1yRoadOnly) ROAD1Y_PAX_BILAT = 0;
   ROAD1Y_GAP = AIController.GetSetting("road1y_gap");
   if (ROAD1Y_GAP < 0 || ROAD1Y_GAP > 30) ROAD1Y_GAP = 0;
   if (!road1yRoadOnly) ROAD1Y_GAP = 0;
@@ -792,6 +796,10 @@ function OpexLoadBusDistrictSettings()
   ROAD1Y_BERTH_FLEET = AIController.GetSetting("road1y_berth_fleet");
   if (ROAD1Y_BERTH_FLEET < 0 || ROAD1Y_BERTH_FLEET > 3) ROAD1Y_BERTH_FLEET = 0;
   if (!road1yRoadOnly) ROAD1Y_BERTH_FLEET = 0;
+  ROAD1Y_PAX_BILAT = AIController.GetSetting("road1y_pax_bilat");
+  if (ROAD1Y_PAX_BILAT < 0) ROAD1Y_PAX_BILAT = 0;
+  if (ROAD1Y_PAX_BILAT > 1) ROAD1Y_PAX_BILAT = 1;
+  if (!road1yRoadOnly) ROAD1Y_PAX_BILAT = 0;
   { // Definitions also needed for saved markers after ON -> OFF.
     require("bus_districts.nut");
     require("bus_districts_overrides.nut");

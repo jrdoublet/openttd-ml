@@ -46,6 +46,7 @@ ROAD1Y_OFF = {
     "ROAD1Y_FREIGHT": "0",
     "ROAD1Y_TRUCK_FLEET": "0",
     "ROAD1Y_BERTH_FLEET": "0",
+    "ROAD1Y_PAX_BILAT": "0",
 }
 
 SETTING_TO_GLOBAL = {
@@ -74,6 +75,7 @@ SETTING_TO_GLOBAL = {
     "road1y_freight": "ROAD1Y_FREIGHT",
     "road1y_truck_fleet": "ROAD1Y_TRUCK_FLEET",
     "road1y_berth_fleet": "ROAD1Y_BERTH_FLEET",
+    "road1y_pax_bilat": "ROAD1Y_PAX_BILAT",
 }
 
 LOAD_SETTINGS_KEYS = (
@@ -93,6 +95,7 @@ LOAD_SETTINGS_KEYS = (
     "road1y_freight",
     "road1y_truck_fleet",
     "road1y_berth_fleet",
+    "road1y_pax_bilat",
     "road1y_fleet_unlock",
     "road1y_long_band",
     "road1y_long_v3",
@@ -115,6 +118,7 @@ BUS_DISTRICT_KEYS = (
     "road1y_freight",
     "road1y_truck_fleet",
     "road1y_berth_fleet",
+    "road1y_pax_bilat",
     "road1y_bridge",
 )
 
@@ -251,13 +255,14 @@ class TestRoad1yMultimodalGate(unittest.TestCase):
         self.assertEqual(ROAD1Y_OFF["ROAD1Y_FREIGHT"], "0")
         self.assertEqual(ROAD1Y_OFF["ROAD1Y_TRUCK_FLEET"], "0")
         self.assertEqual(ROAD1Y_OFF["ROAD1Y_BERTH_FLEET"], "0")
+        self.assertEqual(ROAD1Y_OFF["ROAD1Y_PAX_BILAT"], "0")
         load = body("settings.nut", "OpexLoadSettings")
         bus = body("settings.nut", "OpexLoadBusDistrictSettings")
         for global_name, off in ROAD1Y_OFF.items():
             blob = load if global_name not in (
                 "ROAD1Y_BUS_FIXES", "ROAD1Y_EXTRA_STOPS", "ROAD1Y_PAX_SITES",
             ) else bus
-            if global_name in ("ROAD1Y_MAIL_ON_PAX", "ROAD1Y_NEXT", "ROAD1Y_MAIL2", "ROAD1Y_MAIL2_YEARS", "ROAD1Y_NEXT3", "ROAD1Y_FAR", "ROAD1Y_FREIGHT", "ROAD1Y_TRUCK_FLEET", "ROAD1Y_BERTH_FLEET"):
+            if global_name in ("ROAD1Y_MAIL_ON_PAX", "ROAD1Y_NEXT", "ROAD1Y_MAIL2", "ROAD1Y_MAIL2_YEARS", "ROAD1Y_NEXT3", "ROAD1Y_FAR", "ROAD1Y_FREIGHT", "ROAD1Y_TRUCK_FLEET", "ROAD1Y_BERTH_FLEET", "ROAD1Y_PAX_BILAT"):
                 self.assertIn(_gate_line(global_name), load)
                 self.assertIn(_gate_line(global_name), bus)
             else:

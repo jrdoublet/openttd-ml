@@ -20,8 +20,8 @@ HISTORICAL_FIXTURE = json.loads(
 # in-memory view for callers inspecting FIXTURE; do not rewrite the JSON or
 # silently allow modified partial settings.
 _MERGE_SHA = {
-    "globals_pre.nut": "d3f9780ac954079f62ba0ceffc13d2211b6be64c840b38b3dd4121ca0123d731",
-    "info.nut": "fe6dc9b954bb472de64cf31afa3c65c77b22a765d5459c7f8dc54c63c74f4feb",
+    "globals_pre.nut": "891e9795640fa86d7c7c341bb82b2359c38e3f75a67bb07493aca667a9fb9d45",
+    "info.nut": "cb3b8fabe78e230d7f208988c476c545a14eec15eafabd7b55d0001d4c413bc2",
 }
 
 

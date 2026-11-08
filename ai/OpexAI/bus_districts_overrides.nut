@@ -2091,6 +2091,8 @@ function OpexRoad1yRefleetSaved(year)
       local road1yMonth = year * 12 + AIDate.GetMonth(AIDate.GetCurrentDate());
       if (!("road1yMonth" in line) || line.road1yMonth != road1yMonth) {
         local road1yWait = (("kind" in line) && line.kind == "freight") ? waitingA : totalWaiting;
+        if (isPax && ROAD1Y_PAX_BILAT > 0)
+          road1yWait = (waitingB < waitingA ? waitingB : waitingA) * 2;
         local road1yWant = road1yWait / capacity;
         // Bit 2 : une fois min(quais) >= 2, +1 bus/mois a la regle AAA.
         // Le plafond reste ROAD1Y_FLEET * min, jamais la somme des quais.

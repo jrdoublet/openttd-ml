@@ -19,8 +19,8 @@ HISTORICAL_FIXTURE = json.loads((Path(__file__).parent / "fixtures/rail_open_off
 # merge view; the historical JSON (and old-source projection path) stays frozen.
 _MERGE_SHA = {
     "builder_rail.nut": "1eca9310d6a3451820e5c61d721ce531a4b274213e043cfc9efef0075d9ee72e",
-    "globals_pre.nut": "d3f9780ac954079f62ba0ceffc13d2211b6be64c840b38b3dd4121ca0123d731",
-    "info.nut": "fe6dc9b954bb472de64cf31afa3c65c77b22a765d5459c7f8dc54c63c74f4feb",
+    "globals_pre.nut": "891e9795640fa86d7c7c341bb82b2359c38e3f75a67bb07493aca667a9fb9d45",
+    "info.nut": "cb3b8fabe78e230d7f208988c476c545a14eec15eafabd7b55d0001d4c413bc2",
 }
 
 
