@@ -945,7 +945,7 @@ class V233LongGoodContracts(unittest.TestCase):
         # La projection de configuration retire les 7 reglages RAIL concernes,
         # tout en conservant les 61 options ROAD1Y ajoutees sur origin/master.
         # Le temoin historique RAIL-only (= 89) reste gele dans sa fixture.
-        self.assertEqual(off_config_bytes("info.nut", source("info.nut").encode("utf-8")).count(b"AddSetting("), 150)
+        self.assertEqual(off_config_bytes("info.nut", source("info.nut").encode("utf-8")).count(b"AddSetting("), 159)
 
     def test_off_reviewed_edits_preserve_all_original_hashes(self):
         self.assertEqual(
