@@ -941,7 +941,7 @@ class V233LongGoodContracts(unittest.TestCase):
         self.assertEqual(source("settings.nut").count('GetSetting("v233_long_good")'), 1)
         self.assertIn("V233_LONG_GOOD <- 1;", source("globals_pre.nut"))
         # ROAD100, V233L and RAIL opt-ins all remain in the live source.
-        self.assertEqual(source("info.nut").count("AddSetting("), 157)  # ROAD100/ROAD1Y + RAIL settings
+        self.assertEqual(source("info.nut").count("AddSetting("), 166)  # ROAD100/ROAD1Y + RAIL settings
         # La projection de configuration retire les 7 reglages RAIL concernes,
         # tout en conservant les 61 options ROAD1Y ajoutees sur origin/master.
         # Le temoin historique RAIL-only (= 89) reste gele dans sa fixture.
