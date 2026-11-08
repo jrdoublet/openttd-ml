@@ -28,6 +28,7 @@ _MERGED_PRE_V233_SHA = {
     "globals_pre.nut": {
         "83eeb53e34010c64d1fdf0026dd5939b09d91d66389f81902de0da6fda80194d",
         "c407d1a06a84d6c43457950a6da3f208934a1d7644c7b84ddb9494fcee0fbebd",
+        "89040809f58fa076df6d085420831b4c96c7454c107b1aaad15092700ce90cda",
     },
     "info.nut": {
         "0d8c3fe5d72736df54af53d7a3bfbd87598c8a66b8cfa0ceba16cae7fc92e4f5",
@@ -43,6 +44,7 @@ _MERGED_PRE_V233_SHA = {
     "settings.nut": {
         "75afcaa5c58e82c5f8051161c403f8fcb5c13c37daa170048afde5f601dd24c8",
         "f887cc059b1b878b44635de47ce5f62e44fe34a1c429eda357c1ffc91c7f5e40",
+        "8c9656e7fb823fb55d2ae3a3911bb0c8baa5d7783d9b9fc1faf784bd0843df2b",
     },
 }
 
@@ -66,6 +68,8 @@ _MERGED_V233_PROJECTED_SHA = {
             "320007389a5997fc5d8c52ba06b40966d98644844b27703fd47adb96988df0a0",
         "c407d1a06a84d6c43457950a6da3f208934a1d7644c7b84ddb9494fcee0fbebd":
             "550c42bcab97df9fa02cd0ef4876d791ad427aa6294e71318a0f1d78cb26e2aa",
+        "89040809f58fa076df6d085420831b4c96c7454c107b1aaad15092700ce90cda":
+            "6daf407980c06cd85bcde8e0bcfcea73d353f34ea7f559a45fa50869b1543434",
     },
     "info.nut": {
         "0d8c3fe5d72736df54af53d7a3bfbd87598c8a66b8cfa0ceba16cae7fc92e4f5":
@@ -86,6 +90,8 @@ _MERGED_V233_PROJECTED_SHA = {
             "f8359098b70e994d4dcafcf037c0c06bfec9c3eccdb323d79fdb14ceae7e7f2f",
         "f887cc059b1b878b44635de47ce5f62e44fe34a1c429eda357c1ffc91c7f5e40":
             "fbc19df588e3234aaa0d67a497dc3253d72158086b48c9ad42fcd2b918c25599",
+        "8c9656e7fb823fb55d2ae3a3911bb0c8baa5d7783d9b9fc1faf784bd0843df2b":
+            "d7866f2b674fdfaaeae201c9c1cee7b20f1a7c9d1470e30cf3f3fb3b90a84513",
     },
 }
 
