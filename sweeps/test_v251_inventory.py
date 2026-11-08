@@ -67,16 +67,8 @@ class TestV251Inventory(unittest.TestCase):
         # After the precise legacy projectors, preserve the master inventory:
         # origin/master 44d9313e already projects to 68 settings (not 58).
         # The extra ten belong to master, not to V251 or the rail merge.
-        # fair_play_courtesy adds one default-OFF courtesy setting (68 -> 69).
-        # eb10_guards adds one default-OFF sentinel guard setting (69 -> 70).
-        # air_coverage_stop adds one default-OFF air pool sleeping setting (70 -> 71).
-        # idle1_slack_worker adds one default-OFF tick slack worker setting (71 -> 72).
-        # po02_independent_expiry adds one default-OFF independent expiry setting (72 -> 73).
-        # eb4_air_road_arbitrage adds one default-OFF cash arbitrage setting (73 -> 74).
-        # eb7_detailed_accounting adds one default-OFF accounting probe setting (74 -> 75).
-        # late_game_policy adds one default-OFF late game cash reinvestment setting (75 -> 76).
-        # multi1_relance adds one default-OFF multimodal restart conditions setting (76 -> 77).
-        self.assertEqual(info.count("AddSetting("), 77)
+        # fair_play_courtesy and the 8 overnight levers are projected OFF by historical_info (68).
+        self.assertEqual(info.count("AddSetting("), 68)
         self.assertNotIn('name = "v251', info)
         settings = self.sources["settings.nut"]
         self.assertNotIn('GetSetting("v251', settings)
