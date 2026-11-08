@@ -16,17 +16,17 @@
   },
   "merged_config": {
     "settings.nut": {
-      "live_sha256": "32542fef11a2bad6fbc7716a4e07a52758e7a2e358af172d2b43c3ee4a0a59fc",
-      "search_prio_off_sha256": "5f25f759280a5d102fce0847a8b58b79d3804dc966a6b545b6da67ad47dc9f80"
+      "live_sha256": "d335e8528c69b778059bfb0ce016159bdbbc2caaa080f514de45ff49333d8177",
+      "search_prio_off_sha256": "094c7ae12ed2bb3f77d124417d255612c988096ed2442f8c8738242329cc112d"
     },
     "globals_pre.nut": {
-      "live_sha256": "d0548c85cd11d62de13e4eb1566088d77a15ab6490b3a30a01fb27eda3110424",
-      "search_prio_off_sha256": "2f31b65c0b16345454a927b982381858520f517ee3f1fa1af226900c2aa8e985"
+      "live_sha256": "7ae9ad7cde04ceb382314f9d1ccab05125c52fab4cb22defd177dbfd35023fd6",
+      "search_prio_off_sha256": "4ecadd926a20592eed191dc14845a473fbc1bd4ed92d892fbe67132e5d2895f3"
     }
   },
   "merged_info_after_v233": {
-    "sha256": "f28a4896bcbcd2140a50710032c70fb689af16f0c18c914f29288d14ecaaeaa0",
-    "add_setting_count": 138,
-    "unique_setting_count": 138
+    "sha256": "f0b80e0d40556bf6456f98f9f9eab04abb7ab52a31ed98e0381b540cfb3142b1",
+    "add_setting_count": 147,
+    "unique_setting_count": 147
   }
 }
