@@ -14,7 +14,12 @@ from test_v261_forum_behaviours import body, source
 class TestRoad1yMailP2P(unittest.TestCase):
     def test_info_nut_declaration(self):
         info_src = source("info.nut")
-        for setting_name, max_val in (("road1y_mail_p2p", 20), ("road1y_mail_p2p_missing", 60)):
+        for setting_name, max_val in (
+            ("road1y_mail_p2p", 20),
+            ("road1y_mail_p2p_missing", 60),
+            ("road1y_mail_p2p_cash", 60),
+            ("road1y_mail_p2p_start", 12),
+        ):
             self.assertIn(f'"{setting_name}"', info_src)
             match = re.search(r'AddSetting\(\{\s*name\s*=\s*"' + re.escape(setting_name) + r'".*?\}\);', info_src, re.DOTALL)
             self.assertIsNotNone(match, f"Setting {setting_name} not found in info.nut")
@@ -31,11 +36,15 @@ class TestRoad1yMailP2P(unittest.TestCase):
         self.assertIn("ROAD1Y_MAIL_P2P_TRY_YM <- -1;", pre)
         self.assertIn("ROAD1Y_MAIL_P2P_CURSOR <- 0;", pre)
         self.assertIn("ROAD1Y_MAIL_P2P_MISSING <- 0;", pre)
+        self.assertIn("ROAD1Y_MAIL_P2P_CASH <- 0;", pre)
+        self.assertIn("ROAD1Y_MAIL_P2P_START <- 0;", pre)
 
     def test_settings_nut_loading(self):
         settings_src = source("settings.nut")
         self.assertEqual(settings_src.count('GetSetting("road1y_mail_p2p")'), 1)
         self.assertEqual(settings_src.count('GetSetting("road1y_mail_p2p_missing")'), 1)
+        self.assertEqual(settings_src.count('GetSetting("road1y_mail_p2p_cash")'), 1)
+        self.assertEqual(settings_src.count('GetSetting("road1y_mail_p2p_start")'), 1)
         load_fn = body("settings.nut", "OpexLoadSettings")
         self.assertIn('ROAD1Y_MAIL_P2P = AIController.GetSetting("road1y_mail_p2p");', load_fn)
         self.assertIn("if (ROAD1Y_MAIL_P2P < 0 || ROAD1Y_MAIL_P2P > 20) ROAD1Y_MAIL_P2P = 0;", load_fn)
@@ -43,12 +52,20 @@ class TestRoad1yMailP2P(unittest.TestCase):
         self.assertIn('ROAD1Y_MAIL_P2P_MISSING = AIController.GetSetting("road1y_mail_p2p_missing");', load_fn)
         self.assertIn("if (ROAD1Y_MAIL_P2P_MISSING < 0 || ROAD1Y_MAIL_P2P_MISSING > 60) ROAD1Y_MAIL_P2P_MISSING = 0;", load_fn)
         self.assertIn("if (!road1yRoadOnly) ROAD1Y_MAIL_P2P_MISSING = 0;", load_fn)
+        self.assertIn('ROAD1Y_MAIL_P2P_CASH = AIController.GetSetting("road1y_mail_p2p_cash");', load_fn)
+        self.assertIn("if (ROAD1Y_MAIL_P2P_CASH < 0 || ROAD1Y_MAIL_P2P_CASH > 60) ROAD1Y_MAIL_P2P_CASH = 0;", load_fn)
+        self.assertIn("if (!road1yRoadOnly) ROAD1Y_MAIL_P2P_CASH = 0;", load_fn)
+        self.assertIn('ROAD1Y_MAIL_P2P_START = AIController.GetSetting("road1y_mail_p2p_start");', load_fn)
+        self.assertIn("if (ROAD1Y_MAIL_P2P_START < 0 || ROAD1Y_MAIL_P2P_START > 12) ROAD1Y_MAIL_P2P_START = 0;", load_fn)
+        self.assertIn("if (!road1yRoadOnly) ROAD1Y_MAIL_P2P_START = 0;", load_fn)
 
     def test_multimodal_gate_integration(self):
         from test_road1y_multimodal_gate import LOAD_SETTINGS_KEYS, ROAD1Y_OFF, SETTING_TO_GLOBAL
         for key, glob in (
             ("road1y_mail_p2p", "ROAD1Y_MAIL_P2P"),
             ("road1y_mail_p2p_missing", "ROAD1Y_MAIL_P2P_MISSING"),
+            ("road1y_mail_p2p_cash", "ROAD1Y_MAIL_P2P_CASH"),
+            ("road1y_mail_p2p_start", "ROAD1Y_MAIL_P2P_START"),
         ):
             self.assertIn(key, SETTING_TO_GLOBAL)
             self.assertEqual(SETTING_TO_GLOBAL[key], glob)
@@ -68,8 +85,10 @@ class TestRoad1yMailP2P(unittest.TestCase):
 
     def test_guards_and_safety_checks(self):
         step_fn = body("bus_districts.nut", "OpexRoad1yMailP2PStep")
-        self.assertIn("if (year <= 1970) return;", step_fn)
         self.assertIn("if (ROAD1Y_MAIL_P2P <= 0) return;", step_fn)
+        self.assertIn("ROAD1Y_MAIL_P2P_START", step_fn)
+        self.assertIn("ROAD1Y_MAIL_P2P_CASH", step_fn)
+        self.assertIn("local threshold = (ROAD1Y_MAIL_P2P_CASH > 0) ? (ROAD1Y_MAIL_P2P_CASH * 1000) : 37000;", step_fn)
         self.assertIn("local maxMissing = (ROAD1Y_MAIL_P2P_MISSING > 0) ? ROAD1Y_MAIL_P2P_MISSING : 14;", step_fn)
         self.assertIn("if (missing <= maxMissing)", step_fn)
         self.assertIn("local cashReserve = 25000;", step_fn)
@@ -86,6 +105,7 @@ class TestRoad1yMailP2P(unittest.TestCase):
     def test_decision_log_reasons(self):
         step_fn = body("bus_districts.nut", "OpexRoad1yMailP2PStep")
         build_fn = body("bus_districts.nut", "OpexRoad1yBuildMailP2P")
+        self.assertIn('reason=START', step_fn)
         self.assertIn('reason=CASH', step_fn)
         self.assertIn('reason=CASH', build_fn)
         self.assertIn('reason=SITE_A', step_fn)

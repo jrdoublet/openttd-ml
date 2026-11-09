@@ -64,11 +64,11 @@ class TestV251Inventory(unittest.TestCase):
         # road1y_spread_stops: default 0, removed by the same B2 historical projection.
         # B2 fixes adds one default-OFF bitmask for isolated one-year diagnostics.
         # master: eb2 fallback + 4 rail repair profiles and V233L counterfactual.
-        self.assertLessEqual(info.count("AddSetting("), 75)
+        # road1y_loan_floor, road1y_freight_adm, road1y_alt_load_cond, road1y_mail_p2p, road1y_mail_p2p_missing, road1y_mail_p2p_cash and road1y_mail_p2p_start add seven opt-in settings (default 0), bringing count to 75.
+        self.assertLessEqual(info.count("AddSetting("), 77)
         # After the precise legacy projectors, preserve the master inventory:
         # origin/master 44d9313e already projects to 68 settings (not 58).
-        # road1y_loan_floor, road1y_freight_adm, road1y_alt_load_cond, road1y_mail_p2p and road1y_mail_p2p_missing add five opt-in settings (default 0), bringing count to 73.
-        self.assertEqual(info.count("AddSetting("), 73)
+        self.assertEqual(info.count("AddSetting("), 75)
         self.assertNotIn('name = "v251', info)
         settings = self.sources["settings.nut"]
         self.assertNotIn('GetSetting("v251', settings)

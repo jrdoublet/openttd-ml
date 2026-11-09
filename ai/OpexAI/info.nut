@@ -1210,6 +1210,22 @@ class OpexAIInfo extends AIInfo {
       custom_value = 0,
       flags = 0
     });
+    AddSetting({
+      name = "road1y_mail_p2p_cash",
+      description = "ROAD1Y: starting bank balance threshold for mail p2p in kGBP; 0 = 37 (default), 1..60 = custom threshold",
+      min_value = 0, max_value = 60,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = 0
+    });
+    AddSetting({
+      name = "road1y_mail_p2p_start",
+      description = "ROAD1Y: start month in 1970 for mail p2p; 0 = forbidden in 1970 (default), 1..12 = start month",
+      min_value = 0, max_value = 12,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = 0
+    });
   }
 }
 

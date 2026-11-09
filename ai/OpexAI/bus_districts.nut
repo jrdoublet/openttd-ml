@@ -1022,16 +1022,27 @@ function OpexRoad1yBuildMailP2P(ai, catalog, ta, tb, siteA, siteB, trace, depot,
 
 function OpexRoad1yMailP2PStep(ai, year)
 {
-  if (year <= 1970) return;
   if (ROAD1Y_MAIL_P2P <= 0) return;
-  local ym = year * 12 + AIDate.GetMonth(AIDate.GetCurrentDate());
+  local curMonth = AIDate.GetMonth(AIDate.GetCurrentDate());
+  local ym = year * 12 + curMonth;
   if (ROAD1Y_MAIL_P2P_TRY_YM == ym) return;
   ROAD1Y_MAIL_P2P_TRY_YM = ym;
 
+  if (year < 1970 || (year == 1970 && (ROAD1Y_MAIL_P2P_START <= 0 || curMonth < ROAD1Y_MAIL_P2P_START))) {
+    OpexRoad1yMailP2PLog("action=reject reason=START year=" + year + " month=" + curMonth + " start=" + ROAD1Y_MAIL_P2P_START);
+    return;
+  }
+
+  local threshold = (ROAD1Y_MAIL_P2P_CASH > 0) ? (ROAD1Y_MAIL_P2P_CASH * 1000) : 37000;
   local cashReserve = 25000;
+  if (ROAD1Y_MAIL_P2P_CASH > 0) {
+    local rem = threshold - 12000;
+    if (rem < 0) rem = 0;
+    if (rem < cashReserve) cashReserve = rem;
+  }
   local bank = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
-  if (bank < cashReserve + 12000) {
-    OpexRoad1yMailP2PLog("action=reject reason=CASH bank=" + bank + " need=" + (cashReserve + 12000));
+  if (bank < threshold) {
+    OpexRoad1yMailP2PLog("action=reject reason=CASH bank=" + bank + " need=" + threshold);
     return;
   }
   if (!OpexVehicleSlotAvailable(AIVehicle.VT_ROAD, 2)) return;
