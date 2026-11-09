@@ -139,6 +139,9 @@ ROAD1Y_MAIL_P2P_CURSOR <- 0; // Reconstructible search cursor over ordered town 
 ROAD1Y_MAIL_P2P_MISSING <- 0; // ROAD1Y : max voirie manquante mail p2p (0 = 14 defaut, plage 0..60)
 ROAD1Y_MAIL_P2P_CASH <- 0; // ROAD1Y : seuil de caisse demarrage mail p2p en kGBP (0 = 37 kGBP defaut, plage 0..60)
 ROAD1Y_MAIL_P2P_START <- 0; // ROAD1Y : mois de demarrage 1970 mail p2p (0 = interdit en 1970 defaut, plage 0..12)
+ROAD1Y_MAIL_P2P_CAP <- 0; // ROAD1Y : plafond d'ouvertures mail p2p par appel/mois (0 = 3 defaut, plage 0..3)
+ROAD1Y_MAIL_P2P_MAXDIST <- 0; // ROAD1Y : distance Manhattan max mail p2p (0 = 192 defaut, plage 0..192)
+ROAD1Y_MAIL_P2P_NOLOAD <- 0; // ROAD1Y : sans plein a la source mail p2p (0 = plein a la source defaut, 1 = OF_NONE aux deux ordres)
 /* V190 : lignes rail fret posees en double voie a sens unique des la construction. */
 V190_RAIL_DOUBLE_BUILD <- false;
 /* V197 : double voie guidee (outwardSide pour voie 1, guideTiles pour voie 2). */

@@ -843,7 +843,9 @@ function OpexRoad1yFindMailP2PSite(ai, catalog, townId, mailCargo)
       if (axis == 0) continue;
       local front = tile + axis;
       local back = tile - axis;
-      if (!AIMap.IsValidTile(front) || !AIMap.IsValidTile(back)) continue;
+      if (!AIMap.IsValidTile(front) || !AIMap.IsValidTile(back)
+          || !AIRoad.AreRoadTilesConnected(tile, front)
+          || !AIRoad.AreRoadTilesConnected(tile, back)) continue;
       local prod = AITile.GetCargoProduction(tile, mailCargo, 1, 1, coverage);
       if (prod <= 0) continue;
       local acc = AITile.GetCargoAcceptance(tile, mailCargo, 1, 1, coverage);
@@ -941,7 +943,9 @@ function OpexRoad1yBuildMailP2P(ai, catalog, ta, tb, siteA, siteB, trace, depot,
   local okA = AIRoad.BuildDriveThroughRoadStation(siteA.tile, siteA.front,
       AIRoad.ROADVEHTYPE_TRUCK, AIStation.STATION_NEW);
   local validA = okA && AIRoad.IsRoadStationTile(siteA.tile)
-      && AICompany.IsMine(AITile.GetOwner(siteA.tile));
+      && AICompany.IsMine(AITile.GetOwner(siteA.tile))
+      && AIRoad.AreRoadTilesConnected(siteA.tile, siteA.front)
+      && AIRoad.AreRoadTilesConnected(siteA.tile, siteA.back);
   if (!validA) {
     if (AIRoad.IsRoadStationTile(siteA.tile) && AICompany.IsMine(AITile.GetOwner(siteA.tile)))
       AIRoad.RemoveRoadStation(siteA.tile);
@@ -955,7 +959,9 @@ function OpexRoad1yBuildMailP2P(ai, catalog, ta, tb, siteA, siteB, trace, depot,
   local stIdB = AIStation.GetStationID(siteB.tile);
   local validB = okB && AIRoad.IsRoadStationTile(siteB.tile)
       && AICompany.IsMine(AITile.GetOwner(siteB.tile))
-      && AIStation.IsValidStation(stIdA) && AIStation.IsValidStation(stIdB) && stIdA != stIdB;
+      && AIStation.IsValidStation(stIdA) && AIStation.IsValidStation(stIdB) && stIdA != stIdB
+      && AIRoad.AreRoadTilesConnected(siteB.tile, siteB.front)
+      && AIRoad.AreRoadTilesConnected(siteB.tile, siteB.back);
   if (!validB) {
     if (AIRoad.IsRoadStationTile(siteB.tile) && AICompany.IsMine(AITile.GetOwner(siteB.tile)))
       AIRoad.RemoveRoadStation(siteB.tile);
@@ -975,6 +981,14 @@ function OpexRoad1yBuildMailP2P(ai, catalog, ta, tb, siteA, siteB, trace, depot,
       }
       builtRoad.append(edge);
     }
+  }
+  if (!AIRoad.AreRoadTilesConnected(siteA.tile, siteA.front)
+      || !AIRoad.AreRoadTilesConnected(siteA.tile, siteA.back)
+      || !AIRoad.AreRoadTilesConnected(siteB.tile, siteB.front)
+      || !AIRoad.AreRoadTilesConnected(siteB.tile, siteB.back)) {
+    OpexRoadRollback(siteA.tile, siteB.tile, null, null, builtRoad);
+    OpexRoad1yMailP2PLog("action=fail pair=" + ta.id + ":" + tb.id + " reason=STOP_CONN");
+    return false;
   }
 
   local depotTile = depot.tile;
@@ -1004,8 +1018,9 @@ function OpexRoad1yBuildMailP2P(ai, catalog, ta, tb, siteA, siteB, trace, depot,
   local built = [first];
   local cap = AIVehicle.GetCapacity(first, mailCargo);
   local orderFlags = AIOrder.OF_NONE | AIOrder.OF_NON_STOP_INTERMEDIATE;
+  local sourceOrderFlags = ROAD1Y_MAIL_P2P_NOLOAD != 0 ? orderFlags : (orderFlags | AIOrder.OF_FULL_LOAD_ANY);
   local ordersOk = cap > 0
-      && AIOrder.AppendOrder(first, siteA.tile, orderFlags | AIOrder.OF_FULL_LOAD_ANY)
+      && AIOrder.AppendOrder(first, siteA.tile, sourceOrderFlags)
       && AIOrder.AppendOrder(first, siteB.tile, orderFlags)
       && AIOrder.GetOrderCount(first) == 2;
   if (!ordersOk) {
@@ -1111,6 +1126,8 @@ function OpexRoad1yMailP2PStep(ai, year)
   local cursor = ROAD1Y_MAIL_P2P_CURSOR >= 0 ? ROAD1Y_MAIL_P2P_CURSOR % pairCount : 0;
   local activePairs = OpexRoad1yMailP2PActivePairs(ai);
   local maxMissing = (ROAD1Y_MAIL_P2P_MISSING > 0) ? ROAD1Y_MAIL_P2P_MISSING : 14;
+  local maxOpened = (ROAD1Y_MAIL_P2P_CAP > 0) ? ROAD1Y_MAIL_P2P_CAP : 3;
+  local maxDist = (ROAD1Y_MAIL_P2P_MAXDIST > 0) ? ROAD1Y_MAIL_P2P_MAXDIST : 192;
   local testedPairs = {};
   local sites = {};
   local siteSearches = 0;
@@ -1118,7 +1135,7 @@ function OpexRoad1yMailP2PStep(ai, year)
   local opened = 0;
   local budget = { paths = 48, nodes = 6000 };
   for (local scan = 0; scan < pairCount; scan++) {
-    if (attempts >= 24 || budget.paths <= 0 || siteSearches >= 32 || opened >= 3) break;
+    if (attempts >= 24 || budget.paths <= 0 || siteSearches >= 32 || opened >= maxOpened) break;
     local i = cursor % nTowns;
     // Round-robin sources as well as destinations: one disconnected town cannot
     // consume the entire month's exploration budget.
@@ -1134,7 +1151,7 @@ function OpexRoad1yMailP2PStep(ai, year)
     if ((key in activePairs) || (key in testedPairs)) continue;
     testedPairs[key] <- true;
     local dist = AIMap.DistanceManhattan(ta.tile, tb.tile);
-    if (dist < 16 || dist > 192) continue;
+    if (dist < 16 || dist > maxDist) continue;
 
     foreach (town in [ta, tb]) {
       if (!(town.id in sites)) {
@@ -1157,22 +1174,29 @@ function OpexRoad1yMailP2PStep(ai, year)
       local siteB = sites[tb.id][indexB];
       local trace = OpexRoad1yMailP2PTrace(siteA, siteB, maxMissing, budget);
       if (trace == null) continue;
-      local depot = OpexRoadFindDepot(trace, siteA, siteB, true);
+      // The larger catchment feeds the full-load source; both ends still load mail.
+      // Swap before OpexRoadFindDepot so the depot is placed near the final source.
+      local finalTa = ta;
+      local finalTb = tb;
+      local finalSiteA = siteA;
+      local finalSiteB = siteB;
+      local finalTrace = trace;
+      if (siteB.prod > siteA.prod) {
+        finalTrace = [];
+        for (local e = trace.len() - 1; e >= 0; e--)
+          finalTrace.append({ from = trace[e].to, to = trace[e].from });
+        finalTa = tb;
+        finalTb = ta;
+        finalSiteA = siteB;
+        finalSiteB = siteA;
+      }
+      local depot = OpexRoadFindDepot(finalTrace, finalSiteA, finalSiteB, true);
       if (depot == null) {
         OpexRoad1yMailP2PLog("action=reject pair=" + key + " reason=DEPOT");
         continue;
       }
-      // The larger catchment feeds the full-load source; both ends still load mail.
-      if (siteB.prod > siteA.prod) {
-        local swappedTrace = [];
-        for (local e = trace.len() - 1; e >= 0; e--)
-          swappedTrace.append({ from = trace[e].to, to = trace[e].from });
-        builtPair = OpexRoad1yBuildMailP2P(ai, catalog, tb, ta, siteB, siteA,
-            swappedTrace, depot, cashReserve);
-      } else {
-        builtPair = OpexRoad1yBuildMailP2P(ai, catalog, ta, tb, siteA, siteB,
-            trace, depot, cashReserve);
-      }
+      builtPair = OpexRoad1yBuildMailP2P(ai, catalog, finalTa, finalTb,
+          finalSiteA, finalSiteB, finalTrace, depot, cashReserve);
       if (builtPair) break;
     }
     if (builtPair) {
@@ -1217,8 +1241,8 @@ function OpexRoad1yRefleetMailP2PLine(ai, line, year)
     have++;
     // Upgrade saved p2p orders as well as new clones; only the source waits full.
     if (AIOrder.GetOrderCount(v) == 2) {
-      local sourceFlags = AIOrder.OF_FULL_LOAD_ANY | AIOrder.OF_NON_STOP_INTERMEDIATE;
-      local destFlags = AIOrder.OF_NON_STOP_INTERMEDIATE;
+      local sourceFlags = (ROAD1Y_MAIL_P2P_NOLOAD != 0 ? AIOrder.OF_NONE : AIOrder.OF_FULL_LOAD_ANY) | AIOrder.OF_NON_STOP_INTERMEDIATE;
+      local destFlags = AIOrder.OF_NONE | AIOrder.OF_NON_STOP_INTERMEDIATE;
       if (AIOrder.GetOrderFlags(v, 0) != sourceFlags) AIOrder.SetOrderFlags(v, 0, sourceFlags);
       if (AIOrder.GetOrderFlags(v, 1) != destFlags) AIOrder.SetOrderFlags(v, 1, destFlags);
     }

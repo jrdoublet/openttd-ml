@@ -1226,6 +1226,30 @@ class OpexAIInfo extends AIInfo {
       custom_value = 0,
       flags = 0
     });
+    AddSetting({
+      name = "road1y_mail_p2p_cap",
+      description = "ROAD1Y: max mail p2p lines opened per monthly step; 0 = 3 (default), 1..3 = custom cap",
+      min_value = 0, max_value = 3,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = 0
+    });
+    AddSetting({
+      name = "road1y_mail_p2p_maxdist",
+      description = "ROAD1Y: max Manhattan distance for mail p2p town pairs; 0 = 192 (default), 1..192 = custom max distance",
+      min_value = 0, max_value = 192,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = 0
+    });
+    AddSetting({
+      name = "road1y_mail_p2p_noload",
+      description = "ROAD1Y: disable full load on mail p2p source stop; 0 = full load at source (default), 1 = OF_NONE at both stops",
+      min_value = 0, max_value = 1,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = 0
+    });
   }
 }
 

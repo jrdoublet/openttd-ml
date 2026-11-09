@@ -48,6 +48,9 @@ ROAD1Y_OFF = {
     "ROAD1Y_MAIL_P2P_MISSING": "0",
     "ROAD1Y_MAIL_P2P_CASH": "0",
     "ROAD1Y_MAIL_P2P_START": "0",
+    "ROAD1Y_MAIL_P2P_CAP": "0",
+    "ROAD1Y_MAIL_P2P_MAXDIST": "0",
+    "ROAD1Y_MAIL_P2P_NOLOAD": "0",
 }
 
 SETTING_TO_GLOBAL = {
@@ -78,6 +81,9 @@ SETTING_TO_GLOBAL = {
     "road1y_mail_p2p_missing": "ROAD1Y_MAIL_P2P_MISSING",
     "road1y_mail_p2p_cash": "ROAD1Y_MAIL_P2P_CASH",
     "road1y_mail_p2p_start": "ROAD1Y_MAIL_P2P_START",
+    "road1y_mail_p2p_cap": "ROAD1Y_MAIL_P2P_CAP",
+    "road1y_mail_p2p_maxdist": "ROAD1Y_MAIL_P2P_MAXDIST",
+    "road1y_mail_p2p_noload": "ROAD1Y_MAIL_P2P_NOLOAD",
 }
 
 LOAD_SETTINGS_KEYS = (
@@ -100,6 +106,9 @@ LOAD_SETTINGS_KEYS = (
     "road1y_mail_p2p_missing",
     "road1y_mail_p2p_cash",
     "road1y_mail_p2p_start",
+    "road1y_mail_p2p_cap",
+    "road1y_mail_p2p_maxdist",
+    "road1y_mail_p2p_noload",
     "road1y_fleet_unlock",
     "road1y_long_band",
     "road1y_long_v3",
@@ -123,6 +132,9 @@ BUS_DISTRICT_KEYS = (
     "road1y_mail_p2p_missing",
     "road1y_mail_p2p_cash",
     "road1y_mail_p2p_start",
+    "road1y_mail_p2p_cap",
+    "road1y_mail_p2p_maxdist",
+    "road1y_mail_p2p_noload",
 )
 
 ROAD100_SOLO_MODES = "MODE_ROAD && !MODE_AIR && !MODE_RAIL && !MODE_WATER"
@@ -282,6 +294,9 @@ class TestRoad1yMultimodalGate(unittest.TestCase):
                 "ROAD1Y_MAIL_P2P_MISSING",
                 "ROAD1Y_MAIL_P2P_CASH",
                 "ROAD1Y_MAIL_P2P_START",
+                "ROAD1Y_MAIL_P2P_CAP",
+                "ROAD1Y_MAIL_P2P_MAXDIST",
+                "ROAD1Y_MAIL_P2P_NOLOAD",
             ):
                 self.assertIn(_gate_line(global_name), load)
                 self.assertIn(_bus_gate_line(global_name), bus)

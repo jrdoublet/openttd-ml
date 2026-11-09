@@ -6506,7 +6506,7 @@ function OpexRoadRefleet(catalog, line, have, target)
       destFlags = AIOrder.OF_NONE | nonstopFlag;
     }
     if (ROAD1Y_MAIL_P2P > 0 && ("kind" in line) && line.kind == "mail_p2p") {
-      sourceFlags = AIOrder.OF_FULL_LOAD_ANY | nonstopFlag;
+      sourceFlags = (ROAD1Y_MAIL_P2P_NOLOAD != 0 ? AIOrder.OF_NONE : AIOrder.OF_FULL_LOAD_ANY) | nonstopFlag;
       destFlags = AIOrder.OF_NONE | nonstopFlag;
     }
     /* ROAD100-14 : les ordres persistants d'une ligne convertie survivent

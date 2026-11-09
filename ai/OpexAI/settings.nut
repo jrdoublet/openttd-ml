@@ -279,6 +279,15 @@ function OpexLoadSettings()
   ROAD1Y_MAIL_P2P_START = AIController.GetSetting("road1y_mail_p2p_start");
   if (ROAD1Y_MAIL_P2P_START < 0 || ROAD1Y_MAIL_P2P_START > 12) ROAD1Y_MAIL_P2P_START = 0;
   if (!road1yRoadOnly) ROAD1Y_MAIL_P2P_START = 0;
+  ROAD1Y_MAIL_P2P_CAP = AIController.GetSetting("road1y_mail_p2p_cap");
+  if (ROAD1Y_MAIL_P2P_CAP < 0 || ROAD1Y_MAIL_P2P_CAP > 3) ROAD1Y_MAIL_P2P_CAP = 0;
+  if (!road1yRoadOnly) ROAD1Y_MAIL_P2P_CAP = 0;
+  ROAD1Y_MAIL_P2P_MAXDIST = AIController.GetSetting("road1y_mail_p2p_maxdist");
+  if (ROAD1Y_MAIL_P2P_MAXDIST < 0 || ROAD1Y_MAIL_P2P_MAXDIST > 192) ROAD1Y_MAIL_P2P_MAXDIST = 0;
+  if (!road1yRoadOnly) ROAD1Y_MAIL_P2P_MAXDIST = 0;
+  ROAD1Y_MAIL_P2P_NOLOAD = AIController.GetSetting("road1y_mail_p2p_noload");
+  if (ROAD1Y_MAIL_P2P_NOLOAD < 0 || ROAD1Y_MAIL_P2P_NOLOAD > 1) ROAD1Y_MAIL_P2P_NOLOAD = 0;
+  if (!road1yRoadOnly) ROAD1Y_MAIL_P2P_NOLOAD = 0;
   V216A_GHOST_DEMAND = AIController.GetSetting("v216a_ghost_demand");
   V216F_DWELL_PCT = AIController.GetSetting("v216f_dwell_pct");
   local lateRelax = AIController.GetSetting("v269_rail_late_relax");
@@ -796,6 +805,12 @@ function OpexLoadBusDistrictSettings()
     if (ROAD1Y_MAIL_P2P_CASH < 0 || ROAD1Y_MAIL_P2P_CASH > 60 || !road1yRoadOnly) ROAD1Y_MAIL_P2P_CASH = 0;
     ROAD1Y_MAIL_P2P_START = AIController.GetSetting("road1y_mail_p2p_start");
     if (ROAD1Y_MAIL_P2P_START < 0 || ROAD1Y_MAIL_P2P_START > 12 || !road1yRoadOnly) ROAD1Y_MAIL_P2P_START = 0;
+    ROAD1Y_MAIL_P2P_CAP = AIController.GetSetting("road1y_mail_p2p_cap");
+    if (ROAD1Y_MAIL_P2P_CAP < 0 || ROAD1Y_MAIL_P2P_CAP > 3 || !road1yRoadOnly) ROAD1Y_MAIL_P2P_CAP = 0;
+    ROAD1Y_MAIL_P2P_MAXDIST = AIController.GetSetting("road1y_mail_p2p_maxdist");
+    if (ROAD1Y_MAIL_P2P_MAXDIST < 0 || ROAD1Y_MAIL_P2P_MAXDIST > 192 || !road1yRoadOnly) ROAD1Y_MAIL_P2P_MAXDIST = 0;
+    ROAD1Y_MAIL_P2P_NOLOAD = AIController.GetSetting("road1y_mail_p2p_noload");
+    if (ROAD1Y_MAIL_P2P_NOLOAD < 0 || ROAD1Y_MAIL_P2P_NOLOAD > 1 || !road1yRoadOnly) ROAD1Y_MAIL_P2P_NOLOAD = 0;
     require("bus_districts.nut");
     require("bus_districts_overrides.nut");
   }

@@ -53,18 +53,18 @@ ROAD1Y_B2_RAIL_MERGE = {
         (7, 8, 9, 10),
     ),
     "globals_pre.nut": (
-        "e57223f2564507f2922c84ce2727d51dd995d18052c7a978cb4fd9235e98e8df",
-        "98b7c903441ab5c02083a0a06439b817235c012e27cc4039aae12cd70687282d",
+        "278abdf5abda355fee630bf82967065ad8fd60e2dc10420da694c25b77532179",
+        "3d9374df3f20e038191a063f0395e0db531db0c87704c0559bf89526a12b75ef",
         (1,),
     ),
     "info.nut": (
-        "896d4bd56a1bc78dba3d092710279c876b62d60fb4a10955708d3984a37fc3cd",
-        "df7f43aa296e4b82c05de79d15d1f3f68bb1ee81844befb34ceb2eb639c058cb",
+        "6097ae6ec6dba1454112a4aae6e698c611e44fc38ebff090adc0e404b04c8448",
+        "060932e2db6a8fff79fdb14d830c8c57313f84e4e4da7f4ffcbf879d5821308d",
         (0,),
     ),
     "settings.nut": (
-        "2cb2ee66113e1b72f17354ffd13157d21049ab7ebc81472257686d207d71a2ae",
-        "9cc5fbd6fd406d2562cd1c2c3ceabaa39ecac771dfb5931c9c2ec1d672d021c6",
+        "614d06f178f8dd853ee711d08ec9aefedd7ef4b4784d291c7bb970c906dea882",
+        "d90775bb70aa1d67f06d419ca4a86b7487a9a85f20dbe4295763303eb02c09fc",
         (2,),
     ),
 }
@@ -147,6 +147,14 @@ ROAD1Y_B2_RAIL_MERGE_STAGES = {
          "9903db6a10553df2b72cece76165f4516072977be130c363732f1e6dab318d23"),
         ("a91993bf475118d331ecb740a419fedb55744968f06cee5638bacae9fbb8a1fb",
          "6e093ae639f88f2056cc56ba3c749f730700380bc179055d0271f0f29bebc96d"),
+        ("e57223f2564507f2922c84ce2727d51dd995d18052c7a978cb4fd9235e98e8df",
+         "98b7c903441ab5c02083a0a06439b817235c012e27cc4039aae12cd70687282d"),
+        ("2b9e4028170047323dc57ad05a9e2858a413dcaa2ce957dc646135d3ed921799",
+         "d0c9f3e4eac01a288e95ab36b604f23739e0c5961ebfe06f38c8d19d5e47f53e"),
+        ("6479d07e1540b3166a8bce28c1957fbc1b115df69bb3af4c3d63ef1c5116903b",
+         "cf071ba13d07f0575b22c9c58a23d3df09c4abe1fca4c5b56764344b39065598"),
+        ("5368c54bcf374eec4eb5a1572be816a5b319998ddaf14fed77d95bd0c4a86ec9",
+         "ad7cd2ed8d1388a22907059fc2f558f4a30045bf616efb642c67a32022dfc61f"),
     ),
     "info.nut": (
         ("1fbdac0c3e35ee9812033b7456620b512f7b641cf780ab1c74ff0f1dcc0e3e63",
@@ -211,6 +219,14 @@ ROAD1Y_B2_RAIL_MERGE_STAGES = {
          "6b3738f43d291eab24b4154346611f98cfdec7b2db68cd331fb7aac002004ebe"),
         ("8343709185c99b1a6482f548d2a01bac282dbbf841b00f40ae9927afeb4cd6bc",
          "f80b8b28fa4275b195726f0873fe2507e5e3529e72a2016a3fe31153983c1a8d"),
+        ("896d4bd56a1bc78dba3d092710279c876b62d60fb4a10955708d3984a37fc3cd",
+         "df7f43aa296e4b82c05de79d15d1f3f68bb1ee81844befb34ceb2eb639c058cb"),
+        ("9f1de26e73bbee7d4512cd1989373626b29e3701472060e5c90f9139e20f13c0",
+         "d5fcbe8812f7ddcba1849ad17be10ca68f4c85568ed36545b95b3561dbccccbd"),
+        ("1414fa150d2a5aa6072adde4d989f020fd095ef860f34fa33346b56c794b3e10",
+         "c2a9ad8f9eebc8d34e1b4e718a9e554b9b7a2d8bdd105e2bcf2127954db48833"),
+        ("e9b84f21e6a33c0424a82c6ea715e32ca7e0993e49083bff8b36a760eabd33db",
+         "5ca51bc311ac32107787b4d47e97aaa14e5c986aca46d6bfcf9f5fb9e7869921"),
     ),
     "settings.nut": (
         ("4ba30a2a9a44059be4f33da8906bf7c289be24cb49376563616ce487a111f483",
@@ -275,6 +291,14 @@ ROAD1Y_B2_RAIL_MERGE_STAGES = {
          "3f09182ea9c1138d3539968bf85c8d3bef7177a074a2e1f29b2a5dc8fbbf956c"),
         ("59ea37cc5f18e5b3521694ba0a8364b11295e413885c2dc353ad1042895678c7",
          "6b9c2e603267c0cef130924a0287a3d1d3a7a251d7122721f6ea99b709e50f16"),
+        ("2cb2ee66113e1b72f17354ffd13157d21049ab7ebc81472257686d207d71a2ae",
+         "9cc5fbd6fd406d2562cd1c2c3ceabaa39ecac771dfb5931c9c2ec1d672d021c6"),
+        ("3bc7e944e56899837823f0eb9bc5f173381e497ca59e1ee075591a04c779dcbe",
+         "4decc126b1163277778602da8820592290995a43d3939e264a4393c69a575a1f"),
+        ("1cb93d477db0f1d571e85826040faf0c6fe6bf8a3121d9619fb7a2a358044f1b",
+         "a4e9ecfb63d8ad56e1a7e57a0c9903302dbd966d4d48b933cd6136c7bde9eed8"),
+        ("bc73c90598b740014b6b8201003a2ff0dc1534c72c1ff855930ca084999f1219",
+         "87008d84295ed400ee4b64b8e4817741239a85d2bb38e0cb95633bb61d014168"),
     ),
 }
 
@@ -286,7 +310,7 @@ _PRE_MAIL_P2P_B2_WITNESS = {
     "builder_road.nut": (
         {"f036bc5c6c7575e917179fc64ff17e76559ba5cd5d3d034907e979b80d9a1454"},
         '    if (ROAD1Y_MAIL_P2P > 0 && ("kind" in line) && line.kind == "mail_p2p") {\n'
-        '      sourceFlags = AIOrder.OF_FULL_LOAD_ANY | nonstopFlag;\n'
+        '      sourceFlags = (ROAD1Y_MAIL_P2P_NOLOAD != 0 ? AIOrder.OF_NONE : AIOrder.OF_FULL_LOAD_ANY) | nonstopFlag;\n'
         '      destFlags = AIOrder.OF_NONE | nonstopFlag;\n'
         '    }\n',
     ),
@@ -303,7 +327,13 @@ _PRE_MAIL_P2P_B2_WITNESS = {
         '    ROAD1Y_MAIL_P2P_CASH = AIController.GetSetting("road1y_mail_p2p_cash");\n'
         '    if (ROAD1Y_MAIL_P2P_CASH < 0 || ROAD1Y_MAIL_P2P_CASH > 60 || !road1yRoadOnly) ROAD1Y_MAIL_P2P_CASH = 0;\n'
         '    ROAD1Y_MAIL_P2P_START = AIController.GetSetting("road1y_mail_p2p_start");\n'
-        '    if (ROAD1Y_MAIL_P2P_START < 0 || ROAD1Y_MAIL_P2P_START > 12 || !road1yRoadOnly) ROAD1Y_MAIL_P2P_START = 0;\n',
+        '    if (ROAD1Y_MAIL_P2P_START < 0 || ROAD1Y_MAIL_P2P_START > 12 || !road1yRoadOnly) ROAD1Y_MAIL_P2P_START = 0;\n'
+        '    ROAD1Y_MAIL_P2P_CAP = AIController.GetSetting("road1y_mail_p2p_cap");\n'
+        '    if (ROAD1Y_MAIL_P2P_CAP < 0 || ROAD1Y_MAIL_P2P_CAP > 3 || !road1yRoadOnly) ROAD1Y_MAIL_P2P_CAP = 0;\n'
+        '    ROAD1Y_MAIL_P2P_MAXDIST = AIController.GetSetting("road1y_mail_p2p_maxdist");\n'
+        '    if (ROAD1Y_MAIL_P2P_MAXDIST < 0 || ROAD1Y_MAIL_P2P_MAXDIST > 192 || !road1yRoadOnly) ROAD1Y_MAIL_P2P_MAXDIST = 0;\n'
+        '    ROAD1Y_MAIL_P2P_NOLOAD = AIController.GetSetting("road1y_mail_p2p_noload");\n'
+        '    if (ROAD1Y_MAIL_P2P_NOLOAD < 0 || ROAD1Y_MAIL_P2P_NOLOAD > 1 || !road1yRoadOnly) ROAD1Y_MAIL_P2P_NOLOAD = 0;\n',
     ),
 }
 

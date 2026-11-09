@@ -19,6 +19,9 @@ class TestRoad1yMailP2P(unittest.TestCase):
             ("road1y_mail_p2p_missing", 60),
             ("road1y_mail_p2p_cash", 60),
             ("road1y_mail_p2p_start", 12),
+            ("road1y_mail_p2p_cap", 3),
+            ("road1y_mail_p2p_maxdist", 192),
+            ("road1y_mail_p2p_noload", 1),
         ):
             self.assertIn(f'"{setting_name}"', info_src)
             match = re.search(r'AddSetting\(\{\s*name\s*=\s*"' + re.escape(setting_name) + r'".*?\}\);', info_src, re.DOTALL)
@@ -38,6 +41,9 @@ class TestRoad1yMailP2P(unittest.TestCase):
         self.assertIn("ROAD1Y_MAIL_P2P_MISSING <- 0;", pre)
         self.assertIn("ROAD1Y_MAIL_P2P_CASH <- 0;", pre)
         self.assertIn("ROAD1Y_MAIL_P2P_START <- 0;", pre)
+        self.assertIn("ROAD1Y_MAIL_P2P_CAP <- 0;", pre)
+        self.assertIn("ROAD1Y_MAIL_P2P_MAXDIST <- 0;", pre)
+        self.assertIn("ROAD1Y_MAIL_P2P_NOLOAD <- 0;", pre)
 
     def test_settings_nut_loading(self):
         settings_src = source("settings.nut")
@@ -47,6 +53,9 @@ class TestRoad1yMailP2P(unittest.TestCase):
         self.assertEqual(settings_src.count('GetSetting("road1y_mail_p2p_missing")'), 2)
         self.assertEqual(settings_src.count('GetSetting("road1y_mail_p2p_cash")'), 2)
         self.assertEqual(settings_src.count('GetSetting("road1y_mail_p2p_start")'), 2)
+        self.assertEqual(settings_src.count('GetSetting("road1y_mail_p2p_cap")'), 2)
+        self.assertEqual(settings_src.count('GetSetting("road1y_mail_p2p_maxdist")'), 2)
+        self.assertEqual(settings_src.count('GetSetting("road1y_mail_p2p_noload")'), 2)
         load_fn = body("settings.nut", "OpexLoadSettings")
         self.assertIn('ROAD1Y_MAIL_P2P = AIController.GetSetting("road1y_mail_p2p");', load_fn)
         self.assertIn("if (ROAD1Y_MAIL_P2P < 0 || ROAD1Y_MAIL_P2P > 20) ROAD1Y_MAIL_P2P = 0;", load_fn)
@@ -60,6 +69,15 @@ class TestRoad1yMailP2P(unittest.TestCase):
         self.assertIn('ROAD1Y_MAIL_P2P_START = AIController.GetSetting("road1y_mail_p2p_start");', load_fn)
         self.assertIn("if (ROAD1Y_MAIL_P2P_START < 0 || ROAD1Y_MAIL_P2P_START > 12) ROAD1Y_MAIL_P2P_START = 0;", load_fn)
         self.assertIn("if (!road1yRoadOnly) ROAD1Y_MAIL_P2P_START = 0;", load_fn)
+        self.assertIn('ROAD1Y_MAIL_P2P_CAP = AIController.GetSetting("road1y_mail_p2p_cap");', load_fn)
+        self.assertIn("if (ROAD1Y_MAIL_P2P_CAP < 0 || ROAD1Y_MAIL_P2P_CAP > 3) ROAD1Y_MAIL_P2P_CAP = 0;", load_fn)
+        self.assertIn("if (!road1yRoadOnly) ROAD1Y_MAIL_P2P_CAP = 0;", load_fn)
+        self.assertIn('ROAD1Y_MAIL_P2P_MAXDIST = AIController.GetSetting("road1y_mail_p2p_maxdist");', load_fn)
+        self.assertIn("if (ROAD1Y_MAIL_P2P_MAXDIST < 0 || ROAD1Y_MAIL_P2P_MAXDIST > 192) ROAD1Y_MAIL_P2P_MAXDIST = 0;", load_fn)
+        self.assertIn("if (!road1yRoadOnly) ROAD1Y_MAIL_P2P_MAXDIST = 0;", load_fn)
+        self.assertIn('ROAD1Y_MAIL_P2P_NOLOAD = AIController.GetSetting("road1y_mail_p2p_noload");', load_fn)
+        self.assertIn("if (ROAD1Y_MAIL_P2P_NOLOAD < 0 || ROAD1Y_MAIL_P2P_NOLOAD > 1) ROAD1Y_MAIL_P2P_NOLOAD = 0;", load_fn)
+        self.assertIn("if (!road1yRoadOnly) ROAD1Y_MAIL_P2P_NOLOAD = 0;", load_fn)
         bus_fn = body("settings.nut", "OpexLoadBusDistrictSettings")
         require_idx = bus_fn.index('require("bus_districts_overrides.nut")')
         for snippet in (
@@ -71,6 +89,12 @@ class TestRoad1yMailP2P(unittest.TestCase):
             "if (ROAD1Y_MAIL_P2P_CASH < 0 || ROAD1Y_MAIL_P2P_CASH > 60 || !road1yRoadOnly) ROAD1Y_MAIL_P2P_CASH = 0;",
             'ROAD1Y_MAIL_P2P_START = AIController.GetSetting("road1y_mail_p2p_start");',
             "if (ROAD1Y_MAIL_P2P_START < 0 || ROAD1Y_MAIL_P2P_START > 12 || !road1yRoadOnly) ROAD1Y_MAIL_P2P_START = 0;",
+            'ROAD1Y_MAIL_P2P_CAP = AIController.GetSetting("road1y_mail_p2p_cap");',
+            "if (ROAD1Y_MAIL_P2P_CAP < 0 || ROAD1Y_MAIL_P2P_CAP > 3 || !road1yRoadOnly) ROAD1Y_MAIL_P2P_CAP = 0;",
+            'ROAD1Y_MAIL_P2P_MAXDIST = AIController.GetSetting("road1y_mail_p2p_maxdist");',
+            "if (ROAD1Y_MAIL_P2P_MAXDIST < 0 || ROAD1Y_MAIL_P2P_MAXDIST > 192 || !road1yRoadOnly) ROAD1Y_MAIL_P2P_MAXDIST = 0;",
+            'ROAD1Y_MAIL_P2P_NOLOAD = AIController.GetSetting("road1y_mail_p2p_noload");',
+            "if (ROAD1Y_MAIL_P2P_NOLOAD < 0 || ROAD1Y_MAIL_P2P_NOLOAD > 1 || !road1yRoadOnly) ROAD1Y_MAIL_P2P_NOLOAD = 0;",
         ):
             self.assertIn(snippet, bus_fn)
             self.assertLess(bus_fn.index(snippet), require_idx)
@@ -87,6 +111,9 @@ class TestRoad1yMailP2P(unittest.TestCase):
             ("road1y_mail_p2p_missing", "ROAD1Y_MAIL_P2P_MISSING"),
             ("road1y_mail_p2p_cash", "ROAD1Y_MAIL_P2P_CASH"),
             ("road1y_mail_p2p_start", "ROAD1Y_MAIL_P2P_START"),
+            ("road1y_mail_p2p_cap", "ROAD1Y_MAIL_P2P_CAP"),
+            ("road1y_mail_p2p_maxdist", "ROAD1Y_MAIL_P2P_MAXDIST"),
+            ("road1y_mail_p2p_noload", "ROAD1Y_MAIL_P2P_NOLOAD"),
         ):
             self.assertIn(key, SETTING_TO_GLOBAL)
             self.assertEqual(SETTING_TO_GLOBAL[key], glob)
@@ -110,6 +137,8 @@ class TestRoad1yMailP2P(unittest.TestCase):
         site_fn = body("bus_districts.nut", "OpexRoad1yFindMailP2PSite")
         self.assertIn("if (!AITown.IsValidTown(townId)) return [];", site_fn)
         self.assertIn("local rad = 10;", site_fn)
+        self.assertIn("|| !AIRoad.AreRoadTilesConnected(tile, front)", site_fn)
+        self.assertIn("|| !AIRoad.AreRoadTilesConnected(tile, back)) continue;", site_fn)
         self.assertIn("if (OpexRoad100CatchmentOverlaps(tile, used, coverage)) score /= 2;", site_fn)
         self.assertIn("local sites = [];", site_fn)
         self.assertIn("if (AIMap.DistanceManhattan(tile, other) <= 2)", site_fn)
@@ -133,6 +162,8 @@ class TestRoad1yMailP2P(unittest.TestCase):
         self.assertIn("ROAD1Y_MAIL_P2P_CASH", step_fn)
         self.assertIn("local threshold = (ROAD1Y_MAIL_P2P_CASH > 0) ? (ROAD1Y_MAIL_P2P_CASH * 1000) : 37000;", step_fn)
         self.assertIn("local maxMissing = (ROAD1Y_MAIL_P2P_MISSING > 0) ? ROAD1Y_MAIL_P2P_MISSING : 14;", step_fn)
+        self.assertIn("local maxOpened = (ROAD1Y_MAIL_P2P_CAP > 0) ? ROAD1Y_MAIL_P2P_CAP : 3;", step_fn)
+        self.assertIn("local maxDist = (ROAD1Y_MAIL_P2P_MAXDIST > 0) ? ROAD1Y_MAIL_P2P_MAXDIST : 192;", step_fn)
         self.assertIn("local cashReserve = 25000;", step_fn)
         self.assertIn("local budget = { paths = 48, nodes = 6000 };", step_fn)
         # Curseur tournant sur les paires ordonnees (nTowns * nTowns)
@@ -140,31 +171,41 @@ class TestRoad1yMailP2P(unittest.TestCase):
         self.assertIn("local cursor = ROAD1Y_MAIL_P2P_CURSOR >= 0 ? ROAD1Y_MAIL_P2P_CURSOR % pairCount : 0;", step_fn)
         self.assertIn("cursor = (cursor + 1) % pairCount;", step_fn)
         self.assertIn("ROAD1Y_MAIL_P2P_CURSOR = cursor;", step_fn)
-        self.assertIn("if (attempts >= 24 || budget.paths <= 0 || siteSearches >= 32 || opened >= 3) break;", step_fn)
+        self.assertIn("if (attempts >= 24 || budget.paths <= 0 || siteSearches >= 32 || opened >= maxOpened) break;", step_fn)
         self.assertIn("if (AITown.GetPopulation(ta.id) < 400 || AITown.GetPopulation(tb.id) < 400) continue;", step_fn)
-        self.assertIn("if (dist < 16 || dist > 192) continue;", step_fn)
-        # Attempts deplace apres siteA/siteB et swap source plus productive en A
+        self.assertIn("if (dist < 16 || dist > maxDist) continue;", step_fn)
+        # Attempts deplace apres siteA/siteB et swap source plus productive en A AVANT OpexRoadFindDepot
         self.assertIn("attempts++;", step_fn)
         idx_site = step_fn.index("OpexRoad1yFindMailP2PSite")
         idx_attempts = step_fn.index("attempts++;")
         self.assertLess(idx_site, idx_attempts, "attempts++ must be after find site checks")
         self.assertIn("if (siteB.prod > siteA.prod)", step_fn)
+        idx_swap = step_fn.index("if (siteB.prod > siteA.prod)")
+        idx_depot = step_fn.index("local depot = OpexRoadFindDepot(finalTrace, finalSiteA, finalSiteB, true);")
+        self.assertLess(idx_swap, idx_depot, "siteA/siteB swap must happen before OpexRoadFindDepot")
 
         build_fn = body("bus_districts.nut", "OpexRoad1yBuildMailP2P")
+        self.assertIn("&& AIRoad.AreRoadTilesConnected(siteA.tile, siteA.front)", build_fn)
+        self.assertIn("&& AIRoad.AreRoadTilesConnected(siteA.tile, siteA.back);", build_fn)
+        self.assertIn("&& AIRoad.AreRoadTilesConnected(siteB.tile, siteB.front)", build_fn)
+        self.assertIn("&& AIRoad.AreRoadTilesConnected(siteB.tile, siteB.back);", build_fn)
+        self.assertIn("if (!AIRoad.AreRoadTilesConnected(siteA.tile, siteA.front)", build_fn)
+        self.assertIn('reason=STOP_CONN', build_fn)
         self.assertIn("OpexRoadRollback(siteA.tile, siteB.tile, null, null, builtRoad);", build_fn)
         self.assertIn("OpexRoadRollback(siteA.tile, siteB.tile, newDepot, null, builtRoad);", build_fn)
         self.assertIn("OpexRoadRollback(siteA.tile, siteB.tile, newDepot, built, builtRoad);", build_fn)
-        self.assertIn("AIOrder.AppendOrder(first, siteA.tile, orderFlags | AIOrder.OF_FULL_LOAD_ANY)", build_fn)
+        self.assertIn("local sourceOrderFlags = ROAD1Y_MAIL_P2P_NOLOAD != 0 ? orderFlags : (orderFlags | AIOrder.OF_FULL_LOAD_ANY);", build_fn)
+        self.assertIn("AIOrder.AppendOrder(first, siteA.tile, sourceOrderFlags)", build_fn)
         self.assertIn("AIOrder.AppendOrder(first, siteB.tile, orderFlags)", build_fn)
 
         refleet_road_fn = body("builder_road.nut", "OpexRoadRefleet")
         self.assertIn('if (ROAD1Y_MAIL_P2P > 0 && ("kind" in line) && line.kind == "mail_p2p")', refleet_road_fn)
-        self.assertIn("sourceFlags = AIOrder.OF_FULL_LOAD_ANY | nonstopFlag;", refleet_road_fn)
+        self.assertIn("sourceFlags = (ROAD1Y_MAIL_P2P_NOLOAD != 0 ? AIOrder.OF_NONE : AIOrder.OF_FULL_LOAD_ANY) | nonstopFlag;", refleet_road_fn)
         self.assertIn("destFlags = AIOrder.OF_NONE | nonstopFlag;", refleet_road_fn)
 
         refleet_mail_fn = body("bus_districts.nut", "OpexRoad1yRefleetMailP2PLine")
-        self.assertIn("local sourceFlags = AIOrder.OF_FULL_LOAD_ANY | AIOrder.OF_NON_STOP_INTERMEDIATE;", refleet_mail_fn)
-        self.assertIn("local destFlags = AIOrder.OF_NON_STOP_INTERMEDIATE;", refleet_mail_fn)
+        self.assertIn("local sourceFlags = (ROAD1Y_MAIL_P2P_NOLOAD != 0 ? AIOrder.OF_NONE : AIOrder.OF_FULL_LOAD_ANY) | AIOrder.OF_NON_STOP_INTERMEDIATE;", refleet_mail_fn)
+        self.assertIn("local destFlags = AIOrder.OF_NONE | AIOrder.OF_NON_STOP_INTERMEDIATE;", refleet_mail_fn)
         self.assertIn("local committedCapacity = 0;", refleet_mail_fn)
         self.assertIn("committedCapacity += AIVehicle.GetCapacity(v, line.cargo) - AIVehicle.GetCargoLoad(v, line.cargo);", refleet_mail_fn)
         self.assertIn("if (mailCap < 2) mailCap = 2;", refleet_mail_fn)
