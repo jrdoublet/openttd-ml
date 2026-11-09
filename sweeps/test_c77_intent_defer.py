@@ -247,22 +247,43 @@ class DeferSourceContracts(unittest.TestCase):
         # A live but stale portfolio and no C80 worker make the original blocked false.
         self.assertIn('local blocked = this._projects == null || this._activeWorker != null;', guard)
         mode2 = guard.split('    /* C77 defer 2 :', 1)[1].split('    /* Fin C77 defer 2. */', 1)[0]
-        match = re.search(r'if \((C77_INTENT_DEFER_SUBSIDY && PO01C_REGEN_SPLIT[^\n]+)\)\s*blocked = true;', mode2)
+        match = re.search(r'if \((C77_INTENT_DEFER_SUBSIDY && PO01C_REGEN_SPLIT.*?)\)\s*blocked = true;',
+                          mode2, re.S)
         self.assertIsNotNone(match, 'PO01C pending/job must defer C77 on a non-null stale portfolio')
-        condition = match.group(1)
-        for mode2_enabled, split, job, pending, expected in (
-            (True, True, True, False, True),   # PO01C generator is still running
-            (True, True, False, True, True),   # PO01C publication has not started
-            (True, True, False, False, False), # fully published, dispatch resumes
-            (True, False, True, True, False),  # PO01C disabled
-            (False, True, True, True, False),  # modes 0/1 unchanged
+        condition = ' '.join(match.group(1).split())
+        # EB-14 (7160c6f5, defaut eb14_progressive=3) : seule exception, un
+        # c77_build avec portefeuille publie et aucun worker actif.
+        self.assertIn('!(EB14_PROGRESSIVE && intention.kind == "c77_build" '
+                      '&& this._projects != null && this._activeWorker == null)', condition)
+        for mode2_enabled, split, job, pending, eb14, kind, projects, worker, expected in (
+            (True, True, True, False, False, 'c77_build', True, False, True),   # generator running
+            (True, True, False, True, False, 'c77_build', True, False, True),   # publication not started
+            (True, True, False, False, False, 'c77_build', True, False, False), # fully published
+            (True, False, True, True, False, 'c77_build', True, False, False),  # PO01C disabled
+            (False, True, True, True, False, 'c77_build', True, False, False),  # modes 0/1 unchanged
+            # EB-14 exception: published portfolio, no worker, build intent.
+            (True, True, True, False, True, 'c77_build', True, False, False),
+            (True, True, False, True, True, 'c77_build', True, False, False),
+            # EB-14 keeps the block for subsidies, missing portfolio, active worker.
+            (True, True, True, False, True, 'c77_subsidy', True, False, True),
+            (True, True, False, True, True, 'c77_build', False, False, True),
+            (True, True, True, False, True, 'c77_build', True, True, True),
+            (True, True, True, True, True, 'c77_subsidy', False, True, True),
+            # EB-14 never unblocks when PO01C is idle or modes are off.
+            (True, True, False, False, True, 'c77_subsidy', True, False, False),
+            (False, True, True, True, True, 'c77_subsidy', True, False, False),
         ):
-            with self.subTest(mode2=mode2_enabled, split=split, job=job, pending=pending):
+            with self.subTest(mode2=mode2_enabled, split=split, job=job, pending=pending,
+                              eb14=eb14, kind=kind, projects=projects, worker=worker):
                 expr = (condition.replace('this._po01cJob != null', str(job))
                         .replace('this._po01cPending', str(pending))
+                        .replace('intention.kind == "c77_build"', str(kind == 'c77_build'))
+                        .replace('this._projects != null', str(projects))
+                        .replace('this._activeWorker == null', str(not worker))
+                        .replace('EB14_PROGRESSIVE', str(eb14))
                         .replace('C77_INTENT_DEFER_SUBSIDY', str(mode2_enabled))
                         .replace('PO01C_REGEN_SPLIT', str(split))
-                        .replace('&&', ' and ').replace('||', ' or '))
+                        .replace('&&', ' and ').replace('||', ' or ').replace('!', ' not '))
                 self.assertRegex(expr, r'^[() A-Za-z]+$')
                 self.assertEqual(eval(expr, {'__builtins__': {}}, {}), expected)
         self.assertLess(guard.index('if (C77_INTENT_DEFER_SUBSIDY && PO01C_REGEN_SPLIT'),
