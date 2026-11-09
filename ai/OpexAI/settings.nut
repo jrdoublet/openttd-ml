@@ -270,6 +270,9 @@ function OpexLoadSettings()
   ROAD1Y_MAIL_P2P = AIController.GetSetting("road1y_mail_p2p");
   if (ROAD1Y_MAIL_P2P < 0 || ROAD1Y_MAIL_P2P > 20) ROAD1Y_MAIL_P2P = 0;
   if (!road1yRoadOnly) ROAD1Y_MAIL_P2P = 0;
+  ROAD1Y_MAIL_P2P_MISSING = AIController.GetSetting("road1y_mail_p2p_missing");
+  if (ROAD1Y_MAIL_P2P_MISSING < 0 || ROAD1Y_MAIL_P2P_MISSING > 60) ROAD1Y_MAIL_P2P_MISSING = 0;
+  if (!road1yRoadOnly) ROAD1Y_MAIL_P2P_MISSING = 0;
   V216A_GHOST_DEMAND = AIController.GetSetting("v216a_ghost_demand");
   V216F_DWELL_PCT = AIController.GetSetting("v216f_dwell_pct");
   local lateRelax = AIController.GetSetting("v269_rail_late_relax");

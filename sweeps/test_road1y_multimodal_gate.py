@@ -45,6 +45,7 @@ ROAD1Y_OFF = {
     "ROAD1Y_LOAN_FLOOR": "0",
     "ROAD1Y_ALT_LOAD_COND": "0",
     "ROAD1Y_MAIL_P2P": "0",
+    "ROAD1Y_MAIL_P2P_MISSING": "0",
 }
 
 SETTING_TO_GLOBAL = {
@@ -72,6 +73,7 @@ SETTING_TO_GLOBAL = {
     "road1y_loan_floor": "ROAD1Y_LOAN_FLOOR",
     "road1y_alt_load_cond": "ROAD1Y_ALT_LOAD_COND",
     "road1y_mail_p2p": "ROAD1Y_MAIL_P2P",
+    "road1y_mail_p2p_missing": "ROAD1Y_MAIL_P2P_MISSING",
 }
 
 LOAD_SETTINGS_KEYS = (
@@ -91,6 +93,7 @@ LOAD_SETTINGS_KEYS = (
     "road1y_loan_floor",
     "road1y_alt_load_cond",
     "road1y_mail_p2p",
+    "road1y_mail_p2p_missing",
     "road1y_fleet_unlock",
     "road1y_long_band",
     "road1y_long_v3",

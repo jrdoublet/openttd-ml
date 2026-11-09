@@ -27,6 +27,7 @@ _MERGE_SHA = {
         "f914642ec34f9347436c1b4cfbebfc7eecd8ae38940dae65af12bdd7dde6dc46",
         "14e4b9b83ebee2b2b51d60fdfad0a572bf8cd5bdd04befe832b48649084a0c6e",
         "441a9528e465b0390dc985a322db92f8f8d78991e744fb196f275d798aef8015",
+        "9f7a522edbfe2a69411113be6d0de489ab8b472fc42f5553f72955273f7ae598",
     ),
     "info.nut": (
         "0e6e6e30aaae1b814dc8afbaad515347e2dc05aea133cd12983a7abc1fce26f1",
@@ -34,6 +35,7 @@ _MERGE_SHA = {
         "6f4107a4c5100fcfabb2d9caf8d4f204101fd6a92534b72c2a9d102da71dff11",
         "92870d608bf4a6e575c142beca2fd24783d419a75a05e1e22b6801c498633d76",
         "851ef126ab645d062200e4f9fec36db07f4860deb3cd586c3a2474c3fb354173",
+        "a91f430ec17fa802db2b1fb02b6498a6dcaed31662073abff6685a63abb44342",
     ),
 }
 

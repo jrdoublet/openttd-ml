@@ -1202,6 +1202,14 @@ class OpexAIInfo extends AIInfo {
       custom_value = 0,
       flags = 0
     });
+    AddSetting({
+      name = "road1y_mail_p2p_missing",
+      description = "ROAD1Y: max missing road tiles for mail p2p lines; 0 = 14 (default), 1..60 = custom limit",
+      min_value = 0, max_value = 60,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = 0
+    });
   }
 }
 

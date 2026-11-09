@@ -890,7 +890,10 @@ function OpexRoad1yBuildMailP2P(ai, catalog, ta, tb, siteA, siteB, trace, depot,
   local engine = catalog.roadEngineByCargo[mailCargo];
   if (engine == null || engine.price <= 0) return false;
   local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
-  if (money < cashReserve + 4000 + 2 * engine.price) return false;
+  if (money < cashReserve + 4000 + 2 * engine.price) {
+    OpexRoad1yMailP2PLog("action=fail pair=" + ta.id + ":" + tb.id + " reason=CASH money=" + money);
+    return false;
+  }
 
   AIRoad.SetCurrentRoadType(catalog.roadType);
   local okA = AIRoad.BuildDriveThroughRoadStation(siteA.tile, siteA.front,
@@ -1026,7 +1029,11 @@ function OpexRoad1yMailP2PStep(ai, year)
   ROAD1Y_MAIL_P2P_TRY_YM = ym;
 
   local cashReserve = 25000;
-  if (AICompany.GetBankBalance(AICompany.COMPANY_SELF) < cashReserve + 12000) return;
+  local bank = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+  if (bank < cashReserve + 12000) {
+    OpexRoad1yMailP2PLog("action=reject reason=CASH bank=" + bank + " need=" + (cashReserve + 12000));
+    return;
+  }
   if (!OpexVehicleSlotAvailable(AIVehicle.VT_ROAD, 2)) return;
 
   local catalog = ai._catalog;
@@ -1034,30 +1041,48 @@ function OpexRoad1yMailP2PStep(ai, year)
   local mailCargo = catalog.mailCargo;
   if (!(mailCargo in catalog.roadEngineByCargo)) return;
 
-  local activePairs = OpexRoad1yMailP2PActivePairs(ai);
   local towns = catalog.towns;
   local nTowns = towns.len();
+  if (nTowns <= 0) return;
+
+  local startI = (ROAD1Y_MAIL_P2P_CURSOR >= 0) ? (ROAD1Y_MAIL_P2P_CURSOR % nTowns) : 0;
+  ROAD1Y_MAIL_P2P_CURSOR = (startI + 1) % nTowns;
+
+  local activePairs = OpexRoad1yMailP2PActivePairs(ai);
+  local maxMissing = (ROAD1Y_MAIL_P2P_MISSING > 0) ? ROAD1Y_MAIL_P2P_MISSING : 14;
+  local testedPairs = {};
   local attempts = 0;
-  for (local i = 0; i < nTowns; i++) {
+  for (local stepI = 0; stepI < nTowns; stepI++) {
+    local i = (startI + stepI) % nTowns;
     local ta = towns[i];
     if (ta.pop < 350) continue;
-    for (local j = i + 1; j < nTowns; j++) {
+    for (local j = 0; j < nTowns; j++) {
+      if (i == j) continue;
       local tb = towns[j];
       if (tb.pop < 350) continue;
       local key = ta.id < tb.id ? (ta.id + ":" + tb.id) : (tb.id + ":" + ta.id);
       if (key in activePairs) continue;
+      if (key in testedPairs) continue;
+      testedPairs[key] <- true;
       local dist = AIMap.DistanceManhattan(ta.tile, tb.tile);
       if (dist < 24 || dist > 128) continue;
 
-      attempts++;
-      if (attempts > 4) return;
-
       local siteA = OpexRoad1yFindMailP2PSite(ai, catalog, ta.id, mailCargo);
-      if (siteA == null) continue;
+      if (siteA == null) {
+        OpexRoad1yMailP2PLog("action=reject pair=" + ta.id + ":" + tb.id + " reason=SITE_A");
+        continue;
+      }
       local siteB = OpexRoad1yFindMailP2PSite(ai, catalog, tb.id, mailCargo);
-      if (siteB == null) continue;
+      if (siteB == null) {
+        OpexRoad1yMailP2PLog("action=reject pair=" + ta.id + ":" + tb.id + " reason=SITE_B");
+        continue;
+      }
+
+      attempts++;
+      if (attempts > 6) return;
 
       local trace = OpexRoadBfsPath(siteA.tile, siteB.tile, ROAD_MAX_TRACE_TILES, siteA.front, siteB.front);
+      local lastMissing = -1;
       if (trace == null) {
         local axisH = AIMap.GetTileX(siteA.front) != AIMap.GetTileX(siteA.tile);
         for (local k = 0; k < 2; k++) {
@@ -1075,16 +1100,27 @@ function OpexRoad1yMailP2PStep(ai, year)
               missing++;
             }
           }
-          if (missing <= 14) {
+          lastMissing = missing;
+          if (missing <= maxMissing) {
             trace = l;
             break;
           }
         }
       }
-      if (trace == null) continue;
+      if (trace == null) {
+        if (lastMissing >= 0) {
+          OpexRoad1yMailP2PLog("action=reject pair=" + ta.id + ":" + tb.id + " reason=MISSING missing=" + lastMissing + " max=" + maxMissing);
+        } else {
+          OpexRoad1yMailP2PLog("action=reject pair=" + ta.id + ":" + tb.id + " reason=NO_TRACE");
+        }
+        continue;
+      }
 
       local depot = OpexRoadFindDepot(trace, siteA, siteB, true);
-      if (depot == null) continue;
+      if (depot == null) {
+        OpexRoad1yMailP2PLog("action=reject pair=" + ta.id + ":" + tb.id + " reason=DEPOT");
+        continue;
+      }
 
       if (OpexRoad1yBuildMailP2P(ai, catalog, ta, tb, siteA, siteB, trace, depot, cashReserve)) {
         return;

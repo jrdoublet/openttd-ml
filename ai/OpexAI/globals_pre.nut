@@ -135,6 +135,8 @@ ROAD1Y_FREIGHT_ADM <- 0; // ROAD1Y : admission et dimensionnement du fret routie
 ROAD1Y_ALT_LOAD_COND <- 0; // ROAD1Y alt_load conditionnel : plein chargement au bout B seulement si potentiel de B >= seuil (0 = off)
 ROAD1Y_MAIL_P2P <- 0; // ROAD1Y : lignes courrier point a point autonomes (0 = off, defaut)
 ROAD1Y_MAIL_P2P_TRY_YM <- -1; // Mois de la derniere tentative d'ouverture
+ROAD1Y_MAIL_P2P_CURSOR <- 0; // ROAD1Y : curseur d'exploration interurbaine mail p2p (indice ville de depart)
+ROAD1Y_MAIL_P2P_MISSING <- 0; // ROAD1Y : max voirie manquante mail p2p (0 = 14 defaut, plage 0..60)
 /* V190 : lignes rail fret posees en double voie a sens unique des la construction. */
 V190_RAIL_DOUBLE_BUILD <- false;
 /* V197 : double voie guidee (outwardSide pour voie 1, guideTiles pour voie 2). */
