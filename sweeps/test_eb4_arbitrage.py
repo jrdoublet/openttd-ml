@@ -41,6 +41,16 @@ class TestEB4Arbitrage(unittest.TestCase):
         self.assertIn("prof < 2 * roadCapital", proj)
         self.assertIn("OpexGetCandidateTownEndpoints", proj)
 
+    def test_year_window_inside_road_allowed(self):
+        """Contrat : la fenetre 1970-1972 est lue dans OpexEB4RoadAllowed."""
+        proj = read_nut("projects_selection.nut")
+        fn = proj.split("function OpexEB4RoadAllowed", 1)[1].split("\nfunction ", 1)[0]
+        self.assertIn("EB4_AIR_ROAD_ARBITRAGE == 0", fn)
+        self.assertIn("AIDate.GetYear(AIDate.GetCurrentDate())", fn)
+        self.assertIn("year < 1970 || year > 1972", fn)
+        self.assertIn("1970", fn)
+        self.assertIn("1972", fn)
+
     def test_hygiene_no_forbidden_constructs(self):
         content = read_nut("projects_selection.nut")
         # pas de .find( dans le code neuf EB-4

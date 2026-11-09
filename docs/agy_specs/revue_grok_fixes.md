@@ -83,6 +83,17 @@ Risques :
 - Les pins SHA de `globals_pre.nut` incluent `MULTI1_ACTIVE_PORTFOLIO`.
   La ligne est hors des hunks ROAD100 et du bloc retiré par le test V233.
 
-## EB-4
+## EB-4 — fenêtre 1970-1972
 
-(à compléter)
+Défaut : `OpexEB4RoadAllowed` appliquait protection et opportunité sans lire
+l'année, alors que la spec et `info.nut` annoncent 1970-1972.
+
+Correctif, dans la fonction seulement : si le réglage vaut 0, retour immédiat
+(route inchangée). Sinon `AIDate.GetYear(AIDate.GetCurrentDate())` doit être
+dans [1970, 1972] inclus. Hors fenêtre, la fonction rend vrai et la sélection
+historique continue. Les deux call sites gardaient déjà
+`EB4_AIR_ROAD_ARBITRAGE`, donc au défaut 0 la fonction n'est pas appelée et
+la boucle de sélection ne change pas.
+
+Risque : à réglage 1, une partie hors 1970-1972 ne bloque plus la route.
+Aucune persistance : la spec n'en a pas.

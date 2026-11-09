@@ -895,6 +895,9 @@ function OpexMulti1AirOverRail(affordable, capitalBudget, level)
 /* EB-4 : Arbitrage de caisse 1970-1972 entre air et route. */
 function OpexEB4RoadAllowed(roadProject, roadCapital, bestAir, deltaC, monthlyIncome, capitalBudget)
 {
+  if (EB4_AIR_ROAD_ARBITRAGE == 0) return true;
+  local year = AIDate.GetYear(AIDate.GetCurrentDate());
+  if (year < 1970 || year > 1972) return true;
   if (bestAir == null) return true;
   // Zone de protection : si deltaC <= 2 * monthlyIncome, interdiction totale de la route
   if (monthlyIncome > 0 && deltaC <= monthlyIncome * 2) return false;
