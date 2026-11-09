@@ -26,7 +26,31 @@ class TestV249Statues(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.sources = {p.name: p.read_text(encoding="utf-8") for p in AI.glob("*.nut")}
-        cls.task = cls.sources["task_v249.nut"]
+        task = cls.sources["task_v249.nut"]
+        if "LATE_GAME_POLICY" in task:
+            idx_start = task.index("/* LATE-GAME-1 : Reinvestissement")
+            idx_end = task.index("function OpexAI::_dispatchV249Statue")
+            task = task[:idx_start] + task[idx_end:]
+            task = task.replace("if (!V249_STATUE && !LATE_GAME_POLICY) return false;", "if (!V249_STATUE) return false;")
+            old_mode2 = (
+                "  local res = false;\n"
+                "  if (V249_STATUE == 2 || (ESTIM_UNIFIE & 4) != 0) {\n"
+                "    res = OpexV249DispatchMode2(this, ym, year);\n"
+                "  }\n"
+                "  if (LATE_GAME_POLICY != 0) {\n"
+                "    res = OpexLateGameDispatch(this, ym, year) || res;\n"
+                "  }\n"
+                "  if (V249_STATUE == 2 || (ESTIM_UNIFIE & 4) != 0 || LATE_GAME_POLICY != 0) {\n"
+                "    return res;\n"
+                "  }"
+            )
+            new_mode2 = (
+                "  if (V249_STATUE == 2 || (ESTIM_UNIFIE & 4) != 0) {\n"
+                "    return OpexV249DispatchMode2(this, ym, year);\n"
+                "  }"
+            )
+            task = task.replace(old_mode2, new_mode2)
+        cls.task = task
         cls.dispatch = _body(cls.task, "function OpexAI::_dispatchV249Statue(task, year)")
         cls.dispatch_m2 = _body(cls.task, "function OpexV249DispatchMode2(ai, ym, year)")
         cls.measure = _body(cls.task, "function OpexV249MeasureStatueCost(townId)")

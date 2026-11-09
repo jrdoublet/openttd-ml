@@ -258,6 +258,9 @@ function OpexAbandonedPairKey(candidate)
      * meme producteur/cargo : un seul echec bannissait la famille entiere pendant
      * au moins un an. On utilise dstTown (pose par les generateurs) prefixe "t"
      * pour distinguer ville/industrie sans collision d'identifiants. */
+    if (EB10_GUARDS && ("dstTown" in candidate) && candidate.dstTown >= 0 && (dst < 0 || dst == 65535 || !AIIndustry.IsValidIndustry(dst))) dst = "t" + candidate.dstTown;
+    if (EB10_GUARDS && ("srcTown" in candidate) && candidate.srcTown >= 0 && (src < 0 || src == 65535 || !AIIndustry.IsValidIndustry(src))) src = "t" + candidate.srcTown;
+    if (EB10_GUARDS) return candidate.kind + "|" + candidate.cargo + "|" + src + "|" + dst;
     if (dst < 0 && ("dstTown" in candidate) && candidate.dstTown >= 0) {
       dst = "t" + candidate.dstTown;
     }

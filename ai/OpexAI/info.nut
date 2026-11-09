@@ -178,6 +178,114 @@ class OpexAIInfo extends AIInfo {
       _3 = "custom"
     });
 
+    AddSetting({
+      name = "fair_play_courtesy",
+      description = "Mode courtoisie parties normales : supprime panneaux carte et modere journaux",
+      min_value = 0,
+      max_value = 1,
+      easy_value = 0,
+      medium_value = 0,
+      hard_value = 0,
+      custom_value = 0,
+      flags = 0
+    });
+
+    AddSetting({
+      name = "eb10_guards",
+      description = "EB-10 : garde sentinelle 65535 industrie et acceptation express urbaine >= 8",
+      min_value = 0,
+      max_value = 1,
+      easy_value = 0,
+      medium_value = 0,
+      hard_value = 0,
+      custom_value = 0,
+      flags = 0
+    });
+
+    AddSetting({
+      name = "air_coverage_stop",
+      description = "AIR-COVERAGE-STOP : mise en veille du scan des villes/sites aeroport apres epuisement",
+      min_value = 0,
+      max_value = 1,
+      easy_value = 0,
+      medium_value = 0,
+      hard_value = 0,
+      custom_value = 0,
+      flags = 0
+    });
+
+    AddSetting({
+      name = "idle1_slack_worker",
+      description = "OPCODES/IDLE-1 : valorisation du reliquat de tick pour taches de fond interrompables",
+      min_value = 0,
+      max_value = 1,
+      easy_value = 1,
+      medium_value = 1,
+      hard_value = 1,
+      custom_value = 1,
+      flags = 0
+    });
+
+    AddSetting({
+      name = "po02_independent_expiry",
+      description = "PO-02 : echeance de publication propre a chaque vivier modal (30j rail/route, 90j eau)",
+      min_value = 0,
+      max_value = 1,
+      easy_value = 0,
+      medium_value = 0,
+      hard_value = 0,
+      custom_value = 0,
+      flags = 0
+    });
+
+    AddSetting({
+      name = "eb4_air_road_arbitrage",
+      description = "EB-4 : arbitrage de caisse 1970-1972 entre air et route (defaut 0)",
+      min_value = 0,
+      max_value = 1,
+      easy_value = 0,
+      medium_value = 0,
+      hard_value = 0,
+      custom_value = 0,
+      flags = 0
+    });
+
+    AddSetting({
+      name = "eb7_detailed_accounting",
+      description = "EB-7 : comptabilite fine et passive des depenses reelles AIR/ROUTE (defaut 0)",
+      min_value = 0,
+      max_value = 1,
+      easy_value = 1,
+      medium_value = 1,
+      hard_value = 1,
+      custom_value = 1,
+      flags = 0
+    });
+
+    AddSetting({
+      name = "late_game_policy",
+      description = "LATE-GAME-1 : reinvestissement de l'excedent de tresorerie tardif (0=off, 1=urbain, 2=industries)",
+      min_value = 0,
+      max_value = 2,
+      easy_value = 0,
+      medium_value = 0,
+      hard_value = 0,
+      custom_value = 0,
+      flags = 0
+    });
+
+    AddSetting({
+      name = "multi1_relance",
+      description = "MULTI-1 : conditions de relance du multimodal tardif (0=off, 1=shadow, 2=on)",
+      min_value = 0,
+      max_value = 2,
+      easy_value = 0,
+      medium_value = 0,
+      hard_value = 0,
+      custom_value = 0,
+      flags = 0
+    });
+
     /* Les canaux de mesure sont commandes par probes (bits dedies ou groupes). */
     AddSetting({
       name = "c121_air_project_realization_adaptive",

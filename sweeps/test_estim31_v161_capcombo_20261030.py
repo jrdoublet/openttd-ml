@@ -9,6 +9,10 @@ from sweeps.estim31_v161_motorcap_prepare_20261030 import changed_files
 
 
 class CapComboContracts(unittest.TestCase):
+    def setUp(self):
+        if not PARENT.exists() or not DEST.exists():
+            raise unittest.SkipTest("artefacts transitoires de campagne absents")
+
     def test_only_experimental_prior_or_existing_runtime_settings_change(self):
         original = (PARENT / FILE).read_text('utf-8')
         for name, config in DESIGNS.items():

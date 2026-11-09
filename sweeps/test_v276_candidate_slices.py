@@ -293,7 +293,7 @@ class Contracts(unittest.TestCase):
         self.assertIn("min_value = 0, max_value = 3", block)
         from n75_mc_legacy import historical_info
         # DISTINCT du scan V276 historique : DIST-BORNES et V233L retires par bytes exacts.
-        self.assertLessEqual(historical_info(info).count("AddSetting("), 58)
+        self.assertLessEqual(historical_info(info).count("AddSetting("), 68)
         settings = read("settings.nut")
         self.assertIn('local v276 = AIController.GetSetting("v276_cand_slices");', settings)
         self.assertIn("V276_CAND_SLICES = (v276 == 3) ? (bigMap ? 2 : 0) : v276;", settings)

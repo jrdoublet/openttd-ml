@@ -52,8 +52,8 @@ class TestV216Probe(unittest.TestCase):
                 if re.search(r"\bOpexV216(?!a)\w*\(|\bV216_(?!PROBE\b)\w+\s*=", line):
                     hooks += 1
                     self.assertRegex(line, r"if \(V216_PROBE\b", name + ": " + line.strip())
-        # selection x3, K_dec, rejets x3, RAIL_BUILD, tick mensuel
-        self.assertEqual(hooks, 11)  # +2 guarded rejection hooks in the PO01f copy
+        # selection x3, K_dec, rejets x3, RAIL_BUILD, tick mensuel, cover regen
+        self.assertEqual(hooks, 12)  # +2 guarded rejection hooks in the PO01f copy + po01c_regen
 
     def test_probe_never_commands_the_game(self):
         code = re.sub(r"/\*.*?\*/", "", self.probe, flags=re.S)

@@ -101,7 +101,15 @@ class AirSiteFunnelContracts(unittest.TestCase):
         # ROAD100-21 ne modifie la copie PO01C qu'en opt-in. Soustraire
         # ses hunks EXACTS avant la projection V233L historique, sans jamais
         # modifier le hash ni la fixture de référence AIR/V233L.
-        road100_off = road100_off_source("po01c_generators.nut", self.generators.decode("utf-8"))
+        eb10_block = (
+            b'      local acceptValid = EB10_GUARDS ? (acceptance >= 8) : (acceptance >= 8 || (pop >= 300 && AICargo.HasCargoClass(cargo, AICargo.CC_EXPRESS)));\n'
+            b'      if (acceptValid) {'
+        )
+        eb10_orig = b'      if (acceptance >= 8 || (pop >= 300 && AICargo.HasCargoClass(cargo, AICargo.CC_EXPRESS))) {'
+        gen = self.generators
+        if eb10_block in gen:
+            gen = gen.replace(eb10_block, eb10_orig, 1)
+        road100_off = road100_off_source("po01c_generators.nut", gen.decode("utf-8"))
         projected = off_bytes("po01c_generators.nut", road100_off.encode("utf-8"))
         self.assertEqual(
             hashlib.sha256(projected).hexdigest(),

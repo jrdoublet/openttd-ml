@@ -133,6 +133,7 @@ class TestV158BestReadersAudit(unittest.TestCase):
         "task_projects.nut:OpexC121FirstLiveAirOpportunity": "Appelé exclusivement dans la boucle de passage de _tryBuildProjects",
         "task_projects.nut:OpexRailOriginReuseAirOpportunity": "Appelé exclusivement dans la boucle de passage de _tryBuildProjects",
         "task_projects.nut:OpexC121KPassShadow": "Appelé exclusivement dans la boucle de passage de _tryBuildProjects",
+        "task_v249.nut:OpexLateGameDispatch": "Dispatcher de fin de partie inspectant les projets existants",
         "task_projects.nut:OpexAirC83FundedRaceCoversTown": "Appelé exclusivement dans _c83WatchAirSlotTransitions via _tryBuildProjects",
         "task_projects.nut:OpexC122ThreatFundedMatch": "Appelé exclusivement dans _c83WatchAirSlotTransitions via _tryBuildProjects",
         "task_projects.nut:OpexC122ThreatRegister": "Appelé exclusivement dans _c83WatchAirSlotTransitions via _tryBuildProjects",

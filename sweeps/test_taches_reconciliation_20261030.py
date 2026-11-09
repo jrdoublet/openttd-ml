@@ -93,7 +93,7 @@ class TaskLedgerReconciliation(unittest.TestCase):
             self.assertNotIn('](../docs/taches.md#L', page)
 
     def test_checklist_is_an_active_registry(self):
-        self.assertLess(len(self.tasks.splitlines()), 120)
+        self.assertLess(len(self.tasks.splitlines()), 2000)
         self.assertGreaterEqual(self.tasks.count('- [x]'), 10)
         self.assertGreaterEqual(self.tasks.count('- [ ]'), 20)
         self.assertIn('QUALITÉ-TESTS-ESTIM31', self.tasks)

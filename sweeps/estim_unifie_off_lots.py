@@ -178,6 +178,56 @@ def estim_off(name, code):
         assert guarded.count(anchor) == old.count(anchor) == 1
         hunks[1] = (guarded.replace(anchor, anchor + addition, 1),
                     old.replace(anchor, anchor + addition, 1))
+    if name == "projects_models.nut":
+        prior_line = "return ESTIM_K_R.rail * profile / ESTIM_K_R_PRIOR.rail;"
+        duel_line = "return ESTIM_K_R.rail * profile / 0.92; /* Le profil DUEL est centre sur 0.92, meme si le prior experimental change. */"
+        if duel_line in code:
+            hunks = list(hunks)
+            guarded, old = hunks[2]
+            hunks[2] = (guarded.replace(prior_line, duel_line, 1), old)
+    if name == "task_v249.nut" and "LATE_GAME_POLICY" in code:
+        hunks = list(hunks)
+        late_guarded = (
+            "  }\n"
+            "  if (cashStop) {\n"
+            '    if (DECISION_LOG) OpexDecide("V249_SKIP", "reason=cash_stop");\n'
+            "    return true;\n"
+            "  }\n\n"
+            "  local res = false;\n"
+            "  if (V249_STATUE == 2 || (ESTIM_UNIFIE & 4) != 0) {\n"
+            "    res = OpexV249DispatchMode2(this, ym, year);\n"
+            "  }\n"
+            "  if (LATE_GAME_POLICY != 0) {\n"
+            "    res = OpexLateGameDispatch(this, ym, year) || res;\n"
+            "  }\n"
+            "  if (V249_STATUE == 2 || (ESTIM_UNIFIE & 4) != 0 || LATE_GAME_POLICY != 0) {\n"
+            "    return res;\n"
+            "  }\n\n"
+            "  local byTown = {};\n"
+            "  local nLines = 0;\n"
+            "  if (this._lines != null) {\n"
+        )
+        late_old = (
+            "  }\n"
+            "  if (cashStop) {\n"
+            '    if (DECISION_LOG) OpexDecide("V249_SKIP", "reason=cash_stop");\n'
+            "    return true;\n"
+            "  }\n\n"
+            "  local res = false;\n"
+            "  if (V249_STATUE == 2) {\n"
+            "    res = OpexV249DispatchMode2(this, ym, year);\n"
+            "  }\n"
+            "  if (LATE_GAME_POLICY != 0) {\n"
+            "    res = OpexLateGameDispatch(this, ym, year) || res;\n"
+            "  }\n"
+            "  if (V249_STATUE == 2 || LATE_GAME_POLICY != 0) {\n"
+            "    return res;\n"
+            "  }\n\n"
+            "  local byTown = {};\n"
+            "  local nLines = 0;\n"
+            "  if (this._lines != null) {\n"
+        )
+        hunks[7] = (late_guarded, late_old)
     states = []
     for index, (guarded, old) in enumerate(hunks):
         on_at = _unique_location(code, guarded, name, index)

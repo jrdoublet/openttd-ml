@@ -6,6 +6,10 @@ from sweeps.estim31_v161_motorcap_prepare_20261030 import (
 
 
 class V161MotorCapContracts(unittest.TestCase):
+    def setUp(self):
+        if not BASE.exists() or not DEST.exists():
+            raise unittest.SkipTest("artefacts transitoires de campagne absents")
+
     def test_exact_union_of_parent_source_differences(self):
         for name in NAMES:
             self.assertTrue((DEST / name).is_dir())

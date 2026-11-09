@@ -40,7 +40,47 @@ def merge_source(name):
     return (ROOT / "ai/OpexAI" / name).read_text(encoding="utf-8")
 
 
+OVERNIGHT_GLOBALS = (
+    "FAIR_PLAY_COURTESY <- false; // Mode courtoisie pour parties normales/humaines (defaut OFF).\n"
+    "EB10_GUARDS <- false; // EB-10 : garde sentinelle 65535 industrie et acceptation express urbaine >= 8 (defaut OFF).\n"
+    "AIR_COVERAGE_STOP <- 0; // AIR-COVERAGE-STOP : mise en veille du scan de villes/sites aeroport apres epuisement (defaut 0).\n"
+    "AIR_COVERAGE_EXHAUSTED <- false;\n"
+    "AIR_NEW_TOWN_QUEUE <- [];\n"
+    "IDLE1_SLACK_WORKER <- 1; // OPCODES/IDLE-1 : valorisation du reliquat de tick pour travail de fond (defaut 1 depuis le 08/11).\n"
+    "IDLE1_SLACK_RESERVE <- 2500; // Marge de securite anti-franchissement de tick.\n"
+    "IDLE1_TOWN_CURSOR <- 0;\n"
+    "PO02_INDEPENDENT_EXPIRY <- 0; // PO-02 : echeance de publication propre a chaque vivier modal (defaut 0).\n"
+    "PO02_LAST_PUBLISH_DATE <- { air = 0, rail = 0, road = 0, water = 0 };\n"
+    "EB4_AIR_ROAD_ARBITRAGE <- 0; // EB-4 : arbitrage de caisse 1970-1972 entre air et route (defaut 0).\n"
+    "EB7_DETAILED_ACCOUNTING <- 1; // EB-7 : comptabilite fine et passive des depenses reelles AIR/ROUTE (defaut 1 depuis le 08/11).\n"
+    "EB7_LEDGER <- { capexRoad = 0, capexAir = 0, vehBuyAir = 0, lastCash = 0, lastLoan = 0 };\n"
+    "LATE_GAME_POLICY <- 0; // LATE-GAME-1 : reinvestissement de l'excedent de tresorerie tardif (defaut 0).\n"
+    "MULTI1_RELANCE <- 0; // MULTI-1 : conditions de relance du multimodal tardif (0=off, 1=shadow, 2=on).\n"
+    "MULTI1_LAST_BUILD_DATE <- 0;\n"
+)
+OVERNIGHT_SETTINGS = (
+    '  FAIR_PLAY_COURTESY = AIController.GetSetting("fair_play_courtesy") == 1;\n'
+    '  if (FAIR_PLAY_COURTESY) OPEX_LEVEL_LIMITS = true;\n'
+    '  EB10_GUARDS = AIController.GetSetting("eb10_guards") == 1;\n'
+    '  AIR_COVERAGE_STOP = AIController.GetSetting("air_coverage_stop") == 1 ? 1 : 0;\n'
+    '  IDLE1_SLACK_WORKER = AIController.GetSetting("idle1_slack_worker") == 1 ? 1 : 0;\n'
+    '  PO02_INDEPENDENT_EXPIRY = AIController.GetSetting("po02_independent_expiry") == 1 ? 1 : 0;\n'
+    '  EB4_AIR_ROAD_ARBITRAGE = AIController.GetSetting("eb4_air_road_arbitrage") == 1 ? 1 : 0;\n'
+    '  EB7_DETAILED_ACCOUNTING = AIController.GetSetting("eb7_detailed_accounting") == 1 ? 1 : 0;\n'
+    '  LATE_GAME_POLICY = AIController.GetSetting("late_game_policy");\n'
+    '  MULTI1_RELANCE = AIController.GetSetting("multi1_relance");\n'
+)
+OVERNIGHT_SETTINGS_DISTRICT = '  FAIR_PLAY_COURTESY = AIController.GetSetting("fair_play_courtesy") == 1;\n'
+
+
 def merged_off(name, text):
+    if name == "globals_pre.nut" and OVERNIGHT_GLOBALS in text:
+        text = text.replace(OVERNIGHT_GLOBALS, "")
+    elif name == "settings.nut":
+        if OVERNIGHT_SETTINGS in text:
+            text = text.replace(OVERNIGHT_SETTINGS, "")
+        if OVERNIGHT_SETTINGS_DISTRICT in text:
+            text = text.replace(OVERNIGHT_SETTINGS_DISTRICT, "")
     if name in ("globals_pre.nut", "settings.nut"):
         text = off_config_bytes(name, text.encode("utf-8")).decode("utf-8")
     return v233_off(name, road_off(name, text))

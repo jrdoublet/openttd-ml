@@ -9,7 +9,10 @@ import statistics
 from collections import Counter, defaultdict
 from glob import glob
 
-import numpy as np
+try:
+    import numpy as np
+except (ImportError, ModuleNotFoundError):
+    np = None
 from analyse_calibration_projets import KV_RE, LINE_RE, SEED_RE, open_text
 
 

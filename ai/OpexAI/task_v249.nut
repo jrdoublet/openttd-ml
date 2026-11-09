@@ -460,9 +460,56 @@ function OpexV249DispatchMode2(ai, ym, year)
   return true;
 }
 
+/* LATE-GAME-1 : Reinvestissement de l'excedent de tresorerie tardif (post-1976). */
+function OpexLateGameDispatch(ai, ym, year)
+{
+  if (!LATE_GAME_POLICY) return false;
+  if (year < 1976) return false;
+  local loan = AICompany.GetLoanAmount();
+  if (loan > 0) return false;
+  if (ai._projects != null && ai._projects.best != null && ai._projects.best.len() > 0) return false;
+  local cash = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+  local v252Cost = OpexV249GetPendingV252Cost(ai);
+  local reserve = (v252Cost * 2) + 5000000;
+  if (cash <= reserve) return false;
+
+  if (LATE_GAME_POLICY == 1) {
+    if (ai._lines == null || ai._lines.len() == 0) return false;
+    local bestTown = -1;
+    local bestScore = -1;
+    foreach (line in ai._lines) {
+      if (line == null) continue;
+      local tid = -1;
+      if (("srcTown" in line) && line.srcTown >= 0) tid = line.srcTown;
+      else if (("dstTown" in line) && line.dstTown >= 0) tid = line.dstTown;
+      if (tid >= 0 && AITown.IsValidTown(tid)) {
+        if (AITown.IsActionAvailable(tid, AITown.TOWN_ACTION_ADVERTISE_SMALL)) {
+          local pop = AITown.GetPopulation(tid);
+          if (pop > bestScore) {
+            bestScore = pop;
+            bestTown = tid;
+          }
+        }
+      }
+    }
+    if (bestTown >= 0) {
+      local done = AITown.PerformTownAction(bestTown, AITown.TOWN_ACTION_ADVERTISE_SMALL);
+      if (DECISION_LOG) {
+        OpexDecide("LATE_GAME_ACTION", "policy=1 action=advertise town=" + bestTown + " success=" + (done ? 1 : 0) + " cash=" + cash);
+      }
+      return done;
+    }
+  } else if (LATE_GAME_POLICY == 2) {
+    if (DECISION_LOG) {
+      OpexDecide("LATE_GAME_ACTION", "policy=2 status=inspected cash=" + cash);
+    }
+  }
+  return false;
+}
+
 function OpexAI::_dispatchV249Statue(task, year)
 {
-  if (!V249_STATUE) return false;
+  if (!V249_STATUE && !LATE_GAME_POLICY) return false;
   local date = AIDate.GetCurrentDate();
   local ym = year * 12 + AIDate.GetMonth(date);
   if (this._v249StatueMonth == ym) return false;
@@ -480,8 +527,15 @@ function OpexAI::_dispatchV249Statue(task, year)
     return true;
   }
 
+  local res = false;
   if (V249_STATUE == 2 || (ESTIM_UNIFIE & 4) != 0) {
-    return OpexV249DispatchMode2(this, ym, year);
+    res = OpexV249DispatchMode2(this, ym, year);
+  }
+  if (LATE_GAME_POLICY != 0) {
+    res = OpexLateGameDispatch(this, ym, year) || res;
+  }
+  if (V249_STATUE == 2 || (ESTIM_UNIFIE & 4) != 0 || LATE_GAME_POLICY != 0) {
+    return res;
   }
 
   local byTown = {};

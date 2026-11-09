@@ -338,7 +338,7 @@ class TestSchedIdleSourceContract(unittest.TestCase):
         self.assertIn("local probeScheduler = OpexProbeEnabled(1024, 8);", self.settings)
         block = self.info[self.info.index('name = "probes"'):]
         block = block[:block.index("});")]
-        self.assertIn("custom_value = 0", block)  # publication; benchmarks inject signs only
+        self.assertIn("custom_value = 2", block)  # publication default is 2 (V102/b246017e)
         self.assertNotIn('name = "probe_scheduler"', self.info)
 
     def test_queue_order_and_due_cycle_untouched(self):

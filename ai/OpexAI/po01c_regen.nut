@@ -730,6 +730,16 @@ function OpexPO01CStart(owner)
       needed = true;
     }
     if (needed && mode == "air" && airPending) continue;
+    if (PO02_INDEPENDENT_EXPIRY && !needed && OpexPO01CModeEnabled(mode)) {
+      local now = AIDate.GetCurrentDate();
+      local lastPub = (mode in PO02_LAST_PUBLISH_DATE) ? PO02_LAST_PUBLISH_DATE[mode] : 0;
+      local ttl = (mode == "water") ? 90 : 30;
+      if (lastPub == 0) {
+        PO02_LAST_PUBLISH_DATE[mode] = now;
+      } else if (now - lastPub >= ttl) {
+        needed = true;
+      }
+    }
     coveredModes.append(mode);
     if (!needed || !OpexPO01CModeEnabled(mode)) continue;
     modes.append(mode);
@@ -795,6 +805,12 @@ function OpexPO01CAcknowledge(owner, s)
   }
   /* A shared revision is acknowledged only after EVERY consumer covers it.
    * Never read current revisions here (AC06 v2). */
+  if (PO02_INDEPENDENT_EXPIRY) {
+    local now = AIDate.GetCurrentDate();
+    foreach (mode in s.modes) {
+      if (mode in PO02_LAST_PUBLISH_DATE) PO02_LAST_PUBLISH_DATE[mode] = now;
+    }
+  }
   foreach (layer in ["towns", "industries", "lines", "engines.rail", "engines.road", "engines.air", "engines.water"]) {
     local covered = OpexAC06SnapshotLayer(s.snapshot, layer);
     foreach (mode in ["air", "rail", "road", "water", "fleet"]) {

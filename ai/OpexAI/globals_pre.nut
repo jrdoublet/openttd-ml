@@ -290,6 +290,22 @@ AIR_PAX_REVENUE_CALIBRATION_PCT <- 104;
 DEBUG_SIGNS <- true;
 /* V167 : masque du reglage `probes` apres expansion du bit 1 (voir settings.nut). */
 OPEX_PROBE_MASK <- 2;
+FAIR_PLAY_COURTESY <- false; // Mode courtoisie pour parties normales/humaines (defaut OFF).
+EB10_GUARDS <- false; // EB-10 : garde sentinelle 65535 industrie et acceptation express urbaine >= 8 (defaut OFF).
+AIR_COVERAGE_STOP <- 0; // AIR-COVERAGE-STOP : mise en veille du scan de villes/sites aeroport apres epuisement (defaut 0).
+AIR_COVERAGE_EXHAUSTED <- false;
+AIR_NEW_TOWN_QUEUE <- [];
+IDLE1_SLACK_WORKER <- 1; // OPCODES/IDLE-1 : valorisation du reliquat de tick pour travail de fond (defaut 1 depuis le 08/11).
+IDLE1_SLACK_RESERVE <- 2500; // Marge de securite anti-franchissement de tick.
+IDLE1_TOWN_CURSOR <- 0;
+PO02_INDEPENDENT_EXPIRY <- 0; // PO-02 : echeance de publication propre a chaque vivier modal (defaut 0).
+PO02_LAST_PUBLISH_DATE <- { air = 0, rail = 0, road = 0, water = 0 };
+EB4_AIR_ROAD_ARBITRAGE <- 0; // EB-4 : arbitrage de caisse 1970-1972 entre air et route (defaut 0).
+EB7_DETAILED_ACCOUNTING <- 1; // EB-7 : comptabilite fine et passive des depenses reelles AIR/ROUTE (defaut 1 depuis le 08/11).
+EB7_LEDGER <- { capexRoad = 0, capexAir = 0, vehBuyAir = 0, lastCash = 0, lastLoan = 0 };
+LATE_GAME_POLICY <- 0; // LATE-GAME-1 : reinvestissement de l'excedent de tresorerie tardif (defaut 0).
+MULTI1_RELANCE <- 0; // MULTI-1 : conditions de relance du multimodal tardif (0=off, 1=shadow, 2=on).
+MULTI1_LAST_BUILD_DATE <- 0;
 /* Mesure ponctuelle : un panneau par ligne reussie, donc desactivee par defaut pour ne pas
  * changer le profil d'opcodes de la baseline. */
 RAIL_COST_PROBE <- false;

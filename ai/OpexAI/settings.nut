@@ -70,6 +70,16 @@ function OpexLoadSettings()
   OPEX_DIFFICULTY = OpexResolveDifficulty();
   OPEX_LEVEL_LIMITS = !OpexLevelAllows("encroach_rival_catchment") || !OpexLevelAllows("compete_primary_industry")
       || !OpexLevelAllows("airport_rival_town") || !OpexLevelAllows("preempt_last_airport_slot");
+  FAIR_PLAY_COURTESY = AIController.GetSetting("fair_play_courtesy") == 1;
+  if (FAIR_PLAY_COURTESY) OPEX_LEVEL_LIMITS = true;
+  EB10_GUARDS = AIController.GetSetting("eb10_guards") == 1;
+  AIR_COVERAGE_STOP = AIController.GetSetting("air_coverage_stop") == 1 ? 1 : 0;
+  IDLE1_SLACK_WORKER = AIController.GetSetting("idle1_slack_worker") == 1 ? 1 : 0;
+  PO02_INDEPENDENT_EXPIRY = AIController.GetSetting("po02_independent_expiry") == 1 ? 1 : 0;
+  EB4_AIR_ROAD_ARBITRAGE = AIController.GetSetting("eb4_air_road_arbitrage") == 1 ? 1 : 0;
+  EB7_DETAILED_ACCOUNTING = AIController.GetSetting("eb7_detailed_accounting") == 1 ? 1 : 0;
+  LATE_GAME_POLICY = AIController.GetSetting("late_game_policy");
+  MULTI1_RELANCE = AIController.GetSetting("multi1_relance");
 
   /* --- 2. Interrupteurs de mode et options rail --- */
 
@@ -728,6 +738,7 @@ function OpexLoadSettings()
 function OpexLoadBusDistrictSettings()
 {
   /* Appele au chargement, avant Start : MODE_* n'est pas encore pose. */
+  FAIR_PLAY_COURTESY = AIController.GetSetting("fair_play_courtesy") == 1;
   local road1yRoadOnly = AIController.GetSetting("mode_road") != 0
       && AIController.GetSetting("mode_air") == 0
       && AIController.GetSetting("mode_rail") == 0

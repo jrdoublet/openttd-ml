@@ -341,6 +341,10 @@ function OpexAI::_tryBuildFleetProject(year, project, rank, passDiscards, builtK
     return { outcome = "rejected", discards = passDiscards };
   }
   if (airF1Event != null) OpexAirF1After(airF1Event, "built", added, replaced);
+  if (EB7_DETAILED_ACCOUNTING && (added > 0 || replaced > 0)) {
+    local plannedAdded = entry.planePrice * (added + replaced);
+    OpexEB7RecordSpend("air", "vehBuy", plannedAdded);
+  }
   if (C63_INVEST_PROBE) {
     local plannedAdded = entry.planePrice * (added + replaced);
     if (plannedAdded > plannedFull) plannedAdded = plannedFull;
@@ -1067,6 +1071,7 @@ function OpexAI::_finalizeC75PassOutcome(year, builtCount, c75KPassData, c75Stop
   if (V249_STATUE && c75StopReason == "cash") ::V249_CASH_STOP = true;
   if (c75StopReason == "cash") ::V252_CASH_STOP = true;
   if (V250_RIGHTS == 1 && c75StopReason == "cash") ::V250_CASH_STOP = true;
+  if (EB7_DETAILED_ACCOUNTING) OpexEB7MonthlyReconciliation();
   return c75StopReason;
 }
 
@@ -1500,10 +1505,15 @@ function OpexAI::_tryBuildProjects(year)
         if (attempt.outcome == "built") fallthroughBuilt++;
       }
       if (attempt.outcome == "built") {
+        if (EB7_DETAILED_ACCOUNTING) {
+          local spent = ("actualCost" in attempt) ? attempt.actualCost : (("capital" in project) ? project.capital : 0);
+          OpexEB7RecordSpend("air", "capex", spent);
+        }
         if (c121FirstYearAirBatch) {
           c121AirBuilt++;
           if (c121ChainAttempt) c121AirChained++;
         }
+        if (MULTI1_RELANCE) MULTI1_LAST_BUILD_DATE = AIDate.GetCurrentDate();
         this._recordPortfolioProjectBuilt(project, i, c75BuiltKeys, c69BuiltProjects);
         builtCount++;
         if (airTouchedTowns == null) airTouchedTowns = {};
@@ -1532,7 +1542,12 @@ function OpexAI::_tryBuildProjects(year)
         if (attempt.outcome == "built") fallthroughBuilt++;
       }
       if (attempt.outcome == "built") {
+        if (EB7_DETAILED_ACCOUNTING) {
+          local spent = ("actualCost" in attempt) ? attempt.actualCost : (("capital" in project) ? project.capital : 0);
+          OpexEB7RecordSpend("road", "capex", spent);
+        }
         if (PROBE_SPAN_TRACE) OpexSpanEvent("line_built", "mode=road built=1");
+        if (MULTI1_RELANCE) MULTI1_LAST_BUILD_DATE = AIDate.GetCurrentDate();
         this._recordPortfolioProjectBuilt(project, i, c75BuiltKeys, c69BuiltProjects);
         builtCount++;
 

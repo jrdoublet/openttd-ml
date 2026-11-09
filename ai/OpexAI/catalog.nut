@@ -870,7 +870,8 @@ function OpexCatalog::_refreshTowns()
     foreach (cargo in this.cargos) {
       if (cargo == this.paxCargo) continue;
       local acceptance = AITile.GetCargoAcceptance(tile, cargo, 2, 2, this.railCoverage > 0 ? this.railCoverage : 4);
-      if (acceptance >= 8 || (pop >= 300 && AICargo.HasCargoClass(cargo, AICargo.CC_EXPRESS))) {
+      local acceptValid = EB10_GUARDS ? (acceptance >= 8) : (acceptance >= 8 || (pop >= 300 && AICargo.HasCargoClass(cargo, AICargo.CC_EXPRESS)));
+      if (acceptValid) {
         if (!(cargo in this.townAcceptors)) this.townAcceptors.rawset(cargo, []);
         this.townAcceptors[cargo].append(townObj);
       }

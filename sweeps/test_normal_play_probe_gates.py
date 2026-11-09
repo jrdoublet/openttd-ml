@@ -103,7 +103,7 @@ class NormalPlayProbeGateContracts(unittest.TestCase):
         self.assertIn('DEBUG_SIGNS = (probes & 2) != 0;', settings)
         spec = info.split('name = "probes"', 1)[1].split("});", 1)[0]
         for level in ("easy", "medium", "hard", "custom"):
-            self.assertRegex(spec, rf"\b{level}_value\s*=\s*0\b")
+            self.assertRegex(spec, rf"\b{level}_value\s*=\s*2\b")
 
     def test_vs_vl_are_local_and_not_decision_state(self) -> None:
         body = self.lines

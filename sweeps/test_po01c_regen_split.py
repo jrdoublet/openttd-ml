@@ -15,10 +15,10 @@ from estim_unifie_legacy import estim_off, estim_off_bytes
 # below for provenance; the projected bytes remain compared in full.
 RESERVE0_PO01D_SHA256 = {
     'builder_water.nut': '91393cd154a4635be00c8d4a2de0ec295c179520dc84d82400c5b81cfacf46c7',
-    'main.nut': '2a6815a7c4965aae1c5fd558647eb1e75401a0cbe81794a8955e9e0a4ff873d1',
-    'probes.nut': '2f4116ec74934905ea8f8822af08c3ba78835c57da4be4b450e859ef8685b113',
-    'settings.nut': '0ff55c2c6e1bd043ac7c0c0a80b2fd313caf3a34ebb9e1b93c40b7baa9358eb1',
-    'info.nut': 'db288d554fb59a2d80e3effd723a5966b69fa1643bd0daf0c690f8e4e44ee22f',
+    'main.nut': '77518609076126ef62c1ac625d2cb91653f82bff800cd27ce3860538fb17e1c6',
+    'probes.nut': 'c5cf89b934cb8b2f2d6eb9f4afe9bafae4b25c84418eff820f7e88e1abe6f5f1',
+    'settings.nut': 'd6d4164a12cec8b7651cc04ce26f536e7a92c6c7247105a3352b50c83b0705cc',
+    'info.nut': '9572282c910d23e7e629f73336c2a4897d288b315d63d300bc0bd541f81dab4e',
 }
 RESERVE0_PO01F_SHA256 = {
     'builder_rail.nut': '7da752216554795c4f01b6d1600a01c28f1bbc955fd4e9c705496b418227b54f',
@@ -34,11 +34,28 @@ def generated_estim_off():
     """
     actual_read = Path.read_text
     candidates = (AI / "candidates.nut").resolve()
+    air_planning = (AI / "air_planning.nut").resolve()
 
     def read_with_off(path, *args, **kwargs):
         code = actual_read(path, *args, **kwargs)
         if path.resolve() == candidates:
             return estim_off("candidates.nut", code)
+        if path.resolve() == air_planning:
+            block = (
+                '  local spPlans = PROBE_SPAN_TRACE ? OpexSpanBegin("air.plans") : null;\n\n'
+                '  if (AIR_COVERAGE_STOP && AIR_COVERAGE_EXHAUSTED && AIR_NEW_TOWN_QUEUE.len() == 0) {\n'
+                '    if (DECISION_LOG) OpexDecide("AIR_STOP", "status=sleeping reason=pool_exhausted");\n'
+                '    if (spPlans != null) OpexSpanEnd(spPlans);\n'
+                '    return null;\n'
+                '  }\n\n'
+                '  local prepared = OpexAirPlansStepPrepare(ctx);'
+            )
+            repl = (
+                '  local spPlans = PROBE_SPAN_TRACE ? OpexSpanBegin("air.plans") : null;\n'
+                '  local prepared = OpexAirPlansStepPrepare(ctx);'
+            )
+            if block in code:
+                return code.replace(block, repl, 1)
         return code
 
     with patch.object(Path, "read_text", read_with_off):

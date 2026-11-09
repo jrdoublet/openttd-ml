@@ -23,9 +23,12 @@ _MERGED_PRE_V233_SHA = {
     },
     "economy.nut": {
         "7af7993d86b6f2605072caeebf197a6f73361dad947acf7b0dca81cd8a2aad06",
+        "22cbbbf020a5f437f425e914438f0479fd7ae201117beb60278fc7dbc7ffbe94",
     },
     "globals_pre.nut": {
         "83eeb53e34010c64d1fdf0026dd5939b09d91d66389f81902de0da6fda80194d",
+        "c407d1a06a84d6c43457950a6da3f208934a1d7644c7b84ddb9494fcee0fbebd",
+        "89040809f58fa076df6d085420831b4c96c7454c107b1aaad15092700ce90cda",
     },
     "info.nut": {
         "0d8c3fe5d72736df54af53d7a3bfbd87598c8a66b8cfa0ceba16cae7fc92e4f5",
@@ -35,9 +38,16 @@ _MERGED_PRE_V233_SHA = {
         # historical V233 guard or mutating the original fixture.
         "03ed4993d7efe3e4794f64c2cdd76e0a5494dc276fe4504420eab847fa234349",
         "466aa0eee271d4da237633696d12aa7754880ea47f9abba1ac553a879c7a1665",
+        "1422dc87ac5430046a2b23ae3e93502307f951bc1cd3d4c6d13fc4a8c8e573a5",
+        "0c4cae51fac9c5d66822550b49100e12f9d96154873a557c92d0e5879079d847",
+        "a32cc840180783476666d0062691552a1b39a2dea1ee2eebd25c270b8a7e25b0",
+        "232007d98791a14e90c393de4a7372c96d3ff0ae94aab67c967b038c8754ad58",
     },
     "settings.nut": {
         "75afcaa5c58e82c5f8051161c403f8fcb5c13c37daa170048afde5f601dd24c8",
+        "f887cc059b1b878b44635de47ce5f62e44fe34a1c429eda357c1ffc91c7f5e40",
+        "8c9656e7fb823fb55d2ae3a3911bb0c8baa5d7783d9b9fc1faf784bd0843df2b",
+        "89f7a6f3ed32df449f77dae201f080a4a0e710d981adc07e3b8ec3f3996c7e6b",
     },
 }
 
@@ -53,10 +63,16 @@ _MERGED_V233_PROJECTED_SHA = {
     "economy.nut": {
         "7af7993d86b6f2605072caeebf197a6f73361dad947acf7b0dca81cd8a2aad06":
             "a5e75086c455d9b6102a5fc8f2aa0a1210e0b6ec8968314eda191c174e71262c",
+        "22cbbbf020a5f437f425e914438f0479fd7ae201117beb60278fc7dbc7ffbe94":
+            "03197839d606c9372053d446413ff0d4123a7a73c5187fa8faa28088d5f0f72f",
     },
     "globals_pre.nut": {
         "83eeb53e34010c64d1fdf0026dd5939b09d91d66389f81902de0da6fda80194d":
             "320007389a5997fc5d8c52ba06b40966d98644844b27703fd47adb96988df0a0",
+        "c407d1a06a84d6c43457950a6da3f208934a1d7644c7b84ddb9494fcee0fbebd":
+            "550c42bcab97df9fa02cd0ef4876d791ad427aa6294e71318a0f1d78cb26e2aa",
+        "89040809f58fa076df6d085420831b4c96c7454c107b1aaad15092700ce90cda":
+            "6daf407980c06cd85bcde8e0bcfcea73d353f34ea7f559a45fa50869b1543434",
     },
     "info.nut": {
         "0d8c3fe5d72736df54af53d7a3bfbd87598c8a66b8cfa0ceba16cae7fc92e4f5":
@@ -67,10 +83,24 @@ _MERGED_V233_PROJECTED_SHA = {
             "c669d27ea7bfdbaa7fb940a98cdac828b2680ecc6880242184bb6c3b3eb1277d",
         "466aa0eee271d4da237633696d12aa7754880ea47f9abba1ac553a879c7a1665":
             "6fcb3f8e5f33ff8e7be0c5d657de655a051e05fafdfdef44db5c680a8e4907a1",
+        "1422dc87ac5430046a2b23ae3e93502307f951bc1cd3d4c6d13fc4a8c8e573a5":
+            "1598f9f259a8815ffce4bbb952286dd4ec818e517c03f286b91759bbabe50969",
+        "0c4cae51fac9c5d66822550b49100e12f9d96154873a557c92d0e5879079d847":
+            "f0b80e0d40556bf6456f98f9f9eab04abb7ab52a31ed98e0381b540cfb3142b1",
+        "a32cc840180783476666d0062691552a1b39a2dea1ee2eebd25c270b8a7e25b0":
+            "32d4d3e2386a4552b309d596bd67a5c8a78a6b82a97eab3e11a0071f39c3e924",
+        "232007d98791a14e90c393de4a7372c96d3ff0ae94aab67c967b038c8754ad58":
+            "0c276bd2f46b0ea8ae798ee9a65921b5d296c27b30ef8d9a287cd7f35b7b61cf",
     },
     "settings.nut": {
         "75afcaa5c58e82c5f8051161c403f8fcb5c13c37daa170048afde5f601dd24c8":
             "f8359098b70e994d4dcafcf037c0c06bfec9c3eccdb323d79fdb14ceae7e7f2f",
+        "f887cc059b1b878b44635de47ce5f62e44fe34a1c429eda357c1ffc91c7f5e40":
+            "fbc19df588e3234aaa0d67a497dc3253d72158086b48c9ad42fcd2b918c25599",
+        "8c9656e7fb823fb55d2ae3a3911bb0c8baa5d7783d9b9fc1faf784bd0843df2b":
+            "d7866f2b674fdfaaeae201c9c1cee7b20f1a7c9d1470e30cf3f3fb3b90a84513",
+        "89f7a6f3ed32df449f77dae201f080a4a0e710d981adc07e3b8ec3f3996c7e6b":
+            "611c6354c7698d7c9d1eada16c8e542b1149c5732c8de7db73fa59b273815a92",
     },
 }
 
@@ -167,6 +197,22 @@ def off_source(name, code):
     code = estim_off(name, code)
     from air_site_probe_legacy import off_source as air_probe_off
     code = air_probe_off(name, code)
+    if name == "lines.nut" and "if (EB10_GUARDS" in code:
+        eb10_lines = (
+            '    if (EB10_GUARDS && ("dstTown" in candidate) && candidate.dstTown >= 0 && (dst < 0 || dst == 65535 || !AIIndustry.IsValidIndustry(dst))) dst = "t" + candidate.dstTown;\n'
+            '    if (EB10_GUARDS && ("srcTown" in candidate) && candidate.srcTown >= 0 && (src < 0 || src == 65535 || !AIIndustry.IsValidIndustry(src))) src = "t" + candidate.srcTown;\n'
+            '    if (EB10_GUARDS) return candidate.kind + "|" + candidate.cargo + "|" + src + "|" + dst;\n'
+        )
+        if code.count(eb10_lines) == 1:
+            code = code.replace(eb10_lines, "", 1)
+    if name == "po01c_generators.nut" and "EB10_GUARDS" in code:
+        eb10_gen_block = (
+            '      local acceptValid = EB10_GUARDS ? (acceptance >= 8) : (acceptance >= 8 || (pop >= 300 && AICargo.HasCargoClass(cargo, AICargo.CC_EXPRESS)));\n'
+            '      if (acceptValid) {'
+        )
+        eb10_gen_orig = '      if (acceptance >= 8 || (pop >= 300 && AICargo.HasCargoClass(cargo, AICargo.CC_EXPRESS))) {'
+        if code.count(eb10_gen_block) == 1:
+            code = code.replace(eb10_gen_block, eb10_gen_orig, 1)
     entry = FIXTURE["files"].get(name)
     if entry is None:
         return code

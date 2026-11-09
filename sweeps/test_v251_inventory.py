@@ -63,10 +63,11 @@ class TestV251Inventory(unittest.TestCase):
         # road1y_spread_stops: default 0, removed by the same B2 historical projection.
         # B2 fixes adds one default-OFF bitmask for isolated one-year diagnostics.
         # master: eb2 fallback + 4 rail repair profiles and V233L counterfactual.
-        self.assertLessEqual(info.count("AddSetting("), 75)
+        self.assertLessEqual(info.count("AddSetting("), 85)
         # After the precise legacy projectors, preserve the master inventory:
         # origin/master 44d9313e already projects to 68 settings (not 58).
         # The extra ten belong to master, not to V251 or the rail merge.
+        # fair_play_courtesy and the 8 overnight levers are projected OFF by historical_info (68).
         self.assertEqual(info.count("AddSetting("), 68)
         self.assertNotIn('name = "v251', info)
         settings = self.sources["settings.nut"]

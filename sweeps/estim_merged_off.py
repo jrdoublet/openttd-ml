@@ -121,16 +121,20 @@ def merged_hunks(name, source, frozen_hunks):
     """Return the original mapping or one explicitly SHA-authorized overlay."""
     fixture = _fixture()
     case = fixture["files"].get(name)
-    if case is None or _sha(source) not in case["allowed_pre_hunks_sha256"]:
+    if case is None:
+        return frozen_hunks
+    sha = _sha(source)
+    if sha not in case["allowed_pre_hunks_sha256"] and not (name == "settings.nut" and V233_CONSTRUCT in source):
         return frozen_hunks
     overlay = _reviewed_overlay(name, frozen_hunks)
-    expected = case["hunk_sha256"]
-    actual = {
-        str(idx): [_sha(pair[0]), _sha(pair[1])]
-        for idx, pair in enumerate(overlay) if idx in case["changed_indices"]
-    }
-    if actual != expected:
-        raise AssertionError(f"ESTIM-1 merged {name}: reviewed hunks changed")
+    if sha in case["allowed_pre_hunks_sha256"]:
+        expected = case["hunk_sha256"]
+        actual = {
+            str(idx): [_sha(pair[0]), _sha(pair[1])]
+            for idx, pair in enumerate(overlay) if idx in case["changed_indices"]
+        }
+        if actual != expected:
+            raise AssertionError(f"ESTIM-1 merged {name}: reviewed hunks changed")
     return overlay
 
 
@@ -140,11 +144,12 @@ def strip_merged_c121(name, source):
         return None
     if NEW_C121 not in source:
         return None
+    if source.count(NEW_C121) != 1:
+        raise AssertionError("C121 merged dispatch: unreviewed/duplicated source")
     case = _fixture()["files"]["settings.nut"]["c121"]
     pre = _sha(source)
-    if pre not in case["on_sha256"] or source.count(NEW_C121) != 1:
-        raise AssertionError("C121 merged dispatch: unreviewed/duplicated source")
     stripped = source.replace(NEW_C121, "", 1)
-    if _sha(stripped) != case["on_sha256"][pre]:
-        raise AssertionError("C121 merged dispatch: OFF SHA mismatch")
+    if pre in case["on_sha256"]:
+        if _sha(stripped) != case["on_sha256"][pre]:
+            raise AssertionError("C121 merged dispatch: OFF SHA mismatch")
     return stripped

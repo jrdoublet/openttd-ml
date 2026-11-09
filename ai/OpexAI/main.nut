@@ -888,6 +888,7 @@ function OpexAI::Start()
       if (spC67 != null) OpexSpanEnd(spC67);
     }
     if (V309_IDLE_PROBE) OpexV309IdleTick(this);
+    if (IDLE1_SLACK_WORKER) this._idle1SlackStep();
     local spSleep = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.sleep") : null;
     AIController.Sleep(1);
     if (spSleep != null) OpexSpanEnd(spSleep);

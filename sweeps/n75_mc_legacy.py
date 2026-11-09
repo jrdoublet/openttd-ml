@@ -1093,6 +1093,18 @@ def historical_bytes(name, raw):
         for insertion in P3_PROBES_CALLS:
             assert raw.count(insertion) == 1, "P3 C117 call changed or duplicated"
             raw = raw.replace(insertion, b"", 1)
+    if name == "info.nut":
+        import re
+        overnight_settings = (
+            b"fair_play_courtesy", b"eb10_guards", b"air_coverage_stop",
+            b"idle1_slack_worker", b"po02_independent_expiry",
+            b"eb4_air_road_arbitrage", b"eb7_detailed_accounting",
+            b"late_game_policy", b"multi1_relance",
+        )
+        for s in overnight_settings:
+            m = re.search(rb'    AddSetting\(\{\s*name = "' + s + rb'".*?\}\);\n', raw, re.DOTALL)
+            if m:
+                raw = raw.replace(m.group(0), b"", 1)
     return raw
 
 

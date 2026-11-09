@@ -40,7 +40,11 @@ OPEX_DIFFICULTY_MIN_LEVEL <- {
 
   /* Levier B : gares */
   compete_primary_industry = 2,
-  encroach_rival_catchment = 1
+  encroach_rival_catchment = 1,
+
+  /* Courtoisie parties normales : panneaux et superposition budgetaires. */
+  debug_signs = 2,
+  budget_sign_overlay = 2
 };
 
 /* Consultation unique d'autorisation d'une fonctionnalite selon le niveau actif. */
@@ -51,4 +55,22 @@ function OpexLevelAllows(feature)
     return OPEX_DIFFICULTY >= OPEX_DIFFICULTY_MIN_LEVEL[feature];
   }
   return true;
+}
+
+/* Garde universelle des panneaux sur la carte en mode courtoisie. */
+function OpexSignAllowed(kind)
+{
+  if (FAIR_PLAY_COURTESY) return false;
+  if (kind == "budget") return OpexLevelAllows("budget_sign_overlay");
+  return OpexLevelAllows("debug_signs");
+}
+
+/* Nettoyage des panneaux budgetaires existants lors d'un basculement ou rechargement. */
+function OpexClearBudgetSigns(budgetSignIds)
+{
+  if (budgetSignIds == null) return;
+  foreach (k, signId in budgetSignIds) {
+    if (AISign.IsValidSign(signId)) AISign.RemoveSign(signId);
+  }
+  budgetSignIds.clear();
 }

@@ -36,11 +36,13 @@ function OpexC50ResetNonExpansionLedger()
 function OpexSign(anchor, name)
 {
   if (!DEBUG_SIGNS) return;
+  if (!OpexSignAllowed("debug_signs")) return;
   if (name != null && name.len() > 31) name = name.slice(0, 31);
   AISign.BuildSign(anchor, name);
 }
 function OpexDecide(kind, fields)
 {
+  if (FAIR_PLAY_COURTESY && kind != "LOAD_RECONCILE") return;
   local date = AIDate.GetCurrentDate();
   if (_currentTaskName != null && !_currentTaskLogged && kind != "TASK") {
     _currentTaskLogged = true;
@@ -3214,6 +3216,7 @@ function OpexAI::_mainLoopProfiled()
     }
     OpexLoopProfAddRaw("sleep_left", AIController.GetOpsTillSuspend(), 0);
     if (V309_IDLE_PROBE) OpexV309IdleTick(this);
+    if (IDLE1_SLACK_WORKER) this._idle1SlackStep();
     local spSleep = PROBE_SPAN_TRACE ? OpexSpanBegin("loop.sleep") : null;
     AIController.Sleep(1);
     if (spSleep != null) OpexSpanEnd(spSleep);

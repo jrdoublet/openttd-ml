@@ -16,7 +16,7 @@ class PublicationProbesDefault(unittest.TestCase):
         text = (ROOT / "ai/OpexAI/info.nut").read_text()
         block = text.split('name = "probes"', 1)[1].split("});", 1)[0]
         for level in ("easy", "medium", "hard", "custom"):
-            self.assertRegex(block, rf"\b{level}_value\s*=\s*0\b")
+            self.assertRegex(block, rf"\b{level}_value\s*=\s*2\b")
         self.assertRegex(text, r"GetVersion\(\)\s*\{ return 8;")
         self.assertRegex(text, r'GetDate\(\)\s*\{ return "2026-10-24";')
 
@@ -50,7 +50,7 @@ class PublicationProbesDefault(unittest.TestCase):
         info = ROOT / "ai/OpexAI/info.nut"
         automatic = effective_ai_settings(info)
         explicit = effective_ai_settings(info, (("probes", 2),))
-        self.assertEqual(automatic["defaults"]["probes"], 0)
+        self.assertEqual(automatic["defaults"]["probes"], 2)
         self.assertEqual(automatic["explicit"], {})
         self.assertEqual(automatic["benchmark_injected"], {"probes": 2})
         self.assertEqual(automatic["effective"], explicit["effective"])

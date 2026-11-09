@@ -757,6 +757,19 @@ function OpexAI::Save()
     if (ROAD100_LONG_SHADOW_YEAR >= 0) shortSave.road100LongShadowYear <- ROAD100_LONG_SHADOW_YEAR;
     if (EB14_PROGRESSIVE && EB14_RAIL_JOURNAL_STATE != null)
       shortSave.eb14RailJournal <- EB14_RAIL_JOURNAL_STATE;
+    if (AIR_COVERAGE_STOP) {
+      shortSave.airCoverageExhausted <- AIR_COVERAGE_EXHAUSTED;
+      shortSave.airNewTownQueue <- AIR_NEW_TOWN_QUEUE;
+    }
+    if (PO02_INDEPENDENT_EXPIRY) {
+      shortSave.po02LastPublishDate <- PO02_LAST_PUBLISH_DATE;
+    }
+    if (EB7_DETAILED_ACCOUNTING) {
+      shortSave.eb7Ledger <- EB7_LEDGER;
+    }
+    if (MULTI1_RELANCE) {
+      shortSave.multi1LastBuildDate <- MULTI1_LAST_BUILD_DATE;
+    }
     if (DECISION_LOG && startOps != null) {
       local endOps = AIController.GetOpsTillSuspend();
       local opsSpent = startOps - endOps;
@@ -957,10 +970,29 @@ function OpexAI::Load(version, data)
   if ("waterBuilt" in data) this._waterBuilt = data.waterBuilt;
   if ("abandonedPairs" in data && data.abandonedPairs != null) {
     this._abandonedPairs = {};
-    foreach (key, val in data.abandonedPairs) this._abandonedPairs[key] <- val;
+    foreach (key, val in data.abandonedPairs) {
+      if (EB10_GUARDS && typeof key == "string" && key.len() >= 6 && key.slice(key.len() - 6) == "|65535") continue;
+      this._abandonedPairs[key] <- val;
+    }
     if (V279_RESELECT_MEMO != 0) OPEX_ABANDON_REVISION++;
   }
   if ("lines" in data) this._pendingLines = data.lines;
+  if (AIR_COVERAGE_STOP && ("airCoverageExhausted" in data))
+    AIR_COVERAGE_EXHAUSTED = data.airCoverageExhausted;
+  else
+    AIR_COVERAGE_EXHAUSTED = false;
+  if (AIR_COVERAGE_STOP && ("airNewTownQueue" in data) && typeof data.airNewTownQueue == "array")
+    AIR_NEW_TOWN_QUEUE = data.airNewTownQueue;
+  else
+    AIR_NEW_TOWN_QUEUE = [];
+  if (PO02_INDEPENDENT_EXPIRY && ("po02LastPublishDate" in data) && typeof data.po02LastPublishDate == "table")
+    PO02_LAST_PUBLISH_DATE = data.po02LastPublishDate;
+  if (EB7_DETAILED_ACCOUNTING && ("eb7Ledger" in data) && typeof data.eb7Ledger == "table")
+    EB7_LEDGER = data.eb7Ledger;
+  if (MULTI1_RELANCE && ("multi1LastBuildDate" in data) && typeof data.multi1LastBuildDate == "integer")
+    MULTI1_LAST_BUILD_DATE = data.multi1LastBuildDate;
+  else if (MULTI1_RELANCE)
+    MULTI1_LAST_BUILD_DATE = AIDate.GetCurrentDate();
   if ("railPair" in data && typeof data.railPair == "table") {
     this._v271Year = ("year" in data.railPair) ? data.railPair.year : -1;
     this._v271Pending = ("pending" in data.railPair) ? data.railPair.pending : null;
@@ -1351,6 +1383,9 @@ function OpexAI::_reconcileAfterLoad()
   }
   {
     this._c76ForceReloadRegen = true;
+  }
+  if (FAIR_PLAY_COURTESY && _budgetSignIds != null) {
+    OpexClearBudgetSigns(_budgetSignIds);
   }
   /* Sans sonde : cette unique preuve doit toujours accompagner un rechargement, jamais une partie neuve. */
   OpexDecide("LOAD_RECONCILE", "saved=" + saved + " kept=" + kept + " dropped=" + dropped

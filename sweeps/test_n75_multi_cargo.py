@@ -36,9 +36,9 @@ class N75MultiCargoContracts(unittest.TestCase):
         for d in ('easy', 'medium', 'hard', 'custom'):
             self.assertRegex(setting, rf'{d}_value\s*=\s*2\b')
         self.assertEqual(self.settings.count('AIController.GetSetting("n75_multi_cargo")'), 1)
-        # 58 historiques + options connues, DIST-BORNES unified OFF, +3 V233L, +1 AIR.
-        self.assertEqual(self.info.count("AddSetting("), 157)  # ROAD100/ROAD1Y and RAIL settings combined; no duplicates
-        self.assertEqual(historical_info(self.info).count("AddSetting("), 58)
+        # 68 historiques + options connues, DIST-BORNES unified OFF, +3 V233L, +1 AIR.
+        self.assertEqual(self.info.count("AddSetting("), 166)  # ROAD100/ROAD1Y and RAIL settings combined; no duplicates
+        self.assertEqual(historical_info(self.info).count("AddSetting("), 68)
         self.assertIn('N75_MULTI_CARGO <- 0;', self.globals_pre)
         self.assertIn('N75_MULTI_CARGO = (n75MultiCargo >= 1 && n75MultiCargo <= 2)', self.settings)
 

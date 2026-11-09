@@ -89,7 +89,7 @@ class TestParameterRetirement(unittest.TestCase):
         # C75 bis diagnostic, trois MULTI-1 opt-in (defaut 0), trois V233L et AIR funnel,
         # ROAD100 (34 off knobs), EB-2 and the independent RAIL options
         # must all remain present, while the retired parameters stay absent.
-        self.assertEqual(len(self.config), 157)  # ROAD100/ROAD1Y plus independent RAIL features
+        self.assertEqual(len(self.config), 166)  # ROAD100/ROAD1Y plus independent RAIL features
         self.assertIn("rail_search_prio", self.config)
         self.assertIn("rail_long", self.config)
         self.assertIn("eb2_new_station_fallback", self.config)
@@ -117,9 +117,8 @@ class TestParameterRetirement(unittest.TestCase):
         self.assertRegex(p2_setting, r"\bmax_value\s*=\s*2\b")
         for level in ("easy", "medium", "hard", "custom"):
             self.assertRegex(p2_setting, rf"\b{level}_value\s*=\s*0\b")
-        # Projections OFF par fragments exacts : les options nouvelles de novembre
-        # ne rebasent pas l'inventaire historique de 58.
-        self.assertEqual(len(declared(historical_info(self.info))), 58)
+        # Projections OFF par fragments exacts : inventaire historique 68 sur master (voir test_v251_inventory.py).
+        self.assertEqual(len(declared(historical_info(self.info))), 68)
 
     def test_retired_settings_have_no_declarations_or_direct_reads(self):
         for name in sorted(RETIRED):

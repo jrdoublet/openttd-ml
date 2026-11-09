@@ -544,3 +544,21 @@ function OpexAI::_advanceRailSearchThroughput(maxSlices = -1)
   if (spThru != null) OpexSpanEnd(spThru);
   return slicesRan;
 }
+
+/* IDLE-1 : tranche de travail de fond exploitant le reliquat de tick (slack)
+ * avant AIController.Sleep(1) avec garde stricte de reserve IDLE1_SLACK_RESERVE. */
+function OpexAI::_idle1SlackStep()
+{
+  if (!IDLE1_SLACK_WORKER) return;
+  if (AIController.GetOpsTillSuspend() < IDLE1_SLACK_RESERVE + 500) return;
+  if (this._catalog == null || !("towns" in this._catalog) || this._catalog.towns == null
+      || this._catalog.towns.len() == 0) return;
+  if (IDLE1_TOWN_CURSOR >= this._catalog.towns.len()) {
+    IDLE1_TOWN_CURSOR = 0;
+  }
+  local t = this._catalog.towns[IDLE1_TOWN_CURSOR];
+  IDLE1_TOWN_CURSOR++;
+  if (t != null && ("id" in t) && AITown.IsValidTown(t.id)) {
+    t.pop = AITown.GetPopulation(t.id);
+  }
+}

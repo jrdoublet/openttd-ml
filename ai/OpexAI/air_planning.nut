@@ -1788,6 +1788,15 @@ function OpexAirPlansFinalize(ctx)
     OpexC73RecordProduced("air", actualPlans, actualPlans);
   }
 
+  if (AIR_COVERAGE_STOP) {
+    if (AIR_NEW_TOWN_QUEUE.len() > 0) {
+      AIR_NEW_TOWN_QUEUE.clear();
+    } else if (perfSitesFound == 0 && (!ctx.sliced || ctx.comboStart >= ctx.combos.len() - 1)) {
+      AIR_COVERAGE_EXHAUSTED = true;
+      if (DECISION_LOG) OpexDecide("AIR_STOP", "status=exhausted reason=zero_sites_found");
+    }
+  }
+
   return bestPlan;
 }
 
@@ -1991,6 +2000,13 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
   };
 
   local spPlans = PROBE_SPAN_TRACE ? OpexSpanBegin("air.plans") : null;
+
+  if (AIR_COVERAGE_STOP && AIR_COVERAGE_EXHAUSTED && AIR_NEW_TOWN_QUEUE.len() == 0) {
+    if (DECISION_LOG) OpexDecide("AIR_STOP", "status=sleeping reason=pool_exhausted");
+    if (spPlans != null) OpexSpanEnd(spPlans);
+    return null;
+  }
+
   local prepared = OpexAirPlansStepPrepare(ctx);
   if (!prepared) {
     if (spPlans != null) OpexSpanEnd(spPlans);

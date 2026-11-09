@@ -5,6 +5,10 @@ from sweeps.estim31_motor_joint_prepare_20261030 import BASE, DEST, DESIGNS, FIL
 
 
 class JointEngineContract(unittest.TestCase):
+    def setUp(self):
+        if not BASE.exists() or not DEST.exists():
+            raise unittest.SkipTest("artefacts transitoires de campagne absents")
+
     def test_historical_sources_identical_and_exact_engine_choice(self):
         for name in DESIGNS:
             old, new = BASE/name/'ai/OpexAI', DEST/name/'ai/OpexAI'
