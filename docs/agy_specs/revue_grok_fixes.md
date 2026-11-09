@@ -35,9 +35,53 @@ Risques :
   `origin/master`.
 - EB-7 et AIR-COVERAGE restent écrits seulement sur le short save. Hors sujet.
 
-## MULTI-1
+## MULTI-1 — prédicat câblé, persistance, viviers étroits
 
-(à compléter)
+Défaut : `OpexMulti1TriggerActive` n'était appelée nulle part. Le short save
+écrivait `multi1LastBuildDate` seulement, et Load exigeait `MULTI1_RELANCE`,
+encore à 0 avant `OpexLoadSettings`. Le `else` estampillait la date courante
+dans Load, donc jamais.
+
+Correctif, tout le comportement derrière `MULTI1_RELANCE` (défaut 0) :
+
+- Sélection : si le levier est ≥ 2 et le prédicat vrai, `OpexMulti1CapSecondary`
+  retire les projets `multi1Secondary` (projet ou `payload`) qui dépassent
+  25 % de la caisse ou laissent moins de 1 000 000. Un `ai` null n'est pas
+  un portefeuille vide. Le portefeuille lu est `MULTI1_ACTIVE_PORTFOLIO`,
+  posé dans `OpexBuildProjects` (`priorProjects`), `OpexReselectProjects` et
+  la re-sélection incrémentale, puis effacé avant le retour.
+- Route : `OpexMulti1AppendRoadFeeders` après `OpexBuildRoadCandidates`,
+  niveau ≥ 2 seulement. Villes 600..2000, Manhattan 20..50 vers un hub
+  air/rail/route déjà en ligne, passagers seulement, au plus 4 candidats.
+  Niveau 1 appelle le prédicat (log) et n'ajoute rien.
+- Air : `OpexAirPlansStepNewPairs` élargit temporairement `bounds.airMin`
+  vers 60 et `bounds.airMax` vers 150 pour `AT_COMMUTER` et `AT_LARGE`
+  (city). `minDist` (30 ou 32) n'est pas relevé. Un `airMax` déjà supérieur
+  à 150 n'est pas rabattu. Les bornes sont restaurées après l'appel.
+- Save complet : `saveObj.multi1LastBuildDate` sous `if (MULTI1_RELANCE)`.
+  Load restaure l'entier si la clé existe, sans lire le réglage. La grâce
+  `GetCurrentDate` est dans `_reconcileAfterLoad`, après les réglages,
+  seulement si la date est encore ≤ 0. Une partie neuve n'y passe pas.
+
+Choix étroit, spec ambiguë sur le rail et l'eau : `MULTI1_LAST_BUILD_DATE`
+n'est pas mis à jour par le rail ni l'eau. La spec §3.2-3.4 ne les nomme pas ;
+les estampilles air et route existantes sont inchangées. Le courrier feeder
+n'est pas émis : le seul producteur routier de courrier est le fret ROAD100.
+Le plafond 25 % ne marque pas les plans air admis seulement parce que la
+bande a été élargie. Pendant PO01C le global de portefeuille peut rester
+null : seule la clause des 180 jours peut alors ouvrir le prédicat.
+Le second chargeur de `settings.nut` n'est pas ajouté : un seul lecteur
+existe déjà, et un second changerait le SHA de `settings.nut` sans effet
+utile au défaut 0.
+
+Risques :
+
+- Au défaut 0, quelques `if (MULTI1_RELANCE != 0)` faux s'ajoutent sur la
+  construction, la re-sélection, le pas air et le save complet. Les corps
+  ne s'exécutent pas. Load évalue `("multi1LastBuildDate" in data)`.
+- `GetClosestTown` ne tourne que dans le feeder, levier ≥ 2 et prédicat vrai.
+- Les pins SHA de `globals_pre.nut` incluent `MULTI1_ACTIVE_PORTFOLIO`.
+  La ligne est hors des hunks ROAD100 et du bloc retiré par le test V233.
 
 ## EB-4
 

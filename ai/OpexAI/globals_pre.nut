@@ -306,6 +306,7 @@ EB7_LEDGER <- { capexRoad = 0, capexAir = 0, vehBuyAir = 0, lastCash = 0, lastLo
 LATE_GAME_POLICY <- 0; // LATE-GAME-1 : reinvestissement de l'excedent de tresorerie tardif (defaut 0).
 MULTI1_RELANCE <- 0; // MULTI-1 : conditions de relance du multimodal tardif (0=off, 1=shadow, 2=on).
 MULTI1_LAST_BUILD_DATE <- 0;
+MULTI1_ACTIVE_PORTFOLIO <- null;
 /* Mesure ponctuelle : un panneau par ligne reussie, donc desactivee par defaut pour ne pas
  * changer le profil d'opcodes de la baseline. */
 RAIL_COST_PROBE <- false;

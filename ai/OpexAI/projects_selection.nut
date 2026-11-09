@@ -942,9 +942,13 @@ function OpexMulti1TriggerActive(ai)
 
   local daysSinceBuild = (MULTI1_LAST_BUILD_DATE > 0)
       ? (date - MULTI1_LAST_BUILD_DATE) : 999;
-  local portfolioEmpty = (ai == null || !("_projects" in ai) || ai._projects == null
-                          || !("best" in ai._projects)
-                          || ai._projects.best == null || ai._projects.best.len() == 0);
+  /* Un ai null n'est pas un portefeuille vide : seul best reel compte. */
+  local portfolioEmpty = false;
+  if (ai != null && ("_projects" in ai) && ai._projects != null) {
+    if (!("best" in ai._projects) || ai._projects.best == null
+        || ai._projects.best.len() == 0)
+      portfolioEmpty = true;
+  }
 
   local triggered = (daysSinceBuild >= 180 || portfolioEmpty);
   if (triggered && DECISION_LOG) {
@@ -952,6 +956,183 @@ function OpexMulti1TriggerActive(ai)
         + " days_since=" + daysSinceBuild + " empty=" + (portfolioEmpty ? 1 : 0));
   }
   return triggered;
+}
+
+function OpexMulti1ProjectIsSecondary(project)
+{
+  if (project == null) return false;
+  if (("multi1Secondary" in project) && project.multi1Secondary) return true;
+  if (("payload" in project) && project.payload != null
+      && ("multi1Secondary" in project.payload) && project.payload.multi1Secondary)
+    return true;
+  return false;
+}
+
+/* 25 % de la caisse, et plancher de 1 000 000 laisse apres le projet. */
+function OpexMulti1SecondaryCapitalOk(financeCapital)
+{
+  local cash = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+  if (cash < 0) cash = 0;
+  if (financeCapital > cash / 4) return false;
+  if (cash - financeCapital < 1000000) return false;
+  return true;
+}
+
+function OpexMulti1CapSecondary(alternatives)
+{
+  local capped = [];
+  foreach (project in alternatives) {
+    if (OpexMulti1ProjectIsSecondary(project)) {
+      local financeCapital = OpexProjectFinanceCapital(project);
+      if (!OpexMulti1SecondaryCapitalOk(financeCapital)) continue;
+    }
+    capped.append(project);
+  }
+  return capped;
+}
+
+/* AT_COMMUTER et AT_LARGE (city). Baisse airMin vers 60 et etend airMax
+ * jusqu'a 150 sans rabattre un plafond deja plus haut. */
+function OpexMulti1PrepareAirBand(ctx, airport)
+{
+  if (airport == null || !("type" in airport)) return null;
+  if (airport.type != AIAirport.AT_COMMUTER && airport.type != AIAirport.AT_LARGE) return null;
+  if (ctx == null || !("catalog" in ctx) || ctx.catalog == null) return null;
+  if (!("bounds" in ctx.catalog) || ctx.catalog.bounds == null) return null;
+  local bounds = ctx.catalog.bounds;
+  local saved = { airMin = bounds.airMin, airMax = bounds.airMax };
+  if (bounds.airMin > 60) bounds.airMin = 60;
+  if (bounds.airMax > 0 && bounds.airMax < 150) bounds.airMax = 150;
+  return saved;
+}
+
+function OpexMulti1RestoreAirBand(ctx, saved)
+{
+  if (saved == null || ctx == null || !("catalog" in ctx) || ctx.catalog == null) return;
+  if (!("bounds" in ctx.catalog) || ctx.catalog.bounds == null) return;
+  ctx.catalog.bounds.airMin = saved.airMin;
+  ctx.catalog.bounds.airMax = saved.airMax;
+}
+
+function OpexMulti1WidenAirForStep(ctx, airport)
+{
+  local holder = { _projects = MULTI1_ACTIVE_PORTFOLIO };
+  if (!OpexMulti1TriggerActive(holder) || MULTI1_RELANCE < 2) return;
+  local saved = OpexMulti1PrepareAirBand(ctx, airport);
+  if (saved != null && ctx != null) ctx.rawset("multi1AirBand", saved);
+}
+
+function OpexMulti1RestoreAirForStep(ctx)
+{
+  if (ctx == null || !("multi1AirBand" in ctx)) return;
+  OpexMulti1RestoreAirBand(ctx, ctx.multi1AirBand);
+  delete ctx.multi1AirBand;
+}
+
+function OpexMulti1HubTowns(lines)
+{
+  local seen = {};
+  local order = [];
+  if (lines == null) return order;
+  local scanned = 0;
+  foreach (line in lines) {
+    if (scanned >= 48 || order.len() >= 8) break;
+    scanned++;
+    if (line == null || !("mode" in line)) continue;
+    if (line.mode != "air" && line.mode != "rail" && line.mode != "road") continue;
+    local ids = [];
+    if (("srcTown" in line) && typeof line.srcTown == "integer" && line.srcTown >= 0)
+      ids.append(line.srcTown);
+    if (("dstTown" in line) && typeof line.dstTown == "integer" && line.dstTown >= 0)
+      ids.append(line.dstTown);
+    if (ids.len() == 0) {
+      if (("originA" in line) && AIMap.IsValidTile(line.originA))
+        ids.append(AITile.GetClosestTown(line.originA));
+      if (("originB" in line) && AIMap.IsValidTile(line.originB))
+        ids.append(AITile.GetClosestTown(line.originB));
+    }
+    foreach (id in ids) {
+      if (id == null || id < 0 || (id in seen)) continue;
+      if (order.len() >= 8) break;
+      seen.rawset(id, true);
+      order.append(id);
+    }
+  }
+  return order;
+}
+
+/* Pax seulement. Le courrier routier existant est le chemin fret ROAD100 :
+ * on ne le rouvre pas. Niveau 1 : le predicteur logue et n'ajoute rien. */
+function OpexMulti1AppendRoadFeeders(catalog, lines, road, abandonedPairs)
+{
+  if (MULTI1_RELANCE < 2) {
+    if (MULTI1_RELANCE != 0) {
+      local shadowHolder = { _projects = MULTI1_ACTIVE_PORTFOLIO };
+      OpexMulti1TriggerActive(shadowHolder);
+    }
+    return;
+  }
+  local holder = { _projects = MULTI1_ACTIVE_PORTFOLIO };
+  if (!OpexMulti1TriggerActive(holder)) return;
+  if (!MODE_ROAD || PAX_AIR_FIRST_FEEDER_ONLY) return;
+  if (catalog == null || catalog.towns == null || catalog.paxCargo < 0) return;
+  if (road == null || !("candidates" in road) || road.candidates == null) return;
+  local hubs = OpexMulti1HubTowns(lines);
+  if (hubs.len() == 0) return;
+  local wanted = {};
+  foreach (hid in hubs) wanted.rawset(hid, true);
+  local hubTile = {};
+  local found = 0;
+  foreach (town in catalog.towns) {
+    if (found >= hubs.len()) break;
+    if ((town.id in wanted) && !(town.id in hubTile)) {
+      hubTile.rawset(town.id, town.tile);
+      found++;
+    }
+  }
+  local cargo = catalog.paxCargo;
+  local townChecks = 0;
+  local accepted = 0;
+  foreach (town in catalog.towns) {
+    if (accepted >= 4 || townChecks >= 24) break;
+    if (town.id in wanted) continue;
+    if (town.pop < 600 || town.pop > 2000) continue;
+    townChecks++;
+    local hubId = -1;
+    local hubT = -1;
+    local distance = 0;
+    foreach (hid in hubs) {
+      if (!(hid in hubTile)) continue;
+      local ht = hubTile[hid];
+      local d = AIMap.DistanceManhattan(town.tile, ht);
+      if (d >= 20 && d <= 50) {
+        hubId = hid;
+        hubT = ht;
+        distance = d;
+        break;
+      }
+    }
+    if (hubId < 0) continue;
+    if (OpexRoadPairServed(lines, town.tile, hubT)) continue;
+    local monthly = AITown.GetLastMonthProduction(town.id, cargo);
+    if (monthly <= 0) monthly = (town.pop * 15) / 100;
+    if (monthly <= 0) continue;
+    local stats = {
+      noEngine = 0, economicsUnavailable = 0, profitTooLow = 0,
+      profitNonPositive = 0, profitBelowFloorKept = 0, accepted = 0
+    };
+    local candidate = OpexMakeRoadCandidate(catalog, "pax", cargo, town.tile, hubT,
+        town.id, hubId, distance, monthly, stats);
+    if (candidate == null) continue;
+    candidate.multi1Secondary <- true;
+    if (abandonedPairs != null && (OpexAbandonedPairKey(candidate) in abandonedPairs)) continue;
+    road.candidates.append(candidate);
+    accepted++;
+  }
+  if (accepted > 0) {
+    road.all = road.candidates.len();
+    road.best = OpexTopK(road.candidates, ROAD_TOP_K);
+  }
 }
 
 function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSelection = true, abandonedPairs = null)
@@ -1038,6 +1219,12 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit, realSel
       local qIncome = AICompany.GetQuarterlyIncome(AICompany.COMPANY_SELF, lastQuarter);
       eb4MonthlyIncome = qIncome > 0 ? (qIncome / 3) : 0;
     }
+  }
+
+  if (MULTI1_RELANCE != 0) {
+    local multi1Holder = { _projects = MULTI1_ACTIVE_PORTFOLIO };
+    if (OpexMulti1TriggerActive(multi1Holder) && MULTI1_RELANCE >= 2)
+      alternatives = OpexMulti1CapSecondary(alternatives);
   }
 
   foreach (project in alternatives) {
@@ -1756,6 +1943,7 @@ function OpexRoad100FilterLiveBusTownProjects(alternatives, lines)
  * la meme solution que best, y compris lorsque la selection n'a pas prouve son optimum. */
 function OpexReselectProjects(projects, capitalBudget, abandonedPairs = null, lines = null, railReadyStock = null)
 {
+  if (MULTI1_RELANCE != 0) MULTI1_ACTIVE_PORTFOLIO = projects;
   if (projects != null && ("selectionStale" in projects)) {
     projects.selectionStale = false;
   }
@@ -1859,6 +2047,7 @@ function OpexReselectProjects(projects, capitalBudget, abandonedPairs = null, li
   if (spPubVivier != null) OpexSpanEnd(spPubVivier);
 
   if (spReselect != null) OpexSpanEnd(spReselect);
+  if (MULTI1_RELANCE != 0) MULTI1_ACTIVE_PORTFOLIO = null;
   return projects;
 }
 

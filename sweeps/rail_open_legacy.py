@@ -35,6 +35,8 @@ _MERGE_SHA = {
         "7ae9ad7cde04ceb382314f9d1ccab05125c52fab4cb22defd177dbfd35023fd6",
         # PO-02 fleet slot, outside the RAIL-OPEN span.
         "1d37b1b21b174e2005eeb3d33ae6aa3312371fde101576bf010750a3dac3abc2",
+        # MULTI-1 portfolio global, outside the RAIL-OPEN span.
+        "9b244764b657c0d69a28b19d4f5e685eac4c9e9fc22f7aa71fe88ed69335b100",
     ),
     "info.nut": (
         "0e6e6e30aaae1b814dc8afbaad515347e2dc05aea133cd12983a7abc1fce26f1",

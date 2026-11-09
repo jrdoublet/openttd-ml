@@ -1850,9 +1850,11 @@ function OpexAirPlansStepNewPairs(ctx, comboIndex, combo, airport, plane, minDis
 {
   if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_ENTER", "air_new_pairs", "-");
   local spPairs = PROBE_SPAN_TRACE ? OpexSpanBegin("air.new_pairs") : null;
+  if (MULTI1_RELANCE != 0) OpexMulti1WidenAirForStep(ctx, airport);
   local pairsOk = V278_AIR_LAZY_SITES && OpexV278LazyEnabled(ctx)
       ? OpexV278LazyPairs(ctx, comboIndex, combo, airport, plane, minDist)
       : OpexAirPlansNewPairs(ctx, comboIndex, combo, airport, plane, minDist, resumingCombo);
+  if (MULTI1_RELANCE != 0) OpexMulti1RestoreAirForStep(ctx);
   if (spPairs != null) OpexSpanEnd(spPairs);
   if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_EXIT", "air_new_pairs", "-",
       "combo=" + comboIndex + " plans=" + (ctx.projects != null ? ctx.projects.len() : -1));

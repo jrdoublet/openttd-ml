@@ -120,6 +120,7 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
                            freightCargoOrder = null, activeSubsidies = null, airOverride = null,
                            railReadyStock = null)
 {
+  if (MULTI1_RELANCE != 0) MULTI1_ACTIVE_PORTFOLIO = priorProjects;
   if (V276_CAND_SLICES > 0) OpexV276Request(catalog);
   local cost = CATALOG_COST_ACTIVE;
   local costMark = cost != null ? OpexOpsMeasureBegin() : null;
@@ -304,6 +305,8 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
   if (doRoad && ROAD_BUILD_ENABLED) {
     local spRoad = PROBE_SPAN_TRACE ? OpexSpanBegin("build.road") : null;
     road = OpexBuildRoadCandidates(catalog, budget, lines, abandonedPairs, roadProfile, freightCargo);
+    if (MULTI1_RELANCE != 0)
+      OpexMulti1AppendRoadFeeders(catalog, lines, road, abandonedPairs);
     if (spRoad != null) OpexSpanEnd(spRoad);
   } else if (priorProjects != null && ("road" in priorProjects) && priorProjects.road != null) {
     road = priorProjects.road;
@@ -591,5 +594,6 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
     ret.c69Best <- ::C69_LAST_AFFORDABLE;
     ret.c69KDecData <- ::C69_LAST_KDEC_DATA;
   }
+  if (MULTI1_RELANCE != 0) MULTI1_ACTIVE_PORTFOLIO = null;
   return ret;
 }

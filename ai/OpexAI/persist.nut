@@ -893,6 +893,8 @@ function OpexAI::Save()
   /* Meme cle que le short save. Au defaut 0 la branche est fausse. */
   if (PO02_INDEPENDENT_EXPIRY)
     saveObj.po02LastPublishDate <- PO02_LAST_PUBLISH_DATE;
+  if (MULTI1_RELANCE)
+    saveObj.multi1LastBuildDate <- MULTI1_LAST_BUILD_DATE;
   if (DECISION_LOG && startOps != null) {
     local endOps = AIController.GetOpsTillSuspend();
     local opsSpent = startOps - endOps;
@@ -1003,10 +1005,9 @@ function OpexAI::Load(version, data)
   }
   if (EB7_DETAILED_ACCOUNTING && ("eb7Ledger" in data) && typeof data.eb7Ledger == "table")
     EB7_LEDGER = data.eb7Ledger;
-  if (MULTI1_RELANCE && ("multi1LastBuildDate" in data) && typeof data.multi1LastBuildDate == "integer")
+  /* Meme contrainte que PO-02 : MULTI1_RELANCE vaut encore 0 ici. */
+  if (("multi1LastBuildDate" in data) && typeof data.multi1LastBuildDate == "integer")
     MULTI1_LAST_BUILD_DATE = data.multi1LastBuildDate;
-  else if (MULTI1_RELANCE)
-    MULTI1_LAST_BUILD_DATE = AIDate.GetCurrentDate();
   if ("railPair" in data && typeof data.railPair == "table") {
     this._v271Year = ("year" in data.railPair) ? data.railPair.year : -1;
     this._v271Pending = ("pending" in data.railPair) ? data.railPair.pending : null;
@@ -1084,6 +1085,10 @@ function OpexAI::Load(version, data)
  * ici, apres les reglages. Les stationA/stationB sont des TUILES, jamais des StationID. */
 function OpexAI::_reconcileAfterLoad()
 {
+  /* MULTI-1 : delai de grace seulement apres les reglages, et seulement
+   * si la date n'a pas ete restauree. Une partie neuve ne passe pas ici. */
+  if (MULTI1_RELANCE != 0 && this._loadedFromSave && MULTI1_LAST_BUILD_DATE <= 0)
+    MULTI1_LAST_BUILD_DATE = AIDate.GetCurrentDate();
   /* R20 : appliquer seulement apres OpexLoadSettings, qui efface la pression. */
   OpexRestoreC121Strategy(OPEX_RELOAD_C121_STRATEGY);
   OPEX_RELOAD_C121_STRATEGY = null;

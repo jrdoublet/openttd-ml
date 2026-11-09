@@ -187,6 +187,7 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
     foreach (project in alternatives) if (project.mode == "air") airOnly.append(project);
     alternatives = airOnly;
   }
+  if (MULTI1_RELANCE != 0) MULTI1_ACTIVE_PORTFOLIO = projects;
   funded = OpexProjectSelectAffordable(alternatives, capitalBudget, PROJECT_TOP_K, true, abandonedPairs);
   if (RAIL_FAILURE_AUDIT) OpexRailPortfolioAudit("incremental", alternatives, funded,
       capitalBudget, 0, 0);
@@ -199,6 +200,7 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
   OpexB6LogSelectionCausality("incremental", alternatives, funded, capitalBudget, b6BudgetDate,
                              recycledKeys);
   if (V216_PROBE) OpexV216LogSelection("incremental", alternatives, funded, capitalBudget);
+  if (MULTI1_RELANCE != 0) MULTI1_ACTIVE_PORTFOLIO = null;
   OpexB6LogRepricedFreightTop(catalog, lines, funded, recycledKeys, capitalBudget);
 
   /* 6. Cloture des statistiques et du capital restant */

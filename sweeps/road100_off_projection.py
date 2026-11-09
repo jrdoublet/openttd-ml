@@ -53,8 +53,8 @@ ROAD1Y_B2_RAIL_MERGE = {
         (7, 8, 9, 10),
     ),
     "globals_pre.nut": (
-        "1d37b1b21b174e2005eeb3d33ae6aa3312371fde101576bf010750a3dac3abc2",
-        "a8b0763b6905d3934691adce941fbcbf8e4b9b48077f5ca9c02f843862010e48",
+        "9b244764b657c0d69a28b19d4f5e685eac4c9e9fc22f7aa71fe88ed69335b100",
+        "d1bd6760c08eb72b83a74e76607a6a88d0cdf1ab8961af4bc201a1a77dc2d586",
         (1,),
     ),
     "info.nut": (
@@ -166,6 +166,16 @@ ROAD1Y_B2_RAIL_MERGE_STAGES = {
          "49d162ff9954cc2a64e88253c18126191e916f2e15bf257ec5e36c79f1f43b21"),
         ("ce0dd19bb87d14d54d8565cbb07c43ec5f673db4ab25ce8d60da20ee830777ba",
          "aae05c80eadb3e3119a7bba8efdfc4e3a48799b70fe8a34a60d38ee82f0e8e3f"),
+        # PO-02 live file, before the MULTI-1 portfolio global.
+        ("1d37b1b21b174e2005eeb3d33ae6aa3312371fde101576bf010750a3dac3abc2",
+         "a8b0763b6905d3934691adce941fbcbf8e4b9b48077f5ca9c02f843862010e48"),
+        # MULTI-1 portfolio global, outside every ROAD100 hunk.
+        ("0b7669152183e290256c892350352ce757ef1fc071f71d28990a11c865be6d90",
+         "c2300b4fcf93bf81ac6f011b6f5c98d5e6d094e69b7f30d930830e905b4e8e1c"),
+        ("f5744583f3c11a761ece04000af1ff83f4fb6d4b5fbdf3d1dbad6df4173d0201",
+         "6bdd98cf92ed0a206bc8c5bb1b1d2d26f28bcfb095293a2646a02734f2be6907"),
+        ("03527d4efdc62af84a450d0b1e77c1c53b7eccb53ce1e5b86e434fa8f2343bdc",
+         "f31aca85a1f0d4409fdf5594348af0c9ef5a261ce55a8026438a96a99ee8bf92"),
     ),
     "info.nut": (
         ("0e6e6e30aaae1b814dc8afbaad515347e2dc05aea133cd12983a7abc1fce26f1",
