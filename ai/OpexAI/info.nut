@@ -1196,7 +1196,7 @@ class OpexAIInfo extends AIInfo {
     });
     AddSetting({
       name = "road1y_mail_p2p",
-      description = "ROAD1Y: point-to-point standalone mail truck lines on unserved town pairs; 0 = off (default), N = max lines",
+      description = "ROAD1Y: autonomous mail on town pairs without mail service; 0 = off (default), N = max vans per line (at least 2)",
       min_value = 0, max_value = 20,
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,

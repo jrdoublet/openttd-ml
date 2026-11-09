@@ -787,6 +787,15 @@ function OpexLoadBusDistrictSettings()
   if (ROAD1Y_NEXT3 < 0 || ROAD1Y_NEXT3 > 96) ROAD1Y_NEXT3 = 0;
   if (!road1yRoadOnly) ROAD1Y_NEXT3 = 0;
   { // Definitions also needed for saved markers after ON -> OFF.
+    // Install the p2p refleet hook before Start, including when mail_on_pax is off.
+    ROAD1Y_MAIL_P2P = AIController.GetSetting("road1y_mail_p2p");
+    if (ROAD1Y_MAIL_P2P < 0 || ROAD1Y_MAIL_P2P > 20 || !road1yRoadOnly) ROAD1Y_MAIL_P2P = 0;
+    ROAD1Y_MAIL_P2P_MISSING = AIController.GetSetting("road1y_mail_p2p_missing");
+    if (ROAD1Y_MAIL_P2P_MISSING < 0 || ROAD1Y_MAIL_P2P_MISSING > 60 || !road1yRoadOnly) ROAD1Y_MAIL_P2P_MISSING = 0;
+    ROAD1Y_MAIL_P2P_CASH = AIController.GetSetting("road1y_mail_p2p_cash");
+    if (ROAD1Y_MAIL_P2P_CASH < 0 || ROAD1Y_MAIL_P2P_CASH > 60 || !road1yRoadOnly) ROAD1Y_MAIL_P2P_CASH = 0;
+    ROAD1Y_MAIL_P2P_START = AIController.GetSetting("road1y_mail_p2p_start");
+    if (ROAD1Y_MAIL_P2P_START < 0 || ROAD1Y_MAIL_P2P_START > 12 || !road1yRoadOnly) ROAD1Y_MAIL_P2P_START = 0;
     require("bus_districts.nut");
     require("bus_districts_overrides.nut");
   }

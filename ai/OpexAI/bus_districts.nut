@@ -813,7 +813,8 @@ function OpexRoad1yMailP2PLog(fields)
 
 function OpexRoad1yFindMailP2PSite(ai, catalog, townId, mailCargo)
 {
-  if (!AITown.IsValidTown(townId)) return null;
+  // Return alternatives: the highest production tile need not reach the other town.
+  if (!AITown.IsValidTown(townId)) return [];
   AIRoad.SetCurrentRoadType(catalog.roadType);
   local coverage = AIStation.GetCoverageRadius(AIStation.STATION_TRUCK_STOP);
   local used = OpexRoad1yOurTruckTiles(ai, townId);
@@ -823,7 +824,7 @@ function OpexRoad1yFindMailP2PSite(ai, catalog, townId, mailCargo)
   local mapX = AIMap.GetMapSizeX();
   local mapY = AIMap.GetMapSizeY();
   local cands = [];
-  local rad = 6;
+  local rad = 10;
   for (local dx = -rad; dx <= rad; dx++) {
     for (local dy = -rad; dy <= rad; dy++) {
       local x = cx + dx;
@@ -833,7 +834,11 @@ function OpexRoad1yFindMailP2PSite(ai, catalog, townId, mailCargo)
       if (!AIRoad.IsRoadTile(tile) || AIRoad.IsRoadDepotTile(tile)
           || AIRoad.IsRoadStationTile(tile) || AITile.IsStationTile(tile)) continue;
       if (AITile.GetClosestTown(tile) != townId) continue;
-      if (OpexRoad100CatchmentOverlaps(tile, used, coverage)) continue;
+      local tooClose = false;
+      foreach (other in used) {
+        if (AIMap.DistanceManhattan(tile, other) <= 2) { tooClose = true; break; }
+      }
+      if (tooClose) continue;
       local axis = OpexBusDistrictAxis(tile);
       if (axis == 0) continue;
       local front = tile + axis;
@@ -844,6 +849,8 @@ function OpexRoad1yFindMailP2PSite(ai, catalog, townId, mailCargo)
       local acc = AITile.GetCargoAcceptance(tile, mailCargo, 1, 1, coverage);
       if (acc < 8) continue;
       local score = prod * 100 + acc - AIMap.DistanceManhattan(tile, center);
+      // Partial catchment overlap is a ranking penalty, not a town-wide veto.
+      if (OpexRoad100CatchmentOverlaps(tile, used, coverage)) score /= 2;
       local item = { tile = tile, front = front, back = back, prod = prod, acc = acc, score = score };
       local pos = cands.len();
       cands.append(item);
@@ -852,9 +859,9 @@ function OpexRoad1yFindMailP2PSite(ai, catalog, townId, mailCargo)
         pos--;
       }
       cands[pos] = item;
-      if (cands.len() > 4) cands.pop();
     }
   }
+  local sites = [];
   foreach (c in cands) {
     local canBuild = false;
     {
@@ -862,9 +869,10 @@ function OpexRoad1yFindMailP2PSite(ai, catalog, townId, mailCargo)
       canBuild = AIRoad.BuildDriveThroughRoadStation(c.tile, c.front,
           AIRoad.ROADVEHTYPE_TRUCK, AIStation.STATION_NEW);
     }
-    if (canBuild) return c;
+    if (canBuild) sites.append(c);
+    if (sites.len() >= 8) break;
   }
-  return null;
+  return sites;
 }
 
 function OpexRoad1yMailP2PActivePairs(ai)
@@ -874,6 +882,8 @@ function OpexRoad1yMailP2PActivePairs(ai)
     if (line == null || typeof line != "table") continue;
     if (!("mode" in line) || line.mode != "road") continue;
     if (("scrapping" in line) && line.scrapping) continue;
+    // A passenger service is not a mail service. Keep duplicate mail pairs out.
+    if (!("cargo" in line) || line.cargo != ai._catalog.mailCargo) continue;
     local ta = ("srcTown" in line) ? line.srcTown : -1;
     local tb = ("dstTown" in line) ? line.dstTown : -1;
     if (ta >= 0 && tb >= 0 && ta != tb) {
@@ -882,6 +892,38 @@ function OpexRoad1yMailP2PActivePairs(ai)
     }
   }
   return activePairs;
+}
+
+function OpexRoad1yMailP2PTrace(siteA, siteB, maxMissing, budget)
+{
+  if (budget.paths <= 0) return null;
+  budget.paths--;
+  // BFS counts expanded nodes, not route length. Prefer the paid road network.
+  local trace = OpexRoadBfsPath(siteA.tile, siteB.tile, 4096, siteA.front, siteB.front);
+  if (trace != null && trace.len() > 0 && trace.len() <= 256) return trace;
+  for (local variant = 0; variant < 4; variant++) {
+    trace = OpexRoadTraceMulti(siteA.tile, siteB.tile, variant);
+    if (trace == null || trace.len() == 0 || trace.len() > 256) continue;
+    if (!OpexRoadOnDtAxis(siteA.tile, siteA.front, trace[0].to)
+        || !OpexRoadOnDtAxis(siteB.tile, siteB.front, trace[trace.len() - 1].from)) continue;
+    local missing = 0;
+    foreach (edge in trace) {
+      if (!AIRoad.AreRoadTilesConnected(edge.from, edge.to)) missing++;
+    }
+    if (missing <= maxMissing && OpexRoadTraceBuildable(trace)) return trace;
+  }
+  // Reuse the road-preferring solver with a p2p-local budget, independent of
+  // the bus A* setting. No new global policy or unbounded pathfinder loop.
+  if (budget.nodes <= 0) return null;
+  trace = OpexRoad1yAStarSearch(siteA.tile, siteA.front, siteB.tile, siteB.front,
+      {}, budget, 256);
+  if (trace == null || trace.len() == 0 || trace.len() > 256) return null;
+  local missing = 0;
+  foreach (edge in trace) {
+    if (!AIRoad.AreRoadTilesConnected(edge.from, edge.to)) missing++;
+  }
+  if (missing > maxMissing || !OpexRoadTraceBuildable(trace)) return null;
+  return trace;
 }
 
 function OpexRoad1yBuildMailP2P(ai, catalog, ta, tb, siteA, siteB, trace, depot, cashReserve)
@@ -926,20 +968,27 @@ function OpexRoad1yBuildMailP2P(ai, catalog, ta, tb, siteA, siteB, trace, depot,
   local builtRoad = [];
   foreach (edge in trace) {
     if (!AIRoad.AreRoadTilesConnected(edge.from, edge.to)) {
-      if (AIRoad.BuildRoad(edge.from, edge.to)) builtRoad.append(edge);
+      if (!AIRoad.BuildRoad(edge.from, edge.to)) {
+        OpexRoadRollback(siteA.tile, siteB.tile, null, null, builtRoad);
+        OpexRoad1yMailP2PLog("action=fail pair=" + ta.id + ":" + tb.id + " reason=BUILD_ROAD");
+        return false;
+      }
+      builtRoad.append(edge);
     }
   }
 
   local depotTile = depot.tile;
   local depotFront = depot.front;
+  local newDepot = null;
   if (!AIRoad.IsRoadDepotTile(depotTile)) {
+    // Match the road builder: the approach bit must exist before depot placement.
     AIRoad.BuildRoad(depotFront, depotTile);
-    local okDepot = AIRoad.BuildRoadDepot(depotTile, depotFront);
-    if (!okDepot) {
-      if (AIRoad.IsRoadStationTile(siteA.tile) && AICompany.IsMine(AITile.GetOwner(siteA.tile)))
-        AIRoad.RemoveRoadStation(siteA.tile);
-      if (AIRoad.IsRoadStationTile(siteB.tile) && AICompany.IsMine(AITile.GetOwner(siteB.tile)))
-        AIRoad.RemoveRoadStation(siteB.tile);
+    local stubConnected = AIRoad.AreRoadTilesConnected(depotFront, depotTile);
+    if (stubConnected) builtRoad.append({ from = depotFront, to = depotTile });
+    local okDepot = stubConnected && AIRoad.BuildRoadDepot(depotTile, depotFront);
+    if (okDepot) newDepot = depotTile;
+    if (!okDepot || !AIRoad.AreRoadTilesConnected(depotTile, depotFront)) {
+      OpexRoadRollback(siteA.tile, siteB.tile, newDepot, null, builtRoad);
       OpexRoad1yMailP2PLog("action=fail pair=" + ta.id + ":" + tb.id + " reason=BUILD_DEPOT");
       return false;
     }
@@ -947,10 +996,7 @@ function OpexRoad1yBuildMailP2P(ai, catalog, ta, tb, siteA, siteB, trace, depot,
 
   local first = AIVehicle.BuildVehicleWithRefit(depotTile, engine.id, mailCargo);
   if (!AIVehicle.IsValidVehicle(first)) {
-    if (AIRoad.IsRoadStationTile(siteA.tile) && AICompany.IsMine(AITile.GetOwner(siteA.tile)))
-      AIRoad.RemoveRoadStation(siteA.tile);
-    if (AIRoad.IsRoadStationTile(siteB.tile) && AICompany.IsMine(AITile.GetOwner(siteB.tile)))
-      AIRoad.RemoveRoadStation(siteB.tile);
+    OpexRoadRollback(siteA.tile, siteB.tile, newDepot, null, builtRoad);
     OpexRoad1yMailP2PLog("action=fail pair=" + ta.id + ":" + tb.id + " reason=BUILD_VEH");
     return false;
   }
@@ -959,11 +1005,11 @@ function OpexRoad1yBuildMailP2P(ai, catalog, ta, tb, siteA, siteB, trace, depot,
   local cap = AIVehicle.GetCapacity(first, mailCargo);
   local orderFlags = AIOrder.OF_NONE | AIOrder.OF_NON_STOP_INTERMEDIATE;
   local ordersOk = cap > 0
-      && AIOrder.AppendOrder(first, siteA.tile, orderFlags)
+      && AIOrder.AppendOrder(first, siteA.tile, orderFlags | AIOrder.OF_FULL_LOAD_ANY)
       && AIOrder.AppendOrder(first, siteB.tile, orderFlags)
       && AIOrder.GetOrderCount(first) == 2;
   if (!ordersOk) {
-    OpexRoadRollback(siteA.tile, siteB.tile, null, built, null);
+    OpexRoadRollback(siteA.tile, siteB.tile, newDepot, built, builtRoad);
     OpexRoad1yMailP2PLog("action=fail pair=" + ta.id + ":" + tb.id + " reason=ORDERS");
     return false;
   }
@@ -976,9 +1022,10 @@ function OpexRoad1yBuildMailP2P(ai, catalog, ta, tb, siteA, siteB, trace, depot,
   local started = 0;
   foreach (v in built) {
     if (AIVehicle.StartStopVehicle(v)) started++;
+    else if (AIVehicle.IsStoppedInDepot(v)) AIVehicle.SellVehicle(v);
   }
   if (started <= 0) {
-    OpexRoadRollback(siteA.tile, siteB.tile, null, built, null);
+    OpexRoadRollback(siteA.tile, siteB.tile, newDepot, built, builtRoad);
     OpexRoad1yMailP2PLog("action=fail pair=" + ta.id + ":" + tb.id + " reason=START_VEH");
     return false;
   }
@@ -996,10 +1043,10 @@ function OpexRoad1yBuildMailP2P(ai, catalog, ta, tb, siteA, siteB, trace, depot,
     cargo = mailCargo,
     nStopsA = 1,
     nStopsB = 1,
-    trains = built.len(),
-    trains0 = built.len(),
-    predTrains = built.len(),
-    vehCount = built.len(),
+    trains = started,
+    trains0 = started,
+    predTrains = started,
+    vehCount = started,
     capacity = cap,
     distance = dist,
     srcTown = ta.id,
@@ -1016,7 +1063,7 @@ function OpexRoad1yBuildMailP2P(ai, catalog, ta, tb, siteA, siteB, trace, depot,
   ai._c76BumpLayer("lines", false);
   OpexAir0310InvalidateSiteValidity();
   OpexRoad1yMailP2PLog("action=create line=" + idx + " pair=" + ta.id + ":" + tb.id
-      + " tiles=" + siteA.tile + ":" + siteB.tile + " dist=" + dist + " vans=" + built.len() + " reason=OK");
+      + " tiles=" + siteA.tile + ":" + siteB.tile + " dist=" + dist + " vans=" + started + " reason=OK");
   return true;
 }
 
@@ -1051,97 +1098,102 @@ function OpexRoad1yMailP2PStep(ai, year)
   if (catalog == null || !("mailCargo" in catalog) || catalog.mailCargo < 0) return;
   local mailCargo = catalog.mailCargo;
   if (!(mailCargo in catalog.roadEngineByCargo)) return;
+  if (catalog.roadEngineByCargo[mailCargo] == null
+      || catalog.roadEngineByCargo[mailCargo].price <= 0) return;
 
   local towns = catalog.towns;
   local nTowns = towns.len();
   if (nTowns <= 0) return;
 
-  local startI = (ROAD1Y_MAIL_P2P_CURSOR >= 0) ? (ROAD1Y_MAIL_P2P_CURSOR % nTowns) : 0;
-  ROAD1Y_MAIL_P2P_CURSOR = (startI + 1) % nTowns;
-
+  // Resume at the exact next pair, including after exhausted path/site budgets.
+  // These cursors and per-call caches are reconstructible; live lines are authoritative.
+  local pairCount = nTowns * nTowns;
+  local cursor = ROAD1Y_MAIL_P2P_CURSOR >= 0 ? ROAD1Y_MAIL_P2P_CURSOR % pairCount : 0;
   local activePairs = OpexRoad1yMailP2PActivePairs(ai);
   local maxMissing = (ROAD1Y_MAIL_P2P_MISSING > 0) ? ROAD1Y_MAIL_P2P_MISSING : 14;
   local testedPairs = {};
+  local sites = {};
+  local siteSearches = 0;
   local attempts = 0;
-  for (local stepI = 0; stepI < nTowns; stepI++) {
-    local i = (startI + stepI) % nTowns;
+  local opened = 0;
+  local budget = { paths = 48, nodes = 6000 };
+  for (local scan = 0; scan < pairCount; scan++) {
+    if (attempts >= 24 || budget.paths <= 0 || siteSearches >= 32 || opened >= 3) break;
+    local i = cursor % nTowns;
+    // Round-robin sources as well as destinations: one disconnected town cannot
+    // consume the entire month's exploration budget.
+    local j = (i + cursor / nTowns + 1) % nTowns;
+    cursor = (cursor + 1) % pairCount;
+    ROAD1Y_MAIL_P2P_CURSOR = cursor;
+    if (i == j) continue;
     local ta = towns[i];
-    if (ta.pop < 350) continue;
-    for (local j = 0; j < nTowns; j++) {
-      if (i == j) continue;
-      local tb = towns[j];
-      if (tb.pop < 350) continue;
-      local key = ta.id < tb.id ? (ta.id + ":" + tb.id) : (tb.id + ":" + ta.id);
-      if (key in activePairs) continue;
-      if (key in testedPairs) continue;
-      testedPairs[key] <- true;
-      local dist = AIMap.DistanceManhattan(ta.tile, tb.tile);
-      if (dist < 24 || dist > 128) continue;
+    local tb = towns[j];
+    if (!AITown.IsValidTown(ta.id) || !AITown.IsValidTown(tb.id)) continue;
+    if (AITown.GetPopulation(ta.id) < 400 || AITown.GetPopulation(tb.id) < 400) continue;
+    local key = ta.id < tb.id ? (ta.id + ":" + tb.id) : (tb.id + ":" + ta.id);
+    if ((key in activePairs) || (key in testedPairs)) continue;
+    testedPairs[key] <- true;
+    local dist = AIMap.DistanceManhattan(ta.tile, tb.tile);
+    if (dist < 16 || dist > 192) continue;
 
-      local siteA = OpexRoad1yFindMailP2PSite(ai, catalog, ta.id, mailCargo);
-      if (siteA == null) {
-        OpexRoad1yMailP2PLog("action=reject pair=" + ta.id + ":" + tb.id + " reason=SITE_A");
-        continue;
+    foreach (town in [ta, tb]) {
+      if (!(town.id in sites)) {
+        sites[town.id] <- OpexRoad1yFindMailP2PSite(ai, catalog, town.id, mailCargo);
+        siteSearches++;
+        if (sites[town.id].len() == 0)
+          OpexRoad1yMailP2PLog("action=reject town=" + town.id + " reason=NO_SITE");
       }
-      local siteB = OpexRoad1yFindMailP2PSite(ai, catalog, tb.id, mailCargo);
-      if (siteB == null) {
-        OpexRoad1yMailP2PLog("action=reject pair=" + ta.id + ":" + tb.id + " reason=SITE_B");
-        continue;
-      }
-
-      attempts++;
-      if (attempts > 6) return;
-
-      local trace = OpexRoadBfsPath(siteA.tile, siteB.tile, ROAD_MAX_TRACE_TILES, siteA.front, siteB.front);
-      local lastMissing = -1;
-      if (trace == null) {
-        local axisH = AIMap.GetTileX(siteA.front) != AIMap.GetTileX(siteA.tile);
-        for (local k = 0; k < 2; k++) {
-          local firstH = (k == 0) ? axisH : !axisH;
-          local dx = AIMap.GetTileX(siteB.tile) - AIMap.GetTileX(siteA.tile);
-          local dy = AIMap.GetTileY(siteB.tile) - AIMap.GetTileY(siteA.tile);
-          local firstIsH = firstH ? (dx != 0) : (dy == 0);
-          if (firstIsH != axisH) continue;
-          local l = OpexRoadTrace(siteA.tile, siteB.tile, firstH);
-          if (l == null || l.len() == 0 || l.len() > ROAD_MAX_TRACE_TILES) continue;
-          if (!OpexRoadTraceBuildable(l)) continue;
-          local missing = 0;
-          foreach (edge in l) {
-            if (!AIRoad.IsRoadTile(edge.to) || !AIRoad.AreRoadTilesConnected(edge.from, edge.to)) {
-              missing++;
-            }
-          }
-          lastMissing = missing;
-          if (missing <= maxMissing) {
-            trace = l;
-            break;
-          }
-        }
-      }
-      if (trace == null) {
-        if (lastMissing >= 0) {
-          OpexRoad1yMailP2PLog("action=reject pair=" + ta.id + ":" + tb.id + " reason=MISSING missing=" + lastMissing + " max=" + maxMissing);
-        } else {
-          OpexRoad1yMailP2PLog("action=reject pair=" + ta.id + ":" + tb.id + " reason=NO_TRACE");
-        }
-        continue;
-      }
-
+      if (sites[town.id].len() == 0) break;
+    }
+    if (sites[ta.id].len() == 0 || !(tb.id in sites) || sites[tb.id].len() == 0) continue;
+    attempts++;
+    local builtPair = false;
+    // Try the best catchments first, then rotate alternatives between passes.
+    local offset = ym % 8;
+    for (local choice = 0; choice < 4 && budget.paths > 0; choice++) {
+      local indexA = choice == 0 ? 0 : (offset + choice / 2) % sites[ta.id].len();
+      local indexB = choice == 0 ? 0 : (offset + choice % 2) % sites[tb.id].len();
+      local siteA = sites[ta.id][indexA];
+      local siteB = sites[tb.id][indexB];
+      local trace = OpexRoad1yMailP2PTrace(siteA, siteB, maxMissing, budget);
+      if (trace == null) continue;
       local depot = OpexRoadFindDepot(trace, siteA, siteB, true);
       if (depot == null) {
-        OpexRoad1yMailP2PLog("action=reject pair=" + ta.id + ":" + tb.id + " reason=DEPOT");
+        OpexRoad1yMailP2PLog("action=reject pair=" + key + " reason=DEPOT");
         continue;
       }
-
-      if (OpexRoad1yBuildMailP2P(ai, catalog, ta, tb, siteA, siteB, trace, depot, cashReserve)) {
-        return;
+      // The larger catchment feeds the full-load source; both ends still load mail.
+      if (siteB.prod > siteA.prod) {
+        local swappedTrace = [];
+        for (local e = trace.len() - 1; e >= 0; e--)
+          swappedTrace.append({ from = trace[e].to, to = trace[e].from });
+        builtPair = OpexRoad1yBuildMailP2P(ai, catalog, tb, ta, siteB, siteA,
+            swappedTrace, depot, cashReserve);
+      } else {
+        builtPair = OpexRoad1yBuildMailP2P(ai, catalog, ta, tb, siteA, siteB,
+            trace, depot, cashReserve);
       }
+      if (builtPair) break;
+    }
+    if (builtPair) {
+      opened++;
+      activePairs[key] <- true;
+      // A successful build changes the catchment and site availability.
+      delete sites[ta.id];
+      delete sites[tb.id];
+      if (!OpexVehicleSlotAvailable(AIVehicle.VT_ROAD, 2)
+          || AICompany.GetBankBalance(AICompany.COMPANY_SELF) < threshold) break;
+    } else {
+      OpexRoad1yMailP2PLog("action=reject pair=" + key + " reason=NO_ROUTE_OR_BUILD");
     }
   }
+  OpexRoad1yMailP2PLog("action=scan attempts=" + attempts + " sites=" + siteSearches
+      + " opened=" + opened + " cursor=" + ROAD1Y_MAIL_P2P_CURSOR);
 }
 
 function OpexRoad1yRefleetMailP2PLine(ai, line, year)
 {
+  if (ROAD1Y_MAIL_P2P <= 0 || ai._catalog == null) return;
   if (!AIMap.IsValidTile(line.stationA) || !AIRoad.IsRoadStationTile(line.stationA)
       || !AICompany.IsMine(AITile.GetOwner(line.stationA))
       || !AIMap.IsValidTile(line.stationB) || !AIRoad.IsRoadStationTile(line.stationB)
@@ -1157,13 +1209,25 @@ function OpexRoad1yRefleetMailP2PLine(ai, line, year)
 
   local vehicles = OpexLineVehicleIds(line, stationA);
   local have = 0;
-  local movingCount = 0;
+  local committedCapacity = 0;
   local liveCap = 0;
   local unitPrice = 0;
   foreach (v in vehicles) {
     if (!AIVehicle.IsValidVehicle(v)) continue;
     have++;
-    if (AIVehicle.GetCurrentSpeed(v) > 0) movingCount++;
+    // Upgrade saved p2p orders as well as new clones; only the source waits full.
+    if (AIOrder.GetOrderCount(v) == 2) {
+      local sourceFlags = AIOrder.OF_FULL_LOAD_ANY | AIOrder.OF_NON_STOP_INTERMEDIATE;
+      local destFlags = AIOrder.OF_NON_STOP_INTERMEDIATE;
+      if (AIOrder.GetOrderFlags(v, 0) != sourceFlags) AIOrder.SetOrderFlags(v, 0, sourceFlags);
+      if (AIOrder.GetOrderFlags(v, 1) != destFlags) AIOrder.SetOrderFlags(v, 1, destFlags);
+    }
+    local tile = AIVehicle.GetLocation(v);
+    if (AIRoad.IsRoadDepotTile(tile)
+        || AIMap.DistanceManhattan(tile, line.stationA) <= 2
+        || AIMap.DistanceManhattan(tile, line.stationB) <= 2) {
+      committedCapacity += AIVehicle.GetCapacity(v, line.cargo) - AIVehicle.GetCargoLoad(v, line.cargo);
+    }
     if (liveCap <= 0) {
       local c = AIVehicle.GetCapacity(v, line.cargo);
       if (c > 0) liveCap = c;
@@ -1172,26 +1236,37 @@ function OpexRoad1yRefleetMailP2PLine(ai, line, year)
   }
   line.vehCount <- have;
 
-  local mailCap = ROAD1Y_MAIL_P2P > 0 ? ROAD1Y_MAIL_P2P : 4;
-  if (have >= mailCap || movingCount <= 0) return;
+  local mailCap = ROAD1Y_MAIL_P2P;
+  if (mailCap < 2) mailCap = 2;
+  if (have >= mailCap) return;
 
   local capacity = liveCap > 0 ? liveCap : (("capacity" in line) ? line.capacity : 0);
-  if (capacity <= 0 || totalWaiting < capacity) return;
+  if (capacity <= 0) return;
+  local backlog = totalWaiting - committedCapacity;
+  if (have > 0 && backlog < capacity) return;
 
   local ym = year * 12 + AIDate.GetMonth(AIDate.GetCurrentDate());
   if (("road1yMailRefleetMonth" in line) && line.road1yMailRefleetMonth == ym) return;
 
   local cashReserve = 25000;
+  if (ROAD1Y_MAIL_P2P_CASH > 0) {
+    cashReserve = ROAD1Y_MAIL_P2P_CASH * 1000 - 12000;
+    if (cashReserve < 0) cashReserve = 0;
+    if (cashReserve > 25000) cashReserve = 25000;
+  }
   local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
-  if (unitPrice <= 0 && ai._catalog != null && (line.cargo in ai._catalog.roadEngineByCargo))
+  if (unitPrice <= 0 && (line.cargo in ai._catalog.roadEngineByCargo)
+      && ai._catalog.roadEngineByCargo[line.cargo] != null)
     unitPrice = ai._catalog.roadEngineByCargo[line.cargo].price;
   if (unitPrice <= 0 || money < cashReserve + unitPrice) return;
 
-  local want = totalWaiting / capacity;
-  if (want > 2) want = 2;
+  // Recover an empty fleet; otherwise add capacity for genuinely unserved backlog.
+  local want = have == 0 ? 2 : backlog / capacity;
+  if (want > 4) want = 4;
   if (have + want > mailCap) want = mailCap - have;
   local canPay = (money - cashReserve) / unitPrice;
   if (want > canPay) want = canPay;
+  while (want > 0 && !OpexVehicleSlotAvailable(AIVehicle.VT_ROAD, want)) want--;
   if (want <= 0) return;
 
   line.road1yMailRefleetMonth <- ym;
