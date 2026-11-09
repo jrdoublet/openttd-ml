@@ -28,7 +28,7 @@ class TestPO02Expiry(unittest.TestCase):
     def test_globals_and_loader(self):
         globals_pre = read_nut("globals_pre.nut")
         self.assertIn("PO02_INDEPENDENT_EXPIRY <- 0;", globals_pre)
-        self.assertIn("PO02_LAST_PUBLISH_DATE <- { air = 0, rail = 0, road = 0, water = 0 };", globals_pre)
+        self.assertIn("PO02_LAST_PUBLISH_DATE <- { air = 0, rail = 0, road = 0, water = 0, fleet = 0 };", globals_pre)
         settings = read_nut("settings.nut")
         self.assertIn('PO02_INDEPENDENT_EXPIRY = AIController.GetSetting("po02_independent_expiry") == 1 ? 1 : 0;', settings)
 
@@ -45,6 +45,23 @@ class TestPO02Expiry(unittest.TestCase):
         persist = read_nut("persist.nut")
         self.assertIn("po02LastPublishDate", persist)
         self.assertIn("PO02_INDEPENDENT_EXPIRY", persist)
+
+    def test_fleet_slot_full_save_and_ungated_load(self):
+        """Contrat : le slot fleet existe, le save complet ecrit la meme cle,
+        et Load ne depend pas de PO02_INDEPENDENT_EXPIRY (encore a 0)."""
+        globals_pre = read_nut("globals_pre.nut")
+        slot = globals_pre.split("PO02_LAST_PUBLISH_DATE <- ", 1)[1].split(";", 1)[0]
+        self.assertIn("fleet = 0", slot)
+        persist = read_nut("persist.nut")
+        self.assertIn("saveObj.po02LastPublishDate <- PO02_LAST_PUBLISH_DATE;", persist)
+        self.assertIn("shortSave.po02LastPublishDate <- PO02_LAST_PUBLISH_DATE;", persist)
+        self.assertNotIn(
+            'if (PO02_INDEPENDENT_EXPIRY && ("po02LastPublishDate" in data)',
+            persist,
+        )
+        load = persist.split("function OpexAI::Load", 1)[1]
+        self.assertIn('("po02LastPublishDate" in data)', load)
+        self.assertIn("fleet = 0", load)
 
     def test_hygiene_no_forbidden_constructs(self):
         for name in ("po01c_regen.nut", "persist.nut"):

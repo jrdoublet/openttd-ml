@@ -890,6 +890,9 @@ function OpexAI::Save()
   if (ROAD100_LONG_SHADOW_YEAR >= 0) saveObj.road100LongShadowYear <- ROAD100_LONG_SHADOW_YEAR;
   if (EB14_PROGRESSIVE && EB14_RAIL_JOURNAL_STATE != null)
     saveObj.eb14RailJournal <- EB14_RAIL_JOURNAL_STATE;
+  /* Meme cle que le short save. Au defaut 0 la branche est fausse. */
+  if (PO02_INDEPENDENT_EXPIRY)
+    saveObj.po02LastPublishDate <- PO02_LAST_PUBLISH_DATE;
   if (DECISION_LOG && startOps != null) {
     local endOps = AIController.GetOpsTillSuspend();
     local opsSpent = startOps - endOps;
@@ -985,8 +988,19 @@ function OpexAI::Load(version, data)
     AIR_NEW_TOWN_QUEUE = data.airNewTownQueue;
   else
     AIR_NEW_TOWN_QUEUE = [];
-  if (PO02_INDEPENDENT_EXPIRY && ("po02LastPublishDate" in data) && typeof data.po02LastPublishDate == "table")
-    PO02_LAST_PUBLISH_DATE = data.po02LastPublishDate;
+  /* Load precede OpexLoadSettings : ne pas gater sur PO02_INDEPENDENT_EXPIRY,
+   * encore a 0 ici. Copier les cinq slots pour qu'une sauvegarde sans fleet
+   * ne reintroduise pas l'index manquant. */
+  if (("po02LastPublishDate" in data) && typeof data.po02LastPublishDate == "table") {
+    local src = data.po02LastPublishDate;
+    local restored = { air = 0, rail = 0, road = 0, water = 0, fleet = 0 };
+    if (("air" in src) && typeof src.air == "integer") restored.air = src.air;
+    if (("rail" in src) && typeof src.rail == "integer") restored.rail = src.rail;
+    if (("road" in src) && typeof src.road == "integer") restored.road = src.road;
+    if (("water" in src) && typeof src.water == "integer") restored.water = src.water;
+    if (("fleet" in src) && typeof src.fleet == "integer") restored.fleet = src.fleet;
+    PO02_LAST_PUBLISH_DATE = restored;
+  }
   if (EB7_DETAILED_ACCOUNTING && ("eb7Ledger" in data) && typeof data.eb7Ledger == "table")
     EB7_LEDGER = data.eb7Ledger;
   if (MULTI1_RELANCE && ("multi1LastBuildDate" in data) && typeof data.multi1LastBuildDate == "integer")

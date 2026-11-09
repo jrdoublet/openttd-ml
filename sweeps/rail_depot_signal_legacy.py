@@ -35,6 +35,9 @@ _REVIEWED_MERGE_RDS_SHA = {
             "42d7708dc890be6adbf5936c4879075ece39a030a777318edcaaa77b719a86d0",
         "7ae9ad7cde04ceb382314f9d1ccab05125c52fab4cb22defd177dbfd35023fd6":
             "6ac817fd2ec151d0bda657b767662eef8440963674a102269fb66fe58c9ce21e",
+        # PO-02 fleet slot survives RDS projection (outside the hunks).
+        "1d37b1b21b174e2005eeb3d33ae6aa3312371fde101576bf010750a3dac3abc2":
+            "fd3f1e4c33305c36de7020ea7de706522d2f8d7e11b147025b33ae0b5259350c",
         "33443705bcf7b9051a2a3ed918fee6cd08fa7ba187ad4332323155bfaeb0e8fd":
             "464d5140f46d38235dc313c8699dea7116aace2665326cb3bbae2ffd182b6b79",
     },

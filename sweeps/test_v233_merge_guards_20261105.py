@@ -50,7 +50,7 @@ OVERNIGHT_GLOBALS = (
     "IDLE1_SLACK_RESERVE <- 2500; // Marge de securite anti-franchissement de tick.\n"
     "IDLE1_TOWN_CURSOR <- 0;\n"
     "PO02_INDEPENDENT_EXPIRY <- 0; // PO-02 : echeance de publication propre a chaque vivier modal (defaut 0).\n"
-    "PO02_LAST_PUBLISH_DATE <- { air = 0, rail = 0, road = 0, water = 0 };\n"
+    "PO02_LAST_PUBLISH_DATE <- { air = 0, rail = 0, road = 0, water = 0, fleet = 0 };\n"
     "EB4_AIR_ROAD_ARBITRAGE <- 0; // EB-4 : arbitrage de caisse 1970-1972 entre air et route (defaut 0).\n"
     "EB7_DETAILED_ACCOUNTING <- 1; // EB-7 : comptabilite fine et passive des depenses reelles AIR/ROUTE (defaut 1 depuis le 08/11).\n"
     "EB7_LEDGER <- { capexRoad = 0, capexAir = 0, vehBuyAir = 0, lastCash = 0, lastLoan = 0 };\n"

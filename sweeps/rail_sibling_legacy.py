@@ -32,6 +32,8 @@ _MERGE_SHA = {
         "ebec56a6b0bb226f6b50a5a42ad3da51be89872324a75c63a2853e35feea665b",
         "21be34e223d17916dae003fc4f979c9d54c48dbe5526b54a95351bda5e32592c",
         "7ae9ad7cde04ceb382314f9d1ccab05125c52fab4cb22defd177dbfd35023fd6",
+        # PO-02 fleet slot, outside the RAIL-SIBLING span.
+        "1d37b1b21b174e2005eeb3d33ae6aa3312371fde101576bf010750a3dac3abc2",
     ),
     "info.nut": (
         "0e6e6e30aaae1b814dc8afbaad515347e2dc05aea133cd12983a7abc1fce26f1",

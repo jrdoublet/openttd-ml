@@ -53,8 +53,8 @@ ROAD1Y_B2_RAIL_MERGE = {
         (7, 8, 9, 10),
     ),
     "globals_pre.nut": (
-        "7ae9ad7cde04ceb382314f9d1ccab05125c52fab4cb22defd177dbfd35023fd6",
-        "a9d97aa05e649cedc1234d633e2f3e38cbf950bb9b84196b5e82b4c65b7707dc",
+        "1d37b1b21b174e2005eeb3d33ae6aa3312371fde101576bf010750a3dac3abc2",
+        "a8b0763b6905d3934691adce941fbcbf8e4b9b48077f5ca9c02f843862010e48",
         (1,),
     ),
     "info.nut": (
@@ -155,6 +155,17 @@ ROAD1Y_B2_RAIL_MERGE_STAGES = {
          "ee7996196e0669c92150403721d43efefef7584f8744135b41698d75f50f3424"),
         ("464d5140f46d38235dc313c8699dea7116aace2665326cb3bbae2ffd182b6b79",
          "684257ca4bcb463389b0b9e2084cf3f226afcdca47aacc7223649d2423fabd29"),
+        # Previous reviewed merge input, kept so origin/master still projects.
+        ("7ae9ad7cde04ceb382314f9d1ccab05125c52fab4cb22defd177dbfd35023fd6",
+         "a9d97aa05e649cedc1234d633e2f3e38cbf950bb9b84196b5e82b4c65b7707dc"),
+        # PO-02 fleet slot: the initializer sits outside every ROAD100 hunk.
+        # These three stages are the live file after the same rail strips.
+        ("a71d3871eb244a778cf68b72bfb0f00460b00461e59d9ed4642ee379796eebeb",
+         "7c698303934266fbed613f770a0ba70e036b3355bb20633c393fb897fb440cd1"),
+        ("5019de38b7cbabccd914795b9d8f7551f1b0fb8ec39f15a55bda4beae8b0d17b",
+         "49d162ff9954cc2a64e88253c18126191e916f2e15bf257ec5e36c79f1f43b21"),
+        ("ce0dd19bb87d14d54d8565cbb07c43ec5f673db4ab25ce8d60da20ee830777ba",
+         "aae05c80eadb3e3119a7bba8efdfc4e3a48799b70fe8a34a60d38ee82f0e8e3f"),
     ),
     "info.nut": (
         ("0e6e6e30aaae1b814dc8afbaad515347e2dc05aea133cd12983a7abc1fce26f1",
