@@ -117,6 +117,12 @@ BUS_DISTRICT_KEYS = (
     "road1y_mail2",
     "road1y_mail2_years",
     "road1y_next3",
+    # Lus aussi dans OpexLoadBusDistrictSettings avant require("bus_districts_overrides.nut")
+    # pour installer le hook OpexRoad1yRefleetSaved avant Start meme si road1y_mail_on_pax=0.
+    "road1y_mail_p2p",
+    "road1y_mail_p2p_missing",
+    "road1y_mail_p2p_cash",
+    "road1y_mail_p2p_start",
 )
 
 ROAD100_SOLO_MODES = "MODE_ROAD && !MODE_AIR && !MODE_RAIL && !MODE_WATER"
@@ -140,6 +146,12 @@ def _gate_line(global_name):
     return f"if (!road1yRoadOnly) {global_name} = {ROAD1Y_OFF[global_name]};"
 
 
+def _bus_gate_line(global_name):
+    if global_name.startswith("ROAD1Y_MAIL_P2P"):
+        return f"|| !road1yRoadOnly) {global_name} = {ROAD1Y_OFF[global_name]};"
+    return _gate_line(global_name)
+
+
 class TestRoad1yMultimodalGate(unittest.TestCase):
     def test_info_declares_every_loaded_road1y_setting(self):
         declared = _info_road1y_names()
@@ -154,7 +166,10 @@ class TestRoad1yMultimodalGate(unittest.TestCase):
         bus = body("settings.nut", "OpexLoadBusDistrictSettings")
         self.assertEqual(sorted(_getsetting_road1y(load)), sorted(LOAD_SETTINGS_KEYS))
         self.assertEqual(sorted(_getsetting_road1y(bus)), sorted(BUS_DISTRICT_KEYS))
-        self.assertEqual(settings.count('GetSetting("road1y_mail_on_pax")'), 2)
+        both_loaders = set(LOAD_SETTINGS_KEYS) & set(BUS_DISTRICT_KEYS)
+        for key in SETTING_TO_GLOBAL:
+            expected_count = 2 if key in both_loaders else 1
+            self.assertEqual(settings.count(f'GetSetting("{key}")'), expected_count, key)
         for path in AI.glob("*.nut"):
             if path.name == "settings.nut":
                 continue
@@ -197,7 +212,7 @@ class TestRoad1yMultimodalGate(unittest.TestCase):
         require_at = bus.index('require("bus_districts_overrides.nut")')
         for key in BUS_DISTRICT_KEYS:
             global_name = SETTING_TO_GLOBAL[key]
-            gate = _gate_line(global_name)
+            gate = _bus_gate_line(global_name)
             self.assertIn(gate, bus, gate)
             get_at = bus.index(f'GetSetting("{key}")')
             gate_at = bus.index(gate)
@@ -256,9 +271,20 @@ class TestRoad1yMultimodalGate(unittest.TestCase):
             blob = load if global_name not in (
                 "ROAD1Y_BUS_FIXES", "ROAD1Y_EXTRA_STOPS", "ROAD1Y_PAX_SITES",
             ) else bus
-            if global_name in ("ROAD1Y_MAIL_ON_PAX", "ROAD1Y_NEXT", "ROAD1Y_MAIL2", "ROAD1Y_MAIL2_YEARS", "ROAD1Y_NEXT3"):
+            if global_name in (
+                "ROAD1Y_MAIL_ON_PAX",
+                "ROAD1Y_WEAK",
+                "ROAD1Y_NEXT",
+                "ROAD1Y_MAIL2",
+                "ROAD1Y_MAIL2_YEARS",
+                "ROAD1Y_NEXT3",
+                "ROAD1Y_MAIL_P2P",
+                "ROAD1Y_MAIL_P2P_MISSING",
+                "ROAD1Y_MAIL_P2P_CASH",
+                "ROAD1Y_MAIL_P2P_START",
+            ):
                 self.assertIn(_gate_line(global_name), load)
-                self.assertIn(_gate_line(global_name), bus)
+                self.assertIn(_bus_gate_line(global_name), bus)
             else:
                 self.assertIn(f"if (!road1yRoadOnly) {global_name} = {off};", blob)
 

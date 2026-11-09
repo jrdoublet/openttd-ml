@@ -53,17 +53,17 @@ ROAD1Y_B2_RAIL_MERGE = {
         (7, 8, 9, 10),
     ),
     "globals_pre.nut": (
-        "cdee1071263ab7b49708b74de5dd0af5281531a7b929a5a2065b89274a519d55",
-        "da9c4002814f335f7cbf65a420a5b606886d3eb4d27e2c6b69c82c78afb6643f",
+        "e57223f2564507f2922c84ce2727d51dd995d18052c7a978cb4fd9235e98e8df",
+        "98b7c903441ab5c02083a0a06439b817235c012e27cc4039aae12cd70687282d",
         (1,),
     ),
     "info.nut": (
-        "28a3871a6b6d919666429206e0c63ee396dd0e2ee0ad8694339d7350b50d343a",
-        "104cd682db3a9a7809e0c52d1064df0c6b478ff46f678c6277452afce7d78891",
+        "896d4bd56a1bc78dba3d092710279c876b62d60fb4a10955708d3984a37fc3cd",
+        "df7f43aa296e4b82c05de79d15d1f3f68bb1ee81844befb34ceb2eb639c058cb",
         (0,),
     ),
     "settings.nut": (
-        "5f7569c24b61c768ddf99ab5e31b4b5826bcb4cf6a100f841fdf4e52f08e76d3",
+        "2cb2ee66113e1b72f17354ffd13157d21049ab7ebc81472257686d207d71a2ae",
         "9cc5fbd6fd406d2562cd1c2c3ceabaa39ecac771dfb5931c9c2ec1d672d021c6",
         (2,),
     ),
@@ -139,6 +139,14 @@ ROAD1Y_B2_RAIL_MERGE_STAGES = {
          "5ba21b684d2d9486bffe240aaf4daa39ab21a55f5a9aa6462440899cc0f0fd41"),
         ("732ab22190f6afdf949876852cf3552e2f44fc2c259355d0ecd6501a201c2618",
          "005892e61519c9e0bcab3505a4e90a67d8baeb5fc0b71e1fc21cc2c75282adbb"),
+        ("cdee1071263ab7b49708b74de5dd0af5281531a7b929a5a2065b89274a519d55",
+         "da9c4002814f335f7cbf65a420a5b606886d3eb4d27e2c6b69c82c78afb6643f"),
+        ("b2ccb0b4537b78849896f7e96314cd88bdd68d173613da635b1714e53c66ddc9",
+         "16e6b98ded834116156a70a63cc91afc98899f9aa0db9f17b6aea228cf8cd4be"),
+        ("5117597d487833210afe20dd9d4fb2fad70749b480a9e00cfdf108e6203553bd",
+         "9903db6a10553df2b72cece76165f4516072977be130c363732f1e6dab318d23"),
+        ("a91993bf475118d331ecb740a419fedb55744968f06cee5638bacae9fbb8a1fb",
+         "6e093ae639f88f2056cc56ba3c749f730700380bc179055d0271f0f29bebc96d"),
     ),
     "info.nut": (
         ("1fbdac0c3e35ee9812033b7456620b512f7b641cf780ab1c74ff0f1dcc0e3e63",
@@ -195,6 +203,14 @@ ROAD1Y_B2_RAIL_MERGE_STAGES = {
          "f3350b9b64ffa6854b22a0c796faf52df25ce091ad53b71453e983dae9e0dd42"),
         ("fcf9dfaab2f5e85b63691604df9d006028b76c7bf0aa614c11eb638e4c714f49",
          "7527d62cb7dc84587b4acd507376dbe9187b7430a930f72ff9ab03d6fccf7b3e"),
+        ("28a3871a6b6d919666429206e0c63ee396dd0e2ee0ad8694339d7350b50d343a",
+         "104cd682db3a9a7809e0c52d1064df0c6b478ff46f678c6277452afce7d78891"),
+        ("413b107bb502627ede41e2055f1869989d64b3e67772f1f8757f581e4bedb484",
+         "a5e9112b95ea30f55271f7d8b0b461b08fb5ec7c1b5b29b6c5d7c8a88996c0b7"),
+        ("0a4c3500713034f1614a728b611c971ece85de51b4c839351d30dcf1f4406d7d",
+         "6b3738f43d291eab24b4154346611f98cfdec7b2db68cd331fb7aac002004ebe"),
+        ("8343709185c99b1a6482f548d2a01bac282dbbf841b00f40ae9927afeb4cd6bc",
+         "f80b8b28fa4275b195726f0873fe2507e5e3529e72a2016a3fe31153983c1a8d"),
     ),
     "settings.nut": (
         ("4ba30a2a9a44059be4f33da8906bf7c289be24cb49376563616ce487a111f483",
@@ -251,6 +267,43 @@ ROAD1Y_B2_RAIL_MERGE_STAGES = {
          "3f09182ea9c1138d3539968bf85c8d3bef7177a074a2e1f29b2a5dc8fbbf956c"),
         ("d9e2cea04c593a5579605909358caa2020fd0241b4a2f3b9b5c450c50a95984c",
          "6b9c2e603267c0cef130924a0287a3d1d3a7a251d7122721f6ea99b709e50f16"),
+        ("5f7569c24b61c768ddf99ab5e31b4b5826bcb4cf6a100f841fdf4e52f08e76d3",
+         "9cc5fbd6fd406d2562cd1c2c3ceabaa39ecac771dfb5931c9c2ec1d672d021c6"),
+        ("481538bd131d52ff61da5796be2e1f30fa724f4a2306184fcd0f2ba2e0458c25",
+         "a46aa484610f941f28f5df4c4d562043ed179363dc9cdddb01270d6b7051c9ae"),
+        ("9ad7d44b697d777b964d2a1f8b46f495113d5b4b8079a7de43ee3e30270464e0",
+         "3f09182ea9c1138d3539968bf85c8d3bef7177a074a2e1f29b2a5dc8fbbf956c"),
+        ("59ea37cc5f18e5b3521694ba0a8364b11295e413885c2dc353ad1042895678c7",
+         "6b9c2e603267c0cef130924a0287a3d1d3a7a251d7122721f6ea99b709e50f16"),
+    ),
+}
+
+# Frozen pre-mail_p2p witnesses (44d9313eab and origin/master) predating the
+# two ROAD1Y_MAIL_P2P insertions inside B2 hunks of builder_road.nut and
+# settings.nut.  Only these exact SHA256s may strip the mail_p2p snippet from
+# the live B2 hunk before exact subtraction.
+_PRE_MAIL_P2P_B2_WITNESS = {
+    "builder_road.nut": (
+        {"f036bc5c6c7575e917179fc64ff17e76559ba5cd5d3d034907e979b80d9a1454"},
+        '    if (ROAD1Y_MAIL_P2P > 0 && ("kind" in line) && line.kind == "mail_p2p") {\n'
+        '      sourceFlags = AIOrder.OF_FULL_LOAD_ANY | nonstopFlag;\n'
+        '      destFlags = AIOrder.OF_NONE | nonstopFlag;\n'
+        '    }\n',
+    ),
+    "settings.nut": (
+        {
+            "2f2b0f4995a61d6f64255295dc2f330d382db1a8473ec1f38abe3842ebf3c04c",
+            "32542fef11a2bad6fbc7716a4e07a52758e7a2e358af172d2b43c3ee4a0a59fc",
+        },
+        '    // Install the p2p refleet hook before Start, including when mail_on_pax is off.\n'
+        '    ROAD1Y_MAIL_P2P = AIController.GetSetting("road1y_mail_p2p");\n'
+        '    if (ROAD1Y_MAIL_P2P < 0 || ROAD1Y_MAIL_P2P > 20 || !road1yRoadOnly) ROAD1Y_MAIL_P2P = 0;\n'
+        '    ROAD1Y_MAIL_P2P_MISSING = AIController.GetSetting("road1y_mail_p2p_missing");\n'
+        '    if (ROAD1Y_MAIL_P2P_MISSING < 0 || ROAD1Y_MAIL_P2P_MISSING > 60 || !road1yRoadOnly) ROAD1Y_MAIL_P2P_MISSING = 0;\n'
+        '    ROAD1Y_MAIL_P2P_CASH = AIController.GetSetting("road1y_mail_p2p_cash");\n'
+        '    if (ROAD1Y_MAIL_P2P_CASH < 0 || ROAD1Y_MAIL_P2P_CASH > 60 || !road1yRoadOnly) ROAD1Y_MAIL_P2P_CASH = 0;\n'
+        '    ROAD1Y_MAIL_P2P_START = AIController.GetSetting("road1y_mail_p2p_start");\n'
+        '    if (ROAD1Y_MAIL_P2P_START < 0 || ROAD1Y_MAIL_P2P_START > 12 || !road1yRoadOnly) ROAD1Y_MAIL_P2P_START = 0;\n',
     ),
 }
 
@@ -290,6 +343,15 @@ def generate():
 def _subtract_exact(name: str, source: str, edits, label: str) -> str:
     if not edits:
         return source
+    witness = _PRE_MAIL_P2P_B2_WITNESS.get(name)
+    if witness is not None and label in ("B2", "ROAD1Y-B2", "ROAD1Y-B2-merge", "ROAD1Y-B2-reviewed-merge"):
+        digest = hashlib.sha256(source.encode("utf-8")).hexdigest()
+        if digest in witness[0]:
+            snippet = witness[1]
+            edits = [
+                {"before": e["before"], "after": e["after"].replace(snippet, "", 1)}
+                for e in edits
+            ]
     present = [source.count(edit["after"]) == 1 for edit in edits]
     if not any(present):
         # Grouped hunks can contain old context that occurs multiple times,
