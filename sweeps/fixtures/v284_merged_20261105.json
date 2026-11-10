@@ -20,8 +20,8 @@
       "search_prio_off_sha256": "094c7ae12ed2bb3f77d124417d255612c988096ed2442f8c8738242329cc112d"
     },
     "globals_pre.nut": {
-      "live_sha256": "7ae9ad7cde04ceb382314f9d1ccab05125c52fab4cb22defd177dbfd35023fd6",
-      "search_prio_off_sha256": "4ecadd926a20592eed191dc14845a473fbc1bd4ed92d892fbe67132e5d2895f3"
+      "live_sha256": "9b244764b657c0d69a28b19d4f5e685eac4c9e9fc22f7aa71fe88ed69335b100",
+      "search_prio_off_sha256": "246b3b5474ba85396e9953d2a42d9177545181ce80f19810efb8445cbe854334"
     }
   },
   "merged_info_after_v233": {

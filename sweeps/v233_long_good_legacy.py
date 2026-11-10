@@ -29,6 +29,7 @@ _MERGED_PRE_V233_SHA = {
         "83eeb53e34010c64d1fdf0026dd5939b09d91d66389f81902de0da6fda80194d",
         "c407d1a06a84d6c43457950a6da3f208934a1d7644c7b84ddb9494fcee0fbebd",
         "89040809f58fa076df6d085420831b4c96c7454c107b1aaad15092700ce90cda",
+        "379af7e43ce37048493421e3750d62ff9de8ec34be6b5dabccd057285ca949a3",
     },
     "info.nut": {
         "0d8c3fe5d72736df54af53d7a3bfbd87598c8a66b8cfa0ceba16cae7fc92e4f5",
@@ -73,6 +74,8 @@ _MERGED_V233_PROJECTED_SHA = {
             "550c42bcab97df9fa02cd0ef4876d791ad427aa6294e71318a0f1d78cb26e2aa",
         "89040809f58fa076df6d085420831b4c96c7454c107b1aaad15092700ce90cda":
             "6daf407980c06cd85bcde8e0bcfcea73d353f34ea7f559a45fa50869b1543434",
+        "379af7e43ce37048493421e3750d62ff9de8ec34be6b5dabccd057285ca949a3":
+            "c8f90ce7f2f326f0bc09d827bdbf2ae08e075165fe44db1eb9f6fdacbd3d2173",
     },
     "info.nut": {
         "0d8c3fe5d72736df54af53d7a3bfbd87598c8a66b8cfa0ceba16cae7fc92e4f5":

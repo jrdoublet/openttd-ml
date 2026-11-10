@@ -28,7 +28,7 @@ FIXTURE = json.loads(
 # historiques de la fixture RAIL-only restent inchangees et verifiees dans
 # son chemin historique. Ce second jeu est specifique au bundle fusionne.
 MERGED_PRE_INTERVENTION_SHA256 = {
-    "globals_pre.nut": "d70577622aa7949b3655e515929efb60dc512e96fbc21258708eb18455a9f2e2",
+    "globals_pre.nut": "0b7669152183e290256c892350352ce757ef1fc071f71d28990a11c865be6d90",
     "settings.nut": "fcd831d53d86f98d42c5007a9a97b3c8b1066b9677015e067456124fcb635764",
     "info.nut": "746d6afe204f2e91047dda8915de51055bb21b101fe42435abefe4a3156cd596",
 }

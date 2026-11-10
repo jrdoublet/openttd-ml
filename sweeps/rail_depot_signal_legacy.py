@@ -41,6 +41,8 @@ _REVIEWED_MERGE_RDS_SHA = {
         # MULTI-1 portfolio global survives RDS projection.
         "9b244764b657c0d69a28b19d4f5e685eac4c9e9fc22f7aa71fe88ed69335b100":
             "e221b7f742120057cf8a40ee064349e6d12f4239e77601255860c2444dd6302b",
+        "f5744583f3c11a761ece04000af1ff83f4fb6d4b5fbdf3d1dbad6df4173d0201":
+            "03527d4efdc62af84a450d0b1e77c1c53b7eccb53ce1e5b86e434fa8f2343bdc",
         "33443705bcf7b9051a2a3ed918fee6cd08fa7ba187ad4332323155bfaeb0e8fd":
             "464d5140f46d38235dc313c8699dea7116aace2665326cb3bbae2ffd182b6b79",
     },
