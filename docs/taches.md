@@ -1233,3 +1233,9 @@ sans adoption de mécanisme ; les preuves historiques restent conservées.
 2. À la fin d'un lot, cocher la tâche et inscrire les résultats complets dans le journal du jour ; supprimer de cette page les anciennes consignes d'exécution qui ne correspondent plus au code.
 3. Préserver les verdicts négatifs, les sources immuables et l'historique ; tester le **code actuel** et non les anciens défauts. Aucune campagne ne doit être relancée parce qu'une fiche datée porte encore le mot « en cours ».
 4. Validation : santé des parties, même cohorte et source attestée, comparaisons dans le propre duel, fichiers Save/Load, `git diff --check`, commit de chemins explicites et push normal. Ne pas mélanger métriques PLYR réellement payées, factures nettes, stocks et devis.
+
+## 10/11/2026 — IDLE-1 et EB-7 par défaut (fusion de nuit)
+- `idle1_slack_worker=1` et `eb7_detailed_accounting=1` sont désormais par défaut (demande utilisateur ; porte A multimodal : eb7+idle1 +57,8 k£/an, 24/15/1, p=0,08).
+- **Réserve IDLE-1** : `_idle1SlackStep()` (scheduler.nut) met à jour `t.pop` du catalogue vivant (lu par air_towns.nut) : ce n'est pas un levier d'opcodes pur, il modifie des décisions via le rafraîchissement des populations.
+- Correctifs Grok fusionnés : PO-02 (slot `fleet`, persistance), MULTI-1 (prédicat câblé), EB-4 (fenêtre 1970-1972). Les autres 6 leviers de nuit restent à 0.
+- Portes A route seule du 10/11 : `road1y_spread_cap=6` −29,3 k£ (fail, valeur −7,6 %), `road1y_abandon_cooldown=90` −15,3 k£ (fail) ; branche `rend-levers`, défauts 0.
