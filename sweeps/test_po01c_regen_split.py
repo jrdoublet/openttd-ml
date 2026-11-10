@@ -532,24 +532,48 @@ class PO01CContracts(unittest.TestCase):
                 self.assertEqual(hashlib.sha256(legacy).hexdigest(),
                                  RESERVE0_PO01D_SHA256.get(name, digest))
 
-        # PO03 ajoute exactement deux lignes dans _dispatchReactiveIntention.
+        # PO03 ajoute la garde dans _dispatchReactiveIntention ; EB-14
+        # (7160c6f5, defaut ESTIM-31 eb14_progressive=3) la complete par une
+        # exception c77_build et ajoute un lancement RAIL dans le tick.
         # Conserver la preuve byte-a-byte de tout le reste de orchestrator.nut :
-        # seul ce fragment autorise est neutralise pour la comparaison SHA.
-        # Cela refuse les changements secondaires de ce fichier, contrairement
-        # a une rebaseline globale sur le nouveau SHA.
+        # seuls ces deux fragments autorises sont neutralises pour la
+        # comparaison SHA, qui doit retomber sur le SHA PO03 historique.
         guard = (
-            b'    if (C77_INTENT_DEFER_SUBSIDY && PO01C_REGEN_SPLIT && '
-            b'(this._po01cJob != null || this._po01cPending))\n'
+            b'    /* EB-14 : une intention de construction peut utiliser un projet deja\n'
+            b'     * publie et revalide pendant que le scan RAIL finit les autres bandes.\n'
+            b"     * L'absence de portefeuille / un autre worker restent bloquants, ainsi\n"
+            b'     * que les subventions dont les contraintes temporelles sont distinctes. */\n'
+            b'    if (C77_INTENT_DEFER_SUBSIDY && PO01C_REGEN_SPLIT\n'
+            b'        && (this._po01cJob != null || this._po01cPending)\n'
+            b'        && !(EB14_PROGRESSIVE && intention.kind == "c77_build"\n'
+            b'            && this._projects != null && this._activeWorker == null))\n'
             b'      blocked = true;\n'
         )
+        eb14_start = (
+            b'  /* EB-14 : lancer une seule passe RAIL privee apres le premier portefeuille.\n'
+            b'   * La regeneration initiale a deja acquitte C76 : la demande doit donc\n'
+            b"   * partir du tick suivant, sinon elle serait effacee par l'acquittement. */\n"
+            b'  if (EB14_PROGRESSIVE && PO01C_REGEN_SPLIT && MODE_RAIL\n'
+            b'      && !EB14_INITIAL_RAIL_JOB && this._projects != null\n'
+            b'      && this._c76Revisions != null && this._c76AckRevisions != null) {\n'
+            b'    EB14_INITIAL_RAIL_JOB = true;\n'
+            b'    this._c76BumpLayer("rail");\n'
+            b'    this._po01cPending = true;\n'
+            b'    if (DECISION_LOG) OpexDecide("EB14_START", "mode=rail reason=first_portfolio");\n'
+            b'  }\n'
+        )
         orchestrator = off_bytes('orchestrator.nut', (AI / 'orchestrator.nut').read_bytes())
-        self.assertEqual(orchestrator.count(guard), 1, 'garde PO03 exactement une fois')
+        self.assertEqual(orchestrator.count(guard), 1, 'garde PO03/EB-14 exactement une fois')
+        self.assertEqual(orchestrator.count(eb14_start), 1, 'lancement EB-14 exactement une fois')
         dispatch = function(source('orchestrator.nut'), 'OpexAI::_dispatchReactiveIntention')
         self.assertIn(guard.decode('ascii'), dispatch)
         self.assertLess(dispatch.index(guard.decode('ascii')),
                         dispatch.index('if (C77_INTENT_DEFER_SUBSIDY && ("subsidyId" in deferPayload)'))
+        tick = function(source('orchestrator.nut'), 'OpexAI::_runOrchestratorTick')
+        self.assertIn(eb14_start.decode('ascii'), tick)
         self.assertEqual(
-            hashlib.sha256(orchestrator.replace(guard, b'', 1)).hexdigest(),
+            hashlib.sha256(orchestrator.replace(guard, b'', 1)
+                           .replace(eb14_start, b'', 1)).hexdigest(),
             '1600953e477a5db49827d2f277ed965f4442a56ca32710f3c15a209a1b563ace'
         )
 
