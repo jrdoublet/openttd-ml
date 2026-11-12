@@ -348,9 +348,12 @@ class DeferSourceContracts(unittest.TestCase):
         code = source('orchestrator.nut')
         start = code.index('    /* C77 defer 2 :')
         end = code.index('    /* Fin C77 defer 2. */\n', start) + len('    /* Fin C77 defer 2. */\n')
-        # Whole file at 8c9c9e1a, after removing only the mode-2 block.
-        self.assertEqual(hashlib.sha256((code[:start] + code[end:]).encode()).hexdigest(),
-                         'e93eef4d3c504b36e738d370b3d41007228377a4a3b3af3ef67c70fce12ccdd4')
+        # Whole file at 8c9c9e1a or merged HEAD, after removing only the mode-2 block.
+        allowed = (
+            'e93eef4d3c504b36e738d370b3d41007228377a4a3b3af3ef67c70fce12ccdd4',
+            '2a70dd048191089c3d46695b38c4b6a51af7e9afddc986ed9800b9fa99bcc8d2',
+        )
+        self.assertIn(hashlib.sha256((code[:start] + code[end:]).encode()).hexdigest(), allowed)
         block = code[start:end]
         self.assertIn('if (C77_INTENT_DEFER_SUBSIDY && ("subsidyId" in deferPayload) && deferPayload.subsidyId >= 0)', block)
         self.assertIn('!AISubsidy.IsValidSubsidy(deferSubId) || AISubsidy.IsAwarded(deferSubId)', block)
