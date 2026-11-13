@@ -1243,3 +1243,7 @@ sans adoption de mécanisme ; les preuves historiques restent conservées.
 - **Réserve IDLE-1** : `_idle1SlackStep()` (scheduler.nut) met à jour `t.pop` du catalogue vivant (lu par air_towns.nut) : ce n'est pas un levier d'opcodes pur, il modifie des décisions via le rafraîchissement des populations.
 - Correctifs Grok fusionnés : PO-02 (slot `fleet`, persistance), MULTI-1 (prédicat câblé), EB-4 (fenêtre 1970-1972). Les autres 6 leviers de nuit restent à 0.
 - Portes A route seule du 10/11 : `road1y_spread_cap=6` −29,3 k£ (fail, valeur −7,6 %), `road1y_abandon_cooldown=90` −15,3 k£ (fail) ; branche `rend-levers`, défauts 0.
+
+## 13/11/2026 — portes A multimodales 40×3 : estim1_k_mode et eb5_good_chain_early (échecs)
+- **estim1_k_air=46 (seul)** : −148,8 k£/an, 11/29/0, p=1,4e-4, valeur −3,6 % ; **+ estim1_k_road=15** : −148,5 k£/an (identique : l'effet est AIR). Revue agy : défaut 1 (decisionEconomics) faux d'après Grok (même objet sur C121) ; défaut 2 (garde P2 rival AIR) réel mais non atteint sans `rail_cargo_opportunity_rank` → n'explique pas le −148 k. Réduire la recette prévue de 54 % fait moins investir : **levier rejeté**, défaut 0 ; branche `grok13-nov13` (0a6a03c8, 3f48b549) non fusionnée.
+- **eb5_good_chain_early=1** : +41,8 k£/an, 24/16/0, p=0,34, IC95 [−37 k, +121 k], seuil +101,9 k ⇒ fail_primary ; branche `agy13-nov13` (3a574f52) non fusionnée, défaut 0, pas de porte B.
