@@ -1247,3 +1247,9 @@ sans adoption de mécanisme ; les preuves historiques restent conservées.
 ## 13/11/2026 — portes A multimodales 40×3 : estim1_k_mode et eb5_good_chain_early (échecs)
 - **estim1_k_air=46 (seul)** : −148,8 k£/an, 11/29/0, p=1,4e-4, valeur −3,6 % ; **+ estim1_k_road=15** : −148,5 k£/an (identique : l'effet est AIR). Revue agy : défaut 1 (decisionEconomics) faux d'après Grok (même objet sur C121) ; défaut 2 (garde P2 rival AIR) réel mais non atteint sans `rail_cargo_opportunity_rank` → n'explique pas le −148 k. Réduire la recette prévue de 54 % fait moins investir : **levier rejeté**, défaut 0 ; branche `grok13-nov13` (0a6a03c8, 3f48b549) non fusionnée.
 - **eb5_good_chain_early=1** : +41,8 k£/an, 24/16/0, p=0,34, IC95 [−37 k, +121 k], seuil +101,9 k ⇒ fail_primary ; branche `agy13-nov13` (3a574f52) non fusionnée, défaut 0, pas de porte B.
+
+## 14/11/2026 — verdicts portes A multimodales 40×3 (suite du 13/11)
+- **eb5_good_chain_early après révision Codex (6cc03f47)** : +38,0 k£/an, 23/17/0, p=0,35, IC95 [−58 k, +133 k], seuil +102 k ⇒ fail_primary (v1 : +41,8 k) ; la révision n'a rien apporté. Branche `agy13-nov13` (3a574f52, 6cc03f47, 07498a8c) non fusionnée, défaut 0, pas de porte B.
+- **estim1_k_mode corrigé (85dfe9d9, publication incrémentale + double facteur route/C70 + marge flotte)** : `estim1_k_air=46` +14,3 k£/an (20/20, p=0,82) ; `+estim1_k_road=15` +12,5 k£/an (20/20, p=0,85) ; avant correction −148,8 k£. Redondant avec `estim_unifie=31` (prior AIR 2,00) selon la revue agy ; **clos**, défaut 0 (branche `grok13-nov13`).
+- **idle1_scan_safe=1 (324d1eb8, `grok15-nov13`)** : delta +31 £/an, 7/6/27 (27 égalités), p=0,84, valeur −0,28 % ⇒ **neutre**, aucun effet mesurable ; le défaut IDLE-1 reste tel quel, non fusionné (correctif de cohérence sans gain).
+- **FLOTTE-AIR (mesure, ff35fd21)** : 84,25 avions Opex contre 48 AAA en 1979 confirmé ; seulement 0,94 % des avions à profit négatif ; V105b/V140 déjà négatifs ⇒ pas de levier.
